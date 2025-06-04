@@ -210,8 +210,8 @@ class OneDragonRunInterface(VerticalScrollInterface):
                 self.app_card_group.addSettingCard(app_run_card)
                 app_run_card.update_display()
 
-                app_run_card.move_up.connect(self.on_app_card_move_up)
-                app_run_card.move_down.connect(self.on_app_card_move_down)
+                # app_run_card.move_up.connect(self.on_app_card_move_up)
+                # app_run_card.move_down.connect(self.on_app_card_move_down)
                 app_run_card.run.connect(self._on_app_card_run)
                 app_run_card.switched.connect(self.on_app_switch_run)
 
@@ -326,24 +326,6 @@ class OneDragonRunInterface(VerticalScrollInterface):
     def _on_app_state_changed(self, event) -> None:
         for app_card in self._app_run_cards:
             app_card.update_display()
-
-    def on_app_card_move_up(self, app_id: str) -> None:
-        """
-        将该应用往上调整一位
-        :param app_id:
-        :return:
-        """
-        self.config.move_up_app(app_id)
-        self._init_app_list()
-
-    def on_app_card_move_down(self, app_id: str) -> None:
-        """
-        将该应用往下调整一位
-        :param app_id:
-        :return:
-        """
-        self.get_one_dragon_app_config().move_down_app(app_id)
-        self._init_app_list()
 
     def _on_app_card_run(self, app_id: str) -> None:
         """

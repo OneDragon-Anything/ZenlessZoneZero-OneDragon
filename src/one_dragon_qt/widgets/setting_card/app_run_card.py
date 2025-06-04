@@ -22,8 +22,8 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
 
 class AppRunCard(MultiPushSettingCard):
 
-    move_up = Signal(str)
-    move_down = Signal(str)
+    # move_up = Signal(str)
+    # move_down = Signal(str)
     run = Signal(str)
     switched = Signal(str, bool)
     drag_started = Signal(str)
@@ -50,13 +50,13 @@ class AppRunCard(MultiPushSettingCard):
         self.drag_btn = TransparentToolButton(FluentIcon.MENU, None)
         self.drag_btn.setToolTip('按住拖拽以调整顺序')
 
-        self.move_up_btn = TransparentToolButton(FluentIcon.UP, None)
-        self.move_up_btn.clicked.connect(self._on_move_up_clicked)
-        self.move_up_btn.setToolTip('向上移动一位')
-
-        self.move_down_btn = TransparentToolButton(FluentIcon.DOWN, None)
-        self.move_down_btn.clicked.connect(self._on_move_down_clicked)
-        self.move_down_btn.setToolTip('向下移动一位')
+        # self.move_up_btn = TransparentToolButton(FluentIcon.UP, None)
+        # self.move_up_btn.clicked.connect(self._on_move_up_clicked)
+        # self.move_up_btn.setToolTip('向上移动一位')
+        #
+        # self.move_down_btn = TransparentToolButton(FluentIcon.DOWN, None)
+        # self.move_down_btn.clicked.connect(self._on_move_down_clicked)
+        # self.move_down_btn.setToolTip('向下移动一位')
 
         self.run_btn = TransparentToolButton(FluentIcon.PLAY, None)
         self.run_btn.clicked.connect(self._on_run_clicked)
@@ -69,7 +69,7 @@ class AppRunCard(MultiPushSettingCard):
 
         MultiPushSettingCard.__init__(
             self,
-            btn_list=[self.drag_btn, self.move_up_btn, self.move_down_btn, self.run_btn, self.switch_btn],
+            btn_list=[self.drag_btn, self.run_btn, self.switch_btn],
             icon=FluentIcon.GAME,
             title=self.app.app_name,
             parent=parent,
@@ -163,19 +163,19 @@ class AppRunCard(MultiPushSettingCard):
                 icon = FluentIcon.INFO
             self.iconLabel.setIcon(icon)
 
-    def _on_move_up_clicked(self) -> None:
-        """
-        向上移动运行顺序
-        :return:
-        """
-        self.move_up.emit(self.app.app_id)
-
-    def _on_move_down_clicked(self) -> None:
-        """
-        向下移动运行顺序
-        :return:
-        """
-        self.move_down.emit(self.app.app_id)
+    # def _on_move_up_clicked(self) -> None:
+    #     """
+    #     向上移动运行顺序
+    #     :return:
+    #     """
+    #     self.move_up.emit(self.app.app_id)
+    #
+    # def _on_move_down_clicked(self) -> None:
+    #     """
+    #     向下移动运行顺序
+    #     :return:
+    #     """
+    #     self.move_down.emit(self.app.app_id)
 
     def _on_run_clicked(self) -> None:
         """
@@ -208,8 +208,8 @@ class AppRunCard(MultiPushSettingCard):
     def setDisabled(self, arg__1: bool) -> None:
         MultiPushSettingCard.setDisabled(self, arg__1)
         self.drag_btn.setDisabled(arg__1)
-        self.move_up_btn.setDisabled(arg__1)
-        self.move_down_btn.setDisabled(arg__1)
+        # self.move_up_btn.setDisabled(arg__1)
+        # self.move_down_btn.setDisabled(arg__1)
         self.run_btn.setDisabled(arg__1)
         self.switch_btn.setDisabled(arg__1)
 
