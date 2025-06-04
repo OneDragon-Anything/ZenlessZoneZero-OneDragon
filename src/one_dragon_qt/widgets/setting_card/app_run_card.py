@@ -45,8 +45,7 @@ class AppRunCard(MultiPushSettingCard, DraggableWidgetMixin):
         self.switch_btn.setChecked(switch_on)
         self.switch_btn.checkedChanged.connect(self._on_switch_changed)
 
-        # 初始化基类
-        DraggableWidgetMixin.__init__(self, parent)
+        # 先初始化主基类
         MultiPushSettingCard.__init__(
             self,
             btn_list=[self.run_btn, self.switch_btn],
@@ -54,6 +53,9 @@ class AppRunCard(MultiPushSettingCard, DraggableWidgetMixin):
             title=self.app.app_name,
             parent=parent,
         )
+
+        # 然后初始化混入类
+        DraggableWidgetMixin.__init__(self)
 
         # 初始化拖拽功能
         self.init_draggable()

@@ -4,25 +4,24 @@ from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import QWidget
 
 
-class DraggableWidgetMixin(QWidget):
+class DraggableWidgetMixin:
     """拖拽功能混入类，提供通用的拖拽能力"""
-    
+
     # 拖拽相关信号
     drag_started = Signal(str)
     drag_moved = Signal(str, int, int)
     drag_finished = Signal(str, int, int)
-    
-    def __init__(self, parent=None):
-        QWidget.__init__(parent)
-        
+
+    def __init__(self, *args, **kwargs):
+
         # 拖拽相关属性
         self._is_dragging: bool = False
-        self._drag_start_pos: QPoint = QPoint()
+        self._drag_start_pos = QPoint()
         self._drag_threshold: int = 10
         self._original_style: str = ""
-        
+
         # 拖拽定时器
-        self._drag_timer: QTimer = QTimer()
+        self._drag_timer = QTimer()
         self._drag_timer.timeout.connect(self._on_drag_timer_timeout)
         self._drag_timer.setInterval(100)
 
