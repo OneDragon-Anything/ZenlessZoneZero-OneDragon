@@ -52,6 +52,62 @@ class OneDragonAppConfig(YamlConfig):
 
         self.app_order = old_app_orders
 
+    def move_down_app(self, app_id: str) -> None:
+        """
+        将一个app的执行顺序往后调一位
+        :param app_id:
+        :return:
+        """
+        old_app_orders = self.app_order
+        idx = -1
+
+        for i in range(len(old_app_orders)):
+            if old_app_orders[i] == app_id:
+                idx = i
+                break
+
+        if idx < 0 or idx >= len(old_app_orders) - 1:  # 无法交换
+            return
+
+        temp = old_app_orders[idx + 1]
+        old_app_orders[idx + 1] = old_app_orders[idx]
+        old_app_orders[idx] = temp
+
+        self.app_order = old_app_orders
+
+    def move_app_to_position(self, app_id: str, target_position: int) -> None:
+        """
+        将应用移动到指定位置（支持拖拽功能）
+        :param app_id: 应用ID
+        :param target_position: 目标位置索引
+        :return:
+        """
+        old_app_orders = self.app_order.copy()
+        current_idx = -1
+
+        # 找到当前应用的位置
+        for i in range(len(old_app_orders)):
+            if old_app_orders[i] == app_id:
+                current_idx = i
+                break
+
+        if current_idx == -1:  # 未找到应用
+            return
+
+        # 限制目标位置在有效范围内
+        target_position = max(0, min(target_position, len(old_app_orders) - 1))
+
+        if current_idx == target_position:  # 位置没有变化
+            return
+
+        # 移除当前位置的应用
+        app_to_move = old_app_orders.pop(current_idx)
+        
+        # 插入到目标位置
+        old_app_orders.insert(target_position, app_to_move)
+
+        self.app_order = old_app_orders
+
     @property
     def app_run_list(self) -> List[str]:
         """

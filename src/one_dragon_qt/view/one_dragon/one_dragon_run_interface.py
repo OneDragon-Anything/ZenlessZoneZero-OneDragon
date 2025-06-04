@@ -67,6 +67,10 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self.need_multiple_instance: bool = need_multiple_instance  # 是否需要多实例
         self.need_after_done_opt: bool = need_after_done_opt  # 结束后
 
+        # 拖拽相关属性
+        self._dragging_app_id: Optional[str] = None
+        self._drag_insert_line: Optional[QWidget] = None
+
     def get_content_widget(self) -> QWidget:
         """
         子界面内的内容组件 由子类实现
@@ -207,8 +211,14 @@ class OneDragonRunInterface(VerticalScrollInterface):
                 app_run_card.update_display()
 
                 app_run_card.move_up.connect(self.on_app_card_move_up)
+                app_run_card.move_down.connect(self.on_app_card_move_down)
                 app_run_card.run.connect(self._on_app_card_run)
                 app_run_card.switched.connect(self.on_app_switch_run)
+
+                # 连接拖拽相关信号
+                app_run_card.drag_started.connect(self._on_app_drag_started)
+                app_run_card.drag_moved.connect(self._on_app_drag_moved)
+                app_run_card.drag_finished.connect(self._on_app_drag_finished)
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
@@ -326,6 +336,15 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self.config.move_up_app(app_id)
         self._init_app_list()
 
+    def on_app_card_move_down(self, app_id: str) -> None:
+        """
+        将该应用往下调整一位
+        :param app_id:
+        :return:
+        """
+        self.get_one_dragon_app_config().move_down_app(app_id)
+        self._init_app_list()
+
     def _on_app_card_run(self, app_id: str) -> None:
         """
         运行某个特殊的应用
@@ -374,3 +393,97 @@ class OneDragonRunInterface(VerticalScrollInterface):
         """
         dialog = NotifyDialog(self, self.ctx)
         dialog.exec()
+
+    def _on_app_drag_started(self, app_id: str) -> None:
+        """
+        开始拖拽应用卡片
+        :param app_id: 应用ID
+        :return:
+        """
+        self._dragging_app_id = app_id
+
+    def _on_app_drag_moved(self, app_id: str, x: int, y: int) -> None:
+        """
+        拖拽应用卡片移动过程中
+        :param app_id: 应用ID
+        :param x: 鼠标X坐标
+        :param y: 鼠标Y坐标
+        :return:
+        """
+        if self._dragging_app_id != app_id:
+            return
+        
+        # 显示插入位置指示器（可选实现）
+        self._show_drop_indicator(y)
+
+    def _on_app_drag_finished(self, app_id: str, x: int, y: int) -> None:
+        """
+        拖拽应用卡片结束
+        :param app_id: 应用ID
+        :param x: 鼠标X坐标
+        :param y: 鼠标Y坐标
+        :return:
+        """
+        if self._dragging_app_id != app_id:
+            return
+        
+        # 计算目标位置
+        target_position = self._calculate_drop_position(y)
+        
+        # 移动应用到目标位置
+        if target_position is not None:
+            self.get_one_dragon_app_config().move_app_to_position(app_id, target_position)
+            self._init_app_list()
+        
+        # 清理拖拽状态
+        self._dragging_app_id = None
+        self._hide_drop_indicator()
+
+    def _show_drop_indicator(self, y: int) -> None:
+        """
+        显示拖拽插入位置指示器
+        :param y: Y坐标
+        :return:
+        """
+        # 这里可以实现可视化的插入位置指示器
+        # 暂时简化实现
+        pass
+
+    def _hide_drop_indicator(self) -> None:
+        """
+        隐藏拖拽插入位置指示器
+        :return:
+        """
+        # 这里可以实现隐藏插入位置指示器
+        # 暂时简化实现
+        pass
+
+    def _calculate_drop_position(self, y: int) -> Optional[int]:
+        """
+        根据Y坐标计算拖拽的目标位置
+        :param y: Y坐标
+        :return: 目标位置索引，如果无效返回None
+        """
+        if len(self._app_run_cards) == 0:
+            return None
+            
+        # 获取应用卡片组的几何信息
+        card_group_widget = self.app_card_group
+        if not card_group_widget:
+            return None
+        
+        # 计算每个卡片的位置
+        card_height = 50  # 假设每个卡片高度为50像素
+        card_spacing = 5   # 卡片间距
+        
+        # 计算相对于卡片组的Y坐标
+        relative_y = y - card_group_widget.y()
+        
+        # 计算目标位置
+        total_height_per_card = card_height + card_spacing
+        target_position = int(relative_y / total_height_per_card)
+        
+        # 限制在有效范围内
+        target_position = max(0, min(target_position, len(self._app_run_cards) - 1))
+        
+        return target_position
