@@ -49,6 +49,8 @@ class AppRunCard(MultiPushSettingCard):
         # 添加拖拽按钮（汉堡按钮）
         self.drag_btn = TransparentToolButton(FluentIcon.MENU, None)
         self.drag_btn.setToolTip('按住拖拽以调整顺序')
+        # 设置鼠标悬停时的光标样式为抓手
+        self.drag_btn.setCursor(Qt.CursorShape.OpenHandCursor)
 
         # self.move_up_btn = TransparentToolButton(FluentIcon.UP, None)
         # self.move_up_btn.clicked.connect(self._on_move_up_clicked)
@@ -113,6 +115,7 @@ class AppRunCard(MultiPushSettingCard):
                     if ((event.pos() - self._drag_start_pos).manhattanLength() > 
                         self._drag_threshold):
                         self._is_dragging = True
+                        self.drag_btn.setCursor(Qt.CursorShape.ClosedHandCursor)
                         self.drag_started.emit(self.app.app_id)
                         # 设置拖拽样式
                         self._set_dragging_style(True)
@@ -130,6 +133,7 @@ class AppRunCard(MultiPushSettingCard):
                     parent_pos = self.parent().mapFromGlobal(global_pos)
                     self.drag_finished.emit(self.app.app_id, parent_pos.x(), parent_pos.y())
                     self._is_dragging = False
+                    self.drag_btn.setCursor(Qt.CursorShape.OpenHandCursor)
                     # 恢复原有样式
                     self._set_dragging_style(False)
                     return True
