@@ -67,6 +67,7 @@ def configure_environment():
         'PYTHON': python_path,
         'PYTHONPATH': os.path.join(path, "src"),
         'UV_PATH': uv_path,
+        'UV_DEFAULT_INDEX': config.get('pip_source', 'https://pypi.org/simple/'),
         'AUTO_UPDATE': str(auto_update).lower(),
     })
     for var in ['PYTHON', 'PYTHONPATH', 'UV_PATH', 'AUTO_UPDATE']:
