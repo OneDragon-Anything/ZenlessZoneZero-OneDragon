@@ -1,0 +1,5 @@
+operations:
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 2.2
+  - operation_template: "雨果-普通攻击A4"

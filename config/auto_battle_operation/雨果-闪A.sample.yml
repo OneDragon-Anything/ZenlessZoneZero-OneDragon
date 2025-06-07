@@ -1,0 +1,7 @@
+# 根据动画实测
+operations:
+  - operation_template: "通用-闪避-左"
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 10
+  - operation_template: "雨果-普通攻击A4"

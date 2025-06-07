@@ -1,0 +1,10 @@
+# 根据动画实测
+operations:
+  - op_name: "设置状态"
+    state: "自定义-连携换人"
+    seconds_add: -1
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 2
+  - op_name: "等待秒数"
+    seconds: 2
