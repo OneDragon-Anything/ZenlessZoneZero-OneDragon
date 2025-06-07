@@ -26,14 +26,14 @@ area_list:
   template_match_threshold: 0.7
 - area_name: 地图
   pc_rect:
-  - 1728
-  - 778
-  - 1826
-  - 876
+  - 1735
+  - 325
+  - 1810
+  - 400
   text: ''
   lcs_percent: 0.1
   template_sub_dir: normal_world
-  template_id: map
+  template_id: map_new
   template_match_threshold: 0.7
 - area_name: 快捷手册
   pc_rect:

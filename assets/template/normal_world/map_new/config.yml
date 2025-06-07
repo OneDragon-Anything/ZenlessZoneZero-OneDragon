@@ -1,0 +1,8 @@
+sub_dir: normal_world
+template_id: map_new
+template_name: 大世界-地图-新
+template_shape: circle
+auto_mask: true
+point_list:
+- 1773, 360
+- 1800, 375
