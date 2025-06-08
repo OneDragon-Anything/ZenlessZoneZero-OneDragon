@@ -16,14 +16,16 @@ try:
     from one_dragon.utils.i18_utils import gt
 
     from zzz_od.context.zzz_context import ZContext
+    # 延迟导入界面类 - 避免启动时卡顿
+    # from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
+    # from zzz_od.gui.view.devtools.app_devtools_interface import AppDevtoolsInterface
+    # from zzz_od.gui.view.game_assistant.game_assistant import GameAssistantInterface
+    # from zzz_od.gui.view.hollow_zero.hollow_zero_interface import HollowZeroInterface
+    # from zzz_od.gui.view.home.home_interface import HomeInterface
+    # from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
+    # from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
+    # from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
     from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
-    from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
-    from zzz_od.gui.view.devtools.app_devtools_interface import AppDevtoolsInterface
-    from zzz_od.gui.view.game_assistant.game_assistant import GameAssistantInterface
-    from zzz_od.gui.view.hollow_zero.hollow_zero_interface import HollowZeroInterface
-    from zzz_od.gui.view.home.home_interface import HomeInterface
-    from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
-    from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
     from zzz_od.gui.widgets.zzz_welcome_dialog import ZWelcomeDialog
 
     _init_error = None
@@ -110,50 +112,61 @@ try:
             # self.setAeroEffectEnabled(True)
 
         def create_sub_interface(self):
-            """创建和添加各个子界面"""
+            """创建和添加各个子界面 - 分阶段创建"""
 
-            # 主页
+            # 初始化
+            from zzz_od.gui.view.home.home_interface import HomeInterface
             self.add_sub_interface(HomeInterface(self.ctx, parent=self))
 
-            # 战斗助手
-            self.add_sub_interface(BattleAssistantInterface(self.ctx, parent=self))
-
-            # 一条龙
-            self.add_sub_interface(ZOneDragonInterface(self.ctx, parent=self))
-
-            # 空洞
-            self.add_sub_interface(HollowZeroInterface(self.ctx, parent=self))
-
-            # 游戏助手
-            self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
-
-            # 点赞
+            # 底部
             self.add_sub_interface(
                 LikeInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
-            # 开发工具
-            self.add_sub_interface(
-                AppDevtoolsInterface(self.ctx, parent=self),
-                position=NavigationItemPosition.BOTTOM,
-            )
-
-            # 代码同步
             self.add_sub_interface(
                 CodeInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
-            # 多账号管理
+            from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
             self.add_sub_interface(
                 AccountsInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
-            # 设置
+            from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
             self.add_sub_interface(
                 AppSettingInterface(self.ctx, parent=self),
+                position=NavigationItemPosition.BOTTOM,
+            )
+
+            # 主页之外
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(50, self._create_heavy_interfaces)
+
+        def _create_heavy_interfaces(self):
+            """异步创建重量级界面"""
+            # 战斗助手
+            from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
+            self.add_sub_interface(BattleAssistantInterface(self.ctx, parent=self))
+
+            # 一条龙
+            from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
+            self.add_sub_interface(ZOneDragonInterface(self.ctx, parent=self))
+
+            # 空洞
+            from zzz_od.gui.view.hollow_zero.hollow_zero_interface import HollowZeroInterface
+            self.add_sub_interface(HollowZeroInterface(self.ctx, parent=self))
+
+            # 游戏助手
+            from zzz_od.gui.view.game_assistant.game_assistant import GameAssistantInterface
+            self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
+
+            # 开发工具
+            from zzz_od.gui.view.devtools.app_devtools_interface import AppDevtoolsInterface
+            self.add_sub_interface(
+                AppDevtoolsInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
@@ -216,7 +229,7 @@ if __name__ == "__main__":
 
     _ctx = ZContext()
 
-    # 加载配置
+    # 测试配置加载时间
     _ctx.init_by_config()
 
     # 异步加载OCR
@@ -231,8 +244,10 @@ if __name__ == "__main__":
     # 创建并显示主窗口
     w = AppWindow(_ctx)
 
+    # 显示窗口
     w.show()
     w.activateWindow()
+
 
     # 启动应用程序事件循环
     app.exec()
