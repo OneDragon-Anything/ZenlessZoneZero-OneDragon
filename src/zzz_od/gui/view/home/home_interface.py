@@ -386,10 +386,13 @@ class HomeInterface(VerticalScrollInterface):
 
     def _on_start_game(self):
         """启动一条龙按钮点击事件处理"""
-        # app.py中一条龙界面为第三个添加的
         self.ctx.signal.start_onedragon = True
-        one_dragon_interface = self.main_window.stackedWidget.widget(2)
-        self.main_window.switchTo(one_dragon_interface)
+
+        for i in range(self.main_window.stackedWidget.count()):
+            widget = self.main_window.stackedWidget.widget(i)
+            if widget.objectName() == "onedragon_interface":
+                self.main_window.switchTo(widget)
+                break
 
     def reload_banner(self, show_notification: bool = False) -> None:
         """

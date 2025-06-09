@@ -153,7 +153,9 @@ try:
 
             # 一条龙
             from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
-            self.add_sub_interface(ZOneDragonInterface(self.ctx, parent=self))
+            onedragon_interface = ZOneDragonInterface(self.ctx, parent=self)
+            onedragon_interface.setObjectName("onedragon_interface")
+            self.add_sub_interface(onedragon_interface)
 
             # 空洞
             from zzz_od.gui.view.hollow_zero.hollow_zero_interface import HollowZeroInterface
