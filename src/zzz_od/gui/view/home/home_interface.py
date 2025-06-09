@@ -390,7 +390,7 @@ class HomeInterface(VerticalScrollInterface):
 
         for i in range(self.main_window.stackedWidget.count()):
             widget = self.main_window.stackedWidget.widget(i)
-            if widget.objectName() == "onedragon_interface":
+            if widget.objectName() == "one_dragon_interface":
                 self.main_window.switchTo(widget)
                 break
 

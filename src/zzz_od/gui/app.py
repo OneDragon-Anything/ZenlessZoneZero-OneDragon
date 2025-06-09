@@ -12,6 +12,8 @@ try:
     from one_dragon_qt.view.code_interface import CodeInterface
     from one_dragon_qt.view.context_event_signal import ContextEventSignal
     from one_dragon_qt.windows.app_window_base import AppWindowBase
+    from one_dragon_qt.windows.window import PhosTitleBar
+    from one_dragon_qt.widgets.welcome_dialog import WelcomeDialog
     from one_dragon.utils import app_utils
     from one_dragon.utils.i18_utils import gt
 
@@ -47,10 +49,22 @@ try:
 
     # 定义应用程序的主窗口类
     class AppWindow(AppWindowBase):
+        titleBar: PhosTitleBar
 
         def __init__(self, ctx: ZContext, parent=None):
             """初始化主窗口类，设置窗口标题和图标"""
             self.ctx: ZContext = ctx
+
+            project_name = "Unknown Project"
+            if ctx.project_config is not None and ctx.project_config.project_name is not None:
+                project_name = ctx.project_config.project_name
+
+            instance_name = "Default Instance"
+            if ctx.one_dragon_config is not None and \
+               ctx.one_dragon_config.current_active_instance is not None and \
+               ctx.one_dragon_config.current_active_instance.name is not None:
+                instance_name = ctx.one_dragon_config.current_active_instance.name
+
             AppWindowBase.__init__(
                 self,
                 win_title="%s %s"
@@ -71,8 +85,24 @@ try:
             self._check_version_runner.get.connect(self._update_version)
             self._check_version_runner.start()
 
+            self.ctx.listen_event(
+                ContextInstanceEventEnum.instance_active,
+                self._on_instance_active_event,
+            )
+            self._context_event_signal: ContextEventSignal = ContextEventSignal()
+            self._context_event_signal.instance_changed.connect(
+                self._on_instance_active_signal
+            )
+
             self._check_first_run()
 
+        def _update_version(self, ver: str) -> None:
+            """
+            更新版本显示
+            @param ver:
+            @return:
+            """
+            self.titleBar.setVersion(ver)
         # 继承初始化函数
         def init_window(self):
             self.resize(1050, 700)
@@ -116,59 +146,64 @@ try:
 
             # 初始化
             from zzz_od.gui.view.home.home_interface import HomeInterface
+            # 仪表盘 (Top 1)
             self.add_sub_interface(HomeInterface(self.ctx, parent=self))
 
-            # 底部
+            # 底部第一个
+            # 点赞 (Bottom 1)
             self.add_sub_interface(
                 LikeInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
+            # 延迟加载其余界面
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(50, self._create_remaining_interfaces)
+
+        def _create_remaining_interfaces(self):  # Renamed from _create_heavy_interfaces
+            """异步创建剩余的界面"""
+            # 顶部项目 (按顺序添加)
+            # 战斗助手 (Top 2)
+            from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
+            self.add_sub_interface(BattleAssistantInterface(self.ctx, parent=self))
+
+            # 一条龙 (Top 3)
+            from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
+            self.add_sub_interface(ZOneDragonInterface(self.ctx, parent=self))
+
+            # 空洞 (Top 4)
+            from zzz_od.gui.view.hollow_zero.hollow_zero_interface import HollowZeroInterface
+            self.add_sub_interface(HollowZeroInterface(self.ctx, parent=self))
+
+            # 游戏助手 (Top 5)
+            from zzz_od.gui.view.game_assistant.game_assistant import GameAssistantInterface
+            self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
+
+            # 底部项目 (按顺序添加)
+            # 开发工具 (Bottom 2)
+            from zzz_od.gui.view.devtools.app_devtools_interface import AppDevtoolsInterface
+            self.add_sub_interface(
+                AppDevtoolsInterface(self.ctx, parent=self),
+                position=NavigationItemPosition.BOTTOM,
+            )
+
+            # 代码同步 (Bottom 3)
             self.add_sub_interface(
                 CodeInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
+            # 账户管理 (Bottom 4)
             from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
             self.add_sub_interface(
                 AccountsInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
+            # 设置 (Bottom 5)
             from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
             self.add_sub_interface(
                 AppSettingInterface(self.ctx, parent=self),
-                position=NavigationItemPosition.BOTTOM,
-            )
-
-            # 主页之外
-            from PySide6.QtCore import QTimer
-            QTimer.singleShot(50, self._create_heavy_interfaces)
-
-        def _create_heavy_interfaces(self):
-            """异步创建重量级界面"""
-            # 战斗助手
-            from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
-            self.add_sub_interface(BattleAssistantInterface(self.ctx, parent=self))
-
-            # 一条龙
-            from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
-            onedragon_interface = ZOneDragonInterface(self.ctx, parent=self)
-            onedragon_interface.setObjectName("onedragon_interface")
-            self.add_sub_interface(onedragon_interface)
-
-            # 空洞
-            from zzz_od.gui.view.hollow_zero.hollow_zero_interface import HollowZeroInterface
-            self.add_sub_interface(HollowZeroInterface(self.ctx, parent=self))
-
-            # 游戏助手
-            from zzz_od.gui.view.game_assistant.game_assistant import GameAssistantInterface
-            self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
-
-            # 开发工具
-            from zzz_od.gui.view.devtools.app_devtools_interface import AppDevtoolsInterface
-            self.add_sub_interface(
-                AppDevtoolsInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
