@@ -17,6 +17,7 @@ class ZContext(OneDragonContext):
 
 
         # 延迟加载的上下文，只在需要时初始化
+        self._hollow_zero_challenge_config = None
         self._hollow: Optional['HollowContext'] = None
         self._lost_void: Optional['LostVoidContext'] = None
 
@@ -148,9 +149,9 @@ class ZContext(OneDragonContext):
         from zzz_od.hollow_zero.hollow_zero_challenge_config import HollowZeroChallengeConfig
         challenge_config = self.hollow_zero_config.challenge_config
         if challenge_config is None:
-            self.hollow_zero_challenge_config = HollowZeroChallengeConfig('', is_mock=True)
+            self._hollow_zero_challenge_config = HollowZeroChallengeConfig('', is_mock=True)
         else:
-            self.hollow_zero_challenge_config = HollowZeroChallengeConfig(challenge_config)
+            self._hollow_zero_challenge_config = HollowZeroChallengeConfig(challenge_config)
 
     def init_agent_template_id(self) -> None:
         """
@@ -181,7 +182,7 @@ class ZContext(OneDragonContext):
 
     # 懒加载的配置属性
     @property
-    def hollow_zero_config(self):
+    def hollow_zero_config(self) -> 'HollowZeroConfig':
         """懒加载空洞配置"""
         if not hasattr(self, '_hollow_zero_config'):
             from zzz_od.application.hollow_zero.withered_domain.hollow_zero_config import HollowZeroConfig
@@ -189,7 +190,7 @@ class ZContext(OneDragonContext):
         return self._hollow_zero_config
 
     @property
-    def battle_assistant_config(self):
+    def battle_assistant_config(self) -> 'BattleAssistantConfig':
         """懒加载战斗助手配置"""
         if not hasattr(self, '_battle_assistant_config'):
             from zzz_od.application.battle_assistant.battle_assistant_config import BattleAssistantConfig
@@ -197,7 +198,7 @@ class ZContext(OneDragonContext):
         return self._battle_assistant_config
 
     @property
-    def screenshot_helper_config(self):
+    def screenshot_helper_config(self) -> 'ScreenshotHelperConfig':
         """懒加载截图助手配置"""
         if not hasattr(self, '_screenshot_helper_config'):
             from zzz_od.application.devtools.screenshot_helper.screenshot_helper_config import ScreenshotHelperConfig
@@ -205,7 +206,7 @@ class ZContext(OneDragonContext):
         return self._screenshot_helper_config
 
     @property
-    def random_play_config(self):
+    def random_play_config(self) -> 'RandomPlayConfig':
         """懒加载随机播放配置"""
         if not hasattr(self, '_random_play_config'):
             from zzz_od.application.random_play.random_play_config import RandomPlayConfig
@@ -213,7 +214,7 @@ class ZContext(OneDragonContext):
         return self._random_play_config
 
     @property
-    def commission_assistant_config(self):
+    def commission_assistant_config(self) -> 'CommissionAssistantConfig':
         """懒加载委托助手配置"""
         if not hasattr(self, '_commission_assistant_config'):
             from zzz_od.application.commission_assistant.commission_assistant_config import CommissionAssistantConfig
@@ -221,7 +222,7 @@ class ZContext(OneDragonContext):
         return self._commission_assistant_config
 
     @property
-    def charge_plan_config(self):
+    def charge_plan_config(self) -> 'ChargePlanConfig':
         """懒加载体力计划配置"""
         if not hasattr(self, '_charge_plan_config'):
             from zzz_od.application.charge_plan.charge_plan_config import ChargePlanConfig
@@ -229,7 +230,7 @@ class ZContext(OneDragonContext):
         return self._charge_plan_config
 
     @property
-    def notorious_hunt_config(self):
+    def notorious_hunt_config(self) -> 'NotoriousHuntConfig':
         """懒加载恶名狩猎配置"""
         if not hasattr(self, '_notorious_hunt_config'):
             from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig
@@ -237,7 +238,7 @@ class ZContext(OneDragonContext):
         return self._notorious_hunt_config
 
     @property
-    def coffee_config(self):
+    def coffee_config(self) -> 'CoffeeConfig':
         """懒加载咖啡配置"""
         if not hasattr(self, '_coffee_config'):
             from zzz_od.application.coffee.coffee_config import CoffeeConfig
@@ -245,7 +246,7 @@ class ZContext(OneDragonContext):
         return self._coffee_config
 
     @property
-    def life_on_line_config(self):
+    def life_on_line_config(self) -> 'LifeOnLineConfig':
         """懒加载生活在线配置"""
         if not hasattr(self, '_life_on_line_config'):
             from zzz_od.application.life_on_line.life_on_line_config import LifeOnLineConfig
@@ -253,7 +254,7 @@ class ZContext(OneDragonContext):
         return self._life_on_line_config
 
     @property
-    def shiyu_defense_config(self):
+    def shiyu_defense_config(self) -> 'ShiyuDefenseConfig':
         """懒加载式舆防卫配置"""
         if not hasattr(self, '_shiyu_defense_config'):
             from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
@@ -261,7 +262,7 @@ class ZContext(OneDragonContext):
         return self._shiyu_defense_config
 
     @property
-    def miscellany_config(self):
+    def miscellany_config(self) -> 'MiscellanyConfig':
         """懒加载杂项配置"""
         if not hasattr(self, '_miscellany_config'):
             from zzz_od.application.miscellany.miscellany_config import MiscellanyConfig
@@ -269,7 +270,7 @@ class ZContext(OneDragonContext):
         return self._miscellany_config
 
     @property
-    def drive_disc_dismantle_config(self):
+    def drive_disc_dismantle_config(self) -> 'DriveDiscDismantleConfig':
         """懒加载驱动盘拆解配置"""
         if not hasattr(self, '_drive_disc_dismantle_config'):
             from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import DriveDiscDismantleConfig
@@ -277,7 +278,7 @@ class ZContext(OneDragonContext):
         return self._drive_disc_dismantle_config
 
     @property
-    def notify_config(self):
+    def notify_config(self) -> 'NotifyConfig':
         """懒加载通知配置"""
         if not hasattr(self, '_notify_config'):
             from zzz_od.config.notify_config import NotifyConfig
@@ -285,7 +286,7 @@ class ZContext(OneDragonContext):
         return self._notify_config
 
     @property
-    def lost_void_config(self):
+    def lost_void_config(self) -> 'LostVoidConfig':
         """懒加载迷失之地配置"""
         if not hasattr(self, '_lost_void_config'):
             from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig
@@ -293,7 +294,7 @@ class ZContext(OneDragonContext):
         return self._lost_void_config
 
     @property
-    def hollow_zero_challenge_config(self):
+    def hollow_zero_challenge_config(self) -> 'HollowZeroChallengeConfig':
         """懒加载空洞挑战配置"""
         if not hasattr(self, '_hollow_zero_challenge_config'):
             self.init_hollow_config()
@@ -301,7 +302,7 @@ class ZContext(OneDragonContext):
 
     # 懒加载的运行记录属性
     @property
-    def email_run_record(self):
+    def email_run_record(self) -> 'EmailRunRecord':
         """懒加载邮件运行记录"""
         if not hasattr(self, '_email_run_record'):
             from zzz_od.application.email_app.email_run_record import EmailRunRecord
@@ -311,7 +312,7 @@ class ZContext(OneDragonContext):
         return self._email_run_record
 
     @property
-    def random_play_run_record(self):
+    def random_play_run_record(self) -> 'RandomPlayRunRecord':
         """懒加载随机播放运行记录"""
         if not hasattr(self, '_random_play_run_record'):
             from zzz_od.application.random_play.random_play_run_record import RandomPlayRunRecord
@@ -321,7 +322,7 @@ class ZContext(OneDragonContext):
         return self._random_play_run_record
 
     @property
-    def scratch_card_run_record(self):
+    def scratch_card_run_record(self) -> 'ScratchCardRunRecord':
         """懒加载刮刮卡运行记录"""
         if not hasattr(self, '_scratch_card_run_record'):
             from zzz_od.application.scratch_card.scratch_card_run_record import ScratchCardRunRecord
@@ -331,7 +332,7 @@ class ZContext(OneDragonContext):
         return self._scratch_card_run_record
 
     @property
-    def charge_plan_run_record(self):
+    def charge_plan_run_record(self) -> 'ChargePlanRunRecord':
         """懒加载体力计划运行记录"""
         if not hasattr(self, '_charge_plan_run_record'):
             from zzz_od.application.charge_plan.charge_plan_run_record import ChargePlanRunRecord
@@ -341,7 +342,7 @@ class ZContext(OneDragonContext):
         return self._charge_plan_run_record
 
     @property
-    def engagement_reward_run_record(self):
+    def engagement_reward_run_record(self) -> 'EngagementRewardRunRecord':
         """懒加载参与奖励运行记录"""
         if not hasattr(self, '_engagement_reward_run_record'):
             from zzz_od.application.engagement_reward.engagement_reward_run_record import EngagementRewardRunRecord
@@ -351,7 +352,7 @@ class ZContext(OneDragonContext):
         return self._engagement_reward_run_record
 
     @property
-    def notorious_hunt_record(self):
+    def notorious_hunt_record(self) -> 'NotoriousHuntRunRecord':
         """懒加载恶名狩猎运行记录"""
         if not hasattr(self, '_notorious_hunt_record'):
             from zzz_od.application.notorious_hunt.notorious_hunt_run_record import NotoriousHuntRunRecord
@@ -361,7 +362,7 @@ class ZContext(OneDragonContext):
         return self._notorious_hunt_record
 
     @property
-    def hollow_zero_record(self):
+    def hollow_zero_record(self) -> 'HollowZeroRunRecord':
         """懒加载空洞运行记录"""
         if not hasattr(self, '_hollow_zero_record'):
             from zzz_od.application.hollow_zero.withered_domain.hollow_zero_run_record import HollowZeroRunRecord
@@ -371,7 +372,7 @@ class ZContext(OneDragonContext):
         return self._hollow_zero_record
 
     @property
-    def coffee_record(self):
+    def coffee_record(self) -> 'CoffeeRunRecord':
         """懒加载咖啡运行记录"""
         if not hasattr(self, '_coffee_record'):
             from zzz_od.application.coffee.coffee_run_record import CoffeeRunRecord
@@ -381,7 +382,7 @@ class ZContext(OneDragonContext):
         return self._coffee_record
 
     @property
-    def city_fund_record(self):
+    def city_fund_record(self) -> 'CityFundRunRecord':
         """懒加载城市基金运行记录"""
         if not hasattr(self, '_city_fund_record'):
             from zzz_od.application.city_fund.city_fund_run_record import CityFundRunRecord
@@ -391,7 +392,7 @@ class ZContext(OneDragonContext):
         return self._city_fund_record
 
     @property
-    def life_on_line_record(self):
+    def life_on_line_record(self) -> 'LifeOnLineRunRecord':
         """懒加载生活在线运行记录"""
         if not hasattr(self, '_life_on_line_record'):
             from zzz_od.application.life_on_line.life_on_line_run_record import LifeOnLineRunRecord
@@ -401,7 +402,7 @@ class ZContext(OneDragonContext):
         return self._life_on_line_record
 
     @property
-    def redemption_code_record(self):
+    def redemption_code_record(self) -> 'RedemptionCodeRunRecord':
         """懒加载兑换码运行记录"""
         if not hasattr(self, '_redemption_code_record'):
             from zzz_od.application.redemption_code.redemption_code_run_record import RedemptionCodeRunRecord
@@ -411,7 +412,7 @@ class ZContext(OneDragonContext):
         return self._redemption_code_record
 
     @property
-    def ridu_weekly_record(self):
+    def ridu_weekly_record(self) -> 'RiduWeeklyRunRecord':
         """懒加载绳网每周运行记录"""
         if not hasattr(self, '_ridu_weekly_record'):
             from zzz_od.application.ridu_weekly.ridu_weekly_run_record import RiduWeeklyRunRecord
@@ -421,7 +422,7 @@ class ZContext(OneDragonContext):
         return self._ridu_weekly_record
 
     @property
-    def shiyu_defense_record(self):
+    def shiyu_defense_record(self) -> 'ShiyuDefenseRunRecord':
         """懒加载式舆防卫运行记录"""
         if not hasattr(self, '_shiyu_defense_record'):
             from zzz_od.application.shiyu_defense.shiyu_defense_run_record import ShiyuDefenseRunRecord
@@ -431,7 +432,7 @@ class ZContext(OneDragonContext):
         return self._shiyu_defense_record
 
     @property
-    def miscellany_record(self):
+    def miscellany_record(self) -> 'MiscellanyRunRecord':
         """懒加载杂项运行记录"""
         if not hasattr(self, '_miscellany_record'):
             from zzz_od.application.miscellany.miscellany_run_record import MiscellanyRunRecord
@@ -441,7 +442,7 @@ class ZContext(OneDragonContext):
         return self._miscellany_record
 
     @property
-    def drive_disc_dismantle_record(self):
+    def drive_disc_dismantle_record(self) -> 'DriveDiscDismantleRunRecord':
         """懒加载驱动盘拆解运行记录"""
         if not hasattr(self, '_drive_disc_dismantle_record'):
             from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_run_record import DriveDiscDismantleRunRecord
@@ -451,7 +452,7 @@ class ZContext(OneDragonContext):
         return self._drive_disc_dismantle_record
 
     @property
-    def notify_record(self):
+    def notify_record(self) -> 'NotifyRunRecord':
         """懒加载通知运行记录"""
         if not hasattr(self, '_notify_record'):
             from zzz_od.application.notify.notify_run_record import NotifyRunRecord
@@ -461,7 +462,7 @@ class ZContext(OneDragonContext):
         return self._notify_record
 
     @property
-    def lost_void_record(self):
+    def lost_void_record(self) -> 'LostVoidRunRecord':
         """懒加载迷失之地运行记录"""
         if not hasattr(self, '_lost_void_record'):
             from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import LostVoidRunRecord
@@ -471,7 +472,7 @@ class ZContext(OneDragonContext):
         return self._lost_void_record
 
     @property
-    def trigrams_collection_record(self):
+    def trigrams_collection_record(self) -> 'TrigramsCollectionRunRecord':
         """懒加载卦象运行记录"""
         if not hasattr(self, '_trigrams_collection_record'):
             from zzz_od.application.trigrams_collection.trigrams_collection_record import TrigramsCollectionRunRecord
