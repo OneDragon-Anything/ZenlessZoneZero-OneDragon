@@ -66,6 +66,10 @@ class ZContext(OneDragonContext):
     def load_instance_config(self) -> None:
         OneDragonContext.load_instance_config(self)
 
+        # 清理缓存的懒加载配置和运行记录
+        self._clear_cached_configs()
+        self._clear_cached_run_records()
+
         # 只加载最基本的核心配置
         from zzz_od.config.game_config import GameConfig
         self.game_config: GameConfig = GameConfig(self.current_instance_idx)
@@ -475,3 +479,54 @@ class ZContext(OneDragonContext):
             self._trigrams_collection_record = TrigramsCollectionRunRecord(self.current_instance_idx, game_refresh_hour_offset)
             self._trigrams_collection_record.check_and_update_status()
         return self._trigrams_collection_record
+
+    def _clear_cached_configs(self) -> None:
+        """清理所有缓存的配置对象"""
+        config_attrs = [
+            '_hollow_zero_config',
+            '_battle_assistant_config',
+            '_screenshot_helper_config',
+            '_random_play_config',
+            '_commission_assistant_config',
+            '_charge_plan_config',
+            '_notorious_hunt_config',
+            '_coffee_config',
+            '_life_on_line_config',
+            '_shiyu_defense_config',
+            '_miscellany_config',
+            '_drive_disc_dismantle_config',
+            '_notify_config',
+            '_lost_void_config',
+            '_hollow_zero_challenge_config'
+        ]
+
+        for attr in config_attrs:
+            if hasattr(self, attr):
+                delattr(self, attr)
+
+    def _clear_cached_run_records(self) -> None:
+        """清理所有缓存的运行记录对象"""
+        record_attrs = [
+            '_email_run_record',
+            '_random_play_run_record',
+            '_scratch_card_run_record',
+            '_charge_plan_run_record',
+            '_engagement_reward_run_record',
+            '_notorious_hunt_record',
+            '_hollow_zero_record',
+            '_coffee_record',
+            '_city_fund_record',
+            '_life_on_line_record',
+            '_redemption_code_record',
+            '_ridu_weekly_record',
+            '_shiyu_defense_record',
+            '_miscellany_record',
+            '_drive_disc_dismantle_record',
+            '_notify_record',
+            '_lost_void_record',
+            '_trigrams_collection_record'
+        ]
+
+        for attr in record_attrs:
+            if hasattr(self, attr):
+                delattr(self, attr)
