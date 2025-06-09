@@ -180,7 +180,7 @@ class ZContext(OneDragonContext):
         """
         OneDragonContext.after_app_shutdown(self)
 
-    # 懒加载的配置属性
+    # 空洞
     @property
     def hollow_zero_config(self) -> 'HollowZeroConfig':
         """懒加载空洞配置"""
@@ -189,6 +189,214 @@ class ZContext(OneDragonContext):
             self._hollow_zero_config = HollowZeroConfig(self.current_instance_idx)
         return self._hollow_zero_config
 
+    @property
+    def hollow_zero_record(self) -> 'HollowZeroRunRecord':
+        """懒加载空洞运行记录"""
+        if not hasattr(self, '_hollow_zero_record'):
+            from zzz_od.application.hollow_zero.withered_domain.hollow_zero_run_record import HollowZeroRunRecord
+            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+            self._hollow_zero_record = HollowZeroRunRecord(self.hollow_zero_config, self.current_instance_idx, game_refresh_hour_offset)
+            self._hollow_zero_record.check_and_update_status()
+        return self._hollow_zero_record
+
+    @property
+    def hollow_zero_challenge_config(self) -> 'HollowZeroChallengeConfig':
+        """懒加载空洞挑战配置"""
+        if not hasattr(self, '_hollow_zero_challenge_config'):
+            self.init_hollow_config()
+        return self._hollow_zero_challenge_config
+
+    # 迷失之地
+    @property
+    def lost_void_config(self) -> 'LostVoidConfig':
+        """懒加载迷失之地配置"""
+        if not hasattr(self, '_lost_void_config'):
+            from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig
+            self._lost_void_config = LostVoidConfig(self.current_instance_idx)
+        return self._lost_void_config
+
+    @property
+    def lost_void_record(self) -> 'LostVoidRunRecord':
+        """懒加载迷失之地运行记录"""
+        if not hasattr(self, '_lost_void_record'):
+            from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import LostVoidRunRecord
+            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+            self._lost_void_record = LostVoidRunRecord(self.lost_void_config, self.current_instance_idx, game_refresh_hour_offset)
+            self._lost_void_record.check_and_update_status()
+        return self._lost_void_record
+
+    # Random Play 录像店
+    @property
+    def random_play_config(self) -> 'RandomPlayConfig':
+        """懒加载随机播放配置"""
+        if not hasattr(self, '_random_play_config'):
+            from zzz_od.application.random_play.random_play_config import RandomPlayConfig
+            self._random_play_config = RandomPlayConfig(self.current_instance_idx)
+        return self._random_play_config
+
+    @property
+    def random_play_run_record(self) -> 'RandomPlayRunRecord':
+        """懒加载随机播放运行记录"""
+        if not hasattr(self, '_random_play_run_record'):
+            from zzz_od.application.random_play.random_play_run_record import RandomPlayRunRecord
+            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+            self._random_play_run_record = RandomPlayRunRecord(self.current_instance_idx, game_refresh_hour_offset)
+            self._random_play_run_record.check_and_update_status()
+        return self._random_play_run_record
+
+    # 体力计划
+    @property
+    def charge_plan_config(self) -> 'ChargePlanConfig':
+        """懒加载体力计划配置"""
+        if not hasattr(self, '_charge_plan_config'):
+            from zzz_od.application.charge_plan.charge_plan_config import ChargePlanConfig
+            self._charge_plan_config = ChargePlanConfig(self.current_instance_idx)
+        return self._charge_plan_config
+
+    @property
+    def charge_plan_run_record(self) -> 'ChargePlanRunRecord':
+        """懒加载体力计划运行记录"""
+        if not hasattr(self, '_charge_plan_run_record'):
+            from zzz_od.application.charge_plan.charge_plan_run_record import ChargePlanRunRecord
+            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+            self._charge_plan_run_record = ChargePlanRunRecord(self.current_instance_idx, game_refresh_hour_offset)
+            self._charge_plan_run_record.check_and_update_status()
+        return self._charge_plan_run_record
+
+    # 恶名狩猎
+    @property
+    def notorious_hunt_config(self) -> 'NotoriousHuntConfig':
+        """懒加载恶名狩猎配置"""
+        if not hasattr(self, '_notorious_hunt_config'):
+            from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig
+            self._notorious_hunt_config = NotoriousHuntConfig(self.current_instance_idx)
+        return self._notorious_hunt_config
+
+    @property
+    def notorious_hunt_record(self) -> 'NotoriousHuntRunRecord':
+        """懒加载恶名狩猎运行记录"""
+        if not hasattr(self, '_notorious_hunt_record'):
+            from zzz_od.application.notorious_hunt.notorious_hunt_run_record import NotoriousHuntRunRecord
+            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+            self._notorious_hunt_record = NotoriousHuntRunRecord(self.current_instance_idx, game_refresh_hour_offset)
+            self._notorious_hunt_record.check_and_update_status()
+        return self._notorious_hunt_record
+
+    # 咖啡计划
+    @property
+    def coffee_config(self) -> 'CoffeeConfig':
+        """懒加载咖啡配置"""
+        if not hasattr(self, '_coffee_config'):
+            from zzz_od.application.coffee.coffee_config import CoffeeConfig
+            self._coffee_config = CoffeeConfig(self.current_instance_idx)
+        return self._coffee_config
+
+    @property
+    def coffee_record(self) -> 'CoffeeRunRecord':
+        """懒加载咖啡运行记录"""
+        if not hasattr(self, '_coffee_record'):
+            from zzz_od.application.coffee.coffee_run_record import CoffeeRunRecord
+            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+            self._coffee_record = CoffeeRunRecord(self.current_instance_idx, game_refresh_hour_offset)
+            self._coffee_record.check_and_update_status()
+        return self._coffee_record
+
+    # 生活在线
+    @property
+    def life_on_line_config(self) -> 'LifeOnLineConfig':
+        """懒加载生活在线配置"""
+        if not hasattr(self, '_life_on_line_config'):
+            from zzz_od.application.life_on_line.life_on_line_config import LifeOnLineConfig
+            self._life_on_line_config = LifeOnLineConfig(self.current_instance_idx)
+        return self._life_on_line_config
+
+    @property
+    def life_on_line_record(self) -> 'LifeOnLineRunRecord':
+        """懒加载生活在线运行记录"""
+        if not hasattr(self, '_life_on_line_record'):
+            from zzz_od.application.life_on_line.life_on_line_run_record import LifeOnLineRunRecord
+            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+            self._life_on_line_record = LifeOnLineRunRecord(self.life_on_line_config, self.current_instance_idx, game_refresh_hour_offset)
+            self._life_on_line_record.check_and_update_status()
+        return self._life_on_line_record
+
+    # 式舆
+    @property
+    def shiyu_defense_config(self) -> 'ShiyuDefenseConfig':
+        """懒加载式舆防卫战配置"""
+        if not hasattr(self, '_shiyu_defense_config'):
+            from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
+            self._shiyu_defense_config = ShiyuDefenseConfig(self.current_instance_idx)
+        return self._shiyu_defense_config
+
+    @property
+    def shiyu_defense_record(self) -> 'ShiyuDefenseRunRecord':
+        """懒加载式舆防卫战运行记录"""
+        if not hasattr(self, '_shiyu_defense_record'):
+            from zzz_od.application.shiyu_defense.shiyu_defense_run_record import ShiyuDefenseRunRecord
+            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+            self._shiyu_defense_record = ShiyuDefenseRunRecord(self.shiyu_defense_config, self.current_instance_idx, game_refresh_hour_offset)
+            self._shiyu_defense_record.check_and_update_status()
+        return self._shiyu_defense_record
+
+    # 杂项
+    @property
+    def miscellany_config(self) -> 'MiscellanyConfig':
+        """懒加载杂项配置"""
+        if not hasattr(self, '_miscellany_config'):
+            from zzz_od.application.miscellany.miscellany_config import MiscellanyConfig
+            self._miscellany_config = MiscellanyConfig(self.current_instance_idx)
+        return self._miscellany_config
+
+    @property
+    def miscellany_record(self) -> 'MiscellanyRunRecord':
+        """懒加载杂项运行记录"""
+        if not hasattr(self, '_miscellany_record'):
+            from zzz_od.application.miscellany.miscellany_run_record import MiscellanyRunRecord
+            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+            self._miscellany_record = MiscellanyRunRecord(self.current_instance_idx, game_refresh_hour_offset)
+            self._miscellany_record.check_and_update_status()
+        return self._miscellany_record
+
+    # 驱动盘拆解
+    @property
+    def drive_disc_dismantle_config(self) -> 'DriveDiscDismantleConfig':
+        """懒加载驱动盘拆解配置"""
+        if not hasattr(self, '_drive_disc_dismantle_config'):
+            from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import DriveDiscDismantleConfig
+            self._drive_disc_dismantle_config = DriveDiscDismantleConfig(self.current_instance_idx)
+        return self._drive_disc_dismantle_config
+
+    @property
+    def drive_disc_dismantle_record(self) -> 'DriveDiscDismantleRunRecord':
+        """懒加载驱动盘拆解运行记录"""
+        if not hasattr(self, '_drive_disc_dismantle_record'):
+            from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_run_record import DriveDiscDismantleRunRecord
+            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+            self._drive_disc_dismantle_record = DriveDiscDismantleRunRecord(self.current_instance_idx, game_refresh_hour_offset)
+            self._drive_disc_dismantle_record.check_and_update_status()
+        return self._drive_disc_dismantle_record
+
+    # 通知
+    @property
+    def notify_config(self) -> 'NotifyConfig':
+        """懒加载通知配置"""
+        if not hasattr(self, '_notify_config'):
+            from zzz_od.config.notify_config import NotifyConfig
+            self._notify_config = NotifyConfig(self.current_instance_idx)
+        return self._notify_config
+
+    @property
+    def notify_record(self) -> 'NotifyRunRecord':
+        """懒加载通知运行记录"""
+        if not hasattr(self, '_notify_record'):
+            from zzz_od.application.notify.notify_run_record import NotifyRunRecord
+            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+            self._notify_record = NotifyRunRecord(self.current_instance_idx, game_refresh_hour_offset)
+            self._notify_record.check_and_update_status()
+        return self._notify_record
+
+    # 工具类配置
     @property
     def battle_assistant_config(self) -> 'BattleAssistantConfig':
         """懒加载战斗助手配置"""
@@ -206,14 +414,6 @@ class ZContext(OneDragonContext):
         return self._screenshot_helper_config
 
     @property
-    def random_play_config(self) -> 'RandomPlayConfig':
-        """懒加载随机播放配置"""
-        if not hasattr(self, '_random_play_config'):
-            from zzz_od.application.random_play.random_play_config import RandomPlayConfig
-            self._random_play_config = RandomPlayConfig(self.current_instance_idx)
-        return self._random_play_config
-
-    @property
     def commission_assistant_config(self) -> 'CommissionAssistantConfig':
         """懒加载委托助手配置"""
         if not hasattr(self, '_commission_assistant_config'):
@@ -221,86 +421,7 @@ class ZContext(OneDragonContext):
             self._commission_assistant_config = CommissionAssistantConfig(self.current_instance_idx)
         return self._commission_assistant_config
 
-    @property
-    def charge_plan_config(self) -> 'ChargePlanConfig':
-        """懒加载体力计划配置"""
-        if not hasattr(self, '_charge_plan_config'):
-            from zzz_od.application.charge_plan.charge_plan_config import ChargePlanConfig
-            self._charge_plan_config = ChargePlanConfig(self.current_instance_idx)
-        return self._charge_plan_config
-
-    @property
-    def notorious_hunt_config(self) -> 'NotoriousHuntConfig':
-        """懒加载恶名狩猎配置"""
-        if not hasattr(self, '_notorious_hunt_config'):
-            from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig
-            self._notorious_hunt_config = NotoriousHuntConfig(self.current_instance_idx)
-        return self._notorious_hunt_config
-
-    @property
-    def coffee_config(self) -> 'CoffeeConfig':
-        """懒加载咖啡配置"""
-        if not hasattr(self, '_coffee_config'):
-            from zzz_od.application.coffee.coffee_config import CoffeeConfig
-            self._coffee_config = CoffeeConfig(self.current_instance_idx)
-        return self._coffee_config
-
-    @property
-    def life_on_line_config(self) -> 'LifeOnLineConfig':
-        """懒加载生活在线配置"""
-        if not hasattr(self, '_life_on_line_config'):
-            from zzz_od.application.life_on_line.life_on_line_config import LifeOnLineConfig
-            self._life_on_line_config = LifeOnLineConfig(self.current_instance_idx)
-        return self._life_on_line_config
-
-    @property
-    def shiyu_defense_config(self) -> 'ShiyuDefenseConfig':
-        """懒加载式舆防卫配置"""
-        if not hasattr(self, '_shiyu_defense_config'):
-            from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
-            self._shiyu_defense_config = ShiyuDefenseConfig(self.current_instance_idx)
-        return self._shiyu_defense_config
-
-    @property
-    def miscellany_config(self) -> 'MiscellanyConfig':
-        """懒加载杂项配置"""
-        if not hasattr(self, '_miscellany_config'):
-            from zzz_od.application.miscellany.miscellany_config import MiscellanyConfig
-            self._miscellany_config = MiscellanyConfig(self.current_instance_idx)
-        return self._miscellany_config
-
-    @property
-    def drive_disc_dismantle_config(self) -> 'DriveDiscDismantleConfig':
-        """懒加载驱动盘拆解配置"""
-        if not hasattr(self, '_drive_disc_dismantle_config'):
-            from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import DriveDiscDismantleConfig
-            self._drive_disc_dismantle_config = DriveDiscDismantleConfig(self.current_instance_idx)
-        return self._drive_disc_dismantle_config
-
-    @property
-    def notify_config(self) -> 'NotifyConfig':
-        """懒加载通知配置"""
-        if not hasattr(self, '_notify_config'):
-            from zzz_od.config.notify_config import NotifyConfig
-            self._notify_config = NotifyConfig(self.current_instance_idx)
-        return self._notify_config
-
-    @property
-    def lost_void_config(self) -> 'LostVoidConfig':
-        """懒加载迷失之地配置"""
-        if not hasattr(self, '_lost_void_config'):
-            from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig
-            self._lost_void_config = LostVoidConfig(self.current_instance_idx)
-        return self._lost_void_config
-
-    @property
-    def hollow_zero_challenge_config(self) -> 'HollowZeroChallengeConfig':
-        """懒加载空洞挑战配置"""
-        if not hasattr(self, '_hollow_zero_challenge_config'):
-            self.init_hollow_config()
-        return self._hollow_zero_challenge_config
-
-    # 懒加载的运行记录属性
+    # 日常任务
     @property
     def email_run_record(self) -> 'EmailRunRecord':
         """懒加载邮件运行记录"""
@@ -310,16 +431,6 @@ class ZContext(OneDragonContext):
             self._email_run_record = EmailRunRecord(self.current_instance_idx, game_refresh_hour_offset)
             self._email_run_record.check_and_update_status()
         return self._email_run_record
-
-    @property
-    def random_play_run_record(self) -> 'RandomPlayRunRecord':
-        """懒加载随机播放运行记录"""
-        if not hasattr(self, '_random_play_run_record'):
-            from zzz_od.application.random_play.random_play_run_record import RandomPlayRunRecord
-            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
-            self._random_play_run_record = RandomPlayRunRecord(self.current_instance_idx, game_refresh_hour_offset)
-            self._random_play_run_record.check_and_update_status()
-        return self._random_play_run_record
 
     @property
     def scratch_card_run_record(self) -> 'ScratchCardRunRecord':
@@ -332,16 +443,6 @@ class ZContext(OneDragonContext):
         return self._scratch_card_run_record
 
     @property
-    def charge_plan_run_record(self) -> 'ChargePlanRunRecord':
-        """懒加载体力计划运行记录"""
-        if not hasattr(self, '_charge_plan_run_record'):
-            from zzz_od.application.charge_plan.charge_plan_run_record import ChargePlanRunRecord
-            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
-            self._charge_plan_run_record = ChargePlanRunRecord(self.current_instance_idx, game_refresh_hour_offset)
-            self._charge_plan_run_record.check_and_update_status()
-        return self._charge_plan_run_record
-
-    @property
     def engagement_reward_run_record(self) -> 'EngagementRewardRunRecord':
         """懒加载参与奖励运行记录"""
         if not hasattr(self, '_engagement_reward_run_record'):
@@ -352,36 +453,6 @@ class ZContext(OneDragonContext):
         return self._engagement_reward_run_record
 
     @property
-    def notorious_hunt_record(self) -> 'NotoriousHuntRunRecord':
-        """懒加载恶名狩猎运行记录"""
-        if not hasattr(self, '_notorious_hunt_record'):
-            from zzz_od.application.notorious_hunt.notorious_hunt_run_record import NotoriousHuntRunRecord
-            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
-            self._notorious_hunt_record = NotoriousHuntRunRecord(self.current_instance_idx, game_refresh_hour_offset)
-            self._notorious_hunt_record.check_and_update_status()
-        return self._notorious_hunt_record
-
-    @property
-    def hollow_zero_record(self) -> 'HollowZeroRunRecord':
-        """懒加载空洞运行记录"""
-        if not hasattr(self, '_hollow_zero_record'):
-            from zzz_od.application.hollow_zero.withered_domain.hollow_zero_run_record import HollowZeroRunRecord
-            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
-            self._hollow_zero_record = HollowZeroRunRecord(self.hollow_zero_config, self.current_instance_idx, game_refresh_hour_offset)
-            self._hollow_zero_record.check_and_update_status()
-        return self._hollow_zero_record
-
-    @property
-    def coffee_record(self) -> 'CoffeeRunRecord':
-        """懒加载咖啡运行记录"""
-        if not hasattr(self, '_coffee_record'):
-            from zzz_od.application.coffee.coffee_run_record import CoffeeRunRecord
-            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
-            self._coffee_record = CoffeeRunRecord(self.current_instance_idx, game_refresh_hour_offset)
-            self._coffee_record.check_and_update_status()
-        return self._coffee_record
-
-    @property
     def city_fund_record(self) -> 'CityFundRunRecord':
         """懒加载城市基金运行记录"""
         if not hasattr(self, '_city_fund_record'):
@@ -390,16 +461,6 @@ class ZContext(OneDragonContext):
             self._city_fund_record = CityFundRunRecord(self.current_instance_idx, game_refresh_hour_offset)
             self._city_fund_record.check_and_update_status()
         return self._city_fund_record
-
-    @property
-    def life_on_line_record(self) -> 'LifeOnLineRunRecord':
-        """懒加载生活在线运行记录"""
-        if not hasattr(self, '_life_on_line_record'):
-            from zzz_od.application.life_on_line.life_on_line_run_record import LifeOnLineRunRecord
-            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
-            self._life_on_line_record = LifeOnLineRunRecord(self.life_on_line_config, self.current_instance_idx, game_refresh_hour_offset)
-            self._life_on_line_record.check_and_update_status()
-        return self._life_on_line_record
 
     @property
     def redemption_code_record(self) -> 'RedemptionCodeRunRecord':
@@ -420,56 +481,6 @@ class ZContext(OneDragonContext):
             self._ridu_weekly_record = RiduWeeklyRunRecord(self.current_instance_idx, game_refresh_hour_offset)
             self._ridu_weekly_record.check_and_update_status()
         return self._ridu_weekly_record
-
-    @property
-    def shiyu_defense_record(self) -> 'ShiyuDefenseRunRecord':
-        """懒加载式舆防卫运行记录"""
-        if not hasattr(self, '_shiyu_defense_record'):
-            from zzz_od.application.shiyu_defense.shiyu_defense_run_record import ShiyuDefenseRunRecord
-            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
-            self._shiyu_defense_record = ShiyuDefenseRunRecord(self.shiyu_defense_config, self.current_instance_idx, game_refresh_hour_offset)
-            self._shiyu_defense_record.check_and_update_status()
-        return self._shiyu_defense_record
-
-    @property
-    def miscellany_record(self) -> 'MiscellanyRunRecord':
-        """懒加载杂项运行记录"""
-        if not hasattr(self, '_miscellany_record'):
-            from zzz_od.application.miscellany.miscellany_run_record import MiscellanyRunRecord
-            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
-            self._miscellany_record = MiscellanyRunRecord(self.current_instance_idx, game_refresh_hour_offset)
-            self._miscellany_record.check_and_update_status()
-        return self._miscellany_record
-
-    @property
-    def drive_disc_dismantle_record(self) -> 'DriveDiscDismantleRunRecord':
-        """懒加载驱动盘拆解运行记录"""
-        if not hasattr(self, '_drive_disc_dismantle_record'):
-            from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_run_record import DriveDiscDismantleRunRecord
-            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
-            self._drive_disc_dismantle_record = DriveDiscDismantleRunRecord(self.current_instance_idx, game_refresh_hour_offset)
-            self._drive_disc_dismantle_record.check_and_update_status()
-        return self._drive_disc_dismantle_record
-
-    @property
-    def notify_record(self) -> 'NotifyRunRecord':
-        """懒加载通知运行记录"""
-        if not hasattr(self, '_notify_record'):
-            from zzz_od.application.notify.notify_run_record import NotifyRunRecord
-            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
-            self._notify_record = NotifyRunRecord(self.current_instance_idx, game_refresh_hour_offset)
-            self._notify_record.check_and_update_status()
-        return self._notify_record
-
-    @property
-    def lost_void_record(self) -> 'LostVoidRunRecord':
-        """懒加载迷失之地运行记录"""
-        if not hasattr(self, '_lost_void_record'):
-            from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import LostVoidRunRecord
-            game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
-            self._lost_void_record = LostVoidRunRecord(self.lost_void_config, self.current_instance_idx, game_refresh_hour_offset)
-            self._lost_void_record.check_and_update_status()
-        return self._lost_void_record
 
     @property
     def trigrams_collection_record(self) -> 'TrigramsCollectionRunRecord':
