@@ -31,6 +31,22 @@ class CustomConfig(YamlConfig):
         self.update('theme', new_value)
 
     @property
+    def notice_card(self) -> bool:
+        """
+        是否启用公告
+        :return:
+        """
+        return self.get('notice_card', True)
+
+    @notice_card.setter
+    def notice_card(self, new_value: bool) -> None:
+        """
+        是否启用公告
+        :return:
+        """
+        self.update('notice_card', new_value)
+
+    @property
     def custom_banner(self) -> bool:
         """
         自定义主页背景

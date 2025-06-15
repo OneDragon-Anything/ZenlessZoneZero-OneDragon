@@ -45,6 +45,9 @@ class SettingCustomInterface(VerticalScrollInterface):
         self.theme_opt.value_changed.connect(self._on_theme_changed)
         basic_group.addSettingCard(self.theme_opt)
 
+        self.notice_card_opt = SwitchSettingCard(icon=FluentIcon.PIN, title='主页公告', content='在主页显示游戏公告，设置后重启脚本生效')
+        basic_group.addSettingCard(self.notice_card_opt)
+
         self.version_poster_opt = SwitchSettingCard(icon=FluentIcon.IMAGE_EXPORT, title='启用版本海报', content='版本活动海报持续整个版本')
         self.version_poster_opt.value_changed.connect(self._on_version_poster_changed)
         basic_group.addSettingCard(self.version_poster_opt)
@@ -78,6 +81,7 @@ class SettingCustomInterface(VerticalScrollInterface):
         """
         VerticalScrollInterface.on_interface_shown(self)
         self.theme_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('theme'))
+        self.notice_card_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('notice_card'))
         self.custom_banner_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('custom_banner'))
         self.remote_banner_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('remote_banner'))
         self.version_poster_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('version_poster'))

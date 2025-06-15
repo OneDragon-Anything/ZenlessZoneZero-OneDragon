@@ -293,8 +293,9 @@ class HomeInterface(VerticalScrollInterface):
         h2_layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
 
         # 公告卡片
-        noticeCard = NoticeCard()
-        h2_layout.addWidget(noticeCard)
+        if self.ctx.custom_config.notice_card:
+            noticeCard = NoticeCard()
+            h2_layout.addWidget(noticeCard)
 
         h2_layout.addStretch()
 
@@ -326,7 +327,8 @@ class HomeInterface(VerticalScrollInterface):
 
         # 应用样式
         OdQtStyleSheet.GAME_BUTTON.apply(start_button)
-        OdQtStyleSheet.NOTICE_CARD.apply(noticeCard)
+        if self.ctx.custom_config.notice_card:
+            OdQtStyleSheet.NOTICE_CARD.apply(noticeCard)
 
         self.ctx = ctx
         self._init_check_runners()

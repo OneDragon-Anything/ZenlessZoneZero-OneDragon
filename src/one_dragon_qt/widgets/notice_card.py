@@ -20,6 +20,44 @@ from one_dragon_qt.widgets.pivot import CustomListItemDelegate, PhosPivot
 from .label import EllipsisLabel
 
 
+class BannerImageLoader(QThread):
+    """异步banner图片加载器"""
+    image_loaded = Signal(QPixmap, str)  # pixmap, url
+    all_images_loaded = Signal()
+
+    def __init__(self, banners, device_pixel_ratio, parent=None):
+        super().__init__(parent)
+        self.banners = banners
+        self.device_pixel_ratio = device_pixel_ratio
+        self.loaded_count = 0
+        self.total_count = len(banners)
+
+    def run(self):
+        """异步加载所有banner图片"""
+        for banner in self.banners:
+            try:
+                response = requests.get(banner["image"]["url"], timeout=5)
+                if response.status_code == 200:
+                    pixmap = QPixmap()
+                    pixmap.loadFromData(response.content)
+
+                    # 缩放图片，确保清晰
+                    size = QSize(pixmap.width(), pixmap.height())
+                    pixmap = pixmap.scaled(
+                        size * self.device_pixel_ratio,  # 按设备像素比缩放
+                        Qt.AspectRatioMode.IgnoreAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                    pixmap.setDevicePixelRatio(self.device_pixel_ratio)  # 设置设备像素比
+                    self.image_loaded.emit(pixmap, banner["image"]["link"])
+            except Exception as e:
+                print(f"异步加载图片失败: {e}")
+
+            self.loaded_count += 1
+
+        self.all_images_loaded.emit()
+
+
 # 增加了缓存机制, 有效期为3天, 避免每次都请求数据
 # 调整了超时时间, 避免网络问题导致程序启动缓慢
 class DataFetcher(QThread):
@@ -97,6 +135,9 @@ class NoticeCard(SimpleCardWidget):
             [],
             {"announces": [], "activities": [], "infos": []},
         )
+        self._banner_loader = None
+        self._is_loading_banners = False
+
         self.setup_ui()
         self.fetch_data()
 
@@ -116,12 +157,17 @@ class NoticeCard(SimpleCardWidget):
             self.flipView.hide()
             self.update_ui()
             return
-        self.load_banners(content["data"]["content"]["banners"])
+        self.load_banners_async(content["data"]["content"]["banners"])
         self.load_posts(content["data"]["content"]["posts"])
         self.error_label.hide()
         self.update_ui()
 
+    # @deprecated
     def load_banners(self, banners):
+        """
+        同步加载banner图片
+        @deprecated: see load_banners_async
+        """
         pixel_ratio = self.devicePixelRatio()  # 获取设备像素比
         for banner in banners:
             try:
@@ -141,6 +187,44 @@ class NoticeCard(SimpleCardWidget):
                 self.banner_urls.append(banner["image"]["link"])
             except Exception as e:
                 print(f"加载图片失败: {e}")
+
+    def load_banners_async(self, banners):
+        """
+        异步加载banner图片
+        """
+        if self._is_loading_banners or not banners:
+            return
+
+        # 清空现有的banners，准备加载新的
+        self.banners.clear()
+        self.banner_urls.clear()
+
+        self._is_loading_banners = True
+        pixel_ratio = self.devicePixelRatio()
+
+        self._banner_loader = BannerImageLoader(banners, pixel_ratio, self)
+        self._banner_loader.image_loaded.connect(self._on_banner_image_loaded)
+        self._banner_loader.all_images_loaded.connect(self._on_all_banners_loaded)
+        self._banner_loader.finished.connect(self._on_banner_loading_finished)
+        self._banner_loader.start()
+
+    def _on_banner_image_loaded(self, pixmap: QPixmap, url: str):
+        """单个banner图片加载完成的回调"""
+        self.banners.append(pixmap)
+        self.banner_urls.append(url)
+        # 实时更新UI显示新加载的图片 (单独添加，避免重复)
+        self.flipView.addImages([pixmap])
+
+    def _on_all_banners_loaded(self):
+        """所有banner图片加载完成的回调"""
+        self.update_ui()
+
+    def _on_banner_loading_finished(self):
+        """banner加载线程结束的回调"""
+        self._is_loading_banners = False
+        if self._banner_loader:
+            self._banner_loader.deleteLater()
+            self._banner_loader = None
 
     def load_posts(self, posts):
         post_types = {
@@ -202,11 +286,16 @@ class NoticeCard(SimpleCardWidget):
         self.mainLayout.addWidget(self.stackedWidget)
 
     def update_ui(self):
+        # 清空现有内容，避免重复添加
+        self.flipView.clear()
         self.flipView.addImages(self.banners)
+
+        # 清空并重新添加posts
         for widget, type in zip(
             [self.activityWidget, self.announceWidget, self.infoWidget],
             ["activities", "announces", "infos"],
         ):
+            widget.clear()
             self.add_posts_to_widget(widget, type)
 
     def scrollNext(self):
