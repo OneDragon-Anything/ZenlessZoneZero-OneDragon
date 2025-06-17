@@ -522,6 +522,7 @@ class ZContext(OneDragonContext):
             '_email_run_record',
             '_random_play_run_record',
             '_scratch_card_run_record',
+            '_trigrams_collection_record',
             '_charge_plan_run_record',
             '_engagement_reward_run_record',
             '_notorious_hunt_record',
@@ -535,8 +536,7 @@ class ZContext(OneDragonContext):
             '_miscellany_record',
             '_drive_disc_dismantle_record',
             '_notify_record',
-            '_lost_void_record',
-            '_trigrams_collection_record'
+            '_lost_void_record'
         ]
 
         for attr in record_attrs:
