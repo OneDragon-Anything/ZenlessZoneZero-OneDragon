@@ -96,13 +96,6 @@ try:
 
             self._check_first_run()
 
-        def _update_version(self, ver: str) -> None:
-            """
-            更新版本显示
-            @param ver:
-            @return:
-            """
-            self.titleBar.setVersion(ver)
         # 继承初始化函数
         def init_window(self):
             self.resize(1050, 700)
@@ -158,7 +151,7 @@ try:
 
             # 延迟加载其余界面
             from PySide6.QtCore import QTimer
-            QTimer.singleShot(50, self._create_remaining_interfaces)
+            QTimer.singleShot(0, self._create_remaining_interfaces)
 
         def _create_remaining_interfaces(self):  # Renamed from _create_heavy_interfaces
             """异步创建剩余的界面"""
