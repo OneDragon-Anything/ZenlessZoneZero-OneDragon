@@ -215,6 +215,7 @@ class ZContext(OneDragonContext):
             from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig
             self._lost_void_config = LostVoidConfig(self.current_instance_idx)
         return self._lost_void_config
+
     @record_property(category="迷失之地", description="迷失之地运行记录")
     def lost_void_record(self) -> 'LostVoidRunRecord':
         """懒加载迷失之地运行记录"""
@@ -281,6 +282,7 @@ class ZContext(OneDragonContext):
             self._notorious_hunt_record = NotoriousHuntRunRecord(self.current_instance_idx, game_refresh_hour_offset)
             self._notorious_hunt_record.check_and_update_status()
         return self._notorious_hunt_record
+
     # ========== 咖啡计划 ==========
     @config_property(category="咖啡计划", description="咖啡计划配置")
     def coffee_config(self) -> 'CoffeeConfig':
@@ -337,6 +339,7 @@ class ZContext(OneDragonContext):
             self._shiyu_defense_record = ShiyuDefenseRunRecord(self.shiyu_defense_config, self.current_instance_idx, game_refresh_hour_offset)
             self._shiyu_defense_record.check_and_update_status()
         return self._shiyu_defense_record
+
     # ========== 杂项 ==========
     @config_property("杂项", "杂项配置")
     def miscellany_config(self) -> 'MiscellanyConfig':
@@ -393,6 +396,7 @@ class ZContext(OneDragonContext):
             self._notify_record = NotifyRunRecord(self.current_instance_idx, game_refresh_hour_offset)
             self._notify_record.check_and_update_status()
         return self._notify_record
+
     # ========== 工具类配置 ==========
     @config_property("战斗助手", "战斗助手配置")
     def battle_assistant_config(self) -> 'BattleAssistantConfig':
@@ -417,6 +421,7 @@ class ZContext(OneDragonContext):
             from zzz_od.application.commission_assistant.commission_assistant_config import CommissionAssistantConfig
             self._commission_assistant_config = CommissionAssistantConfig(self.current_instance_idx)
         return self._commission_assistant_config
+
     # ========== 日常任务 ==========
     @record_property("日常任务", "日常任务运行记录")
     def email_run_record(self) -> 'EmailRunRecord':
