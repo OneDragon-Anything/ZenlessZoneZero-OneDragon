@@ -200,6 +200,9 @@ try:
                 position=NavigationItemPosition.BOTTOM,
             )
 
+            # 隐藏启动页面
+            self.splashScreen.finish()
+
         def _on_instance_active_event(self, event) -> None:
             """
             切换实例后 更新title 这是context的事件 不能更新UI
