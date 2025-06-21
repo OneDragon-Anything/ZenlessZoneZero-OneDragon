@@ -1,0 +1,19 @@
+- step: 按模板裁剪
+  params:
+    template_name: target_state/locked_target_info
+    enable_match: false
+    match_threshold: 0.8
+- step: OCR识别
+  params:
+    draw_text_box: 0
+    override_settings: 2
+    use_gpu: false
+    use_angle_cls: false
+    det_limit_side_len: 1920.0
+    det_db_thresh: 0.1
+    det_db_box_thresh: 0.6
+    det_db_unclip_ratio: 1.2
+    rec_batch_num: 6
+    max_text_length: 25
+    drop_score: 0.5
+    cls_thresh: 0.9

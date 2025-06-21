@@ -1,0 +1,37 @@
+- step: 按模板裁剪
+  params:
+    template_name: target_state/target_lock
+    enable_match: false
+    match_threshold: 0.8
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 20
+    - 200
+    - 255
+    hsv_diff:
+    - 5
+    - 55
+    - 10
+- step: 腐蚀
+  params:
+    kernel_size: 2
+    iterations: 1
+- step: 查找轮廓
+  params:
+    mode: CCOMP
+    method: SIMPLE
+    draw_contours: true
+- step: 按长宽比过滤
+  params:
+    min_ratio: 0.9
+    max_ratio: 1.1
+    draw_contours: 0
+- step: 按质心距离过滤
+  params:
+    max_distance: 1
+    draw_contours: true
+- step: 轮廓属性分析
+  params:
+    show_bounding_box: 0
+    show_center: 0

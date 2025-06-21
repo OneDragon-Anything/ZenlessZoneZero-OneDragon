@@ -1,0 +1,29 @@
+- step: 按模板裁剪
+  params:
+    template_name: target_state/boss_stun
+    enable_match: false
+    match_threshold: 0.8
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 18
+    - 210
+    - 255
+    hsv_diff:
+    - 5
+    - 50
+    - 50
+- step: OCR识别
+  params:
+    draw_text_box: 0
+    override_settings: 0
+    use_gpu: false
+    use_angle_cls: false
+    det_limit_side_len: 960.0
+    det_db_thresh: 0.3
+    det_db_box_thresh: 0.6
+    det_db_unclip_ratio: 1.5
+    rec_batch_num: 6
+    max_text_length: 25
+    drop_score: 0.5
+    cls_thresh: 0.9

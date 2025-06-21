@@ -1,0 +1,8 @@
+sub_dir: target_state
+template_id: target_context
+template_name: BOSS上下文
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 1050, 30
+- 1888, 280

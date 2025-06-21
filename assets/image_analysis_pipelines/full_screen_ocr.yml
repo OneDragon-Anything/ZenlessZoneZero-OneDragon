@@ -1,0 +1,18 @@
+- step: 按模板裁剪
+  params:
+    template_name: target_state/boss_stun
+    enable_match: false
+    match_threshold: 0.8
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 20
+    - 209
+    - 255
+    hsv_diff:
+    - 5
+    - 5
+    - 25
+- step: OCR识别
+  params:
+    draw_text_box: 0
