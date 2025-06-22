@@ -4,5 +4,5 @@ template_name: 锁定模板
 template_shape: rectangle
 auto_mask: true
 point_list:
-- 658, 268
-- 1376, 820
+- 688, 352
+- 1260, 812
