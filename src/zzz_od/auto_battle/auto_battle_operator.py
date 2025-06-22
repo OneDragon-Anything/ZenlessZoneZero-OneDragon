@@ -81,7 +81,7 @@ class AutoBattleOperator(ConditionalOperator):
                 check_chain_interval=self.get('check_chain_interval', 1),
                 check_quick_interval=self.get('check_quick_interval', 0.5),
                 check_end_interval=self.get('check_end_interval', 5),
-                target_lock_interval=self.get('target_lock_interval', 0),
+                target_lock_interval=self.get('target_lock_interval', 1),
                 abnormal_status_interval=self.get('abnormal_status_interval', 0)
             )
 

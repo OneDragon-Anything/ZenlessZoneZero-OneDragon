@@ -5,6 +5,7 @@ import cv2
 from cv2.typing import MatLike
 
 from one_dragon.base.cv_process.cv_pipeline import CvPipelineContext
+from one_dragon.utils import str_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.target_state import DetectionTask, TargetStateDef, TargetCheckWay
@@ -25,6 +26,7 @@ class TargetStateChecker:
             TargetCheckWay.CONTOUR_COUNT_IN_RANGE: self._check_contour_count,
             TargetCheckWay.OCR_RESULT_AS_NUMBER: self._check_ocr_as_number,
             TargetCheckWay.OCR_TEXT_CONTAINS: self._check_ocr_text_contains,
+            TargetCheckWay.OCR_TEXT_SIMILARITY: self._check_ocr_text_similarity,
             TargetCheckWay.MAP_CONTOUR_LENGTH_TO_PERCENT: self._check_map_contour_length_to_percent,
         }
 
@@ -187,4 +189,38 @@ class TargetStateChecker:
 
         except Exception as e:
             log.exception(f"计算轮廓宽度与遮罩宽度比率时出错: {e}")
+            return None if state_def.clear_on_miss else False
+
+    def _check_ocr_text_similarity(self, cv_result: CvPipelineContext, state_def: TargetStateDef) -> bool | None:
+        """
+        处理 OCR_TEXT_SIMILARITY
+        使用编辑距离计算相似度
+        """
+        params = state_def.check_params
+        try:
+            # 兼容dict和OcrResult两种返回类型
+            ocr_text = "".join(cv_result.ocr_result.keys()) if isinstance(cv_result.ocr_result,
+                                                                          dict) else cv_result.ocr_result.get_text()
+            if not ocr_text:
+                return None if state_def.clear_on_miss else False
+
+            expected_texts = params.get('expected_texts', [])
+            if isinstance(expected_texts, str):
+                expected_texts = [expected_texts]
+
+            threshold = params.get('threshold', 0.5)
+
+            # 在这里，我们不再遍历OCR文本中的每个词，而是将整个OCR文本与候选词进行比较
+            # 这更适合短语匹配
+            best_match, score = str_utils.find_best_match_by_similarity(ocr_text, expected_texts, threshold)
+            log.debug(f"状态 {state_def.state_name}: OCR文本='{ocr_text}', 候选='{expected_texts}', "
+                      f"最佳匹配='{best_match}', 分数={score:.2f} (阈值 {threshold})")
+
+            if best_match is not None:
+                return True
+            else:
+                return None if state_def.clear_on_miss else False
+
+        except (ValueError, TypeError, AttributeError):
+            # 异常情况视为无有效结果
             return None if state_def.clear_on_miss else False

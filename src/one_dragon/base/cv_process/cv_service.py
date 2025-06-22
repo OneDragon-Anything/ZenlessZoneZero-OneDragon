@@ -7,12 +7,13 @@ import numpy as np
 import yaml
 
 from one_dragon.base.cv_process.cv_pipeline import CvPipeline, CvPipelineContext
-from one_dragon.base.cv_process.cv_step import (
-    CvStep, CvStepFilterByRGB, CvStepFilterByHSV, CvErodeStep, CvDilateStep,
+from one_dragon.base.cv_process.cv_step import CvStep
+from one_dragon.base.cv_process.steps import (
+    CvStepFilterByRGB, CvStepFilterByHSV, CvErodeStep, CvDilateStep,
     CvMorphologyExStep, CvFindContoursStep, CvStepFilterByArea, CvStepFilterByArcLength,
     CvStepFilterByRadius, CvContourPropertiesStep, CvMatchShapesStep, CvStepCropByTemplate, CvStepFilterByAspectRatio,
     CvStepFilterByCentroidDistance, CvStepOcr, CvStepGrayscale, CvStepHistogramEqualization, CvStepThreshold,
-    CvStepCropByArea
+    CvStepCropByArea, CvStepCropToAnnulus, CvTemplateMatchingStep
 )
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils import os_utils
@@ -39,6 +40,7 @@ class CvService:
         self.available_steps: Dict[str, Type[CvStep]] = {
             '按区域裁剪': CvStepCropByArea,
             '按模板裁剪': CvStepCropByTemplate,
+            '环形裁剪': CvStepCropToAnnulus,
             '灰度化': CvStepGrayscale,
             '直方图均衡化': CvStepHistogramEqualization,
             '二值化': CvStepThreshold,
@@ -55,6 +57,7 @@ class CvService:
             '按质心距离过滤': CvStepFilterByCentroidDistance,
             '轮廓属性分析': CvContourPropertiesStep,
             '形状匹配': CvMatchShapesStep,
+            '模板匹配': CvTemplateMatchingStep,
             'OCR识别': CvStepOcr,
         }
 

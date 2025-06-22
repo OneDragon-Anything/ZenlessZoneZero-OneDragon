@@ -328,7 +328,6 @@ class AutoBattleContext:
             check_end_interval: Union[float, List[float]] = 5,
             target_lock_interval: float = 0,
             abnormal_status_interval: float = 0,
-            **kwargs,
     ) -> None:
         """
         自动战斗前的初始化

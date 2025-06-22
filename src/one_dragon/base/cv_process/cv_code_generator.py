@@ -1,8 +1,9 @@
 # coding: utf-8
 from typing import List
 import cv2
-from one_dragon.base.cv_process.cv_step import (
-    CvStep, CvStepFilterByRGB, CvStepFilterByHSV, CvErodeStep, CvDilateStep,
+from one_dragon.base.cv_process.cv_step import CvStep
+from one_dragon.base.cv_process.steps import (
+    CvStepFilterByRGB, CvStepFilterByHSV, CvErodeStep, CvDilateStep,
     CvMorphologyExStep, CvFindContoursStep, CvStepFilterByArea,
     CvStepFilterByArcLength, CvStepFilterByRadius, CvContourPropertiesStep,
     CvMatchShapesStep

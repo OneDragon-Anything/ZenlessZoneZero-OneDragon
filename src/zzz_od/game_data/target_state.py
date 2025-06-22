@@ -14,9 +14,9 @@ class TargetCheckWay(Enum):
     TEMPLATE_MATCH_CONFIDENCE = "template_match_confidence"
     OCR_RESULT_AS_NUMBER = "ocr_result_as_number"
     OCR_TEXT_CONTAINS = "ocr_text_contains"
+    OCR_TEXT_SIMILARITY = "ocr_text_similarity"  # 使用编辑距离计算相似度
     CONTOUR_LENGTH_AS_RATIO = "contour_length_as_ratio"  # 新增：轮廓长度比例
     MAP_CONTOUR_LENGTH_TO_PERCENT = "map_contour_length_to_percent"
-    DIRECT_RETURN = "direct_return"  # 新增：直接返回指定结果，用于测试
 
 
 @dataclass
@@ -76,49 +76,50 @@ DETECTION_TASKS: List[DetectionTask] = [
     DetectionTask(
         task_id="abnormal_statuses",
         pipeline_name="ocr-abnormal",
-        interval=0,  # 默认不检测，由yml配置 > 0 的值来启用
-        is_async=True,
+        enabled = False,  # 禁用
+        interval = 0,     # 默认不检测，由yml配置 > 0 的值来启用
+        is_async = True,
         state_definitions=[
             TargetStateDef(
                 "目标-异常-灼烧",
-                TargetCheckWay.OCR_TEXT_CONTAINS,
-                {"contains": ["烧"], "mode": "any"},
+                TargetCheckWay.OCR_TEXT_SIMILARITY,
+                {"expected_texts": ["灼烧"], "threshold": 0.5},
                 clear_on_miss=False,
             ),
             TargetStateDef(
                 "目标-异常-冻结",
-                TargetCheckWay.OCR_TEXT_CONTAINS,
-                {"contains": ["冻", "结"], "mode": "any"},
+                TargetCheckWay.OCR_TEXT_SIMILARITY,
+                {"expected_texts": ["冻结"], "threshold": 0.5},
                 clear_on_miss=False,
             ),
             TargetStateDef(
                 "目标-异常-霜灼",
-                TargetCheckWay.OCR_TEXT_CONTAINS,
-                {"contains": ["霜"], "mode": "any"},
+                TargetCheckWay.OCR_TEXT_SIMILARITY,
+                {"expected_texts": ["霜灼"], "threshold": 0.5},
                 clear_on_miss=False,
             ),
             TargetStateDef(
                 "目标-异常-感电",
-                TargetCheckWay.OCR_TEXT_CONTAINS,
-                {"contains": ["感", "电"], "mode": "any"},
+                TargetCheckWay.OCR_TEXT_SIMILARITY,
+                {"expected_texts": ["感电"], "threshold": 0.5},
                 clear_on_miss=False,
             ),
             TargetStateDef(
                 "目标-异常-碎冰",
-                TargetCheckWay.OCR_TEXT_CONTAINS,
-                {"contains": ["碎", "冰"], "mode": "any"},
+                TargetCheckWay.OCR_TEXT_SIMILARITY,
+                {"expected_texts": ["碎冰"], "threshold": 0.5},
                 clear_on_miss=False,
             ),
             TargetStateDef(
                 "目标-异常-侵蚀",
-                TargetCheckWay.OCR_TEXT_CONTAINS,
-                {"contains": ["侵", "蚀"], "mode": "any"},
+                TargetCheckWay.OCR_TEXT_SIMILARITY,
+                {"expected_texts": ["侵蚀"], "threshold": 0.5},
                 clear_on_miss=False,
             ),
             TargetStateDef(
                 "目标-异常-强击",
-                TargetCheckWay.OCR_TEXT_CONTAINS,
-                {"contains": ["强", "击"], "mode": "any"},
+                TargetCheckWay.OCR_TEXT_SIMILARITY,
+                {"expected_texts": ["强击"], "threshold": 0.5},
                 clear_on_miss=False,
             ),
         ],
@@ -133,7 +134,7 @@ DETECTION_TASKS: List[DetectionTask] = [
         state_definitions=[
             TargetStateDef("目标-失衡值", TargetCheckWay.OCR_RESULT_AS_NUMBER),
             TargetStateDef(
-                "目标-强敌", TargetCheckWay.OCR_TEXT_CONTAINS, {"contains": "强敌"}
+                "目标-强敌", TargetCheckWay.OCR_TEXT_SIMILARITY, {"expected_texts": "强敌", "threshold": 0.5}
             ),
         ],
     ),

@@ -1,0 +1,39 @@
+- step: 按区域裁剪
+  params:
+    screen_name: 大世界
+    area_name: 小地图
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 24
+    - 180
+    - 255
+    hsv_diff:
+    - 10
+    - 90
+    - 80
+- step: 查找轮廓
+  params:
+    mode: EXTERNAL
+    method: SIMPLE
+    draw_contours: 0
+- step: 按周长过滤
+  params:
+    closed: true
+    min_length: 60
+    max_length: 70
+    draw_contours: 0
+- step: 按长宽比过滤
+  params:
+    min_ratio: 0.7
+    max_ratio: 0.8
+    draw_contours: 0
+- step: 按面积过滤
+  params:
+    min_area: 240
+    max_area: 300
+    draw_contours: 0
+- step: 轮廓属性分析
+  params:
+    show_bounding_box: 2
+    show_center: 2
