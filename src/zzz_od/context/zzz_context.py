@@ -9,6 +9,65 @@ if TYPE_CHECKING:
     from zzz_od.game_data.map_area import MapAreaService
     from zzz_od.game_data.compendium import CompendiumService
 
+    # 空洞相关配置和记录
+    from zzz_od.application.hollow_zero.withered_domain.hollow_zero_config import HollowZeroConfig
+    from zzz_od.application.hollow_zero.withered_domain.hollow_zero_run_record import HollowZeroRunRecord
+    from zzz_od.hollow_zero.hollow_zero_challenge_config import HollowZeroChallengeConfig
+
+    # 迷失之地相关配置和记录
+    from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig
+    from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import LostVoidRunRecord
+
+    # Random Play 录像店相关配置和记录
+    from zzz_od.application.random_play.random_play_config import RandomPlayConfig
+    from zzz_od.application.random_play.random_play_run_record import RandomPlayRunRecord
+
+    # 体力计划相关配置和记录
+    from zzz_od.application.charge_plan.charge_plan_config import ChargePlanConfig
+    from zzz_od.application.charge_plan.charge_plan_run_record import ChargePlanRunRecord
+
+    # 恶名狩猎相关配置和记录
+    from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig
+    from zzz_od.application.notorious_hunt.notorious_hunt_run_record import NotoriousHuntRunRecord
+
+    # 咖啡计划相关配置和记录
+    from zzz_od.application.coffee.coffee_config import CoffeeConfig
+    from zzz_od.application.coffee.coffee_run_record import CoffeeRunRecord
+
+    # 拿命验收相关配置和记录
+    from zzz_od.application.life_on_line.life_on_line_config import LifeOnLineConfig
+    from zzz_od.application.life_on_line.life_on_line_run_record import LifeOnLineRunRecord
+
+    # 式舆防卫战相关配置和记录
+    from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
+    from zzz_od.application.shiyu_defense.shiyu_defense_run_record import ShiyuDefenseRunRecord
+
+    # 杂项相关配置和记录
+    from zzz_od.application.miscellany.miscellany_config import MiscellanyConfig
+    from zzz_od.application.miscellany.miscellany_run_record import MiscellanyRunRecord
+
+    # 驱动盘拆解相关配置和记录
+    from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import DriveDiscDismantleConfig
+    from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_run_record import DriveDiscDismantleRunRecord
+
+    # 通知相关配置和记录
+    from zzz_od.config.notify_config import NotifyConfig
+    from zzz_od.application.notify.notify_run_record import NotifyRunRecord
+
+    # 工具类配置
+    from zzz_od.application.battle_assistant.battle_assistant_config import BattleAssistantConfig
+    from zzz_od.application.devtools.screenshot_helper.screenshot_helper_config import ScreenshotHelperConfig
+    from zzz_od.application.commission_assistant.commission_assistant_config import CommissionAssistantConfig
+
+    # 日常任务相关运行记录
+    from zzz_od.application.email_app.email_run_record import EmailRunRecord
+    from zzz_od.application.scratch_card.scratch_card_run_record import ScratchCardRunRecord
+    from zzz_od.application.trigrams_collection.trigrams_collection_record import TrigramsCollectionRunRecord
+    from zzz_od.application.engagement_reward.engagement_reward_run_record import EngagementRewardRunRecord
+    from zzz_od.application.suibian_temple.suibian_temple_run_record import SuibianTempleRunRecord
+    from zzz_od.application.city_fund.city_fund_run_record import CityFundRunRecord
+    from zzz_od.application.redemption_code.redemption_code_run_record import RedemptionCodeRunRecord
+    from zzz_od.application.ridu_weekly.ridu_weekly_run_record import RiduWeeklyRunRecord
 
 class ZContext(OneDragonContext):
 
