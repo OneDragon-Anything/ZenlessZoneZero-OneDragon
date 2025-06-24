@@ -66,8 +66,8 @@ class OneDragonRunInterface(VerticalScrollInterface):
         horizontal_layout.addLayout(self._get_right_layout(), stretch=1)
 
         # 确保 QHBoxLayout 可以伸缩
-        horizontal_layout.setSpacing(0)
-        horizontal_layout.setContentsMargins(0, 0, 0, 0)
+        horizontal_layout.setSpacing(20)
+        horizontal_layout.setContentsMargins(10, 0, 10, 0)
 
         # 设置伸缩因子，让 QHBoxLayout 占据空间
         main_layout.addLayout(horizontal_layout, stretch=1)
