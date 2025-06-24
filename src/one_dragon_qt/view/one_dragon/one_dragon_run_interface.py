@@ -85,11 +85,48 @@ class OneDragonRunInterface(VerticalScrollInterface):
         layout = QVBoxLayout()
 
         scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
-        scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
+        # 应用自定义滚动条样式
+        scroll_area.setStyleSheet("""
+            QScrollArea { 
+                background-color: transparent; 
+                border: none; 
+            }
+            QScrollBar:vertical {
+                background: transparent;
+                width: 8px;
+                border-radius: 4px;
+                margin: 2px;
+                border: none;
+            }
+            QScrollBar::handle:vertical {
+                background: rgba(128, 128, 128, 60);
+                border-radius: 4px;
+                min-height: 20px;
+                margin: 1px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: rgba(128, 128, 128, 120);
+            }
+            QScrollBar::handle:vertical:pressed {
+                background: rgba(128, 128, 128, 180);
+            }
+            QScrollBar::add-line:vertical,
+            QScrollBar::sub-line:vertical {
+                height: 0px;
+                width: 0px;
+            }
+            QScrollBar::add-page:vertical,
+            QScrollBar::sub-page:vertical {
+                background: transparent;
+            }
+            QScrollBar::corner {
+                background: transparent;
+            }
+        """)
 
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setContentsMargins(0, 0, 0, 0)
+        scroll_layout.setContentsMargins(0, 0, 12, 0)
         
         self.app_card_group = SettingCardGroup(gt('任务列表'))
         scroll_layout.addWidget(self.app_card_group)
