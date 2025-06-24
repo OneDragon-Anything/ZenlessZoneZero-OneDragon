@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
-from qfluentwidgets import FluentIcon, SettingCardGroup, SubtitleLabel, PrimaryPushButton, PushButton
+from qfluentwidgets import FluentIcon, SettingCardGroup, SubtitleLabel, PrimaryPushButton, PushButton, SingleDirectionScrollArea
 from typing import List, Optional
 
 from one_dragon.base.config.one_dragon_app_config import OneDragonAppConfig
@@ -83,9 +83,24 @@ class OneDragonRunInterface(VerticalScrollInterface):
         :return:
         """
         layout = QVBoxLayout()
-        self.app_card_group = SettingCardGroup(gt('任务列表'))
-        layout.addWidget(self.app_card_group)
 
+        scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
+        scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
+
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.app_card_group = SettingCardGroup(gt('任务列表'))
+        scroll_layout.addWidget(self.app_card_group)
+        # 填充剩余空间
+        scroll_layout.addStretch(1)
+
+        scroll_area.setWidget(scroll_content)
+        scroll_area.setWidgetResizable(True)
+        
+        layout.addWidget(scroll_area)
+        
         return layout
 
     def _get_right_layout(self) -> QVBoxLayout:
@@ -143,8 +158,15 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self.stop_btn.clicked.connect(self._on_stop_clicked)
         btn_row.addWidget(self.stop_btn, stretch=1)
 
+        # 日志
+        log_scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
+        log_scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
+        
         self.log_card = LogDisplayCard()
-        layout.addWidget(self.log_card, stretch=1)
+        log_scroll_area.setWidget(self.log_card)
+        log_scroll_area.setWidgetResizable(True)
+        
+        layout.addWidget(log_scroll_area, stretch=1)
 
         return layout
 
