@@ -63,7 +63,7 @@ class CodeEditorSettingCard(SettingCardBase):
         self.editor.setPlaceholderText("请输入 JSON 格式的请求体")
 
         # 设置等宽字体，按优先级选择
-        font_families = ["Consolas", "Monaco", "DejaVu Sans Mono", "Courier New"]
+        font_families = ["Microsoft YaHei", "Consolas", "Monaco", "DejaVu Sans Mono", "Courier New"]
         font = QFont()
         for family in font_families:
             font.setFamily(family)
@@ -95,6 +95,9 @@ class CodeEditorSettingCard(SettingCardBase):
         self.editor.textChanged.connect(self._on_value_changed)
 
         self.setFixedHeight(self.sizeHint().height())
+        
+        # 初始化默认值属性
+        self._default_value = None
 
     def _on_value_changed(self):
         if hasattr(self, 'adapter'):
@@ -112,8 +115,14 @@ class CodeEditorSettingCard(SettingCardBase):
             self.editor.setPlainText(value) # 如果格式不正确，则直接显示原文
 
     def init_with_adapter(self, adapter):
+        from typing import Optional
         self.adapter = adapter
-        self.setValue(adapter.get_value())
+        current_value = adapter.get_value() if adapter else ""
+        # 如果配置值为空且有默认值，使用默认值
+        if not current_value and hasattr(self, '_default_value') and self._default_value:
+            self.setValue(self._default_value)
+        else:
+            self.setValue(current_value or "")
 
     def _format_json(self):
         """格式化 JSON 内容"""

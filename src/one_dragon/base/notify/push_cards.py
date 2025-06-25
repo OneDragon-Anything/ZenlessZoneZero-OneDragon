@@ -49,7 +49,34 @@ class PushCards:
                     "icon": FluentIcon.DOCUMENT,
                     "type": "code_editor",
                     "language": "json",
-                    "placeholder": "请输入请求体内容"
+                    "placeholder": "请输入请求体内容",
+                    "default": """   {
+                                      "title": "{{title}}",
+                                      "message": "{{content}}",
+                                      "timestamp": "{{timestamp}}",
+                                      "iso_timestamp": "{{iso_timestamp}}",
+                                      "unix_timestamp": {{unix_timestamp}},
+                                      "source": {
+                                        "application": "ZenlessZoneZero-OneDragon",
+                                        "game": "绝区零",
+                                        "version": "1.0"
+                                      },
+                                      "notification": {
+                                        "level": "info",
+                                        "type": "automation",
+                                        "category": "game_automation"
+                                      },
+                                      "metadata": {
+                                        "hostname": "localhost",
+                                        "user_agent": "OneDragon/1.0"
+                                      },
+                                      "attachments": [],
+                                      "extra": {
+                                        "custom_field": "可以添加自定义字段",
+                                        "formatted_message": "【{{title}}】{{content}}"
+                                      }
+                                    }
+                                """
                 }
             ]
         }
