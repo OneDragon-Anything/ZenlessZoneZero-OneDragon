@@ -771,53 +771,53 @@
   is_gear: true
 
 #   # 橘福福
-# - category: "橘福福"
-#   name: "山君破煞"
-#   level: "S"
-#   is_gear: true
-#   template_id: "gear_jufufu_1"
+- category: "橘福福"
+  name: "山君破煞"
+  level: "S"
+  is_gear: true
+  template_id: "gear_ju_fufu_1"
 
-# - category: "橘福福"
-#   name: "山君破煞-a"
-#   level: "S"
-#   is_gear: true
+- category: "橘福福"
+  name: "山君破煞-a"
+  level: "S"
+  is_gear: true
 
-# - category: "橘福福"
-#   name: "山君破煞-b"
-#   level: "S"
-#   is_gear: true
+- category: "橘福福"
+  name: "山君破煞-b"
+  level: "S"
+  is_gear: true
 
-# - category: "橘福福"
-#   name: "风雷之音"
-#   level: "S"
-#   is_gear: true
-#   template_id: "gear_jufufu_2"
+- category: "橘福福"
+  name: "「风雷」之音"
+  level: "S"
+  is_gear: true
+  template_id: "gear_ju_fufu_2"
 
-# - category: "橘福福"
-#   name: "风雷之音-a"
-#   level: "S"
-#   is_gear: true
+- category: "橘福福"
+  name: 「风雷」之音-a"
+  level: "S"
+  is_gear: true
 
-# - category: "橘福福"
-#   name: "风雷之音-b"
-#   level: "S"
-#   is_gear: true
+- category: "橘福福"
+  name: "「风雷」之音-b"
+  level: "S"
+  is_gear: true
 
-# - category: "橘福福"
-#   name: "灵符虎魄"
-#   level: "S"
-#   is_gear: true
-#   template_id: "gear_jufufu_3"
+- category: "橘福福"
+  name: "灵符虎魄"
+  level: "S"
+  is_gear: true
+  template_id: "gear_ju_fufu_3"
 
-# - category: "橘福福"
-#   name: "灵符虎魄-a"
-#   level: "S"
-#   is_gear: true
+- category: "橘福福"
+  name: "灵符虎魄-a"
+  level: "S"
+  is_gear: true
 
-# - category: "橘福福"
-#   name: "灵符虎魄-b"
-#   level: "S"
-#   is_gear: true
+- category: "橘福福"
+  name: "灵符虎魄-b"
+  level: "S"
+  is_gear: true
 
   # 携游
 - category: "携游"
