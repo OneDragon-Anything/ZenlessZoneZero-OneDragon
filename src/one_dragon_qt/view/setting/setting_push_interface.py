@@ -45,9 +45,13 @@ class SettingPushInterface(VerticalScrollInterface):
         self.send_image_opt = SwitchSettingCard(icon=FluentIcon.PHOTO, title='通知中附带图片')
         content_widget.add_widget(self.send_image_opt)
 
-        self.test_btn = PushSettingCard(icon=FluentIcon.SEND, title='测试通知', text='发送测试消息')
+        self.test_btn = PushSettingCard(icon=FluentIcon.SEND, title='测试当前通知方式', text='发送测试消息')
         self.test_btn.clicked.connect(self._send_test_message)
         content_widget.add_widget(self.test_btn)
+        
+        self.test_all_btn = PushSettingCard(icon=FluentIcon.SEND_FILL, title='测试所有通知方式', text='发送到全部已配置渠道')
+        self.test_all_btn.clicked.connect(self._send_test_all_message)
+        content_widget.add_widget(self.test_all_btn)
 
         # cURL 示例生成器（仅在 WEBHOOK 模式下显示）
         self.curl_btn = PushSettingCard(icon=FluentIcon.CODE, title='生成 cURL 示例', text='生成调试命令')
@@ -182,12 +186,18 @@ class SettingPushInterface(VerticalScrollInterface):
         return card
 
     def _send_test_message(self):
-        """发送测试消息"""
+        """发送测试消息到当前选择的通知方式"""
         try:
             selected_method = self.notification_method_opt.getValue()
             if not selected_method:
                 self._show_error_message("请先选择通知方式")
                 return
+                
+            if selected_method == "WEBHOOK":
+                url_card = getattr(self, "webhook_url_push_card", None)
+                if not url_card or not url_card.getValue():
+                    self._show_error_message("请先配置 Webhook URL")
+                    return
 
             pusher = Push(self.ctx)
             test_method = str(selected_method) if selected_method is not None else None
@@ -196,6 +206,24 @@ class SettingPushInterface(VerticalScrollInterface):
             self._show_success_message("正在发送测试消息...")
 
             pusher.send(gt('这是一条测试消息'), None, test_method)
+
+        except Exception as e:
+            error_msg = f"发送测试消息失败: {str(e)}"
+            self._show_error_message(error_msg)
+            self.log_error(error_msg)
+
+    def _send_test_all_message(self):
+        """发送测试消息到所有已配置的通知方式"""
+        try:
+            pusher = Push(self.ctx)
+            
+            # 显示发送中的提示
+            self._show_success_message("正在向所有已配置的通知方式发送测试消息...")
+
+            # 不指定test_method，将使用所有已配置的通知方式
+            pusher.send(gt('这是一条测试消息（全部通知）'), None, None)
+            
+            self._show_success_message("已向所有已配置的通知方式发送测试消息")
 
         except Exception as e:
             error_msg = f"发送测试消息失败: {str(e)}"
