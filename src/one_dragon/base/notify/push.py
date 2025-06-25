@@ -853,23 +853,6 @@ class Push():
             self.log_error(f"wxpusher 推送失败！错误信息：{response.get('msg')}")
 
 
-    def qmsg_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
-        """
-        使用 qmsg 推送消息。
-        """
-
-        self.log_info("qmsg 服务启动")
-
-        url = f'https://qmsg.zendee.cn/{self.get_config("QMSG_TYPE")}/{self.get_config("QMSG_KEY")}'
-        payload = {"msg": f'{title}\n{content.replace("----", "-")}'.encode("utf-8")}
-        response = requests.post(url=url, params=payload).json()
-
-        if response["code"] == 0:
-            self.log_info("qmsg 推送成功！")
-        else:
-            self.log_error(f'qmsg 推送失败！{response["reason"]}')
-
-
     def parse_headers(self, headers) -> dict:
         if not headers:
             return {}
