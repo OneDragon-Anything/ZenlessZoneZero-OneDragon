@@ -159,7 +159,7 @@ class SettingPushInterface(VerticalScrollInterface):
                 options_list=[ConfigItem(label=opt, value=opt) for opt in options]
             )
             if "default" in config:
-                card.setValue(config["default"])
+                card.setValue(config["default"])        
         elif card_type == "key_value":
             card = KeyValueSettingCard(
                 icon=config["icon"],
@@ -173,6 +173,9 @@ class SettingPushInterface(VerticalScrollInterface):
             # 设置占位符文本
             if "placeholder" in config:
                 card.editor.setPlaceholderText(config["placeholder"])
+            # 设置默认值
+            if "default" in config:
+                card.setValue(config["default"])
         else:  # 默认为 text
             card = TextSettingCard(
                 icon=config["icon"],
@@ -306,6 +309,8 @@ class SettingPushInterface(VerticalScrollInterface):
         """生成 cURL 示例命令"""
         try:
             import json
+            import datetime
+            import time
             from PySide6.QtWidgets import QApplication
 
             # 获取 webhook 配置
@@ -327,6 +332,22 @@ class SettingPushInterface(VerticalScrollInterface):
                 self._show_error_message("Webhook URL 不能为空")
                 return
 
+            # 生成示例变量值
+            sample_title = "测试通知标题"
+            sample_content = "这是一条测试消息内容"
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            iso_timestamp = datetime.datetime.now().isoformat()
+            unix_timestamp = str(int(time.time()))
+
+            # 替换模板变量
+            replacements = {
+                "{{title}}": sample_title,
+                "{{content}}": sample_content,
+                "{{timestamp}}": timestamp,
+                "{{iso_timestamp}}": iso_timestamp,
+                "{{unix_timestamp}}": unix_timestamp
+            }
+
             # 构建 cURL 命令
             curl_parts = [f'curl -X {method}']
 
@@ -344,7 +365,11 @@ class SettingPushInterface(VerticalScrollInterface):
                         if isinstance(headers_data, dict):
                             for key, value in headers_data.items():
                                 if key and value:
-                                    curl_parts.append(f'-H "{key}: {value}"')
+                                    # 替换模板变量
+                                    header_value = str(value)
+                                    for placeholder, replacement in replacements.items():
+                                        header_value = header_value.replace(placeholder, replacement)
+                                    curl_parts.append(f'-H "{key}: {header_value}"')
                         elif isinstance(headers_data, list):
                             # 兼容旧的列表格式
                             for item in headers_data:
@@ -352,7 +377,11 @@ class SettingPushInterface(VerticalScrollInterface):
                                     key = item.get("key", "")
                                     value = item.get("value", "")
                                     if key and value:
-                                        curl_parts.append(f'-H "{key}: {value}"')
+                                        # 替换模板变量
+                                        header_value = str(value)
+                                        for placeholder, replacement in replacements.items():
+                                            header_value = header_value.replace(placeholder, replacement)
+                                        curl_parts.append(f'-H "{key}: {header_value}"')
                     except (json.JSONDecodeError, TypeError):
                         # 如果解析失败，忽略headers
                         pass
@@ -361,9 +390,16 @@ class SettingPushInterface(VerticalScrollInterface):
             if body_card and hasattr(body_card, 'getValue'):
                 body = body_card.getValue()
                 if body:
+                    # 替换模板变量
+                    for placeholder, replacement in replacements.items():
+                        body = body.replace(placeholder, replacement)
                     # 转义引号
                     body = body.replace('"', '\\"')
                     curl_parts.append(f'-d "{body}"')
+
+            # 替换 URL 中的模板变量
+            for placeholder, replacement in replacements.items():
+                url = url.replace(placeholder, replacement)
 
             # 添加 URL（放在最后）
             curl_parts.append(f'"{url}"')

@@ -868,12 +868,28 @@ class Push():
             method = self.get_config("WEBHOOK_METHOD") or "POST"
             method = method.upper()
             headers_str = self.get_config("WEBHOOK_HEADERS") or "[]"
-            body_template = self.get_config("WEBHOOK_BODY") or "{}"
+            body_template = self.get_config("WEBHOOK_BODY") or '{"title": "{{title}}", "content": "{{content}}", "timestamp": "{{timestamp}}"}'
             content_type = self.get_config("WEBHOOK_CONTENT_TYPE") or "application/json"
 
+            # 生成时间戳
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            iso_timestamp = datetime.datetime.now().isoformat()
+
             # 替换模板变量
-            url = url_template.replace("{{title}}", title).replace("{{content}}", content)
-            body = body_template.replace("{{title}}", title).replace("{{content}}", content)
+            replacements = {
+                "{{title}}": title,
+                "{{content}}": content,
+                "{{timestamp}}": timestamp,
+                "{{iso_timestamp}}": iso_timestamp,
+                "{{unix_timestamp}}": str(int(time.time()))
+            }
+            
+            url = url_template
+            body = body_template
+            for placeholder, value in replacements.items():
+                url = url.replace(placeholder, value)
+                body = body.replace(placeholder, value)
 
             # 解析 Headers
             headers = {}
@@ -884,14 +900,20 @@ class Push():
                         # 新的字典格式
                         for key, value in header_config.items():
                             if key:
-                                headers[key] = str(value).replace("{{title}}", title).replace("{{content}}", content)
+                                header_value = str(value)
+                                for placeholder, replacement in replacements.items():
+                                    header_value = header_value.replace(placeholder, replacement)
+                                headers[key] = header_value
                     elif isinstance(header_config, list):
                         # 旧的列表格式
                         for item in header_config:
                             key = item.get('key')
                             value = item.get('value', '')
                             if key:
-                                headers[key] = str(value).replace("{{title}}", title).replace("{{content}}", content)
+                                header_value = str(value)
+                                for placeholder, replacement in replacements.items():
+                                    header_value = header_value.replace(placeholder, replacement)
+                                headers[key] = header_value
                 except (json.JSONDecodeError, AttributeError):
                     self.log_error(f"Webhook Headers 格式错误，请检查是否为合法的 JSON 键值对: {headers_str}")
                     return
