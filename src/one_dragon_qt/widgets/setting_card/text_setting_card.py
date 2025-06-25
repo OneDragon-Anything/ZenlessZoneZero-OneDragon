@@ -111,4 +111,8 @@ class TextSettingCard(SettingCardBase):
         if not emit_signal:
             self.line_edit.blockSignals(False)
 
+    def getValue(self) -> str:
+        """获取输入框的值"""
+        return self.line_edit.text()
+
 
