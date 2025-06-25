@@ -2,6 +2,59 @@ from qfluentwidgets import FluentIcon
 
 class PushCards:
     push_cards = {
+    "WEBHOOK": [
+        {
+            "group": "基础设置",
+            "items": [
+                {
+                    "var_suffix": "URL",
+                    "title": "URL",
+                    "icon": FluentIcon.LINK,
+                    "placeholder": "请输入 Webhook URL",
+                    "type": "text",
+                    "required": True
+                },
+                {
+                    "var_suffix": "METHOD",
+                    "title": "HTTP 方法",
+                    "icon": FluentIcon.APPLICATION,
+                    "default": "POST",
+                    "type": "combo",
+                    "options": ["POST", "GET", "PUT"]
+                },
+                {
+                    "var_suffix": "CONTENT_TYPE",
+                    "title": "Content-Type",
+                    "icon": FluentIcon.CODE,
+                    "default": "application/json",
+                    "type": "combo",
+                    "options": ["application/json", "application/x-www-form-urlencoded", "application/xml", "text/plain"]
+                }
+            ]
+        },
+        {
+            "group": "高级设置",
+            "collapsible": True,
+            "items": [
+                {
+                    "var_suffix": "HEADERS",
+                    "title": "请求头 (Headers)",
+                    "icon": FluentIcon.LEFT_ARROW,
+                    "type": "key_value",
+                    "placeholder": {"key": "Key", "value": "Value"}
+                },
+                {
+                    "var_suffix": "BODY",
+                    "title": "请求体 (Payload)",
+                    "icon": FluentIcon.DOCUMENT,
+                    "type": "code_editor",
+                    "language": "json",
+                    "placeholder": "请输入请求体内容",
+                    "default": '{\n  "title": "{{title}}",\n  "content": "{{content}}",\n  "timestamp": "{{timestamp}}"\n}'
+                }
+            ]
+        }
+    ],
     "BARK": [
         {
             "var_suffix": "PUSH",
@@ -398,38 +451,6 @@ class PushCards:
             "title": "URL",
             "icon": FluentIcon.SEND,
             "placeholder": "http://127.0.0.1:16530"
-        }
-    ],
-    "WEBHOOK": [
-        {
-            "var_suffix": "URL",
-            "title": "URL",
-            "icon": FluentIcon.SEND,
-            "placeholder": "自定义通知 请求地址"
-        },
-        {
-            "var_suffix": "BODY",
-            "title": "BODY",
-            "icon": FluentIcon.PEOPLE,
-            "placeholder": "自定义通知 请求体"
-        },
-        {
-            "var_suffix": "HEADERS",
-            "title": "HEADERS",
-            "icon": FluentIcon.CLOUD,
-            "placeholder": "自定义通知 请求头"
-        },
-        {
-            "var_suffix": "METHOD",
-            "title": "METHOD",
-            "icon": FluentIcon.CLOUD,
-            "placeholder": "自定义通知 请求方法"
-        },
-        {
-            "var_suffix": "CONTENT_TYPE",
-            "title": "CONTENT_TYPE",
-            "icon": FluentIcon.CLOUD,
-            "placeholder": "自定义通知 content-type"
         }
     ],
     "NTFY": [
