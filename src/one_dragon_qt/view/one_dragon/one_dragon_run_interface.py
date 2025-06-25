@@ -66,8 +66,8 @@ class OneDragonRunInterface(VerticalScrollInterface):
         horizontal_layout.addLayout(self._get_right_layout(), stretch=1)
 
         # 确保 QHBoxLayout 可以伸缩
-        horizontal_layout.setSpacing(20)
-        horizontal_layout.setContentsMargins(10, 0, 10, 0)
+        horizontal_layout.setSpacing(10)
+        horizontal_layout.setContentsMargins(0, 0, 0, 0)
 
         # 设置伸缩因子，让 QHBoxLayout 占据空间
         main_layout.addLayout(horizontal_layout, stretch=1)
@@ -84,60 +84,20 @@ class OneDragonRunInterface(VerticalScrollInterface):
         """
         layout = QVBoxLayout()
 
-        scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
-        # 应用自定义滚动条样式
-        scroll_area.setStyleSheet("""
-            QScrollArea { 
-                background-color: transparent; 
-                border: none; 
-            }
-            QScrollBar:vertical {
-                background: transparent;
-                width: 8px;
-                border-radius: 4px;
-                margin: 2px;
-                border: none;
-            }
-            QScrollBar::handle:vertical {
-                background: rgba(128, 128, 128, 60);
-                border-radius: 4px;
-                min-height: 20px;
-                margin: 1px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background: rgba(128, 128, 128, 120);
-            }
-            QScrollBar::handle:vertical:pressed {
-                background: rgba(128, 128, 128, 180);
-            }
-            QScrollBar::add-line:vertical,
-            QScrollBar::sub-line:vertical {
-                height: 0px;
-                width: 0px;
-            }
-            QScrollBar::add-page:vertical,
-            QScrollBar::sub-page:vertical {
-                background: transparent;
-            }
-            QScrollBar::corner {
-                background: transparent;
-            }
-        """)
-
+        scroll_area = SingleDirectionScrollArea()
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setContentsMargins(0, 0, 12, 0)
-        
+        scroll_layout.setContentsMargins(0, 0, 16, 0)
+
         self.app_card_group = SettingCardGroup(gt('任务列表'))
         scroll_layout.addWidget(self.app_card_group)
-        # 填充剩余空间
         scroll_layout.addStretch(1)
 
         scroll_area.setWidget(scroll_content)
         scroll_area.setWidgetResizable(True)
-        
+
         layout.addWidget(scroll_area)
-        
+
         return layout
 
     def _get_right_layout(self) -> QVBoxLayout:
@@ -195,15 +155,8 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self.stop_btn.clicked.connect(self._on_stop_clicked)
         btn_row.addWidget(self.stop_btn, stretch=1)
 
-        # 日志
-        log_scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
-        log_scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
-        
         self.log_card = LogDisplayCard()
-        log_scroll_area.setWidget(self.log_card)
-        log_scroll_area.setWidgetResizable(True)
-        
-        layout.addWidget(log_scroll_area, stretch=1)
+        layout.addWidget(self.log_card, stretch=1)
 
         return layout
 
