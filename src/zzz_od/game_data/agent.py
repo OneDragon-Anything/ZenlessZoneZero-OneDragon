@@ -330,7 +330,7 @@ class AgentEnum(Enum):
 
     JU_FUFU = Agent('ju_fufu', '橘福福', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.FIRE, ['ju_fufu'],
                     state_list=[
-                        AgentStateDef('威风', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                        AgentStateDef('威风', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                       template_id='ju_fufu',
                                       hsv_color=(248,164,67), hsv_color_diff=(100,100,30),
                                       max_length=200)
