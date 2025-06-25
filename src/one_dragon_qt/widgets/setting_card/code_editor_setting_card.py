@@ -43,8 +43,7 @@ class JsonHighlighter(QSyntaxHighlighter):
 
     def highlightBlock(self, text):
         for pattern, format in self.highlighting_rules:
-            expression = QRegularExpression(pattern)
-            it = expression.globalMatch(text)
+            it = pattern.globalMatch(text)
             while it.hasNext():
                 match = it.next()
                 self.setFormat(match.capturedStart(), match.capturedLength(), format)
