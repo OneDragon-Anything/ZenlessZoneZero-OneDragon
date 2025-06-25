@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, SubtitleLabel, ExpandGroupSettingCard
+from qfluentwidgets import FluentIcon, SubtitleLabel, ExpandGroupSettingCard, PushButton
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.push_config import NotifyMethodEnum
@@ -13,6 +13,7 @@ from one_dragon_qt.widgets.setting_card.code_editor_setting_card import CodeEdit
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import EditableComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.key_value_setting_card import KeyValueSettingCard
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
@@ -45,13 +46,19 @@ class SettingPushInterface(VerticalScrollInterface):
         self.send_image_opt = SwitchSettingCard(icon=FluentIcon.PHOTO, title='通知中附带图片')
         content_widget.add_widget(self.send_image_opt)
 
-        self.test_btn = PushSettingCard(icon=FluentIcon.SEND, title='测试当前通知方式', text='发送测试消息')
-        self.test_btn.clicked.connect(self._send_test_message)
-        content_widget.add_widget(self.test_btn)
-        
-        self.test_all_btn = PushSettingCard(icon=FluentIcon.SEND_FILL, title='测试所有通知方式', text='发送到全部已配置渠道')
+        # 测试通知方式 - 使用MultiPushSettingCard
+        self.test_current_btn = PushButton(text='测试当前方式', icon=FluentIcon.SEND, parent=self)
+        self.test_current_btn.clicked.connect(self._send_test_message)
+        self.test_all_btn = PushButton(text='测试全部', icon=FluentIcon.SEND_FILL, parent=self)
         self.test_all_btn.clicked.connect(self._send_test_all_message)
-        content_widget.add_widget(self.test_all_btn)
+        
+        self.test_notification_card = MultiPushSettingCard(
+            icon=FluentIcon.MESSAGE,
+            title='测试通知方式',
+            content='发送测试消息验证通知配置',
+            btn_list=[self.test_current_btn, self.test_all_btn]
+        )
+        content_widget.add_widget(self.test_notification_card)
 
         # cURL 示例生成器（仅在 WEBHOOK 模式下显示）
         self.curl_btn = PushSettingCard(icon=FluentIcon.CODE, title='生成 cURL 示例', text='生成调试命令')
