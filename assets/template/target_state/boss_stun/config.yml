@@ -1,0 +1,8 @@
+sub_dir: target_state
+template_id: boss_stun
+template_name: 强敌失衡值
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 1066, 22
+- 1150, 112

@@ -1,5 +1,6 @@
 from typing import Optional
 
+from one_dragon.base.cv_process.cv_service import CvService
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from zzz_od.game_data.agent import AgentEnum
 
@@ -24,6 +25,9 @@ class ZContext(OneDragonContext):
         # 游戏数据
         self.map_service: MapAreaService = MapAreaService()
         self.compendium_service: CompendiumService = CompendiumService()
+
+        # CV服务
+        self.cv_service: CvService = CvService(self)
 
         # 实例独有的配置
         self.load_instance_config()

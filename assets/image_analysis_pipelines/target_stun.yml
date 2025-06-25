@@ -1,0 +1,30 @@
+- step: 按模板裁剪
+  params:
+    template_name: target_state/locked_target_info
+    enable_match: false
+    match_threshold: 0.8
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 90
+    - 3
+    - 79
+    hsv_diff:
+    - 50
+    - 5
+    - 5
+- step: 查找轮廓
+  params:
+    mode: CCOMP
+    method: SIMPLE
+    draw_contours: 0
+- step: 按面积过滤
+  params:
+    min_area: 5
+    max_area: 10000
+    draw_contours: 0
+- step: 按长宽比过滤
+  params:
+    min_ratio: 0.9
+    max_ratio: 1.1
+    draw_contours: 2

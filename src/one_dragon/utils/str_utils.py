@@ -171,3 +171,64 @@ def with_chinese(s: str) -> bool:
     判断一个字符串是否包含中文
     """
     return _WITH_CHINESE_PATTERN.search(s) is not None
+
+
+def levenshtein_distance(s1: str, s2: str) -> int:
+    """
+    计算两个字符串之间的 Levenshtein 编辑距离
+    """
+    if len(s1) < len(s2):
+        return levenshtein_distance(s2, s1)
+
+    if len(s2) == 0:
+        return len(s1)
+
+    previous_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        current_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            insertions = previous_row[j + 1] + 1
+            deletions = current_row[j] + 1
+            substitutions = previous_row[j] + (c1 != c2)
+            current_row.append(min(insertions, deletions, substitutions))
+        previous_row = current_row
+
+    return previous_row[-1]
+
+
+def find_best_match_by_similarity(
+    ocr_text: str,
+    target_texts: List[str],
+    threshold: float = 0.5
+) -> Tuple[Optional[str], float]:
+    """
+    在目标列表中，根据编辑距离找出与OCR文本最相似的一个
+    :param ocr_text: OCR识别出的文本
+    :param target_texts: 目标文本列表
+    :param threshold: 相似度阈值，高于此值才被认为有效
+    :return: (最佳匹配的文本, 相似度分数)
+    """
+    if not ocr_text or not target_texts:
+        return None, 0.0
+
+    best_match = None
+    highest_score = -1.0
+
+    for target in target_texts:
+        if not target:
+            continue
+        distance = levenshtein_distance(ocr_text, target)
+        max_len = max(len(ocr_text), len(target))
+        if max_len == 0:
+            score = 1.0 if distance == 0 else 0.0
+        else:
+            score = 1.0 - (distance / max_len)
+
+        if score > highest_score:
+            highest_score = score
+            best_match = target
+
+    if highest_score >= threshold:
+        return best_match, highest_score
+    else:
+        return None, highest_score

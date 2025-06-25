@@ -1,0 +1,13 @@
+- step: 按区域裁剪
+  params:
+    screen_name: 大世界
+    area_name: 小地图
+- step: 环形裁剪
+  params:
+    center_x_offset: 0
+    center_y_offset: 0
+    outer_radius_reduction: 10
+    inner_radius: 15
+    notch_x: 207
+    notch_y: 189
+    notch_radius: 50
