@@ -921,6 +921,92 @@ class Push():
         return parsed
 
 
+    def webhook_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
+        """
+        通过通用 Webhook 推送消息
+        """
+        self.log_info("通用 Webhook 服务启动")
+
+        try:
+            url_template = self.get_config("WEBHOOK_URL")
+            if not url_template:
+                self.log_error("Webhook URL 未配置，无法推送")
+                return
+
+            method = self.get_config("WEBHOOK_METHOD") or "POST"
+            method = method.upper()
+            headers_str = self.get_config("WEBHOOK_HEADERS") or "{}"
+            body_template = self.get_config("WEBHOOK_BODY") or '{"title": "{{title}}", "content": "{{content}}", "timestamp": "{{timestamp}}"}'
+            content_type = self.get_config("WEBHOOK_CONTENT_TYPE") or "application/json"
+
+            # 生成时间戳
+            import datetime
+            import time
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            iso_timestamp = datetime.datetime.now().isoformat()
+
+            # 替换模板变量
+            replacements = {
+                "{{title}}": title,
+                "{{content}}": content,
+                "{{timestamp}}": timestamp,
+                "{{iso_timestamp}}": iso_timestamp,
+                "{{unix_timestamp}}": str(int(time.time()))
+            }
+
+            url = url_template
+            body = body_template
+            for placeholder, value in replacements.items():
+                url = url.replace(placeholder, value)
+                body = body.replace(placeholder, value)
+
+            # 解析 Headers
+            headers = {}
+            if headers_str:
+                try:
+                    header_config = json.loads(headers_str)
+                    if isinstance(header_config, dict):
+                        # 新的字典格式
+                        for key, value in header_config.items():
+                            if key:
+                                header_value = str(value)
+                                for placeholder, replacement in replacements.items():
+                                    header_value = header_value.replace(placeholder, replacement)
+                                headers[key] = header_value
+                    elif isinstance(header_config, list):
+                        # 旧的列表格式
+                        for item in header_config:
+                            key = item.get('key')
+                            value = item.get('value', '')
+                            if key:
+                                header_value = str(value)
+                                for placeholder, replacement in replacements.items():
+                                    header_value = header_value.replace(placeholder, replacement)
+                                headers[key] = header_value
+                except (json.JSONDecodeError, AttributeError):
+                    self.log_error(f"Webhook Headers 格式错误，请检查是否为合法的 JSON 键值对: {headers_str}")
+                    return
+
+            headers['Content-Type'] = content_type
+
+            self.log_info(f"发送 Webhook 请求: {method} {url}")
+
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=headers,
+                data=body.encode("utf-8"),
+                timeout=15
+            )
+
+            if 200 <= response.status_code < 300:
+                self.log_info(f"Webhook 推送成功！状态码: {response.status_code}")
+            else:
+                self.log_error(f"Webhook 推送失败！状态码: {response.status_code}\n响应: {response.text}")
+
+        except Exception as e:
+            self.log_error(f"Webhook 推送时发生异常: {e}")
+
     def custom_notify(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 Webhook 推送消息，支持新旧模板变量格式
@@ -1076,7 +1162,7 @@ class Push():
         ):
             notify_function.append(self.chronocat)
         if self.get_config("WEBHOOK_URL"):
-            notify_function.append(self.custom_notify)
+            notify_function.append(self.webhook_bot)
         if self.get_config("NTFY_TOPIC"):
             notify_function.append(self.ntfy)
         if self.get_config("WXPUSHER_APP_TOKEN") and (
@@ -1136,29 +1222,30 @@ class Push():
 
         # 通过方法名匹配对应的函数
         method = method.upper()
+
+        # 配置键名到函数名的映射（UI传入的method已经是配置键名）
         method_to_function_name = {
             'BARK': 'bark',
-            'CONSOLE': 'console',
-            'DINGDING_BOT': 'dingding_bot',
-            'FEISHU_BOT': 'feishu_bot',
+            'CONSOLE': 'console', 
+            'DD_BOT': 'dingding_bot',
+            'FS': 'feishu_bot',
             'ONEBOT': 'one_bot',
             'GOTIFY': 'gotify',
             'IGOT': 'iGot',
             'SERVERCHAN': 'serverchan',
-            'PUSHDEER': 'pushdeer',
+            'DEER': 'pushdeer',
             'CHAT': 'chat',
-            'PUSHPLUS': 'pushplus_bot',
-            'WEPLUS': 'weplus_bot',
+            'PUSH_PLUS': 'pushplus_bot',
+            'WE_PLUS_BOT': 'weplus_bot',
             'QMSG': 'qmsg_bot',
-            'WECOM_APP': 'wecom_app',
-            'WECOM_BOT': 'wecom_bot',
+            'QYWX': 'wecom_app',
             'DISCORD': 'discord_bot',
-            'TELEGRAM': 'telegram_bot',
+            'TG': 'telegram_bot',
             'AIBOTK': 'aibotk',
             'SMTP': 'smtp',
             'PUSHME': 'pushme',
             'CHRONOCAT': 'chronocat',
-            'WEBHOOK': 'custom_notify',
+            'WEBHOOK': 'webhook_bot',
             'NTFY': 'ntfy',
             'WXPUSHER': 'wxpusher_bot',
         }
