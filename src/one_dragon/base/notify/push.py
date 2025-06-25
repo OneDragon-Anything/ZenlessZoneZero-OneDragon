@@ -1116,6 +1116,17 @@ class Push():
     def send(self, content: str, image: Optional[BytesIO] = None, test_method: Optional[str] = None) -> None:
         title = self.ctx.push_config.custom_push_title
 
+        if test_method:
+            # 测试指定的推送方式
+            notify_function = self.get_specific_notify_function(test_method)
+        else:
+            # 使用所有已配置的推送方式
+            notify_function = self.add_notify_function()
+
+        if not notify_function:
+            self.log_error(f"未找到可用的推送方式")
+            return
+
         notify_function = self.add_notify_function()
 
         # 遥测埋点：记录推送方法使用情况
@@ -1127,6 +1138,52 @@ class Push():
         ]
         [t.start() for t in ts]
         [t.join() for t in ts]
+
+    def get_specific_notify_function(self, method: str) -> list:
+        """获取指定的推送方式函数"""
+        notify_function = []
+
+        # 将方法名转换为小写进行匹配
+        method = method.upper()
+
+        # 根据方法名匹配对应的推送函数
+        method_mapping = {
+            'BARK': (lambda: self.get_config("BARK_PUSH"), self.bark),
+            'CONSOLE': (lambda: self.get_config("CONSOLE"), self.console),
+            'DINGDING_BOT': (lambda: self.get_config("DD_BOT_TOKEN") and self.get_config("DD_BOT_SECRET"), self.dingding_bot),
+            'FEISHU_BOT': (lambda: self.get_config("FS_KEY"), self.feishu_bot),
+            'ONEBOT': (lambda: self.get_config("ONEBOT_URL"), self.one_bot),
+            'GOTIFY': (lambda: self.get_config("GOTIFY_URL") and self.get_config("GOTIFY_TOKEN"), self.gotify),
+            'IGOT': (lambda: self.get_config("IGOT_PUSH_KEY"), self.iGot),
+            'SERVERCHAN': (lambda: self.get_config("SERVERCHAN_PUSH_KEY"), self.serverchan),
+            'PUSHDEER': (lambda: self.get_config("DEER_KEY"), self.pushdeer),
+            'CHAT': (lambda: self.get_config("CHAT_URL") and self.get_config("CHAT_TOKEN"), self.chat),
+            'PUSHPLUS': (lambda: self.get_config("PUSH_PLUS_TOKEN"), self.pushplus_bot),
+            'WEPLUS': (lambda: self.get_config("WE_PLUS_BOT_TOKEN"), self.weplus_bot),
+            'QMSG': (lambda: self.get_config("QMSG_KEY") and self.get_config("QMSG_TYPE"), self.qmsg_bot),
+            'WECOM_APP': (lambda: self.get_config("QYWX_AM"), self.wecom_app),
+            'WECOM_BOT': (lambda: self.get_config("QYWX_KEY"), self.wecom_bot),
+            'DISCORD': (lambda: self.get_config("DISCORD_BOT_TOKEN") and self.get_config("DISCORD_USER_ID"), self.discord_bot),
+            'TELEGRAM': (lambda: self.get_config("TG_BOT_TOKEN") and self.get_config("TG_USER_ID"), self.telegram_bot),
+            'AIBOTK': (lambda: self.get_config("AIBOTK_KEY") and self.get_config("AIBOTK_TYPE") and self.get_config("AIBOTK_NAME"), self.aibotk),
+            'SMTP': (lambda: self.get_config("SMTP_SERVER") and self.get_config("SMTP_SSL") and self.get_config("SMTP_EMAIL") and self.get_config("SMTP_PASSWORD") and self.get_config("SMTP_NAME"), self.smtp),
+            'PUSHME': (lambda: self.get_config("PUSHME_KEY"), self.pushme),
+            'CHRONOCAT': (lambda: self.get_config("CHRONOCAT_URL") and self.get_config("CHRONOCAT_QQ") and self.get_config("CHRONOCAT_TOKEN"), self.chronocat),
+            'WEBHOOK': (lambda: self.get_config("WEBHOOK_URL"), self.webhook_bot),
+            'NTFY': (lambda: self.get_config("NTFY_TOPIC"), self.ntfy),
+            'WXPUSHER': (lambda: self.get_config("WXPUSHER_APP_TOKEN") and (self.get_config("WXPUSHER_TOPIC_IDS") or self.get_config("WXPUSHER_UIDS")), self.wxpusher_bot),
+        }
+
+        if method in method_mapping:
+            condition_check, function = method_mapping[method]
+            if condition_check():
+                notify_function.append(function)
+            else:
+                self.log_error(f"{method} 推送方式未正确配置")
+        else:
+            self.log_error(f"未支持的推送方式: {method}")
+
+        return notify_function
 
     def _track_push_usage(self, notify_functions: list, test_method: Optional[str] = None) -> None:
         """跟踪推送方法使用情况"""
