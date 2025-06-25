@@ -107,13 +107,32 @@ class ModelConfig(BasicModelConfig):
 
     def using_old_model(self) -> bool:
         """
-        是否在使用旧模型
-        :return:
+        检查是否使用旧版本模型
+        :return: True表示正在使用旧版本模型
         """
-        return (self.flash_classifier != _DEFAULT_FLASH_CLASSIFIER
-                or self.hollow_zero_event != _DEFAULT_HOLLOW_ZERO_EVENT
-                or self.lost_void_det != _DEFAULT_LOST_VOID_DET
-                )
+        try:
+            old_models = []
+            
+            if self.flash_classifier != _DEFAULT_FLASH_CLASSIFIER:
+                old_models.append(f'flash({self.flash_classifier} -> {_DEFAULT_FLASH_CLASSIFIER})')
+            
+            if self.hollow_zero_event != _DEFAULT_HOLLOW_ZERO_EVENT:
+                old_models.append(f'hollow_zero({self.hollow_zero_event} -> {_DEFAULT_HOLLOW_ZERO_EVENT})')
+            
+            if self.lost_void_det != _DEFAULT_LOST_VOID_DET:
+                old_models.append(f'lost_void({self.lost_void_det} -> {_DEFAULT_LOST_VOID_DET})')
+            
+            if old_models:
+                from one_dragon.utils.log_utils import log
+                log.info(f'检测到模型有更新版本: {", ".join(old_models)}')
+                return True
+                
+            return False
+            
+        except Exception as e:
+            from one_dragon.utils.log_utils import log
+            log.error(f'模型版本检测失败: {str(e)}')
+            return False
 
 def get_flash_classifier_opts() -> List[ConfigItem]:
     """
