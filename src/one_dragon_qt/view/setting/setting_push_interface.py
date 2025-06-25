@@ -203,11 +203,11 @@ class SettingPushInterface(VerticalScrollInterface):
                 self._show_error_message("请先选择通知方式")
                 return
                 
-            if selected_method == "WEBHOOK":
-                url_card = getattr(self, "webhook_url_push_card", None)
-                if not url_card or not url_card.getValue():
-                    self._show_error_message("请先配置 Webhook URL")
-                    return
+            # 验证配置
+            validation_error = self._validate_push_config(str(selected_method))
+            if validation_error:
+                self._show_error_message(validation_error)
+                return
 
             pusher = Push(self.ctx)
             test_method = str(selected_method) if selected_method is not None else None
@@ -469,6 +469,78 @@ class SettingPushInterface(VerticalScrollInterface):
         except ImportError:
             # 如果没有 InfoBar，就用日志代替
             self.log_error(message)
+
+    def _validate_push_config(self, method: str) -> str:
+        """验证推送配置，返回错误信息或空字符串"""
+        if method == "WEBHOOK":
+            return self._validate_webhook_config()
+        elif method == "TG":
+            return self._validate_telegram_config()
+        elif method == "SMTP":
+            return self._validate_smtp_config()
+        return ""
+
+    def _validate_webhook_config(self) -> str:
+        """验证 Webhook 配置，返回错误信息或空字符串"""
+        # 获取各个配置卡片
+        url_card = getattr(self, "webhook_url_push_card", None)
+        body_card = getattr(self, "webhook_body_push_card", None)
+        
+        # 验证 URL
+        if not url_card:
+            return "找不到 Webhook URL 配置项"
+        
+        url = url_card.getValue() if hasattr(url_card, 'getValue') else ""
+        if not url:
+            return "请先配置 Webhook URL"
+        
+        if not self._validate_webhook_url(url):
+            return "Webhook URL 格式不正确，请检查是否包含 http:// 或 https://"
+        
+        # 验证请求体中的变量
+        if body_card and hasattr(body_card, 'getValue'):
+            body = body_card.getValue()
+            if body:
+                # 检查是否包含必需的变量
+                has_old_vars = ("$title" in url or "$title" in body or 
+                               "$content" in url or "$content" in body)
+                has_new_vars = ("{{title}}" in url or "{{title}}" in body or
+                               "{{content}}" in url or "{{content}}" in body)
+                
+                if not has_old_vars and not has_new_vars:
+                    return "请求头或者请求体中必须包含 $title/$content 或 {{title}}/{{content}} 变量"
+        
+        return ""  # 验证通过
+
+    def _validate_telegram_config(self) -> str:
+        """验证 Telegram 配置"""
+        token_card = getattr(self, "tg_bot_token_push_card", None)
+        user_id_card = getattr(self, "tg_user_id_push_card", None)
+        
+        if not token_card or not token_card.getValue():
+            return "请先配置 Telegram Bot Token"
+        
+        if not user_id_card or not user_id_card.getValue():
+            return "请先配置 Telegram User ID"
+        
+        return ""
+
+    def _validate_smtp_config(self) -> str:
+        """验证 SMTP 配置"""
+        server_card = getattr(self, "smtp_server_push_card", None)
+        email_card = getattr(self, "smtp_email_push_card", None)
+        password_card = getattr(self, "smtp_password_push_card", None)
+        
+        if not server_card or not server_card.getValue():
+            return "请先配置 SMTP 服务器"
+        
+        if not email_card or not email_card.getValue():
+            return "请先配置发送邮箱"
+        
+        if not password_card or not password_card.getValue():
+            return "请先配置邮箱密码"
+        
+        return ""
 
     def _validate_webhook_url(self, url: str) -> bool:
         """验证 Webhook URL 格式"""

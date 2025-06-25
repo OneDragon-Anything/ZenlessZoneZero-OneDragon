@@ -928,6 +928,16 @@ class Push():
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             iso_timestamp = datetime.datetime.now().isoformat()
 
+            # 检查是否包含必需的变量（title和content中至少一个）
+            has_old_vars = ("$title" in url_template or "$title" in body_template or 
+                           "$content" in url_template or "$content" in body_template)
+            has_new_vars = ("{{title}}" in url_template or "{{title}}" in body_template or
+                           "{{content}}" in url_template or "{{content}}" in body_template)
+            
+            if not has_old_vars and not has_new_vars:
+                self.log_error("请求头或者请求体中必须包含 $title/$content 或 {{title}}/{{content}} 变量")
+                return
+
             # 替换模板变量
             replacements = {
                 "{{title}}": title,
@@ -942,6 +952,15 @@ class Push():
             for placeholder, value in replacements.items():
                 url = url.replace(placeholder, value)
                 body = body.replace(placeholder, value)
+
+            if "$title" in body or "$content" in body:
+                body = self.parse_body(
+                    body,
+                    content_type,
+                    lambda v: v.replace("$title", title.replace("\n", "\\n")).replace(
+                        "$content", content.replace("\n", "\\n")
+                    ),
+                )
 
             # 解析 Headers
             headers = {}
