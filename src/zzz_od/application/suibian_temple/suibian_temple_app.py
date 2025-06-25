@@ -1,6 +1,8 @@
 import cv2
+import re
 
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -83,7 +85,173 @@ class SuibianTempleApp(ZApplication):
 
     @node_from(from_name='识别初始画面', status='随便观-入口')
     @node_from(from_name='前往随便观')
-    @operation_node(name='前往游历')
+    @operation_node(name='点击-邻里街坊')
+    def goto_linli_jiefang(self) -> OperationRoundResult:
+        screen = self.screenshot()
+        # 如果已经看到好物铺，说明已经点过邻里街坊了
+        if self.round_by_ocr(screen, '好物铺').is_success:
+            return self.round_success(status='已在邻里街坊')
+
+        # 点击按钮
+        result = self.round_by_ocr_and_click(screen, '邻里街坊')
+        if result.is_success:
+            return self.round_wait(status=result.status, wait=1.5)
+
+        return self.round_retry(status='未找到邻里街坊', wait=1)
+
+    @node_from(from_name='点击-邻里街坊')
+    @operation_node(name='点击-好物铺')
+    def goto_goodgoods(self) -> OperationRoundResult:
+        screen = self.screenshot()
+
+        # 检查是否已经进入好物铺
+        if self.round_by_ocr(screen, '经营购置').is_success:
+            return self.round_success(status='已在好物铺')
+
+        # 点击按钮
+        result = self.round_by_ocr_and_click(screen, '好物铺')
+        if result.is_success:
+            return self.round_wait(status=result.status, wait=2)
+
+        return self.round_retry(status='未找到好物铺', wait=1)
+
+    @node_from(from_name='点击-好物铺')
+    @operation_node(name='好物铺-购买')
+    def process_goodgoods(self) -> OperationRoundResult:
+        screen = self.screenshot()
+
+        # 获得
+        if self.round_by_ocr(screen, '获得').is_success:
+            confirm_result = self.round_by_ocr_and_click(screen, '确认')
+            if not confirm_result.is_success:
+                return self.round_retry(status='点击获得确认失败')
+            return self.round_success(status='购买成功')
+
+        # 处理弹窗
+        if self.round_by_ocr(screen, '兑换确认').is_success:
+            # 直接使用精确坐标拖拽滑块到最大值
+            start_point = Point(755, 672)
+            end_point = Point(1200, 672)
+            self.ctx.controller.drag_to(start=start_point, end=end_point)
+
+            # 点击兑换确认
+            confirm_result = self.round_by_ocr_and_click(screen, '确认')
+            if not confirm_result.is_success:
+                return self.round_retry(status='点击兑换确认失败')
+
+            # 等待"获得"弹窗出现
+            return self.round_wait(status='已确认兑换', wait=2)
+
+        # 在好物铺主界面，查找并购买商品
+        ocr_result_map = self.ctx.ocr.run_ocr(screen)
+        
+        # 查找邦布能源插件
+        plugin_mrls = []
+        for ocr_result, mrl in ocr_result_map.items():
+            if '邦布能源插件' in ocr_result and mrl.max is not None:
+                plugin_mrls.append(mrl)
+        
+        if not plugin_mrls:
+            # 如果找不到商品，尝试切换分页
+            change_tab_result = self.round_by_ocr_and_click(screen, '经营购置')
+            if change_tab_result.is_success:
+                return self.round_wait(status='切换到经营购置', wait=1)
+            else:
+                # 找不到商品也无法切换，认为任务完成，避免卡死
+                return self.round_success(status='找不到商品或已完成')
+
+        # 找到最左下的邦布能源插件（最左的，如果有多个则选择最下面的）
+        leftmost_bottom_plugin = min(plugin_mrls, 
+                                   key=lambda x: (x.max.rect.x1, -x.max.rect.y2))
+        
+        # 检查这个商品下方是否有500数字（表示可购买）
+        plugin_rect = leftmost_bottom_plugin.max.rect
+
+        # todo 售罄检测不可靠
+        # 先检查商品本身区域是否有"已售罄"文本
+        plugin_area_img = cv2_utils.crop_image_only(screen, plugin_rect)
+        plugin_ocr_map = self.ctx.ocr.run_ocr(plugin_area_img)
+        for ocr_text, mrl in plugin_ocr_map.items():
+            if '已售罄' in ocr_text or '售罄' in ocr_text:
+                return self.round_success(status='跳过购买-已售罄')
+        
+        # 在商品下方区域搜索价格信息
+        screen_height = screen.shape[0]  # 获取屏幕高度
+        price_search_rect = Rect(plugin_rect.x1 - 20, plugin_rect.y2, plugin_rect.x2 + 20, screen_height)
+        
+        # 截取并进行OCR
+        price_area_img = cv2_utils.crop_image_only(screen, price_search_rect)
+        price_ocr_map = self.ctx.ocr.run_ocr(price_area_img)
+        
+        has_price = False
+        # 检查是否有价格相关文本
+        for ocr_text in price_ocr_map.keys():
+            # 检查500或其变体
+            price_patterns = ['500', '5OO', '50O', 'S00', 'soo', '5oo']
+            for pattern in price_patterns:
+                if pattern.lower() in ocr_text.lower():
+                    has_price = True
+                    break
+            if has_price:
+                break
+                    
+            # 检查是否包含价格相关的数字（排除等级信息）
+            if any(char.isdigit() for char in ocr_text):
+                # 排除等级相关的文本 (Lv., 等级等)
+                if not any(level_word in ocr_text.lower() for level_word in ['lv', '等级', 'level']):
+                    # 如果包含3位数字，很可能是价格
+                    numbers = re.findall(r'\d+', ocr_text)
+                    for num in numbers:
+                        if len(num) >= 3:  # 3位数以上可能是价格
+                            has_price = True
+                            break
+        
+        if not has_price:
+            # 没有价格数字，说明已经购买过了或者已售罄
+            return self.round_success(status='跳过购买-已售罄')
+
+        # 有价格数字，说明可以购买，点击商品
+        click_result = self.ctx.controller.click(leftmost_bottom_plugin.max.rect.center)
+        if not click_result:
+            return self.round_retry(status='点击邦布能源插件失败')
+
+        # 等待"兑换确认"弹窗出现
+        return self.round_wait(status='已点击邦布能源插件', wait=1.5)
+
+    @node_from(from_name='好物铺-购买', status='跳过购买-已售罄')
+    @node_from(from_name='好物铺-购买')
+    @operation_node(name='好物铺-返回邻里')
+    def exit_goodgoods(self) -> OperationRoundResult:
+        screen = self.screenshot()
+
+        if self.round_by_ocr(screen, '邻里街坊').is_success:
+            return self.round_success(status='已返回邻里街坊')
+
+        # 操作：点击左上角返回
+        result = self.round_by_find_and_click_area(screen, '菜单', '返回')
+        if result.is_success:
+            return self.round_wait(status='点击左上角返回', wait=1)
+
+        return self.round_retry(status='无法从好物铺返回', wait=1)
+
+    @node_from(from_name='好物铺-返回邻里')
+    @operation_node(name='邻里-返回主页')
+    def exit_linli_jiefang(self) -> OperationRoundResult:
+        screen = self.screenshot()
+
+        # 回到随便观主页（能看到"游历"）
+        if self.round_by_ocr(screen, '游历').is_success:
+            return self.round_success(status='已返回随便观主页')
+
+        # 操作：点击"关闭"
+        result = self.round_by_ocr_and_click(screen, '关闭')
+        if result.is_success:
+            return self.round_wait(status='点击关闭', wait=1)
+
+        return self.round_retry(status='无法从邻里街坊返回', wait=1)
+
+    @node_from(from_name='邻里-返回主页')
+    @operation_node(name='随便观-游历')
     def goto_adventure(self) -> OperationRoundResult:
         screen = self.screenshot()
         return self.round_by_find_and_click_area(
@@ -92,7 +260,7 @@ class SuibianTempleApp(ZApplication):
             until_not_find_all=[('随便观-入口', '按钮-游历')]
         )
 
-    @node_from(from_name='前往游历')
+    @node_from(from_name='随便观-游历')
     @operation_node(name='选择游历小队')
     def choose_adventure_squad(self) -> OperationRoundResult:
         screen = self.screenshot()
