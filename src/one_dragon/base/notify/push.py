@@ -853,6 +853,87 @@ class Push():
             self.log_error(f"wxpusher 推送失败！错误信息：{response.get('msg')}")
 
 
+    def webhook_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
+        """
+        通过通用 Webhook 推送消息
+        """
+        self.log_info("通用 Webhook 服务启动")
+
+        try:
+            url_template = self.get_config("WEBHOOK_URL")
+            if not url_template:
+                self.log_error("Webhook URL 未配置，无法推送")
+                return
+
+            method = self.get_config("WEBHOOK_METHOD") or "POST"
+            method = method.upper()
+            headers_str = self.get_config("WEBHOOK_HEADERS") or "[]"
+            body_template = self.get_config("WEBHOOK_BODY") or "{}"
+            content_type = self.get_config("WEBHOOK_CONTENT_TYPE") or "application/json"
+
+            # 替换模板变量
+            url = url_template.replace("{{title}}", title).replace("{{content}}", content)
+            body = body_template.replace("{{title}}", title).replace("{{content}}", content)
+
+            # 解析 Headers
+            headers = {}
+            if headers_str:
+                try:
+                    header_config = json.loads(headers_str)
+                    if isinstance(header_config, dict):
+                        # 新的字典格式
+                        for key, value in header_config.items():
+                            if key:
+                                headers[key] = str(value).replace("{{title}}", title).replace("{{content}}", content)
+                    elif isinstance(header_config, list):
+                        # 旧的列表格式
+                        for item in header_config:
+                            key = item.get('key')
+                            value = item.get('value', '')
+                            if key:
+                                headers[key] = str(value).replace("{{title}}", title).replace("{{content}}", content)
+                except (json.JSONDecodeError, AttributeError):
+                    self.log_error(f"Webhook Headers 格式错误，请检查是否为合法的 JSON 键值对: {headers_str}")
+                    return
+            
+            headers['Content-Type'] = content_type
+
+            self.log_info(f"发送 Webhook 请求: {method} {url}")
+
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=headers,
+                data=body.encode("utf-8"),
+                timeout=15
+            )
+
+            if 200 <= response.status_code < 300:
+                self.log_info(f"Webhook 推送成功！状态码: {response.status_code}")
+            else:
+                self.log_error(f"Webhook 推送失败！状态码: {response.status_code}\n响应: {response.text}")
+
+        except Exception as e:
+            self.log_error(f"Webhook 推送时发生异常: {e}")
+
+
+    def qmsg_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
+        """
+        使用 qmsg 推送消息。
+        """
+
+        self.log_info("qmsg 服务启动")
+
+        url = f'https://qmsg.zendee.cn/{self.get_config("QMSG_TYPE")}/{self.get_config("QMSG_KEY")}'
+        payload = {"msg": f'{title}\n{content.replace("----", "-")}'.encode("utf-8")}
+        response = requests.post(url=url, params=payload).json()
+
+        if response["code"] == 0:
+            self.log_info("qmsg 推送成功！")
+        else:
+            self.log_error(f'qmsg 推送失败！{response["reason"]}')
+
+
     def parse_headers(self, headers) -> dict:
         if not headers:
             return {}
@@ -912,10 +993,14 @@ class Push():
         self.log_info("自定义通知服务启动")
 
         url = self.get_config("WEBHOOK_URL")
-        method = self.get_config("WEBHOOK_METHOD")
-        content_type = self.get_config("WEBHOOK_CONTENT_TYPE")
-        body = self.get_config("WEBHOOK_BODY")
-        headers = self.get_config("WEBHOOK_HEADERS")
+        method = self.get_config("WEBHOOK_METHOD") or "POST"
+        content_type = self.get_config("WEBHOOK_CONTENT_TYPE") or "application/json"
+        body = self.get_config("WEBHOOK_BODY") or "{}"
+        headers = self.get_config("WEBHOOK_HEADERS") or "{}"
+
+        if not url:
+            self.log_error("WEBHOOK_URL 未配置")
+            return
 
         if "$title" not in url and "$title" not in body:
             self.log_info("请求头或者请求体中必须包含 $title 和 $content")
@@ -1001,7 +1086,7 @@ class Push():
         ):
             notify_function.append(self.chronocat)
         if self.get_config("WEBHOOK_URL") and self.get_config("WEBHOOK_METHOD"):
-            notify_function.append(self.custom_notify)
+            notify_function.append(self.webhook_bot)
         if self.get_config("NTFY_TOPIC"):
             notify_function.append(self.ntfy)
         if self.get_config("WXPUSHER_APP_TOKEN") and (
