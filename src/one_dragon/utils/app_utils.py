@@ -4,7 +4,7 @@ import os
 import subprocess
 
 from one_dragon.utils import os_utils
-
+import re
 
 def start_one_dragon(restart: bool) -> None:
     """
@@ -27,6 +27,10 @@ def get_launcher_version() -> str:
     try:
         result = subprocess.run(f'"{launcher_path}" --version', capture_output=True, text=True)
         version_output = result.stdout.strip()
+
+        version_output = re.sub(r'\x1b\[[0-9;]*m', '', version_output)
+        version_output = version_output.strip()
+
         parts = version_output.split('v', 1)
         return f"v{parts[1]}" if len(parts) > 1 else version_output
     except Exception:
