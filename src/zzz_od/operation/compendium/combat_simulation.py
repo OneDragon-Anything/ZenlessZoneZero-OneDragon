@@ -350,7 +350,11 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='自动战斗')
     @operation_node(name='战斗结束')
     def after_battle(self) -> OperationRoundResult:
-        # TODO 还没有判断战斗失败
+        # 检查战斗结果
+        if self.auto_op.auto_battle_context.last_check_end_result == '普通战斗-撤退':
+            log.error('实战模拟室战斗失败')
+            return self.round_fail('战斗失败')
+        
         self.can_run_times -= 1
         self.ctx.charge_plan_config.add_plan_run_times(self.plan)
         return self.round_success()
