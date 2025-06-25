@@ -1,5 +1,5 @@
 import json
-from typing import Union
+from typing import Union, Optional
 
 from PySide6.QtCore import QRegularExpression
 from PySide6.QtGui import QColor, QTextCharFormat, QFont, QSyntaxHighlighter, QIcon
@@ -55,8 +55,8 @@ class CodeEditorSettingCard(SettingCardBase):
 
     def __init__(self, icon: Union[str, QIcon, FluentIconBase],
                  title: str,
-                 content: str = None,
-                 parent: QWidget = None):
+                 content: Optional[str] = None,
+                 parent: Optional[QWidget] = None):
         super().__init__(icon, title, content, parent=parent)
 
         self.editor = PlainTextEdit(self)
@@ -115,7 +115,6 @@ class CodeEditorSettingCard(SettingCardBase):
             self.editor.setPlainText(value) # 如果格式不正确，则直接显示原文
 
     def init_with_adapter(self, adapter):
-        from typing import Optional
         self.adapter = adapter
         current_value = adapter.get_value() if adapter else ""
         # 如果配置值为空且有默认值，使用默认值

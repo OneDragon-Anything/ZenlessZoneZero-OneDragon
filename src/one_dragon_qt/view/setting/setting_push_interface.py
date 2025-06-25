@@ -7,6 +7,7 @@ from one_dragon.base.notify.push import Push
 from one_dragon.base.notify.push_email_services import PushEmailServices
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.push_cards import PushCards
 from one_dragon_qt.widgets.setting_card.code_editor_setting_card import CodeEditorSettingCard
@@ -107,7 +108,7 @@ class SettingPushInterface(VerticalScrollInterface):
                             title=group_title,
                             parent=self
                         )
-                        expand_group.setVisible(False)
+                        expand_group.setExpand(False)
                         all_cards_widget.add_widget(expand_group)
                         method_cards.append(expand_group)
 
@@ -120,7 +121,6 @@ class SettingPushInterface(VerticalScrollInterface):
                     else:
                         # 普通的分组标题
                         group_title_widget = SubtitleLabel(group_title, self)
-                        group_title_widget.setVisible(False)
                         all_cards_widget.add_widget(group_title_widget)
                         method_cards.append(group_title_widget)
 
@@ -260,14 +260,17 @@ class SettingPushInterface(VerticalScrollInterface):
         selected_method = self.notification_method_opt.getValue()
 
         # 隐藏所有卡片
-        for method_cards in self.cards.values():
+        for method_name, method_cards in self.cards.items():
+            is_selected = (method_name == selected_method)
             for card in method_cards:
-                card.setVisible(False)
-
-        # 显示选中方式的卡片
-        if selected_method in self.cards:
-            for card in self.cards[selected_method]:
-                card.setVisible(True)
+                # 检查是否是 ExpandGroupSettingCard
+                if hasattr(card, 'addGroupWidget'):
+                    # 这是一个 ExpandGroupSettingCard，始终保持可见以便交互
+                    # 但只在对应的通知方式被选中时才让其内容可见
+                    card.setVisible(is_selected)
+                else:
+                    # 普通卡片，根据选择状态设置可见性
+                    card.setVisible(is_selected)
 
         # 特殊处理邮箱服务下拉框
         self.email_service_opt.setVisible(selected_method == "SMTP")
@@ -429,12 +432,10 @@ class SettingPushInterface(VerticalScrollInterface):
 
     def log_info(self, message: str):
         """记录信息日志"""
-        from one_dragon.utils.log_utils import log
         log.info(message)
 
     def log_error(self, message: str):
         """记录错误日志"""
-        from one_dragon.utils.log_utils import log
         log.error(message)
 
     def _show_success_message(self, message: str):
