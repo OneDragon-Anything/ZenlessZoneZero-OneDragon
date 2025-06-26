@@ -359,8 +359,32 @@ class LostVoidRunLevel(ZOperation):
             interact_type = '路径迭换'
             interact_op = LostVoidRouteChange(self.ctx)
         elif screen_name == '迷失之地-抽奖机':
-            interact_type = '邦布商店'  # TODO 1.6新增的抽奖机图标 会被误判成商店 等待后续模型更新
-            interact_op = LostVoidLottery(self.ctx)
+            # 通过OCR进一步确认是否为抽奖机
+            try:
+                # 使用奖励预览按钮区域进行OCR识别
+                area = self.ctx.screen_loader.get_area('迷失之地-抽奖机', '按钮-奖励预览')
+                part = cv2_utils.crop_image_only(screen, area.rect)
+                ocr_result_map = self.ctx.ocr.run_ocr(part)
+                
+                is_lottery = False
+                for ocr_result in ocr_result_map.keys():
+                    if '奖励预览' in ocr_result or '预览' in ocr_result:
+                        is_lottery = True
+                        break
+                
+                if is_lottery:
+                    interact_type = '抽奖机'
+                    interact_op = LostVoidLottery(self.ctx)
+                    log.info('确认识别为抽奖机')
+                else:
+                    interact_type = '邦布商店'  # 降级处理
+                    interact_op = LostVoidBangbooStore(self.ctx)
+                    log.warning('抽奖机识别不确定，使用商店逻辑处理')
+                    
+            except Exception as e:
+                log.warning(f'抽奖机OCR确认失败: {str(e)}，使用商店逻辑处理')
+                interact_type = '邦布商店'  # 降级处理
+                interact_op = LostVoidBangbooStore(self.ctx)
         elif screen_name == '迷失之地-大世界':
             return self.round_success('迷失之地-大世界')
 
