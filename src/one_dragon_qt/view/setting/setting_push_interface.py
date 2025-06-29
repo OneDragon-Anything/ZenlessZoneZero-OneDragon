@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, SubtitleLabel, ExpandGroupSettingCard, PushButton
+from qfluentwidgets import FluentIcon, SubtitleLabel, PushButton
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.push_config import NotifyMethodEnum
@@ -24,7 +24,6 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 class SettingPushInterface(VerticalScrollInterface):
 
     def __init__(self, ctx: OneDragonContext, parent=None):
-
         VerticalScrollInterface.__init__(
             self,
             object_name='setting_push_interface',
@@ -33,8 +32,6 @@ class SettingPushInterface(VerticalScrollInterface):
             nav_icon=FluentIcon.MESSAGE
         )
         self.ctx: OneDragonContext = ctx
-        self.expand_group_states = {}
-        self.expand_group_cards = set()
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
@@ -103,40 +100,15 @@ class SettingPushInterface(VerticalScrollInterface):
                     group_title = group_config['group']
                     is_collapsible = group_config.get('collapsible', False)
 
-                    if is_collapsible:
-                        # 创建可折叠的分组
-                        expand_group = ExpandGroupSettingCard(
-                            icon=FluentIcon.SETTING,
-                            title=group_title,
-                            parent=self
-                        )
-                        expand_group.setExpand(False)
-                        # 保存初始折叠状态
-                        self.expand_group_states[group_title] = False
-                        all_cards_widget.add_widget(expand_group)
-                        method_cards.append(expand_group)
+                    group_title_widget = SubtitleLabel(group_title, self)
+                    all_cards_widget.add_widget(group_title_widget)
+                    method_cards.append(group_title_widget)
 
-                        # 将卡片添加到可折叠分组中
-                        for item_config in group_config['items']:
-                            card = self._create_card(method, item_config)
-                            # 对于添加到ExpandGroupSettingCard中的卡片，让ExpandGroupSettingCard管理其可见性
-                            card.setVisible(True)
-                            # 标记这个卡片属于ExpandGroupSettingCard
-                            self.expand_group_cards.add(card)
-                            setattr(self, card.objectName(), card)
-                            expand_group.addGroupWidget(card)
-                            method_cards.append(card)
-                    else:
-                        # 普通的分组标题
-                        group_title_widget = SubtitleLabel(group_title, self)
-                        all_cards_widget.add_widget(group_title_widget)
-                        method_cards.append(group_title_widget)
-
-                        for item_config in group_config['items']:
-                            card = self._create_card(method, item_config)
-                            setattr(self, card.objectName(), card)
-                            all_cards_widget.add_widget(card)
-                            method_cards.append(card)
+                    for item_config in group_config['items']:
+                        card = self._create_card(method, item_config)
+                        setattr(self, card.objectName(), card)
+                        all_cards_widget.add_widget(card)
+                        method_cards.append(card)
             else:
                 # legacy通知
                 for config in configs:
@@ -159,10 +131,6 @@ class SettingPushInterface(VerticalScrollInterface):
         content_widget.add_stretch(1)
 
         return content_widget
-
-    def _on_expand_state_changed(self, title: str, expanded: bool):
-        """保存展开状态的变化"""
-        self.expand_group_states[title] = expanded
 
     def _create_card(self, method: str, config: dict):
         """根据配置动态创建卡片"""
@@ -275,16 +243,7 @@ class SettingPushInterface(VerticalScrollInterface):
         for method_name, method_cards in self.cards.items():
             is_selected = (method_name == selected_method)
             for card in method_cards:
-                # 检查是否是 ExpandGroupSettingCard
-                if hasattr(card, 'addGroupWidget'):
-                    card.setVisible(is_selected)
-                    if is_selected and hasattr(card, 'setExpand') and hasattr(card, 'titleLabel'):
-                        title = card.titleLabel.text()
-                        if title in self.expand_group_states:
-                            card.setExpand(self.expand_group_states[title])
-                else:
-                    if card not in self.expand_group_cards:
-                        card.setVisible(is_selected)
+                card.setVisible(is_selected)
 
         # 特殊处理邮箱服务下拉框
         self.email_service_opt.setVisible(selected_method == "SMTP")
@@ -321,13 +280,19 @@ class SettingPushInterface(VerticalScrollInterface):
                     if card:
                         card.init_with_adapter(self.ctx.push_config.get_prop_adapter(config_key))
 
-        # 初始更新界面状态
-        self._update_notification_ui()
-
         # 为 webhook URL 添加验证
         webhook_url_card = getattr(self, "webhook_url_push_card", None)
         if webhook_url_card and hasattr(webhook_url_card, 'value_changed'):
             webhook_url_card.value_changed.connect(self._on_webhook_url_changed)
+
+        # 初始更新界面状态 - 放在最后执行，确保所有组件都已初始化
+        try:
+            self._update_notification_ui()
+        except Exception as e:
+            # 如果更新界面状态失败，记录错误但不影响界面显示
+            self.log_error(f"更新通知界面状态失败: {str(e)}")
+        
+
 
     def _generate_curl(self):
         """生成 cURL 示例命令"""
