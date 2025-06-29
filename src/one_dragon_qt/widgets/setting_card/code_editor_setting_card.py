@@ -62,13 +62,13 @@ class CodeEditorSettingCard(SettingCardBase):
         self.editor.setPlaceholderText("请输入 JSON 格式的请求体")
 
         # 设置等宽字体，按优先级选择
-        font_families = ["Microsoft YaHei", "Consolas", "Monaco", "DejaVu Sans Mono", "Courier New"]
+        font_families = ["Microsoft YaHei", "Segoe UI", "Consolas", "Monaco", "DejaVu Sans Mono", "Courier New"]
         font = QFont()
         for family in font_families:
             font.setFamily(family)
             if font.exactMatch():
                 break
-        font.setPointSize(11)
+        font.setPointSize(10)
         self.editor.setFont(font)
         self.editor.setMinimumHeight(150)
 
