@@ -76,10 +76,6 @@ try:
             self._check_version_runner.get.connect(self._update_version)
             self._check_version_runner.start()
 
-            self.ctx.listen_event(
-                ContextInstanceEventEnum.instance_active,
-                self._on_instance_active_event,
-            )
             self._context_event_signal: ContextEventSignal = ContextEventSignal()
             self._context_event_signal.instance_changed.connect(
                 self._on_instance_active_signal
