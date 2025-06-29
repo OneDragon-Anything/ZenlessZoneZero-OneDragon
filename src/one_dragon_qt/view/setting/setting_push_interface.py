@@ -33,6 +33,8 @@ class SettingPushInterface(VerticalScrollInterface):
             nav_icon=FluentIcon.MESSAGE
         )
         self.ctx: OneDragonContext = ctx
+        self.expand_group_states = {}
+        self.expand_group_cards = set()
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
@@ -109,12 +111,18 @@ class SettingPushInterface(VerticalScrollInterface):
                             parent=self
                         )
                         expand_group.setExpand(False)
+                        # 保存初始折叠状态
+                        self.expand_group_states[group_title] = False
                         all_cards_widget.add_widget(expand_group)
                         method_cards.append(expand_group)
 
                         # 将卡片添加到可折叠分组中
                         for item_config in group_config['items']:
                             card = self._create_card(method, item_config)
+                            # 对于添加到ExpandGroupSettingCard中的卡片，让ExpandGroupSettingCard管理其可见性
+                            card.setVisible(True)
+                            # 标记这个卡片属于ExpandGroupSettingCard
+                            self.expand_group_cards.add(card)
                             setattr(self, card.objectName(), card)
                             expand_group.addGroupWidget(card)
                             method_cards.append(card)
@@ -151,6 +159,10 @@ class SettingPushInterface(VerticalScrollInterface):
         content_widget.add_stretch(1)
 
         return content_widget
+
+    def _on_expand_state_changed(self, title: str, expanded: bool):
+        """保存展开状态的变化"""
+        self.expand_group_states[title] = expanded
 
     def _create_card(self, method: str, config: dict):
         """根据配置动态创建卡片"""
@@ -265,12 +277,14 @@ class SettingPushInterface(VerticalScrollInterface):
             for card in method_cards:
                 # 检查是否是 ExpandGroupSettingCard
                 if hasattr(card, 'addGroupWidget'):
-                    # 这是一个 ExpandGroupSettingCard，始终保持可见以便交互
-                    # 但只在对应的通知方式被选中时才让其内容可见
                     card.setVisible(is_selected)
+                    if is_selected and hasattr(card, 'setExpand') and hasattr(card, 'titleLabel'):
+                        title = card.titleLabel.text()
+                        if title in self.expand_group_states:
+                            card.setExpand(self.expand_group_states[title])
                 else:
-                    # 普通卡片，根据选择状态设置可见性
-                    card.setVisible(is_selected)
+                    if card not in self.expand_group_cards:
+                        card.setVisible(is_selected)
 
         # 特殊处理邮箱服务下拉框
         self.email_service_opt.setVisible(selected_method == "SMTP")
