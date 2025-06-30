@@ -32,7 +32,7 @@ area_list:
   color_range: null
   goto_list: []
 
-- area_name: 储蓄电量-兑换确认
+- area_name: 兑换确认
   id_mark: false
   pc_rect:
   - 940

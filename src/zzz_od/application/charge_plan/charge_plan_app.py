@@ -201,7 +201,7 @@ class ChargePlanApp(ZApplication):
     def charge_not_enough(self) -> OperationRoundResult:
         # 检查是否开启了自动回复电量
         if self.ctx.charge_plan_config.auto_recover_charge:
-            # 尝试使用储备电量回复
+            # 尝试使用储蓄电量回复
             return self.round_success(ChargePlanApp.STATUS_TRY_RECOVER_CHARGE)
         
         # 如果没有开启自动回复，执行原来的逻辑
@@ -250,7 +250,7 @@ class ChargePlanApp(ZApplication):
             ocr_result_map = self.ctx.ocr.run_ocr(screen)
             for ocr_result, mrl in ocr_result_map.items():
                 if '储蓄电量' in ocr_result:
-                    # 点击储备电量按钮
+                    # 点击储蓄电量按钮
                     if mrl.max is not None:
                         self.ctx.controller.click(mrl.max.center)
                         break
@@ -258,15 +258,16 @@ class ChargePlanApp(ZApplication):
                 return self.round_retry('未找到储蓄电量按钮', wait=1)
         else:
             self.ctx.controller.click(backup_charge_area.center)
+            self.ctx.controller.click(self.ctx.screen_loader.get_area('恢复电量','选择来源-确认').center)
         
         return self.round_success('已选择储蓄电量')
 
-    @node_from(from_name='使用储备电量')
+    @node_from(from_name='使用储蓄电量')
     @operation_node(name='设置使用数量')
     def set_charge_amount(self) -> OperationRoundResult:
         import time
         
-        # 等待储备电量详情界面出现
+        # 等待储蓄电量详情界面出现
         time.sleep(1)
 
 
@@ -283,7 +284,7 @@ class ChargePlanApp(ZApplication):
         import time
         
         screen = self.screenshot()
-        confirm_area = self.ctx.screen_loader.get_area('恢复电量', '确认')
+        confirm_area = self.ctx.screen_loader.get_area('恢复电量', '兑换确认')
         if confirm_area is None:
             # 如果没有找到特定区域，尝试通过OCR识别确认按钮
             ocr_result_map = self.ctx.ocr.run_ocr(screen)
@@ -319,7 +320,7 @@ class ChargePlanApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='点击电量文本', success=False)
-    @node_from(from_name='使用储备电量', success=False)
+    @node_from(from_name='使用储蓄电量', success=False)
     @node_from(from_name='设置使用数量', success=False)
     @node_from(from_name='确认回复电量', success=False)
     @operation_node(name='电量回复失败')
