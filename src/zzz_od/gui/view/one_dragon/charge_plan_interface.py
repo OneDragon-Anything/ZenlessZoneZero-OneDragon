@@ -13,7 +13,7 @@ from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSetting
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, AutoRecoverChargeEnum
 from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntBuffEnum
 from zzz_od.context.zzz_context import ZContext
 
@@ -272,8 +272,20 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启时 自动跳过体力不足的计划')
         self.skip_plan_opt.value_changed.connect(lambda value: self._on_config_changed(value, 'skip_plan'))
 
-        self.auto_recover_charge_opt = SwitchSettingCard(icon=FluentIcon.POWER_BUTTON, title='自动回复电量', content='开启时 电量不足会自动使用储备电量补充')
-        self.auto_recover_charge_opt.value_changed.connect(lambda value: self._on_config_changed(value, 'auto_recover_charge'))
+        # 创建自动回复电量的下拉框
+        self.auto_recover_charge_combo = ComboBox()
+        config_list = [config_enum.value for config_enum in AutoRecoverChargeEnum]
+        self.auto_recover_charge_combo.set_items(config_list, AutoRecoverChargeEnum.NONE.value.value)
+        self.auto_recover_charge_combo.currentIndexChanged.connect(self._on_auto_recover_changed)
+        
+        from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
+        self.auto_recover_charge_opt = SettingCardBase(
+            icon=FluentIcon.POWER_BUTTON, 
+            title='自动回复电量',
+            content='电量不足时的回复策略'
+        )
+        self.auto_recover_charge_opt.hBoxLayout.addWidget(self.auto_recover_charge_combo)
+        self.auto_recover_charge_opt.hBoxLayout.addSpacing(16)
 
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt, self.auto_recover_charge_opt], 4))
 
@@ -322,7 +334,9 @@ class ChargePlanInterface(VerticalScrollInterface):
 
         self.loop_opt.setValue(self.ctx.charge_plan_config.loop or False)
         self.skip_plan_opt.setValue(self.ctx.charge_plan_config.skip_plan or False)
-        self.auto_recover_charge_opt.setValue(self.ctx.charge_plan_config.auto_recover_charge or False)
+        # 设置自动回复电量下拉框的值
+        self.auto_recover_charge_combo.set_items([config_enum.value for config_enum in AutoRecoverChargeEnum], 
+                                                self.ctx.charge_plan_config.auto_recover_charge or AutoRecoverChargeEnum.NONE.value.value)
         self.coupon_opt.setValue(self.ctx.charge_plan_config.use_coupon or False)
 
         if len(plan_list) > len(self.card_list):
@@ -377,6 +391,12 @@ class ChargePlanInterface(VerticalScrollInterface):
 
     def _on_config_changed(self, new_value: bool, config_item: str) -> None:
         setattr(self.ctx.charge_plan_config, config_item, new_value)
+        self.ctx.charge_plan_config.save()
+
+    def _on_auto_recover_changed(self, idx: int) -> None:
+        """自动回复电量选项改变时的回调"""
+        selected_value = self.auto_recover_charge_combo.itemData(idx)
+        self.ctx.charge_plan_config.auto_recover_charge = selected_value
         self.ctx.charge_plan_config.save()
 
     def _on_remove_all_completed_clicked(self) -> None:
