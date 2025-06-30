@@ -272,7 +272,10 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启时 自动跳过体力不足的计划')
         self.skip_plan_opt.value_changed.connect(lambda value: self._on_config_changed(value, 'skip_plan'))
 
-        self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt,self.skip_plan_opt], 6))
+        self.auto_recover_charge_opt = SwitchSettingCard(icon=FluentIcon.POWER_BUTTON, title='自动回复电量', content='开启时 电量不足会自动使用储备电量补充')
+        self.auto_recover_charge_opt.value_changed.connect(lambda value: self._on_config_changed(value, 'auto_recover_charge'))
+
+        self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt, self.auto_recover_charge_opt], 4))
 
         self.cancel_btn = PushButton(icon=FluentIcon.CANCEL, text=gt('撤销'))
         self.cancel_btn.setEnabled(False)
@@ -317,9 +320,10 @@ class ChargePlanInterface(VerticalScrollInterface):
     def update_plan_list_display(self):
         plan_list = self.ctx.charge_plan_config.plan_list
 
-        self.loop_opt.setValue(self.ctx.charge_plan_config.loop)
-        self.skip_plan_opt.setValue(self.ctx.charge_plan_config.skip_plan)
-        self.coupon_opt.setValue(self.ctx.charge_plan_config.use_coupon)
+        self.loop_opt.setValue(self.ctx.charge_plan_config.loop or False)
+        self.skip_plan_opt.setValue(self.ctx.charge_plan_config.skip_plan or False)
+        self.auto_recover_charge_opt.setValue(self.ctx.charge_plan_config.auto_recover_charge or False)
+        self.coupon_opt.setValue(self.ctx.charge_plan_config.use_coupon or False)
 
         if len(plan_list) > len(self.card_list):
             self.content_widget.remove_widget(self.plus_btn)

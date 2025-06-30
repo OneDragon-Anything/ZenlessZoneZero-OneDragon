@@ -74,6 +74,7 @@ class ChargePlanConfig(YamlConfig):
         self.loop = self.get('loop', True)
         self.skip_plan = self.get('skip_plan', False)
         self.use_coupon = self.get('use_coupon', False)
+        self.auto_recover_charge = self.get('auto_recover_charge', False)
 
     def save(self):
         plan_list = []
@@ -114,6 +115,7 @@ class ChargePlanConfig(YamlConfig):
             'loop': self.loop,
             'skip_plan': self.skip_plan,
             'use_coupon': self.use_coupon,
+            'auto_recover_charge': self.auto_recover_charge,
             'plan_list': plan_list,
             'history_list': new_history_list
         }

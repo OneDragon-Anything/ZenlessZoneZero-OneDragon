@@ -21,6 +21,7 @@ class ChargePlanApp(ZApplication):
 
     STATUS_NO_PLAN: ClassVar[str] = '没有可运行的计划'
     STATUS_ROUND_FINISHED: ClassVar[str] = '已完成一轮计划'
+    STATUS_TRY_RECOVER_CHARGE: ClassVar[str] = '尝试回复电量'
 
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
@@ -46,6 +47,8 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='挑战失败')
     @node_from(from_name='开始体力计划')
     @node_from(from_name='电量不足')
+    @node_from(from_name='电量回复失败')
+    @node_from(from_name='回复电量后重新打开菜单')
     @operation_node(name='打开菜单')
     def goto_menu(self) -> OperationRoundResult:
         op = GotoMenu(self.ctx)
@@ -196,9 +199,16 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='传送', status='选择失败')
     @operation_node(name='电量不足')
     def charge_not_enough(self) -> OperationRoundResult:
-        if self.ctx.charge_plan_config.skip_plan or self.next_plan.mission_type_name == '代理人方案培养':
+        # 检查是否开启了自动回复电量
+        if self.ctx.charge_plan_config.auto_recover_charge:
+            # 尝试使用储备电量回复
+            return self.round_success(ChargePlanApp.STATUS_TRY_RECOVER_CHARGE)
+        
+        # 如果没有开启自动回复，执行原来的逻辑
+        if self.ctx.charge_plan_config.skip_plan:
             # 跳过当前计划，继续尝试下一个
-            self.last_tried_plan = self.next_plan
+            if self.next_plan is not None:
+                self.last_tried_plan = self.next_plan
             return self.round_success()
         else:
             # 不跳过，直接结束本轮计划
@@ -213,7 +223,95 @@ class ChargePlanApp(ZApplication):
     def challenge_failed(self) -> OperationRoundResult:
         return self.round_success()
 
+    @node_from(from_name='电量不足', status=STATUS_TRY_RECOVER_CHARGE)
+    @operation_node(name='点击电量文本')
+    def click_charge_text(self) -> OperationRoundResult:
+        screen = self.screenshot()
+        area = self.ctx.screen_loader.get_area('菜单', '文本-电量')
+        if area is None:
+            return self.round_retry('未找到电量区域', wait=1)
+        
+        # 点击电量文本区域
+        self.ctx.controller.click(area.center)
+        return self.round_success('已点击电量文本')
+
+    @node_from(from_name='点击电量文本')
+    @operation_node(name='使用储备电量')
+    def use_backup_charge(self) -> OperationRoundResult:
+        import time
+        
+        # 等待恢复电量界面出现
+        time.sleep(1)
+        screen = self.screenshot()
+        
+        # todo
+        backup_charge_area = self.ctx.screen_loader.get_area('恢复电量', '储备电量')
+        if backup_charge_area is None:
+            # 如果没有找到特定区域，尝试通过OCR识别
+            ocr_result_map = self.ctx.ocr.run_ocr(screen)
+            for ocr_result, mrl in ocr_result_map.items():
+                if '储备电量' in ocr_result:
+                    # 点击储备电量按钮
+                    if mrl.max is not None:
+                        self.ctx.controller.click(mrl.max.center)
+                        break
+            else:
+                return self.round_retry('未找到储备电量按钮', wait=1)
+        else:
+            self.ctx.controller.click(backup_charge_area.center)
+        
+        return self.round_success('已点击储备电量')
+
+    @node_from(from_name='使用储备电量')
+    @operation_node(name='设置使用数量')
+    def set_charge_amount(self) -> OperationRoundResult:
+        import time
+        
+        # 等待储备电量详情界面出现
+        time.sleep(1)
+
+
+
+        # todo 按数字具体恢复，中间的框是可以写数字的，目前先按上限使用（恢复到240或把存货全部用掉）
+        # screen = self.screenshot()
+
+        
+        return self.round_success('电量数量设置完成')
+
+    @node_from(from_name='设置使用数量')
+    @operation_node(name='确认回复电量')
+    def confirm_charge_recovery(self) -> OperationRoundResult:
+        import time
+        
+        screen = self.screenshot()
+        # todo
+        confirm_area = self.ctx.screen_loader.get_area('恢复电量', '确认')
+        if confirm_area is None:
+            # 如果没有找到特定区域，尝试通过OCR识别确认按钮
+            ocr_result_map = self.ctx.ocr.run_ocr(screen)
+            for ocr_result, mrl in ocr_result_map.items():
+                if '确认' in ocr_result or '确定' in ocr_result:
+                    if mrl.max is not None:
+                        self.ctx.controller.click(mrl.max.center)
+                        break
+            else:
+                return self.round_retry('未找到确认按钮', wait=1)
+        else:
+            self.ctx.controller.click(confirm_area.center)
+        
+        # 等待电量恢复完成
+        time.sleep(2)
+        return self.round_success('电量回复完成')
+
+    @node_from(from_name='确认回复电量')
+    @operation_node(name='回复电量后重新打开菜单')
+    def reopen_menu_after_charge_recovery(self) -> OperationRoundResult:
+        # 电量回复完成后，重新打开菜单以重新识别电量
+        op = GotoMenu(self.ctx)
+        return self.round_by_op_result(op.execute())
+
     @node_from(from_name='电量不足', status=STATUS_ROUND_FINISHED)
+    @node_from(from_name='电量回复失败', status=STATUS_ROUND_FINISHED)
     @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_ROUND_FINISHED)
     @node_from(from_name='查找并选择下一个可执行任务', success=False)
     @operation_node(name='返回大世界')
@@ -221,3 +319,20 @@ class ChargePlanApp(ZApplication):
         self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='点击电量文本', success=False)
+    @node_from(from_name='使用储备电量', success=False)
+    @node_from(from_name='设置使用数量', success=False)
+    @node_from(from_name='确认回复电量', success=False)
+    @operation_node(name='电量回复失败')
+    def charge_recovery_failed(self) -> OperationRoundResult:
+        # 如果电量回复失败，执行原来的跳过逻辑
+        if self.ctx.charge_plan_config.skip_plan:
+            # 跳过当前计划，继续尝试下一个
+            if self.next_plan is not None:
+                self.last_tried_plan = self.next_plan
+            return self.round_success()
+        else:
+            # 不跳过，直接结束本轮计划
+            self.last_tried_plan = None
+            return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
