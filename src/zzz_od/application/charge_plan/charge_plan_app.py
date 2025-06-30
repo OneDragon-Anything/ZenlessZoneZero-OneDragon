@@ -115,12 +115,18 @@ class ChargePlanApp(ZApplication):
 
             # 检查电量是否足够
             if not self.need_to_check_power_in_mission and self.charge_power < need_charge_power:
-                # 如果跳过计划为否，直接返回大世界
-                if not self.ctx.charge_plan_config.skip_plan:
+                # 如果开启了自动回复电量，允许继续执行以触发回复流程
+                if self.ctx.charge_plan_config.auto_recover_charge:
+                    # 设置下一个计划并继续，让传送阶段处理电量不足
+                    self.next_plan = candidate_plan
+                    return self.round_success()
+                # 如果没有开启自动回复，执行原来的逻辑
+                elif not self.ctx.charge_plan_config.skip_plan:
                     return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
-                # 否则继续查找下一个任务
-                self.last_tried_plan = candidate_plan
-                continue
+                else:
+                    # 跳过当前计划，继续查找下一个任务
+                    self.last_tried_plan = candidate_plan
+                    continue
 
             # 计算可运行次数
             self.next_can_run_times = 0
@@ -137,6 +143,24 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='查找并选择下一个可执行任务')
     @operation_node(name='传送')
     def transport(self) -> OperationRoundResult:
+        # 如果开启了自动回复电量，在传送前再次检查电量
+        if self.ctx.charge_plan_config.auto_recover_charge and self.next_plan is not None:
+            # 计算所需电量
+            need_charge_power = 1000
+            if self.next_plan.category_name == '实战模拟室':
+                if self.next_plan.card_num != CardNumEnum.DEFAULT.value.value:
+                    need_charge_power = int(self.next_plan.card_num) * 20
+            elif self.next_plan.category_name == '定期清剿':
+                need_charge_power = 60
+            elif self.next_plan.category_name == '专业挑战室':
+                need_charge_power = 40
+            elif self.next_plan.category_name == '恶名狩猎':
+                need_charge_power = 60
+            
+            # 如果电量不足，触发电量不足节点
+            if need_charge_power != 1000 and self.charge_power < need_charge_power:
+                return self.round_fail('电量不足，需要回复')
+        
         # 使用已经在查找并选择下一个可执行任务节点中设置好的self.next_plan
         op = TransportByCompendium(self.ctx,
                                    self.next_plan.tab_name,
@@ -197,6 +221,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='专业挑战室', status=ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='传送', status='选择失败')
+    @node_from(from_name='传送', success=False)
     @operation_node(name='电量不足')
     def charge_not_enough(self) -> OperationRoundResult:
         # 检查是否开启了自动回复电量
