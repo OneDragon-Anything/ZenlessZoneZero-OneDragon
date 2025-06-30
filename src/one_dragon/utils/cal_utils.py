@@ -91,20 +91,25 @@ def in_rect(point: Point, rect: Rect) -> bool:
     return rect.x1 <= point.x <= rect.x2 and rect.y1 <= point.y <= rect.y2
 
 
-def calculate_overlap_area(rect1, rect2):
-    # rect1和rect2分别表示两个矩形的坐标信息 (x1, y1, x2, y2)
-    x1, y1, x2, y2 = rect1
-    x3, y3, x4, y4 = rect2
+def calculate_overlap_area(r1: Rect, r2: Rect) -> float:
+    """
+    计算两个矩形的重叠面积
+    Args:
+        r1: 矩形1
+        r2: 矩形2
 
-    if x1 > x4 or x2 < x3 or y1 > y4 or y2 < y3:
+    Returns:
+        overlap: 重叠面积
+    """
+    if r1.x1 > r2.x2 or r1.x2 < r2.x1 or r1.y1 > r2.y2 or r1.y2 < r2.y1:
         # 两个矩形不相交，重叠面积为0
         return 0
     else:
         # 计算重叠矩形的左上角坐标和右下角坐标
-        overlap_x1 = max(x1, x3)
-        overlap_y1 = max(y1, y3)
-        overlap_x2 = min(x2, x4)
-        overlap_y2 = min(y2, y4)
+        overlap_x1 = max(r1.x1, r2.x1)
+        overlap_y1 = max(r1.y1, r2.y1)
+        overlap_x2 = min(r1.x2, r2.x2)
+        overlap_y2 = min(r1.y2, r2.y2)
 
         # 计算重叠矩形的宽度和高度
         width = overlap_x2 - overlap_x1
@@ -113,6 +118,24 @@ def calculate_overlap_area(rect1, rect2):
         # 计算重叠矩形的面积
         overlap_area = width * height
         return overlap_area
+
+
+def cal_overlap_percent(r1: Rect, r2: Rect) -> float:
+    """
+    计算两个矩形的重叠面积百分比 = 重叠面积 / 两者较小的面积
+    Args:
+        r1: 矩形1
+        r2: 矩形2
+
+    Returns:
+        percent: 重叠面积百分比
+    """
+    overlap = calculate_overlap_area(r1, r2)
+    min_area = min(r1.area, r2.area)
+    if min_area <= 0:
+        return 0
+    else:
+        return overlap * 1.0 / min_area
 
 
 def coalesce(*args):

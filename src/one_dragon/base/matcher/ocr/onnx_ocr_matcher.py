@@ -2,10 +2,12 @@ import time
 
 import os
 from cv2.typing import MatLike
+from logging import DEBUG
 from typing import Callable, List, Optional
 
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
+from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.base.web.zip_downloader import ZipDownloader
@@ -251,6 +253,52 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                             match_key.add(k)
 
         return {key: all_match_result[key] for key in match_key if key in all_match_result}
+
+    def ocr(self, image: MatLike, threshold: float = 0,
+            merge_line_distance: float = -1) -> list[OcrMatchResult]:
+        """
+        对图片进行OCR 返回所有识别结果
+
+        Args:
+            image: 图片
+            threshold: 匹配阈值
+            merge_line_distance: 多少行距内合并结果 -1为不合并 理论中文情况不会出现过长分行的 这里只是为了兼容英语的情况
+
+        Returns:
+            ocr_result_list: 识别结果列表
+        """
+        start_time = time.time()
+        ocr_result_list: list[OcrMatchResult] = []
+
+        scan_result_list: list = self._model.ocr(image, cls=False)
+        if len(scan_result_list) == 0:
+            log.debug('OCR结果 [] 耗时 %.2f', time.time() - start_time)
+            return ocr_result_list
+
+        scan_result = scan_result_list[0]  # 只取第一张图片
+        for anchor in scan_result:
+            anchor_position = anchor[0]
+            anchor_text = anchor[1][0]
+            anchor_score = anchor[1][1]
+            if anchor_score < threshold:
+                continue
+
+            result = OcrMatchResult(
+                anchor_score,
+                anchor_position[0][0],
+                anchor_position[0][1],
+                anchor_position[1][0] - anchor_position[0][0],
+                anchor_position[3][1] - anchor_position[0][1],
+                data=anchor_text)
+            ocr_result_list.append(result)
+
+        if merge_line_distance != -1:
+            pass  # TODO
+
+        if log.isEnabledFor(DEBUG):
+            log.debug('OCR结果 %s 耗时 %.2f', [i.data for i in ocr_result_list], time.time() - start_time)
+
+        return ocr_result_list
 
 
 def __debug():
