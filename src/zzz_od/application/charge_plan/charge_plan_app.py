@@ -236,7 +236,7 @@ class ChargePlanApp(ZApplication):
         return self.round_success('已点击电量文本')
 
     @node_from(from_name='点击电量文本')
-    @operation_node(name='使用储备电量')
+    @operation_node(name='使用储蓄电量')
     def use_backup_charge(self) -> OperationRoundResult:
         import time
         
@@ -244,22 +244,22 @@ class ChargePlanApp(ZApplication):
         time.sleep(1)
         screen = self.screenshot()
         
-        backup_charge_area = self.ctx.screen_loader.get_area('恢复电量', '储备电量')
+        backup_charge_area = self.ctx.screen_loader.get_area('恢复电量', '储蓄电量')
         if backup_charge_area is None:
             # 如果没有找到特定区域，尝试通过OCR识别
             ocr_result_map = self.ctx.ocr.run_ocr(screen)
             for ocr_result, mrl in ocr_result_map.items():
-                if '储备电量' in ocr_result:
+                if '储蓄电量' in ocr_result:
                     # 点击储备电量按钮
                     if mrl.max is not None:
                         self.ctx.controller.click(mrl.max.center)
                         break
             else:
-                return self.round_retry('未找到储备电量按钮', wait=1)
+                return self.round_retry('未找到储蓄电量按钮', wait=1)
         else:
             self.ctx.controller.click(backup_charge_area.center)
         
-        return self.round_success('已点击储备电量')
+        return self.round_success('已选择储蓄电量')
 
     @node_from(from_name='使用储备电量')
     @operation_node(name='设置使用数量')
