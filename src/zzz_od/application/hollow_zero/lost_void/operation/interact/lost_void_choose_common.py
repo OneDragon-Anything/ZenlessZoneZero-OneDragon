@@ -32,60 +32,154 @@ class LostVoidChooseCommon(ZOperation):
 
     @operation_node(name='选择', is_start_node=True)
     def choose_artifact(self) -> OperationRoundResult:
+        """
+        通用事件选择，内置优先级选择、无效重试、放弃、刷新等逻辑
+        """
+        # =======================================
+        # 第一阶段：初始化与识别
+        # =======================================
+        log.debug("进入通用选择流程...")
+        # 移动鼠标避免悬浮在选项上触发tips
         area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '文本-详情')
         self.ctx.controller.mouse_move(area.center + Point(0, 100))
-        time.sleep(0.1)
+        time.sleep(0.2)
         screen = self.screenshot()
 
+        # 获取所有可选和已选项目, 此方法会调用 check_choose_title 更新 to_choose_num
+        art_list, chosen_list = self.get_artifact_pos(screen)
+        log.debug(f"识别到 {len(art_list)} 个可选项, {len(chosen_list)} 个已选项, 需要选择 {self.to_choose_num} 个")
+        
+        # 预先检查刷新按钮，用于后续的优先级判断和放弃流程
         result = self.round_by_find_area(screen, '迷失之地-通用选择', '按钮-刷新')
         can_refresh = result.is_success
+        log.debug(f"是否可刷新: {can_refresh}")
 
-        art_list, chosen_list = self.get_artifact_pos(screen)
-        art: Optional[LostVoidArtifactPos] = None
-        if self.to_choose_num > 0:
-            if len(art_list) == 0:
-                return self.round_retry(status='无法识别藏品', wait=1)
+        # =======================================
+        # 第二阶段：分支处理
+        # =======================================
+        # 分支A: 无需选择
+        if self.to_choose_num == 0:
+            log.info("检测到无需选择，尝试点击确定")
+            result = self.round_by_find_and_click_area(screen, '迷失之地-通用选择', '按钮-确定',
+                                                       success_wait=1, retry_wait=0.5)
+            if result.is_success:
+                return self.round_success("已确定")
+            else:
+                log.warning("找不到确定按钮，可能已在非选择界面，直接返回成功")
+                return self.round_success("无需操作")
 
-            priority_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(
-                art_list, self.to_choose_num,
-                consider_priority_1=True, consider_priority_2=not can_refresh,
-                consider_not_in_priority=not can_refresh,
+        # 分支B: 需要选择
+        if len(art_list) == 0:
+            log.warning("需要选择但未识别到任何可选项")
+            return self.round_retry(status='无法识别藏品', wait=1)
+        
+        # 先取消所有已选择的项目，确保一个干净的初始状态
+        if len(chosen_list) > 0:
+            log.info(f"检测到已选项目 {[c.artifact.name for c in chosen_list]}，执行取消操作")
+            for chosen in chosen_list:
+                self.ctx.controller.click(chosen.rect.center)
+                time.sleep(0.3)
+            # 取消后刷新截图，重新识别选项
+            screen = self.screenshot()
+            art_list, _ = self.get_artifact_pos(screen)
+            log.debug(f"取消选择后，重新识别到 {len(art_list)} 个可选项")
+
+        # 2.1 计算优先级 (沿用现有逻辑)
+        log.debug("开始计算优先级...")
+        priority_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(
+            art_list, self.to_choose_num,
+            consider_priority_1=True, consider_priority_2=not can_refresh,
+            consider_not_in_priority=not can_refresh,
+            consider_priority_new=self.ctx.lost_void.challenge_config.artifact_priority_new
+        )
+        if 0 < len(priority_list) < self.to_choose_num:  # 优先级不足时放宽标准补齐
+            log.debug("高优先级选项不足，放宽标准重新计算")
+            priority_list = self.ctx.lost_void.get_artifact_by_priority(
+                art_list, self.to_choose_num, consider_priority_1=True, consider_priority_2=True,
+                consider_not_in_priority=True,
                 consider_priority_new=self.ctx.lost_void.challenge_config.artifact_priority_new
             )
+        log.debug(f"最终优先级列表: {[item.artifact.name for item in priority_list] if priority_list else '空'}")
 
-            # 如果需要选择多个 则有任意一个符合优先级即可 剩下的用优先级以外的补上
-            if 0 < len(priority_list) < self.to_choose_num:
-                priority_list = self.ctx.lost_void.get_artifact_by_priority(
-                    art_list, self.to_choose_num,
-                    consider_priority_1=True, consider_priority_2=True,
-                    consider_not_in_priority=True,
-                    consider_priority_new=self.ctx.lost_void.challenge_config.artifact_priority_new
-                )
-
-            # 注意最后筛选优先级的长度一定要符合需求的选择数量
-            # 不然在选择2个情况下会一直选择1个 导致无法继续
-            if len(priority_list) == self.to_choose_num:
-                for chosen in chosen_list:
-                    self.ctx.controller.click(chosen.rect.center + Point(0, 100))
+        # 2.2 执行选择或放弃
+        if len(priority_list) == self.to_choose_num:
+            log.info(f"按优先级选择: {[item.artifact.name for item in priority_list]}")
+            # =======================================
+            # 核心选择验证模块
+            # =======================================
+            if self.to_choose_num == 1:  # 单选，逐个验证
+                log.debug("进入单选验证流程")
+                for choice in priority_list:
+                    log.debug(f"尝试选择: {choice.artifact.name}")
+                    self.ctx.controller.click(choice.rect.center)
                     time.sleep(0.5)
+                    
+                    screen_after_click = self.screenshot()
+                    confirm_check_result = self.round_by_find_area(screen_after_click, '迷失之地-通用选择', '按钮-确定')
 
+                    if confirm_check_result.is_success:
+                        log.info(f'选择 [{choice.artifact.name}] 有效, 点击确定')
+                        click_result = self.round_by_find_and_click_area(
+                            screen=screen_after_click,
+                            screen_name='迷失之地-通用选择', area_name='按钮-确定',
+                            until_not_find_all=[('迷失之地-通用选择', '按钮-确定')],
+                            success_wait=1, retry_wait=1
+                        )
+                        if click_result.is_success:
+                            return self.round_success(f'选择 {choice.artifact.name}')
+                        else:
+                            return self.round_retry(click_result.status, wait=1)
+                    else:
+                        log.warning(f'选择 [{choice.artifact.name}] 无效, 取消并尝试下一个')
+                        self.ctx.controller.click(choice.rect.center)  # 取消选择
+                        time.sleep(0.2)
+                        continue # 尝试下一个优先项
+            
+            else:  # 多选，一次性验证
+                log.debug("进入多选流程，一次性全部选择后确认")
                 for art in priority_list:
                     self.ctx.controller.click(art.rect.center)
-                    time.sleep(0.5)
-            elif can_refresh:
-                result = self.round_by_find_and_click_area(screen, '迷失之地-通用选择', '按钮-刷新')
-                if result.is_success:
-                    return self.round_wait(result.status, wait=1)
+                    time.sleep(0.3)
+                
+                screen_after_click = self.screenshot()
+                log.info('多选完成, 点击确定')
+                click_result = self.round_by_find_and_click_area(
+                    screen=screen_after_click,
+                    screen_name='迷失之地-通用选择', area_name='按钮-确定',
+                    until_not_find_all=[('迷失之地-通用选择', '按钮-确定')],
+                    success_wait=1, retry_wait=1
+                )
+                if click_result.is_success:
+                    return self.round_success(f'选择 {[item.artifact.name for item in priority_list]}')
                 else:
-                    return self.round_retry(result.status, wait=1)
+                    return self.round_retry(click_result.status, wait=1)
 
-        result = self.round_by_find_and_click_area(screen=screen, screen_name='迷失之地-通用选择', area_name='按钮-确定',
-                                                   success_wait=1, retry_wait=1)
+        # =======================================
+        # 第三阶段：放弃/收尾流程
+        # =======================================
+        log.warning('最优选项不满足要求或均无效, 进入放弃/刷新流程')
+
+        # 1. 尝试刷新
+        if can_refresh:
+            log.info("尝试刷新")
+            result = self.round_by_find_and_click_area(screen, '迷失之地-通用选择', '按钮-刷新')
+            if result.is_success:
+                return self.round_wait('已刷新', wait=1)
+
+        # 2. 尝试放弃
+        log.info("尝试放弃")
+        abandon_button_location = ('迷失之地-通用选择', '按钮-放弃')
+        result = self.round_by_find_and_click_area(
+            screen,
+            screen_name=abandon_button_location[0], area_name=abandon_button_location[1],
+            until_not_find_all=[abandon_button_location],
+            retry_wait=0.5
+        )
         if result.is_success:
-            status = result.status if art is None else f'选择 {art.artifact.name}'
-            return self.round_success(status)
-        else:
-            return self.round_retry(result.status, wait=1)
+            return self.round_success('已放弃')
+
+        # 3. 如果以上都失败
+        return self.round_fail('所有选项均无效且无法放弃或刷新')
 
     def get_artifact_pos(self, screen: MatLike) -> Tuple[List[LostVoidArtifactPos], List[LostVoidArtifactPos]]:
         """
