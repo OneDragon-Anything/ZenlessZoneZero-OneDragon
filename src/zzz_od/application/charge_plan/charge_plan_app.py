@@ -244,7 +244,6 @@ class ChargePlanApp(ZApplication):
         time.sleep(1)
         screen = self.screenshot()
         
-        # todo
         backup_charge_area = self.ctx.screen_loader.get_area('恢复电量', '储备电量')
         if backup_charge_area is None:
             # 如果没有找到特定区域，尝试通过OCR识别
@@ -284,7 +283,6 @@ class ChargePlanApp(ZApplication):
         import time
         
         screen = self.screenshot()
-        # todo
         confirm_area = self.ctx.screen_loader.get_area('恢复电量', '确认')
         if confirm_area is None:
             # 如果没有找到特定区域，尝试通过OCR识别确认按钮
