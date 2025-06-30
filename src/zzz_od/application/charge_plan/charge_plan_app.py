@@ -268,22 +268,33 @@ class ChargePlanApp(ZApplication):
         # 等待恢复电量界面出现
         time.sleep(1)
         screen = self.screenshot()
+        # 通过OCR识别储蓄电量文本，然后向上偏移点击
+        ocr_result_map = self.ctx.ocr.run_ocr(screen)
+        found_backup_charge = False
         
-        backup_charge_area = self.ctx.screen_loader.get_area('恢复电量', '储蓄电量')
-        if backup_charge_area is None:
-            # 如果没有找到特定区域，尝试通过OCR识别
-            ocr_result_map = self.ctx.ocr.run_ocr(screen)
-            for ocr_result, mrl in ocr_result_map.items():
-                if '储蓄电量' in ocr_result:
-                    # 点击储蓄电量按钮
-                    if mrl.max is not None:
-                        self.ctx.controller.click(mrl.max.center)
-                        break
-            else:
-                return self.round_retry('未找到储蓄电量按钮', wait=1)
-        else:
-            self.ctx.controller.click(backup_charge_area.center)
-            self.ctx.controller.click(self.ctx.screen_loader.get_area('恢复电量','选择来源-确认').center)
+        for ocr_result, mrl in ocr_result_map.items():
+            if '储蓄电量' in ocr_result:
+                # 找到储蓄电量文本后，向上移动100个像素点击
+                if mrl.max is not None:
+                    from one_dragon.base.geometry.point import Point
+                    click_point = mrl.max.center
+                    # 向上移动100个像素
+                    offset_point = Point(click_point.x, click_point.y - 100)
+                    self.ctx.controller.click(offset_point)
+                    found_backup_charge = True
+                    break
+        
+        if not found_backup_charge:
+            return self.round_retry('未找到储蓄电量文本', wait=1)
+        
+        # 等待界面响应，然后点击确认按钮
+        import time
+        time.sleep(0.5)
+        
+        # 点击选择来源的确认按钮
+        confirm_area = self.ctx.screen_loader.get_area('恢复电量', '选择来源-确认')
+        if confirm_area is not None:
+            self.ctx.controller.click(confirm_area.center)
         
         return self.round_success('已选择储蓄电量')
 
