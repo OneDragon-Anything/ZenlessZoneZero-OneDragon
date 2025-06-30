@@ -615,14 +615,17 @@ class Operation(OperationBase):
             return self.round_fail(status=op_result.status, data=op_result.data, wait=wait,
                                    wait_round_time=wait_round_time)
 
-    def round_by_find_and_click_area(self, screen: MatLike = None, screen_name: str = None, area_name: str = None,
-                                     success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,
-                                     retry_wait: Optional[float] = None, retry_wait_round: Optional[float] = None,
-                                     until_find_all: List[Tuple[str, str]] = None,
-                                     until_not_find_all: List[Tuple[str, str]] = None,
-                                     ) -> OperationRoundResult:
+    def round_by_find_and_click_area(
+            self,
+            screen: MatLike = None,
+            screen_name: str = None, area_name: str = None,
+            success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,
+            retry_wait: Optional[float] = None, retry_wait_round: Optional[float] = None,
+            until_find_all: list[tuple[str, str]] = None,
+            until_not_find_all: list[tuple[str, str]] = None,
+    ) -> OperationRoundResult:
         """
-        是否能找到目标区域 并进行点击
+        尝试找到目标区域 并进行点击
         :param screen: 屏幕截图
         :param screen_name: 画面名称
         :param area_name: 区域名称
@@ -630,8 +633,8 @@ class Operation(OperationBase):
         :param success_wait_round: 成功后等待当前轮的运行时间到达这个时间时再结束 优先success_wait
         :param retry_wait: 失败后等待的秒数
         :param retry_wait_round: 失败后等待当前轮的运行时间到达这个时间时再结束 优先success_wait
-        :param until_find_all: 点击直到发现所有目标
-        :param until_not_find_all: 点击直到没有发现所有目标
+        :param until_find_all: 点击直到发现所有目标 [(画面, 区域)]
+        :param until_not_find_all: 点击直到没有发现所有目标 [(画面, 区域)]
         :return: 点击结果
         """
         if screen is None:
@@ -754,14 +757,23 @@ class Operation(OperationBase):
         :param color_range: 文本匹配的颜色范围
         :return: 点击结果
         """
-        to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
-        if color_range is not None:
-            mask = cv2.inRange(to_ocr_part, color_range[0], color_range[1])
-            mask = cv2_utils.dilate(mask, 5)
-            to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
-            # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
+        # 优先使用OCR缓存服务
+        if self.ctx.env_config.ocr_cache:
+            ocr_result_map = self.ctx.ocr_service.get_ocr_result_list(
+                image=screen,
+                color_range=color_range,
+                rect=None if area is None else area.rect
+            )
+        else:
+            # 回退到原有方法
+            to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
+            if color_range is not None:
+                mask = cv2.inRange(to_ocr_part, color_range[0], color_range[1])
+                mask = cv2_utils.dilate(mask, 5)
+                to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
+                # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
 
-        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
+            ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
 
         to_click: Optional[Point] = None
         ocr_result_list: List[str] = []
@@ -820,14 +832,23 @@ class Operation(OperationBase):
         :param color_range: 文本匹配的颜色范围
         :return: 点击结果
         """
-        to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
-        if color_range is not None:
-            mask = cv2.inRange(to_ocr_part, color_range[0], color_range[1])
-            mask = cv2_utils.dilate(mask, 5)
-            to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
-            # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
+        # 优先使用OCR缓存服务
+        if self.ctx.env_config.ocr_cache:
+            ocr_result_map = self.ctx.ocr_service.get_ocr_result_list(
+                image=screen,
+                color_range=color_range,
+                rect=area.rect,
+            )
+        else:
+            # 回退到原有方法
+            to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
+            if color_range is not None:
+                mask = cv2.inRange(to_ocr_part, color_range[0], color_range[1])
+                mask = cv2_utils.dilate(mask, 5)
+                to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
+                # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
 
-        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
+            ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
 
         match_word, match_word_mrl = ocr_utils.match_word_list_by_priority(
             ocr_result_map,
@@ -840,12 +861,16 @@ class Operation(OperationBase):
 
         return self.round_retry(status='未匹配到目标文本', wait=retry_wait, wait_round_time=retry_wait_round)
 
-    def round_by_ocr(self, screen: MatLike, target_cn: str,
-                     area: Optional[ScreenArea] = None, lcs_percent: float = 0.5,
-                     success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,
-                     retry_wait: Optional[float] = None, retry_wait_round: Optional[float] = None,
-                     color_range: Optional[List] = None
-                     ):
+    def round_by_ocr(
+            self,
+            screen: MatLike,
+            target_cn: str,
+            area: Optional[ScreenArea] = None,
+            lcs_percent: float = 0.5,
+            success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,
+            retry_wait: Optional[float] = None, retry_wait_round: Optional[float] = None,
+            color_range: Optional[List] = None,
+    ) -> OperationRoundResult:
         """
         在目标区域内 找到对应文本
         :param screen: 游戏画面

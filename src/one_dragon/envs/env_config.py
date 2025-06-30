@@ -482,3 +482,15 @@ class EnvConfig(YamlConfig):
         else:
             os.environ['HTTP_PROXY'] = ""
             os.environ['HTTPS_PROXY'] = ""
+
+    @property
+    def ocr_cache(self) -> bool:
+        """
+        Returns:
+            是否启用OCR缓存
+        """
+        return self.get('ocr_cache', False)
+
+    @ocr_cache.setter
+    def ocr_cache(self, new_value: bool) -> None:
+        self.update('ocr_cache', new_value, save=True)

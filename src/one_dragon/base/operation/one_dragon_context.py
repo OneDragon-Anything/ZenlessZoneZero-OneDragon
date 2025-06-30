@@ -13,6 +13,7 @@ from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher
+from one_dragon.base.matcher.ocr.ocr_service import OcrService
 from one_dragon.base.matcher.template_matcher import TemplateMatcher
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext, ONE_DRAGON_CONTEXT_EXECUTOR
@@ -72,6 +73,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.template_loader: TemplateLoader = TemplateLoader()
         self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
         self.ocr: OcrMatcher = OnnxOcrMatcher()
+        self.ocr_service: OcrService | None = None  # 延迟初始化
         self.controller: ControllerBase = controller
 
         self.keyboard_controller = keyboard.Controller()
@@ -230,6 +232,12 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
         )
+
+        # 初始化OCR缓存服务
+        if self.ocr_service is None:
+            self.ocr_service = OcrService(ocr_matcher=self.ocr)
+        else:
+            self.ocr_service.ocr_matcher = self.ocr
 
     def after_app_shutdown(self) -> None:
         """
