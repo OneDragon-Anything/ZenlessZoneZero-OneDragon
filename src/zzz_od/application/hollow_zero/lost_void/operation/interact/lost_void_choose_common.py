@@ -61,7 +61,7 @@ class LostVoidChooseCommon(ZOperation):
         if self.to_choose_num == 0:
             log.info("检测到无需选择，尝试点击确定")
             result = self.round_by_find_and_click_area(screen, '迷失之地-通用选择', '按钮-确定',
-                                                       success_wait=1, retry_wait=0.5)
+                                                       success_wait=1, retry_wait=1)
             if result.is_success:
                 return self.round_success("已确定")
             else:
@@ -122,7 +122,6 @@ class LostVoidChooseCommon(ZOperation):
                         click_result = self.round_by_find_and_click_area(
                             screen=screen_after_click,
                             screen_name='迷失之地-通用选择', area_name='按钮-确定',
-                            until_not_find_all=[('迷失之地-通用选择', '按钮-确定')],
                             success_wait=1, retry_wait=1
                         )
                         if click_result.is_success:
@@ -146,7 +145,6 @@ class LostVoidChooseCommon(ZOperation):
                 click_result = self.round_by_find_and_click_area(
                     screen=screen_after_click,
                     screen_name='迷失之地-通用选择', area_name='按钮-确定',
-                    until_not_find_all=[('迷失之地-通用选择', '按钮-确定')],
                     success_wait=1, retry_wait=1
                 )
                 if click_result.is_success:
@@ -172,8 +170,7 @@ class LostVoidChooseCommon(ZOperation):
         result = self.round_by_find_and_click_area(
             screen,
             screen_name=abandon_button_location[0], area_name=abandon_button_location[1],
-            until_not_find_all=[abandon_button_location],
-            retry_wait=0.5
+            success_wait=1, retry_wait=1
         )
         if result.is_success:
             return self.round_success('已放弃')
