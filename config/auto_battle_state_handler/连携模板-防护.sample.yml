@@ -1,11 +1,11 @@
 # 连携后摇等待时间各角色不同 由后续动作控制
 handlers:
-  - states: "[连携技-1-防护]"
+  - states: "[连携技-1-防护] & ![连携技-1-潘引壶]"
     operations:
       - op_name: "按键-连携技-左"
       - op_name: "设置状态"
         state: "自定义-连携换人"
-  - states: "[连携技-2-防护]"
+  - states: "[连携技-2-防护] & ![连携技-1-潘引壶]"
     operations:
       - op_name: "按键-连携技-右"
       - op_name: "设置状态"

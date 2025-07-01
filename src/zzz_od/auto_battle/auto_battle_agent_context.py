@@ -777,8 +777,8 @@ class AutoBattleAgentContext:
                 state_records.append(StateRecord(f'{agent.agent_name}-能量', update_time, agent_info.energy))
                 state_records.append(StateRecord(f'{agent.agent_name}-特殊技可用', update_time, is_clear=not agent_info.special_ready))
 
-                # 只有距离上次切换超过1秒才更新终结技状态
-                if update_time - self._last_switch_agent_time >= 1.0:
+                # 只有距离上次切换超过0.1秒才更新终结技状态
+                if update_time - self._last_switch_agent_time >= 0.1:
                     state_records.append(StateRecord(f'{agent.agent_name}-终结技可用', update_time, is_clear=not agent_info.ultimate_ready))
 
             # 特殊技和终结技的按钮

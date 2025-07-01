@@ -33,9 +33,10 @@ handlers:
   - state_template: "速切模板-扳机"
   - state_template: "速切模板-波可娜"
   - state_template: "速切模板-薇薇安"
+  - state_template: "速切模板-雨果"
   - state_template: "速切模板-仪玄"
   - state_template: "速切模板-潘引壶"
-  - state_template: "速切模板-雨果"
+  - state_template: "速切模板-橘福福"
   # 下面是缺省值，如果有上面没有的角色会走下面，一般情况下最好不要有，否则可能会因为识别不到角色而进行错误的动作
 
   # 如果需要新增角色，就新增一行，按照通用模板写一个新的速切模板，打开【速切模板-通用】，按照里面的说明新建模板
