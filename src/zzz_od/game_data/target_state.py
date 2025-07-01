@@ -124,21 +124,7 @@ DETECTION_TASKS: List[DetectionTask] = [
             ),
         ],
     ),
-    # 任务3: Boss状态检测 (一次OCR，混合解读)
-    DetectionTask(
-        task_id="boss_status",
-        pipeline_name="boss_stun",
-        interval=0.5,
-        enabled=False,  # 有更好的检测方法哦
-        is_async=True,
-        state_definitions=[
-            TargetStateDef("目标-失衡值", TargetCheckWay.OCR_RESULT_AS_NUMBER),
-            TargetStateDef(
-                "目标-强敌", TargetCheckWay.OCR_TEXT_SIMILARITY, {"expected_texts": "强敌", "threshold": 0.5}
-            ),
-        ],
-    ),
-    # 任务4: 使用长度映射法检测强敌失衡值
+    # 任务3: 使用长度映射法检测强敌失衡值
     DetectionTask(
         task_id="boss_stun_by_length",
         pipeline_name="boss_stun_line",  # 使用您指定的流水线
