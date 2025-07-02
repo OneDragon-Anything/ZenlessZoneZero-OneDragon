@@ -1,15 +1,10 @@
 import time
 
-import cv2
-
 from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.geometry.point import Point
-from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.base.screen.template_info import TemplateInfo
-from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -206,61 +201,22 @@ class BooboxApp(ZApplication):
                 op = BackToNormalWorld(self.ctx)
                 return self.round_by_op_result(op.execute())
 
-        # 检查是否有S级邦布
-        # 使用模板配置的多矩形区域进行OCR检测
+        # 检查是否有S级邦布 - 通过识别价格25000
         s_found = False
         s_click_positions = []
         
-        # 加载S级检测模板信息
-        try:
-            template_info = TemplateInfo(sub_dir='boobox', template_id='s_rank_detection')
-            
-            # 遍历模板中定义的每个矩形区域 (每两个点组成一个矩形)
-            for i in range(0, len(template_info.point_list), 2):
-                if i + 1 < len(template_info.point_list):
-                    # 获取矩形的左上角和右下角坐标
-                    x1, y1 = template_info.point_list[i].x, template_info.point_list[i].y
-                    x2, y2 = template_info.point_list[i + 1].x, template_info.point_list[i + 1].y
-                    
-                    # 裁剪这个区域的图像
-                    rect = Rect(x1, y1, x2, y2)
-                    part = cv2_utils.crop_image_only(screen, rect)
-                    
-                    # 在这个区域内进行OCR识别S
-                    ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-                    if 'S' in ocr_result:
-                        s_found = True
-                        # 记录这个区域的中心点用于点击
-                        center_x = (x1 + x2) // 2
-                        center_y = (y1 + y2) // 2
-                        s_click_positions.append(Point(center_x, center_y))
-        except Exception as e:
-            # 如果模板加载失败，回退到原来的硬编码坐标方式
-            s_detection_areas = [
-                (1750, 670, 1794, 708),  # 矩形1
-                (1754, 406, 1798, 446),  # 矩形2
-                (1526, 402, 1578, 448),  # 矩形3
-                (1534, 666, 1578, 706),  # 矩形4
-                (1316, 666, 1360, 708),  # 矩形5
-                (1316, 398, 1360, 446),  # 矩形6
-            ]
-            
-            # 遍历每个检测矩形区域
-            for x1, y1, x2, y2 in s_detection_areas:
-                # 裁剪这个区域的图像
-                rect = Rect(x1, y1, x2, y2)
-                part = cv2_utils.crop_image_only(screen, rect)
-                
-                # 在这个区域内进行OCR识别S
-                ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-                if 'S' in ocr_result:
-                    s_found = True
-                    # 记录这个区域的中心点用于点击
-                    center_x = (x1 + x2) // 2
-                    center_y = (y1 + y2) // 2
-                    s_click_positions.append(Point(center_x, center_y))
+        # 使用OCR在全屏搜索25000价格
+        for text, mrl in ocr_result_map.items():
+            if '25000' in text and mrl.max is not None:
+                s_found = True
+                # 找到25000价格，点击对应的邦布位置
+                # 计算邦布卡片的点击位置（价格上方的邦布图像区域）
+                price_center = mrl.max.center
+                # 邦布卡片通常在价格上方，向上偏移约150像素
+                bangboo_click_pos = Point(price_center.x, price_center.y - 150)
+                s_click_positions.append(bangboo_click_pos)
         
-        # 如果找到S级邦布，依次点击
+        # 如果找到S级邦布（25000价格），依次点击
         if s_found and len(s_click_positions) > 0:
             for pos in s_click_positions:
                 self.ctx.controller.click(pos)

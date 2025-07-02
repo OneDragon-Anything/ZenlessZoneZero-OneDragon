@@ -38,14 +38,4 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
-- area_name: S级检测
-  pc_rect:
-  - 1316
-  - 398
-  - 1798
-  - 708
-  text: S
-  lcs_percent: 0.8
-  template_sub_dir: 'boobox'
-  template_id: 's_rank_detection'
-  template_match_threshold: 0.7
+
