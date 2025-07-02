@@ -1,0 +1,26 @@
+screen_id: boobox
+screen_name: 邦巢
+pc_alt: false
+area_list:
+- area_name: 跳过
+  pc_rect:
+  - 1736
+  - 114
+  - 1788
+  - 138
+  text: 跳过
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+- area_name: 刷新
+  pc_rect:
+  - 1284
+  - 986
+  - 1334
+  - 1006
+  text: 刷新
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
