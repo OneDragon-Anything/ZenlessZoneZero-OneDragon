@@ -16,10 +16,10 @@ area_list:
 - area_name: 聘用
   id_mark: true
   pc_rect:
-  - 1107
-  - 758
-  - 1180
-  - 788
+  - 1100
+  - 750
+  - 1190
+  - 790
   text: 聘用
   lcs_percent: 0.3
   template_sub_dir: ''
@@ -38,7 +38,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
-- aera_name: 刷新区域
+- area_name: 刷新区域
   pc_rect:
   - 1208
   - 984
@@ -48,3 +48,4 @@ area_list:
   lcs_percent: 0.3
   template_sub_dir: ''
   template_id: ''
+  template_match_threshold: 0.7
