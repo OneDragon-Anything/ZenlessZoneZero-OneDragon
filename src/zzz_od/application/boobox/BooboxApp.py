@@ -134,7 +134,7 @@ class BooboxApp(ZApplication):
             if '聘用' in text:  # 检查文本中是否包含'聘用'字样
                 return self.round_success(status='已进入邦巢界面')
 
-        # 方式3：检查是否有刷新按钮（也是邦巢界面的特征）
+        # 方式3：检查是否有刷新按钮
         refresh_result = self.round_by_find_area(screen, '邦巢', '刷新')
         if refresh_result.is_success:
             return self.round_success(status='已进入邦巢界面')
@@ -167,13 +167,13 @@ class BooboxApp(ZApplication):
         """
         screen = self.screenshot()
         
-        # 确认是否在邦巢界面 - 主要依靠"聘用"按钮检测
+        # 确认是否在邦巢界面
         in_boobox_interface = False
         
         # 首先进行OCR检测
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
         
-        # 方式1：OCR检测聘用按钮（最可靠的方式）
+        # 方式1：OCR检测聘用按钮
         for text in ocr_result_map.keys():
             if '聘用' in text:
                 in_boobox_interface = True
@@ -199,39 +199,44 @@ class BooboxApp(ZApplication):
         # 初始化OCR结果映射（如果之前没有初始化）
         if 'ocr_result_map' not in locals():
             ocr_result_map = self.ctx.ocr.run_ocr(screen)
-        
-        # 检查是否已达到最大刷新次数
-        if self.refresh_count >= self.max_refresh_count:
-            op = BackToNormalWorld(self.ctx)
-            return self.round_by_op_result(op.execute())
-
         # 检查是否有次数用尽
         for text in ocr_result_map.keys():
             if '次数用尽' in text:
                 op = BackToNormalWorld(self.ctx)
                 return self.round_by_op_result(op.execute())
 
-        # 检查是否有S级邦布 - 通过识别价格25000
+        # 检查是否有S级邦布 - 通过识别高价格
         s_found = False
         s_click_positions = []
+        found_prices = []  # 记录找到的价格
         
-        # 使用OCR在全屏搜索25000价格
-        for text, mrl in ocr_result_map.items():
-            if '25000' in text and mrl.max is not None:
-                s_found = True
-                # 找到25000价格，点击对应的邦布位置
-                # 计算邦布卡片的点击位置（价格上方的邦布图像区域）
-                price_center = mrl.max.center
-                # 邦布卡片通常在价格上方，向上偏移约150像素
-                bangboo_click_pos = Point(price_center.x, price_center.y - 150)
-                s_click_positions.append(bangboo_click_pos)
+        # S级邦布可能的价格列表（从高到低检测，优先购买更稀有的）
+        s_rank_prices = ['35000', '30000', '28000', '26000', '25000']
         
-        # 如果找到S级邦布（25000价格），依次点击
+        # 按价格优先级搜索S级邦布
+        for price in s_rank_prices:
+            for text, mrl in ocr_result_map.items():
+                if price in text and mrl.max is not None:
+                    s_found = True
+                    found_prices.append(price)
+                    # 找到S级价格，点击对应的邦布位置
+                    # 计算邦布卡片的点击位置（价格上方的邦布图像区域）
+                    price_center = mrl.max.center
+                    # 邦布卡片通常在价格上方，向上偏移约150像素
+                    bangboo_click_pos = Point(price_center.x, price_center.y - 150)
+                    s_click_positions.append(bangboo_click_pos)
+        
+        # 如果找到S级邦布，依次点击
         if s_found and len(s_click_positions) > 0:
+            # 记录找到的价格信息到日志
+            price_info = ','.join(found_prices)
+            print(f"找到S级邦布，价格: {price_info}")
+            
             for pos in s_click_positions:
                 self.ctx.controller.click(pos)
                 time.sleep(0.5)  # 点击间隔
-            return self.round_success(status='点击S级邦布完成')
+            # 点击S级邦布后直接进入购买流程
+            return self.round_success(status='开始购买S级邦布')
 
         # 如果没有S级邦布，尝试刷新邦布
         refresh_result = self.round_by_find_and_click_area(screen, '邦巢', '刷新区域', retry_wait=1)
@@ -251,7 +256,6 @@ class BooboxApp(ZApplication):
         self.refresh_count += 1
         return self.round_wait(status='刷新邦布完成', wait=3)
 
-    @node_from(from_name='检查邦布', status='点击S级邦布完成')
     @operation_node(name='点击聘用')
     def click_hire(self) -> OperationRoundResult:
         """
@@ -274,38 +278,68 @@ class BooboxApp(ZApplication):
         
         return self.round_retry(status='未找到聘用按钮', wait=1)
 
+    @node_from(from_name='检查邦布', status='开始购买S级邦布')
     @node_from(from_name='点击聘用', status='点击聘用')
-    @operation_node(name='跳过动画')
-    def skip_animation(self) -> OperationRoundResult:
+    @operation_node(name='处理购买动画')
+    def handle_purchase_animation(self) -> OperationRoundResult:
         """
-        等待动画播放完成，或尝试跳过动画
+        处理购买流程：购买确认 → 动画 → 获得确认
         :return:
         """
-        screen = self.screenshot()
+        # 先等待1秒让界面稳定
+        time.sleep(1)
         
-        # 方法1：先等待2秒让动画加载，然后尝试点击跳过
-        time.sleep(2)
-        screen = self.screenshot()
+        # 多次尝试检测界面状态
+        for attempt in range(5):
+            screen = self.screenshot()
+            ocr_result_map = self.ctx.ocr.run_ocr(screen)
+            
+            # 检查是否还在购买确认界面（需要点击聘用按钮）
+            for text in ocr_result_map.keys():
+                if '聘用' in text:
+                    hire_word, hire_mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, ['聘用'])
+                    if hire_word == '聘用' and hire_mrl.max is not None:
+                        self.ctx.controller.click(hire_mrl.max.center)
+                        self.bought_bangboo = True
+                        # 点击聘用后等待动画，然后继续检测
+                        time.sleep(3)
+                        continue
+            
+            # 检查是否出现"获得"界面（需要点击确认）
+            for text in ocr_result_map.keys():
+                if '获得' in text:
+                    # 找到确认按钮并点击
+                    confirm_word, confirm_mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, ['确认'])
+                    if confirm_word == '确认' and confirm_mrl.max is not None:
+                        self.ctx.controller.click(confirm_mrl.max.center)
+                        return self.round_wait(status='点击确认完成', wait=2)
+                    
+                    # 如果OCR没找到确认按钮，尝试预定义区域
+                    confirm_result = self.round_by_find_and_click_area(screen, '邦巢', '确认', retry_wait=1)
+                    if confirm_result.is_success:
+                        return self.round_wait(status='点击确认完成', wait=2)
+            
+            # 检查是否有跳过按钮
+            skip_word, skip_mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, ['跳过'])
+            if skip_word == '跳过' and skip_mrl.max is not None:
+                self.ctx.controller.click(skip_mrl.max.center)
+                return self.round_wait(status='跳过动画完成', wait=3)
+            
+            # 使用预定义坐标尝试跳过
+            result = self.round_by_find_and_click_area(screen, '邦巢', '跳过', retry_wait=1)
+            if result.is_success:
+                return self.round_wait(status='跳过动画完成', wait=3)
+            
+            # 如果都没找到，等待2秒再尝试
+            if attempt < 4:
+                time.sleep(2)
         
-        # 使用OCR查找跳过按钮
-        ocr_result_map = self.ctx.ocr.run_ocr(screen)
-        target_word_list: list[str] = ['跳过']
-        word, mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, target_word_list)
-        
-        if word == '跳过' and mrl.max is not None:
-            self.ctx.controller.click(mrl.max.center)
-            return self.round_wait(status='跳过动画完成', wait=1)
-        
-        # 方法2：如果找不到跳过按钮，尝试使用预定义坐标
-        result = self.round_by_find_and_click_area(screen, '邦巢', '跳过', retry_wait=1)
-        if result.is_success:
-            return self.round_wait(status='跳过动画完成', wait=1)
-        
-        # 方法3：如果都找不到跳过按钮，直接等待动画播放完成（约8秒）
+        # 如果多次尝试都没有找到，等待动画自然播放完成
         return self.round_wait(status='等待动画播放完成', wait=8)
 
-    @node_from(from_name='跳过动画', status='跳过动画完成')
-    @node_from(from_name='跳过动画', status='等待动画播放完成')
+    @node_from(from_name='处理购买动画', status='点击确认完成')
+    @node_from(from_name='处理购买动画', status='跳过动画完成')
+    @node_from(from_name='处理购买动画', status='等待动画播放完成')
     @operation_node(name='返回界面')
     def return_interface(self) -> OperationRoundResult:
         """

@@ -49,3 +49,14 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+- area_name: 确认
+  pc_rect:
+  - 625
+  - 535
+  - 785
+  - 575
+  text: 确认
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
