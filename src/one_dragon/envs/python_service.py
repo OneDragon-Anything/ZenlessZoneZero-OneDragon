@@ -126,7 +126,7 @@ class PythonService:
             progress_callback(-1, msg)
         log.info(msg)
 
-        env_zip_path = os.path.join(DEFAULT_ENV_PATH, 'ZenlessZoneZero-OneDragon-Environment.zip')
+        env_zip_path = os.path.join(DEFAULT_ENV_PATH, f'{self.project_config.project_name}-Environment.zip')
         if os.path.exists(env_zip_path):
             msg = gt('检测到已存在的环境压缩包，正在解压...')
             log.info(msg)
@@ -136,8 +136,13 @@ class PythonService:
                 msg = gt('解压环境包成功，正在安装运行依赖...')
                 log.info(msg)
 
-        os.environ["UV_PYTHON_INSTALL_DIR"] = DEFAULT_PYTHON_DIR_PATH
-        result = cmd_utils.run_command([self.env_config.uv_path, 'sync', '--find-links', DEFAULT_WHEELS_DIR_PATH, '--default-index', self.env_config.pip_source])
+            os.environ["UV_PYTHON_INSTALL_DIR"] = DEFAULT_PYTHON_DIR_PATH
+            result = cmd_utils.run_command([self.env_config.uv_path, 'sync', '--find-links', DEFAULT_WHEELS_DIR_PATH, '--default-index', self.env_config.pip_source])
+        else:
+            msg = gt('正在下载安装运行依赖...')
+            log.info(msg)
+            result = cmd_utils.run_command([self.env_config.uv_path, 'sync', '--default-index', self.env_config.pip_source])
+
         success = result is not None
         msg = gt('运行依赖安装成功') if success else gt('运行依赖安装失败')
         log.info(msg)
