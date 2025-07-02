@@ -20,3 +20,4 @@ class ProjectConfig(YamlConfig):
         self.screen_standard_height = int(self.get('screen_standard_height'))
 
         self.qq_link = self.get('qq_link')
+        self.quick_start_link = self.get('quick_start_link')  # 链接 - 快速开始
