@@ -26,6 +26,8 @@ class BooboxApp(ZApplication):
             need_notify=True,
         )
         self.bought_bangboo: bool = False  # 是否已购买邦布
+        self.refresh_count: int = 0  # 刷新次数计数
+        self.max_refresh_count: int = 30  # 最大刷新次数限制
 
     @operation_node(name='识别初始画面', is_start_node=True)
     def check_initial_screen(self) -> OperationRoundResult:
@@ -134,8 +136,7 @@ class BooboxApp(ZApplication):
     @node_from(from_name='点击邦巢', status='已进入邦巢界面')
     @node_from(from_name='点击邦巢', status='点击邦巢')
     @node_from(from_name='检查邦布', status='刷新邦布')
-    @node_from(from_name='跳过动画')
-    @node_from(from_name='返回界面')
+    @node_from(from_name='返回界面', status='继续检查邦布')
     @operation_node(name='检查邦布')
     def check_bangboo(self) -> OperationRoundResult:
         """
@@ -144,6 +145,11 @@ class BooboxApp(ZApplication):
         """
         screen = self.screenshot()
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
+
+        # 检查是否已达到最大刷新次数
+        if self.refresh_count >= self.max_refresh_count:
+            op = BackToNormalWorld(self.ctx)
+            return self.round_by_op_result(op.execute())
 
         # 检查是否有S级邦布
         if 'S' in ocr_result_map:
@@ -154,27 +160,28 @@ class BooboxApp(ZApplication):
                     self.ctx.controller.click(s_result.center)
                     time.sleep(0.5)  # 点击间隔
                 return self.round_success(status='点击S级邦布完成')
-        
-                # 如果没有S级邦布，检查刷新按钮
-        refresh_found = False
-        refresh_flag=0
-        for text, results in ocr_result_map.items():
-            if '刷新' in text:  # 检查文本中是否包含'刷新'字样
-                 # 第二个刷新才是刷新
-                if len(results) > 0:
-                    if refresh_flag==0:
-                        refresh_flag=1
-                        continue
-                    else:
-                        self.ctx.controller.click(results[0].center)
-                        refresh_found = True
-
-                    continue
-
-        if refresh_found:
+                
+        # 如果没有S级邦布，尝试刷新邦布
+        # 先尝试使用预定义坐标点击刷新按钮
+        result = self.round_by_find_and_click_area(screen, '邦巢', '刷新', retry_wait=1)
+        if result.is_success:
+            # 等待界面响应后重新检查邦布
+            self.refresh_count += 1
             return self.round_wait(status='刷新邦布', wait=4)
-        else:
-            return self.round_retry(status='未找到刷新按钮', wait=1)
+        
+        # 预定义坐标失败时，用OCR方式取第二个刷新按钮作为备用
+        target_word_list: list[str] = ['刷新']
+        word, mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, target_word_list)
+        
+        if word == '刷新' and len(mrl.arr) >= 2:
+            # 点击第二个刷新按钮
+            self.ctx.controller.click(mrl.arr[1].center)
+        elif word == '刷新' and mrl.max is not None:
+            # 如果只有一个刷新，点击它
+            self.ctx.controller.click(mrl.max.center)
+        
+        self.refresh_count += 1
+        return self.round_wait(status='刷新邦布', wait=4)
 
     @node_from(from_name='检查邦布', status='点击S级邦布完成')
     @operation_node(name='点击聘用')
@@ -199,14 +206,21 @@ class BooboxApp(ZApplication):
         
         return self.round_retry(status='未找到聘用按钮', wait=1)
 
-    @node_from(from_name='点击聘用',status='点击聘用')
+    @node_from(from_name='点击聘用', status='点击聘用')
     @operation_node(name='跳过动画')
     def skip_animation(self) -> OperationRoundResult:
         """
-        OCR点击跳过按钮
+        先尝试使用预定义坐标点击跳过按钮，失败后使用OCR
         :return:
         """
         screen = self.screenshot()
+        
+        # 先尝试使用预定义坐标
+        result = self.round_by_find_and_click_area(screen, '邦巢', '跳过', retry_wait=1)
+        if result.is_success:
+            return self.round_wait(status='跳过动画', wait=1)
+        
+        # 预定义坐标失败，使用OCR作为后备方案
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
         
         target_word_list: list[str] = ['跳过']
@@ -215,13 +229,14 @@ class BooboxApp(ZApplication):
         if word == '跳过':
             if mrl.max is not None:
                 self.ctx.controller.click(mrl.max.center)
-                return self.round_success()
+                return self.round_success(status='跳过动画完成')
             else:
                 return self.round_retry(status='跳过按钮位置异常', wait=1)
         
         return self.round_retry(status='未找到跳过按钮', wait=1)
 
-    @node_from(from_name='跳过动画')
+    @node_from(from_name='跳过动画', status='跳过动画')
+    @node_from(from_name='跳过动画', status='跳过动画完成')
     @operation_node(name='返回界面')
     def return_interface(self) -> OperationRoundResult:
         """
@@ -237,13 +252,14 @@ class BooboxApp(ZApplication):
         if word == '返回':
             if mrl.max is not None:
                 self.ctx.controller.click(mrl.max.center)
-                return self.round_success(status='操作完成')
+                return self.round_success(status='继续检查邦布')
             else:
                 return self.round_retry(status='返回按钮位置异常', wait=1)
         
         # 如果没有找到返回按钮，尝试按ESC键
-        self.ctx.controller.btn_controller.tap('escape')
-        return self.round_success(status='使用ESC返回')
+        self.ctx.controller.btn_controller.tap('esc')
+        return self.round_success(status='继续检查邦布')
+
 
 def __debug():
     ctx = ZContext()
