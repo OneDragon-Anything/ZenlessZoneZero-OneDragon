@@ -224,8 +224,8 @@ class BooboxApp(ZApplication):
             return self.round_success(status='点击S级邦布完成')
 
         # 如果没有S级邦布，尝试刷新邦布
-        refresh_pos = Point(1309, 996)
-        self.ctx.controller.click(refresh_pos)
+        # 刷新区域
+        refresh_result = self.round_by_find_area(screen, '邦巢', '刷新区域')
         self.refresh_count += 1
         return self.round_wait(status='刷新邦布完成', wait=3)
 
@@ -256,55 +256,55 @@ class BooboxApp(ZApplication):
     @operation_node(name='跳过动画')
     def skip_animation(self) -> OperationRoundResult:
         """
-        先尝试使用预定义坐标点击跳过按钮，失败后使用OCR
+        等待动画播放完成，或尝试跳过动画
         :return:
         """
         screen = self.screenshot()
         
-        # 先尝试使用预定义坐标
-        result = self.round_by_find_and_click_area(screen, '邦巢', '跳过', retry_wait=1)
-        if result.is_success:
-            return self.round_wait(status='跳过动画', wait=1)
+        # 方法1：先等待2秒让动画加载，然后尝试点击跳过
+        time.sleep(2)
+        screen = self.screenshot()
         
-        # 预定义坐标失败，使用OCR作为后备方案
+        # 使用OCR查找跳过按钮
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
-        
         target_word_list: list[str] = ['跳过']
         word, mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, target_word_list)
         
-        if word == '跳过':
-            if mrl.max is not None:
-                self.ctx.controller.click(mrl.max.center)
-                return self.round_success(status='跳过动画完成')
-            else:
-                return self.round_retry(status='跳过按钮位置异常', wait=1)
+        if word == '跳过' and mrl.max is not None:
+            self.ctx.controller.click(mrl.max.center)
+            return self.round_wait(status='跳过动画完成', wait=1)
         
-        return self.round_retry(status='未找到跳过按钮', wait=1)
+        # 方法2：如果找不到跳过按钮，尝试使用预定义坐标
+        result = self.round_by_find_and_click_area(screen, '邦巢', '跳过', retry_wait=1)
+        if result.is_success:
+            return self.round_wait(status='跳过动画完成', wait=1)
+        
+        # 方法3：如果都找不到跳过按钮，直接等待动画播放完成（约8秒）
+        return self.round_wait(status='等待动画播放完成', wait=8)
 
-    @node_from(from_name='跳过动画', status='跳过动画')
     @node_from(from_name='跳过动画', status='跳过动画完成')
+    @node_from(from_name='跳过动画', status='等待动画播放完成')
     @operation_node(name='返回界面')
     def return_interface(self) -> OperationRoundResult:
         """
-        按下返回按钮
+        返回邦巢界面
         :return:
         """
+        # 确保动画完全结束，再多等待2秒
+        time.sleep(2)
         screen = self.screenshot()
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
         
         target_word_list: list[str] = ['返回']
         word, mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, target_word_list)
         
-        if word == '返回':
-            if mrl.max is not None:
-                self.ctx.controller.click(mrl.max.center)
-                return self.round_success(status='继续检查邦布')
-            else:
-                return self.round_retry(status='返回按钮位置异常', wait=1)
+        if word == '返回' and mrl.max is not None:
+            self.ctx.controller.click(mrl.max.center)
+            return self.round_wait(status='继续检查邦布', wait=2)
         
-        # 如果没有找到返回按钮，尝试按ESC键
+        # 如果没有找到返回按钮，尝试按ESC键返回
         self.ctx.controller.btn_controller.tap('esc')
-        return self.round_success(status='继续检查邦布')
+        return self.round_wait(status='继续检查邦布', wait=2)
 
 
 def __debug():
