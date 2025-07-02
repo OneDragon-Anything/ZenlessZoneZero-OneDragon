@@ -18,7 +18,7 @@ class AllInstallCard(BaseInstallCard):
             card.finished.connect(self.on_install_done)
 
         guide_btn = HyperlinkButton(
-            url='http://onedragon-anything.github.io/zzz/zh/quickstart.html',
+            url=ctx.project_config.quick_start_link,
             text=gt('安装指南')
         )
 

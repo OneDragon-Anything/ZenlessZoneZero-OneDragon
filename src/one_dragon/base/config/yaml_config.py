@@ -8,12 +8,15 @@ from one_dragon.utils import os_utils
 
 class YamlConfig(YamlOperator):
 
-    def __init__(self,
-                 module_name: str,
-                 instance_idx: Optional[int] = None,
-                 sub_dir: Optional[List[str]] = None,
-                 sample: bool = False, copy_from_sample: bool = False,
-                 is_mock: bool = False):
+    def __init__(
+            self,
+            module_name: str,
+            backup_model_name: str | None = None,
+            instance_idx: Optional[int] = None,
+            sub_dir: Optional[List[str]] = None,
+            sample: bool = False, copy_from_sample: bool = False,
+            is_mock: bool = False
+    ):
         self.instance_idx: Optional[int] = instance_idx
         """传入时 该配置为一个的脚本实例独有的配置"""
 
@@ -22,6 +25,9 @@ class YamlConfig(YamlOperator):
 
         self.module_name: str = module_name
         """配置文件名称"""
+
+        self.backup_model_name: str = backup_model_name
+        """备用的配置文件名称 主要用于配置文件改名时做迁移使用"""
 
         self.is_mock: bool = is_mock
         """mock情况下 不读取文件 也不会实际保存 用于测试"""
@@ -48,16 +54,26 @@ class YamlConfig(YamlOperator):
         if self.sub_dir is not None:
             sub_dir = sub_dir + self.sub_dir
 
-        yml_path = os.path.join(os_utils.get_path_under_work_dir(*sub_dir), f'{self.module_name}.yml')
-        sample_yml_path = os.path.join(os_utils.get_path_under_work_dir(*sub_dir), f'{self.module_name}.sample.yml')
-        usage_yml_path = sample_yml_path if self._sample and not os.path.exists(yml_path) else yml_path
-        use_sample = self._sample and not os.path.exists(yml_path)
+        dir_path = os_utils.get_path_under_work_dir(*sub_dir)
 
-        if use_sample and self._copy_from_sample:
+        # 指定文件存在时 直接使用
+        yml_path = os.path.join(dir_path, f'{self.module_name}.yml')
+        if os.path.exists(yml_path):
+            return yml_path
+
+        # 备用文件存在时 复制使用
+        backup_yml_path = os.path.join(dir_path, f'{self.backup_model_name}.yml')
+        if os.path.exists(backup_yml_path):
+            shutil.copyfile(backup_yml_path, yml_path)
+            return yml_path
+
+        # 最后看是否有示例文件
+        sample_yml_path = os.path.join(dir_path, f'{self.module_name}.sample.yml')
+        if self._sample and self._copy_from_sample and os.path.exists(sample_yml_path):
             shutil.copyfile(sample_yml_path, yml_path)
-            usage_yml_path = yml_path
+            return yml_path
 
-        return usage_yml_path
+        return yml_path
 
     @property
     def is_sample(self) -> bool:
