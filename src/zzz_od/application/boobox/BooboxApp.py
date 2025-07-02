@@ -30,6 +30,17 @@ class BooboxApp(ZApplication):
     def check_initial_screen(self) -> OperationRoundResult:
         screen = self.screenshot()
 
+        # 检测是否已经在邦巢界面
+        ocr_result_map = self.ctx.ocr.run_ocr(screen)
+        for text in ocr_result_map.keys():
+            if '聘用' in text:
+                return self.round_success(status='已在邦巢界面')
+
+        # 使用预定义区域检测邦巢界面
+        result = self.round_by_find_area(screen, '邦巢', '聘用')
+        if result.is_success:
+            return self.round_success(status='已在邦巢界面')
+
         current_screen_name, can_go = self.check_screen_with_can_go(screen, '快捷手册-目标')
         if can_go is not None and can_go == True:
             return self.round_by_goto_screen(screen, '快捷手册-目标',
@@ -141,6 +152,7 @@ class BooboxApp(ZApplication):
 
         return self.round_retry(status='未找到邦巢按钮', wait=1)
 
+    @node_from(from_name='识别初始画面', status='已在邦巢界面')
     @node_from(from_name='点击邻里街坊', status='已在邦巢界面')
     @node_from(from_name='点击邻里街坊', status='已进入邦巢界面')
     @node_from(from_name='点击邦巢', status='已进入邦巢界面')
@@ -155,31 +167,29 @@ class BooboxApp(ZApplication):
         """
         screen = self.screenshot()
         
-        # 首先确认是否在邦巢界面 - 使用多种方式检测，降低严格要求
+        # 确认是否在邦巢界面 - 主要依靠"聘用"按钮检测
         in_boobox_interface = False
-        detection_method = ""
         
-        # 方式1：检测聘用按钮（预定义区域）
-        result = self.round_by_find_area(screen, '邦巢', '聘用')
-        if result.is_success:
-            in_boobox_interface = True
-            detection_method = "聘用按钮区域"
+        # 首先进行OCR检测
+        ocr_result_map = self.ctx.ocr.run_ocr(screen)
         
-        # 方式2：检测刷新按钮（预定义区域）
-        if not in_boobox_interface:
-            refresh_result = self.round_by_find_area(screen, '邦巢', '刷新')
-            if refresh_result.is_success:
+        # 方式1：OCR检测聘用按钮（最可靠的方式）
+        for text in ocr_result_map.keys():
+            if '聘用' in text:
                 in_boobox_interface = True
-                detection_method = "刷新按钮区域"
+                break
         
-        # 方式3：OCR检测（降低要求）
+        # 方式2：如果OCR没有检测到聘用，尝试预定义区域检测
         if not in_boobox_interface:
-            ocr_result_map = self.ctx.ocr.run_ocr(screen)
+            result = self.round_by_find_area(screen, '邦巢', '聘用')
+            if result.is_success:
+                in_boobox_interface = True
+        
+        # 方式3：最后检查刷新按钮作为补充（降级方案）
+        if not in_boobox_interface:
             for text in ocr_result_map.keys():
-                # 检测刷新按钮（可能包含次数信息，如"刷新 23/30"）
-                if '聘用' in text or '刷新' in text:
+                if '刷新' in text:
                     in_boobox_interface = True
-                    detection_method = f"OCR检测到:{text}"
                     break
         
         # 如果确实不在邦巢界面，等待重试
@@ -224,8 +234,20 @@ class BooboxApp(ZApplication):
             return self.round_success(status='点击S级邦布完成')
 
         # 如果没有S级邦布，尝试刷新邦布
-        # 刷新区域
-        refresh_result = self.round_by_find_area(screen, '邦巢', '刷新区域')
+        refresh_result = self.round_by_find_and_click_area(screen, '邦巢', '刷新区域', retry_wait=1)
+        if refresh_result.is_success:
+            self.refresh_count += 1
+            return self.round_wait(status='刷新邦布完成', wait=3)
+        
+        # 如果刷新区域失败，尝试原来的刷新按钮
+        refresh_result2 = self.round_by_find_and_click_area(screen, '邦巢', '刷新', retry_wait=1)
+        if refresh_result2.is_success:
+            self.refresh_count += 1
+            return self.round_wait(status='刷新邦布完成', wait=3)
+        
+        # 都失败的话，使用固定坐标点击
+        refresh_pos = Point(1309, 996)
+        self.ctx.controller.click(refresh_pos)
         self.refresh_count += 1
         return self.round_wait(status='刷新邦布完成', wait=3)
 
