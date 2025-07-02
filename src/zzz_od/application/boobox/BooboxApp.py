@@ -4,9 +4,11 @@ import cv2
 
 from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.base.screen.template_info import TemplateInfo
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.zzz_application import ZApplication
@@ -112,7 +114,12 @@ class BooboxApp(ZApplication):
     def click_boobox(self) -> OperationRoundResult:
         screen = self.screenshot()
 
-        # 检查是否已经在邦巢界面，优先检查"聘用"
+        # 方式1：使用预定义的聘用按钮区域检测
+        result = self.round_by_find_area(screen, '邦巢', '聘用')
+        if result.is_success:
+            return self.round_success(status='已进入邦巢界面')
+
+        # 方式2：使用OCR检测聘用按钮
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
         for text in ocr_result_map.keys():
             if '次数用尽' in text:
@@ -121,21 +128,29 @@ class BooboxApp(ZApplication):
             if '聘用' in text:  # 检查文本中是否包含'聘用'字样
                 return self.round_success(status='已进入邦巢界面')
 
+        # 方式3：检查是否有刷新按钮（也是邦巢界面的特征）
+        refresh_result = self.round_by_find_area(screen, '邦巢', '刷新')
+        if refresh_result.is_success:
+            return self.round_success(status='已进入邦巢界面')
 
-        # 尝试点击邦巢
+        # 方式4：使用OCR检测刷新按钮
+        for text in ocr_result_map.keys():
+            if '刷新' in text:
+                return self.round_success(status='已进入邦巢界面')
+
+        # 如果都没有检测到邦巢界面特征，尝试点击邦巢
         boobox_list: list[str] = ['邦巢']
         result = self.round_by_ocr_and_click_by_priority(screen, boobox_list)
         if result.is_success:
-            return self.round_wait(status='点击邦巢', wait=2)
+            return self.round_wait(status='点击邦巢', wait=3)
 
         return self.round_retry(status='未找到邦巢按钮', wait=1)
-
 
     @node_from(from_name='点击邻里街坊', status='已在邦巢界面')
     @node_from(from_name='点击邻里街坊', status='已进入邦巢界面')
     @node_from(from_name='点击邦巢', status='已进入邦巢界面')
     @node_from(from_name='点击邦巢', status='点击邦巢')
-    @node_from(from_name='检查邦布', status='刷新邦布')
+    @node_from(from_name='检查邦布', status='刷新邦布完成')
     @node_from(from_name='返回界面', status='继续检查邦布')
     @operation_node(name='检查邦布')
     def check_bangboo(self) -> OperationRoundResult:
@@ -144,44 +159,119 @@ class BooboxApp(ZApplication):
         :return:
         """
         screen = self.screenshot()
-        ocr_result_map = self.ctx.ocr.run_ocr(screen)
-
+        
+        # 首先确认是否在邦巢界面 - 使用多种方式检测，降低严格要求
+        in_boobox_interface = False
+        detection_method = ""
+        
+        # 方式1：检测聘用按钮（预定义区域）
+        result = self.round_by_find_area(screen, '邦巢', '聘用')
+        if result.is_success:
+            in_boobox_interface = True
+            detection_method = "聘用按钮区域"
+        
+        # 方式2：检测刷新按钮（预定义区域）
+        if not in_boobox_interface:
+            refresh_result = self.round_by_find_area(screen, '邦巢', '刷新')
+            if refresh_result.is_success:
+                in_boobox_interface = True
+                detection_method = "刷新按钮区域"
+        
+        # 方式3：OCR检测（降低要求）
+        if not in_boobox_interface:
+            ocr_result_map = self.ctx.ocr.run_ocr(screen)
+            for text in ocr_result_map.keys():
+                # 检测刷新按钮（可能包含次数信息，如"刷新 23/30"）
+                if '聘用' in text or '刷新' in text:
+                    in_boobox_interface = True
+                    detection_method = f"OCR检测到:{text}"
+                    break
+        
+        # 如果确实不在邦巢界面，等待重试
+        if not in_boobox_interface:
+            return self.round_retry(status='不在邦巢界面，等待加载', wait=2)
+        
+        # 初始化OCR结果映射（如果之前没有初始化）
+        if 'ocr_result_map' not in locals():
+            ocr_result_map = self.ctx.ocr.run_ocr(screen)
+        
         # 检查是否已达到最大刷新次数
         if self.refresh_count >= self.max_refresh_count:
             op = BackToNormalWorld(self.ctx)
             return self.round_by_op_result(op.execute())
 
+        # 检查是否有次数用尽
+        for text in ocr_result_map.keys():
+            if '次数用尽' in text:
+                op = BackToNormalWorld(self.ctx)
+                return self.round_by_op_result(op.execute())
+
         # 检查是否有S级邦布
-        if 'S' in ocr_result_map:
-            s_results = ocr_result_map['S']
-            if len(s_results) > 0:
-                # 依次点击所有S级邦布
-                for s_result in s_results:
-                    self.ctx.controller.click(s_result.center)
-                    time.sleep(0.5)  # 点击间隔
-                return self.round_success(status='点击S级邦布完成')
+        # 使用模板配置的多矩形区域进行OCR检测
+        s_found = False
+        s_click_positions = []
+        
+        # 加载S级检测模板信息
+        try:
+            template_info = TemplateInfo(sub_dir='boobox', template_id='s_rank_detection')
+            
+            # 遍历模板中定义的每个矩形区域 (每两个点组成一个矩形)
+            for i in range(0, len(template_info.point_list), 2):
+                if i + 1 < len(template_info.point_list):
+                    # 获取矩形的左上角和右下角坐标
+                    x1, y1 = template_info.point_list[i].x, template_info.point_list[i].y
+                    x2, y2 = template_info.point_list[i + 1].x, template_info.point_list[i + 1].y
+                    
+                    # 裁剪这个区域的图像
+                    rect = Rect(x1, y1, x2, y2)
+                    part = cv2_utils.crop_image_only(screen, rect)
+                    
+                    # 在这个区域内进行OCR识别S
+                    ocr_result = self.ctx.ocr.run_ocr_single_line(part)
+                    if 'S' in ocr_result:
+                        s_found = True
+                        # 记录这个区域的中心点用于点击
+                        center_x = (x1 + x2) // 2
+                        center_y = (y1 + y2) // 2
+                        s_click_positions.append(Point(center_x, center_y))
+        except Exception as e:
+            # 如果模板加载失败，回退到原来的硬编码坐标方式
+            s_detection_areas = [
+                (1750, 670, 1794, 708),  # 矩形1
+                (1754, 406, 1798, 446),  # 矩形2
+                (1526, 402, 1578, 448),  # 矩形3
+                (1534, 666, 1578, 706),  # 矩形4
+                (1316, 666, 1360, 708),  # 矩形5
+                (1316, 398, 1360, 446),  # 矩形6
+            ]
+            
+            # 遍历每个检测矩形区域
+            for x1, y1, x2, y2 in s_detection_areas:
+                # 裁剪这个区域的图像
+                rect = Rect(x1, y1, x2, y2)
+                part = cv2_utils.crop_image_only(screen, rect)
                 
+                # 在这个区域内进行OCR识别S
+                ocr_result = self.ctx.ocr.run_ocr_single_line(part)
+                if 'S' in ocr_result:
+                    s_found = True
+                    # 记录这个区域的中心点用于点击
+                    center_x = (x1 + x2) // 2
+                    center_y = (y1 + y2) // 2
+                    s_click_positions.append(Point(center_x, center_y))
+        
+        # 如果找到S级邦布，依次点击
+        if s_found and len(s_click_positions) > 0:
+            for pos in s_click_positions:
+                self.ctx.controller.click(pos)
+                time.sleep(0.5)  # 点击间隔
+            return self.round_success(status='点击S级邦布完成')
+
         # 如果没有S级邦布，尝试刷新邦布
-        # 先尝试使用预定义坐标点击刷新按钮
-        result = self.round_by_find_and_click_area(screen, '邦巢', '刷新', retry_wait=1)
-        if result.is_success:
-            # 等待界面响应后重新检查邦布
-            self.refresh_count += 1
-            return self.round_wait(status='刷新邦布', wait=4)
-        
-        # 预定义坐标失败时，用OCR方式取第二个刷新按钮作为备用
-        target_word_list: list[str] = ['刷新']
-        word, mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, target_word_list)
-        
-        if word == '刷新' and len(mrl.arr) >= 2:
-            # 点击第二个刷新按钮
-            self.ctx.controller.click(mrl.arr[1].center)
-        elif word == '刷新' and mrl.max is not None:
-            # 如果只有一个刷新，点击它
-            self.ctx.controller.click(mrl.max.center)
-        
+        refresh_pos = Point(1309, 996)
+        self.ctx.controller.click(refresh_pos)
         self.refresh_count += 1
-        return self.round_wait(status='刷新邦布', wait=4)
+        return self.round_wait(status='刷新邦布完成', wait=3)
 
     @node_from(from_name='检查邦布', status='点击S级邦布完成')
     @operation_node(name='点击聘用')
