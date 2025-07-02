@@ -4,7 +4,9 @@ from typing import List
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -84,15 +86,32 @@ class RedemptionCodeApp(ZApplication):
     @node_from(from_name='输入兑换码', status='兑换码兑换')
     @operation_node(name='兑换后确认')
     def confirm_code(self) -> OperationRoundResult:
+        # 等待兑换结果显示
+        time.sleep(1)
         screen = self.screenshot()
+
+        # 在整个屏幕中检查兑换结果文本（兑换结果可能以弹窗形式出现）
+        ocr_result_map = self.ctx.ocr.run_ocr(screen)
+        
+        # 检查所有OCR结果
+        for ocr_result in ocr_result_map.keys():
+            if '已使用' in ocr_result or '已兑换' in ocr_result or '已领取' in ocr_result:
+                log.info(f'兑换码已使用: {self.unused_code_list[self.code_idx]}')
+                self.ctx.redemption_code_record.add_used_code(self.unused_code_list[self.code_idx])
+                self.code_idx += 1
+                return self.round_success('兑换码已使用', wait=1)
+            
+            if '过期' in ocr_result or '无效' in ocr_result or '失效' in ocr_result:
+                log.info(f'兑换码过期或无效: {self.unused_code_list[self.code_idx]}')
+                self.ctx.redemption_code_record.add_used_code(self.unused_code_list[self.code_idx])
+                self.code_idx += 1
+                return self.round_success('兑换码过期', wait=1)
 
         result = self.round_by_find_and_click_area(screen, '菜单', '兑换码兑换')
         if result.is_success:
             self.ctx.redemption_code_record.add_used_code(self.unused_code_list[self.code_idx])
             self.code_idx += 1
             return self.round_success(result.status, wait=1)
-
-        # TODO 缺少已使用兑换码 或 过期兑换码 的处理
 
         return self.round_retry(result.status, wait=1)
 
