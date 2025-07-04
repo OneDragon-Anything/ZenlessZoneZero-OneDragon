@@ -825,3 +825,82 @@ def find_character_avatar_center_with_offset(img: MatLike, area_offset: Tuple[in
     center_y = y + h // 2 + area_offset[1] + click_offset[1]
 
     return (center_x, center_y)
+
+
+def filter_by_color(
+    image: MatLike,
+    mode: str,
+    lower_rgb: Optional[Union[List[int], Tuple[int, int, int], np.ndarray]] = None,
+    upper_rgb: Optional[Union[List[int], Tuple[int, int, int], np.ndarray]] = None,
+    hsv_color: Optional[Union[List[int], Tuple[int, int, int], np.ndarray]] = None,
+    hsv_diff: Optional[Union[List[int], Tuple[int, int, int], np.ndarray]] = None
+) -> MatLike:
+    """
+    根据指定的模式和颜色范围，对图像进行颜色过滤。
+    能正确处理HSV空间H通道的循环问题。
+    :param image:       待过滤的图像 (RGB格式)
+    :param mode:        颜色模式 'rgb' 或 'hsv'
+    :param lower_rgb:   RGB下限
+    :param upper_rgb:   RGB上限
+    :param hsv_color:   HSV基准颜色
+    :param hsv_diff:    HSV颜色容差
+    :return:            二值化的 mask 图像。白色为符合条件，黑色为不符合。
+    """
+    if mode == 'hsv':
+        if hsv_color is None or hsv_diff is None:
+            return np.full((image.shape[0], image.shape[1]), 0, dtype=np.uint8)
+
+        hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+
+        _hsv_color = np.array(hsv_color, dtype=np.int32)
+        _hsv_diff = np.array(hsv_diff, dtype=np.int32)
+
+        lower_s = np.clip(_hsv_color[1] - _hsv_diff[1], 0, 255)
+        upper_s = np.clip(_hsv_color[1] + _hsv_diff[1], 0, 255)
+        lower_v = np.clip(_hsv_color[2] - _hsv_diff[2], 0, 255)
+        upper_v = np.clip(_hsv_color[2] + _hsv_diff[2], 0, 255)
+
+        lower_h = _hsv_color[0] - _hsv_diff[0]
+        upper_h = _hsv_color[0] + _hsv_diff[0]
+
+        if lower_h < 0:
+            # H值回绕到180附近
+            lower1 = np.array([lower_h + 180, lower_s, lower_v], dtype=np.uint8)
+            upper1 = np.array([179, upper_s, upper_v], dtype=np.uint8)
+            mask1 = cv2.inRange(hsv_image, lower1, upper1)
+
+            lower2 = np.array([0, lower_s, lower_v], dtype=np.uint8)
+            upper2 = np.array([upper_h, upper_s, upper_v], dtype=np.uint8)
+            mask2 = cv2.inRange(hsv_image, lower2, upper2)
+
+            mask = cv2.bitwise_or(mask1, mask2)
+        elif upper_h > 179:
+            # H值回绕到0附近
+            lower1 = np.array([lower_h, lower_s, lower_v], dtype=np.uint8)
+            upper1 = np.array([179, upper_s, upper_v], dtype=np.uint8)
+            mask1 = cv2.inRange(hsv_image, lower1, upper1)
+
+            lower2 = np.array([0, lower_s, lower_v], dtype=np.uint8)
+            upper2 = np.array([upper_h - 180, upper_s, upper_v], dtype=np.uint8)
+            mask2 = cv2.inRange(hsv_image, lower2, upper2)
+
+            mask = cv2.bitwise_or(mask1, mask2)
+        else:
+            # H值没有回绕
+            lower = np.array([lower_h, lower_s, lower_v], dtype=np.uint8)
+            upper = np.array([upper_h, upper_s, upper_v], dtype=np.uint8)
+            mask = cv2.inRange(hsv_image, lower, upper)
+
+        return mask
+    elif mode == 'rgb':
+        if lower_rgb is None or upper_rgb is None:
+            return np.full((image.shape[0], image.shape[1]), 0, dtype=np.uint8)
+
+        # cv2.inRange 需要 np.array
+        _lower_rgb = np.array(lower_rgb, dtype=np.uint8)
+        _upper_rgb = np.array(upper_rgb, dtype=np.uint8)
+        mask = cv2.inRange(image, _lower_rgb, _upper_rgb)
+        return mask
+    else:
+        # 未知模式，或者没有提供足够的参数，返回全黑的mask
+        return np.full((image.shape[0], image.shape[1]), 0, dtype=np.uint8)

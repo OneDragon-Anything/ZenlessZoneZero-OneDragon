@@ -3,6 +3,7 @@ import time
 import os
 from cv2.typing import MatLike
 from typing import Callable, List, Optional
+import copy
 
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
@@ -73,8 +74,135 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             self,
             param=param,
         )
+        # 1. 首先，确定模型根目录 (沿用现有逻辑)
+        models_dir = get_ocr_model_dir(ocr_model_name)
+
+        # 2. 然后，构建 ocr_options 字典
+        self.ocr_options = {
+            # ===================================================================
+            # I. 设备与性能 (Device & Performance)
+            # ===================================================================
+
+            # 是否使用GPU进行计算。
+            # 这是影响性能最关键的开关。修改此项后需要重新加载模型。
+            # 类型: bool
+            'use_gpu': False,
+
+            # ===================================================================
+            # II. 模型路径 (Model Paths)
+            # ===================================================================
+
+            # 以下路径将在__init__方法中，通过调用项目已有的os_utils自动填充。
+            # 允许外部修改这些路径，以便未来可以方便地切换或升级模型版本。
+
+            # 文字检测模型文件路径。
+            # 类型: str
+            'det_model_dir': os.path.join(models_dir, 'det.onnx'),
+
+            # 文字识别模型文件路径。
+            # 类型: str
+            'rec_model_dir': os.path.join(models_dir, 'rec.onnx'),
+
+            # 方向分类模型文件路径。
+            # 类型: str
+            'cls_model_dir': os.path.join(models_dir, 'cls.onnx'),
+
+            # 识别器使用的字符字典文件路径。
+            # 类型: str
+            'rec_char_dict_path': os.path.join(models_dir, 'ppocrv5_dict.txt'),
+
+            # 可视化识别结果时使用的字体文件路径
+            # 类型: str
+            'vis_font_path': os.path.join(models_dir, 'simfang.ttf'),
+
+            # ===================================================================
+            # III. 核心功能开关 (Core Feature Switches)
+            # ===================================================================
+
+            # 是否加载并使用方向分类模型。
+            # 开启后，可以识别并矫正180度颠倒的文本行，但会轻微增加耗时。
+            # 类型: bool
+            'use_angle_cls': False,
+
+            # ===================================================================
+            # IV. 文字检测超参数 (Detection Hyperparameters)
+            # ===================================================================
+
+            # 针对DB检测算法的精细化控制参数。
+
+            # 输入图像的长边限制。
+            # OCR前会将图像等比缩放到最长边不超过此值。
+            # 较小的值可以提升速度，但可能丢失小文字信息；较大的值能更好地检测小文字，但会增加耗时。
+            # 类型: float
+            'det_limit_side_len': 960.0,
+
+            # DB算法中判断像素点是否为文本区域的概率阈值。
+            # 降低此值可能有助于检测模糊或不清晰的文本，但可能引入更多噪声。
+            # 类型: float, 范围: 0.0 ~ 1.0
+            'det_db_thresh': 0.3,
+
+            # 在像素点判断后，将文本区域组合成检测框的置信度阈值。
+            # 如果出现文本漏检，可以适当调低此值。如果出现很多非文本区域被误检，可以适当调高。
+            # 类型: float, 范围: 0.0 ~ 1.0
+            'det_db_box_thresh': 0.6,
+
+            # 检测框向外扩张的系数。
+            # 大于1.0的值会使最终的检测框比预测的更大，有助于完整地框住文字，特别是对于粘连或艺术字体。
+            # 类型: float
+            'det_db_unclip_ratio': 1.5,
+
+            # ===================================================================
+            # V. 文字识别超参数 (Recognition Hyperparameters)
+            # ===================================================================
+
+            # 识别时一次处理的文本框（图片切片）数量。
+            # 在GPU模式下，适当增加此值可以提升识别速度。
+            # 类型: int
+            'rec_batch_num': 6,
+
+            # 限制单个文本框识别出的最大字符数。
+            # 类型: int
+            'max_text_length': 25,
+
+            # 底层识别引擎使用的置信度阈值。
+            # 只有识别分数高于此值的文本结果，才会被从底层返回。
+            # 这是一种引擎级别的初步过滤。
+            # 类型: float, 范围: 0.0 ~ 1.0
+            'drop_score': 0.5,
+
+            # ===================================================================
+            # VI. 方向分类超参数 (Classification Hyperparameters)
+            # ===================================================================
+
+            # 方向分类器的置信度阈值。
+            # 只有当模型判断某个方向（0度或180度）的置信度高于此值时，才会进行旋转。
+            # 类型: float, 范围: 0.0 ~ 1.0
+            'cls_thresh': 0.9,
+        }
         self._model = None
         self._loading: bool = False
+
+    def get_options(self) -> dict:
+        """
+        获取只读的配置
+        :return:
+        """
+        return self.ocr_options.copy()
+
+    def update_options(self, options: dict):
+        """
+        更新配置
+        :param options:
+        :return:
+        """
+        old_options = copy.deepcopy(self.ocr_options)
+        self.ocr_options.update(options)
+
+        for key, value in old_options.items():
+            if key in self.ocr_options and self.ocr_options[key] != value:
+                log.info(f'OCR配置项 {key} 发生变更，模型将重新加载')
+                self._model = None
+                return
 
     def init_model(
             self,
@@ -115,14 +243,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             from onnxocr.onnx_paddleocr import ONNXPaddleOcr
 
             try:
-                self._model = ONNXPaddleOcr(
-                    use_angle_cls=False, use_gpu=False,
-                    det_model_dir=os.path.join(self.base_dir, 'det.onnx'),
-                    rec_model_dir=os.path.join(self.base_dir, 'rec.onnx'),
-                    cls_model_dir=os.path.join(self.base_dir, 'cls.onnx'),
-                    rec_char_dict_path=os.path.join(self.base_dir, 'ppocrv5_dict.txt'),
-                    vis_font_path=os.path.join(self.base_dir, 'simfang.ttf'),
-                )
+                self._model = ONNXPaddleOcr(**self.ocr_options)
                 self._loading = False
                 log.info('加载OCR模型完毕')
                 return True
@@ -160,9 +281,19 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         :param merge_line_distance: 多少行距内合并结果 -1为不合并 理论中文情况不会出现过长分行的 这里只是为了兼容英语的情况
         :return: {key_word: []}
         """
+        if image is None:
+            log.warning('OCR输入的图片为None')
+            return {}
+        if self._model is None and not self.init_model():
+            return {}
         start_time = time.time()
         result_map: dict = {}
-        scan_result_list: list = self._model.ocr(image, cls=False)
+        scan_result_list: list = self._model.ocr(
+            image,
+            det=True,
+            rec=True,
+            cls=self.ocr_options.get('use_angle_cls', False)
+        )
         if len(scan_result_list) == 0:
             log.debug('OCR结果 %s 耗时 %.2f', result_map.keys(), time.time() - start_time)
             return result_map
@@ -197,8 +328,13 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         :param threshold: 匹配阈值
         :return: [[("text", "score"),]] 由于禁用了空格，可以直接取第一个元素
         """
+        if self._model is None and not self.init_model():
+            return ""
         start_time = time.time()
-        scan_result: list = self._model.ocr(image, det=False, cls=False)
+        scan_result: list = self._model.ocr(image,
+                                             det=False,
+                                             rec=True,
+                                             cls=self.ocr_options.get('use_angle_cls', False))
         img_result = scan_result[0]  # 取第一张图片
         if len(img_result) > 1:
             log.debug("禁检测的OCR模型返回多个识别结果")  # 目前没有出现这种情况
