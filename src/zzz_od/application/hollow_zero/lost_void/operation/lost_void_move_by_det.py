@@ -15,6 +15,7 @@ from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import 
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
+from one_dragon.utils.log_utils import log
 
 
 class MoveTargetWrapper:
@@ -130,6 +131,23 @@ class LostVoidMoveByDet(ZOperation):
 
         self.lost_target_during_move_times: int = 0  # 移动过程中丢失目标次数
 
+        # 转向校准
+        self.last_target_x: Optional[float] = None  # 上一次识别到的目标x轴坐标
+        self.last_actual_turn_distance: int = 0  # 上一次实际的转向距离
+        self.estimated_turn_ratio: float = 0.2  # 估算的转向比例
+        self.turn_calibration_count: int = 0  # 转向校准次数
+
+        self._reset_turn_calibration_status()
+
+    def _reset_turn_calibration_status(self):
+        """
+        重置转向校准相关的状态
+        """
+        self.last_target_x = None
+        self.last_actual_turn_distance = 0
+        self.estimated_turn_ratio = 0.2
+        self.turn_calibration_count = 0
+
     def handle_not_in_world(self, screen: MatLike) -> OperationRoundResult:
         """
         处理不在大世界的情况
@@ -168,6 +186,7 @@ class LostVoidMoveByDet(ZOperation):
 
         if target_result is None:
             if self.last_target_result is not None:
+                self._reset_turn_calibration_status()  # 丢失目标，重置校准
                 # 如果出现多次转向 说明可能是识别不准 然后又恰巧被卡住无法前进
                 self.lost_target_during_move_times += 1
                 # https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon/issues/867
@@ -225,37 +244,78 @@ class LostVoidMoveByDet(ZOperation):
 
         self.last_target_result = target_result
         self.last_target_name = target_result.leftest_target_name
-        self.turn_to_target(target_result.entire_rect.center)
+        self.turn_to_target(target_result.entire_rect.center, is_moving=True)
         self.ctx.controller.start_moving_forward()
 
         return self.round_wait('移动中', wait_round_time=0.1)
 
-    def turn_to_target(self, target: Point) -> bool:
+    def turn_to_target(self, target: Point, is_moving: bool = False) -> bool:
         """
-        根据目标的位置 进行转动
-        @param target: 目标位置
-        @return: 是否进行了转动
+        根据目标的位置,使用自适应算法进行转动
+        :param target: 目标位置
+        :param is_moving: 是否在移动中。移动中会使用更保守的转向策略
+        :return: 是否进行了转动
         """
-        if target.x < 760:
-            self.ctx.controller.turn_by_distance(-100)
-            return True
-        elif target.x < 860:
-            self.ctx.controller.turn_by_distance(-50)
-            return True
-        elif target.x < 910:
-            self.ctx.controller.turn_by_distance(-25)
-            return True
-        elif target.x > 1160:
-            self.ctx.controller.turn_by_distance(+100)
-            return True
-        elif target.x > 1060:
-            self.ctx.controller.turn_by_distance(+50)
-            return True
-        elif target.x > 1010:
-            self.ctx.controller.turn_by_distance(+25)
-            return True
+        if is_moving:
+            # 如果在移动中，每次都重置校准，并使用非常小的转向限制
+            self.turn_calibration_count = 0
+            min_turn = 5
+            max_turn = 15
         else:
+            # 静止时，使用原有的、更激进的转向限制
+            min_turn = 5
+            max_turn = 200
+
+        screen_center_x = self.ctx.controller.standard_width / 2  # 屏幕中心X坐标
+        diff_x = target.x - screen_center_x  # 目标与中心的差距
+
+        # 在中心区域内，无需转动
+        if abs(diff_x) <= 50:
             return False
+
+        # 根据上次转向的实际效果，动态校准转向比例
+        if self.last_target_x is not None and self.last_actual_turn_distance != 0:
+            last_diff_x = self.last_target_x - screen_center_x
+            actual_pixel_moved = diff_x - last_diff_x
+
+            # 当目标穿越中心点(过冲)时，强力抑制，比例减半并重置校准过程
+            if last_diff_x * diff_x < 0:
+                self.estimated_turn_ratio *= 0.5
+                self.turn_calibration_count = 0
+            # 正常校准：使用移动平均法平滑更新比例
+            elif abs(actual_pixel_moved) > 1:
+                current_ratio = abs(self.last_actual_turn_distance / actual_pixel_moved)
+                if self.turn_calibration_count == 1:  # 首次校准，直接采用侦察值
+                    self.estimated_turn_ratio = current_ratio
+                else:  # 后续校准，使用移动平均法平滑更新
+                    n = self.turn_calibration_count
+                    self.estimated_turn_ratio = (self.estimated_turn_ratio * (n - 1) + current_ratio) / n
+                self.turn_calibration_count += 1
+
+        # 计算转向指令，首次使用固定值进行侦察，后续使用自适应指令
+        if self.turn_calibration_count == 0:
+            turn_distance = 30 if diff_x > 0 else -30
+            self.turn_calibration_count += 1
+        else:
+            turn_distance = int(diff_x * self.estimated_turn_ratio)
+
+        # 限制指令幅度，防止过小或过大
+        if 0 < abs(turn_distance) < min_turn:
+            turn_distance = min_turn if turn_distance > 0 else -min_turn
+        elif abs(turn_distance) > max_turn:
+            turn_distance = max_turn if turn_distance > 0 else -max_turn
+
+        if self.ctx.env_config.is_debug:
+            log.debug(f'转向指令: {turn_distance}, 当前比例: {self.estimated_turn_ratio:.4f}, 移动中: {is_moving}')
+        self.ctx.controller.turn_by_distance(turn_distance)
+
+        self.total_turn_times += 1
+
+        # 更新状态，为下次校准做准备
+        self.last_target_x = target.x
+        self.last_actual_turn_distance = turn_distance
+
+        return True
 
     def get_move_target(self, frame_result: DetectFrameResult) -> Optional[MoveTargetWrapper]:
         """
@@ -425,6 +485,7 @@ class LostVoidMoveByDet(ZOperation):
     @operation_node(name='无目标处理')
     def handle_no_target(self) -> OperationRoundResult:
         self.ctx.controller.stop_moving_forward()
+        self._reset_turn_calibration_status()  # 彻底丢失目标，重置转向状态以开始全新搜索
 
         if self.stop_when_interact:  # 目标是要交互
             # 当前可能准备进入可以交互状态 先等等交互按钮出现
