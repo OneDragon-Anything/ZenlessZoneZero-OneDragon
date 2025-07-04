@@ -12,6 +12,7 @@ class NotifyConfig(BasicNotifyConfig):
         'trigrams_collection': '卦象集录',
         'charge_plan': '体力刷本',
         'coffee': '咖啡店',
+        'boobox': '邦巢',
         'notorious_hunt': '恶名狩猎',
         'engagement_reward': '活跃度奖励',
         'hollow_zero': '枯萎之都',
