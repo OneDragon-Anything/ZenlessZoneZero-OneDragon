@@ -8,6 +8,7 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import EditableComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_config_file_path
 from zzz_od.application.battle_assistant.operation_debug_app import OperationDebugApp
@@ -36,7 +37,7 @@ class OperationDebugInterface(AppRunInterface):
     def get_widget_at_top(self) -> QWidget:
         top_widget = Column()
 
-        self.config_opt = ComboBoxSettingCard(
+        self.config_opt = EditableComboBoxSettingCard(
             icon=FluentIcon.GAME, title='指令配置',
             content='在 config/auto_battle_operation 文件夹')
         self.config_opt.value_changed.connect(self._on_config_changed)
