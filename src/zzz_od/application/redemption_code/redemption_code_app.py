@@ -75,7 +75,7 @@ class RedemptionCodeApp(ZApplication):
         time.sleep(1)
 
         self.ctx.controller.keyboard_controller.keyboard.type(self.unused_code_list[self.code_idx])
-        time.sleep(1)
+        time.sleep(6)
 
         screen = self.screenshot()
         return self.round_by_find_and_click_area(screen, '菜单', '兑换码兑换',
@@ -91,8 +91,6 @@ class RedemptionCodeApp(ZApplication):
             self.ctx.redemption_code_record.add_used_code(self.unused_code_list[self.code_idx])
             self.code_idx += 1
             return self.round_success(result.status, wait=1)
-
-        # TODO 缺少已使用兑换码 或 过期兑换码 的处理
 
         return self.round_retry(result.status, wait=1)
 

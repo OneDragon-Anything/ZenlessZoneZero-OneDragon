@@ -127,6 +127,15 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
+              - states: "![前台-橘福福]"
+                sub_handlers:
+                  - states: "[橘福福-特殊技可用]"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "橘福福"
+                      - op_name: "清除状态"
+                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+
               - states: "![前台-珂蕾妲]"
                 sub_handlers:
                   - states: "[珂蕾妲-特殊技可用]"

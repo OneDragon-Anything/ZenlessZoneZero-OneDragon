@@ -1,0 +1,24 @@
+name: Lock Closed Issues # 工作流名称
+
+on:
+  schedule:
+    - cron: '0 16 * * *'
+  issues:
+    types: [closed] # 当Issue被关闭时触发
+  workflow_dispatch: {}
+
+jobs:
+  lock_closed:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Lock closed issues
+        uses: dessant/lock-threads@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-lock-inactive-days: 0 # Issue关闭后立即锁定，不等待
+          pr-lock-inactive-days: 3    # Pull Request关闭后保留3天
+          issue-lock-reason: "resolved"

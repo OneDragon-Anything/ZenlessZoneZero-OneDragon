@@ -35,7 +35,7 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[自定义-连携换人, 0, 10] | ([仪玄-术法值]{120, 120} & [仪玄-能量]{120, 120})"
+      - states: "[自定义-连携换人, 0, 10]"
         sub_handlers:
           - states: "[仪玄-终结技可用] & [仪玄-术法值]{120, 120}"
             debug_name: "法术终结技"
@@ -63,7 +63,7 @@ handlers:
           - op_name: "等待秒数"
             seconds: 1
 
-      - states: "[仪玄-术法值]{0, 119} & [仪玄-能量]{60, 120}"
+      - states: "([仪玄-术法值]{0, 119} & [仪玄-能量]{60, 120}) | [仪玄-能量]{110, 120}"
         sub_handlers:
           - states: "[前台-血量扣减]{1, 100}"
             debug_name: "被人胖揍过开格挡"
@@ -74,7 +74,7 @@ handlers:
             operations:
               - operation_template: "仪玄-凸"
 
-      - states: "[仪玄-术法值]{1, 1}"
+      - states: "[仪玄-玄墨值]{1, 1}"
         operations:
           - op_name: "设置状态"
             data: ["自定义-仪玄-大太极"]
@@ -87,7 +87,7 @@ handlers:
             data: ["自定义-仪玄-小太极"]
           - operation_template: "仪玄-太极合轴"
 
-      - states: "([后台-珂蕾妲] | [后台-安比] | [后台-青衣]) & [仪玄-术法值]{120, 120}"
+      - states: "([后台-1-击破] | [后台-2-击破]) & [仪玄-术法值]{120, 120}"
         debug_name: "有力量了，上来打击破吧"
         operations:
           - op_name: "设置状态"
