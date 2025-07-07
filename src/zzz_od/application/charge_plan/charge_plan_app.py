@@ -38,9 +38,13 @@ class ChargePlanApp(ZApplication):
         self.last_tried_plan: Optional[ChargePlanItem] = None
         self.next_plan: Optional[ChargePlanItem] = None
         self.ctx.charge_plan_config.reset_plans()
+        self._force_ether_only = False
+        self._disable_backup_charge = False
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
+        # 每次新一轮计划开始时，重置禁用储蓄电量的标志
+        self._disable_backup_charge = False
         self.last_tried_plan = None
         return self.round_success()
 
@@ -308,8 +312,11 @@ class ChargePlanApp(ZApplication):
     @operation_node(name='选择电量来源')
     def select_charge_source(self) -> OperationRoundResult:
         """根据配置选择电量来源"""
+        if getattr(self, '_disable_backup_charge', False):
+            return self.round_success('使用以太电池')
+        if getattr(self, '_force_ether_only', False):
+            return self.round_success('使用以太电池')
         auto_recover_mode = self.ctx.charge_plan_config.auto_recover_charge
-        
         if auto_recover_mode == AutoRecoverChargeEnum.BACKUP_ONLY.value.value:
             # 仅使用储蓄电量
             return self.round_success('使用储蓄电量')
@@ -457,7 +464,10 @@ class ChargePlanApp(ZApplication):
         
         if is_backup_charge:
             if saved_power_amount == 0:
-                return self.round_fail('未识别到储蓄电量数量')
+                # 新增：储蓄电量用完，后续流程都禁用储蓄电量，直接切以太电池
+                self._disable_backup_charge = True
+                self._force_ether_only = True
+                return self.round_retry('储蓄电量已用完，切换以太电池')
             amount_to_use = min(needed_power, saved_power_amount)
             if amount_to_use <= 0:
                 return self.round_success('计算出使用数量为0，无需恢复')
@@ -469,11 +479,21 @@ class ChargePlanApp(ZApplication):
             time.sleep(0.5)
             self.ctx.controller.input_str(str(amount_to_use))
             time.sleep(0.5)
+            # 新增：如果是同时使用模式且补完后体力还不够，则切换flag并重试
+            auto_recover_mode = self.ctx.charge_plan_config.auto_recover_charge
+            if auto_recover_mode == AutoRecoverChargeEnum.BOTH.value.value:
+                # 计算补完后的体力
+                after_charge = self.charge_power + amount_to_use
+                if after_charge < need_charge_power:
+                    self._force_ether_only = True
+                    return self.round_retry('切换以太电池补足体力')
         else:  # 以太电池
             # 计算需要的电池数量，每个电池恢复60体力
             import math
             battery_count = math.ceil(needed_power / 60)
             if battery_count <= 0:
+                # 用完后清除flag
+                self._force_ether_only = False
                 return self.round_success('计算出使用数量为0，无需恢复')
             # 获取加号区域
             plus_area = self.ctx.screen_loader.get_area('恢复电量', '以太电池-加号')
@@ -483,6 +503,8 @@ class ChargePlanApp(ZApplication):
             for _ in range(battery_count - 1):
                 self.ctx.controller.click(plus_area.center)
                 time.sleep(0.2)
+            # 用完后清除flag
+            self._force_ether_only = False
         log.info(f"当前电量: {self.charge_power}, 需要电量: {need_charge_power}, 缺少电量: {needed_power}, 实际使用: {amount_to_use if is_backup_charge else battery_count}")
         time.sleep(0.5)
         return self.round_success('电量数量设置完成')
