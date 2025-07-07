@@ -70,6 +70,46 @@ class ChargePlanApp(ZApplication):
         return self.round_success(f'剩余电量 {digit}')
 
     @node_from(from_name='识别电量')
+    @operation_node(name='检查电量是否足够')
+    def check_charge_sufficiency(self) -> OperationRoundResult:
+        """
+        检查当前电量是否足够执行任何计划
+        如果电量不足且开启了自动回复，则尝试回复电量
+        """
+        # 检查是否所有计划都已完成
+        if self.ctx.charge_plan_config.all_plan_finished():
+            return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
+        
+        # 计算所需的最小电量
+        min_required_power = float('inf')
+        for plan in self.ctx.charge_plan_config.plan_list:
+            if plan.run_times >= plan.plan_times:
+                continue  # 跳过已完成的计划
+                
+            if plan.category_name == '实战模拟室':
+                if plan.card_num != CardNumEnum.DEFAULT.value.value:
+                    required = int(plan.card_num) * 20
+                else:
+                    required = 20  # 默认至少需要20
+            elif plan.category_name == '定期清剿':
+                required = 60
+            elif plan.category_name == '专业挑战室':
+                required = 40
+            elif plan.category_name == '恶名狩猎':
+                required = 60
+            else:
+                required = 20  # 默认值
+            
+            min_required_power = min(min_required_power, required)
+        
+        # 如果电量不足且开启了自动回复
+        if self.charge_power < min_required_power and self.ctx.charge_plan_config.auto_recover_charge != AutoRecoverChargeEnum.NONE.value.value:
+            return self.round_success(ChargePlanApp.STATUS_TRY_RECOVER_CHARGE)
+        
+        # 电量足够，继续正常流程
+        return self.round_success()
+
+    @node_from(from_name='检查电量是否足够')
     @operation_node(name='查找并选择下一个可执行任务')
     def find_and_select_next_plan(self) -> OperationRoundResult:
         """
@@ -144,7 +184,7 @@ class ChargePlanApp(ZApplication):
     @operation_node(name='传送')
     def transport(self) -> OperationRoundResult:
         # 如果开启了自动回复电量，在传送前再次检查电量
-        if self.ctx.charge_plan_config.auto_recover_charge != AutoRecoverChargeEnum.NONE.value.value and self.next_plan is not None:
+        if self.ctx.charge_plan_config.auto_recover_charge != AutoRecoverChargeEnum.NONE.value.value:
             # 计算所需电量
             need_charge_power = 1000
             if self.next_plan.category_name == '实战模拟室':
@@ -200,6 +240,8 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='识别副本分类', status='恶名狩猎')
     @operation_node(name='恶名狩猎')
     def notorious_hunt(self) -> OperationRoundResult:
+        if self.next_plan is None:
+            return self.round_fail('没有找到可执行的计划')
         op = NotoriousHunt(self.ctx, self.next_plan,
                            use_charge_power=True,
                            need_check_power=self.need_to_check_power_in_mission,
@@ -360,12 +402,82 @@ class ChargePlanApp(ZApplication):
     @operation_node(name='设置使用数量')
     def set_charge_amount(self) -> OperationRoundResult:
         import time
-        
+
         # 等待储蓄电量详情界面出现
         time.sleep(1)
+        screen = self.screenshot()
+        ocr_result_map = self.ctx.ocr.run_ocr(screen)
 
-        # todo 按数字具体恢复，中间的框是可以写数字的，目前先按上限使用（恢复到240或把存货全部用掉）
-        # screen = self.screenshot()
+        # 判断是储蓄电量还是以太电池
+        is_backup_charge = False
+        saved_power_amount = 0
+        for ocr_result, mrl in ocr_result_map.items():
+            if '储蓄电量' in ocr_result:
+                is_backup_charge = True
+                # '储蓄电量×256'
+                amount_str = str_utils.get_positive_digits(ocr_result, None)
+                if amount_str is not None:
+                    saved_power_amount = amount_str
+                break
+
+        # 计算需要恢复的电量 - 根据当前计划的实际需求
+        if self.next_plan is not None:
+            need_charge_power = 1000  # 默认值
+            if self.next_plan.category_name == '实战模拟室':
+                if self.next_plan.card_num != CardNumEnum.DEFAULT.value.value:
+                    need_charge_power = int(self.next_plan.card_num) * 20
+            elif self.next_plan.category_name == '定期清剿':
+                if not self.ctx.charge_plan_config.use_coupon:
+                    need_charge_power = 60
+            elif self.next_plan.category_name == '专业挑战室':
+                need_charge_power = 40
+            elif self.next_plan.category_name == '恶名狩猎':
+                need_charge_power = 60
+            
+            # 检查储蓄电量+当前电量是否足够
+            # 这里先获取储蓄电量数量，如果无法获取则假设为0
+            backup_charge_amount = 0
+            for ocr_result, mrl in ocr_result_map.items():
+                if '储蓄电量' in ocr_result:
+                    amount_str = str_utils.get_positive_digits(ocr_result, None)
+                    if amount_str is not None:
+                        backup_charge_amount = amount_str
+                    break
+            
+            total_available_power = self.charge_power + backup_charge_amount
+            if total_available_power < need_charge_power:
+                return self.round_fail(f'电量不足，需要{need_charge_power}，可用{total_available_power}（当前{self.charge_power}+储蓄{backup_charge_amount}）')
+            
+            # 计算实际需要的电量
+            needed_power = max(0, need_charge_power - self.charge_power)
+        else:
+            # 如果没有下一个计划，不需要回复电量
+            return self.round_fail('没有下一个计划，无需回复电量')
+        
+        if is_backup_charge:
+            if saved_power_amount == 0:
+                return self.round_fail('未识别到储蓄电量数量')
+            amount_to_use = min(needed_power, saved_power_amount)
+        else:  # using ether battery
+            # 假设以太电池无限
+            amount_to_use = needed_power
+
+        if amount_to_use <= 0:
+            return self.round_success('计算出使用数量为0，无需恢复')
+        
+        # 添加调试信息
+        print(f"当前电量: {self.charge_power}, 需要电量: {need_charge_power}, 缺少电量: {needed_power}, 实际使用: {amount_to_use}")
+
+        # 点击输入框
+        input_area = self.ctx.screen_loader.get_area('恢复电量', '兑换数量-数字区域')
+        if input_area is None:
+            return self.round_retry('未找到电量数量输入框', wait=1)
+        self.ctx.controller.click(input_area.center)
+        time.sleep(0.5)
+
+        # 输入数量
+        self.ctx.controller.input_str(str(amount_to_use))
+        time.sleep(5)
 
         return self.round_success('电量数量设置完成')
 
