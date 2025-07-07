@@ -4,12 +4,10 @@ pc_alt: false
 area_list:
 - area_name: 跳过
   pc_rect:
-  - 1736
-  - 114
-  - 1788
-  - 138
-  text: 跳过
-  lcs_percent: 0.5
+  - 1712
+  - 92
+  - 1814
+  - 158
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
