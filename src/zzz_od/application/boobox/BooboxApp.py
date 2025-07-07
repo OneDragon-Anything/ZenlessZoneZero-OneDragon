@@ -208,7 +208,7 @@ class BooboxApp(ZApplication):
         found_prices = []  # 记录找到的价格
         
         # S级邦布可能的价格列表（从高到低检测，优先购买更稀有的）
-        s_rank_prices = ['35000', '30000', '25000']
+        s_rank_prices = ['40000', '35000', '30000', '25000']
         
         # 按价格优先级搜索S级邦布
         for price in s_rank_prices:
@@ -228,7 +228,7 @@ class BooboxApp(ZApplication):
             # 记录找到的价格信息到日志
             price_info = ','.join(found_prices)
             print(f"找到S级邦布，价格: {price_info}")
-            
+
             for pos in s_click_positions:
                 self.ctx.controller.click(pos)
                 time.sleep(0.5)  # 点击间隔
@@ -239,13 +239,13 @@ class BooboxApp(ZApplication):
         refresh_result = self.round_by_find_and_click_area(screen, '邦巢', '刷新区域', retry_wait=1)
         if refresh_result.is_success:
             self.refresh_count += 1
-            return self.round_wait(status='刷新邦布完成', wait=3)
+            return self.round_wait(status='刷新邦布完成', wait=1.5)
         
         # 如果刷新区域失败，尝试原来的刷新按钮
         refresh_result2 = self.round_by_find_and_click_area(screen, '邦巢', '刷新', retry_wait=1)
         if refresh_result2.is_success:
             self.refresh_count += 1
-            return self.round_wait(status='刷新邦布完成', wait=3)
+            return self.round_wait(status='刷新邦布完成', wait=1.5)
         
         # 都失败的话，使用固定坐标点击
         refresh_pos = Point(1309, 996)
@@ -280,58 +280,32 @@ class BooboxApp(ZApplication):
     @operation_node(name='处理购买动画')
     def handle_purchase_animation(self) -> OperationRoundResult:
         """
-        处理购买流程：购买确认 → 动画 → 获得确认
-        :return:
+        处理购买流程：不断点击右上角跳过，直到出现"获得"界面
         """
-        # 先等待1秒让界面稳定
-        time.sleep(1)
+        # 跳过按钮中心点（
+        skip_pos = Point(1763, 125)
         
-        # 多次尝试检测界面状态
-        for attempt in range(5):
+        for i in range(60):  # 最多尝试60次，大约12秒
+            # 直接点击右上角跳过按钮
+            self.ctx.controller.click(skip_pos)
+            time.sleep(0.2)
+            
+            # 截图并OCR，检测是否出现"获得"
             screen = self.screenshot()
             ocr_result_map = self.ctx.ocr.run_ocr(screen)
-            
-            # 检查是否还在购买确认界面（需要点击聘用按钮）
-            for text in ocr_result_map.keys():
-                if '聘用' in text:
-                    hire_word, hire_mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, ['聘用'])
-                    if hire_word == '聘用' and hire_mrl.max is not None:
-                        self.ctx.controller.click(hire_mrl.max.center)
-                        self.bought_bangboo = True
-                        # 点击聘用后等待动画，然后继续检测
-                        time.sleep(3)
-                        continue
-            
-            # 检查是否出现"获得"界面（需要点击确认）
-            for text in ocr_result_map.keys():
-                if '获得' in text:
-                    # 找到确认按钮并点击
-                    confirm_word, confirm_mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, ['确认'])
-                    if confirm_word == '确认' and confirm_mrl.max is not None:
-                        self.ctx.controller.click(confirm_mrl.max.center)
-                        return self.round_wait(status='点击确认完成', wait=2)
-                    
-                    # 如果OCR没找到确认按钮，尝试预定义区域
-                    confirm_result = self.round_by_find_and_click_area(screen, '邦巢', '确认', retry_wait=1)
-                    if confirm_result.is_success:
-                        return self.round_wait(status='点击确认完成', wait=2)
-            
-            # 检查是否有跳过按钮
-            skip_word, skip_mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, ['跳过'])
-            if skip_word == '跳过' and skip_mrl.max is not None:
-                self.ctx.controller.click(skip_mrl.max.center)
-                return self.round_wait(status='跳过动画完成', wait=3)
-            
-            # 使用预定义坐标尝试跳过
-            result = self.round_by_find_and_click_area(screen, '邦巢', '跳过', retry_wait=1)
-            if result.is_success:
-                return self.round_wait(status='跳过动画完成', wait=3)
-            
-            # 如果都没找到，等待2秒再尝试
-            if attempt < 4:
-                time.sleep(2)
-        
-        # 如果多次尝试都没有找到，等待动画自然播放完成
+            if any('获得' in text for text in ocr_result_map.keys()):
+                # 检测到"获得"，进入确认流程
+                word, mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, ['确认'])
+                if word == '确认' and mrl.max is not None:
+                    self.ctx.controller.click(mrl.max.center)
+                    return self.round_wait(status='点击确认完成', wait=2)
+                # 没找到就用预定义区域
+                confirm_result = self.round_by_find_and_click_area(screen, '邦巢', '确认', retry_wait=1)
+                if confirm_result.is_success:
+                    return self.round_wait(status='点击确认完成', wait=2)
+                # 都没有就直接返回成功
+                return self.round_success(status='跳过动画完成')
+        # 超时兜底
         return self.round_wait(status='等待动画播放完成', wait=8)
 
     @node_from(from_name='处理购买动画', status='点击确认完成')
