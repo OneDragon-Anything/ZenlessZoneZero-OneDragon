@@ -43,8 +43,9 @@ class ChargePlanApp(ZApplication):
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
-        # 每次新一轮计划开始时，重置禁用储蓄电量的标志
+        # 每次新一轮计划开始时，重置flag
         self._disable_backup_charge = False
+        self._force_ether_only = False
         self.last_tried_plan = None
         return self.round_success()
 
