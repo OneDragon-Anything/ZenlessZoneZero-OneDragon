@@ -195,10 +195,7 @@ class BooboxApp(ZApplication):
         # 如果确实不在邦巢界面，等待重试
         if not in_boobox_interface:
             return self.round_retry(status='不在邦巢界面，等待加载', wait=2)
-        
-        # 初始化OCR结果映射（如果之前没有初始化）
-        if 'ocr_result_map' not in locals():
-            ocr_result_map = self.ctx.ocr.run_ocr(screen)
+
         # 检查是否有次数用尽
         for text in ocr_result_map.keys():
             if '次数用尽' in text:
@@ -211,7 +208,7 @@ class BooboxApp(ZApplication):
         found_prices = []  # 记录找到的价格
         
         # S级邦布可能的价格列表（从高到低检测，优先购买更稀有的）
-        s_rank_prices = ['35000', '30000', '28000', '26000', '25000']
+        s_rank_prices = ['35000', '30000', '25000']
         
         # 按价格优先级搜索S级邦布
         for price in s_rank_prices:
