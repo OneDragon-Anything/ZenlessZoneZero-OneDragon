@@ -5,6 +5,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, AutoRecoverChargeEnum
 from zzz_od.context.zzz_context import ZContext
@@ -458,27 +459,32 @@ class ChargePlanApp(ZApplication):
             if saved_power_amount == 0:
                 return self.round_fail('未识别到储蓄电量数量')
             amount_to_use = min(needed_power, saved_power_amount)
-        else:  # using ether battery
-            # 假设以太电池无限
-            amount_to_use = needed_power
-
-        if amount_to_use <= 0:
-            return self.round_success('计算出使用数量为0，无需恢复')
-        
-        # 添加调试信息
-        print(f"当前电量: {self.charge_power}, 需要电量: {need_charge_power}, 缺少电量: {needed_power}, 实际使用: {amount_to_use}")
-
-        # 点击输入框
-        input_area = self.ctx.screen_loader.get_area('恢复电量', '兑换数量-数字区域')
-        if input_area is None:
-            return self.round_retry('未找到电量数量输入框', wait=1)
-        self.ctx.controller.click(input_area.center)
+            if amount_to_use <= 0:
+                return self.round_success('计算出使用数量为0，无需恢复')
+            # 储蓄电量：点击输入框并输入数量
+            input_area = self.ctx.screen_loader.get_area('恢复电量', '兑换数量-数字区域')
+            if input_area is None:
+                return self.round_retry('未找到电量数量输入框', wait=1)
+            self.ctx.controller.click(input_area.center)
+            time.sleep(0.5)
+            self.ctx.controller.input_str(str(amount_to_use))
+            time.sleep(0.5)
+        else:  # 以太电池
+            # 计算需要的电池数量，每个电池恢复60体力
+            import math
+            battery_count = math.ceil(needed_power / 60)
+            if battery_count <= 0:
+                return self.round_success('计算出使用数量为0，无需恢复')
+            # 获取加号区域
+            plus_area = self.ctx.screen_loader.get_area('恢复电量', '以太电池-加号')
+            if plus_area is None:
+                return self.round_retry('未找到以太电池加号按钮', wait=1)
+            # 默认初始数量为1，所以只需点击battery_count-1次
+            for _ in range(battery_count - 1):
+                self.ctx.controller.click(plus_area.center)
+                time.sleep(0.2)
+        log.info(f"当前电量: {self.charge_power}, 需要电量: {need_charge_power}, 缺少电量: {needed_power}, 实际使用: {amount_to_use if is_backup_charge else battery_count}")
         time.sleep(0.5)
-
-        # 输入数量
-        self.ctx.controller.input_str(str(amount_to_use))
-        time.sleep(5)
-
         return self.round_success('电量数量设置完成')
 
     @node_from(from_name='设置使用数量')
