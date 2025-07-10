@@ -40,7 +40,7 @@ class CommissionAssistantRunInterface(AppRunInterface):
         content.h_layout.addLayout(left_layout)
         content.h_layout.addLayout(right_layout)
 
-        self.help_opt = HelpCard(url='https://onedragon-anything.github.io/zzz/zh/docs/feat_game_assistant.html#_1-%E5%A7%94%E6%89%98%E5%8A%A9%E6%89%8B')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_game_assistant.html#_1-%E5%A7%94%E6%89%98%E5%8A%A9%E6%89%8B')
         left_layout.addWidget(self.help_opt)
 
         self.dialog_option_opt = ComboBoxSettingCard(

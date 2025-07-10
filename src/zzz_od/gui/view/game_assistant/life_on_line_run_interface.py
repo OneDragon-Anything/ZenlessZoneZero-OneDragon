@@ -34,7 +34,7 @@ class LifeOnLineRunInterface(AppRunInterface):
     def get_widget_at_top(self) -> QWidget:
         content = Column()
 
-        self.help_opt = HelpCard(url='https://onedragon-anything.github.io/zzz/zh/docs/feat_game_assistant.html#_2-%E6%8B%BF%E5%91%BD%E9%AA%8C%E6%94%B6')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_game_assistant.html#_2-%E6%8B%BF%E5%91%BD%E9%AA%8C%E6%94%B6')
         content.add_widget(self.help_opt)
 
         self.daily_plan_times_opt = TextSettingCard(

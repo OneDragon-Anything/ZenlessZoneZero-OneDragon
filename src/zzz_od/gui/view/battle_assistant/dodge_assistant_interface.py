@@ -45,7 +45,7 @@ class DodgeAssistantInterface(AppRunInterface):
     def get_widget_at_top(self) -> QWidget:
         top_widget = Column()
 
-        self.help_opt = HelpCard(url='https://onedragon-anything.github.io/zzz/zh/docs/feat_battle_assistant.html')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_battle_assistant.html')
         top_widget.add_widget(self.help_opt)
 
         self.dodge_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='闪避方式')

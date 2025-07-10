@@ -136,7 +136,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.content_widget.clear_widgets()
 
         guide_opt = HyperlinkCard(
-            url='http://onedragon-anything.github.io/zzz/zh/docs/feat_one_dragon.html#_4-%E5%A4%9A%E8%B4%A6%E5%8F%B7',
+            url='http://one-dragon.com/zzz/zh/docs/feat_one_dragon.html#_4-%E5%A4%9A%E8%B4%A6%E5%8F%B7',
             text='说明',
             icon=FluentIcon.INFO,
             title='注意',
