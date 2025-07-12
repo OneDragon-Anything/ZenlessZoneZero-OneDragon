@@ -1,6 +1,7 @@
 import os
 import shutil
 
+from pathlib import Path
 from PySide6.QtCore import Qt, QThread, QTimer, QSize, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QStackedWidget, QFrame
@@ -33,14 +34,14 @@ class UnpackResourceRunner(QThread):
     def run(self):
         if self.installer_dir != self.work_dir:
             # 复制完整包资源
-            install_dir = os.path.join(self.installer_dir, '.install')
-            dest_install_dir = os.path.join(self.work_dir, '.install')
+            install_dir = Path(self.installer_dir) / '.install'
+            dest_install_dir = Path(self.work_dir) / '.install'
             if os.path.exists(install_dir):
                 shutil.copytree(install_dir, dest_install_dir, dirs_exist_ok=True)
 
-            assets_dir = os.path.join(self.installer_dir, 'assets')
-            dest_assets_dir = os.path.join(self.work_dir, 'assets')
-            if os.path.exists(assets_dir):
+            assets_dir = Path(self.installer_dir) / 'assets'
+            dest_assets_dir = Path(self.work_dir) / 'assets'
+            if Path.exists(assets_dir):
                 shutil.copytree(assets_dir, dest_assets_dir, dirs_exist_ok=True)
 
 
