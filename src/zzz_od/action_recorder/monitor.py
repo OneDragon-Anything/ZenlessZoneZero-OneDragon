@@ -232,6 +232,7 @@ class BattleContext4Recording(AutoBattleContext):
             check_chain_interval: Union[float, List[float]] = 0,
             check_quick_interval: Union[float, List[float]] = 0,
             check_end_interval: Union[float, List[float]] = 5,
+            check_target_interval: Union[float, List[float]] = 0.1,
             **kwargs,
     ) -> None:
         """
@@ -248,6 +249,8 @@ class BattleContext4Recording(AutoBattleContext):
             use_gpu=use_gpu,
             check_dodge_interval=check_dodge_interval
         )
+        self.target_context.init_battle_target_context(auto_op=self.auto_op,
+                                                       check_target_interval=check_target_interval)
 
         self._to_check_states: set[str] = set(to_check_state_list) if to_check_state_list is not None else None
 
@@ -299,12 +302,11 @@ class BattleContext4Recording(AutoBattleContext):
         # # # # 重写部分 # # # #
         if in_battle:
             # 状态部分
-            agent_future = _record_executor.submit(self.agent_context.check_agent_related, screen, screenshot_time)
-            future_list.append(agent_future)
+            future_list.append(_record_executor.submit(self.agent_context.check_agent_related, screen, screenshot_time))
+            future_list.append(_record_executor.submit(self.target_context.run_all_checks, screen, screenshot_time))
             future_list.append(_record_executor.submit(self.check_quick_assist, screen, screenshot_time))
 
             audio_future = _record_executor.submit(self.dodge_context.check_dodge_audio, screenshot_time)
-            # future_list.append(audio_future)
             future_list.append(
                 _record_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future))
 
@@ -571,6 +573,7 @@ class RecordContext:
                 check_chain_interval=0.05,
                 check_quick_interval=0.05,
                 check_end_interval=5,
+                check_target_interval=0.02,
             )
 
             return True, ''
