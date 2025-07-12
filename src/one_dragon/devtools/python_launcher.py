@@ -1,6 +1,6 @@
 import sys
 import time
-
+import threading
 import datetime
 import os
 import subprocess
@@ -85,13 +85,44 @@ def create_log_folder():
     print_message(f"日志文件夹路径：{log_folder}", "PASS")
     return log_folder
 
+def clean_old_logs_async(log_folder):
+    """异步清理旧日志文件"""
+    def cleanup():
+        try:
+            if os.path.exists(log_folder):
+                files = os.listdir(log_folder)
+                for file in files:
+                    if file.startswith('bat_') and file.endswith('.log'):
+                        file_path = os.path.join(log_folder, file)
+                        try:
+                            os.remove(file_path)
+                        except OSError:
+                            pass
+        except Exception:
+            pass
+    
+    # 在后台线程中执行清理
+    cleanup_thread = threading.Thread(target=cleanup, daemon=True)
+    cleanup_thread.start()
+
 def clean_old_logs(log_folder):
     # 删除旧的日志文件
-    for root, _, files in os.walk(log_folder):
-        for file in files:
-            if file.startswith('bat_') and file.endswith('.log'):
-                os.remove(os.path.join(root, file))
-                print_message(f"已删除旧日志文件: {file}", "PASS")
+    try:
+        # 只检查当前日志目录，不递归遍历
+        if os.path.exists(log_folder):
+            files = os.listdir(log_folder)
+            for file in files:
+                if file.startswith('bat_') and file.endswith('.log'):
+                    file_path = os.path.join(log_folder, file)
+                    try:
+                        os.remove(file_path)
+                        print_message(f"已删除旧日志文件: {file}", "PASS")
+                    except OSError:
+                        # 忽略删除失败的文件，不影响启动
+                        pass
+    except Exception:
+        # 清理失败不影响主流程
+        pass
 
 def execute_python_script(app_path, log_folder, no_windows: bool, args: list = None):
     # 执行 Python 脚本并重定向输出到日志文件
@@ -165,7 +196,7 @@ def run_python(app_path, no_windows: bool = True, args: list = None):
         verify_path_issues()
         configure_environment()
         log_folder = create_log_folder()
-        clean_old_logs(log_folder)
+        clean_old_logs_async(log_folder)
         execute_python_script(app_path, log_folder, no_windows, args)
     except SystemExit as e:
         print_message(f"程序已退出，状态码：{e.code}", "ERROR")
