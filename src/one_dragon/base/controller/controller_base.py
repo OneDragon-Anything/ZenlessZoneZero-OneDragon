@@ -50,13 +50,15 @@ class ControllerBase:
         """
         pass
 
-    def screenshot(self, independent: bool = False) -> MatLike:
+    def screenshot(self, independent: bool = False) -> MatLike | None:
         """
         截图并保存在内存中
         """
         self.before_screenshot()
         now = time.time()
         screen = self.get_screenshot(independent)
+        if screen is None:
+            return None
         fix_screen = self.fill_uid_black(screen)
 
         if self.max_screenshot_cnt > 0:

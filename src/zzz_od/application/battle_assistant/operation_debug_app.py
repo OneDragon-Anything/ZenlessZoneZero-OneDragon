@@ -1,11 +1,10 @@
-import time
-
 from typing import Optional, List
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from one_dragon.base.conditional_operation.utils import get_ops_by_template
 from one_dragon.base.controller.pc_button import pc_button_utils
-from one_dragon.base.operation.operation_node import OperationNode
+from one_dragon.base.operation.operation_edge import node_from
+from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -31,29 +30,7 @@ class OperationDebugApp(ZApplication):
         self.ops: Optional[List[AtomicOp]] = None
         self.op_idx: int = 0
 
-    def add_edges_and_nodes(self) -> None:
-        """
-        初始化前 添加边和节点 由子类实行
-        :return:
-        """
-        check_gamepad = OperationNode('手柄检测', self.check_gamepad)
-
-        load_op = OperationNode('加载动作指令', self.load_op)
-        self.add_edge(check_gamepad, load_op)
-
-        init_context = OperationNode('初始化上下文', self.init_context)
-        self.add_edge(load_op, init_context)
-
-        run_operations = OperationNode('执行指令', self.run_operations)
-        self.add_edge(init_context, run_operations)
-
-    def handle_init(self) -> None:
-        """
-        执行前的初始化 由子类实现
-        注意初始化要全面 方便一个指令重复使用
-        """
-        pass
-
+    @operation_node(name='手柄检测', is_start_node=True)
     def check_gamepad(self) -> OperationRoundResult:
         """
         检测手柄
@@ -73,6 +50,8 @@ class OperationDebugApp(ZApplication):
             self.ctx.controller.btn_controller.set_key_press_time(self.ctx.game_config.ds4_key_press_time)
         return self.round_success(status='已安装虚拟手柄依赖')
 
+    @node_from(from_name='手柄检测')
+    @operation_node(name='加载动作指令')
     def load_op(self) -> OperationRoundResult:
         """
         加载战斗指令
@@ -97,20 +76,13 @@ class OperationDebugApp(ZApplication):
             log.error('指令模板加载失败', exc_info=True)
             return self.round_fail()
 
-    def init_context(self) -> OperationRoundResult:
-        """
-        初始初始化上下文
-        :return:
-        """
-        return self.round_success()
-
+    @node_from(from_name='加载动作指令')
+    @operation_node(name='执行指令')
     def run_operations(self) -> OperationRoundResult:
         """
         执行指令
         :return:
         """
-        now = time.time()
-
         self.ops[self.op_idx].execute()
         self.op_idx += 1
         if self.op_idx >= len(self.ops):
@@ -121,9 +93,3 @@ class OperationDebugApp(ZApplication):
                 return self.round_success()
         else:
             return self.round_wait()
-
-    def _on_pause(self, e=None):
-        ZApplication._on_pause(self, e)
-
-    def _on_resume(self, e=None):
-        ZApplication._on_resume(self, e)

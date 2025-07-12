@@ -120,22 +120,26 @@ def calculate_overlap_area(r1: Rect, r2: Rect) -> float:
         return overlap_area
 
 
-def cal_overlap_percent(r1: Rect, r2: Rect) -> float:
+def cal_overlap_percent(r1: Rect, r2: Rect, base: Rect | None = None) -> float:
     """
     计算两个矩形的重叠面积百分比 = 重叠面积 / 两者较小的面积
     Args:
         r1: 矩形1
         r2: 矩形2
+        base: 基于哪个矩形来算
 
     Returns:
         percent: 重叠面积百分比
     """
     overlap = calculate_overlap_area(r1, r2)
-    min_area = min(r1.area, r2.area)
-    if min_area <= 0:
+    if base is None:
+        base_area = min(r1.area, r2.area)
+    else:
+        base_area = base.area
+    if base_area <= 0:
         return 0
     else:
-        return overlap * 1.0 / min_area
+        return overlap * 1.0 / base_area
 
 
 def coalesce(*args):

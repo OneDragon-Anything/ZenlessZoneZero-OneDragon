@@ -1,13 +1,10 @@
 import time
+from dataclasses import dataclass
 
 import cv2
 import numpy as np
 from cv2.typing import MatLike
-from dataclasses import dataclass
-from threading import Lock
-from typing import List, Optional
 
-from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
@@ -21,11 +18,10 @@ from one_dragon.utils.log_utils import log
 @dataclass(frozen=True)
 class OcrCacheEntry:
     """OCR缓存条目"""
+    image_id: int  # 图片在内存中的ID
     ocr_result_list: list[OcrMatchResult]  # OCR识别结果
     create_time: float  # 创建时间
-    cache_key: str  # 缓存 key
-    image_hash: str  # 图片哈希
-    color_range_key: str  # 颜色范围键值
+    color_range: list[list[int]] | None  # 颜色范围
 
 
 class OcrService:
@@ -35,7 +31,7 @@ class OcrService:
     - 提存并发识别 (未实现)
     """
     
-    def __init__(self, ocr_matcher: OcrMatcher, max_cache_size: int = 2):
+    def __init__(self, ocr_matcher: OcrMatcher, max_cache_size: int = 5):
         """
         初始化OCR服务
         
@@ -46,71 +42,35 @@ class OcrService:
         self.ocr_matcher = ocr_matcher
         self.max_cache_size = max_cache_size
         
-        # 缓存存储：key为图片哈希+颜色范围键，value为缓存条目
-        self._cache: dict[str, OcrCacheEntry] = {}
+        # 缓存存储：key=图片ID，value为缓存条目
+        self._cache: dict[int, list[OcrCacheEntry]] = {}
         self._cache_list: list[OcrCacheEntry] = []
-        self._cache_lock = Lock()
-    
-    def _generate_image_hash(self, image: MatLike) -> str:
-        """
-        生成图片哈希值
-        
-        Args:
-            image: 输入图片
-            
-        Returns:
-            图片的MD5哈希值
-        """
-        # 将图片转换为字节数组并计算哈希
-        return id(image)
-    
-    def _generate_color_range_key(self, color_range: list[list[int]] | None) -> str:
-        """
-        生成颜色范围键值
-        
-        Args:
-            color_range: 颜色范围 [[lower], [upper]]
-            
-        Returns:
-            颜色范围的字符串键值
-        """
-        if color_range is None:
-            return "0"
 
-        range_arr = []
-        for range in color_range:
-            for num in range:
-                range_arr.append(str(num))
-        return '_'.join(range_arr)
-
-    def _generate_cache_key(self, image_hash: str, color_range_key: str) -> str:
-        """
-        生成缓存键
-        
-        Args:
-            image_hash: 图片哈希
-            color_range_key: 颜色范围键
-            
-        Returns:
-            缓存键
-        """
-        return f"{image_hash}_{color_range_key}"
-    
     def _clean_expired_cache(self) -> None:
         """
         清除过期缓存
         Returns:
 
         """
-        if len(self._cache_list) <= self.max_cache_size:
-            return
+        while len(self._cache_list) > self.max_cache_size:
+            oldest_entry = self._cache_list.pop(0)
+            image_id = oldest_entry.image_id
 
-        first_cache: OcrCacheEntry = self._cache_list.pop(0)
-        self._cache.pop(first_cache.cache_key)
+            if image_id in self._cache:
+                # 从与 image_id 关联的列表中移除特定的条目
+                try:
+                    self._cache[image_id].remove(oldest_entry)
+                    # 如果这个 image_id 的列表现在为空，则从字典中移除该键
+                    if not self._cache[image_id]:
+                        self._cache.pop(image_id)
+                except ValueError:
+                    # 在罕见的并发场景下，如果条目已经被移除，可能会发生这种情况，但可以安全地忽略。
+                    pass
     
-    def _apply_color_filter(self, image: MatLike, color_range: Optional[List]) -> MatLike:
+    def _apply_color_filter(self, image: MatLike, color_range: list[list[int]]) -> MatLike:
         """
-        应用颜色过滤
+        应用颜色过滤，最后返回黑白图。
+        不返回原图颜色是因为，如果使用黑色过滤，最后得到会是一个全黑的图片，无法进行识别。
         
         Args:
             image: 输入图片
@@ -124,12 +84,33 @@ class OcrService:
         
         # 应用颜色范围过滤
         mask = cv2.inRange(image, np.array(color_range[0]), np.array(color_range[1]))
-        # 膨胀操作，增强文本区域
-        from one_dragon.utils import cv2_utils
-        mask = cv2_utils.dilate(mask, 5)
-        filtered_image = cv2.bitwise_and(image, image, mask=mask)
-        
-        return filtered_image
+        return cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+
+    def _get_ocr_result_list_from_cache(
+            self,
+            image: MatLike,
+            color_range: list[list[int]] | None = None,
+    ) -> OcrCacheEntry | None:
+        """
+        从缓存中获取OCR结果
+        Args:
+            image: 输入图片
+            color_range: 颜色范围过滤 [[lower], [upper]]
+
+        Returns:
+            缓存条目
+        """
+        image_id = id(image)
+        cache_list = self._cache.get(image_id)
+        if cache_list is None:
+            return None
+
+        for cache_entry in cache_list:
+            # Python 的列表 == 操作符会自动处理嵌套结构和值的比较 包括None
+            if cache_entry.color_range == color_range:
+                return cache_entry
+
+        return None
 
     def get_ocr_result_list(
             self,
@@ -137,7 +118,7 @@ class OcrService:
             color_range: list[list[int]] | None = None,
             rect: Rect | None = None,
             threshold: float = 0,
-            merge_line_distance: float = -1
+            merge_line_distance: float = -1,
     ) -> list[OcrMatchResult]:
         """
         获取全图OCR结果，优先从缓存获取
@@ -153,13 +134,16 @@ class OcrService:
             ocr_result_list: OCR识别结果列表
         """
         # 生成缓存键
-        image_hash = self._generate_image_hash(image)
-        color_range_key = self._generate_color_range_key(color_range)
-        cache_key = self._generate_cache_key(image_hash, color_range_key)
+        image_id = id(image)
+
+        cache_entity = self._get_ocr_result_list_from_cache(
+            image=image,
+            color_range=color_range,
+        )
 
         # 检查缓存
-        if cache_key in self._cache:
-            ocr_result_list = self._cache[cache_key].ocr_result_list
+        if cache_entity is not None:
+            ocr_result_list = cache_entity.ocr_result_list
         else:
             # 应用颜色过滤
             processed_image = self._apply_color_filter(image, color_range)
@@ -171,11 +155,13 @@ class OcrService:
             cache_entry = OcrCacheEntry(
                 ocr_result_list=ocr_result_list,
                 create_time=time.time(),
-                cache_key=cache_key,
-                image_hash=image_hash,
-                color_range_key=color_range_key
+                color_range=color_range,
+                image_id=image_id,
             )
-            self._cache[cache_key] = cache_entry
+            if image_id not in self._cache:
+                self._cache[image_id] = []
+            self._cache[image_id].append(cache_entry)
+            self._cache_list.append(cache_entry)
             self._clean_expired_cache()
 
         if rect is not None:
@@ -184,7 +170,7 @@ class OcrService:
 
             for ocr_result in ocr_result_list:
                 # 检查匹配结果是否和指定区域重叠
-                if cal_utils.cal_overlap_percent(ocr_result.rect, rect) > 0.7:
+                if cal_utils.cal_overlap_percent(ocr_result.rect, rect, base=rect) > 0.7:
                     area_result_list.append(ocr_result)
 
             return area_result_list
@@ -272,6 +258,5 @@ class OcrService:
 
     def clear_cache(self) -> None:
         """清空所有缓存"""
-        with self._cache_lock:
-            self._cache.clear()
-            log.debug("OCR缓存已清空")
+        self._cache.clear()
+        log.debug("OCR缓存已清空")

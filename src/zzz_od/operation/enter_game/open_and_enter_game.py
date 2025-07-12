@@ -1,11 +1,11 @@
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
-from one_dragon.base.operation.operation_node import OperationNode, operation_node
+from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.enter_game.open_game import OpenGame
 from zzz_od.operation.enter_game.auto_hdr import EnableAutoHDR, DisableAutoHDR
+from zzz_od.operation.enter_game.open_game import OpenGame
 
 
 class OpenAndEnterGame(Operation):
@@ -14,22 +14,6 @@ class OpenAndEnterGame(Operation):
         self.ctx: ZContext = ctx
         Operation.__init__(self, ctx, op_name=gt('打开并登录游戏'),
                            need_check_game_win=False)
-
-    def handle_init(self):
-        """
-        执行前的初始化 由子类实现
-        注意初始化要全面 方便一个指令重复使用
-        """
-        pass
-
-    def add_edges_and_nodes(self) -> None:
-        """
-        初始化前 添加边和节点 由子类实行
-        :return:
-        """
-        open_game = OperationNode('打开游戏', self.open_game)
-        enter_game = OperationNode('进入游戏', self.enter_game)
-        self.add_edge(open_game, enter_game)
 
     @operation_node(name='打开游戏', is_start_node=True)
     def open_game(self) -> OperationRoundResult:
