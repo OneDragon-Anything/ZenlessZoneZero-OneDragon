@@ -1,10 +1,10 @@
 import os
 import locale
-from PySide6.QtCore import QSize, Qt, QEventLoop
+from PySide6.QtCore import Qt, QEventLoop, QSize
 from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog, QApplication, QWidget
 from PySide6.QtGui import QPixmap
-from qfluentwidgets import (FluentIcon, PrimaryPushButton, ToolButton, LineEdit,
-                            SplitTitleBar, MessageBox, SubtitleLabel, PixmapLabel)
+from qfluentwidgets import (FluentIcon, PrimaryPushButton, ToolButton, LineEdit, MessageBox,
+                            SplitTitleBar, SubtitleLabel, PixmapLabel)
 from one_dragon_qt.windows.window import PhosWindow
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 
@@ -230,7 +230,6 @@ class DirectoryPickerInterface(QWidget):
 class DirectoryPickerWindow(PhosWindow):
 
     def __init__(self,
-                 win_title: str,
                  parent=None,
                  icon_path=None):
         PhosWindow.__init__(self, parent=parent)
@@ -238,9 +237,6 @@ class DirectoryPickerWindow(PhosWindow):
         self._last_stack_idx: int = 0
         self.selected_directory: str = ""
         self.icon_path = icon_path
-
-        # 设置窗口标题
-        self.setWindowTitle(win_title)
 
         # 设置为模态窗口
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
