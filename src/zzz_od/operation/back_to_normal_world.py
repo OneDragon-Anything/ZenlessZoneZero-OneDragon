@@ -19,7 +19,7 @@ class BackToNormalWorld(ZOperation):
         需要保证在任何情况下调用，都能返回大世界，让后续的应用可执行
         :param ctx:
         """
-        ZOperation.__init__(self, ctx, op_name=gt('返回大世界', 'ui'))
+        ZOperation.__init__(self, ctx, op_name=gt('返回大世界'))
 
         self.last_dialog_idx: int = -1  # 上次选择的对话选项下标
 
@@ -104,7 +104,7 @@ class BackToNormalWorld(ZOperation):
         part = cv2_utils.crop_image_only(screen, area.rect)
         ocr_result_map = self.ctx.ocr.run_ocr(part)
         ocr_result_list = [i for i in ocr_result_map.keys()]
-        agent_name_list = [gt(i.value.agent_name) for i in AgentEnum]
+        agent_name_list = [gt(i.value.agent_name, 'game') for i in AgentEnum]
         idx1, idx2 = str_utils.find_most_similar(ocr_result_list, agent_name_list)
         return idx1 is not None and idx2 is not None
 
@@ -138,7 +138,7 @@ class BackToNormalWorld(ZOperation):
         part = cv2_utils.crop_image_only(screen, area.rect)
 
         tab_list = self.ctx.compendium_service.data.tab_list
-        target_word_list = [gt(i.tab_name) for i in tab_list]
+        target_word_list = [gt(i.tab_name, 'game') for i in tab_list]
         tab_num: int = 0
         ocr_results = self.ctx.ocr.run_ocr(part)
         for ocr_result, mrl in ocr_results.items():

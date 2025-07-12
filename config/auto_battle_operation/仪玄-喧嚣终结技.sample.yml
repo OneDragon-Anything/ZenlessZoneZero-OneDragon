@@ -3,12 +3,12 @@ operations:
   # 终结技动画期间, 失衡不会动
   - op_name: "设置状态"
     state: "自定义-动作不打断"
-    seconds: 7
+    seconds: 7.2
   - op_name: "设置状态"
     state: "自定义-连携换人"
-    seconds_add: -1
+    seconds_add: -3.3
   - op_name: "按键-终结技"
     post_delay: 0.1
     repeat: 30
   - op_name: "等待秒数"
-    seconds: 4
+    seconds: 4.2

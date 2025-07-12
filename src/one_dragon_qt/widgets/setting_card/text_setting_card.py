@@ -5,6 +5,7 @@ from qfluentwidgets import FluentIconBase, FluentIcon
 from qfluentwidgets import LineEdit, ToolButton
 from typing import Union, Optional
 
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
@@ -40,7 +41,7 @@ class TextSettingCard(SettingCardBase):
         # 创建输入框控件
         self.line_edit = LineEdit(self)
         self.line_edit.setMaximumWidth(input_max_width)
-        self.line_edit.setPlaceholderText(input_placeholder)
+        self.line_edit.setPlaceholderText(gt(input_placeholder))
         self.line_edit.setClearButtonEnabled(True)
 
         self.adapter: YamlConfigAdapter = adapter

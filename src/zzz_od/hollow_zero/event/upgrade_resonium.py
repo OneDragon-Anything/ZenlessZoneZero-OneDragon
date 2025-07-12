@@ -18,7 +18,7 @@ class UpgradeResonium(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('确认鸣徽')
+            op_name=gt('确认鸣徽', 'game')
         )
 
     @operation_node(name='选择', is_start_node=True)

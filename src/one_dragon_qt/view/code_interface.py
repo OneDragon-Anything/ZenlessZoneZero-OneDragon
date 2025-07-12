@@ -65,7 +65,7 @@ class CodeInterface(VerticalScrollInterface):
         v_layout.addWidget(self.code_card)
 
         self.custom_git_branch_lineedit = LineEdit()
-        self.custom_git_branch_lineedit.setPlaceholderText('自定义分支')
+        self.custom_git_branch_lineedit.setPlaceholderText(gt('自定义分支'))
         self.custom_git_branch_lineedit.editingFinished.connect(self._on_custom_branch_edited)
         self.code_card.git_branch_opt.currentIndexChanged.connect(
             lambda: self.custom_git_branch_lineedit.setText(self.code_card.git_branch_opt.currentData())
@@ -93,11 +93,11 @@ class CodeInterface(VerticalScrollInterface):
         self.log_table.setColumnWidth(4, 440)
         self.log_table.verticalHeader().hide()
         self.log_table.setHorizontalHeaderLabels([
-            gt('回滚', 'ui'),
-            gt('ID', 'ui'),
-            gt('作者', 'ui'),
-            gt('时间', 'ui'),
-            gt('内容', 'ui')
+            gt('回滚'),
+            gt('ID'),
+            gt('作者'),
+            gt('时间'),
+            gt('内容')
         ])
 
         v_layout.addWidget(self.log_table)
@@ -248,9 +248,9 @@ class CodeInterface(VerticalScrollInterface):
         """显示代码更新后的对话框"""
         if not success:
             return
-        dialog = Dialog("更新完成", "代码已更新，重启以应用更改", self)
+        dialog = Dialog(gt('更新完成'), gt('代码已更新，重启以应用更改'), self)
         dialog.setTitleBarVisible(False)
-        dialog.yesButton.setText("立即重启")
-        dialog.cancelButton.setText("稍后重启")
+        dialog.yesButton.setText(gt('立即重启'))
+        dialog.cancelButton.setText(gt('稍后重启'))
         if dialog.exec():
             start_one_dragon(restart=True)

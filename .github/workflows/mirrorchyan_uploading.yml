@@ -15,7 +15,7 @@ jobs:
       - uses: MirrorChyan/uploading-action@v1
         with:
           filetype: latest-release
-          filename: "ZenlessZoneZero-OneDragon-*-Full.zip"
+          filename: "ZenlessZoneZero-OneDragon-*-Full-Environment.zip"
           mirrorchyan_rid: ZZZ-OneDragon
 
           github_token: ${{ secrets.GITHUB_TOKEN }}

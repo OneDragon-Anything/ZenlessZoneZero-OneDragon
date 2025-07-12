@@ -40,7 +40,7 @@ class CallForSupport(ZOperation):
         event_name = HollowZeroSpecialEvent.CALL_FOR_SUPPORT.value.event_name
         ZOperation.__init__(
             self, ctx,
-            op_name=gt(event_name)
+            op_name=gt(event_name, 'game')
         )
 
         self._handlers: List[EventOcrResultHandler] = [
@@ -101,7 +101,7 @@ class CallForSupport(ZOperation):
             to_match = ocr_result[:3]
 
         agent_list: List[Agent] = [agent.value for agent in AgentEnum]
-        target_list: List[str] = [gt(agent.value.agent_name) for agent in AgentEnum]
+        target_list: List[str] = [gt(agent.value.agent_name, 'game') for agent in AgentEnum]
 
         results = difflib.get_close_matches(to_match, target_list, n=1, cutoff=0.1)
 
@@ -249,7 +249,7 @@ class CallForSupport(ZOperation):
         white = cv2_utils.dilate(white, 5)
         to_ocr = cv2.bitwise_and(part, part, mask=white)
 
-        target_list = [gt(i.word) for i in opts]
+        target_list = [gt(i.word, 'game') for i in opts]
         ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
         for ocr_result, mrl in ocr_result_map.items():
             results = difflib.get_close_matches(ocr_result, target_list, n=1)

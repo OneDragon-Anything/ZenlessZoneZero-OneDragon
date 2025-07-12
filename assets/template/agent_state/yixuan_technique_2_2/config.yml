@@ -1,6 +1,6 @@
 sub_dir: agent_state
 template_id: yixuan_technique_2_2
-template_name: 角色状态-仪玄-法术值-22
+template_name: 角色状态-仪玄-术法值-22
 template_shape: rectangle
 auto_mask: true
 point_list:

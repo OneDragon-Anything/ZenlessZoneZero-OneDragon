@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QWidget, QGridLayout
 from qfluentwidgets import MessageBoxBase, SubtitleLabel, SwitchButton, CheckBox
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
+from one_dragon.utils.i18_utils import gt
 
 
 class NotifyDialog(MessageBoxBase):
@@ -10,18 +11,18 @@ class NotifyDialog(MessageBoxBase):
         super().__init__(parent)
         self.ctx: OneDragonContext = ctx
 
-        self.yesButton.setText("确定")
-        self.cancelButton.setText("取消")
+        self.yesButton.setText(gt('确定'))
+        self.cancelButton.setText(gt('取消'))
 
-        self.titleLabel = SubtitleLabel("通知设置")
+        self.titleLabel = SubtitleLabel(gt('通知设置'))
         self.viewLayout.addWidget(self.titleLabel)
         self.viewLayout.addSpacing(10)
 
         self.before_notify_switch = SwitchButton(self)
         self.before_notify_switch.setChecked(self.ctx.notify_config.enable_before_notify)
-        self.before_notify_switch._onText = "开始前通知"
-        self.before_notify_switch._offText = "开始前通知"
-        self.before_notify_switch.label.setText("开始前通知")
+        self.before_notify_switch._onText = gt('开始前通知')
+        self.before_notify_switch._offText = gt('开始前通知')
+        self.before_notify_switch.label.setText(gt('开始前通知'))
         self.viewLayout.addWidget(self.before_notify_switch)
 
         # 存储所有应用的复选框
@@ -43,7 +44,7 @@ class NotifyDialog(MessageBoxBase):
             col = i % column_count
 
             # 使用 app_name 作为 CheckBox 的文本
-            checkbox = CheckBox(app_name, self)
+            checkbox = CheckBox(gt(app_name), self)
             initial_checked = getattr(self.ctx.notify_config, app_id, False)
             checkbox.setChecked(initial_checked)
 

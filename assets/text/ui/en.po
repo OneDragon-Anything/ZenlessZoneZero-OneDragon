@@ -3,9 +3,716 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+# ZZZ-OD
+msgid "ZenlessZoneZero"
+msgstr "Zenless Zone Zero"
+
 # ZZZ-OD UI
+msgid "ZenlessZoneZero-OneDragon"
+msgstr "Zenless Zone Zero OneDragon"
+
+msgid "ZenlessZoneZero-OneDragon-installer"
+msgstr "Zenless Zone Zero OneDragon Installer"
+
+# 基础界面
 msgid "设置"
 msgstr "Settings"
 
 msgid "语言"
 msgstr "Language"
+
+msgid "语言切换"
+msgstr "Language Switch"
+
+msgid "语言切换成功，需要重启应用程序以生效"
+msgstr "Language changed successfully. Please restart the application for changes to take effect."
+
+msgid "界面语言"
+msgstr "UI Language"
+
+msgid "外观"
+msgstr "Appearance"
+
+msgid "当前账户设置"
+msgstr "Current Account Settings"
+
+msgid "游戏基础"
+msgstr "Game Basic"
+
+msgid "游戏按键"
+msgstr "Game Keys"
+
+msgid "手柄按键"
+msgstr "Gamepad Keys"
+
+msgid "脚本按键"
+msgstr "Script Keys"
+
+msgid "启动参数"
+msgstr "Launch Parameters"
+
+msgid "代理人皮肤"
+msgstr "Agent Outfit"
+
+# 按钮和操作
+msgid "开"
+msgstr "On"
+
+msgid "关"
+msgstr "Off"
+
+msgid "请按键"
+msgstr "Press Key"
+
+msgid "启动一条龙"
+msgstr "Launch OneDragon"
+
+msgid "开始运行"
+msgstr "Start Running"
+
+msgid "停止运行"
+msgstr "Stop Running"
+
+msgid "游戏截图"
+msgstr "Game Screenshot"
+
+msgid "确认"
+msgstr "Confirm"
+
+msgid "取消"
+msgstr "Cancel"
+
+msgid "浏览"
+msgstr "Browse"
+
+msgid "选择"
+msgstr "Select"
+
+msgid "重置"
+msgstr "Reset"
+
+msgid "删除"
+msgstr "Delete"
+
+msgid "保存"
+msgstr "Save"
+
+msgid "确定"
+msgstr "OK"
+
+msgid "运行记录"
+msgstr "Run Records"
+
+msgid "挑战配置"
+msgstr "Challenge Config"
+
+# 游戏相关
+msgid "游戏路径"
+msgstr "Game Path"
+
+msgid "游戏区服"
+msgstr "Game Server"
+
+msgid "账号"
+msgstr "Account"
+
+msgid "密码"
+msgstr "Password"
+
+msgid "输入方式"
+msgstr "Input Method"
+
+msgid "切换HDR状态"
+msgstr "Toggle HDR Status"
+
+msgid "启用HDR"
+msgstr "Enable HDR"
+
+msgid "禁用HDR"
+msgstr "Disable HDR"
+
+msgid "窗口尺寸"
+msgstr "Window Size"
+
+msgid "全屏"
+msgstr "Fullscreen"
+
+msgid "无边框窗口"
+msgstr "Borderless Window"
+
+msgid "显示器序号"
+msgstr "Monitor Index"
+
+msgid "高级参数"
+msgstr "Advanced Parameters"
+
+# 按键设置
+msgid "普通攻击"
+msgstr "Normal Attack"
+
+msgid "闪避"
+msgstr "Dodge"
+
+msgid "角色切换-下一个"
+msgstr "Switch Character - Next"
+
+msgid "角色切换-上一个"
+msgstr "Switch Character - Previous"
+
+msgid "特殊攻击"
+msgstr "Special Attack"
+
+msgid "终结技"
+msgstr "Ultimate"
+
+msgid "交互"
+msgstr "Interact"
+
+msgid "连携技-左"
+msgstr "Chain Attack - Left"
+
+msgid "连携技-右"
+msgstr "Chain Attack - Right"
+
+msgid "连携技-取消"
+msgstr "Chain Attack - Cancel"
+
+msgid "移动-前"
+msgstr "Move - Forward"
+
+msgid "移动-后"
+msgstr "Move - Backward"
+
+msgid "移动-左"
+msgstr "Move - Left"
+
+msgid "移动-右"
+msgstr "Move - Right"
+
+msgid "锁定敌人"
+msgstr "Lock Enemy"
+
+# 手柄设置
+msgid "手柄类型"
+msgstr "Gamepad Type"
+
+msgid "单次按键持续时间(秒)"
+msgstr "Single Key Duration (seconds)"
+
+# 界面主题
+msgid "界面主题"
+msgstr "UI Theme"
+
+msgid "主页公告"
+msgstr "Homepage Announcement"
+
+msgid "启用版本海报"
+msgstr "Enable Version Poster"
+
+msgid "启用官方启动器主页背景"
+msgstr "Enable Official Launcher Homepage Background"
+
+msgid "自定义主页背景"
+msgstr "Custom Homepage Background"
+
+# 导航标签
+msgid "仪表盘"
+msgstr "Dashboard"
+
+msgid "一条龙"
+msgstr "OneDragon"
+
+msgid "游戏设置"
+msgstr "Game Settings"
+
+msgid "其他设置"
+msgstr "Other Settings"
+
+msgid "式舆防卫战"
+msgstr "Shiyu Defense"
+
+msgid "预备编队"
+msgstr "Predefined Team"
+
+msgid "恶名狩猎计划"
+msgstr "Notorious Hunt"
+
+msgid "杂项任务"
+msgstr "Miscellaneous Tasks"
+
+msgid "咖啡计划"
+msgstr "Coffee Plan"
+
+msgid "源配置"
+msgstr "Source Configuration"
+
+# 功能相关
+msgid "吃拉面"
+msgstr "Eat Ramen"
+
+msgid "模拟按键"
+msgstr "Simulate Key"
+
+msgid "等待大世界画面"
+msgstr "Wait for World Screen"
+
+msgid "传送"
+msgstr "Teleport"
+
+msgid "前往菜单"
+msgstr "Go to Menu"
+
+msgid "进入 HDD 副本"
+msgstr "Enter HDD Dungeon"
+
+msgid "开始街机游戏"
+msgstr "Start Arcade Game"
+
+msgid "进入游戏"
+msgstr "Enter Game"
+
+msgid "切换账号"
+msgstr "Switch Account"
+
+msgid "打开游戏"
+msgstr "Open Game"
+
+msgid "打开并登录游戏"
+msgstr "Open and Login Game"
+
+msgid "禁用HDR"
+msgstr "Disable HDR"
+
+msgid "恢复HDR"
+msgstr "Restore HDR"
+
+msgid "蛇对蛇自杀"
+msgstr "Snake vs Snake Suicide"
+
+msgid "选择预备编队"
+msgstr "Select Predefined Team"
+
+msgid "选择分类"
+msgstr "Select Category"
+
+msgid "选择Tab"
+msgstr "Select Tab"
+
+msgid "打开快捷手册"
+msgstr "Open Quick Manual"
+
+msgid "返回大世界"
+msgstr "Return to World"
+
+msgid "开始录制"
+msgstr "Start Recording"
+
+# 游戏设置
+msgid "使用默认队伍名称出现错选时 可更改名字解决"
+msgstr "Change team names to resolve wrong selection when using default team names"
+
+msgid "本页代理人可在游戏助手中自动识别，设置仅作用于避免式舆防卫战选择配队冲突"
+msgstr "Agents on this page can be auto-recognized in game assistant, settings only work to avoid team selection conflicts in Shiyu Defense"
+
+msgid "！设置皮肤以正常使用自动战斗功能 ！"
+msgstr "! Set outfits to use auto-battle function properly !"
+
+msgid "切换 HDR 状态"
+msgstr "Toggle HDR Status"
+
+msgid "仅影响手动启动游戏，一条龙启动游戏会自动禁用 HDR"
+msgstr "Only affects manual game launch, OneDragon will auto-disable HDR when launching"
+
+msgid "窗口尺寸"
+msgstr "Window Size"
+
+# 代理人设置
+msgid "妮可"
+msgstr "Nicole"
+
+msgid "艾莲"
+msgstr "Ellen"
+
+msgid "耀嘉音"
+msgstr "Astra Yao"
+
+msgid "仪玄"
+msgstr "Yixuan"
+
+msgid "匹配所有可能的皮肤"
+msgstr "Match All Possible Outfits"
+
+# 其他设置
+msgid "影像店代理人-1"
+msgstr "Video Store Agent-1"
+
+msgid "影像店代理人-2"
+msgstr "Video Store Agent-2"
+
+msgid "驱动盘拆解等级"
+msgstr "Drive Disc Dismantle Level"
+
+msgid "全部已弃置"
+msgstr "All Discarded"
+
+msgid "剧变节点 重置运行记录"
+msgstr "Critical Node Reset Run Records"
+
+# 资源下载相关
+msgid "资源下载"
+msgstr "Resource Download"
+
+msgid "下载说明"
+msgstr "Download Instructions"
+
+msgid "下载失败时 请尝试到「脚本环境」更改网络代理"
+msgstr "If download fails, try changing network proxy in 'Script Environment'"
+
+msgid "OCR识别"
+msgstr "OCR Recognition"
+
+msgid "闪光识别"
+msgstr "Flash Recognition"
+
+msgid "空洞格子识别"
+msgstr "Hollow Grid Recognition"
+
+msgid "迷失之地识别"
+msgstr "Lost Void Recognition"
+
+# 咖啡和体力计划
+msgid "咖啡选择"
+msgstr "Coffee Selection"
+
+msgid "喝后挑战"
+msgstr "Challenge After Drinking"
+
+msgid "体力计划外的数量"
+msgstr "Amount Outside Energy Plan"
+
+msgid "自动战斗"
+msgstr "Auto Battle"
+
+msgid "结束后运行体力计划"
+msgstr "Run Energy Plan After Completion"
+
+# 调试相关
+msgid "指令配置"
+msgstr "Command Configuration"
+
+msgid "循环指令"
+msgstr "Loop Commands"
+
+msgid "调试"
+msgstr "Debug"
+
+# 通知设置
+msgid "自定义通知标题"
+msgstr "Custom Notification Title"
+
+msgid "通知中附带图片"
+msgstr "Include Image in Notification"
+
+msgid "测试通知"
+msgstr "Test Notification"
+
+msgid "通知方式"
+msgstr "Notification Method"
+
+msgid "邮箱服务选择"
+msgstr "Email Service Selection"
+
+# 空洞零
+msgid "挑战副本"
+msgstr "Challenge Dungeon"
+
+msgid "每周进入次数"
+msgstr "Weekly Entry Count"
+
+msgid "每天进入次数"
+msgstr "Daily Entry Count"
+
+msgid "配置名称"
+msgstr "Configuration Name"
+
+msgid "银行UP编队"
+msgstr "Bank UP Team"
+
+msgid "邦布商人策略"
+msgstr "Bangboo Merchant Strategy"
+
+msgid "买齐买净"
+msgstr "Buy All Clean"
+
+msgid "血量阈值"
+msgstr "Health Threshold"
+
+msgid "识别鸣徽关键词"
+msgstr "Recognize Signal Keywords"
+
+msgid "第一优先级刷新次数"
+msgstr "First Priority Refresh Count"
+
+msgid "第二优先级刷新次数"
+msgstr "Second Priority Refresh Count"
+
+# 提示信息
+msgid "当前"
+msgstr "Current"
+
+msgid "选择你的 ZenlessZoneZero.exe"
+msgstr "Select your ZenlessZoneZero.exe"
+
+msgid "我知道了"
+msgstr "I Understand"
+
+msgid "请选择安装路径"
+msgstr "Please Select Installation Path"
+
+msgid "选择安装路径..."
+msgstr "Select Installation Path..."
+
+msgid "配置源"
+msgstr "Configuration Source"
+
+msgid "地区选择"
+msgstr "Region Selection"
+
+msgid "确认配置"
+msgstr "Confirm Configuration"
+
+msgid "代码仓库"
+msgstr "Code Repository"
+
+msgid "环境下载源"
+msgstr "Environment Download Source"
+
+msgid "Python下载源"
+msgstr "Python Download Source"
+
+msgid "Pip源"
+msgstr "Pip Source"
+
+msgid "代理类型"
+msgstr "Proxy Type"
+
+msgid "代理地址"
+msgstr "Proxy Address"
+
+# 欢迎对话框
+msgid "欢迎使用绝区零一条龙"
+msgstr "Welcome to Zenless Zone Zero OneDragon"
+
+msgid "欢迎使用一条龙"
+msgstr "Welcome to OneDragon"
+
+# 下载和安装相关
+msgid "未选择模型"
+msgstr "No model selected"
+
+msgid "检查中"
+msgstr "Checking"
+
+msgid "已下载"
+msgstr "Downloaded"
+
+msgid "下载中"
+msgstr "Downloading"
+
+msgid "未选择"
+msgstr "Not Selected"
+
+msgid "请选择一条配置进行下载。"
+msgstr "Please select a configuration to download."
+
+msgid "错误"
+msgstr "Error"
+
+msgid "下载链接无法构建，战斗 ID 为 None"
+msgstr "Download link cannot be constructed, battle ID is None"
+
+msgid "成功"
+msgstr "Success"
+
+msgid "文件已下载并保存到"
+msgstr "File has been downloaded and saved to"
+
+msgid "下载失败"
+msgstr "Download Failed"
+
+msgid "下载过程中出错"
+msgstr "Error occurred during download"
+
+msgid "状态检查中..."
+msgstr "Checking status..."
+
+msgid "未选择图片"
+msgstr "No image selected"
+
+# 密码相关对话框
+msgid "嘻嘻~"
+msgstr "Hehe~"
+
+msgid "密码不对哦~"
+msgstr "Wrong password~"
+
+msgid "再试试吧"
+msgstr "Try again"
+
+msgid "使用此功能需要密码哦~"
+msgstr "Password required to use this feature~"
+
+# 欢迎对话框按钮
+msgid "快速开始"
+msgstr "Quick Start"
+
+msgid "自助排障"
+msgstr "Self-service Troubleshooting"
+
+msgid "开源地址"
+msgstr "Open Source"
+
+# 计划相关
+msgid "已运行次数"
+msgstr "Runs Completed"
+
+msgid "计划次数"
+msgstr "Planned Runs"
+
+# 账户操作
+msgid "启用"
+msgstr "Activate"
+
+msgid "登录"
+msgstr "Login"
+
+msgid "账户列表"
+msgstr "Account List"
+
+msgid "新增"
+msgstr "Add New"
+
+# 运行状态
+msgid "上次运行"
+msgstr "Last Run"
+
+# Git 和代码同步相关
+msgid "未配置Git"
+msgstr "Git Not Configured"
+
+msgid "未同步代码"
+msgstr "Code Not Synced"
+
+msgid "当前分支"
+msgstr "Current Branch"
+
+msgid "建议分支"
+msgstr "Recommended Branch"
+
+msgid "不自动同步"
+msgstr "No Auto Sync"
+
+msgid "已同步代码"
+msgstr "Code Synced"
+
+msgid "更新后需重启脚本生效。如不能运行，尝试使用安装器更新运行依赖，或更新安装器"
+msgstr "Restart required after update. If unable to run, try updating dependencies with installer or update installer itself"
+
+# 安装相关
+msgid "安装指南"
+msgstr "Installation Guide"
+
+# 环境设置相关
+msgid "基础"
+msgstr "Basic"
+
+msgid "调试模式"
+msgstr "Debug Mode"
+
+msgid "正常无需开启"
+msgstr "Normally no need to enable"
+
+msgid "复制截图到剪贴板"
+msgstr "Copy Screenshot to Clipboard"
+
+msgid "按下截图按键时，自动将截图复制到剪贴板"
+msgstr "Automatically copy screenshot to clipboard when screenshot key is pressed"
+
+msgid "Git相关"
+msgstr "Git Related"
+
+# 语言切换相关
+msgid "语言已切换成功"
+msgstr "Language switched successfully"
+
+msgid "提示"
+msgstr "Notice"
+
+msgid "立即重启"
+msgstr "Restart Now"
+
+msgid "稍后重启"
+msgstr "Restart Later"
+
+# 推送设置占位符文本
+msgid "会把推送最终结果通知到这个地址上"
+msgstr "Will notify the final push result to this address"
+
+msgid "好友令牌或用户ID"
+msgstr "Friend Token or User ID"
+
+msgid "微信公众号：好友令牌；企业微信：用户ID"
+msgstr "WeChat Official Account: Friend Token; Enterprise WeChat: User ID"
+
+msgid "用户令牌"
+msgstr "User Token"
+
+msgid "请输入用户令牌"
+msgstr "Please enter user token"
+
+msgid "消息接收者"
+msgstr "Message Receiver"
+
+msgid "请输入消息接收者"
+msgstr "Please enter message receiver"
+
+msgid "调用版本"
+msgstr "API Version"
+
+msgid "可选"
+msgstr "Optional"
+
+msgid "请输入 Qmsg 酱的 QMSG_KEY"
+msgstr "Please enter Qmsg's QMSG_KEY"
+
+msgid "请输入 Qmsg 酱的 QMSG_TYPE"
+msgstr "Please enter Qmsg's QMSG_TYPE"
+
+msgid "企业微信代理地址"
+msgstr "Enterprise WeChat Proxy Address"
+
+# 账户设置相关
+msgid "游戏区服"
+msgstr "Game Server"
+
+msgid "所有信息都明文保存在本地"
+msgstr "All information is saved locally in plain text"
+
+msgid "请自行妥善管理"
+msgstr "Please manage properly by yourself"
+
+# 主题和外观设置
+msgid "界面主题"
+msgstr "UI Theme"
+
+msgid "版本活动海报持续整个版本"
+msgstr "Version event poster lasts throughout the version"
+
+msgid "关闭后仅用本地图片"
+msgstr "Use only local images when disabled"
+
+msgid "自定义主页背景"
+msgstr "Custom Homepage Background"
+
+msgid "设置后重启脚本生效"
+msgstr "Restart script for changes to take effect"

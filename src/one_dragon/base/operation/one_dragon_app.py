@@ -26,7 +26,7 @@ class OneDragonApp(Application):
         Application.__init__(
             self,
             ctx, app_id,
-            op_name=gt(op_name, 'ui'),
+            op_name=gt(op_name),
             op_to_enter_game=op_to_enter_game
         )
 

@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, PushButton, PlainTextEdit, SubtitleLabel, BodyLabel, FluentThemeColor, \
-    TitleLabel
+from qfluentwidgets import FluentIcon, FluentThemeColor, PlainTextEdit, SubtitleLabel, BodyLabel, \
+     TitleLabel, PushButton, ToolButton
 from typing import List, Optional
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -50,23 +50,23 @@ class HollowZeroChallengeConfigInterface(VerticalScrollInterface):
         widget.add_widget(btn_row)
 
         self.existed_yml_btn = ComboBox()
-        self.existed_yml_btn.setPlaceholderText(gt('选择已有', 'ui'))
+        self.existed_yml_btn.setPlaceholderText(gt('选择已有'))
         self.existed_yml_btn.currentIndexChanged.connect(self._on_choose_existed_yml)
         btn_row.add_widget(self.existed_yml_btn)
 
-        self.create_btn = PushButton(text=gt('新建', 'ui'))
+        self.create_btn = PushButton(text=gt('新建'))
         self.create_btn.clicked.connect(self._on_create_clicked)
         btn_row.add_widget(self.create_btn)
 
-        self.copy_btn = PushButton(text=gt('复制', 'ui'))
+        self.copy_btn = PushButton(text=gt('复制'))
         self.copy_btn.clicked.connect(self._on_copy_clicked)
         btn_row.add_widget(self.copy_btn)
 
-        self.delete_btn = PushButton(text=gt('删除', 'ui'))
+        self.delete_btn = ToolButton(FluentIcon.DELETE)
         self.delete_btn.clicked.connect(self._on_delete_clicked)
         btn_row.add_widget(self.delete_btn)
 
-        self.cancel_btn = PushButton(text=gt('取消', 'ui'))
+        self.cancel_btn = PushButton(text=gt('取消'))
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
         btn_row.add_widget(self.cancel_btn)
 
@@ -105,21 +105,21 @@ class HollowZeroChallengeConfigInterface(VerticalScrollInterface):
         widget.add_widget(self.path_finding_opt)
 
         go_in_1_step_widget = Column()
-        go_in_1_step_title = SubtitleLabel(text='一步可达时前往')
+        go_in_1_step_title = SubtitleLabel(text=gt('一步可达时前往'))
         go_in_1_step_widget.v_layout.addWidget(go_in_1_step_title)
         self.go_in_1_step_input = PlainTextEdit()
         self.go_in_1_step_input.textChanged.connect(self._on_go_in_1_step_changed)
         go_in_1_step_widget.v_layout.addWidget(self.go_in_1_step_input)
 
         waypoint_widget = Column()
-        waypoint_title = SubtitleLabel(text='优先途经点')
+        waypoint_title = SubtitleLabel(text=gt('优先途经点'))
         waypoint_widget.v_layout.addWidget(waypoint_title)
         self.waypoint_input = PlainTextEdit()
         self.waypoint_input.textChanged.connect(self._on_waypoint_changed)
         waypoint_widget.v_layout.addWidget(self.waypoint_input)
 
         avoid_widget = Column()
-        avoid_title = SubtitleLabel(text='避免途经点')
+        avoid_title = SubtitleLabel(text=gt('避免途经点'))
         avoid_widget.v_layout.addWidget(avoid_title)
         self.avoid_input = PlainTextEdit()
         self.avoid_input.textChanged.connect(self._on_avoid_changed)
@@ -138,13 +138,13 @@ class HollowZeroChallengeConfigInterface(VerticalScrollInterface):
     def _init_right_part(self) -> QWidget:
         widget = Column()
 
-        resonium_title = TitleLabel(text='奖励优先级')
+        resonium_title = TitleLabel(text=gt('奖励优先级'))
         widget.add_widget(resonium_title)
         self.resonium_priority_input = PlainTextEdit()
         self.resonium_priority_input.textChanged.connect(self._on_resonium_priority_changed)
         widget.add_widget(self.resonium_priority_input)
 
-        event_priority_title = TitleLabel(text='选项优先级')
+        event_priority_title = TitleLabel(text=gt('选项优先级'))
         event_priority_title.setVisible(False)
         widget.add_widget(event_priority_title)
         self.event_priority_input = PlainTextEdit()
@@ -229,7 +229,7 @@ class HollowZeroChallengeConfigInterface(VerticalScrollInterface):
         for config in config_list:
             self.existed_yml_btn.addItem(text=config.module_name, icon=None, userData=config)
         self.existed_yml_btn.setCurrentIndex(-1)
-        self.existed_yml_btn.setPlaceholderText(gt('选择已有', 'ui'))
+        self.existed_yml_btn.setPlaceholderText(gt('选择已有'))
         self.existed_yml_btn.blockSignals(False)
 
     def _update_auto_battle_opts(self) -> None:

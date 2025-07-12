@@ -38,8 +38,8 @@ class SwitchSettingCard(SettingCardBase):
 
         # 创建按钮并设置相关属性
         self.btn = SwitchButton(parent=self, indicatorPos=IndicatorPosition.RIGHT)
-        self.btn._offText = gt(off_text_cn, "ui")
-        self.btn._onText = gt(on_text_cn, "ui")
+        self.btn._offText = gt(off_text_cn)
+        self.btn._onText = gt(on_text_cn)
         self.btn.label.setText(self.btn._offText)
         self.btn.checkedChanged.connect(self._on_value_changed)
 

@@ -1,4 +1,5 @@
 import base64
+import math
 import os
 from typing import Union, List, Optional, Tuple
 
@@ -20,7 +21,14 @@ def read_image(file_path: str) -> Optional[MatLike]:
     """
     if not os.path.exists(file_path):
         return None
-    image = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)
+    file_type = get_image_file_type(file_path)
+
+    # 默认以BGR格式加载
+    if file_type == 'webp':
+        image = cv2.imread(file_path, cv2.IMREAD_COLOR)
+    else:
+        image = cv2.imread(file_path, cv2.IMREAD_UNCHANGED)
+
     if image.ndim == 2:
         return image
     elif image.ndim == 3:
@@ -39,12 +47,51 @@ def save_image(img: MatLike, file_path: str) -> None:
     """
     if img.ndim == 3:
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    cv2.imwrite(file_path, img)
+
+    file_type = get_image_file_type(file_path)
+    if file_type == 'webp':  # 无损压缩保存
+        cv2.imwrite(file_path, img, [cv2.IMWRITE_WEBP_QUALITY, 100])
+    else:
+        cv2.imwrite(file_path, img)
 
 
-def show_image(img: MatLike,
-               rects: Union[MatchResult, MatchResultList] = None,
-               win_name: str = 'DEBUG', wait: Optional[int] = None, destroy_after: bool = False):
+def get_image_file_type(file_path: str) -> str:
+    """
+    从文件完整路径中提取文件类型
+
+    Args:
+        file_path: 文件路径
+
+    Returns:
+        str: 文件类型
+    """
+    return os.path.splitext(file_path)[1][1:]
+
+
+def show_image(
+        img: MatLike,
+        rects: Union[MatchResult, MatchResultList] = None,
+        win_name: str = 'DEBUG',
+        wait: Optional[int] = None,
+        destroy_after: bool = False,
+        max_width: int | None = None,
+        max_height: int | None = None,
+):
+    """
+    显示一张图片
+    Args:
+        img: 图片
+        rects: 需要画出来的框
+        win_name: 显示图片的窗口名称
+        wait: 显示后等待按键的秒数 0=一直等待
+        destroy_after: 显示后销毁窗口
+        max_width: 显示的最大宽度，图片宽度超过这个宽度则等比例缩小
+        max_height: 显示的最大高度，图片高度超过这个高度则等比例缩小
+
+    Returns:
+
+    """
+
     """
     显示一张图片
     :param img: 图片
@@ -62,6 +109,13 @@ def show_image(img: MatLike,
         elif type(rects) == MatchResultList:
             for i in rects:
                 cv2.rectangle(to_show, (i.x, i.y), (i.x + i.w, i.y + i.h), (255, 0, 0), 1)
+
+    if max_width is not None and to_show.shape[1] > max_width:
+        scale = max_width / to_show.shape[1]
+        to_show = cv2.resize(to_show, (int(to_show.shape[1] * scale), int(to_show.shape[0] * scale)))
+    if max_height is not None and to_show.shape[0] > max_height:
+        scale = max_height / to_show.shape[0]
+        to_show = cv2.resize(to_show, (int(to_show.shape[1] * scale), int(to_show.shape[0] * scale)))
 
     cv2.imshow(win_name, to_show)
     if wait is not None:
@@ -257,7 +311,12 @@ def color_similarity_2d(image, color):
     return cv2.subtract(255, cv2.add(positive, negative))
 
 
-def show_overlap(source, template, x, y, template_scale: float = 1, win_name: str = 'DEBUG', wait: int = 1):
+def show_overlap(
+        source, template, x, y, template_scale: float = 1,
+        win_name: str = 'DEBUG', wait: int = 1,
+        max_width: int | None = None,
+        max_height: int | None = None,
+):
     to_show_source = source.copy()
 
     if template_scale != 1:
@@ -271,7 +330,9 @@ def show_overlap(source, template, x, y, template_scale: float = 1, win_name: st
         to_show_template = template
 
     source_overlap_template(to_show_source, to_show_template, x, y)
-    show_image(to_show_source, win_name=win_name, wait=wait)
+    show_image(to_show_source, win_name=win_name, wait=wait,
+               max_width=max_width,
+               max_height=max_height,)
 
 
 def feature_detect_and_compute(img: MatLike, mask: Optional[MatLike] = None):
@@ -476,8 +537,12 @@ def feature_match_for_multi(
     return match_result_list
 
 
-def connection_erase(mask: MatLike, threshold: int = 50, erase_white: bool = True,
-                     connectivity: int = 8) -> MatLike:
+def connection_erase(
+        mask: MatLike,
+        threshold: int = 50,
+        erase_white: bool = True,
+        connectivity: int = 8
+) -> MatLike:
     """
     通过连通性检测 消除一些噪点
     :param mask: 黑白图 掩码图
@@ -762,6 +827,47 @@ def color_in_range(img: MatLike, lower: List[int], upper: List[int],
         return part
     else:
         return connection_erase(part, noise_threshold)
+
+
+def color_in_hsv_range(
+        img: MatLike,
+        lower: List[int],
+        upper: List[int],
+        white_noise_threshold: Optional[int] = None,
+        black_noise_threshold: Optional[int] = None,
+) -> MatLike:
+    """
+    获取HSV颜色范围内的掩码
+
+    Args:
+        img: RGB图片
+        lower: HSV下限 (360, 100, 100)
+        upper: HSV上限 (360, 100, 100)
+        white_noise_threshold: 噪音阈值。传入时会消除连通量小于多少的白色块
+        black_noise_threshold: 噪音阈值。传入时会消除连通量小于多少的黑色块
+
+    Returns:
+        掩码
+    """
+    lower_range = np.array([
+        math.floor(lower[0] / 2.0),
+        math.floor(lower[1] * 255.0 / 100),
+        math.floor(lower[2] * 255.0 / 100),
+    ], dtype=np.uint8)
+    upper_range = np.array([
+        math.ceil(upper[0] / 2.0),
+        math.ceil(upper[1] * 255.0 / 100),
+        math.ceil(upper[2] * 255.0 / 100),
+    ], dtype=np.uint8)
+    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    part = cv2.inRange(hsv_img, lower_range, upper_range)
+
+    if white_noise_threshold is not None:
+        part = connection_erase(part, white_noise_threshold, erase_white=True)
+    if black_noise_threshold is not None:
+        part = connection_erase(part, black_noise_threshold, erase_white=False)
+
+    return part
 
 
 def find_character_avatars(img: MatLike, min_area: int = 800, 

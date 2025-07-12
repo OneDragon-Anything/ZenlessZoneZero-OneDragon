@@ -26,7 +26,7 @@ class ShiyuDefenseApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='shiyu_defense',
-            op_name=gt('式舆防卫战', 'ui'),
+            op_name=gt('式舆防卫战'),
             run_record=ctx.shiyu_defense_record,
             need_notify=True,
         )

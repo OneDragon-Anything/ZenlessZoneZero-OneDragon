@@ -115,14 +115,14 @@ class TemplateGenerationInterface(AppRunInterface):
         content_layout.addWidget(btn_row_widget)
 
         self.start_btn = PrimaryPushButton(
-            text='%s %s' % (gt('开始录制', 'ui'), self.ctx.key_start_running.upper()),
+            text='%s %s' % (gt('开始录制'), self.ctx.key_start_running.upper()),
             icon=FluentIcon.PLAY,
         )
         self.start_btn.clicked.connect(self._on_start_clicked)
         btn_row_layout.addWidget(self.start_btn)
 
         self.stop_btn = PushButton(
-            text='%s %s' % (gt('停止录制', 'ui'), self.ctx.key_stop_running.upper()),
+            text='%s %s' % (gt('停止录制'), self.ctx.key_stop_running.upper()),
             icon=FluentIcon.CLOSE
         )
         self.stop_btn.clicked.connect(self._on_stop_clicked)

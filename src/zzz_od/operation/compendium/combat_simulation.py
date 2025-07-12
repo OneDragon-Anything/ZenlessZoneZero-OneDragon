@@ -1,7 +1,5 @@
-from concurrent.futures import Future
 import time
-
-import difflib
+from concurrent.futures import Future
 from typing import Optional, ClassVar, Tuple
 
 from one_dragon.base.geometry.point import Point
@@ -45,8 +43,8 @@ class CombatSimulation(ZOperation):
         ZOperation.__init__(
             self, ctx,
             op_name='%s %s' % (
-                gt('实战模拟室'),
-                gt(plan.mission_name)
+                gt('实战模拟室', 'game'),
+                gt(plan.mission_name, 'game')
             )
         )
 
@@ -112,7 +110,7 @@ class CombatSimulation(ZOperation):
         category = self.ctx.compendium_service.get_category_data('训练', '实战模拟室')
         if category is None:
             return False
-        target_word_list: list[str] = [gt(i.mission_type_name) for i in category.mission_type_list]
+        target_word_list: list[str] = [gt(i.mission_type_name, 'game') for i in category.mission_type_list]
         match_type_cnt: int = 0
         for ocr_result in ocr_result_map.keys():
             match_idx: int = str_utils.find_best_match_by_difflib(ocr_result, target_word_list)
@@ -171,28 +169,32 @@ class CombatSimulation(ZOperation):
 
             target_point: Optional[Point] = None
             ocr_result_map = self.ctx.ocr.run_ocr(part)
-            target_list = []
+            ocr_word_list = []
             mrl_list = []
             for ocr_result, mrl in ocr_result_map.items():
-                target_list.append(ocr_result)
+                ocr_word_list.append(ocr_result)
                 mrl_list.append(mrl)
 
-            results = difflib.get_close_matches(self.plan.mission_name, target_list, n=1)
+            # 有副本名字太接近 需要额外区分 例如 '击破演练', '命破演练'
+            cutoff = 0.8
+            idx = str_utils.find_best_match_by_difflib(gt(self.plan.mission_name, 'game'), ocr_word_list, cutoff=cutoff)
 
-            if results is not None and len(results) > 0:
-                idx = target_list.index(results[0])
+            if idx is not None and idx >= 0:
                 mrl = mrl_list[idx]
                 target_point = area.left_top + mrl.max + Point(0, 50)
+            else:
+                mission_list = self.ctx.compendium_service.get_mission_list_data(self.plan.tab_name, self.plan.category_name, self.plan.mission_type_name)
+                mission_name_list = [i.mission_name for i in mission_list]
+                is_after: bool = str_utils.is_target_after_ocr_list(self.plan.mission_name, mission_name_list, ocr_word_list, cutoff=cutoff)
 
-        if target_point is None:
-            area = self.ctx.screen_loader.get_area('实战模拟室', '副本名称列表')
-            start = area.center
-            end = start + Point(-400, 0)
-            self.ctx.controller.drag_to(start=start, end=end)
-            self.scroll_count += 1
-            return self.round_retry(status='找不到 %s' % self.plan.mission_name, wait=1)
+                area = self.ctx.screen_loader.get_area('实战模拟室', '副本名称列表')
+                start = area.center
+                end = start + Point(400 * (-1 if is_after else 1), 0)
+                self.ctx.controller.drag_to(start=start, end=end)
+                self.scroll_count += 1
+                return self.round_retry(status='找不到 %s' % self.plan.mission_name, wait=1)
 
-        click = self.ctx.controller.click(target_point)
+        self.ctx.controller.click(target_point)
         return self.round_success(status=CombatSimulation.STATUS_CHOOSE_SUCCESS, wait=1)
 
     @node_from(from_name='选择副本', status=STATUS_CHOOSE_SUCCESS)
@@ -417,9 +419,10 @@ def __debug_charge():
     ctx.init_by_config()
     ctx.init_ocr()
     from one_dragon.utils import debug_utils
-    screen = debug_utils.get_debug_image('422708014-40e6c6d2-625f-4488-9e13-f17bdca02878')
+    screen = debug_utils.get_debug_image('power')
     area = ctx.screen_loader.get_area('实战模拟室', '剩余电量')
     part = cv2_utils.crop_image_only(screen, area.rect)
+    cv2_utils.show_image(part, wait=0)
     ocr_result = ctx.ocr.run_ocr_single_line(part)
     print(ocr_result)
 
@@ -431,8 +434,8 @@ def __debug():
     charge_plan = ChargePlanItem(
         tab_name='训练',
         category_name='实战模拟室',
-        mission_type_name='音擎改装',
-        mission_name='命破共鸣试验',
+        mission_type_name='代理人晋升',
+        mission_name='防护演练',
         run_times=0,
         plan_times=1,
         predefined_team_idx=ctx.coffee_config.predefined_team_idx,

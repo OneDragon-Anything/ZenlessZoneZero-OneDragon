@@ -24,7 +24,7 @@ class DodgeAssistantApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='dodge_assistant',
-            op_name=gt('闪避助手', 'ui'),
+            op_name=gt('闪避助手'),
             need_ocr=False
         )
 

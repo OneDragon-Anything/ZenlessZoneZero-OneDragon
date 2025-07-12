@@ -16,7 +16,7 @@ class OldCapital(ZOperation):
         event_name = HollowZeroSpecialEvent.OLD_CAPITAL.value.event_name
         ZOperation.__init__(
             self, ctx,
-            op_name=gt(event_name)
+            op_name=gt(event_name, 'game')
         )
 
     @operation_node(name='选择', is_start_node=True)

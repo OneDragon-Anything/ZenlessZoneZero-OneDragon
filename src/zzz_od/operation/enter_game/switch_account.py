@@ -11,7 +11,7 @@ class SwitchAccount(ZOperation):
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
-        ZOperation.__init__(self, ctx, op_name=gt('切换账号', 'ui'))
+        ZOperation.__init__(self, ctx, op_name=gt('切换账号'))
 
     @operation_node(name='打开菜单', is_start_node=True)
     def open_menu(self) -> OperationRoundResult:

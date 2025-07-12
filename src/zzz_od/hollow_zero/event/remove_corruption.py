@@ -14,7 +14,7 @@ class RemoveCorruption(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('清除侵蚀症状')
+            op_name=gt('清除侵蚀症状', 'game')
         )
 
     @operation_node(name='选择', is_start_node=True)

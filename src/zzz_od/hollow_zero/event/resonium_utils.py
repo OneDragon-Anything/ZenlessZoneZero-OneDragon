@@ -26,7 +26,7 @@ def get_to_choose_list(ctx: ZContext, screen: MatLike, target_cn: str, target_lc
         confirm_str = ctx.ocr.run_ocr_single_line(cv2_utils.crop_image_only(screen, confirm_area.rect))
         confirm_str = confirm_str.strip()
 
-        if not str_utils.find_by_lcs(gt(target_cn), confirm_str, percent=target_lcs_percent):
+        if not str_utils.find_by_lcs(gt(target_cn, 'game'), confirm_str, percent=target_lcs_percent):
             continue
 
         r = ctx.hollow.data_service.match_resonium_by_ocr_full(name_full_str)

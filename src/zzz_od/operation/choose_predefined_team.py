@@ -21,7 +21,7 @@ class ChoosePredefinedTeam(ZOperation):
         在出战画面使用
         :param ctx:
         """
-        ZOperation.__init__(self, ctx, op_name='%s %s' % (gt('选择预备编队', 'ui'), target_team_idx_list))
+        ZOperation.__init__(self, ctx, op_name='%s %s' % (gt('选择预备编队'), target_team_idx_list))
 
         self.target_team_idx_list: List[int] = target_team_idx_list
         self.choose_fail_times: int = 0   # 选择失败的次数

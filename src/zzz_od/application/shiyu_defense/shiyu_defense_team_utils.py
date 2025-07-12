@@ -247,7 +247,7 @@ def check_type_by_area(ctx: ZContext, screen: MatLike, area: ScreenArea) -> DmgT
     ocr_map = ctx.ocr.run_ocr(part)
 
     type_list = [i for i in DmgTypeEnum if i != DmgTypeEnum.UNKNOWN]
-    target_list = [gt(i.value) for i in DmgTypeEnum if i != DmgTypeEnum.UNKNOWN]
+    target_list = [gt(i.value, 'game') for i in DmgTypeEnum if i != DmgTypeEnum.UNKNOWN]
 
     for ocr_result in ocr_map.keys():
         match_results = difflib.get_close_matches(ocr_result, target_list, n=1)

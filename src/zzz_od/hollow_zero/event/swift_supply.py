@@ -14,7 +14,7 @@ class SwiftSupply(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('及时补给')
+            op_name=gt('及时补给', 'game')
         )
 
     @operation_node(name='选择', is_start_node=True)

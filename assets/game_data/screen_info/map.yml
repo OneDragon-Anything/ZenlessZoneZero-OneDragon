@@ -6,7 +6,7 @@ area_list:
   id_mark: false
   pc_rect:
   - 70
-  - 1024
+  - 1000
   - 1848
   - 1058
   text: ''

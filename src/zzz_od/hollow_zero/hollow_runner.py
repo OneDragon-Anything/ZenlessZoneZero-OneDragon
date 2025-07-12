@@ -43,7 +43,7 @@ class HollowRunner(ZOperation):
     def __init__(self, ctx: ZContext):
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('空洞操作器')
+            op_name=gt('空洞操作器', 'game')
         )
 
         self._special_event_handlers: dict[str, Type] = {

@@ -41,27 +41,38 @@ class LostVoidRunLevel(ZOperation):
 
     def __init__(self, ctx: ZContext, region_type: LostVoidRegionType):
         """
-        层间移动
+        迷失之地层间移动操作初始化
 
-        非战斗区域
-        1. 朝感叹号移动
-        2. 朝距离白点移动
-        3. 朝下层入口移动
-        4. 1~3没有识别目标的话 识别右上角文本提示 看会不会进入战斗
-        5. 1~3没有识别目标的话 角色血量条是否扣减 有的话代表进入了战斗
+        该操作负责在迷失之地的不同区域间进行移动和交互，根据区域类型执行相应的逻辑：
 
-        朝距离白点移动后 可能会是进入了混合区域的下一个区域
-        1. 看有没有识别目标 有的话回到非战斗区域逻辑
-        2. 1没有识别目标的话 识别右上角文本提示 看会不会进入战斗
-        3. 1没有识别目标的话 角色血量条是否扣减 有的话代表进入了战斗
+        运行逻辑概述：
+        1. 等待加载 -> 区域类型初始化 -> 根据区域类型进入相应处理流程
+        2. 非战斗区域：识别目标 -> 移动 -> 交互 -> 处理交互结果 -> 返回非战斗区域处理 / 进入下一层
+        3. 战斗区域：进入战斗 -> 自动战斗 -> 战斗结束处理 -> 返回非战斗区域处理 / 进入下一层
 
-        战斗区域
-        1. 战斗
-        2. 非战斗画面后的一次识别 进行一次目标识别 判断是否脱离了战斗
+        非战斗区域处理优先级：
+        1. 朝感叹号移动（最高优先级，交互目标）
+        2. 朝距离白点移动（中等优先级，可能进入混合区域的下一个区域）
+        3. 朝下层入口移动（低优先级，进入下一层）
+        4. 无识别目标时：检查右上角文本提示或角色血量变化判断是否进入战斗
 
-        成功则返回 data=下一个可能的区域类型
-        @param ctx:
-        @param region_type:
+        朝距离白点移动后的处理：
+        1. 重新识别目标，如有目标则回到非战斗区域逻辑
+        2. 无识别目标时：检查右上角文本提示或角色血量变化判断是否进入战斗
+
+        战斗区域处理：
+        1. 启动自动战斗系统
+        2. 持续监控战斗状态和目标识别
+        3. 战斗结束后进行目标识别，判断是否脱离战斗状态
+
+        交互处理：
+        - 支持多种交互类型：武备选择、通用选择、邦布商店、路径迭换、抽奖机等
+        - 处理对话系统，支持选项选择
+        - 交互后根据结果进行相应的移动调整
+
+        @param ctx: 游戏上下文对象，包含各种配置和状态信息
+        @param region_type: 当前区域类型，决定初始处理逻辑
+        @return: 成功时返回下一个可能的区域类型作为data
         """
         ZOperation.__init__(self, ctx, op_name='迷失之地-层间移动')
 
@@ -392,6 +403,12 @@ class LostVoidRunLevel(ZOperation):
         if result.is_success:
             return self.round_success('迷失之地-挑战结果')
 
+        # 有可能出现对话框需要确认 issue #1104
+        # 这里偷懒了 复用了挑战对话框的按钮
+        result = self.round_by_find_and_click_area(screen, '迷失之地-大世界', '按钮-挑战-确认')
+        if result.is_success:
+            return self.round_wait(status=result.status, wait=1)
+
         # 不在大世界的话 说明交互入口成功了
         if self.interact_target is not None and self.interact_target.is_entry:
             return self.round_success(LostVoidRunLevel.STATUS_NEXT_LEVEL)
@@ -439,7 +456,7 @@ class LostVoidRunLevel(ZOperation):
         for ocr_result in ocr_result_map.keys():
             for special_talk in special_talk_list:
                 # 穷举比较麻烦 有超过10个字符的 就认为这里有对话吧
-                if len(ocr_result) <= 10 and not str_utils.find_by_lcs(gt(special_talk), ocr_result):
+                if len(ocr_result) <= 10 and not str_utils.find_by_lcs(gt(special_talk, 'game'), ocr_result):
                     continue
 
                 # 判断是否有选项

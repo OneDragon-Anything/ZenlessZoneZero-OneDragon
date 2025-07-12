@@ -40,8 +40,8 @@ class ExpertChallenge(ZOperation):
         ZOperation.__init__(
             self, ctx,
             op_name='%s %s' % (
-                gt('专业挑战室'),
-                gt(plan.mission_type_name)
+                gt('专业挑战室', 'game'),
+                gt(plan.mission_type_name, 'game')
             )
         )
 

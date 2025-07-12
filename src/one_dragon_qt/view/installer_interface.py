@@ -7,6 +7,7 @@ from qfluentwidgets import (FluentIcon, ProgressRing, ProgressBar, Indeterminate
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.utils import app_utils
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.install_card.all_install_card import AllInstallCard
 from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
@@ -78,7 +79,7 @@ class StepIndicator(QWidget):
             circle.clicked.connect(self.on_step_clicked)
 
             # 步骤名称
-            name_label = BodyLabel(step_name)
+            name_label = BodyLabel(gt(step_name))
             name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             name_label.setStyleSheet("color: #666;")
 
@@ -170,7 +171,7 @@ class InstallStepWidget(QWidget):
 
     def __init__(self, description: str, install_cards=None, is_optional: bool = False, parent=None):
         super().__init__(parent)
-        self.description = description
+        self.description = gt(description)
         self.is_optional = is_optional
 
         # 支持单个安装卡或安装卡列表
@@ -248,23 +249,23 @@ class InstallStepWidget(QWidget):
 
         if all_completed:
             self.is_completed = True
-            self.status_label.setText("✓ 已满足所有条件")
+            self.status_label.setText(gt('✓ 已满足所有条件'))
             self.status_label.setStyleSheet("color: #00a86b; font-weight: bold;")
         elif has_pending:
             self.is_completed = False
             if self.is_optional:
-                self.status_label.setText("可选安装或配置")
+                self.status_label.setText(gt('可选安装或配置'))
             else:
-                self.status_label.setText("需要安装或配置")
+                self.status_label.setText(gt('需要安装或配置'))
             self.status_label.setStyleSheet("color: #666;")
         else:
             self.is_completed = False
-            self.status_label.setText("状态检查中...")
+            self.status_label.setText(gt('状态检查中...'))
             self.status_label.setStyleSheet("color: #666;")
 
     def start_install(self):
         if self.install_cards and not self.is_completed and not self.is_skipped:
-            self.status_label.setText("正在安装...")
+            self.status_label.setText(gt('正在安装...'))
             self.status_label.setStyleSheet("color: #0078d4;")
             self.completed_cards = 0
             self.installing_idx = 0
@@ -275,7 +276,7 @@ class InstallStepWidget(QWidget):
 
     def skip_step(self):
         self.is_skipped = True
-        self.status_label.setText("⚠ 已跳过此步骤")
+        self.status_label.setText(gt('⚠ 已跳过此步骤'))
         self.status_label.setStyleSheet("color: #ff8c00; font-weight: bold;")
         self.step_skipped.emit()
 
@@ -283,7 +284,7 @@ class InstallStepWidget(QWidget):
         if self.installing_idx == -1:  # 并非从这里开始的顺序安装
             return
         if not success:  # 失败了 重置进度
-            self.status_label.setText("✗ 安装失败")
+            self.status_label.setText(gt('✗ 安装失败'))
             self.status_label.setStyleSheet("color: #d13438; font-weight: bold;")
             self.installing_idx = -1
             self.step_completed.emit(False)
@@ -296,7 +297,7 @@ class InstallStepWidget(QWidget):
             else:
                 # 所有安装完成
                 self.is_completed = True
-                self.status_label.setText("✓ 安装完成")
+                self.status_label.setText(gt('✓ 安装完成'))
                 self.status_label.setStyleSheet("color: #00a86b; font-weight: bold;")
                 self.installing_idx = -1
                 self.step_completed.emit(True)
@@ -378,7 +379,7 @@ class InstallerInterface(VerticalScrollInterface):
         button_vlayout.setContentsMargins(0, 0, 0, 0)
         button_vlayout.setSpacing(24)
         button_vlayout.addStretch(1)
-        self.install_btn = PrimaryPushButton('一键安装')
+        self.install_btn = PrimaryPushButton(gt('一键安装'))
         self.install_btn.setFixedWidth(320)
         self.install_btn.setFixedHeight(60)
         font = self.install_btn.font()
@@ -387,7 +388,7 @@ class InstallerInterface(VerticalScrollInterface):
         button_vlayout.addWidget(self.install_btn, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         # 自定义安装按钮
-        self.advanced_btn = HyperlinkButton('', '自定义安装')
+        self.advanced_btn = HyperlinkButton('', gt('自定义安装'))
         self.advanced_btn.clicked.connect(self.show_advanced)
         button_vlayout.addWidget(self.advanced_btn, alignment=Qt.AlignmentFlag.AlignHCenter)
 
@@ -437,6 +438,7 @@ class InstallerInterface(VerticalScrollInterface):
 
         # 一键安装使用基础组件
         self.all_opt = AllInstallCard(self.ctx, base_install_cards)
+        self.all_opt.finished.connect(self.on_install_done)
 
         # 事件绑定
         self.install_btn.clicked.connect(self.on_install_clicked)
@@ -450,7 +452,7 @@ class InstallerInterface(VerticalScrollInterface):
         main_layout.setSpacing(20)
 
         # 主标题
-        title_label = TitleLabel("一条龙安装向导")
+        title_label = TitleLabel(gt('一条龙安装向导'))
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(title_label, stretch=1)
 
@@ -510,7 +512,7 @@ class InstallerInterface(VerticalScrollInterface):
         button_layout.setContentsMargins(0, 0, 0, 0)
 
         # 返回按钮
-        self.back_btn = PushButton('返回')
+        self.back_btn = PushButton(gt('返回'))
         self.back_btn.setFixedSize(120, 40)
         self.back_btn.clicked.connect(self.show_quick)
         button_layout.addWidget(self.back_btn)
@@ -519,7 +521,7 @@ class InstallerInterface(VerticalScrollInterface):
         button_layout.addStretch()
 
         # 上一步按钮
-        self.prev_btn = PushButton("上一步")
+        self.prev_btn = PushButton(gt('上一步'))
         self.prev_btn.setFixedSize(120, 40)
         self.prev_btn.clicked.connect(self.go_previous_step)
         self.prev_btn.setVisible(False)
@@ -527,19 +529,19 @@ class InstallerInterface(VerticalScrollInterface):
         button_layout.addWidget(self.prev_btn)
 
         # 开始安装按钮
-        self.install_step_btn = PrimaryPushButton("开始安装")
+        self.install_step_btn = PrimaryPushButton(gt('开始安装'))
         self.install_step_btn.setFixedSize(120, 40)
         self.install_step_btn.clicked.connect(self.start_current_install)
         button_layout.addWidget(self.install_step_btn)
 
         # 跳过当前步骤按钮
-        self.skip_current_btn = PushButton("跳过此步骤")
+        self.skip_current_btn = PushButton(gt('跳过此步骤'))
         self.skip_current_btn.setFixedSize(120, 40)
         self.skip_current_btn.clicked.connect(self.skip_current_step)
         button_layout.addWidget(self.skip_current_btn)
 
         # 下一步按钮
-        self.next_btn = PushButton("下一步")
+        self.next_btn = PushButton(gt('下一步'))
         self.next_btn.setFixedSize(120, 40)
         self.next_btn.clicked.connect(self.go_next_step)
         button_layout.addWidget(self.next_btn)
@@ -572,28 +574,38 @@ class InstallerInterface(VerticalScrollInterface):
         self.log_receiver.update = True
         self.log_update_timer.start()
         self.progress_ring.setValue(self._progress_value)
-        self.progress_label.setText('安装中')
+        self.progress_label.setText(gt('安装中'))
         self.all_opt.install_all(self.update_progress_ring)
 
     def update_progress_ring(self, progress: float, message: str):
         self._progress_value = int(progress * 100)
-        self._progress_message = message or f'安装进度：{self._progress_value}%'
+        self._progress_message = message or f"{gt('安装进度')}: {self._progress_value}%"
         self.progress_ring.setVisible(True)
         self.progress_label.setVisible(True)
         self.progress_ring.setValue(self._progress_value)
         self.progress_label.setText(self._progress_message)
-        if progress >= 1.0:
-            self.progress_label.setText('安装完成！')
-            self._installing = False
-            self.log_update_timer.stop()
-            self.log_receiver.update = False
-            self.log_display_label.setVisible(False)
+
+    def on_install_done(self, success: bool) -> None:
+        """
+        安装结束后 更新显示
+        """
+        self.is_all_completed = success
+        self.progress_label.setText(gt('安装完成！') if success else gt('安装失败！'))
+        self._installing = False
+        self.log_update_timer.stop()
+        self.log_receiver.update = False
+        self.log_display_label.setVisible(False)
+        if success:
             if self.extra_install_cards:
                 self.current_step = len(self.install_steps) - 1
                 self._from_one_click_install = True
                 self.show_advanced()
             else:
                 self.show_completion_message()
+        else:
+            self.install_btn.setVisible(True)
+            self.progress_ring.setVisible(False)
+            self.advanced_btn.setVisible(False)
 
     def show_advanced(self):
         """切换到高级安装界面"""
@@ -641,18 +653,18 @@ class InstallerInterface(VerticalScrollInterface):
             self.next_btn.setVisible(True)
             self.next_btn.setEnabled(True)
             if self.current_step == len(self.install_steps) - 1:
-                self.next_btn.setText("完成")
+                self.next_btn.setText(gt('完成'))
             else:
-                self.next_btn.setText("下一步")
+                self.next_btn.setText(gt('下一步'))
         elif current_step_widget.is_skipped:
             self.install_step_btn.setVisible(False)
             self.skip_current_btn.setVisible(False)
             self.next_btn.setVisible(True)
             self.next_btn.setEnabled(True)
             if self.current_step == len(self.install_steps) - 1:
-                self.next_btn.setText("完成")
+                self.next_btn.setText(gt('完成'))
             else:
-                self.next_btn.setText("下一步")
+                self.next_btn.setText(gt('下一步'))
         else:
             self.install_step_btn.setVisible(True)
             if current_step_widget.is_optional:
@@ -660,7 +672,7 @@ class InstallerInterface(VerticalScrollInterface):
                 self.next_btn.setVisible(True)
                 self.next_btn.setEnabled(True)
                 if self.current_step == len(self.install_steps) - 1:
-                    self.next_btn.setText("完成")
+                    self.next_btn.setText(gt('完成'))
             else:
                 self.skip_current_btn.setVisible(True)
                 self.next_btn.setVisible(False)
@@ -735,12 +747,11 @@ class InstallerInterface(VerticalScrollInterface):
 
     def show_completion_message(self):
         """显示完成消息"""
-        self.is_all_completed = True
         # 切换回一键安装界面
         self.is_advanced_mode = False
         self.main_stack.setCurrentIndex(0)
         # 将一键安装按钮改为启动程序
-        self.install_btn.setText("启动程序")
+        self.install_btn.setText(gt('启动程序'))
         self.install_btn.setVisible(True)
         self.install_btn.clicked.disconnect()
         self.install_btn.clicked.connect(self.launch_application)

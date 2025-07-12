@@ -14,7 +14,7 @@ class Deploy(ZOperation):
         同时处理可能出现的对话框
         :param ctx:
         """
-        ZOperation.__init__(self, ctx, op_name=gt('出战'))
+        ZOperation.__init__(self, ctx, op_name=gt('出战', 'game'))
 
     @operation_node(name='出战', is_start_node=True)
     def deploy(self) -> OperationRoundResult:

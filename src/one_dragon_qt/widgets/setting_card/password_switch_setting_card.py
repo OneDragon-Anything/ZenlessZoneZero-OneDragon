@@ -2,9 +2,8 @@ import hashlib
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QAbstractButton
-from qfluentwidgets import FluentIconBase
-from qfluentwidgets import SwitchButton, PasswordLineEdit, IndicatorPosition, Dialog
+from PySide6.QtWidgets import QAbstractButton, QHBoxLayout, QLineEdit
+from qfluentwidgets import Dialog, FluentIcon, FluentIconBase, IndicatorPosition, LineEdit, SwitchButton, ToolButton
 from typing import Union, Optional
 
 from one_dragon.utils.i18_utils import gt
@@ -43,23 +42,42 @@ class PasswordSwitchSettingCard(SettingCardBase):
             parent=parent
         )
 
+        # 初始化属性
+        self.password_hash = password_hash
+        self.password_hint = gt(password_hint)
+        self.dialog_title = gt(dialog_title)
+        self.dialog_content = gt(dialog_content)
+        self.dialog_button_text = gt(dialog_button_text)
+
         # 创建按钮并设置相关属性
         self.btn = SwitchButton(parent=self, indicatorPos=IndicatorPosition.RIGHT)
-        self.btn._offText = gt(off_text_cn, "ui")
-        self.btn._onText = gt(on_text_cn, "ui")
+        self.btn._offText = gt(off_text_cn)
+        self.btn._onText = gt(on_text_cn)
         self.btn.label.setText(self.btn._offText)
         self.btn.checkedChanged.connect(self._on_value_changed)
 
         self.adapter: YamlConfigAdapter = adapter
 
         # 添加密码输入框
-        self.password = PasswordLineEdit()
-        self.password.setPlaceholderText(password_hint)
+        self.password = LineEdit()
+        self.password.setPlaceholderText(self.password_hint)
         self.password.setMinimumWidth(210)
-        self.password_hash = password_hash
-        self.dialog_title = dialog_title
-        self.dialog_content = dialog_content
-        self.dialog_button_text = dialog_button_text
+        self.password.setClearButtonEnabled(True)
+        self.password.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password.setMaximumWidth(self.password.maximumWidth() - 45)
+
+        # 添加切换显示/隐藏明文的按钮
+        self.toggle_button = ToolButton(FluentIcon.HIDE)
+        self.toggle_button.setCheckable(True)
+        self.toggle_button.setFixedSize(40, 33)  # 固定按钮大小
+        self.toggle_button.clicked.connect(self._toggle_password_visibility)
+
+        # 创建一个水平布局，将输入框和按钮放在一起
+        self.password_layout = QHBoxLayout()
+        self.password_layout.setContentsMargins(0, 0, 0, 0)  # 去掉内边距
+        self.password_layout.addWidget(self.password)  # 左侧为输入框
+        self.password_layout.addSpacing(5)  # 添加空隙
+        self.password_layout.addWidget(self.toggle_button)  # 右侧为按钮
 
         # 将按钮添加到布局
         self.extra_btn = extra_btn
@@ -68,11 +86,20 @@ class PasswordSwitchSettingCard(SettingCardBase):
             self.hBoxLayout.addSpacing(16)
         self.hBoxLayout.addWidget(self.btn, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
-        self.hBoxLayout.insertWidget(4, self.password, 0, Qt.AlignmentFlag.AlignRight)
+        self.hBoxLayout.insertLayout(4, self.password_layout, 0)
 
-    def _set_extra_btn_value(self, value: bool):
+    def _set_extra_button_enabled(self, value: bool):
         if self.extra_btn is not None:
             self.extra_btn.setEnabled(value)
+
+    def _toggle_password_visibility(self):
+        """切换密码显示模式"""
+        if self.toggle_button.isChecked():
+            self.password.setEchoMode(QLineEdit.EchoMode.Normal)  # 显示明文
+            self.toggle_button.setIcon(FluentIcon.VIEW)
+        else:
+            self.password.setEchoMode(QLineEdit.EchoMode.Password)  # 隐藏明文
+            self.toggle_button.setIcon(FluentIcon.HIDE)
 
     def _on_value_changed(self, value: bool):
         # 更新配置适配器中的值并发出信号
@@ -85,12 +112,12 @@ class PasswordSwitchSettingCard(SettingCardBase):
                 dialog.exec()
 
                 self.setValue(False, emit_signal=False)
-                self._set_extra_btn_value(False)
+                self._set_extra_button_enabled(False)
                 value = False
             else:
-                self._set_extra_btn_value(True)
+                self._set_extra_button_enabled(True)
         else:
-            self._set_extra_btn_value(False)
+            self._set_extra_button_enabled(False)
         if self.adapter is not None:
             self.adapter.set_value(value)
         self.value_changed.emit(value)
@@ -100,8 +127,7 @@ class PasswordSwitchSettingCard(SettingCardBase):
         self.adapter = adapter
         value = self.adapter.get_value()
         self.setValue(value, emit_signal=False)
-        if self.extra_btn is not None:
-            self.extra_btn.setEnabled(value)
+        self._set_extra_button_enabled(value)
 
     def setValue(self, value: bool, emit_signal: bool = True):
         """设置开关状态并更新文本"""

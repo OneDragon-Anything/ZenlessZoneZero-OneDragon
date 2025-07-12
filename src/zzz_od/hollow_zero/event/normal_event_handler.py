@@ -20,7 +20,7 @@ class NormalEventHandler(ZOperation):
         event_name = event.event_name
         ZOperation.__init__(
             self, ctx,
-            op_name=gt(event_name)
+            op_name=gt(event_name, 'game')
         )
 
         self._handlers: List[EventOcrResultHandler] = []

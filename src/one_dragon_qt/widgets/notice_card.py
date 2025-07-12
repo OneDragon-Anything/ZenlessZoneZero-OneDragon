@@ -13,11 +13,111 @@ from PySide6.QtWidgets import (
     QLabel,
     QHBoxLayout,
     QStackedWidget,
+    QFrame,
 )
 from qfluentwidgets import SimpleCardWidget, HorizontalFlipView, ListWidget
 
+from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 from one_dragon_qt.widgets.pivot import CustomListItemDelegate, PhosPivot
+from one_dragon.utils.log_utils import log
 from .label import EllipsisLabel
+
+
+class SkeletonBanner(QFrame):
+    """骨架屏Banner组件 - 简化版"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("SkeletonBanner")
+        self.setFixedSize(345, 160)
+        # 设置基础样式
+        self.setStyleSheet("""
+            SkeletonBanner {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 rgba(240, 240, 240, 200),
+                    stop:0.5 rgba(255, 255, 255, 230),
+                    stop:1 rgba(240, 240, 240, 200));
+                border-radius: 10px;
+                border: 2px solid rgba(200, 200, 200, 100);
+            }
+        """)
+
+
+class SkeletonContent(QWidget):
+    """骨架屏内容组件 - 简化版"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("SkeletonContent")
+        self.setFixedHeight(80)
+        self.setupUI()
+
+    def setupUI(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 5, 10, 5)
+        layout.setSpacing(8)
+
+        # 创建多个骨架条
+        for i in range(2):
+            skeleton_item = QFrame()
+            skeleton_item.setObjectName("SkeletonItem")
+            skeleton_item.setFixedHeight(20)
+            # 不同长度的骨架条
+            if i == 0:
+                skeleton_item.setFixedWidth(280)
+            else:
+                skeleton_item.setFixedWidth(220)
+
+            # 设置骨架条样式
+            skeleton_item.setStyleSheet("""
+                QFrame#SkeletonItem {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                        stop:0 rgba(224, 224, 224, 150),
+                        stop:0.5 rgba(240, 240, 240, 200),
+                        stop:1 rgba(224, 224, 224, 150));
+                    border-radius: 8px;
+                    border: 1px solid rgba(200, 200, 200, 80);
+                }
+            """)
+            layout.addWidget(skeleton_item)
+
+
+class BannerImageLoader(QThread):
+    """异步banner图片加载器"""
+    image_loaded = Signal(QPixmap, str)  # pixmap, url
+    all_images_loaded = Signal()
+
+    def __init__(self, banners, device_pixel_ratio, parent=None):
+        super().__init__(parent)
+        self.banners = banners
+        self.device_pixel_ratio = device_pixel_ratio
+        self.loaded_count = 0
+        self.total_count = len(banners)
+
+    def run(self):
+        """异步加载所有banner图片"""
+        for banner in self.banners:
+            try:
+                response = requests.get(banner["image"]["url"], timeout=5)
+                if response.status_code == 200:
+                    pixmap = QPixmap()
+                    pixmap.loadFromData(response.content)
+
+                    # 缩放图片，确保清晰
+                    size = QSize(pixmap.width(), pixmap.height())
+                    pixmap = pixmap.scaled(
+                        size * self.device_pixel_ratio,  # 按设备像素比缩放
+                        Qt.AspectRatioMode.IgnoreAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                    pixmap.setDevicePixelRatio(self.device_pixel_ratio)  # 设置设备像素比
+                    self.image_loaded.emit(pixmap, banner["image"]["link"])
+            except Exception as e:
+                log.error(f"加载banner图片失败: {e}")
+
+            self.loaded_count += 1
+
+        self.all_images_loaded.emit()
 
 
 # 增加了缓存机制, 有效期为3天, 避免每次都请求数据
@@ -74,7 +174,7 @@ class DataFetcher(QThread):
                 with open(file_path, "wb") as file:
                     file.write(response.content)
             except requests.RequestException as e:
-                print(f"Failed to download {file_url}: {e}")
+                log.error(f"下载相关文件失败: {e}")
 
 
 class NoticeCard(SimpleCardWidget):
@@ -85,6 +185,10 @@ class NoticeCard(SimpleCardWidget):
         self.mainLayout = QVBoxLayout(self)
         self.mainLayout.setContentsMargins(3, 3, 0, 0)
         self.mainLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # 骨架屏组件
+        self.skeleton_banner = SkeletonBanner(self)
+        self.skeleton_content = SkeletonContent(self)
 
         self.error_label = QLabel("无法获取数据")
         self.error_label.setWordWrap(True)
@@ -97,11 +201,46 @@ class NoticeCard(SimpleCardWidget):
             [],
             {"announces": [], "activities": [], "infos": []},
         )
+        self._banner_loader = None
+        self._is_loading_banners = False
+
         self.setup_ui()
+
+        # 在setup_ui之后添加骨架屏到布局
+        self.mainLayout.insertWidget(0, self.skeleton_banner)  # 在第一个位置插入
+        self.mainLayout.insertWidget(1, self.skeleton_content)  # 在第二个位置插入
+
+        self.show_skeleton()  # 初始显示骨架屏
         self.fetch_data()
 
     def _normalBackgroundColor(self):
         return QColor(255, 255, 255, 13)
+
+    def show_skeleton(self):
+        """显示骨架屏"""
+        self.skeleton_banner.show()
+        self.skeleton_content.show()
+        # 确保骨架屏在最前面
+        self.skeleton_banner.raise_()
+        self.skeleton_content.raise_()
+
+        if hasattr(self, 'flipView'):
+            self.flipView.hide()
+        if hasattr(self, 'pivot'):
+            self.pivot.hide()
+        if hasattr(self, 'stackedWidget'):
+            self.stackedWidget.hide()
+
+    def hide_skeleton(self):
+        """隐藏骨架屏"""
+        self.skeleton_banner.hide()
+        self.skeleton_content.hide()
+        if hasattr(self, 'flipView'):
+            self.flipView.show()
+        if hasattr(self, 'pivot'):
+            self.pivot.show()
+        if hasattr(self, 'stackedWidget'):
+            self.stackedWidget.show()
 
     def fetch_data(self):
         self.fetcher = DataFetcher()
@@ -110,37 +249,63 @@ class NoticeCard(SimpleCardWidget):
 
     def handle_data(self, content):
         if "error" in content:
+            self.hide_skeleton()  # 隐藏骨架屏
             self.error_label.setText(f"无法获取数据: {content['error']}")
             self.error_label.setFixedSize(330, 160)
             self.error_label.show()
-            self.flipView.hide()
+            if hasattr(self, 'flipView'):
+                self.flipView.hide()
             self.update_ui()
             return
-        self.load_banners(content["data"]["content"]["banners"])
+        self.load_banners_async(content["data"]["content"]["banners"])
         self.load_posts(content["data"]["content"]["posts"])
         self.error_label.hide()
+        # banner加载时会自动隐藏骨架屏，这里不需要重复调用
         self.update_ui()
 
-    def load_banners(self, banners):
-        pixel_ratio = self.devicePixelRatio()  # 获取设备像素比
-        for banner in banners:
-            try:
-                response = requests.get(banner["image"]["url"])
-                pixmap = QPixmap()
-                pixmap.loadFromData(response.content)
+    def load_banners_async(self, banners):
+        """
+        异步加载banner图片
+        """
+        if self._is_loading_banners or not banners:
+            return
 
-                # 缩放图片，确保清晰
-                size = QSize(pixmap.width(), pixmap.height())
-                pixmap = pixmap.scaled(
-                    size * pixel_ratio,  # 按设备像素比缩放
-                    Qt.AspectRatioMode.IgnoreAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation,
-                )
-                pixmap.setDevicePixelRatio(pixel_ratio)  # 设置设备像素比
-                self.banners.append(pixmap)
-                self.banner_urls.append(banner["image"]["link"])
-            except Exception as e:
-                print(f"加载图片失败: {e}")
+        # 清空现有的banners，准备加载新的
+        self.banners.clear()
+        self.banner_urls.clear()
+
+        self._is_loading_banners = True
+        pixel_ratio = self.devicePixelRatio()
+
+        self._banner_loader = BannerImageLoader(banners, pixel_ratio, self)
+        self._banner_loader.image_loaded.connect(self._on_banner_image_loaded)
+        self._banner_loader.all_images_loaded.connect(self._on_all_banners_loaded)
+        self._banner_loader.finished.connect(self._on_banner_loading_finished)
+        self._banner_loader.start()
+
+    def _on_banner_image_loaded(self, pixmap: QPixmap, url: str):
+        """单个banner图片加载完成的回调"""
+        self.banners.append(pixmap)
+        self.banner_urls.append(url)
+
+        # 如果这是第一个加载完成的banner，隐藏骨架屏并显示内容
+        if len(self.banners) == 1:
+            self.hide_skeleton()
+
+        # 实时更新UI显示新加载的图片 (单独添加，避免重复)
+        if hasattr(self, 'flipView'):
+            self.flipView.addImages([pixmap])
+
+    def _on_all_banners_loaded(self):
+        """所有banner图片加载完成的回调"""
+        self.update_ui()
+
+    def _on_banner_loading_finished(self):
+        """banner加载线程结束的回调"""
+        self._is_loading_banners = False
+        if self._banner_loader:
+            self._banner_loader.deleteLater()
+            self._banner_loader = None
 
     def load_posts(self, posts):
         post_types = {
@@ -202,11 +367,16 @@ class NoticeCard(SimpleCardWidget):
         self.mainLayout.addWidget(self.stackedWidget)
 
     def update_ui(self):
+        # 清空现有内容，避免重复添加
+        self.flipView.clear()
         self.flipView.addImages(self.banners)
+
+        # 清空并重新添加posts
         for widget, type in zip(
             [self.activityWidget, self.announceWidget, self.infoWidget],
             ["activities", "announces", "infos"],
         ):
+            widget.clear()
             self.add_posts_to_widget(widget, type)
 
     def scrollNext(self):
@@ -264,3 +434,53 @@ class NoticeCard(SimpleCardWidget):
         layout.setStretch(0, 1)
         layout.setStretch(1, 0)
         return item_widget
+
+
+class NoticeCardContainer(QWidget):
+    """公告卡片容器 - 支持动态显示/隐藏，无需重启"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("NoticeCardContainer")
+
+        # 创建主布局
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
+
+        # 创建公告卡片
+        self.notice_card = NoticeCard()
+        OdQtStyleSheet.NOTICE_CARD.apply(self.notice_card)
+        self.main_layout.addWidget(self.notice_card)
+
+        # 控制状态
+        self._notice_enabled = False
+
+        # 设置固定宽度
+        self.setFixedWidth(351)
+
+        # 初始状态为隐藏
+        self._apply_visibility_state()
+
+    def set_notice_enabled(self, enabled: bool):
+        """设置公告是否启用"""
+        if self._notice_enabled == enabled:
+            return
+
+        self._notice_enabled = enabled
+        self._apply_visibility_state()
+
+    def _apply_visibility_state(self):
+        """应用可见性状态"""
+        if self._notice_enabled:
+            self.notice_card.show()
+            self.show()
+        else:
+            self.notice_card.hide()
+            self.hide()
+
+    def refresh_notice(self):
+        """刷新公告内容"""
+        if self.notice_card is not None and self._notice_enabled:
+            # 重新获取数据
+            self.notice_card.fetch_data()

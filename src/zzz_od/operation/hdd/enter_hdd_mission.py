@@ -19,7 +19,7 @@ class EnterHddMission(ZOperation):
         需要刚进来HDD画面时使用
         :param ctx:
         """
-        ZOperation.__init__(self, ctx, op_name=gt('进入HDD副本', 'ui'))
+        ZOperation.__init__(self, ctx, op_name=gt('进入 HDD 副本'))
 
         self.chapter: str = chapter
         self.mission_type: str = mission_type

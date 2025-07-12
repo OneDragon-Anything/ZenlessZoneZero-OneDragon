@@ -2,6 +2,7 @@ import difflib
 import re
 from typing import Optional, List, Tuple
 
+from one_dragon.utils.i18_utils import gt
 
 _WITH_CHINESE_PATTERN = re.compile(r'[\u4e00-\u9fff]+')
 
@@ -232,3 +233,43 @@ def find_best_match_by_similarity(
         return best_match, highest_score
     else:
         return None, highest_score
+
+
+def is_target_after_ocr_list(
+        target_cn: str,
+        order_cn_list: list[str],
+        ocr_result_list: list[str],
+        gt_mode: str = 'game',
+        cutoff: float = 0.6,
+) -> bool:
+    """
+    根据已知的顺序列表，判断目标字符串是否在当前识别的文本列表后方出现
+
+    通常用于一堆副本中找目标副本的位置
+
+    Args:
+        target_cn: 目标字符串
+        order_cn_list: 已知的有序列表
+        ocr_result_list: 当前画面识别的文本列表
+        gt_mode: 多语言模式
+        cutoff: 相似度阈值
+
+    Returns:
+        bool: 目标字符串是否在当前识别的文本列表后方出现
+    """
+    found_target: bool = False  # 遍历是否已经发现目标
+    found_before_target: bool = False  # 遍历是否发现在目标前的内容
+
+    for order_cn in order_cn_list:
+        if target_cn == order_cn:
+            found_target = True
+            break
+
+        target_idx = find_best_match_by_difflib(gt(order_cn, gt_mode), ocr_result_list, cutoff=cutoff)
+        if target_idx is None or target_idx < 0:
+            continue
+
+        if not found_target:
+            found_before_target = True
+
+    return found_target and found_before_target

@@ -26,7 +26,7 @@ class AutoBattleApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='auto_battle',
-            op_name=gt('自动战斗', 'ui'),
+            op_name=gt('自动战斗'),
             need_ocr=False
         )
 

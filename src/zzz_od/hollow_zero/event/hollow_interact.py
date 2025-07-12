@@ -15,7 +15,7 @@ class HollowInteract(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt(HollowZeroSpecialEvent.NEED_INTERACT.value.event_name)
+            op_name=gt(HollowZeroSpecialEvent.NEED_INTERACT.value.event_name, 'game')
         )
 
     @operation_node(name='交互', is_start_node=True)

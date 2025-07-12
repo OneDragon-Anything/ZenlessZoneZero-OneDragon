@@ -4,6 +4,7 @@ from qfluentwidgets import PrimaryPushButton, FluentIcon, CaptionLabel, LineEdit
 from typing import Optional, List
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.horizontal_setting_card_group import HorizontalSettingCardGroup
@@ -51,11 +52,11 @@ class ChargePlanCard(MultiLineSettingCard):
         self.auto_battle_combo_box = ComboBox()
         self.auto_battle_combo_box.currentIndexChanged.connect(self._on_auto_battle_changed)
 
-        run_times_label = CaptionLabel(text='已运行次数')
+        run_times_label = CaptionLabel(text=gt('已运行次数'))
         self.run_times_input = LineEdit()
         self.run_times_input.textChanged.connect(self._on_run_times_changed)
 
-        plan_times_label = CaptionLabel(text='计划次数')
+        plan_times_label = CaptionLabel(text=gt('计划次数'))
         self.plan_times_input = LineEdit()
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
 
@@ -273,7 +274,7 @@ class ChargePlanInterface(VerticalScrollInterface):
 
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt,self.skip_plan_opt], 6))
 
-        self.cancel_btn = PushButton(icon=FluentIcon.CANCEL, text='撤销')
+        self.cancel_btn = PushButton(icon=FluentIcon.CANCEL, text=gt('撤销'))
         self.cancel_btn.setEnabled(False)
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
 
@@ -300,7 +301,7 @@ class ChargePlanInterface(VerticalScrollInterface):
 
         self.card_list: List[ChargePlanCard] = []
 
-        self.plus_btn = PrimaryPushButton(text='新增')
+        self.plus_btn = PrimaryPushButton(text=gt('新增'))
         self.plus_btn.clicked.connect(self._on_add_clicked)
         self.content_widget.add_widget(self.plus_btn, stretch=1)
 

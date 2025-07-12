@@ -117,12 +117,14 @@ class PcControllerBase(ControllerBase):
             self.keyboard_controller.keyboard.release(keyboard.Key.alt)
         return True
 
-    def get_screenshot(self, independent: bool = False) -> MatLike:
+    def get_screenshot(self, independent: bool = False) -> MatLike | None:
         """
         截图 如果分辨率和默认不一样则进行缩放
         :return: 截图
         """
         rect: Rect = self.game_win.win_rect
+        if rect is None:
+            return None
 
         left = rect.x1
         top = rect.y1

@@ -53,21 +53,29 @@ def find_area_in_screen(ctx: OneDragonContext, screen: MatLike, area: ScreenArea
 
     find: bool = False
     if area.is_text_area:
-        rect = area.rect
-        part = cv2_utils.crop_image_only(screen, rect)
-
-        if area.color_range is None:
-            to_ocr = part
+        if ctx.env_config.ocr_cache:
+            ocr_result_map = ctx.ocr_service.get_ocr_result_list(
+                image=screen,
+                color_range=area.color_range,
+                rect=area.rect
+            )
         else:
-            mask = cv2.inRange(part,
-                               np.array(area.color_range[0], dtype=np.uint8),
-                               np.array(area.color_range[1], dtype=np.uint8))
-            mask = cv2_utils.dilate(mask, 2)
-            to_ocr = cv2.bitwise_and(part, part, mask=mask)
+            rect = area.rect
+            part = cv2_utils.crop_image_only(screen, rect)
 
-        ocr_result_map = ctx.ocr.run_ocr(to_ocr)
+            if area.color_range is None:
+                to_ocr = part
+            else:
+                mask = cv2.inRange(part,
+                                   np.array(area.color_range[0], dtype=np.uint8),
+                                   np.array(area.color_range[1], dtype=np.uint8))
+                mask = cv2_utils.dilate(mask, 2)
+                to_ocr = cv2.bitwise_and(part, part, mask=mask)
+
+            ocr_result_map = ctx.ocr.run_ocr(to_ocr)
+
         for ocr_result, mrl in ocr_result_map.items():
-            if str_utils.find_by_lcs(gt(area.text), ocr_result, percent=area.lcs_percent):
+            if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result, percent=area.lcs_percent):
                 find = True
                 break
     elif area.is_template_area:
@@ -104,7 +112,7 @@ def find_and_click_area(ctx: OneDragonContext, screen: MatLike, screen_name: str
 
         ocr_result_map = ctx.ocr.run_ocr(to_ocr_part)
         for ocr_result, mrl in ocr_result_map.items():
-            if str_utils.find_by_lcs(gt(area.text), ocr_result, percent=area.lcs_percent):
+            if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result, percent=area.lcs_percent):
                 to_click = mrl.max.center + area.left_top
                 if ctx.controller.click(to_click, pc_alt=area.pc_alt):
                     return OcrClickResultEnum.OCR_CLICK_SUCCESS
@@ -153,7 +161,7 @@ def get_match_screen_name(ctx: OneDragonContext, screen: MatLike, screen_name_li
     return None
 
 
-def get_match_screen_name_from_last(ctx: OneDragonContext, screen: MatLike) -> str:
+def get_match_screen_name_from_last(ctx: OneDragonContext, screen: MatLike) -> str | None:
     """
     根据游戏截图 从上次记录的画面开始 匹配一个最合适的画面
     :param ctx: 上下文
@@ -161,35 +169,41 @@ def get_match_screen_name_from_last(ctx: OneDragonContext, screen: MatLike) -> s
     :return: 画面名字
     """
     bfs_list = []
+
     if ctx.screen_loader.current_screen_name is not None:  # 如果有记录上次所在画面 则从这个画面开始搜索
         bfs_list.append(ctx.screen_loader.current_screen_name)
     if ctx.screen_loader.last_screen_name is not None:
         bfs_list.append(ctx.screen_loader.last_screen_name)
-    if len(bfs_list) > 0:
-        bfs_idx = 0
-        while bfs_idx < len(bfs_list):
-            current_screen_name = bfs_list[bfs_idx]
-            bfs_idx += 1
 
-            if is_target_screen(ctx, screen, screen_name=current_screen_name):
-                return current_screen_name
+    if len(bfs_list) == 0:
+        return None
 
-            screen_info = ctx.screen_loader.get_screen(current_screen_name)
-            if screen_info is None:
+    bfs_idx = 0
+    while bfs_idx < len(bfs_list):
+        current_screen_name = bfs_list[bfs_idx]
+        bfs_idx += 1
+
+        if is_target_screen(ctx, screen, screen_name=current_screen_name):
+            return current_screen_name
+
+        screen_info = ctx.screen_loader.get_screen(current_screen_name)
+        if screen_info is None:
+            continue
+        for area in screen_info.area_list:
+            if area.goto_list is None or len(area.goto_list) == 0:
                 continue
-            for area in screen_info.area_list:
-                if area.goto_list is None or len(area.goto_list) == 0:
-                    continue
-                for goto_screen in area.goto_list:
-                    if goto_screen not in bfs_list:
-                        bfs_list.append(goto_screen)
+            for goto_screen in area.goto_list:
+                if goto_screen not in bfs_list:
+                    bfs_list.append(goto_screen)
 
-        # 最后 尝试搜索中没有出现的画面
-        for screen_info in ctx.screen_loader.screen_info_list:
-            if screen_info.screen_name in bfs_list:
-                continue
-            if is_target_screen(ctx, screen, screen_info=screen_info):
-                return screen_info.screen_name
+    # 最后 尝试搜索中没有出现的画面
+    for screen_info in ctx.screen_loader.screen_info_list:
+        if screen_info.screen_name in bfs_list:
+            continue
+        if is_target_screen(ctx, screen, screen_info=screen_info):
+            return screen_info.screen_name
+
+    return None
 
 def is_target_screen(ctx: OneDragonContext, screen: MatLike,
                      screen_name: Optional[str] = None,
@@ -238,6 +252,18 @@ def find_by_ocr(ctx: OneDragonContext, screen: MatLike, target_cn: str,
     """
     if lcs_percent is None:
         lcs_percent = area.lcs_percent
+
+    # 优先使用OCR缓存服务
+    if ctx.env_config.ocr_cache:
+        return ctx.ocr_service.find_text_in_area(
+            image=screen,
+            rect=area.rect,
+            color_range=color_range,
+            target_text=target_cn,
+            threshold=lcs_percent,
+        )
+
+    # 回退到原有方法
     to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
     if color_range is not None:
         mask = cv2.inRange(to_ocr_part, color_range[0], color_range[1])
@@ -248,7 +274,7 @@ def find_by_ocr(ctx: OneDragonContext, screen: MatLike, target_cn: str,
     for ocr_result, mrl in ocr_result_map.items():
         if mrl.max is None:
             continue
-        if str_utils.find_by_lcs(gt(target_cn), ocr_result, percent=lcs_percent):
+        if str_utils.find_by_lcs(gt(target_cn, 'game'), ocr_result, percent=lcs_percent):
             to_click = mrl.max.center
             break
 

@@ -9,6 +9,7 @@ from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
+from one_dragon.utils.i18_utils import gt
 
 _app_preheat_executor = ThreadPoolExecutor(thread_name_prefix='od_app_preheat', max_workers=1)
 _notify_executor = ThreadPoolExecutor(thread_name_prefix='od_app_notify', max_workers=1)
@@ -125,19 +126,19 @@ class Application(Operation):
             return
 
         if is_success is True:
-            status = '成功'
+            status = gt('成功')
             image_source = self.notify_screenshot
         elif is_success is False:
-            status = '失败'
+            status = gt('失败')
             image_source = self.save_screenshot_bytes()
         elif is_success is None:
-            status = '开始'
+            status = gt('开始')
             image_source = None
 
         send_image = getattr(self.ctx.push_config, 'send_image', False)
         image = image_source if send_image else None
 
-        message = f"任务「{app_name}」运行{status}\n"
+        message = f"{gt('任务「')}{app_name}{gt('」运行')}{status}\n"
 
         pusher = Push(self.ctx)
         _notify_executor.submit(pusher.send, message, image)

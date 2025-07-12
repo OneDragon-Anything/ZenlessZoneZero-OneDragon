@@ -18,13 +18,13 @@ echo 正在以管理员权限运行...
 echo -------------------------------
 
 set "MAINPATH=zzz_od\gui\app.py"
-set "ENV_DIR=%~dp0.env"
+set "ENV_DIR=%~dp0.venv"
 
 REM 调用环境配置脚本
 call "%~dp0env.bat"
 set "PYTHONPATH=%~dp0src"
 set "APPPATH=%PYTHONPATH%\%MAINPATH%"
-set "PYTHONUSERBASE=%~dp0.env"
+set "PYTHONUSERBASE=%~dp0.venv"
 
 REM 打印信息
 echo [PASS] PYTHON: %PYTHON%

@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, PushButton, PlainTextEdit, SubtitleLabel, BodyLabel, FluentThemeColor
+from qfluentwidgets import FluentIcon, FluentThemeColor, PlainTextEdit, SubtitleLabel, BodyLabel, \
+     PushButton, ToolButton
 from typing import List, Optional
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -46,23 +47,23 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         widget.add_widget(btn_row)
 
         self.existed_yml_btn = ComboBox()
-        self.existed_yml_btn.setPlaceholderText(gt('选择已有', 'ui'))
+        self.existed_yml_btn.setPlaceholderText(gt('选择已有'))
         self.existed_yml_btn.currentIndexChanged.connect(self._on_choose_existed_yml)
         btn_row.add_widget(self.existed_yml_btn)
 
-        self.create_btn = PushButton(text=gt('新建', 'ui'))
+        self.create_btn = PushButton(text=gt('新建'))
         self.create_btn.clicked.connect(self._on_create_clicked)
         btn_row.add_widget(self.create_btn)
 
-        self.copy_btn = PushButton(text=gt('复制', 'ui'))
+        self.copy_btn = PushButton(text=gt('复制'))
         self.copy_btn.clicked.connect(self._on_copy_clicked)
         btn_row.add_widget(self.copy_btn)
 
-        self.delete_btn = PushButton(text=gt('删除', 'ui'))
+        self.delete_btn = ToolButton(FluentIcon.DELETE)
         self.delete_btn.clicked.connect(self._on_delete_clicked)
         btn_row.add_widget(self.delete_btn)
 
-        self.cancel_btn = PushButton(text=gt('取消', 'ui'))
+        self.cancel_btn = PushButton(text=gt('取消'))
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
         btn_row.add_widget(self.cancel_btn)
 
@@ -80,13 +81,17 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         widget.add_widget(self.predefined_team_opt)
 
         self.priority_team_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='当期UP代理人',
-                                                   content='可领额外奖励时 优先选择包含当期UP的编队 覆盖预备编队选项')
+                                                   content='每周第1次 优先选择包含当期UP的编队 覆盖预备编队选项')
         widget.add_widget(self.priority_team_opt)
 
         self.auto_battle_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='自动战斗',
                                                    content='预备编队使用游戏内配队时生效')
         self.auto_battle_opt.value_changed.connect(self._on_auto_battle_config_changed)
         widget.add_widget(self.auto_battle_opt)
+
+        self.investigation_strategy_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='调查战略',
+                                                              options_enum=LostVoidPeriodBuffNo)
+        widget.add_widget(self.investigation_strategy_opt)
 
         self.period_buff_no_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='周期增益',
                                                       options_enum=LostVoidPeriodBuffNo)
@@ -97,7 +102,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         widget.add_widget(self.store_blood_opt)
 
         self.store_blood_min_opt = TextSettingCard(icon=FluentIcon.GAME, title='商店-使用血量购买',
-                                                     content='血量 ≥ x% 时 才会进行购买')
+                                                   content='血量 ≥ x% 时 才会进行购买')
         widget.add_widget(self.store_blood_min_opt)
 
         self.priority_new_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='优先选择NEW!藏品',
@@ -105,11 +110,11 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         widget.add_widget(self.priority_new_opt)
 
         self.buy_only_priority_1_opt = TextSettingCard(icon=FluentIcon.GAME, title='只购买第一优先级',
-                                                     content='刷新多少次数内 只购买第一优先级内的藏品')
+                                                       content='刷新多少次数内 只购买第一优先级内的藏品')
         widget.add_widget(self.buy_only_priority_1_opt)
 
         self.buy_only_priority_2_opt = TextSettingCard(icon=FluentIcon.GAME, title='只购买第二优先级',
-                                                     content='刷新多少次数内 只购买第二优先级内的藏品')
+                                                       content='刷新多少次数内 只购买第二优先级内的藏品')
         widget.add_widget(self.buy_only_priority_2_opt)
 
         widget.add_stretch(1)
@@ -120,7 +125,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
 
         artifact_priority_widget = Column()
         widget.add_widget(artifact_priority_widget)
-        artifact_priority_title = SubtitleLabel(text='藏品第一优先级')
+        artifact_priority_title = SubtitleLabel(text=gt('藏品第一优先级'))
         artifact_priority_widget.v_layout.addWidget(artifact_priority_title)
         self.artifact_priority_input = PlainTextEdit()
         self.artifact_priority_input.textChanged.connect(self._on_artifact_priority_changed)
@@ -128,7 +133,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
 
         artifact_priority_widget_2 = Column()
         widget.add_widget(artifact_priority_widget_2)
-        artifact_priority_title_2 = SubtitleLabel(text='藏品第二优先级(无刷新时考虑)')
+        artifact_priority_title_2 = SubtitleLabel(text=gt('藏品第二优先级 (无刷新时考虑)'))
         artifact_priority_widget.v_layout.addWidget(artifact_priority_title_2)
         self.artifact_priority_input_2 = PlainTextEdit()
         self.artifact_priority_input_2.textChanged.connect(self._on_artifact_priority_2_changed)
@@ -136,7 +141,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
 
         region_priority_widget = Column()
         widget.add_widget(region_priority_widget)
-        region_priority_title = SubtitleLabel(text='区域类型优先级')
+        region_priority_title = SubtitleLabel(text=gt('区域类型优先级'))
         region_priority_widget.v_layout.addWidget(region_priority_title)
         self.region_type_priority_input = PlainTextEdit()
         self.region_type_priority_input.textChanged.connect(self._on_region_type_priority_changed)
@@ -153,6 +158,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         """
         VerticalScrollInterface.on_interface_shown(self)
         self.ctx.lost_void.load_artifact_data()
+        self.ctx.lost_void.load_investigation_strategy()
         self._update_whole_display()
 
     def _update_whole_display(self) -> None:
@@ -173,6 +179,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.predefined_team_opt.setDisabled(not chosen or is_sample)
         self.priority_team_opt.setDisabled(not chosen or is_sample)
         self.auto_battle_opt.setDisabled(not chosen or is_sample)
+        self.investigation_strategy_opt.setDisabled(not chosen or is_sample)
         self.period_buff_no_opt.setDisabled(not chosen or is_sample)
         self.store_blood_opt.setDisabled(not chosen or is_sample)
         self.store_blood_min_opt.setDisabled(not chosen or is_sample)
@@ -188,12 +195,17 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
                        [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list])
         self.predefined_team_opt.set_options_by_list(team_config_list)
         self.auto_battle_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
+        self.investigation_strategy_opt.set_options_by_list([
+            ConfigItem(i.strategy_name)
+            for i in self.ctx.lost_void.investigation_strategy_list
+        ])
 
         if chosen:
             self.name_opt.setValue(self.chosen_config.module_name)
             self.predefined_team_opt.init_with_adapter(self.chosen_config.get_prop_adapter('predefined_team_idx'))
             self.priority_team_opt.init_with_adapter(self.chosen_config.get_prop_adapter('choose_team_by_priority'))
             self.auto_battle_opt.setValue(self.chosen_config.auto_battle)
+            self.investigation_strategy_opt.init_with_adapter(self.chosen_config.get_prop_adapter('investigation_strategy'))
             self.period_buff_no_opt.init_with_adapter(self.chosen_config.get_prop_adapter('period_buff_no'))
             self.store_blood_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_blood'))
             self.store_blood_min_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_blood_min', getter_convert='str', setter_convert='int'))
@@ -229,7 +241,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         for config in config_list:
             self.existed_yml_btn.addItem(text=config.module_name, icon=None, userData=config)
         self.existed_yml_btn.setCurrentIndex(-1)
-        self.existed_yml_btn.setPlaceholderText(gt('选择已有', 'ui'))
+        self.existed_yml_btn.setPlaceholderText(gt('选择已有'))
         self.existed_yml_btn.blockSignals(False)
 
     def _on_choose_existed_yml(self, idx: int):

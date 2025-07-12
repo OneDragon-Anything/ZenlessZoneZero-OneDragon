@@ -26,7 +26,7 @@ class CommissionAssistantApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='commission_assistant',
-            op_name=gt('委托助手', 'ui'),
+            op_name=gt('委托助手'),
         )
 
         self.run_mode: int = 0  # 0=对话 1=闪避 2=自动战斗
@@ -295,7 +295,7 @@ class CommissionAssistantApp(ZApplication):
         part = cv2_utils.crop_image_only(screen, area.rect)
         ocr_result_map = self.ctx.ocr.run_ocr(part)
         ocr_result_list = list(ocr_result_map.keys())
-        if str_utils.find_best_match_by_difflib(gt('点击按键抛竿'), ocr_result_list) is None:
+        if str_utils.find_best_match_by_difflib(gt('点击按键抛竿', 'game'), ocr_result_list) is None:
             return None
 
         self.fishing_done = False
@@ -313,7 +313,7 @@ class CommissionAssistantApp(ZApplication):
         ocr_result_map = self.ctx.ocr.run_ocr(part)
 
         target_word_list = [
-            gt(i)
+            gt(i, 'game')
             for i in ['菜单', '自动', '跳过']
         ]
 
@@ -359,11 +359,11 @@ class CommissionAssistantApp(ZApplication):
         ocr_result_list = list(ocr_result_map.keys())
 
         target_command_list = [
-            gt('点击按键抛竿'),
-            gt('等待上鱼'),
-            gt('正确时机点击按键上鱼'),
-            gt('连点'),
-            gt('长按'),
+            gt('点击按键抛竿', 'game'),
+            gt('等待上鱼', 'game'),
+            gt('正确时机点击按键上鱼', 'game'),
+            gt('连点', 'game'),
+            gt('长按', 'game'),
         ]
         command_idx, _ = str_utils.find_most_similar(target_command_list, ocr_result_list)
 

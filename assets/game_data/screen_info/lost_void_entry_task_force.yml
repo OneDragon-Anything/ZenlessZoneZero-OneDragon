@@ -74,3 +74,17 @@ area_list:
   template_match_threshold: 0.7
   color_range: null
   goto_list: []
+- area_name: 按钮-调查战略
+  id_mark: false
+  pc_rect:
+  - 1708
+  - 198
+  - 1796
+  - 296
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []

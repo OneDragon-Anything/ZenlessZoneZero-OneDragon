@@ -12,10 +12,12 @@ DEFAULT_GIT_PATH = os.path.join(DEFAULT_GIT_DIR_PATH, 'cmd', 'git.exe')  # 默�
 DEFAULT_UV_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'uv')  # 默认的uv文件夹路径
 DEFAULT_UV_PATH = os.path.join(DEFAULT_UV_DIR_PATH, 'uv.exe')  # 默认的uv.exe文件路径
 DEFAULT_PYTHON_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'python')  # 默认的python文件夹路径
+DEFAULT_WHEELS_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'wheels')  # 默认的wheels文件夹路径
 DEFAULT_VENV_DIR_PATH = os_utils.get_path_under_work_dir('.venv')  # 默认的虚拟环境文件夹路径
 DEFAULT_VENV_PYTHON_PATH = os.path.join(DEFAULT_VENV_DIR_PATH, 'Scripts', 'python.exe')  # 默认的虚拟环境中python.exe的路径
 
 GH_PROXY_URL = 'https://ghfast.top'  # 免费代理的路径
+
 
 class ProxyTypeEnum(Enum):
 
@@ -23,10 +25,12 @@ class ProxyTypeEnum(Enum):
     PERSONAL = ConfigItem('个人代理', 'personal')
     GHPROXY = ConfigItem('GitHub免费代理', 'ghproxy')
 
+
 class RepositoryTypeEnum(Enum):
 
     GITHUB = ConfigItem('GitHub')
     GITEE = ConfigItem('Gitee')
+
 
 class RegionEnum(Enum):
 
@@ -54,11 +58,13 @@ class GitBranchEnum(Enum):
 
 
 class CpythonSourceEnum(Enum):
-    GITHUB = ConfigItem('官方 (GitHub)', 'https://github.com/astral-sh/python-build-standalone/releases/download')
-    NJU = ConfigItem('南京大学', 'https://mirror.nju.edu.cn/github-release/indygreg/python-build-standalone')
+
+    GITHUB = ConfigItem('GitHub', 'https://github.com/astral-sh/python-build-standalone/releases/download')
+    GITEE = ConfigItem('Gitee', 'https://gitee.com/OneDragon-Anything/python-build-standalone/releases/download')
 
 
 class EnvSourceEnum(Enum):
+
     GITHUB = ConfigItem('GitHub', 'https://github.com/OneDragon-Anything/OneDragon-Env/releases/download')
     GITEE = ConfigItem('Gitee', 'https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download')
 
@@ -240,7 +246,7 @@ class EnvConfig(YamlConfig):
         cpython-build-standalone 源
         :return:
         """
-        return self.get('cpython_source', CpythonSourceEnum.NJU.value.value)
+        return self.get('cpython_source', CpythonSourceEnum.GITEE.value.value)
 
     @cpython_source.setter
     def cpython_source(self, new_value: str) -> None:
@@ -476,3 +482,15 @@ class EnvConfig(YamlConfig):
         else:
             os.environ['HTTP_PROXY'] = ""
             os.environ['HTTPS_PROXY'] = ""
+
+    @property
+    def ocr_cache(self) -> bool:
+        """
+        Returns:
+            是否启用OCR缓存
+        """
+        return self.get('ocr_cache', False)
+
+    @ocr_cache.setter
+    def ocr_cache(self, new_value: bool) -> None:
+        self.update('ocr_cache', new_value, save=True)

@@ -11,7 +11,7 @@ from zzz_od.context.zzz_context import ZContext
 class DisableAutoHDR(Operation):
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
-        Operation.__init__(self, ctx, op_name=gt('禁用HDR', 'ui'),
+        Operation.__init__(self, ctx, op_name=gt('禁用HDR'),
                           need_check_game_win=False)
 
     @operation_node(name='禁用自动HDR', is_start_node=True)
@@ -50,7 +50,7 @@ class DisableAutoHDR(Operation):
 class EnableAutoHDR(Operation):
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
-        Operation.__init__(self, ctx, op_name=gt('恢复HDR', 'ui'),
+        Operation.__init__(self, ctx, op_name=gt('恢复HDR'),
                           need_check_game_win=True)
 
     @operation_node(name='启用自动HDR', is_start_node=True)

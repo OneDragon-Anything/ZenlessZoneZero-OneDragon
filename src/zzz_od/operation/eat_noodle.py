@@ -20,7 +20,7 @@ class EatNoodle(ZOperation):
         :param ctx:
         """
         ZOperation.__init__(self, ctx,
-                            op_name='%s %s' % (gt('吃拉面', 'ui'), gt(noodle_name))
+                            op_name='%s %s' % (gt('吃拉面'), gt(noodle_name, 'game'))
                             )
         self.noodle_name: str = noodle_name
 

@@ -2,6 +2,7 @@ import time
 import urllib.request
 from typing import Optional, Callable
 
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
 
@@ -33,24 +34,24 @@ def download_file(download_url: str, save_file_path: str,
         downloaded = block_num * block_size / 1024.0 / 1024.0
         total_size_mb = total_size / 1024.0 / 1024.0
         progress = downloaded / total_size_mb
-        msg = f"正在下载 {downloaded:.2f}/{total_size_mb:.2f} MB ({progress * 100:.2f}%)"
+        msg = f"{gt('正在下载')} {downloaded:.2f}/{total_size_mb:.2f} MB ({progress * 100:.2f}%)"
         log.info(msg)
         if progress_callback is not None:
             progress_callback(progress, msg)
 
     try:
-        msg = f'开始下载 {download_url}'
+        msg = f"{gt('开始下载')} {download_url}"
         log.info(msg)
         if progress_callback is not None:
             progress_callback(0, msg)
         _, __ = urllib.request.urlretrieve(download_url, save_file_path, log_download_progress)
-        msg = f'下载完成 {save_file_path}'
+        msg = f"{gt('下载完成')} {save_file_path}"
         log.info(msg)
         if progress_callback is not None:
             progress_callback(1, msg)
         return True
     except Exception as e:
-        msg = f'下载失败 {e}'
+        msg = f"{gt('下载失败')} {e}"
         if progress_callback is not None:
             progress_callback(0, msg)
         log.error(msg, exc_info=True)

@@ -17,7 +17,7 @@ class ArcadeSnakeSuicide(ZOperation):
         :param ctx:
         """
         ZOperation.__init__(self, ctx,
-                            op_name=gt('蛇对蛇自杀', 'ui')
+                            op_name=gt('蛇对蛇自杀')
                             )
         self.total_cnt: int = total_cnt  # 所需的次数
         self.finish_cnt: int = 0  # 完成次数

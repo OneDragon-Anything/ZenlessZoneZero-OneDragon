@@ -37,7 +37,7 @@ class CoffeeApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='coffee',
-            op_name=gt('咖啡店', 'ui'),
+            op_name=gt('咖啡店'),
             run_record=ctx.coffee_record,
             retry_in_od=True,  # 传送落地有可能会歪 重试
             need_notify=True,
@@ -123,11 +123,11 @@ class CoffeeApp(ZApplication):
 
         for lcs_percent in [0.8, 0.6, 0.4]:
             for coffee_name in to_choose_list:
-                results = difflib.get_close_matches(gt(coffee_name), ocr_result_list, n=1)
+                results = difflib.get_close_matches(gt(coffee_name, 'game'), ocr_result_list, n=1)
                 if results is None or len(results) == 0:
                     continue
 
-                if not str_utils.find_by_lcs(gt(coffee_name), results[0], percent=lcs_percent):
+                if not str_utils.find_by_lcs(gt(coffee_name, 'game'), results[0], percent=lcs_percent):
                     continue
 
                 # 对于浓淡二字特殊判断

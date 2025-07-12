@@ -13,7 +13,7 @@ class WaitNormalWorld(ZOperation):
         :param ctx:
         """
         ZOperation.__init__(self, ctx,
-                            op_name=gt('等待大世界画面', 'ui')
+                            op_name=gt('等待大世界画面')
                             )
 
     def handle_init(self):

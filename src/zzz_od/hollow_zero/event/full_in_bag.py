@@ -15,7 +15,7 @@ class FullInBag(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt(HollowZeroSpecialEvent.FULL_IN_BAG.value.event_name)
+            op_name=gt(HollowZeroSpecialEvent.FULL_IN_BAG.value.event_name, 'game')
         )
 
     @operation_node(name='丢弃', is_start_node=True)

@@ -39,7 +39,7 @@ class InstanceRun(Enum):
 class OneDragonConfig(YamlConfig):
 
     def __init__(self):
-        YamlConfig.__init__(self, 'zzz_one_dragon', sample=False)
+        YamlConfig.__init__(self, 'one_dragon', backup_model_name='zzz_one_dragon')  # TODO 2025.12时可以删掉 backup_model_name
         self.instance_list: List[OneDragonInstance] = []
         self._temp_instance_indices: Optional[List[int]] = None
         self._init_instance_list()
@@ -81,7 +81,7 @@ class OneDragonConfig(YamlConfig):
             if not existed:
                 break
 
-        new_instance = OneDragonInstance(idx, '账号%02d' % idx, first, True)
+        new_instance = OneDragonInstance(idx, '%02d' % idx, first, True)
         self.instance_list.append(new_instance)
 
         dict_instance_list = self.dict_instance_list

@@ -17,7 +17,7 @@ class RiduWeeklyApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='ridu_weekly',
-            op_name=gt('丽都周纪(领奖励)', 'ui'),
+            op_name=gt('丽都周纪(领奖励)'),
             run_record=ctx.ridu_weekly_record,
             retry_in_od=True,  # 传送落地有可能会歪 重试
             need_notify=True,

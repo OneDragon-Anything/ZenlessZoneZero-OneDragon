@@ -74,7 +74,7 @@ class AppRunInterface(VerticalScrollInterface):
             content_layout.addWidget(widget_at_top)
 
         self.state_text = SubtitleLabel()
-        self.state_text.setText('%s %s' % (gt('当前状态', 'ui'), self.ctx.context_running_status_text))
+        self.state_text.setText('%s %s' % (gt('当前状态'), self.ctx.context_running_status_text))
         self.state_text.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         content_layout.addWidget(self.state_text)
 
@@ -84,14 +84,14 @@ class AppRunInterface(VerticalScrollInterface):
         content_layout.addWidget(btn_row_widget)
 
         self.start_btn = PrimaryPushButton(
-            text='%s %s' % (gt('开始', 'ui'), self.ctx.key_start_running.upper()),
+            text='%s %s' % (gt('开始'), self.ctx.key_start_running.upper()),
             icon=FluentIcon.PLAY,
         )
         self.start_btn.clicked.connect(self._on_start_clicked)
         btn_row_layout.addWidget(self.start_btn)
 
         self.stop_btn = PushButton(
-            text='%s %s' % (gt('停止', 'ui'), self.ctx.key_stop_running.upper()),
+            text='%s %s' % (gt('停止'), self.ctx.key_stop_running.upper()),
             icon=FluentIcon.CLOSE
         )
         self.stop_btn.clicked.connect(self._on_stop_clicked)
@@ -163,21 +163,21 @@ class AppRunInterface(VerticalScrollInterface):
         :return:
         """
         if self.ctx.is_context_running:
-            text = gt('暂停', 'ui')
+            text = gt('暂停')
             icon = FluentIcon.PAUSE
             self.log_card.start()  # 开始日志更新
         elif self.ctx.is_context_pause:
-            text = gt('继续', 'ui')
+            text = gt('继续')
             icon = FluentIcon.PLAY
             self.log_card.pause()  # 暂停日志更新
         else:
-            text = gt('开始', 'ui')
+            text = gt('开始')
             icon = FluentIcon.PLAY
             self.log_card.stop()  # 停止日志更新
 
         self.start_btn.setText('%s %s' % (text, self.ctx.key_start_running.upper()))
         self.start_btn.setIcon(icon)
-        self.state_text.setText('%s %s' % (gt('当前状态', 'ui'), self.ctx.context_running_status_text))
+        self.state_text.setText('%s %s' % (gt('当前状态'), self.ctx.context_running_status_text))
 
     def _on_start_clicked(self) -> None:
         if self.ctx.is_context_stop:

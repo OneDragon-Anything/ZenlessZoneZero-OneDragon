@@ -62,6 +62,22 @@ class GameAccountConfig(YamlConfig):
         self.update('game_region', new_value)
 
     @property
+    def use_custom_win_title(self) -> bool:
+        return self.get('use_custom_win_title', False)
+
+    @use_custom_win_title.setter
+    def use_custom_win_title(self, new_value: bool) -> None:
+        self.update('use_custom_win_title', new_value)
+
+    @property
+    def custom_win_title(self) -> str:
+        return self.get('custom_win_title', '')
+
+    @custom_win_title.setter
+    def custom_win_title(self, new_value: str) -> None:
+        self.update('custom_win_title', new_value)
+
+    @property
     def game_path(self) -> str:
         return self.get('game_path',
                         '' if self.default_game_path is None else self.default_game_path)

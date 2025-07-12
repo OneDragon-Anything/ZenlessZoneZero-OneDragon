@@ -99,7 +99,7 @@ class LostVoidChooseCommon(ZOperation):
 
         artifact_name_list: list[str] = []
         for art in self.ctx.lost_void.all_artifact_list:
-            artifact_name_list.append(gt(art.display_name))
+            artifact_name_list.append(gt(art.display_name, 'game'))
 
         artifact_pos_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_pos(
             screen,
@@ -130,14 +130,14 @@ class LostVoidChooseCommon(ZOperation):
         ocr_result = self.ctx.ocr.run_ocr(part)
 
         target_result_list = [
-            gt('请选择1项'),
-            gt('请选择2项'),
-            gt('请选择1个武备'),
-            gt('获得武备'),
-            gt('武备已升级'),
-            gt('获得战利品'),
-            gt('请选择1张卡牌'),
-            gt('请选择战术棱镜方案强化的方向'),
+            gt('请选择1项', 'game'),
+            gt('请选择2项', 'game'),
+            gt('请选择1个武备', 'game'),
+            gt('获得武备', 'game'),
+            gt('武备已升级', 'game'),
+            gt('获得战利品', 'game'),
+            gt('请选择1张卡牌', 'game'),
+            gt('请选择战术棱镜方案强化的方向', 'game'),
         ]
 
         result = self.round_by_find_area(screen, '迷失之地-通用选择', '区域-武备标识')  # 下方的GEAR

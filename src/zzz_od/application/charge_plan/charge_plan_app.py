@@ -26,7 +26,7 @@ class ChargePlanApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='charge_plan',
-            op_name=gt('体力刷本', 'ui'),
+            op_name=gt('体力刷本'),
             run_record=ctx.charge_plan_run_record,
             need_notify=True,
         )

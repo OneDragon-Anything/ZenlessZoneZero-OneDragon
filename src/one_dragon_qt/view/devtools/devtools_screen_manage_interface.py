@@ -70,24 +70,24 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         widget.add_widget(btn_row)
 
         self.existed_yml_btn = EditableComboBox()
-        self.existed_yml_btn.setPlaceholderText(gt('选择已有', 'ui'))
+        self.existed_yml_btn.setPlaceholderText(gt('选择已有'))
         self.existed_yml_btn.currentTextChanged.connect(self._on_choose_existed_yml)
         self._update_existed_yml_options()
         btn_row.add_widget(self.existed_yml_btn)
 
-        self.create_btn = PushButton(text=gt('新建', 'ui'))
+        self.create_btn = PushButton(text=gt('新建'))
         self.create_btn.clicked.connect(self._on_create_clicked)
         btn_row.add_widget(self.create_btn)
 
-        self.save_btn = PushButton(text=gt('保存', 'ui'))
+        self.save_btn = PushButton(text=gt('保存'))
         self.save_btn.clicked.connect(self._on_save_clicked)
         btn_row.add_widget(self.save_btn)
 
-        self.delete_btn = PushButton(text=gt('删除', 'ui'))
+        self.delete_btn = ToolButton(FluentIcon.DELETE)
         self.delete_btn.clicked.connect(self._on_delete_clicked)
         btn_row.add_widget(self.delete_btn)
 
-        self.cancel_btn = PushButton(text=gt('取消', 'ui'))
+        self.cancel_btn = PushButton(text=gt('取消'))
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
         btn_row.add_widget(self.cancel_btn)
 
@@ -96,11 +96,11 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         img_btn_row = Row()
         widget.add_widget(img_btn_row)
 
-        self.choose_image_btn = PushButton(text=gt('选择图片', 'ui'))
+        self.choose_image_btn = PushButton(text=gt('选择图片'))
         self.choose_image_btn.clicked.connect(self.choose_existed_image)
         img_btn_row.add_widget(self.choose_image_btn)
 
-        self.choose_template_btn = PushButton(text=gt('导入模板区域', 'ui'))
+        self.choose_template_btn = PushButton(text=gt('导入模板区域'))
         self.choose_template_btn.clicked.connect(self.choose_existed_template)
         img_btn_row.add_widget(self.choose_template_btn)
 
@@ -126,16 +126,16 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         self.area_table.setColumnCount(10)
         self.area_table.verticalHeader().hide()
         self.area_table.setHorizontalHeaderLabels([
-            gt('操作', 'ui'),
-            gt('区域名称', 'ui'),
-            gt('位置', 'ui'),
-            gt('文本', 'ui'),
-            gt('阈值', 'ui'),
-            gt('模板', 'ui'),
-            gt('阈值', 'ui'),
-            gt('颜色范围', 'ui'),
-            gt('唯一标识', 'ui'),
-            gt('前往画面', 'ui')
+            gt('操作'),
+            gt('区域名称'),
+            gt('位置'),
+            gt('文本'),
+            gt('阈值'),
+            gt('模板'),
+            gt('阈值'),
+            gt('颜色范围'),
+            gt('唯一标识'),
+            gt('前往画面')
         ])
         self.area_table.setColumnWidth(0, 40)  # 操作
         self.area_table.setColumnWidth(2, 200)  # 位置
@@ -358,7 +358,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
 
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            gt('选择图片', 'ui'),
+            gt('选择图片'),
             dir=default_dir,
             filter="PNG (*.png)",
         )
@@ -394,7 +394,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
 
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            gt('选择模板配置文件', 'ui'),
+            gt('选择模板配置文件'),
             dir=default_dir,
             filter="YML (*.yml)",
         )

@@ -2,7 +2,7 @@
 author: "笙梦昱"
 thanks: "巡夜子 starlight"
 homepage: "https://b23.tv/QBbqzRK"
-version: "1.0"
+version: "1.1"
 team_list:
   - ["赛斯", "露西", "简"]
   - ["赛斯", "凯撒", "简"]
@@ -156,8 +156,9 @@ t-switch-jane: &t-switch-jane
   # 注意清除其他相关的换人状态
   - op_name: "清除状态"
     state_list: ["自定义-招架支援", "自定义-连携技换人", "自定义-快速支援换人", "自定义-下场", "自定义-动作不打断"]
-  - op_name: "等待秒数"
-    seconds: 0.1
+  - op_name: "按键-普通攻击"
+    post_delay: 0.05
+    repeat: 2
 
 scenes:
 
@@ -348,7 +349,7 @@ scenes:
             operations: *t-chain-right
 
   - triggers: []
-    interval: 0.5
+    interval: 0.25
     handlers:
 
       # 当前角色动作已经做完 可以切换角色了
@@ -529,7 +530,22 @@ scenes:
 
           # 有足够能量的话 就打一个特殊技能上盾再走
           # 有可能打出第一个盾击后 还不能切换到主C 这时候就不打第二个盾击浪费能量了
-          - states: "[前台-能量]{40, 120}"
+          - states: "[前台-能量]{40, 120} & ![自定义-凯撒-招架反击, 0, 3]"
+            operations:
+              - op_name: "设置状态"
+                state: "自定义-动作不打断"
+              - op_name: "按键-特殊攻击"
+                post_delay: 0.1
+                repeat: 7
+              - op_name: "设置状态"
+                state: "自定义-凯撒-战意激昂"
+              - op_name: "设置状态"
+                state: "自定义-下场"
+              - op_name: "清除状态"
+                state: "自定义-动作不打断"
+
+          # 防呆
+          - states: ""
             operations:
               - op_name: "设置状态"
                 state: "自定义-动作不打断"
@@ -547,6 +563,7 @@ scenes:
       - states: "[前台-赛斯]"
         interrupt_states: ["后台-赛斯"]
         sub_handlers:
+
           - states: "[自定义-闪避]"
             operations:
               - op_name: "按键-普通攻击"
@@ -559,6 +576,8 @@ scenes:
                 pre_delay: 0.15
                 post_delay: 0.15
                 repeat: 2
+              - op_name: "设置状态"
+                state: "自定义-下场"
 
           - states: "[自定义-招架支援]"
             operations:
@@ -586,9 +605,12 @@ scenes:
             operations:
               - op_name: "设置状态"
                 state: "自定义-动作不打断"
+                post_delay: 0.05
+              - op_name: "按键-闪避"
+                post_delay: 0.05
               - op_name: "按键-普通攻击"
                 way: "按下"
-                press: 3
+                press: 1.5
               - op_name: "设置状态"
                 state: "自定义-下场"
               - op_name: "清除状态"
@@ -844,7 +866,17 @@ scenes:
 
               - states: "![自定义-露西-加油, -5, 15] & [后台-露西] & [露西-能量]{65, 120}"
                 operations: *t-switch-lucy
-
+          - states: "![简-萨霍夫跳] & [按键可用-终结技]"
+            operations:
+              - op_name: "设置状态"
+                state: "自定义-动作不打断"
+              - op_name: "按键-终结技"
+                post_delay: 0.1
+                repeat: 20
+              - op_name: "等待秒数"
+                seconds: 2.7
+              - op_name: "清除状态"
+                state: "自定义-动作不打断"
           - states: "![简-狂热心流]{60, 101} & [简-萨霍夫跳]"
             sub_handlers:
               - states: "[简-能量]{80, 120}"
@@ -863,25 +895,13 @@ scenes:
                     post_delay: 0.8
                   - op_name: "设置状态"
                     state_list: ["自定义-下场", "自定义-萨霍夫跳"]
-
-          - states: "![简-萨霍夫跳] & [按键可用-终结技]"
-            operations:
-              - op_name: "设置状态"
-                state: "自定义-动作不打断"
-              - op_name: "按键-终结技"
-                post_delay: 0.1
-                repeat: 20
-              - op_name: "等待秒数"
-                seconds: 3.3
-              - op_name: "清除状态"
-                state: "自定义-动作不打断"
-
           - states: "[简-能量]{70, 120}"
             operations:
               - op_name: "设置状态"
                 state: "自定义-动作不打断"
               - op_name: "按键-特殊攻击"
-                post_delay: 1.2
+                post_delay: 0.1
+                repeat: 12
               - op_name: "清除状态"
                 state: "自定义-动作不打断"
 

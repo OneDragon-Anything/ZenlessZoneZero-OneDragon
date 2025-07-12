@@ -16,7 +16,7 @@ class OpenCompendium(ZOperation):
         ZOperation.__init__(
             self,
             ctx=ctx,
-            op_name=gt('打开快捷手册', 'ui'),
+            op_name=gt('打开快捷手册'),
         )
 
     @operation_node(name='打开菜单', is_start_node=True)

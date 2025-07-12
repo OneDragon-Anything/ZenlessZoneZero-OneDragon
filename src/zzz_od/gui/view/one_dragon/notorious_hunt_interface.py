@@ -4,6 +4,7 @@ from qfluentwidgets import FluentIcon, CaptionLabel, LineEdit
 from typing import List
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiLineSettingCard
@@ -40,11 +41,11 @@ class ChargePlanCard(MultiLineSettingCard):
         self.buff_opt = ComboBox()
         self.buff_opt.currentIndexChanged.connect(self.on_buff_changed)
 
-        run_times_label = CaptionLabel(text='已运行次数')
+        run_times_label = CaptionLabel(text=gt('已运行次数'))
         self.run_times_input = LineEdit()
         self.run_times_input.textChanged.connect(self._on_run_times_changed)
 
-        plan_times_label = CaptionLabel(text='计划次数')
+        plan_times_label = CaptionLabel(text=gt('计划次数'))
         self.plan_times_input = LineEdit()
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
 

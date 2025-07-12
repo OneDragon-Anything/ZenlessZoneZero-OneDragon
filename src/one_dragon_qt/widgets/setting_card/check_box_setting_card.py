@@ -53,7 +53,7 @@ class CheckBoxSettingCard(SettingCardBase):
         :param content: 文本 中文
         :return:
         """
-        SettingCard.setContent(self, gt(content, "ui"))
+        SettingCard.setContent(self, gt(content))
 
     def setValue(self, bool_value: bool) -> None:
         """

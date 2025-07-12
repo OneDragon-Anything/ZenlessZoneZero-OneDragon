@@ -1,4 +1,3 @@
-
 class ContextLazySignal:
     """
     用于存储懒加载的信号状态
@@ -27,3 +26,14 @@ class ContextLazySignal:
     @start_onedragon.setter
     def start_onedragon(self, new_value: bool) -> None:
         self._signals['start_onedragon'] = new_value
+
+    @property
+    def notice_card_config_changed(self) -> bool:
+        """
+        公告卡片配置发生变化
+        """
+        return self._signals.get('notice_card_config_changed', False)
+
+    @notice_card_config_changed.setter
+    def notice_card_config_changed(self, new_value: bool) -> None:
+        self._signals['notice_card_config_changed'] = new_value

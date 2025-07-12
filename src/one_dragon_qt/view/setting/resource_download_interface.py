@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import SettingCardGroup, FluentIcon, HyperlinkCard
+from qfluentwidgets import SettingCardGroup, FluentIcon
 
 from one_dragon.base.config.basic_model_config import get_ocr_opts
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -8,6 +8,7 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.install_card.launcher_install_card import LauncherInstallCard
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.onnx_model_download_card import OnnxModelDownloadCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
@@ -33,15 +34,13 @@ class ResourceDownloadInterface(VerticalScrollInterface):
         return content_widget
 
     def _init_common_group(self) -> SettingCardGroup:
-        group = SettingCardGroup(gt('资源下载', 'ui'))
+        group = SettingCardGroup(gt('资源下载'))
 
-        self.help_opt = HyperlinkCard(icon=FluentIcon.HELP, title='下载说明', text='', url='')
-        self.help_opt.linkButton.hide()
-        self.help_opt.setContent('下载失败时 请尝试到「脚本环境」更改网络代理')
+        self.help_opt = HelpCard(title='下载说明', content='下载失败时 请尝试到「脚本环境」更改网络代理')
         group.addSettingCard(self.help_opt)
 
         self.launcher_opt = LauncherInstallCard(self.ctx)
-        self.launcher_opt.install_btn.setText('下载')
+        self.launcher_opt.install_btn.setText(gt('下载'))
         self.launcher_opt.check_and_update_display()
         group.addSettingCard(self.launcher_opt)
 
@@ -58,7 +57,7 @@ class ResourceDownloadInterface(VerticalScrollInterface):
         pass
 
     def _init_log_group(self) -> SettingCardGroup:
-        log_group = SettingCardGroup(gt('安装日志', 'ui'))
+        log_group = SettingCardGroup(gt('安装日志'))
         self.log_card = LogDisplayCard()
         log_group.addSettingCard(self.log_card)
         self._set_log_card_height(self.log_card)

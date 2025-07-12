@@ -1,0 +1,90 @@
+name: 问题反馈-通用
+description: 请记得填写你的标题
+labels: ["Triage | 待检查"]
+
+body:
+  - type: checkboxes
+    id: check
+    attributes:
+      label: 请确认您已完成以下几件事并勾选项目，未按要求勾选可能被认作无效反馈直接关闭
+      options:
+        - label: 正在使用最新的 OneDragon
+          required: true
+        - label: 已搜索过 issue 中无人提出相似问题或无解决方案
+          required: true
+        - label: 已为所有模型以及战斗脚本更新至最新版
+          required: true
+        - label: 已经依照 [官方文档](https://one-dragon.com/zzz/zh/home.html) 和 [常见问题排查](https://www.kdocs.cn/l/cbSJUUNotJ3Z) 进行过问题自查
+          required: true
+        - label: 运行时无任何帧率显示或其他覆盖层窗口遮盖游戏
+          required: true
+        - label: 未认真阅读此处选项随意勾选
+        - label: 未安装任何修改游戏UI和贴图的模组
+          required: true
+        - label: 了解反馈时应携带日志和问题截图，且明白应该使用F11截图
+          required: true
+        - label: 已经修改了此issue的标题为想要反馈的问题简述
+          required: true
+
+  - type: input
+    attributes:
+      label: 代码版本
+      description: "窗口上方显示 点击可复制到粘贴板 不填入大概率不受理"
+    validations:
+      required: true
+
+  - type: dropdown # 新增的下拉选择框
+    id: issue-type
+    attributes:
+      label: 问题类型
+      description: 请选择你反馈的问题类型，这将帮助我们更快处理。
+      options:
+        - "Bug"
+        - "更新建议"
+        - "新版本修改"
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: 问题范围
+      description: 问题出现在哪个功能？
+      options:
+        - "自动战斗"
+        - "一条龙日常"
+        - "迷失之地"
+        - "游戏助手"
+        - "其他"
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: "问题描述"
+      description: "请理解每个人的运行环境都不一样，为了知道如何修复问题，需要你详细描述重现这个问题的步骤，请当作者是没玩过游戏的人来讲解问题，如果作者无法重现，则大概率不受理。"
+      placeholder: 
+        1. 运行 闪避助手
+        2. 画面出现黄光未自动闪避
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: "游戏截图"
+      description: |
+        - 请使用 __脚本F11__ 进行截图上传，图片保存在 .debug/images/ 文件夹中，其他截图方式大概率不受理。
+        - 请使用 __脚本F11__ 进行截图上传，图片保存在 .debug/images/ 文件夹中，其他截图方式大概率不受理。
+        - 请使用 __脚本F11__ 进行截图上传，图片保存在 .debug/images/ 文件夹中，其他截图方式大概率不受理。
+      placeholder: "游戏截图"
+
+  - type: textarea
+    attributes:
+      label: "运行日志"
+      description: "日志保存在 .log/log.txt 中"
+      placeholder: "运行日志"
+
+  - type: textarea
+    attributes:
+      label: "你的建议"
+      description: "针对这个场景，你觉得合适的解决方案是"
+      placeholder: "你的建议"

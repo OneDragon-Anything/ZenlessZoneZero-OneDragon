@@ -18,7 +18,7 @@ class DropResoniumBase(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('丢弃鸣徽')
+            op_name=gt('丢弃鸣徽', 'game')
         )
 
         self.drop_cn: str = drop_cn

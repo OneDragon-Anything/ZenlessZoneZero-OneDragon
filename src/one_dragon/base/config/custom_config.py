@@ -3,16 +3,39 @@ from enum import Enum
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
 
+
+class UILanguageEnum(Enum):
+
+    AUTO = ConfigItem('跟随系统', 'auto')
+    ZH = ConfigItem('简体中文', 'zh')
+    EN = ConfigItem('English', 'en')
+
 class ThemeEnum(Enum):
 
+    AUTO = ConfigItem('跟随系统', 'Auto')
     LIGHT = ConfigItem('浅色', 'Light')
     DARK = ConfigItem('深色', 'Dark')
-    AUTO = ConfigItem('跟随系统', 'Auto')
 
 class CustomConfig(YamlConfig):
 
     def __init__(self):
         super().__init__(module_name='custom')
+
+    @property
+    def ui_language(self) -> str:
+        """
+        界面语言
+        :return:
+        """
+        return self.get('ui_language', UILanguageEnum.AUTO.value.value)
+
+    @ui_language.setter
+    def ui_language(self, new_value: str) -> None:
+        """
+        界面语言
+        :return:
+        """
+        self.update('ui_language', new_value)
 
     @property
     def theme(self) -> str:
@@ -29,6 +52,22 @@ class CustomConfig(YamlConfig):
         :return:
         """
         self.update('theme', new_value)
+
+    @property
+    def notice_card(self) -> bool:
+        """
+        是否启用公告
+        :return:
+        """
+        return self.get('notice_card', True)
+
+    @notice_card.setter
+    def notice_card(self, new_value: bool) -> None:
+        """
+        是否启用公告
+        :return:
+        """
+        self.update('notice_card', new_value)
 
     @property
     def custom_banner(self) -> bool:

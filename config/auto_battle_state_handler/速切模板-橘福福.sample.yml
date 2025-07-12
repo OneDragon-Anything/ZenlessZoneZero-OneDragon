@@ -1,0 +1,43 @@
+template_name: "速切模板-橘福福"
+handlers:
+  - states: "[前台-橘福福]"
+    sub_handlers:
+      # 支援
+      - states: "[自定义-黄光切人, 0, 1]"
+        operations:
+          - operation_template: "通用-支援攻击"
+
+      - states: "[自定义-红光闪避, 0, 1]"
+        operations:
+          - operation_template: "通用-闪A"
+
+      # 连携
+      - states: "[按键可用-连携技, 0, 0.5]"
+        operations:
+          - operation_template: "通用-连携攻击"
+
+      # 防呆
+      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "切人后等待"
+        sub_handlers:
+          - states: "[按键可用-快速支援, 0, 0.3]"
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.8
+          - states: ""
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
+
+      # 终结技时刻，需要注意出场第一秒可能识别错误
+      - states: "[橘福福-终结技可用] & ![自定义-连携换人, 0, 10]"
+        operations:
+          - operation_template: "橘福福-终结技"
+
+      - states: "[橘福福-特殊技可用]"
+        operations:
+          - operation_template: "橘福福-强化特殊攻击合轴"
+
+      - states: ""
+        operations:
+          - operation_template: "橘福福-普通攻击合轴"

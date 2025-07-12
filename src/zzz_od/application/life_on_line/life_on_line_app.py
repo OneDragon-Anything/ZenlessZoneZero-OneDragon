@@ -28,7 +28,7 @@ class LifeOnLineApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='life_on_line',
-            op_name=gt('真拿命验收', 'ui'),
+            op_name=gt('真拿命验收'),
             run_record=ctx.life_on_line_record,
             need_notify=True,
         )

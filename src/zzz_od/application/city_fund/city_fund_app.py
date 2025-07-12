@@ -14,7 +14,7 @@ class CityFundApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='city_fund',
-            op_name=gt('丽都城募', 'ui'),
+            op_name=gt('丽都城募'),
             run_record=ctx.city_fund_record,
             need_notify=True,
         )

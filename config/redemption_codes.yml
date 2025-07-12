@@ -5,9 +5,21 @@
 #    end_dt: 过期时间
 # 过期时间格式: YYYYMMDD 长期有效就填 20990101
 codes:
+  - code: 'SUMMER0716'  # 前瞻
+    end_dt: 20250706
   - code: 'ZZZ888'
     end_dt: 20990101
   - code: 'ZZZ4PC'  # 国际服
     end_dt: 20990101
   - code: 'ZENLESSGIFT' # 国际服
+    end_dt: 20990101
+  - code: 'ZZZTHANK'
+    end_dt: 20990101
+  - code: 'ZZZFOR'
+    end_dt: 20990101
+  - code: 'ZZZYOU'
+    end_dt: 20990101
+  - code: 'ZZZSTAYING'
+    end_dt: 20990101
+  - code: 'ZZZWITHUS'
     end_dt: 20990101

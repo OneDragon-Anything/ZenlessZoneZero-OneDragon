@@ -19,10 +19,10 @@ handlers:
       - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
         debug_name: "切人后等待"
         sub_handlers:
-          - states: "[按键可用-快速支援, 0, 0.5]"
+          - states: "[按键可用-快速支援, 0, 0.3]"
             operations:
               - op_name: "等待秒数"
-                seconds: 1.0
+                seconds: 0.5
           - states: ""
             operations:
               - op_name: "等待秒数"
@@ -34,22 +34,13 @@ handlers:
             state: "自定义-珂蕾妲-升温"
           - operation_template: "通用-终结技"
 
-      # 补一个升温马上离开
-      - states: "([珂蕾妲-特殊技可用] & ![自定义-珂蕾妲-升温, 0, 8]) | [自定义-连携换人, 0, 10]"
+      # 别浪费时间咯
+      - states: "[珂蕾妲-特殊技可用]"
         operations:
           - operation_template: "珂蕾妲-特殊技合轴"
 
-      # 快乐连招
-      - states: "[珂蕾妲-特殊技可用] & [自定义-珂蕾妲-升温, 0, 8]"
-        operations:
-          - op_name: "清除状态"
-            state: "自定义-珂蕾妲-升温"
-          - operation_template: "珂蕾妲-强化普攻接特殊技"
-          - op_name: "设置状态"
-            state: "自定义-珂蕾妲-升温"
-
       # 快乐合轴
-      - states: "![珂蕾妲-特殊技可用] & [自定义-珂蕾妲-升温, 0, 8]"
+      - states: "[自定义-珂蕾妲-升温, 0, 8]"
         operations:
           - op_name: "清除状态"
             state: "自定义-珂蕾妲-升温"

@@ -38,7 +38,7 @@ class PythonInstallCard(WithExistedInstallCard):
         if success:
             self.check_and_update_display()
         else:
-            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg, 'ui'))
+            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
 
     def get_display_content(self) -> Tuple[QIcon, str]:
         """
@@ -49,24 +49,24 @@ class PythonInstallCard(WithExistedInstallCard):
 
         if python_path == '':
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
-            msg = f"{gt('未安装。可选择手动创建', 'ui')} {DEFAULT_VENV_DIR_PATH}"
+            msg = f"{gt('未安装。可选择手动创建')} {DEFAULT_VENV_DIR_PATH}"
         elif not os.path.exists(python_path):
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
-            msg = gt('文件不存在', 'ui') + ' ' + python_path
+            msg = gt('文件不存在') + ' ' + python_path
         elif python_path != DEFAULT_VENV_PYTHON_PATH:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
-            msg = f"{gt('请确保手动创建的虚拟环境目录为', 'ui')}: {DEFAULT_VENV_DIR_PATH}"
+            msg = f"{gt('请确保手动创建的虚拟环境目录为')}: {DEFAULT_VENV_DIR_PATH}"
         else:
             python_version = self.ctx.python_service.get_python_version()
             if python_version is None:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
-                msg = gt('无法获取 Python 版本', 'ui') + ' ' + python_path
+                msg = gt('无法获取 Python 版本') + ' ' + python_path
             elif not python_version.startswith(self.ctx.project_config.python_version):
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
-                msg = (f"{gt('当前版本', 'ui')}: {python_version}; {gt('建议版本', 'ui')}: {self.ctx.project_config.python_version}"
+                msg = (f"{gt('当前版本')}: {python_version}; {gt('建议版本')}: {self.ctx.project_config.python_version}"
                        + ' ' + python_path)
             else:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
-                msg = f"{gt('已安装', 'ui')}" + ' ' + python_path
+                msg = f"{gt('已安装')}" + ' ' + python_path
 
         return icon, msg

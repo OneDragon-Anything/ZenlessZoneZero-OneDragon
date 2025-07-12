@@ -106,7 +106,7 @@ def match_word_list_by_priority(
     :return: 匹配结果
     """
     to_match_list: list[str] = [
-        gt(i) for i in word_list
+        gt(i, 'game') for i in word_list
     ]
     match_map: dict[str, MatchResultList] = {}
     for ocr_result, mrl in ocr_result_map.items():

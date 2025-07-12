@@ -18,7 +18,7 @@ class ArcadeStartGame(ZOperation):
         :param ctx:
         """
         ZOperation.__init__(self, ctx,
-                            op_name='%s %s' % (gt('开始街机游戏', 'ui'), gt(game_name))
+                            op_name='%s %s' % (gt('开始街机游戏'), gt(game_name, 'game'))
                             )
         self.game_name: str = game_name  # 游戏名称
 

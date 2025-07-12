@@ -11,7 +11,7 @@ class LeaveRandomZone(ZOperation):
     def __init__(self, ctx: ZContext):
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('不宜久留')
+            op_name=gt('不宜久留', 'game')
         )
 
     @operation_node(name='画面识别', is_start_node=True)

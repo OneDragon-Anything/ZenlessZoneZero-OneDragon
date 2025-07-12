@@ -28,7 +28,7 @@ class BambooMerchant(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('邦布商人')
+            op_name=gt('邦布商人', 'game')
         )
 
     @node_from(from_name='购买后确定')

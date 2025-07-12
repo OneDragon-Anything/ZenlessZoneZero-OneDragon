@@ -23,7 +23,7 @@ class EngagementRewardApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='engagement_reward',
-            op_name=gt('活跃度奖励', 'ui'),
+            op_name=gt('活跃度奖励'),
             run_record=ctx.engagement_reward_run_record,
             need_notify=True,
         )

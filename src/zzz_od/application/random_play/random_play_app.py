@@ -29,7 +29,7 @@ class RandomPlayApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='random_play',
-            op_name=gt('录像店营业', 'ui'),
+            op_name=gt('录像店营业'),
             run_record=ctx.random_play_run_record,
             retry_in_od=True,  # 传送落地有可能会歪 重试
             need_notify=True,
@@ -208,7 +208,7 @@ class RandomPlayApp(ZApplication):
             self.ctx.screen_loader.get_area('影像店营业', '录像带主题-3')
         ]
 
-        target_list = [gt(i) for i in self._all_video_themes]
+        target_list = [gt(i, 'game') for i in self._all_video_themes]
         for area in areas:
             part = cv2_utils.crop_image_only(screen, area.rect)
             ocr_result = self.ctx.ocr.run_ocr_single_line(part)
@@ -283,7 +283,7 @@ class RandomPlayApp(ZApplication):
         part = cv2_utils.crop_image_only(screen, area.rect)
         ocr_results = self.ctx.ocr.run_ocr(part)
 
-        target_list = [gt(i) for i in self._all_video_themes]
+        target_list = [gt(i, 'game') for i in self._all_video_themes]
         current_target = self._need_video_themes[self._current_idx - 1]
         for ocr_str, mrl in ocr_results.items():
             if mrl.max is None:

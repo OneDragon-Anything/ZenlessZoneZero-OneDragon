@@ -1,5 +1,6 @@
 handlers:
-  - states: ""
+  - states: "(![按键-切换角色-下一个, 0, 0.3]& ![按键-切换角色-上一个, 0, 0.3])"
+    debug_name: "未知角色"
     sub_handlers:
       - states: "[自定义-黄光切人, 0, 1]"
         operations:

@@ -117,13 +117,11 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
     else:
         print_message("开始获取最新代码...", "INFO")
         try:
-            result = subprocess.run([uv_path, 'run', '-m', 'one_dragon.envs.git_service'], timeout=30)
+            result = subprocess.run([uv_path, 'run', '-m', 'one_dragon.envs.git_service'])
             if result.returncode == 0:
                 print_message("代码更新完成", "PASS")
             else:
                 print_message(f"代码更新失败: {result.stderr}", "ERROR")
-        except subprocess.TimeoutExpired:
-            print_message("代码更新超时", "ERROR")
         except Exception as e:
             print_message(f"代码更新异常: {e}", "ERROR")
 

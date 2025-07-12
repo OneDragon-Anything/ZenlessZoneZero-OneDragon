@@ -72,10 +72,10 @@ def match_interact_target(ctx: ZContext, ocr_result: str,) -> Optional[LostVoidI
             + [i.value for i in LostVoidBoss]  # BOSS
     )
     target_word_list: list[str] = (
-        [gt(i.value.value) for i in LostVoidRegionType]  # 入口
-        + [gt(i.value) for i in LostVoidInteractNPC]  # NPC
-        + [gt(i.value.agent_name) for i in AgentEnum]  # 代理人
-        + [gt(i.value) for i in LostVoidBoss]  # BOSS
+        [gt(i.value.value, 'game') for i in LostVoidRegionType]  # 入口
+        + [gt(i.value, 'game') for i in LostVoidInteractNPC]  # NPC
+        + [gt(i.value.agent_name, 'game') for i in AgentEnum]  # 代理人
+        + [gt(i.value, 'game') for i in LostVoidBoss]  # BOSS
     )
 
     idx = str_utils.find_best_match_by_difflib(ocr_result, target_word_list, cutoff=0.6)

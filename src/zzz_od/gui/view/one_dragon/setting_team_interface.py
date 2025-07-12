@@ -1,10 +1,11 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget, QCompleter
-from qfluentwidgets import FluentIcon, LineEdit, HyperlinkCard
+from qfluentwidgets import FluentIcon, LineEdit
 from typing import Optional, List
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
 from zzz_od.config.team_config import PredefinedTeamInfo
@@ -122,10 +123,8 @@ class SettingTeamInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
-        self.help_opt = HyperlinkCard(icon=FluentIcon.HELP, title='使用默认队伍名称出现错选时 可更改名字解决',
-                                      content='本页代理人可在游戏助手中自动识别，设置仅作用于避免式舆防卫战选择配队冲突',
-                                      text='', url='')
-        self.help_opt.linkButton.hide()
+        self.help_opt = HelpCard(title='使用默认队伍名称出现错选时 可更改名字解决',
+                                 content='本页代理人可在游戏助手中自动识别，设置仅作用于避免式舆防卫战选择配队冲突')
         content_widget.add_widget(self.help_opt)
 
         self.team_opt_list = []

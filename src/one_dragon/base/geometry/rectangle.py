@@ -47,3 +47,11 @@ class Rect:
         self.y1 += p.y
         self.x2 += p.x
         self.y2 += p.y
+
+    @property
+    def area(self) -> float:
+        """
+        Returns:
+            area: 面积
+        """
+        return self.height * self.width

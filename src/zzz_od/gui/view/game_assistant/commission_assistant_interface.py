@@ -1,12 +1,13 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout
-from qfluentwidgets import FluentIcon, HyperlinkCard
+from qfluentwidgets import FluentIcon
 from typing import Optional
 
 from one_dragon.base.operation.application_base import Application
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.row import Row
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
-from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
@@ -39,9 +40,7 @@ class CommissionAssistantRunInterface(AppRunInterface):
         content.h_layout.addLayout(left_layout)
         content.h_layout.addLayout(right_layout)
 
-        self.help_opt = HyperlinkCard(icon=FluentIcon.HELP, title='使用说明', text='前往',
-                                      url='https://onedragon-anything.github.io/zzz/zh/docs/feat_game_assistant.html#_1-%E5%A7%94%E6%89%98%E5%8A%A9%E6%89%8B')
-        self.help_opt.setContent('先看说明 再使用与提问')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_game_assistant.html#_1-%E5%A7%94%E6%89%98%E5%8A%A9%E6%89%8B')
         left_layout.addWidget(self.help_opt)
 
         self.dialog_option_opt = ComboBoxSettingCard(

@@ -42,8 +42,8 @@ class RoutineCleanup(ZOperation):
         ZOperation.__init__(
             self, ctx,
             op_name='%s %s' % (
-                gt('定期清剿'),
-                gt(plan.mission_type_name)
+                gt('定期清剿', 'game'),
+                gt(plan.mission_type_name, 'game')
             )
         )
 
@@ -74,7 +74,7 @@ class RoutineCleanup(ZOperation):
         target_point: Optional[Point] = None
         ocr_result_map = self.ctx.ocr.run_ocr(part)
         for ocr_result, mrl in ocr_result_map.items():
-            if not str_utils.find_by_lcs(gt(self.plan.mission_type_name), ocr_result, percent=0.5):
+            if not str_utils.find_by_lcs(gt(self.plan.mission_type_name, 'game'), ocr_result, percent=0.5):
                 continue
 
             target_point = area.left_top + mrl.max + Point(0, 50)

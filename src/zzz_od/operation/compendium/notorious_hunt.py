@@ -44,8 +44,8 @@ class NotoriousHunt(ZOperation):
         ZOperation.__init__(
             self, ctx,
             op_name='%s %s' % (
-                gt('恶名狩猎'),
-                gt(plan.mission_type_name)
+                gt('恶名狩猎', 'game'),
+                gt(plan.mission_type_name, 'game')
             )
         )
 
@@ -83,7 +83,7 @@ class NotoriousHunt(ZOperation):
         ocr_result_map = self.ctx.ocr.run_ocr(part)
         is_target_mission: bool = False  # 当前是否目标副本
         for ocr_result in ocr_result_map.keys():
-            if str_utils.find_by_lcs(gt(self.plan.mission_type_name), ocr_result, percent=0.5):
+            if str_utils.find_by_lcs(gt(self.plan.mission_type_name, 'game'), ocr_result, percent=0.5):
                 is_target_mission = True
                 break
 
@@ -102,7 +102,7 @@ class NotoriousHunt(ZOperation):
 
         ocr_result_map = self.ctx.ocr.run_ocr(part)
         for ocr_result, mrl in ocr_result_map.items():
-            if str_utils.find_by_lcs(gt(self.plan.mission_type_name), ocr_result, percent=0.5):
+            if str_utils.find_by_lcs(gt(self.plan.mission_type_name, 'game'), ocr_result, percent=0.5):
                 to_click = mrl.max.center + area.left_top + Point(0, 100)
                 if self.ctx.controller.click(to_click):
                     return self.round_success(wait=2)
@@ -116,7 +116,7 @@ class NotoriousHunt(ZOperation):
 
             find: bool = False  # 当前画面有没有识别到 mission_type
             for ocr_result, mrl in ocr_result_map.items():
-                if str_utils.find_by_lcs(gt(mission_type.mission_type_name), ocr_result, percent=0.5):
+                if str_utils.find_by_lcs(gt(mission_type.mission_type_name, 'game'), ocr_result, percent=0.5):
                     find = True
                     break
 
@@ -397,7 +397,7 @@ class NotoriousHunt(ZOperation):
         choose_mr_list: List[MatchResult] = []
 
         for ocr_result, mrl in ocr_result_map.items():
-            if str_utils.find_by_lcs(gt('选择'), ocr_result, percent=0.5):
+            if str_utils.find_by_lcs(gt('选择', 'game'), ocr_result, percent=0.5):
                 for mr in mrl:
                     choose_mr_list.append(mr)
 

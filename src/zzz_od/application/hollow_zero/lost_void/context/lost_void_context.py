@@ -14,6 +14,8 @@ from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
 from zzz_od.application.hollow_zero.lost_void.context.lost_void_artifact import LostVoidArtifact
 from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import LostVoidDetector
+from zzz_od.application.hollow_zero.lost_void.context.lost_void_investigation_strategy import \
+    LostVoidInvestigationStrategy
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidRegionType, \
     LostVoidChallengeConfig
 from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_artifact_pos import LostVoidArtifactPos
@@ -37,12 +39,15 @@ class LostVoidContext:
         self.gear_by_name: dict[str, LostVoidArtifact] = {}  # key=名称 value=武备
         self.cate_2_artifact: dict[str, List[LostVoidArtifact]] = {}  # key=分类 value=藏品
 
+        self.investigation_strategy_list: list[LostVoidInvestigationStrategy] = []  # 调查战略
+
         self.predefined_team_idx: int = -1  # 本次挑战所使用的预备编队
 
     def init_before_run(self) -> None:
         self.init_lost_void_det_model()
         self.load_artifact_data()
         self.load_challenge_config()
+        self.load_investigation_strategy()
 
     def load_artifact_data(self) -> None:
         """
@@ -64,6 +69,21 @@ class LostVoidContext:
             if artifact.category not in self.cate_2_artifact:
                 self.cate_2_artifact[artifact.category] = []
             self.cate_2_artifact[artifact.category].append(artifact)
+
+    def load_investigation_strategy(self) -> None:
+        """
+        加载调查策略
+        :return:
+        """
+        self.investigation_strategy_list = []
+        file_path = os.path.join(
+            os_utils.get_path_under_work_dir('assets', 'game_data', 'hollow_zero', 'lost_void'),
+            'lost_void_investigation_strategy.yml'
+        )
+        yaml_op = YamlOperator(file_path)
+        for yaml_item in yaml_op.data:
+            artifact = LostVoidInvestigationStrategy(**yaml_item)
+            self.investigation_strategy_list.append(artifact)
 
     def init_lost_void_det_model(self):
         use_gpu = self.ctx.model_config.lost_void_det_gpu
@@ -235,7 +255,7 @@ class LostVoidContext:
 
         # 取出与分类名称长度一致的前缀 用LCS来判断对应的cate分类
         for cate in self.cate_2_artifact.keys():
-            cate_name = gt(cate)
+            cate_name = gt(cate, 'game')
 
             if cate not in ['卡牌', '无详情']:
                 if len(name_full_str) < len(cate_name):
@@ -253,7 +273,7 @@ class LostVoidContext:
             art_list = self.cate_2_artifact[cate]
             # 符合分类的情况下 判断后缀和藏品名字是否一致
             for art in art_list:
-                art_name = gt(art.name)
+                art_name = gt(art.name, 'game')
                 suffix = name_full_str[-len(art_name):]
                 if str_utils.find_by_lcs(art_name, suffix, percent=0.5):
                     return art
@@ -340,7 +360,7 @@ class LostVoidContext:
         """
         artifact_name_list: list[str] = []
         for art in self.ctx.lost_void.all_artifact_list:
-            artifact_name_list.append(gt(art.display_name))
+            artifact_name_list.append(gt(art.display_name, 'game'))
 
         artifact_pos_list: list[LostVoidArtifactPos] = []
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
@@ -388,10 +408,10 @@ class LostVoidContext:
 
         # 识别其它标识
         title_word_list = [
-            gt('有同流派武备'),
-            gt('已选择'),
-            gt('齿轮硬币不足'),
-            gt('NEW!')
+            gt('有同流派武备', 'game'),
+            gt('已选择', 'game'),
+            gt('齿轮硬币不足', 'game'),
+            gt('NEW!', 'game')
         ]
         for ocr_result, mrl in ocr_result_map.items():
             title_idx: int = str_utils.find_best_match_by_difflib(ocr_result, title_word_list)
@@ -446,12 +466,17 @@ class LostVoidContext:
         :param consider_priority_new: 是否优先选择NEW类型 最高优先级
         :return: 按优先级选择的结果
         """
+        artifact_list = self.remove_overlapping_artifacts(artifact_list)
+
         log.info(f'当前考虑优先级 数量={choose_num} NEW!={consider_priority_new} 第一优先级={consider_priority_1} 第二优先级={consider_priority_2} 其他={consider_not_in_priority}')
         priority_list_to_consider = []
         if consider_priority_1:
             priority_list_to_consider.append(self.challenge_config.artifact_priority)
         if consider_priority_2:
             priority_list_to_consider.append(self.challenge_config.artifact_priority_2)
+
+        if len(priority_list_to_consider) == 0:  # 两个优先级都是空的时候 强制考虑非优先级的
+            consider_not_in_priority = True
 
         priority_idx_list: List[int] = []  # 优先级排序的下标
 
@@ -539,6 +564,51 @@ class LostVoidContext:
         log.info(f'当前符合优先级列表 {display_text}')
 
         return result_list
+
+    def remove_overlapping_artifacts(self, artifact_list: List[LostVoidArtifactPos]) -> List[LostVoidArtifactPos]:
+        """
+        去掉横坐标太近的藏品，保留y坐标较小的（位置较高的）
+
+        :param artifact_list: 待处理的藏品列表
+        :return: 去重后的藏品列表
+        """
+        if len(artifact_list) <= 1:
+            return artifact_list
+
+        # 按x坐标排序，便于后续处理
+        sorted_artifacts = sorted(artifact_list, key=lambda art: art.rect.center.x)
+        result = []
+
+        i = 0
+        while i < len(sorted_artifacts):
+            current_art = sorted_artifacts[i]
+            overlapping_arts = [current_art]
+
+            # 找出所有与当前藏品横坐标接近的藏品
+            j = i + 1
+            while j < len(sorted_artifacts):
+                next_art = sorted_artifacts[j]
+                x_distance = abs(current_art.rect.center.x - next_art.rect.center.x)
+
+                if x_distance < 200:  # 横坐标太近
+                    overlapping_arts.append(next_art)
+                    log.debug(f'发现重叠藏品: {current_art.artifact.display_name} 和 {next_art.artifact.display_name}, 距离: {x_distance}')
+                    j += 1
+                else:
+                    break  # 由于已排序，后面的距离只会更大
+
+            # 在重叠的藏品中选择y坐标最小的（位置最高的）
+            best_art = min(overlapping_arts, key=lambda art: art.rect.center.y)
+            result.append(best_art)
+
+            if len(overlapping_arts) > 1:
+                removed_arts = [art.artifact.display_name for art in overlapping_arts if art != best_art]
+                log.debug(f'保留 {best_art.artifact.display_name}，移除 {", ".join(removed_arts)}')
+
+            # 跳过所有重叠的藏品
+            i = j
+
+        return result
 
     def get_entry_by_priority(self, entry_list: List[MoveTargetWrapper]) -> Optional[MoveTargetWrapper]:
         """

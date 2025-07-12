@@ -21,7 +21,7 @@ class CriticalStage(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('关键进展')
+            op_name=gt('关键进展', 'game')
         )
 
         self._handlers: List[EventOcrResultHandler] = [

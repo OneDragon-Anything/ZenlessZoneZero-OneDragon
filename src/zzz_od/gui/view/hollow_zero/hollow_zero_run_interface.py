@@ -1,12 +1,14 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
-from qfluentwidgets import FluentIcon, PushSettingCard, HyperlinkCard
+from qfluentwidgets import FluentIcon, PushSettingCard
 from typing import Optional, List
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.view.app_run_interface import AppRunInterface
-from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.withered_domain.hollow_zero_app import HollowZeroApp
 from zzz_od.application.hollow_zero.withered_domain.hollow_zero_config import HollowZeroExtraTask, HollowZeroExtraExitEnum
 from zzz_od.application.hollow_zero.withered_domain.hollow_zero_debug_app import HollowZeroDebugApp
@@ -50,9 +52,7 @@ class HollowZeroRunInterface(AppRunInterface):
         left_layout = QVBoxLayout(left_widget)
         left_widget.setLayout(left_layout)
 
-        self.help_opt = HyperlinkCard(icon=FluentIcon.HELP, title='使用说明', text='前往',
-                                      url='https://onedragon-anything.github.io/zzz/zh/docs/feat_hollow_zero.html')
-        self.help_opt.setContent('先看说明 再使用与提问')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_hollow_zero.html')
         left_layout.addWidget(self.help_opt)
 
         # 创建一个组合框设置卡片，标题为“挑战副本”

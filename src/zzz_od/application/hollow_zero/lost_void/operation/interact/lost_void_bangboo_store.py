@@ -148,7 +148,7 @@ class LostVoidBangbooStore(ZOperation):
         to_ocr = cv2.bitwise_and(part, part, mask=mask)
         ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
         for ocr_result, mrl in ocr_result_map.items():
-            if not str_utils.find_by_lcs(gt('购买'), ocr_result):
+            if not str_utils.find_by_lcs(gt('购买', 'game'), ocr_result):
                 continue
 
             for mr in mrl:

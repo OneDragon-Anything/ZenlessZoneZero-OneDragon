@@ -1,10 +1,11 @@
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, HyperlinkCard
+from qfluentwidgets import FluentIcon
 from typing import Optional
 
 from one_dragon.base.operation.application_base import Application
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from zzz_od.application.predefined_team_checker.predefined_team_checker import PredefinedTeamChecker
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -29,10 +30,8 @@ class PredefinedTeamCheckerInterface(AppRunInterface):
     def get_widget_at_top(self) -> QWidget:
         content = Column()
 
-        self.help_opt = HyperlinkCard(icon=FluentIcon.HELP, title='一条龙-预备编队中输入正确编队名称后运行',
-                                      content='根据队伍名称识别对应的代理人',
-                                      text='', url='')
-        self.help_opt.linkButton.hide()
+        self.help_opt = HelpCard(title='一条龙-预备编队中输入正确编队名称后运行',
+                                 content='根据队伍名称识别对应的代理人')
         content.add_widget(self.help_opt)
 
         return content

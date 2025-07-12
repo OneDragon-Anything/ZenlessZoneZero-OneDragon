@@ -47,7 +47,7 @@ class GitInstallCard(WithExistedInstallCard):
             self.ctx.env_config.git_path = DEFAULT_GIT_PATH
             self.check_and_update_display()
         else:
-            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg, 'ui'))
+            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
 
     def get_display_content(self) -> Tuple[QIcon, str]:
         """
@@ -58,17 +58,17 @@ class GitInstallCard(WithExistedInstallCard):
 
         if git_path == '':
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
-            msg = gt('未安装。可选择你自己的 git.exe', 'ui')
+            msg = gt('未安装。可选择你自己的 git.exe')
         elif not os.path.exists(git_path):
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
-            msg = gt('文件不存在', 'ui')
+            msg = gt('文件不存在')
         else:
             git_version = self.ctx.git_service.get_git_version()
             if git_version is None:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
-                msg = gt('无法获取 Git 版本', 'ui') + ' ' + git_path
+                msg = gt('无法获取 Git 版本') + ' ' + git_path
             else:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
-                msg = f"{gt('已安装', 'ui')}" + ' ' + git_path
+                msg = f"{gt('已安装')}" + ' ' + git_path
 
         return icon, msg

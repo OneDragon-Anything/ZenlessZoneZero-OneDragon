@@ -30,9 +30,9 @@ class Transport(ZOperation):
         """
         ZOperation.__init__(self, ctx,
                             op_name='%s %s %s' % (
-                                gt('传送', 'ui'),
-                                gt(area_name),
-                                gt(tp_name)
+                                gt('传送'),
+                                gt(area_name, 'game'),
+                                gt(tp_name, 'game')
                             ))
 
         self.area_name: str = area_name
@@ -89,11 +89,11 @@ class Transport(ZOperation):
         # 地图信息是按从上往下 从左往右存放的
         area_name_list: list[str] = []
         for area in self.ctx.map_service.area_list:
-            area_name_list.append(gt(area.area_name))
+            area_name_list.append(gt(area.area_name, 'game'))
 
         # 目标区域的下标
         target_area: MapArea = self.ctx.map_service.area_name_map[self.area_name]
-        target_area_idx: int = str_utils.find_best_match_by_difflib(gt(target_area.area_name), area_name_list)
+        target_area_idx: int = str_utils.find_best_match_by_difflib(gt(target_area.area_name, 'game'), area_name_list)
 
         # 判断当前显示区域是否有目标区域 有则点击
         # 没有则找出最大的区域下标
@@ -132,7 +132,7 @@ class Transport(ZOperation):
         area = self.ctx.screen_loader.get_area('地图', '传送点名称')
         part = cv2_utils.crop_image_only(screen, area.rect)
 
-        ocr_map = self.ctx.ocr.run_ocr(part)
+        ocr_map = self.ctx.ocr.run_ocr(screen)
 
         if len(ocr_map) == 0:
             return self.round_retry('未识别到传送点', wait_round_time=1)
@@ -147,7 +147,8 @@ class Transport(ZOperation):
 
         if target_ocr_str is not None:
             mrl = ocr_map[target_ocr_str]
-            self.ctx.controller.click(mrl.max.center + area.left_top)
+            # self.ctx.controller.click(mrl.max.center + area.left_top)
+            self.ctx.controller.click(mrl.max.center)
             return self.round_success(wait=1)
 
         area_tp_list: List[str] = self.ctx.map_service.area_name_map[self.area_name].tp_list  # 当前区域的传送点名称
@@ -199,9 +200,9 @@ class Transport(ZOperation):
         tp_name_list: list[str] = []
 
         for area in self.ctx.map_service.area_list:
-            area_name_list.append(gt(area.area_name))
+            area_name_list.append(gt(area.area_name, 'game'))
             for tp in area.tp_list:
-                tp_name_list.append(gt(tp))
+                tp_name_list.append(gt(tp, 'game'))
 
         area_name_cnt: int = 0
         tp_name_cnt: int = 0
@@ -222,7 +223,7 @@ def __debug():
     ctx.init_by_config()
     ctx.init_ocr()
     ctx.start_running()
-    op = Transport(ctx, '澄辉坪', '览海道')
+    op = Transport(ctx, '澄辉坪', '阿朔')
     op.execute()
 
 

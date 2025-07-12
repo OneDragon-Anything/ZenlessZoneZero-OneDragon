@@ -10,12 +10,12 @@ class AgentOutfitConfig(YamlConfig):
         YamlConfig.__init__(self, 'agent_outfit', instance_idx=instance_idx)
 
     @property
-    def match_all_outfits(self) -> bool:
-        return self.get('match_all_outfits', False)
+    def compatibility_mode(self) -> bool:
+        return self.get('compatibility_mode', False)
 
-    @match_all_outfits.setter
-    def match_all_outfits(self, value: bool) -> None:
-        self.update('match_all_outfits', value)
+    @compatibility_mode.setter
+    def compatibility_mode(self, value: bool) -> None:
+        self.update('compatibility_mode', value)
 
     @property
     def nicole_outfit_list(self) -> str:
@@ -59,7 +59,7 @@ class AgentOutfitConfig(YamlConfig):
     @property
     def yixuan_outfit_list(self) -> str:
         return self.get('yixuan_outfit_list', [AgentOutfitYiXuan.DEFAULT.value.value,
-                                                AgentOutfitYiXuan.TRAILS_OF_INK.value.value])
+                                               AgentOutfitYiXuan.TRAILS_OF_INK.value.value])
 
     @property
     def yixuan(self) -> str:

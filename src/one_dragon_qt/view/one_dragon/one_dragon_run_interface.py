@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
-from qfluentwidgets import FluentIcon, SettingCardGroup, SubtitleLabel, PrimaryPushButton, PushButton, HyperlinkCard
+from qfluentwidgets import FluentIcon, SettingCardGroup, SubtitleLabel, PrimaryPushButton, PushButton, SingleDirectionScrollArea
 from typing import List, Optional
 
 from one_dragon.base.config.one_dragon_app_config import OneDragonAppConfig
@@ -15,6 +15,7 @@ from one_dragon_qt.view.context_event_signal import ContextEventSignal
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.notify_dialog import NotifyDialog
@@ -64,8 +65,8 @@ class OneDragonRunInterface(VerticalScrollInterface):
         horizontal_layout.addLayout(self._get_left_layout(), stretch=1)
         horizontal_layout.addLayout(self._get_right_layout(), stretch=1)
 
-        # 确保 QHBoxLayout 可以伸缩
-        horizontal_layout.setSpacing(0)
+        # 设置 QHBoxLayout 的间距和边框
+        horizontal_layout.setSpacing(10)
         horizontal_layout.setContentsMargins(0, 0, 0, 0)
 
         # 设置伸缩因子，让 QHBoxLayout 占据空间
@@ -82,8 +83,20 @@ class OneDragonRunInterface(VerticalScrollInterface):
         :return:
         """
         layout = QVBoxLayout()
-        self.app_card_group = SettingCardGroup(gt('任务列表', 'ui'))
-        layout.addWidget(self.app_card_group)
+
+        scroll_area = SingleDirectionScrollArea()
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setContentsMargins(0, 0, 16, 0)
+
+        self.app_card_group = SettingCardGroup(gt('任务列表'))
+        scroll_layout.addWidget(self.app_card_group)
+        scroll_layout.addStretch(1)
+
+        scroll_area.setWidget(scroll_content)
+        scroll_area.setWidgetResizable(True)
+
+        layout.addWidget(scroll_area)
 
         return layout
 
@@ -95,16 +108,15 @@ class OneDragonRunInterface(VerticalScrollInterface):
         layout = QVBoxLayout()
         layout.setSpacing(5)
 
-        run_group = SettingCardGroup(gt('运行设置', 'ui'))
+        run_group = SettingCardGroup(gt('运行设置'))
         layout.addWidget(run_group)
 
         if self.help_url is not None:
-            self.help_opt = HyperlinkCard(icon=FluentIcon.HELP, title='使用说明', text='前往', url=self.help_url)
-            self.help_opt.setContent('先看说明 再使用与提问')
+            self.help_opt = HelpCard(url=self.help_url)
             run_group.addSettingCard(self.help_opt)
 
         self.notify_switch = SwitchSettingCard(icon=FluentIcon.INFO, title='单应用通知')
-        self.notify_btn = PushButton(text='设置', icon=FluentIcon.SETTING)
+        self.notify_btn = PushButton(text=gt('设置'), icon=FluentIcon.SETTING)
         self.notify_btn.clicked.connect(self._on_notify_setting_clicked)
         self.notify_switch.hBoxLayout.addWidget(self.notify_btn, 0, Qt.AlignmentFlag.AlignRight)
         self.notify_switch.hBoxLayout.addSpacing(16)
@@ -121,7 +133,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
         run_group.addSettingCard(self.after_done_opt)
 
         self.state_text = SubtitleLabel()
-        self.state_text.setText('%s %s' % (gt('当前状态', 'ui'), self.ctx.context_running_status_text))
+        self.state_text.setText('%s %s' % (gt('当前状态'), self.ctx.context_running_status_text))
         self.state_text.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(self.state_text)
 
@@ -130,14 +142,14 @@ class OneDragonRunInterface(VerticalScrollInterface):
         layout.addLayout(btn_row)
 
         self.start_btn = PrimaryPushButton(
-            text='%s %s' % (gt('开始', 'ui'), self.ctx.key_start_running.upper()),
+            text='%s %s' % (gt('开始'), self.ctx.key_start_running.upper()),
             icon=FluentIcon.PLAY,
         )
         self.start_btn.clicked.connect(self._on_start_clicked)
         btn_row.addWidget(self.start_btn, stretch=1)
 
         self.stop_btn = PushButton(
-            text='%s %s' % (gt('停止', 'ui'), self.ctx.key_stop_running.upper()),
+            text='%s %s' % (gt('停止'), self.ctx.key_stop_running.upper()),
             icon=FluentIcon.CLOSE
         )
         self.stop_btn.clicked.connect(self._on_stop_clicked)
@@ -243,21 +255,21 @@ class OneDragonRunInterface(VerticalScrollInterface):
         :return:
         """
         if self.ctx.is_context_running:
-            text = gt('暂停', 'ui')
+            text = gt('暂停')
             icon = FluentIcon.PAUSE
             self.log_card.start()  # 开始日志更新
         elif self.ctx.is_context_pause:
-            text = gt('继续', 'ui')
+            text = gt('继续')
             icon = FluentIcon.PLAY
             self.log_card.pause()  # 暂停日志更新
         else:
-            text = gt('开始', 'ui')
+            text = gt('开始')
             icon = FluentIcon.PLAY
             self.log_card.stop()  # 停止日志更新
 
         self.start_btn.setText('%s %s' % (text, self.ctx.key_start_running.upper()))
         self.start_btn.setIcon(icon)
-        self.state_text.setText('%s %s' % (gt('当前状态', 'ui'), self.ctx.context_running_status_text))
+        self.state_text.setText('%s %s' % (gt('当前状态'), self.ctx.context_running_status_text))
 
         for app_card in self._app_run_cards:
             app_card.update_display()

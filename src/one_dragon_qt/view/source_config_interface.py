@@ -4,6 +4,7 @@ from qfluentwidgets import FluentIcon, SettingCardGroup, TitleLabel, PrimaryPush
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.envs.env_config import CpythonSourceEnum, EnvSourceEnum, ProxyTypeEnum, PipSourceEnum, RegionEnum, RepositoryTypeEnum
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.horizontal_setting_card_group import HorizontalSettingCardGroup
@@ -34,7 +35,7 @@ class SourceConfigInterface(VerticalScrollInterface):
         content_widget.v_layout.setSpacing(10)
 
         # 标题
-        title_label = TitleLabel("配置源")
+        title_label = TitleLabel(gt('配置源'))
         content_widget.add_widget(title_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # 地区选择和确认按钮的水平布局
@@ -50,7 +51,7 @@ class SourceConfigInterface(VerticalScrollInterface):
         )
         self.region_opt.value_changed.connect(self._on_region_changed)
 
-        self.confirm_btn = PrimaryPushButton("确认配置")
+        self.confirm_btn = PrimaryPushButton(gt('确认配置'))
         self.confirm_btn.setFixedSize(120, 40)
         self.confirm_btn.clicked.connect(lambda: self.finished.emit(True))
         self.confirm_btn.clicked.connect(self._init_proxy)
@@ -67,11 +68,11 @@ class SourceConfigInterface(VerticalScrollInterface):
         return content_widget
 
     def get_advanced_group(self) -> QWidget:
-        advanced_group = SettingCardGroup("配置源")
+        advanced_group = SettingCardGroup(gt('配置源'))
         advanced_group.titleLabel.setVisible(False)
 
         # 源
-        source_group = SettingCardGroup("源")
+        source_group = SettingCardGroup(gt('源'))
 
         self.repository_type_opt = ComboBoxSettingCard(
             icon=FluentIcon.CODE,
@@ -108,7 +109,7 @@ class SourceConfigInterface(VerticalScrollInterface):
         advanced_group.addSettingCard(source_group)
 
         # 网络代理设置
-        proxy_group = SettingCardGroup("网络代理设置")
+        proxy_group = SettingCardGroup(gt('网络代理设置'))
 
         self.proxy_type_opt = ComboBoxSettingCard(
             icon=FluentIcon.GLOBE,
@@ -128,7 +129,7 @@ class SourceConfigInterface(VerticalScrollInterface):
         if index == 0:
             self.ctx.env_config.repository_type = RepositoryTypeEnum.GITEE.value.value
             self.ctx.env_config.env_source = EnvSourceEnum.GITEE.value.value
-            self.ctx.env_config.cpython_source = CpythonSourceEnum.NJU.value.value
+            self.ctx.env_config.cpython_source = CpythonSourceEnum.GITEE.value.value
             self.ctx.env_config.pip_source = PipSourceEnum.ALIBABA.value.value
             self.ctx.env_config.proxy_type = ProxyTypeEnum.GHPROXY.value.value
             self.ctx.async_update_gh_proxy()
@@ -155,12 +156,12 @@ class SourceConfigInterface(VerticalScrollInterface):
         current_proxy_type = self.ctx.env_config.proxy_type
         if current_proxy_type == ProxyTypeEnum.PERSONAL.value.value:
             self.proxy_url_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('personal_proxy'))
-            self.proxy_url_input.titleLabel.setText('个人代理地址')
+            self.proxy_url_input.titleLabel.setText(gt('个人代理地址'))
             self.proxy_url_input.line_edit.setPlaceholderText('http://127.0.0.1:8080')
             self.proxy_url_input.setVisible(True)
         elif current_proxy_type == ProxyTypeEnum.GHPROXY.value.value:
             self.proxy_url_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('gh_proxy_url'))
-            self.proxy_url_input.titleLabel.setText('免费代理地址')
+            self.proxy_url_input.titleLabel.setText(gt('免费代理地址'))
             self.proxy_url_input.line_edit.setPlaceholderText('https://ghproxy.link/')
             self.proxy_url_input.setVisible(True)
         else:

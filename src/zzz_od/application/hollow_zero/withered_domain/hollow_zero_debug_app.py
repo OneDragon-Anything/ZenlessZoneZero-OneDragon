@@ -12,7 +12,7 @@ class HollowZeroDebugApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='hollow_zero_debug',
-            op_name=gt('零号空洞-调试', 'ui'),
+            op_name=gt('零号空洞-调试'),
             run_record=None
         )
 

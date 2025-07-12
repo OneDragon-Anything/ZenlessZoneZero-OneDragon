@@ -38,7 +38,7 @@ def check_event_at_right(ctx: ZContext, screen: MatLike, ignore_events: set[str]
         if event.event_name in ignore_events:
             continue
         event_name_list.append(event.event_name)
-        event_name_gt_list.append(gt(event.event_name))
+        event_name_gt_list.append(gt(event.event_name, 'game'))
 
     for event_enum in HollowZeroSpecialEvent:
         event = event_enum.value
@@ -49,7 +49,7 @@ def check_event_at_right(ctx: ZContext, screen: MatLike, ignore_events: set[str]
         if event.event_name in ignore_events:
             continue
         event_name_list.append(event.event_name)
-        event_name_gt_list.append(gt(event.event_name))
+        event_name_gt_list.append(gt(event.event_name, 'game'))
 
     # 事件标题一定在最上方 因此找y最小的
     min_y = 9999
@@ -102,7 +102,7 @@ def check_entry_opt_pos_at_right(ctx: ZContext, screen: MatLike, ignore_events: 
         if event.event_name in ignore_events:
             continue
         event_enum_list.append(event_enum)
-        event_name_gt_list.append(gt(event.event_name))
+        event_name_gt_list.append(gt(event.event_name, 'game'))
 
     # 事件标题一定在最上方 因此找y最小的
     min_y = 9999
@@ -156,11 +156,11 @@ def check_event_text_and_run(op: ZOperation, screen: MatLike, handlers: List[Eve
         if bottom_opt_pos is None or mrl.max.center.y > bottom_opt_pos.center.y:
             bottom_opt_pos = mrl.max
 
-    handler_str_list = [gt(handler.target_cn) for handler in handlers]
+    handler_str_list = [gt(handler.target_cn, 'game') for handler in handlers]
 
     # 由于选项和识别的文本都是多个，多对多的情况下需要双向匹配才算成功匹配
     for handler in handlers:
-        handler_event_str = gt(handler.target_cn)
+        handler_event_str = gt(handler.target_cn, 'game')
         results = difflib.get_close_matches(handler_event_str, ocr_result_list, n=1)
 
         if results is None or len(results) == 0:
@@ -273,7 +273,7 @@ def check_bottom_choose(ctx: ZContext, screen: MatLike) -> Optional[str]:
 
     for event in event_list:
         for ocr_result in ocr_result_map.keys():
-            if str_utils.find_by_lcs(gt(event.event_name), ocr_result, percent=event.lcs_percent):
+            if str_utils.find_by_lcs(gt(event.event_name, 'game'), ocr_result, percent=event.lcs_percent):
                 return event.event_name
 
 
@@ -288,7 +288,7 @@ def check_bottom_remove(ctx: ZContext, screen: MatLike) -> Optional[str]:
 
     event = HollowZeroSpecialEvent.CORRUPTION_REMOVE.value
     for ocr_result in ocr_result_map.keys():
-        if str_utils.find_by_lcs(gt(event.event_name), ocr_result, percent=event.lcs_percent):
+        if str_utils.find_by_lcs(gt(event.event_name, 'game'), ocr_result, percent=event.lcs_percent):
             return event.event_name
 
 

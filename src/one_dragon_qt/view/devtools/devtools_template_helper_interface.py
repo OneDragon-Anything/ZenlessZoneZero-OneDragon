@@ -55,23 +55,23 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         widget.add_widget(btn_row)
 
         self.existed_yml_btn = EditableComboBox()
-        self.existed_yml_btn.setPlaceholderText(gt('选择已有', 'ui'))
+        self.existed_yml_btn.setPlaceholderText(gt('选择已有'))
         self.existed_yml_btn.currentIndexChanged.connect(self._on_choose_existed_yml)
         btn_row.add_widget(self.existed_yml_btn)
 
-        self.create_btn = PushButton(text=gt('新建', 'ui'))
+        self.create_btn = PushButton(text=gt('新建'))
         self.create_btn.clicked.connect(self._on_create_clicked)
         btn_row.add_widget(self.create_btn)
 
-        self.copy_btn = PushButton(text=gt('复制', 'ui'))
+        self.copy_btn = PushButton(text=gt('复制'))
         self.copy_btn.clicked.connect(self._on_copy_clicked)
         btn_row.add_widget(self.copy_btn)
 
-        self.delete_btn = PushButton(text=gt('删除', 'ui'))
+        self.delete_btn = ToolButton(FluentIcon.DELETE)
         self.delete_btn.clicked.connect(self._on_delete_clicked)
         btn_row.add_widget(self.delete_btn)
 
-        self.cancel_btn = PushButton(text=gt('取消', 'ui'))
+        self.cancel_btn = PushButton(text=gt('取消'))
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
         btn_row.add_widget(self.cancel_btn)
 
@@ -80,33 +80,33 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         save_row = Row()
         widget.add_widget(save_row)
 
-        self.choose_image_btn = PushButton(text=gt('选择图片', 'ui'))
+        self.choose_image_btn = PushButton(text=gt('选择图片'))
         self.choose_image_btn.clicked.connect(self.choose_existed_image)
         save_row.add_widget(self.choose_image_btn)
 
-        self.save_config_btn = PushButton(text=gt('保存配置', 'ui'))
+        self.save_config_btn = PushButton(text=gt('保存配置'))
         self.save_config_btn.clicked.connect(self._on_save_config_clicked)
         save_row.add_widget(self.save_config_btn)
 
-        self.save_raw_btn = PushButton(text=gt('保存模板', 'ui'))
+        self.save_raw_btn = PushButton(text=gt('保存模板'))
         self.save_raw_btn.clicked.connect(self._on_save_raw_clicked)
         save_row.add_widget(self.save_raw_btn)
 
-        self.save_mask_btn = PushButton(text=gt('保存掩码', 'ui'))
+        self.save_mask_btn = PushButton(text=gt('保存掩码'))
         self.save_mask_btn.clicked.connect(self._on_save_mask_clicked)
         save_row.add_widget(self.save_mask_btn)
 
         save_row.add_stretch(1)
 
         self.h_move_input = LineEdit()
-        self.h_btn = PushButton(text='移动')
+        self.h_btn = PushButton(text=gt('移动'))
         self.h_btn.clicked.connect(self._on_h_move_clicked)
         self.h_move_opt = MultiPushSettingCard(icon=FluentIcon.MOVE, title='横移',
                                                btn_list=[self.h_move_input, self.h_btn])
         widget.add_widget(self.h_move_opt)
 
         self.v_move_input = LineEdit()
-        self.v_btn = PushButton(text='移动')
+        self.v_btn = PushButton(text=gt('移动'))
         self.v_btn.clicked.connect(self._on_v_move_clicked)
         self.v_move_opt = MultiPushSettingCard(icon=FluentIcon.MOVE, title='纵移',
                                                btn_list=[self.v_move_input, self.v_btn])
@@ -144,8 +144,8 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         self.point_table.setColumnCount(2)
         self.point_table.verticalHeader().hide()
         self.point_table.setHorizontalHeaderLabels([
-            gt('操作', 'ui'),
-            gt('点位', 'ui'),
+            gt('操作'),
+            gt('点位'),
         ])
         self.point_table.setColumnWidth(0, 40)  # 操作
         self.point_table.setColumnWidth(1, 200)  # 位置
@@ -158,25 +158,25 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
     def _init_mid_part(self) -> QWidget:
         widget = Column()
 
-        raw_label = CaptionLabel(text='模板原图')
+        raw_label = CaptionLabel(text=gt('模板原图'))
         widget.add_widget(raw_label)
 
         self.template_raw_label = ImageLabel()
         widget.add_widget(self.template_raw_label)
 
-        mask_label = CaptionLabel(text='模板掩码')
+        mask_label = CaptionLabel(text=gt('模板掩码'))
         widget.add_widget(mask_label)
 
         self.template_mask_label = ImageLabel()
         widget.add_widget(self.template_mask_label)
 
-        merge_label = CaptionLabel(text='模板抠图')
+        merge_label = CaptionLabel(text=gt('模板抠图'))
         widget.add_widget(merge_label)
 
         self.template_merge_label = ImageLabel()
         widget.add_widget(self.template_merge_label)
 
-        reversed_label = CaptionLabel(text='反向抠图')
+        reversed_label = CaptionLabel(text=gt('反向抠图'))
         widget.add_widget(reversed_label)
 
         self.template_reversed_label = ImageLabel()
@@ -484,7 +484,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
 
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            gt('选择图片', 'ui'),
+            gt('选择图片'),
             dir=default_dir,
             filter="PNG (*.png)",
         )

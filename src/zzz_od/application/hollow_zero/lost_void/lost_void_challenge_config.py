@@ -227,6 +227,14 @@ class LostVoidChallengeConfig(YamlConfig):
     def store_blood_min(self, new_value: int):
         self.update('store_blood_min', new_value)
 
+    @property
+    def investigation_strategy(self) -> str:
+        return self.get('investigation_strategy', '鸣徽狂热战略')
+
+    @investigation_strategy.setter
+    def investigation_strategy(self, new_value: str):
+        self.update('investigation_strategy', new_value)
+
 
 def get_all_lost_void_challenge_config(with_sample: bool = True) -> List[LostVoidChallengeConfig]:
     config_list: List[LostVoidChallengeConfig] = []

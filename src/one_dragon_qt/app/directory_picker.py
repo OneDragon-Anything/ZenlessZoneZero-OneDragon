@@ -1,11 +1,68 @@
 import os
+import locale
 from PySide6.QtCore import QSize, Qt, QEventLoop
 from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog, QApplication, QWidget
 from PySide6.QtGui import QPixmap
-from qfluentwidgets import (SplashScreen, FluentIcon, PrimaryPushButton, LineEdit,
+from qfluentwidgets import (FluentIcon, PrimaryPushButton, ToolButton, LineEdit,
                             SplitTitleBar, MessageBox, SubtitleLabel, PixmapLabel)
 from one_dragon_qt.windows.window import PhosWindow
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+
+
+class DirectoryPickerTranslator:
+    """简单的翻译器类"""
+
+    def __init__(self, language='zh'):
+        self.language = language
+        self.translations = {
+            'zh': {
+                'title': '请选择安装路径',
+                'placeholder': '选择安装路径...',
+                'browse': '浏览',
+                'confirm': '确认',
+                'select_directory': '选择目录',
+                'warning': '警告',
+                'root_directory_warning': '所选目录为根目录，请选择其他目录。',
+                'path_character_warning': '所选目录的路径包含非法字符，请确保路径全为英文字符且不包含空格。',
+                'directory_not_empty_warning': '所选目录不为空，里面的内容将被覆盖：\n{path}\n\n是否继续使用此目录？',
+                'i_know': '我知道了',
+                'continue_use': '继续使用',
+                'select_other': '选择其他目录'
+            },
+            'en': {
+                'title': 'Please Select Installation Path',
+                'placeholder': 'Select installation path...',
+                'browse': 'Browse',
+                'confirm': 'Confirm',
+                'select_directory': 'Select Directory',
+                'warning': 'Warning',
+                'root_directory_warning': 'The selected directory is a root directory, please select another directory.',
+                'path_character_warning': 'The selected directory path contains invalid characters, please ensure the path contains only English characters and no spaces.',
+                'directory_not_empty_warning': 'The selected directory is not empty, its contents will be overwritten:\n{path}\n\nDo you want to continue using this directory?',
+                'i_know': 'I Know',
+                'continue_use': 'Continue',
+                'select_other': 'Select Other'
+            }
+        }
+
+    def get_text(self, key, **kwargs):
+        """获取翻译文本"""
+        text = self.translations.get(self.language, self.translations['zh']).get(key, key)
+        if kwargs:
+            text = text.format(**kwargs)
+        return text
+
+    @staticmethod
+    def detect_language():
+        """自动检测系统语言"""
+        try:
+            system_locale = locale.getdefaultlocale()[0]
+            if system_locale and system_locale.startswith('zh'):
+                return 'zh'
+            else:
+                return 'en'
+        except:
+            return 'zh'
 
 
 class DirectoryPickerInterface(QWidget):
@@ -16,6 +73,7 @@ class DirectoryPickerInterface(QWidget):
         self.setObjectName("directory_picker_interface")
         self.selected_path = ""
         self.icon_path = icon_path
+        self.translator = DirectoryPickerTranslator(DirectoryPickerTranslator.detect_language())
         self._init_ui()
 
     def _init_ui(self):
@@ -24,6 +82,11 @@ class DirectoryPickerInterface(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(40, 10, 40, 40)
         main_layout.setSpacing(20)
+
+        # 语言切换按钮
+        self.language_btn = ToolButton(FluentIcon.LANGUAGE)
+        self.language_btn.clicked.connect(self._on_language_switch)
+        main_layout.addWidget(self.language_btn)
 
         # 图标区域
         if self.icon_path:
@@ -44,19 +107,19 @@ class DirectoryPickerInterface(QWidget):
                 main_layout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # 标题
-        title_label = SubtitleLabel("请选择安装路径")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(title_label)
+        self.title_label = SubtitleLabel(self.translator.get_text('title'))
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(self.title_label)
 
         # 路径显示区域
         path_layout = QHBoxLayout()
         path_layout.setSpacing(10)
 
         self.path_input = LineEdit()
-        self.path_input.setPlaceholderText("选择安装路径...")
+        self.path_input.setPlaceholderText(self.translator.get_text('placeholder'))
         self.path_input.setReadOnly(True)
         path_layout.addWidget(self.path_input)
-        self.browse_btn = PrimaryPushButton("浏览")
+        self.browse_btn = PrimaryPushButton(self.translator.get_text('browse'))
         self.browse_btn.setIcon(FluentIcon.FOLDER_ADD)
         self.browse_btn.clicked.connect(self._on_browse_clicked)
         path_layout.addWidget(self.browse_btn)
@@ -66,7 +129,7 @@ class DirectoryPickerInterface(QWidget):
         # 按钮区域
         button_layout = QHBoxLayout()
         button_layout.addStretch(1)
-        self.confirm_btn = PrimaryPushButton("确认")
+        self.confirm_btn = PrimaryPushButton(self.translator.get_text('confirm'))
         self.confirm_btn.setIcon(FluentIcon.ACCEPT)
         self.confirm_btn.setMinimumSize(120, 36)  # 设置最小尺寸使按钮变大
         self.confirm_btn.clicked.connect(self._on_confirm_clicked)
@@ -83,7 +146,7 @@ class DirectoryPickerInterface(QWidget):
         """浏览按钮点击事件"""
         selected_dir_path = QFileDialog.getExistingDirectory(
             self,
-            "选择目录",
+            self.translator.get_text('select_directory'),
             "",
             QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks
         )
@@ -92,11 +155,11 @@ class DirectoryPickerInterface(QWidget):
             # 检查路径是否为根目录
             if len(selected_dir_path) <= 3:
                 w = MessageBox(
-                    "警告",
-                    "所选目录为根目录，请选择其他目录。",
+                    self.translator.get_text('warning'),
+                    self.translator.get_text('root_directory_warning'),
                     parent=self.window(),
                 )
-                w.yesButton.setText("我知道了")
+                w.yesButton.setText(self.translator.get_text('i_know'))
                 w.cancelButton.setVisible(False)
                 w.exec()
                 self.selected_path = ""
@@ -107,11 +170,11 @@ class DirectoryPickerInterface(QWidget):
             # 检查路径是否为全英文或者包含空格
             if not all(c.isascii() for c in selected_dir_path) or ' ' in selected_dir_path:
                 w = MessageBox(
-                    "警告",
-                    "所选目录的路径包含非法字符，请确保路径全为英文字符且不包含空格。",
+                    self.translator.get_text('warning'),
+                    self.translator.get_text('path_character_warning'),
                     parent=self.window(),
                 )
-                w.yesButton.setText("我知道了")
+                w.yesButton.setText(self.translator.get_text('i_know'))
                 w.cancelButton.setVisible(False)
                 w.exec()
                 self.selected_path = ""
@@ -122,12 +185,12 @@ class DirectoryPickerInterface(QWidget):
             # 检查目录是否为空
             if os.listdir(selected_dir_path):
                 w = MessageBox(
-                    title="警告",
-                    content=f"所选目录不为空，里面的内容将被覆盖：\n{selected_dir_path}\n\n是否继续使用此目录？",
+                    title=self.translator.get_text('warning'),
+                    content=self.translator.get_text('directory_not_empty_warning', path=selected_dir_path),
                     parent=self.window(),
                 )
-                w.yesButton.setText("继续使用")
-                w.cancelButton.setText("选择其他目录")
+                w.yesButton.setText(self.translator.get_text('continue_use'))
+                w.cancelButton.setText(self.translator.get_text('select_other'))
                 if w.exec():
                     self.selected_path = selected_dir_path
                     self.path_input.setText(selected_dir_path)
@@ -148,6 +211,20 @@ class DirectoryPickerInterface(QWidget):
             if isinstance(window, DirectoryPickerWindow):
                 window.selected_directory = self.selected_path
                 window.close()
+
+    def _on_language_switch(self):
+        """语言切换按钮点击事件"""
+        current_lang = self.translator.language
+        new_lang = 'en' if current_lang == 'zh' else 'zh'
+        self.translator = DirectoryPickerTranslator(new_lang)
+        self._update_ui_texts()
+
+    def _update_ui_texts(self):
+        """更新所有UI文本"""
+        self.title_label.setText(self.translator.get_text('title'))
+        self.path_input.setPlaceholderText(self.translator.get_text('placeholder'))
+        self.browse_btn.setText(self.translator.get_text('browse'))
+        self.confirm_btn.setText(self.translator.get_text('confirm'))
 
 
 class DirectoryPickerWindow(PhosWindow):
@@ -171,17 +248,10 @@ class DirectoryPickerWindow(PhosWindow):
         # 初始化窗口
         self.init_window()
 
-        # 创建启动页面
-        self.splashScreen = SplashScreen(self.windowIcon(), self)
-        self.splashScreen.setIconSize(QSize(144, 144))
-
         # 在创建其他子页面前先显示主界面
         self.show()
 
         self.create_sub_interface()
-
-        # 隐藏启动页面
-        self.splashScreen.finish()
 
     def exec(self):
         """模态执行窗口，等待窗口关闭"""
@@ -216,8 +286,8 @@ class DirectoryPickerWindow(PhosWindow):
 
         # 布局样式调整
         self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
-        self.stackedWidget.setContentsMargins(0, 28, 0, 0)
-        self.navigationInterface.setContentsMargins(0, 28, 0, 0)
+        self.stackedWidget.setContentsMargins(0, 0, 0, 0)
+        self.navigationInterface.setContentsMargins(0, 0, 0, 0)
 
         # 配置样式
         OdQtStyleSheet.APP_WINDOW.apply(self)

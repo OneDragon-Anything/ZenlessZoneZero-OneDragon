@@ -33,7 +33,7 @@ class HollowBattle(ZOperation):
         event_name = HollowZeroSpecialEvent.IN_BATTLE.value.event_name
         ZOperation.__init__(
             self, ctx,
-            op_name=gt(event_name)
+            op_name=gt(event_name, 'game')
         )
 
         self.is_critical_stage: bool = is_critical_stage  # 是否关键进展

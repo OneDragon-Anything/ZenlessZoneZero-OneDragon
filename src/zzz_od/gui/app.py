@@ -53,7 +53,7 @@ try:
                 self,
                 win_title="%s %s"
                 % (
-                    gt(ctx.project_config.project_name, "ui"),
+                    gt(ctx.project_config.project_name),
                     ctx.one_dragon_config.current_active_instance.name,
                 ),
                 project_config=ctx.project_config,
@@ -172,7 +172,7 @@ try:
             self.setWindowTitle(
                 "%s %s"
                 % (
-                    gt(self.ctx.project_config.project_name, "ui"),
+                    gt(self.ctx.project_config.project_name),
                     self.ctx.one_dragon_config.current_active_instance.name,
                 )
             )

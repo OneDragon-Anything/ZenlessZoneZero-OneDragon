@@ -25,7 +25,7 @@ from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 from one_dragon_qt.widgets.banner import Banner
 from one_dragon_qt.widgets.icon_button import IconButton
-from one_dragon_qt.widgets.notice_card import NoticeCard
+from one_dragon_qt.widgets.notice_card import NoticeCardContainer
 from one_dragon_qt.widgets.vertical_scroll_interface import (
     VerticalScrollInterface,
 )
@@ -114,7 +114,7 @@ class ButtonGroup(SimpleCardWidget):
 
     def open_home(self):
         """打开主页链接"""
-        QDesktopServices.openUrl(QUrl("https://onedragon-anything.github.io/zzz/zh/home.html"))
+        QDesktopServices.openUrl(QUrl("https://one-dragon.com/zzz/zh/home.html"))
 
     def open_github(self):
         """打开 GitHub 链接"""
@@ -293,8 +293,11 @@ class HomeInterface(VerticalScrollInterface):
         h2_layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
 
         # 公告卡片
-        noticeCard = NoticeCard()
-        h2_layout.addWidget(noticeCard)
+        self.notice_container = NoticeCardContainer()
+        h2_layout.addWidget(self.notice_container)
+
+        # 根据配置设置启用状态
+        self.notice_container.set_notice_enabled(self.ctx.custom_config.notice_card)
 
         h2_layout.addStretch()
 
@@ -326,7 +329,6 @@ class HomeInterface(VerticalScrollInterface):
 
         # 应用样式
         OdQtStyleSheet.GAME_BUTTON.apply(start_button)
-        OdQtStyleSheet.NOTICE_CARD.apply(noticeCard)
 
         self.ctx = ctx
         self._init_check_runners()
@@ -355,6 +357,9 @@ class HomeInterface(VerticalScrollInterface):
             self._version_poster_downloader.start()
         elif self.ctx.custom_config.remote_banner:
             self._banner_downloader.start()
+
+        # 检查公告卡片配置是否变化
+        self._check_notice_config_change()
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
@@ -416,3 +421,11 @@ class HomeInterface(VerticalScrollInterface):
             banner_path = index_banner_path
 
         return banner_path
+
+    def _check_notice_config_change(self):
+        """检查公告卡片配置是否发生变化"""
+        if self.ctx.signal.notice_card_config_changed:
+            current_config = self.ctx.custom_config.notice_card
+            self.notice_container.set_notice_enabled(current_config)
+            # 重置信号状态
+            self.ctx.signal.notice_card_config_changed = False

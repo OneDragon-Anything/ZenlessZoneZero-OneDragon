@@ -73,7 +73,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
 
         self.combo_box.currentIndexChanged.connect(self.on_index_changed)
 
-        self.download_btn = PushButton(text=gt('下载', 'ui'))
+        self.download_btn = PushButton(text=gt('下载'))
         self.download_btn.clicked.connect(self._on_download_click)
 
         btn_list = [self.combo_box, self.download_btn]
@@ -126,7 +126,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         :param content: 文本 中文
         :return:
         """
-        SettingCard.setContent(self, gt(content, 'ui'))
+        SettingCard.setContent(self, gt(content))
 
     def set_value_by_save_file_name(self, save_file_name: str) -> None:
         """
@@ -148,10 +148,10 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         :return:
         """
         if self.downloader is not None and self.downloader.is_file_existed():
-            self.download_btn.setText(gt('已下载', 'ui'))
+            self.download_btn.setText(gt('已下载'))
             self.download_btn.setDisabled(True)
         else:
-            self.download_btn.setText(gt('下载', 'ui'))
+            self.download_btn.setText(gt('下载'))
             self.download_btn.setDisabled(False)
 
     def _on_download_click(self) -> None:
@@ -161,7 +161,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         if self.download_runner.isRunning():
             log.warning('我知道你很急 但你先别急 正在运行了')
             return
-        self.download_btn.setText(gt('下载中', 'ui'))
+        self.download_btn.setText(gt('下载中'))
         self.download_btn.setDisabled(False)
         self.download_runner.start()
 

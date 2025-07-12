@@ -29,7 +29,7 @@ class HollowZeroApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='hollow_zero',
-            op_name=gt('枯萎之都', 'ui'),
+            op_name=gt('枯萎之都'),
             run_record=ctx.hollow_zero_record,
             need_notify=True,
         )

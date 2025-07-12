@@ -13,7 +13,7 @@ class DriveDiscDismantleApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='drive_disc_dismantle',
-            op_name=gt('驱动盘分解', 'ui'),
+            op_name=gt('驱动盘分解'),
             run_record=ctx.drive_disc_dismantle_record,
             need_notify=True,
         )

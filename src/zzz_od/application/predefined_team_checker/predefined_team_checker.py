@@ -35,7 +35,7 @@ class PredefinedTeamChecker(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='predefined_team_checker',
-            op_name=gt('预备编队角色识别', 'ui'),
+            op_name=gt('预备编队角色识别'),
             retry_in_od=True,  # 传送落地有可能会歪 重试
         )
 

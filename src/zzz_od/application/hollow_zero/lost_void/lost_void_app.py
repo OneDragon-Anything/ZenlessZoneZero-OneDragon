@@ -1,15 +1,19 @@
+import time
 from typing import ClassVar
 
+from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cv2_utils
+from one_dragon.utils import cv2_utils, str_utils
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidRegionType
 from zzz_od.application.hollow_zero.lost_void.operation.lost_void_run_level import LostVoidRunLevel
 from zzz_od.application.zzz_application import ZApplication
+from zzz_od.const import game_const
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.game_data.compendium import CompendiumMissionType
@@ -36,6 +40,8 @@ class LostVoidApp(ZApplication):
 
         self.next_region_type: LostVoidRegionType = LostVoidRegionType.ENTRY  # 下一个区域的类型
         self.priority_agent_list: list[Agent] = []  # 优先选择的代理人列表
+
+        self.use_priority_agent: bool = False  # 本次挑战是否使用了UP代理人
 
     @operation_node(name='初始化加载', is_start_node=True)
     def init_for_lost_void(self) -> OperationRoundResult:
@@ -160,6 +166,50 @@ class LostVoidApp(ZApplication):
             return self.round_success()
 
     @node_from(from_name='副本画面识别')
+    @operation_node(name='打开调查战略列表')
+    def open_strategy_list(self) -> OperationRoundResult:
+        return self.round_by_click_area('迷失之地-战线肃清', '按钮-调查战略',
+                                        success_wait=1, retry_wait=1)
+
+
+    @node_from(from_name='打开调查战略列表')
+    @operation_node(name='选择调查战略')
+    def choose_strategy(self) -> OperationRoundResult:
+        screen = self.screenshot()
+
+        current_screen_name = self.check_and_update_current_screen(
+            screen, screen_name_list=['迷失之地-战线肃清', '迷失之地-特遣调查']
+        )
+        if current_screen_name is not None:
+            return self.round_success(current_screen_name)
+
+        # 当前屏幕匹配是否有目标战略
+        ocr_result_map = self.ctx.ocr.run_ocr(screen)
+        ocr_word_list = list(ocr_result_map.keys())
+        target = gt(self.ctx.lost_void.challenge_config.investigation_strategy, 'game')
+        idx = str_utils.find_best_match_by_difflib(target, ocr_word_list)
+
+        if idx is None or idx < 0:
+            start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
+            end = start + Point(-800, 0)
+            self.ctx.controller.drag_to(start=start, end=end)
+            return self.round_retry(status='未识别到目标调查战略', wait=1)
+
+        target_pos = ocr_result_map[ocr_word_list[idx]].max.center
+        self.ctx.controller.click(target_pos)
+        time.sleep(1)
+
+        idx = str_utils.find_best_match_by_difflib(gt('确定', 'game'), ocr_word_list)
+        if idx is None or idx < 0:
+            return self.round_retry(status='未识别到确定按钮', wait=1)
+
+        target_pos = ocr_result_map[ocr_word_list[idx]].max.center
+        self.ctx.controller.click(target_pos)
+        time.sleep(1)
+
+        return self.round_wait(status='确定')
+
+    @node_from(from_name='选择调查战略')
     @operation_node(name='选择周期增益')
     def choose_buff(self) -> OperationRoundResult:
         mission_name = self.ctx.lost_void_config.mission_name
@@ -185,13 +235,15 @@ class LostVoidApp(ZApplication):
         根据配置判断是否需要切换编队
         :return:
         """
+        self.use_priority_agent = False
         mission_name = self.ctx.lost_void_config.mission_name
         if mission_name == '特遣调查':
             # 本周第一次挑战 且开启了优先级配队
             if (self.ctx.lost_void.challenge_config.choose_team_by_priority
-                and self.ctx.lost_void_record.weekly_run_times < 1):
+                and self.ctx.lost_void_record.complete_task_force_with_up == False):
                 self.ctx.lost_void.predefined_team_idx = self.get_target_team_idx_by_priority()
                 if self.ctx.lost_void.predefined_team_idx != -1:
+                    self.use_priority_agent = True
                     return self.round_success(status='需选择预备编队')
 
         # 配置中选择特定编队
@@ -266,6 +318,8 @@ class LostVoidApp(ZApplication):
             return self.round_retry('等待画面加载')
 
         self.ctx.lost_void_record.add_complete_times()
+        if self.use_priority_agent:
+            self.ctx.lost_void_record.complete_task_force_with_up = True
 
         if self.ctx.lost_void_record.is_finished_by_day():
             return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)

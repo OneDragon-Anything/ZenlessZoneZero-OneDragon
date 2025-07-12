@@ -16,7 +16,7 @@ class ScratchCardApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='scratch_card',
-            op_name=gt('刮刮卡', 'ui'),
+            op_name=gt('刮刮卡'),
             run_record=ctx.scratch_card_run_record,
             retry_in_od=True,  # 传送落地有可能会歪 重试,
             need_notify=True,

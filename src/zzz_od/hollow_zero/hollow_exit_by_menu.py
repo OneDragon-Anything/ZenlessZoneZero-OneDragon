@@ -16,7 +16,7 @@ class HollowExitByMenu(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('离开空洞')
+            op_name=gt('离开空洞', 'game')
         )
 
     @operation_node(name='点击菜单', is_start_node=True)

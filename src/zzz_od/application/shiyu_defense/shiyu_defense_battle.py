@@ -37,7 +37,7 @@ class ShiyuDefenseBattle(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name='%s %s' % (gt('式舆防卫战'), gt('自动战斗'))
+            op_name='%s %s' % (gt('式舆防卫战', 'game'), gt('自动战斗'))
         )
 
         self.team_config: PredefinedTeamInfo = self.ctx.team_config.get_team_by_idx(predefined_team_idx)

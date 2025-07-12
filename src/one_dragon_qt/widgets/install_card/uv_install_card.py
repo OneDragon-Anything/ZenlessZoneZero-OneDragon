@@ -45,7 +45,7 @@ class UVInstallCard(WithExistedInstallCard):
             self.ctx.env_config.uv_path = DEFAULT_UV_PATH
             self.check_and_update_display()
         else:
-            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg, 'ui'))
+            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
 
     def get_display_content(self) -> Tuple[QIcon, str]:
         """
@@ -56,17 +56,17 @@ class UVInstallCard(WithExistedInstallCard):
 
         if uv_path == '':
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
-            msg = gt('未安装。可选择你自己的 uv.exe', 'ui')
+            msg = gt('未安装。可选择你自己的 uv.exe')
         elif not os.path.exists(uv_path):
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
-            msg = gt('文件不存在', 'ui') + ' ' + uv_path
+            msg = gt('文件不存在') + ' ' + uv_path
         else:
             uv_version = self.ctx.python_service.get_uv_version()
             if uv_version is None:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
-                msg = gt('无法获取 UV 版本', 'ui') + ' ' + uv_path
+                msg = gt('无法获取 UV 版本') + ' ' + uv_path
             else:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
-                msg = f"{gt('已安装', 'ui')}" + ' ' + uv_path
+                msg = f"{gt('已安装')}" + ' ' + uv_path
 
         return icon, msg

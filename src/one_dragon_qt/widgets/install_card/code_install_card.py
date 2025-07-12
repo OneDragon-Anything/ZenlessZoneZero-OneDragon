@@ -48,7 +48,7 @@ class CodeInstallCard(BaseInstallCard):
             self.updated = True
         else:
             msg = msg + ' 可考虑设置-脚本环境-代码源选择Gitee 但不能保证是最新版本'
-            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg, 'ui'))
+            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
 
     def get_display_content(self) -> Tuple[QIcon, str]:
         """
@@ -58,22 +58,22 @@ class CodeInstallCard(BaseInstallCard):
         git_path = self.ctx.env_config.git_path
         current_branch = self.ctx.git_service.get_current_branch()
         if git_path == '':
-            return FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt('未配置Git', 'ui')
+            return FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt('未配置Git')
         elif current_branch is None:
-            return FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt('未同步代码', 'ui')
+            return FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt('未同步代码')
         elif current_branch != self.ctx.env_config.git_branch:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
-            msg = f"{gt('当前分支', 'ui')}: {current_branch}; {gt('建议分支', 'ui')}: {self.ctx.env_config.git_branch}; {gt('不自动同步', 'ui')}"
+            msg = f"{gt('当前分支')}: {current_branch}; {gt('建议分支')}: {self.ctx.env_config.git_branch}; {gt('不自动同步')}"
             return icon, msg
         else:
             latest, msg = self.ctx.git_service.is_current_branch_latest()
             if latest:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
-                msg = f"{gt('已同步代码', 'ui')}" + ' ' + current_branch
+                msg = f"{gt('已同步代码')}" + ' ' + current_branch
             else:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
 
             if self.updated:
-                msg += ' ' + gt('更新后需重启脚本生效。如不能运行，尝试使用安装器更新运行依赖，或更新安装器', 'ui')
+                msg += ' ' + gt('更新后需重启脚本生效。如不能运行，尝试使用安装器更新运行依赖，或更新安装器')
 
             return icon, msg

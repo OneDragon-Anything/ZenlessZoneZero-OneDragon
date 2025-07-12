@@ -1,4 +1,7 @@
 - tab_name: "目标"
+  category_list:
+    - category_name: "绳匠传奇"
+    - category_name: "修者纪行"
 - tab_name: "日常"
 - tab_name: "训练"
   category_list:

@@ -13,7 +13,7 @@ class OpenGame(Operation):
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
-        Operation.__init__(self, ctx, op_name=gt('打开游戏', 'ui'),
+        Operation.__init__(self, ctx, op_name=gt('打开游戏'),
                            need_check_game_win=False)
 
     @operation_node(name='打开游戏', is_start_node=True)

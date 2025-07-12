@@ -22,7 +22,7 @@ class LauncherInstallCard(BaseInstallCard):
         )
 
     def install_launcher(self, progress_callback: Optional[Callable[[float, str], None]]) -> Tuple[bool, str]:
-        msg = '正在安装启动器...'
+        msg = gt('正在安装启动器...')
         if progress_callback is not None:
             progress_callback(-1, msg)
         log.info(msg)
@@ -34,9 +34,9 @@ class LauncherInstallCard(BaseInstallCard):
             if not os.path.exists(zip_file_path):
                 success = self.ctx.download_service.download_file_from_url(download_url, zip_file_path, progress_callback=progress_callback)
                 if not success:
-                    return False, '下载启动器失败 请尝试到「设置」更改网络代理'
+                    return False, gt('下载启动器失败 请尝试到「设置」更改网络代理')
 
-            msg = f'正在解压 {zip_file_name} ...'
+            msg = f"{gt('正在解压')} {zip_file_name} ..."
             log.info(msg)
             if progress_callback is not None:
                 progress_callback(0, msg)
@@ -47,7 +47,7 @@ class LauncherInstallCard(BaseInstallCard):
 
             success = file_utils.unzip_file(zip_file_path, os_utils.get_work_dir())
 
-            msg = '解压成功' if success else '解压失败 准备重试'
+            msg = gt('解压成功') if success else gt('解压失败 准备重试')
             log.info(msg)
             if progress_callback is not None:
                 progress_callback(1 if success else 0, msg)
@@ -56,10 +56,10 @@ class LauncherInstallCard(BaseInstallCard):
             if not success:  # 解压失败的话 可能是之前下的zip包坏了 尝试删除重来
                 continue
             else:
-                return True, '安装启动器成功'
+                return True, gt('安装启动器成功')
 
         # 重试之后还是失败了
-        return False, '安装启动器失败'
+        return False, gt('安装启动器失败')
 
     def check_launcher_exist(self) -> bool:
         """
@@ -86,7 +86,7 @@ class LauncherInstallCard(BaseInstallCard):
         if success:
             self.check_and_update_display()
         else:
-            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg, 'ui'))
+            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
 
     def get_display_content(self) -> Tuple[QIcon, str]:
         """
@@ -97,12 +97,12 @@ class LauncherInstallCard(BaseInstallCard):
             is_latest, latest_version, current_version = self.check_launcher_update()
             if is_latest or os_utils.run_in_exe():  # 安装器中不检查更新
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
-                msg = f"{gt('已安装', 'ui')} {current_version}"
+                msg = f"{gt('已安装')} {current_version}"
             else:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
-                msg = f"需更新。{gt('当前版本', 'ui')}: {current_version}; {gt('最新版本', 'ui')}: {latest_version}"
+                msg = f"{gt('需更新')} {gt('当前版本')}: {current_version}; {gt('最新版本')}: {latest_version}"
         else:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
-            msg = gt('需下载', 'ui')
+            msg = gt('需下载')
 
         return icon, msg

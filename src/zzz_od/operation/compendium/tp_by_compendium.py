@@ -22,8 +22,8 @@ class TransportByCompendium(ZOperation):
             self, ctx,
             op_name='%s %s %s-%s-%s' % (
                 gt('传送'),
-                gt('快捷手册'),
-                gt(tab_name), gt(category_name), gt(mission_type_name)
+                gt('快捷手册', 'game'),
+                gt(tab_name, 'game'), gt(category_name, 'game'), gt(mission_type_name, 'game')
             )
         )
 

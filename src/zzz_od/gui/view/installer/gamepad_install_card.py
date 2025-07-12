@@ -34,7 +34,7 @@ class GamepadInstallCard(BaseInstallCard):
             self.ctx.env_config.update('vgamepad_requirement', self.get_requirement_time())
             self.check_and_update_display()
         else:
-            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg, 'ui'))
+            self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt(msg))
 
     def get_display_content(self) -> Tuple[QIcon, str]:
         """
@@ -45,10 +45,10 @@ class GamepadInstallCard(BaseInstallCard):
 
         if last != self.get_requirement_time():
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
-            msg = gt('需更新，请使用安装器更新', 'ui')
+            msg = gt('需更新，请使用安装器更新')
         else:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
-            msg = f"{gt('已安装', 'ui')}" + ' ' + last
+            msg = f"{gt('已安装')}" + ' ' + last
 
         return icon, msg
 
@@ -58,7 +58,7 @@ class GamepadInstallCard(BaseInstallCard):
         :return:
         """
         log.info('获取依赖文件的最后修改时间')
-        return cmd_utils.run_command([self.ctx.env_config.git_path, 'log', '-1', '--pretty=format:"%ai', '--', self.get_requirement_path()])
+        return cmd_utils.run_command([self.ctx.env_config.git_path, 'log', '-1', '--pretty=format:"%ai"', '--', self.get_requirement_path()])
 
     def install_requirements(self, progress_callback: Optional[Callable[[float, str], None]]) -> Tuple[bool, str]:
         """

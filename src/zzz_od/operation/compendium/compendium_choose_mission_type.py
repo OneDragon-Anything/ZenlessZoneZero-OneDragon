@@ -30,9 +30,9 @@ class CompendiumChooseMissionType(ZOperation):
         ZOperation.__init__(
             self, ctx,
             op_name='%s %s %s' % (
-                gt('快捷手册'),
-                gt('选择副本类型'),
-                gt(mission_type.mission_type_name)
+                gt('快捷手册', 'game'),
+                gt('选择副本类型', 'game'),
+                gt(mission_type.mission_type_name, 'game')
             )
         )
 
@@ -58,7 +58,7 @@ class CompendiumChooseMissionType(ZOperation):
         for idx, mission_type in enumerate(mission_type_list):
             if mission_type.mission_type_name == self.mission_type.mission_type_name:
                 target_idx = idx
-            target_list.append(gt(mission_type.mission_type_name))
+            target_list.append(gt(mission_type.mission_type_name, 'game'))
 
         if target_idx == -1:
             return self.round_fail('非法的副本分类 %s' % self.mission_type.mission_type_name)
@@ -148,7 +148,7 @@ class CompendiumChooseMissionType(ZOperation):
         for ocr_result, mrl in ocr_results.items():
             if mrl.max is None:
                 continue
-            if not str_utils.find_by_lcs(gt('前往'), ocr_result, percent=0.5):
+            if not str_utils.find_by_lcs(gt('前往', 'game'), ocr_result, percent=0.5):
                 continue
             for mr in mrl:
                 go_point = go_rect.left_top + mr.center

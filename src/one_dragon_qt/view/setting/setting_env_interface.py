@@ -40,7 +40,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         return content_widget
 
     def _init_basic_group(self) -> SettingCardGroup:
-        basic_group = SettingCardGroup(gt('基础', 'ui'))
+        basic_group = SettingCardGroup(gt('基础'))
 
         self.debug_opt = SwitchSettingCard(
             icon=FluentIcon.SEARCH, title='调试模式', content='正常无需开启'
@@ -54,10 +54,15 @@ class SettingEnvInterface(VerticalScrollInterface):
         )
         basic_group.addSettingCard(self.copy_screenshot_opt)
 
+        self.ocr_cache_opt = SwitchSettingCard(
+            icon=FluentIcon.SEARCH, title='OCR缓存模式', content='降低CPU占用(测试中)'
+        )
+        basic_group.addSettingCard(self.ocr_cache_opt)
+
         return basic_group
 
     def _init_code_group(self) -> SettingCardGroup:
-        code_group = SettingCardGroup(gt('Git相关', 'ui'))
+        code_group = SettingCardGroup(gt('Git相关'))
 
         self.repository_type_opt = ComboBoxSettingCard(
             icon=FluentIcon.APPLICATION, title='代码源', content='国内无法访问GitHub则选择Gitee',
@@ -86,17 +91,17 @@ class SettingEnvInterface(VerticalScrollInterface):
         return code_group
 
     def _init_python_group(self) -> SettingCardGroup:
-        python_group = SettingCardGroup(gt('Python相关', 'ui'))
+        python_group = SettingCardGroup(gt('Python相关'))
 
         self.cpython_source_opt = ComboBoxSettingCard(icon=FluentIcon.GLOBE, title='Python下载源', options_enum=CpythonSourceEnum)
-        self.cpython_build_choose_best_btn = PushButton('自动测速选择', self)
+        self.cpython_build_choose_best_btn = PushButton(gt('自动测速选择'), self)
         self.cpython_build_choose_best_btn.clicked.connect(self.on_cpython_build_choose_best_clicked)
         self.cpython_source_opt.hBoxLayout.addWidget(self.cpython_build_choose_best_btn, 0, Qt.AlignmentFlag.AlignRight)
         self.cpython_source_opt.hBoxLayout.addSpacing(16)
         python_group.addSettingCard(self.cpython_source_opt)
 
         self.pip_source_opt = ComboBoxSettingCard(icon=FluentIcon.GLOBE, title='Pip源', options_enum=PipSourceEnum)
-        self.pip_choose_best_btn = PushButton('自动测速选择', self)
+        self.pip_choose_best_btn = PushButton(gt('自动测速选择'), self)
         self.pip_choose_best_btn.clicked.connect(self.on_pip_choose_best_clicked)
         self.pip_source_opt.hBoxLayout.addWidget(self.pip_choose_best_btn, 0, Qt.AlignmentFlag.AlignRight)
         self.pip_source_opt.hBoxLayout.addSpacing(16)
@@ -105,7 +110,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         return python_group
 
     def _init_web_group(self) -> SettingCardGroup:
-        web_group = SettingCardGroup(gt('网络相关', 'ui'))
+        web_group = SettingCardGroup(gt('网络相关'))
 
         self.proxy_type_opt = ComboBoxSettingCard(
             icon=FluentIcon.GLOBE, title='网络代理', content='免费代理仅能加速工具和模型下载，无法加速代码同步',
@@ -129,12 +134,12 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.auto_fetch_gh_proxy_url_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC, title='自动获取免费代理地址', content='获取失败时 可前往 https://ghproxy.link/ 查看自行更新'
         )
-        self.fetch_gh_proxy_url_btn = PushButton('获取', self)
+        self.fetch_gh_proxy_url_btn = PushButton(gt('获取'), self)
         self.fetch_gh_proxy_url_btn.clicked.connect(self.on_fetch_gh_proxy_url_clicked)
         self.auto_fetch_gh_proxy_url_opt.hBoxLayout.addWidget(self.fetch_gh_proxy_url_btn, 0, Qt.AlignmentFlag.AlignRight)
         self.auto_fetch_gh_proxy_url_opt.hBoxLayout.addSpacing(16)
 
-        self.goto_gh_proxy_link_btn = HyperlinkButton('https://ghproxy.link', '前往', self)
+        self.goto_gh_proxy_link_btn = HyperlinkButton('https://ghproxy.link', gt('前往'), self)
         self.auto_fetch_gh_proxy_url_opt.hBoxLayout.addWidget(self.goto_gh_proxy_link_btn, 0, Qt.AlignmentFlag.AlignRight)
         self.auto_fetch_gh_proxy_url_opt.hBoxLayout.addSpacing(16)
 
@@ -143,7 +148,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         return web_group
 
     def _init_key_group(self) -> SettingCardGroup:
-        key_group = SettingCardGroup(gt('脚本按键', 'ui'))
+        key_group = SettingCardGroup(gt('脚本按键'))
 
         self.key_start_running_input = KeySettingCard(
             icon=FluentIcon.PLAY, title='开始运行', content='开始、暂停、恢复某个应用',
@@ -176,6 +181,7 @@ class SettingEnvInterface(VerticalScrollInterface):
 
         self.debug_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('is_debug'))
         self.copy_screenshot_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('copy_screenshot'))
+        self.ocr_cache_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('ocr_cache'))
 
         self.key_start_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_start_running'))
         self.key_stop_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_stop_running'))

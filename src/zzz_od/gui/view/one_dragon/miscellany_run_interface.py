@@ -17,7 +17,7 @@ class MiscellanyRunInterface(OneDragonRunInterface):
             need_multiple_instance=False,
             need_after_done_opt=False,
             parent=parent,
-            help_url='https://onedragon-anything.github.io/zzz/zh/docs/feat_one_dragon.html'
+            help_url='https://one-dragon.com/zzz/zh/docs/feat_one_dragon.html'
         )
 
     def get_one_dragon_app(self) -> OneDragonApp:

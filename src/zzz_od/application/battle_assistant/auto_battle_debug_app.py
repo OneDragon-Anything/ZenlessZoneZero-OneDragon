@@ -25,7 +25,7 @@ class AutoBattleDebugApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='auto_battle_debug',
-            op_name=gt('自动战斗调试', 'ui'),
+            op_name=gt('自动战斗调试'),
             need_ocr=False
         )
 

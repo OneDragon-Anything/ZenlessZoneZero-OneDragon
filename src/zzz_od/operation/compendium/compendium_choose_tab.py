@@ -19,9 +19,9 @@ class CompendiumChooseTab(ZOperation):
         ZOperation.__init__(
             self, ctx,
             op_name='%s %s %s' % (
-                gt('快捷手册'),
-                gt('选择Tab', 'ui'),
-                gt(tab_name)
+                gt('快捷手册', 'game'),
+                gt('选择Tab'),
+                gt(tab_name, 'game')
             )
         )
 
@@ -38,7 +38,7 @@ class CompendiumChooseTab(ZOperation):
         for ocr_result, mrl in ocr_results.items():
             if mrl.max is None:
                 continue
-            if str_utils.find_by_lcs(gt(self.tab_name), ocr_result, percent=0.5):
+            if str_utils.find_by_lcs(gt(self.tab_name, 'game'), ocr_result, percent=0.5):
                 target_point = area.left_top + mrl.max
                 break
 

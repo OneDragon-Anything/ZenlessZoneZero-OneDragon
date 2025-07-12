@@ -721,6 +721,129 @@
   level: "A"
   is_gear: true
 
+  # 仪玄
+- category: "仪玄"
+  name: "青鸾贯影"
+  level: "S"
+  is_gear: true
+  template_id: "gear_yixuan_1"
+
+- category: "仪玄"
+  name: "青鸾贯影-a"
+  level: "S"
+  is_gear: true
+
+- category: "仪玄"
+  name: "青鸾贯影-b"
+  level: "S"
+  is_gear: true
+
+- category: "仪玄"
+  name: "灵铢和鸣"
+  level: "S"
+  is_gear: true
+  template_id: "gear_yixuan_2"
+
+- category: "仪玄"
+  name: "灵铢和鸣-a"
+  level: "S"
+  is_gear: true
+
+- category: "仪玄"
+  name: "灵铢和鸣-b"
+  level: "S"
+  is_gear: true
+
+- category: "仪玄"
+  name: "玄翎金箓"
+  level: "S"
+  is_gear: true
+  template_id: "gear_yixuan_3"
+
+- category: "仪玄"
+  name: "玄翎金箓-a"
+  level: "S"
+  is_gear: true
+
+- category: "仪玄"
+  name: "玄翎金箓-b"
+  level: "S"
+  is_gear: true
+
+#   # 橘福福
+- category: "橘福福"
+  name: "山君破煞"
+  level: "S"
+  is_gear: true
+  template_id: "gear_ju_fufu_1"
+
+- category: "橘福福"
+  name: "山君破煞-a"
+  level: "S"
+  is_gear: true
+
+- category: "橘福福"
+  name: "山君破煞-b"
+  level: "S"
+  is_gear: true
+
+- category: "橘福福"
+  name: "「风雷」之音"
+  level: "S"
+  is_gear: true
+  template_id: "gear_ju_fufu_2"
+
+- category: "橘福福"
+  name: 「风雷」之音-a"
+  level: "S"
+  is_gear: true
+
+- category: "橘福福"
+  name: "「风雷」之音-b"
+  level: "S"
+  is_gear: true
+
+- category: "橘福福"
+  name: "灵符虎魄"
+  level: "S"
+  is_gear: true
+  template_id: "gear_ju_fufu_3"
+
+- category: "橘福福"
+  name: "灵符虎魄-a"
+  level: "S"
+  is_gear: true
+
+- category: "橘福福"
+  name: "灵符虎魄-b"
+  level: "S"
+  is_gear: true
+
+  # 携游
+- category: "携游"
+  name: "节能载具"
+  level: "A"
+
+- category: "携游"
+  name: "威猛拳拳"
+  level: "A"
+
+- category: "携游"
+  name: "旋转木马"
+  level: "A"
+
+- category: "携游"
+  name: "充气游泳圈"
+  level: "B"
+
+- category: "携游"
+  name: "儿童餐盒"
+  level: "B"
+
+- category: "携游"
+  name: "飓风飞椅"
+  level: "B"
+
   # 终结
 - category: "终结"
   name: "余音古筝"
@@ -828,31 +951,6 @@
 - category: "命破"
   name: "被甲弹头"
   level: "A"
-
-  # 携游
-- category: "携游"
-  name: "节能载具"
-  level: "A"
-
-- category: "携游"
-  name: 威猛拳拳"
-  level: "A"
-
-- category: "携游"
-  name: "旋转木马"
-  level: "A"
-
-- category: "携游"
-  name: "充气游泳圈"
-  level: "B"
-
-- category: "携游"
-  name: "儿童餐盒"
-  level: "B"
-
-- category: "携游"
-  name: "飓风飞椅"
-  level: "B"
 
   # 通用
 - category: "通用"
@@ -1129,6 +1227,10 @@
   name: "防护战术交流"
   level: "A"
 
+- category: "契合"
+  name: "命破战术交流"
+  level: "A"
+
   # 卡牌
 
 - category: "卡牌"
@@ -1148,6 +1250,10 @@
   level: "S"
 
 - category: "卡牌"
+  name: "燃油饮分享装"
+  level: "S"
+
+- category: "卡牌"
   name: "导航数据组"
   level: "S"
 
@@ -1160,7 +1266,7 @@
   level: "S"
 
 - category: "卡牌"
-  name: "定位卡-战力"
+  name: "定位卡-力战"
   level: "S"
 
 - category: "卡牌"
@@ -1233,6 +1339,10 @@
 
 - category: "卡牌"
   name: "贵宾的礼遇"
+  level: "A"
+
+- category: "卡牌"
+  name: "终结的决心"
   level: "A"
 
 - category: "卡牌"
@@ -1412,4 +1522,38 @@
 
 - category: "无详情"
   name: "少量齿轮硬币"
+  level: "S"
+
+  # 无详情的答题 只选择正确答案，保留回答错误的修正
+
+- category: "无详情"
+  name: "蜜瓜"
+  level: "S"
+
+- category: "无详情"
+  name: "保养佩刀"
+  level: "S"
+
+- category: "无详情"
+  name: "记住毕业照上同学的名字"
+  level: "S"
+
+- category: "无详情"
+  name: "天琴座"
+  level: "S"
+
+- category: "无详情"
+  name: "简约低调"
+  level: "S"
+
+- category: "无详情"
+  name: "速度与亲情"
+  level: "S"
+
+- category: "无详情"
+  name: "回答正确"
+  level: "S"
+
+- category: "无详情"
+  name: "回答错误"
   level: "S"
