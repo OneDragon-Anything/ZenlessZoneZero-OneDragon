@@ -1,6 +1,6 @@
 import os
 import locale
-from PySide6.QtCore import Qt, QEventLoop, QSize, QTimer
+from PySide6.QtCore import Qt, QEventLoop, QSize
 from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog, QApplication, QWidget
 from PySide6.QtGui import QPixmap
 from qfluentwidgets import (FluentIcon, PrimaryPushButton, ToolButton, LineEdit, MessageBox,
