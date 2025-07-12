@@ -1,0 +1,11 @@
+screen_name: 好物铺-兑换弹窗
+recognition:
+  - type: text
+    value: '兑换确认'
+areas:
+  - area_name: '滑块'
+    type: rect
+    value: [700, 548, 1220, 552]
+  - area_name: '按钮-确认'
+    type: text
+    value: '确认'
