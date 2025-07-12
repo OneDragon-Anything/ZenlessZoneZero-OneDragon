@@ -426,8 +426,12 @@ class InstallerInterface(VerticalScrollInterface):
         # 进度环
         self.progress_ring = ProgressRing()
         self.progress_ring.setFixedSize(64, 64)
-        self.progress_label = SubtitleLabel('')
+        self.progress_ring.setVisible(False)
         button_vlayout.addWidget(self.progress_ring, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        # 进度状态显示标签
+        self.progress_label = SubtitleLabel('')
+        self.progress_label.setVisible(False)
         button_vlayout.addWidget(self.progress_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         # 日志显示组件
@@ -871,18 +875,17 @@ class InstallerInterface(VerticalScrollInterface):
 
     def on_unpack_finished(self):
         """资源解压完成回调"""
-        self._stop_placebo_progress()
-        self._show_install_options()
+        self.stop_placebo_progress()
+        self.show_install_options()
 
-    def _start_placebo_progress(self):
+    def start_placebo_progress(self):
         """启动占位进度动画"""
-        self._stop_placebo_progress()  # 确保清理之前的定时器
-
-        self.placebo_timer = QTimer(self)
-        self.placebo_progress = 0
         self.progress_ring.setVisible(True)
         self.progress_label.setVisible(True)
         self.progress_label.setText(gt('正在解压资源...'))
+
+        self.placebo_timer = QTimer(self)
+        self.placebo_progress = 0
 
         def update_placebo_progress():
             # 使用非线性增长，让进度看起来更自然
@@ -891,15 +894,16 @@ class InstallerInterface(VerticalScrollInterface):
             elif self.placebo_progress < 95:
                 increment = 0.5
             else:
-                increment = 0.1  # 最后阶段很慢，避免过快到达100%
+                increment = 0.1
 
-            self.placebo_progress = min(99, self.placebo_progress + increment)  # 最大99%，避免在真正完成前到达100%
+            # 最大99%，避免在真正完成前到达100%
+            self.placebo_progress = min(99, self.placebo_progress + increment)
             self.progress_ring.setValue(int(self.placebo_progress))
 
         self.placebo_timer.timeout.connect(update_placebo_progress)
-        self.placebo_timer.start(100)  # 每100ms更新一次，更流畅
+        self.placebo_timer.start(100)
 
-    def _stop_placebo_progress(self):
+    def stop_placebo_progress(self):
         """停止占位进度动画并清理资源"""
         if hasattr(self, 'placebo_timer') and self.placebo_timer:
             self.placebo_timer.stop()
@@ -910,7 +914,7 @@ class InstallerInterface(VerticalScrollInterface):
         self.placebo_progress = 100
         self.progress_ring.setValue(100)
 
-    def _show_install_options(self):
+    def show_install_options(self):
         """显示安装选项"""
         self.install_btn.setVisible(True)
         self.advanced_btn.setVisible(True)
@@ -922,7 +926,7 @@ class InstallerInterface(VerticalScrollInterface):
 
         # 启动资源解压和进度动画
         self.unpack_resource_runner.start()
-        self._start_placebo_progress()
+        self.start_placebo_progress()
 
         # 更新所有安装卡的状态
         for card in self.all_install_cards:
