@@ -17,7 +17,6 @@ os.chdir(path)
 
 def print_message(message, level="INFO"):
     # 打印消息，带有时间戳和日志级别
-    delay(0.1)
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")[:-3]
     colors = {"INFO": Fore.CYAN, "ERROR": Fore.YELLOW + Style.BRIGHT, "PASS": Fore.GREEN}
     color = colors.get(level, Fore.WHITE)
