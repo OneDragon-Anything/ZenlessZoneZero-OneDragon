@@ -41,9 +41,6 @@ class AppWindowBase(PhosWindow):
         self.stackedWidget.currentChanged.connect(self.init_interface_on_shown)
         self.create_sub_interface()
 
-        # 隐藏启动页面
-        self.splashScreen.finish()
-
         self.titleBar.issue_url = f"{project_config.github_homepage}/issues"
 
     def create_sub_interface(self) -> None:
