@@ -426,7 +426,7 @@ jobs:
         body: |
           # 安装方式
 
-          - `ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Full-Environment.zip` 为带环境的完整包，解压后选择解压目录为安装目录，不需要额外下载。
+          - `ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Full-Environment.zip` 为带环境的完整包，不需要额外下载资源。
           - `ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Full.zip` 为完整包，解压后选择解压目录为安装目录，只需要下载环境依赖。
           - `ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Installer.exe` 为精简安装程序，运行后会自动下载所需的资源。
           - 如果你想更新启动器，前往主程序【设置】-【资源下载】页面更新，或者下载 `ZenlessZoneZero-OneDragon-Launcher.zip`，解压后替换。
