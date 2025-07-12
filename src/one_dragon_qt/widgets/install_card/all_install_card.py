@@ -49,6 +49,14 @@ class AllInstallCard(BaseInstallCard):
         self.install_cards[self.installing_idx].start_progress()
         return True, '成功'
 
+    def on_progress_done(self, success: bool, msg: str) -> None:
+        """
+        install_all后就会触发 由于要等待子任务运行 这里不做任何处理
+        运行结果在 on_install_done 中抛出事件
+        :return:
+        """
+        pass
+
     def on_install_done(self, success: bool) -> None:
         """
         一个成功安装后的回调
@@ -62,6 +70,7 @@ class AllInstallCard(BaseInstallCard):
                                 f"{gt('安装失败')} {self.install_cards[self.installing_idx].title}")
             self.installing_idx = -1
             self._progress_callback = None
+            self.finished.emit(False)
         else:
             log.info('一键安装 开始下一个')
             self.installing_idx += 1
@@ -74,6 +83,7 @@ class AllInstallCard(BaseInstallCard):
                 self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value),
                                     gt('安装成功'))
                 self._progress_callback = None
+                self.finished.emit(True)
 
     def _on_run_clicked(self) -> None:
         """

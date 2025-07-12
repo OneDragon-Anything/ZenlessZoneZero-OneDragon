@@ -438,6 +438,7 @@ class InstallerInterface(VerticalScrollInterface):
 
         # 一键安装使用基础组件
         self.all_opt = AllInstallCard(self.ctx, base_install_cards)
+        self.all_opt.finished.connect(self.on_install_done)
 
         # 事件绑定
         self.install_btn.clicked.connect(self.on_install_clicked)
@@ -583,18 +584,28 @@ class InstallerInterface(VerticalScrollInterface):
         self.progress_label.setVisible(True)
         self.progress_ring.setValue(self._progress_value)
         self.progress_label.setText(self._progress_message)
-        if progress >= 1.0:
-            self.progress_label.setText(gt('安装完成！'))
-            self._installing = False
-            self.log_update_timer.stop()
-            self.log_receiver.update = False
-            self.log_display_label.setVisible(False)
+
+    def on_install_done(self, success: bool) -> None:
+        """
+        安装结束后 更新显示
+        """
+        self.is_all_completed = success
+        self.progress_label.setText(gt('安装完成！') if success else gt('安装失败！'))
+        self._installing = False
+        self.log_update_timer.stop()
+        self.log_receiver.update = False
+        self.log_display_label.setVisible(False)
+        if success:
             if self.extra_install_cards:
                 self.current_step = len(self.install_steps) - 1
                 self._from_one_click_install = True
                 self.show_advanced()
             else:
                 self.show_completion_message()
+        else:
+            self.install_btn.setVisible(True)
+            self.progress_ring.setVisible(False)
+            self.advanced_btn.setVisible(False)
 
     def show_advanced(self):
         """切换到高级安装界面"""
@@ -736,7 +747,6 @@ class InstallerInterface(VerticalScrollInterface):
 
     def show_completion_message(self):
         """显示完成消息"""
-        self.is_all_completed = True
         # 切换回一键安装界面
         self.is_advanced_mode = False
         self.main_stack.setCurrentIndex(0)
