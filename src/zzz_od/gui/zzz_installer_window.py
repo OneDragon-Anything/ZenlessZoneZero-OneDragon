@@ -40,7 +40,7 @@ class ZInstallerWindow(InstallerWindowBase):
 
         # 创建主安装界面
         extend_install_cards = [GamepadInstallCard(self.ctx)]
-        self.main_installer_interface = InstallerInterface(self.ctx, parent=self, 
+        self.main_installer_interface = InstallerInterface(self.ctx, parent=self,
                                                            extra_install_cards=extend_install_cards)
         self.add_sub_interface(self.main_installer_interface)
 
