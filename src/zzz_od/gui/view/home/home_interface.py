@@ -258,6 +258,11 @@ class HomeInterface(VerticalScrollInterface):
         self.ctx: ZContext = ctx
         self.main_window = parent
 
+        # 添加标志位，防止重复运行检查线程
+        self._first_time_shown = True
+        # 标记是否已经检查过更新（启动时检查一次即可）
+        self._has_checked_updates = False
+
         self._banner_widget = Banner(self.choose_banner_image())
         self._banner_widget.set_percentage_size(0.8, 0.5)
 
@@ -365,23 +370,35 @@ class HomeInterface(VerticalScrollInterface):
         self._check_model_runner = CheckModelRunner(self.ctx)
         self._check_model_runner.need_update.connect(self._need_to_update_model)
         self._check_banner_runner = CheckBannerRunner(self.ctx)
-        self._check_banner_runner.need_update.connect(self.reload_banner)
+        self._check_banner_runner.need_update.connect(self._reload_banner_silent)
         self._banner_downloader = BackgroundImageDownloader(self.ctx, "remote_banner")
-        self._banner_downloader.image_downloaded.connect(self.reload_banner)
+        self._banner_downloader.image_downloaded.connect(self._reload_banner_silent)
         self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster")
-        self._version_poster_downloader.image_downloaded.connect(self.reload_banner)
+        self._version_poster_downloader.image_downloaded.connect(self._reload_banner_silent)
+
+    def _reload_banner_silent(self, *args):
+        """静默重新加载背景，不显示通知（自动更新）"""
+        self.reload_banner(user_triggered=False)
 
     def on_interface_shown(self) -> None:
         """界面显示时启动检查更新的线程"""
         super().on_interface_shown()
-        self._check_code_runner.start()
-        self._check_model_runner.start()
-        self._check_banner_runner.start()
-        # 根据配置启动相应的背景下载器
-        if self.ctx.custom_config.version_poster:
-            self._version_poster_downloader.start()
-        elif self.ctx.custom_config.remote_banner:
-            self._banner_downloader.start()
+
+        # 检查更新：首次显示时或者还没检查过更新时
+        if not self._has_checked_updates:
+            self._check_code_runner.start()
+            self._check_model_runner.start()
+            self._has_checked_updates = True
+
+        # 背景相关检查：只在首次显示时运行
+        if self._first_time_shown:
+            self._check_banner_runner.start()
+            # 根据配置启动相应的背景下载器
+            if self.ctx.custom_config.version_poster:
+                self._version_poster_downloader.start()
+            elif self.ctx.custom_config.remote_banner:
+                self._banner_downloader.start()
+            self._first_time_shown = False
 
         # 检查公告卡片配置是否变化
         self._check_notice_config_change()
@@ -401,7 +418,7 @@ class HomeInterface(VerticalScrollInterface):
 
     def _need_to_update_model(self, with_new: bool):
         if with_new:
-            self._show_info_bar("有新模型啦", "到[设置-模型选择]更新吧~", 5000)
+            self._show_info_bar("有新模型啦", "到[设置-资源下载]更新吧~", 5000)
 
     def _show_info_bar(self, title: str, content: str, duration: int = 20000):
         """显示信息条"""
@@ -417,15 +434,18 @@ class HomeInterface(VerticalScrollInterface):
 
     def _on_start_game(self):
         """启动一条龙按钮点击事件处理"""
-        # app.py中一条龙界面为第三个添加的
         self.ctx.signal.start_onedragon = True
-        one_dragon_interface = self.main_window.stackedWidget.widget(2)
-        self.main_window.switchTo(one_dragon_interface)
 
-    def reload_banner(self, show_notification: bool = False) -> None:
+        for i in range(self.main_window.stackedWidget.count()):
+            widget = self.main_window.stackedWidget.widget(i)
+            if widget.objectName() == "one_dragon_interface":
+                self.main_window.switchTo(widget)
+                break
+
+    def reload_banner(self, user_triggered: bool = False) -> None:
         """
         刷新主页背景显示
-        :param show_notification: 是否显示提示
+        :param user_triggered: 是否为用户主动触发的更新
         :return:
         """
         # 更新背景图片
@@ -433,7 +453,8 @@ class HomeInterface(VerticalScrollInterface):
         # 依据背景重新计算按钮配色
         self._update_start_button_style_from_banner()
         self.ctx.signal.reload_banner = False
-        if show_notification:
+        # 只有用户主动触发时才显示通知
+        if user_triggered:
             self._show_info_bar("背景已更新", "新的背景已成功应用", 3000)
 
     def choose_banner_image(self) -> str:

@@ -3,15 +3,14 @@ try:
     from typing import Tuple
     from PySide6.QtCore import Qt, QThread, Signal
     from PySide6.QtWidgets import QApplication
-    from qfluentwidgets import NavigationItemPosition, setTheme, Theme
-    from one_dragon_qt.view.like_interface import LikeInterface
+    from qfluentwidgets import setTheme, Theme
     from one_dragon.base.operation.one_dragon_context import ContextInstanceEventEnum
 
     from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 
-    from one_dragon_qt.view.code_interface import CodeInterface
     from one_dragon_qt.view.context_event_signal import ContextEventSignal
     from one_dragon_qt.windows.app_window_base import AppWindowBase
+    from one_dragon_qt.windows.window import PhosTitleBar
     from one_dragon.utils import app_utils
     from one_dragon.utils.i18_utils import gt
 
@@ -46,6 +45,7 @@ try:
 
     # 定义应用程序的主窗口类
     class AppWindow(AppWindowBase):
+        titleBar: PhosTitleBar
 
         def __init__(self, ctx: ZContext, parent=None):
             """初始化主窗口类，设置窗口标题和图标"""
@@ -118,6 +118,24 @@ try:
 
         def create_sub_interface(self):
             """创建和添加各个子界面"""
+            self._create_real_interfaces()
+            AppWindowBase.create_sub_interface(self)
+
+        def _create_real_interfaces(self):
+            """创建真正的应用界面"""
+
+            # 导入所需的界面类
+            from zzz_od.gui.view.home.home_interface import HomeInterface
+            from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
+            from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
+            from zzz_od.gui.view.hollow_zero.hollow_zero_interface import HollowZeroInterface
+            from zzz_od.gui.view.game_assistant.game_assistant import GameAssistantInterface
+            from zzz_od.gui.view.devtools.app_devtools_interface import AppDevtoolsInterface
+            from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
+            from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
+            from one_dragon_qt.view.like_interface import LikeInterface
+            from one_dragon_qt.view.code_interface import CodeInterface
+            from qfluentwidgets import NavigationItemPosition
 
             # 主页
             self.add_sub_interface(HomeInterface(self.ctx, parent=self))
@@ -198,6 +216,7 @@ try:
         def _check_first_run(self):
             """首次运行时显示防倒卖弹窗"""
             if self.ctx.env_config.is_first_run:
+                from zzz_od.gui.widgets.zzz_welcome_dialog import ZWelcomeDialog
                 dialog = ZWelcomeDialog(self)
                 if dialog.exec():
                     self.ctx.env_config.is_first_run = False
