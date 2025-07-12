@@ -214,7 +214,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setAttribute(Qt.ApplicationAttribute.AA_DontCreateNativeWidgetSiblings)
 
-    _ctx = ZContext()
+    _ctx = ZContext(lazy_load=True)
 
     # 加载配置
     _ctx.init_by_config()
