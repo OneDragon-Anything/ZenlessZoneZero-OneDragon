@@ -3,11 +3,6 @@ from PySide6.QtWidgets import QApplication
 from qfluentwidgets import Theme, setTheme
 from one_dragon_qt.app.directory_picker import DirectoryPickerWindow
 
-def _unpack_resources():
-    if hasattr(sys, '_MEIPASS'):
-        resources_path = os.path.join(sys._MEIPASS, 'resources')
-        shutil.copytree(resources_path, work_dir, dirs_exist_ok=True)
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
@@ -23,16 +18,19 @@ if __name__ == '__main__':
     work_dir = picker_window.selected_directory
     if not work_dir:
         sys.exit(0)
-    if not os.path.exists(work_dir):
-        os.mkdir(work_dir)
+    os.makedirs(work_dir, exist_ok=True)
     os.chdir(work_dir)
+
+    # 解压资源
+    if hasattr(sys, '_MEIPASS'):
+        resources_path = os.path.join(sys._MEIPASS, 'resources')
+        shutil.copytree(resources_path, work_dir, dirs_exist_ok=True)
 
     # 延迟导入
     from zzz_od.gui.zzz_installer_window import ZInstallerWindow
     from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
     from one_dragon.utils.i18_utils import gt, detect_and_set_default_language
 
-    _unpack_resources()
     _ctx = OneDragonEnvContext()
     _ctx.installer_dir = installer_dir
     _ctx.async_update_gh_proxy()
