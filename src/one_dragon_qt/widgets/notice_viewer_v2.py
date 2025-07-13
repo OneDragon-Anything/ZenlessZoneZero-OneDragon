@@ -2,8 +2,8 @@ import json
 import os
 import requests
 from datetime import datetime
-from PySide6.QtCore import Qt, QThread, Signal, QTimer
-from PySide6.QtGui import QFont, QColor
+from PySide6.QtCore import Qt, QThread, Signal, QTimer, QPropertyAnimation, QEasingCurve
+from PySide6.QtGui import QFont, QColor, QPainter, QLinearGradient
 from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QTextBrowser,
     QStackedWidget,
+    QGraphicsDropShadowEffect,
 )
 from qfluentwidgets import (
     SimpleCardWidget,
@@ -37,54 +38,73 @@ class NoticeContentWidgetV2(QWidget):
     
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 8, 12, 8)
-        layout.setSpacing(6)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+        
+        # 标题和日期行
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(8)
+        
+        # 标题
+        title_label = BodyLabel(self.notice_data.get('title', ''))
+        title_label.setFont(QFont("Microsoft YaHei", 13, QFont.Weight.Bold))
+        if isDarkTheme():
+            title_label.setStyleSheet("QLabel { color: #ffffff; }")
+        else:
+            title_label.setStyleSheet("QLabel { color: #202020; }")
+        header_layout.addWidget(title_label)
+        
+        header_layout.addStretch()
         
         # 日期标签（右上角）
-        date_layout = QHBoxLayout()
-        date_layout.setContentsMargins(0, 0, 0, 0)
-        
-        date_layout.addStretch()
-        
         date_label = CaptionLabel(self.notice_data.get('date', ''))
-        date_label.setStyleSheet("QLabel { color: #888; font-size: 9pt; }")
-        date_layout.addWidget(date_label)
+        date_label.setStyleSheet("QLabel { color: #888888; font-size: 10pt; }")
+        header_layout.addWidget(date_label)
         
-        layout.addLayout(date_layout)
+        layout.addLayout(header_layout)
         
         # 内容
         content_text = QTextBrowser()
         content_text.setReadOnly(True)
         content_text.setOpenExternalLinks(True)  # 启用外部链接
         content_text.setMarkdown(self.notice_data.get('content', ''))
-        content_text.setMaximumHeight(160)
-        content_text.setMinimumHeight(100)
+        content_text.setMaximumHeight(140)
+        content_text.setMinimumHeight(80)
         
-        # 设置样式
+        # 设置样式 - 弱化边框，增加毛玻璃效果
         if isDarkTheme():
             content_text.setStyleSheet("""
                 QTextBrowser {
-                    background-color: rgba(40, 40, 40, 0.3);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    border-radius: 6px;
-                    padding: 8px;
+                    background-color: rgba(60, 60, 60, 0.2);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    border-radius: 16px;
+                    padding: 16px;
                     font-family: "Microsoft YaHei";
-                    font-size: 9pt;
-                    line-height: 1.4;
+                    font-size: 10pt;
+                    line-height: 1.6;
                     color: #e0e0e0;
+                }
+                QTextBrowser a {
+                    color: #4FC3F7;
+                    text-decoration: underline;
+                }
+                QTextBrowser h1, QTextBrowser h2 {
+                    color: #ffffff;
+                    font-weight: bold;
                 }
                 QScrollBar:vertical {
                     background: transparent;
-                    width: 8px;
-                    border-radius: 4px;
+                    width: 6px;
+                    border-radius: 3px;
                 }
                 QScrollBar::handle:vertical {
-                    background: rgba(128, 128, 128, 0.5);
-                    border-radius: 4px;
+                    background: rgba(128, 128, 128, 0.3);
+                    border-radius: 3px;
                     min-height: 20px;
                 }
                 QScrollBar::handle:vertical:hover {
-                    background: rgba(128, 128, 128, 0.7);
+                    background: rgba(128, 128, 128, 0.5);
                 }
                 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
                     border: none;
@@ -94,27 +114,35 @@ class NoticeContentWidgetV2(QWidget):
         else:
             content_text.setStyleSheet("""
                 QTextBrowser {
-                    background-color: rgba(248, 248, 248, 0.8);
-                    border: 1px solid rgba(200, 200, 200, 0.3);
-                    border-radius: 6px;
-                    padding: 8px;
+                    background-color: rgba(248, 248, 248, 0.6);
+                    border: 1px solid rgba(200, 200, 200, 0.15);
+                    border-radius: 16px;
+                    padding: 16px;
                     font-family: "Microsoft YaHei";
-                    font-size: 9pt;
-                    line-height: 1.4;
-                    color: #333;
+                    font-size: 10pt;
+                    line-height: 1.6;
+                    color: #333333;
+                }
+                QTextBrowser a {
+                    color: #0078d4;
+                    text-decoration: underline;
+                }
+                QTextBrowser h1, QTextBrowser h2 {
+                    color: #202020;
+                    font-weight: bold;
                 }
                 QScrollBar:vertical {
                     background: transparent;
-                    width: 8px;
-                    border-radius: 4px;
+                    width: 6px;
+                    border-radius: 3px;
                 }
                 QScrollBar::handle:vertical {
-                    background: rgba(128, 128, 128, 0.5);
-                    border-radius: 4px;
+                    background: rgba(128, 128, 128, 0.3);
+                    border-radius: 3px;
                     min-height: 20px;
                 }
                 QScrollBar::handle:vertical:hover {
-                    background: rgba(128, 128, 128, 0.7);
+                    background: rgba(128, 128, 128, 0.5);
                 }
                 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
                     border: none;
@@ -132,6 +160,7 @@ class NoticeDownloadThread(QThread):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        # todo 推生产的时候更新这个url
         self.url = "https://raw.githubusercontent.com/Paper-white/OneDragon-Home/refs/heads/notice/src/zzz/notice.json"
 
     def run(self):
@@ -191,13 +220,21 @@ class NoticeViewerV2(SimpleCardWidget):
         self.notices_data = []
         
         # 设置固定大小
-        self.setFixedSize(351, 260)
-        self.setBorderRadius(10)
+        self.setFixedSize(400, 300)
+        self.setBorderRadius(20)
+        
+        # 设置阴影效果 - 增强浮起感
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(25)
+        shadow.setColor(QColor(0, 0, 0, 40))
+        shadow.setOffset(0, 6)
+        self.setGraphicsEffect(shadow)
         
         # 创建堆叠布局用于切换骨架屏和内容
         self.stacked_widget = QStackedWidget()
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(24, 24, 24, 24)
+        main_layout.setSpacing(20)
         main_layout.addWidget(self.stacked_widget)
         
         # 创建骨架屏
@@ -219,9 +256,9 @@ class NoticeViewerV2(SimpleCardWidget):
     
     def _normalBackgroundColor(self):
         if isDarkTheme():
-            return QColor(32, 32, 32, 200)
+            return QColor(45, 45, 45, 160)
         else:
-            return QColor(255, 255, 255, 200)
+            return QColor(255, 255, 255, 160)
     
     def on_download_finished(self, data: dict):
         """下载成功回调"""
@@ -239,6 +276,7 @@ class NoticeViewerV2(SimpleCardWidget):
     
     def get_default_notices(self):
         """获取默认通知数据"""
+        # todo 写个默认兜底url
         return [
             {
                 "title": "默认更新日志",
@@ -264,8 +302,8 @@ class NoticeViewerV2(SimpleCardWidget):
         else:
             layout = QVBoxLayout(self.content_widget)
         
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(6)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(20)
         
         # 过滤掉调试标题
         filtered_notices = [notice for notice in self.notices_data if 'title_debug' not in notice]
@@ -274,73 +312,97 @@ class NoticeViewerV2(SimpleCardWidget):
         if filtered_notices:
             # 创建选项卡
             self.pivot = PhosPivot()
-            self.pivot.setFixedHeight(35)
+            self.pivot.setFixedHeight(44)
             
             # 设置选中状态样式
             if isDarkTheme():
                 self.pivot.setStyleSheet("""
                     PhosPivot {
-                        background-color: transparent;
+                        background-color: rgba(60, 60, 60, 0.3);
+                        border-radius: 12px;
+                        padding: 6px;
                     }
                     PhosPivot > QWidget {
                         background-color: transparent;
                         color: #cccccc;
+                        border-radius: 8px;
+                        padding: 8px 16px;
+                        margin: 2px;
                     }
                     PhosPivot > QWidget[selected="true"] {
-                        background-color: rgba(255, 255, 255, 0.2);
-                        border-radius: 4px;
+                        background-color: rgba(79, 195, 247, 0.25);
+                        border: 1px solid rgba(79, 195, 247, 0.5);
                         color: #4FC3F7;
+                        font-weight: bold;
                     }
                     PhosPivot > QWidget:hover {
                         background-color: rgba(255, 255, 255, 0.1);
-                        border-radius: 4px;
                     }
                 """)
             else:
                 self.pivot.setStyleSheet("""
                     PhosPivot {
-                        background-color: transparent;
+                        background-color: rgba(248, 248, 248, 0.8);
+                        border-radius: 12px;
+                        padding: 6px;
                     }
                     PhosPivot > QWidget {
                         background-color: transparent;
                         color: #666666;
+                        border-radius: 8px;
+                        padding: 8px 16px;
+                        margin: 2px;
                     }
                     PhosPivot > QWidget[selected="true"] {
-                        background-color: rgba(0, 0, 0, 0.15);
-                        border-radius: 4px;
+                        background-color: rgba(0, 120, 212, 0.2);
+                        border: 1px solid rgba(0, 120, 212, 0.4);
                         color: #0078d4;
+                        font-weight: bold;
                     }
                     PhosPivot > QWidget:hover {
                         background-color: rgba(0, 0, 0, 0.08);
-                        border-radius: 4px;
                     }
                 """)
             
             layout.addWidget(self.pivot)
             
-            # 使用QStackedWidget管理内容页面
-            self.content_stacked_widget = QStackedWidget()
-            self.content_stacked_widget.setFixedHeight(195)
+            # 内容卡片
+            content_card = SimpleCardWidget()
+            content_card.setBorderRadius(16)
+            content_card.setFixedHeight(190)
             
-            # 设置样式
+            # 内容卡片阴影
+            card_shadow = QGraphicsDropShadowEffect()
+            card_shadow.setBlurRadius(20)
+            card_shadow.setColor(QColor(0, 0, 0, 30))
+            card_shadow.setOffset(0, 4)
+            content_card.setGraphicsEffect(card_shadow)
+            
+            # 内容卡片背景
             if isDarkTheme():
-                self.content_stacked_widget.setStyleSheet("""
-                    QStackedWidget {
-                        background-color: rgba(32, 32, 32, 0.5);
-                        border: 1px solid rgba(255, 255, 255, 0.1);
-                        border-radius: 6px;
+                content_card.setStyleSheet("""
+                    SimpleCardWidget {
+                        background-color: rgba(55, 55, 55, 0.7);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        border-radius: 16px;
                     }
                 """)
             else:
-                self.content_stacked_widget.setStyleSheet("""
-                    QStackedWidget {
-                        background-color: rgba(255, 255, 255, 0.8);
-                        border: 1px solid rgba(200, 200, 200, 0.3);
-                        border-radius: 6px;
+                content_card.setStyleSheet("""
+                    SimpleCardWidget {
+                        background-color: rgba(255, 255, 255, 0.85);
+                        border: 1px solid rgba(200, 200, 200, 0.15);
+                        border-radius: 16px;
                     }
                 """)
             
-            layout.addWidget(self.content_stacked_widget)
+            layout.addWidget(content_card)
+            
+            # 使用QStackedWidget管理内容页面
+            self.content_stacked_widget = QStackedWidget()
+            content_card_layout = QVBoxLayout(content_card)
+            content_card_layout.setContentsMargins(0, 0, 0, 0)
+            content_card_layout.addWidget(self.content_stacked_widget)
             
             # 为每个通知创建页面
             for i, notice in enumerate(filtered_notices):
@@ -349,56 +411,7 @@ class NoticeViewerV2(SimpleCardWidget):
                 scroll_area.setWidgetResizable(True)
                 scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
                 scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-                
-                # 设置滚动区域样式
-                if isDarkTheme():
-                    scroll_area.setStyleSheet("""
-                        QScrollArea {
-                            background-color: transparent;
-                            border: none;
-                        }
-                        QScrollBar:vertical {
-                            background: transparent;
-                            width: 8px;
-                            border-radius: 4px;
-                        }
-                        QScrollBar::handle:vertical {
-                            background: rgba(128, 128, 128, 0.5);
-                            border-radius: 4px;
-                            min-height: 20px;
-                        }
-                        QScrollBar::handle:vertical:hover {
-                            background: rgba(128, 128, 128, 0.7);
-                        }
-                        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                            border: none;
-                            background: none;
-                        }
-                    """)
-                else:
-                    scroll_area.setStyleSheet("""
-                        QScrollArea {
-                            background-color: transparent;
-                            border: none;
-                        }
-                        QScrollBar:vertical {
-                            background: transparent;
-                            width: 8px;
-                            border-radius: 4px;
-                        }
-                        QScrollBar::handle:vertical {
-                            background: rgba(128, 128, 128, 0.5);
-                            border-radius: 4px;
-                            min-height: 20px;
-                        }
-                        QScrollBar::handle:vertical:hover {
-                            background: rgba(128, 128, 128, 0.7);
-                        }
-                        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                            border: none;
-                            background: none;
-                        }
-                    """)
+                scroll_area.setStyleSheet("QScrollArea { border: none; background: transparent; }")
                 
                 # 创建通知内容widget
                 notice_widget = NoticeContentWidgetV2(notice, parent=scroll_area)
@@ -409,8 +422,8 @@ class NoticeViewerV2(SimpleCardWidget):
                 
                 # 截取标题用于选项卡显示
                 tab_title = notice['title']
-                if len(tab_title) > 8:
-                    tab_title = tab_title[:8] + "..."
+                if len(tab_title) > 6:
+                    tab_title = tab_title[:6] + "..."
                 
                 # 添加到pivot
                 self.add_sub_interface(scroll_area, f"notice_{i}", tab_title)
@@ -513,7 +526,7 @@ class NoticeViewerContainerV2(QWidget):
         self._notice_enabled = False
         
         # 设置固定宽度
-        self.setFixedWidth(351)
+        self.setFixedWidth(400)
         
         # 初始状态为隐藏
         self._apply_visibility_state()
