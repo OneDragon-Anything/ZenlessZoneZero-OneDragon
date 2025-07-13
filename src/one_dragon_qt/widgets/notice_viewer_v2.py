@@ -112,32 +112,22 @@ class NoticeContentWidgetV2(QWidget):
                     border-radius: 14px;
                     padding: 10px;
                     font-family: "Microsoft YaHei";
-                    font-size: 11pt;
+                    font-size: 9pt;
                     line-height: 1.4;
-                    color: #333333;
-                }
-                QTextBrowser a {
-                    color: #0078d4;
-                    text-decoration: underline;
-                    font-size: 10pt;
-                }
-                QTextBrowser h1, QTextBrowser h2 {
-                    color: #202020;
-                    font-weight: bold;
-                    font-size: 12pt;
+                    color: #333;
                 }
                 QScrollBar:vertical {
                     background: transparent;
-                    width: 6px;
-                    border-radius: 3px;
+                    width: 8px;
+                    border-radius: 4px;
                 }
                 QScrollBar::handle:vertical {
-                    background: rgba(128, 128, 128, 0.3);
-                    border-radius: 3px;
+                    background: rgba(128, 128, 128, 0.5);
+                    border-radius: 4px;
                     min-height: 20px;
                 }
                 QScrollBar::handle:vertical:hover {
-                    background: rgba(128, 128, 128, 0.5);
+                    background: rgba(128, 128, 128, 0.7);
                 }
                 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
                     border: none;
