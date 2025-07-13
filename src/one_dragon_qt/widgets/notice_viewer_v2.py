@@ -38,31 +38,22 @@ class NoticeContentWidgetV2(QWidget):
     
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(16)
-        
-        # 标题和日期行
-        header_layout = QHBoxLayout()
-        header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(8)
-        
-        # 标题
-        title_label = BodyLabel(self.notice_data.get('title', ''))
-        title_label.setFont(QFont("Microsoft YaHei", 13, QFont.Weight.Bold))
-        if isDarkTheme():
-            title_label.setStyleSheet("QLabel { color: #ffffff; }")
-        else:
-            title_label.setStyleSheet("QLabel { color: #202020; }")
-        header_layout.addWidget(title_label)
-        
-        header_layout.addStretch()
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
         
         # 日期标签（右上角）
-        date_label = CaptionLabel(self.notice_data.get('date', ''))
-        date_label.setStyleSheet("QLabel { color: #888888; font-size: 10pt; }")
-        header_layout.addWidget(date_label)
+        date_layout = QHBoxLayout()
+        date_layout.setContentsMargins(0, 0, 0, 0)
+        date_layout.setSpacing(8)
         
-        layout.addLayout(header_layout)
+        date_layout.addStretch()
+        
+        # 日期标签
+        date_label = CaptionLabel(self.notice_data.get('date', ''))
+        date_label.setStyleSheet("QLabel { color: #888888; font-size: 10pt; }")  # 减小字体
+        date_layout.addWidget(date_label)
+        
+        layout.addLayout(date_layout)
         
         # 内容
         content_text = QTextBrowser()
@@ -72,26 +63,28 @@ class NoticeContentWidgetV2(QWidget):
         content_text.setMaximumHeight(140)
         content_text.setMinimumHeight(80)
         
-        # 设置样式 - 弱化边框，增加毛玻璃效果
+        # 设置样式
         if isDarkTheme():
             content_text.setStyleSheet("""
                 QTextBrowser {
                     background-color: rgba(60, 60, 60, 0.2);
                     border: 1px solid rgba(255, 255, 255, 0.05);
-                    border-radius: 16px;
-                    padding: 16px;
+                    border-radius: 14px;
+                    padding: 10px;
                     font-family: "Microsoft YaHei";
-                    font-size: 10pt;
-                    line-height: 1.6;
+                    font-size: 11pt;
+                    line-height: 1.4;
                     color: #e0e0e0;
                 }
                 QTextBrowser a {
                     color: #4FC3F7;
                     text-decoration: underline;
+                    font-size: 10pt;
                 }
                 QTextBrowser h1, QTextBrowser h2 {
                     color: #ffffff;
                     font-weight: bold;
+                    font-size: 12pt;
                 }
                 QScrollBar:vertical {
                     background: transparent;
@@ -116,20 +109,22 @@ class NoticeContentWidgetV2(QWidget):
                 QTextBrowser {
                     background-color: rgba(248, 248, 248, 0.6);
                     border: 1px solid rgba(200, 200, 200, 0.15);
-                    border-radius: 16px;
-                    padding: 16px;
+                    border-radius: 14px;
+                    padding: 10px;
                     font-family: "Microsoft YaHei";
-                    font-size: 10pt;
-                    line-height: 1.6;
+                    font-size: 11pt;
+                    line-height: 1.4;
                     color: #333333;
                 }
                 QTextBrowser a {
                     color: #0078d4;
                     text-decoration: underline;
+                    font-size: 10pt;
                 }
                 QTextBrowser h1, QTextBrowser h2 {
                     color: #202020;
                     font-weight: bold;
+                    font-size: 12pt;
                 }
                 QScrollBar:vertical {
                     background: transparent;
@@ -223,18 +218,18 @@ class NoticeViewerV2(SimpleCardWidget):
         self.setFixedSize(400, 300)
         self.setBorderRadius(20)
         
-        # 设置阴影效果 - 增强浮起感
+        # 设置阴影效果
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(25)
-        shadow.setColor(QColor(0, 0, 0, 40))
-        shadow.setOffset(0, 6)
+        shadow.setBlurRadius(30)
+        shadow.setColor(QColor(0, 0, 0, 25))
+        shadow.setOffset(0, 8)
         self.setGraphicsEffect(shadow)
         
         # 创建堆叠布局用于切换骨架屏和内容
         self.stacked_widget = QStackedWidget()
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(24, 24, 24, 24)
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(16, 8, 16, 16)
+        main_layout.setSpacing(10)
         main_layout.addWidget(self.stacked_widget)
         
         # 创建骨架屏
@@ -303,7 +298,7 @@ class NoticeViewerV2(SimpleCardWidget):
             layout = QVBoxLayout(self.content_widget)
         
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(20)
+        layout.setSpacing(10)
         
         # 过滤掉调试标题
         filtered_notices = [notice for notice in self.notices_data if 'title_debug' not in notice]
@@ -312,22 +307,23 @@ class NoticeViewerV2(SimpleCardWidget):
         if filtered_notices:
             # 创建选项卡
             self.pivot = PhosPivot()
-            self.pivot.setFixedHeight(44)
+            self.pivot.setFixedHeight(36)
             
             # 设置选中状态样式
             if isDarkTheme():
                 self.pivot.setStyleSheet("""
                     PhosPivot {
                         background-color: rgba(60, 60, 60, 0.3);
-                        border-radius: 12px;
-                        padding: 6px;
+                        border-radius: 14px;
+                        padding: 4px;
                     }
                     PhosPivot > QWidget {
                         background-color: transparent;
                         color: #cccccc;
-                        border-radius: 8px;
-                        padding: 8px 16px;
+                        border-radius: 10px;
+                        padding: 4px 10px;
                         margin: 2px;
+                        font-size: 14pt;
                     }
                     PhosPivot > QWidget[selected="true"] {
                         background-color: rgba(79, 195, 247, 0.25);
@@ -343,15 +339,16 @@ class NoticeViewerV2(SimpleCardWidget):
                 self.pivot.setStyleSheet("""
                     PhosPivot {
                         background-color: rgba(248, 248, 248, 0.8);
-                        border-radius: 12px;
-                        padding: 6px;
+                        border-radius: 14px;
+                        padding: 4px;
                     }
                     PhosPivot > QWidget {
                         background-color: transparent;
                         color: #666666;
-                        border-radius: 8px;
-                        padding: 8px 16px;
+                        border-radius: 10px;
+                        padding: 4px 10px;
                         margin: 2px;
+                        font-size: 14pt;
                     }
                     PhosPivot > QWidget[selected="true"] {
                         background-color: rgba(0, 120, 212, 0.2);
@@ -369,13 +366,13 @@ class NoticeViewerV2(SimpleCardWidget):
             # 内容卡片
             content_card = SimpleCardWidget()
             content_card.setBorderRadius(16)
-            content_card.setFixedHeight(190)
+            content_card.setFixedHeight(210)
             
             # 内容卡片阴影
             card_shadow = QGraphicsDropShadowEffect()
-            card_shadow.setBlurRadius(20)
-            card_shadow.setColor(QColor(0, 0, 0, 30))
-            card_shadow.setOffset(0, 4)
+            card_shadow.setBlurRadius(25)
+            card_shadow.setColor(QColor(0, 0, 0, 20))
+            card_shadow.setOffset(0, 6)
             content_card.setGraphicsEffect(card_shadow)
             
             # 内容卡片背景
