@@ -26,6 +26,7 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 
 class UnpackResourceRunner(QThread):
     """资源解包线程"""
+    finished = Signal(bool)
     def __init__(self, installer_dir:str, work_dir: str, parent=None):
         super().__init__(parent)
         self.installer_dir = installer_dir
@@ -34,15 +35,20 @@ class UnpackResourceRunner(QThread):
     def run(self):
         if Path(self.installer_dir) != Path(self.work_dir):
             # 复制完整包资源
-            install_dir = Path(self.installer_dir) / '.install'
-            dest_install_dir = Path(self.work_dir) / '.install'
-            if os.path.exists(install_dir):
-                shutil.copytree(install_dir, dest_install_dir, dirs_exist_ok=True)
+            try:
+                install_dir = Path(self.installer_dir) / '.install'
+                dest_install_dir = Path(self.work_dir) / '.install'
+                if os.path.exists(install_dir):
+                    shutil.copytree(install_dir, dest_install_dir, dirs_exist_ok=True)
 
-            assets_dir = Path(self.installer_dir) / 'assets'
-            dest_assets_dir = Path(self.work_dir) / 'assets'
-            if Path.exists(assets_dir):
-                shutil.copytree(assets_dir, dest_assets_dir, dirs_exist_ok=True)
+                assets_dir = Path(self.installer_dir) / 'assets'
+                dest_assets_dir = Path(self.work_dir) / 'assets'
+                if Path.exists(assets_dir):
+                    shutil.copytree(assets_dir, dest_assets_dir, dirs_exist_ok=True)
+                self.finished.emit(True)
+            except Exception as e:
+                log.error(f"解包资源失败: {e}")
+                self.finished.emit(False)
 
 
 class ClickableStepCircle(QLabel):
@@ -874,10 +880,10 @@ class InstallerInterface(VerticalScrollInterface):
                 formatted_latest_log = format_log_with_line_breaks(latest_log)
                 self.log_display_label.setText(formatted_latest_log)
 
-    def on_unpack_finished(self):
+    def on_unpack_finished(self, success: bool):
         """资源解压完成回调"""
         self.stop_placebo_progress()
-        self.show_install_options()
+        self.show_install_options(success)
 
     def start_placebo_progress(self):
         """启动占位进度动画"""
@@ -915,12 +921,14 @@ class InstallerInterface(VerticalScrollInterface):
         self.placebo_progress = 100
         self.progress_ring.setValue(100)
 
-    def show_install_options(self):
+    def show_install_options(self, success: bool):
         """显示安装选项"""
-        self.install_btn.setVisible(True)
-        self.advanced_btn.setVisible(True)
+        self.install_btn.setVisible(success)
+        self.advanced_btn.setVisible(success)
         self.progress_ring.setVisible(False)
-        self.progress_label.setVisible(False)
+        self.progress_label.setVisible(not success)
+        if not success:
+            self.progress_label.setText(gt('资源解压失败，请更换安装目录'))
 
     def on_interface_shown(self) -> None:
         super().on_interface_shown()
