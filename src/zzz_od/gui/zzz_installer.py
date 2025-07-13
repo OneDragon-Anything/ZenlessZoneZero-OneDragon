@@ -22,7 +22,6 @@ if __name__ == '__main__':
     work_dir = picker_window.selected_directory
     if not work_dir:
         sys.exit(0)
-    Path.mkdir(work_dir, exist_ok=True)
     os.chdir(work_dir)
 
     # 解压资源
