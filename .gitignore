@@ -52,6 +52,8 @@ assets/ui/remote_banner.webp
 .conda/
 .venv/
 notice_cache/
+# 运行时缓存
+*.ui_cache
 
 # 需自行下载的模型文件
 models/
