@@ -248,9 +248,9 @@ class BackgroundImageDownloader(QThread):
 class HomeInterface(VerticalScrollInterface):
     """主页界面"""
 
-    def __init__(self, ctx: ZContext, parent=None):
+    def __init__(self, ctx: ZContext, parent: 'AppWindow' = None):
         self.ctx: ZContext = ctx
-        self.main_window = parent
+        self.main_window: 'AppWindow' = parent
 
         self._banner_widget = Banner(self.choose_banner_image())
         self._banner_widget.set_percentage_size(0.8, 0.5)
@@ -358,13 +358,20 @@ class HomeInterface(VerticalScrollInterface):
         elif self.ctx.custom_config.remote_banner:
             self._banner_downloader.start()
 
-        # 检查公告卡片配置是否变化
-        self._check_notice_config_change()
+    def update_ui(self):
+        self._check_code_runner.start()
+        self._check_model_runner.start()
+        self._check_banner_runner.start()
+
+    def update_notice_card(self) -> None:
+        """
+        根据配置更新公告卡片的显示状态
+        """
+        self.notice_container.set_notice_enabled(self.ctx.custom_config.notice_card)
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
             self._show_info_bar("代码已是最新版本", "Enjoy it & have fun!")
-            return
         else:
             self._show_info_bar("有新版本啦", "稍安勿躁~")
 
@@ -421,11 +428,3 @@ class HomeInterface(VerticalScrollInterface):
             banner_path = index_banner_path
 
         return banner_path
-
-    def _check_notice_config_change(self):
-        """检查公告卡片配置是否发生变化"""
-        if self.ctx.signal.notice_card_config_changed:
-            current_config = self.ctx.custom_config.notice_card
-            self.notice_container.set_notice_enabled(current_config)
-            # 重置信号状态
-            self.ctx.signal.notice_card_config_changed = False

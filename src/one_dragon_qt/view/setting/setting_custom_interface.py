@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QWidget, QFileDialog
 from qfluentwidgets import Dialog, FluentIcon, PrimaryPushButton, SettingCardGroup, setTheme, Theme
 
 from one_dragon.base.config.custom_config import ThemeEnum, UILanguageEnum
-from one_dragon.base.operation.one_dragon_context import OneDragonContext
+from zzz_od.context.zzz_context import ZContext
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
@@ -15,11 +15,12 @@ from one_dragon_qt.widgets.setting_card.password_switch_setting_card import Pass
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.i18_utils import gt
+from zzz_od.gui.view.home.home_interface import HomeInterface
 
 class SettingCustomInterface(VerticalScrollInterface):
 
-    def __init__(self, ctx: OneDragonContext, parent=None):
-        self.ctx: OneDragonContext = ctx
+    def __init__(self, ctx: ZContext, parent=None):
+        self.ctx: ZContext = ctx
 
         VerticalScrollInterface.__init__(
             self,
@@ -53,7 +54,7 @@ class SettingCustomInterface(VerticalScrollInterface):
         basic_group.addSettingCard(self.theme_opt)
 
         self.notice_card_opt = SwitchSettingCard(icon=FluentIcon.PIN, title='主页公告', content='在主页显示游戏公告')
-        self.notice_card_opt.value_changed.connect(lambda: setattr(self.ctx.signal, 'notice_card_config_changed', True))
+        self.notice_card_opt.value_changed.connect(self._on_notice_card_opt_changed)
         basic_group.addSettingCard(self.notice_card_opt)
 
         self.version_poster_opt = SwitchSettingCard(icon=FluentIcon.IMAGE_EXPORT, title='启用版本海报', content='版本活动海报持续整个版本')
@@ -146,3 +147,19 @@ class SettingCustomInterface(VerticalScrollInterface):
 
     def reload_banner(self) -> None:
         self.ctx.signal.reload_banner = True
+
+    def _on_notice_card_opt_changed(self, value: bool):
+        self.ctx.game_config.notice_card = value
+
+        home_interface = None
+        window = self.window()
+        if window and hasattr(window, 'stackedWidget'):
+            stacked_widget = window.stackedWidget
+            for i in range(stacked_widget.count()):
+                widget = stacked_widget.widget(i)
+                if isinstance(widget, HomeInterface):
+                    home_interface = widget
+                    break
+
+        if home_interface is not None:
+            home_interface.update_notice_card()
