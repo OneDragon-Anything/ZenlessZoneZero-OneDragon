@@ -32,7 +32,7 @@ class UnpackResourceRunner(QThread):
         self.work_dir = work_dir
 
     def run(self):
-        if self.installer_dir != self.work_dir:
+        if Path(self.installer_dir) != Path(self.work_dir):
             # 复制完整包资源
             install_dir = Path(self.installer_dir) / '.install'
             dest_install_dir = Path(self.work_dir) / '.install'
