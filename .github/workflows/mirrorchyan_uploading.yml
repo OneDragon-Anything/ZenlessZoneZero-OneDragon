@@ -12,6 +12,10 @@ jobs:
     runs-on: macos-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
+      - name: Cancel run if not owner
+        if: ${{ github.repository_owner != 'OneDragon-Anything' }}
+        uses: andymckay/cancel-action@master
+
       - uses: MirrorChyan/uploading-action@v1
         with:
           filetype: latest-release
