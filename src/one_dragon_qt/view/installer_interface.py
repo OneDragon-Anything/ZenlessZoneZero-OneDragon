@@ -38,12 +38,12 @@ class UnpackResourceRunner(QThread):
             try:
                 install_dir = Path(self.installer_dir) / '.install'
                 dest_install_dir = Path(self.work_dir) / '.install'
-                if os.path.exists(install_dir):
+                if install_dir.exists():
                     shutil.copytree(install_dir, dest_install_dir, dirs_exist_ok=True)
 
                 assets_dir = Path(self.installer_dir) / 'assets'
                 dest_assets_dir = Path(self.work_dir) / 'assets'
-                if Path.exists(assets_dir):
+                if assets_dir.exists():
                     shutil.copytree(assets_dir, dest_assets_dir, dirs_exist_ok=True)
                 self.finished.emit(True)
             except Exception as e:
