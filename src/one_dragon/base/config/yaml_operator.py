@@ -21,7 +21,14 @@ def preload_common_configs():
         'config/zzz_one_dragon.yml',
         'config/01/game.yml',
         'config/01/battle_assistant.yml',
-        'config/01/agent_outfit.yml'
+        'config/01/agent_outfit.yml',
+        'config/01/game_account.yml',
+        'config/01/one_dragon_app.yml',
+        'config/01/push.yml',
+        'config/01/screenshot_helper.yml',
+        'config/02/game.yml',
+        'config/02/agent_outfit.yml',
+        'config/03/game.yml',
     ]
     
     def preload_worker():
@@ -37,15 +44,13 @@ def preload_common_configs():
 
 def clear_cache_if_needed():
     """
-    智能内存管理：缓存过多时清理旧缓存
+    智能内存管理
     """
-    if len(cached_yaml_data) > 100:  # 超过100个缓存文件时清理
-        # 保留最近使用的50个
+    if len(cached_yaml_data) > 100:
         items = list(cached_yaml_data.items())
         cached_yaml_data.clear()
         cached_file_mtime.clear()
         
-        # 保留一半最新的缓存
         for k, v in items[-50:]:
             cached_yaml_data[k] = v
 
@@ -67,42 +72,25 @@ def read_cache_or_load(file_path: str):
     """
     # 0. 快速路径：检查是否已有完全匹配的缓存
     cached = cached_yaml_data.get(file_path)
-    if cached is not None:
-        # 优化：缓存文件修改时间，减少系统调用
-        cached_mtime = cached_file_mtime.get(file_path)
-        if cached_mtime is not None:
-            # 无需检查文件，直接返回缓存
-            return cached[1]
-    
-    # 1. 文件修改时间检查（优化的系统调用）
     try:
-        current_mtime = os.path.getmtime(file_path)
-        cached_file_mtime[file_path] = current_mtime
+        last_modify = os.path.getmtime(file_path)
     except OSError:
-        # 文件不存在，返回缓存或空字典
         return cached[1] if cached else {}
-    
-    # 检查内存缓存是否仍然有效
-    if cached is not None and cached[0] >= current_mtime:
+
+    if cached is not None and cached[0] >= last_modify:
         return cached[1]
 
     # 2. Pickle
-    pickle_cache = pickle_cache_paths.get(file_path)
-    if pickle_cache is None:
-        pickle_cache = file_path + '.ui_cache'
-        pickle_cache_paths[file_path] = pickle_cache
-    
+    pickle_cache = file_path + '.ui_cache'
     if os.path.exists(pickle_cache):
         try:
             pickle_mtime = os.path.getmtime(pickle_cache)
-            if pickle_mtime >= current_mtime:
+            if pickle_mtime >= last_modify:
                 with open(pickle_cache, 'rb') as f:
                     data = pickle.load(f)
-                # 更新所有缓存
-                cached_yaml_data[file_path] = (current_mtime, data)
+                cached_yaml_data[file_path] = (last_modify, data)
                 return data
         except (OSError, pickle.PickleError):
-            # 快速删除损坏缓存，不捕获删除异常
             try:
                 os.remove(pickle_cache)
             except OSError:
@@ -111,43 +99,29 @@ def read_cache_or_load(file_path: str):
     # 3. YAML
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
+            log.debug(f"加载yaml: {file_path}")
             data = yaml.safe_load(file)
     except Exception as e:
         log.error(f'YAML加载失败 {file_path}: {e}')
         return {}
         
-    # 立即更新内存缓存
-    cached_yaml_data[file_path] = (current_mtime, data)
-    
-    # 智能内存管理
-    clear_cache_if_needed()
+    cached_yaml_data[file_path] = (last_modify, data)
     
     # 生成Pickle缓存
-    def save_pickle_cache_optimized():
+    def save_pickle_cache():
         try:
-            # 使用临时文件避免写入冲突
-            temp_cache = pickle_cache + '.tmp'
-            with open(temp_cache, 'wb') as f:
+            with open(pickle_cache, 'wb') as f:
                 pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-            
-            # 原子性重命名
-            os.replace(temp_cache, pickle_cache)
-            os.utime(pickle_cache, (current_mtime, current_mtime))
+            os.utime(pickle_cache, (last_modify, last_modify))
         except Exception:
-            # 清理临时文件
-            try:
-                os.remove(temp_cache)
-            except OSError:
-                pass
+            pass
     
-    # 使用后台线程，但不等待
-    threading.Thread(target=save_pickle_cache_optimized, daemon=True).start()
+    threading.Thread(target=save_pickle_cache, daemon=True).start()
     
     return data
 
 
 class YamlOperator:
-    _preload_triggered = False  # 类变量，确保预加载只执行一次
 
     def __init__(self, file_path: Optional[str] = None):
         """
@@ -160,11 +134,6 @@ class YamlOperator:
 
         self.data: dict = {}
         """存放数据的地方"""
-
-        # 首次实例化时触发预加载
-        if not YamlOperator._preload_triggered and file_path:
-            YamlOperator._preload_triggered = True
-            preload_common_configs()
 
         self.__read_from_file()
 
