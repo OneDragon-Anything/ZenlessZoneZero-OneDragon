@@ -1,7 +1,7 @@
 name: 问题反馈-零号空洞-迷失之地
 description: 迷失之地有问题的时候提这个
 title: "[问题反馈] [迷失之地] "
-labels: ["bug"]
+labels: ["Triage | 待检查"]
 
 body:
   - type: markdown
@@ -11,7 +11,7 @@ body:
         
         - 请先将代码更新至最新版本尝试是否依然有问题。
         - 最新版本代码有问题可尝试使用回滚功能看是否依然有问题。
-        - __请先在issue中搜索是否已有类似问题 请先在issue中搜索是否已有类似问题 请先在issue中搜索是否已有类似问题__。
+        - __请先在 issue 中搜索是否已有类似问题 请先在 issue 中搜索是否已有类似问题 请先在 issue 中搜索是否已有类似问题__。
         - 请先阅读最新的[使用前须知](https://one-dragon.org/zzz/zh/quickstart.html#_2-%E4%BD%BF%E7%94%A8%E5%89%8D%E9%A1%BB%E7%9F%A5)，确保设置正确。
         - 请先阅读最新的[功能说明](https://one-dragon.org/zzz/zh/docs/feat_lost_void.html)，确保设置正确。
         - 请使用 __脚本F11__ 进行截图上传，其他截图方式大概率不受理。
@@ -19,10 +19,24 @@ body:
         - 请使用 __脚本F11__ 进行截图上传，其他截图方式大概率不受理。
         - 缺少日志/截图/录屏的情况，有概率不受理。
 
+  - type: checkboxes
+    id: check
+    attributes:
+      label: 请确认您已完成以下几件事
+      description: 游戏版本更新后，新版本内容需要一定时间(至少一周)适配，请耐心等待
+      options:
+        - label: 正在使用最新的 OneDragon
+        - label: 已为所有模型以及战斗脚本更新至最新版
+          required: true
+        - label: 运行时无任何帧率显示或其他覆盖层窗口遮盖游戏
+          required: true
+        - label: 未安装任何修改游戏UI和贴图的模组
+          required: true
+
   - type: markdown
     attributes:
       value: |
-        ## 好的提issue方式
+        ## 好的提 issue 方式
         
         1. 停止当前脚本，删除日志文件 .log/log.txt
         2. 空洞中选择本层重新开始

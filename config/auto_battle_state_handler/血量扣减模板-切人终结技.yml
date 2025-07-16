@@ -1,6 +1,7 @@
 # 闪避普攻 普攻后摇等待时间各角色不同 由后续动作控制
 handlers:
   - states: "![前台-凯撒] & [凯撒-能量]{ 0 , 120 }"
+    debug_name: "凯撒紧急补盾"
     operations:
       - operation_template: "通用-闪避-左"
       - op_name: "按键-切换角色"
@@ -10,50 +11,65 @@ handlers:
       - op_name: "设置状态"
         data: ["自定义-血量扣减"]
 
-  - states: "[后台-1-防护] & [后台-1-终结技可用]"
-    operations:
-      - operation_template: "双反-下一个"
-      - op_name: "设置状态"
-        data: ["自定义-血量扣减"]
+  # 后台角色终结技处理
+  - states: "[后台-1-终结技可用]"
+    debug_name: "下位终结技检查"
+    sub_handlers:
+      - states: "[后台-1-防护]"
+        debug_name: "下位防护终结技"
+        operations:
+          - operation_template: "双反-下一个"
+          - op_name: "设置状态"
+            data: ["自定义-血量扣减"]
 
-  - states: "[后台-2-防护] & [后台-2-终结技可用]"
-    operations:
-      - operation_template: "双反-上一个"
-      - op_name: "设置状态"
-        data: ["自定义-血量扣减"]
+      - states: "[后台-1-击破]"
+        debug_name: "下位击破终结技"
+        operations:
+          - operation_template: "双反-下一个"
+          - op_name: "设置状态"
+            data: ["自定义-血量扣减"]
 
-  - states: "[后台-1-击破] & [后台-1-终结技可用]"
-    operations:
-      - operation_template: "双反-下一个"
-      - op_name: "设置状态"
-        data: ["自定义-血量扣减"]
+      - states: "[后台-1-支援]"
+        debug_name: "下位支援终结技"
+        operations:
+          - operation_template: "双反-下一个"
+          - op_name: "设置状态"
+            data: ["自定义-血量扣减"]
 
-  - states: "[后台-2-击破] & [后台-2-终结技可用]"
-    operations:
-      - operation_template: "双反-上一个"
-      - op_name: "设置状态"
-        data: ["自定义-血量扣减"]
+      - states: "[后台-1-异常]"
+        debug_name: "下位异常终结技"
+        operations:
+          - operation_template: "双反-下一个"
+          - op_name: "设置状态"
+            data: ["自定义-血量扣减"]
 
-  - states: "[后台-1-支援] &[后台-1-终结技可用]"
-    operations:
-      - operation_template: "双反-下一个"
-      - op_name: "设置状态"
-        data: ["自定义-血量扣减"]
+  - states: "[后台-2-终结技可用]"
+    debug_name: "上位终结技检查"
+    sub_handlers:
+      - states: "[后台-2-防护]"
+        debug_name: "上位防护终结技"
+        operations:
+          - operation_template: "双反-上一个"
+          - op_name: "设置状态"
+            data: ["自定义-血量扣减"]
 
-  - states: "[后台-2-支援] & [后台-2-终结技可用]"
-    operations:
-      - operation_template: "双反-上一个"
-      - op_name: "设置状态"
-        data: ["自定义-血量扣减"]
+      - states: "[后台-2-击破]"
+        debug_name: "上位击破终结技"
+        operations:
+          - operation_template: "双反-上一个"
+          - op_name: "设置状态"
+            data: ["自定义-血量扣减"]
 
-  - states: "[后台-1-异常] & [后台-1-终结技可用]"
-    operations:
-      - operation_template: "双反-下一个"
-      - op_name: "设置状态"
-        data: ["自定义-血量扣减"]
+      - states: "[后台-2-支援]"
+        debug_name: "上位支援终结技"
+        operations:
+          - operation_template: "双反-上一个"
+          - op_name: "设置状态"
+            data: ["自定义-血量扣减"]
 
-  - states: "[后台-2-异常] & [后台-2-终结技可用]"
-    operations:
-      - operation_template: "双反-上一个"
-      - op_name: "设置状态"
-        data: ["自定义-血量扣减"]
+      - states: "[后台-2-异常]"
+        debug_name: "上位异常终结技"
+        operations:
+          - operation_template: "双反-上一个"
+          - op_name: "设置状态"
+            data: ["自定义-血量扣减"]

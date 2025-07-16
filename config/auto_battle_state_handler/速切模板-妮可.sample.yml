@@ -8,60 +8,60 @@ handlers:
 
       - states: "[自定义-红光闪避, 0, 1]"
         operations:
-          - operation_template: "通用-闪A"
-          
+          - operation_template: "妮可-闪A普攻"
 
-      - states: "[自定义-连携换人,0,1]"
+      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "切人后等待"
+        sub_handlers:
+          - states: "[按键可用-快速支援, 0, 0.3]"
+            sub_handlers:
+              - states: "[妮可-终结技可用]"  # 打断快速支援
+                operations:
+                  - operation_template: "妮可-终结技"
+              - states: ""
+                operations:
+                  - op_name: "等待秒数"
+                    seconds: 0.6
+          - states: ""
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
+
+      - states: "[按键可用-连携技, 0, 0.5]"
         operations:
           - operation_template: "妮可-连携攻击"
-          - op_name: "设置状态"
-            state: "自定义-妮可-能量场"
-            seconds: 0
-      #防呆
-      - states: "([按键-切换角色-下一个,0,0.3]|[按键-切换角色-上一个,0,0.3]) | [自定义-快速支援换人,0,1]"
-        operations:
-          - op_name: "等待秒数"
-            seconds: 0.1
 
       - states: "[妮可-终结技可用]"
         operations:
-            #这里的意思是，妮可的能量场在5秒之后才结束，这里的一切都需要录屏实测
-          - op_name: "设置状态"
-            state: "自定义-妮可-能量场"
-            seconds: 7
-          - operation_template: "猫又-终结技" #时长一样
-          
-          - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+          - operation_template: "妮可-终结技"
 
-      #失衡时刻
-      - states: "[自定义-连携换人,0,10]"
-        sub_handlers:
-          - states: "[妮可-特殊技可用]"
-            operations:
-              - op_name: "设置状态"
-                state: "自定义-妮可-能量场"
-                seconds: 3
-              - op_name: "按键-特殊攻击"
-                post_delay: 0.2
-                repeat: 4
-                #这里的意思是，妮可的能量场在2.2秒之后才结束
-
-      #非失衡时刻
+      # 非失衡时刻
       - states: "[妮可-特殊技可用]"
-        operations:
-          - operation_template: "妮可-2a接蓄力坐箱炮"
-          - op_name: "设置状态"
-          #这里的意思是，妮可的能量场在4秒之后才结束
-            state: "自定义-妮可-能量场"
-            seconds: 4
-          - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+        sub_handlers:
+          # 失衡期间快速合轴
+          - states: "[自定义-连携换人, 0, 10]"
+            debug_name: "失衡期间快速蓄力"
+            operations:
+              - operation_template: "妮可-快速蓄力炮合轴"
+          # 异常队友
+          - states: "[后台-1-异常] | [后台-2-异常]"
+            debug_name: "异常队坐箱炮"
+            operations:
+              - operation_template: "妮可-闪A普攻"
+              - operation_template: "妮可-闪A普攻"
+              - operation_template: "妮可-蓄力坐箱炮"
+          # 有嘉音可以打几下普攻刷快速支援，如果被打断了就不普攻了
+          - states: "[耀嘉音-能量]{0, 120} & ![自定义-红光闪避, 0, 1.5]"
+            debug_name: "闪A快速蓄力炮"
+            operations:
+              - operation_template: "妮可-闪A普攻二连"
+              - operation_template: "妮可-快速蓄力炮合轴"
+              # 其他情况一律无脑合轴炮
+          - states: ""
+            operations:
+              - operation_template: "妮可-快速蓄力炮合轴"
 
-      - states: ""
+      - states: "![妮可-特殊技可用]"
+        debug_name: "上弹普攻"
         operations:
-          - op_name: "按键-普通攻击"
-            post_delay: 0.1
-            repeat: 25
-          - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+          - operation_template: "妮可-闪A上弹普攻二连"

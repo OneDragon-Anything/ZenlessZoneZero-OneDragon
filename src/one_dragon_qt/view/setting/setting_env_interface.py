@@ -97,14 +97,14 @@ class SettingEnvInterface(VerticalScrollInterface):
         web_group.addSettingCard(self.proxy_type_opt)
 
         self.personal_proxy_input = TextSettingCard(
-            icon=FluentIcon.WIFI, title='个人代理', content='网络代理中选择 个人代理 后生效',
+            icon=FluentIcon.WIFI, title='个人代理',
             input_placeholder='http://127.0.0.1:8080'
         )
         self.personal_proxy_input.value_changed.connect(self._on_personal_proxy_changed)
         web_group.addSettingCard(self.personal_proxy_input)
 
         self.gh_proxy_url_opt = TextSettingCard(
-            icon=FluentIcon.GLOBE, title='免费代理', content='网络代理中选择 免费代理 后生效'
+            icon=FluentIcon.GLOBE, title='免费代理'
         )
         web_group.addSettingCard(self.gh_proxy_url_opt)
 
@@ -182,6 +182,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         proxy_type = get_config_item_from_enum(ProxyTypeEnum, self.ctx.env_config.proxy_type)
         if proxy_type is not None:
             self.proxy_type_opt.setValue(proxy_type.value)
+        self.update_proxy_ui()
 
         self.personal_proxy_input.setValue(self.ctx.env_config.personal_proxy)
 
@@ -237,6 +238,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         """
         config_item = get_config_item_from_enum(ProxyTypeEnum, value)
         self.ctx.env_config.proxy_type = config_item.value
+        self.update_proxy_ui()
         self._on_proxy_changed()
 
     def _on_personal_proxy_changed(self, value: str) -> None:
@@ -278,3 +280,21 @@ class SettingEnvInterface(VerticalScrollInterface):
     def on_pip_choose_best_clicked(self) -> None:
         self.ctx.python_service.choose_best_pip_source()
         self.pip_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('pip_source'))
+
+    def update_proxy_ui(self) -> None:
+        """
+        更新代理设置的UI
+        :return:
+        """
+        if self.ctx.env_config.proxy_type == ProxyTypeEnum.GHPROXY.value.value:
+            self.personal_proxy_input.hide()
+            self.gh_proxy_url_opt.show()
+            self.auto_fetch_gh_proxy_url_opt.show()
+        elif self.ctx.env_config.proxy_type == ProxyTypeEnum.PERSONAL.value.value:
+            self.personal_proxy_input.show()
+            self.gh_proxy_url_opt.hide()
+            self.auto_fetch_gh_proxy_url_opt.hide()
+        elif self.ctx.env_config.proxy_type == ProxyTypeEnum.NONE.value.value:
+            self.personal_proxy_input.hide()
+            self.gh_proxy_url_opt.hide()
+            self.auto_fetch_gh_proxy_url_opt.hide()

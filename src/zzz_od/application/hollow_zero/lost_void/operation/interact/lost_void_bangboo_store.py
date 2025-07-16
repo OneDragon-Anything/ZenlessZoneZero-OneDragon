@@ -58,15 +58,43 @@ class LostVoidBangbooStore(ZOperation):
         ZOperation.__init__(self, ctx, op_name='迷失之地-邦布商店')
 
         self.refresh_times: int = 0  # 刷新次数
+        self.store_type: str = '标识-金币'  # 商店类型
 
+
+    @operation_node(name='识别商店类型', is_start_node=True)
+    def check_store_type(self) -> OperationRoundResult:
+        screen = self.screenshot()
+
+        result = self.round_by_find_area(screen, '迷失之地-邦布商店', '标识-金币')
+        if result.is_success:
+            self.store_type = result.status
+            return self.round_success(result.status)
+
+        result = self.round_by_find_area(screen, '迷失之地-邦布商店', '标识-血量')
+        if result.is_success:
+            self.store_type = result.status
+            return self.round_success(result.status)
+
+        return self.round_retry(status='未识别商店类型', wait=1)
+
+    @node_from(from_name='识别商店类型')
+    @node_from(from_name='识别商店类型', success=False)
     @node_from(from_name='确认后处理')
-    @operation_node(name='购买藏品', is_start_node=True)
-    def buy_artifact(self) -> OperationRoundResult:
+    @operation_node(name='购买藏品')
+    def buy_artifact_gold(self) -> OperationRoundResult:
+        # 移动鼠标到空的区域 防止阻碍识别
         area = self.ctx.screen_loader.get_area('迷失之地-邦布商店', '文本-详情')
         self.ctx.controller.mouse_move(area.center + Point(0, 100))
         time.sleep(0.1)
 
         screen = self.screenshot()
+
+        if self.store_type == '标识-血量':
+            if not self.ctx.lost_void.challenge_config.store_blood:
+                return self.round_fail('不使用血量购买')
+
+            if not self.check_min_blood_valid(screen):
+                return self.round_fail('血量低于设定最小值')
 
         # 按刷新之后的确认
         result = self.round_by_find_and_click_area(screen, '迷失之地-邦布商店', '按钮-刷新-确认')
@@ -101,8 +129,10 @@ class LostVoidBangbooStore(ZOperation):
             return self.round_retry(status='按优先级选择藏品失败', wait=1)
 
         target: MatchResult = priority_list[0]
+        target_item: LostVoidArtifact = target.data
+
         self.ctx.controller.click(target.center)
-        return self.round_success(target.data.name, wait=1)
+        return self.round_success(target_item.name, wait=1)
 
     def get_artifact_pos(self, screen: MatLike) -> List[MatchResult]:
         """
@@ -170,6 +200,26 @@ class LostVoidBangbooStore(ZOperation):
 
         return result_list
 
+    def check_min_blood_valid(self, screen: MatLike) -> bool:
+        """
+        识别当前血量是否满足购买
+        @param screen: 游戏画面
+        @return:
+        """
+        min_blood = self.ctx.lost_void.challenge_config.store_blood_min
+
+        area = self.ctx.screen_loader.get_area('迷失之地-邦布商店', '区域-角色头像')
+        part = cv2_utils.crop_image_only(screen, area.rect)
+        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        for ocr_result, mrl in ocr_result_map.items():
+            blood = str_utils.get_positive_digits(ocr_result)
+            if blood is None:
+                continue
+            if blood < min_blood:
+                return False
+
+        return True
+
     @node_from(from_name='购买藏品')
     @operation_node(name='点击确认')
     def click_confirm(self) -> OperationRoundResult:
@@ -195,7 +245,7 @@ class LostVoidBangbooStore(ZOperation):
             else:
                 return self.round_retry(status='武备升级失败', wait=1)
         elif screen_name == '迷失之地-邦布商店':
-            return self.round_success(status='迷失之地-邦布商店', wait=1)
+            return self.round_success(status=self.store_type, wait=1)
         else:
             return self.round_retry(status=f'未知画面 {screen_name}', wait=1)
 

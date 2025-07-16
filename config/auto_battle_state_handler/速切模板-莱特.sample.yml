@@ -1,4 +1,4 @@
-#作者 火
+# 作者 火
 template_name: "速切模板-莱特"
 handlers:
   - states: "[前台-莱特]"
@@ -10,7 +10,6 @@ handlers:
       - states: "[自定义-红光闪避, 0, 1]"
         operations:
           - operation_template: "通用-闪A"
-          
 
       # 优先把士气变成BUFF
       # 因为不好估算层数，就以士气值作为结束条件，浪费一点也无所谓
@@ -29,13 +28,20 @@ handlers:
                 post_delay: 0.1
 
       # # 刚切换角色的前置处理
-      #防呆
-      - states: "([按键-切换角色-下一个,0,0.3]|[按键-切换角色-上一个,0,0.3]) | [自定义-快速支援换人,0,1]"
-        operations:
-          - op_name: "等待秒数"
-            seconds: 0.1
+      # 防呆
+      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "切人后等待"
+        sub_handlers:
+          - states: "[按键可用-快速支援, 0, 0.5]"
+            operations:
+              - op_name: "等待秒数"
+                seconds: 1.0
+          - states: ""
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
 
-      - states: "[自定义-连携换人,0,1]"
+      - states: "[按键可用-连携技, 0, 0.5]"
         sub_handlers:
           - states: "![自定义-莱特-BUFF, 0, 16] & [莱特-士气]{80, 100}"
             operations:
@@ -106,7 +112,7 @@ handlers:
 
       # Q技能
       - states: "[莱特-终结技可用]"
-        operations:          
+        operations:
           - op_name: "设置状态"
             state: "自定义-动作不打断"
             seconds: 2
@@ -118,7 +124,7 @@ handlers:
           - op_name: "设置状态"
             data: ["自定义-速切结束"]
       # E技能
-      - states: "[莱特-能量]{80,120} & [莱特-特殊技可用]"
+      - states: "[莱特-能量]{80, 120} & [莱特-特殊技可用]"
         operations:
           - op_name: "设置状态"
             state: "自定义-动作不打断"

@@ -2,41 +2,41 @@
 handlers:
   - states: "[前台-派派]"
     sub_handlers:
-    # 格挡出场后, 速启轮胎转
-    - states: "[自定义-黄光切人]"
-      operations:
-        - op_name: "等待秒数"
-          data: [ "0.5" ]
-        - op_name: "按键-普通攻击"
-          way: "按下"
-          press: 0.8
-        - op_name: "按键-普通攻击"
-          way: "松开"
-        - operation_template: "派派-速启轮胎转"
-        - op_name: "清除状态"
-          data: [ "自定义-黄光切人" ]
-    # 闪避后, 速启轮胎转
-    - states: "[自定义-红光闪避]"
-      operations:
-        - op_name: "等待秒数"
-          data: [ "0.8" ]
-        - op_name: "等待秒数"
-          data: [ "0.5" ]
-        - op_name: "按键-普通攻击"
-          way: "按下"
-          press: 0.8
-        - op_name: "按键-普通攻击"
-          way: "松开"
-        - operation_template: "派派-速启轮胎转"
-        - op_name: "清除状态"
-          data: [ "自定义-红光闪避" ]
-    # 能走到这里说明需要2段普攻提速轮胎转
-    - states: "[按键可用-特殊攻击]"
-      operations:
-        - operation_template: "派派-2A"
-        - operation_template: "派派-速启轮胎转"
-    # 派派如果要站场就是打5A 攒强化E, 打出连携
-    - states: ""
-      operations:
-        - operation_template: "派派-2A"
-        - operation_template: "派派-速启轮胎转"
+      # 格挡出场后, 速启轮胎转
+      - states: "[自定义-黄光切人]"
+        operations:
+          - op_name: "等待秒数"
+            data: ["0.5"]
+          - op_name: "按键-普通攻击"
+            way: "按下"
+            press: 0.8
+          - op_name: "按键-普通攻击"
+            way: "松开"
+          - operation_template: "派派-速启轮胎转"
+          - op_name: "清除状态"
+            data: ["自定义-黄光切人"]
+      # 闪避后, 速启轮胎转
+      - states: "[自定义-红光闪避]"
+        operations:
+          - op_name: "等待秒数"
+            data: ["0.8"]
+          - op_name: "等待秒数"
+            data: ["0.5"]
+          - op_name: "按键-普通攻击"
+            way: "按下"
+            press: 0.8
+          - op_name: "按键-普通攻击"
+            way: "松开"
+          - operation_template: "派派-速启轮胎转"
+          - op_name: "清除状态"
+            data: ["自定义-红光闪避"]
+      # 能走到这里说明需要2段普攻提速轮胎转
+      - states: "[按键可用-特殊攻击]"
+        operations:
+          - operation_template: "派派-2A"
+          - operation_template: "派派-速启轮胎转"
+      # 派派如果要站场就是打5A 攒强化E, 打出连携
+      - states: ""
+        operations:
+          - operation_template: "派派-2A"
+          - operation_template: "派派-速启轮胎转"

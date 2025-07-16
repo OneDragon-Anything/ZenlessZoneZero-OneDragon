@@ -76,7 +76,7 @@ class Application(Operation):
         停止后的处理
         :return:
         """
-        super().after_operation_done(result)
+        Operation.after_operation_done(self, result)
         self._update_record_after_stop(result)
         if self.stop_context_after_stop:
             self.ctx.stop_running()

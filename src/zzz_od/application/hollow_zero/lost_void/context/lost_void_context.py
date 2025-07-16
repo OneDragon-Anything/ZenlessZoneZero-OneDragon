@@ -297,7 +297,8 @@ class LostVoidContext:
 
     def get_artifact_by_priority(self, artifact_list: List[MatchResult], choose_num: int,
                                  consider_priority_1: bool = True, consider_priority_2: bool = True,
-                                 consider_not_in_priority: bool = True) -> List[MatchResult]:
+                                 consider_not_in_priority: bool = True,
+                                 ignore_idx_list: Optional[list[int]] = None) -> List[MatchResult]:
         """
         根据优先级 返回需要选择的藏品
         :param artifact_list: 识别到的藏品结果
@@ -305,6 +306,7 @@ class LostVoidContext:
         :param consider_priority_1: 是否考虑优先级1的内容
         :param consider_priority_2: 是否考虑优先级2的内容
         :param consider_not_in_priority: 是否考虑优先级以外的选项
+        :param ignore_idx_list: 需要忽略的下标
         :return: 按优先级选择的结果
         """
         priority_list_to_consider = []
@@ -329,6 +331,9 @@ class LostVoidContext:
                         item_name = ''
 
                     for idx in range(len(artifact_list)):
+                        if ignore_idx_list is not None and idx in ignore_idx_list:  # 需要忽略的下标
+                            continue
+
                         artifact: LostVoidArtifact = artifact_list[idx].data
 
                         if artifact.level != target_level:

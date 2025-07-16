@@ -137,7 +137,7 @@ t-switch-lighter: &t-switch-lighter
 
 scenes:
 
-  - triggers: [ "闪避识别-黄光", "闪避识别-红光", "闪避识别-声音" ]
+  - triggers: ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
     interval: 1
     handlers:
       # 部分连招霸体可以不闪避
@@ -176,7 +176,7 @@ scenes:
           - states: ""
             operations: *t-dodge
 
-  - triggers: [ "按键可用-快速支援" ]
+  - triggers: ["按键可用-快速支援"]
     interval: 1
     handlers:
       - states: "[按键可用-快速支援]"
@@ -184,7 +184,7 @@ scenes:
           - states: "[前台-露西]"
             operations: *t-quick-assist-lucy
 
-  - triggers: [ "按键可用-连携技" ]
+  - triggers: ["按键可用-连携技"]
     interval: 1
     handlers:
       - states: "[按键可用-连携技]"
@@ -196,10 +196,10 @@ scenes:
           # 凯撒没上buff的话 先出凯撒
           - states: "([连携技-1-凯撒] | [连携技-2-凯撒]) & ![自定义-凯撒-战意激昂, 0, 25]"
             sub_handlers:
-            - states: "[连携技-1-凯撒]"
-              operations: *t-chain-left
-            - states: "[连携技-2-凯撒]"
-              operations: *t-chain-right
+              - states: "[连携技-1-凯撒]"
+                operations: *t-chain-left
+              - states: "[连携技-2-凯撒]"
+                operations: *t-chain-right
 
           # 剩余情况 露西-凯撒-莱特
           - states: "[连携技-1-露西]"
@@ -215,7 +215,7 @@ scenes:
           - states: "[连携技-2-莱特]"
             operations: *t-chain-right
 
-  - triggers: [ ]
+  - triggers: []
     interval: 0.02
     handlers:
       - state_template: "站场模板-未识别角色"

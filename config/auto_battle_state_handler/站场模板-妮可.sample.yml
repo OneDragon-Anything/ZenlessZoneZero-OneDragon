@@ -1,15 +1,15 @@
 handlers:
   - states: "[前台-妮可]"
     sub_handlers:
-    - states: "[按键可用-终结技]"
-      operations:
-        - op_name: "按键-终结技"
-          post_delay: 3
-    - states: "[按键可用-特殊攻击]"
-      operations:
-        - op_name: "按键-特殊攻击"
-          post_delay: 0.3
-    - states: ""
-      operations:
-        - op_name: "按键-普通攻击"
-          post_delay: 0.3
+      - states: "[按键可用-终结技]"
+        operations:
+          - op_name: "按键-终结技"
+            post_delay: 3
+      - states: "[按键可用-特殊攻击]"
+        operations:
+          - op_name: "按键-特殊攻击"
+            post_delay: 0.3
+      - states: ""
+        operations:
+          - op_name: "按键-普通攻击"
+            post_delay: 0.3

@@ -1,17 +1,17 @@
 resonium_priority:
-- 冻结
-- 决斗
-- 闪避
-- 能量
-- 诡术 华丽手杖
-- 邦布 鲨牙布
-- 邦布 企鹅布
+  - 冻结
+  - 决斗
+  - 闪避
+  - 能量
+  - 诡术 华丽手杖
+  - 邦布 鲨牙布
+  - 邦布 企鹅布
 auto_battle: 专属配队-艾莲
 event_priority:
-- ''
+  - ""
 path_finding: 默认
 buy_only_priority: true
 target_agents:
-- ellen
-- 击破
-- soukaku
+  - ellen
+  - 击破
+  - soukaku

@@ -23,6 +23,8 @@ class LostVoidChooseNoDetail(ZOperation):
         """
         ZOperation.__init__(self, ctx, op_name='迷失之地-无详情选择')
 
+        self.chosen_idx_list: list[int] = []  # 已经选择过的下标
+
     @operation_node(name='选择', is_start_node=True)
     def choose_artifact(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '文本-详情')
@@ -36,7 +38,7 @@ class LostVoidChooseNoDetail(ZOperation):
             # 进入本指令之前 有可能识别错画面
             return self.round_retry(status=f'当前画面 {screen_name}', wait=1)
 
-        # TODO 目前这两个画面的判断重叠
+        # 目前这两个画面的判断重叠 需要返回外层重新处理
         result = self.round_by_find_area(screen, '迷失之地-通用选择', '文本-详情')
         if result.is_success:
             self.ctx.screen_loader.update_current_screen_name('迷失之地-通用选择')
@@ -46,10 +48,17 @@ class LostVoidChooseNoDetail(ZOperation):
         if len(art_list) == 0:
             return self.round_retry(status='无法识别藏品', wait=1)
 
-        priority_list = self.ctx.lost_void.get_artifact_by_priority(art_list, 1)
+        # 可能出现无法选择的选项 需要将之前选择过的进行排除
+        priority_list = self.ctx.lost_void.get_artifact_by_priority(art_list, 1,
+                                                                    ignore_idx_list=self.chosen_idx_list)
         for art in priority_list:
+            for idx, art_2 in enumerate(art_list):
+                if art_2 == art:  # 需要保证 get_artifact_by_priority 返回的是原对象
+                    self.chosen_idx_list.append(idx)
+                    break
             self.ctx.controller.click(art.center)
             time.sleep(0.5)
+            break
 
         return self.round_success()
 

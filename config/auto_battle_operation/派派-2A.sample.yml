@@ -1,6 +1,6 @@
 # 派派2A, 后可接轮胎转
 operations:
-# 第三段普攻强化E 快速轮胎转
+  # 第三段普攻强化E 快速轮胎转
   - op_name: "按键-普通攻击"
     post_delay: 0.6
     repeat: 2

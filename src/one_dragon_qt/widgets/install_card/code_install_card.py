@@ -48,9 +48,9 @@ class CodeInstallCard(BaseInstallCard):
             return FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt('未配置Git', 'ui')
         elif current_branch is None:
             return FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt('未同步代码', 'ui')
-        elif current_branch != self.ctx.project_config.project_git_branch:
+        elif current_branch != self.ctx.env_config.git_branch:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
-            msg = f"{gt('当前分支', 'ui')}: {current_branch}; {gt('建议分支', 'ui')}: {self.ctx.project_config.project_git_branch}; {gt('不自动同步', 'ui')}"
+            msg = f"{gt('当前分支', 'ui')}: {current_branch}; {gt('建议分支', 'ui')}: {self.ctx.env_config.git_branch}; {gt('不自动同步', 'ui')}"
             return icon, msg
         else:
             latest, msg = self.ctx.git_service.is_current_branch_latest()

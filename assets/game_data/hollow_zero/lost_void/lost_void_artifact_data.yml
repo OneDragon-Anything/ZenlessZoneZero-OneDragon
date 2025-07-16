@@ -154,6 +154,118 @@
   name: "月幻"
   level: "A"
 
+  #耀嘉音
+- category: "耀嘉音"
+  name: "璀璨时刻"
+  level: "S"
+  template_id: "gear_astra_yao_1"
+
+- category: "耀嘉音"
+  name: "空洞交响曲"
+  level: "S"
+  template_id: "gear_astra_yao_2"
+
+- category: "耀嘉音"
+  name: "和声回响"
+  level: "S"
+  template_id: "gear_astra_yao_3"
+
+- category: "耀嘉音"
+  name: "完美救场"
+  level: "A"
+
+- category: "耀嘉音"
+  name: "散落的旋律"
+  level: "A"
+
+- category: "耀嘉音"
+  name: "清风之咏叹"
+  level: "A"
+
+  #伊芙琳
+- category: "伊芙琳"
+  name: "低燃点涂装"
+  level: "S"
+  template_id: "gear_evelyn_1"
+
+- category: "伊芙琳"
+  name: "便携式雷管"
+  level: "S"
+  template_id: "gear_evelyn_2"
+
+- category: "伊芙琳"
+  name: "最高应急预案"
+  level: "S"
+  template_id: "gear_evelyn_3"
+
+- category: "伊芙琳"
+  name: "袖中捷刃"
+  level: "A"
+
+- category: "伊芙琳"
+  name: "绳缚艺术"
+  level: "A"
+
+- category: "伊芙琳"
+  name: "特调能量饮料"
+  level: "A"
+
+  #简
+- category: "简"
+  name: "诡步轻甲"
+  level: "S"
+  template_id: "gear_jane_1"
+
+- category: "简"
+  name: "沸腾猎意"
+  level: "S"
+  template_id: "gear_jane_2"
+
+- category: "简"
+  name: "尖峰毒獠"
+  level: "S"
+  template_id: "gear_jane_3"
+
+- category: "简"
+  name: "游戏时间"
+  level: "A"
+
+- category: "简"
+  name: "格斗技巧"
+  level: "A"
+
+- category: "简"
+  name: "顽劣追袭"
+  level: "A"
+
+  #可琳
+- category: "可琳"
+  name: "锯片驾驶指南"
+  level: "S"
+  template_id: "gear_corin_1"
+
+- category: "可琳"
+  name: "过载驱动"
+  level: "S"
+  template_id: "gear_corin_2"
+
+- category: "可琳"
+  name: "特型鼓风机"
+  level: "S"
+  template_id: "gear_corin_3"
+
+- category: "可琳"
+  name: "女仆小碎步"
+  level: "A"
+
+- category: "可琳"
+  name: "不幸的撕裂伤"
+  level: "A"
+
+- category: "可琳"
+  name: "厄运破伤风"
+  level: "A"
+
   #终结
 - category: "终结"
   name: "余音古筝"
@@ -204,7 +316,6 @@
 - category: "机敏"
   name: "高效保险杠"
   level: "B"
-
 
   #异常·击破
 
@@ -257,7 +368,6 @@
 - category: "绝境"
   name: "阵痛激素"
   level: "B"
-
 
   #通用
 - category: "通用"
@@ -345,6 +455,22 @@
   level: "B"
 
   #契合
+
+- category: "契合"
+  name: "返场时刻"
+  level: "S"
+
+- category: "契合"
+  name: "干票大的"
+  level: "S"
+
+- category: "契合"
+  name: "往日手感"
+  level: "S"
+
+- category: "契合"
+  name: "银心的鸣破"
+  level: "S"
 
 - category: "契合"
   name: "充盈电鸣"
@@ -451,6 +577,22 @@
   level: "S"
 
 - category: "契合"
+  name: "返场时刻"
+  level: "S"
+
+- category: "契合"
+  name: "往日手感"
+  level: "S"
+
+- category: "契合"
+  name: "银心的鸣破"
+  level: "S"
+
+- category: "契合"
+  name: "与你的旋律"
+  level: "S"
+
+- category: "契合"
   name: "强攻战术交流"
   level: "A"
 
@@ -485,6 +627,70 @@
   level: "S"
 
 - category: "卡牌"
+  name: "超越绝境之志"
+  level: "S"
+
+- category: "卡牌"
+  name: "导航数据组"
+  level: "S"
+
+- category: "卡牌"
+  name: "定位卡-理财"
+  level: "S"
+
+- category: "卡牌"
+  name: "定位卡-捷径"
+  level: "S"
+
+- category: "卡牌"
+  name: "定位卡-战力"
+  level: "S"
+
+- category: "卡牌"
+  name: "定位卡-恶咒"
+  level: "S"
+
+- category: "卡牌"
+  name: "定位卡-奇遇"
+  level: "S"
+
+- category: "卡牌"
+  name: "定位卡-破雾"
+  level: "S"
+
+- category: "卡牌"
+  name: "定位卡-索引"
+  level: "S"
+
+- category: "卡牌"
+  name: "糊涂记账法"
+  level: "S"
+
+- category: "卡牌"
+  name: "莽撞的勇士"
+  level: "S"
+
+- category: "卡牌"
+  name: "潮汐规律"
+  level: "S"
+
+- category: "卡牌"
+  name: "无畏火炬"
+  level: "S"
+
+- category: "卡牌"
+  name: "金钱攻势·强化版"
+  level: "S"
+
+- category: "卡牌"
+  name: "优厚分红·强化版"
+  level: "S"
+
+- category: "卡牌"
+  name: "诡诈筹码"
+  level: "S"
+
+- category: "卡牌"
   name: "大垄断家"
   level: "S"
 
@@ -497,11 +703,43 @@
   level: "S"
 
 - category: "卡牌"
-  name: "掠血夺心之印"
+  name: "敛财手段"
   level: "S"
 
 - category: "卡牌"
-  name: "超越绝境之志"
+  name: "真诚的赠品"
+  level: "A"
+
+- category: "卡牌"
+  name: "一毛不拔"
+  level: "S"
+
+- category: "卡牌"
+  name: "贵宾的礼遇"
+  level: "A"
+
+- category: "卡牌"
+  name: "双面荆甲"
+  level: "S"
+
+- category: "卡牌"
+  name: "缝缝补补防御术"
+  level: "A"
+
+- category: "卡牌"
+  name: "故友之踪迹"
+  level: "A"
+
+- category: "卡牌"
+  name: "静电现象"
+  level: "A"
+
+- category: "卡牌"
+  name: "实验「副」产物"
+  level: "S"
+
+- category: "卡牌"
+  name: "掠血夺心之印"
   level: "S"
 
 - category: "卡牌"
@@ -556,6 +794,23 @@
   name: "失衡猎杀之印"
   level: "S"
 
+  # 杰佩托
+- category: "杰佩托"
+  name: "处决指令"
+  level: "S"
+
+- category: "杰佩托"
+  name: "审判时刻"
+  level: "S"
+
+- category: "杰佩托"
+  name: "以血还血"
+  level: "A"
+
+- category: "杰佩托"
+  name: "近身突刺"
+  level: "A"
+
   # 无详情的特殊品
 - category: "无详情"
   name: "零号业绩"
@@ -579,4 +834,32 @@
 
 - category: "无详情"
   name: "有回报的损失生命值"
+  level: "S"
+
+- category: "无详情"
+  name: "升级武备"
+  level: "S"
+
+- category: "无详情"
+  name: "鸣徽组合-畅享装"
+  level: "S"
+
+- category: "无详情"
+  name: "鸣徽组合-迷你装"
+  level: "S"
+
+- category: "无详情"
+  name: "鸣徽组合-便携装"
+  level: "S"
+
+- category: "无详情"
+  name: "紧急避险"
+  level: "S"
+
+- category: "无详情"
+  name: "金牌调解师"
+  level: "S"
+
+- category: "无详情"
+  name: "自助索赔"
   level: "S"

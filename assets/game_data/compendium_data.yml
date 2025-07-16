@@ -76,6 +76,8 @@
           mission_type_name_display: "混沌爵士 原始朋克"
         - mission_type_name: "怪兽二重奏"
           mission_type_name_display: "折枝剑歌 静听嘉音"
+        - mission_type_name: "游侠与守卫"
+          mission_type_name_display: "如影相随 法厄同之歌"
 
     - category_name: "专业挑战室"
       mission_type_list:
@@ -87,6 +89,7 @@
         - mission_type_name: "蛮横力士"
         - mission_type_name: "多佩冈亚·简"
         - mission_type_name: "色雷斯人"
+        - mission_type_name: "伐木机"
 
 - tab_name: "作战"
   category_list:

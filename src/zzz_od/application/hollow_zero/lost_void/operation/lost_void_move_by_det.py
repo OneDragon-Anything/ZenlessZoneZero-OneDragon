@@ -96,6 +96,15 @@ class LostVoidMoveByDet(ZOperation):
                  stop_when_disappear: bool = True,
                  ignore_entry_list: Optional[List[str]] = None
                  ):
+        """
+        朝识别目标移动 最终返回目标图标 data=LostVoidRegionType.label
+        @param ctx:
+        @param current_region:
+        @param target_type:
+        @param stop_when_interact:
+        @param stop_when_disappear:
+        @param ignore_entry_list:
+        """
         ZOperation.__init__(self, ctx, op_name=f'迷失之地-识别寻路-{target_type[5:]}')
 
         self.current_region: LostVoidRegionType = current_region
@@ -117,6 +126,8 @@ class LostVoidMoveByDet(ZOperation):
         self.total_turn_times: int = 0  # 总共转向次数
 
         self.last_save_debug_image_time: float = 0  # 上一次保存debug图片的时间
+
+        self.lost_target_during_move_times: int = 0  # 移动过程中丢失目标次数
 
     def handle_not_in_world(self, screen: MatLike) -> OperationRoundResult:
         """
@@ -156,6 +167,14 @@ class LostVoidMoveByDet(ZOperation):
         target_result = self.get_move_target(frame_result)
 
         if target_result is None:
+            if self.last_target_result is not None:
+                # 如果出现多次转向 说明可能是识别不准 然后又恰巧被卡住无法前进
+                self.lost_target_during_move_times += 1
+                # https://github.com/DoctorReid/ZenlessZoneZero-OneDragon/issues/867
+                if self.lost_target_during_move_times % 5 == 0:  # 尝试脱困
+                    self.stuck_times += 1
+                    self.get_out_of_stuck()
+            self.last_target_result = None
             return self.round_success(LostVoidMoveByDet.STATUS_NO_FOUND)
 
         self.last_target_result = target_result
@@ -181,6 +200,14 @@ class LostVoidMoveByDet(ZOperation):
         target_result = self.get_move_target(frame_result)
 
         if target_result is None:
+            self.lost_target_during_move_times += 1
+            # 移动过程中多次丢失目标 通常是因为识别不准
+            # 游戏1.6版本出现了可以因为丢失目标转动镜头而一直无法进入脱困
+            # https://github.com/DoctorReid/ZenlessZoneZero-OneDragon/issues/867
+            if self.lost_target_during_move_times % 10 == 0:  # 尝试脱困
+                self.stuck_times += 1
+                self.get_out_of_stuck()
+
             return self.round_success(LostVoidMoveByDet.STATUS_NO_FOUND)
 
         is_stuck = self.check_stuck(target_result)
@@ -319,6 +346,9 @@ class LostVoidMoveByDet(ZOperation):
         # 在大世界 先切换到耀佳音以外的角色 防止进入状态无法移动
         auto_battle_utils.check_astra_and_switch(self.ctx.lost_void.auto_op)
 
+        # 部分障碍物可以破坏 尝试攻击
+        self.ctx.controller.normal_attack(press=True, press_time=0.2, release=True)
+
         if self.stuck_times % 6 == 1:  # 向左走
             self.ctx.controller.move_a(press=True, press_time=1, release=True)
         elif self.stuck_times % 6 == 2:  # 向右走
@@ -414,7 +444,7 @@ class LostVoidMoveByDet(ZOperation):
         if self.total_turn_times >= 100:  # 基本不可能转向这么多次还没有到达
             return self.round_fail(LostVoidMoveByDet.STATUS_NO_FOUND)
 
-        self.ctx.controller.turn_by_distance(-100)
+        self.ctx.controller.turn_by_distance(-200)
         # 识别不到目标的时候 判断是否在战斗 转动等待的时候持续识别 否则0.5秒才识别一次间隔太久 很难识别到黄光
         in_battle = self.ctx.lost_void.check_battle_encounter_in_period(0.5)
         if in_battle:

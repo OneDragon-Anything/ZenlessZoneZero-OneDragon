@@ -11,7 +11,7 @@ from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
 from zzz_od.application.commission_assistant.commission_assistant_app import CommissionAssistantApp
-from zzz_od.application.commission_assistant.commission_assistant_config import DialogOptionEnum
+from zzz_od.application.commission_assistant.commission_assistant_config import DialogOptionEnum, StoryMode
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 
@@ -57,11 +57,8 @@ class CommissionAssistantRunInterface(AppRunInterface):
         )
         left_layout.addWidget(self.dialog_click_interval_opt)
 
-        self.dialog_click_when_auto_opt = SwitchSettingCard(
-            icon=FluentIcon.PLAY,  # 选择与时间相关的图标
-            title='剧情自动进行时点击', content='剧情右上角选择自动时，是否依然点击',
-        )
-        right_layout.addWidget(self.dialog_click_when_auto_opt)
+        self.story_mode_opt = ComboBoxSettingCard(icon=FluentIcon.PLAY, title='剧情模式', options_enum=StoryMode)
+        right_layout.addWidget(self.story_mode_opt)
 
         self.dodge_config_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='自动闪避')
         left_layout.addWidget(self.dodge_config_opt)
@@ -80,17 +77,18 @@ class CommissionAssistantRunInterface(AppRunInterface):
     def on_interface_shown(self) -> None:
         AppRunInterface.on_interface_shown(self)
 
-        self.dialog_click_interval_opt.init_with_adapter(self.ctx.commission_assistant_config.dialog_click_interval_adapter)
-        self.dialog_option_opt.init_with_adapter(self.ctx.commission_assistant_config.dialog_option_adapter)
-        self.dialog_click_when_auto_opt.init_with_adapter(self.ctx.commission_assistant_config.dialog_click_when_auto_adapter)
+        self.dialog_click_interval_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('dialog_click_interval', getter_convert='str', setter_convert='float'))
+        self.dialog_option_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('dialog_option'))
+        self.story_mode_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('story_mode'))
 
         self.dodge_config_opt.set_options_by_list(get_auto_battle_op_config_list('dodge'))
-        self.dodge_config_opt.init_with_adapter(self.ctx.commission_assistant_config.dodge_config_adapter)
-        self.dodge_switch_opt.init_with_adapter(self.ctx.commission_assistant_config.dodge_switch_adapter)
+        self.dodge_config_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('dodge_config'))
+        self.dodge_switch_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('dodge_switch'))
 
         self.auto_battle_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
-        self.auto_battle_opt.init_with_adapter(self.ctx.commission_assistant_config.auto_battle_adapter)
-        self.auto_battle_switch_opt.init_with_adapter(self.ctx.commission_assistant_config.auto_battle_switch_adapter)
+        self.auto_battle_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('auto_battle'))
+        self.auto_battle_switch_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('auto_battle_switch'))
+
     def on_interface_hidden(self) -> None:
         AppRunInterface.on_interface_hidden(self)
 

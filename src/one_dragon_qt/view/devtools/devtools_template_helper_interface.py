@@ -14,6 +14,7 @@ from one_dragon_qt.widgets.click_image_label import ImageScaleEnum, ClickImageLa
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.cv2_image import Cv2Image
+from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.row import Row
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
@@ -61,7 +62,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         self._update_platform_opt()
         btn_row.add_widget(self.platform_opt)  # 将选择框添加到按钮行
 
-        self.existed_yml_btn = ComboBox()
+        self.existed_yml_btn = EditableComboBox()
         self.existed_yml_btn.setPlaceholderText(gt('选择已有', 'ui'))
         self.existed_yml_btn.currentIndexChanged.connect(self._on_choose_existed_yml)
         btn_row.add_widget(self.existed_yml_btn)

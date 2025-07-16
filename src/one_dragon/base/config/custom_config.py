@@ -1,4 +1,3 @@
-import os
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem

@@ -32,6 +32,7 @@ class PredefinedTeamCheckerInterface(AppRunInterface):
         self.help_opt = HyperlinkCard(icon=FluentIcon.HELP, title='一条龙-预备编队中输入正确编队名称后运行',
                                       content='根据队伍名称识别对应的代理人',
                                       text='', url='')
+        self.help_opt.linkButton.hide()
         content.add_widget(self.help_opt)
 
         return content

@@ -1,0 +1,22 @@
+# 根据动画实测
+operations:
+  - op_name: "设置状态"
+    state: "自定义-不使用快速支援"
+    seconds: 5
+  # 上弹
+  - op_name: "按键-移动-前"
+    way: "按下"
+    post_delay: 0.01
+  - op_name: "按键-闪避"
+    way: "按下"
+    post_delay: 0.1
+  - op_name: "按键-闪避"
+    way: "松开"
+  # 输出
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 26
+  - op_name: "等待秒数"
+    seconds: 0.2
+  - op_name: "按键-移动-前"
+    way: "松开"

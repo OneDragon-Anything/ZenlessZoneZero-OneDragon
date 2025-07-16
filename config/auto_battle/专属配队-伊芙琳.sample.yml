@@ -137,7 +137,7 @@ t-switch-evelyn: &t-switch-evelyn
 
 scenes:
 
-  - triggers: [ "闪避识别-黄光", "闪避识别-红光", "闪避识别-声音" ]
+  - triggers: ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
     interval: 0.4
     handlers:
       # 部分连招霸体可以不闪避
@@ -145,7 +145,7 @@ scenes:
         sub_handlers:
           - states: "[闪避识别-黄光]"
             sub_handlers:
-              - states: "[前台-伊芙琳] & [伊芙琳-燎索点]{3,3}"
+              - states: "[前台-伊芙琳] & [伊芙琳-燎索点]{3, 3}"
                 operations:
                   - op_name: "按键-移动-右"
                     way: "按下"
@@ -168,7 +168,7 @@ scenes:
               - states: "[后台-露西] & ![自定义-露西-加油, -5, 13]"
                 operations: *t-dodge-lucy
 
-              # 其余情况 
+              # 其余情况
               - states: "[后台-伊芙琳]"
                 operations: *t-dodge-evelyn
               - states: "[后台-妮可]"
@@ -203,7 +203,7 @@ scenes:
                 way: "松开"
 
 
-  - triggers: [ "前台-血量扣减" ]
+  - triggers: ["前台-血量扣减"]
     interval: 0.3
     handlers:
       # 部分连招霸体可以不闪避
@@ -227,7 +227,7 @@ scenes:
               - op_name: "按键-移动-右"
                 way: "松开"
 
-  - triggers: [ "按键可用-快速支援" ]
+  - triggers: ["按键可用-快速支援"]
     interval: 0.5
     handlers:
       - states: "[按键可用-快速支援]"
@@ -244,7 +244,7 @@ scenes:
 
           - states: "[前台-雅]"
             sub_handlers:
-              - states: "![雅-落霜]{6,6} & ![自定义-霜月拔刀, 0, 4]"
+              - states: "![雅-落霜]{6, 6} & ![自定义-霜月拔刀, 0, 4]"
                 operations:
                   - op_name: "按键-快速支援"
                   - op_name: "设置状态"
@@ -264,7 +264,7 @@ scenes:
           #       post_delay: 0.05
           #       repeat: 2
 
-  - triggers: [ "按键可用-连携技" ]
+  - triggers: ["按键可用-连携技"]
     interval: 1
     handlers:
       - states: "[按键可用-连携技]"
@@ -283,12 +283,12 @@ scenes:
           # 凯撒没上buff的话 先出凯撒
           - states: "([连携技-1-凯撒] | [连携技-2-凯撒]) & ![自定义-凯撒-战意激昂, 0, 25]"
             sub_handlers:
-            - states: "[连携技-1-凯撒]"
-              operations: *t-chain-left
-            - states: "[连携技-2-凯撒]"
-              operations: *t-chain-right
+              - states: "[连携技-1-凯撒]"
+                operations: *t-chain-left
+              - states: "[连携技-2-凯撒]"
+                operations: *t-chain-right
 
-          # 剩余情况 
+          # 剩余情况
           - states: "[连携技-1-伊芙琳]"
             operations: *t-chain-left
           - states: "[连携技-2-伊芙琳]"
@@ -310,7 +310,7 @@ scenes:
           - states: "[连携技-2-凯撒]"
             operations: *t-chain-right
 
-  - triggers: [ ]
+  - triggers: []
     interval: 0.5
     handlers:
 
@@ -320,7 +320,7 @@ scenes:
 
           - states: "[后台-伊芙琳]"
             sub_handlers:
-              - states: "[伊芙琳-燎索点]{3,3}"
+              - states: "[伊芙琳-燎索点]{3, 3}"
                 operations: *t-switch-evelyn
 
           - states: "[耀嘉音-终结技可用] & [后台-耀嘉音]"
@@ -413,7 +413,7 @@ scenes:
               - op_name: "设置状态"
                 state: "自定义-下场"
 
-          - states: "![切换角色-耀嘉音,0 ,3]"
+          - states: "![切换角色-耀嘉音, 0 , 3]"
             operations:
               - op_name: "设置状态"
                 state: "自定义-动作不打断"
@@ -688,7 +688,7 @@ scenes:
                 post_delay: 0.2
 
           # 看看有没有buff需要上 注意刚切换上场的时候可能无法在做动作无法切人 稍微等一段时间
-          - states: "![切换角色-伊芙琳] & ![伊芙琳-燎索点]{3,3}"
+          - states: "![切换角色-伊芙琳] & ![伊芙琳-燎索点]{3, 3}"
             sub_handlers:
 
               - states: "![自定义-耀嘉音-如歌的行板, 0, 20] & [后台-耀嘉音] & [耀嘉音-能量]{30, 120}"
@@ -702,10 +702,10 @@ scenes:
                 operations: *t-switch-lucy
 
 
-          - states: "[伊芙琳-燎索点]{3,3}"
+          - states: "[伊芙琳-燎索点]{3, 3}"
             sub_handlers:
-              - states: "[伊芙琳-燎火]{100,100}"
-                operations: 
+              - states: "[伊芙琳-燎火]{100, 100}"
+                operations:
                   - op_name: "设置状态"
                     state: "自定义-动作不打断"
                   - op_name: "按键-普通攻击"
@@ -718,7 +718,7 @@ scenes:
                     state: "自定义-动作不打断"
 
               - states: ""
-                operations: 
+                operations:
                   - op_name: "设置状态"
                     state: "自定义-动作不打断"
                   - op_name: "按键-普通攻击"
@@ -730,10 +730,10 @@ scenes:
                   - op_name: "清除状态"
                     state: "自定义-动作不打断"
 
-          - states: "[伊芙琳-燎火]{100,100}"
+          - states: "[伊芙琳-燎火]{100, 100}"
             sub_handlers:
               - states: ""
-                operations: 
+                operations:
                   - op_name: "设置状态"
                     state: "自定义-动作不打断"
                   - op_name: "按键-普通攻击"
@@ -745,10 +745,10 @@ scenes:
                   - op_name: "清除状态"
                     state: "自定义-动作不打断"
 
-          - states: "[伊芙琳-燎火]{50,90}"
+          - states: "[伊芙琳-燎火]{50, 90}"
             sub_handlers:
-              - states: "[伊芙琳-燎索点]{2,2}"
-                operations: 
+              - states: "[伊芙琳-燎索点]{2, 2}"
+                operations:
                   - op_name: "设置状态"
                     state: "自定义-动作不打断"
                   - op_name: "按键-普通攻击"
@@ -760,7 +760,7 @@ scenes:
                   - op_name: "清除状态"
                     state: "自定义-动作不打断"
 
-          - states: "[伊芙琳-燎索点]{0,2} & [按键可用-终结技] & ![自定义-月辉丝·绊, 0, 4]"
+          - states: "[伊芙琳-燎索点]{0, 2} & [按键可用-终结技] & ![自定义-月辉丝·绊, 0, 4]"
             operations:
               - op_name: "设置状态"
                 state: "自定义-动作不打断"
@@ -772,7 +772,7 @@ scenes:
               - op_name: "清除状态"
                 state: "自定义-动作不打断"
 
-          - states: "[伊芙琳-能量]{65,120} & [伊芙琳-燎火]{0,50}"
+          - states: "[伊芙琳-能量]{65, 120} & [伊芙琳-燎火]{0, 50}"
             operations:
               - op_name: "设置状态"
                 state: "自定义-动作不打断"
@@ -786,7 +786,3 @@ scenes:
               - op_name: "按键-普通攻击"
                 post_delay: 0.05
                 repeat: 7
-
-
-
-

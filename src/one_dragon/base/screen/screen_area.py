@@ -1,3 +1,4 @@
+import numpy as np
 from typing import Optional, List
 
 from one_dragon.base.geometry.point import Point
@@ -110,6 +111,20 @@ class ScreenArea:
         :return:
         """
         return self.template_id is not None and len(self.template_id) > 0
+
+    @property
+    def color_range_lower(self) -> np.array:
+        if self.color_range is None or len(self.color_range) < 1:
+            return np.array([0, 0, 0], dtype=np.uint8)
+        else:
+            return np.array(self.color_range[0], dtype=np.uint8)
+
+    @property
+    def color_range_upper(self) -> np.array:
+        if self.color_range is None or len(self.color_range) < 2:
+            return np.array([255, 255, 255], dtype=np.uint8)
+        else:
+            return np.array(self.color_range[1], dtype=np.uint8)
 
     def to_order_dict(self) -> dict:
         """

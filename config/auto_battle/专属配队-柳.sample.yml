@@ -8,14 +8,14 @@ team_list:
   - ["柳", "防护", "柏妮思"]
 introduction: "柏妮思 可换成支援"
 
-#基础配置
+# 基础配置
 check_dodge_interval: 0.01
 check_agent_interval: [0.4, 0.6]
 check_chain_interval: 0.3
 check_quick_interval: 0.2
 auto_lock_interval: 5
 
-#速切模板-支援
+# 速切模板-支援
 t-sup: &sup
   - states: "[前台-凯撒]"
     sub_handlers:
@@ -77,10 +77,10 @@ t-sup: &sup
     sub_handlers:
       - state_template: "速切模板-全角色"
 
-#战场模板-柳
+# 战场模板-柳
 t-liu: &liu
-    #切人
-  - states: "(![自定义-柏妮思燃点,0, 15] & ![按键可用-快速支援,0, 10] & [后台-2-柏妮思]) | ([后台-2-能量]{80, 120} & ![按键可用-快速支援,0, 10] & [后台-2-妮可])"
+    # 切人
+  - states: "(![自定义-柏妮思燃点, 0, 15] & ![按键可用-快速支援, 0, 10] & [后台-2-柏妮思]) | ([后台-2-能量]{80, 120} & ![按键可用-快速支援, 0, 10] & [后台-2-妮可])"
     operations:
       - op_name: "按键-特殊攻击"
         post_delay: 0.2
@@ -113,7 +113,7 @@ t-liu: &liu
       - op_name: "按键-特殊攻击"
         post_delay: 0.05
         repeat: 2
-#速切模板-赛斯
+# 速切模板-赛斯
 t-ss: &ss
   - states: "[后台-1-柏妮思]"
     operations:
@@ -148,11 +148,11 @@ t-ss: &ss
       - op_name: "按键-普通攻击"
         post_delay: 0.05
         repeat: 7
-#速切模板-柏妮思
+# 速切模板-柏妮思
 t-bns: &bns
   - states: "[前台-柏妮思]"
     sub_handlers:
-      - states: "[柏妮思-燃点]{21,100} & [前台-能量,0,60]"
+      - states: "[柏妮思-燃点]{21, 100} & [前台-能量, 0, 60]"
         operations:
           - op_name: "按键-普通攻击"
             post_delay: 0.2
@@ -179,7 +179,7 @@ t-bns: &bns
           - op_name: "设置状态"
             state: "自定义-柏妮思燃点"
 
-      - states: "[柏妮思-燃点]{80,100}"
+      - states: "[柏妮思-燃点]{80, 100}"
         operations:
           - op_name: "按键-普通攻击"
             post_delay: 0.2
@@ -188,12 +188,12 @@ t-bns: &bns
             post_delay: 0.5
           - op_name: "设置状态"
             state: "自定义-柏妮思燃点"
-      - states: "[前台-能量,0,20]"
+      - states: "[前台-能量, 0, 20]"
         operations:
           - op_name: "按键-普通攻击"
             post_delay: 0.05
             repeat: 20
-#连携模板-上一个
+# 连携模板-上一个
 t-up: &up
   - op_name: "按键-移动-前"
     way: "松开"
@@ -203,7 +203,7 @@ t-up: &up
   - op_name: "按键-普通攻击"
     post_delay: 0.01
 
-#连携模板-下一个
+# 连携模板-下一个
 t-down: &down
   - op_name: "按键-移动-前"
     way: "松开"
@@ -212,7 +212,7 @@ t-down: &down
     post_delay: 0.01
   - op_name: "按键-特殊攻击"
     post_delay: 0.01
-#连携模板-取消
+# 连携模板-取消
 t-cancel: &cancel
   - op_name: "按键-连携技-取消"
     way: "按下"
@@ -224,7 +224,7 @@ scenes:
   - triggers: ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
     priority: 90
     handlers:
-      - states: "[前台-柳] & [闪避识别-黄光] & ![自定义-下格挡,0,10]" #10s内未触发过切人则触发赛斯格挡
+      - states: "[前台-柳] & [闪避识别-黄光] & ![自定义-下格挡, 0, 10]"  # 10s内未触发过切人则触发赛斯格挡
         operations:
           - op_name: "按键-切换角色-下一个"
             post_delay: 0.025
@@ -236,7 +236,7 @@ scenes:
             repeat: 12
           - op_name: "设置状态"
             state: "自定义-下格挡"
-      - states: "[前台-柳] & [闪避识别-黄光] & ![自定义-上格挡,0,10]" #10s内触发过切人则触发支援/凯撒格挡      这里一般会切凯撒/支援后直接释放特殊技
+      - states: "[前台-柳] & [闪避识别-黄光] & ![自定义-上格挡, 0, 10]"  # 10s内触发过切人则触发支援/凯撒格挡      这里一般会切凯撒/支援后直接释放特殊技
         operations:
           - op_name: "按键-切换角色-上一个"
             post_delay: 0.05
@@ -252,7 +252,7 @@ scenes:
             post_delay: 0.5
           - op_name: "设置状态"
             state: "自定义-上格挡"
-      - states: "[前台-柳] & ([闪避识别-黄光] | [闪避识别-红光] | [闪避识别-声音] )" #柳前台闪避反击
+      - states: "[前台-柳] & ([闪避识别-黄光] | [闪避识别-红光] | [闪避识别-声音])"  # 柳前台闪避反击
         operations:
           - op_name: "按键-移动-前"
             way: "按下"
@@ -269,7 +269,7 @@ scenes:
           - op_name: "按键-移动-前"
             way: "松开"
             post_delay: 0.01
-      - states: "([前台-支援] & [闪避识别-黄光]) | ([前台-凯撒] & [闪避识别-黄光]) | ([前台-柏妮思] & [闪避识别-黄光])" #支援/凯撒在前台切柳触发格挡反击
+      - states: "([前台-支援] & [闪避识别-黄光]) | ([前台-凯撒] & [闪避识别-黄光]) | ([前台-柏妮思] & [闪避识别-黄光])"  # 支援/凯撒在前台切柳触发格挡反击
         operations:
           - op_name: "按键-切换角色-下一个"
             post_delay: 0.025
@@ -280,7 +280,7 @@ scenes:
             press: 0.3
             post_delay: 0.05
             repeat: 3
-      - states: "[前台-赛斯] & [闪避识别-黄光]" #赛斯在前台切柳格挡
+      - states: "[前台-赛斯] & [闪避识别-黄光]"  # 赛斯在前台切柳格挡
         operations:
           - op_name: "按键-切换角色-上一个"
             post_delay: 0.025
@@ -291,7 +291,7 @@ scenes:
             press: 0.3
             post_delay: 0.05
             repeat: 3
-      - states: "![前台-柳] & ([闪避识别-黄光] | [闪避识别-红光] | [闪避识别-声音] )" #前台不是柳闪避反击
+      - states: "![前台-柳] & ([闪避识别-黄光] | [闪避识别-红光] | [闪避识别-声音])"  # 前台不是柳闪避反击
         operations:
           - op_name: "按键-移动-前"
             way: "按下"
@@ -323,7 +323,7 @@ scenes:
   - triggers: ["按键可用-快速支援"]
     priority: 98
     handlers:
-      - states: "[按键可用-快速支援,0,0.2]" #快速支援触发时只有不是"柳"才会触发快速支援
+      - states: "[按键可用-快速支援, 0, 0.2]"  # 快速支援触发时只有不是"柳"才会触发快速支援
         sub_handlers:
           - states: "![前台-柳]"
             operations:
@@ -334,20 +334,20 @@ scenes:
               - op_name: "按键-闪避"
                 post_delay: 0.3
 
-  - triggers: [ "前台-血量扣减" ]
+  - triggers: ["前台-血量扣减"]
     priority: 97
     interval: 1
     handlers:
-      - states: "[前台-血量扣减]{1, 100}"                           #扣血会尝试切凯撒/闪避反击来规避持续性伤害       默认主C站场
+      - states: "[前台-血量扣减]{1, 100}"                           # 扣血会尝试切凯撒/闪避反击来规避持续性伤害       默认主C站场
         sub_handlers:
-          - states: "[后台-2-凯撒] & [后台-2-能量]{45,120}"
+          - states: "[后台-2-凯撒] & [后台-2-能量]{45, 120}"
             operations:
               - op_name: "按键-切换角色-上一个"
               - op_name: "按键-特殊攻击"
                 press: 0.05
                 post_delay: 0.1
                 repeat: 2
-          - states: "[后台-1-凯撒] & [后台-1-能量]{45,120}"
+          - states: "[后台-1-凯撒] & [后台-1-能量]{45, 120}"
             operations:
               - op_name: "按键-切换角色-下一个"
               - op_name: "按键-特殊攻击"
@@ -414,31 +414,31 @@ scenes:
     priority: 10
     interval: 1
     handlers:
-      - states: "[前台-柳] & ![按键-切换角色-下一个,0,2]  & ![按键-切换角色-上一个,0,3]"
+      - states: "[前台-柳] & ![按键-切换角色-下一个, 0, 2]  & ![按键-切换角色-上一个, 0, 3]"
         sub_handlers:
-        - states: "[后台-2-柏妮思]"
-          operations:
-            - op_name: "按键-切换角色-上一个"
-              post_delay: 0.1
-            - op_name: "按键-终结技"
-              post_delay: 0.05
-              repeat: 8
-            - op_name: "清除状态"
-              state: "自定义-柏妮思燃点"
-        - states: "![后台-2-柏妮思]"
-          operations:
-            - op_name: "按键-终结技"
-              post_delay: 0.05
-              repeat: 8
+          - states: "[后台-2-柏妮思]"
+            operations:
+              - op_name: "按键-切换角色-上一个"
+                post_delay: 0.1
+              - op_name: "按键-终结技"
+                post_delay: 0.05
+                repeat: 8
+              - op_name: "清除状态"
+                state: "自定义-柏妮思燃点"
+          - states: "![后台-2-柏妮思]"
+            operations:
+              - op_name: "按键-终结技"
+                post_delay: 0.05
+                repeat: 8
 
   - triggers: []
     priority: 2
     interval: 0.2
     handlers:
       # 强制柳战场
-      - states: "![前台-柳] & ![自定义-切人,0, 6]"
+      - states: "![前台-柳] & ![自定义-切人, 0, 6]"
         sub_handlers:
-          - states: "[前台-赛斯] & ![按键-切换角色-下一个,0,0.3] & [后台-1-柏妮思]"
+          - states: "[前台-赛斯] & ![按键-切换角色-下一个, 0, 0.3] & [后台-1-柏妮思]"
             operations:
               - op_name: "按键-特殊攻击"
                 post_delay: 0.025
@@ -449,7 +449,7 @@ scenes:
                 post_delay: 0.05
               - op_name: "等待秒数"
                 seconds: 0.15
-          - states: "[前台-赛斯] & ![按键-切换角色-上一个,0,0.3]"
+          - states: "[前台-赛斯] & ![按键-切换角色-上一个, 0, 0.3]"
             operations:
               - op_name: "按键-特殊攻击"
                 post_delay: 0.025
@@ -460,7 +460,7 @@ scenes:
                 post_delay: 0.05
               - op_name: "等待秒数"
                 seconds: 0.15
-          - states: "([前台-支援] & ![按键-切换角色-下一个,0,0.3]) | ([前台-凯撒] & ![按键-切换角色-下一个,0,0.3]) | ([前台-柏妮思] & ![按键-切换角色-下一个,0,0.3])"
+          - states: "([前台-支援] & ![按键-切换角色-下一个, 0, 0.3]) | ([前台-凯撒] & ![按键-切换角色-下一个, 0, 0.3]) | ([前台-柏妮思] & ![按键-切换角色-下一个, 0, 0.3])"
             operations:
               - op_name: "按键-特殊攻击"
                 post_delay: 0.025

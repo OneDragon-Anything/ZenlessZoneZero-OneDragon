@@ -1,4 +1,4 @@
-#根据动画实测，艾莲没有无敌时间，坑
+# 根据动画实测，艾莲没有无敌时间，坑
 operations:
   - op_name: "设置状态"
     state: "自定义-动作不打断"
@@ -11,7 +11,7 @@ operations:
     way: "松开"
   - op_name: "等待秒数"
     seconds: 0.1
-    
+
   - op_name: "按键-普通攻击"
     way: "按下"
     press: 1.2

@@ -9,5 +9,3 @@ operations:
     seconds: 1.2
   - op_name: "清除状态"
     state: "自定义-动作不打断"
-
-

@@ -111,6 +111,9 @@ class ShiyuDefenseApp(ZApplication):
             log.info('配队: %s', predefined_team.name)
             log.info('自动战斗: %s', predefined_team.auto_battle)
 
+        if len(self.phase_team_list) < 2:
+            return self.round_retry('当前配置计算配队未足够多阶段 请检查配置', wait=1)
+
         return self.round_by_click_area('式舆防卫战', '角色头像',
                                         success_wait=1, retry_wait=1)
 

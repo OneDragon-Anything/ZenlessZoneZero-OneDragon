@@ -3,6 +3,7 @@ from enum import Enum
 from pynput import keyboard, mouse
 from typing import Optional
 
+from one_dragon.base.config.custom_config import CustomConfig
 from one_dragon.base.config.emulator_config import EmulatorConfig
 from one_dragon.base.config.game_account_config import GameAccountConfig
 from one_dragon.base.config.one_dragon_app_config import OneDragonAppConfig
@@ -13,7 +14,6 @@ from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher
 from one_dragon.base.matcher.template_matcher import TemplateMatcher
 from one_dragon.base.operation.context_event_bus import ContextEventBus
-from one_dragon.base.operation.one_dragon_custom_context import OneDragonCustomContext
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext, ONE_DRAGON_CONTEXT_EXECUTOR
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
@@ -51,14 +51,14 @@ class ContextInstanceEventEnum(Enum):
     instance_active: str = 'instance_active'
 
 
-class OneDragonContext(ContextEventBus, OneDragonEnvContext, OneDragonCustomContext):
+class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
     def __init__(self, controller: Optional = None):
         ContextEventBus.__init__(self)
         OneDragonEnvContext.__init__(self)
-        OneDragonCustomContext.__init__(self)
 
         self.one_dragon_config: OneDragonConfig = OneDragonConfig()
+        self.custom_config: CustomConfig = CustomConfig()
 
         if self.one_dragon_config.current_active_instance is None:
             self.one_dragon_config.create_new_instance(True)
@@ -76,6 +76,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext, OneDragonCustomCont
         self.mouse_controller = mouse.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
         self.btn_listener.start()
+
+        self.home_start_button_pressed : bool = False
 
     def init_by_config(self) -> None:
         """

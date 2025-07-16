@@ -1,0 +1,144 @@
+screen_id: fishing
+screen_name: 钓鱼
+pc_alt: false
+area_list:
+- area_name: 指令文本区域
+  id_mark: false
+  pc_rect:
+  - 286
+  - 110
+  - 1552
+  - 812
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按键-时机上鱼
+  id_mark: false
+  pc_rect:
+  - 1516
+  - 798
+  - 1684
+  - 966
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: fishing
+  template_id: interact_timing
+  template_match_threshold: 0.9
+  color_range: null
+  goto_list: []
+- area_name: 按键-左
+  id_mark: false
+  pc_rect:
+  - 253
+  - 816
+  - 387
+  - 950
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: fishing
+  template_id: btn_left
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按键-右
+  id_mark: false
+  pc_rect:
+  - 1516
+  - 798
+  - 1684
+  - 966
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: fishing
+  template_id: btn_right
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按键-返回
+  id_mark: false
+  pc_rect:
+  - 54
+  - 8
+  - 176
+  - 90
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: fishing
+  template_id: btn_back
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按钮-点击空白处关闭
+  id_mark: false
+  pc_rect:
+  - 824
+  - 966
+  - 1098
+  - 1078
+  text: 点击空白处关闭
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 标题-挑战结果
+  id_mark: false
+  pc_rect:
+  - 602
+  - 110
+  - 1290
+  - 376
+  text: 挑战结果
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按钮-确定
+  id_mark: false
+  pc_rect:
+  - 870
+  - 866
+  - 1090
+  - 930
+  text: 确定
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按键-强力-左
+  id_mark: false
+  pc_rect:
+  - 130
+  - 744
+  - 232
+  - 854
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: fishing
+  template_id: btn_power
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按键-强力-右
+  id_mark: false
+  pc_rect:
+  - 1686
+  - 746
+  - 1790
+  - 854
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: fishing
+  template_id: btn_power
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []

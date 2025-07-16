@@ -38,6 +38,7 @@ class SettingYoloInterface(VerticalScrollInterface):
 
         self.help_opt = HyperlinkCard(icon=FluentIcon.HELP, title='下载说明', text='',
                                       url='')
+        self.help_opt.linkButton.hide()
         self.help_opt.setContent('下载失败时 请尝试到「脚本环境」更改网络代理')
         group.addSettingCard(self.help_opt)
 

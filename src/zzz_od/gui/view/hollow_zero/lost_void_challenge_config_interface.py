@@ -7,6 +7,7 @@ from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.row import Row
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
@@ -82,6 +83,14 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
                                                       options_enum=LostVoidPeriodBuffNo)
         widget.add_widget(self.period_buff_no_opt)
 
+        self.store_blood_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='商店-使用血量购买',
+                                                 content='练度低情况下 仅建议绝境武备开启')
+        widget.add_widget(self.store_blood_opt)
+
+        self.store_blood_min_opt = TextSettingCard(icon=FluentIcon.GAME, title='商店-使用血量购买',
+                                                     content='血量 ≥ x% 时 才会进行购买')
+        widget.add_widget(self.store_blood_min_opt)
+
         self.buy_only_priority_1_opt = TextSettingCard(icon=FluentIcon.GAME, title='只购买第一优先级',
                                                      content='刷新多少次数内 只购买第一优先级内的藏品')
         widget.add_widget(self.buy_only_priority_1_opt)
@@ -150,6 +159,8 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.name_opt.setDisabled(not chosen or is_sample)
         self.auto_battle_opt.setDisabled(not chosen or is_sample)
         self.period_buff_no_opt.setDisabled(not chosen or is_sample)
+        self.store_blood_opt.setDisabled(not chosen or is_sample)
+        self.store_blood_min_opt.setDisabled(not chosen or is_sample)
         self.buy_only_priority_1_opt.setDisabled(not chosen or is_sample)
         self.buy_only_priority_2_opt.setDisabled(not chosen or is_sample)
         self.artifact_priority_input.setDisabled(not chosen or is_sample)
@@ -163,6 +174,8 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
             self.name_opt.setValue(self.chosen_config.module_name)
             self.auto_battle_opt.setValue(self.chosen_config.auto_battle)
             self.period_buff_no_opt.init_with_adapter(self.chosen_config.get_prop_adapter('period_buff_no'))
+            self.store_blood_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_blood'))
+            self.store_blood_min_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_blood_min', getter_convert='str', setter_convert='int'))
             self.buy_only_priority_1_opt.init_with_adapter(self.chosen_config.get_prop_adapter('buy_only_priority_1', getter_convert='str', setter_convert='int'))
             self.buy_only_priority_2_opt.init_with_adapter(self.chosen_config.get_prop_adapter('buy_only_priority_2', getter_convert='str', setter_convert='int'))
             # self.buy_only_priority_opt.setContent('达到刷新次数前 只购买优先级内的藏品')  # 不知道为啥需要在这里设置才生效

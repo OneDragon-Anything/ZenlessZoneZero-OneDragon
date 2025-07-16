@@ -1,10 +1,10 @@
-#根据动画实测,等待是为了防止前摇
+# 根据动画实测, 等待是为了防止前摇
 operations:
   - op_name: "按键-特殊攻击"
     way: "松开"
   - op_name: "等待秒数"
     seconds: 0.1
-    
+
   - op_name: "按键-特殊攻击"
     way: "按下"
     press: 0.5
@@ -26,4 +26,3 @@ operations:
 
   - op_name: "设置状态"
     state: "自定义-柏妮思-灼烧"
-

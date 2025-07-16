@@ -1,12 +1,12 @@
 auto_battle: 全配队通用
 region_type_priority:
-- 战斗-武备
+  - 战斗-武备
 artifact_priority:
-- 星见雅 花间雀
-- 终结
-- 无详情 获得鸣徽
+  - 星见雅 花间雀
+  - 终结
+  - 无详情 获得鸣徽
 period_buff_no: 第三个
 artifact_priority_2:
-- 异常·击破 混沌量杯
-- 通用 三相战斗陀螺
-- 绝境
+  - 异常·击破 混沌量杯
+  - 通用 三相战斗陀螺
+  - 绝境

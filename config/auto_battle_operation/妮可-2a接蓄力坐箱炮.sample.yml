@@ -2,7 +2,7 @@ operations:
   - op_name: "设置状态"
     state: "自定义-不使用快速支援"
     seconds: 5
+  - operation_template: "通用-闪避-前"
   - op_name: "按键-普通攻击"
-    post_delay: 0.1
-    repeat: 15
-  - operation_template: "妮可-蓄力坐箱炮" 
+    post_delay: 1
+  - operation_template: "妮可-蓄力坐箱炮"

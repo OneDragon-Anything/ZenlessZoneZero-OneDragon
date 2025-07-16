@@ -15,7 +15,7 @@ msgid "ZenlessZoneZero-OneDragon-installer"
 msgstr "绝区零 一条龙 安装器"
 
 msgid "设置"
-msgstr "设置/Settings"
+msgstr "设置"
 
 msgid "语言"
-msgstr "语言/Language"
+msgstr "语言"

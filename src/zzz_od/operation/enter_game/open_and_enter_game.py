@@ -5,6 +5,7 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.enter_game.open_game import OpenGame
+from zzz_od.operation.enter_game.auto_hdr import EnableAutoHDR, DisableAutoHDR
 
 
 class OpenAndEnterGame(Operation):
@@ -36,6 +37,8 @@ class OpenAndEnterGame(Operation):
         打开游戏
         :return:
         """
+        hdr_op = DisableAutoHDR(self.ctx)
+        hdr_op.execute()
         op = OpenGame(self.ctx)
         return self.round_by_op_result(op.execute())
 
@@ -46,8 +49,8 @@ class OpenAndEnterGame(Operation):
             self.ctx.controller.game_win.init_win()
             if self.ctx.controller.is_game_window_ready:
                 self.ctx.controller.active_window()
-                import subprocess
-                subprocess.Popen(f'cmd /c "reg add "HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences" /v "{self.ctx.game_account_config.game_path}" /d "AutoHDREnable=2097;" /f"')
+                hdr_op = EnableAutoHDR(self.ctx)
+                hdr_op.execute()
                 return self.round_success()
             else:
                 return self.round_retry(wait=1)

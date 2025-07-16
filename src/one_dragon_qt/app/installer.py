@@ -8,7 +8,7 @@ from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon_qt.windows.app_window_base import AppWindowBase
 from one_dragon.utils import os_utils
-from one_dragon_qt.services import PhosStyleSheet
+from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 
 
 class InstallerWindowBase(AppWindowBase):
@@ -91,10 +91,10 @@ class InstallerWindowBase(AppWindowBase):
         self.navigationInterface.setContentsMargins(0, 28, 0, 0)
 
         # 配置样式
-        PhosStyleSheet.APP_WINDOW.apply(self)
-        PhosStyleSheet.NAVIGATION_INTERFACE.apply(self.navigationInterface)
-        PhosStyleSheet.STACKED_WIDGET.apply(self.stackedWidget)
-        PhosStyleSheet.TITLE_BAR.apply(self.titleBar)
+        OdQtStyleSheet.APP_WINDOW.apply(self)
+        OdQtStyleSheet.NAVIGATION_INTERFACE.apply(self.navigationInterface)
+        OdQtStyleSheet.STACKED_WIDGET.apply(self.stackedWidget)
+        OdQtStyleSheet.TITLE_BAR.apply(self.titleBar)
 
         # 设置参数
         self.titleBar.issue_url = f"{self.ctx.project_config.github_homepage}/issues"

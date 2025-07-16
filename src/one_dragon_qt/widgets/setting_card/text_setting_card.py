@@ -1,8 +1,8 @@
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QHBoxLayout, QLineEdit
-from qfluentwidgets import FluentIconBase
-from qfluentwidgets import LineEdit, PushButton
+from qfluentwidgets import FluentIconBase, FluentIcon
+from qfluentwidgets import LineEdit, ToolButton
 from typing import Union, Optional
 
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
@@ -48,18 +48,19 @@ class TextSettingCard(SettingCardBase):
         # 设置密码模式
         if is_password:
             self.line_edit.setEchoMode(QLineEdit.EchoMode.Password)
+            self.line_edit.setMaximumWidth(input_max_width - 45)
 
             # 添加切换显示/隐藏明文的按钮
-            self.toggle_button = PushButton(text="👁")  # 使用眼睛符号作为图标
+            self.toggle_button = ToolButton(FluentIcon.HIDE)
             self.toggle_button.setCheckable(True)
-            self.toggle_button.setFlat(True)  # 扁平样式
-            self.toggle_button.setFixedSize(40, 32)  # 固定按钮大小
+            self.toggle_button.setFixedSize(40, 33)  # 固定按钮大小
             self.toggle_button.clicked.connect(self._toggle_password_visibility)
 
             # 创建一个水平布局，将输入框和按钮放在一起
             self.input_layout = QHBoxLayout()
             self.input_layout.setContentsMargins(0, 0, 0, 0)  # 去掉内边距
             self.input_layout.addWidget(self.line_edit)  # 左侧为输入框
+            self.input_layout.addSpacing(5)  # 添加空隙
             self.input_layout.addWidget(self.toggle_button)  # 右侧为按钮
 
             # 将水平布局添加到卡片的主布局中
@@ -78,8 +79,10 @@ class TextSettingCard(SettingCardBase):
         """切换密码显示模式"""
         if self.toggle_button.isChecked():
             self.line_edit.setEchoMode(QLineEdit.EchoMode.Normal)  # 显示明文
+            self.toggle_button.setIcon(FluentIcon.VIEW)
         else:
             self.line_edit.setEchoMode(QLineEdit.EchoMode.Password)  # 隐藏明文
+            self.toggle_button.setIcon(FluentIcon.HIDE)
 
     def _on_text_changed(self) -> None:
         """处理文本更改事件"""

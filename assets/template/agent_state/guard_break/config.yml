@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: guard_break
+template_name: 角色状态-格挡破碎
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 954, 2
+- 1066, 114

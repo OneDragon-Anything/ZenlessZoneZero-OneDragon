@@ -1,18 +1,18 @@
 resonium_priority:
-- 闪避
-- 强袭
-- 能量
-- 决斗
-- 诡术 燃烧玫瑰
-- 诡术 华丽手杖
-- 邦布 阿崔巡查
-- 邦布 左轮布
+  - 闪避
+  - 强袭
+  - 能量
+  - 决斗
+  - 诡术 燃烧玫瑰
+  - 诡术 华丽手杖
+  - 邦布 阿崔巡查
+  - 邦布 左轮布
 auto_battle: 专属配队-简
 event_priority:
-- ''
+  - ""
 path_finding: 默认
 buy_only_priority: true
 target_agents:
-- jane_doe
-- seth_lowell
-- 支援
+  - jane_doe
+  - seth_lowell
+  - 支援

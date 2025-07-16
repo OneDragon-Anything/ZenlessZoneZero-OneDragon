@@ -1,17 +1,19 @@
+import subprocess
 from PySide6.QtWidgets import QWidget
-from PySide6.QtWidgets import QWidget
-from qfluentwidgets import SettingCardGroup, FluentIcon
+from qfluentwidgets import FluentIcon, SettingCardGroup, HyperlinkCard
 
+from one_dragon.base.config.basic_game_config import TypeInputWay, ScreenSizeEnum, FullScreenEnum, MonitorEnum
 from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonEnum
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from one_dragon_qt.widgets.column import Column
-from zzz_od.config.game_config import GamepadTypeEnum, TypeInputWay, ScreenSizeEnum, FullScreenEnum, MonitorEnum
+from zzz_od.config.game_config import GamepadTypeEnum
+from zzz_od.config.agent_outfit_config import AgentOutfitNicole, AgentOutfitEllen, AgentOutfitAstraYao
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -31,6 +33,7 @@ class SettingGameInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
+        content_widget.add_widget(self._get_agent_outfit_group())
         content_widget.add_widget(self._get_basic_group())
         content_widget.add_widget(self._get_launch_argument_group())
         content_widget.add_widget(self._get_key_group())
@@ -38,6 +41,25 @@ class SettingGameInterface(VerticalScrollInterface):
         content_widget.add_stretch(1)
 
         return content_widget
+
+    def _get_agent_outfit_group(self) -> QWidget:
+        agent_outfit_group = SettingCardGroup(gt('代理人皮肤', 'ui'))
+
+        self.help_opt = HyperlinkCard(icon=FluentIcon.PIN, title='！设置皮肤以正常使用自动战斗功能  ！', url='', text='')
+        self.help_opt.linkButton.hide()
+        self.outfit_nicole_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='妮可', options_enum=AgentOutfitNicole)
+        self.outfit_nicole_opt.value_changed.connect(self._on_agent_outfit_changed)
+        self.outfit_ellen_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='艾莲', options_enum=AgentOutfitEllen)
+        self.outfit_ellen_opt.value_changed.connect(self._on_agent_outfit_changed)
+        self.outfit_astra_yao_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='耀嘉音', options_enum=AgentOutfitAstraYao)
+        self.outfit_astra_yao_opt.value_changed.connect(self._on_agent_outfit_changed)
+
+        agent_outfit_group.addSettingCard(self.help_opt)
+        agent_outfit_group.addSettingCard(self.outfit_nicole_opt)
+        agent_outfit_group.addSettingCard(self.outfit_ellen_opt)
+        agent_outfit_group.addSettingCard(self.outfit_astra_yao_opt)
+
+        return agent_outfit_group
 
     def _get_basic_group(self) -> QWidget:
 
@@ -48,6 +70,11 @@ class SettingGameInterface(VerticalScrollInterface):
                                                 options_enum=TypeInputWay)
         basic_group.addSettingCard(self.input_way_opt)
 
+        self.hdr_switch = SwitchSettingCard(icon=FluentIcon.SETTING, title='自动HDR',
+                                    content='手动启动游戏时「自动HDR」的状态')
+        self.hdr_switch.value_changed.connect(self._on_hdr_switch_changed)
+        basic_group.addSettingCard(self.hdr_switch)
+
         return basic_group
 
     def _get_launch_argument_group(self) -> QWidget:
@@ -56,21 +83,21 @@ class SettingGameInterface(VerticalScrollInterface):
         self.launch_argument_switch = SwitchSettingCard(icon=FluentIcon.SETTING, title='启用')
         self.launch_argument_switch.value_changed.connect(self._on_launch_argument_switch_changed)
         launch_argument_group.addSettingCard(self.launch_argument_switch)
-
-        self.screen_size_opt = ComboBoxSettingCard(icon=FluentIcon.SETTING, title='窗口尺寸', options_enum=ScreenSizeEnum)
+        
+        self.screen_size_opt = ComboBoxSettingCard(icon=FluentIcon.FIT_PAGE, title='窗口尺寸', options_enum=ScreenSizeEnum)
         launch_argument_group.addSettingCard(self.screen_size_opt)
 
-        self.full_screen_opt = ComboBoxSettingCard(icon=FluentIcon.SETTING, title='全屏', options_enum=FullScreenEnum)
+        self.full_screen_opt = ComboBoxSettingCard(icon=FluentIcon.FULL_SCREEN, title='全屏', options_enum=FullScreenEnum)
         launch_argument_group.addSettingCard(self.full_screen_opt)
 
-        self.popup_window_switch = SwitchSettingCard(icon=FluentIcon.SETTING, title='无边框窗口')
+        self.popup_window_switch = SwitchSettingCard(icon=FluentIcon.LAYOUT, title='无边框窗口')
         launch_argument_group.addSettingCard(self.popup_window_switch)
 
-        self.monitor_opt = ComboBoxSettingCard(icon=FluentIcon.SETTING, title='显示器序号', options_enum=MonitorEnum)
+        self.monitor_opt = ComboBoxSettingCard(icon=FluentIcon.COPY, title='显示器序号', options_enum=MonitorEnum)
         launch_argument_group.addSettingCard(self.monitor_opt)
 
         self.launch_argument_advance = TextSettingCard(
-            icon=FluentIcon.SETTING,
+            icon=FluentIcon.COMMAND_PROMPT,
             title='高级参数',
             input_placeholder='如果你不知道这是做什么的 请不要填写'
         )
@@ -251,7 +278,12 @@ class SettingGameInterface(VerticalScrollInterface):
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
+        self.outfit_nicole_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('nicole'))
+        self.outfit_ellen_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('ellen'))
+        self.outfit_astra_yao_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('astra_yao'))
+
         self.input_way_opt.init_with_adapter(self.ctx.game_config.type_input_way_adapter)
+        self.hdr_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('hdr'))
 
         self.launch_argument_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument'))
         self.screen_size_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('screen_size'))
@@ -362,6 +394,17 @@ class SettingGameInterface(VerticalScrollInterface):
     def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
         self._update_gamepad_part()
 
+    def _on_agent_outfit_changed(self) -> None:
+        self.ctx.init_agent_template_id()
+    
+    def _on_hdr_switch_changed(self, value: bool) -> None:
+        hdr_command_enable = f'cmd /c "reg add "HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences" /v "{self.ctx.game_account_config.game_path}" /d "AutoHDREnable=2097;" /f"'
+        hdr_command_disable = f'cmd /c "reg add "HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences" /v "{self.ctx.game_account_config.game_path}" /d "AutoHDREnable=2096;" /f"'
+        if value:
+            subprocess.Popen(hdr_command_enable)
+        else:
+            subprocess.Popen(hdr_command_disable)
+    
     def _on_launch_argument_switch_changed(self, value: bool) -> None:
         if value:
             self.screen_size_opt.setVisible(True)

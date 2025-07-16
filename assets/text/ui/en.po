@@ -5,7 +5,7 @@ msgstr ""
 
 # ZZZ-OD UI
 msgid "设置"
-msgstr "设置/Settings"
+msgstr "Settings"
 
 msgid "语言"
-msgstr "语言/Language"
+msgstr "Language"

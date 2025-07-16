@@ -223,13 +223,16 @@ class SettingInstanceInterface(VerticalScrollInterface):
         instance_settings_group.addSettingCard(self.game_region_opt)
         self.game_region_opt.setVisible(is_pc_platform)  # 根据平台设置初始可见性
 
-        self.game_account_opt = TextSettingCard(icon=FluentIcon.PEOPLE, title='账号')
+        self.game_account_opt = TextSettingCard(
+            icon=FluentIcon.PEOPLE,
+            title='账号',
+            input_placeholder='所有信息都明文保存在本地')
         instance_settings_group.addSettingCard(self.game_account_opt)
 
         self.game_password_opt = TextSettingCard(
             icon=FluentIcon.EXPRESSIVE_INPUT_ENTRY,
             title='密码',
-            input_placeholder='所有信息都保存在本地 请自行妥善管理',
+            input_placeholder='请自行妥善管理',
             is_password=True  # 设置为密码模式
         )
         instance_settings_group.addSettingCard(self.game_password_opt)

@@ -1,27 +1,25 @@
-#需要特别处理的模板
-handlers:
-  #青衣特殊技不可用的情况下没必要切人，直接闪A
-  - states: "[前台-青衣] & ![自定义-血量扣减,0,8]"
+# 需要特别处理的模板
+handlers: # 青衣特殊技不可用的情况下没必要切人，直接闪A
+  - states: "![自定义-血量扣减, 0, 8]"
     sub_handlers:
-      - state_template: "闪A模板-青衣"
-
-  #异常角色至少输出6秒才进行格挡，这是基本游戏理解
+      - states: "[前台-青衣]"
+        sub_handlers:
+          - state_template: "闪A模板-青衣"
+      - states: "[前台-零号安比]"
+        operations:
+          - operation_template: "零号安比-闪A" # 异常角色至少输出6秒才进行格挡，这是基本游戏理解
   - states: "[前台-异常]"
     sub_handlers:
-      - states: "([按键-切换角色-下一个,0,6]|[按键-切换角色-上一个,0,6])" #异常角色至少输出6秒
+      - states: "([按键-切换角色-下一个, 0, 6]|[按键-切换角色-上一个, 0, 6])" # 异常角色至少输出6秒
         sub_handlers:
-          - state_template: "闪A模板-全角色"
-
-  #强者不需要切人直接格挡就行
+          - state_template: "闪A模板-全角色" # 强者不需要切人直接格挡就行
   - states: "[前台-凯撒]"
     operations:
       - op_name: "设置状态"
         data: ["自定义-凯撒-护盾"]
       - operation_template: "凯撒-特殊技格挡"
       - op_name: "设置状态"
-        data: ["自定义-速切结束"]
-
-  #强者不需要切人直接格挡就行
+        data: ["自定义-速切结束"] # 强者不需要切人直接格挡就行
   - states: "[前台-本]"
     operations:
       - op_name: "设置状态"

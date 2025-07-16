@@ -1,26 +1,26 @@
 handlers:
   - states: "[前台-11号]"
     sub_handlers:
-    - states: "[按键可用-终结技]"
-      operations:
-        - op_name: "按键-终结技"
-          data: []
-        - op_name: "按键-普通攻击"
-          post_delay: 0.4
-          repeat: 8
-        - op_name: "按键-普通攻击"
-          post_delay: 0.4
-          repeat: 8
+      - states: "[按键可用-终结技]"
+        operations:
+          - op_name: "按键-终结技"
+            data: []
+          - op_name: "按键-普通攻击"
+            post_delay: 0.4
+            repeat: 8
+          - op_name: "按键-普通攻击"
+            post_delay: 0.4
+            repeat: 8
 
-    - states: ""
-      operations:
-        - op_name: "按键-闪避"
-          post_delay: 0.2
-        - op_name: "按键-特殊攻击"
-          post_delay: 1.2
-        - op_name: "按键-普通攻击"
-          post_delay: 0.4
-          repeat: 8
-        - op_name: "按键-普通攻击"
-          post_delay: 0.4
-          repeat: 8
+      - states: ""
+        operations:
+          - op_name: "按键-闪避"
+            post_delay: 0.2
+          - op_name: "按键-特殊攻击"
+            post_delay: 1.2
+          - op_name: "按键-普通攻击"
+            post_delay: 0.4
+            repeat: 8
+          - op_name: "按键-普通攻击"
+            post_delay: 0.4
+            repeat: 8

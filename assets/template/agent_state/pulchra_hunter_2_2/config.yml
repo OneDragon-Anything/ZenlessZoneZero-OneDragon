@@ -1,0 +1,18 @@
+sub_dir: agent_state
+template_id: pulchra_hunter_2_2
+template_name: 角色状态-波可娜-22
+template_shape: multi_rect
+auto_mask: true
+point_list:
+- 615, 103
+- 619, 105
+- 624, 97
+- 626, 97
+- 631, 103
+- 634, 104
+- 640, 97
+- 642, 99
+- 648, 102
+- 651, 105
+- 656, 97
+- 659, 99

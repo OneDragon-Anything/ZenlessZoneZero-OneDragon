@@ -112,20 +112,21 @@ class ChargePlanConfig(YamlConfig):
 
         YamlConfig.save(self)
 
-    def add_plan(self) -> None:
-        self.plan_list.append(ChargePlanItem(
-            '训练',
-            '实战模拟室',
-            '基础材料',
-            '调查专项',
-            level='默认等级',
-            auto_battle_config='全配队通用',
-            run_times=0,
-            plan_times=1,
-            card_num=str(CardNumEnum.DEFAULT.value.value),
-            predefined_team_idx=0,
-            notorious_hunt_buff_num=1,
-        ))
+    def add_plan(self, properties: dict) -> None:
+        plan = ChargePlanItem(
+            tab_name=properties.get('tab_name', '训练'),
+            category_name=properties.get('category_name', '实战模拟室'),
+            mission_type_name=properties.get('mission_type_name', '基础材料'),
+            mission_name=properties.get('mission_name', '调查专项'),
+            level=properties.get('level', '默认等级'),
+            auto_battle_config=properties.get('auto_battle_config', '全配队通用'),
+            run_times=properties.get('run_times', 0),
+            plan_times=properties.get('plan_times', 1),
+            card_num=properties.get('card_num', str(CardNumEnum.DEFAULT.value.value)),
+            predefined_team_idx=properties.get('predefined_team_idx', 0),
+            notorious_hunt_buff_num=properties.get('notorious_hunt_buff_num', 1),
+        )
+        self.plan_list.append(plan)
         self.save()
 
     def delete_plan(self, idx: int) -> None:
@@ -147,6 +148,16 @@ class ChargePlanConfig(YamlConfig):
         tmp = self.plan_list[idx - 1]
         self.plan_list[idx - 1] = self.plan_list[idx]
         self.plan_list[idx] = tmp
+
+        self.save()
+
+    def move_top(self, idx: int) -> None:
+        if idx <= 0 or idx >= len(self.plan_list):
+            return
+
+        tmp = self.plan_list[idx]
+        self.plan_list.pop(idx)
+        self.plan_list.insert(0, tmp)
 
         self.save()
 

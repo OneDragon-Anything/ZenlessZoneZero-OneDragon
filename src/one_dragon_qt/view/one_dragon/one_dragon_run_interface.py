@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from qfluentwidgets import FluentIcon, SettingCardGroup, SubtitleLabel, PrimaryPushButton, PushButton, HyperlinkCard
 from typing import List, Optional
@@ -22,6 +22,8 @@ from one_dragon.utils.log_utils import log
 
 
 class OneDragonRunInterface(VerticalScrollInterface):
+    
+    run_all_apps_signal = Signal()
 
     def __init__(self, ctx: OneDragonContext,
                  nav_text_cn: str = '一条龙运行',
@@ -180,6 +182,11 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self.after_done_opt.setVisible(self.need_after_done_opt)
 
         self._context_event_signal.instance_changed.connect(self._on_instance_changed)
+        self.run_all_apps_signal.connect(self.run_all_apps)
+
+        if self.ctx.home_start_button_pressed:
+            self.ctx.home_start_button_pressed = False
+            self.run_all_apps_signal.emit()
 
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
@@ -202,9 +209,12 @@ class OneDragonRunInterface(VerticalScrollInterface):
         if app.run_record is not None:
             app.run_record.check_and_update_status()
         self.app_runner.start()
+    
+    def run_all_apps(self) -> None:
+        self.run_app(self.get_one_dragon_app())
 
     def _on_start_clicked(self) -> None:
-        self.run_app(self.get_one_dragon_app())
+        self.run_all_apps()
 
     def _on_stop_clicked(self) -> None:
         self.ctx.stop_running()
@@ -215,7 +225,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
         """
         key: str = event.data
         if key == self.ctx.key_start_running and self.ctx.is_context_stop:
-            self.run_app(self.get_one_dragon_app())
+            self.run_all_apps()
 
     def on_context_state_changed(self) -> None:
         """

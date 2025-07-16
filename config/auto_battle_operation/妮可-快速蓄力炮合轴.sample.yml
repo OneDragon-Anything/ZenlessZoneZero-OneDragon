@@ -1,0 +1,26 @@
+# 根据动画实测
+operations:
+  # 防止快速支援太快切走
+  - op_name: "设置状态"
+    state: "自定义-不使用快速支援"
+    seconds: 5
+  - op_name: "按键-特殊攻击"
+    post_delay: 0.1
+    repeat: 4
+  # 这里能量场会持续4秒
+  - op_name: "设置状态"
+    state: "自定义-妮可-能量场"
+    seconds: 4
+  - op_name: "清除状态"
+    state: "自定义-不使用快速支援"
+  # 后摇动作期间持续按
+  - op_name: "按键-特殊攻击"
+    post_delay: 0.1
+    repeat: 8
+  # 没事多A两下
+  - operation_template: "通用-闪避-前"
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 30
+  - op_name: "等待秒数"
+    seconds: 0.2

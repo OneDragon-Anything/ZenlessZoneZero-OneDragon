@@ -1,13 +1,14 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import PrimaryPushButton, FluentIcon, CaptionLabel, LineEdit, ToolButton
-from typing import List
+from qfluentwidgets import PrimaryPushButton, FluentIcon, CaptionLabel, LineEdit, ToolButton, PushButton, Dialog
+from typing import Optional, List
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiLineSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum
@@ -20,9 +21,10 @@ class ChargePlanCard(MultiLineSettingCard):
     changed = Signal(int, ChargePlanItem)
     delete = Signal(int)
     move_up = Signal(int)
+    move_top = Signal(int)
 
     def __init__(self, ctx: ZContext,
-                 idx: int, plan: ChargePlanItem):
+                 idx: Optional[int], plan: ChargePlanItem):
         self.ctx: ZContext = ctx
         self.idx: int = idx
         self.plan: ChargePlanItem = plan
@@ -58,6 +60,8 @@ class ChargePlanCard(MultiLineSettingCard):
 
         self.move_up_btn = ToolButton(FluentIcon.UP, None)
         self.move_up_btn.clicked.connect(self._on_move_up_clicked)
+        self.move_top_btn = ToolButton(FluentIcon.PIN, None)
+        self.move_top_btn.clicked.connect(self._on_move_top_clicked)
         self.del_btn = ToolButton(FluentIcon.DELETE, None)
         self.del_btn.clicked.connect(self._on_del_clicked)
 
@@ -81,6 +85,7 @@ class ChargePlanCard(MultiLineSettingCard):
                     plan_times_label,
                     self.plan_times_input,
                     self.move_up_btn,
+                    self.move_top_btn,
                     self.del_btn,
                 ]
             ]
@@ -216,6 +221,9 @@ class ChargePlanCard(MultiLineSettingCard):
 
     def _on_move_up_clicked(self) -> None:
         self.move_up.emit(self.idx)
+    
+    def _on_move_top_clicked(self) -> None:
+        self.move_top.emit(self.idx)
 
     def _on_del_clicked(self) -> None:
         self.delete.emit(self.idx)
@@ -261,11 +269,32 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.loop_opt.value_changed.connect(self._on_loop_changed)
         self.content_widget.add_widget(self.loop_opt)
 
+        self.cancel_btn = PushButton(icon=FluentIcon.CANCEL, text='撤销')
+        self.cancel_btn.setEnabled(False)
+        self.cancel_btn.clicked.connect(self._on_cancel_clicked)
+
+        self.remove_all_completed_btn = PushButton(
+            icon=FluentIcon.DELETE, text='删除已完成'
+        )
+        self.remove_all_completed_btn.clicked.connect(self._on_remove_all_completed_clicked)
+
+        self.remove_all_btn = PushButton(
+            icon=FluentIcon.DELETE, text='删除所有'
+        )
+        self.remove_all_btn.clicked.connect(self._on_remove_all_clicked)
+
+        self.remove_setting_card = MultiPushSettingCard(btn_list=[
+            self.cancel_btn,
+            self.remove_all_completed_btn,
+            self.remove_all_btn
+        ], icon=FluentIcon.DELETE, title='删除体力计划')
+        self.content_widget.add_widget(self.remove_setting_card)
+
         self.card_list: List[ChargePlanCard] = []
 
         self.plus_btn = PrimaryPushButton(text='新增')
         self.plus_btn.clicked.connect(self._on_add_clicked)
-        self.content_widget.add_widget(self.plus_btn)
+        self.content_widget.add_widget(self.plus_btn, stretch=1)
 
         return self.content_widget
 
@@ -288,6 +317,7 @@ class ChargePlanInterface(VerticalScrollInterface):
                 card.changed.connect(self._on_plan_item_changed)
                 card.delete.connect(self._on_plan_item_deleted)
                 card.move_up.connect(self._on_plan_item_move_up)
+                card.move_top.connect(self._on_plan_item_move_top)
 
                 self.card_list.append(card)
                 self.content_widget.add_widget(card)
@@ -305,7 +335,12 @@ class ChargePlanInterface(VerticalScrollInterface):
             self.card_list.pop(-1)
 
     def _on_add_clicked(self) -> None:
-        self.ctx.charge_plan_config.add_plan()
+        from zzz_od.gui.view.one_dragon.charge_plan_dialog import ChargePlanDialog
+        dialog = ChargePlanDialog(self.ctx, parent=self)
+        result = dialog.exec()
+        if result:
+            card_properties = dialog.get_card_properties()
+            self.ctx.charge_plan_config.add_plan(card_properties)
         self.update_plan_list_display()
 
     def _on_plan_item_changed(self, idx: int, plan: ChargePlanItem) -> None:
@@ -319,5 +354,40 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.ctx.charge_plan_config.move_up(idx)
         self.update_plan_list_display()
 
+    def _on_plan_item_move_top(self, idx: int) -> None:
+        self.ctx.charge_plan_config.move_top(idx)
+        self.update_plan_list_display()
+
     def _on_loop_changed(self, new_value: bool) -> None:
         self.ctx.charge_plan_config.loop = new_value
+    
+    def _on_remove_all_completed_clicked(self) -> None:
+        dialog = Dialog('警告', '是否删除所有已完成的体力计划？', self)
+        dialog.setTitleBarVisible(False)
+        dialog.yesButton.setText('确定')
+        dialog.cancelButton.setText('取消')
+        if dialog.exec():
+            self.plan_list_backup = self.ctx.charge_plan_config.plan_list.copy()
+            not_completed_plans = [plan for plan in self.ctx.charge_plan_config.plan_list 
+                                if plan.run_times < plan.plan_times]
+            self.ctx.charge_plan_config.plan_list = not_completed_plans.copy()
+            self.ctx.charge_plan_config.save()
+            self.cancel_btn.setEnabled(True)
+        self.update_plan_list_display()
+    
+    def _on_remove_all_clicked(self) -> None:
+        dialog = Dialog('警告', '是否删除所有体力计划？', self)
+        dialog.setTitleBarVisible(False)
+        dialog.yesButton.setText('确定')
+        dialog.cancelButton.setText('取消')
+        if dialog.exec():
+            self.plan_list_backup = self.ctx.charge_plan_config.plan_list.copy()
+            self.ctx.charge_plan_config.plan_list.clear()
+            self.ctx.charge_plan_config.save()
+            self.cancel_btn.setEnabled(True)
+        self.update_plan_list_display()
+    
+    def _on_cancel_clicked(self) -> None:
+        self.ctx.charge_plan_config.plan_list = self.plan_list_backup.copy()
+        self.cancel_btn.setEnabled(False)
+        self.update_plan_list_display()

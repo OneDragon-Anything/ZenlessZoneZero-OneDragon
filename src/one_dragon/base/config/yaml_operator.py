@@ -5,6 +5,21 @@ import yaml
 
 from one_dragon.utils.log_utils import log
 
+cached_yaml_data: dict[str, tuple[float, dict]] = {}
+
+
+def read_cache_or_load(file_path: str):
+    cached = cached_yaml_data.get(file_path)
+    last_modify = os.path.getmtime(file_path)
+    if cached is not None and cached[0] == last_modify:
+        return cached[1]
+
+    with open(file_path, 'r', encoding='utf-8') as file:
+        log.debug(f"加载yaml: {file_path}")
+        data = yaml.safe_load(file)
+        cached_yaml_data[file_path] = (last_modify, data)
+        return data
+
 
 class YamlOperator:
 
@@ -33,8 +48,7 @@ class YamlOperator:
             return
 
         try:
-            with open(self.file_path, 'r', encoding='utf-8') as file:
-                self.data = yaml.safe_load(file)
+            self.data = read_cache_or_load(self.file_path)
         except Exception:
             log.error(f'文件读取失败 将使用默认值 {self.file_path}', exc_info=True)
             return

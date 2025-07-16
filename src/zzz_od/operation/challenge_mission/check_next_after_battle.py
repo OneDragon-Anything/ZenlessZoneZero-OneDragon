@@ -33,3 +33,4 @@ class ChooseNextOrFinishAfterBattle(ZOperation):
         screen = self.screenshot()
         return self.round_by_find_and_click_area(screen, '战斗画面', '战斗结果-完成',
                                                  success_wait=5, retry_wait=1)
+

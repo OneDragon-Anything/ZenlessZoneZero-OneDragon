@@ -9,38 +9,44 @@ handlers:
       - states: "[自定义-红光闪避, 0, 1]"
         operations:
           - operation_template: "通用-闪A"
-          
 
-      - states: "[自定义-连携换人,0,1]"
+      - states: "[按键可用-连携技, 0, 0.5]"
         operations:
           - operation_template: "苍角-连携攻击"
 
-      - states: "([按键-切换角色-下一个,0,0.3]|[按键-切换角色-上一个,0,0.3]) | [自定义-快速支援换人,0,1]"
-        operations:
-          - op_name: "等待秒数"
-            seconds: 0.1
+      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "切人后等待"
+        sub_handlers:
+          - states: "[按键可用-快速支援, 0, 0.5]"
+            operations:
+              - op_name: "等待秒数"
+                seconds: 1.0
+          - states: ""
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
 
-      - states: "[苍角-终结技可用] & ![自定义-连携换人,0,10]"
+      - states: "[苍角-终结技可用] & ![自定义-连携换人, 0, 10]"
         operations:
           - operation_template: "苍角-终结技"
           - op_name: "设置状态"
             data: ["自定义-速切结束"]
 
-      #没涡流速切
+      # 没涡流速切
       - states: "[苍角-特殊技可用]"
         sub_handlers:
-        - states: "[苍角-涡流,0,30]{0,0} & [苍角-能量]{90, 120}"
-          operations:
-            - operation_template: "苍角-3E展旗合轴"
-        - states: "[苍角-涡流,0,30]{1,1}"
-          operations:
-            - operation_template: "苍角-2E展旗合轴"
-        - states: "[苍角-涡流,0,30]{2,2}"
-          operations:
-            - operation_template: "苍角-1E展旗合轴"
+          - states: "[苍角-涡流, 0, 30]{0, 0} & [苍角-能量]{90, 120}"
+            operations:
+              - operation_template: "苍角-3E展旗合轴"
+          - states: "[苍角-涡流, 0, 30]{1, 1}"
+            operations:
+              - operation_template: "苍角-2E展旗合轴"
+          - states: "[苍角-涡流, 0, 30]{2, 2}"
+            operations:
+              - operation_template: "苍角-1E展旗合轴"
 
-      #有涡流开展，并且无人可切，很显然，苍角你就是主C，干吧！
-      - states: "[自定义-苍角-展旗,0,30] & [自定义-速切结束]"
+      # 有涡流开展，并且无人可切，很显然，苍角你就是主C，干吧！
+      - states: "[自定义-苍角-展旗, 0, 30] & [自定义-速切结束]"
         operations:
           - operation_template: "苍角-普通攻击"
 

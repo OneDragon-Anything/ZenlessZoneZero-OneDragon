@@ -4,5 +4,5 @@ template_name: 角色状态-柏妮思-31
 template_shape: rectangle
 auto_mask: true
 point_list:
-- 136, 119
-- 224, 120
+- 137, 123
+- 223, 124

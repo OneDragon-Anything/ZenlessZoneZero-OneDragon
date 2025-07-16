@@ -1,71 +1,71 @@
 handlers:
   - states: "[前台-安比]"
     sub_handlers:
-    # 格挡出场后
-    - states: "[自定义-黄光切人]"
-      operations:
-        - op_name: "等待秒数"
-          data: [ "0.5" ]
-        - op_name: "按键-普通攻击"
-          data: []
-        - op_name: "等待秒数"
-          data: [ "1.2" ]
-        - op_name: "按键-普通攻击"
-          data: []
-        - op_name: "等待秒数"
-          data: [ "0.5" ]
-        - op_name: "按键-普通攻击"
-          data: []
-        - op_name: "等待秒数"
-          data: [ "0.2" ]
-        - op_name: "按键-普通攻击-按下"
-          data: [ "1" ]
-        - op_name: "等待秒数"
-          data: [ "1" ]
-        - op_name: "清除状态"
-          data: [ "自定义-黄光切人" ]
+      # 格挡出场后
+      - states: "[自定义-黄光切人]"
+        operations:
+          - op_name: "等待秒数"
+            data: ["0.5"]
+          - op_name: "按键-普通攻击"
+            data: []
+          - op_name: "等待秒数"
+            data: ["1.2"]
+          - op_name: "按键-普通攻击"
+            data: []
+          - op_name: "等待秒数"
+            data: ["0.5"]
+          - op_name: "按键-普通攻击"
+            data: []
+          - op_name: "等待秒数"
+            data: ["0.2"]
+          - op_name: "按键-普通攻击-按下"
+            data: ["1"]
+          - op_name: "等待秒数"
+            data: ["1"]
+          - op_name: "清除状态"
+            data: ["自定义-黄光切人"]
 
-    # 闪避后
-    - states: "[自定义-红光闪避]"
-      operations:
-        - op_name: "等待秒数"
-          data: [ "0.8" ]
-        - op_name: "按键-普通攻击"
-          data: []
-        - op_name: "等待秒数"
-          data: [ "0.5" ]
-        - op_name: "按键-普通攻击"
-          data: []
-        - op_name: "等待秒数"
-          data: [ "0.2" ]
-        - op_name: "按键-普通攻击-按下"
-          data: [ "1" ]
-        - op_name: "等待秒数"
-          data: [ "1" ]
-        - op_name: "清除状态"
-          data: [ "自定义-红光闪避" ]
+      # 闪避后
+      - states: "[自定义-红光闪避]"
+        operations:
+          - op_name: "等待秒数"
+            data: ["0.8"]
+          - op_name: "按键-普通攻击"
+            data: []
+          - op_name: "等待秒数"
+            data: ["0.5"]
+          - op_name: "按键-普通攻击"
+            data: []
+          - op_name: "等待秒数"
+            data: ["0.2"]
+          - op_name: "按键-普通攻击-按下"
+            data: ["1"]
+          - op_name: "等待秒数"
+            data: ["1"]
+          - op_name: "清除状态"
+            data: ["自定义-红光闪避"]
 
-    - states: "[自定义-连携换人]"
-      operations:
-        - op_name: "等待秒数"
-          data: [ "2" ]
+      - states: "[自定义-连携换人]"
+        operations:
+          - op_name: "等待秒数"
+            data: ["2"]
 
-    - states: "[自定义-快速支援换人]"
-      operations:
-        - op_name: "等待秒数"
-          data: [ "0.5" ]
-        - op_name: "清除状态"
-          data: [ "自定义-快速支援换人" ]
+      - states: "[自定义-快速支援换人]"
+        operations:
+          - op_name: "等待秒数"
+            data: ["0.5"]
+          - op_name: "清除状态"
+            data: ["自定义-快速支援换人"]
 
-    - states: "[按键可用-终结技]"
-      operations:
-        - op_name: "按键-终结技"
-          data: []
-        - op_name: "等待秒数"
-          data: [ "5" ]
-    - states: "[按键可用-特殊攻击]"
-      operations:
-        - operation_template: "安比-3A特殊攻击"
-    - states: ""
-      operations:
-        - operation_template: "安比-3A重击"
+      - states: "[按键可用-终结技]"
+        operations:
+          - op_name: "按键-终结技"
+            data: []
+          - op_name: "等待秒数"
+            data: ["5"]
+      - states: "[按键可用-特殊攻击]"
+        operations:
+          - operation_template: "安比-3A特殊攻击"
+      - states: ""
+        operations:
+          - operation_template: "安比-3A重击"

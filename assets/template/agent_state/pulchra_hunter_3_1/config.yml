@@ -1,0 +1,18 @@
+sub_dir: agent_state
+template_id: pulchra_hunter_3_1
+template_name: 角色状态-波可娜-31
+template_shape: multi_rect
+auto_mask: true
+point_list:
+- 137, 130
+- 142, 133
+- 151, 123
+- 155, 124
+- 166, 131
+- 169, 132
+- 179, 120
+- 183, 124
+- 193, 131
+- 198, 134
+- 206, 120
+- 210, 124

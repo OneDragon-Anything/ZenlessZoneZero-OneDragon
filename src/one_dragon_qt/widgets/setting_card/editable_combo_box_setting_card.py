@@ -74,13 +74,15 @@ class EditableComboBoxSettingCard(SettingCardBase):
         """从枚举或列表初始化下拉框选项。"""
         if options_list is not None:
             self.set_options_by_list(options_list)
-        else:
+        elif options_enum is not None:
             options_list = [
                 opt.value
                 for opt in options_enum
                 if isinstance(opt.value, ConfigItem)
             ]
             self.set_options_by_list(options_list)
+        else:
+            self.set_options_by_list([])
 
     def eventFilter(self, obj, event: QEvent) -> bool:
         """处理标题标签的鼠标事件。"""

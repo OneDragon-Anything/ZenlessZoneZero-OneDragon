@@ -32,7 +32,7 @@ class CompendiumChooseMissionType(ZOperation):
 
         self.mission_type: CompendiumMissionType = mission_type
 
-    @operation_node(name='选择副本', is_start_node=True, node_max_retry_times=10)
+    @operation_node(name='选择副本', is_start_node=True, node_max_retry_times=20)
     def choose_tab(self) -> OperationRoundResult:
         screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('快捷手册', '副本列表')
@@ -84,7 +84,7 @@ class CompendiumChooseMissionType(ZOperation):
 
             # 滑动
             start = area.center
-            end = start + Point(0, 200 * dy)
+            end = start + Point(0, 300 * dy)
             self.ctx.controller.drag_to(start=start, end=end)
             return self.round_retry(status='找不到 %s' % self.mission_type.mission_type_name, wait=1)
 
@@ -107,9 +107,9 @@ class CompendiumChooseMissionType(ZOperation):
                     target_go_point = go_point
 
         if target_go_point is None:
-            # 滑动
+            # 出现了副本名称 但没有出现前往 前往一定在下方 固定往下滑动即可
             start = area.center
-            end = start + Point(0, -200 if before_target_cnt > 0 else 200)
+            end = start + Point(0, -200)
             self.ctx.controller.drag_to(start=start, end=end)
             return self.round_retry(status='找不到 %s' % '前往', wait=1)
 
@@ -129,7 +129,8 @@ def __debug():
     ctx.init_by_config()
     ctx.ocr.init_model()
     ctx.start_running()
-    op = CompendiumChooseMissionType(ctx, '高塔与巨炮')
+    target = ctx.compendium_service.get_mission_type_data('训练', '定期清剿', '高塔与巨炮')
+    op = CompendiumChooseMissionType(ctx, target)
     op.execute()
 
 

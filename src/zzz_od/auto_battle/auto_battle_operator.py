@@ -402,7 +402,7 @@ class AutoBattleOperator(ConditionalOperator):
                 self.last_lock_time = now
                 any_done = True
             if auto_turn_interval > 0 and now - self.last_turn_time > auto_turn_interval:
-                self.ctx.controller.turn_by_distance(-100)
+                self.ctx.controller.turn_by_distance(100)
                 self.last_turn_time = now
                 any_done = True
 

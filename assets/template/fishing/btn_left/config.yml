@@ -1,0 +1,8 @@
+sub_dir: fishing
+template_id: btn_left
+template_name: 钓鱼-按键-左
+template_shape: circle
+auto_mask: true
+point_list:
+- 320, 883
+- 263, 883

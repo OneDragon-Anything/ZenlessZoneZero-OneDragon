@@ -8,6 +8,7 @@ from one_dragon.base.conditional_operation.state_cal_tree import construct_state
 from one_dragon.base.conditional_operation.state_handler import StateHandler
 from one_dragon.base.conditional_operation.state_handler_template import StateHandlerTemplate
 from one_dragon.base.conditional_operation.state_recorder import StateRecorder
+from one_dragon.utils.log_utils import log  # 确保已经导入了log
 
 
 def construct_scene_handler(
@@ -109,7 +110,11 @@ def construct_state_handler(
     if 'states' not in state_data:
         raise ValueError('未有状态表达式字段 %s', state_data)
     states_expr = state_data.get('states', '')
-    state_cal_tree = construct_state_cal_tree(states_expr, state_getter)
+    debug_name = state_data.get('debug_name', None)  # 从配置中获取debug_name
+    if debug_name is not None:
+        debug_name = f'[#{debug_name}]'  # 添加方括号
+    
+    state_cal_tree = construct_state_cal_tree(states_expr, state_getter, debug_name)
     interrupt_states = state_data.get('interrupt_states', None)
     if interrupt_states is not None:
         interrupt_states = set(interrupt_states)
@@ -132,8 +137,9 @@ def construct_state_handler(
             usage_scene_templates
         )
         return StateHandler(states_expr, state_cal_tree,
-                            sub_handlers=sub_handler_list,
-                            interrupt_states=interrupt_states)
+                          sub_handlers=sub_handler_list,
+                          interrupt_states=interrupt_states,
+                          debug_name=debug_name)  # 新增：传入debug_name
     else:
         ops = get_ops_from_data(
             state_data.get('operations', []),
@@ -142,8 +148,9 @@ def construct_state_handler(
         if len(ops) == 0:
             raise ValueError('状态( %s )下指令为空', states_expr)
         return StateHandler(states_expr, state_cal_tree,
-                            operations=ops,
-                            interrupt_states=interrupt_states)
+                          operations=ops,
+                          interrupt_states=interrupt_states,
+                          debug_name=debug_name)  # 新增：传入debug_name
 
 
 def get_ops_by_template(

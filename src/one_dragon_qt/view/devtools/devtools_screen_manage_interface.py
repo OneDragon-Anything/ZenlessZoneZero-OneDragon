@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QWidget, QFileDialog, QTableWidgetItem
 from qfluentwidgets import FluentIcon, PushButton, TableWidget, ToolButton, CheckBox
 from typing import Optional
 
+from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.screen.screen_area import ScreenArea
@@ -11,19 +12,18 @@ from one_dragon.base.screen.screen_info import ScreenInfo
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_info import get_template_root_dir_path, get_template_sub_dir_path, TemplateInfo, \
     TemplateShapeEnum
-from one_dragon_qt.widgets.click_image_label import ImageScaleEnum, ClickImageLabel
-from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.combo_box import ComboBox
-
-from one_dragon_qt.widgets.cv2_image import Cv2Image
-from one_dragon_qt.widgets.row import Row
-from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from one_dragon_qt.widgets.setting_card.check_box_setting_card import CheckBoxSettingCard
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
-from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon.utils import os_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.widgets.click_image_label import ImageScaleEnum, ClickImageLabel
+from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.cv2_image import Cv2Image
+from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
+from one_dragon_qt.widgets.row import Row
+from one_dragon_qt.widgets.setting_card.check_box_setting_card import CheckBoxSettingCard
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
 class ScreenInfoWorker(QObject):
@@ -81,7 +81,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         self._update_platform_opt()
         btn_row.add_widget(self.platform_opt)  # 将选择框添加到按钮行
 
-        self.existed_yml_btn = ComboBox()
+        self.existed_yml_btn = EditableComboBox()
         self.existed_yml_btn.setPlaceholderText(gt('选择已有', 'ui'))
         self.existed_yml_btn.currentTextChanged.connect(self._on_choose_existed_yml)
         self._update_existed_yml_options()
@@ -166,14 +166,10 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         更新已有的yml选项
         :return:
         """
-        self.existed_yml_btn.blockSignals(True)
-        self.existed_yml_btn.clear()
-        self.existed_yml_btn.addItems(
-            [i.screen_name for i in self.ctx.screen_loader.screen_info_list]
-        )
-        self.existed_yml_btn.setCurrentIndex(-1)
-        self.existed_yml_btn.setPlaceholderText(gt('选择已有', 'ui'))
-        self.existed_yml_btn.blockSignals(False)
+        self.existed_yml_btn.set_items([
+            ConfigItem(i.screen_name)
+            for i in self.ctx.screen_loader.screen_info_list
+        ])
 
     def _update_platform_opt(self) -> None:
         """
@@ -187,6 +183,8 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
             pass
 
         self.platform_opt.currentTextChanged.connect(self._on_platform_opt_changed)
+
+
 
     def _init_right_part(self) -> QWidget:
         widget = Column()

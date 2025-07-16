@@ -41,6 +41,11 @@ class PipSourceEnum(Enum):
     ALIBABA = ConfigItem('阿里云', 'https://mirrors.aliyun.com/pypi/simple')
 
 
+class GitBranchEnum(Enum):
+
+    MAIN = ConfigItem('主分支', 'main', desc='选择后请点击同步最新代码')
+    TEST = ConfigItem('测试分支', 'test', desc='选择后请点击同步最新代码')
+
 class EnvConfig(YamlConfig):
 
     def __init__(self):
@@ -215,6 +220,22 @@ class EnvConfig(YamlConfig):
         self.update('pip_source', new_value)
 
     @property
+    def git_branch(self) -> str:
+        """
+        分支
+        :return:
+        """
+        return self.get('git_branch', GitBranchEnum.MAIN.value.value)
+    
+    @git_branch.setter
+    def git_branch(self, new_value: str) -> None:
+        """
+        分支
+        :return:
+        """
+        self.update('git_branch', new_value)
+
+    @property
     def gh_proxy_url(self) -> str:
         """
         免费代理的url
@@ -327,3 +348,17 @@ class EnvConfig(YamlConfig):
         :return:
         """
         self.update('key_debug', new_value)
+
+    @property
+    def is_first_run(self) -> bool:
+        """
+        是否第一次运行
+        """
+        return self.get('is_first_run', True)
+    
+    @is_first_run.setter
+    def is_first_run(self, new_value: bool) -> None:
+        """
+        是否第一次运行
+        """
+        self.update('is_first_run', new_value)

@@ -4,16 +4,16 @@ handlers:
       - op_name: "按键-终结技"
         data: []
       - op_name: "等待秒数"
-        data: [ "3" ]
+        data: ["3"]
   - states: "[按键可用-特殊攻击]"
     operations:
       - op_name: "按键-特殊攻击"
         data: []
       - op_name: "等待秒数"
-        data: [ "0.3" ]
+        data: ["0.3"]
   - states: ""
     operations:
       - op_name: "按键-普通攻击"
         data: []
       - op_name: "等待秒数"
-        data: [ "0.3" ]
+        data: ["0.3"]

@@ -168,7 +168,7 @@ class GitService:
         repo_url = self.get_git_repository(for_clone=True)
         result = cmd_utils.run_command([self.env_config.git_path, 'clone',
                                         '--depth', '1',
-                                        '-b', self.project_config.project_git_branch,
+                                        '-b', self.env_config.git_branch,
                                         repo_url, temp_folder])
         if result is None:
             return False, '克隆仓库失败'
@@ -189,7 +189,7 @@ class GitService:
         获取远程分支代码
         """
         log.info('获取远程代码')
-        fetch_result = cmd_utils.run_command([self.env_config.git_path, 'fetch', 'origin', self.project_config.project_git_branch])
+        fetch_result = cmd_utils.run_command([self.env_config.git_path, 'fetch', 'origin', self.env_config.git_branch])
         if fetch_result is None:
             msg = '获取远程代码失败'
             log.error(msg)
@@ -226,7 +226,7 @@ class GitService:
         if clean_result is None or not clean_result:
             if self.env_config.force_update:
                 reset_result = cmd_utils.run_command(
-                    [self.env_config.git_path, 'reset', '--hard', f'origin/{self.project_config.project_git_branch}'])
+                    [self.env_config.git_path, 'reset', '--hard', f'origin/{self.env_config.git_branch}'])
                 if reset_result is None or not reset_result:
                     msg = '强制更新失败'
                     log.error(msg)
@@ -246,8 +246,8 @@ class GitService:
         elif progress_callback is not None:
             progress_callback(3/5, '获取当前分支成功')
 
-        if current_result != self.project_config.project_git_branch:
-            checkout_result = cmd_utils.run_command([self.env_config.git_path, 'checkout', f'origin/{self.project_config.project_git_branch}'])
+        if current_result != self.env_config.git_branch:
+            checkout_result = cmd_utils.run_command([self.env_config.git_path, 'checkout', self.env_config.git_branch])
             if checkout_result is None or not checkout_result:
                 msg = '切换到目标分支失败'
                 log.error(msg)
@@ -255,7 +255,7 @@ class GitService:
         if progress_callback is not None:
             progress_callback(4/5, '切换到目标分支成功')
 
-        rebase_result = cmd_utils.run_command([self.env_config.git_path, 'pull', '--rebase'])
+        rebase_result = cmd_utils.run_command([self.env_config.git_path, 'pull', '--rebase', 'origin', self.env_config.git_branch])
         if rebase_result is None or not rebase_result:
             msg = '更新本地代码失败'
             log.error(msg)
@@ -294,7 +294,7 @@ class GitService:
         if not fetch:
             return fetch, msg
         log.info('检测当前代码是否最新')
-        diff_result = cmd_utils.run_command([self.env_config.git_path, 'diff', '--name-only', 'HEAD', f'origin/{self.project_config.project_git_branch}'])
+        diff_result = cmd_utils.run_command([self.env_config.git_path, 'diff', '--name-only', 'HEAD', f'origin/{self.env_config.git_branch}'])
         if len(diff_result.strip()) == 0:
             return True, ''
         else:

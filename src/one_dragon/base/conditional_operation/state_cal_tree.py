@@ -125,16 +125,17 @@ class StateCalNode:
             self.state_recorder.dispose()
 
 
-def construct_state_cal_tree(expr_str: str, state_getter: Callable[[str], StateRecorder]) -> StateCalNode:
+def construct_state_cal_tree(expr_str: str, state_getter: Callable[[str], StateRecorder], debugname: Optional[str] = None) -> StateCalNode:
     """
     根据表达式 构造出状态判断树
-    :param expr_str:  表达式字符串
+    :param expr_str: 表达式字符串
     :param state_getter: 状态记录器获取方法
+    :param debugname: 调试名称
     :return: 构造成功时，返回状态判断树的根节点；构造失败时，返回原因
     """
     if len(expr_str) == 0:
         return StateCalNode(StateCalNodeType.TRUE)
-    log.debug('构造状态判断树 ' + expr_str)
+    log.debug('构造状态判断树 ' + (debugname or expr_str))  # 修改这里，优先使用debugname
 
     op_stack = []  # 运算符的压栈
     op_idx_stack = []  # 运算符下标

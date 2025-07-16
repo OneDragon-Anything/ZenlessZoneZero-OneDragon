@@ -40,3 +40,4 @@ class ZApplication(Application):
 
     def handle_resume(self) -> None:
         self.ctx.controller.active_window()
+        Application.handle_resume(self)

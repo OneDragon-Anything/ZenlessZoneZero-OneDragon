@@ -1,0 +1,8 @@
+sub_dir: fishing
+template_id: interact_timing
+template_name: 钓鱼-时机上鱼
+template_shape: circle
+auto_mask: true
+point_list:
+- 1600, 882
+- 1526, 880

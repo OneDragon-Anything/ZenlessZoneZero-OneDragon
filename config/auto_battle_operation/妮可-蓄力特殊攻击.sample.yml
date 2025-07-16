@@ -1,4 +1,4 @@
 operations:
   - op_name: "按键-特殊攻击-按下"
-    data: [ "2.5" ]
+    data: ["2.5"]
   - op_name: "按键-特殊攻击-松开"

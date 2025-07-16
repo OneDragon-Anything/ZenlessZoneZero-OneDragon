@@ -1,7 +1,7 @@
 handlers:
   - states: "[前台-柳]"
     sub_handlers:
-      - states: "[按键-切换角色-下一个,0,0.4]"
+      - states: "[按键-切换角色-下一个, 0, 0.4]"
         operations:
           - op_name: "按键-普通攻击"
             post_delay: 0.1
@@ -19,7 +19,7 @@ handlers:
             state: "自定义-柳-森罗万象"
           - op_name: "清除状态"
             state: "自定义-动作不打断"
-      - states: "[按键可用-终结技] & ![自定义-动作不打断,0,15]"
+      - states: "[按键可用-终结技] & ![自定义-动作不打断, 0, 15]"
         operations:
           - op_name: "设置状态"
             state: "自定义-动作不打断"
@@ -28,7 +28,7 @@ handlers:
             repeat: 5
           - op_name: "清除状态"
             state: "自定义-动作不打断"
-        #普攻
+        # 普攻
       - states: "[自定义-柳-森罗万象, 0, 15]"
         operations:
           - op_name: "按键-普通攻击"

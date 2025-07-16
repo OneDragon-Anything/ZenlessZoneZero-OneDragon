@@ -348,6 +348,21 @@ def __debug_coffee():
     op.can_run_times = 1
     op.execute()
 
+def __debug_charge():
+    """
+    测试电量识别
+    @return:
+    """
+    ctx = ZContext()
+    ctx.init_by_config()
+    ctx.ocr.init_model()
+    from one_dragon.utils import debug_utils
+    screen = debug_utils.get_debug_image('422708014-40e6c6d2-625f-4488-9e13-f17bdca02878')
+    area = ctx.screen_loader.get_area('实战模拟室', '剩余电量')
+    part = cv2_utils.crop_image_only(screen, area.rect)
+    ocr_result = ctx.ocr.run_ocr_single_line(part)
+    print(ocr_result)
+
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
@@ -369,4 +384,4 @@ def __debug():
 
 
 if __name__ == '__main__':
-    __debug()
+    __debug_charge()

@@ -1,0 +1,13 @@
+extends: default
+
+rules:
+  comments-indentation: disable  # 禁用 comments-indentation 检查
+  document-start:
+    present: false  # 禁用文档起始标记检查
+  new-lines:
+    type: unix  # 强制使用 Unix 风格换行符
+  line-length:
+    max: 160  # 将行长度限制放宽到 160 个字符
+  new-line-at-end-of-file: false  # 禁用文件末尾换行符检查
+  comments:
+    require-starting-space: false  # 不强制注释 # 后必须有空格

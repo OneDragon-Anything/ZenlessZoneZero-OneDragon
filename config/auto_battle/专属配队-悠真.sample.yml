@@ -47,7 +47,7 @@ t-quick-assist-nicole: &t-quick-assist-nicole
 t-chain-bamboo: &t-chain-bamboo
   - op_name: "按键-连携技-左"
   - op_name: "设置状态"
-    state_list: ["自定义-连携技换人" ,"自定义-连携技邦布"]
+    state_list: ["自定义-连携技换人", "自定义-连携技邦布"]
   - op_name: "等待秒数"
     seconds: 3
 
@@ -147,7 +147,7 @@ t-switch-anby: &t-switch-anby
 
 scenes:
 
-  - triggers: [ "闪避识别-黄光", "闪避识别-红光", "闪避识别-声音" ]
+  - triggers: ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
     interval: 1
     handlers:
       - states: "![自定义-动作不打断, 0, 5]"
@@ -155,20 +155,20 @@ scenes:
           - states: "[闪避识别-黄光]"
             sub_handlers:
               # 优先切青衣，妮可
-              - states: "[后台-青衣] & ![自定义-招架支援,0,30]"
+              - states: "[后台-青衣] & ![自定义-招架支援, 0, 30]"
                 operations: *t-dodge-qingyi
-              - states: "[后台-安比] & ![自定义-招架支援,0,30]"
+              - states: "[后台-安比] & ![自定义-招架支援, 0, 30]"
                 operations: *t-dodge-anby
-              - states: "[后台-妮可] & ![自定义-招架支援,0,30]"
+              - states: "[后台-妮可] & ![自定义-招架支援, 0, 30]"
                 operations: *t-dodge-nicole
-              - states: "[后台-悠真] & ![自定义-招架支援,0,30]"
+              - states: "[后台-悠真] & ![自定义-招架支援, 0, 30]"
                 operations: *t-dodge-haurmasa
 
           # 其余情况闪避
           - states: ""
             operations: *t-dodge
 
-  - triggers: [ "按键可用-快速支援" ]
+  - triggers: ["按键可用-快速支援"]
     interval: 1
     handlers:
       - states: "[按键可用-快速支援]"
@@ -176,7 +176,7 @@ scenes:
           - states: "[前台-妮可]"
             operations: *t-quick-assist-nicole
 
-  - triggers: [ "按键可用-连携技" ]
+  - triggers: ["按键可用-连携技"]
     interval: 0.02
     handlers:
       - states: "[按键可用-连携技]"
@@ -188,12 +188,12 @@ scenes:
           # 保证场上有电壶 先出悠真
           - states: "[连携技-1-悠真] | [连携技-2-悠真]"
             sub_handlers:
-            - states: "[连携技-1-悠真]"
-              operations: *t-chain-left
-            - states: "[连携技-2-悠真]"
-              operations: *t-chain-right
+              - states: "[连携技-1-悠真]"
+                operations: *t-chain-left
+              - states: "[连携技-2-悠真]"
+                operations: *t-chain-right
 
-          # 剩余情况 
+          # 剩余情况
           - states: "[连携技-1-妮可]"
             operations: *t-chain-left
           - states: "[连携技-2-妮可]"
@@ -208,17 +208,17 @@ scenes:
             operations: *t-chain-right
 
 
-  - triggers: [ ]
+  - triggers: []
     interval: 0.05
     handlers:
       - state_template: "站场模板-未识别角色"
 
       # 失衡期间悠真输出
 
-      - states: "[自定义-连携技换人,0,14]"
+      - states: "[自定义-连携技换人, 0, 14]"
         sub_handlers:
           - states: "![前台-悠真]"
-            operations: 
+            operations:
               - op_name: "等待秒数"
                 seconds: 1
               - op_name: "按键-切换角色"
@@ -247,7 +247,7 @@ scenes:
               - op_name: "清除状态"
                 state: "自定义-动作不打断"
 
-          - states: "[自定义-连携技换人,0,14]"
+          - states: "[自定义-连携技换人, 0, 14]"
             sub_handlers:
               - states: "[按键可用-终结技]"
                 operations:
@@ -257,20 +257,20 @@ scenes:
                   - op_name: "等待秒数"
                     seconds: 1.5
 
-              - states: "[自定义-连携技换人,0,7]"
+              - states: "[自定义-连携技换人, 0, 7]"
                 operations:
                   - op_name: "等待秒数"
                     seconds: 1.25
                   - op_name: "按键-闪避"
                     post_delay: 0.1
-                  - op_name: "按键-普通攻击" 
+                  - op_name: "按键-普通攻击"
                     post_delay: 0.1
                     repeat: 27
                   - op_name: "等待秒数"
                     seconds: 0.3
                   - op_name: "按键-闪避"
                     post_delay: 0.1
-                  - op_name: "按键-普通攻击" 
+                  - op_name: "按键-普通攻击"
                     post_delay: 0.1
                     repeat: 20
 
@@ -283,7 +283,7 @@ scenes:
                     seconds: 1.25
                   - op_name: "按键-闪避"
                     post_delay: 0.1
-                  - op_name: "按键-普通攻击" 
+                  - op_name: "按键-普通攻击"
                     post_delay: 0.1
                     repeat: 20
 
@@ -353,10 +353,10 @@ scenes:
               - op_name: "按键-普通攻击"
                 post_delay: 0.2
 
-      - states: "![自定义-连携技换人,0,14]"
+      - states: "![自定义-连携技换人, 0, 14]"
         sub_handlers:
           - states: "![前台-青衣] & ![前台-安比] & ![后台-安比]"
-            operations: 
+            operations:
               - op_name: "等待秒数"
                 seconds: 1
               - op_name: "按键-切换角色"
@@ -368,7 +368,7 @@ scenes:
                 seconds: 0.2
 
           - states: "![前台-安比] & ![前台-青衣] & ![后台-青衣]"
-            operations: 
+            operations:
               - op_name: "等待秒数"
                 seconds: 1
               - op_name: "按键-切换角色"
@@ -380,7 +380,7 @@ scenes:
                 seconds: 0.2
 
       # 青衣
-      - states: "[前台-青衣] & ![按键可用-连携技,0,2]"
+      - states: "[前台-青衣] & ![按键可用-连携技, 0, 2]"
         interrupt_states: ["后台-青衣"]
         sub_handlers:
           - states: "[自定义-闪避]"
@@ -412,11 +412,11 @@ scenes:
           # 青衣基础连招
           - states: "[青衣-电压]{0, 25} & [按键可用-终结技]"
             operations:
-                - op_name: "按键-终结技"
-                  post_delay: 0.1
-                  repeat: 20
-                - op_name: "等待秒数"
-                  seconds: 1.5
+              - op_name: "按键-终结技"
+                post_delay: 0.1
+                repeat: 20
+              - op_name: "等待秒数"
+                seconds: 1.5
 
           - states: "[青衣-电压]{75, 101}"
             operations:
@@ -430,34 +430,34 @@ scenes:
               - op_name: "清除状态"
                 state: "自定义-动作不打断"
               - op_name: "清除状态"
-                state:  "自定义-青衣-普攻次数"
+                state: "自定义-青衣-普攻次数"
 
           - states: "[自定义-青衣-普攻次数]{40, 999}"
             operations:
               - operation_template: "通用-闪避-前"
               - op_name: "清除状态"
-                state:  "自定义-青衣-普攻次数"
+                state: "自定义-青衣-普攻次数"
 
-          - states: "[前台-能量]{80,120} & ![自定义-动作不打断,0, 3]"
+          - states: "[前台-能量]{80, 120} & ![自定义-动作不打断, 0, 3]"
             operations:
               - op_name: "按键-特殊攻击"
                 post_delay: 1
               - op_name: "等待秒数"
                 seconds: 0.5
               - op_name: "清除状态"
-                state:  "自定义-青衣-普攻次数"
+                state: "自定义-青衣-普攻次数"
 
           - states: "[青衣-电压]{0, 74}"
             operations:
-            - op_name: "按键-普通攻击"
-              post_delay: 0.05
-              repeat: 2
-            - op_name: "设置状态"
-              state: "自定义-青衣-普攻次数"
-              add: 3
-    
+              - op_name: "按键-普通攻击"
+                post_delay: 0.05
+                repeat: 2
+              - op_name: "设置状态"
+                state: "自定义-青衣-普攻次数"
+                add: 3
+
       # 青衣
-      - states: "[前台-安比] & ![按键可用-连携技,0,2]"
+      - states: "[前台-安比] & ![按键可用-连携技, 0, 2]"
         interrupt_states: ["后台-安比"]
         sub_handlers:
           - states: "[自定义-闪避]"
@@ -499,10 +499,6 @@ scenes:
 
           - states: ""
             operations:
-            - op_name: "按键-普通攻击"
-              post_delay: 0.05
-              repeat: 7
-
-
-
-
+              - op_name: "按键-普通攻击"
+                post_delay: 0.05
+                repeat: 7

@@ -1,5 +1,5 @@
 operations:
-# 第三段普攻强化E 快速轮胎转
+  # 第三段普攻强化E 快速轮胎转
   - op_name: "按键-移动-左"
     way: "按下"
     post_delay: 0.05

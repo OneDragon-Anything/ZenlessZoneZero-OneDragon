@@ -8,7 +8,7 @@ auto_lock_interval: 5
 
 scenes:
 
-  - triggers: [ "闪避识别-黄光", "闪避识别-红光", "闪避识别-声音" ]
+  - triggers: ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
     interval: 1.2
     handlers:
       - states: "![自定义-动作不打断, 0, 999]{1, 1} & [闪避识别-黄光, 0, 0.5]"
@@ -20,18 +20,18 @@ scenes:
         sub_handlers:
           - state_template: "闪A模板-全角色"
 
-  - triggers: [ "按键可用-快速支援" ]
+  - triggers: ["按键可用-快速支援"]
     interval: 1
     handlers:
       - states: "[按键可用-快速支援]"
         operations:
           - op_name: "按键-快速支援"
-            data: [ ]
+            data: []
           - op_name: "等待秒数"
-            data: [ "0.1" ]
+            data: ["0.1"]
 
   # 强攻第一次触发，先支援、再强攻；击破第一次触发，先支援、再强攻；支援不太会触发
-  - triggers: [ "按键可用-连携技" ]
+  - triggers: ["按键可用-连携技"]
     interval: 1
     handlers:
       - states: "[按键可用-连携技]"
@@ -40,17 +40,17 @@ scenes:
           - state_template: "连携模板-强攻"
           - state_template: "连携模板-跳过"
 
-  - triggers: [ "前台-击破" ]
+  - triggers: ["前台-击破"]
     interval: 1
     handlers:
       - state_template: "速切模板-全角色"
 
-  - triggers: [ "前台-支援" ]
+  - triggers: ["前台-支援"]
     interval: 1
     handlers:
       - state_template: "速切模板-全角色"
 
-  - triggers: [ ]
+  - triggers: []
     interval: 0.35
     handlers:
       # 速切之后 切换回强攻角色
@@ -59,17 +59,17 @@ scenes:
           - states: "[后台-2-强攻]"
             operations:
               - op_name: "按键-切换角色-上一个"
-                data: [ ]
+                data: []
               - op_name: "等待秒数"
-                data: [ "0.1" ]
+                data: ["0.1"]
               - op_name: "清除状态"
-                data: [ "自定义-速切结束" ]
+                data: ["自定义-速切结束"]
           - states: ""
             operations:
               - op_name: "按键-切换角色-下一个"
-                data: [ ]
+                data: []
               - op_name: "等待秒数"
-                data: [ "0.1" ]
+                data: ["0.1"]
               - op_name: "清除状态"
-                data: [ "自定义-速切结束" ]
+                data: ["自定义-速切结束"]
       - state_template: "站场模板-全角色"

@@ -1,0 +1,18 @@
+sub_dir: agent_state
+template_id: pulchra_hunter_3_3
+template_name: 角色状态-波可娜-33
+template_shape: multi_rect
+auto_mask: true
+point_list:
+- 763, 101
+- 766, 104
+- 771, 97
+- 775, 99
+- 779, 102
+- 783, 104
+- 787, 97
+- 790, 99
+- 796, 103
+- 798, 104
+- 803, 97
+- 805, 98

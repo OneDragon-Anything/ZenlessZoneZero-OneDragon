@@ -11,6 +11,7 @@ from one_dragon_qt.widgets.install_card.git_install_card import GitInstallCard
 from one_dragon_qt.widgets.install_card.python_install_card import PythonInstallCard
 from one_dragon_qt.widgets.install_card.venv_install_card import VenvInstallCard
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.welcome_dialog import WelcomeDialog
 
 
 class InstallerInterface(VerticalScrollInterface):

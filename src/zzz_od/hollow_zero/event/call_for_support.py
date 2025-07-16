@@ -220,7 +220,7 @@ class CallForSupport(ZOperation):
             RejectOption('这次没有研究的机会'),  # 格蕾丝
             RejectOption('先不劳烦青衣了'),  # 青衣
             RejectOption('暂不需要援护'),  # 丽娜
-            RejectOption('目前不需要支援'),  # 派派, 耀嘉音
+            RejectOption('目前不需要支援'),  # 派派, 耀嘉音, 零号·安比
             RejectOption('下次再雇你'),  # 妮可
             RejectOption('市民更需要你'),  # 朱鸢
             RejectOption('无需增援', lcs_percent=0.6),  # 安比

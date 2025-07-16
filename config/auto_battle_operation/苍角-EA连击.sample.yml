@@ -2,74 +2,73 @@
 operations:
   # 按e
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
   - op_name: "按键-特殊攻击"
     data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
   # 再按一次e防止没按到
   - op_name: "按键-特殊攻击"
     data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
   # 接第3段a；不停a，防止e没按出来待在原地
   - op_name: "按键-普通攻击"
     data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
   - op_name: "按键-普通攻击"
     data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
   - op_name: "按键-普通攻击"
     data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
   - op_name: "按键-普通攻击"
     data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
   - op_name: "按键-普通攻击"
-    data: [ ]
+    data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
 
   - op_name: "按键-普通攻击"
-    data: [ ]
+    data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
   - op_name: "按键-普通攻击"
-    data: [ ]
+    data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
   - op_name: "按键-普通攻击"
-    data: [ ]
+    data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
   - op_name: "按键-普通攻击"
-    data: [ ]
+    data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
   - op_name: "按键-普通攻击"
-    data: [ ]
+    data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
 
   - op_name: "按键-普通攻击"
-    data: [ ]
+    data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
+    data: ["0.2"]
   - op_name: "按键-普通攻击"
-    data: [ ]
+    data: []
   - op_name: "等待秒数"
-    data: [ "0.2" ]
-
+    data: ["0.2"]
 #    理论最低按键数，但由于线程不稳定，或有延迟，实战中容易按不出来
 #  - op_name: "按键-特殊攻击"
 #    data: []
 #  - op_name: "等待秒数"
-#    data: [ "1.5" ]
+#    data: ["1.5"]
 #  - op_name: "按键-普通攻击-按下"
-#    data: [ "1.5" ]
+#    data: ["1.5"]
 #  - op_name: "等待秒数"
-#    data: [ "0.2" ]
+#    data: ["0.2"]

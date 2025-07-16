@@ -2,18 +2,17 @@ template_name: "速切模板-柳"
 handlers:
   - states: "[前台-柳]"
     sub_handlers:
-      - states: "[自定义-异常-物理,0,99] | [自定义-异常-冰,0,99] | [自定义-异常-烈霜,0,99] | [自定义-异常-火,0,99]"
-        sub_handlers:
-          - states: "![雅-落霜]{6, 6}"
-            operations:
-              - op_name: "清除状态"
-                state_list:
-                  [
-                    "自定义-异常-火",
-                    "自定义-异常-冰",
-                    "自定义-异常-物理",
-                    "自定义-异常-烈霜",
-                  ]
+      - states: "[自定义-异常-物理, 0, 99] | [自定义-异常-冰, 0, 99] | [自定义-异常-烈霜, 0, 99] | [自定义-异常-火, 0, 99]"
+        debug_name: "清除其他异常积蓄"
+        operations:
+          - op_name: "清除状态"
+            state_list:
+              [
+                "自定义-异常-火",
+                "自定义-异常-冰",
+                "自定义-异常-物理",
+                "自定义-异常-烈霜"
+              ]
 
       - states: "[自定义-黄光切人, 0, 1]"
         operations:
@@ -22,17 +21,23 @@ handlers:
       - states: "[自定义-红光闪避, 0, 1]"
         operations:
           - operation_template: "柳-闪A"
-          
 
-      - states: "[自定义-连携换人,0,1]"
+      - states: "[按键可用-连携技, 0, 0.5]"
         operations:
           - operation_template: "柳-连携攻击"
 
-      #防呆
-      - states: "([按键-切换角色-下一个,0,0.4]|[按键-切换角色-上一个,0,0.4]) | [自定义-快速支援换人,0,1]"
-        operations:
-          - op_name: "等待秒数"
-            seconds: 0.1
+      # 防呆
+      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "切人后等待"
+        sub_handlers:
+          - states: "[按键可用-快速支援, 0, 0.5]"
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.5
+          - states: ""
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
 
       - states: "[柳-终结技可用]"
         operations:
@@ -40,7 +45,7 @@ handlers:
           - op_name: "设置状态"
             state_list: ["自定义-速切结束"]
 
-      - states: "[自定义-柳-下弦,0,999]"
+      - states: "[自定义-柳-下弦, 0, 999]"
         sub_handlers:
           - states: "[柳-特殊技可用]"
             operations:
@@ -48,7 +53,7 @@ handlers:
                 state_list: ["自定义-柳-本次出场已使用强化特殊技"]
               - operation_template: "柳-强化特殊攻击-下弦"
 
-          - states: "[自定义-柳-本次出场已使用强化特殊技,0,30]"
+          - states: "[自定义-柳-本次出场已使用强化特殊技, 0, 30]"
             operations:
               - op_name: "清除状态"
                 state_list: ["自定义-柳-本次出场已使用强化特殊技"]
@@ -65,8 +70,8 @@ handlers:
             operations:
               - operation_template: "柳-普通攻击-下弦"
 
-      #说明是上弦
-      - states: "[自定义-柳-上弦,0,999]"
+      # 说明是上弦
+      - states: "[自定义-柳-上弦, 0, 999]"
         sub_handlers:
           - states: "[柳-特殊技可用]"
             operations:
@@ -74,7 +79,7 @@ handlers:
                 state_list: ["自定义-柳-本次出场已使用强化特殊技"]
               - operation_template: "柳-强化特殊攻击-上弦"
 
-          - states: "[自定义-柳-本次出场已使用强化特殊技,0,30]"
+          - states: "[自定义-柳-本次出场已使用强化特殊技, 0, 30]"
             operations:
               - op_name: "清除状态"
                 state_list: ["自定义-柳-本次出场已使用强化特殊技"]

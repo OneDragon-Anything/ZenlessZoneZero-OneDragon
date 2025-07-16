@@ -4,21 +4,20 @@ handlers:
     sub_handlers:
       - state_template: "连携模板-跳过"
 
-  - states: " [前台-苍角] & [自定义-连携换人,0,3] "
+  - states: " [前台-苍角] & [自定义-连携换人, 0, 3] "
     sub_handlers:
       - state_template: "连携模板-强攻"
       - state_template: "连携模板-异常"
       - state_template: "连携模板-跳过"
 
-  - states: " [前台-强攻] & [自定义-连携换人,0,3] "
+  - states: " [前台-强攻] & [自定义-连携换人, 0, 3] "
     sub_handlers:
+      - state_template: "连携模板-支援"
       - state_template: "连携模板-强攻"
-      - state_template: "连携模板-异常"
       - state_template: "连携模板-跳过"
 
   - states: ""
     sub_handlers:
-      - state_template: "连携模板-邦布"
       - state_template: "连携模板-支援"
       - state_template: "连携模板-异常"
       - state_template: "连携模板-强攻"

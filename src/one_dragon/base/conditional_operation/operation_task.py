@@ -29,6 +29,23 @@ class OperationTask:
         self._op_lock: Lock = Lock()  # 操作锁 用于保证stop里的一定是最后执行的op
 
         self.expr_list: List[str] = []  # 用于界面显示
+        self.debug_name_list: List[str] = []  # 用于调试显示，存储yml中的debug_name
+    
+    def add_expr(self, expr: str, debug_name: Optional[str] = None) -> None:
+        """
+        添加一个表达式及其调试名称
+        :param expr: 表达式
+        :param debug_name: 调试名称
+        :return:
+        """
+        self.expr_list.append(expr)
+        self.debug_name_list.append(debug_name or '')
+
+    @property
+    def debug_name_display(self) -> str:
+        # 创建一个新的列表，处理空元素
+        processed_list = ['[ ]' if not name or name.strip() == '' else name for name in self.debug_name_list]
+        return ' ← '.join(processed_list) if processed_list else '/'
 
     def run_async(self) -> Future:
         """
@@ -93,13 +110,15 @@ class OperationTask:
             self._async_ops.clear()
             return False
 
-    def add_expr(self, expr: str) -> None:
+    def add_expr(self, expr: str, debug_name: Optional[str] = None) -> None:
         """
-        添加一个表达式
-        :param expr:
+        添加一个表达式及其调试名称
+        :param expr: 表达式
+        :param debug_name: 调试名称
         :return:
         """
         self.expr_list.append(expr)
+        self.debug_name_list.append(debug_name or '')
 
     def set_priority(self, priority: Optional[int]) -> None:
         """
@@ -129,7 +148,17 @@ class OperationTask:
 
     @property
     def expr_display(self) -> str:
-        return '<-'.join(self.expr_list) if len(self.expr_list) > 0 else '/'
+        # 创建一个新的列表，处理空元素
+        processed_list = []
+        for expr, debug_name in zip(self.expr_list, self.debug_name_list):
+            if not debug_name or debug_name.strip() == '':
+                # 如果debug名为空，使用状态名
+                display_name = '[ ]' if not expr or expr.strip() == '' else expr
+            else:
+                # 否则使用debug名
+                display_name = debug_name
+            processed_list.append(display_name)
+        return ' ← '.join(processed_list) if processed_list else '/'
 
     @property
     def priority_display(self) -> str:

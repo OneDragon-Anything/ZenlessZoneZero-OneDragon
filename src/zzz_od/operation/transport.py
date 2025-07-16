@@ -177,5 +177,5 @@ class Transport(ZOperation):
     def wait_in_world(self) -> OperationRoundResult:
         if not self.wait_at_last:
             return self.round_success('不等待大世界加载')
-        op = WaitNormalWorld(self.ctx)
+        op = BackToNormalWorld(self.ctx)  # 传送落地可能触发好感度事件 使用BackToNormalWorld可以处理
         return self.round_by_op_result(op.execute())

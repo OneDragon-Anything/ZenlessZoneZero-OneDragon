@@ -58,7 +58,7 @@ class AutoBattleEditorInterface(VerticalScrollInterface):
             object_name='auto_battle_editor_interface',
             parent=parent,
             content_widget=None,
-            nav_text_cn='配置编辑'
+            nav_text_cn='配置信息'
         )
 
         self.ctx: ZContext = ctx
@@ -78,6 +78,7 @@ class AutoBattleEditorInterface(VerticalScrollInterface):
         info_opt = HyperlinkCard(icon=FluentIcon.INFO, title='当前仅用于信息展示',
                                  content='角色顺序 朱青妮 跟 青妮朱 是一样的',
                                  text='', url='')
+        info_opt.linkButton.hide()
         info_opt.setFixedHeight(50)
         widget.add_widget(info_opt)
 
@@ -116,6 +117,7 @@ class AutoBattleEditorInterface(VerticalScrollInterface):
         self.version_opt = HyperlinkCard(icon=FluentIcon.INFO, title='版本', text='1.0', url='')
         basic_group.addSettingCard(self.version_opt)
         self.introduction_opt = HyperlinkCard(icon=FluentIcon.INFO, title='简介', text='', url='')
+        self.introduction_opt.linkButton.hide()
         basic_group.addSettingCard(self.introduction_opt)
 
         self.team_group = SettingCardGroup('适用配队')

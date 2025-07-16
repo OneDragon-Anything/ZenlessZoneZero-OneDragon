@@ -14,6 +14,7 @@ class StateHandler:
                  sub_handlers: Optional[List] = None,
                  operations: Optional[List[AtomicOp]] = None,
                  interrupt_states: Optional[Set[str]] = None,
+                 debug_name: Optional[str] = None,  # 新增参数
                  ):
         """
         一个状态处理器 包含状态判断 + 对应指令
@@ -22,6 +23,7 @@ class StateHandler:
         :param interrupt_states: 可以被这些状态打断
         """
         self.expr: str = expr
+        self.debug_name: Optional[str] = debug_name  # 新增属性
         self.state_cal_tree: StateCalNode = state_cal_tree
         self.sub_handlers: List[StateHandler] = sub_handlers
         self.operations: List[AtomicOp] = operations
@@ -38,12 +40,12 @@ class StateHandler:
                 for sub_handler in self.sub_handlers:
                     task = sub_handler.get_operations(trigger_time)
                     if task is not None:
-                        task.add_expr(self.expr)
+                        task.add_expr(self.expr, self.debug_name)  # 修改：传入debug_name
                         task.add_interrupt_states(self.interrupt_states)
                         return task
             else:
                 task = OperationTask(self.operations)
-                task.add_expr(self.expr)
+                task.add_expr(self.expr, self.debug_name)  # 修改：传入debug_name
                 task.add_interrupt_states(self.interrupt_states)
                 return task
 

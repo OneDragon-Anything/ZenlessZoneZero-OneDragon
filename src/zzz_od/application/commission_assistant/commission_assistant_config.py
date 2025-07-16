@@ -12,6 +12,13 @@ class DialogOptionEnum(Enum):
     LAST = ConfigItem('最后一个')
 
 
+class StoryMode(Enum):
+
+    CLICK = ConfigItem('自动点击')
+    AUTO = ConfigItem('等待剧情自动播放')
+    SKIP = ConfigItem('跳过剧情')
+
+
 class CommissionAssistantConfig(YamlConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
@@ -30,21 +37,12 @@ class CommissionAssistantConfig(YamlConfig):
         self.update('dialog_click_interval', new_value)
 
     @property
-    def dialog_click_interval_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'dialog_click_interval', 0.5,
-                                 'str', 'float')
+    def story_mode(self):
+        return self.get('story_mode', StoryMode.CLICK.value.value)
 
-    @property
-    def dialog_click_when_auto(self) -> bool:
-        return self.get('dialog_click_when_auto', False)
-
-    @dialog_click_when_auto.setter
-    def dialog_click_when_auto(self, new_value: bool) -> None:
-        self.update('dialog_click_when_auto', new_value)
-
-    @property
-    def dialog_click_when_auto_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'dialog_click_when_auto', False)
+    @story_mode.setter
+    def story_mode(self, new_value: str) -> None:
+        self.update('story_mode', new_value)
 
     @property
     def dialog_option(self) -> str:
@@ -55,22 +53,12 @@ class CommissionAssistantConfig(YamlConfig):
         self.update('dialog_option', new_value)
 
     @property
-    def dialog_option_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'dialog_option', DialogOptionEnum.LAST.value.value,
-                                 'str', 'str')
-
-    @property
     def dodge_config(self) -> str:
         return self.get('dodge_config', '闪避')
 
     @dodge_config.setter
     def dodge_config(self, new_value: str) -> None:
         self.update('dodge_config', new_value)
-
-    @property
-    def dodge_config_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'dodge_config', '闪避',
-                                 'str', 'str')
 
     @property
     def dodge_switch(self) -> str:
@@ -81,11 +69,6 @@ class CommissionAssistantConfig(YamlConfig):
         self.update('dodge_switch', new_value)
 
     @property
-    def dodge_switch_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'dodge_switch', '5',
-                                 'str', 'str')
-
-    @property
     def auto_battle(self) -> str:
         return self.get('auto_battle', '全配队通用')
 
@@ -94,21 +77,9 @@ class CommissionAssistantConfig(YamlConfig):
         self.update('auto_battle', new_value)
 
     @property
-    def auto_battle_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'auto_battle', '全配队通用',
-                                 'str', 'str')
-
-    @property
     def auto_battle_switch(self) -> str:
         return self.get('auto_battle_switch', '6')
 
     @auto_battle_switch.setter
     def auto_battle_switch(self, new_value: str) -> None:
         self.update('auto_battle_switch', new_value)
-
-    @property
-    def auto_battle_switch_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'auto_battle_switch', '6',
-                                 'str', 'str')
-
-

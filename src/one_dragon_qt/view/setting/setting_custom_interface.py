@@ -6,11 +6,11 @@ from ctypes import wintypes
 
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QWidget, QFileDialog
-from qfluentwidgets import FluentIcon, SettingCardGroup, setTheme, Theme, VBoxLayout, PrimaryPushButton, PasswordLineEdit, MessageBox, Dialog
+from qfluentwidgets import FluentIcon, SettingCardGroup, setTheme, Theme, PrimaryPushButton, PasswordLineEdit, Dialog
 
-from one_dragon.base.config.config_item import get_config_item_from_enum
-from one_dragon.base.operation.one_dragon_custom_context import OneDragonCustomContext
-from one_dragon.custom.custom_config import ThemeEnum
+from one_dragon.base.config.custom_config import ThemeEnum
+from one_dragon.base.operation.one_dragon_context import OneDragonContext
+from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
@@ -20,8 +20,8 @@ from one_dragon.utils.i18_utils import gt
 
 class SettingCustomInterface(VerticalScrollInterface):
 
-    def __init__(self, ctx: OneDragonCustomContext, parent=None):
-        self.ctx: OneDragonCustomContext = ctx
+    def __init__(self, ctx: OneDragonContext, parent=None):
+        self.ctx: OneDragonContext = ctx
 
         VerticalScrollInterface.__init__(
             self,
@@ -31,11 +31,9 @@ class SettingCustomInterface(VerticalScrollInterface):
         )
 
     def get_content_widget(self) -> QWidget:
-        content_widget = QWidget()
-        content_layout = VBoxLayout(content_widget)
-        content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        content_widget = Column(self)
 
-        content_layout.addWidget(self._init_basic_group())
+        content_widget.add_widget(self._init_basic_group())
 
         return content_widget
 
@@ -63,32 +61,23 @@ class SettingCustomInterface(VerticalScrollInterface):
 
         return basic_group
 
-
     def on_interface_shown(self) -> None:
         """
         子界面显示时 进行初始化
         :return:
         """
         VerticalScrollInterface.on_interface_shown(self)
-        theme = get_config_item_from_enum(ThemeEnum, self.ctx.custom_config.theme)
-        if theme is not None:
-            self.theme_opt.setValue(theme.value)
-        
+        self.theme_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('theme'))
         self.banner_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('banner'))
-        if not self.ctx.custom_config.banner:
-            self.banner_select_btn.setEnabled(False)
-
 
     def _on_theme_changed(self, index: int, value: str) -> None:
         """
-        仓库类型改变
+        主题类型改变
         :param index: 选项下标
         :param value: 值
         :return:
         """
-        config_item = get_config_item_from_enum(ThemeEnum, value)
-        self.ctx.custom_config.theme = config_item.value
-        setTheme(Theme[config_item.value.upper()],lazy=True)
+        setTheme(Theme[self.ctx.custom_config.theme.upper()],lazy=True)
 
     def _on_banner_changed(self, value: bool) -> None:
         if value:
@@ -96,13 +85,18 @@ class SettingCustomInterface(VerticalScrollInterface):
             def _hash_password(password: str) -> str:
                 return hashlib.sha256(password.encode()).hexdigest()
             if _hash_password(self.banner_password.text()) != correct_password_hash:
-                MessageBox('嘻嘻~', '密码不对哦~', self).exec()
+                dialog = Dialog('嘻嘻~', '密码不对哦~', self)
+                dialog.setTitleBarVisible(False)
+                dialog.yesButton.setText("再试试吧")
+                dialog.cancelButton.hide()
+                dialog.exec()
+
                 self.banner_opt.setValue(False)
-                self.banner_select_btn.setEnabled(False)
+                self.banner_select_btn.setDisabled(True)
             else:
                 self.banner_select_btn.setEnabled(True)
         else:
-            self.banner_select_btn.setEnabled(False)
+            self.banner_select_btn.setDisabled(True)
 
     def _on_banner_select_clicked(self) -> None:
         """
@@ -122,7 +116,7 @@ class SettingCustomInterface(VerticalScrollInterface):
     def _show_dialog_after_banner_updated(self):
         """显示设置主页背景后的对话框"""
         dialog = Dialog("主页背景已更新", "是否立即重启以应用更改?", self)
-        dialog.setTitleBarVisible(False) 
+        dialog.setTitleBarVisible(False)
         dialog.yesButton.setText("重启")
         dialog.cancelButton.setText("稍后")
         if dialog.exec():

@@ -1,7 +1,7 @@
 handlers:
   - states: "[前台-雅]"
     sub_handlers:
-      - states: "[按键-切换角色-下一个,0,0.8]"
+      - states: "[按键-切换角色-下一个, 0, 0.8]"
         operations:
           - op_name: "按键-普通攻击"
             post_delay: 0.1

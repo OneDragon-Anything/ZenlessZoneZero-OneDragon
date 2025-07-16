@@ -101,7 +101,7 @@ t-switch-lycaon: &t-switch-lycaon
 
 scenes:
 
-  - triggers: [ "闪避识别-黄光", "闪避识别-红光", "闪避识别-声音" ]
+  - triggers: ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
     interval: 1
     handlers:
       # 部分连招霸体可以不闪避
@@ -122,7 +122,7 @@ scenes:
 
                   # 连携技+1涡流 60能量发动特殊技 30能量+1涡流
                   # 平时准备着2个涡流 等连携时候可以直接展旗
-#                  - states: "[苍角-涡流]{0,1} & [苍角-能量]{60, 120}"
+#                  - states: "[苍角-涡流]{0, 1} & [苍角-能量]{60, 120}"
 #                    operations: *t-dodge-soukaku
 
               # 默认凯撒带了原始朋克
@@ -156,7 +156,7 @@ scenes:
               - op_name: "按键-闪避"
                 post_delay: 0.2
 
-  - triggers: [ "按键可用-快速支援" ]
+  - triggers: ["按键可用-快速支援"]
     interval: 1
     handlers:
       - states: "[按键可用-快速支援]"
@@ -181,7 +181,7 @@ scenes:
               - op_name: "设置状态"
                 state: "自定义-快速支援换人"
 
-  - triggers: [ "按键可用-连携技" ]
+  - triggers: ["按键可用-连携技"]
     interval: 1
     handlers:
       - states: "[按键可用-连携技]"
@@ -200,27 +200,27 @@ scenes:
           # 如果上一个是苍角而且上了buff 则切狼吃BUFF
           - states: "([连携技-1-莱卡恩] | [连携技-2-莱卡恩]) & [自定义-苍角-展旗, 0, 3]"
             sub_handlers:
-            - states: "[连携技-1-莱卡恩]"
-              operations: *t-chain-left
-            - states: "[连携技-2-莱卡恩]"
-              operations: *t-chain-right
+              - states: "[连携技-1-莱卡恩]"
+                operations: *t-chain-left
+              - states: "[连携技-2-莱卡恩]"
+                operations: *t-chain-right
 
           # 如果苍角能展旗 则切苍角
           # 连携技触发时 会有一段时间识别不到画面 因此相关状态识别需要延长时间范围
           - states: "([连携技-1-苍角] | [连携技-2-苍角]) & [苍角-涡流, 0, 10]{2, 3}"
             sub_handlers:
-            - states: "[连携技-1-苍角]"
-              operations: *t-chain-left
-            - states: "[连携技-2-苍角]"
-              operations: *t-chain-right
+              - states: "[连携技-1-苍角]"
+                operations: *t-chain-left
+              - states: "[连携技-2-苍角]"
+                operations: *t-chain-right
 
           # 凯撒没上buff的话 先出凯撒
           - states: "([连携技-1-凯撒] | [连携技-2-凯撒]) & ![自定义-凯撒-战意激昂, 0, 25]"
             sub_handlers:
-            - states: "[连携技-1-凯撒]"
-              operations: *t-chain-left
-            - states: "[连携技-2-凯撒]"
-              operations: *t-chain-right
+              - states: "[连携技-1-凯撒]"
+                operations: *t-chain-left
+              - states: "[连携技-2-凯撒]"
+                operations: *t-chain-right
 
           # 剩余情况 莱卡恩-凯撒-苍角
           - states: "[连携技-1-莱卡恩]"
@@ -236,7 +236,7 @@ scenes:
           - states: "[连携技-2-苍角]"
             operations: *t-chain-right
 
-  - triggers: [ ]
+  - triggers: []
     interval: 0.02
     handlers:
       - state_template: "站场模板-未识别角色"

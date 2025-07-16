@@ -18,25 +18,18 @@ from qfluentwidgets import (
     SimpleCardWidget,
     PrimaryPushButton,
 )
-from typing import Callable, Optional
 
-from one_dragon.base.operation.operation import Operation
-from one_dragon.base.operation.operation_base import OperationResult
-from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 from one_dragon_qt.widgets.banner import Banner
-from one_dragon_qt.widgets.game_dialog import GameDialog
 from one_dragon_qt.widgets.icon_button import IconButton
 from one_dragon_qt.widgets.notice_card import NoticeCard
 from one_dragon_qt.widgets.vertical_scroll_interface import (
     VerticalScrollInterface,
 )
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.enter_game.open_game import OpenGame
 
 
 class ButtonGroup(SimpleCardWidget):
@@ -150,7 +143,6 @@ class CheckRunnerBase(QThread):
         super().__init__()
         self.ctx = ctx
 
-
 class CheckCodeRunner(CheckRunnerBase):
     def run(self):
         is_latest, msg = self.ctx.git_service.is_current_branch_latest()
@@ -175,6 +167,7 @@ class HomeInterface(VerticalScrollInterface):
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
+        self.main_window = parent
 
         # 创建垂直布局的主窗口部件
         # index.png 来自 C:\Users\YOUR_NAME\AppData\Roaming\miHoYo\HYP\1_1\fedata\Cache\Cache_Data
@@ -234,10 +227,10 @@ class HomeInterface(VerticalScrollInterface):
         h2_layout.addStretch()
 
         # 启动游戏按钮布局
-        gameButton = PrimaryPushButton(text="启动游戏🚀")
+        gameButton = PrimaryPushButton(text="启动一条龙🚀")
         gameButton.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
         gameButton.setFixedSize(160, 48)
-        gameButton.clicked.connect(self.start_game)
+        gameButton.clicked.connect(self._on_start_game)
 
         v1_layout = QVBoxLayout()
         v1_layout.addWidget(gameButton, alignment=Qt.AlignmentFlag.AlignBottom)
@@ -315,88 +308,18 @@ class HomeInterface(VerticalScrollInterface):
 
     def _show_dialog_after_code_updated(self):
         """显示代码更新后的对话框"""
-        dialog = Dialog("更新提醒", "代码已自动更新，是否重启?", self)
+        dialog = Dialog("更新提醒", "如果你仍然能看到此弹窗，请前往 GitHub Release 更新启动器", self)
         dialog.setTitleBarVisible(False)
         dialog.yesButton.setText("重启")
         dialog.cancelButton.setText("取消")
         if dialog.exec():
             from one_dragon.utils import app_utils
-
             app_utils.start_one_dragon(restart=True)
 
-    def start_game(self):
-        # 弹出窗口显示 "游戏启动中"
-        self.msg_box = GameDialog("少女祈祷中………", parent=self)
-        self.msg_box.show()
+    def _on_start_game(self):
+        """启动一条龙按钮点击事件处理"""
 
-        # 创建一个线程处理游戏启动
-        self.gameThread = GameStartThread(self.ctx)
-        self.gameThread.game_started.connect(self.on_game_started)
-        self.gameThread.game_failed.connect(self.on_game_failed)
-        self.gameThread.start()
-
-    def on_game_started(self):
-        self.msg_box.close_dialog()
-
-    def on_game_failed(self):
-        self.msg_box.close_dialog()
-        log.error("启动游戏失败")
-
-
-class GameStartThread(QThread):
-    # 自定义信号，用于更新主窗口 UI
-    game_started = Signal()
-    game_failed = Signal(str)
-
-    def __init__(self, ctx: ZContext):
-        super().__init__()
-        self.ctx = ctx
-
-    def run(self):
-        try:
-            ctx = ZContext()
-            ctx.init_by_config()
-            ctx.start_running()
-            ctx.ocr.init_model()
-            operation = LauncherGame(ctx)
-            result = operation.execute()
-            if result.success:
-                self.game_started.emit()
-            else:
-                self.game_failed.emit()
-        except Exception as e:
-            log.error("启动游戏失败: %s")
-            self.game_failed.emit(str(e))
-
-
-class LauncherGame(Operation):
-    def __init__(
-        self,
-        ctx: ZContext,
-        node_max_retry_times: int = 3,
-        op_name: str = gt("等待游戏打开", "ui"),
-        timeout_seconds: float = -1,
-        op_callback: Optional[Callable[[OperationResult], None]] = None,
-        need_check_game_win: bool = True,
-    ):
-        self.ctx: ZContext = ctx
-        op_to_enter_game = OpenGame(ctx)
-        Operation.__init__(
-            self,
-            ctx=ctx,
-            node_max_retry_times=node_max_retry_times,
-            op_name=op_name,
-            timeout_seconds=timeout_seconds,
-            op_callback=op_callback,
-            need_check_game_win=need_check_game_win,
-            op_to_enter_game=op_to_enter_game,
-        )
-
-    @operation_node(name="等待游戏打开", node_max_retry_times=60, is_start_node=True)
-    def wait_game(self) -> OperationRoundResult:
-        self.ctx.controller.game_win.init_win()
-        if self.ctx.controller.is_game_window_ready:
-            self.ctx.controller.active_window()
-            return self.round_success()
-        else:
-            return self.round_retry(wait=1)
+        # app.py中一条龙界面为第三个添加的
+        self.ctx.home_start_button_pressed = True
+        one_dragon_interface = self.main_window.stackedWidget.widget(2)
+        self.main_window.switchTo(one_dragon_interface)

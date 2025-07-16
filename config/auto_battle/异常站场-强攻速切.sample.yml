@@ -11,7 +11,7 @@ auto_lock_interval: 5
 
 scenes:
 
-  - triggers: [ "闪避识别-黄光", "闪避识别-红光", "闪避识别-声音" ]
+  - triggers: ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
     interval: 1
     handlers:
       - states: "![自定义-动作不打断, 0, 999]{1, 1} & [闪避识别-黄光]"
@@ -23,7 +23,7 @@ scenes:
         sub_handlers:
           - state_template: "闪A模板-全角色"
 
-  - triggers: [ "按键可用-快速支援" ]
+  - triggers: ["按键可用-快速支援"]
     interval: 1
     handlers:
       - states: "[按键可用-快速支援]"
@@ -32,7 +32,7 @@ scenes:
           - op_name: "设置状态"
             state: "自定义-快速支援换人"
 
-  - triggers: [ "按键可用-连携技" ]
+  - triggers: ["按键可用-连携技"]
     interval: 1
     handlers:
       - states: "[按键可用-连携技]"
@@ -41,7 +41,7 @@ scenes:
           - state_template: "连携模板-支援"
           - state_template: "连携模板-跳过"
 
-  - triggers: [ ]
+  - triggers: []
     interval: 0.02
     handlers:
       # 刚开始未识别到角色时候不要乱切

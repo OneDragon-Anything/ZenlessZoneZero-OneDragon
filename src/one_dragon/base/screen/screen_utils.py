@@ -96,10 +96,14 @@ def find_and_click_area(ctx: OneDragonContext, screen: MatLike, screen_name: str
         return OcrClickResultEnum.AREA_NO_CONFIG
     if area.is_text_area:
         rect = area.rect
-        part = cv2_utils.crop_image_only(screen, rect)
-        # cv2_utils.show_image(part, win_name='debug')
+        to_ocr_part = cv2_utils.crop_image_only(screen, rect)
+        if area.color_range is not None:
+            mask = cv2.inRange(to_ocr_part, area.color_range_lower, area.color_range_upper)
+            mask = cv2_utils.dilate(mask, 5)
+            to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
+        # cv2_utils.show_image(to_ocr_part, win_name='debug', wait=1)
 
-        ocr_result_map = ctx.ocr.run_ocr(part)
+        ocr_result_map = ctx.ocr.run_ocr(to_ocr_part)
         for ocr_result, mrl in ocr_result_map.items():
             if str_utils.find_by_lcs(gt(area.text), ocr_result, percent=area.lcs_percent):
                 to_click = mrl.max.center + area.left_top

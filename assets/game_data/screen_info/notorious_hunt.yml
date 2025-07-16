@@ -263,9 +263,9 @@ area_list:
 - area_name: 文本-剩余电量
   id_mark: false
   pc_rect:
-  - 1475
+  - 1465
   - 1000
-  - 1523
+  - 1528
   - 1055
   text: ''
   lcs_percent: 0.5

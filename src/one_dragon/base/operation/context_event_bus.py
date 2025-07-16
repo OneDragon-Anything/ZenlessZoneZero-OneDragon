@@ -55,7 +55,10 @@ class ContextEventBus:
         """
         if event_id not in self.callbacks:
             return
-        self.callbacks[event_id].remove(callback)
+        try:
+            self.callbacks[event_id].remove(callback)
+        except Exception as e:
+            pass
 
     def unlisten_all_event(self, obj: Any):
         """

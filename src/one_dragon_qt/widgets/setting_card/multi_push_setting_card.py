@@ -76,6 +76,7 @@ class MultiLineSettingCard(SettingCardBase):
             h_layout.addStretch(1)
             for btn in line:
                 h_layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignRight)
+            h_layout.addSpacing(16)
 
         # 根据按钮行数调整卡片的高度
-        self.setFixedHeight(50 + (len(line_list) - 1) * 30)
+        self.setFixedHeight(60 + (len(line_list) - 1) * 30)

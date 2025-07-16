@@ -125,6 +125,7 @@ class SettingTeamInterface(VerticalScrollInterface):
         self.help_opt = HyperlinkCard(icon=FluentIcon.HELP, title='使用默认队伍名称出现错选时 可更改名字解决',
                                       content='本页代理人可在游戏助手中自动识别，设置仅作用于避免式舆防卫战选择配队冲突',
                                       text='', url='')
+        self.help_opt.linkButton.hide()
         content_widget.add_widget(self.help_opt)
 
         self.team_opt_list = []

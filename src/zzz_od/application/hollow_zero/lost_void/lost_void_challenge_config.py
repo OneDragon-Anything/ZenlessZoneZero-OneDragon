@@ -19,6 +19,7 @@ class LostVoidRegionType(Enum):
     COMBAT_COIN = ConfigItem('战斗-硬币')
     CHANLLENGE_FLAWLESS = ConfigItem('挑战-无伤')
     CHANLLENGE_TIME_TRAIL = ConfigItem('挑战-限时')
+    CHANLLENGE_ENEMY_TRAIL = ConfigItem('挑战-收割')
     ENCOUNTER = ConfigItem('偶遇事件')
     PRICE_DIFFERENCE = ConfigItem('代价之间')
     REST = ConfigItem('休憩调息')
@@ -170,6 +171,28 @@ class LostVoidChallengeConfig(YamlConfig):
     @buy_only_priority_2.setter
     def buy_only_priority_2(self, new_value: int):
         self.update('buy_only_priority_2', new_value)
+
+    @property
+    def store_blood(self) -> bool:
+        """
+        @return: 是否使用血量购买商店
+        """
+        return self.get('store_blood', False)
+
+    @store_blood.setter
+    def store_blood(self, new_value: bool):
+        self.update('store_blood', new_value)
+
+    @property
+    def store_blood_min(self) -> int:
+        """
+        @return: 大于等于多少血量时 才会选择刷新和购买
+        """
+        return self.get('store_blood_min', 50)
+
+    @store_blood_min.setter
+    def store_blood_min(self, new_value: int):
+        self.update('store_blood_min', new_value)
 
 
 def get_all_lost_void_challenge_config(with_sample: bool = True) -> List[LostVoidChallengeConfig]:

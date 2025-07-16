@@ -1,4 +1,4 @@
-#根据动画实测
+# 根据动画实测
 operations:
   - op_name: "按键-普通攻击"
     post_delay: 0.1
@@ -7,7 +7,7 @@ operations:
     state: "自定义-异常-电"
     add: 160
   - op_name: "设置状态"
-    data: [ "自定义-速切结束" ]
+    data: ["自定义-速切结束"]
   - op_name: "按键-普通攻击"
     post_delay: 0.1
     repeat: 12
@@ -15,4 +15,3 @@ operations:
     post_delay: 0.2
   - op_name: "设置状态"
     state: "自定义-柳-流转"
-

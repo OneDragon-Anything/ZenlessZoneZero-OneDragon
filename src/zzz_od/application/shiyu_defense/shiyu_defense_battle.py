@@ -141,6 +141,8 @@ class ShiyuDefenseBattle(ZOperation):
             # 交互和普通攻击都没有找到 说明战斗胜利了
             return self.round_success(ShiyuDefenseBattle.STATUS_TO_NEXT_PHASE)
 
+        auto_battle_utils.check_astra_and_switch(self.auto_op)  # 移动前如果是耀嘉音就切人
+
         self.check_distance(screen)
 
         if self.distance_pos is None:

@@ -1,14 +1,14 @@
-auto_lock_interval: 0     #关闭自动锁定
-auto_turn_interval: 0     #关闭自动转向
+auto_lock_interval: 0  # 关闭自动锁定
+auto_turn_interval: 0  # 关闭自动转向
 scenes:
-- triggers: ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
-  interval: 0.5
-  handlers:
-  - states: "[闪避识别-黄光] | [闪避识别-红光] | [闪避识别-声音]"
-    operations:
-      - op_name: "按键-闪避"
-        data: []
-      - op_name: "等待秒数"
-        data: ["0.2"]
-      - op_name: "按键-普通攻击"
-        data: []
+  - triggers: ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
+    interval: 0.5
+    handlers:
+      - states: "[闪避识别-黄光] | [闪避识别-红光] | [闪避识别-声音]"
+        operations:
+          - op_name: "按键-闪避"
+            data: []
+          - op_name: "等待秒数"
+            data: ["0.2"]
+          - op_name: "按键-普通攻击"
+            data: []

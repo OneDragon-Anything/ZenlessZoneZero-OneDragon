@@ -1,15 +1,15 @@
 resonium_priority:
-- 以太
-- 闪避
-- 决斗
-- 能量
-- 诡术 催眠怀表
-- 诡术 魔术手套
-- 诡术 华丽手杖
-- 邦布 共鸣布
-- 邦布 恶魔布
+  - 以太
+  - 闪避
+  - 决斗
+  - 能量
+  - 诡术 催眠怀表
+  - 诡术 魔术手套
+  - 诡术 华丽手杖
+  - 邦布 共鸣布
+  - 邦布 恶魔布
 auto_battle: 击破站场-强攻速切
 event_priority:
-- ''
+  - ""
 path_finding: 默认
 buy_only_priority: true

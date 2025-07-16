@@ -23,7 +23,6 @@ from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
 from zzz_od.operation.compendium.routine_cleanup import RoutineCleanup
 from zzz_od.operation.transport import Transport
-from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 
 class CoffeeApp(ZApplication):
@@ -105,6 +104,8 @@ class CoffeeApp(ZApplication):
         to_choose_list = self._get_coffee_to_choose(day)
 
         screen = self.screenshot()
+        # from one_dragon.utils import debug_utils
+        # screen = debug_utils.get_debug_image('424905412-5c9df2d3-186d-4be5-a610-865553fd6adb')
         area = self.ctx.screen_loader.get_area('咖啡店', '咖啡列表')
         part = cv2_utils.crop_image_only(screen, area.rect)
         mask = cv2.inRange(part,
@@ -141,8 +142,9 @@ class CoffeeApp(ZApplication):
 
                 mrl = mrl_list[ocr_result_list.index(results[0])]
                 self.chosen_coffee = self.ctx.compendium_service.name_2_coffee[coffee_name]
+                time.sleep(0.5) # 暂停半秒以防点不到咖啡
                 self.ctx.controller.click(mrl.max.center + area.left_top + Point(0, -50))
-                return self.round_success(wait=0.5)
+                return self.round_success(self.chosen_coffee.coffee_name, wait=0.5)
 
         if day == 7:  # 目前只有星期日需要右滑找咖啡
             start = area.center
@@ -403,7 +405,8 @@ def __debug():
     app._init_before_execute()
     # app.tp_mission()
     # app.had_coffee_list.add('沙罗特调（浓）')
-    app.execute()
+    app.choose_coffee()
+    # app.execute()
 
 
 if __name__ == '__main__':
