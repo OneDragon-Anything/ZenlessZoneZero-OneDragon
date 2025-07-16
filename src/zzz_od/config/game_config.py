@@ -4,7 +4,7 @@ from one_dragon.base.config.basic_game_config import BasicGameConfig
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonEnum
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
-
+from one_dragon.base.config.yaml_config import YamlConfig
 
 class GamePlatformEnum(Enum):
 
