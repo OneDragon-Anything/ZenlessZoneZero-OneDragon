@@ -181,10 +181,7 @@ class ZContext(OneDragonContext):
                 standard_width=self.project_config.screen_standard_width,
                 standard_height=self.project_config.screen_standard_height
             )
-            self.screen_loader: ScreenContext = ScreenContext(platform='PC')
-            self.template_finder: TemplateLoader = TemplateLoader(platform='PC')
-            self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
-        if self.game_account_config.platform == GamePlatformEnum.Emulator.value.value:
+        elif self.game_account_config.platform == GamePlatformEnum.Emulator.value.value:
             log.info('模拟器init')
             from one_dragon.base.config.game_account_config import GameRegionEnum
             win_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
@@ -195,9 +192,9 @@ class ZContext(OneDragonContext):
                 standard_width=self.project_config.screen_standard_width,
                 standard_height=self.project_config.screen_standard_height
             )
-            self.screen_loader: ScreenContext = ScreenContext(platform='Emulator')
-            self.template_finder: TemplateLoader = TemplateLoader(platform='Emulator')
-            self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
+
+        self.init_platform_dependent_components()
+
         self.hollow.data_service.reload()
         self.init_hollow_config()
         if self.agent_outfit_config.compatibility_mode:
