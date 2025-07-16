@@ -17,9 +17,10 @@ class RiduWeeklyApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='ridu_weekly',
-            op_name=gt('丽都周纪(领奖励)', 'ui'),
+            op_name=gt('丽都周纪(领奖励)'),
             run_record=ctx.ridu_weekly_record,
             retry_in_od=True,  # 传送落地有可能会歪 重试
+            need_notify=True,
         )
 
     @operation_node(name='快捷手册', is_start_node=True)
@@ -35,16 +36,14 @@ class RiduWeeklyApp(ZApplication):
     @node_from(from_name='日常')
     @operation_node(name='丽都周纪')
     def click_schedule(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        return self.round_by_find_and_click_area(screen, '丽都周纪', '丽都周纪',
+        return self.round_by_find_and_click_area(self.last_screenshot, '丽都周纪', '丽都周纪',
                                                  success_wait=2, retry_wait=1)
 
     @node_from(from_name='丽都周纪')
     @operation_node(name='领取积分')
     def claim_score(self, screen: MatLike = None) -> OperationRoundResult:
         if screen is None:
-            screen = self.screenshot()
+            screen = self.last_screenshot
 
         for i in range(3):
             area = self.ctx.screen_loader.get_area('丽都周纪', f'积分行-{i+1}')
@@ -67,6 +66,7 @@ class RiduWeeklyApp(ZApplication):
     @node_from(from_name='领取奖励')
     @operation_node(name='完成后返回')
     def finish(self) -> OperationRoundResult:
+        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

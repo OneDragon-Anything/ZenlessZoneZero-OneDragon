@@ -119,7 +119,7 @@
     - option_name: "我也来帮忙分担吧！"
     - option_name: "我最会保守秘密了！"
 
-#苍角
+# 苍角
 - entry_name: "邂逅"
   event_name: "画饼充饥"
   options:

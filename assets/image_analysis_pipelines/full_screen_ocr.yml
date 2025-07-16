@@ -1,0 +1,3 @@
+- step: OCR识别
+  params:
+    draw_text_box: 0

@@ -1,0 +1,8 @@
+# 根据动画实测，动画持续2.5秒
+operations:
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 2
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 20

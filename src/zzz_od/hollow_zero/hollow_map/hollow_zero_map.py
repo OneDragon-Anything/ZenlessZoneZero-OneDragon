@@ -69,7 +69,7 @@ class HollowZeroMap:
                 return True
 
         return False
-    
+
     def search_entry(self, entry_name: str) -> bool:
         for node in self.nodes:
             if node.entry.entry_name == entry_name:

@@ -18,14 +18,12 @@ class SwitchResonium(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('交换鸣徽')
+            op_name=gt('交换鸣徽', 'game')
         )
 
     @operation_node(name='选择', is_start_node=True)
     def choose_one(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        item_list = resonium_utils.get_to_choose_list(self.ctx, screen, '交换')
+        item_list = resonium_utils.get_to_choose_list(self.ctx, self.last_screenshot, '交换')
         if len(item_list) == 0:
             return self.round_retry(status='识别不到选项', wait=0.5)
 
@@ -42,9 +40,8 @@ class SwitchResonium(ZOperation):
     @node_from(from_name='选择', success=False)  # 防止识别有问题 兜底随便选一个
     @operation_node(name='兜底选择')
     def choose_default(self):
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('零号空洞-事件', '底部-选择列表')
-        return self.round_by_ocr_and_click(screen, '交换', area=area,
+        return self.round_by_ocr_and_click(self.last_screenshot, '交换', area=area,
                                            success_wait=1, retry_wait=1,
                                            color_range=[(240, 240, 240), (255, 255, 255)])
 
@@ -57,7 +54,7 @@ def __debug():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.start_running()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     op = ChooseResonium(ctx)
     op.execute()
 

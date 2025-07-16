@@ -6,27 +6,29 @@ area_list:
   id_mark: true
   pc_rect:
   - 70
-  - 126
+  - 116
   - 164
-  - 194
+  - 164
   text: 音擎仓库
   lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 按钮-回收
   id_mark: true
   pc_rect:
-  - 228
-  - 936
-  - 436
-  - 990
+  - 250
+  - 900
+  - 438
+  - 960
   text: 回收
   lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 左上角-街区
   id_mark: false
@@ -40,19 +42,21 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list:
   - 大世界-普通
 - area_name: TAB-驱动盘
   id_mark: false
   pc_rect:
-  - 82
-  - 342
-  - 154
-  - 402
+  - 1510
+  - 126
+  - 1588
+  - 210
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list:
   - 仓库-驱动仓库

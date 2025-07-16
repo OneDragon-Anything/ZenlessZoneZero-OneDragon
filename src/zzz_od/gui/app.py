@@ -1,5 +1,6 @@
 try:
     import sys
+    from typing import Tuple
     from PySide6.QtCore import Qt, QThread, Signal
     from PySide6.QtWidgets import QApplication
     from qfluentwidgets import NavigationItemPosition, setTheme, Theme
@@ -11,10 +12,11 @@ try:
     from one_dragon_qt.view.code_interface import CodeInterface
     from one_dragon_qt.view.context_event_signal import ContextEventSignal
     from one_dragon_qt.windows.app_window_base import AppWindowBase
-    from one_dragon_qt.widgets.welcome_dialog import WelcomeDialog
+    from one_dragon.utils import app_utils
     from one_dragon.utils.i18_utils import gt
 
     from zzz_od.context.zzz_context import ZContext
+    from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
     from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
     from zzz_od.gui.view.devtools.app_devtools_interface import AppDevtoolsInterface
     from zzz_od.gui.view.game_assistant.game_assistant import GameAssistantInterface
@@ -22,23 +24,24 @@ try:
     from zzz_od.gui.view.home.home_interface import HomeInterface
     from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
     from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
-    from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
+    from zzz_od.gui.widgets.zzz_welcome_dialog import ZWelcomeDialog
 
     _init_error = None
 
 
     class CheckVersionRunner(QThread):
 
-        get = Signal(str)
+        get = Signal(tuple)
 
         def __init__(self, ctx: ZContext, parent=None):
             super().__init__(parent)
             self.ctx = ctx
 
         def run(self):
-            ver = self.ctx.git_service.get_current_version()
-            if ver is not None:
-                self.get.emit(ver)
+            launcher_version = app_utils.get_launcher_version()
+            code_version = self.ctx.git_service.get_current_version()
+            versions = (launcher_version, code_version)
+            self.get.emit(versions)
 
     # 定义应用程序的主窗口类
     class AppWindow(AppWindowBase):
@@ -50,31 +53,27 @@ try:
                 self,
                 win_title="%s %s"
                 % (
-                    gt(ctx.project_config.project_name, "ui"),
+                    gt(ctx.project_config.project_name),
                     ctx.one_dragon_config.current_active_instance.name,
                 ),
                 project_config=ctx.project_config,
-                app_icon="zzz_logo.ico",
+                app_icon="logo.ico",
                 parent=parent,
             )
+
+            self.ctx.listen_event(ContextInstanceEventEnum.instance_active.value, self._on_instance_active_event)
+            self._context_event_signal: ContextEventSignal = ContextEventSignal()
+            self._context_event_signal.instance_changed.connect(self._on_instance_active_signal)
+
             self._check_version_runner = CheckVersionRunner(self.ctx)
             self._check_version_runner.get.connect(self._update_version)
             self._check_version_runner.start()
-
-            self.ctx.listen_event(
-                ContextInstanceEventEnum.instance_active.value,
-                self._on_instance_active_event,
-            )
-            self._context_event_signal: ContextEventSignal = ContextEventSignal()
-            self._context_event_signal.instance_changed.connect(
-                self._on_instance_active_signal
-            )
 
             self._check_first_run()
 
         # 继承初始化函数
         def init_window(self):
-            self.resize(960, 700)
+            self.resize(1050, 700)
 
             # 初始化位置
             self.move(100, 100)
@@ -173,23 +172,23 @@ try:
             self.setWindowTitle(
                 "%s %s"
                 % (
-                    gt(self.ctx.project_config.project_name, "ui"),
+                    gt(self.ctx.project_config.project_name),
                     self.ctx.one_dragon_config.current_active_instance.name,
                 )
             )
 
-        def _update_version(self, ver: str) -> None:
+        def _update_version(self, versions: Tuple[str, str]) -> None:
             """
             更新版本显示
             @param ver:
             @return:
             """
-            self.titleBar.setVersion(ver)
+            self.titleBar.setVersion(versions[0], versions[1])
 
         def _check_first_run(self):
             """首次运行时显示防倒卖弹窗"""
             if self.ctx.env_config.is_first_run:
-                dialog = WelcomeDialog(self)
+                dialog = ZWelcomeDialog(self)
                 if dialog.exec():
                     self.ctx.env_config.is_first_run = False
 

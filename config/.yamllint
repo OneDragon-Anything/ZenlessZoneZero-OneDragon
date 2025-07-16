@@ -10,4 +10,4 @@ rules:
     max: 160  # 将行长度限制放宽到 160 个字符
   new-line-at-end-of-file: false  # 禁用文件末尾换行符检查
   comments:
-    require-starting-space: false  # 不强制注释 # 后必须有空格
+    min-spaces-from-content: 1  # 注释与内容最小间距改为1空格

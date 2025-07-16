@@ -1,13 +1,19 @@
 # 需要特别处理的模板
-handlers: # 青衣特殊技不可用的情况下没必要切人，直接闪A
+handlers:
+  - states: "![前台-薇薇安] & [薇薇安-能量]{0, 120}"
+    operations:
+      - op_name: "按键-切换角色"
+        agent_name: "薇薇安"
+
+  # 青衣特殊技不可用的情况下没必要切人，直接闪A
   - states: "![自定义-血量扣减, 0, 8]"
     sub_handlers:
       - states: "[前台-青衣]"
         sub_handlers:
           - state_template: "闪A模板-青衣"
       - states: "[前台-零号安比]"
-        operations:
-          - operation_template: "零号安比-闪A" # 异常角色至少输出6秒才进行格挡，这是基本游戏理解
+        sub_handlers:
+          - state_template: "双反模板-下一个"
   - states: "[前台-异常]"
     sub_handlers:
       - states: "([按键-切换角色-下一个, 0, 6]|[按键-切换角色-上一个, 0, 6])" # 异常角色至少输出6秒

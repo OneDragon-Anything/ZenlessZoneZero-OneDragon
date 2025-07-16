@@ -1,23 +1,23 @@
 # 根据动画实测，动画持续2秒
-operations: # 普攻1段
+operations:  # 普攻1段
   - op_name: "设置状态"
     state: "自定义-零号安比-白雷"
     add: 15
   - op_name: "按键-普通攻击"
     post_delay: 0.1
-    repeat: 3 # 普攻2段
+    repeat: 3  # 普攻2段
   - op_name: "设置状态"
     state: "自定义-零号安比-白雷"
     add: 25
   - op_name: "按键-普通攻击"
     post_delay: 0.1
-    repeat: 6 # 普攻3段
+    repeat: 6  # 普攻3段
   - op_name: "设置状态"
     state: "自定义-零号安比-白雷"
     add: 60
   - op_name: "按键-普通攻击"
     post_delay: 0.1
-    repeat: 9 # 普攻4段
+    repeat: 9  # 普攻4段
   - op_name: "设置状态"
     state: "自定义-零号安比-白雷"
     add: 60

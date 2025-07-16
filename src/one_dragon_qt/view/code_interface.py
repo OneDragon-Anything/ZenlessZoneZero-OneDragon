@@ -1,17 +1,16 @@
 from PySide6.QtCore import QThread, Signal, Qt
 from PySide6.QtWidgets import QWidget, QTableWidgetItem
-from qfluentwidgets import TableWidget, PipsPager, FluentIcon, VBoxLayout, ToolButton
+from qfluentwidgets import TableWidget, PipsPager, FluentIcon, VBoxLayout, ToolButton, LineEdit, Dialog
 from typing import Callable, List
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.envs.git_service import GitLog
-from one_dragon.envs.env_config import GitBranchEnum
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon_qt.widgets.setting_card.password_switch_setting_card import PasswordSwitchSettingCard
 from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
 from one_dragon_qt.widgets.install_card.git_install_card import GitInstallCard
-from one_dragon_qt.widgets.install_card.venv_install_card import VenvInstallCard
+from one_dragon.utils.app_utils import start_one_dragon
 from one_dragon.utils.i18_utils import gt
 
 
@@ -45,7 +44,7 @@ class CodeInterface(VerticalScrollInterface):
         content_widget = QWidget()
 
         self.page_num: int = -1
-        self.page_size: int = 10
+        self.page_size: int = 9
 
         v_layout = VBoxLayout(content_widget)
         v_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -62,14 +61,22 @@ class CodeInterface(VerticalScrollInterface):
 
         self.code_card = CodeInstallCard(ctx)
         self.code_card.finished.connect(self.on_code_updated)
+        self.code_card.finished.connect(self._show_dialog_after_code_updated)
         v_layout.addWidget(self.code_card)
 
-        self.git_branch_opt = ComboBoxSettingCard(icon=FluentIcon.SYNC, title='分支选择', options_enum=GitBranchEnum)
-        v_layout.addWidget(self.git_branch_opt)
-
-        self.venv_card = VenvInstallCard(ctx)
-        self.venv_card.install_btn.setDisabled(True)
-        v_layout.addWidget(self.venv_card)
+        self.custom_git_branch_lineedit = LineEdit()
+        self.custom_git_branch_lineedit.setPlaceholderText(gt('自定义分支'))
+        self.custom_git_branch_lineedit.editingFinished.connect(self._on_custom_branch_edited)
+        self.code_card.git_branch_opt.currentIndexChanged.connect(
+            lambda: self.custom_git_branch_lineedit.setText(self.code_card.git_branch_opt.currentData())
+        )
+        self.custom_git_branch_opt = PasswordSwitchSettingCard(
+            icon=FluentIcon.EDIT,
+            title='自定义分支',
+            extra_btn=self.custom_git_branch_lineedit,
+            password_hash='9eccbf284f363f3a5f416e879aa9bcb2c8d8445997f97740270fccc98d360a33'
+        )
+        v_layout.addWidget(self.custom_git_branch_opt)
 
         self.log_table = TableWidget()
         self.log_table.setMinimumHeight(self.page_size * 42)
@@ -83,14 +90,14 @@ class CodeInterface(VerticalScrollInterface):
         self.log_table.setColumnWidth(1, 100)
         self.log_table.setColumnWidth(2, 150)
         self.log_table.setColumnWidth(3, 200)
-        self.log_table.setColumnWidth(4, 400)
+        self.log_table.setColumnWidth(4, 440)
         self.log_table.verticalHeader().hide()
         self.log_table.setHorizontalHeaderLabels([
-            gt('回滚', 'ui'),
-            gt('ID', 'ui'),
-            gt('作者', 'ui'),
-            gt('时间', 'ui'),
-            gt('内容', 'ui')
+            gt('回滚'),
+            gt('ID'),
+            gt('作者'),
+            gt('时间'),
+            gt('内容')
         ])
 
         v_layout.addWidget(self.log_table)
@@ -122,11 +129,11 @@ class CodeInterface(VerticalScrollInterface):
         """
         VerticalScrollInterface.on_interface_shown(self)
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
-        self.git_branch_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('git_branch'))
+        self.custom_git_branch_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('custom_git_branch'))
+        self.custom_git_branch_lineedit.setText(self.ctx.env_config.git_branch)
         self.start_fetch_total()
         self.git_card.check_and_update_display()
         self.code_card.check_and_update_display()
-        self.venv_card.check_and_update_display()
 
     def start_fetch_total(self) -> None:
         """
@@ -175,6 +182,7 @@ class CodeInterface(VerticalScrollInterface):
 
         for i in range(page_size):
             reset_btn = ToolButton(FluentIcon.LEFT_ARROW, parent=None)
+            reset_btn.setFixedSize(32, 32)
             reset_btn.setProperty('commit', log_list[i].commit_id)
             reset_btn.clicked.connect(self.on_reset_commit_clicked)
             self.log_table.setCellWidget(i, 0, reset_btn)
@@ -214,12 +222,11 @@ class CodeInterface(VerticalScrollInterface):
         if not success:
             return
 
-        self.venv_card.check_and_update_display()
         self.pager.setCurrentIndex(0)
         self.page_num = -1
         self.start_fetch_total()
 
-    def on_reset_commit_clicked(self):
+    def on_reset_commit_clicked(self) -> None:
         """
         回滚到特定的commit
         """
@@ -231,3 +238,19 @@ class CodeInterface(VerticalScrollInterface):
             self.code_card.check_and_update_display()
             self.page_num = -1
             self.start_fetch_total()
+
+    def _on_custom_branch_edited(self) -> None:
+        text = self.custom_git_branch_lineedit.text()
+        self.ctx.env_config.git_branch = text if text else self.code_card.git_branch_opt.currentData()
+        self.code_card.check_and_update_display()
+
+    def _show_dialog_after_code_updated(self, success: bool) -> None:
+        """显示代码更新后的对话框"""
+        if not success:
+            return
+        dialog = Dialog(gt('更新完成'), gt('代码已更新，重启以应用更改'), self)
+        dialog.setTitleBarVisible(False)
+        dialog.yesButton.setText(gt('立即重启'))
+        dialog.cancelButton.setText(gt('稍后重启'))
+        if dialog.exec():
+            start_one_dragon(restart=True)

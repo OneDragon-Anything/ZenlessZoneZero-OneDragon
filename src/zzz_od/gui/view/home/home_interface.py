@@ -1,4 +1,6 @@
 import os
+import requests
+from datetime import datetime, timedelta
 from PySide6.QtCore import Qt, QThread, Signal, QSize, QUrl
 from PySide6.QtGui import (
     QFont,
@@ -14,18 +16,16 @@ from qfluentwidgets import (
     FluentIcon,
     InfoBar,
     InfoBarPosition,
-    Dialog,
     SimpleCardWidget,
     PrimaryPushButton,
 )
 
 from one_dragon.utils import os_utils
-from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 from one_dragon_qt.widgets.banner import Banner
 from one_dragon_qt.widgets.icon_button import IconButton
-from one_dragon_qt.widgets.notice_card import NoticeCard
+from one_dragon_qt.widgets.notice_card import NoticeCardContainer
 from one_dragon_qt.widgets.vertical_scroll_interface import (
     VerticalScrollInterface,
 )
@@ -57,7 +57,7 @@ class ButtonGroup(SimpleCardWidget):
         # 创建 GitHub 按钮
         github_button = IconButton(
             FluentIcon.GITHUB.icon(color=QColor("#fff")),
-            tip_title="Github仓库",
+            tip_title="GitHub仓库",
             tip_content="如果本项目有帮助到您~\n不妨给项目点一个Star⭐",
             isTooltip=True,
         )
@@ -108,18 +108,18 @@ class ButtonGroup(SimpleCardWidget):
         # )
         # sync_button.setIconSize(QSize(32, 32))
         # layout.addWidget(sync_button)
-        
+
     def _normalBackgroundColor(self):
         return QColor(0, 0, 0, 96)
 
     def open_home(self):
         """打开主页链接"""
-        QDesktopServices.openUrl(QUrl("https://onedragon-anything.github.io/zzz/zh/home.html"))
+        QDesktopServices.openUrl(QUrl("https://one-dragon.com/zzz/zh/home.html"))
 
     def open_github(self):
         """打开 GitHub 链接"""
         QDesktopServices.openUrl(
-            QUrl("https://github.com/DoctorReid/ZenlessZoneZero-OneDragon")
+            QUrl("https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon")
         )
 
     def open_chat(self):
@@ -129,7 +129,7 @@ class ButtonGroup(SimpleCardWidget):
     def open_doc(self):
         """打开 巡夜的金山文档 链接"""
         QDesktopServices.openUrl(QUrl("https://kdocs.cn/l/cbSJUUNotJ3Z"))
-    
+
     def open_sales(self):
         """其实还是打开 Q群 链接"""
         QDesktopServices.openUrl(QUrl("https://qm.qq.com/q/N5iEy8sTu0"))
@@ -146,21 +146,104 @@ class CheckRunnerBase(QThread):
 class CheckCodeRunner(CheckRunnerBase):
     def run(self):
         is_latest, msg = self.ctx.git_service.is_current_branch_latest()
-        if msg in ["与远程分支不一致"]:
+        if msg == "与远程分支不一致":
             self.need_update.emit(True)
-        if msg not in ["获取远程代码失败"]:
+        elif msg != "获取远程代码失败":
             self.need_update.emit(not is_latest)
-
-class CheckVenvRunner(CheckRunnerBase):
-    def run(self):
-        last = self.ctx.env_config.requirement_time
-        if last != self.ctx.git_service.get_requirement_time():
-            self.need_update.emit(True)
-
 
 class CheckModelRunner(CheckRunnerBase):
     def run(self):
-        self.need_update.emit(self.ctx.yolo_config.using_old_model())
+        self.need_update.emit(self.ctx.model_config.using_old_model())
+
+class CheckBannerRunner(CheckRunnerBase):
+    def run(self):
+        if self.ctx.signal.reload_banner:
+            self.need_update.emit(True)
+
+class BackgroundImageDownloader(QThread):
+    """背景图片下载器"""
+    image_downloaded = Signal(bool)
+
+    def __init__(self, ctx: ZContext, download_type: str, parent=None):
+        super().__init__(parent)
+        self.ctx = ctx
+        self.download_type = download_type
+
+        if download_type == "version_poster":
+            self.save_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'version_poster.webp')
+            self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getGames?launcher_id=jGHBHlcOq1&language=zh-cn"
+            self.config_key = f'last_{download_type}_fetch_time'
+            self.error_msg = "版本海报异步获取失败"
+        elif download_type == "remote_banner":
+            self.save_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'remote_banner.webp')
+            self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getAllGameBasicInfo?launcher_id=jGHBHlcOq1&language=zh-cn"
+            self.config_key = f'last_{download_type}_fetch_time'
+            self.error_msg = "当前版本主页背景异步获取失败"
+
+    def run(self):
+        if not os.path.exists(self.save_path):
+            self.get()
+
+        last_fetch_time_str = getattr(self.ctx.custom_config, self.config_key)
+        if last_fetch_time_str:
+            try:
+                last_fetch_time = datetime.strptime(last_fetch_time_str, '%Y-%m-%d %H:%M:%S')
+                if datetime.now() - last_fetch_time >= timedelta(days=1):
+                    self.get()
+            except ValueError:
+                self.get()
+        else:
+            self.get()
+
+    def get(self):
+        try:
+            resp = requests.get(self.url, timeout=5)
+            data = resp.json()
+
+            img_url = self._extract_image_url(data)
+            if not img_url:
+                return
+
+            img_resp = requests.get(img_url, timeout=5)
+            if img_resp.status_code != 200:
+                return
+
+            self._save_image(img_resp.content)
+            setattr(self.ctx.custom_config, self.config_key, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            self.image_downloaded.emit(True)
+
+        except Exception as e:
+            log.error(f"{self.error_msg}: {e}")
+
+    def _extract_image_url(self, data):
+        """提取图片URL"""
+        if self.download_type == "version_poster":
+            for game in data.get("data", {}).get("games", []):
+                if game.get("biz") != "nap_cn":
+                    continue
+
+                display = game.get("display", {})
+                background = display.get("background", {})
+                if background:
+                    return background.get("url")
+        elif self.download_type == "remote_banner":
+            for game in data.get("data", {}).get("game_info_list", []):
+                if game.get("game", {}).get("biz") != "nap_cn":
+                    continue
+
+                backgrounds = game.get("backgrounds", [])
+                if backgrounds:
+                    return backgrounds[0]["background"]["url"]
+        return None
+
+    def _save_image(self, content):
+        """保存图片"""
+        temp_path = self.save_path + '.tmp'
+        with open(temp_path, "wb") as f:
+            f.write(content)
+        if os.path.exists(self.save_path):
+            os.remove(self.save_path)
+        os.rename(temp_path, self.save_path)
 
 class HomeInterface(VerticalScrollInterface):
     """主页界面"""
@@ -169,21 +252,10 @@ class HomeInterface(VerticalScrollInterface):
         self.ctx: ZContext = ctx
         self.main_window = parent
 
-        # 创建垂直布局的主窗口部件
-        # index.png 来自 C:\Users\YOUR_NAME\AppData\Roaming\miHoYo\HYP\1_1\fedata\Cache\Cache_Data
-        # 对此路径下文件增加后缀名.png后可见
-        if self.ctx.custom_config.banner:
-            banner_path = os.path.join(
-            os_utils.get_path_under_work_dir('custom', 'assets', 'ui'),
-            'banner')
-        else:
-            banner_path = os.path.join(
-            os_utils.get_path_under_work_dir('assets', 'ui'),
-            'index.png')
-        v_widget = Banner(banner_path)
-        v_widget.set_percentage_size(0.8, 0.5)  # 设置 Banner 大小为窗口的 80% 宽度和 50% 高度
+        self._banner_widget = Banner(self.choose_banner_image())
+        self._banner_widget.set_percentage_size(0.8, 0.5)
 
-        v_layout = QVBoxLayout(v_widget)
+        v_layout = QVBoxLayout(self._banner_widget)
         v_layout.setContentsMargins(0, 0, 0, 15)
         v_layout.setSpacing(5)
         v_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -199,9 +271,9 @@ class HomeInterface(VerticalScrollInterface):
         h1_layout.addStretch()
 
         # 按钮组
-        buttonGroup = ButtonGroup()
-        buttonGroup.setMaximumHeight(320)
-        h1_layout.addWidget(buttonGroup)
+        button_group = ButtonGroup()
+        button_group.setMaximumHeight(320)
+        h1_layout.addWidget(button_group)
 
         # 空白占位符
         h1_layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
@@ -221,19 +293,22 @@ class HomeInterface(VerticalScrollInterface):
         h2_layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
 
         # 公告卡片
-        noticeCard = NoticeCard()
-        h2_layout.addWidget(noticeCard)
+        self.notice_container = NoticeCardContainer()
+        h2_layout.addWidget(self.notice_container)
+
+        # 根据配置设置启用状态
+        self.notice_container.set_notice_enabled(self.ctx.custom_config.notice_card)
 
         h2_layout.addStretch()
 
         # 启动游戏按钮布局
-        gameButton = PrimaryPushButton(text="启动一条龙🚀")
-        gameButton.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
-        gameButton.setFixedSize(160, 48)
-        gameButton.clicked.connect(self._on_start_game)
+        start_button = PrimaryPushButton(text="启动一条龙🚀")
+        start_button.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
+        start_button.setFixedSize(160, 48)
+        start_button.clicked.connect(self._on_start_game)
 
         v1_layout = QVBoxLayout()
-        v1_layout.addWidget(gameButton, alignment=Qt.AlignmentFlag.AlignBottom)
+        v1_layout.addWidget(start_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
         h2_layout.addLayout(v1_layout)
 
@@ -246,15 +321,14 @@ class HomeInterface(VerticalScrollInterface):
         # 初始化父类
         super().__init__(
             parent=parent,
-            content_widget=v_widget,
+            content_widget=self._banner_widget,
             object_name="home_interface",
             nav_text_cn="仪表盘",
             nav_icon=FluentIcon.HOME,
         )
 
         # 应用样式
-        OdQtStyleSheet.GAME_BUTTON.apply(gameButton)
-        OdQtStyleSheet.NOTICE_CARD.apply(noticeCard)
+        OdQtStyleSheet.GAME_BUTTON.apply(start_button)
 
         self.ctx = ctx
         self._init_check_runners()
@@ -263,32 +337,36 @@ class HomeInterface(VerticalScrollInterface):
         """初始化检查更新的线程"""
         self._check_code_runner = CheckCodeRunner(self.ctx)
         self._check_code_runner.need_update.connect(self._need_to_update_code)
-        self._check_venv_runner = CheckVenvRunner(self.ctx)
-        self._check_venv_runner.need_update.connect(self._need_to_update_venv)
         self._check_model_runner = CheckModelRunner(self.ctx)
         self._check_model_runner.need_update.connect(self._need_to_update_model)
+        self._check_banner_runner = CheckBannerRunner(self.ctx)
+        self._check_banner_runner.need_update.connect(self.reload_banner)
+        self._banner_downloader = BackgroundImageDownloader(self.ctx, "remote_banner")
+        self._banner_downloader.image_downloaded.connect(self.reload_banner)
+        self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster")
+        self._version_poster_downloader.image_downloaded.connect(self.reload_banner)
 
     def on_interface_shown(self) -> None:
         """界面显示时启动检查更新的线程"""
         super().on_interface_shown()
         self._check_code_runner.start()
-        self._check_venv_runner.start()
         self._check_model_runner.start()
+        self._check_banner_runner.start()
+        # 根据配置启动相应的背景下载器
+        if self.ctx.custom_config.version_poster:
+            self._version_poster_downloader.start()
+        elif self.ctx.custom_config.remote_banner:
+            self._banner_downloader.start()
+
+        # 检查公告卡片配置是否变化
+        self._check_notice_config_change()
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
             self._show_info_bar("代码已是最新版本", "Enjoy it & have fun!")
             return
-        else :
+        else:
             self._show_info_bar("有新版本啦", "稍安勿躁~")
-        if self.ctx.env_config.auto_update:
-            result, msg = self.ctx.git_service.fetch_latest_code()
-            if result:
-                self._show_dialog_after_code_updated()
-
-    def _need_to_update_venv(self, with_new: bool):
-        if with_new:
-            self._show_info_bar("运行依赖更新", "到安装器更新吧~")
 
     def _need_to_update_model(self, with_new: bool):
         if with_new:
@@ -306,20 +384,48 @@ class HomeInterface(VerticalScrollInterface):
             parent=self,
         ).setCustomBackgroundColor("white", "#202020")
 
-    def _show_dialog_after_code_updated(self):
-        """显示代码更新后的对话框"""
-        dialog = Dialog("更新提醒", "如果你仍然能看到此弹窗，请前往 GitHub Release 更新启动器", self)
-        dialog.setTitleBarVisible(False)
-        dialog.yesButton.setText("重启")
-        dialog.cancelButton.setText("取消")
-        if dialog.exec():
-            from one_dragon.utils import app_utils
-            app_utils.start_one_dragon(restart=True)
-
     def _on_start_game(self):
         """启动一条龙按钮点击事件处理"""
-
         # app.py中一条龙界面为第三个添加的
-        self.ctx.home_start_button_pressed = True
+        self.ctx.signal.start_onedragon = True
         one_dragon_interface = self.main_window.stackedWidget.widget(2)
         self.main_window.switchTo(one_dragon_interface)
+
+    def reload_banner(self, show_notification: bool = False) -> None:
+        """
+        刷新主页背景显示
+        :param show_notification: 是否显示提示
+        :return:
+        """
+        # 更新背景图片
+        self._banner_widget.set_banner_image(self.choose_banner_image())
+        self.ctx.signal.reload_banner = False
+        if show_notification:
+            self._show_info_bar("背景已更新", "新的背景已成功应用", 3000)
+
+    def choose_banner_image(self) -> str:
+        # 获取背景图片路径
+        custom_banner_path = os.path.join(os_utils.get_path_under_work_dir('custom', 'assets', 'ui'), 'banner')
+        version_poster_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'version_poster.webp')
+        remote_banner_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'remote_banner.webp')
+        index_banner_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'index.png')
+
+        # 主页背景优先级：自定义 > 远端 > index.png
+        if self.ctx.custom_config.custom_banner and os.path.exists(custom_banner_path):
+            banner_path = custom_banner_path
+        elif self.ctx.custom_config.version_poster and os.path.exists(version_poster_path):
+            banner_path = version_poster_path
+        elif self.ctx.custom_config.remote_banner and os.path.exists(remote_banner_path):
+            banner_path = remote_banner_path
+        else:
+            banner_path = index_banner_path
+
+        return banner_path
+
+    def _check_notice_config_change(self):
+        """检查公告卡片配置是否发生变化"""
+        if self.ctx.signal.notice_card_config_changed:
+            current_config = self.ctx.custom_config.notice_card
+            self.notice_container.set_notice_enabled(current_config)
+            # 重置信号状态
+            self.ctx.signal.notice_card_config_changed = False

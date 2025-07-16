@@ -1,0 +1,7 @@
+# 根据动画实测
+operations:
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 10
+  - operation_template: "薇薇安-4A突刺不合轴"
+  - operation_template: "薇薇安-5A悬落不合轴"

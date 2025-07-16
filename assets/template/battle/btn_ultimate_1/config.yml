@@ -1,8 +1,0 @@
-sub_dir: battle
-template_id: ultimate_1
-template_name: 战斗-终结技-1
-template_shape: circle
-auto_mask: true
-point_list:
-- 1777, 827
-- 1738, 827

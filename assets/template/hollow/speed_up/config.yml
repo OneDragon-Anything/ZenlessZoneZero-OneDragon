@@ -1,8 +1,0 @@
-sub_dir: hollow
-template_id: speed_up
-template_name: 零号空洞-快进
-template_shape: rectangle
-auto_mask: true
-point_list:
-- 184, 35
-- 238, 70

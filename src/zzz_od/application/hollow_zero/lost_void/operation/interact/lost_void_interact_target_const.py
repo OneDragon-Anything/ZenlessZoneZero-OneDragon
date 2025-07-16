@@ -14,9 +14,10 @@ class LostVoidInteractNPC(Enum):
     """
     可交互的NPC名称
     """
-
     MA_LIN = '玛琳'  # 挚交会谈 左边重置路线的
-    AO_FEI_LI_YA = '奥菲莉亚'  # 武备
+    AO_FEI_LI_YA = '奥菲莉亚'  # 代理人武备
+    LEI = '蕾'  # 通用武备
+    SCGMDYJY = '神出鬼没的研究员'  # 2.0版本 特遣调查 入口
     A_YUAN = '阿援'  # 挚交会谈 商店
     GUAI_ZAI = '乖仔'  # 抽奖机
 
@@ -71,10 +72,10 @@ def match_interact_target(ctx: ZContext, ocr_result: str,) -> Optional[LostVoidI
             + [i.value for i in LostVoidBoss]  # BOSS
     )
     target_word_list: list[str] = (
-        [gt(i.value.value) for i in LostVoidRegionType]  # 入口
-        + [gt(i.value) for i in LostVoidInteractNPC]  # NPC
-        + [gt(i.value.agent_name) for i in AgentEnum]  # 代理人
-        + [gt(i.value) for i in LostVoidBoss]  # BOSS
+        [gt(i.value.value, 'game') for i in LostVoidRegionType]  # 入口
+        + [gt(i.value, 'game') for i in LostVoidInteractNPC]  # NPC
+        + [gt(i.value.agent_name, 'game') for i in AgentEnum]  # 代理人
+        + [gt(i.value, 'game') for i in LostVoidBoss]  # BOSS
     )
 
     idx = str_utils.find_best_match_by_difflib(ocr_result, target_word_list, cutoff=0.6)

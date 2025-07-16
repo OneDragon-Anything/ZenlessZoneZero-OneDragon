@@ -19,7 +19,7 @@ class WithExistedInstallCard(BaseInstallCard):
                  install_btn_icon: FluentIcon = FluentIcon.DOWN,
                  install_btn_text_cn: str = '默认安装',
                  content_cn: str = '未安装'):
-        self.existed_btn = PushButton(FluentIcon.FOLDER, gt('选择已有', 'ui'))
+        self.existed_btn = PushButton(FluentIcon.FOLDER, gt('选择已有'))
         self.existed_btn.clicked.connect(self.choose_existed_file)
 
         BaseInstallCard.__init__(
@@ -42,7 +42,7 @@ class WithExistedInstallCard(BaseInstallCard):
         if default_dir is None:
             default_dir = os_utils.get_work_dir()
         file_path, _ = QFileDialog.getOpenFileName(self,
-                                                   gt('选择你的', 'ui') + self.title,
+                                                   gt('选择你的') + self.title,
                                                    dir=default_dir,
                                                    filter="Exe (*.exe)",
                                                    )

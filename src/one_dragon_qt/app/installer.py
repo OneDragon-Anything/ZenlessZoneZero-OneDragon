@@ -28,7 +28,7 @@ class InstallerWindowBase(AppWindowBase):
         if app_icon is not None:
             app_icon_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), app_icon)
             self.setWindowIcon(QIcon(app_icon_path))
-        
+
         # 初始化窗口
         self.init_window()
 
@@ -41,8 +41,6 @@ class InstallerWindowBase(AppWindowBase):
 
         self.stackedWidget.currentChanged.connect(self.init_interface_on_shown)
         self.create_sub_interface()
-
-        self.titleBar.versionButton.hide()
 
         # 隐藏启动页面
         self.splashScreen.finish()

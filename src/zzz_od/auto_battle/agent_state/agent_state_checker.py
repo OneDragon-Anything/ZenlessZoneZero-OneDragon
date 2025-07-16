@@ -53,7 +53,7 @@ def check_cnt_by_color_range(
     part = cv2.resize(part, template.mask.shape[::-1], interpolation=cv2.INTER_AREA)
     to_check = cv2.bitwise_and(part, part, mask=template.mask)
 
-    mask = cv2.inRange(to_check, state_def.lower_color, state_def.upper_color)
+    mask = filter_by_color(to_check, state_def)
     mask = cv2_utils.dilate(mask, 2)
     # cv2_utils.show_image(mask, wait=0)
 
@@ -210,14 +210,28 @@ def check_length_by_foreground_color(
     part = cv2_utils.crop_image_only(screen, template.get_template_rect_by_point())
     to_check = part
 
-    mask = cv2.inRange(to_check, state_def.lower_color, state_def.upper_color)
-    fg_cnt = np.sum(mask == 255)
-    total_cnt = mask.shape[1]
+    mask = filter_by_color(to_check, state_def)
+    # 查找所有非零（白色）像素的坐标
+    white_pixels_coords = cv2.findNonZero(mask)
 
-    length = round(fg_cnt * 1.0 * state_def.max_length / total_cnt)
-    if length > state_def.max_length:
-        length = state_def.max_length
-    return length
+    if white_pixels_coords is None:
+        # 如果没有找到任何白色像素，则长度为0
+        fg_cnt = 0
+    else:
+        # 使用 boundingRect 计算所有非零像素的最小外接矩形
+        _, _, w, _ = cv2.boundingRect(white_pixels_coords)
+        fg_cnt = w # 我们需要的长度就是这个矩形的宽度
+
+    total_cnt = part.shape[1] # 裁剪区域的总宽度，即横条可能达到的最大水平长度
+
+    # 边界检查
+    if fg_cnt < 0:
+        fg_cnt = 0
+    # 这里的 total_cnt 已经是宽度，所以 fg_cnt 应该与宽度比较
+    if fg_cnt > total_cnt:
+        fg_cnt = total_cnt
+
+    return int(fg_cnt * state_def.max_length / total_cnt)
 
 
 def check_template_not_found(
@@ -298,7 +312,6 @@ def check_cnt_by_color_channel_max_range(
     max_channel = np.max(np.array([r, g, b]), axis=0)
     mask = cv2.inRange(max_channel, state_def.lower_color, state_def.upper_color)
     mask = cv2_utils.dilate(mask, 2)
-    # cv2_utils.show_image(mask, wait=0)
 
     # 查找连通区域
     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=8)
@@ -349,33 +362,11 @@ def check_cnt_by_color_channel_equal_range(
     r, g, b = cv2.split(to_check)
     # 检查每个像素点的三个通道是否完全相等
     channel_equal = (r == g) & (g == b)
-    
+
     # 3. 统计三通道相等的点的数量
     equal_points_count = np.sum(channel_equal)
-    
-    # # 4. 只在点数量超过阈值时输出调试信息和保存图片
-    # if equal_points_count >= state_def.connect_cnt:
-    #     log.debug(f'检测到三通道相等的点数量: {equal_points_count}')
-        
-    #     # 保存调试图片
-    #     import os
-    #     from datetime import datetime
-    #     debug_dir = r'E:\github\ZenlessZoneZero-OneDragon\.debug\images'
-    #     os.makedirs(debug_dir, exist_ok=True)
-        
-    #     # 生成时间戳和文件名基础部分
-    #     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-    #     base_filename = f'equal_range_{equal_points_count}pts_{timestamp}'
-        
-    #     # 保存原始裁剪图片
-    #     cv2.imwrite(os.path.join(debug_dir, f'{base_filename}_original.png'), 
-    #                 cv2.cvtColor(to_check, cv2.COLOR_RGB2BGR))
-        
-    #     # 保存相等点的掩码图片
-    #     mask = channel_equal.astype(np.uint8) * 255
-    #     cv2.imwrite(os.path.join(debug_dir, f'{base_filename}_mask.png'), mask)
 
-    # 5. 返回结果
+    # 4. 返回结果
     return 1 if equal_points_count >= state_def.connect_cnt else 0
 
 
@@ -398,3 +389,48 @@ def check_exist_by_color_channel_equal_range(
     # 直接返回check_cnt_by_color_channel_equal_range的结果
     # 因为它已经返回了1或0（当点数量大于等于阈值时返回1，否则返回0）
     return check_cnt_by_color_channel_equal_range(ctx, screen, state_def, total, pos)
+
+
+def filter_by_color(
+    image: MatLike,
+    state_def: AgentStateDef,
+    color_mode: str = 'auto'
+) -> MatLike:
+    """
+    根据 state_def 中的颜色定义，对图像进行统一的颜色过滤。
+    能正确处理HSV空间H通道的循环问题。
+    :param image:       待过滤的图像 (RGB格式)
+    :param state_def:   状态定义
+    :param color_mode:  颜色模式 auto/rgb/hsv
+    :return:            二值化的 mask 图像。白色为符合条件，黑色为不符合。
+    """
+    use_hsv = False
+    use_rgb = False
+
+    if color_mode == 'auto':
+        if state_def.hsv_color is not None and state_def.hsv_color_diff is not None:
+            use_hsv = True
+        elif state_def.lower_color is not None and state_def.upper_color is not None:
+            use_rgb = True
+    elif color_mode == 'hsv':
+        use_hsv = True
+    elif color_mode == 'rgb':
+        use_rgb = True
+
+    if use_hsv:
+        return cv2_utils.filter_by_color(
+            image,
+            mode='hsv',
+            hsv_color=state_def.hsv_color,
+            hsv_diff=state_def.hsv_color_diff
+        )
+    elif use_rgb:
+        return cv2_utils.filter_by_color(
+            image,
+            mode='rgb',
+            lower_rgb=state_def.lower_color,
+            upper_rgb=state_def.upper_color
+        )
+    else:
+        # 没有任何过滤条件，返回一个全白的mask，表示全部通过
+        return np.full((image.shape[0], image.shape[1]), 255, dtype=np.uint8)

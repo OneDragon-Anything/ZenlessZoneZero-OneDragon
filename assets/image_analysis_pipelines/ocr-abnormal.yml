@@ -1,0 +1,8 @@
+- step: 按模板裁剪
+  params:
+    template_name: target_state/locked_target_info
+    enable_match: false
+    match_threshold: 0.8
+- step: OCR识别
+  params:
+    draw_text_box: 0

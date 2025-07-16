@@ -5,12 +5,12 @@ area_list:
 - area_name: 全部领取
   id_mark: true
   pc_rect:
-  - 120
-  - 1008
-  - 294
-  - 1054
+  - 122
+  - 982
+  - 306
+  - 1074
   text: 全部领取
-  lcs_percent: 0.1
+  lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
@@ -24,7 +24,7 @@ area_list:
   - 1084
   - 758
   text: 确认
-  lcs_percent: 0.1
+  lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7

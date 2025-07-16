@@ -3,24 +3,7 @@ operations:
   - operation_template: "通用-闪避-左"
   - op_name: "设置状态"
     state: "自定义-动作不打断"
-    seconds: 2
+    seconds: 0.5
   - op_name: "按键-普通攻击"
     post_delay: 0.1
     repeat: 5
-
-  - op_name: "按键-普通攻击"
-    way: "松开"
-  - op_name: "等待秒数"
-    seconds: 0.1
-  - op_name: "设置状态"
-    state: "自定义-异常-火"
-    add: 150
-  - op_name: "按键-普通攻击"
-    way: "按下"
-    press: 2.5
-  - op_name: "按键-普通攻击"
-    way: "松开"
-  - op_name: "等待秒数"
-    seconds: 0.1
-  - op_name: "设置状态"
-    state: "自定义-柏妮思-灼烧"

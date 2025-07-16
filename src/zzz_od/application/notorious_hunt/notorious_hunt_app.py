@@ -27,8 +27,9 @@ class NotoriousHuntApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='notorious_hunt',
-            op_name=gt('恶名狩猎', 'ui'),
-            run_record=ctx.notorious_hunt_record
+            op_name=gt('恶名狩猎'),
+            run_record=ctx.notorious_hunt_record,
+            need_notify=True,
         )
 
     def handle_init(self) -> None:
@@ -58,7 +59,8 @@ class NotoriousHuntApp(ZApplication):
         op = NotoriousHunt(self.ctx, self.next_plan, use_charge_power=False)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='恶名狩猎')
+    @node_from(from_name='恶名狩猎', success=True)
+    @node_from(from_name='恶名狩猎', success=False)
     @operation_node(name='判断剩余次数')
     def check_left_times(self) -> OperationRoundResult:
         if self.ctx.notorious_hunt_record.left_times == 0:
@@ -79,9 +81,8 @@ class NotoriousHuntApp(ZApplication):
     @node_from(from_name='点击奖励入口')
     @operation_node(name='全部领取')
     def claim_all(self) -> OperationRoundResult:
-        screen = self.screenshot()
         return self.round_by_find_and_click_area(
-            screen, '恶名狩猎', '全部领取',
+            self.last_screenshot, '恶名狩猎', '全部领取',
             success_wait=1, retry_wait=1
         )
 
@@ -89,5 +90,6 @@ class NotoriousHuntApp(ZApplication):
     @node_from(from_name='全部领取')
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
+        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())

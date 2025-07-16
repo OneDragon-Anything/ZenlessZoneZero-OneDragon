@@ -48,7 +48,7 @@ def get_work_dir() -> str:
     :return: 项目根目录
     """
     if run_in_exe():
-        return os.path.dirname(sys.executable)
+        return os.getcwd()
     dir_path: str = os.path.abspath(__file__)
     up_times = 4
     for _ in range(up_times):

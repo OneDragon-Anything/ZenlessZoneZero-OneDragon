@@ -22,8 +22,8 @@ class TransportByCompendium(ZOperation):
             self, ctx,
             op_name='%s %s %s-%s-%s' % (
                 gt('传送'),
-                gt('快捷手册'),
-                gt(tab_name), gt(category_name), gt(mission_type_name)
+                gt('快捷手册', 'game'),
+                gt(tab_name, 'game'), gt(category_name, 'game'), gt(mission_type_name, 'game')
             )
         )
 
@@ -36,7 +36,6 @@ class TransportByCompendium(ZOperation):
 
     @operation_node(name='识别初始画面', is_start_node=True)
     def check_first_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()
         possible_screen_names = [
             '快捷手册-目标',
             '快捷手册-日常',
@@ -44,7 +43,7 @@ class TransportByCompendium(ZOperation):
             '快捷手册-作战',
             '快捷手册-战术'
         ]
-        screen_name = self.check_and_update_current_screen(screen, possible_screen_names)
+        screen_name = self.check_and_update_current_screen(self.last_screenshot, possible_screen_names)
         if screen_name is None:
             return self.round_success()
         else:
@@ -81,7 +80,7 @@ class TransportByCompendium(ZOperation):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     ctx.start_running()
     op = TransportByCompendium(ctx, '训练', '定期清剿', '疯子与追随者')
     op.execute()

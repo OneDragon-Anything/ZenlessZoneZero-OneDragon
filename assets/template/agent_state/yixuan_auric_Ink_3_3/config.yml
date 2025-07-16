@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: yixuan_auric_Ink_3_3
+template_name: 角色状态-仪玄-玄墨值-33
+template_shape: circle
+auto_mask: true
+point_list:
+- 809, 100
+- 810, 96

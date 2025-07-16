@@ -35,7 +35,7 @@ class PredefinedTeamChecker(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='predefined_team_checker',
-            op_name=gt('预备编队角色识别', 'ui'),
+            op_name=gt('预备编队角色识别'),
             retry_in_od=True,  # 传送落地有可能会歪 重试
         )
 
@@ -60,9 +60,8 @@ class PredefinedTeamChecker(ZApplication):
 
     @node_from(from_name='点击预备编队')
     @operation_node(name='识别编队角色')
-    def check_team_members(self, screen: MatLike = None) -> OperationRoundResult:
-        screen = self.screenshot()
-        self.update_team_members(screen)
+    def check_team_members(self) -> OperationRoundResult:
+        self.update_team_members(self.last_screenshot)
 
         if self.scroll_times == 0:
             drag_start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
@@ -98,18 +97,29 @@ class PredefinedTeamChecker(ZApplication):
             )
 
             part = cv2_utils.crop_image_only(screen, avatar_rect)
+            source_kp, source_desc = cv2_utils.feature_detect_and_compute(part)
+
             agent_mr_list: List[MatchResult] = []
 
             for agent_enum in AgentEnum:
                 agent: Agent = agent_enum.value
-                mrl = self.ctx.tm.match_template(part, 'predefined_team', f'avatar_{agent.template_id}',
-                                                 threshold=0.9)
-                if mrl.max is None:
-                    continue
+                for template_id in agent.template_id_list:
+                    template = self.ctx.template_loader.get_template('predefined_team', f'avatar_{template_id}')
+                    if template is None:
+                        continue
+                    template_kp, template_desc = template.features
+                    mr = cv2_utils.feature_match_for_one(
+                        source_kp, source_desc, template_kp, template_desc,
+                        template_width=template.raw.shape[1], template_height=template.raw.shape[0],
+                        knn_distance_percent=0.5
+                    )
 
-                agent_mr = mrl.max
-                agent_mr.data = agent
-                agent_mr_list.append(agent_mr)
+                    if mr is None:
+                        continue
+
+                    agent_mr = mr
+                    agent_mr.data = agent
+                    agent_mr_list.append(agent_mr)
 
             if len(agent_mr_list) == 0:
                 continue
@@ -125,7 +135,7 @@ class PredefinedTeamChecker(ZApplication):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     ctx.start_running()
 
     op = PredefinedTeamChecker(ctx)

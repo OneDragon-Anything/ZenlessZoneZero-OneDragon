@@ -1,17 +1,17 @@
 import time
-
 from typing import ClassVar, List
+
+from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cv2_utils
+from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.map_area import MapArea
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
-from zzz_od.operation.wait_normal_world import WaitNormalWorld
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -30,17 +30,14 @@ class Transport(ZOperation):
         """
         ZOperation.__init__(self, ctx,
                             op_name='%s %s %s' % (
-                                gt('传送', 'ui'),
-                                gt(area_name),
-                                gt(tp_name)
+                                gt('传送'),
+                                gt(area_name, 'game'),
+                                gt(tp_name, 'game')
                             ))
 
         self.area_name: str = area_name
         self.tp_name: str = tp_name
         self.wait_at_last: bool = wait_at_last
-
-    def handle_init(self):
-        pass
 
     @operation_node(name='画面识别', is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
@@ -48,10 +45,7 @@ class Transport(ZOperation):
         画面识别
         :return:
         """
-        screen = self.screenshot()
-
-        result = self.round_by_find_area(screen, '地图', '街区详情')
-        if result.is_success:
+        if self.is_map_screen(self.last_screenshot):
             return self.round_success()
         else:
             return self.round_success(status=Transport.STATUS_NOT_IN_MAP)
@@ -69,9 +63,14 @@ class Transport(ZOperation):
         在大世界画面 点击
         :return:
         """
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '大世界', '地图',
-                                                 success_wait=2, retry_wait=1)
+        if self.is_map_screen(self.last_screenshot):
+            return self.round_success()
+
+        result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', '地图')
+        if result.is_success:
+            return self.round_wait(status=result.status, wait=2)
+        else:
+            return self.round_retry(status=result.status, wait=1)
 
     @node_from(from_name='打开地图')
     @node_from(from_name='画面识别')
@@ -81,34 +80,37 @@ class Transport(ZOperation):
         在地图画面 选择上方的区域
         :return:
         """
-        screen = self.screenshot()
+        # 地图信息是按从上往下 从左往右存放的
+        area_name_list: list[str] = []
+        for area in self.ctx.map_service.area_list:
+            area_name_list.append(gt(area.area_name, 'game'))
 
-        area = self.ctx.screen_loader.get_area('地图', '区域名称')
-        part = cv2_utils.crop_image_only(screen, area.rect)
-
-        ocr_area_name = self.ctx.ocr.run_ocr_single_line(part)
+        # 目标区域的下标
         target_area: MapArea = self.ctx.map_service.area_name_map[self.area_name]
-        current_area: MapArea = self.ctx.map_service.get_best_match_area(ocr_area_name)
+        target_area_idx: int = str_utils.find_best_match_by_difflib(gt(target_area.area_name, 'game'), area_name_list)
 
-        if current_area is None:
-            click_area = self.ctx.screen_loader.get_area('地图', '下一个区域')
-            self.ctx.controller.click(click_area.center)
-            time.sleep(0.5)
-            return self.round_retry('无法识别当前区域', wait_round_time=1)
+        # 判断当前显示区域是否有目标区域 有则点击
+        # 没有则找出最大的区域下标
+        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        max_current_area_idx: int = -1
+        for ocr_result, mrl in ocr_result_map.items():
+            current_idx = str_utils.find_best_match_by_difflib(ocr_result, area_name_list)
+            if current_idx is None or current_idx < 0:
+                continue
 
-        if current_area == target_area:
-            return self.round_success()
+            if current_idx == target_area_idx:
+                self.ctx.controller.click(mrl.max.center)
+                return self.round_success(wait=1)
+            elif current_idx > max_current_area_idx:
+                max_current_area_idx = current_idx
 
-        # 尝试点击换到目标区域
-        direction = self.ctx.map_service.get_direction_to_target_area(current_area, target_area)
-        if direction > 0:
-            click_area = self.ctx.screen_loader.get_area('地图', '下一个区域')
+        # 如果当前显示没有目标区域 则判断滑动方向
+        start_point = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
+        if max_current_area_idx > target_area_idx:  # 有目标区域右边的 往左滑动
+            end_point = start_point + Point(500, 0)
         else:
-            click_area = self.ctx.screen_loader.get_area('地图', '上一个区域')
-
-        for i in range(abs(direction)):
-            self.ctx.controller.click(click_area.center)
-            time.sleep(0.5)
+            end_point = start_point - Point(500, 0)
+        self.ctx.controller.drag_to(start=start_point, end=end_point)
 
         return self.round_retry(wait=0.5)
 
@@ -119,12 +121,9 @@ class Transport(ZOperation):
         在地图画面 已经选择好区域了 选择传送点
         :return:
         """
-        screen = self.screenshot()
-
         area = self.ctx.screen_loader.get_area('地图', '传送点名称')
-        part = cv2_utils.crop_image_only(screen, area.rect)
 
-        ocr_map = self.ctx.ocr.run_ocr(part)
+        ocr_map = self.ctx.ocr.run_ocr(self.last_screenshot)
 
         if len(ocr_map) == 0:
             return self.round_retry('未识别到传送点', wait_round_time=1)
@@ -139,7 +138,8 @@ class Transport(ZOperation):
 
         if target_ocr_str is not None:
             mrl = ocr_map[target_ocr_str]
-            self.ctx.controller.click(mrl.max.center + area.left_top)
+            # self.ctx.controller.click(mrl.max.center + area.left_top)
+            self.ctx.controller.click(mrl.max.center)
             return self.round_success(wait=1)
 
         area_tp_list: List[str] = self.ctx.map_service.area_name_map[self.area_name].tp_list  # 当前区域的传送点名称
@@ -152,15 +152,15 @@ class Transport(ZOperation):
 
         if left_cnt > 0:  # 往右滑
             from_point = area.center + Point(-20, -20)  # 如果在两个地点卡片中间 会滑动不了 这里选择了一个特殊点
-            end_point = from_point + Point(-200, 0)
+            end_point = from_point + Point(-400, 0)
             self.ctx.controller.drag_to(start=from_point, end=end_point)
         else:  # 往左滑
             from_point = area.center + Point(-20, -20)
-            end_point = from_point + Point(150, 0)  # 跟上面滑动距离稍微不一样 防止一直重复左右都找不到
+            end_point = from_point + Point(350, 0)  # 跟上面滑动距离稍微不一样 防止一直重复左右都找不到
             self.ctx.controller.drag_to(start=from_point, end=end_point)
 
         # 返回数量只是为了测试 实际不会用到
-        return self.round_retry(wait=0.5, data=left_cnt)
+        return self.round_retry(wait=1, data=left_cnt)
 
     @node_from(from_name='选择传送点')
     @operation_node(name='点击传送')
@@ -169,8 +169,7 @@ class Transport(ZOperation):
         在地图画面 已经选好传送点了 点击传送
         :return:
         """
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '地图', '确认', success_wait=1, retry_wait=1)
+        return self.round_by_find_and_click_area(self.last_screenshot, '地图', '确认', success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击传送')
     @operation_node(name='等待大世界加载')
@@ -179,3 +178,44 @@ class Transport(ZOperation):
             return self.round_success('不等待大世界加载')
         op = BackToNormalWorld(self.ctx)  # 传送落地可能触发好感度事件 使用BackToNormalWorld可以处理
         return self.round_by_op_result(op.execute())
+
+    def is_map_screen(self, screen: MatLike) -> bool:
+        """
+        当前画面是否在地图选择画面
+        要同时出现多个地区名称和传送点名称
+        :param screen: 游戏画面
+        :return:
+        """
+        area_name_list: list[str] = []
+        tp_name_list: list[str] = []
+
+        for area in self.ctx.map_service.area_list:
+            area_name_list.append(gt(area.area_name, 'game'))
+            for tp in area.tp_list:
+                tp_name_list.append(gt(tp, 'game'))
+
+        area_name_cnt: int = 0
+        tp_name_cnt: int = 0
+        ocr_result_map = self.ctx.ocr.run_ocr(screen)
+        for ocr_result, mrl in ocr_result_map.items():
+            area_idx: int = str_utils.find_best_match_by_difflib(ocr_result, area_name_list)
+            if area_idx is not None and area_idx >= 0:
+                area_name_cnt += 1
+            tp_idx: int = str_utils.find_best_match_by_difflib(ocr_result, tp_name_list)
+            if tp_idx is not None and tp_idx >= 0:
+                tp_name_cnt += 1
+
+        return area_name_cnt >= 3 and tp_name_cnt >= 3
+
+
+def __debug():
+    ctx = ZContext()
+    ctx.init_by_config()
+    ctx.init_ocr()
+    ctx.start_running()
+    op = Transport(ctx, '澄辉坪', '阿朔')
+    op.execute()
+
+
+if __name__ == '__main__':
+    __debug()

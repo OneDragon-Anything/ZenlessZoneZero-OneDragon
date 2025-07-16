@@ -1,0 +1,16 @@
+sub_dir: agent_state
+template_id: vivian_master_2_3_2
+template_name: 角色状态-薇薇安-护羽-32
+template_shape: multi_rect
+auto_mask: true
+point_list:
+- 570, 101
+- 576, 104
+- 586, 101
+- 592, 104
+- 602, 101
+- 608, 104
+- 618, 101
+- 624, 104
+- 634, 101
+- 640, 104

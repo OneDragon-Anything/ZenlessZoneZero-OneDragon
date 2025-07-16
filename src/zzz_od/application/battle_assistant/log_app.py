@@ -18,7 +18,7 @@ class LogTestApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='log_test',
-            op_name=gt('日志输入测试', 'ui'),
+            op_name=gt('日志输入测试'),
             check_game_win=False
         )
 

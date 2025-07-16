@@ -194,7 +194,7 @@ class PreProcessor:
 
             updated_status = status_template.copy()
 
-            if agent_info is None: # 可能出现连携动作, 更新至上一次识别状态
+            if agent_info is None:  # 可能出现连携动作, 更新至上一次识别状态
                 # 连携技
                 if details[BattleStateEnum.STATUS_CHAIN_READY.value] is not None:
                     new_status_flows[-1][BattleStateEnum.STATUS_CHAIN_READY.value] = \

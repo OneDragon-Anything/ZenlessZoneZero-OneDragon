@@ -26,7 +26,7 @@ class OneDragonApp(Application):
         Application.__init__(
             self,
             ctx, app_id,
-            op_name=gt(op_name, 'ui'),
+            op_name=gt(op_name),
             op_to_enter_game=op_to_enter_game
         )
 
@@ -34,7 +34,7 @@ class OneDragonApp(Application):
         self._current_app_idx: int = 0  # 当前运行的app 下标
         self._instance_list: List[OneDragonInstance] = []  # 需要运行的实例
         self._instance_idx: int = 0  # 当前运行的实例下标
-        self._instance_start_idx: int = 0  # 最初开始的实力下标
+        self._instance_start_idx: int = 0  # 最初开始的实例下标
         self._op_to_switch_account: Operation = op_to_switch_account  # 切换账号的op
         self._fail_app_idx: List[int] = []  # 失败的app下标
         self._current_retry_app_idx: int = 0  # 当前重试的_fail_app_idx的下标

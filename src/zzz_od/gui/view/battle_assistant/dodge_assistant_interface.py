@@ -2,10 +2,12 @@ import os.path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
-from qfluentwidgets import FluentIcon, PushButton, HyperlinkCard
+from qfluentwidgets import FluentIcon, PushButton, ToolButton
 
 from one_dragon.base.operation.context_event_bus import ContextEventItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.view.app_run_interface import AppRunInterface
@@ -43,15 +45,13 @@ class DodgeAssistantInterface(AppRunInterface):
     def get_widget_at_top(self) -> QWidget:
         top_widget = Column()
 
-        self.help_opt = HyperlinkCard(icon=FluentIcon.HELP, title='使用说明', text='前往',
-                                      url='https://onedragon-anything.github.io/zzz/zh/docs/feat_battle_assistant.html')
-        self.help_opt.setContent('先看说明 再使用与提问')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_battle_assistant.html')
         top_widget.add_widget(self.help_opt)
 
         self.dodge_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='闪避方式')
         top_widget.add_widget(self.dodge_opt)
 
-        self.del_btn = PushButton(text='删除')
+        self.del_btn = ToolButton(FluentIcon.DELETE)
         self.dodge_opt.hBoxLayout.addWidget(self.del_btn, alignment=Qt.AlignmentFlag.AlignRight)
         self.dodge_opt.hBoxLayout.addSpacing(16)
         self.del_btn.clicked.connect(self._on_del_clicked)
@@ -106,7 +106,7 @@ class DodgeAssistantInterface(AppRunInterface):
         AppRunInterface.on_interface_shown(self)
         self._update_dodge_way_opts()
         self.dodge_opt.init_with_adapter(self.ctx.battle_assistant_config.get_prop_adapter('dodge_assistant_config'))
-        self.gpu_opt.init_with_adapter(self.ctx.yolo_config.get_prop_adapter('flash_classifier_gpu'))
+        self.gpu_opt.init_with_adapter(self.ctx.model_config.get_prop_adapter('flash_classifier_gpu'))
         self.screenshot_interval_opt.setValue(str(self.ctx.battle_assistant_config.screenshot_interval))
         self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.gamepad_type)
         self.ctx.listen_event(AutoBattleApp.EVENT_OP_LOADED, self._on_auto_op_loaded_event)

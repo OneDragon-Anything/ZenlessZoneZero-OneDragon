@@ -1,8 +1,0 @@
-sub_dir: battle
-template_id: assist_1
-template_name: 战斗-支援-1
-template_shape: circle
-auto_mask: true
-point_list:
-- 1777, 967
-- 1738, 967

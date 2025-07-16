@@ -105,12 +105,45 @@ class LostVoidChallengeConfig(YamlConfig):
         YamlConfig.save(self)
 
     @property
+    def predefined_team_idx(self) -> int:
+        # 预备配队下标 -1为使用当前配队
+        return self.get('predefined_team_idx', -1)
+
+    @predefined_team_idx.setter
+    def predefined_team_idx(self, new_value: int):
+        self.update('predefined_team_idx', new_value)
+
+    @property
+    def choose_team_by_priority(self) -> bool:
+        """
+        当副本有当期UP时 优先选择相关配队
+        :return:
+        """
+        return self.get('choose_team_by_priority', False)
+
+    @choose_team_by_priority.setter
+    def choose_team_by_priority(self, new_value: bool):
+        self.update('choose_team_by_priority', new_value)
+
+    @property
     def auto_battle(self) -> str:
         return self.get('auto_battle', '全配队通用')
 
     @auto_battle.setter
     def auto_battle(self, new_value: str):
         self.update('auto_battle', new_value)
+
+    @property
+    def artifact_priority_new(self) -> bool:
+        """
+        优先选择NEW!藏品
+        :return:
+        """
+        return self.get('artifact_priority_new', False)
+
+    @artifact_priority_new.setter
+    def artifact_priority_new(self, new_value: bool):
+        self.update('artifact_priority_new', new_value)
 
     @property
     def artifact_priority(self) -> List[str]:
@@ -193,6 +226,14 @@ class LostVoidChallengeConfig(YamlConfig):
     @store_blood_min.setter
     def store_blood_min(self, new_value: int):
         self.update('store_blood_min', new_value)
+
+    @property
+    def investigation_strategy(self) -> str:
+        return self.get('investigation_strategy', '鸣徽狂热战略')
+
+    @investigation_strategy.setter
+    def investigation_strategy(self, new_value: str):
+        self.update('investigation_strategy', new_value)
 
 
 def get_all_lost_void_challenge_config(with_sample: bool = True) -> List[LostVoidChallengeConfig]:

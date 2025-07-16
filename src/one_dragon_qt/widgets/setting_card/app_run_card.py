@@ -47,7 +47,7 @@ class AppRunCard(MultiPushSettingCard):
         self.setTitle(self.app.op_name)
         self.setContent(
             '%s %s' % (
-                gt('上次运行', 'ui'),
+                gt('上次运行'),
                 self.app.run_record.run_time
             )
         )

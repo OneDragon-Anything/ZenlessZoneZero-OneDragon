@@ -15,7 +15,7 @@ class KeySimRunner(ZOperation):
     def __init__(self, ctx: ZContext, config_name: str):
         ZOperation.__init__(self, ctx,
                             op_name='%s %s' % (
-                                gt('模拟按键', 'ui'),
+                                gt('模拟按键'),
                                 config_name
                             ))
         self.config_name: str = config_name

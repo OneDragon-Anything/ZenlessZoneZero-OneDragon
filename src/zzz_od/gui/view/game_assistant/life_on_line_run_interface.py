@@ -1,10 +1,12 @@
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, HyperlinkCard
+from qfluentwidgets import FluentIcon
 from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.application_base import Application
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from zzz_od.application.life_on_line.life_on_line_app import LifeOnLineApp
@@ -32,9 +34,7 @@ class LifeOnLineRunInterface(AppRunInterface):
     def get_widget_at_top(self) -> QWidget:
         content = Column()
 
-        self.help_opt = HyperlinkCard(icon=FluentIcon.HELP, title='使用说明', text='前往',
-                                      url='https://onedragon-anything.github.io/zzz/zh/docs/feat_game_assistant.html#_2-%E6%8B%BF%E5%91%BD%E9%AA%8C%E6%94%B6')
-        self.help_opt.setContent('先看说明 再使用与提问')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_game_assistant.html#_2-%E6%8B%BF%E5%91%BD%E9%AA%8C%E6%94%B6')
         content.add_widget(self.help_opt)
 
         self.daily_plan_times_opt = TextSettingCard(

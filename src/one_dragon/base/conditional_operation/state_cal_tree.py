@@ -208,7 +208,7 @@ def construct_state_cal_tree(expr_str: str, state_getter: Callable[[str], StateR
             state_recorder: StateRecorder = state_getter(state_name)
             if state_recorder is None:
                 raise ValueError('位置 %d 的左中括号 后方状态不合法 %s' % (display_idx, state_name))
-            
+
             node = StateCalNode(
                 node_type=StateCalNodeType.STATE,
                 state_recorder=state_recorder,
@@ -272,7 +272,7 @@ def construct_state_cal_tree(expr_str: str, state_getter: Callable[[str], StateR
     else:
         return node_stack[0]
 
-            
+
 def __debug():
     expr = "( [闪避识别-黄光, 0, 1] | [闪避识别-红光, 0, 1] ) & ![按键-闪避, 0, 1]{0, 1}"
     ctx = None

@@ -4,7 +4,7 @@ from one_dragon.base.config.yaml_config import YamlConfig
 class ProjectConfig(YamlConfig):
 
     def __init__(self):
-        super().__init__(module_name='project')
+        YamlConfig.__init__(self, module_name='project')
 
         self.project_name = self.get('project_name')
         self.python_version = self.get('python_version')
@@ -20,3 +20,4 @@ class ProjectConfig(YamlConfig):
         self.screen_standard_height = int(self.get('screen_standard_height'))
 
         self.qq_link = self.get('qq_link')
+        self.quick_start_link = self.get('quick_start_link')  # 链接 - 快速开始

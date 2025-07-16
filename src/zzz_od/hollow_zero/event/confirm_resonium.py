@@ -14,17 +14,16 @@ class ConfirmResonium(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('确认鸣徽')
+            op_name=gt('确认鸣徽', 'game')
         )
 
     @operation_node(name='选择', is_start_node=True)
     def choose_one(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('零号空洞-事件', '底部-选择列表')
-        result = self.round_by_ocr_and_click(screen, '确认', area=area)
+        result = self.round_by_ocr_and_click(self.last_screenshot, '确认', area=area)
         if result.is_success:
             return self.round_success(wait=1)
-        result = self.round_by_ocr_and_click(screen, '确定', area=area)
+        result = self.round_by_ocr_and_click(self.last_screenshot, '确定', area=area)
         if result.is_success:
             return self.round_success(wait=1)
 

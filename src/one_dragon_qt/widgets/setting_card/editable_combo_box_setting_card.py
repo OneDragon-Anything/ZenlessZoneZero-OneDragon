@@ -30,6 +30,7 @@ class EditableComboBoxSettingCard(SettingCardBase):
                  margins: Margins = Margins(16, 16, 0, 16),
                  options_enum: Optional[Iterable[Enum]] = None,
                  options_list: Optional[List[ConfigItem]] = None,
+                 input_placeholder: Optional[str] = None,
                  tooltip: Optional[str] = None,
                  adapter: Optional[YamlConfigAdapter] = None,
                  parent=None
@@ -46,6 +47,7 @@ class EditableComboBoxSettingCard(SettingCardBase):
 
         # 初始化下拉框
         self.combo_box = EditableComboBox(self)
+        self.combo_box.setPlaceholderText(input_placeholder)
         self.hBoxLayout.addWidget(self.combo_box, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
 

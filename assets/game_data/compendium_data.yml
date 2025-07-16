@@ -1,4 +1,7 @@
 - tab_name: "目标"
+  category_list:
+    - category_name: "绳匠传奇"
+    - category_name: "修者纪行"
 - tab_name: "日常"
 - tab_name: "训练"
   category_list:
@@ -16,6 +19,8 @@
               mission_name_display: "驱动盘经验"
         - mission_type_name: "代理人晋升"
           mission_list:
+            - mission_name: "命破演练"
+              mission_name_display: "命破"
             - mission_name: "强攻演练"
               mission_name_display: "强攻"
             - mission_name: "击破演练"
@@ -28,6 +33,8 @@
               mission_name_display: "防护"
         - mission_type_name: "音擎改装"
           mission_list:
+            - mission_name: "命破共鸣试验"
+              mission_name_display: "命破"
             - mission_name: "强攻极片试验"
               mission_name_display: "强攻"
             - mission_name: "击破振膜试验"
@@ -57,6 +64,9 @@
             - mission_name: "自定义卡组3"
             - mission_name: "自定义卡组4"
             - mission_name: "自定义卡组5"
+        - mission_type_name: "代理人方案培养"
+          mission_list:
+            - mission_name: "代理人方案培养"
 
     - category_name: "定期清剿"
       mission_type_list:
@@ -78,6 +88,9 @@
           mission_type_name_display: "折枝剑歌 静听嘉音"
         - mission_type_name: "游侠与守卫"
           mission_type_name_display: "如影相随 法厄同之歌"
+        - mission_type_name: "口舌与刀兵"
+          mission_type_name_display: "云岿如我 山大王"
+        - mission_type_name: "代理人方案培养"
 
     - category_name: "专业挑战室"
       mission_type_list:
@@ -90,6 +103,8 @@
         - mission_type_name: "多佩冈亚·简"
         - mission_type_name: "色雷斯人"
         - mission_type_name: "伐木机"
+        - mission_type_name: "秽息蚀者·阿瓦鲁斯"
+        - mission_type_name: "代理人方案培养"
 
 - tab_name: "作战"
   category_list:
@@ -100,11 +115,14 @@
         - mission_type_name: "冥宁芙·双子"
         - mission_type_name: "「霸主侵蚀体·庞培」"
         - mission_type_name: "牲鬼·布林格"
+        - mission_type_name: "秽息司祭"
+        - mission_type_name: "代理人方案培养"
     - category_name: "零号空洞"
       mission_type_list:
         - mission_type_name: "迷失之地"
           mission_list:
             - mission_name: "战线肃清"
+            - mission_name: "特遣调查"
         - mission_type_name: "断层之谜"
         - mission_type_name: "枯萎之都"
         - mission_type_name: "旧都列车"

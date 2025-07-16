@@ -1,6 +1,7 @@
 from collections import deque
 import logging
-from PySide6.QtCore import Signal, QObject, QTimer
+from PySide6.QtCore import Signal, QObject, QTimer, QEvent
+from PySide6.QtGui import QMouseEvent
 from qfluentwidgets import PlainTextEdit, isDarkTheme
 from one_dragon.utils.log_utils import log as od_log
 from one_dragon.yolo.log_utils import log as yolo_log
@@ -40,9 +41,11 @@ class LogReceiver(logging.Handler):
 
 
 class LogDisplayCard(PlainTextEdit):
+    userWheelScroll = Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        
+
         # 设置只读
         self.setReadOnly(True)
 
@@ -58,6 +61,15 @@ class LogDisplayCard(PlainTextEdit):
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.update_logs)
 
+        # 初始化滚动重置定时器
+        self.scroll_reset_timer = QTimer(self)
+        self.scroll_reset_timer.setSingleShot(True)
+        self.scroll_reset_timer.timeout.connect(self._enable_auto_scroll)
+
+        self._mouse_button_down = False
+        self.userWheelScroll.connect(self._on_user_wheel_scroll)
+        self.verticalScrollBar().valueChanged.connect(self.handle_scroll_change)
+
         # 设置自动滚动
         self.auto_scroll = False
 
@@ -71,7 +83,7 @@ class LogDisplayCard(PlainTextEdit):
         self.is_pause = False
 
         # 限制显示行数
-        self.setMaximumBlockCount(192)  
+        self.setMaximumBlockCount(192)
 
     def init_color(self):
         """根据主题设置颜色"""
@@ -102,6 +114,7 @@ class LogDisplayCard(PlainTextEdit):
         self.is_pause = True
         self.auto_scroll = False
         self.update_timer.stop()
+        self.scroll_reset_timer.stop()
         self.receiver.update = False
 
     def stop(self):
@@ -112,6 +125,7 @@ class LogDisplayCard(PlainTextEdit):
             self.is_pause = False
         self.auto_scroll = False
         self.update_timer.stop()
+        self.scroll_reset_timer.stop()
         self.update_logs()  # 停止后 最后更新一次日志
         self.receiver.update = False
 
@@ -125,11 +139,54 @@ class LogDisplayCard(PlainTextEdit):
         if self.auto_scroll:
             self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())  # 滚动到最新位置
 
+    def mousePressEvent(self, event: QMouseEvent):
+        """处理鼠标点击事件"""
+        self._mouse_button_down = True
+        self.auto_scroll = False
+        super().mousePressEvent(event)
+        self.scroll_reset_timer.stop()
+
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        """处理鼠标释放事件"""
+        self._mouse_button_down = False
+        super().mouseReleaseEvent(event)
+        self.scroll_reset_timer.start(15000)  # 15秒
+
+    def _on_user_wheel_scroll(self):
+        """处理用户滚轮滚动事件"""
+        self.auto_scroll = False
+        self.scroll_reset_timer.start(15000)  # 15秒
+
+    def _enable_auto_scroll(self):
+        """在用户滚动一段时间后恢复自动滚动"""
+        if self.is_running and not self.is_pause and not self.textCursor().hasSelection():
+            self.auto_scroll = True
+
+    def handle_scroll_change(self, value: int):
+        """处理滚动条值变化事件"""
+        if self._mouse_button_down:  # 如果鼠标按钮仍被按下，则不恢复自动滚动
+            return
+
+        scrollbar = self.verticalScrollBar()
+        is_at_bottom = scrollbar.value() == scrollbar.maximum()
+        is_scrollable = scrollbar.maximum() > scrollbar.minimum()
+
+        if not self.auto_scroll: 
+            if is_at_bottom and is_scrollable:
+                if self.is_running and not self.is_pause:
+                    self.auto_scroll = True
+                self.scroll_reset_timer.stop()
+
+    def eventFilter(self, obj, event: QEvent):
+        if event.type() == QEvent.Type.Wheel:
+            self.userWheelScroll.emit()
+        return super().eventFilter(obj, event)
+
     def _format_logs(self, log_list: list[str]) -> str:
         """格式化日志"""
         formatted_logs = []
         formatted_log = ""
-        
+
         for log_item in log_list:
             # 给方括号内的内容着色
             if '[' in log_item and ']' in log_item:

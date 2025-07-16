@@ -146,3 +146,16 @@ class LostVoidRunRecord(AppRunRecord):
         self.daily_run_times = 0
         self.eval_point_complete = False
         self.period_reward_complete = False
+        self.complete_task_force_with_up = False
+
+    @property
+    def complete_task_force_with_up(self) -> bool:
+        """
+        是否使用了UP代理人完成特遣调查
+        :return:
+        """
+        return self.get('complete_task_force_with_up', False)
+
+    @complete_task_force_with_up.setter
+    def complete_task_force_with_up(self, new_value: bool) -> None:
+        self.update('complete_task_force_with_up', new_value)

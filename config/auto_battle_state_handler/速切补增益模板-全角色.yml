@@ -9,7 +9,7 @@ handlers:
         debug_name: "非耀嘉音快速支援"
         sub_handlers:
           # 大哥青衣在你们也有脸站场吗？
-          - states: "![自定义-连携换人, 0, 10] & ![前台-青衣] & [青衣-能量]{0, 120} & ![自定义-黄光切人, 0, 3]"  # 给队友时间稍微E一下
+          - states: "![自定义-连携换人, 0, 10] & ![前台-青衣] & [青衣-能量]{0, 120} & ![自定义-黄光切人, 0, 3]" # 给队友时间稍微E一下
             debug_name: "非失衡期青衣换入前场"
             operations:
               - op_name: "按键-切换角色"
@@ -38,7 +38,7 @@ handlers:
           # 没有上面的几位高贵，就藏这里好了
           - states: ""
             sub_handlers:
-              - states: "[后台-1-赛斯]"  # 赛斯只顺切
+              - states: "[后台-1-赛斯]" # 赛斯只顺切
                 sub_handlers:
                   - states: "([赛斯-能量]{85, 121} | [赛斯-意气]{95, 101}) & ![自定义-赛斯-意气风发, 0, 20]"
                     operations:
@@ -47,7 +47,7 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-扳机]"  # 扳机补强化
+              - states: "![前台-扳机]" # 扳机补强化
                 sub_handlers:
                   - states: "([扳机-特殊技可用] | [扳机-终结技可用]) & ![自定义-扳机-强化追击, 0, 7]"
                     operations:
@@ -56,7 +56,7 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-本]"  # 本要补护盾
+              - states: "![前台-本]" # 本要补护盾
                 sub_handlers:
                   - states: "[本-特殊技可用] & ![自定义-本-守卫, 0, 20]"
                     operations:
@@ -65,7 +65,7 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-凯撒]"  # 凯撒要补护盾
+              - states: "![前台-凯撒]" # 凯撒要补护盾
                 sub_handlers:
                   - states: "[凯撒-特殊技可用] & ([自定义-血量扣减, 0, 3] | ![自定义-凯撒-护盾, 0, 20]) | "
                     operations:
@@ -109,12 +109,30 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
+              - states: "![前台-潘引壶]"
+                sub_handlers:
+                  - states: "[潘引壶-特殊技可用]"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "潘引壶"
+                      - op_name: "清除状态"
+                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+
               - states: "![前台-莱卡恩]"
                 sub_handlers:
                   - states: "[莱卡恩-特殊技可用]"
                     operations:
                       - op_name: "按键-切换角色"
                         agent_name: "莱卡恩"
+                      - op_name: "清除状态"
+                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+
+              - states: "![前台-橘福福]"
+                sub_handlers:
+                  - states: "[橘福福-特殊技可用]"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "橘福福"
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
@@ -136,7 +154,7 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-丽娜]"  # 丽娜努力保持人偶
+              - states: "![前台-丽娜]" # 丽娜努力保持人偶
                 sub_handlers:
                   - states: "[丽娜-能量]{0, 120} & ![自定义-丽娜-人偶, 0, 8]"
                     operations:
@@ -154,7 +172,7 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-妮可]"  # 妮可能量场过期了，有EQ之一就切
+              - states: "![前台-妮可]" # 妮可能量场过期了，有EQ之一就切
                 sub_handlers:
                   - states: "([妮可-特殊技可用] | [妮可-终结技可用])  & ![自定义-妮可-能量场, -5, 3.5]"
                     operations:
@@ -163,7 +181,7 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-柏妮思]"  # 柏妮思补燃点
+              - states: "![前台-柏妮思]" # 柏妮思补燃点
                 sub_handlers:
                   - states: "([柏妮思-特殊技可用] & [柏妮思-燃点]{0, 40}) | (![自定义-柏妮思-灼烧, 0, 12] & [柏妮思-燃点]{60, 100})"
                     debug_name: "柏妮思燃点补充"
@@ -173,12 +191,21 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-柳]"  # 柳有能量可以上了
+              - states: "![前台-柳]" # 柳有能量可以上了
                 sub_handlers:
                   - states: "[柳-特殊技可用]"
                     operations:
                       - op_name: "按键-切换角色"
                         agent_name: "柳"
+                      - op_name: "清除状态"
+                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+
+              - states: "![前台-薇薇安]" # 柳有能量可以上了
+                sub_handlers:
+                  - states: "[薇薇安-护羽]{0,1}"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "薇薇安"
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
@@ -227,28 +254,14 @@ handlers:
                     state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
               # 不是输出没必要切出来
-              - states: "[后台-1-异常]"
+              - states: "[后台-1-异常] | [后台-1-强攻] | [后台-1-命破]"
                 operations:
                   - op_name: "按键-切换角色-下一个"
                     post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "[后台-1-强攻]"
-                operations:
-                  - op_name: "按键-切换角色-下一个"
-                    post_delay: 0.1
-                  - op_name: "清除状态"
-                    state_list: ["自定义-速切结束", "自定义-动作不打断"]
-
-              - states: "[后台-2-异常]"
-                operations:
-                  - op_name: "按键-切换角色-上一个"
-                    post_delay: 0.1
-                  - op_name: "清除状态"
-                    state_list: ["自定义-速切结束", "自定义-动作不打断"]
-
-              - states: "[后台-2-强攻]"
+              - states: "[后台-2-异常] | [后台-2-强攻] | [后台-2-命破]"
                 operations:
                   - op_name: "按键-切换角色-上一个"
                     post_delay: 0.1

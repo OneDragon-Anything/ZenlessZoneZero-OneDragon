@@ -19,20 +19,17 @@ class BackToNormalWorld(ZOperation):
         需要保证在任何情况下调用，都能返回大世界，让后续的应用可执行
         :param ctx:
         """
-        ZOperation.__init__(self, ctx, op_name=gt('返回大世界', 'ui'))
+        ZOperation.__init__(self, ctx, op_name=gt('返回大世界'))
 
         self.last_dialog_idx: int = -1  # 上次选择的对话选项下标
 
     @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=60)
-    def check_screen_and_run(self, screen: Optional[MatLike] = None) -> OperationRoundResult:
+    def check_screen_and_run(self) -> OperationRoundResult:
         """
         识别游戏画面
         :return:
         """
-        if screen is None:
-            screen = self.screenshot()
-
-        result = self.round_by_goto_screen(screen=screen, screen_name='大世界-普通', retry_wait=None)
+        result = self.round_by_goto_screen(screen=self.last_screenshot, screen_name='大世界-普通', retry_wait=None)
         if result.is_success:
             return self.round_success(result.status)
 
@@ -40,51 +37,51 @@ class BackToNormalWorld(ZOperation):
                 and self.ctx.screen_loader.current_screen_name is not None):
             return self.round_wait(result.status, wait=1)
 
-        result = self.round_by_find_area(screen, '大世界', '信息')
+        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
 
         if result.is_success:
             return self.round_success(result.status)
 
         # 大部分画面都有街区可以直接返回
-        result = self.round_by_find_and_click_area(screen, '画面-通用', '左上角-街区')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '左上角-街区')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
 
         # 大部分画面左上角都有返回按钮
-        result = self.round_by_find_and_click_area(screen, '菜单', '返回')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
 
         # 进入游戏时 弹出来的继续对话框
         # 例如 空洞继续
-        result = self.round_by_find_and_click_area(screen, '大世界', '对话框取消')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', '对话框取消')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
 
         # 这是领取完活跃度奖励的情况
-        result = self.check_compendium(screen)
+        result = self.check_compendium(self.last_screenshot)
         if result is not None:
             return self.round_retry(result.status, wait=1)
 
         # 判断是否有好感度事件
-        if self._check_agent_dialog(screen):
-            return self._handle_agent_dialog(screen)
+        if self._check_agent_dialog(self.last_screenshot):
+            return self._handle_agent_dialog(self.last_screenshot)
 
         # 判断在战斗画面
-        result = self.round_by_find_area(screen, '战斗画面', '按键-普通攻击')
+        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
         if result.is_success:
             self.round_by_click_area('战斗画面', '菜单')
             return self.round_retry(result.status, wait=1)
         # 空洞内的撤退
-        result = self.round_by_find_and_click_area(screen, '零号空洞-战斗', '退出战斗')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-战斗', '退出战斗')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
         # 空洞内撤退后的完成
-        result = self.round_by_find_and_click_area(screen, '零号空洞-事件', '通关-完成')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '通关-完成')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
         # 在空洞内
-        result = hollow_event_utils.check_in_hollow(self.ctx, screen)
+        result = hollow_event_utils.check_in_hollow(self.ctx, self.last_screenshot)
         if result is not None:
             op = HollowExitByMenu(self.ctx)
             op.execute()
@@ -104,7 +101,7 @@ class BackToNormalWorld(ZOperation):
         part = cv2_utils.crop_image_only(screen, area.rect)
         ocr_result_map = self.ctx.ocr.run_ocr(part)
         ocr_result_list = [i for i in ocr_result_map.keys()]
-        agent_name_list = [gt(i.value.agent_name) for i in AgentEnum]
+        agent_name_list = [gt(i.value.agent_name, 'game') for i in AgentEnum]
         idx1, idx2 = str_utils.find_most_similar(ocr_result_list, agent_name_list)
         return idx1 is not None and idx2 is not None
 
@@ -138,7 +135,7 @@ class BackToNormalWorld(ZOperation):
         part = cv2_utils.crop_image_only(screen, area.rect)
 
         tab_list = self.ctx.compendium_service.data.tab_list
-        target_word_list = [gt(i.tab_name) for i in tab_list]
+        target_word_list = [gt(i.tab_name, 'game') for i in tab_list]
         tab_num: int = 0
         ocr_results = self.ctx.ocr.run_ocr(part)
         for ocr_result, mrl in ocr_results.items():
@@ -155,7 +152,7 @@ class BackToNormalWorld(ZOperation):
 def __debug_op():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     op = BackToNormalWorld(ctx)
     ctx.start_running()
     op.execute()
@@ -164,12 +161,12 @@ def __debug_op():
 def _debug():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     op = BackToNormalWorld(ctx)
     from one_dragon.utils import debug_utils
     screen = debug_utils.get_debug_image('111')
     import cv2
-    screen = cv2.resize(screen, (1920, 1080))
+    op.last_screenshot = cv2.resize(screen, (1920, 1080))
     print(op.check_screen_and_run(screen).status)
 
 

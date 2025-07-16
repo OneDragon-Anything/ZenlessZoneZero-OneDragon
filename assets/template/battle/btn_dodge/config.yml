@@ -1,8 +1,0 @@
-sub_dir: battle
-template_id: dodge
-template_name: 战斗-闪避
-template_shape: circle
-auto_mask: true
-point_list:
-- 1563, 967
-- 1522, 967

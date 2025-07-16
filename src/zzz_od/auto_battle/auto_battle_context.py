@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, Future
 
 import threading
 from cv2.typing import MatLike
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Tuple
 
 from one_dragon.base.conditional_operation.conditional_operator import ConditionalOperator
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
@@ -16,6 +16,7 @@ from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.auto_battle_agent_context import AutoBattleAgentContext
 from zzz_od.auto_battle.auto_battle_custom_context import AutoBattleCustomContext
 from zzz_od.auto_battle.auto_battle_dodge_context import AutoBattleDodgeContext
+from zzz_od.auto_battle.auto_battle_target_context import AutoBattleTargetContext
 from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent
@@ -30,6 +31,7 @@ class AutoBattleContext:
         self.agent_context: AutoBattleAgentContext = AutoBattleAgentContext(self.ctx)
         self.dodge_context: AutoBattleDodgeContext = AutoBattleDodgeContext(self.ctx)
         self.custom_context: AutoBattleCustomContext = AutoBattleCustomContext(self.ctx)
+        self.target_context: AutoBattleTargetContext = AutoBattleTargetContext(self.ctx)
         self.auto_op: ConditionalOperator = ConditionalOperator('', '', is_mock=True)
 
         # 识别区域
@@ -324,6 +326,8 @@ class AutoBattleContext:
             check_chain_interval: Union[float, List[float]] = 0,
             check_quick_interval: Union[float, List[float]] = 0,
             check_end_interval: Union[float, List[float]] = 5,
+            target_lock_interval: float = 0,
+            abnormal_status_interval: float = 0,
     ) -> None:
         """
         自动战斗前的初始化
@@ -342,6 +346,11 @@ class AutoBattleContext:
             check_dodge_interval=check_dodge_interval
         )
         self.custom_context.init_battle_custom_context(auto_op)
+        self.target_context.init_battle_target_context(
+            auto_op=auto_op,
+            target_lock_interval=target_lock_interval,
+            abnormal_status_interval=abnormal_status_interval
+        )
 
         self._to_check_states: set[str] = set(to_check_state_list) if to_check_state_list is not None else None
 
@@ -391,24 +400,38 @@ class AutoBattleContext:
 
         future_list: List[Future] = []
 
+        # 统一提交检测任务
         if in_battle:
+            # 闪避相关
             audio_future = _battle_state_check_executor.submit(self.dodge_context.check_dodge_audio, screenshot_time)
             future_list.append(audio_future)
             future_list.append(_battle_state_check_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future))
 
-            agent_future = _battle_state_check_executor.submit(self.agent_context.check_agent_related, screen, screenshot_time)
-            future_list.append(agent_future)
+            # 角色状态
+            future_list.append(_battle_state_check_executor.submit(self.agent_context.check_agent_related, screen, screenshot_time))
+
+            # 目标状态
+            future_list.append(_battle_state_check_executor.submit(self.target_context.run_all_checks, screen, screenshot_time))
+
+            # 快速支援
             future_list.append(_battle_state_check_executor.submit(self.check_quick_assist, screen, screenshot_time))
+
+            # 距离
             if check_distance:
                 future_list.append(_battle_state_check_executor.submit(self._check_distance_with_lock, screen, screenshot_time))
         else:
+            # 连携
             future_list.append(_battle_state_check_executor.submit(self.check_chain_attack, screen, screenshot_time))
+
+            # 战斗结束
             check_battle_end = check_battle_end_normal_result or check_battle_end_hollow_result or check_battle_end_defense_result
             if check_battle_end:
                 future_list.append(_battle_state_check_executor.submit(
                     self._check_battle_end, screen, screenshot_time,
                     check_battle_end_normal_result, check_battle_end_hollow_result, check_battle_end_defense_result
                 ))
+
+        # 统一处理结果
         for future in future_list:
             future.add_done_callback(thread_utils.handle_future_result)
 
@@ -477,15 +500,26 @@ class AutoBattleContext:
             state_records.append(StateRecord(BattleStateEnum.STATUS_CHAIN_READY.value, screenshot_time))
             self.auto_op.batch_update_states(state_records)
 
-    def _match_chain_agent_in(self, img: MatLike, possible_agents: Optional[List[Agent]] = None) -> Optional[Agent]:
+    def _match_chain_agent_in(self, img: MatLike, possible_agents: Optional[List[Tuple[Agent, Optional[str]]]]) -> Optional[Agent]:
         """
         在候选列表重匹配角色
         :return:
         """
-        for agent in possible_agents:
-            mrl = self.ctx.tm.match_template(img, 'battle', 'avatar_chain_' + agent.template_id, threshold=0.8)
-            if mrl.max is not None:
-                return agent
+        prefix = 'avatar_chain_'
+        for agent, specific_template_id in possible_agents:
+            # 上次识别过的模板 ID，接着用
+            if specific_template_id:
+                template_to_check = prefix + specific_template_id
+                mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                if mrl.max is not None:
+                    return agent
+            # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
+            else:
+                for template_id in agent.template_id_list:
+                    template_to_check = prefix + template_id
+                    mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                    if mrl.max is not None:
+                        return agent
 
         return None
 
@@ -520,15 +554,26 @@ class AutoBattleContext:
         finally:
             self._check_quick_lock.release()
 
-    def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: Optional[List[Agent]] = None) -> Optional[Agent]:
+    def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: Optional[List[Tuple[Agent, Optional[str]]]]) -> Optional[Agent]:
         """
         在候选列表重匹配角色
         :return:
         """
-        for agent in possible_agents:
-            mrl = self.ctx.tm.match_template(img, 'battle', 'avatar_quick_' + agent.template_id, threshold=0.9)
-            if mrl.max is not None:
-                return agent
+        prefix = 'avatar_quick_'
+        for agent, specific_template_id in possible_agents:
+            # 上次识别过的模板 ID，接着用
+            if specific_template_id:
+                template_to_check = prefix + specific_template_id
+                mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                if mrl.max is not None:
+                    return agent
+            # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
+            else:
+                for template_id in agent.template_id_list:
+                    template_to_check = prefix + template_id
+                    mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                    if mrl.max is not None:
+                        return agent
 
         return None
 

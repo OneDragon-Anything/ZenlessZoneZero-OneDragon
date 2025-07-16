@@ -98,6 +98,17 @@ class MatchResultList:
             if self.max is None or a.confidence > self.max.confidence:
                 self.max = a
 
+    def extend(self, mrl: "MatchResultList", auto_merge: bool = True, merge_distance: float = 10) -> None:
+        """
+        加入将另一个列表的所有元素
+        :param mrl: 另一个列表
+        :param auto_merge: 是否合并
+        :param merge_distance: 合并距离
+        :return:
+        """
+        for mr in mrl.arr:
+            self.append(mr, auto_merge=auto_merge, merge_distance=merge_distance)
+
     def __getitem__(self, item):
         return self.arr[item]
 

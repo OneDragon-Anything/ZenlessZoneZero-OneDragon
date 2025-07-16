@@ -21,16 +21,14 @@ class ChoosePredefinedTeam(ZOperation):
         在出战画面使用
         :param ctx:
         """
-        ZOperation.__init__(self, ctx, op_name=gt('选择预备编队', 'ui'))
+        ZOperation.__init__(self, ctx, op_name='%s %s' % (gt('选择预备编队'), target_team_idx_list))
 
         self.target_team_idx_list: List[int] = target_team_idx_list
         self.choose_fail_times: int = 0   # 选择失败的次数
 
     @operation_node(name='画面识别', node_max_retry_times=10, is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result = self.round_by_find_area(screen, '实战模拟室', '预备编队')
+        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '预备编队')
         if result.is_success:
             return self.round_success(result.status)
 
@@ -39,18 +37,15 @@ class ChoosePredefinedTeam(ZOperation):
     @node_from(from_name='画面识别', status='预备编队')
     @operation_node(name='点击预备编队')
     def click_team(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '实战模拟室', '预备编队',
+        return self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '预备编队',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击预备编队')
     @node_from(from_name='选择编队失败')
     @operation_node(name='选择编队')
     def choose_team(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
         area = self.ctx.screen_loader.get_area('实战模拟室', '预备出战')
-        result = self.round_by_ocr(screen, '预备出战', area=area,
+        result = self.round_by_ocr(self.last_screenshot, '预备出战', area=area,
                                    color_range=[(240, 240, 240), (255, 255, 255)])
         if result.is_success:
             return self.round_success(result.status)
@@ -63,7 +58,7 @@ class ChoosePredefinedTeam(ZOperation):
 
             target_team_name = team_list[target_team_idx].name
 
-            ocr_map = self.ctx.ocr.run_ocr(screen)
+            ocr_map = self.ctx.ocr.run_ocr(self.last_screenshot)
             target_list = list(ocr_map.keys())
             best_match = difflib.get_close_matches(target_team_name, target_list, n=1)
 
@@ -96,9 +91,7 @@ class ChoosePredefinedTeam(ZOperation):
     @node_from(from_name='选择编队')
     @operation_node(name='选择编队确认')
     def click_confirm(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result = self.round_by_find_and_click_area(screen, '实战模拟室', '预备出战')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '预备出战')
         if result.is_success:
             time.sleep(0.5)
             self.ctx.controller.mouse_move(ScreenNormalWorldEnum.UID.value.center)  # 点击后 移开鼠标 防止识别不到出战
@@ -110,7 +103,7 @@ class ChoosePredefinedTeam(ZOperation):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
 
     from one_dragon.utils import debug_utils
     screen = debug_utils.get_debug_image('img')

@@ -13,7 +13,7 @@ class WaitNormalWorld(ZOperation):
         :param ctx:
         """
         ZOperation.__init__(self, ctx,
-                            op_name=gt('等待大世界画面', 'ui')
+                            op_name=gt('等待大世界画面')
                             )
 
     def handle_init(self):
@@ -25,7 +25,5 @@ class WaitNormalWorld(ZOperation):
         识别游戏画面
         :return:
         """
-        screen = self.screenshot()
-
-        return self.round_by_find_area(screen, '大世界', '信息',
+        return self.round_by_find_area(self.last_screenshot, '大世界', '信息',
                                        retry_wait=1)

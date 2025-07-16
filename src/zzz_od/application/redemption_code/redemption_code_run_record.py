@@ -1,3 +1,5 @@
+import os
+import yaml
 from typing import Optional, List
 
 from one_dragon.base.operation.application_run_record import AppRunRecord
@@ -20,12 +22,29 @@ class RedemptionCodeRunRecord(AppRunRecord):
             game_refresh_hour_offset=game_refresh_hour_offset
         )
 
-        self.valid_code_list = [
-            RedemptionCode('ZZZ888', '20480101'),  # 开服兑换码
-            RedemptionCode('HAPPYNEWYEAR', '20250111'),  # 1.5 前瞻
-            RedemptionCode('SHISHIRUYIZZZ2025', '20250205'),  # 1.4 版本回馈
-            RedemptionCode('ZZZCLOUDBANGBANG', '20250205'),  # 1.4 新增，未知过期时间和来源
-        ]
+        self.valid_code_list: List[RedemptionCode] = self._load_redemption_codes_from_file()
+
+    def _load_redemption_codes_from_file(self) -> List[RedemptionCode]:
+        """
+        从配置文件加载兑换码
+        """
+        codes_file_path = os.path.join(os.getcwd(), 'config', 'redemption_codes.yml')
+        if not os.path.exists(codes_file_path):
+            print(f"错误：未找到兑换码配置文件：{codes_file_path}")
+            return []
+
+        with open(codes_file_path, 'r', encoding='utf-8') as f:
+            config_data = yaml.safe_load(f)
+
+        codes = []
+        if config_data and 'codes' in config_data:
+            for item in config_data['codes']:
+                code = item.get('code')
+                end_dt = item.get('end_dt')
+                if code and end_dt:
+                    codes.append(RedemptionCode(code, str(end_dt))) # 确保end_dt是字符串
+
+        return codes
 
     @property
     def run_status_under_now(self):
@@ -67,17 +86,17 @@ class RedemptionCodeRunRecord(AppRunRecord):
         按日期获取未使用的兑换码
         :return:
         """
-        valid_code_list = [
+        valid_code_strings = [
             i.code
             for i in self.valid_code_list
             if i.end_dt >= dt
         ]
-        
+
         for used in self.used_code_list:
-            if used in valid_code_list:  # 先检查是否存在
-                valid_code_list.remove(used)
-        
-        return valid_code_list
+            if used in valid_code_strings:
+                valid_code_strings.remove(used)
+
+        return valid_code_strings
 
     def add_used_code(self, code: str) -> None:
         used = self.used_code_list

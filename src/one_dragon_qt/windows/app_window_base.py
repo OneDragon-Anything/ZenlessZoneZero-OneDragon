@@ -21,7 +21,7 @@ class AppWindowBase(PhosWindow):
         PhosWindow.__init__(self, parent=parent)
         self.project_config: ProjectConfig = project_config
         self._last_stack_idx: int = 0
-        
+
         # 设置窗口标题
         self.setWindowTitle(win_title)
         if app_icon is not None:

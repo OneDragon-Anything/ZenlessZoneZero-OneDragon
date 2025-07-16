@@ -33,9 +33,9 @@ area_list:
 - area_name: 底部列表
   id_mark: false
   pc_rect:
-  - 270
+  - 200
   - 924
-  - 1634
+  - 1728
   - 1058
   text: ''
   lcs_percent: 0.5
@@ -118,9 +118,9 @@ area_list:
 - area_name: 底部-快捷手册
   id_mark: false
   pc_rect:
-  - 270
+  - 200
   - 924
-  - 1634
+  - 1728
   - 1058
   text: 快捷手册
   lcs_percent: 0.5
@@ -147,9 +147,9 @@ area_list:
 - area_name: 底部-仓库
   id_mark: false
   pc_rect:
-  - 270
+  - 200
   - 924
-  - 1634
+  - 1728
   - 1058
   text: 仓库
   lcs_percent: 0.5
@@ -162,9 +162,9 @@ area_list:
 - area_name: 底部-邮件
   id_mark: false
   pc_rect:
-  - 270
+  - 200
   - 924
-  - 1634
+  - 1728
   - 1058
   text: 邮件
   lcs_percent: 0.5
@@ -177,9 +177,9 @@ area_list:
 - area_name: 底部-更多
   id_mark: false
   pc_rect:
-  - 270
+  - 200
   - 924
-  - 1634
+  - 1728
   - 1058
   text: 更多
   lcs_percent: 0.5

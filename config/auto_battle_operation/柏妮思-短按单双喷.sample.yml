@@ -1,0 +1,19 @@
+# 为了兼容连发，时间用时会偏短0.2秒
+operations:
+  - op_name: "按键-特殊攻击"
+    post_delay: 0.1
+    repeat: 4
+
+  - op_name: "设置状态"
+    state: "自定义-异常-火"
+    add: 500
+
+  - op_name: "按键-特殊攻击"
+    post_delay: 0.1
+    repeat: 4
+
+  - op_name: "等待秒数"
+    seconds: 0.4
+
+  - op_name: "设置状态"
+    state: "自定义-柏妮思-灼烧"

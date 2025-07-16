@@ -115,8 +115,8 @@ class LostVoidDetector(Yolov8Detector):
 def __debug():
     from zzz_od.context.zzz_context import ZContext
     ctx = ZContext()
-    detector = LostVoidDetector(model_name=ctx.yolo_config.lost_void_det,
-                                backup_model_name=ctx.yolo_config.lost_void_det_backup)
+    detector = LostVoidDetector(model_name=ctx.model_config.lost_void_det,
+                                backup_model_name=ctx.model_config.lost_void_det_backup)
 
     from one_dragon.utils import debug_utils
     screen = debug_utils.get_debug_image('_1736869628156')

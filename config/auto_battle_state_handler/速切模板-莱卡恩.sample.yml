@@ -20,10 +20,10 @@ handlers:
       - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
         debug_name: "切人后等待"
         sub_handlers:
-          - states: "[按键可用-快速支援, 0, 0.5]"
+          - states: "[按键可用-快速支援, 0, 0.3]"
             operations:
               - op_name: "等待秒数"
-                seconds: 1.0
+                seconds: 0.3
           - states: ""
             operations:
               - op_name: "等待秒数"

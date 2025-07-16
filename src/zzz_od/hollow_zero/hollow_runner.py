@@ -43,7 +43,7 @@ class HollowRunner(ZOperation):
     def __init__(self, ctx: ZContext):
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('空洞操作器')
+            op_name=gt('空洞操作器', 'game')
         )
 
         self._special_event_handlers: dict[str, Type] = {
@@ -99,24 +99,22 @@ class HollowRunner(ZOperation):
 
     @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=60)
     def check_screen(self) -> OperationRoundResult:
-        now = time.time()
-        screen = self.screenshot()
-        result = hollow_event_utils.check_screen(self.ctx, screen, self._handled_events)
+        result = hollow_event_utils.check_screen(self.ctx, self.last_screenshot, self._handled_events)
         if result is not None and result not in [
             HollowZeroSpecialEvent.HOLLOW_INSIDE.value.event_name,  # 空洞内部比较特殊 仅为识别使用 不做响应处理
             HollowZeroSpecialEvent.RESONIUM_STORE_5.value.event_name,  # 商人格子不会消失 为了防止循环进入商店 仅在移动格子时候触发进入商店 平时出现这个选项不做点击
             HollowZeroSpecialEvent.DOOR_BATTLE_ENTRY.value.event_name,  # 这扇门在第一次过去的时候就会开 如果没开到 说明上场战斗没有S 开不了 就不继续了
         ]:
-            return self._handle_event(screen, result)
+            return self._handle_event(self.last_screenshot, result)
 
         if result in [
             HollowZeroSpecialEvent.HOLLOW_INSIDE.value.event_name,  # 当前有显示背包 可以尝试识别地图
             HollowZeroSpecialEvent.RESONIUM_STORE_5.value.event_name,  # 商人格子也需要寻路
             HollowZeroSpecialEvent.DOOR_BATTLE_ENTRY.value.event_name,  # 门扉禁闭-善战 开不了门 就移动去其他地方
         ]:
-            current_map = self.ctx.hollow.map_service.cal_map_by_screen(screen, now)
+            current_map = self.ctx.hollow.map_service.cal_map_by_screen(self.last_screenshot, self.last_screenshot_time)
             if current_map is not None:
-                result = self.try_move_by_map(screen, now, current_map)
+                result = self.try_move_by_map(self.last_screenshot, self.last_screenshot_time, current_map)
                 if result is not None:
                     return result
             # 识别不到地图 说明可能是空洞里有需要确认的对话框 随便点击一下吧对话框取消掉
@@ -353,10 +351,9 @@ class HollowRunner(ZOperation):
     @node_from(from_name='画面识别', status='通关-完成')
     @operation_node(name='通关-完成', node_max_retry_times=60)
     def mission_complete(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        result = self.round_by_find_and_click_area(screen, '零号空洞-事件', '通关-完成')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '通关-完成')
         if result.is_success:
-            reward = self.round_by_find_area(screen, '零号空洞-战斗', '通关-丁尼奖励')
+            reward = self.round_by_find_area(self.last_screenshot, '零号空洞-战斗', '通关-丁尼奖励')
             if not reward.is_success:
                 # 领满奖励了
                 self.ctx.hollow_zero_record.period_reward_complete = True
@@ -367,7 +364,7 @@ class HollowRunner(ZOperation):
             return self.round_wait(result.status, wait=1)
 
         # 一直尝试点击直到出现街区
-        result = self.round_by_find_area(screen, '零号空洞-入口', '街区')
+        result = self.round_by_find_area(self.last_screenshot, '零号空洞-入口', '街区')
         if result.is_success:
             self.ctx.hollow_zero_record.add_daily_times()
             return self.round_success(result.status)
@@ -379,7 +376,7 @@ def __debug():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.start_running()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     ctx.hollow.init_before_hollow_start('旧都列车', '旧都列车-核心')
     op = HollowRunner(ctx)
     # from one_dragon.utils import debug_utils

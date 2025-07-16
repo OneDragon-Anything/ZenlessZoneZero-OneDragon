@@ -40,7 +40,7 @@ class CallForSupport(ZOperation):
         event_name = HollowZeroSpecialEvent.CALL_FOR_SUPPORT.value.event_name
         ZOperation.__init__(
             self, ctx,
-            op_name=gt(event_name)
+            op_name=gt(event_name, 'game')
         )
 
         self._handlers: List[EventOcrResultHandler] = [
@@ -56,20 +56,18 @@ class CallForSupport(ZOperation):
 
     @operation_node(name='画面识别', is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return hollow_event_utils.check_event_text_and_run(self, screen, self._handlers)
+        return hollow_event_utils.check_event_text_and_run(self, self.last_screenshot, self._handlers)
 
     def check_team(self, text: str, rect: Rect) -> OperationRoundResult:
         """
         判断当前配队 决定选择的角色
         """
-        screen = self.screenshot()
-        agent_list = self.ctx.hollow.check_agent_list(screen)
+        agent_list = self.ctx.hollow.check_agent_list(self.last_screenshot)
 
         if agent_list is None:
             return self.round_retry('无法识别当前角色列表', wait=1)
 
-        self.new_agent = self._get_support_agent(screen)
+        self.new_agent = self._get_support_agent(self.last_screenshot)
         if self.new_agent is None:
             log.error('无法识别当前增援角色')
         self.should_call_pos = self._should_call_backup(agent_list, self.new_agent)
@@ -101,7 +99,7 @@ class CallForSupport(ZOperation):
             to_match = ocr_result[:3]
 
         agent_list: List[Agent] = [agent.value for agent in AgentEnum]
-        target_list: List[str] = [gt(agent.value.agent_name) for agent in AgentEnum]
+        target_list: List[str] = [gt(agent.value.agent_name, 'game') for agent in AgentEnum]
 
         results = difflib.get_close_matches(to_match, target_list, n=1, cutoff=0.1)
 
@@ -177,14 +175,13 @@ class CallForSupport(ZOperation):
     @node_from(from_name='画面识别', status=STATUS_ACCEPT)
     @operation_node(name=STATUS_ACCEPT)
     def accept_backup(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = hollow_event_utils.get_event_text_area(self.ctx)
-        result = self.round_by_ocr_and_click(screen, CallForSupport.STATUS_ACCEPT, area=area)
+        result = self.round_by_ocr_and_click(self.last_screenshot, CallForSupport.STATUS_ACCEPT, area=area)
         if result.is_success:
             self.replace = False
             return self.round_success(wait=2)
 
-        result = self.round_by_ocr_and_click(screen, '接替小队成员', area=area, lcs_percent=0.8)
+        result = self.round_by_ocr_and_click(self.last_screenshot, '接替小队成员', area=area, lcs_percent=0.8)
         if result.is_success:
             self.replace = True
             return self.round_success(wait=2)
@@ -194,13 +191,12 @@ class CallForSupport(ZOperation):
     @node_from(from_name=STATUS_ACCEPT)
     @operation_node(name='选择位置')
     def choose_pos(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = hollow_event_utils.get_event_text_area(self.ctx)
         if self.replace:
             cn = '接替%d号队员的位置' % self.should_call_pos
         else:
             cn = '%d号位' % self.should_call_pos
-        return self.round_by_ocr_and_click(screen, cn, area=area, lcs_percent=1,
+        return self.round_by_ocr_and_click(self.last_screenshot, cn, area=area, lcs_percent=1,
                                            success_wait=2, retry_wait=1)
 
     @node_from(from_name='选择位置')
@@ -212,7 +208,6 @@ class CallForSupport(ZOperation):
     @node_from(from_name='画面识别', status=STATUS_NO_NEED)
     @operation_node(name='拒绝')
     def reject_agent(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = hollow_event_utils.get_event_text_area(self.ctx)
         # 每个角色的不接受选项不一样
         opts = [
@@ -220,7 +215,7 @@ class CallForSupport(ZOperation):
             RejectOption('这次没有研究的机会'),  # 格蕾丝
             RejectOption('先不劳烦青衣了'),  # 青衣
             RejectOption('暂不需要援护'),  # 丽娜
-            RejectOption('目前不需要支援'),  # 派派, 耀嘉音, 零号·安比
+            RejectOption('目前不需要支援'),  # 派派, 耀嘉音, 零号·安比, 薇薇安
             RejectOption('下次再雇你'),  # 妮可
             RejectOption('市民更需要你'),  # 朱鸢
             RejectOption('无需增援', lcs_percent=0.6),  # 安比
@@ -237,19 +232,19 @@ class CallForSupport(ZOperation):
             RejectOption('下一次一起玩'),  # 猫又
             RejectOption('谢谢露西但我能搞定'),  # 露西
             RejectOption('之后有机会再一起玩吧'),  # 柏妮思
-            RejectOption('不打扰你工作了'), # 月城柳
-            RejectOption('还不到常胜冠军出马的时候'), # 莱特
-            RejectOption('等遇到大问题再找你帮忙！'), # 雅
-            RejectOption('怎么能让你加班呢'), # 悠真
-            RejectOption('放心去照顾嘉音吧，我没问题的'), # 伊芙琳
+            RejectOption('不打扰你工作了'),  # 月城柳
+            RejectOption('还不到常胜冠军出马的时候'),  # 莱特
+            RejectOption('等遇到大问题再找你帮忙！'),  # 雅
+            RejectOption('怎么能让你加班呢'),  # 悠真
+            RejectOption('放心去照顾嘉音吧，我没问题的'),  # 伊芙琳
         ]
 
-        part = cv2_utils.crop_image_only(screen, area.rect)
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         white = cv2.inRange(part, (240, 240, 240), (255, 255, 255))
         white = cv2_utils.dilate(white, 5)
         to_ocr = cv2.bitwise_and(part, part, mask=white)
 
-        target_list = [gt(i.word) for i in opts]
+        target_list = [gt(i.word, 'game') for i in opts]
         ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
         for ocr_result, mrl in ocr_result_map.items():
             results = difflib.get_close_matches(ocr_result, target_list, n=1)
@@ -267,7 +262,7 @@ def __debug():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.start_running()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     op = CallForSupport(ctx)
     op.execute()
 
@@ -275,7 +270,7 @@ def __debug():
 def __debug_support_agent():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     op = CallForSupport(ctx)
     from one_dragon.utils import os_utils
     import os
@@ -289,7 +284,7 @@ def __debug_support_agent():
 def __debug_current_agent():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     op = CallForSupport(ctx)
     from one_dragon.utils import os_utils
     import os
@@ -307,7 +302,7 @@ def __debug_current_agent():
 def __debug_check_screen():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     op = CallForSupport(ctx)
     from one_dragon.utils import os_utils
     import os

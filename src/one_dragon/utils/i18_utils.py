@@ -1,12 +1,32 @@
 import gettext
+import locale
 import os
 from typing import Optional
 
 from one_dragon.utils import os_utils
 
 _gt = {}
-_default_lang = 'cn'
+_default_lang = 'zh'
 
+
+def detect_language():
+    """自动检测系统语言"""
+    try:
+        system_locale = locale.getdefaultlocale()[0]
+        if system_locale and system_locale.startswith('zh'):
+            return 'zh'
+        else:
+            return 'en'
+    except:
+        return 'zh'
+
+
+def detect_and_set_default_language():
+    """
+    检测系统语言并设置为默认语言
+    :return:
+    """
+    return update_default_lang(detect_language())
 
 def get_translations(model: str, lang: str):
     """
@@ -27,7 +47,7 @@ def get_translations(model: str, lang: str):
     return translation
 
 
-def gt(msg: str, model: str = 'game', lang: str = _default_lang) -> str:
+def gt(msg: str, model: str = 'ui', lang: str = None) -> str:
     if msg is None or len(msg) == 0:
         return ''
     if lang is None:
@@ -41,7 +61,7 @@ def gt(msg: str, model: str = 'game', lang: str = _default_lang) -> str:
     return trans.gettext(msg) if trans is not None else msg
 
 
-def coalesce_gt(msg: Optional[str], default: str, model: str = 'game', lang: str = _default_lang) -> str:
+def coalesce_gt(msg: Optional[str], default: str, model: str = 'ui', lang: str = None) -> str:
     """
     带有默认值的获取多语言
     :param msg: 原字符串
@@ -50,6 +70,8 @@ def coalesce_gt(msg: Optional[str], default: str, model: str = 'game', lang: str
     :param lang:
     :return:
     """
+    if lang is None:
+        lang = _default_lang
     return gt(msg if msg is not None else default, model, lang)
 
 

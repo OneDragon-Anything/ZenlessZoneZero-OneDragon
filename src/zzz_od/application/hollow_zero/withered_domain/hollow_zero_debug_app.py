@@ -12,7 +12,7 @@ class HollowZeroDebugApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='hollow_zero_debug',
-            op_name=gt('零号空洞-调试', 'ui'),
+            op_name=gt('零号空洞-调试'),
             run_record=None
         )
 
@@ -32,6 +32,6 @@ class HollowZeroDebugApp(ZApplication):
     @operation_node(name='自动运行', is_start_node=True)
     def auto_run(self) -> OperationRoundResult:
         self.ctx.hollow.init_level_info(self.mission_type_name, self.mission_name)
-        self.ctx.hollow.init_event_yolo(self.ctx.yolo_config.hollow_zero_event_gpu)
+        self.ctx.hollow.init_event_yolo(self.ctx.model_config.hollow_zero_event_gpu)
         op = HollowRunner(self.ctx)
         return self.round_by_op_result(op.execute())

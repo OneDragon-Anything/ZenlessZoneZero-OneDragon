@@ -1,8 +1,0 @@
-sub_dir: battle
-template_id: special_attack_1
-template_name: 战斗-特殊攻击-1
-template_shape: circle
-auto_mask: true
-point_list:
-- 1670, 967
-- 1630, 967

@@ -37,9 +37,10 @@ class CoffeeApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='coffee',
-            op_name=gt('咖啡店', 'ui'),
+            op_name=gt('咖啡店'),
             run_record=ctx.coffee_record,
             retry_in_od=True,  # 传送落地有可能会歪 重试
+            need_notify=True,
         )
 
         self.chosen_coffee: Optional[Coffee] = None  # 选择的咖啡
@@ -61,13 +62,11 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='传送')
     @operation_node(name='等待大世界加载', node_max_retry_times=60)
     def wait_world(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result = self.round_by_find_area(screen, '咖啡店', '点单')
+        result = self.round_by_find_area(self.last_screenshot, '咖啡店', '点单')
         if result.is_success:
             return self.round_success(result.status)
 
-        result = self.round_by_find_area(screen, '大世界', '信息')
+        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
         if result.is_success:
             return self.round_success(result.status)
 
@@ -90,9 +89,8 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='移动交互')
     @operation_node(name='等待咖啡店加载', node_max_retry_times=20)
     def wait_coffee_shop(self) -> OperationRoundResult:
-        screen = self.screenshot()
         # 画面加载的时候，是滑动出现的，点单出现的时候，还未必能点击选中咖啡，因此要success_wait
-        return self.round_by_find_area(screen, '咖啡店', '点单',
+        return self.round_by_find_area(self.last_screenshot, '咖啡店', '点单',
                                        success_wait=1, retry_wait=1)
 
     @node_from(from_name='等待大世界加载', status='点单')
@@ -103,11 +101,10 @@ class CoffeeApp(ZApplication):
         day = os_utils.get_current_day_of_week(self.ctx.game_account_config.game_refresh_hour_offset)
         to_choose_list = self._get_coffee_to_choose(day)
 
-        screen = self.screenshot()
         # from one_dragon.utils import debug_utils
         # screen = debug_utils.get_debug_image('424905412-5c9df2d3-186d-4be5-a610-865553fd6adb')
         area = self.ctx.screen_loader.get_area('咖啡店', '咖啡列表')
-        part = cv2_utils.crop_image_only(screen, area.rect)
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         mask = cv2.inRange(part,
                            np.array([220, 220, 220], dtype=np.uint8),
                            np.array([255, 255, 255], dtype=np.uint8))
@@ -122,11 +119,11 @@ class CoffeeApp(ZApplication):
 
         for lcs_percent in [0.8, 0.6, 0.4]:
             for coffee_name in to_choose_list:
-                results = difflib.get_close_matches(gt(coffee_name), ocr_result_list, n=1)
+                results = difflib.get_close_matches(gt(coffee_name, 'game'), ocr_result_list, n=1)
                 if results is None or len(results) == 0:
                     continue
 
-                if not str_utils.find_by_lcs(gt(coffee_name), results[0], percent=lcs_percent):
+                if not str_utils.find_by_lcs(gt(coffee_name, 'game'), results[0], percent=lcs_percent):
                     continue
 
                 # 对于浓淡二字特殊判断
@@ -142,7 +139,7 @@ class CoffeeApp(ZApplication):
 
                 mrl = mrl_list[ocr_result_list.index(results[0])]
                 self.chosen_coffee = self.ctx.compendium_service.name_2_coffee[coffee_name]
-                time.sleep(0.5) # 暂停半秒以防点不到咖啡
+                time.sleep(0.5)  # 暂停半秒以防点不到咖啡
                 self.ctx.controller.click(mrl.max.center + area.left_top + Point(0, -50))
                 return self.round_success(self.chosen_coffee.coffee_name, wait=0.5)
 
@@ -226,9 +223,7 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='选择咖啡')
     @operation_node(name='点单')
     def order_coffee(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result = self.round_by_find_and_click_area(screen, '咖啡店', '点单')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '点单')
         if result.is_success:
             self.had_coffee_list.add(self.chosen_coffee.coffee_name)
             if self.chosen_coffee.extra:
@@ -242,12 +237,11 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='点单', status=STATUS_EXTRA_COFFEE)
     @operation_node(name='不占用点单确认')
     def extra_order_confirm(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        result = self.round_by_find_and_click_area(screen, '咖啡店', '对话框确认')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '对话框确认')
         if result.is_success:
             return self.round_success(result.status, wait=1)
 
-        result = self.round_by_find_and_click_area(screen, '咖啡店', '不可贪杯确认')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '不可贪杯确认')
         if result.is_success:
             return self.round_success(result.status, wait=1)
 
@@ -257,18 +251,16 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='不占用点单确认')
     @operation_node(name='点单后跳过')
     def skip_after_order(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result = self.round_by_find_area(screen, '咖啡店', '电量确认')
+        result = self.round_by_find_area(self.last_screenshot, '咖啡店', '电量确认')
         if result.is_success:
             return self.round_success(result.status)
 
         # 这个点击很怪 需要多点几次
-        result = self.round_by_find_and_click_area(screen, '咖啡店', '点单后跳过')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '点单后跳过')
         if result.is_success:
             return self.round_wait(result.status, wait=1)
 
-        result = self.round_by_find_and_click_area(screen, '咖啡店', '不可贪杯确认')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '不可贪杯确认')
         if result.is_success:
             return self.round_success(result.status, wait=1)
 
@@ -277,8 +269,7 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='点单后跳过')
     @operation_node(name='电量确认')
     def charge_confirm(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        result = self.round_by_find_and_click_area(screen, '咖啡店', '电量确认')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '电量确认')
 
         if result.is_success:
             if self.chosen_coffee.extra:
@@ -295,11 +286,9 @@ class CoffeeApp(ZApplication):
             # 没有加成的
             return self.round_success('没有加成')
 
-        screen = self.screenshot()
-
         if self.ctx.coffee_config.challenge_way == CoffeeChallengeWay.NONE.value.value:
             # 不挑战的
-            return self.round_by_find_and_click_area(screen, '咖啡店', '对话框确认',
+            return self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '对话框确认',
                                                      success_wait=1, retry_wait=1)
 
         if self.ctx.coffee_config.challenge_way == CoffeeChallengeWay.ONLY_PLAN.value.value:
@@ -311,10 +300,10 @@ class CoffeeApp(ZApplication):
                     break
 
             if not in_plan:
-                return self.round_by_find_and_click_area(screen, '咖啡店', '对话框确认',
+                return self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '对话框确认',
                                                          success_wait=1, retry_wait=1)
 
-        return self.round_by_find_and_click_area(screen, '咖啡店', '对话框前往',
+        return self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '对话框前往',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='选择前往', status='对话框前往')
@@ -346,9 +335,8 @@ class CoffeeApp(ZApplication):
             card_num=card_num
         )
 
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('咖啡店', '对话框确认')
-        result = self.round_by_ocr_and_click(screen, '确认', area=area)
+        result = self.round_by_ocr_and_click(self.last_screenshot, '确认', area=area)
 
         if result.is_success:
             return self.round_success(self.charge_plan.category_name, wait=5)
@@ -382,6 +370,7 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='专业挑战室')
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
+        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

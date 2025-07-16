@@ -15,7 +15,7 @@ class StateRecord:
         self.state_name: str = state_name
         self.is_clear: bool = is_clear  # 是否清除状态
         self.trigger_time: float = trigger_time
-        self.trigger_time_add: float = trigger_time_add #时间修改
+        self.trigger_time_add: float = trigger_time_add  # 时间修改
         self.value: int = value
         self.value_add: int = value_to_add
 
@@ -39,7 +39,7 @@ class StateRecorder:
         if record.trigger_time_add is None or record.trigger_time_add == 0:
             self.last_record_time = record.trigger_time
         else:
-            if self.last_record_time != -1: #如果是不存在的状态则不做任何处理
+            if self.last_record_time != -1:  #如果是不存在的状态则不做任何处理
                 self.last_record_time -= record.trigger_time_add
 
         if self.last_value is None:

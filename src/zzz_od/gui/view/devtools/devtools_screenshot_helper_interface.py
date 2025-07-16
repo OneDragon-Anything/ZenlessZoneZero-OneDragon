@@ -47,6 +47,11 @@ class DevtoolsScreenshotHelperInterface(AppRunInterface):
         self.dodge_detect_opt.value_changed.connect(self._on_dodge_detect_changed)
         top_widget.add_widget(self.dodge_detect_opt)
 
+        self.screenshot_before_key_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='按键前截图',
+                                                          content='开启时截图按键之前的画面，关闭时截图按键之后的画面')
+        self.screenshot_before_key_opt.value_changed.connect(self._on_screenshot_before_key_changed)
+        top_widget.add_widget(self.screenshot_before_key_opt)
+
         return top_widget
 
     def on_interface_shown(self) -> None:
@@ -59,6 +64,7 @@ class DevtoolsScreenshotHelperInterface(AppRunInterface):
         self.length_opt.setValue(str(self.ctx.screenshot_helper_config.length_second))
         self.key_save_opt.setValue(str(self.ctx.screenshot_helper_config.key_save))
         self.dodge_detect_opt.setValue(self.ctx.screenshot_helper_config.dodge_detect)
+        self.screenshot_before_key_opt.setValue(self.ctx.screenshot_helper_config.screenshot_before_key)
 
     def get_app(self) -> ZApplication:
         return ScreenshotHelperApp(self.ctx)
@@ -74,3 +80,6 @@ class DevtoolsScreenshotHelperInterface(AppRunInterface):
 
     def _on_dodge_detect_changed(self, value: bool) -> None:
         self.ctx.screenshot_helper_config.dodge_detect = value
+
+    def _on_screenshot_before_key_changed(self, value: bool) -> None:
+        self.ctx.screenshot_helper_config.screenshot_before_key = value

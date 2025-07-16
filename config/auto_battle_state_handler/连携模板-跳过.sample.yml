@@ -16,3 +16,5 @@ handlers:
       - op_name: "设置状态"
         state: "自定义-连携换人"
         seconds: -1
+      - op_name: "清除状态"
+        state: "按键可用-连携技"

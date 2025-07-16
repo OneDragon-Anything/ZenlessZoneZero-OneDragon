@@ -6,8 +6,16 @@ from one_dragon.base.config.yaml_config import YamlConfig
 class OneDragonAppConfig(YamlConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(self, 'one_dragon_app',
-                            instance_idx=instance_idx, sample=False)
+        YamlConfig.__init__(self, 'one_dragon_app', instance_idx=instance_idx, sample=False)
+        self._temp_app_run_list: Optional[List[str]] = None
+
+    def set_temp_app_run_list(self, app_run_list: Optional[List[str]]):
+        """设置临时应用运行列表"""
+        self._temp_app_run_list = app_run_list
+
+    def clear_temp_app_run_list(self):
+        """清除临时应用运行列表"""
+        self._temp_app_run_list = None
 
     @property
     def app_order(self) -> List[str]:
@@ -47,9 +55,12 @@ class OneDragonAppConfig(YamlConfig):
     @property
     def app_run_list(self) -> List[str]:
         """
-        运行顺序
+        应用运行列表
+        如果设置了临时应用列表，则使用临时配置
         :return:
         """
+        if self._temp_app_run_list is not None:
+            return self._temp_app_run_list
         return self.get("app_run_list", [])
 
     @app_run_list.setter

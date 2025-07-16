@@ -1,5 +1,4 @@
 import time
-
 from typing import Optional, ClassVar
 
 from one_dragon.base.geometry.point import Point
@@ -18,6 +17,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.challenge_mission.check_next_after_battle import ChooseNextOrFinishAfterBattle
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
+from zzz_od.operation.compendium.coupon import Coupon
 from zzz_od.operation.deploy import Deploy
 from zzz_od.operation.zzz_operation import ZOperation
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
@@ -27,6 +27,7 @@ class RoutineCleanup(ZOperation):
 
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_CHARGE_ENOUGH: ClassVar[str] = '电量充足'
+    STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
     def __init__(self, ctx: ZContext, plan: ChargePlanItem,
                  can_run_times: Optional[int] = None,
@@ -40,8 +41,8 @@ class RoutineCleanup(ZOperation):
         ZOperation.__init__(
             self, ctx,
             op_name='%s %s' % (
-                gt('定期清剿'),
-                gt(plan.mission_type_name)
+                gt('定期清剿', 'game'),
+                gt(plan.mission_type_name, 'game')
             )
         )
 
@@ -55,9 +56,8 @@ class RoutineCleanup(ZOperation):
 
     @operation_node(name='等待入口加载', is_start_node=True, node_max_retry_times=60)
     def wait_entry_load(self) -> OperationRoundResult:
-        screen = self.screenshot()
         return self.round_by_find_area(
-            screen, '实战模拟室', '挑战等级',
+            self.last_screenshot, '实战模拟室', '挑战等级',
             success_wait=1, retry_wait=1
         )
 
@@ -65,14 +65,13 @@ class RoutineCleanup(ZOperation):
     # @node_from(from_name='等待入口加载')
     # @operation_node(name='选择副本')
     def choose_mission(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('定期清剿', '副本名称列表')
-        part = cv2_utils.crop_image_only(screen, area.rect)
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
         target_point: Optional[Point] = None
         ocr_result_map = self.ctx.ocr.run_ocr(part)
         for ocr_result, mrl in ocr_result_map.items():
-            if not str_utils.find_by_lcs(gt(self.plan.mission_type_name), ocr_result, percent=0.5):
+            if not str_utils.find_by_lcs(gt(self.plan.mission_type_name, 'game'), ocr_result, percent=0.5):
                 continue
 
             target_point = area.left_top + mrl.max + Point(0, 50)
@@ -88,6 +87,16 @@ class RoutineCleanup(ZOperation):
         return self.round_success(wait=1)
 
     @node_from(from_name='等待入口加载')
+    @operation_node(name='处理家政券')
+    def handle_coupon(self) -> OperationRoundResult:
+        op = Coupon(self.ctx, self.plan)
+        if self.ctx.charge_plan_config.use_coupon:
+            return self.round_by_op_result(op.execute())
+        else:
+            return self.round_success(Coupon.STATUS_CONTINUE_RUN_WITH_CHARGE)
+
+    @node_from(from_name='处理家政券', success=False)
+    @node_from(from_name='处理家政券', status=Coupon.STATUS_CONTINUE_RUN_WITH_CHARGE)
     @operation_node(name='识别电量')
     def check_charge(self) -> OperationRoundResult:
         if not self.need_check_power:
@@ -95,17 +104,16 @@ class RoutineCleanup(ZOperation):
                 return self.round_success(RoutineCleanup.STATUS_CHARGE_ENOUGH)
             else:
                 return self.round_success(RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
-        screen = self.screenshot()
 
         area = self.ctx.screen_loader.get_area('定期清剿', '剩余电量')
-        part = cv2_utils.crop_image_only(screen, area.rect)
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
         self.charge_left = str_utils.get_positive_digits(ocr_result, None)
         if self.charge_left is None:
             return self.round_retry(status='识别 %s 失败' % '剩余电量', wait=1)
 
         area = self.ctx.screen_loader.get_area('定期清剿', '需要电量')
-        part = cv2_utils.crop_image_only(screen, area.rect)
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
         self.charge_need = str_utils.get_positive_digits(ocr_result, None)
         if self.charge_need is None:
@@ -126,19 +134,17 @@ class RoutineCleanup(ZOperation):
     @node_from(from_name='识别电量', status=STATUS_CHARGE_ENOUGH)
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
         # 防止前面电量识别错误
-        result = self.round_by_find_area(screen, '实战模拟室', '恢复电量')
+        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '恢复电量')
         if result.is_success:
             return self.round_success(status=RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
 
         # 点击直到出战按钮出现
-        result = self.round_by_find_area(screen, '实战模拟室', '出战')
+        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '出战')
         if result.is_success:
             return self.round_success(result.status)
 
-        result = self.round_by_find_and_click_area(screen, '实战模拟室', '下一步')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '下一步')
         if result.is_success:
             time.sleep(0.5)
             self.ctx.controller.mouse_move(ScreenNormalWorldEnum.UID.value.center)  # 点击后 移开鼠标 防止识别不到出战
@@ -176,8 +182,7 @@ class RoutineCleanup(ZOperation):
     @node_from(from_name='加载自动战斗指令')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
     def wait_battle_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        result = self.round_by_find_area(screen, '战斗画面', '按键-普通攻击', retry_wait_round=1)
+        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击', retry_wait_round=1)
         return result
 
     @node_from(from_name='等待战斗画面加载')
@@ -193,10 +198,10 @@ class RoutineCleanup(ZOperation):
         if self.auto_op.auto_battle_context.last_check_end_result is not None:
             auto_battle_utils.stop_running(self.auto_op)
             return self.round_success(status=self.auto_op.auto_battle_context.last_check_end_result)
-        now = time.time()
-        screen = self.screenshot()
 
-        self.auto_op.auto_battle_context.check_battle_state(screen, now, check_battle_end_normal_result=True)
+        self.auto_op.auto_battle_context.check_battle_state(
+            self.last_screenshot, self.last_screenshot_time,
+            check_battle_end_normal_result=True)
 
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
@@ -228,9 +233,11 @@ class RoutineCleanup(ZOperation):
     @node_from(from_name='战斗超时')
     @operation_node(name='点击挑战结果退出')
     def click_result_exit(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(screen_name='战斗-挑战结果-失败', area_name='按钮-退出',
-                                                 until_not_find_all=[('战斗-挑战结果-失败', '按钮-退出')],
-                                                 success_wait=1, retry_wait=1)
+        result = self.round_by_find_and_click_area(screen_name='战斗-挑战结果-失败', area_name='按钮-退出',
+                                                   until_not_find_all=[('战斗-挑战结果-失败', '按钮-退出')],
+                                                   success_wait=1, retry_wait=1)
+        if result.is_success:
+            return self.round_fail(status=RoutineCleanup.STATUS_FIGHT_TIMEOUT)
 
     def handle_pause(self):
         auto_battle_utils.stop_running(self.auto_op)
@@ -251,7 +258,7 @@ def __debug_charge():
     """
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     from one_dragon.utils import debug_utils
     screen = debug_utils.get_debug_image('_1742622263371')
     area = ctx.screen_loader.get_area('定期清剿', '剩余电量')
@@ -263,7 +270,7 @@ def __debug_charge():
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     ctx.start_running()
     op = RoutineCleanup(ctx, ChargePlanItem(
         category_name='定期清剿',

@@ -16,13 +16,12 @@ class HollowExitByMenu(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('离开空洞')
+            op_name=gt('离开空洞', 'game')
         )
 
     @operation_node(name='点击菜单', is_start_node=True)
     def click_menu(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        result = self.round_by_find_area(screen, '零号空洞-事件', '放弃')
+        result = self.round_by_find_area(self.last_screenshot, '零号空洞-事件', '放弃')
         if result.is_success:  # 点击到出现了放弃按钮为止
             return self.round_success()
 
@@ -35,28 +34,24 @@ class HollowExitByMenu(ZOperation):
     @node_from(from_name='点击菜单')
     @operation_node(name='点击离开')
     def click_leave(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '零号空洞-事件', '放弃',
+        return self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '放弃',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击离开')
     @operation_node(name='确认离开')
     def confirm_leave(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '零号空洞-事件', '放弃-确认',
+        return self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '放弃-确认',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='确认离开')
     @operation_node(name='点击完成', node_max_retry_times=20)
     def click_finish(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
         # 这个按钮刚出现的时候可以按不到 需要重复按它
-        result = self.round_by_find_and_click_area(screen, '零号空洞-事件', '通关-完成')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '通关-完成')
         if result.is_success:
             return self.round_wait(wait=1)
 
-        result = self.round_by_find_area(screen, '零号空洞-入口', '街区')
+        result = self.round_by_find_area(self.last_screenshot, '零号空洞-入口', '街区')
         if result.is_success:  # 点击直到返回显示街区为止
             return self.round_success()
 

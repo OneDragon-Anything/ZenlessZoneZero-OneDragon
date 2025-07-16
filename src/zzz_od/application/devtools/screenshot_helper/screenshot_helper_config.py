@@ -37,3 +37,11 @@ class ScreenshotHelperConfig(YamlConfig):
     @dodge_detect.setter
     def dodge_detect(self, new_value: bool) -> None:
         self.update('dodge_detect', new_value)
+
+    @property
+    def screenshot_before_key(self) -> bool:
+        return self.get('screenshot_before_key', True)
+
+    @screenshot_before_key.setter
+    def screenshot_before_key(self, new_value: bool) -> None:
+        self.update('screenshot_before_key', new_value)

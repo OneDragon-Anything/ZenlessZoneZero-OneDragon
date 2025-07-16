@@ -1,0 +1,10 @@
+# 根据动画实测，总用时刚好就是用时极限，不打断时间就是极限无敌时间, 精准到0.1秒
+operations:
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 2.3
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 10
+  - op_name: "等待秒数"
+    seconds: 1.3

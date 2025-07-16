@@ -2,100 +2,19 @@ screen_id: map
 screen_name: 地图
 pc_alt: false
 area_list:
-- area_name: 区域名称
-  id_mark: false
-  pc_rect:
-  - 838
-  - 626
-  - 1086
-  - 684
-  emulator_rect:
-  - 868
-  - 634
-  - 1042
-  - 690
-  platform: Emulator
-  text: ''
-  lcs_percent: 0.1
-  template_sub_dir: ''
-  template_id: ''
-  template_match_threshold: 0.7
-  goto_list: []
-- area_name: 上一个区域
-  id_mark: false
-  pc_rect:
-  - 398
-  - 324
-  - 644
-  - 568
-  emulator_rect:
-  - 338
-  - 314
-  - 650
-  - 594
-  platform: Emulator
-  text: ''
-  lcs_percent: 0.1
-  template_sub_dir: ''
-  template_id: ''
-  template_match_threshold: 0.7
-  goto_list: []
-- area_name: 下一个区域
-  id_mark: false
-  pc_rect:
-  - 1256
-  - 338
-  - 1554
-  - 578
-  emulator_rect:
-  - 1264
-  - 314
-  - 1602
-  - 594
-  platform: Emulator
-  text: ''
-  lcs_percent: 0.1
-  template_sub_dir: ''
-  template_id: ''
-  template_match_threshold: 0.7
-  goto_list: []
 - area_name: 传送点名称
   id_mark: false
   pc_rect:
   - 70
-  - 1024
+  - 1000
   - 1848
   - 1058
-  emulator_rect:
-  - 34
-  - 992
-  - 1878
-  - 1026
-  platform: Emulator
   text: ''
   lcs_percent: 0.1
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
-  goto_list: []
-- area_name: 街区详情
-  id_mark: false
-  pc_rect:
-  - 1642
-  - 28
-  - 1840
-  - 82
-  emulator_rect:
-  - 1604
-  - 34
-  - 1810
-  - 98
-  platform: Emulator
-  text: 街区详情
-  lcs_percent: 0.5
-  template_sub_dir: ''
-  template_id: ''
-  template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 确认
   id_mark: false
@@ -104,15 +23,10 @@ area_list:
   - 600
   - 1232
   - 708
-  emulator_rect:
-  - 1076
-  - 618
-  - 1292
-  - 682
-  platform: Emulator
   text: 确认
   lcs_percent: 0.1
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []

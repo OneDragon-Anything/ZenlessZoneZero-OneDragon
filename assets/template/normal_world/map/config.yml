@@ -1,8 +1,0 @@
-sub_dir: normal_world
-template_id: map
-template_name: 大世界-地图
-template_shape: circle
-auto_mask: true
-point_list:
-- 1777, 827
-- 1738, 827

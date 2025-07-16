@@ -4,7 +4,6 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.open_menu import OpenMenu
 
 
 class EmailApp(ZApplication):
@@ -16,8 +15,9 @@ class EmailApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='email',
-            op_name=gt('邮件', 'ui'),
-            run_record=ctx.email_run_record
+            op_name=gt('邮件'),
+            run_record=ctx.email_run_record,
+            need_notify=True,
         )
 
     def handle_init(self) -> None:
@@ -39,8 +39,7 @@ class EmailApp(ZApplication):
         就算时灰色的也能识别到
         :return:
         """
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '邮件', '全部领取', success_wait=1, retry_wait=1)
+        return self.round_by_find_and_click_area(self.last_screenshot, '邮件', '全部领取', success_wait=1, retry_wait=1)
 
     @node_from(from_name='全部领取')
     @operation_node(name='确认')
@@ -49,8 +48,7 @@ class EmailApp(ZApplication):
         邮件画面 领取后点击确认
         :return:
         """
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '邮件', '确认', success_wait=1, retry_wait=1)
+        return self.round_by_find_and_click_area(self.last_screenshot, '邮件', '确认', success_wait=1, retry_wait=1)
 
     @node_from(from_name='确认')  # 确认之后返回
     @node_from(from_name='确认', success=False)  # 没有确认 其实就是没有东西能领取 也返回
@@ -62,5 +60,5 @@ class EmailApp(ZApplication):
         领取后的确认按钮可以不按 直接点击外层也可以返回
         :return:
         """
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '菜单', '返回', success_wait=1, retry_wait=1)
+        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
+        return self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回', success_wait=1, retry_wait=1)

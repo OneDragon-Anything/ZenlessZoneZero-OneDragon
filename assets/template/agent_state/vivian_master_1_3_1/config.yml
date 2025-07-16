@@ -1,0 +1,16 @@
+sub_dir: agent_state
+template_id: vivian_master_1_3_1
+template_name: 角色状态-薇薇安-飞羽-31
+template_shape: multi_rect
+auto_mask: true
+point_list:
+- 122, 122
+- 125, 125
+- 149, 122
+- 152, 125
+- 176, 122
+- 179, 125
+- 203, 122
+- 206, 125
+- 230, 122
+- 233, 125

@@ -32,8 +32,10 @@ class AgentInfo:
 
     def __init__(self, agent: Optional[Agent], energy: int = 0,
                  special_ready: bool = False,
-                 ultimate_ready: bool = False):
+                 ultimate_ready: bool = False,
+                 matched_template_id: Optional[str] = None):
         self.agent: Agent = agent
+        self.matched_template_id: Optional[str] = matched_template_id  # 上次成功匹配的模板ID
         self.energy: int = energy  # 能量
         self.special_ready: bool = special_ready  # 特殊技
         self.ultimate_ready: bool = ultimate_ready  # 终结技
@@ -58,14 +60,14 @@ class TeamInfo:
                         break
 
     def update_agent_list(self,
-                          current_agent_list: List[Agent],
+                          current_agent_list: List[Tuple[Agent, Optional[str]]],
                           energy_list: List[int],
                           special_list: List[int],
                           ultimate_list: List[int],
                           update_time: float,) -> bool:
         """
         更新角色列表
-        :param current_agent_list: 新的角色列表
+        :param current_agent_list: 新的角色列表及匹配的模板ID
         :param energy_list: 能量列表
         :param special_list: 特殊技列表
         :param ultimate_list: 终结技列表
@@ -103,7 +105,7 @@ class TeamInfo:
                 return False
 
             all_none: bool = True
-            for agent in current_agent_list:
+            for agent, _ in current_agent_list:
                 if agent is not None:
                     all_none = False
                     break
@@ -122,10 +124,11 @@ class TeamInfo:
 
             self.agent_list = []
             for i in range(len(current_agent_list)):
+                agent, matched_template_id = current_agent_list[i]
                 energy = energy_list[i] if i < len(energy_list) else 0
-                special_ready = (special_list[i] if i < len(special_list) else 0) == 1
-                ultimate_ready = (ultimate_list[i] if i < len(ultimate_list) else 0) == 1
-                self.agent_list.append(AgentInfo(current_agent_list[i], energy, special_ready, ultimate_ready))
+                special_ready = (special_list[i] if i < len(special_list) else 0) > 0
+                ultimate_ready = (ultimate_list[i] if i < len(ultimate_list) else 0) > 0
+                self.agent_list.append(AgentInfo(agent, energy, special_ready, ultimate_ready, matched_template_id))
 
             # log.debug('更新后角色列表 %s 更新时间 %.4f',
             #           [i.agent.agent_name if i.agent is not None else 'none' for i in self.agent_list],
@@ -133,7 +136,7 @@ class TeamInfo:
 
             return True
 
-    def is_same_agent_list(self, current_agent_list: List[Agent]) -> bool:
+    def is_same_agent_list(self, current_agent_list: List[Tuple[Optional[Agent], Optional[str]]]) -> bool:
         """
         是否跟原来的角色列表一致 忽略顺序
         :param current_agent_list:
@@ -144,7 +147,7 @@ class TeamInfo:
         if len(self.agent_list) != len(current_agent_list):
             return False
         old_agent_ids = [i.agent.agent_id for i in self.agent_list if i.agent is not None]
-        new_agent_ids = [i.agent_id for i in current_agent_list if i is not None]
+        new_agent_ids = [agent.agent_id for agent, _ in current_agent_list if agent is not None]
         if len(old_agent_ids) != len(new_agent_ids):
             return False
 
@@ -259,7 +262,6 @@ class TeamInfo:
         return self.get_agent_pos(switch_agent)
 
 
-
 class CheckAgentState:
 
     def __init__(self, state: AgentStateDef, total: Optional[int] = None, pos: Optional[int] = None):
@@ -322,7 +324,7 @@ class AutoBattleAgentContext:
             else:
                 state.should_check_in_battle = True
 
-    def get_possible_agent_list(self) -> Optional[List[Agent]]:
+    def get_possible_agent_list(self) -> Optional[List[Tuple[Agent, Optional[str]]]]:
         """
         获取用于匹配的候选角色列表
         """
@@ -337,9 +339,9 @@ class AutoBattleAgentContext:
                     all = True
                     break
         if all:
-            return [agent_enum.value for agent_enum in AgentEnum]
+            return [(agent_enum.value, None) for agent_enum in AgentEnum]
         else:
-            return [i.agent for i in self.team_info.agent_list if i.agent is not None]
+            return [(i.agent, i.matched_template_id) for i in self.team_info.agent_list if i.agent is not None]
 
     def check_agent_related(self, screen: MatLike, screenshot_time: float) -> None:
         """
@@ -380,7 +382,7 @@ class AutoBattleAgentContext:
         finally:
             self._check_agent_lock.release()
 
-    def _check_agent_in_parallel(self, screen: MatLike) -> List[Agent]:
+    def _check_agent_in_parallel(self, screen: MatLike) -> List[Tuple[Agent, Optional[str]]]:
         """
         并发识别角色
         :return:
@@ -394,7 +396,7 @@ class AutoBattleAgentContext:
 
         possible_agents = self.get_possible_agent_list()
 
-        result_agent_list: List[Optional[Agent]] = []
+        result_agent_list: List[Tuple[Optional[Agent], Optional[str]]] = []
         future_list: List[Optional[Future]] = []
         should_check: List[bool] = [True, False, False, False]
 
@@ -416,18 +418,18 @@ class AutoBattleAgentContext:
 
         for future in future_list:
             if future is None:
-                result_agent_list.append(None)
+                result_agent_list.append((None, None))
                 continue
             try:
-                result = future.result()
-                result_agent_list.append(result)
+                result_agent, result_template_id = future.result()
+                result_agent_list.append((result_agent, result_template_id))
             except Exception:
                 log.error('识别角色头像失败', exc_info=True)
-                result_agent_list.append(None)
+                result_agent_list.append((None, None))
 
-        if result_agent_list[1] is not None and result_agent_list[2] is not None:  # 3人
+        if result_agent_list[1][0] is not None and result_agent_list[2][0] is not None:  # 3人
             current_agent_list = result_agent_list[:3]
-        elif result_agent_list[3] is not None:  # 2人
+        elif result_agent_list[3][0] is not None:  # 2人
             current_agent_list = [result_agent_list[0], result_agent_list[3]]
         else:  # 1人
             current_agent_list = [result_agent_list[0]]
@@ -435,18 +437,28 @@ class AutoBattleAgentContext:
         return current_agent_list
 
     def _match_agent_in(self, img: MatLike, is_front: bool,
-                        possible_agents: Optional[List[Agent]] = None) -> Optional[Agent]:
+                        possible_agents: Optional[List[Tuple[Agent, Optional[str]]]] = None) -> Tuple[Optional[Agent], Optional[str]]:
         """
         在候选列表重匹配角色
         :return:
         """
         prefix = 'avatar_1_' if is_front else 'avatar_2_'
-        for agent in possible_agents:
-            mrl = self.ctx.tm.match_template(img, 'battle', prefix + agent.template_id, threshold=0.8)
-            if mrl.max is not None:
-                return agent
+        for agent, specific_template_id in possible_agents:
+            # 上次识别过的模板 ID，接着用
+            if specific_template_id:
+                template_to_check = prefix + specific_template_id
+                mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                if mrl.max is not None:
+                    return agent, specific_template_id
+            # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
+            else:
+                for template_id in agent.template_id_list:
+                    template_to_check = prefix + template_id
+                    mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                    if mrl.max is not None:
+                        return agent, template_id
 
-        return None
+        return None, None
 
     def _check_agent_state_in_parallel(self, screen: MatLike, screenshot_time: float, agent_state_list: List[CheckAgentState]) -> List[StateRecord]:
         """
@@ -490,7 +502,7 @@ class AutoBattleAgentContext:
             return StateRecord(state.state_name, screenshot_time, value)
 
     def _check_all_agent_state(self, screen: MatLike, screenshot_time: float,
-                               screen_agent_list: List[Agent]
+                               screen_agent_list: List[Tuple[Agent, Optional[str]]]
                                ) -> Tuple[List[StateRecord], List[StateRecord], List[StateRecord], List[StateRecord]]:
         """
         识别所有需要的角色状态
@@ -555,7 +567,7 @@ class AutoBattleAgentContext:
 
         # 角色独有状态
         for idx in range(total):
-            agent: Agent = screen_agent_list[idx]
+            agent, _ = screen_agent_list[idx]
             if agent is None:
                 continue
             if agent.state_list is None or len(agent.state_list) == 0:
@@ -749,8 +761,6 @@ class AutoBattleAgentContext:
             prefix = '前台-' if i == 0 else ('后台-%d-' % i)
             agent_info = self.team_info.agent_list[i]
 
-
-
             # 需要识别到角色的状态
             agent = agent_info.agent
             if agent is not None:
@@ -766,9 +776,9 @@ class AutoBattleAgentContext:
 
                 state_records.append(StateRecord(f'{agent.agent_name}-能量', update_time, agent_info.energy))
                 state_records.append(StateRecord(f'{agent.agent_name}-特殊技可用', update_time, is_clear=not agent_info.special_ready))
-                
-                # 只有距离上次切换超过1秒才更新终结技状态
-                if update_time - self._last_switch_agent_time >= 1.0:
+
+                # 只有距离上次切换超过0.1秒才更新终结技状态
+                if update_time - self._last_switch_agent_time >= 0.1:
                     state_records.append(StateRecord(f'{agent.agent_name}-终结技可用', update_time, is_clear=not agent_info.ultimate_ready))
 
             # 特殊技和终结技的按钮

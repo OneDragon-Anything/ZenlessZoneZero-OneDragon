@@ -23,8 +23,9 @@ class EngagementRewardApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='engagement_reward',
-            op_name=gt('活跃度奖励', 'ui'),
-            run_record=ctx.engagement_reward_run_record
+            op_name=gt('活跃度奖励'),
+            run_record=ctx.engagement_reward_run_record,
+            need_notify=True,
         )
 
     def handle_init(self) -> None:
@@ -41,9 +42,8 @@ class EngagementRewardApp(ZApplication):
     @node_from(from_name='快捷手册-日常')
     @operation_node(name='识别活跃度')
     def check_engagement(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('快捷手册', '今日最大活跃度')
-        part = cv2_utils.crop_image_only(screen, area.rect)
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
         num = str_utils.get_positive_digits(ocr_result, None)
@@ -66,8 +66,8 @@ class EngagementRewardApp(ZApplication):
     @node_from(from_name='点击奖励')
     @operation_node(name='查看奖励结果')
     def check_reward(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '快捷手册', '活跃度奖励-确认', success_wait=1, retry_wait=1)
+        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
+        return self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '活跃度奖励-确认', success_wait=1, retry_wait=1)
 
     @node_from(from_name='查看奖励结果', success=False)
     @node_from(from_name='识别活跃度', status=STATUS_NO_REWARD)
@@ -80,7 +80,7 @@ class EngagementRewardApp(ZApplication):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     ctx.start_running()
     op = EngagementRewardApp(ctx)
     op.execute()

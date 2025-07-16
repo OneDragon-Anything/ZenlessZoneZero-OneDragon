@@ -110,6 +110,6 @@ class AtomicBtnCommon(AtomicOp):
         with self._update_lock:
             if self._status == BtnRunStatus.RUNNING:
                 self._status = BtnRunStatus.STOP
-        
+
         if self.is_press:
             self._method(release=True)

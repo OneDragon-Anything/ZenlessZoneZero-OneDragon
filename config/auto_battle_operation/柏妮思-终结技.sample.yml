@@ -17,4 +17,11 @@ operations:
     state: "自定义-异常-火"
     add: 450
   - op_name: "等待秒数"
-    seconds: 2
+    seconds: 0.5
+  - op_name: "设置状态"
+    state: "自定义-快速支援换人"
+  - op_name: "按键-切换角色-下一个"
+  - op_name: "清除状态"
+    state_list: ["自定义-速切结束", "自定义-动作不打断"]
+  - op_name: "等待秒数"
+    seconds: 1.5

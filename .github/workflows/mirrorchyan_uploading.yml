@@ -1,0 +1,24 @@
+name: mirrorchyan_uploading
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Build and Release"]
+    types:
+      - completed
+
+jobs:
+  mirrorchyan:
+    runs-on: macos-latest
+    if: ${{ github.repository_owner == 'OneDragon-Anything' && (github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch') }}
+    steps:
+      - uses: MirrorChyan/uploading-action@v1
+        with:
+          filetype: latest-release
+          filename: "ZenlessZoneZero-OneDragon-*-Full-Environment.zip"
+          mirrorchyan_rid: ZZZ-OneDragon
+
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          owner: DoctorReid
+          repo: ZenlessZoneZero-OneDragon
+          upload_token: ${{ secrets.MirrorChyanUploadToken }}

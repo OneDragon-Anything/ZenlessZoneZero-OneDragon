@@ -16,24 +16,9 @@ handlers:
 
       - states: "[自定义-黄光切人, 0, 1]"
         debug_name: "黄光切人"
-        sub_handlers:
-          - states: "[柏妮思-能量]{80, 120} & ![柏妮思-燃点]{51, 100}"
-            debug_name: "高能量低燃点"
-            operations:
-              - operation_template: "柏妮思-格挡攻击"
-              - operation_template: "柏妮思-长按特殊攻击直到能量用完"
-
-          - states: "[柏妮思-能量]{40, 120}"
-            debug_name: "中等能量"
-            operations:
-              - operation_template: "柏妮思-格挡攻击"
-              - operation_template: "柏妮思-直接长按特殊攻击"
-
-          - states: "[柏妮思-能量]{0, 40} & [柏妮思-燃点]{51, 100}"
-            debug_name: "低能量高燃点"
-            operations:
-              - operation_template: "柏妮思-格挡攻击"
-              - operation_template: "柏妮思-长按普通攻击"
+        operations:
+          - operation_template: "柏妮思-格挡攻击"
+          - operation_template: "柏妮思-短按单双喷"
 
       - states: "[自定义-红光闪避, 0, 1]"
         debug_name: "红光闪避"
@@ -44,6 +29,7 @@ handlers:
         debug_name: "连携攻击"
         operations:
           - operation_template: "柏妮思-连携攻击"
+          - operation_template: "柏妮思-短按单双喷"
 
       - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
         debug_name: "切人后等待"
@@ -64,39 +50,32 @@ handlers:
         operations:
           - operation_template: "柏妮思-终结技"
 
-      # 燃点太多
-      - states: "[柏妮思-燃点]{81, 100} & [柏妮思-特殊技可用]"
-        debug_name: "高燃点长A接喷"
-        sub_handlers:
-          - states: "[柏妮思-能量]{60, 120}"
-            debug_name: "能量很多E长按到底"
-            operations:
-              - operation_template: "柏妮思-长按普通攻击"
-              - operation_template: "柏妮思-长按特殊攻击直到能量用完"
-              - op_name: "设置状态"
-                data: ["自定义-速切结束"]
-
-          - states: ""
-            debug_name: "能量不多短按E"
-            operations:
-              - operation_template: "柏妮思-长按普通攻击"
-              - operation_template: "柏妮思-直接长按特殊攻击"
-              - op_name: "设置状态"
-                data: ["自定义-速切结束"]
-
-      - states: "[柏妮思-特殊技可用]"
-        debug_name: "低燃点单喷接双喷"
-        operations:
-          - operation_template: "柏妮思-短按接长按特殊攻击"
-          - op_name: "设置状态"
-            data: ["自定义-速切结束"]
-
       - states: "[柏妮思-燃点]{100, 100}"
         debug_name: "满燃点上灼烧"
         operations:
           - operation_template: "柏妮思-长按普通攻击"
+            data: ["自定义-速切结束"]
 
-      - states: ""
+      - states: "[柏妮思-燃点]{60, 100}"
+        debug_name: "正常打站场"
+        operations:
+          - operation_template: "柏妮思-长长按普通攻击"
+
+      - states: "[柏妮思-特殊技可用]"
+        debug_name: "低燃点单喷接双喷"
+        operations:
+          - operation_template: "柏妮思-短按单双喷"
+
+      - states: "[后台-1-异常] | [后台-2-异常]"
         debug_name: "充能打普攻"
         operations:
+          - operation_template: "柏妮思-普通攻击"
+          - op_name: "设置状态"
+            data: ["自定义-速切结束"]
+
+      - states: ""
+        debug_name: "单异常，马上离开"
+        operations:
+          - op_name: "设置状态"
+            data: ["自定义-速切结束"]
           - operation_template: "柏妮思-普通攻击"

@@ -1,6 +1,8 @@
-from typing import List
+from typing import List, Optional
 
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
+from one_dragon.utils import str_utils
+from one_dragon.utils.i18_utils import gt
 
 
 def merge_ocr_result_to_single_line(ocr_map, join_space: bool = True) -> str:
@@ -88,3 +90,41 @@ def merge_ocr_result_to_multiple_line(ocr_map, join_space: bool = True, merge_li
         merge_ocr_result_map[merge_result.data].append(merge_result)
 
     return merge_ocr_result_map
+
+
+def match_word_list_by_priority(
+        ocr_result_map: dict[str, MatchResultList],
+        word_list: list[str],
+        ignore_list: Optional[list[str]] = None
+) -> tuple[str, MatchResultList]:
+    """
+    在OCR匹配结果中 找到目标匹配结果
+    最终按传入word_list的顺序 返回第一个匹配的结果
+    :param ocr_result_map: OCR识别结果
+    :param word_list: 按顺序匹配的目标列表
+    :param ignore_list: 目标列表中部分元素只是为了防止匹配错误例如传入 ["领取", "已领取"] 可以防止 "已领取*1" 匹配到 "领取"，而"已领取"又不需要真正匹配
+    :return: 匹配结果
+    """
+    to_match_list: list[str] = [
+        gt(i, 'game') for i in word_list
+    ]
+    match_map: dict[str, MatchResultList] = {}
+    for ocr_result, mrl in ocr_result_map.items():
+        match_idx: int = str_utils.find_best_match_by_difflib(ocr_result, to_match_list)
+        if match_idx is None or match_idx < 0:
+            continue
+
+        match_word: str = word_list[match_idx]
+        if match_word not in match_map:
+            match_map[match_word] = MatchResultList(only_best=False)
+
+        match_map[match_word].extend(mrl)
+
+    for word in word_list:
+        if ignore_list is not None and word in ignore_list:
+            continue
+        result = match_map.get(word)
+        if result is not None:
+            return word, result
+
+    return None, None

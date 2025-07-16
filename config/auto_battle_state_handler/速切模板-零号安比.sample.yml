@@ -8,10 +8,10 @@ handlers:
 
       - states: "[自定义-红光闪避, 0, 0.5]"
         operations:
-          - operation_template: "零号安比-闪A" # 连携
+          - operation_template: "零号安比-闪A"  # 连携
       - states: "[按键可用-连携技, 0, 0.5]"
         operations:
-          - operation_template: "零号安比-连携攻击" # 防呆
+          - operation_template: "零号安比-连携攻击"  # 防呆
       - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
         debug_name: "切人后等待"
         sub_handlers:

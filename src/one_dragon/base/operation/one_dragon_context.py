@@ -3,21 +3,24 @@ from enum import Enum
 from pynput import keyboard, mouse
 from typing import Optional
 
-from one_dragon.base.config.custom_config import CustomConfig
 from one_dragon.base.config.emulator_config import EmulatorConfig
+from one_dragon.base.config.custom_config import CustomConfig, UILanguageEnum
 from one_dragon.base.config.game_account_config import GameAccountConfig
 from one_dragon.base.config.one_dragon_app_config import OneDragonAppConfig
 from one_dragon.base.config.one_dragon_config import OneDragonConfig
+from one_dragon.base.config.push_config import PushConfig
+from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
-from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher
+from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher, OnnxOcrParam
+from one_dragon.base.matcher.ocr.ocr_service import OcrService
 from one_dragon.base.matcher.template_matcher import TemplateMatcher
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext, ONE_DRAGON_CONTEXT_EXECUTOR
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
-from one_dragon.utils import debug_utils, log_utils
+from one_dragon.utils import debug_utils, i18_utils, log_utils
 from one_dragon.utils import thread_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -53,12 +56,13 @@ class ContextInstanceEventEnum(Enum):
 
 class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
-    def __init__(self, controller: Optional = None):
+    def __init__(self, controller: Optional[ControllerBase] = None):
         ContextEventBus.__init__(self)
         OneDragonEnvContext.__init__(self)
 
         self.one_dragon_config: OneDragonConfig = OneDragonConfig()
         self.custom_config: CustomConfig = CustomConfig()
+        self.signal: ContextLazySignal = ContextLazySignal()
 
         if self.one_dragon_config.current_active_instance is None:
             self.one_dragon_config.create_new_instance(True)
@@ -66,10 +70,15 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.context_running_state: ContextRunStateEnum = ContextRunStateEnum.STOP
 
-        self.screen_loader: ScreenContext = ScreenContext(platform='Emulator')#这里的只是占位符，到zzz_context里面有了平台信息才会真的初始化
-        self.template_loader: TemplateLoader = TemplateLoader(platform='Emulator')
+        self.screen_loader: ScreenContext = ScreenContext()
+        self.template_loader: TemplateLoader = TemplateLoader()
         self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
-        self.ocr: OcrMatcher = OnnxOcrMatcher()
+        self.ocr: OcrMatcher = OnnxOcrMatcher(
+            OnnxOcrParam(
+                det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
+            )
+        )
+        self.ocr_service: OcrService | None = None  # 延迟初始化
         self.controller: ControllerBase = controller
 
         self.keyboard_controller = keyboard.Controller()
@@ -77,14 +86,16 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
         self.btn_listener.start()
 
-        self.home_start_button_pressed : bool = False
-
     def init_by_config(self) -> None:
         """
         根据配置进行初始化
-        不能在 __init__ 中调用，因为子类可能还没有完成初始话
+        不能在 __init__ 中调用，因为子类可能还没有完成初始化
         :return:
         """
+        if self.custom_config.ui_language == UILanguageEnum.AUTO.value.value:
+            i18_utils.detect_and_set_default_language()
+        else:
+            i18_utils.update_default_lang(self.custom_config.ui_language)
         log_utils.set_log_level(logging.DEBUG if self.env_config.is_debug else logging.INFO)
 
     def start_running(self) -> bool:
@@ -123,11 +134,11 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     @property
     def context_running_status_text(self) -> str:
         if self.context_running_state == ContextRunStateEnum.STOP:
-            return gt('空闲', 'ui')
+            return gt('空闲')
         elif self.context_running_state == ContextRunStateEnum.RUN:
-            return gt('运行中', 'ui')
+            return gt('运行中')
         elif self.context_running_state == ContextRunStateEnum.PAUSE:
-            return gt('暂停中', 'ui')
+            return gt('暂停中')
         else:
             return gt('未知')
 
@@ -153,7 +164,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         elif key == self.key_stop_running:
             self.stop_running()
         elif key == self.key_screenshot:
-            self.screenshot_and_save_debug()
+            self.screenshot_and_save_debug(self.env_config.copy_screenshot)
 
         self.dispatch_event(ContextKeyboardEventEnum.PRESS.value, key)
 
@@ -181,7 +192,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     def key_debug(self) -> str:
         return self.env_config.key_debug
 
-    def screenshot_and_save_debug(self) -> None:
+    def screenshot_and_save_debug(self, copy_screenshot: bool) -> None:
         """
         截图 保存到debug
         """
@@ -189,8 +200,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             return
         if self.controller.game_win is not None:
             self.controller.game_win.active()
-        img = self.controller.screenshot(independent=True)
-        debug_utils.save_debug_image(img)
+        _, img = self.controller.screenshot(independent=True)
+        debug_utils.save_debug_image(img, copy_screenshot=copy_screenshot)
 
     def switch_instance(self, instance_idx: int) -> None:
         """
@@ -207,6 +218,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         log.info('开始加载实例配置 %d' % self.current_instance_idx)
         self.one_dragon_app_config: OneDragonAppConfig = OneDragonAppConfig(self.current_instance_idx)
         self.game_account_config: GameAccountConfig = GameAccountConfig(self.current_instance_idx)
+        self.push_config: PushConfig = PushConfig(self.current_instance_idx)
         self.emulator_config: EmulatorConfig = EmulatorConfig(self.current_instance_idx)
 
     def async_init_ocr(self) -> None:
@@ -214,8 +226,24 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         异步初始化OCR
         :return:
         """
-        f = ONE_DRAGON_CONTEXT_EXECUTOR.submit(self.ocr.init_model)
+        f = ONE_DRAGON_CONTEXT_EXECUTOR.submit(self.init_ocr)
         f.add_done_callback(thread_utils.handle_future_result)
+
+    def init_ocr(self) -> None:
+        """
+        初始化OCR
+        :return:
+        """
+        self.ocr.init_model(
+            ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
+            proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
+        )
+
+        # 初始化OCR缓存服务
+        if self.ocr_service is None:
+            self.ocr_service = OcrService(ocr_matcher=self.ocr)
+        else:
+            self.ocr_service.ocr_matcher = self.ocr
 
     def after_app_shutdown(self) -> None:
         """
@@ -223,5 +251,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         @return:
         """
         self.btn_listener.stop()
+        self.one_dragon_config.clear_temp_instance_indices()
+        self.one_dragon_app_config.clear_temp_app_run_list()
         ContextEventBus.after_app_shutdown(self)
         OneDragonEnvContext.after_app_shutdown(self)

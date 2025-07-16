@@ -1,0 +1,60 @@
+screen_id: coupon
+screen_name: 家政券
+pc_alt: false
+area_list:
+- area_name: 确认
+  id_mark: false
+  pc_rect:
+  - 920
+  - 737
+  - 1000
+  - 780
+  text: 确认
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 绳网信用
+  id_mark: false
+  pc_rect:
+  - 1090
+  - 362
+  - 1206
+  - 405
+  text: 绳网信用
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 使用
+  id_mark: false
+  pc_rect:
+  - 1040
+  - 1005
+  - 1200
+  - 1050
+  text: 使用
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 数量
+  id_mark: false
+  pc_rect:
+  - 936
+  - 1012
+  - 977
+  - 1045
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []

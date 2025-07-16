@@ -355,11 +355,22 @@ class PhosTitleBar(SplitTitleBar):
         Qlayout = QHBoxLayout()
         Qlayout.setContentsMargins(8, 10, 0, 0)
 
-        self.versionButton = QPushButton("ⓘ 代码版本 未知")
-        self.versionButton.setObjectName("versionButton")
-        self.versionButton.clicked.connect(self.copy_version)
+        self.launcherVersionButton = QPushButton("ⓘ 启动器版本 未知")
+        self.launcherVersionButton.setObjectName("launcherVersionButton")
+        self.launcherVersionButton.clicked.connect(lambda: self.copy_version(self.launcher_version))
+        self.launcherVersionButton.setVisible(False)
         Qlayout.addWidget(
-            self.versionButton,
+            self.launcherVersionButton,
+            0,
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop,
+        )
+
+        self.codeVersionButton = QPushButton("ⓘ 代码版本 未知")
+        self.codeVersionButton.setObjectName("codeVersionButton")
+        self.codeVersionButton.clicked.connect(lambda: self.copy_version(self.code_version))
+        self.codeVersionButton.setVisible(False)
+        Qlayout.addWidget(
+            self.codeVersionButton,
             0,
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop,
         )
@@ -377,7 +388,8 @@ class PhosTitleBar(SplitTitleBar):
         self.hBoxLayout.insertLayout(2, Qlayout)
 
         self.issue_url: str = ""
-        self.version: str = ""
+        self.launcher_version: str = ""
+        self.code_version: str = ""
 
     def setIcon(self, icon: QIcon):
         self.iconLabel.setPixmap(icon.pixmap(18, 18))
@@ -385,27 +397,32 @@ class PhosTitleBar(SplitTitleBar):
     def setTitle(self, title: str):
         self.titleLabel.setText(title)
 
-    def setVersion(self, version: str) -> None:
+    def setVersion(self, launcher_version: str, code_version: str) -> None:
         """
         设置版本号 会更新UI
         @param version: 版本号
         @return:
         """
-        self.version = version
-        self.versionButton.setText(f"ⓘ 代码版本 {version}")
+        self.launcher_version = launcher_version
+        self.code_version = code_version
+        self.launcherVersionButton.setText(f"ⓘ 启动器版本 {launcher_version}")
+        self.codeVersionButton.setText(f"ⓘ 代码版本 {code_version}")
+        if launcher_version:
+            self.launcherVersionButton.setVisible(True)
+        self.codeVersionButton.setVisible(True)
 
     # 定义打开GitHub网页的函数
     def open_github(self):
         url = QUrl(self.issue_url)
         QDesktopServices.openUrl(url)
 
-    def copy_version(self):
+    def copy_version(self, text: str):
         """
         将版本号复制到粘贴板
         @return:
         """
         clipboard = QApplication.clipboard()
-        clipboard.setText(self.version)
+        clipboard.setText(text)
         InfoBar.success(
             title="已复制版本号",
             content="",

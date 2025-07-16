@@ -1,0 +1,4 @@
+# 根据动画实测，动画持续2秒
+operations:
+  - op_name: "等待秒数"
+    seconds: 1

@@ -38,11 +38,14 @@ class SettingCardBase(SettingCard):
         self.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         # 设置初始参数
-        self.titleLabel = QLabel(gt(title, "ui"), self)
-        self.contentLabel = QLabel(gt(content, "ui"), self)
+        self.titleLabel = QLabel(gt(title), self)
+        self.contentLabel = QLabel(gt(content), self)
+
+        # 设置最大宽度限制，防止文字过长撑大窗口
+        self.contentLabel.setMaximumWidth(500)
 
         # 处理内容显示
-        self.contentLabel.setVisible(bool(content))
+        self.contentLabel.setVisible(content is not None and len(content) > 0)
 
         # 如果有图标，初始化图标组件
         if icon is not None:
@@ -64,7 +67,20 @@ class SettingCardBase(SettingCard):
 
     def setContent(self, content: str):
         """设置卡片内容"""
-        self.contentLabel.setText(gt(content, "ui"))
+        if content is not None:
+            # 使用fontMetrics来计算文字是否超出最大宽度，如果超出则添加省略号
+            font_metrics = self.contentLabel.fontMetrics()
+            max_width = self.contentLabel.maximumWidth()
+            elided_text = font_metrics.elidedText(content, Qt.TextElideMode.ElideRight, max_width)
+            self.contentLabel.setText(elided_text)
+            # 设置工具提示显示完整文本
+            if font_metrics.horizontalAdvance(content) > max_width:
+                self.contentLabel.setToolTip(content)
+            else:
+                self.contentLabel.setToolTip("")
+        else:
+            self.contentLabel.setText("")
+            self.contentLabel.setToolTip("")
         self.contentLabel.setVisible(content is not None and len(content) > 0)  # 根据内容设置可见性
 
     def setIconSize(self, width: int, height: int):

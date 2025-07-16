@@ -29,9 +29,9 @@ class BattleStateDisplay(TableWidget):
         self.setColumnWidth(2, 60)
         self.verticalHeader().hide()
         self.setHorizontalHeaderLabels([
-            gt('状态', 'ui'),
-            gt('触发秒数', 'ui'),
-            gt('状态值', 'ui'),
+            gt('状态'),
+            gt('触发秒数'),
+            gt('状态值'),
         ])
 
         self.update_timer = QTimer()
@@ -163,7 +163,7 @@ class TaskDisplay(TableWidget):
 
         if task is None:
             return
-        
+
         # 计算持续时间
         past_time = str(round(now - self.auto_op.last_trigger_time.get(task.trigger_display, 0), 4))
         states = task.expr_display

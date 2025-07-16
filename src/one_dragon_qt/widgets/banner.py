@@ -1,6 +1,6 @@
 import os
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap, QPainter, QPainterPath
+from PySide6.QtGui import QPixmap, QPainter, QPainterPath, QImage
 from PySide6.QtWidgets import QWidget
 
 
@@ -14,24 +14,37 @@ class Banner(QWidget):
         self.scaled_image = None
         self.update_scaled_image()
 
-    def load_banner_image(self, image_path: str):
+    def load_banner_image(self, image_path: str) -> QImage:
         """加载横幅图片，或创建渐变备用图片"""
         if os.path.isfile(image_path):
-            return QPixmap(image_path)
+            return QImage(image_path)
         return self._create_fallback_image()
 
-    def _create_fallback_image(self):
+    def _create_fallback_image(self) -> QImage:
         """创建渐变备用图片"""
-        fallback_image = QPixmap(2560, 1280)  # 使用原始图片的大小
+        fallback_image = QImage(2560, 1280, QImage.Format.Format_RGB32)
         fallback_image.fill(Qt.GlobalColor.gray)
         return fallback_image
 
-    def update_scaled_image(self):
-        """按高度缩放图片，宽度保持比例，超出裁剪"""
-        if self.banner_image:
-            self.scaled_image = self.banner_image.scaled(
-                self.size(), Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation
-            )
+    def update_scaled_image(self) -> None:
+        """
+        更新缩放后的图片
+        :return:
+        """
+        if self.banner_image.isNull():
+            return
+
+        # 获取设备像素比例用于高DPI适配
+        pixel_ratio = self.devicePixelRatio()
+        target_size = self.size()
+
+        scaled_image = self.banner_image.scaled(
+            target_size * pixel_ratio,
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        self.scaled_image = QPixmap.fromImage(scaled_image)
+        self.scaled_image.setDevicePixelRatio(pixel_ratio)
         self.update()
 
     def paintEvent(self, event):
@@ -47,8 +60,11 @@ class Banner(QWidget):
             painter.setClipPath(path)
 
             # 计算绘制位置，使图片居中
-            x = (self.width() - self.scaled_image.width()) // 2
-            y = (self.height() - self.scaled_image.height()) // 2
+            pixel_ratio = self.scaled_image.devicePixelRatio()
+            logical_width = self.scaled_image.width() // pixel_ratio
+            logical_height = self.scaled_image.height() // pixel_ratio
+            x = (self.width() - logical_width) // 2
+            y = (self.height() - logical_height) // 2
 
             # 绘制缩放后的图片
             painter.drawPixmap(x, y, self.scaled_image)
@@ -66,3 +82,13 @@ class Banner(QWidget):
             new_height = int(parent.height() * height_percentage)
             self.setFixedSize(new_width, new_height)
             self.update_scaled_image()
+
+    def set_banner_image(self, image_path: str) -> None:
+        """
+        设置背景图片
+        :param image_path: 图片路径
+        :return:
+        """
+        self.image_path = image_path
+        self.banner_image = self.load_banner_image(image_path)
+        self.update_scaled_image()

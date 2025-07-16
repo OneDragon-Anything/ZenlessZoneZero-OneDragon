@@ -25,7 +25,7 @@ class ShiyuDefenseInterface(VerticalScrollInterface):
         content_widget = Column()
 
         self.critical_reset_opt = PushSettingCard(icon=FluentIcon.SYNC, title='剧变节点 重置运行记录',
-                                                  text='重置')
+                                                  text=gt('重置'))
         self.critical_reset_opt.clicked.connect(self.on_critical_reset_clicked)
         content_widget.add_widget(self.critical_reset_opt)
 
@@ -42,7 +42,7 @@ class ShiyuDefenseInterface(VerticalScrollInterface):
         self.team_table.setColumnCount(len(labels))
         for i in range(len(labels)):
             self.team_table.setColumnWidth(i, (200 if i == 0 else 70))
-        self.team_table.setHorizontalHeaderLabels([gt(i, 'ui') for i in labels])
+        self.team_table.setHorizontalHeaderLabels([gt(i) for i in labels])
 
         content_widget.add_widget(self.team_table, stretch=1)
 

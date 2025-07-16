@@ -15,7 +15,6 @@ class ONNXPaddleOcr(TextSystem):
         for action in parser._actions:
             inference_args_dict[action.dest] = action.default
         params = argparse.Namespace(**inference_args_dict)
-        
 
         # params.rec_image_shape = "3, 32, 320"
         params.rec_image_shape = "3, 48, 320"
@@ -28,7 +27,9 @@ class ONNXPaddleOcr(TextSystem):
 
     def ocr(self, img, det=True, rec=True, cls=True):
         if cls == True and self.use_angle_cls == False:
-            print('Since the angle classifier is not initialized, the angle classifier will not be uesd during the forward process')
+            print(
+                "Since the angle classifier is not initialized, the angle classifier will not be uesd during the forward process"
+            )
 
         if det and rec:
             ocr_res = []
@@ -63,6 +64,7 @@ class ONNXPaddleOcr(TextSystem):
 def sav2Img(org_img, result, name="draw_ocr.jpg"):
     # 显示结果
     from PIL import Image
+
     result = result[0]
     # image = Image.open(img_path).convert('RGB')
     # 图像转BGR2RGB
@@ -75,19 +77,19 @@ def sav2Img(org_img, result, name="draw_ocr.jpg"):
     im_show.save(name)
 
 
-if __name__ == '__main__':
+def __debug():
     import cv2
     import os
     from one_dragon.utils import os_utils, debug_utils
 
-    models_dir = os_utils.get_path_under_work_dir('assets', 'models', 'onnx_ocr')
+    models_dir = os_utils.get_path_under_work_dir('assets', 'models', 'onnx_ocr', 'ppocrv5')
 
     model = ONNXPaddleOcr(
                     use_angle_cls=False, use_gpu=False,
                     det_model_dir=os.path.join(models_dir, 'det.onnx'),
                     rec_model_dir=os.path.join(models_dir, 'rec.onnx'),
                     cls_model_dir=os.path.join(models_dir, 'cls.onnx'),
-                    rec_char_dict_path=os.path.join(models_dir, 'ppocr_keys_v1.txt'),
+                    rec_char_dict_path=os.path.join(models_dir, 'ppocrv5_dict.txt'),
                     vis_font_path=os.path.join(models_dir, 'simfang.ttf'),
                 )
 
@@ -99,3 +101,7 @@ if __name__ == '__main__':
     print("result:", result)
     for box in result[0]:
         print(box)
+
+
+if __name__ == "__main__":
+    __debug()

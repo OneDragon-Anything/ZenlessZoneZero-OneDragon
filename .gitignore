@@ -4,7 +4,9 @@ dist/
 .idea/
 .vscode/
 __pycache__/
-deploy/
+deploy/build/
+deploy/dist/
+.env
 recording.jsonl
 
 # 子模块
@@ -18,6 +20,7 @@ config/env.yml
 config/game.yml
 config/dodge_assistant.yml
 config/zzz_one_dragon.yml
+config/one_dragon.yml
 config/[0-9]*/
 config/dodge/*
 !config/dodge/*.sample.yml
@@ -32,24 +35,23 @@ config/hollow_zero_challenge/*
 config/lost_void_challenge/*
 !config/lost_void_challenge/*.sample.yml
 config/yolo.yml
+config/model.yml
 custom/assets/ui/banner
+assets/ui/version_poster.webp
+assets/ui/remote_banner.webp
 
 # 执行文件
 *.exe
 
 # 用户运行时产生的文件
 .log/
-.env/
+.install/
 .temp_clone/
 .temp_clone**/
 .debug/
 .conda/
-.vscode/
 .venv/
 notice_cache/
 
 # 需自行下载的模型文件
 models/
-
-# 缓存文件
-notice_cache/

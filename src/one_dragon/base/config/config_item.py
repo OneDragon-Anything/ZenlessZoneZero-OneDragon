@@ -22,7 +22,7 @@ class ConfigItem:
         显示的文本
         :return:
         """
-        return gt(self.label, 'ui')
+        return gt(self.label)
 
 
 def get_config_item_from_enum(enum: Iterable[Enum], value: Any) -> Optional[ConfigItem]:

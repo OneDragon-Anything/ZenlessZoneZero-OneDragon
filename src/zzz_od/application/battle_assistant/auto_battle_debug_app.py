@@ -1,5 +1,3 @@
-import time
-
 from typing import Optional
 
 from one_dragon.base.controller.pc_button import pc_button_utils
@@ -25,7 +23,7 @@ class AutoBattleDebugApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id='auto_battle_debug',
-            op_name=gt('自动战斗调试', 'ui'),
+            op_name=gt('自动战斗调试'),
             need_ocr=False
         )
 
@@ -73,6 +71,7 @@ class AutoBattleDebugApp(ZApplication):
                 AutoBattleApp.EVENT_OP_LOADED,
                 self.auto_op,
             )
+            self.auto_op.start_running_async()
 
         return result
 
@@ -83,17 +82,9 @@ class AutoBattleDebugApp(ZApplication):
         识别当前画面 并进行点击
         :return:
         """
-        now = time.time()
+        self.auto_op.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time, sync=True)
 
-        screen = self.screenshot()
-        self.auto_op.auto_battle_context.check_battle_state(screen, now, sync=True)
-
-        time.sleep(0.2)
-        new_task = self.auto_op._normal_scene_handler.get_operations(time.time())
-        if new_task is not None:
-            new_task.run_async().result()
-
-        return self.round_success()
+        return self.round_wait(wait_round_time=self.ctx.battle_assistant_config.screenshot_interval)
 
     def _on_pause(self, e=None):
         ZApplication._on_pause(self, e)

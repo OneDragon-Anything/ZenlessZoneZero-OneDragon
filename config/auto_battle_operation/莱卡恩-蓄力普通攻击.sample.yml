@@ -1,12 +1,6 @@
 # 根据动画实测
 operations:
-  - op_name: "按键-普通攻击"
-    way: "松开"
+  - op_name: "按键-普通攻击-按下"
   - op_name: "等待秒数"
-    seconds: 0.1
-
-  - op_name: "按键-普通攻击"
-    way: "按下"
-    press: 4
-  - op_name: "按键-普通攻击"
-    way: "松开"
+    seconds: 4
+  - op_name: "按键-普通攻击-松开"

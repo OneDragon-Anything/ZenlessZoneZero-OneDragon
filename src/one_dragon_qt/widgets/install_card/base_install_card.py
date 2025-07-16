@@ -71,14 +71,14 @@ class BaseInstallCard(MultiPushSettingCard):
                  parent=None
                  ):
         self.ctx: OneDragonEnvContext = ctx
-        self.title: str = gt(title_cn, 'ui')
+        self.title: str = gt(title_cn)
 
         btn_list = []
         if left_widgets is not None:
             for left_widget in left_widgets:
                 btn_list.append(left_widget)
 
-        self.install_btn = PrimaryPushButton(install_btn_icon, gt(install_btn_text_cn, 'ui'))
+        self.install_btn = PrimaryPushButton(install_btn_icon, gt(install_btn_text_cn))
         self.install_btn.clicked.connect(self.start_progress)
         btn_list.append(self.install_btn)
 
@@ -94,7 +94,7 @@ class BaseInstallCard(MultiPushSettingCard):
             btn_list=btn_list,
             icon=FluentIcon.INFO,
             title=self.title,
-            content=gt(content_cn, 'ui'),
+            content=gt(content_cn),
             parent=parent
         )
 
@@ -104,7 +104,7 @@ class BaseInstallCard(MultiPushSettingCard):
         :return:
         """
         if self.install_runner.isRunning():
-            log.warn('我知道你很急 但你先别急 正在运行了')
+            log.warning('我知道你很急 但你先别急 正在运行了')
             return
         self.install_runner.start()
 
@@ -145,9 +145,9 @@ class BaseInstallCard(MultiPushSettingCard):
         :return:
         """
         if self.display_checker.isRunning():
-            log.warn('我知道你很急 但你先别急 正在运行了')
+            log.warning('我知道你很急 但你先别急 正在运行了')
             return
-        self.setContent(gt('检查中', 'ui'))
+        self.setContent(gt('检查中'))
         self.display_checker.start()
 
     def get_display_content(self) -> Tuple[QIcon, str]:

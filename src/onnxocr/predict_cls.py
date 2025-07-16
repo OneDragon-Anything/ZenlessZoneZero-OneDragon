@@ -28,7 +28,7 @@ class TextClassifier(PredictBase):
         else:
             resized_w = int(math.ceil(imgH * ratio))
         resized_image = cv2.resize(img, (resized_w, imgH))
-        resized_image = resized_image.astype('float32')
+        resized_image = resized_image.astype("float32")
         if self.cls_image_shape[0] == 1:
             resized_image = resized_image / 255
             resized_image = resized_image[np.newaxis, :]
@@ -50,7 +50,7 @@ class TextClassifier(PredictBase):
         # Sorting can speed up the cls process
         indices = np.argsort(np.array(width_list))
 
-        cls_res = [['', 0.0]] * img_num
+        cls_res = [["", 0.0]] * img_num
         batch_num = self.cls_batch_num
 
         for beg_img_no in range(0, img_num, batch_num):
@@ -71,7 +71,9 @@ class TextClassifier(PredictBase):
             norm_img_batch = norm_img_batch.copy()
 
             input_feed = self.get_input_feed(self.cls_input_name, norm_img_batch)
-            outputs = self.cls_onnx_session.run(self.cls_output_name, input_feed=input_feed)
+            outputs = self.cls_onnx_session.run(
+                self.cls_output_name, input_feed=input_feed
+            )
 
             prob_out = outputs[0]
 
@@ -79,8 +81,8 @@ class TextClassifier(PredictBase):
             for rno in range(len(cls_result)):
                 label, score = cls_result[rno]
                 cls_res[indices[beg_img_no + rno]] = [label, score]
-                if '180' in label and score > self.cls_thresh:
+                if "180" in label and score > self.cls_thresh:
                     img_list[indices[beg_img_no + rno]] = cv2.rotate(
-                        img_list[indices[beg_img_no + rno]], 1)
+                        img_list[indices[beg_img_no + rno]], 1
+                    )
         return img_list, cls_res
-

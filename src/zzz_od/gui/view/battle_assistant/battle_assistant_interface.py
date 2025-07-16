@@ -18,7 +18,7 @@ class BattleAssistantInterface(PivotNavigatorInterface):
     def __init__(self, ctx: ZContext, parent=None):
         """
         初始化战斗助手界面。
-        
+
         :param ctx: 应用程序上下文，包含配置和状态信息。
         :param parent: 父组件，默认为 None。
         """

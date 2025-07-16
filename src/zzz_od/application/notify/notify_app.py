@@ -1,21 +1,24 @@
+from typing import List
+from datetime import datetime, timedelta
+
+from one_dragon.base.notify.push import Push
+from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
+
 from zzz_od.application.zzz_application import ZApplication
+from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
 from zzz_od.context.zzz_context import ZContext
-import zzz_od.application.notify.push as Push
-from typing import List
-from datetime import datetime, timedelta
-import zzz_od.application.zzz_one_dragon_app as app
-from one_dragon.base.operation.application_run_record import AppRunRecord
+
 
 class NotifyApp(ZApplication):
 
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(self, ctx, 'notify',
-                              op_name=gt('通知', 'ui'),
-                              need_check_game_win=False,
-                               run_record=ctx.notify_record)
+                              op_name=gt('通知'),
+                              need_check_game_win=True,
+                              run_record=ctx.notify_record)
 
     @operation_node(name='发送通知', is_start_node=True)
     def notify(self) -> OperationRoundResult:
@@ -23,11 +26,9 @@ class NotifyApp(ZApplication):
         发送通知
         :return:
         """
-        if self.ctx.notify_config.notify_method == 'DISABLED':
-            return self.round_fail('未启用通知')
-        Push.push_config['HITOKOTO'] = 'false'
+        self.exist_failure = False
 
-        def is_within_time(time_str):
+        def is_within_time(time_str) -> bool:
             end_time = datetime.now()
             try:
                 # 解析输入的时间字符串，格式为月-日 时:分
@@ -35,7 +36,7 @@ class NotifyApp(ZApplication):
             except ValueError:
                 # 时间格式不正确
                 return False
-            
+
             candidates = []
             # 生成当前年份和前一年的候选时间
             for year in [end_time.year, end_time.year - 1]:
@@ -45,7 +46,7 @@ class NotifyApp(ZApplication):
                 except ValueError:
                     # 处理无效日期（如闰年的2月29日）
                     continue
-            
+
             start_time = end_time - timedelta(hours=3)
             for candidate in candidates:
                 # 检查候选时间是否在最近三小时内且不超过当前时间
@@ -64,30 +65,36 @@ class NotifyApp(ZApplication):
                         success.append(item.op_name)
                     if item.run_record.run_status_under_now == AppRunRecord.STATUS_FAIL:
                         failure.append(item.op_name)
+                        self.exist_failure = True
 
-            parts = [f"OneDragon执行完成："]
-            if failure:
+            parts = [f"一条龙运行完成："]
+            has_failure = bool(failure)
+            has_success = bool(success)
+
+            if has_failure:
                 parts.append(f"❌ 失败指令：{', '.join(failure)}")
-            else:
+            elif has_success:
                 parts.append(f"全部成功✅")
-            if success:
-                parts.append(f"成功指令：{', '.join(success)}")
-            else:
-                parts.remove(f"全部成功✅")
+
+            if has_success:
+                parts.append(f"✅ 成功指令：{', '.join(success)}")
+            elif not has_failure:
                 parts.append(f"全部失败❌")
-            return "\n".join(parts) if parts else "⚠️ 未检测到有效指令状态"  
-        
-        message = format_message(app.ZOneDragonApp.get_app_list(self))
 
+            return "\n".join(parts)
 
-        for k in Push.push_config:
-            if self.ctx.notify_config.get(k.lower()) and k.lower().startswith(self.ctx.notify_config.notify_method.lower()):
-                Push.push_config[k] = self.ctx.notify_config.get(k.lower())
-        Push.send("绝区零一条龙运行通知",message,Push.push_config)
-        
+        message = format_message(ZOneDragonApp.get_app_list(self))
+        image = None
+        if self.ctx.push_config.send_image:
+            image = self.save_screenshot_bytes()
 
-        
-        return self.round_success(wait=5)
+        pusher = Push(self.ctx)
+        pusher.send(message, image)
+
+        if self.exist_failure:
+            return self.round_fail(wait=5)
+        else:
+            return self.round_success(wait=5)
 
 
 def __debug():

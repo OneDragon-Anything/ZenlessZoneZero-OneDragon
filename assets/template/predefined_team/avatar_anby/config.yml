@@ -1,8 +1,0 @@
-sub_dir: predefined_team
-template_id: avatar_anby
-template_name: 预备编队-头像
-template_shape: rectangle
-auto_mask: true
-point_list:
-- 171, 219
-- 354, 337

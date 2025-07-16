@@ -14,7 +14,7 @@ class ChargePlanDialog(MessageBoxBase):
 
         self.yesButton.setText("确定")
         self.cancelButton.setText("取消")
-        
+
         self.titleLabel = SubtitleLabel("新增体力计划")
         self.viewLayout.addWidget(self.titleLabel)
 

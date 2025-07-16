@@ -1,6 +1,6 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import PushButton, FluentIcon, SettingCardGroup, HyperlinkCard
+from qfluentwidgets import PushButton, ToolButton, FluentIcon, SettingCardGroup, HyperlinkCard
 from typing import Optional, List
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -86,23 +86,23 @@ class AutoBattleEditorInterface(VerticalScrollInterface):
         widget.add_widget(btn_row)
 
         self.existed_yml_btn = ComboBox()
-        self.existed_yml_btn.setPlaceholderText(gt('选择已有', 'ui'))
+        self.existed_yml_btn.setPlaceholderText(gt('选择已有'))
         self.existed_yml_btn.currentIndexChanged.connect(self.on_config_chosen)
         btn_row.add_widget(self.existed_yml_btn)
 
-        self.create_btn = PushButton(text=gt('新建', 'ui'))
+        self.create_btn = PushButton(text=gt('新建'))
         # self.create_btn.clicked.connect(self._on_create_clicked)
         btn_row.add_widget(self.create_btn)
 
-        self.copy_btn = PushButton(text=gt('复制', 'ui'))
+        self.copy_btn = PushButton(text=gt('复制'))
         # self.copy_btn.clicked.connect(self._on_copy_clicked)
         btn_row.add_widget(self.copy_btn)
 
-        self.delete_btn = PushButton(text=gt('删除', 'ui'))
+        self.delete_btn = ToolButton(FluentIcon.DELETE)
         # self.delete_btn.clicked.connect(self._on_delete_clicked)
         btn_row.add_widget(self.delete_btn)
 
-        self.cancel_btn = PushButton(text=gt('取消', 'ui'))
+        self.cancel_btn = PushButton(text=gt('取消'))
         self.cancel_btn.clicked.connect(self.on_cancel_clicked)
         btn_row.add_widget(self.cancel_btn)
 

@@ -11,6 +11,19 @@ class EditableComboBox(qtEditableComboBox):
     def __init__(self, parent=None):
         qtEditableComboBox.__init__(self, parent)
 
+    def _onReturnPressed(self):
+        """
+        子类重写
+        不向列表添加新选项
+        """
+        if not self.text():
+            return
+
+        index = self.findText(self.text())
+        if index >= 0 and index != self.currentIndex():
+            self._currentIndex = index
+            self.currentIndexChanged.emit(index)
+
     def set_items(self, items: List[ConfigItem], target_value: Any = None) -> None:
         """
         更新选项
@@ -53,9 +66,9 @@ class EditableComboBox(qtEditableComboBox):
         self.blockSignals(True)
         self.setCurrentIndex(self.findData(target_value))
         self.blockSignals(False)
-    
+
     def set_completer_options(self, options_list: List[ConfigItem]) -> None:
-        """初始化自动补全器。"""
+        """初始化自动补全器"""
         completion_strings = [item.ui_text for item in options_list]
         completer = QCompleter(completion_strings)
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)  # 设置大小写不敏感

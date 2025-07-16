@@ -42,7 +42,7 @@ __ZenlessZoneZero-OneDragon__
 ## 📸 页面预览
 
 <div align="center">
-  
+
 ![App Interface](./image/app.png#gh-light-mode-only "操作界面")
 *✨ 简洁直观的操作界面 ✨*
 

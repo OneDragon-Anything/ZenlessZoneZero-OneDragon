@@ -1,7 +1,8 @@
 from typing import Optional
 from one_dragon.utils.log_utils import log
+
+from one_dragon.base.cv_process.cv_service import CvService
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from one_dragon.utils import i18_utils
 from zzz_od.game_data.agent import AgentEnum
 
 
@@ -15,16 +16,19 @@ class ZContext(OneDragonContext):
         from zzz_od.application.hollow_zero.lost_void.context.lost_void_context import LostVoidContext
         self.lost_void: LostVoidContext = LostVoidContext(self)
 
-        from zzz_od.config.yolo_config import YoloConfig
+        from zzz_od.config.model_config import ModelConfig
         from zzz_od.game_data.compendium import CompendiumService
         from zzz_od.game_data.map_area import MapAreaService
 
         # 基础配置
-        self.yolo_config: YoloConfig = YoloConfig()
+        self.model_config: ModelConfig = ModelConfig()
 
         # 游戏数据
         self.map_service: MapAreaService = MapAreaService()
         self.compendium_service: CompendiumService = CompendiumService()
+
+        # CV服务
+        self.cv_service: CvService = CvService(self)
 
         # 实例独有的配置
         self.load_instance_config()
@@ -66,7 +70,7 @@ class ZContext(OneDragonContext):
         from zzz_od.application.commission_assistant.commission_assistant_config import CommissionAssistantConfig
         from zzz_od.config.team_config import TeamConfig
         self.team_config: TeamConfig = TeamConfig(self.current_instance_idx)
-        # from zzz_od.config.emulator_config import EmulatorConfig
+        # from zzz_od.config.emulator_config import EmulatorConfig #TODO 检查是否需要删掉
         # self.emulator_config: EmulatorConfig = EmulatorConfig(self.current_instance_idx)
 
         # 应用配置
@@ -109,6 +113,9 @@ class ZContext(OneDragonContext):
         self.life_on_line_record.check_and_update_status()
         self.redemption_code_record: RedemptionCodeRunRecord = RedemptionCodeRunRecord(self.current_instance_idx, game_refresh_hour_offset)
         self.redemption_code_record.check_and_update_status()
+        from zzz_od.application.trigrams_collection.trigrams_collection_record import TrigramsCollectionRunRecord
+        self.trigrams_collection_record: TrigramsCollectionRunRecord = TrigramsCollectionRunRecord(self.current_instance_idx, game_refresh_hour_offset)
+        self.trigrams_collection_record.check_and_update_status()
 
         from zzz_od.application.ridu_weekly.ridu_weekly_run_record import RiduWeeklyRunRecord
         self.ridu_weekly_record: RiduWeeklyRunRecord = RiduWeeklyRunRecord(self.current_instance_idx, game_refresh_hour_offset)
@@ -129,7 +136,7 @@ class ZContext(OneDragonContext):
         from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_run_record import DriveDiscDismantleRunRecord
         self.drive_disc_dismantle_record: DriveDiscDismantleRunRecord = DriveDiscDismantleRunRecord(self.current_instance_idx, game_refresh_hour_offset)
 
-        from zzz_od.application.notify.notify_config import NotifyConfig
+        from zzz_od.config.notify_config import NotifyConfig
         self.notify_config: NotifyConfig = NotifyConfig(self.current_instance_idx)
         from zzz_od.application.notify.notify_run_record import NotifyRunRecord
         self.notify_record: NotifyRunRecord = NotifyRunRecord(self.current_instance_idx, game_refresh_hour_offset)
@@ -139,6 +146,9 @@ class ZContext(OneDragonContext):
         from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import LostVoidRunRecord
         self.lost_void_record: LostVoidRunRecord = LostVoidRunRecord(self.lost_void_config, self.current_instance_idx, game_refresh_hour_offset)
 
+        from zzz_od.application.suibian_temple.suibian_temple_run_record import SuibianTempleRunRecord
+        self.suibian_temple_record: SuibianTempleRunRecord = SuibianTempleRunRecord(self.current_instance_idx, game_refresh_hour_offset)
+
         self.init_by_config()
 
     def init_by_config(self) -> None:
@@ -147,7 +157,6 @@ class ZContext(OneDragonContext):
         :return:
         """
         OneDragonContext.init_by_config(self)
-        i18_utils.update_default_lang(self.game_account_config.game_language)
 
         from one_dragon.base.screen.screen_loader import ScreenContext
         from one_dragon.base.screen.template_loader import TemplateLoader
@@ -160,11 +169,13 @@ class ZContext(OneDragonContext):
         log.info(f'{GamePlatformEnum.PC.value.value}')
         log.info(f'{GamePlatformEnum.Emulator.value.value}')
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
-            log.info('电脑init')
-            from one_dragon.base.config.game_account_config import GameRegionEnum
-            win_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
-            log
-            self.controller = ZPcController(
+            if self.game_account_config.use_custom_win_title:
+                win_title = self.game_account_config.custom_win_title
+            else:
+                log.info('电脑init')
+                from one_dragon.base.config.game_account_config import GameRegionEnum
+                win_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
+            self.controller: ZPcController = ZPcController(
                 game_config=self.game_config,
                 win_title=win_title,
                 standard_width=self.project_config.screen_standard_width,
@@ -189,7 +200,10 @@ class ZContext(OneDragonContext):
             self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
         self.hollow.data_service.reload()
         self.init_hollow_config()
-        self.init_agent_template_id()
+        if self.agent_outfit_config.compatibility_mode:
+            self.init_agent_template_id()
+        else:
+            self.init_agent_template_id_list()
 
     def init_hollow_config(self) -> None:
         """
@@ -208,9 +222,20 @@ class ZContext(OneDragonContext):
         代理人头像模板ID的初始化
         :return:
         """
-        AgentEnum.NICOLE.value.template_id = self.agent_outfit_config.nicole
-        AgentEnum.ELLEN.value.template_id = self.agent_outfit_config.ellen
-        AgentEnum.ASTRA_YAO.value.template_id = self.agent_outfit_config.astra_yao
+        AgentEnum.NICOLE.value.template_id_list = [self.agent_outfit_config.nicole]
+        AgentEnum.ELLEN.value.template_id_list = [self.agent_outfit_config.ellen]
+        AgentEnum.ASTRA_YAO.value.template_id_list = [self.agent_outfit_config.astra_yao]
+        AgentEnum.YIXUAN.value.template_id_list = [self.agent_outfit_config.yixuan]
+
+    def init_agent_template_id_list(self) -> None:
+        """
+        代理人头像模板ID的初始化
+        :return:
+        """
+        AgentEnum.NICOLE.value.template_id_list = self.agent_outfit_config.nicole_outfit_list
+        AgentEnum.ELLEN.value.template_id_list = self.agent_outfit_config.ellen_outfit_list
+        AgentEnum.ASTRA_YAO.value.template_id_list = self.agent_outfit_config.astra_yao_outfit_list
+        AgentEnum.YIXUAN.value.template_id_list = self.agent_outfit_config.yixuan_outfit_list
 
     def after_app_shutdown(self) -> None:
         """

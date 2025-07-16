@@ -9,6 +9,16 @@ def get_model_category_dir(category: str) -> str:
     return os_utils.get_path_under_work_dir('assets', 'models', category)
 
 
+def get_model_dir(category: str, model_name: str) -> str:
+    """
+    获取具体模型的目录
+    :param category: 分类
+    :param model_name: 模型名称
+    :return:
+    """
+    return os_utils.get_path_under_work_dir('assets', 'models', category, model_name)
+
+
 def get_available_models(category: str) -> List[str]:
     """
     获取某文件夹下可用的模型列表

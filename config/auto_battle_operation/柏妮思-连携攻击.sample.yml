@@ -13,4 +13,3 @@ operations:
   - op_name: "设置状态"
     state: "自定义-异常-火"
     add: 150
-  - operation_template: "柏妮思-长按特殊攻击直到能量用完"

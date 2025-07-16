@@ -21,7 +21,7 @@ class CriticalStage(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt('关键进展')
+            op_name=gt('关键进展', 'game')
         )
 
         self._handlers: List[EventOcrResultHandler] = [
@@ -31,8 +31,7 @@ class CriticalStage(ZOperation):
 
     @operation_node(name='画面识别', is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return hollow_event_utils.check_event_text_and_run(self, screen, self._handlers)
+        return hollow_event_utils.check_event_text_and_run(self, self.last_screenshot, self._handlers)
 
     @node_from(from_name='画面识别', status=HollowZeroSpecialEvent.CRITICAL_STAGE_ENTRY.value.event_name)
     @node_from(from_name='画面识别', status=HollowZeroSpecialEvent.CRITICAL_STAGE_ENTRY_2.value.event_name)

@@ -3,7 +3,7 @@ screen_name: 迷失之地-通用选择
 pc_alt: false
 area_list:
 - area_name: 文本-详情
-  id_mark: true
+  id_mark: false
   pc_rect:
   - 74
   - 24
@@ -19,10 +19,10 @@ area_list:
 - area_name: 按钮-确定
   id_mark: true
   pc_rect:
-  - 864
-  - 804
-  - 1182
-  - 918
+  - 866
+  - 712
+  - 1122
+  - 970
   text: 确定
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -44,20 +44,6 @@ area_list:
   template_match_threshold: 0.7
   color_range: null
   goto_list: []
-- area_name: 标题-请选择1个武备
-  id_mark: false
-  pc_rect:
-  - 854
-  - 148
-  - 1058
-  - 186
-  text: 请选择1个武备
-  lcs_percent: 0.7
-  template_sub_dir: ''
-  template_id: ''
-  template_match_threshold: 0.7
-  color_range: null
-  goto_list: []
 - area_name: 区域-武备名称
   id_mark: false
   pc_rect:
@@ -72,41 +58,13 @@ area_list:
   template_match_threshold: 0.7
   color_range: null
   goto_list: []
-- area_name: 标题-请选择1项
-  id_mark: false
-  pc_rect:
-  - 854
-  - 148
-  - 1058
-  - 186
-  text: 请选择1项
-  lcs_percent: 0.5
-  template_sub_dir: ''
-  template_id: ''
-  template_match_threshold: 0.7
-  color_range: null
-  goto_list: []
-- area_name: 标题-武备已升级
-  id_mark: false
-  pc_rect:
-  - 854
-  - 148
-  - 1058
-  - 186
-  text: 武备已升级
-  lcs_percent: 0.5
-  template_sub_dir: ''
-  template_id: ''
-  template_match_threshold: 0.7
-  color_range: null
-  goto_list: []
 - area_name: 区域-标题
   id_mark: false
   pc_rect:
-  - 854
-  - 148
-  - 1058
-  - 186
+  - 760
+  - 146
+  - 1156
+  - 220
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''

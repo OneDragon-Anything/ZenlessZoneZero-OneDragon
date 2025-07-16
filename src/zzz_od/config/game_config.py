@@ -453,7 +453,7 @@ class GameConfig(BasicGameConfig):
     @property
     def original_hdr_value(self) -> str:
         return self.get('original_hdr_value', '')
-    
+
     @original_hdr_value.setter
     def original_hdr_value(self, new_value: str) -> None:
         self.update('original_hdr_value', new_value)

@@ -113,7 +113,7 @@ def construct_state_handler(
     debug_name = state_data.get('debug_name', None)  # 从配置中获取debug_name
     if debug_name is not None:
         debug_name = f'[#{debug_name}]'  # 添加方括号
-    
+
     state_cal_tree = construct_state_cal_tree(states_expr, state_getter, debug_name)
     interrupt_states = state_data.get('interrupt_states', None)
     if interrupt_states is not None:

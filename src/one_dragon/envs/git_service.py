@@ -4,13 +4,13 @@ import os
 import shutil
 from typing import Optional, Callable, List, Tuple
 
-from one_dragon.envs.env_config import DEFAULT_ENV_PATH, DEFAULT_GIT_DIR_PATH, ProxyTypeEnum, EnvConfig, \
-    RepositoryTypeEnum, GitMethodEnum
+from one_dragon.envs.env_config import DEFAULT_ENV_PATH, DEFAULT_GIT_DIR_PATH, EnvConfig, RepositoryTypeEnum, GitMethodEnum
 from one_dragon.envs.project_config import ProjectConfig
-from one_dragon.utils import http_utils, cmd_utils, file_utils, os_utils
+from one_dragon.envs.download_service import DownloadService
+from one_dragon.utils import cmd_utils, file_utils, os_utils
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
-GITHUB_ENV_DOWNLOAD_PREFIX = 'https://github.com/DoctorReid/OneDragon-Env/releases/download'
 DOT_GIT_DIR_PATH = os.path.join(os_utils.get_work_dir(), '.git')
 
 
@@ -26,30 +26,12 @@ class GitLog:
 
 class GitService:
 
-    def __init__(self, project_config: ProjectConfig, env_config: EnvConfig):
+    def __init__(self, project_config: ProjectConfig, env_config: EnvConfig, download_service: DownloadService):
         self.project_config: ProjectConfig = project_config
         self.env_config: EnvConfig = env_config
+        self.download_service: DownloadService = download_service
 
         self.is_proxy_set: bool = False  # 是否已经设置代理了
-
-    def download_env_file(self, file_name: str, save_file_path: str,
-                          progress_callback: Optional[Callable[[float, str], None]] = None) -> bool:
-        """
-        下载环境文件
-        :param file_name: 要下载的文件名
-        :param save_file_path: 保存路径，包含文件名
-        :param progress_callback: 下载进度的回调，进度发生改变时，通过该方法通知调用方。
-        :return: 是否下载成功
-        """
-        download_url = f'{GITHUB_ENV_DOWNLOAD_PREFIX}/{self.project_config.project_name}/{file_name}'
-        proxy = None
-        if self.env_config.is_gh_proxy:
-            download_url = f'{self.env_config.gh_proxy_url}/{download_url}'
-        elif self.env_config.is_personal_proxy:
-            proxy = self.env_config.personal_proxy
-
-        return http_utils.download_file(download_url, save_file_path,
-                                        proxy=proxy, progress_callback=progress_callback)
 
     def get_os_git_path(self) -> Optional[str]:
         """
@@ -82,46 +64,51 @@ class GitService:
         :param progress_callback: 进度回调。进度发生改变时，通过该方法通知调用方。
         :return: 是否安装成功
         """
-        log.info('开始安装 git')
         if self.get_git_version() is not None:
-            msg = '已经安装了git'
+            msg = gt('已经安装了 Git')
             log.info(msg)
             return True, msg
+
+        msg = gt('开始安装 Git')
+        if progress_callback is not None:
+            progress_callback(-1, msg)
+        log.info(msg)
+
         for _ in range(2):
-            zip_file_name = 'PortableGit.zip'
+            zip_file_name = 'MinGit.zip'
             zip_file_path = os.path.join(DEFAULT_ENV_PATH, zip_file_name)
             if not os.path.exists(zip_file_path):
-                success = self.download_env_file(zip_file_name, zip_file_path,
+                success = self.download_service.download_env_file(zip_file_name, zip_file_path,
                                                  progress_callback=progress_callback)
                 if not success:
-                    return False, '下载PortableGit.zip失败 请尝试到「脚本环境」更改网络代理'
+                    return False, gt('下载 Git 失败 请尝试到「脚本环境」更改网络代理')
 
-            msg = f'开始解压 {zip_file_name}'
+            msg = f"{gt('开始解压')} {zip_file_name}"
             log.info(msg)
-            if progress_callback:
+            if progress_callback is not None:
                 progress_callback(0, msg)
 
             success = file_utils.unzip_file(zip_file_path, DEFAULT_GIT_DIR_PATH)
 
-            msg = '解压成功' if success else '解压失败 准备重试'
-            if progress_callback:
+            msg = gt('解压成功') if success else gt('解压失败 准备重试')
+            if progress_callback is not None:
                 progress_callback(1 if success else 0, msg)
 
             if not success:  # 解压失败的话 可能是之前下的zip包坏了 尝试删除重来
                 os.remove(zip_file_path)
                 continue
             else:
-                return True, '安装Git成功'
+                return True, gt('安装 Git 成功')
 
         # 重试之后还是失败了
-        return False, '安装Git失败'
+        return False, gt('安装 Git 失败')
 
     def fetch_latest_code(self, progress_callback: Optional[Callable[[float, str], None]] = None) -> Tuple[bool, str]:
         """
         更新最新的代码
         :return: 是否成功
         """
-        log.info(f'.git目录 {DOT_GIT_DIR_PATH}')
+        log.info(f".git {gt('目录')} {DOT_GIT_DIR_PATH}")
         self.set_safe_dir()
         if not os.path.exists(DOT_GIT_DIR_PATH):  # 第一次直接克隆
             return self.clone_repository(progress_callback)
@@ -134,7 +121,7 @@ class GitService:
         :return: 是否成功
         """
 
-        msg = '清空临时文件夹'
+        msg = gt('清空临时文件夹')
         log.info(msg)
         if progress_callback is not None:
             progress_callback(-1, msg)
@@ -161,7 +148,7 @@ class GitService:
         temp_folder = f'.temp_clone_{current_time}'
         temp_dir_path = os.path.join(curr_path, temp_folder)
 
-        msg = '开始克隆仓库 初次克隆时间较长 请耐心等待'
+        msg = gt('开始克隆仓库 初次克隆时间较长 请耐心等待')
         log.info(msg)
         if progress_callback is not None:
             progress_callback(-1, msg)
@@ -171,9 +158,9 @@ class GitService:
                                         '-b', self.env_config.git_branch,
                                         repo_url, temp_folder])
         if result is None:
-            return False, '克隆仓库失败'
+            return False, gt('克隆仓库失败')
 
-        msg = '开始复制文件'
+        msg = gt('开始复制文件')
         log.info(msg)
         if progress_callback is not None:
             progress_callback(-1, msg)
@@ -181,21 +168,22 @@ class GitService:
                                         '/E', '/H', '/C', '/I', '/Y'
                                         ])
         success = result is not None
-        msg = '克隆仓库成功' if success else '克隆仓库失败'
+        msg = gt('克隆仓库成功') if success else gt('克隆仓库失败')
+        shutil.rmtree(temp_dir_path, ignore_errors=True)  # 删除临时文件夹
         return success, msg
 
     def fetch_remote_branch(self) -> Tuple[bool, str]:
         """
         获取远程分支代码
         """
-        log.info('获取远程代码')
+        log.info(gt('获取远程代码'))
         fetch_result = cmd_utils.run_command([self.env_config.git_path, 'fetch', 'origin', self.env_config.git_branch])
         if fetch_result is None:
-            msg = '获取远程代码失败'
+            msg = gt('获取远程代码失败')
             log.error(msg)
             return False, msg
         else:
-            msg = '获取远程代码成功'
+            msg = gt('获取远程代码成功')
             log.info(msg)
             return True, msg
 
@@ -204,18 +192,18 @@ class GitService:
         切换到最新的目标分支
         :return:
         """
-        log.info('核对当前仓库')
+        log.info(gt('核对当前仓库'))
         current_repo = cmd_utils.run_command([self.env_config.git_path, 'config', '--get', 'remote.origin.url'])
         if current_repo is None or not current_repo:
-            log.info('未找到远程仓库')
+            log.info(gt('未找到远程仓库'))
             self.update_git_remote()
-            log.info('添加远程仓库地址')
+            log.info(gt('添加远程仓库地址'))
         elif current_repo != self.get_git_repository():
-            log.info('远程仓库地址不一致')
+            log.info(gt('远程仓库地址不一致'))
             self.update_git_remote()
-            log.info('更新远程仓库地址')
+            log.info(gt('更新远程仓库地址'))
 
-        log.info('获取远程代码')
+        log.info(gt('获取远程代码'))
         fetch_result, msg = self.fetch_remote_branch()
         if not fetch_result:
             return False, msg
@@ -228,41 +216,41 @@ class GitService:
                 reset_result = cmd_utils.run_command(
                     [self.env_config.git_path, 'reset', '--hard', f'origin/{self.env_config.git_branch}'])
                 if reset_result is None or not reset_result:
-                    msg = '强制更新失败'
+                    msg = gt('强制更新失败')
                     log.error(msg)
                     return False, msg
             else:
-                msg = '未开启强制更新 当前代码有修改 请自行处理后再更新'
+                msg = gt('未开启强制更新 当前代码有修改 请自行处理后再更新')
                 log.error(msg)
                 return False, msg
         elif progress_callback is not None:
-            progress_callback(2/5, '当前代码无修改')
+            progress_callback(2/5, gt('当前代码无修改'))
 
         current_result = self.get_current_branch()
         if current_result is None:
-            msg = '获取当前分支失败'
+            msg = gt('获取当前分支失败')
             log.error(msg)
             return False, msg
         elif progress_callback is not None:
-            progress_callback(3/5, '获取当前分支成功')
+            progress_callback(3/5, gt('获取当前分支成功'))
 
         if current_result != self.env_config.git_branch:
             checkout_result = cmd_utils.run_command([self.env_config.git_path, 'checkout', self.env_config.git_branch])
             if checkout_result is None or not checkout_result:
-                msg = '切换到目标分支失败'
+                msg = gt('切换到目标分支失败')
                 log.error(msg)
                 return False, msg
         if progress_callback is not None:
-            progress_callback(4/5, '切换到目标分支成功')
+            progress_callback(4/5, gt('切换到目标分支成功'))
 
         rebase_result = cmd_utils.run_command([self.env_config.git_path, 'pull', '--rebase', 'origin', self.env_config.git_branch])
         if rebase_result is None or not rebase_result:
-            msg = '更新本地代码失败'
+            msg = gt('更新本地代码失败')
             log.error(msg)
             cmd_utils.run_command([self.env_config.git_path, 'rebase', '--strategy-option theirs'])  # 回滚回去
             return False, msg
         elif progress_callback is not None:
-            progress_callback(5/5, '更新本地代码成功')
+            progress_callback(5/5, gt('更新本地代码成功'))
 
         return True, ''
 
@@ -271,7 +259,7 @@ class GitService:
         获取当前分支名称
         :return:
         """
-        log.info('检测当前代码分支')
+        log.info(gt('检测当前代码分支'))
         return cmd_utils.run_command([self.env_config.git_path, 'branch', '--show-current'])
 
     def is_current_branch_clean(self) -> Optional[bool]:
@@ -279,7 +267,7 @@ class GitService:
         当前分支是否没有任何修改内容
         :return:
         """
-        log.info('检测当前代码是否有修改')
+        log.info(gt('检测当前代码是否有修改'))
         status_str = cmd_utils.run_command([self.env_config.git_path, 'status'])
         if status_str is None:
             return None
@@ -293,19 +281,19 @@ class GitService:
         fetch, msg = self.fetch_remote_branch()
         if not fetch:
             return fetch, msg
-        log.info('检测当前代码是否最新')
+        log.info(gt('检测当前代码是否最新'))
         diff_result = cmd_utils.run_command([self.env_config.git_path, 'diff', '--name-only', 'HEAD', f'origin/{self.env_config.git_branch}'])
         if len(diff_result.strip()) == 0:
             return True, ''
         else:
-            return False, '与远程分支不一致'
+            return False, gt('与远程分支不一致')
 
     def get_requirement_time(self) -> Optional[str]:
         """
         获取 requirements.txt 的最后更新时间
         :return:
         """
-        log.info('获取依赖文件的最后修改时间')
+        log.info(gt('获取依赖文件的最后修改时间'))
         return cmd_utils.run_command([self.env_config.git_path, 'log', '-1', '--pretty=format:"%ai', '--', self.project_config.requirements])
 
     def fetch_total_commit(self) -> int:
@@ -313,7 +301,7 @@ class GitService:
         获取commit的总数。获取失败时返回0
         :return:
         """
-        log.info('获取commit总数')
+        log.info(gt('获取commit总数'))
         result = cmd_utils.run_command([self.env_config.git_path, 'rev-list', '--count', 'HEAD'])
         return 0 if result is None else int(result)
 
@@ -324,7 +312,7 @@ class GitService:
         :param page_size: 每页数量
         :return:
         """
-        log.info(f'获取commit 第{page_num + 1}页')
+        log.info(f"{gt('获取commit')} 第{page_num + 1}页")
         result = cmd_utils.run_command([
             self.env_config.git_path, 'log', f'-{page_size}',
             '--pretty=format:"%h #@# %an #@# %ai #@# %s"',
@@ -374,9 +362,15 @@ class GitService:
 
         if not self.env_config.is_personal_proxy:  # 没有代理
             cmd_utils.run_command([self.env_config.git_path, 'config', '--local', '--unset', 'http.proxy'])
+            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', '--unset', 'https.proxy'])
+            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', 'http.noProxy', '*'])
+            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', 'https.noProxy', '*'])
         else:
             proxy_address = self.env_config.personal_proxy
+            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', '--unset', 'http.noProxy'])
+            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', '--unset', 'https.noProxy'])
             cmd_utils.run_command([self.env_config.git_path, 'config', '--local', 'http.proxy', proxy_address])
+            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', 'https.proxy', proxy_address])
         self.is_proxy_set = True
 
     def update_git_remote(self) -> None:
@@ -394,8 +388,11 @@ class GitService:
         部分场景会没有权限clone代码 需要先授权
         :return:
         """
-        cmd_utils.run_command([self.env_config.git_path, 'config', '--global', '--add', 'safe.directory',
-                               os.path.normpath(os_utils.get_work_dir()).replace(os.path.sep, '/')])
+        work_dir = os.path.normpath(os_utils.get_work_dir()).replace(os.path.sep, '/')
+        existing_safe_dirs = cmd_utils.run_command([self.env_config.git_path, 'config', '--global', '--get-all', 'safe.directory'])
+        if existing_safe_dirs is None or work_dir not in existing_safe_dirs.splitlines():
+            cmd_utils.run_command([self.env_config.git_path, 'config', '--global', '--add', 'safe.directory',
+                                   work_dir])
 
     def reset_to_commit(self, commit_id: str) -> bool:
         """
@@ -411,3 +408,31 @@ class GitService:
         """
         log_list = self.fetch_page_commit(0, 1)
         return None if len(log_list) == 0 else log_list[0].commit_id
+
+    def get_latest_tag(self) -> Optional[str]:
+        """
+        获取最新tag
+        @return: 最新的tag名称，如果没有tag则返回None
+        """
+        # 从远程获取最新标签
+        result = cmd_utils.run_command([self.env_config.git_path, 'ls-remote', '--refs', '--tags', '--sort=-version:refname', 'origin'])
+        if result is not None and result.strip() != '':
+            lines = result.strip().split('\n')
+            if lines:
+                first_line = lines[0]
+                # 截取 refs/tags/ 后面的版本号
+                if 'refs/tags/' in first_line:
+                    tag_name = first_line.split('refs/tags/')[1]
+                    return tag_name
+
+        return None
+
+def __fetch_latest_code():
+    project_config = ProjectConfig()
+    env_config = EnvConfig()
+    download_service = DownloadService(project_config, env_config)
+    git_service = GitService(project_config, env_config, download_service)
+    return git_service.fetch_latest_code(progress_callback=None)
+
+if __name__ == '__main__':
+    __fetch_latest_code()

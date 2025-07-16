@@ -1,8 +1,0 @@
-sub_dir: battle
-template_id: avatar_chain_nicole
-template_name: 连携技-1
-template_shape: circle
-auto_mask: true
-point_list:
-- 538, 887
-- 489, 887

@@ -12,6 +12,7 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils, cal_utils, str_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.lost_void.context.lost_void_artifact import LostVoidArtifact
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_artifact_pos import LostVoidArtifactPos
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -46,14 +47,14 @@ class LostVoidChooseGear(ZOperation):
             # 识别耗时比较长 这里返回就不等待了
             return self.round_retry(status='无法识别武备')
 
-        priority_list = self.ctx.lost_void.get_artifact_by_priority(gear_list, 1)
+        priority_list: List[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(gear_list, 1)
         for art in priority_list:
-            self.ctx.controller.click(art.center)
+            self.ctx.controller.click(art.rect.center)
             time.sleep(0.5)
 
         return self.round_success(wait=0.5)
 
-    def get_gear_pos(self, screen_list: List[MatLike], only_no_level: bool = False) -> List[MatchResult]:
+    def get_gear_pos(self, screen_list: List[MatLike], only_no_level: bool = False) -> List[LostVoidArtifactPos]:
         """
         获取武备的位置
         @param screen_list: 游戏截图列表 由于武备的图像是动态的 需要多张识别后合并结果
@@ -67,7 +68,7 @@ class LostVoidChooseGear(ZOperation):
             if i.template_id is not None
         ]
 
-        result_list: List[MatchResult] = []
+        result_list: List[LostVoidArtifactPos] = []
 
         for screen in screen_list:
             part = cv2_utils.crop_image_only(screen, area.rect)
@@ -99,7 +100,7 @@ class LostVoidChooseGear(ZOperation):
 
                 existed = False
                 for existed_result in result_list:
-                    if cal_utils.distance_between(existed_result.center, mr.center) < existed_result.rect.width // 2:
+                    if cal_utils.distance_between(existed_result.rect.center, mr.center) < existed_result.rect.width // 2:
                         existed = True
                         break
 
@@ -117,9 +118,9 @@ class LostVoidChooseGear(ZOperation):
                         continue
 
                 if not existed:
-                    result_list.append(mr)
+                    result_list.append(LostVoidArtifactPos(gear, mr.rect))
 
-        display_text = ','.join([i.data.display_name for i in result_list]) if len(result_list) > 0 else '无'
+        display_text = ','.join([i.artifact.display_name for i in result_list]) if len(result_list) > 0 else '无'
         log.info(f'当前识别藏品 {display_text}')
 
         return result_list
@@ -167,7 +168,7 @@ class LostVoidChooseGear(ZOperation):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     ctx.lost_void.init_before_run()
     ctx.start_running()
 

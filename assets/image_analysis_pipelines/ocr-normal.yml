@@ -1,0 +1,5 @@
+- step: 灰度化
+  params: {}
+- step: OCR识别
+  params:
+    draw_text_box: true

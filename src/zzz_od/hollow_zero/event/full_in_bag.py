@@ -15,13 +15,12 @@ class FullInBag(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name=gt(HollowZeroSpecialEvent.FULL_IN_BAG.value.event_name)
+            op_name=gt(HollowZeroSpecialEvent.FULL_IN_BAG.value.event_name, 'game')
         )
 
     @operation_node(name='丢弃', is_start_node=True)
     def drop(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_ocr_and_click(screen, '丢弃',
+        return self.round_by_ocr_and_click(self.last_screenshot, '丢弃',
                                            success_wait=1, retry_wait=1)
 
 
@@ -29,7 +28,7 @@ def __debug():
     from zzz_od.context.zzz_context import ZContext
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     from one_dragon.utils import debug_utils
     screen = debug_utils.get_debug_image('bag_full')
     op = FullInBag(ctx)

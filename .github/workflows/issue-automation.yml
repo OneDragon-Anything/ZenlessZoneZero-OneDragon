@@ -1,0 +1,94 @@
+name: issue_automation
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  process_issue:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+    - name: 获取Issue信息
+      id: get_issue_info
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issueBody = context.payload.issue.body;
+          const issueTitle = context.payload.issue.title;
+          const issueNumber = context.payload.issue.number;
+
+          // 1. 检查“未认真阅读”选项并处理
+          const isMisread = issueBody.includes('- [x] 未认真阅读此处选项随意勾选') || issueBody.includes('- [X] 未认真阅读此处选项随意勾选');
+          if (isMisread) {
+            console.log('检测到“未认真阅读”选项被勾选。');
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              labels: ['Invalid | 无效反馈']
+            });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: '感谢你的反馈。此 Issue 未能遵循反馈要求，因此已被标记为“无效”并关闭。请仔细阅读并按照要求重新提交。'
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              state: 'closed',
+              state_reason: 'not_planned',
+            });
+            console.log('Issue 已被标记为“无效”并关闭。');
+            return;
+          }
+
+          // 2. 根据问题类型添加标签
+          let issueTypeLabel = '';
+          if (issueBody.includes('### 问题类型\n\nBug')) {
+            issueTypeLabel = 'Bug | 工作不正常';
+          } else if (issueBody.includes('### 问题类型\n\n更新建议')) {
+            issueTypeLabel = 'Enhancement | 增强';
+          } else if (issueBody.includes('### 问题类型\n\n新版本修改')) {
+            issueTypeLabel = 'Adapting | 等待适配';
+          }
+
+          if (issueTypeLabel) {
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              labels: [issueTypeLabel]
+            });
+            console.log(`已添加问题类型标签: ${issueTypeLabel}`);
+          }
+
+          // 3. 根据问题范围重命名标题
+          let scopePrefix = '';
+          if (issueBody.includes('### 问题范围\n\n自动战斗')) {
+            scopePrefix = '[自动战斗] ';
+          } else if (issueBody.includes('### 问题范围\n\n一条龙日常')) {
+            scopePrefix = '[一条龙日常] ';
+          } else if (issueBody.includes('### 问题范围\n\n迷失之地')) {
+            scopePrefix = '[迷失之地] ';
+          } else if (issueBody.includes('### 问题范围\n\n游戏助手')) {
+            scopePrefix = '[游戏助手] ';
+          } else if (issueBody.includes('### 问题范围\n\n其他')) {
+            scopePrefix = '[其他] ';
+          }
+          
+          let newTitle = issueTitle;
+          if (scopePrefix && !issueTitle.startsWith(scopePrefix)) { // 避免重复添加前缀
+            newTitle = scopePrefix + issueTitle;
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              title: newTitle
+            });
+            console.log(`Issue 标题已更新为: ${newTitle}`);
+          }

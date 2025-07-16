@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 
+from one_dragon.envs.download_service import DownloadService
 from one_dragon.envs.env_config import EnvConfig
 from one_dragon.envs.ghproxy_service import GhProxyService
 from one_dragon.envs.git_service import GitService
@@ -19,8 +20,9 @@ class OneDragonEnvContext:
         """
         self.project_config: ProjectConfig = ProjectConfig()
         self.env_config: EnvConfig = EnvConfig()
-        self.git_service: GitService = GitService(self.project_config, self.env_config)
-        self.python_service: PythonService = PythonService(self.project_config, self.env_config, self.git_service)
+        self.download_service: DownloadService = DownloadService(self.project_config, self.env_config)
+        self.git_service: GitService = GitService(self.project_config, self.env_config, self.download_service)
+        self.python_service: PythonService = PythonService(self.project_config, self.env_config, self.download_service)
         self.gh_proxy_service: GhProxyService = GhProxyService(self.env_config)
 
     def init_by_config(self) -> None:

@@ -3,7 +3,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtGui import Qt
-from dataclasses import dataclass
 from qfluentwidgets import PushButton
 from qfluentwidgets import SettingCard, FluentIconBase
 from typing import Union, Optional
@@ -28,7 +27,6 @@ class KeyEventWorker(QObject):
         self.key_pressed.emit(key)
 
 
-@dataclass(eq=False)
 class KeySettingCard(SettingCardBase):
 
     value_changed = Signal(str)
@@ -76,7 +74,7 @@ class KeySettingCard(SettingCardBase):
             self.button_listener = PcButtonListener(
                 self._on_key_press, listen_keyboard=True, listen_mouse=True
             )
-            self.btn.setText(gt("请按键", "ui"))
+            self.btn.setText(gt('请按键'))
             self.button_listener.start()
         else:
             self._stop_listener()
@@ -114,7 +112,7 @@ class KeySettingCard(SettingCardBase):
         :param content: 文本 中文
         :return:
         """
-        SettingCard.setContent(self, gt(content, "ui"))
+        SettingCard.setContent(self, gt(content))
 
     def setValue(self, value: str, emit_signal: bool = True) -> None:
         """

@@ -48,7 +48,7 @@ class BasicGameConfig(YamlConfig):
     @property
     def hdr(self) -> bool:
         return self.get('hdr', False)
-    
+
     @hdr.setter
     def hdr(self, new_value: bool) -> None:
         self.update('hdr', new_value)

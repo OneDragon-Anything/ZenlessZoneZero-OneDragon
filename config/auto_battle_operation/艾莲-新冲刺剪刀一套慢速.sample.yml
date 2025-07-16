@@ -1,0 +1,25 @@
+operations:
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 4
+  - op_name: "按键-移动-左-按下"
+  - op_name: "按键-闪避-按下"
+
+  - op_name: "等待秒数"
+    seconds: 0.3
+  - op_name: "按键-普通攻击-按下"
+
+  - op_name: "等待秒数"
+    seconds: 1.4
+
+  - op_name: "按键-移动-左-松开"
+  - op_name: "按键-闪避-松开"
+  - op_name: "按键-普通攻击-松开"
+  - op_name: "按键-移动-左-松开"
+
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 2.3
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 50

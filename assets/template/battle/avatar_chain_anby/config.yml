@@ -1,8 +1,0 @@
-sub_dir: 战斗
-template_id: chain_attack_anby
-template_name: 连携技-2
-template_shape: circle
-auto_mask: true
-point_list:
-- 1381, 887
-- 1332, 887

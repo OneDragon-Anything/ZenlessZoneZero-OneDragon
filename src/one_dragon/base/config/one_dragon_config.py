@@ -39,9 +39,18 @@ class InstanceRun(Enum):
 class OneDragonConfig(YamlConfig):
 
     def __init__(self):
+        YamlConfig.__init__(self, 'one_dragon', backup_model_name='zzz_one_dragon')  # TODO 2025.12时可以删掉 backup_model_name
         self.instance_list: List[OneDragonInstance] = []
-        YamlConfig.__init__(self, 'zzz_one_dragon', sample=False)
+        self._temp_instance_indices: Optional[List[int]] = None
         self._init_instance_list()
+
+    def set_temp_instance_indices(self, instance_indices: Optional[List[int]]):
+        """设置临时实例索引列表"""
+        self._temp_instance_indices = instance_indices
+
+    def clear_temp_instance_indices(self):
+        """清除临时实例索引列表"""
+        self._temp_instance_indices = None
 
     def _init_instance_list(self):
         """
@@ -72,7 +81,7 @@ class OneDragonConfig(YamlConfig):
             if not existed:
                 break
 
-        new_instance = OneDragonInstance(idx, '账号%02d' % idx, first, True)
+        new_instance = OneDragonInstance(idx, '%02d' % idx, first, True)
         self.instance_list.append(new_instance)
 
         dict_instance_list = self.dict_instance_list
@@ -158,8 +167,11 @@ class OneDragonConfig(YamlConfig):
     def instance_list_in_od(self) -> List[OneDragonInstance]:
         """
         需要在一条龙中运行的实例列表
+        如果设置了临时实例索引，则使用临时配置
         :return:
         """
+        if self._temp_instance_indices is not None:
+            return [instance for instance in self.instance_list if instance.idx in self._temp_instance_indices]
         return [instance for instance in self.instance_list if instance.active_in_od]
 
     @property

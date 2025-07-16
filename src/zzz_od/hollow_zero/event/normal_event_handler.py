@@ -20,7 +20,7 @@ class NormalEventHandler(ZOperation):
         event_name = event.event_name
         ZOperation.__init__(
             self, ctx,
-            op_name=gt(event_name)
+            op_name=gt(event_name, 'game')
         )
 
         self._handlers: List[EventOcrResultHandler] = []
@@ -38,8 +38,7 @@ class NormalEventHandler(ZOperation):
 
     @operation_node(name='画面识别', is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()  # TODO 顺便识别是否同一个事件 不是的话就可以退出
-        return hollow_event_utils.check_event_text_and_run(self, screen, self._handlers)
+        return hollow_event_utils.check_event_text_and_run(self, self.last_screenshot, self._handlers)
 
 
 def __debug_opts():
@@ -50,7 +49,7 @@ def __debug_opts():
     from zzz_od.context.zzz_context import ZContext
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.ocr.init_model()
+    ctx.init_ocr()
     from zzz_od.hollow_zero.hollow_runner import HollowRunner
     op = HollowRunner(ctx)
     from one_dragon.utils import debug_utils

@@ -9,7 +9,6 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import DismantleLevelEnum
-from zzz_od.config.agent_outfit_config import AgentOutfitNicole, AgentOutfitEllen, AgentOutfitAstraYao
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentEnum
 
@@ -30,31 +29,13 @@ class ZOneDragonSettingInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
-        content_widget.add_widget(self.get_agent_outfit_group())
-        content_widget.add_widget(self.get_coffee_shop_group())
+        content_widget.add_widget(self.get_random_play_group())
         content_widget.add_widget(self.get_drive_disc_dismantle_group())
         content_widget.add_stretch(1)
 
         return content_widget
 
-    def get_agent_outfit_group(self) -> QWidget:
-        group = SettingCardGroup(gt('代理人皮肤'))
-
-        self.outfit_nicole_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='妮可', options_enum=AgentOutfitNicole)
-        self.outfit_nicole_opt.value_changed.connect(self.on_agent_outfit_changed)
-        group.addSettingCard(self.outfit_nicole_opt)
-
-        self.outfit_ellen_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='艾莲', options_enum=AgentOutfitEllen)
-        self.outfit_ellen_opt.value_changed.connect(self.on_agent_outfit_changed)
-        group.addSettingCard(self.outfit_ellen_opt)
-
-        self.outfit_astra_yao_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='耀嘉音', options_enum=AgentOutfitAstraYao)
-        self.outfit_astra_yao_opt.value_changed.connect(self.on_agent_outfit_changed)
-        group.addSettingCard(self.outfit_astra_yao_opt)
-
-        return group
-
-    def get_coffee_shop_group(self) -> QWidget:
+    def get_random_play_group(self) -> QWidget:
         group = SettingCardGroup(gt('影像店'))
 
         agents_list = [ConfigItem(self.ctx.random_play_config.random_agent_name())] + [
@@ -65,14 +46,14 @@ class ZOneDragonSettingInterface(VerticalScrollInterface):
             icon=FluentIcon.PEOPLE, title=gt('影像店代理人-1'),
             options_list=agents_list,
         )
-        self.random_play_agent_1.combo_box.setFixedWidth(100)
+        self.random_play_agent_1.combo_box.setFixedWidth(110)
         group.addSettingCard(self.random_play_agent_1)
 
         self.random_play_agent_2 = EditableComboBoxSettingCard(
             icon=FluentIcon.PEOPLE, title=gt('影像店代理人-2'),
             options_list=agents_list,
         )
-        self.random_play_agent_2.combo_box.setFixedWidth(100)
+        self.random_play_agent_2.combo_box.setFixedWidth(110)
         group.addSettingCard(self.random_play_agent_2)
 
         return group
@@ -97,10 +78,3 @@ class ZOneDragonSettingInterface(VerticalScrollInterface):
 
         self.drive_disc_dismantle_level_opt.init_with_adapter(self.ctx.drive_disc_dismantle_config.get_prop_adapter('dismantle_level'))
         self.drive_disc_dismantle_abandon_opt.init_with_adapter(self.ctx.drive_disc_dismantle_config.get_prop_adapter('dismantle_abandon'))
-
-        self.outfit_nicole_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('nicole'))
-        self.outfit_ellen_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('ellen'))
-        self.outfit_astra_yao_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('astra_yao'))
-
-    def on_agent_outfit_changed(self) -> None:
-        self.ctx.init_agent_template_id()

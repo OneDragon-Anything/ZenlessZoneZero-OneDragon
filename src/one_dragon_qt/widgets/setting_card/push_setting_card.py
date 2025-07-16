@@ -33,7 +33,7 @@ class PushSettingCard(SettingCardBase):
         )
 
         # 创建按钮并添加到布局中
-        self.button = QPushButton(gt(text, 'ui'), self)
+        self.button = QPushButton(gt(text), self)
         self.hBoxLayout.addWidget(self.button, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
 

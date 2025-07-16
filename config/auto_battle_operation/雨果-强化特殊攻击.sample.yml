@@ -1,0 +1,11 @@
+# 根据动画实测
+operations:
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 2
+  - op_name: "按键-特殊攻击"
+    post_delay: 0.5
+    repeat: 2
+  - op_name: "等待秒数"
+    seconds: 1
+  - operation_template: "雨果-普通攻击A4"

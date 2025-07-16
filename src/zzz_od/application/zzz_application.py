@@ -3,6 +3,7 @@ from typing import Optional, Callable
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation_base import OperationResult
+
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.enter_game.open_and_enter_game import OpenAndEnterGame
 
@@ -19,7 +20,8 @@ class ZApplication(Application):
                  stop_context_after_stop: bool = True,
                  run_record: Optional[AppRunRecord] = None,
                  need_ocr: bool = True,
-                 retry_in_od: bool = False
+                 retry_in_od: bool = False,
+                 need_notify: bool = False
                  ):
         self.ctx: ZContext = ctx
         op_to_enter_game = OpenAndEnterGame(ctx)
@@ -35,7 +37,8 @@ class ZApplication(Application):
                              stop_context_after_stop=stop_context_after_stop,
                              run_record=run_record,
                              need_ocr=need_ocr,
-                             retry_in_od=retry_in_od
+                             retry_in_od=retry_in_od,
+                             need_notify=need_notify
                              )
 
     def handle_resume(self) -> None:

@@ -9,6 +9,9 @@ handlers:
       # 红光操作
       - states: "[自定义-红光闪避, 0, 1]"
         operations:
+          # 设置快速蓄力状态
+          - op_name: "设置状态"
+            state: "[自定义-艾莲-快速蓄力]"
           - operation_template: "艾莲-闪A"
       # 连携操作
       - states: "[按键可用-连携技, 0, 0.5]"
@@ -20,6 +23,8 @@ handlers:
         sub_handlers:
           - states: "[按键可用-快速支援, 0, 0.5]"
             operations:
+              - op_name: "设置状态"
+                state: "[自定义-艾莲-快速蓄力]"
               - op_name: "等待秒数"
                 seconds: 1.0
           - states: ""
@@ -36,54 +41,30 @@ handlers:
             operations:
               - operation_template: "艾莲-终结技"
 
-          # 失衡阶段 EA 2连，因为EA是必定连续的，所以写在一个动作模板里
-          - states: "[艾莲-特殊技可用] & ![自定义-连携跳过, 0, 1]"
+          # 失衡阶段 EE2连
+          - states: "[艾莲-能量]{80, 120}"
             operations:
-              - operation_template: "艾莲-EA连击"
+              - operation_template: "艾莲-新双E连招"
 
       # 非失衡时刻，就是鲨鱼妹的站场时间
       - states: ""
         debug_name: "非失衡期间"
         sub_handlers:
-          # 非失衡阶段：Q 没击破队友就可以直接放了
-          - states: "[自定义-艾莲-刚踢完剪刀, 0, 2] & ![后台-1-击破] & ![后台-2-击破] & [艾莲-终结技可用]"
-            debug_name: "终结技"
+          # 失衡阶段 EE2连
+          - states: "[艾莲-能量]{120, 120}"
             operations:
-              - operation_template: "艾莲-终结技"
+              - operation_template: "艾莲-新双E连招"
 
-          # 有击破队友在后面就别乱用能量了
-          - states: "[艾莲-急冻充能]{0, 4} & [艾莲-能量]{80, 120} & ![后台-1-击破] & ![后台-2-击破]"
-            debug_name: "EA连段"
+          # 快速
+          - states: "[自定义-艾莲-快速蓄力,0,12]"
             operations:
-              - operation_template: "艾莲-EA连击"
-              - op_name: "设置状态"
-                state: "自定义-艾莲-刚踢完剪刀"
+              - operation_template: "艾莲-新冲刺剪刀一套快速"
+              # 清除状态
+              - op_name: "清除状态"
+                state: "[自定义-艾莲-快速蓄力]"
 
-          # 能量要满了，非失衡时刻，为失衡时刻留能量
-          - states: "[艾莲-急冻充能]{0, 4} & [艾莲-能量]{110, 120}"
-            debug_name: "能量快满，EA连段"
+          # 慢速
+          - states: ""
+            debug_name: "没有快速蓄力"
             operations:
-              - operation_template: "艾莲-EA连击"
-              - op_name: "设置状态"
-                state: "自定义-艾莲-刚踢完剪刀"
-
-          # 艾莲闪避之后会有蓄力加速，可以在闪A动作模板里面看到设置
-          - states: "![艾莲-急冻充能]{3, 6}"
-            sub_handlers:
-              - states: "[自定义-艾莲-蓄力加速, 0, 12]"
-                debug_name: "快速蓄力剪"
-                operations:
-                  - operation_template: "艾莲-冲刺蓄力攻击"
-                  - op_name: "清除状态"
-                    state: "自定义-艾莲-蓄力加速"
-              - states: ""
-                debug_name: "蓄力剪"
-                operations:
-                  - operation_template: "艾莲-冲刺蓄力攻击-慢"
-
-          - states: "[艾莲-急冻充能]{3, 6}"
-            debug_name: "冰冻普攻"
-            operations:
-              - operation_template: "艾莲-普通攻击"
-              - op_name: "设置状态"
-                state: "自定义-艾莲-刚踢完剪刀"
+              - operation_template: "艾莲-新冲刺剪刀一套慢速"

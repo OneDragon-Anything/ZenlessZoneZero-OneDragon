@@ -1,8 +1,0 @@
-sub_dir: battle
-template_id: btn_interact
-template_name: 战斗-交互
-template_shape: circle
-auto_mask: true
-point_list:
-- 1454, 967
-- 1413, 967

@@ -1,8 +1,0 @@
-sub_dir: hollow
-template_id: right_top_back
-template_name: 右上角-返回
-template_shape: rectangle
-auto_mask: true
-point_list:
-- 1783, 35
-- 1827, 71

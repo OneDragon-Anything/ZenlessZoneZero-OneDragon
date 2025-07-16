@@ -1,8 +1,0 @@
-sub_dir: battle
-template_id: avatar_quick_zhu_yuan
-template_name: 战斗-快速支援
-template_shape: circle
-auto_mask: true
-point_list:
-- 1779, 968
-- 1817, 968

@@ -486,7 +486,7 @@
     - option_name: "随机获得一枚S级或A级通用类型鸣徽"
     - option_name: "随机获得一枚S级或A级顽强类型鸣徽"
 
-# 零号·安比
+# 1.5版本以后的所有角色
 - entry_name: "呼叫增援"
   event_name: "目前不需要支援"
   options:

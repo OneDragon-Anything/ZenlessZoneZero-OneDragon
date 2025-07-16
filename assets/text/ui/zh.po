@@ -1,0 +1,718 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# ZZZ-OD
+msgid "ZenlessZoneZero"
+msgstr "绝区零"
+
+# ZZZ-OD UI
+msgid "ZenlessZoneZero-OneDragon"
+msgstr "绝区零 一条龙"
+
+msgid "ZenlessZoneZero-OneDragon-installer"
+msgstr "绝区零 一条龙 安装器"
+
+# 基础界面
+msgid "设置"
+msgstr "设置"
+
+msgid "语言"
+msgstr "语言"
+
+msgid "语言切换"
+msgstr "语言切换"
+
+msgid "语言切换成功，需要重启应用程序以生效"
+msgstr "语言切换成功，需要重启应用程序以生效"
+
+msgid "界面语言"
+msgstr "界面语言"
+
+msgid "外观"
+msgstr "外观"
+
+msgid "当前账户设置"
+msgstr "当前账户设置"
+
+msgid "游戏基础"
+msgstr "游戏基础"
+
+msgid "游戏按键"
+msgstr "游戏按键"
+
+msgid "手柄按键"
+msgstr "手柄按键"
+
+msgid "脚本按键"
+msgstr "脚本按键"
+
+msgid "启动参数"
+msgstr "启动参数"
+
+msgid "代理人皮肤"
+msgstr "代理人皮肤"
+
+# 语言切换相关
+msgid "语言已切换成功"
+msgstr "语言已切换成功"
+
+msgid "提示"
+msgstr "提示"
+
+msgid "立即重启"
+msgstr "立即重启"
+
+msgid "稍后重启"
+msgstr "稍后重启"
+
+# 按钮和操作
+msgid "开"
+msgstr "开"
+
+msgid "关"
+msgstr "关"
+
+msgid "请按键"
+msgstr "请按键"
+
+msgid "启动一条龙"
+msgstr "启动一条龙"
+
+msgid "开始运行"
+msgstr "开始运行"
+
+msgid "停止运行"
+msgstr "停止运行"
+
+msgid "游戏截图"
+msgstr "游戏截图"
+
+msgid "确认"
+msgstr "确认"
+
+msgid "取消"
+msgstr "取消"
+
+msgid "浏览"
+msgstr "浏览"
+
+msgid "选择"
+msgstr "选择"
+
+msgid "重置"
+msgstr "重置"
+
+msgid "删除"
+msgstr "删除"
+
+msgid "保存"
+msgstr "保存"
+
+msgid "确定"
+msgstr "确定"
+
+msgid "运行记录"
+msgstr "运行记录"
+
+msgid "挑战配置"
+msgstr "挑战配置"
+
+# 游戏相关
+msgid "游戏路径"
+msgstr "游戏路径"
+
+msgid "游戏区服"
+msgstr "游戏区服"
+
+msgid "账号"
+msgstr "账号"
+
+msgid "密码"
+msgstr "密码"
+
+msgid "输入方式"
+msgstr "输入方式"
+
+msgid "切换HDR状态"
+msgstr "切换HDR状态"
+
+msgid "启用HDR"
+msgstr "启用HDR"
+
+msgid "禁用HDR"
+msgstr "禁用HDR"
+
+msgid "窗口尺寸"
+msgstr "窗口尺寸"
+
+msgid "全屏"
+msgstr "全屏"
+
+msgid "无边框窗口"
+msgstr "无边框窗口"
+
+msgid "显示器序号"
+msgstr "显示器序号"
+
+msgid "高级参数"
+msgstr "高级参数"
+
+# 按键设置
+msgid "普通攻击"
+msgstr "普通攻击"
+
+msgid "闪避"
+msgstr "闪避"
+
+msgid "角色切换-下一个"
+msgstr "角色切换-下一个"
+
+msgid "角色切换-上一个"
+msgstr "角色切换-上一个"
+
+msgid "特殊攻击"
+msgstr "特殊攻击"
+
+msgid "终结技"
+msgstr "终结技"
+
+msgid "交互"
+msgstr "交互"
+
+msgid "连携技-左"
+msgstr "连携技-左"
+
+msgid "连携技-右"
+msgstr "连携技-右"
+
+msgid "连携技-取消"
+msgstr "连携技-取消"
+
+msgid "移动-前"
+msgstr "移动-前"
+
+msgid "移动-后"
+msgstr "移动-后"
+
+msgid "移动-左"
+msgstr "移动-左"
+
+msgid "移动-右"
+msgstr "移动-右"
+
+msgid "锁定敌人"
+msgstr "锁定敌人"
+
+# 手柄设置
+msgid "手柄类型"
+msgstr "手柄类型"
+
+msgid "单次按键持续时间(秒)"
+msgstr "单次按键持续时间(秒)"
+
+# 界面主题
+msgid "界面主题"
+msgstr "界面主题"
+
+msgid "主页公告"
+msgstr "主页公告"
+
+msgid "启用版本海报"
+msgstr "启用版本海报"
+
+msgid "启用官方启动器主页背景"
+msgstr "启用官方启动器主页背景"
+
+msgid "自定义主页背景"
+msgstr "自定义主页背景"
+
+# 导航标签
+msgid "仪表盘"
+msgstr "仪表盘"
+
+msgid "一条龙"
+msgstr "一条龙"
+
+msgid "游戏设置"
+msgstr "游戏设置"
+
+msgid "其他设置"
+msgstr "其他设置"
+
+msgid "式舆防卫战"
+msgstr "式舆防卫战"
+
+msgid "预备编队"
+msgstr "预备编队"
+
+msgid "恶名狩猎计划"
+msgstr "恶名狩猎计划"
+
+msgid "杂项任务"
+msgstr "杂项任务"
+
+msgid "咖啡计划"
+msgstr "咖啡计划"
+
+msgid "源配置"
+msgstr "源配置"
+
+# 功能相关
+msgid "吃拉面"
+msgstr "吃拉面"
+
+msgid "模拟按键"
+msgstr "模拟按键"
+
+msgid "等待大世界画面"
+msgstr "等待大世界画面"
+
+msgid "传送"
+msgstr "传送"
+
+msgid "前往菜单"
+msgstr "前往菜单"
+
+msgid "进入 HDD 副本"
+msgstr "进入 HDD 副本"
+
+msgid "开始街机游戏"
+msgstr "开始街机游戏"
+
+msgid "进入游戏"
+msgstr "进入游戏"
+
+msgid "切换账号"
+msgstr "切换账号"
+
+msgid "打开游戏"
+msgstr "打开游戏"
+
+msgid "打开并登录游戏"
+msgstr "打开并登录游戏"
+
+msgid "禁用HDR"
+msgstr "禁用HDR"
+
+msgid "恢复HDR"
+msgstr "恢复HDR"
+
+msgid "蛇对蛇自杀"
+msgstr "蛇对蛇自杀"
+
+msgid "选择预备编队"
+msgstr "选择预备编队"
+
+msgid "选择分类"
+msgstr "选择分类"
+
+msgid "选择Tab"
+msgstr "选择Tab"
+
+msgid "打开快捷手册"
+msgstr "打开快捷手册"
+
+msgid "返回大世界"
+msgstr "返回大世界"
+
+msgid "开始录制"
+msgstr "开始录制"
+
+# 游戏设置
+msgid "使用默认队伍名称出现错选时 可更改名字解决"
+msgstr "使用默认队伍名称出现错选时 可更改名字解决"
+
+msgid "本页代理人可在游戏助手中自动识别，设置仅作用于避免式舆防卫战选择配队冲突"
+msgstr "本页代理人可在游戏助手中自动识别，设置仅作用于避免式舆防卫战选择配队冲突"
+
+msgid "！设置皮肤以正常使用自动战斗功能 ！"
+msgstr "！设置皮肤以正常使用自动战斗功能 ！"
+
+msgid "切换 HDR 状态"
+msgstr "切换 HDR 状态"
+
+msgid "仅影响手动启动游戏，一条龙启动游戏会自动禁用 HDR"
+msgstr "仅影响手动启动游戏，一条龙启动游戏会自动禁用 HDR"
+
+msgid "窗口尺寸"
+msgstr "窗口尺寸"
+
+# 代理人设置
+msgid "妮可"
+msgstr "妮可"
+
+msgid "艾莲"
+msgstr "艾莲"
+
+msgid "耀嘉音"
+msgstr "耀嘉音"
+
+msgid "仪玄"
+msgstr "仪玄"
+
+msgid "匹配所有可能的皮肤"
+msgstr "匹配所有可能的皮肤"
+
+# 其他设置
+msgid "影像店代理人-1"
+msgstr "影像店代理人-1"
+
+msgid "影像店代理人-2"
+msgstr "影像店代理人-2"
+
+msgid "驱动盘拆解等级"
+msgstr "驱动盘拆解等级"
+
+msgid "全部已弃置"
+msgstr "全部已弃置"
+
+msgid "剧变节点 重置运行记录"
+msgstr "剧变节点 重置运行记录"
+
+# 资源下载相关
+msgid "资源下载"
+msgstr "资源下载"
+
+msgid "下载说明"
+msgstr "下载说明"
+
+msgid "下载失败时 请尝试到「脚本环境」更改网络代理"
+msgstr "下载失败时 请尝试到「脚本环境」更改网络代理"
+
+msgid "OCR识别"
+msgstr "OCR识别"
+
+msgid "闪光识别"
+msgstr "闪光识别"
+
+msgid "空洞格子识别"
+msgstr "空洞格子识别"
+
+msgid "迷失之地识别"
+msgstr "迷失之地识别"
+
+# 咖啡和体力计划
+msgid "咖啡选择"
+msgstr "咖啡选择"
+
+msgid "喝后挑战"
+msgstr "喝后挑战"
+
+msgid "体力计划外的数量"
+msgstr "体力计划外的数量"
+
+msgid "自动战斗"
+msgstr "自动战斗"
+
+msgid "结束后运行体力计划"
+msgstr "结束后运行体力计划"
+
+# 调试相关
+msgid "指令配置"
+msgstr "指令配置"
+
+msgid "循环指令"
+msgstr "循环指令"
+
+msgid "调试"
+msgstr "调试"
+
+# 通知设置
+msgid "自定义通知标题"
+msgstr "自定义通知标题"
+
+msgid "通知中附带图片"
+msgstr "通知中附带图片"
+
+msgid "测试通知"
+msgstr "测试通知"
+
+msgid "通知方式"
+msgstr "通知方式"
+
+msgid "邮箱服务选择"
+msgstr "邮箱服务选择"
+
+# 空洞零
+msgid "挑战副本"
+msgstr "挑战副本"
+
+msgid "每周进入次数"
+msgstr "每周进入次数"
+
+msgid "每天进入次数"
+msgstr "每天进入次数"
+
+msgid "配置名称"
+msgstr "配置名称"
+
+msgid "银行UP编队"
+msgstr "银行UP编队"
+
+msgid "邦布商人策略"
+msgstr "邦布商人策略"
+
+msgid "买齐买净"
+msgstr "买齐买净"
+
+msgid "血量阈值"
+msgstr "血量阈值"
+
+msgid "识别鸣徽关键词"
+msgstr "识别鸣徽关键词"
+
+msgid "第一优先级刷新次数"
+msgstr "第一优先级刷新次数"
+
+msgid "第二优先级刷新次数"
+msgstr "第二优先级刷新次数"
+
+# 提示信息
+msgid "当前"
+msgstr "当前"
+
+msgid "选择你的 ZenlessZoneZero.exe"
+msgstr "选择你的 ZenlessZoneZero.exe"
+
+msgid "我知道了"
+msgstr "我知道了"
+
+msgid "请选择安装路径"
+msgstr "请选择安装路径"
+
+msgid "选择安装路径..."
+msgstr "选择安装路径..."
+
+msgid "配置源"
+msgstr "配置源"
+
+msgid "地区选择"
+msgstr "地区选择"
+
+msgid "确认配置"
+msgstr "确认配置"
+
+msgid "代码仓库"
+msgstr "代码仓库"
+
+msgid "环境下载源"
+msgstr "环境下载源"
+
+msgid "Python下载源"
+msgstr "Python下载源"
+
+msgid "Pip源"
+msgstr "Pip源"
+
+msgid "代理类型"
+msgstr "代理类型"
+
+msgid "代理地址"
+msgstr "代理地址"
+
+# 欢迎对话框
+msgid "欢迎使用绝区零一条龙"
+msgstr "欢迎使用绝区零一条龙"
+
+msgid "欢迎使用一条龙"
+msgstr "欢迎使用一条龙"
+
+# 下载和安装相关
+msgid "未选择模型"
+msgstr "未选择模型"
+
+msgid "检查中"
+msgstr "检查中"
+
+msgid "已下载"
+msgstr "已下载"
+
+msgid "下载中"
+msgstr "下载中"
+
+msgid "未选择"
+msgstr "未选择"
+
+msgid "请选择一条配置进行下载。"
+msgstr "请选择一条配置进行下载。"
+
+msgid "错误"
+msgstr "错误"
+
+msgid "下载链接无法构建，战斗 ID 为 None"
+msgstr "下载链接无法构建，战斗 ID 为 None"
+
+msgid "成功"
+msgstr "成功"
+
+msgid "文件已下载并保存到"
+msgstr "文件已下载并保存到"
+
+msgid "下载失败"
+msgstr "下载失败"
+
+msgid "下载过程中出错"
+msgstr "下载过程中出错"
+
+msgid "状态检查中..."
+msgstr "状态检查中..."
+
+msgid "未选择图片"
+msgstr "未选择图片"
+
+# 密码相关对话框
+msgid "嘻嘻~"
+msgstr "嘻嘻~"
+
+msgid "密码不对哦~"
+msgstr "密码不对哦~"
+
+msgid "再试试吧"
+msgstr "再试试吧"
+
+msgid "使用此功能需要密码哦~"
+msgstr "使用此功能需要密码哦~"
+
+# 欢迎对话框按钮
+msgid "快速开始"
+msgstr "快速开始"
+
+msgid "自助排障"
+msgstr "自助排障"
+
+msgid "开源地址"
+msgstr "开源地址"
+
+# 计划相关
+msgid "已运行次数"
+msgstr "已运行次数"
+
+msgid "计划次数"
+msgstr "计划次数"
+
+# 账户操作
+msgid "启用"
+msgstr "启用"
+
+msgid "登录"
+msgstr "登录"
+
+msgid "账户列表"
+msgstr "账户列表"
+
+msgid "新增"
+msgstr "新增"
+
+# 运行状态
+msgid "上次运行"
+msgstr "上次运行"
+
+# Git 和代码同步相关
+msgid "未配置Git"
+msgstr "未配置Git"
+
+msgid "未同步代码"
+msgstr "未同步代码"
+
+msgid "当前分支"
+msgstr "当前分支"
+
+msgid "建议分支"
+msgstr "建议分支"
+
+msgid "不自动同步"
+msgstr "不自动同步"
+
+msgid "已同步代码"
+msgstr "已同步代码"
+
+msgid "更新后需重启脚本生效。如不能运行，尝试使用安装器更新运行依赖，或更新安装器"
+msgstr "更新后需重启脚本生效。如不能运行，尝试使用安装器更新运行依赖，或更新安装器"
+
+# 安装相关
+msgid "安装指南"
+msgstr "安装指南"
+
+# 环境设置相关
+msgid "基础"
+msgstr "基础"
+
+msgid "调试模式"
+msgstr "调试模式"
+
+msgid "正常无需开启"
+msgstr "正常无需开启"
+
+msgid "复制截图到剪贴板"
+msgstr "复制截图到剪贴板"
+
+msgid "按下截图按键时，自动将截图复制到剪贴板"
+msgstr "按下截图按键时，自动将截图复制到剪贴板"
+
+msgid "Git相关"
+msgstr "Git相关"
+
+# 推送设置占位符文本
+msgid "会把推送最终结果通知到这个地址上"
+msgstr "会把推送最终结果通知到这个地址上"
+
+msgid "好友令牌或用户ID"
+msgstr "好友令牌或用户ID"
+
+msgid "微信公众号：好友令牌；企业微信：用户ID"
+msgstr "微信公众号：好友令牌；企业微信：用户ID"
+
+msgid "用户令牌"
+msgstr "用户令牌"
+
+msgid "请输入用户令牌"
+msgstr "请输入用户令牌"
+
+msgid "消息接收者"
+msgstr "消息接收者"
+
+msgid "请输入消息接收者"
+msgstr "请输入消息接收者"
+
+msgid "调用版本"
+msgstr "调用版本"
+
+msgid "可选"
+msgstr "可选"
+
+msgid "请输入 Qmsg 酱的 QMSG_KEY"
+msgstr "请输入 Qmsg 酱的 QMSG_KEY"
+
+msgid "请输入 Qmsg 酱的 QMSG_TYPE"
+msgstr "请输入 Qmsg 酱的 QMSG_TYPE"
+
+msgid "企业微信代理地址"
+msgstr "企业微信代理地址"
+
+# 账户设置相关
+msgid "游戏区服"
+msgstr "游戏区服"
+
+msgid "所有信息都明文保存在本地"
+msgstr "所有信息都明文保存在本地"
+
+msgid "请自行妥善管理"
+msgstr "请自行妥善管理"
+
+# 主题和外观设置
+msgid "界面主题"
+msgstr "界面主题"
+
+msgid "版本活动海报持续整个版本"
+msgstr "版本活动海报持续整个版本"
+
+msgid "关闭后仅用本地图片"
+msgstr "关闭后仅用本地图片"
+
+msgid "自定义主页背景"
+msgstr "自定义主页背景"
+
+msgid "设置后重启脚本生效"
+msgstr "设置后重启脚本生效"

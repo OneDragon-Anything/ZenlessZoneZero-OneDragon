@@ -11,11 +11,9 @@ class LostVoidRouteChange(ZOperation):
 
     @operation_node(name='返回', is_start_node=True, node_max_retry_times=5)
     def back_to_world(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        in_world = self.ctx.lost_void.in_normal_world(screen)
+        in_world = self.ctx.lost_void.in_normal_world(self.last_screenshot)
         if not in_world:
-            result = self.round_by_find_and_click_area(screen, '迷失之地-路径迭换', '按钮-返回')
+            result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-路径迭换', '按钮-返回')
             return self.round_retry(result.status, wait=1)
 
         return self.round_success()

@@ -18,11 +18,11 @@ class AllInstallCard(BaseInstallCard):
             card.finished.connect(self.on_install_done)
 
         guide_btn = HyperlinkButton(
-            url='http://onedragon-anything.github.io/zzz/zh/quickstart.html',
-            text='安装指南'
+            url=ctx.project_config.quick_start_link,
+            text=gt('安装指南')
         )
 
-        self.run_btn = PushButton(text=gt('启动一条龙', 'ui'))
+        self.run_btn = PushButton(text=gt('启动一条龙'))
         self.run_btn.clicked.connect(self._on_run_clicked)
 
         BaseInstallCard.__init__(
@@ -41,10 +41,21 @@ class AllInstallCard(BaseInstallCard):
         :return:
         """
         log.info('一键安装 开始')
-        self.update_display(None, gt('安装中', 'ui'))
+        self.update_display(None, gt('安装中'))
         self.installing_idx = 0
+        self._progress_callback = progress_callback  # 保存回调
+        if progress_callback is not None:
+            progress_callback(self.installing_idx / len(self.install_cards), gt('安装中'))
         self.install_cards[self.installing_idx].start_progress()
         return True, '成功'
+
+    def on_progress_done(self, success: bool, msg: str) -> None:
+        """
+        install_all后就会触发 由于要等待子任务运行 这里不做任何处理
+        运行结果在 on_install_done 中抛出事件
+        :return:
+        """
+        pass
 
     def on_install_done(self, success: bool) -> None:
         """
@@ -56,16 +67,23 @@ class AllInstallCard(BaseInstallCard):
             return
         if not success:  # 失败了 重置进度
             self.update_display(None,
-                                f"{gt('安装失败', 'ui')} {self.install_cards[self.installing_idx].title}")
+                                f"{gt('安装失败')} {self.install_cards[self.installing_idx].title}")
             self.installing_idx = -1
+            self._progress_callback = None
+            self.finished.emit(False)
         else:
             log.info('一键安装 开始下一个')
             self.installing_idx += 1
+            # 每次子卡片完成时调用回调
+            if hasattr(self, '_progress_callback') and self._progress_callback is not None:
+                self._progress_callback(self.installing_idx / len(self.install_cards), gt('安装中'))
             if self.installing_idx < len(self.install_cards):
                 self.install_cards[self.installing_idx].start_progress()
             else:
                 self.update_display(FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value),
-                                    gt('安装成功', 'ui'))
+                                    gt('安装成功'))
+                self._progress_callback = None
+                self.finished.emit(True)
 
     def _on_run_clicked(self) -> None:
         """

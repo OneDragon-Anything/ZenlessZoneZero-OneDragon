@@ -47,9 +47,9 @@ area_list:
 - area_name: 武备列表
   id_mark: false
   pc_rect:
-  - 302
+  - 190
   - 892
-  - 1630
+  - 1740
   - 1072
   text: ''
   lcs_percent: 0.5

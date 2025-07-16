@@ -43,18 +43,11 @@ handlers:
             debug_name: "失衡期间快速蓄力"
             operations:
               - operation_template: "妮可-快速蓄力炮合轴"
-          # 异常队友
-          - states: "[后台-1-异常] | [后台-2-异常]"
-            debug_name: "异常队坐箱炮"
-            operations:
-              - operation_template: "妮可-闪A普攻"
-              - operation_template: "妮可-闪A普攻"
-              - operation_template: "妮可-蓄力坐箱炮"
           # 有嘉音可以打几下普攻刷快速支援，如果被打断了就不普攻了
           - states: "[耀嘉音-能量]{0, 120} & ![自定义-红光闪避, 0, 1.5]"
             debug_name: "闪A快速蓄力炮"
             operations:
-              - operation_template: "妮可-闪A普攻二连"
+              - operation_template: "妮可-闪A普攻"
               - operation_template: "妮可-快速蓄力炮合轴"
               # 其他情况一律无脑合轴炮
           - states: ""

@@ -19,18 +19,16 @@ class ChooseNextOrFinishAfterBattle(ZOperation):
 
     @operation_node(name='判断再来一次', is_start_node=True)
     def check_next(self) -> OperationRoundResult:
-        screen = self.screenshot()
         if self.try_next:
-            return self.round_by_find_and_click_area(screen, '战斗画面', '战斗结果-再来一次',
+            return self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-再来一次',
                                                      success_wait=1, retry_wait=1)
         else:
-            return self.round_by_find_and_click_area(screen, '战斗画面', '战斗结果-完成',
+            return self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-完成',
                                                      success_wait=5, retry_wait=1)
 
     @node_from(from_name='判断再来一次', success=False)
     @operation_node(name='无再来一次')
     def finish(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '战斗画面', '战斗结果-完成',
+        return self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-完成',
                                                  success_wait=5, retry_wait=1)
 

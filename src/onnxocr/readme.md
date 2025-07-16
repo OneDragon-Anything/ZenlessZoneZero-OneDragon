@@ -2,7 +2,7 @@
 
 复制自 https://github.com/jingsongliujing/OnnxOCR
 
-更新时间 2024.08.08
+更新时间 2025.06.05
 
 改动说明
 
