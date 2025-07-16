@@ -924,9 +924,9 @@ class Connection(ConnectionAttr):
         @run_once
         def brute_force_connect():
             logger.info('Brute force connect')
-            from deploy.Windows.emulator import EmulatorManager
-            manager = EmulatorManager()
-            manager.brute_force_connect()
+            from one_dragon.module.device.platform.platform_windows import PlatformWindows as EmulatorManager
+            manager = EmulatorManager(self.config.app_name)
+            manager.brute_force_connect(self.adb_client)
 
         for _ in range(2):
             logger.info('Here are the available devices, '

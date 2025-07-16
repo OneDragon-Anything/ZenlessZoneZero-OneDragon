@@ -70,8 +70,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.context_running_state: ContextRunStateEnum = ContextRunStateEnum.STOP
 
-        self.screen_loader: ScreenContext = ScreenContext()
-        self.template_loader: TemplateLoader = TemplateLoader()
+        self.screen_loader: ScreenContext = ScreenContext(platform='Emulator')#这里的只是占位符，到zzz_context里面有了平台信息才会真的初始化
+        self.template_loader: TemplateLoader = TemplateLoader(platform='Emulator')
         self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(

@@ -3,8 +3,9 @@ import re
 import subprocess
 
 import psutil
+from dataclasses import dataclass
+from typing import Callable, Generic, TypeVar
 
-from deploy.Windows.utils import DataProcessInfo
 from one_dragon.module.base.decorator import run_once
 from one_dragon.module.base.timer import Timer
 from one_dragon.module.device.connection import AdbDeviceWithStatus
@@ -15,6 +16,61 @@ from one_dragon.module.logger import logger
 
 class EmulatorUnknown(Exception):
     pass
+
+
+T = TypeVar("T")
+
+
+class cached_property(Generic[T]):
+    """
+    cached-property from https://github.com/pydanny/cached-property
+    Add typing support
+
+    A property that is only computed once per instance and then replaces itself
+    with an ordinary attribute. Deleting the attribute resets the property.
+    Source: https://github.com/bottlepy/bottle/commit/fa7733e075da0d790d809aa3d2f53071897e6f76
+    """
+
+    def __init__(self, func: Callable[..., T]):
+        self.func = func
+
+    def __get__(self, obj, cls) -> T:
+        if obj is None:
+            return self
+
+        value = obj.__dict__[self.func.__name__] = self.func(obj)
+        return value
+
+
+@dataclass
+class DataProcessInfo:
+    proc: object  # psutil.Process or psutil._pswindows.Process
+    pid: int
+
+    @cached_property
+    def name(self):
+        try:
+            name = self.proc.name()
+        except:
+            name = ''
+        return name
+
+    @cached_property
+    def cmdline(self):
+        try:
+            cmdline = self.proc.cmdline()
+        except:
+            # psutil.AccessDenied
+            # # NoSuchProcess: process no longer exists (pid=xxx)
+            cmdline = []
+        cmdline = ' '.join(cmdline).replace(r'\\', '/').replace('\\', '/')
+        return cmdline
+
+    def __str__(self):
+        # Don't print `proc`, it will take some time to get process properties
+        return f'DataProcessInfo(name="{self.name}", pid={self.pid}, cmdline="{self.cmdline}")'
+
+    __repr__ = __str__
 
 
 def get_focused_window():
