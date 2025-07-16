@@ -335,3 +335,10 @@ class AgentEnum(Enum):
                                       hsv_color=(248,164,67), hsv_color_diff=(100,100,30),
                                       max_length=200)
                     ])
+
+    YUZUHA = Agent('yuzuha', '浮波柚叶', RareTypeEnum.S, AgentTypeEnum.SUPPORT, DmgTypeEnum.FIRE, ['yuzuha'],
+                    state_list=[
+                        AgentStateDef('柚叶-甜度点', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                    'yuzuha', lower_color=(221, 107, 113), upper_color=(255, 255, 255),
+                                    connect_cnt=5)
+                    ])
