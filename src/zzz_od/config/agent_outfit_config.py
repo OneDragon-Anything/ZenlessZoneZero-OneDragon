@@ -69,6 +69,19 @@ class AgentOutfitConfig(YamlConfig):
     def yixuan(self, value: str) -> None:
         self.update('yixuan', value)
 
+    @property
+    def yuzuha_outfit_list(self) -> str:
+        return self.get('yuzuha_outfit_list', [AgentOutfityuzuha.DEFAULT.value.value,
+                                               AgentOutfityuzuha.TANUKI_IN_BROAD_DAYLIGHT.value.value])
+
+    @property
+    def yuzuha(self) -> str:
+        return self.get('yuzuha', AgentOutfityuzuha.DEFAULT.value.value)
+
+    @yuzuha.setter
+    def yuzuha(self, value: str) -> None:
+        self.update('yuzuha', value)
+
 class AgentOutfitNicole(Enum):
     """
     妮可皮肤
@@ -98,3 +111,10 @@ class AgentOutfitYiXuan(Enum):
     """
     DEFAULT = ConfigItem('默认', 'yixuan')
     TRAILS_OF_INK = ConfigItem('墨形影踪', 'yixuan_trails_of_ink')
+
+class AgentOutfityuzuha(Enum):
+    """
+    浮波柚叶皮肤
+    """
+    DEFAULT = ConfigItem('默认', 'yuzuha')
+    TANUKI_IN_BROAD_DAYLIGHT = ConfigItem('晴空化狸', 'yuzuha_tanuki_in_broad_daylight')
