@@ -778,7 +778,6 @@ class InstallerInterface(VerticalScrollInterface):
     def show_completion_message(self):
         """显示完成消息"""
         self.is_all_completed = True
-
         # 切换回一键安装界面
         self.is_advanced_mode = False
         self.main_stack.setCurrentIndex(0)
