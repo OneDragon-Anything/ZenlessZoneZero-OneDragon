@@ -5,6 +5,11 @@ handlers:
       - op_name: "按键-切换角色"
         agent_name: "薇薇安"
 
+  - states: "![前台-浮波柚叶] & [浮波柚叶-能量]{0, 120}"
+    operations:
+      - op_name: "按键-切换角色"
+        agent_name: "浮波柚叶"
+
   # 青衣特殊技不可用的情况下没必要切人，直接闪A
   - states: "![自定义-血量扣减, 0, 8]"
     sub_handlers:
@@ -14,7 +19,7 @@ handlers:
       - states: "[前台-零号安比]"
         sub_handlers:
           - state_template: "双反模板-下一个"
-  - states: "[前台-异常]"
+  - states: "[前台-异常] & ![自定义-动作不打断, -10, -0.1]"
     sub_handlers:
       - states: "([按键-切换角色-下一个, 0, 6]|[按键-切换角色-上一个, 0, 6])" # 异常角色至少输出6秒
         sub_handlers:
