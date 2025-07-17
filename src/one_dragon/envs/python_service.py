@@ -127,7 +127,7 @@ class PythonService:
         """
         检查环境是否与项目同步
         :param progress_callback: 进度回调
-        :return: (是否同步, 状态信息)
+        :return:
         """
         msg = gt('正在检查环境同步状态...')
         if progress_callback is not None:
