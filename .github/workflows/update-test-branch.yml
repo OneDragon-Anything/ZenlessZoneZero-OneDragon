@@ -1,0 +1,47 @@
+name: Update Test Branch
+
+on:
+  schedule:
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-test-branch:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Configure Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Attempt to Fast-Forward Merge
+      id: merge-attempt
+      continue-on-error: true
+      run: |
+        git checkout test
+        git pull origin main --ff-only
+        git push origin test
+
+    - name: Post a Comment on Failure
+      if: steps.merge-attempt.outcome == 'failure'
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        issue-number: ${{ vars.SYNC_STATUS_ISSUE_NUMBER }}
+        body: |
+          > :warning: **于 `$(TZ='Asia/Shanghai' date)` 检测到合并冲突**
+
+          @${{ vars.ASSIGNEE_USERNAME }}
+          `test` 分支和 `main` 分支有冲突，无法自动更新。
+        edit-mode: replace
