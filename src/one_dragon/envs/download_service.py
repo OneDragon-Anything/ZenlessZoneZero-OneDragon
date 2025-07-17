@@ -44,8 +44,7 @@ class DownloadService:
             elif self.env_config.is_personal_proxy:
                 proxy = self.env_config.personal_proxy
 
-        return http_utils.download_file(download_url, save_file_path,
-                                        proxy, progress_callback)
+        return http_utils.download_file(download_url, save_file_path, proxy, progress_callback)
 
     def download_and_extract_env_file(self, file_name: str, temp_dir: str, extract_dir: str,
                                       progress_callback: Optional[Callable[[float, str], None]] = None,
@@ -55,9 +54,9 @@ class DownloadService:
         :param file_name: 要下载的文件名
         :param temp_dir: 临时下载目录
         :param extract_dir: 解压目标目录
-        :param retry_count: 重试次数，默认2次
-        :param clean_temp: 是否清理临时文件，默认True
         :param progress_callback: 进度回调
+        :param clean_temp: 是否清理临时文件，默认True
+        :param retry_count: 重试次数，默认2次
         :return: 是否成功
         """
         # 确保临时目录存在
@@ -69,7 +68,7 @@ class DownloadService:
 
             # 如果文件不存在，下载它
             if not zip_file_path.exists():
-                msg = gt(f'正在下载 {file_name}...')
+                msg = f"{gt('正在下载')} {file_name}..."
                 if progress_callback is not None:
                     progress_callback(-1, msg)
                 log.info(msg)

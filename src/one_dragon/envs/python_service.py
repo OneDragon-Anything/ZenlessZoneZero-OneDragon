@@ -23,6 +23,11 @@ class PythonService:
         self.download_service: DownloadService = download_service
 
     def install_default_uv(self, progress_callback: Optional[Callable[[float, str], None]]) -> Tuple[bool, str]:
+        """
+        使用通用下载服务安装 UV
+        :param progress_callback:
+        :return:
+        """
         if self.get_uv_version() is not None:
             msg = gt('已经安装了 UV')
             log.info(msg)
@@ -44,6 +49,11 @@ class PythonService:
             return False, gt('安装 UV 失败')
 
     def install_standalone_python(self, progress_callback: Optional[Callable[[float, str], None]]) -> bool:
+        """
+        使用通用下载服务安装 Python
+        :param progress_callback:
+        :return:
+        """
         zip_file_name = f'cpython-{self.project_config.python_version}.zip'
         success = self.download_service.download_and_extract_env_file(
             zip_file_name, DEFAULT_ENV_PATH, DEFAULT_PYTHON_DIR_PATH, progress_callback
