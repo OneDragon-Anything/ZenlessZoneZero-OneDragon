@@ -40,7 +40,8 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         issue-number: ${{ vars.SYNC_STATUS_ISSUE_NUMBER }}
         body: |
-          > :warning: **检测到合并冲突** 于 `$(date -u)`
+          > :warning: **于 `$(TZ='Asia/Shanghai' date)` 检测到合并冲突**
 
-          @${{ vars.ASSIGNEE_USERNAME }}，`test` 分支和 `main` 分支有冲突，无法自动更新。
+          @${{ vars.ASSIGNEE_USERNAME }}
+          `test` 分支和 `main` 分支有冲突，无法自动更新。
         edit-mode: replace
