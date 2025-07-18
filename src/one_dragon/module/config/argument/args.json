@@ -1,0 +1,1648 @@
+{
+  "Alas": {
+    "Emulator": {
+      "Serial": {
+        "type": "input",
+        "value": "auto",
+        "valuetype": "str"
+      },
+      "GameClient": {
+        "type": "select",
+        "value": "android",
+        "option": [
+          "android",
+          "cloud_android"
+        ]
+      },
+      "PackageName": {
+        "type": "select",
+        "value": "auto",
+        "option": [
+          "auto",
+          "CN-Official",
+          "CN-Bilibili",
+          "OVERSEA-America",
+          "OVERSEA-Asia",
+          "OVERSEA-Europe",
+          "OVERSEA-TWHKMO"
+        ]
+      },
+      "GameLanguage": {
+        "type": "select",
+        "value": "auto",
+        "option": [
+          "auto",
+          "cn",
+          "en"
+        ]
+      },
+      "ScreenshotMethod": {
+        "type": "select",
+        "value": "scrcpy",
+        "option": [
+          "auto",
+          "ADB",
+          "ADB_nc",
+          "uiautomator2",
+          "aScreenCap",
+          "aScreenCap_nc",
+          "DroidCast",
+          "DroidCast_raw",
+          "scrcpy",
+          "nemu_ipc"
+        ],
+        "display": "hide"
+      },
+      "ControlMethod": {
+        "type": "select",
+        "value": "MaaTouch",
+        "option": [
+          "minitouch",
+          "MaaTouch"
+        ],
+        "display": "hide"
+      },
+      "AdbRestart": {
+        "type": "checkbox",
+        "value": false
+      }
+    },
+    "EmulatorInfo": {
+      "Emulator": {
+        "type": "select",
+        "value": "auto",
+        "option": [
+          "auto",
+          "NoxPlayer",
+          "NoxPlayer64",
+          "BlueStacks4",
+          "BlueStacks5",
+          "BlueStacks4HyperV",
+          "BlueStacks5HyperV",
+          "LDPlayer3",
+          "LDPlayer4",
+          "LDPlayer9",
+          "MuMuPlayer",
+          "MuMuPlayerX",
+          "MuMuPlayer12",
+          "MEmuPlayer"
+        ]
+      },
+      "name": {
+        "type": "textarea",
+        "value": null
+      },
+      "path": {
+        "type": "textarea",
+        "value": null
+      }
+    },
+    "Error": {
+      "Restart": {
+        "type": "select",
+        "value": "game",
+        "option": [
+          "game",
+          "game_emulator"
+        ]
+      },
+      "SaveError": {
+        "type": "checkbox",
+        "value": true
+      },
+      "ScreenshotLength": {
+        "type": "input",
+        "value": 1
+      },
+      "OnePushConfig": {
+        "type": "textarea",
+        "value": "provider: null",
+        "mode": "yaml"
+      }
+    },
+    "Optimization": {
+      "ScreenshotInterval": {
+        "type": "input",
+        "value": 0.2,
+        "display": "hide"
+      },
+      "CombatScreenshotInterval": {
+        "type": "input",
+        "value": 1.0,
+        "display": "hide"
+      },
+      "WhenTaskQueueEmpty": {
+        "type": "select",
+        "value": "goto_main",
+        "option": [
+          "stay_there",
+          "goto_main",
+          "close_game"
+        ]
+      }
+    }
+  },
+  "Restart": {
+    "Scheduler": {
+      "Enable": {
+        "type": "state",
+        "value": true,
+        "option": [
+          true
+        ],
+        "option_bold": [
+          true
+        ]
+      },
+      "NextRun": {
+        "type": "datetime",
+        "value": "2020-01-01 00:00:00",
+        "validate": "datetime"
+      },
+      "Command": {
+        "type": "input",
+        "value": "Restart",
+        "display": "hide"
+      },
+      "ServerUpdate": {
+        "type": "input",
+        "value": "04:00",
+        "display": "hide"
+      }
+    }
+  },
+  "Dungeon": {
+    "Scheduler": {
+      "Enable": {
+        "type": "state",
+        "value": true,
+        "option": [
+          true
+        ],
+        "option_bold": [
+          true
+        ]
+      },
+      "NextRun": {
+        "type": "datetime",
+        "value": "2020-01-01 00:00:00",
+        "validate": "datetime"
+      },
+      "Command": {
+        "type": "input",
+        "value": "Dungeon",
+        "display": "hide"
+      },
+      "ServerUpdate": {
+        "type": "input",
+        "value": "04:00",
+        "display": "hide"
+      }
+    },
+    "Planner": {
+      "PlannerOverall": {
+        "type": "stored",
+        "value": {},
+        "display": true,
+        "stored": "StoredPlannerOverall",
+        "order": 4,
+        "color": "#85e7f2"
+      },
+      "Item_Credit": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Trailblaze_EXP": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Traveler_Guide": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Refined_Aether": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Lost_Crystal": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Broken_Teeth_of_Iron_Wolf": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Endotherm_Chitin": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Horn_of_Snow": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Lightning_Crown_of_the_Past_Shadow": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Storm_Eye": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Void_Cast_Iron": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Golden_Crown_of_the_Past_Shadow": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Netherworld_Token": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Searing_Steel_Blade": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Gelid_Chitin": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Shape_Shifter_Lightning_Staff": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Ascendant_Debris": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Nail_of_the_Ape": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Suppressing_Edict": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_IPC_Work_Permit": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Raging_Heart": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Dream_Fridge": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Nail_of_the_Beast_Coffin": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_A_Glass_of_the_Besotted_Era": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Dream_Flamer": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Worldbreaker_Blade": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Arrow_of_the_Starchaser": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Key_of_Wisdom": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Safeguard_of_Amber": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Obsidian_of_Obsession": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Stellaris_Symphony": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Flower_of_Eternity": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Moon_Rage_Fang": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Countertemporal_Shot": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Exquisite_Colored_Draft": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Divine_Amber": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Heaven_Incinerator": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Heavenly_Melody": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Myriad_Fruit": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Tracks_of_Destiny": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Destroyer_Final_Road": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Guardian_Lament": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Regret_of_Infinite_Ochema": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Past_Evils_of_the_Borehole_Planet_Disaster": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Lost_Echo_of_the_Shared_Wish": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Auspice_Sliver": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Squirming_Core": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Conqueror_Will": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Silvermane_Medal": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Ancient_Engine": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Immortal_Lumintwig": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Artifex_Gyreheart": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Dream_Making_Engine": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      },
+      "Item_Shards_of_Desires": {
+        "type": "planner",
+        "value": {},
+        "display": "display",
+        "stored": "StoredPlanner"
+      }
+    },
+    "Dungeon": {
+      "Name": {
+        "type": "select",
+        "value": "Calyx_Golden_Treasures_Jarilo_VI",
+        "option": [
+          "Calyx_Golden_Memories_Penacony",
+          "Calyx_Golden_Memories_The_Xianzhou_Luofu",
+          "Calyx_Golden_Memories_Jarilo_VI",
+          "Calyx_Golden_Aether_Penacony",
+          "Calyx_Golden_Aether_The_Xianzhou_Luofu",
+          "Calyx_Golden_Aether_Jarilo_VI",
+          "Calyx_Golden_Treasures_Penacony",
+          "Calyx_Golden_Treasures_The_Xianzhou_Luofu",
+          "Calyx_Golden_Treasures_Jarilo_VI",
+          "Calyx_Crimson_Destruction_Herta_StorageZone",
+          "Calyx_Crimson_Destruction_Luofu_ScalegorgeWaterscape",
+          "Calyx_Crimson_Preservation_Herta_SupplyZone",
+          "Calyx_Crimson_Preservation_Penacony_ClockStudiosThemePark",
+          "Calyx_Crimson_The_Hunt_Jarilo_OutlyingSnowPlains",
+          "Calyx_Crimson_The_Hunt_Penacony_SoulGladScorchsandAuditionVenue",
+          "Calyx_Crimson_Abundance_Jarilo_BackwaterPass",
+          "Calyx_Crimson_Abundance_Luofu_FyxestrollGarden",
+          "Calyx_Crimson_Erudition_Jarilo_RivetTown",
+          "Calyx_Crimson_Erudition_Penacony_PenaconyGrandTheater",
+          "Calyx_Crimson_Harmony_Jarilo_RobotSettlement",
+          "Calyx_Crimson_Harmony_Penacony_TheReverieDreamscape",
+          "Calyx_Crimson_Nihility_Jarilo_GreatMine",
+          "Calyx_Crimson_Nihility_Luofu_AlchemyCommission",
+          "Stagnant_Shadow_Spike",
+          "Stagnant_Shadow_Perdition",
+          "Stagnant_Shadow_Duty",
+          "Stagnant_Shadow_Blaze",
+          "Stagnant_Shadow_Scorch",
+          "Stagnant_Shadow_Ire",
+          "Stagnant_Shadow_Rime",
+          "Stagnant_Shadow_Icicle",
+          "Stagnant_Shadow_Nectar",
+          "Stagnant_Shadow_Fulmination",
+          "Stagnant_Shadow_Doom",
+          "Stagnant_Shadow_Mechwolf",
+          "Stagnant_Shadow_Gust",
+          "Stagnant_Shadow_Celestial",
+          "Stagnant_Shadow_Gloam",
+          "Stagnant_Shadow_Quanta",
+          "Stagnant_Shadow_Abomination",
+          "Stagnant_Shadow_Roast",
+          "Stagnant_Shadow_Mirage",
+          "Stagnant_Shadow_Puppetry",
+          "Cavern_of_Corrosion_Path_of_Cavalier",
+          "Cavern_of_Corrosion_Path_of_Dreamdive",
+          "Cavern_of_Corrosion_Path_of_Darkness",
+          "Cavern_of_Corrosion_Path_of_Elixir_Seekers",
+          "Cavern_of_Corrosion_Path_of_Conflagration",
+          "Cavern_of_Corrosion_Path_of_Holy_Hymn",
+          "Cavern_of_Corrosion_Path_of_Providence",
+          "Cavern_of_Corrosion_Path_of_Drifting",
+          "Cavern_of_Corrosion_Path_of_Jabbing_Punch",
+          "Cavern_of_Corrosion_Path_of_Gelid_Wind"
+        ]
+      },
+      "NameAtDoubleCalyx": {
+        "type": "select",
+        "value": "Calyx_Golden_Treasures_Jarilo_VI",
+        "option": [
+          "Calyx_Golden_Memories_Penacony",
+          "Calyx_Golden_Memories_The_Xianzhou_Luofu",
+          "Calyx_Golden_Memories_Jarilo_VI",
+          "Calyx_Golden_Aether_Penacony",
+          "Calyx_Golden_Aether_The_Xianzhou_Luofu",
+          "Calyx_Golden_Aether_Jarilo_VI",
+          "Calyx_Golden_Treasures_Penacony",
+          "Calyx_Golden_Treasures_The_Xianzhou_Luofu",
+          "Calyx_Golden_Treasures_Jarilo_VI",
+          "Calyx_Crimson_Destruction_Herta_StorageZone",
+          "Calyx_Crimson_Destruction_Luofu_ScalegorgeWaterscape",
+          "Calyx_Crimson_Preservation_Herta_SupplyZone",
+          "Calyx_Crimson_Preservation_Penacony_ClockStudiosThemePark",
+          "Calyx_Crimson_The_Hunt_Jarilo_OutlyingSnowPlains",
+          "Calyx_Crimson_The_Hunt_Penacony_SoulGladScorchsandAuditionVenue",
+          "Calyx_Crimson_Abundance_Jarilo_BackwaterPass",
+          "Calyx_Crimson_Abundance_Luofu_FyxestrollGarden",
+          "Calyx_Crimson_Erudition_Jarilo_RivetTown",
+          "Calyx_Crimson_Erudition_Penacony_PenaconyGrandTheater",
+          "Calyx_Crimson_Harmony_Jarilo_RobotSettlement",
+          "Calyx_Crimson_Harmony_Penacony_TheReverieDreamscape",
+          "Calyx_Crimson_Nihility_Jarilo_GreatMine",
+          "Calyx_Crimson_Nihility_Luofu_AlchemyCommission"
+        ]
+      },
+      "NameAtDoubleRelic": {
+        "type": "select",
+        "value": "Cavern_of_Corrosion_Path_of_Providence",
+        "option": [
+          "Cavern_of_Corrosion_Path_of_Cavalier",
+          "Cavern_of_Corrosion_Path_of_Dreamdive",
+          "Cavern_of_Corrosion_Path_of_Darkness",
+          "Cavern_of_Corrosion_Path_of_Elixir_Seekers",
+          "Cavern_of_Corrosion_Path_of_Conflagration",
+          "Cavern_of_Corrosion_Path_of_Holy_Hymn",
+          "Cavern_of_Corrosion_Path_of_Providence",
+          "Cavern_of_Corrosion_Path_of_Drifting",
+          "Cavern_of_Corrosion_Path_of_Jabbing_Punch",
+          "Cavern_of_Corrosion_Path_of_Gelid_Wind"
+        ]
+      },
+      "Team": {
+        "type": "select",
+        "value": 1,
+        "option": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ]
+      }
+    },
+    "DungeonSupport": {
+      "Use": {
+        "type": "select",
+        "value": "when_daily",
+        "option": [
+          "when_daily",
+          "always_use"
+        ]
+      },
+      "Character": {
+        "type": "select",
+        "value": "FirstCharacter",
+        "option": [
+          "FirstCharacter",
+          "Acheron",
+          "Argenti",
+          "Arlan",
+          "Asta",
+          "Aventurine",
+          "Bailu",
+          "BlackSwan",
+          "Blade",
+          "Boothill",
+          "Bronya",
+          "Clara",
+          "DanHeng",
+          "DanHengImbibitorLunae",
+          "DrRatio",
+          "Feixiao",
+          "Firefly",
+          "FuXuan",
+          "Gallagher",
+          "Gepard",
+          "Guinaifen",
+          "Hanya",
+          "Herta",
+          "Himeko",
+          "Hook",
+          "Huohuo",
+          "Jade",
+          "Jiaoqiu",
+          "JingYuan",
+          "Jingliu",
+          "Kafka",
+          "Luka",
+          "Luocha",
+          "Lynx",
+          "March7thPreservation",
+          "March7thTheHunt",
+          "Misha",
+          "Moze",
+          "Natasha",
+          "Pela",
+          "Qingque",
+          "Robin",
+          "RuanMei",
+          "Sampo",
+          "Seele",
+          "Serval",
+          "SilverWolf",
+          "Sparkle",
+          "Sushang",
+          "Tingyun",
+          "TopazNumby",
+          "TrailblazerDestruction",
+          "TrailblazerHarmony",
+          "TrailblazerPreservation",
+          "Welt",
+          "Xueyi",
+          "Yanqing",
+          "Yukong",
+          "Yunli"
+        ]
+      }
+    },
+    "DungeonStorage": {
+      "TrailblazePower": {
+        "type": "stored",
+        "value": {},
+        "display": "hide",
+        "stored": "StoredTrailblazePower",
+        "order": 1,
+        "color": "#eb8efe"
+      },
+      "Reserved": {
+        "type": "stored",
+        "value": {},
+        "display": "hide",
+        "stored": "StoredResersed"
+      },
+      "Immersifier": {
+        "type": "stored",
+        "value": {},
+        "display": "hide",
+        "stored": "StoredImmersifier"
+      },
+      "DungeonDouble": {
+        "type": "stored",
+        "value": {},
+        "display": "hide",
+        "stored": "StoredDungeonDouble"
+      },
+      "EchoOfWar": {
+        "type": "stored",
+        "value": {},
+        "display": "hide",
+        "stored": "StoredEchoOfWar"
+      },
+      "SimulatedUniverse": {
+        "type": "stored",
+        "value": {},
+        "display": "hide",
+        "stored": "StoredSimulatedUniverse",
+        "order": 6,
+        "color": "#8fb5fe"
+      }
+    },
+    "TrailblazePower": {
+      "ExtractReservedTrailblazePower": {
+        "type": "checkbox",
+        "value": false
+      },
+      "UseFuel": {
+        "type": "checkbox",
+        "value": false
+      },
+      "FuelReserve": {
+        "type": "input",
+        "value": 5
+      }
+    }
+  },
+  "Ornament": {
+    "Scheduler": {
+      "Enable": {
+        "type": "checkbox",
+        "value": false,
+        "option": [
+          true,
+          false
+        ]
+      },
+      "NextRun": {
+        "type": "datetime",
+        "value": "2020-01-01 00:00:00",
+        "validate": "datetime"
+      },
+      "Command": {
+        "type": "input",
+        "value": "Ornament",
+        "display": "hide"
+      },
+      "ServerUpdate": {
+        "type": "input",
+        "value": "04:00",
+        "display": "hide"
+      }
+    },
+    "Ornament": {
+      "Dungeon": {
+        "type": "select",
+        "value": "Divergent_Universe_Eternal_Comedy",
+        "option": [
+          "Divergent_Universe_Famished_Worker",
+          "Divergent_Universe_Eternal_Comedy",
+          "Divergent_Universe_To_Sweet_Dreams",
+          "Divergent_Universe_Pouring_Blades",
+          "Divergent_Universe_Fruit_of_Evil",
+          "Divergent_Universe_Permafrost",
+          "Divergent_Universe_Gentle_Words",
+          "Divergent_Universe_Smelted_Heart",
+          "Divergent_Universe_Untoppled_Walls"
+        ]
+      },
+      "UseImmersifier": {
+        "type": "state",
+        "value": true,
+        "option": [
+          true
+        ],
+        "option_bold": [
+          true
+        ]
+      },
+      "DoubleEvent": {
+        "type": "state",
+        "value": true,
+        "option": [
+          true
+        ],
+        "option_bold": [
+          true
+        ]
+      },
+      "UseStamina": {
+        "type": "checkbox",
+        "value": false
+      }
+    },
+    "DungeonSupport": {
+      "Use": {
+        "type": "select",
+        "value": "when_daily",
+        "option": [
+          "when_daily",
+          "always_use"
+        ]
+      },
+      "Character": {
+        "type": "select",
+        "value": "FirstCharacter",
+        "option": [
+          "FirstCharacter",
+          "Acheron",
+          "Argenti",
+          "Arlan",
+          "Asta",
+          "Aventurine",
+          "Bailu",
+          "BlackSwan",
+          "Blade",
+          "Boothill",
+          "Bronya",
+          "Clara",
+          "DanHeng",
+          "DanHengImbibitorLunae",
+          "DrRatio",
+          "Feixiao",
+          "Firefly",
+          "FuXuan",
+          "Gallagher",
+          "Gepard",
+          "Guinaifen",
+          "Hanya",
+          "Herta",
+          "Himeko",
+          "Hook",
+          "Huohuo",
+          "Jade",
+          "Jiaoqiu",
+          "JingYuan",
+          "Jingliu",
+          "Kafka",
+          "Luka",
+          "Luocha",
+          "Lynx",
+          "March7thPreservation",
+          "March7thTheHunt",
+          "Misha",
+          "Moze",
+          "Natasha",
+          "Pela",
+          "Qingque",
+          "Robin",
+          "RuanMei",
+          "Sampo",
+          "Seele",
+          "Serval",
+          "SilverWolf",
+          "Sparkle",
+          "Sushang",
+          "Tingyun",
+          "TopazNumby",
+          "TrailblazerDestruction",
+          "TrailblazerHarmony",
+          "TrailblazerPreservation",
+          "Welt",
+          "Xueyi",
+          "Yanqing",
+          "Yukong",
+          "Yunli"
+        ]
+      }
+    },
+    "TrailblazePower": {
+      "ExtractReservedTrailblazePower": {
+        "type": "checkbox",
+        "value": false
+      },
+      "UseFuel": {
+        "type": "checkbox",
+        "value": false
+      },
+      "FuelReserve": {
+        "type": "input",
+        "value": 5
+      }
+    }
+  },
+  "DailyQuest": {
+    "Scheduler": {
+      "Enable": {
+        "type": "state",
+        "value": true,
+        "option": [
+          true
+        ],
+        "option_bold": [
+          true
+        ]
+      },
+      "NextRun": {
+        "type": "datetime",
+        "value": "2020-01-01 00:00:00",
+        "validate": "datetime"
+      },
+      "Command": {
+        "type": "input",
+        "value": "DailyQuest",
+        "display": "hide"
+      },
+      "ServerUpdate": {
+        "type": "input",
+        "value": "04:00",
+        "display": "hide"
+      }
+    },
+    "DailyStorage": {
+      "DailyActivity": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredDailyActivity",
+        "order": 2,
+        "color": "#ffcf70"
+      },
+      "DailyQuest": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredDaily"
+      }
+    }
+  },
+  "BattlePass": {
+    "Scheduler": {
+      "Enable": {
+        "type": "state",
+        "value": true,
+        "option": [
+          true
+        ],
+        "option_bold": [
+          true
+        ]
+      },
+      "NextRun": {
+        "type": "datetime",
+        "value": "2020-01-01 00:00:00",
+        "validate": "datetime"
+      },
+      "Command": {
+        "type": "input",
+        "value": "BattlePass",
+        "display": "hide"
+      },
+      "ServerUpdate": {
+        "type": "input",
+        "value": "04:00",
+        "display": "hide"
+      }
+    },
+    "BattlePassStorage": {
+      "BattlePassLevel": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredBattlePassLevel",
+        "order": 5,
+        "color": "#cbe45b"
+      },
+      "BattlePassWeeklyQuest": {
+        "type": "stored",
+        "value": {},
+        "display": "hide",
+        "stored": "StoredBattlePassWeeklyQuest"
+      },
+      "BattlePassSimulatedUniverse": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredBattlePassSimulatedUniverse"
+      },
+      "BattlePassQuestCalyx": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredBattlePassQuestCalyx"
+      },
+      "BattlePassQuestEchoOfWar": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredBattlePassQuestEchoOfWar"
+      },
+      "BattlePassQuestCredits": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredBattlePassQuestCredits"
+      },
+      "BattlePassQuestSynthesizeConsumables": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredBattlePassQuestSynthesizeConsumables"
+      },
+      "BattlePassQuestStagnantShadow": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredBattlePassQuestStagnantShadow"
+      },
+      "BattlePassQuestCavernOfCorrosion": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredBattlePassQuestCavernOfCorrosion"
+      },
+      "BattlePassQuestTrailblazePower": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredBattlePassQuestTrailblazePower"
+      }
+    }
+  },
+  "Assignment": {
+    "Scheduler": {
+      "Enable": {
+        "type": "state",
+        "value": true,
+        "option": [
+          true
+        ],
+        "option_bold": [
+          true
+        ]
+      },
+      "NextRun": {
+        "type": "datetime",
+        "value": "2020-01-01 00:00:00",
+        "validate": "datetime"
+      },
+      "Command": {
+        "type": "input",
+        "value": "Assignment",
+        "display": "hide"
+      },
+      "ServerUpdate": {
+        "type": "input",
+        "value": "04:00",
+        "display": "hide"
+      }
+    },
+    "Assignment": {
+      "Name_1": {
+        "type": "select",
+        "value": "Nameless_Land_Nameless_People",
+        "option": [
+          "Tranquility_of_Vimala_bhumi",
+          "A_Startling_Night_Terror",
+          "Fire_Lord_Inflames_Blades_of_War",
+          "Root_Out_the_Turpitude",
+          "Born_to_Obey",
+          "Winter_Soldiers",
+          "Destruction_of_the_Destroyer",
+          "Nine_Billion_Names",
+          "Akashic_Records",
+          "Nameless_Land_Nameless_People",
+          "The_Invisible_Hand",
+          "Scalpel_and_Screwdriver",
+          "The_Wages_of_Humanity",
+          "Legend_of_the_Puppet_Master",
+          "The_Land_of_Gold",
+          "Spring_of_Life",
+          "Fragments_of_Illusory_Dreams",
+          "The_Blossom_in_the_Storm",
+          "Abandoned_and_Insulted"
+        ]
+      },
+      "Name_2": {
+        "type": "select",
+        "value": "Akashic_Records",
+        "option": [
+          "Tranquility_of_Vimala_bhumi",
+          "A_Startling_Night_Terror",
+          "Fire_Lord_Inflames_Blades_of_War",
+          "Root_Out_the_Turpitude",
+          "Born_to_Obey",
+          "Winter_Soldiers",
+          "Destruction_of_the_Destroyer",
+          "Nine_Billion_Names",
+          "Akashic_Records",
+          "Nameless_Land_Nameless_People",
+          "The_Invisible_Hand",
+          "Scalpel_and_Screwdriver",
+          "The_Wages_of_Humanity",
+          "Legend_of_the_Puppet_Master",
+          "The_Land_of_Gold",
+          "Spring_of_Life",
+          "Fragments_of_Illusory_Dreams",
+          "The_Blossom_in_the_Storm",
+          "Abandoned_and_Insulted"
+        ]
+      },
+      "Name_3": {
+        "type": "select",
+        "value": "The_Invisible_Hand",
+        "option": [
+          "Tranquility_of_Vimala_bhumi",
+          "A_Startling_Night_Terror",
+          "Fire_Lord_Inflames_Blades_of_War",
+          "Root_Out_the_Turpitude",
+          "Born_to_Obey",
+          "Winter_Soldiers",
+          "Destruction_of_the_Destroyer",
+          "Nine_Billion_Names",
+          "Akashic_Records",
+          "Nameless_Land_Nameless_People",
+          "The_Invisible_Hand",
+          "Scalpel_and_Screwdriver",
+          "The_Wages_of_Humanity",
+          "Legend_of_the_Puppet_Master",
+          "The_Land_of_Gold",
+          "Spring_of_Life",
+          "Fragments_of_Illusory_Dreams",
+          "The_Blossom_in_the_Storm",
+          "Abandoned_and_Insulted"
+        ]
+      },
+      "Name_4": {
+        "type": "select",
+        "value": "Nine_Billion_Names",
+        "option": [
+          "Tranquility_of_Vimala_bhumi",
+          "A_Startling_Night_Terror",
+          "Fire_Lord_Inflames_Blades_of_War",
+          "Root_Out_the_Turpitude",
+          "Born_to_Obey",
+          "Winter_Soldiers",
+          "Destruction_of_the_Destroyer",
+          "Nine_Billion_Names",
+          "Akashic_Records",
+          "Nameless_Land_Nameless_People",
+          "The_Invisible_Hand",
+          "Scalpel_and_Screwdriver",
+          "The_Wages_of_Humanity",
+          "Legend_of_the_Puppet_Master",
+          "The_Land_of_Gold",
+          "Spring_of_Life",
+          "Fragments_of_Illusory_Dreams",
+          "The_Blossom_in_the_Storm",
+          "Abandoned_and_Insulted"
+        ]
+      },
+      "Duration": {
+        "type": "select",
+        "value": 20,
+        "option": [
+          4,
+          8,
+          12,
+          20
+        ]
+      },
+      "Event": {
+        "type": "checkbox",
+        "value": true
+      },
+      "Assignment": {
+        "type": "stored",
+        "value": {},
+        "display": "hide",
+        "stored": "StoredAssignment",
+        "order": 3,
+        "color": "#79dbc4"
+      }
+    }
+  },
+  "DataUpdate": {
+    "Scheduler": {
+      "Enable": {
+        "type": "state",
+        "value": true,
+        "option": [
+          true
+        ],
+        "option_bold": [
+          true
+        ]
+      },
+      "NextRun": {
+        "type": "datetime",
+        "value": "2020-01-01 00:00:00",
+        "validate": "datetime"
+      },
+      "Command": {
+        "type": "input",
+        "value": "DataUpdate",
+        "display": "hide"
+      },
+      "ServerUpdate": {
+        "type": "input",
+        "value": "04:00",
+        "display": "hide"
+      }
+    },
+    "ItemStorage": {
+      "Credit": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredInt",
+        "order": 7,
+        "color": "#ab7cf2"
+      },
+      "StallerJade": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredInt",
+        "order": 8,
+        "color": "#fc8f8b"
+      }
+    },
+    "CloudStorage": {
+      "CloudRemainSeasonPass": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredInt"
+      },
+      "CloudRemainPaid": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredInt"
+      },
+      "CloudRemainFree": {
+        "type": "stored",
+        "value": {},
+        "display": "display",
+        "stored": "StoredInt"
+      }
+    }
+  },
+  "Freebies": {
+    "Scheduler": {
+      "Enable": {
+        "type": "checkbox",
+        "value": true,
+        "option": [
+          true,
+          false
+        ]
+      },
+      "NextRun": {
+        "type": "datetime",
+        "value": "2020-01-01 00:00:00",
+        "validate": "datetime"
+      },
+      "Command": {
+        "type": "input",
+        "value": "Freebies",
+        "display": "hide"
+      },
+      "ServerUpdate": {
+        "type": "input",
+        "value": "04:00",
+        "display": "hide"
+      }
+    },
+    "SupportReward": {
+      "Collect": {
+        "type": "checkbox",
+        "value": true
+      }
+    }
+  },
+  "Weekly": {
+    "Scheduler": {
+      "Enable": {
+        "type": "checkbox",
+        "value": false,
+        "option": [
+          true,
+          false
+        ]
+      },
+      "NextRun": {
+        "type": "datetime",
+        "value": "2020-01-01 00:00:00",
+        "validate": "datetime"
+      },
+      "Command": {
+        "type": "input",
+        "value": "Weekly",
+        "display": "hide"
+      },
+      "ServerUpdate": {
+        "type": "input",
+        "value": "04:00",
+        "display": "hide"
+      }
+    },
+    "Weekly": {
+      "Name": {
+        "type": "select",
+        "value": "Echo_of_War_Divine_Seed",
+        "options": [],
+        "option": [
+          "Echo_of_War_Inner_Beast_Battlefield",
+          "Echo_of_War_Salutations_of_Ashen_Dreams",
+          "Echo_of_War_Borehole_Planet_Old_Crater",
+          "Echo_of_War_Divine_Seed",
+          "Echo_of_War_End_of_the_Eternal_Freeze",
+          "Echo_of_War_Destruction_Beginning"
+        ]
+      },
+      "Team": {
+        "type": "select",
+        "value": 1,
+        "option": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ]
+      }
+    },
+    "DungeonSupport": {
+      "Use": {
+        "type": "select",
+        "value": "do_not_use",
+        "option": [
+          "always_use",
+          "do_not_use"
+        ]
+      },
+      "Character": {
+        "type": "select",
+        "value": "FirstCharacter",
+        "option": [
+          "FirstCharacter",
+          "Acheron",
+          "Argenti",
+          "Arlan",
+          "Asta",
+          "Aventurine",
+          "Bailu",
+          "BlackSwan",
+          "Blade",
+          "Boothill",
+          "Bronya",
+          "Clara",
+          "DanHeng",
+          "DanHengImbibitorLunae",
+          "DrRatio",
+          "Feixiao",
+          "Firefly",
+          "FuXuan",
+          "Gallagher",
+          "Gepard",
+          "Guinaifen",
+          "Hanya",
+          "Herta",
+          "Himeko",
+          "Hook",
+          "Huohuo",
+          "Jade",
+          "Jiaoqiu",
+          "JingYuan",
+          "Jingliu",
+          "Kafka",
+          "Luka",
+          "Luocha",
+          "Lynx",
+          "March7thPreservation",
+          "March7thTheHunt",
+          "Misha",
+          "Moze",
+          "Natasha",
+          "Pela",
+          "Qingque",
+          "Robin",
+          "RuanMei",
+          "Sampo",
+          "Seele",
+          "Serval",
+          "SilverWolf",
+          "Sparkle",
+          "Sushang",
+          "Tingyun",
+          "TopazNumby",
+          "TrailblazerDestruction",
+          "TrailblazerHarmony",
+          "TrailblazerPreservation",
+          "Welt",
+          "Xueyi",
+          "Yanqing",
+          "Yukong",
+          "Yunli"
+        ]
+      }
+    }
+  },
+  "Rogue": {
+    "Scheduler": {
+      "Enable": {
+        "type": "checkbox",
+        "value": false,
+        "option": [
+          true,
+          false
+        ]
+      },
+      "NextRun": {
+        "type": "datetime",
+        "value": "2020-01-01 00:00:00",
+        "validate": "datetime"
+      },
+      "Command": {
+        "type": "input",
+        "value": "Rogue",
+        "display": "hide"
+      },
+      "ServerUpdate": {
+        "type": "input",
+        "value": "04:00",
+        "display": "hide"
+      }
+    },
+    "RogueWorld": {
+      "World": {
+        "type": "select",
+        "value": "Simulated_Universe_World_8",
+        "option": [
+          "Simulated_Universe_World_3",
+          "Simulated_Universe_World_4",
+          "Simulated_Universe_World_5",
+          "Simulated_Universe_World_6",
+          "Simulated_Universe_World_8"
+        ]
+      },
+      "Path": {
+        "type": "select",
+        "value": "The_Hunt",
+        "option": [
+          "Preservation",
+          "Remembrance",
+          "Nihility",
+          "Abundance",
+          "The_Hunt",
+          "Destruction",
+          "Elation",
+          "Propagation",
+          "Erudition"
+        ]
+      },
+      "Bonus": {
+        "type": "select",
+        "value": "Blessing Universe",
+        "option": [
+          "Blessing Universe",
+          "Miracle Universe",
+          "Fragmented Universe"
+        ]
+      },
+      "DomainStrategy": {
+        "type": "select",
+        "value": "combat",
+        "option": [
+          "combat",
+          "occurrence"
+        ]
+      },
+      "UseImmersifier": {
+        "type": "checkbox",
+        "value": true
+      },
+      "DoubleEvent": {
+        "type": "checkbox",
+        "value": true
+      },
+      "WeeklyFarming": {
+        "type": "checkbox",
+        "value": false
+      },
+      "UseStamina": {
+        "type": "checkbox",
+        "value": false
+      },
+      "SimulatedUniverseFarm": {
+        "type": "stored",
+        "value": {},
+        "display": "disabled",
+        "stored": "StoredSimulatedUniverseElite"
+      }
+    },
+    "RogueBlessing": {
+      "PresetBlessingFilter": {
+        "type": "select",
+        "value": "preset",
+        "option": [
+          "preset",
+          "custom"
+        ]
+      },
+      "CustomBlessingFilter": {
+        "type": "textarea",
+        "value": "巡猎-3 > 《冠军晚餐·猫的摇篮》 > 丰饶众生，一法界心 > 毁灭-3 \n> 火堆外的夜 > 巡猎-2 > 毁灭-2 > 巡猎 > reset > random"
+      },
+      "PresetCurioFilter": {
+        "type": "select",
+        "value": "preset",
+        "option": [
+          "preset",
+          "custom"
+        ]
+      },
+      "CustomCurioFilter": {
+        "type": "textarea",
+        "value": "博士之袍 > 福灵胶 > 分裂金币 > 信仰债券 > 换境桂冠 > 俱乐部券 > 碎星芳饵 > random"
+      },
+      "PresetResonanceFilter": {
+        "type": "select",
+        "value": "preset",
+        "option": [
+          "preset",
+          "custom"
+        ]
+      },
+      "CustomResonanceFilter": {
+        "type": "textarea",
+        "value": "回响构音：均晶转变 > 回响构音：零维强化\n> 回响构音：第二次初恋 > 回响构音：体验的富翁\n> 回响构音：局外人 > 回响构音：怀疑的四重根\n> 回响构音：诸法无我 > 回响构音：诸行无常\n> 回响构音：射不主皮 > 回响构音：柘弓危矢\n> 回响构音：激变变星 > 回响构音：极端氦闪\n> 回响构音：末日狂欢 > 回响构音：树苗长高舞\n> random"
+      },
+      "SelectionStrategy": {
+        "type": "select",
+        "value": "before-random",
+        "option": [
+          "follow-presets",
+          "unrecorded-first",
+          "before-random"
+        ]
+      }
+    },
+    "RogueDebug": {
+      "DebugMode": {
+        "type": "checkbox",
+        "value": false
+      }
+    }
+  },
+  "Daemon": {
+    "Daemon": {
+      "Enable": {
+        "type": "state",
+        "value": true,
+        "option": [
+          true
+        ],
+        "option_bold": [
+          true
+        ]
+      },
+      "AimClicker": {
+        "type": "select",
+        "value": "do_not_click",
+        "option": [
+          "item_enemy",
+          "item",
+          "enemy",
+          "do_not_click"
+        ]
+      }
+    }
+  },
+  "PlannerScan": {
+    "PlannerScan": {
+      "ResultAdd": {
+        "type": "checkbox",
+        "value": false
+      }
+    }
+  }
+}

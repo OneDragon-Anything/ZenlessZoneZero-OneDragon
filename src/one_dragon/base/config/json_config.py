@@ -52,3 +52,23 @@ class JsonConfig(JsonOperator):
             shutil.copyfile(sample_yml_path, yml_path)
 
         return yml_path
+    
+    def get_prop_adapter(self, prop: str,
+                         getter_convert: Optional[str] = None,
+                         setter_convert: Optional[str] = None):
+        """
+        获取一个配置适配器
+        :param prop: 配置字段
+        :param getter_convert: 获取时的转换器
+        :param setter_convert: 设置时的转换器
+        :return: JSON配置适配器
+        """
+        from one_dragon_qt.widgets.setting_card.json_config_adapter import JsonConfigAdapter
+        return JsonConfigAdapter(
+            config=self,
+            field=prop,
+            getter_convert=getter_convert,
+            setter_convert=setter_convert
+        )
+    
+    

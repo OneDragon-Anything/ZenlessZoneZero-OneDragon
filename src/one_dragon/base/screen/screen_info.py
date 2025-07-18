@@ -11,11 +11,11 @@ from one_dragon.utils import os_utils, cv2_utils
 
 class ScreenInfo(YamlOperator):
 
-    def __init__(self, screen_id: Optional[str] = None, create_new: bool = False):
+    def __init__(self, platform: str, screen_id: Optional[str] = None, create_new: bool = False):
         self.old_screen_id: str = screen_id  # 旧的画面ID 用于保存时删掉旧文件
         self.screen_id: str = screen_id  # 画面ID 用于加载文件
         self.screen_name: str = ''  # 画面名称 用于显示
-
+        self.platform: str = platform
         self.screen_image: Optional[MatLike] = None
 
         self.pc_alt: bool = False  # PC端点击是否需要使用ALT键
@@ -67,9 +67,14 @@ class ScreenInfo(YamlOperator):
         data_area_list = self.get('area_list', [])
         for data_area in data_area_list:
             pc_rect = data_area.get('pc_rect')
+            emulator_rect = data_area.get('emulator_rect')
+            if emulator_rect is None:
+                emulator_rect = [0, 0, 0, 0]
             area = ScreenArea(
                 area_name=data_area.get('area_name'),
                 pc_rect=Rect(pc_rect[0], pc_rect[1], pc_rect[2], pc_rect[3]),
+                emulator_rect=Rect(emulator_rect[0], emulator_rect[1], emulator_rect[2], emulator_rect[3]),
+                platform=self.platform,
                 text=data_area.get('text'),
                 lcs_percent=data_area.get('lcs_percent'),
                 template_id=data_area.get('template_id'),
@@ -100,9 +105,9 @@ class ScreenInfo(YamlOperator):
                 color = (255, 0, 0)
                 thickness = 2
             cv2.rectangle(image,
-                          (area.pc_rect.x1, area.pc_rect.y1),
-                          (area.pc_rect.x2, area.pc_rect.y2),
-                          color, thickness)
+                          (area.rect.x1, area.rect.y1),
+                          (area.rect.x2, area.rect.y2),
+                          (255, 0, 0), 2)
 
         return image
 

@@ -9,6 +9,12 @@ area_list:
   - 40
   - 274
   - 110
+  emulator_rect:
+  - 131
+  - 62
+  - 313
+  - 123
+  platform: Emulator
   text: ''
   lcs_percent: 0.1
   template_sub_dir: ''
@@ -22,6 +28,12 @@ area_list:
   - 917
   - 1720
   - 1017
+  emulator_rect:
+  - 1274
+  - 822
+  - 1424
+  - 970
+  platform: Emulator
   text: ''
   lcs_percent: 0.1
   template_sub_dir: ''
@@ -35,6 +47,12 @@ area_list:
   - 778
   - 1826
   - 876
+  emulator_rect:
+  - 1622
+  - 420
+  - 1769
+  - 568
+  platform: Emulator
   text: ''
   lcs_percent: 0.1
   template_sub_dir: ''
@@ -48,6 +66,12 @@ area_list:
   - 828
   - 597
   - 946
+  emulator_rect:
+  - 284
+  - 804
+  - 430
+  - 948
+  platform: Emulator
   text: ''
   lcs_percent: 0.1
   template_sub_dir: ''
@@ -61,6 +85,12 @@ area_list:
   - 828
   - 1440
   - 946
+  emulator_rect:
+  - 1490
+  - 804
+  - 1630
+  - 948
+  platform: Emulator
   text: ''
   lcs_percent: 0.1
   template_sub_dir: ''
@@ -74,6 +104,12 @@ area_list:
   - 920
   - 1827
   - 1016
+  emulator_rect:
+  - 1622
+  - 620
+  - 1770
+  - 768
+  platform: Emulator
   text: ''
   lcs_percent: 0.1
   template_sub_dir: ''
@@ -87,6 +123,12 @@ area_list:
   - 916
   - 1505
   - 1017
+  emulator_rect:
+  - 1433
+  - 712
+  - 1605
+  - 884
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: battle
@@ -100,6 +142,12 @@ area_list:
   - 1004
   - 1832
   - 1056
+  emulator_rect:
+  - 0
+  - 0
+  - 0
+  - 0
+  platform: Emulator
   text: 完成
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -113,6 +161,12 @@ area_list:
   - 1006
   - 1508
   - 1052
+  emulator_rect:
+  - 0
+  - 0
+  - 0
+  - 0
+  platform: Emulator
   text: 再来一次
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -126,6 +180,12 @@ area_list:
   - 132
   - 1640
   - 842
+  emulator_rect:
+  - 0
+  - 0
+  - 0
+  - 0
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -139,6 +199,12 @@ area_list:
   - 46
   - 110
   - 100
+  emulator_rect:
+  - 96
+  - 58
+  - 125
+  - 125
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -152,6 +218,12 @@ area_list:
   - 848
   - 746
   - 912
+  emulator_rect:
+  - 0
+  - 0
+  - 0
+  - 0
+  platform: Emulator
   text: 撤退
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -165,6 +237,12 @@ area_list:
   - 850
   - 1088
   - 914
+  emulator_rect:
+  - 0
+  - 0
+  - 0
+  - 0
+  platform: Emulator
   text: 倒带
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -178,6 +256,12 @@ area_list:
   - 1004
   - 1832
   - 1056
+  emulator_rect:
+  - 0
+  - 0
+  - 0
+  - 0
+  platform: Emulator
   text: 退出
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -191,6 +275,12 @@ area_list:
   - 40
   - 662
   - 91
+  emulator_rect:
+  - 720
+  - 62
+  - 820
+  - 100
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: battle
@@ -204,6 +294,12 @@ area_list:
   - 40
   - 844
   - 91
+  emulator_rect:
+  - 916
+  - 62
+  - 1016
+  - 100
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: battle
@@ -217,6 +313,12 @@ area_list:
   - 40
   - 697
   - 91
+  emulator_rect:
+  - 735
+  - 53
+  - 853
+  - 108
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: battle
@@ -230,6 +332,12 @@ area_list:
   - 916
   - 1505
   - 1018
+  emulator_rect:
+  - 1433
+  - 712
+  - 1605
+  - 884
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: battle
