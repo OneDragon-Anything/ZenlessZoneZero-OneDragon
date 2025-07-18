@@ -16,6 +16,14 @@ class CardNumEnum(Enum):
     NUM_5 = ConfigItem('5张卡片', '5')
 
 
+class AutoRecoverChargeEnum(Enum):
+
+    NONE = ConfigItem('不回复', 0)
+    BACKUP_ONLY = ConfigItem('使用储蓄电量', 1)
+    ETHER_ONLY = ConfigItem('使用以太电池', 2)
+    BOTH = ConfigItem('同时使用储蓄电量和以太电池', 3)
+
+
 class ChargePlanItem:
 
     def __init__(
@@ -74,6 +82,7 @@ class ChargePlanConfig(YamlConfig):
         self.loop = self.get('loop', True)
         self.skip_plan = self.get('skip_plan', False)
         self.use_coupon = self.get('use_coupon', False)
+        self.auto_recover_charge = self.get('auto_recover_charge', AutoRecoverChargeEnum.NONE.value.value)
 
     def save(self):
         plan_list = []
@@ -114,6 +123,7 @@ class ChargePlanConfig(YamlConfig):
             'loop': self.loop,
             'skip_plan': self.skip_plan,
             'use_coupon': self.use_coupon,
+            'auto_recover_charge': self.auto_recover_charge,
             'plan_list': plan_list,
             'history_list': new_history_list
         }
