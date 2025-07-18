@@ -48,7 +48,10 @@ def filepath_i18n(lang, mod_name='alas'):
 
 def filepath_config(filename, instance_idx, mod_name='alas'):
     if mod_name == 'alas':
-        return os.path.join('../../config', f"{int(instance_idx):02d}", f'{filename}.json')#TODO 配置文件位置 多实例适配
+        if str(instance_idx).isdigit():
+            return os.path.join('../../config', f"{int(instance_idx):02d}", f'{filename}.json')
+        else:
+            return os.path.join('../../config', instance_idx, f'{filename}.json')
     else:
         return os.path.join('./config', f'{filename}.{mod_name}.json')
 

@@ -7,8 +7,8 @@ from one_dragon.base.config.yaml_config import YamlConfig
 
 class GamePlatformEnum(Enum):
 
-    PC = ConfigItem('PC')
-    Emulator = ConfigItem('模拟器')
+    PC = ConfigItem('PC', 'PC')
+    Emulator = ConfigItem('模拟器', 'Emulator')
 
 class GameLanguageEnum(Enum):
 

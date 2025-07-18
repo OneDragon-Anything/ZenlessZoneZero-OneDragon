@@ -271,7 +271,7 @@ class AzurLaneConfig(ConfigUpdater, ManualConfig, GeneratedConfig, ConfigWatcher
             deep_set(self.data, keys=path, value=value)
 
         logger.info(
-            f"Save config {filepath_config(self.config_name, mod_name)}, {dict_to_kv(self.modified)}"
+            f"Save config {filepath_config(self.config_name, self.instance_idx, mod_name)}, {dict_to_kv(self.modified)}"
         )
         # Don't use self.modified = {}, that will create a new object.
         self.modified.clear()

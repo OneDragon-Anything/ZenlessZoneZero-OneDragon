@@ -197,7 +197,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
         if current_platform == 'PC':
             is_emulator_platform = 0
             is_pc_platform = 1
-        elif current_platform == '模拟器':
+        elif current_platform == 'Emulator':
             is_emulator_platform = 1
             is_pc_platform = 0
 

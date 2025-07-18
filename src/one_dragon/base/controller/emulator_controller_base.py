@@ -20,6 +20,16 @@ class EmulatorControllerBase(ControllerBase):
 
         self.sct = None
 
+    def init_before_context_run(self) -> bool:
+        return True
+    
+    def is_game_window_ready(self) -> bool:
+        """
+        游戏窗口是否已经准备好了
+        :return:
+        """
+        return self.device.app_is_running()
+    
     def get_screenshot(self, independent: bool = False) -> MatLike:
         """
         截图 如果分辨率和默认不一样则进行缩放

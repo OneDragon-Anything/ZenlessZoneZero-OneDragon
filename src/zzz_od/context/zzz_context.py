@@ -168,6 +168,7 @@ class ZContext(OneDragonContext):
         log.info(f'{self.game_account_config.platform}')
         log.info(f'{GamePlatformEnum.PC.value.value}')
         log.info(f'{GamePlatformEnum.Emulator.value.value}')
+        log.info(f'{GamePlatformEnum.Emulator.value.label}')
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
             if self.game_account_config.use_custom_win_title:
                 win_title = self.game_account_config.custom_win_title
@@ -184,7 +185,7 @@ class ZContext(OneDragonContext):
         elif self.game_account_config.platform == GamePlatformEnum.Emulator.value.value:
             log.info('模拟器init')
             from one_dragon.base.config.game_account_config import GameRegionEnum
-            win_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
+            win_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero' #TODO 这个是不是可以不要
             self.controller = ZEmulatorController(
                 game_config=self.game_config,
                 instance_idx=self.current_instance_idx,

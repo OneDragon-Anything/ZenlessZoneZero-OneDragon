@@ -22,7 +22,7 @@ class OpenGame(Operation):
         打开游戏
         :return:
         """
-        if self.ctx.game_config.platform == 'PC':
+        if self.ctx.game_account_config.platform == 'PC':
             if self.ctx.game_account_config.game_path == '':
                 return self.round_fail('未配置游戏路径')
             full_path = self.ctx.game_account_config.game_path
@@ -43,7 +43,6 @@ class OpenGame(Operation):
             command = f'{command} & exit"'
             log.info('命令行指令 %s', command)
             subprocess.Popen(command)
-        if self.ctx.game_config.platform == 'Emulator':
-            log.info('尝试启动模拟器')
-            self.ctx.controller.active_window()
+        elif self.ctx.game_account_config.platform == 'Emulator':
+            self.ctx.controller.device.app_start()
         return self.round_success(wait=5)

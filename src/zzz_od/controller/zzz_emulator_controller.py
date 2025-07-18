@@ -23,6 +23,13 @@ class ZEmulatorController(EmulatorControllerBase):
         self.game_config: GameConfig = game_config
 
 
+    def init_before_context_run(self) -> bool:
+        """
+        运行前初始化
+        :return:
+        """
+        return True
+ 
     def fill_uid_black(self, screen: MatLike) -> MatLike:
         """
         遮挡UID

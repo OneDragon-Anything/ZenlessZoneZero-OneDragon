@@ -43,7 +43,7 @@ class AutoBattleApp(ZApplication):
         检测手柄
         :return:
         """
-        if self.ctx.game_config.platform == 'Emulator':
+        if self.ctx.game_account_config.platform == 'Emulator':
             return self.round_success(status='模拟器不支持手柄')
         if self.ctx.battle_assistant_config.gamepad_type == GamepadTypeEnum.NONE.value.value:
             self.ctx.controller.enable_keyboard()
