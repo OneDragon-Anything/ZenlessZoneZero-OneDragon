@@ -184,15 +184,6 @@ class ZContext(OneDragonContext):
             )
         elif self.game_account_config.platform == GamePlatformEnum.Emulator.value.value:
             log.info('模拟器init')
-            from one_dragon.base.config.game_account_config import GameRegionEnum
-            win_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero' #TODO 这个是不是可以不要
-            self.controller = ZEmulatorController(
-                game_config=self.game_config,
-                instance_idx=self.current_instance_idx,
-                win_title=win_title,
-                standard_width=self.project_config.screen_standard_width,
-                standard_height=self.project_config.screen_standard_height
-            )
 
         self.init_platform_dependent_components()
 
