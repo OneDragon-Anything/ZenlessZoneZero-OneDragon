@@ -296,7 +296,7 @@ class Operation(OperationBase):
             OperationRoundResult: 如果游戏窗口准备就绪则成功，否则失败。
         """
         #TODO 需要检查逻辑
-        if self.ctx.is_game_window_ready():
+        if self.ctx.is_game_window_ready:
             return self.round_success()
         else:
             if self.ctx.game_config.platform == 'PC':

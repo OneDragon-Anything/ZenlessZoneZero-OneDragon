@@ -23,6 +23,7 @@ class EmulatorControllerBase(ControllerBase):
     def init_before_context_run(self) -> bool:
         return True
     
+    @property
     def is_game_window_ready(self) -> bool:
         """
         游戏窗口是否已经准备好了
