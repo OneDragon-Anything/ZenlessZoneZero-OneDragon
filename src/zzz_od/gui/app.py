@@ -49,6 +49,11 @@ try:
         def __init__(self, ctx: ZContext, parent=None):
             """初始化主窗口类，设置窗口标题和图标"""
             self.ctx: ZContext = ctx
+
+            # 提前启动配置预加载，解决设置页面卡顿
+            from one_dragon.base.config.yaml_operator import preload_common_configs
+            preload_common_configs()
+            
             AppWindowBase.__init__(
                 self,
                 win_title="%s %s"
