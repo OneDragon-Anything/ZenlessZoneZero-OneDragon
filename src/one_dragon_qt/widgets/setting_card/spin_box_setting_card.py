@@ -1,6 +1,5 @@
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QSpinBox, QDoubleSpinBox
 from qfluentwidgets import FluentIconBase, SpinBox, DoubleSpinBox
 from typing import Union, Optional
 
@@ -41,7 +40,7 @@ class SpinBoxSettingCardBase(SettingCardBase):
         # 绑定输入框内容变化信号
         self.spin_box.valueChanged.connect(self._on_value_changed)
 
-    def _create_spin_box(self) -> Union[QSpinBox, QDoubleSpinBox]:
+    def _create_spin_box(self) -> Union[SpinBox, DoubleSpinBox]:
         """创建微调框控件"""
         raise NotImplementedError()
 
@@ -49,7 +48,7 @@ class SpinBoxSettingCardBase(SettingCardBase):
         """处理值更改事件"""
         val = self.spin_box.value()
 
-        if isinstance(val, float):
+        if isinstance(self.spin_box, DoubleSpinBox):
             val = round(val, self.spin_box.decimals())
 
         if self.adapter is not None:
@@ -101,7 +100,7 @@ class SpinBoxSettingCard(SpinBoxSettingCardBase):
             **kwargs
         )
 
-    def _create_spin_box(self) -> Union[QSpinBox, QDoubleSpinBox]:
+    def _create_spin_box(self) -> Union[SpinBox, DoubleSpinBox]:
         spin_box = SpinBox(self)
         spin_box.setMinimumWidth(self.min_width)
         spin_box.setMaximumWidth(self.max_width)
@@ -136,7 +135,7 @@ class DoubleSpinBoxSettingCard(SpinBoxSettingCardBase):
             **kwargs
         )
 
-    def _create_spin_box(self) -> Union[QSpinBox, QDoubleSpinBox]:
+    def _create_spin_box(self) -> Union[SpinBox, DoubleSpinBox]:
         spin_box = DoubleSpinBox(self)
         spin_box.setMinimumWidth(self.min_width)
         spin_box.setMaximumWidth(self.max_width)
