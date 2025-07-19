@@ -12,7 +12,7 @@ from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAda
 class SpinBoxSettingCardBase(SettingCardBase):
     """带微调框的设置卡片基类"""
 
-    value_changed = Signal(str)
+    value_changed = Signal(int | float)
 
     def __init__(self,
                  icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str] = None,
