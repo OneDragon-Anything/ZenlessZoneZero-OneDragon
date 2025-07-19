@@ -2,14 +2,13 @@ import os.path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
-from qfluentwidgets import FluentIcon, PushButton, ToolButton
+from qfluentwidgets import FluentIcon, ToolButton
 
 from one_dragon.base.operation.context_event_bus import ContextEventItem
-from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import DoubleSpinBoxSettingCard
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from zzz_od.application.battle_assistant.auto_battle_app import AutoBattleApp
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_config_file_path, \
@@ -59,9 +58,10 @@ class DodgeAssistantInterface(AppRunInterface):
         self.gpu_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='GPU运算')
         top_widget.add_widget(self.gpu_opt)
 
-        self.screenshot_interval_opt = TextSettingCard(icon=FluentIcon.GAME, title='截图间隔(秒)',
-                                                       content='游戏画面掉帧的话 可以适当加大截图间隔')
-        self.screenshot_interval_opt.value_changed.connect(self._on_screenshot_interval_changed)
+        self.screenshot_interval_opt = DoubleSpinBoxSettingCard(
+            icon=FluentIcon.GAME, title='截图间隔(秒)',
+            content='游戏画面掉帧的话 可以适当加大截图间隔'
+        )
         top_widget.add_widget(self.screenshot_interval_opt)
 
         self.gamepad_type_opt = ComboBoxSettingCard(
@@ -107,7 +107,7 @@ class DodgeAssistantInterface(AppRunInterface):
         self._update_dodge_way_opts()
         self.dodge_opt.init_with_adapter(self.ctx.battle_assistant_config.get_prop_adapter('dodge_assistant_config'))
         self.gpu_opt.init_with_adapter(self.ctx.model_config.get_prop_adapter('flash_classifier_gpu'))
-        self.screenshot_interval_opt.setValue(str(self.ctx.battle_assistant_config.screenshot_interval))
+        self.screenshot_interval_opt.init_with_adapter(self.ctx.battle_assistant_config.get_prop_adapter('screenshot_interval'))
         self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.gamepad_type)
         self.ctx.listen_event(AutoBattleApp.EVENT_OP_LOADED, self._on_auto_op_loaded_event)
 
@@ -129,9 +129,6 @@ class DodgeAssistantInterface(AppRunInterface):
         :return:
         """
         self.dodge_opt.set_options_by_list(get_auto_battle_op_config_list('dodge'))
-
-    def _on_screenshot_interval_changed(self, value: str) -> None:
-        self.ctx.battle_assistant_config.screenshot_interval = float(value)
 
     def get_app(self) -> ZApplication:
         return DodgeAssistantApp(self.ctx)

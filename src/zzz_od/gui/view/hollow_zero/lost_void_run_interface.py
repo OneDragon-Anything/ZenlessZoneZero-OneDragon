@@ -8,7 +8,7 @@ from one_dragon.utils.log_utils import log
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
-from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
 from zzz_od.application.hollow_zero.lost_void.lost_void_app import LostVoidApp
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidChallengeConfig, \
     get_all_lost_void_challenge_config
@@ -61,7 +61,7 @@ class LostVoidRunInterface(AppRunInterface):
         )
         left_layout.addWidget(self.mission_opt)
 
-        self.weekly_plan_times_opt = TextSettingCard(
+        self.weekly_plan_times_opt = SpinBoxSettingCard(
             icon=FluentIcon.CALENDAR,  # 选择与时间相关的图标
             title='每周基础次数',
             content='用于完成悬赏委托'
@@ -99,7 +99,7 @@ class LostVoidRunInterface(AppRunInterface):
         )
         right_layout.addWidget(self.challenge_config_opt)
 
-        self.daily_plan_times_opt = TextSettingCard(
+        self.daily_plan_times_opt = SpinBoxSettingCard(
             icon=FluentIcon.CALENDAR,
             title='每天进入次数',
             content='分摊到每天运行',
@@ -122,8 +122,8 @@ class LostVoidRunInterface(AppRunInterface):
         self.mission_opt.init_with_adapter(self.ctx.lost_void_config.get_prop_adapter('mission_name'))
         self._update_run_record_display()
 
-        self.weekly_plan_times_opt.init_with_adapter(self.ctx.lost_void_config.get_prop_adapter('weekly_plan_times', getter_convert='str', setter_convert='int'))
-        self.daily_plan_times_opt.init_with_adapter(self.ctx.lost_void_config.get_prop_adapter('daily_plan_times', getter_convert='str', setter_convert='int'))
+        self.weekly_plan_times_opt.init_with_adapter(self.ctx.lost_void_config.get_prop_adapter('weekly_plan_times'))
+        self.daily_plan_times_opt.init_with_adapter(self.ctx.lost_void_config.get_prop_adapter('daily_plan_times'))
         self.extra_task_opt.init_with_adapter(self.ctx.lost_void_config.get_prop_adapter('extra_task'))
 
     def _update_run_record_display(self) -> None:
