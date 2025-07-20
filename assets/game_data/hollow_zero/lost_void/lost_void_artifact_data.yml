@@ -10,13 +10,13 @@
   level: "S"
 
 - category: "携游"
-  name: "破军鸣锋"
+  name: "破军鸣铎"
   level: "S"
   is_gear: true
   template_id: "gear_mobile_1"
 
 - category: "射吸式焊炬"
-  name: "破军鸣锋"
+  name: "破军鸣铎"
   level: "S"
 
   # 终结
