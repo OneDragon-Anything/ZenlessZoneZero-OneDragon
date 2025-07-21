@@ -70,6 +70,15 @@ class EnvSourceEnum(Enum):
     GITEE = ConfigItem('Gitee', 'https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download')
 
 
+class ScreenshotMethodEnum(Enum):
+
+    AUTO = ConfigItem('自动', 'auto')
+    MSS = ConfigItem('MSS', 'mss')
+    PIL = ConfigItem('dxgi', 'dxgi')
+    WGC = ConfigItem('WGC', 'wgc')
+    PRINT_WINDOW = ConfigItem('PrintWindow', 'print_window')
+
+
 class EnvConfig(YamlConfig):
 
     def __init__(self):
@@ -487,11 +496,21 @@ class EnvConfig(YamlConfig):
     @property
     def ocr_cache(self) -> bool:
         """
-        Returns:
-            是否启用OCR缓存
+        是否启用OCR缓存
         """
         return self.get('ocr_cache', False)
 
     @ocr_cache.setter
     def ocr_cache(self, new_value: bool) -> None:
         self.update('ocr_cache', new_value, save=True)
+
+    @property
+    def screenshot_method(self) -> str:
+        """
+        截图方法
+        """
+        return self.get('screenshot_method', 'mss')
+
+    @screenshot_method.setter
+    def screenshot_method(self, new_value: str) -> None:
+        self.update('screenshot_method', new_value, save=True)

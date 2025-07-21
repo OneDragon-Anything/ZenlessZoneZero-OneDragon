@@ -1,11 +1,7 @@
 import ctypes
-import cv2
-import mss
-import numpy as np
 import pyautogui
 import time
 
-from PIL.Image import Image
 from cv2.typing import MatLike
 from functools import lru_cache
 from pynput import keyboard
@@ -18,8 +14,8 @@ from one_dragon.base.controller.pc_button.keyboard_mouse_controller import Keybo
 from one_dragon.base.controller.pc_button.pc_button_controller import PcButtonController
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonController
 from one_dragon.base.controller.pc_game_window import PcGameWindow
+from one_dragon.base.controller.pc_screenshot import PcScreenshot
 from one_dragon.base.geometry.point import Point
-from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.utils.log_utils import log
 
 
@@ -30,6 +26,7 @@ class PcControllerBase(ControllerBase):
     MOUSEEVENTF_LEFTUP = 0x0004
 
     def __init__(self, win_title: str,
+                 screenshot_method: str,
                  standard_width: int = 1920,
                  standard_height: int = 1080):
         ControllerBase.__init__(self)
@@ -43,20 +40,12 @@ class PcControllerBase(ControllerBase):
         self.ds4_controller: Optional[Ds4ButtonController] = None
 
         self.btn_controller: PcButtonController = self.keyboard_controller
-        self.sct = None
+        self.screenshot: PcScreenshot = PcScreenshot(self.game_win, standard_width, standard_height)
+        self.screenshot_method: str = screenshot_method
 
     def init_before_context_run(self) -> bool:
         pyautogui.FAILSAFE = False  # 禁用 Fail-Safe,防止鼠标接近屏幕的边缘或角落时报错
-        if self.sct is not None:  # 新一次app前 先关闭上一个
-            try:
-                self.sct.close()
-            except Exception:
-                pass
-        try:
-            import mss
-            self.sct = mss.mss()
-        except Exception:
-            pass
+        self.screenshot.init_screenshot(self.screenshot_method)
         self.active_window()
 
         return True
@@ -119,157 +108,7 @@ class PcControllerBase(ControllerBase):
         return True
 
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
-        """
-        截图 优先调用 windows API
-        :return: 截图
-        """
-        result = self.get_screenshot_winapi(independent)
-        if result is None:
-            result = self.get_screenshot_mss(independent)
-        return result
-
-    def get_screenshot_mss(self, independent: bool = False) -> MatLike | None:
-        """
-        截图 如果分辨率和默认不一样则进行缩放
-        :return: 截图
-        """
-        rect: Rect = self.game_win.win_rect
-        if rect is None:
-            return None
-
-        left = rect.x1
-        top = rect.y1
-        width = rect.width
-        height = rect.height
-
-        if self.sct is not None:
-            monitor = {"top": top, "left": left, "width": width, "height": height}
-            if independent:
-                try:
-                    with mss.mss() as sct:
-                        before_screenshot_time = time.time()
-                        log.debug(f"MSS 截图开始时间:{before_screenshot_time}")
-                        screenshot = cv2.cvtColor(np.array(sct.grab(monitor)), cv2.COLOR_BGRA2RGB)
-                except Exception:
-                    pass
-            else:
-                before_screenshot_time = time.time()
-                log.debug(f"MSS 截图开始时间:{before_screenshot_time}")
-                screenshot = cv2.cvtColor(np.array(self.sct.grab(monitor)), cv2.COLOR_BGRA2RGB)
-        else:
-            img: Image = pyautogui.screenshot(region=(left, top, width, height))
-            screenshot = np.array(img)
-
-        if self.game_win.is_win_scale:
-            result = cv2.resize(screenshot, (self.standard_width, self.standard_height))
-        else:
-            result = screenshot
-
-        after_screenshot_time = time.time()
-        log.debug(f"MSS 截图结束时间:{after_screenshot_time}, 耗时:{after_screenshot_time - before_screenshot_time}")
-        return result
-
-    def get_screenshot_winapi(self, independent: bool = False) -> MatLike | None:
-        """
-        后台截图实现 - 使用Windows API获取窗口截图
-        """
-        before_screenshot_time = time.time()
-        log.debug(f"Windows API 截图开始时间:{before_screenshot_time}")
-        hwnd = self.game_win.get_hwnd()
-        if not hwnd:
-            log.warning('未找到目标窗口，无法截图')
-            return None
-
-        rect: Rect = self.game_win.win_rect
-        if rect is None:
-            return None
-
-        width = rect.width
-        height = rect.height
-
-        if width <= 0 or height <= 0:
-            log.warning(f'窗口大小无效: {width}x{height}')
-            return None
-
-        # 获取窗口设备上下文
-        hwndDC = ctypes.windll.user32.GetWindowDC(hwnd)
-        if not hwndDC:
-            log.warning('无法获取窗口设备上下文')
-            return None
-
-        # 创建兼容的设备上下文和位图
-        mfcDC = ctypes.windll.gdi32.CreateCompatibleDC(hwndDC)
-        if not mfcDC:
-            log.warning('无法创建兼容设备上下文')
-            ctypes.windll.user32.ReleaseDC(hwnd, hwndDC)
-            return None
-
-        saveBitMap = ctypes.windll.gdi32.CreateCompatibleBitmap(hwndDC, width, height)
-        if not saveBitMap:
-            log.warning('无法创建兼容位图')
-            ctypes.windll.gdi32.DeleteDC(mfcDC)
-            ctypes.windll.user32.ReleaseDC(hwnd, hwndDC)
-            return None
-
-        try:
-            # 选择位图到设备上下文
-            ctypes.windll.gdi32.SelectObject(mfcDC, saveBitMap)
-
-            # 复制窗口内容到位图 - 使用PrintWindow获取后台窗口内容
-            result = ctypes.windll.user32.PrintWindow(hwnd, mfcDC, 0x00000002)  # PW_CLIENTONLY
-            if not result:
-                # 如果PrintWindow失败，尝试使用BitBlt
-                log.debug("PrintWindow 失败，尝试使用 BitBlt")
-                ctypes.windll.gdi32.BitBlt(mfcDC, 0, 0, width, height, hwndDC, 0, 0, 0x00CC0020)  # SRCCOPY
-
-            # 创建缓冲区
-            buffer_size = width * height * 4
-            buffer = ctypes.create_string_buffer(buffer_size)
-
-            # 使用简化的位图信息结构 - 直接创建一个40字节的结构
-            # BITMAPINFOHEADER 的大小固定为40字节
-            bmpinfo_buffer = ctypes.create_string_buffer(40)
-            # 设置结构体大小 (4字节)
-            ctypes.c_uint32.from_address(ctypes.addressof(bmpinfo_buffer)).value = 40
-            # 设置宽度 (4字节，偏移4)
-            ctypes.c_int32.from_address(ctypes.addressof(bmpinfo_buffer) + 4).value = width
-            # 设置高度 (4字节，偏移8) - 负数表示从上到下
-            ctypes.c_int32.from_address(ctypes.addressof(bmpinfo_buffer) + 8).value = -height
-            # 设置位面数 (2字节，偏移12)
-            ctypes.c_uint16.from_address(ctypes.addressof(bmpinfo_buffer) + 12).value = 1
-            # 设置位深度 (2字节，偏移14)
-            ctypes.c_uint16.from_address(ctypes.addressof(bmpinfo_buffer) + 14).value = 32
-            # 设置压缩方式 (4字节，偏移16) - 0表示BI_RGB无压缩
-            ctypes.c_uint32.from_address(ctypes.addressof(bmpinfo_buffer) + 16).value = 0
-
-            # 获取DIB数据
-            lines = ctypes.windll.gdi32.GetDIBits(hwndDC, saveBitMap, 0, height, buffer,
-                                                  bmpinfo_buffer, 0)  # DIB_RGB_COLORS
-
-            if lines == 0:
-                log.warning('无法获取位图数据')
-                return None
-
-            # 转换为numpy数组
-            img_array = np.frombuffer(buffer, dtype=np.uint8)
-            img_array = img_array.reshape((height, width, 4))
-
-            # 转换BGRA为RGB
-            screenshot = cv2.cvtColor(img_array, cv2.COLOR_BGRA2RGB)
-
-            # 缩放到标准分辨率
-            if self.game_win.is_win_scale:
-                screenshot = cv2.resize(screenshot, (self.standard_width, self.standard_height))
-
-            after_screenshot_time = time.time()
-            log.debug(f"Windows API 截图结束时间:{after_screenshot_time}, 耗时:{after_screenshot_time - before_screenshot_time}")
-            return screenshot
-
-        finally:
-            # 清理资源，先创建的后释放
-            ctypes.windll.gdi32.DeleteObject(saveBitMap)
-            ctypes.windll.gdi32.DeleteDC(mfcDC)
-            ctypes.windll.user32.ReleaseDC(hwnd, hwndDC)
+        return self.screenshot.get_screenshot(independent)
 
     def scroll(self, down: int, pos: Point = None):
         """
