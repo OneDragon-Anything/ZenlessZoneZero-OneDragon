@@ -403,13 +403,15 @@ class PcScreenshot:
             result = screenshot
 
         after_screenshot_time = time.time()
-        log.debug(f"MSS 截图结束时间:{after_screenshot_time}, 耗时:{after_screenshot_time - before_screenshot_time}")
+        log.debug(f"MSS 截图结束时间:{after_screenshot_time}\n耗时:{after_screenshot_time - before_screenshot_time}")
         return result
 
     def get_screenshot_print_window(self, independent: bool = False) -> MatLike | None:
         """
         PrintWindow 获取窗口截图
         """
+        before_screenshot_time = time.time()
+        log.debug(f"PrintWindow 截图开始时间:{before_screenshot_time}")
         hwnd = self.game_win.get_hwnd()
         if not hwnd:
             log.warning('未找到目标窗口，无法截图')
@@ -496,6 +498,8 @@ class PcScreenshot:
             if self.game_win.is_win_scale:
                 screenshot = cv2.resize(screenshot, (self.standard_width, self.standard_height))
 
+            after_screenshot_time = time.time()
+            log.debug(f"PrintWindow 截图结束时间:{after_screenshot_time}\n耗时:{after_screenshot_time - before_screenshot_time}")
             return screenshot
 
         finally:
@@ -522,6 +526,7 @@ class PcScreenshot:
 
         try:
             before_screenshot_time = time.time()
+            log.debug(f"DXGI 截图开始时间:{before_screenshot_time}")
 
             # 获取帧数据
             frame_info = None
@@ -613,7 +618,7 @@ class PcScreenshot:
             self.desktop_duplication.ReleaseFrame()
 
             after_screenshot_time = time.time()
-            log.debug(f"DXGI 截图结束时间:{after_screenshot_time}, 耗时:{after_screenshot_time - before_screenshot_time}")
+            log.debug(f"DXGI 截图结束时间:{after_screenshot_time}\n耗时:{after_screenshot_time - before_screenshot_time}")
 
             return screenshot
 
@@ -644,6 +649,7 @@ class PcScreenshot:
 
         try:
             before_screenshot_time = time.time()
+            log.debug(f"WGC 截图开始时间:{before_screenshot_time}")
 
             # 导入需要的模块
             try:
@@ -738,7 +744,7 @@ class PcScreenshot:
             stream.close()
 
             after_screenshot_time = time.time()
-            log.debug(f"WGC 截图结束时间:{after_screenshot_time}, 耗时:{after_screenshot_time - before_screenshot_time}")
+            log.debug(f"WGC 截图结束时间:{after_screenshot_time}\n耗时:{after_screenshot_time - before_screenshot_time}")
 
             return screenshot
 

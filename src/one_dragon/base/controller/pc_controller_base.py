@@ -40,12 +40,12 @@ class PcControllerBase(ControllerBase):
         self.ds4_controller: Optional[Ds4ButtonController] = None
 
         self.btn_controller: PcButtonController = self.keyboard_controller
-        self.screenshot: PcScreenshot = PcScreenshot(self.game_win, standard_width, standard_height)
+        self.screenshot_controller: PcScreenshot = PcScreenshot(self.game_win, standard_width, standard_height)
         self.screenshot_method: str = screenshot_method
 
     def init_before_context_run(self) -> bool:
         pyautogui.FAILSAFE = False  # 禁用 Fail-Safe,防止鼠标接近屏幕的边缘或角落时报错
-        self.screenshot.init_screenshot(self.screenshot_method)
+        self.screenshot_controller.init_screenshot(self.screenshot_method)
         self.active_window()
 
         return True
@@ -108,7 +108,7 @@ class PcControllerBase(ControllerBase):
         return True
 
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
-        return self.screenshot.get_screenshot(independent)
+        return self.screenshot_controller.get_screenshot(independent)
 
     def scroll(self, down: int, pos: Point = None):
         """
