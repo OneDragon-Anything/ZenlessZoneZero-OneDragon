@@ -197,6 +197,27 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """
         if self.controller is None or not self.controller.is_game_window_ready:
             return
+        
+        # 确保截图方法已初始化或方法发生变化时重新初始化
+        if hasattr(self.controller, 'screenshot_controller'):
+            current_method = self.controller.screenshot_method
+            initialized_method = self.controller.screenshot_controller.initialized_method
+            
+            # 如果未初始化或方法发生变化，则重新初始化
+            if initialized_method is None:
+                log.info(f'截图方法尚未初始化，正在初始化 {current_method}...')
+                self.controller.screenshot_controller.init_screenshot(current_method)
+            elif initialized_method != current_method:
+                log.info(f'截图方法发生变化（{initialized_method} -> {current_method}），正在重新初始化...')
+                # 清理旧资源
+                if initialized_method == 'dxgi':
+                    self.controller.screenshot_controller.cleanup_dxgi()
+                elif initialized_method == 'wgc':
+                    self.controller.screenshot_controller.cleanup_wgc()
+                # 重新初始化
+                self.controller.screenshot_controller.initialized_method = None
+                self.controller.screenshot_controller.init_screenshot(current_method)
+        
         if self.controller.game_win is not None:
             self.controller.game_win.active()
         _, img = self.controller.screenshot(independent=True)
