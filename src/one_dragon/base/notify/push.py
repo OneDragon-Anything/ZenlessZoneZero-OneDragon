@@ -627,6 +627,8 @@ class Push():
                 if self.get_config("SMTP_SSL") == "true"
                 else smtplib.SMTP(self.get_config("SMTP_SERVER"))
             )
+            if self.get_config("SMTP_STARTTLS") == "true":
+                smtp_server.starttls()
             smtp_server.login(
                 self.get_config("SMTP_EMAIL"), self.get_config("SMTP_PASSWORD")
             )
@@ -929,7 +931,6 @@ class Push():
             notify_function.append(self.aibotk)
         if (
             self.get_config("SMTP_SERVER")
-            and self.get_config("SMTP_SSL")
             and self.get_config("SMTP_EMAIL")
             and self.get_config("SMTP_PASSWORD")
             and self.get_config("SMTP_NAME")
