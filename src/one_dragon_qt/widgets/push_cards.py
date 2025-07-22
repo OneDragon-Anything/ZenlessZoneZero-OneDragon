@@ -70,8 +70,20 @@ class PushCards:
         {
             "var_suffix": "KEY",
             "title": "密钥",
-            "icon": FluentIcon.CERTIFICATE,
+            "icon": FluentIcon.CLOUD,
             "placeholder": "请输入飞书机器人的密钥"
+        },
+        {
+            "var_suffix": "APPID",
+            "title": "自建应用 App ID",
+            "icon": FluentIcon.APPLICATION,
+            "placeholder": "非必填，填写则用于发送图片"
+        },
+        {
+            "var_suffix": "APPSECRET",
+            "title": "自建应用 Secret",
+            "icon": FluentIcon.VPN,
+            "placeholder": "非必填，填写则用于发送图片"
         }
     ],
     "ONEBOT": [
