@@ -19,6 +19,7 @@ dependencies = [
     "gensim==4.3.3",
     "comtypes==1.4.11",
     "d3dshot==0.1.3",
+    "windows-capture==1.5.0",
 ]
 
 [dependency-groups]

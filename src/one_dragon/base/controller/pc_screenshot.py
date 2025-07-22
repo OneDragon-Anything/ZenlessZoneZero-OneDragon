@@ -23,7 +23,17 @@ except ImportError as e:
     D3DSHOT_AVAILABLE = False
     log.debug(f"D3DShot library not available: {e}")
 
-# Fallback DXGI and WGC COM interface definitions (for future use)
+# Windows Graphics Capture using windows-capture library
+try:
+    from windows_capture import WindowsCapture, Frame, InternalCaptureControl
+    import threading
+    WGC_AVAILABLE = True
+    log.debug("windows-capture library loaded successfully")
+except ImportError as e:
+    WGC_AVAILABLE = False
+    log.debug(f"windows-capture library not available: {e}")
+
+# Fallback DXGI COM interface definitions (for future use)
 try:
     # DXGI interfaces
     from comtypes import GUID
@@ -67,11 +77,11 @@ class PcScreenshot:
         self.d3d11_context = None
         self.desktop_duplication = None
 
-        # WGC resources
-        self.wgc_capture_item = None
-        self.wgc_d3d_device = None
-        self.wgc_frame_pool = None
-        self.wgc_capture_session = None
+        # WGC resources using windows-capture library
+        self.wgc_capture = None
+        self.wgc_latest_frame = None
+        self.wgc_frame_event = None
+        self.wgc_capture_active = False
 
         # Store the successfully initialized method
         self.initialized_method: Optional[str] = None
@@ -249,64 +259,55 @@ class PcScreenshot:
 
     def init_wgc(self):
         """初始化WGC资源"""
-        if not DXGI_AVAILABLE:
+        if not WGC_AVAILABLE:
+            log.warning('windows-capture库不可用')
             return False
 
         hwnd = self.game_win.get_hwnd()
         if not hwnd:
+            log.warning('未找到目标窗口，无法截图')
             return False
 
         # 清理旧资源
         self.cleanup_wgc()
 
         try:
-            # 检查Windows版本
-            import sys
-            if sys.getwindowsversion().build < 17763:  # Windows 10 1809
-                return False
+            # 初始化帧缓存相关变量
+            self.wgc_latest_frame = None
+            self.wgc_frame_lock = threading.Lock()  # 保护帧数据的线程锁
+            self.wgc_capture_active = False
 
-            # 导入Windows Runtime
-            try:
-                from winrt.windows.graphics.capture import GraphicsCaptureItem
-                from winrt.windows.graphics.directx import DirectXPixelFormat
-                from winrt.windows.graphics.directx.direct3d11 import Direct3DDevice
-                from winrt.windows.graphics.capture import Direct3D11CaptureFramePool
-            except ImportError:
-                return False
-
-            # 初始化COM
-            comtypes.CoInitialize()
-
-            # 创建GraphicsCaptureItem
-            self.wgc_capture_item = GraphicsCaptureItem.create_from_window_handle(hwnd)
-            if not self.wgc_capture_item:
-                return False
-
-            # 创建Direct3D设备
-            self.wgc_d3d_device = Direct3DDevice.create_from_d3d11_device(None)
-            if not self.wgc_d3d_device:
-                return False
-
-            # 获取窗口大小
-            size = self.wgc_capture_item.size
-            if size.width <= 0 or size.height <= 0:
-                return False
-
-            # 创建帧池
-            self.wgc_frame_pool = Direct3D11CaptureFramePool.create(
-                self.wgc_d3d_device,
-                DirectXPixelFormat.B8G8R8A8_UINT_NORMALIZED,
-                1,  # 缓冲区数量
-                size
+            # 创建WindowsCapture实例
+            self.wgc_capture = WindowsCapture(
+                cursor_capture=None,  # 不捕获光标
+                draw_border=None,     # 不绘制边框
+                monitor_index=None,   # 不使用显示器索引
+                window_name=self.game_win.win_title  # 使用窗口名称
             )
-            if not self.wgc_frame_pool:
-                return False
 
-            # 创建捕获会话
-            self.wgc_capture_session = self.wgc_frame_pool.create_capture_session(self.wgc_capture_item)
-            if not self.wgc_capture_session:
-                return False
+            # 注册帧到达事件处理器 - 将最新帧存储在内存中
+            @self.wgc_capture.event
+            def on_frame_arrived(frame: Frame, capture_control: InternalCaptureControl):
+                try:
+                    if frame.frame_buffer is not None:
+                        # 使用线程锁保护帧数据更新
+                        with self.wgc_frame_lock:
+                            self.wgc_latest_frame = {
+                                'data': frame.frame_buffer,
+                                'width': frame.width,
+                                'height': frame.height,
+                                'timestamp': time.time()
+                            }
+                except Exception as e:
+                    log.debug(f'WGC帧处理异常: {str(e)}')
 
+            # 注册捕获关闭事件处理器
+            @self.wgc_capture.event
+            def on_closed():
+                log.debug('WGC捕获会话已关闭')
+                self.wgc_capture_active = False
+
+            log.debug('WGC初始化成功')
             return True
 
         except Exception as e:
@@ -317,35 +318,26 @@ class PcScreenshot:
     def cleanup_wgc(self):
         """清理WGC资源"""
         try:
-            if self.wgc_capture_session:
-                self.wgc_capture_session.close()
-                self.wgc_capture_session = None
+            if hasattr(self, 'wgc_capture') and self.wgc_capture:
+                # windows-capture库会自动处理资源清理
+                self.wgc_capture = None
         except:
             pass
 
         try:
-            if self.wgc_frame_pool:
-                self.wgc_frame_pool.close()
-                self.wgc_frame_pool = None
+            # 清理帧缓存数据
+            if hasattr(self, 'wgc_frame_lock'):
+                with self.wgc_frame_lock:
+                    self.wgc_latest_frame = None
+            else:
+                self.wgc_latest_frame = None
         except:
             pass
 
         try:
-            if self.wgc_d3d_device:
-                # WinRT对象通常不需要显式释放
-                self.wgc_d3d_device = None
-        except:
-            pass
-
-        try:
-            if self.wgc_capture_item:
-                # WinRT对象通常不需要显式释放
-                self.wgc_capture_item = None
-        except:
-            pass
-
-        try:
-            comtypes.CoUninitialize()
+            self.wgc_capture_active = False
+            if hasattr(self, 'wgc_frame_lock'):
+                self.wgc_frame_lock = None
         except:
             pass
 
@@ -563,120 +555,82 @@ class PcScreenshot:
 
     def get_screenshot_wgc(self, independent: bool = False) -> MatLike | None:
         """
-        使用Windows Graphics Capture (WGC) 进行截图 - Windows 10 1903+
-        :param independent: 是否独立截图（不进行缩放）
+        使用Windows Graphics Capture (WGC) 进行截图
         :return: 截图数组
         """
-        if not DXGI_AVAILABLE:
-            log.warning('WGC不可用，请安装comtypes库')
+        if not WGC_AVAILABLE:
+            log.warning('WGC 不可用')
             return None
 
         hwnd = self.game_win.get_hwnd()
         if not hwnd:
-            log.warning('未找到目标窗口，无法使用WGC截图')
+            log.warning('未找到目标窗口，无法截图')
             return None
 
         # 初始化WGC资源（如果尚未初始化）
-        if not self.wgc_capture_session:
+        if not self.wgc_capture:
             if not self.init_wgc():
-                log.warning('WGC初始化失败')
+                log.warning('WGC 初始化失败')
                 return None
 
         try:
             before_screenshot_time = time.time()
             log.debug(f"WGC 截图开始时间:{before_screenshot_time}")
 
-            # 导入需要的模块
-            try:
-                from winrt.windows.graphics.imaging import BitmapEncoder
-                from winrt.windows.storage.streams import InMemoryRandomAccessStream
-            except ImportError:
-                log.warning('WGC需要winrt库支持，请安装: pip install winrt')
-                return None
+            # 如果捕获未激活，启动捕获
+            if not self.wgc_capture_active:
+                # 在单独的线程中启动捕获以避免阻塞
+                def start_capture():
+                    try:
+                        self.wgc_capture_active = True
+                        self.wgc_capture.start()
+                    except Exception as e:
+                        log.debug(f'启动WGC捕获失败: {str(e)}')
+                        self.wgc_capture_active = False
 
-            # 设置帧到达事件处理
-            frame_data = {'frame': None, 'event': None}
+                capture_thread = threading.Thread(target=start_capture, daemon=True)
+                capture_thread.start()
 
-            def on_frame_arrived(sender, args):
-                try:
-                    frame = sender.try_get_next_frame()
-                    if frame:
-                        frame_data['frame'] = frame
-                        if frame_data['event']:
-                            frame_data['event'].set()
-                except Exception as e:
-                    log.debug(f'帧处理异常: {str(e)}')
+                # 等待捕获启动
+                time.sleep(0.5)
 
-            # 注册事件处理器
-            import threading
-            frame_data['event'] = threading.Event()
-            self.wgc_frame_pool.frame_arrived += on_frame_arrived
-
-            # 开始捕获
-            self.wgc_capture_session.start_capture()
-
-            # 等待帧到达（最多等待5秒）
-            if not frame_data['event'].wait(timeout=5.0):
-                log.warning('等待WGC帧超时')
-                return None
-
-            # 获取捕获的帧
-            frame = frame_data['frame']
-            if not frame:
-                log.warning('未获取到WGC帧')
-                return None
-
-            # 获取表面
-            surface = frame.surface
-            if not surface:
-                log.warning('未获取到WGC表面')
-                return None
-
-            # 创建内存流
-            stream = InMemoryRandomAccessStream()
-
-            # 创建位图编码器
-            encoder = BitmapEncoder.create_async(
-                BitmapEncoder.png_encoder_id,
-                stream
-            ).get()
-
-            # 设置像素数据
-            encoder.set_software_bitmap(surface)
-
-            # 完成编码
-            encoder.flush_async().get()
-
-            # 读取流数据
-            stream.seek(0)
-            buffer = stream.read_buffer(stream.size)
-
-            # 转换为bytes
-            data = bytes(buffer)
-
-            # 使用PIL解码PNG数据
-            from PIL import Image
-            import io
-
-            pil_image = Image.open(io.BytesIO(data))
-
-            # 转换为numpy数组
-            img_array = np.array(pil_image)
-
-            # 如果是RGBA，转换为RGB
-            if img_array.shape[2] == 4:
-                screenshot = cv2.cvtColor(img_array, cv2.COLOR_RGBA2RGB)
+            # 使用线程锁获取最新帧数据
+            latest_frame = None
+            if hasattr(self, 'wgc_frame_lock'):
+                with self.wgc_frame_lock:
+                    latest_frame = self.wgc_latest_frame
             else:
-                screenshot = img_array
+                latest_frame = self.wgc_latest_frame
 
-            # 处理窗口区域和缩放
-            if not independent:
-                rect = self.game_win.win_rect
-                if rect and self.game_win.is_win_scale:
-                    screenshot = cv2.resize(screenshot, (self.standard_width, self.standard_height))
+            # 检查是否有可用的帧数据
+            if latest_frame is None:
+                log.warning('未获取到WGC帧数据，可能捕获尚未启动或窗口不可见')
+                return None
 
-            # 清理临时资源
-            stream.close()
+            # 处理帧数据（现在已经是numpy数组格式）
+            try:
+                img_array = latest_frame['data']
+
+                # 检查图像格式并转换为RGB
+                if len(img_array.shape) == 3:
+                    if img_array.shape[2] == 4:  # RGBA
+                        screenshot = cv2.cvtColor(img_array, cv2.COLOR_RGBA2RGB)
+                    elif img_array.shape[2] == 3:  # RGB
+                        screenshot = img_array
+                    else:
+                        log.warning(f'不支持的图像通道数: {img_array.shape[2]}')
+                        return None
+                else:
+                    log.warning(f'不支持的图像形状: {img_array.shape}')
+                    return None
+
+            except Exception as e:
+                log.debug(f'WGC帧数据处理异常: {str(e)}')
+                return None
+
+            # 处理缩放
+            if self.game_win.is_win_scale:
+                screenshot = cv2.resize(screenshot, (self.standard_width, self.standard_height))
 
             after_screenshot_time = time.time()
             log.debug(f"WGC 截图结束时间:{after_screenshot_time}\n耗时:{after_screenshot_time - before_screenshot_time}")

@@ -3367,6 +3367,19 @@ wheels = [
 ]
 
 [[package]]
+name = "windows-capture"
+version = "1.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "opencv-python" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0f/78/bf3363d6f0890171efba9bbd4e1f36b47afa1e643a7bc7c9059176c8fb33/windows_capture-1.5.0.tar.gz", hash = "sha256:9931224dac5db4d6e35b7c3b2d02f6df8ff04caa5c95eac2401a7dd2db95b5ce", size = 48182, upload-time = "2025-06-30T00:03:52.06Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a5/46/c43c7881bfa3f29f7b87ab0385654d08f808722bd09aebc52ce9ba4eace5/windows_capture-1.5.0-cp39-abi3-win_amd64.whl", hash = "sha256:262819089fbe142cf298b6bfde0eb93c27b6db09ac9828b9ed6653714041654f", size = 220395, upload-time = "2025-06-30T00:03:50.118Z" },
+]
+
+[[package]]
 name = "wrapt"
 version = "1.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3405,6 +3418,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "shapely" },
     { name = "soundcard" },
+    { name = "windows-capture" },
 ]
 
 [package.dev-dependencies]
@@ -3418,7 +3432,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "comtypes", specifier = "==1.4.11" },
-    { name = "d3dshot", specifier = ">=0.1.3" },
+    { name = "d3dshot", specifier = "==0.1.3" },
     { name = "gensim", specifier = "==4.3.3" },
     { name = "librosa", specifier = "==0.10.2.post1" },
     { name = "mss", specifier = "==9.0.1" },
@@ -3432,6 +3446,7 @@ requires-dist = [
     { name = "pyyaml", specifier = "==6.0.1" },
     { name = "shapely", specifier = "==2.0.4" },
     { name = "soundcard", specifier = "==0.4.3" },
+    { name = "windows-capture", specifier = ">=1.5.0" },
 ]
 
 [package.metadata.requires-dev]
