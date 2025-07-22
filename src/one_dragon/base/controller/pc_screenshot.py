@@ -14,7 +14,16 @@ from one_dragon.base.controller.pc_game_window import PcGameWindow
 from one_dragon.utils.log_utils import log
 from one_dragon.base.geometry.rectangle import Rect
 
-# DXGI and WGC COM interface definitions
+# DXGI screenshot using D3DShot library
+try:
+    import d3dshot
+    D3DSHOT_AVAILABLE = True
+    log.debug("D3DShot library loaded successfully")
+except ImportError as e:
+    D3DSHOT_AVAILABLE = False
+    log.debug(f"D3DShot library not available: {e}")
+
+# Fallback DXGI and WGC COM interface definitions (for future use)
 try:
     # DXGI interfaces
     from comtypes import GUID
@@ -37,9 +46,9 @@ try:
     IID_ID3D11Texture2D = GUID('{6f15aaf2-d208-4e89-9ab4-489535d34f9c}')
 
     DXGI_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     DXGI_AVAILABLE = False
-    log.warning("DXGI/WGC dependencies not available. DXGI and WGC screenshot methods will be disabled.")
+    log.warning(f"DXGI/WGC dependencies not available: {e}. Manual DXGI implementation will be disabled.")
 
 
 class PcScreenshot:
@@ -66,6 +75,9 @@ class PcScreenshot:
 
         # Store the successfully initialized method
         self.initialized_method: Optional[str] = None
+
+        # D3DShot instance for DXGI screenshot
+        self.d3dshot_instance = None
 
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
         """
@@ -146,59 +158,22 @@ class PcScreenshot:
             return False
 
     def init_dxgi(self):
-        """初始化DXGI资源"""
-        if not DXGI_AVAILABLE:
+        """初始化DXGI资源 - 使用D3DShot库"""
+        if not D3DSHOT_AVAILABLE:
+            log.debug('D3DShot库不可用，无法使用DXGI截图')
             return False
 
         # 清理旧资源
         self.cleanup_dxgi()
 
         try:
-            # 初始化COM
-            comtypes.CoInitialize()
-
-            # 创建DXGI Factory
-            self.dxgi_factory = comtypes.client.CreateObject('DXGI.Factory1', interface=IID_IDXGIFactory1)
-            if not self.dxgi_factory:
+            # 创建D3DShot实例
+            self.d3dshot_instance = d3dshot.create(capture_output="numpy")
+            if self.d3dshot_instance is None:
+                log.debug('D3DShot实例创建失败')
                 return False
 
-            # 获取适配器
-            self.dxgi_adapter = self.dxgi_factory.EnumAdapters(0)
-            if not self.dxgi_adapter:
-                return False
-
-            # 获取输出设备
-            self.dxgi_output = self.dxgi_adapter.EnumOutputs(0)
-            if not self.dxgi_output:
-                return False
-
-            # 查询IDXGIOutput1接口
-            self.dxgi_output1 = self.dxgi_output.QueryInterface(IID_IDXGIOutput1)
-            if not self.dxgi_output1:
-                return False
-
-            # 创建D3D11设备和上下文
-            hr = windll.d3d11.D3D11CreateDevice(
-                self.dxgi_adapter,
-                3,  # D3D_DRIVER_TYPE_HARDWARE
-                None,
-                0,  # flags
-                None,  # feature levels
-                0,  # num feature levels
-                7,  # D3D11_SDK_VERSION
-                byref(self.d3d11_device),
-                None,  # feature level
-                byref(self.d3d11_context)
-            )
-
-            if hr != 0 or not self.d3d11_device:
-                return False
-
-            # 创建桌面复制对象
-            self.desktop_duplication = self.dxgi_output1.DuplicateOutput(self.d3d11_device)
-            if not self.desktop_duplication:
-                return False
-
+            log.debug('DXGI初始化成功（使用D3DShot库）')
             return True
 
         except Exception as e:
@@ -208,54 +183,64 @@ class PcScreenshot:
 
     def cleanup_dxgi(self):
         """清理DXGI资源"""
-        try:
-            if self.desktop_duplication:
+        # 清理D3DShot实例
+        if self.d3dshot_instance:
+            try:
+                # D3DShot通常会自动清理资源，但我们可以显式设置为None
+                self.d3dshot_instance = None
+                log.debug('D3DShot实例已清理')
+            except Exception as e:
+                log.debug(f'D3DShot实例清理异常: {e}')
+
+        # 清理传统DXGI资源（如果存在）
+        if hasattr(self, 'desktop_duplication') and self.desktop_duplication:
+            try:
                 self.desktop_duplication.Release()
-                self.desktop_duplication = None
-        except:
-            pass
+            except:
+                pass
+            self.desktop_duplication = None
 
-        try:
-            if self.d3d11_context:
+        if hasattr(self, 'd3d11_context') and self.d3d11_context:
+            try:
                 self.d3d11_context.Release()
-                self.d3d11_context = None
-        except:
-            pass
+            except:
+                pass
+            self.d3d11_context = None
 
-        try:
-            if self.d3d11_device:
+        if hasattr(self, 'd3d11_device') and self.d3d11_device:
+            try:
                 self.d3d11_device.Release()
-                self.d3d11_device = None
-        except:
-            pass
+            except:
+                pass
+            self.d3d11_device = None
 
-        try:
-            if self.dxgi_output1:
+        if hasattr(self, 'dxgi_output1') and self.dxgi_output1:
+            try:
                 self.dxgi_output1.Release()
-                self.dxgi_output1 = None
-        except:
-            pass
+            except:
+                pass
+            self.dxgi_output1 = None
 
-        try:
-            if self.dxgi_output:
+        if hasattr(self, 'dxgi_output') and self.dxgi_output:
+            try:
                 self.dxgi_output.Release()
-                self.dxgi_output = None
-        except:
-            pass
+            except:
+                pass
+            self.dxgi_output = None
 
-        try:
-            if self.dxgi_adapter:
+        if hasattr(self, 'dxgi_adapter') and self.dxgi_adapter:
+            try:
                 self.dxgi_adapter.Release()
-                self.dxgi_adapter = None
-        except:
-            pass
+            except:
+                pass
+            self.dxgi_adapter = None
 
-        try:
-            if self.dxgi_factory:
+        if hasattr(self, 'dxgi_factory') and self.dxgi_factory:
+            try:
                 self.dxgi_factory.Release()
-                self.dxgi_factory = None
-        except:
-            pass
+            except:
+                pass
+            self.dxgi_factory = None
 
         try:
             comtypes.CoUninitialize()
@@ -510,16 +495,16 @@ class PcScreenshot:
 
     def get_screenshot_dxgi(self, independent: bool = False) -> MatLike | None:
         """
-        使用DXGI进行截图 - 适用于DirectX应用程序
+        使用DXGI进行截图 - 使用D3DShot库实现
         :param independent: 是否独立截图（不进行缩放）
         :return: 截图数组
         """
-        if not DXGI_AVAILABLE:
-            log.warning('DXGI不可用，请安装comtypes库')
+        if not D3DSHOT_AVAILABLE:
+            log.warning('D3DShot库不可用，无法使用DXGI截图')
             return None
 
-        # 初始化DXGI资源（如果尚未初始化）
-        if not self.desktop_duplication:
+        # 检查D3DShot实例是否已初始化
+        if not self.d3dshot_instance:
             if not self.init_dxgi():
                 log.warning('DXGI初始化失败')
                 return None
@@ -528,94 +513,44 @@ class PcScreenshot:
             before_screenshot_time = time.time()
             log.debug(f"DXGI 截图开始时间:{before_screenshot_time}")
 
-            # 获取帧数据
-            frame_info = None
-            desktop_resource = None
-
-            hr = self.desktop_duplication.AcquireNextFrame(1000, byref(frame_info), byref(desktop_resource))
-            if hr != 0:
-                # 如果获取帧失败，可能是资源丢失，尝试重新初始化
-                if hr == 0x887A0026:  # DXGI_ERROR_ACCESS_LOST
-                    log.debug('DXGI资源丢失，尝试重新初始化')
-                    if self.init_dxgi():
-                        hr = self.desktop_duplication.AcquireNextFrame(1000, byref(frame_info), byref(desktop_resource))
-                        if hr != 0:
-                            log.warning(f'重新初始化后仍无法获取桌面帧，错误代码: {hr}')
-                            return None
-                    else:
-                        log.warning('DXGI重新初始化失败')
+            # 使用D3DShot获取截图
+            screenshot = self.d3dshot_instance.screenshot()
+            if screenshot is None:
+                log.warning('D3DShot截图失败，尝试重新初始化')
+                if self.init_dxgi():
+                    screenshot = self.d3dshot_instance.screenshot()
+                    if screenshot is None:
+                        log.warning('重新初始化后D3DShot截图仍失败')
                         return None
                 else:
-                    log.warning(f'无法获取桌面帧，错误代码: {hr}')
+                    log.warning('D3DShot重新初始化失败')
                     return None
 
-            # 查询ID3D11Texture2D接口
-            desktop_texture = desktop_resource.QueryInterface(IID_ID3D11Texture2D)
-            if not desktop_texture:
-                log.warning('无法获取桌面纹理')
-                self.desktop_duplication.ReleaseFrame()
+            # D3DShot返回numpy数组，确保格式正确
+            if hasattr(screenshot, 'shape') and len(screenshot.shape) == 3:
+                # 如果是BGR格式，转换为RGB
+                if screenshot.shape[2] == 3:
+                    # D3DShot默认返回RGB格式，无需转换
+                    pass
+                elif screenshot.shape[2] == 4:
+                    # 如果是BGRA，转换为RGB
+                    screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGRA2RGB)
+            else:
+                log.warning('D3DShot返回的截图格式不正确')
                 return None
 
-            # 获取纹理描述
-            desc = desktop_texture.GetDesc()
-            width = desc.Width
-            height = desc.Height
-
-            # 创建可读取的纹理
-            staging_desc = desc
-            staging_desc.Usage = 3  # D3D11_USAGE_STAGING
-            staging_desc.CPUAccessFlags = 1  # D3D11_CPU_ACCESS_READ
-            staging_desc.BindFlags = 0
-
-            staging_texture = None
-            hr = self.d3d11_device.CreateTexture2D(byref(staging_desc), None, byref(staging_texture))
-            if hr != 0 or not staging_texture:
-                log.warning(f'无法创建暂存纹理，错误代码: {hr}')
-                self.desktop_duplication.ReleaseFrame()
-                return None
-
-            # 复制纹理数据
-            self.d3d11_context.CopyResource(staging_texture, desktop_texture)
-
-            # 映射纹理以读取数据
-            mapped_resource = None
-            hr = self.d3d11_context.Map(staging_texture, 0, 1, 0, byref(mapped_resource))  # D3D11_MAP_READ
-            if hr != 0:
-                log.warning(f'无法映射纹理，错误代码: {hr}')
-                staging_texture.Release()
-                self.desktop_duplication.ReleaseFrame()
-                return None
-
-            # 读取像素数据
-            buffer_size = height * mapped_resource.RowPitch
-            buffer = ctypes.create_string_buffer(buffer_size)
-            ctypes.memmove(buffer, mapped_resource.pData, buffer_size)
-
-            # 取消映射
-            self.d3d11_context.Unmap(staging_texture, 0)
-
-            # 转换为numpy数组
-            img_array = np.frombuffer(buffer, dtype=np.uint8)
-            img_array = img_array.reshape((height, width, 4))
-
-            # 转换BGRA为RGB
-            screenshot = cv2.cvtColor(img_array, cv2.COLOR_BGRA2RGB)
-
-            # 获取游戏窗口区域
+            # 获取游戏窗口区域进行裁剪（如果需要）
             rect = self.game_win.win_rect
             if rect and not independent:
+                height, width = screenshot.shape[:2]
                 # 裁剪到游戏窗口区域
                 x1, y1, x2, y2 = rect.x1, rect.y1, rect.x2, rect.y2
                 if 0 <= x1 < width and 0 <= y1 < height and x1 < x2 <= width and y1 < y2 <= height:
                     screenshot = screenshot[y1:y2, x1:x2]
 
-                    # 缩放到标准分辨率
-                    if self.game_win.is_win_scale:
-                        screenshot = cv2.resize(screenshot, (self.standard_width, self.standard_height))
-
-            # 清理临时资源
-            staging_texture.Release()
-            self.desktop_duplication.ReleaseFrame()
+            # 缩放到标准分辨率
+            if not independent and self.game_win.is_win_scale:
+                screenshot = cv2.resize(screenshot, (self.standard_width, self.standard_height))
 
             after_screenshot_time = time.time()
             log.debug(f"DXGI 截图结束时间:{after_screenshot_time}\n耗时:{after_screenshot_time - before_screenshot_time}")
