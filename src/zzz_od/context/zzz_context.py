@@ -175,9 +175,9 @@ class ZContext(OneDragonContext):
         self.hollow.data_service.reload()
         self.init_hollow_config()
         if self.agent_outfit_config.compatibility_mode:
-            self.init_agent_template_id()
-        else:
             self.init_agent_template_id_list()
+        else:
+            self.init_agent_template_id()
 
     def init_hollow_config(self) -> None:
         """
@@ -200,6 +200,7 @@ class ZContext(OneDragonContext):
         AgentEnum.ELLEN.value.template_id_list = [self.agent_outfit_config.ellen]
         AgentEnum.ASTRA_YAO.value.template_id_list = [self.agent_outfit_config.astra_yao]
         AgentEnum.YIXUAN.value.template_id_list = [self.agent_outfit_config.yixuan]
+        AgentEnum.YUZUHA.value.template_id_list = [self.agent_outfit_config.yuzuha]
 
     def init_agent_template_id_list(self) -> None:
         """
@@ -210,6 +211,7 @@ class ZContext(OneDragonContext):
         AgentEnum.ELLEN.value.template_id_list = self.agent_outfit_config.ellen_outfit_list
         AgentEnum.ASTRA_YAO.value.template_id_list = self.agent_outfit_config.astra_yao_outfit_list
         AgentEnum.YIXUAN.value.template_id_list = self.agent_outfit_config.yixuan_outfit_list
+        AgentEnum.YUZUHA.value.template_id_list = self.agent_outfit_config.yuzuha_outfit_list
 
     def after_app_shutdown(self) -> None:
         """
