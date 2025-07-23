@@ -3,7 +3,7 @@ from qfluentwidgets import FluentIcon
 
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import DoubleSpinBoxSettingCard
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from zzz_od.application.devtools.screenshot_helper.screenshot_helper_app import ScreenshotHelperApp
 from zzz_od.application.zzz_application import ZApplication
@@ -29,12 +29,10 @@ class DevtoolsScreenshotHelperInterface(AppRunInterface):
     def get_widget_at_top(self) -> QWidget:
         top_widget = Column()
 
-        self.frequency_opt = TextSettingCard(icon=FluentIcon.GAME, title='截图间隔(秒)')
-        self.frequency_opt.value_changed.connect(self._on_frequency_changed)
+        self.frequency_opt = DoubleSpinBoxSettingCard(icon=FluentIcon.GAME, title='截图间隔(秒)')
         top_widget.add_widget(self.frequency_opt)
 
-        self.length_opt = TextSettingCard(icon=FluentIcon.GAME, title='持续时间(秒)')
-        self.length_opt.value_changed.connect(self._on_length_changed)
+        self.length_opt = DoubleSpinBoxSettingCard(icon=FluentIcon.GAME, title='持续时间(秒)')
         top_widget.add_widget(self.length_opt)
 
         self.key_save_opt = KeySettingCard(icon=FluentIcon.GAME, title='保存截图按键',
@@ -52,6 +50,10 @@ class DevtoolsScreenshotHelperInterface(AppRunInterface):
         self.screenshot_before_key_opt.value_changed.connect(self._on_screenshot_before_key_changed)
         top_widget.add_widget(self.screenshot_before_key_opt)
 
+        self.mini_map_angle_detect_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='小地图朝向检测',
+                                                           content='无法计算朝向时截图')
+        top_widget.add_widget(self.mini_map_angle_detect_opt)
+
         return top_widget
 
     def on_interface_shown(self) -> None:
@@ -60,20 +62,15 @@ class DevtoolsScreenshotHelperInterface(AppRunInterface):
         :return:
         """
         AppRunInterface.on_interface_shown(self)
-        self.frequency_opt.setValue(str(self.ctx.screenshot_helper_config.frequency_second))
-        self.length_opt.setValue(str(self.ctx.screenshot_helper_config.length_second))
+        self.frequency_opt.init_with_adapter(self.ctx.screenshot_helper_config.get_prop_adapter('frequency_second'))
+        self.length_opt.init_with_adapter(self.ctx.screenshot_helper_config.get_prop_adapter('length_second'))
         self.key_save_opt.setValue(str(self.ctx.screenshot_helper_config.key_save))
         self.dodge_detect_opt.setValue(self.ctx.screenshot_helper_config.dodge_detect)
         self.screenshot_before_key_opt.setValue(self.ctx.screenshot_helper_config.screenshot_before_key)
+        self.mini_map_angle_detect_opt.init_with_adapter(self.ctx.screenshot_helper_config.get_prop_adapter('mini_map_angle_detect'))
 
     def get_app(self) -> ZApplication:
         return ScreenshotHelperApp(self.ctx)
-
-    def _on_frequency_changed(self, value: str) -> None:
-        self.ctx.screenshot_helper_config.frequency_second = float(value)
-
-    def _on_length_changed(self, value: str) -> None:
-        self.ctx.screenshot_helper_config.length_second = float(value)
 
     def _on_key_save_changed(self, value: str) -> None:
         self.ctx.screenshot_helper_config.key_save = value

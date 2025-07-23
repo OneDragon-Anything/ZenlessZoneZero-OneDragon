@@ -10,6 +10,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import debug_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
@@ -68,6 +69,13 @@ class ScreenshotHelperApp(ZApplication):
         if self.cache_start_time is None:
             self.cache_start_time = self.last_screenshot_time
         self.screenshot_cache.append(self.last_screenshot)
+
+        if self.ctx.screenshot_helper_config.mini_map_angle_detect:
+            mm = self.ctx.mini_map_service.cut_mini_map(self.last_screenshot)
+            angle = self.ctx.mini_map_service.cal_angle(mm)
+            log.info(f'当前角度 {angle}')
+            if angle is None:
+                self.save_screenshot()
         # 动态计算最大缓存数量
         if len(self.screenshot_cache) > self.cache_max_count:
             self.screenshot_cache.pop(0)
@@ -85,7 +93,7 @@ class ScreenshotHelperApp(ZApplication):
             return self.round_success()
         else:
             # 确保每次截图间隔正确
-            next_time = self.ctx.screenshot_helper_config.frequency_second - (time.time() - self.last_save_screenshot_time)
+            next_time = self.ctx.screenshot_helper_config.frequency_second - (time.time() - self.last_screenshot_time)
             return self.round_wait(wait_round_time=max(0.01, next_time))
 
     def _on_key_press(self, event: ContextEventItem) -> None:

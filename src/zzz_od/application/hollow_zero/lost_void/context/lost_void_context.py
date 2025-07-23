@@ -104,6 +104,7 @@ class LostVoidContext:
         """
         if self.auto_op is not None:  # 如果有上一个 先销毁
             self.auto_op.dispose()
+
         self.auto_op = AutoBattleOperator(self.ctx, 'auto_battle', self.get_auto_op_name())
         success, msg = self.auto_op.init_before_running()
         if not success:

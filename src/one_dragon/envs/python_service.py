@@ -23,6 +23,11 @@ class PythonService:
         self.download_service: DownloadService = download_service
 
     def install_default_uv(self, progress_callback: Optional[Callable[[float, str], None]]) -> Tuple[bool, str]:
+        """
+        使用通用下载服务安装 UV
+        :param progress_callback:
+        :return:
+        """
         if self.get_uv_version() is not None:
             msg = gt('已经安装了 UV')
             log.info(msg)
@@ -33,65 +38,33 @@ class PythonService:
             progress_callback(-1, msg)
         log.info(msg)
 
-        for _ in range(2):
-            zip_file_name = 'uv-x86_64-pc-windows-msvc.zip'
-            zip_file_path = os.path.join(DEFAULT_ENV_PATH, zip_file_name)
-            if not os.path.exists(zip_file_path):
-                success = self.download_service.download_env_file(zip_file_name, zip_file_path, progress_callback=progress_callback)
-                if not success:
-                    return False, gt('下载 UV 失败 请尝试更改网络代理')
+        zip_file_name = 'uv-x86_64-pc-windows-msvc.zip'
+        success = self.download_service.download_and_extract_env_file(
+            zip_file_name, DEFAULT_ENV_PATH, DEFAULT_UV_DIR_PATH, progress_callback
+        )
 
-            msg = f"{gt('正在解压')} {zip_file_name}..."
-            log.info(msg)
-            if progress_callback is not None:
-                progress_callback(0, msg)
-
-            success = file_utils.unzip_file(zip_file_path, DEFAULT_UV_DIR_PATH)
-
-            msg = gt('解压成功') if success else gt('解压失败 准备重试')
-            log.info(msg)
-            if progress_callback is not None:
-                progress_callback(1 if success else 0, msg)
-
-            if not success:  # 解压失败的话 可能是之前下的zip包坏了 尝试删除重来
-                os.remove(zip_file_path)
-                continue
-            else:
-                return True, gt('安装 UV 成功')
-
-        # 重试之后还是失败了
-        return False, gt('安装 UV 失败')
-
-    def uv_install_python(self, progress_callback: Optional[Callable[[float, str], None]]) -> bool:
-        """
-        使用uv安装python
-        """
-        if not self.env_config.uv_path:
-            if progress_callback is not None:
-                progress_callback(0, gt('未找到 UV 路径'))
-            return False
-
-        msg = gt('正在使用 UV 安装 Python...')
-        if progress_callback is not None:
-            progress_callback(-1, msg)
-        log.info(msg)
-
-        source = self.env_config.cpython_source
-        if source == CpythonSourceEnum.GITHUB.value.value and self.env_config.is_gh_proxy:
-            source = f'{self.env_config.gh_proxy_url}/{source}'
-        result = cmd_utils.run_command([self.env_config.uv_path, 'python', 'install', self.project_config.python_version,
-                                        '--mirror', source,
-                                        '--install-dir', DEFAULT_PYTHON_DIR_PATH])
-        msg = gt('UV 安装 Python 成功') if result is not None else gt('UV 安装 Python 失败')
-        log.info(msg)
-        if result is None:
-            if progress_callback is not None:
-                progress_callback(0, msg)
-            return False
+        if success:
+            return True, gt('安装 UV 成功')
         else:
-            if progress_callback is not None:
-                progress_callback(1, msg)
-            return True
+            return False, gt('安装 UV 失败')
+
+    def install_standalone_python(self, progress_callback: Optional[Callable[[float, str], None]]) -> bool:
+        """
+        使用通用下载服务安装 Python
+        :param progress_callback:
+        :return:
+        """
+        zip_file_name = f'cpython-{self.project_config.python_version}.zip'
+        success = self.download_service.download_and_extract_env_file(
+            zip_file_name, DEFAULT_ENV_PATH, DEFAULT_PYTHON_DIR_PATH, progress_callback
+        )
+
+        msg = gt('Python 安装成功') if success else gt('Python 安装失败')
+        log.info(msg)
+        if progress_callback is not None:
+            progress_callback(1 if success else 0, msg)
+
+        return success
 
     def uv_create_venv(self, progress_callback: Optional[Callable[[float, str], None]]) -> bool:
         """
@@ -114,9 +87,8 @@ class PythonService:
         log.info(msg)
         if progress_callback is not None:
             progress_callback(1 if success else 0, msg)
-            return True
-        else:
-            return False
+
+        return success
 
     def uv_sync(self, progress_callback: Optional[Callable[[float, str], None]] = None) -> Tuple[bool, str]:
         """
@@ -155,7 +127,7 @@ class PythonService:
         """
         检查环境是否与项目同步
         :param progress_callback: 进度回调
-        :return: (是否同步, 状态信息)
+        :return:
         """
         msg = gt('正在检查环境同步状态...')
         if progress_callback is not None:
@@ -212,7 +184,7 @@ class PythonService:
 
     def uv_install_python_venv(self, progress_callback: Optional[Callable[[float, str], None]]) -> Tuple[bool, str]:
         """
-        完整流程使用uv安装python环境
+        完整流程安装python环境
         :param progress_callback:
         :return:
         """
@@ -224,7 +196,7 @@ class PythonService:
         if os.path.exists(DEFAULT_VENV_DIR_PATH):
             shutil.rmtree(DEFAULT_VENV_DIR_PATH)
 
-        if not self.uv_install_python(progress_callback):
+        if not self.install_standalone_python(progress_callback):
             return False, gt('安装 Python 失败 请尝试到「设置」更改 Python 下载源')
 
         if not self.uv_create_venv(progress_callback):

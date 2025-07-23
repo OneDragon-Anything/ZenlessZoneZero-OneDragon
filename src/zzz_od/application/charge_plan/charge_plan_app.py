@@ -130,6 +130,8 @@ class ChargePlanApp(ZApplication):
             self.next_plan = candidate_plan
             return self.round_success()
 
+        return self.round_fail(ChargePlanApp.STATUS_NO_PLAN)
+
     @node_from(from_name='查找并选择下一个可执行任务')
     @operation_node(name='传送')
     def transport(self) -> OperationRoundResult:

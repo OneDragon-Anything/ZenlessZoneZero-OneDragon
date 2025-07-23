@@ -22,6 +22,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "colorama==0.4.6",
+    "matplotlib==3.10.3",
     "polib==1.2.0",
     "pyinstaller==6.7.0",
 ]

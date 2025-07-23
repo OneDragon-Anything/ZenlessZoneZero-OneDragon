@@ -238,6 +238,17 @@ class RoutineCleanup(ZOperation):
                                                    success_wait=1, retry_wait=1)
         if result.is_success:
             return self.round_fail(status=RoutineCleanup.STATUS_FIGHT_TIMEOUT)
+        else:
+            return self.round_retry(status=result.status, wait=1)
+
+    @node_from(from_name='自动战斗', status='普通战斗-撤退')
+    @operation_node(name='战斗失败')
+    def battle_fail(self) -> OperationRoundResult:
+        result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-撤退')
+        if result.is_success:
+            return self.round_success(result.status, wait=5)
+
+        return self.round_retry(result.status, wait=1)
 
     def handle_pause(self):
         auto_battle_utils.stop_running(self.auto_op)

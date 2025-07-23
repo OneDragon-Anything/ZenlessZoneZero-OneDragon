@@ -300,6 +300,8 @@ class CombatSimulation(ZOperation):
                 success, msg = self.async_init_future.result(60)
                 if not success:
                     return self.round_fail(msg)
+                else:
+                    return self.round_success()
             except Exception as e:
                 return self.round_fail('自动战斗初始化失败')
         else:
@@ -320,10 +322,15 @@ class CombatSimulation(ZOperation):
     @operation_node(name='向前移动准备战斗')
     def move_to_battle(self) -> OperationRoundResult:
         self.ctx.controller.move_w(press=True, press_time=1, release=True)
-        self.auto_op.start_running_async()
         return self.round_success()
 
     @node_from(from_name='向前移动准备战斗')
+    @operation_node(name='开始自动战斗')
+    def start_auto_op(self) -> OperationRoundResult:
+        self.auto_op.start_running_async()
+        return self.round_success()
+
+    @node_from(from_name='开始自动战斗')
     @operation_node(name='自动战斗', mute=True, timeout_seconds=600)
     def auto_battle(self) -> OperationRoundResult:
         if self.auto_op.auto_battle_context.last_check_end_result is not None:
@@ -339,7 +346,6 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='自动战斗')
     @operation_node(name='战斗结束')
     def after_battle(self) -> OperationRoundResult:
-        # TODO 还没有判断战斗失败
         self.can_run_times -= 1
         self.ctx.charge_plan_config.add_plan_run_times(self.plan)
         return self.round_success()
@@ -363,6 +369,17 @@ class CombatSimulation(ZOperation):
         result = self.round_by_op_result(op.execute())
         if result.is_success:
             return self.round_fail(status=CombatSimulation.STATUS_FIGHT_TIMEOUT)
+        else:
+            return self.round_retry(status=result.status, wait=1)
+
+    @node_from(from_name='自动战斗', status='普通战斗-撤退')
+    @operation_node(name='战斗失败')
+    def battle_fail(self) -> OperationRoundResult:
+        result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-撤退')
+        if result.is_success:
+            return self.round_success(result.status, wait=5)
+
+        return self.round_retry(result.status, wait=1)
 
     def handle_pause(self):
         if self.auto_op is not None:
@@ -425,7 +442,7 @@ def __debug():
         mission_name='防护演练',
         run_times=0,
         plan_times=1,
-        predefined_team_idx=ctx.coffee_config.predefined_team_idx,
+        predefined_team_idx=-1,
         auto_battle_config=ctx.coffee_config.auto_battle,
     )
     op = CombatSimulation(ctx, charge_plan)
@@ -434,4 +451,4 @@ def __debug():
 
 
 if __name__ == '__main__':
-    __debug_charge()
+    __debug()

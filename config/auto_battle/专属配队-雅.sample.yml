@@ -2,14 +2,12 @@
 author: "笙梦昱"
 thanks: "巡夜子 starlight"
 homepage: "https://b23.tv/QBbqzRK"
-version: "1.3"
+version: "1.4"
 team_list:
   - ["莱卡恩", "苍角", "雅"]
-  - ["柳", "露西", "雅"]
-  - ["柳", "凯撒", "雅"]
   - ["妮可", "耀嘉音", "雅"]
-  - ["露西", "柏妮思", "雅"]
-introduction: "耀嘉音放雅前面，已有适配：柏妮思 柳 薇薇安 莱卡恩 苍角 露西 妮可 耀嘉音 "
+  - ["异常", "支援", "雅"]
+introduction: "耀嘉音放雅前面，已有适配：柏妮思 柳 薇薇安 莱卡恩 苍角 露西 妮可 耀嘉音 浮波柚叶"
 
 check_dodge_interval: 0.02
 check_agent_interval: [0.4, 0.6]
@@ -51,6 +49,26 @@ t-dodge-astra: &t-dodge-astra
 t-switch-astra: &t-switch-astra
   - op_name: "按键-切换角色"
     agent_name: "耀嘉音"
+  # 注意清除其他相关的换人状态
+  - op_name: "清除状态"
+    state_list: ["自定义-招架支援", "自定义-连携技换人", "自定义-快速支援换人", "自定义-下场", "自定义-动作不打断"]
+  - op_name: "等待秒数"
+    seconds: 0.1
+
+# 招架支援-浮波柚叶
+t-dodge-yuzuha: &t-dodge-yuzuha
+  - op_name: "设置状态"
+    state: "自定义-招架支援"
+  - op_name: "按键-切换角色"
+    agent_name: "浮波柚叶"
+  # 注意清除其他相关的换人状态
+  - op_name: "清除状态"
+    state_list: ["自定义-连携技换人", "自定义-快速支援换人", "自定义-下场", "自定义-动作不打断"]
+
+# 切换角色-浮波柚叶
+t-switch-yuzuha: &t-switch-yuzuha
+  - op_name: "按键-切换角色"
+    agent_name: "浮波柚叶"
   # 注意清除其他相关的换人状态
   - op_name: "清除状态"
     state_list: ["自定义-招架支援", "自定义-连携技换人", "自定义-快速支援换人", "自定义-下场", "自定义-动作不打断"]
@@ -279,6 +297,9 @@ scenes:
               - states: "[后台-露西] & ![自定义-露西-加油, -5, 13]"
                 operations: *t-dodge-lucy
 
+              - states: "[后台-浮波柚叶] & [浮波柚叶-能量]{65, 120}"
+                operations: *t-dodge-yuzuha
+
                   # 连携技+1涡流 60能量发动特殊技 30能量+1涡流
                   # 平时准备着2个涡流 等连携时候可以直接展旗
                   # - states: "[苍角-涡流]{0, 1} & [苍角-能量]{60, 120}"
@@ -292,6 +313,8 @@ scenes:
                 operations: *t-dodge-miyabi
               - states: "[后台-妮可]"
                 operations: *t-dodge-nicole
+              - states: "[后台-浮波柚叶]"
+                operations: *t-dodge-yuzuha
               - states: "[后台-莱卡恩]"
                 operations: *t-dodge-lycaon
               - states: "[后台-柳]"
@@ -479,6 +502,10 @@ scenes:
             operations: *t-chain-left
           - states: "[连携技-2-露西]"
             operations: *t-chain-right
+          - states: "[连携技-1-浮波柚叶]"
+            operations: *t-chain-left
+          - states: "[连携技-2-浮波柚叶]"
+            operations: *t-chain-right
           - states: "[连携技-1-耀嘉音]"
             operations: *t-chain-left
           - states: "[连携技-2-耀嘉音]"
@@ -488,7 +515,7 @@ scenes:
           - states: "[连携技-2-凯撒]"
             operations: *t-chain-right
 
-  - triggers: []
+  - triggers: ["自定义-下场"]
     interval: 0.5
     handlers:
 
@@ -501,8 +528,12 @@ scenes:
               - states: "[雅-落霜]{6, 6}"
                 operations: *t-switch-miyabi
 
+      # 终结技
           - states: "[耀嘉音-终结技可用] & [后台-耀嘉音]"
             operations: *t-switch-astra
+
+          - states: "[浮波柚叶-终结技可用] & [后台-浮波柚叶]"
+            operations: *t-switch-yuzuha
 
           - states: "[妮可-终结技可用] & [后台-妮可]"
             operations: *t-switch-nicole
@@ -522,17 +553,21 @@ scenes:
           - states: "[柏妮思-终结技可用] & [后台-柏妮思]"
             operations: *t-switch-burnice
 
-          - states: "[薇薇安-终结技可用] & [后台-薇薇安] & [薇薇安-飞羽]{0, 1} & [薇薇安-护羽]{0, 1}"
+          - states: "[薇薇安-终结技可用] & [后台-薇薇安]"
             operations: *t-switch-vivian
 
           - states: "[凯撒-终结技可用] & [后台-凯撒]"
             operations: *t-switch-caesar
 
+      # 角色状态
           - states: "![自定义-耀嘉音-如歌的行板, 0, 20] & [后台-耀嘉音] & [耀嘉音-能量]{30, 120}"
             operations: *t-switch-astra
 
           - states: "[薇薇安-飞羽]{0, 2} & [薇薇安-护羽]{0, 3} & [后台-薇薇安] & [薇薇安-能量]{65, 120}"
             operations: *t-switch-vivian
+
+          - states: "[后台-浮波柚叶] & [浮波柚叶-能量]{65, 120}"
+            operations: *t-switch-yuzuha
 
           # 上凯撒盾
           - states: "![自定义-凯撒-战意激昂, 0, 25] & [后台-凯撒] & [凯撒-能量]{45, 120}"
@@ -576,6 +611,11 @@ scenes:
             sub_handlers:
               - states: "[自定义-霜月拔刀, 0, 5]"
                 operations: *t-switch-vivian
+
+
+  - triggers: []
+    interval: 0.5
+    handlers:
 
       # 耀嘉音
       - states: "[前台-耀嘉音]"
@@ -643,6 +683,88 @@ scenes:
                 state_list: ["自定义-下场"]
               - op_name: "清除状态"
                 state: "自定义-动作不打断"
+
+      # 浮波柚叶
+      - states: "[前台-浮波柚叶]"
+        interrupt_states: ["后台-浮波柚叶"]
+        sub_handlers:
+          - states: "[自定义-闪避]"
+            operations:
+              - op_name: "按键-普通攻击"
+                post_delay: 0.2
+                repeat: 2
+              - op_name: "等待秒数"
+                seconds: 0.3
+ 
+          - states: "[自定义-快速支援换人]"
+            operations:
+              - op_name: "按键-特殊攻击"
+                pre_delay: 0.15
+                post_delay: 0.15
+                repeat: 3
+
+          - states: "[自定义-招架支援]"
+            operations:
+              - op_name: "设置状态"
+                state: "自定义-动作不打断"
+              - op_name: "等待秒数"
+                seconds: 1
+              - op_name: "按键-特殊攻击"
+                post_delay: 0.3
+                repeat: 3
+              - op_name: "设置状态"
+                state_list: ["自定义-下场"]
+              - op_name: "等待秒数"
+                seconds: 1
+              - op_name: "清除状态"
+                state: "自定义-动作不打断"
+
+          - states: "[自定义-连携技换人]"
+            operations:
+              - op_name: "设置状态"
+                state: "自定义-动作不打断"
+              - op_name: "等待秒数"
+                seconds: 3
+              - op_name: "清除状态"
+                state: "自定义-动作不打断"
+
+          - states: "[按键可用-终结技]"
+            operations:
+              - op_name: "设置状态"
+                state: "自定义-动作不打断"
+              - op_name: "按键-终结技"
+                post_delay: 0.1
+                repeat: 30
+              - op_name: "等待秒数"
+                seconds: 1
+              - op_name: "设置状态"
+                state_list: ["自定义-下场"]
+              - op_name: "等待秒数"
+                seconds: 1.5
+              - op_name: "清除状态"
+                state: "自定义-动作不打断"
+
+          - states: "[浮波柚叶-能量]{65, 120}"
+            operations:
+              - op_name: "设置状态"
+                state: "自定义-动作不打断"
+              - op_name: "按键-特殊攻击"
+                post_delay: 0.3
+                repeat: 5
+              - op_name: "设置状态"
+                state_list: ["自定义-下场"]
+              - op_name: "等待秒数"
+                seconds: 0.5
+              - op_name: "清除状态"
+                state: "自定义-动作不打断"
+
+          - states: ""
+            operations:
+              - op_name: "按键-普通攻击"
+                post_delay: 0.05
+                repeat: 8
+              - op_name: "设置状态"
+                state_list: ["自定义-下场"]
 
       # 妮可
       - states: "[前台-妮可]"
@@ -1335,7 +1457,7 @@ scenes:
               - op_name: "清除状态"
                 state: "自定义-动作不打断"
 
-          - states: "[按键可用-终结技] & [薇薇安-飞羽]{0, 1} & [薇薇安-护羽]{0, 1}"
+          - states: "[按键可用-终结技]"
             operations:
               - op_name: "设置状态"
                 state: "自定义-动作不打断"
@@ -1410,6 +1532,9 @@ scenes:
 
               - states: "![自定义-耀嘉音-如歌的行板, 0, 20] & [后台-耀嘉音] & [耀嘉音-能量]{30, 120}"
                 operations: *t-switch-astra
+
+              - states: "[后台-浮波柚叶] & [浮波柚叶-能量]{65, 120}"
+                operations: *t-switch-yuzuha
 
               # 上凯撒盾
               - states: "![自定义-凯撒-战意激昂, 0, 25] & [后台-凯撒] & [凯撒-能量]{45, 120}"

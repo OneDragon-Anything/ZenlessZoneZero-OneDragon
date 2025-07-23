@@ -32,7 +32,6 @@ class PredefinedTeamChecker(ZApplication):
             self,
             ctx=ctx, app_id='predefined_team_checker',
             op_name=gt('预备编队角色识别'),
-            retry_in_od=True,  # 传送落地有可能会歪 重试
         )
 
         self.scroll_times: int = 0  # 下滑次数
