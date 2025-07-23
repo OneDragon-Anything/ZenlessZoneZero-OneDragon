@@ -532,19 +532,7 @@ class Push():
         """
 
         self.log_info("Telegram 服务启动")
-
-        if self.get_config("TG_API_HOST"):
-            url = f"{self.get_config('TG_API_HOST')}/bot{self.get_config('TG_BOT_TOKEN')}/sendMessage"
-        else:
-            url = (
-                f"https://api.telegram.org/bot{self.get_config('TG_BOT_TOKEN')}/sendMessage"
-            )
-        headers = {"Content-Type": "application/x-www-form-urlencoded"}
-        payload = {
-            "chat_id": str(self.get_config("TG_USER_ID")),
-            "text": f"{title}\n{content}",
-            "disable_web_page_preview": "true",
-        }
+        
         proxies = None
         if self.get_config("TG_PROXY_HOST") and self.get_config("TG_PROXY_PORT"):
             if self.get_config("TG_PROXY_AUTH") != "" and "@" not in self.get_config(
@@ -559,9 +547,36 @@ class Push():
                 self.get_config("TG_PROXY_HOST"), self.get_config("TG_PROXY_PORT")
             )
             proxies = {"http": proxyStr, "https": proxyStr}
-        response = requests.post(
-            url=url, headers=headers, params=payload, proxies=proxies
-        ).json()
+
+        if self.get_config("TG_API_HOST"):
+            url = f"{self.get_config('TG_API_HOST')}/bot{self.get_config('TG_BOT_TOKEN')}/sendMessage"
+            photo_url = f"{self.get_config('TG_API_HOST')}/bot{self.get_config('TG_BOT_TOKEN')}/sendPhoto"
+        else:
+            url = (
+                f"https://api.telegram.org/bot{self.get_config('TG_BOT_TOKEN')}/sendMessage"
+            )
+            photo_url = f"https://api.telegram.org/bot{self.get_config('TG_BOT_TOKEN')}/sendPhoto"
+
+        if image:
+            # 发送图片
+            image.seek(0)
+            files = {
+                'photo': ('image.jpg', image.getvalue(), 'image/jpeg'),
+                'chat_id': (None, str(self.get_config("TG_USER_ID"))),
+                'caption': (None, f"{title}\n{content}")
+            }
+            response = requests.post(photo_url, files=files, proxies=proxies).json()
+        else:
+            # 发送消息
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            payload = {
+                "chat_id": str(self.get_config("TG_USER_ID")),
+                "text": f"{title}\n{content}",
+            }
+            
+            response = requests.post(
+                url=url, headers=headers, params=payload, proxies=proxies
+            ).json()
 
         if response["ok"]:
             self.log_info("Telegram 推送成功！")
