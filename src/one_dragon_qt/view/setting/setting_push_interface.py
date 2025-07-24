@@ -120,31 +120,28 @@ class SettingPushInterface(VerticalScrollInterface):
         if card_type == "combo":
             options = config.get("options", [])
             card = ComboBoxSettingCard(
-                icon=config["icon"],
+                icon=getattr(FluentIcon, config["icon"]),
                 title=title,
                 options_list=[ConfigItem(label=opt, value=opt) for opt in options]
             )
         elif card_type == "key_value":
             card = KeyValueSettingCard(
-                icon=config["icon"],
+                icon=getattr(FluentIcon, config["icon"]),
                 title=title,
             )
         elif card_type == "code_editor":
             card = CodeEditorSettingCard(
-                icon=config["icon"],
+                icon=getattr(FluentIcon, config["icon"]),
                 title=title,
                 parent=self
             )
         else:  # 默认为 text
             card = TextSettingCard(
-                icon=config["icon"],
+                icon=getattr(FluentIcon, config["icon"]),
                 title=title,
                 input_max_width=320,
                 input_placeholder=config.get("placeholder", "")
             )
-
-        if "default" in config:
-            card.setValue(config["default"], emit_signal=False)
 
         card.setObjectName(var_name)
         card.setVisible(False)

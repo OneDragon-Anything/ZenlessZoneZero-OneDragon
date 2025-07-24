@@ -3,6 +3,7 @@ from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.notify.push_cards import PushCards
 
 
 class NotifyMethodEnum(Enum):
@@ -55,58 +56,28 @@ class PushConfig(YamlConfig):
 
     def _generate_dynamic_properties(self):
         # 遍历所有配置组
-        for group_name, items in PushConfigNames.get_configs().items():
+        for group_name, items in PushCards.get_configs().items():
             group_lower = group_name.lower()
             # 遍历组内的每个配置项
-            for var_suffix in items:
+            for item in items:
+                var_suffix = item['var_suffix']
                 var_suffix_lower = var_suffix.lower()
-                prop_name = f"{group_lower}_{var_suffix_lower}"
+                prop_name = f'{group_lower}_{var_suffix_lower}'
 
-                # 定义getter和setter，使用闭包捕获当前的prop_name
-                def create_getter(name: str):
-                    def getter(self) -> float:
-                        return self.get(name, None)
+                # 定义getter和setter，使用闭包捕获当前的prop_name和default值
+                def create_getter(name: str, default_value):
+                    def getter(self) -> str:
+                        return self.get(name, default_value)
                     return getter
 
                 def create_setter(name: str):
-                    def setter(self, new_value: float) -> None:
+                    def setter(self, new_value: str) -> None:
                         self.update(name, new_value)
                     return setter
 
                 # 创建property并添加到类
                 prop = property(
-                    create_getter(prop_name),
+                    create_getter(prop_name, item.get('default', '')),
                     create_setter(prop_name)
                 )
                 setattr(PushConfig, prop_name, prop)
-
-class PushConfigNames:
-    # 推送配置项名称定义，用于动态生成PushConfig属性
-    push_config_names = {
-    "BARK": ["PUSH","DEVICE_KEY","ARCHIVE","GROUP","SOUND","ICON","LEVEL","URL"],
-    "DD_BOT": ["SECRET","TOKEN"],
-    "FS": ["KEY"],
-    "ONEBOT": ["URL","USER","GROUP","TOKEN"],
-    "GOTIFY": ["URL","TOKEN","PRIORITY"],
-    "IGOT": ["PUSH_KEY"],
-    "SERVERCHAN": ["PUSH_KEY"],
-    "DEER": ["KEY","URL"],
-    "CHAT": ["URL","TOKEN"],
-    "PUSH_PLUS": ["TOKEN","USER","TEMPLATE","CHANNEL","WEBHOOK","CALLBACKURL","TO"],
-    "WE_PLUS_BOT": ["TOKEN","RECEIVER","VERSION"],
-    "QMSG": ["KEY","TYPE"],
-    "QYWX": ["ORIGIN","AM","KEY"],
-    "DISCORD": ["BOT_TOKEN","USER_ID"],
-    "TG": ["BOT_TOKEN","USER_ID","PROXY_HOST","PROXY_PORT","PROXY_AUTH","API_HOST"],
-    "AIBOTK": ["KEY","TYPE","NAME"],
-    "SMTP": ["SERVER","SSL","EMAIL","PASSWORD","NAME"],
-    "PUSHME": ["KEY","URL"],
-    "CHRONOCAT": ["QQ","TOKEN","URL"],
-    "WEBHOOK": ["URL","BODY","HEADERS","METHOD","CONTENT_TYPE"],
-    "NTFY": ["URL","TOPIC","PRIORITY","TOKEN","USERNAME","PASSWORD","ACTIONS"],
-    "WXPUSHER": ["APP_TOKEN","TOPIC_IDS","UIDS"]
-    }
-
-    @classmethod
-    def get_configs(cls):
-        return cls.push_config_names
