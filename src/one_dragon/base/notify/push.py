@@ -791,6 +791,14 @@ class Push():
         data = content.encode(encoding="utf-8")
         headers = {"Title": encoded_title, "Priority": priority}  # 使用编码后的 title
 
+        if self.get_config("NTFY_TOKEN"):
+            headers['Authorization'] = "Bearer " + self.get_config("NTFY_TOKEN")
+        elif self.get_config("NTFY_USERNAME") and self.get_config("NTFY_PASSWORD"):
+            authStr = self.get_config("NTFY_USERNAME") + ":" + self.get_config("NTFY_PASSWORD")
+            headers['Authorization'] = "Basic " + base64.b64encode(authStr.encode('utf-8')).decode('utf-8')
+        if self.get_config("NTFY_ACTIONS"):
+            headers['Actions'] = encode_rfc2047(self.get_config("NTFY_ACTIONS"))
+
         url = self.get_config("NTFY_URL") + "/" + self.get_config("NTFY_TOPIC")
         response = requests.post(url, data=data, headers=headers)
         if response.status_code == 200:  # 使用 response.status_code 进行检查

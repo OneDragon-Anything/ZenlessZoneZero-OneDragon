@@ -103,7 +103,7 @@ class PushConfigNames:
     "PUSHME": ["KEY","URL"],
     "CHRONOCAT": ["QQ","TOKEN","URL"],
     "WEBHOOK": ["URL","BODY","HEADERS","METHOD","CONTENT_TYPE"],
-    "NTFY": ["URL","TOPIC","PRIORITY"],
+    "NTFY": ["URL","TOPIC","PRIORITY","TOKEN","USERNAME","PASSWORD","ACTIONS"],
     "WXPUSHER": ["APP_TOKEN","TOPIC_IDS","UIDS"]
     }
 
