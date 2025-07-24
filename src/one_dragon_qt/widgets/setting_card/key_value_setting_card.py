@@ -1,12 +1,11 @@
 import json
-from typing import Union, List, Dict, Optional
+from typing import Union, Optional
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit
-from qfluentwidgets import FluentIcon, FluentIconBase, LineEdit
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
+from qfluentwidgets import FluentIcon, FluentIconBase, LineEdit, PushButton, ToolButton
 
-from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 
@@ -33,14 +32,14 @@ class KeyValueSettingCard(SettingCardBase):
         self.kv_layout = QVBoxLayout()  # 存放键值对行
         self.main_layout.addLayout(self.kv_layout)
 
-        self.add_btn = QPushButton(gt('添加一行', 'ui'), self)
+        self.add_btn = PushButton(gt('添加一行'), self)
         self.add_btn.setIcon(FluentIcon.ADD.icon())
         self.add_btn.clicked.connect(lambda: self._add_row())
         self.main_layout.addWidget(self.add_btn, 0, Qt.AlignmentFlag.AlignLeft)
 
         # 不在初始化时设置固定高度，让它动态调整
         # self.setFixedHeight(self.sizeHint().height())
-        
+
         # 默认添加一行空白，方便用户输入
         self._add_row(emit_signal=False)
 
@@ -63,14 +62,14 @@ class KeyValueSettingCard(SettingCardBase):
         if emit_signal:
             value_edit.textChanged.connect(self._on_value_changed)
 
-        remove_btn = QPushButton(self)
-        remove_btn.setIcon(FluentIcon.DELETE.icon())
+        remove_btn = ToolButton(FluentIcon.DELETE, self)
         remove_btn.setFixedSize(30, 30)
         remove_btn.clicked.connect(lambda: self._remove_row(row_widget))
 
         row_layout.addWidget(key_edit)
         row_layout.addWidget(value_edit)
         row_layout.addWidget(remove_btn)
+        row_layout.addSpacing(16)
 
         self.kv_layout.addWidget(row_widget)
         self._update_height()
@@ -95,10 +94,10 @@ class KeyValueSettingCard(SettingCardBase):
         min_height = 100  # 最小高度
         content_height = self.kv_layout.count() * 40 + 80  # 每行大约40px，加上按钮和间距
         new_height = max(min_height, content_height)
-        
+
         self.setMinimumHeight(new_height)
         self.setMaximumHeight(new_height)
-        
+
         # 通知父组件更新布局
         parent = self.parent()
         if parent:
@@ -116,7 +115,7 @@ class KeyValueSettingCard(SettingCardBase):
         for i in range(self.kv_layout.count()):
             row_widget = self.kv_layout.itemAt(i).widget()
             if row_widget:
-                line_edits = list(row_widget.findChildren(QLineEdit))
+                line_edits = list(row_widget.findChildren(LineEdit))
                 if len(line_edits) >= 2:
                     key_edit = line_edits[0]
                     value_edit = line_edits[1]
@@ -138,7 +137,7 @@ class KeyValueSettingCard(SettingCardBase):
                     for item in data:
                         if isinstance(item, dict):
                             self._add_row(item.get("key", ""), item.get("value", ""), emit_signal=False)
-                
+
                 # 如果有数据但没有添加任何行，添加一个空行
                 if self.kv_layout.count() == 0:
                     self._add_row(emit_signal=False)
@@ -148,7 +147,7 @@ class KeyValueSettingCard(SettingCardBase):
         except (json.JSONDecodeError, TypeError):
             # 如果值无效，则添加一个空行
             self._add_row(emit_signal=False)
-        
+
         # 最后更新一次，但不触发值变化事件
         self._update_height()
 

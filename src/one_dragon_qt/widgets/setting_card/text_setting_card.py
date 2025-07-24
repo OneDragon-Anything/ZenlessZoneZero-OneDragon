@@ -114,5 +114,3 @@ class TextSettingCard(SettingCardBase):
     def getValue(self) -> str:
         """获取输入框的值"""
         return self.line_edit.text()
-
-

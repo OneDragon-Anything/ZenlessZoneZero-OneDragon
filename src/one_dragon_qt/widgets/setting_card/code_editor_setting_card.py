@@ -78,14 +78,14 @@ class CodeEditorSettingCard(SettingCardBase):
         button_layout = QVBoxLayout()
         button_layout.setContentsMargins(0, 0, 0, 0)
         button_layout.setSpacing(4)
-        
+
         # 格式化按钮
         self.format_btn = QPushButton(self)
         self.format_btn.setIcon(FluentIcon.BROOM.icon())
         self.format_btn.setMaximumWidth(80)
         self.format_btn.clicked.connect(self._format_json)
         button_layout.addWidget(self.format_btn)
-        
+
         button_layout.addStretch()
 
         self.hBoxLayout.addWidget(self.editor)
@@ -94,7 +94,7 @@ class CodeEditorSettingCard(SettingCardBase):
         self.editor.textChanged.connect(self._on_value_changed)
 
         self.setFixedHeight(self.sizeHint().height())
-        
+
         # 初始化默认值属性
         self._default_value = None
 
@@ -136,4 +136,3 @@ class CodeEditorSettingCard(SettingCardBase):
             pass
         except Exception:
             log.error('格式化 JSON 失败', exc_info=True)
-

@@ -7,6 +7,7 @@ import re
 import smtplib
 import threading
 import time
+import datetime
 import urllib.parse
 import functools
 
@@ -923,17 +924,15 @@ class Push():
             content_type = self.get_config("WEBHOOK_CONTENT_TYPE") or "application/json"
 
             # 生成时间戳
-            import datetime
-            import time
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             iso_timestamp = datetime.datetime.now().isoformat()
 
             # 检查是否包含必需的变量（title和content中至少一个）
-            has_old_vars = ("$title" in url_template or "$title" in body_template or 
+            has_old_vars = ("$title" in url_template or "$title" in body_template or
                            "$content" in url_template or "$content" in body_template)
             has_new_vars = ("{{title}}" in url_template or "{{title}}" in body_template or
                            "{{content}}" in url_template or "{{content}}" in body_template)
-            
+
             if not has_old_vars and not has_new_vars:
                 self.log_error("请求头或者请求体中必须包含 $title/$content 或 {{title}}/{{content}} 变量")
                 return
@@ -1228,7 +1227,7 @@ class Push():
         # 配置键名到函数名的映射（UI传入的method已经是配置键名）
         method_to_function_name = {
             'BARK': 'bark',
-            'CONSOLE': 'console', 
+            'CONSOLE': 'console',
             'DD_BOT': 'dingding_bot',
             'FS': 'feishu_bot',
             'ONEBOT': 'one_bot',
