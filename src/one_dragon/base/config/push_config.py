@@ -10,7 +10,6 @@ class NotifyMethodEnum(Enum):
     SMTP = ConfigItem('邮件', 'SMTP')
     WEBHOOK = ConfigItem('Webhook', 'WEBHOOK')
     ONEBOT = ConfigItem('OneBot', 'ONEBOT')
-    CHRONOCAT = ConfigItem('Chronocat', 'CHRONOCAT')
     QYWX = ConfigItem('企业微信', 'QYWX')
     DD_BOT = ConfigItem('钉钉机器人', 'DD_BOT')
     FS =  ConfigItem('飞书机器人', 'FS')
@@ -18,17 +17,7 @@ class NotifyMethodEnum(Enum):
     TELEGRAM = ConfigItem('Telegram', 'TG')
     BARK = ConfigItem('Bark', 'BARK')
     SERVERCHAN = ConfigItem('Server 酱', 'SERVERCHAN')
-    NTFY = ConfigItem('ntfy', 'NTFY')
-    DEER = ConfigItem('PushDeer', 'DEER')
     GOTIFY = ConfigItem('GOTIFY', 'GOTIFY')
-    IGOT = ConfigItem('iGot', 'IGOT')
-    CHAT = ConfigItem('Synology Chat', 'CHAT')
-    PUSH_PLUS = ConfigItem('PushPlus', 'PUSH_PLUS')
-    WE_PLUS_BOT = ConfigItem('微加机器人', 'WE_PLUS_BOT')
-    QMSG = ConfigItem('Qmsg 酱', 'QMSG')
-    AIBOTK = ConfigItem('智能微秘书', 'AIBOTK')
-    PUSHME = ConfigItem('PushMe', 'PUSHME')
-    WXPUSHER = ConfigItem('WxPusher', 'WXPUSHER')
 
 class PushConfig(YamlConfig):
 
@@ -82,28 +71,17 @@ class PushConfig(YamlConfig):
 class PushConfigNames:
     # 推送配置项名称定义，用于动态生成PushConfig属性
     push_config_names = {
-    "BARK": ["PUSH","DEVICE_KEY","ARCHIVE","GROUP","SOUND","ICON","LEVEL","URL"],
+    "SMTP": ["SERVER","SSL","EMAIL","PASSWORD","NAME"],
+    "WEBHOOK": ["URL","BODY","HEADERS","METHOD","CONTENT_TYPE"],
+    "ONEBOT": ["URL","USER","GROUP","TOKEN"],
     "DD_BOT": ["SECRET","TOKEN"],
     "FS": ["KEY"],
-    "ONEBOT": ["URL","USER","GROUP","TOKEN"],
-    "GOTIFY": ["URL","TOKEN","PRIORITY"],
-    "IGOT": ["PUSH_KEY"],
-    "SERVERCHAN": ["PUSH_KEY"],
-    "DEER": ["KEY","URL"],
-    "CHAT": ["URL","TOKEN"],
-    "PUSH_PLUS": ["TOKEN","USER","TEMPLATE","CHANNEL","WEBHOOK","CALLBACKURL","TO"],
     "WE_PLUS_BOT": ["TOKEN","RECEIVER","VERSION"],
-    "QMSG": ["KEY","TYPE"],
-    "QYWX": ["ORIGIN","AM","KEY"],
     "DISCORD": ["BOT_TOKEN","USER_ID"],
     "TG": ["BOT_TOKEN","USER_ID","PROXY_HOST","PROXY_PORT","PROXY_AUTH","API_HOST"],
-    "AIBOTK": ["KEY","TYPE","NAME"],
-    "SMTP": ["SERVER","SSL","EMAIL","PASSWORD","NAME"],
-    "PUSHME": ["KEY","URL"],
-    "CHRONOCAT": ["QQ","TOKEN","URL"],
-    "WEBHOOK": ["URL","BODY","HEADERS","METHOD","CONTENT_TYPE"],
-    "NTFY": ["URL","TOPIC","PRIORITY"],
-    "WXPUSHER": ["APP_TOKEN","TOPIC_IDS","UIDS"]
+    "BARK": ["PUSH","DEVICE_KEY","ARCHIVE","GROUP","SOUND","ICON","LEVEL","URL"],
+    "SERVERCHAN": ["PUSH_KEY"],
+    "GOTIFY": ["URL","TOKEN","PRIORITY"]
     }
 
     @classmethod
