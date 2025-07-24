@@ -194,7 +194,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='定期清剿', status=RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='专业挑战室', status=ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
-    @node_from(from_name='传送', status='选择失败')
+    @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
     @operation_node(name='电量不足')
     def charge_not_enough(self) -> OperationRoundResult:
         if self.ctx.charge_plan_config.skip_plan or self.next_plan.mission_type_name == '代理人方案培养':
