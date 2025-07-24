@@ -206,13 +206,18 @@ class ChargePlanApp(ZApplication):
             self.last_tried_plan = None
             return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
 
+    @node_from(from_name='传送', success=False)
     @node_from(from_name='实战模拟室', success=False)
     @node_from(from_name='定期清剿', success=False)
     @node_from(from_name='专业挑战室', success=False)
     @node_from(from_name='恶名狩猎', success=False)
     @operation_node(name='挑战失败')
     def challenge_failed(self) -> OperationRoundResult:
-        return self.round_success()
+        if self.ctx.charge_plan_config.skip_plan:
+            self.last_tried_plan = self.next_plan
+            return self.round_success()
+        else:
+            return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
 
     @node_from(from_name='电量不足', status=STATUS_ROUND_FINISHED)
     @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_ROUND_FINISHED)
