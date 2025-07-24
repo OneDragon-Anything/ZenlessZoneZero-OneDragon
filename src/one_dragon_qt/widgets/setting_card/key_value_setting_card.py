@@ -123,7 +123,7 @@ class KeyValueSettingCard(SettingCardBase):
                         kv_dict[key_edit.text().strip()] = value_edit.text().strip()
         return json.dumps(kv_dict, ensure_ascii=False)
 
-    def setValue(self, value: str):
+    def setValue(self, value: str, emit_signal: bool = True):
         """ 从 JSON 字符串设置键值对 """
         self._clear_rows()
         try:
@@ -131,22 +131,22 @@ class KeyValueSettingCard(SettingCardBase):
                 data = json.loads(value)
                 if isinstance(data, dict):
                     for key, val in data.items():
-                        self._add_row(key, str(val), emit_signal=False)
+                        self._add_row(key, str(val), emit_signal=emit_signal)
                 elif isinstance(data, list):
                     # 兼容旧的列表格式
                     for item in data:
                         if isinstance(item, dict):
-                            self._add_row(item.get("key", ""), item.get("value", ""), emit_signal=False)
+                            self._add_row(item.get("key", ""), item.get("value", ""), emit_signal=emit_signal)
 
                 # 如果有数据但没有添加任何行，添加一个空行
                 if self.kv_layout.count() == 0:
-                    self._add_row(emit_signal=False)
+                    self._add_row(emit_signal=emit_signal)
             else:
                 # 如果值为空，添加一个空行
-                self._add_row(emit_signal=False)
+                self._add_row(emit_signal=emit_signal)
         except (json.JSONDecodeError, TypeError):
             # 如果值无效，则添加一个空行
-            self._add_row(emit_signal=False)
+            self._add_row(emit_signal=emit_signal)
 
         # 最后更新一次，但不触发值变化事件
         self._update_height()
@@ -154,5 +154,11 @@ class KeyValueSettingCard(SettingCardBase):
     def init_with_adapter(self, adapter):
         """ 使用适配器初始化 """
         self.adapter = adapter
-        self.setValue(adapter.get_value())
-        self.value_changed.connect(lambda val: adapter.set_value(val))
+
+        if self.adapter is None:
+            self.setValue("", emit_signal=False)
+        else:
+            self.setValue(self.adapter.get_value(), emit_signal=False)
+
+        if self.adapter is not None:
+            self.value_changed.connect(lambda val: self.adapter.set_value(val))

@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, SubtitleLabel, PushButton, InfoBar, InfoBarPosition
+from qfluentwidgets import FluentIcon, PushButton, InfoBar, InfoBarPosition
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.push_config import NotifyMethodEnum
@@ -25,6 +25,7 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 class SettingPushInterface(VerticalScrollInterface):
 
     def __init__(self, ctx: OneDragonContext, parent=None):
+
         VerticalScrollInterface.__init__(
             self,
             object_name='setting_push_interface',
@@ -60,11 +61,6 @@ class SettingPushInterface(VerticalScrollInterface):
         )
         content_widget.add_widget(self.test_notification_card)
 
-        self.curl_btn = PushSettingCard(icon=FluentIcon.CODE, title='生成 cURL 示例', text='生成调试命令')
-        self.curl_btn.clicked.connect(self._generate_curl)
-        self.curl_btn.setVisible(False)
-        content_widget.add_widget(self.curl_btn)
-
         # 通知方式选择
         self.notification_method_opt = ComboBoxSettingCard(
             icon=FluentIcon.MESSAGE,
@@ -73,6 +69,11 @@ class SettingPushInterface(VerticalScrollInterface):
         )
         self.notification_method_opt.value_changed.connect(self._update_notification_ui)
         content_widget.add_widget(self.notification_method_opt)
+
+        self.curl_btn = PushSettingCard(icon=FluentIcon.CODE, title='生成 cURL 示例', text='生成调试命令')
+        self.curl_btn.clicked.connect(self._generate_curl)
+        self.curl_btn.setVisible(False)
+        content_widget.add_widget(self.curl_btn)
 
         email_services = PushEmailServices.load_services()
         service_options = [ConfigItem(label=name, value=name, desc="") for name in email_services.keys()]
@@ -93,36 +94,10 @@ class SettingPushInterface(VerticalScrollInterface):
         for method, configs in PushCards.get_configs().items():
             method_cards = []
 
-            if method == 'WEBHOOK':
-                # Webhook 使用新的带分组的格式
-                for group_config in configs:
-                    group_title = group_config['group']
-                    is_collapsible = group_config.get('collapsible', False)
-
-                    group_title_widget = SubtitleLabel(group_title, self)
-                    all_cards_widget.add_widget(group_title_widget)
-                    method_cards.append(group_title_widget)
-
-                    for item_config in group_config['items']:
-                        card = self._create_card(method, item_config)
-                        setattr(self, card.objectName(), card)
-                        all_cards_widget.add_widget(card)
-                        method_cards.append(card)
-            else:
-                # legacy通知
-                for config in configs:
-                    var_name = f"{method}_{config['var_suffix']}_push_card".lower()
-                    card = TextSettingCard(
-                        icon=config["icon"],
-                        title=config["title"],
-                        input_max_width=320,
-                        input_placeholder=config.get("placeholder", "")
-                    )
-                    card.setObjectName(var_name)
-                    card.setVisible(False)
-                    setattr(self, var_name, card)
-                    method_cards.append(card)
-                    all_cards_widget.add_widget(card)
+            for config in configs:
+                card = self._create_card(method, config)
+                method_cards.append(card)
+                all_cards_widget.add_widget(card)
 
             self.cards[method] = method_cards
 
@@ -136,6 +111,11 @@ class SettingPushInterface(VerticalScrollInterface):
         var_name = f"{method}_{config['var_suffix']}_push_card".lower()
         title = config["title"]
         card_type = config.get("type", "text")
+        is_required = config.get("required", False)
+
+        # 如果是必选项，在标题后添加红色星号
+        if is_required:
+            title += " <span style='color: #ff6b6b;'>*</span>"
 
         if card_type == "combo":
             options = config.get("options", [])
@@ -144,8 +124,6 @@ class SettingPushInterface(VerticalScrollInterface):
                 title=title,
                 options_list=[ConfigItem(label=opt, value=opt) for opt in options]
             )
-            if "default" in config:
-                card.setValue(config["default"])
         elif card_type == "key_value":
             card = KeyValueSettingCard(
                 icon=config["icon"],
@@ -155,13 +133,8 @@ class SettingPushInterface(VerticalScrollInterface):
             card = CodeEditorSettingCard(
                 icon=config["icon"],
                 title=title,
+                parent=self
             )
-            # 设置占位符文本
-            if "placeholder" in config:
-                card.editor.setPlaceholderText(config["placeholder"])
-            # 设置默认值
-            if "default" in config:
-                card.setValue(config["default"])
         else:  # 默认为 text
             card = TextSettingCard(
                 icon=config["icon"],
@@ -170,8 +143,12 @@ class SettingPushInterface(VerticalScrollInterface):
                 input_placeholder=config.get("placeholder", "")
             )
 
+        if "default" in config:
+            card.setValue(config["default"], emit_signal=False)
+
         card.setObjectName(var_name)
         card.setVisible(False)
+        setattr(self, var_name, card)
         return card
 
     def _send_test_message(self):
@@ -228,26 +205,13 @@ class SettingPushInterface(VerticalScrollInterface):
 
         # 动态初始化所有通知卡片
         for method, configs in PushCards.get_configs().items():
-            if method == 'WEBHOOK':
-                # Webhook 使用新的带分组的格式
-                if configs and isinstance(configs[0], dict) and 'group' in configs[0]:
-                    for group_config in configs:
-                        for item_config in group_config['items']:
-                            var_suffix = item_config["var_suffix"]
-                            var_name = f"{method.lower()}_{var_suffix.lower()}_push_card"
-                            config_key = f"{method.lower()}_{var_suffix.lower()}"
-                            card = getattr(self, var_name, None)
-                            if card:
-                                card.init_with_adapter(self.ctx.push_config.get_prop_adapter(config_key))
-            else:
-                # 其他通知方式使用旧的简单格式
-                for item_config in configs:
-                    var_suffix: str = item_config["var_suffix"]
-                    var_name = f"{method.lower()}_{var_suffix.lower()}_push_card"
-                    config_key = f"{method.lower()}_{var_suffix.lower()}"
-                    card = getattr(self, var_name, None)
-                    if card:
-                        card.init_with_adapter(self.ctx.push_config.get_prop_adapter(config_key))
+            for item_config in configs:
+                var_suffix: str = item_config["var_suffix"]
+                var_name = f"{method.lower()}_{var_suffix.lower()}_push_card"
+                config_key = f"{method.lower()}_{var_suffix.lower()}"
+                card = getattr(self, var_name, None)
+                if card:
+                    card.init_with_adapter(self.ctx.push_config.get_prop_adapter(config_key))
 
         # 初始更新界面状态
         self._update_notification_ui()
