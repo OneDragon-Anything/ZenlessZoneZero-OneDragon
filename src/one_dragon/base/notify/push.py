@@ -7,6 +7,7 @@ import re
 import smtplib
 import threading
 import time
+import datetime
 import urllib.parse
 
 from io import BytesIO
@@ -866,17 +867,15 @@ class Push():
             content_type = self.get_config("WEBHOOK_CONTENT_TYPE") or "application/json"
 
             # 生成时间戳
-            import datetime
-            import time
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             iso_timestamp = datetime.datetime.now().isoformat()
 
             # 检查是否包含必需的变量（title和content中至少一个）
-            has_old_vars = ("$title" in url_template or "$title" in body_template or 
+            has_old_vars = ("$title" in url_template or "$title" in body_template or
                            "$content" in url_template or "$content" in body_template)
             has_new_vars = ("{{title}}" in url_template or "{{title}}" in body_template or
                            "{{content}}" in url_template or "{{content}}" in body_template)
-            
+
             if not has_old_vars and not has_new_vars:
                 self.log_error("请求头或者请求体中必须包含 $title/$content 或 {{title}}/{{content}} 变量")
                 return
@@ -889,7 +888,7 @@ class Push():
                 "{{iso_timestamp}}": iso_timestamp,
                 "{{unix_timestamp}}": str(int(time.time()))
             }
-            
+
             url = url_template
             body = body_template
             for placeholder, value in replacements.items():
@@ -931,7 +930,7 @@ class Push():
                 except (json.JSONDecodeError, AttributeError):
                     self.log_error(f"Webhook Headers 格式错误，请检查是否为合法的 JSON 键值对: {headers_str}")
                     return
-            
+
             headers['Content-Type'] = content_type
 
             self.log_info(f"发送 Webhook 请求: {method} {url}")
@@ -992,7 +991,7 @@ class Push():
 
         # 兼容旧版$变量格式
         url = url.replace("$title", urllib.parse.quote_plus(title)).replace("$content", urllib.parse.quote_plus(content))
-        
+
         # 解析 Headers
         headers = {}
         if headers_str:
@@ -1019,7 +1018,7 @@ class Push():
             except (json.JSONDecodeError, AttributeError):
                 # 使用旧版parse_headers作为后备
                 headers = self.parse_headers(headers_str)
-        
+
         # 兼容旧版body处理
         if "$title" in body or "$content" in body:
             body = self.parse_body(
@@ -1143,30 +1142,30 @@ class Push():
         else:
             # 使用所有已配置的推送方式
             notify_function = self.add_notify_function()
-        
+
         if not notify_function:
             self.log_error(f"未找到可用的推送方式")
             return
-            
+
         ts = [
             threading.Thread(target=mode, args=(title, content, image), name=mode.__name__)
             for mode in notify_function
         ]
         [t.start() for t in ts]
         [t.join() for t in ts]
-    
+
     def get_specific_notify_function(self, method: str) -> list:
         """获取指定的推送方式函数"""
         # 直接从add_notify_function获取所有可用的通知方式
         all_functions = self.add_notify_function()
-        
+
         # 通过方法名匹配对应的函数
         method = method.upper()
-        
+
         # 配置键名到函数名的映射（UI传入的method已经是配置键名）
         method_to_function_name = {
             'BARK': 'bark',
-            'CONSOLE': 'console', 
+            'CONSOLE': 'console',
             'DD_BOT': 'dingding_bot',
             'FS': 'feishu_bot',
             'ONEBOT': 'one_bot',
@@ -1189,17 +1188,17 @@ class Push():
             'NTFY': 'ntfy',
             'WXPUSHER': 'wxpusher_bot',
         }
-        
+
         target_function_name = method_to_function_name.get(method)
         if not target_function_name:
             self.log_error(f"未支持的推送方式: {method}")
             return []
-            
+
         # 查找匹配的函数
         for func in all_functions:
             if func.__name__ == target_function_name:
                 return [func]
-                
+
         self.log_error(f"{method} 推送方式未正确配置")
         return []
 
