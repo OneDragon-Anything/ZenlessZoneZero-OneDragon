@@ -557,7 +557,7 @@ class PushCards:
             "var_suffix": "TOPIC",
             "title": "TOPIC",
             "icon": FluentIcon.PEOPLE,
-            "placeholder": "ntfy 的 Topic",
+            "placeholder": "ntfy 应用 Topic",
             "type": "text",
             "required": True
         },
@@ -566,8 +566,36 @@ class PushCards:
             "title": "消息优先级",
             "icon": FluentIcon.CLOUD,
             "type": "combo",
-            "options": ["", "1", "2", "3", "4", "5"],
+            "options": ["1", "2", "3", "4", "5"],
             "default": "3"
+        },
+        {
+            "var_suffix": "TOKEN",
+            "title": "TOKEN",
+            "icon": FluentIcon.VPN,
+            "placeholder": "ntfy 应用 token",
+            "type": "text"
+        },
+        {
+            "var_suffix": "USERNAME",
+            "title": "用户名称",
+            "icon": FluentIcon.PEOPLE,
+            "placeholder": "ntfy 应用用户名",
+            "type": "text"
+        },
+        {
+            "var_suffix": "PASSWORD",
+            "title": "用户密码",
+            "icon": FluentIcon.VPN,
+            "placeholder": "ntfy 应用密码",
+            "type": "text"
+        },
+        {
+            "var_suffix": "ACTIONS",
+            "title": "用户动作",
+            "icon": FluentIcon.APPLICATION,
+            "placeholder": "ntfy 用户动作，最多三个",
+            "type": "text"
         }
     ],
     "WXPUSHER": [
