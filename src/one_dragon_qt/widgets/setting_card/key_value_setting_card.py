@@ -11,7 +11,7 @@ from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 
 
 class KeyValueSettingCard(SettingCardBase):
-    """ 可动态增删的键值对设置卡片 """
+    """可动态增删的键值对设置卡片"""
 
     value_changed = Signal(str)
 
@@ -32,19 +32,21 @@ class KeyValueSettingCard(SettingCardBase):
         self.kv_layout = QVBoxLayout()  # 存放键值对行
         self.main_layout.addLayout(self.kv_layout)
 
-        self.add_btn = PushButton(gt('添加一行'), self)
-        self.add_btn.setIcon(FluentIcon.ADD.icon())
+        self.add_btn = PushButton(FluentIcon.ADD, gt('新增'), self)
         self.add_btn.clicked.connect(lambda: self._add_row())
-        self.main_layout.addWidget(self.add_btn, 0, Qt.AlignmentFlag.AlignLeft)
 
-        # 不在初始化时设置固定高度，让它动态调整
-        # self.setFixedHeight(self.sizeHint().height())
+        btn_layout = QHBoxLayout()
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+        btn_layout.addWidget(self.add_btn)
+        btn_layout.addSpacing(16)
+
+        self.main_layout.addLayout(btn_layout)
 
         # 默认添加一行空白，方便用户输入
         self._add_row(emit_signal=False)
 
     def _add_row(self, key="", value="", emit_signal=True):
-        """ 添加一行键值对输入 """
+        """添加一行键值对输入"""
         row_widget = QWidget(self)
         row_layout = QHBoxLayout(row_widget)
         row_layout.setContentsMargins(0, 0, 0, 0)
@@ -65,6 +67,7 @@ class KeyValueSettingCard(SettingCardBase):
         remove_btn = ToolButton(FluentIcon.DELETE, self)
         remove_btn.setFixedSize(30, 30)
         remove_btn.clicked.connect(lambda: self._remove_row(row_widget))
+        remove_btn.setEnabled(self.kv_layout.count() > 0)
 
         row_layout.addWidget(key_edit)
         row_layout.addWidget(value_edit)
@@ -73,23 +76,28 @@ class KeyValueSettingCard(SettingCardBase):
 
         self.kv_layout.addWidget(row_widget)
         self._update_height()
+        self._update_all_remove_buttons()
 
     def _remove_row(self, row_widget: QWidget):
-        """ 移除指定行 """
+        """移除指定行"""
+        if self.kv_layout.count() <= 1:
+            return
+
         self.kv_layout.removeWidget(row_widget)
         row_widget.deleteLater()
         self._on_value_changed()
         self._update_height()
+        self._update_all_remove_buttons()
 
     def _clear_rows(self):
-        """ 清空所有行 """
+        """清空所有行"""
         while self.kv_layout.count():
             child = self.kv_layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
 
     def _update_height(self):
-        """ 根据内容更新卡片高度 """
+        """根据内容更新卡片高度"""
         # 计算所需的高度
         min_height = 100  # 最小高度
         content_height = self.kv_layout.count() * 40 + 80  # 每行大约40px，加上按钮和间距
@@ -106,11 +114,21 @@ class KeyValueSettingCard(SettingCardBase):
                 parent.update()
                 parent.updateGeometry()
 
+    def _update_all_remove_buttons(self):
+        """更新所有删除按钮状态"""
+        should_enable = self.kv_layout.count() > 1
+        for i in range(self.kv_layout.count()):
+            row_widget = self.kv_layout.itemAt(i).widget()
+            if row_widget:
+                remove_btn = row_widget.findChild(ToolButton)
+                if remove_btn:
+                    remove_btn.setEnabled(should_enable)
+
     def _on_value_changed(self):
         self.value_changed.emit(self.getValue())
 
     def getValue(self) -> str:
-        """ 获取所有键值对，返回 JSON 格式的字符串 """
+        """获取所有键值对，返回 JSON 格式的字符串"""
         kv_dict = {}
         for i in range(self.kv_layout.count()):
             row_widget = self.kv_layout.itemAt(i).widget()
@@ -124,7 +142,7 @@ class KeyValueSettingCard(SettingCardBase):
         return json.dumps(kv_dict, ensure_ascii=False)
 
     def setValue(self, value: str, emit_signal: bool = True):
-        """ 从 JSON 字符串设置键值对 """
+        """从 JSON 字符串设置键值对"""
         self._clear_rows()
         try:
             if value:
@@ -150,9 +168,10 @@ class KeyValueSettingCard(SettingCardBase):
 
         # 最后更新一次，但不触发值变化事件
         self._update_height()
+        self._update_all_remove_buttons()
 
     def init_with_adapter(self, adapter):
-        """ 使用适配器初始化 """
+        """使用适配器初始化"""
         self.adapter = adapter
 
         if self.adapter is None:
