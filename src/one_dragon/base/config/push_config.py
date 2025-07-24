@@ -7,10 +7,9 @@ from one_dragon.base.config.yaml_config import YamlConfig
 
 class NotifyMethodEnum(Enum):
 
-    SMTP = ConfigItem('邮件', 'SMTP')
     WEBHOOK = ConfigItem('Webhook', 'WEBHOOK')
+    SMTP = ConfigItem('邮件', 'SMTP')
     ONEBOT = ConfigItem('OneBot', 'ONEBOT')
-    CHRONOCAT = ConfigItem('Chronocat', 'CHRONOCAT')
     QYWX = ConfigItem('企业微信', 'QYWX')
     DD_BOT = ConfigItem('钉钉机器人', 'DD_BOT')
     FS =  ConfigItem('飞书机器人', 'FS')
@@ -19,8 +18,10 @@ class NotifyMethodEnum(Enum):
     BARK = ConfigItem('Bark', 'BARK')
     SERVERCHAN = ConfigItem('Server 酱', 'SERVERCHAN')
     NTFY = ConfigItem('ntfy', 'NTFY')
-    DEER = ConfigItem('PushDeer', 'DEER')
     GOTIFY = ConfigItem('GOTIFY', 'GOTIFY')
+    UNKNOWN = ConfigItem('下面的方法无人维护，遇到问题请自行解决', 'UNKNOWN')
+    CHRONOCAT = ConfigItem('Chronocat', 'CHRONOCAT')
+    DEER = ConfigItem('PushDeer', 'DEER')
     IGOT = ConfigItem('iGot', 'IGOT')
     CHAT = ConfigItem('Synology Chat', 'CHAT')
     PUSH_PLUS = ConfigItem('PushPlus', 'PUSH_PLUS')
