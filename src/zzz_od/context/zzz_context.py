@@ -66,6 +66,7 @@ class ZContext(OneDragonContext):
         from zzz_od.application.notorious_hunt.notorious_hunt_run_record import NotoriousHuntRunRecord
         from zzz_od.application.random_play.random_play_run_record import RandomPlayRunRecord
         from zzz_od.application.scratch_card.scratch_card_run_record import ScratchCardRunRecord
+        from zzz_od.application.boobox.boobox_run_record import BooboxRunRecord
         from zzz_od.hollow_zero.hollow_zero_challenge_config import HollowZeroChallengeConfig
         from zzz_od.application.redemption_code.redemption_code_run_record import RedemptionCodeRunRecord
         from zzz_od.application.commission_assistant.commission_assistant_config import CommissionAssistantConfig
@@ -96,6 +97,8 @@ class ZContext(OneDragonContext):
         self.random_play_run_record.check_and_update_status()
         self.scratch_card_run_record: ScratchCardRunRecord = ScratchCardRunRecord(self.current_instance_idx, game_refresh_hour_offset)
         self.scratch_card_run_record.check_and_update_status()
+        self.boobox_run_record: BooboxRunRecord = BooboxRunRecord(self.current_instance_idx, game_refresh_hour_offset)
+        self.boobox_run_record.check_and_update_status()
         self.charge_plan_run_record: ChargePlanRunRecord = ChargePlanRunRecord(self.current_instance_idx, game_refresh_hour_offset)
         self.charge_plan_run_record.check_and_update_status()
         self.engagement_reward_run_record: EngagementRewardRunRecord = EngagementRewardRunRecord(self.current_instance_idx, game_refresh_hour_offset)

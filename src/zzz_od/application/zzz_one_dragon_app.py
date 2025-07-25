@@ -1,6 +1,7 @@
 from typing import List
 
 from one_dragon.base.operation.one_dragon_app import OneDragonApp
+from zzz_od.application.boobox.BooboxApp import BooboxApp
 from zzz_od.application.charge_plan.charge_plan_app import ChargePlanApp
 from zzz_od.application.city_fund.city_fund_app import CityFundApp
 from zzz_od.application.coffee.coffee_app import CoffeeApp
@@ -45,6 +46,7 @@ class ZOneDragonApp(OneDragonApp, ZApplication):
             TrigramsCollectionApp(self.ctx),
             ChargePlanApp(self.ctx),
             CoffeeApp(self.ctx),
+            BooboxApp(self.ctx),
             NotoriousHuntApp(self.ctx),
             EngagementRewardApp(self.ctx),
             HollowZeroApp(self.ctx),
