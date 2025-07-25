@@ -8,12 +8,13 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.horizontal_setting_card_group import HorizontalSettingCardGroup
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiLineSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, AutoRecoverChargeEnum
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum
 from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntBuffEnum
 from zzz_od.context.zzz_context import ZContext
 
@@ -267,27 +268,12 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.content_widget = Column()
 
         self.loop_opt = SwitchSettingCard(icon=FluentIcon.SYNC, title='循环执行', content='开启时 会循环执行到体力用尽')
-        self.loop_opt.value_changed.connect(lambda value: self._on_config_changed(value, 'loop'))
-
         self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启时 自动跳过体力不足的计划')
-        self.skip_plan_opt.value_changed.connect(lambda value: self._on_config_changed(value, 'skip_plan'))
+        self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt], 4))
 
-        # 创建自动回复电量的下拉框
-        self.auto_recover_charge_combo = ComboBox()
-        config_list = [config_enum.value for config_enum in AutoRecoverChargeEnum]
-        self.auto_recover_charge_combo.set_items(config_list, AutoRecoverChargeEnum.NONE.value.value)
-        self.auto_recover_charge_combo.currentIndexChanged.connect(self._on_auto_recover_changed)
-        
-        from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-        self.auto_recover_charge_opt = SettingCardBase(
-            icon=FluentIcon.POWER_BUTTON, 
-            title='自动回复电量',
-            content='电量不足时的回复策略'
-        )
-        self.auto_recover_charge_opt.hBoxLayout.addWidget(self.auto_recover_charge_combo)
-        self.auto_recover_charge_opt.hBoxLayout.addSpacing(16)
-
-        self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt, self.auto_recover_charge_opt], 4))
+        self.coupon_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='使用家政券', content='运行定期清剿时使用家政券')
+        self.restore_charge_opt = ComboBoxSettingCard(icon=FluentIcon.ADD_TO, title='恢复电量', options_enum=RestoreChargeEnum)
+        self.content_widget.add_widget(HorizontalSettingCardGroup([self.coupon_opt, self.restore_charge_opt], 4))
 
         self.cancel_btn = PushButton(icon=FluentIcon.CANCEL, text=gt('撤销'))
         self.cancel_btn.setEnabled(False)
@@ -310,10 +296,6 @@ class ChargePlanInterface(VerticalScrollInterface):
         ], icon=FluentIcon.DELETE, title='删除体力计划')
         self.content_widget.add_widget(self.remove_setting_card)
 
-        self.coupon_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='使用家政券', content='运行定期清剿时使用家政券')
-        self.coupon_opt.value_changed.connect(lambda value: self._on_config_changed(value, 'use_coupon'))
-        self.content_widget.add_widget(self.coupon_opt)
-
         self.card_list: List[ChargePlanCard] = []
 
         self.plus_btn = PrimaryPushButton(text=gt('新增'))
@@ -326,18 +308,16 @@ class ChargePlanInterface(VerticalScrollInterface):
         VerticalScrollInterface.on_interface_shown(self)
         self.update_plan_list_display()
 
+        self.loop_opt.init_with_adapter(self.ctx.charge_plan_config.get_prop_adapter('loop'))
+        self.skip_plan_opt.init_with_adapter(self.ctx.charge_plan_config.get_prop_adapter('skip_plan'))
+        self.coupon_opt.init_with_adapter(self.ctx.charge_plan_config.get_prop_adapter('use_coupon'))
+        self.restore_charge_opt.init_with_adapter(self.ctx.charge_plan_config.get_prop_adapter('restore_charge'))
+
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
 
     def update_plan_list_display(self):
         plan_list = self.ctx.charge_plan_config.plan_list
-
-        self.loop_opt.setValue(self.ctx.charge_plan_config.loop or False)
-        self.skip_plan_opt.setValue(self.ctx.charge_plan_config.skip_plan or False)
-        # 设置自动回复电量下拉框的值
-        self.auto_recover_charge_combo.set_items([config_enum.value for config_enum in AutoRecoverChargeEnum], 
-                                                self.ctx.charge_plan_config.auto_recover_charge or AutoRecoverChargeEnum.NONE.value.value)
-        self.coupon_opt.setValue(self.ctx.charge_plan_config.use_coupon or False)
 
         if len(plan_list) > len(self.card_list):
             self.content_widget.remove_widget(self.plus_btn)
@@ -389,16 +369,6 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.ctx.charge_plan_config.move_top(idx)
         self.update_plan_list_display()
 
-    def _on_config_changed(self, new_value: bool, config_item: str) -> None:
-        setattr(self.ctx.charge_plan_config, config_item, new_value)
-        self.ctx.charge_plan_config.save()
-
-    def _on_auto_recover_changed(self, idx: int) -> None:
-        """自动回复电量选项改变时的回调"""
-        selected_value = self.auto_recover_charge_combo.itemData(idx)
-        self.ctx.charge_plan_config.auto_recover_charge = selected_value
-        self.ctx.charge_plan_config.save()
-
     def _on_remove_all_completed_clicked(self) -> None:
         dialog = Dialog('警告', '是否删除所有已完成的体力计划？', self)
         dialog.setTitleBarVisible(False)
@@ -406,7 +376,7 @@ class ChargePlanInterface(VerticalScrollInterface):
         dialog.cancelButton.setText('取消')
         if dialog.exec():
             self.plan_list_backup = self.ctx.charge_plan_config.plan_list.copy()
-            not_completed_plans = [plan for plan in self.ctx.charge_plan_config.plan_list 
+            not_completed_plans = [plan for plan in self.ctx.charge_plan_config.plan_list
                                 if plan.run_times < plan.plan_times]
             self.ctx.charge_plan_config.plan_list = not_completed_plans.copy()
             self.ctx.charge_plan_config.save()

@@ -7,7 +7,7 @@ from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.zzz_application import ZApplication
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, AutoRecoverChargeEnum
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
@@ -108,7 +108,7 @@ class ChargePlanApp(ZApplication):
             min_required_power = min(min_required_power, required)
         
         # 如果电量不足且开启了自动回复
-        if self.charge_power < min_required_power and self.ctx.charge_plan_config.auto_recover_charge != AutoRecoverChargeEnum.NONE.value.value:
+        if self.charge_power < min_required_power and self.ctx.charge_plan_config.restore_charge != RestoreChargeEnum.NONE.value.value:
             return self.round_success(ChargePlanApp.STATUS_TRY_RECOVER_CHARGE)
         
         # 电量足够，继续正常流程
@@ -161,7 +161,7 @@ class ChargePlanApp(ZApplication):
             # 检查电量是否足够
             if not self.need_to_check_power_in_mission and self.charge_power < need_charge_power:
                 # 如果开启了自动回复电量，允许继续执行以触发回复流程
-                if self.ctx.charge_plan_config.auto_recover_charge != AutoRecoverChargeEnum.NONE.value.value:
+                if self.ctx.charge_plan_config.restore_charge != RestoreChargeEnum.NONE.value.value:
                     # 设置下一个计划并继续，让传送阶段处理电量不足
                     self.next_plan = candidate_plan
                     return self.round_success()
@@ -191,7 +191,7 @@ class ChargePlanApp(ZApplication):
     @operation_node(name='传送')
     def transport(self) -> OperationRoundResult:
         # 如果开启了自动回复电量，在传送前再次检查电量
-        if self.ctx.charge_plan_config.auto_recover_charge != AutoRecoverChargeEnum.NONE.value.value:
+        if self.ctx.charge_plan_config.restore_charge != RestoreChargeEnum.NONE.value.value:
             # 计算所需电量
             need_charge_power = 1000
             if self.next_plan.category_name == '实战模拟室':
@@ -273,8 +273,8 @@ class ChargePlanApp(ZApplication):
     @operation_node(name='电量不足')
     def charge_not_enough(self) -> OperationRoundResult:
         # 检查自动回复电量设置
-        auto_recover_mode = self.ctx.charge_plan_config.auto_recover_charge
-        if auto_recover_mode != AutoRecoverChargeEnum.NONE.value.value:
+        auto_recover_mode = self.ctx.charge_plan_config.restore_charge
+        if auto_recover_mode != RestoreChargeEnum.NONE.value.value:
             # 根据设置选择回复方式，尝试回复电量
             return self.round_success(ChargePlanApp.STATUS_TRY_RECOVER_CHARGE)
         
@@ -317,11 +317,11 @@ class ChargePlanApp(ZApplication):
             return self.round_success('使用以太电池')
         if getattr(self, '_force_ether_only', False):
             return self.round_success('使用以太电池')
-        auto_recover_mode = self.ctx.charge_plan_config.auto_recover_charge
-        if auto_recover_mode == AutoRecoverChargeEnum.BACKUP_ONLY.value.value:
+        auto_recover_mode = self.ctx.charge_plan_config.restore_charge
+        if auto_recover_mode == RestoreChargeEnum.BACKUP_ONLY.value.value:
             # 仅使用储蓄电量
             return self.round_success('使用储蓄电量')
-        elif auto_recover_mode == AutoRecoverChargeEnum.ETHER_ONLY.value.value:
+        elif auto_recover_mode == RestoreChargeEnum.ETHER_ONLY.value.value:
             # 仅使用以太电池
             return self.round_success('使用以太电池')
         else:
@@ -481,8 +481,8 @@ class ChargePlanApp(ZApplication):
             self.ctx.controller.input_str(str(amount_to_use))
             time.sleep(0.5)
             # 新增：如果是同时使用模式且补完后体力还不够，则切换flag并重试
-            auto_recover_mode = self.ctx.charge_plan_config.auto_recover_charge
-            if auto_recover_mode == AutoRecoverChargeEnum.BOTH.value.value:
+            auto_recover_mode = self.ctx.charge_plan_config.restore_charge
+            if auto_recover_mode == RestoreChargeEnum.BOTH.value.value:
                 # 计算补完后的体力
                 after_charge = self.charge_power + amount_to_use
                 if after_charge < need_charge_power:
