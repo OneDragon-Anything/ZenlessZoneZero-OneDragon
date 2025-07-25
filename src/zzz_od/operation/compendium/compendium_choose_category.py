@@ -30,9 +30,8 @@ class CompendiumChooseCategory(ZOperation):
 
     @operation_node(name='选择分类', is_start_node=True)
     def choose_tab(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('快捷手册', '分类列表')
-        part = cv2_utils.crop_image_only(screen, area.rect)
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
         target_point: Optional[Point] = None
         ocr_results = self.ctx.ocr.run_ocr(part, merge_line_distance=40)

@@ -13,7 +13,6 @@ from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidRegionType
 from zzz_od.application.hollow_zero.lost_void.operation.lost_void_run_level import LostVoidRunLevel
 from zzz_od.application.zzz_application import ZApplication
-from zzz_od.const import game_const
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.game_data.compendium import CompendiumMissionType
@@ -58,16 +57,14 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='初始化加载', status=STATUS_AGAIN)
     @operation_node(name='识别初始画面')
     def check_initial_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
         # 特殊兼容 在挑战区域开始
-        result = self.round_by_find_and_click_area(screen, '迷失之地-大世界', '按钮-挑战-确认')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-大世界', '按钮-挑战-确认')
         if result.is_success:
             self.next_region_type = LostVoidRegionType.CHANLLENGE_TIME_TRAIL
             return self.round_wait(result.status, wait=1)
 
         mission_name = self.ctx.lost_void_config.mission_name
-        screen_name, can_go = self.check_screen_with_can_go(screen, f'迷失之地-{mission_name}')
+        screen_name, can_go = self.check_screen_with_can_go(self.last_screenshot, f'迷失之地-{mission_name}')
         if screen_name is None:
             return self.round_retry(Operation.STATUS_SCREEN_UNKNOWN, wait=0.5)
 
@@ -124,7 +121,6 @@ class LostVoidApp(ZApplication):
         针对不同的副本类型 进行对应的所需识别
         :return:
         """
-        screen = self.screenshot()
         mission_name = self.ctx.lost_void_config.mission_name
 
         # 如果是特遣调查 则额外识别当期UP角色
@@ -132,7 +128,7 @@ class LostVoidApp(ZApplication):
             match_agent_list: list[tuple[MatchResult, Agent]] = []
 
             area = self.ctx.screen_loader.get_area('迷失之地-特遣调查', '区域-代理人头像')
-            part = cv2_utils.crop_image_only(screen, area.rect)
+            part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
             source_kp, source_desc = cv2_utils.feature_detect_and_compute(part)
             for agent_enum in AgentEnum:
                 agent: Agent = agent_enum.value
@@ -175,23 +171,27 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='打开调查战略列表')
     @operation_node(name='选择调查战略')
     def choose_strategy(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
         current_screen_name = self.check_and_update_current_screen(
-            screen, screen_name_list=['迷失之地-战线肃清', '迷失之地-特遣调查']
+            self.last_screenshot, screen_name_list=['迷失之地-战线肃清', '迷失之地-特遣调查']
         )
         if current_screen_name is not None:
             return self.round_success(current_screen_name)
 
         # 当前屏幕匹配是否有目标战略
-        ocr_result_map = self.ctx.ocr.run_ocr(screen)
+        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
         ocr_word_list = list(ocr_result_map.keys())
         target = gt(self.ctx.lost_void.challenge_config.investigation_strategy, 'game')
         idx = str_utils.find_best_match_by_difflib(target, ocr_word_list)
 
         if idx is None or idx < 0:
+            is_after = str_utils.is_target_after_ocr_list(
+                target_cn=self.ctx.lost_void.challenge_config.investigation_strategy,
+                order_cn_list=[i.strategy_name for i in self.ctx.lost_void.investigation_strategy_list],
+                ocr_result_list=ocr_word_list
+            )
+
             start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
-            end = start + Point(-400, 0)
+            end = start + Point(800 * (-1 if is_after else 1), 0)
             self.ctx.controller.drag_to(start=start, end=end)
             return self.round_retry(status='未识别到目标调查战略', wait=1)
 
@@ -312,8 +312,7 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='层间移动', status=LostVoidRunLevel.STATUS_COMPLETE)
     @operation_node(name='通关后处理', node_max_retry_times=60)
     def after_complete(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        screen_name = self.check_and_update_current_screen(screen)
+        screen_name = self.check_and_update_current_screen(self.last_screenshot)
         if screen_name != '迷失之地-入口':
             return self.round_retry('等待画面加载')
 

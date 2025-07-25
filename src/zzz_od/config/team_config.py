@@ -68,7 +68,7 @@ class TeamConfig(YamlConfig):
         for team in self.team_list:
             if team.idx == team_idx:
                 return team
-
+        return None
 
     def update_team_members(self, team_name: str, members: List[Agent]) -> None:
         """

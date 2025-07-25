@@ -31,20 +31,18 @@ class EnterHddMission(ZOperation):
 
     @operation_node(name='选择章节', is_start_node=True)
     def choose_chapter(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
         area = self.ctx.screen_loader.get_area('HDD', '章节列表')
-        result = self.round_by_ocr_and_click(screen, self.chapter, area=area)
+        result = self.round_by_ocr_and_click(self.last_screenshot, self.chapter, area=area)
         if result.is_success:
             return self.round_wait(status=result.status, wait=1)
 
         area = self.ctx.screen_loader.get_area('HDD', '章节显示')
-        result = self.round_by_ocr(screen, self.chapter, area=area)
+        result = self.round_by_ocr(self.last_screenshot, self.chapter, area=area)
         if result.is_success:
             return self.round_success(status=result.status)
 
         # 完成一次退出后 可能在副本列表画面
-        result = self.round_by_find_area(screen, 'HDD', '下一步')
+        result = self.round_by_find_area(self.last_screenshot, 'HDD', '下一步')
         if result.is_success:
             return self.round_success(status=result.status)
 
@@ -55,14 +53,13 @@ class EnterHddMission(ZOperation):
     @node_from(from_name='选择章节')
     @operation_node(name='选择委托')
     def choose_mission_type(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('HDD', '委托区域')
-        result = self.round_by_ocr_and_click(screen, self.mission_type, area=area)
+        result = self.round_by_ocr_and_click(self.last_screenshot, self.mission_type, area=area)
         if result.is_success:
             return self.round_wait(status=result.status, wait=2)
 
         # 点击直到看到下一步
-        result = self.round_by_find_area(screen, 'HDD', '下一步')
+        result = self.round_by_find_area(self.last_screenshot, 'HDD', '下一步')
         if result.is_success:  # 稍微等待
             return self.round_success(wait=1)
 
@@ -72,9 +69,8 @@ class EnterHddMission(ZOperation):
     @node_from(from_name='选择委托')
     @operation_node(name='选择副本', node_max_retry_times=10)  # 有些副本比较多 多允许滑动几次找找
     def choose_mission(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('HDD', '副本区域')
-        result = self.round_by_ocr_and_click(screen, self.mission_name, area=area)
+        result = self.round_by_ocr_and_click(self.last_screenshot, self.mission_name, area=area)
         if result.is_success:
             return self.round_success(wait=1)
 
@@ -88,8 +84,7 @@ class EnterHddMission(ZOperation):
     @node_from(from_name='选择副本')
     @operation_node(name='下一步')
     def click_next(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, 'HDD', '下一步',
+        return self.round_by_find_and_click_area(self.last_screenshot, 'HDD', '下一步',
                                                  success_wait=2, retry_wait=1)
 
     @node_from(from_name='下一步')
@@ -104,15 +99,13 @@ class EnterHddMission(ZOperation):
     @node_from(from_name='选择预备编队')
     @operation_node(name='出战')
     def click_deploy(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, 'HDD', '出战',
+        return self.round_by_find_and_click_area(self.last_screenshot, 'HDD', '出战',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='出战')
     @operation_node(name='识别低等级')
     def check_level(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, 'HDD', '确定并出战',
+        return self.round_by_find_and_click_area(self.last_screenshot, 'HDD', '确定并出战',
                                                  retry_wait=1)
 
     @node_from(from_name='识别低等级')

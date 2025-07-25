@@ -1,7 +1,6 @@
-import time
+from typing import Optional, ClassVar
 
 from cv2.typing import MatLike
-from typing import Optional, ClassVar
 
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.operation import Operation
@@ -57,15 +56,13 @@ class ShiyuDefenseBattle(ZOperation):
     @node_from(from_name='加载自动战斗指令')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
     def wait_battle_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        result = self.round_by_find_area(screen, '战斗画面', '按键-普通攻击', retry_wait_round=1)
+        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击', retry_wait_round=1)
         return result
 
     @node_from(from_name='等待战斗画面加载')
     @operation_node(name='向前移动准备战斗')
     def start_move(self):
-        screen = self.screenshot()
-        self.check_distance(screen)
+        self.check_distance(self.last_screenshot)
 
         if self.distance_pos is None:
             if self.auto_op.auto_battle_context.without_distance_times >= 10:
@@ -104,17 +101,14 @@ class ShiyuDefenseBattle(ZOperation):
             auto_battle_utils.stop_running(self.auto_op)
             return self.round_success(status=ShiyuDefenseBattle.STATUS_NEED_SPECIAL_MOVE)
 
-        now = time.time()
-        screen = self.screenshot()
-
         in_battle = self.auto_op.auto_battle_context.check_battle_state(
-            screen, now,
+            self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True,
             check_battle_end_defense_result=True,
             check_distance=True)
 
         if not in_battle:
-            result = self.round_by_find_area(screen, '战斗画面', '按键-交互')
+            result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
             if result.is_success:
                 self.find_interact_btn_times += 1
             else:
@@ -129,21 +123,19 @@ class ShiyuDefenseBattle(ZOperation):
     @node_from(from_name='自动战斗', status=STATUS_NEED_SPECIAL_MOVE)
     @operation_node(name='战斗后移动', node_max_retry_times=5)
     def move_after_battle(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result1 = self.round_by_find_area(screen, '战斗画面', '按键-交互')
+        result1 = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
         if result1.is_success:
             self.ctx.controller.interact(press=True, press_time=0.2, release=True)
             return self.round_wait(result1.status, wait=0.5)
 
-        result2 = self.round_by_find_area(screen, '战斗画面', '按键-普通攻击')
+        result2 = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
         if not result2.is_success:
             # 交互和普通攻击都没有找到 说明战斗胜利了
             return self.round_success(ShiyuDefenseBattle.STATUS_TO_NEXT_PHASE)
 
         auto_battle_utils.check_astra_and_switch(self.auto_op)  # 移动前如果是耀嘉音就切人
 
-        self.check_distance(screen)
+        self.check_distance(self.last_screenshot)
 
         if self.distance_pos is None:
             # 丢失距离后 当前无法识别下层入口 只能失败退出
@@ -189,9 +181,7 @@ class ShiyuDefenseBattle(ZOperation):
     @operation_node(name='主动退出')
     def voluntary_exit(self) -> OperationRoundResult:
         auto_battle_utils.stop_running(self.auto_op)
-        screen = self.screenshot()
-
-        result = self.round_by_find_area(screen, '式舆防卫战', '退出战斗')
+        result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '退出战斗')
         if result.is_success:
             return self.round_success(wait=0.5)  # 稍微等一下让按钮可按
 
@@ -201,31 +191,27 @@ class ShiyuDefenseBattle(ZOperation):
     @node_from(from_name='主动退出')
     @operation_node(name='点击退出')
     def click_exit(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '式舆防卫战', '退出战斗',
+        return self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '退出战斗',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击退出')
     @operation_node(name='点击退出确认')
     def click_exit_confirm(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '零号空洞-战斗', '退出战斗-确认',
+        return self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-战斗', '退出战斗-确认',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='自动战斗', status='战斗结束-撤退')
     @operation_node(name='战斗失败撤退')
     def battle_fail_exit(self) -> OperationRoundResult:
-        screen = self.screenshot()
         self.battle_fail = '战斗结束-撤退'
-        return self.round_by_find_and_click_area(screen, '式舆防卫战', '战斗结束-撤退',
+        return self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '战斗结束-撤退',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击退出确认')
     @node_from(from_name='战斗失败撤退')
     @operation_node(name='等待退出', node_max_retry_times=60)
     def wait_exit(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        result = self.round_by_find_area(screen, '式舆防卫战', '街区')
+        result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '街区')
 
         if result.is_success:
             if self.battle_fail is None:

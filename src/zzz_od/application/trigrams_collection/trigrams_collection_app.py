@@ -48,9 +48,7 @@ class TrigramsCollectionApp(ZApplication):
     @node_from(from_name='移动交互')
     @operation_node(name='获取卦象')
     def get_trigram(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        ocr_result_map = self.ctx.ocr.run_ocr(screen)
+        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
 
         target_word_list: list[str] = [
             '卦象集录',  # 外层还没开卦象的时候

@@ -20,8 +20,7 @@ class FullInBag(ZOperation):
 
     @operation_node(name='丢弃', is_start_node=True)
     def drop(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_ocr_and_click(screen, '丢弃',
+        return self.round_by_ocr_and_click(self.last_screenshot, '丢弃',
                                            success_wait=1, retry_wait=1)
 
 

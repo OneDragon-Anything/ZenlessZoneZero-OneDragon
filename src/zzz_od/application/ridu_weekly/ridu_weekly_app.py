@@ -36,16 +36,14 @@ class RiduWeeklyApp(ZApplication):
     @node_from(from_name='日常')
     @operation_node(name='丽都周纪')
     def click_schedule(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        return self.round_by_find_and_click_area(screen, '丽都周纪', '丽都周纪',
+        return self.round_by_find_and_click_area(self.last_screenshot, '丽都周纪', '丽都周纪',
                                                  success_wait=2, retry_wait=1)
 
     @node_from(from_name='丽都周纪')
     @operation_node(name='领取积分')
     def claim_score(self, screen: MatLike = None) -> OperationRoundResult:
         if screen is None:
-            screen = self.screenshot()
+            screen = self.last_screenshot
 
         for i in range(3):
             area = self.ctx.screen_loader.get_area('丽都周纪', f'积分行-{i+1}')

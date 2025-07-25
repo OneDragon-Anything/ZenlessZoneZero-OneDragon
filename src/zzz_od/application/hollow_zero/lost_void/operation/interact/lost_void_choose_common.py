@@ -35,12 +35,11 @@ class LostVoidChooseCommon(ZOperation):
         area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '文本-详情')
         self.ctx.controller.mouse_move(area.center + Point(0, 100))
         time.sleep(0.1)
-        screen = self.screenshot()
 
-        result = self.round_by_find_area(screen, '迷失之地-通用选择', '按钮-刷新')
+        result = self.round_by_find_area(self.last_screenshot, '迷失之地-通用选择', '按钮-刷新')
         can_refresh = result.is_success
 
-        art_list, chosen_list = self.get_artifact_pos(screen)
+        art_list, chosen_list = self.get_artifact_pos(self.last_screenshot)
         art: Optional[LostVoidArtifactPos] = None
         if self.to_choose_num > 0:
             if len(art_list) == 0:
@@ -73,13 +72,13 @@ class LostVoidChooseCommon(ZOperation):
                     self.ctx.controller.click(art.rect.center)
                     time.sleep(0.5)
             elif can_refresh:
-                result = self.round_by_find_and_click_area(screen, '迷失之地-通用选择', '按钮-刷新')
+                result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-通用选择', '按钮-刷新')
                 if result.is_success:
                     return self.round_wait(result.status, wait=1)
                 else:
                     return self.round_retry(result.status, wait=1)
 
-        result = self.round_by_find_and_click_area(screen=screen, screen_name='迷失之地-通用选择', area_name='按钮-确定',
+        result = self.round_by_find_and_click_area(screen=self.last_screenshot, screen_name='迷失之地-通用选择', area_name='按钮-确定',
                                                    success_wait=1, retry_wait=1)
         if result.is_success:
             status = result.status if art is None else f'选择 {art.artifact.name}'

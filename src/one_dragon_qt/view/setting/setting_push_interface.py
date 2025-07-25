@@ -4,11 +4,11 @@ from qfluentwidgets import FluentIcon
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.push_config import NotifyMethodEnum
 from one_dragon.base.notify.push import Push
-from one_dragon.base.notify.push_cards import PushCards
 from one_dragon.base.notify.push_email_services import PushEmailServices
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.push_cards import PushCards
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import EditableComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard

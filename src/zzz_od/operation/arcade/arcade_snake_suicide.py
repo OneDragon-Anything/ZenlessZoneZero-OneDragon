@@ -35,21 +35,18 @@ class ArcadeSnakeSuicide(ZOperation):
     @node_from(from_name='点击空白处继续', status='蛇对蛇-点击空白处继续')
     @operation_node(name='等待加载', node_max_retry_times=20)
     def wait_game_load(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_area(screen, '电玩店', '蛇对蛇-加载完成', retry_wait=1)
+        return self.round_by_find_area(self.last_screenshot, '电玩店', '蛇对蛇-加载完成', retry_wait=1)
 
     @node_from(from_name='等待加载')
     @operation_node(name='点击空白处继续', node_max_retry_times=20)
     def click_empty(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result = self.round_by_find_area(screen, '电玩店', '蛇对蛇-点击空白处继续')
+        result = self.round_by_find_area(self.last_screenshot, '电玩店', '蛇对蛇-点击空白处继续')
         if result.is_success:
             self.finish_cnt += 1
             if self.finish_cnt >= self.total_cnt:
                 return self.round_success()
             else:
-                return self.round_by_find_and_click_area(screen, '电玩店', '蛇对蛇-点击空白处继续',
+                return self.round_by_find_and_click_area(self.last_screenshot, '电玩店', '蛇对蛇-点击空白处继续',
                                                          success_wait=3, retry_wait=1)
 
         self.ctx.controller.keyboard_controller.press('w', press_time=0.2)

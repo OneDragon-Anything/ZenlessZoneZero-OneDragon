@@ -43,8 +43,14 @@ class OperationEdge:
 
 class OperationEdgeDesc:
 
-    def __init__(self, node_from_name: str, node_to_name: str,
-                 success: bool = True, status: Optional[str] = None, ignore_status: bool = True):
+    def __init__(
+            self,
+            node_from_name: str,
+            node_to_name: str | None = None,
+            success: bool = True,
+            status: Optional[str] = None,
+            ignore_status: bool = True
+    ):
         """
         边描述
         """
@@ -61,22 +67,29 @@ def node_from(
         status: Optional[str] = None,
         ignore_status: bool = True,
 ):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
-        if 'operation_edge_annotation' not in wrapper.__annotations__:
-            wrapper.__annotations__['operation_edge_annotation'] = []
-        else:
-            pass
+    """
+    一个用于给函数附加 OperationEdgeDesc 元数据的装饰器。
+    它不会改变原函数的行为，并且支持在同一个函数上多次使用。
+    """
 
-        wrapper.__annotations__['operation_edge_annotation'].append(
+    def decorator(func):
+        # 检查函数是否已经有关联的边列表，如果没有则创建一个
+        if not hasattr(func, 'operation_edge_annotation'):
+            setattr(func, 'operation_edge_annotation', [])
+
+        # 获取边列表并添加新的边描述
+        edge_list = getattr(func, 'operation_edge_annotation')
+        edge_list.append(
             OperationEdgeDesc(
-            node_from_name=from_name,
-            node_to_name=None,
-            success=success,
-            status=status,
-            ignore_status=ignore_status,
-        ))
-        return wrapper
+                node_from_name=from_name,
+                node_to_name=None,  # to_name 会在图构建时被自动填充
+                success=success,
+                status=status,
+                ignore_status=ignore_status,
+            )
+        )
+
+        # 返回未被修改的原始函数
+        return func
+
     return decorator

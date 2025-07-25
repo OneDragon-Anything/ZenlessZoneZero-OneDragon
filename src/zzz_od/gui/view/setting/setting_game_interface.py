@@ -13,10 +13,11 @@ from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import DoubleSpinBoxSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.config.game_config import GamepadTypeEnum
-from zzz_od.config.agent_outfit_config import AgentOutfitNicole, AgentOutfitEllen, AgentOutfitAstraYao, AgentOutfitYiXuan
+from zzz_od.config.agent_outfit_config import AgentOutfitNicole, AgentOutfitEllen, AgentOutfitAstraYao, AgentOutfitYiXuan, AgentOutfityuzuha
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -64,11 +65,15 @@ class SettingGameInterface(VerticalScrollInterface):
         self.outfit_yixuan_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='仪玄', options_enum=AgentOutfitYiXuan)
         self.outfit_yixuan_opt.value_changed.connect(self._on_agent_outfit_changed)
 
+        self.outfit_yuzuha_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='浮波柚叶', options_enum=AgentOutfityuzuha)
+        self.outfit_yuzuha_opt.value_changed.connect(self._on_agent_outfit_changed)
+
         self.agent_outfit_group_horizontal = HorizontalSettingCardGroup([
             self.outfit_nicole_opt,
             self.outfit_ellen_opt,
             self.outfit_astra_yao_opt,
-            self.outfit_yixuan_opt
+            self.outfit_yixuan_opt,
+            self.outfit_yuzuha_opt
         ])
         agent_outfit_group.addSettingCard(self.agent_outfit_group_horizontal)
 
@@ -182,8 +187,8 @@ class SettingGameInterface(VerticalScrollInterface):
         gamepad_group.addSettingCard(self.gamepad_type_opt)
 
         # xbox
-        self.xbox_key_press_time_opt = TextSettingCard(icon=FluentIcon.GAME, title='单次按键持续时间(秒)',
-                                                       content='自行调整，过小可能按键被吞，过大可能影响操作')
+        self.xbox_key_press_time_opt = DoubleSpinBoxSettingCard(icon=FluentIcon.GAME, title='单次按键持续时间(秒)',
+                                                                content='自行调整，过小可能按键被吞，过大可能影响操作')
         gamepad_group.addSettingCard(self.xbox_key_press_time_opt)
 
         self.xbox_key_normal_attack_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='普通攻击', options_enum=XboxButtonEnum)
@@ -232,8 +237,8 @@ class SettingGameInterface(VerticalScrollInterface):
         gamepad_group.addSettingCard(self.xbox_key_chain_cancel_opt)
 
         # ds4
-        self.ds4_key_press_time_opt = TextSettingCard(icon=FluentIcon.GAME, title='单次按键持续时间(秒)',
-                                                      content='自行调整，过小可能按键被吞，过大可能影响操作')
+        self.ds4_key_press_time_opt = DoubleSpinBoxSettingCard(icon=FluentIcon.GAME, title='单次按键持续时间(秒)',
+                                                               content='自行调整，过小可能按键被吞，过大可能影响操作')
         gamepad_group.addSettingCard(self.ds4_key_press_time_opt)
 
         self.ds4_key_normal_attack_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='普通攻击', options_enum=Ds4ButtonEnum)
@@ -330,7 +335,7 @@ class SettingGameInterface(VerticalScrollInterface):
 
         is_xbox = self.ctx.game_config.gamepad_type == GamepadTypeEnum.XBOX.value.value
 
-        self.xbox_key_press_time_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_press_time', 'str', 'float'))
+        self.xbox_key_press_time_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_press_time'))
         self.xbox_key_normal_attack_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_normal_attack'))
         self.xbox_key_dodge_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_dodge'))
         self.xbox_key_switch_next_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_switch_next'))
@@ -366,7 +371,7 @@ class SettingGameInterface(VerticalScrollInterface):
 
         is_ds4 = self.ctx.game_config.gamepad_type == GamepadTypeEnum.DS4.value.value
 
-        self.ds4_key_press_time_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_press_time', 'str', 'float'))
+        self.ds4_key_press_time_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_press_time'))
         self.ds4_key_normal_attack_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_normal_attack'))
         self.ds4_key_dodge_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_dodge'))
         self.ds4_key_switch_next_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_switch_next'))

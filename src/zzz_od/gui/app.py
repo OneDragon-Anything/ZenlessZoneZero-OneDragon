@@ -19,7 +19,7 @@ try:
     from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
     from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
     from zzz_od.gui.view.devtools.app_devtools_interface import AppDevtoolsInterface
-    from zzz_od.gui.view.game_assistant.game_assistant import GameAssistantInterface
+    from zzz_od.gui.view.game_assistant.game_assistant_interface import GameAssistantInterface
     from zzz_od.gui.view.hollow_zero.hollow_zero_interface import HollowZeroInterface
     from zzz_od.gui.view.home.home_interface import HomeInterface
     from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
@@ -57,7 +57,7 @@ try:
                     ctx.one_dragon_config.current_active_instance.name,
                 ),
                 project_config=ctx.project_config,
-                app_icon="zzz_logo.ico",
+                app_icon="logo.ico",
                 parent=parent,
             )
 

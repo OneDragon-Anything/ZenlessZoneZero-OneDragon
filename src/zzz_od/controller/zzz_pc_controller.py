@@ -11,10 +11,13 @@ from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 class ZPcController(PcControllerBase):
 
-    def __init__(self, game_config: GameConfig,
-                 win_title: str,
-                 standard_width: int = 1920,
-                 standard_height: int = 1080):
+    def __init__(
+            self,
+            game_config: GameConfig,
+            win_title: str,
+            standard_width: int = 1920,
+            standard_height: int = 1080
+    ):
         PcControllerBase.__init__(self,
                                   win_title=win_title,
                                   standard_width=standard_width,
@@ -38,6 +41,7 @@ class ZPcController(PcControllerBase):
         self.key_chain_cancel: str = self.game_config.key_chain_cancel
 
         self.is_moving: bool = False  # 是否正在移动
+        self.turn_dx: float = game_config.turn_dx
 
     def fill_uid_black(self, screen: MatLike) -> MatLike:
         """
@@ -263,6 +267,18 @@ class ZPcController(PcControllerBase):
         :return:
         """
         ctypes.windll.user32.mouse_event(0x0001, int(d), 0)
+
+    def turn_by_angle_diff(self, angle_diff: float) -> None:
+        """
+        按照给定角度偏移进行转向
+
+        Args:
+            angle_diff: 角度偏移 逆时针为正
+
+        Returns:
+            None
+        """
+        self.turn_by_distance(self.turn_dx * angle_diff)
 
     def lock(self, press: bool = False, press_time: Optional[float] = None, release: bool = False) -> None:
         """

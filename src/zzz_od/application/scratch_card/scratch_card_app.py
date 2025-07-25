@@ -30,13 +30,11 @@ class ScratchCardApp(ZApplication):
     @node_from(from_name='传送')
     @operation_node(name='等待加载', node_max_retry_times=60)
     def wait_world(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result = self.round_by_find_area(screen, '报刊亭', '刮刮卡')
+        result = self.round_by_find_area(self.last_screenshot, '报刊亭', '刮刮卡')
         if result.is_success:
             return self.round_success(result.status)
 
-        result = self.round_by_find_area(screen, '大世界', '信息')
+        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
         if result.is_success:
             return self.round_success(result.status)
 
@@ -61,35 +59,33 @@ class ScratchCardApp(ZApplication):
     @node_from(from_name='移动交互')
     @operation_node(name='点击刮刮卡', node_max_retry_times=20)
     def click_scratch_card(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result = self.round_by_find_area(screen, '报刊亭', '每日可刮取一次')
+        result = self.round_by_find_area(self.last_screenshot, '报刊亭', '每日可刮取一次')
         if result.is_success:
             return self.round_success(status=result.status, wait=1)
 
-        result = self.round_by_find_area(screen, '报刊亭', '按钮-同类型确认')
+        result = self.round_by_find_area(self.last_screenshot, '报刊亭', '按钮-同类型确认')
         if result.is_success:
             return self.round_success(status=result.status, wait=1)
 
-        result = self.round_by_find_and_click_area(screen, '报刊亭', '刮刮卡')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '报刊亭', '刮刮卡')
         if result.is_success:
             return self.round_wait(status=result.status, wait=1)
 
         area = self.ctx.screen_loader.get_area('报刊亭', '对话选项')
 
-        result = self.round_by_ocr_and_click(screen, '叫醒他', area=area)
+        result = self.round_by_ocr_and_click(self.last_screenshot, '叫醒他', area=area)
         if result.is_success:
             return self.round_wait(status=result.status, wait=1)
 
-        result = self.round_by_ocr_and_click(screen, '叫醒嗷呜', area=area)
+        result = self.round_by_ocr_and_click(self.last_screenshot, '叫醒嗷呜', area=area)
         if result.is_success:
             return self.round_wait(status=result.status, wait=1)
 
-        result = self.round_by_ocr_and_click(screen, '只是来看刮刮卡和报纸', area=area)
+        result = self.round_by_ocr_and_click(self.last_screenshot, '只是来看刮刮卡和报纸', area=area)
         if result.is_success:
             return self.round_wait(status=result.status, wait=1)
 
-        result = self.round_by_find_and_click_area(screen, '报刊亭', '嗷呜被你叫醒了')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '报刊亭', '嗷呜被你叫醒了')
         if result.is_success:
             return self.round_wait(status=result.status, wait=1)
 
@@ -100,9 +96,7 @@ class ScratchCardApp(ZApplication):
     @node_from(from_name='点击刮刮卡')
     @operation_node(name='刮刮')
     def scratch(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result = self.round_by_find_area(screen, '报刊亭', '每日可刮取一次')
+        result = self.round_by_find_area(self.last_screenshot, '报刊亭', '每日可刮取一次')
         if not result.is_success:
             return self.round_retry(status=result.status, wait=1)
 

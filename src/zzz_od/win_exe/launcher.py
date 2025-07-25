@@ -1,8 +1,6 @@
 from one_dragon.devtools import python_launcher
 from one_dragon.launcher.exe_launcher import ExeLauncher
-
-# 版本号
-__version__ = "v2.1.0"
+from one_dragon.version import __version__
 
 
 class ZLauncher(ExeLauncher):

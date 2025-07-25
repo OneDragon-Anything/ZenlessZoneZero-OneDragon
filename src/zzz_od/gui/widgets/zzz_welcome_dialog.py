@@ -15,7 +15,7 @@ class ZWelcomeDialog(WelcomeDialog):
     def _setup_buttons(self):
         """设置对话框按钮"""
         essential_setup_button = PushButton(gt('必要设置'), self)
-        essential_setup_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://onedragon-anything.github.io/zzz/zh/docs/config.html")))
+        essential_setup_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://one-dragon.com/zzz/zh/docs/config.html")))
         essential_setup_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         essential_setup_button.adjustSize()
 

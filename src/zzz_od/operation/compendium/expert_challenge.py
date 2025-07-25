@@ -1,5 +1,4 @@
 import time
-
 from typing import Optional, ClassVar
 
 from one_dragon.base.operation.operation import Operation
@@ -55,22 +54,19 @@ class ExpertChallenge(ZOperation):
 
     @operation_node(name='等待入口加载', is_start_node=True, node_max_retry_times=60)
     def wait_entry_load(self) -> OperationRoundResult:
-        screen = self.screenshot()
         return self.round_by_find_area(
-            screen, '实战模拟室', '挑战等级',
+            self.last_screenshot, '实战模拟室', '挑战等级',
             success_wait=1, retry_wait=1
         )
 
     @node_from(from_name='等待入口加载')
     @operation_node(name='关闭燃竭模式')
     def close_burnout_mode(self):
-        screen = self.screenshot()
-
-        result = self.round_by_find_and_click_area(screen, '恶名狩猎', '按钮-深度追猎-确认')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '恶名狩猎', '按钮-深度追猎-确认')
         if result.is_success:
             return self.round_wait(result.status, wait=1)
 
-        result = self.round_by_find_area(screen, '恶名狩猎', '按钮-深度追猎-ON')
+        result = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '按钮-深度追猎-ON')
         if result.is_success:
             self.round_by_click_area('恶名狩猎', '按钮-深度追猎-ON')
             return self.round_retry(wait=1)
@@ -85,17 +81,16 @@ class ExpertChallenge(ZOperation):
                 return self.round_success(ExpertChallenge.STATUS_CHARGE_ENOUGH)
             else:
                 return self.round_success(ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
-        screen = self.screenshot()
 
         area = self.ctx.screen_loader.get_area('专业挑战室', '剩余电量')
-        part = cv2_utils.crop_image_only(screen, area.rect)
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
         self.charge_left = str_utils.get_positive_digits(ocr_result, None)
         if self.charge_left is None:
             return self.round_retry(status='识别 %s 失败' % '剩余电量', wait=1)
 
         area = self.ctx.screen_loader.get_area('专业挑战室', '需要电量')
-        part = cv2_utils.crop_image_only(screen, area.rect)
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
         self.charge_need = str_utils.get_positive_digits(ocr_result, None)
         if self.charge_need is None:
@@ -116,19 +111,17 @@ class ExpertChallenge(ZOperation):
     @node_from(from_name='识别电量', status=STATUS_CHARGE_ENOUGH)
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
         # 防止前面电量识别错误
-        result = self.round_by_find_area(screen, '实战模拟室', '恢复电量')
+        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '恢复电量')
         if result.is_success:
             return self.round_success(status=ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
 
         # 点击直到出战按钮出现
-        result = self.round_by_find_area(screen, '实战模拟室', '出战')
+        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '出战')
         if result.is_success:
             return self.round_success(result.status)
 
-        result = self.round_by_find_and_click_area(screen, '实战模拟室', '下一步')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '下一步')
         if result.is_success:
             time.sleep(0.5)
             self.ctx.controller.mouse_move(ScreenNormalWorldEnum.UID.value.center)  # 点击后 移开鼠标 防止识别不到出战
@@ -166,9 +159,7 @@ class ExpertChallenge(ZOperation):
     @node_from(from_name='加载自动战斗指令')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
     def wait_battle_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        result = self.round_by_find_area(screen, '战斗画面', '按键-普通攻击', retry_wait_round=1)
-        return result
+        return self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击', retry_wait_round=1)
 
     @node_from(from_name='等待战斗画面加载')
     @operation_node(name='向前移动准备战斗')
@@ -183,17 +174,16 @@ class ExpertChallenge(ZOperation):
         if self.auto_op.auto_battle_context.last_check_end_result is not None:
             auto_battle_utils.stop_running(self.auto_op)
             return self.round_success(status=self.auto_op.auto_battle_context.last_check_end_result)
-        now = time.time()
-        screen = self.screenshot()
 
-        self.auto_op.auto_battle_context.check_battle_state(screen, now, check_battle_end_normal_result=True)
+        self.auto_op.auto_battle_context.check_battle_state(
+            self.last_screenshot, self.last_screenshot_time,
+            check_battle_end_normal_result=True)
 
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
     @node_from(from_name='自动战斗')
     @operation_node(name='战斗结束')
     def after_battle(self) -> OperationRoundResult:
-        # TODO 还没有判断战斗失败
         self.can_run_times -= 1
         self.ctx.charge_plan_config.add_plan_run_times(self.plan)
         return self.round_success()
@@ -224,6 +214,17 @@ class ExpertChallenge(ZOperation):
                                                    success_wait=1, retry_wait=1)
         if result.is_success:
             return self.round_fail(status=ExpertChallenge.STATUS_FIGHT_TIMEOUT)
+        else:
+            return self.round_retry(status=result.status, wait=1)
+
+    @node_from(from_name='自动战斗', status='普通战斗-撤退')
+    @operation_node(name='战斗失败')
+    def battle_fail(self) -> OperationRoundResult:
+        result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-撤退')
+        if result.is_success:
+            return self.round_success(result.status, wait=5)
+
+        return self.round_retry(result.status, wait=1)
 
     def handle_pause(self):
         if self.auto_op is not None:

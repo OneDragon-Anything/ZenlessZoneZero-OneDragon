@@ -1,13 +1,12 @@
-import time
-
 import os
 import shutil
+import time
 from typing import Optional, Callable, List, Tuple
 
 from one_dragon.envs.env_config import DEFAULT_ENV_PATH, DEFAULT_GIT_DIR_PATH, EnvConfig, RepositoryTypeEnum, GitMethodEnum
 from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.envs.download_service import DownloadService
-from one_dragon.utils import cmd_utils, file_utils, os_utils
+from one_dragon.utils import cmd_utils, os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
@@ -74,34 +73,15 @@ class GitService:
             progress_callback(-1, msg)
         log.info(msg)
 
-        for _ in range(2):
-            zip_file_name = 'MinGit.zip'
-            zip_file_path = os.path.join(DEFAULT_ENV_PATH, zip_file_name)
-            if not os.path.exists(zip_file_path):
-                success = self.download_service.download_env_file(zip_file_name, zip_file_path,
-                                                 progress_callback=progress_callback)
-                if not success:
-                    return False, gt('下载 Git 失败 请尝试到「脚本环境」更改网络代理')
+        zip_file_name = 'MinGit.zip'
+        success = self.download_service.download_and_extract_env_file(
+            zip_file_name, DEFAULT_ENV_PATH, DEFAULT_GIT_DIR_PATH, progress_callback
+        )
 
-            msg = f"{gt('开始解压')} {zip_file_name}"
-            log.info(msg)
-            if progress_callback is not None:
-                progress_callback(0, msg)
-
-            success = file_utils.unzip_file(zip_file_path, DEFAULT_GIT_DIR_PATH)
-
-            msg = gt('解压成功') if success else gt('解压失败 准备重试')
-            if progress_callback is not None:
-                progress_callback(1 if success else 0, msg)
-
-            if not success:  # 解压失败的话 可能是之前下的zip包坏了 尝试删除重来
-                os.remove(zip_file_path)
-                continue
-            else:
-                return True, gt('安装 Git 成功')
-
-        # 重试之后还是失败了
-        return False, gt('安装 Git 失败')
+        if success:
+            return True, gt('安装 Git 成功')
+        else:
+            return False, gt('安装 Git 失败')
 
     def fetch_latest_code(self, progress_callback: Optional[Callable[[float, str], None]] = None) -> Tuple[bool, str]:
         """

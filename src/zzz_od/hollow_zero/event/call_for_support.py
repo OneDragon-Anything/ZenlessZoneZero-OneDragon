@@ -56,20 +56,18 @@ class CallForSupport(ZOperation):
 
     @operation_node(name='画面识别', is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return hollow_event_utils.check_event_text_and_run(self, screen, self._handlers)
+        return hollow_event_utils.check_event_text_and_run(self, self.last_screenshot, self._handlers)
 
     def check_team(self, text: str, rect: Rect) -> OperationRoundResult:
         """
         判断当前配队 决定选择的角色
         """
-        screen = self.screenshot()
-        agent_list = self.ctx.hollow.check_agent_list(screen)
+        agent_list = self.ctx.hollow.check_agent_list(self.last_screenshot)
 
         if agent_list is None:
             return self.round_retry('无法识别当前角色列表', wait=1)
 
-        self.new_agent = self._get_support_agent(screen)
+        self.new_agent = self._get_support_agent(self.last_screenshot)
         if self.new_agent is None:
             log.error('无法识别当前增援角色')
         self.should_call_pos = self._should_call_backup(agent_list, self.new_agent)
@@ -177,14 +175,13 @@ class CallForSupport(ZOperation):
     @node_from(from_name='画面识别', status=STATUS_ACCEPT)
     @operation_node(name=STATUS_ACCEPT)
     def accept_backup(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = hollow_event_utils.get_event_text_area(self.ctx)
-        result = self.round_by_ocr_and_click(screen, CallForSupport.STATUS_ACCEPT, area=area)
+        result = self.round_by_ocr_and_click(self.last_screenshot, CallForSupport.STATUS_ACCEPT, area=area)
         if result.is_success:
             self.replace = False
             return self.round_success(wait=2)
 
-        result = self.round_by_ocr_and_click(screen, '接替小队成员', area=area, lcs_percent=0.8)
+        result = self.round_by_ocr_and_click(self.last_screenshot, '接替小队成员', area=area, lcs_percent=0.8)
         if result.is_success:
             self.replace = True
             return self.round_success(wait=2)
@@ -194,13 +191,12 @@ class CallForSupport(ZOperation):
     @node_from(from_name=STATUS_ACCEPT)
     @operation_node(name='选择位置')
     def choose_pos(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = hollow_event_utils.get_event_text_area(self.ctx)
         if self.replace:
             cn = '接替%d号队员的位置' % self.should_call_pos
         else:
             cn = '%d号位' % self.should_call_pos
-        return self.round_by_ocr_and_click(screen, cn, area=area, lcs_percent=1,
+        return self.round_by_ocr_and_click(self.last_screenshot, cn, area=area, lcs_percent=1,
                                            success_wait=2, retry_wait=1)
 
     @node_from(from_name='选择位置')
@@ -212,7 +208,6 @@ class CallForSupport(ZOperation):
     @node_from(from_name='画面识别', status=STATUS_NO_NEED)
     @operation_node(name='拒绝')
     def reject_agent(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = hollow_event_utils.get_event_text_area(self.ctx)
         # 每个角色的不接受选项不一样
         opts = [
@@ -244,7 +239,7 @@ class CallForSupport(ZOperation):
             RejectOption('放心去照顾嘉音吧，我没问题的'),  # 伊芙琳
         ]
 
-        part = cv2_utils.crop_image_only(screen, area.rect)
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         white = cv2.inRange(part, (240, 240, 240), (255, 255, 255))
         white = cv2_utils.dilate(white, 5)
         to_ocr = cv2.bitwise_and(part, part, mask=white)

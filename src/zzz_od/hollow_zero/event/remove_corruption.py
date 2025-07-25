@@ -19,8 +19,7 @@ class RemoveCorruption(ZOperation):
 
     @operation_node(name='选择', is_start_node=True)
     def choose_one(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('零号空洞-事件', '底部-清除列表')
-        return self.round_by_ocr_and_click(screen, '清除', area=area,
+        return self.round_by_ocr_and_click(self.last_screenshot, '清除', area=area,
                                            color_range=[(240, 240, 240), (255, 255, 255)],
                                            success_wait=1, retry_wait=1)

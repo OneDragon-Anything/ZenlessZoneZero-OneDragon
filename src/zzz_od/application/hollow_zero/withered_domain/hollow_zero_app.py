@@ -52,8 +52,7 @@ class HollowZeroApp(ZApplication):
 
     @operation_node(name='初始画面识别', is_start_node=True)
     def check_first_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        event_name = hollow_event_utils.check_screen(self.ctx, screen, set())
+        event_name = hollow_event_utils.check_screen(self.ctx, self.last_screenshot, set())
 
         if (event_name is not None
                 and event_name not in [
@@ -63,7 +62,7 @@ class HollowZeroApp(ZApplication):
             self.phase = -1
             return self.round_success(HollowZeroApp.STATUS_IN_HOLLOW)
 
-        result = self.round_by_find_area(screen, '大世界', '信息')
+        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
 
         if result.is_success:
             return self.round_success(result.status)
@@ -84,9 +83,7 @@ class HollowZeroApp(ZApplication):
     @node_from(from_name='自动运行')
     @operation_node(name='等待入口加载', node_max_retry_times=20)
     def wait_entry_loading(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        return self.round_by_find_area(screen, '零号空洞-入口', '街区', retry_wait=1)
+        return self.round_by_find_area(self.last_screenshot, '零号空洞-入口', '街区', retry_wait=1)
 
     @node_from(from_name='等待入口加载')
     @operation_node(name='选择副本类型')
@@ -95,43 +92,39 @@ class HollowZeroApp(ZApplication):
             or self.ctx.hollow_zero_record.is_finished_by_day()):
             return self.round_success(HollowZeroApp.STATUS_TIMES_FINISHED)
 
-        screen = self.screenshot()
-        result = self.round_by_find_and_click_area(screen, '零号空洞-入口', '下一步')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-入口', '下一步')
         if result.is_success:
             return self.round_success(result.status)
 
-        return self.round_by_ocr_and_click(screen, self.mission_type_name,
+        return self.round_by_ocr_and_click(self.last_screenshot, self.mission_type_name,
                                            success_wait=1, retry_wait=1)
 
     @node_from(from_name='选择副本类型')
     @operation_node(name='选择副本')
     def choose_mission(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('零号空洞-入口', '副本列表')
-        return self.round_by_ocr_and_click(screen, self.mission_name, area=area,
+        return self.round_by_ocr_and_click(self.last_screenshot, self.mission_name, area=area,
                                            success_wait=1, retry_wait=1)
 
     @node_from(from_name='选择副本类型', status='下一步')
     @node_from(from_name='选择副本')
     @operation_node(name='下一步')
     def click_next(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result = self.round_by_find_and_click_area(screen, '零号空洞-入口', '下一步')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-入口', '下一步')
         if result.is_success:
             time.sleep(0.5)
             self.ctx.controller.mouse_move(ScreenNormalWorldEnum.UID.value.center)  # 点击后 移开鼠标 防止识别不到出战
             return self.round_wait(result.status, wait=0.5)
 
-        result = self.round_by_find_and_click_area(screen, '零号空洞-入口', '行动中-确认')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-入口', '行动中-确认')
         if result.is_success:
             return self.round_wait(wait=1)
 
-        result = self.round_by_find_area(screen, '零号空洞-入口', '出战')
+        result = self.round_by_find_area(self.last_screenshot, '零号空洞-入口', '出战')
         if result.is_success:
             return self.round_success(result.status, wait=1)
 
-        result = self.round_by_find_and_click_area(screen, '零号空洞-入口', '继续-确认')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-入口', '继续-确认')
         if result.is_success:
             self.level = -1
             self.phase = -1
@@ -161,9 +154,7 @@ class HollowZeroApp(ZApplication):
     @node_from(from_name='选择副本类型', status=STATUS_TIMES_FINISHED)
     @operation_node(name='完成后等待加载', node_max_retry_times=20)
     def wait_back_loading(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        return self.round_by_find_area(screen, '零号空洞-入口', '街区', retry_wait=1)
+        return self.round_by_find_area(self.last_screenshot, '零号空洞-入口', '街区', retry_wait=1)
 
     @node_from(from_name='完成后等待加载')
     @operation_node(name='完成')

@@ -21,6 +21,5 @@ class OldCapital(ZOperation):
 
     @operation_node(name='选择', is_start_node=True)
     def choose_one(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '零号空洞-事件', '旧都失物-返回',
+        return self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '旧都失物-返回',
                                                  success_wait=1, retry_wait=1)

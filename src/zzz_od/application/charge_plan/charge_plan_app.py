@@ -63,10 +63,9 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='打开菜单')
     @operation_node(name='识别电量')
     def check_charge_power(self) -> OperationRoundResult:
-        screen = self.screenshot()
         # 不能在快捷手册里面识别电量 因为每个人的备用电量不一样
         area = self.ctx.screen_loader.get_area('菜单', '文本-电量')
-        part = cv2_utils.crop_image_only(screen, area.rect)
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
         digit = str_utils.get_positive_digits(ocr_result, None)
         if digit is None:
@@ -186,6 +185,8 @@ class ChargePlanApp(ZApplication):
             self.next_plan = candidate_plan
             return self.round_success()
 
+        return self.round_fail(ChargePlanApp.STATUS_NO_PLAN)
+
     @node_from(from_name='查找并选择下一个可执行任务')
     @operation_node(name='传送')
     def transport(self) -> OperationRoundResult:
@@ -268,7 +269,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='定期清剿', status=RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='专业挑战室', status=ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
-    @node_from(from_name='传送', status='选择失败')
+    @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
     @operation_node(name='电量不足')
     def charge_not_enough(self) -> OperationRoundResult:
         # 检查自动回复电量设置

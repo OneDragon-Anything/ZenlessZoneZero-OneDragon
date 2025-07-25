@@ -1,0 +1,18 @@
+sub_dir: agent_state
+template_id: yuzuha_3_3
+template_name: 角色状态-柚叶-33
+template_shape: multi_rect
+auto_mask: true
+point_list:
+- 754, 95
+- 759, 100
+- 766, 95
+- 772, 100
+- 778, 95
+- 784, 100
+- 790, 95
+- 796, 100
+- 802, 95
+- 808, 100
+- 814, 95
+- 820, 100

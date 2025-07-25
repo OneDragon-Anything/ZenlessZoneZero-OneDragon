@@ -22,10 +22,6 @@ class LifeOnLineConfig(YamlConfig):
         self.update('daily_plan_times', new_value)
 
     @property
-    def daily_plan_times_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'daily_plan_times', 20, 'str', 'int')
-
-    @property
     def predefined_team_idx(self) -> int:
         """
         预备编队

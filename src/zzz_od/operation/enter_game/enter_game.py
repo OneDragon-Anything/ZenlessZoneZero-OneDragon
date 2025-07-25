@@ -40,17 +40,15 @@ class EnterGame(ZOperation):
     @node_from(from_name='国际服-换服')
     @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        login_result = self.check_login_related(screen)
+        login_result = self.check_login_related(self.last_screenshot)
         if login_result is not None:
             return login_result
 
-        interact_result = self.check_screen_to_interact(screen)
+        interact_result = self.check_screen_to_interact(self.last_screenshot)
         if interact_result is not None:
             return interact_result
 
-        in_game_result = self.round_by_find_area(screen, '大世界', '信息')
+        in_game_result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
         if in_game_result.is_success:
             return self.round_success('大世界', wait=1)
 

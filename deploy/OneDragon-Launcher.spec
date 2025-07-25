@@ -36,5 +36,5 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     uac_admin=True,
-    icon=['..\\assets\\ui\\zzz_logo.ico'],
+    icon=['..\\assets\\ui\\logo.ico'],
 )

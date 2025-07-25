@@ -1,11 +1,13 @@
-import time
-
 import os
-from cv2.typing import MatLike
+import time
+from logging import DEBUG
 from typing import Callable, List, Optional
+
+from cv2.typing import MatLike
 
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
+from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.base.web.zip_downloader import ZipDownloader
@@ -13,7 +15,6 @@ from one_dragon.utils import os_utils
 from one_dragon.utils import str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-
 
 DEFAULT_OCR_MODEL_NAME: str = 'ppocrv5'
 GITHUB_DOWNLOAD_URL: str = 'https://github.com/OneDragon-Anything/OneDragon-Env/releases/download'
@@ -52,27 +53,87 @@ def get_final_file_list(ocr_model_name: str) -> list[str]:
     ]
 
 
+class OnnxOcrParam:
+    """
+    OCR配置实体类，包含OCR引擎的各项参数设置
+    默认值见 onnxocr.utils
+    """
+
+    def __init__(
+            self,
+            ocr_model_name: str = DEFAULT_OCR_MODEL_NAME,
+            det_model_name: str = 'det.onnx',
+            rec_model_name: str = 'rec.onnx',
+            cls_model_name: str = 'cls.onnx',
+            dict_name: str = 'ppocrv5_dict.txt',
+            font_name: str = 'simfang.ttf',
+            use_gpu: bool = False,
+            use_angle_cls: bool = False,
+            det_limit_side_len: float = 960.0,
+    ):
+        self.ocr_model_name: str = ocr_model_name
+        self.models_dir: str = get_ocr_model_dir(ocr_model_name)
+        # ===================================================================
+        # I. 设备与性能 (Device & Performance)
+        # ===================================================================
+        self.use_gpu = use_gpu  # 是否使用GPU进行计算
+
+        # ===================================================================
+        # II. 模型路径 (Model Paths)
+        # ===================================================================
+        self.det_model_dir = os.path.join(self.models_dir, det_model_name)  # 文字检测模型文件路径
+        self.rec_model_dir = os.path.join(self.models_dir, rec_model_name)  # 文字识别模型文件路径
+        self.cls_model_dir = os.path.join(self.models_dir, cls_model_name)  # 方向分类模型文件路径
+        self.rec_char_dict_path = os.path.join(self.models_dir, dict_name)  # 字符字典文件路径
+        self.vis_font_path = os.path.join(self.models_dir, font_name)  # 可视化字体文件路径
+
+        # ===================================================================
+        # III. 核心功能开关 (Core Feature Switches)
+        # ===================================================================
+        self.use_angle_cls = use_angle_cls  # 是否加载并使用方向分类模型
+
+        # ===================================================================
+        # IV. 文字检测超参数 (Detection Hyperparameters)
+        # ===================================================================
+        self.det_limit_side_len = det_limit_side_len  # 输入图像的长边限制
+
+    def to_dict(self):
+        """将OCR配置转换为字典格式"""
+        return {
+            'use_gpu': self.use_gpu,
+            'det_model_dir': self.det_model_dir,
+            'rec_model_dir': self.rec_model_dir,
+            'cls_model_dir': self.cls_model_dir,
+            'rec_char_dict_path': self.rec_char_dict_path,
+            'vis_font_path': self.vis_font_path,
+            'use_angle_cls': self.use_angle_cls,
+            'det_limit_side_len': self.det_limit_side_len,
+        }
+
+
 
 class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
     """
     使用onnx的ocr模型 速度更快
     """
 
-    def __init__(self, ocr_model_name: str = DEFAULT_OCR_MODEL_NAME):
-        self.base_dir: str = get_ocr_model_dir(ocr_model_name)
+    def __init__(self, ocr_param: Optional[OnnxOcrParam] =  None):
+        if ocr_param is None:
+            ocr_param = OnnxOcrParam()
         OcrMatcher.__init__(self)
         param = CommonDownloaderParam(
-            save_file_path=self.base_dir,
-            save_file_name=f'{ocr_model_name}.zip',
-            github_release_download_url=get_ocr_download_url_github(ocr_model_name),
-            gitee_release_download_url=get_ocr_download_url_gitee(ocr_model_name),
+            save_file_path=ocr_param.models_dir,
+            save_file_name=f'{ocr_param.ocr_model_name}.zip',
+            github_release_download_url=get_ocr_download_url_github(ocr_param.ocr_model_name),
+            gitee_release_download_url=get_ocr_download_url_gitee(ocr_param.ocr_model_name),
             mirror_chan_download_url='',
-            check_existed_list=get_final_file_list(ocr_model_name)
+            check_existed_list=get_final_file_list(ocr_param.ocr_model_name)
         )
         ZipDownloader.__init__(
             self,
             param=param,
         )
+        self._ocr_param: OnnxOcrParam = ocr_param
         self._model = None
         self._loading: bool = False
 
@@ -115,14 +176,8 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             from onnxocr.onnx_paddleocr import ONNXPaddleOcr
 
             try:
-                self._model = ONNXPaddleOcr(
-                    use_angle_cls=False, use_gpu=False,
-                    det_model_dir=os.path.join(self.base_dir, 'det.onnx'),
-                    rec_model_dir=os.path.join(self.base_dir, 'rec.onnx'),
-                    cls_model_dir=os.path.join(self.base_dir, 'cls.onnx'),
-                    rec_char_dict_path=os.path.join(self.base_dir, 'ppocrv5_dict.txt'),
-                    vis_font_path=os.path.join(self.base_dir, 'simfang.ttf'),
-                )
+                args = self._ocr_param.to_dict()
+                self._model = ONNXPaddleOcr(**args)
                 self._loading = False
                 log.info('加载OCR模型完毕')
                 return True
@@ -160,9 +215,19 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         :param merge_line_distance: 多少行距内合并结果 -1为不合并 理论中文情况不会出现过长分行的 这里只是为了兼容英语的情况
         :return: {key_word: []}
         """
+        if image is None:
+            log.warning('OCR输入的图片为None')
+            return {}
+        if self._model is None and not self.init_model():
+            return {}
         start_time = time.time()
         result_map: dict = {}
-        scan_result_list: list = self._model.ocr(image, cls=False)
+        scan_result_list: list = self._model.ocr(
+            image,
+            det=True,
+            rec=True,
+            cls=self._ocr_param.use_angle_cls
+        )
         if len(scan_result_list) == 0:
             log.debug('OCR结果 %s 耗时 %.2f', result_map.keys(), time.time() - start_time)
             return result_map
@@ -197,8 +262,15 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         :param threshold: 匹配阈值
         :return: [[("text", "score"),]] 由于禁用了空格，可以直接取第一个元素
         """
+        if self._model is None and not self.init_model():
+            return ""
         start_time = time.time()
-        scan_result: list = self._model.ocr(image, det=False, cls=False)
+        scan_result: list = self._model.ocr(
+            image,
+            det=False,
+            rec=True,
+            cls=self._ocr_param.use_angle_cls
+        )
         img_result = scan_result[0]  # 取第一张图片
         if len(img_result) > 1:
             log.debug("禁检测的OCR模型返回多个识别结果")  # 目前没有出现这种情况
@@ -251,6 +323,52 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                             match_key.add(k)
 
         return {key: all_match_result[key] for key in match_key if key in all_match_result}
+
+    def ocr(self, image: MatLike, threshold: float = 0,
+            merge_line_distance: float = -1) -> list[OcrMatchResult]:
+        """
+        对图片进行OCR 返回所有识别结果
+
+        Args:
+            image: 图片
+            threshold: 匹配阈值
+            merge_line_distance: 多少行距内合并结果 -1为不合并 理论中文情况不会出现过长分行的 这里只是为了兼容英语的情况
+
+        Returns:
+            ocr_result_list: 识别结果列表
+        """
+        start_time = time.time()
+        ocr_result_list: list[OcrMatchResult] = []
+
+        scan_result_list: list = self._model.ocr(image, cls=False)
+        if len(scan_result_list) == 0:
+            log.debug('OCR结果 [] 耗时 %.2f', time.time() - start_time)
+            return ocr_result_list
+
+        scan_result = scan_result_list[0]  # 只取第一张图片
+        for anchor in scan_result:
+            anchor_position = anchor[0]
+            anchor_text = anchor[1][0]
+            anchor_score = anchor[1][1]
+            if anchor_score < threshold:
+                continue
+
+            result = OcrMatchResult(
+                anchor_score,
+                anchor_position[0][0],
+                anchor_position[0][1],
+                anchor_position[1][0] - anchor_position[0][0],
+                anchor_position[3][1] - anchor_position[0][1],
+                data=anchor_text)
+            ocr_result_list.append(result)
+
+        if merge_line_distance != -1:
+            pass  # TODO
+
+        if log.isEnabledFor(DEBUG):
+            log.debug('OCR结果 %s 耗时 %.2f', [i.data for i in ocr_result_list], time.time() - start_time)
+
+        return ocr_result_list
 
 
 def __debug():

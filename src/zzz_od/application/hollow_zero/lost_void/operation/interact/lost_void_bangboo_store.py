@@ -29,14 +29,12 @@ class LostVoidBangbooStore(ZOperation):
 
     @operation_node(name='识别商店类型', is_start_node=True)
     def check_store_type(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result = self.round_by_find_area(screen, '迷失之地-邦布商店', '标识-金币')
+        result = self.round_by_find_area(self.last_screenshot, '迷失之地-邦布商店', '标识-金币')
         if result.is_success:
             self.store_type = result.status
             return self.round_success(result.status)
 
-        result = self.round_by_find_area(screen, '迷失之地-邦布商店', '标识-血量')
+        result = self.round_by_find_area(self.last_screenshot, '迷失之地-邦布商店', '标识-血量')
         if result.is_success:
             self.store_type = result.status
             return self.round_success(result.status)
@@ -53,17 +51,15 @@ class LostVoidBangbooStore(ZOperation):
         self.ctx.controller.mouse_move(area.center + Point(0, 100))
         time.sleep(0.1)
 
-        screen = self.screenshot()
-
         if self.store_type == '标识-血量':
             if not self.ctx.lost_void.challenge_config.store_blood:
                 return self.round_fail('不使用血量购买')
 
-            if not self.check_min_blood_valid(screen):
+            if not self.check_min_blood_valid(self.last_screenshot):
                 return self.round_fail('血量低于设定最小值')
 
         # 按刷新之后的确认
-        result = self.round_by_find_and_click_area(screen, '迷失之地-邦布商店', '按钮-刷新-确认')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-邦布商店', '按钮-刷新-确认')
         if result.is_success:
             self.refresh_times += 1
             return self.round_wait(result.status, wait=1)
@@ -73,7 +69,7 @@ class LostVoidBangbooStore(ZOperation):
             # 进入本指令之前 有可能识别错画面
             return self.round_retry(status=f'当前画面 {screen_name}', wait=1)
 
-        art_list: List[LostVoidArtifactPos] = self.get_artifact_pos(screen)
+        art_list: List[LostVoidArtifactPos] = self.get_artifact_pos(self.last_screenshot)
         if len(art_list) == 0:
             if not self.slide_to_right:
                 start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
@@ -98,7 +94,7 @@ class LostVoidBangbooStore(ZOperation):
                 self.slide_to_right = True
                 return self.round_wait(status='向右滑动')
 
-            result = self.round_by_find_and_click_area(screen, '迷失之地-邦布商店', '按钮-刷新-可用')
+            result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-邦布商店', '按钮-刷新-可用')
             if result.is_success:
                 self.slide_to_right = False  # 刷新后 重置滑动
                 return self.round_wait(result.status, wait=1)
@@ -196,8 +192,7 @@ class LostVoidBangbooStore(ZOperation):
         处理可能出现的武备升级环节
         @return:
         """
-        screen = self.screenshot()
-        screen_name = self.check_and_update_current_screen(screen)
+        screen_name = self.check_and_update_current_screen(self.last_screenshot)
 
         if screen_name == '迷失之地-通用选择':
             op = LostVoidChooseCommon(self.ctx)

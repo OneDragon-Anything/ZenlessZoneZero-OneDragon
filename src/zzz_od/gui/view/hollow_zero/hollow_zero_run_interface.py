@@ -7,7 +7,7 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
-from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from zzz_od.application.hollow_zero.withered_domain.hollow_zero_app import HollowZeroApp
 from zzz_od.application.hollow_zero.withered_domain.hollow_zero_config import HollowZeroExtraTask, HollowZeroExtraExitEnum
@@ -52,7 +52,7 @@ class HollowZeroRunInterface(AppRunInterface):
         left_layout = QVBoxLayout(left_widget)
         left_widget.setLayout(left_layout)
 
-        self.help_opt = HelpCard(url='https://onedragon-anything.github.io/zzz/zh/docs/feat_hollow_zero.html')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_hollow_zero.html')
         left_layout.addWidget(self.help_opt)
 
         # 创建一个组合框设置卡片，标题为“挑战副本”
@@ -65,12 +65,11 @@ class HollowZeroRunInterface(AppRunInterface):
         left_layout.addWidget(self.mission_opt)
 
         # 创建一个文本设置卡片
-        self.weekly_plan_times_opt = TextSettingCard(
+        self.weekly_plan_times_opt = SpinBoxSettingCard(
             icon=FluentIcon.CALENDAR,  # 选择与时间相关的图标
             title='每周基础次数',
             content='完整通关，用于完成委托任务'
         )
-        self.weekly_plan_times_opt.value_changed.connect(self._on_weekly_plan_times_changed)
         left_layout.addWidget(self.weekly_plan_times_opt)
 
         self.extra_task_opt = ComboBoxSettingCard(
@@ -106,12 +105,11 @@ class HollowZeroRunInterface(AppRunInterface):
         )
         right_layout.addWidget(self.challenge_config_opt)
 
-        self.daily_plan_times_opt = TextSettingCard(
+        self.daily_plan_times_opt = SpinBoxSettingCard(
             icon=FluentIcon.CALENDAR,  # 选择与时间相关的图标
             title='每天进入次数',
             content='将空洞分摊到每天运行',
         )
-        self.daily_plan_times_opt.value_changed.connect(self._on_daily_plan_times_changed)
         right_layout.addWidget(self.daily_plan_times_opt)
 
         self.extra_exit_opt = ComboBoxSettingCard(
@@ -139,8 +137,8 @@ class HollowZeroRunInterface(AppRunInterface):
         self.mission_opt.setValue(self.ctx.hollow_zero_config.mission_name)
         self._update_run_record_display()
 
-        self.weekly_plan_times_opt.setValue(str(self.ctx.hollow_zero_config.weekly_plan_times))
-        self.daily_plan_times_opt.setValue(str(self.ctx.hollow_zero_config.daily_plan_times))
+        self.weekly_plan_times_opt.init_with_adapter(self.ctx.hollow_zero_config.get_prop_adapter('weekly_plan_times'))
+        self.daily_plan_times_opt.init_with_adapter(self.ctx.hollow_zero_config.get_prop_adapter('daily_plan_times'))
         self.extra_task_opt.setValue(self.ctx.hollow_zero_config.extra_task)
         self.extra_exit_opt.setValue(self.ctx.hollow_zero_config.extra_exit)
 
@@ -204,12 +202,6 @@ class HollowZeroRunInterface(AppRunInterface):
         self.app = HollowZeroDebugApp(self.ctx)
         self.ctx.hollow.data_service.reload()
         AppRunInterface._on_start_clicked(self)
-
-    def _on_weekly_plan_times_changed(self, value: str) -> None:
-        self.ctx.hollow_zero_config.weekly_plan_times = int(value)
-
-    def _on_daily_plan_times_changed(self, value: str) -> None:
-        self.ctx.hollow_zero_config.daily_plan_times = int(value)
 
     def _on_extra_task_changed(self, idx: int, value: str) -> None:
         self.ctx.hollow_zero_config.extra_task = value

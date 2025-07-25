@@ -31,16 +31,14 @@ class DriveDiscDismantleApp(ZApplication):
     @node_from(from_name='前往分解画面')
     @operation_node(name='快速选择')
     def click_filter(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '仓库-驱动仓库-驱动盘拆解', '按钮-快速选择',
+        return self.round_by_find_and_click_area(self.last_screenshot, '仓库-驱动仓库-驱动盘拆解', '按钮-快速选择',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='快速选择')
     @operation_node(name='选择等级')
     def choose_level(self) -> OperationRoundResult:
-        screen = self.screenshot()
         return self.round_by_find_and_click_area(
-            screen, '仓库-驱动仓库-驱动盘拆解', f'按钮-{self.ctx.drive_disc_dismantle_config.dismantle_level}',
+            self.last_screenshot, '仓库-驱动仓库-驱动盘拆解', f'按钮-{self.ctx.drive_disc_dismantle_config.dismantle_level}',
             success_wait=1, retry_wait=1
         )
 
@@ -48,8 +46,7 @@ class DriveDiscDismantleApp(ZApplication):
     @operation_node(name='选择弃置')
     def choose_abandon(self) -> OperationRoundResult:
         if self.ctx.drive_disc_dismantle_config.dismantle_abandon:
-            screen = self.screenshot()
-            return self.round_by_find_and_click_area(screen, '仓库-驱动仓库-驱动盘拆解', '按钮-全选已弃置',
+            return self.round_by_find_and_click_area(self.last_screenshot, '仓库-驱动仓库-驱动盘拆解', '按钮-全选已弃置',
                                                      success_wait=1, retry_wait=1)
         else:
             return self.round_success('无需选择')
@@ -59,22 +56,19 @@ class DriveDiscDismantleApp(ZApplication):
     @node_from(from_name='选择弃置', success=False)
     @operation_node(name='快速选择确认')
     def click_filter_confirm(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '仓库-驱动仓库-驱动盘拆解', '按钮-快速选择-确认',
+        return self.round_by_find_and_click_area(self.last_screenshot, '仓库-驱动仓库-驱动盘拆解', '按钮-快速选择-确认',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='快速选择确认')
     @operation_node(name='点击拆解')
     def click_salvage(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '仓库-驱动仓库-驱动盘拆解', '按钮-拆解',
+        return self.round_by_find_and_click_area(self.last_screenshot, '仓库-驱动仓库-驱动盘拆解', '按钮-拆解',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击拆解')
     @operation_node(name='点击拆解确认')
     def click_salvage_confirm(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '仓库-驱动仓库-驱动盘拆解', '按钮-拆解-确认',
+        return self.round_by_find_and_click_area(self.last_screenshot, '仓库-驱动仓库-驱动盘拆解', '按钮-拆解-确认',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击拆解确认')

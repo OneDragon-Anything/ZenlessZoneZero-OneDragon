@@ -50,18 +50,16 @@ class RedemptionCodeApp(ZApplication):
     @node_from(from_name='打开菜单')
     @operation_node(name='点击更多')
     def click_more(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('菜单', '底部列表')
-        return self.round_by_ocr_and_click(screen, '更多', area=area,
+        return self.round_by_ocr_and_click(self.last_screenshot, '更多', area=area,
                                            success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击更多')
     @operation_node(name='点击兑换码')
     def click_code(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('菜单', '更多功能区域')
         self.code_idx = 0
-        return self.round_by_ocr_and_click(screen, '兑换码', area=area,
+        return self.round_by_ocr_and_click(self.last_screenshot, '兑换码', area=area,
                                            success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击兑换码')  # 第一次兑换
@@ -77,16 +75,13 @@ class RedemptionCodeApp(ZApplication):
         self.ctx.controller.keyboard_controller.keyboard.type(self.unused_code_list[self.code_idx])
         time.sleep(6)
 
-        screen = self.screenshot()
-        return self.round_by_find_and_click_area(screen, '菜单', '兑换码兑换',
+        return self.round_by_find_and_click_area(self.last_screenshot, '菜单', '兑换码兑换',
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='输入兑换码', status='兑换码兑换')
     @operation_node(name='兑换后确认')
     def confirm_code(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result = self.round_by_find_and_click_area(screen, '菜单', '兑换码兑换')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '兑换码兑换')
         if result.is_success:
             self.ctx.redemption_code_record.add_used_code(self.unused_code_list[self.code_idx])
             self.code_idx += 1

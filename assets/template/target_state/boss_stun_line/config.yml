@@ -1,0 +1,8 @@
+sub_dir: target_state
+template_id: boss_stun_line
+template_name: 强敌失衡条
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 1134, 74
+- 1639, 75

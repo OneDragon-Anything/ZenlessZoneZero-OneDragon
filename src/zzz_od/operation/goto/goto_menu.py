@@ -19,11 +19,9 @@ class GotoMenu(ZOperation):
         ZOperation.__init__(self, ctx, op_name=gt('前往菜单'))
 
     @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=60)
-    def check_screen_and_run(self, screen: Optional[MatLike] = None) -> OperationRoundResult:
-        if screen is None:
-            screen = self.screenshot()
+    def check_screen_and_run(self) -> OperationRoundResult:
 
-        result = self.round_by_goto_screen(screen=screen, screen_name='菜单', retry_wait=None)
+        result = self.round_by_goto_screen(screen=self.last_screenshot, screen_name='菜单', retry_wait=None)
         if result.is_success:
             return self.round_success(result.status)
 

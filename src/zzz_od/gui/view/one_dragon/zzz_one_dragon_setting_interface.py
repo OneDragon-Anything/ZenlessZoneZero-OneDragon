@@ -9,7 +9,6 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import DismantleLevelEnum
-from zzz_od.config.agent_outfit_config import AgentOutfitNicole, AgentOutfitEllen, AgentOutfitAstraYao
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentEnum
 

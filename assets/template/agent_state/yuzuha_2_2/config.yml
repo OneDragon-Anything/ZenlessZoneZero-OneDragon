@@ -1,0 +1,18 @@
+sub_dir: agent_state
+template_id: yuzuha_2_2
+template_name: 角色状态-柚叶-22
+template_shape: multi_rect
+auto_mask: true
+point_list:
+- 606, 95
+- 611, 100
+- 618, 95
+- 624, 100
+- 630, 95
+- 636, 100
+- 642, 95
+- 648, 100
+- 654, 95
+- 660, 100
+- 666, 95
+- 672, 100

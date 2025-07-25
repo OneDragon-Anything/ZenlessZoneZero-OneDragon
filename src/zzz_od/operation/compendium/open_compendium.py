@@ -29,7 +29,6 @@ class OpenCompendium(ZOperation):
         """
         点击更多
         """
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('菜单', '底部列表')
-        return self.round_by_ocr_and_click(screen, '快捷手册', area=area,
+        return self.round_by_ocr_and_click(self.last_screenshot, '快捷手册', area=area,
                                            success_wait=1, retry_wait=1)

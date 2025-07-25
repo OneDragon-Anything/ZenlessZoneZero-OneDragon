@@ -18,10 +18,8 @@ class Deploy(ZOperation):
 
     @operation_node(name='出战', is_start_node=True)
     def deploy(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
         return self.round_by_find_and_click_area(
-            screen, '通用-出战', '按钮-出战',
+            self.last_screenshot, '通用-出战', '按钮-出战',
             success_wait=1, retry_wait=1,
             until_not_find_all=[('通用-出战', '按钮-出战')]
         )
@@ -29,13 +27,11 @@ class Deploy(ZOperation):
     @node_from(from_name='出战')
     @operation_node(name='出战确认')
     def check_level(self) -> OperationRoundResult:
-        screen = self.screenshot()
-
-        result = self.round_by_find_and_click_area(screen, '通用-出战', '按钮-队员数量少-确认')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '通用-出战', '按钮-队员数量少-确认')
         if result.is_success:
             return self.round_wait(result.status, wait=1)
 
-        result = self.round_by_find_and_click_area(screen, '通用-出战', '按钮-等级低-确定并出战')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '通用-出战', '按钮-等级低-确定并出战')
         if result.is_success:
             return self.round_wait(result.status, wait=1)
 

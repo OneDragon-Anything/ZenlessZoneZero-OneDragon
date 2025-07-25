@@ -1,8 +1,6 @@
-import time
+from typing import List
 
-import difflib
 from cv2.typing import MatLike
-from typing import List, ClassVar
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -18,8 +16,6 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.goto.goto_menu import GotoMenu
-from zzz_od.operation.transport import Transport
-from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 
 class TeamWrapper:
@@ -36,7 +32,6 @@ class PredefinedTeamChecker(ZApplication):
             self,
             ctx=ctx, app_id='predefined_team_checker',
             op_name=gt('预备编队角色识别'),
-            retry_in_od=True,  # 传送落地有可能会歪 重试
         )
 
         self.scroll_times: int = 0  # 下滑次数
@@ -55,14 +50,13 @@ class PredefinedTeamChecker(ZApplication):
     @operation_node(name='点击预备编队')
     def click_predefined_team(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(screen_name='菜单-更多功能', area_name='按钮-预备编队',
-                                                 until_not_find_all=[('菜单-更多功能', '按钮-预备编队')],
-                                                 success_wait=1, retry_wait=1)
+                                                 until_not_find_all=[('菜单-更多功能', '按钮-兑换码')],
+                                                 success_wait=2, retry_wait=1)
 
     @node_from(from_name='点击预备编队')
     @operation_node(name='识别编队角色')
-    def check_team_members(self, screen: MatLike = None) -> OperationRoundResult:
-        screen = self.screenshot()
-        self.update_team_members(screen)
+    def check_team_members(self) -> OperationRoundResult:
+        self.update_team_members(self.last_screenshot)
 
         if self.scroll_times == 0:
             drag_start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
@@ -131,6 +125,12 @@ class PredefinedTeamChecker(ZApplication):
             log.info(f'编队名称: {team_name} 识别代理人: {[i.data.agent_name for i in agent_mr_list]}')
 
             self.ctx.team_config.update_team_members(team_name, [i.data for i in agent_mr_list])
+
+    @node_from(from_name='识别编队角色')
+    @operation_node(name='成功后返回')
+    def back_at_last(self) -> OperationRoundResult:
+        op = BackToNormalWorld(self.ctx)
+        return self.round_by_op_result(op.execute())
 
 
 def __debug():

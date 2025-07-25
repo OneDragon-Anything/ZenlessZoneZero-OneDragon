@@ -416,47 +416,19 @@ def filter_by_color(
         use_rgb = True
 
     if use_hsv:
-        hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-
-        hsv_color = np.array(state_def.hsv_color)
-        hsv_color_diff = np.array(state_def.hsv_color_diff)
-
-        lower_s = np.clip(hsv_color[1] - hsv_color_diff[1], 0, 255)
-        upper_s = np.clip(hsv_color[1] + hsv_color_diff[1], 0, 255)
-        lower_v = np.clip(hsv_color[2] - hsv_color_diff[2], 0, 255)
-        upper_v = np.clip(hsv_color[2] + hsv_color_diff[2], 0, 255)
-
-        lower_h = hsv_color[0] - hsv_color_diff[0]
-        upper_h = hsv_color[0] + hsv_color_diff[0]
-
-        if lower_h < 0:
-            lower1 = np.array([lower_h + 180, lower_s, lower_v])
-            upper1 = np.array([179, upper_s, upper_v])
-            mask1 = cv2.inRange(hsv_image, lower1, upper1)
-
-            lower2 = np.array([0, lower_s, lower_v])
-            upper2 = np.array([upper_h, upper_s, upper_v])
-            mask2 = cv2.inRange(hsv_image, lower2, upper2)
-
-            mask = cv2.bitwise_or(mask1, mask2)
-        elif upper_h > 179:
-            lower1 = np.array([lower_h, lower_s, lower_v])
-            upper1 = np.array([179, upper_s, upper_v])
-            mask1 = cv2.inRange(hsv_image, lower1, upper1)
-
-            lower2 = np.array([0, lower_s, lower_v])
-            upper2 = np.array([upper_h - 180, upper_s, upper_v])
-            mask2 = cv2.inRange(hsv_image, lower2, upper2)
-
-            mask = cv2.bitwise_or(mask1, mask2)
-        else:
-            lower = np.array([lower_h, lower_s, lower_v])
-            upper = np.array([upper_h, upper_s, upper_v])
-            mask = cv2.inRange(hsv_image, lower, upper)
-
-        return mask
+        return cv2_utils.filter_by_color(
+            image,
+            mode='hsv',
+            hsv_color=state_def.hsv_color,
+            hsv_diff=state_def.hsv_color_diff
+        )
     elif use_rgb:
-        mask = cv2.inRange(image, state_def.lower_color, state_def.upper_color)
-        return mask
+        return cv2_utils.filter_by_color(
+            image,
+            mode='rgb',
+            lower_rgb=state_def.lower_color,
+            upper_rgb=state_def.upper_color
+        )
     else:
+        # 没有任何过滤条件，返回一个全白的mask，表示全部通过
         return np.full((image.shape[0], image.shape[1]), 255, dtype=np.uint8)

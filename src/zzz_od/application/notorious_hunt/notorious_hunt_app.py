@@ -81,9 +81,8 @@ class NotoriousHuntApp(ZApplication):
     @node_from(from_name='点击奖励入口')
     @operation_node(name='全部领取')
     def claim_all(self) -> OperationRoundResult:
-        screen = self.screenshot()
         return self.round_by_find_and_click_area(
-            screen, '恶名狩猎', '全部领取',
+            self.last_screenshot, '恶名狩猎', '全部领取',
             success_wait=1, retry_wait=1
         )
 

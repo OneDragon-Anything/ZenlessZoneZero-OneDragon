@@ -1,4 +1,8 @@
-from PySide6.QtCore import Qt, Signal, QTimer, QSize
+import os
+import shutil
+
+from pathlib import Path
+from PySide6.QtCore import Qt, QThread, QTimer, QSize, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QStackedWidget, QFrame
 from qfluentwidgets import (FluentIcon, ProgressRing, ProgressBar, IndeterminateProgressBar,
@@ -6,7 +10,7 @@ from qfluentwidgets import (FluentIcon, ProgressRing, ProgressBar, Indeterminate
                             TitleLabel, SubtitleLabel, BodyLabel)
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-from one_dragon.utils import app_utils
+from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.install_card.all_install_card import AllInstallCard
@@ -18,6 +22,33 @@ from one_dragon_qt.widgets.install_card.uv_install_card import UVInstallCard
 from one_dragon_qt.widgets.install_card.venv_install_card import VenvInstallCard
 from one_dragon_qt.widgets.log_display_card import LogReceiver
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+
+
+class UnpackResourceRunner(QThread):
+    """资源解包线程"""
+    finished = Signal(bool)
+    def __init__(self, installer_dir:str, work_dir: str, parent=None):
+        super().__init__(parent)
+        self.installer_dir = installer_dir
+        self.work_dir = work_dir
+
+    def run(self):
+        if Path(self.installer_dir) != Path(self.work_dir):
+            # 复制完整包资源
+            try:
+                install_dir = Path(self.installer_dir) / '.install'
+                dest_install_dir = Path(self.work_dir) / '.install'
+                if install_dir.exists():
+                    shutil.copytree(install_dir, dest_install_dir, dirs_exist_ok=True)
+
+                assets_dir = Path(self.installer_dir) / 'assets'
+                dest_assets_dir = Path(self.work_dir) / 'assets'
+                if assets_dir.exists():
+                    shutil.copytree(assets_dir, dest_assets_dir, dirs_exist_ok=True)
+                self.finished.emit(True)
+            except Exception as e:
+                log.error(f"解包资源失败: {e}")
+                self.finished.emit(False)
 
 
 class ClickableStepCircle(QLabel):
@@ -321,6 +352,9 @@ class InstallerInterface(VerticalScrollInterface):
         self.is_all_completed = False
         self.is_advanced_mode = False
 
+        self.unpack_resource_runner = UnpackResourceRunner(self.ctx.installer_dir, os_utils.get_work_dir())
+        self.unpack_resource_runner.finished.connect(self.on_unpack_finished)
+
     def get_content_widget(self) -> QWidget:
         content_widget = QWidget()
 
@@ -359,7 +393,7 @@ class InstallerInterface(VerticalScrollInterface):
         logo_vlayout.setSpacing(0)
         logo_vlayout.addStretch(1)
         self.card_logo_label = QLabel()
-        card_logo_pixmap = QPixmap('assets/ui/installer_logo.ico')
+        card_logo_pixmap = QPixmap('assets/ui/logo.ico')
         pixel_ratio = self.devicePixelRatio()
         target_size = QSize(160, 160)
         scaled_pixmap = card_logo_pixmap.scaled(target_size * pixel_ratio, 
@@ -379,23 +413,30 @@ class InstallerInterface(VerticalScrollInterface):
         button_vlayout.setContentsMargins(0, 0, 0, 0)
         button_vlayout.setSpacing(24)
         button_vlayout.addStretch(1)
+
+        # 一键安装按钮
         self.install_btn = PrimaryPushButton(gt('一键安装'))
         self.install_btn.setFixedWidth(320)
         self.install_btn.setFixedHeight(60)
         font = self.install_btn.font()
         font.setPointSize(18)
         self.install_btn.setFont(font)
+        self.install_btn.setVisible(False)
         button_vlayout.addWidget(self.install_btn, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         # 自定义安装按钮
         self.advanced_btn = HyperlinkButton('', gt('自定义安装'))
         self.advanced_btn.clicked.connect(self.show_advanced)
+        self.advanced_btn.setVisible(False)
         button_vlayout.addWidget(self.advanced_btn, alignment=Qt.AlignmentFlag.AlignHCenter)
 
+        # 进度环
         self.progress_ring = ProgressRing()
         self.progress_ring.setFixedSize(64, 64)
         self.progress_ring.setVisible(False)
         button_vlayout.addWidget(self.progress_ring, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        # 进度状态显示标签
         self.progress_label = SubtitleLabel('')
         self.progress_label.setVisible(False)
         button_vlayout.addWidget(self.progress_label, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -438,6 +479,7 @@ class InstallerInterface(VerticalScrollInterface):
 
         # 一键安装使用基础组件
         self.all_opt = AllInstallCard(self.ctx, base_install_cards)
+        self.all_opt.finished.connect(self.on_install_done)
 
         # 事件绑定
         self.install_btn.clicked.connect(self.on_install_clicked)
@@ -583,18 +625,28 @@ class InstallerInterface(VerticalScrollInterface):
         self.progress_label.setVisible(True)
         self.progress_ring.setValue(self._progress_value)
         self.progress_label.setText(self._progress_message)
-        if progress >= 1.0:
-            self.progress_label.setText(gt('安装完成！'))
-            self._installing = False
-            self.log_update_timer.stop()
-            self.log_receiver.update = False
-            self.log_display_label.setVisible(False)
+
+    def on_install_done(self, success: bool) -> None:
+        """
+        安装结束后 更新显示
+        """
+        self.is_all_completed = success
+        self.progress_label.setText(gt('安装完成！') if success else gt('安装失败！'))
+        self._installing = False
+        self.log_update_timer.stop()
+        self.log_receiver.update = False
+        self.log_display_label.setVisible(False)
+        if success:
             if self.extra_install_cards:
                 self.current_step = len(self.install_steps) - 1
                 self._from_one_click_install = True
                 self.show_advanced()
             else:
                 self.show_completion_message()
+        else:
+            self.install_btn.setVisible(True)
+            self.progress_ring.setVisible(False)
+            self.advanced_btn.setVisible(False)
 
     def show_advanced(self):
         """切换到高级安装界面"""
@@ -736,15 +788,16 @@ class InstallerInterface(VerticalScrollInterface):
 
     def show_completion_message(self):
         """显示完成消息"""
-        self.is_all_completed = True
         # 切换回一键安装界面
         self.is_advanced_mode = False
         self.main_stack.setCurrentIndex(0)
+
         # 将一键安装按钮改为启动程序
         self.install_btn.setText(gt('启动程序'))
         self.install_btn.setVisible(True)
         self.install_btn.clicked.disconnect()
         self.install_btn.clicked.connect(self.launch_application)
+
         # 隐藏进度环和自定义安装按钮
         self.progress_ring.setVisible(False)
         self.advanced_btn.setVisible(False)
@@ -836,8 +889,62 @@ class InstallerInterface(VerticalScrollInterface):
                 formatted_latest_log = format_log_with_line_breaks(latest_log)
                 self.log_display_label.setText(formatted_latest_log)
 
+    def on_unpack_finished(self, success: bool):
+        """资源解压完成回调"""
+        self.stop_placebo_progress()
+        self.show_install_options(success)
+
+    def start_placebo_progress(self):
+        """启动占位进度动画"""
+        self.progress_ring.setVisible(True)
+        self.progress_label.setVisible(True)
+        self.progress_label.setText(gt('正在解压资源...'))
+
+        self.placebo_timer = QTimer(self)
+        self.placebo_progress = 0
+
+        def update_placebo_progress():
+            # 使用非线性增长，让进度看起来更自然
+            if self.placebo_progress < 80:
+                increment = 1
+            elif self.placebo_progress < 95:
+                increment = 0.5
+            else:
+                increment = 0.1
+
+            # 最大99%，避免在真正完成前到达100%
+            self.placebo_progress = min(99, self.placebo_progress + increment)
+            self.progress_ring.setValue(int(self.placebo_progress))
+
+        self.placebo_timer.timeout.connect(update_placebo_progress)
+        self.placebo_timer.start(100)
+
+    def stop_placebo_progress(self):
+        """停止占位进度动画并清理资源"""
+        if hasattr(self, 'placebo_timer') and self.placebo_timer:
+            self.placebo_timer.stop()
+            self.placebo_timer.deleteLater()
+            self.placebo_timer = None
+
+        # 设置完成状态
+        self.placebo_progress = 100
+        self.progress_ring.setValue(100)
+
+    def show_install_options(self, success: bool):
+        """显示安装选项"""
+        self.install_btn.setVisible(success)
+        self.advanced_btn.setVisible(success)
+        self.progress_ring.setVisible(False)
+        self.progress_label.setVisible(not success)
+        if not success:
+            self.progress_label.setText(gt('资源解压失败，请更换安装目录'))
+
     def on_interface_shown(self) -> None:
         super().on_interface_shown()
+
+        # 启动资源解压和进度动画
+        self.unpack_resource_runner.start()
+        self.start_placebo_progress()
 
         # 更新所有安装卡的状态
         for card in self.all_install_cards:

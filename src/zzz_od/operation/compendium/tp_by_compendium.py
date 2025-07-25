@@ -36,7 +36,6 @@ class TransportByCompendium(ZOperation):
 
     @operation_node(name='识别初始画面', is_start_node=True)
     def check_first_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()
         possible_screen_names = [
             '快捷手册-目标',
             '快捷手册-日常',
@@ -44,7 +43,7 @@ class TransportByCompendium(ZOperation):
             '快捷手册-作战',
             '快捷手册-战术'
         ]
-        screen_name = self.check_and_update_current_screen(screen, possible_screen_names)
+        screen_name = self.check_and_update_current_screen(self.last_screenshot, possible_screen_names)
         if screen_name is None:
             return self.round_success()
         else:

@@ -38,8 +38,12 @@ check_dodge_interval: 0.02  # 闪避识别间隔
 check_agent_interval: 0.1  # 代理人识别间隔
 check_chain_interval: 0.1  # 连携识别间隔
 check_quick_interval: 0.2  # 快速支援识别间隔
-auto_lock_interval: 0.5  # 锁定间隔，不锁定
-auto_turn_interval: 2  # 镜头转向间隔
+auto_lock_interval: -1 # 锁定间隔，不锁定
+auto_turn_interval: 2 # 镜头转向间隔
+
+# 目标检测相关
+target_lock_interval: 1.0 # 目标锁定检测间隔
+abnormal_status_interval: 0 # 目标异常状态检测，代表不检测
 
 scenes:
   # 新增得格挡破碎检测
@@ -115,6 +119,7 @@ scenes:
     handlers:
       # 刚开始未识别到角色时候不要乱切
       - state_template: "站场模板-未识别角色"
+      - state_template: "自动锁定模板"
 
       # 切人之后先松开按键，否则容易出问题，因为闪避可能打断长按，导致原有动作的长按按键没有被松开，而0.2秒内松开不会有动作
       - states: "([按键-切换角色-下一个, 0, 0.1] | [按键-切换角色-上一个, 0, 0.1]) | [自定义-连携跳过, 0, 0.1]"

@@ -428,3 +428,15 @@ class GameConfig(BasicGameConfig):
     @original_hdr_value.setter
     def original_hdr_value(self, new_value: str) -> None:
         self.update('original_hdr_value', new_value)
+
+    @property
+    def turn_dx(self) -> float:
+        """
+        转向时 每度所需要移动的像素距离
+        :return:
+        """
+        return self.get('turn_dx', 0)
+
+    @turn_dx.setter
+    def turn_dx(self, new_value: float):
+        self.update('turn_dx', new_value)

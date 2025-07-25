@@ -12,6 +12,7 @@ from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import DoubleSpinBoxSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.shared_battle_dialog import SharedConfigDialog
 from zzz_od.application.battle_assistant.auto_battle_app import AutoBattleApp
@@ -39,7 +40,7 @@ class AutoBattleInterface(AppRunInterface):
     def get_widget_at_top(self) -> QWidget:
         top_widget = Column()
 
-        self.help_opt = HelpCard(url='https://onedragon-anything.github.io/zzz/zh/docs/feat_battle_assistant.html')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_battle_assistant.html')
         top_widget.add_widget(self.help_opt)
 
         self.config_opt = ComboBoxSettingCard(
@@ -64,11 +65,10 @@ class AutoBattleInterface(AppRunInterface):
         self.gpu_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='GPU运算', content='游戏画面掉帧的话 可以不启用')
         top_widget.add_widget(self.gpu_opt)
 
-        self.screenshot_interval_opt = TextSettingCard(
+        self.screenshot_interval_opt = DoubleSpinBoxSettingCard(
             icon=FluentIcon.GAME, title='截图间隔(秒)',
-            content='游戏画面掉帧的话 可以适当加大截图间隔'
+            content='游戏画面掉帧的话 可以适当加大截图间隔',
         )
-        self.screenshot_interval_opt.value_changed.connect(self._on_screenshot_interval_changed)
         top_widget.add_widget(self.screenshot_interval_opt)
 
         self.gamepad_type_opt = ComboBoxSettingCard(
@@ -117,7 +117,7 @@ class AutoBattleInterface(AppRunInterface):
         self._update_auto_battle_config_opts()
         self.config_opt.setValue(self.ctx.battle_assistant_config.auto_battle_config)
         self.gpu_opt.init_with_adapter(self.ctx.model_config.get_prop_adapter('flash_classifier_gpu'))
-        self.screenshot_interval_opt.setValue(str(self.ctx.battle_assistant_config.screenshot_interval))
+        self.screenshot_interval_opt.init_with_adapter(self.ctx.battle_assistant_config.get_prop_adapter('screenshot_interval'))
         self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.gamepad_type)
         self.debug_btn.setText(f"{self.ctx.key_debug.upper()} {gt('调试')}")
         self.ctx.listen_event(AutoBattleApp.EVENT_OP_LOADED, self._on_auto_op_loaded_event)
@@ -137,9 +137,6 @@ class AutoBattleInterface(AppRunInterface):
 
     def _on_auto_battle_config_changed(self, index, value):
         self.ctx.battle_assistant_config.auto_battle_config = value
-
-    def _on_screenshot_interval_changed(self, value: str) -> None:
-        self.ctx.battle_assistant_config.screenshot_interval = float(value)
 
     def get_app(self) -> ZApplication:
         return self.app

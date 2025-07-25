@@ -25,6 +25,12 @@ class ZContext(OneDragonContext):
         self.map_service: MapAreaService = MapAreaService()
         self.compendium_service: CompendiumService = CompendiumService()
 
+        # 服务
+        from one_dragon.base.cv_process.cv_service import CvService
+        self.cv_service: CvService = CvService(self)
+        from zzz_od.context.mini_map_service import MiniMapService
+        self.mini_map_service: MiniMapService = MiniMapService(self)
+
         # 实例独有的配置
         self.load_instance_config()
 

@@ -64,9 +64,9 @@ def check_astra_and_switch(auto_op: AutoBattleOperator, timeout_seconds: float =
         if now - start_time >= timeout_seconds:
             break
 
-        screenshot = auto_op.ctx.controller.screenshot()
+        screenshot_time, screenshot = auto_op.ctx.controller.screenshot()
 
-        auto_op.auto_battle_context.agent_context.check_agent_related(screenshot, now)
+        auto_op.auto_battle_context.agent_context.check_agent_related(screenshot, screenshot_time)
 
         team_info = auto_op.auto_battle_context.agent_context.team_info
         if team_info.agent_list is None or len(team_info.agent_list) == 0:
@@ -128,7 +128,7 @@ def check_battle_encounter_in_period(ctx: ZContext, auto_op: AutoBattleOperator,
         if screenshot_time - start >= total_check_seconds:
             return False
 
-        screen = ctx.controller.screenshot()
+        screenshot_time, screen = ctx.controller.screenshot()
         if check_battle_encounter(auto_op, screen, screenshot_time):
             return True
 

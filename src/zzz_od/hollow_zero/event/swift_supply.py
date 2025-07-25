@@ -19,7 +19,6 @@ class SwiftSupply(ZOperation):
 
     @operation_node(name='选择', is_start_node=True)
     def choose_one(self) -> OperationRoundResult:
-        screen = self.screenshot()
         area = self.ctx.screen_loader.get_area('零号空洞-事件', '底部-选择列表')
-        return self.round_by_ocr_and_click(screen, '降低压力值', area=area,
+        return self.round_by_ocr_and_click(self.last_screenshot, '降低压力值', area=area,
                                            success_wait=1, retry_wait=1)

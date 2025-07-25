@@ -104,6 +104,7 @@ class LostVoidContext:
         """
         if self.auto_op is not None:  # 如果有上一个 先销毁
             self.auto_op.dispose()
+
         self.auto_op = AutoBattleOperator(self.ctx, 'auto_battle', self.get_auto_op_name())
         success, msg = self.auto_op.init_before_running()
         if not success:
@@ -220,7 +221,7 @@ class LostVoidContext:
             if screenshot_time - start >= total_check_seconds:
                 return False
 
-            screen = self.ctx.controller.screenshot()
+            screenshot_time, screen = self.ctx.controller.screenshot()
             if self.check_battle_encounter(screen, screenshot_time):
                 return True
 

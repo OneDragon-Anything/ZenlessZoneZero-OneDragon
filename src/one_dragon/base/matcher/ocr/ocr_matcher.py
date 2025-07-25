@@ -2,6 +2,7 @@ from cv2.typing import MatLike
 from typing import Optional, Callable
 
 from one_dragon.base.matcher.match_result import MatchResultList
+from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
 
 
 class OcrMatcher:
@@ -40,5 +41,20 @@ class OcrMatcher:
         :param threshold: 匹配阈值
         :param merge_line_distance: 多少行距内合并结果 -1为不合并 理论中文情况不会出现过长分行的 这里只是为了兼容英语的情况
         :return: {key_word: []}
+        """
+        pass
+
+    def ocr(self, image: MatLike, threshold: float = 0,
+                merge_line_distance: float = -1) -> list[OcrMatchResult]:
+        """
+        对图片进行OCR 返回所有识别结果
+
+        Args:
+            image: 图片
+            threshold: 匹配阈值
+            merge_line_distance: 多少行距内合并结果 -1为不合并 理论中文情况不会出现过长分行的 这里只是为了兼容英语的情况
+
+        Returns:
+            ocr_result_list: 识别结果列表
         """
         pass

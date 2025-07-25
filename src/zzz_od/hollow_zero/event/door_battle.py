@@ -32,5 +32,4 @@ class DoorBattle(ZOperation):
 
     @operation_node(name='画面识别', is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        return hollow_event_utils.check_event_text_and_run(self, screen, self._handlers)
+        return hollow_event_utils.check_event_text_and_run(self, self.last_screenshot, self._handlers)

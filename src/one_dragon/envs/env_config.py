@@ -23,7 +23,7 @@ class ProxyTypeEnum(Enum):
 
     NONE = ConfigItem('无', 'None')
     PERSONAL = ConfigItem('个人代理', 'personal')
-    GHPROXY = ConfigItem('GitHub免费代理', 'ghproxy')
+    GHPROXY = ConfigItem('GitHub 代理', 'ghproxy')
 
 
 class RepositoryTypeEnum(Enum):
@@ -34,7 +34,8 @@ class RepositoryTypeEnum(Enum):
 
 class RegionEnum(Enum):
 
-    CHINA = ConfigItem('中国', 'china')
+    CHINA_GITEE = ConfigItem('中国 - Gitee', 'china_gitee')
+    CHINA_GHPROXY = ConfigItem('中国 - GitHub 代理', 'china_ghproxy')
     OVERSEA = ConfigItem('海外', 'oversea')
 
 
@@ -482,3 +483,15 @@ class EnvConfig(YamlConfig):
         else:
             os.environ['HTTP_PROXY'] = ""
             os.environ['HTTPS_PROXY'] = ""
+
+    @property
+    def ocr_cache(self) -> bool:
+        """
+        Returns:
+            是否启用OCR缓存
+        """
+        return self.get('ocr_cache', False)
+
+    @ocr_cache.setter
+    def ocr_cache(self, new_value: bool) -> None:
+        self.update('ocr_cache', new_value, save=True)

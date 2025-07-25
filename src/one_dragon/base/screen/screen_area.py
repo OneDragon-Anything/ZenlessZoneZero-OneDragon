@@ -17,8 +17,8 @@ class ScreenArea:
                  template_match_threshold: float = 0.7,
                  pc_alt: bool = False,
                  id_mark: bool = False,
-                 goto_list: List[str] = None,
-                 color_range: List[List[int]] = None,
+                 goto_list: Optional[list[str]] = None,
+                 color_range: Optional[list[list[int]]] = None,
                  ):
         self.area_name: str = area_name
         self.pc_rect: Rect = pc_rect
@@ -29,8 +29,8 @@ class ScreenArea:
         self.template_match_threshold: float = template_match_threshold
         self.pc_alt: bool = pc_alt  # PC端需要使用ALT后才能点击
         self.id_mark: bool = id_mark  # 是否用于画面的唯一标识
-        self.goto_list: List[str] = [] if goto_list is None else goto_list  # 交互后 可能会跳转的画面名称列表
-        self.color_range: List[List[int]] = color_range  # 识别时候的筛选的颜色范围 文本时候有效
+        self.goto_list: list[str] = [] if goto_list is None else goto_list  # 交互后 可能会跳转的画面名称列表
+        self.color_range: Optional[list[list[int]]] = color_range  # 识别时候的筛选的颜色范围 文本时候有效
 
     @property
     def rect(self) -> Rect:
@@ -106,14 +106,14 @@ class ScreenArea:
         return self.template_id is not None and len(self.template_id) > 0
 
     @property
-    def color_range_lower(self) -> np.array:
+    def color_range_lower(self) -> np.ndarray:
         if self.color_range is None or len(self.color_range) < 1:
             return np.array([0, 0, 0], dtype=np.uint8)
         else:
             return np.array(self.color_range[0], dtype=np.uint8)
 
     @property
-    def color_range_upper(self) -> np.array:
+    def color_range_upper(self) -> np.ndarray:
         if self.color_range is None or len(self.color_range) < 2:
             return np.array([255, 255, 255], dtype=np.uint8)
         else:
