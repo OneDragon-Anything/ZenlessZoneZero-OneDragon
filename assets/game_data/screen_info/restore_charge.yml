@@ -1,4 +1,4 @@
-screen_id: charge_recovery
+screen_id: restore_charge
 screen_name: 恢复电量
 pc_alt: false
 area_list:

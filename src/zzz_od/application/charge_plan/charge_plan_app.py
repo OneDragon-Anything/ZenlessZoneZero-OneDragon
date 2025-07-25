@@ -512,7 +512,7 @@ class ChargePlanApp(ZApplication):
 
     @node_from(from_name='设置使用数量')
     @operation_node(name='确认恢复电量')
-    def confirm_charge_recovery(self) -> OperationRoundResult:
+    def confirm_restore_charge(self) -> OperationRoundResult:
         import time
 
         screen = self.screenshot()
@@ -536,7 +536,7 @@ class ChargePlanApp(ZApplication):
 
     @node_from(from_name='确认恢复电量')
     @operation_node(name='检查恢复后电量')
-    def check_charge_after_recovery(self) -> OperationRoundResult:
+    def check_charge_after_restore(self) -> OperationRoundResult:
         import time
 
         # 等待电量恢复完成
@@ -593,13 +593,13 @@ class ChargePlanApp(ZApplication):
 
     @node_from(from_name='检查恢复后电量', success=True)
     @operation_node(name='恢复电量后重新打开菜单')
-    def reopen_menu_after_charge_recovery(self) -> OperationRoundResult:
+    def reopen_menu_after_restore_charge(self) -> OperationRoundResult:
         # 电量恢复成功，直接返回成功，菜单已经在检查电量时打开了
         return self.round_success('电量恢复成功，准备继续执行计划')
 
     @node_from(from_name='检查恢复后电量', success=False)
     @operation_node(name='电量恢复重试')
-    def retry_charge_recovery(self) -> OperationRoundResult:
+    def retry_restore_charge(self) -> OperationRoundResult:
         # 检查重试次数
         if not hasattr(self, 'charge_retry_count'):
             self.charge_retry_count = 0
@@ -643,7 +643,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='电量恢复重试', success=False)
     @node_from(from_name='重新点击电量文本', success=False)
     @operation_node(name='电量恢复失败')
-    def charge_recovery_failed(self) -> OperationRoundResult:
+    def restore_charge_failed(self) -> OperationRoundResult:
         # 重置重试计数器
         if hasattr(self, 'charge_retry_count'):
             self.charge_retry_count = 0
