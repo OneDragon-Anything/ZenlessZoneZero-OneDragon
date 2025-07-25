@@ -1,3 +1,4 @@
+import time
 from typing import ClassVar, Optional
 
 from one_dragon.base.operation.operation_edge import node_from
@@ -16,6 +17,7 @@ from zzz_od.operation.compendium.notorious_hunt import NotoriousHunt
 from zzz_od.operation.compendium.routine_cleanup import RoutineCleanup
 from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 from zzz_od.operation.goto.goto_menu import GotoMenu
+from zzz_od.operation.restore_charge import RestoreCharge
 
 
 class ChargePlanApp(ZApplication):
@@ -37,15 +39,10 @@ class ChargePlanApp(ZApplication):
         self.next_can_run_times: int = 0
         self.last_tried_plan: Optional[ChargePlanItem] = None
         self.next_plan: Optional[ChargePlanItem] = None
-        self.ctx.charge_plan_config.reset_plans()
-        self._force_ether_only = False
-        self._disable_backup_charge = False
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
-        # 每次新一轮计划开始时，重置flag
-        self._disable_backup_charge = False
-        self._force_ether_only = False
+        # 每次新一轮计划开始时，重置计划状态
         self.last_tried_plan = None
         return self.round_success()
 
@@ -298,334 +295,47 @@ class ChargePlanApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='电量不足', status=STATUS_TRY_RECOVER_CHARGE)
-    @operation_node(name='点击电量文本')
-    def click_charge_text(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        area = self.ctx.screen_loader.get_area('菜单', '文本-电量')
-        if area is None:
-            return self.round_retry('未找到电量区域', wait=1)
-
-        # 点击电量文本区域
-        self.ctx.controller.click(area.center)
-        return self.round_success('已点击电量文本')
-
-    @node_from(from_name='点击电量文本')
-    @operation_node(name='选择电量来源')
-    def select_charge_source(self) -> OperationRoundResult:
-        """根据配置选择电量来源"""
-        if getattr(self, '_disable_backup_charge', False):
-            return self.round_success('使用以太电池')
-        if getattr(self, '_force_ether_only', False):
-            return self.round_success('使用以太电池')
-        auto_recover_mode = self.ctx.charge_plan_config.restore_charge
-        if auto_recover_mode == RestoreChargeEnum.BACKUP_ONLY.value.value:
-            # 仅使用储蓄电量
-            return self.round_success('使用储蓄电量')
-        elif auto_recover_mode == RestoreChargeEnum.ETHER_ONLY.value.value:
-            # 仅使用以太电池
-            return self.round_success('使用以太电池')
-        else:
-            # 同时使用（默认先尝试储蓄电量）
-            return self.round_success('使用储蓄电量')
-
-    @node_from(from_name='选择电量来源', status='使用储蓄电量')
-    @operation_node(name='使用储蓄电量')
-    def use_backup_charge(self) -> OperationRoundResult:
-        import time
-        
-        # 等待恢复电量界面出现
-        time.sleep(1)
-        screen = self.screenshot()
-        # 通过OCR识别储蓄电量文本，然后向上偏移点击
-        ocr_result_map = self.ctx.ocr.run_ocr(screen)
-        found_backup_charge = False
-
-        for ocr_result, mrl in ocr_result_map.items():
-            if '储蓄电量' in ocr_result:
-                # 找到储蓄电量文本后，向上移动100个像素点击
-                if mrl.max is not None:
-                    from one_dragon.base.geometry.point import Point
-                    click_point = mrl.max.center
-                    # 向上移动100个像素
-                    offset_point = Point(click_point.x, click_point.y - 100)
-                    self.ctx.controller.click(offset_point)
-                    found_backup_charge = True
-                    break
-
-        if not found_backup_charge:
-            return self.round_retry('未找到储蓄电量文本', wait=1)
-
-        # 等待界面响应，然后点击确认按钮
-        import time
-        time.sleep(0.5)
-
-        # 点击选择来源的确认按钮
-        confirm_area = self.ctx.screen_loader.get_area('恢复电量', '选择来源-确认')
-        if confirm_area is not None:
-            self.ctx.controller.click(confirm_area.center)
-
-        return self.round_success('已选择储蓄电量')
-
-    @node_from(from_name='选择电量来源', status='使用以太电池')
-    @node_from(from_name='使用储蓄电量', success=False)
-    @node_from(from_name='重新点击电量文本')
-    @operation_node(name='使用以太电池')
-    def use_ether_battery(self) -> OperationRoundResult:
-        import time
-        
-        # 等待恢复电量界面出现
-        time.sleep(1)
-        screen = self.screenshot()
-        
-        # 通过OCR识别以太电池文本，然后向上偏移点击
-        ocr_result_map = self.ctx.ocr.run_ocr(screen)
-        found_ether_battery = False
-
-        for ocr_result, mrl in ocr_result_map.items():
-            if '以太电池' in ocr_result:
-                # 找到以太电池文本后，向上移动100个像素点击
-                if mrl.max is not None:
-                    from one_dragon.base.geometry.point import Point
-                    click_point = mrl.max.center
-                    # 向上移动100个像素
-                    offset_point = Point(click_point.x, click_point.y - 100)
-                    self.ctx.controller.click(offset_point)
-                    found_ether_battery = True
-                    break
-
-        if not found_ether_battery:
-            return self.round_retry('未找到以太电池文本', wait=1)
-
-        # 等待界面响应，然后点击确认按钮
-        time.sleep(0.5)
-
-        # 点击选择来源的确认按钮
-        confirm_area = self.ctx.screen_loader.get_area('恢复电量', '选择来源-确认')
-        if confirm_area is not None:
-            self.ctx.controller.click(confirm_area.center)
-
-        return self.round_success('已选择以太电池')
-
-    @node_from(from_name='使用储蓄电量')
-    @node_from(from_name='使用以太电池')
-    @operation_node(name='设置使用数量')
-    def set_charge_amount(self) -> OperationRoundResult:
-        import time
-
-        # 等待储蓄电量详情界面出现
-        time.sleep(1)
-        screen = self.screenshot()
-        ocr_result_map = self.ctx.ocr.run_ocr(screen)
-
-        # 判断是储蓄电量还是以太电池
-        is_backup_charge = False
-        saved_power_amount = 0
-        for ocr_result, mrl in ocr_result_map.items():
-            if '储蓄电量' in ocr_result:
-                is_backup_charge = True
-                # '储蓄电量×256'
-                amount_str = str_utils.get_positive_digits(ocr_result, None)
-                if amount_str is not None:
-                    saved_power_amount = amount_str
-                break
-
-        # 计算需要恢复的电量 - 根据当前计划的实际需求
+    @operation_node(name='恢复电量')
+    def restore_charge(self) -> OperationRoundResult:
+        """使用新的RestoreCharge operation来恢复电量"""
+        # 计算所需电量
+        required_charge = 1000  # 默认值
         if self.next_plan is not None:
-            need_charge_power = 1000  # 默认值
             if self.next_plan.category_name == '实战模拟室':
                 if self.next_plan.card_num != CardNumEnum.DEFAULT.value.value:
-                    need_charge_power = int(self.next_plan.card_num) * 20
+                    required_charge = int(self.next_plan.card_num) * 20
             elif self.next_plan.category_name == '定期清剿':
                 if not self.ctx.charge_plan_config.use_coupon:
-                    need_charge_power = 60
+                    required_charge = 60
             elif self.next_plan.category_name == '专业挑战室':
-                need_charge_power = 40
+                required_charge = 40
             elif self.next_plan.category_name == '恶名狩猎':
-                need_charge_power = 60
+                required_charge = 60
 
-            # 检查储蓄电量+当前电量是否足够
-            # 这里先获取储蓄电量数量，如果无法获取则假设为0
-            backup_charge_amount = 0
-            for ocr_result, mrl in ocr_result_map.items():
-                if '储蓄电量' in ocr_result:
-                    amount_str = str_utils.get_positive_digits(ocr_result, None)
-                    if amount_str is not None:
-                        backup_charge_amount = amount_str
-                    break
-
-            total_available_power = self.charge_power + backup_charge_amount
-            if total_available_power < need_charge_power:
-                return self.round_fail(f'电量不足，需要{need_charge_power}，可用{total_available_power}（当前{self.charge_power}+储蓄{backup_charge_amount}）')
-
-            # 计算实际需要的电量
-            needed_power = max(0, need_charge_power - self.charge_power)
-        else:
-            # 如果没有下一个计划，不需要恢复电量
-            return self.round_fail('没有下一个计划，无需恢复电量')
-
-        if is_backup_charge:
-            if saved_power_amount == 0:
-                # 储蓄电量用完，后续流程都禁用储蓄电量，直接切以太电池
-                self._disable_backup_charge = True
-                self._force_ether_only = True
-                return self.round_retry('储蓄电量已用完，切换以太电池')
-            amount_to_use = min(needed_power, saved_power_amount)
-            if amount_to_use <= 0:
-                return self.round_success('计算出使用数量为0，无需恢复')
-            # 储蓄电量：点击输入框并输入数量
-            input_area = self.ctx.screen_loader.get_area('恢复电量', '兑换数量-数字区域')
-            if input_area is None:
-                return self.round_retry('未找到电量数量输入框', wait=1)
-            self.ctx.controller.click(input_area.center)
-            time.sleep(0.5)
-            self.ctx.controller.input_str(str(amount_to_use))
-            time.sleep(0.5)
-            # 如果是同时使用模式且补完后体力还不够，则切换flag并重试
-            auto_recover_mode = self.ctx.charge_plan_config.restore_charge
-            if auto_recover_mode == RestoreChargeEnum.BOTH.value.value:
-                # 计算补完后的体力
-                after_charge = self.charge_power + amount_to_use
-                if after_charge < need_charge_power:
-                    self._force_ether_only = True
-                    return self.round_retry('切换以太电池补足体力')
-        else:  # 以太电池
-            # 计算需要的电池数量，每个电池恢复60体力
-            import math
-            battery_count = math.ceil(needed_power / 60)
-            if battery_count <= 0:
-                # 用完后清除flag
-                self._force_ether_only = False
-                return self.round_success('计算出使用数量为0，无需恢复')
-            # 获取加号区域
-            plus_area = self.ctx.screen_loader.get_area('恢复电量', '以太电池-加号')
-            if plus_area is None:
-                return self.round_retry('未找到以太电池加号按钮', wait=1)
-            # 默认初始数量为1，所以只需点击battery_count-1次
-            for _ in range(battery_count - 1):
-                self.ctx.controller.click(plus_area.center)
-                time.sleep(0.2)
-            # 用完后清除flag
-            self._force_ether_only = False
-        log.info(f"当前电量: {self.charge_power}, 需要电量: {need_charge_power}, 缺少电量: {needed_power}, 实际使用: {amount_to_use if is_backup_charge else battery_count}")
-        time.sleep(0.5)
-        return self.round_success('电量数量设置完成')
-
-    @node_from(from_name='设置使用数量')
-    @operation_node(name='确认恢复电量')
-    def confirm_restore_charge(self) -> OperationRoundResult:
-        import time
-
-        screen = self.screenshot()
-        confirm_area = self.ctx.screen_loader.get_area('恢复电量', '兑换确认')
-        if confirm_area is None:
-            # 如果没有找到特定区域，尝试通过OCR识别确认按钮
-            ocr_result_map = self.ctx.ocr.run_ocr(screen)
-            for ocr_result, mrl in ocr_result_map.items():
-                if '确认' in ocr_result or '确定' in ocr_result:
-                    if mrl.max is not None:
-                        self.ctx.controller.click(mrl.max.center)
-                        break
-            else:
-                return self.round_retry('未找到确认按钮', wait=1)
-        else:
-            self.ctx.controller.click(confirm_area.center)
-
-        # 等待电量恢复完成
-        time.sleep(2)
-        return self.round_success('电量恢复完成')
-
-    @node_from(from_name='确认恢复电量')
-    @operation_node(name='检查恢复后电量')
-    def check_charge_after_restore(self) -> OperationRoundResult:
-        import time
-
-        # 等待电量恢复完成
-        time.sleep(2)
-
-        # 重新打开菜单并检查电量
-        op = GotoMenu(self.ctx)
+        # 创建并执行恢复电量操作
+        op = RestoreCharge(
+            self.ctx,
+            current_charge=self.charge_power,
+            required_charge=required_charge,
+            restore_mode=self.ctx.charge_plan_config.restore_charge
+        )
         result = op.execute()
-        if not result.success:
-            return self.round_by_op_result(result)
 
-        # 通过OCR识别当前电量
-        screen = self.screenshot()
-        area = self.ctx.screen_loader.get_area('菜单', '文本-电量')
-        if area is None:
-            return self.round_retry('未找到电量显示区域', wait=1)
+        if result.success:
+            # 更新当前电量
+            self.charge_power = op.current_charge
+            return self.round_success('电量恢复成功')
+        else:
+            return self.round_fail('电量恢复失败')
 
-        part = cv2_utils.crop_image_only(screen, area.rect)
-        ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-        current_charge = str_utils.get_positive_digits(ocr_result, None)
-
-        if current_charge is None:
-            return self.round_retry('未识别到电量数值', wait=1)
-
-        # 更新当前电量
-        self.charge_power = current_charge
-
-        # 计算当前计划所需的电量
-        if self.next_plan is not None:
-            need_charge_power = 1000  # 默认值，表示需要在任务中检查
-
-            if self.next_plan.category_name == '实战模拟室':
-                if self.next_plan.card_num != CardNumEnum.DEFAULT.value.value:
-                    need_charge_power = int(self.next_plan.card_num) * 20
-            elif self.next_plan.category_name == '定期清剿':
-                if not self.ctx.charge_plan_config.use_coupon:  # 不使用家政券时需要60电量
-                    need_charge_power = 60
-            elif self.next_plan.category_name == '专业挑战室':
-                need_charge_power = 40
-            elif self.next_plan.category_name == '恶名狩猎':
-                need_charge_power = 60
-
-            # 如果能确定所需电量，进行比较
-            if need_charge_power != 1000:
-                if self.charge_power >= need_charge_power:
-                    return self.round_success(f'电量恢复成功！当前电量: {current_charge}, 需要电量: {need_charge_power}')
-                else:
-                    return self.round_fail(f'电量仍不足！当前电量: {current_charge}, 需要电量: {need_charge_power}, 缺少: {need_charge_power - self.charge_power}')
-            else:
-                # 对于需要在任务中检查的情况，返回成功让后续流程处理
-                return self.round_success(f'电量已恢复，当前电量: {current_charge}，将在任务执行时检查是否足够')
-
-        return self.round_success(f'电量恢复完成，当前电量: {current_charge}')
-
-    @node_from(from_name='检查恢复后电量', success=True)
+    @node_from(from_name='恢复电量', success=True)
     @operation_node(name='恢复电量后重新打开菜单')
     def reopen_menu_after_restore_charge(self) -> OperationRoundResult:
-        # 电量恢复成功，直接返回成功，菜单已经在检查电量时打开了
+        # 电量恢复成功，直接返回成功，菜单已经在恢复电量时打开了
         return self.round_success('电量恢复成功，准备继续执行计划')
 
-    @node_from(from_name='检查恢复后电量', success=False)
-    @operation_node(name='电量恢复重试')
-    def retry_restore_charge(self) -> OperationRoundResult:
-        # 检查重试次数
-        if not hasattr(self, 'charge_retry_count'):
-            self.charge_retry_count = 0
-
-        self.charge_retry_count += 1
-
-        if self.charge_retry_count < 3:  # 最多重试2次（总共3次机会）
-            return self.round_success('电量仍不足，尝试再次恢复')
-        else:
-            self.charge_retry_count = 0  # 重置计数器
-            return self.round_fail('已达到最大重试次数，电量恢复失败')
-
-    @node_from(from_name='电量恢复重试', success=True)
-    @operation_node(name='重新点击电量文本')
-    def click_charge_text_retry(self) -> OperationRoundResult:
-        screen = self.screenshot()
-        area = self.ctx.screen_loader.get_area('菜单', '文本-电量')
-        if area is None:
-            return self.round_retry('未找到电量区域', wait=1)
-
-        # 点击电量文本区域
-        self.ctx.controller.click(area.center)
-        return self.round_success('已重新点击电量文本')
-
     @node_from(from_name='电量不足', status=STATUS_ROUND_FINISHED)
-    @node_from(from_name='电量恢复失败', status=STATUS_ROUND_FINISHED)
+    @node_from(from_name='恢复电量', success=False)
     @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_ROUND_FINISHED)
     @node_from(from_name='查找并选择下一个可执行任务', success=False)
     @operation_node(name='返回大世界')
@@ -634,20 +344,9 @@ class ChargePlanApp(ZApplication):
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='点击电量文本', success=False)
-    @node_from(from_name='使用储蓄电量', success=False)
-    @node_from(from_name='使用以太电池', success=False)
-    @node_from(from_name='设置使用数量', success=False)
-    @node_from(from_name='确认恢复电量', success=False)
-    @node_from(from_name='检查恢复后电量', success=False)
-    @node_from(from_name='电量恢复重试', success=False)
-    @node_from(from_name='重新点击电量文本', success=False)
+    @node_from(from_name='恢复电量', success=False)
     @operation_node(name='电量恢复失败')
     def restore_charge_failed(self) -> OperationRoundResult:
-        # 重置重试计数器
-        if hasattr(self, 'charge_retry_count'):
-            self.charge_retry_count = 0
-
         # 如果电量恢复失败，执行原来的跳过逻辑
         if self.ctx.charge_plan_config.skip_plan:
             # 跳过当前计划，继续尝试下一个
