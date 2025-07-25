@@ -248,6 +248,12 @@ class CodeEditorDialog(MessageBoxBase):
         self.format_btn = ToolButton(FluentIcon.CODE, self)
         self.format_btn.clicked.connect(self._format_json)
         button_layout.addWidget(self.format_btn)
+
+        # 通知模板按钮
+        self.template_btn = ToolButton(FluentIcon.TAG, self)
+        self.template_btn.clicked.connect(self._on_template_button_clicked)
+        button_layout.addWidget(self.template_btn)
+
         button_layout.addStretch()
 
         editor_layout.addLayout(button_layout)
@@ -278,6 +284,21 @@ class CodeEditorDialog(MessageBoxBase):
             pass
         except Exception:
             log.error('格式化 JSON 失败', exc_info=True)
+
+    def _on_template_button_clicked(self):
+        """处理模板按钮点击事件"""
+
+        # 构建模板内容
+        template_content = self._build_template_content()
+
+        # 在光标位置插入模板
+        cursor = self.editor.textCursor()
+        cursor.insertText(template_content)
+        self.editor.setTextCursor(cursor)
+
+    def _build_template_content(self) -> str:
+        """构建要插入的模板内容"""
+        return '{\n  "title": "$title",\n  "content": "$content",\n  "image": "$image"\n}'
 
     def get_text(self) -> str:
         """获取编辑器中的文本"""
@@ -377,6 +398,11 @@ class CodeEditorSettingCard(SettingCardBase):
         self.format_btn.clicked.connect(self._format_json)
         button_layout.addWidget(self.format_btn)
 
+        # 通知模板按钮
+        self.template_btn = ToolButton(FluentIcon.TAG, self)
+        self.template_btn.clicked.connect(self._on_template_button_clicked)
+        button_layout.addWidget(self.template_btn)
+
         # 弹出按钮
         self.pop_btn = ToolButton(FluentIcon.LINK, self)
         self.pop_btn.clicked.connect(self._pop_editor)
@@ -453,6 +479,25 @@ class CodeEditorSettingCard(SettingCardBase):
             pass
         except Exception:
             log.error('格式化 JSON 失败', exc_info=True)
+
+    def _on_template_button_clicked(self):
+        """处理通知模板按钮点击事件"""
+        # 构建模板内容
+        template_content = self._build_template_content()
+
+        # 在光标位置插入模板
+        cursor = self.editor.textCursor()
+        cursor.insertText(template_content)
+        self.editor.setTextCursor(cursor)
+
+        # 触发值变化事件
+        if self.adapter is not None:
+            self.adapter.set_value(self.editor.toPlainText())
+        self.value_changed.emit(self.editor.toPlainText())
+
+    def _build_template_content(self) -> str:
+        """构建要插入的模板内容"""
+        return "标题: $title\n内容: $content\n图片: $image"
 
     def _pop_editor(self):
         """弹出代码编辑器窗口"""
