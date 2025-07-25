@@ -84,7 +84,7 @@ class PushConfigNames:
     push_config_names = {
     "BARK": ["PUSH","DEVICE_KEY","ARCHIVE","GROUP","SOUND","ICON","LEVEL","URL"],
     "DD_BOT": ["SECRET","TOKEN"],
-    "FS": ["KEY"],
+    "FS": ["KEY", "APPID", "APPSECRET"],
     "ONEBOT": ["URL","USER","GROUP","TOKEN"],
     "GOTIFY": ["URL","TOKEN","PRIORITY"],
     "IGOT": ["PUSH_KEY"],
