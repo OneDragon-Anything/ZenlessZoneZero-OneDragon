@@ -144,7 +144,7 @@ class RestoreCharge(ZOperation):
         if confirm_area is not None:
             self.ctx.controller.click(confirm_area.center)
 
-        return self.round_success(f'已选择{self._current_source_type}', status=self._current_source_type)
+        return self.round_success(self._current_source_type)
 
     @node_from(from_name='选择并确认电量来源', success=False)
     @operation_node(name='重新选择电量来源')
@@ -211,14 +211,12 @@ class RestoreCharge(ZOperation):
         if battery_count <= 0:
             return self.round_success('计算出使用数量为0，无需恢复')
 
-        # 获取加号区域
-        plus_area = self.ctx.screen_loader.get_area('恢复电量', f'{self.SOURCE_ETHER_BATTERY}-加号')
-        if plus_area is None:
-            return self.round_retry(f'未找到{self.SOURCE_ETHER_BATTERY}加号按钮', wait=1)
+        # 获取加号位置
+        plus_point: Point = Point(1274, 680)
 
         # 默认初始数量为1，所以只需点击battery_count-1次
         for _ in range(battery_count - 1):
-            self.ctx.controller.click(plus_area.center)
+            self.ctx.controller.click(plus_point)
             time.sleep(0.2)
 
         log.info(f"使用以太电池: {battery_count}个")

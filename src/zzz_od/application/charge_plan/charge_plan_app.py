@@ -42,7 +42,6 @@ class ChargePlanApp(ZApplication):
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
-        # 每次新一轮计划开始时，重置计划状态
         self.last_tried_plan = None
         return self.round_success()
 
@@ -51,7 +50,6 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='开始体力计划')
     @node_from(from_name='电量不足')
     @node_from(from_name='电量恢复失败')
-    @node_from(from_name='恢复电量后重新打开菜单')
     @operation_node(name='打开菜单')
     def goto_menu(self) -> OperationRoundResult:
         op = GotoMenu(self.ctx)
@@ -72,46 +70,7 @@ class ChargePlanApp(ZApplication):
         return self.round_success(f'剩余电量 {digit}')
 
     @node_from(from_name='识别电量')
-    @operation_node(name='检查电量是否足够')
-    def check_charge_sufficiency(self) -> OperationRoundResult:
-        """
-        检查当前电量是否足够执行任何计划
-        如果电量不足且开启了恢复电量，则尝试恢复电量
-        """
-        # 检查是否所有计划都已完成
-        if self.ctx.charge_plan_config.all_plan_finished():
-            return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
-
-        # 计算所需的最小电量
-        min_required_power = float('inf')
-        for plan in self.ctx.charge_plan_config.plan_list:
-            if plan.run_times >= plan.plan_times:
-                continue  # 跳过已完成的计划
-
-            if plan.category_name == '实战模拟室':
-                if plan.card_num != CardNumEnum.DEFAULT.value.value:
-                    required = int(plan.card_num) * 20
-                else:
-                    required = 20  # 默认至少需要20
-            elif plan.category_name == '定期清剿':
-                required = 60
-            elif plan.category_name == '专业挑战室':
-                required = 40
-            elif plan.category_name == '恶名狩猎':
-                required = 60
-            else:
-                required = 20  # 默认值
-
-            min_required_power = min(min_required_power, required)
-
-        # 如果电量不足且开启了恢复电量
-        if self.charge_power < min_required_power and self.ctx.charge_plan_config.restore_charge != RestoreChargeEnum.NONE.value.value:
-            return self.round_success(ChargePlanApp.STATUS_TRY_RESTORE_CHARGE)
-
-        # 电量足够，继续正常流程
-        return self.round_success()
-
-    @node_from(from_name='检查电量是否足够')
+    @node_from(from_name='恢复电量')
     @operation_node(name='查找并选择下一个可执行任务')
     def find_and_select_next_plan(self) -> OperationRoundResult:
         """
@@ -157,18 +116,19 @@ class ChargePlanApp(ZApplication):
 
             # 检查电量是否足够
             if not self.need_to_check_power_in_mission and self.charge_power < need_charge_power:
-                # 如果开启了恢复电量，允许继续执行以触发恢复流程
+                # 如果开启了恢复电量，立即触发恢复电量流程
                 if self.ctx.charge_plan_config.restore_charge != RestoreChargeEnum.NONE.value.value:
-                    # 设置下一个计划并继续，让传送阶段处理电量不足
+                    # 设置下一个计划，然后触发恢复电量
                     self.next_plan = candidate_plan
-                    return self.round_success()
+                    return self.round_success(ChargePlanApp.STATUS_TRY_RESTORE_CHARGE)
                 # 如果没有开启恢复电量，执行原来的逻辑
-                elif not self.ctx.charge_plan_config.skip_plan:
-                    return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
                 else:
-                    # 跳过当前计划，继续查找下一个任务
-                    self.last_tried_plan = candidate_plan
-                    continue
+                    if not self.ctx.charge_plan_config.skip_plan:
+                        return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
+                    else:
+                        # 跳过当前计划，继续查找下一个任务
+                        self.last_tried_plan = candidate_plan
+                        continue
 
             # 计算可运行次数
             self.next_can_run_times = 0
@@ -187,24 +147,6 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='查找并选择下一个可执行任务')
     @operation_node(name='传送')
     def transport(self) -> OperationRoundResult:
-        # 如果开启了恢复电量，在传送前再次检查电量
-        if self.ctx.charge_plan_config.restore_charge != RestoreChargeEnum.NONE.value.value:
-            # 计算所需电量
-            need_charge_power = 1000
-            if self.next_plan.category_name == '实战模拟室':
-                if self.next_plan.card_num != CardNumEnum.DEFAULT.value.value:
-                    need_charge_power = int(self.next_plan.card_num) * 20
-            elif self.next_plan.category_name == '定期清剿':
-                need_charge_power = 60
-            elif self.next_plan.category_name == '专业挑战室':
-                need_charge_power = 40
-            elif self.next_plan.category_name == '恶名狩猎':
-                need_charge_power = 60
-
-            # 如果电量不足，触发电量不足节点
-            if need_charge_power != 1000 and self.charge_power < need_charge_power:
-                return self.round_fail('电量不足，需要恢复')
-
         # 使用已经在查找并选择下一个可执行任务节点中设置好的self.next_plan
         op = TransportByCompendium(self.ctx,
                                    self.next_plan.tab_name,
@@ -295,6 +237,7 @@ class ChargePlanApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='电量不足', status=STATUS_TRY_RESTORE_CHARGE)
+    @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_TRY_RESTORE_CHARGE)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
         """使用新的RestoreCharge operation来恢复电量"""
@@ -328,14 +271,7 @@ class ChargePlanApp(ZApplication):
         else:
             return self.round_fail('电量恢复失败')
 
-    @node_from(from_name='恢复电量', success=True)
-    @operation_node(name='恢复电量后重新打开菜单')
-    def reopen_menu_after_restore_charge(self) -> OperationRoundResult:
-        # 电量恢复成功，直接返回成功，菜单已经在恢复电量时打开了
-        return self.round_success('电量恢复成功，准备继续执行计划')
-
     @node_from(from_name='电量不足', status=STATUS_ROUND_FINISHED)
-    @node_from(from_name='恢复电量', success=False)
     @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_ROUND_FINISHED)
     @node_from(from_name='查找并选择下一个可执行任务', success=False)
     @operation_node(name='返回大世界')
