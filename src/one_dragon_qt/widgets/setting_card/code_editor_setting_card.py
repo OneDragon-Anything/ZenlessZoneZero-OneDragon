@@ -5,7 +5,7 @@ from PySide6.QtCore import QRegularExpression, Signal, Qt, QRect, QObject, QEven
 from PySide6.QtGui import QColor, QTextCharFormat, QSyntaxHighlighter, QIcon, QKeyEvent
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from PySide6.QtCore import QSize
-from qfluentwidgets import PlainTextEdit, FluentIconBase, FluentIcon, ToolButton, MessageBoxBase, SubtitleLabel, BodyLabel, isDarkTheme
+from qfluentwidgets import PlainTextEdit, FluentIconBase, FluentIcon, ToolButton, MessageBoxBase, SubtitleLabel, BodyLabel, isDarkTheme, ToolTipFilter, ToolTipPosition
 
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
@@ -252,8 +252,11 @@ class CodeEditorDialog(MessageBoxBase):
 
         # 通知模板按钮
         self.template_btn = ToolButton(FluentIcon.TAG, self)
-        self.template_btn.setToolTip(gt("选择模板变量"))
         self.template_btn.clicked.connect(self._show_template_menu)
+
+        # tooltip
+        self.template_btn.setToolTip(gt("插入变量"))
+        self.template_btn.installEventFilter(ToolTipFilter(self.template_btn, showDelay=500, position=ToolTipPosition.TOP))
 
         # 创建模板变量菜单
         self.template_menu = TemplateVariableMenu(parent=self, editor=self.editor)
@@ -403,8 +406,11 @@ class CodeEditorSettingCard(SettingCardBase):
 
         # 通知模板按钮
         self.template_btn = ToolButton(FluentIcon.TAG, self)
-        self.template_btn.setToolTip(gt("选择模板变量"))
         self.template_btn.clicked.connect(self._show_template_menu)
+
+        # tooltip
+        self.template_btn.setToolTip(gt("插入变量"))
+        self.template_btn.installEventFilter(ToolTipFilter(self.template_btn, showDelay=500, position=ToolTipPosition.TOP))
 
         # 创建模板变量菜单
         self.template_menu = TemplateVariableMenu(parent=self, editor=self.editor)
