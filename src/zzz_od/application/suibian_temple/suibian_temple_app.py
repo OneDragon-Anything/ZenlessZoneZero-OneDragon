@@ -24,6 +24,11 @@ class SuibianTempleApp(ZApplication):
 
     @operation_node(name='识别初始画面', is_start_node=True)
     def check_initial_screen(self) -> OperationRoundResult:
+        # 检查随便观总开关是否启用
+        if not self.ctx.suibian_temple_config.overall_enabled:
+            self.ctx.log.info('随便观总开关已禁用，跳过所有随便观相关功能')
+            return self.round_success(status='随便观总开关已禁用，所有功能已跳过')
+
         current_screen_name, can_go = self.check_screen_with_can_go(self.last_screenshot, '快捷手册-目标')
         if can_go is not None and can_go == True:
             return self.round_by_goto_screen(self.last_screenshot, '快捷手册-目标',
@@ -84,6 +89,11 @@ class SuibianTempleApp(ZApplication):
     @node_from(from_name='前往游历')
     @operation_node(name='处理游历')
     def handle_adventure_squad(self) -> OperationRoundResult:
+        # 检查小队游历功能是否启用
+        if not self.ctx.suibian_temple_config.adventure_squad_enabled:
+            self.ctx.log.info('小队游历功能已禁用，跳过执行')
+            return self.round_success(status='小队游历功能已跳过')
+
         op = SuibianTempleAdventureSquad(self.ctx)
         return self.round_by_op_result(op.execute())
 
@@ -104,6 +114,11 @@ class SuibianTempleApp(ZApplication):
     @node_from(from_name='前往制造')
     @operation_node(name='处理制造坊')
     def handle_craft(self) -> OperationRoundResult:
+        # 检查制造坊功能是否启用
+        if not self.ctx.suibian_temple_config.craft_enabled:
+            self.ctx.log.info('制造坊功能已禁用，跳过执行')
+            return self.round_success(status='制造坊功能已跳过')
+
         op = SuibianTempleCraft(self.ctx)
         return self.round_by_op_result(op.execute())
 
@@ -132,6 +147,11 @@ class SuibianTempleApp(ZApplication):
     @node_from(from_name='前往饮茶仙')
     @operation_node(name='处理饮茶仙')
     def handle_yum_cha_sin_submit(self) -> OperationRoundResult:
+        # 检查饮茶仙功能是否启用
+        if not self.ctx.suibian_temple_config.yum_cha_sin_enabled:
+            self.ctx.log.info('饮茶仙功能已禁用，跳过执行')
+            return self.round_success(status='饮茶仙功能已跳过')
+
         op = SuibianTempleYumChaSin(self.ctx)
         return self.round_by_op_result(op.execute())
 

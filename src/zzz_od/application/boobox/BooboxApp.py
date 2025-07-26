@@ -29,6 +29,15 @@ class BooboxApp(ZApplication):
 
     @operation_node(name='识别初始画面', is_start_node=True)
     def check_initial_screen(self) -> OperationRoundResult:
+        # 检查邦巢功能和总开关是否启用
+        if not self.ctx.suibian_temple_config.overall_enabled:
+            self.ctx.log.info('随便观总开关已禁用，跳过邦巢执行')
+            return self.round_success(status='随便观总开关已禁用，邦巢功能已跳过')
+
+        if not self.ctx.suibian_temple_config.boobox_enabled:
+            self.ctx.log.info('邦巢功能已禁用，跳过执行')
+            return self.round_success(status='邦巢功能已跳过')
+
         screen = self.screenshot()
 
         # 检测是否已经在邦巢界面
