@@ -311,6 +311,7 @@ class JsonHighlighter(QSyntaxHighlighter):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._current_theme_is_dark = isDarkTheme()
         self.update_colors()
 
     def update_colors(self):
@@ -355,7 +356,10 @@ class JsonHighlighter(QSyntaxHighlighter):
 
     def highlightBlock(self, text):
         # 在每次高亮时检查主题是否变化
-        self.update_colors()
+        current_theme_is_dark = isDarkTheme()
+        if current_theme_is_dark != self._current_theme_is_dark:
+            self._current_theme_is_dark = current_theme_is_dark
+            self.update_colors()
 
         for pattern, format in self.highlighting_rules:
             it = pattern.globalMatch(text)

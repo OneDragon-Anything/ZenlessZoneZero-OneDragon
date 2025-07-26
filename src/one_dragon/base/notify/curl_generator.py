@@ -52,7 +52,7 @@ class CurlGenerator:
             'method': self._safe_get_card_value(cards.get('method'), self.DEFAULT_METHOD),
             'content_type': self._safe_get_card_value(cards.get('content_type'), self.DEFAULT_CONTENT_TYPE),
             'headers': self._safe_get_card_value(cards.get('headers')),
-            'body': self._safe_get_card_value(cards.get('body'))
+            'body': self._safe_get_card_value(cards.get('body'), "{}")
         }
 
         # 验证 URL 不为空

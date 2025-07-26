@@ -21,6 +21,7 @@ class KeyValueSettingCard(SettingCardBase):
                  parent: Optional[QWidget] = None):
         super().__init__(icon, title, content, parent=parent)
 
+        self.batch_update = False  # Flag to control batch updates
         self.vBoxLayout.setSpacing(8)
 
         # 主布局，包含一个用于显示键值对的垂直布局和一个添加按钮
@@ -76,7 +77,8 @@ class KeyValueSettingCard(SettingCardBase):
 
         self.kv_layout.addWidget(row_widget)
         self._update_height()
-        self._update_all_remove_buttons()
+        if not self.batch_update:
+            self._update_all_remove_buttons()
 
     def _remove_row(self, row_widget: QWidget):
         """移除指定行"""
@@ -87,7 +89,8 @@ class KeyValueSettingCard(SettingCardBase):
         row_widget.deleteLater()
         self._on_value_changed()
         self._update_height()
-        self._update_all_remove_buttons()
+        if not self.batch_update:
+            self._update_all_remove_buttons()
 
     def _clear_rows(self):
         """清空所有行"""
@@ -144,6 +147,7 @@ class KeyValueSettingCard(SettingCardBase):
     def setValue(self, value: str, emit_signal: bool = True):
         """从 JSON 字符串设置键值对"""
         self._clear_rows()
+        self.batch_update = True
         try:
             if value:
                 data = json.loads(value)
@@ -168,6 +172,7 @@ class KeyValueSettingCard(SettingCardBase):
 
         # 最后更新一次，但不触发值变化事件
         self._update_height()
+        self.batch_update = False
         self._update_all_remove_buttons()
 
     def init_with_adapter(self, adapter):

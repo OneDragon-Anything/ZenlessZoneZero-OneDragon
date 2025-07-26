@@ -862,6 +862,14 @@ class Push():
             self.log_error(f"wxpusher 推送失败！错误信息：{response.get('msg')}")
 
 
+    def _check_required_variables(self, url_template: str, body_template: str) -> bool:
+        """检查是否包含必需的变量（title和content中至少一个）"""
+        has_old_vars = ("$title" in url_template or "$title" in body_template or
+                       "$content" in url_template or "$content" in body_template)
+        has_new_vars = ("{{title}}" in url_template or "{{title}}" in body_template or
+                       "{{content}}" in url_template or "{{content}}" in body_template)
+        return has_old_vars or has_new_vars
+
     def parse_headers(self, headers) -> dict:
         if not headers:
             return {}
@@ -936,12 +944,7 @@ class Push():
             iso_timestamp = datetime.datetime.now().isoformat()
 
             # 检查是否包含必需的变量（title和content中至少一个）
-            has_old_vars = ("$title" in url_template or "$title" in body_template or
-                           "$content" in url_template or "$content" in body_template)
-            has_new_vars = ("{{title}}" in url_template or "{{title}}" in body_template or
-                           "{{content}}" in url_template or "{{content}}" in body_template)
-
-            if not has_old_vars and not has_new_vars:
+            if not self._check_required_variables(url_template, body_template):
                 self.log_error("请求头或者请求体中必须包含 $title/$content 或 {{title}}/{{content}} 变量")
                 return
 
@@ -1055,7 +1058,8 @@ class Push():
             body = body.replace(placeholder, value)
 
         # 兼容旧版$变量格式
-        url = url.replace("$title", urllib.parse.quote_plus(title)).replace("$content", urllib.parse.quote_plus(content))
+        url = url.replace("$title", urllib.parse.quote_plus(title)) \
+                 .replace("$content", urllib.parse.quote_plus(content))
 
         # 解析 Headers
         headers = {}

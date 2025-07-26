@@ -51,7 +51,7 @@ class TemplateVariableMenu(RoundMenu):
             log.warning("无法获取文本光标")
             return
 
-            # 插入变量
+        # 插入变量
         cursor.insertText(variable)
         self.editor.setTextCursor(cursor)
 
@@ -106,9 +106,9 @@ class TemplateVariableMenu(RoundMenu):
                 if 'CodeEditorSettingCard' in class_name:
                     # 对于CodeEditorSettingCard，需要触发adapter和value_changed
                     if hasattr(parent, 'adapter') and parent.adapter is not None:
-                            parent.adapter.set_value(self.editor.toPlainText())
+                        parent.adapter.set_value(self.editor.toPlainText())
                     if hasattr(parent, 'value_changed'):
-                            parent.value_changed.emit(self.editor.toPlainText())
+                        parent.value_changed.emit(self.editor.toPlainText())
                     break
                 elif hasattr(parent, '_on_text_changed'):
                     parent._on_text_changed()
