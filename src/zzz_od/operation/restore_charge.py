@@ -22,13 +22,14 @@ class RestoreCharge(ZOperation):
     SOURCE_BACKUP_CHARGE: ClassVar[str] = '储蓄电量'
     SOURCE_ETHER_BATTERY: ClassVar[str] = '以太电池'
 
-    def __init__(self, ctx: ZContext, required_charge: int):
+    def __init__(self, ctx: ZContext, required_charge: int, is_menu = False):
         """
         初始化电量恢复操作
 
         Args:
             ctx: ZContext实例
             required_charge: 需要的电量
+            is_menu: 是否在菜单界面
         """
         ZOperation.__init__(
             self,
@@ -36,8 +37,8 @@ class RestoreCharge(ZOperation):
             op_name='恢复电量'
         )
         self.required_charge = required_charge
+        self.is_menu = is_menu
 
-        # 统一的状态管理
         self._current_source_type = None  # 当前选择的电量来源类型
         self._backup_charge_tried = False  # 是否已尝试过储蓄电量
 
@@ -49,8 +50,7 @@ class RestoreCharge(ZOperation):
         if result.is_success:
             return self.round_success()
 
-        screen = self.check_and_update_current_screen()
-        if screen == '菜单':
+        if self.is_menu:
             return self.round_by_find_and_click_area('菜单', '文本-电量')
         else:
             return self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '下一步')
@@ -79,7 +79,6 @@ class RestoreCharge(ZOperation):
     @node_from(from_name='选择电量来源', status=SOURCE_ETHER_BATTERY)
     @operation_node(name='选择并确认电量来源')
     def select_and_confirm_charge_source(self) -> OperationRoundResult:
-        """选择并确认电量来源（储蓄电量或以太电池）"""
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
 
         target_text = self._current_source_type
@@ -127,6 +126,8 @@ class RestoreCharge(ZOperation):
     @operation_node(name='设置使用数量')
     def set_charge_amount(self) -> OperationRoundResult:
         """设置恢复电量的数量"""
+        if not self.is_menu:
+            return self.round_success(wait=0.5)
 
         amount_area = self.ctx.screen_loader.get_area('恢复电量', '当前数量')
         part = cv2_utils.crop_image_only(self.last_screenshot, amount_area.rect)
@@ -177,7 +178,7 @@ class RestoreCharge(ZOperation):
                 log.info(f'{self.SOURCE_BACKUP_CHARGE}不足，后续将切换{self.SOURCE_ETHER_BATTERY}')
 
         log.info(f"使用储蓄电量: {amount_to_use}")
-        return self.round_success()
+        return self.round_success(wait=0.5)
 
     def handle_ether_battery(self, available_battery_count: int) -> OperationRoundResult:
         """处理以太电池恢复"""
@@ -194,7 +195,7 @@ class RestoreCharge(ZOperation):
             time.sleep(0.2)
 
         log.info(f"使用以太电池: {usable_battery_count}个")
-        return self.round_success()
+        return self.round_success(wait=0.5)
 
     @node_from(from_name='设置使用数量')
     @operation_node(name='确认恢复电量')

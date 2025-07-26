@@ -234,7 +234,8 @@ class ChargePlanApp(ZApplication):
     def restore_charge(self) -> OperationRoundResult:
         op = RestoreCharge(
             self.ctx,
-            required_charge=self.required_charge - self.charge_power
+            required_charge=self.required_charge - self.charge_power,
+            is_menu=True
         )
         return self.round_by_op_result(op.execute())
 

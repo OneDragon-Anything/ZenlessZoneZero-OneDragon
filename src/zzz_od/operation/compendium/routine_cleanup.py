@@ -98,7 +98,6 @@ class RoutineCleanup(ZOperation):
 
     @node_from(from_name='处理家政券', success=False)
     @node_from(from_name='处理家政券', status=Coupon.STATUS_CONTINUE_RUN_WITH_CHARGE)
-    @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
     @operation_node(name='识别电量')
     def check_charge(self) -> OperationRoundResult:
         if not self.need_check_power:
@@ -134,6 +133,7 @@ class RoutineCleanup(ZOperation):
         return self.round_success(RoutineCleanup.STATUS_CHARGE_ENOUGH)
 
     @node_from(from_name='识别电量', status=STATUS_CHARGE_NOT_ENOUGH)
+    @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
         if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value:
@@ -152,7 +152,6 @@ class RoutineCleanup(ZOperation):
         # 防止前面电量识别错误
         result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '恢复电量')
         if result.is_success:
-            self.ctx.controller.click(Point(1700, 1030))
             return self.round_success(status=RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
 
         # 点击直到出战按钮出现
