@@ -67,27 +67,21 @@ class RestoreCharge(ZOperation):
     @operation_node(name='选择电量来源')
     def select_charge_source(self) -> OperationRoundResult:
         """根据配置和当前状态选择电量来源"""
-        # 确定要使用的电量来源
-        source_type = self._determine_charge_source()
-        self._current_source_type = source_type
-
-        if source_type == self.SOURCE_BACKUP_CHARGE:
-            return self.round_success(self.SOURCE_BACKUP_CHARGE, wait=1)
-        else:
-            return self.round_success(self.SOURCE_ETHER_BATTERY, wait=1)
-
-    def _determine_charge_source(self) -> str:
-        """确定要使用的电量来源类型"""
         if self.restore_mode == RestoreChargeEnum.BACKUP_ONLY.value.value:
-            return self.SOURCE_BACKUP_CHARGE
+            self._current_source_type = self.SOURCE_BACKUP_CHARGE
         elif self.restore_mode == RestoreChargeEnum.ETHER_ONLY.value.value:
-            return self.SOURCE_ETHER_BATTERY
+            self._current_source_type = self.SOURCE_ETHER_BATTERY
         else:
             # BOTH模式：如果还没尝试过储蓄电量，先尝试储蓄电量
             if not self._backup_charge_tried:
-                return self.SOURCE_BACKUP_CHARGE
+                self._current_source_type = self.SOURCE_BACKUP_CHARGE
             else:
-                return self.SOURCE_ETHER_BATTERY
+                self._current_source_type = self.SOURCE_ETHER_BATTERY
+
+        if self._current_source_type == self.SOURCE_BACKUP_CHARGE:
+            return self.round_success(self.SOURCE_BACKUP_CHARGE, wait=1)
+        else:
+            return self.round_success(self.SOURCE_ETHER_BATTERY, wait=1)
 
     @node_from(from_name='选择电量来源', status=SOURCE_BACKUP_CHARGE)
     @node_from(from_name='选择电量来源', status=SOURCE_ETHER_BATTERY)
