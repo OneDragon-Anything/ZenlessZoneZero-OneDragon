@@ -151,6 +151,9 @@ class ZContext(OneDragonContext):
         from zzz_od.application.suibian_temple.suibian_temple_run_record import SuibianTempleRunRecord
         self.suibian_temple_record: SuibianTempleRunRecord = SuibianTempleRunRecord(self.current_instance_idx, game_refresh_hour_offset)
 
+        from zzz_od.config.suibian_temple_config import SuibianTempleConfig
+        self.suibian_temple_config: SuibianTempleConfig = SuibianTempleConfig(self.current_instance_idx)
+
         self.init_by_config()
 
     def init_by_config(self) -> None:
