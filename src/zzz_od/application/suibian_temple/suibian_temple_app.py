@@ -79,6 +79,16 @@ class SuibianTempleApp(ZApplication):
 
     @node_from(from_name='识别初始画面', status='随便观-入口')
     @node_from(from_name='前往随便观')
+    @operation_node(name='检查小队游历功能')
+    def check_adventure_squad_enabled(self) -> OperationRoundResult:
+        # 检查小队游历功能是否启用
+        if not self.ctx.suibian_temple_config.adventure_squad_enabled:
+            log.info('小队游历功能已禁用，跳过执行')
+            return self.round_success(status='小队游历功能已跳过')
+        else:
+            return self.round_success(status='小队游历功能已启用')
+
+    @node_from(from_name='检查小队游历功能', status='小队游历功能已启用')
     @operation_node(name='前往游历')
     def goto_adventure(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
@@ -90,15 +100,37 @@ class SuibianTempleApp(ZApplication):
     @node_from(from_name='前往游历')
     @operation_node(name='处理游历')
     def handle_adventure_squad(self) -> OperationRoundResult:
-        # 检查小队游历功能是否启用
-        if not self.ctx.suibian_temple_config.adventure_squad_enabled:
-            log.info('小队游历功能已禁用，跳过执行')
-            return self.round_success(status='小队游历功能已跳过')
-
         op = SuibianTempleAdventureSquad(self.ctx)
         return self.round_by_op_result(op.execute())
 
+    @node_from(from_name='检查小队游历功能', status='小队游历功能已跳过')
     @node_from(from_name='处理游历')
+    @operation_node(name='返回随便观主界面')
+    def return_to_main(self) -> OperationRoundResult:
+        # 确保返回到随便观主界面
+        current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-入口'])
+        if current_screen_name is not None:
+            return self.round_success(status='已在随便观主界面')
+
+        # 如果不在主界面，尝试返回
+        target_cn_list: list[str] = ['返回', '邻里街坊']
+        result = self.round_by_ocr_and_click_by_priority(target_cn_list)
+        if result.is_success:
+            return self.round_wait(status='返回随便观主界面', wait=1)
+
+        return self.round_retry(status='尝试返回随便观主界面', wait=1)
+
+    @node_from(from_name='返回随便观主界面')
+    @operation_node(name='检查制造坊功能')
+    def check_craft_enabled(self) -> OperationRoundResult:
+        # 检查制造坊功能是否启用
+        if not self.ctx.suibian_temple_config.craft_enabled:
+            log.info('制造坊功能已禁用，跳过执行')
+            return self.round_success(status='制造坊功能已跳过')
+        else:
+            return self.round_success(status='制造坊功能已启用')
+
+    @node_from(from_name='检查制造坊功能', status='制造坊功能已启用')
     @operation_node(name='前往经营')
     def goto_business(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
@@ -115,15 +147,21 @@ class SuibianTempleApp(ZApplication):
     @node_from(from_name='前往制造')
     @operation_node(name='处理制造坊')
     def handle_craft(self) -> OperationRoundResult:
-        # 检查制造坊功能是否启用
-        if not self.ctx.suibian_temple_config.craft_enabled:
-            log.info('制造坊功能已禁用，跳过执行')
-            return self.round_success(status='制造坊功能已跳过')
-
         op = SuibianTempleCraft(self.ctx)
         return self.round_by_op_result(op.execute())
 
+    @node_from(from_name='检查制造坊功能', status='制造坊功能已跳过')
     @node_from(from_name='处理制造坊')
+    @operation_node(name='检查饮茶仙功能')
+    def check_yum_cha_sin_enabled(self) -> OperationRoundResult:
+        # 检查饮茶仙功能是否启用
+        if not self.ctx.suibian_temple_config.yum_cha_sin_enabled:
+            log.info('饮茶仙功能已禁用，跳过执行')
+            return self.round_success(status='饮茶仙功能已跳过')
+        else:
+            return self.round_success(status='饮茶仙功能已启用')
+
+    @node_from(from_name='检查饮茶仙功能', status='饮茶仙功能已启用')
     @operation_node(name='前往饮茶仙')
     def goto_yum_cha_sin(self) -> OperationRoundResult:
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-饮茶仙'])
@@ -148,14 +186,10 @@ class SuibianTempleApp(ZApplication):
     @node_from(from_name='前往饮茶仙')
     @operation_node(name='处理饮茶仙')
     def handle_yum_cha_sin_submit(self) -> OperationRoundResult:
-        # 检查饮茶仙功能是否启用
-        if not self.ctx.suibian_temple_config.yum_cha_sin_enabled:
-            log.info('饮茶仙功能已禁用，跳过执行')
-            return self.round_success(status='饮茶仙功能已跳过')
-
         op = SuibianTempleYumChaSin(self.ctx)
         return self.round_by_op_result(op.execute())
 
+    @node_from(from_name='检查饮茶仙功能', status='饮茶仙功能已跳过')
     @node_from(from_name='处理饮茶仙')
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
