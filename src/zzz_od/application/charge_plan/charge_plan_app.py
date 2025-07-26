@@ -49,6 +49,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='挑战失败')
     @node_from(from_name='开始体力计划')
     @node_from(from_name='电量不足')
+    @node_from(from_name='恢复电量', success=True)
     @node_from(from_name='恢复电量', success=False)
     @operation_node(name='打开菜单')
     def goto_menu(self) -> OperationRoundResult:
@@ -70,7 +71,6 @@ class ChargePlanApp(ZApplication):
         return self.round_success(f'剩余电量 {digit}')
 
     @node_from(from_name='识别电量')
-    @node_from(from_name='恢复电量')
     @operation_node(name='查找并选择下一个可执行任务')
     def find_and_select_next_plan(self) -> OperationRoundResult:
         """
