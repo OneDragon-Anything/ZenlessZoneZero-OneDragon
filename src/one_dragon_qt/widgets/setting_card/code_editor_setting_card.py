@@ -10,6 +10,7 @@ from qfluentwidgets import PlainTextEdit, FluentIconBase, FluentIcon, ToolButton
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
+from one_dragon_qt.widgets.setting_card.template_variable_menu import TemplateVariableMenu
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
@@ -251,7 +252,12 @@ class CodeEditorDialog(MessageBoxBase):
 
         # 通知模板按钮
         self.template_btn = ToolButton(FluentIcon.TAG, self)
-        self.template_btn.clicked.connect(self._on_template_button_clicked)
+        self.template_btn.setToolTip(gt("选择模板变量"))
+        self.template_btn.clicked.connect(self._show_template_menu)
+
+        # 创建模板变量菜单
+        self.template_menu = TemplateVariableMenu(parent=self, editor=self.editor)
+
         button_layout.addWidget(self.template_btn)
 
         button_layout.addStretch()
@@ -285,20 +291,12 @@ class CodeEditorDialog(MessageBoxBase):
         except Exception:
             log.error('格式化 JSON 失败', exc_info=True)
 
-    def _on_template_button_clicked(self):
-        """处理模板按钮点击事件"""
+    def _show_template_menu(self):
+        """显示模板变量菜单"""
 
-        # 构建模板内容
-        template_content = self._build_template_content()
-
-        # 在光标位置插入模板
-        cursor = self.editor.textCursor()
-        cursor.insertText(template_content)
-        self.editor.setTextCursor(cursor)
-
-    def _build_template_content(self) -> str:
-        """构建要插入的模板内容"""
-        return '{\n  "title": "$title",\n  "content": "$content",\n  "image": "$image"\n}'
+        # 计算菜单显示位置
+        button_pos = self.template_btn.mapToGlobal(self.template_btn.rect().bottomLeft())
+        self.template_menu.exec(button_pos)
 
     def get_text(self) -> str:
         """获取编辑器中的文本"""
@@ -388,6 +386,11 @@ class CodeEditorSettingCard(SettingCardBase):
         self.parent_window = parent
         self.adapter: YamlConfigAdapter = adapter
 
+        # 首先创建编辑器
+        self.editor = PlainTextEdit(self)
+        self.editor.setPlaceholderText("请输入 JSON 格式的请求体")
+        self.highlighter = JsonHighlighter(self.editor.document())
+
         # 创建按钮布局
         button_layout = QVBoxLayout()
         button_layout.setContentsMargins(16, 16, 16, 16)
@@ -400,17 +403,18 @@ class CodeEditorSettingCard(SettingCardBase):
 
         # 通知模板按钮
         self.template_btn = ToolButton(FluentIcon.TAG, self)
-        self.template_btn.clicked.connect(self._on_template_button_clicked)
+        self.template_btn.setToolTip(gt("选择模板变量"))
+        self.template_btn.clicked.connect(self._show_template_menu)
+
+        # 创建模板变量菜单
+        self.template_menu = TemplateVariableMenu(parent=self, editor=self.editor)
+
         button_layout.addWidget(self.template_btn)
 
         # 弹出按钮
         self.pop_btn = ToolButton(FluentIcon.LINK, self)
         self.pop_btn.clicked.connect(self._pop_editor)
         button_layout.addWidget(self.pop_btn)
-
-        self.editor = PlainTextEdit(self)
-        self.editor.setPlaceholderText("请输入 JSON 格式的请求体")
-        self.highlighter = JsonHighlighter(self.editor.document())
 
         # 创建编辑器和按钮的水平布局
         editor_horizontal_layout = QHBoxLayout()
@@ -480,24 +484,12 @@ class CodeEditorSettingCard(SettingCardBase):
         except Exception:
             log.error('格式化 JSON 失败', exc_info=True)
 
-    def _on_template_button_clicked(self):
-        """处理通知模板按钮点击事件"""
-        # 构建模板内容
-        template_content = self._build_template_content()
+    def _show_template_menu(self):
+        """显示模板变量菜单"""
 
-        # 在光标位置插入模板
-        cursor = self.editor.textCursor()
-        cursor.insertText(template_content)
-        self.editor.setTextCursor(cursor)
-
-        # 触发值变化事件
-        if self.adapter is not None:
-            self.adapter.set_value(self.editor.toPlainText())
-        self.value_changed.emit(self.editor.toPlainText())
-
-    def _build_template_content(self) -> str:
-        """构建要插入的模板内容"""
-        return "标题: $title\n内容: $content\n图片: $image"
+        # 计算菜单显示位置
+        button_pos = self.template_btn.mapToGlobal(self.template_btn.rect().bottomLeft())
+        self.template_menu.exec(button_pos)
 
     def _pop_editor(self):
         """弹出代码编辑器窗口"""
