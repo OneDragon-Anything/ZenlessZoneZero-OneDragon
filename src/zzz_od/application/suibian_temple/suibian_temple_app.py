@@ -2,6 +2,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_squad import SuibianTempleAdventureSquad
 from zzz_od.application.suibian_temple.operations.suibian_temple_craft import SuibianTempleCraft
 from zzz_od.application.suibian_temple.operations.suibian_temple_yum_cha_sin import SuibianTempleYumChaSin
@@ -26,7 +27,7 @@ class SuibianTempleApp(ZApplication):
     def check_initial_screen(self) -> OperationRoundResult:
         # 检查随便观总开关是否启用
         if not self.ctx.suibian_temple_config.overall_enabled:
-            self.ctx.log.info('随便观总开关已禁用，跳过所有随便观相关功能')
+            log.info('随便观总开关已禁用，跳过所有随便观相关功能')
             return self.round_success(status='随便观总开关已禁用，所有功能已跳过')
 
         current_screen_name, can_go = self.check_screen_with_can_go(self.last_screenshot, '快捷手册-目标')
@@ -91,7 +92,7 @@ class SuibianTempleApp(ZApplication):
     def handle_adventure_squad(self) -> OperationRoundResult:
         # 检查小队游历功能是否启用
         if not self.ctx.suibian_temple_config.adventure_squad_enabled:
-            self.ctx.log.info('小队游历功能已禁用，跳过执行')
+            log.info('小队游历功能已禁用，跳过执行')
             return self.round_success(status='小队游历功能已跳过')
 
         op = SuibianTempleAdventureSquad(self.ctx)
@@ -116,7 +117,7 @@ class SuibianTempleApp(ZApplication):
     def handle_craft(self) -> OperationRoundResult:
         # 检查制造坊功能是否启用
         if not self.ctx.suibian_temple_config.craft_enabled:
-            self.ctx.log.info('制造坊功能已禁用，跳过执行')
+            log.info('制造坊功能已禁用，跳过执行')
             return self.round_success(status='制造坊功能已跳过')
 
         op = SuibianTempleCraft(self.ctx)
@@ -149,7 +150,7 @@ class SuibianTempleApp(ZApplication):
     def handle_yum_cha_sin_submit(self) -> OperationRoundResult:
         # 检查饮茶仙功能是否启用
         if not self.ctx.suibian_temple_config.yum_cha_sin_enabled:
-            self.ctx.log.info('饮茶仙功能已禁用，跳过执行')
+            log.info('饮茶仙功能已禁用，跳过执行')
             return self.round_success(status='饮茶仙功能已跳过')
 
         op = SuibianTempleYumChaSin(self.ctx)

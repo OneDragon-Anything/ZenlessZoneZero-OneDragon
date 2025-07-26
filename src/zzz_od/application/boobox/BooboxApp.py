@@ -6,6 +6,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -31,11 +32,11 @@ class BooboxApp(ZApplication):
     def check_initial_screen(self) -> OperationRoundResult:
         # 检查邦巢功能和总开关是否启用
         if not self.ctx.suibian_temple_config.overall_enabled:
-            self.ctx.log.info('随便观总开关已禁用，跳过邦巢执行')
+            log.info('随便观总开关已禁用，跳过邦巢执行')
             return self.round_success(status='随便观总开关已禁用，邦巢功能已跳过')
 
         if not self.ctx.suibian_temple_config.boobox_enabled:
-            self.ctx.log.info('邦巢功能已禁用，跳过执行')
+            log.info('邦巢功能已禁用，跳过执行')
             return self.round_success(status='邦巢功能已跳过')
 
         screen = self.screenshot()
