@@ -49,7 +49,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='挑战失败')
     @node_from(from_name='开始体力计划')
     @node_from(from_name='电量不足')
-    @node_from(from_name='电量恢复失败')
+    @node_from(from_name='恢复电量', success=False)
     @operation_node(name='打开菜单')
     def goto_menu(self) -> OperationRoundResult:
         op = GotoMenu(self.ctx)
@@ -120,6 +120,7 @@ class ChargePlanApp(ZApplication):
                 if self.ctx.charge_plan_config.restore_charge != RestoreChargeEnum.NONE.value.value:
                     # 设置下一个计划，然后触发恢复电量
                     self.next_plan = candidate_plan
+                    self.required_charge = need_charge_power
                     return self.round_success(ChargePlanApp.STATUS_TRY_RESTORE_CHARGE)
                 # 如果没有开启恢复电量，执行原来的逻辑
                 else:
@@ -186,8 +187,6 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='识别副本分类', status='恶名狩猎')
     @operation_node(name='恶名狩猎')
     def notorious_hunt(self) -> OperationRoundResult:
-        if self.next_plan is None:
-            return self.round_fail('没有找到可执行的计划')
         op = NotoriousHunt(self.ctx, self.next_plan,
                            use_charge_power=True,
                            need_check_power=self.need_to_check_power_in_mission,
@@ -211,13 +210,6 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
     @operation_node(name='电量不足')
     def charge_not_enough(self) -> OperationRoundResult:
-        # 检查恢复电量设置
-        restore_charge_mode = self.ctx.charge_plan_config.restore_charge
-        if restore_charge_mode != RestoreChargeEnum.NONE.value.value:
-            # 根据设置选择恢复方式，尝试恢复电量
-            return self.round_success(ChargePlanApp.STATUS_TRY_RESTORE_CHARGE)
-
-        # 如果没有开启恢复电量，执行原来的逻辑
         if self.ctx.charge_plan_config.skip_plan:
             # 跳过当前计划，继续尝试下一个
             if self.next_plan is not None:
@@ -240,26 +232,9 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_TRY_RESTORE_CHARGE)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
-        """使用新的RestoreCharge operation来恢复电量"""
-        # 计算所需电量
-        required_charge = 1000  # 默认值
-        if self.next_plan is not None:
-            if self.next_plan.category_name == '实战模拟室':
-                if self.next_plan.card_num != CardNumEnum.DEFAULT.value.value:
-                    required_charge = int(self.next_plan.card_num) * 20
-            elif self.next_plan.category_name == '定期清剿':
-                if not self.ctx.charge_plan_config.use_coupon:
-                    required_charge = 60
-            elif self.next_plan.category_name == '专业挑战室':
-                required_charge = 40
-            elif self.next_plan.category_name == '恶名狩猎':
-                required_charge = 60
-
-        # 创建并执行恢复电量操作
         op = RestoreCharge(
             self.ctx,
-            current_charge=self.charge_power,
-            required_charge=required_charge,
+            required_charge=self.charge_power - self.required_charge,
             restore_mode=self.ctx.charge_plan_config.restore_charge
         )
         result = op.execute()
@@ -279,17 +254,3 @@ class ChargePlanApp(ZApplication):
         self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
-
-    @node_from(from_name='恢复电量', success=False)
-    @operation_node(name='电量恢复失败')
-    def restore_charge_failed(self) -> OperationRoundResult:
-        # 如果电量恢复失败，执行原来的跳过逻辑
-        if self.ctx.charge_plan_config.skip_plan:
-            # 跳过当前计划，继续尝试下一个
-            if self.next_plan is not None:
-                self.last_tried_plan = self.next_plan
-            return self.round_success()
-        else:
-            # 不跳过，直接结束本轮计划
-            self.last_tried_plan = None
-            return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)

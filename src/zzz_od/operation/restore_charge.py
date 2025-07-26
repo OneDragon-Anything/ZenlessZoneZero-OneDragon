@@ -1,6 +1,5 @@
 import time
-import math
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -33,7 +32,7 @@ class RestoreCharge(ZOperation):
     STATUS_USE_BACKUP_CHARGE: ClassVar[str] = f'使用{SOURCE_BACKUP_CHARGE}'
     STATUS_USE_ETHER_BATTERY: ClassVar[str] = f'使用{SOURCE_ETHER_BATTERY}'
 
-    def __init__(self, ctx: ZContext, current_charge: int, required_charge: int,
+    def __init__(self, ctx: ZContext, required_charge: int,
                  restore_mode: str = RestoreChargeEnum.BOTH.value.value):
         """
         初始化电量恢复操作
@@ -49,8 +48,8 @@ class RestoreCharge(ZOperation):
             ctx=ctx,
             op_name='恢复电量'
         )
-        self.current_charge = current_charge
         self.required_charge = required_charge
+        self.current_charge = 0
         self.restore_mode = restore_mode
         self.retry_count = 0
         self.max_retry_count = 3
@@ -58,19 +57,8 @@ class RestoreCharge(ZOperation):
         self._current_source_type = None  # 当前选择的电量来源类型
         self._backup_charge_tried = False  # 是否已尝试过储蓄电量
 
-    @operation_node(name='检查是否需要恢复电量', is_start_node=True)
-    def check_need_restore(self) -> OperationRoundResult:
-        """检查是否需要恢复电量"""
-        if self.current_charge >= self.required_charge:
-            return self.round_success(RestoreCharge.STATUS_NO_NEED)
-
-        needed_power = self.required_charge - self.current_charge
-        log.info(f'需要恢复电量: {needed_power} (当前: {self.current_charge}, 需要: {self.required_charge})')
-        return self.round_success()
-
-    @node_from(from_name='检查是否需要恢复电量')
     @node_from(from_name='电量恢复重试')
-    @operation_node(name='点击电量文本')
+    @operation_node(name='点击电量文本', is_start_node=True)
     def click_charge_text(self) -> OperationRoundResult:
         """点击电量文本区域打开恢复界面"""
         area = self.ctx.screen_loader.get_area('菜单', '文本-电量')
@@ -151,28 +139,35 @@ class RestoreCharge(ZOperation):
     def reselect_charge_source(self) -> OperationRoundResult:
         """重新选择电量来源（用于BOTH模式的切换）"""
         return self.select_charge_source()
+
     @node_from(from_name='重新选择电量来源')
     @node_from(from_name='选择并确认电量来源', status=SOURCE_BACKUP_CHARGE)
     @node_from(from_name='选择并确认电量来源', status=SOURCE_ETHER_BATTERY)
     @operation_node(name='设置使用数量')
     def set_charge_amount(self) -> OperationRoundResult:
         """设置恢复电量的数量"""
-        needed_power = max(0, self.required_charge - self.current_charge)
 
-        if needed_power <= 0:
-            return self.round_success('计算出使用数量为0，无需恢复')
+        amount_area = self.ctx.screen_loader.get_area('恢复电量', '当前数量')
+        part = cv2_utils.crop_image_only(self.last_screenshot, amount_area.rect)
+
+        ocr_result = self.ctx.ocr.run_ocr_single_line(part)
+        current_amount = str_utils.get_positive_digits(ocr_result)
+        if current_amount is None:
+            return self.round_retry('未识别到电量数值', wait=0.5)
 
         if self._current_source_type == self.SOURCE_BACKUP_CHARGE:
-            return self._handle_backup_charge(needed_power)
+            return self.handle_backup_charge(current_amount)
         else:
-            return self._handle_ether_battery(needed_power)
+            return self.handle_ether_battery(current_amount)
 
-    def _handle_backup_charge(self, needed_power: int) -> OperationRoundResult:
+    def handle_backup_charge(self, available_backup_charge: int) -> OperationRoundResult:
         """处理储蓄电量恢复"""
         # 获取当前储蓄电量数量
-        saved_power_amount = self._get_backup_charge_amount()
 
-        if saved_power_amount <= 0:
+        if available_backup_charge is None:
+            return self.round_retry('未识别到电量数值', wait=1)
+
+        if available_backup_charge <= 0:
             # 储蓄电量不足，如果是BOTH模式则切换到以太电池
             if self.restore_mode == RestoreChargeEnum.BOTH.value.value:
                 self._backup_charge_tried = True
@@ -181,7 +176,7 @@ class RestoreCharge(ZOperation):
             else:
                 return self.round_fail(f'{self.SOURCE_BACKUP_CHARGE}不足')
 
-        amount_to_use = min(needed_power, saved_power_amount)
+        amount_to_use = min(self.required_charge, available_backup_charge)
 
         # 点击输入框并输入数量
         input_area = self.ctx.screen_loader.get_area('恢复电量', '兑换数量-数字区域')
@@ -201,73 +196,37 @@ class RestoreCharge(ZOperation):
                 log.info(f'{self.SOURCE_BACKUP_CHARGE}不足，后续将切换{self.SOURCE_ETHER_BATTERY}')
 
         log.info(f"使用储蓄电量: {amount_to_use}")
-        return self.round_success('储蓄电量设置完成')
+        return self.round_success()
 
-    def _handle_ether_battery(self, needed_power: int) -> OperationRoundResult:
+    def handle_ether_battery(self, available_battery_count: int) -> OperationRoundResult:
         """处理以太电池恢复"""
         # 每个电池恢复60体力
-        battery_count = math.ceil(needed_power / 60)
-
-        if battery_count <= 0:
-            return self.round_success('计算出使用数量为0，无需恢复')
+        need_battery_count = (self.required_charge + 59) // 60
+        usable_battery_count = min(need_battery_count, available_battery_count)
 
         # 获取加号位置
         plus_point: Point = Point(1274, 680)
 
         # 默认初始数量为1，所以只需点击battery_count-1次
-        for _ in range(battery_count - 1):
+        for _ in range(usable_battery_count - 1):
             self.ctx.controller.click(plus_point)
             time.sleep(0.2)
 
-        log.info(f"使用以太电池: {battery_count}个")
-        return self.round_success('以太电池设置完成')
-
-    def _get_backup_charge_amount(self) -> int:
-        """获取当前储蓄电量数量"""
-        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-
-        for ocr_result, mrl in ocr_result_map.items():
-            if self.SOURCE_BACKUP_CHARGE in ocr_result:
-                amount_str = str_utils.get_positive_digits(ocr_result, None)
-                if amount_str is not None:
-                    try:
-                        return int(amount_str)
-                    except ValueError:
-                        log.warning(f"无法解析储蓄电量数值: {amount_str}")
-                        return 0
-                break
-
-        log.warning("未找到储蓄电量信息")
-        return 0
+        log.info(f"使用以太电池: {usable_battery_count}个")
+        return self.round_success()
 
     @node_from(from_name='设置使用数量')
     @operation_node(name='确认恢复电量')
     def confirm_restore_charge(self) -> OperationRoundResult:
-        """确认恢复电量"""
-        confirm_area = self.ctx.screen_loader.get_area('恢复电量', '兑换确认')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '恢复电量', '兑换确认')
+        if result.is_success:
+            return self.round_success(result.status, wait=0.5)
 
-        if confirm_area is None:
-            # 通过OCR识别确认按钮
-            ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-            for ocr_result, mrl in ocr_result_map.items():
-                if '确认' in ocr_result or '确定' in ocr_result:
-                    if mrl.max is not None:
-                        self.ctx.controller.click(mrl.max.center)
-                        break
-            else:
-                return self.round_retry('未找到确认按钮', wait=1)
-        else:
-            self.ctx.controller.click(confirm_area.center)
-
-        time.sleep(2)
-        return self.round_success('电量恢复完成')
+        return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='确认恢复电量')
     @operation_node(name='检查恢复后电量')
     def check_charge_after_restore(self) -> OperationRoundResult:
-        """检查恢复后的电量是否足够"""
-        time.sleep(2)
-
         # 重新打开菜单并检查电量
         op = GotoMenu(self.ctx)
         result = op.execute()
@@ -281,24 +240,20 @@ class RestoreCharge(ZOperation):
 
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-        current_charge_str = str_utils.get_positive_digits(ocr_result, None)
+        current_charge = str_utils.get_positive_digits(ocr_result, None)
 
-        if current_charge_str is None:
+        if current_charge is None:
             return self.round_retry('未识别到电量数值', wait=1)
 
-        # 更新当前电量，确保类型为int
-        try:
-            current_charge = int(current_charge_str)
-            self.current_charge = current_charge
-        except ValueError:
-            return self.round_retry(f'电量数值格式错误: {current_charge_str}', wait=1)
+        # 更新当前电量
+        self.current_charge = current_charge
 
         # 检查电量是否足够
         if self.current_charge >= self.required_charge:
-            return self.round_success(f'电量恢复成功！当前电量: {current_charge}, 需要电量: {self.required_charge}')
+            return self.round_success(f'电量恢复成功！当前电量: {self.current_charge}, 需要电量: {self.required_charge}')
         else:
             shortage = self.required_charge - self.current_charge
-            return self.round_fail(f'电量仍不足！当前电量: {current_charge}, 需要电量: {self.required_charge}, 缺少: {shortage}')
+            return self.round_fail(f'电量仍不足！当前电量: {self.current_charge}, 需要电量: {self.required_charge}, 缺少: {shortage}')
 
     @node_from(from_name='检查恢复后电量', success=False)
     @operation_node(name='电量恢复重试')
@@ -327,26 +282,29 @@ class RestoreCharge(ZOperation):
             self._current_source_type = None
             self._backup_charge_tried = False
 
-    @node_from(from_name='检查恢复后电量', success=True)
-    @operation_node(name='恢复电量成功')
-    def restore_charge_success(self) -> OperationRoundResult:
-        """电量恢复成功"""
-        return self.round_success(RestoreCharge.STATUS_SUCCESS)
 
-    @node_from(from_name='点击电量文本', success=False)
-    @node_from(from_name='选择并确认电量来源', success=False)
-    @node_from(from_name='设置使用数量', success=False)
-    @node_from(from_name='确认恢复电量', success=False)
-    @node_from(from_name='电量恢复重试', success=False)
-    @node_from(from_name='重新选择电量来源', success=False)
-    @operation_node(name='恢复电量失败')
-    def restore_charge_failed(self) -> OperationRoundResult:
-        """电量恢复失败"""
-        log.error('电量恢复失败')
-        return self.round_fail(RestoreCharge.STATUS_FAILED)
+def __debug_charge():
+    ctx = ZContext()
+    ctx.init_by_config()
+    ctx.init_ocr()
+    ctx.start_running()
+    from one_dragon.utils import debug_utils
+    screen = debug_utils.get_debug_image('_1753519599239')
+    amount_area = ctx.screen_loader.get_area('恢复电量', '当前数量')
+    part = cv2_utils.crop_image_only(screen, amount_area.rect)
+    ocr_result = ctx.ocr.run_ocr_single_line(part)
+    current_amount = str_utils.get_positive_digits(ocr_result, 0)
+    print(f'当前数量识别结果: {current_amount}')
+    cv2_utils.show_image(part, wait=0)
+    print(ocr_result)
 
-    @node_from(from_name='检查是否需要恢复电量', status=STATUS_NO_NEED)
-    @operation_node(name='无需恢复电量')
-    def no_need_restore(self) -> OperationRoundResult:
-        """无需恢复电量"""
-        return self.round_success(RestoreCharge.STATUS_NO_NEED)
+def __debug():
+    ctx = ZContext()
+    ctx.init_by_config()
+    ctx.init_ocr()
+    ctx.start_running()
+    op = RestoreCharge(ctx, required_charge=10)
+    op.execute()
+
+if __name__ == '__main__':
+    __debug()
