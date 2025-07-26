@@ -28,10 +28,6 @@ class RestoreCharge(ZOperation):
     SOURCE_BACKUP_CHARGE: ClassVar[str] = '储蓄电量'
     SOURCE_ETHER_BATTERY: ClassVar[str] = '以太电池'
 
-    # 电量来源状态常量
-    STATUS_USE_BACKUP_CHARGE: ClassVar[str] = f'使用{SOURCE_BACKUP_CHARGE}'
-    STATUS_USE_ETHER_BATTERY: ClassVar[str] = f'使用{SOURCE_ETHER_BATTERY}'
-
     def __init__(self, ctx: ZContext, required_charge: int,
                  restore_mode: str = RestoreChargeEnum.BOTH.value.value):
         """
@@ -76,9 +72,9 @@ class RestoreCharge(ZOperation):
         self._current_source_type = source_type
 
         if source_type == self.SOURCE_BACKUP_CHARGE:
-            return self.round_success(self.STATUS_USE_BACKUP_CHARGE, wait=1)
+            return self.round_success(self.SOURCE_BACKUP_CHARGE, wait=1)
         else:
-            return self.round_success(self.STATUS_USE_ETHER_BATTERY, wait=1)
+            return self.round_success(self.SOURCE_ETHER_BATTERY, wait=1)
 
     def _determine_charge_source(self) -> str:
         """确定要使用的电量来源类型"""
@@ -93,8 +89,8 @@ class RestoreCharge(ZOperation):
             else:
                 return self.SOURCE_ETHER_BATTERY
 
-    @node_from(from_name='选择电量来源', status=STATUS_USE_BACKUP_CHARGE)
-    @node_from(from_name='选择电量来源', status=STATUS_USE_ETHER_BATTERY)
+    @node_from(from_name='选择电量来源', status=SOURCE_BACKUP_CHARGE)
+    @node_from(from_name='选择电量来源', status=SOURCE_ETHER_BATTERY)
     @operation_node(name='选择并确认电量来源')
     def select_and_confirm_charge_source(self) -> OperationRoundResult:
         """选择并确认电量来源（储蓄电量或以太电池）"""
