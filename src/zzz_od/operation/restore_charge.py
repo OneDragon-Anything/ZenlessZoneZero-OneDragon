@@ -57,7 +57,6 @@ class RestoreCharge(ZOperation):
         self._current_source_type = None  # 当前选择的电量来源类型
         self._backup_charge_tried = False  # 是否已尝试过储蓄电量
 
-    @node_from(from_name='电量恢复重试')
     @operation_node(name='点击电量文本', is_start_node=True)
     def click_charge_text(self) -> OperationRoundResult:
         """点击电量文本区域打开恢复界面"""
@@ -223,64 +222,6 @@ class RestoreCharge(ZOperation):
             return self.round_success(result.status, wait=0.5)
 
         return self.round_retry(result.status, wait=1)
-
-    @node_from(from_name='确认恢复电量')
-    @operation_node(name='检查恢复后电量')
-    def check_charge_after_restore(self) -> OperationRoundResult:
-        # 重新打开菜单并检查电量
-        op = GotoMenu(self.ctx)
-        result = op.execute()
-        if not result.success:
-            return self.round_by_op_result(result)
-
-        # 通过OCR识别当前电量
-        area = self.ctx.screen_loader.get_area('菜单', '文本-电量')
-        if area is None:
-            return self.round_retry('未找到电量显示区域', wait=1)
-
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-        current_charge = str_utils.get_positive_digits(ocr_result, None)
-
-        if current_charge is None:
-            return self.round_retry('未识别到电量数值', wait=1)
-
-        # 更新当前电量
-        self.current_charge = current_charge
-
-        # 检查电量是否足够
-        if self.current_charge >= self.required_charge:
-            return self.round_success(f'电量恢复成功！当前电量: {self.current_charge}, 需要电量: {self.required_charge}')
-        else:
-            shortage = self.required_charge - self.current_charge
-            return self.round_fail(f'电量仍不足！当前电量: {self.current_charge}, 需要电量: {self.required_charge}, 缺少: {shortage}')
-
-    @node_from(from_name='检查恢复后电量', success=False)
-    @operation_node(name='电量恢复重试')
-    def retry_restore_charge(self) -> OperationRoundResult:
-        """电量恢复重试逻辑"""
-        self.retry_count += 1
-
-        if self.retry_count < self.max_retry_count:
-            log.info(f'电量仍不足，尝试第{self.retry_count + 1}次恢复')
-            # 重置状态，重新开始恢复流程
-            self._reset_state_for_retry()
-            return self.round_success('电量仍不足，尝试再次恢复')
-        else:
-            log.info('已达到最大重试次数，电量恢复失败')
-            return self.round_fail('已达到最大重试次数，电量恢复失败')
-
-    def _reset_state_for_retry(self):
-        """重置状态用于重试"""
-        # 如果之前尝试过储蓄电量但还不够，下次重试时直接使用以太电池
-        if (self._backup_charge_tried and
-            self.restore_mode == RestoreChargeEnum.BOTH.value.value):
-            # 保持已尝试储蓄电量的状态，下次会直接用以太电池
-            pass
-        else:
-            # 重置为初始状态
-            self._current_source_type = None
-            self._backup_charge_tried = False
 
 
 def __debug_charge():

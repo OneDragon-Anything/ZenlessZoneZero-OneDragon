@@ -237,14 +237,7 @@ class ChargePlanApp(ZApplication):
             required_charge=self.charge_power - self.required_charge,
             restore_mode=self.ctx.charge_plan_config.restore_charge
         )
-        result = op.execute()
-
-        if result.success:
-            # 更新当前电量
-            self.charge_power = op.current_charge
-            return self.round_success('电量恢复成功')
-        else:
-            return self.round_fail('电量恢复失败')
+        return self.round_by_op_result(op.execute())
 
     @node_from(from_name='电量不足', status=STATUS_ROUND_FINISHED)
     @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_ROUND_FINISHED)
