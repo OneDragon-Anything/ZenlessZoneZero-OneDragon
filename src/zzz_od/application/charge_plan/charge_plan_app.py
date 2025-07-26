@@ -24,7 +24,7 @@ class ChargePlanApp(ZApplication):
 
     STATUS_NO_PLAN: ClassVar[str] = '没有可运行的计划'
     STATUS_ROUND_FINISHED: ClassVar[str] = '已完成一轮计划'
-    STATUS_TRY_RECOVER_CHARGE: ClassVar[str] = '尝试恢复电量'
+    STATUS_TRY_RESTORE_CHARGE: ClassVar[str] = '尝试恢复电量'
 
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
@@ -106,7 +106,7 @@ class ChargePlanApp(ZApplication):
 
         # 如果电量不足且开启了恢复电量
         if self.charge_power < min_required_power and self.ctx.charge_plan_config.restore_charge != RestoreChargeEnum.NONE.value.value:
-            return self.round_success(ChargePlanApp.STATUS_TRY_RECOVER_CHARGE)
+            return self.round_success(ChargePlanApp.STATUS_TRY_RESTORE_CHARGE)
 
         # 电量足够，继续正常流程
         return self.round_success()
@@ -270,10 +270,10 @@ class ChargePlanApp(ZApplication):
     @operation_node(name='电量不足')
     def charge_not_enough(self) -> OperationRoundResult:
         # 检查恢复电量设置
-        auto_recover_mode = self.ctx.charge_plan_config.restore_charge
-        if auto_recover_mode != RestoreChargeEnum.NONE.value.value:
+        restore_charge_mode = self.ctx.charge_plan_config.restore_charge
+        if restore_charge_mode != RestoreChargeEnum.NONE.value.value:
             # 根据设置选择恢复方式，尝试恢复电量
-            return self.round_success(ChargePlanApp.STATUS_TRY_RECOVER_CHARGE)
+            return self.round_success(ChargePlanApp.STATUS_TRY_RESTORE_CHARGE)
 
         # 如果没有开启恢复电量，执行原来的逻辑
         if self.ctx.charge_plan_config.skip_plan:
@@ -294,7 +294,7 @@ class ChargePlanApp(ZApplication):
     def challenge_failed(self) -> OperationRoundResult:
         return self.round_success()
 
-    @node_from(from_name='电量不足', status=STATUS_TRY_RECOVER_CHARGE)
+    @node_from(from_name='电量不足', status=STATUS_TRY_RESTORE_CHARGE)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
         """使用新的RestoreCharge operation来恢复电量"""
