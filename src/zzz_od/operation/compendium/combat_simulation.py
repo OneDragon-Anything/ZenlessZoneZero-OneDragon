@@ -11,7 +11,7 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
@@ -19,6 +19,7 @@ from zzz_od.operation.challenge_mission.check_next_after_battle import ChooseNex
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.deploy import Deploy
+from zzz_od.operation.restore_charge import RestoreCharge
 from zzz_od.operation.zzz_operation import ZOperation
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
@@ -29,6 +30,7 @@ class CombatSimulation(ZOperation):
     STATUS_CHOOSE_SUCCESS: ClassVar[str] = '选择成功'
     STATUS_CHOOSE_FAIL: ClassVar[str] = '选择失败'
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
+    STATUS_TRY_RESTORE_CHARGE: ClassVar[str] = '尝试恢复电量'
     STATUS_CHARGE_ENOUGH: ClassVar[str] = '电量充足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
@@ -131,7 +133,7 @@ class CombatSimulation(ZOperation):
         if self.scroll_count > 5:
             self.scroll_count = 0
             return self.round_success(status=CombatSimulation.STATUS_CHOOSE_FAIL)
-        
+
         if self.plan.mission_name == '代理人方案培养':
             target_point: Optional[Point] = None
 
@@ -140,7 +142,7 @@ class CombatSimulation(ZOperation):
 
             # 直接获取点击位置
             click_pos = cv2_utils.find_character_avatar_center_with_offset(
-                part, 
+                part,
                 area_offset=(area.left_top.x, area.left_top.y),
                 click_offset=(0, 80),  # 向下偏移80像素，用于点击头像下方的区域
                 min_area=800
@@ -221,6 +223,7 @@ class CombatSimulation(ZOperation):
 
     @node_from(from_name='进入选择数量', status=CardNumEnum.DEFAULT.value.value)
     @node_from(from_name='选择数量')
+    @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
     @operation_node(name='识别电量')
     def check_charge(self) -> OperationRoundResult:
         if not self.need_check_power:
@@ -255,12 +258,26 @@ class CombatSimulation(ZOperation):
 
         return self.round_success(CombatSimulation.STATUS_CHARGE_ENOUGH)
 
+    @node_from(from_name='识别电量', status=STATUS_CHARGE_NOT_ENOUGH)
+    @operation_node(name='恢复电量')
+    def restore_charge(self) -> OperationRoundResult:
+        if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value:
+            return self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
+        else:
+            op = RestoreCharge(
+                self.ctx,
+                required_charge=self.charge_need - self.charge_left
+            )
+            return self.round_by_op_result(op.execute())
+
     @node_from(from_name='识别电量', status=STATUS_CHARGE_ENOUGH)
+    @node_from(from_name='恢复电量')
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
         # 防止前面电量识别错误
         result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '恢复电量')
         if result.is_success:
+            self.ctx.controller.click(Point(1700, 1030))
             return self.round_success(status=CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
 
         # 点击直到出战按钮出现

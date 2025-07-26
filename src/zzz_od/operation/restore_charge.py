@@ -19,25 +19,16 @@ class RestoreCharge(ZOperation):
     负责在菜单界面恢复电量，支持储蓄电量和以太电池两种恢复方式
     """
 
-    STATUS_SUCCESS: ClassVar[str] = '电量恢复成功'
-    STATUS_FAILED: ClassVar[str] = '电量恢复失败'
-    STATUS_NO_NEED: ClassVar[str] = '无需恢复电量'
-    STATUS_INSUFFICIENT: ClassVar[str] = '电量不足'
-
-    # 电量来源类型常量
     SOURCE_BACKUP_CHARGE: ClassVar[str] = '储蓄电量'
     SOURCE_ETHER_BATTERY: ClassVar[str] = '以太电池'
 
-    def __init__(self, ctx: ZContext, required_charge: int,
-                 restore_mode: str = RestoreChargeEnum.BOTH.value.value):
+    def __init__(self, ctx: ZContext, required_charge: int):
         """
         初始化电量恢复操作
 
         Args:
             ctx: ZContext实例
-            current_charge: 当前电量
             required_charge: 需要的电量
-            restore_mode: 恢复模式，参考RestoreChargeEnum
         """
         ZOperation.__init__(
             self,
@@ -45,31 +36,32 @@ class RestoreCharge(ZOperation):
             op_name='恢复电量'
         )
         self.required_charge = required_charge
-        self.current_charge = 0
-        self.restore_mode = restore_mode
-        self.retry_count = 0
-        self.max_retry_count = 3
+
         # 统一的状态管理
         self._current_source_type = None  # 当前选择的电量来源类型
         self._backup_charge_tried = False  # 是否已尝试过储蓄电量
 
-    @operation_node(name='点击电量文本', is_start_node=True)
+    @operation_node(name='打开恢复界面')
     def click_charge_text(self) -> OperationRoundResult:
-        """点击电量文本区域打开恢复界面"""
-        area = self.ctx.screen_loader.get_area('菜单', '文本-电量')
-        if area is None:
-            return self.round_retry('未找到电量区域', wait=1)
+        """点击电量文本区域或者下一步打开恢复界面"""
+        # 检查是否已经在恢复界面
+        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '恢复电量')
+        if result.is_success:
+            return self.round_success()
 
-        self.ctx.controller.click(area.center)
-        return self.round_success('已点击电量文本')
+        screen = self.check_and_update_current_screen()
+        if screen == '菜单':
+            return self.round_by_find_and_click_area('菜单', '文本-电量')
+        else:
+            return self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '下一步')
 
-    @node_from(from_name='点击电量文本')
+    @node_from(from_name='打开恢复界面')
     @operation_node(name='选择电量来源')
     def select_charge_source(self) -> OperationRoundResult:
         """根据配置和当前状态选择电量来源"""
-        if self.restore_mode == RestoreChargeEnum.BACKUP_ONLY.value.value:
+        if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.BACKUP_ONLY.value.value:
             self._current_source_type = self.SOURCE_BACKUP_CHARGE
-        elif self.restore_mode == RestoreChargeEnum.ETHER_ONLY.value.value:
+        elif self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.ETHER_ONLY.value.value:
             self._current_source_type = self.SOURCE_ETHER_BATTERY
         else:
             # BOTH模式：如果还没尝试过储蓄电量，先尝试储蓄电量
@@ -106,7 +98,7 @@ class RestoreCharge(ZOperation):
         if not found_source:
             # 如果是储蓄电量找不到且是BOTH模式，尝试切换到以太电池
             if (target_text == self.SOURCE_BACKUP_CHARGE and
-                self.restore_mode == RestoreChargeEnum.BOTH.value.value and
+                self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.BOTH.value.value and
                 not self._backup_charge_tried):
                 self._backup_charge_tried = True
                 log.info(f'{self.SOURCE_BACKUP_CHARGE}不可用，切换{self.SOURCE_ETHER_BATTERY}')
@@ -158,7 +150,7 @@ class RestoreCharge(ZOperation):
 
         if available_backup_charge <= 0:
             # 储蓄电量不足，如果是BOTH模式则切换到以太电池
-            if self.restore_mode == RestoreChargeEnum.BOTH.value.value:
+            if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.BOTH.value.value:
                 self._backup_charge_tried = True
                 log.info(f'{self.SOURCE_BACKUP_CHARGE}已用完，切换{self.SOURCE_ETHER_BATTERY}')
                 return self.round_retry('储蓄电量不足，切换电量来源')
@@ -178,8 +170,8 @@ class RestoreCharge(ZOperation):
         time.sleep(0.5)
 
         # 如果是BOTH模式且补完后电量还不够，标记需要切换到以太电池
-        if self.restore_mode == RestoreChargeEnum.BOTH.value.value:
-            after_charge = self.current_charge + amount_to_use
+        if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.BOTH.value.value:
+            after_charge = self.required_charge - amount_to_use
             if after_charge < self.required_charge:
                 self._backup_charge_tried = True
                 log.info(f'{self.SOURCE_BACKUP_CHARGE}不足，后续将切换{self.SOURCE_ETHER_BATTERY}')
