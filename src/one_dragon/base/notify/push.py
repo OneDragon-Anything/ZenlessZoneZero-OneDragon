@@ -963,14 +963,19 @@ class Push():
                 url = url.replace(placeholder, value)
                 body = body.replace(placeholder, value)
 
+            # 处理$title和$content变量
             if "$title" in body or "$content" in body:
-                body = self.parse_body(
-                    body,
-                    content_type,
-                    lambda v: v.replace("$title", title.replace("\n", "\\n")).replace(
-                        "$content", content.replace("\n", "\\n")
-                    ),
-                )
+                body = body.replace("$title", title.replace("\n", "\\n"))
+                body = body.replace("$content", content.replace("\n", "\\n"))
+                # 处理$image变量（如果有的话）
+                if "$image" in body:
+                    if image:
+                        image.seek(0)
+                        import base64
+                        image_base64 = base64.b64encode(image.getvalue()).decode('utf-8')
+                        body = body.replace("$image", image_base64)
+                    else:
+                        body = body.replace("$image", "")
 
             # 解析 Headers
             headers = {}
@@ -1090,13 +1095,17 @@ class Push():
 
         # 兼容旧版body处理
         if "$title" in body or "$content" in body:
-            body = self.parse_body(
-                body,
-                content_type,
-                lambda v: v.replace("$title", title.replace("\n", "\\n")).replace(
-                    "$content", content.replace("\n", "\\n")
-                ),
-            )
+            body = body.replace("$title", title.replace("\n", "\\n"))
+            body = body.replace("$content", content.replace("\n", "\\n"))
+            # 处理$image变量（如果有的话）
+            if "$image" in body:
+                if image:
+                    image.seek(0)
+                    import base64
+                    image_base64 = base64.b64encode(image.getvalue()).decode('utf-8')
+                    body = body.replace("$image", image_base64)
+                else:
+                    body = body.replace("$image", "")
 
         headers['Content-Type'] = content_type
 
