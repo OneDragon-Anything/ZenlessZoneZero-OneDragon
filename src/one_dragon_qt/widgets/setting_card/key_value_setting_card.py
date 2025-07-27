@@ -34,7 +34,7 @@ class KeyValueSettingCard(SettingCardBase):
             parent=parent
         )
 
-        self.batch_update = False  # Flag to control batch updates
+        self.adapter: YamlConfigAdapter = adapter
         self.vBoxLayout.setSpacing(8)
 
         # 主布局，包含一个用于显示键值对的垂直布局和一个添加按钮
@@ -90,8 +90,7 @@ class KeyValueSettingCard(SettingCardBase):
 
         self.kv_layout.addWidget(row_widget)
         self._update_height()
-        if not self.batch_update:
-            self._update_all_remove_buttons()
+        self._update_all_remove_buttons()
 
     def _remove_row(self, row_widget: QWidget):
         """移除指定行"""
@@ -102,8 +101,7 @@ class KeyValueSettingCard(SettingCardBase):
         row_widget.deleteLater()
         self._on_value_changed()
         self._update_height()
-        if not self.batch_update:
-            self._update_all_remove_buttons()
+        self._update_all_remove_buttons()
 
     def _clear_rows(self):
         """清空所有行"""
@@ -118,17 +116,7 @@ class KeyValueSettingCard(SettingCardBase):
         min_height = 100  # 最小高度
         content_height = self.kv_layout.count() * 40 + 80  # 每行大约40px，加上按钮和间距
         new_height = max(min_height, content_height)
-
-        self.setMinimumHeight(new_height)
-        self.setMaximumHeight(new_height)
-
-        # 通知父组件更新布局
-        parent = self.parent()
-        if parent:
-            from PySide6.QtWidgets import QWidget
-            if isinstance(parent, QWidget):
-                parent.update()
-                parent.updateGeometry()
+        self.setFixedHeight(new_height)
 
     def _update_all_remove_buttons(self):
         """更新所有删除按钮状态"""
@@ -140,8 +128,22 @@ class KeyValueSettingCard(SettingCardBase):
                 if remove_btn:
                     remove_btn.setEnabled(should_enable)
 
+    def _block_signals(self, value: bool):
+        """断开所有输入框的信号连接"""
+        for i in range(self.kv_layout.count()):
+            row_widget = self.kv_layout.itemAt(i).widget()
+            if row_widget:
+                line_edits = list(row_widget.findChildren(LineEdit))
+                for line_edit in line_edits:
+                    line_edit.blockSignals(value)
+
     def _on_value_changed(self):
-        self.value_changed.emit(self.getValue())
+        val = self.getValue()
+
+        if self.adapter is not None:
+            self.adapter.set_value(val)
+
+        self.value_changed.emit(val)
 
     def getValue(self) -> str:
         """获取所有键值对，返回 JSON 格式的字符串"""
@@ -159,19 +161,15 @@ class KeyValueSettingCard(SettingCardBase):
 
     def setValue(self, value: str, emit_signal: bool = True):
         """从 JSON 字符串设置键值对"""
+        if not emit_signal:
+            self._block_signals(True)
+
         self._clear_rows()
-        self.batch_update = True
         try:
             if value:
                 data = json.loads(value)
-                if isinstance(data, dict):
-                    for key, val in data.items():
-                        self._add_row(key, str(val), emit_signal=emit_signal)
-                elif isinstance(data, list):
-                    # 兼容旧的列表格式
-                    for item in data:
-                        if isinstance(item, dict):
-                            self._add_row(item.get("key", ""), item.get("value", ""), emit_signal=emit_signal)
+                for key, val in data.items():
+                    self._add_row(key, str(val), emit_signal=emit_signal)
 
                 # 如果有数据但没有添加任何行，添加一个空行
                 if self.kv_layout.count() == 0:
@@ -185,11 +183,14 @@ class KeyValueSettingCard(SettingCardBase):
 
         # 最后更新一次，但不触发值变化事件
         self._update_height()
-        self.batch_update = False
         self._update_all_remove_buttons()
 
-    def init_with_adapter(self, adapter):
-        """使用适配器初始化"""
+        if not emit_signal:
+            # 重新连接信号
+            self._block_signals(False)
+
+    def init_with_adapter(self, adapter: Optional[YamlConfigAdapter]) -> None:
+        """使用配置适配器初始化值"""
         self.adapter = adapter
 
         if self.adapter is None:
