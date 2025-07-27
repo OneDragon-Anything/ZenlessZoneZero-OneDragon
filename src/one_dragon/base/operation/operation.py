@@ -835,7 +835,8 @@ class Operation(OperationBase):
             success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,
             retry_wait: Optional[float] = None, retry_wait_round: Optional[float] = None,
             color_range: Optional[list] = None,
-    ):
+            offset: Optional[Point] = None,
+    ) -> OperationRoundResult:
         """使用OCR在区域内查找目标文本并点击。
 
         Args:
@@ -848,6 +849,7 @@ class Operation(OperationBase):
             retry_wait: 失败后等待时间（秒）。默认为None。
             retry_wait_round: 失败后等待直到轮次时间达到此值，如果设置了retry_wait则忽略。默认为None。
             color_range: 文本匹配的颜色范围。默认为None。
+            offset: 点击位置的偏移量。默认为None。
 
         Returns:
             OperationRoundResult: 点击结果。
@@ -898,6 +900,9 @@ class Operation(OperationBase):
         if area is not None:
             to_click = to_click + area.left_top
 
+        if offset is not None:
+            to_click = to_click + offset
+
         click = self.ctx.controller.click(to_click)
         if click:
             return self.round_success(target_cn, wait=success_wait, wait_round_time=success_wait_round)
@@ -913,7 +918,8 @@ class Operation(OperationBase):
             success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,
             retry_wait: Optional[float] = None, retry_wait_round: Optional[float] = None,
             color_range: Optional[list] = None,
-    ):
+            offset: Optional[Point] = None,
+    ) -> OperationRoundResult:
         """使用OCR按优先级在区域内查找文本并点击。
 
         Args:
@@ -926,6 +932,7 @@ class Operation(OperationBase):
             retry_wait: 失败后等待时间（秒）。默认为None。
             retry_wait_round: 失败后等待直到轮次时间达到此值，如果设置了retry_wait则忽略。默认为None。
             color_range: 文本匹配的颜色范围。默认为None。
+            offset: 点击位置的偏移量。默认为None。
 
         Returns:
             OperationRoundResult: 点击结果。
@@ -957,7 +964,15 @@ class Operation(OperationBase):
             ignore_list=ignore_cn_list
         )
         if match_word is not None and match_word_mrl is not None and match_word_mrl.max is not None:
-            self.ctx.controller.click(match_word_mrl.max.center)
+            to_click = match_word_mrl.max.center
+
+            if area is not None:
+                to_click = to_click + area.left_top
+
+            if offset is not None:
+                to_click = to_click + offset
+
+            self.ctx.controller.click(to_click)
             return self.round_success(status=match_word, wait=success_wait, wait_round_time=success_wait_round)
 
         return self.round_retry(status='未匹配到目标文本', wait=retry_wait, wait_round_time=retry_wait_round)
