@@ -5,14 +5,72 @@ from PySide6.QtCore import QRegularExpression, Signal, Qt, QRect, QObject, QEven
 from PySide6.QtGui import QColor, QTextCharFormat, QSyntaxHighlighter, QIcon, QKeyEvent
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from PySide6.QtCore import QSize
-from qfluentwidgets import PlainTextEdit, FluentIconBase, FluentIcon, ToolButton, MessageBoxBase, SubtitleLabel, BodyLabel, isDarkTheme, ToolTipFilter, ToolTipPosition
+from qfluentwidgets import PlainTextEdit, FluentIconBase, FluentIcon, ToolButton, MessageBoxBase, SubtitleLabel, BodyLabel, isDarkTheme, ToolTipFilter, ToolTipPosition, RoundMenu, Action
 
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
-from one_dragon_qt.widgets.setting_card.template_variable_menu import TemplateVariableMenu
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+
+
+class TemplateVariables:
+    """模板变量配置类"""
+
+    VARIABLES = [
+        {"key": "$title", "name": "标题变量", "icon": FluentIcon.TAG},
+        {"key": "$content", "name": "内容变量", "icon": FluentIcon.DOCUMENT},
+        {"key": "$image", "name": "图片变量", "icon": FluentIcon.PHOTO},
+    ]
+
+    @classmethod
+    def get_variables(cls):
+        """获取所有变量配置"""
+        return cls.VARIABLES
+
+
+class TemplateVariableMenu(RoundMenu):
+    """模板变量选择菜单"""
+
+    # 定义信号
+    variable_selected = Signal(str)  # 选择变量时发出
+    template_requested = Signal()    # 请求插入完整模板时发出
+
+    def __init__(self, parent=None, editor=None):
+        super().__init__(parent=parent)
+        self.editor = editor
+        self._setup_menu()
+
+    def _setup_menu(self):
+        """设置菜单项"""
+        # 获取变量配置
+        variables = TemplateVariables.get_variables()
+
+        # 添加变量选项
+        for var_config in variables:
+            action = Action(
+                var_config["icon"],
+                f"{var_config['key']} - {gt(var_config['name'])}",
+                self
+            )
+            action.triggered.connect(lambda checked, v=var_config['key']: self.variable_selected.emit(v))
+            self.addAction(action)
+
+        # 添加分隔线
+        self.addSeparator()
+
+        # 添加完整模板选项
+        full_template_action = Action(
+            FluentIcon.CODE,
+            gt("完整模板"),
+            self
+        )
+        full_template_action.triggered.connect(lambda: self.template_requested.emit())
+        self.addAction(full_template_action)
+
+    def get_template_content(self) -> str:
+        """获取完整模板内容供父组件使用"""
+        return '{\n  "title": "$title",\n  "content": "$content",\n  "image": "$image"\n}'
 
 
 class LineNumberArea(QWidget):
@@ -261,6 +319,10 @@ class CodeEditorDialog(MessageBoxBase):
         # 创建模板变量菜单
         self.template_menu = TemplateVariableMenu(parent=self, editor=self.editor)
 
+        # 连接模板菜单信号
+        self.template_menu.variable_selected.connect(self._insert_variable)
+        self.template_menu.template_requested.connect(self._insert_template)
+
         button_layout.addWidget(self.template_btn)
 
         button_layout.addStretch()
@@ -304,6 +366,25 @@ class CodeEditorDialog(MessageBoxBase):
     def get_text(self) -> str:
         """获取编辑器中的文本"""
         return self.editor.toPlainText()
+
+    def _insert_variable(self, variable: str):
+        """在光标位置插入变量"""
+        cursor = self.editor.textCursor()
+        if cursor is None:
+            log.warning("无法获取文本光标")
+            return
+        cursor.insertText(variable)
+        self.editor.setTextCursor(cursor)
+
+    def _insert_template(self):
+        """插入完整模板"""
+        template_content = self.template_menu.get_template_content()
+        cursor = self.editor.textCursor()
+        if cursor is None:
+            log.warning("无法获取文本光标")
+            return
+        cursor.insertText(template_content)
+        self.editor.setTextCursor(cursor)
 
 
 class JsonHighlighter(QSyntaxHighlighter):
@@ -419,6 +500,10 @@ class CodeEditorSettingCard(SettingCardBase):
         # 创建模板变量菜单
         self.template_menu = TemplateVariableMenu(parent=self, editor=self.editor)
 
+        # 连接模板菜单信号
+        self.template_menu.variable_selected.connect(self._insert_variable)
+        self.template_menu.template_requested.connect(self._insert_template)
+
         button_layout.addWidget(self.template_btn)
 
         # 弹出按钮
@@ -509,9 +594,23 @@ class CodeEditorSettingCard(SettingCardBase):
         if dialog.exec():
             # 用户点击确定，更新主编辑器内容
             new_text = dialog.get_text()
-            self.editor.setPlainText(new_text)
+            self.setValue(new_text, emit_signal=True)
 
-            # 触发值变化事件
-            if self.adapter is not None:
-                self.adapter.set_value(new_text)
-            self.value_changed.emit(new_text)
+    def _insert_variable(self, variable: str):
+        """在光标位置插入变量"""
+        cursor = self.editor.textCursor()
+        if cursor is None:
+            log.warning("无法获取文本光标")
+            return
+        cursor.insertText(variable)
+        self.editor.setTextCursor(cursor)
+
+    def _insert_template(self):
+        """插入完整模板"""
+        template_content = self.template_menu.get_template_content()
+        cursor = self.editor.textCursor()
+        if cursor is None:
+            log.warning("无法获取文本光标")
+            return
+        cursor.insertText(template_content)
+        self.editor.setTextCursor(cursor)
