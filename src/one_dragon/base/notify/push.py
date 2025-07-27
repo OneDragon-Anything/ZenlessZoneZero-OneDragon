@@ -906,92 +906,65 @@ class Push():
 
     def webhook_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
-        通过通用 Webhook 推送消息
+        通过通用 Webhook 推送消息（经过错误处理优化）
         """
         self.log_info("通用 Webhook 服务启动")
 
+        url_template = self.get_config("WEBHOOK_URL")
+        if not url_template:
+            self.log_error("Webhook URL 未配置，推送中止。")
+            return
+
+        method = (self.get_config("WEBHOOK_METHOD") or "POST").upper()
+        headers_str = self.get_config("WEBHOOK_HEADERS") or "{}"
+        body_template = self.get_config("WEBHOOK_BODY") or '{"title": "{{title}}", "content": "{{content}}", "timestamp": "{{timestamp}}"}'
+        content_type = self.get_config("WEBHOOK_CONTENT_TYPE") or "application/json"
+
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        iso_timestamp = datetime.datetime.now().isoformat()
+        unix_timestamp = str(int(time.time()))
+
+        # 变量替换
+        replacements = {
+            "$title": title, "{{title}}": title,
+            "$content": content, "{{content}}": content,
+            "$timestamp": timestamp, "{{timestamp}}": timestamp,
+            "$iso_timestamp": iso_timestamp, "{{iso_timestamp}}": iso_timestamp,
+            "$unix_timestamp": unix_timestamp, "{{unix_timestamp}}": unix_timestamp,
+        }
+
+        url = url_template
+        body = body_template
+        headers_processed = headers_str
+
+        for placeholder, value in replacements.items():
+            # 对 URL 中的变量进行编码，对 Body 和 Headers 则不需要
+            url = url.replace(placeholder, urllib.parse.quote_plus(str(value)))
+            body = body.replace(placeholder, str(value).replace("\n", "\\n")) # JSON字符串中换行符需要转义
+            headers_processed = headers_processed.replace(placeholder, str(value))
+
+        if "$image" in body:
+            image_base64 = ""
+            if image:
+                image.seek(0)
+                image_base64 = base64.b64encode(image.getvalue()).decode('utf-8')
+            body = body.replace("$image", image_base64)
+
         try:
-            url_template = self.get_config("WEBHOOK_URL")
-            method = self.get_config("WEBHOOK_METHOD") or "POST"
-            method = method.upper()
-            headers_str = self.get_config("WEBHOOK_HEADERS") or "{}"
-            body_template = self.get_config("WEBHOOK_BODY") or '{"title": "{{title}}", "content": "{{content}}", "timestamp": "{{timestamp}}"}'
-            content_type = self.get_config("WEBHOOK_CONTENT_TYPE") or "application/json"
+            headers = json.loads(headers_processed)
+            if not isinstance(headers, dict):
+                self.log_error(f"Webhook Headers 解析后的类型不是键值对（字典），请检查配置: {headers_processed}")
+                return
+        except json.JSONDecodeError:
+            self.log_error(f"Webhook Headers 格式错误，不是有效的JSON: {headers_processed}")
+            return
 
-            # 生成时间戳
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            iso_timestamp = datetime.datetime.now().isoformat()
+        headers['Content-Type'] = content_type
 
-            # 新格式变量替换 ($变量)
-            replacements = {
-                "$title": title,
-                "$content": content,
-                "$timestamp": timestamp,
-                "$iso_timestamp": iso_timestamp,
-                "$unix_timestamp": str(int(time.time()))
-            }
-
-            url = url_template
-            body = body_template
-            headers_processed = headers_str
-
-            # 替换新格式变量
-            for placeholder, value in replacements.items():
-                if placeholder in ["$title", "$content"]:
-                    # URL中的变量需要URL编码
-                    url = url.replace(placeholder, urllib.parse.quote_plus(str(value)) if placeholder in url else str(value))
-                    # Body和Headers中的变量进行普通替换
-                    body = body.replace(placeholder, str(value).replace("\n", "\\n"))
-                    headers_processed = headers_processed.replace(placeholder, str(value))
-                else:
-                    url = url.replace(placeholder, str(value))
-                    body = body.replace(placeholder, str(value))
-                    headers_processed = headers_processed.replace(placeholder, str(value))
-
-            # Fallback: 替换旧格式变量 ({{}}格式)
-            fallback_replacements = {
-                "{{title}}": title,
-                "{{content}}": content,
-                "{{timestamp}}": timestamp,
-                "{{iso_timestamp}}": iso_timestamp,
-                "{{unix_timestamp}}": str(int(time.time()))
-            }
-
-            for placeholder, value in fallback_replacements.items():
-                url = url.replace(placeholder, str(value))
-                body = body.replace(placeholder, str(value))
-                headers_processed = headers_processed.replace(placeholder, str(value))
-
-            # 处理$image变量（如果有的话）
-            if "$image" in body:
-                if image:
-                    image.seek(0)
-                    image_base64 = base64.b64encode(image.getvalue()).decode('utf-8')
-                    body = body.replace("$image", image_base64)
-                else:
-                    body = body.replace("$image", "")
-
-            # 解析 Headers
-            headers = {}
-            if headers_processed:
-                try:
-                    header_config = json.loads(headers_processed)
-                    if isinstance(header_config, dict):
-                        headers = header_config
-                    elif isinstance(header_config, list):
-                        # 兼容旧的列表格式
-                        for item in header_config:
-                            key = item.get('key')
-                            value = item.get('value', '')
-                            if key:
-                                headers[key] = str(value)
-                except (json.JSONDecodeError, AttributeError):
-                    self.log_error(f"Webhook Headers 格式错误，请检查是否为合法的 JSON 键值对: {headers_processed}")
-                    return
-
-            headers['Content-Type'] = content_type
-
+        try:
             self.log_info(f"发送 Webhook 请求: {method} {url}")
+            self.log_info(f"请求头: {headers}")
+            self.log_info(f"请求体: {body}")
 
             response = requests.request(
                 method=method,
@@ -1001,13 +974,15 @@ class Push():
                 timeout=15
             )
 
-            if 200 <= response.status_code < 300:
-                self.log_info(f"Webhook 推送成功！状态码: {response.status_code}")
-            else:
-                self.log_error(f"Webhook 推送失败！状态码: {response.status_code}\n响应: {response.text}")
+            # 通过 response.raise_for_status() 可以自动检查 4xx/5xx 错误并抛出异常
+            response.raise_for_status()
 
+            self.log_info(f"Webhook 推送成功！状态码: {response.status_code}")
+
+        except requests.exceptions.RequestException as e:
+            raise ValueError(f"Webhook 推送时发生网络异常: {e}")
         except Exception as e:
-            self.log_error(f"Webhook 推送时发生异常: {e}")
+            raise ValueError(f"Webhook 推送时发生未知错误: {e}")
 
     def add_notify_function(self) -> list:
         notify_function = []
@@ -1112,6 +1087,18 @@ class Push():
             if hasattr(mode, '__name__') and mode.__name__ == 'webhook_bot':
                 self._validate_webhook_config()
 
+        # 如果是测试模式，直接在主线程中执行，这样异常可以被前端捕获
+        if test_method:
+            for mode in notify_function:
+                mode(title, content, image)
+        else:
+            # 正常推送使用多线程
+            ts = [
+                threading.Thread(target=mode, args=(title, content, image), name=mode.__name__)
+                for mode in notify_function
+            ]
+            [t.start() for t in ts]
+            [t.join() for t in ts]
         notify_function = self.add_notify_function()
 
         # 遥测埋点：记录推送方法使用情况
