@@ -158,17 +158,26 @@ class SettingPushInterface(VerticalScrollInterface):
         selected_method = self.notification_method_opt.getValue()
         test_method = str(selected_method)
 
-        self._show_success_message("正在发送测试消息...")
-        pusher = Push(self.ctx)
-        pusher.send(gt('这是一条测试消息'), None, test_method)
-        self._show_success_message("已向当前通知方式发送测试消息")
+        try:
+            pusher = Push(self.ctx)
+            pusher.send(gt('这是一条测试消息'), None, test_method)
+            self._show_success_message("已向当前通知方式发送测试消息")
+        except ValueError as e:
+            self._show_error_message(str(e))
+        except Exception as e:
+            self._show_error_message(f"测试推送失败: {str(e)}")
 
     def _send_test_all_message(self):
         """发送测试消息到所有已配置的通知方式"""
-        self._show_success_message("正在向所有已配置的通知方式发送测试消息...")
-        pusher = Push(self.ctx)
-        pusher.send(gt('这是一条测试消息'), None, None)
-        self._show_success_message("已向所有已配置的通知方式发送测试消息")
+        try:
+            self._show_success_message("正在向所有已配置的通知方式发送测试消息...")
+            pusher = Push(self.ctx)
+            pusher.send(gt('这是一条测试消息'), None, None)
+            self._show_success_message("已向所有已配置的通知方式发送测试消息")
+        except ValueError as e:
+            self._show_error_message(str(e))
+        except Exception as e:
+            self._show_error_message(f"测试推送失败: {str(e)}")
 
     def _on_email_service_selected(self, text):
         config = PushEmailServices.get_configs(str(text))

@@ -862,13 +862,47 @@ class Push():
             self.log_error(f"wxpusher 推送失败！错误信息：{response.get('msg')}")
 
 
-    def _check_required_variables(self, url_template: str, body_template: str) -> bool:
-        """检查是否包含必需的变量（title和content中至少一个）"""
-        has_old_vars = ("$title" in url_template or "$title" in body_template or
-                       "$content" in url_template or "$content" in body_template)
-        has_new_vars = ("{{title}}" in url_template or "{{title}}" in body_template or
-                       "{{content}}" in url_template or "{{content}}" in body_template)
-        return has_old_vars or has_new_vars
+    def _check_required_variables(self, url_template: str, body_template: str, headers_str: str = "") -> bool:
+        """检查是否包含必需的变量（必须包含$content）"""
+        has_content = ("$content" in url_template or "$content" in body_template or "$content" in headers_str or
+                      "{{content}}" in url_template or "{{content}}" in body_template or "{{content}}" in headers_str)
+        return has_content
+
+    def _validate_json_format(self, json_str: str) -> bool:
+        """验证JSON格式的合法性"""
+        try:
+            json.loads(json_str)
+            return True
+        except (json.JSONDecodeError, TypeError):
+            return False
+
+    def _validate_webhook_config(self) -> None:
+        """
+        验证Webhook配置
+        验证失败时抛出异常
+        """
+        url_template = self.get_config("WEBHOOK_URL")
+        if not url_template:
+            raise ValueError("Webhook URL 未配置，无法推送")
+
+        body_template = self.get_config("WEBHOOK_BODY") or '{"title": "{{title}}", "content": "{{content}}", "timestamp": "{{timestamp}}"}'
+        headers_str = self.get_config("WEBHOOK_HEADERS") or "{}"
+        content_type = self.get_config("WEBHOOK_CONTENT_TYPE") or "application/json"
+
+        # 检查是否包含必需的变量（必须包含$content）
+        if not self._check_required_variables(url_template, body_template, headers_str):
+            raise ValueError("URL、请求头或者请求体中必须包含 $content 或 {{content}} 变量")
+
+        # 如果是JSON格式，验证JSON的合法性
+        if content_type == "application/json":
+            # 检查body模板是否为合法JSON
+            if not self._validate_json_format(body_template):
+                raise ValueError("请求体不是合法的JSON格式")
+
+            # 检查headers模板是否为合法JSON
+            if headers_str and headers_str != "{}":
+                if not self._validate_json_format(headers_str):
+                    raise ValueError("请求头不是合法的JSON格式")
 
     def parse_headers(self, headers) -> dict:
         if not headers:
@@ -929,10 +963,6 @@ class Push():
 
         try:
             url_template = self.get_config("WEBHOOK_URL")
-            if not url_template:
-                self.log_error("Webhook URL 未配置，无法推送")
-                return
-
             method = self.get_config("WEBHOOK_METHOD") or "POST"
             method = method.upper()
             headers_str = self.get_config("WEBHOOK_HEADERS") or "{}"
@@ -942,11 +972,6 @@ class Push():
             # 生成时间戳
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             iso_timestamp = datetime.datetime.now().isoformat()
-
-            # 检查是否包含必需的变量（title和content中至少一个）
-            if not self._check_required_variables(url_template, body_template):
-                self.log_error("请求头或者请求体中必须包含 $title/$content 或 {{title}}/{{content}} 变量")
-                return
 
             # 替换模板变量
             replacements = {
@@ -963,20 +988,6 @@ class Push():
                 url = url.replace(placeholder, value)
                 body = body.replace(placeholder, value)
 
-            # 处理$title和$content变量
-            if "$title" in body or "$content" in body:
-                body = body.replace("$title", title.replace("\n", "\\n"))
-                body = body.replace("$content", content.replace("\n", "\\n"))
-                # 处理$image变量（如果有的话）
-                if "$image" in body:
-                    if image:
-                        image.seek(0)
-                        import base64
-                        image_base64 = base64.b64encode(image.getvalue()).decode('utf-8')
-                        body = body.replace("$image", image_base64)
-                    else:
-                        body = body.replace("$image", "")
-
             # 解析 Headers
             headers = {}
             if headers_str:
@@ -991,7 +1002,7 @@ class Push():
                                     header_value = header_value.replace(placeholder, replacement)
                                 headers[key] = header_value
                     elif isinstance(header_config, list):
-                        # 旧的列表格式
+                        # 兼容旧的列表格式
                         for item in header_config:
                             key = item.get('key')
                             value = item.get('value', '')
@@ -1220,10 +1231,13 @@ class Push():
         else:
             # 使用所有已配置的推送方式
             notify_function = self.add_notify_function()
+            if not notify_function:
+                raise ValueError("未找到可用的推送方式，请检查通知设置是否正确")
 
-        if not notify_function:
-            self.log_error(f"未找到可用的推送方式")
-            return
+        # 如果包含webhook_bot，先在主线程中验证配置
+        for mode in notify_function:
+            if hasattr(mode, '__name__') and mode.__name__ == 'webhook_bot':
+                self._validate_webhook_config()
 
         notify_function = self.add_notify_function()
 
@@ -1274,16 +1288,14 @@ class Push():
 
         target_function_name = method_to_function_name.get(method)
         if not target_function_name:
-            self.log_error(f"未支持的推送方式: {method}")
-            return []
+            raise ValueError(f"未支持的推送方式: {method}")
 
         # 查找匹配的函数
         for func in all_functions:
             if func.__name__ == target_function_name:
                 return [func]
 
-        self.log_error(f"{method} 推送方式未正确配置")
-        return []
+        raise ValueError(f"{method} 推送方式未正确配置")
 
     def _track_push_usage(self, notify_functions: list, test_method: Optional[str] = None) -> None:
         """跟踪推送方法使用情况"""
