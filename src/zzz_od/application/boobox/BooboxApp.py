@@ -131,29 +131,13 @@ class BooboxApp(ZApplication):
     def click_boobox(self) -> OperationRoundResult:
         screen = self.screenshot()
 
-        # 方式1：使用预定义的聘用按钮区域检测
+        result = self.round_by_find_area(screen, '邦巢', '次数用尽')
+        if result.is_success:
+            op = BackToNormalWorld(self.ctx)
+            return self.round_by_op_result(op.execute())
         result = self.round_by_find_area(screen, '邦巢', '聘用')
         if result.is_success:
             return self.round_success(status='已进入邦巢界面')
-
-        # 方式2：使用OCR检测聘用按钮
-        ocr_result_map = self.ctx.ocr.run_ocr(screen)
-        for text in ocr_result_map.keys():
-            if '次数用尽' in text:
-                op = BackToNormalWorld(self.ctx)
-                return self.round_by_op_result(op.execute())
-            if '聘用' in text:  # 检查文本中是否包含'聘用'字样
-                return self.round_success(status='已进入邦巢界面')
-
-        # 方式3：检查是否有刷新按钮
-        refresh_result = self.round_by_find_area(screen, '邦巢', '刷新')
-        if refresh_result.is_success:
-            return self.round_success(status='已进入邦巢界面')
-
-        # 方式4：使用OCR检测刷新按钮
-        for text in ocr_result_map.keys():
-            if '刷新' in text:
-                return self.round_success(status='已进入邦巢界面')
 
         # 如果都没有检测到邦巢界面特征，尝试点击邦巢
         boobox_list: list[str] = ['邦巢']
@@ -186,19 +170,12 @@ class BooboxApp(ZApplication):
         # 首先进行OCR检测
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
 
-        # 方式1：OCR检测聘用按钮
-        for text in ocr_result_map.keys():
-            if '聘用' in text:
-                in_boobox_interface = True
-                break
-
-        # 方式2：如果OCR没有检测到聘用，尝试预定义区域检测
         if not in_boobox_interface:
             result = self.round_by_find_area(screen, '邦巢', '聘用')
             if result.is_success:
                 in_boobox_interface = True
 
-        # 方式3：最后检查刷新按钮作为补充（降级方案）
+        # 检查刷新按钮作为补充（降级方案）
         if not in_boobox_interface:
             for text in ocr_result_map.keys():
                 if '刷新' in text:
@@ -214,12 +191,6 @@ class BooboxApp(ZApplication):
             if '次数用尽' in text:
                 op = BackToNormalWorld(self.ctx)
                 return self.round_by_op_result(op.execute())
-
-        # # 检查是否已达到购买上限
-        # if self.bought_count >= self.max_bought_count:
-        #     print(f"已购买{self.bought_count}个S级邦布，达到上限")
-        #     op = BackToNormalWorld(self.ctx)
-        #     return self.round_by_op_result(op.execute())
 
         # 检查是否有S级邦布 - 通过识别高价格，选中所有符合条件的邦布
         s_found = False
@@ -261,18 +232,6 @@ class BooboxApp(ZApplication):
             self.refresh_count += 1
             return self.round_wait(status='刷新邦布完成', wait=1.5)
 
-        # 如果刷新区域失败，尝试原来的刷新按钮
-        refresh_result2 = self.round_by_find_and_click_area(screen, '邦巢', '刷新', retry_wait=1)
-        if refresh_result2.is_success:
-            self.refresh_count += 1
-            return self.round_wait(status='刷新邦布完成', wait=1.5)
-
-        # 都失败的话，使用固定坐标点击
-        refresh_pos = Point(1309, 996)
-        self.ctx.controller.click(refresh_pos)
-        self.refresh_count += 1
-        return self.round_wait(status='刷新邦布完成', wait=3)
-
     @node_from(from_name='检查邦布', status='开始购买S级邦布')
     @operation_node(name='点击聘用')
     def click_hire(self) -> OperationRoundResult:
@@ -280,23 +239,22 @@ class BooboxApp(ZApplication):
         点击右下角的聘用按钮
         :return:
         """
-        screen = self.screenshot()
-        ocr_result_map = self.ctx.ocr.run_ocr(screen)
 
-        target_word_list: list[str] = ['聘用']
-        word, mrl = ocr_utils.match_word_list_by_priority(ocr_result_map, target_word_list)
+        click_result = self.round_by_find_and_click_area(
+            self.screenshot(),
+            '邦巢',
+            '聘用',
+            retry_wait=1
+        )
 
-        if word == '聘用':
-            if mrl.max is not None:
-                self.ctx.controller.click(mrl.max.center)
-                self.bought_bangboo = True
-                self.bought_count += 1
-                print(f"成功购买第{self.bought_count}个S级邦布")
-                return self.round_success(status='点击聘用', wait=4)
-            else:
-                return self.round_retry(status='聘用按钮位置异常', wait=1)
+        if click_result.is_success:
+            self.bought_bangboo = True
+            self.bought_count += 1
+            print(f"成功购买第{self.bought_count}个S级邦布")
+            return self.round_success(status='点击聘用', wait=2)
+        else:
+            return self.round_retry(status='未找到聘用按钮', wait=1)
 
-        return self.round_retry(status='未找到聘用按钮', wait=1)
 
     @node_from(from_name='点击聘用', status='点击聘用')
     @operation_node(name='处理购买动画')
@@ -315,11 +273,6 @@ class BooboxApp(ZApplication):
                 self.ctx.controller.click(mrl.max.center)
                 return self.round_wait(status='确认后继续检查邦布', wait=2)
 
-            # 尝试用预定义区域点击确认
-            confirm_result = self.round_by_find_and_click_area(screen, '邦巢', '确认', retry_wait=0)
-            if confirm_result.is_success:
-                return self.round_wait(status='确认后继续检查邦布', wait=2)
-
         # 检测是否已经返回邦巢界面（通过聘用按钮判断）
         if any('聘用' in text for text in ocr_result_map.keys()):
             return self.round_success(status='已返回邦巢界面')
@@ -333,24 +286,16 @@ class BooboxApp(ZApplication):
         if result.is_success:
             return self.round_wait(status='点击跳过', wait=0.5)
 
-        # 如果预定义区域失败，尝试固定坐标作为兜底
-        skip_pos = Point(1763, 125)
-        self.ctx.controller.click(skip_pos)
-        return self.round_wait(status='点击跳过（固定坐标）', wait=0.5)
-
     @node_from(from_name='处理购买动画', status='点击确认完成')
     @node_from(from_name='处理购买动画', status='跳过动画完成')
     @node_from(from_name='处理购买动画', status='出现返回按钮')
     @node_from(from_name='处理购买动画', status='点击跳过')
-    @node_from(from_name='处理购买动画', status='点击跳过（固定坐标）')
     @operation_node(name='返回界面')
     def return_interface(self) -> OperationRoundResult:
         """
         返回邦巢界面
         :return:
         """
-        # 确保动画完全结束，再多等待2秒
-        time.sleep(2)
         screen = self.screenshot()
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
 
@@ -360,10 +305,6 @@ class BooboxApp(ZApplication):
         if word == '返回' and mrl.max is not None:
             self.ctx.controller.click(mrl.max.center)
             return self.round_wait(status='继续检查邦布', wait=2)
-
-        # 如果没有找到返回按钮，尝试按ESC键返回
-        self.ctx.controller.btn_controller.tap('esc')
-        return self.round_wait(status='继续检查邦布', wait=2)
 
 
 def __debug():
