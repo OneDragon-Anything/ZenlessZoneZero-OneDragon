@@ -70,8 +70,13 @@ class SettingPushInterface(VerticalScrollInterface):
         self.notification_method_opt.value_changed.connect(self._update_notification_ui)
         content_widget.add_widget(self.notification_method_opt)
 
-        self.curl_btn = PushSettingCard(icon=FluentIcon.CODE, title='生成 cURL 示例', text='生成调试命令')
-        self.curl_btn.clicked.connect(self._generate_curl)
+        self.pwsh_curl_btn = PushButton(text='PowerShell 风格')
+        self.pwsh_curl_btn.clicked.connect(lambda: self._generate_curl('pwsh'))
+
+        self.unix_curl_btn = PushButton(text='Unix 风格')
+        self.unix_curl_btn.clicked.connect(lambda: self._generate_curl('unix'))
+
+        self.curl_btn = MultiPushSettingCard(icon=FluentIcon.CODE, title='生成 cURL 命令', btn_list=[self.pwsh_curl_btn, self.unix_curl_btn])
         self.curl_btn.setVisible(False)
         content_widget.add_widget(self.curl_btn)
 
@@ -213,7 +218,7 @@ class SettingPushInterface(VerticalScrollInterface):
         # 初始更新界面状态
         self._update_notification_ui()
 
-    def _generate_curl(self):
+    def _generate_curl(self, style: str):
         """生成 cURL 示例命令"""
         # 获取配置卡片
         cards = {
@@ -231,7 +236,7 @@ class SettingPushInterface(VerticalScrollInterface):
 
         # 使用 CurlGenerator 直接处理卡片
         curl_generator = CurlGenerator()
-        curl_command = curl_generator.generate_curl_command(cards)
+        curl_command = curl_generator.generate_curl_command(cards, style)
 
         if not curl_command:
             self._show_error_message("Webhook URL 不能为空")
