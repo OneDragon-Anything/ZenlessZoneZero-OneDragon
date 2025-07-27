@@ -1,11 +1,12 @@
 import json
 from typing import Union, Optional
 
-from PySide6.QtCore import QRegularExpression, Signal, Qt, QRect, QObject, QEvent
+from PySide6.QtCore import QRegularExpression, Signal, Qt, QRect
 from PySide6.QtGui import QColor, QTextCharFormat, QSyntaxHighlighter, QIcon, QKeyEvent
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from PySide6.QtCore import QSize
-from qfluentwidgets import PlainTextEdit, FluentIconBase, FluentIcon, ToolButton, MessageBoxBase, SubtitleLabel, BodyLabel, isDarkTheme, ToolTipFilter, ToolTipPosition, RoundMenu, Action
+from qfluentwidgets import PlainTextEdit, FluentIconBase, FluentIcon, ToolButton, MessageBoxBase, SubtitleLabel,\
+                           BodyLabel, isDarkTheme, ToolTipFilter, ToolTipPosition, RoundMenu, Action
 
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
@@ -21,6 +22,9 @@ class TemplateVariables:
         {"key": "$title", "name": "标题变量", "icon": FluentIcon.TAG},
         {"key": "$content", "name": "内容变量", "icon": FluentIcon.DOCUMENT},
         {"key": "$image", "name": "图片变量", "icon": FluentIcon.PHOTO},
+        {"key": "$timestamp", "name": "时间戳 (2024-12-19 15:30:45)", "icon": FluentIcon.CALENDAR},
+        {"key": "$iso_timestamp", "name": "ISO时间戳 (2024-12-19T15:30:45)", "icon": FluentIcon.CALENDAR},
+        {"key": "$unix_timestamp", "name": "Unix时间戳 (1703004645)", "icon": FluentIcon.CALENDAR},
     ]
 
     @classmethod
@@ -53,7 +57,8 @@ class TemplateVariableMenu(RoundMenu):
                 f"{var_config['key']} - {gt(var_config['name'])}",
                 self
             )
-            action.triggered.connect(lambda checked, v=var_config['key']: self.variable_selected.emit(v))
+            # 修复闭包问题：使用默认参数捕获当前循环的变量值
+            action.triggered.connect(lambda checked=None, v=var_config['key']: self.variable_selected.emit(v))
             self.addAction(action)
 
         # 添加分隔线
@@ -276,11 +281,96 @@ class CodeEditor(PlainTextEdit):
 
         super().keyPressEvent(event)
 
-class CodeEditorDialog(MessageBoxBase):
+
+class CodeEditorMixin:
+    """代码编辑器功能混入类，提供通用的编辑器操作方法"""
+
+    def _format_json(self):
+        """格式化 JSON 内容"""
+        try:
+            current_text = self.editor.toPlainText().strip()
+            if current_text:
+                # 尝试解析并格式化 JSON
+                parsed_json = json.loads(current_text)
+                formatted_json = json.dumps(parsed_json, indent=4, ensure_ascii=False)
+                self.editor.setPlainText(formatted_json)
+        except json.JSONDecodeError:
+            # 如果不是有效的 JSON，不做处理
+            pass
+        except Exception:
+            log.error('格式化 JSON 失败', exc_info=True)
+
+    def _compact_json(self, text: str) -> str:
+        """将JSON内容紧凑化（去除空格和换行）"""
+        try:
+            if text.strip():
+                parsed_json = json.loads(text)
+                return json.dumps(parsed_json, separators=(',', ':'), ensure_ascii=False)
+            return text
+        except json.JSONDecodeError:
+            # 如果不是有效的 JSON，返回原文
+            return text
+        except Exception:
+            log.error('紧凑化 JSON 失败', exc_info=True)
+            return text
+
+    def _is_compact_json(self, text: str) -> bool:
+        """判断JSON是否是紧凑格式（无多余空格和换行）"""
+        try:
+            if not text.strip():
+                return False
+            parsed_json = json.loads(text)
+            compact_json = json.dumps(parsed_json, separators=(',', ':'), ensure_ascii=False)
+            return text.strip() == compact_json
+        except json.JSONDecodeError:
+            return False
+        except Exception:
+            return False
+
+    def _show_template_menu(self):
+        """显示模板变量菜单"""
+        # 计算菜单显示位置
+        button_pos = self.template_btn.mapToGlobal(self.template_btn.rect().bottomLeft())
+        # 使用非阻塞方式显示菜单，避免与对话框的 exec() 冲突
+        self.template_menu.popup(button_pos)
+
+    def _insert_variable(self, variable: str):
+        """在光标位置插入变量"""
+        self.editor.insertPlainText(variable)
+
+    def _insert_template(self):
+        """插入完整模板"""
+        template_content = self.template_menu.get_template_content()
+        self.editor.insertPlainText(template_content)
+
+    def _create_template_menu_and_button(self, button_layout):
+        """创建模板按钮和菜单的通用方法"""
+        # 通知模板按钮
+        self.template_btn = ToolButton(FluentIcon.TAG, self)
+        self.template_btn.clicked.connect(self._show_template_menu)
+
+        # tooltip
+        self.template_btn.setToolTip(gt('插入变量'))
+        self.template_btn.installEventFilter(ToolTipFilter(self.template_btn, showDelay=500, position=ToolTipPosition.TOP))
+
+        # 创建模板变量菜单，设置父级为按钮的窗口而不是对话框本身
+        parent_window = self.parent_window if hasattr(self, 'parent_window') and self.parent_window else self
+        self.template_menu = TemplateVariableMenu(parent=parent_window, editor=self.editor)
+
+        # 连接模板菜单信号
+        self.template_menu.variable_selected.connect(self._insert_variable)
+        self.template_menu.template_requested.connect(self._insert_template)
+
+        button_layout.addWidget(self.template_btn)
+
+
+class CodeEditorDialog(MessageBoxBase, CodeEditorMixin):
     """代码编辑器弹窗对话框"""
 
-    def __init__(self, parent=None, title: str = "代码编辑器", initial_text: str = ""):
+    def __init__(self, parent=None, title: str = "代码编辑器", adapter=None):
         super().__init__(parent)
+
+        self.adapter = adapter
 
         # 设置标题
         self.titleLabel = SubtitleLabel(gt(title))
@@ -288,12 +378,30 @@ class CodeEditorDialog(MessageBoxBase):
 
         # 创建编辑器
         self.editor = CodeEditor(self)
-        self.editor.setPlainText(initial_text)
         self.editor.setPlaceholderText(gt("请输入 JSON 格式的请求体"))
         self.editor.setMinimumSize(600, 400)
 
         # 添加语法高亮
         self.highlighter = JsonHighlighter(self.editor.document())
+
+        # 初始化编辑器内容
+        if self.adapter is not None:
+            # 如果有适配器，从适配器获取值
+            value = self.adapter.get_value()
+            # 如果是紧凑的JSON，格式化后显示
+            if self._is_compact_json(value):
+                try:
+                    parsed_json = json.loads(value)
+                    formatted_json = json.dumps(parsed_json, indent=4, ensure_ascii=False)
+                    self.editor.setPlainText(formatted_json)
+                except (json.JSONDecodeError, TypeError):
+                    self.editor.setPlainText(value)
+            else:
+                self.editor.setPlainText(value)
+
+        # 连接文本变化信号到适配器
+        if self.adapter is not None:
+            self.editor.textChanged.connect(self._on_text_changed)
 
         # 创建编辑器和按钮的水平布局
         editor_layout = QHBoxLayout()
@@ -308,22 +416,8 @@ class CodeEditorDialog(MessageBoxBase):
         self.format_btn.clicked.connect(self._format_json)
         button_layout.addWidget(self.format_btn)
 
-        # 通知模板按钮
-        self.template_btn = ToolButton(FluentIcon.TAG, self)
-        self.template_btn.clicked.connect(self._show_template_menu)
-
-        # tooltip
-        self.template_btn.setToolTip(gt("插入变量"))
-        self.template_btn.installEventFilter(ToolTipFilter(self.template_btn, showDelay=500, position=ToolTipPosition.TOP))
-
-        # 创建模板变量菜单
-        self.template_menu = TemplateVariableMenu(parent=self, editor=self.editor)
-
-        # 连接模板菜单信号
-        self.template_menu.variable_selected.connect(self._insert_variable)
-        self.template_menu.template_requested.connect(self._insert_template)
-
-        button_layout.addWidget(self.template_btn)
+        # 创建模板按钮和菜单
+        self._create_template_menu_and_button(button_layout)
 
         button_layout.addStretch()
 
@@ -341,50 +435,17 @@ class CodeEditorDialog(MessageBoxBase):
         self.yesButton.setText(gt("确定"))
         self.cancelButton.setText(gt("取消"))
 
-    def _format_json(self):
-        """格式化 JSON 内容"""
-        try:
-            current_text = self.editor.toPlainText().strip()
-            if current_text:
-                # 尝试解析并格式化 JSON
-                parsed_json = json.loads(current_text)
-                formatted_json = json.dumps(parsed_json, indent=4, ensure_ascii=False)
-                self.editor.setPlainText(formatted_json)
-        except json.JSONDecodeError:
-            # 如果不是有效的 JSON，不做处理
-            pass
-        except Exception:
-            log.error('格式化 JSON 失败', exc_info=True)
-
-    def _show_template_menu(self):
-        """显示模板变量菜单"""
-
-        # 计算菜单显示位置
-        button_pos = self.template_btn.mapToGlobal(self.template_btn.rect().bottomLeft())
-        self.template_menu.exec(button_pos)
-
     def get_text(self) -> str:
         """获取编辑器中的文本"""
         return self.editor.toPlainText()
 
-    def _insert_variable(self, variable: str):
-        """在光标位置插入变量"""
-        cursor = self.editor.textCursor()
-        if cursor is None:
-            log.warning("无法获取文本光标")
-            return
-        cursor.insertText(variable)
-        self.editor.setTextCursor(cursor)
-
-    def _insert_template(self):
-        """插入完整模板"""
-        template_content = self.template_menu.get_template_content()
-        cursor = self.editor.textCursor()
-        if cursor is None:
-            log.warning("无法获取文本光标")
-            return
-        cursor.insertText(template_content)
-        self.editor.setTextCursor(cursor)
+    def _on_text_changed(self):
+        """文本变化时更新适配器"""
+        if self.adapter is not None:
+            val = self.editor.toPlainText()
+            # 将JSON紧凑化后写入后端
+            compact_val = self._compact_json(val)
+            self.adapter.set_value(compact_val)
 
 
 class JsonHighlighter(QSyntaxHighlighter):
@@ -449,7 +510,7 @@ class JsonHighlighter(QSyntaxHighlighter):
                 self.setFormat(match.capturedStart(), match.capturedLength(), format)
 
 
-class CodeEditorSettingCard(SettingCardBase):
+class CodeEditorSettingCard(SettingCardBase, CodeEditorMixin):
     """ 带代码编辑器的设置卡片 """
 
     value_changed = Signal(str)
@@ -484,32 +545,18 @@ class CodeEditorSettingCard(SettingCardBase):
         button_layout.setContentsMargins(16, 16, 16, 16)
         button_layout.setSpacing(4)
 
+        # 弹出按钮
+        self.pop_btn = ToolButton(FluentIcon.LINK, self)
+        self.pop_btn.clicked.connect(self._pop_editor)
+        button_layout.addWidget(self.pop_btn)
+
         # 格式化按钮
         self.format_btn = ToolButton(FluentIcon.CODE, self)
         self.format_btn.clicked.connect(self._format_json)
         button_layout.addWidget(self.format_btn)
 
-        # 通知模板按钮
-        self.template_btn = ToolButton(FluentIcon.TAG, self)
-        self.template_btn.clicked.connect(self._show_template_menu)
-
-        # tooltip
-        self.template_btn.setToolTip(gt("插入变量"))
-        self.template_btn.installEventFilter(ToolTipFilter(self.template_btn, showDelay=500, position=ToolTipPosition.TOP))
-
-        # 创建模板变量菜单
-        self.template_menu = TemplateVariableMenu(parent=self, editor=self.editor)
-
-        # 连接模板菜单信号
-        self.template_menu.variable_selected.connect(self._insert_variable)
-        self.template_menu.template_requested.connect(self._insert_template)
-
-        button_layout.addWidget(self.template_btn)
-
-        # 弹出按钮
-        self.pop_btn = ToolButton(FluentIcon.LINK, self)
-        self.pop_btn.clicked.connect(self._pop_editor)
-        button_layout.addWidget(self.pop_btn)
+        # 创建模板按钮和菜单
+        self._create_template_menu_and_button(button_layout)
 
         # 创建编辑器和按钮的水平布局
         editor_horizontal_layout = QHBoxLayout()
@@ -526,7 +573,6 @@ class CodeEditorSettingCard(SettingCardBase):
         editor_container.setLayout(editor_with_spacing_layout)
 
         self.hBoxLayout.addWidget(editor_container)
-
         self.editor.textChanged.connect(self._on_text_changed)
 
         self.setFixedHeight(self.sizeHint().height())
@@ -535,7 +581,9 @@ class CodeEditorSettingCard(SettingCardBase):
         val = self.editor.toPlainText()
 
         if self.adapter is not None:
-            self.adapter.set_value(val)
+            # 将JSON紧凑化后写入后端
+            compact_val = self._compact_json(val)
+            self.adapter.set_value(compact_val)
 
         self.value_changed.emit(val)
 
@@ -543,17 +591,18 @@ class CodeEditorSettingCard(SettingCardBase):
         return self.editor.toPlainText()
 
     def setValue(self, value: str, emit_signal: bool = True):
+        if not emit_signal:
+            self.editor.blockSignals(True)
+
         try:
-            if not emit_signal:
-                self.editor.blockSignals(True)
-            # 格式化 JSON
-            pretty_json = json.dumps(json.loads(value), indent=4, ensure_ascii=False)
+            parsed_json = json.loads(value)
+            pretty_json = json.dumps(parsed_json, indent=4, ensure_ascii=False)
             self.editor.setPlainText(pretty_json)
         except (json.JSONDecodeError, TypeError):
-            self.editor.setPlainText(value) # 如果格式不正确，则直接显示原文
-        finally:
-            if not emit_signal:
-                self.editor.blockSignals(False)
+            self.editor.setPlainText(value)
+
+        if not emit_signal:
+            self.editor.blockSignals(False)
 
     def init_with_adapter(self, adapter):
         """使用配置适配器初始化值"""
@@ -564,53 +613,17 @@ class CodeEditorSettingCard(SettingCardBase):
         else:
             self.setValue(self.adapter.get_value(), emit_signal=False)
 
-    def _format_json(self):
-        """格式化 JSON 内容"""
-        try:
-            current_text = self.editor.toPlainText().strip()
-            if current_text:
-                # 尝试解析并格式化 JSON
-                parsed_json = json.loads(current_text)
-                formatted_json = json.dumps(parsed_json, indent=4, ensure_ascii=False)
-                self.editor.setPlainText(formatted_json)
-        except json.JSONDecodeError:
-            # 如果不是有效的 JSON，不做处理
-            pass
-        except Exception:
-            log.error('格式化 JSON 失败', exc_info=True)
-
-    def _show_template_menu(self):
-        """显示模板变量菜单"""
-
-        # 计算菜单显示位置
-        button_pos = self.template_btn.mapToGlobal(self.template_btn.rect().bottomLeft())
-        self.template_menu.exec(button_pos)
-
     def _pop_editor(self):
         """弹出代码编辑器窗口"""
-        current_text = self.editor.toPlainText()
-        dialog = CodeEditorDialog(parent=self.parent_window, title="JSON 代码编辑器", initial_text=current_text)
+        # 传递适配器给对话框，让对话框直接操作适配器
+        dialog = CodeEditorDialog(
+            parent=self.parent_window,
+            title="JSON 代码编辑器",
+            adapter=self.adapter
+        )
+        dialog.exec()
 
-        if dialog.exec():
-            # 用户点击确定，更新主编辑器内容
-            new_text = dialog.get_text()
-            self.setValue(new_text, emit_signal=True)
-
-    def _insert_variable(self, variable: str):
-        """在光标位置插入变量"""
-        cursor = self.editor.textCursor()
-        if cursor is None:
-            log.warning("无法获取文本光标")
-            return
-        cursor.insertText(variable)
-        self.editor.setTextCursor(cursor)
-
-    def _insert_template(self):
-        """插入完整模板"""
-        template_content = self.template_menu.get_template_content()
-        cursor = self.editor.textCursor()
-        if cursor is None:
-            log.warning("无法获取文本光标")
-            return
-        cursor.insertText(template_content)
-        self.editor.setTextCursor(cursor)
+        # 对话框关闭后，刷新主编辑器显示
+        if self.adapter is not None:
+            # 从适配器重新获取值并更新显示，不触发信号避免重复写入
+            self.setValue(self.adapter.get_value(), emit_signal=False)
