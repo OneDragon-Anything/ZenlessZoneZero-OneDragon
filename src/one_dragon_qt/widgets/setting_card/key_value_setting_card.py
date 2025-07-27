@@ -69,14 +69,14 @@ class KeyValueSettingCard(SettingCardBase):
         key_edit = LineEdit(self)
         key_edit.setPlaceholderText(gt('键', 'ui'))
         key_edit.setText(key)
-        if emit_signal:
-            key_edit.textChanged.connect(self._on_value_changed)
+
+        key_edit.editingFinished.connect(self._on_value_changed)
 
         value_edit = LineEdit(self)
         value_edit.setPlaceholderText(gt('值', 'ui'))
         value_edit.setText(value)
-        if emit_signal:
-            value_edit.textChanged.connect(self._on_value_changed)
+
+        value_edit.editingFinished.connect(self._on_value_changed)
 
         remove_btn = ToolButton(FluentIcon.DELETE, self)
         remove_btn.setFixedSize(30, 30)
