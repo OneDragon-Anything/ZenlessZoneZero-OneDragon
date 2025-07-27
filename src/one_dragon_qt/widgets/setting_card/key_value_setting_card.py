@@ -1,13 +1,15 @@
 import json
 from typing import Union, Optional
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from qfluentwidgets import FluentIcon, FluentIconBase, LineEdit, PushButton, ToolButton
 
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
+from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class KeyValueSettingCard(SettingCardBase):
@@ -15,11 +17,22 @@ class KeyValueSettingCard(SettingCardBase):
 
     value_changed = Signal(str)
 
-    def __init__(self, icon: Union[str, QIcon, FluentIconBase],
-                 title: str,
-                 content: Optional[str] = None,
+    def __init__(self,
+                 icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str] = None,
+                 icon_size: IconSize = IconSize(16, 16),
+                 margins: Margins = Margins(16, 16, 0, 16),
+                 adapter: Optional[YamlConfigAdapter] = None,
                  parent: Optional[QWidget] = None):
-        super().__init__(icon, title, content, parent=parent)
+
+        SettingCardBase.__init__(
+            self,
+            icon=icon,
+            title=title,
+            content=content,
+            icon_size=icon_size,
+            margins=margins,
+            parent=parent
+        )
 
         self.batch_update = False  # Flag to control batch updates
         self.vBoxLayout.setSpacing(8)
