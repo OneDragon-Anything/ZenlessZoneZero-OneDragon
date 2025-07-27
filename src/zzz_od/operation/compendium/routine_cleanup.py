@@ -139,10 +139,7 @@ class RoutineCleanup(ZOperation):
         if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value:
             return self.round_success(RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
         else:
-            op = RestoreCharge(
-                self.ctx,
-                required_charge=self.charge_need - self.charge_left
-            )
+            op = RestoreCharge(self.ctx)
             return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别电量', status=STATUS_CHARGE_ENOUGH)
