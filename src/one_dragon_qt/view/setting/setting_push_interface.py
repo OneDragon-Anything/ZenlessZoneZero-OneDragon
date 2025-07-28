@@ -312,16 +312,16 @@ class SettingPushInterface(VerticalScrollInterface):
 
     def _apply_parsed_config(self, config: dict):
         """将解析后的配置应用到表单"""
-        # 配置键映射到卡片属性名
+        # 配置键映射到卡片属性名和配置键
         config_mapping = {
-            'method': 'webhook_method_push_card',
-            'url': 'webhook_url_push_card',
-            'content_type': 'webhook_content_type_push_card',
-            'headers': 'webhook_headers_push_card',
-            'body': 'webhook_body_push_card'
+            'method': ('webhook_method_push_card', 'webhook_method'),
+            'url': ('webhook_url_push_card', 'webhook_url'),
+            'content_type': ('webhook_content_type_push_card', 'webhook_content_type'),
+            'headers': ('webhook_headers_push_card', 'webhook_headers'),
+            'body': ('webhook_body_push_card', 'webhook_body')
         }
 
-        for config_key, card_attr in config_mapping.items():
+        for config_key, (card_attr, config_prop) in config_mapping.items():
             if config_key in config:
                 card = getattr(self, card_attr, None)
                 if card is not None:
@@ -330,11 +330,16 @@ class SettingPushInterface(VerticalScrollInterface):
                     if not value or value == '{}':
                         continue
 
+                    # 设置 UI 组件的值
                     if hasattr(card, 'setValue'):
                         card.setValue(value)
                     elif hasattr(card, 'setCurrentText'):
                         # 对于 ComboBox 类型的卡片
                         card.setCurrentText(value)
+
+                    # 同时保存到配置中
+                    if hasattr(self.ctx.push_config, config_prop):
+                        setattr(self.ctx.push_config, config_prop, value)
 
     def _validate_webhook_config(self) -> None:
         """

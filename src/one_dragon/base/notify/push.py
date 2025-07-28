@@ -870,7 +870,7 @@ class Push():
 
         url = self.get_config("WEBHOOK_URL")
         method = (self.get_config("WEBHOOK_METHOD")).upper()
-        headers = self.get_config("WEBHOOK_HEADERS")
+        headers_str = self.get_config("WEBHOOK_HEADERS")
         body = self.get_config("WEBHOOK_BODY")
         content_type = self.get_config("WEBHOOK_CONTENT_TYPE")
 
@@ -891,7 +891,7 @@ class Push():
             # 对 URL 中的变量进行编码，对 Body 和 Headers 则不需要
             url = url.replace(placeholder, urllib.parse.quote_plus(str(value)))
             body = body.replace(placeholder, str(value).replace("\n", "\\n")) # JSON字符串中换行符需要转义
-            headers = headers.replace(placeholder, str(value))
+            headers_str = headers_str.replace(placeholder, str(value))
 
         if "$image" in body:
             image_base64 = ""
@@ -900,6 +900,19 @@ class Push():
                 image_base64 = base64.b64encode(image.getvalue()).decode('utf-8')
             body = body.replace("$image", image_base64)
 
+        # 解析 headers 字符串为字典
+        try:
+            headers = json.loads(headers_str) if headers_str and headers_str != "{}" else {}
+        except json.JSONDecodeError:
+            # 如果解析失败，尝试解析为键值对格式
+            headers = {}
+            if headers_str and headers_str != "{}":
+                for line in headers_str.split('\n'):
+                    if ':' in line:
+                        key, value = line.split(':', 1)
+                        headers[key.strip()] = value.strip()
+
+        # 添加 Content-Type
         headers['Content-Type'] = content_type
 
         self.log_info(f"发送 Webhook 请求: {method} {url}")
