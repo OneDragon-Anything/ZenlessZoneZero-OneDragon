@@ -58,7 +58,7 @@ class PcControllerBase(ControllerBase):
         """
         清理资源
         """
-        self.screenshot_controller.cleanup_screenshot_executor()
+        self.screenshot_controller.cleanup_init_executor()
 
     def active_window(self) -> None:
         """

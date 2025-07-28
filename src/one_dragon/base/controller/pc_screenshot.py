@@ -14,7 +14,7 @@ from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.utils import thread_utils
 from one_dragon.utils.log_utils import log
 
-SCREENSHOT_EXECUTOR = ThreadPoolExecutor(thread_name_prefix='screenshot', max_workers=1)
+SCREENSHOT_INIT_EXECUTOR = ThreadPoolExecutor(thread_name_prefix='screenshot', max_workers=1)
 
 
 class PcScreenshot:
@@ -85,8 +85,8 @@ class PcScreenshot:
         异步初始化截图方法
         :param method: 首选的截图方法 ("mss", "print_window", "auto")
         """
-        f = SCREENSHOT_EXECUTOR.submit(self._init_screenshot_with_wait, method)
-        f.add_done_callback(thread_utils.handle_future_result)
+        future = SCREENSHOT_INIT_EXECUTOR.submit(self._init_screenshot_with_wait, method)
+        future.add_done_callback(thread_utils.handle_future_result)
 
     def _init_screenshot_with_wait(self, method: str):
         """
@@ -102,11 +102,11 @@ class PcScreenshot:
 
         return self.init_screenshot(method)
 
-    def cleanup_screenshot_executor(self):
+    def cleanup_init_executor(self):
         """
-        清理截图线程池
+        清理异步初始化线程池
         """
-        SCREENSHOT_EXECUTOR.shutdown(wait=False, cancel_futures=True)
+        SCREENSHOT_INIT_EXECUTOR.shutdown(wait=False, cancel_futures=True)
 
     def _get_method_priority_list(self, method: str) -> list:
         """
