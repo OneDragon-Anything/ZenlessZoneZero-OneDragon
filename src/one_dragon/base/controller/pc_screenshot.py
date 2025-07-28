@@ -1,13 +1,12 @@
 import cv2
 import ctypes
 import numpy as np
-import pyautogui
 import time
 
 from concurrent.futures import ThreadPoolExecutor
 from cv2.typing import MatLike
 from mss.base import MSSBase
-from PIL.Image import Image
+from pyautogui import screenshot as pyautogui_screenshot
 from typing import Optional
 
 from one_dragon.base.controller.pc_game_window import PcGameWindow
@@ -51,15 +50,35 @@ class PcScreenshot:
         if rect is None:
             return None
 
-        if self.initialized_method == "mss":
-            return self.get_screenshot_mss(rect, independent)
-        elif self.initialized_method == "print_window":
-            return self.get_screenshot_print_window(rect, independent)
-        else:  # 独立截图
-            result = self.get_screenshot_print_window(rect, independent)
-            if result is None:
-                return self.get_screenshot_mss(rect, independent)
-            return result
+        # 使用统一的优先级列表获取截图方法
+        if self.initialized_method:
+            # 如果有初始化的方法，从该方法开始尝试
+            methods_to_try_names = self._get_method_priority_list(self.initialized_method)
+        else:
+            # 独立截图模式，使用默认优先级
+            methods_to_try_names = self._get_method_priority_list("auto")
+
+        # 构建方法执行列表
+        methods_to_try = []
+        for method_name in methods_to_try_names:
+            if method_name == "mss":
+                methods_to_try.append(("MSS", lambda r=rect, i=independent: self.get_screenshot_mss(r, i)))
+            elif method_name == "print_window":
+                methods_to_try.append(("Print Window", lambda r=rect, i=independent: self.get_screenshot_print_window(r, i)))
+            elif method_name == "pil":
+                methods_to_try.append(("PIL", lambda r=rect: self.screenshot_pil(r)))
+
+        # 按优先级依次尝试截图方法
+        for method_name, method_func in methods_to_try:
+            try:
+                result = method_func()
+                if result is not None:
+                    return result
+            except Exception:
+                continue
+
+        # 所有方法都失败
+        return None
 
     def async_init_screenshot(self, method: str):
         """
@@ -89,19 +108,32 @@ class PcScreenshot:
         """
         SCREENSHOT_EXECUTOR.shutdown(wait=False, cancel_futures=True)
 
-    def init_screenshot(self, method: str):
+    def _get_method_priority_list(self, method: str) -> list:
         """
-        初始化截图方法，带有回退机制
-        :param method: 首选的截图方法 ("mss", "print_window", "auto")
+        获取截图方法的优先级列表
+        :param method: 首选方法 ("mss", "print_window", "auto", "pil")
+        :return: 方法名称列表，按优先级排序
         """
         # 定义方法优先级
         fallback_order = {
-            "mss": ["mss", "print_window"],
-            "print_window": ["print_window", "mss"],
-            "auto": ["print_window", "mss"]
+            "mss": ["mss", "print_window", "pil"],
+            "print_window": ["print_window", "mss", "pil"],
+            "auto": ["print_window", "mss", "pil"],
+            "pil": ["pil", "print_window", "mss"]
         }
 
-        methods_to_try = fallback_order.get(method, ["print_window", "mss"])
+        return fallback_order.get(method, ["print_window", "mss", "pil"])
+
+    def init_screenshot(self, method: str):
+        """
+        初始化截图方法，带有回退机制
+        :param method: 首选的截图方法 ("mss", "print_window", "auto", "pil")
+        """
+        # 先清理现有资源
+        if self.initialized_method is not None:
+            self.cleanup_resources()
+
+        methods_to_try = self._get_method_priority_list(method)
 
         for attempt_method in methods_to_try:
             success = False
@@ -110,11 +142,13 @@ class PcScreenshot:
                 success = self.init_mss()
             elif attempt_method == "print_window":
                 success = self.init_print_window()
+            elif attempt_method == "pil":
+                success = True  # PIL不需要初始化，总是可用
 
             if success:
                 self.initialized_method = attempt_method
                 if attempt_method != method:
-                    log.info(f"截图方法 '{method}' 初始化失败，回退到 '{attempt_method}'")
+                    log.debug(f"截图方法 '{method}' 初始化失败，回退到 '{attempt_method}'")
                 else:
                     log.debug(f"截图方法 '{attempt_method}' 初始化成功")
                 return attempt_method
@@ -124,23 +158,21 @@ class PcScreenshot:
 
     def init_mss(self):
         """初始化MSS截图方法"""
-        if self.mss_instance is not None:
-            try:
-                self.mss_instance.close()
-            except Exception:
-                pass
-            self.mss_instance = None
+        # 先清理旧的MSS资源
+        self._cleanup_mss_resources()
 
         try:
             from mss import mss
             self.mss_instance = mss()
             return True
-        except Exception as e:
-            log.debug(f'MSS初始化失败: {str(e)}')
+        except Exception:
             return False
 
     def init_print_window(self):
         """初始化Print Window截图方法，预加载资源"""
+        # 先清理旧的Print Window资源
+        self._cleanup_print_window_resources()
+
         try:
             hwnd = self.game_win.get_hwnd()
             if not hwnd:
@@ -170,9 +202,54 @@ class PcScreenshot:
             self.initialized_method = 'print_window'
             return True
 
-        except Exception as e:
-            log.debug(f'Print Window 截图方法初始化失败: {e}')
+        except Exception:
             return False
+
+    def cleanup_resources(self):
+        """
+        清理截图相关资源
+        """
+        # 清理MSS资源
+        self._cleanup_mss_resources()
+
+        # 清理Print Window资源
+        self._cleanup_print_window_resources()
+
+        # 清理其他资源
+        self.initialized_method = None
+
+    def _cleanup_print_window_resources(self):
+        """
+        清理Print Window相关资源
+        """
+        if self.print_window_hwndDC or self.print_window_mfcDC or self.print_window_saveBitMap:
+            try:
+                if self.print_window_saveBitMap:
+                    ctypes.windll.gdi32.DeleteObject(self.print_window_saveBitMap)
+                if self.print_window_mfcDC:
+                    ctypes.windll.gdi32.DeleteDC(self.print_window_mfcDC)
+                if self.print_window_hwndDC:
+                    hwnd = self.game_win.get_hwnd()
+                    if hwnd:
+                        ctypes.windll.user32.ReleaseDC(hwnd, self.print_window_hwndDC)
+            finally:
+                self.print_window_hwndDC = None
+                self.print_window_mfcDC = None
+                self.print_window_saveBitMap = None
+                self.print_window_buffer = None
+                self.print_window_bmpinfo_buffer = None
+                self.print_window_width = 0
+                self.print_window_height = 0
+
+    def _cleanup_mss_resources(self):
+        """
+        清理MSS相关资源
+        """
+        if self.mss_instance is not None:
+            try:
+                self.mss_instance.close()
+            finally:
+                self.mss_instance = None
 
     def get_screenshot_mss(self, rect: Rect, independent: bool = False) -> MatLike | None:
         """
@@ -185,27 +262,27 @@ class PcScreenshot:
         top = rect.y1
         width = rect.width
         height = rect.height
+        monitor = {"top": top, "left": left, "width": width, "height": height}
 
-        if self.mss_instance is not None:
-            monitor = {"top": top, "left": left, "width": width, "height": height}
-            try:
-                if independent:
-                    from mss import mss
-                    with mss() as mss_instance:
-                        screenshot = cv2.cvtColor(np.array(mss_instance.grab(monitor)), cv2.COLOR_BGRA2RGB)
+        try:
+            if independent:
+                from mss import mss
+                with mss() as mss_instance:
+                    screenshot = cv2.cvtColor(np.array(mss_instance.grab(monitor)), cv2.COLOR_BGRA2RGB)
+            else:
+                screenshot = cv2.cvtColor(np.array(self.mss_instance.grab(monitor)), cv2.COLOR_BGRA2RGB)
+        except Exception:
+            if not independent:
+                # 重新初始化MSS实例
+                if self.init_mss():
+                    try:
+                        screenshot = cv2.cvtColor(np.array(self.mss_instance.grab(monitor)), cv2.COLOR_BGRA2RGB)
+                    except Exception:
+                        return None
                 else:
-                    screenshot = cv2.cvtColor(np.array(self.mss_instance.grab(monitor)), cv2.COLOR_BGRA2RGB)
-            except Exception:
-                if not independent:
-                    # 重新初始化MSS实例
-                    if self.init_mss():
-                        try:
-                            screenshot = cv2.cvtColor(np.array(self.mss_instance.grab(monitor)), cv2.COLOR_BGRA2RGB)
-                        except Exception:
-                            pass
-        else:
-            img: Image = pyautogui.screenshot(region=(left, top, width, height))
-            screenshot = np.array(img)
+                    return None
+            else:
+                return None
 
         if self.game_win.is_win_scale:
             result = cv2.resize(screenshot, (self.standard_width, self.standard_height))
@@ -225,14 +302,12 @@ class PcScreenshot:
 
         hwnd = self.game_win.get_hwnd()
         if not hwnd:
-            log.warning('未找到目标窗口，无法截图')
             return None
 
         width = rect.width
         height = rect.height
 
         if width <= 0 or height <= 0:
-            log.warning(f'窗口大小无效: {width}x{height}')
             return None
 
         # 如果是独立模式，使用独立的资源管理
@@ -269,8 +344,7 @@ class PcScreenshot:
                                                   self.print_window_bmpinfo_buffer,
                                                   before_screenshot_time)
 
-        except Exception as e:
-            log.debug(f'Print Window截图失败: {e}')
+        except Exception:
             # 回退到独立模式
             return self._get_screenshot_print_window_independent(hwnd, width, height, before_screenshot_time)
 
@@ -338,7 +412,6 @@ class PcScreenshot:
         result = ctypes.windll.user32.PrintWindow(hwnd, mfcDC, 0x00000002)  # PW_CLIENTONLY
         if not result:
             # 如果Print Window失败，尝试使用BitBlt
-            log.debug("Print Window 失败，尝试使用 BitBlt")
             ctypes.windll.gdi32.BitBlt(mfcDC, 0, 0, width, height,
                                        hwndDC, 0, 0, 0x00CC0020)  # SRCCOPY
 
@@ -348,7 +421,6 @@ class PcScreenshot:
                                               bmpinfo_buffer, 0)  # DIB_RGB_COLORS
 
         if lines == 0:
-            log.warning('无法获取位图数据')
             return None
 
         # 转换为numpy数组
@@ -408,8 +480,7 @@ class PcScreenshot:
                                                 saveBitMap, buffer, bmpinfo_buffer,
                                                 before_screenshot_time)
 
-        except Exception as e:
-            log.debug(f'独立模式Print Window截图失败: {e}')
+        except Exception:
             return None
 
         finally:
@@ -420,3 +491,33 @@ class PcScreenshot:
                 ctypes.windll.gdi32.DeleteDC(mfcDC)
             if hwndDC:
                 ctypes.windll.user32.ReleaseDC(hwnd, hwndDC)
+
+    def screenshot_pil(self, rect: Rect) -> MatLike | None:
+        """
+        使用PIL截图
+        :param rect: 截图区域
+        :param independent: 是否独立截图
+        :return: 截图数组
+        """
+        before_screenshot_time = time.time()
+
+        left = rect.x1
+        top = rect.y1
+        width = rect.width
+        height = rect.height
+
+        try:
+            img = pyautogui_screenshot(region=(left, top, width, height))
+            screenshot = np.array(img)
+
+        except Exception:
+            return None
+
+        if self.game_win.is_win_scale:
+            result = cv2.resize(screenshot, (self.standard_width, self.standard_height))
+        else:
+            result = screenshot
+
+        after_screenshot_time = time.time()
+        log.debug(f"PIL 截图耗时:{after_screenshot_time - before_screenshot_time}")
+        return result

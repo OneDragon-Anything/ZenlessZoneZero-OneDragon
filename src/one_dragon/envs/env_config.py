@@ -73,8 +73,9 @@ class EnvSourceEnum(Enum):
 class ScreenshotMethodEnum(Enum):
 
     AUTO = ConfigItem('自动', 'auto')
-    MSS = ConfigItem('MSS', 'mss')
     PRINT_WINDOW = ConfigItem('Print Window', 'print_window')
+    MSS = ConfigItem('MSS', 'mss')
+    PIL = ConfigItem('PIL', 'pil')
 
 
 class EnvConfig(YamlConfig):
@@ -422,7 +423,7 @@ class EnvConfig(YamlConfig):
         """
         截图方法
         """
-        return self.get('screenshot_method', 'mss')
+        return self.get('screenshot_method', ScreenshotMethodEnum.AUTO.value.value)
 
     @screenshot_method.setter
     def screenshot_method(self, new_value: str) -> None:
