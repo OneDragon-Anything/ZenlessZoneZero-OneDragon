@@ -22,7 +22,7 @@ class RestoreCharge(ZOperation):
     SOURCE_BACKUP_CHARGE: ClassVar[str] = '储蓄电量'
     SOURCE_ETHER_BATTERY: ClassVar[str] = '以太电池'
 
-    def __init__(self, ctx: ZContext, required_charge: int | None = None, is_menu = False):
+    def __init__(self, ctx: ZContext, required_charge: int | None = None, is_menu: bool = False):
         """
         初始化电量恢复操作
 

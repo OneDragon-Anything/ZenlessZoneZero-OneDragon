@@ -35,6 +35,7 @@ class ChargePlanApp(ZApplication):
             need_notify=True,
         )
         self.charge_power: int = 0  # 剩余电量
+        self.required_charge: int = 0  # 需要的电量
         self.need_to_check_power_in_mission: bool = False
         self.next_can_run_times: int = 0
         self.last_tried_plan: Optional[ChargePlanItem] = None
@@ -120,7 +121,7 @@ class ChargePlanApp(ZApplication):
                 if self.ctx.charge_plan_config.restore_charge != RestoreChargeEnum.NONE.value.value:
                     # 设置下一个计划，然后触发恢复电量
                     self.next_plan = candidate_plan
-                    self.required_charge = need_charge_power
+                    self.required_charge = need_charge_power - self.charge_power
                     return self.round_success(ChargePlanApp.STATUS_TRY_RESTORE_CHARGE)
                 # 如果没有开启恢复电量，执行原来的逻辑
                 else:
@@ -234,7 +235,7 @@ class ChargePlanApp(ZApplication):
     def restore_charge(self) -> OperationRoundResult:
         op = RestoreCharge(
             self.ctx,
-            required_charge=self.required_charge - self.charge_power,
+            self.required_charge,
             is_menu=True
         )
         return self.round_by_op_result(op.execute())
