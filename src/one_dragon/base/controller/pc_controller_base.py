@@ -54,6 +54,12 @@ class PcControllerBase(ControllerBase):
 
         return True
 
+    def cleanup_after_app_shutdown(self) -> None:
+        """
+        清理资源
+        """
+        self.screenshot_controller.cleanup_screenshot_executor()
+
     def active_window(self) -> None:
         """
         前置窗口

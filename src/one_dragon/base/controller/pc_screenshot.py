@@ -83,6 +83,12 @@ class PcScreenshot:
 
         return self.init_screenshot(method)
 
+    def cleanup_screenshot_executor(self):
+        """
+        清理截图线程池
+        """
+        SCREENSHOT_EXECUTOR.shutdown(wait=False, cancel_futures=True)
+
     def init_screenshot(self, method: str):
         """
         初始化截图方法，带有回退机制
