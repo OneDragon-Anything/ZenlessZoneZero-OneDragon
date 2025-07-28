@@ -15,7 +15,6 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum, AgentStateCheckWay, CommonAgentStateEnum, AgentStateDef
 
 _battle_agent_context_executor = ThreadPoolExecutor(thread_name_prefix='od_battle_agent_context', max_workers=16)
-_yuzuha_debug_printed = False
 _agent_state_check_method: dict[AgentStateCheckWay, Callable] = {
     AgentStateCheckWay.COLOR_RANGE_CONNECT: agent_state_checker.check_cnt_by_color_range,
     AgentStateCheckWay.COLOR_RANGE_EXIST: agent_state_checker.check_exist_by_color_range,

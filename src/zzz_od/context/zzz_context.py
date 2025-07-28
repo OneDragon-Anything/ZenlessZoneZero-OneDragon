@@ -175,9 +175,9 @@ class ZContext(OneDragonContext):
         self.hollow.data_service.reload()
         self.init_hollow_config()
         if self.agent_outfit_config.compatibility_mode:
-            self.init_agent_template_id_list()
-        else:
             self.init_agent_template_id()
+        else:
+            self.init_agent_template_id_list()
 
     def init_hollow_config(self) -> None:
         """
