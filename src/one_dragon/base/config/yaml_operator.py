@@ -55,6 +55,7 @@ def preload_common_configs():
             'assets/game_data/hollow_zero/lost_void',
             'assets/game_data/hollow_zero/normal_event',
             'assets/game_data/agent',
+            'assets/template'
         ]
 
         for game_data_dir in game_data_dirs:
@@ -69,12 +70,22 @@ def preload_common_configs():
     common_configs = get_config_files()
 
     def preload_worker():
+        total_files = len(common_configs)
+        loaded_files = 0
+
+        log.debug(f'开始预加载配置文件，共发现 {total_files} 个文件')
+
         for config_file in common_configs:
             try:
                 if os.path.exists(config_file):
                     read_cache_or_load(config_file)
-            except Exception:
-                pass
+                    loaded_files += 1
+                    if loaded_files % 20 == 0:  # 每20个文件记录一次进度
+                        log.debug(f'预加载进度: {loaded_files}/{total_files}')
+            except Exception as e:
+                log.debug(f'预加载文件失败 {config_file}: {e}')
+
+        log.debug(f'预加载完成，成功加载 {loaded_files}/{total_files} 个文件')
 
     threading.Thread(target=preload_worker, daemon=True).start()
 
@@ -83,12 +94,13 @@ def clear_cache_if_needed():
     """
     智能内存管理
     """
-    if len(cached_yaml_data) > 100:
+    if len(cached_yaml_data) > 200:
         items = list(cached_yaml_data.items())
         cached_yaml_data.clear()
         cached_file_mtime.clear()
 
-        for k, v in items[-50:]:
+        # 保留最近使用的100个文件
+        for k, v in items[-100:]:
             cached_yaml_data[k] = v
 
 
