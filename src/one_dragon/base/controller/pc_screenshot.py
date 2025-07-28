@@ -83,7 +83,7 @@ class PcScreenshot:
     def async_init_screenshot(self, method: str):
         """
         异步初始化截图方法
-        :param method: 首选的截图方法 ("mss", "print_window", "auto")
+        :param method: 首选的截图方法 ("auto", "print_window", "mss", "pil")
         """
         future = SCREENSHOT_INIT_EXECUTOR.submit(self._init_screenshot_with_wait, method)
         future.add_done_callback(thread_utils.handle_future_result)
@@ -111,14 +111,14 @@ class PcScreenshot:
     def _get_method_priority_list(self, method: str) -> list:
         """
         获取截图方法的优先级列表
-        :param method: 首选方法 ("mss", "print_window", "auto", "pil")
+        :param method: 首选方法 ("auto", "print_window", "mss", "pil")
         :return: 方法名称列表，按优先级排序
         """
         # 定义方法优先级
         fallback_order = {
-            "mss": ["mss", "print_window", "pil"],
-            "print_window": ["print_window", "mss", "pil"],
             "auto": ["print_window", "mss", "pil"],
+            "print_window": ["print_window", "mss", "pil"],
+            "mss": ["mss", "print_window", "pil"],
             "pil": ["pil", "print_window", "mss"]
         }
 
@@ -127,7 +127,7 @@ class PcScreenshot:
     def init_screenshot(self, method: str):
         """
         初始化截图方法，带有回退机制
-        :param method: 首选的截图方法 ("mss", "print_window", "auto", "pil")
+        :param method: 首选的截图方法 ("auto", "print_window", "mss", "pil")
         """
         # 先清理现有资源
         if self.initialized_method is not None:
@@ -138,10 +138,10 @@ class PcScreenshot:
         for attempt_method in methods_to_try:
             success = False
 
-            if attempt_method == "mss":
-                success = self.init_mss()
-            elif attempt_method == "print_window":
+            if attempt_method == "print_window":
                 success = self.init_print_window()
+            elif attempt_method == "mss":
+                success = self.init_mss()
             elif attempt_method == "pil":
                 success = True  # PIL不需要初始化，总是可用
 
