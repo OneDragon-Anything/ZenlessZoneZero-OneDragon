@@ -238,23 +238,23 @@ class SettingPushInterface(VerticalScrollInterface):
 
     def _generate_curl(self, style: str):
         """生成 cURL 示例命令"""
-        # 获取配置卡片
-        cards = {
-            'url': getattr(self, "webhook_url_push_card", None),
-            'method': getattr(self, "webhook_method_push_card", None),
-            'content_type': getattr(self, "webhook_content_type_push_card", None),
-            'headers': getattr(self, "webhook_headers_push_card", None),
-            'body': getattr(self, "webhook_body_push_card", None)
+        # 获取配置
+        config = {
+            'url': getattr(self.ctx.push_config, "webhook_url", None),
+            'method': getattr(self.ctx.push_config, "webhook_method", "POST"),
+            'content_type': getattr(self.ctx.push_config, "webhook_content_type", "application/json"),
+            'headers': getattr(self.ctx.push_config, "webhook_headers", "{}"),
+            'body': getattr(self.ctx.push_config, "webhook_body", None)
         }
 
-        # 检查必需的 URL 卡片
-        if not cards['url']:
+        # 检查必需的 URL 配置
+        if not config['url']:
             self._show_error_message("请先配置 Webhook URL")
             return
 
-        # 使用 CurlGenerator 直接处理卡片
+        # 使用 CurlGenerator 处理配置
         curl_generator = CurlGenerator()
-        curl_command = curl_generator.generate_curl_command(cards, style)
+        curl_command = curl_generator.generate_curl_command(config, style)
 
         if not curl_command:
             self._show_error_message("Webhook URL 不能为空")

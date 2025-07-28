@@ -1,8 +1,6 @@
 import json
-import datetime
-import time
 import re
-from typing import Dict, List, Optional, Any, Union
+from typing import Optional, Any
 
 
 class CurlGenerator:
@@ -15,27 +13,26 @@ class CurlGenerator:
     # 模板变量正则
     TEMPLATE_PATTERN = re.compile(r'\$(\w+)')
 
-    def generate_curl_command(self, cards: Dict[str, Any], style: str = 'pwsh') -> Optional[str]:
+    def generate_curl_command(self, config: dict[str, str], style: str = 'pwsh') -> Optional[str]:
         """
         生成 cURL 命令
 
         Args:
-            cards: 包含 webhook 配置的卡片字典
+            config: 配置字典
             style: 命令风格，'pwsh' 或 'unix'
 
         Returns:
             生成的 cURL 命令字符串，如果配置无效则返回 None
         """
-        # 提取配置
-        webhook_config = self._extract_config_from_cards(cards)
-        if not webhook_config:
+        # 验证必需的配置
+        if not config or not config.get('url'):
             return None
 
         # 生成模板变量替换映射
         replacements = self._create_template_replacements()
 
         # 构建 cURL 命令各部分
-        curl_parts = self._build_curl_parts(webhook_config, replacements, style)
+        curl_parts = self._build_curl_parts(config, replacements, style)
 
         # 根据风格选择合适的连接符
         line_continuation = self._get_line_continuation_by_style(style)
@@ -43,69 +40,31 @@ class CurlGenerator:
         # 返回完整的 cURL 命令
         return line_continuation.join(curl_parts)
 
-    def generate_pwsh_curl(self, cards: Dict[str, Any]) -> Optional[str]:
+    def generate_pwsh_curl(self, config: dict[str, str]) -> Optional[str]:
         """
         生成 PowerShell 风格的 cURL 命令
 
         Args:
-            cards: 包含 webhook 配置的卡片字典
+            config: 配置字典
 
         Returns:
             生成的 PowerShell cURL 命令字符串，如果配置无效则返回 None
         """
-        return self.generate_curl_command(cards, 'pwsh')
+        return self.generate_curl_command(config, 'pwsh')
 
-    def generate_unix_curl(self, cards: Dict[str, Any]) -> Optional[str]:
+    def generate_unix_curl(self, config: dict[str, str]) -> Optional[str]:
         """
         生成 Unix/Linux 风格的 cURL 命令
 
         Args:
-            cards: 包含 webhook 配置的卡片字典
+            config: 配置字典
 
         Returns:
             生成的 Unix cURL 命令字符串，如果配置无效则返回 None
         """
-        return self.generate_curl_command(cards, 'unix')
+        return self.generate_curl_command(config, 'unix')
 
-    def _extract_config_from_cards(self, cards: Dict[str, Any]) -> Optional[Dict[str, str]]:
-        """从卡片实例中提取配置"""
-        # 检查必需的 URL 卡片
-        url_card = cards.get('url')
-        if not url_card:
-            return None
-
-        # 提取配置值
-        config = {
-            'url': self._safe_get_card_value(url_card),
-            'method': self._safe_get_card_value(cards.get('method'), self.DEFAULT_METHOD),
-            'content_type': self._safe_get_card_value(cards.get('content_type'), self.DEFAULT_CONTENT_TYPE),
-            'headers': self._safe_get_card_value(cards.get('headers')),
-            'body': self._safe_get_card_value(cards.get('body'), "{}")
-        }
-
-        # 验证 URL 不为空
-        if not config['url']:
-            return None
-
-        return config
-
-    def _safe_get_card_value(self, card: Any, default: str = "") -> str:
-        """
-        安全获取卡片值
-
-        Args:
-            card: 卡片对象
-            default: 默认值
-
-        Returns:
-            卡片值或默认值
-        """
-        if card and hasattr(card, 'getValue'):
-            value = card.getValue()
-            return value if value is not None else default
-        return default
-
-    def _create_template_replacements(self) -> Dict[str, str]:
+    def _create_template_replacements(self) -> dict[str, str]:
         """
         创建模板变量替换映射
 
@@ -118,7 +77,7 @@ class CurlGenerator:
             "content": "这是一条测试消息内容"
         }
 
-    def _build_curl_parts(self, config: Dict[str, str], replacements: Dict[str, str], style: str = 'pwsh') -> List[str]:
+    def _build_curl_parts(self, config: dict[str, str], replacements: dict[str, str], style: str = 'pwsh') -> list[str]:
         """
         构建 cURL 命令各部分
 
@@ -149,7 +108,7 @@ class CurlGenerator:
 
         return curl_parts
 
-    def _add_custom_headers(self, curl_parts: List[str], headers_str: str, replacements: Dict[str, str], style: str) -> None:
+    def _add_custom_headers(self, curl_parts: list[str], headers_str: str, replacements: dict[str, str], style: str) -> None:
         """
         添加自定义 headers 到 cURL 命令
 
@@ -174,7 +133,7 @@ class CurlGenerator:
             # TODO: 可以考虑添加日志记录
             pass
 
-    def _add_headers_from_dict(self, curl_parts: List[str], headers: Dict[str, Any], replacements: Dict[str, str], style: str) -> None:
+    def _add_headers_from_dict(self, curl_parts: list[str], headers: dict[str, Any], replacements: dict[str, str], style: str) -> None:
         """
         从字典格式添加 headers
 
@@ -191,7 +150,7 @@ class CurlGenerator:
                 escaped_value = self._escape_header_value(header_value, style)
                 curl_parts.append(f'-H "{escaped_key}: {escaped_value}"')
 
-    def _add_headers_from_list(self, curl_parts: List[str], headers: List[Dict[str, Any]], replacements: Dict[str, str], style: str) -> None:
+    def _add_headers_from_list(self, curl_parts: list[str], headers: list[dict[str, Any]], replacements: dict[str, str], style: str) -> None:
         """
         从列表格式添加 headers（兼容旧格式）
 
@@ -210,7 +169,7 @@ class CurlGenerator:
                     escaped_value = self._escape_header_value(header_value, style)
                     curl_parts.append(f'-H "{escaped_key}: {escaped_value}"')
 
-    def _add_request_body(self, curl_parts: List[str], body: str, replacements: Dict[str, str], style: str) -> None:
+    def _add_request_body(self, curl_parts: list[str], body: str, replacements: dict[str, str], style: str) -> None:
         """
         添加请求体到 cURL 命令
 
@@ -244,7 +203,7 @@ class CurlGenerator:
             escaped_body = self._escape_json_string(processed_body, style)
             curl_parts.append(f'-d "{escaped_body}"')
 
-    def _replace_template_variables(self, text: str, replacements: Dict[str, str]) -> str:
+    def _replace_template_variables(self, text: str, replacements: dict[str, str]) -> str:
         """
         替换文本中的模板变量
 
