@@ -17,20 +17,57 @@ def preload_common_configs():
     """
     预加载常用配置文件到内存
     """
-    common_configs = [
-        'config/zzz_one_dragon.yml',
-        'config/01/game.yml',
-        'config/01/battle_assistant.yml',
-        'config/01/agent_outfit.yml',
-        'config/01/game_account.yml',
-        'config/01/one_dragon_app.yml',
-        'config/01/push.yml',
-        'config/01/screenshot_helper.yml',
-        'config/02/game.yml',
-        'config/02/agent_outfit.yml',
-        'config/03/game.yml',
-    ]
-    
+    import glob
+    from one_dragon.utils import os_utils
+
+    def get_config_files():
+        config_files = []
+
+        # 全局配置文件
+        global_configs = [
+            'config/zzz_one_dragon.yml',
+            'config/one_dragon.yml',
+            'config/env.yml',
+            'config/custom.yml',
+            'config/project.yml',
+            'config/model.yml',
+        ]
+
+        # 添加全局配置文件
+        for config_file in global_configs:
+            if os.path.exists(config_file):
+                config_files.append(config_file)
+
+        # 实例配置文件 - 扫描01、02、03等实例目录
+        for instance_idx in range(1, 10):  # 支持01-09实例
+            instance_dir = f'config/{instance_idx:02d}'
+            if os.path.exists(instance_dir):
+                # 扫描该实例目录下的所有yml文件
+                yml_pattern = os.path.join(instance_dir, '*.yml')
+                yml_files = glob.glob(yml_pattern)
+                config_files.extend(yml_files)
+
+        # 游戏数据文件
+        game_data_dirs = [
+            'assets/game_data',
+            'assets/game_data/screen_info',
+            'assets/game_data/hollow_zero',
+            'assets/game_data/hollow_zero/lost_void',
+            'assets/game_data/hollow_zero/normal_event',
+            'assets/game_data/agent',
+        ]
+
+        for game_data_dir in game_data_dirs:
+            if os.path.exists(game_data_dir):
+                # 扫描该目录下的所有yml文件
+                yml_pattern = os.path.join(game_data_dir, '*.yml')
+                yml_files = glob.glob(yml_pattern)
+                config_files.extend(yml_files)
+
+        return config_files
+
+    common_configs = get_config_files()
+
     def preload_worker():
         for config_file in common_configs:
             try:
@@ -38,7 +75,7 @@ def preload_common_configs():
                     read_cache_or_load(config_file)
             except Exception:
                 pass
-    
+
     threading.Thread(target=preload_worker, daemon=True).start()
 
 
@@ -50,7 +87,7 @@ def clear_cache_if_needed():
         items = list(cached_yaml_data.items())
         cached_yaml_data.clear()
         cached_file_mtime.clear()
-        
+
         for k, v in items[-50:]:
             cached_yaml_data[k] = v
 
@@ -104,9 +141,9 @@ def read_cache_or_load(file_path: str):
     except Exception as e:
         log.error(f'YAML加载失败 {file_path}: {e}')
         return {}
-        
+
     cached_yaml_data[file_path] = (last_modify, data)
-    
+
     # 生成Pickle缓存
     def save_pickle_cache():
         try:
@@ -115,9 +152,9 @@ def read_cache_or_load(file_path: str):
             os.utime(pickle_cache, (last_modify, last_modify))
         except Exception:
             pass
-    
+
     threading.Thread(target=save_pickle_cache, daemon=True).start()
-    
+
     return data
 
 
