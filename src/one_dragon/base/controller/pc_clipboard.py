@@ -93,3 +93,23 @@ class PcClipboard:
             keyboard.release('v')
 
         return data
+
+    @staticmethod
+    def get_clipboard_text() -> str:
+        """
+        直接从剪贴板获取文本内容，不执行粘贴操作。
+
+        :return: 从剪贴板获取的文本，如果获取失败则返回空字符串
+        """
+        try:
+            win32clipboard.OpenClipboard()
+            data = win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)
+            return data if data else ''
+        except pywintypes.error:
+            return ''
+        finally:
+            try:
+                win32clipboard.CloseClipboard()
+            except Exception:
+                # 忽略关闭剪贴板的错误，避免掩盖主要异常
+                pass

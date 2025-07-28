@@ -12,6 +12,9 @@ from one_dragon.base.notify.push_email_services import PushEmailServices
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
+from one_dragon.base.notify.curl_generator import CurlGenerator
+from one_dragon.base.notify.curl_parser import CurlParser
+from one_dragon_qt.widgets.curl_parse_dialog import CurlParseDialog
 from one_dragon_qt.widgets.push_cards import PushCards
 from one_dragon_qt.widgets.setting_card.code_editor_setting_card import CodeEditorSettingCard
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
@@ -81,6 +84,19 @@ class SettingPushInterface(VerticalScrollInterface):
         self.curl_btn = MultiPushSettingCard(icon=FluentIcon.CODE, title='生成 cURL 命令', btn_list=[self.pwsh_curl_btn, self.unix_curl_btn])
         self.curl_btn.setVisible(False)
         content_widget.add_widget(self.curl_btn)
+
+        # 添加 cURL 解析按钮
+        self.parse_curl_btn = PushButton(text='解析 cURL 命令', icon=FluentIcon.DOWNLOAD)
+        self.parse_curl_btn.clicked.connect(self._parse_curl_from_clipboard)
+
+        self.curl_parse_card = MultiPushSettingCard(
+            icon=FluentIcon.CODE,
+            title='解析 cURL 命令',
+            content='从剪贴板读取 cURL 命令并转换为配置',
+            btn_list=[self.parse_curl_btn]
+        )
+        self.curl_parse_card.setVisible(False)
+        content_widget.add_widget(self.curl_parse_card)
 
         email_services = PushEmailServices.load_services()
         service_options = [ConfigItem(label=name, value=name, desc="") for name in email_services.keys()]
@@ -216,6 +232,7 @@ class SettingPushInterface(VerticalScrollInterface):
         # 特殊按钮
         self.email_service_opt.setVisible(selected_method == "SMTP")
         self.curl_btn.setVisible(selected_method == "WEBHOOK")
+        self.curl_parse_card.setVisible(selected_method == "WEBHOOK")
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
@@ -263,6 +280,61 @@ class SettingPushInterface(VerticalScrollInterface):
         # 复制到剪贴板
         PcClipboard.copy_string(curl_command)
         self._show_success_message("cURL 命令已复制到剪贴板！")
+
+    def _parse_curl_from_clipboard(self):
+        """从剪贴板解析 cURL 命令"""
+        try:
+            # 读取剪贴板内容
+            clipboard_text = PcClipboard.get_clipboard_text()
+            if not clipboard_text.strip():
+                self._show_error_message("剪贴板为空，请先复制 cURL 命令")
+                return
+
+            # 解析 cURL 命令
+            parser = CurlParser()
+            parsed_config = parser.parse_curl_command(clipboard_text)
+
+            # 显示解析结果确认对话框
+            dialog = CurlParseDialog(parsed_config, self)
+            if dialog.exec():
+                # 用户确认应用配置
+                self._apply_parsed_config(parsed_config)
+                self._show_success_message("cURL 配置已成功应用到表单！")
+
+        except ValueError as e:
+            self._show_error_message(f"解析失败: {str(e)}")
+        except Exception as e:
+            # 区分剪贴板错误和其他系统错误
+            if "剪贴板" in str(e) or "clipboard" in str(e).lower():
+                self._show_error_message("无法访问剪贴板，请检查是否有其他程序正在使用剪贴板")
+            else:
+                self._show_error_message(f"处理 cURL 命令时发生错误: {str(e)}")
+
+    def _apply_parsed_config(self, config: dict):
+        """将解析后的配置应用到表单"""
+        # 配置键映射到卡片属性名
+        config_mapping = {
+            'method': 'webhook_method_push_card',
+            'url': 'webhook_url_push_card',
+            'content_type': 'webhook_content_type_push_card',
+            'headers': 'webhook_headers_push_card',
+            'body': 'webhook_body_push_card'
+        }
+
+        for config_key, card_attr in config_mapping.items():
+            if config_key in config:
+                card = getattr(self, card_attr, None)
+                if card is not None:
+                    value = config[config_key]
+                    # 空值跳过
+                    if not value or value == '{}':
+                        continue
+
+                    if hasattr(card, 'setValue'):
+                        card.setValue(value)
+                    elif hasattr(card, 'setCurrentText'):
+                        # 对于 ComboBox 类型的卡片
+                        card.setCurrentText(value)
 
     def _validate_webhook_config(self) -> None:
         """
