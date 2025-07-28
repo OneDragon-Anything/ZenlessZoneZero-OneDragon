@@ -1,4 +1,3 @@
-import time
 from typing import ClassVar, Optional
 
 from one_dragon.base.operation.operation_edge import node_from
@@ -6,7 +5,6 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
-from one_dragon.utils.log_utils import log
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum
 from zzz_od.context.zzz_context import ZContext
@@ -211,10 +209,9 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
     @operation_node(name='电量不足')
     def charge_not_enough(self) -> OperationRoundResult:
-        if self.ctx.charge_plan_config.skip_plan:
+        if self.ctx.charge_plan_config.skip_plan or self.next_plan.mission_type_name == '代理人方案培养':
             # 跳过当前计划，继续尝试下一个
-            if self.next_plan is not None:
-                self.last_tried_plan = self.next_plan
+            self.last_tried_plan = self.next_plan
             return self.round_success()
         else:
             # 不跳过，直接结束本轮计划
@@ -229,7 +226,6 @@ class ChargePlanApp(ZApplication):
     def challenge_failed(self) -> OperationRoundResult:
         return self.round_success()
 
-    @node_from(from_name='电量不足', status=STATUS_TRY_RESTORE_CHARGE)
     @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_TRY_RESTORE_CHARGE)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
