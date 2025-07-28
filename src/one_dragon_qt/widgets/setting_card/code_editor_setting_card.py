@@ -22,6 +22,9 @@ class TemplateVariables:
         {"key": "$title", "name": "标题变量", "icon": FluentIcon.TAG},
         {"key": "$content", "name": "内容变量", "icon": FluentIcon.DOCUMENT},
         {"key": "$image", "name": "图片变量", "icon": FluentIcon.PHOTO},
+        {"key": "$timestamp", "name": "时间戳 (2024-12-19 15:30:45)", "icon": FluentIcon.CALENDAR},
+        {"key": "$iso_timestamp", "name": "ISO时间戳 (2024-12-19T15:30:45)", "icon": FluentIcon.CALENDAR},
+        {"key": "$unix_timestamp", "name": "Unix时间戳 (1703004645)", "icon": FluentIcon.CALENDAR},
     ]
 
     @classmethod
