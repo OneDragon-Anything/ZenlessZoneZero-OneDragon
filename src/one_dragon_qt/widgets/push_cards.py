@@ -41,7 +41,6 @@ class PushCards:
             "type": "code_editor",
             "language": "json",
             "placeholder": "请输入请求体内容",
-            "default": '{\n  "title": "{{title}}",\n  "content": "{{content}}",\n  "timestamp": "{{timestamp}}"\n}',
             "required": True
         }
     ],

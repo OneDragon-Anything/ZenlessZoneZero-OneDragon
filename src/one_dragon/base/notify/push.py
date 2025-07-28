@@ -862,63 +862,17 @@ class Push():
             self.log_error(f"wxpusher 推送失败！错误信息：{response.get('msg')}")
 
 
-    def _check_required_variables(self, url_template: str, body_template: str, headers_str: str = "") -> bool:
-        """检查是否包含必需的变量（必须包含$content）"""
-        has_content = ("$content" in url_template or "$content" in body_template or "$content" in headers_str or
-                      "{{content}}" in url_template or "{{content}}" in body_template or "{{content}}" in headers_str)
-        return has_content
-
-    def _validate_json_format(self, json_str: str) -> bool:
-        """验证JSON格式的合法性"""
-        try:
-            json.loads(json_str)
-            return True
-        except (json.JSONDecodeError, TypeError):
-            return False
-
-    def _validate_webhook_config(self) -> None:
-        """
-        验证Webhook配置
-        验证失败时抛出异常
-        """
-        url_template = self.get_config("WEBHOOK_URL")
-        if not url_template:
-            raise ValueError("Webhook URL 未配置，无法推送")
-
-        body_template = self.get_config("WEBHOOK_BODY") or '{"title": "{{title}}", "content": "{{content}}", "timestamp": "{{timestamp}}"}'
-        headers_str = self.get_config("WEBHOOK_HEADERS") or "{}"
-        content_type = self.get_config("WEBHOOK_CONTENT_TYPE") or "application/json"
-
-        # 检查是否包含必需的变量（必须包含$content）
-        if not self._check_required_variables(url_template, body_template, headers_str):
-            raise ValueError("URL、请求头或者请求体中必须包含 $content 变量")
-
-        # 如果是JSON格式，验证JSON的合法性
-        if content_type == "application/json":
-            # 检查body模板是否为合法JSON
-            if not self._validate_json_format(body_template):
-                raise ValueError("请求体不是合法的JSON格式")
-
-            # 检查headers模板是否为合法JSON
-            if headers_str and headers_str != "{}":
-                if not self._validate_json_format(headers_str):
-                    raise ValueError("请求头不是合法的JSON格式")
-
     def webhook_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
-        通过通用 Webhook 推送消息（经过错误处理优化）
+        通过通用 Webhook 推送消息
         """
         self.log_info("通用 Webhook 服务启动")
 
-        url_template = self.get_config("WEBHOOK_URL")
-        if not url_template:
-            self.log_error("Webhook URL 未配置，推送中止。")
-            return
-
-        method = (self.get_config("WEBHOOK_METHOD") or "POST").upper()
-        headers_str = self.get_config("WEBHOOK_HEADERS") or "{}"
-        body_template = self.get_config("WEBHOOK_BODY") or '{"title": "{{title}}", "content": "{{content}}", "timestamp": "{{timestamp}}"}'
-        content_type = self.get_config("WEBHOOK_CONTENT_TYPE") or "application/json"
+        url = self.get_config("WEBHOOK_URL")
+        method = (self.get_config("WEBHOOK_METHOD")).upper()
+        headers = self.get_config("WEBHOOK_HEADERS")
+        body = self.get_config("WEBHOOK_BODY")
+        content_type = self.get_config("WEBHOOK_CONTENT_TYPE")
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         iso_timestamp = datetime.datetime.now().isoformat()
@@ -933,15 +887,11 @@ class Push():
             "$unix_timestamp": unix_timestamp, "{{unix_timestamp}}": unix_timestamp,
         }
 
-        url = url_template
-        body = body_template
-        headers_processed = headers_str
-
         for placeholder, value in replacements.items():
             # 对 URL 中的变量进行编码，对 Body 和 Headers 则不需要
             url = url.replace(placeholder, urllib.parse.quote_plus(str(value)))
             body = body.replace(placeholder, str(value).replace("\n", "\\n")) # JSON字符串中换行符需要转义
-            headers_processed = headers_processed.replace(placeholder, str(value))
+            headers = headers.replace(placeholder, str(value))
 
         if "$image" in body:
             image_base64 = ""
@@ -950,39 +900,24 @@ class Push():
                 image_base64 = base64.b64encode(image.getvalue()).decode('utf-8')
             body = body.replace("$image", image_base64)
 
-        try:
-            headers = json.loads(headers_processed)
-            if not isinstance(headers, dict):
-                self.log_error(f"Webhook Headers 解析后的类型不是键值对（字典），请检查配置: {headers_processed}")
-                return
-        except json.JSONDecodeError:
-            self.log_error(f"Webhook Headers 格式错误，不是有效的JSON: {headers_processed}")
-            return
-
         headers['Content-Type'] = content_type
 
-        try:
-            self.log_info(f"发送 Webhook 请求: {method} {url}")
-            self.log_info(f"请求头: {headers}")
-            self.log_info(f"请求体: {body}")
+        self.log_info(f"发送 Webhook 请求: {method} {url}")
+        self.log_info(f"请求头: {headers}")
+        self.log_info(f"请求体: {body}")
 
-            response = requests.request(
-                method=method,
-                url=url,
-                headers=headers,
-                data=body.encode("utf-8"),
-                timeout=15
-            )
+        response = requests.request(
+            method=method,
+            url=url,
+            headers=headers,
+            data=body.encode("utf-8"),
+            timeout=15
+        )
 
-            # 通过 response.raise_for_status() 可以自动检查 4xx/5xx 错误并抛出异常
-            response.raise_for_status()
+        # 通过 response.raise_for_status() 可以自动检查 4xx/5xx 错误并抛出异常
+        response.raise_for_status()
 
-            self.log_info(f"Webhook 推送成功！状态码: {response.status_code}")
-
-        except requests.exceptions.RequestException as e:
-            raise ValueError(f"Webhook 推送时发生网络异常: {e}")
-        except Exception as e:
-            raise ValueError(f"Webhook 推送时发生未知错误: {e}")
+        self.log_info(f"Webhook 推送成功！状态码: {response.status_code}")
 
     def add_notify_function(self) -> list:
         notify_function = []
@@ -1042,7 +977,7 @@ class Push():
             and self.get_config("CHRONOCAT_TOKEN")
         ):
             notify_function.append(self.chronocat)
-        if self.get_config("WEBHOOK_URL"):
+        if self.get_config("WEBHOOK_URL") and self.get_config("WEBHOOK_BODY"):
             notify_function.append(self.webhook_bot)
         if self.get_config("NTFY_TOPIC"):
             notify_function.append(self.ntfy)
@@ -1081,11 +1016,6 @@ class Push():
             notify_function = self.add_notify_function()
             if not notify_function:
                 raise ValueError("未找到可用的推送方式，请检查通知设置是否正确")
-
-        # 如果包含webhook_bot，先在主线程中验证配置
-        for mode in notify_function:
-            if hasattr(mode, '__name__') and mode.__name__ == 'webhook_bot':
-                self._validate_webhook_config()
 
         # 如果是测试模式，直接在主线程中执行，这样异常可以被前端捕获
         if test_method:
