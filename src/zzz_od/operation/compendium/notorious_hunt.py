@@ -12,7 +12,7 @@ from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, RestoreChargeEnum
 from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntLevelEnum
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
@@ -20,6 +20,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.challenge_mission.restart_in_battle import RestartInBattle
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
+from zzz_od.operation.restore_charge import RestoreCharge
 from zzz_od.operation.zzz_operation import ZOperation
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
@@ -208,8 +209,19 @@ class NotoriousHunt(ZOperation):
 
             return self.round_success(NotoriousHunt.STATUS_WITH_LEFT_TIMES)
 
+    @node_from(from_name='识别可运行次数', status=STATUS_CHARGE_NOT_ENOUGH)
+    @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
+    @operation_node(name='恢复电量')
+    def restore_charge(self) -> OperationRoundResult:
+        if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value:
+            return self.round_success(NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
+        else:
+            op = RestoreCharge(self.ctx)
+            return self.round_by_op_result(op.execute())
+
     @node_from(from_name='识别可运行次数', status=STATUS_CHARGE_ENOUGH)
     @node_from(from_name='识别可运行次数', status=STATUS_WITH_LEFT_TIMES)
+    @node_from(from_name='恢复电量')
     @operation_node(name='选择难度')
     def choose_level(self) -> OperationRoundResult:
         if self.plan.level == NotoriousHuntLevelEnum.DEFAULT.value.value:
@@ -236,6 +248,11 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='选择难度')
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
+        # 防止前面电量识别错误
+        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '恢复电量')
+        if result.is_success:
+            return self.round_success(status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
+
         # 点击直到出战按钮出现
         result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '出战')
         if result.is_success:

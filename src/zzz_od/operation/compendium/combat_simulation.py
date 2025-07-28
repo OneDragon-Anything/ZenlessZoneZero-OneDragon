@@ -30,7 +30,6 @@ class CombatSimulation(ZOperation):
     STATUS_CHOOSE_SUCCESS: ClassVar[str] = '选择成功'
     STATUS_CHOOSE_FAIL: ClassVar[str] = '选择失败'
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
-    STATUS_TRY_RESTORE_CHARGE: ClassVar[str] = '尝试恢复电量'
     STATUS_CHARGE_ENOUGH: ClassVar[str] = '电量充足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
