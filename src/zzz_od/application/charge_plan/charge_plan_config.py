@@ -18,10 +18,10 @@ class CardNumEnum(Enum):
 
 class RestoreChargeEnum(Enum):
 
-    NONE = ConfigItem('不使用', 0)
-    BACKUP_ONLY = ConfigItem('使用储蓄电量', 1)
-    ETHER_ONLY = ConfigItem('使用以太电池', 2)
-    BOTH = ConfigItem('同时使用储蓄电量和以太电池', 3)
+    NONE = ConfigItem('不使用')
+    BACKUP_ONLY = ConfigItem('使用储蓄电量')
+    ETHER_ONLY = ConfigItem('使用以太电池')
+    BOTH = ConfigItem('同时使用储蓄电量和以太电池')
 
 
 class ChargePlanItem:
@@ -314,9 +314,9 @@ class ChargePlanConfig(YamlConfig):
         self.update('use_coupon', new_value)
 
     @property
-    def restore_charge(self) -> int:
+    def restore_charge(self) -> str:
         return self.get('restore_charge', RestoreChargeEnum.NONE.value.value)
 
     @restore_charge.setter
-    def restore_charge(self, new_value: int) -> None:
+    def restore_charge(self, new_value: str) -> None:
         self.update('restore_charge', new_value)
