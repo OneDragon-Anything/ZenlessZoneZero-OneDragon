@@ -15,6 +15,11 @@ init(autoreset=True)
 path = os.path.dirname(sys.argv[0])
 os.chdir(path)
 
+# 全局变量
+uv_path = None
+auto_update = True
+sync = True
+
 def print_message(message, level="INFO"):
     # 打印消息，带有时间戳和日志级别
     delay(0.1)
@@ -47,6 +52,7 @@ def load_yaml_config(file_path):
         sys.exit(1)
 
 def configure_environment():
+    global auto_update, sync, uv_path
     # 从 YAML 文件中获取可执行文件路径
     yaml_file_path = os.path.join(path, "config", "env.yml")
     print_message("读取 YAML 文件中...", "INFO")
@@ -61,16 +67,15 @@ def configure_environment():
         print_message("获取 UV 路径失败，请检查路径设置。", "ERROR")
         sys.exit(1)
     auto_update = config.get('auto_update', True)
+    sync = config.get('sync', True)
     # 配置环境变量
     print_message("开始配置环境变量...", "INFO")
     os.environ.update({
         'PYTHON': python_path,
         'PYTHONPATH': os.path.join(path, "src"),
-        'UV_PATH': uv_path,
         'UV_DEFAULT_INDEX': config.get('pip_source', 'https://mirrors.aliyun.com/pypi/simple'),
-        'AUTO_UPDATE': str(auto_update).lower(),
     })
-    for var in ['PYTHON', 'PYTHONPATH', 'UV_PATH', 'AUTO_UPDATE']:
+    for var in ['PYTHON', 'PYTHONPATH']:
         if not os.environ.get(var):
             print_message(f"{var} 未设置", "ERROR")
             sys.exit(1)
@@ -106,18 +111,20 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
         print_message(f"PYTHONPATH 设置错误，无法找到 {app_script_path}", "ERROR")
         sys.exit(1)
 
-    uv_path = os.environ.get('UV_PATH')
     if not uv_path:
         print_message("UV 路径未设置", "ERROR")
         sys.exit(1)
 
-    auto_update = os.environ.get('AUTO_UPDATE', 'true').lower() == 'true'
+    # 根据 sync 配置决定是否使用 --no-sync 参数
+    uv_run_args = ['run'] + (['--no-sync'] if not sync else [])
+
     if not auto_update:
         print_message("未开启代码自动更新 跳过", "INFO")
     else:
         print_message("开始获取最新代码...", "INFO")
         try:
-            result = subprocess.run([uv_path, 'run', '--no-sync', '-m', 'one_dragon.envs.git_service'])
+            git_update_args = [uv_path] + uv_run_args + ['-m', 'one_dragon.envs.git_service']
+            result = subprocess.run(git_update_args)
             if result.returncode == 0:
                 print_message("代码更新完成", "PASS")
             else:
@@ -126,7 +133,7 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
             print_message(f"代码更新异常: {e}", "ERROR")
 
     # 构建 uv run 命令参数
-    run_args = ['run', '--no-sync', app_script_path]
+    run_args = uv_run_args + [app_script_path]
     if args:
         run_args.extend(args)
         print_message(f"传递参数：{' '.join(args)}", "INFO")

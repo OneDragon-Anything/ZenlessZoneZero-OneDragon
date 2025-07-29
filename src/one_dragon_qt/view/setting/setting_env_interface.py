@@ -84,9 +84,14 @@ class SettingEnvInterface(VerticalScrollInterface):
         code_group.addSettingCard(self.force_update_opt)
 
         self.auto_update_opt = SwitchSettingCard(
-            icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
+            icon=FluentIcon.SYNC, title='自动更新代码', content='使用exe启动时，自动检测并更新代码',
         )
         code_group.addSettingCard(self.auto_update_opt)
+
+        self.sync_opt = SwitchSettingCard(
+            icon=FluentIcon.SYNC, title='自动更新依赖', content='使用exe启动时，自动检测并更新环境依赖',
+        )
+        code_group.addSettingCard(self.sync_opt)
 
         return code_group
 
@@ -193,6 +198,7 @@ class SettingEnvInterface(VerticalScrollInterface):
 
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
         self.auto_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update'))
+        self.sync_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('sync'))
         self.pip_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('pip_source'))
         self.cpython_source_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('cpython_source'))
 
