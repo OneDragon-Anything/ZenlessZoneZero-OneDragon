@@ -153,14 +153,9 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         display_layout.setSpacing(12)
 
         # C1: 图像显示区域
-        scroll_area = ScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-
         self.image_label = ZoomableClickImageLabel()
-        scroll_area.setWidget(self.image_label)
 
-        display_layout.addWidget(scroll_area, stretch=1)
+        display_layout.addWidget(self.image_label, stretch=1)
 
         return display_widget
 
