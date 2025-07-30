@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt, QPoint, QSize
 from PySide6.QtGui import QWheelEvent, QPixmap, QMouseEvent, QPainter, QPaintEvent, QResizeEvent
 from PySide6.QtWidgets import QSizePolicy
 
+from one_dragon.utils.image_utils import scale_pixmap_for_high_dpi
 from one_dragon_qt.widgets.click_image_label import ClickImageLabel
 
 
@@ -140,21 +141,11 @@ class ZoomableClickImageLabel(ClickImageLabel):
         new_height = int(self.original_pixmap.height() * self.scale_factor)
         target_size = QSize(new_width, new_height)
 
-        # 获取设备像素比，实现高DPI支持
-        pixel_ratio = self.devicePixelRatio()
-
-        # 计算目标的物理像素尺寸
-        physical_size = target_size * pixel_ratio
-
-        # 直接使用 QPixmap.scaled 进行高质量缩放，避免格式转换开销
-        self.current_scaled_pixmap = self.original_pixmap.scaled(
-            physical_size,
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
+        self.current_scaled_pixmap = scale_pixmap_for_high_dpi(
+            self.original_pixmap,
+            target_size,
+            self.devicePixelRatio()
         )
-
-        # 设置正确的设备像素比
-        self.current_scaled_pixmap.setDevicePixelRatio(pixel_ratio)
 
         # 请求重绘，让paintEvent来处理显示
         self.update()
