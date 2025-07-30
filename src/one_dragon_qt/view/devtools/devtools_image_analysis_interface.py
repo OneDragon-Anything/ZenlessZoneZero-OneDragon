@@ -5,9 +5,9 @@ from PySide6.QtCore import Qt, QPoint
 from PySide6.QtGui import QImage, QPixmap, QClipboard
 from PySide6.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QHBoxLayout, QFileDialog, QFrame
 from qfluentwidgets import (
-    FluentIcon, ComboBox, CheckBox, SpinBox, DoubleSpinBox, PushButton, ToolButton, PlainTextEdit, LineEdit,
-    SubtitleLabel, BodyLabel, InfoBar, InfoBarPosition, ListWidget, SimpleCardWidget, ScrollArea,
-    MessageBoxBase, Dialog
+    ComboBox, CheckBox, SpinBox, DoubleSpinBox, PushButton, ToolButton, PlainTextEdit, LineEdit,
+    FluentIcon, SubtitleLabel, BodyLabel, InfoBar, InfoBarPosition, MessageBoxBase, Dialog,
+    ListWidget, SimpleCardWidget, ScrollArea, SingleDirectionScrollArea
 )
 
 from one_dragon.base.cv_process.cv_step import CvStep
@@ -103,8 +103,8 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         # 右侧显示面板C
         display_panel_c = self._init_display_panel()
 
-        main_layout.addWidget(control_panel_b, stretch=1)
-        main_layout.addWidget(display_panel_c, stretch=2)
+        main_layout.addWidget(control_panel_b)
+        main_layout.addWidget(display_panel_c, stretch=1)
 
         return main_widget
 
@@ -113,9 +113,11 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         初始化左侧的控制面板 (容器B)，垂直布局
         """
         # 容器B，垂直布局
+        scroll_area = SingleDirectionScrollArea()
+
         control_widget = QWidget()
         control_layout = QVBoxLayout(control_widget)
-        control_layout.setContentsMargins(0, 0, 0, 0)
+        control_layout.setContentsMargins(0, 0, 16, 0)
         control_layout.setSpacing(12)
 
         # B1: 顶部操作按钮
@@ -131,11 +133,14 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         result_widget = self._init_result_widget()
 
         control_layout.addWidget(op_buttons_widget)
-        control_layout.addWidget(pipeline_widget, stretch=1)  # 可伸缩
-        control_layout.addWidget(param_widget, stretch=1)  # 可伸缩
+        control_layout.addWidget(pipeline_widget)
+        control_layout.addWidget(param_widget)
         control_layout.addWidget(result_widget)
 
-        return control_widget
+        scroll_area.setWidget(control_widget)
+        scroll_area.setWidgetResizable(True)
+
+        return scroll_area
 
     def _init_display_panel(self) -> QWidget:
         """
@@ -191,6 +196,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         pipeline_manage_widget = self._init_pipeline_manage_widget()
         layout.addWidget(pipeline_manage_widget)
 
+        # 流水线步骤列表
         self.pipeline_list_widget = ListWidget()
         layout.addWidget(self.pipeline_list_widget)
 
