@@ -4,6 +4,24 @@ from one_dragon.base.config.basic_game_config import BasicGameConfig
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonEnum
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
+from one_dragon.base.config.yaml_config import YamlConfig
+
+class GamePlatformEnum(Enum):
+
+    PC = ConfigItem('桌面端','PC')
+    Emulator = ConfigItem('模拟器','Emulator')
+
+
+class GameLanguageEnum(Enum):
+
+    CN = ConfigItem('简体中文', 'cn')
+    EN = ConfigItem('English', 'en')
+
+
+class GameRegionEnum(Enum):
+
+    CN = ConfigItem('国服/B服', 'cn')
+    INTERNATIONAL = ConfigItem('国际服', 'international')
 
 
 class GamepadTypeEnum(Enum):
@@ -14,6 +32,17 @@ class GamepadTypeEnum(Enum):
 
 
 class GameConfig(BasicGameConfig):
+
+    def __init__(self, instance_idx: int):
+        YamlConfig.__init__(self, 'game', instance_idx=instance_idx)
+
+    @property
+    def platform(self) -> str:
+        return self.get('platform', '')
+
+    @platform.setter
+    def platform(self, new_value: str) -> None:
+        self.update('platform', new_value)
 
     @property
     def key_normal_attack(self) -> str:

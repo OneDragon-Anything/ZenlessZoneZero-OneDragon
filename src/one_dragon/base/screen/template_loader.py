@@ -8,8 +8,9 @@ from one_dragon.utils import os_utils
 
 class TemplateLoader:
 
-    def __init__(self):
+    def __init__(self, platform: str):
         self.template: dict[str, TemplateInfo] = {}
+        self.platform = platform
 
     def get_all_template_info_from_disk(self, need_raw: bool = True, need_config: bool = False) -> List[TemplateInfo]:
         """
@@ -38,7 +39,7 @@ class TemplateLoader:
                 if not is_template_existed(sub_name_1, sub_name_2, need_raw=need_raw, need_config=need_config):
                     continue
 
-                info_list.append(TemplateInfo(sub_name_1, sub_name_2))
+                info_list.append(TemplateInfo(sub_name_1, sub_name_2, platform=self.platform))
 
         return info_list
 
@@ -52,7 +53,7 @@ class TemplateLoader:
         """
         if not is_template_existed(sub_dir, template_id, need_raw=not only_mask):
             return None
-        template: TemplateInfo = TemplateInfo(sub_dir, template_id)
+        template: TemplateInfo = TemplateInfo(sub_dir, template_id, platform=self.platform)
 
         key = '%s:%s' % (sub_dir, template_id)
         self.template[key] = template
