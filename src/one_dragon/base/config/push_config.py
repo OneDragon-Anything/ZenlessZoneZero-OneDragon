@@ -3,7 +3,7 @@ from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
-from one_dragon.base.notify.push_cards import PushCards
+from one_dragon_qt.widgets.push_cards import PushCards
 
 
 class NotifyMethodEnum(Enum):
