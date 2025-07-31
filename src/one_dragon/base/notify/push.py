@@ -862,268 +862,75 @@ class Push():
             self.log_error(f"wxpusher 推送失败！错误信息：{response.get('msg')}")
 
 
-    def _check_required_variables(self, url_template: str, body_template: str) -> bool:
-        """检查是否包含必需的变量（title和content中至少一个）"""
-        has_old_vars = ("$title" in url_template or "$title" in body_template or
-                       "$content" in url_template or "$content" in body_template)
-        has_new_vars = ("{{title}}" in url_template or "{{title}}" in body_template or
-                       "{{content}}" in url_template or "{{content}}" in body_template)
-        return has_old_vars or has_new_vars
-
-    def parse_headers(self, headers) -> dict:
-        if not headers:
-            return {}
-
-        parsed = {}
-        lines = headers.split("\n")
-
-        for line in lines:
-            i = line.find(":")
-            if i == -1:
-                continue
-
-            key = line[:i].strip().lower()
-            val = line[i + 1 :].strip()
-            parsed[key] = parsed.get(key, "") + ", " + val if key in parsed else val
-
-        return parsed
-
-
-    def parse_string(self, input_string, value_format_fn=None) -> dict:
-        matches = {}
-        pattern = r"(\w+):\s*((?:(?!\n\w+:).)*)"
-        regex = re.compile(pattern)
-        for match in regex.finditer(input_string):
-            key, value = match.group(1).strip(), match.group(2).strip()
-            try:
-                value = value_format_fn(value) if value_format_fn else value
-                json_value = json.loads(value)
-                matches[key] = json_value
-            except:
-                matches[key] = value
-        return matches
-
-
-    def parse_body(self, body, content_type, value_format_fn=None) -> str:
-        if not body or content_type == "text/plain":
-            return value_format_fn(body) if value_format_fn and body else body
-
-        parsed = self.parse_string(body, value_format_fn)
-
-        if content_type == "application/x-www-form-urlencoded":
-            data = urllib.parse.urlencode(parsed, doseq=True)
-            return data
-
-        if content_type == "application/json":
-            data = json.dumps(parsed)
-            return data
-
-        return parsed
-
-
     def webhook_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过通用 Webhook 推送消息
         """
         self.log_info("通用 Webhook 服务启动")
 
-        try:
-            url_template = self.get_config("WEBHOOK_URL")
-            if not url_template:
-                self.log_error("Webhook URL 未配置，无法推送")
-                return
+        url = self.get_config("WEBHOOK_URL")
+        method = (self.get_config("WEBHOOK_METHOD")).upper()
+        headers_str = self.get_config("WEBHOOK_HEADERS")
+        body = self.get_config("WEBHOOK_BODY")
+        content_type = self.get_config("WEBHOOK_CONTENT_TYPE")
 
-            method = self.get_config("WEBHOOK_METHOD") or "POST"
-            method = method.upper()
-            headers_str = self.get_config("WEBHOOK_HEADERS") or "{}"
-            body_template = self.get_config("WEBHOOK_BODY") or '{"title": "{{title}}", "content": "{{content}}", "timestamp": "{{timestamp}}"}'
-            content_type = self.get_config("WEBHOOK_CONTENT_TYPE") or "application/json"
-
-            # 生成时间戳
-            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            iso_timestamp = datetime.datetime.now().isoformat()
-
-            # 检查是否包含必需的变量（title和content中至少一个）
-            if not self._check_required_variables(url_template, body_template):
-                self.log_error("请求头或者请求体中必须包含 $title/$content 或 {{title}}/{{content}} 变量")
-                return
-
-            # 替换模板变量
-            replacements = {
-                "{{title}}": title,
-                "{{content}}": content,
-                "{{timestamp}}": timestamp,
-                "{{iso_timestamp}}": iso_timestamp,
-                "{{unix_timestamp}}": str(int(time.time()))
-            }
-
-            url = url_template
-            body = body_template
-            for placeholder, value in replacements.items():
-                url = url.replace(placeholder, value)
-                body = body.replace(placeholder, value)
-
-            # 处理$title和$content变量
-            if "$title" in body or "$content" in body:
-                body = body.replace("$title", title.replace("\n", "\\n"))
-                body = body.replace("$content", content.replace("\n", "\\n"))
-                # 处理$image变量（如果有的话）
-                if "$image" in body:
-                    if image:
-                        image.seek(0)
-                        import base64
-                        image_base64 = base64.b64encode(image.getvalue()).decode('utf-8')
-                        body = body.replace("$image", image_base64)
-                    else:
-                        body = body.replace("$image", "")
-
-            # 解析 Headers
-            headers = {}
-            if headers_str:
-                try:
-                    header_config = json.loads(headers_str)
-                    if isinstance(header_config, dict):
-                        # 新的字典格式
-                        for key, value in header_config.items():
-                            if key:
-                                header_value = str(value)
-                                for placeholder, replacement in replacements.items():
-                                    header_value = header_value.replace(placeholder, replacement)
-                                headers[key] = header_value
-                    elif isinstance(header_config, list):
-                        # 旧的列表格式
-                        for item in header_config:
-                            key = item.get('key')
-                            value = item.get('value', '')
-                            if key:
-                                header_value = str(value)
-                                for placeholder, replacement in replacements.items():
-                                    header_value = header_value.replace(placeholder, replacement)
-                                headers[key] = header_value
-                except (json.JSONDecodeError, AttributeError):
-                    self.log_error(f"Webhook Headers 格式错误，请检查是否为合法的 JSON 键值对: {headers_str}")
-                    return
-
-            headers['Content-Type'] = content_type
-
-            self.log_info(f"发送 Webhook 请求: {method} {url}")
-
-            response = requests.request(
-                method=method,
-                url=url,
-                headers=headers,
-                data=body.encode("utf-8"),
-                timeout=15
-            )
-
-            if 200 <= response.status_code < 300:
-                self.log_info(f"Webhook 推送成功！状态码: {response.status_code}")
-            else:
-                self.log_error(f"Webhook 推送失败！状态码: {response.status_code}\n响应: {response.text}")
-
-        except Exception as e:
-            self.log_error(f"Webhook 推送时发生异常: {e}")
-
-    def custom_notify(self, title: str, content: str, image: Optional[BytesIO]) -> None:
-        """
-        通过 Webhook 推送消息，支持新旧模板变量格式
-        """
-        self.log_info("Webhook 推送服务启动")
-
-        url_template = self.get_config("WEBHOOK_URL")
-        if not url_template:
-            self.log_error("WEBHOOK_URL 未配置")
-            return
-
-        method = self.get_config("WEBHOOK_METHOD") or "POST"
-        method = method.upper()
-        content_type = self.get_config("WEBHOOK_CONTENT_TYPE") or "application/json"
-        body_template = self.get_config("WEBHOOK_BODY") or '{"title": "{{title}}", "content": "{{content}}", "timestamp": "{{timestamp}}"}'
-        headers_str = self.get_config("WEBHOOK_HEADERS") or "{}"
-
-        # 生成时间戳
-        import datetime
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         iso_timestamp = datetime.datetime.now().isoformat()
+        unix_timestamp = str(int(time.time()))
 
-        # 新版模板变量替换
-        new_replacements = {
-            "{{title}}": title,
-            "{{content}}": content,
-            "{{timestamp}}": timestamp,
-            "{{iso_timestamp}}": iso_timestamp,
-            "{{unix_timestamp}}": str(int(time.time()))
+        # 变量替换
+        replacements = {
+            "$title": title, "{{title}}": title,
+            "$content": content, "{{content}}": content,
+            "$timestamp": timestamp, "{{timestamp}}": timestamp,
+            "$iso_timestamp": iso_timestamp, "{{iso_timestamp}}": iso_timestamp,
+            "$unix_timestamp": unix_timestamp, "{{unix_timestamp}}": unix_timestamp,
         }
 
-        # 替换模板变量
-        url = url_template
-        body = body_template
-        for placeholder, value in new_replacements.items():
-            url = url.replace(placeholder, value)
-            body = body.replace(placeholder, value)
+        for placeholder, value in replacements.items():
+            # 对 URL 中的变量进行编码，对 Body 和 Headers 则不需要
+            url = url.replace(placeholder, urllib.parse.quote_plus(str(value)))
+            body = body.replace(placeholder, str(value).replace("\n", "\\n")) # JSON字符串中换行符需要转义
+            headers_str = headers_str.replace(placeholder, str(value))
 
-        # 兼容旧版$变量格式
-        url = url.replace("$title", urllib.parse.quote_plus(title)) \
-                 .replace("$content", urllib.parse.quote_plus(content))
+        if "$image" in body:
+            image_base64 = ""
+            if image:
+                image.seek(0)
+                image_base64 = base64.b64encode(image.getvalue()).decode('utf-8')
+            body = body.replace("$image", image_base64)
 
-        # 解析 Headers
-        headers = {}
-        if headers_str:
-            try:
-                header_config = json.loads(headers_str)
-                if isinstance(header_config, dict):
-                    # 新的字典格式
-                    for key, value in header_config.items():
-                        if key:
-                            header_value = str(value)
-                            for placeholder, replacement in new_replacements.items():
-                                header_value = header_value.replace(placeholder, replacement)
-                            headers[key] = header_value
-                elif isinstance(header_config, list):
-                    # 兼容旧的列表格式
-                    for item in header_config:
-                        key = item.get('key')
-                        value = item.get('value', '')
-                        if key:
-                            header_value = str(value)
-                            for placeholder, replacement in new_replacements.items():
-                                header_value = header_value.replace(placeholder, replacement)
-                            headers[key] = header_value
-            except (json.JSONDecodeError, AttributeError):
-                # 使用旧版parse_headers作为后备
-                headers = self.parse_headers(headers_str)
+        # 解析 headers 字符串为字典
+        try:
+            headers = json.loads(headers_str) if headers_str and headers_str != "{}" else {}
+        except json.JSONDecodeError:
+            # 如果解析失败，尝试解析为键值对格式
+            headers = {}
+            if headers_str and headers_str != "{}":
+                for line in headers_str.split('\n'):
+                    if ':' in line:
+                        key, value = line.split(':', 1)
+                        headers[key.strip()] = value.strip()
 
-        # 兼容旧版body处理
-        if "$title" in body or "$content" in body:
-            body = body.replace("$title", title.replace("\n", "\\n"))
-            body = body.replace("$content", content.replace("\n", "\\n"))
-            # 处理$image变量（如果有的话）
-            if "$image" in body:
-                if image:
-                    image.seek(0)
-                    import base64
-                    image_base64 = base64.b64encode(image.getvalue()).decode('utf-8')
-                    body = body.replace("$image", image_base64)
-                else:
-                    body = body.replace("$image", "")
-
+        # 添加 Content-Type
         headers['Content-Type'] = content_type
 
         self.log_info(f"发送 Webhook 请求: {method} {url}")
+        self.log_info(f"请求头: {headers}")
+        self.log_info(f"请求体: {body}")
 
         response = requests.request(
             method=method,
             url=url,
             headers=headers,
-            data=body.encode("utf-8") if isinstance(body, str) else body,
+            data=body.encode("utf-8"),
             timeout=15
         )
 
-        if 200 <= response.status_code < 300:
-            self.log_info(f"Webhook 推送成功！状态码: {response.status_code}")
-        else:
-            self.log_error(f"Webhook 推送失败！状态码: {response.status_code}\n响应: {response.text}")
+        # 通过 response.raise_for_status() 可以自动检查 4xx/5xx 错误并抛出异常
+        response.raise_for_status()
 
+        self.log_info(f"Webhook 推送成功！状态码: {response.status_code}")
 
     def add_notify_function(self) -> list:
         notify_function = []
@@ -1183,7 +990,7 @@ class Push():
             and self.get_config("CHRONOCAT_TOKEN")
         ):
             notify_function.append(self.chronocat)
-        if self.get_config("WEBHOOK_URL"):
+        if self.get_config("WEBHOOK_URL") and self.get_config("WEBHOOK_BODY"):
             notify_function.append(self.webhook_bot)
         if self.get_config("NTFY_TOPIC"):
             notify_function.append(self.ntfy)
@@ -1220,11 +1027,21 @@ class Push():
         else:
             # 使用所有已配置的推送方式
             notify_function = self.add_notify_function()
+            if not notify_function:
+                raise ValueError("未找到可用的推送方式，请检查通知设置是否正确")
 
-        if not notify_function:
-            self.log_error(f"未找到可用的推送方式")
-            return
-
+        # 如果是测试模式，直接在主线程中执行，这样异常可以被前端捕获
+        if test_method:
+            for mode in notify_function:
+                mode(title, content, image)
+        else:
+            # 正常推送使用多线程
+            ts = [
+                threading.Thread(target=mode, args=(title, content, image), name=mode.__name__)
+                for mode in notify_function
+            ]
+            [t.start() for t in ts]
+            [t.join() for t in ts]
         notify_function = self.add_notify_function()
 
         # 遥测埋点：记录推送方法使用情况
@@ -1274,16 +1091,14 @@ class Push():
 
         target_function_name = method_to_function_name.get(method)
         if not target_function_name:
-            self.log_error(f"未支持的推送方式: {method}")
-            return []
+            raise ValueError(f"未支持的推送方式: {method}")
 
         # 查找匹配的函数
         for func in all_functions:
             if func.__name__ == target_function_name:
                 return [func]
 
-        self.log_error(f"{method} 推送方式未正确配置")
-        return []
+        raise ValueError(f"{method} 推送方式未正确配置")
 
     def _track_push_usage(self, notify_functions: list, test_method: Optional[str] = None) -> None:
         """跟踪推送方法使用情况"""
