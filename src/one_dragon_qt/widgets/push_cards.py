@@ -492,6 +492,12 @@ class PushCards:
             "required": True
         },
         {
+            "var_suffix": "STARTTLS",
+            "title": "是否使用 STARTTLS",
+            "icon": FluentIcon.PEOPLE,
+            "placeholder": "true 或 false"  
+        },
+        {
             "var_suffix": "EMAIL",
             "title": "收发件邮箱",
             "icon": "CLOUD",
