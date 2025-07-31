@@ -148,8 +148,65 @@ class Push():
 
         self.log_info("飞书 服务启动")
 
+        app_id = self.get_config("FS_APPID")
+        app_secret = self.get_config("FS_APPSECRET")
+        if image and app_id and app_secret and app_id != "" and app_secret != "":
+            image.seek(0)
+            # 获取飞书自建应用的tenant_access_token
+            auth_endpoint = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
+            auth_headers = {
+                "Content-Type": "application/json; charset=utf-8"
+            }
+            auth_response = requests.post(auth_endpoint, headers=auth_headers, json={
+                "app_id": app_id,
+                "app_secret": app_secret
+            })
+            auth_response.raise_for_status()
+            tenant_access_token = auth_response.json()["tenant_access_token"]
+            # 上传图片并获取图片的image_key
+            image_endpoint = "https://open.feishu.cn/open-apis/im/v1/images"
+            image_headers = {
+                "Authorization": f"Bearer {tenant_access_token}"
+            }
+            files = {
+                'image': ('image.jpg', image.getvalue(), 'image/jpeg'),
+                'image_type': (None, 'message')
+            }
+            image_response = requests.post(image_endpoint , headers=image_headers, files=files)
+            if (image_response.status_code % 100 != 2):
+                log.error(image_response.text)
+                image_response.raise_for_status()
+            image_key = image_response.json()["data"]["image_key"]
+        else:
+            image_key = None
+
+        if image_key:
+            data = {
+                "msg_type": "post",
+                "content": {
+                    "post": {
+                        "zh_cn": {
+                            "title": title,
+                            "content": [
+                                [{
+                                    "tag": "text",
+                                    "text": f"{content}"
+                                }, {
+                                    "tag": "img",
+                                    "image_key": image_key
+                                }]
+                            ]
+                        }
+                    }
+                }
+            }
+        else:
+            data = {
+                "msg_type": "text",
+                "content": {"text": f"{title}\n{content}"}
+            }
+
         url = f'https://open.feishu.cn/open-apis/bot/v2/hook/{self.get_config("FS_KEY")}'
-        data = {"msg_type": "text", "content": {"text": f"{title}\n{content}"}}
         response = requests.post(url, data=json.dumps(data)).json()
 
         if response.get("StatusCode") == 0 or response.get("code") == 0:
