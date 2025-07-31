@@ -1,3 +1,5 @@
+import json
+
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, PushButton, InfoBar, InfoBarPosition
 
@@ -157,18 +159,34 @@ class SettingPushInterface(VerticalScrollInterface):
         """发送测试消息到当前选择的通知方式"""
         selected_method = self.notification_method_opt.getValue()
         test_method = str(selected_method)
+        if test_method == "WEBHOOK":
+            # 如果是Webhook方式，先验证配置
+            try:
+                self._validate_webhook_config()
+            except ValueError as e:
+                self._show_error_message(str(e))
+                return
 
-        self._show_success_message("正在发送测试消息...")
-        pusher = Push(self.ctx)
-        pusher.send(gt('这是一条测试消息'), None, test_method)
-        self._show_success_message("已向当前通知方式发送测试消息")
+        try:
+            pusher = Push(self.ctx)
+            pusher.send(gt('这是一条测试消息'), None, test_method)
+            self._show_success_message("已向当前通知方式发送测试消息")
+        except ValueError as e:
+            self._show_error_message(str(e))
+        except Exception as e:
+            self._show_error_message(f"测试推送失败: {str(e)}")
 
     def _send_test_all_message(self):
         """发送测试消息到所有已配置的通知方式"""
-        self._show_success_message("正在向所有已配置的通知方式发送测试消息...")
-        pusher = Push(self.ctx)
-        pusher.send(gt('这是一条测试消息'), None, None)
-        self._show_success_message("已向所有已配置的通知方式发送测试消息")
+        try:
+            self._show_success_message("正在向所有已配置的通知方式发送测试消息...")
+            pusher = Push(self.ctx)
+            pusher.send(gt('这是一条测试消息'), None, None)
+            self._show_success_message("已向所有已配置的通知方式发送测试消息")
+        except ValueError as e:
+            self._show_error_message(str(e))
+        except Exception as e:
+            self._show_error_message(f"测试推送失败: {str(e)}")
 
     def _on_email_service_selected(self, text):
         config = PushEmailServices.get_configs(str(text))
@@ -245,6 +263,42 @@ class SettingPushInterface(VerticalScrollInterface):
         # 复制到剪贴板
         PcClipboard.copy_string(curl_command)
         self._show_success_message("cURL 命令已复制到剪贴板！")
+
+    def _validate_webhook_config(self) -> None:
+        """
+        验证Webhook配置
+        验证失败时抛出异常
+        """
+        url = getattr(self.ctx.push_config, "webhook_url", None)
+        if not url:
+            raise ValueError("Webhook URL 未配置，无法推送")
+
+        body = getattr(self.ctx.push_config, "webhook_body", None)
+        headers = getattr(self.ctx.push_config, "webhook_headers", "{}")
+        content_type = getattr(self.ctx.push_config, "webhook_content_type", "application/json")
+
+        # 检查是否包含 $content
+        if not any('$content' in str(field) for field in [url, body, headers]):
+            raise ValueError("URL、请求头或者请求体中必须包含 $content 变量")
+
+        # 如果是JSON格式，验证JSON的合法性
+        if content_type == "application/json":
+            # 检查body模板是否为合法JSON
+            if not self._validate_json_format(body):
+                raise ValueError("请求体不是合法的JSON格式")
+
+        # 检查请求头是否为合法JSON
+        if headers and headers != "{}":
+            if not self._validate_json_format(headers):
+                raise ValueError("请求头不是合法的JSON格式")
+
+    def _validate_json_format(self, json_str: str) -> bool:
+        """验证JSON格式的合法性"""
+        try:
+            json.loads(json_str)
+            return True
+        except (json.JSONDecodeError, TypeError):
+            return False
 
     def _show_success_message(self, message: str):
         """显示成功消息提示"""
