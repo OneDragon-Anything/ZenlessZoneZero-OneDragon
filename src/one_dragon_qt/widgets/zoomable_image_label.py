@@ -42,12 +42,29 @@ class ZoomableClickImageLabel(ClickImageLabel):
 
     def wheelEvent(self, event: QWheelEvent):
         """
-        重写 wheelEvent，实现滚轮缩放
+        重写 wheelEvent，实现以鼠标位置为基点的滚轮缩放
         """
+        if self.original_pixmap is None or self.original_pixmap.isNull():
+            return
+
+        # 获取鼠标在控件中的位置
+        mouse_pos = event.position().toPoint()
+
+        # 直接计算鼠标在原始图像中的浮点坐标，避免int()转换的精度损失
+        image_x = (mouse_pos.x() - self.image_offset.x()) / self.scale_factor
+        image_y = (mouse_pos.y() - self.image_offset.y()) / self.scale_factor
+
+        # 更新缩放比例
         if event.angleDelta().y() > 0:
             self.scale_factor *= 1.1  # 放大
         else:
             self.scale_factor /= 1.1  # 缩小
+
+        # 重新计算偏移量，使鼠标保持指向图像中的同一点
+        # 使用round()而不是int()，提供更好的舍入精度
+        new_offset_x = round(mouse_pos.x() - image_x * self.scale_factor)
+        new_offset_y = round(mouse_pos.y() - image_y * self.scale_factor)
+        self.image_offset = QPoint(new_offset_x, new_offset_y)
 
         # 缩放后应用边界限制
         self.image_offset = self._limit_image_bounds(self.image_offset)
@@ -89,7 +106,7 @@ class ZoomableClickImageLabel(ClickImageLabel):
 
             # 如果还没开始实际拖拽，检查是否超过阈值
             if not self.drag_started:
-                total_distance = (event.pos() - self.last_drag_pos).manhattanLength()
+                total_distance = delta.manhattanLength()
                 if total_distance >= self.drag_threshold:
                     self.drag_started = True
                     self.setCursor(Qt.CursorShape.ClosedHandCursor)
@@ -204,47 +221,52 @@ class ZoomableClickImageLabel(ClickImageLabel):
         widget_width = self.width()
         widget_height = self.height()
 
-        # 设置最小可见区域（比如图像至少要有50像素在屏幕内）
-        min_visible = 50
+        # # X 维度处理
+        # if scaled_width <= widget_width:
+        #     # 图像宽度小于等于控件宽度，允许在控件范围内自由移动
+        #     min_x = 0
+        #     max_x = widget_width - scaled_width
+        #     limited_x = max(min_x, min(max_x, offset.x()))
+        # else:
+        #     # 图像宽度大于控件宽度，边界限制为控件的一半位置
+        #     min_x = -(scaled_width - widget_width // 2)
+        #     max_x = widget_width // 2
+        #     limited_x = max(min_x, min(max_x, offset.x()))
 
-        # 计算边界限制
-        # 左边界：图像右边缘至少要有min_visible像素在屏幕内
-        min_x = -(scaled_width - min_visible)
-        # 右边界：图像左边缘至少要有min_visible像素在屏幕内
-        max_x = widget_width - min_visible
-        # 上边界：图像下边缘至少要有min_visible像素在屏幕内
-        min_y = -(scaled_height - min_visible)
-        # 下边界：图像上边缘至少要有min_visible像素在屏幕内
-        max_y = widget_height - min_visible
+        # # Y 维度处理
+        # if scaled_height <= widget_height:
+        #     # 图像高度小于等于控件高度，允许在控件范围内自由移动
+        #     min_y = 0
+        #     max_y = widget_height - scaled_height
+        #     limited_y = max(min_y, min(max_y, offset.y()))
+        # else:
+        #     # 图像高度大于控件高度，边界限制为控件的一半位置
+        #     min_y = -(scaled_height - widget_height // 2)
+        #     max_y = widget_height // 2
+        #     limited_y = max(min_y, min(max_y, offset.y()))
 
-        # 如果图像小于控件，居中显示
+        # X 维度处理
         if scaled_width <= widget_width:
-            limited_x = (widget_width - scaled_width) // 2
+            # 图像宽度小于等于控件宽度，允许在控件范围内自由移动
+            min_x = 0
+            max_x = widget_width - scaled_width
+            limited_x = max(min_x, min(max_x, offset.x()))
         else:
+            # 图像宽度大于控件宽度，限制图像不能在控件留有空白
+            min_x = -(scaled_width - widget_width)  # 图像右边缘不能超出控件右边界
+            max_x = 0  # 图像左边缘不能超出控件左边界
             limited_x = max(min_x, min(max_x, offset.x()))
 
+        # Y 维度处理
         if scaled_height <= widget_height:
-            limited_y = (widget_height - scaled_height) // 2
+            # 图像高度小于等于控件高度，允许在控件范围内自由移动
+            min_y = 0
+            max_y = widget_height - scaled_height
+            limited_y = max(min_y, min(max_y, offset.y()))
         else:
+            # 图像高度大于控件高度，限制图像不能在控件留有空白
+            min_y = -(scaled_height - widget_height)  # 图像下边缘不能超出控件下边界
+            max_y = 0  # 图像上边缘不能超出控件上边界
             limited_y = max(min_y, min(max_y, offset.y()))
 
         return QPoint(limited_x, limited_y)
-
-    def reset_image_position(self):
-        """
-        重置图像偏移量到原始位置
-        """
-        self.image_offset = QPoint(0, 0)
-        # 应用边界限制
-        self.image_offset = self._limit_image_bounds(self.image_offset)
-        # 位置重置时只需要重绘，不需要重新缩放
-        self.update()
-
-    def doubleClickEvent(self, event: QMouseEvent):
-        """
-        双击重置图像位置
-        """
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.reset_image_position()
-        else:
-            super().doubleClickEvent(event)
