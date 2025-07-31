@@ -492,6 +492,15 @@ class PushCards:
             "required": True
         },
         {
+            "var_suffix": "STARTTLS",
+            "title": "使用 STARTTLS",
+            "icon": "PEOPLE",
+            "type": "combo",
+            "options": ["true", "false"],
+            "default": "false",
+            "required": True
+        },
+        {
             "var_suffix": "EMAIL",
             "title": "收发件邮箱",
             "icon": "CLOUD",
