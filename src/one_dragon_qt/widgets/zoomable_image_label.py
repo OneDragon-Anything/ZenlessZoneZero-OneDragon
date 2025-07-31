@@ -1,20 +1,25 @@
-from PySide6.QtCore import Qt, QPoint, QSize
+from PySide6.QtCore import Qt, QPoint, QSize, Signal
 from PySide6.QtGui import QWheelEvent, QPixmap, QMouseEvent, QPainter, QPaintEvent, QResizeEvent
-from PySide6.QtWidgets import QSizePolicy
+from PySide6.QtWidgets import QSizePolicy, QLabel
 
 from one_dragon.utils.image_utils import scale_pixmap_for_high_dpi
-from one_dragon_qt.widgets.click_image_label import ClickImageLabel
 
 
-class ZoomableClickImageLabel(ClickImageLabel):
+class ZoomableClickImageLabel(QLabel):
+
+    left_clicked_with_pos = Signal(int, int)
+    right_clicked_with_pos = Signal(int, int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        # 设置为可扩展的尺寸策略，以便在布局中正确填充空间
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        # 缩放相关变量
         self.scale_factor = 1.0
         self.original_pixmap: QPixmap = None
         self.current_scaled_pixmap = QPixmap()  # 保存当前缩放级别的图像
-        # 设置为可扩展的尺寸策略，以便在布局中正确填充空间
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         # 拖动相关变量
         self.is_dragging = False
@@ -23,9 +28,67 @@ class ZoomableClickImageLabel(ClickImageLabel):
         self.image_offset = QPoint(0, 0)  # 图像偏移量
         self.drag_threshold = 5  # 最小拖拽距离阈值
 
+    def mousePressEvent(self, event: QMouseEvent):
+        """
+        鼠标按下事件，处理左键拖动和右键单击
+        """
+        if event.button() == Qt.MouseButton.LeftButton:
+            # 左键准备拖动
+            self.is_dragging = True
+            self.drag_started = False
+            self.last_drag_pos = event.pos()
+        elif event.button() == Qt.MouseButton.RightButton:
+            pos = event.pos()
+            self.right_clicked_with_pos.emit(pos.x(), pos.y())
+
+    def mouseMoveEvent(self, event: QMouseEvent):
+        """
+        鼠标移动事件，处理拖动
+        """
+        if self.is_dragging:
+            # 计算移动距离
+            delta = event.pos() - self.last_drag_pos
+
+            # 如果还没开始实际拖拽，检查是否超过阈值
+            if not self.drag_started:
+                total_distance = delta.manhattanLength()
+                if total_distance >= self.drag_threshold:
+                    self.drag_started = True
+                    self.setCursor(Qt.CursorShape.ClosedHandCursor)
+                else:
+                    return  # 未达到阈值，不进行拖拽
+
+            # 计算新的偏移量并限制边界
+            new_offset = self.image_offset + delta
+            limited_offset = self._limit_image_bounds(new_offset)
+
+            # 只有在偏移量确实改变时才更新
+            if limited_offset != self.image_offset:
+                self.image_offset = limited_offset
+                self.last_drag_pos = event.pos()
+                # 拖动时只需要请求重绘，不需要重新缩放
+                self.update()
+
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        """
+        鼠标释放事件，结束拖动或触发点击
+        """
+        if event.button() == Qt.MouseButton.LeftButton and self.is_dragging:
+            # 如果没有实际开始拖拽，认为是点击事件
+            if not self.drag_started:
+                # 将显示坐标转换为图像坐标
+                image_pos = self.map_display_to_image_coords(event.pos())
+                if image_pos is not None:
+                    self.left_clicked_with_pos.emit(image_pos.x(), image_pos.y())
+
+            # 结束拖动
+            self.is_dragging = False
+            self.drag_started = False
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+
     def setPixmap(self, pixmap: QPixmap):
         """
-        重写 setPixmap，保存原始图像并进行初次缩放
+        保存原始图像并进行初次缩放
         """
         self.original_pixmap = pixmap
         self.image_offset = QPoint(0, 0)  # 重置偏移量
@@ -40,9 +103,33 @@ class ZoomableClickImageLabel(ClickImageLabel):
         # 更新缩放后的图像并触发重绘
         self.update_scaled_pixmap()
 
+    def setImage(self, image):
+        """
+        设置图像的接口，兼容Cv2Image和QPixmap
+        """
+        if image is None:
+            self.original_pixmap = None
+            self.current_scaled_pixmap = QPixmap()
+            self.update()
+            return
+
+        # 如果是Cv2Image对象，获取其QPixmap
+        if hasattr(image, 'to_qpixmap'):
+            pixmap = image.to_qpixmap()
+        elif isinstance(image, QPixmap):
+            pixmap = image
+        else:
+            # 尝试其他可能的转换
+            try:
+                pixmap = QPixmap(image)
+            except:
+                return
+
+        self.setPixmap(pixmap)
+
     def wheelEvent(self, event: QWheelEvent):
         """
-        重写 wheelEvent，实现以鼠标位置为基点的滚轮缩放
+        实现以鼠标位置为基点的滚轮缩放
         """
         if self.original_pixmap is None or self.original_pixmap.isNull():
             return
@@ -80,70 +167,6 @@ class ZoomableClickImageLabel(ClickImageLabel):
             self.image_offset = self._limit_image_bounds(self.image_offset)
             # 触发重绘以适应新尺寸
             self.update()
-
-    def mousePressEvent(self, event: QMouseEvent):
-        """
-        重写鼠标按下事件，处理左键拖动
-        """
-        if event.button() == Qt.MouseButton.LeftButton:
-            # 左键准备拖动
-            self.is_dragging = True
-            self.drag_started = False
-            self.last_drag_pos = event.pos()
-            # 同时调用父类方法保持原有的点击功能
-            super().mousePressEvent(event)
-        else:
-            # 其他情况交给父类处理
-            super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event: QMouseEvent):
-        """
-        重写鼠标移动事件，处理拖动
-        """
-        if self.is_dragging:
-            # 计算移动距离
-            delta = event.pos() - self.last_drag_pos
-
-            # 如果还没开始实际拖拽，检查是否超过阈值
-            if not self.drag_started:
-                total_distance = delta.manhattanLength()
-                if total_distance >= self.drag_threshold:
-                    self.drag_started = True
-                    self.setCursor(Qt.CursorShape.ClosedHandCursor)
-                else:
-                    return  # 未达到阈值，不进行拖拽
-
-            # 计算新的偏移量并限制边界
-            new_offset = self.image_offset + delta
-            limited_offset = self._limit_image_bounds(new_offset)
-
-            # 只有在偏移量确实改变时才更新
-            if limited_offset != self.image_offset:
-                self.image_offset = limited_offset
-                self.last_drag_pos = event.pos()
-                # 拖动时只需要请求重绘，不需要重新缩放
-                self.update()
-        else:
-            super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event: QMouseEvent):
-        """
-        重写鼠标释放事件，结束拖动
-        """
-        if event.button() == Qt.MouseButton.LeftButton and self.is_dragging:
-            # 保存拖拽状态用于判断
-            was_dragging = self.drag_started
-
-            # 结束拖动
-            self.is_dragging = False
-            self.drag_started = False
-            self.setCursor(Qt.CursorShape.ArrowCursor)
-
-            # 如果没有实际拖拽，继续传递给父类处理点击事件
-            if not was_dragging:
-                super().mouseReleaseEvent(event)
-        else:
-            super().mouseReleaseEvent(event)
 
     def update_scaled_pixmap(self):
         """
@@ -183,7 +206,6 @@ class ZoomableClickImageLabel(ClickImageLabel):
         painter.eraseRect(self.rect())
 
         # 根据当前的偏移量，直接将缩放好的图像绘制到控件上
-        # 这是性能最高的做法！
         painter.drawPixmap(self.image_offset, self.current_scaled_pixmap)
 
     def map_display_to_image_coords(self, display_pos: QPoint) -> QPoint:
