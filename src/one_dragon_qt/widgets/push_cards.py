@@ -131,6 +131,22 @@ class PushCards:
             "placeholder": "请输入飞书机器人的密钥",
             "type": "text",
             "required": True
+        },
+        {
+            "var_suffix": "APPID",
+            "title": "自建应用 App ID",
+            "icon": "APPLICATION",
+            "placeholder": "非必填，填写则用于发送图片",
+            "type": "text",
+            "required": False
+        },
+        {
+            "var_suffix": "APPSECRET",
+            "title": "自建应用 Secret",
+            "icon": "VPN",
+            "placeholder": "非必填，填写则用于发送图片",
+            "type": "text",
+            "required": False
         }
     ],
     "ONEBOT": [
