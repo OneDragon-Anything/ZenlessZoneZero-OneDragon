@@ -81,6 +81,8 @@ class LostVoidChooseCommon(ZOperation):
         result = self.round_by_find_and_click_area(screen=self.last_screenshot, screen_name='迷失之地-通用选择', area_name='按钮-确定',
                                                    success_wait=1, retry_wait=1)
         if result.is_success:
+            self.ctx.lost_void.priority_updated = False
+            log.info("藏品选择成功，已设置优先级更新标志")
             status = result.status if art is None else f'选择 {art.artifact.name}'
             return self.round_success(status)
         else:

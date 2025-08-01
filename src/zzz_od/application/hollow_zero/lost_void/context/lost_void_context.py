@@ -42,8 +42,13 @@ class LostVoidContext:
         self.investigation_strategy_list: list[LostVoidInvestigationStrategy] = []  # 调查战略
 
         self.predefined_team_idx: int = -1  # 本次挑战所使用的预备编队
+        self.priority_updated: bool = False  # 动态优先级是否已经更新
+        self.dynamic_priority_list: list[str] = []  # 动态获取的优先级列表
+
 
     def init_before_run(self) -> None:
+        self.priority_updated = False
+        self.dynamic_priority_list = []
         self.init_lost_void_det_model()
         self.load_artifact_data()
         self.load_challenge_config()
@@ -470,10 +475,16 @@ class LostVoidContext:
         artifact_list = self.remove_overlapping_artifacts(artifact_list)
 
         log.info(f'当前考虑优先级 数量={choose_num} NEW!={consider_priority_new} 第一优先级={consider_priority_1} 第二优先级={consider_priority_2} 其他={consider_not_in_priority}')
+        
+        # 合并动态优先级和静态优先级
         priority_list_to_consider = []
-        if consider_priority_1:
-            priority_list_to_consider.append(self.challenge_config.artifact_priority)
-        if consider_priority_2:
+        
+        final_priority_list_1 = self.dynamic_priority_list.copy()
+        if consider_priority_1 and self.challenge_config.artifact_priority:
+            final_priority_list_1.extend(self.challenge_config.artifact_priority)
+        priority_list_to_consider.append(final_priority_list_1)
+        
+        if consider_priority_2 and self.challenge_config.artifact_priority_2:
             priority_list_to_consider.append(self.challenge_config.artifact_priority_2)
 
         if len(priority_list_to_consider) == 0:  # 两个优先级都是空的时候 强制考虑非优先级的

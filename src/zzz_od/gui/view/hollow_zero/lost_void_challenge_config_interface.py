@@ -89,6 +89,11 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.auto_battle_opt.value_changed.connect(self._on_auto_battle_config_changed)
         widget.add_widget(self.auto_battle_opt)
 
+        self.chase_new_mode_opt = SwitchSettingCard(icon=FluentIcon.TAG, title='追新模式',
+                                                      content='优先选择未满级的调查战略，开启后将禁用下方的调查战略选项')
+        self.chase_new_mode_opt.value_changed.connect(self._on_chase_new_mode_toggled)
+        widget.add_widget(self.chase_new_mode_opt)
+
         self.investigation_strategy_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='调查战略',
                                                               options_enum=LostVoidPeriodBuffNo)
         widget.add_widget(self.investigation_strategy_opt)
@@ -179,6 +184,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.predefined_team_opt.setDisabled(not chosen or is_sample)
         self.priority_team_opt.setDisabled(not chosen or is_sample)
         self.auto_battle_opt.setDisabled(not chosen or is_sample)
+        self.chase_new_mode_opt.setDisabled(not chosen or is_sample)
         self.investigation_strategy_opt.setDisabled(not chosen or is_sample)
         self.period_buff_no_opt.setDisabled(not chosen or is_sample)
         self.store_blood_opt.setDisabled(not chosen or is_sample)
@@ -205,6 +211,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
             self.predefined_team_opt.init_with_adapter(self.chosen_config.get_prop_adapter('predefined_team_idx'))
             self.priority_team_opt.init_with_adapter(self.chosen_config.get_prop_adapter('choose_team_by_priority'))
             self.auto_battle_opt.setValue(self.chosen_config.auto_battle)
+            self.chase_new_mode_opt.init_with_adapter(self.chosen_config.get_prop_adapter('chase_new_mode'))
             self.investigation_strategy_opt.init_with_adapter(self.chosen_config.get_prop_adapter('investigation_strategy'))
             self.period_buff_no_opt.init_with_adapter(self.chosen_config.get_prop_adapter('period_buff_no'))
             self.store_blood_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_blood'))
@@ -224,6 +231,9 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
             self.region_type_priority_input.blockSignals(True)
             self.region_type_priority_input.setPlainText(self.chosen_config.region_type_priority_str)
             self.region_type_priority_input.blockSignals(False)
+
+            # 根据加载后的追新模式状态 更新调查战略的禁用情况
+            self._on_chase_new_mode_toggled(self.chase_new_mode_opt.btn.isChecked())
 
         if is_sample:
             self._update_error_message('当前为默认配置，点击复制后可修改')
@@ -363,3 +373,13 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self._update_error_message(err_msg)
 
         self.chosen_config.region_type_priority = entry_list
+
+    def _on_chase_new_mode_toggled(self, checked: bool) -> None:
+        """
+        追新模式切换
+        """
+        if self.chosen_config is None:
+            return
+
+        is_sample = self.chosen_config.is_sample
+        self.investigation_strategy_opt.setDisabled(is_sample or checked)

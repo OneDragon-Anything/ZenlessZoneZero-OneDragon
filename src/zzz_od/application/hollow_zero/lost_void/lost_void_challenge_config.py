@@ -235,6 +235,17 @@ class LostVoidChallengeConfig(YamlConfig):
     def investigation_strategy(self, new_value: str):
         self.update('investigation_strategy', new_value)
 
+    @property
+    def chase_new_mode(self) -> bool:
+        """
+        :return: 是否优先未满级
+        """
+        return self.get('chase_new_mode', False)
+
+    @chase_new_mode.setter
+    def chase_new_mode(self, new_value: bool):
+        self.update('chase_new_mode', new_value)
+
 
 def get_all_lost_void_challenge_config(with_sample: bool = True) -> List[LostVoidChallengeConfig]:
     config_list: List[LostVoidChallengeConfig] = []
