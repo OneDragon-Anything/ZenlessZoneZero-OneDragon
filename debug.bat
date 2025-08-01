@@ -24,7 +24,7 @@ if "%path_check%" neq "%path_check: =%" echo [WARN] 路径中包含空格
 echo -------------------------------
 echo 正在以管理员权限运行...
 echo -------------------------------
-echo.&echo 1. 强制配置 Python 环境&echo 2. 添加 Git 安全目录&echo 3. 重新安装 Pyautogui 库&echo 4. 检查 PowerShell 路径&echo 5. 重新创建虚拟环境&echo 6. 安装onnxruntime&echo 7. 配置Git SSL后端&echo 8. 以DEBUG模式运行一条龙&echo 9. 退出
+echo.&echo 1. 强制配置 Python 环境&echo 2. 添加 Git 安全目录&echo 3. 重新安装 Pyautogui 库&echo 4. 检查 PowerShell 路径&echo 5. 重新创建虚拟环境&echo 6. 安装onnxruntime&echo 7. 配置Git SSL后端&echo 8. 以DEBUG模式运行一条龙&echo 9. 检查当前版本是否为受支持版本&echo 10. 退出
 echo.
 set /p choice=请输入选项数字并按 Enter：
 
@@ -36,7 +36,8 @@ if "%choice%"=="5" goto :VENV
 if "%choice%"=="6" goto :ONNX_CHOOSE_SOURCE
 if "%choice%"=="7" goto :CONFIG_GIT_SSL
 if "%choice%"=="8" goto :DEBUG
-if "%choice%"=="9" exit /b
+if "%choice%"=="9" goto :CHECK_VERSION
+if "%choice%"=="10" exit /b
 echo [ERROR] 无效选项，请重新选择。
 
 goto :MENU
@@ -251,6 +252,79 @@ echo -------------------------------
 "%ProgramFiles%\Git\bin\git.exe" config --global http.sslBackend schannel
 echo Git SSL后端已配置为schannel
 goto :MENU
+
+:CHECK_VERSION
+echo -------------------------------
+echo 正在检查当前版本...
+echo -------------------------------
+echo.
+
+set "is_old_version=false"
+set "is_uv_exist=false"
+set "is_mingit_exist=false"
+
+rem --- 检查 OneDragon-Launcher.exe 文件 ---
+if not exist "%~dp0OneDragon-Launcher.exe" (
+    if exist "%~dp0OneDragon Launcher.exe" (
+        echo [警告] 发现旧版启动器 "OneDragon Launcher.exe"，新版应为 "OneDragon-Launcher.exe"。
+        set "is_old_version=true"
+    ) else (
+        echo [警告] 找不到 "OneDragon-Launcher.exe" 文件，可能不是正确的目录。
+        set "is_old_version=true"
+    )
+) else (
+    echo 找到 "OneDragon-Launcher.exe"。
+)
+
+echo.
+echo --- 检查 .install 文件夹 ---
+if exist "%~dp0.install\uv" (
+    echo [PASS] 找到 "uv" 文件夹。
+    set "is_uv_exist=true"
+) else (
+    echo [警告] 未在 .install 文件夹中找到 "uv" 文件夹。
+)
+
+if exist "%~dp0.install\MinGit" (
+    echo [PASS] 找到 "MinGit" 文件夹。
+    set "is_mingit_exist=true"
+) else (
+    echo [警告] 未在 .install 文件夹中找到 "MinGit" 文件夹。
+)
+
+rem 根据检查结果判断是否为旧版本
+if "%is_uv_exist%"=="false" (
+    set "is_old_version=true"
+)
+
+echo.
+echo --- 结果总结 ---
+if "%is_old_version%"=="true" (
+    echo.
+    echo ------------------------------------------
+    echo.
+    echo 结论：根据以上检查，你可能正在使用**暂停支持的旧版本**，请重新下载最新安装包。
+    echo ------------------------------------------
+    
+    rem --- 自动打开浏览器跳转下载页面 ---
+    echo.
+    echo 正在为您打开下载页面...
+    start "" "https://one-dragon.com/zzz/zh/quickstart.html#%E5%AE%89%E8%A3%85"
+    
+) else (
+    echo.
+    echo 结论：初步检查未发现旧版特征，你可能正在使用**2.0以上版本**。
+    echo.
+    echo ------------------------------------------
+)
+
+rem 针对 MinGit 的特殊提示
+if "%is_uv_exist%"=="true" if "%is_mingit_exist%"=="false" (
+    echo.
+    echo [提示] 未找到MinGit，如果您正在使用自己的Git工具，那么版本可能没有错误。
+)
+
+goto :END
 
 :END
 echo 操作已完成。
