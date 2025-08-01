@@ -1,7 +1,8 @@
 import os
-from PySide6.QtCore import QObject, Signal
-from PySide6.QtWidgets import QWidget, QFileDialog, QTableWidgetItem
-from qfluentwidgets import FluentIcon, PushButton, TableWidget, ToolButton, CheckBox
+from PySide6.QtCore import QObject, Signal, Qt
+from PySide6.QtWidgets import QWidget, QFileDialog, QTableWidgetItem, QVBoxLayout, QHBoxLayout
+from qfluentwidgets import (FluentIcon, PushButton, ToolButton, CheckBox, LineEdit, BodyLabel,
+                            TableWidget, SimpleCardWidget, SingleDirectionScrollArea, ScrollArea)
 from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -14,14 +15,12 @@ from one_dragon.base.screen.template_info import get_template_root_dir_path, get
 from one_dragon.utils import os_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from one_dragon_qt.widgets.click_image_label import ImageScaleEnum, ClickImageLabel
 from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.row import Row
-from one_dragon_qt.widgets.setting_card.check_box_setting_card import CheckBoxSettingCard
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
-from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard, MultiLineSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
@@ -58,16 +57,29 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         self._existed_yml_update.signal.connect(self._update_existed_yml_options)
 
     def get_content_widget(self) -> QWidget:
-        content_widget = Row()
-        content_widget.add_widget(self._init_left_part())
-        content_widget.add_widget(self._init_right_part())
-        return content_widget
+        main_widget = QWidget()
+        main_layout = QHBoxLayout(main_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(12)
+
+        left_panel = self._init_left_part()
+        right_panel = self._init_right_part()
+
+        main_layout.addWidget(left_panel)
+        main_layout.addWidget(right_panel, 1)
+
+        return main_widget
 
     def _init_left_part(self) -> QWidget:
-        widget = Column()
+        scroll_area = SingleDirectionScrollArea()
 
-        btn_row = Row()
-        widget.add_widget(btn_row)
+        control_widget = QWidget()
+        control_layout = QVBoxLayout(control_widget)
+        control_layout.setContentsMargins(12, 0, 0, 0)
+        control_layout.setSpacing(12)
+
+        btn_row = Row(spacing=6, margins=(0, 0, 0, 0))
+        control_layout.addWidget(btn_row)
 
         self.existed_yml_btn = EditableComboBox()
         self.existed_yml_btn.setPlaceholderText(gt('选择已有'))
@@ -93,8 +105,14 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
 
         btn_row.add_stretch(1)
 
-        img_btn_row = Row()
-        widget.add_widget(img_btn_row)
+        img_btn_row = Row(spacing=6, margins=(0, 0, 0, 0))
+        control_layout.addWidget(img_btn_row)
+
+        self.pc_alt_opt = CheckBox(text=gt('PC 点击需 Alt'))
+        self.pc_alt_opt.stateChanged.connect(self._on_pc_alt_changed)
+        img_btn_row.add_widget(self.pc_alt_opt)
+
+        img_btn_row.add_stretch(1)
 
         self.choose_image_btn = PushButton(text=gt('选择图片'))
         self.choose_image_btn.clicked.connect(self.choose_existed_image)
@@ -104,22 +122,48 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         self.choose_template_btn.clicked.connect(self.choose_existed_template)
         img_btn_row.add_widget(self.choose_template_btn)
 
-        self.screen_id_opt = TextSettingCard(icon=FluentIcon.HOME, title='画面ID')
-        self.screen_id_opt.value_changed.connect(self._on_screen_id_changed)
-        widget.add_widget(self.screen_id_opt)
+        self.screen_id_label = BodyLabel(text=gt('ID'))
+        self.screen_id_edit = LineEdit()
+        self.screen_id_edit.setMinimumWidth(200)
+        self.screen_id_edit.editingFinished.connect(self._on_screen_id_changed)
 
-        self.screen_name_opt = TextSettingCard(icon=FluentIcon.HOME, title='画面名称')
-        self.screen_name_opt.value_changed.connect(self._on_screen_name_changed)
-        widget.add_widget(self.screen_name_opt)
+        self.screen_name_label = BodyLabel(text=gt('名称'))
+        self.screen_name_edit = LineEdit()
+        self.screen_name_edit.setMinimumWidth(200)
+        self.screen_name_edit.editingFinished.connect(self._on_screen_name_changed)
 
-        self.pc_alt_opt = CheckBoxSettingCard(icon=FluentIcon.MOVE, title='PC点击需alt')
-        self.pc_alt_opt.value_changed.connect(self._on_pc_alt_changed)
-        widget.add_widget(self.pc_alt_opt)
+        self.screen_info_opt = MultiLineSettingCard(icon=FluentIcon.HOME, title=gt('画面信息'), line_list=[
+            [self.screen_id_label, self.screen_id_edit],
+            [self.screen_name_label, self.screen_name_edit]
+        ])
+        control_layout.addWidget(self.screen_info_opt)
+
+        self.table_widget = self._init_area_table_widget()
+        control_layout.addWidget(self.table_widget, stretch=1)
+
+        scroll_area.setWidget(control_widget)
+        scroll_area.setWidgetResizable(True)
+
+        return scroll_area
+
+    def _init_area_table_widget(self) -> QWidget:
+        """
+        创建区域表格控件
+        """
+        widget = SimpleCardWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        # 创建横向滚动区域
+        scroll_area = ScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         self.area_table = TableWidget()
         self.area_table.cellChanged.connect(self._on_area_table_cell_changed)
-        self.area_table.setMinimumWidth(980)
-        self.area_table.setMinimumHeight(420)
+        self.area_table.setMinimumWidth(990)
         self.area_table.setBorderVisible(True)
         self.area_table.setBorderRadius(8)
         self.area_table.setWordWrap(True)
@@ -144,9 +188,11 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         # table的行被选中时 触发
         self.area_table_row_selected: int = -1  # 选中的行
         self.area_table.cellClicked.connect(self.on_area_table_cell_clicked)
-        widget.add_widget(self.area_table)
 
-        widget.add_stretch(1)
+        # 将表格放入滚动区域
+        scroll_area.setWidget(self.area_table)
+        layout.addWidget(scroll_area)
+
         return widget
 
     def _update_existed_yml_options(self) -> None:
@@ -160,24 +206,27 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         ])
 
     def _init_right_part(self) -> QWidget:
-        widget = Column()
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
 
-        self.image_display_size_opt = ComboBoxSettingCard(
-            icon=FluentIcon.ZOOM_IN, title='图片显示大小',
-            options_enum=ImageScaleEnum
-        )
-        self.image_display_size_opt.setValue(0.5)
-        self.image_display_size_opt.value_changed.connect(self._update_image_display)
-        widget.add_widget(self.image_display_size_opt)
+        self.x_pos_label = LineEdit()
+        self.x_pos_label.setReadOnly(True)
+        self.x_pos_label.setPlaceholderText('横坐标')
 
-        self.image_click_pos_opt = TextSettingCard(icon=FluentIcon.MOVE, title='鼠标选择区域')
-        widget.add_widget(self.image_click_pos_opt)
+        self.y_pos_label = LineEdit()
+        self.y_pos_label.setReadOnly(True)
+        self.y_pos_label.setPlaceholderText('纵坐标')
 
-        self.image_label = ClickImageLabel()
-        self.image_label.drag_released.connect(self._on_image_drag_released)
-        widget.add_widget(self.image_label)
+        self.image_click_pos_opt = MultiPushSettingCard(icon=FluentIcon.MOVE, title='鼠标点击坐标',
+                                                        content='图片左上角为(0, 0)',
+                                                        btn_list=[self.x_pos_label, self.y_pos_label])
+        layout.addWidget(self.image_click_pos_opt)
 
-        widget.add_stretch(1)
+        self.image_label = ZoomableClickImageLabel()
+        self.image_label.left_clicked_with_pos.connect(self._on_image_left_clicked)
+        layout.addWidget(self.image_label, 1)
 
         return widget
 
@@ -203,18 +252,18 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         self.cancel_btn.setDisabled(not chosen)
 
         self.choose_image_btn.setDisabled(not chosen)
-        self.screen_id_opt.setDisabled(not chosen)
-        self.screen_name_opt.setDisabled(not chosen)
+        self.screen_id_edit.setDisabled(not chosen)
+        self.screen_name_edit.setDisabled(not chosen)
         self.pc_alt_opt.setDisabled(not chosen)
 
         if not chosen:  # 清除一些值
-            self.screen_id_opt.setValue('')
-            self.screen_name_opt.setValue('')
-            self.pc_alt_opt.setValue(False)
+            self.screen_id_edit.setText('')
+            self.screen_name_edit.setText('')
+            self.pc_alt_opt.setChecked(False)
         else:
-            self.screen_id_opt.setValue(self.chosen_screen.screen_id)
-            self.screen_name_opt.setValue(self.chosen_screen.screen_name)
-            self.pc_alt_opt.setValue(self.chosen_screen.pc_alt)
+            self.screen_id_edit.setText(self.chosen_screen.screen_id)
+            self.screen_name_edit.setText(self.chosen_screen.screen_name)
+            self.pc_alt_opt.setChecked(self.chosen_screen.pc_alt)
 
         self._update_image_display()
         self._update_area_table_display()
@@ -232,6 +281,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         for idx in range(area_cnt):
             area_item = area_list[idx]
             del_btn = ToolButton(FluentIcon.DELETE, parent=None)
+            del_btn.setFixedSize(32, 32)
             del_btn.clicked.connect(self._on_row_delete_clicked)
 
             id_check = CheckBox()
@@ -252,6 +302,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
 
 
         add_btn = ToolButton(FluentIcon.ADD, parent=None)
+        add_btn.setFixedSize(32, 32)
         add_btn.clicked.connect(self._on_area_add_clicked)
         self.area_table.setCellWidget(area_cnt, 0, add_btn)
         self.area_table.setItem(area_cnt, 1, QTableWidgetItem(''))
@@ -275,14 +326,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         if image_to_show is not None:
             image = Cv2Image(image_to_show)
             self.image_label.setImage(image)
-            size_value: float = self.image_display_size_opt.getValue()
-            if size_value is None:
-                display_width = image.width()
-                display_height = image.height()
-            else:
-                display_width = int(image.width() * size_value)
-                display_height = int(image.height() * size_value)
-            self.image_label.setFixedSize(display_width, display_height)
         else:
             self.image_label.setImage(None)
 
@@ -341,6 +384,8 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         self.chosen_screen = None
         self.existed_yml_btn.setCurrentIndex(-1)
         self.area_table_row_selected = -1
+        self.x_pos_label.setText('')
+        self.y_pos_label.setText('')
         self._whole_update.signal.emit()
 
     def choose_existed_image(self) -> None:
@@ -446,11 +491,11 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
 
         self.chosen_screen.screen_name = value
 
-    def _on_pc_alt_changed(self, value: bool) -> None:
+    def _on_pc_alt_changed(self) -> None:
         if self.chosen_screen is None:
             return
 
-        self.chosen_screen.pc_alt = value
+        self.chosen_screen.pc_alt = self.pc_alt_opt.isChecked()
 
     def _on_area_add_clicked(self) -> None:
         """
@@ -528,26 +573,18 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         elif column == 9:
             area_item.goto_list = text.split(',')
 
-    def _on_image_drag_released(self, x1: int, y1: int, x2: int, y2: int) -> None:
+    def _on_image_left_clicked(self, x: int, y: int) -> None:
         """
-        图片上拖拽区域后 显示坐标
+        图片上左键单击后显示坐标
+        :param x: 点击的x坐标
+        :param y: 点击的y坐标
         :return:
         """
         if self.chosen_screen is None or self.chosen_screen.screen_image is None:
             return
 
-        display_width = self.image_label.width()
-        display_height = self.image_label.height()
-
-        image_width = self.chosen_screen.screen_image.shape[1]
-        image_height = self.chosen_screen.screen_image.shape[0]
-
-        real_x1 = int(x1 * image_width / display_width)
-        real_y1 = int(y1 * image_height / display_height)
-        real_x2 = int(x2 * image_width / display_width)
-        real_y2 = int(y2 * image_height / display_height)
-
-        self.image_click_pos_opt.setValue(f'({real_x1}, {real_y1}, {real_x2}, {real_y2})')
+        self.x_pos_label.setText(str(x))
+        self.y_pos_label.setText(str(y))
 
     def on_area_id_check_changed(self):
         if self.chosen_screen is None:
