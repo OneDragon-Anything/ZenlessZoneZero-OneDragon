@@ -242,6 +242,18 @@ class EnvConfig(YamlConfig):
         self.update('auto_update', new_value)
 
     @property
+    def sync(self) -> bool:
+        """
+        自动同步环境
+        :return:
+        """
+        return self.get('sync', True)
+
+    @sync.setter
+    def sync(self, new_value: bool) -> None:
+        self.update('sync', new_value)
+
+    @property
     def cpython_source(self) -> str:
         """
         cpython-build-standalone 源
