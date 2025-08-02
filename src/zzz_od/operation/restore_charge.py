@@ -6,7 +6,6 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
-from one_dragon.utils.log_utils import log
 from one_dragon.base.geometry.point import Point
 from zzz_od.application.charge_plan.charge_plan_config import RestoreChargeEnum
 from zzz_od.context.zzz_context import ZContext
@@ -38,8 +37,6 @@ class RestoreCharge(ZOperation):
         )
         self.required_charge = required_charge
         self.is_menu = is_menu
-        self.current_source_type = None
-        self.current_amount = None
 
     @operation_node(name='打开恢复界面', is_start_node=True)
     def click_charge_text(self) -> OperationRoundResult:
@@ -66,26 +63,20 @@ class RestoreCharge(ZOperation):
         target_text_list = [gt(text, 'game') for text in target_list]
         target_area = self.ctx.screen_loader.get_area('恢复电量', '类型')
 
-        click_result = self.round_by_ocr_and_click_by_priority(
+        return self.round_by_ocr_and_click_by_priority(
             screen=self.last_screenshot,
             target_cn_list=target_text_list,
             area=target_area,
             offset=Point(0, -100)
         )
 
-        self.current_source_type = None
-        # 如果点击成功，存储当前选择的电量来源类型
-        if click_result.is_success:
-            self.current_source_type = click_result.status
-            log.debug(f'已选择电量来源: {self.current_source_type}')
-
-        return click_result
-
     @node_from(from_name='选择电量来源')
     @operation_node(name='确认电量来源')
     def confirm_charge_source(self) -> OperationRoundResult:
         confirm_area = self.ctx.screen_loader.get_area('恢复电量', '确认')
-        return self.round_by_ocr_and_click(self.last_screenshot, gt('确认', 'game'), confirm_area, success_wait=0.5)
+        click = self.round_by_ocr_and_click(self.last_screenshot, gt('确认', 'game'), confirm_area)
+        if click.is_success:
+            return self.round_success(status=self.previous_node.status, wait=0.5)
 
     @node_from(from_name='确认电量来源')
     @operation_node(name='识别当前数量')
@@ -93,17 +84,17 @@ class RestoreCharge(ZOperation):
         if not self.is_menu:
             return self.round_success(wait=0.5)
 
-        self.current_amount = None
+        current_amount = None
 
         amount_area = self.ctx.screen_loader.get_area('恢复电量', '当前数量')
         part = cv2_utils.crop_image_only(self.last_screenshot, amount_area.rect)
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-        self.current_amount = str_utils.get_positive_digits(ocr_result)
+        current_amount = str_utils.get_positive_digits(ocr_result)
 
-        if self.current_amount is None:
+        if current_amount is None:
             return self.round_retry('未识别到电量数值', wait=0.5)
         else:
-            return self.round_success(status=self.current_source_type, wait=0.5)
+            return self.round_success(status=self.previous_node.status, data=current_amount, wait=0.5)
 
     @node_from(from_name='识别当前数量', status=SOURCE_BACKUP_CHARGE)
     @operation_node(name='处理储蓄电量恢复')
@@ -112,7 +103,7 @@ class RestoreCharge(ZOperation):
             return self.round_success()
 
         # 点击输入框并输入数量
-        amount_to_use = min(self.required_charge, self.current_amount)
+        amount_to_use = min(self.required_charge, self.previous_node.data)
         input_area = self.ctx.screen_loader.get_area('恢复电量', '兑换数量-数字输入框')
         self.ctx.controller.click(input_area.center)
         time.sleep(0.5)
@@ -128,7 +119,7 @@ class RestoreCharge(ZOperation):
 
         # 每个电池恢复60体力
         need_battery_count = (self.required_charge + 59) // 60
-        usable_battery_count = min(need_battery_count, self.current_amount)
+        usable_battery_count = min(need_battery_count, self.previous_node.data)
 
         # 获取加号位置
         plus_point = self.ctx.screen_loader.get_area('恢复电量', '兑换数量-加').center
