@@ -25,7 +25,9 @@ from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 from one_dragon_qt.widgets.banner import Banner
 from one_dragon_qt.widgets.icon_button import IconButton
+# from one_dragon_qt.widgets.notice_card import NoticeCardContainer
 from one_dragon_qt.widgets.notice_card import NoticeCardContainer
+from one_dragon_qt.widgets.notice_viewer_v2 import NoticeViewerContainerV2
 from one_dragon_qt.widgets.vertical_scroll_interface import (
     VerticalScrollInterface,
 )
@@ -293,7 +295,8 @@ class HomeInterface(VerticalScrollInterface):
         h2_layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
 
         # 公告卡片
-        self.notice_container = NoticeCardContainer()
+        # self.notice_container = NoticeCardContainer()
+        self.notice_container = NoticeViewerContainerV2(os_utils.get_path_under_work_dir('assets'))
         h2_layout.addWidget(self.notice_container)
 
         # 根据配置设置启用状态
@@ -388,8 +391,10 @@ class HomeInterface(VerticalScrollInterface):
         """启动一条龙按钮点击事件处理"""
         # app.py中一条龙界面为第三个添加的
         self.ctx.signal.start_onedragon = True
-        one_dragon_interface = self.main_window.stackedWidget.widget(2)
-        self.main_window.switchTo(one_dragon_interface)
+        if self.main_window and hasattr(self.main_window, 'stackedWidget'):
+            one_dragon_interface = self.main_window.stackedWidget.widget(2)
+            if hasattr(self.main_window, 'switchTo'):
+                self.main_window.switchTo(one_dragon_interface)
 
     def reload_banner(self, show_notification: bool = False) -> None:
         """
