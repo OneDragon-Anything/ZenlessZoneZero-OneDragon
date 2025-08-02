@@ -181,6 +181,9 @@ class Operation(OperationBase):
         self.last_screenshot_time: float = 0
         """上一次截图的时间"""
 
+        self.saved_status: dict[str, PreviousNodeStateProxy] = {}
+        """已保存状态的字典"""
+
     def _init_before_execute(self):
         """在操作开始前初始化执行状态。
 
@@ -204,6 +207,7 @@ class Operation(OperationBase):
         self.node_clicked = False
         self._current_node_start_time = now
         self._previous_round_result = None
+        self.saved_status.clear()
 
         # 监听事件
         self.ctx.unlisten_all_event(self)
@@ -497,6 +501,12 @@ class Operation(OperationBase):
                                                            wait=self._current_node.wait_after_op)
         else:
             return self.round_fail('节点处理函数和指令都没有设置')
+
+        # 自动保存启用了 save_status 的节点状态
+        if self._current_node.save_status and current_round_result.result in (
+            OperationRoundResultEnum.SUCCESS, OperationRoundResultEnum.FAIL
+        ):
+            self.saved_status[self._current_node.cn] = PreviousNodeStateProxy(self._current_node, current_round_result)
 
         return current_round_result
 

@@ -18,6 +18,7 @@ class OperationNode:
             node_max_retry_times: int = 3,
             mute: bool = False,
             screenshot_before_round: bool = True,
+            save_status: bool = False,
     ):
         """
 
@@ -32,6 +33,7 @@ class OperationNode:
             node_max_retry_times: 当前节点的重试次数
             mute: 是否不显示当前节点的结果日志
             screenshot_before_round: 当前节点每次运行前是否自动截图
+            save_status: 是否保存当前状态到列表中
         """
 
         self.cn: str = cn
@@ -64,6 +66,9 @@ class OperationNode:
         self.screenshot_before_round: bool = screenshot_before_round
         """当前节点每次运行前是否自动截图"""
 
+        self.save_status: bool = save_status
+        """是否保存当前状态到列表中"""
+
 def operation_node(
         name: str,
         retry_on_op_fail: bool = False,
@@ -73,6 +78,7 @@ def operation_node(
         node_max_retry_times: int = 3,
         mute: bool = False,
         screenshot_before_round: bool = True,
+        save_status: bool = False,
 ):
     def decorator(func):
         # 直接将 node 对象作为函数的一个属性附加到函数上
@@ -86,8 +92,9 @@ def operation_node(
             node_max_retry_times=node_max_retry_times,
             mute=mute,
             screenshot_before_round=screenshot_before_round,
+            save_status=save_status,
         )
         setattr(func, 'operation_node_annotation', node)
         return func
-    
+
     return decorator
