@@ -314,13 +314,32 @@ class PcScreenshot:
         if independent:
             return self._get_screenshot_print_window_independent(hwnd, width, height, before_screenshot_time)
 
-        # 使用预加载的基础资源，动态创建窗口大小相关的资源
+        # 第一次尝试截图
+        screenshot = self._capture_screenshot(hwnd, width, height, before_screenshot_time)
+        if screenshot is not None:
+            return screenshot
+
+        # 第一次失败，重新初始化后再次尝试
+        if not self.init_print_window():
+            return None  # 初始化失败，直接退出
+
+        # 第二次尝试截图
+        return self._capture_screenshot(hwnd, width, height, before_screenshot_time)
+
+    def _capture_screenshot(self, hwnd, width, height, before_screenshot_time) -> MatLike | None:
+        """
+        尝试执行一次截图操作
+        :param hwnd: 窗口句柄
+        :param width: 窗口宽度
+        :param height: 窗口高度
+        :param before_screenshot_time: 截图开始时间
+        :return: 截图数组或None
+        """
         try:
             # 检查是否需要重新创建窗口大小相关的资源
-            if (self.print_window_saveBitMap is None or
-                self.print_window_width != width or
-                self.print_window_height != height):
-
+            if (self.print_window_saveBitMap is None
+                or self.print_window_width != width
+                or self.print_window_height != height):
                 # 清理旧的窗口大小相关资源
                 if self.print_window_saveBitMap:
                     ctypes.windll.gdi32.DeleteObject(self.print_window_saveBitMap)
@@ -336,17 +355,17 @@ class PcScreenshot:
                 self.print_window_height = height
 
             # 执行截图
-            return self._capture_window_to_bitmap(hwnd, width, height,
-                                                  self.print_window_hwndDC,
-                                                  self.print_window_mfcDC,
-                                                  self.print_window_saveBitMap,
-                                                  self.print_window_buffer,
-                                                  self.print_window_bmpinfo_buffer,
-                                                  before_screenshot_time)
+            screenshot = self._capture_window_to_bitmap(hwnd, width, height,
+                                                        self.print_window_hwndDC,
+                                                        self.print_window_mfcDC,
+                                                        self.print_window_saveBitMap,
+                                                        self.print_window_buffer,
+                                                        self.print_window_bmpinfo_buffer,
+                                                        before_screenshot_time)
+            return screenshot
 
         except Exception:
-            # 回退到独立模式
-            return self._get_screenshot_print_window_independent(hwnd, width, height, before_screenshot_time)
+            return None
 
     def _create_bmpinfo_buffer(self, width, height):
         """
@@ -477,8 +496,8 @@ class PcScreenshot:
 
             # 使用通用截图方法
             return self._capture_window_to_bitmap(hwnd, width, height, hwndDC, mfcDC,
-                                                saveBitMap, buffer, bmpinfo_buffer,
-                                                before_screenshot_time)
+                                                  saveBitMap, buffer, bmpinfo_buffer,
+                                                  before_screenshot_time)
 
         except Exception:
             return None
