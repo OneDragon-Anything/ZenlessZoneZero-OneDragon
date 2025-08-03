@@ -14,7 +14,7 @@ from one_dragon.base.controller.pc_button.keyboard_mouse_controller import Keybo
 from one_dragon.base.controller.pc_button.pc_button_controller import PcButtonController
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonController
 from one_dragon.base.controller.pc_game_window import PcGameWindow
-from one_dragon.base.controller.pc_screenshot import PcScreenshot
+from one_dragon.base.controller.pc_screenshot.pc_screenshot_controller import PcScreenshotController
 from one_dragon.base.geometry.point import Point
 from one_dragon.utils.log_utils import log
 
@@ -40,7 +40,7 @@ class PcControllerBase(ControllerBase):
         self.ds4_controller: Optional[Ds4ButtonController] = None
 
         self.btn_controller: PcButtonController = self.keyboard_controller
-        self.screenshot_controller: PcScreenshot = PcScreenshot(self.game_win, standard_width, standard_height)
+        self.screenshot_controller: PcScreenshotController = PcScreenshotController(self.game_win, standard_width, standard_height)
         self.screenshot_method: str = screenshot_method
 
     def init_before_context_run(self) -> bool:
