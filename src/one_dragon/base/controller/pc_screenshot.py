@@ -420,7 +420,7 @@ class PcScreenshot:
                                               0, height, buffer,
                                               bmpinfo_buffer, 0)  # DIB_RGB_COLORS
 
-        if lines == 0:
+        if lines != height:
             return None
 
         # 转换为numpy数组
