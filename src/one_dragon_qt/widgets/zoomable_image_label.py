@@ -1,5 +1,5 @@
-from PySide6.QtCore import Qt, QPoint, QSize, Signal
-from PySide6.QtGui import QWheelEvent, QPixmap, QMouseEvent, QPainter, QPaintEvent, QResizeEvent
+from PySide6.QtCore import Qt, QPoint, QRect, QSize, Signal
+from PySide6.QtGui import QPixmap, QPainter, QPen, QMouseEvent, QPaintEvent, QResizeEvent, QWheelEvent
 from PySide6.QtWidgets import QSizePolicy, QLabel
 
 from one_dragon.utils.image_utils import scale_pixmap_for_high_dpi
@@ -9,6 +9,7 @@ class ZoomableClickImageLabel(QLabel):
 
     left_clicked_with_pos = Signal(int, int)
     right_clicked_with_pos = Signal(int, int)
+    rect_selected = Signal(int, int, int, int)  # 左上角x,y 和 右下角x,y
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -28,24 +29,40 @@ class ZoomableClickImageLabel(QLabel):
         self.image_offset = QPoint(0, 0)  # 图像偏移量
         self.drag_threshold = 5  # 最小拖拽距离阈值
 
+        # 矩形选择相关变量
+        self.is_selecting = False
+        self.selection_start = QPoint()
+        self.selection_end = QPoint()
+
     def mousePressEvent(self, event: QMouseEvent):
         """
-        鼠标按下事件，处理左键拖动和右键单击
+        鼠标按下事件，处理Ctrl+左键拖动、左键矩形选择和右键单击
         """
         if event.button() == Qt.MouseButton.LeftButton:
-            # 左键准备拖动
-            self.is_dragging = True
-            self.drag_started = False
-            self.last_drag_pos = event.pos()
+            # 检查是否按下了Ctrl键
+            if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+                # Ctrl+左键准备拖动图片
+                self.is_dragging = True
+                self.drag_started = False
+                self.last_drag_pos = event.pos()
+                self.is_selecting = False
+            else:
+                # 普通左键开始矩形选择
+                self.is_selecting = True
+                self.selection_start = event.pos()
+                self.selection_end = event.pos()
+                self.is_dragging = False
+                self.drag_started = False
         elif event.button() == Qt.MouseButton.RightButton:
             pos = event.pos()
             self.right_clicked_with_pos.emit(pos.x(), pos.y())
 
     def mouseMoveEvent(self, event: QMouseEvent):
         """
-        鼠标移动事件，处理拖动
+        鼠标移动事件，处理Ctrl+左键拖动图片和普通左键矩形选择
         """
-        if self.is_dragging:
+        if self.is_dragging and (event.buttons() & Qt.MouseButton.LeftButton) and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
+            # Ctrl+左键拖动图片
             # 计算移动距离
             delta = event.pos() - self.last_drag_pos
 
@@ -68,44 +85,92 @@ class ZoomableClickImageLabel(QLabel):
                 self.last_drag_pos = event.pos()
                 # 拖动时只需要请求重绘，不需要重新缩放
                 self.update()
+        elif self.is_selecting and (event.buttons() & Qt.MouseButton.LeftButton):
+            # 普通左键矩形选择
+            self.selection_end = event.pos()
+            self.update()  # 重绘以显示选择矩形
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         """
-        鼠标释放事件，结束拖动或触发点击
+        鼠标释放事件，结束拖动、结束矩形选择或触发点击
         """
-        if event.button() == Qt.MouseButton.LeftButton and self.is_dragging:
-            # 如果没有实际开始拖拽，认为是点击事件
-            if not self.drag_started:
-                # 将显示坐标转换为图像坐标
+        if event.button() == Qt.MouseButton.LeftButton:
+            if self.is_dragging and self.drag_started:
+                # 结束Ctrl+左键拖动
+                self.is_dragging = False
+                self.drag_started = False
+                self.setCursor(Qt.CursorShape.ArrowCursor)
+            elif self.is_selecting:
+                # 结束矩形选择
+                self.is_selecting = False
+
+                # 计算矩形范围并转换为图像坐标
+                start_pos = self.map_display_to_image_coords(self.selection_start)
+                end_pos = self.map_display_to_image_coords(self.selection_end)
+
+                if start_pos is not None and end_pos is not None:
+                    # 确保坐标顺序正确（左上角和右下角）
+                    x1, y1 = start_pos.x(), start_pos.y()
+                    x2, y2 = end_pos.x(), end_pos.y()
+
+                    left = min(x1, x2)
+                    top = min(y1, y2)
+                    right = max(x1, x2)
+                    bottom = max(y1, y2)
+
+                    # 如果矩形有实际大小（不是单点），发送矩形选择信号
+                    if abs(right - left) > 2 or abs(bottom - top) > 2:  # 允许小的误差
+                        self.rect_selected.emit(left, top, right, bottom)
+                    else:
+                        # 如果是单点点击，发送点击信号
+                        self.left_clicked_with_pos.emit(x1, y1)
+
+                # 清除选择矩形的显示
+                self.update()
+            else:
+                # 普通点击事件（没有拖动也没有选择）
                 image_pos = self.map_display_to_image_coords(event.pos())
                 if image_pos is not None:
                     self.left_clicked_with_pos.emit(image_pos.x(), image_pos.y())
 
-            # 结束拖动
-            self.is_dragging = False
-            self.drag_started = False
-            self.setCursor(Qt.CursorShape.ArrowCursor)
+                # 重置状态
+                self.is_dragging = False
+                self.drag_started = False
+                self.setCursor(Qt.CursorShape.ArrowCursor)
 
-    def setPixmap(self, pixmap: QPixmap):
+    def setPixmap(self, pixmap: QPixmap, preserve_state: bool = False):
         """
         保存原始图像并进行初次缩放
+        :param pixmap: 要设置的图像
+        :param preserve_state: 是否保留当前的缩放和位置状态
         """
+        old_pixmap = self.original_pixmap
         self.original_pixmap = pixmap
-        self.image_offset = QPoint(0, 0)  # 重置偏移量
-        # 初始加载时，将图片宽度缩放到等于控件宽度
-        if self.width() > 0 and self.original_pixmap is not None:
-            self.scale_factor = self.width() / self.original_pixmap.width()
-        else:
-            self.scale_factor = 1.0
+
+        # 检查是否需要保留状态
+        should_preserve = (preserve_state and
+                          old_pixmap is not None and
+                          pixmap is not None and
+                          old_pixmap.size() == pixmap.size())
+
+        if not should_preserve:
+            self.image_offset = QPoint(0, 0)  # 重置偏移量
+            # 初始加载时，将图片宽度缩放到等于控件宽度
+            if self.width() > 0 and self.original_pixmap is not None:
+                self.scale_factor = self.width() / self.original_pixmap.width()
+            else:
+                self.scale_factor = 1.0
 
         # 应用边界限制
         self.image_offset = self._limit_image_bounds(self.image_offset)
         # 更新缩放后的图像并触发重绘
         self.update_scaled_pixmap()
 
-    def setImage(self, image):
+    def setImage(self, image, preserve_state: bool = False):
         """
         设置图像的接口，兼容Cv2Image和QPixmap
+        :param image: 图像对象
+        :param preserve_state: 是否保留当前的缩放和位置状态
         """
         if image is None:
             self.original_pixmap = None
@@ -125,7 +190,7 @@ class ZoomableClickImageLabel(QLabel):
             except:
                 return
 
-        self.setPixmap(pixmap)
+        self.setPixmap(pixmap, preserve_state)
 
     def wheelEvent(self, event: QWheelEvent):
         """
@@ -192,7 +257,7 @@ class ZoomableClickImageLabel(QLabel):
 
     def paintEvent(self, event: QPaintEvent):
         """
-        在控件上高效地绘制图像。
+        在控件上高效地绘制图像和选择矩形。
         """
         # 如果没有可绘制的图像，调用父类的paintEvent
         if self.current_scaled_pixmap.isNull():
@@ -207,6 +272,26 @@ class ZoomableClickImageLabel(QLabel):
 
         # 根据当前的偏移量，直接将缩放好的图像绘制到控件上
         painter.drawPixmap(self.image_offset, self.current_scaled_pixmap)
+
+        # 如果正在进行矩形选择，绘制选择矩形
+        if self.is_selecting:
+
+            # 设置画笔样式
+            pen = QPen(Qt.GlobalColor.red, 2, Qt.PenStyle.DashLine)
+            painter.setPen(pen)
+
+            # 计算矩形
+            x1, y1 = self.selection_start.x(), self.selection_start.y()
+            x2, y2 = self.selection_end.x(), self.selection_end.y()
+
+            left = min(x1, x2)
+            top = min(y1, y2)
+            width = abs(x2 - x1)
+            height = abs(y2 - y1)
+
+            # 绘制选择矩形
+            rect = QRect(left, top, width, height)
+            painter.drawRect(rect)
 
     def map_display_to_image_coords(self, display_pos: QPoint) -> QPoint:
         """
