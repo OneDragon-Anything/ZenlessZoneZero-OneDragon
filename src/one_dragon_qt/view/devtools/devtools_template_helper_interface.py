@@ -1,7 +1,7 @@
 import os
 import cv2
-from PySide6.QtWidgets import QWidget, QFileDialog, QTableWidgetItem, QMessageBox
-from qfluentwidgets import FluentIcon, PushButton, TableWidget, ToolButton, ImageLabel, CaptionLabel, LineEdit
+from PySide6.QtWidgets import QWidget, QSizePolicy, QFileDialog, QTableWidgetItem, QMessageBox, QVBoxLayout, QHBoxLayout
+from qfluentwidgets import FluentIcon, PushButton, TableWidget, ToolButton, ImageLabel, CaptionLabel, LineEdit, SingleDirectionScrollArea
 from typing import List, Optional
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -10,10 +10,9 @@ from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.screen.template_info import TemplateInfo, TemplateShapeEnum
 from one_dragon.utils import os_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.image_utils import scale_image_for_high_dpi
 from one_dragon.utils.log_utils import log
-from one_dragon_qt.widgets.click_image_label import ImageScaleEnum, ClickImageLabel
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.row import Row
@@ -22,6 +21,7 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPush
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
 
 
 class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
@@ -40,24 +40,36 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         self.last_screen_dir: Optional[str] = None  # 上一次选择的图片路径
 
     def get_content_widget(self) -> QWidget:
-        content_widget = Row()
+        main_widget = QWidget()
+        main_layout = QHBoxLayout(main_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(12)
 
-        content_widget.add_widget(self._init_left_part())
-        content_widget.add_widget(self._init_mid_part())
-        content_widget.add_widget(self._init_right_part())
+        left_panel = self._init_left_part()
+        mid_panel = self._init_mid_part()
+        right_panel = self._init_right_part()
 
-        return content_widget
+        main_layout.addWidget(left_panel)
+        main_layout.addWidget(mid_panel)
+        main_layout.addWidget(right_panel, 1)
+
+        return main_widget
 
     def _init_left_part(self) -> QWidget:
-        widget = Column()
+        scroll_area = SingleDirectionScrollArea()
 
-        btn_row = Row()
-        widget.add_widget(btn_row)
+        control_widget = QWidget()
+        control_layout = QVBoxLayout(control_widget)
+        control_layout.setContentsMargins(12, 0, 12, 0)
+        control_layout.setSpacing(12)
+
+        btn_row = Row(spacing=6, margins=(0, 0, 0, 0))
+        control_layout.addWidget(btn_row)
 
         self.existed_yml_btn = EditableComboBox()
         self.existed_yml_btn.setPlaceholderText(gt('选择已有'))
         self.existed_yml_btn.currentIndexChanged.connect(self._on_choose_existed_yml)
-        btn_row.add_widget(self.existed_yml_btn)
+        btn_row.add_widget(self.existed_yml_btn, stretch=1)
 
         self.create_btn = PushButton(text=gt('新建'))
         self.create_btn.clicked.connect(self._on_create_clicked)
@@ -75,10 +87,10 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
         btn_row.add_widget(self.cancel_btn)
 
-        btn_row.add_stretch(1)
+        save_row = Row(spacing=6, margins=(0, 0, 0, 0))
+        control_layout.addWidget(save_row)
 
-        save_row = Row()
-        widget.add_widget(save_row)
+        save_row.add_stretch(1)
 
         self.choose_image_btn = PushButton(text=gt('选择图片'))
         self.choose_image_btn.clicked.connect(self.choose_existed_image)
@@ -96,48 +108,44 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         self.save_mask_btn.clicked.connect(self._on_save_mask_clicked)
         save_row.add_widget(self.save_mask_btn)
 
-        save_row.add_stretch(1)
-
         self.h_move_input = LineEdit()
         self.h_btn = PushButton(text=gt('移动'))
         self.h_btn.clicked.connect(self._on_h_move_clicked)
         self.h_move_opt = MultiPushSettingCard(icon=FluentIcon.MOVE, title='横移',
                                                btn_list=[self.h_move_input, self.h_btn])
-        widget.add_widget(self.h_move_opt)
+        control_layout.addWidget(self.h_move_opt)
 
         self.v_move_input = LineEdit()
         self.v_btn = PushButton(text=gt('移动'))
         self.v_btn.clicked.connect(self._on_v_move_clicked)
         self.v_move_opt = MultiPushSettingCard(icon=FluentIcon.MOVE, title='纵移',
                                                btn_list=[self.v_move_input, self.v_btn])
-        widget.add_widget(self.v_move_opt)
+        control_layout.addWidget(self.v_move_opt)
 
         self.template_sub_dir_opt = TextSettingCard(icon=FluentIcon.HOME, title='画面')
         self.template_sub_dir_opt.line_edit.setFixedWidth(240)
         self.template_sub_dir_opt.value_changed.connect(self._on_template_sub_dir_changed)
-        widget.add_widget(self.template_sub_dir_opt)
+        control_layout.addWidget(self.template_sub_dir_opt)
 
         self.template_id_opt = TextSettingCard(icon=FluentIcon.HOME, title='模板ID')
         self.template_id_opt.line_edit.setFixedWidth(240)
         self.template_id_opt.value_changed.connect(self._on_template_id_changed)
-        widget.add_widget(self.template_id_opt)
+        control_layout.addWidget(self.template_id_opt)
 
         self.template_name_opt = TextSettingCard(icon=FluentIcon.HOME, title='模板名称')
         self.template_name_opt.line_edit.setFixedWidth(240)
         self.template_name_opt.value_changed.connect(self._on_template_name_changed)
-        widget.add_widget(self.template_name_opt)
+        control_layout.addWidget(self.template_name_opt)
 
         self.template_shape_opt = ComboBoxSettingCard(icon=FluentIcon.FIT_PAGE, title='形状', options_enum=TemplateShapeEnum)
         self.template_shape_opt.value_changed.connect(self._on_template_shape_changed)
-        widget.add_widget(self.template_shape_opt)
+        control_layout.addWidget(self.template_shape_opt)
 
         self.auto_mask_opt = SwitchSettingCard(icon=FluentIcon.HOME, title='自动生成掩码')
         self.auto_mask_opt.value_changed.connect(self._on_auto_mask_changed)
-        widget.add_widget(self.auto_mask_opt)
+        control_layout.addWidget(self.auto_mask_opt)
 
         self.point_table = TableWidget()
-        self.point_table.setMinimumWidth(300)
-        self.point_table.setMinimumHeight(220)
         self.point_table.setBorderVisible(True)
         self.point_table.setBorderRadius(8)
         self.point_table.setWordWrap(True)
@@ -150,10 +158,15 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         self.point_table.setColumnWidth(0, 40)  # 操作
         self.point_table.setColumnWidth(1, 200)  # 位置
         self.point_table.cellChanged.connect(self._on_point_table_cell_changed)
-        widget.add_widget(self.point_table)
+        self.point_table.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        control_layout.addWidget(self.point_table)
 
-        widget.add_stretch(1)
-        return widget
+        control_layout.addStretch(1)
+
+        scroll_area.setWidget(control_widget)
+        scroll_area.setWidgetResizable(True)
+
+        return scroll_area
 
     def _init_mid_part(self) -> QWidget:
         widget = Column()
@@ -187,27 +200,18 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         return widget
 
     def _init_right_part(self) -> QWidget:
-        widget = Column()
-
-        self.image_display_size_opt = ComboBoxSettingCard(
-            icon=FluentIcon.ZOOM_IN, title='图片显示大小',
-            options_enum=ImageScaleEnum
-        )
-        self.image_display_size_opt.setValue(0.5)
-        self.image_display_size_opt.setFixedWidth(240)
-        self.image_display_size_opt.value_changed.connect(self._update_screen_image_display)
-        widget.add_widget(self.image_display_size_opt)
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
 
         self.image_click_pos_opt = TextSettingCard(icon=FluentIcon.MOVE, title='鼠标选择区域')
-        self.image_click_pos_opt.setFixedWidth(240)
-        widget.add_widget(self.image_click_pos_opt)
+        layout.addWidget(self.image_click_pos_opt)
 
-        self.image_label = ClickImageLabel()
-        self.image_label.clicked_with_pos.connect(self._on_image_clicked)
+        self.image_label = ZoomableClickImageLabel()
+        self.image_label.left_clicked_with_pos.connect(self._on_image_left_clicked)
         self.image_label.right_clicked_with_pos.connect(self._on_image_right_clicked)
-        widget.add_widget(self.image_label)
-
-        widget.add_stretch(1)
+        layout.addWidget(self.image_label, stretch=1)
 
         return widget
 
@@ -287,15 +291,22 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         self.point_table.blockSignals(True)
         point_list: List[Point] = [] if self.chosen_template is None else self.chosen_template.point_list
         point_cnt = len(point_list)
-        self.point_table.setRowCount(point_cnt + 1)
+        self.point_table.setRowCount(point_cnt)
 
         for idx in range(point_cnt):
             point_item = point_list[idx]
             del_btn = ToolButton(FluentIcon.DELETE, parent=None)
+            del_btn.setFixedSize(32, 32)
             del_btn.clicked.connect(self._on_row_delete_clicked)
 
             self.point_table.setCellWidget(idx, 0, del_btn)
             self.point_table.setItem(idx, 1, QTableWidgetItem('%d, %d' % (point_item.x, point_item.y)))
+
+        # 根据行数调整表格高度
+        row_height = self.point_table.rowHeight(0) if self.point_table.rowCount() > 0 else 32
+        header_height = self.point_table.horizontalHeader().height()
+        total_height = header_height + point_cnt * row_height + 4  # 4像素的边距
+        self.point_table.setFixedHeight(total_height)
 
         self.point_table.blockSignals(False)
 
@@ -320,14 +331,6 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         if image_to_show is not None:
             image = Cv2Image(image_to_show)
             self.image_label.setImage(image)
-            size_value: float = self.image_display_size_opt.getValue()
-            if size_value is None:
-                display_width = image.width()
-                display_height = image.height()
-            else:
-                display_width = int(image.width() * size_value)
-                display_height = int(image.height() * size_value)
-            self.image_label.setFixedSize(display_width, display_height)
         else:
             self.image_label.setImage(None)
 
@@ -572,29 +575,22 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
             self.chosen_template.point_updated = True
             self._update_all_image_display()
 
-    def _on_image_clicked(self, x1: int, y1: int) -> None:
+    def _on_image_left_clicked(self, x1: int, y1: int) -> None:
         """
-        图片上拖拽区域后 显示坐标
+        图片上点击后显示坐标
         :return:
         """
         if self.chosen_template is None or self.chosen_template.screen_image is None:
             return
-        display_width = self.image_label.width()
-        display_height = self.image_label.height()
 
-        image_height, image_width, _ = self.chosen_template.screen_image.shape
-
-        real_x = int(x1 * image_width / display_width)
-        real_y = int(y1 * image_height / display_height)
-
-        self.chosen_template.add_point(Point(real_x, real_y))
+        self.chosen_template.add_point(Point(x1, y1))
 
         self._update_point_table_display()
         self._update_all_image_display()
 
     def _on_h_move_clicked(self) -> None:
         """
-        所有点为的横坐标改变
+        所有点位的横坐标改变
         """
         if self.chosen_template is None:
             return
@@ -610,7 +606,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
 
     def _on_v_move_clicked(self) -> None:
         """
-        所有点为的纵坐标改变
+        所有点位的纵坐标改变
         """
         if self.chosen_template is None:
             return
