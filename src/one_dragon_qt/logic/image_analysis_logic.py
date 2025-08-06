@@ -105,13 +105,10 @@ class ImageAnalysisLogic:
         从文件路径加载图片，并初始化相关状态
         """
         try:
-            # 直接使用cv2.imread确保读取的是BGR格式
-            image_bgr = cv2.imread(file_path)
-            if image_bgr is None:
+            source_image = cv2_utils.read_image(file_path)
+            if source_image is None:
                 return False
 
-            # 立刻转换为RGB格式，确保后续所有操作的颜色空间正确
-            source_image = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
             self.context = CvPipelineContext(source_image, service=self.cv_service, debug_mode=True)
 
             height, width, _ = source_image.shape
