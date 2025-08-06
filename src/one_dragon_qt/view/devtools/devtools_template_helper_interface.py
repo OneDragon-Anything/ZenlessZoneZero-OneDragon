@@ -811,26 +811,13 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
             QMessageBox.warning(self, "错误", "未选择图片")
             return
 
-        display_width = self.image_label.width()
-        display_height = self.image_label.height()
-
-        image_height, image_width, _ = self.chosen_template.screen_image.shape
-
-        # 将显示坐标转换为原始图像坐标
-        real_x = int(x * image_width / display_width)
-        real_y = int(y * image_height / display_height)
-
-        if not (0 <= real_y < image_height and 0 <= real_x < image_width):
-            QMessageBox.warning(self, "错误", f"点击位置 ({real_x}, {real_y}) 超出图像范围")
-            return
-
         # 获取 RGB 颜色值
-        rgb_color = self.chosen_template.screen_image[real_y, real_x]
+        rgb_color = self.chosen_template.screen_image[y, x]
 
         # 将 RGB 转换为 HSV
         hsv_color = cv2.cvtColor(rgb_color.reshape(1, 1, 3), cv2.COLOR_RGB2HSV)[0, 0]
 
-        message = (f"点击位置: ({real_x}, {real_y})\n"
+        message = (f"点击位置: ({x}, {y})\n"
                    f"RGB: ({rgb_color[0]}, {rgb_color[1]}, {rgb_color[2]})\n"
                    f"HSV: ({hsv_color[0]}, {hsv_color[1]}, {hsv_color[2]})")
 
