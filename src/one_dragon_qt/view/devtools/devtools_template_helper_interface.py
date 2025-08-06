@@ -10,11 +10,11 @@ from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.screen.template_info import TemplateInfo, TemplateShapeEnum
 from one_dragon.utils import os_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
-from one_dragon.utils.image_utils import scale_image_for_high_dpi
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
+from one_dragon_qt.widgets.fixed_size_image_label import FixedSizeImageLabel
 from one_dragon_qt.widgets.row import Row
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
@@ -43,7 +43,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         main_widget = QWidget()
         main_layout = QHBoxLayout(main_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(12)
+        main_layout.setSpacing(0)
 
         left_panel = self._init_left_part()
         mid_panel = self._init_mid_part()
@@ -61,7 +61,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         control_widget = QWidget()
         control_layout = QVBoxLayout(control_widget)
         control_layout.setContentsMargins(12, 0, 12, 0)
-        control_layout.setSpacing(12)
+        control_layout.setSpacing(6)
 
         btn_row = Row(spacing=6, margins=(0, 0, 0, 0))
         control_layout.addWidget(btn_row)
@@ -150,13 +150,14 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         self.point_table.setBorderRadius(8)
         self.point_table.setWordWrap(True)
         self.point_table.setColumnCount(2)
+        self.point_table.setColumnWidth(0, 40)  # 操作
+        # 设置最后一列占用剩余空间
+        self.point_table.horizontalHeader().setStretchLastSection(True)
         self.point_table.verticalHeader().hide()
         self.point_table.setHorizontalHeaderLabels([
             gt('操作'),
             gt('点位'),
         ])
-        self.point_table.setColumnWidth(0, 40)  # 操作
-        self.point_table.setColumnWidth(1, 200)  # 位置
         self.point_table.cellChanged.connect(self._on_point_table_cell_changed)
         self.point_table.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         control_layout.addWidget(self.point_table)
@@ -169,35 +170,44 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         return scroll_area
 
     def _init_mid_part(self) -> QWidget:
-        widget = Column()
+        scroll_area = SingleDirectionScrollArea()
+        scroll_area.setMaximumWidth(150)  # 设置整个中间面板的最大宽度
+
+        control_widget = QWidget()
+        control_layout = QVBoxLayout(control_widget)
+        control_layout.setContentsMargins(0, 0, 12, 0)
+        control_layout.setSpacing(2)
 
         raw_label = CaptionLabel(text=gt('模板原图'))
-        widget.add_widget(raw_label)
+        control_layout.addWidget(raw_label)
 
-        self.template_raw_label = ImageLabel()
-        widget.add_widget(self.template_raw_label)
+        self.template_raw_label = FixedSizeImageLabel(140)
+        control_layout.addWidget(self.template_raw_label)
 
         mask_label = CaptionLabel(text=gt('模板掩码'))
-        widget.add_widget(mask_label)
+        control_layout.addWidget(mask_label)
 
-        self.template_mask_label = ImageLabel()
-        widget.add_widget(self.template_mask_label)
+        self.template_mask_label = FixedSizeImageLabel(140)
+        control_layout.addWidget(self.template_mask_label)
 
         merge_label = CaptionLabel(text=gt('模板抠图'))
-        widget.add_widget(merge_label)
+        control_layout.addWidget(merge_label)
 
-        self.template_merge_label = ImageLabel()
-        widget.add_widget(self.template_merge_label)
+        self.template_merge_label = FixedSizeImageLabel(140)
+        control_layout.addWidget(self.template_merge_label)
 
         reversed_label = CaptionLabel(text=gt('反向抠图'))
-        widget.add_widget(reversed_label)
+        control_layout.addWidget(reversed_label)
 
-        self.template_reversed_label = ImageLabel()
-        widget.add_widget(self.template_reversed_label)
+        self.template_reversed_label = FixedSizeImageLabel(140)
+        control_layout.addWidget(self.template_reversed_label)
 
-        widget.add_stretch(1)
+        control_layout.addStretch(1)
 
-        return widget
+        scroll_area.setWidget(control_widget)
+        scroll_area.setWidgetResizable(True)
+
+        return scroll_area
 
     def _init_right_part(self) -> QWidget:
         widget = QWidget()
@@ -205,12 +215,26 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.image_click_pos_opt = TextSettingCard(icon=FluentIcon.MOVE, title='鼠标选择区域')
+        self.x_pos_label = LineEdit()
+        self.x_pos_label.setReadOnly(True)
+        self.x_pos_label.setPlaceholderText(gt('横'))
+
+        self.y_pos_label = LineEdit()
+        self.y_pos_label.setReadOnly(True)
+        self.y_pos_label.setPlaceholderText(gt('纵'))
+
+        self.clear_points_btn = PushButton(text=gt('清除点位'))
+        self.clear_points_btn.clicked.connect(self._on_clear_points_clicked)
+
+        self.image_click_pos_opt = MultiPushSettingCard(icon=FluentIcon.MOVE, title='鼠标点击坐标',
+                                                        content='图片左上角为(0, 0)',
+                                                        btn_list=[self.x_pos_label, self.y_pos_label, self.clear_points_btn])
         layout.addWidget(self.image_click_pos_opt)
 
         self.image_label = ZoomableClickImageLabel()
         self.image_label.left_clicked_with_pos.connect(self._on_image_left_clicked)
         self.image_label.right_clicked_with_pos.connect(self._on_image_right_clicked)
+        self.image_label.rect_selected.connect(self._on_image_rect_selected)
         layout.addWidget(self.image_label, stretch=1)
 
         return widget
@@ -222,6 +246,8 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         """
         VerticalScrollInterface.on_interface_shown(self)
         self._update_whole_display()
+        # 设置焦点以便键盘快捷键能正常工作
+        self.setFocus()
 
     def _update_whole_display(self) -> None:
         """
@@ -240,6 +266,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         self.save_config_btn.setDisabled(not chosen)
         self.save_raw_btn.setDisabled(not chosen)
         self.save_mask_btn.setDisabled(not chosen)
+        self.clear_points_btn.setDisabled(not chosen)
 
         self.h_move_input.setDisabled(not chosen)
         self.h_btn.setDisabled(not chosen)
@@ -260,6 +287,8 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
             self.template_name_opt.setValue('')
             self.template_shape_opt.setValue('')
             self.auto_mask_opt.setValue(True)
+            self.x_pos_label.setText('')
+            self.y_pos_label.setText('')
         else:
             self.template_sub_dir_opt.setValue(self.chosen_template.sub_dir)
             self.template_id_opt.setValue(self.chosen_template.template_id)
@@ -270,6 +299,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         self._update_existed_yml_options()
         self._update_all_image_display()
         self._update_point_table_display()
+        self._update_template_shape_tooltip()
 
     def _update_existed_yml_options(self) -> None:
         """
@@ -293,22 +323,56 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         point_cnt = len(point_list)
         self.point_table.setRowCount(point_cnt)
 
-        for idx in range(point_cnt):
-            point_item = point_list[idx]
-            del_btn = ToolButton(FluentIcon.DELETE, parent=None)
-            del_btn.setFixedSize(32, 32)
-            del_btn.clicked.connect(self._on_row_delete_clicked)
+        # 如果没有数据行，隐藏表格；否则显示表格
+        if point_cnt == 0:
+            self.point_table.hide()
+        else:
+            self.point_table.show()
 
-            self.point_table.setCellWidget(idx, 0, del_btn)
-            self.point_table.setItem(idx, 1, QTableWidgetItem('%d, %d' % (point_item.x, point_item.y)))
+            for idx in range(point_cnt):
+                point_item = point_list[idx]
+                del_btn = ToolButton(FluentIcon.DELETE, parent=None)
+                del_btn.setFixedSize(32, 32)
+                del_btn.clicked.connect(self._on_row_delete_clicked)
 
-        # 根据行数调整表格高度
-        row_height = self.point_table.rowHeight(0) if self.point_table.rowCount() > 0 else 32
-        header_height = self.point_table.horizontalHeader().height()
-        total_height = header_height + point_cnt * row_height + 4  # 4像素的边距
-        self.point_table.setFixedHeight(total_height)
+                self.point_table.setCellWidget(idx, 0, del_btn)
+                self.point_table.setItem(idx, 1, QTableWidgetItem('%d, %d' % (point_item.x, point_item.y)))
+
+            # 根据行数调整表格高度
+            row_height = self.point_table.rowHeight(0) if self.point_table.rowCount() > 0 else 32
+            header_height = self.point_table.horizontalHeader().height()
+            total_height = header_height + point_cnt * row_height + 4  # 4像素的边距
+            self.point_table.setFixedHeight(total_height)
 
         self.point_table.blockSignals(False)
+
+    def _update_template_shape_tooltip(self) -> None:
+        """
+        更新模板形状的tooltip说明
+        :return:
+        """
+        if self.chosen_template is None:
+            self.template_shape_opt.setToolTip('请先选择或创建模板')
+            return
+
+        help_text = ""
+        shape = self.chosen_template.template_shape
+
+        if shape == TemplateShapeEnum.RECTANGLE.value.value:
+            help_text = "矩形模板：左键拖拽选择矩形区域，或单击两个对角点"
+        elif shape == TemplateShapeEnum.CIRCLE.value.value:
+            help_text = "圆形模板：左键拖拽选择外接矩形，或单击圆心和边界点"
+        elif shape == TemplateShapeEnum.QUADRILATERAL.value.value:
+            help_text = "四边形模板：左键拖拽选择矩形区域，或依次单击四个顶点"
+        elif shape == TemplateShapeEnum.POLYGON.value.value:
+            help_text = "多边形模板：左键单击添加顶点，或拖拽添加矩形顶点"
+        elif shape == TemplateShapeEnum.MULTI_RECT.value.value:
+            help_text = "多矩形模板：左键拖拽添加矩形区域，或单击添加点位"
+        else:
+            help_text = "左键单击添加点位，右键显示颜色信息"
+
+        help_text += " | Ctrl+左键拖拽移动图片，滚轮缩放 | Ctrl+Z撤销，Ctrl+Shift+Z恢复，Del清除"
+        self.template_shape_opt.setToolTip(help_text)
 
     def _update_all_image_display(self) -> None:
         """
@@ -330,7 +394,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
 
         if image_to_show is not None:
             image = Cv2Image(image_to_show)
-            self.image_label.setImage(image)
+            self.image_label.setImage(image, preserve_state=True)
         else:
             self.image_label.setImage(None)
 
@@ -343,7 +407,6 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         if image_to_show is not None:
             image = Cv2Image(image_to_show)
             self.template_raw_label.setImage(image)
-            self.template_raw_label.setFixedSize(image.width(), image.height())
         else:
             self.template_raw_label.setImage(None)
 
@@ -357,7 +420,6 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         if image_to_show is not None:
             image = Cv2Image(image_to_show)
             self.template_mask_label.setImage(image)
-            self.template_mask_label.setFixedSize(image.width(), image.height())
         else:
             self.template_mask_label.setImage(None)
 
@@ -371,7 +433,6 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         if image_to_show is not None:
             image = Cv2Image(image_to_show)
             self.template_merge_label.setImage(image)
-            self.template_merge_label.setFixedSize(image.width(), image.height())
         else:
             self.template_merge_label.setImage(None)
 
@@ -385,7 +446,6 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         if image_to_show is not None:
             image = Cv2Image(image_to_show)
             self.template_reversed_label.setImage(image)
-            self.template_reversed_label.setFixedSize(image.width(), image.height())
         else:
             self.template_reversed_label.setImage(None)
 
@@ -452,6 +512,20 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
 
         self.chosen_template.save_mask()
         self._update_existed_yml_options()
+
+    def _on_clear_points_clicked(self) -> None:
+        """
+        清除所有点位
+        :return:
+        """
+        if self.chosen_template is None:
+            return
+
+        if len(self.chosen_template.point_list) > 0:
+            self.chosen_template.point_list.clear()
+            self.chosen_template.point_updated = True
+            self._update_point_table_display()
+            self._update_all_image_display()
 
     def _on_delete_clicked(self) -> None:
         """
@@ -534,6 +608,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         self.chosen_template.update_template_shape(value)
         self._update_point_table_display()
         self._update_all_image_display()
+        self._update_template_shape_tooltip()
 
     def _on_auto_mask_changed(self, value: bool) -> None:
         if self.chosen_template is None:
@@ -553,9 +628,10 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         button_idx = self.sender()
         if button_idx is not None:
             row_idx = self.point_table.indexAt(button_idx.pos()).row()
-            self.chosen_template.remove_point_by_idx(row_idx)
-            self.point_table.removeRow(row_idx)
-            self._update_all_image_display()
+            if 0 <= row_idx < len(self.chosen_template.point_list):
+                self.chosen_template.remove_point_by_idx(row_idx)
+                self.point_table.removeRow(row_idx)
+                self._update_all_image_display()
 
     def _on_point_table_cell_changed(self, row: int, column: int) -> None:
         """
@@ -571,9 +647,10 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         text = self.point_table.item(row, column).text().strip()
         if column == 1:
             num_list = [int(i) for i in text.split(',')]
-            self.chosen_template.point_list[row] = Point(num_list[0], num_list[1])
-            self.chosen_template.point_updated = True
-            self._update_all_image_display()
+            if len(num_list) >= 2:
+                self.chosen_template.point_list[row] = Point(num_list[0], num_list[1])
+                self.chosen_template.point_updated = True
+                self._update_all_image_display()
 
     def _on_image_left_clicked(self, x1: int, y1: int) -> None:
         """
@@ -583,7 +660,61 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         if self.chosen_template is None or self.chosen_template.screen_image is None:
             return
 
+        # 显示坐标
+        self.x_pos_label.setText(str(x1))
+        self.y_pos_label.setText(str(y1))
+
         self.chosen_template.add_point(Point(x1, y1))
+
+        self._update_point_table_display()
+        self._update_all_image_display()
+
+    def _on_image_rect_selected(self, left: int, top: int, right: int, bottom: int) -> None:
+        """
+        图片上矩形选择后的处理
+        :param left: 左上角x坐标
+        :param top: 左上角y坐标
+        :param right: 右下角x坐标
+        :param bottom: 右下角y坐标
+        :return:
+        """
+        if self.chosen_template is None or self.chosen_template.screen_image is None:
+            return
+
+        # 根据模板形状处理矩形选择
+        if self.chosen_template.template_shape == TemplateShapeEnum.RECTANGLE.value.value:
+            # 矩形模板：使用矩形的左上角和右下角
+            self.chosen_template.point_list = [Point(left, top), Point(right, bottom)]
+            self.chosen_template.point_updated = True
+        elif self.chosen_template.template_shape == TemplateShapeEnum.CIRCLE.value.value:
+            # 圆形模板：使用矩形的中心点和边界计算半径
+            center_x = (left + right) // 2
+            center_y = (top + bottom) // 2
+            radius = max(abs(right - left), abs(bottom - top)) // 2
+            self.chosen_template.point_list = [Point(center_x, center_y), Point(center_x + radius, center_y)]
+            self.chosen_template.point_updated = True
+        elif self.chosen_template.template_shape == TemplateShapeEnum.QUADRILATERAL.value.value:
+            # 四边形模板：使用矩形的四个角点
+            self.chosen_template.point_list = [
+                Point(left, top),      # 左上角
+                Point(right, top),     # 右上角
+                Point(right, bottom),  # 右下角
+                Point(left, bottom)    # 左下角
+            ]
+            self.chosen_template.point_updated = True
+        elif self.chosen_template.template_shape == TemplateShapeEnum.MULTI_RECT.value.value:
+            # 多矩形模板：添加矩形的左上角和右下角作为新的矩形
+            self.chosen_template.point_list.extend([Point(left, top), Point(right, bottom)])
+            self.chosen_template.point_updated = True
+        elif self.chosen_template.template_shape == TemplateShapeEnum.POLYGON.value.value:
+            # 多边形模板：添加矩形的四个角点
+            self.chosen_template.point_list.extend([
+                Point(left, top),      # 左上角
+                Point(right, top),     # 右上角
+                Point(right, bottom),  # 右下角
+                Point(left, bottom)    # 左下角
+            ])
+            self.chosen_template.point_updated = True
 
         self._update_point_table_display()
         self._update_all_image_display()
@@ -596,13 +727,11 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
             return
 
         input_text = self.h_move_input.text()
-        try:
-            dx = int(input_text)
+        dx = int(input_text)
+        if dx != 0:
             self.chosen_template.update_all_points(dx, 0)
             self._update_point_table_display()
             self._update_all_image_display()
-        except Exception:
-            pass
 
     def _on_v_move_clicked(self) -> None:
         """
@@ -652,3 +781,23 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
                    f"HSV: ({hsv_color[0]}, {hsv_color[1]}, {hsv_color[2]})")
 
         QMessageBox.information(self, "像素颜色信息", message)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        """
+        处理键盘快捷键
+        """
+        if self.chosen_template is None:
+            super().keyPressEvent(event)
+            return
+
+        # Delete 或 Backspace 清除所有点位
+        if event.key() in [Qt.Key.Key_Delete, Qt.Key.Key_Backspace]:
+            if len(self.chosen_template.point_list) > 0:
+                self.chosen_template.point_list.clear()
+                self.chosen_template.point_updated = True
+                self._update_point_table_display()
+                self._update_all_image_display()
+            event.accept()
+            return
+
+        super().keyPressEvent(event)
