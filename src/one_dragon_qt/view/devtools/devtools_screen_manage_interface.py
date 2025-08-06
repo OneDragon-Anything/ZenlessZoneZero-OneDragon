@@ -1,6 +1,7 @@
 import os
 from PySide6.QtCore import QObject, Signal, Qt
 from PySide6.QtWidgets import QWidget, QFileDialog, QTableWidgetItem, QVBoxLayout, QHBoxLayout
+from PySide6.QtGui import QKeyEvent
 from qfluentwidgets import (FluentIcon, PushButton, ToolButton, CheckBox, LineEdit, BodyLabel,
                             TableWidget, SimpleCardWidget, SingleDirectionScrollArea, ScrollArea)
 from typing import Optional
@@ -43,6 +44,9 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
 
         self.chosen_screen: Optional[ScreenInfo] = None
         self.last_screen_dir: Optional[str] = None  # 上一次选择的图片路径
+
+        self.history: list = []  # 统一的历史记录列表
+        self.history_index: int = -1  # 当前历史位置，-1表示最新状态
 
         self._whole_update = ScreenInfoWorker()
         self._whole_update.signal.connect(self._update_display_by_screen)
@@ -213,22 +217,76 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
 
         self.x_pos_label = LineEdit()
         self.x_pos_label.setReadOnly(True)
-        self.x_pos_label.setPlaceholderText('横坐标')
+        self.x_pos_label.setPlaceholderText(gt('横'))
 
         self.y_pos_label = LineEdit()
         self.y_pos_label.setReadOnly(True)
-        self.y_pos_label.setPlaceholderText('纵坐标')
+        self.y_pos_label.setPlaceholderText(gt('纵'))
 
         self.image_click_pos_opt = MultiPushSettingCard(icon=FluentIcon.MOVE, title='鼠标点击坐标',
                                                         content='图片左上角为(0, 0)',
                                                         btn_list=[self.x_pos_label, self.y_pos_label])
         layout.addWidget(self.image_click_pos_opt)
 
+        self.undo_btn = PushButton(gt('撤回'))
+        self.undo_btn.setIcon(FluentIcon.CANCEL)
+        self.undo_btn.clicked.connect(self._on_undo_clicked)
+        self.undo_btn.setEnabled(False)
+        self._update_undo_button_text()
+
+        self.redo_btn = PushButton(gt('恢复'))
+        self.redo_btn.setIcon(FluentIcon.SYNC)
+        self.redo_btn.clicked.connect(self._on_redo_clicked)
+        self.redo_btn.setEnabled(False)
+        self._update_redo_button_text()
+
+        self.history_opt = MultiPushSettingCard(icon=FluentIcon.HISTORY, title='历史记录',
+                                               content='Ctrl+Z 撤回，Ctrl+Shift+Z 恢复',
+                                               btn_list=[self.undo_btn, self.redo_btn])
+        layout.addWidget(self.history_opt)
+
         self.image_label = ZoomableClickImageLabel()
         self.image_label.left_clicked_with_pos.connect(self._on_image_left_clicked)
+        self.image_label.rect_selected.connect(self._on_image_rect_selected)
         layout.addWidget(self.image_label, 1)
 
         return widget
+
+    def _update_undo_button_text(self) -> None:
+        """
+        更新撤回按钮的文本，显示可撤回的次数
+        :return:
+        """
+        undo_count = self.history_index + 1
+        if undo_count == 0:
+            self.undo_btn.setText(gt('撤回'))
+            self.undo_btn.setEnabled(False)
+        else:
+            self.undo_btn.setText(f"{gt('撤回')} ({undo_count})")
+            self.undo_btn.setEnabled(True)
+
+    def _update_redo_button_text(self) -> None:
+        """
+        更新恢复按钮的文本，显示可恢复的次数
+        :return:
+        """
+        redo_count = len(self.history) - self.history_index - 1
+        if redo_count == 0:
+            self.redo_btn.setText(gt('恢复'))
+            self.redo_btn.setEnabled(False)
+        else:
+            self.redo_btn.setText(f"{gt('恢复')} ({redo_count})")
+            self.redo_btn.setEnabled(True)
+
+    def _clear_history(self) -> None:
+        """
+        清除撤回和恢复历史
+        :return:
+        """
+        self.history.clear()
+        self.history_index = -1
+        self._update_undo_button_text()
+        self._update_redo_button_text()
 
     def on_interface_shown(self) -> None:
         """
@@ -325,7 +383,11 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         image_to_show = None if self.chosen_screen is None else self.chosen_screen.get_image_to_show(self.area_table_row_selected)
         if image_to_show is not None:
             image = Cv2Image(image_to_show)
-            self.image_label.setImage(image)
+            # 当图像尺寸相同时保留缩放和位置状态，这样绘制框时不会重置用户的视图状态
+            preserve_state = (self.image_label.original_pixmap is not None and
+                            image_to_show.shape[:2] == (self.image_label.original_pixmap.height(),
+                                                        self.image_label.original_pixmap.width()))
+            self.image_label.setImage(image, preserve_state)
         else:
             self.image_label.setImage(None)
 
@@ -338,6 +400,10 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         for screen_info in self.ctx.screen_loader.screen_info_list:
             if screen_info.screen_name == screen_name:
                 self.chosen_screen = ScreenInfo(screen_id=screen_info.screen_id)
+                # 清除撤回记录
+                self._clear_history()
+                self._update_undo_button_text()
+                self._update_redo_button_text()
                 self._whole_update.signal.emit()
                 break
 
@@ -350,6 +416,8 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
             return
 
         self.chosen_screen = ScreenInfo(create_new=True)
+        # 清除撤回记录
+        self._clear_history()
         self._whole_update.signal.emit()
 
     def _on_save_clicked(self) -> None:
@@ -386,6 +454,8 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         self.area_table_row_selected = -1
         self.x_pos_label.setText('')
         self.y_pos_label.setText('')
+        # 清除撤回记录
+        self._clear_history()
         self._whole_update.signal.emit()
 
     def choose_existed_image(self) -> None:
@@ -536,42 +606,102 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
             return
         area_item = self.chosen_screen.area_list[row]
         text = self.area_table.item(row, column).text().strip()
-        if column == 1:
-            area_item.area_name = text
-        elif column == 2:
-            num_list = [int(i) for i in text[1:-1].split(',')]
-            while len(num_list) < 4:
-                num_list.append(0)
-            area_item.pc_rect = Rect(num_list[0], num_list[1], num_list[2], num_list[3])
-            self._image_update.signal.emit()
-        elif column == 3:
-            area_item.text = text
-        elif column == 4:
-            area_item.lcs_percent = float(text) if len(text) > 0 else 0.5
-        elif column == 5:
-            if len(text) == 0:
-                area_item.template_sub_dir = ''
-                area_item.template_id = ''
-            else:
-                template_list = text.split('.')
-                if len(template_list) > 1:
-                    area_item.template_sub_dir = template_list[0]
-                    area_item.template_id = template_list[1]
-                else:
+
+        # 列映射：列索引 -> (属性名, 处理函数)
+        column_handlers = {
+            1: ('area_name', lambda x: x),
+            2: ('pc_rect', self._parse_rect_from_text),
+            3: ('text', lambda x: x),
+            4: ('lcs_percent', lambda x: float(x) if len(x) > 0 else 0.5),
+            5: ('template', lambda x: x),
+            6: ('template_match_threshold', lambda x: float(x) if len(x) > 0 else 0.7),
+            7: ('color_range', self._parse_color_range_from_text),
+            9: ('goto_list', lambda x: x.split(','))
+        }
+
+        if column not in column_handlers:
+            return
+
+        attr_name, handler = column_handlers[column]
+
+        # 记录修改前的状态
+        if attr_name == 'template':
+            old_value = f"{area_item.template_sub_dir}.{area_item.template_id}" if area_item.template_sub_dir else area_item.template_id
+        elif attr_name == 'pc_rect':
+            old_value = Rect(area_item.pc_rect.x1, area_item.pc_rect.y1, area_item.pc_rect.x2, area_item.pc_rect.y2)
+        elif attr_name == 'goto_list':
+            old_value = area_item.goto_list.copy() if area_item.goto_list else []
+        else:
+            old_value = getattr(area_item, attr_name)
+
+        # 应用新值
+        try:
+            new_value = handler(text)
+            if attr_name == 'template':
+                if len(text) == 0:
                     area_item.template_sub_dir = ''
-                    area_item.template_id = template_list[0]
-        elif column == 6:
-            area_item.template_match_threshold = float(text) if len(text) > 0 else 0.7
-        elif column == 7:
-            try:
-                import json
-                arr = json.loads(text)
-                if isinstance(arr, list):
-                    area_item.color_range = arr
-            except Exception:
-                area_item.color_range = None
-        elif column == 9:
-            area_item.goto_list = text.split(',')
+                    area_item.template_id = ''
+                else:
+                    template_list = text.split('.')
+                    if len(template_list) > 1:
+                        area_item.template_sub_dir = template_list[0]
+                        area_item.template_id = template_list[1]
+                    else:
+                        area_item.template_sub_dir = ''
+                        area_item.template_id = template_list[0]
+            elif attr_name == 'pc_rect':
+                area_item.pc_rect = new_value
+                self._image_update.signal.emit()
+            else:
+                setattr(area_item, attr_name, new_value)
+        except:
+            # 如果解析失败，不进行修改
+            return
+
+        # 添加到撤回历史记录
+        table_change = {
+            'type': 'table_edit',
+            'row_index': row,
+            'change_type': attr_name,
+            'old_value': old_value,
+            'new_value': text
+        }
+        self._record_change(table_change)
+
+    def _record_change(self, change: dict) -> None:
+        """
+        记录一个变化到历史中
+        :param change: 变化记录
+        :return:
+        """
+        # 如果当前不在历史末尾，移除后续的历史记录
+        if self.history_index + 1 < len(self.history):
+            self.history = self.history[:self.history_index + 1]
+
+        # 添加新的变化记录
+        self.history.append(change)
+        self.history_index = len(self.history) - 1
+
+        self._update_undo_button_text()
+        self._update_redo_button_text()
+
+    def _parse_rect_from_text(self, text: str) -> Rect:
+        """解析文本为矩形对象"""
+        num_list = [int(i) for i in text[1:-1].split(',')]
+        while len(num_list) < 4:
+            num_list.append(0)
+        return Rect(num_list[0], num_list[1], num_list[2], num_list[3])
+
+    def _parse_color_range_from_text(self, text: str):
+        """解析颜色范围文本"""
+        try:
+            import json
+            arr = json.loads(text)
+            if isinstance(arr, list):
+                return arr
+        except Exception:
+            pass
+        return None
 
     def _on_image_left_clicked(self, x: int, y: int) -> None:
         """
@@ -585,6 +715,43 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
 
         self.x_pos_label.setText(str(x))
         self.y_pos_label.setText(str(y))
+
+    def _on_image_rect_selected(self, x1: int, y1: int, x2: int, y2: int) -> None:
+        """
+        在图片上选择一个区域后的回调
+        :param x1:
+        :param y1:
+        :param x2:
+        :param y2:
+        :return:
+        """
+        if self.chosen_screen is None or self.area_table_row_selected is None:
+            return
+        if self.area_table_row_selected < 0 or self.area_table_row_selected >= len(self.chosen_screen.area_list):
+            return
+
+        area_item = self.chosen_screen.area_list[self.area_table_row_selected]
+
+        # 记录撤回信息
+        rect_change = {
+            'row_index': self.area_table_row_selected,
+            'old_rect': Rect(area_item.pc_rect.x1, area_item.pc_rect.y1, area_item.pc_rect.x2, area_item.pc_rect.y2),
+            'new_rect': Rect(x1, y1, x2, y2)
+        }
+
+        # 添加到历史记录
+        self._record_change(rect_change)
+
+        self.area_table.blockSignals(True)
+        self.area_table.item(self.area_table_row_selected, 2).setText(f'({x1}, {y1}, {x2}, {y2})')
+        self.area_table.blockSignals(False)
+
+        area_item.pc_rect = Rect(x1, y1, x2, y2)
+        self._image_update.signal.emit()
+
+        # 更新撤回按钮
+        self._update_undo_button_text()
+        self._update_redo_button_text()
 
     def on_area_id_check_changed(self):
         if self.chosen_screen is None:
@@ -602,3 +769,176 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         else:
             self.area_table_row_selected = row
         self._update_image_display()
+
+    def _on_undo_clicked(self) -> None:
+        """
+        撤回上一次操作
+        :return:
+        """
+        if self.history_index < 0 or self.chosen_screen is None:
+            return
+
+        # 获取当前操作记录
+        current_change = self.history[self.history_index]
+        self.history_index -= 1
+
+        if current_change.get('type') == 'table_edit':
+            # 处理表格编辑的撤回
+            row_index = current_change['row_index']
+            change_type = current_change['change_type']
+            old_value = current_change['old_value']
+
+            # 检查行索引是否仍然有效
+            if row_index < 0 or row_index >= len(self.chosen_screen.area_list):
+                self._update_undo_button_text()
+                return
+
+            area_item = self.chosen_screen.area_list[row_index]
+
+            # 根据修改类型恢复原值
+            if change_type == 'template':
+                if '.' in old_value:
+                    template_list = old_value.split('.')
+                    area_item.template_sub_dir = template_list[0]
+                    area_item.template_id = template_list[1]
+                else:
+                    area_item.template_sub_dir = ''
+                    area_item.template_id = old_value
+            else:
+                setattr(area_item, change_type, old_value)
+
+            # 如果是坐标修改，需要更新图像显示
+            if change_type == 'pc_rect':
+                self._image_update.signal.emit()
+
+            # 更新表格显示
+            self._update_area_table_display()
+
+        else:
+            # 处理拖框操作的撤回
+            row_index = current_change['row_index']
+            old_rect = current_change['old_rect']
+
+            # 检查行索引是否仍然有效
+            if row_index < 0 or row_index >= len(self.chosen_screen.area_list):
+                self._update_undo_button_text()
+                return
+
+            # 恢复旧的矩形
+            area_item = self.chosen_screen.area_list[row_index]
+            area_item.pc_rect = old_rect
+
+            # 更新表格显示
+            self.area_table.blockSignals(True)
+            self.area_table.item(row_index, 2).setText(f'({old_rect.x1}, {old_rect.y1}, {old_rect.x2}, {old_rect.y2})')
+            self.area_table.blockSignals(False)
+
+            # 更新图像显示
+            self._image_update.signal.emit()
+
+        # 更新撤回按钮状态
+        self._update_undo_button_text()
+        self._update_redo_button_text()
+
+    def _on_redo_clicked(self) -> None:
+        """
+        恢复上一次撤回的操作
+        :return:
+        """
+        if self.history_index + 1 >= len(self.history) or self.chosen_screen is None:
+            return
+
+        # 移动到下一个操作记录
+        self.history_index += 1
+        current_change = self.history[self.history_index]
+
+        if current_change.get('type') == 'table_edit':
+            # 处理表格编辑的恢复
+            row_index = current_change['row_index']
+            change_type = current_change['change_type']
+            new_value = current_change['new_value']
+
+            # 检查行索引是否仍然有效
+            if row_index < 0 or row_index >= len(self.chosen_screen.area_list):
+                self._update_redo_button_text()
+                return
+
+            area_item = self.chosen_screen.area_list[row_index]
+
+            # 根据修改类型恢复新值
+            if change_type == 'template':
+                if len(new_value) == 0:
+                    area_item.template_sub_dir = ''
+                    area_item.template_id = ''
+                else:
+                    template_list = new_value.split('.')
+                    if len(template_list) > 1:
+                        area_item.template_sub_dir = template_list[0]
+                        area_item.template_id = template_list[1]
+                    else:
+                        area_item.template_sub_dir = ''
+                        area_item.template_id = template_list[0]
+            elif change_type == 'pc_rect':
+                rect_value = self._parse_rect_from_text(new_value)
+                area_item.pc_rect = rect_value
+                self._image_update.signal.emit()
+            else:
+                if change_type == 'lcs_percent' or change_type == 'template_match_threshold':
+                    setattr(area_item, change_type, float(new_value) if len(new_value) > 0 else (0.5 if change_type == 'lcs_percent' else 0.7))
+                elif change_type == 'goto_list':
+                    setattr(area_item, change_type, new_value.split(','))
+                else:
+                    setattr(area_item, change_type, new_value)
+
+            # 更新表格显示
+            self._area_table_update.signal.emit()
+
+        else:
+            # 处理拖框操作的恢复
+            row_index = current_change['row_index']
+            new_rect = current_change['new_rect']
+
+            # 检查行索引是否仍然有效
+            if row_index < 0 or row_index >= len(self.chosen_screen.area_list):
+                self._update_redo_button_text()
+                return
+
+            # 恢复新的矩形
+            area_item = self.chosen_screen.area_list[row_index]
+            area_item.pc_rect = new_rect
+
+            # 更新表格显示
+            self.area_table.blockSignals(True)
+            self.area_table.item(row_index, 2).setText(f'({new_rect.x1}, {new_rect.y1}, {new_rect.x2}, {new_rect.y2})')
+            self.area_table.blockSignals(False)
+
+            # 更新图像显示
+            self._image_update.signal.emit()
+
+        # 更新按钮状态
+        self._update_undo_button_text()
+        self._update_redo_button_text()
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        """
+        处理键盘快捷键
+        """
+        if self.chosen_screen is None:
+            super().keyPressEvent(event)
+            return
+
+        # Ctrl+Shift+Z 恢复操作
+        if (event.key() == Qt.Key.Key_Z and
+            event.modifiers() & Qt.KeyboardModifier.ControlModifier and
+            event.modifiers() & Qt.KeyboardModifier.ShiftModifier):
+            self._on_redo_clicked()
+            event.accept()
+            return
+
+        # Ctrl+Z 撤销上一个操作
+        if event.key() == Qt.Key.Key_Z and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            self._on_undo_clicked()
+            event.accept()
+            return
+
+        super().keyPressEvent(event)
