@@ -54,8 +54,9 @@ class ZoomableClickImageLabel(QLabel):
                 self.is_dragging = False
                 self.drag_started = False
         elif event.button() == Qt.MouseButton.RightButton:
-            pos = event.pos()
-            self.right_clicked_with_pos.emit(pos.x(), pos.y())
+            image_pos = self.map_display_to_image_coords(event.pos())
+            if image_pos is not None:
+                self.right_clicked_with_pos.emit(image_pos.x(), image_pos.y())
 
     def mouseMoveEvent(self, event: QMouseEvent):
         """
