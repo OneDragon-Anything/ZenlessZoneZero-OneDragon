@@ -868,54 +868,54 @@
   level: "S"
   is_gear: true
 
-  #爱丽丝
-#- category: "爱丽丝"
-#  name: "决斗礼仪"
-#  level: "S"
-#  is_gear: true
-#  template_id: "gear_alice_1"
+  # 爱丽丝
+- category: "爱丽丝"
+  name: "决斗礼仪"
+  level: "S"
+  is_gear: true
+  template_id: "gear_alice_1"
 
-#- category: "爱丽丝"
-#  name: "决斗礼仪-a"
-#  level: "S"
-#  is_gear: true
+- category: "爱丽丝"
+  name: "决斗礼仪-a"
+  level: "S"
+  is_gear: true
 
-#- category: "爱丽丝"
-#  name: "决斗礼仪-b"
-#  level: "S"
-#  is_gear: true
+- category: "爱丽丝"
+  name: "决斗礼仪-b"
+  level: "S"
+  is_gear: true
 
-#- category: "爱丽丝"
-#  name: "迅刃回旋"
-#  level: "S"
-#  is_gear: true
-#  template_id: "gear_alice_2"
+- category: "爱丽丝"
+  name: "迅刃回旋"
+  level: "S"
+  is_gear: true
+  template_id: "gear_alice_2"
 
-#- category: "爱丽丝"
-#  name: "迅刃回旋-a"
-#  level: "S"
-#  is_gear: true
+- category: "爱丽丝"
+  name: "迅刃回旋-a"
+  level: "S"
+  is_gear: true
 
-#- category: "爱丽丝"
-#  name: "迅刃回旋-b"
-#  level: "S"
-#  is_gear: true
+- category: "爱丽丝"
+  name: "迅刃回旋-b"
+  level: "S"
+  is_gear: true
 
-#- category: "爱丽丝"
-#  name: "霜芒重奏"
-#  level: "S"
-#  is_gear: true
-#  template_id: "gear_alice_3"
+- category: "爱丽丝"
+  name: "霜芒重奏"
+  level: "S"
+  is_gear: true
+  template_id: "gear_alice_3"
 
-#- category: "爱丽丝"
-#  name: "霜芒重奏-a"
-#  level: "S"
-#  is_gear: true
+- category: "爱丽丝"
+  name: "霜芒重奏-a"
+  level: "S"
+  is_gear: true
 
-#- category: "爱丽丝"
-#  name: "霜芒重奏-b"
-#  level: "S"
-#  is_gear: true
+- category: "爱丽丝"
+  name: "霜芒重奏-b"
+  level: "S"
+  is_gear: true
 
   # 携游
 - category: "携游"

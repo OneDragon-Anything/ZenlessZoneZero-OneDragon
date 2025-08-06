@@ -342,3 +342,11 @@ class AgentEnum(Enum):
                                     'yuzuha', lower_color=(221, 107, 113), upper_color=(255, 255, 255),
                                     connect_cnt=5)
                     ])
+
+    ALICE = Agent('alice', '爱丽丝', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['alice'],
+                    state_list=[
+                        AgentStateDef('爱丽丝-剑仪', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                      template_id='alice',
+                                      hsv_color=(55,185,225), hsv_color_diff=(54,170,100),
+                                      max_length=300)
+                    ])
