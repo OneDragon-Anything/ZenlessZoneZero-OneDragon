@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QWidget, QSizePolicy, QFileDialog, QTableWidgetIte
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent
 from qfluentwidgets import FluentIcon, PushButton, TableWidget, ToolButton, ImageLabel, CaptionLabel, LineEdit, SingleDirectionScrollArea
-from typing import List, Optional
+from typing import Optional, Any
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.geometry.point import Point
@@ -13,6 +13,7 @@ from one_dragon.base.screen.template_info import TemplateInfo, TemplateShapeEnum
 from one_dragon.utils import os_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.mixins.history_mixin import HistoryMixin
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
@@ -26,7 +27,7 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
 
 
-class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
+class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
 
     def __init__(self, ctx: OneDragonContext, parent=None):
         VerticalScrollInterface.__init__(
@@ -36,13 +37,11 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
             content_widget=None,
             nav_text_cn='模板管理'
         )
+        self._init_history()  # 初始化历史记录功能
 
         self.ctx: OneDragonContext = ctx
         self.chosen_template: Optional[TemplateInfo] = None
         self.last_screen_dir: Optional[str] = None  # 上一次选择的图片路径
-
-        self.history: list = []  # 统一的历史记录列表
-        self.history_index: int = -1  # 当前历史位置，-1表示最新状态
 
 
     def get_content_widget(self) -> QWidget:
@@ -237,22 +236,9 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
                                                         btn_list=[self.x_pos_label, self.y_pos_label, self.clear_points_btn])
         layout.addWidget(self.image_click_pos_opt)
 
-        self.undo_btn = PushButton(gt('撤回'))
-        self.undo_btn.setIcon(FluentIcon.CANCEL)
-        self.undo_btn.clicked.connect(self._on_undo_clicked)
-        self.undo_btn.setEnabled(False)
-        self._update_undo_button_text()
-
-        self.redo_btn = PushButton(gt('恢复'))
-        self.redo_btn.setIcon(FluentIcon.SYNC)
-        self.redo_btn.clicked.connect(self._on_redo_clicked)
-        self.redo_btn.setEnabled(False)
-        self._update_redo_button_text()
-
-        self.history_opt = MultiPushSettingCard(icon=FluentIcon.HISTORY, title='历史记录',
-                                               content='Ctrl+Z 撤回，Ctrl+Shift+Z 恢复',
-                                               btn_list=[self.undo_btn, self.redo_btn])
-        layout.addWidget(self.history_opt)
+        # 使用Mixin创建历史记录UI
+        history_ui = self._create_history_ui()
+        layout.addWidget(history_ui)
 
         self.image_label = ZoomableClickImageLabel()
         self.image_label.left_clicked_with_pos.connect(self._on_image_left_clicked)
@@ -330,8 +316,8 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         更新已有的yml选项
         :return:
         """
-        template_info_list: List[TemplateInfo] = self.ctx.template_loader.get_all_template_info_from_disk(need_raw=False, need_config=True)
-        config_list: List[ConfigItem] = [
+        template_info_list: list[TemplateInfo] = self.ctx.template_loader.get_all_template_info_from_disk(need_raw=False, need_config=True)
+        config_list: list[ConfigItem] = [
             ConfigItem(label=template_info.template_name, value=template_info)
             for template_info in template_info_list
         ]
@@ -343,7 +329,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         :return:
         """
         self.point_table.blockSignals(True)
-        point_list: List[Point] = [] if self.chosen_template is None else self.chosen_template.point_list
+        point_list: list[Point] = [] if self.chosen_template is None else self.chosen_template.point_list
         point_cnt = len(point_list)
         self.point_table.setRowCount(point_cnt)
 
@@ -546,10 +532,9 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
             return
 
         if len(self.chosen_template.point_list) > 0:
-            self._record_point_change('clear_points')
+            self._add_history_record({'type': 'clear_points', 'old_points': [Point(p.x, p.y) for p in self.chosen_template.point_list]})
             self.chosen_template.point_list.clear()
             self.chosen_template.point_updated = True
-            self._finalize_point_change()
             self._update_point_table_display()
             self._update_all_image_display()
 
@@ -655,9 +640,14 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         if button_idx is not None:
             row_idx = self.point_table.indexAt(button_idx.pos()).row()
             if 0 <= row_idx < len(self.chosen_template.point_list):
-                self._record_point_change('remove_point', removed_index=row_idx)
+                removed_point = self.chosen_template.point_list[row_idx]
+                self._add_history_record({
+                    'type': 'remove_point',
+                    'removed_index': row_idx,
+                    'removed_point': Point(removed_point.x, removed_point.y),
+                    'old_points': [Point(p.x, p.y) for p in self.chosen_template.point_list]
+                })
                 self.chosen_template.remove_point_by_idx(row_idx)
-                self._finalize_point_change()
                 self.point_table.removeRow(row_idx)
                 self._update_all_image_display()
 
@@ -676,10 +666,17 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         if column == 1:
             num_list = [int(i) for i in text.split(',')]
             if len(num_list) >= 2:
-                self._record_point_change('table_edit', row_index=row, old_point=Point(self.chosen_template.point_list[row].x, self.chosen_template.point_list[row].y))
-                self.chosen_template.point_list[row] = Point(num_list[0], num_list[1])
+                old_point = Point(self.chosen_template.point_list[row].x, self.chosen_template.point_list[row].y)
+                new_point = Point(num_list[0], num_list[1])
+                self._add_history_record({
+                    'type': 'table_edit',
+                    'row_index': row,
+                    'old_point': old_point,
+                    'new_point': new_point,
+                    'old_points': [Point(p.x, p.y) for p in self.chosen_template.point_list]
+                })
+                self.chosen_template.point_list[row] = new_point
                 self.chosen_template.point_updated = True
-                self._finalize_point_change()
                 self._update_all_image_display()
 
     def _on_image_left_clicked(self, x1: int, y1: int) -> None:
@@ -694,9 +691,13 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         self.x_pos_label.setText(str(x1))
         self.y_pos_label.setText(str(y1))
 
-        self._record_point_change('add_point', new_point=Point(x1, y1))
-        self.chosen_template.add_point(Point(x1, y1))
-        self._finalize_point_change()
+        new_point = Point(x1, y1)
+        self._add_history_record({
+            'type': 'add_point',
+            'new_point': new_point,
+            'old_points': [Point(p.x, p.y) for p in self.chosen_template.point_list]
+        })
+        self.chosen_template.add_point(new_point)
 
         self._update_point_table_display()
         self._update_all_image_display()
@@ -713,7 +714,12 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         if self.chosen_template is None or self.chosen_template.screen_image is None:
             return
 
-        self._record_point_change('rect_selected', rect_area=(left, top, right, bottom))
+        old_points = [Point(p.x, p.y) for p in self.chosen_template.point_list]
+        self._add_history_record({
+            'type': 'rect_selected',
+            'rect_area': (left, top, right, bottom),
+            'old_points': old_points
+        })
 
         # 根据模板形状处理矩形选择
         if self.chosen_template.template_shape == TemplateShapeEnum.RECTANGLE.value.value:
@@ -750,7 +756,6 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
             ])
             self.chosen_template.point_updated = True
 
-        self._finalize_point_change()
         self._update_point_table_display()
         self._update_all_image_display()
 
@@ -764,9 +769,14 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         input_text = self.h_move_input.text()
         dx = int(input_text)
         if dx != 0:
-            self._record_point_change('move_points', dx=dx, dy=0)
+            old_points = [Point(p.x, p.y) for p in self.chosen_template.point_list]
+            self._add_history_record({
+                'type': 'move_points',
+                'dx': dx,
+                'dy': 0,
+                'old_points': old_points
+            })
             self.chosen_template.update_all_points(dx, 0)
-            self._finalize_point_change()
             self._update_point_table_display()
             self._update_all_image_display()
 
@@ -780,9 +790,14 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         input_text = self.v_move_input.text()
         try:
             dy = int(input_text)
-            self._record_point_change('move_points', dx=0, dy=dy)
+            old_points = [Point(p.x, p.y) for p in self.chosen_template.point_list]
+            self._add_history_record({
+                'type': 'move_points',
+                'dx': 0,
+                'dy': dy,
+                'old_points': old_points
+            })
             self.chosen_template.update_all_points(0, dy)
-            self._finalize_point_change()
             self._update_point_table_display()
             self._update_all_image_display()
         except Exception:
@@ -825,161 +840,92 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface):
         """
         处理键盘快捷键
         """
-        if self.chosen_template is None:
-            super().keyPressEvent(event)
-            return
-
-        # Ctrl+Shift+Z 恢复操作
-        if (event.key() == Qt.Key.Key_Z and
-            event.modifiers() & Qt.KeyboardModifier.ControlModifier and
-            event.modifiers() & Qt.KeyboardModifier.ShiftModifier):
-            self._on_redo_clicked()
-            event.accept()
-            return
-
-        # Ctrl+Z 撤销上一个点位
-        if event.key() == Qt.Key.Key_Z and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-            self._on_undo_clicked()
-            event.accept()
-            return
-
-        # Delete 或 Backspace 清除所有点位
-        if event.key() in [Qt.Key.Key_Delete, Qt.Key.Key_Backspace]:
-            if len(self.chosen_template.point_list) > 0:
-                self._record_point_change('clear_points')
-                self.chosen_template.point_list.clear()
-                self.chosen_template.point_updated = True
-                self._finalize_point_change()
-                self._update_point_table_display()
-                self._update_all_image_display()
-            event.accept()
+        # 使用Mixin处理历史记录快捷键
+        if self.history_key_press_event(event):
             return
 
         super().keyPressEvent(event)
 
-    def _update_undo_button_text(self) -> None:
+    def _handle_specific_keys(self, event: QKeyEvent) -> bool:
         """
-        更新撤回按钮的文本，显示可撤回的次数
-        :return:
+        处理模板助手特定的键盘快捷键
         """
-        undo_count = self.history_index + 1
-        if undo_count == 0:
-            self.undo_btn.setText(gt('撤回'))
-            self.undo_btn.setEnabled(False)
-        else:
-            self.undo_btn.setText(f"{gt('撤回')} ({undo_count})")
-            self.undo_btn.setEnabled(True)
+        if self.chosen_template is None:
+            return False
 
-    def _update_redo_button_text(self) -> None:
-        """
-        更新恢复按钮的文本，显示可恢复的次数
-        :return:
-        """
-        redo_count = len(self.history) - self.history_index - 1
-        if redo_count == 0:
-            self.redo_btn.setText(gt('恢复'))
-            self.redo_btn.setEnabled(False)
-        else:
-            self.redo_btn.setText(f"{gt('恢复')} ({redo_count})")
-            self.redo_btn.setEnabled(True)
+        # Delete 或 Backspace 清除所有点位
+        if event.key() in [Qt.Key.Key_Delete, Qt.Key.Key_Backspace]:
+            if len(self.chosen_template.point_list) > 0:
+                self._add_history_record({'type': 'clear_points', 'old_points': [Point(p.x, p.y) for p in self.chosen_template.point_list]})
+                self.chosen_template.point_list.clear()
+                self.chosen_template.point_updated = True
+                self._update_point_table_display()
+                self._update_all_image_display()
+            event.accept()
+            return True
 
-    def _clear_history(self) -> None:
-        """
-        清除撤回和恢复历史
-        :return:
-        """
-        self.history.clear()
-        self.history_index = -1
-        self._update_undo_button_text()
-        self._update_redo_button_text()
+        return False
 
-    def _record_point_change(self, change_type: str, **kwargs) -> None:
-        """
-        记录点位变化，用于撤回功能
-        :param change_type: 变化类型 'add_point', 'remove_point', 'clear_points', 'rect_selected', 'table_edit', 'move_points'
-        :param kwargs: 其他参数
-        :return:
-        """
+    # HistoryMixin 抽象方法实现
+    def _has_valid_context(self) -> bool:
+        """检查是否有有效的操作上下文"""
+        return self.chosen_template is not None
+
+    def _apply_undo(self, change_record: dict[str, Any]) -> None:
+        """应用撤回操作"""
         if self.chosen_template is None:
             return
 
-        # 记录操作前的状态
-        old_points = [Point(p.x, p.y) for p in self.chosen_template.point_list]
-
-        # 截断历史：删除当前位置之后的所有历史记录
-        if self.history_index < len(self.history) - 1:
-            self.history = self.history[:self.history_index + 1]
-
-        # 先执行操作，然后记录操作后的状态
-        # 这个方法只用于记录，实际操作在调用方法中完成
-        change_record = {
-            'type': change_type,
-            'old_points': old_points,
-            'new_points': None,  # 将在操作完成后更新
-            **kwargs
-        }
-
-        # 添加新记录
-        self.history.append(change_record)
-        self.history_index = len(self.history) - 1
-
-    def _finalize_point_change(self) -> None:
-        """
-        完成点位变化记录，保存操作后的状态
-        """
-        if self.chosen_template is None or self.history_index < 0:
-            return
-
-        # 更新最新记录的操作后状态
-        current_record = self.history[self.history_index]
-        current_record['new_points'] = [Point(p.x, p.y) for p in self.chosen_template.point_list]
-
-        self._update_undo_button_text()
-        self._update_redo_button_text()
-
-    def _on_undo_clicked(self) -> None:
-        """
-        撤回上一次操作
-        :return:
-        """
-        if self.history_index < 0 or self.chosen_template is None:
-            return
-
-        # 获取当前历史记录
-        current_change = self.history[self.history_index]
-
-        # 恢复到旧状态
-        self.chosen_template.point_list = current_change['old_points']
+        # 恢复到记录的旧状态
+        self.chosen_template.point_list = change_record['old_points']
         self.chosen_template.point_updated = True
-
-        # 向前移动历史指针
-        self.history_index -= 1
-
         self._update_point_table_display()
         self._update_all_image_display()
-        self._update_undo_button_text()
-        self._update_redo_button_text()
 
-    def _on_redo_clicked(self) -> None:
-        """
-        恢复上一次撤回的操作
-        :return:
-        """
-        if self.history_index >= len(self.history) - 1 or self.chosen_template is None:
+    def _apply_redo(self, change_record: dict[str, Any]) -> None:
+        """应用恢复操作"""
+        if self.chosen_template is None:
             return
 
-        # 向后移动历史指针
-        self.history_index += 1
+        change_type = change_record['type']
 
-        # 获取要恢复的历史记录
-        redo_change = self.history[self.history_index]
+        if change_type == 'add_point':
+            self.chosen_template.add_point(change_record['new_point'])
+        elif change_type == 'remove_point':
+            idx = change_record['removed_index']
+            if 0 <= idx < len(self.chosen_template.point_list):
+                self.chosen_template.remove_point_by_idx(idx)
+        elif change_type == 'clear_points':
+            self.chosen_template.point_list.clear()
+        elif change_type == 'table_edit':
+            row_idx = change_record['row_index']
+            if 0 <= row_idx < len(self.chosen_template.point_list):
+                self.chosen_template.point_list[row_idx] = change_record['new_point']
+        elif change_type == 'rect_selected':
+            left, top, right, bottom = change_record['rect_area']
+            # 根据模板形状处理矩形选择
+            if self.chosen_template.template_shape == TemplateShapeEnum.RECTANGLE.value.value:
+                self.chosen_template.point_list = [Point(left, top), Point(right, bottom)]
+            elif self.chosen_template.template_shape == TemplateShapeEnum.CIRCLE.value.value:
+                center_x = (left + right) // 2
+                center_y = (top + bottom) // 2
+                radius = max(abs(right - left), abs(bottom - top)) // 2
+                self.chosen_template.point_list = [Point(center_x, center_y), Point(center_x + radius, center_y)]
+            elif self.chosen_template.template_shape == TemplateShapeEnum.QUADRILATERAL.value.value:
+                self.chosen_template.point_list = [
+                    Point(left, top), Point(right, top), Point(right, bottom), Point(left, bottom)
+                ]
+            elif self.chosen_template.template_shape == TemplateShapeEnum.MULTI_RECT.value.value:
+                self.chosen_template.point_list.extend([Point(left, top), Point(right, bottom)])
+            elif self.chosen_template.template_shape == TemplateShapeEnum.POLYGON.value.value:
+                self.chosen_template.point_list.extend([
+                    Point(left, top), Point(right, top), Point(right, bottom), Point(left, bottom)
+                ])
+        elif change_type == 'move_points':
+            dx = change_record['dx']
+            dy = change_record['dy']
+            self.chosen_template.update_all_points(dx, dy)
 
-        # 恢复到新状态
-        if redo_change['new_points'] is not None:
-            self.chosen_template.point_list = redo_change['new_points']
-            self.chosen_template.point_updated = True
-
+        self.chosen_template.point_updated = True
         self._update_point_table_display()
         self._update_all_image_display()
-        self._update_undo_button_text()
-        self._update_redo_button_text()

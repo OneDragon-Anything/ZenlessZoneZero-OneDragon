@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QWidget, QFileDialog, QTableWidgetItem, QVBoxLayou
 from PySide6.QtGui import QKeyEvent
 from qfluentwidgets import (FluentIcon, PushButton, ToolButton, CheckBox, LineEdit, BodyLabel,
                             TableWidget, SimpleCardWidget, SingleDirectionScrollArea, ScrollArea)
-from typing import Optional
+from typing import Optional, Any
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.geometry.rectangle import Rect
@@ -16,6 +16,7 @@ from one_dragon.base.screen.template_info import get_template_root_dir_path, get
 from one_dragon.utils import os_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.mixins.history_mixin import HistoryMixin
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
 from one_dragon_qt.widgets.cv2_image import Cv2Image
@@ -30,7 +31,7 @@ class ScreenInfoWorker(QObject):
     signal = Signal()
 
 
-class DevtoolsScreenManageInterface(VerticalScrollInterface):
+class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
     def __init__(self, ctx: OneDragonContext, parent=None):
         VerticalScrollInterface.__init__(
@@ -40,13 +41,12 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
             parent=parent,
             nav_text_cn='画面管理'
         )
+        self._init_history()  # 初始化历史记录功能
+
         self.ctx: OneDragonContext = ctx
 
         self.chosen_screen: Optional[ScreenInfo] = None
         self.last_screen_dir: Optional[str] = None  # 上一次选择的图片路径
-
-        self.history: list = []  # 统一的历史记录列表
-        self.history_index: int = -1  # 当前历史位置，-1表示最新状态
 
         self._whole_update = ScreenInfoWorker()
         self._whole_update.signal.connect(self._update_display_by_screen)
@@ -228,22 +228,9 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
                                                         btn_list=[self.x_pos_label, self.y_pos_label])
         layout.addWidget(self.image_click_pos_opt)
 
-        self.undo_btn = PushButton(gt('撤回'))
-        self.undo_btn.setIcon(FluentIcon.CANCEL)
-        self.undo_btn.clicked.connect(self._on_undo_clicked)
-        self.undo_btn.setEnabled(False)
-        self._update_undo_button_text()
-
-        self.redo_btn = PushButton(gt('恢复'))
-        self.redo_btn.setIcon(FluentIcon.SYNC)
-        self.redo_btn.clicked.connect(self._on_redo_clicked)
-        self.redo_btn.setEnabled(False)
-        self._update_redo_button_text()
-
-        self.history_opt = MultiPushSettingCard(icon=FluentIcon.HISTORY, title='历史记录',
-                                               content='Ctrl+Z 撤回，Ctrl+Shift+Z 恢复',
-                                               btn_list=[self.undo_btn, self.redo_btn])
-        layout.addWidget(self.history_opt)
+        # 使用Mixin创建历史记录UI
+        history_ui = self._create_history_ui()
+        layout.addWidget(history_ui)
 
         self.image_label = ZoomableClickImageLabel()
         self.image_label.left_clicked_with_pos.connect(self._on_image_left_clicked)
@@ -252,41 +239,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
 
         return widget
 
-    def _update_undo_button_text(self) -> None:
-        """
-        更新撤回按钮的文本，显示可撤回的次数
-        :return:
-        """
-        undo_count = self.history_index + 1
-        if undo_count == 0:
-            self.undo_btn.setText(gt('撤回'))
-            self.undo_btn.setEnabled(False)
-        else:
-            self.undo_btn.setText(f"{gt('撤回')} ({undo_count})")
-            self.undo_btn.setEnabled(True)
 
-    def _update_redo_button_text(self) -> None:
-        """
-        更新恢复按钮的文本，显示可恢复的次数
-        :return:
-        """
-        redo_count = len(self.history) - self.history_index - 1
-        if redo_count == 0:
-            self.redo_btn.setText(gt('恢复'))
-            self.redo_btn.setEnabled(False)
-        else:
-            self.redo_btn.setText(f"{gt('恢复')} ({redo_count})")
-            self.redo_btn.setEnabled(True)
-
-    def _clear_history(self) -> None:
-        """
-        清除撤回和恢复历史
-        :return:
-        """
-        self.history.clear()
-        self.history_index = -1
-        self._update_undo_button_text()
-        self._update_redo_button_text()
 
     def on_interface_shown(self) -> None:
         """
@@ -402,8 +355,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
                 self.chosen_screen = ScreenInfo(screen_id=screen_info.screen_id)
                 # 清除撤回记录
                 self._clear_history()
-                self._update_undo_button_text()
-                self._update_redo_button_text()
+                self._update_history_buttons()
                 self._whole_update.signal.emit()
                 break
 
@@ -666,24 +618,9 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
             'old_value': old_value,
             'new_value': text
         }
-        self._record_change(table_change)
+        self._add_history_record(table_change)
 
-    def _record_change(self, change: dict) -> None:
-        """
-        记录一个变化到历史中
-        :param change: 变化记录
-        :return:
-        """
-        # 如果当前不在历史末尾，移除后续的历史记录
-        if self.history_index + 1 < len(self.history):
-            self.history = self.history[:self.history_index + 1]
 
-        # 添加新的变化记录
-        self.history.append(change)
-        self.history_index = len(self.history) - 1
-
-        self._update_undo_button_text()
-        self._update_redo_button_text()
 
     def _parse_rect_from_text(self, text: str) -> Rect:
         """解析文本为矩形对象"""
@@ -740,7 +677,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         }
 
         # 添加到历史记录
-        self._record_change(rect_change)
+        self._add_history_record(rect_change)
 
         self.area_table.blockSignals(True)
         self.area_table.item(self.area_table_row_selected, 2).setText(f'({x1}, {y1}, {x2}, {y2})')
@@ -750,8 +687,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
         self._image_update.signal.emit()
 
         # 更新撤回按钮
-        self._update_undo_button_text()
-        self._update_redo_button_text()
+        self._update_history_buttons()
 
     def on_area_id_check_changed(self):
         if self.chosen_screen is None:
@@ -770,27 +706,46 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
             self.area_table_row_selected = row
         self._update_image_display()
 
-    def _on_undo_clicked(self) -> None:
+
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
         """
-        撤回上一次操作
-        :return:
+        处理键盘快捷键
         """
-        if self.history_index < 0 or self.chosen_screen is None:
+        # 使用Mixin处理历史记录快捷键
+        if self.history_key_press_event(event):
             return
 
-        # 获取当前操作记录
-        current_change = self.history[self.history_index]
-        self.history_index -= 1
+        super().keyPressEvent(event)
 
-        if current_change.get('type') == 'table_edit':
+    def _handle_specific_keys(self, event: QKeyEvent) -> bool:
+        """
+        处理画面管理特定的键盘快捷键
+        """
+        # 这里可以添加特定的键盘快捷键处理
+        return False
+
+    def _has_valid_context(self) -> bool:
+        """
+        检查是否有有效的上下文（选中的屏幕）
+        """
+        return self.chosen_screen is not None
+
+    def _apply_undo(self, change_record: dict[str, Any]) -> None:
+        """
+        应用撤销操作
+        """
+        if self.chosen_screen is None:
+            return
+
+        if change_record.get('type') == 'table_edit':
             # 处理表格编辑的撤回
-            row_index = current_change['row_index']
-            change_type = current_change['change_type']
-            old_value = current_change['old_value']
+            row_index = change_record['row_index']
+            change_type = change_record['change_type']
+            old_value = change_record['old_value']
 
             # 检查行索引是否仍然有效
             if row_index < 0 or row_index >= len(self.chosen_screen.area_list):
-                self._update_undo_button_text()
                 return
 
             area_item = self.chosen_screen.area_list[row_index]
@@ -816,12 +771,11 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
 
         else:
             # 处理拖框操作的撤回
-            row_index = current_change['row_index']
-            old_rect = current_change['old_rect']
+            row_index = change_record['row_index']
+            old_rect = change_record['old_rect']
 
             # 检查行索引是否仍然有效
             if row_index < 0 or row_index >= len(self.chosen_screen.area_list):
-                self._update_undo_button_text()
                 return
 
             # 恢复旧的矩形
@@ -836,31 +790,83 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
             # 更新图像显示
             self._image_update.signal.emit()
 
-        # 更新撤回按钮状态
-        self._update_undo_button_text()
-        self._update_redo_button_text()
-
-    def _on_redo_clicked(self) -> None:
+    def _apply_redo(self, change_record: dict[str, Any]) -> None:
         """
-        恢复上一次撤回的操作
-        :return:
+        应用撤销操作
         """
-        if self.history_index + 1 >= len(self.history) or self.chosen_screen is None:
+        if len(self.history) == 0 or self.chosen_screen is None:
             return
 
-        # 移动到下一个操作记录
-        self.history_index += 1
-        current_change = self.history[self.history_index]
+        # 获取最新的历史记录
+        last_record = self.history[-1]
 
-        if current_change.get('type') == 'table_edit':
-            # 处理表格编辑的恢复
-            row_index = current_change['row_index']
-            change_type = current_change['change_type']
-            new_value = current_change['new_value']
+        if last_record.get('type') == 'table_edit':
+            # 处理表格编辑的撤回
+            row_index = last_record['row_index']
+            change_type = last_record['change_type']
+            old_value = last_record['old_value']
 
             # 检查行索引是否仍然有效
             if row_index < 0 or row_index >= len(self.chosen_screen.area_list):
-                self._update_redo_button_text()
+                return
+
+            area_item = self.chosen_screen.area_list[row_index]
+
+            # 根据修改类型恢复原值
+            if change_type == 'template':
+                if '.' in old_value:
+                    template_list = old_value.split('.')
+                    area_item.template_sub_dir = template_list[0]
+                    area_item.template_id = template_list[1]
+                else:
+                    area_item.template_sub_dir = ''
+                    area_item.template_id = old_value
+            else:
+                setattr(area_item, change_type, old_value)
+
+            # 如果是坐标修改，需要更新图像显示
+            if change_type == 'pc_rect':
+                self._image_update.signal.emit()
+
+            # 更新表格显示
+            self._update_area_table_display()
+
+        else:
+            # 处理拖框操作的撤回
+            row_index = last_record['row_index']
+            old_rect = last_record['old_rect']
+
+            # 检查行索引是否仍然有效
+            if row_index < 0 or row_index >= len(self.chosen_screen.area_list):
+                return
+
+            # 恢复旧的矩形
+            area_item = self.chosen_screen.area_list[row_index]
+            area_item.pc_rect = old_rect
+
+            # 更新表格显示
+            self.area_table.blockSignals(True)
+            self.area_table.item(row_index, 2).setText(f'({old_rect.x1}, {old_rect.y1}, {old_rect.x2}, {old_rect.y2})')
+            self.area_table.blockSignals(False)
+
+            # 更新图像显示
+            self._image_update.signal.emit()
+
+    def _apply_redo(self, change_record: dict[str, Any]) -> None:
+        """
+        应用重做操作
+        """
+        if self.chosen_screen is None:
+            return
+
+        if change_record.get('type') == 'table_edit':
+            # 处理表格编辑的恢复
+            row_index = change_record['row_index']
+            change_type = change_record['change_type']
+            new_value = change_record['new_value']
+
+            # 检查行索引是否仍然有效
+            if row_index < 0 or row_index >= len(self.chosen_screen.area_list):
                 return
 
             area_item = self.chosen_screen.area_list[row_index]
@@ -895,12 +901,11 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
 
         else:
             # 处理拖框操作的恢复
-            row_index = current_change['row_index']
-            new_rect = current_change['new_rect']
+            row_index = change_record['row_index']
+            new_rect = change_record['new_rect']
 
             # 检查行索引是否仍然有效
             if row_index < 0 or row_index >= len(self.chosen_screen.area_list):
-                self._update_redo_button_text()
                 return
 
             # 恢复新的矩形
@@ -914,31 +919,3 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface):
 
             # 更新图像显示
             self._image_update.signal.emit()
-
-        # 更新按钮状态
-        self._update_undo_button_text()
-        self._update_redo_button_text()
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        """
-        处理键盘快捷键
-        """
-        if self.chosen_screen is None:
-            super().keyPressEvent(event)
-            return
-
-        # Ctrl+Shift+Z 恢复操作
-        if (event.key() == Qt.Key.Key_Z and
-            event.modifiers() & Qt.KeyboardModifier.ControlModifier and
-            event.modifiers() & Qt.KeyboardModifier.ShiftModifier):
-            self._on_redo_clicked()
-            event.accept()
-            return
-
-        # Ctrl+Z 撤销上一个操作
-        if event.key() == Qt.Key.Key_Z and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
-            self._on_undo_clicked()
-            event.accept()
-            return
-
-        super().keyPressEvent(event)
