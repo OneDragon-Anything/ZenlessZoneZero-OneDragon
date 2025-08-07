@@ -152,12 +152,13 @@ class GitService:
         shutil.rmtree(temp_dir_path, ignore_errors=True)  # 删除临时文件夹
         return success, msg
 
-    def fetch_remote_branch(self) -> Tuple[bool, str]:
+    def fetch_remote_code(self) -> Tuple[bool, str]:
         """
         获取远程分支代码
         """
         log.info(gt('获取远程代码'))
-        fetch_result = cmd_utils.run_command([self.env_config.git_path, 'fetch', 'origin', self.env_config.git_branch])
+        cmd_utils.run_command([self.env_config.git_path, 'config', 'set-branches', 'origin', '"*"'])
+        fetch_result = cmd_utils.run_command([self.env_config.git_path, 'fetch', 'origin'])
         if fetch_result is None:
             msg = gt('获取远程代码失败')
             log.error(msg)
@@ -184,7 +185,7 @@ class GitService:
             log.info(gt('更新远程仓库地址'))
 
         log.info(gt('获取远程代码'))
-        fetch_result, msg = self.fetch_remote_branch()
+        fetch_result, msg = self.fetch_remote_code()
         if not fetch_result:
             return False, msg
         elif progress_callback is not None:
@@ -258,7 +259,7 @@ class GitService:
         """
         当前分支是否已经最新 与远程分支一致
         """
-        fetch, msg = self.fetch_remote_branch()
+        fetch, msg = self.fetch_remote_code()
         if not fetch:
             return fetch, msg
         log.info(gt('检测当前代码是否最新'))
