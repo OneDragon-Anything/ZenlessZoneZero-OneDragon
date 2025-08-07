@@ -30,6 +30,9 @@ class ZContext(OneDragonContext):
         from one_dragon.base.cv_process.cv_service import CvService
         self.cv_service: CvService = CvService(self)
 
+        from zzz_od.telemetry.telemetry_manager import TelemetryManager
+        self.telemetry: TelemetryManager = TelemetryManager(self)
+
         # 后续所有用到自动战斗的 都统一设置到这个里面
         from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
         self.auto_op: AutoBattleOperator | None = None
@@ -158,6 +161,8 @@ class ZContext(OneDragonContext):
 
         self.init_by_config()
 
+        self.telemetry.initialize()
+
     def init_by_config(self) -> None:
         """
         根据配置进行初始化
@@ -228,6 +233,9 @@ class ZContext(OneDragonContext):
         App关闭后进行的操作 关闭一切可能资源操作
         @return:
         """
+        if hasattr(self, 'telemetry') and self.telemetry:
+            self.telemetry.shutdown()
+
         OneDragonContext.after_app_shutdown(self)
 
     def init_auto_op(self, op_name: str, sub_dir: str = 'auto_battle') -> None:
