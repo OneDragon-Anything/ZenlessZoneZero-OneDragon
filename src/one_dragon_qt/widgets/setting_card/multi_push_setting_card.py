@@ -1,10 +1,11 @@
+from typing import List
+from typing import Union, Optional
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtGui import Qt
-from PySide6.QtWidgets import QAbstractButton, QVBoxLayout, QHBoxLayout
+from PySide6.QtWidgets import QAbstractButton, QVBoxLayout, QHBoxLayout, QWidget
 from qfluentwidgets import FluentIconBase
-from typing import List
-from typing import Union, Optional
 
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
@@ -14,12 +15,16 @@ class MultiPushSettingCard(SettingCardBase):
     """带多个按钮的设置卡片类"""
 
 
-    def __init__(self,
-                 icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str]=None,
-                 icon_size: IconSize = IconSize(16, 16),
-                 margins: Margins = Margins(16, 16, 0, 16),
-                 btn_list: List[QAbstractButton] = None,
-                 parent=None):
+    def __init__(
+            self,
+            icon: Union[str, QIcon, FluentIconBase],
+            title: str,
+            content: Optional[str] = None,
+            icon_size: IconSize = IconSize(16, 16),
+            margins: Margins = Margins(16, 16, 0, 16),
+            btn_list: List[QWidget] = None,
+            parent=None
+    ):
 
         SettingCardBase.__init__(
             self,

@@ -1,5 +1,6 @@
 import os
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget, QLabel
+from PySide6.QtCore import Qt
 from qfluentwidgets import FluentIcon, HyperlinkCard, ImageLabel
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
@@ -43,6 +44,19 @@ class LikeInterface(VerticalScrollInterface):
         img_label.setFixedWidth(250)
         img_label.setFixedHeight(250)
         content.add_widget(img_label)
+
+        # 添加遥测说明文字
+        telemetry_label = QLabel(gt('我们匿名收集你的信息用于改进我们的产品，感谢您的参与！'))
+        telemetry_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        telemetry_label.setStyleSheet("""
+            QLabel {
+                color: #666666;
+                font-size: 12px;
+                padding: 10px;
+                background-color: transparent;
+            }
+        """)
+        content.add_widget(telemetry_label)
 
         content.add_stretch(1)
         return content

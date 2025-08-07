@@ -1,7 +1,7 @@
 try:
     import sys
     from typing import Tuple
-    from PySide6.QtCore import Qt, QThread, Signal
+    from PySide6.QtCore import Qt, QThread, Signal, QTimer
     from PySide6.QtWidgets import QApplication
     from qfluentwidgets import NavigationItemPosition, setTheme, Theme
     from one_dragon_qt.view.like_interface import LikeInterface
@@ -25,6 +25,7 @@ try:
     from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
     from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
     from zzz_od.gui.widgets.zzz_welcome_dialog import ZWelcomeDialog
+    from zzz_od.gui.view.world_patrol.world_patrol_interface import WorldPatrolInterface
 
     _init_error = None
 
@@ -49,6 +50,11 @@ try:
         def __init__(self, ctx: ZContext, parent=None):
             """初始化主窗口类，设置窗口标题和图标"""
             self.ctx: ZContext = ctx
+
+            # 记录应用启动时间
+            import time
+            self._app_start_time = time.time()
+
             AppWindowBase.__init__(
                 self,
                 win_title="%s %s"
@@ -71,12 +77,21 @@ try:
 
             self._check_first_run()
 
+            # 延迟发送应用启动事件，等待窗口完全显示
+            self._launch_timer = QTimer()
+            self._launch_timer.setSingleShot(True)
+            self._launch_timer.timeout.connect(self._track_app_launch)
+            self._launch_timer.start(2000)  # 2秒后发送，确保UI完全渲染
+
         # 继承初始化函数
         def init_window(self):
-            self.resize(1050, 700)
+            self.resize(1095, 730)  # 3:2比例
 
             # 初始化位置
-            self.move(100, 100)
+            screen = QApplication.primaryScreen()
+            geometry = screen.availableGeometry()
+            w, h = geometry.width(), geometry.height()
+            self.move(w // 2 - self.width() // 2, h // 2 - self.height() // 2)
 
             # 设置配置ID
             self.setObjectName("PhosWindow")
@@ -124,6 +139,9 @@ try:
             # 空洞
             self.add_sub_interface(HollowZeroInterface(self.ctx, parent=self))
 
+            # 锄大地
+            self.add_sub_interface(WorldPatrolInterface(self.ctx, parent=self))
+
             # 游戏助手
             self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
 
@@ -157,6 +175,30 @@ try:
                 position=NavigationItemPosition.BOTTOM,
             )
 
+            # 连接导航变化信号
+            self.stackedWidget.currentChanged.connect(self._on_navigation_changed)
+
+        def _on_navigation_changed(self, index):
+            """导航变化时的处理"""
+            if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
+                current_widget = self.stackedWidget.widget(index)
+                if current_widget:
+                    interface_name = current_widget.__class__.__name__
+
+                    # 跟踪导航
+                    previous_widget = self.stackedWidget.widget(self._last_stack_idx) if self._last_stack_idx < self.stackedWidget.count() else None
+                    previous_name = previous_widget.__class__.__name__ if previous_widget else 'unknown'
+
+                    self.ctx.telemetry.track_navigation(previous_name, interface_name)
+
+                    # 跟踪功能使用
+                    self.ctx.telemetry.track_feature_usage(interface_name, {
+                        'interface_type': 'gui',
+                        'navigation_index': index
+                    })
+
+                    self._last_stack_idx = index
+
         def _on_instance_active_event(self, event) -> None:
             """
             切换实例后 更新title 这是context的事件 不能更新UI
@@ -188,9 +230,61 @@ try:
         def _check_first_run(self):
             """首次运行时显示防倒卖弹窗"""
             if self.ctx.env_config.is_first_run:
-                dialog = ZWelcomeDialog(self)
-                if dialog.exec():
+                # 显示欢迎对话框
+                welcome_dialog = ZWelcomeDialog(self)
+                if welcome_dialog.exec():
                     self.ctx.env_config.is_first_run = False
+
+
+
+        def _track_app_launch(self):
+            """跟踪应用启动"""
+            if not hasattr(self.ctx, 'telemetry') or not self.ctx.telemetry:
+                from one_dragon.utils.log_utils import log
+                log.info("遥测系统未初始化，跳过app_launched事件")
+                return
+
+            if not self.ctx.telemetry.is_enabled():
+                from one_dragon.utils.log_utils import log
+                log.info("遥测系统已禁用，跳过app_launched事件")
+                return
+
+            import time
+            launch_time = time.time() - self._app_start_time
+
+            from one_dragon.utils.log_utils import log
+            log.debug(f"发送app_launched事件，启动时间: {launch_time:.2f}秒")
+
+            # 跟踪应用启动
+            self.ctx.telemetry.track_app_launch(launch_time)
+
+            # 跟踪启动时间性能
+            self.ctx.telemetry.track_startup_time(launch_time)
+
+            # 跟踪UI交互
+            self.ctx.telemetry.track_ui_interaction('main_window', 'show', {
+                'window_title': self.windowTitle(),
+                'first_run': self.ctx.env_config.is_first_run
+            })
+
+            log.debug("app_launched事件发送成功")
+
+        def closeEvent(self, event):
+            """窗口关闭事件"""
+            if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
+                import time
+                session_duration = time.time() - self._app_start_time
+
+                # 跟踪应用关闭
+                self.ctx.telemetry.track_ui_interaction('main_window', 'close', {
+                    'session_duration': session_duration
+                })
+
+                # 强制刷新遥测队列，确保关闭事件被发送
+                self.ctx.telemetry.flush()
+
+            # 调用父类的关闭事件
+            super().closeEvent(event)
 
 
 # 调用Windows错误弹窗

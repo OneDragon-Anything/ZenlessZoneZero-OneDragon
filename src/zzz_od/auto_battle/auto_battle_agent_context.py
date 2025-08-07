@@ -444,19 +444,23 @@ class AutoBattleAgentContext:
         """
         prefix = 'avatar_1_' if is_front else 'avatar_2_'
         for agent, specific_template_id in possible_agents:
-            # 上次识别过的模板 ID，接着用
+            # 构建一个带优先级的待检查模板列表
+            # 1. 优先使用上次成功匹配的ID
+            # 2. 然后使用该角色所有可用的模板
+            templates_to_check = []
             if specific_template_id:
-                template_to_check = prefix + specific_template_id
-                mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                templates_to_check.append(specific_template_id)
+
+            for t_id in agent.template_id_list:
+                if t_id not in templates_to_check:
+                    templates_to_check.append(t_id)
+
+            # 按优先级顺序进行匹配
+            for template_id in templates_to_check:
+                template_name = prefix + template_id
+                mrl = self.ctx.tm.match_template(img, 'battle', template_name, threshold=0.8)
                 if mrl.max is not None:
-                    return agent, specific_template_id
-            # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
-            else:
-                for template_id in agent.template_id_list:
-                    template_to_check = prefix + template_id
-                    mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
-                    if mrl.max is not None:
-                        return agent, template_id
+                    return agent, template_id  # 匹配成功，返回实际命中的模板ID
 
         return None, None
 

@@ -165,21 +165,31 @@ class OptimizedImageDisplayLabel(QScrollArea):
             转换后的QPixmap对象，转换失败时返回None
         """
         try:
-            if len(image_array.shape) != 3 or image_array.shape[2] != 3:
-                return None
-
-            height, width, channel = image_array.shape
-            bytes_per_line = 3 * width
-
             # 确保数据类型为uint8
             if image_array.dtype != np.uint8:
                 image_array = image_array.astype(np.uint8)
 
-            # 创建QImage (RGB888格式)
-            q_image = QImage(image_array.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
+            # 确保数据在内存中是连续的，这对于QImage从内存缓冲区创建很重要
+            if not image_array.flags['C_CONTIGUOUS']:
+                image_array = np.ascontiguousarray(image_array)
 
-            # 转换为QPixmap
-            return QPixmap.fromImage(q_image)
+            if image_array.ndim == 3 and image_array.shape[2] == 3:  # 彩色RGB图
+                height, width, _ = image_array.shape
+                bytes_per_line = 3 * width
+                q_format = QImage.Format.Format_RGB888
+            elif image_array.ndim == 2:  # 灰度图
+                height, width = image_array.shape
+                bytes_per_line = width
+                q_format = QImage.Format.Format_Grayscale8
+            else:
+                # 不支持的数组形状
+                return None
+
+            # 创建QImage
+            q_image = QImage(image_array.data, width, height, bytes_per_line, q_format)
+
+            # 创建QImage的深拷贝，以防原始numpy数组被回收导致图像数据丢失
+            return QPixmap.fromImage(q_image.copy())
         except Exception:
             return None
 

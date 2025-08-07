@@ -1,0 +1,18 @@
+screen_id: lostvoid_investigativeStrategy
+screen_name: 迷失之地-调查战略选择
+pc_alt: false
+area_list:
+- area_name: 战略等级
+  id_mark: false
+  pc_rect:
+  - 2
+  - 206
+  - 1922
+  - 358
+  text: ''
+  lcs_percent: 0.7
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []

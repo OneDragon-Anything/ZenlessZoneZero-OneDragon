@@ -15,7 +15,7 @@ class OpenAndEnterGame(Operation):
         Operation.__init__(self, ctx, op_name=gt('打开并登录游戏'),
                            need_check_game_win=False)
 
-    @operation_node(name='打开游戏', is_start_node=True)
+    @operation_node(name='打开游戏', is_start_node=True, screenshot_before_round=False)
     def open_game(self) -> OperationRoundResult:
         """
         打开游戏
@@ -27,7 +27,7 @@ class OpenAndEnterGame(Operation):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='打开游戏')
-    @operation_node(name='等待游戏打开', node_max_retry_times=60)
+    @operation_node(name='等待游戏打开', node_max_retry_times=60, screenshot_before_round=False)
     def wait_game(self) -> OperationRoundResult:
         self.ctx.controller.game_win.init_win()
         if self.ctx.controller.is_game_window_ready:

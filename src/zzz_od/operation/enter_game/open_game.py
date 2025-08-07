@@ -16,7 +16,7 @@ class OpenGame(Operation):
         Operation.__init__(self, ctx, op_name=gt('打开游戏'),
                            need_check_game_win=False)
 
-    @operation_node(name='打开游戏', is_start_node=True)
+    @operation_node(name='打开游戏', is_start_node=True, screenshot_before_round=False)
     def open_game(self) -> OperationRoundResult:
         """
         打开游戏

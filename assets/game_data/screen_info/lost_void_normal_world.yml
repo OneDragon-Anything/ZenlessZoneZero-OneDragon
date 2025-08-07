@@ -1,6 +1,6 @@
 screen_id: lost_void_normal_world
 screen_name: 迷失之地-大世界
-pc_alt: false
+pc_alt: true
 area_list:
 - area_name: 区域-文本提示
   id_mark: false

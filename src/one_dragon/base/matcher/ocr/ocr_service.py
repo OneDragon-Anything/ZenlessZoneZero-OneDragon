@@ -170,7 +170,7 @@ class OcrService:
 
             for ocr_result in ocr_result_list:
                 # 检查匹配结果是否和指定区域重叠
-                if cal_utils.cal_overlap_percent(ocr_result.rect, rect, base=rect) > 0.7:
+                if cal_utils.cal_overlap_percent(ocr_result.rect, rect, base=ocr_result.rect) > 0.7:
                     area_result_list.append(ocr_result)
 
             return area_result_list

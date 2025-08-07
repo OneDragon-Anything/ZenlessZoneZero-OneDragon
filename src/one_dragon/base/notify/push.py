@@ -8,6 +8,7 @@ import smtplib
 import threading
 import time
 import urllib.parse
+import functools
 
 from io import BytesIO
 from email.mime.text import MIMEText
@@ -20,12 +21,36 @@ from one_dragon.utils.log_utils import log
 
 import requests
 
+def track_push_method(func):
+    """装饰器：自动为推送方法添加遥测功能"""
+    @functools.wraps(func)
+    def wrapper(self, title: str, content: str, image: Optional[BytesIO]) -> None:
+        method_name = func.__name__
+
+        try:
+            # 执行原始推送方法
+            result = func(self, title, content, image)
+
+            # 如果方法执行完成没有抛出异常，记录成功
+            # 注意：具体的成功/失败判断由各个方法内部处理
+            # 装饰器只处理未捕获的异常
+            return result
+
+        except Exception as e:
+            # 记录推送失败
+            if hasattr(self, '_track_push_failure'):
+                self._track_push_failure(method_name, str(e))
+            raise
+
+    return wrapper
+
 class Push():
 
     def __init__(self, ctx: OneDragonContext):
         self.ctx: OneDragonContext = ctx
 
 
+    @track_push_method
     def bark(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 Bark 推送消息。
@@ -58,16 +83,21 @@ class Push():
         if self.get_config("BARK_URL"):
             data["url"] = self.get_config("BARK_URL")
         headers = {"Content-Type": "application/json;charset=utf-8"}
-        response = requests.post(
-            url=url, data=json.dumps(data), headers=headers, timeout=15
-        ).json()
 
-        if response["code"] == 200:
-            self.log_info("Bark 推送成功！")
-        else:
-            self.log_error("Bark 推送失败！")
+        try:
+            response = requests.post(
+                url=url, data=json.dumps(data), headers=headers, timeout=15
+            ).json()
+
+            if response["code"] == 200:
+                self.log_info("Bark 推送成功！")
+            else:
+                self.log_error("Bark 推送失败！")
+        except Exception as e:
+            self.log_error(f"Bark 推送异常: {e}")
 
 
+    @track_push_method
     def console(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 控制台 推送消息。
@@ -75,6 +105,7 @@ class Push():
         print(f"{title}\n{content}")
 
 
+    @track_push_method
     def dingding_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 钉钉机器人 推送消息。
@@ -94,16 +125,21 @@ class Push():
         url = f'https://oapi.dingtalk.com/robot/send?access_token={self.get_config("DD_BOT_TOKEN")}&timestamp={timestamp}&sign={sign}'
         headers = {"Content-Type": "application/json;charset=utf-8"}
         data = {"msgtype": "text", "text": {"content": f"{title}\n{content}"}}
-        response = requests.post(
-            url=url, data=json.dumps(data), headers=headers, timeout=15
-        ).json()
 
-        if not response["errcode"]:
-            self.log_info("钉钉机器人 推送成功！")
-        else:
-            self.log_error("钉钉机器人 推送失败！")
+        try:
+            response = requests.post(
+                url=url, data=json.dumps(data), headers=headers, timeout=15
+            ).json()
+
+            if not response["errcode"]:
+                self.log_info("钉钉机器人 推送成功！")
+            else:
+                self.log_error("钉钉机器人 推送失败！")
+        except Exception as e:
+            self.log_error(f"钉钉机器人 推送异常: {e}")
 
 
+    @track_push_method
     def feishu_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 飞书机器人 推送消息。
@@ -121,6 +157,7 @@ class Push():
             self.log_error(f"飞书 推送失败！错误信息如下：\n{response}")
 
 
+    @track_push_method
     def one_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 OneBot 推送消息。
@@ -169,6 +206,7 @@ class Push():
                 self.log_error("OneBot 群聊推送失败！")
 
 
+    @track_push_method
     def gotify(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 gotify 推送消息。
@@ -190,6 +228,7 @@ class Push():
             self.log_error("gotify 推送失败！")
 
 
+    @track_push_method
     def iGot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 iGot 推送消息。
@@ -208,6 +247,7 @@ class Push():
             self.log_error(f'iGot 推送失败！{response["errMsg"]}')
 
 
+    @track_push_method
     def serverchan(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 ServerChan 推送消息。
@@ -232,6 +272,7 @@ class Push():
             self.log_error(f'Server 酱 推送失败！错误码：{response["message"]}')
 
 
+    @track_push_method
     def pushdeer(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过PushDeer 推送消息
@@ -256,6 +297,7 @@ class Push():
             self.log_error(f"PushDeer 推送失败！错误信息：{response}")
 
 
+    @track_push_method
     def chat(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过Chat 推送消息
@@ -268,10 +310,13 @@ class Push():
 
         if response.status_code == 200:
             self.log_info("Chat 推送成功！")
+            self._track_push_success('chat')
         else:
             self.log_error(f"Chat 推送失败！错误信息：{response}")
+            self._track_push_failure('chat', f"Status code: {response.status_code}")
 
 
+    @track_push_method
     def pushplus_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 pushplus 推送消息。
@@ -316,6 +361,7 @@ class Push():
                 self.log_error("PUSHPLUS 推送失败！")
 
 
+    @track_push_method
     def weplus_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 微加机器人 推送消息。
@@ -346,6 +392,7 @@ class Push():
             self.log_error("微加机器人 推送失败！")
 
 
+    @track_push_method
     def qmsg_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 qmsg 推送消息。
@@ -363,6 +410,7 @@ class Push():
             self.log_error(f'qmsg 推送失败！{response["reason"]}')
 
 
+    @track_push_method
     def wecom_app(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 企业微信 APP 推送消息。
@@ -459,6 +507,7 @@ class Push():
             return respone["errmsg"]
 
 
+    @track_push_method
     def wecom_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 企业微信机器人 推送消息。
@@ -483,6 +532,7 @@ class Push():
             self.log_error("企业微信机器人推送失败！")
 
 
+    @track_push_method
     def discord_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 Discord Bot 推送消息。
@@ -526,6 +576,7 @@ class Push():
         self.log_info("Discord Bot 推送成功！")
 
 
+    @track_push_method
     def telegram_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 telegram 机器人 推送消息。
@@ -569,6 +620,7 @@ class Push():
             self.log_error("Telegram 推送失败！")
 
 
+    @track_push_method
     def aibotk(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 智能微秘书 推送消息。
@@ -599,6 +651,7 @@ class Push():
             self.log_error(f'智能微秘书 推送失败！{response["error"]}')
 
 
+    @track_push_method
     def smtp(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 SMTP 邮件 推送消息。
@@ -641,6 +694,7 @@ class Push():
             self.log_error(f"SMTP 邮件 推送失败！{e}")
 
 
+    @track_push_method
     def pushme(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 PushMe 推送消息。
@@ -668,6 +722,7 @@ class Push():
             self.log_error(f"PushMe 推送失败！{response.status_code} {response.text}")
 
 
+    @track_push_method
     def chronocat(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 CHRONOCAT 推送消息。
@@ -710,6 +765,7 @@ class Push():
                         self.log_error(f"QQ群消息:{ids}推送失败！")
 
 
+    @track_push_method
     def ntfy(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 Ntfy 推送消息
@@ -742,6 +798,7 @@ class Push():
             self.log_error(f"Ntfy 推送失败！错误信息：{response.text}")
 
 
+    @track_push_method
     def wxpusher_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 wxpusher 推送消息。
@@ -975,12 +1032,55 @@ class Push():
         title = self.ctx.push_config.custom_push_title
 
         notify_function = self.add_notify_function()
+
+        # 遥测埋点：记录推送方法使用情况
+        self._track_push_usage(notify_function, test_method)
+
         ts = [
             threading.Thread(target=mode, args=(title, content, image), name=mode.__name__)
             for mode in notify_function
         ]
         [t.start() for t in ts]
         [t.join() for t in ts]
+
+    def _track_push_usage(self, notify_functions: list, test_method: Optional[str] = None) -> None:
+        """跟踪推送方法使用情况"""
+        if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
+            # 获取启用的推送方法
+            enabled_methods = [func.__name__ for func in notify_functions]
+
+            # 记录推送方法使用情况
+            self.ctx.telemetry.track_feature_usage('push_methods', {
+                'enabled_methods': enabled_methods,
+                'total_methods': len(enabled_methods),
+                'is_test': test_method is not None,
+                'test_method': test_method,
+                'has_image': hasattr(self, '_last_image') and self._last_image is not None
+            })
+
+            # 记录每种推送方法的使用
+            for method_name in enabled_methods:
+                self.ctx.telemetry.track_feature_usage(f'push_method_{method_name}', {
+                    'method_name': method_name,
+                    'is_test': test_method is not None
+                })
+
+    def _track_push_success(self, method_name: str) -> None:
+        """跟踪推送成功"""
+        if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
+            self.ctx.telemetry.track_feature_usage(f'push_success_{method_name}', {
+                'method_name': method_name,
+                'status': 'success'
+            })
+
+    def _track_push_failure(self, method_name: str, error_message: str) -> None:
+        """跟踪推送失败"""
+        if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
+            self.ctx.telemetry.track_feature_usage(f'push_failure_{method_name}', {
+                'method_name': method_name,
+                'status': 'failure',
+                'error_message': error_message
+            })
 
 
 def main():

@@ -1,11 +1,10 @@
-from PySide6.QtWidgets import QWidget
-from qfluentwidgets import SettingCardGroup, FluentIcon
+from PySide6.QtWidgets import QWidget, QVBoxLayout
+from qfluentwidgets import SettingCardGroup, FluentIcon, BodyLabel, setFont
 
 from one_dragon.base.config.basic_model_config import get_ocr_opts
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.utils.i18_utils import gt
-from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.install_card.launcher_install_card import LauncherInstallCard
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
@@ -26,10 +25,18 @@ class ResourceDownloadInterface(VerticalScrollInterface):
         self.ctx: OneDragonContext = ctx
 
     def get_content_widget(self) -> QWidget:
-        content_widget = Column()
 
-        content_widget.add_widget(self._init_common_group())
-        content_widget.add_widget(self._init_log_group(), stretch=1)
+        content_widget = QWidget()
+        control_layout = QVBoxLayout(content_widget)
+
+        control_layout.addWidget(self._init_common_group())
+
+        log_label = BodyLabel(gt('日志显示'))
+        setFont(log_label, 20)
+        control_layout.addWidget(log_label)
+
+        self.log_card = LogDisplayCard()
+        control_layout.addWidget(self.log_card, stretch=1)
 
         return content_widget
 
@@ -54,17 +61,6 @@ class ResourceDownloadInterface(VerticalScrollInterface):
         return group
 
     def _add_model_cards(self) -> None:
-        pass
-
-    def _init_log_group(self) -> SettingCardGroup:
-        log_group = SettingCardGroup(gt('安装日志'))
-        self.log_card = LogDisplayCard()
-        log_group.addSettingCard(self.log_card)
-        self._set_log_card_height(self.log_card)
-
-        return log_group
-
-    def _set_log_card_height(self, log_card) -> None:
         pass
 
     def on_interface_shown(self) -> None:

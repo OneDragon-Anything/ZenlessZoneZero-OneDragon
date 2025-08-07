@@ -1,0 +1,17 @@
+- step: 按区域裁剪
+  params:
+    screen_name: 迷失之地-藏品面板
+    area_name: 藏品清单
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 0
+    - 0
+    - 255
+    hsv_diff:
+    - 90
+    - 255
+    - 200
+- step: OCR识别
+  params:
+    draw_text_box: true

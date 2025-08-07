@@ -23,11 +23,6 @@
     min_length: 60
     max_length: 70
     draw_contours: 0
-- step: 按长宽比过滤
-  params:
-    min_ratio: 0.7
-    max_ratio: 0.8
-    draw_contours: 0
 - step: 按面积过滤
   params:
     min_area: 240

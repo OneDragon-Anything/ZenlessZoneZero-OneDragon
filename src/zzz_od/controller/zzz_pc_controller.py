@@ -317,3 +317,11 @@ class ZPcController(PcControllerBase):
         """
         self.is_moving = False
         self.move_w(release=True)
+
+    def turn_vertical_by_distance(self, d: float):
+        """
+        纵向转向 按距离转
+        :param d: 正数往下转 负数往上转
+        :return:
+        """
+        ctypes.windll.user32.mouse_event(0x0001, 0, int(d))

@@ -1,8 +1,10 @@
 import ctypes
-import pyautogui
 from ctypes.wintypes import RECT
-from pygetwindow import Win32Window
 from typing import Optional
+
+import pyautogui
+import win32ui
+from pygetwindow import Win32Window
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -35,6 +37,9 @@ class PcGameWindow:
                 if win.title == self.win_title:
                     self._win = win
                     self._hWnd = win._hWnd
+        else:
+            self._win = None
+            self._hWnd = None
 
     def get_win(self) -> Optional[Win32Window]:
         if self._win is None:
@@ -92,12 +97,24 @@ class PcGameWindow:
                 win.restore()
                 win.activate()
                 return True
-            except Exception:
-                # 比较神奇的一个bug 直接activate有可能失败
-                # https://github.com/asweigart/PyGetWindow/issues/16#issuecomment-1110207862
-                win.minimize()
-                win.restore()
-                win.activate()
+            except win32ui.error as e:
+                if e.args[0].find('1400') > 0:  # Invalid window handle
+                    log.warning("无效的窗口句柄，尝试重置窗口")
+                    self._win = None
+                else:
+                    log.error("截图失败", exc_info=True)
+                return None
+            except Exception as e:
+                if e.args[0].find('1400') > 0:  # Invalid window handle
+                    log.warning("无效的窗口句柄，尝试重置窗口")
+                    self._win = None
+                    return False
+                else:
+                    # 比较神奇的一个bug 直接activate有可能失败
+                    # https://github.com/asweigart/PyGetWindow/issues/16#issuecomment-1110207862
+                    win.minimize()
+                    win.restore()
+                    win.activate()
                 return True
         except Exception:
             log.error('切换到游戏窗口失败', exc_info=True)

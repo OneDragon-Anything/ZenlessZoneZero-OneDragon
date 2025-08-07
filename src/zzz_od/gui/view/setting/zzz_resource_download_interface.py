@@ -1,4 +1,3 @@
-from PySide6.QtWidgets import QWidget
 from qfluentwidgets import SettingCardGroup, FluentIcon
 
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
@@ -30,9 +29,6 @@ class ZResourceDownloadInterface(ResourceDownloadInterface):
         self.lost_void_det_opt.value_changed.connect(self.on_lost_void_det_changed)
         self.lost_void_det_opt.gpu_changed.connect(self.on_lost_void_det_gpu_changed)
         group.addSettingCard(self.lost_void_det_opt)
-
-    def _set_log_card_height(self, log_card: QWidget) -> None:
-        log_card.setFixedHeight(186)
 
     def on_interface_shown(self) -> None:
         ResourceDownloadInterface.on_interface_shown(self)

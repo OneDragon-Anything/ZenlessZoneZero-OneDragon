@@ -2,9 +2,10 @@ import time
 
 import cv2
 from cv2.typing import MatLike
-from typing import List
+from typing import List, Tuple
 
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -42,19 +43,87 @@ class LostVoidChooseGear(ZOperation):
             # 进入本指令之前 有可能识别错画面
             return self.round_retry(status=f'当前画面 {screen_name}', wait=1)
 
-        gear_list = self.get_gear_pos(screen_list)
-        if len(gear_list) == 0:
-            # 识别耗时比较长 这里返回就不等待了
-            return self.round_retry(status='无法识别武备')
+        choose_new: bool = False
+        if self.ctx.lost_void.challenge_config.chase_new_mode:
+            gear_contours, gear_context = self._find_gears_with_status()
 
-        priority_list: List[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(gear_list, 1)
-        for art in priority_list:
-            self.ctx.controller.click(art.rect.center)
-            time.sleep(0.5)
+            if not gear_contours:
+                return self.round_retry(status='【武备追新】无法识别任何武备')
+            
+            unlocked_gears = [g for g, has_level in gear_contours if not has_level]
+
+            if unlocked_gears:
+                target_contour = unlocked_gears[0]
+                log.debug("【武备追新】找到一个未获取的武备，准备点击")
+
+                M = cv2.moments(target_contour)
+                center_x = int(M["m10"] / M["m00"])
+                center_y = int(M["m01"] / M["m00"])
+                offset_x, offset_y = gear_context.crop_offset
+                click_pos = Point(center_x + offset_x, center_y + offset_y)
+                log.debug(f"【武备追新】 点击目标坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {gear_context.crop_offset})")
+                self.ctx.controller.click(click_pos)
+                time.sleep(0.5)
+                choose_new = True
+            else:
+                log.debug("【武备追新】所有武备都已获取，回退至原优先级")
+
+        if not choose_new:
+            gear_list = self.get_gear_pos_by_feature(screen_list)
+            if len(gear_list) == 0:
+                return self.round_retry(status='无法识别武备')
+
+            priority_list: List[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(gear_list, 1)
+            if priority_list:
+                self.ctx.controller.click(priority_list[0].rect.center)
+                time.sleep(0.5)
 
         return self.round_success(wait=0.5)
 
-    def get_gear_pos(self, screen_list: List[MatLike], only_no_level: bool = False) -> List[LostVoidArtifactPos]:
+    def _find_gears_with_status(self) -> Tuple[List[tuple[any, bool]], any]:
+        """
+        使用CV流水线查找武备及其状态
+        :return: (武备轮廓, 是否有等级)
+        """
+        gear_context = self.ctx.cv_service.run_pipeline('迷失之地-武备列表检测', self.last_screenshot)
+        level_context = self.ctx.cv_service.run_pipeline('迷失之地-武备等级检测', self.last_screenshot)
+
+        if not gear_context.is_success or not gear_context.contours:
+            return [], gear_context
+
+        gear_with_status = []
+        for gear_contour in gear_context.contours:
+            gear_rect = cv2.boundingRect(gear_contour)
+            has_level = False
+            if level_context.is_success and level_context.contours:
+                for level_contour in level_context.contours:
+                    level_M = cv2.moments(level_contour)
+                    if level_M["m00"] == 0: continue
+                    level_center_x = int(level_M["m10"] / level_M["m00"])
+                    level_center_y = int(level_M["m01"] / level_M["m00"])
+
+                    # 简单的空间关系判断：等级中心点在武备矩形的右侧附近
+                    if (gear_rect[0] - gear_rect[2] * 0.2 < level_center_x < gear_rect[0] + gear_rect[2] and
+                            gear_rect[1] - gear_rect[3] * 0.2 < level_center_y < gear_rect[1] + gear_rect[3]):
+                        has_level = True
+                        break
+            gear_with_status.append((gear_contour, has_level))
+
+        rects = []
+        for idx in range(len(gear_with_status)):
+            contour, has_level = gear_with_status[idx]
+            if has_level:
+                continue
+            rect = cv2.boundingRect(contour)
+            rects.append(Rect(rect[0], rect[1], rect[2], rect[3]))
+        for contour in level_context.contours:
+            rect = cv2.boundingRect(contour)
+            rects.append(Rect(rect[0], rect[1], rect[2], rect[3]))
+        # cv2_utils.show_image(self.last_screenshot, rects, wait=0)
+
+        return gear_with_status, gear_context
+
+    def get_gear_pos_by_feature(self, screen_list: List[MatLike]) -> List[LostVoidArtifactPos]:
         """
         获取武备的位置
         @param screen_list: 游戏截图列表 由于武备的图像是动态的 需要多张识别后合并结果
@@ -72,11 +141,6 @@ class LostVoidChooseGear(ZOperation):
 
         for screen in screen_list:
             part = cv2_utils.crop_image_only(screen, area.rect)
-
-            if only_no_level:
-                level_pos_list = self.get_level_pos(screen)
-            else:
-                level_pos_list = []
 
             source_kps, source_desc = cv2_utils.feature_detect_and_compute(part)
             for gear in to_check_list:
@@ -104,19 +168,6 @@ class LostVoidChooseGear(ZOperation):
                         existed = True
                         break
 
-                if only_no_level:
-                    with_level: bool = False
-                    gear_width = mr.w
-                    gear_center = mr.center
-                    for level in level_pos_list:
-                        level_center = level.center
-                        if level_center.x < gear_center.x and abs(level_center.x - gear_center.x) < gear_width * 1.5:
-                            with_level = True
-                            break
-
-                    if with_level:
-                        continue
-
                 if not existed:
                     result_list.append(LostVoidArtifactPos(gear, mr.rect))
 
@@ -125,37 +176,15 @@ class LostVoidChooseGear(ZOperation):
 
         return result_list
 
-    def get_level_pos(self, screen: MatLike) -> List[MatchResult]:
-        """
-        获取等级的位置
-        :param screen: 游戏画面
-        :return:
-        """
-        area = self.ctx.screen_loader.get_area('迷失之地-武备选择', '等级列表')
-        part = cv2_utils.crop_image_only(screen, area.rect)
-        mask = cv2.inRange(part, (150, 150, 150), (255, 255, 255))
-        mask = cv2_utils.dilate(mask, 2)
-        to_ocr = cv2.bitwise_and(part, part, mask=mask)
-        # cv2_utils.show_image(to_ocr, wait=0)
-
-        level_result_list: List[MatchResult] = []
-
-        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
-        for ocr_result, mrl in ocr_result_map.items():
-            digit = str_utils.get_positive_digits(ocr_result)
-            if digit is None:
-                continue
-            for mr in mrl:
-                mr.add_offset(area.left_top)
-                level_result_list.append(mr)
-
-        return level_result_list
-
     @node_from(from_name='选择武备')
     @operation_node(name='点击携带')
     def click_equip(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(screen_name='迷失之地-武备选择', area_name='按钮-携带',
-                                                 success_wait=1, retry_wait=1)
+        result = self.round_by_find_and_click_area(screen_name='迷失之地-武备选择', area_name='按钮-携带',
+                                                   success_wait=1, retry_wait=1)
+        if result.is_success:
+            self.ctx.lost_void.priority_updated = False
+            log.info("武备选择成功，已设置优先级更新标志")
+        return result
 
     @node_from(from_name='选择武备', success=False)
     @node_from(from_name='点击携带')

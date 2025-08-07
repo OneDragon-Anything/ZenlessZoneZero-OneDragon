@@ -52,9 +52,47 @@ def get_angle_by_pts(from_pos: Point, to_pos: Point) -> float:
     return angle
 
 
+def calculate_direction_angle(current_pos: Point, next_pos: Point) -> float:
+    """
+    计算从current_pos看向next_pos的方向角度 正右方是0度 逆时针为正
+    注意：使用OpenCV坐标系 (y轴向下为正)
+
+    Args:
+        current_pos: 当前位置 Point 对象
+        next_pos: 目标位置 Point 对象
+
+    Returns:
+        float: 方向角度（0-360度，正右方为0度，逆时针为正）
+    """
+    # 计算坐标差值
+    dx = next_pos.x - current_pos.x
+    dy = next_pos.y - current_pos.y  # 在OpenCV中，y向下为正
+
+    # 使用atan2计算角度（弧度）
+    # 在OpenCV坐标系中，atan2(dy, dx)返回的角度是顺时针为正的
+    # 因为y轴方向与数学坐标系相反
+    angle_rad = math.atan2(dy, dx)
+
+    # 转换为角度
+    angle_deg = math.degrees(angle_rad)
+
+    # 转换为0-360度范围，并调整为逆时针为正
+    # 由于OpenCV坐标系中y轴向下为正，atan2返回的角度是顺时针为正
+    # 需要将其转换为逆时针为正的角度系统
+    angle_deg = 360 - angle_deg  # 转换为逆时针为正
+
+    # 确保在0-360度范围内
+    if angle_deg >= 360:
+        angle_deg -= 360
+    elif angle_deg < 0:
+        angle_deg += 360
+
+    return angle_deg
+
+
 def angle_delta(from_angle: float, to_angle: float) -> float:
     """
-    从一个角度转到另一个角度需要的角度 正数向右转
+    从一个角度转到另一个角度需要的角度 顺时针为正
     :param from_angle:
     :param to_angle:
     :return:

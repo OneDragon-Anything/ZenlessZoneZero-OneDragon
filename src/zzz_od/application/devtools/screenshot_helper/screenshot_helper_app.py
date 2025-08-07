@@ -71,8 +71,8 @@ class ScreenshotHelperApp(ZApplication):
         self.screenshot_cache.append(self.last_screenshot)
 
         if self.ctx.screenshot_helper_config.mini_map_angle_detect:
-            mm = self.ctx.mini_map_service.cut_mini_map(self.last_screenshot)
-            angle = self.ctx.mini_map_service.cal_angle(mm)
+            mm = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
+            angle = mm.view_angle
             log.info(f'当前角度 {angle}')
             if angle is None:
                 self.save_screenshot()

@@ -14,22 +14,28 @@ class ZContext(OneDragonContext):
         from zzz_od.application.hollow_zero.lost_void.context.lost_void_context import LostVoidContext
         self.lost_void: LostVoidContext = LostVoidContext(self)
 
-        from zzz_od.config.model_config import ModelConfig
-        from zzz_od.game_data.compendium import CompendiumService
-        from zzz_od.game_data.map_area import MapAreaService
-
         # 基础配置
+        from zzz_od.config.model_config import ModelConfig
         self.model_config: ModelConfig = ModelConfig()
 
         # 游戏数据
-        self.map_service: MapAreaService = MapAreaService()
+        from zzz_od.game_data.map_area import MapAreaService
+        self.map_service: MapAreaService = MapAreaService()  # 这是
+        from zzz_od.game_data.compendium import CompendiumService
         self.compendium_service: CompendiumService = CompendiumService()
+        from zzz_od.application.world_patrol.world_patrol_service import WorldPatrolService
+        self.world_patrol_service: WorldPatrolService = WorldPatrolService(self)
 
         # 服务
         from one_dragon.base.cv_process.cv_service import CvService
         self.cv_service: CvService = CvService(self)
-        from zzz_od.context.mini_map_service import MiniMapService
-        self.mini_map_service: MiniMapService = MiniMapService(self)
+
+        from zzz_od.telemetry.telemetry_manager import TelemetryManager
+        self.telemetry: TelemetryManager = TelemetryManager(self)
+
+        # 后续所有用到自动战斗的 都统一设置到这个里面
+        from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
+        self.auto_op: AutoBattleOperator | None = None
 
         # 实例独有的配置
         self.load_instance_config()
@@ -148,7 +154,14 @@ class ZContext(OneDragonContext):
         from zzz_od.application.suibian_temple.suibian_temple_run_record import SuibianTempleRunRecord
         self.suibian_temple_record: SuibianTempleRunRecord = SuibianTempleRunRecord(self.current_instance_idx, game_refresh_hour_offset)
 
+        from zzz_od.application.world_patrol.world_patrol_config import WorldPatrolConfig
+        self.world_patrol_config: WorldPatrolConfig = WorldPatrolConfig(self.current_instance_idx)
+        from zzz_od.application.world_patrol.world_patrol_run_record import WorldPatrolRunRecord
+        self.world_patrol_run_record: WorldPatrolRunRecord = WorldPatrolRunRecord(self.current_instance_idx, game_refresh_hour_offset)
+
         self.init_by_config()
+
+        self.telemetry.initialize()
 
     def init_by_config(self) -> None:
         """
@@ -200,6 +213,7 @@ class ZContext(OneDragonContext):
         AgentEnum.ELLEN.value.template_id_list = [self.agent_outfit_config.ellen]
         AgentEnum.ASTRA_YAO.value.template_id_list = [self.agent_outfit_config.astra_yao]
         AgentEnum.YIXUAN.value.template_id_list = [self.agent_outfit_config.yixuan]
+        AgentEnum.YUZUHA.value.template_id_list = [self.agent_outfit_config.yuzuha]
 
     def init_agent_template_id_list(self) -> None:
         """
@@ -210,10 +224,50 @@ class ZContext(OneDragonContext):
         AgentEnum.ELLEN.value.template_id_list = self.agent_outfit_config.ellen_outfit_list
         AgentEnum.ASTRA_YAO.value.template_id_list = self.agent_outfit_config.astra_yao_outfit_list
         AgentEnum.YIXUAN.value.template_id_list = self.agent_outfit_config.yixuan_outfit_list
+        AgentEnum.YUZUHA.value.template_id_list = self.agent_outfit_config.yuzuha_outfit_list
 
     def after_app_shutdown(self) -> None:
         """
         App关闭后进行的操作 关闭一切可能资源操作
         @return:
         """
+        if hasattr(self, 'telemetry') and self.telemetry:
+            self.telemetry.shutdown()
+
         OneDragonContext.after_app_shutdown(self)
+
+    def init_auto_op(self, op_name: str, sub_dir: str = 'auto_battle') -> None:
+        """
+        加载自动战斗指令
+
+        Args:
+            sub_dir: 子文件夹
+            op_name: 模板名称
+
+        Returns:
+            None
+        """
+        if self.auto_op is not None:  # 如果有上一个 先销毁
+            self.auto_op.dispose()
+
+        from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
+        self.auto_op = AutoBattleOperator(self, sub_dir, op_name)
+        success, msg = self.auto_op.init_before_running()
+        if not success:
+            raise Exception(msg)
+
+    def stop_auto_battle(self) -> None:
+        """
+        停止自动战斗
+        Returns:
+            None
+        """
+        if self.auto_op is not None:
+            self.auto_op.stop_running()
+
+    def start_auto_battle(self) -> None:
+        """
+        开始自动战斗
+        """
+        if self.auto_op is not None:
+            self.auto_op.start_running_async()

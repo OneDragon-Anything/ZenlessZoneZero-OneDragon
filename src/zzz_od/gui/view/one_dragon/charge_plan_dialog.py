@@ -1,5 +1,6 @@
 from qfluentwidgets import MessageBoxBase, SubtitleLabel
 
+from one_dragon.utils.i18_utils import gt
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.one_dragon.charge_plan_interface import ChargePlanCard
@@ -12,10 +13,10 @@ class ChargePlanDialog(MessageBoxBase):
 
         super().__init__(parent)
 
-        self.yesButton.setText("确定")
-        self.cancelButton.setText("取消")
+        self.yesButton.setText(gt('确定'))
+        self.cancelButton.setText(gt('取消'))
 
-        self.titleLabel = SubtitleLabel("新增体力计划")
+        self.titleLabel = SubtitleLabel(gt('新增体力计划'))
         self.viewLayout.addWidget(self.titleLabel)
 
         self._setup_card()

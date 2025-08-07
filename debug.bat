@@ -2,7 +2,7 @@
 chcp 65001 >nul 2>&1
 
 rem 检查是否以管理员权限运行
-net session  >nul 2>&1
+net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo -------------------------------
     echo 尝试获取管理员权限中...
@@ -24,7 +24,8 @@ if "%path_check%" neq "%path_check: =%" echo [WARN] 路径中包含空格
 echo -------------------------------
 echo 正在以管理员权限运行...
 echo -------------------------------
-echo.&echo 1. 强制配置 Python 环境&echo 2. 添加 Git 安全目录&echo 3. 重新安装 Pyautogui 库&echo 4. 检查 PowerShell 路径&echo 5. 重新创建虚拟环境&echo 6. 安装onnxruntime&echo 7. 配置Git SSL后端&echo 8. 以DEBUG模式运行一条龙&echo 9. 退出
+echo.&echo 1. 强制配置 Python 环境&echo 2. 添加 Git 安全目录&echo 3. 重新安装 Pyautogui 库&echo 4. 检查 PowerShell 路径&echo 5. 重新创建虚拟环境&echo 6. 安装onnxruntime&echo 7. 配置Git SSL后端&echo 8. 以DEBUG模式运行一条龙&echo 9. 检查当前版本是否为受支持版本&echo 10. 删除日志和缓存文件&echo 11. 退出
+
 echo.
 set /p choice=请输入选项数字并按 Enter：
 
@@ -36,7 +37,9 @@ if "%choice%"=="5" goto :VENV
 if "%choice%"=="6" goto :ONNX_CHOOSE_SOURCE
 if "%choice%"=="7" goto :CONFIG_GIT_SSL
 if "%choice%"=="8" goto :DEBUG
-if "%choice%"=="9" exit /b
+if "%choice%"=="9" goto :CHECK_VERSION
+if "%choice%"=="10" goto :CLEAN_FILES
+if "%choice%"=="11" exit /b
 echo [ERROR] 无效选项，请重新选择。
 
 goto :MENU
@@ -75,7 +78,7 @@ set "DIR_PATH=%DIR_PATH:\=/%"
 set "DIR_PATH=%DIR_PATH:\\=/%"
 if "%DIR_PATH:~-1%"=="/" set "DIR_PATH=%DIR_PATH:~0,-1%"
 "%GIT_PATH%" config --global --add safe.directory %DIR_PATH%
-if %errorlevel% neq 0 echo [ERROR] 添加失败  & pause & exit /b 1
+if %errorlevel% neq 0 echo [ERROR] 添加失败 & pause & exit /b 1
 echo [PASS] Git 安全目录添加成功
 
 goto :END
@@ -122,7 +125,7 @@ if not exist "%UV%" echo [ERROR] 未找到uv工具 & pause & exit /b 1
 
 %UV% pip uninstall pyautogui -y
 %UV% pip install -i %PIP_INDEX_URL% %PIP_TRUSTED_HOST_CMD% pyautogui
-%UV% pip uninstall pygetwindow -y 
+%UV% pip uninstall pygetwindow -y
 %UV% pip install -i %PIP_INDEX_URL% %PIP_TRUSTED_HOST_CMD% pygetwindow
 echo 安装完成...
 goto :END
@@ -251,6 +254,136 @@ echo -------------------------------
 "%ProgramFiles%\Git\bin\git.exe" config --global http.sslBackend schannel
 echo Git SSL后端已配置为schannel
 goto :MENU
+
+:CHECK_VERSION
+echo -------------------------------
+echo 正在检查当前版本...
+echo -------------------------------
+echo.
+
+set "is_old_version=false"
+set "is_uv_exist=false"
+set "is_mingit_exist=false"
+
+rem --- 检查 OneDragon-Launcher.exe 文件 ---
+if not exist "%~dp0OneDragon-Launcher.exe" (
+    if exist "%~dp0OneDragon Launcher.exe" (
+        echo [警告] 发现旧版启动器 "OneDragon Launcher.exe"，新版应为 "OneDragon-Launcher.exe"。
+        set "is_old_version=true"
+    ) else (
+        echo [警告] 找不到 "OneDragon-Launcher.exe" 文件，可能不是正确的目录。
+        set "is_old_version=true"
+    )
+) else (
+    echo 找到 "OneDragon-Launcher.exe"。
+)
+
+echo.
+echo --- 检查 .install 文件夹 ---
+if exist "%~dp0.install\uv" (
+    echo [PASS] 找到 "uv" 文件夹。
+    set "is_uv_exist=true"
+) else (
+    echo [警告] 未在 .install 文件夹中找到 "uv" 文件夹。
+)
+
+if exist "%~dp0.install\MinGit" (
+    echo [PASS] 找到 "MinGit" 文件夹。
+    set "is_mingit_exist=true"
+) else (
+    echo [警告] 未在 .install 文件夹中找到 "MinGit" 文件夹。
+)
+
+rem 根据检查结果判断是否为旧版本
+if "%is_uv_exist%"=="false" (
+    set "is_old_version=true"
+)
+
+echo.
+echo --- 结果总结 ---
+if "%is_old_version%"=="true" (
+    echo.
+    echo ------------------------------------------
+    echo.
+    echo 结论：根据以上检查，你可能正在使用**暂停支持的旧版本**，请重新下载最新安装包。
+    echo ------------------------------------------
+    
+    rem --- 自动打开浏览器跳转下载页面 ---
+    echo.
+    echo 正在为您打开下载页面...
+    start "" "https://one-dragon.com/zzz/zh/quickstart.html#%E5%AE%89%E8%A3%85"
+    
+) else (
+    echo.
+    echo 结论：初步检查未发现旧版特征，你可能正在使用**2.0以上版本**。
+    echo.
+    echo ------------------------------------------
+)
+
+rem 针对 MinGit 的特殊提示
+if "%is_uv_exist%"=="true" if "%is_mingit_exist%"=="false" (
+    echo.
+    echo [提示] 未找到MinGit，如果您正在使用自己的Git工具，那么版本可能没有错误。
+)
+
+goto :END
+
+:CLEAN_FILES
+echo -------------------------------
+echo 正在删除日志和缓存文件...
+echo -------------------------------
+echo.
+
+set /p confirm=此操作将删除日志和缓存文件，是否继续？ (Y/N): 
+
+if /i "%confirm%"=="Y" (
+    echo 正在清理...
+    
+    rem 删除 .debug/images/ 文件夹的内容 (保留文件夹本身)
+    if exist "%~dp0.debug\images\" (
+        del /q "%~dp0.debug\images\*"
+        for /d %%d in ("%~dp0.debug\images\*") do rmdir /s /q "%%d"
+        echo [PASS] 已清理 .debug\images\ 文件夹内容。
+    ) else (
+        echo [INFO] .debug\images\ 文件夹不存在，跳过。
+    )
+
+    rem 删除 .log/ 文件夹的内容 (保留文件夹本身)
+    if exist "%~dp0.log\" (
+        del /q "%~dp0.log\*"
+        for /d %%d in ("%~dp0.log\*") do rmdir /s /q "%%d"
+        echo [PASS] 已清理 .log 文件夹内容。
+    ) else (
+        echo [INFO] .log\ 文件夹不存在，跳过。
+    )
+
+    rem 删除 .install/ 文件夹内的zip压缩包
+    if exist "%~dp0.install\" (
+        del /q "%~dp0.install\*.zip"
+        echo [PASS] 已删除 .install\ 文件夹内的安装残留压缩包。
+    ) else (
+        echo [INFO] .install\ 文件夹不存在，跳过zip清理。
+    )
+
+    rem 删除所有 .temp_clone* 文件夹
+    for /d %%i in ("%~dp0.temp_clone*") do (
+        if exist "%%i\" (
+            rmdir /s /q "%%i\"
+            if not exist "%%i\" (
+                echo [PASS] 已删除 %%i\ 文件夹。
+            ) else (
+                echo [ERROR] 无法删除 %%i\ 文件夹。
+            )
+        )
+    )
+    
+    echo.
+    echo 清理完成。
+) else (
+    echo 操作已取消。
+)
+
+goto :END
 
 :END
 echo 操作已完成。

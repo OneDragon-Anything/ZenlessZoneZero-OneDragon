@@ -14,7 +14,7 @@ class DisableAutoHDR(Operation):
         Operation.__init__(self, ctx, op_name=gt('禁用HDR'),
                           need_check_game_win=False)
 
-    @operation_node(name='禁用自动HDR', is_start_node=True)
+    @operation_node(name='禁用自动HDR', is_start_node=True, screenshot_before_round=False)
     def disable_auto_hdr(self) -> OperationRoundResult:
         """
         禁用自动HDR，并保存原始设置
@@ -53,7 +53,7 @@ class EnableAutoHDR(Operation):
         Operation.__init__(self, ctx, op_name=gt('恢复HDR'),
                           need_check_game_win=True)
 
-    @operation_node(name='启用自动HDR', is_start_node=True)
+    @operation_node(name='启用自动HDR', is_start_node=True, screenshot_before_round=False)
     def enable_auto_hdr(self) -> OperationRoundResult:
         """
         启用自动HDR，恢复原始设置

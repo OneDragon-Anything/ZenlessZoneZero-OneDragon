@@ -12,7 +12,7 @@ from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, RestoreChargeEnum
 from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntLevelEnum
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
@@ -20,6 +20,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.challenge_mission.restart_in_battle import RestartInBattle
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
+from zzz_od.operation.restore_charge import RestoreCharge
 from zzz_od.operation.zzz_operation import ZOperation
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
@@ -76,6 +77,9 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='等待入口加载', status='按钮-街区')
     @operation_node(name='判断副本名称')
     def check_mission(self) -> OperationRoundResult:
+        if self.plan.mission_type_name == '代理人方案培养':
+        # 通过代理人进入则跳过重新选择副本
+            return self.round_success()
         area = self.ctx.screen_loader.get_area('恶名狩猎', '标题-副本名称')
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         ocr_result_map = self.ctx.ocr.run_ocr(part)
@@ -230,9 +234,25 @@ class NotoriousHunt(ZOperation):
         else:
             return self.round_retry(result.status, wait=1)
 
+    @node_from(from_name='识别可运行次数', status=STATUS_CHARGE_NOT_ENOUGH)
+    @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
+    @operation_node(name='恢复电量')
+    def restore_charge(self) -> OperationRoundResult:
+        if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value:
+            return self.round_success(NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
+        else:
+            op = RestoreCharge(self.ctx)
+            return self.round_by_op_result(op.execute())
+
     @node_from(from_name='选择难度')
+    @node_from(from_name='恢复电量', status='恢复电量成功')
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
+        # 防止前面电量识别错误
+        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '恢复电量')
+        if result.is_success:
+            return self.round_success(status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
+
         # 点击直到出战按钮出现
         result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '出战')
         if result.is_success:
@@ -312,7 +332,7 @@ class NotoriousHunt(ZOperation):
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
         if result.is_success:
             self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-            return self.round_success(status=result.status)
+            return self.round_success(status=result.status, wait=2)  # 按键后 等待一段时间选择鸣徽界面出现
 
         det_result: DetectFrameResult = self.ctx.lost_void.detector.run(self.last_screenshot, label_list=['0001-距离'])
         self.auto_op.auto_battle_context.check_battle_distance(self.last_screenshot)

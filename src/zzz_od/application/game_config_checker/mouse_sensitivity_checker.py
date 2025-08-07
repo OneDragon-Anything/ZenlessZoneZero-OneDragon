@@ -41,8 +41,8 @@ class MouseSensitivityChecker(ZApplication):
     @node_from(from_name='传送')
     @operation_node(name='转向检测', is_start_node=False)
     def check(self) -> OperationRoundResult:
-        mini_map = self.ctx.mini_map_service.cut_mini_map(self.last_screenshot)
-        angle = self.ctx.mini_map_service.cal_angle(mini_map)
+        mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
+        angle = mini_map.view_angle
 
         if angle is None:
             return self.round_fail(status='识别朝向失败')
@@ -85,8 +85,8 @@ def __debug_turn_dx():
     ctx.init_by_config()
     for _ in range(10):
         _, screen = ctx.controller.screenshot()
-        mini_map = ctx.mini_map_service.cut_mini_map(screen)
-        angle = ctx.mini_map_service.cal_angle(mini_map)
+        mini_map = ctx.world_patrol_service.cut_mini_map(screen)
+        angle = mini_map.view_angle
         print(angle)
         ctx.controller.turn_by_angle_diff(45)
         time.sleep(2)

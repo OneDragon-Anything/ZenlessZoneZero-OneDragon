@@ -1,0 +1,120 @@
+- icon_name: 物流通道
+  template_id: map_icon_01
+  lm_pos:
+  - 887
+  - 1464
+  tp_pos:
+  - 887
+  - 1464
+- icon_name: 中央制造区入口
+  template_id: map_icon_01
+  lm_pos:
+  - 636
+  - 2073
+  tp_pos:
+  - 636
+  - 2073
+- icon_name: ''
+  template_id: map_icon_02
+  lm_pos:
+  - 654
+  - 2007
+  tp_pos:
+  - 654
+  - 2007
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 623
+  - 1886
+  tp_pos:
+  - 623
+  - 1886
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 559
+  - 1783
+  tp_pos:
+  - 559
+  - 1783
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 753
+  - 1761
+  tp_pos:
+  - 753
+  - 1761
+- icon_name: ''
+  template_id: map_icon_04
+  lm_pos:
+  - 790
+  - 1227
+  tp_pos:
+  - 790
+  - 1227
+- icon_name: 制造平台
+  template_id: map_icon_01
+  lm_pos:
+  - 819
+  - 862
+  tp_pos:
+  - 819
+  - 862
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 732
+  - 820
+  tp_pos:
+  - 732
+  - 820
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 840
+  - 572
+  tp_pos:
+  - 840
+  - 572
+- icon_name: 大楼东侧
+  template_id: map_icon_01
+  lm_pos:
+  - 477
+  - 710
+  tp_pos:
+  - 477
+  - 710
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 532
+  - 657
+  tp_pos:
+  - 532
+  - 657
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 500
+  - 891
+  tp_pos:
+  - 500
+  - 891
+- icon_name: ''
+  template_id: map_icon_05
+  lm_pos:
+  - 528
+  - 900
+  tp_pos:
+  - 528
+  - 900
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 584
+  - 608
+  tp_pos:
+  - 584
+  - 608

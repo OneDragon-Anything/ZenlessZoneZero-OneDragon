@@ -25,6 +25,7 @@ from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_inter
 from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_lottery import LostVoidLottery
 from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_route_change import LostVoidRouteChange
 from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import LostVoidMoveByDet
+from zzz_od.application.hollow_zero.lost_void.operation.update_priority_operation import UpdatePriorityOperation
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
@@ -249,6 +250,10 @@ class LostVoidRunLevel(ZOperation):
             else:
                 return self.round_retry('移动失败')
 
+        # 在转动视角之前，检查是否需要更新优先级
+        if not self.ctx.lost_void.priority_updated:
+            return self.round_success('需要更新优先级')
+
         # 处理下层入口
         if with_entry:
             self.nothing_times = 0
@@ -286,6 +291,18 @@ class LostVoidRunLevel(ZOperation):
             return self.round_success(status='进入战斗')
 
         return self.round_wait(status='转动识别目标')
+
+    @node_from(from_name='非战斗画面识别', status='需要更新优先级')
+    @operation_node(name='更新优先级')
+    def update_priority(self) -> OperationRoundResult:
+        op = UpdatePriorityOperation(self.ctx)
+        op_result = op.execute()
+        if op_result.success:
+            self.ctx.lost_void.priority_updated = True
+            # 更新成功后，返回非战斗画面识别节点，重新进行判断
+            return self.round_success(status='非战斗区域')
+        else:
+            return self.round_fail(op_result.status)
 
     @node_from(from_name='非战斗画面识别', status=LostVoidDetector.CLASS_INTERACT)
     @node_from(from_name='非战斗画面识别', status=LostVoidDetector.CLASS_ENTRY)

@@ -61,9 +61,9 @@ area_list:
 - area_name: 等级列表
   id_mark: false
   pc_rect:
-  - 300
-  - 920
-  - 1630
+  - 216
+  - 922
+  - 1642
   - 960
   text: ''
   lcs_percent: 0.5

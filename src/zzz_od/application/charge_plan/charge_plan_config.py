@@ -16,6 +16,14 @@ class CardNumEnum(Enum):
     NUM_5 = ConfigItem('5张卡片', '5')
 
 
+class RestoreChargeEnum(Enum):
+
+    NONE = ConfigItem('不使用')
+    BACKUP_ONLY = ConfigItem('使用储蓄电量')
+    ETHER_ONLY = ConfigItem('使用以太电池')
+    BOTH = ConfigItem('同时使用储蓄电量和以太电池')
+
+
 class ChargePlanItem:
 
     def __init__(
@@ -57,7 +65,6 @@ class ChargePlanItem:
         )
 
 
-
 class ChargePlanConfig(YamlConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
@@ -71,9 +78,6 @@ class ChargePlanConfig(YamlConfig):
 
         for plan_item in self.data.get('plan_list', []):
             self.plan_list.append(ChargePlanItem(**plan_item))
-        self.loop = self.get('loop', True)
-        self.skip_plan = self.get('skip_plan', False)
-        self.use_coupon = self.get('use_coupon', False)
 
     def save(self):
         plan_list = []
@@ -110,13 +114,8 @@ class ChargePlanConfig(YamlConfig):
             if not with_new:
                 new_history_list.append(old_history_data)
 
-        self.data = {
-            'loop': self.loop,
-            'skip_plan': self.skip_plan,
-            'use_coupon': self.use_coupon,
-            'plan_list': plan_list,
-            'history_list': new_history_list
-        }
+        self.data['plan_list'] = plan_list
+        self.data['history_list'] = new_history_list
 
         YamlConfig.save(self)
 
@@ -289,3 +288,35 @@ class ChargePlanConfig(YamlConfig):
             history = ChargePlanItem(**history_data)
             if self._is_same_plan(history, plan):
                 return history
+
+    @property
+    def loop(self) -> bool:
+        return self.get('loop', True)
+
+    @loop.setter
+    def loop(self, new_value: bool) -> None:
+        self.update('loop', new_value)
+
+    @property
+    def skip_plan(self) -> bool:
+        return self.get('skip_plan', False)
+
+    @skip_plan.setter
+    def skip_plan(self, new_value: bool) -> None:
+        self.update('skip_plan', new_value)
+
+    @property
+    def use_coupon(self) -> bool:
+        return self.get('use_coupon', False)
+
+    @use_coupon.setter
+    def use_coupon(self, new_value: bool) -> None:
+        self.update('use_coupon', new_value)
+
+    @property
+    def restore_charge(self) -> str:
+        return self.get('restore_charge', RestoreChargeEnum.NONE.value.value)
+
+    @restore_charge.setter
+    def restore_charge(self, new_value: str) -> None:
+        self.update('restore_charge', new_value)

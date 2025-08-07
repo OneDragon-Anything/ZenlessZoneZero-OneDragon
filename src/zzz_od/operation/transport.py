@@ -205,7 +205,10 @@ class Transport(ZOperation):
             if tp_idx is not None and tp_idx >= 0:
                 tp_name_cnt += 1
 
-        return area_name_cnt >= 3 and tp_name_cnt >= 3
+        # 增加判断条件，左上角返回
+        result = self.round_by_find_area(screen, '地图', '左上角返回')
+        
+        return area_name_cnt >= 3 and tp_name_cnt >= 1 and result.is_success
 
 
 def __debug():

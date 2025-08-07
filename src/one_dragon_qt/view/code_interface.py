@@ -44,7 +44,7 @@ class CodeInterface(VerticalScrollInterface):
         content_widget = QWidget()
 
         self.page_num: int = -1
-        self.page_size: int = 9
+        self.page_size: int = 10
 
         v_layout = VBoxLayout(content_widget)
         v_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -90,7 +90,8 @@ class CodeInterface(VerticalScrollInterface):
         self.log_table.setColumnWidth(1, 100)
         self.log_table.setColumnWidth(2, 150)
         self.log_table.setColumnWidth(3, 200)
-        self.log_table.setColumnWidth(4, 440)
+        # 设置最后一列占用剩余空间
+        self.log_table.horizontalHeader().setStretchLastSection(True)
         self.log_table.verticalHeader().hide()
         self.log_table.setHorizontalHeaderLabels([
             gt('回滚'),
@@ -185,11 +186,21 @@ class CodeInterface(VerticalScrollInterface):
             reset_btn.setFixedSize(32, 32)
             reset_btn.setProperty('commit', log_list[i].commit_id)
             reset_btn.clicked.connect(self.on_reset_commit_clicked)
+
             self.log_table.setCellWidget(i, 0, reset_btn)
             self.log_table.setItem(i, 1, QTableWidgetItem(log_list[i].commit_id))
-            self.log_table.setItem(i, 2, QTableWidgetItem(log_list[i].author))
-            self.log_table.setItem(i, 3, QTableWidgetItem(log_list[i].commit_time))
-            self.log_table.setItem(i, 4, QTableWidgetItem(log_list[i].commit_message))
+
+            author_item = QTableWidgetItem(log_list[i].author)
+            author_item.setFlags(author_item.flags() & ~Qt.ItemIsEditable)
+            self.log_table.setItem(i, 2, author_item)
+
+            time_item = QTableWidgetItem(log_list[i].commit_time)
+            time_item.setFlags(time_item.flags() & ~Qt.ItemIsEditable)
+            self.log_table.setItem(i, 3, time_item)
+
+            content_item = QTableWidgetItem(log_list[i].commit_message)
+            content_item.setFlags(content_item.flags() & ~Qt.ItemIsEditable)
+            self.log_table.setItem(i, 4, content_item)
 
     def on_page_changed(self, page: int) -> None:
         """

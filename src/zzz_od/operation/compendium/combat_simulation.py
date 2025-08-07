@@ -11,7 +11,7 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
@@ -19,6 +19,7 @@ from zzz_od.operation.challenge_mission.check_next_after_battle import ChooseNex
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.deploy import Deploy
+from zzz_od.operation.restore_charge import RestoreCharge
 from zzz_od.operation.zzz_operation import ZOperation
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
@@ -131,7 +132,7 @@ class CombatSimulation(ZOperation):
         if self.scroll_count > 5:
             self.scroll_count = 0
             return self.round_success(status=CombatSimulation.STATUS_CHOOSE_FAIL)
-        
+
         if self.plan.mission_name == '代理人方案培养':
             target_point: Optional[Point] = None
 
@@ -140,7 +141,7 @@ class CombatSimulation(ZOperation):
 
             # 直接获取点击位置
             click_pos = cv2_utils.find_character_avatar_center_with_offset(
-                part, 
+                part,
                 area_offset=(area.left_top.x, area.left_top.y),
                 click_offset=(0, 80),  # 向下偏移80像素，用于点击头像下方的区域
                 min_area=800
@@ -255,7 +256,18 @@ class CombatSimulation(ZOperation):
 
         return self.round_success(CombatSimulation.STATUS_CHARGE_ENOUGH)
 
+    @node_from(from_name='识别电量', status=STATUS_CHARGE_NOT_ENOUGH)
+    @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
+    @operation_node(name='恢复电量')
+    def restore_charge(self) -> OperationRoundResult:
+        if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value:
+            return self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
+        else:
+            op = RestoreCharge(self.ctx)
+            return self.round_by_op_result(op.execute())
+
     @node_from(from_name='识别电量', status=STATUS_CHARGE_ENOUGH)
+    @node_from(from_name='恢复电量', status='恢复电量成功')
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
         # 防止前面电量识别错误

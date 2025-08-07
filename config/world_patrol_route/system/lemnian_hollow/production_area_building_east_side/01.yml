@@ -1,0 +1,32 @@
+idx: 1
+op_list:
+- data:
+  - '613'
+  - '2046'
+  op_type: move
+- data:
+  - '571'
+  - '1994'
+  op_type: move
+- data:
+  - '543'
+  - '1965'
+  op_type: move
+- data:
+  - '544'
+  - '1809'
+  op_type: move
+- data:
+  - '626'
+  - '1809'
+  op_type: move
+- data:
+  - '634'
+  - '1761'
+  op_type: move
+- data:
+  - '650'
+  - '1737'
+  op_type: move
+tp_area_id: production_area_building_east_side
+tp_name: 中央制造区入口

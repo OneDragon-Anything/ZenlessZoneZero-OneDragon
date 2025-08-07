@@ -21,11 +21,8 @@ class MissionTypeTargetWrapper:
 
 
 class CompendiumChooseMissionType(ZOperation):
-    """
-    快捷手册中选择特定副本类型的操作类
-    """
-    STATUS_CHOOSE_SUCCESS: ClassVar[str] = '选择成功'
-    STATUS_CHOOSE_FAIL: ClassVar[str] = '选择失败'
+
+    AGENT_PLAN: ClassVar[str] = '代理人方案培养'
 
     def __init__(self, ctx: ZContext, mission_type: CompendiumMissionType):
         """
@@ -46,8 +43,8 @@ class CompendiumChooseMissionType(ZOperation):
 
     @operation_node(name='选择副本', is_start_node=True, node_max_retry_times=20)
     def choose_mission_type(self) -> OperationRoundResult:
-        if self.mission_type.mission_type_name == '代理人方案培养':
-            return self.round_success(status='代理人方案培养')
+        if self.mission_type.mission_type_name == CompendiumChooseMissionType.AGENT_PLAN:
+            return self.round_success(status=CompendiumChooseMissionType.AGENT_PLAN)
 
         area = self.ctx.screen_loader.get_area('快捷手册', '副本列表')
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
@@ -90,17 +87,17 @@ class CompendiumChooseMissionType(ZOperation):
 
         return self.handle_go_button(self.last_screenshot, target_point)
 
-    @node_from(from_name='选择副本', status='代理人方案培养')
+    @node_from(from_name='选择副本', status=AGENT_PLAN)
     @operation_node(name='选择代理人方案', node_max_retry_times=5)
     def choose_mission_type_by_agent(self) -> OperationRoundResult:
         """
         专门处理"代理人方案培养"的方法
         """
-        area = self.ctx.screen_loader.get_area("快捷手册", "目标列表")
+        area = self.ctx.screen_loader.get_area("快捷手册", f"目标列表-{self.mission_type.category.tab.tab_name}")
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
         click_pos = cv2_utils.find_character_avatar_center_with_offset(
-            part, 
+            part,
             area_offset=(area.left_top.x, area.left_top.y),
             click_offset=(0, -80),  # 向上偏移80像素，确保能找到前往按钮
             min_area=800
@@ -155,10 +152,10 @@ class CompendiumChooseMissionType(ZOperation):
             return self.round_retry(status='找不到 %s' % '前往', wait=1)
 
         click = self.ctx.controller.click(target_go_point)
-        return self.round_success(status=CompendiumChooseMissionType.STATUS_CHOOSE_SUCCESS, wait=1)
+        return self.round_success(wait=1)
 
-    @node_from(from_name='选择副本', status=STATUS_CHOOSE_SUCCESS)
-    @node_from(from_name='选择代理人方案', status=STATUS_CHOOSE_SUCCESS)
+    @node_from(from_name='选择副本')
+    @node_from(from_name='选择代理人方案')
     @operation_node(name='确认')
     def confirm(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '传送确认',
