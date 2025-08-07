@@ -41,5 +41,27 @@ class OpenGame(Operation):
             command = f'{command} {arguement}'
         command = f'{command} & exit"'
         log.info('命令行指令 %s', command)
-        subprocess.Popen(command)
-        return self.round_success(wait=5)
+
+        try:
+            subprocess.Popen(command)
+
+            # 埋点：游戏启动事件
+            if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
+                self.ctx.telemetry.track_custom_event('game_launched', {
+                    'launch_method': 'auto_launch',
+                    'has_launch_arguments': self.ctx.game_config.launch_argument,
+                    'screen_size': self.ctx.game_config.screen_size if hasattr(self.ctx.game_config, 'screen_size') else 'unknown',
+                    'full_screen': self.ctx.game_config.full_screen if hasattr(self.ctx.game_config, 'full_screen') else False,
+                    'event_category': 'game_lifecycle'
+                })
+
+            return self.round_success(wait=5)
+        except Exception as e:
+            # 埋点：游戏启动失败事件
+            if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
+                self.ctx.telemetry.track_custom_event('game_launch_failed', {
+                    'launch_method': 'auto_launch',
+                    'error_type': type(e).__name__,
+                    'event_category': 'game_lifecycle'
+                })
+            raise
