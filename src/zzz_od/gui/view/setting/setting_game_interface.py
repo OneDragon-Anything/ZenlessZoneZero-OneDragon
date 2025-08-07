@@ -71,14 +71,19 @@ class SettingGameInterface(VerticalScrollInterface):
         self.outfit_alice_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='爱丽丝', options_enum=AgentOutfitAlice)
         self.outfit_alice_opt.value_changed.connect(self._on_agent_outfit_changed)
 
-        self.agent_outfit_group_horizontal = HorizontalSettingCardGroup([
+        self.agent_outfit_row1 = HorizontalSettingCardGroup([
             self.outfit_nicole_opt,
             self.outfit_ellen_opt,
             self.outfit_astra_yao_opt,
-            self.outfit_yixuan_opt,
-            self.outfit_yuzuha_opt
         ])
-        agent_outfit_group.addSettingCard(self.agent_outfit_group_horizontal)
+        agent_outfit_group.addSettingCard(self.agent_outfit_row1)
+
+        self.agent_outfit_row2 = HorizontalSettingCardGroup([
+            self.outfit_yixuan_opt,
+            self.outfit_yuzuha_opt,
+            self.outfit_alice_opt,
+        ])
+        agent_outfit_group.addSettingCard(self.agent_outfit_row2)
 
         return agent_outfit_group
 
@@ -422,7 +427,8 @@ class SettingGameInterface(VerticalScrollInterface):
         self._update_agent_outfit_options(value)
 
     def _update_agent_outfit_options(self, value: bool) -> None:
-        self.agent_outfit_group_horizontal.setVisible(value)
+        self.agent_outfit_row1.setVisible(value)
+        self.agent_outfit_row2.setVisible(value)
 
     def _on_agent_outfit_changed(self) -> None:
         if self.ctx.agent_outfit_config.compatibility_mode:
