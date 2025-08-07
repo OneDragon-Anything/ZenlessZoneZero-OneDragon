@@ -71,12 +71,12 @@ class AgentOutfitConfig(YamlConfig):
 
     @property
     def yuzuha_outfit_list(self) -> str:
-        return self.get('yuzuha_outfit_list', [AgentOutfityuzuha.DEFAULT.value.value,
-                                               AgentOutfityuzuha.TANUKI_IN_BROAD_DAYLIGHT.value.value])
+        return self.get('yuzuha_outfit_list', [AgentOutfitYuzuha.DEFAULT.value.value,
+                                               AgentOutfitYuzuha.TANUKI_IN_BROAD_DAYLIGHT.value.value])
 
     @property
     def yuzuha(self) -> str:
-        return self.get('yuzuha', AgentOutfityuzuha.DEFAULT.value.value)
+        return self.get('yuzuha', AgentOutfitYuzuha.DEFAULT.value.value)
 
     @yuzuha.setter
     def yuzuha(self, value: str) -> None:
@@ -84,12 +84,12 @@ class AgentOutfitConfig(YamlConfig):
 
     @property
     def alice_outfit_list(self) -> str:
-        return self.get('alice_outfit_list', [AgentOutfitalice.DEFAULT.value.value,
-                                               AgentOutfitalice.SEA_OF_THYME.value.value])
+        return self.get('alice_outfit_list', [AgentOutfitAlice.DEFAULT.value.value,
+                                               AgentOutfitAlice.SEA_OF_THYME.value.value])
 
     @property
     def alice(self) -> str:
-        return self.get('alice', AgentOutfitalice.DEFAULT.value.value)
+        return self.get('alice', AgentOutfitAlice.DEFAULT.value.value)
 
     @alice.setter
     def alice(self, value: str) -> None:
@@ -125,14 +125,14 @@ class AgentOutfitYiXuan(Enum):
     DEFAULT = ConfigItem('默认', 'yixuan')
     TRAILS_OF_INK = ConfigItem('墨形影踪', 'yixuan_trails_of_ink')
 
-class AgentOutfityuzuha(Enum):
+class AgentOutfitYuzuha(Enum):
     """
     浮波柚叶皮肤
     """
     DEFAULT = ConfigItem('默认', 'yuzuha')
     TANUKI_IN_BROAD_DAYLIGHT = ConfigItem('晴空化狸', 'yuzuha_tanuki_in_broad_daylight')
 
-class AgentOutfitalice(Enum):
+class AgentOutfitAlice(Enum):
     """
     爱丽丝皮肤
     """
