@@ -82,6 +82,19 @@ class AgentOutfitConfig(YamlConfig):
     def yuzuha(self, value: str) -> None:
         self.update('yuzuha', value)
 
+    @property
+    def alice_outfit_list(self) -> str:
+        return self.get('alice_outfit_list', [AgentOutfitalice.DEFAULT.value.value,
+                                               AgentOutfitalice.SEA_OF_THYME.value.value])
+
+    @property
+    def alice(self) -> str:
+        return self.get('alice', AgentOutfitalice.DEFAULT.value.value)
+
+    @alice.setter
+    def alice(self, value: str) -> None:
+        self.update('alice', value)
+
 class AgentOutfitNicole(Enum):
     """
     妮可皮肤
@@ -118,3 +131,10 @@ class AgentOutfityuzuha(Enum):
     """
     DEFAULT = ConfigItem('默认', 'yuzuha')
     TANUKI_IN_BROAD_DAYLIGHT = ConfigItem('晴空化狸', 'yuzuha_tanuki_in_broad_daylight')
+
+class AgentOutfitalice(Enum):
+    """
+    爱丽丝皮肤
+    """
+    DEFAULT = ConfigItem('默认', 'alice')
+    SEA_OF_THYME = ConfigItem('百里香之海', 'alice_sea_of_thyme')

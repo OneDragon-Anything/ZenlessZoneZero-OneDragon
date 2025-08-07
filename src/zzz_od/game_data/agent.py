@@ -336,14 +336,14 @@ class AgentEnum(Enum):
                                       max_length=200)
                     ])
 
-    YUZUHA = Agent('yuzuha', '浮波柚叶', RareTypeEnum.S, AgentTypeEnum.SUPPORT, DmgTypeEnum.PHYSICAL, ['yuzuha','yuzuha_tanuki_in_broad_daylight'],
+    YUZUHA = Agent('yuzuha', '浮波柚叶', RareTypeEnum.S, AgentTypeEnum.SUPPORT, DmgTypeEnum.PHYSICAL, ['yuzuha', 'yuzuha_tanuki_in_broad_daylight'],
                     state_list=[
                         AgentStateDef('柚叶-甜度点', AgentStateCheckWay.COLOR_RANGE_CONNECT,
                                     'yuzuha', lower_color=(221, 107, 113), upper_color=(255, 255, 255),
                                     connect_cnt=5)
                     ])
 
-    ALICE = Agent('alice', '爱丽丝', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['alice'],
+    ALICE = Agent('alice', '爱丽丝', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['alice', 'alice_sea_of_thyme'],
                     state_list=[
                         AgentStateDef('爱丽丝-剑仪', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                       template_id='alice',
