@@ -5,6 +5,4 @@ operations:
     seconds: 1.5
   - op_name: "按键-特殊攻击"
     post_delay: 0.1
-    repeat: 15
-  - op_name: "设置状态"
-    state: "自定义-青衣-续普攻"
+    repeat: 10

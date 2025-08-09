@@ -1,9 +1,10 @@
 from concurrent.futures import ThreadPoolExecutor, Future
 
 from threading import Lock
-from typing import Optional, List, Set
+from typing import Optional, List
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
+from one_dragon.base.conditional_operation.state_cal_tree import StateCalNode
 from one_dragon.utils import thread_utils
 from one_dragon.utils.log_utils import log
 
@@ -18,7 +19,7 @@ class OperationTask:
         :param op_list:
         """
         self.trigger: Optional[str] = None  # 触发器
-        self.interrupt_states: Set[str] = set()  # 可被打断的状态
+        self.interrupt_cal_tree: Optional['StateCalNode'] = None  # 可被打断的状态
         self.is_trigger: bool = False  # 是否触发器场景
         self.priority: Optional[int] = None  # 优先级 只能被高等级的打断；为None时可以被随意打断
 
@@ -127,14 +128,13 @@ class OperationTask:
         self.trigger = trigger
         self.is_trigger = trigger is not None and trigger != ''
 
-    def add_interrupt_states(self, interrupt_states: Set[str]) -> None:
+    def set_interrupt_cal_tree(self, interrupt_cal_tree: Optional['StateCalNode']) -> None:
         """
         添加可打断的场景
-        :param interrupt_states: 可以被打断的状态
+        :param interrupt_cal_tree: 可以被打断的状态
         :return:
         """
-        if interrupt_states is not None:
-            self.interrupt_states.update(interrupt_states)
+        self.interrupt_cal_tree = interrupt_cal_tree
 
     @property
     def expr_display(self) -> str:
