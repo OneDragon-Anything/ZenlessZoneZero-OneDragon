@@ -56,9 +56,8 @@ def preload_common_configs():
 
         return config_files
 
-    common_configs = get_config_files()
-
     def preload_worker():
+        common_configs = get_config_files()
         total_files = len(common_configs)
         loaded_files = 0
 
