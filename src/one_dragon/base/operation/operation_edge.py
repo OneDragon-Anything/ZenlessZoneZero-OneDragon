@@ -29,7 +29,7 @@ class OperationEdge:
 
         self.status: Optional[str] = status
         """
-        执行下一个节点的条件状态 
+        执行下一个节点的条件状态
         一定要完全一样才会执行 包括None
         """
 
@@ -70,6 +70,23 @@ def node_from(
     """
     一个用于给函数附加 OperationEdgeDesc 元数据的装饰器。
     它不会改变原函数的行为，并且支持在同一个函数上多次使用。
+
+    在运行时，可以通过 Operation.from_node 属性
+    获取当前节点的来源节点。
+
+    Args:
+        from: 来源节点
+        success: 是否成功才进入下一个节点
+        status: 上一个节点的结束状态，符合时才进入下一个节点
+        ignore_status: 是否忽略状态进行下一个节点，不会忽略success
+
+    Example:
+        @node_from(from_name='开始节点')
+        @operation_node(name='处理节点')
+        def process_node(self) -> OperationRoundResult:
+            # 获取来源节点信息
+            print(f'来自节点: {self.from_node.cn}')
+            return self.round_success()
     """
 
     def decorator(func):
