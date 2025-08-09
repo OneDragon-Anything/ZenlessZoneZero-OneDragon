@@ -1191,11 +1191,3 @@ class Operation(OperationBase):
         :return: 代理对象
         """
         return PreviousNodeStateProxy(self._previous_node, self._previous_round_result)
-
-    @property
-    def current_node(self) -> Optional[OperationNode]:
-        """
-        获取当前节点
-        :return: 当前节点，如果没有当前节点则返回None
-        """
-        return self._current_node
