@@ -116,7 +116,7 @@ class ChargePlanApp(ZApplication):
             if not self.need_to_check_power_in_mission and self.charge_power < need_charge_power:
                 if (
                     self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value
-                    or self.saved_status['恢复电量'].get('is_fail', False)
+                    or (self.node_status.get('恢复电量') and self.node_status.get('恢复电量').is_fail)
                 ):
                     if not self.ctx.charge_plan_config.skip_plan:
                         return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
