@@ -41,7 +41,7 @@ handlers:
           - states: "[苍角-涡流, 0, 30]{1, 1}"
             operations:
               - operation_template: "苍角-2E展旗合轴"
-          - states: "[苍角-涡流, 0, 30]{2, 2}"
+          - states: ""
             operations:
               - operation_template: "苍角-1E展旗合轴"
 

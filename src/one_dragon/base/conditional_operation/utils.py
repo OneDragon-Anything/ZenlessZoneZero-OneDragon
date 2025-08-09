@@ -115,9 +115,10 @@ def construct_state_handler(
         debug_name = f'[#{debug_name}]'  # 添加方括号
 
     state_cal_tree = construct_state_cal_tree(states_expr, state_getter, debug_name)
-    interrupt_states = state_data.get('interrupt_states', None)
-    if interrupt_states is not None:
-        interrupt_states = set(interrupt_states)
+    interrupt_expr = state_data.get('interrupt_states', None)
+    interrupt_cal_tree = None
+    if interrupt_expr is not None and isinstance(interrupt_expr, str) and len(interrupt_expr) > 0:
+        interrupt_cal_tree = construct_state_cal_tree(interrupt_expr, state_getter)
     # sub_states 是旧的 后续可以删除
     if 'sub_states' in state_data or 'sub_handlers' in state_data:
         if 'sub_states' in state_data:
@@ -138,7 +139,7 @@ def construct_state_handler(
         )
         return StateHandler(states_expr, state_cal_tree,
                           sub_handlers=sub_handler_list,
-                          interrupt_states=interrupt_states,
+                          interrupt_cal_tree=interrupt_cal_tree,
                           debug_name=debug_name)  # 新增：传入debug_name
     else:
         ops = get_ops_from_data(
@@ -149,7 +150,7 @@ def construct_state_handler(
             raise ValueError('状态( %s )下指令为空', states_expr)
         return StateHandler(states_expr, state_cal_tree,
                           operations=ops,
-                          interrupt_states=interrupt_states,
+                          interrupt_cal_tree=interrupt_cal_tree,
                           debug_name=debug_name)  # 新增：传入debug_name
 
 

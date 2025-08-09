@@ -13,4 +13,4 @@ operations:
     state: "自定义-异常-烈霜"
     add: 243
   - op_name: "等待秒数"
-    seconds: 0.7
+    seconds: 0.6

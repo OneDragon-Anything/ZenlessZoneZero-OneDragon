@@ -183,7 +183,6 @@ class TargetStateChecker:
             ratio = min(contour_width, mask_width) / mask_width
             
             result_percent = int(ratio * 100)
-            log.debug(f"状态 {state_def.state_name}: 轮廓宽度={contour_width}, 遮罩宽度={mask_width}, 比率={ratio:.2f}, 百分比={result_percent}%")
             
             return True, result_percent
 

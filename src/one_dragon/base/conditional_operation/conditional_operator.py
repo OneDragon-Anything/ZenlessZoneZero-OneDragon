@@ -328,15 +328,11 @@ class ConditionalOperator(YamlConfig):
             with self._task_lock:
                 interrupt: bool = False
                 if (self.running_task is not None and self.running_task.running
-                        and self.running_task.interrupt_states is not None
-                        and len(self.running_task.interrupt_states) > 0):
-                    for state_record in state_records:
-                        if state_record.is_clear:
-                            continue
-                        if state_record.state_name in self.running_task.interrupt_states:
-                            interrupt = True
-                            log.debug('出现打断场景 %s', state_record.state_name)
-                            break
+                        and self.running_task.interrupt_cal_tree is not None):
+                    now = time.time()
+                    if self.running_task.interrupt_cal_tree.in_time_range(now):
+                        interrupt = True
+                        log.debug('复合中断条件满足，执行中断')
                 if interrupt:
                     self._stop_running_task()
 
