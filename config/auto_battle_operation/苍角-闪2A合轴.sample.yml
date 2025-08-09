@@ -6,7 +6,7 @@ operations:
     seconds: 1.2
   - op_name: "按键-普通攻击"
     post_delay: 0.1
-    repeat: 12
+    repeat: 11
   - op_name: "清除状态"
     state: "自定义-不使用快速支援"
   - op_name: "按键-切换角色-下一个"
