@@ -347,6 +347,6 @@ class AgentEnum(Enum):
                     state_list=[
                         AgentStateDef('爱丽丝-剑仪', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                       template_id='alice',
-                                      hsv_color=(55,185,225), hsv_color_diff=(54,170,100),
+                                      hsv_color=(90,255,0), hsv_color_diff=(89,254,255),
                                       max_length=300)
                     ])
