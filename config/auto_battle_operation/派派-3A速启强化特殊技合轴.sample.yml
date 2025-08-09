@@ -19,7 +19,6 @@ operations:
     way: "松开"
   - op_name: "设置状态"
     data: ["自定义-速切结束"]
-    seconds: 1.2
   - op_name: "设置状态"
     state: "自定义-动作不打断"
     seconds: 1.8

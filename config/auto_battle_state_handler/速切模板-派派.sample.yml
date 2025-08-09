@@ -44,25 +44,11 @@ handlers:
         operations:
           - operation_template: "派派-终结技"
 
-      # 派派不得站场超过6秒
-      - states: "!([按键-切换角色-下一个, 0, 6]|[按键-切换角色-上一个, 0, 6])"
-        debug_name: "站场时间不足6秒"
-        sub_handlers:
-          - states: "[派派-特殊技可用]"
-            debug_name: "超级帅的引擎转下砸合轴"
-            operations:
-              - operation_template: "派派-3A速启强化特殊技合轴"
-          - states: ""
-            debug_name: "超级帅的轮胎转下砸合轴"
-            operations:
-              - operation_template: "派派-3A速启特殊技合轴"
-
       - states: "[派派-特殊技可用]"
-        debug_name: "非常重的引擎转"
+        debug_name: "超级帅的引擎转下砸合轴"
         operations:
-          - operation_template: "派派-3A速启强化特殊技"
-
+          - operation_template: "派派-3A速启强化特殊技合轴"
       - states: ""
-        debug_name: "有亿点重的轮胎转"
+        debug_name: "超级帅的轮胎转下砸合轴"
         operations:
-          - operation_template: "派派-3A速启特殊技"
+          - operation_template: "派派-3A速启特殊技合轴"

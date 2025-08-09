@@ -34,10 +34,10 @@ handlers:
         operations:
           - operation_template: "浮波柚叶-终结技"
 
-      - states: "[浮波柚叶-特殊技可用]"
+      - states: "[浮波柚叶-特殊技可用] & [浮波柚叶-能量]{ 60, 120}"
         operations:
           - operation_template: "浮波柚叶-强化特殊技合轴"
 
       - states: ""
         operations:
-          - operation_template: "浮波柚叶-特殊技合轴"
+          - operation_template: "浮波柚叶-普攻合轴"
