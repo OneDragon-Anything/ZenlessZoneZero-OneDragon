@@ -5,7 +5,6 @@ from cv2.typing import MatLike
 from typing import List, Tuple
 
 from one_dragon.base.geometry.point import Point
-from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -20,12 +19,13 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 class LostVoidChooseGear(ZOperation):
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext, chase_new_mode: bool = False):
         """
         入口处 人物武备和通用武备的选择
         :param ctx:
         """
         ZOperation.__init__(self, ctx, op_name='迷失之地-武备选择')
+        self.chase_new_mode = chase_new_mode
 
     @operation_node(name='选择武备', is_start_node=True)
     def choose_gear(self) -> OperationRoundResult:
@@ -43,8 +43,7 @@ class LostVoidChooseGear(ZOperation):
             # 进入本指令之前 有可能识别错画面
             return self.round_retry(status=f'当前画面 {screen_name}', wait=1)
 
-        choose_new: bool = False
-        if self.ctx.lost_void.challenge_config.chase_new_mode:
+        if self.chase_new_mode:
             gear_contours, gear_context = self._find_gears_with_status()
 
             if not gear_contours:
@@ -55,20 +54,20 @@ class LostVoidChooseGear(ZOperation):
             if unlocked_gears:
                 target_contour = unlocked_gears[0]
                 log.debug("【武备追新】找到一个未获取的武备，准备点击")
-
-                M = cv2.moments(target_contour)
-                center_x = int(M["m10"] / M["m00"])
-                center_y = int(M["m01"] / M["m00"])
-                offset_x, offset_y = gear_context.crop_offset
-                click_pos = Point(center_x + offset_x, center_y + offset_y)
-                log.debug(f"【武备追新】 点击目标坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {gear_context.crop_offset})")
-                self.ctx.controller.click(click_pos)
-                time.sleep(0.5)
-                choose_new = True
             else:
-                log.debug("【武备追新】所有武备都已获取，回退至原优先级")
+                target_contour = gear_contours[0][0]
+                log.debug("【武备追新】所有武备都已获取，选择第一个作为保底")
 
-        if not choose_new:
+            M = cv2.moments(target_contour)
+            center_x = int(M["m10"] / M["m00"])
+            center_y = int(M["m01"] / M["m00"])
+            offset_x, offset_y = gear_context.crop_offset
+            click_pos = Point(center_x + offset_x, center_y + offset_y)
+            log.debug(f"【武备追新】 点击目标坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {gear_context.crop_offset})")
+            self.ctx.controller.click(click_pos)
+            time.sleep(0.5)
+
+        else:
             gear_list = self.get_gear_pos_by_feature(screen_list)
             if len(gear_list) == 0:
                 return self.round_retry(status='无法识别武备')
@@ -92,34 +91,42 @@ class LostVoidChooseGear(ZOperation):
             return [], gear_context
 
         gear_with_status = []
-        for gear_contour in gear_context.contours:
+        # 按x坐标对轮廓进行排序
+        gear_context.contours = sorted(gear_context.contours, key=lambda c: cv2.boundingRect(c)[0])
+
+        for i, gear_contour in enumerate(gear_context.contours):
             gear_rect = cv2.boundingRect(gear_contour)
             has_level = False
             if level_context.is_success and level_context.contours:
-                for level_contour in level_context.contours:
+                for j, level_contour in enumerate(level_context.contours):
                     level_M = cv2.moments(level_contour)
                     if level_M["m00"] == 0: continue
                     level_center_x = int(level_M["m10"] / level_M["m00"])
                     level_center_y = int(level_M["m01"] / level_M["m00"])
 
-                    # 简单的空间关系判断：等级中心点在武备矩形的右侧附近
-                    if (gear_rect[0] - gear_rect[2] * 0.2 < level_center_x < gear_rect[0] + gear_rect[2] and
-                            gear_rect[1] - gear_rect[3] * 0.2 < level_center_y < gear_rect[1] + gear_rect[3]):
+                    # 1. 获取相对坐标
+                    level_rect = cv2.boundingRect(level_contour)
+
+                    # 2. 转换为绝对坐标
+                    gear_offset_x, gear_offset_y = gear_context.crop_offset
+                    abs_gear_rect = (gear_rect[0] + gear_offset_x, gear_rect[1] + gear_offset_y, gear_rect[2], gear_rect[3])
+
+                    level_offset_x, level_offset_y = level_context.crop_offset
+                    abs_level_rect = (level_rect[0] + level_offset_x, level_rect[1] + level_offset_y, level_rect[2], level_rect[3])
+                    
+                    # 3. 计算两个绝对矩形的坐标
+                    gear_x1, gear_y1, gear_w, gear_h = abs_gear_rect
+                    gear_x2, gear_y2 = gear_x1 + gear_w, gear_y1 + gear_h
+
+                    level_x1, level_y1, level_w, level_h = abs_level_rect
+                    level_x2, level_y2 = level_x1 + level_w, level_y1 + level_h
+
+                    # 4. 判断矩形是否重叠
+                    is_overlapping = not (gear_x2 < level_x1 or level_x2 < gear_x1 or gear_y2 < level_y1 or level_y2 < gear_y1)
+                    if is_overlapping:
                         has_level = True
                         break
             gear_with_status.append((gear_contour, has_level))
-
-        rects = []
-        for idx in range(len(gear_with_status)):
-            contour, has_level = gear_with_status[idx]
-            if has_level:
-                continue
-            rect = cv2.boundingRect(contour)
-            rects.append(Rect(rect[0], rect[1], rect[2], rect[3]))
-        for contour in level_context.contours:
-            rect = cv2.boundingRect(contour)
-            rects.append(Rect(rect[0], rect[1], rect[2], rect[3]))
-        # cv2_utils.show_image(self.last_screenshot, rects, wait=0)
 
         return gear_with_status, gear_context
 
@@ -201,7 +208,7 @@ def __debug():
     ctx.lost_void.init_before_run()
     ctx.start_running()
 
-    op = LostVoidChooseGear(ctx)
+    op = LostVoidChooseGear(ctx, chase_new_mode=True)
     op.execute()
 
 
