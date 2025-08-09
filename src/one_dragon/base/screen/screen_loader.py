@@ -43,12 +43,12 @@ class ScreenRoute:
 
 class ScreenContext:
 
-    def __init__(self):
+    def __init__(self, platform: str):
         self.screen_info_list: list[ScreenInfo] = []
         self.screen_info_map: dict[str, ScreenInfo] = {}
         self._screen_area_map: dict[str, ScreenArea] = {}
         self.screen_route_map: dict[str, dict[str, ScreenRoute]] = {}
-
+        self.platform = platform
         self.load_all()
         self.last_screen_name: Optional[str] = None  # 上一个画面名字
         self.current_screen_name: Optional[str] = None  # 当前的画面名字
@@ -66,7 +66,7 @@ class ScreenContext:
         for file_name in os.listdir(dir_path):
             file_path = os.path.join(dir_path, file_name)
             if file_name.endswith('.yml') and os.path.isfile(file_path):
-                screen_info = ScreenInfo(screen_id=file_name[:-4])
+                screen_info = ScreenInfo(screen_id=file_name[:-4], platform=self.platform)
                 self.screen_info_list.append(screen_info)
                 self.screen_info_map[screen_info.screen_name] = screen_info
 

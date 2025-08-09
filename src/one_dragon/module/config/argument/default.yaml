@@ -1,0 +1,30 @@
+# --------------------
+# Define default values
+# --------------------
+
+# ==================== Alas ====================
+
+
+# ==================== Daily ====================
+
+Dungeon:
+  Scheduler:
+    Enable: true
+DailyQuest:
+  Scheduler:
+    Enable: true
+BattlePass:
+  Scheduler:
+    Enable: true
+Assignment:
+  Scheduler:
+    Enable: true
+Freebies:
+  Scheduler:
+    Enable: true
+
+# ==================== Weekly ====================
+
+Weekly:
+  DungeonSupport:
+    Use: do_not_use

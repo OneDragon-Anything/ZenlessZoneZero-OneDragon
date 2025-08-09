@@ -1,4 +1,5 @@
 from typing import Optional
+from one_dragon.utils.log_utils import log
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from zzz_od.game_data.agent import AgentEnum
@@ -74,6 +75,8 @@ class ZContext(OneDragonContext):
         from zzz_od.application.commission_assistant.commission_assistant_config import CommissionAssistantConfig
         from zzz_od.config.team_config import TeamConfig
         self.team_config: TeamConfig = TeamConfig(self.current_instance_idx)
+        # from zzz_od.config.emulator_config import EmulatorConfig #TODO 检查是否需要删掉
+        # self.emulator_config: EmulatorConfig = EmulatorConfig(self.current_instance_idx)
 
         # 应用配置
         self.screenshot_helper_config: ScreenshotHelperConfig = ScreenshotHelperConfig(self.current_instance_idx)
@@ -165,12 +168,22 @@ class ZContext(OneDragonContext):
         """
         OneDragonContext.init_by_config(self)
 
+        from one_dragon.base.screen.screen_loader import ScreenContext
+        from one_dragon.base.screen.template_loader import TemplateLoader
+        from one_dragon.base.matcher.template_matcher import TemplateMatcher
+        from zzz_od.controller.zzz_emulator_controller import ZEmulatorController
+
         from zzz_od.controller.zzz_pc_controller import ZPcController
         from one_dragon.base.config.game_account_config import GamePlatformEnum
+        log.info(f'{self.game_account_config.platform}')
+        log.info(f'{GamePlatformEnum.PC.value.value}')
+        log.info(f'{GamePlatformEnum.Emulator.value.value}')
+        log.info(f'{GamePlatformEnum.Emulator.value.label}')
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
             if self.game_account_config.use_custom_win_title:
                 win_title = self.game_account_config.custom_win_title
             else:
+                log.info('电脑init')
                 from one_dragon.base.config.game_account_config import GameRegionEnum
                 win_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
             self.controller: ZPcController = ZPcController(
@@ -179,6 +192,10 @@ class ZContext(OneDragonContext):
                 standard_width=self.project_config.screen_standard_width,
                 standard_height=self.project_config.screen_standard_height
             )
+        elif self.game_account_config.platform == GamePlatformEnum.Emulator.value.value:
+            log.info('模拟器init')
+
+        self.init_platform_dependent_components()
 
         self.hollow.data_service.reload()
         self.init_hollow_config()

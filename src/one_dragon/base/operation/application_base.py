@@ -65,6 +65,16 @@ class Application(Operation):
         self.notify_screenshot: Optional[BytesIO] = None  # 发送通知的截图
 
     def _init_before_execute(self) -> None:
+        if self.ctx.game_account_config.platform == 'Emulator':
+            from zzz_od.controller.zzz_emulator_controller import ZEmulatorController
+            win_title = '绝区零'  #TODO 这个是不是可以不要
+            self.controller = ZEmulatorController(
+                game_config=self.ctx.game_config,
+                instance_idx=self.ctx.current_instance_idx,
+                win_title=win_title,
+                standard_width=self.ctx.project_config.screen_standard_width,
+                standard_height=self.ctx.project_config.screen_standard_height
+            )
         Operation._init_before_execute(self)
         if self.run_record is not None:
             self.run_record.update_status(AppRunRecord.STATUS_RUNNING)

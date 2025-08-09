@@ -192,7 +192,8 @@ def match_template(source: MatLike, template: MatLike, threshold,
     # 进行模板匹配
     # show_image(source, win_name='source')
     # show_image(template, win_name='template')
-    # show_image(mask, win_name='mask', wait=1)
+    # show_image(mask, win_name='mask')
+    source = cv2.resize(source, (tx, ty)) #TODO 缩放图片 注意研究还需不需要
     result = cv2.matchTemplate(source, template, cv2.TM_CCOEFF_NORMED, mask=mask)
 
     match_result_list = MatchResultList(only_best=only_best)
@@ -888,7 +889,7 @@ def color_in_hsv_range(
     return part
 
 
-def find_character_avatars(img: MatLike, min_area: int = 800, 
+def find_character_avatars(img: MatLike, min_area: int = 800,
                           hsv_lower_bound: Tuple[int, int, int] = (0, 0, 0),
                           hsv_upper_bound: Tuple[int, int, int] = (10, 10, 255)) -> List[Tuple[int, int, int, int]]:
     """
