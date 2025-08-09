@@ -18,24 +18,13 @@ def preload_common_configs():
     预加载常用配置文件到内存
     """
     import glob
-    from one_dragon.utils import os_utils
 
     def get_config_files():
         config_files = []
 
         # 全局配置文件
-        global_configs = [
-            'config/zzz_one_dragon.yml',
-            'config/one_dragon.yml',
-            'config/env.yml',
-            'config/custom.yml',
-            'config/project.yml',
-            'config/model.yml',
-        ]
-
-        # 添加全局配置文件
-        for config_file in global_configs:
-            if os.path.exists(config_file):
+        for config_file in sorted(glob.glob(os.path.join('config', '*.yml'))):
+            if not config_file.endswith('.sample.yml') and os.path.isfile(config_file):
                 config_files.append(config_file)
 
         # 实例配置文件 - 扫描01、02、03等实例目录
