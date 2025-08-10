@@ -1,8 +1,8 @@
 from typing import List, Optional
 
-from PySide6.QtCore import Qt, Signal, QEvent, QPoint
-from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget, QLabel, QFrame, QGraphicsOpacityEffect
-from PySide6.QtGui import QPixmap
+from PySide6.QtCore import Qt, Signal, QEvent, QPoint, QTimer, QPropertyAnimation
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QWidget, QLabel, QFrame, QGraphicsOpacityEffect, QGraphicsDropShadowEffect
+from PySide6.QtGui import QPixmap, QCursor
 from qfluentwidgets import (
     FluentIcon,
     PrimaryPushButton,
@@ -82,6 +82,21 @@ class OneDragonRunInterface(VerticalScrollInterface):
         # 拖拽浮动预览与插入线
         self._drag_float_label: Optional[QLabel] = None
         self._last_drop_index: Optional[int] = None
+        self._drag_placeholder: Optional[QWidget] = None
+        # 自动滚动
+        self._auto_scroll_timer: QTimer = QTimer(self)
+        self._auto_scroll_timer.setInterval(16)
+        self._auto_scroll_timer.timeout.connect(self._on_auto_scroll_tick)
+        self._auto_scroll_dir: int = 0
+        self._auto_scroll_step: int = 0
+        # 全局键盘过滤（ESC 取消）
+        self._global_key_filter_installed: bool = False
+        # 拖拽开始时的原始索引
+        self._drag_original_index: Optional[int] = None
+        # 回弹效果参数
+        self._bounce_frames: int = 0
+        self._bounce_amplitude: float = 0.0
+        self._bounce_dir: int = 0
 
     def get_content_widget(self) -> QWidget:
         """
@@ -400,8 +415,12 @@ class OneDragonRunInterface(VerticalScrollInterface):
         :param app_id: 应用ID
         :return:
         """
-        log.debug(f"拖拽开始: {app_id}")
         self._dragging_app_id = app_id
+        # 记录原始 index
+        try:
+            self._drag_original_index = next((i for i, c in enumerate(self._app_run_cards) if c.app.app_id == app_id), None)
+        except Exception:
+            self._drag_original_index = None
         # 构建浮动预览
         try:
             card_widget = None
@@ -411,20 +430,37 @@ class OneDragonRunInterface(VerticalScrollInterface):
                     break
             if card_widget is not None:
                 pm: QPixmap = card_widget.grab()
+                # 缩放 0.7
+                w = max(1, int(pm.width() * 0.7))
+                h = max(1, int(pm.height() * 0.7))
+                pm = pm.scaled(w, h, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
                 parent_widget = self._app_run_cards[0].parentWidget()
                 if self._drag_float_label is None:
                     self._drag_float_label = QLabel(parent_widget)
                     self._drag_float_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-                    self._drag_float_label.setStyleSheet("QLabel { border: 1px solid rgba(0,120,212,0.4); border-radius: 6px; background: rgba(0,0,0,0); }")
-                    effect = QGraphicsOpacityEffect(self._drag_float_label)
-                    effect.setOpacity(0.9)
-                    self._drag_float_label.setGraphicsEffect(effect)
+                    self._drag_float_label.setStyleSheet("QLabel { border: 1px solid rgba(0,120,212,0.35); border-radius: 6px; background: rgba(0,0,0,0); }")
+                    # 叠加阴影 + 透明度
+                    opacity = QGraphicsOpacityEffect(self._drag_float_label)
+                    opacity.setOpacity(0.75)
+                    shadow = QGraphicsDropShadowEffect(self._drag_float_label)
+                    shadow.setBlurRadius(18)
+                    shadow.setOffset(0, 6)
+                    shadow.setColor(Qt.black)
+                    # 透明度
+                    self._drag_float_label.setGraphicsEffect(opacity)
                 self._drag_float_label.setPixmap(pm)
                 self._drag_float_label.resize(pm.size())
                 self._drag_float_label.show()
                 self._drag_float_label.raise_()
         except Exception:
             pass
+        # 启动自动滚动
+        self._auto_scroll_dir = 0
+        self._auto_scroll_timer.start()
+        # 安装全局键盘过滤器
+        if not self._global_key_filter_installed:
+            QApplication.instance().installEventFilter(self)
+            self._global_key_filter_installed = True
 
     def _on_app_drag_moved(self, app_id: str, x: int, y: int) -> None:
         """
@@ -444,7 +480,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
         # 显示插入位置指示器
         self._show_drop_indicator(y)
         # 边缘自动滚动
-        self._maybe_auto_scroll(y)
+        self._update_auto_scroll(y)
 
     def _on_app_drag_finished(self, app_id: str, x: int, y: int) -> None:
         """
@@ -473,6 +509,17 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self._hide_drop_indicator()
         if self._drag_float_label is not None:
             self._drag_float_label.hide()
+        self._auto_scroll_timer.stop()
+        self._auto_scroll_dir = 0
+        self._drag_original_index = None
+        self._bounce_frames = 0
+        # 卸载全局键盘过滤器
+        if self._global_key_filter_installed:
+            try:
+                QApplication.instance().removeEventFilter(self)
+            except Exception:
+                pass
+            self._global_key_filter_installed = False
 
     def _show_drop_indicator(self, y: int) -> None:
         """
@@ -500,6 +547,21 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self._drag_insert_line.setGeometry(0, line_y, parent_widget.width(), 2)
         self._drag_insert_line.show()
         self._last_drop_index = idx
+        # 占位虚框
+        if self._drag_placeholder is None:
+            self._drag_placeholder = QWidget(parent_widget)
+            self._drag_placeholder.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+            self._drag_placeholder.setStyleSheet(
+                "QWidget { border: 2px dashed #0078d4; background-color: rgba(0,120,212,0.06); border-radius: 6px; }"
+            )
+        # 以目标卡片高度作为占位高度
+        target_rect = self._app_run_cards[idx].geometry() if 0 <= idx < len(self._app_run_cards) else self._app_run_cards[-1].geometry()
+        card_h = target_rect.height()
+        ph = max(24, card_h)
+        py = max(0, line_y - ph // 2)
+        self._drag_placeholder.setGeometry(6, py, parent_widget.width() - 12, ph)
+        self._drag_placeholder.show()
+        self._drag_placeholder.raise_()
 
     def _hide_drop_indicator(self) -> None:
         """
@@ -508,6 +570,8 @@ class OneDragonRunInterface(VerticalScrollInterface):
         """
         if self._drag_insert_line is not None:
             self._drag_insert_line.hide()
+        if self._drag_placeholder is not None:
+            self._drag_placeholder.hide()
         self._last_drop_index = None
 
     def _maybe_auto_scroll(self, y: int) -> None:
@@ -524,6 +588,42 @@ class OneDragonRunInterface(VerticalScrollInterface):
             bar.setValue(bar.value() - step)
         elif y > bottom - margin:
             bar.setValue(bar.value() + step)
+
+    def _update_auto_scroll(self, y: int) -> None:
+        if not self._scroll_area:
+            return
+        top = self.app_card_group.y()
+        bottom = top + self.app_card_group.height()
+        margin = 64
+        base = 8
+        max_step = 28
+        if y < top + margin:
+            self._auto_scroll_dir = -1
+            dist = max(1, (y - top))
+            factor = max(0.0, min(1.0, 1.0 - dist / margin))
+            self._auto_scroll_step = int(base + (max_step - base) * factor)
+        elif y > bottom - margin:
+            self._auto_scroll_dir = 1
+            dist = max(1, (bottom - y))
+            factor = max(0.0, min(1.0, 1.0 - dist / margin))
+            self._auto_scroll_step = int(base + (max_step - base) * factor)
+        else:
+            self._auto_scroll_dir = 0
+            self._auto_scroll_step = 0
+
+    def _on_auto_scroll_tick(self) -> None:
+        if not self._scroll_area or self._auto_scroll_dir == 0 or self._auto_scroll_step <= 0:
+            return
+        bar = self._scroll_area.verticalScrollBar()
+        bar.setValue(bar.value() + self._auto_scroll_dir * self._auto_scroll_step)
+        # 让浮动预览跟随鼠标（避免滚动时错位）
+        if self._drag_float_label is not None and self._drag_float_label.isVisible() and len(self._app_run_cards) > 0:
+            global_pos = QCursor.pos()
+            parent_widget = self._app_run_cards[0].parentWidget()
+            if parent_widget is not None:
+                parent_pos = parent_widget.mapFromGlobal(global_pos)
+                self._drag_float_label.move(int(parent_pos.x() - self._drag_float_label.width() / 2),
+                                            int(parent_pos.y() - self._drag_float_label.height() / 2))
 
     def _calculate_drop_position(self, y: int) -> Optional[int]:
         """
@@ -575,8 +675,13 @@ class OneDragonRunInterface(VerticalScrollInterface):
         log.debug(f"[Drag][container] install filters on {len(watchers)} widgets")
 
     def eventFilter(self, obj, event):
-        # 容器级拖拽兜底：当卡片内部未能捕获事件时，从容器监听
+        # 容器级拖拽兜底：当卡片内部未能捕获事件时，从容器监听；捕获全局按键（ESC/中键）
         try:
+            # 全局按键：ESC 取消本次拖拽
+            if event.type() == QEvent.Type.KeyPress and self._dragging_app_id is not None:
+                if getattr(event, 'key', lambda: None)() == Qt.Key_Escape:
+                    self._cancel_current_drag()
+                    return True
             if isinstance(obj, QWidget) and obj in getattr(self, '_container_drag_watchers', []):
                 et = event.type()
                 if et == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
@@ -595,7 +700,6 @@ class OneDragonRunInterface(VerticalScrollInterface):
                             self._container_drag_started = False
                             self._container_drag_start_pos = local_pos
                             self._dragging_app_id = self._app_run_cards[hit_idx].app.app_id
-                            log.debug(f"[Drag][container] press on idx={hit_idx} app={self._dragging_app_id} pos={local_pos}")
                             return False
                 elif et == QEvent.Type.MouseMove and self._container_drag_active:
                     global_pos = obj.mapToGlobal(event.pos())
@@ -606,7 +710,6 @@ class OneDragonRunInterface(VerticalScrollInterface):
                                 self._container_drag_started = True
                                 if self._dragging_app_id:
                                     self._on_app_drag_started(self._dragging_app_id)
-                                    log.debug(f"[Drag][container] started app={self._dragging_app_id}")
                         if self._container_drag_started and self._dragging_app_id:
                             # 转为卡片父级坐标
                             parent_widget = self._app_run_cards[0].parentWidget()
@@ -615,11 +718,16 @@ class OneDragonRunInterface(VerticalScrollInterface):
                             return True
                 elif et == QEvent.Type.MouseButtonRelease and self._container_drag_active:
                     global_pos = obj.mapToGlobal(event.pos())
+                    # 中键释放：快速恢复原位
+                    if event.button() == Qt.MouseButton.MiddleButton and self._dragging_app_id is not None:
+                        self._cancel_current_drag()
+                        self._container_drag_active = False
+                        self._container_drag_started = False
+                        return True
                     if self._container_drag_started and self._dragging_app_id:
                         parent_widget = self._app_run_cards[0].parentWidget()
                         parent_pos = parent_widget.mapFromGlobal(global_pos)
                         self._on_app_drag_finished(self._dragging_app_id, parent_pos.x(), parent_pos.y())
-                        log.debug(f"[Drag][container] finished app={self._dragging_app_id}")
                         self._dragging_app_id = None
                     self._container_drag_active = False
                     self._container_drag_started = False
@@ -627,3 +735,20 @@ class OneDragonRunInterface(VerticalScrollInterface):
         except Exception:
             pass
         return super().eventFilter(obj, event)
+
+    def _cancel_current_drag(self) -> None:
+        # 取消当前拖拽并清理视觉效果
+        self._hide_drop_indicator()
+        if self._drag_float_label is not None:
+            self._drag_float_label.hide()
+        self._auto_scroll_timer.stop()
+        self._auto_scroll_dir = 0
+        self._bounce_frames = 0
+        self._dragging_app_id = None
+        # 卸载全局键盘过滤器
+        if self._global_key_filter_installed:
+            try:
+                QApplication.instance().removeEventFilter(self)
+            except Exception:
+                pass
+            self._global_key_filter_installed = False
