@@ -75,6 +75,8 @@ class MiscellanyConfig(YamlConfig):
         :return:
         """
         old_app_orders = self.app_order.copy()
+        from one_dragon.utils.log_utils import log
+        log.debug(f"[Drag] [misc] before order: {old_app_orders}")
         current_idx = -1
 
         # 找到当前应用的位置
@@ -94,9 +96,11 @@ class MiscellanyConfig(YamlConfig):
 
         # 移除当前位置的应用
         app_to_move = old_app_orders.pop(current_idx)
-        
+
         # 插入到目标位置
         old_app_orders.insert(target_position, app_to_move)
+        log.debug(f"[Drag] [misc] move {app_id} from {current_idx} to {target_position}")
+        log.debug(f"[Drag] [misc] after  order: {old_app_orders}")
 
         self.app_order = old_app_orders
 
