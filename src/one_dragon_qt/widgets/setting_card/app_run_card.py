@@ -21,7 +21,7 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
 from one_dragon_qt.widgets.setting_card.draggable_widget_mixin import DraggableWidgetMixin
 
 
-class AppRunCard(MultiPushSettingCard, DraggableWidgetMixin):
+class AppRunCard(MultiPushSettingCard):
 
     run = Signal(str)
     switched = Signal(str, bool)
@@ -54,16 +54,7 @@ class AppRunCard(MultiPushSettingCard, DraggableWidgetMixin):
             parent=parent,
         )
 
-        # 然后初始化混入类
-        DraggableWidgetMixin.__init__(self)
-
-        # 初始化拖拽功能
-        self.init_draggable()
-        self.attach_parent_event_filters()
-
-    def get_drag_id(self) -> str:
-        """获取拖拽项的唯一标识符"""
-        return self.app.app_id
+        # 拖拽逻辑由容器级 mixin 负责，此处不再处理
 
     def update_display(self) -> None:
         """
