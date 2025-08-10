@@ -59,6 +59,7 @@ class AppRunCard(MultiPushSettingCard, DraggableWidgetMixin):
 
         # 初始化拖拽功能
         self.init_draggable()
+        self.attach_parent_event_filters()
 
     def get_drag_id(self) -> str:
         """获取拖拽项的唯一标识符"""
