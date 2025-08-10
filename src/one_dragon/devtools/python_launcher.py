@@ -117,7 +117,7 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
     else:
         print_message("开始获取最新代码...", "INFO")
         try:
-            result = subprocess.run([uv_path, 'run', '-m', 'one_dragon.envs.git_service'])
+            result = subprocess.run([uv_path, 'run', '--frozen', '-m', 'one_dragon.envs.git_service'])
             if result.returncode == 0:
                 print_message("代码更新完成", "PASS")
             else:
@@ -126,7 +126,7 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
             print_message(f"代码更新异常: {e}", "ERROR")
 
     # 构建 uv run 命令参数
-    run_args = ['run', app_script_path]
+    run_args = ['run', '--frozen', app_script_path]
     if args:
         run_args.extend(args)
         print_message(f"传递参数：{' '.join(args)}", "INFO")
