@@ -15,6 +15,7 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiLine
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from one_dragon_qt.widgets.mixins.reorder_drag_mixin import ReorderDragMixin, ReorderDragOptions
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum, \
@@ -67,10 +68,9 @@ class ChargePlanCard(MultiLineSettingCard):
         self.plan_times_input = LineEdit()
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
 
-        self.move_up_btn = ToolButton(FluentIcon.UP, None)
-        self.move_up_btn.clicked.connect(self._on_move_up_clicked)
-        self.move_top_btn = ToolButton(FluentIcon.PIN, None)
-        self.move_top_btn.clicked.connect(self._on_move_top_clicked)
+        # 移除上下移动按钮，改为容器级拖拽排序
+        self.move_up_btn = None
+        self.move_top_btn = None
         self.del_btn = ToolButton(FluentIcon.DELETE, None)
         self.del_btn.clicked.connect(self._on_del_clicked)
 
@@ -93,8 +93,7 @@ class ChargePlanCard(MultiLineSettingCard):
                     self.run_times_input,
                     plan_times_label,
                     self.plan_times_input,
-                    self.move_up_btn,
-                    self.move_top_btn,
+                    # 拖拽排序替代 move_up/move_top
                     self.del_btn,
                 ]
             ]
@@ -234,11 +233,7 @@ class ChargePlanCard(MultiLineSettingCard):
     def _emit_value(self) -> None:
         self.changed.emit(self.idx, self.plan)
 
-    def _on_move_up_clicked(self) -> None:
-        self.move_up.emit(self.idx)
-
-    def _on_move_top_clicked(self) -> None:
-        self.move_top.emit(self.idx)
+    # 由容器级拖拽完成排序，此处移除 move_up/move_top 行为
 
     def _on_del_clicked(self) -> None:
         self.delete.emit(self.idx)
@@ -311,6 +306,8 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.content_widget.add_widget(self.remove_setting_card)
 
         self.card_list: List[ChargePlanCard] = []
+        # 拖拽排序 mixin
+        self._reorder_mixin = ReorderDragMixin(self)
 
         self.plus_btn = PrimaryPushButton(text=gt('新增'))
         self.plus_btn.clicked.connect(self._on_add_clicked)
@@ -328,6 +325,17 @@ class ChargePlanInterface(VerticalScrollInterface):
         )
 
         self.update_plan_list_display()
+        # 安装拖拽排序（容器=content_widget 的内部列表列，滚动区=父类提供 scroll_area）
+        if hasattr(self, 'scroll_area'):
+            self._reorder_mixin.attach(
+                container=self.content_widget,
+                scroll_area=self.scroll_area,
+                get_items=lambda: [w for w in self.content_widget.widgets if isinstance(w, ChargePlanCard)],
+                get_item_id=lambda w: getattr(getattr(w, 'plan', None), 'plan_id', ''),
+                on_reorder=self._on_reorder_commit,
+                get_drop_parent=lambda: self.content_widget,
+                options=ReorderDragOptions(preview_scale=0.7, preview_opacity=0.75)
+            )
 
         self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
         self.skip_plan_opt.init_with_adapter(get_prop_adapter(self.config, 'skip_plan'))
@@ -349,8 +357,6 @@ class ChargePlanInterface(VerticalScrollInterface):
                                       config=self.config)
                 card.changed.connect(self._on_plan_item_changed)
                 card.delete.connect(self._on_plan_item_deleted)
-                card.move_up.connect(self._on_plan_item_move_up)
-                card.move_top.connect(self._on_plan_item_move_top)
 
                 self.card_list.append(card)
                 self.content_widget.add_widget(card)
@@ -382,12 +388,25 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.config.delete_plan(idx)
         self.update_plan_list_display()
 
-    def _on_plan_item_move_up(self, idx: int) -> None:
-        self.config.move_up(idx)
-        self.update_plan_list_display()
-
-    def _on_plan_item_move_top(self, idx: int) -> None:
-        self.config.move_top(idx)
+    # 上移/置顶 改为拖拽排序回调
+    def _on_reorder_commit(self, plan_id: str, target_index: int) -> None:
+        if plan_id is None:
+            return
+        # 找到当前 index
+        src_idx = -1
+        for i, p in enumerate(self.ctx.charge_plan_config.plan_list):
+            if getattr(p, 'plan_id', None) == plan_id:
+                src_idx = i
+                break
+        if src_idx == -1:
+            return
+        if target_index < 0 or target_index >= len(self.ctx.charge_plan_config.plan_list):
+            target_index = max(0, min(target_index, len(self.ctx.charge_plan_config.plan_list) - 1))
+        if src_idx == target_index:
+            return
+        plan = self.ctx.charge_plan_config.plan_list.pop(src_idx)
+        self.ctx.charge_plan_config.plan_list.insert(target_index, plan)
+        self.ctx.charge_plan_config.save()
         self.update_plan_list_display()
 
     def _on_remove_all_completed_clicked(self) -> None:

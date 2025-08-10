@@ -37,9 +37,7 @@ class ChargePlanDialog(MessageBoxBase):
             predefined_team_idx=0,
             notorious_hunt_buff_num=1,
         )
-        card = ChargePlanCard(self.ctx, idx=-1, plan=self.plan, config=self.config)
-        card.move_up_btn.hide()
-        card.move_top_btn.hide()
-        card.del_btn.hide()
-        self.viewLayout.addWidget(card)
+        self.card = ChargePlanCard(self.ctx, idx=-1, plan=self.plan, config=self.config)
+        self.card.del_btn.hide()
+        self.viewLayout.addWidget(self.card)
         self.viewLayout.addStretch(1)

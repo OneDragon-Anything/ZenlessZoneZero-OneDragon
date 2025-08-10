@@ -26,6 +26,8 @@ class Column(QWidget):
         QWidget.__init__(self, parent=parent)
 
         self.v_layout = QVBoxLayout(self)
+        # 维护子控件列表，便于拖拽排序等场景访问
+        self.widgets: list[QWidget] = []
 
         if spacing is not None:
             self.v_layout.setSpacing(spacing)
@@ -51,9 +53,13 @@ class Column(QWidget):
 
     def add_widget(self, widget: QWidget, stretch: int = 0, alignment: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignTop):
         self.v_layout.addWidget(widget, stretch=stretch, alignment=alignment)
+        if widget not in self.widgets:
+            self.widgets.append(widget)
 
     def remove_widget(self, widget: QWidget):
         self.v_layout.removeWidget(widget)
+        if widget in self.widgets:
+            self.widgets.remove(widget)
 
     def add_stretch(self, stretch: int):
         self.v_layout.addStretch(stretch)
@@ -63,3 +69,4 @@ class Column(QWidget):
             child = self.v_layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
+        self.widgets.clear()
