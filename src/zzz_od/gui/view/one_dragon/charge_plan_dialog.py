@@ -37,8 +37,6 @@ class ChargePlanDialog(MessageBoxBase):
             notorious_hunt_buff_num=1,
         )
         card = ChargePlanCard(self.ctx, idx=-1, plan=self.plan)
-        card.move_up_btn.hide()
-        card.move_top_btn.hide()
         card.del_btn.hide()
         self.viewLayout.addWidget(card)
         self.viewLayout.addStretch(1)
