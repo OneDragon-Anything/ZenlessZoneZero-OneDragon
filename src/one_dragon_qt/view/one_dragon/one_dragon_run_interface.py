@@ -80,6 +80,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self._container_drag_threshold: int = 10
         self._container_drag_start_pos: QPoint = QPoint()
         # 拖拽浮动预览与插入线
+        self._drag_float_container: Optional[QFrame] = None
         self._drag_float_label: Optional[QLabel] = None
         self._last_drop_index: Optional[int] = None
         self._drag_placeholder: Optional[QWidget] = None
@@ -421,39 +422,36 @@ class OneDragonRunInterface(VerticalScrollInterface):
             self._drag_original_index = next((i for i, c in enumerate(self._app_run_cards) if c.app.app_id == app_id), None)
         except Exception:
             self._drag_original_index = None
-        # 构建浮动预览
-        try:
-            card_widget = None
-            for c in self._app_run_cards:
-                if c.app.app_id == app_id:
-                    card_widget = c
-                    break
-            if card_widget is not None:
-                pm: QPixmap = card_widget.grab()
-                # 缩放 0.7
-                w = max(1, int(pm.width() * 0.7))
-                h = max(1, int(pm.height() * 0.7))
-                pm = pm.scaled(w, h, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-                parent_widget = self._app_run_cards[0].parentWidget()
-                if self._drag_float_label is None:
-                    self._drag_float_label = QLabel(parent_widget)
-                    self._drag_float_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-                    self._drag_float_label.setStyleSheet("QLabel { border: 1px solid rgba(0,120,212,0.35); border-radius: 6px; background: rgba(0,0,0,0); }")
-                    # 叠加阴影 + 透明度
-                    opacity = QGraphicsOpacityEffect(self._drag_float_label)
-                    opacity.setOpacity(0.75)
-                    shadow = QGraphicsDropShadowEffect(self._drag_float_label)
+        # 构建浮动预览（容器+子控件：容器阴影，子控件透明度）
+        card_widget = next((c for c in self._app_run_cards if c.app.app_id == app_id), None)
+        if card_widget is not None and len(self._app_run_cards) > 0:
+            pm: QPixmap = card_widget.grab()
+            w = max(1, int(pm.width() * 0.7))
+            h = max(1, int(pm.height() * 0.7))
+            pm = pm.scaled(w, h, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            parent_widget = self._app_run_cards[0].parentWidget()
+            if parent_widget is not None:
+                if self._drag_float_container is None:
+                    self._drag_float_container = QFrame(parent_widget)
+                    self._drag_float_container.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+                    self._drag_float_container.setStyleSheet("QFrame { border: 1px solid rgba(0,120,212,0.35); border-radius: 6px; background: transparent; }")
+                    # 阴影作用于容器
+                    shadow = QGraphicsDropShadowEffect(self._drag_float_container)
                     shadow.setBlurRadius(18)
                     shadow.setOffset(0, 6)
                     shadow.setColor(Qt.black)
-                    # 透明度
+                    self._drag_float_container.setGraphicsEffect(shadow)
+                    # 子标签承载图像并设置透明度
+                    self._drag_float_label = QLabel(self._drag_float_container)
+                    self._drag_float_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+                    opacity = QGraphicsOpacityEffect(self._drag_float_label)
+                    opacity.setOpacity(0.75)
                     self._drag_float_label.setGraphicsEffect(opacity)
                 self._drag_float_label.setPixmap(pm)
                 self._drag_float_label.resize(pm.size())
-                self._drag_float_label.show()
-                self._drag_float_label.raise_()
-        except Exception:
-            pass
+                self._drag_float_container.resize(self._drag_float_label.size())
+                self._drag_float_container.show()
+                self._drag_float_container.raise_()
         # 启动自动滚动
         self._auto_scroll_dir = 0
         self._auto_scroll_timer.start()
@@ -474,9 +472,9 @@ class OneDragonRunInterface(VerticalScrollInterface):
             return
 
         # 更新浮动预览位置（使其跟随光标，居中）
-        if self._drag_float_label is not None and self._drag_float_label.isVisible():
-            self._drag_float_label.move(int(x - self._drag_float_label.width() / 2),
-                                        int(y - self._drag_float_label.height() / 2))
+        if self._drag_float_container is not None and self._drag_float_container.isVisible():
+            self._drag_float_container.move(int(x - self._drag_float_container.width() / 2),
+                                            int(y - self._drag_float_container.height() / 2))
         # 显示插入位置指示器
         self._show_drop_indicator(y)
         # 边缘自动滚动
@@ -507,8 +505,8 @@ class OneDragonRunInterface(VerticalScrollInterface):
         # 清理拖拽状态
         self._dragging_app_id = None
         self._hide_drop_indicator()
-        if self._drag_float_label is not None:
-            self._drag_float_label.hide()
+        if self._drag_float_container is not None:
+            self._drag_float_container.hide()
         self._auto_scroll_timer.stop()
         self._auto_scroll_dir = 0
         self._drag_original_index = None
@@ -617,13 +615,13 @@ class OneDragonRunInterface(VerticalScrollInterface):
         bar = self._scroll_area.verticalScrollBar()
         bar.setValue(bar.value() + self._auto_scroll_dir * self._auto_scroll_step)
         # 让浮动预览跟随鼠标（避免滚动时错位）
-        if self._drag_float_label is not None and self._drag_float_label.isVisible() and len(self._app_run_cards) > 0:
+        if self._drag_float_container is not None and self._drag_float_container.isVisible() and len(self._app_run_cards) > 0:
             global_pos = QCursor.pos()
             parent_widget = self._app_run_cards[0].parentWidget()
             if parent_widget is not None:
                 parent_pos = parent_widget.mapFromGlobal(global_pos)
-                self._drag_float_label.move(int(parent_pos.x() - self._drag_float_label.width() / 2),
-                                            int(parent_pos.y() - self._drag_float_label.height() / 2))
+                self._drag_float_container.move(int(parent_pos.x() - self._drag_float_container.width() / 2),
+                                                int(parent_pos.y() - self._drag_float_container.height() / 2))
 
     def _calculate_drop_position(self, y: int) -> Optional[int]:
         """
@@ -676,64 +674,57 @@ class OneDragonRunInterface(VerticalScrollInterface):
 
     def eventFilter(self, obj, event):
         # 容器级拖拽兜底：当卡片内部未能捕获事件时，从容器监听；捕获全局按键（ESC/中键）
-        try:
-            # 全局按键：ESC 取消本次拖拽
-            if event.type() == QEvent.Type.KeyPress and self._dragging_app_id is not None:
-                if getattr(event, 'key', lambda: None)() == Qt.Key_Escape:
-                    self._cancel_current_drag()
-                    return True
-            if isinstance(obj, QWidget) and obj in getattr(self, '_container_drag_watchers', []):
-                et = event.type()
-                if et == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
-                    global_pos = obj.mapToGlobal(event.pos())
-                    # 统一转为 app_card_group 坐标系
-                    if hasattr(self, 'app_card_group') and self.app_card_group is not None:
-                        local_pos = self.app_card_group.mapFromGlobal(global_pos)
-                        # 命中哪个卡片
-                        hit_idx = -1
-                        for idx, card in enumerate(self._app_run_cards):
-                            if card.geometry().contains(local_pos):
-                                hit_idx = idx
-                                break
-                        if hit_idx != -1:
-                            self._container_drag_active = True
-                            self._container_drag_started = False
-                            self._container_drag_start_pos = local_pos
-                            self._dragging_app_id = self._app_run_cards[hit_idx].app.app_id
-                            return False
-                elif et == QEvent.Type.MouseMove and self._container_drag_active:
-                    global_pos = obj.mapToGlobal(event.pos())
-                    if hasattr(self, 'app_card_group') and self.app_card_group is not None:
-                        local_pos = self.app_card_group.mapFromGlobal(global_pos)
-                        if not self._container_drag_started:
-                            if (local_pos - self._container_drag_start_pos).manhattanLength() > self._container_drag_threshold:
-                                self._container_drag_started = True
-                                if self._dragging_app_id:
-                                    self._on_app_drag_started(self._dragging_app_id)
-                        if self._container_drag_started and self._dragging_app_id:
-                            # 转为卡片父级坐标
-                            parent_widget = self._app_run_cards[0].parentWidget()
-                            parent_pos = parent_widget.mapFromGlobal(global_pos)
-                            self._on_app_drag_moved(self._dragging_app_id, parent_pos.x(), parent_pos.y())
-                            return True
-                elif et == QEvent.Type.MouseButtonRelease and self._container_drag_active:
-                    global_pos = obj.mapToGlobal(event.pos())
-                    # 中键释放：快速恢复原位
-                    if event.button() == Qt.MouseButton.MiddleButton and self._dragging_app_id is not None:
-                        self._cancel_current_drag()
-                        self._container_drag_active = False
+        # 全局按键：ESC 取消本次拖拽
+        if event.type() == QEvent.Type.KeyPress and self._dragging_app_id is not None:
+            if getattr(event, 'key', lambda: None)() == Qt.Key_Escape:
+                self._cancel_current_drag()
+                return True
+        if isinstance(obj, QWidget) and obj in getattr(self, '_container_drag_watchers', []):
+            et = event.type()
+            if et == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
+                global_pos = obj.mapToGlobal(event.pos())
+                if hasattr(self, 'app_card_group') and self.app_card_group is not None:
+                    local_pos = self.app_card_group.mapFromGlobal(global_pos)
+                    hit_idx = -1
+                    for idx, card in enumerate(self._app_run_cards):
+                        if card.geometry().contains(local_pos):
+                            hit_idx = idx
+                            break
+                    if hit_idx != -1:
+                        self._container_drag_active = True
                         self._container_drag_started = False
-                        return True
+                        self._container_drag_start_pos = local_pos
+                        self._dragging_app_id = self._app_run_cards[hit_idx].app.app_id
+                        return False
+            elif et == QEvent.Type.MouseMove and self._container_drag_active:
+                global_pos = obj.mapToGlobal(event.pos())
+                if hasattr(self, 'app_card_group') and self.app_card_group is not None:
+                    local_pos = self.app_card_group.mapFromGlobal(global_pos)
+                    if not self._container_drag_started:
+                        if (local_pos - self._container_drag_start_pos).manhattanLength() > self._container_drag_threshold:
+                            self._container_drag_started = True
+                            if self._dragging_app_id:
+                                self._on_app_drag_started(self._dragging_app_id)
                     if self._container_drag_started and self._dragging_app_id:
                         parent_widget = self._app_run_cards[0].parentWidget()
                         parent_pos = parent_widget.mapFromGlobal(global_pos)
-                        self._on_app_drag_finished(self._dragging_app_id, parent_pos.x(), parent_pos.y())
-                        self._dragging_app_id = None
+                        self._on_app_drag_moved(self._dragging_app_id, parent_pos.x(), parent_pos.y())
+                        return True
+            elif et == QEvent.Type.MouseButtonRelease and self._container_drag_active:
+                global_pos = obj.mapToGlobal(event.pos())
+                if event.button() == Qt.MouseButton.MiddleButton and self._dragging_app_id is not None:
+                    self._cancel_current_drag()
                     self._container_drag_active = False
                     self._container_drag_started = False
                     return True
-        except Exception:
-            pass
+                if self._container_drag_started and self._dragging_app_id:
+                    parent_widget = self._app_run_cards[0].parentWidget()
+                    parent_pos = parent_widget.mapFromGlobal(global_pos)
+                    self._on_app_drag_finished(self._dragging_app_id, parent_pos.x(), parent_pos.y())
+                    self._dragging_app_id = None
+                self._container_drag_active = False
+                self._container_drag_started = False
+                return True
         return super().eventFilter(obj, event)
 
     def _cancel_current_drag(self) -> None:
