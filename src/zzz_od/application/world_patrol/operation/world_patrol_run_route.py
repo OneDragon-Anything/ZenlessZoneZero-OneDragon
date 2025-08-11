@@ -16,6 +16,7 @@ from zzz_od.application.world_patrol.world_patrol_route import WorldPatrolRoute,
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.zzz_operation import ZOperation
+from zzz_od.auto_battle import auto_battle_utils
 
 
 class WorldPatrolRunRoute(ZOperation):
@@ -166,6 +167,10 @@ class WorldPatrolRunRoute(ZOperation):
                                )
 
     def _get_rid_of_stuck(self):
+        # 在大世界，若当前前台为耀嘉音，先切换以避免进入状态无法移动
+        if getattr(self.ctx, 'auto_op', None) is not None:
+            auto_battle_utils.check_astra_and_switch(self.ctx.auto_op)
+
         log.info('本次脱困方向 %s' % self.stuck_move_direction)
         if self.stuck_move_direction == 0:  # 向左走
             self.ctx.controller.move_a(press=True, press_time=1, release=True)
