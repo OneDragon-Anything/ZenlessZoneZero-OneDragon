@@ -55,7 +55,9 @@ handlers:
             seconds: 0.3
           - op_name: "设置状态"
             data: ["自定义-速切结束"]
-
+          - op_name: "等待秒数"
+            seconds: 3.0
+            
       # 终结技时刻，需要注意出场第一秒可能识别错误
       - states: "[爱丽丝-终结技可用]&[爱丽丝-剑仪]{ 0, 100}"
         operations:
