@@ -167,10 +167,7 @@ class WorldPatrolRunRoute(ZOperation):
                                )
 
     def _get_rid_of_stuck(self):
-        # 在大世界，若当前前台为耀嘉音，先切换以避免进入状态无法移动
-        if getattr(self.ctx, 'auto_op', None) is not None:
-            auto_battle_utils.check_astra_and_switch(self.ctx.auto_op)
-
+        auto_battle_utils.switch_to_best_agent_for_moving(self.auto_op)  # 移动前切换到最佳角色
         log.info('本次脱困方向 %s' % self.stuck_move_direction)
         if self.stuck_move_direction == 0:  # 向左走
             self.ctx.controller.move_a(press=True, press_time=1, release=True)

@@ -5,6 +5,7 @@ from typing import Tuple, Union
 from cv2.typing import MatLike
 
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from zzz_od.application.shiyu_defense.agent_selector import get_best_agent_for_moving
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.auto_battle.auto_battle_dodge_context import YoloStateEventEnum
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
@@ -30,6 +31,7 @@ def load_auto_op(op: Union[ZOperation, ZApplication], auto_config_sub_dir: str, 
 
     return op.round_success()
 
+
 def load_auto_op_async(op: Union[ZOperation, ZApplication], auto_config_sub_dir: str, auto_config_name: str) -> Future[Tuple[bool, str]]:
     if op.auto_op is not None:  # 如果有上一个 先销毁
         op.auto_op.dispose()
@@ -53,9 +55,11 @@ def resume_running(auto_op: AutoBattleOperator) -> None:
         auto_op.start_running_async()
 
 
-def check_astra_and_switch(auto_op: AutoBattleOperator, timeout_seconds: float = 5) -> None:
+def switch_to_best_agent_for_moving(auto_op: AutoBattleOperator, timeout_seconds: float = 5) -> None:
     """
-    停止后的特殊判断前台是否耀佳音 - 需要切换角色 防止进入状态无法移动
+    切换到最适合移动的角色
+    :param auto_op:
+    :param timeout_seconds:
     :return:
     """
     start_time = time.time()
@@ -65,23 +69,22 @@ def check_astra_and_switch(auto_op: AutoBattleOperator, timeout_seconds: float =
             break
 
         screenshot_time, screenshot = auto_op.ctx.controller.screenshot()
-
         auto_op.auto_battle_context.agent_context.check_agent_related(screenshot, screenshot_time)
-
         team_info = auto_op.auto_battle_context.agent_context.team_info
-        if team_info.agent_list is None or len(team_info.agent_list) == 0:
+        if team_info is None or len(team_info.agent_list) == 0:
             time.sleep(0.2)
             continue
 
-        agent = team_info.agent_list[0].agent
-        if agent is None:
+        best_agent = get_best_agent_for_moving(team_info)
+        if best_agent is None:
             time.sleep(0.2)
             continue
 
-        if agent != AgentEnum.ASTRA_YAO.value:  # 不是耀佳音的话 不需要处理
+        # 如果最佳角色就是当前角色，则无需切换
+        if team_info.agent_list[0].agent.agent_id == best_agent.agent.agent_id:
             break
 
-        auto_op.auto_battle_context.switch_next()  # 随便切换下一个角色
+        auto_op.auto_battle_context.switch_by_name(best_agent.agent.agent_name)
         time.sleep(0.2)
 
 
@@ -113,6 +116,7 @@ def check_battle_encounter(auto_op: AutoBattleOperator, screen: MatLike, screens
             return True
 
     return False
+
 
 def check_battle_encounter_in_period(ctx: ZContext, auto_op: AutoBattleOperator, total_check_seconds: float) -> bool:
     """
