@@ -17,19 +17,11 @@ class RestartInBattle(ZOperation):
 
     @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=10)
     def check_screen(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
-        if result.is_success:
-            result2 = self.round_by_click_area('战斗画面', '菜单')
-            if result2.is_success:
-                return self.round_wait(result2.status, wait=1)
-            else:
-                return self.round_retry(result2.status, wait=1)
-
         # 点击直到出现 [退出战斗] 按钮
         result = self.round_by_find_area(self.last_screenshot, '战斗-菜单', '按钮-退出战斗')
         if result.is_success:
             return self.round_success(wait=1)  # 稍微等一下让按钮可按
-
+        result = self.round_by_click_area('战斗画面', '菜单')
         return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='画面识别')
@@ -45,3 +37,19 @@ class RestartInBattle(ZOperation):
         return self.round_by_find_and_click_area(screen_name='战斗-菜单', area_name='按钮-退出战斗-确认',
                                                  until_not_find_all=[('战斗-菜单', '按钮-退出战斗-确认')],
                                                  success_wait=1, retry_wait=1)
+
+def __debug():
+    """
+    调试用
+    """
+    ctx = ZContext()
+    ctx.init_by_config()
+    ctx.init_ocr()
+    ctx.start_running()
+
+    op = RestartInBattle(ctx)
+    op.execute()
+
+
+if __name__ == "__main__":
+    __debug()

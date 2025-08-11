@@ -30,6 +30,7 @@ from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
+from zzz_od.operation.challenge_mission.restart_in_battle import RestartInBattle
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -81,6 +82,7 @@ class LostVoidRunLevel(ZOperation):
         self.detector: LostVoidDetector = self.ctx.lost_void.detector
         self.auto_op: AutoBattleOperator = self.ctx.lost_void.auto_op
         self.nothing_times: int = 0  # 识别不到内容的次数
+        self.find_target_fail_count: int = 0  # 寻路失败次数
         self.interact_target: Optional[LostVoidInteractTarget] = None  # 最终识别的交互目标 后续改动应该都是用这个判断
 
         self.last_frame_in_battle: bool = True  # 上一帧画面在战斗
@@ -281,7 +283,8 @@ class LostVoidRunLevel(ZOperation):
         self.nothing_times += 1
 
         if self.nothing_times >= 50:
-            return self.round_fail('未发现目标')
+            self.nothing_times = 0
+            return self.round_success('处理寻路失败')
 
         # 识别不到目标的时候 判断是否在战斗 转动等待的时候持续识别 否则0.5秒才识别一次间隔太久 很难识别到黄光
         in_battle = self.ctx.lost_void.check_battle_encounter_in_period(0.5)
@@ -717,8 +720,25 @@ class LostVoidRunLevel(ZOperation):
         else:
             return result
 
+    @node_from(from_name='非战斗画面识别', success=False, status='处理寻路失败')
+    @operation_node(name='处理寻路失败')
+    def handle_find_target_fail(self) -> OperationRoundResult:
+        if self.find_target_fail_count < 3:
+            self.find_target_fail_count += 1
+            log.info(f'寻路失败，开始第 {self.find_target_fail_count} 次重试')
+            op = RestartInBattle(self.ctx)
+            op_result = op.execute()
+            if op_result.success:
+                return self.round_success(self.STATUS_COMPLETE)
+            else:
+                return self.round_fail(op_result.status)
+        else:
+            log.info('重试次数已达上限，准备退出挑战')
+            return self.round_success('准备最终退出')
+
     @node_from(from_name='非战斗画面识别', success=False, status=Operation.STATUS_TIMEOUT)
     @node_from(from_name='战斗中', success=False, status=Operation.STATUS_TIMEOUT)
+    @node_from(from_name='处理寻路失败', status='准备最终退出')
     @operation_node(name='失败退出空洞')
     def fail_exit_lost_void(self) -> OperationRoundResult:
         auto_battle_utils.stop_running(self.auto_op)
