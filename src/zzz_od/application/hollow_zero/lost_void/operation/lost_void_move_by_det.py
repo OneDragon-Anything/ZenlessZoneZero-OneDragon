@@ -192,13 +192,14 @@ class LostVoidMoveByDet(ZOperation):
                     self.get_out_of_stuck()
             self.last_target_result = None
             return self.round_success(LostVoidMoveByDet.STATUS_NO_FOUND)
-
         self.last_target_result = target_result
         pos = target_result.entire_rect.center
         turn = self.turn_to_target(pos)
         if turn:
             return self.round_wait('转动朝向目标', wait=0.5)
 
+        # 移动前切换到最佳角色
+        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx.lost_void.auto_op)
         return self.round_success('开始移动')
 
     @node_from(from_name='移动前转向', status='开始移动')
@@ -262,57 +263,71 @@ class LostVoidMoveByDet(ZOperation):
             min_turn = 5
             max_turn = 200
 
-        screen_center_x = self.ctx.controller.standard_width / 2  # 屏幕中心X坐标
-        diff_x = target.x - screen_center_x  # 目标与中心的差距
+        screen_center_x = self.ctx.controller.standard_width / 2
+        screen_center_y = self.ctx.controller.standard_height / 2
+        diff_x = target.x - screen_center_x
+        diff_y = target.y - screen_center_y
 
-        # 在中心区域内，无需转动
-        if abs(diff_x) <= 50:
+        # --- X轴转向计算 (逻辑完全不变) ---
+        turn_distance_x = 0
+        if abs(diff_x) > 50:
+            # 根据上次转向的实际效果，动态校准转向比例
+            if self.last_target_x is not None and self.last_actual_turn_distance != 0:
+                last_diff_x = self.last_target_x - screen_center_x
+                actual_pixel_moved = diff_x - last_diff_x
+
+                # 当目标穿越中心点(过冲)时，强力抑制，比例减半并重置校准过程
+                if last_diff_x * diff_x < 0:
+                    self.estimated_turn_ratio *= 0.5
+                    self.turn_calibration_count = 1
+                # 正常校准：使用移动平均法平滑更新比例
+                elif abs(actual_pixel_moved) > 1:
+                    current_ratio = abs(self.last_actual_turn_distance / actual_pixel_moved)
+                    if self.turn_calibration_count == 1:  # 首次校准，直接采用侦察值
+                        self.estimated_turn_ratio = current_ratio
+                    else:  # 后续校准，使用移动平均法平滑更新
+                        n = self.turn_calibration_count
+                        self.estimated_turn_ratio = (self.estimated_turn_ratio * (n - 1) + current_ratio) / n
+                    self.turn_calibration_count += 1
+
+            # 计算转向指令，首次使用固定值进行侦察，后续使用自适应指令
+            if self.turn_calibration_count == 1:
+                turn_distance_x = 5 if diff_x > 0 else -5
+                self.turn_calibration_count += 1
+            else:
+                turn_distance_x = int(diff_x * self.estimated_turn_ratio)
+
+            # 限制指令幅度，防止过小或过大
+            if 0 < abs(turn_distance_x) < min_turn:
+                turn_distance_x = min_turn if turn_distance_x > 0 else -min_turn
+            elif abs(turn_distance_x) > max_turn:
+                turn_distance_x = max_turn if turn_distance_x > 0 else -max_turn
+
+        # --- Y轴转向计算 (您的三值逻辑) ---
+        turn_distance_y = 0
+        if diff_y > 300:
+            turn_distance_y = 10
+        elif diff_y < -300:
+            turn_distance_y = -10
+
+        # --- 如果没有任何移动指令，则提前返回 ---
+        if turn_distance_x == 0 and turn_distance_y == 0:
             return False
 
-        # 根据上次转向的实际效果，动态校准转向比例
-        if self.last_target_x is not None and self.last_actual_turn_distance != 0:
-            last_diff_x = self.last_target_x - screen_center_x
-            actual_pixel_moved = diff_x - last_diff_x
-
-            # 当目标穿越中心点(过冲)时，强力抑制，比例减半并重置校准过程
-            if last_diff_x * diff_x < 0:
-                self.estimated_turn_ratio *= 0.5
-                self.turn_calibration_count = 1
-            # 正常校准：使用移动平均法平滑更新比例
-            elif abs(actual_pixel_moved) > 1:
-                current_ratio = abs(self.last_actual_turn_distance / actual_pixel_moved)
-                if self.turn_calibration_count == 1:  # 首次校准，直接采用侦察值
-                    self.estimated_turn_ratio = current_ratio
-                else:  # 后续校准，使用移动平均法平滑更新
-                    n = self.turn_calibration_count
-                    self.estimated_turn_ratio = (self.estimated_turn_ratio * (n - 1) + current_ratio) / n
-                self.turn_calibration_count += 1
-
-        # 计算转向指令，首次使用固定值进行侦察，后续使用自适应指令
-        if self.turn_calibration_count == 1:
-            turn_distance = 30 if diff_x > 0 else -30
-            self.turn_calibration_count += 1
-        else:
-            turn_distance = int(diff_x * self.estimated_turn_ratio)
-
-        # 限制指令幅度，防止过小或过大
-        if 0 < abs(turn_distance) < min_turn:
-            turn_distance = min_turn if turn_distance > 0 else -min_turn
-        elif abs(turn_distance) > max_turn:
-            turn_distance = max_turn if turn_distance > 0 else -max_turn
-
+        # --- 执行转向并更新状态 ---
         if self.ctx.env_config.is_debug:
-            log.debug(f'转向指令: {turn_distance}, 当前比例: {self.estimated_turn_ratio:.4f}, 移动中: {is_moving}')
-        self.ctx.controller.turn_by_distance(turn_distance)
+            log.debug(f'转向指令: X={turn_distance_x}, Y={turn_distance_y}, 当前X比例: {self.estimated_turn_ratio:.4f}, 移动中: {is_moving}')
+
+        # 使用新的统一方法执行移动
+        self.ctx.controller.move_mouse_relative(turn_distance_x, turn_distance_y)
 
         self.total_turn_times += 1
 
-        # 更新状态，为下次校准做准备
+        # 只更新X轴的校准状态
         self.last_target_x = target.x
-        self.last_actual_turn_distance = turn_distance
+        self.last_actual_turn_distance = turn_distance_x
 
         return True
-
     def get_move_target(self, frame_result: DetectFrameResult) -> Optional[MoveTargetWrapper]:
         """
         获取移动目标
@@ -415,9 +430,8 @@ class LostVoidMoveByDet(ZOperation):
         脱困
         @return:
         """
-        # 在大世界 先切换到耀佳音以外的角色 防止进入状态无法移动
-        auto_battle_utils.check_astra_and_switch(self.ctx.lost_void.auto_op)
-
+        # 在大世界 先切换到移动最优角色
+        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx.lost_void.auto_op)
         # 部分障碍物可以破坏 尝试攻击
         self.ctx.controller.normal_attack(press=True, press_time=0.2, release=True)
 
