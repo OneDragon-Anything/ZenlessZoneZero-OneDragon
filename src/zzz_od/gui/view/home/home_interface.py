@@ -2,6 +2,7 @@ import os
 import requests
 from datetime import datetime, timedelta
 from PySide6.QtCore import Qt, QThread, Signal, QSize, QUrl
+from PySide6.QtWidgets import QGraphicsDropShadowEffect
 from PySide6.QtGui import (
     QFont,
     QFontMetrics,
@@ -316,15 +317,11 @@ class HomeInterface(VerticalScrollInterface):
         self.start_button.clicked.connect(self._on_start_game)
 
         # 按钮阴影
-        try:
-            from PySide6.QtWidgets import QGraphicsDropShadowEffect
-            shadow = QGraphicsDropShadowEffect(self.start_button)
-            shadow.setBlurRadius(24)
-            shadow.setOffset(0, 8)
-            shadow.setColor(QColor(0, 0, 0, 120))
-            self.start_button.setGraphicsEffect(shadow)
-        except Exception:
-            pass
+        shadow = QGraphicsDropShadowEffect(self.start_button)
+        shadow.setBlurRadius(24)
+        shadow.setOffset(0, 8)
+        shadow.setColor(QColor(0, 0, 0, 120))
+        self.start_button.setGraphicsEffect(shadow)
 
         v1_layout = QVBoxLayout()
         # 保持到底部右侧
@@ -459,68 +456,63 @@ class HomeInterface(VerticalScrollInterface):
             self.ctx.signal.notice_card_config_changed = False
 
     def _update_start_button_style_from_banner(self) -> None:
-        """从当前背景取主色，应用到启动按钮（失败则忽略）。"""
-        try:
-            image = self._banner_widget.banner_image
-            if image is None or image.isNull():
-                return
+        """从当前背景取主色，应用到启动按钮。"""
+        image = self._banner_widget.banner_image
+        if image is None or image.isNull() or not hasattr(self, 'start_button'):
+            return
 
-            # 取右下角区域的平均色，代表按钮附近背景
-            w, h = image.width(), image.height()
-            x0 = int(w * 0.65)
-            y0 = int(h * 0.65)
-            x1 = w
-            y1 = h
+        # 取右下角区域的平均色，代表按钮附近背景
+        w, h = image.width(), image.height()
+        x0 = int(w * 0.65)
+        y0 = int(h * 0.65)
+        x1 = w
+        y1 = h
 
-            r_sum = g_sum = b_sum = count = 0
-            for y in range(y0, y1, max(1, (y1 - y0) // 64)):
-                for x in range(x0, x1, max(1, (x1 - x0) // 64)):
-                    c = image.pixelColor(x, y)
-                    r_sum += c.red()
-                    g_sum += c.green()
-                    b_sum += c.blue()
-                    count += 1
-            if count == 0:
-                return
+        r_sum = g_sum = b_sum = count = 0
+        for y in range(y0, y1, max(1, (y1 - y0) // 64)):
+            for x in range(x0, x1, max(1, (x1 - x0) // 64)):
+                c = image.pixelColor(x, y)
+                r_sum += c.red()
+                g_sum += c.green()
+                b_sum += c.blue()
+                count += 1
+        if count == 0:
+            return
 
-            r = int(r_sum / count)
-            g = int(g_sum / count)
-            b = int(b_sum / count)
+        r = int(r_sum / count)
+        g = int(g_sum / count)
+        b = int(b_sum / count)
 
+        base_color = QColor(r, g, b)
+        h, s, v, a = base_color.getHsvF()
+        if h < 0:  # 灰阶时 hue 可能为 -1
+            h = 0.0
+        s = min(1.0, s * 2.0 + 0.25)
+        v = min(1.0, v * 1.08 + 0.06)
+        vivid = QColor.fromHsvF(h, s, v, 1.0)
+        lr, lg, lb = vivid.red(), vivid.green(), vivid.blue()
 
-            base_color = QColor(r, g, b)
-            h, s, v, a = base_color.getHsvF()
-            if h < 0:  # 灰阶时 hue 可能为 -1
-                h = 0.0
-            s = min(1.0, s * 2.0 + 0.25)
-            v = min(1.0, v * 1.08 + 0.06)
-            vivid = QColor.fromHsvF(h, s, v, 1.0)
-            lr, lg, lb = vivid.red(), vivid.green(), vivid.blue()
+        # 若整体仍偏暗，小幅增加明度，避免洗白
+        def luminance_of(rr: int, gg: int, bb: int) -> float:
+            return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb
 
-            # 若整体仍偏暗，小幅增加明度，避免洗白
-            def luminance_of(rr: int, gg: int, bb: int) -> float:
-                return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb
+        for _ in range(2):
+            if luminance_of(lr, lg, lb) >= 160:
+                break
+            tmp = QColor(lr, lg, lb)
+            th, ts, tv, ta = tmp.getHsvF()
+            if th < 0:
+                th = 0.0
+            tv = min(1.0, tv + 0.10)
+            tmp2 = QColor.fromHsvF(th, ts, tv, 1.0)
+            lr, lg, lb = tmp2.red(), tmp2.green(), tmp2.blue()
 
-            for _ in range(2):
-                if luminance_of(lr, lg, lb) >= 160:
-                    break
-                tmp = QColor(lr, lg, lb)
-                th, ts, tv, ta = tmp.getHsvF()
-                if th < 0:
-                    th = 0.0
-                tv = min(1.0, tv + 0.10)
-                tmp2 = QColor.fromHsvF(th, ts, tv, 1.0)
-                lr, lg, lb = tmp2.red(), tmp2.green(), tmp2.blue()
+        # 基于相对亮度选择文本色（黑/白）
+        luminance = luminance_of(lr, lg, lb)
+        text_color = "black" if luminance > 145 else "white"
 
-            # 基于相对亮度选择文本色（黑/白）
-            luminance = luminance_of(lr, lg, lb)
-            text_color = "black" if luminance > 145 else "white"
-
-            # 本按钮局部样式：圆角为高度一半（胶囊形），背景从图取色
-            radius = max(1, self.start_button.height() // 2)
-            self.start_button.setStyleSheet(
-                f"background-color: rgb({lr}, {lg}, {lb}); color: {text_color}; border-radius: {radius}px;"
-            )
-        except Exception:
-            # 忽略任意错误，保持默认样式
-            pass
+        # 本按钮局部样式：圆角为高度一半（胶囊形），背景从图取色
+        radius = max(1, self.start_button.height() // 2)
+        self.start_button.setStyleSheet(
+            f"background-color: rgb({lr}, {lg}, {lb}); color: {text_color}; border-radius: {radius}px;"
+        )
