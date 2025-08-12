@@ -3,8 +3,8 @@ import cv2
 from PySide6.QtWidgets import QWidget, QSizePolicy, QFileDialog, QTableWidgetItem, QMessageBox, QVBoxLayout, QHBoxLayout
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent
-from qfluentwidgets import (FluentIcon, PushButton, TableWidget, ToolButton, CaptionLabel, LineEdit, SingleDirectionScrollArea,
-                            TeachingTip, InfoBarIcon, TeachingTipTailPosition)
+from qfluentwidgets import (FluentIcon, InfoBarIcon, PushButton, ToolButton, CaptionLabel, LineEdit,
+                            SingleDirectionScrollArea, TableWidget, TeachingTip, TeachingTipTailPosition)
 from typing import Optional, Any
 
 from one_dragon.base.config.config_item import ConfigItem
