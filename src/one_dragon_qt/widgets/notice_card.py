@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QHBoxLayout,
     QStackedWidget,
-    QFrame, QGraphicsBlurEffect, QGraphicsScene, QGraphicsPixmapItem,
+    QFrame, QGraphicsBlurEffect, QGraphicsScene, QGraphicsPixmapItem, QGraphicsDropShadowEffect,
 )
 from qfluentwidgets import SimpleCardWidget, HorizontalFlipView, ListWidget, qconfig, Theme
 
@@ -312,7 +312,8 @@ class NoticeCard(SimpleCardWidget):
 
         # 亚克力背景层（轻量实现）
         self._acrylic = AcrylicBackground(self, radius=4, tint=self._tint_for_theme())
-        self._acrylic.lower()
+        # 确保阴影在后，背景在最底层
+        self._acrylic.stackUnder(self)
 
         # 骨架屏组件
         self.skeleton_banner = SkeletonBanner(self)
@@ -345,6 +346,8 @@ class NoticeCard(SimpleCardWidget):
         qconfig.themeChanged.connect(self._on_theme_changed)
         # 初次加载也应用一次文本颜色覆盖
         self.apply_theme_colors()
+        # 强制刷新一次，避免首次渲染时阴影被背景层覆盖引起的闪烁
+        self.update()
 
     def _normalBackgroundColor(self):
         return QColor(255, 255, 255, 13)
@@ -525,6 +528,16 @@ class NoticeCard(SimpleCardWidget):
             self._acrylic.tint = self._tint_for_theme()
             self._acrylic.update()
         self.apply_theme_colors()
+        self._update_shadow_color()
+
+    def _update_shadow_color(self):
+        # light: 中等阴影；dark: 稍弱，避免过黑
+        if qconfig.theme == Theme.DARK:
+            color = QColor(0, 0, 0, 170)
+        else:
+            color = QColor(0, 0, 0, 150)
+        if hasattr(self, '_shadow') and self._shadow:
+            self._shadow.setColor(color)
 
     def scrollNext(self):
         if self.banners:
@@ -605,6 +618,17 @@ class NoticeCardContainer(QWidget):
         self.notice_card = NoticeCard()
         OdQtStyleSheet.NOTICE_CARD.apply(self.notice_card)
         self.main_layout.addWidget(self.notice_card)
+
+        # 给容器加外部阴影（阴影在卡片外侧）
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(36)
+        shadow.setOffset(0, 12)
+        # 颜色与主题匹配
+        if qconfig.theme == Theme.DARK:
+            shadow.setColor(QColor(0, 0, 0, 170))
+        else:
+            shadow.setColor(QColor(0, 0, 0, 150))
+        self.setGraphicsEffect(shadow)
 
         # 控制状态
         self._notice_enabled = False

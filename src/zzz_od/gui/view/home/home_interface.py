@@ -318,6 +318,17 @@ class HomeInterface(VerticalScrollInterface):
         self.start_button.setFixedSize(max(180, text_width + 48), 48)
         self.start_button.clicked.connect(self._on_start_game)
 
+        # 按钮阴影
+        try:
+            from PySide6.QtWidgets import QGraphicsDropShadowEffect
+            shadow = QGraphicsDropShadowEffect(self.start_button)
+            shadow.setBlurRadius(24)
+            shadow.setOffset(0, 8)
+            shadow.setColor(QColor(0, 0, 0, 120))
+            self.start_button.setGraphicsEffect(shadow)
+        except Exception:
+            pass
+
         v1_layout = QVBoxLayout()
         # 保持到底部右侧，并设置离边缘约 1cm（根据屏幕 DPI 计算像素）
         screen = QApplication.primaryScreen()
