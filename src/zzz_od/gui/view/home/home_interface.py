@@ -334,7 +334,8 @@ class HomeInterface(VerticalScrollInterface):
         screen = QApplication.primaryScreen()
         dpi = screen.logicalDotsPerInch() if screen else 96
         one_cm_px = max(1, int(dpi / 2.54))
-        v1_layout.setContentsMargins(0, 0, one_cm_px, 0)
+        # 与顶部 ButtonGroup 的右侧间距（约 20px）对齐
+        v1_layout.setContentsMargins(0, 0, 20, 0)
         v1_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
         h2_layout.addLayout(v1_layout)
