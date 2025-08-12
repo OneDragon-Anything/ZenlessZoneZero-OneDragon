@@ -1,14 +1,10 @@
-#title {
-    color: #fff;
-}
+#title { color: #fff !important; }
 
 #title:hover {
     color: #f5d742;
 }
 
-#date {
-    color: #fff;
-}
+#date { color: #ddd !important; }
 
 QListWidget {
     background-color: transparent;

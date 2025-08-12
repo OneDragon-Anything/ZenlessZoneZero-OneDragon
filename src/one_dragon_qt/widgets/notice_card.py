@@ -1,11 +1,12 @@
 import time
+import random
 
 import json
 import os
 import requests
 import webbrowser
-from PySide6.QtCore import Qt, QSize, QTimer, QThread, Signal
-from PySide6.QtGui import QPixmap, QFont, QPainterPath, QRegion, QColor
+from PySide6.QtCore import Qt, QSize, QTimer, QThread, Signal, QPoint, QRect, QRectF
+from PySide6.QtGui import QPixmap, QFont, QPainterPath, QRegion, QColor, QPainter, QImage
 from PySide6.QtWidgets import (
     QVBoxLayout,
     QListWidgetItem,
@@ -13,9 +14,9 @@ from PySide6.QtWidgets import (
     QLabel,
     QHBoxLayout,
     QStackedWidget,
-    QFrame,
+    QFrame, QGraphicsBlurEffect, QGraphicsScene, QGraphicsPixmapItem,
 )
-from qfluentwidgets import SimpleCardWidget, HorizontalFlipView, ListWidget
+from qfluentwidgets import SimpleCardWidget, HorizontalFlipView, ListWidget, qconfig, Theme
 
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 from one_dragon_qt.widgets.pivot import CustomListItemDelegate, PhosPivot
@@ -177,14 +178,103 @@ class DataFetcher(QThread):
                 log.error(f"下载相关文件失败: {e}")
 
 
+class AcrylicBackground(QWidget):
+    """轻量毛玻璃/Acrylic 半透明浅色底色 + 微弱噪声纹理 + 细边框，模拟材质质感
+    """
+
+    def __init__(self, parent=None, radius: int = 10, blur_radius: float = 30.0, tint: QColor = QColor(245, 245, 245, 130)):
+        super().__init__(parent)
+        self.radius = radius
+        self.blur_radius = blur_radius
+        self.tint = tint
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False) # 确保透明
+
+        # 创建用于模糊的场景和效果
+        self._blur_effect = QGraphicsBlurEffect(self)
+        self._blur_effect.setBlurRadius(self.blur_radius)
+        self._blur_effect.setBlurHints(QGraphicsBlurEffect.BlurHint.PerformanceHint) # 可以根据需要调整
+
+        self._scene = QGraphicsScene(self)
+        self._pixmap_item = QGraphicsPixmapItem()
+        self._pixmap_item.setGraphicsEffect(self._blur_effect)
+        self._scene.addItem(self._pixmap_item)
+
+    def _generate_noise_tile(self, width: int, height: int) -> QPixmap:
+        img = QImage(width, height, QImage.Format.Format_ARGB32)
+        for y in range(height):
+            for x in range(width):
+                v = 235 + random.randint(-8, 8)  # 轻微灰度波动
+                v = max(0, min(255, v))
+                img.setPixel(x, y, QColor(v, v, v, 255).rgba())
+        return QPixmap.fromImage(img)
+
+    def _blur_image(self, img: QImage) -> QImage:
+        """使用 QGraphicsBlurEffect 对图像进行高斯模糊"""
+        if img.isNull():
+            return img
+
+        # 将背景图设置到场景中
+        self._pixmap_item.setPixmap(QPixmap.fromImage(img))
+
+        # 渲染场景到一张新的图片上，从而应用模糊效果
+        blurred_img = QImage(img.size(), QImage.Format.Format_ARGB32_Premultiplied)
+        blurred_img.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(blurred_img)
+        # 确保渲染区域和原图一致
+        self._scene.render(painter, source=QRectF(self._pixmap_item.pixmap().rect()))
+        painter.end()
+
+        return blurred_img
+
+    def paintEvent(self, event):
+        if not self.parent():
+            return super().paintEvent(event)
+
+        w = self.window()
+        if w is None or not w.isVisible():
+            return super().paintEvent(event)
+
+        # 抓取窗口画面并裁剪到本控件区域
+        global_pos: QPoint = self.mapTo(w, QPoint(0, 0))
+        grab_rect = QRect(global_pos.x(), global_pos.y(), self.width(), self.height())
+
+        # 抓图前先临时隐藏自己，避免把自己也抓进去造成循环模糊
+        self.hide()
+        bg = w.grab(grab_rect).toImage()
+        self.show()
+
+        if bg.isNull():
+            return super().paintEvent(event)
+
+        blurred = self._blur_image(bg)
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        path = QPainterPath()
+        path.addRoundedRect(self.rect(), self.radius, self.radius)
+        painter.setClipPath(path)
+
+        # 绘制模糊背景
+        painter.drawImage(0, 0, blurred)
+        painter.fillPath(path, self.tint)
+        painter.end()
+
+
 class NoticeCard(SimpleCardWidget):
     def __init__(self):
         SimpleCardWidget.__init__(self)
-        self.setBorderRadius(4)
+        self.setBorderRadius(10)
         self.setFixedWidth(351)
         self.mainLayout = QVBoxLayout(self)
         self.mainLayout.setContentsMargins(3, 3, 0, 0)
         self.mainLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # 亚克力背景层（轻量实现）
+        self._acrylic = AcrylicBackground(self, radius=10, tint=self._tint_for_theme())
+        self._acrylic.lower()
 
         # 骨架屏组件
         self.skeleton_banner = SkeletonBanner(self)
@@ -212,6 +302,11 @@ class NoticeCard(SimpleCardWidget):
 
         self.show_skeleton()  # 初始显示骨架屏
         self.fetch_data()
+
+        # 监听主题变化，动态调整背景与文本颜色
+        qconfig.themeChanged.connect(self._on_theme_changed)
+        # 初次加载也应用一次文本颜色覆盖
+        self.apply_theme_colors()
 
     def _normalBackgroundColor(self):
         return QColor(255, 255, 255, 13)
@@ -329,7 +424,7 @@ class NoticeCard(SimpleCardWidget):
 
         # 实现遮罩
         path = QPainterPath()
-        path.addRoundedRect(self.flipView.rect(), 4, 4, Qt.SizeMode.AbsoluteSize)
+        path.addRoundedRect(self.flipView.rect(), 10, 10, Qt.SizeMode.AbsoluteSize)
         region = QRegion(path.toFillPolygon().toPolygon())
         self.flipView.setMask(region)
 
@@ -379,6 +474,27 @@ class NoticeCard(SimpleCardWidget):
             widget.clear()
             self.add_posts_to_widget(widget, type)
 
+    def _tint_for_theme(self) -> QColor:
+        return QColor(20, 20, 20, 160) if qconfig.theme == Theme.DARK else QColor(245, 245, 245, 160)
+
+    def apply_theme_colors(self):
+        """在现有样式后附加文本颜色规则，确保覆盖资源 QSS。"""
+        if qconfig.theme == Theme.DARK:
+            title_color, date_color = "#fff", "#ddd"
+        else:
+            title_color, date_color = "#000", "#333"
+        extra = (
+            f"\nQWidget#title, QLabel#title{{color:{title_color} !important;}}"
+            f"\nQWidget#date, QLabel#date{{color:{date_color} !important;}}\n"
+        )
+        self.setStyleSheet(self.styleSheet() + extra)
+
+    def _on_theme_changed(self):
+        if hasattr(self, '_acrylic'):
+            self._acrylic.tint = self._tint_for_theme()
+            self._acrylic.update()
+        self.apply_theme_colors()
+
     def scrollNext(self):
         if self.banners:
             self.flipView.setCurrentIndex(
@@ -397,6 +513,12 @@ class NoticeCard(SimpleCardWidget):
     def onCurrentIndexChanged(self, index):
         widget = self.stackedWidget.widget(index)
         self.pivot.setCurrentItem(widget.objectName())
+
+    def resizeEvent(self, event):
+        # 背景层充满圆角卡片
+        if hasattr(self, '_acrylic') and self._acrylic:
+            self._acrylic.setGeometry(self.rect())
+        return SimpleCardWidget.resizeEvent(self, event)
 
     def open_banner_link(self):
         if self.banner_urls:

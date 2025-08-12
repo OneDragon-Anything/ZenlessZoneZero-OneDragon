@@ -293,8 +293,11 @@ class HomeInterface(VerticalScrollInterface):
         h2_layout = QHBoxLayout()
         h2_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # 左边留白区域
-        h2_layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
+        # 左边距 ~ 1cm（随 DPI 换算）
+        screen = QApplication.primaryScreen()
+        dpi = screen.logicalDotsPerInch() if screen else 96
+        two_cm_px = max(1, int(dpi * 1 / 2.54))
+        h2_layout.addItem(QSpacerItem(two_cm_px, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
 
         # 公告卡片
         self.notice_container = NoticeCardContainer()
@@ -308,11 +311,11 @@ class HomeInterface(VerticalScrollInterface):
         # 启动游戏按钮布局
         self.start_button = PrimaryPushButton(text="启动一条龙🚀")
         self.start_button.setObjectName("start_button")
-        self.start_button.setFont(QFont("Microsoft YaHei", 18, QFont.Weight.Bold))
+        self.start_button.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
         # 动态计算宽度：文本宽度 + 左右内边距（约 48px）
         fm = QFontMetrics(self.start_button.font())
         text_width = fm.horizontalAdvance(self.start_button.text())
-        self.start_button.setFixedSize(max(200, text_width + 56), 56)
+        self.start_button.setFixedSize(max(180, text_width + 48), 48)
         self.start_button.clicked.connect(self._on_start_game)
 
         v1_layout = QVBoxLayout()
@@ -320,13 +323,13 @@ class HomeInterface(VerticalScrollInterface):
         screen = QApplication.primaryScreen()
         dpi = screen.logicalDotsPerInch() if screen else 96
         one_cm_px = max(1, int(dpi / 2.54))
-        v1_layout.setContentsMargins(0, 0, one_cm_px, one_cm_px)
+        v1_layout.setContentsMargins(0, 0, one_cm_px, max(1, one_cm_px // 2))
         v1_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
         h2_layout.addLayout(v1_layout)
 
-        # 空白占位符（已由右侧布局 margin 控制，这里设为 0）
-        h2_layout.addItem(QSpacerItem(0, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
+        one_cm_px = max(0, int(dpi / 2.54))
+        v_layout.setContentsMargins(0, 0, 0, one_cm_px)
 
         # 将底部水平布局添加到垂直布局
         v_layout.addLayout(h2_layout)
