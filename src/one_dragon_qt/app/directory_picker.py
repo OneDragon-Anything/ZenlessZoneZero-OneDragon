@@ -5,8 +5,10 @@ from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog, QApplicatio
 from PySide6.QtGui import QPixmap
 from qfluentwidgets import (FluentIcon, PrimaryPushButton, ToolButton, LineEdit, MessageBox,
                             SplitTitleBar, SubtitleLabel, PixmapLabel)
-from one_dragon_qt.windows.window import PhosWindow
+
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
+from one_dragon_qt.windows.window import PhosWindow
 
 
 class DirectoryPickerTranslator:
@@ -93,14 +95,12 @@ class DirectoryPickerInterface(QWidget):
             icon_label = PixmapLabel()
             pixmap = QPixmap(self.icon_path)
             if not pixmap.isNull():
-                pixel_ratio = self.devicePixelRatio()
                 target_size = QSize(96, 96)
-                scaled_pixmap = pixmap.scaled(
-                    target_size * pixel_ratio,
-                    Qt.AspectRatioMode.KeepAspectRatio, 
-                    Qt.TransformationMode.SmoothTransformation
+                scaled_pixmap = scale_pixmap_for_high_dpi(
+                    pixmap,
+                    target_size,
+                    self.devicePixelRatio()
                 )
-                scaled_pixmap.setDevicePixelRatio(pixel_ratio)
                 icon_label.setPixmap(scaled_pixmap)
                 icon_label.setFixedSize(target_size)
                 icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)

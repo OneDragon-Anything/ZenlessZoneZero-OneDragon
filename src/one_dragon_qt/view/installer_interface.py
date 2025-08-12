@@ -13,6 +13,7 @@ from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 from one_dragon_qt.widgets.install_card.all_install_card import AllInstallCard
 from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
 from one_dragon_qt.widgets.install_card.git_install_card import GitInstallCard
@@ -394,12 +395,13 @@ class InstallerInterface(VerticalScrollInterface):
         logo_vlayout.addStretch(1)
         self.card_logo_label = QLabel()
         card_logo_pixmap = QPixmap('assets/ui/logo.ico')
-        pixel_ratio = self.devicePixelRatio()
+
         target_size = QSize(160, 160)
-        scaled_pixmap = card_logo_pixmap.scaled(target_size * pixel_ratio, 
-                                                Qt.AspectRatioMode.KeepAspectRatio, 
-                                                Qt.TransformationMode.SmoothTransformation)
-        scaled_pixmap.setDevicePixelRatio(pixel_ratio)
+        scaled_pixmap = scale_pixmap_for_high_dpi(
+            card_logo_pixmap,
+            target_size,
+            self.devicePixelRatio()
+        )
         self.card_logo_label.setPixmap(scaled_pixmap)
         self.card_logo_label.setFixedSize(target_size)
         self.card_logo_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)

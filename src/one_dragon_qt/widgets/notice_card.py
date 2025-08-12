@@ -18,9 +18,10 @@ from PySide6.QtWidgets import (
 )
 from qfluentwidgets import SimpleCardWidget, HorizontalFlipView, ListWidget, qconfig, Theme
 
-from one_dragon_qt.services.styles_manager import OdQtStyleSheet
-from one_dragon_qt.widgets.pivot import CustomListItemDelegate, PhosPivot
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
+from one_dragon_qt.widgets.pivot import CustomListItemDelegate, PhosPivot
 from .label import EllipsisLabel
 
 
@@ -122,15 +123,13 @@ class BannerImageLoader(QThread):
                 if response.status_code == 200:
                     pixmap = QPixmap()
                     pixmap.loadFromData(response.content)
-
-                    # 按设备像素比缩放
-                    size = QSize(pixmap.width(), pixmap.height())
-                    pixmap = pixmap.scaled(
-                        size * self.device_pixel_ratio,
-                        Qt.AspectRatioMode.IgnoreAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
+                    original_size = QSize(pixmap.width(), pixmap.height())
+                    pixmap = scale_pixmap_for_high_dpi(
+                        pixmap,
+                        original_size,
+                        self.device_pixel_ratio,
+                        Qt.AspectRatioMode.IgnoreAspectRatio
                     )
-                    pixmap.setDevicePixelRatio(self.device_pixel_ratio)
                     self.image_loaded.emit(pixmap, banner["image"]["link"])
             except Exception as e:
                 log.error(f"加载banner图片失败: {e}")

@@ -99,10 +99,27 @@ class ScreenInfo(YamlOperator):
             else:
                 color = (255, 0, 0)
                 thickness = 2
-            cv2.rectangle(image,
-                          (area.pc_rect.x1, area.pc_rect.y1),
-                          (area.pc_rect.x2, area.pc_rect.y2),
-                          color, thickness)
+
+            # 将框绘制在区域外侧，避免遮挡内容
+            # 通过调整坐标，让框的边缘位于区域外部
+            half_thickness = thickness // 2
+            outer_x1 = area.pc_rect.x1 - half_thickness
+            outer_y1 = area.pc_rect.y1 - half_thickness
+            outer_x2 = area.pc_rect.x2 + half_thickness
+            outer_y2 = area.pc_rect.y2 + half_thickness
+
+            # 确保调整后的坐标在图像范围内
+            img_height, img_width = image.shape[:2]
+            outer_x1 = max(0, outer_x1)
+            outer_y1 = max(0, outer_y1)
+            outer_x2 = min(img_width - 1, outer_x2)
+            outer_y2 = min(img_height - 1, outer_y2)
+
+            if outer_x2 > outer_x1 and outer_y2 > outer_y1:
+                cv2.rectangle(image,
+                              (outer_x1, outer_y1),
+                              (outer_x2, outer_y2),
+                              color, thickness)
 
         return image
 
