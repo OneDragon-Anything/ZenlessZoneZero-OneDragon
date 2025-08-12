@@ -22,37 +22,17 @@ def preload_common_configs():
     def get_config_files():
         config_files = []
 
-        # 全局配置文件
-        for config_file in sorted(glob.glob(os.path.join('config', '*.yml'))):
-            if not config_file.endswith('.sample.yml') and os.path.isfile(config_file):
-                config_files.append(config_file)
+        # 配置文件 - 递归扫描 config 下所有 .yml
+        config_pattern = os.path.join('config', '**', '*.yml')
+        for cfg in sorted(glob.glob(config_pattern, recursive=True)):
+            if os.path.isfile(cfg):
+                config_files.append(cfg)
 
-        # 实例配置文件 - 扫描01、02、03等实例目录
-        for instance_idx in range(1, 10):  # 支持01-09实例
-            instance_dir = f'config/{instance_idx:02d}'
-            if os.path.exists(instance_dir):
-                # 扫描该实例目录下的所有yml文件
-                yml_pattern = os.path.join(instance_dir, '*.yml')
-                yml_files = glob.glob(yml_pattern)
-                config_files.extend(yml_files)
-
-        # 游戏数据文件
-        game_data_dirs = [
-            'assets/game_data',
-            'assets/game_data/screen_info',
-            'assets/game_data/hollow_zero',
-            'assets/game_data/hollow_zero/lost_void',
-            'assets/game_data/hollow_zero/normal_event',
-            'assets/game_data/agent',
-            'assets/template'
-        ]
-
-        for game_data_dir in game_data_dirs:
-            if os.path.exists(game_data_dir):
-                # 扫描该目录下的所有yml文件
-                yml_pattern = os.path.join(game_data_dir, '*.yml')
-                yml_files = glob.glob(yml_pattern)
-                config_files.extend(yml_files)
+        # 游戏数据文件 - 递归扫描 assets 下所有 .yml
+        assets_pattern = os.path.join('assets', '**', '*.yml')
+        for cfg in sorted(glob.glob(assets_pattern, recursive=True)):
+            if os.path.isfile(cfg):
+                config_files.append(cfg)
 
         return config_files
 
@@ -82,13 +62,13 @@ def clear_cache_if_needed():
     """
     智能内存管理
     """
-    if len(cached_yaml_data) > 200:
+    if len(cached_yaml_data) > 2000:
         items = list(cached_yaml_data.items())
         cached_yaml_data.clear()
         cached_file_mtime.clear()
 
-        # 保留最近使用的100个文件
-        for k, v in items[-100:]:
+        # 保留最近使用的1000个文件
+        for k, v in items[-1000:]:
             cached_yaml_data[k] = v
 
 
