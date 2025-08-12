@@ -41,8 +41,7 @@ class WorldPatrolApp(ZApplication):
                     break
 
             if config is not None:
-                # route_items为字符串ID列表，直接用
-                route_id_list = [str(route_id) for route_id in config.route_items]
+                route_id_list = config.route_items.copy()
                 if config.list_type == RouteListType.BLACKLIST:
                     self.route_list = [
                         route
