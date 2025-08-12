@@ -270,7 +270,8 @@ class NoticeCard(SimpleCardWidget):
         self.mainLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # 亚克力背景层（轻量实现）
-        self._acrylic = AcrylicBackground(self, radius=4, tint=self._tint_for_theme())
+        acrylic_tint = QColor(20, 20, 20, 160) if qconfig.theme == Theme.DARK else QColor(245, 245, 245, 160)
+        self._acrylic = AcrylicBackground(self, radius=4, tint=acrylic_tint)
         # 确保阴影在后，背景在最底层
         self._acrylic.stackUnder(self)
 
@@ -467,9 +468,6 @@ class NoticeCard(SimpleCardWidget):
             widget.clear()
             self.add_posts_to_widget(widget, type)
 
-    def _tint_for_theme(self) -> QColor:
-        return QColor(20, 20, 20, 160) if qconfig.theme == Theme.DARK else QColor(245, 245, 245, 160)
-
     def apply_theme_colors(self):
         """在现有样式后附加文本颜色规则，确保覆盖资源 QSS。"""
         if qconfig.theme == Theme.DARK:
@@ -484,19 +482,9 @@ class NoticeCard(SimpleCardWidget):
 
     def _on_theme_changed(self):
         if hasattr(self, '_acrylic'):
-            self._acrylic.tint = self._tint_for_theme()
+            self._acrylic.tint = (QColor(20, 20, 20, 160) if qconfig.theme == Theme.DARK else QColor(245, 245, 245, 160))
             self._acrylic.update()
         self.apply_theme_colors()
-        self._update_shadow_color()
-
-    def _update_shadow_color(self):
-        # light: 中等阴影；dark: 稍弱，避免过黑
-        if qconfig.theme == Theme.DARK:
-            color = QColor(0, 0, 0, 170)
-        else:
-            color = QColor(0, 0, 0, 150)
-        if hasattr(self, '_shadow') and self._shadow:
-            self._shadow.setColor(color)
 
     def scrollNext(self):
         if self.banners:
