@@ -12,8 +12,8 @@ from qfluentwidgets import (FluentIcon, ProgressRing, ProgressBar, Indeterminate
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.i18_utils import gt
-from one_dragon.utils.image_utils import scale_pixmap_for_high_dpi
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 from one_dragon_qt.widgets.install_card.all_install_card import AllInstallCard
 from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
 from one_dragon_qt.widgets.install_card.git_install_card import GitInstallCard

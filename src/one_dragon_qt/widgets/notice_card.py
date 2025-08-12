@@ -17,10 +17,10 @@ from PySide6.QtWidgets import (
 )
 from qfluentwidgets import SimpleCardWidget, HorizontalFlipView, ListWidget
 
-from one_dragon.utils.image_utils import scale_pixmap_for_high_dpi
-from one_dragon_qt.services.styles_manager import OdQtStyleSheet
-from one_dragon_qt.widgets.pivot import CustomListItemDelegate, PhosPivot
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
+from one_dragon_qt.widgets.pivot import CustomListItemDelegate, PhosPivot
 from .label import EllipsisLabel
 
 

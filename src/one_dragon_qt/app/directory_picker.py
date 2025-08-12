@@ -6,9 +6,9 @@ from PySide6.QtGui import QPixmap
 from qfluentwidgets import (FluentIcon, PrimaryPushButton, ToolButton, LineEdit, MessageBox,
                             SplitTitleBar, SubtitleLabel, PixmapLabel)
 
-from one_dragon.utils.image_utils import scale_pixmap_for_high_dpi
-from one_dragon_qt.windows.window import PhosWindow
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
+from one_dragon_qt.windows.window import PhosWindow
 
 
 class DirectoryPickerTranslator:

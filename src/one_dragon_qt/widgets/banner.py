@@ -2,7 +2,7 @@ import os
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap, QPainter, QPainterPath, QImage
 from PySide6.QtWidgets import QWidget
-from one_dragon.utils.image_utils import scale_pixmap_for_high_dpi
+from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 
 
 class Banner(QWidget):

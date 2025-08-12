@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QLabel, QSizePolicy
 
-from one_dragon.utils.image_utils import scale_pixmap_for_high_dpi
+from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 
 
 class FixedSizeImageLabel(QLabel):

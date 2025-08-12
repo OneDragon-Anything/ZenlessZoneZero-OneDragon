@@ -1,6 +1,6 @@
 from PySide6.QtGui import QPixmap, QImage
 from PySide6.QtCore import Qt, QSize
-from typing import TypeVar, Union
+from typing import TypeVar
 
 # 定义泛型类型，支持 QPixmap 和 QImage
 ImageType = TypeVar('ImageType', QPixmap, QImage)

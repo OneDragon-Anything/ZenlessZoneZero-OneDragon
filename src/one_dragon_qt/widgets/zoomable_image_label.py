@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt, QPoint, QRect, QSize, Signal
 from PySide6.QtGui import QPixmap, QPainter, QPen, QMouseEvent, QPaintEvent, QResizeEvent, QWheelEvent
 from PySide6.QtWidgets import QSizePolicy, QLabel
 
-from one_dragon.utils.image_utils import scale_pixmap_for_high_dpi
+from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 
 
 class ZoomableClickImageLabel(QLabel):
