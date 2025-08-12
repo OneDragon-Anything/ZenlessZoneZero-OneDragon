@@ -293,11 +293,8 @@ class HomeInterface(VerticalScrollInterface):
         h2_layout = QHBoxLayout()
         h2_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # 左边距 ~ 1cm（随 DPI 换算）
-        screen = QApplication.primaryScreen()
-        dpi = screen.logicalDotsPerInch() if screen else 96
-        two_cm_px = max(1, int(dpi * 1 / 2.54))
-        h2_layout.addItem(QSpacerItem(two_cm_px, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
+        # 左边距与右侧、顶部按钮组统一为 20px
+        h2_layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
 
         # 公告卡片
         self.notice_container = NoticeCardContainer()
@@ -330,16 +327,16 @@ class HomeInterface(VerticalScrollInterface):
             pass
 
         v1_layout = QVBoxLayout()
-        # 保持到底部右侧，并设置离边缘约 1cm（根据屏幕 DPI 计算像素）
-        screen = QApplication.primaryScreen()
-        dpi = screen.logicalDotsPerInch() if screen else 96
-        one_cm_px = max(1, int(dpi / 2.54))
+        # 保持到底部右侧
         # 与顶部 ButtonGroup 的右侧间距（约 20px）对齐
         v1_layout.setContentsMargins(0, 0, 20, 0)
         v1_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
         h2_layout.addLayout(v1_layout)
 
+        # 底部保持约 1cm 间距
+        screen = QApplication.primaryScreen()
+        dpi = screen.logicalDotsPerInch() if screen else 96
         one_cm_px = max(0, int(dpi / 2.54))
         v_layout.setContentsMargins(0, 0, 0, one_cm_px)
 
