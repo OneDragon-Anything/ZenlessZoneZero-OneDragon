@@ -592,6 +592,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
             return
 
         self.chosen_template.screen_image = cv2_utils.read_image(image_file_path)
+        self.chosen_template.point_updated = True
         self._update_all_image_display()
 
     def _on_template_sub_dir_changed(self, value: str) -> None:
@@ -864,7 +865,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
             return
 
         # 恢复到记录的旧状态
-        self.chosen_template.point_list = change_record['old_points']
+        self.chosen_template.point_list = [Point(p.x, p.y) for p in change_record['old_points']]
         self.chosen_template.point_updated = True
         self._update_point_table_display()
         self._update_all_image_display()
