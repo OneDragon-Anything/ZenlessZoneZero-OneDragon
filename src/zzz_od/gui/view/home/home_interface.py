@@ -334,7 +334,7 @@ class HomeInterface(VerticalScrollInterface):
         screen = QApplication.primaryScreen()
         dpi = screen.logicalDotsPerInch() if screen else 96
         one_cm_px = max(1, int(dpi / 2.54))
-        v1_layout.setContentsMargins(0, 0, one_cm_px, max(1, one_cm_px // 2))
+        v1_layout.setContentsMargins(0, 0, one_cm_px, 0)
         v1_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
         h2_layout.addLayout(v1_layout)
@@ -489,24 +489,34 @@ class HomeInterface(VerticalScrollInterface):
             g = int(g_sum / count)
             b = int(b_sum / count)
 
-            # 略微提亮，提升可读性（默认更亮一些）
-            def lighten(value: int, factor: float = 0.35) -> int:
-                return min(255, int(value + (255 - value) * factor))
 
-            lr, lg, lb = lighten(r), lighten(g), lighten(b)
+            base_color = QColor(r, g, b)
+            h, s, v, a = base_color.getHsvF()
+            if h < 0:  # 灰阶时 hue 可能为 -1
+                h = 0.0
+            s = min(1.0, s * 2.0 + 0.25)
+            v = min(1.0, v * 1.08 + 0.06)
+            vivid = QColor.fromHsvF(h, s, v, 1.0)
+            lr, lg, lb = vivid.red(), vivid.green(), vivid.blue()
 
-            # 若整体仍偏暗，逐步再提亮
+            # 若整体仍偏暗，小幅增加明度，避免洗白
             def luminance_of(rr: int, gg: int, bb: int) -> float:
                 return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb
 
-            for _ in range(3):
-                if luminance_of(lr, lg, lb) >= 170:
+            for _ in range(2):
+                if luminance_of(lr, lg, lb) >= 160:
                     break
-                lr, lg, lb = lighten(lr, 0.15), lighten(lg, 0.15), lighten(lb, 0.15)
+                tmp = QColor(lr, lg, lb)
+                th, ts, tv, ta = tmp.getHsvF()
+                if th < 0:
+                    th = 0.0
+                tv = min(1.0, tv + 0.10)
+                tmp2 = QColor.fromHsvF(th, ts, tv, 1.0)
+                lr, lg, lb = tmp2.red(), tmp2.green(), tmp2.blue()
 
             # 基于相对亮度选择文本色（黑/白）
             luminance = luminance_of(lr, lg, lb)
-            text_color = "black" if luminance > 140 else "white"
+            text_color = "black" if luminance > 145 else "white"
 
             # 本按钮局部样式：圆角为高度一半（胶囊形），背景从图取色
             radius = max(1, self.start_button.height() // 2)
