@@ -113,20 +113,6 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         self.save_mask_btn.clicked.connect(self._on_save_mask_clicked)
         save_row.add_widget(self.save_mask_btn)
 
-        self.h_move_input = LineEdit()
-        self.h_btn = PushButton(text=gt('移动'))
-        self.h_btn.clicked.connect(self._on_h_move_clicked)
-        self.h_move_opt = MultiPushSettingCard(icon=FluentIcon.MOVE, title='横移',
-                                               btn_list=[self.h_move_input, self.h_btn])
-        control_layout.addWidget(self.h_move_opt)
-
-        self.v_move_input = LineEdit()
-        self.v_btn = PushButton(text=gt('移动'))
-        self.v_btn.clicked.connect(self._on_v_move_clicked)
-        self.v_move_opt = MultiPushSettingCard(icon=FluentIcon.MOVE, title='纵移',
-                                               btn_list=[self.v_move_input, self.v_btn])
-        control_layout.addWidget(self.v_move_opt)
-
         self.template_sub_dir_opt = TextSettingCard(icon=FluentIcon.HOME, title='画面')
         self.template_sub_dir_opt.line_edit.setFixedWidth(240)
         self.template_sub_dir_opt.value_changed.connect(self._on_template_sub_dir_changed)
@@ -141,6 +127,23 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         self.template_name_opt.line_edit.setFixedWidth(240)
         self.template_name_opt.value_changed.connect(self._on_template_name_changed)
         control_layout.addWidget(self.template_name_opt)
+
+        self.h_move_input = LineEdit()
+        self.h_move_input.setPlaceholderText(gt('横'))
+        self.h_move_input.setClearButtonEnabled(True)
+        self.h_move_input.setFixedWidth(90)
+
+        self.v_move_input = LineEdit()
+        self.v_move_input.setPlaceholderText(gt('纵'))
+        self.v_move_input.setClearButtonEnabled(True)
+        self.v_move_input.setFixedWidth(90)
+
+        self.move_btn = PushButton(text=gt('移动'))
+        self.move_btn.clicked.connect(self._on_move_clicked)
+
+        self.move_opt = MultiPushSettingCard(icon=FluentIcon.MOVE, title='微调',
+                                             btn_list=[self.h_move_input, self.v_move_input, self.move_btn])
+        control_layout.addWidget(self.move_opt)
 
         self.template_shape_opt = ComboBox()
         shape_items = [shape.value for shape in TemplateShapeEnum]
@@ -290,11 +293,9 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         self.clear_points_btn.setDisabled(not chosen)
 
         self.h_move_input.setDisabled(not chosen)
-        self.h_btn.setDisabled(not chosen)
-        self.h_move_opt.setDisabled(not chosen)
         self.v_move_input.setDisabled(not chosen)
-        self.v_btn.setDisabled(not chosen)
-        self.v_move_opt.setDisabled(not chosen)
+        self.move_btn.setDisabled(not chosen)
+        self.move_opt.setDisabled(not chosen)
 
         self.template_sub_dir_opt.setDisabled(not chosen)
         self.template_id_opt.setDisabled(not chosen)
@@ -791,47 +792,31 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         self._update_point_table_display()
         self._update_all_image_display()
 
-    def _on_h_move_clicked(self) -> None:
+    def _on_move_clicked(self) -> None:
         """
-        所有点位的横坐标改变
-        """
-        if self.chosen_template is None:
-            return
-
-        input_text = self.h_move_input.text()
-        dx = int(input_text)
-        if dx != 0:
-            old_points = [Point(p.x, p.y) for p in self.chosen_template.point_list]
-            self._add_history_record({
-                'type': 'move_points',
-                'dx': dx,
-                'dy': 0,
-                'old_points': old_points
-            })
-            self.chosen_template.update_all_points(dx, 0)
-            self._update_point_table_display()
-            self._update_all_image_display()
-
-    def _on_v_move_clicked(self) -> None:
-        """
-        所有点位的纵坐标改变
+        同时移动所有点位的横纵坐标
         """
         if self.chosen_template is None:
             return
 
-        input_text = self.v_move_input.text()
         try:
-            dy = int(input_text)
-            old_points = [Point(p.x, p.y) for p in self.chosen_template.point_list]
-            self._add_history_record({
-                'type': 'move_points',
-                'dx': 0,
-                'dy': dy,
-                'old_points': old_points
-            })
-            self.chosen_template.update_all_points(0, dy)
-            self._update_point_table_display()
-            self._update_all_image_display()
+            h_text = self.h_move_input.text().strip()
+            v_text = self.v_move_input.text().strip()
+
+            dx = int(h_text) if h_text else 0
+            dy = int(v_text) if v_text else 0
+
+            if dx != 0 or dy != 0:
+                old_points = [Point(p.x, p.y) for p in self.chosen_template.point_list]
+                self._add_history_record({
+                    'type': 'move_points',
+                    'dx': dx,
+                    'dy': dy,
+                    'old_points': old_points
+                })
+                self.chosen_template.update_all_points(dx, dy)
+                self._update_point_table_display()
+                self._update_all_image_display()
         except Exception:
             pass
 
