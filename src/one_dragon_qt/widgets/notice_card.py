@@ -121,6 +121,44 @@ class BannerImageLoader(QThread):
         self.all_images_loaded.emit()
 
 
+class RoundedBannerView(HorizontalFlipView):
+    """抗锯齿圆角 Banner 视图，避免 QRegion 掩膜造成的锯齿边缘"""
+
+    def __init__(self, radius: int = 4, parent=None):
+        super().__init__(parent)
+        self._radius = radius
+        self.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+
+        r = float(self._radius)
+        rectF = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+        x, y, w, h = rectF.x(), rectF.y(), rectF.width(), rectF.height()
+        path = QPainterPath()
+        # top-left to top-right with rounded corners; bottom corners are square
+        path.moveTo(x + r, y)
+        path.lineTo(x + w - r, y)
+        path.quadTo(x + w, y, x + w, y + r)
+        path.lineTo(x + w, y + h)
+        path.lineTo(x, y + h)
+        path.lineTo(x, y + r)
+        path.quadTo(x, y, x + r, y)
+        path.closeSubpath()
+        painter.setClipPath(path)
+
+        # 让父类完成内容绘制（图片自身使用平滑缩放）
+        super().paintEvent(event)
+
+        # 细边改善边缘观感
+        painter.setPen(QColor(255, 255, 255, 40))
+        painter.drawPath(path)
+        painter.end()
+
+
 # 增加了缓存机制, 有效期为3天, 避免每次都请求数据
 # 调整了超时时间, 避免网络问题导致程序启动缓慢
 class DataFetcher(QThread):
@@ -266,14 +304,14 @@ class AcrylicBackground(QWidget):
 class NoticeCard(SimpleCardWidget):
     def __init__(self):
         SimpleCardWidget.__init__(self)
-        self.setBorderRadius(10)
+        self.setBorderRadius(4)
         self.setFixedWidth(351)
         self.mainLayout = QVBoxLayout(self)
         self.mainLayout.setContentsMargins(3, 3, 0, 0)
         self.mainLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # 亚克力背景层（轻量实现）
-        self._acrylic = AcrylicBackground(self, radius=10, tint=self._tint_for_theme())
+        self._acrylic = AcrylicBackground(self, radius=4, tint=self._tint_for_theme())
         self._acrylic.lower()
 
         # 骨架屏组件
@@ -415,18 +453,11 @@ class NoticeCard(SimpleCardWidget):
                 )
 
     def setup_ui(self):
-        self.flipView = HorizontalFlipView(self)
+        self.flipView = RoundedBannerView(radius=4, parent=self)
         self.flipView.addImages(self.banners)
-        self.flipView.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)
         self.flipView.setItemSize(QSize(345, 160))
         self.flipView.setFixedSize(QSize(345, 160))
         self.flipView.itemClicked.connect(self.open_banner_link)
-
-        # 实现遮罩
-        path = QPainterPath()
-        path.addRoundedRect(self.flipView.rect(), 10, 10, Qt.SizeMode.AbsoluteSize)
-        region = QRegion(path.toFillPolygon().toPolygon())
-        self.flipView.setMask(region)
 
         self.mainLayout.addWidget(self.flipView)
         QTimer.singleShot(7000, self.scrollNext)
