@@ -3,7 +3,8 @@ import cv2
 from PySide6.QtWidgets import QWidget, QSizePolicy, QFileDialog, QTableWidgetItem, QMessageBox, QVBoxLayout, QHBoxLayout
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent
-from qfluentwidgets import FluentIcon, PushButton, TableWidget, ToolButton, ImageLabel, CaptionLabel, LineEdit, SingleDirectionScrollArea
+from qfluentwidgets import (FluentIcon, PushButton, TableWidget, ToolButton, CaptionLabel, LineEdit, SingleDirectionScrollArea,
+                            TeachingTip, InfoBarIcon, TeachingTipTailPosition)
 from typing import Optional, Any
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -14,12 +15,11 @@ from one_dragon.utils import os_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.mixins.history_mixin import HistoryMixin
-from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.fixed_size_image_label import FixedSizeImageLabel
 from one_dragon_qt.widgets.row import Row
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
@@ -142,9 +142,22 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         self.template_name_opt.value_changed.connect(self._on_template_name_changed)
         control_layout.addWidget(self.template_name_opt)
 
-        self.template_shape_opt = ComboBoxSettingCard(icon=FluentIcon.FIT_PAGE, title='形状', options_enum=TemplateShapeEnum)
-        self.template_shape_opt.value_changed.connect(self._on_template_shape_changed)
-        control_layout.addWidget(self.template_shape_opt)
+        self.template_shape_opt = ComboBox()
+        shape_items = [shape.value for shape in TemplateShapeEnum]
+        self.template_shape_opt.set_items(shape_items)
+        self.template_shape_opt.currentIndexChanged.connect(self._on_template_shape_changed)
+
+        self.shape_help_btn = ToolButton(FluentIcon.HELP)
+        self.shape_help_btn.setToolTip('点击查看形状使用说明')
+        self.shape_help_btn.clicked.connect(self._show_template_shape_help)
+
+        self.template_shape_help_opt = MultiPushSettingCard(
+            icon=FluentIcon.FIT_PAGE,
+            title='形状',
+            btn_list=[self.template_shape_opt, self.shape_help_btn]
+        )
+
+        control_layout.addWidget(self.template_shape_help_opt)
 
         self.auto_mask_opt = SwitchSettingCard(icon=FluentIcon.HOME, title='自动生成掩码')
         self.auto_mask_opt.value_changed.connect(self._on_auto_mask_changed)
@@ -287,14 +300,14 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         self.template_sub_dir_opt.setDisabled(not chosen)
         self.template_id_opt.setDisabled(not chosen)
         self.template_name_opt.setDisabled(not chosen)
-        self.template_shape_opt.setDisabled(not chosen)
+        self.template_shape_help_opt.setDisabled(not chosen)
         self.auto_mask_opt.setDisabled(not chosen)
 
         if not chosen:  # 清除一些值
             self.template_sub_dir_opt.setValue('')
             self.template_id_opt.setValue('')
             self.template_name_opt.setValue('')
-            self.template_shape_opt.setValue('')
+            self.template_shape_opt.setCurrentIndex(-1)
             self.auto_mask_opt.setValue(True)
             self.x_pos_label.setText('')
             self.y_pos_label.setText('')
@@ -303,13 +316,12 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
             self.template_sub_dir_opt.setValue(self.chosen_template.sub_dir)
             self.template_id_opt.setValue(self.chosen_template.template_id)
             self.template_name_opt.setValue(self.chosen_template.template_name)
-            self.template_shape_opt.setValue(self.chosen_template.template_shape)
+            self.template_shape_opt.init_with_value(self.chosen_template.template_shape)
             self.auto_mask_opt.setValue(self.chosen_template.auto_mask)
 
         self._update_existed_yml_options()
         self._update_all_image_display()
         self._update_point_table_display()
-        self._update_template_shape_tooltip()
 
     def _update_existed_yml_options(self) -> None:
         """
@@ -356,13 +368,22 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
 
         self.point_table.blockSignals(False)
 
-    def _update_template_shape_tooltip(self) -> None:
+    def _show_template_shape_help(self) -> None:
         """
-        更新模板形状的tooltip说明
+        显示模板形状帮助的TeachingTip
         :return:
         """
         if self.chosen_template is None:
-            self.template_shape_opt.setToolTip('请先选择或创建模板')
+            TeachingTip.create(
+                target=self.template_shape_opt,
+                icon=InfoBarIcon.WARNING,
+                title='温馨提示',
+                content="请先选择或创建模板",
+                isClosable=True,
+                tailPosition=TeachingTipTailPosition.RIGHT,
+                duration=3000,
+                parent=self
+            )
             return
 
         help_text = ""
@@ -381,8 +402,18 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         else:
             help_text = "左键单击添加点位，右键显示颜色信息"
 
-        help_text += " | Ctrl+左键拖拽移动图片，滚轮缩放 | Ctrl+Z撤销，Ctrl+Shift+Z恢复，Del清除"
-        self.template_shape_opt.setToolTip(help_text)
+        help_text += "\n\n快捷键：Ctrl+左键拖拽移动图片，滚轮缩放\nCtrl+Z撤销，Ctrl+Shift+Z恢复，Del清除"
+
+        TeachingTip.create(
+            target=self.template_shape_opt,
+            icon=InfoBarIcon.SUCCESS,
+            title='形状使用说明',
+            content=help_text,
+            isClosable=True,
+            tailPosition=TeachingTipTailPosition.RIGHT,
+            duration=-1,  # 不自动消失
+            parent=self
+        )
 
     def _update_all_image_display(self) -> None:
         """
@@ -613,14 +644,15 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
 
         self.chosen_template.template_name = value
 
-    def _on_template_shape_changed(self, idx: int, value: str) -> None:
-        if self.chosen_template is None:
+    def _on_template_shape_changed(self, idx: int) -> None:
+        if self.chosen_template is None or idx < 0:
             return
 
-        self.chosen_template.update_template_shape(value)
-        self._update_point_table_display()
-        self._update_all_image_display()
-        self._update_template_shape_tooltip()
+        value = self.template_shape_opt.currentData()
+        if value is not None:
+            self.chosen_template.update_template_shape(value)
+            self._update_point_table_display()
+            self._update_all_image_display()
 
     def _on_auto_mask_changed(self, value: bool) -> None:
         if self.chosen_template is None:
