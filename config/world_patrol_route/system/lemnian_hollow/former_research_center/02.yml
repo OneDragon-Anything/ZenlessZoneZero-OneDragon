@@ -1,0 +1,32 @@
+idx: 2
+op_list:
+- data:
+  - '747'
+  - '457'
+  op_type: move
+- data:
+  - '706'
+  - '392'
+  op_type: move
+- data:
+  - '696'
+  - '342'
+  op_type: move
+- data:
+  - '557'
+  - '338'
+  op_type: move
+- data:
+  - '565'
+  - '280'
+  op_type: move
+- data:
+  - '590'
+  - '280'
+  op_type: move
+- data:
+  - '611'
+  - '253'
+  op_type: move
+tp_area_id: former_research_center
+tp_name: 科研院内
