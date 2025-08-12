@@ -355,10 +355,26 @@ class TemplateInfo(YamlOperator):
             left_top = self.point_list[0]
             right_bottom = self.point_list[1]
 
-            cv2.rectangle(image_to_show,
-                          (left_top.x, left_top.y),
-                          (right_bottom.x, right_bottom.y),
-                          (255, 0, 0), 2)
+            # 将框绘制在区域外侧，避免遮挡内容
+            thickness = 2
+            half_thickness = thickness // 2
+            outer_x1 = left_top.x - half_thickness
+            outer_y1 = left_top.y - half_thickness
+            outer_x2 = right_bottom.x + half_thickness
+            outer_y2 = right_bottom.y + half_thickness
+
+            # 确保调整后的坐标在图像范围内
+            img_height, img_width = image_to_show.shape[:2]
+            outer_x1 = max(0, outer_x1)
+            outer_y1 = max(0, outer_y1)
+            outer_x2 = min(img_width - 1, outer_x2)
+            outer_y2 = min(img_height - 1, outer_y2)
+
+            if outer_x2 > outer_x1 and outer_y2 > outer_y1:
+                cv2.rectangle(image_to_show,
+                              (outer_x1, outer_y1),
+                              (outer_x2, outer_y2),
+                              (255, 0, 0), thickness)
         elif (self.template_shape == TemplateShapeEnum.CIRCLE.value.value
                 and len(self.point_list) == 2):
             center = self.point_list[0]
@@ -378,10 +394,27 @@ class TemplateInfo(YamlOperator):
                     break
                 left_top = self.point_list[i]
                 right_bottom = self.point_list[i + 1]
-                cv2.rectangle(image_to_show,
-                              (left_top.x, left_top.y),
-                              (right_bottom.x, right_bottom.y),
-                              (255, 0, 0), 2)
+
+                # 将框绘制在区域外侧，避免遮挡内容
+                thickness = 2
+                half_thickness = thickness // 2
+                outer_x1 = left_top.x - half_thickness
+                outer_y1 = left_top.y - half_thickness
+                outer_x2 = right_bottom.x + half_thickness
+                outer_y2 = right_bottom.y + half_thickness
+
+                # 确保调整后的坐标在图像范围内
+                img_height, img_width = image_to_show.shape[:2]
+                outer_x1 = max(0, outer_x1)
+                outer_y1 = max(0, outer_y1)
+                outer_x2 = min(img_width - 1, outer_x2)
+                outer_y2 = min(img_height - 1, outer_y2)
+
+                if outer_x2 > outer_x1 and outer_y2 > outer_y1:
+                    cv2.rectangle(image_to_show,
+                                  (outer_x1, outer_y1),
+                                  (outer_x2, outer_y2),
+                                  (255, 0, 0), thickness)
 
         return image_to_show
 
