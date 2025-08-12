@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from PySide6.QtCore import Qt, QThread, Signal, QSize, QUrl
 from PySide6.QtGui import (
     QFont,
+    QFontMetrics,
     QDesktopServices, QColor
 )
 from PySide6.QtWidgets import (
@@ -11,6 +12,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QSpacerItem,
     QSizePolicy,
+    QApplication,
 )
 from qfluentwidgets import (
     FluentIcon,
@@ -304,18 +306,27 @@ class HomeInterface(VerticalScrollInterface):
         h2_layout.addStretch()
 
         # 启动游戏按钮布局
-        start_button = PrimaryPushButton(text="启动一条龙🚀")
-        start_button.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
-        start_button.setFixedSize(160, 48)
-        start_button.clicked.connect(self._on_start_game)
+        self.start_button = PrimaryPushButton(text="启动一条龙🚀")
+        self.start_button.setObjectName("start_button")
+        self.start_button.setFont(QFont("Microsoft YaHei", 18, QFont.Weight.Bold))
+        # 动态计算宽度：文本宽度 + 左右内边距（约 48px）
+        fm = QFontMetrics(self.start_button.font())
+        text_width = fm.horizontalAdvance(self.start_button.text())
+        self.start_button.setFixedSize(max(200, text_width + 56), 56)
+        self.start_button.clicked.connect(self._on_start_game)
 
         v1_layout = QVBoxLayout()
-        v1_layout.addWidget(start_button, alignment=Qt.AlignmentFlag.AlignBottom)
+        # 保持到底部右侧，并设置离边缘约 1cm（根据屏幕 DPI 计算像素）
+        screen = QApplication.primaryScreen()
+        dpi = screen.logicalDotsPerInch() if screen else 96
+        one_cm_px = max(1, int(dpi / 2.54))
+        v1_layout.setContentsMargins(0, 0, one_cm_px, one_cm_px)
+        v1_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
         h2_layout.addLayout(v1_layout)
 
-        # 空白占位符
-        h2_layout.addItem(QSpacerItem(25, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
+        # 空白占位符（已由右侧布局 margin 控制，这里设为 0）
+        h2_layout.addItem(QSpacerItem(0, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
 
         # 将底部水平布局添加到垂直布局
         v_layout.addLayout(h2_layout)
@@ -330,7 +341,8 @@ class HomeInterface(VerticalScrollInterface):
         )
 
         # 应用样式
-        OdQtStyleSheet.GAME_BUTTON.apply(start_button)
+        OdQtStyleSheet.GAME_BUTTON.apply(self.start_button)
+        self._update_start_button_style_from_banner()
 
         self.ctx = ctx
         self._init_check_runners()
@@ -401,6 +413,8 @@ class HomeInterface(VerticalScrollInterface):
         """
         # 更新背景图片
         self._banner_widget.set_banner_image(self.choose_banner_image())
+        # 依据背景重新计算按钮配色
+        self._update_start_button_style_from_banner()
         self.ctx.signal.reload_banner = False
         if show_notification:
             self._show_info_bar("背景已更新", "新的背景已成功应用", 3000)
@@ -431,3 +445,60 @@ class HomeInterface(VerticalScrollInterface):
             self.notice_container.set_notice_enabled(current_config)
             # 重置信号状态
             self.ctx.signal.notice_card_config_changed = False
+
+    def _update_start_button_style_from_banner(self) -> None:
+        """从当前背景取主色，应用到启动按钮（失败则忽略）。"""
+        try:
+            image = self._banner_widget.banner_image
+            if image is None or image.isNull():
+                return
+
+            # 取右下角区域的平均色，代表按钮附近背景
+            w, h = image.width(), image.height()
+            x0 = int(w * 0.65)
+            y0 = int(h * 0.65)
+            x1 = w
+            y1 = h
+
+            r_sum = g_sum = b_sum = count = 0
+            for y in range(y0, y1, max(1, (y1 - y0) // 64)):
+                for x in range(x0, x1, max(1, (x1 - x0) // 64)):
+                    c = image.pixelColor(x, y)
+                    r_sum += c.red()
+                    g_sum += c.green()
+                    b_sum += c.blue()
+                    count += 1
+            if count == 0:
+                return
+
+            r = int(r_sum / count)
+            g = int(g_sum / count)
+            b = int(b_sum / count)
+
+            # 略微提亮，提升可读性（默认更亮一些）
+            def lighten(value: int, factor: float = 0.35) -> int:
+                return min(255, int(value + (255 - value) * factor))
+
+            lr, lg, lb = lighten(r), lighten(g), lighten(b)
+
+            # 若整体仍偏暗，逐步再提亮
+            def luminance_of(rr: int, gg: int, bb: int) -> float:
+                return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb
+
+            for _ in range(3):
+                if luminance_of(lr, lg, lb) >= 170:
+                    break
+                lr, lg, lb = lighten(lr, 0.15), lighten(lg, 0.15), lighten(lb, 0.15)
+
+            # 基于相对亮度选择文本色（黑/白）
+            luminance = luminance_of(lr, lg, lb)
+            text_color = "black" if luminance > 140 else "white"
+
+            # 本按钮局部样式：圆角为高度一半（胶囊形），背景从图取色
+            radius = max(1, self.start_button.height() // 2)
+            self.start_button.setStyleSheet(
+                f"background-color: rgb({lr}, {lg}, {lb}); color: {text_color}; border-radius: {radius}px;"
+            )
+        except Exception:
+            # 忽略任意错误，保持默认样式
+            pass
