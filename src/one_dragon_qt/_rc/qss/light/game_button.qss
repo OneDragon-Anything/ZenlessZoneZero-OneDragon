@@ -2,7 +2,7 @@ PrimaryPushButton {
     color: black;
     background-color: #f5d742;
     border: none;
-    border-radius: 20px;
+    border-radius: 4px;
 }
 
 PrimaryPushButton:hover {

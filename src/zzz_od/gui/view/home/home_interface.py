@@ -38,6 +38,8 @@ class ButtonGroup(SimpleCardWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 
+        self.setBorderRadius(4)
+
         self.setFixedSize(56, 180)
 
         layout = QVBoxLayout(self)

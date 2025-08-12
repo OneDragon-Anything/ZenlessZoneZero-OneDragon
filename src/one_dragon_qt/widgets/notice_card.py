@@ -37,7 +37,7 @@ class SkeletonBanner(QFrame):
                     stop:0 rgba(240, 240, 240, 200),
                     stop:0.5 rgba(255, 255, 255, 230),
                     stop:1 rgba(240, 240, 240, 200));
-                border-radius: 10px;
+                border-radius: 4px;
                 border: 2px solid rgba(200, 200, 200, 100);
             }
         """)
@@ -75,7 +75,7 @@ class SkeletonContent(QWidget):
                         stop:0 rgba(224, 224, 224, 150),
                         stop:0.5 rgba(240, 240, 240, 200),
                         stop:1 rgba(224, 224, 224, 150));
-                    border-radius: 8px;
+                    border-radius: 4px;
                     border: 1px solid rgba(200, 200, 200, 80);
                 }
             """)
@@ -180,7 +180,7 @@ class DataFetcher(QThread):
 class NoticeCard(SimpleCardWidget):
     def __init__(self):
         SimpleCardWidget.__init__(self)
-        self.setBorderRadius(10)
+        self.setBorderRadius(4)
         self.setFixedWidth(351)
         self.mainLayout = QVBoxLayout(self)
         self.mainLayout.setContentsMargins(3, 3, 0, 0)
@@ -329,7 +329,7 @@ class NoticeCard(SimpleCardWidget):
 
         # 实现遮罩
         path = QPainterPath()
-        path.addRoundedRect(self.flipView.rect(), 10, 10, Qt.SizeMode.AbsoluteSize)
+        path.addRoundedRect(self.flipView.rect(), 4, 4, Qt.SizeMode.AbsoluteSize)
         region = QRegion(path.toFillPolygon().toPolygon())
         self.flipView.setMask(region)
 
