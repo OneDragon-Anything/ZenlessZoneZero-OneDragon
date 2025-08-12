@@ -217,87 +217,46 @@ class DataFetcher(QThread):
 
 
 class AcrylicBackground(QWidget):
-    """轻量毛玻璃/Acrylic 半透明浅色底色 + 微弱噪声纹理 + 细边框，模拟材质质感
-    """
+    """“虚化”背景：半透明底色 + 轻噪声 + 细描边"""
 
-    def __init__(self, parent=None, radius: int = 10, blur_radius: float = 30.0, tint: QColor = QColor(245, 245, 245, 130)):
+    def __init__(self, parent=None, radius: int = 4, tint: QColor = QColor(245, 245, 245, 130)):
         super().__init__(parent)
         self.radius = radius
-        self.blur_radius = blur_radius
         self.tint = tint
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False) # 确保透明
-
-        # 创建用于模糊的场景和效果
-        self._blur_effect = QGraphicsBlurEffect(self)
-        self._blur_effect.setBlurRadius(self.blur_radius)
-        self._blur_effect.setBlurHints(QGraphicsBlurEffect.BlurHint.PerformanceHint) # 可以根据需要调整
-
-        self._scene = QGraphicsScene(self)
-        self._pixmap_item = QGraphicsPixmapItem()
-        self._pixmap_item.setGraphicsEffect(self._blur_effect)
-        self._scene.addItem(self._pixmap_item)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
+        self._noise_tile = self._generate_noise_tile(64, 64)
 
     def _generate_noise_tile(self, width: int, height: int) -> QPixmap:
         img = QImage(width, height, QImage.Format.Format_ARGB32)
         for y in range(height):
             for x in range(width):
-                v = 235 + random.randint(-8, 8)  # 轻微灰度波动
+                v = 240 + random.randint(-10, 10)
                 v = max(0, min(255, v))
                 img.setPixel(x, y, QColor(v, v, v, 255).rgba())
         return QPixmap.fromImage(img)
 
-    def _blur_image(self, img: QImage) -> QImage:
-        """使用 QGraphicsBlurEffect 对图像进行高斯模糊"""
-        if img.isNull():
-            return img
-
-        # 将背景图设置到场景中
-        self._pixmap_item.setPixmap(QPixmap.fromImage(img))
-
-        # 渲染场景到一张新的图片上，从而应用模糊效果
-        blurred_img = QImage(img.size(), QImage.Format.Format_ARGB32_Premultiplied)
-        blurred_img.fill(Qt.GlobalColor.transparent)
-
-        painter = QPainter(blurred_img)
-        # 确保渲染区域和原图一致
-        self._scene.render(painter, source=QRectF(self._pixmap_item.pixmap().rect()))
-        painter.end()
-
-        return blurred_img
-
     def paintEvent(self, event):
-        if not self.parent():
-            return super().paintEvent(event)
-
-        w = self.window()
-        if w is None or not w.isVisible():
-            return super().paintEvent(event)
-
-        # 抓取窗口画面并裁剪到本控件区域
-        global_pos: QPoint = self.mapTo(w, QPoint(0, 0))
-        grab_rect = QRect(global_pos.x(), global_pos.y(), self.width(), self.height())
-
-        # 抓图前先临时隐藏自己，避免把自己也抓进去造成循环模糊
-        self.hide()
-        bg = w.grab(grab_rect).toImage()
-        self.show()
-
-        if bg.isNull():
-            return super().paintEvent(event)
-
-        blurred = self._blur_image(bg)
-
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
+        rectF = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
         path = QPainterPath()
-        path.addRoundedRect(self.rect(), self.radius, self.radius)
-        painter.setClipPath(path)
+        path.addRoundedRect(rectF, self.radius, self.radius)
 
-        # 绘制模糊背景
-        painter.drawImage(0, 0, blurred)
+        # 半透明底色
         painter.fillPath(path, self.tint)
+
+        # 轻度噪声覆盖
+        painter.save()
+        painter.setClipPath(path)
+        painter.setOpacity(0.05)
+        painter.drawTiledPixmap(self.rect(), self._noise_tile)
+        painter.restore()
+
+        # 细描边
+        painter.setPen(QColor(255, 255, 255, 36))
+        painter.drawPath(path)
         painter.end()
 
 
