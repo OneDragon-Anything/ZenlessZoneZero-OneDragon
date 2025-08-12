@@ -7,6 +7,7 @@ from one_dragon.base.cv_process.cv_code_generator import CvCodeGenerator
 from one_dragon.base.cv_process.cv_pipeline import CvPipeline, CvPipelineContext
 from one_dragon.base.cv_process.cv_step import CvStep
 from one_dragon.base.screen.template_info import TemplateInfo
+from one_dragon.utils import cv2_utils
 from zzz_od.context.zzz_context import ZContext
 
 

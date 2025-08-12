@@ -70,6 +70,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         """
         self.open_btn.clicked.connect(self._on_open_image)
         self.image_label.right_clicked_with_pos.connect(self._on_image_right_clicked)
+        self.image_label.rect_selected.connect(self._on_image_rect_selected)
         self.del_btn.clicked.connect(self._on_delete_step)
         self.copy_btn.clicked.connect(self._on_copy_code_clicked)
         self.up_btn.clicked.connect(self._on_move_step_up)
@@ -668,20 +669,17 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
             return
 
         if len(image_np.shape) == 2:  # Mask (灰度图)
-            image_to_show = image_np.copy()
-            height, width = image_to_show.shape
-            bytes_per_line = width
-            q_image = QImage(image_to_show.data, width, height, bytes_per_line, QImage.Format.Format_Grayscale8)
+            height, width = image_np.shape
+            q_image = QImage(image_np.data, width, height, width, QImage.Format.Format_Grayscale8).copy()
         elif len(image_np.shape) == 3:  # RGB
-            image_to_show = image_np.copy()
-            height, width, channel = image_to_show.shape
-            bytes_per_line = 3 * width
-            q_image = QImage(image_to_show.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
+            height, width, channel = image_np.shape
+            if channel == 3:
+                q_image = QImage(image_np.data, width, height, 3 * width, QImage.Format.Format_RGB888).copy()
         else:
             return
 
         pixmap = QPixmap.fromImage(q_image)
-        self.image_label.setPixmap(pixmap)
+        self.image_label.setPixmap(pixmap, preserve_state=True)
 
     def _on_image_right_clicked(self, x: int, y: int):
         """
@@ -690,17 +688,27 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         if self.logic.context is None:
             return
 
-        display_pos = QPoint(x, y)
-        image_pos = self.image_label.map_display_to_image_coords(display_pos)
-        if image_pos is None:
-            return
-
-        color_info = self.logic.get_color_info_at(image_pos.x(), image_pos.y())
+        color_info = self.logic.get_color_info_at(x, y)
         if color_info is None:
             return
 
         dialog = ColorInfoDialog(color_info, self.window())
         dialog.exec()
+
+    def _on_image_rect_selected(self, left: int, top: int, right: int, bottom: int):
+        """
+        响应框选
+        """
+        if self.logic.context is None:
+            return
+        # 轻量反馈：仅提示选择区域坐标，避免误用再次坐标转换
+        InfoBar.success(
+            title=gt('已选择区域'),
+            content=f"({left}, {top}) - ({right}, {bottom})",
+            duration=2000,
+            parent=self,
+            position=InfoBarPosition.TOP
+        )
 
     def _on_color_channel_clicked(self):
         """
