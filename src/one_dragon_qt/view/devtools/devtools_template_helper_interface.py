@@ -189,7 +189,6 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
 
     def _init_mid_part(self) -> QWidget:
         scroll_area = SingleDirectionScrollArea()
-        scroll_area.setMaximumWidth(150)  # 设置整个中间面板的最大宽度
 
         control_widget = QWidget()
         control_layout = QVBoxLayout(control_widget)
