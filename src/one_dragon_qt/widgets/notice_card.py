@@ -24,6 +24,32 @@ from one_dragon.utils.log_utils import log
 from .label import EllipsisLabel
 
 
+def get_notice_theme_palette():
+    """返回与主题相关的颜色配置。
+
+    返回:
+        dict: {
+            'tint': QColor,           # 背景半透明色
+            'title': str,             # 标题文本颜色
+            'date': str,              # 日期文本颜色
+            'shadow': QColor          # 外部阴影颜色
+        }
+    """
+    if qconfig.theme == Theme.DARK:
+        return {
+            'tint': QColor(20, 20, 20, 160),
+            'title': '#fff',
+            'date': '#ddd',
+            'shadow': QColor(0, 0, 0, 170),
+        }
+    else:
+        return {
+            'tint': QColor(245, 245, 245, 160),
+            'title': '#000',
+            'date': '#333',
+            'shadow': QColor(0, 0, 0, 150),
+        }
+
 class SkeletonBanner(QFrame):
     """骨架屏Banner组件 - 简化版"""
 
@@ -270,8 +296,8 @@ class NoticeCard(SimpleCardWidget):
         self.mainLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # 亚克力背景层（轻量实现）
-        acrylic_tint = QColor(20, 20, 20, 160) if qconfig.theme == Theme.DARK else QColor(245, 245, 245, 160)
-        self._acrylic = AcrylicBackground(self, radius=4, tint=acrylic_tint)
+        palette = get_notice_theme_palette()
+        self._acrylic = AcrylicBackground(self, radius=4, tint=palette['tint'])
         # 确保阴影在后，背景在最底层
         self._acrylic.stackUnder(self)
 
@@ -470,10 +496,8 @@ class NoticeCard(SimpleCardWidget):
 
     def apply_theme_colors(self):
         """在现有样式后附加文本颜色规则，确保覆盖资源 QSS。"""
-        if qconfig.theme == Theme.DARK:
-            title_color, date_color = "#fff", "#ddd"
-        else:
-            title_color, date_color = "#000", "#333"
+        palette = get_notice_theme_palette()
+        title_color, date_color = palette['title'], palette['date']
         extra = (
             f"\nQWidget#title, QLabel#title{{color:{title_color} !important;}}"
             f"\nQWidget#date, QLabel#date{{color:{date_color} !important;}}\n"
@@ -482,7 +506,7 @@ class NoticeCard(SimpleCardWidget):
 
     def _on_theme_changed(self):
         if hasattr(self, '_acrylic'):
-            self._acrylic.tint = (QColor(20, 20, 20, 160) if qconfig.theme == Theme.DARK else QColor(245, 245, 245, 160))
+            self._acrylic.tint = get_notice_theme_palette()['tint']
             self._acrylic.update()
         self.apply_theme_colors()
 
@@ -570,11 +594,7 @@ class NoticeCardContainer(QWidget):
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(36)
         shadow.setOffset(0, 12)
-        # 颜色与主题匹配
-        if qconfig.theme == Theme.DARK:
-            shadow.setColor(QColor(0, 0, 0, 170))
-        else:
-            shadow.setColor(QColor(0, 0, 0, 150))
+        shadow.setColor(get_notice_theme_palette()['shadow'])
         self.setGraphicsEffect(shadow)
 
         # 控制状态
