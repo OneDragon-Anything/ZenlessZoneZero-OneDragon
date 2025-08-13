@@ -5,8 +5,8 @@ import json
 import os
 import requests
 import webbrowser
-from PySide6.QtCore import Qt, QSize, QTimer, QThread, Signal, QPoint, QRect, QRectF
-from PySide6.QtGui import QPixmap, QFont, QPainterPath, QRegion, QColor, QPainter, QImage
+from PySide6.QtCore import Qt, QSize, QTimer, QThread, Signal, QRectF
+from PySide6.QtGui import QPixmap, QFont, QPainterPath, QColor, QPainter, QImage
 from PySide6.QtWidgets import (
     QVBoxLayout,
     QListWidgetItem,
@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QHBoxLayout,
     QStackedWidget,
-    QFrame, QGraphicsBlurEffect, QGraphicsScene, QGraphicsPixmapItem, QGraphicsDropShadowEffect,
+    QFrame, QGraphicsDropShadowEffect,
 )
 from qfluentwidgets import SimpleCardWidget, HorizontalFlipView, ListWidget, qconfig, Theme
 
