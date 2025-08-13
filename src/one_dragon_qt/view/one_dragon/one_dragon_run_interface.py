@@ -62,7 +62,6 @@ class OneDragonRunInterface(ContainerReorderMixin, VerticalScrollInterface):
         self.need_multiple_instance: bool = need_multiple_instance  # 是否需要多实例
         self.need_after_done_opt: bool = need_after_done_opt  # 结束后
 
-        # 拖拽排序 mixin（真正以 mixin 形式混入）
         self.init_reorder_drag()
 
     def get_content_widget(self) -> QWidget:

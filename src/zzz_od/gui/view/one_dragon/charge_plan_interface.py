@@ -68,9 +68,6 @@ class ChargePlanCard(MultiLineSettingCard):
         self.plan_times_input = LineEdit()
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
 
-        # 移除上下移动按钮，改为容器级拖拽排序
-        self.move_up_btn = None
-        self.move_top_btn = None
         self.del_btn = ToolButton(FluentIcon.DELETE, None)
         self.del_btn.clicked.connect(self._on_del_clicked)
 
@@ -93,7 +90,6 @@ class ChargePlanCard(MultiLineSettingCard):
                     self.run_times_input,
                     plan_times_label,
                     self.plan_times_input,
-                    # 拖拽排序替代 move_up/move_top
                     self.del_btn,
                 ]
             ]
@@ -232,8 +228,6 @@ class ChargePlanCard(MultiLineSettingCard):
 
     def _emit_value(self) -> None:
         self.changed.emit(self.idx, self.plan)
-
-    # 由容器级拖拽完成排序，此处移除 move_up/move_top 行为
 
     def _on_del_clicked(self) -> None:
         self.delete.emit(self.idx)
