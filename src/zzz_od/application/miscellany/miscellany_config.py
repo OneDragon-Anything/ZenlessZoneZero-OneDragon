@@ -21,52 +21,6 @@ class MiscellanyConfig(YamlConfig):
     def app_order(self, new_list: List[str]):
         self.update('app_order', new_list)
 
-    def move_up_app(self, app_id: str) -> None:
-        """
-        将一个app的执行顺序往前调一位
-        :param app_id:
-        :return:
-        """
-        old_app_orders = self.app_order
-        idx = -1
-
-        for i in range(len(old_app_orders)):
-            if old_app_orders[i] == app_id:
-                idx = i
-                break
-
-        if idx <= 0:  # 无法交换
-            return
-
-        temp = old_app_orders[idx - 1]
-        old_app_orders[idx - 1] = old_app_orders[idx]
-        old_app_orders[idx] = temp
-
-        self.app_order = old_app_orders
-
-    def move_down_app(self, app_id: str) -> None:
-        """
-        将一个app的执行顺序往后调一位
-        :param app_id:
-        :return:
-        """
-        old_app_orders = self.app_order
-        idx = -1
-
-        for i in range(len(old_app_orders)):
-            if old_app_orders[i] == app_id:
-                idx = i
-                break
-
-        if idx < 0 or idx >= len(old_app_orders) - 1:  # 无法交换
-            return
-
-        temp = old_app_orders[idx + 1]
-        old_app_orders[idx + 1] = old_app_orders[idx]
-        old_app_orders[idx] = temp
-
-        self.app_order = old_app_orders
-
     def move_app_to_position(self, app_id: str, target_position: int) -> None:
         """
         将应用移动到指定位置（支持拖拽功能）
