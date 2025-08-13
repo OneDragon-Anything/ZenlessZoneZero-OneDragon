@@ -25,7 +25,7 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
 
-class OneDragonRunInterface(VerticalScrollInterface, ContainerReorderMixin):
+class OneDragonRunInterface(ContainerReorderMixin, VerticalScrollInterface):
 
     run_all_apps_signal = Signal()
 
