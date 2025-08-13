@@ -303,12 +303,21 @@ class LostVoidMoveByDet(ZOperation):
             elif abs(turn_distance_x) > max_turn:
                 turn_distance_x = max_turn if turn_distance_x > 0 else -max_turn
 
-        # --- Y轴转向计算 (您的三值逻辑) ---
-        turn_distance_y = 0
-        if diff_y > 300:
-            turn_distance_y = 10
-        elif diff_y < -300:
-            turn_distance_y = -10
+        # --- Y轴转向计算 (保持目标在中心上方300像素) ---
+        # 目标是让 diff_y 稳定在 -300 附近
+        target_y = -300
+        # 设置一个死区，避免在目标附近频繁微调
+        dead_zone = 50
+        
+        if diff_y > target_y + dead_zone:
+            # 目标在预定位置下方，需要向上转
+            turn_distance_y = 20  # 您可以根据需要调整这个值
+        elif diff_y < target_y - dead_zone:
+            # 目标在预定位置上方，需要向下转
+            turn_distance_y = -20 # 您可以根据需要调整这个值
+        else:
+            # 在目标区域内，不进行Y轴转向
+            turn_distance_y = 0
 
         # --- 如果没有任何移动指令，则提前返回 ---
         if turn_distance_x == 0 and turn_distance_y == 0:
