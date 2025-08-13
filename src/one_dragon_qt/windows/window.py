@@ -239,6 +239,7 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
         # 图标配置
         self._icon = icon
         self._selectedIcon = selectedIcon or icon
+        # 是否在选中状态下仍显示文字（默认显示）
         self._isSelectedTextVisible = True
 
         # 固定控件尺寸
@@ -268,12 +269,12 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
         # 绘制图标
         icon_color = self._get_icon_color()
         current_icon = self._selectedIcon if self.isSelected else self._icon
-        # 选中时使用居中位置，未选中时使用普通位置
-        icon_position = self.icon_rect_centered if self.isSelected else self.icon_rect
+        # 选中且隐藏文字时居中；否则使用普通位置以便显示文字
+        icon_position = self.icon_rect_centered if (self.isSelected and not self._isSelectedTextVisible) else self.icon_rect
         current_icon.render(painter, icon_position, fill=icon_color)
 
-        # 选中时隐藏文字，未选中时显示文字
-        if self.isSelected:
+        # 选中时是否隐藏文字由 _isSelectedTextVisible 决定
+        if self.isSelected and not self._isSelectedTextVisible:
             return
 
         text_color = self._get_text_color()
@@ -303,7 +304,7 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
     def _get_text_color(self):
         """获取文本颜色"""
         if self.isSelected:
-            return QColor(255, 255, 255)
+            return QColor(255, 255, 255) if isDarkTheme() else QColor(0, 103, 192)
 
         # 根据主题返回对应颜色
         return QColor(178, 178, 178) if isDarkTheme() else QColor(92, 110, 147)
