@@ -4,6 +4,7 @@ import threading
 import datetime
 import os
 import subprocess
+from pathlib import Path
 import yaml
 from colorama import init, Fore, Style
 
@@ -85,44 +86,45 @@ def create_log_folder():
     print_message(f"日志文件夹路径：{log_folder}", "PASS")
     return log_folder
 
-def clean_old_logs_async(log_folder):
+def clean_old_logs_async(log_folder: str):
     """异步清理旧日志文件"""
     def cleanup():
-        try:
-            if os.path.exists(log_folder):
-                files = os.listdir(log_folder)
-                for file in files:
-                    if file.startswith('bat_') and file.endswith('.log'):
-                        file_path = os.path.join(log_folder, file)
-                        try:
-                            os.remove(file_path)
-                        except OSError:
-                            pass
-        except Exception:
-            pass
-    
-    # 在后台线程中执行清理
-    cleanup_thread = threading.Thread(target=cleanup, daemon=True)
+        log_dir = Path(log_folder)
+
+        if not log_dir.is_dir():
+            print_message(f"文件夹不存在或不是一个目录: '{log_dir}'")
+            return
+
+        files_to_delete = list(log_dir.glob('bat_*.log'))
+
+        for file_path in files_to_delete:
+            try:
+                file_path.unlink()
+            except OSError as e:
+                print_message(f"无法删除文件 {file_path.name}: {e}")
+
+    cleanup_thread = threading.Thread(target=cleanup, name="LogCleanupThread", daemon=True)
     cleanup_thread.start()
 
-def clean_old_logs(log_folder):
+def clean_old_logs(log_folder: str):
+    """
     # 删除旧的日志文件
+    """
+    log_dir = Path(log_folder)
+
+    if not log_dir.is_dir():
+        print_message(f"日志文件夹不存在或不是一个有效目录: '{log_folder}'")
+        return
+
     try:
-        # 只检查当前日志目录，不递归遍历
-        if os.path.exists(log_folder):
-            files = os.listdir(log_folder)
-            for file in files:
-                if file.startswith('bat_') and file.endswith('.log'):
-                    file_path = os.path.join(log_folder, file)
-                    try:
-                        os.remove(file_path)
-                        print_message(f"已删除旧日志文件: {file}", "PASS")
-                    except OSError:
-                        # 忽略删除失败的文件，不影响启动
-                        pass
-    except Exception:
-        # 清理失败不影响主流程
-        pass
+        for file_path in log_dir.glob('bat_*.log'):
+            try:
+                file_path.unlink()
+                print_message(f"已删除旧日志文件: {file_path.name}", "PASS")
+            except OSError as e:
+                print_message(f"删除文件失败 {file_path.name}: {e}")
+    except Exception as e:
+        print_message(f"清理日志文件夹 '{log_folder}' 过程中发生意外错误: {e}")
 
 def execute_python_script(app_path, log_folder, no_windows: bool, args: list = None):
     # 执行 Python 脚本并重定向输出到日志文件
