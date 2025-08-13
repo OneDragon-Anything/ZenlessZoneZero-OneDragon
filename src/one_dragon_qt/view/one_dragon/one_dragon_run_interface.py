@@ -121,8 +121,9 @@ class OneDragonRunInterface(ContainerReorderMixin, VerticalScrollInterface):
             get_items=lambda: self._app_run_cards,
             get_item_id=lambda w: getattr(getattr(w, 'app', None), 'app_id', ''),
             on_reorder=self._on_reorder_commit,
+            get_drag_handle=lambda w: getattr(w, 'iconLabel', None),
             get_drop_parent=lambda: self._app_run_cards[0].parentWidget() if self._app_run_cards else self.app_card_group,
-            options=ReorderDragOptions(preview_scale=0.7, preview_opacity=0.75)
+            options=ReorderDragOptions(preview_enabled=True, preview_scale=1.0, preview_opacity=1.0, handle_left_width=24, hide_original_on_drag=False, highlight_duration_ms=600, preview_anchor_mode="left", anchor_left_padding=8)
         )
 
         return layout

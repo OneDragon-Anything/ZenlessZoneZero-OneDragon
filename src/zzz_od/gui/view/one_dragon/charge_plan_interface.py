@@ -328,7 +328,8 @@ class ChargePlanInterface(ContainerReorderMixin, VerticalScrollInterface):
                 get_item_id=lambda w: getattr(getattr(w, 'plan', None), 'plan_id', ''),
                 on_reorder=self._on_reorder_commit,
                 get_drop_parent=lambda: self.content_widget,
-                options=ReorderDragOptions(preview_scale=0.7, preview_opacity=0.75)
+                get_drag_handle=lambda w: getattr(w, 'iconLabel', None),
+                options=ReorderDragOptions(preview_enabled=True, preview_scale=1.0, preview_opacity=1.0, handle_left_width=24, hide_original_on_drag=False, highlight_duration_ms=600, preview_anchor_mode="left", anchor_left_padding=8)
             )
 
         self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
