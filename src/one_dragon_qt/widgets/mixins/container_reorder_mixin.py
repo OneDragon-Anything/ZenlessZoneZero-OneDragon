@@ -132,10 +132,7 @@ class ContainerReorderMixin:
 
     def eventFilter(self, obj, event):
         if not isinstance(obj, QWidget) or obj not in self._watchers:
-            try:
-                return super().eventFilter(obj, event)
-            except Exception:
-                return False
+            return super().eventFilter(obj, event)
 
         et = event.type()
         if et == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
@@ -155,17 +152,13 @@ class ContainerReorderMixin:
             # 移出时恢复默认光标
             self._apply_cursor(None)
             return False
-        try:
-            return super().eventFilter(obj, event)
-        except Exception:
-            return False
+        return super().eventFilter(obj, event)
 
     def _on_press(self, obj: QWidget, event) -> None:
         if self._get_items is None or self._get_item_id is None:
             return
         global_pos = obj.mapToGlobal(event.pos())
         container_pos = self._container.mapFromGlobal(global_pos)
-        # 命中卡片
         items = self._get_items() or []
         hit_idx = -1
         for idx, w in enumerate(items):
@@ -252,33 +245,22 @@ class ContainerReorderMixin:
         if card is None:
             return
         # 记录被拖拽控件与原始位置
-        try:
-            self._dragging_widget = card
-            self._original_index = next((i for i, w in enumerate(items) if w is card), -1)
-        except Exception:
-            self._dragging_widget = card
-            self._original_index = -1
-        # 拖拽时隐藏原卡片（可选）。默认不隐藏，避免“丢卡感”。
+        self._dragging_widget = card
+        self._original_index = next((i for i, w in enumerate(items) if w is card), -1)
+        # 拖拽时隐藏原卡片（可选）
         if self._opt.hide_original_on_drag:
-            try:
-                card.setVisible(False)
-            except Exception:
-                pass
-        # 计算锚点（用于控制跟随预览的对齐方式）
-        try:
-            grab_x = None
-            if self._opt.preview_anchor_mode == "grab":
-                # 鼠标在卡片内的 x 坐标
-                global_pos = QCursor.pos()
-                local = card.mapFromGlobal(global_pos)
-                grab_x = max(0, min(local.x(), card.width()))
-            elif self._opt.preview_anchor_mode == "left":
-                grab_x = self._opt.anchor_left_padding
-            elif self._opt.preview_anchor_mode == "center":
-                grab_x = card.width() // 2
-            self._drag_anchor_in_card_x = grab_x
-        except Exception:
-            self._drag_anchor_in_card_x = None
+            card.setVisible(False)
+        # 计算锚点
+        grab_x = None
+        if self._opt.preview_anchor_mode == "grab":
+            global_pos = QCursor.pos()
+            local = card.mapFromGlobal(global_pos)
+            grab_x = max(0, min(local.x(), card.width()))
+        elif self._opt.preview_anchor_mode == "left":
+            grab_x = self._opt.anchor_left_padding
+        elif self._opt.preview_anchor_mode == "center":
+            grab_x = card.width() // 2
+        self._drag_anchor_in_card_x = grab_x
 
         if not self._opt.preview_enabled:
             return
@@ -293,7 +275,6 @@ class ContainerReorderMixin:
         if self._float_container is None:
             self._float_container = QFrame(drop_parent)
             self._float_container.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-            # 预览去掉描边，避免与占位虚线形成“双框困惑”
             self._float_container.setStyleSheet("QFrame { border: none; background: transparent; }")
             shadow = QGraphicsDropShadowEffect(self._float_container)
             shadow.setBlurRadius(self._opt.shadow_blur)
@@ -329,24 +310,26 @@ class ContainerReorderMixin:
         idx = self._calculate_drop_position(y)
         if idx is None:
             return
-        # 不再使用插入线，统一只用虚线占位框作为“松手预测位置”
         if self._insert_line is not None:
             self._insert_line.hide()
 
-        # 占位虚框：完全覆盖将要插入的位置项（不是中线），减少认知负担
         if self._placeholder is None:
             self._placeholder = QWidget(drop_parent)
             self._placeholder.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
             self._placeholder.setStyleSheet(f"QWidget {{ {self._opt.placeholder_css} }}")
         # 目标项矩形（插入到 idx 位置之前）
-        base_rect = items[idx].geometry() if 0 <= idx < len(items) else items[-1].geometry()
-        ph = max(24, base_rect.height())
-        py = base_rect.y()
+        # 支持 idx == len(items) 表示插入到末尾
+        if 0 <= idx < len(items):
+            base_rect = items[idx].geometry()
+            ph = max(24, base_rect.height())
+            py = base_rect.y()
+        else:
+            last_rect = items[-1].geometry()
+            ph = max(24, last_rect.height())
+            py = last_rect.y() + last_rect.height()
         self._placeholder.setGeometry(6, py, drop_parent.width() - 12, ph)
         self._placeholder.show()
         self._placeholder.raise_()
-
-    # 取消布局占位的实现，统一通过 overlay 虚线框指示目标位置
 
     def _hide_drop_indicator(self) -> None:
         if self._insert_line is not None:
@@ -392,15 +375,18 @@ class ContainerReorderMixin:
                                            int(parent_pos.y() - self._float_container.height() / 2))
 
     def _calculate_drop_position(self, y: int) -> Optional[int]:
-        items = self._get_items() or []
+        # 基于“移除被拖项后的列表”计算目标插入索引
+        items_all = self._get_items() or []
+        items = [w for w in items_all if self._get_item_id(w) != self._dragging_id]
         if not items:
-            return None
+            return 0
         for idx, w in enumerate(items):
             rect = w.geometry()
             mid = rect.y() + rect.height() // 2
             if y < mid:
                 return idx
-        return len(items) - 1
+        # 放到末尾（append）
+        return len(items)
 
     def _end_drag(self) -> None:
         self._hide_drop_indicator()
@@ -411,84 +397,56 @@ class ContainerReorderMixin:
         dragging_id = self._dragging_id
         self._dragging_id = None
         # 结束后根据当前 hover 状态更新光标
-        try:
-            global_pos = QCursor.pos()
-            if self._container is not None and self._cursor_widget is not None:
-                container_pos = self._container.mapFromGlobal(global_pos)
-                items = self._get_items() or []
-                hit = any((w.geometry().contains(container_pos) for w in items))
-                self._apply_cursor(Qt.CursorShape.OpenHandCursor if hit else None)
-        except Exception:
-            self._apply_cursor(None)
-        # 恢复原卡片可见
-        try:
+        global_pos = QCursor.pos()
+        if self._container is not None and self._cursor_widget is not None:
+            container_pos = self._container.mapFromGlobal(global_pos)
             items = self._get_items() or []
-            card = self._dragging_widget or next((w for w in items if self._get_item_id(w) == dragging_id), None)
-            if card is not None:
-                card.setVisible(True)
-            # 移除布局占位
-            if self._layout_placeholder is not None and self._container is not None and self._container.layout() is not None:
-                self._container.layout().removeWidget(self._layout_placeholder)
-                self._layout_placeholder.hide()
-        except Exception:
-            pass
-        # 高亮新位置的卡片（使用覆盖层，不修改目标样式，避免影响全局字体与样式继承）
+            hit = any((w.geometry().contains(container_pos) for w in items))
+            self._apply_cursor(Qt.CursorShape.OpenHandCursor if hit else None)
+        # 恢复原卡片可见
+        items = self._get_items() or []
+        card = self._dragging_widget or next((w for w in items if self._get_item_id(w) == dragging_id), None)
+        if card is not None:
+            card.setVisible(True)
         if dragging_id is not None and self._opt.highlight_duration_ms > 0:
-            try:
-                from PySide6.QtCore import QTimer as _QTimer
-                def _highlight():
-                    items2 = self._get_items() or []
-                    target = next((w for w in items2 if self._get_item_id(w) == dragging_id), None)
-                    if target is None:
-                        return
-                    overlay = QFrame(target)
-                    overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-                    overlay.setStyleSheet(f"QFrame {{ {self._opt.highlight_css} }}")
-                    overlay.setGeometry(0, 0, target.width(), target.height())
-                    overlay.raise_()
-                    overlay.show()
-                    effect = QGraphicsOpacityEffect(overlay)
-                    overlay.setGraphicsEffect(effect)
-                    effect.setOpacity(1.0)
-                    anim = QPropertyAnimation(effect, b"opacity", overlay)
-                    anim.setDuration(self._opt.highlight_duration_ms)
-                    anim.setStartValue(1.0)
-                    anim.setEndValue(0.0)
-                    def _cleanup():
-                        try:
-                            overlay.deleteLater()
-                        except Exception:
-                            pass
-                    anim.finished.connect(_cleanup)
-                    # 保持引用防止被 GC
-                    overlay._anim = anim
-                    anim.start()
-                _QTimer.singleShot(0, _highlight)
-            except Exception:
-                pass
-        # 清理引用
+            from PySide6.QtCore import QTimer as _QTimer
+            def _highlight():
+                items2 = self._get_items() or []
+                target = next((w for w in items2 if self._get_item_id(w) == dragging_id), None)
+                if target is None:
+                    return
+                overlay = QFrame(target)
+                overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+                overlay.setStyleSheet(f"QFrame {{ {self._opt.highlight_css} }}")
+                overlay.setGeometry(0, 0, target.width(), target.height())
+                overlay.raise_()
+                overlay.show()
+                effect = QGraphicsOpacityEffect(overlay)
+                overlay.setGraphicsEffect(effect)
+                effect.setOpacity(1.0)
+                anim = QPropertyAnimation(effect, b"opacity", overlay)
+                anim.setDuration(self._opt.highlight_duration_ms)
+                anim.setStartValue(1.0)
+                anim.setEndValue(0.0)
+                def _cleanup():
+                    overlay.deleteLater()
+                anim.finished.connect(_cleanup)
+                # 保持引用防止被 GC
+                overlay._anim = anim
+                anim.start()
+            _QTimer.singleShot(0, _highlight)
         self._dragging_widget = None
         self._original_index = -1
 
-    # 光标抓手
     def _apply_cursor(self, shape: Optional[Qt.CursorShape]) -> None:
+        """光标抓手"""
         target = self._cursor_widget
         if target is None:
             return
         if shape is None:
             if self._cursor_state is not None:
-                try:
-                    target.unsetCursor()
-                except Exception:
-                    pass
+                target.unsetCursor()
                 self._cursor_state = None
             return
         if self._cursor_state == shape:
             return
-        try:
-            target.setCursor(shape)
-            self._cursor_state = shape
-        except Exception:
-            pass
-
-
