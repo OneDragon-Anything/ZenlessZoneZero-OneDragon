@@ -35,7 +35,7 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 from one_dragon_qt.widgets.notify_dialog import NotifyDialog
 
 
-class OneDragonRunInterface(VerticalScrollInterface, ContainerReorderMixin):
+class OneDragonRunInterface(ContainerReorderMixin, VerticalScrollInterface):
 
     run_all_apps_signal = Signal()
 

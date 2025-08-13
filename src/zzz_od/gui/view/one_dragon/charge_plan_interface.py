@@ -259,7 +259,7 @@ class ChargePlanCard(MultiLineSettingCard):
         self.init_plan_times_input()
 
 
-class ChargePlanInterface(VerticalScrollInterface, ContainerReorderMixin):
+class ChargePlanInterface(ContainerReorderMixin, VerticalScrollInterface):
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
