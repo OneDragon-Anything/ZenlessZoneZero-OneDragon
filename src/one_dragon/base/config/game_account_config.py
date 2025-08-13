@@ -7,7 +7,12 @@ from one_dragon.base.config.yaml_config import YamlConfig
 
 class GamePlatformEnum(Enum):
 
-    PC = ConfigItem('PC')
+    PC = ConfigItem('PC', 'PC')
+    Emulator = ConfigItem('模拟器', 'Emulator')
+
+class GameClientTypeEnum(Enum):
+    LOCAL_GAME = ConfigItem('本地游戏', 'LOCAL_GAME')
+    CLOUD_GAME = ConfigItem('云游戏', 'CLOUD_GAME')
 
 
 class GameLanguageEnum(Enum):
@@ -31,6 +36,8 @@ class GameAccountConfig(YamlConfig):
                  default_platform: Optional[str] = None,
                  default_game_region: Optional[str] = None,
                  default_game_path: Optional[str] = None,
+                 default_cloud_game_path: Optional[str] = None,
+                 default_game_client: Optional[str] = None,
                  default_account: Optional[str] = None,
                  default_password: Optional[str] = None,
                  ):
@@ -40,6 +47,8 @@ class GameAccountConfig(YamlConfig):
         self.default_platform: str = default_platform
         self.default_game_region: str = default_game_region
         self.default_game_path: str = default_game_path
+        self.default_cloud_game_path: str = default_cloud_game_path
+        self.default_game_client: str = default_game_client
         self.default_account: str = default_account
         self.default_password: str = default_password
 
@@ -85,6 +94,24 @@ class GameAccountConfig(YamlConfig):
     @game_path.setter
     def game_path(self, new_value: str) -> None:
         self.update('game_path', new_value)
+
+    @property
+    def cloud_game_path(self) -> str:
+        return self.get('cloud_game_path',
+                        '' if self.default_cloud_game_path is None else self.default_cloud_game_path)
+
+    @cloud_game_path.setter
+    def cloud_game_path(self, new_value: str) -> None:
+        self.update('cloud_game_path', new_value)
+
+    @property
+    def game_client(self) -> str:
+        return self.get('game_client',
+                        GameClientTypeEnum.LOCAL_GAME.value.value if self.default_game_client is None else self.default_game_client)
+
+    @game_client.setter
+    def game_client(self, new_value: str) -> None:
+        self.update('game_client', new_value)
 
     @property
     def game_language(self) -> str:

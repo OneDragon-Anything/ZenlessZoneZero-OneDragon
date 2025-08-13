@@ -7,7 +7,7 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
-
+from one_dragon.base.config.game_account_config import GameClientTypeEnum
 
 class OpenGame(Operation):
 
@@ -22,9 +22,17 @@ class OpenGame(Operation):
         打开游戏
         :return:
         """
-        if self.ctx.game_account_config.game_path == '':
-            return self.round_fail('未配置游戏路径')
-        full_path = self.ctx.game_account_config.game_path
+        game_client_type = self.ctx.game_account_config.game_client
+        if game_client_type == GameClientTypeEnum.LOCAL_GAME.value.value:
+            if self.ctx.game_account_config.game_path == '':
+                return self.round_fail('未配置本地游戏路径')
+            full_path = self.ctx.game_account_config.game_path
+        elif game_client_type == GameClientTypeEnum.CLOUD_GAME.value.value:
+            if self.ctx.game_account_config.cloud_game_path == '':
+                return self.round_fail('未配置云游戏路径')
+            full_path = self.ctx.game_account_config.cloud_game_path
+        else:
+            return self.round_fail(f'未知的游戏客户端类型 {game_client_type}')
         dir_path = os.path.dirname(full_path)
         exe_name = os.path.basename(full_path)
         log.info('尝试自动启动游戏 路径为 %s', full_path)
