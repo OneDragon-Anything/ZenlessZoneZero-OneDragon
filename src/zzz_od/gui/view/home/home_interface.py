@@ -370,15 +370,9 @@ class HomeInterface(VerticalScrollInterface):
         self._check_model_runner = CheckModelRunner(self.ctx)
         self._check_model_runner.need_update.connect(self._need_to_update_model)
         self._check_banner_runner = CheckBannerRunner(self.ctx)
-        self._check_banner_runner.need_update.connect(self._reload_banner_silent)
         self._banner_downloader = BackgroundImageDownloader(self.ctx, "remote_banner")
-        self._banner_downloader.image_downloaded.connect(self._reload_banner_silent)
         self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster")
-        self._version_poster_downloader.image_downloaded.connect(self._reload_banner_silent)
 
-    def _reload_banner_silent(self, *args):
-        """静默重新加载背景，不显示通知（自动更新）"""
-        self.reload_banner(user_triggered=False)
 
     def on_interface_shown(self) -> None:
         """界面显示时启动检查更新的线程"""
