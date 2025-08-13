@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QSpacerItem,
     QSizePolicy,
     QApplication,
+    QWidget,
 )
 from qfluentwidgets import (
     FluentIcon,
@@ -291,11 +292,11 @@ class HomeInterface(VerticalScrollInterface):
         v_layout.addStretch()
 
         # 底部部分 (公告卡片 + 启动按钮)
-        h2_layout = QHBoxLayout()
+        bottom_bar = QWidget()
+        h2_layout = QHBoxLayout(bottom_bar)
         h2_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # 左边距与右侧、顶部按钮组统一为 20px
-        h2_layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
+        h2_layout.setContentsMargins(20, 0, 20, 0)
 
         # 公告卡片
         self.notice_container = NoticeCardContainer()
@@ -324,9 +325,7 @@ class HomeInterface(VerticalScrollInterface):
         self.start_button.setGraphicsEffect(shadow)
 
         v1_layout = QVBoxLayout()
-        # 保持到底部右侧
-        # 与顶部 ButtonGroup 的右侧间距（约 20px）对齐
-        v1_layout.setContentsMargins(0, 0, 20, 0)
+        v1_layout.setContentsMargins(0, 0, 0, 0)
         v1_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
         h2_layout.addLayout(v1_layout)
@@ -337,8 +336,8 @@ class HomeInterface(VerticalScrollInterface):
         one_cm_px = max(0, int(dpi / 2.54))
         v_layout.setContentsMargins(0, 0, 0, one_cm_px)
 
-        # 将底部水平布局添加到垂直布局
-        v_layout.addLayout(h2_layout)
+        # 将底部容器添加到主垂直布局
+        v_layout.addWidget(bottom_bar)
 
         # 初始化父类
         super().__init__(
