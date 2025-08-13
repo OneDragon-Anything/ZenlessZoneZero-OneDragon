@@ -1,9 +1,8 @@
 from typing import Callable, List, Optional
 
-from PySide6.QtCore import QObject, Qt, QPoint, QEvent, QTimer
+from PySide6.QtCore import Qt, QPoint, QEvent, QTimer
 from PySide6.QtGui import QCursor, QPixmap
 from PySide6.QtWidgets import QWidget, QFrame, QLabel, QGraphicsOpacityEffect, QGraphicsDropShadowEffect
-
 
 class ReorderDragOptions:
     def __init__(self,
@@ -27,21 +26,19 @@ class ReorderDragOptions:
         self.auto_scroll_max = auto_scroll_max
 
 
-class ReorderDragMixin(QObject):
-    """容器级拖拽排序混入。使用方式：
-    mixin = ReorderDragMixin(parent)
-    mixin.attach(container=group_widget,
-                 scroll_area=scroll_area,
-                 get_items=lambda: items,
-                 get_item_id=lambda w: w.app.app_id,
-                 on_reorder=lambda item_id, idx: ...,
-                 get_drop_parent=lambda: drop_parent,
-                 options=ReorderDragOptions())
+class ContainerReorderMixin:
+    """
+    将拖拽重排能力以 Mixin 的方式混入 QWidget 子类。
+
+    用法：
+      class MyInterface(ContainerReorderMixin, QWidget):
+          def __init__(self, ...):
+              QWidget.__init__(self, ...)
+              self.init_reorder_drag()
+              self.attach(container=..., scroll_area=..., get_items=..., get_item_id=..., on_reorder=...)
     """
 
-    def __init__(self, parent: Optional[QObject] = None):
-        super().__init__(parent)
-
+    def init_reorder_drag(self) -> None:
         # 外部注入
         self._container: Optional[QWidget] = None
         self._scroll_area = None
@@ -64,7 +61,7 @@ class ReorderDragMixin(QObject):
         self._insert_line: Optional[QFrame] = None
         self._placeholder: Optional[QWidget] = None
 
-        # 自动滚动
+        # 自动滚动（以宿主 QWidget 为父对象）
         self._auto_scroll_timer: QTimer = QTimer(self)
         self._auto_scroll_timer.setInterval(16)
         self._auto_scroll_timer.timeout.connect(self._on_auto_scroll_tick)
@@ -115,7 +112,10 @@ class ReorderDragMixin(QObject):
 
     def eventFilter(self, obj, event):
         if not isinstance(obj, QWidget) or obj not in self._watchers:
-            return super().eventFilter(obj, event)
+            try:
+                return super().eventFilter(obj, event)
+            except Exception:
+                return False
 
         et = event.type()
         if et == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
@@ -135,7 +135,10 @@ class ReorderDragMixin(QObject):
             # 移出时恢复默认光标
             self._apply_cursor(None)
             return False
-        return super().eventFilter(obj, event)
+        try:
+            return super().eventFilter(obj, event)
+        except Exception:
+            return False
 
     def _on_press(self, obj: QWidget, event) -> None:
         if self._get_items is None or self._get_item_id is None:
@@ -358,3 +361,5 @@ class ReorderDragMixin(QObject):
             self._cursor_state = shape
         except Exception:
             pass
+
+
