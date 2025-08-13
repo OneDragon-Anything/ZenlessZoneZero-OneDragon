@@ -23,24 +23,19 @@ from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_app import OneDragonApp
 from one_dragon.base.operation.one_dragon_context import OneDragonContext, ContextKeyboardEventEnum, \
     ContextInstanceEventEnum
-from one_dragon.utils import cmd_utils
-from one_dragon.utils.i18_utils import gt
-from one_dragon.utils.log_utils import log
 from one_dragon_qt.view.app_run_interface import AppRunner
+from one_dragon_qt.widgets.mixins.container_reorder_mixin import ContainerReorderMixin, ReorderDragOptions
 from one_dragon_qt.view.context_event_signal import ContextEventSignal
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
-from one_dragon_qt.widgets.mixins.reorder_drag_mixin import ReorderDragMixin, ReorderDragOptions
-from one_dragon_qt.widgets.notify_dialog import NotifyDialog
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
-    ComboBoxSettingCard,
-)
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from one_dragon_qt.widgets.notify_dialog import NotifyDialog
 
 
-class OneDragonRunInterface(VerticalScrollInterface):
+class OneDragonRunInterface(VerticalScrollInterface, ContainerReorderMixin):
 
     run_all_apps_signal = Signal()
 
@@ -67,8 +62,8 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self.need_multiple_instance: bool = need_multiple_instance  # 是否需要多实例
         self.need_after_done_opt: bool = need_after_done_opt  # 结束后
 
-        # 拖拽排序 mixin
-        self._reorder_mixin: Optional[ReorderDragMixin] = None
+        # 拖拽排序 mixin（真正以 mixin 形式混入）
+        self.init_reorder_drag()
 
     def get_content_widget(self) -> QWidget:
         """
@@ -120,8 +115,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
 
         layout.addWidget(scroll_area)
 
-        # 安装拖拽排序 mixin（在列表初始化后 attach，保证有卡片时可用）
-        self._reorder_mixin = ReorderDragMixin(self)
+        # 延后 attach 到 on_interface_shown，确保卡片已创建
         self._reorder_attach_args = dict(
             container=self.app_card_group,
             scroll_area=scroll_area,
@@ -236,8 +230,8 @@ class OneDragonRunInterface(VerticalScrollInterface):
         )
         self._init_app_list()
         # attach mixin（此时 _app_run_cards 已构建）
-        if self._reorder_mixin is not None and hasattr(self, '_reorder_attach_args'):
-            self._reorder_mixin.attach(**self._reorder_attach_args)
+        if hasattr(self, '_reorder_attach_args'):
+            self.attach(**self._reorder_attach_args)
         self.notify_switch.init_with_adapter(self.ctx.notify_config.get_prop_adapter('enable_notify'))
 
         self.ctx.listen_event(ContextKeyboardEventEnum.PRESS.value, self._on_key_press)
@@ -403,5 +397,3 @@ class OneDragonRunInterface(VerticalScrollInterface):
             if idx < len(self._app_run_cards):
                 self._app_run_cards[idx].set_app(app)
                 self._app_run_cards[idx].set_switch_on(app.app_id in app_run_list)
-
-

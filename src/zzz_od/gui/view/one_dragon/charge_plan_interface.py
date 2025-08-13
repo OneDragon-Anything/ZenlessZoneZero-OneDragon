@@ -15,7 +15,7 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiLine
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from one_dragon_qt.widgets.mixins.reorder_drag_mixin import ReorderDragMixin, ReorderDragOptions
+from one_dragon_qt.widgets.mixins.container_reorder_mixin import ContainerReorderMixin, ReorderDragOptions
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum, \
@@ -259,7 +259,7 @@ class ChargePlanCard(MultiLineSettingCard):
         self.init_plan_times_input()
 
 
-class ChargePlanInterface(VerticalScrollInterface):
+class ChargePlanInterface(VerticalScrollInterface, ContainerReorderMixin):
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
@@ -306,8 +306,8 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.content_widget.add_widget(self.remove_setting_card)
 
         self.card_list: List[ChargePlanCard] = []
-        # 拖拽排序 mixin
-        self._reorder_mixin = ReorderDragMixin(self)
+        # 拖拽排序 mixin（以 Mixin 混入）
+        self.init_reorder_drag()
 
         self.plus_btn = PrimaryPushButton(text=gt('新增'))
         self.plus_btn.clicked.connect(self._on_add_clicked)
@@ -327,7 +327,7 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.update_plan_list_display()
         # 安装拖拽排序（容器=content_widget 的内部列表列，滚动区=父类提供 scroll_area）
         if hasattr(self, 'scroll_area'):
-            self._reorder_mixin.attach(
+            self.attach(
                 container=self.content_widget,
                 scroll_area=self.scroll_area,
                 get_items=lambda: [w for w in self.content_widget.widgets if isinstance(w, ChargePlanCard)],
