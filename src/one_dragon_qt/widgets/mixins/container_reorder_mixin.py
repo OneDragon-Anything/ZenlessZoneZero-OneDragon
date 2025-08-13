@@ -1,20 +1,29 @@
 from typing import Callable, List, Optional
 
-from PySide6.QtCore import Qt, QPoint, QEvent, QTimer
+from PySide6.QtCore import Qt, QPoint, QEvent, QTimer, QPropertyAnimation
 from PySide6.QtGui import QCursor, QPixmap
 from PySide6.QtWidgets import QWidget, QFrame, QLabel, QGraphicsOpacityEffect, QGraphicsDropShadowEffect
 
 class ReorderDragOptions:
     def __init__(self,
-                 preview_scale: float = 0.7,
-                 preview_opacity: float = 0.75,
+                 preview_enabled: bool = True,
+                 preview_scale: float = 1.0,
+                 preview_opacity: float = 1.0,
                  shadow_blur: int = 18,
                  shadow_offset: tuple[int, int] = (0, 6),
                  insert_line_color: str = "#0078d4",
                  placeholder_css: str = "border: 2px dashed #0078d4; background-color: rgba(0,120,212,0.06); border-radius: 6px;",
                  auto_scroll_margin: int = 64,
                  auto_scroll_base: int = 8,
-                 auto_scroll_max: int = 28):
+                 auto_scroll_max: int = 28,
+                 handle_left_width: Optional[int] = 24,
+                 hide_original_on_drag: bool = True,
+                 highlight_duration_ms: int = 600,
+                 highlight_css: str = "background-color: rgba(0, 120, 212, 0.20); border-radius: 6px;",
+                 preview_anchor_mode: str = "grab",  # grab | left | center
+                 anchor_left_padding: int = 8
+                 ):
+        self.preview_enabled = preview_enabled
         self.preview_scale = preview_scale
         self.preview_opacity = preview_opacity
         self.shadow_blur = shadow_blur
@@ -24,6 +33,12 @@ class ReorderDragOptions:
         self.auto_scroll_margin = auto_scroll_margin
         self.auto_scroll_base = auto_scroll_base
         self.auto_scroll_max = auto_scroll_max
+        self.handle_left_width = handle_left_width
+        self.hide_original_on_drag = hide_original_on_drag
+        self.highlight_duration_ms = highlight_duration_ms
+        self.highlight_css = highlight_css
+        self.preview_anchor_mode = preview_anchor_mode
+        self.anchor_left_padding = anchor_left_padding
 
 
 class ContainerReorderMixin:
@@ -59,7 +74,10 @@ class ContainerReorderMixin:
         self._float_container: Optional[QFrame] = None
         self._float_label: Optional[QLabel] = None
         self._insert_line: Optional[QFrame] = None
-        self._placeholder: Optional[QWidget] = None
+        self._placeholder: Optional[QWidget] = None  # overlay 占位
+        self._dragging_widget: Optional[QWidget] = None
+        self._original_index: int = -1
+        self._drag_anchor_in_card_x: Optional[int] = None
 
         # 自动滚动（以宿主 QWidget 为父对象）
         self._auto_scroll_timer: QTimer = QTimer(self)
@@ -82,6 +100,7 @@ class ContainerReorderMixin:
                get_item_id: Callable[[QWidget], str],
                on_reorder: Callable[[str, int], None],
                get_drop_parent: Optional[Callable[[], QWidget]] = None,
+               get_drag_handle: Optional[Callable[[QWidget], Optional[QWidget]]] = None,
                options: Optional[ReorderDragOptions] = None) -> None:
         self._container = container
         self._scroll_area = scroll_area
@@ -89,6 +108,7 @@ class ContainerReorderMixin:
         self._get_item_id = get_item_id
         self._on_reorder = on_reorder
         self._get_drop_parent = get_drop_parent
+        self._get_drag_handle = get_drag_handle
         if options is not None:
             self._opt = options
 
@@ -154,6 +174,19 @@ class ContainerReorderMixin:
                 break
         if hit_idx == -1:
             return
+        # 仅在拖拽“把手”区域内开始拖拽
+        if self._opt.handle_left_width is not None or self._get_drag_handle is not None:
+            card = items[hit_idx]
+            item_pos = card.mapFromGlobal(global_pos)
+            allowed = True
+            if self._get_drag_handle is not None:
+                handle = self._get_drag_handle(card)
+                if handle is not None:
+                    allowed = handle.geometry().contains(item_pos)
+            if allowed and self._opt.handle_left_width is not None:
+                allowed = item_pos.x() <= max(0, self._opt.handle_left_width)
+            if not allowed:
+                return
         self._container_drag_active = True
         self._container_drag_started = False
         self._container_drag_start_pos = container_pos
@@ -165,6 +198,8 @@ class ContainerReorderMixin:
     def _on_move(self, obj: QWidget, event) -> None:
         global_pos = obj.mapToGlobal(event.pos())
         container_pos = self._container.mapFromGlobal(global_pos)
+        drop_parent = self._get_drop_parent() if self._get_drop_parent else self._container
+        parent_pos = drop_parent.mapFromGlobal(global_pos)
         if not self._container_drag_started:
             if (container_pos - self._container_drag_start_pos).manhattanLength() > self._container_drag_threshold:
                 self._container_drag_started = True
@@ -172,8 +207,8 @@ class ContainerReorderMixin:
                     self._start_preview()
                     self._apply_cursor(Qt.CursorShape.ClosedHandCursor)
         if self._container_drag_started and self._dragging_id:
-            self._move_preview(container_pos.x(), container_pos.y())
-            self._show_drop_indicator(container_pos.y())
+            self._move_preview(parent_pos.x(), parent_pos.y())
+            self._show_drop_indicator(parent_pos.y())
             self._update_auto_scroll(container_pos.y())
 
     def _on_hover(self, obj: QWidget, event) -> None:
@@ -182,7 +217,23 @@ class ContainerReorderMixin:
         global_pos = obj.mapToGlobal(event.pos())
         container_pos = self._container.mapFromGlobal(global_pos)
         items = self._get_items() or []
-        hit = any((w.geometry().contains(container_pos) for w in items))
+        # 仅在把手区域显示抓手光标
+        hit = False
+        for w in items:
+            if w.geometry().contains(container_pos):
+                if self._opt.handle_left_width is None and self._get_drag_handle is None:
+                    hit = True
+                else:
+                    item_pos = w.mapFromGlobal(global_pos)
+                    allowed = True
+                    if self._get_drag_handle is not None:
+                        handle = self._get_drag_handle(w)
+                        if handle is not None:
+                            allowed = handle.geometry().contains(item_pos)
+                    if allowed and self._opt.handle_left_width is not None:
+                        allowed = item_pos.x() <= max(0, self._opt.handle_left_width)
+                    hit = allowed
+                break
         self._apply_cursor(Qt.CursorShape.OpenHandCursor if hit else None)
 
     def _on_release(self, obj: QWidget, event) -> None:
@@ -200,6 +251,37 @@ class ContainerReorderMixin:
         card = next((w for w in items if self._get_item_id(w) == self._dragging_id), None)
         if card is None:
             return
+        # 记录被拖拽控件与原始位置
+        try:
+            self._dragging_widget = card
+            self._original_index = next((i for i, w in enumerate(items) if w is card), -1)
+        except Exception:
+            self._dragging_widget = card
+            self._original_index = -1
+        # 拖拽时隐藏原卡片（可选）。默认不隐藏，避免“丢卡感”。
+        if self._opt.hide_original_on_drag:
+            try:
+                card.setVisible(False)
+            except Exception:
+                pass
+        # 计算锚点（用于控制跟随预览的对齐方式）
+        try:
+            grab_x = None
+            if self._opt.preview_anchor_mode == "grab":
+                # 鼠标在卡片内的 x 坐标
+                global_pos = QCursor.pos()
+                local = card.mapFromGlobal(global_pos)
+                grab_x = max(0, min(local.x(), card.width()))
+            elif self._opt.preview_anchor_mode == "left":
+                grab_x = self._opt.anchor_left_padding
+            elif self._opt.preview_anchor_mode == "center":
+                grab_x = card.width() // 2
+            self._drag_anchor_in_card_x = grab_x
+        except Exception:
+            self._drag_anchor_in_card_x = None
+
+        if not self._opt.preview_enabled:
+            return
         pm: QPixmap = card.grab()
         scale = self._opt.preview_scale
         w = max(1, int(pm.width() * scale))
@@ -211,7 +293,8 @@ class ContainerReorderMixin:
         if self._float_container is None:
             self._float_container = QFrame(drop_parent)
             self._float_container.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-            self._float_container.setStyleSheet("QFrame { border: 1px solid rgba(0,120,212,0.35); border-radius: 6px; background: transparent; }")
+            # 预览去掉描边，避免与占位虚线形成“双框困惑”
+            self._float_container.setStyleSheet("QFrame { border: none; background: transparent; }")
             shadow = QGraphicsDropShadowEffect(self._float_container)
             shadow.setBlurRadius(self._opt.shadow_blur)
             shadow.setOffset(*self._opt.shadow_offset)
@@ -229,11 +312,15 @@ class ContainerReorderMixin:
 
     def _move_preview(self, x: int, y: int) -> None:
         if self._float_container is not None and self._float_container.isVisible():
-            self._float_container.move(int(x - self._float_container.width() / 2),
-                                       int(y - self._float_container.height() / 2))
+            # 根据锚点决定水平对齐，保证拖动时显示的是卡片的左侧或抓取处
+            if self._drag_anchor_in_card_x is None:
+                dx = self._float_container.width() // 2
+            else:
+                dx = max(0, min(self._drag_anchor_in_card_x, self._float_container.width()))
+            self._float_container.move(int(x - dx), int(y - self._float_container.height() / 2))
 
     def _show_drop_indicator(self, y: int) -> None:
-        items = self._get_items() or []
+        items = [w for w in (self._get_items() or []) if self._get_item_id(w) != self._dragging_id]
         if not items:
             return
         drop_parent = self._get_drop_parent() if self._get_drop_parent else self._container
@@ -242,32 +329,24 @@ class ContainerReorderMixin:
         idx = self._calculate_drop_position(y)
         if idx is None:
             return
-        # 插入线
-        if self._insert_line is None:
-            self._insert_line = QFrame(drop_parent)
-            self._insert_line.setFrameShape(QFrame.Shape.HLine)
-            self._insert_line.setStyleSheet(f"QFrame {{ background-color: {self._opt.insert_line_color}; }}")
-            self._insert_line.setFixedHeight(2)
-        # 基于上一项底部
-        if idx <= 0:
-            line_y = items[0].geometry().y() - 1
-        else:
-            prev_rect = items[idx - 1].geometry()
-            line_y = prev_rect.y() + prev_rect.height() + 1
-        self._insert_line.setGeometry(0, line_y, drop_parent.width(), 2)
-        self._insert_line.show()
+        # 不再使用插入线，统一只用虚线占位框作为“松手预测位置”
+        if self._insert_line is not None:
+            self._insert_line.hide()
 
-        # 占位虚框
+        # 占位虚框：完全覆盖将要插入的位置项（不是中线），减少认知负担
         if self._placeholder is None:
             self._placeholder = QWidget(drop_parent)
             self._placeholder.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
             self._placeholder.setStyleSheet(f"QWidget {{ {self._opt.placeholder_css} }}")
-        target_rect = items[idx].geometry() if 0 <= idx < len(items) else items[-1].geometry()
-        ph = max(24, target_rect.height())
-        py = max(0, line_y - ph // 2)
+        # 目标项矩形（插入到 idx 位置之前）
+        base_rect = items[idx].geometry() if 0 <= idx < len(items) else items[-1].geometry()
+        ph = max(24, base_rect.height())
+        py = base_rect.y()
         self._placeholder.setGeometry(6, py, drop_parent.width() - 12, ph)
         self._placeholder.show()
         self._placeholder.raise_()
+
+    # 取消布局占位的实现，统一通过 overlay 虚线框指示目标位置
 
     def _hide_drop_indicator(self) -> None:
         if self._insert_line is not None:
@@ -329,6 +408,7 @@ class ContainerReorderMixin:
             self._float_container.hide()
         self._auto_scroll_timer.stop()
         self._auto_scroll_dir = 0
+        dragging_id = self._dragging_id
         self._dragging_id = None
         # 结束后根据当前 hover 状态更新光标
         try:
@@ -340,6 +420,55 @@ class ContainerReorderMixin:
                 self._apply_cursor(Qt.CursorShape.OpenHandCursor if hit else None)
         except Exception:
             self._apply_cursor(None)
+        # 恢复原卡片可见
+        try:
+            items = self._get_items() or []
+            card = self._dragging_widget or next((w for w in items if self._get_item_id(w) == dragging_id), None)
+            if card is not None:
+                card.setVisible(True)
+            # 移除布局占位
+            if self._layout_placeholder is not None and self._container is not None and self._container.layout() is not None:
+                self._container.layout().removeWidget(self._layout_placeholder)
+                self._layout_placeholder.hide()
+        except Exception:
+            pass
+        # 高亮新位置的卡片（使用覆盖层，不修改目标样式，避免影响全局字体与样式继承）
+        if dragging_id is not None and self._opt.highlight_duration_ms > 0:
+            try:
+                from PySide6.QtCore import QTimer as _QTimer
+                def _highlight():
+                    items2 = self._get_items() or []
+                    target = next((w for w in items2 if self._get_item_id(w) == dragging_id), None)
+                    if target is None:
+                        return
+                    overlay = QFrame(target)
+                    overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+                    overlay.setStyleSheet(f"QFrame {{ {self._opt.highlight_css} }}")
+                    overlay.setGeometry(0, 0, target.width(), target.height())
+                    overlay.raise_()
+                    overlay.show()
+                    effect = QGraphicsOpacityEffect(overlay)
+                    overlay.setGraphicsEffect(effect)
+                    effect.setOpacity(1.0)
+                    anim = QPropertyAnimation(effect, b"opacity", overlay)
+                    anim.setDuration(self._opt.highlight_duration_ms)
+                    anim.setStartValue(1.0)
+                    anim.setEndValue(0.0)
+                    def _cleanup():
+                        try:
+                            overlay.deleteLater()
+                        except Exception:
+                            pass
+                    anim.finished.connect(_cleanup)
+                    # 保持引用防止被 GC
+                    overlay._anim = anim
+                    anim.start()
+                _QTimer.singleShot(0, _highlight)
+            except Exception:
+                pass
+        # 清理引用
+        self._dragging_widget = None
+        self._original_index = -1
 
     # 光标抓手
     def _apply_cursor(self, shape: Optional[Qt.CursorShape]) -> None:
