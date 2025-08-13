@@ -50,8 +50,8 @@ class PhosWindow(MSFluentWindow, PhosFluentWindowBase):
         self._isAeroEnabled = False
         self._isMicaEnabled = False
 
-        self._lightBackgroundColor = QColor(240, 244, 249)
-        self._darkBackgroundColor = QColor(32, 32, 32)
+        self._lightBackgroundColor = QColor(248, 249, 252)
+        self._darkBackgroundColor = QColor(39, 39, 39)
 
         # 父类初始化
         PhosFluentWindowBase.__init__(self, parent=parent)
@@ -221,9 +221,9 @@ class PhosNavigationBar(NavigationBar):
 
 class PhosNavigationBarPushButton(NavigationBarPushButton):
     _theme_colors = {
-        "dark_icon": "#b2b2b2",
-        "light_icon": "#5c6e93",
-        "selected_icon": "#ffffff",
+        "dark_icon": "#8b8b8b",
+        "light_icon": "#818181C",
+        "selected_icon": "#0067c0",
         "background_dark": 255,
         "background_light": 0,
     }
@@ -233,15 +233,17 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
 
         # 初始化几何参数
         self.icon_rect = QRectF(22, 13, 20, 20)
+        self.icon_rect_centered = QRectF(22, 18, 20, 20)
         self.text_rect = QRect(0, 32, 64, 26)
 
         # 图标配置
+        self._icon = icon
         self._selectedIcon = selectedIcon or icon
         self._isSelectedTextVisible = True
 
         # 固定控件尺寸
         self.setFixedSize(64, 56)
-        setFont(self, 12, weight=QFont.Weight.ExtraBold)
+        setFont(self, 12)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -257,12 +259,21 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
         painter.setBrush(bg_color)
         painter.drawRoundedRect(self.rect().adjusted(4, 0, -4, 0), 10, 10)
 
+        # 绘制蓝色短线（选中状态）
+        if self.isSelected:
+            painter.setBrush(QColor(0, 120, 215))  # 蓝色
+            line_rect = QRect(2, 18, 4, 20)  # 左侧蓝色短线
+            painter.drawRoundedRect(line_rect, 2, 2)
+
         # 绘制图标
         icon_color = self._get_icon_color()
-        self._selectedIcon.render(painter, self.icon_rect, fill=icon_color)
+        current_icon = self._selectedIcon if self.isSelected else self._icon
+        # 选中时使用居中位置，未选中时使用普通位置
+        icon_position = self.icon_rect_centered if self.isSelected else self.icon_rect
+        current_icon.render(painter, icon_position, fill=icon_color)
 
-        # 绘制文本(选中时根据配置显隐)
-        if self.isSelected and not self._isSelectedTextVisible:
+        # 选中时隐藏文字，未选中时显示文字
+        if self.isSelected:
             return
 
         text_color = self._get_text_color()
@@ -273,15 +284,13 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
     def _get_bg_color(self):
         """获取自适应主题的背景颜色"""
         if self.isSelected:
-            return QColor(214, 75, 84, 255)
+            return QColor(0, 0, 0, 0)
 
-        base_color = self._theme_colors[
-            "background_dark" if isDarkTheme() else "background_light"
-        ]
+        # 悬停
+        if self.isEnter:
+            return QColor(128, 128, 128, 25)  # 淡灰色悬停效果
 
-        # 动态透明度处理
-        alpha = 64 if self.isPressed else 32 if self.isEnter else 0
-        return QColor(base_color, base_color, base_color, alpha)
+        return QColor(0, 0, 0, 0)  # 默认透明背景
 
     def _get_icon_color(self):
         """获取图标颜色(含选中状态处理)"""
