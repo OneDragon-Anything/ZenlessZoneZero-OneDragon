@@ -110,9 +110,6 @@ try:
             # print("————TITLE BAR STYLE————")
             # print(self.titleBar.styleSheet())
 
-            # 开启磨砂效果
-            # self.setAeroEffectEnabled(True)
-
         def create_sub_interface(self):
             """创建和添加各个子界面"""
 

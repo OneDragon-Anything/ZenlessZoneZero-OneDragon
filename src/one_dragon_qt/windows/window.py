@@ -84,16 +84,6 @@ class PhosWindow(MSFluentWindow, PhosFluentWindowBase):
         # 函数
         qconfig.themeChangedFinished.connect(self._onThemeChangedFinished)
 
-    # 设置 Aero 磨砂效果 (不启用,会导致性能消耗)
-    def setAeroEffectEnabled(self, isEnabled: bool):
-        self._isAeroEnabled = isEnabled
-        if isEnabled:
-            self.windowEffect.setAeroEffect(int(self.winId()))
-        else:
-            self.windowEffect.removeBackgroundEffect(self.winId())
-        # 设置背景颜色
-        self.setBackgroundColor(self._normalBackgroundColor())
-
     # 判断 Aero 效果是否启用
     def isAeroEffectEnabled(self):
         return self._isAeroEnabled
