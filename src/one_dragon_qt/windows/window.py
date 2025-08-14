@@ -222,7 +222,7 @@ class PhosNavigationBar(NavigationBar):
 class PhosNavigationBarPushButton(NavigationBarPushButton):
     _theme_colors = {
         "dark_icon": "#8b8b8b",
-        "light_icon": "#818181C",
+        "light_icon": "#818181",
         "selected_icon": "#0067c0",
         "background_dark": 255,
         "background_light": 0,
