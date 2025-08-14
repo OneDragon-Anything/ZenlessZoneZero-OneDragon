@@ -82,6 +82,7 @@ try:
         def __init__(self, ctx: ZContext = None, parent=None):
             """初始化主窗口类，设置窗口标题和图标"""
             self.ctx: ZContext = ctx
+            self._should_show_splash = (ctx is None)  # 标志是否应该显示启动画面
 
             if ctx is not None:
                 # 正常初始化
@@ -105,7 +106,7 @@ try:
                 parent=parent,
             )
 
-            # 如果没有context，显示启动画面
+            # 如果没有context，重新显示启动画面（因为AppWindowBase会隐藏它）
             if ctx is None:
                 self._show_splash_screen()
             else:
@@ -113,8 +114,15 @@ try:
 
         def _show_splash_screen(self):
             """显示启动画面"""
-            self.splashScreen = SplashScreen(self.windowIcon(), self)
+            from one_dragon.utils import os_utils
+            import os
+            app_icon_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'logo.ico')
+            icon = QIcon(app_icon_path)
+
+            self.splashScreen = SplashScreen(icon, self)
             self.splashScreen.setIconSize(QSize(144, 144))
+            self.splashScreen.setGeometry(self.rect())
+            self.splashScreen.show()
 
         def _complete_initialization(self):
             """完成初始化，当context准备好后调用"""
@@ -141,7 +149,7 @@ try:
             self.create_sub_interface()
 
             # 隐藏启动画面
-            if hasattr(self, 'splashScreen'):
+            if hasattr(self, 'splashScreen') and self.splashScreen is not None:
                 self.splashScreen.finish()
 
         def initialize_with_context(self, ctx: ZContext):
@@ -189,8 +197,6 @@ try:
 
         def create_sub_interface(self):
             """创建和添加各个子界面"""
-
-            # 如果context为None，延迟创建子界面
             if self.ctx is None:
                 return
 
@@ -273,6 +279,12 @@ try:
                 dialog = ZWelcomeDialog(self)
                 if dialog.exec():
                     self.ctx.env_config.is_first_run = False
+
+        def resizeEvent(self, e):
+            """当窗口大小改变时，调整启动画面的大小"""
+            super().resizeEvent(e)
+            if hasattr(self, 'splashScreen') and self.splashScreen.isVisible():
+                self.splashScreen.setGeometry(self.rect())
 
 
 # 调用Windows错误弹窗
