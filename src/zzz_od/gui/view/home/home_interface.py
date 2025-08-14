@@ -355,6 +355,9 @@ class HomeInterface(VerticalScrollInterface):
         self.ctx = ctx
         self._init_check_runners()
 
+        # 监听背景刷新信号，确保主题色在背景变化时更新
+        self._last_reload_banner_signal = False
+
     def _init_check_runners(self):
         """初始化检查更新的线程"""
         self._check_code_runner = CheckCodeRunner(self.ctx)
@@ -382,6 +385,12 @@ class HomeInterface(VerticalScrollInterface):
 
         # 检查公告卡片配置是否变化
         self._check_notice_config_change()
+
+        # 检查背景是否需要刷新
+        self._check_banner_reload_signal()
+
+        # 初始化主题色，避免navbar颜色闪烁
+        self._update_start_button_style_from_banner()
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
@@ -454,6 +463,13 @@ class HomeInterface(VerticalScrollInterface):
             # 重置信号状态
             self.ctx.signal.notice_card_config_changed = False
 
+    def _check_banner_reload_signal(self):
+        """检查背景重新加载信号"""
+        if self.ctx.signal.reload_banner != self._last_reload_banner_signal:
+            if self.ctx.signal.reload_banner:
+                self._update_start_button_style_from_banner()
+            self._last_reload_banner_signal = self.ctx.signal.reload_banner
+
     def _update_start_button_style_from_banner(self) -> None:
         """从当前背景取主色，应用到启动按钮。"""
         image = self._banner_widget.banner_image
@@ -509,6 +525,10 @@ class HomeInterface(VerticalScrollInterface):
         # 基于相对亮度选择文本色（黑/白）
         luminance = luminance_of(lr, lg, lb)
         text_color = "black" if luminance > 145 else "white"
+
+        # 将提取的颜色存储到全局 context 中
+        self.ctx.signal.global_theme_color = (lr, lg, lb)
+        self.ctx.signal.theme_color_changed = True
 
         # 本按钮局部样式：圆角为高度一半（胶囊形），背景从图取色
         radius = max(1, self.start_button.height() // 2)

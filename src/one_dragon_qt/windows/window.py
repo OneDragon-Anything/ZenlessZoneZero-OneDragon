@@ -205,6 +205,12 @@ class PhosNavigationBar(NavigationBar):
             route_key = widget.property("routeKey")
             self.setCurrentItem(route_key)
 
+    def update_all_buttons_theme_color(self, color_rgb: tuple):
+        """更新所有导航按钮的主题色"""
+        for widget in self.items.values():
+            if isinstance(widget, PhosNavigationBarPushButton):
+                widget.update_global_theme_color(color_rgb)
+
 
 # 自定义导航按钮类
 
@@ -236,6 +242,9 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
         self.setFixedSize(64, 56)
         setFont(self, 12)
 
+        # 全局主题色
+        self._global_theme_color = (0, 120, 215)  # 默认蓝色
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHints(
@@ -252,8 +261,9 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
 
         # 绘制蓝色短线（选中状态）
         if self.isSelected:
-            painter.setBrush(QColor(0, 120, 215))  # 蓝色
-            line_rect = QRect(2, 18, 4, 20)  # 左侧蓝色短线
+            r, g, b = self._global_theme_color
+            painter.setBrush(QColor(r, g, b))  # 使用全局主题色
+            line_rect = QRect(2, 18, 4, 20)  # 左侧短线
             painter.drawRoundedRect(line_rect, 2, 2)
 
         # 绘制图标
@@ -289,12 +299,22 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
             return self._theme_colors["dark_icon" if isDarkTheme() else "light_icon"]
 
         icon_type_check = isinstance(self._selectedIcon, FluentIconBase)
-        return self._theme_colors["selected_icon" if icon_type_check else "light_icon"]
+        if icon_type_check:
+            # 使用全局主题色
+            r, g, b = self._global_theme_color
+            return f"rgb({r}, {g}, {b})"
+        else:
+            return self._theme_colors["light_icon"]
 
     def _get_text_color(self):
         """获取文本颜色"""
         if self.isSelected:
-            return QColor(255, 255, 255) if isDarkTheme() else QColor(0, 103, 192)
+            if isDarkTheme():
+                return QColor(255, 255, 255)
+            else:
+                # 使用全局主题色
+                r, g, b = self._global_theme_color
+                return QColor(r, g, b)
 
         # 根据主题返回对应颜色
         return QColor(178, 178, 178) if isDarkTheme() else QColor(92, 110, 147)
@@ -304,6 +324,11 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
         if isSelected == self.isSelected:
             return
         self.isSelected = isSelected
+
+    def update_global_theme_color(self, color_rgb: tuple):
+        """更新全局主题色"""
+        self._global_theme_color = color_rgb
+        self.update()  # 触发重绘
 
 
 class PhosTitleBar(SplitTitleBar):
