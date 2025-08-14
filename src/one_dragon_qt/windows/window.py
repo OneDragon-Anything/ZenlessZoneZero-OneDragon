@@ -47,7 +47,6 @@ class PhosWindow(MSFluentWindow, PhosFluentWindowBase):
     def __init__(self, parent=None):
 
         # 预配置
-        self._isAeroEnabled = False
         self._isMicaEnabled = False
 
         self._lightBackgroundColor = QColor(248, 249, 252)
@@ -84,25 +83,14 @@ class PhosWindow(MSFluentWindow, PhosFluentWindowBase):
         # 函数
         qconfig.themeChangedFinished.connect(self._onThemeChangedFinished)
 
-    # 判断 Aero 效果是否启用
-    def isAeroEffectEnabled(self):
-        return self._isAeroEnabled
 
     # 根据主题获取对应的背景色
     def _normalBackgroundColor(self):
-        # 若启用 Aero 效果则返回透明背景
-        if self.isAeroEffectEnabled():
-            return QColor(0, 0, 0, 0)
-        elif isDarkTheme():
+        if isDarkTheme():
             return self._darkBackgroundColor
         else:
             return self._lightBackgroundColor
 
-    # 主题切换
-    def _onThemeChangedFinished(self):
-        if self.isAeroEffectEnabled():
-            # 切换主题时重载 Aero 效果
-            self.windowEffect.setAeroEffect(self.winId(), isDarkTheme())
 
     # 覆盖父类的加载逻辑
     def resizeEvent(self, e):
