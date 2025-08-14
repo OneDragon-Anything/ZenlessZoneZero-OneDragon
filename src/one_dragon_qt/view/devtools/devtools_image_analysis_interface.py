@@ -1,13 +1,13 @@
 from functools import partial
 
 import numpy as np
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage, QPixmap, QClipboard
-from PySide6.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QHBoxLayout, QFileDialog, QFrame
+from PySide6.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QHBoxLayout, QFileDialog
 from qfluentwidgets import (
     ComboBox, CheckBox, SpinBox, DoubleSpinBox, PushButton, ToolButton, PlainTextEdit, LineEdit,
     FluentIcon, SubtitleLabel, BodyLabel, InfoBar, InfoBarPosition, MessageBoxBase, Dialog,
-    ListWidget, SimpleCardWidget, ScrollArea, SingleDirectionScrollArea
+    ListWidget, SimpleCardWidget, SingleDirectionScrollArea
 )
 
 from one_dragon.base.cv_process.cv_step import CvStep
@@ -15,7 +15,7 @@ from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.logic.image_analysis_logic import ImageAnalysisLogic
 from one_dragon_qt.widgets.color_channel_dialog import ColorChannelDialog
-from one_dragon_qt.widgets.color_info_dialog import ColorInfoDialog
+from one_dragon_qt.widgets.color_tip import ColorTip
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
 
@@ -692,8 +692,30 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         if color_info is None:
             return
 
-        dialog = ColorInfoDialog(color_info, self.window())
-        dialog.exec()
+        # 准备颜色信息列表
+        color_infos = []
+
+        # 当前图像信息
+        if color_info.get('display_rgb') and color_info.get('display_hsv'):
+            color_infos.append({
+                'pos': color_info.get('pos'),
+                'rgb': color_info.get('display_rgb'),
+                'hsv': color_info.get('display_hsv'),
+                'title': '当前图像'
+            })
+
+        # 原始图像信息
+        if color_info.get('source_rgb') and color_info.get('source_hsv'):
+            color_infos.append({
+                'pos': color_info.get('source_pos'),
+                'rgb': color_info.get('source_rgb'),
+                'hsv': color_info.get('source_hsv'),
+                'title': '原始图像'
+            })
+
+        # 显示颜色提示框
+        if color_infos:
+            ColorTip.show_color_tip(self.image_label, color_infos, self)
 
     def _on_image_rect_selected(self, left: int, top: int, right: int, bottom: int):
         """
