@@ -33,6 +33,7 @@ from one_dragon_qt.widgets.notice_card import NoticeCardContainer
 from one_dragon_qt.widgets.vertical_scroll_interface import (
     VerticalScrollInterface,
 )
+from one_dragon_qt.services.theme_manager import theme_manager
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -529,6 +530,9 @@ class HomeInterface(VerticalScrollInterface):
         # 将提取的颜色存储到全局 context 中
         self.ctx.signal.global_theme_color = (lr, lg, lb)
         self.ctx.signal.theme_color_changed = True
+
+        # 更新全局主题色管理器
+        theme_manager.set_theme_color((lr, lg, lb))
 
         # 本按钮局部样式：圆角为高度一半（胶囊形），背景从图取色
         radius = max(1, self.start_button.height() // 2)
