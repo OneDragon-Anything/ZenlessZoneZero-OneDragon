@@ -527,12 +527,8 @@ class HomeInterface(VerticalScrollInterface):
         luminance = luminance_of(lr, lg, lb)
         text_color = "black" if luminance > 145 else "white"
 
-        # 将提取的颜色存储到全局 context 中
-        self.ctx.signal.global_theme_color = (lr, lg, lb)
-        self.ctx.signal.theme_color_changed = True
-
-        # 更新全局主题色管理器
-        theme_manager.set_theme_color((lr, lg, lb))
+        # 更新全局主题色管理器（同时处理持久化和信号通知）
+        theme_manager.set_theme_color((lr, lg, lb), self.ctx)
 
         # 本按钮局部样式：圆角为高度一半（胶囊形），背景从图取色
         radius = max(1, self.start_button.height() // 2)

@@ -128,3 +128,46 @@ class CustomConfig(YamlConfig):
     @last_version_poster_fetch_time.setter
     def last_version_poster_fetch_time(self, new_value: str) -> None:
         self.update('last_version_poster_fetch_time', new_value)
+
+    @property
+    def global_theme_color_str(self) -> str:
+        """
+        全局主题色，格式为 "r,g,b"
+        """
+        return self.get('global_theme_color', '')
+
+    @global_theme_color_str.setter
+    def global_theme_color_str(self, new_value: str) -> None:
+        """
+        全局主题色，格式为 "r,g,b"
+        """
+        self.update('global_theme_color', new_value)
+
+    @property
+    def global_theme_color(self) -> tuple:
+        """
+        全局主题色 (r, g, b)
+        """
+        color_str = self.global_theme_color_str
+        if color_str:
+            try:
+                r, g, b = map(int, color_str.split(','))
+                return (r, g, b)
+            except (ValueError, AttributeError):
+                pass
+        return (0, 120, 215)  # 默认值
+
+    @global_theme_color.setter
+    def global_theme_color(self, new_value: tuple) -> None:
+        """
+        全局主题色 (r, g, b)
+        """
+        color_str = f"{new_value[0]},{new_value[1]},{new_value[2]}"
+        self.global_theme_color_str = color_str
+
+    @property
+    def has_custom_theme_color(self) -> bool:
+        """
+        检查是否已设置自定义主题色（非默认值）
+        """
+        return bool(self.global_theme_color_str)

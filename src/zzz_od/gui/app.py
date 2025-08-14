@@ -212,7 +212,8 @@ try:
         def _check_theme_color_change(self):
             """检查主题色是否发生变化"""
             if self.ctx.signal.theme_color_changed:
-                color_rgb = self.ctx.signal.global_theme_color
+                from one_dragon_qt.services.theme_manager import theme_manager
+                color_rgb = theme_manager.current_color
                 # 更新导航栏所有按钮的主题色
                 self.navigationInterface.update_all_buttons_theme_color(color_rgb)
                 # 重置信号状态
@@ -220,9 +221,13 @@ try:
 
         def _apply_initial_theme_color(self):
             """立即应用已有的主题色，避免navbar颜色闪烁"""
-            # 检查signal中是否已经设置了主题色（而不是使用默认值）
-            if self.ctx.signal.has_custom_theme_color:
-                color_rgb = self.ctx.signal.global_theme_color
+            # 从配置文件加载主题色到theme_manager
+            from one_dragon_qt.services.theme_manager import theme_manager
+            theme_manager.load_from_config(self.ctx)
+
+            # 检查是否有自定义主题色需要应用到导航栏
+            if self.ctx.custom_config.has_custom_theme_color:
+                color_rgb = theme_manager.current_color
                 self.navigationInterface.update_all_buttons_theme_color(color_rgb)
 
 
