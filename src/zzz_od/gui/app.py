@@ -1,9 +1,10 @@
 try:
     import sys
     from typing import Tuple
-    from PySide6.QtCore import Qt, QThread, Signal
+    from PySide6.QtCore import Qt, QThread, Signal, QSize
     from PySide6.QtWidgets import QApplication
-    from qfluentwidgets import NavigationItemPosition, setTheme, Theme
+    from PySide6.QtGui import QIcon
+    from qfluentwidgets import NavigationItemPosition, setTheme, Theme, SplashScreen
     from one_dragon_qt.view.like_interface import LikeInterface
     from one_dragon.base.operation.one_dragon_context import ContextInstanceEventEnum
 
@@ -29,6 +30,38 @@ try:
     _init_error = None
 
 
+    class InitRunner(QThread):
+        """后台初始化线程"""
+
+        init_finished = Signal(object)  # 传递初始化完成的context
+        init_failed = Signal(str)  # 传递错误信息
+
+        def __init__(self, parent=None):
+            super().__init__(parent)
+
+        def run(self):
+            try:
+                # 创建ZContext
+                _ctx = ZContext(lazy_load=True)
+
+                # 加载配置 - 这是耗时操作
+                _ctx.init_by_config()
+
+                # 异步加载OCR
+                _ctx.async_init_ocr()
+
+                # 异步更新免费代理
+                _ctx.async_update_gh_proxy()
+
+                # 发出初始化完成信号
+                self.init_finished.emit(_ctx)
+
+            except Exception as e:
+                import traceback
+                error_msg = f"初始化失败: {traceback.format_exc()}"
+                self.init_failed.emit(error_msg)
+
+
     class CheckVersionRunner(QThread):
 
         get = Signal(tuple)
@@ -46,20 +79,53 @@ try:
     # 定义应用程序的主窗口类
     class AppWindow(AppWindowBase):
 
-        def __init__(self, ctx: ZContext, parent=None):
+        def __init__(self, ctx: ZContext = None, parent=None):
             """初始化主窗口类，设置窗口标题和图标"""
             self.ctx: ZContext = ctx
-            AppWindowBase.__init__(
-                self,
-                win_title="%s %s"
-                % (
+
+            if ctx is not None:
+                # 正常初始化
+                win_title = "%s %s" % (
                     gt(ctx.project_config.project_name),
                     ctx.one_dragon_config.current_active_instance.name,
-                ),
-                project_config=ctx.project_config,
+                )
+                project_config = ctx.project_config
+            else:
+                # 启动阶段的临时初始化
+                win_title = ""
+                # 创建临时的project_config以避免AppWindowBase中的错误
+                from one_dragon.envs.project_config import ProjectConfig
+                project_config = ProjectConfig()
+
+            AppWindowBase.__init__(
+                self,
+                win_title=win_title,
+                project_config=project_config,
                 app_icon="logo.ico",
                 parent=parent,
             )
+
+            # 如果没有context，显示启动画面
+            if ctx is None:
+                self._show_splash_screen()
+            else:
+                self._complete_initialization()
+
+        def _show_splash_screen(self):
+            """显示启动画面"""
+            self.splashScreen = SplashScreen(self.windowIcon(), self)
+            self.splashScreen.setIconSize(QSize(144, 144))
+
+        def _complete_initialization(self):
+            """完成初始化，当context准备好后调用"""
+            if self.ctx is None:
+                return
+
+            # 更新窗口标题
+            self.setWindowTitle("%s %s" % (
+                gt(self.ctx.project_config.project_name),
+                self.ctx.one_dragon_config.current_active_instance.name,
+            ))
 
             self.ctx.listen_event(ContextInstanceEventEnum.instance_active.value, self._on_instance_active_event)
             self._context_event_signal: ContextEventSignal = ContextEventSignal()
@@ -70,6 +136,18 @@ try:
             self._check_version_runner.start()
 
             self._check_first_run()
+
+            # 创建子界面（现在有了有效的context）
+            self.create_sub_interface()
+
+            # 隐藏启动画面
+            if hasattr(self, 'splashScreen'):
+                self.splashScreen.finish()
+
+        def initialize_with_context(self, ctx: ZContext):
+            """在context准备好后完成初始化"""
+            self.ctx = ctx
+            self._complete_initialization()
 
         # 继承初始化函数
         def init_window(self):
@@ -111,6 +189,10 @@ try:
 
         def create_sub_interface(self):
             """创建和添加各个子界面"""
+
+            # 如果context为None，延迟创建子界面
+            if self.ctx is None:
+                return
 
             # 主页
             self.add_sub_interface(HomeInterface(self.ctx, parent=self))
@@ -214,27 +296,39 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setAttribute(Qt.ApplicationAttribute.AA_DontCreateNativeWidgetSiblings)
 
-    _ctx = ZContext(lazy_load=True)
+    # 创建主窗口（不传入context，将显示启动画面）
+    main_window = AppWindow()
+    main_window.show()
 
-    # 加载配置
-    _ctx.init_by_config()
+    # 全局变量存储context
+    _ctx = None
 
-    # 异步加载OCR
-    _ctx.async_init_ocr()
+    def on_init_finished(ctx):
+        """初始化完成的回调"""
+        global _ctx
+        _ctx = ctx
 
-    # 异步更新免费代理
-    _ctx.async_update_gh_proxy()
+        # 设置主题
+        setTheme(Theme[_ctx.custom_config.theme.upper()])
 
-    # 设置主题
-    setTheme(Theme[_ctx.custom_config.theme.upper()])
+        # 在同一个窗口内完成初始化
+        main_window.initialize_with_context(_ctx)
 
-    # 创建并显示主窗口
-    w = AppWindow(_ctx)
+    def on_init_failed(error_msg):
+        """初始化失败的回调"""
+        if hasattr(main_window, 'splashScreen'):
+            main_window.splashScreen.finish()
+        ctypes.windll.user32.MessageBoxW(0, error_msg, "初始化错误", 0x10)
+        sys.exit(1)
 
-    w.show()
-    w.activateWindow()
+    # 创建并启动初始化线程
+    init_runner = InitRunner()
+    init_runner.init_finished.connect(on_init_finished)
+    init_runner.init_failed.connect(on_init_failed)
+    init_runner.start()
 
     # 启动应用程序事件循环
     app.exec()
 
-    _ctx.after_app_shutdown()
+    if _ctx is not None:
+        _ctx.after_app_shutdown()
