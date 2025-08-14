@@ -211,8 +211,8 @@ class TransportBy3dMap(ZOperation):
         # 情况B：画面内有图标 - 依次尝试每个图标
         log.debug(f'画面内发现 {len(all_mrl)} 个传送点图标，开始逐个检查')
 
-        # 交互并识别图标，如果找到目标返回结果，否则执行导航
-        found_target = False
+        # 首先检查所有图标，看是否有目标传送点
+        navigation_reference = None  # 用于导航的参考点
         for idx, selected_icon in enumerate(all_mrl):
             log.debug(f'检查第 {idx + 1}/{len(all_mrl)} 个图标')
 
@@ -230,7 +230,7 @@ class TransportBy3dMap(ZOperation):
                 area_name='按钮-前往',
             )
 
-            if not found_go:
+            if found_go.is_fail:
                 log.warning('点击图标后未找到前往按钮')
                 continue  # 尝试下一个图标
 
@@ -263,46 +263,43 @@ class TransportBy3dMap(ZOperation):
                 log.info(f'找到目标传送点：{self.target_tp_name}')
                 return self.round_success()
 
-            # 记录当前位置，为后续导航提供参考
-            current_icon_obj = None
-            for icon in self.large_map.icon_list:
-                if icon.icon_name == current_icon_name:
-                    current_icon_obj = icon
-                    break
-            if current_icon_obj is not None:
-                log.debug(f'当前位置：{current_icon_name}({current_icon_obj.lm_pos.x}, {current_icon_obj.lm_pos.y})')
-                log.debug(f'目标位置：{self.target_tp_name}({self.target_icon.lm_pos.x}, {self.target_icon.lm_pos.y})')
+            # 记录第一个图标作为导航参考点
+            if navigation_reference is None:
+                navigation_reference = matched_icon
+                log.debug(f'记录导航参考点：{matched_icon.icon_name}({matched_icon.lm_pos.x}, {matched_icon.lm_pos.y})')
 
-                # 步骤5: 执行精确导航
-                # 计算目标相对于当前位置的方向
-                dx = self.target_icon.lm_pos.x - current_icon_obj.lm_pos.x
-                dy = self.target_icon.lm_pos.y - current_icon_obj.lm_pos.y
+        # 所有图标都检查完毕，没有找到目标，执行导航
+        if navigation_reference is not None:
+            # 步骤5: 使用参考点执行精确导航
+            log.debug(f'当前参考位置：{navigation_reference.icon_name}({navigation_reference.lm_pos.x}, {navigation_reference.lm_pos.y})')
+            log.debug(f'目标位置：{self.target_tp_name}({self.target_icon.lm_pos.x}, {self.target_icon.lm_pos.y})')
 
-                # 标准化拖动距离（避免过小的移动）
-                drag_distance = 300
-                if abs(dx) > abs(dy):
-                    # 主要沿X轴移动
-                    # 目标在右侧(dx>0)时，需要向左拖动地图(drag_x<0)
-                    drag_x = -drag_distance if dx > 0 else drag_distance
-                    drag_y = -int(drag_distance * (dy / abs(dx))) if dx != 0 else 0
-                else:
-                    # 主要沿Y轴移动
-                    # 目标在下方(dy>0)时，需要向上拖动地图(drag_y<0)
-                    drag_y = -drag_distance if dy > 0 else drag_distance
-                    drag_x = -int(drag_distance * (dx / abs(dy))) if dy != 0 else 0
+            # 计算目标相对于当前位置的方向
+            dx = self.target_icon.lm_pos.x - navigation_reference.lm_pos.x
+            dy = self.target_icon.lm_pos.y - navigation_reference.lm_pos.y
 
-                start_point = self.map_area.center
-                end_point = start_point + Point(drag_x, drag_y)
+            # 标准化拖动距离（避免过小的移动）
+            drag_distance = 300
+            if abs(dx) > abs(dy):
+                # 主要沿X轴移动
+                # 目标在右侧(dx>0)时，需要向左拖动地图(drag_x<0)
+                drag_x = -drag_distance if dx > 0 else drag_distance
+                drag_y = -int(drag_distance * (dy / abs(dx))) if dx != 0 else 0
+            else:
+                # 主要沿Y轴移动
+                # 目标在下方(dy>0)时，需要向上拖动地图(drag_y<0)
+                drag_y = -drag_distance if dy > 0 else drag_distance
+                drag_x = -int(drag_distance * (dx / abs(dy))) if dy != 0 else 0
 
-                log.debug(f'执行精确拖动：从 {current_icon_obj.icon_name}({current_icon_obj.lm_pos.x}, {current_icon_obj.lm_pos.y}) '
-                          f'向 {self.target_icon.icon_name}({self.target_icon.lm_pos.x}, {self.target_icon.lm_pos.y}) '
-                          f'坐标差({dx}, {dy}) -> 拖动方向({drag_x}, {drag_y})')
+            start_point = self.map_area.center
+            end_point = start_point + Point(drag_x, drag_y)
 
-                self.ctx.controller.drag_to(start=start_point, end=end_point)
-                found_target = True
-                break  # 执行了精确导航，跳出图标循环
+            log.debug(f'执行精确拖动：从 {navigation_reference.icon_name}({navigation_reference.lm_pos.x}, {navigation_reference.lm_pos.y}) '
+                      f'向 {self.target_icon.icon_name}({self.target_icon.lm_pos.x}, {self.target_icon.lm_pos.y}) '
+                      f'坐标差({dx}, {dy}) -> 拖动方向({drag_x}, {drag_y})')
 
-        if not found_target:
+            self.ctx.controller.drag_to(start=start_point, end=end_point)
+        else:
             # 所有图标都识别失败，执行随机拖动
             log.debug('所有图标识别失败，执行随机拖动')
             self._perform_random_drag(self.map_area)
