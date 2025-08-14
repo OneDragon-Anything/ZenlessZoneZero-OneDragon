@@ -221,7 +221,7 @@ try:
         def _apply_initial_theme_color(self):
             """立即应用已有的主题色，避免navbar颜色闪烁"""
             # 检查signal中是否已经设置了主题色（而不是使用默认值）
-            if 'global_theme_color' in self.ctx.signal._signals:
+            if self.ctx.signal.has_custom_theme_color:
                 color_rgb = self.ctx.signal.global_theme_color
                 self.navigationInterface.update_all_buttons_theme_color(color_rgb)
 

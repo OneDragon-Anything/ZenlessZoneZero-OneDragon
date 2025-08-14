@@ -59,3 +59,10 @@ class ContextLazySignal:
     @global_theme_color.setter
     def global_theme_color(self, new_value: tuple) -> None:
         self._signals['global_theme_color'] = new_value
+
+    @property
+    def has_custom_theme_color(self) -> bool:
+        """
+        检查是否已设置自定义主题色（非默认值）
+        """
+        return 'global_theme_color' in self._signals
