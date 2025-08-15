@@ -25,6 +25,7 @@ from qfluentwidgets import (
 
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.utils.color_utils import ColorUtils
 from one_dragon_qt.widgets.banner import Banner
 from one_dragon_qt.widgets.icon_button import IconButton
 from one_dragon_qt.widgets.notice_card import NoticeCardContainer
@@ -139,20 +140,23 @@ class ButtonGroup(SimpleCardWidget):
         """其实还是打开 Q群 链接"""
         QDesktopServices.openUrl(QUrl("https://qm.qq.com/q/N5iEy8sTu0"))
 
-class CheckRunnerBase(QThread):
-    """检查更新的基础线程类"""
+class BaseThread(QThread):
+    """基础线程类，提供统一的 _is_running 管理"""
 
-    need_update = Signal(bool)
-
-    def __init__(self, ctx: ZContext):
-        super().__init__()
-        self.ctx = ctx
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self._is_running = False
 
     def run(self):
         self._is_running = True
-        # 子类实现具体逻辑
-        self._is_running = False
+        try:
+            self._run_impl()  # 子类实现具体逻辑
+        finally:
+            self._is_running = False
+
+    def _run_impl(self):
+        """子类需要实现的具体逻辑"""
+        raise NotImplementedError
 
     def stop(self):
         """安全停止线程"""
@@ -164,30 +168,34 @@ class CheckRunnerBase(QThread):
                 self.terminate()
                 self.wait()
 
+
+class CheckRunnerBase(BaseThread):
+    """检查更新的基础线程类"""
+
+    need_update = Signal(bool)
+
+    def __init__(self, ctx: ZContext):
+        super().__init__()
+        self.ctx = ctx
+
 class CheckCodeRunner(CheckRunnerBase):
-    def run(self):
-        self._is_running = True
+    def _run_impl(self):
         is_latest, msg = self.ctx.git_service.is_current_branch_latest()
         if msg == "与远程分支不一致":
             self.need_update.emit(True)
         elif msg != "获取远程代码失败":
             self.need_update.emit(not is_latest)
-        self._is_running = False
 
 class CheckModelRunner(CheckRunnerBase):
-    def run(self):
-        self._is_running = True
+    def _run_impl(self):
         self.need_update.emit(self.ctx.model_config.using_old_model())
-        self._is_running = False
 
 class CheckBannerRunner(CheckRunnerBase):
-    def run(self):
-        self._is_running = True
+    def _run_impl(self):
         if self.ctx.signal.reload_banner:
             self.need_update.emit(True)
-        self._is_running = False
 
-class BackgroundImageDownloader(QThread):
+class BackgroundImageDownloader(BaseThread):
     """背景图片下载器"""
     image_downloaded = Signal(bool)
 
@@ -195,7 +203,6 @@ class BackgroundImageDownloader(QThread):
         super().__init__(parent)
         self.ctx = ctx
         self.download_type = download_type
-        self._is_running = False
 
         if download_type == "version_poster":
             self.save_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'version_poster.webp')
@@ -208,8 +215,7 @@ class BackgroundImageDownloader(QThread):
             self.config_key = f'last_{download_type}_fetch_time'
             self.error_msg = "当前版本主页背景异步获取失败"
 
-    def run(self):
-        self._is_running = True
+    def _run_impl(self):
         if not os.path.exists(self.save_path):
             self.get()
 
@@ -223,7 +229,6 @@ class BackgroundImageDownloader(QThread):
                 self.get()
         else:
             self.get()
-        self._is_running = False
 
     def get(self):
         if not self._is_running:
@@ -248,16 +253,6 @@ class BackgroundImageDownloader(QThread):
 
         except Exception as e:
             log.error(f"{self.error_msg}: {e}")
-
-    def stop(self):
-        """安全停止线程"""
-        self._is_running = False
-        if self.isRunning():
-            self.quit()
-            self.wait(3000)  # 等待最多3秒
-            if self.isRunning():
-                self.terminate()
-                self.wait()
 
     def _extract_image_url(self, data):
         """提取图片URL"""
@@ -450,19 +445,12 @@ class HomeInterface(VerticalScrollInterface):
 
     def _cleanup_threads(self):
         """清理所有线程"""
-        try:
-            if hasattr(self, '_banner_downloader'):
-                self._banner_downloader.stop()
-            if hasattr(self, '_version_poster_downloader'):
-                self._version_poster_downloader.stop()
-            if hasattr(self, '_check_code_runner'):
-                self._check_code_runner.stop()
-            if hasattr(self, '_check_model_runner'):
-                self._check_model_runner.stop()
-            if hasattr(self, '_check_banner_runner'):
-                self._check_banner_runner.stop()
-        except Exception as e:
-            log.error(f"清理线程时出错: {e}")
+        for thread_name in ['_banner_downloader', '_version_poster_downloader',
+                            '_check_code_runner', '_check_model_runner', '_check_banner_runner']:
+            if hasattr(self, thread_name):
+                thread = getattr(self, thread_name)
+                if thread and thread.isRunning():
+                    thread.stop()
 
     def on_interface_shown(self) -> None:
         """界面显示时启动检查更新的线程"""
@@ -579,83 +567,70 @@ class HomeInterface(VerticalScrollInterface):
             log.info("start_button 不存在，跳过样式更新")
             return
 
+        # 获取主题色
+        theme_color = self._get_theme_color()
+
+        # 更新全局主题色
+        self._update_global_theme(theme_color)
+
+        # 应用按钮样式
+        self._apply_button_style(theme_color)
+
+    def _get_theme_color(self) -> tuple[int, int, int]:
+        """获取主题色，优先使用缓存，否则从图片提取"""
         # 优先使用缓存的主题色
         if self.ctx.custom_config.has_custom_theme_color:
             lr, lg, lb = self.ctx.custom_config.global_theme_color
             log.info(f"使用缓存的主题色: ({lr}, {lg}, {lb})")
+            return lr, lg, lb
 
-            # 计算文本颜色
-            def luminance_of(rr: int, gg: int, bb: int) -> float:
-                return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb
-            luminance = luminance_of(lr, lg, lb)
-            text_color = "black" if luminance > 145 else "white"
-        else:
-            # 如果没有缓存，尝试从图片提取
-            image = self._banner_widget.banner_image
-            log.info(f"图片状态: image={image is not None}, isNull={image.isNull() if image else 'N/A'}")
+        # 从图片提取颜色
+        return self._extract_color_from_image()
 
-            if image is None or image.isNull():
-                # 使用默认的蓝色主题
-                lr, lg, lb = 64, 158, 255  # 默认蓝色
-                text_color = "white"
-                log.info("使用默认蓝色主题")
-            else:
-                # 取右下角区域的平均色，代表按钮附近背景
-                w, h = image.width(), image.height()
-                x0 = int(w * 0.65)
-                y0 = int(h * 0.65)
-                x1 = w
-                y1 = h
+    def _extract_color_from_image(self) -> tuple[int, int, int]:
+        """从背景图片提取主题色"""
+        image = self._banner_widget.banner_image
+        log.info(f"图片状态: image={image is not None}, isNull={image.isNull() if image else 'N/A'}")
 
-                r_sum = g_sum = b_sum = count = 0
-                for y in range(y0, y1, max(1, (y1 - y0) // 64)):
-                    for x in range(x0, x1, max(1, (x1 - x0) // 64)):
-                        c = image.pixelColor(x, y)
-                        r_sum += c.red()
-                        g_sum += c.green()
-                        b_sum += c.blue()
-                        count += 1
-                if count == 0:
-                    # 如果无法获取颜色，使用默认样式
-                    lr, lg, lb = 64, 158, 255  # 默认蓝色
-                    text_color = "white"
-                    log.info("无法从图片获取颜色，使用默认蓝色")
-                else:
-                    r = int(r_sum / count)
-                    g = int(g_sum / count)
-                    b = int(b_sum / count)
+        if image is None or image.isNull():
+            log.info("使用默认蓝色主题")
+            return 64, 158, 255  # 默认蓝色
 
-                    base_color = QColor(r, g, b)
-                    h, s, v, a = base_color.getHsvF()
-                    if h < 0:  # 灰阶时 hue 可能为 -1
-                        h = 0.0
-                    s = min(1.0, s * 2.0 + 0.25)
-                    v = min(1.0, v * 1.08 + 0.06)
-                    vivid = QColor.fromHsvF(h, s, v, 1.0)
-                    lr, lg, lb = vivid.red(), vivid.green(), vivid.blue()
+        # 取右下角区域的平均色，代表按钮附近背景
+        w, h = image.width(), image.height()
+        x0 = int(w * 0.65)
+        y0 = int(h * 0.65)
+        x1, y1 = w, h
 
-                    # 若整体仍偏暗，小幅增加明度，避免洗白
-                    def luminance_of(rr: int, gg: int, bb: int) -> float:
-                        return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb
+        # 提取区域平均颜色
+        r, g, b = ColorUtils.extract_average_color_from_region(image, x0, y0, x1, y1)
 
-                    for _ in range(2):
-                        if luminance_of(lr, lg, lb) >= 160:
-                            break
-                        tmp = QColor(lr, lg, lb)
-                        th, ts, tv, ta = tmp.getHsvF()
-                        if th < 0:
-                            th = 0.0
-                        tv = min(1.0, tv + 0.10)
-                        tmp2 = QColor.fromHsvF(th, ts, tv, 1.0)
-                        lr, lg, lb = tmp2.red(), tmp2.green(), tmp2.blue()
+        if r == 64 and g == 158 and b == 255:  # 如果返回默认色，说明提取失败
+            log.info("无法从图片获取颜色，使用默认蓝色")
+            return r, g, b
 
-                    # 基于相对亮度选择文本色（黑/白）
-                    luminance = luminance_of(lr, lg, lb)
-                    text_color = "black" if luminance > 145 else "white"
-                    log.info(f"从图片提取颜色: ({lr}, {lg}, {lb}), 文本色: {text_color}")
+        # 处理提取的颜色
+        return self._process_extracted_color(r, g, b)
 
-        # 更新全局主题色管理器（同时处理持久化和信号通知）
-        theme_manager.set_theme_color((lr, lg, lb), self.ctx)
+    def _process_extracted_color(self, r: int, g: int, b: int) -> tuple[int, int, int]:
+        """处理从图片提取的颜色，增强鲜艳度和亮度"""
+        # 增强颜色鲜艳度
+        lr, lg, lb = ColorUtils.enhance_color_vibrancy(r, g, b)
+
+        # 如果太暗则适当提亮
+        lr, lg, lb = ColorUtils.brighten_if_too_dark(lr, lg, lb)
+
+        log.info(f"从图片提取颜色: ({lr}, {lg}, {lb})")
+        return lr, lg, lb
+
+    def _update_global_theme(self, theme_color: tuple[int, int, int]) -> None:
+        """更新全局主题色管理器"""
+        theme_manager.set_theme_color(theme_color, self.ctx)
+
+    def _apply_button_style(self, theme_color: tuple[int, int, int]) -> None:
+        """应用样式到启动按钮"""
+        lr, lg, lb = theme_color
+        text_color = ColorUtils.get_text_color_for_background(lr, lg, lb)
 
         # 本按钮局部样式：圆角为高度一半（胶囊形），背景从图取色
         radius = 24  # 固定按钮高度48px的一半，确保胶囊形状
