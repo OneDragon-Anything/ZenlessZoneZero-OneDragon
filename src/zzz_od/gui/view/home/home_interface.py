@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QSpacerItem,
     QSizePolicy,
-    QApplication,
     QWidget,
 )
 from qfluentwidgets import (
@@ -301,9 +300,9 @@ class HomeInterface(VerticalScrollInterface):
         self._banner_widget.set_percentage_size(0.8, 0.5)
 
         v_layout = QVBoxLayout(self._banner_widget)
-        v_layout.setContentsMargins(0, 0, 0, 15)
+        v_layout.setContentsMargins(20, 20, 20, 0)
         v_layout.setSpacing(5)
-        v_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        v_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignJustify)
 
         # 空白占位符
         v_layout.addItem(QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
@@ -333,13 +332,17 @@ class HomeInterface(VerticalScrollInterface):
         # 底部部分 (公告卡片 + 启动按钮)
         bottom_bar = QWidget()
         h2_layout = QHBoxLayout(bottom_bar)
-        h2_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        h2_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
 
-        h2_layout.setContentsMargins(20, 0, 20, 0)
+        h2_layout.setContentsMargins(20, 20, 20, 20)  # 整体底部边距20px，包含阴影
 
         # 公告卡片
         self.notice_container = NoticeCardContainer()
-        h2_layout.addWidget(self.notice_container)
+        notice_wrap = QWidget()
+        self._notice_wrap_layout = QVBoxLayout(notice_wrap)
+        self._notice_wrap_layout.setContentsMargins(0, 0, 0, 0)
+        self._notice_wrap_layout.addWidget(self.notice_container)
+        h2_layout.addWidget(notice_wrap)
 
         # 根据配置设置启用状态
         self.notice_container.set_notice_enabled(self.ctx.custom_config.notice_card)
@@ -363,17 +366,32 @@ class HomeInterface(VerticalScrollInterface):
         shadow.setColor(QColor(0, 0, 0, 120))
         self.start_button.setGraphicsEffect(shadow)
 
-        v1_layout = QVBoxLayout()
-        v1_layout.setContentsMargins(0, 0, 0, 0)
-        v1_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
+        # @A-nony-mous 2025-08-15T03:50:00+01:00
+        # noticecard的高度和启动一条龙按钮的高度 谁能修谁自己tm修吧我是修不明白了
+        # 核心是阴影+到底部margin的高度=20px
 
-        h2_layout.addLayout(v1_layout)
 
-        # 底部保持约 1cm 间距
-        screen = QApplication.primaryScreen()
-        dpi = screen.logicalDotsPerInch() if screen else 96
-        one_cm_px = max(0, int(dpi / 2.54))
-        v_layout.setContentsMargins(0, 0, 0, one_cm_px)
+
+        # 计算阴影向下扩展：min(20, max(0, offsetY + blurRadius/2))
+        shadow_down_extent = max(0, int(8 + 24 / 2))  # 8 偏移 + 12 模糊半径的一半 ≈ 20
+        shadow_down_extent = min(20, shadow_down_extent)
+        # 20px = 阴影高度 + 阴影到底部的高度 ⇒ 按钮容器底边距 = 阴影高度
+
+        # 与按钮对齐：提升公告卡片相同的底边距
+
+        if hasattr(self, '_notice_wrap_layout'):
+            self._notice_wrap_layout.setContentsMargins(0, 0, 0, shadow_down_extent)
+
+        # 按钮容器，整体距离底部20px（包含阴影）
+        button_container = QWidget()
+        button_v_layout = QVBoxLayout(button_container)
+        button_v_layout.setContentsMargins(0, 0, 0, shadow_down_extent)
+        button_v_layout.addStretch()
+        button_v_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
+
+        h2_layout.addWidget(button_container)
+
+
 
         # 将底部容器添加到主垂直布局
         v_layout.addWidget(bottom_bar)
@@ -648,7 +666,7 @@ class HomeInterface(VerticalScrollInterface):
         border-radius: {radius}px;
         border: none;
         font-weight: bold;
+        margin: 0px;
+        padding: 0px;
         """
-
-        log.info(f"应用样式: radius={radius}, color=rgb({lr}, {lg}, {lb}), text_color={text_color}")
         self.start_button.setStyleSheet(style_sheet)
