@@ -149,23 +149,45 @@ class CheckRunnerBase(QThread):
     def __init__(self, ctx: ZContext):
         super().__init__()
         self.ctx = ctx
+        self._is_running = False
+
+    def run(self):
+        self._is_running = True
+        # 子类实现具体逻辑
+        self._is_running = False
+
+    def stop(self):
+        """安全停止线程"""
+        self._is_running = False
+        if self.isRunning():
+            self.quit()
+            self.wait(3000)  # 等待最多3秒
+            if self.isRunning():
+                self.terminate()
+                self.wait()
 
 class CheckCodeRunner(CheckRunnerBase):
     def run(self):
+        self._is_running = True
         is_latest, msg = self.ctx.git_service.is_current_branch_latest()
         if msg == "与远程分支不一致":
             self.need_update.emit(True)
         elif msg != "获取远程代码失败":
             self.need_update.emit(not is_latest)
+        self._is_running = False
 
 class CheckModelRunner(CheckRunnerBase):
     def run(self):
+        self._is_running = True
         self.need_update.emit(self.ctx.model_config.using_old_model())
+        self._is_running = False
 
 class CheckBannerRunner(CheckRunnerBase):
     def run(self):
+        self._is_running = True
         if self.ctx.signal.reload_banner:
             self.need_update.emit(True)
+        self._is_running = False
 
 class BackgroundImageDownloader(QThread):
     """背景图片下载器"""
@@ -175,6 +197,7 @@ class BackgroundImageDownloader(QThread):
         super().__init__(parent)
         self.ctx = ctx
         self.download_type = download_type
+        self._is_running = False
 
         if download_type == "version_poster":
             self.save_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'version_poster.webp')
@@ -188,6 +211,7 @@ class BackgroundImageDownloader(QThread):
             self.error_msg = "当前版本主页背景异步获取失败"
 
     def run(self):
+        self._is_running = True
         if not os.path.exists(self.save_path):
             self.get()
 
@@ -201,8 +225,12 @@ class BackgroundImageDownloader(QThread):
                 self.get()
         else:
             self.get()
+        self._is_running = False
 
     def get(self):
+        if not self._is_running:
+            return
+
         try:
             resp = requests.get(self.url, timeout=5)
             data = resp.json()
@@ -217,10 +245,21 @@ class BackgroundImageDownloader(QThread):
 
             self._save_image(img_resp.content)
             setattr(self.ctx.custom_config, self.config_key, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            # 使用队列连接确保线程安全
             self.image_downloaded.emit(True)
 
         except Exception as e:
             log.error(f"{self.error_msg}: {e}")
+
+    def stop(self):
+        """安全停止线程"""
+        self._is_running = False
+        if self.isRunning():
+            self.quit()
+            self.wait(3000)  # 等待最多3秒
+            if self.isRunning():
+                self.terminate()
+                self.wait()
 
     def _extract_image_url(self, data):
         """提取图片URL"""
@@ -362,15 +401,53 @@ class HomeInterface(VerticalScrollInterface):
     def _init_check_runners(self):
         """初始化检查更新的线程"""
         self._check_code_runner = CheckCodeRunner(self.ctx)
-        self._check_code_runner.need_update.connect(self._need_to_update_code)
+        self._check_code_runner.need_update.connect(
+            self._need_to_update_code,
+            Qt.ConnectionType.QueuedConnection
+        )
         self._check_model_runner = CheckModelRunner(self.ctx)
-        self._check_model_runner.need_update.connect(self._need_to_update_model)
+        self._check_model_runner.need_update.connect(
+            self._need_to_update_model,
+            Qt.ConnectionType.QueuedConnection
+        )
         self._check_banner_runner = CheckBannerRunner(self.ctx)
-        self._check_banner_runner.need_update.connect(self.reload_banner)
+        self._check_banner_runner.need_update.connect(
+            self.reload_banner,
+            Qt.ConnectionType.QueuedConnection
+        )
         self._banner_downloader = BackgroundImageDownloader(self.ctx, "remote_banner")
-        self._banner_downloader.image_downloaded.connect(self.reload_banner)
+        # 使用队列连接确保线程安全
+        self._banner_downloader.image_downloaded.connect(
+            self.reload_banner,
+            Qt.ConnectionType.QueuedConnection
+        )
         self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster")
-        self._version_poster_downloader.image_downloaded.connect(self.reload_banner)
+        # 使用队列连接确保线程安全
+        self._version_poster_downloader.image_downloaded.connect(
+            self.reload_banner,
+            Qt.ConnectionType.QueuedConnection
+        )
+
+    def closeEvent(self, event):
+        """界面关闭事件处理"""
+        self._cleanup_threads()
+        super().closeEvent(event)
+
+    def _cleanup_threads(self):
+        """清理所有线程"""
+        try:
+            if hasattr(self, '_banner_downloader'):
+                self._banner_downloader.stop()
+            if hasattr(self, '_version_poster_downloader'):
+                self._version_poster_downloader.stop()
+            if hasattr(self, '_check_code_runner'):
+                self._check_code_runner.stop()
+            if hasattr(self, '_check_model_runner'):
+                self._check_model_runner.stop()
+            if hasattr(self, '_check_banner_runner'):
+                self._check_banner_runner.stop()
+        except Exception as e:
+            log.error(f"清理线程时出错: {e}")
 
     def on_interface_shown(self) -> None:
         """界面显示时启动检查更新的线程"""
@@ -429,13 +506,20 @@ class HomeInterface(VerticalScrollInterface):
         :param show_notification: 是否显示提示
         :return:
         """
-        # 更新背景图片
-        self._banner_widget.set_banner_image(self.choose_banner_image())
-        # 依据背景重新计算按钮配色
-        self._update_start_button_style_from_banner()
-        self.ctx.signal.reload_banner = False
-        if show_notification:
-            self._show_info_bar("背景已更新", "新的背景已成功应用", 3000)
+        # 检查widget是否仍然有效
+        if not self._banner_widget or not self._banner_widget.isVisible():
+            return
+
+        try:
+            # 更新背景图片
+            self._banner_widget.set_banner_image(self.choose_banner_image())
+            # 依据背景重新计算按钮配色
+            self._update_start_button_style_from_banner()
+            self.ctx.signal.reload_banner = False
+            if show_notification:
+                self._show_info_bar("背景已更新", "新的背景已成功应用", 3000)
+        except Exception as e:
+            log.error(f"刷新背景时出错: {e}")
 
     def choose_banner_image(self) -> str:
         # 获取背景图片路径

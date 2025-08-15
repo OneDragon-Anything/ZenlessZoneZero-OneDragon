@@ -25,16 +25,7 @@ from .label import EllipsisLabel
 
 
 def get_notice_theme_palette():
-    """返回与主题相关的颜色配置。
-
-    返回:
-        dict: {
-            'tint': QColor,           # 背景半透明色
-            'title': str,             # 标题文本颜色
-            'date': str,              # 日期文本颜色
-            'shadow': QColor          # 外部阴影颜色
-        }
-    """
+    """返回与主题相关的颜色配置"""
     if qconfig.theme == Theme.DARK:
         return {
             'tint': QColor(20, 20, 20, 160),
@@ -42,13 +33,12 @@ def get_notice_theme_palette():
             'date': '#ddd',
             'shadow': QColor(0, 0, 0, 170),
         }
-    else:
-        return {
-            'tint': QColor(245, 245, 245, 160),
-            'title': '#000',
-            'date': '#333',
-            'shadow': QColor(0, 0, 0, 150),
-        }
+    return {
+        'tint': QColor(245, 245, 245, 160),
+        'title': '#000',
+        'date': '#333',
+        'shadow': QColor(0, 0, 0, 150),
+    }
 
 class SkeletonBanner(QFrame):
     """骨架屏Banner组件 - 简化版"""
@@ -84,18 +74,12 @@ class SkeletonContent(QWidget):
         layout.setContentsMargins(10, 5, 10, 5)
         layout.setSpacing(8)
 
-        # 创建多个骨架条
-        for i in range(2):
+        # 创建骨架条
+        widths = [280, 220]
+        for width in widths:
             skeleton_item = QFrame()
             skeleton_item.setObjectName("SkeletonItem")
-            skeleton_item.setFixedHeight(20)
-            # 不同长度的骨架条
-            if i == 0:
-                skeleton_item.setFixedWidth(280)
-            else:
-                skeleton_item.setFixedWidth(220)
-
-            # 设置骨架条样式
+            skeleton_item.setFixedSize(width, 20)
             skeleton_item.setStyleSheet("""
                 QFrame#SkeletonItem {
                     background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
@@ -130,14 +114,14 @@ class BannerImageLoader(QThread):
                     pixmap = QPixmap()
                     pixmap.loadFromData(response.content)
 
-                    # 缩放图片，确保清晰
+                    # 按设备像素比缩放
                     size = QSize(pixmap.width(), pixmap.height())
                     pixmap = pixmap.scaled(
-                        size * self.device_pixel_ratio,  # 按设备像素比缩放
+                        size * self.device_pixel_ratio,
                         Qt.AspectRatioMode.IgnoreAspectRatio,
                         Qt.TransformationMode.SmoothTransformation,
                     )
-                    pixmap.setDevicePixelRatio(self.device_pixel_ratio)  # 设置设备像素比
+                    pixmap.setDevicePixelRatio(self.device_pixel_ratio)
                     self.image_loaded.emit(pixmap, banner["image"]["link"])
             except Exception as e:
                 log.error(f"加载banner图片失败: {e}")
@@ -155,34 +139,6 @@ class RoundedBannerView(HorizontalFlipView):
         self._radius = radius
         self.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-
-        r = float(self._radius)
-        rectF = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
-        x, y, w, h = rectF.x(), rectF.y(), rectF.width(), rectF.height()
-        path = QPainterPath()
-        # top-left to top-right with rounded corners; bottom corners are square
-        path.moveTo(x + r, y)
-        path.lineTo(x + w - r, y)
-        path.quadTo(x + w, y, x + w, y + r)
-        path.lineTo(x + w, y + h)
-        path.lineTo(x, y + h)
-        path.lineTo(x, y + r)
-        path.quadTo(x, y, x + r, y)
-        path.closeSubpath()
-        painter.setClipPath(path)
-
-        # 让父类完成内容绘制（图片自身使用平滑缩放）
-        super().paintEvent(event)
-
-        # 细边改善边缘观感
-        painter.setPen(QColor(255, 255, 255, 40))
-        painter.drawPath(path)
-        painter.end()
 
 
 # 增加了缓存机制, 有效期为3天, 避免每次都请求数据
@@ -229,10 +185,8 @@ class DataFetcher(QThread):
             json.dump(data, cache_file)
 
     def download_related_files(self, data):
-        related_files = data.get("related_files", [])
-        for file_url in related_files:
-            file_name = os.path.basename(file_url)
-            file_path = os.path.join(DataFetcher.CACHE_DIR, file_name)
+        for file_url in data.get("related_files", []):
+            file_path = os.path.join(DataFetcher.CACHE_DIR, os.path.basename(file_url))
             try:
                 response = requests.get(file_url, timeout=DataFetcher.TIMEOUTNUM)
                 response.raise_for_status()
@@ -257,8 +211,7 @@ class AcrylicBackground(QWidget):
         img = QImage(width, height, QImage.Format.Format_ARGB32)
         for y in range(height):
             for x in range(width):
-                v = 240 + random.randint(-10, 10)
-                v = max(0, min(255, v))
+                v = max(0, min(255, 240 + random.randint(-10, 10)))
                 img.setPixel(x, y, QColor(v, v, v, 255).rgba())
         return QPixmap.fromImage(img)
 
@@ -283,7 +236,6 @@ class AcrylicBackground(QWidget):
         # 细描边
         painter.setPen(QColor(255, 255, 255, 36))
         painter.drawPath(path)
-        painter.end()
 
 
 class NoticeCard(SimpleCardWidget):
@@ -295,45 +247,39 @@ class NoticeCard(SimpleCardWidget):
         self.mainLayout.setContentsMargins(3, 3, 0, 0)
         self.mainLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # 亚克力背景层（轻量实现）
+        self.banners, self.banner_urls, self.posts = [], [], {"announces": [], "activities": [], "infos": []}
+        self._banner_loader = None
+        self._is_loading_banners = False
+
+        # 初始化和显示
+        self._create_components()
+        self.setup_ui()
+        self.show_skeleton()
+        self.fetch_data()
+
+        # 主题设置
+        qconfig.themeChanged.connect(self._on_theme_changed)
+        self.apply_theme_colors()
+        self.update()
+
+    def _create_components(self):
+        """创建组件"""
+        # 亚克力背景层
         palette = get_notice_theme_palette()
         self._acrylic = AcrylicBackground(self, radius=4, tint=palette['tint'])
-        # 确保阴影在后，背景在最底层
         self._acrylic.stackUnder(self)
 
         # 骨架屏组件
         self.skeleton_banner = SkeletonBanner(self)
         self.skeleton_content = SkeletonContent(self)
+        self.mainLayout.insertWidget(0, self.skeleton_banner)
+        self.mainLayout.insertWidget(1, self.skeleton_content)
 
         self.error_label = QLabel("无法获取数据")
         self.error_label.setWordWrap(True)
         self.error_label.setObjectName("error")
         self.error_label.hide()
         self.mainLayout.addWidget(self.error_label)
-
-        self.banners, self.banner_urls, self.posts = (
-            [],
-            [],
-            {"announces": [], "activities": [], "infos": []},
-        )
-        self._banner_loader = None
-        self._is_loading_banners = False
-
-        self.setup_ui()
-
-        # 在setup_ui之后添加骨架屏到布局
-        self.mainLayout.insertWidget(0, self.skeleton_banner)  # 在第一个位置插入
-        self.mainLayout.insertWidget(1, self.skeleton_content)  # 在第二个位置插入
-
-        self.show_skeleton()  # 初始显示骨架屏
-        self.fetch_data()
-
-        # 监听主题变化，动态调整背景与文本颜色
-        qconfig.themeChanged.connect(self._on_theme_changed)
-        # 初次加载也应用一次文本颜色覆盖
-        self.apply_theme_colors()
-        # 强制刷新一次，避免首次渲染时阴影被背景层覆盖引起的闪烁
-        self.update()
 
     def _normalBackgroundColor(self):
         return QColor(255, 255, 255, 13)
@@ -346,27 +292,26 @@ class NoticeCard(SimpleCardWidget):
         self.skeleton_banner.raise_()
         self.skeleton_content.raise_()
 
-        if hasattr(self, 'flipView'):
-            self.flipView.hide()
-        if hasattr(self, 'pivot'):
-            self.pivot.hide()
-        if hasattr(self, 'stackedWidget'):
-            self.stackedWidget.hide()
+        for widget_name in ['flipView', 'pivot', 'stackedWidget']:
+            if hasattr(self, widget_name):
+                getattr(self, widget_name).hide()
 
     def hide_skeleton(self):
         """隐藏骨架屏"""
         self.skeleton_banner.hide()
         self.skeleton_content.hide()
-        if hasattr(self, 'flipView'):
-            self.flipView.show()
-        if hasattr(self, 'pivot'):
-            self.pivot.show()
-        if hasattr(self, 'stackedWidget'):
-            self.stackedWidget.show()
+
+        for widget_name in ['flipView', 'pivot', 'stackedWidget']:
+            if hasattr(self, widget_name):
+                getattr(self, widget_name).show()
 
     def fetch_data(self):
         self.fetcher = DataFetcher()
-        self.fetcher.data_fetched.connect(self.handle_data)
+        # 使用队列连接确保线程安全
+        self.fetcher.data_fetched.connect(
+            self.handle_data,
+            Qt.ConnectionType.QueuedConnection
+        )
         self.fetcher.start()
 
     def handle_data(self, content):
@@ -382,7 +327,6 @@ class NoticeCard(SimpleCardWidget):
         self.load_banners_async(content["data"]["content"]["banners"])
         self.load_posts(content["data"]["content"]["posts"])
         self.error_label.hide()
-        # banner加载时会自动隐藏骨架屏，这里不需要重复调用
         self.update_ui()
 
     def load_banners_async(self, banners):
@@ -400,9 +344,19 @@ class NoticeCard(SimpleCardWidget):
         pixel_ratio = self.devicePixelRatio()
 
         self._banner_loader = BannerImageLoader(banners, pixel_ratio, self)
-        self._banner_loader.image_loaded.connect(self._on_banner_image_loaded)
-        self._banner_loader.all_images_loaded.connect(self._on_all_banners_loaded)
-        self._banner_loader.finished.connect(self._on_banner_loading_finished)
+        # 使用队列连接确保线程安全
+        self._banner_loader.image_loaded.connect(
+            self._on_banner_image_loaded,
+            Qt.ConnectionType.QueuedConnection
+        )
+        self._banner_loader.all_images_loaded.connect(
+            self._on_all_banners_loaded,
+            Qt.ConnectionType.QueuedConnection
+        )
+        self._banner_loader.finished.connect(
+            self._on_banner_loading_finished,
+            Qt.ConnectionType.QueuedConnection
+        )
         self._banner_loader.start()
 
     def _on_banner_image_loaded(self, pixmap: QPixmap, url: str):
@@ -436,10 +390,12 @@ class NoticeCard(SimpleCardWidget):
             "POST_TYPE_INFO": "infos",
         }
         for post in posts:
-            if (entry := post_types.get(post["type"])) is not None:
-                self.posts[entry].append(
-                    {"title": post["title"], "url": post["link"], "date": post["date"]}
-                )
+            if post_type := post_types.get(post["type"]):
+                self.posts[post_type].append({
+                    "title": post["title"],
+                    "url": post["link"],
+                    "date": post["date"]
+                })
 
     def setup_ui(self):
         self.flipView = RoundedBannerView(radius=4, parent=self)
@@ -455,25 +411,21 @@ class NoticeCard(SimpleCardWidget):
         self.stackedWidget = QStackedWidget(self)
         self.stackedWidget.setContentsMargins(0, 0, 5, 0)
         self.stackedWidget.setFixedHeight(60)
-        self.activityWidget, self.announceWidget, self.infoWidget = (
-            ListWidget(),
-            ListWidget(),
-            ListWidget(),
-        )
+
+        # 创建三个列表组件
+        widgets = [ListWidget() for _ in range(3)]
+        self.activityWidget, self.announceWidget, self.infoWidget = widgets
 
         types = ["activities", "announces", "infos"]
         type_names = ["活动", "公告", "资讯"]
-        for i, w in enumerate(
-            [self.activityWidget, self.announceWidget, self.infoWidget]
-        ):
-            type = types[i]
-            name = type_names[i]
-            self.add_posts_to_widget(w, type)
-            w.setItemDelegate(CustomListItemDelegate(w))
-            w.itemClicked.connect(
-                lambda _, widget=w, type=type: self.open_post_link(widget, type)
+
+        for widget, post_type, name in zip(widgets, types, type_names):
+            self.add_posts_to_widget(widget, post_type)
+            widget.setItemDelegate(CustomListItemDelegate(widget))
+            widget.itemClicked.connect(
+                lambda _, w=widget, t=post_type: self.open_post_link(w, t)
             )
-            self.addSubInterface(w, type, name)
+            self.addSubInterface(widget, post_type, name)
 
         self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
         self.stackedWidget.setCurrentWidget(self.activityWidget)
@@ -487,20 +439,19 @@ class NoticeCard(SimpleCardWidget):
         self.flipView.addImages(self.banners)
 
         # 清空并重新添加posts
-        for widget, type in zip(
-            [self.activityWidget, self.announceWidget, self.infoWidget],
-            ["activities", "announces", "infos"],
-        ):
+        widgets = [self.activityWidget, self.announceWidget, self.infoWidget]
+        types = ["activities", "announces", "infos"]
+
+        for widget, post_type in zip(widgets, types):
             widget.clear()
-            self.add_posts_to_widget(widget, type)
+            self.add_posts_to_widget(widget, post_type)
 
     def apply_theme_colors(self):
         """在现有样式后附加文本颜色规则，确保覆盖资源 QSS。"""
         palette = get_notice_theme_palette()
-        title_color, date_color = palette['title'], palette['date']
         extra = (
-            f"\nQWidget#title, QLabel#title{{color:{title_color} !important;}}"
-            f"\nQWidget#date, QLabel#date{{color:{date_color} !important;}}\n"
+            f"\nQWidget#title, QLabel#title{{color:{palette['title']} !important;}}"
+            f"\nQWidget#date, QLabel#date{{color:{palette['date']} !important;}}\n"
         )
         self.setStyleSheet(self.styleSheet() + extra)
 
@@ -560,12 +511,13 @@ class NoticeCard(SimpleCardWidget):
         title_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         title_label.setFixedWidth(280)
         title_label.setFont(QFont("Microsoft YaHei", 10))
-        layout.addWidget(title_label)
 
         date_label = QLabel(post["date"])
         date_label.setObjectName("date")
         date_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         date_label.setFont(QFont("Microsoft YaHei", 10))
+
+        layout.addWidget(title_label)
         layout.addWidget(date_label)
 
         layout.setStretch(0, 1)
