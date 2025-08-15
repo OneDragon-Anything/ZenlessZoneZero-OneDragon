@@ -1,7 +1,7 @@
 import os
 import requests
 from datetime import datetime, timedelta
-from PySide6.QtCore import Qt, QThread, Signal, QSize, QUrl
+from PySide6.QtCore import Qt, QThread, Signal, QSize, QUrl, QTimer
 from PySide6.QtWidgets import QGraphicsDropShadowEffect
 from PySide6.QtGui import (
     QFont,
@@ -26,7 +26,6 @@ from qfluentwidgets import (
 
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
-from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 from one_dragon_qt.widgets.banner import Banner
 from one_dragon_qt.widgets.icon_button import IconButton
 from one_dragon_qt.widgets.notice_card import NoticeCardContainer
@@ -388,9 +387,7 @@ class HomeInterface(VerticalScrollInterface):
             nav_icon=FluentIcon.HOME,
         )
 
-        # 应用样式 - 不使用QSS样式，完全由代码控制
-        # OdQtStyleSheet.GAME_BUTTON.apply(self.start_button)
-        self._update_start_button_style_from_banner()
+        QTimer.singleShot(0, self._update_start_button_style_from_banner)
 
         self.ctx = ctx
         self._init_check_runners()
@@ -643,7 +640,8 @@ class HomeInterface(VerticalScrollInterface):
         theme_manager.set_theme_color((lr, lg, lb), self.ctx)
 
         # 本按钮局部样式：圆角为高度一半（胶囊形），背景从图取色
-        radius = max(1, self.start_button.height() // 2)
+        radius = 24  # 固定按钮高度48px的一半，确保胶囊形状
+
         style_sheet = f"""
         background-color: rgb({lr}, {lg}, {lb});
         color: {text_color};
