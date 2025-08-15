@@ -1,5 +1,5 @@
 import os
-from PySide6.QtCore import QSize
+from PySide6.QtCore import QSize, QTimer
 from PySide6.QtGui import QIcon
 from qfluentwidgets import NavigationItemPosition, SplashScreen
 from typing import Optional
@@ -39,7 +39,7 @@ class AppWindowBase(PhosWindow):
         self.show()
 
         self.stackedWidget.currentChanged.connect(self.init_interface_on_shown)
-        self.create_sub_interface()
+        QTimer.singleShot(0, self.create_sub_interface)
 
         self.titleBar.issue_url = f"{project_config.github_homepage}/issues"
 
