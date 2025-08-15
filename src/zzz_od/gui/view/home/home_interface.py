@@ -388,8 +388,8 @@ class HomeInterface(VerticalScrollInterface):
             nav_icon=FluentIcon.HOME,
         )
 
-        # 应用样式
-        OdQtStyleSheet.GAME_BUTTON.apply(self.start_button)
+        # 应用样式 - 不使用QSS样式，完全由代码控制
+        # OdQtStyleSheet.GAME_BUTTON.apply(self.start_button)
         self._update_start_button_style_from_banner()
 
         self.ctx = ctx
@@ -557,65 +557,100 @@ class HomeInterface(VerticalScrollInterface):
 
     def _update_start_button_style_from_banner(self) -> None:
         """从当前背景取主色，应用到启动按钮。"""
-        image = self._banner_widget.banner_image
-        if image is None or image.isNull() or not hasattr(self, 'start_button'):
+        log.info("开始更新启动按钮样式")
+
+        # 确保按钮存在
+        if not hasattr(self, 'start_button'):
+            log.info("start_button 不存在，跳过样式更新")
             return
 
-        # 取右下角区域的平均色，代表按钮附近背景
-        w, h = image.width(), image.height()
-        x0 = int(w * 0.65)
-        y0 = int(h * 0.65)
-        x1 = w
-        y1 = h
+        # 优先使用缓存的主题色
+        if self.ctx.custom_config.has_custom_theme_color:
+            lr, lg, lb = self.ctx.custom_config.global_theme_color
+            log.info(f"使用缓存的主题色: ({lr}, {lg}, {lb})")
 
-        r_sum = g_sum = b_sum = count = 0
-        for y in range(y0, y1, max(1, (y1 - y0) // 64)):
-            for x in range(x0, x1, max(1, (x1 - x0) // 64)):
-                c = image.pixelColor(x, y)
-                r_sum += c.red()
-                g_sum += c.green()
-                b_sum += c.blue()
-                count += 1
-        if count == 0:
-            return
+            # 计算文本颜色
+            def luminance_of(rr: int, gg: int, bb: int) -> float:
+                return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb
+            luminance = luminance_of(lr, lg, lb)
+            text_color = "black" if luminance > 145 else "white"
+        else:
+            # 如果没有缓存，尝试从图片提取
+            image = self._banner_widget.banner_image
+            log.info(f"图片状态: image={image is not None}, isNull={image.isNull() if image else 'N/A'}")
 
-        r = int(r_sum / count)
-        g = int(g_sum / count)
-        b = int(b_sum / count)
+            if image is None or image.isNull():
+                # 使用默认的蓝色主题
+                lr, lg, lb = 64, 158, 255  # 默认蓝色
+                text_color = "white"
+                log.info("使用默认蓝色主题")
+            else:
+                # 取右下角区域的平均色，代表按钮附近背景
+                w, h = image.width(), image.height()
+                x0 = int(w * 0.65)
+                y0 = int(h * 0.65)
+                x1 = w
+                y1 = h
 
-        base_color = QColor(r, g, b)
-        h, s, v, a = base_color.getHsvF()
-        if h < 0:  # 灰阶时 hue 可能为 -1
-            h = 0.0
-        s = min(1.0, s * 2.0 + 0.25)
-        v = min(1.0, v * 1.08 + 0.06)
-        vivid = QColor.fromHsvF(h, s, v, 1.0)
-        lr, lg, lb = vivid.red(), vivid.green(), vivid.blue()
+                r_sum = g_sum = b_sum = count = 0
+                for y in range(y0, y1, max(1, (y1 - y0) // 64)):
+                    for x in range(x0, x1, max(1, (x1 - x0) // 64)):
+                        c = image.pixelColor(x, y)
+                        r_sum += c.red()
+                        g_sum += c.green()
+                        b_sum += c.blue()
+                        count += 1
+                if count == 0:
+                    # 如果无法获取颜色，使用默认样式
+                    lr, lg, lb = 64, 158, 255  # 默认蓝色
+                    text_color = "white"
+                    log.info("无法从图片获取颜色，使用默认蓝色")
+                else:
+                    r = int(r_sum / count)
+                    g = int(g_sum / count)
+                    b = int(b_sum / count)
 
-        # 若整体仍偏暗，小幅增加明度，避免洗白
-        def luminance_of(rr: int, gg: int, bb: int) -> float:
-            return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb
+                    base_color = QColor(r, g, b)
+                    h, s, v, a = base_color.getHsvF()
+                    if h < 0:  # 灰阶时 hue 可能为 -1
+                        h = 0.0
+                    s = min(1.0, s * 2.0 + 0.25)
+                    v = min(1.0, v * 1.08 + 0.06)
+                    vivid = QColor.fromHsvF(h, s, v, 1.0)
+                    lr, lg, lb = vivid.red(), vivid.green(), vivid.blue()
 
-        for _ in range(2):
-            if luminance_of(lr, lg, lb) >= 160:
-                break
-            tmp = QColor(lr, lg, lb)
-            th, ts, tv, ta = tmp.getHsvF()
-            if th < 0:
-                th = 0.0
-            tv = min(1.0, tv + 0.10)
-            tmp2 = QColor.fromHsvF(th, ts, tv, 1.0)
-            lr, lg, lb = tmp2.red(), tmp2.green(), tmp2.blue()
+                    # 若整体仍偏暗，小幅增加明度，避免洗白
+                    def luminance_of(rr: int, gg: int, bb: int) -> float:
+                        return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb
 
-        # 基于相对亮度选择文本色（黑/白）
-        luminance = luminance_of(lr, lg, lb)
-        text_color = "black" if luminance > 145 else "white"
+                    for _ in range(2):
+                        if luminance_of(lr, lg, lb) >= 160:
+                            break
+                        tmp = QColor(lr, lg, lb)
+                        th, ts, tv, ta = tmp.getHsvF()
+                        if th < 0:
+                            th = 0.0
+                        tv = min(1.0, tv + 0.10)
+                        tmp2 = QColor.fromHsvF(th, ts, tv, 1.0)
+                        lr, lg, lb = tmp2.red(), tmp2.green(), tmp2.blue()
+
+                    # 基于相对亮度选择文本色（黑/白）
+                    luminance = luminance_of(lr, lg, lb)
+                    text_color = "black" if luminance > 145 else "white"
+                    log.info(f"从图片提取颜色: ({lr}, {lg}, {lb}), 文本色: {text_color}")
 
         # 更新全局主题色管理器（同时处理持久化和信号通知）
         theme_manager.set_theme_color((lr, lg, lb), self.ctx)
 
         # 本按钮局部样式：圆角为高度一半（胶囊形），背景从图取色
         radius = max(1, self.start_button.height() // 2)
-        self.start_button.setStyleSheet(
-            f"background-color: rgb({lr}, {lg}, {lb}); color: {text_color}; border-radius: {radius}px;"
-        )
+        style_sheet = f"""
+        background-color: rgb({lr}, {lg}, {lb});
+        color: {text_color};
+        border-radius: {radius}px;
+        border: none;
+        font-weight: bold;
+        """
+
+        log.info(f"应用样式: radius={radius}, color=rgb({lr}, {lg}, {lb}), text_color={text_color}")
+        self.start_button.setStyleSheet(style_sheet)

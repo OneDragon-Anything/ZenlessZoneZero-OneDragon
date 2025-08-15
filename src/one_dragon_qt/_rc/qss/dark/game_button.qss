@@ -1,14 +1,1 @@
-PrimaryPushButton {
-    color: black;
-    background-color: #f5d742;
-    border: none;
-    border-radius: 4px;
-}
-
-PrimaryPushButton:hover {
-    background-color: #e5c033; /* 悬停时的背景色 */
-}
-
-PrimaryPushButton:pressed {
-    background-color: #d4b322; /* 按下时的背景色 */
-}
+/* PrimaryPushButton 样式已移至代码中控制 */
