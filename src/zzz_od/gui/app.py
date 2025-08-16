@@ -72,6 +72,12 @@ try:
 
             self._check_first_run()
 
+            # 启动主题色监听定时器
+            self._start_theme_color_monitor()
+
+            # 立即检查并应用已有的主题色，避免navbar颜色闪烁
+            self._apply_initial_theme_color()
+
         # 继承初始化函数
         def init_window(self):
             self.resize(1095, 730)  # 3:2比例
@@ -109,9 +115,6 @@ try:
             # print(self.stackedWidget.styleSheet())
             # print("————TITLE BAR STYLE————")
             # print(self.titleBar.styleSheet())
-
-            # 开启磨砂效果
-            # self.setAeroEffectEnabled(True)
 
         def create_sub_interface(self):
             """创建和添加各个子界面"""
@@ -198,6 +201,29 @@ try:
                 dialog = ZWelcomeDialog(self)
                 if dialog.exec():
                     self.ctx.env_config.is_first_run = False
+
+        def _start_theme_color_monitor(self):
+            """启动主题色监听定时器"""
+            from PySide6.QtCore import QTimer
+            self._theme_monitor_timer = QTimer()
+            self._theme_monitor_timer.timeout.connect(self._check_theme_color_change)
+            self._theme_monitor_timer.start(100)  # 每100ms检查一次
+
+        def _check_theme_color_change(self):
+            """检查主题色是否发生变化"""
+            if self.ctx.signal.theme_color_changed:
+                color_rgb = self.ctx.signal.global_theme_color
+                # 更新导航栏所有按钮的主题色
+                self.navigationInterface.update_all_buttons_theme_color(color_rgb)
+                # 重置信号状态
+                self.ctx.signal.theme_color_changed = False
+
+        def _apply_initial_theme_color(self):
+            """立即应用已有的主题色，避免navbar颜色闪烁"""
+            # 检查signal中是否已经设置了主题色（而不是使用默认值）
+            if 'global_theme_color' in self.ctx.signal._signals:
+                color_rgb = self.ctx.signal.global_theme_color
+                self.navigationInterface.update_all_buttons_theme_color(color_rgb)
 
 
 # 调用Windows错误弹窗

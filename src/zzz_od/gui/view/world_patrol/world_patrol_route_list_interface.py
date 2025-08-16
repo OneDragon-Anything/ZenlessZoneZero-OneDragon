@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QListWidget,
-                               QListWidgetItem, QLabel, QMessageBox, QInputDialog)
-from qfluentwidgets import FluentIcon, PushButton
+                               QListWidgetItem, QMessageBox, QInputDialog)
+from qfluentwidgets import FluentIcon, PushButton, BodyLabel
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.log_utils import log
@@ -143,7 +143,7 @@ class WorldPatrolRouteListInterface(VerticalScrollInterface):
         list_layout.setSpacing(12)
 
         # 标题
-        title_label = QLabel('路线列表')
+        title_label = BodyLabel('路线列表')
         title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         list_layout.addWidget(title_label)
 
@@ -153,7 +153,7 @@ class WorldPatrolRouteListInterface(VerticalScrollInterface):
         list_layout.addWidget(self.route_list_widget)
 
         # 可用路线列表
-        available_label = QLabel('当前区域可用路线')
+        available_label = BodyLabel('当前区域可用路线')
         available_label.setStyleSheet("font-size: 14px; font-weight: bold;")
         list_layout.addWidget(available_label)
 

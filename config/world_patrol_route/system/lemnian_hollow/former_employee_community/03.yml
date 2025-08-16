@@ -1,0 +1,16 @@
+idx: 3
+op_list:
+- data:
+  - '1335'
+  - '304'
+  op_type: move
+- data:
+  - '1352'
+  - '353'
+  op_type: move
+- data:
+  - '1376'
+  - '340'
+  op_type: move
+tp_area_id: former_employee_community
+tp_name: 职工宿舍北区

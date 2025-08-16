@@ -2,8 +2,8 @@ import time
 
 import cv2
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QSpinBox, QLabel, QDoubleSpinBox
-from qfluentwidgets import FluentIcon, PushButton
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel
+from qfluentwidgets import FluentIcon, PushButton, SpinBox, DoubleSpinBox
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.geometry.point import Point
@@ -164,7 +164,8 @@ class LargeMapRecorderInterface(VerticalScrollInterface):
         )
         control_layout.addWidget(self.icon_opt)
 
-        self.icon_threshold_input = QDoubleSpinBox()
+        self.icon_threshold_input = DoubleSpinBox()
+        self.icon_threshold_input.setMinimumWidth(140)
         self.icon_threshold_input.setMinimum(0.1)
         self.icon_threshold_input.setMaximum(1.0)
         self.icon_threshold_input.setSingleStep(0.1)
@@ -180,21 +181,24 @@ class LargeMapRecorderInterface(VerticalScrollInterface):
         )
         control_layout.addWidget(self.icon_threshold_opt)
 
-        self.scale_input = QSpinBox()
+        self.scale_input = SpinBox()
         self.scale_input.setValue(40)
+        self.scale_input.setMinimumWidth(140)
         self.scale_save_btn = PushButton(text=gt('应用'))
         self.scale_save_btn.clicked.connect(self._on_scale_save_clicked)
         self.scale_opt = MultiPushSettingCard(icon=FluentIcon.MOVE, title='缩放', content='调整大地图的，只有第一次需要',
                                               btn_list=[self.scale_input, self.scale_save_btn])
         control_layout.addWidget(self.scale_opt)
 
-        self.h_move_input = QSpinBox()
+        self.h_move_input = SpinBox()
+        self.h_move_input.setMinimumWidth(140)
         self.h_move_input.setMinimum(-9999)
         self.h_move_input.setMaximum(9999)
         self.h_btn = PushButton(text=gt('横移'))
         self.h_btn.clicked.connect(self._on_h_move_clicked)
 
-        self.v_move_input = QSpinBox()
+        self.v_move_input = SpinBox()
+        self.v_move_input.setMinimumWidth(140)
         self.v_move_input.setMinimum(-9999)
         self.v_move_input.setMaximum(9999)
         self.v_btn = PushButton(text=gt('纵移'))

@@ -47,11 +47,10 @@ class PhosWindow(MSFluentWindow, PhosFluentWindowBase):
     def __init__(self, parent=None):
 
         # 预配置
-        self._isAeroEnabled = False
         self._isMicaEnabled = False
 
-        self._lightBackgroundColor = QColor(240, 244, 249)
-        self._darkBackgroundColor = QColor(32, 32, 32)
+        self._lightBackgroundColor = QColor(248, 249, 252)
+        self._darkBackgroundColor = QColor(39, 39, 39)
 
         # 父类初始化
         PhosFluentWindowBase.__init__(self, parent=parent)
@@ -84,35 +83,14 @@ class PhosWindow(MSFluentWindow, PhosFluentWindowBase):
         # 函数
         qconfig.themeChangedFinished.connect(self._onThemeChangedFinished)
 
-    # 设置 Aero 磨砂效果 (不启用,会导致性能消耗)
-    def setAeroEffectEnabled(self, isEnabled: bool):
-        self._isAeroEnabled = isEnabled
-        if isEnabled:
-            self.windowEffect.setAeroEffect(int(self.winId()))
-        else:
-            self.windowEffect.removeBackgroundEffect(self.winId())
-        # 设置背景颜色
-        self.setBackgroundColor(self._normalBackgroundColor())
-
-    # 判断 Aero 效果是否启用
-    def isAeroEffectEnabled(self):
-        return self._isAeroEnabled
 
     # 根据主题获取对应的背景色
     def _normalBackgroundColor(self):
-        # 若启用 Aero 效果则返回透明背景
-        if self.isAeroEffectEnabled():
-            return QColor(0, 0, 0, 0)
-        elif isDarkTheme():
+        if isDarkTheme():
             return self._darkBackgroundColor
         else:
             return self._lightBackgroundColor
 
-    # 主题切换
-    def _onThemeChangedFinished(self):
-        if self.isAeroEffectEnabled():
-            # 切换主题时重载 Aero 效果
-            self.windowEffect.setAeroEffect(self.winId(), isDarkTheme())
 
     # 覆盖父类的加载逻辑
     def resizeEvent(self, e):
@@ -215,15 +193,21 @@ class PhosNavigationBar(NavigationBar):
             route_key = widget.property("routeKey")
             self.setCurrentItem(route_key)
 
+    def update_all_buttons_theme_color(self, color_rgb: tuple):
+        """更新所有导航按钮的主题色"""
+        for widget in self.items.values():
+            if isinstance(widget, PhosNavigationBarPushButton):
+                widget.update_global_theme_color(color_rgb)
+
 
 # 自定义导航按钮类
 
 
 class PhosNavigationBarPushButton(NavigationBarPushButton):
     _theme_colors = {
-        "dark_icon": "#b2b2b2",
-        "light_icon": "#5c6e93",
-        "selected_icon": "#ffffff",
+        "dark_icon": "#8b8b8b",
+        "light_icon": "#818181",
+        "selected_icon": "#0067c0",
         "background_dark": 255,
         "background_light": 0,
     }
@@ -233,15 +217,21 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
 
         # 初始化几何参数
         self.icon_rect = QRectF(22, 13, 20, 20)
+        self.icon_rect_centered = QRectF(22, 18, 20, 20)
         self.text_rect = QRect(0, 32, 64, 26)
 
         # 图标配置
+        self._icon = icon
         self._selectedIcon = selectedIcon or icon
+        # 是否在选中状态下仍显示文字（默认显示）
         self._isSelectedTextVisible = True
 
         # 固定控件尺寸
         self.setFixedSize(64, 56)
-        setFont(self, 12, weight=QFont.Weight.ExtraBold)
+        setFont(self, 12)
+
+        # 全局主题色
+        self._global_theme_color = (0, 120, 215)  # 默认蓝色
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -257,11 +247,21 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
         painter.setBrush(bg_color)
         painter.drawRoundedRect(self.rect().adjusted(4, 0, -4, 0), 10, 10)
 
+        # 绘制蓝色短线（选中状态）
+        if self.isSelected:
+            r, g, b = self._global_theme_color
+            painter.setBrush(QColor(r, g, b))  # 使用全局主题色
+            line_rect = QRect(2, 18, 4, 20)  # 左侧短线
+            painter.drawRoundedRect(line_rect, 2, 2)
+
         # 绘制图标
         icon_color = self._get_icon_color()
-        self._selectedIcon.render(painter, self.icon_rect, fill=icon_color)
+        current_icon = self._selectedIcon if self.isSelected else self._icon
+        # 选中且隐藏文字时居中；否则使用普通位置以便显示文字
+        icon_position = self.icon_rect_centered if (self.isSelected and not self._isSelectedTextVisible) else self.icon_rect
+        current_icon.render(painter, icon_position, fill=icon_color)
 
-        # 绘制文本(选中时根据配置显隐)
+        # 选中时是否隐藏文字由 _isSelectedTextVisible 决定
         if self.isSelected and not self._isSelectedTextVisible:
             return
 
@@ -273,15 +273,13 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
     def _get_bg_color(self):
         """获取自适应主题的背景颜色"""
         if self.isSelected:
-            return QColor(214, 75, 84, 255)
+            return QColor(0, 0, 0, 0)
 
-        base_color = self._theme_colors[
-            "background_dark" if isDarkTheme() else "background_light"
-        ]
+        # 悬停
+        if self.isEnter:
+            return QColor(128, 128, 128, 25)  # 淡灰色悬停效果
 
-        # 动态透明度处理
-        alpha = 64 if self.isPressed else 32 if self.isEnter else 0
-        return QColor(base_color, base_color, base_color, alpha)
+        return QColor(0, 0, 0, 0)  # 默认透明背景
 
     def _get_icon_color(self):
         """获取图标颜色(含选中状态处理)"""
@@ -289,12 +287,22 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
             return self._theme_colors["dark_icon" if isDarkTheme() else "light_icon"]
 
         icon_type_check = isinstance(self._selectedIcon, FluentIconBase)
-        return self._theme_colors["selected_icon" if icon_type_check else "light_icon"]
+        if icon_type_check:
+            # 使用全局主题色
+            r, g, b = self._global_theme_color
+            return f"rgb({r}, {g}, {b})"
+        else:
+            return self._theme_colors["light_icon"]
 
     def _get_text_color(self):
         """获取文本颜色"""
         if self.isSelected:
-            return QColor(255, 255, 255)
+            if isDarkTheme():
+                return QColor(255, 255, 255)
+            else:
+                # 使用全局主题色
+                r, g, b = self._global_theme_color
+                return QColor(r, g, b)
 
         # 根据主题返回对应颜色
         return QColor(178, 178, 178) if isDarkTheme() else QColor(92, 110, 147)
@@ -304,6 +312,11 @@ class PhosNavigationBarPushButton(NavigationBarPushButton):
         if isSelected == self.isSelected:
             return
         self.isSelected = isSelected
+
+    def update_global_theme_color(self, color_rgb: tuple):
+        """更新全局主题色"""
+        self._global_theme_color = color_rgb
+        self.update()  # 触发重绘
 
 
 class PhosTitleBar(SplitTitleBar):

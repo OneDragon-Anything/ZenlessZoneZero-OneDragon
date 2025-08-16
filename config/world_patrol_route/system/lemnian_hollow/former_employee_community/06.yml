@@ -1,0 +1,20 @@
+idx: 6
+op_list:
+- data:
+  - '409'
+  - '1254'
+  op_type: move
+- data:
+  - '444'
+  - '1288'
+  op_type: move
+- data:
+  - '503'
+  - '1299'
+  op_type: move
+- data:
+  - '423'
+  - '1292'
+  op_type: move
+tp_area_id: former_employee_community
+tp_name: 职工宿舍西区

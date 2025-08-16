@@ -1,0 +1,36 @@
+idx: 2
+op_list:
+- data:
+  - '414'
+  - '491'
+  op_type: move
+- data:
+  - '460'
+  - '443'
+  op_type: move
+- data:
+  - '519'
+  - '446'
+  op_type: move
+- data:
+  - '586'
+  - '455'
+  op_type: move
+- data:
+  - '605'
+  - '413'
+  op_type: move
+- data:
+  - '605'
+  - '363'
+  op_type: move
+- data:
+  - '627'
+  - '270'
+  op_type: move
+- data:
+  - '665'
+  - '310'
+  op_type: move
+tp_area_id: rough_machining_center
+tp_name: 一楼广场

@@ -1,11 +1,12 @@
 import time
+import random
 
 import json
 import os
 import requests
 import webbrowser
-from PySide6.QtCore import Qt, QSize, QTimer, QThread, Signal
-from PySide6.QtGui import QPixmap, QFont, QPainterPath, QRegion, QColor
+from PySide6.QtCore import Qt, QSize, QTimer, QThread, Signal, QRectF
+from PySide6.QtGui import QPixmap, QFont, QPainterPath, QColor, QPainter, QImage
 from PySide6.QtWidgets import (
     QVBoxLayout,
     QListWidgetItem,
@@ -13,15 +14,41 @@ from PySide6.QtWidgets import (
     QLabel,
     QHBoxLayout,
     QStackedWidget,
-    QFrame,
+    QFrame, QGraphicsDropShadowEffect,
 )
-from qfluentwidgets import SimpleCardWidget, HorizontalFlipView, ListWidget
+from qfluentwidgets import SimpleCardWidget, HorizontalFlipView, ListWidget, qconfig, Theme
 
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 from one_dragon_qt.widgets.pivot import CustomListItemDelegate, PhosPivot
 from one_dragon.utils.log_utils import log
 from .label import EllipsisLabel
 
+
+def get_notice_theme_palette():
+    """返回与主题相关的颜色配置。
+
+    返回:
+        dict: {
+            'tint': QColor,           # 背景半透明色
+            'title': str,             # 标题文本颜色
+            'date': str,              # 日期文本颜色
+            'shadow': QColor          # 外部阴影颜色
+        }
+    """
+    if qconfig.theme == Theme.DARK:
+        return {
+            'tint': QColor(20, 20, 20, 160),
+            'title': '#fff',
+            'date': '#ddd',
+            'shadow': QColor(0, 0, 0, 170),
+        }
+    else:
+        return {
+            'tint': QColor(245, 245, 245, 160),
+            'title': '#000',
+            'date': '#333',
+            'shadow': QColor(0, 0, 0, 150),
+        }
 
 class SkeletonBanner(QFrame):
     """骨架屏Banner组件 - 简化版"""
@@ -37,7 +64,7 @@ class SkeletonBanner(QFrame):
                     stop:0 rgba(240, 240, 240, 200),
                     stop:0.5 rgba(255, 255, 255, 230),
                     stop:1 rgba(240, 240, 240, 200));
-                border-radius: 10px;
+                border-radius: 4px;
                 border: 2px solid rgba(200, 200, 200, 100);
             }
         """)
@@ -75,7 +102,7 @@ class SkeletonContent(QWidget):
                         stop:0 rgba(224, 224, 224, 150),
                         stop:0.5 rgba(240, 240, 240, 200),
                         stop:1 rgba(224, 224, 224, 150));
-                    border-radius: 8px;
+                    border-radius: 4px;
                     border: 1px solid rgba(200, 200, 200, 80);
                 }
             """)
@@ -118,6 +145,44 @@ class BannerImageLoader(QThread):
             self.loaded_count += 1
 
         self.all_images_loaded.emit()
+
+
+class RoundedBannerView(HorizontalFlipView):
+    """抗锯齿圆角 Banner 视图，避免 QRegion 掩膜造成的锯齿边缘"""
+
+    def __init__(self, radius: int = 4, parent=None):
+        super().__init__(parent)
+        self._radius = radius
+        self.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+
+        r = float(self._radius)
+        rectF = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+        x, y, w, h = rectF.x(), rectF.y(), rectF.width(), rectF.height()
+        path = QPainterPath()
+        # top-left to top-right with rounded corners; bottom corners are square
+        path.moveTo(x + r, y)
+        path.lineTo(x + w - r, y)
+        path.quadTo(x + w, y, x + w, y + r)
+        path.lineTo(x + w, y + h)
+        path.lineTo(x, y + h)
+        path.lineTo(x, y + r)
+        path.quadTo(x, y, x + r, y)
+        path.closeSubpath()
+        painter.setClipPath(path)
+
+        # 让父类完成内容绘制（图片自身使用平滑缩放）
+        super().paintEvent(event)
+
+        # 细边改善边缘观感
+        painter.setPen(QColor(255, 255, 255, 40))
+        painter.drawPath(path)
+        painter.end()
 
 
 # 增加了缓存机制, 有效期为3天, 避免每次都请求数据
@@ -177,14 +242,64 @@ class DataFetcher(QThread):
                 log.error(f"下载相关文件失败: {e}")
 
 
+class AcrylicBackground(QWidget):
+    """“虚化”背景：半透明底色 + 轻噪声 + 细描边"""
+
+    def __init__(self, parent=None, radius: int = 4, tint: QColor = QColor(245, 245, 245, 130)):
+        super().__init__(parent)
+        self.radius = radius
+        self.tint = tint
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
+        self._noise_tile = self._generate_noise_tile(64, 64)
+
+    def _generate_noise_tile(self, width: int, height: int) -> QPixmap:
+        img = QImage(width, height, QImage.Format.Format_ARGB32)
+        for y in range(height):
+            for x in range(width):
+                v = 240 + random.randint(-10, 10)
+                v = max(0, min(255, v))
+                img.setPixel(x, y, QColor(v, v, v, 255).rgba())
+        return QPixmap.fromImage(img)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        rectF = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+        path = QPainterPath()
+        path.addRoundedRect(rectF, self.radius, self.radius)
+
+        # 半透明底色
+        painter.fillPath(path, self.tint)
+
+        # 轻度噪声覆盖
+        painter.save()
+        painter.setClipPath(path)
+        painter.setOpacity(0.05)
+        painter.drawTiledPixmap(self.rect(), self._noise_tile)
+        painter.restore()
+
+        # 细描边
+        painter.setPen(QColor(255, 255, 255, 36))
+        painter.drawPath(path)
+        painter.end()
+
+
 class NoticeCard(SimpleCardWidget):
     def __init__(self):
         SimpleCardWidget.__init__(self)
-        self.setBorderRadius(10)
+        self.setBorderRadius(4)
         self.setFixedWidth(351)
         self.mainLayout = QVBoxLayout(self)
         self.mainLayout.setContentsMargins(3, 3, 0, 0)
         self.mainLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # 亚克力背景层（轻量实现）
+        palette = get_notice_theme_palette()
+        self._acrylic = AcrylicBackground(self, radius=4, tint=palette['tint'])
+        # 确保阴影在后，背景在最底层
+        self._acrylic.stackUnder(self)
 
         # 骨架屏组件
         self.skeleton_banner = SkeletonBanner(self)
@@ -212,6 +327,13 @@ class NoticeCard(SimpleCardWidget):
 
         self.show_skeleton()  # 初始显示骨架屏
         self.fetch_data()
+
+        # 监听主题变化，动态调整背景与文本颜色
+        qconfig.themeChanged.connect(self._on_theme_changed)
+        # 初次加载也应用一次文本颜色覆盖
+        self.apply_theme_colors()
+        # 强制刷新一次，避免首次渲染时阴影被背景层覆盖引起的闪烁
+        self.update()
 
     def _normalBackgroundColor(self):
         return QColor(255, 255, 255, 13)
@@ -320,18 +442,11 @@ class NoticeCard(SimpleCardWidget):
                 )
 
     def setup_ui(self):
-        self.flipView = HorizontalFlipView(self)
+        self.flipView = RoundedBannerView(radius=4, parent=self)
         self.flipView.addImages(self.banners)
-        self.flipView.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)
         self.flipView.setItemSize(QSize(345, 160))
         self.flipView.setFixedSize(QSize(345, 160))
         self.flipView.itemClicked.connect(self.open_banner_link)
-
-        # 实现遮罩
-        path = QPainterPath()
-        path.addRoundedRect(self.flipView.rect(), 10, 10, Qt.SizeMode.AbsoluteSize)
-        region = QRegion(path.toFillPolygon().toPolygon())
-        self.flipView.setMask(region)
 
         self.mainLayout.addWidget(self.flipView)
         QTimer.singleShot(7000, self.scrollNext)
@@ -379,6 +494,22 @@ class NoticeCard(SimpleCardWidget):
             widget.clear()
             self.add_posts_to_widget(widget, type)
 
+    def apply_theme_colors(self):
+        """在现有样式后附加文本颜色规则，确保覆盖资源 QSS。"""
+        palette = get_notice_theme_palette()
+        title_color, date_color = palette['title'], palette['date']
+        extra = (
+            f"\nQWidget#title, QLabel#title{{color:{title_color} !important;}}"
+            f"\nQWidget#date, QLabel#date{{color:{date_color} !important;}}\n"
+        )
+        self.setStyleSheet(self.styleSheet() + extra)
+
+    def _on_theme_changed(self):
+        if hasattr(self, '_acrylic'):
+            self._acrylic.tint = get_notice_theme_palette()['tint']
+            self._acrylic.update()
+        self.apply_theme_colors()
+
     def scrollNext(self):
         if self.banners:
             self.flipView.setCurrentIndex(
@@ -397,6 +528,12 @@ class NoticeCard(SimpleCardWidget):
     def onCurrentIndexChanged(self, index):
         widget = self.stackedWidget.widget(index)
         self.pivot.setCurrentItem(widget.objectName())
+
+    def resizeEvent(self, event):
+        # 背景层充满圆角卡片
+        if hasattr(self, '_acrylic') and self._acrylic:
+            self._acrylic.setGeometry(self.rect())
+        return SimpleCardWidget.resizeEvent(self, event)
 
     def open_banner_link(self):
         if self.banner_urls:
@@ -452,6 +589,13 @@ class NoticeCardContainer(QWidget):
         self.notice_card = NoticeCard()
         OdQtStyleSheet.NOTICE_CARD.apply(self.notice_card)
         self.main_layout.addWidget(self.notice_card)
+
+        # 给容器加外部阴影（阴影在卡片外侧）
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(36)
+        shadow.setOffset(0, 12)
+        shadow.setColor(get_notice_theme_palette()['shadow'])
+        self.setGraphicsEffect(shadow)
 
         # 控制状态
         self._notice_enabled = False

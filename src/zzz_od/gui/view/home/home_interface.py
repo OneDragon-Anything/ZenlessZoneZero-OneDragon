@@ -2,8 +2,10 @@ import os
 import requests
 from datetime import datetime, timedelta
 from PySide6.QtCore import Qt, QThread, Signal, QSize, QUrl
+from PySide6.QtWidgets import QGraphicsDropShadowEffect
 from PySide6.QtGui import (
     QFont,
+    QFontMetrics,
     QDesktopServices, QColor
 )
 from PySide6.QtWidgets import (
@@ -11,6 +13,8 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QSpacerItem,
     QSizePolicy,
+    QApplication,
+    QWidget,
 )
 from qfluentwidgets import (
     FluentIcon,
@@ -37,6 +41,8 @@ class ButtonGroup(SimpleCardWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
+
+        self.setBorderRadius(4)
 
         self.setFixedSize(56, 180)
 
@@ -286,11 +292,11 @@ class HomeInterface(VerticalScrollInterface):
         v_layout.addStretch()
 
         # 底部部分 (公告卡片 + 启动按钮)
-        h2_layout = QHBoxLayout()
+        bottom_bar = QWidget()
+        h2_layout = QHBoxLayout(bottom_bar)
         h2_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # 左边留白区域
-        h2_layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
+        h2_layout.setContentsMargins(20, 0, 20, 0)
 
         # 公告卡片
         self.notice_container = NoticeCardContainer()
@@ -302,21 +308,36 @@ class HomeInterface(VerticalScrollInterface):
         h2_layout.addStretch()
 
         # 启动游戏按钮布局
-        start_button = PrimaryPushButton(text="启动一条龙🚀")
-        start_button.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
-        start_button.setFixedSize(160, 48)
-        start_button.clicked.connect(self._on_start_game)
+        self.start_button = PrimaryPushButton(text="启动一条龙🚀")
+        self.start_button.setObjectName("start_button")
+        self.start_button.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
+        # 动态计算宽度：文本宽度 + 左右内边距（约 48px）
+        fm = QFontMetrics(self.start_button.font())
+        text_width = fm.horizontalAdvance(self.start_button.text())
+        self.start_button.setFixedSize(max(180, text_width + 48), 48)
+        self.start_button.clicked.connect(self._on_start_game)
+
+        # 按钮阴影
+        shadow = QGraphicsDropShadowEffect(self.start_button)
+        shadow.setBlurRadius(24)
+        shadow.setOffset(0, 8)
+        shadow.setColor(QColor(0, 0, 0, 120))
+        self.start_button.setGraphicsEffect(shadow)
 
         v1_layout = QVBoxLayout()
-        v1_layout.addWidget(start_button, alignment=Qt.AlignmentFlag.AlignBottom)
+        v1_layout.setContentsMargins(0, 0, 0, 0)
+        v1_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
         h2_layout.addLayout(v1_layout)
 
-        # 空白占位符
-        h2_layout.addItem(QSpacerItem(25, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
+        # 底部保持约 1cm 间距
+        screen = QApplication.primaryScreen()
+        dpi = screen.logicalDotsPerInch() if screen else 96
+        one_cm_px = max(0, int(dpi / 2.54))
+        v_layout.setContentsMargins(0, 0, 0, one_cm_px)
 
-        # 将底部水平布局添加到垂直布局
-        v_layout.addLayout(h2_layout)
+        # 将底部容器添加到主垂直布局
+        v_layout.addWidget(bottom_bar)
 
         # 初始化父类
         super().__init__(
@@ -328,10 +349,14 @@ class HomeInterface(VerticalScrollInterface):
         )
 
         # 应用样式
-        OdQtStyleSheet.GAME_BUTTON.apply(start_button)
+        OdQtStyleSheet.GAME_BUTTON.apply(self.start_button)
+        self._update_start_button_style_from_banner()
 
         self.ctx = ctx
         self._init_check_runners()
+
+        # 监听背景刷新信号，确保主题色在背景变化时更新
+        self._last_reload_banner_signal = False
 
     def _init_check_runners(self):
         """初始化检查更新的线程"""
@@ -360,6 +385,12 @@ class HomeInterface(VerticalScrollInterface):
 
         # 检查公告卡片配置是否变化
         self._check_notice_config_change()
+
+        # 检查背景是否需要刷新
+        self._check_banner_reload_signal()
+
+        # 初始化主题色，避免navbar颜色闪烁
+        self._update_start_button_style_from_banner()
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
@@ -399,6 +430,8 @@ class HomeInterface(VerticalScrollInterface):
         """
         # 更新背景图片
         self._banner_widget.set_banner_image(self.choose_banner_image())
+        # 依据背景重新计算按钮配色
+        self._update_start_button_style_from_banner()
         self.ctx.signal.reload_banner = False
         if show_notification:
             self._show_info_bar("背景已更新", "新的背景已成功应用", 3000)
@@ -429,3 +462,76 @@ class HomeInterface(VerticalScrollInterface):
             self.notice_container.set_notice_enabled(current_config)
             # 重置信号状态
             self.ctx.signal.notice_card_config_changed = False
+
+    def _check_banner_reload_signal(self):
+        """检查背景重新加载信号"""
+        if self.ctx.signal.reload_banner != self._last_reload_banner_signal:
+            if self.ctx.signal.reload_banner:
+                self._update_start_button_style_from_banner()
+            self._last_reload_banner_signal = self.ctx.signal.reload_banner
+
+    def _update_start_button_style_from_banner(self) -> None:
+        """从当前背景取主色，应用到启动按钮。"""
+        image = self._banner_widget.banner_image
+        if image is None or image.isNull() or not hasattr(self, 'start_button'):
+            return
+
+        # 取右下角区域的平均色，代表按钮附近背景
+        w, h = image.width(), image.height()
+        x0 = int(w * 0.65)
+        y0 = int(h * 0.65)
+        x1 = w
+        y1 = h
+
+        r_sum = g_sum = b_sum = count = 0
+        for y in range(y0, y1, max(1, (y1 - y0) // 64)):
+            for x in range(x0, x1, max(1, (x1 - x0) // 64)):
+                c = image.pixelColor(x, y)
+                r_sum += c.red()
+                g_sum += c.green()
+                b_sum += c.blue()
+                count += 1
+        if count == 0:
+            return
+
+        r = int(r_sum / count)
+        g = int(g_sum / count)
+        b = int(b_sum / count)
+
+        base_color = QColor(r, g, b)
+        h, s, v, a = base_color.getHsvF()
+        if h < 0:  # 灰阶时 hue 可能为 -1
+            h = 0.0
+        s = min(1.0, s * 2.0 + 0.25)
+        v = min(1.0, v * 1.08 + 0.06)
+        vivid = QColor.fromHsvF(h, s, v, 1.0)
+        lr, lg, lb = vivid.red(), vivid.green(), vivid.blue()
+
+        # 若整体仍偏暗，小幅增加明度，避免洗白
+        def luminance_of(rr: int, gg: int, bb: int) -> float:
+            return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb
+
+        for _ in range(2):
+            if luminance_of(lr, lg, lb) >= 160:
+                break
+            tmp = QColor(lr, lg, lb)
+            th, ts, tv, ta = tmp.getHsvF()
+            if th < 0:
+                th = 0.0
+            tv = min(1.0, tv + 0.10)
+            tmp2 = QColor.fromHsvF(th, ts, tv, 1.0)
+            lr, lg, lb = tmp2.red(), tmp2.green(), tmp2.blue()
+
+        # 基于相对亮度选择文本色（黑/白）
+        luminance = luminance_of(lr, lg, lb)
+        text_color = "black" if luminance > 145 else "white"
+
+        # 将提取的颜色存储到全局 context 中
+        self.ctx.signal.global_theme_color = (lr, lg, lb)
+        self.ctx.signal.theme_color_changed = True
+
+        # 本按钮局部样式：圆角为高度一半（胶囊形），背景从图取色
+        radius = max(1, self.start_button.height() // 2)
+        self.start_button.setStyleSheet(
+            f"background-color: rgb({lr}, {lg}, {lb}); color: {text_color}; border-radius: {radius}px;"
+        )

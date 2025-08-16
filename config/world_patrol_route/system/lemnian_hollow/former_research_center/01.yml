@@ -1,0 +1,44 @@
+idx: 1
+op_list:
+- data:
+  - '385'
+  - '1092'
+  op_type: move
+- data:
+  - '400'
+  - '1119'
+  op_type: move
+- data:
+  - '480'
+  - '1111'
+  op_type: move
+- data:
+  - '583'
+  - '1082'
+  op_type: move
+- data:
+  - '622'
+  - '1035'
+  op_type: move
+- data:
+  - '584'
+  - '966'
+  op_type: move
+- data:
+  - '542'
+  - '928'
+  op_type: move
+- data:
+  - '458'
+  - '930'
+  op_type: move
+- data:
+  - '344'
+  - '925'
+  op_type: move
+- data:
+  - '311'
+  - '863'
+  op_type: move
+tp_area_id: former_research_center
+tp_name: 科研院西侧
