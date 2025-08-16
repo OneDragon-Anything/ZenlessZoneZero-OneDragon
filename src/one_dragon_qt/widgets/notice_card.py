@@ -353,9 +353,9 @@ class NoticeCard(SimpleCardWidget):
         pixel_ratio = self.devicePixelRatio()
 
         self._banner_loader = BannerImageLoader(banners, pixel_ratio, self)
-        self._banner_loader.image_loaded.connect(self._on_banner_image_loaded)
-        self._banner_loader.all_images_loaded.connect(self._on_all_banners_loaded)
-        self._banner_loader.finished.connect(self._on_banner_loading_finished)
+        self._banner_loader.image_loaded.connect(self._on_banner_image_loaded,Qt.ConnectionType.QueuedConnection)
+        self._banner_loader.all_images_loaded.connect(self._on_all_banners_loaded,Qt.ConnectionType.QueuedConnection)
+        self._banner_loader.finished.connect(self._on_banner_loading_finished,Qt.ConnectionType.QueuedConnection)
         self._banner_loader.start()
 
     def _on_banner_image_loaded(self, pixmap: QPixmap, url: str):
