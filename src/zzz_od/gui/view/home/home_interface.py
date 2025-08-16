@@ -560,7 +560,7 @@ class HomeInterface(VerticalScrollInterface):
 
     def _update_start_button_style_from_banner(self) -> None:
         """从当前背景取主色，应用到启动按钮。"""
-        log.info("开始更新启动按钮样式")
+        log.debug("开始更新启动按钮样式")
 
         # 确保按钮存在
         if not hasattr(self, 'start_button'):
