@@ -3,6 +3,7 @@ from enum import Enum
 from pynput import keyboard, mouse
 from typing import Optional
 
+from one_dragon.base.config.emulator_config import EmulatorConfig
 from one_dragon.base.config.custom_config import CustomConfig, UILanguageEnum
 from one_dragon.base.config.game_account_config import GameAccountConfig
 from one_dragon.base.config.one_dragon_app_config import OneDragonAppConfig
@@ -69,9 +70,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.context_running_state: ContextRunStateEnum = ContextRunStateEnum.STOP
 
-        self.screen_loader: ScreenContext = ScreenContext()
-        self.template_loader: TemplateLoader = TemplateLoader()
-        self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
+        self.screen_loader: Optional[ScreenContext] = None
+        self.template_loader: Optional[TemplateLoader] = None
+        self.tm: Optional[TemplateMatcher] = None
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
@@ -218,6 +219,21 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.one_dragon_app_config: OneDragonAppConfig = OneDragonAppConfig(self.current_instance_idx)
         self.game_account_config: GameAccountConfig = GameAccountConfig(self.current_instance_idx)
         self.push_config: PushConfig = PushConfig(self.current_instance_idx)
+        self.emulator_config: EmulatorConfig = EmulatorConfig(self.current_instance_idx)
+
+    def init_platform_dependent_components(self) -> None:
+        """
+        根据平台信息，初始化依赖于平台的组件
+        """
+        if self.game_account_config is None:
+            log.error('未加载游戏账号配置，无法初始化平台相关组件')
+            return
+
+        platform = self.game_account_config.platform
+        log.info(f'根据平台 {platform} 初始化组件')
+        self.screen_loader = ScreenContext(platform=platform)
+        self.template_loader = TemplateLoader(platform=platform)
+        self.tm = TemplateMatcher(self.template_loader)
 
     def async_init_ocr(self) -> None:
         """

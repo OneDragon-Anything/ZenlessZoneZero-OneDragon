@@ -29,18 +29,30 @@ class OpenAndEnterGame(Operation):
     @node_from(from_name='打开游戏')
     @operation_node(name='等待游戏打开', node_max_retry_times=60, screenshot_before_round=False)
     def wait_game(self) -> OperationRoundResult:
-        self.ctx.controller.game_win.init_win()
-        if self.ctx.controller.is_game_window_ready:
-            self.ctx.controller.active_window()
-            hdr_op = EnableAutoHDR(self.ctx)
-            hdr_op.execute()
-            return self.round_success()
-        else:
-            return self.round_retry(wait=1)
+        if self.ctx.game_account_config.platform == 'PC':
+            self.ctx.controller.game_win.init_win()
+            if self.ctx.controller.is_game_window_ready:
+                self.ctx.controller.active_window()
+                hdr_op = EnableAutoHDR(self.ctx)
+                hdr_op.execute()
+                return self.round_success()
+            else:
+                return self.round_retry(wait=1)
+        elif self.ctx.game_account_config.platform == 'Emulator':
+            #self.ctx.controller.device.app_start()
+            if self.ctx.controller.device.app_is_running():
+                return self.round_success()
+            else:
+                return self.round_retry(wait=1)
+
+        return self.round_fail(f'不支持的平台 {self.ctx.game_account_config.platform}')
 
     @node_from(from_name='等待游戏打开')
     @operation_node(name='进入游戏')
     def enter_game(self) -> OperationRoundResult:
-        from zzz_od.operation.enter_game.enter_game import EnterGame
-        op = EnterGame(self.ctx)
-        return self.round_by_op_result(op.execute())
+        if self.ctx.game_account_config.platform in ['PC', 'Emulator']:
+            from zzz_od.operation.enter_game.enter_game import EnterGame
+            op = EnterGame(self.ctx)
+            return self.round_by_op_result(op.execute())
+
+        return self.round_fail(f'不支持的平台 {self.ctx.game_account_config.platform}')

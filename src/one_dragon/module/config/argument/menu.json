@@ -1,0 +1,39 @@
+{
+  "Alas": {
+    "menu": "list",
+    "page": "setting",
+    "tasks": [
+      "Alas",
+      "Restart"
+    ]
+  },
+  "Daily": {
+    "menu": "list",
+    "page": "setting",
+    "tasks": [
+      "Dungeon",
+      "Ornament",
+      "DailyQuest",
+      "BattlePass",
+      "Assignment",
+      "DataUpdate",
+      "Freebies"
+    ]
+  },
+  "Weekly": {
+    "menu": "list",
+    "page": "setting",
+    "tasks": [
+      "Weekly",
+      "Rogue"
+    ]
+  },
+  "Tool": {
+    "menu": "list",
+    "page": "tool",
+    "tasks": [
+      "Daemon",
+      "PlannerScan"
+    ]
+  }
+}

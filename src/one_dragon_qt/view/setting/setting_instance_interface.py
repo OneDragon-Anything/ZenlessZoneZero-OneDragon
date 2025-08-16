@@ -4,7 +4,8 @@ from PySide6.QtWidgets import QWidget, QFileDialog
 from qfluentwidgets import FluentIcon, LineEdit, PushButton, \
     ToolButton, PrimaryPushButton, HyperlinkCard, SettingCardGroup
 
-from one_dragon.base.config.game_account_config import GameRegionEnum
+from one_dragon.base.config.emulator_config import GameClient
+from one_dragon.base.config.game_account_config import GameRegionEnum, GamePlatformEnum
 from one_dragon.base.config.one_dragon_config import OneDragonInstance, RunInOneDragonApp
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
@@ -149,8 +150,19 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
         self.init_game_account_config()
 
+        current_platform = self.ctx.game_account_config.platform
+        # self.game_platform_opt.setCurrentText(current_platform)
+        self._on_game_platform_changed(current_platform)  # 初始化可见性
+
     def init_game_account_config(self) -> None:
         # 初始化账号和密码
+        self.game_platform_opt.init_with_adapter(self.ctx.game_account_config.get_prop_adapter('platform'))
+        self.game_platform_opt.value_changed.connect(self._on_game_platform_changed)
+
+        self.game_client_opt.init_with_adapter(self.ctx.emulator_config.get_prop_adapter('Alas.Emulator.GameClient'))
+        self.emulator_path_opt.setContent(self.ctx.emulator_config.emulator_path)
+        self.emulator_serial_opt.init_with_adapter(self.ctx.emulator_config.get_prop_adapter('Alas.Emulator.Serial'))
+
         self.game_path_opt.setContent(self.ctx.game_account_config.game_path)
         self.custom_win_title_opt.init_with_adapter(self.ctx.game_account_config.get_prop_adapter('use_custom_win_title'))
         self.custom_win_title_input.setText(self.ctx.game_account_config.custom_win_title)
@@ -180,9 +192,36 @@ class SettingInstanceInterface(VerticalScrollInterface):
     def _get_instanceSettings_group(self) -> QWidget:
         instance_settings_group = SettingCardGroup(gt('当前账户设置'))
 
+        # 获取当前平台
+        current_platform = self.ctx.game_account_config.platform if hasattr(self, 'ctx') else 0
+        if current_platform == 'PC':
+            is_emulator_platform = 0
+            is_pc_platform = 1
+        elif current_platform == 'Emulator':
+            is_emulator_platform = 1
+            is_pc_platform = 0
+
+        log.info(f"平台初始为: {current_platform}")
+        self.game_platform_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='游戏平台', options_enum=GamePlatformEnum)
+        instance_settings_group.addSettingCard(self.game_platform_opt)
+
+        self.game_client_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='游戏客户端', options_enum=GameClient)
+        instance_settings_group.addSettingCard(self.game_client_opt)
+        self.game_client_opt.setVisible(is_emulator_platform)  # 根据平台设置初始可见性
+
+        self.emulator_path_opt = PushSettingCard(icon=FluentIcon.FOLDER, title='模拟器路径', text='选择')
+        self.emulator_path_opt.clicked.connect(self._on_emulator_path_clicked)
+        instance_settings_group.addSettingCard(self.emulator_path_opt)
+        self.emulator_path_opt.setVisible(is_emulator_platform)  # 根据平台设置初始可见性
+
+        self.emulator_serial_opt = TextSettingCard(icon=FluentIcon.PEOPLE, title='模拟器 Serial')
+        instance_settings_group.addSettingCard(self.emulator_serial_opt)
+        self.emulator_serial_opt.setVisible(is_emulator_platform)  # 根据平台设置初始可见性
+
         self.game_path_opt = PushSettingCard(icon=FluentIcon.FOLDER, title='游戏路径', text='选择')
         self.game_path_opt.clicked.connect(self._on_game_path_clicked)
         instance_settings_group.addSettingCard(self.game_path_opt)
+        self.game_path_opt.setVisible(is_pc_platform)  # 根据平台设置初始可见性
 
         self.custom_win_title_input = LineEdit()
         self.custom_win_title_input.setFixedWidth(214)
@@ -198,6 +237,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
         self.game_region_opt = ComboBoxSettingCard(icon=FluentIcon.HOME, title='游戏区服', options_enum=GameRegionEnum)
         instance_settings_group.addSettingCard(self.game_region_opt)
+        self.game_region_opt.setVisible(is_pc_platform)  # 根据平台设置初始可见性
 
         self.game_account_opt = TextSettingCard(
             icon=FluentIcon.PEOPLE,
@@ -264,3 +304,59 @@ class SettingInstanceInterface(VerticalScrollInterface):
     def _update_custom_win_title(self) -> None:
         self.ctx.game_account_config.custom_win_title =  self.custom_win_title_input.text()
         self.ctx.init_by_config()
+
+    def _on_emulator_path_clicked(self) -> None:
+        """
+        当点击模拟器路径选择按钮时，弹出文件选择对话框
+        """
+        file_path, _ = QFileDialog.getOpenFileName(self, gt('选择模拟器可执行文件'), filter="Exe (*.exe)")
+        if file_path is not None and file_path.endswith('.exe'):
+            log.info('选择模拟器路径 %s', file_path)
+            self._on_emulator_path_chosen(os.path.normpath(file_path))
+
+    def _on_emulator_path_chosen(self, file_path) -> None:
+        """
+        当模拟器路径选择完成后，更新配置并显示在界面上
+        """
+        self.ctx.emulator_config.emulator_path = file_path
+        self.emulator_path_opt.setContent(file_path)
+
+    def _on_game_platform_changed(self, platform: str) -> None:
+        """当游戏平台选择变化时，动态调整其他设置项的显示状态"""
+        log.info(f"平台切换为: {platform}")
+
+        # 确保所有元素都已创建
+        if not hasattr(self, 'game_path_opt') or not hasattr(self, 'game_region_opt') or \
+           not hasattr(self, 'game_client_opt') or not hasattr(self, 'emulator_path_opt') or \
+           not hasattr(self, 'emulator_serial_opt'):
+            log.error("界面元素尚未完全初始化")
+            return
+
+        if platform == 0 or platform == 'PC':
+            # PC平台显示的元素
+            self.game_path_opt.setVisible(True)
+            self.game_region_opt.setVisible(True)
+
+            # PC平台隐藏的元素
+            self.game_client_opt.setVisible(False)
+            self.emulator_path_opt.setVisible(False)
+            self.emulator_serial_opt.setVisible(False)
+
+            log.info("已切换到PC平台视图")
+        elif platform == 1 or platform == '模拟器':
+            # 模拟器平台显示的元素
+            self.game_client_opt.setVisible(True)
+            self.emulator_path_opt.setVisible(True)
+            self.emulator_serial_opt.setVisible(True)
+
+            # 模拟器平台隐藏的元素
+            self.game_path_opt.setVisible(False)
+            self.game_region_opt.setVisible(False)
+
+            log.info("已切换到模拟器平台视图")
+        else:
+            log.warning(f"未知平台类型: {platform}")
+
+        # 强制更新布局
+        self.content_widget.updateGeometry()
+        self.content_widget.update()

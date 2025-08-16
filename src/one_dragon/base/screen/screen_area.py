@@ -10,6 +10,8 @@ class ScreenArea:
     def __init__(self,
                  area_name: str = '',
                  pc_rect: Rect = Rect(0, 0, 0, 0),
+                 emulator_rect: Rect = Rect(0, 0, 0, 0),
+                 platform: str = '',
                  text: Optional[str] = '',
                  lcs_percent: float = 0.5,
                  template_id: Optional[str] = '',
@@ -22,6 +24,8 @@ class ScreenArea:
                  ):
         self.area_name: str = area_name
         self.pc_rect: Rect = pc_rect
+        self.emulator_rect: Rect = emulator_rect
+        self.platform: str = platform
         self.text: Optional[str] = text
         self.lcs_percent: float = lcs_percent
         self.template_id: Optional[str] = template_id
@@ -34,7 +38,10 @@ class ScreenArea:
 
     @property
     def rect(self) -> Rect:
-        return self.pc_rect
+        if self.platform == 'PC':
+            return self.pc_rect
+        else:
+            return self.emulator_rect
 
     @property
     def center(self) -> Point:
@@ -128,6 +135,8 @@ class ScreenArea:
         order_dict['area_name'] = self.area_name
         order_dict['id_mark'] = self.id_mark
         order_dict['pc_rect'] = [self.pc_rect.x1, self.pc_rect.y1, self.pc_rect.x2, self.pc_rect.y2]
+        order_dict['emulator_rect'] = [self.emulator_rect.x1, self.emulator_rect.y1, self.emulator_rect.x2, self.emulator_rect.y2]
+        order_dict['platform'] = self.platform
         order_dict['text'] = self.text
         order_dict['lcs_percent'] = self.lcs_percent
         order_dict['template_sub_dir'] = self.template_sub_dir

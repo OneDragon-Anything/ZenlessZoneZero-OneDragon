@@ -364,10 +364,14 @@ class Operation(OperationBase):
         Returns:
             OperationRoundResult: 如果游戏窗口准备就绪则成功，否则失败。
         """
+        #TODO 需要检查逻辑
         if self.ctx.is_game_window_ready:
             return self.round_success()
         else:
-            return self.round_fail('未打开游戏窗口 %s' % self.ctx.controller.game_win.win_title)
+            if self.ctx.game_config.platform == 'PC':
+                return self.round_fail('未打开游戏窗口 %s' % self.ctx.controller.game_win.win_title)
+            else:
+                return self.round_fail('未启动模拟器')
 
     def open_and_enter_game(self) -> OperationRoundResult:
         """打开并进入游戏。

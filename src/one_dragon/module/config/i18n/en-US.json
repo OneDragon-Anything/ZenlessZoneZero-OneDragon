@@ -1,0 +1,1224 @@
+{
+  "Menu": {
+    "Alas": {
+      "name": "SRC",
+      "help": ""
+    },
+    "Daily": {
+      "name": "Daily",
+      "help": ""
+    },
+    "Weekly": {
+      "name": "Weekly",
+      "help": ""
+    },
+    "Tool": {
+      "name": "Tools",
+      "help": ""
+    }
+  },
+  "Task": {
+    "Alas": {
+      "name": "SRC Settings",
+      "help": ""
+    },
+    "Restart": {
+      "name": "Error Handling",
+      "help": ""
+    },
+    "Dungeon": {
+      "name": "Dungeon",
+      "help": ""
+    },
+    "Ornament": {
+      "name": "Ornament",
+      "help": "The followings must be satisfied:\n1. Manually clear Divergent Universe once this week and have a save file.\n2. Enter the dungeon once on current device to have dungeon team saved."
+    },
+    "DailyQuest": {
+      "name": "Daily Quest",
+      "help": ""
+    },
+    "BattlePass": {
+      "name": "Nameless Honor",
+      "help": ""
+    },
+    "Assignment": {
+      "name": "Assignment",
+      "help": ""
+    },
+    "DataUpdate": {
+      "name": "Dashboard Upd",
+      "help": ""
+    },
+    "Freebies": {
+      "name": "Freebies",
+      "help": ""
+    },
+    "Weekly": {
+      "name": "Echo of War",
+      "help": ""
+    },
+    "Rogue": {
+      "name": "Simulated Universe",
+      "help": ""
+    },
+    "Daemon": {
+      "name": "Dialogue Clicker",
+      "help": ""
+    },
+    "PlannerScan": {
+      "name": "Character Planner",
+      "help": ""
+    }
+  },
+  "Scheduler": {
+    "_info": {
+      "name": "Scheduler",
+      "help": ""
+    },
+    "Enable": {
+      "name": "Enable Task",
+      "help": "Join this task to scheduler.",
+      "True": "Enabled",
+      "False": "False"
+    },
+    "NextRun": {
+      "name": "Next Run",
+      "help": "Updated automatically after completing the task to set next scheduled run, typically not manually modified\nHowever you can force immediate scheduling if you clear this text field"
+    },
+    "Command": {
+      "name": "Command",
+      "help": ""
+    },
+    "ServerUpdate": {
+      "name": "Server Update",
+      "help": "Series of server refresh time(s) as to when this task will next run, this is automatically converted to respective time zone, generally do not need to modify"
+    }
+  },
+  "Emulator": {
+    "_info": {
+      "name": "Emulator Settings",
+      "help": ""
+    },
+    "Serial": {
+      "name": "Serial",
+      "help": "Common emulator Serial can be queried in the list below\nUse \"auto\" to auto-detect emulators, but if multiple emulators are running or use emulators that do not support auto-detect, \"auto\" cannot be used and serial must be filled in manually\nDefault serial for select emulators:\n- BlueStacks 127.0.0.1:5555\n- BlueStacks4 Hyper-V use \"bluestacks4-hyperv\", \"bluestacks4-hyperv-2\" for multi instance, and so on\n- BlueStacks5 Hyper-V use \"bluestacks5-hyperv\", \"bluestacks5-hyperv-1\" for multi instance, and so on\n- NoxPlayer 127.0.0.1:62001\n- NoxPlayer64bit 127.0.0.1:59865\n- MuMuPlayer/MuMuPlayer X 127.0.0.1:7555\n- MuMuPlayer12 127.0.0.1:16384\n- MemuPlayer 127.0.0.1:21503\n- LDPlayer emulator-5554 or 127.0.0.1:5555\n- WSA use \"wsa-0\" to make the game run in the background, which needs to be controlled or closed by third-party software\nIf there are multiple emulator instances running, the default is reserved for one of them and the others will use different serials to avoid conflicts\nOpen console.bat and run `adb devices` to find them or follow the emulator's official tutorial"
+    },
+    "GameClient": {
+      "name": "Game Client",
+      "help": "When using cloud, you will be automatically queued to log in. Cloud game is available in CN only",
+      "android": "Android client",
+      "cloud_android": "Cloud game android client"
+    },
+    "PackageName": {
+      "name": "Game Server",
+      "help": "Can't distinguish different regions of oversea servers, please select the server manually.",
+      "auto": "Auto-detect",
+      "CN-Official": "[CN]-Official",
+      "CN-Bilibili": "[CN]-Bilibili",
+      "OVERSEA-America": "[OVERSEA]-America",
+      "OVERSEA-Asia": "[OVERSEA]-Asia",
+      "OVERSEA-Europe": "[OVERSEA]-Europe",
+      "OVERSEA-TWHKMO": "[OVERSEA]-TW,HK,MO"
+    },
+    "GameLanguage": {
+      "name": "In-game Text Language",
+      "help": "Currently, only Simplified Chinese and English are supported. Please set the text language in game to one of them.",
+      "auto": "Auto-detect",
+      "cn": "简体中文",
+      "en": "English"
+    },
+    "ScreenshotMethod": {
+      "name": "Screenshot Method",
+      "help": "When using auto-select, a benchmark will be performed and automatically changed to the fastest screenshot method.\nGeneral speed: DroidCast_raw >> aScreenCap_nc > ADB_nc >>> aScreenCap > uiautomator2 ~= ADB.\nRun Tools - Performance Test to find the fastest method.",
+      "auto": "Auto-select the fastest",
+      "ADB": "ADB ",
+      "ADB_nc": "ADB_nc",
+      "uiautomator2": "uiautomator2",
+      "aScreenCap": "aScreenCap",
+      "aScreenCap_nc": "aScreenCap_nc",
+      "DroidCast": "DroidCast",
+      "DroidCast_raw": "DroidCast_raw",
+      "scrcpy": "scrcpy",
+      "nemu_ipc": "nemu_ipc"
+    },
+    "ControlMethod": {
+      "name": "Control Method",
+      "help": "Speed: MaaTouch = minitouch >>> uiautomator2 ~= ADB\nMaaTouch is recommended",
+      "minitouch": "minitouch",
+      "MaaTouch": "MaaTouch"
+    },
+    "AdbRestart": {
+      "name": "Try to restart adb when no device found",
+      "help": ""
+    }
+  },
+  "EmulatorInfo": {
+    "_info": {
+      "name": "Emulator Settings",
+      "help": "The following values are auto-filled according to \"Serial\", if you don’t understand, please don't modify them"
+    },
+    "Emulator": {
+      "name": "Emulator Type",
+      "help": "",
+      "auto": "Auto-detect",
+      "NoxPlayer": "Nox Player",
+      "NoxPlayer64": "Nox Player 64bit",
+      "BlueStacks4": "BlueStacks 4",
+      "BlueStacks5": "BlueStacks 5",
+      "BlueStacks4HyperV": "BlueStacks 4 Hyper-V",
+      "BlueStacks5HyperV": "BlueStacks 5 Hyper-V",
+      "LDPlayer3": "LD Player 3",
+      "LDPlayer4": "LD Player 4",
+      "LDPlayer9": "LD Player 9",
+      "MuMuPlayer": "MuMu Player",
+      "MuMuPlayerX": "MuMu Player X",
+      "MuMuPlayer12": "MuMu Player 12",
+      "MEmuPlayer": "MEmu Player"
+    },
+    "name": {
+      "name": "Emulator Instance Name",
+      "help": ""
+    },
+    "path": {
+      "name": "Emulator Installation Path",
+      "help": ""
+    }
+  },
+  "Error": {
+    "_info": {
+      "name": "Debug Settings",
+      "help": ""
+    },
+    "Restart": {
+      "name": "Restart Game on Error",
+      "help": "",
+      "game": "Restart game",
+      "game_emulator": "Restart emulator and game"
+    },
+    "SaveError": {
+      "name": "Record Exception",
+      "help": "Records exception and log into directory for review or sharing"
+    },
+    "ScreenshotLength": {
+      "name": "Record Screenshot(s)",
+      "help": "Number of screenshots saved when exception occurs"
+    },
+    "OnePushConfig": {
+      "name": "Error notify config",
+      "help": "When Alas cannot handle exception, send a message through Onepush. Configuration document: \nhttps://github.com/LmeSzinc/AzurLaneAutoScript/wiki/Onepush-configuration-%5BEN%5D"
+    }
+  },
+  "Optimization": {
+    "_info": {
+      "name": "Optimization Settings",
+      "help": ""
+    },
+    "ScreenshotInterval": {
+      "name": "Take Screenshots Every X Second(s)",
+      "help": "Minimum interval between 2 screenshots, limited in 0.1 ~ 0.3, can help reduce CPU on high-end PCs"
+    },
+    "CombatScreenshotInterval": {
+      "name": "Take Screenshots Every X Second(s) In Combat",
+      "help": "Minimum interval between 2 screenshots, limited in 0.1 ~ 1.0, can help reduce CPU during battle"
+    },
+    "WhenTaskQueueEmpty": {
+      "name": "When Task Queue is Empty",
+      "help": "Close AL when there are no pending tasks, can help reduce CPU",
+      "stay_there": "Stay There",
+      "goto_main": "Goto Main Page",
+      "close_game": "Close Game"
+    }
+  },
+  "Dungeon": {
+    "_info": {
+      "name": "Dungeon Settings",
+      "help": "Brush a dungeon until trailblaze power runs out"
+    },
+    "Name": {
+      "name": "Dungeon Name",
+      "help": "Default dungeon setting",
+      "Calyx_Golden_Memories_Penacony": "Material: Character EXP (Bud of Memories, Penacony)",
+      "Calyx_Golden_Memories_The_Xianzhou_Luofu": "Material: Character EXP (Bud of Memories, The Xianzhou Luofu)",
+      "Calyx_Golden_Memories_Jarilo_VI": "Material: Character EXP (Bud of Memories, Jarilo-VI)",
+      "Calyx_Golden_Aether_Penacony": "Material: Light Cone EXP (Bud of Aether)",
+      "Calyx_Golden_Aether_The_Xianzhou_Luofu": "Material: Light Cone EXP (Bud of Aether)",
+      "Calyx_Golden_Aether_Jarilo_VI": "Material: Light Cone EXP (Bud of Aether)",
+      "Calyx_Golden_Treasures_Penacony": "Material: Credit (Bud of Treasures)",
+      "Calyx_Golden_Treasures_The_Xianzhou_Luofu": "Material: Credit (Bud of Treasures)",
+      "Calyx_Golden_Treasures_Jarilo_VI": "Material: Credit (Bud of Treasures)",
+      "Calyx_Crimson_Destruction_Herta_StorageZone": "Trace: Destruction (Storage Zone)",
+      "Calyx_Crimson_Destruction_Luofu_ScalegorgeWaterscape": "Trace: Destruction (Scalegorge Waterscape)",
+      "Calyx_Crimson_Preservation_Herta_SupplyZone": "Trace: Preservation (Supply Zone)",
+      "Calyx_Crimson_Preservation_Penacony_ClockStudiosThemePark": "Trace: Preservation (Clock Studios Theme Park)",
+      "Calyx_Crimson_The_Hunt_Jarilo_OutlyingSnowPlains": "Trace: The Hunt (Outlying Snow Plains)",
+      "Calyx_Crimson_The_Hunt_Penacony_SoulGladScorchsandAuditionVenue": "Trace: The Hunt (SoulGlad Scorchsand Audition Venue)",
+      "Calyx_Crimson_Abundance_Jarilo_BackwaterPass": "Trace: Abundance (Backwater Pass)",
+      "Calyx_Crimson_Abundance_Luofu_FyxestrollGarden": "Trace: Abundance (Fyxestroll Garden)",
+      "Calyx_Crimson_Erudition_Jarilo_RivetTown": "Trace: Erudition (Rivet Town)",
+      "Calyx_Crimson_Erudition_Penacony_PenaconyGrandTheater": "Trace: Erudition (Penacony Grand Theater)",
+      "Calyx_Crimson_Harmony_Jarilo_RobotSettlement": "Trace: The Harmony (Robot Settlement)",
+      "Calyx_Crimson_Harmony_Penacony_TheReverieDreamscape": "Trace: The Harmony (The Reverie (Dreamscape))",
+      "Calyx_Crimson_Nihility_Jarilo_GreatMine": "Trace: Nihility (Great Mine)",
+      "Calyx_Crimson_Nihility_Luofu_AlchemyCommission": "Trace: Nihility (Alchemy Commission)",
+      "Stagnant_Shadow_Spike": "Ascension: Physical (Natasha / Clara / Luka / Sushang)",
+      "Stagnant_Shadow_Perdition": "Ascension: Physical (Hanya / Argenti)",
+      "Stagnant_Shadow_Duty": "Ascension: Physical (Boothill / Robin / Yunli)",
+      "Stagnant_Shadow_Blaze": "Ascension: Fire (Himeko / Asta / Hook)",
+      "Stagnant_Shadow_Scorch": "Ascension: Fire (Guinaifen / Topaz & Numby)",
+      "Stagnant_Shadow_Ire": "Ascension: Fire (Firefly / Gallagher / Jiaoqiu / Lingsha)",
+      "Stagnant_Shadow_Rime": "Ascension: Ice (March 7th / Herta / Gepard / Pela)",
+      "Stagnant_Shadow_Icicle": "Ascension: Ice (Yanqing / Jingliu / Ruan Mei)",
+      "Stagnant_Shadow_Nectar": "Ascension: Ice (Misha)",
+      "Stagnant_Shadow_Fulmination": "Ascension: Lightning (Arlan / Serval / Tingyun / Bailu)",
+      "Stagnant_Shadow_Doom": "Ascension: Lightning (Kafka / Jing Yuan / Acheron)",
+      "Stagnant_Shadow_Mechwolf": "Ascension: Lightning (Moze)",
+      "Stagnant_Shadow_Gust": "Ascension: Wind (Dan Heng / Bronya / Sampo)",
+      "Stagnant_Shadow_Celestial": "Ascension: Wind (Blade / Huohuo / Black Swan)",
+      "Stagnant_Shadow_Gloam": "Ascension: Wind (Feixiao)",
+      "Stagnant_Shadow_Quanta": "Ascension: Quantum (Silver Wolf / Seele / Qingque)",
+      "Stagnant_Shadow_Abomination": "Ascension: Quantum (Lynx / Fu Xuan / Xueyi)",
+      "Stagnant_Shadow_Roast": "Ascension: Quantum (Jade / Sparkle)",
+      "Stagnant_Shadow_Mirage": "Ascension: Imaginary (Welt / Luocha / Yukong)",
+      "Stagnant_Shadow_Puppetry": "Ascension: Imaginary (Dan Heng • Imbibitor Lunae / Aventurine / Dr. Ratio)",
+      "Cavern_of_Corrosion_Path_of_Cavalier": "Relics: Super Break Set & Pursuit Ultimate Set (Path of Cavalier)",
+      "Cavern_of_Corrosion_Path_of_Dreamdive": "Relics: Debuff Set & Break Effect Set (Path of Dreamdive)",
+      "Cavern_of_Corrosion_Path_of_Darkness": "Relics: Pursuit Set & Dot Set (Path of Darkness)",
+      "Cavern_of_Corrosion_Path_of_Elixir_Seekers": "Relics: HP Set & SPD Set (Path of Elixir Seekers)",
+      "Cavern_of_Corrosion_Path_of_Conflagration": "Relics: Fire Set & Imaginary Set (Path of Conflagration)",
+      "Cavern_of_Corrosion_Path_of_Holy_Hymn": "Relics: DEF Set & Lighting Set (Path of Holy Hymn)",
+      "Cavern_of_Corrosion_Path_of_Providence": "Relics: Guard Set & Quantum Set (Path of Providence)",
+      "Cavern_of_Corrosion_Path_of_Drifting": "Relics: Healing Set & Musketeer Set (Path of Drifting)",
+      "Cavern_of_Corrosion_Path_of_Jabbing_Punch": "Relics: Physical Set & Break Effect Set (Path of Jabbing Punch)",
+      "Cavern_of_Corrosion_Path_of_Gelid_Wind": "Relics: Ice Set & Wind Set (Path of Gelid Wind)"
+    },
+    "NameAtDoubleCalyx": {
+      "name": "At Double Calyx Event, choose dungeon",
+      "help": "Return to the default dungeon settings after double times exhausted",
+      "Calyx_Golden_Memories_Penacony": "Material: Character EXP (Bud of Memories, Penacony)",
+      "Calyx_Golden_Memories_The_Xianzhou_Luofu": "Material: Character EXP (Bud of Memories, The Xianzhou Luofu)",
+      "Calyx_Golden_Memories_Jarilo_VI": "Material: Character EXP (Bud of Memories, Jarilo-VI)",
+      "Calyx_Golden_Aether_Penacony": "Material: Light Cone EXP (Bud of Aether)",
+      "Calyx_Golden_Aether_The_Xianzhou_Luofu": "Material: Light Cone EXP (Bud of Aether)",
+      "Calyx_Golden_Aether_Jarilo_VI": "Material: Light Cone EXP (Bud of Aether)",
+      "Calyx_Golden_Treasures_Penacony": "Material: Credit (Bud of Treasures)",
+      "Calyx_Golden_Treasures_The_Xianzhou_Luofu": "Material: Credit (Bud of Treasures)",
+      "Calyx_Golden_Treasures_Jarilo_VI": "Material: Credit (Bud of Treasures)",
+      "Calyx_Crimson_Destruction_Herta_StorageZone": "Trace: Destruction (Storage Zone)",
+      "Calyx_Crimson_Destruction_Luofu_ScalegorgeWaterscape": "Trace: Destruction (Scalegorge Waterscape)",
+      "Calyx_Crimson_Preservation_Herta_SupplyZone": "Trace: Preservation (Supply Zone)",
+      "Calyx_Crimson_Preservation_Penacony_ClockStudiosThemePark": "Trace: Preservation (Clock Studios Theme Park)",
+      "Calyx_Crimson_The_Hunt_Jarilo_OutlyingSnowPlains": "Trace: The Hunt (Outlying Snow Plains)",
+      "Calyx_Crimson_The_Hunt_Penacony_SoulGladScorchsandAuditionVenue": "Trace: The Hunt (SoulGlad Scorchsand Audition Venue)",
+      "Calyx_Crimson_Abundance_Jarilo_BackwaterPass": "Trace: Abundance (Backwater Pass)",
+      "Calyx_Crimson_Abundance_Luofu_FyxestrollGarden": "Trace: Abundance (Fyxestroll Garden)",
+      "Calyx_Crimson_Erudition_Jarilo_RivetTown": "Trace: Erudition (Rivet Town)",
+      "Calyx_Crimson_Erudition_Penacony_PenaconyGrandTheater": "Trace: Erudition (Penacony Grand Theater)",
+      "Calyx_Crimson_Harmony_Jarilo_RobotSettlement": "Trace: The Harmony (Robot Settlement)",
+      "Calyx_Crimson_Harmony_Penacony_TheReverieDreamscape": "Trace: The Harmony (The Reverie (Dreamscape))",
+      "Calyx_Crimson_Nihility_Jarilo_GreatMine": "Trace: Nihility (Great Mine)",
+      "Calyx_Crimson_Nihility_Luofu_AlchemyCommission": "Trace: Nihility (Alchemy Commission)"
+    },
+    "NameAtDoubleRelic": {
+      "name": "At Double Relic Event, choose dungeon",
+      "help": "Return to the default dungeon settings after double times exhausted",
+      "Cavern_of_Corrosion_Path_of_Cavalier": "Relics: Super Break Set & Pursuit Ultimate Set (Path of Cavalier)",
+      "Cavern_of_Corrosion_Path_of_Dreamdive": "Relics: Debuff Set & Break Effect Set (Path of Dreamdive)",
+      "Cavern_of_Corrosion_Path_of_Darkness": "Relics: Pursuit Set & Dot Set (Path of Darkness)",
+      "Cavern_of_Corrosion_Path_of_Elixir_Seekers": "Relics: HP Set & SPD Set (Path of Elixir Seekers)",
+      "Cavern_of_Corrosion_Path_of_Conflagration": "Relics: Fire Set & Imaginary Set (Path of Conflagration)",
+      "Cavern_of_Corrosion_Path_of_Holy_Hymn": "Relics: DEF Set & Lighting Set (Path of Holy Hymn)",
+      "Cavern_of_Corrosion_Path_of_Providence": "Relics: Guard Set & Quantum Set (Path of Providence)",
+      "Cavern_of_Corrosion_Path_of_Drifting": "Relics: Healing Set & Musketeer Set (Path of Drifting)",
+      "Cavern_of_Corrosion_Path_of_Jabbing_Punch": "Relics: Physical Set & Break Effect Set (Path of Jabbing Punch)",
+      "Cavern_of_Corrosion_Path_of_Gelid_Wind": "Relics: Ice Set & Wind Set (Path of Gelid Wind)"
+    },
+    "Team": {
+      "name": "Dungeon Team",
+      "help": "",
+      "1": "1",
+      "2": "2",
+      "3": "3",
+      "4": "4",
+      "5": "5",
+      "6": "6",
+      "7": "7",
+      "8": "8",
+      "9": "9"
+    }
+  },
+  "TrailblazePower": {
+    "_info": {
+      "name": "TrailblazePower Settings",
+      "help": ""
+    },
+    "ExtractReservedTrailblazePower": {
+      "name": "Extract reserve exploration power",
+      "help": ""
+    },
+    "UseFuel": {
+      "name": "Use Fuel",
+      "help": ""
+    },
+    "FuelReserve": {
+      "name": "Reserve X Fuel",
+      "help": ""
+    }
+  },
+  "DungeonSupport": {
+    "_info": {
+      "name": "Support Settings",
+      "help": ""
+    },
+    "Use": {
+      "name": "Use Friend Support",
+      "help": "",
+      "always_use": "Always Use",
+      "when_daily": "Use Only When Required by Dailies",
+      "do_not_use": "Don't Use"
+    },
+    "Character": {
+      "name": "Support Character",
+      "help": "Select a friend support character, if not found, select the default (first) role\nSupport character should not be the same as the character in the team, recommended to prioritize friends.",
+      "FirstCharacter": "First Character",
+      "Acheron": "Acheron",
+      "Argenti": "Argenti",
+      "Arlan": "Arlan",
+      "Asta": "Asta",
+      "Aventurine": "Aventurine",
+      "Bailu": "Bailu",
+      "BlackSwan": "Black Swan",
+      "Blade": "Blade",
+      "Boothill": "Boothill",
+      "Bronya": "Bronya",
+      "Clara": "Clara",
+      "DanHeng": "Dan Heng",
+      "DanHengImbibitorLunae": "Dan Heng • Imbibitor Lunae",
+      "DrRatio": "Dr. Ratio",
+      "Feixiao": "Feixiao",
+      "Firefly": "Firefly",
+      "FuXuan": "Fu Xuan",
+      "Gallagher": "Gallagher",
+      "Gepard": "Gepard",
+      "Guinaifen": "Guinaifen",
+      "Hanya": "Hanya",
+      "Herta": "Herta",
+      "Himeko": "Himeko",
+      "Hook": "Hook",
+      "Huohuo": "Huohuo",
+      "Jade": "Jade",
+      "Jiaoqiu": "Jiaoqiu",
+      "JingYuan": "Jing Yuan",
+      "Jingliu": "Jingliu",
+      "Kafka": "Kafka",
+      "Luka": "Luka",
+      "Luocha": "Luocha",
+      "Lynx": "Lynx",
+      "March7thPreservation": "March 7th: Preservation",
+      "March7thTheHunt": "March 7th: The Hunt",
+      "Misha": "Misha",
+      "Moze": "Moze",
+      "Natasha": "Natasha",
+      "Pela": "Pela",
+      "Qingque": "Qingque",
+      "Robin": "Robin",
+      "RuanMei": "Ruan Mei",
+      "Sampo": "Sampo",
+      "Seele": "Seele",
+      "Serval": "Serval",
+      "SilverWolf": "Silver Wolf",
+      "Sparkle": "Sparkle",
+      "Sushang": "Sushang",
+      "Tingyun": "Tingyun",
+      "TopazNumby": "Topaz & Numby",
+      "TrailblazerDestruction": "Trailblazer Destruction",
+      "TrailblazerHarmony": "Trailblazer Harmony",
+      "TrailblazerPreservation": "Trailblazer Preservation",
+      "Welt": "Welt",
+      "Xueyi": "Xueyi",
+      "Yanqing": "Yanqing",
+      "Yukong": "Yukong",
+      "Yunli": "Yunli"
+    }
+  },
+  "DungeonStorage": {
+    "_info": {
+      "name": "Dungeon",
+      "help": ""
+    },
+    "TrailblazePower": {
+      "name": "Power",
+      "help": ""
+    },
+    "Reserved": {
+      "name": "Reserved Trailblaze Power",
+      "help": ""
+    },
+    "Immersifier": {
+      "name": "Immersifier",
+      "help": ""
+    },
+    "DungeonDouble": {
+      "name": "Dungeon Double",
+      "help": ""
+    },
+    "EchoOfWar": {
+      "name": "Echo.",
+      "help": ""
+    },
+    "SimulatedUniverse": {
+      "name": "Sim.Univ.",
+      "help": ""
+    }
+  },
+  "SupportReward": {
+    "_info": {
+      "name": "Support Reward",
+      "help": ""
+    },
+    "Collect": {
+      "name": "Receive support reward",
+      "help": ""
+    }
+  },
+  "Planner": {
+    "_info": {
+      "name": "Character Planner Progress",
+      "help": "Character planner is prioritized. After completed, \"Dungeon Settings\" will be executed."
+    },
+    "PlannerOverall": {
+      "name": "Planner",
+      "help": "Overall progress of character planner"
+    },
+    "Item_Credit": {
+      "name": "Credit",
+      "help": ""
+    },
+    "Item_Trailblaze_EXP": {
+      "name": "Trailblaze EXP",
+      "help": ""
+    },
+    "Item_Traveler_Guide": {
+      "name": "Character EXP",
+      "help": ""
+    },
+    "Item_Refined_Aether": {
+      "name": "Light Cone EXP",
+      "help": ""
+    },
+    "Item_Lost_Crystal": {
+      "name": "Lost Crystal",
+      "help": ""
+    },
+    "Item_Broken_Teeth_of_Iron_Wolf": {
+      "name": "Ascension: Physical (Natasha / Clara / Luka / Sushang)",
+      "help": ""
+    },
+    "Item_Endotherm_Chitin": {
+      "name": "Ascension: Fire (Himeko / Asta / Hook)",
+      "help": ""
+    },
+    "Item_Horn_of_Snow": {
+      "name": "Ascension: Ice (March 7th / Herta / Gepard / Pela)",
+      "help": ""
+    },
+    "Item_Lightning_Crown_of_the_Past_Shadow": {
+      "name": "Ascension: Lightning (Arlan / Serval / Tingyun / Bailu)",
+      "help": ""
+    },
+    "Item_Storm_Eye": {
+      "name": "Ascension: Wind (Dan Heng / Bronya / Sampo)",
+      "help": ""
+    },
+    "Item_Void_Cast_Iron": {
+      "name": "Ascension: Quantum (Silver Wolf / Seele / Qingque)",
+      "help": ""
+    },
+    "Item_Golden_Crown_of_the_Past_Shadow": {
+      "name": "Ascension: Imaginary (Welt / Luocha / Yukong)",
+      "help": ""
+    },
+    "Item_Netherworld_Token": {
+      "name": "Ascension: Physical (Hanya / Argenti)",
+      "help": ""
+    },
+    "Item_Searing_Steel_Blade": {
+      "name": "Ascension: Fire (Guinaifen / Topaz & Numby)",
+      "help": ""
+    },
+    "Item_Gelid_Chitin": {
+      "name": "Ascension: Ice (Yanqing / Jingliu / Ruan Mei)",
+      "help": ""
+    },
+    "Item_Shape_Shifter_Lightning_Staff": {
+      "name": "Ascension: Lightning (Kafka / Jing Yuan / Acheron)",
+      "help": ""
+    },
+    "Item_Ascendant_Debris": {
+      "name": "Ascension: Wind (Blade / Huohuo / Black Swan)",
+      "help": ""
+    },
+    "Item_Nail_of_the_Ape": {
+      "name": "Ascension: Quantum (Lynx / Fu Xuan / Xueyi)",
+      "help": ""
+    },
+    "Item_Suppressing_Edict": {
+      "name": "Ascension: Imaginary (Dan Heng • Imbibitor Lunae / Aventurine / Dr. Ratio)",
+      "help": ""
+    },
+    "Item_IPC_Work_Permit": {
+      "name": "Ascension: Physical (Boothill / Robin / Yunli)",
+      "help": ""
+    },
+    "Item_Raging_Heart": {
+      "name": "Ascension: Fire (Firefly / Gallagher / Jiaoqiu / Lingsha)",
+      "help": ""
+    },
+    "Item_Dream_Fridge": {
+      "name": "Ascension: Ice (Misha)",
+      "help": ""
+    },
+    "Item_Nail_of_the_Beast_Coffin": {
+      "name": "Ascension: Lightning (Moze)",
+      "help": ""
+    },
+    "Item_A_Glass_of_the_Besotted_Era": {
+      "name": "Ascension: Wind (Feixiao)",
+      "help": ""
+    },
+    "Item_Dream_Flamer": {
+      "name": "Ascension: Quantum (Jade / Sparkle)",
+      "help": ""
+    },
+    "Item_Worldbreaker_Blade": {
+      "name": "Trace: Destruction (Storage Zone)",
+      "help": ""
+    },
+    "Item_Arrow_of_the_Starchaser": {
+      "name": "Trace: The Hunt (Outlying Snow Plains)",
+      "help": ""
+    },
+    "Item_Key_of_Wisdom": {
+      "name": "Trace: Erudition (Rivet Town)",
+      "help": ""
+    },
+    "Item_Safeguard_of_Amber": {
+      "name": "Trace: Preservation (Supply Zone)",
+      "help": ""
+    },
+    "Item_Obsidian_of_Obsession": {
+      "name": "Trace: Nihility (Great Mine)",
+      "help": ""
+    },
+    "Item_Stellaris_Symphony": {
+      "name": "Trace: The Harmony (Robot Settlement)",
+      "help": ""
+    },
+    "Item_Flower_of_Eternity": {
+      "name": "Trace: Abundance (Backwater Pass)",
+      "help": ""
+    },
+    "Item_Moon_Rage_Fang": {
+      "name": "Trace: Destruction (Scalegorge Waterscape)",
+      "help": ""
+    },
+    "Item_Countertemporal_Shot": {
+      "name": "Trace: The Hunt (SoulGlad Scorchsand Audition Venue)",
+      "help": ""
+    },
+    "Item_Exquisite_Colored_Draft": {
+      "name": "Trace: Erudition (Penacony Grand Theater)",
+      "help": ""
+    },
+    "Item_Divine_Amber": {
+      "name": "Trace: Preservation (Clock Studios Theme Park)",
+      "help": ""
+    },
+    "Item_Heaven_Incinerator": {
+      "name": "Trace: Nihility (Alchemy Commission)",
+      "help": ""
+    },
+    "Item_Heavenly_Melody": {
+      "name": "Trace: The Harmony (The Reverie (Dreamscape))",
+      "help": ""
+    },
+    "Item_Myriad_Fruit": {
+      "name": "Trace: Abundance (Fyxestroll Garden)",
+      "help": ""
+    },
+    "Item_Tracks_of_Destiny": {
+      "name": "Tracks of Destiny",
+      "help": ""
+    },
+    "Item_Destroyer_Final_Road": {
+      "name": "Destruction's Beginning (Herta Space Station)",
+      "help": ""
+    },
+    "Item_Guardian_Lament": {
+      "name": "End of the Eternal Freeze (Jarilo-VI)",
+      "help": ""
+    },
+    "Item_Regret_of_Infinite_Ochema": {
+      "name": "Divine Seed (The Xianzhou Luofu)",
+      "help": ""
+    },
+    "Item_Past_Evils_of_the_Borehole_Planet_Disaster": {
+      "name": "Borehole Planet's Old Crater (Herta Space Station)",
+      "help": ""
+    },
+    "Item_Lost_Echo_of_the_Shared_Wish": {
+      "name": "Salutations of Ashen Dreams (Penacony)",
+      "help": ""
+    },
+    "Item_Auspice_Sliver": {
+      "name": "Inner Beast's Battlefield (The Xianzhou Luofu)",
+      "help": ""
+    },
+    "Item_Squirming_Core": {
+      "name": "Squirming Core",
+      "help": ""
+    },
+    "Item_Conqueror_Will": {
+      "name": "Conqueror's Will",
+      "help": ""
+    },
+    "Item_Silvermane_Medal": {
+      "name": "Silvermane Medal",
+      "help": ""
+    },
+    "Item_Ancient_Engine": {
+      "name": "Ancient Engine",
+      "help": ""
+    },
+    "Item_Immortal_Lumintwig": {
+      "name": "Immortal Lumintwig",
+      "help": ""
+    },
+    "Item_Artifex_Gyreheart": {
+      "name": "Artifex's Gyreheart",
+      "help": ""
+    },
+    "Item_Dream_Making_Engine": {
+      "name": "Dream Making Engine",
+      "help": ""
+    },
+    "Item_Shards_of_Desires": {
+      "name": "Shards of Desires",
+      "help": ""
+    }
+  },
+  "Weekly": {
+    "_info": {
+      "name": "Echo of War Settings",
+      "help": "Echo of War is still able to challenge if limit is reached. Consume no trailblaze power, get no reward, but complete daily quests."
+    },
+    "Name": {
+      "name": "Dungeon Name",
+      "help": "",
+      "Echo_of_War_Inner_Beast_Battlefield": "Inner Beast's Battlefield (The Xianzhou Luofu)",
+      "Echo_of_War_Salutations_of_Ashen_Dreams": "Salutations of Ashen Dreams (Penacony)",
+      "Echo_of_War_Borehole_Planet_Old_Crater": "Borehole Planet's Old Crater (Herta Space Station)",
+      "Echo_of_War_Divine_Seed": "Divine Seed (The Xianzhou Luofu)",
+      "Echo_of_War_End_of_the_Eternal_Freeze": "End of the Eternal Freeze (Jarilo-VI)",
+      "Echo_of_War_Destruction_Beginning": "Destruction's Beginning (Herta Space Station)"
+    },
+    "Team": {
+      "name": "Dungeon Team",
+      "help": "",
+      "1": "1",
+      "2": "2",
+      "3": "3",
+      "4": "4",
+      "5": "5",
+      "6": "6",
+      "7": "7",
+      "8": "8",
+      "9": "9"
+    }
+  },
+  "DailyStorage": {
+    "_info": {
+      "name": "Daily Quest",
+      "help": ""
+    },
+    "DailyActivity": {
+      "name": "Activity",
+      "help": ""
+    },
+    "DailyQuest": {
+      "name": "Daily Quest",
+      "help": ""
+    }
+  },
+  "BattlePassStorage": {
+    "_info": {
+      "name": "Honor",
+      "help": ""
+    },
+    "BattlePassLevel": {
+      "name": "Honor",
+      "help": ""
+    },
+    "BattlePassWeeklyQuest": {
+      "name": "Honor Mission",
+      "help": ""
+    },
+    "BattlePassSimulatedUniverse": {
+      "name": "Complete Simulated Universe 1 time(s)",
+      "help": ""
+    },
+    "BattlePassQuestCalyx": {
+      "name": "Clear Calyx 20 time(s)",
+      "help": ""
+    },
+    "BattlePassQuestEchoOfWar": {
+      "name": "Complete Echo of War 2 time(s)",
+      "help": ""
+    },
+    "BattlePassQuestCredits": {
+      "name": "Use 300,000 credits",
+      "help": ""
+    },
+    "BattlePassQuestSynthesizeConsumables": {
+      "name": "Synthesize Consumables 10 time(s)",
+      "help": ""
+    },
+    "BattlePassQuestStagnantShadow": {
+      "name": "Clear Stagnant Shadow 3 time(s)",
+      "help": ""
+    },
+    "BattlePassQuestCavernOfCorrosion": {
+      "name": "Clear Cavern of Corrosion 8 time(s)",
+      "help": ""
+    },
+    "BattlePassQuestTrailblazePower": {
+      "name": "Consume a total of 100 Trailblaze Power (1400 Trailblazer Power max)",
+      "help": ""
+    }
+  },
+  "Assignment": {
+    "_info": {
+      "name": "Assignment Settings",
+      "help": "Claim rewards and dispatch, handling specified assignments first\nIf the assignment limit is not reached after that, others will be dispatched according to preset priority (EXP Materials/Credits → Character Materials → Synthesis Materials)"
+    },
+    "Name_1": {
+      "name": "Assignment 1 Preference",
+      "help": "",
+      "Tranquility_of_Vimala_bhumi": "Tatters of Thought (Tranquility of Vimala-bhumi)",
+      "A_Startling_Night_Terror": "Dream Collection Component (A Startling Night Terror)",
+      "Fire_Lord_Inflames_Blades_of_War": "Artifex's Module (Fire Lord Inflames Blades of War)",
+      "Root_Out_the_Turpitude": "Immortal Scionette (Root Out the Turpitude)",
+      "Born_to_Obey": "Ancient Part (Born to Obey)",
+      "Winter_Soldiers": "Silvermane Badge (Winter Soldiers)",
+      "Destruction_of_the_Destroyer": "Thief's Instinct (Destruction of the Destroyer)",
+      "Nine_Billion_Names": "Extinguished Core (Nine Billion Names)",
+      "Akashic_Records": "Light Cone EXP Material (Akashic Records)",
+      "Nameless_Land_Nameless_People": "Character EXP Material (Nameless Land, Nameless People)",
+      "The_Invisible_Hand": "Credit (The Invisible Hand)",
+      "Scalpel_and_Screwdriver": "Rusty Gear & Old Molar (Scalpel and Screwdriver)",
+      "The_Wages_of_Humanity": "Human-Height Auspicious Crops & Extract of Medicinal Herbs (The Wages of Humanity)",
+      "Legend_of_the_Puppet_Master": "Discarded Ingenium Parts & Jade Abacus Unit (Legend of the Puppet Master)",
+      "The_Land_of_Gold": "Basic Ingredients & Protein Rice (The Land of Gold)",
+      "Spring_of_Life": "Solid Water & Virtual Particle (Spring of Life)",
+      "Fragments_of_Illusory_Dreams": "Tranquility & Broken Dreams (Fragments of Illusory Dreams)",
+      "The_Blossom_in_the_Storm": "Gaseous Liquid & Seed (The Blossom in the Storm)",
+      "Abandoned_and_Insulted": "Phlogiston & Metal (Abandoned and Insulted)"
+    },
+    "Name_2": {
+      "name": "Assignment 2 Preference",
+      "help": "",
+      "Tranquility_of_Vimala_bhumi": "Tatters of Thought (Tranquility of Vimala-bhumi)",
+      "A_Startling_Night_Terror": "Dream Collection Component (A Startling Night Terror)",
+      "Fire_Lord_Inflames_Blades_of_War": "Artifex's Module (Fire Lord Inflames Blades of War)",
+      "Root_Out_the_Turpitude": "Immortal Scionette (Root Out the Turpitude)",
+      "Born_to_Obey": "Ancient Part (Born to Obey)",
+      "Winter_Soldiers": "Silvermane Badge (Winter Soldiers)",
+      "Destruction_of_the_Destroyer": "Thief's Instinct (Destruction of the Destroyer)",
+      "Nine_Billion_Names": "Extinguished Core (Nine Billion Names)",
+      "Akashic_Records": "Light Cone EXP Material (Akashic Records)",
+      "Nameless_Land_Nameless_People": "Character EXP Material (Nameless Land, Nameless People)",
+      "The_Invisible_Hand": "Credit (The Invisible Hand)",
+      "Scalpel_and_Screwdriver": "Rusty Gear & Old Molar (Scalpel and Screwdriver)",
+      "The_Wages_of_Humanity": "Human-Height Auspicious Crops & Extract of Medicinal Herbs (The Wages of Humanity)",
+      "Legend_of_the_Puppet_Master": "Discarded Ingenium Parts & Jade Abacus Unit (Legend of the Puppet Master)",
+      "The_Land_of_Gold": "Basic Ingredients & Protein Rice (The Land of Gold)",
+      "Spring_of_Life": "Solid Water & Virtual Particle (Spring of Life)",
+      "Fragments_of_Illusory_Dreams": "Tranquility & Broken Dreams (Fragments of Illusory Dreams)",
+      "The_Blossom_in_the_Storm": "Gaseous Liquid & Seed (The Blossom in the Storm)",
+      "Abandoned_and_Insulted": "Phlogiston & Metal (Abandoned and Insulted)"
+    },
+    "Name_3": {
+      "name": "Assignment 3 Preference",
+      "help": "",
+      "Tranquility_of_Vimala_bhumi": "Tatters of Thought (Tranquility of Vimala-bhumi)",
+      "A_Startling_Night_Terror": "Dream Collection Component (A Startling Night Terror)",
+      "Fire_Lord_Inflames_Blades_of_War": "Artifex's Module (Fire Lord Inflames Blades of War)",
+      "Root_Out_the_Turpitude": "Immortal Scionette (Root Out the Turpitude)",
+      "Born_to_Obey": "Ancient Part (Born to Obey)",
+      "Winter_Soldiers": "Silvermane Badge (Winter Soldiers)",
+      "Destruction_of_the_Destroyer": "Thief's Instinct (Destruction of the Destroyer)",
+      "Nine_Billion_Names": "Extinguished Core (Nine Billion Names)",
+      "Akashic_Records": "Light Cone EXP Material (Akashic Records)",
+      "Nameless_Land_Nameless_People": "Character EXP Material (Nameless Land, Nameless People)",
+      "The_Invisible_Hand": "Credit (The Invisible Hand)",
+      "Scalpel_and_Screwdriver": "Rusty Gear & Old Molar (Scalpel and Screwdriver)",
+      "The_Wages_of_Humanity": "Human-Height Auspicious Crops & Extract of Medicinal Herbs (The Wages of Humanity)",
+      "Legend_of_the_Puppet_Master": "Discarded Ingenium Parts & Jade Abacus Unit (Legend of the Puppet Master)",
+      "The_Land_of_Gold": "Basic Ingredients & Protein Rice (The Land of Gold)",
+      "Spring_of_Life": "Solid Water & Virtual Particle (Spring of Life)",
+      "Fragments_of_Illusory_Dreams": "Tranquility & Broken Dreams (Fragments of Illusory Dreams)",
+      "The_Blossom_in_the_Storm": "Gaseous Liquid & Seed (The Blossom in the Storm)",
+      "Abandoned_and_Insulted": "Phlogiston & Metal (Abandoned and Insulted)"
+    },
+    "Name_4": {
+      "name": "Assignment 4 Preference",
+      "help": "",
+      "Tranquility_of_Vimala_bhumi": "Tatters of Thought (Tranquility of Vimala-bhumi)",
+      "A_Startling_Night_Terror": "Dream Collection Component (A Startling Night Terror)",
+      "Fire_Lord_Inflames_Blades_of_War": "Artifex's Module (Fire Lord Inflames Blades of War)",
+      "Root_Out_the_Turpitude": "Immortal Scionette (Root Out the Turpitude)",
+      "Born_to_Obey": "Ancient Part (Born to Obey)",
+      "Winter_Soldiers": "Silvermane Badge (Winter Soldiers)",
+      "Destruction_of_the_Destroyer": "Thief's Instinct (Destruction of the Destroyer)",
+      "Nine_Billion_Names": "Extinguished Core (Nine Billion Names)",
+      "Akashic_Records": "Light Cone EXP Material (Akashic Records)",
+      "Nameless_Land_Nameless_People": "Character EXP Material (Nameless Land, Nameless People)",
+      "The_Invisible_Hand": "Credit (The Invisible Hand)",
+      "Scalpel_and_Screwdriver": "Rusty Gear & Old Molar (Scalpel and Screwdriver)",
+      "The_Wages_of_Humanity": "Human-Height Auspicious Crops & Extract of Medicinal Herbs (The Wages of Humanity)",
+      "Legend_of_the_Puppet_Master": "Discarded Ingenium Parts & Jade Abacus Unit (Legend of the Puppet Master)",
+      "The_Land_of_Gold": "Basic Ingredients & Protein Rice (The Land of Gold)",
+      "Spring_of_Life": "Solid Water & Virtual Particle (Spring of Life)",
+      "Fragments_of_Illusory_Dreams": "Tranquility & Broken Dreams (Fragments of Illusory Dreams)",
+      "The_Blossom_in_the_Storm": "Gaseous Liquid & Seed (The Blossom in the Storm)",
+      "Abandoned_and_Insulted": "Phlogiston & Metal (Abandoned and Insulted)"
+    },
+    "Duration": {
+      "name": "Dispatch Duration",
+      "help": "",
+      "4": "4 Hours",
+      "8": "8 Hours",
+      "12": "12 Hours",
+      "20": "20 Hours"
+    },
+    "Event": {
+      "name": "Complete Event Assignments",
+      "help": ""
+    },
+    "Assignment": {
+      "name": "Assign.",
+      "help": ""
+    }
+  },
+  "ItemStorage": {
+    "_info": {
+      "name": "Dashboard",
+      "help": ""
+    },
+    "Credit": {
+      "name": "Credit",
+      "help": ""
+    },
+    "StallerJade": {
+      "name": "Jade",
+      "help": ""
+    }
+  },
+  "CloudStorage": {
+    "_info": {
+      "name": "Cloud HSR",
+      "help": ""
+    },
+    "CloudRemainSeasonPass": {
+      "name": "Season Pass Remain X day(s)",
+      "help": ""
+    },
+    "CloudRemainPaid": {
+      "name": "Paid Time Remain X minute(s)",
+      "help": ""
+    },
+    "CloudRemainFree": {
+      "name": "Free Time Remain X minute(s)",
+      "help": ""
+    }
+  },
+  "RogueWorld": {
+    "_info": {
+      "name": "Simulated Universe Settings",
+      "help": ""
+    },
+    "World": {
+      "name": "World",
+      "help": "",
+      "Simulated_Universe_World_3": "World 3",
+      "Simulated_Universe_World_4": "World 4",
+      "Simulated_Universe_World_5": "World 5",
+      "Simulated_Universe_World_6": "World 6",
+      "Simulated_Universe_World_8": "World 8"
+    },
+    "Path": {
+      "name": "Path",
+      "help": "",
+      "Preservation": "Preservation",
+      "Remembrance": "Remembrance",
+      "Nihility": "Nihility",
+      "Abundance": "Abundance",
+      "The_Hunt": "The Hunt",
+      "Destruction": "Destruction",
+      "Elation": "Elation",
+      "Propagation": "Propagation",
+      "Erudition": "Erudition"
+    },
+    "Bonus": {
+      "name": "Blessings of Trailblaze",
+      "help": "",
+      "Blessing Universe": "Blessing Universe (Choose a blessing)",
+      "Miracle Universe": "Miracle Universe (Choose a curio)",
+      "Fragmented Universe": "Fragmented Universe (Claim some Cosmic Fragments)"
+    },
+    "DomainStrategy": {
+      "name": "Domain Strategy",
+      "help": "Prefer Combat: Suitable for normal builds, longer clear time\nPrefer Occurrence: Require efficient builds, shorter clear time",
+      "combat": "Prefer Combat",
+      "occurrence": "Prefer Occurrence"
+    },
+    "UseImmersifier": {
+      "name": "Claim Planars Using Immersifiers",
+      "help": ""
+    },
+    "DoubleEvent": {
+      "name": "Participate in Double Planar Event",
+      "help": ""
+    },
+    "WeeklyFarming": {
+      "name": "Farm 100 Elites Weekly",
+      "help": ""
+    },
+    "UseStamina": {
+      "name": "Farm Planars Using Trailblaze Power",
+      "help": "Prioritize trailblaze power to farm planar ornaments, only taking priority over character planner"
+    },
+    "SimulatedUniverseFarm": {
+      "name": "Elites/bosses Farmed",
+      "help": ""
+    }
+  },
+  "RogueBlessing": {
+    "_info": {
+      "name": "Blessing Settings",
+      "help": ""
+    },
+    "PresetBlessingFilter": {
+      "name": "Preset Blessing Filter",
+      "help": "",
+      "preset": "preset",
+      "custom": "custom"
+    },
+    "CustomBlessingFilter": {
+      "name": "Custom Blessing Filter",
+      "help": "Only takes effect when \"Preset Blessing Filter\" is \"custom\""
+    },
+    "PresetCurioFilter": {
+      "name": "Preset Curio Filter",
+      "help": "",
+      "preset": "preset",
+      "custom": "custom"
+    },
+    "CustomCurioFilter": {
+      "name": "Custom Curio Filter",
+      "help": "Only takes effect when \"Preset Curio Filter\" is \"custom\""
+    },
+    "PresetResonanceFilter": {
+      "name": "Preset Resonance Filter",
+      "help": "",
+      "preset": "preset",
+      "custom": "custom"
+    },
+    "CustomResonanceFilter": {
+      "name": "Custom Resonance Filter",
+      "help": "Only takes effect when \"Preset Resonance Filter\" is \"custom\""
+    },
+    "SelectionStrategy": {
+      "name": "Index Locked",
+      "help": "",
+      "follow-presets": "Don't affect choice",
+      "unrecorded-first": "Select first",
+      "before-random": "Select only when nothing satisfy the filter"
+    }
+  },
+  "RogueDebug": {
+    "_info": {
+      "name": "Dev Settings",
+      "help": ""
+    },
+    "DebugMode": {
+      "name": "Dev Mode",
+      "help": "No stop conditions, no error handling, stop when encountering an error. Please report errors according to the doc: https://github.com/LmeSzinc/StarRailCopilot/wiki/RogueMap_cn"
+    }
+  },
+  "Ornament": {
+    "_info": {
+      "name": "Ornament Extraction Settings",
+      "help": ""
+    },
+    "Dungeon": {
+      "name": "Dungeon Name",
+      "help": "",
+      "Divergent_Universe_Famished_Worker": "Divergent_Universe_Famished_Worker (Famished Worker)",
+      "Divergent_Universe_Eternal_Comedy": "Running Wolves & Kalpagni Lantern (Eternal Comedy)",
+      "Divergent_Universe_To_Sweet_Dreams": "Sigonia & Izumo Gensei (To Sweet Dreams)",
+      "Divergent_Universe_Pouring_Blades": "Firmament & Penacony (Pouring Blades)",
+      "Divergent_Universe_Fruit_of_Evil": "Rutilant Arena & Broken Keel (Fruit of Evil)",
+      "Divergent_Universe_Permafrost": "Belobog & Salsotto (Permafrost)",
+      "Divergent_Universe_Gentle_Words": "Commercial Enterprise & Differentiator (Gentle Words)",
+      "Divergent_Universe_Smelted_Heart": "Banditry & Vonwacq (Smelted Heart)",
+      "Divergent_Universe_Untoppled_Walls": "Space Station & Ageless (Untoppled Walls)"
+    },
+    "UseImmersifier": {
+      "name": "Claim Planars Using Immersifiers",
+      "help": "",
+      "True": "Enabled"
+    },
+    "DoubleEvent": {
+      "name": "Participate in Double Planar Event",
+      "help": "",
+      "True": "Enabled"
+    },
+    "UseStamina": {
+      "name": "Farm Planars Using Trailblaze Power",
+      "help": "Prioritize trailblaze power to farm planar ornaments, taking priority over character planner and simulated universe"
+    }
+  },
+  "Daemon": {
+    "_info": {
+      "name": "Dialogue Clicker",
+      "help": "Tools need to stop the scheduler and then run independently"
+    },
+    "Enable": {
+      "name": "Dialogue Clicker",
+      "help": "Monitor game, automatically click dialogue, phone chatting, and blessing in simulated universe (follow the simulated universe task settings)",
+      "True": "Enabled"
+    },
+    "AimClicker": {
+      "name": "Click Aimed Items and Enemies",
+      "help": "",
+      "item_enemy": "Click items and enemies",
+      "item": "Click items only",
+      "enemy": "Click enemies only",
+      "do_not_click": "Don't click"
+    }
+  },
+  "PlannerScan": {
+    "_info": {
+      "name": "Scan Character Planner Results",
+      "help": "Tools need to stop the scheduler and then run independently\nBefore use, set planner goal in the in-game planner, calculate the results, and start scanning from the result page. Detailed usage see: https://github.com/LmeSzinc/StarRailCopilot/wiki/Planner_en"
+    },
+    "ResultAdd": {
+      "name": "Accumulate multiple scan results",
+      "help": "Turn on when planning multiple characters, will raise multiple characters all together\nTurn off when planning one character, planning goal will be refreshed at every scan"
+    }
+  },
+  "Gui": {
+    "Aside": {
+      "Install": "Install",
+      "Home": "Home",
+      "Develop": "Develop",
+      "Performance": "Perf.",
+      "Setting": "Settings",
+      "AddAlas": "Add"
+    },
+    "Button": {
+      "Start": "Start",
+      "Stop": "Stop",
+      "ScrollON": "Auto Scroll ON",
+      "ScrollOFF": "Auto Scroll OFF",
+      "ClearLog": "Clear Log",
+      "Setting": "Setting",
+      "CheckUpdate": "Check update",
+      "ClickToUpdate": "Click to update",
+      "RetryUpdate": "Retry update",
+      "CancelUpdate": "Cancel update"
+    },
+    "Toast": {
+      "DisableTranslateMode": "Click here to disable translate mode",
+      "ConfigSaved": "Config saved",
+      "AlasIsRunning": "Scheduler is already running",
+      "ClickToUpdate": "New update available, click here to update"
+    },
+    "Status": {
+      "Running": "Running",
+      "Inactive": "Inactive",
+      "Warning": "Warning",
+      "Updating": "Waiting Update"
+    },
+    "MenuAlas": {
+      "Overview": "Overview",
+      "Log": "Logs"
+    },
+    "MenuDevelop": {
+      "HomePage": "Home",
+      "Translate": "Translate",
+      "Update": "Updater",
+      "Remote": "Remote access",
+      "Utils": "Utils"
+    },
+    "Overview": {
+      "Scheduler": "Scheduler",
+      "Log": "Log",
+      "Running": "Running",
+      "Pending": "Pending",
+      "Waiting": "Waiting",
+      "NoTask": "No Task"
+    },
+    "Dashboard": {
+      "NoData": "no data",
+      "TimeError": "time error",
+      "JustNow": "just now",
+      "MinutesAgo": "{time}min ago",
+      "HoursAgo": "{time}h ago",
+      "DaysAgo": "{time}d ago",
+      "LongTimeAgo": "long time ago",
+      "EtaDays": "ETA {time}d"
+    },
+    "AddAlas": {
+      "PopupTitle": "Add new config",
+      "NewName": "New name",
+      "CopyFrom": "Copy from existing config",
+      "Confirm": "Add",
+      "FileExist": "A config with the same name exists, please choose another one",
+      "InvalidChar": "Config name cannot contain any of the following characters: .\\/:*?\"<>|",
+      "InvalidPrefixTemplate": "Config name cannot start with 'template'"
+    },
+    "Update": {
+      "UpToDate": "Latest version",
+      "HaveUpdate": "A new version is available",
+      "UpdateStart": "Start update",
+      "UpdateWait": "Waiting for all alas complete current task",
+      "UpdateRun": "Updating",
+      "UpdateSuccess": "Update succeeded, restarting",
+      "UpdateFailed": "Update failed. Logs can be found in ./log/*_gui.txt",
+      "UpdateChecking": "Checking for updates",
+      "UpdateCancel": "Update canceled, restarting Alas",
+      "UpdateFinish": "Update succeeded, please restart manually",
+      "Local": "Local",
+      "Upstream": "Upstream",
+      "Author": "Author",
+      "Time": "Commit time",
+      "Message": "Commit message",
+      "DisabledWarn": "Updater module is disabled. You need to manually restart Alas to update",
+      "DetailedHistory": "Detailed Commit History"
+    },
+    "Remote": {
+      "Running": "Remote access on",
+      "NotRunning": "Not running, server disconnected or offline",
+      "NotEnable": "Disabled, set webui password in deploy.yaml and enable remote access",
+      "EntryPoint": "Entry point:",
+      "ConfigureHint": "Configuration tutorial:",
+      "SSHNotInstall": "No SSH command in your system. Please refer to the tutorial to download or install one"
+    },
+    "Text": {
+      "InvalidFeedBack": "Invalid format. Example: {0}",
+      "Clear": "Clear"
+    }
+  }
+}

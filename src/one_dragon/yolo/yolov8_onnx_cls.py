@@ -6,7 +6,7 @@ from typing import Optional, List
 
 from one_dragon.yolo import onnx_utils
 from one_dragon.yolo.onnx_model_loader import OnnxModelLoader
-
+import cv2
 
 class RunContext:
 
@@ -89,6 +89,7 @@ class Yolov8Classifier(OnnxModelLoader):
         :param conf: 置信度阈值
         :return: 识别结果
         """
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         t1 = time.time()
         context = RunContext(image, run_time)
         context.conf = conf

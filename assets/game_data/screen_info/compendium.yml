@@ -9,6 +9,12 @@ area_list:
   - 120
   - 1630
   - 178
+  emulator_rect:
+  - 702
+  - 106
+  - 1671
+  - 159
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -23,6 +29,12 @@ area_list:
   - 292
   - 422
   - 622
+  emulator_rect:
+  - 129
+  - 293
+  - 391
+  - 618
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -37,6 +49,12 @@ area_list:
   - 308
   - 848
   - 884
+  emulator_rect:
+  - 465
+  - 287
+  - 847
+  - 926
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -51,6 +69,12 @@ area_list:
   - 602
   - 1230
   - 650
+  emulator_rect:
+  - 1060
+  - 624
+  - 1278
+  - 675
+  platform: Emulator
   text: 确认
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -65,6 +89,12 @@ area_list:
   - 234
   - 1602
   - 308
+  emulator_rect:
+  - 1580
+  - 223
+  - 1626
+  - 285
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -79,6 +109,12 @@ area_list:
   - 704
   - 1086
   - 754
+  emulator_rect:
+  - 889
+  - 753
+  - 1087
+  - 800
+  platform: Emulator
   text: 确认
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -93,6 +129,12 @@ area_list:
   - 270
   - 580
   - 310
+  emulator_rect:
+  - 474
+  - 255
+  - 553
+  - 293
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -107,6 +149,12 @@ area_list:
   - 206
   - 1794
   - 266
+  emulator_rect:
+  - 1728
+  - 192
+  - 1830
+  - 243
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -121,6 +169,12 @@ area_list:
   - 334
   - 1646
   - 890
+  emulator_rect:
+  - 1353
+  - 292
+  - 1679
+  - 927
+  platform: Emulator
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''

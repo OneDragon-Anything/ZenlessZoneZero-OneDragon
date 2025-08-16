@@ -30,7 +30,7 @@ class TemplateShapeEnum(Enum):
 
 class TemplateInfo(YamlOperator):
 
-    def __init__(self, sub_dir: str, template_id: str):
+    def __init__(self, sub_dir: str, template_id: str,platform: str):
         # 旧的模板ID 在开发工具中使用 方便更改后迁移文件
         self.old_sub_dir: str = sub_dir
         self.old_template_id: str = template_id
@@ -41,14 +41,18 @@ class TemplateInfo(YamlOperator):
         self.screen_image: Optional[MatLike] = None
 
         YamlOperator.__init__(self, file_path=self.get_yml_file_path())
-
+        self.platform = platform
         self.template_name: str = self.get('template_name', '')
         self.template_shape: str = self.get('template_shape', TemplateShapeEnum.RECTANGLE.value.value)
         self.point_list: List[Point] = []
-        point_data: List[str] = self.get('point_list', [])
+        if platform == 'PC':
+            point_data: List[str] = self.get('point_list', [])
+        else:
+            point_data: List[str] = self.get('emulator_point_list', [])
         for point_str in point_data:
             point_arr = point_str.split(',')
             self.point_list.append(Point(int(point_arr[0]), int(point_arr[1])))
+
         self.auto_mask: bool = self.get('auto_mask', True)
         self.point_updated: bool = False  # 点位是否更改过 开发工具中用
 
@@ -177,7 +181,11 @@ class TemplateInfo(YamlOperator):
         data['template_name'] = self.template_name
         data['template_shape'] = self.template_shape
         data['auto_mask'] = self.auto_mask
-        data['point_list'] = [f'{p.x}, {p.y}' for p in self.point_list]
+        data['platform'] = self.platform
+        if self.platform == 'PC':
+            data['point_list'] = [f'{p.x}, {p.y}' for p in self.point_list]
+        else:
+            data['emulator_point_list'] = [f'{p.x}, {p.y}' for p in self.point_list]
 
         self.file_path = self.get_yml_file_path()  # 更新路径
         self.data = data

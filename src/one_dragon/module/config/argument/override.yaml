@@ -1,0 +1,74 @@
+# --------------------
+# Define non-modifiable values
+# --------------------
+
+
+# ==================== Alas ====================
+
+Alas:
+  Emulator:
+    ScreenshotMethod: scrcpy
+    ControlMethod: MaaTouch
+  Optimization:
+    ScreenshotInterval: 0.2
+    CombatScreenshotInterval: 1.0
+Restart:
+  Scheduler:
+    Enable:
+      type: state
+      value: true
+      option: [ true, ]
+      option_bold: [ true, ]
+    ServerUpdate: 04:00
+
+# ==================== Daily ====================
+
+Dungeon:
+  Scheduler:
+    Enable:
+      type: state
+      value: true
+      option: [ true, ]
+      option_bold: [ true, ]
+  DungeonSupport:
+    Use:
+      option: [ when_daily, always_use ]
+DailyQuest:
+  Scheduler:
+    Enable:
+      type: state
+      value: true
+      option: [ true, ]
+      option_bold: [ true, ]
+BattlePass:
+  Scheduler:
+    Enable:
+      type: state
+      value: true
+      option: [ true, ]
+      option_bold: [ true, ]
+Assignment:
+  Scheduler:
+    Enable:
+      type: state
+      value: true
+      option: [ true, ]
+      option_bold: [ true, ]
+DataUpdate:
+  Scheduler:
+    Enable:
+      type: state
+      value: true
+      option: [ true, ]
+      option_bold: [ true, ]
+
+# ==================== Weekly ====================
+
+Weekly:
+  DungeonSupport:
+    Use:
+      option: [ always_use, do_not_use ]
+Ornament:
+  DungeonSupport:
+    Use:
+      option: [ when_daily, always_use ]

@@ -49,6 +49,8 @@ def check_cnt_by_color_range(
     if template is None:
         return 0
     part = cv2_utils.crop_image_only(screen, template.get_template_rect_by_point())
+    #把part缩放到mask大小
+    part = cv2.resize(part, template.mask.shape[::-1], interpolation=cv2.INTER_AREA)
     to_check = cv2.bitwise_and(part, part, mask=template.mask)
 
     mask = filter_by_color(to_check, state_def)

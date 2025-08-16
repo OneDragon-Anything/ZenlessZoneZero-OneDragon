@@ -1,0 +1,945 @@
+{
+  "TrailblazePower": {
+    "name": "TrailblazePower",
+    "path": "Dungeon.DungeonStorage.TrailblazePower",
+    "i18n": "DungeonStorage.TrailblazePower.name",
+    "stored": "StoredTrailblazePower",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 240,
+      "value": 0
+    },
+    "order": 1,
+    "color": "#eb8efe"
+  },
+  "DailyActivity": {
+    "name": "DailyActivity",
+    "path": "DailyQuest.DailyStorage.DailyActivity",
+    "i18n": "DailyStorage.DailyActivity.name",
+    "stored": "StoredDailyActivity",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 500,
+      "value": 0
+    },
+    "order": 2,
+    "color": "#ffcf70"
+  },
+  "Assignment": {
+    "name": "Assignment",
+    "path": "Assignment.Assignment.Assignment",
+    "i18n": "Assignment.Assignment.name",
+    "stored": "StoredAssignment",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 0,
+      "value": 0
+    },
+    "order": 3,
+    "color": "#79dbc4"
+  },
+  "PlannerOverall": {
+    "name": "PlannerOverall",
+    "path": "Dungeon.Planner.PlannerOverall",
+    "i18n": "Planner.PlannerOverall.name",
+    "stored": "StoredPlannerOverall",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "comment": "<??d",
+      "value": "??%"
+    },
+    "order": 4,
+    "color": "#85e7f2"
+  },
+  "BattlePassLevel": {
+    "name": "BattlePassLevel",
+    "path": "BattlePass.BattlePassStorage.BattlePassLevel",
+    "i18n": "BattlePassStorage.BattlePassLevel.name",
+    "stored": "StoredBattlePassLevel",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 70,
+      "value": 0
+    },
+    "order": 5,
+    "color": "#cbe45b"
+  },
+  "SimulatedUniverse": {
+    "name": "SimulatedUniverse",
+    "path": "Dungeon.DungeonStorage.SimulatedUniverse",
+    "i18n": "DungeonStorage.SimulatedUniverse.name",
+    "stored": "StoredSimulatedUniverse",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 0,
+      "value": 0
+    },
+    "order": 6,
+    "color": "#8fb5fe"
+  },
+  "Credit": {
+    "name": "Credit",
+    "path": "DataUpdate.ItemStorage.Credit",
+    "i18n": "ItemStorage.Credit.name",
+    "stored": "StoredInt",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "value": 0
+    },
+    "order": 7,
+    "color": "#ab7cf2"
+  },
+  "StallerJade": {
+    "name": "StallerJade",
+    "path": "DataUpdate.ItemStorage.StallerJade",
+    "i18n": "ItemStorage.StallerJade.name",
+    "stored": "StoredInt",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "value": 0
+    },
+    "order": 8,
+    "color": "#fc8f8b"
+  },
+  "Item_Credit": {
+    "name": "Item_Credit",
+    "path": "Dungeon.Planner.Item_Credit",
+    "i18n": "Planner.Item_Credit.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Trailblaze_EXP": {
+    "name": "Item_Trailblaze_EXP",
+    "path": "Dungeon.Planner.Item_Trailblaze_EXP",
+    "i18n": "Planner.Item_Trailblaze_EXP.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Traveler_Guide": {
+    "name": "Item_Traveler_Guide",
+    "path": "Dungeon.Planner.Item_Traveler_Guide",
+    "i18n": "Planner.Item_Traveler_Guide.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Refined_Aether": {
+    "name": "Item_Refined_Aether",
+    "path": "Dungeon.Planner.Item_Refined_Aether",
+    "i18n": "Planner.Item_Refined_Aether.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Lost_Crystal": {
+    "name": "Item_Lost_Crystal",
+    "path": "Dungeon.Planner.Item_Lost_Crystal",
+    "i18n": "Planner.Item_Lost_Crystal.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Broken_Teeth_of_Iron_Wolf": {
+    "name": "Item_Broken_Teeth_of_Iron_Wolf",
+    "path": "Dungeon.Planner.Item_Broken_Teeth_of_Iron_Wolf",
+    "i18n": "Planner.Item_Broken_Teeth_of_Iron_Wolf.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Endotherm_Chitin": {
+    "name": "Item_Endotherm_Chitin",
+    "path": "Dungeon.Planner.Item_Endotherm_Chitin",
+    "i18n": "Planner.Item_Endotherm_Chitin.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Horn_of_Snow": {
+    "name": "Item_Horn_of_Snow",
+    "path": "Dungeon.Planner.Item_Horn_of_Snow",
+    "i18n": "Planner.Item_Horn_of_Snow.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Lightning_Crown_of_the_Past_Shadow": {
+    "name": "Item_Lightning_Crown_of_the_Past_Shadow",
+    "path": "Dungeon.Planner.Item_Lightning_Crown_of_the_Past_Shadow",
+    "i18n": "Planner.Item_Lightning_Crown_of_the_Past_Shadow.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Storm_Eye": {
+    "name": "Item_Storm_Eye",
+    "path": "Dungeon.Planner.Item_Storm_Eye",
+    "i18n": "Planner.Item_Storm_Eye.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Void_Cast_Iron": {
+    "name": "Item_Void_Cast_Iron",
+    "path": "Dungeon.Planner.Item_Void_Cast_Iron",
+    "i18n": "Planner.Item_Void_Cast_Iron.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Golden_Crown_of_the_Past_Shadow": {
+    "name": "Item_Golden_Crown_of_the_Past_Shadow",
+    "path": "Dungeon.Planner.Item_Golden_Crown_of_the_Past_Shadow",
+    "i18n": "Planner.Item_Golden_Crown_of_the_Past_Shadow.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Netherworld_Token": {
+    "name": "Item_Netherworld_Token",
+    "path": "Dungeon.Planner.Item_Netherworld_Token",
+    "i18n": "Planner.Item_Netherworld_Token.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Searing_Steel_Blade": {
+    "name": "Item_Searing_Steel_Blade",
+    "path": "Dungeon.Planner.Item_Searing_Steel_Blade",
+    "i18n": "Planner.Item_Searing_Steel_Blade.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Gelid_Chitin": {
+    "name": "Item_Gelid_Chitin",
+    "path": "Dungeon.Planner.Item_Gelid_Chitin",
+    "i18n": "Planner.Item_Gelid_Chitin.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Shape_Shifter_Lightning_Staff": {
+    "name": "Item_Shape_Shifter_Lightning_Staff",
+    "path": "Dungeon.Planner.Item_Shape_Shifter_Lightning_Staff",
+    "i18n": "Planner.Item_Shape_Shifter_Lightning_Staff.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Ascendant_Debris": {
+    "name": "Item_Ascendant_Debris",
+    "path": "Dungeon.Planner.Item_Ascendant_Debris",
+    "i18n": "Planner.Item_Ascendant_Debris.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Nail_of_the_Ape": {
+    "name": "Item_Nail_of_the_Ape",
+    "path": "Dungeon.Planner.Item_Nail_of_the_Ape",
+    "i18n": "Planner.Item_Nail_of_the_Ape.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Suppressing_Edict": {
+    "name": "Item_Suppressing_Edict",
+    "path": "Dungeon.Planner.Item_Suppressing_Edict",
+    "i18n": "Planner.Item_Suppressing_Edict.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_IPC_Work_Permit": {
+    "name": "Item_IPC_Work_Permit",
+    "path": "Dungeon.Planner.Item_IPC_Work_Permit",
+    "i18n": "Planner.Item_IPC_Work_Permit.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Raging_Heart": {
+    "name": "Item_Raging_Heart",
+    "path": "Dungeon.Planner.Item_Raging_Heart",
+    "i18n": "Planner.Item_Raging_Heart.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Dream_Fridge": {
+    "name": "Item_Dream_Fridge",
+    "path": "Dungeon.Planner.Item_Dream_Fridge",
+    "i18n": "Planner.Item_Dream_Fridge.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Nail_of_the_Beast_Coffin": {
+    "name": "Item_Nail_of_the_Beast_Coffin",
+    "path": "Dungeon.Planner.Item_Nail_of_the_Beast_Coffin",
+    "i18n": "Planner.Item_Nail_of_the_Beast_Coffin.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_A_Glass_of_the_Besotted_Era": {
+    "name": "Item_A_Glass_of_the_Besotted_Era",
+    "path": "Dungeon.Planner.Item_A_Glass_of_the_Besotted_Era",
+    "i18n": "Planner.Item_A_Glass_of_the_Besotted_Era.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Dream_Flamer": {
+    "name": "Item_Dream_Flamer",
+    "path": "Dungeon.Planner.Item_Dream_Flamer",
+    "i18n": "Planner.Item_Dream_Flamer.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Worldbreaker_Blade": {
+    "name": "Item_Worldbreaker_Blade",
+    "path": "Dungeon.Planner.Item_Worldbreaker_Blade",
+    "i18n": "Planner.Item_Worldbreaker_Blade.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Arrow_of_the_Starchaser": {
+    "name": "Item_Arrow_of_the_Starchaser",
+    "path": "Dungeon.Planner.Item_Arrow_of_the_Starchaser",
+    "i18n": "Planner.Item_Arrow_of_the_Starchaser.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Key_of_Wisdom": {
+    "name": "Item_Key_of_Wisdom",
+    "path": "Dungeon.Planner.Item_Key_of_Wisdom",
+    "i18n": "Planner.Item_Key_of_Wisdom.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Safeguard_of_Amber": {
+    "name": "Item_Safeguard_of_Amber",
+    "path": "Dungeon.Planner.Item_Safeguard_of_Amber",
+    "i18n": "Planner.Item_Safeguard_of_Amber.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Obsidian_of_Obsession": {
+    "name": "Item_Obsidian_of_Obsession",
+    "path": "Dungeon.Planner.Item_Obsidian_of_Obsession",
+    "i18n": "Planner.Item_Obsidian_of_Obsession.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Stellaris_Symphony": {
+    "name": "Item_Stellaris_Symphony",
+    "path": "Dungeon.Planner.Item_Stellaris_Symphony",
+    "i18n": "Planner.Item_Stellaris_Symphony.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Flower_of_Eternity": {
+    "name": "Item_Flower_of_Eternity",
+    "path": "Dungeon.Planner.Item_Flower_of_Eternity",
+    "i18n": "Planner.Item_Flower_of_Eternity.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Moon_Rage_Fang": {
+    "name": "Item_Moon_Rage_Fang",
+    "path": "Dungeon.Planner.Item_Moon_Rage_Fang",
+    "i18n": "Planner.Item_Moon_Rage_Fang.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Countertemporal_Shot": {
+    "name": "Item_Countertemporal_Shot",
+    "path": "Dungeon.Planner.Item_Countertemporal_Shot",
+    "i18n": "Planner.Item_Countertemporal_Shot.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Exquisite_Colored_Draft": {
+    "name": "Item_Exquisite_Colored_Draft",
+    "path": "Dungeon.Planner.Item_Exquisite_Colored_Draft",
+    "i18n": "Planner.Item_Exquisite_Colored_Draft.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Divine_Amber": {
+    "name": "Item_Divine_Amber",
+    "path": "Dungeon.Planner.Item_Divine_Amber",
+    "i18n": "Planner.Item_Divine_Amber.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Heaven_Incinerator": {
+    "name": "Item_Heaven_Incinerator",
+    "path": "Dungeon.Planner.Item_Heaven_Incinerator",
+    "i18n": "Planner.Item_Heaven_Incinerator.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Heavenly_Melody": {
+    "name": "Item_Heavenly_Melody",
+    "path": "Dungeon.Planner.Item_Heavenly_Melody",
+    "i18n": "Planner.Item_Heavenly_Melody.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Myriad_Fruit": {
+    "name": "Item_Myriad_Fruit",
+    "path": "Dungeon.Planner.Item_Myriad_Fruit",
+    "i18n": "Planner.Item_Myriad_Fruit.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Tracks_of_Destiny": {
+    "name": "Item_Tracks_of_Destiny",
+    "path": "Dungeon.Planner.Item_Tracks_of_Destiny",
+    "i18n": "Planner.Item_Tracks_of_Destiny.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Destroyer_Final_Road": {
+    "name": "Item_Destroyer_Final_Road",
+    "path": "Dungeon.Planner.Item_Destroyer_Final_Road",
+    "i18n": "Planner.Item_Destroyer_Final_Road.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Guardian_Lament": {
+    "name": "Item_Guardian_Lament",
+    "path": "Dungeon.Planner.Item_Guardian_Lament",
+    "i18n": "Planner.Item_Guardian_Lament.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Regret_of_Infinite_Ochema": {
+    "name": "Item_Regret_of_Infinite_Ochema",
+    "path": "Dungeon.Planner.Item_Regret_of_Infinite_Ochema",
+    "i18n": "Planner.Item_Regret_of_Infinite_Ochema.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Past_Evils_of_the_Borehole_Planet_Disaster": {
+    "name": "Item_Past_Evils_of_the_Borehole_Planet_Disaster",
+    "path": "Dungeon.Planner.Item_Past_Evils_of_the_Borehole_Planet_Disaster",
+    "i18n": "Planner.Item_Past_Evils_of_the_Borehole_Planet_Disaster.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Lost_Echo_of_the_Shared_Wish": {
+    "name": "Item_Lost_Echo_of_the_Shared_Wish",
+    "path": "Dungeon.Planner.Item_Lost_Echo_of_the_Shared_Wish",
+    "i18n": "Planner.Item_Lost_Echo_of_the_Shared_Wish.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Auspice_Sliver": {
+    "name": "Item_Auspice_Sliver",
+    "path": "Dungeon.Planner.Item_Auspice_Sliver",
+    "i18n": "Planner.Item_Auspice_Sliver.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Squirming_Core": {
+    "name": "Item_Squirming_Core",
+    "path": "Dungeon.Planner.Item_Squirming_Core",
+    "i18n": "Planner.Item_Squirming_Core.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Conqueror_Will": {
+    "name": "Item_Conqueror_Will",
+    "path": "Dungeon.Planner.Item_Conqueror_Will",
+    "i18n": "Planner.Item_Conqueror_Will.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Silvermane_Medal": {
+    "name": "Item_Silvermane_Medal",
+    "path": "Dungeon.Planner.Item_Silvermane_Medal",
+    "i18n": "Planner.Item_Silvermane_Medal.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Ancient_Engine": {
+    "name": "Item_Ancient_Engine",
+    "path": "Dungeon.Planner.Item_Ancient_Engine",
+    "i18n": "Planner.Item_Ancient_Engine.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Immortal_Lumintwig": {
+    "name": "Item_Immortal_Lumintwig",
+    "path": "Dungeon.Planner.Item_Immortal_Lumintwig",
+    "i18n": "Planner.Item_Immortal_Lumintwig.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Artifex_Gyreheart": {
+    "name": "Item_Artifex_Gyreheart",
+    "path": "Dungeon.Planner.Item_Artifex_Gyreheart",
+    "i18n": "Planner.Item_Artifex_Gyreheart.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Dream_Making_Engine": {
+    "name": "Item_Dream_Making_Engine",
+    "path": "Dungeon.Planner.Item_Dream_Making_Engine",
+    "i18n": "Planner.Item_Dream_Making_Engine.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Item_Shards_of_Desires": {
+    "name": "Item_Shards_of_Desires",
+    "path": "Dungeon.Planner.Item_Shards_of_Desires",
+    "i18n": "Planner.Item_Shards_of_Desires.name",
+    "stored": "StoredPlanner",
+    "attrs": {
+      "time": "2020-01-01 00:00:00"
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Reserved": {
+    "name": "Reserved",
+    "path": "Dungeon.DungeonStorage.Reserved",
+    "i18n": "DungeonStorage.Reserved.name",
+    "stored": "StoredResersed",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 2400,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "Immersifier": {
+    "name": "Immersifier",
+    "path": "Dungeon.DungeonStorage.Immersifier",
+    "i18n": "DungeonStorage.Immersifier.name",
+    "stored": "StoredImmersifier",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 8,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "DungeonDouble": {
+    "name": "DungeonDouble",
+    "path": "Dungeon.DungeonStorage.DungeonDouble",
+    "i18n": "DungeonStorage.DungeonDouble.name",
+    "stored": "StoredDungeonDouble",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "calyx": 0,
+      "relic": 0,
+      "rogue": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "EchoOfWar": {
+    "name": "EchoOfWar",
+    "path": "Dungeon.DungeonStorage.EchoOfWar",
+    "i18n": "DungeonStorage.EchoOfWar.name",
+    "stored": "StoredEchoOfWar",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 3,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "DailyQuest": {
+    "name": "DailyQuest",
+    "path": "DailyQuest.DailyStorage.DailyQuest",
+    "i18n": "DailyStorage.DailyQuest.name",
+    "stored": "StoredDaily",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "quest1": "",
+      "quest2": "",
+      "quest3": "",
+      "quest4": "",
+      "quest5": "",
+      "quest6": "",
+      "quest7": "",
+      "quest8": "",
+      "total": 8,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "BattlePassWeeklyQuest": {
+    "name": "BattlePassWeeklyQuest",
+    "path": "BattlePass.BattlePassStorage.BattlePassWeeklyQuest",
+    "i18n": "BattlePassStorage.BattlePassWeeklyQuest.name",
+    "stored": "StoredBattlePassWeeklyQuest",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "quest1": "",
+      "quest2": "",
+      "quest3": "",
+      "quest4": "",
+      "quest5": "",
+      "quest6": "",
+      "quest7": "",
+      "total": 7,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "BattlePassSimulatedUniverse": {
+    "name": "BattlePassSimulatedUniverse",
+    "path": "BattlePass.BattlePassStorage.BattlePassSimulatedUniverse",
+    "i18n": "BattlePassStorage.BattlePassSimulatedUniverse.name",
+    "stored": "StoredBattlePassSimulatedUniverse",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 1,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "BattlePassQuestCalyx": {
+    "name": "BattlePassQuestCalyx",
+    "path": "BattlePass.BattlePassStorage.BattlePassQuestCalyx",
+    "i18n": "BattlePassStorage.BattlePassQuestCalyx.name",
+    "stored": "StoredBattlePassQuestCalyx",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 20,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "BattlePassQuestEchoOfWar": {
+    "name": "BattlePassQuestEchoOfWar",
+    "path": "BattlePass.BattlePassStorage.BattlePassQuestEchoOfWar",
+    "i18n": "BattlePassStorage.BattlePassQuestEchoOfWar.name",
+    "stored": "StoredBattlePassQuestEchoOfWar",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 2,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "BattlePassQuestCredits": {
+    "name": "BattlePassQuestCredits",
+    "path": "BattlePass.BattlePassStorage.BattlePassQuestCredits",
+    "i18n": "BattlePassStorage.BattlePassQuestCredits.name",
+    "stored": "StoredBattlePassQuestCredits",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 300000,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "BattlePassQuestSynthesizeConsumables": {
+    "name": "BattlePassQuestSynthesizeConsumables",
+    "path": "BattlePass.BattlePassStorage.BattlePassQuestSynthesizeConsumables",
+    "i18n": "BattlePassStorage.BattlePassQuestSynthesizeConsumables.name",
+    "stored": "StoredBattlePassQuestSynthesizeConsumables",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 10,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "BattlePassQuestStagnantShadow": {
+    "name": "BattlePassQuestStagnantShadow",
+    "path": "BattlePass.BattlePassStorage.BattlePassQuestStagnantShadow",
+    "i18n": "BattlePassStorage.BattlePassQuestStagnantShadow.name",
+    "stored": "StoredBattlePassQuestStagnantShadow",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 3,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "BattlePassQuestCavernOfCorrosion": {
+    "name": "BattlePassQuestCavernOfCorrosion",
+    "path": "BattlePass.BattlePassStorage.BattlePassQuestCavernOfCorrosion",
+    "i18n": "BattlePassStorage.BattlePassQuestCavernOfCorrosion.name",
+    "stored": "StoredBattlePassQuestCavernOfCorrosion",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 8,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "BattlePassQuestTrailblazePower": {
+    "name": "BattlePassQuestTrailblazePower",
+    "path": "BattlePass.BattlePassStorage.BattlePassQuestTrailblazePower",
+    "i18n": "BattlePassStorage.BattlePassQuestTrailblazePower.name",
+    "stored": "StoredBattlePassQuestTrailblazePower",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 0,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "CloudRemainSeasonPass": {
+    "name": "CloudRemainSeasonPass",
+    "path": "DataUpdate.CloudStorage.CloudRemainSeasonPass",
+    "i18n": "CloudStorage.CloudRemainSeasonPass.name",
+    "stored": "StoredInt",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "CloudRemainPaid": {
+    "name": "CloudRemainPaid",
+    "path": "DataUpdate.CloudStorage.CloudRemainPaid",
+    "i18n": "CloudStorage.CloudRemainPaid.name",
+    "stored": "StoredInt",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "CloudRemainFree": {
+    "name": "CloudRemainFree",
+    "path": "DataUpdate.CloudStorage.CloudRemainFree",
+    "i18n": "CloudStorage.CloudRemainFree.name",
+    "stored": "StoredInt",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  },
+  "SimulatedUniverseFarm": {
+    "name": "SimulatedUniverseFarm",
+    "path": "Rogue.RogueWorld.SimulatedUniverseFarm",
+    "i18n": "RogueWorld.SimulatedUniverseFarm.name",
+    "stored": "StoredSimulatedUniverseElite",
+    "attrs": {
+      "time": "2020-01-01 00:00:00",
+      "total": 100,
+      "value": 0
+    },
+    "order": 0,
+    "color": "#777777"
+  }
+}

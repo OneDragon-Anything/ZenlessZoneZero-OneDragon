@@ -1,0 +1,334 @@
+# --------------------
+# Define arguments.
+# --------------------
+
+# ==================== Alas ====================
+
+Scheduler:
+  Enable:
+    type: checkbox
+    value: false
+    option: [ true, false ]
+  NextRun: 2020-01-01 00:00:00
+  Command: Alas
+  ServerUpdate:
+    value: 04:00
+    display: hide
+Emulator:
+  Serial:
+    value: auto
+    valuetype: str
+  GameClient:
+    value: android
+    option: [ android, cloud_android ]
+  PackageName:
+    value: auto
+    option: [ auto, ]
+  GameLanguage:
+    value: auto
+    option: [ auto, cn, en ]
+  ScreenshotMethod:
+    value: auto
+    option: [
+      auto,
+      ADB,
+      ADB_nc,
+      uiautomator2,
+      aScreenCap,
+      aScreenCap_nc,
+      DroidCast,
+      DroidCast_raw,
+      scrcpy,
+      nemu_ipc,
+    ]
+  ControlMethod:
+    value: MaaTouch
+    option: [ minitouch, MaaTouch ]
+  AdbRestart: false
+EmulatorInfo:
+  Emulator:
+    value: auto
+    option: [
+      auto,
+      NoxPlayer,
+      NoxPlayer64,
+      BlueStacks4,
+      BlueStacks5,
+      BlueStacks4HyperV,
+      BlueStacks5HyperV,
+      LDPlayer3,
+      LDPlayer4,
+      LDPlayer9,
+      MuMuPlayer,
+      MuMuPlayerX,
+      MuMuPlayer12,
+      MEmuPlayer,
+    ]
+  name:
+    value: null
+    type: textarea
+  path:
+    value: null
+    type: textarea
+Error:
+  Restart:
+    value: game
+    option: [ game, game_emulator ]
+  SaveError: true
+  ScreenshotLength: 1
+  OnePushConfig:
+    type: textarea
+    mode: yaml
+    value: 'provider: null'
+Optimization:
+  ScreenshotInterval: 0.3
+  CombatScreenshotInterval: 1.0
+  WhenTaskQueueEmpty:
+    value: goto_main
+    option: [ stay_there, goto_main, close_game ]
+
+# ==================== Daily ====================
+
+Dungeon:
+  Name:
+    # Dungeon names will be injected in config updater
+    value: Calyx_Golden_Treasures_Jarilo_VI
+    option: [ ]
+  NameAtDoubleCalyx:
+    value: Calyx_Golden_Treasures_Jarilo_VI
+    option: [ ]
+  NameAtDoubleRelic:
+    value: Cavern_of_Corrosion_Path_of_Providence
+    option: [ ]
+  Team:
+    value: 1
+    option: [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
+TrailblazePower:
+  ExtractReservedTrailblazePower: false
+  UseFuel: false
+  FuelReserve: 5
+DungeonSupport:
+  Use:
+    value: when_daily
+    option: [ always_use, when_daily, do_not_use ]
+  Character:
+    # Options will be injected in config updater
+    value: FirstCharacter
+    option: [ FirstCharacter, ]
+DungeonStorage:
+  TrailblazePower:
+    stored: StoredTrailblazePower
+    order: 1
+    color: "#eb8efe"
+  Reserved:
+    stored: StoredResersed
+  Immersifier:
+    stored: StoredImmersifier
+  DungeonDouble:
+    stored: StoredDungeonDouble
+  EchoOfWar:
+    stored: StoredEchoOfWar
+  SimulatedUniverse:
+    stored: StoredSimulatedUniverse
+    order: 6
+    color: "#8fb5fe"
+SupportReward:
+  Collect: true
+Planner:
+  PlannerOverall:
+    stored: StoredPlannerOverall
+    display: true
+    order: 4
+    color: "#85e7f2"
+  # Items will be injected in config updater
+
+Weekly:
+  Name:
+    # Dungeon names will be injected in config updater
+    value: Echo_of_War_Divine_Seed
+    options: [ ]
+  Team:
+    value: 1
+    option: [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
+
+DailyStorage:
+  DailyActivity:
+    stored: StoredDailyActivity
+    order: 2
+    color: "#ffcf70"
+    display: display
+  DailyQuest:
+    stored: StoredDaily
+    display: display
+
+BattlePassStorage:
+  BattlePassLevel:
+    stored: StoredBattlePassLevel
+    order: 5
+    color: "#cbe45b"
+    display: display
+  BattlePassWeeklyQuest:
+    stored: StoredBattlePassWeeklyQuest
+  # Quests progress
+  BattlePassSimulatedUniverse:
+    stored: StoredBattlePassSimulatedUniverse
+    display: display
+  BattlePassQuestCalyx:
+    stored: StoredBattlePassQuestCalyx
+    display: display
+  BattlePassQuestEchoOfWar:
+    stored: StoredBattlePassQuestEchoOfWar
+    display: display
+  BattlePassQuestCredits:
+    stored: StoredBattlePassQuestCredits
+    display: display
+  BattlePassQuestSynthesizeConsumables:
+    stored: StoredBattlePassQuestSynthesizeConsumables
+    display: display
+  BattlePassQuestStagnantShadow:
+    stored: StoredBattlePassQuestStagnantShadow
+    display: display
+  BattlePassQuestCavernOfCorrosion:
+    stored: StoredBattlePassQuestCavernOfCorrosion
+    display: display
+  BattlePassQuestTrailblazePower:
+    stored: StoredBattlePassQuestTrailblazePower
+    display: display
+
+Assignment:
+  # Options in Name_x will be injected in config updater
+  Name_1:
+    value: Nameless_Land_Nameless_People
+    option: [ ]
+  Name_2:
+    value: Akashic_Records
+    option: [ ]
+  Name_3:
+    value: The_Invisible_Hand
+    option: [ ]
+  Name_4:
+    value: Nine_Billion_Names
+    option: [ ]
+  Duration:
+    value: 20
+    option: [ 4, 8, 12, 20 ]
+  Event: true
+  Assignment:
+    stored: StoredAssignment
+    order: 3
+    color: "#79dbc4"
+
+ItemStorage:
+  Credit:
+    stored: StoredInt
+    order: 7
+    color: "#ab7cf2"
+    display: display
+  StallerJade:
+    stored: StoredInt
+    order: 8
+    color: "#fc8f8b"
+    display: display
+
+CloudStorage:
+  CloudRemainSeasonPass:
+    stored: StoredInt
+    display: display
+  CloudRemainPaid:
+    stored: StoredInt
+    display: display
+  CloudRemainFree:
+    stored: StoredInt
+    display: display
+
+# ==================== Rogue ====================
+
+RogueWorld:
+  # Worlds will be injected in config updater
+  World:
+    value: Simulated_Universe_World_8
+    option: [
+      Simulated_Universe_World_3,
+      Simulated_Universe_World_4,
+      Simulated_Universe_World_5,
+      Simulated_Universe_World_6,
+      Simulated_Universe_World_8,
+    ]
+  Path:
+    value: The_Hunt
+    option: [ Preservation, Remembrance, Nihility, Abundance, The_Hunt, Destruction, Elation, Propagation, Erudition ]
+  Bonus:
+    value: Blessing Universe
+    option: [ Blessing Universe, Miracle Universe, Fragmented Universe ]
+  DomainStrategy:
+    value: combat
+    option: [ combat, occurrence ]
+  UseImmersifier: true
+  DoubleEvent: true
+  WeeklyFarming: false
+  UseStamina: false
+  SimulatedUniverseFarm:
+    stored: StoredSimulatedUniverseElite
+    display: disabled
+
+RogueBlessing:
+  PresetBlessingFilter:
+    value: preset
+    option: [ preset, custom ]
+  CustomBlessingFilter: |-
+    巡猎-3 > 《冠军晚餐·猫的摇篮》 > 丰饶众生，一法界心 > 毁灭-3 
+    > 火堆外的夜 > 巡猎-2 > 毁灭-2 > 巡猎 > reset > random
+  PresetCurioFilter:
+    value: preset
+    option: [ preset, custom ]
+  CustomCurioFilter: |-
+    博士之袍 > 福灵胶 > 分裂金币 > 信仰债券 > 换境桂冠 > 俱乐部券 > 碎星芳饵 > random
+  PresetResonanceFilter:
+    value: preset
+    option: [ preset, custom ]
+  CustomResonanceFilter: |-
+    回响构音：均晶转变 > 回响构音：零维强化
+    > 回响构音：第二次初恋 > 回响构音：体验的富翁
+    > 回响构音：局外人 > 回响构音：怀疑的四重根
+    > 回响构音：诸法无我 > 回响构音：诸行无常
+    > 回响构音：射不主皮 > 回响构音：柘弓危矢
+    > 回响构音：激变变星 > 回响构音：极端氦闪
+    > 回响构音：末日狂欢 > 回响构音：树苗长高舞
+    > random
+  SelectionStrategy:
+    value: before-random
+    option: [ follow-presets, unrecorded-first, before-random ]
+
+RogueDebug:
+  DebugMode: false
+
+Ornament:
+  Dungeon:
+    value: Divergent_Universe_Eternal_Comedy
+    # OrnamentExtraction will be injected in config updater
+    option: [ ]
+  UseImmersifier:
+    type: state
+    value: true
+    option: [ true, ]
+    option_bold: [ true, ]
+  DoubleEvent:
+    type: state
+    value: true
+    option: [ true, ]
+    option_bold: [ true, ]
+  UseStamina: false
+
+# ==================== Tool ====================
+
+Daemon:
+  Enable:
+    type: state
+    value: true
+    option: [ true ]
+    option_bold: [ true, ]
+  AimClicker:
+    value: do_not_click
+    option: [ item_enemy, item, enemy, do_not_click ]
+PlannerScan:
+  ResultAdd: false
