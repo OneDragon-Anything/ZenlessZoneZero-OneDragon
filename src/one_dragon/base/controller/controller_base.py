@@ -32,6 +32,12 @@ class ControllerBase:
         """
         return False
 
+    def cleanup_after_app_shutdown(self) -> None:
+        """
+        清理资源
+        """
+        pass
+
     @property
     def is_game_window_ready(self) -> bool:
         """
