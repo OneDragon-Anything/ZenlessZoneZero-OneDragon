@@ -11,7 +11,7 @@ import uuid
 class TelemetryEvent:
     """遥测事件数据结构"""
     event_name: str
-    distinct_id: str
+    user_uuid: str
     properties: Dict[str, Any]
     timestamp: datetime = field(default_factory=datetime.now)
     session_id: str = field(default_factory=lambda: str(uuid.uuid4()))

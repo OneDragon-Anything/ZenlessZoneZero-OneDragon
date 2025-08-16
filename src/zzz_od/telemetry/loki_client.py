@@ -265,7 +265,7 @@ class LokiClient:
             "level": "info",
             "properties": {
                 "event_name": event.get('event', ''),
-                "distinct_id": event.get('distinct_id', ''),
+                "user_uuid": event.get('distinct_id', ''),  # 统一使用user_uuid
                 "timestamp": event.get('timestamp', datetime.now().isoformat()),
                 **event.get('properties', {})
             }
@@ -287,11 +287,8 @@ class LokiClient:
         if event_type == 'capture' and 'event' in event:
             labels["event_name"] = event['event']
 
-        # 添加用户ID标签（如果存在）
         if 'distinct_id' in event:
-            # 使用哈希值保护隐私
-            user_hash = str(hash(event['distinct_id']))[-8:]
-            labels["user_id"] = user_hash
+            labels["user_uuid"] = event['distinct_id']
 
         return labels
 

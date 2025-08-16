@@ -36,6 +36,7 @@ class TelemetryManager:
         self._initialized = False
         self._user_id: Optional[str] = None
         self._session_id = str(uuid.uuid4())
+        self._app_version = self._get_app_version()
 
         # 配置管理
         from one_dragon.utils import os_utils
@@ -114,20 +115,39 @@ class TelemetryManager:
 
 
     def _generate_user_id(self) -> str:
-        """生成匿名用户ID"""
+        """生成用户ID"""
         try:
-            # 使用机器特征生成稳定的匿名ID
+            # 使用机器特征生成稳定的ID
             machine_id = f"{platform.node()}-{platform.machine()}"
-            # 这里可以添加更多的机器特征，但要注意隐私
-            user_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, machine_id))
-            logger.debug(f"Generated anonymous user ID: {user_id[:8]}...")
-            return user_id
+            # 生成基于机器特征的稳定UUID
+            user_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, machine_id))
+            logger.debug(f"Generated user UUID: {user_uuid}")
+            return user_uuid
         except Exception as e:
             # 如果生成失败，使用随机ID
             logger.warning(f"Failed to generate user ID from machine features: {e}")
-            user_id = str(uuid.uuid4())
-            logger.debug(f"Using random user ID: {user_id[:8]}...")
-            return user_id
+            user_uuid = str(uuid.uuid4())
+            logger.debug(f"Using random user UUID: {user_uuid}")
+            return user_uuid
+
+    def _get_app_version(self) -> str:
+        """获取应用版本号"""
+        try:
+            # 首先尝试获取启动器版本
+            from one_dragon.utils import app_utils
+            launcher_version = app_utils.get_launcher_version()
+            if launcher_version:
+                return launcher_version
+        except Exception:
+            pass
+
+        # 回退到project_config的version属性
+        app_version = getattr(self.ctx.project_config, 'version', None)
+        if app_version:
+            return app_version
+
+        # 最后回退到默认值
+        return '2.0.0'
 
     def is_enabled(self) -> bool:
         """检查遥测是否启用"""
@@ -148,7 +168,7 @@ class TelemetryManager:
             # 添加通用属性
             event_properties = {
                 'session_id': self._session_id,
-                'app_version': getattr(self.ctx.project_config, 'version', '2.0.0'),
+                'app_version': self._app_version,
                 **(properties or {})
             }
 
@@ -190,7 +210,7 @@ class TelemetryManager:
                 'stack_trace': traceback.format_exc(),
                 'context': context or {},
                 'session_id': self._session_id,
-                'app_version': getattr(self.ctx.project_config, 'version', '2.0.0'),
+                'app_version': self._app_version,
             }
 
             # 隐私控制检查
@@ -228,7 +248,7 @@ class TelemetryManager:
                 'metric_name': metric_name,
                 'metric_value': value,
                 'session_id': self._session_id,
-                'app_version': getattr(self.ctx.project_config, 'version', '2.0.0'),
+                'app_version': self._app_version,
                 **(tags or {})
             }
 
@@ -253,7 +273,7 @@ class TelemetryManager:
             # 添加通用属性
             event_properties = {
                 'session_id': self._session_id,
-                'app_version': getattr(self.ctx.project_config, 'version', '2.0.0'),
+                'app_version': self._app_version,
                 **(properties or {})
             }
 
@@ -419,7 +439,7 @@ class TelemetryManager:
     def track_app_launch(self, launch_time: float, version: str = None) -> None:
         """跟踪应用启动"""
         if self.event_collector:
-            app_version = version or getattr(self.ctx.project_config, 'version', '2.0.0')
+            app_version = version or self._app_version
             self.event_collector.track_app_launch(launch_time, app_version)
 
     def track_ui_interaction(self, element: str, action: str, properties: Dict[str, Any] = None) -> None:
@@ -433,7 +453,7 @@ class TelemetryManager:
                 'element': element,
                 'action': action,
                 'session_id': self._session_id,
-                'app_version': getattr(self.ctx.project_config, 'version', '2.0.0'),
+                'app_version': self._app_version,
                 'event_category': 'ui_interaction',
                 **(properties or {})
             }
@@ -496,7 +516,7 @@ class TelemetryManager:
                 'from_page': from_page,
                 'to_page': to_page,
                 'session_id': self._session_id,
-                'app_version': getattr(self.ctx.project_config, 'version', '2.0.0'),
+                'app_version': self._app_version,
                 'event_category': 'navigation'
             }
 
@@ -534,7 +554,7 @@ class TelemetryManager:
             event_properties = {
                 'feature_name': feature_name,
                 'session_id': self._session_id,
-                'app_version': getattr(self.ctx.project_config, 'version', '2.0.0'),
+                'app_version': self._app_version,
                 'event_category': 'feature_usage',
                 **(properties or {})
             }

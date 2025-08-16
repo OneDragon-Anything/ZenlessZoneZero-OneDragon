@@ -35,6 +35,8 @@ class EventFormatConfig:
     max_label_length: int = 63  # Loki标签长度限制
     max_metadata_size: int = 65536  # 64KB限制
 
+
+
     # 性能统计
     events_formatted: int = 0
     format_errors: int = 0
@@ -90,7 +92,7 @@ class EventFormatter:
         labels = self._generate_base_labels()
         labels.update(self._generate_event_labels(event_name, distinct_id))
 
-        metadata = self._generate_standard_metadata(distinct_id, event_name)
+        metadata = self._generate_standard_metadata(distinct_id, event_name, event_data)
         metadata.update(self._sanitize_properties(properties))
 
         return LokiLogEntry(
@@ -111,10 +113,10 @@ class EventFormatter:
         labels.update({
             'event_type': 'user_identify',
             'level': 'info',
-            'user_id': self._hash_user_id(distinct_id)
+            'user_uuid': distinct_id
         })
 
-        metadata = self._generate_standard_metadata(distinct_id, 'user_identify')
+        metadata = self._generate_standard_metadata(distinct_id, 'user_identify', event_data)
         metadata.update(self._sanitize_properties(properties))
 
         return LokiLogEntry(
@@ -135,13 +137,13 @@ class EventFormatter:
         labels.update({
             'event_type': 'user_alias',
             'level': 'info',
-            'user_id': self._hash_user_id(distinct_id)
+            'user_uuid': distinct_id
         })
 
-        metadata = self._generate_standard_metadata(distinct_id, 'user_alias')
+        metadata = self._generate_standard_metadata(distinct_id, 'user_alias', event_data)
         metadata.update({
-            'previous_id': self._hash_user_id(previous_id),
-            'new_id': self._hash_user_id(distinct_id)
+            'previous_id': previous_id,  # 直接使用UUID
+            'new_id': distinct_id        # 直接使用UUID
         })
 
         return LokiLogEntry(
@@ -162,10 +164,10 @@ class EventFormatter:
         labels.update({
             'event_type': 'generic',
             'level': 'info',
-            'user_id': self._hash_user_id(distinct_id)
+            'user_uuid': distinct_id
         })
 
-        metadata = self._generate_standard_metadata(distinct_id, event_type)
+        metadata = self._generate_standard_metadata(distinct_id, event_type, event_data)
         metadata.update(self._sanitize_properties(event_data))
 
         return LokiLogEntry(
@@ -184,7 +186,7 @@ class EventFormatter:
             'event_type': 'error',
             'level': 'error',
             'error_type': self._sanitize_label_value(error_event.error_type),
-            'user_id': self._hash_user_id(distinct_id)
+            'user_uuid': distinct_id
         })
 
         metadata = self._generate_standard_metadata(distinct_id, 'error')
@@ -213,7 +215,7 @@ class EventFormatter:
             'event_type': 'performance',
             'level': 'info',
             'metric_name': self._sanitize_label_value(perf_event.metric_name),
-            'user_id': self._hash_user_id(distinct_id)
+            'user_uuid': distinct_id
         })
 
         metadata = self._generate_standard_metadata(distinct_id, 'performance')
@@ -252,7 +254,7 @@ class EventFormatter:
             'event_type': 'telemetry',
             'event_name': self._sanitize_label_value(event_name),
             'level': 'info',
-            'user_id': self._hash_user_id(distinct_id)
+            'user_uuid': distinct_id
         }
 
         if feature:
@@ -264,17 +266,18 @@ class EventFormatter:
 
         return labels
 
-    def _generate_standard_metadata(self, distinct_id: str, event_name: str) -> Dict[str, Any]:
+    def _generate_standard_metadata(self, distinct_id: str, event_name: str, event_data: Dict[str, Any] = None) -> Dict[str, Any]:
         """生成标准元数据字段"""
-        return {
+        metadata = {
             'timestamp': datetime.now().isoformat(),
             'session_id': self._session_id,
-            'distinct_id': self._hash_user_id(distinct_id),
+            'user_uuid': distinct_id,    # 用户UUID标识
             'event_name': event_name,
             'app_version': self.config.app_version,
             'platform': self.config.platform,
             'instance_id': self.config.instance_id
         }
+        return metadata
 
     def _classify_event_feature(self, event_name: str) -> Optional[str]:
         """根据事件名称分类功能"""
@@ -402,9 +405,7 @@ class EventFormatter:
 
         return truncated
 
-    def _hash_user_id(self, user_id: str) -> str:
-        """对用户ID进行哈希处理以保护隐私"""
-        return hashlib.sha256(user_id.encode()).hexdigest()[:16]
+
 
     def _create_error_entry(self, error_message: str, original_data: Dict[str, Any]) -> LokiLogEntry:
         """创建格式化错误的日志条目"""
