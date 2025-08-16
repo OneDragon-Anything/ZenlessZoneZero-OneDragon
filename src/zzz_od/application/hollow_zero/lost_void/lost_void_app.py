@@ -246,6 +246,7 @@ class LostVoidApp(ZApplication):
 
             log.debug("【追新模式】 当前屏幕无可选择目标，执行滑动...")
             self._swipe_strategy_list()
+            self.screenshot()
             swipe_attempts += 1
         
         # 回退逻辑: 选择第一个
