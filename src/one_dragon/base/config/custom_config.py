@@ -144,18 +144,18 @@ class CustomConfig(YamlConfig):
         self.update('global_theme_color', new_value)
 
     @property
-    def global_theme_color(self) -> tuple:
+    def global_theme_color(self) -> tuple[int, int, int]:
         """
         全局主题色 (r, g, b)
         """
         color_str = self.global_theme_color_str
         if color_str:
-            try:
-                r, g, b = map(int, color_str.split(','))
-                return (r, g, b)
-            except (ValueError, AttributeError):
-                pass
-        return (0, 120, 215)  # 默认值
+            parts = color_str.split(',')
+            if len(parts) == 3 and all(p.isdigit() for p in parts):
+                r, g, b = map(int, parts)
+                return r, g, b
+        # 默认值
+        return 0, 120, 215
 
     @global_theme_color.setter
     def global_theme_color(self, new_value: tuple) -> None:
