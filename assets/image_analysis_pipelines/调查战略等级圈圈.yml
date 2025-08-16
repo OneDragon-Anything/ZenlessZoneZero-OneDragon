@@ -23,6 +23,6 @@
     iterations: 1
 - step: 按面积过滤
   params:
-    min_area: 50
-    max_area: 10000
+    min_area: 1000
+    max_area: 1500
     draw_contours: 2

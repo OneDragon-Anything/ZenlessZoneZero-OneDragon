@@ -131,10 +131,10 @@ area_list:
 - area_name: 区域-交互文本
   id_mark: false
   pc_rect:
-  - 726
-  - 10
-  - 1362
-  - 1070
+  - 480
+  - 100
+  - 1440
+  - 1058
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
