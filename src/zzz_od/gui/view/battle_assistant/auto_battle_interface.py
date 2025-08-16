@@ -37,6 +37,12 @@ class AutoBattleInterface(AppRunInterface):
         self.app: Optional[ZApplication] = None
         self.auto_op_loaded_signal.connect(self._on_auto_op_loaded_signal)
 
+        if hasattr(ctx, 'telemetry') and ctx.telemetry:
+            ctx.telemetry.track_ui_interaction('auto_battle_interface', 'view', {
+                'interface_type': 'battle_assistant',
+                'feature': 'auto_battle'
+            })
+
     def get_widget_at_top(self) -> QWidget:
         top_widget = Column()
 
