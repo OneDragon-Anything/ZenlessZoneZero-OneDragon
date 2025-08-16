@@ -25,7 +25,16 @@ from .label import EllipsisLabel
 
 
 def get_notice_theme_palette():
-    """返回与主题相关的颜色配置"""
+    """返回与主题相关的颜色配置。
+
+    返回:
+        dict: {
+            'tint': QColor,           # 背景半透明色
+            'title': str,             # 标题文本颜色
+            'date': str,              # 日期文本颜色
+            'shadow': QColor          # 外部阴影颜色
+        }
+    """
     if qconfig.theme == Theme.DARK:
         return {
             'tint': QColor(20, 20, 20, 160),
@@ -344,19 +353,9 @@ class NoticeCard(SimpleCardWidget):
         pixel_ratio = self.devicePixelRatio()
 
         self._banner_loader = BannerImageLoader(banners, pixel_ratio, self)
-        # 使用队列连接确保线程安全
-        self._banner_loader.image_loaded.connect(
-            self._on_banner_image_loaded,
-            Qt.ConnectionType.QueuedConnection
-        )
-        self._banner_loader.all_images_loaded.connect(
-            self._on_all_banners_loaded,
-            Qt.ConnectionType.QueuedConnection
-        )
-        self._banner_loader.finished.connect(
-            self._on_banner_loading_finished,
-            Qt.ConnectionType.QueuedConnection
-        )
+        self._banner_loader.image_loaded.connect(self._on_banner_image_loaded)
+        self._banner_loader.all_images_loaded.connect(self._on_all_banners_loaded)
+        self._banner_loader.finished.connect(self._on_banner_loading_finished)
         self._banner_loader.start()
 
     def _on_banner_image_loaded(self, pixmap: QPixmap, url: str):
