@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QWidget, QFileDialog
 from qfluentwidgets import FluentIcon, LineEdit, PushButton, \
     ToolButton, PrimaryPushButton, HyperlinkCard, SettingCardGroup
 
-from one_dragon.base.config.game_account_config import GameRegionEnum
+from one_dragon.base.config.game_account_config import GameRegionEnum, GameClientTypeEnum
 from one_dragon.base.config.one_dragon_config import OneDragonInstance, RunInOneDragonApp
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
@@ -151,7 +151,9 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
     def init_game_account_config(self) -> None:
         # 初始化账号和密码
+        self.game_client_type_opt.init_with_adapter(self.ctx.game_account_config.get_prop_adapter('game_client'))
         self.game_path_opt.setContent(self.ctx.game_account_config.game_path)
+        self.cloud_game_path_opt.setContent(self.ctx.game_account_config.cloud_game_path)
         self.custom_win_title_opt.init_with_adapter(self.ctx.game_account_config.get_prop_adapter('use_custom_win_title'))
         self.custom_win_title_input.setText(self.ctx.game_account_config.custom_win_title)
         self.game_region_opt.init_with_adapter(self.ctx.game_account_config.get_prop_adapter('game_region'))
@@ -180,9 +182,17 @@ class SettingInstanceInterface(VerticalScrollInterface):
     def _get_instanceSettings_group(self) -> QWidget:
         instance_settings_group = SettingCardGroup(gt('当前账户设置'))
 
-        self.game_path_opt = PushSettingCard(icon=FluentIcon.FOLDER, title='游戏路径', text='选择')
+        self.game_client_type_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='游戏客户端',
+                                                        options_enum=GameClientTypeEnum)
+        instance_settings_group.addSettingCard(self.game_client_type_opt)
+
+        self.game_path_opt = PushSettingCard(icon=FluentIcon.FOLDER, title='本地游戏路径', text='选择')
         self.game_path_opt.clicked.connect(self._on_game_path_clicked)
         instance_settings_group.addSettingCard(self.game_path_opt)
+
+        self.cloud_game_path_opt = PushSettingCard(icon=FluentIcon.CLOUD, title='云游戏路径', text='选择')
+        self.cloud_game_path_opt.clicked.connect(self._on_cloud_game_path_clicked)
+        instance_settings_group.addSettingCard(self.cloud_game_path_opt)
 
         self.custom_win_title_input = LineEdit()
         self.custom_win_title_input.setFixedWidth(214)
@@ -260,6 +270,16 @@ class SettingInstanceInterface(VerticalScrollInterface):
     def _on_game_path_chosen(self, file_path) -> None:
         self.ctx.game_account_config.game_path = file_path
         self.game_path_opt.setContent(file_path)
+
+    def _on_cloud_game_path_clicked(self) -> None:
+        file_path, _ = QFileDialog.getOpenFileName(self, f"{gt('选择你的云游戏启动程序')} (*.exe)", filter="Exe (*.exe)")
+        if file_path is not None and file_path.endswith('.exe'):
+            log.info(f"{gt('选择路径')} {file_path}")
+            self._on_cloud_game_path_chosen(os.path.normpath(file_path))
+
+    def _on_cloud_game_path_chosen(self, file_path) -> None:
+        self.ctx.game_account_config.cloud_game_path = file_path
+        self.cloud_game_path_opt.setContent(file_path)
 
     def _update_custom_win_title(self) -> None:
         self.ctx.game_account_config.custom_win_title =  self.custom_win_title_input.text()

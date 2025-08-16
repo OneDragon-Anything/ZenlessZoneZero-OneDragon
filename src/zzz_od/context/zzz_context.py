@@ -166,13 +166,15 @@ class ZContext(OneDragonContext):
         OneDragonContext.init_by_config(self)
 
         from zzz_od.controller.zzz_pc_controller import ZPcController
-        from one_dragon.base.config.game_account_config import GamePlatformEnum
+        from one_dragon.base.config.game_account_config import GamePlatformEnum, GameClientTypeEnum
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
             if self.game_account_config.use_custom_win_title:
                 win_title = self.game_account_config.custom_win_title
             else:
                 from one_dragon.base.config.game_account_config import GameRegionEnum
                 win_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
+                if self.game_account_config.game_client == GameClientTypeEnum.CLOUD_GAME.value.value:
+                    win_title = '云·绝区零' #TODO 外国的云游戏叫什么？
             self.controller: ZPcController = ZPcController(
                 game_config=self.game_config,
                 win_title=win_title,
