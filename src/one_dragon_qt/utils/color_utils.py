@@ -3,7 +3,6 @@ Qt颜色处理工具类
 提供Qt GUI相关的颜色计算、转换等功能
 """
 from PySide6.QtGui import QColor
-from typing import Tuple
 
 
 class ColorUtils:
@@ -61,7 +60,7 @@ class ColorUtils:
     
     @staticmethod
     def extract_average_color_from_region(image, x0: int, y0: int, x1: int, y1: int, 
-                                        sample_step: int = 64) -> Tuple[int, int, int]:
+                                        sample_step: int = 64) -> tuple[int, int, int]:
         """
         从图片指定区域提取平均颜色
         
@@ -90,7 +89,7 @@ class ColorUtils:
         return int(r_sum / count), int(g_sum / count), int(b_sum / count)
     
     @staticmethod
-    def enhance_color_vibrancy(r: int, g: int, b: int) -> Tuple[int, int, int]:
+    def enhance_color_vibrancy(r: int, g: int, b: int) -> tuple[int, int, int]:
         """
         增强颜色的鲜艳度
         
@@ -115,7 +114,7 @@ class ColorUtils:
     
     @staticmethod
     def brighten_if_too_dark(r: int, g: int, b: int, target_luminance: float = 160, 
-                           max_iterations: int = 2) -> Tuple[int, int, int]:
+                           max_iterations: int = 2) -> tuple[int, int, int]:
         """
         如果颜色太暗则适当提亮
         
