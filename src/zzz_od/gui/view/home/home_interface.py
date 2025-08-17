@@ -407,6 +407,8 @@ class HomeInterface(VerticalScrollInterface):
 
         # 监听背景刷新信号，确保主题色在背景变化时更新
         self._last_reload_banner_signal = False
+        # 缓存的背景图片修改时间
+        self._cached_banner_mtime = 0
 
     def _init_check_runners(self):
         """初始化检查更新的线程"""
@@ -514,6 +516,9 @@ class HomeInterface(VerticalScrollInterface):
             return
 
         try:
+            # 强制清空主题色缓存，确保重新提取
+            self._clear_theme_color_cache()
+
             # 更新背景图片
             self._banner_widget.set_banner_image(self.choose_banner_image())
             # 依据背景重新计算按钮配色
@@ -565,10 +570,9 @@ class HomeInterface(VerticalScrollInterface):
             log.info("start_button 不存在，跳过样式更新")
             return
 
-        # 检查是否能使用缓存，如果可以就跳过整个更新过程
+        # 检查是否能使用缓存
         current_banner_path = self.choose_banner_image()
-        if (self.ctx.custom_config.has_custom_theme_color and
-            self.ctx.custom_config.theme_color_banner_path == current_banner_path):
+        if self._can_use_cached_theme_color(current_banner_path):
             log.debug(f"使用缓存的主题色，跳过样式更新: {current_banner_path}")
             return
 
@@ -586,9 +590,8 @@ class HomeInterface(VerticalScrollInterface):
         """获取主题色，优先使用缓存，否则从图片提取"""
         current_banner_path = self.choose_banner_image()
 
-        # 检查是否有缓存的主题色，且对应的背景图片路径一致
-        if (self.ctx.custom_config.has_custom_theme_color and
-            self.ctx.custom_config.theme_color_banner_path == current_banner_path):
+        # 检查是否能使用缓存的主题色
+        if self._can_use_cached_theme_color(current_banner_path):
             lr, lg, lb = self.ctx.custom_config.global_theme_color
             log.debug(f"使用缓存的主题色: ({lr}, {lg}, {lb})")
             return lr, lg, lb
@@ -597,8 +600,7 @@ class HomeInterface(VerticalScrollInterface):
         theme_color = self._extract_color_from_image()
 
         # 更新缓存
-        self.ctx.custom_config.theme_color_banner_path = current_banner_path
-        self.ctx.custom_config.global_theme_color = theme_color
+        self._update_theme_color_cache(current_banner_path, theme_color)
 
         return theme_color
 
@@ -660,3 +662,50 @@ class HomeInterface(VerticalScrollInterface):
         padding: 0px;
         """
         self.start_button.setStyleSheet(style_sheet)
+
+    def _clear_theme_color_cache(self) -> None:
+        """清空主题色缓存"""
+        self.ctx.custom_config.theme_color_banner_path = ''
+        self.ctx.custom_config.global_theme_color_str = ''
+        log.info("已清空主题色缓存")
+
+    def _can_use_cached_theme_color(self, current_banner_path: str) -> bool:
+        """检查是否可以使用缓存的主题色"""
+        if not self.ctx.custom_config.has_custom_theme_color:
+            return False
+
+        cached_path = self.ctx.custom_config.theme_color_banner_path
+        if cached_path != current_banner_path:
+            return False
+
+        # 检查文件是否存在
+        if not os.path.exists(current_banner_path):
+            return False
+
+        # 检查文件修改时间是否改变
+        try:
+            current_mtime = os.path.getmtime(current_banner_path)
+            cached_mtime = getattr(self, '_cached_banner_mtime', 0)
+
+            if current_mtime != cached_mtime:
+                # 文件已被修改，不能使用缓存
+                return False
+
+        except OSError:
+            # 无法获取文件时间戳，为安全起见不使用缓存
+            return False
+
+        return True
+
+    def _update_theme_color_cache(self, banner_path: str, theme_color: tuple[int, int, int]) -> None:
+        """更新主题色缓存"""
+        self.ctx.custom_config.theme_color_banner_path = banner_path
+        self.ctx.custom_config.global_theme_color = theme_color
+
+        # 记录文件修改时间
+        try:
+            self._cached_banner_mtime = os.path.getmtime(banner_path)
+        except OSError:
+            self._cached_banner_mtime = 0
+
+        log.info(f"已更新主题色缓存: {theme_color}, 路径: {banner_path}")
