@@ -257,6 +257,7 @@ class HomeInterface(VerticalScrollInterface):
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
         self.main_window = parent
+        self._cached_banner_path: str = None
 
         self._banner_widget = Banner(self.choose_banner_image())
         self._banner_widget.set_percentage_size(0.8, 0.5)
@@ -390,7 +391,7 @@ class HomeInterface(VerticalScrollInterface):
         self._check_banner_reload_signal()
 
         # 初始化主题色，避免navbar颜色闪烁
-        self._update_start_button_style_from_banner()
+        self._apply_theme_color_to_button(self.ctx.signal.global_theme_color)
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
@@ -472,10 +473,15 @@ class HomeInterface(VerticalScrollInterface):
 
     def _update_start_button_style_from_banner(self) -> None:
         """从当前背景取主色，应用到启动按钮。"""
+        banner_path = self.choose_banner_image()
+        if self._cached_banner_path == banner_path:
+            return
+
         image = self._banner_widget.banner_image
         if image is None or image.isNull() or not hasattr(self, 'start_button'):
             return
 
+        self._cached_banner_path = banner_path
         # 取右下角区域的平均色，代表按钮附近背景
         w, h = image.width(), image.height()
         x0 = int(w * 0.65)
@@ -522,7 +528,20 @@ class HomeInterface(VerticalScrollInterface):
             tmp2 = QColor.fromHsvF(th, ts, tv, 1.0)
             lr, lg, lb = tmp2.red(), tmp2.green(), tmp2.blue()
 
+        self._apply_theme_color_to_button((lr, lg, lb))
+
+    def _apply_theme_color_to_button(self, theme_color_tuple: tuple) -> None:
+        """
+        将指定颜色应用为按钮主题色
+        """
+        if not hasattr(self, 'start_button'):
+            return
+
+        lr, lg, lb = theme_color_tuple
+
         # 基于相对亮度选择文本色（黑/白）
+        def luminance_of(rr: int, gg: int, bb: int) -> float:
+            return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb
         luminance = luminance_of(lr, lg, lb)
         text_color = "black" if luminance > 145 else "white"
 
