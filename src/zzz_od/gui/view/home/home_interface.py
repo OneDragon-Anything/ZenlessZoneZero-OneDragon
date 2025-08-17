@@ -565,7 +565,7 @@ class HomeInterface(VerticalScrollInterface):
         """从当前背景取主色，应用到启动按钮。"""
         # 确保按钮存在
         if not hasattr(self, 'start_button'):
-            log.info("start_button 不存在，跳过样式更新")
+            log.debug("start_button 不存在，跳过样式更新")
             return
 
         # 检查是否能使用缓存
@@ -574,7 +574,6 @@ class HomeInterface(VerticalScrollInterface):
             log.debug(f"使用缓存的主题色，跳过样式更新: {current_banner_path}")
             return
 
-        log.info("背景改变，更新启动按钮样式")
         # 获取主题色
         theme_color = self._get_theme_color()
 
@@ -605,10 +604,10 @@ class HomeInterface(VerticalScrollInterface):
     def _extract_color_from_image(self) -> tuple[int, int, int]:
         """从背景图片提取主题色"""
         image = self._banner_widget.banner_image
-        log.info(f"图片状态: image={image is not None}, isNull={image.isNull() if image else 'N/A'}")
+        log.debug(f"图片状态: image={image is not None}, isNull={image.isNull() if image else 'N/A'}")
 
         if image is None or image.isNull():
-            log.info("使用默认蓝色主题")
+            log.debug("使用默认蓝色主题")
             return 64, 158, 255  # 默认蓝色
 
         # 取右下角区域的平均色，代表按钮附近背景
@@ -621,7 +620,7 @@ class HomeInterface(VerticalScrollInterface):
         r, g, b = ColorUtils.extract_average_color_from_region(image, x0, y0, x1, y1)
 
         if r == 64 and g == 158 and b == 255:  # 如果返回默认色，说明提取失败
-            log.info("无法从图片获取颜色，使用默认蓝色")
+            log.debug("无法从图片获取颜色，使用默认蓝色")
             return r, g, b
 
         # 处理提取的颜色
@@ -635,7 +634,6 @@ class HomeInterface(VerticalScrollInterface):
         # 如果太暗则适当提亮
         lr, lg, lb = ColorUtils.brighten_if_too_dark(lr, lg, lb)
 
-        log.info(f"从图片提取颜色: ({lr}, {lg}, {lb})")
         return lr, lg, lb
 
     def _update_global_theme(self, theme_color: tuple[int, int, int]) -> None:
@@ -665,7 +663,6 @@ class HomeInterface(VerticalScrollInterface):
         """清空主题色缓存"""
         self.ctx.custom_config.theme_color_banner_path = ''
         self.ctx.custom_config.global_theme_color_str = ''
-        log.info("已清空主题色缓存")
 
     def _can_use_cached_theme_color(self, current_banner_path: str) -> bool:
         """检查是否可以使用缓存的主题色"""
@@ -705,5 +702,3 @@ class HomeInterface(VerticalScrollInterface):
             self.ctx.custom_config.theme_color_banner_mtime = os.path.getmtime(banner_path)
         except OSError:
             self.ctx.custom_config.theme_color_banner_mtime = 0.0
-
-        log.info(f"已更新主题色缓存: {theme_color}, 路径: {banner_path}")
