@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/one_dragon_qt">
 
+        <file>qss/dark/app_window.qss</file>
         <file>qss/dark/area_widget.qss</file>
         <file>qss/dark/game_button.qss</file>
         <file>qss/dark/game_dialog.qss</file>
@@ -8,10 +9,12 @@
         <file>qss/dark/notice_card.qss</file>
         <file>qss/dark/phos_window.qss</file>
         <file>qss/dark/pivot.qss</file>
+        <file>qss/dark/sample_card.qss</file>
         <file>qss/dark/shared_battle_dialog.qss</file>
         <file>qss/dark/stacked_widget.qss</file>
         <file>qss/dark/title_bar.qss</file>
 
+        <file>qss/light/app_window.qss</file>
         <file>qss/light/area_widget.qss</file>
         <file>qss/light/game_button.qss</file>
         <file>qss/light/game_dialog.qss</file>
@@ -19,6 +22,7 @@
         <file>qss/light/notice_card.qss</file>
         <file>qss/light/phos_window.qss</file>
         <file>qss/light/pivot.qss</file>
+        <file>qss/light/sample_card.qss</file>
         <file>qss/light/shared_battle_dialog.qss</file>
         <file>qss/light/stacked_widget.qss</file>
         <file>qss/light/title_bar.qss</file>

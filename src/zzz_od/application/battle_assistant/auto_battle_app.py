@@ -43,8 +43,10 @@ class AutoBattleApp(ZApplication):
         检测手柄
         :return:
         """
-        if self.ctx.battle_assistant_config.gamepad_type == GamepadTypeEnum.NONE.value.value:
+        gamepad_type = self.ctx.battle_assistant_config.gamepad_type
+        if gamepad_type == GamepadTypeEnum.NONE.value.value:
             self.ctx.controller.enable_keyboard()
+
             return self.round_success(status='无需手柄')
         elif not pc_button_utils.is_vgamepad_installed():
             self.ctx.controller.enable_keyboard()

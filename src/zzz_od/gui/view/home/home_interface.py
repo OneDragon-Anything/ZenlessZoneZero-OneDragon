@@ -1,7 +1,7 @@
 import os
 import requests
 from datetime import datetime, timedelta
-from PySide6.QtCore import Qt, QThread, Signal, QSize, QUrl
+from PySide6.QtCore import Qt, QThread, Signal, QSize, QUrl, QTimer
 from PySide6.QtWidgets import QGraphicsDropShadowEffect
 from PySide6.QtGui import (
     QFont,
@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QSpacerItem,
     QSizePolicy,
-    QApplication,
     QWidget,
 )
 from qfluentwidgets import (
@@ -26,13 +25,14 @@ from qfluentwidgets import (
 
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
-from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+from one_dragon_qt.utils.color_utils import ColorUtils
 from one_dragon_qt.widgets.banner import Banner
 from one_dragon_qt.widgets.icon_button import IconButton
 from one_dragon_qt.widgets.notice_card import NoticeCardContainer
 from one_dragon_qt.widgets.vertical_scroll_interface import (
     VerticalScrollInterface,
 )
+from one_dragon_qt.services.theme_manager import theme_manager
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -140,7 +140,36 @@ class ButtonGroup(SimpleCardWidget):
         """其实还是打开 Q群 链接"""
         QDesktopServices.openUrl(QUrl("https://qm.qq.com/q/N5iEy8sTu0"))
 
-class CheckRunnerBase(QThread):
+class BaseThread(QThread):
+    """基础线程类，提供统一的 _is_running 管理"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._is_running = False
+
+    def run(self):
+        self._is_running = True
+        try:
+            self._run_impl()  # 子类实现具体逻辑
+        finally:
+            self._is_running = False
+
+    def _run_impl(self):
+        """子类需要实现的具体逻辑"""
+        raise NotImplementedError
+
+    def stop(self):
+        """安全停止线程"""
+        self._is_running = False
+        if self.isRunning():
+            self.quit()
+            self.wait(3000)  # 等待最多3秒
+            if self.isRunning():
+                self.terminate()
+                self.wait()
+
+
+class CheckRunnerBase(BaseThread):
     """检查更新的基础线程类"""
 
     need_update = Signal(bool)
@@ -150,7 +179,7 @@ class CheckRunnerBase(QThread):
         self.ctx = ctx
 
 class CheckCodeRunner(CheckRunnerBase):
-    def run(self):
+    def _run_impl(self):
         is_latest, msg = self.ctx.git_service.is_current_branch_latest()
         if msg == "与远程分支不一致":
             self.need_update.emit(True)
@@ -158,15 +187,15 @@ class CheckCodeRunner(CheckRunnerBase):
             self.need_update.emit(not is_latest)
 
 class CheckModelRunner(CheckRunnerBase):
-    def run(self):
+    def _run_impl(self):
         self.need_update.emit(self.ctx.model_config.using_old_model())
 
 class CheckBannerRunner(CheckRunnerBase):
-    def run(self):
+    def _run_impl(self):
         if self.ctx.signal.reload_banner:
             self.need_update.emit(True)
 
-class BackgroundImageDownloader(QThread):
+class BackgroundImageDownloader(BaseThread):
     """背景图片下载器"""
     image_downloaded = Signal(bool)
 
@@ -186,7 +215,7 @@ class BackgroundImageDownloader(QThread):
             self.config_key = f'last_{download_type}_fetch_time'
             self.error_msg = "当前版本主页背景异步获取失败"
 
-    def run(self):
+    def _run_impl(self):
         if not os.path.exists(self.save_path):
             self.get()
 
@@ -202,6 +231,9 @@ class BackgroundImageDownloader(QThread):
             self.get()
 
     def get(self):
+        if not self._is_running:
+            return
+
         try:
             resp = requests.get(self.url, timeout=5)
             data = resp.json()
@@ -216,6 +248,7 @@ class BackgroundImageDownloader(QThread):
 
             self._save_image(img_resp.content)
             setattr(self.ctx.custom_config, self.config_key, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            # 使用队列连接确保线程安全
             self.image_downloaded.emit(True)
 
         except Exception as e:
@@ -262,9 +295,9 @@ class HomeInterface(VerticalScrollInterface):
         self._banner_widget.set_percentage_size(0.8, 0.5)
 
         v_layout = QVBoxLayout(self._banner_widget)
-        v_layout.setContentsMargins(0, 0, 0, 15)
+        v_layout.setContentsMargins(20, 20, 20, 0)
         v_layout.setSpacing(5)
-        v_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        v_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignJustify)
 
         # 空白占位符
         v_layout.addItem(QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
@@ -294,13 +327,17 @@ class HomeInterface(VerticalScrollInterface):
         # 底部部分 (公告卡片 + 启动按钮)
         bottom_bar = QWidget()
         h2_layout = QHBoxLayout(bottom_bar)
-        h2_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        h2_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
 
-        h2_layout.setContentsMargins(20, 0, 20, 0)
+        h2_layout.setContentsMargins(20, 20, 20, 20)  # 整体底部边距20px，包含阴影
 
         # 公告卡片
         self.notice_container = NoticeCardContainer()
-        h2_layout.addWidget(self.notice_container)
+        notice_wrap = QWidget()
+        self._notice_wrap_layout = QVBoxLayout(notice_wrap)
+        self._notice_wrap_layout.setContentsMargins(0, 0, 0, 0)
+        self._notice_wrap_layout.addWidget(self.notice_container)
+        h2_layout.addWidget(notice_wrap)
 
         # 根据配置设置启用状态
         self.notice_container.set_notice_enabled(self.ctx.custom_config.notice_card)
@@ -324,17 +361,32 @@ class HomeInterface(VerticalScrollInterface):
         shadow.setColor(QColor(0, 0, 0, 120))
         self.start_button.setGraphicsEffect(shadow)
 
-        v1_layout = QVBoxLayout()
-        v1_layout.setContentsMargins(0, 0, 0, 0)
-        v1_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
+        # @A-nony-mous 2025-08-15T03:50:00+01:00
+        # noticecard的高度和启动一条龙按钮的高度 谁能修谁自己tm修吧我是修不明白了
+        # 核心是阴影+到底部margin的高度=20px
 
-        h2_layout.addLayout(v1_layout)
 
-        # 底部保持约 1cm 间距
-        screen = QApplication.primaryScreen()
-        dpi = screen.logicalDotsPerInch() if screen else 96
-        one_cm_px = max(0, int(dpi / 2.54))
-        v_layout.setContentsMargins(0, 0, 0, one_cm_px)
+
+        # 计算阴影向下扩展：min(20, max(0, offsetY + blurRadius/2))
+        shadow_down_extent = max(0, int(8 + 24 / 2))  # 8 偏移 + 12 模糊半径的一半 ≈ 20
+        shadow_down_extent = min(20, shadow_down_extent)
+        # 20px = 阴影高度 + 阴影到底部的高度 ⇒ 按钮容器底边距 = 阴影高度
+
+        # 与按钮对齐：提升公告卡片相同的底边距
+
+        if hasattr(self, '_notice_wrap_layout'):
+            self._notice_wrap_layout.setContentsMargins(0, 0, 0, shadow_down_extent)
+
+        # 按钮容器，整体距离底部20px（包含阴影）
+        button_container = QWidget()
+        button_v_layout = QVBoxLayout(button_container)
+        button_v_layout.setContentsMargins(0, 0, 0, shadow_down_extent)
+        button_v_layout.addStretch()
+        button_v_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
+
+        h2_layout.addWidget(button_container)
+
+
 
         # 将底部容器添加到主垂直布局
         v_layout.addWidget(bottom_bar)
@@ -348,9 +400,7 @@ class HomeInterface(VerticalScrollInterface):
             nav_icon=FluentIcon.HOME,
         )
 
-        # 应用样式
-        OdQtStyleSheet.GAME_BUTTON.apply(self.start_button)
-        self._update_start_button_style_from_banner()
+        QTimer.singleShot(0, self._update_start_button_style_from_banner)
 
         self.ctx = ctx
         self._init_check_runners()
@@ -361,15 +411,46 @@ class HomeInterface(VerticalScrollInterface):
     def _init_check_runners(self):
         """初始化检查更新的线程"""
         self._check_code_runner = CheckCodeRunner(self.ctx)
-        self._check_code_runner.need_update.connect(self._need_to_update_code)
+        self._check_code_runner.need_update.connect(
+            self._need_to_update_code,
+            Qt.ConnectionType.QueuedConnection
+        )
         self._check_model_runner = CheckModelRunner(self.ctx)
-        self._check_model_runner.need_update.connect(self._need_to_update_model)
+        self._check_model_runner.need_update.connect(
+            self._need_to_update_model,
+            Qt.ConnectionType.QueuedConnection
+        )
         self._check_banner_runner = CheckBannerRunner(self.ctx)
-        self._check_banner_runner.need_update.connect(self.reload_banner)
+        self._check_banner_runner.need_update.connect(
+            self.reload_banner,
+            Qt.ConnectionType.QueuedConnection
+        )
         self._banner_downloader = BackgroundImageDownloader(self.ctx, "remote_banner")
-        self._banner_downloader.image_downloaded.connect(self.reload_banner)
+        # 使用队列连接确保线程安全
+        self._banner_downloader.image_downloaded.connect(
+            self.reload_banner,
+            Qt.ConnectionType.QueuedConnection
+        )
         self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster")
-        self._version_poster_downloader.image_downloaded.connect(self.reload_banner)
+        # 使用队列连接确保线程安全
+        self._version_poster_downloader.image_downloaded.connect(
+            self.reload_banner,
+            Qt.ConnectionType.QueuedConnection
+        )
+
+    def closeEvent(self, event):
+        """界面关闭事件处理"""
+        self._cleanup_threads()
+        super().closeEvent(event)
+
+    def _cleanup_threads(self):
+        """清理所有线程"""
+        for thread_name in ['_banner_downloader', '_version_poster_downloader',
+                            '_check_code_runner', '_check_model_runner', '_check_banner_runner']:
+            if hasattr(self, thread_name):
+                thread = getattr(self, thread_name)
+                if thread and thread.isRunning():
+                    thread.stop()
 
     def on_interface_shown(self) -> None:
         """界面显示时启动检查更新的线程"""
@@ -428,13 +509,20 @@ class HomeInterface(VerticalScrollInterface):
         :param show_notification: 是否显示提示
         :return:
         """
-        # 更新背景图片
-        self._banner_widget.set_banner_image(self.choose_banner_image())
-        # 依据背景重新计算按钮配色
-        self._update_start_button_style_from_banner()
-        self.ctx.signal.reload_banner = False
-        if show_notification:
-            self._show_info_bar("背景已更新", "新的背景已成功应用", 3000)
+        # 检查widget是否仍然有效
+        if not self._banner_widget or not self._banner_widget.isVisible():
+            return
+
+        try:
+            # 更新背景图片
+            self._banner_widget.set_banner_image(self.choose_banner_image())
+            # 依据背景重新计算按钮配色
+            self._update_start_button_style_from_banner()
+            self.ctx.signal.reload_banner = False
+            if show_notification:
+                self._show_info_bar("背景已更新", "新的背景已成功应用", 3000)
+        except Exception as e:
+            log.error(f"刷新背景时出错: {e}")
 
     def choose_banner_image(self) -> str:
         # 获取背景图片路径
@@ -472,66 +560,103 @@ class HomeInterface(VerticalScrollInterface):
 
     def _update_start_button_style_from_banner(self) -> None:
         """从当前背景取主色，应用到启动按钮。"""
-        image = self._banner_widget.banner_image
-        if image is None or image.isNull() or not hasattr(self, 'start_button'):
+        # 确保按钮存在
+        if not hasattr(self, 'start_button'):
+            log.info("start_button 不存在，跳过样式更新")
             return
+
+        # 检查是否能使用缓存，如果可以就跳过整个更新过程
+        current_banner_path = self.choose_banner_image()
+        if (self.ctx.custom_config.has_custom_theme_color and
+            self.ctx.custom_config.theme_color_banner_path == current_banner_path):
+            log.debug(f"使用缓存的主题色，跳过样式更新: {current_banner_path}")
+            return
+
+        log.info("背景改变，更新启动按钮样式")
+        # 获取主题色
+        theme_color = self._get_theme_color()
+
+        # 更新全局主题色
+        self._update_global_theme(theme_color)
+
+        # 应用按钮样式
+        self._apply_button_style(theme_color)
+
+    def _get_theme_color(self) -> tuple[int, int, int]:
+        """获取主题色，优先使用缓存，否则从图片提取"""
+        current_banner_path = self.choose_banner_image()
+
+        # 检查是否有缓存的主题色，且对应的背景图片路径一致
+        if (self.ctx.custom_config.has_custom_theme_color and
+            self.ctx.custom_config.theme_color_banner_path == current_banner_path):
+            lr, lg, lb = self.ctx.custom_config.global_theme_color
+            log.debug(f"使用缓存的主题色: ({lr}, {lg}, {lb})")
+            return lr, lg, lb
+
+        # 背景图片改变了，需要重新提取颜色
+        theme_color = self._extract_color_from_image()
+
+        # 更新缓存
+        self.ctx.custom_config.theme_color_banner_path = current_banner_path
+        self.ctx.custom_config.global_theme_color = theme_color
+
+        return theme_color
+
+    def _extract_color_from_image(self) -> tuple[int, int, int]:
+        """从背景图片提取主题色"""
+        image = self._banner_widget.banner_image
+        log.info(f"图片状态: image={image is not None}, isNull={image.isNull() if image else 'N/A'}")
+
+        if image is None or image.isNull():
+            log.info("使用默认蓝色主题")
+            return 64, 158, 255  # 默认蓝色
 
         # 取右下角区域的平均色，代表按钮附近背景
         w, h = image.width(), image.height()
         x0 = int(w * 0.65)
         y0 = int(h * 0.65)
-        x1 = w
-        y1 = h
+        x1, y1 = w, h
 
-        r_sum = g_sum = b_sum = count = 0
-        for y in range(y0, y1, max(1, (y1 - y0) // 64)):
-            for x in range(x0, x1, max(1, (x1 - x0) // 64)):
-                c = image.pixelColor(x, y)
-                r_sum += c.red()
-                g_sum += c.green()
-                b_sum += c.blue()
-                count += 1
-        if count == 0:
-            return
+        # 提取区域平均颜色
+        r, g, b = ColorUtils.extract_average_color_from_region(image, x0, y0, x1, y1)
 
-        r = int(r_sum / count)
-        g = int(g_sum / count)
-        b = int(b_sum / count)
+        if r == 64 and g == 158 and b == 255:  # 如果返回默认色，说明提取失败
+            log.info("无法从图片获取颜色，使用默认蓝色")
+            return r, g, b
 
-        base_color = QColor(r, g, b)
-        h, s, v, a = base_color.getHsvF()
-        if h < 0:  # 灰阶时 hue 可能为 -1
-            h = 0.0
-        s = min(1.0, s * 2.0 + 0.25)
-        v = min(1.0, v * 1.08 + 0.06)
-        vivid = QColor.fromHsvF(h, s, v, 1.0)
-        lr, lg, lb = vivid.red(), vivid.green(), vivid.blue()
+        # 处理提取的颜色
+        return self._process_extracted_color(r, g, b)
 
-        # 若整体仍偏暗，小幅增加明度，避免洗白
-        def luminance_of(rr: int, gg: int, bb: int) -> float:
-            return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb
+    def _process_extracted_color(self, r: int, g: int, b: int) -> tuple[int, int, int]:
+        """处理从图片提取的颜色，增强鲜艳度和亮度"""
+        # 增强颜色鲜艳度
+        lr, lg, lb = ColorUtils.enhance_color_vibrancy(r, g, b)
 
-        for _ in range(2):
-            if luminance_of(lr, lg, lb) >= 160:
-                break
-            tmp = QColor(lr, lg, lb)
-            th, ts, tv, ta = tmp.getHsvF()
-            if th < 0:
-                th = 0.0
-            tv = min(1.0, tv + 0.10)
-            tmp2 = QColor.fromHsvF(th, ts, tv, 1.0)
-            lr, lg, lb = tmp2.red(), tmp2.green(), tmp2.blue()
+        # 如果太暗则适当提亮
+        lr, lg, lb = ColorUtils.brighten_if_too_dark(lr, lg, lb)
 
-        # 基于相对亮度选择文本色（黑/白）
-        luminance = luminance_of(lr, lg, lb)
-        text_color = "black" if luminance > 145 else "white"
+        log.info(f"从图片提取颜色: ({lr}, {lg}, {lb})")
+        return lr, lg, lb
 
-        # 将提取的颜色存储到全局 context 中
-        self.ctx.signal.global_theme_color = (lr, lg, lb)
-        self.ctx.signal.theme_color_changed = True
+    def _update_global_theme(self, theme_color: tuple[int, int, int]) -> None:
+        """更新全局主题色管理器"""
+        theme_manager.set_theme_color(theme_color, self.ctx)
+
+    def _apply_button_style(self, theme_color: tuple[int, int, int]) -> None:
+        """应用样式到启动按钮"""
+        lr, lg, lb = theme_color
+        text_color = ColorUtils.get_text_color_for_background(lr, lg, lb)
 
         # 本按钮局部样式：圆角为高度一半（胶囊形），背景从图取色
-        radius = max(1, self.start_button.height() // 2)
-        self.start_button.setStyleSheet(
-            f"background-color: rgb({lr}, {lg}, {lb}); color: {text_color}; border-radius: {radius}px;"
-        )
+        radius = 24  # 固定按钮高度48px的一半，确保胶囊形状
+
+        style_sheet = f"""
+        background-color: rgb({lr}, {lg}, {lb});
+        color: {text_color};
+        border-radius: {radius}px;
+        border: none;
+        font-weight: bold;
+        margin: 0px;
+        padding: 0px;
+        """
+        self.start_button.setStyleSheet(style_sheet)
