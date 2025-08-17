@@ -185,3 +185,17 @@ class CustomConfig(YamlConfig):
         检查是否已设置自定义主题色（非默认值）
         """
         return bool(self.global_theme_color_str)
+
+    @property
+    def theme_color_banner_mtime(self) -> float:
+        """
+        当前主题色对应的背景图片修改时间戳
+        """
+        return self.get('theme_color_banner_mtime', 0.0)
+
+    @theme_color_banner_mtime.setter
+    def theme_color_banner_mtime(self, new_value: float) -> None:
+        """
+        当前主题色对应的背景图片修改时间戳
+        """
+        self.update('theme_color_banner_mtime', new_value)

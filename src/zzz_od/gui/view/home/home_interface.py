@@ -407,8 +407,6 @@ class HomeInterface(VerticalScrollInterface):
 
         # 监听背景刷新信号，确保主题色在背景变化时更新
         self._last_reload_banner_signal = False
-        # 缓存的背景图片修改时间
-        self._cached_banner_mtime = 0
 
     def _init_check_runners(self):
         """初始化检查更新的线程"""
@@ -685,7 +683,7 @@ class HomeInterface(VerticalScrollInterface):
         # 检查文件修改时间是否改变
         try:
             current_mtime = os.path.getmtime(current_banner_path)
-            cached_mtime = getattr(self, '_cached_banner_mtime', 0)
+            cached_mtime = self.ctx.custom_config.theme_color_banner_mtime
 
             if current_mtime != cached_mtime:
                 # 文件已被修改，不能使用缓存
@@ -704,8 +702,8 @@ class HomeInterface(VerticalScrollInterface):
 
         # 记录文件修改时间
         try:
-            self._cached_banner_mtime = os.path.getmtime(banner_path)
+            self.ctx.custom_config.theme_color_banner_mtime = os.path.getmtime(banner_path)
         except OSError:
-            self._cached_banner_mtime = 0
+            self.ctx.custom_config.theme_color_banner_mtime = 0.0
 
         log.info(f"已更新主题色缓存: {theme_color}, 路径: {banner_path}")
