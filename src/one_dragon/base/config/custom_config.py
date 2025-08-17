@@ -166,6 +166,20 @@ class CustomConfig(YamlConfig):
         self.global_theme_color_str = color_str
 
     @property
+    def theme_color_banner_path(self) -> str:
+        """
+        当前主题色对应的背景图片路径
+        """
+        return self.get('theme_color_banner_path', '')
+
+    @theme_color_banner_path.setter
+    def theme_color_banner_path(self, new_value: str) -> None:
+        """
+        当前主题色对应的背景图片路径
+        """
+        self.update('theme_color_banner_path', new_value)
+
+    @property
     def has_custom_theme_color(self) -> bool:
         """
         检查是否已设置自定义主题色（非默认值）

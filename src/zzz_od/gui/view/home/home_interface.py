@@ -560,13 +560,19 @@ class HomeInterface(VerticalScrollInterface):
 
     def _update_start_button_style_from_banner(self) -> None:
         """从当前背景取主色，应用到启动按钮。"""
-        log.debug("开始更新启动按钮样式")
-
         # 确保按钮存在
         if not hasattr(self, 'start_button'):
             log.info("start_button 不存在，跳过样式更新")
             return
 
+        # 检查是否能使用缓存，如果可以就跳过整个更新过程
+        current_banner_path = self.choose_banner_image()
+        if (self.ctx.custom_config.has_custom_theme_color and
+            self.ctx.custom_config.theme_color_banner_path == current_banner_path):
+            log.debug(f"使用缓存的主题色，跳过样式更新: {current_banner_path}")
+            return
+
+        log.info("背景改变，更新启动按钮样式")
         # 获取主题色
         theme_color = self._get_theme_color()
 
@@ -578,14 +584,23 @@ class HomeInterface(VerticalScrollInterface):
 
     def _get_theme_color(self) -> tuple[int, int, int]:
         """获取主题色，优先使用缓存，否则从图片提取"""
-        # 优先使用缓存的主题色
-        if self.ctx.custom_config.has_custom_theme_color:
+        current_banner_path = self.choose_banner_image()
+
+        # 检查是否有缓存的主题色，且对应的背景图片路径一致
+        if (self.ctx.custom_config.has_custom_theme_color and
+            self.ctx.custom_config.theme_color_banner_path == current_banner_path):
             lr, lg, lb = self.ctx.custom_config.global_theme_color
-            log.info(f"使用缓存的主题色: ({lr}, {lg}, {lb})")
+            log.debug(f"使用缓存的主题色: ({lr}, {lg}, {lb})")
             return lr, lg, lb
 
-        # 从图片提取颜色
-        return self._extract_color_from_image()
+        # 背景图片改变了，需要重新提取颜色
+        theme_color = self._extract_color_from_image()
+
+        # 更新缓存
+        self.ctx.custom_config.theme_color_banner_path = current_banner_path
+        self.ctx.custom_config.global_theme_color = theme_color
+
+        return theme_color
 
     def _extract_color_from_image(self) -> tuple[int, int, int]:
         """从背景图片提取主题色"""
