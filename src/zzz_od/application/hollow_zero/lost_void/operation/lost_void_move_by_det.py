@@ -194,8 +194,7 @@ class LostVoidMoveByDet(ZOperation):
             return self.round_success(LostVoidMoveByDet.STATUS_NO_FOUND)
         self.last_target_result = target_result
         pos = target_result.entire_rect.center
-        axis = 'x' if self.target_type == LostVoidDetector.CLASS_DISTANCE else 'xy'
-        turn = self.turn_to_target(pos, calibration_axis=axis)
+        turn = self.turn_to_target(pos)
         if turn:
             return self.round_wait('转动朝向目标', wait=0.5)
 
@@ -242,18 +241,16 @@ class LostVoidMoveByDet(ZOperation):
 
         self.last_target_result = target_result
         self.last_target_name = target_result.leftest_target_name
-        axis = 'x' if self.target_type == LostVoidDetector.CLASS_DISTANCE else 'xy'
-        self.turn_to_target(target_result.entire_rect.center, is_moving=True, calibration_axis=axis)
+        self.turn_to_target(target_result.entire_rect.center, is_moving=True)
         self.ctx.controller.start_moving_forward()
 
         return self.round_wait('移动中', wait_round_time=0.1)
 
-    def turn_to_target(self, target: Point, is_moving: bool = False, calibration_axis: str = 'xy') -> bool:
+    def turn_to_target(self, target: Point, is_moving: bool = False) -> bool:
         """
         根据目标的位置,使用自适应算法进行转动
         :param target: 目标位置
         :param is_moving: 是否在移动中。移动中会使用更保守的转向策略
-        :param calibration_axis: 校准轴。可以是 'xy', 'x', 'y'。默认为 'xy'。
         :return: 是否进行了转动
         """
         if is_moving:
@@ -271,56 +268,32 @@ class LostVoidMoveByDet(ZOperation):
         diff_x = target.x - screen_center_x
         diff_y = target.y - screen_center_y
 
+        # --- X轴转向计算 (逻辑完全不变) ---
         turn_distance_x = 0
-        if 'x' in calibration_axis:
-            # --- X轴转向计算 (逻辑完全不变) ---
-            if abs(diff_x) > 50:
-                # 根据上次转向的实际效果，动态校准转向比例
-                if self.last_target_x is not None and self.last_actual_turn_distance != 0:
-                    last_diff_x = self.last_target_x - screen_center_x
-                    actual_pixel_moved = diff_x - last_diff_x
+        if abs(diff_x) > 50:
+            # 根据上次转向的实际效果，动态校准转向比例
+            if self.last_target_x is not None and self.last_actual_turn_distance != 0:
+                last_diff_x = self.last_target_x - screen_center_x
+                actual_pixel_moved = diff_x - last_diff_x
 
-                    # 当目标穿越中心点(过冲)时，强力抑制，比例减半并重置校准过程
-                    if last_diff_x * diff_x < 0:
-                        self.estimated_turn_ratio *= 0.5
-                        self.turn_calibration_count = 1
-                    # 正常校准：使用移动平均法平滑更新比例
-                    elif abs(actual_pixel_moved) > 1:
-                        current_ratio = abs(self.last_actual_turn_distance / actual_pixel_moved)
-                        if self.turn_calibration_count == 1:  # 首次校准，直接采用侦察值
-                            self.estimated_turn_ratio = current_ratio
-                        else:  # 后续校准，使用移动平均法平滑更新
-                            n = self.turn_calibration_count
-                            self.estimated_turn_ratio = (self.estimated_turn_ratio * (n - 1) + current_ratio) / n
-                        self.turn_calibration_count += 1
-
-                # 计算转向指令，首次使用固定值进行侦察，后续使用自适应指令
-                if self.turn_calibration_count == 1:
-                    turn_distance_x = 5 if diff_x > 0 else -5
+                # 当目标穿越中心点(过冲)时，强力抑制，比例减半并重置校准过程
+                if last_diff_x * diff_x < 0:
+                    self.estimated_turn_ratio *= 0.5
+                    self.turn_calibration_count = 1
+                # 正常校准：使用移动平均法平滑更新比例
+                elif abs(actual_pixel_moved) > 1:
+                    current_ratio = abs(self.last_actual_turn_distance / actual_pixel_moved)
+                    if self.turn_calibration_count == 1:  # 首次校准，直接采用侦察值
+                        self.estimated_turn_ratio = current_ratio
+                    else:  # 后续校准，使用移动平均法平滑更新
+                        n = self.turn_calibration_count
+                        self.estimated_turn_ratio = (self.estimated_turn_ratio * (n - 1) + current_ratio) / n
                     self.turn_calibration_count += 1
-                else:
-                    turn_distance_x = int(diff_x * self.estimated_turn_ratio)
 
-                # 限制指令幅度，防止过小或过大
-                if 0 < abs(turn_distance_x) < min_turn:
-                    turn_distance_x = min_turn if turn_distance_x > 0 else -min_turn
-                elif abs(turn_distance_x) > max_turn:
-                    turn_distance_x = max_turn if turn_distance_x > 0 else -max_turn
-
-        turn_distance_y = 0
-        if 'y' in calibration_axis:
-            # --- Y轴转向计算 (将目标保持在屏幕上半区，以获得更佳视野) ---
-            # 目标是让 diff_y 稳定在 -300 附近
-            target_y = -300
-            # 设置一个死区，避免在目标附近频繁微调
-            dead_zone = 50
-            
-            if diff_y > target_y + dead_zone:
-                # 目标在预定位置下方，需要向上转
-                turn_distance_y = 20  # 您可以根据需要调整这个值
-            elif diff_y < target_y - dead_zone:
-                # 目标在预定位置上方，需要向下转
-                turn_distance_y = -20 # 您可以根据需要调整这个值
+            # 计算转向指令，首次使用固定值进行侦察，后续使用自适应指令
+            if self.turn_calibration_count == 1:
+                turn_distance_x = 5 if diff_x > 0 else -5
+                self.turn_calibration_count += 1
             else:
                 turn_distance_x = int(diff_x * self.estimated_turn_ratio)
 
@@ -346,14 +319,13 @@ class LostVoidMoveByDet(ZOperation):
             # 在目标区域内，不进行Y轴转向
             turn_distance_y = 0
 
-
         # --- 如果没有任何移动指令，则提前返回 ---
         if turn_distance_x == 0 and turn_distance_y == 0:
             return False
 
         # --- 执行转向并更新状态 ---
         if self.ctx.env_config.is_debug:
-            log.debug(f'转向指令: X={turn_distance_x}, Y={turn_distance_y}, 当前X比例: {self.estimated_turn_ratio:.4f}, 移动中: {is_moving}, 校准轴: {calibration_axis}')
+            log.debug(f'转向指令: X={turn_distance_x}, Y={turn_distance_y}, 当前X比例: {self.estimated_turn_ratio:.4f}, 移动中: {is_moving}')
 
         # 使用新的统一方法执行移动
         self.ctx.controller.move_mouse_relative(turn_distance_x, turn_distance_y)
