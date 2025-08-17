@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QGraphicsDropShadowEffect
 from PySide6.QtGui import (
     QFont,
     QFontMetrics,
-    QDesktopServices, QColor
+    QDesktopServices, QColor, QImage
 )
 from PySide6.QtWidgets import (
     QVBoxLayout,
@@ -400,13 +400,17 @@ class HomeInterface(VerticalScrollInterface):
             nav_icon=FluentIcon.HOME,
         )
 
-        QTimer.singleShot(0, self._update_start_button_style_from_banner)
+        QTimer.singleShot(0, self._update_theme_color_from_banner_async)
 
         self.ctx = ctx
         self._init_check_runners()
 
         # 监听背景刷新信号，确保主题色在背景变化时更新
         self._last_reload_banner_signal = False
+
+        # 添加主题色提取状态跟踪
+        self._current_banner_path = None
+        self._theme_extracted_for_current_banner = False
 
     def _init_check_runners(self):
         """初始化检查更新的线程"""
@@ -471,7 +475,7 @@ class HomeInterface(VerticalScrollInterface):
         self._check_banner_reload_signal()
 
         # 初始化主题色，避免navbar颜色闪烁
-        self._update_start_button_style_from_banner()
+        self._update_theme_color_from_banner_async()
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
@@ -516,8 +520,9 @@ class HomeInterface(VerticalScrollInterface):
         try:
             # 更新背景图片
             self._banner_widget.set_banner_image(self.choose_banner_image())
+            self._theme_extracted_for_current_banner = False
             # 依据背景重新计算按钮配色
-            self._update_start_button_style_from_banner()
+            self._update_theme_color_from_banner_async()
             self.ctx.signal.reload_banner = False
             if show_notification:
                 self._show_info_bar("背景已更新", "新的背景已成功应用", 3000)
@@ -555,73 +560,40 @@ class HomeInterface(VerticalScrollInterface):
         """检查背景重新加载信号"""
         if self.ctx.signal.reload_banner != self._last_reload_banner_signal:
             if self.ctx.signal.reload_banner:
-                self._update_start_button_style_from_banner()
+                self._update_theme_color_from_banner_async()
             self._last_reload_banner_signal = self.ctx.signal.reload_banner
 
-    def _update_start_button_style_from_banner(self) -> None:
+    def _update_theme_color_from_banner_async(self):
         """从当前背景取主色，应用到启动按钮。"""
-        log.debug("开始更新启动按钮样式")
+        log.debug("开始异步更新主题色")
 
-        # 确保按钮存在
-        if not hasattr(self, 'start_button'):
-            log.info("start_button 不存在，跳过样式更新")
+        # 获取当前背景路径
+        current_banner_path = self.choose_banner_image()
+
+        # 检查是否已经为当前背景提取过主题色
+        if (self._current_banner_path == current_banner_path and
+            self._theme_extracted_for_current_banner):
+            log.debug("当前背景已提取过主题色，跳过重复提取")
             return
 
-        # 获取主题色
-        theme_color = self._get_theme_color()
+        # 更新当前背景路径
+        self._current_banner_path = current_banner_path
 
-        # 更新全局主题色
-        self._update_global_theme(theme_color)
-
-        # 应用按钮样式
-        self._apply_button_style(theme_color)
-
-    def _get_theme_color(self) -> tuple[int, int, int]:
-        """获取主题色，优先使用缓存，否则从图片提取"""
         # 优先使用缓存的主题色
         if self.ctx.custom_config.has_custom_theme_color:
-            lr, lg, lb = self.ctx.custom_config.global_theme_color
-            log.info(f"使用缓存的主题色: ({lr}, {lg}, {lb})")
-            return lr, lg, lb
+            cached_color = self.ctx.custom_config.global_theme_color
+            log.debug(f"使用缓存的主题色: {cached_color}")
+            self._apply_button_style(cached_color)
+            theme_manager.set_theme_color(cached_color)  # Update qfluentwidgets theme, but don't save again
+            self._theme_extracted_for_current_banner = True
+            return
 
-        # 从图片提取颜色
-        return self._extract_color_from_image()
-
-    def _extract_color_from_image(self) -> tuple[int, int, int]:
-        """从背景图片提取主题色"""
-        image = self._banner_widget.banner_image
-        log.info(f"图片状态: image={image is not None}, isNull={image.isNull() if image else 'N/A'}")
-
-        if image is None or image.isNull():
-            log.info("使用默认蓝色主题")
-            return 64, 158, 255  # 默认蓝色
-
-        # 取右下角区域的平均色，代表按钮附近背景
-        w, h = image.width(), image.height()
-        x0 = int(w * 0.65)
-        y0 = int(h * 0.65)
-        x1, y1 = w, h
-
-        # 提取区域平均颜色
-        r, g, b = ColorUtils.extract_average_color_from_region(image, x0, y0, x1, y1)
-
-        if r == 64 and g == 158 and b == 255:  # 如果返回默认色，说明提取失败
-            log.info("无法从图片获取颜色，使用默认蓝色")
-            return r, g, b
-
-        # 处理提取的颜色
-        return self._process_extracted_color(r, g, b)
-
-    def _process_extracted_color(self, r: int, g: int, b: int) -> tuple[int, int, int]:
-        """处理从图片提取的颜色，增强鲜艳度和亮度"""
-        # 增强颜色鲜艳度
-        lr, lg, lb = ColorUtils.enhance_color_vibrancy(r, g, b)
-
-        # 如果太暗则适当提亮
-        lr, lg, lb = ColorUtils.brighten_if_too_dark(lr, lg, lb)
-
-        log.info(f"从图片提取颜色: ({lr}, {lg}, {lb})")
-        return lr, lg, lb
+        # 如果没有缓存，使用默认颜色
+        log.debug("没有缓存的主题色，使用默认蓝色")
+        default_color = (64, 158, 255)
+        self._update_global_theme(default_color)
+        self._apply_button_style(default_color)
+        self._theme_extracted_for_current_banner = True
 
     def _update_global_theme(self, theme_color: tuple[int, int, int]) -> None:
         """更新全局主题色管理器"""
