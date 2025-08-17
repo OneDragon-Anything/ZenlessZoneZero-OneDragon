@@ -212,7 +212,7 @@ class LostVoidMoveByDet(ZOperation):
 
         if self.check_interact_stop(self.last_screenshot, frame_result):
             self.ctx.controller.stop_moving_forward()
-            return self.round_success(data=self.last_target_name)
+            return self.round_success(data=self.last_target_name, wait=0.5)
 
         target_result = self.get_move_target(frame_result)
 
@@ -313,7 +313,7 @@ class LostVoidMoveByDet(ZOperation):
             # 目标是让 diff_y 稳定在 -300 附近
             target_y = -300
             # 设置一个死区，避免在目标附近频繁微调
-            dead_zone = 50
+            dead_zone = 100
             
             if diff_y > target_y + dead_zone:
                 # 目标在预定位置下方，需要向上转
@@ -510,6 +510,8 @@ class LostVoidMoveByDet(ZOperation):
     @operation_node(name='无目标处理')
     def handle_no_target(self) -> OperationRoundResult:
         self.ctx.controller.stop_moving_forward()
+        time.sleep(0.5)
+        self.screenshot()  # 重新截图
         self._reset_turn_calibration_status()  # 彻底丢失目标，重置转向状态以开始全新搜索
 
         if self.stop_when_interact:  # 目标是要交互
