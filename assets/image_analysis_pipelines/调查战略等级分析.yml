@@ -12,6 +12,14 @@
     - 0
     - 0
     - 50
+- step: 腐蚀
+  params:
+    kernel_size: 4
+    iterations: 1
+- step: 膨胀
+  params:
+    kernel_size: 5
+    iterations: 3
 - step: 查找轮廓
   params:
     mode: EXTERNAL
@@ -19,6 +27,6 @@
     draw_contours: 0
 - step: 按面积过滤
   params:
-    min_area: 50
+    min_area: 900
     max_area: 10000
     draw_contours: 2
