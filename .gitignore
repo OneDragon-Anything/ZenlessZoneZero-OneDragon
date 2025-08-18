@@ -65,7 +65,7 @@ config/world_patrol_route_list/*
 notice_cache/
 *.bak
 # 运行时缓存
-*.ui_cache
+*.*_cache
 
 # 需自行下载的模型文件
 models/

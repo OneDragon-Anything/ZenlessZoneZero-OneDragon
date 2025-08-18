@@ -13,6 +13,9 @@ cached_yaml_data: dict[str, tuple[float, dict]] = {}
 cached_file_mtime: dict[str, float] = {}
 pickle_cache_paths: dict[str, str] = {}
 
+# 线程锁保护缓存操作
+_cache_lock = threading.RLock()
+
 
 def get_temp_config_path(file_path: str) -> str:
     """
@@ -42,55 +45,87 @@ def read_cache_or_load(file_path: str):
     # 统一走 MEI 路径映射，兼容预加载等直接传入相对路径的场景
     file_path = get_temp_config_path(file_path)
 
-    # 0. 快速路径：检查是否已有完全匹配的缓存
-    cached = cached_yaml_data.get(file_path)
-    try:
-        last_modify = os.path.getmtime(file_path)
-    except OSError:
-        return cached[1] if cached else {}
+    with _cache_lock:
+        # 0. 快速路径：检查是否已有完全匹配的缓存
+        cached = cached_yaml_data.get(file_path)
 
-    if cached is not None and cached[0] >= last_modify:
-        return cached[1]
-
-    # 2. Pickle
-    pickle_cache = file_path + '.yml_cache'
-    if os.path.exists(pickle_cache):
-        try:
-            pickle_mtime = os.path.getmtime(pickle_cache)
-            if pickle_mtime >= last_modify:
-                with open(pickle_cache, 'rb') as f:
-                    data = pickle.load(f)
-                cached_yaml_data[file_path] = (last_modify, data)
-                return data
-        except (OSError, pickle.PickleError):
+        # 检查文件是否存在以及修改时间
+        file_exists = os.path.exists(file_path)
+        last_modify = None
+        if file_exists:
             try:
-                os.remove(pickle_cache)
+                last_modify = os.path.getmtime(file_path)
             except OSError:
+                file_exists = False
+
+        # 如果有内存缓存且文件存在且缓存是最新的，直接返回缓存
+        if cached is not None and file_exists and cached[0] >= last_modify:
+            return cached[1]
+
+        # 如果文件不存在，但有内存缓存，先检查pickle缓存是否更新
+        if not file_exists and cached is not None:
+            pickle_cache = file_path + '.yml_cache'
+            if os.path.exists(pickle_cache):
+                try:
+                    pickle_mtime = os.path.getmtime(pickle_cache)
+                    # 如果pickle缓存比内存缓存更新，使用pickle缓存
+                    if pickle_mtime > cached[0]:
+                        with open(pickle_cache, 'rb') as f:
+                            data = pickle.load(f)
+                        cached_yaml_data[file_path] = (pickle_mtime, data)
+                        return data
+                except (OSError, pickle.PickleError):
+                    try:
+                        os.remove(pickle_cache)
+                    except OSError:
+                        pass
+            # 如果没有更新的pickle缓存，返回内存缓存
+            return cached[1]
+
+        # 2. 尝试从Pickle缓存加载
+        pickle_cache = file_path + '.yml_cache'
+        if os.path.exists(pickle_cache):
+            try:
+                pickle_mtime = os.path.getmtime(pickle_cache)
+                # 如果文件不存在，或者pickle缓存比文件更新，使用pickle缓存
+                if not file_exists or pickle_mtime >= last_modify:
+                    with open(pickle_cache, 'rb') as f:
+                        data = pickle.load(f)
+                    cached_yaml_data[file_path] = (pickle_mtime, data)
+                    return data
+            except (OSError, pickle.PickleError):
+                try:
+                    os.remove(pickle_cache)
+                except OSError:
+                    pass
+
+        # 3. 如果文件不存在，返回空字典或已有缓存
+        if not file_exists:
+            return cached[1] if cached else {}
+
+        # 4. 从YAML文件加载
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                log.debug(f"加载yaml: {file_path}")
+                data = yaml.safe_load(file)
+        except Exception as e:
+            log.error(f'YAML加载失败 {file_path}: {e}')
+            return cached[1] if cached else {}
+
+        cached_yaml_data[file_path] = (last_modify, data)
+
+        # 生成Pickle缓存
+        def save_pickle_cache():
+            try:
+                with open(pickle_cache, 'wb') as f:
+                    pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+                os.utime(pickle_cache, (last_modify, last_modify))
+            except Exception:
                 pass
 
-    # 3. YAML
-    try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            log.debug(f"加载yaml: {file_path}")
-            data = yaml.safe_load(file)
-    except Exception as e:
-        log.error(f'YAML加载失败 {file_path}: {e}')
-        return {}
+        threading.Thread(target=save_pickle_cache, daemon=True).start()
 
-    cached_yaml_data[file_path] = (last_modify, data)
-
-    # 生成Pickle缓存
-    def save_pickle_cache():
-        try:
-            with open(pickle_cache, 'wb') as f:
-                pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
-            os.utime(pickle_cache, (last_modify, last_modify))
-        except Exception:
-            pass
-
-    threading.Thread(target=save_pickle_cache, daemon=True).start()
-
-    return data
+        return data
 
 
 class YamlOperator:
