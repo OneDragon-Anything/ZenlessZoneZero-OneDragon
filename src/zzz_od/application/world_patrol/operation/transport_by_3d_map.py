@@ -230,7 +230,7 @@ class TransportBy3dMap(ZOperation):
                 area_name='按钮-前往',
             )
 
-            if not found_go:
+            if found_go.is_fail:
                 log.warning('点击图标后未找到前往按钮')
                 continue  # 尝试下一个图标
 
@@ -263,18 +263,10 @@ class TransportBy3dMap(ZOperation):
                 log.info(f'找到目标传送点：{self.target_tp_name}')
                 return self.round_success()
 
-            # 记录这个图标作为导航参考点（如果还没有记录的话）
+            # 记录第一个图标作为导航参考点
             if navigation_reference is None:
-                # 找到对应的图标对象
-                current_icon_obj = None
-                for icon in self.large_map.icon_list:
-                    if icon.icon_name == current_icon_name:
-                        current_icon_obj = icon
-                        break
-
-                if current_icon_obj is not None:
-                    navigation_reference = current_icon_obj
-                    log.debug(f'记录导航参考点：{current_icon_name}({current_icon_obj.lm_pos.x}, {current_icon_obj.lm_pos.y})')
+                navigation_reference = matched_icon
+                log.debug(f'记录导航参考点：{matched_icon.icon_name}({matched_icon.lm_pos.x}, {matched_icon.lm_pos.y})')
 
         # 所有图标都检查完毕，没有找到目标，执行导航
         if navigation_reference is not None:
