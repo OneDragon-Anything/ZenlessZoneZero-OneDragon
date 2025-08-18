@@ -74,19 +74,31 @@ def clear_cache_if_needed():
 
 def get_temp_config_path(file_path: str) -> str:
     """
-    优先检查PyInstaller运行时的_MEIPASS目录下是否有对应的yml文件
+    优先检查 PyInstaller 运行时的 _MEIPASS/resources 目录下是否有对应文件
     有则返回该路径，否则返回原路径
     """
     if hasattr(sys, '_MEIPASS'):
-        mei_path = os.path.join(getattr(sys, '_MEIPASS'), 'config', os.path.basename(file_path))
-        if os.path.exists(mei_path):
-            return mei_path
+        try:
+            rel_path = os.path.relpath(file_path, os.getcwd())
+        except Exception:
+            rel_path = os.path.basename(file_path)
+
+        candidates = [
+            os.path.join(getattr(sys, '_MEIPASS'), 'resources', rel_path),
+            os.path.join(getattr(sys, '_MEIPASS'), 'config', os.path.basename(file_path)),
+        ]
+        for path in candidates:
+            if os.path.exists(path):
+                return path
     return file_path
 
 def read_cache_or_load(file_path: str):
     """
     优先级: 内存缓存 > Pickle缓存 > YAML文件
     """
+    # 统一走 MEI 路径映射，兼容预加载等直接传入相对路径的场景
+    file_path = get_temp_config_path(file_path)
+
     # 0. 快速路径：检查是否已有完全匹配的缓存
     cached = cached_yaml_data.get(file_path)
     try:
@@ -98,7 +110,7 @@ def read_cache_or_load(file_path: str):
         return cached[1]
 
     # 2. Pickle
-    pickle_cache = file_path + '.ui_cache'
+    pickle_cache = file_path + '.yml_cache'
     if os.path.exists(pickle_cache):
         try:
             pickle_mtime = os.path.getmtime(pickle_cache)
