@@ -13,64 +13,6 @@ cached_yaml_data: dict[str, tuple[float, dict]] = {}
 cached_file_mtime: dict[str, float] = {}
 pickle_cache_paths: dict[str, str] = {}
 
-def preload_common_configs():
-    """
-    预加载常用配置文件到内存
-    """
-    import glob
-
-    def get_config_files():
-        config_files = []
-
-        # 配置文件 - 递归扫描 config 下所有 .yml
-        config_pattern = os.path.join('config', '**', '*.yml')
-        for cfg in sorted(glob.glob(config_pattern, recursive=True)):
-            if os.path.isfile(cfg):
-                config_files.append(cfg)
-
-        # 游戏数据文件 - 递归扫描 assets 下所有 .yml
-        assets_pattern = os.path.join('assets', '**', '*.yml')
-        for cfg in sorted(glob.glob(assets_pattern, recursive=True)):
-            if os.path.isfile(cfg):
-                config_files.append(cfg)
-
-        return config_files
-
-    def preload_worker():
-        common_configs = get_config_files()
-        total_files = len(common_configs)
-        loaded_files = 0
-
-        log.debug(f'开始预加载配置文件，共发现 {total_files} 个文件')
-
-        for config_file in common_configs:
-            try:
-                if os.path.exists(config_file):
-                    read_cache_or_load(config_file)
-                    loaded_files += 1
-                    if loaded_files % 20 == 0:  # 每20个文件记录一次进度
-                        log.debug(f'预加载进度: {loaded_files}/{total_files}')
-            except Exception as e:
-                log.debug(f'预加载文件失败 {config_file}: {e}')
-
-        log.debug(f'预加载完成，成功加载 {loaded_files}/{total_files} 个文件')
-
-    threading.Thread(target=preload_worker, daemon=True).start()
-
-
-def clear_cache_if_needed():
-    """
-    智能内存管理
-    """
-    if len(cached_yaml_data) > 2000:
-        items = list(cached_yaml_data.items())
-        cached_yaml_data.clear()
-        cached_file_mtime.clear()
-
-        # 保留最近使用的1000个文件
-        for k, v in items[-1000:]:
-            cached_yaml_data[k] = v
-
 
 def get_temp_config_path(file_path: str) -> str:
     """
@@ -85,6 +27,7 @@ def get_temp_config_path(file_path: str) -> str:
 
         candidates = [
             os.path.join(getattr(sys, '_MEIPASS'), 'resources', rel_path),
+            # 兼容旧行为：仅按文件名在 _MEIPASS/config 下查找
             os.path.join(getattr(sys, '_MEIPASS'), 'config', os.path.basename(file_path)),
         ]
         for path in candidates:
