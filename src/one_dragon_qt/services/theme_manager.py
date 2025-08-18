@@ -13,7 +13,7 @@ class ThemeManager:
         return cls._current_color
 
     @classmethod
-    def set_theme_color(cls, color: tuple, ctx=None) -> None:
+    def set_theme_color(cls, color: tuple) -> None:
         """
         设置全局主题色（通常由背景图片自动提取调用）
         :param color: RGB颜色元组 (R, G, B)
@@ -31,11 +31,6 @@ class ThemeManager:
         # 转换为QColor并设置全局主题色
         qcolor = QColor(color[0], color[1], color[2])
         setThemeColor(qcolor)
-
-        # 如果提供了context，同时保存到配置文件并触发信号
-        if ctx:
-            ctx.custom_config.global_theme_color = color
-            ctx.signal.theme_color_changed = True
 
     @classmethod
     def get_qcolor(cls) -> QColor:
@@ -58,9 +53,8 @@ class ThemeManager:
         从配置文件加载主题色（应用启动时调用）
         :param ctx: 上下文对象
         """
-        if ctx.custom_config.has_custom_theme_color:
-            saved_color = ctx.custom_config.global_theme_color
-            cls._current_color = saved_color
-            # 设置到qfluentwidgets但不触发信号
-            qcolor = QColor(saved_color[0], saved_color[1], saved_color[2])
-            setThemeColor(qcolor)
+        saved_color = ctx.custom_config.theme_color
+        cls._current_color = saved_color
+        # 设置到qfluentwidgets但不触发信号
+        qcolor = QColor(saved_color[0], saved_color[1], saved_color[2])
+        setThemeColor(qcolor)

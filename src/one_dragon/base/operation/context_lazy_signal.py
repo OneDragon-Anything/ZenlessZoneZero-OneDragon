@@ -37,16 +37,3 @@ class ContextLazySignal:
     @notice_card_config_changed.setter
     def notice_card_config_changed(self, new_value: bool) -> None:
         self._signals['notice_card_config_changed'] = new_value
-
-    @property
-    def theme_color_changed(self) -> bool:
-        """
-        主题色发生变化
-        """
-        return self._signals.get('theme_color_changed', False)
-
-    @theme_color_changed.setter
-    def theme_color_changed(self, new_value: bool) -> None:
-        self._signals['theme_color_changed'] = new_value
-
-

@@ -158,18 +158,18 @@ class CustomConfig(YamlConfig):
         return self.theme_color_mode == ThemeColorModeEnum.CUSTOM.value.value
 
     @property
-    def global_theme_color_str(self) -> str:
+    def theme_color_str(self) -> str:
         """
         全局主题色，格式为 "r,g,b"
         """
         return self.get('global_theme_color', '')
 
     @property
-    def global_theme_color(self) -> tuple[int, int, int]:
+    def theme_color(self) -> tuple[int, int, int]:
         """
         全局主题色 (r, g, b)
         """
-        color_str = self.global_theme_color_str
+        color_str = self.theme_color_str
         if color_str:
             parts = color_str.split(',')
             if len(parts) == 3 and all(p.isdigit() for p in parts):
@@ -178,8 +178,8 @@ class CustomConfig(YamlConfig):
         # 默认值
         return 0, 120, 215
 
-    @global_theme_color.setter
-    def global_theme_color(self, new_value: tuple) -> None:
+    @theme_color.setter
+    def theme_color(self, new_value: tuple) -> None:
         """
         全局主题色 (r, g, b)
         """

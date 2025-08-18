@@ -156,7 +156,7 @@ class SettingCustomInterface(VerticalScrollInterface):
         """
         点击自定义主题色按钮
         """
-        color = self.ctx.custom_config.global_theme_color
+        color = self.ctx.custom_config.theme_color
         dialog = ColorDialog(QColor(color[0], color[1], color[2]), gt('请选择主题色'), self)
         dialog.colorChanged.connect(self._update_custom_theme_color)
         dialog.yesButton.setText(gt('确定'))
@@ -169,9 +169,8 @@ class SettingCustomInterface(VerticalScrollInterface):
         :param color: QColor对象
         """
         color_tuple = (color.red(), color.green(), color.blue())
-        self.ctx.custom_config.global_theme_color = color_tuple
-        self.ctx.signal.theme_color_changed = True
-        ThemeManager.set_theme_color(color_tuple, self.ctx)
+        self.ctx.custom_config.theme_color = color_tuple
+        ThemeManager.set_theme_color(color_tuple)
 
     def _on_banner_select_clicked(self) -> None:
         """
