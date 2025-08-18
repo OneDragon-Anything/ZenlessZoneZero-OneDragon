@@ -16,6 +16,13 @@ class ThemeEnum(Enum):
     LIGHT = ConfigItem('浅色', 'Light')
     DARK = ConfigItem('深色', 'Dark')
 
+
+class ThemeColorModeEnum(Enum):
+
+    AUTO = ConfigItem('自动', 'auto')
+    CUSTOM = ConfigItem('自定义', 'custom')
+
+
 class CustomConfig(YamlConfig):
 
     def __init__(self):
@@ -130,18 +137,32 @@ class CustomConfig(YamlConfig):
         self.update('last_version_poster_fetch_time', new_value)
 
     @property
+    def theme_color_mode(self) -> str:
+        """
+        主题色模式
+        """
+        return self.get('theme_color_mode', ThemeColorModeEnum.AUTO.value.value)
+
+    @theme_color_mode.setter
+    def theme_color_mode(self, new_value: str) -> None:
+        """
+        主题色模式
+        """
+        self.update('theme_color_mode', new_value)
+
+    @property
+    def is_custom_theme_color(self) -> bool:
+        """
+        是否使用自定义主题色
+        """
+        return self.theme_color_mode == ThemeColorModeEnum.CUSTOM.value.value
+
+    @property
     def global_theme_color_str(self) -> str:
         """
         全局主题色，格式为 "r,g,b"
         """
         return self.get('global_theme_color', '')
-
-    @global_theme_color_str.setter
-    def global_theme_color_str(self, new_value: str) -> None:
-        """
-        全局主题色，格式为 "r,g,b"
-        """
-        self.update('global_theme_color', new_value)
 
     @property
     def global_theme_color(self) -> tuple[int, int, int]:
@@ -163,7 +184,7 @@ class CustomConfig(YamlConfig):
         全局主题色 (r, g, b)
         """
         color_str = f"{new_value[0]},{new_value[1]},{new_value[2]}"
-        self.global_theme_color_str = color_str
+        self.update('global_theme_color', color_str)
 
     @property
     def theme_color_banner_path(self) -> str:
@@ -178,13 +199,6 @@ class CustomConfig(YamlConfig):
         当前主题色对应的背景图片路径
         """
         self.update('theme_color_banner_path', new_value)
-
-    @property
-    def has_custom_theme_color(self) -> bool:
-        """
-        检查是否已设置自定义主题色（非默认值）
-        """
-        return bool(self.global_theme_color_str)
 
     @property
     def theme_color_banner_mtime(self) -> float:

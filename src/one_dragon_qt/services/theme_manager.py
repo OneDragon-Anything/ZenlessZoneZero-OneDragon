@@ -1,32 +1,19 @@
-"""
-全局主题色管理模块
-"""
 from PySide6.QtGui import QColor
 from qfluentwidgets import setThemeColor
 
 
 class ThemeManager:
-    """全局主题色管理器 - 配合自动提取机制"""
+    """全局主题色管理器"""
 
-    _instance = None
-    _initialized = False
+    _current_color = (0, 120, 215)  # 默认蓝色
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
-    def __init__(self):
-        if not self._initialized:
-            self._current_color = (0, 120, 215)  # 默认蓝色，与context_lazy_signal.py保持一致
-            self._initialized = True
-
-    @property
-    def current_color(self) -> tuple:
+    @classmethod
+    def get_current_color(cls) -> tuple:
         """获取当前主题色"""
-        return self._current_color
+        return cls._current_color
 
-    def set_theme_color(self, color: tuple, ctx=None) -> None:
+    @classmethod
+    def set_theme_color(cls, color: tuple, ctx=None) -> None:
         """
         设置全局主题色（通常由背景图片自动提取调用）
         :param color: RGB颜色元组 (R, G, B)
@@ -39,7 +26,7 @@ class ThemeManager:
         if not all(0 <= c <= 255 for c in color):
             raise ValueError("颜色值必须在0-255范围内")
 
-        self._current_color = color
+        cls._current_color = color
 
         # 转换为QColor并设置全局主题色
         qcolor = QColor(color[0], color[1], color[2])
@@ -50,30 +37,30 @@ class ThemeManager:
             ctx.custom_config.global_theme_color = color
             ctx.signal.theme_color_changed = True
 
-    def get_qcolor(self) -> QColor:
+    @classmethod
+    def get_qcolor(cls) -> QColor:
         """获取当前主题色的QColor对象"""
-        return QColor(self._current_color[0], self._current_color[1], self._current_color[2])
+        return QColor(cls._current_color[0], cls._current_color[1], cls._current_color[2])
 
-    def get_hex_color(self) -> str:
+    @classmethod
+    def get_hex_color(cls) -> str:
         """获取当前主题色的十六进制字符串"""
-        return f"#{self._current_color[0]:02x}{self._current_color[1]:02x}{self._current_color[2]:02x}"
+        return f"#{cls._current_color[0]:02x}{cls._current_color[1]:02x}{cls._current_color[2]:02x}"
 
-    def get_rgb_string(self) -> str:
+    @classmethod
+    def get_rgb_string(cls) -> str:
         """获取当前主题色的RGB字符串"""
-        return f"rgb({self._current_color[0]}, {self._current_color[1]}, {self._current_color[2]})"
+        return f"rgb({cls._current_color[0]}, {cls._current_color[1]}, {cls._current_color[2]})"
 
-    def load_from_config(self, ctx) -> None:
+    @classmethod
+    def load_from_config(cls, ctx) -> None:
         """
         从配置文件加载主题色（应用启动时调用）
         :param ctx: 上下文对象
         """
         if ctx.custom_config.has_custom_theme_color:
             saved_color = ctx.custom_config.global_theme_color
-            self._current_color = saved_color
+            cls._current_color = saved_color
             # 设置到qfluentwidgets但不触发信号
             qcolor = QColor(saved_color[0], saved_color[1], saved_color[2])
             setThemeColor(qcolor)
-
-
-# 全局主题色管理器实例
-theme_manager = ThemeManager()
