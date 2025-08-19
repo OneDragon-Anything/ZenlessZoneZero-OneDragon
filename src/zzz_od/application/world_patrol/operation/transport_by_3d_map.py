@@ -66,7 +66,7 @@ class TransportBy3dMap(ZOperation):
         ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot, rect=area.rect)
 
         ocr_word_list = list(ocr_result_map.keys())
-        target_word_idx = str_utils.find_best_match_by_difflib(gt(target_area_name), ocr_word_list)
+        target_word_idx = str_utils.find_best_match_by_difflib(gt(target_area_name, 'game'), ocr_word_list)
         if target_word_idx is not None and target_word_idx >= 0:
             mrl = ocr_result_map.get(ocr_word_list[target_word_idx])
             if mrl.max is not None:
@@ -159,7 +159,7 @@ class TransportBy3dMap(ZOperation):
         icon_word_list = []
         target_icon: WorldPatrolLargeMapIcon = None
         for i in large_map.icon_list:
-            icon_word_list.append(gt(i.icon_name))
+            icon_word_list.append(i.icon_name)
             if i.icon_name == self.target_tp_name:
                 target_icon = i
 
@@ -248,7 +248,7 @@ class TransportBy3dMap(ZOperation):
             log.debug(f'OCR识别到传送点名称：{recognized_name}')
 
             # 匹配到具体的图标
-            icon_idx = str_utils.find_best_match_by_difflib(recognized_name, self.icon_word_list)
+            icon_idx = str_utils.find_best_match_by_difflib(gt(recognized_name, 'game'), self.icon_word_list)
             if icon_idx is None or icon_idx < 0:
                 log.warning(f'无法匹配传送点名称：{recognized_name}')
                 continue  # 尝试下一个图标
