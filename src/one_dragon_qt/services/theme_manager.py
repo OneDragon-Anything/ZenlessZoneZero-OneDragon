@@ -8,28 +8,31 @@ class ThemeManager:
     _current_color = (0, 120, 215)  # 默认蓝色
 
     @classmethod
-    def get_current_color(cls) -> tuple:
+    def get_current_color(cls) -> tuple[int, int, int]:
         """获取当前主题色"""
         return cls._current_color
 
     @classmethod
-    def set_theme_color(cls, color: tuple) -> None:
+    def set_theme_color(cls, color: tuple[int, int, int]) -> None:
         """
         设置全局主题色（通常由背景图片自动提取调用）
         :param color: RGB颜色元组 (R, G, B)
-        :param ctx: 上下文对象，用于持久化存储
         """
         if not isinstance(color, tuple) or len(color) != 3:
             raise ValueError("颜色必须是包含3个整数的元组 (R, G, B)")
 
-        # 验证颜色值范围
-        if not all(0 <= c <= 255 for c in color):
+        # 显式转换并验证范围
+        try:
+            r, g, b = (int(color[0]), int(color[1]), int(color[2]))
+        except (ValueError, TypeError, IndexError):
+            raise ValueError("颜色必须是包含3个整数的元组 (R, G, B)")
+        if not all(0 <= c <= 255 for c in (r, g, b)):
             raise ValueError("颜色值必须在0-255范围内")
 
-        cls._current_color = color
+        cls._current_color = (r, g, b)
 
         # 转换为QColor并设置全局主题色
-        qcolor = QColor(color[0], color[1], color[2])
+        qcolor = QColor(r, g, b)
         setThemeColor(qcolor)
 
     @classmethod

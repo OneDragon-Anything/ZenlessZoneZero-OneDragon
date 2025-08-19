@@ -171,10 +171,12 @@ class CustomConfig(YamlConfig):
         """
         color_str = self.theme_color_str
         if color_str:
-            parts = color_str.split(',')
+            parts = [p.strip() for p in color_str.split(',')]
             if len(parts) == 3 and all(p.isdigit() for p in parts):
                 r, g, b = map(int, parts)
-                return r, g, b
+                if all(0 <= c <= 255 for c in (r, g, b)):
+                    return r, g, b
+
         # 默认值
         return 0, 120, 215
 

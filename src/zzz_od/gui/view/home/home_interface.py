@@ -598,7 +598,6 @@ class HomeInterface(VerticalScrollInterface):
 
         # 背景图片改变了，需要重新提取颜色
         theme_color = self._extract_color_from_image()
-        self.ctx.custom_config.theme_color = theme_color
 
         # 更新缓存
         self._update_theme_color_cache(current_banner_path)
