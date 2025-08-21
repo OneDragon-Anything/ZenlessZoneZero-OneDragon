@@ -202,7 +202,7 @@ class PrintWindowScreencapper(ScreencapperBase):
         """
         ctypes.windll.gdi32.SelectObject(mfcDC, saveBitMap)
 
-        result = ctypes.windll.user32.PrintWindow(hwnd, mfcDC, 0x00000002)  # PW_CLIENTONLY
+        result = ctypes.windll.user32.PrintWindow(hwnd, mfcDC, 0x00000003)  # PW_CLIENTONLY | PW_RENDERFULLCONTENT
         if not result:
             ctypes.windll.gdi32.BitBlt(mfcDC, 0, 0, width, height,
                                        hwndDC, 0, 0, 0x00CC0020)  # SRCCOPY
