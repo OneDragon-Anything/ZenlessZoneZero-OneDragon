@@ -36,7 +36,7 @@ class PrintWindowScreencapper(ScreencapperBase):
             if not hwnd:
                 raise Exception('未找到目标窗口，无法初始化Print Window')
 
-            hwndDC = ctypes.windll.user32.GetWindowDC(hwnd)
+            hwndDC = ctypes.windll.user32.GetDC(hwnd)
             if not hwndDC:
                 raise Exception('无法获取窗口设备上下文')
 
@@ -141,7 +141,7 @@ class PrintWindowScreencapper(ScreencapperBase):
         saveBitMap = None
 
         try:
-            hwndDC = ctypes.windll.user32.GetWindowDC(hwnd)
+            hwndDC = ctypes.windll.user32.GetDC(hwnd)
             if not hwndDC:
                 raise Exception('无法获取窗口设备上下文')
 
@@ -202,7 +202,7 @@ class PrintWindowScreencapper(ScreencapperBase):
         """
         ctypes.windll.gdi32.SelectObject(mfcDC, saveBitMap)
 
-        result = ctypes.windll.user32.PrintWindow(hwnd, mfcDC, 0x00000002)  # PW_CLIENTONLY
+        result = ctypes.windll.user32.PrintWindow(hwnd, mfcDC, 0x00000003)  # PW_CLIENTONLY | PW_RENDERFULLCONTENT
         if not result:
             ctypes.windll.gdi32.BitBlt(mfcDC, 0, 0, width, height,
                                        hwndDC, 0, 0, 0x00CC0020)  # SRCCOPY
