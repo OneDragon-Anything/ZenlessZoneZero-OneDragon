@@ -32,13 +32,16 @@ class EnterGame(ZOperation):
             self.force_login = True
 
         self.already_login: bool = False  # 是否已经登录了
+        from one_dragon.base.config.game_account_config import GameClientTypeEnum
+        if self.ctx.game_account_config.game_client == GameClientTypeEnum.CLOUD_GAME.value.value:
+            self.force_login = False
+            self.already_login = True
         self.use_clipboard: bool = self.ctx.game_config.type_input_way == TypeInputWay.CLIPBOARD.value.value  # 使用剪切板输入
 
     @node_from(from_name='国服-输入账号密码')
     @node_from(from_name='国服-输入账号密码-新')
     @node_from(from_name='B服-输入账号密码')
     @node_from(from_name='国际服-换服')
-    @node_from(from_name='国服PC云-排队', status='点击进入游戏')
     @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
         login_result = self.check_login_related(self.last_screenshot)
@@ -53,9 +56,6 @@ class EnterGame(ZOperation):
         if in_game_result.is_success:
             return self.round_success('大世界', wait=1)
 
-        pc_cloud_queue_result = self.round_by_find_area(self.last_screenshot, '打开游戏', '国服PC云-退出排队')
-        if pc_cloud_queue_result.is_success:
-            return self.round_success(pc_cloud_queue_result.status, wait=1)
         return self.round_retry(status='未知画面', wait=1)
 
     def check_login_related(self, screen: MatLike) -> Optional[OperationRoundResult]:
@@ -64,8 +64,7 @@ class EnterGame(ZOperation):
         :param screen: 游戏画面
         :return: 是否有相关操作 有的话返回对应操作结果
         """
-        if (self.force_login and not self.already_login) or self.ctx.game_account_config.game_client == 'cloud':
-            # 云游戏不需要在这里处理登录
+        if self.force_login and not self.already_login:
             result = self.round_by_find_area(screen, '打开游戏', '点击进入游戏')
             if result.is_success:
                 self.round_by_click_area('打开游戏', '切换账号')
@@ -103,10 +102,6 @@ class EnterGame(ZOperation):
 
         if self.ctx.game_account_config.game_region != GameRegionEnum.CN.value.value:
             return self.check_screen_intl(screen)
-
-        result = self.round_by_find_and_click_area(screen, '打开游戏', '国服PC云-开始游戏')
-        if result.is_success:
-            return self.round_success(result.status, wait=3)
 
         return None
 
@@ -253,93 +248,6 @@ class EnterGame(ZOperation):
 
         return self.round_by_find_and_click_area(screen, '打开游戏', '国际服-账号密码进入游戏',
                                                  success_wait=1)
-
-    @node_from(from_name='画面识别', status='国服PC云-开始游戏')
-    @node_from(from_name='画面识别', status='国服PC云-退出排队')
-    @node_from(from_name='国服PC云-排队中转', status='排队中转')
-    @operation_node(name='国服PC云-排队')
-    def cn_pc_cloud_queue(self) -> OperationRoundResult:
-        """
-        国服PC云-排队
-        :return:
-        """
-        # 使用self.last_screenshot而不是重新截图
-        screen = self.last_screenshot
-        
-        # OCR识别"国服PC云-排队人数"区域的值
-        queue_count_text = ""
-        area = self.ctx.screen_loader.get_area('打开游戏', '国服PC云-排队人数')
-        if area is not None:
-            if self.ctx.env_config.ocr_cache:
-                # 使用OCR缓存服务
-                ocr_result_map = self.ctx.ocr_service.get_ocr_result_list(
-                    image=screen,
-                    color_range=area.color_range,
-                    rect=area.rect
-                )
-                # 获取OCR识别结果
-                for ocr_result, mrl in ocr_result_map.items():
-                    queue_count_text = ocr_result
-                    break
-            else:
-                # 裁剪出区域图像
-                from one_dragon.utils import cv2_utils
-                to_ocr_part = cv2_utils.crop_image_only(screen, area.rect)
-                # 对裁剪出的图像进行OCR识别
-                ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
-                # 获取OCR识别结果
-                for ocr_result, mrl in ocr_result_map.items():
-                    queue_count_text = ocr_result
-                    break
-        
-        # OCR识别"国服PC云-预计等待时间"区域的值
-        wait_time_text = ""
-        area = self.ctx.screen_loader.get_area('打开游戏', '国服PC云-预计等待时间')
-        if area is not None:
-            if self.ctx.env_config.ocr_cache:
-                # 使用OCR缓存服务
-                ocr_result_map = self.ctx.ocr_service.get_ocr_result_list(
-                    image=screen,
-                    color_range=area.color_range,
-                    rect=area.rect
-                )
-                # 获取OCR识别结果
-                for ocr_result, mrl in ocr_result_map.items():
-                    wait_time_text = ocr_result
-                    break
-            else:
-                # 裁剪出区域图像
-                from one_dragon.utils import cv2_utils
-                to_ocr_part = cv2_utils.crop_image_only(screen, area.rect)
-                # 对裁剪出的图像进行OCR识别
-                ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
-                # 获取OCR识别结果
-                for ocr_result, mrl in ocr_result_map.items():
-                    wait_time_text = ocr_result
-                    break
-        
-        # 将识别到的值通过log输出
-        from one_dragon.utils.log_utils import log
-        log.info(f"国服PC云排队信息 - 排队人数: {queue_count_text}, 预计等待时间: {wait_time_text}")
-        
-        # 检查是否能识别到"点击进入游戏"区域
-        enter_game_result = self.round_by_find_area(screen, '打开游戏', '点击进入游戏')
-        if enter_game_result.is_success:
-            # 如果识别到"点击进入游戏"，则退出循环，进入游戏
-            return self.round_success(status='点击进入游戏', wait=1)
-        else:
-            # 如果未识别到"点击进入游戏"，则返回等待状态，等待一段时间后切换到第二个节点继续循环
-            return self.round_wait(status='等待排队', wait=10)
-
-    @node_from(from_name='国服PC云-排队')
-    @operation_node(name='国服PC云-排队中转')
-    def cn_pc_cloud_queue_transfer(self) -> OperationRoundResult:
-        """
-        国服PC云-排队中转节点
-        :return:
-        """
-        # 仅作为中转，直接切换回第一个节点继续处理
-        return self.round_wait(status='排队中转', wait=1)
 
     @node_from(from_name='国际服-输入账号密码', status='国际服-账号密码进入游戏')
     @operation_node(name='国际服-换服')

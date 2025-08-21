@@ -6,8 +6,8 @@ from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.enter_game.auto_hdr import EnableAutoHDR, DisableAutoHDR
 from zzz_od.operation.enter_game.open_game import OpenGame
-
-
+from one_dragon.base.config.game_account_config import GameClientTypeEnum
+from zzz_od.operation.enter_game.cloud_game_queue import CloudGameQueue
 class OpenAndEnterGame(Operation):
 
     def __init__(self, ctx: ZContext):
@@ -42,5 +42,12 @@ class OpenAndEnterGame(Operation):
     @operation_node(name='进入游戏')
     def enter_game(self) -> OperationRoundResult:
         from zzz_od.operation.enter_game.enter_game import EnterGame
+        # 如果是云游戏 那么先运行CloudGameQueue 再运行EnterGame 如果不是云游戏 直接EnterGame
+        if self.ctx.game_account_config.game_client == GameClientTypeEnum.CLOUD_GAME.value.value:
+            cloud_queue_op = CloudGameQueue(self.ctx)
+            cloud_queue_result = cloud_queue_op.execute()
+            if not cloud_queue_result.success:
+                return self.round_by_op_result(cloud_queue_result)
+        
         op = EnterGame(self.ctx)
         return self.round_by_op_result(op.execute())
