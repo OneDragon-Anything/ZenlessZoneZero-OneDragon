@@ -125,6 +125,13 @@ class PcScreenshotController:
         """
         SCREENSHOT_INIT_EXECUTOR.shutdown(wait=False, cancel_futures=True)
 
+    def cleanup(self):
+        """
+        清理资源
+        """
+        self.cleanup_resources()
+        self.cleanup_init_executor()
+
     def _get_method_priority_list(self, method: str) -> list:
         """
         获取截图方法的优先级列表

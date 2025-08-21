@@ -25,6 +25,7 @@ class PrintWindowScreencapper(ScreencapperBase):
         self.bmpinfo_buffer: Optional[ctypes.Array] = None
         self.width: int = 0
         self.height: int = 0
+        self.hwnd_for_dc: Optional[int] = None  # 保存获取DC时的句柄，用于正确释放DC
 
     def init(self) -> bool:
         """初始化Print Window截图方法，预加载资源"""
@@ -46,6 +47,7 @@ class PrintWindowScreencapper(ScreencapperBase):
 
             self.hwndDC = hwndDC
             self.mfcDC = mfcDC
+            self.hwnd_for_dc = hwnd
             return True
         except Exception:
             self.cleanup()
@@ -70,6 +72,10 @@ class PrintWindowScreencapper(ScreencapperBase):
         if independent:
             return self._capture_independent(hwnd, width, height)
 
+        if self.hwndDC is None or self.mfcDC is None:
+            if not self.init():
+                return None
+
         screenshot = self._capture_with_retry(hwnd, width, height)
         if screenshot is not None:
             return screenshot
@@ -89,10 +95,8 @@ class PrintWindowScreencapper(ScreencapperBase):
                     ctypes.windll.gdi32.DeleteObject(self.saveBitMap)
                 if self.mfcDC:
                     ctypes.windll.gdi32.DeleteDC(self.mfcDC)
-                if self.hwndDC:
-                    hwnd = self.game_win.get_hwnd()
-                    if hwnd:
-                        ctypes.windll.user32.ReleaseDC(hwnd, self.hwndDC)
+                if self.hwndDC and self.hwnd_for_dc:
+                    ctypes.windll.user32.ReleaseDC(self.hwnd_for_dc, self.hwndDC)
             finally:
                 self.hwndDC = None
                 self.mfcDC = None
@@ -101,6 +105,7 @@ class PrintWindowScreencapper(ScreencapperBase):
                 self.bmpinfo_buffer = None
                 self.width = 0
                 self.height = 0
+                self.hwnd_for_dc = None
 
     def _capture_with_retry(self, hwnd, width, height) -> Optional[MatLike]:
         """
