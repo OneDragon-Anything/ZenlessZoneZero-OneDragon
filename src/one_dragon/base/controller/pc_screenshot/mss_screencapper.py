@@ -1,4 +1,3 @@
-import time
 from typing import Optional
 
 import cv2
@@ -37,8 +36,6 @@ class MssScreencapper(ScreencapperBase):
         """
         截图 如果分辨率和默认不一样则进行缩放
         """
-        before_screenshot_time = time.time()
-
         monitor = {"top": rect.y1, "left": rect.x1, "width": rect.width, "height": rect.height}
 
         try:
@@ -68,8 +65,6 @@ class MssScreencapper(ScreencapperBase):
         else:
             result = screenshot
 
-        after_screenshot_time = time.time()
-        log.debug(f"MSS 截图耗时:{after_screenshot_time - before_screenshot_time}")
         return result
 
     def cleanup(self):
