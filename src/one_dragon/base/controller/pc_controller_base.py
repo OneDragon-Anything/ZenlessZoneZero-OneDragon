@@ -1,3 +1,4 @@
+import subprocess
 import time
 
 import ctypes
@@ -188,9 +189,14 @@ class PcControllerBase(ControllerBase):
         :return:
         """
         try:
-            self.game_win.get_win().close()
+            # 获取游戏窗口标题
+            win_title = self.game_win.win_title
+            # 使用 taskkill 命令关闭游戏进程，通过窗口标题过滤
+            subprocess.run(["taskkill", "/f", "/fi", f"WINDOWTITLE eq {win_title}"], check=True, capture_output=True)
             log.info('关闭游戏成功')
-        except:
+        except subprocess.CalledProcessError as e:
+            log.error('关闭游戏失败: %s', e.stderr.decode('utf-8', errors='ignore'))
+        except Exception as e:
             log.error('关闭游戏失败', exc_info=True)
 
     def input_str(self, to_input: str, interval: float = 0.1):
