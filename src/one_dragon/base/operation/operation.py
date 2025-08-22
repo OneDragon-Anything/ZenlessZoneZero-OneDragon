@@ -935,7 +935,7 @@ class Operation(OperationBase):
         """
         # 优先使用OCR缓存服务
         if self.ctx.env_config.ocr_cache:
-            ocr_result_map = self.ctx.ocr_service.get_ocr_result_list(
+            ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
                 image=screen,
                 color_range=color_range,
                 rect=None if area is None else area.rect
@@ -1021,7 +1021,7 @@ class Operation(OperationBase):
 
         # 优先使用OCR缓存服务
         if self.ctx.env_config.ocr_cache:
-            ocr_result_map = self.ctx.ocr_service.get_ocr_result_list(
+            ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
                 image=screen,
                 color_range=color_range,
                 rect=area.rect,

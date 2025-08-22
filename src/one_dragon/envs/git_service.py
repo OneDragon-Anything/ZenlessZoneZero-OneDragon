@@ -157,7 +157,7 @@ class GitService:
         获取远程分支代码
         """
         log.info(gt('获取远程代码'))
-        cmd_utils.run_command([self.env_config.git_path, 'config', 'set-branches', 'origin', '"*"'])
+        cmd_utils.run_command([self.env_config.git_path, 'remote', 'set-branches', 'origin', '"*"'])
         fetch_result = cmd_utils.run_command([self.env_config.git_path, 'fetch', 'origin'])
         if fetch_result is None:
             msg = gt('获取远程代码失败')

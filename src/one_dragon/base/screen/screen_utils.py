@@ -54,7 +54,7 @@ def find_area_in_screen(ctx: OneDragonContext, screen: MatLike, area: ScreenArea
     find: bool = False
     if area.is_text_area:
         if ctx.env_config.ocr_cache:
-            ocr_result_map = ctx.ocr_service.get_ocr_result_list(
+            ocr_result_map = ctx.ocr_service.get_ocr_result_map(
                 image=screen,
                 color_range=area.color_range,
                 rect=area.rect

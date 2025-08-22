@@ -190,7 +190,7 @@
   tp_pos:
   - 1110
   - 622
-- icon_name: ''
+- icon_name: '一楼广场'
   template_id: map_icon_01
   lm_pos:
   - 1205

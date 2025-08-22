@@ -228,7 +228,7 @@ class LostVoidApp(ZApplication):
                             found_digit_contour = digit_contour
                             break
 
-                if found_digit_contour is None or cv2.contourArea(found_digit_contour) <= 300:
+                if found_digit_contour is None:
                     log.debug("【追新模式】 找到一个未满级/无等级目标，准备点击。")
                     target_contour_to_click = frame_contour
                     break
@@ -246,6 +246,7 @@ class LostVoidApp(ZApplication):
 
             log.debug("【追新模式】 当前屏幕无可选择目标，执行滑动...")
             self._swipe_strategy_list()
+            self.screenshot()
             swipe_attempts += 1
         
         # 回退逻辑: 选择第一个

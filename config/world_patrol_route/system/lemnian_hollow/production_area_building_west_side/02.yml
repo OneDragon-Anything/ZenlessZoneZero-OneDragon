@@ -12,5 +12,9 @@ op_list:
   - '730'
   - '660'
   op_type: move
+- data:
+  - '767'
+  - '674'
+  op_type: move
 tp_area_id: production_area_building_west_side
 tp_name: 通往物流仓储区的入口

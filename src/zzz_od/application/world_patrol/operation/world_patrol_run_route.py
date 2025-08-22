@@ -1,4 +1,5 @@
 import time
+from typing import Optional
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -45,6 +46,11 @@ class WorldPatrolRunRoute(ZOperation):
 
         self.in_battle: bool = False  # 是否在战斗中
         self.last_check_battle_time: float = 0  # 上一次检测是否还在战斗的时间
+
+        # 自适应转向算法状态变量
+        self.sensitivity: float = 1.0
+        self.last_angle: Optional[float] = None
+        self.last_angle_diff_command: Optional[float] = None
 
     @operation_node(name='初始回到大世界', is_start_node=True)
     def back_at_first(self) -> OperationRoundResult:
@@ -152,7 +158,34 @@ class WorldPatrolRunRoute(ZOperation):
         if mini_map.view_angle is not None:
             target_angle = cal_utils.calculate_direction_angle(self.current_pos, target_pos)
             angle_diff = cal_utils.angle_delta(current_angle, target_angle)
-            self.ctx.controller.turn_by_angle_diff(angle_diff)
+            
+            # --- 自适应转向算法开始 ---
+            # 1. 校准灵敏度 (仅在有历史数据时)
+            if self.last_angle is not None and self.last_angle_diff_command is not None:
+                # 计算实际转动量
+                actual_angle_change = cal_utils.angle_delta(self.last_angle, current_angle)
+                
+                # 防止除零错误
+                if abs(self.last_angle_diff_command) > 1e-6:
+                    # 计算理论灵敏度
+                    theoretical_sensitivity = actual_angle_change / self.last_angle_diff_command
+                    
+                    # 步长限制调整
+                    sensitivity_change = theoretical_sensitivity - self.sensitivity
+                    clipped_change = max(-0.02, min(sensitivity_change, 0.02))
+                    self.sensitivity += clipped_change
+                    
+                    # 可选：打印调试信息
+                    # log.debug(f"校准: 理论灵敏度={theoretical_sensitivity:.4f}, 新灵敏度={self.sensitivity:.4f}")
+            
+            # 2. 计算并执行本次指令
+            calibrated_angle_diff = angle_diff * self.sensitivity
+            self.ctx.controller.turn_by_angle_diff(calibrated_angle_diff)
+            
+            # 3. 记录历史数据
+            self.last_angle = current_angle
+            self.last_angle_diff_command = calibrated_angle_diff
+            # --- 自适应转向算法结束 ---
 
         self.ctx.controller.start_moving_forward()
 

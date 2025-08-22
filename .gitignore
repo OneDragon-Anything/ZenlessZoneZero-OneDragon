@@ -57,3 +57,20 @@ notice_cache/
 
 # 需自行下载的模型文件
 models/
+
+# telemetry
+config/telemetry.yml
+config/privacy.yml
+
+telemetry_debug.log
+telemetry_*.log
+
+telemetry_temp/
+telemetry_cache/
+
+src/zzz_od/telemetry/__pycache__/
+src/zzz_od/telemetry/**/__pycache__/
+
+telemetry_export_*.json
+telemetry_report_*.json
+privacy_report_*.json

@@ -12,7 +12,7 @@ handlers:
                 "自定义-异常-物理",
                 "自定义-异常-烈霜",
                 "自定义-异常-火",
-                "自定义-异常-电"
+                "自定义-异常-电",
               ]
 
       # 支援
@@ -42,24 +42,18 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[爱丽丝-剑仪]{300,300}"
-        interrupt_states: "[爱丽丝-剑仪]{ 0, 0}"
+      - states: "[爱丽丝-剑仪]{300, 300}"
+        interrupt_states: "[爱丽丝-剑仪]{0, 0}"
         operations:
           - operation_template: "爱丽丝-长按普攻合轴"
 
-      - states: "[自定义-爱丽丝-蓄力中, 0, 5]"
+      - states: "[自定义-爱丽丝-蓄力中, -5, 0]"
         operations:
-          - op_name: "清除状态"
-            data: ["自定义-爱丽丝-蓄力中"]
-          - op_name: "等待秒数"
-            seconds: 0.3
           - op_name: "设置状态"
             data: ["自定义-速切结束"]
-          - op_name: "等待秒数"
-            seconds: 3.0
-            
+
       # 终结技时刻，需要注意出场第一秒可能识别错误
-      - states: "[爱丽丝-终结技可用]&[爱丽丝-剑仪]{ 0, 100}"
+      - states: "[爱丽丝-终结技可用] & [爱丽丝-剑仪]{0, 100}"
         operations:
           - operation_template: "爱丽丝-终结技"
 
@@ -68,6 +62,6 @@ handlers:
           - operation_template: "爱丽丝-强化特殊技"
 
       - states: ""
-        interrupt_states: "[爱丽丝-剑仪]{ 300, 300}"
+        interrupt_states: "[爱丽丝-剑仪]{300, 300}"
         operations:
           - operation_template: "爱丽丝-普通攻击"

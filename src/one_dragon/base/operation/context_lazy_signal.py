@@ -37,25 +37,3 @@ class ContextLazySignal:
     @notice_card_config_changed.setter
     def notice_card_config_changed(self, new_value: bool) -> None:
         self._signals['notice_card_config_changed'] = new_value
-
-    @property
-    def theme_color_changed(self) -> bool:
-        """
-        主题色发生变化
-        """
-        return self._signals.get('theme_color_changed', False)
-
-    @theme_color_changed.setter
-    def theme_color_changed(self, new_value: bool) -> None:
-        self._signals['theme_color_changed'] = new_value
-
-    @property
-    def global_theme_color(self) -> tuple:
-        """
-        全局主题色 (r, g, b)
-        """
-        return self._signals.get('global_theme_color', (0, 120, 215))
-
-    @global_theme_color.setter
-    def global_theme_color(self, new_value: tuple) -> None:
-        self._signals['global_theme_color'] = new_value

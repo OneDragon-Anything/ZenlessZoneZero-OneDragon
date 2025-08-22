@@ -317,22 +317,30 @@ class LostVoidRunLevel(ZOperation):
         """
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
         if result.is_success:
-            # 尝试文本识别准备交互的目标 这样会比使用图标更为准确
-            area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-交互文本')
-            part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-            ocr_result_map = self.ctx.ocr.run_ocr(part)
-            current_interact_target = None
-            for ocr_result in ocr_result_map.keys():
-                target = match_interact_target(self.ctx, ocr_result)
-                if target is not None:
-                    current_interact_target = target
-                    break
 
-            if current_interact_target is not None:
-                self.interact_target = current_interact_target
+            # [二次确认] 第一次找到交互按钮后，等待1秒稳定画面
+            log.debug("初次发现交互按键，等待1秒进行二次确认")
+            time.sleep(0.5)
+            self.screenshot()  # 重新截图
+            result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
 
-            self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-            return self.round_wait('交互', wait=1)
+            if result.is_success:
+                # 尝试文本识别准备交互的目标 这样会比使用图标更为准确
+                area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-交互文本')
+                part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
+                ocr_result_map = self.ctx.ocr.run_ocr(part)
+                current_interact_target = None
+                for ocr_result in ocr_result_map.keys():
+                    target = match_interact_target(self.ctx, ocr_result)
+                    if target is not None:
+                        current_interact_target = target
+                        break
+
+                if current_interact_target is not None:
+                    self.interact_target = current_interact_target
+
+                self.ctx.controller.interact(press=True, press_time=0.2, release=True)
+                return self.round_wait('交互', wait=1)
 
         if not self.ctx.lost_void.in_normal_world(self.last_screenshot):  # 按键消失 说明开始加载了
             return self.round_success('交互成功')
