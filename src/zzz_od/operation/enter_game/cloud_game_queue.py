@@ -30,7 +30,7 @@ class CloudGameQueue(ZOperation):
 
         result = self.round_by_find_and_click_area(self.last_screenshot, '打开游戏', '国服PC云-点击空白区域关闭')
         if result.is_success:
-                    return self.round_success(result.status, wait=1)
+            return self.round_success(result.status, wait=1)
 
         result = self.round_by_find_area(self.last_screenshot, '打开游戏', '国服PC云-退出排队')
         if result.is_success:
