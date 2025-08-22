@@ -104,10 +104,10 @@ class BackToNormalWorld(ZOperation):
             return self.round_retry(result, wait=1)
 
         #云绝区零 排队
-        result = self.round_by_find_area(self.last_screenshot, '打开游戏', '国服PC云-切换窗口')
+        result = self.round_by_find_area(self.last_screenshot, '云游戏', '国服PC云-切换窗口')
         if result.is_success:
-            from zzz_od.operation.enter_game.enter_game import EnterGame
-            op = EnterGame(self.ctx)
+            from zzz_od.operation.enter_game.cloud_game_queue import CloudGameQueue
+            op = CloudGameQueue(self.ctx)
             return self.round_by_op_result(op.execute())
 
         click_back = self.round_by_click_area('菜单', '返回')

@@ -24,19 +24,19 @@ class CloudGameQueue(ZOperation):
     @node_from(from_name='画面识别', status='国服PC云-点击空白区域关闭')
     @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, '打开游戏', '国服PC云-切换窗口')
+        result = self.round_by_find_area(self.last_screenshot, '云游戏', '国服PC云-切换窗口')
         if result.is_fail:
             return self.round_retry(status='未知画面', wait=1)
 
-        result = self.round_by_find_and_click_area(self.last_screenshot, '打开游戏', '国服PC云-点击空白区域关闭')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '云游戏', '国服PC云-点击空白区域关闭')
         if result.is_success:
             return self.round_success(result.status, wait=1)
 
-        result = self.round_by_find_area(self.last_screenshot, '打开游戏', '国服PC云-退出排队')
+        result = self.round_by_find_area(self.last_screenshot, '云游戏', '国服PC云-退出排队')
         if result.is_success:
             return self.round_success(result.status, wait=1)
         
-        result = self.round_by_find_and_click_area(self.last_screenshot, '打开游戏', '国服PC云-开始游戏')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '云游戏', '国服PC云-开始游戏')
         if result.is_success:
             return self.round_success(result.status, wait=1)
         
@@ -58,7 +58,7 @@ class CloudGameQueue(ZOperation):
         
         # OCR识别"国服PC云-排队人数"区域的值
         queue_count_text = ""
-        area = self.ctx.screen_loader.get_area('打开游戏', '国服PC云-排队人数')
+        area = self.ctx.screen_loader.get_area('云游戏', '国服PC云-排队人数')
         if area is not None:
             # 打印区域坐标用于调试
             # 使用OCR服务识别文本
@@ -68,7 +68,7 @@ class CloudGameQueue(ZOperation):
         
         # OCR识别"国服PC云-预计等待时间"区域的值
         wait_time_text = ""
-        area = self.ctx.screen_loader.get_area('打开游戏', '国服PC云-预计等待时间')
+        area = self.ctx.screen_loader.get_area('云游戏', '国服PC云-预计等待时间')
         if area is not None:
             # 打印区域坐标用于调试
             # 使用OCR服务识别文本
