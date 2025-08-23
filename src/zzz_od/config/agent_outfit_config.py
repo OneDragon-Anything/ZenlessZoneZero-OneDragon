@@ -1,13 +1,13 @@
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
-class AgentOutfitConfig(YamlConfig):
+class AgentOutfitConfig(UserConfig):
 
     def __init__(self, instance_idx: int):
-        YamlConfig.__init__(self, 'agent_outfit', instance_idx=instance_idx)
+        UserConfig.__init__(self, 'agent_outfit', instance_idx=instance_idx)
 
     @property
     def compatibility_mode(self) -> bool:
