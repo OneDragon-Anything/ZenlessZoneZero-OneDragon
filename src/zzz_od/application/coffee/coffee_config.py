@@ -2,7 +2,6 @@ from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.application.application_config import ApplicationConfig
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class CoffeeChooseWay(Enum):
@@ -28,8 +27,8 @@ class CoffeeConfig(ApplicationConfig):
     def __init__(self, instance_idx: int, group_id: str):
         ApplicationConfig.__init__(
             self,
+            'coffee',
             instance_idx=instance_idx,
-            app_id='coffee',
             group_id=group_id,
         )
 
@@ -127,20 +126,16 @@ class CoffeeConfig(ApplicationConfig):
         :param day: 1~7
         :return:
         """
-        if day == 1:
-            return self.day_coffee_1
-        elif day == 2:
-            return self.day_coffee_2
-        elif day == 3:
-            return self.day_coffee_3
-        elif day == 4:
-            return self.day_coffee_4
-        elif day == 5:
-            return self.day_coffee_5
-        elif day == 6:
-            return self.day_coffee_6
-        elif day == 7:
-            return self.day_coffee_7
+        coffee_by_day: dict[int, str] = {
+            1: self.day_coffee_1,
+            2: self.day_coffee_2,
+            3: self.day_coffee_3,
+            4: self.day_coffee_4,
+            5: self.day_coffee_5,
+            6: self.day_coffee_6,
+            7: self.day_coffee_7,
+        }
+        return coffee_by_day.get(day, '')
 
     @property
     def predefined_team_idx(self) -> int:

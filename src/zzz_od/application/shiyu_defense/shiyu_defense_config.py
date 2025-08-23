@@ -57,7 +57,7 @@ class ShiyuDefenseConfig(ApplicationConfig):
     def __init__(self, instance_idx: int, group_id: str):
         ApplicationConfig.__init__(
             self,
-            app_id='shiyu_defense',
+            'shiyu_defense',
             instance_idx=instance_idx,
             group_id=group_id,
         )

@@ -2,7 +2,7 @@ from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.application.application_config import ApplicationConfig
-from zzz_od.application.devtools.screenshot_helper import screenshot_helper_const
+from zzz_od.application.commission_assistant import commission_assistant_const
 
 
 class DialogOptionEnum(Enum):
@@ -23,7 +23,7 @@ class CommissionAssistantConfig(ApplicationConfig):
     def __init__(self, instance_idx: int, group_id: str):
         ApplicationConfig.__init__(
             self,
-            app_id=screenshot_helper_const.APP_ID,
+            commission_assistant_const.APP_ID,
             instance_idx=instance_idx,
             group_id=group_id,
         )

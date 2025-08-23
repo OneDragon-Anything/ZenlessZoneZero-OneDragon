@@ -1,6 +1,5 @@
 
 from one_dragon.base.operation.application.application_config import ApplicationConfig
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class LifeOnLineConfig(ApplicationConfig):
@@ -8,7 +7,7 @@ class LifeOnLineConfig(ApplicationConfig):
     def __init__(self, instance_idx: int, group_id: str):
         ApplicationConfig.__init__(
             self,
-            app_id='life_on_line',
+            'life_on_line',
             instance_idx=instance_idx,
             group_id=group_id,
         )

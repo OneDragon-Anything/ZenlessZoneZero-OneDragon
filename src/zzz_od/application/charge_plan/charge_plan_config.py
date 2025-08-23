@@ -2,7 +2,6 @@ import uuid
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from zzz_od.application.charge_plan import charge_plan_const
 
@@ -91,9 +90,9 @@ class ChargePlanConfig(ApplicationConfig):
     def __init__(self, instance_idx: int, group_id: str):
         ApplicationConfig.__init__(
             self,
+            charge_plan_const.APP_ID,
             instance_idx=instance_idx,
             group_id=group_id,
-            app_id=charge_plan_const.APP_ID,
         )
 
         self.plan_list: list[ChargePlanItem] = []
@@ -139,7 +138,7 @@ class ChargePlanConfig(ApplicationConfig):
         self.data['plan_list'] = plan_list
         self.data['history_list'] = new_history_list
 
-        YamlConfig.save(self)
+        ApplicationConfig.save(self)
 
     def add_plan(self, plan: ChargePlanItem) -> None:
         self.plan_list.append(plan)

@@ -1,7 +1,7 @@
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
@@ -28,10 +28,10 @@ class MonitorEnum(Enum):
     MONITOR_4 = ConfigItem('4', '4')
 
 
-class BasicGameConfig(YamlConfig):
+class BasicGameConfig(UserConfig):
 
     def __init__(self, instance_idx: int):
-        YamlConfig.__init__(self, 'game', instance_idx=instance_idx)
+        UserConfig.__init__(self, 'game', instance_idx=instance_idx)
 
     @property
     def type_input_way(self) -> str:
