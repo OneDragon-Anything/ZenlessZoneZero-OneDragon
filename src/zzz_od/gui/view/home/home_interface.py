@@ -84,7 +84,7 @@ class ButtonGroup(SimpleCardWidget):
         doc_button = IconButton(
             FluentIcon.CHAT.icon(color=QColor("#fff")),
             tip_title="官方社群",
-            tip_content="加入官方群聊【绝区零&一条龙交流群】",
+            tip_content="点击加入官方频道【一条龍】",
             isTooltip=True,
         )
         doc_button.setIconSize(QSize(32, 32))
@@ -128,7 +128,7 @@ class ButtonGroup(SimpleCardWidget):
 
     def open_chat(self):
         """打开 Q群 链接"""
-        QDesktopServices.openUrl(QUrl("https://qm.qq.com/q/N5iEy8sTu0"))
+        QDesktopServices.openUrl(QUrl("https://pd.qq.com/s/fumylgkj4"))
 
     def open_doc(self):
         """打开 巡夜的金山文档 链接"""
@@ -136,7 +136,7 @@ class ButtonGroup(SimpleCardWidget):
 
     def open_sales(self):
         """其实还是打开 Q群 链接"""
-        QDesktopServices.openUrl(QUrl("https://qm.qq.com/q/N5iEy8sTu0"))
+        QDesktopServices.openUrl(QUrl("https://pd.qq.com/s/fumylgkj4"))
 
 class BaseThread(QThread):
     """基础线程类，提供统一的 _is_running 管理"""
