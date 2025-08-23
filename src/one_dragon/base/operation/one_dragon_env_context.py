@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
+from one_dragon.base.config.sqlite_operator import SQLITE_OPERATOR
 from one_dragon.envs.download_service import DownloadService
 from one_dragon.envs.env_config import EnvConfig
 from one_dragon.envs.ghproxy_service import GhProxyService
@@ -19,6 +20,7 @@ class OneDragonEnvContext:
         存项目和环境信息的
         安装器可以使用这个减少引入依赖
         """
+        SQLITE_OPERATOR.init_db()
         self.project_config: ProjectConfig = ProjectConfig()
         self.env_config: EnvConfig = EnvConfig()
         self.download_service: DownloadService = DownloadService(self.project_config, self.env_config)
