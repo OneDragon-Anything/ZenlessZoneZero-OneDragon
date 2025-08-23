@@ -59,11 +59,14 @@ handlers:
               - operation_template: "露西-高飞球合轴"
 
           # 开局紧急补BUFF
-          - states: "![前台-苍角] & [苍角-特殊技可用] & ![自定义-苍角-展旗, 0, 30]"
+          - states: "![前台-苍角] & ![自定义-苍角-展旗, 0, 30]"
             debug_name: "苍角展旗"
             operations:
               - op_name: "按键-切换角色"
                 agent_name: "苍角"
+              - op_name: "等待秒数"
+                seconds: 0.3
+              - operation_template: "苍角-1E展旗合轴"
 
           # 开局紧急补BUFF
           - states: "![前台-扳机] & [扳机-能量]{00, 120} & [扳机-绝意]{0,10}"
