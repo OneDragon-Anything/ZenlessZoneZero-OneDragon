@@ -330,7 +330,7 @@ class HomeInterface(VerticalScrollInterface):
         h2_layout.setContentsMargins(20, 20, 20, 20)  # 整体底部边距20px，包含阴影
 
         # 公告卡片
-        self.notice_container = NoticeCardContainer()
+        self.notice_container = NoticeCardContainer(self.ctx.project_config.notice_url)
         notice_wrap = QWidget()
         self._notice_wrap_layout = QVBoxLayout(notice_wrap)
         self._notice_wrap_layout.setContentsMargins(0, 0, 0, 0)
