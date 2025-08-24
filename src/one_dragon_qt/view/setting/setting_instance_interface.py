@@ -159,7 +159,9 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.game_password_opt.init_with_adapter(self.ctx.game_account_config.get_prop_adapter('password'))
 
     def _get_instanceSwitch_group(self) -> QWidget:
-        instance_switch_group = SettingCardGroup(gt('账户列表'))
+        total_accounts = len(self.ctx.one_dragon_config.instance_list)
+        active_accounts = sum(1 for instance in self.ctx.one_dragon_config.instance_list if instance.active_in_od)
+        instance_switch_group = SettingCardGroup(gt('账户列表') + f' ({active_accounts}/{total_accounts})')
 
         for instance in self.ctx.one_dragon_config.instance_list:
             instance_card = InstanceSettingCard(instance)
