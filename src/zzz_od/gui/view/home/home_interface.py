@@ -127,7 +127,7 @@ class ButtonGroup(SimpleCardWidget):
         )
 
     def open_chat(self):
-        """打开 Q群 链接"""
+        """打开 频道 链接"""
         QDesktopServices.openUrl(QUrl("https://pd.qq.com/s/fumylgkj4"))
 
     def open_doc(self):
@@ -135,8 +135,8 @@ class ButtonGroup(SimpleCardWidget):
         QDesktopServices.openUrl(QUrl("https://kdocs.cn/l/cbSJUUNotJ3Z"))
 
     def open_sales(self):
-        """其实还是打开 Q群 链接"""
-        QDesktopServices.openUrl(QUrl("https://pd.qq.com/s/fumylgkj4"))
+        """打开 Q群 链接"""
+        QDesktopServices.openUrl(QUrl("https://qm.qq.com/q/N5iEy8sTu0"))
 
 class BaseThread(QThread):
     """基础线程类，提供统一的 _is_running 管理"""
