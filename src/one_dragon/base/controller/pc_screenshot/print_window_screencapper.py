@@ -1,4 +1,5 @@
 import ctypes
+import time
 from typing import Optional
 
 import cv2
@@ -59,6 +60,8 @@ class PrintWindowScreencapper(ScreencapperBase):
         :param rect: 截图区域
         :param independent: 是否独立截图
         """
+        before_screenshot_time = time.time()
+
         hwnd = self.game_win.get_hwnd()
         if not hwnd:
             return None
@@ -70,20 +73,20 @@ class PrintWindowScreencapper(ScreencapperBase):
             return None
 
         if independent:
-            return self._capture_independent(hwnd, width, height)
+            return self._capture_independent(hwnd, width, height, before_screenshot_time)
 
         if self.hwndDC is None or self.mfcDC is None:
             if not self.init():
                 return None
 
-        screenshot = self._capture_with_retry(hwnd, width, height)
+        screenshot = self._capture_with_retry(hwnd, width, height, before_screenshot_time)
         if screenshot is not None:
             return screenshot
 
         if not self.init():
             return None
 
-        return self._capture_with_retry(hwnd, width, height)
+        return self._capture_with_retry(hwnd, width, height, before_screenshot_time)
 
     def cleanup(self):
         """
@@ -107,7 +110,7 @@ class PrintWindowScreencapper(ScreencapperBase):
                 self.height = 0
                 self.hwnd_for_dc = None
 
-    def _capture_with_retry(self, hwnd, width, height) -> Optional[MatLike]:
+    def _capture_with_retry(self, hwnd, width, height, before_screenshot_time) -> Optional[MatLike]:
         """
         尝试执行一次截图操作
         """
@@ -128,11 +131,12 @@ class PrintWindowScreencapper(ScreencapperBase):
 
             return self._capture_window_to_bitmap(hwnd, width, height,
                                                   self.hwndDC, self.mfcDC, self.saveBitMap,
-                                                  self.buffer, self.bmpinfo_buffer)
+                                                  self.buffer, self.bmpinfo_buffer,
+                                                  before_screenshot_time)
         except Exception:
             return None
 
-    def _capture_independent(self, hwnd, width, height) -> Optional[MatLike]:
+    def _capture_independent(self, hwnd, width, height, before_screenshot_time) -> Optional[MatLike]:
         """
         独立模式Print Window截图，自管理资源
         """
@@ -152,7 +156,8 @@ class PrintWindowScreencapper(ScreencapperBase):
             saveBitMap, buffer, bmpinfo_buffer = self._create_bitmap_resources(width, height, hwndDC)
 
             return self._capture_window_to_bitmap(hwnd, width, height, hwndDC, mfcDC,
-                                                  saveBitMap, buffer, bmpinfo_buffer)
+                                                  saveBitMap, buffer, bmpinfo_buffer,
+                                                  before_screenshot_time)
         except Exception:
             return None
         finally:
@@ -194,9 +199,8 @@ class PrintWindowScreencapper(ScreencapperBase):
         ctypes.c_uint32.from_address(ctypes.addressof(bmpinfo_buffer) + 16).value = 0
         return bmpinfo_buffer
 
-    def _capture_window_to_bitmap(self, hwnd, width, height,
-                                  hwndDC, mfcDC, saveBitMap,
-                                  buffer, bmpinfo_buffer) -> Optional[MatLike]:
+    def _capture_window_to_bitmap(self, hwnd, width, height, hwndDC, mfcDC, saveBitMap, buffer, bmpinfo_buffer,
+                                  before_screenshot_time):
         """
         执行窗口截图的核心逻辑
         """
@@ -220,4 +224,6 @@ class PrintWindowScreencapper(ScreencapperBase):
         if self.game_win.is_win_scale:
             screenshot = cv2.resize(screenshot, (self.standard_width, self.standard_height))
 
+        after_screenshot_time = time.time()
+        log.debug(f"Print Window 截图耗时:{after_screenshot_time - before_screenshot_time}")
         return screenshot

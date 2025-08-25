@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 
 import cv2
@@ -25,6 +26,8 @@ class PilScreencapper(ScreencapperBase):
         """
         使用PIL截图
         """
+        before_screenshot_time = time.time()
+
         try:
             img = pyautogui_screenshot(region=(rect.x1, rect.y1, rect.width, rect.height))
             screenshot = np.array(img)
@@ -36,6 +39,8 @@ class PilScreencapper(ScreencapperBase):
         else:
             result = screenshot
 
+        after_screenshot_time = time.time()
+        log.debug(f"PIL 截图耗时:{after_screenshot_time - before_screenshot_time}")
         return result
 
     def cleanup(self):
