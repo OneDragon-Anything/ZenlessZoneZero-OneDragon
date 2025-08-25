@@ -194,8 +194,7 @@ class LostVoidMoveByDet(ZOperation):
             return self.round_success(LostVoidMoveByDet.STATUS_NO_FOUND)
         self.last_target_result = target_result
         pos = target_result.entire_rect.center
-        axis = 'x' if self.target_type == LostVoidDetector.CLASS_DISTANCE else 'xy'
-        turn = self.turn_to_target(pos, calibration_axis=axis)
+        turn = self.turn_to_target(pos)
         if turn:
             return self.round_wait('转动朝向目标', wait=0.5)
 
@@ -242,13 +241,12 @@ class LostVoidMoveByDet(ZOperation):
 
         self.last_target_result = target_result
         self.last_target_name = target_result.leftest_target_name
-        axis = 'x' if self.target_type == LostVoidDetector.CLASS_DISTANCE else 'xy'
-        self.turn_to_target(target_result.entire_rect.center, is_moving=True, calibration_axis=axis)
+        self.turn_to_target(target_result.entire_rect.center, is_moving=True)
         self.ctx.controller.start_moving_forward()
 
         return self.round_wait('移动中', wait_round_time=0.1)
 
-    def turn_to_target(self, target: Point, is_moving: bool = False, calibration_axis: str = 'xy') -> bool:
+    def turn_to_target(self, target: Point, is_moving: bool = False, calibration_axis: str = 'x') -> bool:
         """
         根据目标的位置,使用自适应算法进行转动
         :param target: 目标位置
