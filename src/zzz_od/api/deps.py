@@ -10,7 +10,7 @@ from zzz_od.context.zzz_context import ZContext
 class AppContainer:
     """
     Very small service locator to host a singleton ZContext.
-    We pin to instance index 0 until account switching APIs are completed.
+    Uses the current active instance instead of forcing instance 0.
     """
 
     _lock = threading.Lock()
@@ -25,13 +25,6 @@ class AppContainer:
                 ctx = ZContext()
                 # Load configs and initialize minimal services.
                 ctx.init_by_config()
-                # Pin to instance 0 for now
-                try:
-                    if ctx.current_instance_idx != 0:
-                        ctx.switch_instance(0)
-                except Exception:
-                    # If instances not created yet, ensure at least one exists
-                    pass
                 # Lazy OCR/model load remains on-demand
                 cls._ctx = ctx
         return cls._ctx
