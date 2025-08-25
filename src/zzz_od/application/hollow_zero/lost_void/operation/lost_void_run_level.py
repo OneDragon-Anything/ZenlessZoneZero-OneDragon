@@ -339,7 +339,8 @@ class LostVoidRunLevel(ZOperation):
             self.interact_attempted = True # 标记已经尝试过交互
             return self.round_wait('交互', wait=0.5)
 
-        if not self.ctx.lost_void.in_normal_world(self.last_screenshot) and self.interact_attempted: # 只有交互后可能交互成功
+        # 只有交互后才可能交互成功
+        if not self.ctx.lost_void.in_normal_world(self.last_screenshot) and self.interact_attempted:
             self.interact_attempted = False # 重置状态
             return self.round_success('交互成功')
 
