@@ -45,23 +45,25 @@ class MssScreencapper(ScreencapperBase):
             if independent:
                 from mss import mss
                 with mss() as mss_instance:
-                    screenshot = cv2.cvtColor(np.array(mss_instance.grab(monitor)), cv2.COLOR_BGRA2RGB)
+                    screenshot = mss_instance.grab(monitor)
             else:
                 if self.mss_instance is None:
                     if not self.init():
                         return None
-                screenshot = cv2.cvtColor(np.array(self.mss_instance.grab(monitor)), cv2.COLOR_BGRA2RGB)
+                self.mss_instance.grab(monitor)
         except Exception:
             if not independent:
                 if self.init():  # 重新初始化
                     try:
-                        screenshot = cv2.cvtColor(np.array(self.mss_instance.grab(monitor)), cv2.COLOR_BGRA2RGB)
+                        screenshot = self.mss_instance.grab(monitor)
                     except Exception:
                         return None
                 else:
                     return None
             else:
                 return None
+
+        screenshot = cv2.cvtColor(np.array(screenshot), cv2.COLOR_BGRA2RGB)
 
         if self.game_win.is_win_scale:
             result = cv2.resize(screenshot, (self.standard_width, self.standard_height))
