@@ -32,6 +32,10 @@ class EnterGame(ZOperation):
             self.force_login = True
 
         self.already_login: bool = False  # 是否已经登录了
+        from one_dragon.base.config.game_account_config import GameClientTypeEnum
+        if self.ctx.game_account_config.game_client == GameClientTypeEnum.CLOUD_GAME.value.value:
+            self.force_login = False
+            self.already_login = True
         self.use_clipboard: bool = self.ctx.game_config.type_input_way == TypeInputWay.CLIPBOARD.value.value  # 使用剪切板输入
 
     @node_from(from_name='国服-输入账号密码')
