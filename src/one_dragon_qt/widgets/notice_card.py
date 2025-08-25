@@ -5,7 +5,7 @@ import json
 import os
 import requests
 import webbrowser
-from PySide6.QtCore import Qt, QSize, QTimer, QThread, Signal, QRectF
+from PySide6.QtCore import Qt, QSize, QTimer, QThread, Signal, QRectF, QEvent
 from PySide6.QtGui import QPixmap, QFont, QPainterPath, QColor, QPainter, QImage
 from PySide6.QtWidgets import (
     QVBoxLayout,
@@ -411,6 +411,9 @@ class NoticeCard(SimpleCardWidget):
         self.banner_container = QWidget(self)
         self.banner_container.setFixedSize(QSize(345, 160))
         self.banner_container.setObjectName("bannerContainer")
+        # 使其可追踪鼠标进入离开事件
+        self.banner_container.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+        self.banner_container.installEventFilter(self)
         banner_layout = QVBoxLayout(self.banner_container)
         banner_layout.setContentsMargins(0, 0, 0, 0)
         banner_layout.setSpacing(0)
@@ -445,8 +448,15 @@ class NoticeCard(SimpleCardWidget):
         self.pipsHolder.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.pipsHolder.raise_()
 
+        # 悬停显示/自动隐藏 定时器
+        self._pips_hide_timer = QTimer(self)
+        self._pips_hide_timer.setSingleShot(True)
+        self._pips_hide_timer.timeout.connect(lambda: self.pipsHolder.hide())
+
         # 样式（可根据主题再动态调整）
         self._apply_pips_theme_style()
+        # 初始默认隐藏 pips
+        self.pipsHolder.hide()
 
         # 先添加 banner 容器到主布局
         self.mainLayout.addWidget(self.banner_container)
@@ -481,6 +491,20 @@ class NoticeCard(SimpleCardWidget):
         self.pivot.setCurrentItem(self.activityWidget.objectName())
         self.mainLayout.addWidget(self.pivot, 0, Qt.AlignmentFlag.AlignLeft)
         self.mainLayout.addWidget(self.stackedWidget)
+
+    def eventFilter(self, obj, event):
+        # 悬停控制 pips 显示/隐藏
+        if obj is getattr(self, 'banner_container', None):
+            et = event.type()
+            if et in (QEvent.Type.Enter, QEvent.Type.HoverEnter):
+                if hasattr(self, 'pipsHolder'):
+                    self.pipsHolder.show()
+                if hasattr(self, '_pips_hide_timer'):
+                    self._pips_hide_timer.stop()
+            elif et in (QEvent.Type.Leave, QEvent.Type.HoverLeave):
+                if hasattr(self, '_pips_hide_timer'):
+                    self._pips_hide_timer.start(5000)  # 5s 后隐藏
+        return super().eventFilter(obj, event)
 
     def update_ui(self):
         # 清空现有内容，避免重复添加
