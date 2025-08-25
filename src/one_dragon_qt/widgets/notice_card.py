@@ -305,7 +305,10 @@ class NoticeCard(SimpleCardWidget):
         # 确保骨架屏在最前面
         self.skeleton_banner.raise_()
         self.skeleton_content.raise_()
-
+        # 隐藏实际内容容器，避免骨架屏和 banner_container 叠加导致总体高度变大
+        if hasattr(self, 'banner_container'):
+            self.banner_container.hide()
+        # 其余内容（旧逻辑保留以防还没创建 banner_container 前调用）
         for widget_name in ['flipView', 'pivot', 'stackedWidget']:
             if hasattr(self, widget_name):
                 getattr(self, widget_name).hide()
@@ -314,7 +317,9 @@ class NoticeCard(SimpleCardWidget):
         """隐藏骨架屏"""
         self.skeleton_banner.hide()
         self.skeleton_content.hide()
-
+        # 显示实际内容容器
+        if hasattr(self, 'banner_container'):
+            self.banner_container.show()
         for widget_name in ['flipView', 'pivot', 'stackedWidget']:
             if hasattr(self, widget_name):
                 getattr(self, widget_name).show()
