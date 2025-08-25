@@ -40,12 +40,12 @@ def _get_agent_priority(agent: Agent) -> int:
     # 耀嘉音
     if agent.agent_id == 'astra_yao':
         return 5
-    # 雅, 仪玄, 青衣, 比利, 猫又
-    if agent.agent_id in ['hoshimi_miyabi', 'yixuan', 'qingyi', 'billy', 'nekomata']:
-        return 4
-    # 熊
-    if agent.agent_id in ['ben', 'panyinhu']:
+    # 安比, 猫又, 可琳, 珂蕾妲, 苍角, 露西, 青衣, 艾莲, 派派, 橘福福
+    if agent.agent_id in ['anby', 'nekomata', 'corin', 'koleda', 'soukaku', 'lucy', 'qingyi', 'ellen', 'piper', 'ju_fufu']:
         return 0
+    # 雅, 仪玄, 青衣, 比利, 猫又, 熊
+    if agent.agent_id in ['hoshimi_miyabi', 'yixuan', 'qingyi', 'billy', 'nekomata', 'ben', 'panyinhu']:
+        return 4
 
     # -- 类型判断 --
     # 支援
