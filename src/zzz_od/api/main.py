@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from zzz_od.api.deps import get_ctx
+from zzz_od.api import log_stream
 from zzz_od.api.ws import router as ws_router
 from zzz_od.api.routers import home, accounts, onedragon
 from zzz_od.api.routers import runs as runs_router
@@ -22,11 +23,20 @@ async def lifespan(app: FastAPI):
     # Startup: ensure ctx initialized
     try:
         get_ctx()
+        # 启动日志流 (INFO 及以上)
+        log_stream.start_log_stream()
         yield
     finally:
         # Shutdown: best-effort stop
         try:
             get_ctx().stop_running()
+        except Exception:
+            pass
+        try:
+            # 优雅停止日志流
+            import asyncio
+            # lifespan 退出仍在事件循环内, 可直接 await
+            await log_stream.stop_log_stream()
         except Exception:
             pass
 

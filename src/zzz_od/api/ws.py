@@ -58,3 +58,16 @@ async def runs_ws(websocket: WebSocket, run_id: str):
         manager.disconnect(channel, websocket)
 
 
+@router.websocket("/logs")
+async def logs_ws(websocket: WebSocket):
+    """实时日志通道: 连接后即可接收 type=log 消息, 客户端可定期发送 ping 保持连接."""
+    channel = "logs"
+    await manager.connect(channel, websocket)
+    try:
+        while True:
+            # 接收客户端心跳/忽略内容
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(channel, websocket)
+
+
