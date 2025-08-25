@@ -1,5 +1,22 @@
 from __future__ import annotations
 
+import sys
+import ctypes
+
+# Set DPI awareness for the process on Windows
+if sys.platform == 'win32':
+    try:
+        # For Windows 8.1 and higher. 2 corresponds to PER_MONITOR_AWARE_V2
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+    except (AttributeError, OSError):
+        try:
+            # For Windows Vista and higher
+            ctypes.windll.user32.SetProcessDPIAware()
+        except (AttributeError, OSError):
+            pass  # Not supported
+
+
+
 import logging
 from contextlib import asynccontextmanager
 
