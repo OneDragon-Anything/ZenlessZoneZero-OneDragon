@@ -150,122 +150,6 @@ class RoundedBannerView(HorizontalFlipView):
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
 
 
-class BannerWithPips(QWidget):
-    """Banner容器，内嵌PipsPager指示点"""
-    
-    # 定义信号
-    itemClicked = Signal()
-    currentIndexChanged = Signal(int)
-    
-    def __init__(self, radius: int = 4, parent=None):
-        super().__init__(parent)
-        self.radius = radius
-        self.setFixedSize(345, 160)
-        
-        # 创建FlipView
-        self.flipView = RoundedBannerView(radius=radius, parent=self)
-        self.flipView.setGeometry(0, 0, 345, 160)
-        self.flipView.itemClicked.connect(self.itemClicked.emit)
-        self.flipView.currentIndexChanged.connect(self._on_flip_index_changed)
-        
-        # 创建PipsPager，定位在底部
-        self.pipsPager = PipsPager(parent=self)
-        self.pipsPager.setNextButtonDisplayMode(PipsScrollButtonDisplayMode.NEVER)
-        self.pipsPager.setPreviousButtonDisplayMode(PipsScrollButtonDisplayMode.NEVER)
-        self.pipsPager.currentIndexChanged.connect(self._on_pips_index_changed)
-        
-        # 设置PipsPager样式，让它更融入图片
-        self.pipsPager.setStyleSheet("""
-            PipsPager {
-                background: transparent;
-            }
-            /* 设置指示点容器的半透明背景 */
-            PipsPager > QWidget {
-                background: rgba(0, 0, 0, 120);
-                border-radius: 12px;
-                padding: 4px 8px;
-            }
-            /* 设置指示点样式 */
-            PipsPager QToolButton {
-                background: rgba(255, 255, 255, 100);
-                border: none;
-                border-radius: 3px;
-                width: 6px;
-                height: 6px;
-                margin: 2px;
-            }
-            /* 当前激活的指示点 */
-            PipsPager QToolButton:checked {
-                background: rgba(255, 255, 255, 200);
-            }
-            /* 悬停效果 */
-            PipsPager QToolButton:hover {
-                background: rgba(255, 255, 255, 150);
-            }
-        """)
-        
-        # 初始化位置
-        self._update_pips_position()
-        
-        # 确保PipsPager在最上层
-        self.pipsPager.raise_()
-        
-    def _update_pips_position(self):
-        """更新PipsPager位置 - 居中并置于底部"""
-        pips_width = self.pipsPager.sizeHint().width()
-        pips_height = self.pipsPager.sizeHint().height()
-        
-        # 计算居中位置，距离底部15像素
-        x = (self.width() - pips_width) // 2
-        y = self.height() - pips_height - 15
-        
-        self.pipsPager.setGeometry(x, y, pips_width, pips_height)
-    
-    def _on_flip_index_changed(self, index):
-        """FlipView页面改变时同步PipsPager"""
-        self.pipsPager.setCurrentIndex(index)
-        self.currentIndexChanged.emit(index)
-    
-    def _on_pips_index_changed(self, index):
-        """PipsPager点击时切换FlipView"""
-        if index != self.flipView.currentIndex():
-            self.flipView.setCurrentIndex(index)
-    
-    # 代理方法，让外部可以直接操作FlipView
-    def addImages(self, images):
-        """添加图片"""
-        self.flipView.addImages(images)
-        # 更新PipsPager
-        self.pipsPager.setPageNumber(len(images) if images else 1)
-        self.pipsPager.setVisibleNumber(min(8, len(images) if images else 1))
-        self.pipsPager.setCurrentIndex(0)
-        self._update_pips_position()
-    
-    def clear(self):
-        """清空图片"""
-        self.flipView.clear()
-    
-    def setCurrentIndex(self, index):
-        """设置当前页面"""
-        self.flipView.setCurrentIndex(index)
-    
-    def currentIndex(self):
-        """获取当前页面索引"""
-        return self.flipView.currentIndex()
-    
-    def setItemSize(self, size):
-        """设置项目大小"""
-        self.flipView.setItemSize(size)
-    
-    def resizeEvent(self, event):
-        """窗口大小改变时更新子组件位置"""
-        super().resizeEvent(event)
-        if hasattr(self, 'flipView'):
-            self.flipView.setGeometry(0, 0, self.width(), self.height())
-        if hasattr(self, 'pipsPager'):
-            self._update_pips_position()
-
-
 # 增加了缓存机制, 有效期为3天, 避免每次都请求数据
 # 调整了超时时间, 避免网络问题导致程序启动缓慢
 class DataFetcher(QThread):
@@ -422,7 +306,7 @@ class NoticeCard(SimpleCardWidget):
         self.skeleton_banner.raise_()
         self.skeleton_content.raise_()
 
-        for widget_name in ['bannerWithPips', 'pivot', 'stackedWidget']:
+        for widget_name in ['flipView', 'pivot', 'stackedWidget']:
             if hasattr(self, widget_name):
                 getattr(self, widget_name).hide()
 
@@ -431,7 +315,7 @@ class NoticeCard(SimpleCardWidget):
         self.skeleton_banner.hide()
         self.skeleton_content.hide()
 
-        for widget_name in ['bannerWithPips', 'pivot', 'stackedWidget']:
+        for widget_name in ['flipView', 'pivot', 'stackedWidget']:
             if hasattr(self, widget_name):
                 getattr(self, widget_name).show()
 
@@ -450,8 +334,8 @@ class NoticeCard(SimpleCardWidget):
             self.error_label.setText(f"无法获取数据: {content['error']}")
             self.error_label.setFixedSize(330, 160)
             self.error_label.show()
-            if hasattr(self, 'bannerWithPips'):
-                self.bannerWithPips.hide()
+            if hasattr(self, 'flipView'):
+                self.flipView.hide()
             self.update_ui()
             return
         self.load_banners_async(content["data"]["content"]["banners"])
@@ -489,10 +373,8 @@ class NoticeCard(SimpleCardWidget):
             self.hide_skeleton()
 
         # 实时更新UI显示新加载的图片 (单独添加，避免重复)
-        if hasattr(self, 'bannerWithPips'):
-            # 重新设置所有图片，因为BannerWithPips需要完整的图片列表
-            self.bannerWithPips.clear()
-            self.bannerWithPips.addImages(self.banners)
+        if hasattr(self, 'flipView'):
+            self.flipView.addImages([pixmap])
 
     def _on_all_banners_loaded(self):
         """所有banner图片加载完成的回调"""
@@ -520,13 +402,57 @@ class NoticeCard(SimpleCardWidget):
                 })
 
     def setup_ui(self):
-        # 使用带嵌入式PipsPager的Banner容器
-        self.bannerWithPips = BannerWithPips(radius=4, parent=self)
-        self.bannerWithPips.addImages(self.banners)
-        self.bannerWithPips.itemClicked.connect(self.open_banner_link)
-        self.bannerWithPips.currentIndexChanged.connect(self._on_banner_index_changed)
-        
-        self.mainLayout.addWidget(self.bannerWithPips)
+        # Banner 区域容器（用于叠加 pips）
+        self.banner_container = QWidget(self)
+        self.banner_container.setFixedSize(QSize(345, 160))
+        self.banner_container.setObjectName("bannerContainer")
+        banner_layout = QVBoxLayout(self.banner_container)
+        banner_layout.setContentsMargins(0, 0, 0, 0)
+        banner_layout.setSpacing(0)
+
+        # Banner 视图
+        self.flipView = RoundedBannerView(radius=4, parent=self.banner_container)
+        self.flipView.addImages(self.banners)
+        self.flipView.setItemSize(QSize(345, 160))
+        self.flipView.setFixedSize(QSize(345, 160))
+        self.flipView.itemClicked.connect(self.open_banner_link)
+        banner_layout.addWidget(self.flipView)
+
+        # 监听 FlipView 的页面变化，用于同步 PipsPager
+        self.flipView.currentIndexChanged.connect(self._on_banner_index_changed)
+
+        # PipsPager - 页面指示器（嵌入 Banner 内部）
+        self.pipsPager = PipsPager(self.banner_container)
+        self.pipsPager.setPageNumber(len(self.banners) if self.banners else 1)
+        self.pipsPager.setVisibleNumber(min(8, len(self.banners) if self.banners else 1))
+        self.pipsPager.setNextButtonDisplayMode(PipsScrollButtonDisplayMode.NEVER)
+        self.pipsPager.setPreviousButtonDisplayMode(PipsScrollButtonDisplayMode.NEVER)
+        self.pipsPager.setCurrentIndex(0)
+        self.pipsPager.currentIndexChanged.connect(self._on_pips_index_changed)
+
+        # 外壳（带半透明背景与圆角）
+        self.pipsHolder = QWidget(self.banner_container)
+        self.pipsHolder.setObjectName("pipsHolder")
+        holder_layout = QHBoxLayout(self.pipsHolder)
+        holder_layout.setContentsMargins(10, 4, 10, 4)
+        holder_layout.setSpacing(6)
+        holder_layout.addWidget(self.pipsPager)
+        self.pipsHolder.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.pipsHolder.raise_()
+
+        # 样式（可根据主题再动态调整）
+        self.pipsHolder.setStyleSheet(
+            """
+            QWidget#pipsHolder {
+                background: rgba(0, 0, 0, 110);
+                border-radius: 10px;
+            }
+            """
+        )
+
+        # 先添加 banner 容器到主布局
+        self.mainLayout.addWidget(self.banner_container)
+        self._update_pips_position()  # 初始定位
 
         # 启动自动滚动（延迟5秒开始）
         if len(self.banners) > 1:
@@ -559,10 +485,18 @@ class NoticeCard(SimpleCardWidget):
         self.mainLayout.addWidget(self.stackedWidget)
 
     def update_ui(self):
-        # 更新banner显示
-        if hasattr(self, 'bannerWithPips'):
-            self.bannerWithPips.clear()
-            self.bannerWithPips.addImages(self.banners)
+        # 清空现有内容，避免重复添加
+        self.flipView.clear()
+        self.flipView.addImages(self.banners)
+
+        # 更新PipsPager
+        if hasattr(self, 'pipsPager'):
+            self.pipsPager.setPageNumber(len(self.banners) if self.banners else 1)
+            self.pipsPager.setVisibleNumber(min(8, len(self.banners) if self.banners else 1))
+            self.pipsPager.setCurrentIndex(0)
+            # 尝试重新定位 pips（可能尺寸变化）
+            if hasattr(self, '_update_pips_position'):
+                QTimer.singleShot(0, self._update_pips_position)
 
         # 启动自动滚动
         if len(self.banners) > 1 and self.auto_scroll_enabled:
@@ -592,10 +526,10 @@ class NoticeCard(SimpleCardWidget):
         self.apply_theme_colors()
 
     def scrollNext(self):
-        if self.banners and hasattr(self, 'bannerWithPips'):
-            current = self.bannerWithPips.currentIndex()
-            next_index = (current + 1) % len(self.banners)
-            self.bannerWithPips.setCurrentIndex(next_index)
+        if self.banners:
+            self.flipView.setCurrentIndex(
+                (self.flipView.currentIndex() + 1) % len(self.banners)
+            )
 
     def _start_auto_scroll(self):
         """启动自动滚动"""
@@ -613,14 +547,32 @@ class NoticeCard(SimpleCardWidget):
             QTimer.singleShot(duration, self._start_auto_scroll)
 
     def _on_banner_index_changed(self, index):
-        """Banner页面改变时的回调（已由BannerWithPips内部处理同步）"""
-        # PipsPager同步已在BannerWithPips内部处理，这里可以添加其他逻辑
-        pass
+        """Banner页面改变时同步PipsPager"""
+        if hasattr(self, 'pipsPager'):
+            self.pipsPager.setCurrentIndex(index)
 
     def _on_pips_index_changed(self, index):
-        """PipsPager点击时切换Banner并暂停自动滚动（已由BannerWithPips内部处理）"""
-        # Banner切换已在BannerWithPips内部处理
-        self._pause_auto_scroll()  # 用户手动操作时暂停自动滚动
+        """PipsPager点击时切换Banner并暂停自动滚动"""
+        if hasattr(self, 'flipView') and index < len(self.banners):
+            self.flipView.setCurrentIndex(index)
+            self._pause_auto_scroll()  # 用户手动操作时暂停自动滚动
+
+    def _update_pips_position(self):
+        """在 banner 内部重新定位 pips 位置 (底部居中)"""
+        if not hasattr(self, 'pipsHolder'):
+            return
+        # 尺寸自适应
+        self.pipsHolder.adjustSize()
+        bw = self.banner_container.width()
+        bh = self.banner_container.height()
+        hw = self.pipsHolder.width()
+        hh = self.pipsHolder.height()
+        # 底部偏移量（可根据视觉微调）
+        bottom_margin = 12
+        x = (bw - hw) // 2
+        y = bh - hh - bottom_margin
+        self.pipsHolder.move(x, y)
+        self.pipsHolder.raise_()
 
     def set_auto_scroll_enabled(self, enabled: bool):
         """设置自动滚动开关"""
@@ -654,13 +606,14 @@ class NoticeCard(SimpleCardWidget):
         # 背景层充满圆角卡片
         if hasattr(self, '_acrylic') and self._acrylic:
             self._acrylic.setGeometry(self.rect())
+        # 更新 pips 位置
+        if hasattr(self, '_update_pips_position'):
+            self._update_pips_position()
         return SimpleCardWidget.resizeEvent(self, event)
 
     def open_banner_link(self):
-        if self.banner_urls and hasattr(self, 'bannerWithPips'):
-            current_index = self.bannerWithPips.currentIndex()
-            if current_index < len(self.banner_urls):
-                webbrowser.open(self.banner_urls[current_index])
+        if self.banner_urls:
+            webbrowser.open(self.banner_urls[self.flipView.currentIndex()])
 
     def open_post_link(self, widget: ListWidget, type: str):
         if self.posts[type]:
