@@ -84,6 +84,7 @@ class LostVoidRunLevel(ZOperation):
         self.nothing_times: int = 0  # 识别不到内容的次数
         self.find_target_fail_count: int = 0  # 寻路失败次数
         self.interact_target: Optional[LostVoidInteractTarget] = None  # 最终识别的交互目标 后续改动应该都是用这个判断
+        self.interact_attempted: bool = False  # 是否尝试过交互
 
         self.last_frame_in_battle: bool = True  # 上一帧画面在战斗
         self.current_frame_in_battle: bool = True  # 当前帧画面在战斗
@@ -274,7 +275,7 @@ class LostVoidRunLevel(ZOperation):
                 else:
                     interact_type = op_result.data  # 根据显示图标 返回入口类型
                     self.interact_target = LostVoidInteractTarget(name=interact_type, icon=interact_type, is_entry=True)
-                    return self.round_success(LostVoidDetector.CLASS_ENTRY)
+                    return self.round_success(LostVoidDetector.CLASS_ENTRY, wait=1)
             else:
                 return self.round_retry('移动失败')
 
@@ -316,34 +317,33 @@ class LostVoidRunLevel(ZOperation):
         @return:
         """
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
-        if result.is_success:
 
-            # [二次确认] 第一次找到交互按钮后，等待1秒稳定画面
-            log.debug("初次发现交互按键，等待1秒进行二次确认")
+        if result.is_success:
+            # 尝试文本识别准备交互的目标 这样会比使用图标更为准确
             time.sleep(0.5)
             self.screenshot()  # 重新截图
-            result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
+            area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-交互文本')
+            part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
+            ocr_result_map = self.ctx.ocr.run_ocr(part)
+            current_interact_target = None
+            for ocr_result in ocr_result_map.keys():
+                target = match_interact_target(self.ctx, ocr_result)
+                if target is not None:
+                    current_interact_target = target
+                    break
 
-            if result.is_success:
-                # 尝试文本识别准备交互的目标 这样会比使用图标更为准确
-                area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-交互文本')
-                part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-                ocr_result_map = self.ctx.ocr.run_ocr(part)
-                current_interact_target = None
-                for ocr_result in ocr_result_map.keys():
-                    target = match_interact_target(self.ctx, ocr_result)
-                    if target is not None:
-                        current_interact_target = target
-                        break
+            if current_interact_target is not None:
+                self.interact_target = current_interact_target
 
-                if current_interact_target is not None:
-                    self.interact_target = current_interact_target
+            self.ctx.controller.interact(press=True, press_time=0.2, release=True)
+            self.interact_attempted = True # 标记已经尝试过交互
+            return self.round_wait('交互', wait=0.5)
 
-                self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-                return self.round_wait('交互', wait=1)
-
-        if not self.ctx.lost_void.in_normal_world(self.last_screenshot):  # 按键消失 说明开始加载了
+        if not self.ctx.lost_void.in_normal_world(self.last_screenshot) and self.interact_attempted: # 只有交互后可能交互成功
+            self.interact_attempted = False # 重置状态
             return self.round_success('交互成功')
+
+        self.interact_attempted = False # 重置状态
 
         # 没有交互按钮 可能走过头了 尝试往后走
         self.ctx.controller.move_s(press=True, press_time=0.2, release=True)
