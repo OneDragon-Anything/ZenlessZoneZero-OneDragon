@@ -13,9 +13,10 @@ from zzz_od.config.model_config import (
     get_lost_void_det_opts,
 )
 from one_dragon.base.config.custom_config import CustomConfig
-from one_dragon.base.config.basic_notify_config import BasicNotifyConfig
+
 from zzz_od.config.notify_config import NotifyConfig
-from one_dragon.base.config.push_config import PushConfig, PushConfigNames
+from one_dragon.base.config.push_config import PushConfig
+from one_dragon_qt.widgets.push_cards import PushCards  # GUI 使用的动态推送配置源
 
 
 router = APIRouter(
@@ -507,28 +508,41 @@ def update_instance_custom(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 @router.get("/notify")
 def get_notify_settings() -> Dict[str, Any]:
+    """
+    对齐 GUI 逻辑：
+    - apps: 来自 notify_config.app_list 及其动态属性
+    - methods: 来源 PushCards.get_configs()，其结构为 { MethodName: [ {var_suffix, title, ...}, ... ] }
+      我们返回 { method(lower): { var_suffix(lower): 当前值 } }
+    - push: 基础 push 配置（标题 / 是否发送图片）
+    """
     ctx = get_ctx()
     nc: NotifyConfig = ctx.notify_config
     pc: PushConfig = ctx.push_config
-    # apps enable map
+
+    # 1. 应用开关映射
     apps: Dict[str, bool] = {}
     for app_key in nc.app_list.keys():
         try:
             apps[app_key] = bool(getattr(nc, app_key))
         except Exception:
             apps[app_key] = True
-    # push methods snapshot
+
+    # 2. 推送方式配置快照（与 GUI setting_push_interface 初始化字段一致）
     methods: Dict[str, Dict[str, Any]] = {}
-    for group_name, items in PushConfigNames.get_configs().items():
-        group_lower = group_name.lower()
-        group_data: Dict[str, Any] = {}
-        for var_suffix in items:
-            key = f"{group_lower}_{var_suffix.lower()}"
+    for method_name, configs in PushCards.get_configs().items():  # method_name 如 WEBHOOK / SMTP 等
+        method_lower = method_name.lower()
+        method_map: Dict[str, Any] = {}
+        for conf in configs:
+            var_suffix = conf.get('var_suffix')  # e.g. URL / METHOD / BODY ...
+            if not var_suffix:
+                continue
+            key = f"{method_lower}_{var_suffix.lower()}"  # push_config 动态属性名
             try:
-                group_data[var_suffix.lower()] = getattr(pc, key)
+                method_map[var_suffix.lower()] = getattr(pc, key)
             except Exception:
-                group_data[var_suffix.lower()] = None
-        methods[group_lower] = group_data
+                method_map[var_suffix.lower()] = None
+        methods[method_lower] = method_map
+
     return {
         "enableNotify": nc.enable_notify,
         "enableBeforeNotify": nc.enable_before_notify,
@@ -575,5 +589,3 @@ def update_notify_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
                 except Exception:
                     pass
     return {"ok": True}
-
-
