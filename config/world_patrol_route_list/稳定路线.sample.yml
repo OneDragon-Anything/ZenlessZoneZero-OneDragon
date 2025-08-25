@@ -1,0 +1,19 @@
+list_type: whitelist
+name: 稳定路线
+route_items:
+- production_area_building_east_side_1
+- production_area_building_east_side_2
+- production_area_building_east_side_3
+- production_area_building_east_side_4
+- production_area_building_west_side_1
+- production_area_building_west_side_2
+- production_area_rooftop_1
+- former_employee_community_1
+- former_employee_community_2
+- former_employee_community_3
+- former_employee_community_5
+- former_employee_community_6
+- former_research_center_2
+- former_research_center_3
+- rough_machining_center_1
+- rough_machining_center_2
