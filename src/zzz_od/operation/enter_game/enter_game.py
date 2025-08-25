@@ -32,8 +32,7 @@ class EnterGame(ZOperation):
             self.force_login = True
 
         self.already_login: bool = False  # 是否已经登录了
-        from one_dragon.base.config.game_account_config import GameClientTypeEnum
-        if self.ctx.game_account_config.game_client == GameClientTypeEnum.CLOUD_GAME.value.value:
+        if self.ctx.game_account_config.is_cloud_game:
             self.force_login = False
             self.already_login = True
         self.use_clipboard: bool = self.ctx.game_config.type_input_way == TypeInputWay.CLIPBOARD.value.value  # 使用剪切板输入

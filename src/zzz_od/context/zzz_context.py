@@ -178,7 +178,7 @@ class ZContext(OneDragonContext):
             else:
                 from one_dragon.base.config.game_account_config import GameRegionEnum
                 win_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
-                if self.game_account_config.game_client == GameClientTypeEnum.CLOUD_GAME.value.value:
+                if self.game_account_config.is_cloud_game:
                     win_title = '云·绝区零'
             self.controller: ZPcController = ZPcController(
                 game_config=self.game_config,

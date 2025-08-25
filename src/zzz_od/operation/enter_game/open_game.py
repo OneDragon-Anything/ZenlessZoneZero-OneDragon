@@ -7,7 +7,6 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
-from one_dragon.base.config.game_account_config import GameClientTypeEnum
 
 class OpenGame(Operation):
 
@@ -23,11 +22,11 @@ class OpenGame(Operation):
         :return:
         """
         game_client_type = self.ctx.game_account_config.game_client
-        if game_client_type == GameClientTypeEnum.LOCAL_GAME.value.value:
+        if self.ctx.game_account_config.is_cloud_game == False:
             if self.ctx.game_account_config.game_path == '':
                 return self.round_fail('未配置本地游戏路径')
             full_path = self.ctx.game_account_config.game_path
-        elif game_client_type == GameClientTypeEnum.CLOUD_GAME.value.value:
+        elif self.ctx.game_account_config.is_cloud_game == True:
             if self.ctx.game_account_config.cloud_game_path == '':
                 return self.round_fail('未配置云游戏路径')
             full_path = self.ctx.game_account_config.cloud_game_path
