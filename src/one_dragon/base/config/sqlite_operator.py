@@ -104,5 +104,28 @@ class SqliteOperator:
         with self.Session() as session:
             return session.get(ConfigContent, path) is not None
 
+    def close_db(self, checkpoint: bool = True):
+        """移除 sessions，可选 WAL checkpoint，然后 dispose engine。"""
+        if self.Session is not None:
+            try:
+                self.Session.remove()
+            finally:
+                self.Session = None
+                self.SessionFactory = None
+
+        if checkpoint and self.engine is not None:
+            from sqlalchemy import text
+            try:
+                with self.engine.connect() as conn:
+                    conn.execute(text("PRAGMA wal_checkpoint(TRUNCATE);"))
+            except Exception:
+                log.exception("WAL checkpoint failed")
+
+        if self.engine is not None:
+            try:
+                self.engine.dispose()
+            finally:
+                self.engine = None
+
 
 SQLITE_OPERATOR = SqliteOperator()

@@ -46,3 +46,4 @@ class OneDragonEnvContext:
         @return:
         """
         ONE_DRAGON_CONTEXT_EXECUTOR.shutdown(wait=False, cancel_futures=True)
+        SQLITE_OPERATOR.close_db(checkpoint=True)
