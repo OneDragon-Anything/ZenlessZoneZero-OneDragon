@@ -109,7 +109,7 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-潘引壶]"
+              - states: "![前台-潘引壶] & ![自定义-潘引壶-通窍, 0, 10]"
                 sub_handlers:
                   - states: "[潘引壶-特殊技可用]"
                     operations:
