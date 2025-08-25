@@ -446,14 +446,7 @@ class NoticeCard(SimpleCardWidget):
         self.pipsHolder.raise_()
 
         # 样式（可根据主题再动态调整）
-        self.pipsHolder.setStyleSheet(
-            """
-            QWidget#pipsHolder {
-                background: rgba(0, 0, 0, 110);
-                border-radius: 10px;
-            }
-            """
-        )
+        self._apply_pips_theme_style()
 
         # 先添加 banner 容器到主布局
         self.mainLayout.addWidget(self.banner_container)
@@ -529,6 +522,31 @@ class NoticeCard(SimpleCardWidget):
             self._acrylic.tint = get_notice_theme_palette()['tint']
             self._acrylic.update()
         self.apply_theme_colors()
+        # 同步 pips holder 主题
+        if hasattr(self, '_apply_pips_theme_style'):
+            self._apply_pips_theme_style()
+
+    def _apply_pips_theme_style(self):
+        """根据当前主题应用 pipsHolder 样式（浅色白底+阴影，深色黑半透明）"""
+        if not hasattr(self, 'pipsHolder'):
+            return
+        is_dark = qconfig.theme == Theme.DARK
+        if is_dark:
+            bg = 'rgba(0,0,0,110)'
+            shadow = '0 0 0 0 rgba(0,0,0,0)'  # 不额外加
+        else:
+            # 白色半透明 + 轻投影增强可见性
+            bg = 'rgba(255,255,255,180)'
+            # 使用自定义阴影（通过盒阴影模拟，Qt 样式对 box-shadow 支持有限，退化为边框方案）
+            shadow = '1px solid rgba(0,0,0,35)'
+        # 采用边框方式模拟浅色模式下的描边
+        self.pipsHolder.setStyleSheet(f"""
+            QWidget#pipsHolder {{
+                background: {bg};
+                border-radius: 10px;
+                border: {'none' if is_dark else shadow};
+            }}
+        """)
 
     def scrollNext(self):
         if self.banners:
