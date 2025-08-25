@@ -44,19 +44,24 @@ class CloudGameQueue(ZOperation):
         :return:
         """
         screen = self.last_screenshot
-
-        if self.ctx.game_account_config.prefer_bangbang_points:
-            # 识别"国服PC云-插队"区域
-            result = self.round_by_find_and_click_area(screen, '云游戏', '国服PC云-邦邦点快速队列')
-            if result.is_success:
-                return self.round_success(result.status, wait=1)
-        else:
-            result = self.round_by_find_and_click_area(screen, '云游戏', '国服PC云-普通队列')
-            if result.is_success:
-                return self.round_success(result.status, wait=1)
+        result_bang = self.round_by_find_area(screen, '云游戏', '国服PC云-邦邦点快速队列')
+        result_exit = self.round_by_find_area(screen, '云游戏', '国服PC云-退出排队')
+        if result_bang.is_success:
+            if self.ctx.game_account_config.prefer_bangbang_points:
+                # 识别"国服PC云-插队"区域
+                result = self.round_by_find_and_click_area(screen, '云游戏', '国服PC云-邦邦点快速队列')
+                if result.is_success:
+                    return self.round_success(result.status, wait=1)
+            else:
+                result = self.round_by_find_and_click_area(screen, '云游戏', '国服PC云-普通队列')
+                if result.is_success:
+                    return self.round_success(result.status, wait=1)
+        elif result_exit.is_success:
+            return self.round_success(result_exit.status, wait=1)
 
         return self.round_retry(status='未知画面', wait=1)
 
+    @node_from(from_name='国服PC云-插队或排队', status='国服PC云-退出排队')
     @node_from(from_name='画面识别', status='国服PC云-邦邦点快速队列')
     @node_from(from_name='画面识别', status='国服PC云-普通队列')
     @node_from(from_name='画面识别', status='国服PC云-退出排队')
