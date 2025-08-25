@@ -219,11 +219,17 @@ class PrintWindowScreencapper(ScreencapperBase):
             return None
 
         img_array = np.frombuffer(buffer, dtype=np.uint8).reshape((height, width, 4))
+
+        before_convert_time = time.time()
         screenshot = cv2.cvtColor(img_array, cv2.COLOR_BGRA2RGB)
+        after_convert_time = time.time()
+        log.debug(f"Print Window 转换耗时:{after_convert_time - before_convert_time}")
 
         if self.game_win.is_win_scale:
             screenshot = cv2.resize(screenshot, (self.standard_width, self.standard_height))
+            after_resize_time = time.time()
+            log.debug(f"Print Window 缩放耗时:{after_resize_time - after_convert_time}")
 
         after_screenshot_time = time.time()
-        log.debug(f"Print Window 截图耗时:{after_screenshot_time - before_screenshot_time}")
+        log.debug(f"Print Window 总体耗时:{after_screenshot_time - before_screenshot_time}")
         return screenshot

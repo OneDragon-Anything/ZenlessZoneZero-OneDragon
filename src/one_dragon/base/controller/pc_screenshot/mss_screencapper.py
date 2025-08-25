@@ -63,15 +63,21 @@ class MssScreencapper(ScreencapperBase):
             else:
                 return None
 
+        before_convert_time = time.time()
+        log.debug(f"MSS 截图耗时:{before_convert_time - before_screenshot_time}")
         screenshot = cv2.cvtColor(np.array(screenshot), cv2.COLOR_BGRA2RGB)
+        after_convert_time = time.time()
+        log.debug(f"MSS 转换耗时:{after_convert_time - before_convert_time}")
 
         if self.game_win.is_win_scale:
             result = cv2.resize(screenshot, (self.standard_width, self.standard_height))
+            after_resize_time = time.time()
+            log.debug(f"MSS 缩放耗时:{after_resize_time - after_convert_time}")
         else:
             result = screenshot
 
         after_screenshot_time = time.time()
-        log.debug(f"MSS 截图耗时:{after_screenshot_time - before_screenshot_time}")
+        log.debug(f"MSS 总体耗时:{after_screenshot_time - before_screenshot_time}")
         return result
 
     def cleanup(self):

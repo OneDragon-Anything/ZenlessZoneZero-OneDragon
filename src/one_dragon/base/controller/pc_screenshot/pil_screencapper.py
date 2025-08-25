@@ -34,13 +34,18 @@ class PilScreencapper(ScreencapperBase):
         except Exception:
             return None
 
+        before_convert_time = time.time()
+        log.debug(f"PIL 截图耗时:{before_convert_time - before_screenshot_time}")
+
         if self.game_win.is_win_scale:
             result = cv2.resize(screenshot, (self.standard_width, self.standard_height))
+            after_resize_time = time.time()
+            log.debug(f"PIL 缩放耗时:{after_resize_time - before_convert_time}")
         else:
             result = screenshot
 
         after_screenshot_time = time.time()
-        log.debug(f"PIL 截图耗时:{after_screenshot_time - before_screenshot_time}")
+        log.debug(f"PIL 总体耗时:{after_screenshot_time - before_screenshot_time}")
         return result
 
     def cleanup(self):
