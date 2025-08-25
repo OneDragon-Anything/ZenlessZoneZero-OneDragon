@@ -13,6 +13,7 @@ from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSe
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon_qt.widgets.setting_card.password_switch_setting_card import PasswordSwitchSettingCard
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
+from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.column import Column
@@ -159,6 +160,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.game_region_opt.init_with_adapter(self.ctx.game_account_config.get_prop_adapter('game_region'))
         self.game_account_opt.init_with_adapter(self.ctx.game_account_config.get_prop_adapter('account'))
         self.game_password_opt.init_with_adapter(self.ctx.game_account_config.get_prop_adapter('password'))
+        self.prefer_bangbang_points_opt.init_with_adapter(self.ctx.game_account_config.get_prop_adapter('prefer_bangbang_points'))
 
     def _get_instanceSwitch_group(self) -> QWidget:
         instance_switch_group = SettingCardGroup(gt('账户列表'))
@@ -193,6 +195,14 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.cloud_game_path_opt = PushSettingCard(icon=FluentIcon.CLOUD, title='云游戏路径', text='选择')
         self.cloud_game_path_opt.clicked.connect(self._on_cloud_game_path_clicked)
         instance_settings_group.addSettingCard(self.cloud_game_path_opt)
+
+        # 是否优先使用邦邦点
+        self.prefer_bangbang_points_opt = SwitchSettingCard(
+            icon=FluentIcon.FLAG,
+            title='是否优先使用邦邦点（测试功能）',
+            content='请在一条龙-一条龙运行-运行设置-结束后 设置为 关闭游戏 以减少不必要的邦邦点消耗'
+        )
+        instance_settings_group.addSettingCard(self.prefer_bangbang_points_opt)
 
         self.custom_win_title_input = LineEdit()
         self.custom_win_title_input.setFixedWidth(214)

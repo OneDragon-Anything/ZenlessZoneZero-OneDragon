@@ -105,6 +105,14 @@ class GameAccountConfig(YamlConfig):
         self.update('cloud_game_path', new_value)
 
     @property
+    def prefer_bangbang_points(self) -> bool:
+        return self.get('prefer_bangbang_points', False)
+
+    @prefer_bangbang_points.setter
+    def prefer_bangbang_points(self, new_value: bool) -> None:
+        self.update('prefer_bangbang_points', new_value)
+
+    @property
     def game_client(self) -> str:
         return self.get('game_client',
                         GameClientTypeEnum.LOCAL_GAME.value.value if self.default_game_client is None else self.default_game_client)
