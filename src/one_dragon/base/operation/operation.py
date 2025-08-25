@@ -1118,14 +1118,8 @@ class Operation(OperationBase):
 
             ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
 
-        # 将所有识别到的文本连接成一个字符串
-        text_results = []
-        for ocr_result, _ in ocr_result_map.items():
-            text_results.append(ocr_result)
-            
-        # 返回识别到的文本
-        recognized_text = " ".join(text_results)
-        return self.round_success(status="OCR识别完成", data=recognized_text)
+        # 返回识别到的文本字典
+        return self.round_success(status="OCR识别完成", data=ocr_result_map)
 
     def round_by_goto_screen(self, screen: Optional[np.ndarray] = None, screen_name: Optional[str] = None,
                              success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,

@@ -1,9 +1,3 @@
-import time
-from typing import Optional
-
-from cv2.typing import MatLike
-
-from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -51,7 +45,7 @@ class CloudGameQueue(ZOperation):
         """
         screen = self.last_screenshot
 
-        if self.ctx.game_account_config.prefer_bangbang_points == True:
+        if self.ctx.game_account_config.prefer_bangbang_points:
             # 识别"国服PC云-插队"区域
             result = self.round_by_find_and_click_area(screen, '云游戏', '国服PC云-邦邦点快速队列')
             if result.is_success:
@@ -84,7 +78,11 @@ class CloudGameQueue(ZOperation):
             # 使用OCR服务识别文本
             ocr_result = self.round_by_ocr_text(screen, area, area.color_range)
             if ocr_result.is_success:
-                queue_count_text = ocr_result.data
+                # 从OCR结果字典中提取文本
+                if isinstance(ocr_result.data, dict):
+                    queue_count_text = " ".join(ocr_result.data.keys())
+                else:
+                    queue_count_text = str(ocr_result.data)
         
         # OCR识别"国服PC云-预计等待时间"区域的值
         wait_time_text = ""
@@ -94,7 +92,11 @@ class CloudGameQueue(ZOperation):
             # 使用OCR服务识别文本
             ocr_result = self.round_by_ocr_text(screen, area, area.color_range)
             if ocr_result.is_success:
-                wait_time_text = ocr_result.data
+                # 从OCR结果字典中提取文本
+                if isinstance(ocr_result.data, dict):
+                    queue_count_text = " ".join(ocr_result.data.keys())
+                else:
+                    queue_count_text = str(ocr_result.data)
         
         # 将识别到的值通过log输出
 
