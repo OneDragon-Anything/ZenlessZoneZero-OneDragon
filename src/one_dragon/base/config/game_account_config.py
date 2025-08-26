@@ -35,6 +35,13 @@ class GameAccountConfig(YamlConfig):
     def __init__(self, instance_idx: int):
         YamlConfig.__init__(self, 'game_account', instance_idx=instance_idx)
 
+        # 兼容旧配置：如果存在旧键 'game_path' 且新键为空，则进行一次性迁移
+        old_game_path = self.get('game_path', None)
+        if old_game_path:
+            local = self.get('local_game_path', '')
+            if not local:
+                self.update('local_game_path', old_game_path)
+
     @property
     def platform(self) -> str:
         return self.get('platform', GamePlatformEnum.PC.value.value)
