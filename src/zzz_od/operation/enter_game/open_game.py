@@ -21,17 +21,14 @@ class OpenGame(Operation):
         打开游戏
         :return:
         """
-        game_client_type = self.ctx.game_account_config.game_client
-        if self.ctx.game_account_config.is_cloud_game == False:
+        if not self.ctx.game_account_config.is_cloud_game:
             if self.ctx.game_account_config.game_path == '':
                 return self.round_fail('未配置本地游戏路径')
             full_path = self.ctx.game_account_config.game_path
-        elif self.ctx.game_account_config.is_cloud_game == True:
+        else:
             if self.ctx.game_account_config.cloud_game_path == '':
                 return self.round_fail('未配置云游戏路径')
             full_path = self.ctx.game_account_config.cloud_game_path
-        else:
-            return self.round_fail(f'未知的游戏客户端类型 {game_client_type}')
         dir_path = os.path.dirname(full_path)
         exe_name = os.path.basename(full_path)
         log.info('尝试自动启动游戏 路径为 %s', full_path)
