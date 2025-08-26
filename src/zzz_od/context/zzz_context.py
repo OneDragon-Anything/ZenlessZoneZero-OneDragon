@@ -163,19 +163,28 @@ class ZContext(OneDragonContext):
         """
         OneDragonContext.init_by_config(self)
 
+        def compute_win_title() -> str:
+            from one_dragon.base.config.game_account_config import GameRegionEnum
+            if self.game_account_config.use_custom_win_title and self.game_account_config.custom_win_title.strip() != '':
+                return self.game_account_config.custom_win_title
+
+            base_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
+
+            if self.game_account_config.is_cloud_game:
+                if self.game_account_config.game_region == GameRegionEnum.CN.value.value:
+                    return f'云·{base_title}'
+                return f'{base_title} · Cloud'
+
+            return base_title
+
+        self.win_title = compute_win_title()
+
         from zzz_od.controller.zzz_pc_controller import ZPcController
         from one_dragon.base.config.game_account_config import GamePlatformEnum
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
-            if self.game_account_config.use_custom_win_title:
-                win_title = self.game_account_config.custom_win_title
-            else:
-                from one_dragon.base.config.game_account_config import GameRegionEnum
-                win_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
-                if self.game_account_config.is_cloud_game:
-                    win_title = '云·绝区零'
             self.controller: ZPcController = ZPcController(
                 game_config=self.game_config,
-                win_title=win_title,
+                win_title=self.win_title,
                 standard_width=self.project_config.screen_standard_width,
                 standard_height=self.project_config.screen_standard_height
             )

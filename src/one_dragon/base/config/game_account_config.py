@@ -8,11 +8,11 @@ from one_dragon.base.config.yaml_config import YamlConfig
 class GamePlatformEnum(Enum):
 
     PC = ConfigItem('PC', 'PC')
-    # Emulator = ConfigItem('模拟器', 'Emulator')
 
-class GameClientTypeEnum(Enum):
-    LOCAL_GAME = ConfigItem('本地游戏', 'LOCAL_GAME')
-    CLOUD_GAME = ConfigItem('云游戏', 'CLOUD_GAME')
+class ClientTypeEnum(Enum):
+
+    LOCAL = ConfigItem('本地游戏', 'local')
+    CLOUD = ConfigItem('云游戏', 'cloud')
 
 
 class GameLanguageEnum(Enum):
@@ -68,21 +68,33 @@ class GameAccountConfig(YamlConfig):
         self.update('custom_win_title', new_value)
 
     @property
-    def game_path(self) -> str:
-        return self.get('game_path', '')
+    def local_game_path(self) -> str:
+        return self.get('local_game_path', '')
 
-    @game_path.setter
-    def game_path(self, new_value: str) -> None:
-        self.update('game_path', new_value)
+    @local_game_path.setter
+    def local_game_path(self, new_value: str) -> None:
+        self.update('local_game_path', new_value)
 
     @property
     def cloud_game_path(self) -> str:
-        return self.get('cloud_game_path',
-                        '' if self.default_cloud_game_path is None else self.default_cloud_game_path)
+        return self.get('cloud_game_path', '')
 
     @cloud_game_path.setter
     def cloud_game_path(self, new_value: str) -> None:
         self.update('cloud_game_path', new_value)
+
+    @property
+    def game_path(self) -> str:
+        if self.is_cloud_game:
+            return self.cloud_game_path
+        return self.local_game_path
+
+    @game_path.setter
+    def game_path(self, new_value: str) -> None:
+        if self.is_cloud_game:
+            self.cloud_game_path = new_value
+        else:
+            self.local_game_path = new_value
 
     @property
     def prefer_bangbang_points(self) -> bool:
@@ -94,16 +106,15 @@ class GameAccountConfig(YamlConfig):
 
     @property
     def is_cloud_game(self) -> bool:
-        return self.game_client == GameClientTypeEnum.CLOUD_GAME.value.value
+        return self.client_type == ClientTypeEnum.CLOUD.value.value
 
     @property
-    def game_client(self) -> str:
-        return self.get('game_client',
-                        GameClientTypeEnum.LOCAL_GAME.value.value if self.default_game_client is None else self.default_game_client)
+    def client_type(self) -> str:
+        return self.get('client_type', ClientTypeEnum.LOCAL.value.value)
 
-    @game_client.setter
-    def game_client(self, new_value: str) -> None:
-        self.update('game_client', new_value)
+    @client_type.setter
+    def client_type(self, new_value: str) -> None:
+        self.update('client_type', new_value)
 
     @property
     def game_language(self) -> str:
