@@ -357,6 +357,7 @@ def clear_all_charge_plan():
 def get_notorious_hunt_options():
     """获取恶名狩猎的下拉框选项"""
     from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntLevelEnum, NotoriousHuntBuffEnum
+    from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
 
     ctx = get_ctx()
 
@@ -380,7 +381,13 @@ def get_notorious_hunt_options():
     buff_options = [{'label': buff.value.label, 'value': buff.value.value} for buff in NotoriousHuntBuffEnum]
 
     # 获取自动战斗配置选项
-    auto_battle_options = [{'label': '全配队通用', 'value': '全配队通用'}]
+    try:
+        config_list = get_auto_battle_op_config_list('auto_battle')
+        auto_battle_options = [{'label': c.label, 'value': c.value} for c in config_list]
+        if not auto_battle_options:
+            auto_battle_options = [{'label': '全配队通用', 'value': '全配队通用'}]
+    except Exception:
+        auto_battle_options = [{'label': '全配队通用', 'value': '全配队通用'}]
 
     return {
         "missionTypes": mission_type_options,
