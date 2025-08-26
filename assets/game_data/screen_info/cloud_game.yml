@@ -1,7 +1,7 @@
 screen_id: cloud_game
 screen_name: 云游戏
 pc_alt: false
-area_list: 
+area_list:
 - area_name: 国服PC云-开始游戏
   id_mark: false
   pc_rect:
