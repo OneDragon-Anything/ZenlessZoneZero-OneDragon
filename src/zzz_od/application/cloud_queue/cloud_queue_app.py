@@ -23,10 +23,13 @@ class CloudQueueApp(ZApplication):
 
     @operation_node(name='检查并处理排队', is_start_node=True)
     def run_cloud_queue(self) -> OperationRoundResult:
-        if self.ctx.game_account_config.is_cloud_game:
-            op = CloudGameQueue(self.ctx)
-            return self.round_by_op_result(op.execute())
-        return self.round_success()
+        result = self.round_by_find_area(self.last_screenshot, '云游戏', '国服PC云-切换窗口')
+        if result.is_success:
+            if self.ctx.game_account_config.is_cloud_game:
+                op = CloudGameQueue(self.ctx)
+                return self.round_by_op_result(op.execute())
+        else:
+            return self.round_success()
 
     @node_from(from_name='检查并处理排队', status='点击进入游戏')
     @operation_node(name='进入游戏')

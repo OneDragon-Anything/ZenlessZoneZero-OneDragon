@@ -38,10 +38,6 @@ class CloudGameQueue(ZOperation):
         if result.is_success:
             return self.round_success(result.status, wait=1)
 
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
-        if result.is_success:
-            return self.round_success(result.status)
-
         return self.round_retry(status='未知画面', wait=1)
 
     @node_from(from_name='画面识别', status='国服PC云-开始游戏')
