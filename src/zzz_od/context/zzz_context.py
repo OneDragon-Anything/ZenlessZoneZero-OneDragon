@@ -52,6 +52,7 @@ class ZContext(OneDragonContext):
         from zzz_od.application.charge_plan.charge_plan_config import ChargePlanConfig
         from zzz_od.application.charge_plan.charge_plan_run_record import ChargePlanRunRecord
         from zzz_od.application.city_fund.city_fund_run_record import CityFundRunRecord
+        from zzz_od.application.cloud_queue.cloud_queue_run_record import CloudQueueRunRecord
         from zzz_od.application.coffee.coffee_config import CoffeeConfig
         from zzz_od.application.coffee.coffee_run_record import CoffeeRunRecord
         from zzz_od.application.devtools.screenshot_helper.screenshot_helper_config import ScreenshotHelperConfig
@@ -91,6 +92,8 @@ class ZContext(OneDragonContext):
 
         # 运行记录
         game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+        self.cloud_queue_record: CloudQueueRunRecord = CloudQueueRunRecord(self.current_instance_idx, game_refresh_hour_offset)
+        self.cloud_queue_record.check_and_update_status()
         self.email_run_record: EmailRunRecord = EmailRunRecord(self.current_instance_idx, game_refresh_hour_offset)
         self.email_run_record.check_and_update_status()
         self.random_play_run_record: RandomPlayRunRecord = RandomPlayRunRecord(self.current_instance_idx, game_refresh_hour_offset)

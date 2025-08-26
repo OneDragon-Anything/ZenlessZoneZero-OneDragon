@@ -1,26 +1,21 @@
-from typing import Optional
-
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 
+from zzz_od.application.cloud_queue.cloud_queue import CloudGameQueue
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.application.cloud_queue.cloud_queue import CloudGameQueue
-from zzz_od.application.cloud_queue.cloud_queue_config import CloudQueueConfig
 
 
 class CloudQueueApp(ZApplication):
 
     def __init__(self, ctx: ZContext):
-        ZApplication.__init__(
-            self,
-            ctx=ctx,
-            app_id='cloud_queue',
-            op_name=gt('云·排队'),
-            retry_in_od=True,
-            need_notify=True,
+        ZApplication.__init__(self, ctx, 'cloud_queue',
+                              op_name=gt('云·排队'),
+                              need_check_game_win=True,
+                              need_notify=True,
+                              run_record=ctx.cloud_queue_record,
         )
 
     def handle_init(self) -> None:
