@@ -1089,6 +1089,37 @@ class Operation(OperationBase):
         else:
             return self.round_retry(f'找不到 {target_cn}', wait=retry_wait, wait_round_time=retry_wait_round)
 
+    def round_by_ocr_text(self, screen: np.ndarray, area: Optional[ScreenArea] = None,
+                         color_range: Optional[list] = None) -> OperationRoundResult:
+        """使用OCR识别区域内的文本并返回识别到的文本内容
+
+        Args:
+            screen: 游戏截图
+            area: 要识别文本的区域，默认为None表示整个屏幕
+            color_range: 文本匹配的颜色范围，默认为None
+
+        Returns:
+            OperationRoundResult: 包含识别到的文本内容
+        """
+        # 优先使用OCR缓存服务
+        if self.ctx.env_config.ocr_cache:
+            ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
+                image=screen,
+                color_range=color_range,
+                rect=None if area is None else area.rect
+            )
+        else:
+            # 回退到原有方法
+            to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
+            if color_range is not None:
+                mask = cv2.inRange(to_ocr_part, color_range[0], color_range[1])
+                mask = cv2_utils.dilate(mask, 5)
+                to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
+
+            ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
+
+        # 返回识别到的文本字典
+        return self.round_success(status="OCR识别完成", data=ocr_result_map)
 
     def round_by_goto_screen(self, screen: Optional[np.ndarray] = None, screen_name: Optional[str] = None,
                              success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,
