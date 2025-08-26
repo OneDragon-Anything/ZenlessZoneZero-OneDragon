@@ -26,7 +26,7 @@ class CloudGameQueue(ZOperation):
         if result.is_success:
             return self.round_success(result.status, wait=1)
 
-        result = self.round_by_find_area(self.last_screenshot, '云游戏', '国服PC云-退出排队')
+        result = self.round_by_find_area(self.last_screenshot, '云游戏', '国服PC云-排队中')
         if result.is_success:
             return self.round_success(result.status, wait=1)
         
@@ -45,7 +45,7 @@ class CloudGameQueue(ZOperation):
         """
         screen = self.last_screenshot
         result_bang = self.round_by_find_area(screen, '云游戏', '国服PC云-邦邦点快速队列')
-        result_exit = self.round_by_find_area(screen, '云游戏', '国服PC云-退出排队')
+        result_exit = self.round_by_find_area(screen, '云游戏', '国服PC云-排队中')
         if result_bang.is_success:
             if self.ctx.game_account_config.prefer_bangbang_points:
                 # 识别"国服PC云-插队"区域
@@ -61,10 +61,10 @@ class CloudGameQueue(ZOperation):
 
         return self.round_retry(status='未知画面', wait=1)
 
-    @node_from(from_name='国服PC云-插队或排队', status='国服PC云-退出排队')
+    @node_from(from_name='国服PC云-插队或排队', status='国服PC云-排队中')
     @node_from(from_name='画面识别', status='国服PC云-邦邦点快速队列')
     @node_from(from_name='画面识别', status='国服PC云-普通队列')
-    @node_from(from_name='画面识别', status='国服PC云-退出排队')
+    @node_from(from_name='画面识别', status='国服PC云-排队中')
     @node_from(from_name='国服PC云-排队中转', status='排队中转')
     @operation_node(name='国服PC云-排队')
     def cn_pc_cloud_queue(self) -> OperationRoundResult:
