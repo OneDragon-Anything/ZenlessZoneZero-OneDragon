@@ -95,6 +95,48 @@ def get_charge_plan():
     }
 
 
+@router.get("/charge-plan/options")
+def get_charge_plan_options(category: str | None = None, missionType: str | None = None):
+    """获取体力计划下拉选项。可按需传 category / missionType 以过滤后两级。
+    - category 为空时返回全部分类列表
+    - missionType 依赖 category
+    """
+    ctx = get_ctx()
+    comp = ctx.compendium_service
+    from zzz_od.application.charge_plan.charge_plan_config import CardNumEnum
+    from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntBuffEnum
+
+    category_list = [ {"label": c.label, "value": c.value} for c in comp.get_charge_plan_category_list() ]
+
+    mission_type_list = []
+    if category:
+        mission_type_list = [ {"label": c.label, "value": c.value} for c in comp.get_charge_plan_mission_type_list(category) ]
+
+    mission_list = []
+    if category and missionType:
+        mission_list = [ {"label": c.label, "value": c.value} for c in comp.get_charge_plan_mission_list(category, missionType) ]
+
+    card_num_list = [ {"label": e.value.label, "value": e.value.value} for e in CardNumEnum ]
+    notorious_buff_list = [ {"label": str(e.value.value), "value": e.value.value} for e in NotoriousHuntBuffEnum ]
+
+    # 队伍 & 自动战斗配置
+    team_list = [ {"label": "游戏内配队", "value": -1} ]
+    for t in ctx.team_config.team_list:
+        team_list.append({"label": t.name, "value": t.idx})
+    from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
+    auto_battle_list = [ {"label": c.label, "value": c.value} for c in get_auto_battle_op_config_list(sub_dir='auto_battle') ]
+
+    return {
+        "categoryList": category_list,
+        "missionTypeList": mission_type_list,
+        "missionList": mission_list,
+        "cardNumList": card_num_list,
+        "notoriousHuntBuffList": notorious_buff_list,
+        "teamList": team_list,
+        "autoBattleList": auto_battle_list,
+    }
+
+
 @router.put("/charge-plan")
 def update_charge_plan(payload: dict):
     ctx = get_ctx()
@@ -315,9 +357,9 @@ def clear_all_charge_plan():
 def get_notorious_hunt_options():
     """获取恶名狩猎的下拉框选项"""
     from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntLevelEnum, NotoriousHuntBuffEnum
-    
+
     ctx = get_ctx()
-    
+
     # 获取任务类型选项
     mission_type_options = []
     try:
@@ -326,20 +368,20 @@ def get_notorious_hunt_options():
     except:
         # 如果服务不可用，使用默认选项
         default_mission_types = [
-            '初生死路屠夫', '未知复合侵蚀体', '冥宁芙·双子', 
+            '初生死路屠夫', '未知复合侵蚀体', '冥宁芙·双子',
             '「霸主侵蚀体·庞培」', '牲鬼·布林格', '秽息司祭'
         ]
         mission_type_options = [{'label': m, 'value': m} for m in default_mission_types]
-    
+
     # 获取等级选项
     level_options = [{'label': level.value.value, 'value': level.value.value} for level in NotoriousHuntLevelEnum]
-    
+
     # 获取Buff选项
     buff_options = [{'label': buff.value.label, 'value': buff.value.value} for buff in NotoriousHuntBuffEnum]
-    
+
     # 获取自动战斗配置选项
     auto_battle_options = [{'label': '全配队通用', 'value': '全配队通用'}]
-    
+
     return {
         "missionTypes": mission_type_options,
         "levels": level_options,
@@ -410,7 +452,7 @@ async def onedragon_status(run_id: str) -> RunStatusResponse:
 @router.get("/team")
 def get_team():
     from zzz_od.game_data.agent import AgentEnum
-    
+
     def agent_id_to_name(agent_id: str) -> str:
         if agent_id == 'unknown':
             return '未知'
@@ -418,7 +460,7 @@ def get_team():
             if agent_enum.value.agent_id == agent_id:
                 return agent_enum.value.agent_name
         return agent_id
-    
+
     ctx = get_ctx()
     tc = ctx.team_config
     teams = [
