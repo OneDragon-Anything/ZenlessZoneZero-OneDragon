@@ -29,11 +29,24 @@ class ZOneDragonSettingInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
+        content_widget.add_widget(self.get_cloud_game_group())
         content_widget.add_widget(self.get_random_play_group())
         content_widget.add_widget(self.get_drive_disc_dismantle_group())
         content_widget.add_stretch(1)
 
         return content_widget
+
+    def get_cloud_game_group(self) -> QWidget:
+        group = SettingCardGroup(gt('云游戏'))
+
+        self.bangbang_fast_queue_opt = SwitchSettingCard(
+            icon=FluentIcon.FLAG,
+            title='邦邦点快速队列（测试功能）',
+            content='请在一条龙-一条龙运行-运行设置-结束后 设置为 关闭游戏 以减少不必要的邦邦点消耗'
+        )
+        group.addSettingCard(self.bangbang_fast_queue_opt)
+
+        return group
 
     def get_random_play_group(self) -> QWidget:
         group = SettingCardGroup(gt('影像店'))
@@ -72,6 +85,8 @@ class ZOneDragonSettingInterface(VerticalScrollInterface):
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
+
+        self.bangbang_fast_queue_opt.init_with_adapter(self.ctx.cloud_queue_config.get_prop_adapter('prefer_bangbang_points'))
 
         self.random_play_agent_1.init_with_adapter(self.ctx.random_play_config.get_prop_adapter('agent_name_1'))
         self.random_play_agent_2.init_with_adapter(self.ctx.random_play_config.get_prop_adapter('agent_name_2'))
