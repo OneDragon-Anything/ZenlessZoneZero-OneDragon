@@ -300,6 +300,43 @@ def clear_completed_charge_plan():
 # -------- Notorious Hunt (恶名狩猎) --------
 
 
+@router.get("/notorious-hunt/options")
+def get_notorious_hunt_options():
+    """获取恶名狩猎的下拉框选项"""
+    from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntLevelEnum, NotoriousHuntBuffEnum
+    
+    ctx = get_ctx()
+    
+    # 获取任务类型选项
+    mission_type_options = []
+    try:
+        config_list = ctx.compendium_service.get_charge_plan_mission_type_list('恶名狩猎')
+        mission_type_options = [{'label': c.label, 'value': c.value} for c in config_list]
+    except:
+        # 如果服务不可用，使用默认选项
+        default_mission_types = [
+            '初生死路屠夫', '未知复合侵蚀体', '冥宁芙·双子', 
+            '「霸主侵蚀体·庞培」', '牲鬼·布林格', '秽息司祭'
+        ]
+        mission_type_options = [{'label': m, 'value': m} for m in default_mission_types]
+    
+    # 获取等级选项
+    level_options = [{'label': level.value.value, 'value': level.value.value} for level in NotoriousHuntLevelEnum]
+    
+    # 获取Buff选项
+    buff_options = [{'label': buff.value.label, 'value': buff.value.value} for buff in NotoriousHuntBuffEnum]
+    
+    # 获取自动战斗配置选项
+    auto_battle_options = [{'label': '全配队通用', 'value': '全配队通用'}]
+    
+    return {
+        "missionTypes": mission_type_options,
+        "levels": level_options,
+        "buffs": buff_options,
+        "autoBattleConfigs": auto_battle_options
+    }
+
+
 @router.get("/notorious-hunt")
 def get_notorious_hunt():
     ctx = get_ctx()
@@ -361,13 +398,29 @@ async def onedragon_status(run_id: str) -> RunStatusResponse:
 
 @router.get("/team")
 def get_team():
+    from zzz_od.game_data.agent import AgentEnum
+    
+    def agent_id_to_name(agent_id: str) -> str:
+        if agent_id == 'unknown':
+            return '未知'
+        for agent_enum in AgentEnum:
+            if agent_enum.value.agent_id == agent_id:
+                return agent_enum.value.agent_name
+        return agent_id
+    
     ctx = get_ctx()
     tc = ctx.team_config
     teams = [
         {
             "idx": t.idx,
             "name": t.name,
-            "members": t.agent_id_list,
+            "members": [
+                {
+                    "agentId": agent_id,
+                    "name": agent_id_to_name(agent_id)
+                }
+                for agent_id in t.agent_id_list
+            ],
             "autoBattle": t.auto_battle,
         }
         for t in tc.team_list
