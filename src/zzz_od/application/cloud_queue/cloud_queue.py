@@ -24,19 +24,19 @@ class CloudGameQueue(ZOperation):
 
         result = self.round_by_find_and_click_area(self.last_screenshot, '云游戏', '国服PC云-点击空白区域关闭')
         if result.is_success:
-            return self.round_success(result.status, wait=1)
+            return self.round_success(result.status)
 
         result = self.round_by_find_area(self.last_screenshot, '云游戏', '国服PC云-排队中')
         if result.is_success:
-            return self.round_success(result.status, wait=1)
+            return self.round_success(result.status)
 
         result = self.round_by_find_and_click_area(self.last_screenshot, '云游戏', '国服PC云-开始游戏')
         if result.is_success:
-            return self.round_success(result.status, wait=1)
+            return self.round_success(result.status)
 
         result = self.round_by_find_area(self.last_screenshot, '打开游戏', '点击进入游戏')
         if result.is_success:
-            return self.round_success(result.status, wait=1)
+            return self.round_success(result.status)
 
         return self.round_retry(status='未知画面', wait=1)
 
@@ -55,11 +55,11 @@ class CloudGameQueue(ZOperation):
                 # 识别"国服PC云-插队"区域
                 result = self.round_by_find_and_click_area(screen, '云游戏', '国服PC云-邦邦点快速队列')
                 if result.is_success:
-                    return self.round_success(result.status, wait=1)
+                    return self.round_success(result.status)
             else:
                 result = self.round_by_find_and_click_area(screen, '云游戏', '国服PC云-普通队列')
                 if result.is_success:
-                    return self.round_success(result.status, wait=1)
+                    return self.round_success(result.status)
         elif result_exit.is_success:
             return self.round_success(result_exit.status, wait=1)
 
@@ -112,7 +112,7 @@ class CloudGameQueue(ZOperation):
         :return:
         """
         # 仅作为中转，直接切换回第一个节点继续处理
-        return self.round_wait(status='排队中转', wait=1)
+        return self.round_wait(status='排队中转')
 
 def __debug():
     ctx = ZContext()
