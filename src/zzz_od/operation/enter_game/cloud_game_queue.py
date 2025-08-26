@@ -99,9 +99,9 @@ class CloudGameQueue(ZOperation):
             if ocr_result.is_success:
                 # 从OCR结果字典中提取文本
                 if isinstance(ocr_result.data, dict):
-                    queue_count_text = " ".join(ocr_result.data.keys())
+                    wait_time_text = " ".join(ocr_result.data.keys())
                 else:
-                    queue_count_text = str(ocr_result.data)
+                    wait_time_text = str(ocr_result.data)
         
         # 将识别到的值通过log输出
 
