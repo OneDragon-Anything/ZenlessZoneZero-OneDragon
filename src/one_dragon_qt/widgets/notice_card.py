@@ -155,20 +155,18 @@ class RoundedBannerView(HorizontalFlipView):
 class DataFetcher(QThread):
     data_fetched = Signal(dict)
 
-    BASE_URL = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getGameContent"
-    LAUNCHER_ID = "jGHBHlcOq1"
-    GAME_ID = "x6znKlJ0xK"
     CACHE_DIR = "notice_cache"
     CACHE_FILE = os.path.join(CACHE_DIR, "notice_cache.json")
     CACHE_DURATION = 259200  # 缓存时间为3天
     TIMEOUTNUM = 3  # 超时时间
 
+    def __init__(self, url, parent=None):
+        super().__init__(parent)
+        self.url = url
+
     def run(self):
         try:
-            response = requests.get(
-                f"{DataFetcher.BASE_URL}?launcher_id={DataFetcher.LAUNCHER_ID}&game_id={DataFetcher.GAME_ID}&language=zh-cn",
-                timeout=DataFetcher.TIMEOUTNUM,
-            )
+            response = requests.get(self.url, timeout=DataFetcher.TIMEOUTNUM)
             response.raise_for_status()
             data = response.json()
             self.data_fetched.emit(data)
@@ -248,7 +246,7 @@ class AcrylicBackground(QWidget):
 
 
 class NoticeCard(SimpleCardWidget):
-    def __init__(self):
+    def __init__(self, notice_url):
         SimpleCardWidget.__init__(self)
         self.setBorderRadius(4)
         self.setFixedWidth(351)
@@ -256,6 +254,7 @@ class NoticeCard(SimpleCardWidget):
         self.mainLayout.setContentsMargins(3, 3, 0, 0)
         self.mainLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        self.notice_url = notice_url
         self.banners, self.banner_urls, self.posts = [], [], {"announces": [], "activities": [], "infos": []}
         self._banner_loader = None
         self._is_loading_banners = False
@@ -315,7 +314,7 @@ class NoticeCard(SimpleCardWidget):
                 getattr(self, widget_name).show()
 
     def fetch_data(self):
-        self.fetcher = DataFetcher()
+        self.fetcher = DataFetcher(url=self.notice_url)
         # 使用队列连接确保线程安全
         self.fetcher.data_fetched.connect(
             self.handle_data,
@@ -527,7 +526,7 @@ class NoticeCard(SimpleCardWidget):
 class NoticeCardContainer(QWidget):
     """公告卡片容器 - 支持动态显示/隐藏，无需重启"""
 
-    def __init__(self, parent=None):
+    def __init__(self, notice_url, parent=None):
         super().__init__(parent)
         self.setObjectName("NoticeCardContainer")
 
@@ -537,7 +536,7 @@ class NoticeCardContainer(QWidget):
         self.main_layout.setSpacing(0)
 
         # 创建公告卡片
-        self.notice_card = NoticeCard()
+        self.notice_card = NoticeCard(notice_url)
         OdQtStyleSheet.NOTICE_CARD.apply(self.notice_card)
         self.main_layout.addWidget(self.notice_card)
 

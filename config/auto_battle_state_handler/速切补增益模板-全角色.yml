@@ -109,7 +109,7 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-潘引壶]"
+              - states: "![前台-潘引壶] & ![自定义-潘引壶-通窍, 0, 10]"
                 sub_handlers:
                   - states: "[潘引壶-特殊技可用]"
                     operations:
@@ -277,13 +277,14 @@ handlers:
                   - op_name: "清除状态"
                     state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              # 苍角主C怎么了？
-              - states: "![前台-强攻] & ![前台-异常] & [苍角-能量]{20, 120}"
-                operations:
-                  - op_name: "按键-切换角色"
-                    agent_name: "苍角"
-                  - op_name: "清除状态"
-                    state_list: ["自定义-速切结束", "自定义-动作不打断"]
+              - states: "![前台-苍角]"
+                sub_handlers:
+                  - states: ""
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "苍角"
+                      - op_name: "清除状态"
+                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
               # 丽娜连普攻都不会
               - states: "[前台-丽娜]"

@@ -14,16 +14,20 @@ handlers:
   - states: "![自定义-血量扣减, 0, 8]"
     sub_handlers:
       - states: "[前台-青衣]"
-        sub_handlers:
-          - state_template: "闪A模板-青衣"
+        operations:
+          - op_name: "设置状态"
+            data: ["自定义-红光闪避"]
       - states: "[前台-零号安比]"
         sub_handlers:
           - state_template: "双反模板-下一个"
+
   - states: "[前台-异常] & ![自定义-动作不打断, -10, -0.1]"
     sub_handlers:
-      - states: "([按键-切换角色-下一个, 0, 6]|[按键-切换角色-上一个, 0, 6])" # 异常角色至少输出6秒
-        sub_handlers:
-          - state_template: "闪A模板-全角色" # 强者不需要切人直接格挡就行
+      - states: "([按键-切换角色-下一个, 0, 3]|[按键-切换角色-上一个, 0, 3])" # 异常角色至少输出3秒
+        operations:
+          - op_name: "设置状态"
+            data: ["自定义-红光闪避"]
+
   - states: "[前台-凯撒]"
     operations:
       - op_name: "设置状态"
@@ -31,6 +35,7 @@ handlers:
       - operation_template: "凯撒-特殊技格挡"
       - op_name: "设置状态"
         data: ["自定义-速切结束"] # 强者不需要切人直接格挡就行
+
   - states: "[前台-本]"
     operations:
       - op_name: "设置状态"
@@ -40,3 +45,9 @@ handlers:
         repeat: 5
       - op_name: "设置状态"
         data: ["自定义-速切结束"]
+
+  - states: "[前台-仪玄] & [仪玄-术法值]{0, 119} & [仪玄-特殊技可用] & ![自定义-仪玄-三连, 0, 3]"
+    debug_name: "仪玄情不自禁格挡"
+    operations:
+      - op_name: "设置状态"
+        data: ["自定义-红光闪避"]

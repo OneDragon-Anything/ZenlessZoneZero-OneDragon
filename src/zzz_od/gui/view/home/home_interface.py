@@ -84,7 +84,7 @@ class ButtonGroup(SimpleCardWidget):
         doc_button = IconButton(
             FluentIcon.CHAT.icon(color=QColor("#fff")),
             tip_title="官方社群",
-            tip_content="加入官方群聊【绝区零&一条龙交流群】",
+            tip_content="点击加入官方频道【一条龍】",
             isTooltip=True,
         )
         doc_button.setIconSize(QSize(32, 32))
@@ -127,15 +127,15 @@ class ButtonGroup(SimpleCardWidget):
         )
 
     def open_chat(self):
-        """打开 Q群 链接"""
-        QDesktopServices.openUrl(QUrl("https://qm.qq.com/q/N5iEy8sTu0"))
+        """打开 频道 链接"""
+        QDesktopServices.openUrl(QUrl("https://pd.qq.com/s/fumylgkj4"))
 
     def open_doc(self):
         """打开 巡夜的金山文档 链接"""
         QDesktopServices.openUrl(QUrl("https://kdocs.cn/l/cbSJUUNotJ3Z"))
 
     def open_sales(self):
-        """其实还是打开 Q群 链接"""
+        """打开 Q群 链接"""
         QDesktopServices.openUrl(QUrl("https://qm.qq.com/q/N5iEy8sTu0"))
 
 class BaseThread(QThread):
@@ -330,7 +330,7 @@ class HomeInterface(VerticalScrollInterface):
         h2_layout.setContentsMargins(20, 20, 20, 20)  # 整体底部边距20px，包含阴影
 
         # 公告卡片
-        self.notice_container = NoticeCardContainer()
+        self.notice_container = NoticeCardContainer(self.ctx.project_config.notice_url)
         notice_wrap = QWidget()
         self._notice_wrap_layout = QVBoxLayout(notice_wrap)
         self._notice_wrap_layout.setContentsMargins(0, 0, 0, 0)
