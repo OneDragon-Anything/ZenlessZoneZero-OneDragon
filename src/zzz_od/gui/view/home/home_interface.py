@@ -140,11 +140,11 @@ class ButtonGroup(SimpleCardWidget):
         """启动自动提示演示"""
         if self.tooltip_demo_active:
             return
-            
+
         self.tooltip_demo_active = True
         # 临时禁用所有按钮的鼠标悬停事件处理
         self._disable_buttons_hover()
-        
+
         # 延迟2秒后同时显示所有提示（使用对象持有的单次定时器）
         if not hasattr(self, "_show_timer"):
             self._show_timer = QTimer(self)
@@ -160,7 +160,7 @@ class ButtonGroup(SimpleCardWidget):
         """同时显示所有按钮的提示"""
         if not self.tooltip_demo_active:
             return
-            
+
         # 同时显示所有按钮的提示（优先使用公开方法）
         for btn in self.buttons:
             show_fn = getattr(btn, "show_tooltip", None) or getattr(btn, "_show_tooltip", None)
@@ -180,7 +180,7 @@ class ButtonGroup(SimpleCardWidget):
         self.tooltip_demo_active = False
         # 重新启用所有按钮的鼠标悬停事件处理
         self._enable_buttons_hover()
-        
+
     def stop_tooltip_demo(self):
         """停止提示演示并立即隐藏所有提示"""
         self.tooltip_demo_active = False
@@ -190,25 +190,25 @@ class ButtonGroup(SimpleCardWidget):
         if hasattr(self, "_hide_timer"):
             self._hide_timer.stop()
         self._hide_all_tooltips()
-        
+
     def _disable_buttons_hover(self):
         """临时禁用所有按钮的鼠标悬停事件处理"""
         for btn in self.buttons:
             if hasattr(btn, 'removeEventFilter'):
                 btn.removeEventFilter(btn)
                 btn._hover_disabled = True
-                
+
     def _enable_buttons_hover(self):
         """重新启用所有按钮的鼠标悬停事件处理"""
         for btn in self.buttons:
             if hasattr(btn, '_hover_disabled') and btn._hover_disabled:
                 btn.installEventFilter(btn)
                 btn._hover_disabled = False
-        
+
     def _start_demo_timer(self):
         """开始演示定时器 - 不再使用，保留以兼容"""
         pass
-        
+
     def _show_next_tooltip(self):
         """显示下一个按钮的提示 - 不再使用，保留以兼容"""
         pass
@@ -260,10 +260,14 @@ class BaseThread(QThread):
         self._is_running = False
         if self.isRunning():
             self.quit()
-            self.wait(3000)  # 等待最多3秒
-            if self.isRunning():
+            if not self.wait(2000):  # 等待最多2秒
+                log.warning(f"线程 {self.__class__.__name__} 无法正常退出，强制终止")
                 self.terminate()
-                self.wait()
+                self.wait(1000)  # 再等待1秒确保终止完成
+
+    def is_stop_requested(self):
+        """检查是否请求停止"""
+        return not self._is_running
 
 
 class CheckRunnerBase(BaseThread):
@@ -277,7 +281,11 @@ class CheckRunnerBase(BaseThread):
 
 class CheckCodeRunner(CheckRunnerBase):
     def _run_impl(self):
+        if self.is_stop_requested():
+            return
         is_latest, msg = self.ctx.git_service.is_current_branch_latest()
+        if self.is_stop_requested():
+            return
         if msg == "与远程分支不一致":
             self.need_update.emit(True)
         elif msg != "获取远程代码失败":
@@ -285,10 +293,16 @@ class CheckCodeRunner(CheckRunnerBase):
 
 class CheckModelRunner(CheckRunnerBase):
     def _run_impl(self):
-        self.need_update.emit(self.ctx.model_config.using_old_model())
+        if self.is_stop_requested():
+            return
+        result = self.ctx.model_config.using_old_model()
+        if not self.is_stop_requested():
+            self.need_update.emit(result)
 
 class CheckBannerRunner(CheckRunnerBase):
     def _run_impl(self):
+        if self.is_stop_requested():
+            return
         if self.ctx.signal.reload_banner:
             self.need_update.emit(True)
 
@@ -316,6 +330,10 @@ class BackgroundImageDownloader(BaseThread):
         if not os.path.exists(self.save_path):
             self.get()
 
+        # 检查是否被请求停止
+        if self.is_stop_requested():
+            return
+
         last_fetch_time_str = getattr(self.ctx.custom_config, self.config_key)
         if last_fetch_time_str:
             try:
@@ -328,7 +346,7 @@ class BackgroundImageDownloader(BaseThread):
             self.get()
 
     def get(self):
-        if not self._is_running:
+        if not self._is_running or self.is_stop_requested():
             return
 
         try:
@@ -337,6 +355,10 @@ class BackgroundImageDownloader(BaseThread):
 
             img_url = self._extract_image_url(data)
             if not img_url:
+                return
+
+            # 在开始下载图片前检查一次停止请求（因为网络下载可能耗时）
+            if self.is_stop_requested():
                 return
 
             img_resp = requests.get(img_url, timeout=5)
@@ -505,61 +527,101 @@ class HomeInterface(VerticalScrollInterface):
         # 监听背景刷新信号，确保主题色在背景变化时更新
         self._last_reload_banner_signal = False
 
+    def __del__(self):
+        """析构时清理资源"""
+        try:
+            self._cleanup_threads()
+            if hasattr(self, 'notice_container') and self.notice_container:
+                self.notice_container.cleanup_resources()
+        except Exception:
+            # 析构时忽略清理错误
+            pass
+
     def _init_check_runners(self):
         """初始化检查更新的线程"""
         self._check_code_runner = CheckCodeRunner(self.ctx)
         self._check_code_runner.need_update.connect(
             self._need_to_update_code,
-            Qt.ConnectionType.QueuedConnection
+            Qt.ConnectionType.UniqueConnection
         )
         self._check_model_runner = CheckModelRunner(self.ctx)
         self._check_model_runner.need_update.connect(
             self._need_to_update_model,
-            Qt.ConnectionType.QueuedConnection
+            Qt.ConnectionType.UniqueConnection
         )
         self._check_banner_runner = CheckBannerRunner(self.ctx)
         self._check_banner_runner.need_update.connect(
             self.reload_banner,
-            Qt.ConnectionType.QueuedConnection
+            Qt.ConnectionType.UniqueConnection
         )
         self._banner_downloader = BackgroundImageDownloader(self.ctx, "remote_banner")
         # 使用队列连接确保线程安全
         self._banner_downloader.image_downloaded.connect(
             self.reload_banner,
-            Qt.ConnectionType.QueuedConnection
+            Qt.ConnectionType.UniqueConnection
         )
         self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster")
         # 使用队列连接确保线程安全
         self._version_poster_downloader.image_downloaded.connect(
             self.reload_banner,
-            Qt.ConnectionType.QueuedConnection
+            Qt.ConnectionType.UniqueConnection
         )
 
     def closeEvent(self, event):
         """界面关闭事件处理"""
         self._cleanup_threads()
+        # 清理公告卡片资源
+        if hasattr(self, 'notice_container') and self.notice_container:
+            self.notice_container.cleanup_resources()
         super().closeEvent(event)
 
     def _cleanup_threads(self):
         """清理所有线程"""
-        for thread_name in ['_banner_downloader', '_version_poster_downloader',
-                            '_check_code_runner', '_check_model_runner', '_check_banner_runner']:
+        thread_names = ['_banner_downloader', '_version_poster_downloader',
+                       '_check_code_runner', '_check_model_runner', '_check_banner_runner']
+
+        for thread_name in thread_names:
+            if hasattr(self, thread_name):
+                thread = getattr(self, thread_name)
+                if thread and hasattr(thread, 'stop'):
+                    thread.stop()
+
+    def _ensure_threads_stopped(self):
+        """确保所有线程完全停止"""
+        thread_names = ['_banner_downloader', '_version_poster_downloader',
+                       '_check_code_runner', '_check_model_runner', '_check_banner_runner']
+
+        for thread_name in thread_names:
             if hasattr(self, thread_name):
                 thread = getattr(self, thread_name)
                 if thread and thread.isRunning():
                     thread.stop()
+                    # 等待线程完全停止
+                    if thread.isRunning():
+                        thread.wait(1000)  # 等待最多1秒
 
     def on_interface_shown(self) -> None:
         """界面显示时启动检查更新的线程"""
         super().on_interface_shown()
-        self._check_code_runner.start()
-        self._check_model_runner.start()
-        self._check_banner_runner.start()
-        # 根据配置启动相应的背景下载器
+
+        # 先确保所有线程完全停止
+        self._ensure_threads_stopped()
+
+        # 安全启动检查线程
+        if hasattr(self, '_check_code_runner') and not self._check_code_runner.isRunning():
+            self._check_code_runner.start()
+        if hasattr(self, '_check_model_runner') and not self._check_model_runner.isRunning():
+            self._check_model_runner.start()
+        if hasattr(self, '_check_banner_runner') and not self._check_banner_runner.isRunning():
+            self._check_banner_runner.start()
+
+        # 根据配置安全启动相应的背景下载器
         if self.ctx.custom_config.version_poster:
-            self._version_poster_downloader.start()
+            if hasattr(self, '_version_poster_downloader') and not self._version_poster_downloader.isRunning():
+                self._version_poster_downloader.start()
         elif self.ctx.custom_config.remote_banner:
-            self._banner_downloader.start()
+            if hasattr(self, '_banner_downloader') and not self._banner_downloader.isRunning():
+                self._banner_downloader.start()
 
         # 检查公告卡片配置是否变化
         self._check_notice_config_change()
@@ -575,12 +637,19 @@ class HomeInterface(VerticalScrollInterface):
             self.button_group.start_tooltip_demo()
 
     def on_interface_hidden(self) -> None:
-        """界面隐藏时的处理"""
+        """界面隐藏时清理资源"""
         super().on_interface_hidden()
-        
+
         # 立即停止并隐藏所有提示
         if hasattr(self, 'button_group'):
             self.button_group.stop_tooltip_demo()
+
+        # 停止所有线程
+        self._cleanup_threads()
+
+        # 清理公告卡片资源
+        if hasattr(self, 'notice_container') and self.notice_container:
+            self.notice_container.cleanup_resources()
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
