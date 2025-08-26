@@ -62,8 +62,8 @@ class CloudGameQueue(ZOperation):
         return self.round_retry(status='未知画面', wait=1)
 
     @node_from(from_name='国服PC云-插队或排队', status='国服PC云-排队中')
-    @node_from(from_name='画面识别', status='国服PC云-邦邦点快速队列')
-    @node_from(from_name='画面识别', status='国服PC云-普通队列')
+    @node_from(from_name='国服PC云-插队或排队', status='国服PC云-邦邦点快速队列')
+    @node_from(from_name='国服PC云-插队或排队', status='国服PC云-普通队列')
     @node_from(from_name='画面识别', status='国服PC云-排队中')
     @node_from(from_name='国服PC云-排队中转', status='排队中转')
     @operation_node(name='国服PC云-排队')
