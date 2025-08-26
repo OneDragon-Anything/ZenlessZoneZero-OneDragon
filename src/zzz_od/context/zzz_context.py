@@ -171,7 +171,7 @@ class ZContext(OneDragonContext):
         OneDragonContext.init_by_config(self)
 
         from zzz_od.controller.zzz_pc_controller import ZPcController
-        from one_dragon.base.config.game_account_config import GamePlatformEnum, GameClientTypeEnum
+        from one_dragon.base.config.game_account_config import GamePlatformEnum
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
             if self.game_account_config.use_custom_win_title:
                 win_title = self.game_account_config.custom_win_title
