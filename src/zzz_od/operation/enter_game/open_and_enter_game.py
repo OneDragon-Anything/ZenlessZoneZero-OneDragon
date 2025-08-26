@@ -7,6 +7,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.enter_game.auto_hdr import EnableAutoHDR, DisableAutoHDR
 from zzz_od.operation.enter_game.open_game import OpenGame
 
+
 class OpenAndEnterGame(Operation):
 
     def __init__(self, ctx: ZContext):
