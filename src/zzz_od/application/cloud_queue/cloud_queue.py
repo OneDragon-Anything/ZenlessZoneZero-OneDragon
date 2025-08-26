@@ -76,43 +76,27 @@ class CloudGameQueue(ZOperation):
         国服PC云-排队
         :return:
         """
-        # 使用self.last_screenshot而不是重新截图
-        screen = self.last_screenshot
-
         # OCR识别"国服PC云-排队人数"区域的值
         queue_count_text = ""
         area = self.ctx.screen_loader.get_area('云游戏', '国服PC云-排队人数')
         if area is not None:
-            # 打印区域坐标用于调试
-            # 使用OCR服务识别文本
-            ocr_result = self.round_by_ocr_text(screen, area, area.color_range)
+            ocr_result = self.round_by_ocr_text(self.last_screenshot, area, area.color_range)
             if ocr_result.is_success:
-                # 从OCR结果字典中提取文本
-                if isinstance(ocr_result.data, dict):
-                    queue_count_text = " ".join(ocr_result.data.keys())
-                else:
-                    queue_count_text = str(ocr_result.data)
+                queue_count_text = " ".join(ocr_result.data.keys())
 
         # OCR识别"国服PC云-预计等待时间"区域的值
         wait_time_text = ""
         area = self.ctx.screen_loader.get_area('云游戏', '国服PC云-预计等待时间')
         if area is not None:
-            # 打印区域坐标用于调试
-            # 使用OCR服务识别文本
-            ocr_result = self.round_by_ocr_text(screen, area, area.color_range)
+            ocr_result = self.round_by_ocr_text(self.last_screenshot, area, area.color_range)
             if ocr_result.is_success:
-                # 从OCR结果字典中提取文本
-                if isinstance(ocr_result.data, dict):
-                    wait_time_text = " ".join(ocr_result.data.keys())
-                else:
-                    wait_time_text = str(ocr_result.data)
+                wait_time_text = " ".join(ocr_result.data.keys())
 
         # 将识别到的值通过log输出
-
         log.info(f"国服PC云排队信息 - 排队人数: {queue_count_text}, 预计等待时间: {wait_time_text}分钟")
 
         # 检查是否能识别到"点击进入游戏"区域
-        enter_game_result = self.round_by_find_area(screen, '打开游戏', '点击进入游戏')
+        enter_game_result = self.round_by_find_area(self.last_screenshot, '打开游戏', '点击进入游戏')
         if enter_game_result.is_success:
             # 如果识别到"点击进入游戏"，则退出循环，返回成功 由EnterGame来进入游戏
             return self.round_success(status='点击进入游戏', wait=1)
