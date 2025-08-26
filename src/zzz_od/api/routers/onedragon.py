@@ -247,7 +247,7 @@ def update_charge_plan_item(idx: int, payload: dict):
         auto_battle_config=payload.get('autoBattleConfig', '全配队通用'),
         run_times=payload.get('runTimes', 0),
         plan_times=payload.get('planTimes', 1),
-        card_num=payload.get('cardNum'),
+    card_num=str(payload.get('cardNum')) if payload.get('cardNum') is not None else '默认数量',
         predefined_team_idx=payload.get('predefinedTeamIdx', -1),
         notorious_hunt_buff_num=payload.get('notoriousHuntBuffNum', 1),
         plan_id=payload.get('planId'),
@@ -275,7 +275,8 @@ def reorder_charge_plan(payload: dict):
     cc = ctx.charge_plan_config
     mode = (payload.get("mode") or "").lower()
     try:
-        frm = int(payload.get("from"))
+        _from_val = payload.get("from")
+        frm = int(_from_val) if _from_val is not None else -1
     except Exception:
         frm = -1
     if mode == "move_up" and frm >= 0:
@@ -293,6 +294,16 @@ def clear_completed_charge_plan():
     cc = ctx.charge_plan_config
     not_completed = [p for p in cc.plan_list if p.run_times < p.plan_times]
     cc.plan_list = not_completed
+    cc.save()
+    return {"ok": True}
+
+
+@router.post("/charge-plan:clear-all")
+def clear_all_charge_plan():
+    """删除所有体力计划（对应 PySide '删除所有' 按钮）。"""
+    ctx = get_ctx()
+    cc = ctx.charge_plan_config
+    cc.plan_list.clear()
     cc.save()
     return {"ok": True}
 
