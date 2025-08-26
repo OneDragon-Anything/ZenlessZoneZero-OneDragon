@@ -32,7 +32,11 @@ class CloudGameQueue(ZOperation):
         
         result = self.round_by_find_and_click_area(self.last_screenshot, '云游戏', '国服PC云-开始游戏')
         if result.is_success:
-            return self.round_success(result.status, wait=1)        
+            return self.round_success(result.status, wait=1)
+
+        result = self.round_by_find_area(self.last_screenshot, '打开游戏', '点击进入游戏')
+        if result.is_success:
+            return self.round_success(result.status, wait=1)
         
         return self.round_retry(status='未知画面', wait=1)
     
