@@ -182,14 +182,14 @@ class ZContext(OneDragonContext):
 
             return base_title
 
-        self.win_title = compute_win_title()
+        win_title = compute_win_title()
 
         from zzz_od.controller.zzz_pc_controller import ZPcController
         from one_dragon.base.config.game_account_config import GamePlatformEnum
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
             self.controller: ZPcController = ZPcController(
                 game_config=self.game_config,
-                win_title=self.win_title,
+                win_title=win_title,
                 standard_width=self.project_config.screen_standard_width,
                 standard_height=self.project_config.screen_standard_height
             )
