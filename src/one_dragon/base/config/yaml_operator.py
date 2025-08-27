@@ -15,7 +15,7 @@ def get_temp_config_path(file_path: str) -> str:
     有则返回该路径，否则返回原路径
     """
     if hasattr(sys, '_MEIPASS'):
-        mei_path = os.path.join(sys._MEIPASS, 'config', os.path.basename(file_path))
+        mei_path = os.path.join(sys._MEIPASS, 'config', os.path.basename(file_path))  # type: ignore[attr-defined]
         if os.path.exists(mei_path):
             return mei_path
     return file_path
@@ -41,7 +41,7 @@ class YamlOperator:
         :param file_path: yml文件的路径。不传入时认为是mock，用于测试。
         """
 
-        self.file_path: str = get_temp_config_path(file_path) if file_path else None
+        self.file_path: Optional[str] = get_temp_config_path(file_path) if file_path else None
         """yml文件的路径"""
 
         self.data: dict = {}
@@ -57,6 +57,15 @@ class YamlOperator:
         if self.file_path is None:
             return
         if not os.path.exists(self.file_path):
+            # 新增最小逻辑: auto_battle 下缺失文件尝试通用模板
+            if 'auto_battle' in self.file_path:
+                general_path = os.path.join(os.path.dirname(self.file_path), '全配队通用.sample.yml')
+                if os.path.exists(general_path):
+                    try:
+                        self.data = read_cache_or_load(general_path) or {}
+                        log.debug(f"auto_battle 缺失 {self.file_path} 使用通用 {general_path}")
+                    except Exception:
+                        log.error(f'通用配置读取失败 {general_path}', exc_info=True)
             return
 
         try:
@@ -104,7 +113,7 @@ class YamlOperator:
         删除配置文件
         :return:
         """
-        if os.path.exists(self.file_path):
+        if self.file_path and os.path.exists(self.file_path):
             os.remove(self.file_path)
 
     def is_file_exists(self) -> bool:
@@ -112,4 +121,14 @@ class YamlOperator:
         配置文件是否存在
         :return:
         """
-        return os.path.exists(self.file_path)
+        if not self.file_path:
+            return False
+        if os.path.exists(self.file_path):
+            return True
+        # auto_battle 下如果原文件不存在但通用模板存在，也认为配置存在
+        if 'auto_battle' in self.file_path:
+            general_path = os.path.join(os.path.dirname(self.file_path), '全配队通用.sample.yml')
+            if os.path.exists(general_path):
+                log.error(f"专属配队文件不存在 {self.file_path}，将使用通用配置 {general_path}")
+                return True
+        return False
