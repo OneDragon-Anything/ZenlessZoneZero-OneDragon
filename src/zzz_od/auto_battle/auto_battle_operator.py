@@ -40,11 +40,26 @@ from zzz_od.game_data.target_state import DETECTION_TASKS
 
 _auto_battle_operator_executor = ThreadPoolExecutor(thread_name_prefix='_auto_battle_operator_executor', max_workers=1)
 
+# 自动战斗配置的默认回退模板名
+FALLBACK_TEMPLATE_NAME = '全配队通用'
+
 
 class AutoBattleOperator(ConditionalOperator):
 
     def __init__(self, ctx: ZContext, sub_dir: str, template_name: str, is_mock: bool = False):
         self.ctx: ZContext = ctx
+
+        # 初始化一个检查器 用于检查配置文件是否存在
+        check_operator = ConditionalOperator(
+            sub_dir=sub_dir,
+            template_name=template_name,
+            is_mock=True
+        )
+
+        # 检查文件是否存在，如果不存在则使用回退配置
+        if not check_operator.is_file_exists:
+            log.warning(f'自动战斗配置 {template_name} 不存在，回退到 {FALLBACK_TEMPLATE_NAME}')
+            template_name = FALLBACK_TEMPLATE_NAME
 
         ConditionalOperator.__init__(
             self,
@@ -99,9 +114,6 @@ class AutoBattleOperator(ConditionalOperator):
         return self.async_init_future
 
     def _init_operator(self) -> Tuple[bool, str]:
-        if not self.is_file_exists():
-            return False, '自动战斗配置不存在 请重新选择'
-
         self._mutex_list: dict[str, List[str]] = {}
 
         for agent_enum in AgentEnum:
@@ -448,7 +460,7 @@ class AutoBattleOperator(ConditionalOperator):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
-    auto_op = AutoBattleOperator(ctx, 'auto_battle', '全配对通用')
+    auto_op = AutoBattleOperator(ctx, 'auto_battle', '全配队通用')
     auto_op.init_before_running()
     # auto_op.start_running_async()
     # time.sleep(5)
