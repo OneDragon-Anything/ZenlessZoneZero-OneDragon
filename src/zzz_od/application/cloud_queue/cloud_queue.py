@@ -1,6 +1,7 @@
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
@@ -77,18 +78,14 @@ class CloudGameQueue(ZOperation):
         :return:
         """
         # OCR识别"国服PC云-排队人数"区域的值
-        queue_count_text = ""
-        area = self.ctx.screen_loader.get_area('云游戏', '国服PC云-排队人数')
-        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot, area.color_range, area.rect)
-        if ocr_result_map:
-            queue_count_text = " ".join(ocr_result_map.keys())
+        queue_count_area = self.ctx.screen_loader.get_area('云游戏', '国服PC云-排队人数')
+        queue_count_part = cv2_utils.crop_image_only(self.last_screenshot, queue_count_area.rect)
+        queue_count_text = self.ctx.ocr.run_ocr_single_line(queue_count_part)
 
         # OCR识别"国服PC云-预计等待时间"区域的值
-        wait_time_text = ""
-        area = self.ctx.screen_loader.get_area('云游戏', '国服PC云-预计等待时间')
-        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot, area.color_range, area.rect)
-        if ocr_result_map:
-            wait_time_text = " ".join(ocr_result_map.keys())
+        wait_time_area = self.ctx.screen_loader.get_area('云游戏', '国服PC云-预计等待时间')
+        wait_time_part = cv2_utils.crop_image_only(self.last_screenshot, wait_time_area.rect)
+        wait_time_text = self.ctx.ocr.run_ocr_single_line(wait_time_part)
 
         # 将识别到的值通过log输出
         log.info(f"国服PC云排队信息 - 排队人数: {queue_count_text}, 预计等待时间: {wait_time_text}分钟")
