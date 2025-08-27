@@ -79,14 +79,16 @@ class CloudGameQueue(ZOperation):
         # OCR识别"国服PC云-排队人数"区域的值
         queue_count_text = ""
         area = self.ctx.screen_loader.get_area('云游戏', '国服PC云-排队人数')
-        ocr_result = self.ctx.ocr_service.get_ocr_result_list(self.last_screenshot, area.color_range, area.rect)
-        queue_count_text = " ".join(ocr_result)
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot, area.color_range, area.rect)
+        if ocr_result_map:
+            queue_count_text = " ".join(ocr_result_map.keys())
 
         # OCR识别"国服PC云-预计等待时间"区域的值
         wait_time_text = ""
         area = self.ctx.screen_loader.get_area('云游戏', '国服PC云-预计等待时间')
-        ocr_result = self.ctx.ocr_service.get_ocr_result_list(self.last_screenshot, area.color_range, area.rect)
-        wait_time_text = " ".join(ocr_result)
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot, area.color_range, area.rect)
+        if ocr_result_map:
+            wait_time_text = " ".join(ocr_result_map.keys())
 
         # 将识别到的值通过log输出
         log.info(f"国服PC云排队信息 - 排队人数: {queue_count_text}, 预计等待时间: {wait_time_text}分钟")
