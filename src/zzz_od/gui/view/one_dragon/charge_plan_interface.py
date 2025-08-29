@@ -166,6 +166,7 @@ class ChargePlanCard(MultiLineSettingCard):
     def _on_category_changed(self, idx: int) -> None:
         category_name = self.category_combo_box.itemData(idx)
         self.plan.category_name = category_name
+        self.plan.tab_name = '作战' if category_name == '恶名狩猎' else '训练'
 
         self.init_mission_type_combo_box()
         self.init_mission_combo_box()
@@ -350,8 +351,7 @@ class ChargePlanInterface(VerticalScrollInterface):
         dialog = ChargePlanDialog(self.ctx, parent=self)
         result = dialog.exec()
         if result:
-            card_properties = dialog.get_card_properties()
-            self.ctx.charge_plan_config.add_plan(card_properties)
+            self.ctx.charge_plan_config.add_plan(dialog.plan)
         self.update_plan_list_display()
 
     def _on_plan_item_changed(self, idx: int, plan: ChargePlanItem) -> None:
