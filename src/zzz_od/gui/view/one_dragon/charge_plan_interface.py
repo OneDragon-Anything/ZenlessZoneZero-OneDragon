@@ -27,7 +27,7 @@ class ChargePlanCard(MultiLineSettingCard):
     move_top = Signal(int)
 
     def __init__(self, ctx: ZContext,
-                 idx: Optional[int], plan: ChargePlanItem):
+                 idx: int, plan: ChargePlanItem):
         self.ctx: ZContext = ctx
         self.idx: int = idx
         self.plan: ChargePlanItem = plan
