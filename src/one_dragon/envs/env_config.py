@@ -70,6 +70,13 @@ class EnvSourceEnum(Enum):
     GITEE = ConfigItem('Gitee', 'https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download')
 
 
+class ScreenshotMethodEnum(Enum):
+
+    BITBLT = ConfigItem('BitBlt', 'bitblt', desc='兼容性最好，需窗口可见，无法在后台截图')
+    PRINT_WINDOW = ConfigItem('Print Window', 'print_window', desc='支持后台截图，但不兼容云游戏')
+    PIL = ConfigItem('PIL', 'pil', desc='不推荐，仅作备用，性能较差')
+
+
 class EnvConfig(YamlConfig):
 
     def __init__(self):
@@ -400,6 +407,28 @@ class EnvConfig(YamlConfig):
         self.update('copy_screenshot', new_value)
 
     @property
+    def ocr_cache(self) -> bool:
+        """
+        是否启用OCR缓存
+        """
+        return self.get('ocr_cache', False)
+
+    @ocr_cache.setter
+    def ocr_cache(self, new_value: bool) -> None:
+        self.update('ocr_cache', new_value)
+
+    @property
+    def screenshot_method(self) -> str:
+        """
+        截图方法
+        """
+        return self.get('screenshot_method', ScreenshotMethodEnum.BITBLT.value.value)
+
+    @screenshot_method.setter
+    def screenshot_method(self, new_value: str) -> None:
+        self.update('screenshot_method', new_value)
+
+    @property
     def key_start_running(self) -> str:
         """
         开始、暂停、恢复运行的按键
@@ -483,15 +512,3 @@ class EnvConfig(YamlConfig):
         else:
             os.environ['HTTP_PROXY'] = ""
             os.environ['HTTPS_PROXY'] = ""
-
-    @property
-    def ocr_cache(self) -> bool:
-        """
-        Returns:
-            是否启用OCR缓存
-        """
-        return self.get('ocr_cache', False)
-
-    @ocr_cache.setter
-    def ocr_cache(self, new_value: bool) -> None:
-        self.update('ocr_cache', new_value, save=True)
