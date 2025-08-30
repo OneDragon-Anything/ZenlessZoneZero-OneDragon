@@ -22,6 +22,7 @@ class OneDragonApp(Application):
     def __init__(self, ctx: OneDragonContext, app_id: str,
                  op_name: str = '一条龙',
                  op_to_enter_game: Optional[Operation] = None,
+                 op_to_stop_exe_and_switch_account: Optional[Operation] = None,
                  op_to_switch_account: Optional[Operation] = None):
         Application.__init__(
             self,
@@ -35,6 +36,8 @@ class OneDragonApp(Application):
         self._instance_list: List[OneDragonInstance] = []  # 需要运行的实例
         self._instance_idx: int = 0  # 当前运行的实例下标
         self._instance_start_idx: int = 0  # 最初开始的实例下标
+        self._instance_prev_game_path: str = None # 上一个账号的游戏路径
+        self._op_to_stop_exe_and_switch_account: Operation = op_to_stop_exe_and_switch_account  # 换服, 然后切换账号的op
         self._op_to_switch_account: Operation = op_to_switch_account  # 切换账号的op
         self._fail_app_idx: List[int] = []  # 失败的app下标
         self._current_retry_app_idx: int = 0  # 当前重试的_fail_app_idx的下标
@@ -173,6 +176,7 @@ class OneDragonApp(Application):
         if self._instance_idx >= len(self._instance_list):
             self._instance_idx = 0
 
+        self._instance_prev_game_path = self.ctx.game_account_config.game_path
         self.ctx.switch_instance(self._instance_list[self._instance_idx].idx)
         log.info('下一个实例 %s', self.ctx.one_dragon_config.current_active_instance.name)
 
@@ -181,13 +185,22 @@ class OneDragonApp(Application):
     @node_from(from_name='切换实例配置')
     @operation_node(name='切换账号')
     def switch_account(self) -> OperationRoundResult:
+        # 检测前后账号的游戏路径是否一致, 如果一致可以直接切换账号, 不一致需要先关闭当前账号的游戏然后打开下一个账号的游戏
+        instance_game_path = self.ctx.game_account_config.game_path
+        # 如果任一账号没配置游戏路径, 则不关闭游戏
+        if (self._instance_prev_game_path is None) or (instance_game_path is None) \
+                or (self._instance_prev_game_path == instance_game_path):
+            op_to_switch_account_merged = self._op_to_switch_account
+        else:
+            op_to_switch_account_merged = self._op_to_stop_exe_and_switch_account
+
         if len(self._instance_list) == 1:
             return self.round_success('无需切换账号')
-        if self._op_to_switch_account is None:
+        if op_to_switch_account_merged is None:
             return self.round_fail('未实现切换账号')
         else:
             # return self.round_success(wait=1)  # 调试用
-            return self.round_by_op_result(self._op_to_switch_account.execute())
+            return self.round_by_op_result(op_to_switch_account_merged.execute())
 
     @node_from(from_name='切换账号')
     @operation_node(name='切换账号后处理')
