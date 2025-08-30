@@ -41,7 +41,8 @@ class ChargePlanItem:
             notorious_hunt_buff_num: int = 1,
             plan_id: Optional[str] = None,
     ):
-        self.tab_name: str = tab_name
+        # 如果是恶名狩猎类型，tab_name应该是作战
+        self.tab_name: str = '作战' if category_name == '恶名狩猎' else tab_name
         self.category_name: str = category_name
         self.mission_type_name: str = mission_type_name
         self.mission_name: str = mission_name
