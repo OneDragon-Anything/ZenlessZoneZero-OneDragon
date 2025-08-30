@@ -3,6 +3,7 @@ from typing import List
 from one_dragon.base.operation.one_dragon_app import OneDragonApp
 from zzz_od.application.charge_plan.charge_plan_app import ChargePlanApp
 from zzz_od.application.city_fund.city_fund_app import CityFundApp
+from zzz_od.application.cloud_queue.cloud_queue_app import CloudQueueApp
 from zzz_od.application.coffee.coffee_app import CoffeeApp
 from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_app import DriveDiscDismantleApp
 from zzz_od.application.email_app.email_app import EmailApp
@@ -40,6 +41,7 @@ class ZOneDragonApp(OneDragonApp, ZApplication):
     def get_app_list(self) -> List[ZApplication]:
         from zzz_od.application.notify.notify_app import NotifyApp
         return [
+            CloudQueueApp(self.ctx),
             RedemptionCodeApp(self.ctx),
             RandomPlayApp(self.ctx),
             ScratchCardApp(self.ctx),
