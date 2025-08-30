@@ -17,6 +17,7 @@ dependencies = [
     "soundcard==0.4.3",
     "librosa==0.10.2.post1",
     "gensim==4.3.3",
+    "sqlalchemy==2.0.43",
 ]
 
 [dependency-groups]

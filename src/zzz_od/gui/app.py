@@ -1,4 +1,5 @@
 try:
+    import atexit
     import sys
     from typing import Tuple
     from PySide6.QtCore import Qt, QThread, Signal, QTimer
@@ -321,6 +322,10 @@ if __name__ == "__main__":
     app.setAttribute(Qt.ApplicationAttribute.AA_DontCreateNativeWidgetSiblings)
 
     _ctx = ZContext()
+
+    # 注册退出钩子
+    app.aboutToQuit.connect(_ctx.after_app_shutdown)
+    atexit.register(_ctx.after_app_shutdown)  # 作为最后保险
 
     # 加载配置
     _ctx.init_by_config()
