@@ -213,12 +213,21 @@ class EnterGame(ZOperation):
         # time.sleep(0.5)
 
         screen = self.screenshot()
-        self.already_login = True
 
-        # B服重输密码的话会有验证码, 故暂时只判断游戏记住密码的情况: 点击登录之后就开始查找 "进入游戏" 画面.
-        return self.round_by_find_and_click_area(screen, '打开游戏', '点击进入游戏')
-        # return self.round_by_find_and_click_area(screen, '打开游戏', 'B服-登陆',
-        #                                          success_wait=5, retry_wait=1)
+        # B服重输密码会触发验证码。优先处理“记住密码”场景：若已出现“点击进入游戏”，直接点击并等待页面跳转；
+        # 否则回退到点击“B服-登陆”（兼容未勾选记住密码的情况）。
+        result = self.round_by_find_area(screen, '打开游戏', '点击进入游戏')
+        if result.is_success:
+            self.already_login = True
+            return self.round_by_find_and_click_area(
+                screen, '打开游戏', '点击进入游戏',
+                success_wait=5, retry_wait=1
+            )
+        # 回退：仍在B服登录页时，点击“登陆”按钮
+        return self.round_by_find_and_click_area(
+            screen, '打开游戏', 'B服-登陆',
+            success_wait=5, retry_wait=1
+        )
 
     @node_from(from_name='画面识别', status='国际服-密码输入区域')
     @operation_node(name='国际服-输入账号密码')
