@@ -22,6 +22,7 @@ from zzz_od.application.world_patrol.world_patrol_app import WorldPatrolApp
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.enter_game.open_and_enter_game import OpenAndEnterGame
+from zzz_od.operation.enter_game.stop_and_switch_account import StopExeAndSwitchAccount
 from zzz_od.operation.enter_game.switch_account import SwitchAccount
 
 
@@ -30,11 +31,13 @@ class ZOneDragonApp(OneDragonApp, ZApplication):
     def __init__(self, ctx: ZContext):
         app_id = 'zzz_one_dragon'
         op_to_enter_game = OpenAndEnterGame(ctx)
+        op_to_stop_exe_and_switch_account = StopExeAndSwitchAccount(ctx)
         op_to_switch_account = SwitchAccount(ctx)
 
         ZApplication.__init__(self, ctx, app_id)
         OneDragonApp.__init__(self, ctx, app_id,
                               op_to_enter_game=op_to_enter_game,
+                              op_to_stop_exe_and_switch_account=op_to_stop_exe_and_switch_account,
                               op_to_switch_account=op_to_switch_account)
 
     def get_app_list(self) -> List[ZApplication]:
