@@ -5,6 +5,7 @@ from PySide6.QtGui import QMouseEvent
 from qfluentwidgets import PlainTextEdit, isDarkTheme
 from one_dragon.utils.log_utils import log as od_log
 from one_dragon.yolo.log_utils import log as yolo_log
+import re
 
 class LogSignal(QObject):
     new_log = Signal(str)
@@ -204,7 +205,7 @@ class LogDisplayCard(PlainTextEdit):
             # 2. 再处理绿色方括号内容（注意避免重复处理已经有HTML标签的部分）
             if '[' in log_item and ']' in log_item:
                 # 使用正则表达式来更精确地处理方括号，避免与HTML标签冲突
-                import re
+
                 pattern = r'\[([^\]]+)\]'
                 
                 def replace_brackets(match):
