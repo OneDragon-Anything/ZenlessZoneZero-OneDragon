@@ -303,15 +303,24 @@ try:
 except Exception as e:
     import ctypes
     import traceback
+    import webbrowser
 
     stack_trace = traceback.format_exc()
     _init_error = f"启动一条龙失败，报错信息如下:\n{stack_trace}"
+    
+    # 自动打开浏览器访问错误排障文档
+    try:
+        webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
+    except Exception:
+        pass  # 如果打开浏览器失败，不影响错误弹窗的显示
 
 
 # 初始化应用程序，并启动主窗口
 if __name__ == "__main__":
     if _init_error is not None:
-        ctypes.windll.user32.MessageBoxW(0, _init_error, "错误", 0x10)
+        # 显示错误弹窗，并提示用户已自动打开排障文档
+        error_message = f"{_init_error}\n\n已自动为您打开排障文档，请查看解决方案。"
+        ctypes.windll.user32.MessageBoxW(0, error_message, "错误", 0x10)
         sys.exit(1)
 
     QApplication.setHighDpiScaleFactorRoundingPolicy(
