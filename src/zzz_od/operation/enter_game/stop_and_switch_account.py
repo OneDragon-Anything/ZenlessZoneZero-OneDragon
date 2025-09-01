@@ -12,7 +12,7 @@ class StopExeAndSwitchAccount(ZOperation):
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
-        ZOperation.__init__(self, ctx, op_name=gt('切换账号'))
+        ZOperation.__init__(self, ctx, op_name=gt('停进程并切换账号'), need_check_game_win=False)
 
     @operation_node(name='打开下一个游戏', node_max_retry_times=3, is_start_node=True)
     def close_exe(self) -> OperationRoundResult:
@@ -28,6 +28,8 @@ class StopExeAndSwitchAccount(ZOperation):
             # 轮询等待窗口释放，最多15秒
             wait_left = 15
             while res == 0 and wait_left > 0:
+                # 刷新窗口句柄，避免旧缓存导致误判
+                self.ctx.controller.game_win.init_win()
                 if not self.ctx.controller.is_game_window_ready:
                     break
                 time.sleep(1)
