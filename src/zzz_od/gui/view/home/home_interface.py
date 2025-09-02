@@ -42,7 +42,7 @@ class ButtonGroup(SimpleCardWidget):
 
         self.setBorderRadius(12)
 
-        self.setFixedSize(66, 190)
+        self.setFixedSize(70, 190)
 
         # 添加阴影效果
         shadow = QGraphicsDropShadowEffect(self)
@@ -63,7 +63,7 @@ class ButtonGroup(SimpleCardWidget):
             tip_content="使用说明都能在这找到",
             isTooltip=True,
         )
-        home_button.setIconSize(QSize(36, 36))  # 增大图标
+        home_button.setIconSize(QSize(42, 42))
         home_button.clicked.connect(self.open_home)
         layout.addWidget(home_button)
 
@@ -74,7 +74,7 @@ class ButtonGroup(SimpleCardWidget):
             tip_content="如果本项目有帮助到您~\n不妨给项目点一个Star⭐",
             isTooltip=True,
         )
-        github_button.setIconSize(QSize(36, 36))  # 增大图标
+        github_button.setIconSize(QSize(42, 42))
         github_button.clicked.connect(self.open_github)
         layout.addWidget(github_button)
 
@@ -85,7 +85,7 @@ class ButtonGroup(SimpleCardWidget):
             tip_content="点击打开自助排障文档,好孩子都能看懂",
             isTooltip=True,
         )
-        doc_button.setIconSize(QSize(36, 36))  # 增大图标
+        doc_button.setIconSize(QSize(42, 42))
         doc_button.clicked.connect(self.open_doc)
         layout.addWidget(doc_button)
 
@@ -96,7 +96,7 @@ class ButtonGroup(SimpleCardWidget):
             tip_content="点击加入官方频道",
             isTooltip=True,
         )
-        chat_button.setIconSize(QSize(36, 36))  # 增大图标
+        chat_button.setIconSize(QSize(42, 42))
         chat_button.clicked.connect(self.open_chat)
         layout.addWidget(chat_button)
 
@@ -107,7 +107,7 @@ class ButtonGroup(SimpleCardWidget):
             tip_content="当然没有官方店铺,本软件完全免费, 速速加入官方社群!",
             isTooltip=True,
         )
-        shop_button.setIconSize(QSize(36, 36))  # 增大图标
+        shop_button.setIconSize(QSize(42, 42))
         shop_button.clicked.connect(self.open_sales)
         layout.addWidget(shop_button)
 

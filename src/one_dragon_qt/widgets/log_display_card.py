@@ -74,7 +74,7 @@ class LogDisplayCard(PlainTextEdit):
         # 设置自动滚动
         self.auto_scroll = False
 
-        # 更新频率（毫秒）
+        # 更新频率(毫秒)
         self.update_frequency = 100 
 
         # 日志是否运行
@@ -89,11 +89,11 @@ class LogDisplayCard(PlainTextEdit):
     def init_color(self):
         """根据主题设置颜色"""
         if isDarkTheme():
-            self._color = '#00D9A3'  # 绿色（方括号内容）
-            self._error_color = '#FF6B6B'  # 红色（错误关键字）
+            self._color = '#00D9A3'  # 绿色(方括号内容)
+            self._error_color = '#FF6B6B'  # 红色(错误关键字)
         else:
-            self._color = '#00A064'  # 绿色（方括号内容）
-            self._error_color = '#E74C3C'  # 红色（错误关键字）
+            self._color = '#00A064'  # 绿色(方括号内容)
+            self._error_color = '#E74C3C'  # 红色(错误关键字)
 
     def start(self, clear_log: bool = False):
         """启动日志显示"""
@@ -202,7 +202,7 @@ class LogDisplayCard(PlainTextEdit):
                         f'<span style="color: {self._error_color}; font-weight: bold;">{keyword}</span>'
                     )
             
-            # 2. 再处理绿色方括号内容（注意避免重复处理已经有HTML标签的部分）
+            # 2. 再处理绿色方括号内容(注意避免重复处理已经有HTML标签的部分)
             if '[' in log_item and ']' in log_item:
                 # 使用正则表达式来更精确地处理方括号，避免与HTML标签冲突
 
@@ -210,7 +210,7 @@ class LogDisplayCard(PlainTextEdit):
                 
                 def replace_brackets(match):
                     content = match.group(1)
-                    # 检查是否已经被HTML标签包围（避免重复处理）
+                    # 检查是否已经被HTML标签包围(避免重复处理)
                     if '<span' in content or '</span>' in content:
                         return match.group(0)  # 返回原始内容
                     return f'[<span style="color: {self._color};">{content}</span>]'
