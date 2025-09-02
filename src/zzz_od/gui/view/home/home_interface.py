@@ -90,7 +90,7 @@ class ButtonGroup(SimpleCardWidget):
         layout.addWidget(doc_button)
 
         # 创建 频道 按钮
-        chat_button = IconButton(  # 修改变量名避免重复
+        chat_button = IconButton(
             FluentIcon.CHAT.icon(color=QColor("#fff")),
             tip_title="官方社群",
             tip_content="点击加入官方频道",
@@ -101,7 +101,7 @@ class ButtonGroup(SimpleCardWidget):
         layout.addWidget(chat_button)
 
         # 创建 官方店铺 按钮 (当然没有)
-        shop_button = IconButton(  # 修改变量名避免重复
+        shop_button = IconButton(
             FluentIcon.SHOPPING_CART.icon(color=QColor("#fff")),
             tip_title="官方店铺",
             tip_content="当然没有官方店铺,本软件完全免费, 速速加入官方社群!",
