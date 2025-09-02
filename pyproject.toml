@@ -27,9 +27,49 @@ dev = [
     "pyinstaller==6.7.0",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
+    "ruff==0.12.10",
 ]
 
 [tool.uv]
 package = false
 cache-dir = "./.install/uv_cache"
 default-groups = []
+
+# Ruff configuration
+[tool.ruff]
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+# Assume Python 3.11
+target-version = "py311"
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`) codes by default.
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "C",      # mccabe
+    "B",      # bugbear
+    "UP",     # pyupgrade
+    "SIM",    # simplify
+    "TID",    # tidy imports
+]
+extend-ignore = [
+    "E501",   # line too long - already handled by black style
+]
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
