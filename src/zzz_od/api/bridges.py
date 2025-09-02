@@ -44,7 +44,7 @@ def attach_run_event_bridge(ctx: ZContext, run_id: str) -> Callable[[], None]:
 
         def on_running_state(self, event):  # bound method, has __self__
             state = event.data
-            status_text = getattr(self.ctx, 'context_running_status_text', None)
+            status_text = self.ctx.context_running_status_text
             agg = build_onedragon_aggregate(self.ctx)
             display_text = f"{status_text} ({int(agg['progress']*100)}%)"
             self.registry.update_message(self.run_id, display_text)

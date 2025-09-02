@@ -164,7 +164,7 @@ def create_instance(payload: Dict[str, Any] | None = None):
         _track_api_call(ctx, 'create_instance', {
             'new_instance_idx': new_inst.idx,
             'new_instance_name': refreshed.name,
-            'custom_name_provided': name is not None and name.strip(),
+            'custom_name_provided': bool(name and name.strip()),
             'renamed': renamed,
             'activated_immediately': activated,
             'previous_instance_count': previous_instance_count,
@@ -185,7 +185,7 @@ def create_instance(payload: Dict[str, Any] | None = None):
         # 记录失败的创建实例埋点
         duration = time.time() - start_time
         _track_api_call(ctx, 'create_instance', {
-            'custom_name_provided': name is not None and name.strip(),
+            'custom_name_provided':bool(name and name.strip()),
             'activate_requested': activate,
             'previous_instance_count': previous_instance_count,
             'success': False,
