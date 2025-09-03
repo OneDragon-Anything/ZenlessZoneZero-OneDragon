@@ -1,6 +1,6 @@
 version = 1
 revision = 3
-requires-python = ">=3.11.9, <=3.11.13"
+requires-python = ">=3.11.9, <3.12"
 resolution-markers = [
     "sys_platform == 'win32'",
 ]
