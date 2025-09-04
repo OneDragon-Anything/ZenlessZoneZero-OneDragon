@@ -5,7 +5,7 @@ from one_dragon.utils.i18_utils import gt
 class HelpCard(HyperlinkCard):
     def __init__(self,
                  url: str = '',
-                 text: str = '前往',
+                 text: str = '点此查看指南',
                  title: str = '使用说明',
                  content: str = '先看说明 再使用与提问',
                  parent=None):

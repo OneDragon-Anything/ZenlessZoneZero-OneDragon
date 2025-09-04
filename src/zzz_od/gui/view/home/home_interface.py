@@ -56,6 +56,9 @@ class ButtonGroup(SimpleCardWidget):
         layout.setSpacing(8)  # 增加按钮间距
         layout.setContentsMargins(8, 8, 8, 8)  # 增加内边距
 
+        # 存储按钮列表，用于自动提示演示
+        self.buttons = []
+
         # 创建主页按钮
         home_button = IconButton(
             FluentIcon.HOME.icon(color=QColor("#fff")),
@@ -66,6 +69,7 @@ class ButtonGroup(SimpleCardWidget):
         home_button.setIconSize(QSize(42, 42))
         home_button.clicked.connect(self.open_home)
         layout.addWidget(home_button)
+        self.buttons.append(home_button)
 
         # 创建 GitHub 按钮
         github_button = IconButton(
@@ -77,6 +81,7 @@ class ButtonGroup(SimpleCardWidget):
         github_button.setIconSize(QSize(42, 42))
         github_button.clicked.connect(self.open_github)
         layout.addWidget(github_button)
+        self.buttons.append(github_button)
 
         # 创建 文档 按钮
         doc_button = IconButton(
@@ -88,6 +93,7 @@ class ButtonGroup(SimpleCardWidget):
         doc_button.setIconSize(QSize(42, 42))
         doc_button.clicked.connect(self.open_doc)
         layout.addWidget(doc_button)
+        self.buttons.append(doc_button)
 
         # 创建 频道 按钮
         chat_button = IconButton(
@@ -99,6 +105,7 @@ class ButtonGroup(SimpleCardWidget):
         chat_button.setIconSize(QSize(42, 42))
         chat_button.clicked.connect(self.open_chat)
         layout.addWidget(chat_button)
+        self.buttons.append(chat_button)
 
         # 创建 官方店铺 按钮 (当然没有)
         shop_button = IconButton(
@@ -110,6 +117,13 @@ class ButtonGroup(SimpleCardWidget):
         shop_button.setIconSize(QSize(42, 42))
         shop_button.clicked.connect(self.open_sales)
         layout.addWidget(shop_button)
+        self.buttons.append(shop_button)
+
+        # 初始化自动提示定时器
+        self.tooltip_timer = QTimer(self)
+        self.tooltip_timer.timeout.connect(self._show_next_tooltip)
+        self.current_button_index = 0
+        self.tooltip_demo_active = False
 
         # 未完工区域, 暂时隐藏
         # # 添加一个可伸缩的空白区域
@@ -121,6 +135,40 @@ class ButtonGroup(SimpleCardWidget):
         # )
         # sync_button.setIconSize(QSize(32, 32))
         # layout.addWidget(sync_button)
+
+    def start_tooltip_demo(self):
+        """启动自动提示演示"""
+        if self.tooltip_demo_active:
+            return
+            
+        self.tooltip_demo_active = True
+        self.current_button_index = 0
+        # 延迟2秒开始，每1.5秒切换一个按钮
+        QTimer.singleShot(2000, self._start_demo_timer)
+        
+    def _start_demo_timer(self):
+        """开始演示定时器"""
+        if self.tooltip_demo_active:
+            self.tooltip_timer.start(1500)
+        
+    def _show_next_tooltip(self):
+        """显示下一个按钮的提示"""
+        if not self.tooltip_demo_active:
+            return
+            
+        # 先隐藏所有现有的提示
+        for btn in self.buttons:
+            btn._hide_tooltip()
+            
+        if self.current_button_index < len(self.buttons):
+            button = self.buttons[self.current_button_index]
+            # 显示当前按钮的提示
+            button._show_tooltip()
+            self.current_button_index += 1
+        else:
+            # 演示完成，隐藏最后一个提示并停止定时器
+            self.tooltip_timer.stop()
+            self.tooltip_demo_active = False
 
     def _normalBackgroundColor(self):
         # 使用更鲜艳的渐变背景，增强视觉效果
@@ -318,9 +366,9 @@ class HomeInterface(VerticalScrollInterface):
         h1_layout.addStretch()
 
         # 按钮组
-        button_group = ButtonGroup()
-        button_group.setMaximumHeight(320)
-        h1_layout.addWidget(button_group)
+        self.button_group = ButtonGroup()
+        self.button_group.setMaximumHeight(320)
+        h1_layout.addWidget(self.button_group)
 
         # 空白占位符
         h1_layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
@@ -480,6 +528,10 @@ class HomeInterface(VerticalScrollInterface):
 
         # 初始化主题色，避免navbar颜色闪烁
         self._update_start_button_style_from_banner()
+
+        # 启动导航栏按钮自动提示演示
+        if hasattr(self, 'button_group'):
+            self.button_group.start_tooltip_demo()
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
