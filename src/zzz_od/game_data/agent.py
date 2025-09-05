@@ -353,8 +353,8 @@ class AgentEnum(Enum):
 
     SEED = Agent('seed', '席德', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ELECTRIC, ['seed'],
                     state_list=[
-                        AgentStateDef('钢能', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                        AgentStateDef('席德-钢能', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                       template_id='seed',
-                                      hsv_color=(14,182,231), hsv_color_diff=(256,100,256),
-                                      max_length=100)
+                                      hsv_color=(90,255,255), hsv_color_diff=(89,55,55),
+                                      max_length=150)
                     ])

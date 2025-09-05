@@ -35,6 +35,13 @@ handlers:
               - op_name: "清除状态"
                 state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
+          # 副C打完输出就应该走了
+          - states: "[前台-强攻] & [后台-席德] & ![前台-特殊技可用]"
+            debug_name: "席德打输出了"
+            operations:
+              - op_name: "按键-切换角色"
+                agent_name: "席德"
+
           # 没有上面的几位高贵，就藏这里好了
           - states: ""
             sub_handlers:
