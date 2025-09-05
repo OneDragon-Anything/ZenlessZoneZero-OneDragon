@@ -74,7 +74,7 @@ class AutoBattleInterface(AppRunInterface):
 
         self.screenshot_interval_opt = DoubleSpinBoxSettingCard(
             icon=FluentIcon.GAME, title='截图间隔(秒)',
-            content='游戏画面掉帧的话 可以适当加大截图间隔',
+            content='游戏画面掉帧的话 可以适当加大截图间隔(小心,太久会关不掉软件的)',
         )
         top_widget.add_widget(self.screenshot_interval_opt)
 

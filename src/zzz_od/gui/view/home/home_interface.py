@@ -63,7 +63,7 @@ class ButtonGroup(SimpleCardWidget):
         home_button = IconButton(
             FluentIcon.HOME.icon(color=QColor("#fff")),
             tip_title="一条龙官网",
-            tip_content="使用说明都能在这找到",
+            tip_content="🏠一条龙软件说明书>>",
             isTooltip=True,
         )
         home_button.setIconSize(QSize(42, 42))
@@ -75,7 +75,7 @@ class ButtonGroup(SimpleCardWidget):
         github_button = IconButton(
             FluentIcon.GITHUB.icon(color=QColor("#fff")),
             tip_title="GitHub仓库",
-            tip_content="如果本项目有帮助到您~\n不妨给项目点一个Star⭐",
+            tip_content="⭐点击收藏关注项目动态",
             isTooltip=True,
         )
         github_button.setIconSize(QSize(42, 42))
@@ -87,7 +87,7 @@ class ButtonGroup(SimpleCardWidget):
         doc_button = IconButton(
             FluentIcon.LIBRARY.icon(color=QColor("#fff")),
             tip_title="自助排障文档",
-            tip_content="点击打开自助排障文档,好孩子都能看懂",
+            tip_content="📕遇到问题? 查看更详细文档教程",
             isTooltip=True,
         )
         doc_button.setIconSize(QSize(42, 42))
@@ -98,8 +98,8 @@ class ButtonGroup(SimpleCardWidget):
         # 创建 频道 按钮
         chat_button = IconButton(
             FluentIcon.CHAT.icon(color=QColor("#fff")),
-            tip_title="官方社群",
-            tip_content="点击加入官方频道",
+            tip_title="官方 社群",
+            tip_content="🔥立刻点击加入火辣官方社区>>>>",
             isTooltip=True,
         )
         chat_button.setIconSize(QSize(42, 42))
@@ -110,8 +110,8 @@ class ButtonGroup(SimpleCardWidget):
         # 创建 官方店铺 按钮 (当然没有)
         shop_button = IconButton(
             FluentIcon.SHOPPING_CART.icon(color=QColor("#fff")),
-            tip_title="官方店铺",
-            tip_content="当然没有官方店铺,本软件完全免费, 速速加入官方社群!",
+            tip_title="🏅官方店铺???",
+            tip_content="💵限时劲爆特惠仅需0元点击马上加入会员>>",
             isTooltip=True,
         )
         shop_button.setIconSize(QSize(42, 42))
