@@ -40,12 +40,21 @@ class ButtonGroup(SimpleCardWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 
-        self.setBorderRadius(4)
+        self.setBorderRadius(12)
 
-        self.setFixedSize(56, 180)
+        self.setFixedSize(70, 190)
+
+        # 添加阴影效果
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(30)
+        shadow.setOffset(0, 8)
+        shadow.setColor(QColor(0, 0, 0, 160))
+        self.setGraphicsEffect(shadow)
 
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.setSpacing(8)  # 增加按钮间距
+        layout.setContentsMargins(8, 8, 8, 8)  # 增加内边距
 
         # 创建主页按钮
         home_button = IconButton(
@@ -54,7 +63,7 @@ class ButtonGroup(SimpleCardWidget):
             tip_content="使用说明都能在这找到",
             isTooltip=True,
         )
-        home_button.setIconSize(QSize(32, 32))
+        home_button.setIconSize(QSize(42, 42))
         home_button.clicked.connect(self.open_home)
         layout.addWidget(home_button)
 
@@ -65,7 +74,7 @@ class ButtonGroup(SimpleCardWidget):
             tip_content="如果本项目有帮助到您~\n不妨给项目点一个Star⭐",
             isTooltip=True,
         )
-        github_button.setIconSize(QSize(32, 32))
+        github_button.setIconSize(QSize(42, 42))
         github_button.clicked.connect(self.open_github)
         layout.addWidget(github_button)
 
@@ -76,31 +85,31 @@ class ButtonGroup(SimpleCardWidget):
             tip_content="点击打开自助排障文档,好孩子都能看懂",
             isTooltip=True,
         )
-        doc_button.setIconSize(QSize(32, 32))
+        doc_button.setIconSize(QSize(42, 42))
         doc_button.clicked.connect(self.open_doc)
         layout.addWidget(doc_button)
 
-        # 创建 Q群 按钮
-        doc_button = IconButton(
+        # 创建 频道 按钮
+        chat_button = IconButton(
             FluentIcon.CHAT.icon(color=QColor("#fff")),
             tip_title="官方社群",
-            tip_content="点击加入官方频道【一条龍】",
+            tip_content="点击加入官方频道",
             isTooltip=True,
         )
-        doc_button.setIconSize(QSize(32, 32))
-        doc_button.clicked.connect(self.open_chat)
-        layout.addWidget(doc_button)
+        chat_button.setIconSize(QSize(42, 42))
+        chat_button.clicked.connect(self.open_chat)
+        layout.addWidget(chat_button)
 
         # 创建 官方店铺 按钮 (当然没有)
-        doc_button = IconButton(
+        shop_button = IconButton(
             FluentIcon.SHOPPING_CART.icon(color=QColor("#fff")),
             tip_title="官方店铺",
             tip_content="当然没有官方店铺,本软件完全免费, 速速加入官方社群!",
             isTooltip=True,
         )
-        doc_button.setIconSize(QSize(32, 32))
-        doc_button.clicked.connect(self.open_sales)
-        layout.addWidget(doc_button)
+        shop_button.setIconSize(QSize(42, 42))
+        shop_button.clicked.connect(self.open_sales)
+        layout.addWidget(shop_button)
 
         # 未完工区域, 暂时隐藏
         # # 添加一个可伸缩的空白区域
@@ -114,7 +123,8 @@ class ButtonGroup(SimpleCardWidget):
         # layout.addWidget(sync_button)
 
     def _normalBackgroundColor(self):
-        return QColor(0, 0, 0, 96)
+        # 使用更鲜艳的渐变背景，增强视觉效果
+        return QColor(0, 0, 0, 140)  # 增加透明度使其更显眼
 
     def open_home(self):
         """打开主页链接"""
@@ -131,8 +141,8 @@ class ButtonGroup(SimpleCardWidget):
         QDesktopServices.openUrl(QUrl("https://pd.qq.com/s/fumylgkj4"))
 
     def open_doc(self):
-        """打开 巡夜的金山文档 链接"""
-        QDesktopServices.openUrl(QUrl("https://kdocs.cn/l/cbSJUUNotJ3Z"))
+        """打开 腾讯文档 链接, 感谢历任薪王的付出 """
+        QDesktopServices.openUrl(QUrl("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5"))
 
     def open_sales(self):
         """打开 Q群 链接"""

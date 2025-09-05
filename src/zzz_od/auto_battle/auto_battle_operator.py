@@ -50,16 +50,18 @@ class AutoBattleOperator(ConditionalOperator):
         self.ctx: ZContext = ctx
 
         # 初始化一个检查器 用于检查配置文件是否存在
-        check_operator = ConditionalOperator(
-            sub_dir=sub_dir,
-            template_name=template_name,
-            is_mock=is_mock
-        )
+        check_operator = ConditionalOperator(sub_dir, template_name)
 
         # 检查文件是否存在，如果不存在则使用回退配置
         if not check_operator.is_file_exists:
             log.warning(f'自动战斗配置 {template_name} 不存在，回退到 {FALLBACK_TEMPLATE_NAME}')
             template_name = FALLBACK_TEMPLATE_NAME
+
+        # 显式释放临时检查器的资源，然后丢弃引用
+        try:
+            check_operator.dispose()
+        finally:
+            check_operator = None
 
         ConditionalOperator.__init__(
             self,
