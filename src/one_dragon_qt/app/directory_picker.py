@@ -20,6 +20,7 @@ class DirectoryPickerTranslator:
                 'placeholder': '选择安装路径...',
                 'browse': '浏览',
                 'confirm': '确认',
+                'help': '帮助',
                 'select_directory': '选择目录',
                 'warning': '警告',
                 'root_directory_warning': '所选目录为根目录，请选择其他目录。',
@@ -34,6 +35,7 @@ class DirectoryPickerTranslator:
                 'placeholder': 'Select installation path...',
                 'browse': 'Browse',
                 'confirm': 'Confirm',
+                'help': 'Help',
                 'select_directory': 'Select Directory',
                 'warning': 'Warning',
                 'root_directory_warning': 'The selected directory is a root directory, please select another directory.',
@@ -68,11 +70,12 @@ class DirectoryPickerTranslator:
 class DirectoryPickerInterface(QWidget):
     """路径选择器界面"""
 
-    def __init__(self, parent=None, icon_path=None):
+    def __init__(self, parent=None, icon_path=None, project_config=None):
         QWidget.__init__(self, parent=parent)
         self.setObjectName("directory_picker_interface")
         self.selected_path = ""
         self.icon_path = icon_path
+        self.project_config = project_config
         self.translator = DirectoryPickerTranslator(DirectoryPickerTranslator.detect_language())
         self._init_ui()
 
@@ -83,10 +86,22 @@ class DirectoryPickerInterface(QWidget):
         main_layout.setContentsMargins(40, 10, 40, 40)
         main_layout.setSpacing(20)
 
-        # 语言切换按钮
+        # 语言切换按钮和帮助按钮
+        top_button_layout = QHBoxLayout()
         self.language_btn = ToolButton(FluentIcon.LANGUAGE)
         self.language_btn.clicked.connect(self._on_language_switch)
-        main_layout.addWidget(self.language_btn)
+        top_button_layout.addWidget(self.language_btn)
+        
+        top_button_layout.addStretch()
+        
+        # 添加帮助按钮（如果有项目配置）
+        if self.project_config:
+            self.help_btn = ToolButton(FluentIcon.DICTIONARY)
+            self.help_btn.setToolTip(self.translator.get_text('help'))
+            self.help_btn.clicked.connect(self._on_help_clicked)
+            top_button_layout.addWidget(self.help_btn)
+        
+        main_layout.addLayout(top_button_layout)
 
         # 图标区域
         if self.icon_path:
@@ -212,6 +227,13 @@ class DirectoryPickerInterface(QWidget):
                 window.selected_directory = self.selected_path
                 window.close()
 
+    def _on_help_clicked(self):
+        """帮助按钮点击事件"""
+        if self.project_config and hasattr(self.project_config, 'quick_start_link'):
+            from PySide6.QtGui import QDesktopServices
+            from PySide6.QtCore import QUrl
+            QDesktopServices.openUrl(QUrl(self.project_config.quick_start_link))
+
     def _on_language_switch(self):
         """语言切换按钮点击事件"""
         current_lang = self.translator.language
@@ -225,18 +247,22 @@ class DirectoryPickerInterface(QWidget):
         self.path_input.setPlaceholderText(self.translator.get_text('placeholder'))
         self.browse_btn.setText(self.translator.get_text('browse'))
         self.confirm_btn.setText(self.translator.get_text('confirm'))
+        if hasattr(self, 'help_btn'):
+            self.help_btn.setToolTip(self.translator.get_text('help'))
 
 
 class DirectoryPickerWindow(PhosWindow):
 
     def __init__(self,
                  parent=None,
-                 icon_path=None):
+                 icon_path=None,
+                 project_config=None):
         PhosWindow.__init__(self, parent=parent)
         self.setTitleBar(SplitTitleBar(self))
         self._last_stack_idx: int = 0
         self.selected_directory: str = ""
         self.icon_path = icon_path
+        self.project_config = project_config
 
         # 设置为模态窗口
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
@@ -272,8 +298,8 @@ class DirectoryPickerWindow(PhosWindow):
         创建子页面
         :return:
         """
-        # 创建路径选择器界面，传入图标路径
-        self.picker_interface = DirectoryPickerInterface(self, self.icon_path)
+        # 创建路径选择器界面，传入图标路径和项目配置
+        self.picker_interface = DirectoryPickerInterface(self, self.icon_path, self.project_config)
         self.addSubInterface(self.picker_interface, FluentIcon.FOLDER_ADD, "")
 
     def init_window(self):

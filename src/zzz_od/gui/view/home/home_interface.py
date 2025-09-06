@@ -37,8 +37,9 @@ from zzz_od.context.zzz_context import ZContext
 class ButtonGroup(SimpleCardWidget):
     """显示主页和 GitHub 按钮的竖直按钮组"""
 
-    def __init__(self, parent=None):
+    def __init__(self, ctx: ZContext, parent=None):
         super().__init__(parent=parent)
+        self.ctx = ctx
 
         self.setBorderRadius(12)
 
@@ -141,6 +142,9 @@ class ButtonGroup(SimpleCardWidget):
             return
             
         self.tooltip_demo_active = True
+        # 临时禁用所有按钮的鼠标悬停事件处理
+        self._disable_buttons_hover()
+        
         # 延迟2秒后同时显示所有提示（使用对象持有的单次定时器）
         if not hasattr(self, "_show_timer"):
             self._show_timer = QTimer(self)
@@ -174,6 +178,8 @@ class ButtonGroup(SimpleCardWidget):
             if callable(hide_fn):
                 hide_fn()
         self.tooltip_demo_active = False
+        # 重新启用所有按钮的鼠标悬停事件处理
+        self._enable_buttons_hover()
         
     def stop_tooltip_demo(self):
         """停止提示演示并立即隐藏所有提示"""
@@ -184,6 +190,20 @@ class ButtonGroup(SimpleCardWidget):
         if hasattr(self, "_hide_timer"):
             self._hide_timer.stop()
         self._hide_all_tooltips()
+        
+    def _disable_buttons_hover(self):
+        """临时禁用所有按钮的鼠标悬停事件处理"""
+        for btn in self.buttons:
+            if hasattr(btn, 'removeEventFilter'):
+                btn.removeEventFilter(btn)
+                btn._hover_disabled = True
+                
+    def _enable_buttons_hover(self):
+        """重新启用所有按钮的鼠标悬停事件处理"""
+        for btn in self.buttons:
+            if hasattr(btn, '_hover_disabled') and btn._hover_disabled:
+                btn.installEventFilter(btn)
+                btn._hover_disabled = False
         
     def _start_demo_timer(self):
         """开始演示定时器 - 不再使用，保留以兼容"""
@@ -199,25 +219,23 @@ class ButtonGroup(SimpleCardWidget):
 
     def open_home(self):
         """打开主页链接"""
-        QDesktopServices.openUrl(QUrl("https://one-dragon.com/zzz/zh/home.html"))
+        QDesktopServices.openUrl(QUrl(self.ctx.project_config.home_page_link))
 
     def open_github(self):
         """打开 GitHub 链接"""
-        QDesktopServices.openUrl(
-            QUrl("https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon")
-        )
+        QDesktopServices.openUrl(QUrl(self.ctx.project_config.github_homepage))
 
     def open_chat(self):
         """打开 频道 链接"""
-        QDesktopServices.openUrl(QUrl("https://pd.qq.com/s/fumylgkj4"))
+        QDesktopServices.openUrl(QUrl(self.ctx.project_config.chat_link))
 
     def open_doc(self):
         """打开 腾讯文档 链接, 感谢历任薪王的付出 """
-        QDesktopServices.openUrl(QUrl("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5"))
+        QDesktopServices.openUrl(QUrl(self.ctx.project_config.doc_link))
 
     def open_sales(self):
         """打开 Q群 链接"""
-        QDesktopServices.openUrl(QUrl("https://qm.qq.com/q/N5iEy8sTu0"))
+        QDesktopServices.openUrl(QUrl(self.ctx.project_config.qq_link))
 
 class BaseThread(QThread):
     """基础线程类，提供统一的 _is_running 管理"""
@@ -389,7 +407,7 @@ class HomeInterface(VerticalScrollInterface):
         h1_layout.addStretch()
 
         # 按钮组
-        self.button_group = ButtonGroup()
+        self.button_group = ButtonGroup(self.ctx)
         self.button_group.setMaximumHeight(320)
         h1_layout.addWidget(self.button_group)
 
