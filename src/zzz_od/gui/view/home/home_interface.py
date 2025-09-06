@@ -141,31 +141,48 @@ class ButtonGroup(SimpleCardWidget):
             return
             
         self.tooltip_demo_active = True
-        # 延迟2秒后同时显示所有提示
-        QTimer.singleShot(2000, self._show_all_tooltips)
-        
+        # 延迟2秒后同时显示所有提示（使用对象持有的单次定时器）
+        if not hasattr(self, "_show_timer"):
+            self._show_timer = QTimer(self)
+            self._show_timer.setSingleShot(True)
+            self._show_timer.timeout.connect(self._show_all_tooltips)
+        if not hasattr(self, "_hide_timer"):
+            self._hide_timer = QTimer(self)
+            self._hide_timer.setSingleShot(True)
+            self._hide_timer.timeout.connect(self._hide_all_tooltips)
+        self._show_timer.start(2000)
+
     def _show_all_tooltips(self):
         """同时显示所有按钮的提示"""
         if not self.tooltip_demo_active:
             return
             
-        # 同时显示所有按钮的提示
+        # 同时显示所有按钮的提示（优先使用公开方法）
         for btn in self.buttons:
-            btn._show_tooltip()
-            
-        # 3秒后自动隐藏所有提示
-        QTimer.singleShot(3000, self._hide_all_tooltips)
-        
+            show_fn = getattr(btn, "show_tooltip", None) or getattr(btn, "_show_tooltip", None)
+            if callable(show_fn):
+                show_fn()
+
+        # 3秒后自动隐藏所有提示（对象级计时器，便于 stop 时取消）
+        if hasattr(self, "_hide_timer"):
+            self._hide_timer.start(3000)
+
     def _hide_all_tooltips(self):
         """隐藏所有按钮的提示"""
         for btn in self.buttons:
-            btn._hide_tooltip()
+            hide_fn = getattr(btn, "hide_tooltip", None) or getattr(btn, "_hide_tooltip", None)
+            if callable(hide_fn):
+                hide_fn()
         self.tooltip_demo_active = False
         
     def stop_tooltip_demo(self):
         """停止提示演示并立即隐藏所有提示"""
         self.tooltip_demo_active = False
         self.tooltip_timer.stop()
+        if hasattr(self, "_show_timer"):
+            self._show_timer.stop()
+        if hasattr(self, "_hide_timer"):
+            self._hide_timer.stop()
         self._hide_all_tooltips()
         
     def _start_demo_timer(self):
