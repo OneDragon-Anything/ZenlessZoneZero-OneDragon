@@ -188,7 +188,9 @@ class PcControllerBase(ControllerBase):
         :return:
         """
         try:
-            self.game_win.get_win().close()
+            import subprocess
+            win_title = self.game_win.win_title
+            subprocess.run(["taskkill", "/f", "/fi", f"WINDOWTITLE eq {win_title}"], check=True, capture_output=True)
             log.info('关闭游戏成功')
         except:
             log.error('关闭游戏失败', exc_info=True)
