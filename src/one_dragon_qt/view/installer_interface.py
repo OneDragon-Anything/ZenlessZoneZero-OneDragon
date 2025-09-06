@@ -329,10 +329,10 @@ class InstallStepWidget(QWidget):
                         ctx = card.ctx
                         break
             
-            if ctx and hasattr(ctx, 'project_config') and hasattr(ctx.project_config, 'doc_link'):
+            if ctx and hasattr(ctx, 'project_config'):
                 webbrowser.open(ctx.project_config.doc_link)
             else:
-                webbrowser.open(ctx.project_config.doc_link)
+                log.warning("未找到可用的 ctx，无法打开帮助文档")
             log.info("步骤安装失败，已自动打开帮助文档")
             
             self.step_completed.emit(False)
