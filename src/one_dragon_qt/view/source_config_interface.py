@@ -223,28 +223,16 @@ class SourceConfigInterface(VerticalScrollInterface):
 
     def _on_help_clicked(self):
         """点击帮助按钮时打开排障文档"""
-        try:
-            webbrowser.open(self.ctx.project_config.doc_link)
-        except Exception as e:
-            print(f"无法打开浏览器: {e}")
+        webbrowser.open(self.ctx.project_config.doc_link)
 
     def _on_qq_channel_clicked(self):
         """点击官方社区按钮时打开官方社区"""
-        try:
-            webbrowser.open(self.ctx.project_config.chat_link)
-        except Exception as e:
-            print(f"无法打开官方社区: {e}")
+        webbrowser.open(self.ctx.project_config.chat_link)
 
     def _on_website_clicked(self):
         """点击官网按钮时打开官网"""
-        try:
-            webbrowser.open(self.ctx.project_config.home_page_link)
-        except Exception as e:
-            print(f"无法打开官网: {e}")
+        webbrowser.open(self.ctx.project_config.home_page_link)
 
     def _on_github_clicked(self):
         """点击GitHub按钮时打开GitHub仓库"""
-        try:
-            webbrowser.open(self.ctx.project_config.github_homepage)
-        except Exception as e:
-            print(f"无法打开GitHub仓库: {e}")
+        webbrowser.open(self.ctx.project_config.github_homepage)

@@ -321,22 +321,19 @@ class InstallStepWidget(QWidget):
             self.installing_idx = -1
             
             # 安装失败时自动打开帮助文档
-            try:
-                # 通过父级的ctx获取配置
-                ctx = None
-                if hasattr(self, 'install_cards') and self.install_cards:
-                    for card in self.install_cards:
-                        if hasattr(card, 'ctx'):
-                            ctx = card.ctx
-                            break
-                
-                if ctx and hasattr(ctx, 'project_config') and hasattr(ctx.project_config, 'doc_link'):
-                    webbrowser.open(ctx.project_config.doc_link)
-                else:
-                    webbrowser.open(ctx.project_config.doc_link)
-                log.info("步骤安装失败，已自动打开帮助文档")
-            except Exception as e:
-                log.error(f"无法打开帮助文档: {e}")
+            # 通过父级的ctx获取配置
+            ctx = None
+            if hasattr(self, 'install_cards') and self.install_cards:
+                for card in self.install_cards:
+                    if hasattr(card, 'ctx'):
+                        ctx = card.ctx
+                        break
+            
+            if ctx and hasattr(ctx, 'project_config') and hasattr(ctx.project_config, 'doc_link'):
+                webbrowser.open(ctx.project_config.doc_link)
+            else:
+                webbrowser.open(ctx.project_config.doc_link)
+            log.info("步骤安装失败，已自动打开帮助文档")
             
             self.step_completed.emit(False)
         else:
@@ -665,16 +662,11 @@ class InstallerInterface(VerticalScrollInterface):
                 self.show_completion_message()
         else:
             # 安装失败时自动打开帮助文档
-            try:
-                webbrowser.open(self.ctx.project_config.doc_link)
-                log.info("安装失败，已自动打开帮助文档")
-                # 更新进度标签显示文档已打开的信息
-                self.progress_label.setText(gt('安装失败！已自动打开排障文档'))
-                self.progress_label.setStyleSheet("color: #d13438;")
-            except Exception as e:
-                log.error(f"无法打开帮助文档: {e}")
-                self.progress_label.setText(gt('安装失败！请手动访问排障文档'))
-                self.progress_label.setStyleSheet("color: #d13438;")
+            webbrowser.open(self.ctx.project_config.doc_link)
+            log.info("安装失败，已自动打开帮助文档")
+            # 更新进度标签显示文档已打开的信息
+            self.progress_label.setText(gt('安装失败！已自动打开排障文档'))
+            self.progress_label.setStyleSheet("color: #d13438;")
             
             self.progress_label.setVisible(True)
             self.install_btn.setVisible(True)
@@ -971,13 +963,9 @@ class InstallerInterface(VerticalScrollInterface):
         self.progress_label.setVisible(not success)
         if not success:
             # 资源解压失败时自动打开帮助文档
-            try:
-                webbrowser.open(self.ctx.project_config.doc_link)
-                log.info("资源解压失败，已自动打开帮助文档")
-                self.progress_label.setText(gt('资源解压失败！已自动打开排障文档'))
-            except Exception as e:
-                log.error(f"无法打开帮助文档: {e}")
-                self.progress_label.setText(gt('资源解压失败！请手动访问排障文档'))
+            webbrowser.open(self.ctx.project_config.doc_link)
+            log.info("资源解压失败，已自动打开帮助文档")
+            self.progress_label.setText(gt('资源解压失败！已自动打开排障文档'))
             self.progress_label.setStyleSheet("color: #d13438;")
 
     def on_interface_shown(self) -> None:
