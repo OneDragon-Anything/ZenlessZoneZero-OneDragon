@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
@@ -24,10 +24,10 @@ class CoffeeCardNumEnum(Enum):
     NUM_1 = ConfigItem('1', desc='挑战体力计划外的副本时，选择最少数量')
 
 
-class CoffeeConfig(YamlConfig):
+class CoffeeConfig(UserConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+        UserConfig.__init__(
             self,
             module_name='coffee',
             instance_idx=instance_idx,
