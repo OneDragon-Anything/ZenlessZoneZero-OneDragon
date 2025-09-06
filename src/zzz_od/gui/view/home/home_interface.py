@@ -122,7 +122,6 @@ class ButtonGroup(SimpleCardWidget):
         # 初始化自动提示定时器
         self.tooltip_timer = QTimer(self)
         self.tooltip_timer.timeout.connect(self._show_next_tooltip)
-        self.current_button_index = 0
         self.tooltip_demo_active = False
 
         # 未完工区域, 暂时隐藏
@@ -142,33 +141,40 @@ class ButtonGroup(SimpleCardWidget):
             return
             
         self.tooltip_demo_active = True
-        self.current_button_index = 0
-        # 延迟2秒开始，每1.5秒切换一个按钮
-        QTimer.singleShot(2000, self._start_demo_timer)
+        # 延迟2秒后同时显示所有提示
+        QTimer.singleShot(2000, self._show_all_tooltips)
         
-    def _start_demo_timer(self):
-        """开始演示定时器"""
-        if self.tooltip_demo_active:
-            self.tooltip_timer.start(1500)
-        
-    def _show_next_tooltip(self):
-        """显示下一个按钮的提示"""
+    def _show_all_tooltips(self):
+        """同时显示所有按钮的提示"""
         if not self.tooltip_demo_active:
             return
             
-        # 先隐藏所有现有的提示
+        # 同时显示所有按钮的提示
+        for btn in self.buttons:
+            btn._show_tooltip()
+            
+        # 3秒后自动隐藏所有提示
+        QTimer.singleShot(3000, self._hide_all_tooltips)
+        
+    def _hide_all_tooltips(self):
+        """隐藏所有按钮的提示"""
         for btn in self.buttons:
             btn._hide_tooltip()
-            
-        if self.current_button_index < len(self.buttons):
-            button = self.buttons[self.current_button_index]
-            # 显示当前按钮的提示
-            button._show_tooltip()
-            self.current_button_index += 1
-        else:
-            # 演示完成，隐藏最后一个提示并停止定时器
-            self.tooltip_timer.stop()
-            self.tooltip_demo_active = False
+        self.tooltip_demo_active = False
+        
+    def stop_tooltip_demo(self):
+        """停止提示演示并立即隐藏所有提示"""
+        self.tooltip_demo_active = False
+        self.tooltip_timer.stop()
+        self._hide_all_tooltips()
+        
+    def _start_demo_timer(self):
+        """开始演示定时器 - 不再使用，保留以兼容"""
+        pass
+        
+    def _show_next_tooltip(self):
+        """显示下一个按钮的提示 - 不再使用，保留以兼容"""
+        pass
 
     def _normalBackgroundColor(self):
         # 使用更鲜艳的渐变背景，增强视觉效果
@@ -532,6 +538,14 @@ class HomeInterface(VerticalScrollInterface):
         # 启动导航栏按钮自动提示演示
         if hasattr(self, 'button_group'):
             self.button_group.start_tooltip_demo()
+
+    def on_interface_hidden(self) -> None:
+        """界面隐藏时的处理"""
+        super().on_interface_hidden()
+        
+        # 立即停止并隐藏所有提示
+        if hasattr(self, 'button_group'):
+            self.button_group.stop_tooltip_demo()
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
