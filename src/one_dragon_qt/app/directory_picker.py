@@ -1,10 +1,11 @@
 import os
 import locale
+import webbrowser
 from PySide6.QtCore import Qt, QEventLoop, QSize
 from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog, QApplication, QWidget
 from PySide6.QtGui import QPixmap
 from qfluentwidgets import (FluentIcon, PrimaryPushButton, ToolButton, LineEdit, MessageBox,
-                            SplitTitleBar, SubtitleLabel, PixmapLabel)
+                            SplitTitleBar, SubtitleLabel, PixmapLabel, PushButton, SettingCardGroup)
 from one_dragon_qt.windows.window import PhosWindow
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 
@@ -139,6 +140,45 @@ class DirectoryPickerInterface(QWidget):
 
         main_layout.addLayout(button_layout)
 
+        # 添加间距
+        main_layout.addSpacing(20)
+        
+        # 底部链接按钮组
+        links_group = SettingCardGroup('相关链接')
+        main_layout.addWidget(links_group)
+        
+        # 创建链接按钮容器
+        links_widget = QWidget()
+        links_layout = QHBoxLayout(links_widget)
+        links_layout.setContentsMargins(20, 10, 20, 10)
+        links_layout.setSpacing(15)
+        
+        # 帮助文档按钮
+        self.help_btn = PushButton('📚 帮助文档')
+        self.help_btn.clicked.connect(self._on_help_clicked)
+        self.help_btn.setMinimumWidth(120)
+        links_layout.addWidget(self.help_btn)
+        
+        # QQ频道按钮
+        self.qq_channel_btn = PushButton('💬 QQ频道')
+        self.qq_channel_btn.clicked.connect(self._on_qq_channel_clicked)
+        self.qq_channel_btn.setMinimumWidth(120)
+        links_layout.addWidget(self.qq_channel_btn)
+        
+        # 官网按钮
+        self.website_btn = PushButton('🌐 官网')
+        self.website_btn.clicked.connect(self._on_website_clicked)
+        self.website_btn.setMinimumWidth(120)
+        links_layout.addWidget(self.website_btn)
+        
+        # GitHub仓库按钮
+        self.github_btn = PushButton('⭐ GitHub')
+        self.github_btn.clicked.connect(self._on_github_clicked)
+        self.github_btn.setMinimumWidth(120)
+        links_layout.addWidget(self.github_btn)
+        
+        main_layout.addWidget(links_widget)
+
         # 添加弹性空间
         main_layout.addStretch(1)
 
@@ -226,6 +266,34 @@ class DirectoryPickerInterface(QWidget):
         self.browse_btn.setText(self.translator.get_text('browse'))
         self.confirm_btn.setText(self.translator.get_text('confirm'))
 
+    def _on_help_clicked(self):
+        """点击帮助按钮时打开排障文档"""
+        try:
+            webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
+        except Exception as e:
+            print(f"无法打开浏览器: {e}")
+
+    def _on_qq_channel_clicked(self):
+        """点击QQ频道按钮时打开QQ频道"""
+        try:
+            webbrowser.open("https://pd.qq.com/g/onedrag00n")
+        except Exception as e:
+            print(f"无法打开QQ频道: {e}")
+
+    def _on_website_clicked(self):
+        """点击官网按钮时打开官网"""
+        try:
+            webbrowser.open("https://one-dragon.com/zzz/zh/home.html")
+        except Exception as e:
+            print(f"无法打开官网: {e}")
+
+    def _on_github_clicked(self):
+        """点击GitHub按钮时打开GitHub仓库"""
+        try:
+            webbrowser.open("https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon")
+        except Exception as e:
+            print(f"无法打开GitHub仓库: {e}")
+
 
 class DirectoryPickerWindow(PhosWindow):
 
@@ -277,7 +345,7 @@ class DirectoryPickerWindow(PhosWindow):
         self.addSubInterface(self.picker_interface, FluentIcon.FOLDER_ADD, "")
 
     def init_window(self):
-        self.resize(600, 240)
+        self.resize(600, 360)  # 再次增加高度以容纳SettingCardGroup的标题
         self.move(100, 100)
 
         # 布局样式调整

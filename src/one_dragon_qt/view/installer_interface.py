@@ -1,5 +1,6 @@
 import os
 import shutil
+import webbrowser
 
 from pathlib import Path
 from PySide6.QtCore import Qt, QThread, QTimer, QSize, Signal
@@ -318,6 +319,14 @@ class InstallStepWidget(QWidget):
             self.status_label.setText(gt('✗ 安装失败'))
             self.status_label.setStyleSheet("color: #d13438; font-weight: bold;")
             self.installing_idx = -1
+            
+            # 安装失败时自动打开帮助文档
+            try:
+                webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
+                log.info("步骤安装失败，已自动打开帮助文档")
+            except Exception as e:
+                log.error(f"无法打开帮助文档: {e}")
+            
             self.step_completed.emit(False)
         else:
             self.installing_idx += 1
@@ -644,6 +653,19 @@ class InstallerInterface(VerticalScrollInterface):
             else:
                 self.show_completion_message()
         else:
+            # 安装失败时自动打开帮助文档
+            try:
+                webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
+                log.info("安装失败，已自动打开帮助文档")
+                # 更新进度标签显示文档已打开的信息
+                self.progress_label.setText(gt('安装失败！已自动打开排障文档'))
+                self.progress_label.setStyleSheet("color: #d13438;")
+            except Exception as e:
+                log.error(f"无法打开帮助文档: {e}")
+                self.progress_label.setText(gt('安装失败！请手动访问排障文档'))
+                self.progress_label.setStyleSheet("color: #d13438;")
+            
+            self.progress_label.setVisible(True)
             self.install_btn.setVisible(True)
             self.progress_ring.setVisible(False)
             self.advanced_btn.setVisible(False)
@@ -937,7 +959,15 @@ class InstallerInterface(VerticalScrollInterface):
         self.progress_ring.setVisible(False)
         self.progress_label.setVisible(not success)
         if not success:
-            self.progress_label.setText(gt('资源解压失败，请更换安装目录'))
+            # 资源解压失败时自动打开帮助文档
+            try:
+                webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
+                log.info("资源解压失败，已自动打开帮助文档")
+                self.progress_label.setText(gt('资源解压失败！已自动打开排障文档'))
+            except Exception as e:
+                log.error(f"无法打开帮助文档: {e}")
+                self.progress_label.setText(gt('资源解压失败！请手动访问排障文档'))
+            self.progress_label.setStyleSheet("color: #d13438;")
 
     def on_interface_shown(self) -> None:
         super().on_interface_shown()
