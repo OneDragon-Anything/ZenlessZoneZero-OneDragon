@@ -3500,5 +3500,5 @@ dev = [
     { name = "pyinstaller", specifier = "==6.7.0" },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "pytest-asyncio", specifier = ">=1.1.0" },
-    { name = "ruff", specifier = ">=0.12.10" },
+    { name = "ruff", specifier = "==0.12.10" },
 ]
