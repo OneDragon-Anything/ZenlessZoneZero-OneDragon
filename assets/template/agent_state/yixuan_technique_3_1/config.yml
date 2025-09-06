@@ -4,5 +4,5 @@ template_name: 角色状态-仪玄-术法值-31
 template_shape: rectangle
 auto_mask: true
 point_list:
-- 138, 124
-- 200, 125
+- 137, 125
+- 201, 126

@@ -1,0 +1,10 @@
+sub_dir: hollow
+template_id: avatar_xx
+template_name: 模板-零号空洞-角色头像
+template_shape: quadrilateral
+auto_mask: true
+point_list:
+- 860, 992
+- 847, 1030
+- 942, 1030
+- 955, 992
