@@ -1,14 +1,33 @@
 import time
 
 from PySide6.QtCore import QTimer
-from PySide6.QtGui import QBrush
+from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import QTableWidgetItem
 from qfluentwidgets import TableWidget, FluentThemeColor
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from one_dragon.base.conditional_operation.state_recorder import StateRecord, StateRecorder
 from one_dragon.utils.i18_utils import gt
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
+
+
+# 自定义绿色颜色定义
+class StateIndicatorColors:
+    """状态指示器颜色定义"""
+    # 最深绿 - 最后一次触发
+    DEEPEST_GREEN = QColor(0, 100, 0)       # #006400
+    
+    # 深绿 - 倒数第二次触发
+    DEEP_GREEN = QColor(34, 139, 34)        # #228B22
+    
+    # 中绿 - 倒数第三次触发  
+    MEDIUM_GREEN = QColor(50, 205, 50)      # #32CD32
+    
+    # 浅绿 - 倒数第四次触发
+    LIGHT_GREEN = QColor(144, 238, 144)     # #90EE90
+    
+    # 最浅绿 - 倒数第五次触发
+    LIGHTEST_GREEN = QColor(127, 255, 127)  # #7FFF7F
 
 
 class BattleStateDisplay(TableWidget):
@@ -18,6 +37,9 @@ class BattleStateDisplay(TableWidget):
 
         self.auto_op: Optional[AutoBattleOperator] = None
         self.last_states: List[StateRecord] = []
+        
+        # 跟踪每个状态的最近触发时间，用于次序区分（支持最后5次）
+        self.state_trigger_history: Dict[str, List[float]] = {}
 
         self.setBorderVisible(True)
         self.setBorderRadius(8)
@@ -29,13 +51,40 @@ class BattleStateDisplay(TableWidget):
         self.setColumnWidth(2, 60)
         self.verticalHeader().hide()
         self.setHorizontalHeaderLabels([
-            gt('状态'),
-            gt('触发秒数'),
-            gt('状态值'),
+            gt("状态"),
+            gt("触发秒数"),
+            gt("状态值"),
         ])
 
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self._update_display)
+
+    def get_state_trigger_color(self, state_name: str, trigger_time: float) -> QColor:
+        """根据状态的触发次序获取对应的颜色"""
+        if state_name not in self.state_trigger_history:
+            self.state_trigger_history[state_name] = []
+        
+        history = self.state_trigger_history[state_name]
+        
+        # 添加当前触发时间
+        history.append(trigger_time)
+        
+        # 只保留最近5次的记录
+        if len(history) > 5:
+            history.pop(0)
+        
+        # 根据触发次序确定颜色（从最后一次往前数）
+        history_len = len(history)
+        if history_len >= 5:
+            return StateIndicatorColors.DEEPEST_GREEN  # 最后一次触发 - 最深绿
+        elif history_len == 4:
+            return StateIndicatorColors.DEEP_GREEN     # 倒数第二次触发 - 深绿
+        elif history_len == 3:
+            return StateIndicatorColors.MEDIUM_GREEN   # 倒数第三次触发 - 中绿
+        elif history_len == 2:
+            return StateIndicatorColors.LIGHT_GREEN    # 倒数第四次触发 - 浅绿
+        else:
+            return StateIndicatorColors.LIGHTEST_GREEN # 倒数第五次触发 - 最浅绿
 
     def set_update_display(self, to_update: bool) -> None:
         if to_update:
@@ -65,8 +114,8 @@ class BattleStateDisplay(TableWidget):
                     recorder.last_record_time == 0
                     and
                     (
-                            recorder.state_name.startswith('前台-')
-                            or recorder.state_name.startswith('后台-')
+                            recorder.state_name.startswith("前台-")
+                            or recorder.state_name.startswith("后台-")
                     )
             ):
                 continue
@@ -77,18 +126,23 @@ class BattleStateDisplay(TableWidget):
         for i in range(total):
             state_item = QTableWidgetItem(new_states[i].state_name)
             if i >= len(self.last_states) or new_states[i].state_name != self.last_states[i].state_name:
-                state_item.setBackground(QBrush(FluentThemeColor.RED.value))
+                # 状态名称变化使用浅绿
+                state_item.setBackground(QBrush(StateIndicatorColors.LIGHT_GREEN))
 
             time_diff = now - new_states[i].trigger_time
             if time_diff > 999:
                 time_diff = 999
-            time_item = QTableWidgetItem('%.4f' % time_diff)
+            time_item = QTableWidgetItem("%.4f" % time_diff)
             if i >= len(self.last_states) or new_states[i].trigger_time != self.last_states[i].trigger_time:
-                time_item.setBackground(QBrush(FluentThemeColor.RED.value))
+                # 根据触发次序设置颜色
+                color = self.get_state_trigger_color(new_states[i].state_name, new_states[i].trigger_time)
+                time_item.setBackground(QBrush(color))
 
-            value_item = QTableWidgetItem(str(new_states[i].value) if new_states[i].value is not None else '')
+            value_item = QTableWidgetItem(str(new_states[i].value) if new_states[i].value is not None else "")
             if i >= len(self.last_states) or new_states[i].value != self.last_states[i].value:
-                value_item.setBackground(QBrush(FluentThemeColor.RED.value))
+                # 根据触发次序设置颜色
+                color = self.get_state_trigger_color(new_states[i].state_name, new_states[i].trigger_time)
+                value_item.setBackground(QBrush(color))
 
             self.setItem(i, 0, state_item)
             self.setItem(i, 1, time_item)
