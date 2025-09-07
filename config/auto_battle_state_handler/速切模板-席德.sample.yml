@@ -47,12 +47,11 @@ handlers:
         operations:
           - op_name: "设置状态"
             data: ["自定义-席德-准备合轴"]
-          - op_name: "按键-普通攻击-按下"
-          - op_name: "等待秒数"
-            seconds: 3
+          - op_name: "按键-普通攻击"
+            post_delay: 0.1
+            repeat: 50
 
       - states: "[席德-特殊技可用]"
-        interrupt_states: "[席德-钢能]{120,999} | [席德-能量]{0, 5}"
         debug_name: "席德射击"
         operations:
           - operation_template: "席德-强化特殊技"
