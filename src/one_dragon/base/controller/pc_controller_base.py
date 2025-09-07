@@ -27,6 +27,10 @@ class PcControllerBase(ControllerBase):
     MOUSEEVENTF_MOVE = 0x0001
     MOUSEEVENTF_LEFTDOWN = 0x0002
     MOUSEEVENTF_LEFTUP = 0x0004
+    MOUSEEVENTF_ABSOLUTE = 0x8000
+
+    _screen_width = ctypes.windll.user32.GetSystemMetrics(0)
+    _screen_height = ctypes.windll.user32.GetSystemMetrics(1)
 
     def __init__(self, win_title: str,
                  standard_width: int = 1920,
@@ -257,16 +261,47 @@ def get_mouse_sensitivity():
     return speed.value
 
 
-def drag_mouse(start: Point, end: Point, duration: float = 0.5):
+def drag_mouse(start: Point, end: Point, duration: float = 0.5, steps: int = 20):
     """
     按住鼠标左键进行画面拖动
     :param start: 原位置
     :param end: 拖动位置
     :param duration: 拖动鼠标到目标位置，持续秒数
+    :param steps: 拖拽步数，值越大拖拽越平滑
     :return:
     """
-    pyautogui.moveTo(start.x, start.y)  # 将鼠标移动到起始位置
-    pyautogui.dragTo(end.x, end.y, duration=duration)
+    # 将鼠标移动到起始位置
+    pyautogui.moveTo(start.x, start.y)
+    time.sleep(0.05)  # 短暂延时确保移动完成
+
+    # 按下鼠标左键
+    ctypes.windll.user32.mouse_event(PcControllerBase.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
+    time.sleep(0.05)
+
+    # 计算每步的延迟时间和移动距离
+    step_delay = duration / steps
+    dx = (end.x - start.x) / steps
+    dy = (end.y - start.y) / steps
+
+    # 逐步移动鼠标
+    for i in range(steps):
+        current_x = start.x + dx * (i + 1)
+        current_y = start.y + dy * (i + 1)
+
+        # 转换为绝对坐标（0-65535）
+        abs_x = int(current_x * 65535 / PcControllerBase._screen_width)
+        abs_y = int(current_y * 65535 / PcControllerBase._screen_height)
+
+        # 移动鼠标
+        ctypes.windll.user32.mouse_event(
+            PcControllerBase.MOUSEEVENTF_MOVE | PcControllerBase.MOUSEEVENTF_ABSOLUTE,
+            abs_x, abs_y, 0, 0
+        )
+
+        time.sleep(step_delay)
+
+    # 松开鼠标左键
+    ctypes.windll.user32.mouse_event(PcControllerBase.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
 
 
 def get_current_mouse_pos() -> Point:
