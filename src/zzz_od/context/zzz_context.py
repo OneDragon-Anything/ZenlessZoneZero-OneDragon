@@ -52,6 +52,7 @@ class ZContext(OneDragonContext):
         from zzz_od.application.charge_plan.charge_plan_config import ChargePlanConfig
         from zzz_od.application.charge_plan.charge_plan_run_record import ChargePlanRunRecord
         from zzz_od.application.city_fund.city_fund_run_record import CityFundRunRecord
+        from zzz_od.application.cloud_queue.cloud_queue_run_record import CloudQueueRunRecord
         from zzz_od.application.coffee.coffee_config import CoffeeConfig
         from zzz_od.application.coffee.coffee_run_record import CoffeeRunRecord
         from zzz_od.application.devtools.screenshot_helper.screenshot_helper_config import ScreenshotHelperConfig
@@ -81,6 +82,8 @@ class ZContext(OneDragonContext):
         self.coffee_config: CoffeeConfig = CoffeeConfig(self.current_instance_idx)
         self.life_on_line_config: LifeOnLineConfig = LifeOnLineConfig(self.current_instance_idx)
         self.commission_assistant_config: CommissionAssistantConfig = CommissionAssistantConfig(self.current_instance_idx)
+        from zzz_od.application.cloud_queue.cloud_queue_config import CloudQueueConfig
+        self.cloud_queue_config: CloudQueueConfig = CloudQueueConfig(self.current_instance_idx)
         from zzz_od.application.random_play.random_play_config import RandomPlayConfig
         self.random_play_config: RandomPlayConfig = RandomPlayConfig(self.current_instance_idx)
 
@@ -89,6 +92,8 @@ class ZContext(OneDragonContext):
 
         # 运行记录
         game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+        self.cloud_queue_record: CloudQueueRunRecord = CloudQueueRunRecord(self.current_instance_idx, game_refresh_hour_offset)
+        self.cloud_queue_record.check_and_update_status()
         self.email_run_record: EmailRunRecord = EmailRunRecord(self.current_instance_idx, game_refresh_hour_offset)
         self.email_run_record.check_and_update_status()
         self.random_play_run_record: RandomPlayRunRecord = RandomPlayRunRecord(self.current_instance_idx, game_refresh_hour_offset)
@@ -163,14 +168,25 @@ class ZContext(OneDragonContext):
         """
         OneDragonContext.init_by_config(self)
 
+        def compute_win_title() -> str:
+            from one_dragon.base.config.game_account_config import GameRegionEnum
+            if self.game_account_config.use_custom_win_title and self.game_account_config.custom_win_title.strip() != '':
+                return self.game_account_config.custom_win_title
+
+            base_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
+
+            if self.game_account_config.is_cloud_game:
+                if self.game_account_config.game_region == GameRegionEnum.CN.value.value:
+                    return f'云·{base_title}'
+                return f'{base_title} · Cloud'
+
+            return base_title
+
+        win_title = compute_win_title()
+
         from zzz_od.controller.zzz_pc_controller import ZPcController
         from one_dragon.base.config.game_account_config import GamePlatformEnum
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
-            if self.game_account_config.use_custom_win_title:
-                win_title = self.game_account_config.custom_win_title
-            else:
-                from one_dragon.base.config.game_account_config import GameRegionEnum
-                win_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
             self.controller: ZPcController = ZPcController(
                 game_config=self.game_config,
                 win_title=win_title,
