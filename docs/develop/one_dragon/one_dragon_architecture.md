@@ -66,7 +66,7 @@ OCR服务，负责职责包括：
 
 - 应用组的增删改查
 
-### ApplicationFactory (未实现)
+### ApplicationFactory
 
 应用工厂，每个应用需要定义一个工厂类。负责职责包括：
 
@@ -74,9 +74,9 @@ OCR服务，负责职责包括：
 - 创建应用配置
 - 创建运行记录
 
-### ApplicationService (未实现)
+### ApplicationRunContext
 
-应用服务，负责职责包括：
+应用运行上下文，负责职责包括：
 
 - 应用注册
 - 获取Application实例

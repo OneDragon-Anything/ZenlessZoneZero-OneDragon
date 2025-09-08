@@ -7,11 +7,20 @@ from zzz_od.game_data.agent import AgentEnum
 class ZContext(OneDragonContext):
 
     def __init__(self,):
+        # 注册应用
+        from one_dragon.base.operation.application.application_run_context import (
+            ApplicationRunContext,
+        )
+        self.run_context: ApplicationRunContext = ApplicationRunContext()
+        self.register_application_factory()
+
         OneDragonContext.__init__(self)
 
         from zzz_od.context.hollow_context import HollowContext
         self.hollow: HollowContext = HollowContext(self)
-        from zzz_od.application.hollow_zero.lost_void.context.lost_void_context import LostVoidContext
+        from zzz_od.application.hollow_zero.lost_void.context.lost_void_context import (
+            LostVoidContext,
+        )
         self.lost_void: LostVoidContext = LostVoidContext(self)
 
         # 基础配置
@@ -23,7 +32,9 @@ class ZContext(OneDragonContext):
         self.map_service: MapAreaService = MapAreaService()  # 这是
         from zzz_od.game_data.compendium import CompendiumService
         self.compendium_service: CompendiumService = CompendiumService()
-        from zzz_od.application.world_patrol.world_patrol_service import WorldPatrolService
+        from zzz_od.application.world_patrol.world_patrol_service import (
+            WorldPatrolService,
+        )
         self.world_patrol_service: WorldPatrolService = WorldPatrolService(self)
 
         # 服务
@@ -163,8 +174,8 @@ class ZContext(OneDragonContext):
         """
         OneDragonContext.init_by_config(self)
 
-        from zzz_od.controller.zzz_pc_controller import ZPcController
         from one_dragon.base.config.game_account_config import GamePlatformEnum
+        from zzz_od.controller.zzz_pc_controller import ZPcController
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
             if self.game_account_config.use_custom_win_title:
                 win_title = self.game_account_config.custom_win_title
@@ -178,6 +189,7 @@ class ZContext(OneDragonContext):
                 standard_height=self.project_config.screen_standard_height
             )
 
+        self.run_context.set_controller(self.controller)
         self.hollow.data_service.reload()
         self.init_hollow_config()
         if self.agent_outfit_config.compatibility_mode:
@@ -266,3 +278,15 @@ class ZContext(OneDragonContext):
         """
         if self.auto_op is not None:
             self.auto_op.start_running_async()
+
+    def register_application_factory(self) -> None:
+        """
+        注册应用
+
+        Returns:
+            None
+        """
+        from zzz_od.application.battle_assistant.dodge_assitant.dodge_assistant_factory import (
+            DodgeAssistantFactory,
+        )
+        self.run_context.registry_application(DodgeAssistantFactory(self))

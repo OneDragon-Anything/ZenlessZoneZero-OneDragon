@@ -40,4 +40,4 @@
 ### 日志显示
 
 1. 打开网页时，自动连接`日志事件`的websocket。
-2. 后端不断通过websocket发送日志到前端显示。
+2. 后端启动时，加入 `LogHandler` ，将日志内容发送到 websocket 中。
