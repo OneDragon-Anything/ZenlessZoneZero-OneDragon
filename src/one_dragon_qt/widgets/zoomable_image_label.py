@@ -19,6 +19,8 @@ class ZoomableClickImageLabel(QLabel):
 
         # 缩放相关变量
         self.scale_factor = 1.0
+        self.min_scale = 0.05
+        self.max_scale = 8.0
         self.original_pixmap: QPixmap = None
         self.current_scaled_pixmap = QPixmap()  # 保存当前缩放级别的图像
 
@@ -159,6 +161,8 @@ class ZoomableClickImageLabel(QLabel):
             # 初始加载时，将图片宽度缩放到等于控件宽度
             if self.width() > 0 and self.original_pixmap is not None:
                 self.scale_factor = self.width() / self.original_pixmap.width()
+                # 应用缩放上下限
+                self.scale_factor = max(self.min_scale, min(self.max_scale, self.scale_factor))
             else:
                 self.scale_factor = 1.0
 
@@ -207,19 +211,28 @@ class ZoomableClickImageLabel(QLabel):
         image_x = (mouse_pos.x() - self.image_offset.x()) / self.scale_factor
         image_y = (mouse_pos.y() - self.image_offset.y()) / self.scale_factor
 
-        # 更新缩放比例
+        # 计算新的缩放比例
+        old_scale = self.scale_factor
         if event.angleDelta().y() > 0:
-            self.scale_factor *= 1.1  # 放大
+            new_scale = self.scale_factor * 1.1  # 放大
         else:
-            self.scale_factor /= 1.1  # 缩小
+            new_scale = self.scale_factor / 1.1  # 缩小
 
-        # 重新计算偏移量，使鼠标保持指向图像中的同一点
-        # 使用round()而不是int()，提供更好的舍入精度
+        # 应用上下限
+        new_scale = max(self.min_scale, min(self.max_scale, new_scale))
+
+        # 如果缩放未发生变化（被限制），则无需继续
+        if abs(new_scale - old_scale) < 1e-9:
+            return
+
+        # 更新当前缩放并调整偏移，使鼠标仍指向图像上的同一点
+        self.scale_factor = new_scale
+
         new_offset_x = round(mouse_pos.x() - image_x * self.scale_factor)
         new_offset_y = round(mouse_pos.y() - image_y * self.scale_factor)
         self.image_offset = QPoint(new_offset_x, new_offset_y)
 
-        # 缩放后应用边界限制
+        # 缩放后应用边界限制并更新显示
         self.image_offset = self._limit_image_bounds(self.image_offset)
         self.update_scaled_pixmap()
 
