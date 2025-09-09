@@ -501,19 +501,19 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.chosen_screen.area_list.append(area)
         self._area_table_update.signal.emit()
 
-    def _on_screen_id_changed(self, value: str) -> None:
+    def _on_screen_id_changed(self) -> None:
         if self.chosen_screen is None:
             return
 
-        self.chosen_screen.screen_id = value
+        self.chosen_screen.screen_id = self.screen_id_edit.text()
 
-    def _on_screen_name_changed(self, value: str) -> None:
+    def _on_screen_name_changed(self) -> None:
         if self.chosen_screen is None:
             return
 
-        self.chosen_screen.screen_name = value
+        self.chosen_screen.screen_name = self.screen_name_edit.text()
 
-    def _on_pc_alt_changed(self) -> None:
+    def _on_pc_alt_changed(self, checked: bool) -> None:
         if self.chosen_screen is None:
             return
 
@@ -620,8 +620,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         }
         self._add_history_record(table_change)
 
-
-
     def _parse_rect_from_text(self, text: str) -> Rect:
         """解析文本为矩形对象"""
         num_list = [int(i) for i in text[1:-1].split(',')]
@@ -705,8 +703,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         else:
             self.area_table_row_selected = row
         self._update_image_display()
-
-
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         """
