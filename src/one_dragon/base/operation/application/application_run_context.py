@@ -216,12 +216,14 @@ class ApplicationRunContext:
             log.error("未初始化控制器")
             return False
 
-        self._run_state = ApplicationRunContextStateEnum.RUNNING
-        self._controller.init_before_context_run()
-        self._event_bus.dispatch_event(
-            ApplicationRunContextStateEventEnum.START, self._run_state
-        )
-        return True
+        if self._controller.init_before_context_run():
+            self._run_state = ApplicationRunContextStateEnum.RUNNING
+            self._event_bus.dispatch_event(
+                ApplicationRunContextStateEventEnum.START, self._run_state
+            )
+            return True
+        else:
+            return False
 
     def stop_running(self):
         """
@@ -324,6 +326,6 @@ class ApplicationRunContext:
             return False
 
         future = self._executor.submit(self.run_application, app_id, instance_idx, group_id)
-        thread_utils.handle_future_result(future)
+        future.add_done_callback(thread_utils.handle_future_result)
 
         return True

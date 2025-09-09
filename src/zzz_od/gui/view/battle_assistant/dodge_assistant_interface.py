@@ -1,4 +1,5 @@
 import os.path
+from typing import Optional
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
@@ -135,7 +136,7 @@ class DodgeAssistantInterface(AppRunInterface):
         """
         self.dodge_opt.set_options_by_list(get_auto_battle_op_config_list('dodge'))
 
-    def get_app(self) -> Application:
+    def get_app(self) -> Optional[Application]:
         app = self.ctx.run_context.get_application(
             app_id='dodge_assistant',
             instance_idx=self.ctx.current_instance_idx,

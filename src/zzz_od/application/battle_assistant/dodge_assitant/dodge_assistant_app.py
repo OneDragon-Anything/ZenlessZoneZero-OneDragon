@@ -57,10 +57,13 @@ class DodgeAssistantApp(ZApplication):
         加载战斗指令
         :return:
         """
-        self.ctx.init_auto_op(
-            sub_dir='dodge',
-            op_name=self.ctx.battle_assistant_config.dodge_assistant_config
-        )
+        try:
+            self.ctx.init_auto_op(
+                sub_dir='dodge',
+                op_name=self.ctx.battle_assistant_config.dodge_assistant_config
+            )
+        except Exception as e:
+            return self.round_fail(status=f'加载指令失败: {e}')
 
         self.ctx.dispatch_event(
             AutoBattleApp.EVENT_OP_LOADED,
