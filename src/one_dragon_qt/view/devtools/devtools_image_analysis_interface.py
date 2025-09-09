@@ -2,8 +2,8 @@ from functools import partial
 
 import numpy as np
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QImage, QPixmap, QClipboard
-from PySide6.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QHBoxLayout, QFileDialog
+from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QHBoxLayout, QFileDialog, QApplication
 from qfluentwidgets import (
     ComboBox, CheckBox, SpinBox, DoubleSpinBox, PushButton, ToolButton, PlainTextEdit, LineEdit,
     FluentIcon, SubtitleLabel, BodyLabel, InfoBar, InfoBarPosition, MessageBoxBase, Dialog,
@@ -552,7 +552,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         复制流水线代码到剪贴板
         """
         code = self.logic.get_pipeline_code()
-        clipboard = QClipboard()
+        clipboard = QApplication.clipboard()
         clipboard.setText(code)
         InfoBar.success(
             title=gt('成功'),
