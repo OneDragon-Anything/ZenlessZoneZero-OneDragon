@@ -103,13 +103,15 @@ class BannerImageLoader(QThread):
                 if response.status_code == 200:
                     pixmap = QPixmap()
                     pixmap.loadFromData(response.content)
-                    original_size = QSize(pixmap.width(), pixmap.height())
-                    pixmap = scale_pixmap_for_high_dpi(
-                        pixmap,
-                        original_size,
-                        self.device_pixel_ratio,
-                        Qt.AspectRatioMode.IgnoreAspectRatio
+
+                    # 缩放图片，确保清晰
+                    size = QSize(pixmap.width(), pixmap.height())
+                    pixmap = pixmap.scaled(
+                        size * self.device_pixel_ratio,  # 按设备像素比缩放
+                        Qt.AspectRatioMode.IgnoreAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
                     )
+                    pixmap.setDevicePixelRatio(self.device_pixel_ratio)  # 设置设备像素比
                     self.image_loaded.emit(pixmap, banner["image"]["link"])
             except Exception as e:
                 log.error(f"加载banner图片失败: {e}")
