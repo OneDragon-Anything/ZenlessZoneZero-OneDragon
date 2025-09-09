@@ -788,68 +788,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
     def _apply_redo(self, change_record: dict[str, Any]) -> None:
         """
-        应用撤销操作
-        """
-        if len(self.history) == 0 or self.chosen_screen is None:
-            return
-
-        # 获取最新的历史记录
-        last_record = self.history[-1]
-
-        if last_record.get('type') == 'table_edit':
-            # 处理表格编辑的撤回
-            row_index = last_record['row_index']
-            change_type = last_record['change_type']
-            old_value = last_record['old_value']
-
-            # 检查行索引是否仍然有效
-            if row_index < 0 or row_index >= len(self.chosen_screen.area_list):
-                return
-
-            area_item = self.chosen_screen.area_list[row_index]
-
-            # 根据修改类型恢复原值
-            if change_type == 'template':
-                if '.' in old_value:
-                    template_list = old_value.split('.')
-                    area_item.template_sub_dir = template_list[0]
-                    area_item.template_id = template_list[1]
-                else:
-                    area_item.template_sub_dir = ''
-                    area_item.template_id = old_value
-            else:
-                setattr(area_item, change_type, old_value)
-
-            # 如果是坐标修改，需要更新图像显示
-            if change_type == 'pc_rect':
-                self._image_update.signal.emit()
-
-            # 更新表格显示
-            self._update_area_table_display()
-
-        else:
-            # 处理拖框操作的撤回
-            row_index = last_record['row_index']
-            old_rect = last_record['old_rect']
-
-            # 检查行索引是否仍然有效
-            if row_index < 0 or row_index >= len(self.chosen_screen.area_list):
-                return
-
-            # 恢复旧的矩形
-            area_item = self.chosen_screen.area_list[row_index]
-            area_item.pc_rect = old_rect
-
-            # 更新表格显示
-            self.area_table.blockSignals(True)
-            self.area_table.item(row_index, 2).setText(f'({old_rect.x1}, {old_rect.y1}, {old_rect.x2}, {old_rect.y2})')
-            self.area_table.blockSignals(False)
-
-            # 更新图像显示
-            self._image_update.signal.emit()
-
-    def _apply_redo(self, change_record: dict[str, Any]) -> None:
-        """
         应用重做操作
         """
         if self.chosen_screen is None:
