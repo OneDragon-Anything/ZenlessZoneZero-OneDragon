@@ -17,6 +17,8 @@ from one_dragon.base.config.custom_config import CustomConfig
 from zzz_od.config.notify_config import NotifyConfig
 from one_dragon.base.config.push_config import PushConfig
 from one_dragon_qt.widgets.push_cards import PushCards  # GUI 使用的动态推送配置源
+from zzz_od.application.random_play.random_play_config import RandomPlayConfig
+from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import DriveDiscDismantleConfig
 
 
 router = APIRouter(
@@ -588,4 +590,52 @@ def update_notify_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
                     setattr(pc, key, value)
                 except Exception:
                     pass
+    return {"ok": True}
+
+
+# --- Random play (影像店) ---
+
+
+@router.get("/random-play")
+def get_random_play_settings() -> Dict[str, Any]:
+    ctx = get_ctx()
+    rpc = ctx.random_play_config
+    return {
+        "agentName1": rpc.agent_name_1,
+        "agentName2": rpc.agent_name_2,
+    }
+
+
+@router.put("/random-play")
+def update_random_play_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
+    ctx = get_ctx()
+    rpc = ctx.random_play_config
+    if "agentName1" in payload:
+        rpc.agent_name_1 = payload["agentName1"]
+    if "agentName2" in payload:
+        rpc.agent_name_2 = payload["agentName2"]
+    return {"ok": True}
+
+
+# --- Drive disc dismantle (驱动盘拆解) ---
+
+
+@router.get("/drive-disc-dismantle")
+def get_drive_disc_dismantle_settings() -> Dict[str, Any]:
+    ctx = get_ctx()
+    ddc = ctx.drive_disc_dismantle_config
+    return {
+        "dismantleLevel": ddc.dismantle_level,
+        "dismantleAbandon": ddc.dismantle_abandon,
+    }
+
+
+@router.put("/drive-disc-dismantle")
+def update_drive_disc_dismantle_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
+    ctx = get_ctx()
+    ddc = ctx.drive_disc_dismantle_config
+    if "dismantleLevel" in payload:
+        ddc.dismantle_level = payload["dismantleLevel"]
+    if "dismantleAbandon" in payload:
+        ddc.dismantle_abandon = bool(payload["dismantleAbandon"])
     return {"ok": True}
