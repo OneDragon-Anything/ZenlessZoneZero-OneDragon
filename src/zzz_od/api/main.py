@@ -34,6 +34,7 @@ from zzz_od.api.routers import resources as resources_router
 from zzz_od.api.routers import settings as settings_router
 from zzz_od.api.routers import world_patrol as world_patrol_router
 from zzz_od.api.routers import hollow_zero
+from zzz_od.api.routers import game_assistant
 
 
 @asynccontextmanager
@@ -129,6 +130,7 @@ app.include_router(resources_router.router)
 app.include_router(settings_router.router)
 app.include_router(world_patrol_router.router)
 app.include_router(hollow_zero.router)
+app.include_router(game_assistant.router)
 app.include_router(ws_router)
 
 
