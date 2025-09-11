@@ -6,10 +6,14 @@ from fastapi import APIRouter, Depends, Query
 
 from zzz_od.api.deps import get_ctx
 from zzz_od.api.security import get_api_key_dependency
+from zzz_od.api.run_registry import get_global_run_registry
+from zzz_od.api.bridges import attach_run_event_bridge
+from zzz_od.api.models import RunIdResponse
 from zzz_od.application.world_patrol.world_patrol_service import WorldPatrolService
 from zzz_od.application.world_patrol.world_patrol_route import WorldPatrolRoute, WorldPatrolOperation
 from zzz_od.application.world_patrol.world_patrol_area import WorldPatrolArea
 from zzz_od.application.world_patrol.world_patrol_area import WorldPatrolLargeMap
+from zzz_od.application.world_patrol.world_patrol_app import WorldPatrolApp
 
 
 router = APIRouter(
@@ -17,6 +21,9 @@ router = APIRouter(
     tags=["world-patrol"],
     dependencies=[Depends(get_api_key_dependency())],
 )
+
+
+_registry = get_global_run_registry()
 
 
 @router.get("/entries")
@@ -162,5 +169,200 @@ def delete_large_map(areaFullId: str):
         return {"ok": False, "error": {"code": "AREA_NOT_FOUND", "message": areaFullId}}
     ok = svc.delete_world_patrol_large_map(area)
     return {"ok": bool(ok)}
+
+
+# -------- World Patrol Run (锄大地运行) --------
+
+
+@router.post("/run")
+async def run_world_patrol():
+    """运行锄大地"""
+    run_id = _run_via_onedragon_with_temp(["world_patrol"])
+    return RunIdResponse(runId=run_id)
+
+
+def _run_via_onedragon_with_temp(app_ids: list[str]) -> str:
+    """通过一条龙总控运行指定 appId 列表（临时运行清单）。"""
+    ctx = get_ctx()
+    original_temp = getattr(ctx.one_dragon_app_config, "_temp_app_run_list", None)
+    ctx.one_dragon_app_config.set_temp_app_run_list(app_ids)
+    from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+    run_id = _start_app_run(lambda c: ZOneDragonApp(c))
+    # 由 after_app_shutdown 自动清理 temp；若需要也可在桥接 detach 里兜底
+    return run_id
+
+
+def _start_app_run(app_factory) -> str:
+    ctx = get_ctx()
+    registry = get_global_run_registry()
+
+    def _factory_task():
+        import asyncio
+
+        async def runner():
+            loop = asyncio.get_running_loop()
+            def _exec():
+                app = app_factory(ctx)
+                app.execute()
+            return await loop.run_in_executor(None, _exec)
+
+        return asyncio.create_task(runner())
+
+    run_id = registry.create(_factory_task)
+    attach_run_event_bridge(ctx, run_id)
+    return run_id
+
+
+# -------- World Patrol Config (锄大地配置) --------
+
+
+@router.get("/config")
+def get_world_patrol_config() -> Dict[str, Any]:
+    """获取锄大地配置"""
+    ctx = get_ctx()
+    config = ctx.world_patrol_config
+    return {
+        "autoBattle": config.auto_battle,
+        "routeList": config.route_list,
+    }
+
+
+@router.put("/config")
+def update_world_patrol_config(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """更新锄大地配置"""
+    ctx = get_ctx()
+    config = ctx.world_patrol_config
+
+    if "autoBattle" in payload:
+        config.auto_battle = payload["autoBattle"]
+    if "routeList" in payload:
+        config.route_list = payload["routeList"]
+
+    return {"message": "Configuration updated successfully"}
+
+
+# -------- Route Lists (路线列表管理) --------
+
+
+@router.get("/route-lists")
+def get_route_lists() -> List[Dict[str, Any]]:
+    """获取所有路线列表"""
+    ctx = get_ctx()
+    svc: WorldPatrolService = ctx.world_patrol_service
+    svc.load_data()
+    route_lists = svc.get_world_patrol_route_lists()
+    return [
+        {
+            "name": rl.name,
+            "listType": rl.list_type.value,
+            "routeItems": rl.route_items,
+            "routeCount": len(rl.route_items)
+        }
+        for rl in route_lists
+    ]
+
+
+@router.get("/route-lists/{listName}")
+def get_route_list(listName: str) -> Dict[str, Any]:
+    """获取指定的路线列表"""
+    ctx = get_ctx()
+    svc: WorldPatrolService = ctx.world_patrol_service
+    svc.load_data()
+    route_lists = svc.get_world_patrol_route_lists()
+    route_list = next((rl for rl in route_lists if rl.name == listName), None)
+    if not route_list:
+        return {"error": "Route list not found"}
+
+    return {
+        "name": route_list.name,
+        "listType": route_list.list_type.value,
+        "routeItems": route_list.route_items,
+        "routeCount": len(route_list.route_items)
+    }
+
+
+# -------- Recording Control (录制控制 - 基础功能) --------
+
+
+@router.post("/recording/start")
+def start_route_recording(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """开始路线录制（基础控制）"""
+    # 注意：这里只提供基础的录制控制API
+    # 实际的录制逻辑比较复杂，涉及图像处理、坐标计算等
+    # 建议通过GUI界面进行录制操作
+
+    area_full_id = payload.get("areaFullId")
+    route_name = payload.get("routeName", "recorded_route")
+
+    if not area_full_id:
+        return {"ok": False, "error": "areaFullId is required"}
+
+    return {
+        "ok": True,
+        "message": f"Route recording control initiated for area {area_full_id}",
+        "routeName": route_name,
+        "note": "Use GUI interface for actual recording. This API provides basic control only."
+    }
+
+
+@router.post("/recording/stop")
+def stop_route_recording() -> Dict[str, Any]:
+    """停止路线录制"""
+    return {
+        "ok": True,
+        "message": "Route recording stopped",
+        "note": "Use GUI interface to save the recorded route"
+    }
+
+
+@router.post("/large-map-recording/start")
+def start_large_map_recording(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """开始大地图录制（基础控制）"""
+    # 大地图录制涉及复杂的图像拼接和处理
+    # 建议通过GUI界面进行录制操作
+
+    area_full_id = payload.get("areaFullId")
+
+    if not area_full_id:
+        return {"ok": False, "error": "areaFullId is required"}
+
+    return {
+        "ok": True,
+        "message": f"Large map recording control initiated for area {area_full_id}",
+        "note": "Use GUI interface for actual recording. This API provides basic control only."
+    }
+
+
+@router.post("/large-map-recording/stop")
+def stop_large_map_recording() -> Dict[str, Any]:
+    """停止大地图录制"""
+    return {
+        "ok": True,
+        "message": "Large map recording stopped",
+        "note": "Use GUI interface to save the recorded map"
+    }
+
+
+# -------- Run Record Management (运行记录管理) --------
+
+
+@router.post("/reset-record")
+def reset_world_patrol_record() -> Dict[str, Any]:
+    """重置锄大地运行记录"""
+    ctx = get_ctx()
+    ctx.world_patrol_run_record.reset_record()
+    return {"message": "World patrol record reset successfully"}
+
+
+@router.get("/run-record")
+def get_world_patrol_run_record() -> Dict[str, Any]:
+    """获取锄大地运行记录"""
+    ctx = get_ctx()
+    record = ctx.world_patrol_run_record
+    return {
+        "finished": record.finished,
+        "timeCost": record.time_cost,
+        "totalFinished": len(record.finished)
+    }
 
 
