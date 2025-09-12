@@ -1,6 +1,6 @@
 sub_dir: inter_knot
 template_id: btn_go
-template_name: ''
+template_name: '绳网-前往'
 template_shape: circle
 auto_mask: true
 point_list:
