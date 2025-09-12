@@ -72,6 +72,7 @@ class ConditionalOperator(YamlConfig):
                     if state in usage_states:
                         raise ValueError('状态监听 %s 出现在多个场景中' % state)
                     self.trigger_scene_handler[state] = handler
+                    usage_states.append(state)  # 修复bug：将状态添加到已使用状态列表中
             elif self.normal_scene_handler is not None:
                 raise ValueError('存在多个无状态监听的场景')
             else:
@@ -328,15 +329,11 @@ class ConditionalOperator(YamlConfig):
             with self._task_lock:
                 interrupt: bool = False
                 if (self.running_task is not None and self.running_task.running
-                        and self.running_task.interrupt_states is not None
-                        and len(self.running_task.interrupt_states) > 0):
-                    for state_record in state_records:
-                        if state_record.is_clear:
-                            continue
-                        if state_record.state_name in self.running_task.interrupt_states:
-                            interrupt = True
-                            log.debug('出现打断场景 %s', state_record.state_name)
-                            break
+                        and self.running_task.interrupt_cal_tree is not None):
+                    now = time.time()
+                    if self.running_task.interrupt_cal_tree.in_time_range(now):
+                        interrupt = True
+                        log.debug('复合中断条件满足，执行中断')
                 if interrupt:
                     self._stop_running_task()
 

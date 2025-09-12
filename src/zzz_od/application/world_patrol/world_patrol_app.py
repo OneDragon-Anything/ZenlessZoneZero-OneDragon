@@ -6,6 +6,8 @@ from zzz_od.application.world_patrol.world_patrol_route import WorldPatrolRoute
 from zzz_od.application.world_patrol.world_patrol_route_list import RouteListType
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.goto.goto_menu import GotoMenu
 
 
 class WorldPatrolApp(ZApplication):
@@ -39,7 +41,7 @@ class WorldPatrolApp(ZApplication):
                     break
 
             if config is not None:
-                route_id_list = [route.area_full_id + '_' + str(route.idx) for route in config.route_items]
+                route_id_list = config.route_items.copy()
                 if config.list_type == RouteListType.BLACKLIST:
                     self.route_list = [
                         route
@@ -55,6 +57,36 @@ class WorldPatrolApp(ZApplication):
         return self.round_success(status=f'加载路线 {len(self.route_list)}')
 
     @node_from(from_name='初始化')
+    @operation_node(name='开始前返回大世界')
+    def back_at_first(self) -> OperationRoundResult:
+        op = BackToNormalWorld(self.ctx)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='开始前返回大世界')
+    @operation_node(name='打开菜单')
+    def open_menu(self) -> OperationRoundResult:
+        op = GotoMenu(self.ctx)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='打开菜单')
+    @operation_node(name='前往绳网')
+    def goto_inter_knot(self) -> OperationRoundResult:
+        return self.round_by_goto_screen(screen_name='绳网', success_wait=1, retry_wait=1)
+
+    @node_from(from_name='前往绳网')
+    @operation_node(name='停止追踪')
+    def stop_tracking(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(screen_name='绳网', area_name='按钮-停止追踪',
+                                                 success_wait=1, retry_wait=1)
+
+    @node_from(from_name='停止追踪')
+    @node_from(from_name='停止追踪', success=False)
+    @operation_node(name='停止追踪后返回大世界')
+    def back_after_stop_tracking(self) -> OperationRoundResult:
+        op = BackToNormalWorld(self.ctx)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='停止追踪后返回大世界')
     @operation_node(name='执行路线')
     def run_route(self) -> OperationRoundResult:
         if self.route_idx >= len(self.route_list):

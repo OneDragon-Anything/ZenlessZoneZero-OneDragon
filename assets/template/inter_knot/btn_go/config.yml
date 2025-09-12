@@ -1,0 +1,8 @@
+sub_dir: inter_knot
+template_id: btn_go
+template_name: ''
+template_shape: circle
+auto_mask: true
+point_list:
+- 264, 950
+- 306, 950

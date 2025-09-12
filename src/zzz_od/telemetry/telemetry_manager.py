@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 
 from .models import TelemetryConfig, PrivacySettings
 from .config import TelemetryConfigLoader, PrivacySettingsManager
-from .posthog_client import PostHogClient
+from .loki_client import LokiClient
 from .privacy_controller import PrivacyController
 from .data_sanitizer import DataSanitizer
 from .ui_support import TelemetryUISupport
@@ -36,6 +36,7 @@ class TelemetryManager:
         self._initialized = False
         self._user_id: Optional[str] = None
         self._session_id = str(uuid.uuid4())
+        self._app_version = self._get_app_version()
 
         # 配置管理
         from one_dragon.utils import os_utils
@@ -46,7 +47,7 @@ class TelemetryManager:
         # 组件
         self.config: Optional[TelemetryConfig] = None
         self.privacy_settings: Optional[PrivacySettings] = None
-        self.posthog_client: Optional[PostHogClient] = None
+        self.loki_client: Optional[LokiClient] = None
         self.privacy_controller: Optional[PrivacyController] = None
         self.data_sanitizer: Optional[DataSanitizer] = None
         self.ui_support: Optional[TelemetryUISupport] = None
@@ -77,23 +78,23 @@ class TelemetryManager:
             self.data_sanitizer = DataSanitizer()
             self.ui_support = TelemetryUISupport(self.privacy_controller)
 
-            # 初始化PostHog客户端
-            logger.debug("Initializing PostHog client...")
-            self.posthog_client = PostHogClient(self.config)
-            if not self.posthog_client.initialize():
-                logger.warning("Failed to initialize PostHog client")
+            # 初始化Loki客户端
+            logger.debug("Initializing Loki client...")
+            self.loki_client = LokiClient(self.config)
+            if not self.loki_client.initialize():
+                logger.warning("Failed to initialize Loki client")
                 return False
 
-            logger.debug("PostHog client initialized successfully")
+            logger.debug("Loki client initialized successfully")
 
             # 生成用户ID（在创建 EventCollector 之前）
             self._user_id = self._generate_user_id()
 
             # 初始化核心遥测组件
             logger.debug("Initializing telemetry components...")
-            self.event_collector = EventCollector(self.posthog_client, self.privacy_controller, self._user_id)
-            self.error_tracker = ErrorTracker(self.posthog_client, self.privacy_controller)
-            self.performance_monitor = PerformanceMonitor(self.posthog_client, self.privacy_controller)
+            self.event_collector = EventCollector(self.loki_client, self.privacy_controller, self._user_id)
+            self.error_tracker = ErrorTracker(self.loki_client, self.privacy_controller)
+            self.performance_monitor = PerformanceMonitor(self.loki_client, self.privacy_controller)
 
             # 设置全局异常处理器
             self.error_tracker.setup_exception_handler()
@@ -111,21 +112,42 @@ class TelemetryManager:
             logger.error(traceback.format_exc())
             return False
 
+
+
     def _generate_user_id(self) -> str:
-        """生成匿名用户ID"""
+        """生成用户ID"""
         try:
-            # 使用机器特征生成稳定的匿名ID
+            # 使用机器特征生成稳定的ID
             machine_id = f"{platform.node()}-{platform.machine()}"
-            # 这里可以添加更多的机器特征，但要注意隐私
-            user_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, machine_id))
-            logger.debug(f"Generated anonymous user ID: {user_id[:8]}...")
-            return user_id
+            # 生成基于机器特征的稳定UUID
+            user_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, machine_id))
+            logger.debug(f"Generated user UUID: {user_uuid}")
+            return user_uuid
         except Exception as e:
             # 如果生成失败，使用随机ID
             logger.warning(f"Failed to generate user ID from machine features: {e}")
-            user_id = str(uuid.uuid4())
-            logger.debug(f"Using random user ID: {user_id[:8]}...")
-            return user_id
+            user_uuid = str(uuid.uuid4())
+            logger.debug(f"Using random user UUID: {user_uuid}")
+            return user_uuid
+
+    def _get_app_version(self) -> str:
+        """获取应用版本号"""
+        try:
+            # 首先尝试获取启动器版本
+            from one_dragon.utils import app_utils
+            launcher_version = app_utils.get_launcher_version()
+            if launcher_version:
+                return launcher_version
+        except Exception:
+            pass
+
+        # 回退到project_config的version属性
+        app_version = getattr(self.ctx.project_config, 'version', None)
+        if app_version:
+            return app_version
+
+        # 最后回退到默认值
+        return '2.0.0'
 
     def is_enabled(self) -> bool:
         """检查遥测是否启用"""
@@ -133,8 +155,8 @@ class TelemetryManager:
             self._initialized and
             self.config and
             self.config.enabled and
-            self.posthog_client and
-            self.posthog_client._initialized
+            self.loki_client and
+            self.loki_client._initialized
         )
 
     def capture_event(self, event_name: str, properties: Dict[str, Any] = None) -> None:
@@ -146,7 +168,7 @@ class TelemetryManager:
             # 添加通用属性
             event_properties = {
                 'session_id': self._session_id,
-                'app_version': getattr(self.ctx.project_config, 'version', '2.0.0'),
+                'app_version': self._app_version,
                 **(properties or {})
             }
 
@@ -162,7 +184,8 @@ class TelemetryManager:
             if self.data_sanitizer:
                 event_properties = self.data_sanitizer.sanitize_event_properties(event_properties)
 
-            self.posthog_client.capture(
+            # 发送事件到Loki
+            self.loki_client.capture(
                 distinct_id=self._user_id,
                 event=event_name,
                 properties=event_properties
@@ -187,7 +210,7 @@ class TelemetryManager:
                 'stack_trace': traceback.format_exc(),
                 'context': context or {},
                 'session_id': self._session_id,
-                'app_version': getattr(self.ctx.project_config, 'version', '2.0.0'),
+                'app_version': self._app_version,
             }
 
             # 隐私控制检查
@@ -203,7 +226,8 @@ class TelemetryManager:
             if self.privacy_controller:
                 error_data = self.privacy_controller.filter_sensitive_info(error_data)
 
-            self.posthog_client.capture(
+            # 发送错误事件到Loki
+            self.loki_client.capture(
                 distinct_id=self._user_id,
                 event='error_occurred',
                 properties=error_data
@@ -224,11 +248,12 @@ class TelemetryManager:
                 'metric_name': metric_name,
                 'metric_value': value,
                 'session_id': self._session_id,
-                'app_version': getattr(self.ctx.project_config, 'version', '2.0.0'),
+                'app_version': self._app_version,
                 **(tags or {})
             }
 
-            self.posthog_client.capture(
+            # 发送性能指标到Loki
+            self.loki_client.capture(
                 distinct_id=self._user_id,
                 event='performance_metric',
                 properties=performance_properties
@@ -239,20 +264,58 @@ class TelemetryManager:
         except Exception as e:
             logger.error(f"Failed to capture performance metric: {e}")
 
+    def track_custom_event(self, event_name: str, properties: Dict[str, Any] = None) -> None:
+        """跟踪自定义事件"""
+        if not self.is_enabled():
+            return
+
+        try:
+            # 添加通用属性
+            event_properties = {
+                'session_id': self._session_id,
+                'app_version': self._app_version,
+                **(properties or {})
+            }
+
+            # 隐私控制和数据处理
+            if self.privacy_controller:
+                processed_properties = self.privacy_controller.process_event_data(event_name, event_properties)
+                if processed_properties is None:
+                    logger.debug(f"Custom event {event_name} blocked by privacy settings")
+                    return
+                event_properties = processed_properties
+
+            # 数据清理
+            if self.data_sanitizer:
+                event_properties = self.data_sanitizer.sanitize_event_properties(event_properties)
+
+            # 发送事件到Loki
+            self.loki_client.capture(
+                distinct_id=self._user_id,
+                event=event_name,
+                properties=event_properties
+            )
+
+            logger.debug(f"Tracked custom event: {event_name}")
+
+        except Exception as e:
+            logger.error(f"Failed to track custom event {event_name}: {e}")
+
     def identify_user(self, user_id: str, properties: Dict[str, Any] = None) -> None:
         """识别用户"""
         if not self.is_enabled():
             return
 
         try:
-            self.posthog_client.identify(
+            # 发送用户识别到Loki
+            self.loki_client.identify(
                 distinct_id=user_id,
                 properties=properties or {}
             )
 
             # 关联旧的匿名ID
             if self._user_id and self._user_id != user_id:
-                self.posthog_client.alias(self._user_id, user_id)
+                self.loki_client.alias(self._user_id, user_id)
 
             self._user_id = user_id
             logger.debug(f"Identified user: {user_id}")
@@ -266,7 +329,8 @@ class TelemetryManager:
             return
 
         try:
-            self.posthog_client.set_user_properties(self._user_id, properties)
+            # 设置用户属性到Loki
+            self.loki_client.set_user_properties(self._user_id, properties)
             logger.debug("Set user properties")
 
         except Exception as e:
@@ -274,8 +338,8 @@ class TelemetryManager:
 
     def flush(self) -> None:
         """立即刷新所有待发送的数据"""
-        if self.posthog_client:
-            self.posthog_client.flush()
+        if self.loki_client:
+            self.loki_client.flush()
 
     def shutdown(self) -> None:
         """关闭遥测系统"""
@@ -302,9 +366,9 @@ class TelemetryManager:
             if self.error_tracker:
                 self.error_tracker.shutdown()
 
-            # 关闭PostHog客户端（这会再次刷新队列）
-            if self.posthog_client:
-                self.posthog_client.shutdown()
+            # 关闭Loki客户端（这会再次刷新队列）
+            if self.loki_client:
+                self.loki_client.shutdown()
 
             self._initialized = False
             logger.debug("Telemetry system shutdown complete")
@@ -375,97 +439,157 @@ class TelemetryManager:
     def track_app_launch(self, launch_time: float, version: str = None) -> None:
         """跟踪应用启动"""
         if self.event_collector:
-            app_version = version or getattr(self.ctx.project_config, 'version', '2.0.0')
+            app_version = version or self._app_version
             self.event_collector.track_app_launch(launch_time, app_version)
 
-    def track_navigation(self, from_screen: str, to_screen: str, duration: float = None) -> None:
-        """跟踪页面导航"""
-        if self.event_collector:
-            self.event_collector.track_navigation(from_screen, to_screen, duration)
+    def track_ui_interaction(self, element: str, action: str, properties: Dict[str, Any] = None) -> None:
+        """跟踪UI交互（用于DAU统计）"""
+        if not self.is_enabled():
+            return
 
-    def track_ui_interaction(self, element: str, action: str, context: Dict[str, Any] = None) -> None:
-        """跟踪UI交互"""
-        if self.event_collector:
-            self.event_collector.track_ui_interaction(element, action, context)
+        try:
+            # 添加通用属性
+            event_properties = {
+                'element': element,
+                'action': action,
+                'session_id': self._session_id,
+                'app_version': self._app_version,
+                'event_category': 'ui_interaction',
+                **(properties or {})
+            }
 
-    def track_feature_usage(self, feature: str, usage_data: Dict[str, Any] = None) -> None:
-        """跟踪功能使用"""
-        if self.event_collector:
-            self.event_collector.track_feature_usage(feature, usage_data)
+            # 隐私控制和数据处理
+            if self.privacy_controller:
+                processed_properties = self.privacy_controller.process_event_data('ui_interaction', event_properties)
+                if processed_properties is None:
+                    logger.debug(f"UI interaction {element}.{action} blocked by privacy settings")
+                    return
+                event_properties = processed_properties
 
-    def track_automation_start(self, automation_type: str, config: Dict[str, Any] = None) -> None:
-        """跟踪自动化开始"""
-        if self.event_collector:
-            self.event_collector.track_automation_start(automation_type, config)
+            # 数据清理
+            if self.data_sanitizer:
+                event_properties = self.data_sanitizer.sanitize_event_properties(event_properties)
 
-    def track_automation_end(self, automation_type: str, duration: float, success: bool,
-                           result_data: Dict[str, Any] = None) -> None:
-        """跟踪自动化结束"""
-        if self.event_collector:
-            self.event_collector.track_automation_end(automation_type, duration, success, result_data)
+            # 发送事件到Loki
+            self.loki_client.capture(
+                distinct_id=self._user_id,
+                event='ui_interaction',
+                properties=event_properties
+            )
 
-    # 错误追踪器方法
-    def add_breadcrumb(self, message: str, category: str, level: str = "info",
-                      data: Dict[str, Any] = None) -> None:
-        """添加面包屑"""
+            logger.debug(f"Tracked UI interaction: {element} - {action}")
+
+        except Exception as e:
+            logger.error(f"Failed to track UI interaction {element}.{action}: {e}")
+
+    def add_breadcrumb(self, message: str, category: str = "operation", level: str = "info",
+                      properties: Dict[str, Any] = None) -> None:
+        """添加面包屑（用于错误追踪）"""
         if self.error_tracker:
-            self.error_tracker.add_breadcrumb(message, category, level, data)
+            self.error_tracker.add_breadcrumb(message, category, level, properties)
 
     def track_operation_start(self, operation_name: str, context: Dict[str, Any] = None) -> None:
-        """跟踪操作开始"""
+        """跟踪操作开始（用于错误追踪）"""
         if self.error_tracker:
             self.error_tracker.track_operation_start(operation_name, context)
 
-    def track_operation_end(self, operation_name: str, success: bool,
-                          duration: float = None, result: Dict[str, Any] = None) -> None:
-        """跟踪操作结束"""
+    def track_operation_end(self, operation_name: str, success: bool, duration: float,
+                          context: Dict[str, Any] = None) -> None:
+        """跟踪操作结束（用于错误追踪）"""
         if self.error_tracker:
-            self.error_tracker.track_operation_end(operation_name, success, duration, result)
+            self.error_tracker.track_operation_end(operation_name, success, duration, context)
+
+    def track_operation_time(self, operation: str, duration: float, success: bool,
+                           metadata: Dict[str, Any] = None) -> None:
+        """跟踪操作时间（用于性能监控）"""
+        if self.performance_monitor:
+            self.performance_monitor.track_operation_time(operation, duration, success, metadata)
+
+    def track_navigation(self, from_page: str, to_page: str) -> None:
+        """跟踪导航（用于DAU统计）"""
+        if not self.is_enabled():
+            return
+
+        try:
+            # 添加通用属性
+            event_properties = {
+                'from_page': from_page,
+                'to_page': to_page,
+                'session_id': self._session_id,
+                'app_version': self._app_version,
+                'event_category': 'navigation'
+            }
+
+            # 隐私控制和数据处理
+            if self.privacy_controller:
+                processed_properties = self.privacy_controller.process_event_data('navigation', event_properties)
+                if processed_properties is None:
+                    logger.debug(f"Navigation {from_page} -> {to_page} blocked by privacy settings")
+                    return
+                event_properties = processed_properties
+
+            # 数据清理
+            if self.data_sanitizer:
+                event_properties = self.data_sanitizer.sanitize_event_properties(event_properties)
+
+            # 发送事件到Loki
+            self.loki_client.capture(
+                distinct_id=self._user_id,
+                event='navigation',
+                properties=event_properties
+            )
+
+            logger.debug(f"Tracked navigation: {from_page} -> {to_page}")
+
+        except Exception as e:
+            logger.error(f"Failed to track navigation {from_page} -> {to_page}: {e}")
+
+    def track_feature_usage(self, feature_name: str, properties: Dict[str, Any] = None) -> None:
+        """跟踪功能使用（用于DAU统计）"""
+        if not self.is_enabled():
+            return
+
+        try:
+            # 添加通用属性
+            event_properties = {
+                'feature_name': feature_name,
+                'session_id': self._session_id,
+                'app_version': self._app_version,
+                'event_category': 'feature_usage',
+                **(properties or {})
+            }
+
+            # 隐私控制和数据处理
+            if self.privacy_controller:
+                processed_properties = self.privacy_controller.process_event_data('feature_usage', event_properties)
+                if processed_properties is None:
+                    logger.debug(f"Feature usage {feature_name} blocked by privacy settings")
+                    return
+                event_properties = processed_properties
+
+            # 数据清理
+            if self.data_sanitizer:
+                event_properties = self.data_sanitizer.sanitize_event_properties(event_properties)
+
+            # 发送事件到Loki
+            self.loki_client.capture(
+                distinct_id=self._user_id,
+                event='feature_usage',
+                properties=event_properties
+            )
+
+            logger.debug(f"Tracked feature usage: {feature_name}")
+
+        except Exception as e:
+            logger.error(f"Failed to track feature usage {feature_name}: {e}")
+
+
 
     # 性能监控器方法
     def track_startup_time(self, startup_duration: float, components: Dict[str, float] = None) -> None:
         """跟踪应用启动时间"""
         if self.performance_monitor:
             self.performance_monitor.track_startup_time(startup_duration, components)
-
-    def track_operation_time(self, operation: str, duration: float, success: bool,
-                           metadata: Dict[str, Any] = None) -> None:
-        """跟踪操作执行时间"""
-        if self.performance_monitor:
-            self.performance_monitor.track_operation_time(operation, duration, success, metadata)
-
-    def track_memory_usage(self, usage_mb: float, peak_mb: float = None, component: str = None) -> None:
-        """跟踪内存使用"""
-        if self.performance_monitor:
-            self.performance_monitor.track_memory_usage(usage_mb, peak_mb, component)
-
-    def track_image_recognition_performance(self, processing_time: float, accuracy: float = None,
-                                          algorithm: str = None, image_size: str = None) -> None:
-        """跟踪图像识别性能"""
-        if self.performance_monitor:
-            self.performance_monitor.track_image_recognition_performance(
-                processing_time, accuracy, algorithm, image_size)
-
-    def start_timer(self, timer_name: str, metadata: Dict[str, Any] = None) -> None:
-        """开始计时器"""
-        if self.performance_monitor:
-            self.performance_monitor.start_timer(timer_name, metadata)
-
-    def stop_timer(self, timer_name: str, success: bool = True,
-                  additional_metadata: Dict[str, Any] = None) -> Optional[float]:
-        """停止计时器"""
-        if self.performance_monitor:
-            return self.performance_monitor.stop_timer(timer_name, success, additional_metadata)
-        return None
-
-    def measure_time(self, operation_name: str, metadata: Dict[str, Any] = None):
-        """上下文管理器形式的计时器"""
-        if self.performance_monitor:
-            return self.performance_monitor.measure_time(operation_name, metadata)
-        else:
-            # 返回一个空的上下文管理器
-            from contextlib import nullcontext
-            return nullcontext()
 
     def get_health_status(self) -> Dict[str, Any]:
         """获取遥测系统健康状态"""
@@ -476,8 +600,14 @@ class TelemetryManager:
             'session_id': self._session_id
         }
 
-        if self.posthog_client:
-            status.update(self.posthog_client.get_health_status())
+        # 添加Loki客户端状态信息
+        if self.loki_client:
+            status.update({
+                'backend_type': 'loki',
+                'loki_status': self.loki_client.get_health_status()
+            })
+        else:
+            status['backend_type'] = 'loki'
 
         if self.privacy_controller:
             status['privacy_settings'] = self.privacy_controller.get_privacy_settings()

@@ -1,5 +1,5 @@
 from typing import Optional, Callable
-
+import time
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation_base import OperationResult
@@ -51,6 +51,8 @@ class ZApplication(Application, TelemetryApplicationMixin):
         Application.handle_resume(self)
 
     def execute(self) -> OperationResult:
+        # 记录开始时间
+        start_time = time.time()
 
         # 手动触发应用执行事件
         telemetry = getattr(self, '_get_telemetry', lambda: None)()
@@ -69,7 +71,10 @@ class ZApplication(Application, TelemetryApplicationMixin):
         # 执行原始方法
         result = super().execute()
 
-        # 记录应用执行结束
+        # 计算执行时长
+        duration = time.time() - start_time
+
+        # 记录应用执行结束（包含执行时长）
         if telemetry:
             try:
                 telemetry.capture_event('application_execute', {
@@ -78,7 +83,10 @@ class ZApplication(Application, TelemetryApplicationMixin):
                     'op_name': getattr(self, 'op_name', 'unknown'),
                     'action': 'end',
                     'success': result.success if result else False,
-                    'status': result.status if result else 'unknown'
+                    'status': result.status if result else 'unknown',
+                    'duration_seconds': round(duration, 2),
+                    'duration_minutes': round(duration / 60, 2),
+                    'event_category': 'app_performance'
                 })
             except Exception:
                 pass

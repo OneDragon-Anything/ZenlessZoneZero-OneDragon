@@ -18,6 +18,7 @@ from zzz_od.application.scratch_card.scratch_card_app import ScratchCardApp
 from zzz_od.application.shiyu_defense.shiyu_defense_app import ShiyuDefenseApp
 from zzz_od.application.suibian_temple.suibian_temple_app import SuibianTempleApp
 from zzz_od.application.trigrams_collection.trigrams_collection_app import TrigramsCollectionApp
+from zzz_od.application.world_patrol.world_patrol_app import WorldPatrolApp
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.enter_game.open_and_enter_game import OpenAndEnterGame
@@ -40,20 +41,21 @@ class ZOneDragonApp(OneDragonApp, ZApplication):
         from zzz_od.application.notify.notify_app import NotifyApp
         return [
             RedemptionCodeApp(self.ctx),
+            EmailApp(self.ctx),
             RandomPlayApp(self.ctx),
             ScratchCardApp(self.ctx),
             TrigramsCollectionApp(self.ctx),
-            ChargePlanApp(self.ctx),
             CoffeeApp(self.ctx),
-            NotoriousHuntApp(self.ctx),
             EngagementRewardApp(self.ctx),
-            HollowZeroApp(self.ctx),
-            LostVoidApp(self.ctx),
-            ShiyuDefenseApp(self.ctx),
-            SuibianTempleApp(self.ctx),
+            ChargePlanApp(self.ctx),
             CityFundApp(self.ctx),
             RiduWeeklyApp(self.ctx),
-            EmailApp(self.ctx),
+            NotoriousHuntApp(self.ctx),
+            HollowZeroApp(self.ctx),
+            LostVoidApp(self.ctx),
+            WorldPatrolApp(self.ctx),
+            ShiyuDefenseApp(self.ctx),
+            SuibianTempleApp(self.ctx),
             DriveDiscDismantleApp(self.ctx),
             LifeOnLineApp(self.ctx),
             NotifyApp(self.ctx),

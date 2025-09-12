@@ -44,28 +44,12 @@ class AutoBattleApp(ZApplication):
         :return:
         """
         gamepad_type = self.ctx.battle_assistant_config.gamepad_type
-        if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
-            self.ctx.telemetry.capture_event('gamepad_check', {
-                'gamepad_type': gamepad_type,
-                'feature': 'auto_battle'
-            })
         if gamepad_type == GamepadTypeEnum.NONE.value.value:
             self.ctx.controller.enable_keyboard()
-            if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
-                self.ctx.telemetry.capture_event('input_method_selected', {
-                    'method': 'keyboard',
-                    'feature': 'auto_battle'
-                })
 
             return self.round_success(status='无需手柄')
         elif not pc_button_utils.is_vgamepad_installed():
             self.ctx.controller.enable_keyboard()
-            if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
-                self.ctx.telemetry.capture_event('gamepad_fallback', {
-                    'reason': 'vgamepad_not_installed',
-                    'fallback_method': 'keyboard',
-                    'feature': 'auto_battle'
-                })
             return self.round_fail(status='未安装虚拟手柄依赖')
         elif self.ctx.battle_assistant_config.gamepad_type == GamepadTypeEnum.XBOX.value.value:
             self.ctx.controller.enable_xbox()

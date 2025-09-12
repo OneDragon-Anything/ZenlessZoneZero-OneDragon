@@ -1,0 +1,10 @@
+sub_dir: normal_world_investigation
+template_id: menu
+template_name: ''
+template_shape: quadrilateral
+auto_mask: true
+point_list:
+- 92, 50
+- 72, 100
+- 109, 100
+- 129, 50

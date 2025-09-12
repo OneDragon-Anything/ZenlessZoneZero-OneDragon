@@ -1,5 +1,6 @@
 import os
 import shutil
+import webbrowser
 
 from pathlib import Path
 from PySide6.QtCore import Qt, QThread, QTimer, QSize, Signal
@@ -319,6 +320,22 @@ class InstallStepWidget(QWidget):
             self.status_label.setText(gt('✗ 安装失败'))
             self.status_label.setStyleSheet("color: #d13438; font-weight: bold;")
             self.installing_idx = -1
+            
+            # 安装失败时自动打开帮助文档
+            # 通过父级的ctx获取配置
+            ctx = None
+            if hasattr(self, 'install_cards') and self.install_cards:
+                for card in self.install_cards:
+                    if hasattr(card, 'ctx'):
+                        ctx = card.ctx
+                        break
+            
+            if ctx and hasattr(ctx, 'project_config'):
+                webbrowser.open(ctx.project_config.doc_link)
+            else:
+                log.warning("未找到可用的 ctx，无法打开帮助文档")
+            log.info("步骤安装失败，已自动打开帮助文档")
+            
             self.step_completed.emit(False)
         else:
             self.installing_idx += 1
@@ -646,6 +663,14 @@ class InstallerInterface(VerticalScrollInterface):
             else:
                 self.show_completion_message()
         else:
+            # 安装失败时自动打开帮助文档
+            webbrowser.open(self.ctx.project_config.doc_link)
+            log.info("安装失败，已自动打开帮助文档")
+            # 更新进度标签显示文档已打开的信息
+            self.progress_label.setText(gt('安装失败！已自动打开排障文档'))
+            self.progress_label.setStyleSheet("color: #d13438;")
+            
+            self.progress_label.setVisible(True)
             self.install_btn.setVisible(True)
             self.progress_ring.setVisible(False)
             self.advanced_btn.setVisible(False)
@@ -939,7 +964,11 @@ class InstallerInterface(VerticalScrollInterface):
         self.progress_ring.setVisible(False)
         self.progress_label.setVisible(not success)
         if not success:
-            self.progress_label.setText(gt('资源解压失败，请更换安装目录'))
+            # 资源解压失败时自动打开帮助文档
+            webbrowser.open(self.ctx.project_config.doc_link)
+            log.info("资源解压失败，已自动打开帮助文档")
+            self.progress_label.setText(gt('资源解压失败！已自动打开排障文档'))
+            self.progress_label.setStyleSheet("color: #d13438;")
 
     def on_interface_shown(self) -> None:
         super().on_interface_shown()

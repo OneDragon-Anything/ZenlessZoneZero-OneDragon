@@ -1,0 +1,184 @@
+- icon_name: 加工平台
+  template_id: map_icon_01
+  lm_pos:
+  - 657
+  - 1065
+  tp_pos:
+  - 657
+  - 1065
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 667
+  - 918
+  tp_pos:
+  - 667
+  - 918
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 424
+  - 989
+  tp_pos:
+  - 424
+  - 989
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 372
+  - 989
+  tp_pos:
+  - 372
+  - 989
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 403
+  - 1031
+  tp_pos:
+  - 403
+  - 1031
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 340
+  - 1099
+  tp_pos:
+  - 340
+  - 1099
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 318
+  - 888
+  tp_pos:
+  - 318
+  - 888
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 355
+  - 982
+  tp_pos:
+  - 355
+  - 982
+- icon_name: 一楼广场
+  template_id: map_icon_01
+  lm_pos:
+  - 357
+  - 491
+  tp_pos:
+  - 357
+  - 491
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 373
+  - 547
+  tp_pos:
+  - 373
+  - 547
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 391
+  - 472
+  tp_pos:
+  - 391
+  - 472
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 391
+  - 510
+  tp_pos:
+  - 391
+  - 510
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 521
+  - 472
+  tp_pos:
+  - 521
+  - 472
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 612
+  - 570
+  tp_pos:
+  - 612
+  - 570
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 520
+  - 513
+  tp_pos:
+  - 520
+  - 513
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 525
+  - 429
+  tp_pos:
+  - 525
+  - 429
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 710
+  - 530
+  tp_pos:
+  - 710
+  - 530
+- icon_name: ''
+  template_id: map_icon_04
+  lm_pos:
+  - 720
+  - 474
+  tp_pos:
+  - 720
+  - 474
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 630
+  - 239
+  tp_pos:
+  - 630
+  - 239
+- icon_name: ''
+  template_id: map_icon_02
+  lm_pos:
+  - 329
+  - 783
+  tp_pos:
+  - 329
+  - 783
+- icon_name: ''
+  template_id: map_icon_05
+  lm_pos:
+  - 298
+  - 801
+  tp_pos:
+  - 298
+  - 801
+- icon_name: ''
+  template_id: map_icon_09
+  lm_pos:
+  - 375
+  - 683
+  tp_pos:
+  - 375
+  - 683
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 227
+  - 884
+  tp_pos:
+  - 227
+  - 884

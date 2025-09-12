@@ -1,0 +1,24 @@
+idx: 1
+op_list:
+- data:
+  - '1073'
+  - '398'
+  op_type: move
+- data:
+  - '1042'
+  - '460'
+  op_type: move
+- data:
+  - '932'
+  - '466'
+  op_type: move
+- data:
+  - '832'
+  - '485'
+  op_type: move
+- data:
+  - '813'
+  - '530'
+  op_type: move
+tp_area_id: production_area_building_west_side
+tp_name: 大楼西侧

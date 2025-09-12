@@ -11,7 +11,7 @@ import uuid
 class TelemetryEvent:
     """遥测事件数据结构"""
     event_name: str
-    distinct_id: str
+    user_uuid: str
     properties: Dict[str, Any]
     timestamp: datetime = field(default_factory=datetime.now)
     session_id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -47,11 +47,19 @@ class TelemetryConfig:
     analytics_enabled: bool = True
     error_reporting_enabled: bool = True
     performance_monitoring_enabled: bool = True
-    api_key: str = ""
-    host: str = "https://app.posthog.com"
+
     flush_interval: int = 5  # 秒
     max_queue_size: int = 1000
     debug_mode: bool = False
+
+    # 后端配置（现在只支持Loki）
+    backend_type: str = "loki"
+
+    # Loki相关配置
+    loki_url: str = ""
+    loki_tenant_id: str = ""
+    loki_auth_token: str = ""
+    loki_labels: Dict[str, str] = field(default_factory=dict)
 
     def update_from_dict(self, data: Dict[str, Any]) -> None:
         """从字典更新配置"""

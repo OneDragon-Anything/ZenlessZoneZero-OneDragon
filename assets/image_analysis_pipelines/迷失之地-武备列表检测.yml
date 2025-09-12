@@ -16,6 +16,10 @@
   params:
     kernel_size: 3
     iterations: 1
+- step: 膨胀
+  params:
+    kernel_size: 3
+    iterations: 1
 - step: 查找轮廓
   params:
     mode: EXTERNAL
@@ -23,6 +27,6 @@
     draw_contours: 0
 - step: 按面积过滤
   params:
-    min_area: 1000
+    min_area: 2000
     max_area: 100000
     draw_contours: true

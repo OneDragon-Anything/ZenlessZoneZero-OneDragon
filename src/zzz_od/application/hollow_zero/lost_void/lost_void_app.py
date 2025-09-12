@@ -1,26 +1,35 @@
 import time
 from typing import ClassVar
 
+import cv2
+
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-import cv2
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidRegionType
-from zzz_od.application.hollow_zero.lost_void.operation.lost_void_run_level import LostVoidRunLevel
+from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
+    LostVoidRegionType,
+)
+from zzz_od.application.hollow_zero.lost_void.operation.lost_void_run_level import (
+    LostVoidRunLevel,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.game_data.compendium import CompendiumMissionType
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
-from zzz_od.operation.compendium.compendium_choose_category import CompendiumChooseCategory
-from zzz_od.operation.compendium.compendium_choose_mission_type import CompendiumChooseMissionType
+from zzz_od.operation.compendium.compendium_choose_category import (
+    CompendiumChooseCategory,
+)
+from zzz_od.operation.compendium.compendium_choose_mission_type import (
+    CompendiumChooseMissionType,
+)
 from zzz_od.operation.deploy import Deploy
 
 
@@ -228,7 +237,7 @@ class LostVoidApp(ZApplication):
                             found_digit_contour = digit_contour
                             break
 
-                if found_digit_contour is None or cv2.contourArea(found_digit_contour) <= 300:
+                if found_digit_contour is None:
                     log.debug("【追新模式】 找到一个未满级/无等级目标，准备点击。")
                     target_contour_to_click = frame_contour
                     break
@@ -246,6 +255,7 @@ class LostVoidApp(ZApplication):
 
             log.debug("【追新模式】 当前屏幕无可选择目标，执行滑动...")
             self._swipe_strategy_list()
+            self.screenshot()
             swipe_attempts += 1
         
         # 回退逻辑: 选择第一个

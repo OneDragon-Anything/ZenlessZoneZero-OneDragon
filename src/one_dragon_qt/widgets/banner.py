@@ -53,7 +53,7 @@ class Banner(QWidget):
 
             # 创建圆角路径
             path = QPainterPath()
-            path.addRoundedRect(self.rect(), 20, 20)
+            path.addRoundedRect(self.rect(), 4, 4)
             painter.setClipPath(path)
 
             # 计算绘制位置，使图片居中

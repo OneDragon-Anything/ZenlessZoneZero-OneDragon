@@ -17,15 +17,10 @@ os.chdir(path)
 
 def print_message(message, level="INFO"):
     # 打印消息，带有时间戳和日志级别
-    delay(0.1)
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")[:-3]
     colors = {"INFO": Fore.CYAN, "ERROR": Fore.YELLOW + Style.BRIGHT, "PASS": Fore.GREEN}
     color = colors.get(level, Fore.WHITE)
     print(f"{timestamp} | {color}{level}{Style.RESET_ALL} | {message}")
-
-def delay(seconds):
-    # 暂停指定的秒数
-    time.sleep(seconds)
 
 def verify_path_issues():
     # 验证路径是否存在问题
@@ -86,14 +81,6 @@ def create_log_folder():
     print_message(f"日志文件夹路径：{log_folder}", "PASS")
     return log_folder
 
-def clean_old_logs(log_folder):
-    # 删除旧的日志文件
-    for root, _, files in os.walk(log_folder):
-        for file in files:
-            if file.startswith('bat_') and file.endswith('.log'):
-                os.remove(os.path.join(root, file))
-                print_message(f"已删除旧日志文件: {file}", "PASS")
-
 def execute_python_script(app_path, log_folder, no_windows: bool, args: list = None):
     # 执行 Python 脚本并重定向输出到日志文件
     timestamp = datetime.datetime.now().strftime("%H.%M")
@@ -117,7 +104,7 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
     else:
         print_message("开始获取最新代码...", "INFO")
         try:
-            result = subprocess.run([uv_path, 'run', '-m', 'one_dragon.envs.git_service'])
+            result = subprocess.run([uv_path, 'run', '--frozen', '-m', 'one_dragon.envs.git_service'])
             if result.returncode == 0:
                 print_message("代码更新完成", "PASS")
             else:
@@ -126,7 +113,7 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
             print_message(f"代码更新异常: {e}", "ERROR")
 
     # 构建 uv run 命令参数
-    run_args = ['run', app_script_path]
+    run_args = ['run', '--frozen', app_script_path]
     if args:
         run_args.extend(args)
         print_message(f"传递参数：{' '.join(args)}", "INFO")
@@ -166,7 +153,6 @@ def run_python(app_path, no_windows: bool = True, args: list = None):
         verify_path_issues()
         configure_environment()
         log_folder = create_log_folder()
-        clean_old_logs(log_folder)
         execute_python_script(app_path, log_folder, no_windows, args)
     except SystemExit as e:
         print_message(f"程序已退出，状态码：{e.code}", "ERROR")

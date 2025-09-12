@@ -20,7 +20,10 @@ from one_dragon.utils.log_utils import log
 
 class MoveTargetWrapper:
 
-    def __init__(self, detect_result: DetectObjectResult):
+    def __init__(
+        self,
+        detect_result: DetectObjectResult,
+    ):
         self.is_mixed: bool = False  # 是否混合楼层
         self.target_name_list: List[str] = [detect_result.detect_class.class_name[5:]]
         self.target_rect_list: List[Rect] = [Rect(detect_result.x1, detect_result.y1, detect_result.x2, detect_result.y2)]
@@ -92,12 +95,15 @@ class LostVoidMoveByDet(ZOperation):
     STATUS_INTERACT: ClassVar[str] = '处于交互中'
     STATUS_NEED_DETECT: ClassVar[str] = '需要重新识别'
 
-    def __init__(self, ctx: ZContext,
-                 current_region: LostVoidRegionType, target_type: str,
-                 stop_when_interact: bool = True,
-                 stop_when_disappear: bool = True,
-                 ignore_entry_list: Optional[List[str]] = None
-                 ):
+    def __init__(
+        self,
+        ctx: ZContext,
+        current_region: LostVoidRegionType,
+        target_type: str,
+        stop_when_interact: bool = True,
+        stop_when_disappear: bool = True,
+        ignore_entry_list: Optional[List[str]] = None
+    ):
         """
         朝识别目标移动 最终返回目标图标 data=LostVoidRegionType.label
         @param ctx:
@@ -107,7 +113,12 @@ class LostVoidMoveByDet(ZOperation):
         @param stop_when_disappear:
         @param ignore_entry_list:
         """
-        ZOperation.__init__(self, ctx, op_name=f'迷失之地-识别寻路-{target_type[5:]}')
+        ZOperation.__init__(
+            self,
+            ctx,
+            op_name=f'迷失之地-识别寻路-{target_type[5:]}',
+            timeout_seconds=180,  # 3分钟走不到 基本就是卡死了
+        )
 
         self.current_region: LostVoidRegionType = current_region
         self.target_type: str = target_type
@@ -192,13 +203,14 @@ class LostVoidMoveByDet(ZOperation):
                     self.get_out_of_stuck()
             self.last_target_result = None
             return self.round_success(LostVoidMoveByDet.STATUS_NO_FOUND)
-
         self.last_target_result = target_result
         pos = target_result.entire_rect.center
         turn = self.turn_to_target(pos)
         if turn:
             return self.round_wait('转动朝向目标', wait=0.5)
 
+        # 移动前切换到最佳角色
+        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx.lost_void.auto_op)
         return self.round_success('开始移动')
 
     @node_from(from_name='移动前转向', status='开始移动')
@@ -210,7 +222,7 @@ class LostVoidMoveByDet(ZOperation):
 
         if self.check_interact_stop(self.last_screenshot, frame_result):
             self.ctx.controller.stop_moving_forward()
-            return self.round_success(data=self.last_target_name)
+            return self.round_success(data=self.last_target_name, wait=0.5)
 
         target_result = self.get_move_target(frame_result)
 
@@ -245,11 +257,12 @@ class LostVoidMoveByDet(ZOperation):
 
         return self.round_wait('移动中', wait_round_time=0.1)
 
-    def turn_to_target(self, target: Point, is_moving: bool = False) -> bool:
+    def turn_to_target(self, target: Point, is_moving: bool = False, calibration_axis: str = 'x') -> bool:
         """
         根据目标的位置,使用自适应算法进行转动
         :param target: 目标位置
         :param is_moving: 是否在移动中。移动中会使用更保守的转向策略
+        :param calibration_axis: 校准轴。可以是 'xy', 'x', 'y'。默认为 'xy'。
         :return: 是否进行了转动
         """
         if is_moving:
@@ -262,57 +275,83 @@ class LostVoidMoveByDet(ZOperation):
             min_turn = 5
             max_turn = 200
 
-        screen_center_x = self.ctx.controller.standard_width / 2  # 屏幕中心X坐标
-        diff_x = target.x - screen_center_x  # 目标与中心的差距
+        screen_center_x = self.ctx.controller.standard_width / 2
+        screen_center_y = self.ctx.controller.standard_height / 2
+        diff_x = target.x - screen_center_x
+        diff_y = target.y - screen_center_y
 
-        # 在中心区域内，无需转动
-        if abs(diff_x) <= 50:
+        turn_distance_x = 0
+        if 'x' in calibration_axis:
+            # --- X轴转向计算 (逻辑完全不变) ---
+            if abs(diff_x) > 50:
+                # 根据上次转向的实际效果，动态校准转向比例
+                if self.last_target_x is not None and self.last_actual_turn_distance != 0:
+                    last_diff_x = self.last_target_x - screen_center_x
+                    actual_pixel_moved = diff_x - last_diff_x
+
+                    # 当目标穿越中心点(过冲)时，强力抑制，比例减半并重置校准过程
+                    if last_diff_x * diff_x < 0:
+                        self.estimated_turn_ratio *= 0.5
+                        self.turn_calibration_count = 1
+                    # 正常校准：使用移动平均法平滑更新比例
+                    elif abs(actual_pixel_moved) > 1:
+                        current_ratio = abs(self.last_actual_turn_distance / actual_pixel_moved)
+                        if self.turn_calibration_count == 1:  # 首次校准，直接采用侦察值
+                            self.estimated_turn_ratio = current_ratio
+                        else:  # 后续校准，使用移动平均法平滑更新
+                            n = self.turn_calibration_count
+                            self.estimated_turn_ratio = (self.estimated_turn_ratio * (n - 1) + current_ratio) / n
+                        self.turn_calibration_count += 1
+
+                # 计算转向指令，首次使用固定值进行侦察，后续使用自适应指令
+                if self.turn_calibration_count == 1:
+                    turn_distance_x = 5 if diff_x > 0 else -5
+                    self.turn_calibration_count += 1
+                else:
+                    turn_distance_x = int(diff_x * self.estimated_turn_ratio)
+
+                # 限制指令幅度，防止过小或过大
+                if 0 < abs(turn_distance_x) < min_turn:
+                    turn_distance_x = min_turn if turn_distance_x > 0 else -min_turn
+                elif abs(turn_distance_x) > max_turn:
+                    turn_distance_x = max_turn if turn_distance_x > 0 else -max_turn
+
+        turn_distance_y = 0
+        if 'y' in calibration_axis:
+            # --- Y轴转向计算 (将目标保持在屏幕上半区，以获得更佳视野) ---
+            # 目标是让 diff_y 稳定在 -300 附近
+            target_y = -300
+            # 设置一个死区，避免在目标附近频繁微调
+            dead_zone = 100
+            
+            if diff_y > target_y + dead_zone:
+                # 目标在预定位置下方，需要向上转
+                turn_distance_y = 20  # 您可以根据需要调整这个值
+            elif diff_y < target_y - dead_zone:
+                # 目标在预定位置上方，需要向下转
+                turn_distance_y = -20 # 您可以根据需要调整这个值
+            else:
+                # 在目标区域内，不进行Y轴转向
+                turn_distance_y = 0
+
+        # --- 如果没有任何移动指令，则提前返回 ---
+        if turn_distance_x == 0 and turn_distance_y == 0:
             return False
 
-        # 根据上次转向的实际效果，动态校准转向比例
-        if self.last_target_x is not None and self.last_actual_turn_distance != 0:
-            last_diff_x = self.last_target_x - screen_center_x
-            actual_pixel_moved = diff_x - last_diff_x
-
-            # 当目标穿越中心点(过冲)时，强力抑制，比例减半并重置校准过程
-            if last_diff_x * diff_x < 0:
-                self.estimated_turn_ratio *= 0.5
-                self.turn_calibration_count = 1
-            # 正常校准：使用移动平均法平滑更新比例
-            elif abs(actual_pixel_moved) > 1:
-                current_ratio = abs(self.last_actual_turn_distance / actual_pixel_moved)
-                if self.turn_calibration_count == 1:  # 首次校准，直接采用侦察值
-                    self.estimated_turn_ratio = current_ratio
-                else:  # 后续校准，使用移动平均法平滑更新
-                    n = self.turn_calibration_count
-                    self.estimated_turn_ratio = (self.estimated_turn_ratio * (n - 1) + current_ratio) / n
-                self.turn_calibration_count += 1
-
-        # 计算转向指令，首次使用固定值进行侦察，后续使用自适应指令
-        if self.turn_calibration_count == 1:
-            turn_distance = 30 if diff_x > 0 else -30
-            self.turn_calibration_count += 1
-        else:
-            turn_distance = int(diff_x * self.estimated_turn_ratio)
-
-        # 限制指令幅度，防止过小或过大
-        if 0 < abs(turn_distance) < min_turn:
-            turn_distance = min_turn if turn_distance > 0 else -min_turn
-        elif abs(turn_distance) > max_turn:
-            turn_distance = max_turn if turn_distance > 0 else -max_turn
-
+        # --- 执行转向并更新状态 ---
         if self.ctx.env_config.is_debug:
-            log.debug(f'转向指令: {turn_distance}, 当前比例: {self.estimated_turn_ratio:.4f}, 移动中: {is_moving}')
-        self.ctx.controller.turn_by_distance(turn_distance)
+            log.debug(f'转向指令: X={turn_distance_x}, Y={turn_distance_y}, 当前X比例: {self.estimated_turn_ratio:.4f}, 移动中: {is_moving}, 校准轴: {calibration_axis}')
+
+        # 使用新的统一方法执行移动
+        self.ctx.controller.move_mouse_relative(turn_distance_x, turn_distance_y)
 
         self.total_turn_times += 1
 
-        # 更新状态，为下次校准做准备
+        # 只更新X轴的校准状态
         self.last_target_x = target.x
-        self.last_actual_turn_distance = turn_distance
+        self.last_actual_turn_distance = turn_distance_x
 
         return True
-
     def get_move_target(self, frame_result: DetectFrameResult) -> Optional[MoveTargetWrapper]:
         """
         获取移动目标
@@ -415,9 +454,8 @@ class LostVoidMoveByDet(ZOperation):
         脱困
         @return:
         """
-        # 在大世界 先切换到耀佳音以外的角色 防止进入状态无法移动
-        auto_battle_utils.check_astra_and_switch(self.ctx.lost_void.auto_op)
-
+        # 在大世界 先切换到移动最优角色
+        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx.lost_void.auto_op)
         # 部分障碍物可以破坏 尝试攻击
         self.ctx.controller.normal_attack(press=True, press_time=0.2, release=True)
 
@@ -481,6 +519,8 @@ class LostVoidMoveByDet(ZOperation):
     @operation_node(name='无目标处理')
     def handle_no_target(self) -> OperationRoundResult:
         self.ctx.controller.stop_moving_forward()
+        time.sleep(0.5)
+        self.screenshot()  # 重新截图
         self._reset_turn_calibration_status()  # 彻底丢失目标，重置转向状态以开始全新搜索
 
         if self.stop_when_interact:  # 目标是要交互

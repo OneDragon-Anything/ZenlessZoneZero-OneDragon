@@ -132,8 +132,7 @@ class ShiyuDefenseBattle(ZOperation):
         if not result2.is_success:
             # 交互和普通攻击都没有找到 说明战斗胜利了
             return self.round_success(ShiyuDefenseBattle.STATUS_TO_NEXT_PHASE)
-
-        auto_battle_utils.check_astra_and_switch(self.auto_op)  # 移动前如果是耀嘉音就切人
+        auto_battle_utils.switch_to_best_agent_for_moving(self.auto_op)  # 移动前切换到最佳角色
 
         self.check_distance(self.last_screenshot)
 

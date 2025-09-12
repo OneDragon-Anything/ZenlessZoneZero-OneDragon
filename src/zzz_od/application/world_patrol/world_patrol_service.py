@@ -98,6 +98,8 @@ class WorldPatrolService:
             road_mask = cv2_utils.read_image(road_mask_path(area))
             if road_mask is None:
                 continue
+            if road_mask.ndim == 3:
+                road_mask = cv2.cvtColor(road_mask, cv2.COLOR_RGB2GRAY)
 
             icon_data = YamlOperator(icon_yaml_path(area)).data
             icon_list: list[WorldPatrolLargeMapIcon] = []

@@ -1,0 +1,296 @@
+- icon_name: 科研院西侧
+  template_id: map_icon_01
+  lm_pos:
+  - 359
+  - 1050
+  tp_pos:
+  - 359
+  - 1050
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 399
+  - 1141
+  tp_pos:
+  - 399
+  - 1141
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 361
+  - 972
+  tp_pos:
+  - 361
+  - 972
+- icon_name: ''
+  template_id: map_icon_05
+  lm_pos:
+  - 656
+  - 1054
+  tp_pos:
+  - 656
+  - 1054
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 638
+  - 1060
+  tp_pos:
+  - 638
+  - 1060
+- icon_name: ''
+  template_id: map_icon_04
+  lm_pos:
+  - 556
+  - 1056
+  tp_pos:
+  - 556
+  - 1056
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 593
+  - 1130
+  tp_pos:
+  - 593
+  - 1130
+- icon_name: 科研院仓库
+  template_id: map_icon_01
+  lm_pos:
+  - 302
+  - 712
+  tp_pos:
+  - 302
+  - 712
+- icon_name: ''
+  template_id: map_icon_08
+  lm_pos:
+  - 306
+  - 632
+  tp_pos:
+  - 306
+  - 632
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 480
+  - 767
+  tp_pos:
+  - 480
+  - 767
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 468
+  - 547
+  tp_pos:
+  - 468
+  - 547
+- icon_name: ''
+  template_id: map_icon_05
+  lm_pos:
+  - 595
+  - 616
+  tp_pos:
+  - 595
+  - 616
+- icon_name: ''
+  template_id: map_icon_04
+  lm_pos:
+  - 596
+  - 663
+  tp_pos:
+  - 596
+  - 663
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 602
+  - 459
+  tp_pos:
+  - 602
+  - 459
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 640
+  - 420
+  tp_pos:
+  - 640
+  - 420
+- icon_name: ''
+  template_id: map_icon_05
+  lm_pos:
+  - 527
+  - 506
+  tp_pos:
+  - 527
+  - 506
+- icon_name: 科研院内
+  template_id: map_icon_01
+  lm_pos:
+  - 799
+  - 453
+  tp_pos:
+  - 799
+  - 453
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 724
+  - 480
+  tp_pos:
+  - 724
+  - 480
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 680
+  - 419
+  tp_pos:
+  - 680
+  - 419
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 627
+  - 289
+  tp_pos:
+  - 627
+  - 289
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 521
+  - 446
+  tp_pos:
+  - 521
+  - 446
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 1079
+  - 461
+  tp_pos:
+  - 1079
+  - 461
+- icon_name: ''
+  template_id: map_icon_09
+  lm_pos:
+  - 1066
+  - 520
+  tp_pos:
+  - 1066
+  - 520
+- icon_name: ''
+  template_id: map_icon_02
+  lm_pos:
+  - 1110
+  - 622
+  tp_pos:
+  - 1110
+  - 622
+- icon_name: '一楼广场'
+  template_id: map_icon_01
+  lm_pos:
+  - 1205
+  - 632
+  tp_pos:
+  - 1205
+  - 632
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 1120
+  - 666
+  tp_pos:
+  - 1120
+  - 666
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 1177
+  - 714
+  tp_pos:
+  - 1177
+  - 714
+- icon_name: 科研院东侧
+  template_id: map_icon_01
+  lm_pos:
+  - 1251
+  - 423
+  tp_pos:
+  - 1251
+  - 423
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 1093
+  - 458
+  tp_pos:
+  - 1093
+  - 458
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 942
+  - 429
+  tp_pos:
+  - 942
+  - 429
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 1179
+  - 882
+  tp_pos:
+  - 1179
+  - 882
+- icon_name: ''
+  template_id: map_icon_04
+  lm_pos:
+  - 1126
+  - 1100
+  tp_pos:
+  - 1126
+  - 1100
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 1129
+  - 1297
+  tp_pos:
+  - 1129
+  - 1297
+- icon_name: ''
+  template_id: map_icon_07
+  lm_pos:
+  - 1125
+  - 1252
+  tp_pos:
+  - 1125
+  - 1252
+- icon_name: 二楼平台
+  template_id: map_icon_01
+  lm_pos:
+  - 1009
+  - 997
+  tp_pos:
+  - 1009
+  - 997
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 947
+  - 958
+  tp_pos:
+  - 947
+  - 958
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 916
+  - 767
+  tp_pos:
+  - 916
+  - 767

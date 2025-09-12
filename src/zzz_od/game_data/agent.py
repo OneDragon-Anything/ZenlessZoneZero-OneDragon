@@ -275,7 +275,7 @@ class AgentEnum(Enum):
     ASABA_HARUMASA = Agent('asaba_harumasa', '悠真', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ELECTRIC, ['asaba_harumasa'])
     HOSHIMI_MIYABI = Agent('hoshimi_miyabi', '雅', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ICE, ['hoshimi_miyabi'],
                            state_list=[AgentStateDef('雅-落霜', AgentStateCheckWay.COLOR_RANGE_CONNECT,'hoshimi_miyabi',
-                                                     lower_color=(30, 250, 250), upper_color=(255, 255, 255), connect_cnt=5)])
+                                                     hsv_color=(90,255,255), hsv_color_diff=(60,255,50), connect_cnt=5)])
 
     ASTRA_YAO = Agent('astra_yao', '耀嘉音', RareTypeEnum.S, AgentTypeEnum.SUPPORT, DmgTypeEnum.ETHER, ['astra_yao', 'astra_yao_chandelier'],)
 
@@ -336,9 +336,25 @@ class AgentEnum(Enum):
                                       max_length=200)
                     ])
 
-    YUZUHA = Agent('yuzuha', '浮波柚叶', RareTypeEnum.S, AgentTypeEnum.SUPPORT, DmgTypeEnum.PHYSICAL, ['yuzuha','yuzuha_tanuki_in_broad_daylight'],
+    YUZUHA = Agent('yuzuha', '浮波柚叶', RareTypeEnum.S, AgentTypeEnum.SUPPORT, DmgTypeEnum.PHYSICAL, ['yuzuha', 'yuzuha_tanuki_in_broad_daylight'],
                     state_list=[
                         AgentStateDef('柚叶-甜度点', AgentStateCheckWay.COLOR_RANGE_CONNECT,
                                     'yuzuha', lower_color=(221, 107, 113), upper_color=(255, 255, 255),
-                                    connect_cnt=5)
+                                    connect_cnt=6)
+                    ])
+
+    ALICE = Agent('alice', '爱丽丝', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['alice', 'alice_sea_of_thyme'],
+                    state_list=[
+                        AgentStateDef('爱丽丝-剑仪', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                      template_id='alice',
+                                      hsv_color=(90,255,0), hsv_color_diff=(89,254,255),
+                                      max_length=300)
+                    ])
+
+    SEED = Agent('seed', '席德', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ELECTRIC, ['seed'],
+                    state_list=[
+                        AgentStateDef('席德-钢能', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                      template_id='seed',
+                                      hsv_color=(90,255,255), hsv_color_diff=(89,55,55),
+                                      max_length=150)
                     ])

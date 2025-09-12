@@ -18,38 +18,62 @@ handlers:
         debug_name: "切人后等待"
         sub_handlers:
           - states: "[按键可用-快速支援, 0, 0.5]"
-            operations:
-              - op_name: "等待秒数"
-                seconds: 1.0
+            sub_handlers:
+            - states: "[苍角-终结技可用] & ![自定义-连携换人, 0, 10] & [苍角-涡流, 0, 30]{0, 1}"
+              operations:
+                - op_name: "设置状态"
+                  state: "自定义-不使用快速支援"
+                  seconds: 10
+                - operation_template: "苍角-终结技"
+                - operation_template: "苍角-闪2A合轴"
+            - states: ""
+              operations:
+                - op_name: "等待秒数"
+                  seconds: 1.1
           - states: ""
             operations:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[苍角-终结技可用] & ![自定义-连携换人, 0, 10]"
+      - states: "[苍角-终结技可用] & ![自定义-连携换人, 0, 10] & [苍角-涡流, 0, 30]{0, 1} & ![自定义-苍角-展旗, 0, 5]"
+        debug_name: "放大招咯"
         operations:
-          - operation_template: "苍角-终结技"
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state_list: ["自定义-不使用快速支援", "自定义-无视闪光", "自定义-动作不打断"]
+            seconds: 10
+          - operation_template: "苍角-终结技"
+          - operation_template: "苍角-闪2A合轴"
 
-      # 没涡流速切
-      - states: "[苍角-特殊技可用]"
-        sub_handlers:
-          - states: "[苍角-涡流, 0, 30]{0, 0} & [苍角-能量]{90, 120}"
-            operations:
-              - operation_template: "苍角-3E展旗合轴"
-          - states: "[苍角-涡流, 0, 30]{1, 1}"
-            operations:
-              - operation_template: "苍角-2E展旗合轴"
-          - states: "[苍角-涡流, 0, 30]{2, 2}"
-            operations:
-              - operation_template: "苍角-1E展旗合轴"
-
-      # 有涡流开展，并且无人可切，很显然，苍角你就是主C，干吧！
-      - states: "[自定义-苍角-展旗, 0, 30] & [自定义-速切结束]"
+      - states: "[自定义-苍角-展旗,0,5] & [按键可用-快速支援,0,1] | ([自定义-苍角-展旗, 5, 30] & ![苍角-特殊技可用])"
+        debug_name: "触发快速支援或者没特殊技可用"
         operations:
-          - operation_template: "苍角-普通攻击"
+          - operation_template: "苍角-闪2A合轴"
+
+      - states: "[自定义-苍角-展旗, 0, 3]"
+        debug_name: "展旗开始"
+        interrupt_states: "[按键可用-快速支援,0,1]"
+        operations:
+          - op_name: "按键-特殊攻击-按下"
+          - op_name: "等待秒数"
+            seconds: 3
+
+      - states: "[苍角-特殊技可用] & ![自定义-苍角-展旗, 0, 1]"
+        debug_name: "扇风开始"
+        interrupt_states: "[自定义-苍角-展旗, 0.1, 30] & ([苍角-涡流, 0, 30]{2, 3} | [苍角-能量]{0,30})"
+        operations:
+          - op_name: "设置状态"
+            state_list: ["自定义-苍角-展旗"]
+          - op_name: "设置状态"
+            state_list: ["自定义-不使用快速支援", "自定义-无视闪光", "自定义-动作不打断"]
+            seconds: 7
+          - op_name: "按键-特殊攻击"
+            post_delay: 0.1
+            repeat: 50
 
       - states: ""
+        debug_name: "上个buff先"
         operations:
-          - operation_template: "通用-切人普通攻击"
+          - op_name: "设置状态"
+            state_list: ["自定义-不使用快速支援", "自定义-无视闪光", "自定义-动作不打断"]
+            seconds: 7
+          - operation_template: "苍角-1E展旗合轴"

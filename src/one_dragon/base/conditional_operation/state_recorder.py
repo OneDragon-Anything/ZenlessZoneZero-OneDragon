@@ -19,6 +19,9 @@ class StateRecord:
         self.value: int = value
         self.value_add: int = value_to_add
 
+    def __str__(self):
+        return f"StateRecord(state_name='{self.state_name}', trigger_time={self.trigger_time:.2f}, value={self.value}, value_add={self.value_add})"
+
 
 class StateRecorder:
 

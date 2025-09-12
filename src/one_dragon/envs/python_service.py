@@ -115,7 +115,15 @@ class PythonService:
             os.mkdir(DEFAULT_WHEELS_DIR_PATH)
 
         os.environ["UV_PYTHON_INSTALL_DIR"] = DEFAULT_PYTHON_DIR_PATH
-        result = cmd_utils.run_command([self.env_config.uv_path, 'sync', '--find-links', DEFAULT_WHEELS_DIR_PATH, '--default-index', self.env_config.pip_source])
+        result = cmd_utils.run_command([
+            self.env_config.uv_path,
+            'sync',
+            '--frozen',
+            '--find-links',
+            DEFAULT_WHEELS_DIR_PATH,
+            '--default-index',
+            self.env_config.pip_source
+        ])
         success = result is not None
         msg = gt('运行依赖安装成功') if success else gt('运行依赖安装失败')
         log.info(msg)

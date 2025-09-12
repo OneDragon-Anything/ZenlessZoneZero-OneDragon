@@ -30,6 +30,10 @@ class BackToNormalWorld(ZOperation):
         识别游戏画面
         :return:
         """
+        current_screen = self.check_and_update_current_screen()
+        if current_screen in ['大世界-普通', '大世界-勘域']:
+            return self.round_success(status=current_screen)
+
         result = self.round_by_goto_screen(screen=self.last_screenshot, screen_name='大世界-普通', retry_wait=None)
         if result.is_success:
             return self.round_success(result.status)

@@ -33,6 +33,26 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
+      - states: "[席德-能量]{0, 150}"
+        sub_handlers:
+        - states: "[11号-终结技可用]"
+          operations:
+            - operation_template: "通用-终结技"
+
+        - states: "[11号-能量]{80, 120}"
+          operations:
+            - op_name: "按键-特殊攻击"
+              post_delay: 0.1
+              repeat: 12
+
+        - states: ""
+          operations:
+            - op_name: "按键-特殊攻击"
+              post_delay: 0.1
+              repeat: 6
+            - op_name: "设置状态"
+              data: ["自定义-速切结束"]
+
       - states: "[11号-终结技可用] & ![自定义-11号-火力压制, 0, 6] & ![自定义-连携换人, 0, 6]"
         operations:
           - op_name: "设置状态"

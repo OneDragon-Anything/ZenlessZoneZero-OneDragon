@@ -20,19 +20,11 @@ class ExitInBattle(ZOperation):
 
     @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=10)
     def check_screen(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
-        if result.is_success:
-            result2 = self.round_by_click_area('战斗画面', '菜单')
-            if result2.is_success:
-                return self.round_wait(result2.status, wait=1)
-            else:
-                return self.round_retry(result2.status, wait=1)
-
         # 点击直到出现 [退出战斗] 按钮
         result = self.round_by_find_area(self.last_screenshot, '战斗-菜单', '按钮-退出战斗')
         if result.is_success:
             return self.round_success(wait=1)  # 稍微等一下让按钮可按
-
+        result = self.round_by_click_area('战斗画面', '菜单')
         return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='画面识别')

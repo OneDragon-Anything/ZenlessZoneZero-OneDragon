@@ -325,3 +325,13 @@ class ZPcController(PcControllerBase):
         :return:
         """
         ctypes.windll.user32.mouse_event(0x0001, 0, int(d))
+
+    def move_mouse_relative(self, dx: float, dy: float):
+        """
+        相对移动鼠标
+        :param dx: 横向移动距离，正数向右
+        :param dy: 纵向移动距离，正数向下
+        """
+        if dx == 0 and dy == 0:
+            return
+        ctypes.windll.user32.mouse_event(0x0001, int(dx), int(dy))

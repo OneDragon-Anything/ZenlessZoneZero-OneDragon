@@ -3,26 +3,18 @@ operations:
     state: "自定义-苍角-展旗"
   - op_name: "设置状态"
     state: "自定义-不使用快速支援"
-    seconds: 2
+    seconds: 10
   - op_name: "设置状态"
     state: "自定义-动作不打断"
     seconds: 1
-  - op_name: "按键-特殊攻击"
-    post_delay: 0.1
-    repeat: 6
-  - op_name: "按键-特殊攻击"
-    way: "松开"
   - op_name: "等待秒数"
     seconds: 0.1
-
   - op_name: "按键-特殊攻击"
-    way: "按下"
-    post_delay: 2
+    post_delay: 0.1
+    repeat: 2
 
-  - operation_template: "通用-闪避-左"
-  - op_name: "按键-普通攻击"
-    post_delay: 0.1
-    repeat: 10
-  - op_name: "按键-切换角色-下一个"
-    post_delay: 0.1
-    repeat: 1
+  - op_name: "按键-特殊攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 2
+
+  - operation_template: "苍角-闪2A合轴"

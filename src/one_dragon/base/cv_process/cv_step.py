@@ -50,6 +50,74 @@ class CvPipelineContext:
     def ocr(self):
         return self.service.ocr if self.service else None
 
+    def get_absolute_rects(self) -> List[tuple[int, int, int, int]]:
+        """
+        获取所有轮廓的绝对坐标矩形框(x1, y1, x2, y2格式)
+        Returns:
+            轮廓的绝对坐标列表，每个元素为 (x1, y1, x2, y2) 格式
+        """
+        rects = []
+        for contour in self.contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            # 转换为绝对坐标
+            x1 = x + self.crop_offset[0]
+            y1 = y + self.crop_offset[1]
+            x2 = x1 + w
+            y2 = y1 + h
+            rects.append((x1, y1, x2, y2))
+        return rects
+
+    def get_absolute_rect_pairs(self) -> List[tuple[np.ndarray, tuple[int, int, int, int]]]:
+        """
+        获取轮廓和对应的绝对坐标矩形框对(x1, y1, x2, y2格式)
+        Returns:
+            轮廓和对应绝对坐标的列表，每个元素为 (轮廓, (x1, y1, x2, y2))
+        """
+        pairs = []
+        for contour in self.contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            # 转换为绝对坐标
+            x1 = x + self.crop_offset[0]
+            y1 = y + self.crop_offset[1]
+            x2 = x1 + w
+            y2 = y1 + h
+            pairs.append((contour, (x1, y1, x2, y2)))
+        return pairs
+
+    def format_absolute_rect_xywh(self, x: int, y: int, w: int, h: int) -> str:
+        """
+        格式化相对矩形坐标为xywh格式的绝对坐标字符串
+        Args:
+            x: 相对X坐标
+            y: 相对Y坐标
+            w: 宽度
+            h: 高度
+
+        Returns:
+            绝对矩形坐标的字符串表示，格式如: "(100, 200, 50, 30)"，表示(x, y, w, h)
+        """
+        abs_x = x + self.crop_offset[0]
+        abs_y = y + self.crop_offset[1]
+        return f"({abs_x}, {abs_y}, {w}, {h})"
+
+    def format_absolute_rect_xyxy(self, x: int, y: int, w: int, h: int) -> str:
+        """
+        格式化相对矩形坐标为xyxy格式的绝对坐标字符串
+        Args:
+            x: 相对X坐标
+            y: 相对Y坐标
+            w: 宽度
+            h: 高度
+
+        Returns:
+            绝对矩形坐标的字符串表示，格式如: "(100, 200, 150, 230)"，表示(x1, y1, x2, y2)
+        """
+        x1 = x + self.crop_offset[0]
+        y1 = y + self.crop_offset[1]
+        x2 = x1 + w
+        y2 = y1 + h
+        return f"({x1}, {y1}, {x2}, {y2})"
+
 
 class CvStep:
     """

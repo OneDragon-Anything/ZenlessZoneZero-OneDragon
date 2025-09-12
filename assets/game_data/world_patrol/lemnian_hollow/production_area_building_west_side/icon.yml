@@ -1,0 +1,56 @@
+- icon_name: 通往物流仓储区的入口
+  template_id: map_icon_01
+  lm_pos:
+  - 384
+  - 684
+  tp_pos:
+  - 384
+  - 684
+- icon_name: 大楼西侧
+  template_id: map_icon_01
+  lm_pos:
+  - 1076
+  - 305
+  tp_pos:
+  - 1076
+  - 305
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 793
+  - 472
+  tp_pos:
+  - 793
+  - 472
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 761
+  - 540
+  tp_pos:
+  - 761
+  - 540
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 531
+  - 636
+  tp_pos:
+  - 531
+  - 636
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 656
+  - 528
+  tp_pos:
+  - 656
+  - 528
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 659
+  - 636
+  tp_pos:
+  - 659
+  - 636

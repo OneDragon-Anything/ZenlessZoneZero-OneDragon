@@ -34,6 +34,7 @@ from zzz_od.hollow_zero.hollow_battle import HollowBattle
 from zzz_od.hollow_zero.hollow_exit_by_menu import HollowExitByMenu
 from zzz_od.hollow_zero.hollow_map.hollow_zero_map import HollowZeroMap, HollowZeroMapNode
 from zzz_od.operation.zzz_operation import ZOperation
+from zzz_od.telemetry.hollow_telemetry import track_hollow_level_progress
 
 
 class HollowRunner(ZOperation):
@@ -97,8 +98,16 @@ class HollowRunner(ZOperation):
 
         self._handled_events: set[str] = set()  # 当前已处理过的事件 移动后清空
 
+    def _get_telemetry(self):
+        """获取遥测管理器"""
+        if hasattr(self, 'ctx') and hasattr(self.ctx, 'telemetry'):
+            return self.ctx.telemetry
+        return None
+
+    @track_hollow_level_progress
     @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=60)
     def check_screen(self) -> OperationRoundResult:
+
         result = hollow_event_utils.check_screen(self.ctx, self.last_screenshot, self._handled_events)
         if result is not None and result not in [
             HollowZeroSpecialEvent.HOLLOW_INSIDE.value.event_name,  # 空洞内部比较特殊 仅为识别使用 不做响应处理

@@ -2,8 +2,8 @@ import time
 
 import cv2
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QSpinBox, QLabel
-from qfluentwidgets import FluentIcon, PushButton
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel
+from qfluentwidgets import FluentIcon, PushButton, SpinBox, DoubleSpinBox
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.geometry.point import Point
@@ -75,6 +75,9 @@ class LargeMapRecorderInterface(VerticalScrollInterface):
         # 图标编辑器相关
         self.icon_editor_dialog: IconEditorDialog | None = None
         self.highlighted_icon_index: int = -1  # 当前高亮的图标索引
+
+        # 图标匹配阈值
+        self.current_icon_threshold: float = 0.7
 
     def get_content_widget(self) -> QWidget:
         # 主容器A，水平布局
@@ -161,21 +164,41 @@ class LargeMapRecorderInterface(VerticalScrollInterface):
         )
         control_layout.addWidget(self.icon_opt)
 
-        self.scale_input = QSpinBox()
-        self.scale_input.setValue(100)
+        self.icon_threshold_input = DoubleSpinBox()
+        self.icon_threshold_input.setMinimumWidth(140)
+        self.icon_threshold_input.setMinimum(0.1)
+        self.icon_threshold_input.setMaximum(1.0)
+        self.icon_threshold_input.setSingleStep(0.1)
+        self.icon_threshold_input.setDecimals(1)
+        self.icon_threshold_input.setValue(0.7)
+        self.icon_threshold_save_btn = PushButton(text=gt('应用'))
+        self.icon_threshold_save_btn.clicked.connect(self._on_icon_threshold_save_clicked)
+        self.icon_threshold_opt = MultiPushSettingCard(
+            icon=FluentIcon.SEARCH,
+            title='图标匹配阈值',
+            content='调整图标识别的匹配阈值，默认0.7',
+            btn_list=[self.icon_threshold_input, self.icon_threshold_save_btn]
+        )
+        control_layout.addWidget(self.icon_threshold_opt)
+
+        self.scale_input = SpinBox()
+        self.scale_input.setValue(40)
+        self.scale_input.setMinimumWidth(140)
         self.scale_save_btn = PushButton(text=gt('应用'))
         self.scale_save_btn.clicked.connect(self._on_scale_save_clicked)
         self.scale_opt = MultiPushSettingCard(icon=FluentIcon.MOVE, title='缩放', content='调整大地图的，只有第一次需要',
                                               btn_list=[self.scale_input, self.scale_save_btn])
         control_layout.addWidget(self.scale_opt)
 
-        self.h_move_input = QSpinBox()
+        self.h_move_input = SpinBox()
+        self.h_move_input.setMinimumWidth(140)
         self.h_move_input.setMinimum(-9999)
         self.h_move_input.setMaximum(9999)
         self.h_btn = PushButton(text=gt('横移'))
         self.h_btn.clicked.connect(self._on_h_move_clicked)
 
-        self.v_move_input = QSpinBox()
+        self.v_move_input = SpinBox()
+        self.v_move_input.setMinimumWidth(140)
         self.v_move_input.setMinimum(-9999)
         self.v_move_input.setMaximum(9999)
         self.v_btn = PushButton(text=gt('纵移'))
@@ -361,13 +384,13 @@ class LargeMapRecorderInterface(VerticalScrollInterface):
         log.info('[截图] 计算小地图道路 开始')
         _, screen = self.ctx.controller.screenshot()
         self.mini_map_1 = self.ctx.world_patrol_service.cut_mini_map(screen)
-        snapshot_1 = large_map_recorder_utils.create_mini_map_snapshot(self.ctx, self.mini_map_1)
+        snapshot_1 = large_map_recorder_utils.create_mini_map_snapshot(self.ctx, self.mini_map_1, self.current_icon_threshold)
 
         self.ctx.controller.turn_by_angle_diff(180)
         time.sleep(2)
         _, screen = self.ctx.controller.screenshot()
         self.mini_map_2 = self.ctx.world_patrol_service.cut_mini_map(screen)
-        snapshot_2 = large_map_recorder_utils.create_mini_map_snapshot(self.ctx, self.mini_map_2)
+        snapshot_2 = large_map_recorder_utils.create_mini_map_snapshot(self.ctx, self.mini_map_2, self.current_icon_threshold)
 
         self.mini_map = large_map_recorder_utils.merge_mini_map(snapshot_1, snapshot_2)
 
@@ -607,5 +630,11 @@ class LargeMapRecorderInterface(VerticalScrollInterface):
 
         f = self.scale_input.value() / 100.0
         self.large_map.road_mask = cv2.resize(self.large_map.road_mask, (0, 0), fx=f, fy=f)
+        self.large_map = large_map_recorder_utils._expand_edges_if_needed(self.large_map, (210, 210))
 
         self._update_large_map_display()
+
+    def _on_icon_threshold_save_clicked(self):
+        """保存图标匹配阈值"""
+        self.current_icon_threshold = self.icon_threshold_input.value()
+        log.info(f'图标匹配阈值已更新为: {self.current_icon_threshold}')

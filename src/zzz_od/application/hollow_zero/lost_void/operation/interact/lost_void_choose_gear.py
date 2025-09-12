@@ -85,42 +85,60 @@ class LostVoidChooseGear(ZOperation):
         使用CV流水线查找武备及其状态
         :return: (武备轮廓, 是否有等级)
         """
+
+        # 经常截错图，等1秒
+        time.sleep(1)
         gear_context = self.ctx.cv_service.run_pipeline('迷失之地-武备列表检测', self.last_screenshot)
         level_context = self.ctx.cv_service.run_pipeline('迷失之地-武备等级检测', self.last_screenshot)
 
         if not gear_context.is_success or not gear_context.contours:
             return [], gear_context
 
-        gear_with_status = []
-        for gear_contour in gear_context.contours:
-            gear_rect = cv2.boundingRect(gear_contour)
-            has_level = False
-            if level_context.is_success and level_context.contours:
-                for level_contour in level_context.contours:
-                    level_M = cv2.moments(level_contour)
-                    if level_M["m00"] == 0: continue
-                    level_center_x = int(level_M["m10"] / level_M["m00"])
-                    level_center_y = int(level_M["m01"] / level_M["m00"])
+        # 1. 预处理：获取所有武备框和等级框的绝对坐标
+        gear_rects = gear_context.get_absolute_rect_pairs()
+        # 按x1坐标排序武备框
+        gear_rects.sort(key=lambda item: item[1][0])  # item[1][0] 是 x1 坐标
 
-                    # 简单的空间关系判断：等级中心点在武备矩形的右侧附近
-                    if (gear_rect[0] - gear_rect[2] * 0.2 < level_center_x < gear_rect[0] + gear_rect[2] and
-                            gear_rect[1] - gear_rect[3] * 0.2 < level_center_y < gear_rect[1] + gear_rect[3]):
-                        has_level = True
-                        break
+        level_rects = []  # [(轮廓, 绝对矩形坐标)]
+        if level_context.is_success and level_context.contours:
+            level_rects = level_context.get_absolute_rect_pairs()
+            # 按x1坐标排序等级框
+            level_rects.sort(key=lambda item: item[1][0])  # item[1][0] 是 x1 坐标
+                
+        # 按x1坐标排序等级框
+        if level_rects:
+            level_rects.sort(key=lambda item: item[1][0])  # item[1][0] 是 x1 坐标
+
+        # 2. 生成用于显示的框
+        # debug_rects = []
+        # 添加所有矩形框
+        # for _, (x1, y1, x2, y2) in gear_rects:
+        #     debug_rects.append(Rect(x1, y1, x2, y2))
+        # for _, (x1, y1, x2, y2) in level_rects:
+        #     debug_rects.append(Rect(x1, y1, x2, y2))
+
+        # 3. 匹配武备和等级
+        gear_with_status = []
+        remaining_levels = list(level_rects)  # 创建一个副本用于迭代和删除
+
+        for i, (gear_contour, (gear_x1, gear_y1, gear_x2, gear_y2)) in enumerate(gear_rects):
+            has_level = False
+
+            for j, (level_contour, (level_x1, level_y1, level_x2, level_y2)) in enumerate(remaining_levels):
+                is_overlapping = not (gear_x2 < level_x1 or level_x2 < gear_x1 or 
+                                    gear_y2 < level_y1 or level_y2 < gear_y1)
+                
+                if is_overlapping:
+                    log.debug(f"  !!! 发现重叠: 武备[{i}] ({gear_x1},{gear_y1},{gear_x2},{gear_y2}) "
+                            f"与 等级[{j}] ({level_x1},{level_y1},{level_x2},{level_y2}) 匹配成功 !!!")
+                    has_level = True
+                    remaining_levels.pop(j)  # 直接移除匹配的等级
+                    break
+
             gear_with_status.append((gear_contour, has_level))
 
-        rects = []
-        for idx in range(len(gear_with_status)):
-            contour, has_level = gear_with_status[idx]
-            if has_level:
-                continue
-            rect = cv2.boundingRect(contour)
-            rects.append(Rect(rect[0], rect[1], rect[2], rect[3]))
-        for contour in level_context.contours:
-            rect = cv2.boundingRect(contour)
-            rects.append(Rect(rect[0], rect[1], rect[2], rect[3]))
-        # cv2_utils.show_image(self.last_screenshot, rects, wait=0)
-
+        # 4. 显示debug信息
+        # cv2_utils.show_image(self.last_screenshot, debug_rects, wait=0)
         return gear_with_status, gear_context
 
     def get_gear_pos_by_feature(self, screen_list: List[MatLike]) -> List[LostVoidArtifactPos]:

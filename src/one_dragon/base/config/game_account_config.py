@@ -27,26 +27,12 @@ class GameRegionEnum(Enum):
 
 class GameAccountConfig(YamlConfig):
 
-    def __init__(self, instance_idx: int,
-                 default_platform: Optional[str] = None,
-                 default_game_region: Optional[str] = None,
-                 default_game_path: Optional[str] = None,
-                 default_account: Optional[str] = None,
-                 default_password: Optional[str] = None,
-                 ):
+    def __init__(self, instance_idx: int):
         YamlConfig.__init__(self, 'game_account', instance_idx=instance_idx)
-
-        # 迁移的时候 使用旧数据作为默认值
-        self.default_platform: str = default_platform
-        self.default_game_region: str = default_game_region
-        self.default_game_path: str = default_game_path
-        self.default_account: str = default_account
-        self.default_password: str = default_password
 
     @property
     def platform(self) -> str:
-        return self.get('platform',
-                        GamePlatformEnum.PC.value.value if self.default_platform is None else self.default_platform)
+        return self.get('platform', GamePlatformEnum.PC.value.value)
 
     @platform.setter
     def platform(self, new_value: str) -> None:
@@ -54,8 +40,7 @@ class GameAccountConfig(YamlConfig):
 
     @property
     def game_region(self) -> str:
-        return self.get('game_region',
-                        GameRegionEnum.CN.value.value if self.default_game_region is None else self.default_game_region)
+        return self.get('game_region', GameRegionEnum.CN.value.value)
 
     @game_region.setter
     def game_region(self, new_value: str) -> None:
@@ -79,8 +64,7 @@ class GameAccountConfig(YamlConfig):
 
     @property
     def game_path(self) -> str:
-        return self.get('game_path',
-                        '' if self.default_game_path is None else self.default_game_path)
+        return self.get('game_path', '')
 
     @game_path.setter
     def game_path(self, new_value: str) -> None:
@@ -96,8 +80,7 @@ class GameAccountConfig(YamlConfig):
 
     @property
     def account(self) -> str:
-        return self.get('account',
-                        '' if self.default_account is None else self.default_account)
+        return self.get('account', '')
 
     @account.setter
     def account(self, new_value: str) -> None:
@@ -105,8 +88,7 @@ class GameAccountConfig(YamlConfig):
 
     @property
     def password(self) -> str:
-        return self.get('password',
-                        '' if self.default_password is None else self.default_password)
+        return self.get('password', '')
 
     @password.setter
     def password(self, new_value: str) -> None:

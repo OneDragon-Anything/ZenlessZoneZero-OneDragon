@@ -305,6 +305,7 @@ class EnterGame(ZOperation):
             ignore_list=ignore_list
         )
         if match_word is not None and match_word_mrl is not None and match_word_mrl.max is not None:
+            time.sleep(0.5) # 等待画面稳定
             self.ctx.controller.click(match_word_mrl.max.center)
             return self.round_wait(status=match_word, wait=1)
 
@@ -312,11 +313,6 @@ class EnterGame(ZOperation):
             # 左上角的返回
             self.round_by_click_area('菜单', '返回')
             return self.round_wait(status=back_btn_result.status, wait=1)
-
-        # 一周年自选奖励 应该在2.1时候删除相关资源
-        annual_reward_result = self.round_by_find_and_click_area(screen, '打开游戏', '一周年自选奖励')
-        if annual_reward_result.is_success:
-            return self.round_wait(status=annual_reward_result.status, wait=1)
 
         return None
 

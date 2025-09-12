@@ -115,9 +115,9 @@ class ExpertChallenge(ZOperation):
     def restore_charge(self) -> OperationRoundResult:
         if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value:
             return self.round_success(ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
-        else:
-            op = RestoreCharge(self.ctx)
-            return self.round_by_op_result(op.execute())
+        op = RestoreCharge(self.ctx)
+        result = self.round_by_op_result(op.execute())
+        return result if result.is_success else self.round_success(ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
 
     @node_from(from_name='识别电量', status=STATUS_CHARGE_ENOUGH)
     @node_from(from_name='恢复电量', status='恢复电量成功')

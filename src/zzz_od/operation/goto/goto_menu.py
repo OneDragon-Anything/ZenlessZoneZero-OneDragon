@@ -30,6 +30,10 @@ class GotoMenu(ZOperation):
         ):
             return self.round_wait(result.status, wait=1)
 
+        mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
+        if mini_map.play_mask_found:
+            return self.round_success(status='发现地图')
+
         # 到这里说明无法自动从当前画面前往菜单 就先统一返回大世界
         op = BackToNormalWorld(self.ctx)
         op_result = op.execute()

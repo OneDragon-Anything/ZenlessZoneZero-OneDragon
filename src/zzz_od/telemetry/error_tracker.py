@@ -6,11 +6,14 @@ import sys
 import traceback
 import threading
 import logging
+import platform
+import os
+import shutil
+import ctypes
 from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 from collections import defaultdict, deque
 
-from .posthog_client import PostHogClient
 from .privacy_controller import PrivacyController
 from .data_sanitizer import DataSanitizer
 
@@ -21,8 +24,8 @@ logger = logging.getLogger(__name__)
 class ErrorTracker:
     """错误追踪器"""
 
-    def __init__(self, posthog_client: PostHogClient, privacy_controller: PrivacyController):
-        self.posthog_client = posthog_client
+    def __init__(self, telemetry_client, privacy_controller: PrivacyController):
+        self.telemetry_client = telemetry_client
         self.privacy_controller = privacy_controller
         self.data_sanitizer = DataSanitizer()
 
@@ -139,7 +142,17 @@ class ErrorTracker:
                 # 隐私过滤
                 error_data = self.privacy_controller.filter_sensitive_info(error_data)
 
-                # 发送错误事件（实际发送在TelemetryManager中处理）
+                # 发送错误事件到telemetry client
+                if self.telemetry_client:
+                    # 生成用户ID（如果没有提供）
+                    user_id = extra_context.get('user_id')  # 移除硬编码的默认值
+
+                    self.telemetry_client.capture(
+                        distinct_id=user_id,
+                        event='error_occurred',
+                        properties=error_data
+                    )
+
                 logger.debug(f"Exception captured: {type(exception).__name__} (ID: {error_id})")
 
         except Exception as e:
@@ -179,6 +192,17 @@ class ErrorTracker:
                 # 数据处理
                 error_data = self.data_sanitizer.sanitize_error_data(error_data)
                 error_data = self.privacy_controller.filter_sensitive_info(error_data)
+
+                # 发送错误事件到telemetry client
+                if self.telemetry_client:
+                    # 生成用户ID（如果没有提供）
+                    user_id = context.get('user_id') if context else None
+
+                    self.telemetry_client.capture(
+                        distinct_id=user_id,
+                        event='error_occurred',
+                        properties=error_data
+                    )
 
                 logger.debug(f"Error captured: {error_type} (ID: {error_id})")
 
@@ -284,22 +308,39 @@ class ErrorTracker:
         return hashlib.md5(error_signature.encode()).hexdigest()[:8]
 
     def _collect_system_info(self) -> Dict[str, Any]:
-        """收集系统信息"""
         try:
-            import platform
-            import psutil
+            system_info = {'platform': 'Windows', 'platform_version': platform.version(),
+                           'python_version': platform.python_version(), 'cpu_count': os.cpu_count()}
+            class MEMORYSTATUSEX(ctypes.Structure):
+                _fields_ = [
+                    ("dwLength", ctypes.c_ulong),
+                    ("dwMemoryLoad", ctypes.c_ulong),
+                    ("ullTotalPhys", ctypes.c_ulonglong),
+                    ("ullAvailPhys", ctypes.c_ulonglong),
+                    ("ullTotalPageFile", ctypes.c_ulonglong),
+                    ("ullAvailPageFile", ctypes.c_ulonglong),
+                    ("ullTotalVirtual", ctypes.c_ulonglong),
+                    ("ullAvailVirtual", ctypes.c_ulonglong),
+                    ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+                ]
 
-            return {
-                'platform': platform.system(),
-                'platform_version': platform.version(),
-                'python_version': platform.python_version(),
-                'cpu_count': psutil.cpu_count(),
-                'memory_total': psutil.virtual_memory().total,
-                'memory_available': psutil.virtual_memory().available,
-                'disk_usage': psutil.disk_usage('/').percent if platform.system() != 'Windows' else psutil.disk_usage('C:').percent
-            }
+            mem_status = MEMORYSTATUSEX()
+            mem_status.dwLength = ctypes.sizeof(mem_status)
+            ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(mem_status))
+
+            system_info['memory_total'] = mem_status.ullTotalPhys
+            system_info['memory_available'] = mem_status.ullAvailPhys
+            try:
+                target_path = os.path.abspath(__file__)
+            except NameError:
+                target_path = os.path.abspath(sys.executable)
+            disk_usage = shutil.disk_usage(target_path)
+            system_info['disk_usage_percent'] = (disk_usage.used / disk_usage.total) * 100
+
+            return system_info
+
         except Exception as e:
-            logger.warning(f"Failed to collect system info: {e}")
+            logger.warning(f"Failed to collect system info on Windows: {e}")
             return {'collection_error': str(e)}
 
     def get_error_statistics(self) -> Dict[str, Any]:

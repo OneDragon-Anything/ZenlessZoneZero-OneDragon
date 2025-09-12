@@ -4,10 +4,12 @@ import ctypes
 from ctypes import wintypes
 
 from PySide6.QtWidgets import QWidget, QFileDialog
-from qfluentwidgets import Dialog, FluentIcon, PrimaryPushButton, SettingCardGroup, setTheme, Theme
+from PySide6.QtGui import QColor
+from qfluentwidgets import Dialog, FluentIcon, PrimaryPushButton, SettingCardGroup, setTheme, Theme, ColorDialog
 
-from one_dragon.base.config.custom_config import ThemeEnum, UILanguageEnum
+from one_dragon.base.config.custom_config import ThemeEnum, UILanguageEnum, ThemeColorModeEnum
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
+from one_dragon_qt.services.theme_manager import ThemeManager
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
@@ -15,6 +17,7 @@ from one_dragon_qt.widgets.setting_card.password_switch_setting_card import Pass
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.i18_utils import gt
+
 
 class SettingCustomInterface(VerticalScrollInterface):
 
@@ -52,6 +55,23 @@ class SettingCustomInterface(VerticalScrollInterface):
         self.theme_opt.value_changed.connect(self._on_theme_changed)
         basic_group.addSettingCard(self.theme_opt)
 
+        # 主题色模式选择
+        self.theme_color_mode_opt = ComboBoxSettingCard(
+            icon=FluentIcon.PALETTE,
+            title='主题色模式',
+            content='选择主题色的获取方式',
+            options_enum=ThemeColorModeEnum
+        )
+        self.theme_color_mode_opt.value_changed.connect(self._on_theme_color_mode_changed)
+
+        # 自定义主题色按钮
+        self.custom_theme_color_btn = PrimaryPushButton(icon=FluentIcon.PALETTE, text=gt('自定义主题色'))
+        self.custom_theme_color_btn.clicked.connect(self._on_custom_theme_color_clicked)
+        self.theme_color_mode_opt.hBoxLayout.addWidget(self.custom_theme_color_btn, 0)
+        self.theme_color_mode_opt.hBoxLayout.addSpacing(16)
+        self.custom_theme_color_btn.setEnabled(self.ctx.custom_config.is_custom_theme_color)
+        basic_group.addSettingCard(self.theme_color_mode_opt)
+
         self.notice_card_opt = SwitchSettingCard(icon=FluentIcon.PIN, title='主页公告', content='在主页显示游戏公告')
         self.notice_card_opt.value_changed.connect(lambda: setattr(self.ctx.signal, 'notice_card_config_changed', True))
         basic_group.addSettingCard(self.notice_card_opt)
@@ -71,7 +91,7 @@ class SettingCustomInterface(VerticalScrollInterface):
             title='自定义主页背景',
             extra_btn=self.banner_select_btn,
             password_hint='使用此功能需要密码哦~',
-            password_hash='d7103a21d03b8b922c3af3d477a0adde1633053cde1a7574e8009293ca3b70f1',
+            password_hash='d678f04ece93caaa4d030696429101725cbf31657dd9ded4fdc3b71b3ee05c54',
             dialog_title='嘻嘻~',
             dialog_content='密码不对哦~',
             dialog_button_text='再试试吧',
@@ -89,6 +109,7 @@ class SettingCustomInterface(VerticalScrollInterface):
         VerticalScrollInterface.on_interface_shown(self)
         self.ui_language_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('ui_language'))
         self.theme_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('theme'))
+        self.theme_color_mode_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('theme_color_mode'))
         self.notice_card_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('notice_card'))
         self.custom_banner_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('custom_banner'))
         self.remote_banner_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('remote_banner'))
@@ -118,6 +139,38 @@ class SettingCustomInterface(VerticalScrollInterface):
         :return:
         """
         setTheme(Theme[self.ctx.custom_config.theme.upper()],lazy=True)
+
+    def _on_theme_color_mode_changed(self, index: int, value: str) -> None:
+        """
+        主题色模式改变
+        :param index: 选项下标
+        :param value: 值
+        :return:
+        """
+        # 如果切换到从背景提取，触发banner重载
+        if value == ThemeColorModeEnum.AUTO.value.value:
+            self.ctx.signal.reload_banner = True
+        self.custom_theme_color_btn.setEnabled(value == ThemeColorModeEnum.CUSTOM.value.value)
+
+    def _on_custom_theme_color_clicked(self) -> None:
+        """
+        点击自定义主题色按钮
+        """
+        color = self.ctx.custom_config.theme_color
+        dialog = ColorDialog(QColor(color[0], color[1], color[2]), gt('请选择主题色'), self)
+        dialog.colorChanged.connect(self._update_custom_theme_color)
+        dialog.yesButton.setText(gt('确定'))
+        dialog.cancelButton.setText(gt('取消'))
+        dialog.exec()
+
+    def _update_custom_theme_color(self, color: QColor) -> None:
+        """
+        更新自定义主题色
+        :param color: QColor对象
+        """
+        color_tuple = (color.red(), color.green(), color.blue())
+        self.ctx.custom_config.theme_color = color_tuple
+        ThemeManager.set_theme_color(color_tuple)
 
     def _on_banner_select_clicked(self) -> None:
         """

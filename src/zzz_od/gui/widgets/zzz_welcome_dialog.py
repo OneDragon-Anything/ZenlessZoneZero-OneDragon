@@ -20,7 +20,7 @@ class ZWelcomeDialog(WelcomeDialog):
         essential_setup_button.adjustSize()
 
         doc_button = PushButton(gt('自助排障'), self)
-        doc_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://www.kdocs.cn/l/cbSJUUNotJ3Z")))
+        doc_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")))
         doc_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         doc_button.adjustSize()
 

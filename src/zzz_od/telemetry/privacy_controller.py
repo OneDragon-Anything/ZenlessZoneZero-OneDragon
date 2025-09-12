@@ -24,7 +24,7 @@ class PrivacyController:
         'auth', 'authorization', 'credential', 'private', 'confidential',
         'ssn', 'social_security', 'credit_card', 'card_number', 'cvv',
         'email', 'phone', 'mobile', 'address', 'location', 'ip_address',
-        'user_id', 'username', 'login', 'account', 'session_id'
+        'user_id', 'username', 'login', 'account'
     }
 
     # 敏感数据模式

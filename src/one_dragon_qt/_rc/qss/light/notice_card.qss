@@ -1,5 +1,5 @@
 #title {
-    color: #fff;
+    color: #000;
 }
 
 #title:hover {
@@ -7,7 +7,7 @@
 }
 
 #date {
-    color: #fff;
+    color: #333;
 }
 
 QListWidget {
@@ -27,7 +27,7 @@ QStackedWidget {
     color: #f5d742;
     background-color: #333333;
     border: 2px solid #f5d742;
-    border-radius: 10px;
+    border-radius: 4px;
     padding: 5px;
     font-size: 12px;
 }

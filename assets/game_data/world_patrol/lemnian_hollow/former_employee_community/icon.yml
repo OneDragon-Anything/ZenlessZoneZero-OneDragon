@@ -1,0 +1,320 @@
+- icon_name: 职工宿舍北区
+  template_id: map_icon_01
+  lm_pos:
+  - 1305
+  - 271
+  tp_pos:
+  - 1305
+  - 271
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 1359
+  - 386
+  tp_pos:
+  - 1359
+  - 386
+- icon_name: ''
+  template_id: map_icon_04
+  lm_pos:
+  - 1232
+  - 335
+  tp_pos:
+  - 1232
+  - 335
+- icon_name: ''
+  template_id: map_icon_08
+  lm_pos:
+  - 1057
+  - 598
+  tp_pos:
+  - 1057
+  - 598
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 758
+  - 614
+  tp_pos:
+  - 758
+  - 614
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 271
+  - 777
+  tp_pos:
+  - 271
+  - 777
+- icon_name: 西侧广场
+  template_id: map_icon_01
+  lm_pos:
+  - 646
+  - 835
+  tp_pos:
+  - 646
+  - 835
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 617
+  - 747
+  tp_pos:
+  - 617
+  - 747
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 1018
+  - 781
+  tp_pos:
+  - 1018
+  - 781
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 1374
+  - 787
+  tp_pos:
+  - 1374
+  - 787
+- icon_name: '旧商业楼'
+  template_id: map_icon_01
+  lm_pos:
+  - 1579
+  - 871
+  tp_pos:
+  - 1579
+  - 871
+- icon_name: ''
+  template_id: map_icon_04
+  lm_pos:
+  - 1733
+  - 949
+  tp_pos:
+  - 1733
+  - 949
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 1611
+  - 1014
+  tp_pos:
+  - 1611
+  - 1014
+- icon_name: ''
+  template_id: map_icon_07
+  lm_pos:
+  - 1455
+  - 1112
+  tp_pos:
+  - 1455
+  - 1112
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 1279
+  - 1162
+  tp_pos:
+  - 1279
+  - 1162
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 1260
+  - 1099
+  tp_pos:
+  - 1260
+  - 1099
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 1125
+  - 1221
+  tp_pos:
+  - 1125
+  - 1221
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 1372
+  - 1214
+  tp_pos:
+  - 1372
+  - 1214
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 1323
+  - 1145
+  tp_pos:
+  - 1323
+  - 1145
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 1332
+  - 1171
+  tp_pos:
+  - 1332
+  - 1171
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 1349
+  - 1232
+  tp_pos:
+  - 1349
+  - 1232
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 1326
+  - 1214
+  tp_pos:
+  - 1326
+  - 1214
+- icon_name: ''
+  template_id: map_icon_04
+  lm_pos:
+  - 1308
+  - 1348
+  tp_pos:
+  - 1308
+  - 1348
+- icon_name: 职工宿舍南区
+  template_id: map_icon_01
+  lm_pos:
+  - 1547
+  - 1522
+  tp_pos:
+  - 1547
+  - 1522
+- icon_name: ''
+  template_id: map_icon_02
+  lm_pos:
+  - 1499
+  - 1499
+  tp_pos:
+  - 1499
+  - 1499
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 1546
+  - 1489
+  tp_pos:
+  - 1546
+  - 1489
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 1545
+  - 1450
+  tp_pos:
+  - 1545
+  - 1450
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 1520
+  - 1307
+  tp_pos:
+  - 1520
+  - 1307
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 1544
+  - 1181
+  tp_pos:
+  - 1544
+  - 1181
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 1544
+  - 1128
+  tp_pos:
+  - 1544
+  - 1128
+- icon_name: 中央广场
+  template_id: map_icon_01
+  lm_pos:
+  - 1238
+  - 1089
+  tp_pos:
+  - 1238
+  - 1089
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 987
+  - 1234
+  tp_pos:
+  - 987
+  - 1234
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 634
+  - 1000
+  tp_pos:
+  - 634
+  - 1000
+- icon_name: ''
+  template_id: map_icon_05
+  lm_pos:
+  - 740
+  - 1003
+  tp_pos:
+  - 740
+  - 1003
+- icon_name: ''
+  template_id: map_icon_04
+  lm_pos:
+  - 776
+  - 1089
+  tp_pos:
+  - 776
+  - 1089
+- icon_name: 职工宿舍西区
+  template_id: map_icon_01
+  lm_pos:
+  - 410
+  - 1201
+  tp_pos:
+  - 410
+  - 1201
+- icon_name: ''
+  template_id: map_icon_09
+  lm_pos:
+  - 446
+  - 1161
+  tp_pos:
+  - 446
+  - 1161
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 528
+  - 904
+  tp_pos:
+  - 528
+  - 904
+- icon_name: ''
+  template_id: map_icon_06
+  lm_pos:
+  - 486
+  - 907
+  tp_pos:
+  - 486
+  - 907
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 513
+  - 1250
+  tp_pos:
+  - 513
+  - 1250

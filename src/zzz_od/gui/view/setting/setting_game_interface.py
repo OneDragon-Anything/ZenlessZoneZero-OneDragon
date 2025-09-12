@@ -17,7 +17,7 @@ from one_dragon_qt.widgets.setting_card.spin_box_setting_card import DoubleSpinB
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.config.game_config import GamepadTypeEnum
-from zzz_od.config.agent_outfit_config import AgentOutfitNicole, AgentOutfitEllen, AgentOutfitAstraYao, AgentOutfitYiXuan, AgentOutfityuzuha
+from zzz_od.config.agent_outfit_config import AgentOutfitNicole, AgentOutfitEllen, AgentOutfitAstraYao, AgentOutfitYiXuan, AgentOutfitYuzuha, AgentOutfitAlice
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -65,17 +65,25 @@ class SettingGameInterface(VerticalScrollInterface):
         self.outfit_yixuan_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='仪玄', options_enum=AgentOutfitYiXuan)
         self.outfit_yixuan_opt.value_changed.connect(self._on_agent_outfit_changed)
 
-        self.outfit_yuzuha_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='浮波柚叶', options_enum=AgentOutfityuzuha)
+        self.outfit_yuzuha_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='浮波柚叶', options_enum=AgentOutfitYuzuha)
         self.outfit_yuzuha_opt.value_changed.connect(self._on_agent_outfit_changed)
 
-        self.agent_outfit_group_horizontal = HorizontalSettingCardGroup([
+        self.outfit_alice_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='爱丽丝', options_enum=AgentOutfitAlice)
+        self.outfit_alice_opt.value_changed.connect(self._on_agent_outfit_changed)
+
+        self.agent_outfit_row1 = HorizontalSettingCardGroup([
             self.outfit_nicole_opt,
             self.outfit_ellen_opt,
             self.outfit_astra_yao_opt,
-            self.outfit_yixuan_opt,
-            self.outfit_yuzuha_opt
         ])
-        agent_outfit_group.addSettingCard(self.agent_outfit_group_horizontal)
+        agent_outfit_group.addSettingCard(self.agent_outfit_row1)
+
+        self.agent_outfit_row2 = HorizontalSettingCardGroup([
+            self.outfit_yixuan_opt,
+            self.outfit_yuzuha_opt,
+            self.outfit_alice_opt,
+        ])
+        agent_outfit_group.addSettingCard(self.agent_outfit_row2)
 
         return agent_outfit_group
 
@@ -296,6 +304,8 @@ class SettingGameInterface(VerticalScrollInterface):
         self.outfit_ellen_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('ellen'))
         self.outfit_astra_yao_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('astra_yao'))
         self.outfit_yixuan_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('yixuan'))
+        self.outfit_yuzuha_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('yuzuha'))
+        self.outfit_alice_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('alice'))
         self._update_agent_outfit_options(self.ctx.agent_outfit_config.compatibility_mode)
 
         self.input_way_opt.init_with_adapter(self.ctx.game_config.type_input_way_adapter)
@@ -417,7 +427,8 @@ class SettingGameInterface(VerticalScrollInterface):
         self._update_agent_outfit_options(value)
 
     def _update_agent_outfit_options(self, value: bool) -> None:
-        self.agent_outfit_group_horizontal.setVisible(value)
+        self.agent_outfit_row1.setVisible(value)
+        self.agent_outfit_row2.setVisible(value)
 
     def _on_agent_outfit_changed(self) -> None:
         if self.ctx.agent_outfit_config.compatibility_mode:

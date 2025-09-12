@@ -7,6 +7,7 @@ import re
 import smtplib
 import threading
 import time
+import datetime
 import urllib.parse
 import functools
 
@@ -50,7 +51,7 @@ class Push():
         self.ctx: OneDragonContext = ctx
 
 
-    @track_push_method
+
     def bark(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 Bark 推送消息。
@@ -97,7 +98,7 @@ class Push():
             self.log_error(f"Bark 推送异常: {e}")
 
 
-    @track_push_method
+
     def console(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 控制台 推送消息。
@@ -105,7 +106,7 @@ class Push():
         print(f"{title}\n{content}")
 
 
-    @track_push_method
+
     def dingding_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 钉钉机器人 推送消息。
@@ -139,7 +140,7 @@ class Push():
             self.log_error(f"钉钉机器人 推送异常: {e}")
 
 
-    @track_push_method
+
     def feishu_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 飞书机器人 推送消息。
@@ -147,8 +148,65 @@ class Push():
 
         self.log_info("飞书 服务启动")
 
+        app_id = self.get_config("FS_APPID")
+        app_secret = self.get_config("FS_APPSECRET")
+        if image and app_id and app_secret and app_id != "" and app_secret != "":
+            image.seek(0)
+            # 获取飞书自建应用的tenant_access_token
+            auth_endpoint = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
+            auth_headers = {
+                "Content-Type": "application/json; charset=utf-8"
+            }
+            auth_response = requests.post(auth_endpoint, headers=auth_headers, json={
+                "app_id": app_id,
+                "app_secret": app_secret
+            })
+            auth_response.raise_for_status()
+            tenant_access_token = auth_response.json()["tenant_access_token"]
+            # 上传图片并获取图片的image_key
+            image_endpoint = "https://open.feishu.cn/open-apis/im/v1/images"
+            image_headers = {
+                "Authorization": f"Bearer {tenant_access_token}"
+            }
+            files = {
+                'image': ('image.jpg', image.getvalue(), 'image/jpeg'),
+                'image_type': (None, 'message')
+            }
+            image_response = requests.post(image_endpoint , headers=image_headers, files=files)
+            if (image_response.status_code % 100 != 2):
+                log.error(image_response.text)
+                image_response.raise_for_status()
+            image_key = image_response.json()["data"]["image_key"]
+        else:
+            image_key = None
+
+        if image_key:
+            data = {
+                "msg_type": "post",
+                "content": {
+                    "post": {
+                        "zh_cn": {
+                            "title": title,
+                            "content": [
+                                [{
+                                    "tag": "text",
+                                    "text": f"{content}"
+                                }, {
+                                    "tag": "img",
+                                    "image_key": image_key
+                                }]
+                            ]
+                        }
+                    }
+                }
+            }
+        else:
+            data = {
+                "msg_type": "text",
+                "content": {"text": f"{title}\n{content}"}
+            }
+
         url = f'https://open.feishu.cn/open-apis/bot/v2/hook/{self.get_config("FS_KEY")}'
-        data = {"msg_type": "text", "content": {"text": f"{title}\n{content}"}}
         response = requests.post(url, data=json.dumps(data)).json()
 
         if response.get("StatusCode") == 0 or response.get("code") == 0:
@@ -157,7 +215,7 @@ class Push():
             self.log_error(f"飞书 推送失败！错误信息如下：\n{response}")
 
 
-    @track_push_method
+
     def one_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 OneBot 推送消息。
@@ -206,7 +264,7 @@ class Push():
                 self.log_error("OneBot 群聊推送失败！")
 
 
-    @track_push_method
+
     def gotify(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 gotify 推送消息。
@@ -228,7 +286,7 @@ class Push():
             self.log_error("gotify 推送失败！")
 
 
-    @track_push_method
+
     def iGot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 iGot 推送消息。
@@ -247,7 +305,7 @@ class Push():
             self.log_error(f'iGot 推送失败！{response["errMsg"]}')
 
 
-    @track_push_method
+
     def serverchan(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 ServerChan 推送消息。
@@ -272,7 +330,7 @@ class Push():
             self.log_error(f'Server 酱 推送失败！错误码：{response["message"]}')
 
 
-    @track_push_method
+
     def pushdeer(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过PushDeer 推送消息
@@ -297,7 +355,7 @@ class Push():
             self.log_error(f"PushDeer 推送失败！错误信息：{response}")
 
 
-    @track_push_method
+
     def chat(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过Chat 推送消息
@@ -316,7 +374,7 @@ class Push():
             self._track_push_failure('chat', f"Status code: {response.status_code}")
 
 
-    @track_push_method
+
     def pushplus_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 pushplus 推送消息。
@@ -361,7 +419,7 @@ class Push():
                 self.log_error("PUSHPLUS 推送失败！")
 
 
-    @track_push_method
+
     def weplus_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 微加机器人 推送消息。
@@ -392,7 +450,7 @@ class Push():
             self.log_error("微加机器人 推送失败！")
 
 
-    @track_push_method
+
     def qmsg_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 qmsg 推送消息。
@@ -410,7 +468,7 @@ class Push():
             self.log_error(f'qmsg 推送失败！{response["reason"]}')
 
 
-    @track_push_method
+
     def wecom_app(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 企业微信 APP 推送消息。
@@ -507,7 +565,7 @@ class Push():
             return respone["errmsg"]
 
 
-    @track_push_method
+
     def wecom_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 企业微信机器人 推送消息。
@@ -532,7 +590,7 @@ class Push():
             self.log_error("企业微信机器人推送失败！")
 
 
-    @track_push_method
+
     def discord_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 Discord Bot 推送消息。
@@ -576,7 +634,7 @@ class Push():
         self.log_info("Discord Bot 推送成功！")
 
 
-    @track_push_method
+
     def telegram_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 telegram 机器人 推送消息。
@@ -584,18 +642,6 @@ class Push():
 
         self.log_info("Telegram 服务启动")
 
-        if self.get_config("TG_API_HOST"):
-            url = f"{self.get_config('TG_API_HOST')}/bot{self.get_config('TG_BOT_TOKEN')}/sendMessage"
-        else:
-            url = (
-                f"https://api.telegram.org/bot{self.get_config('TG_BOT_TOKEN')}/sendMessage"
-            )
-        headers = {"Content-Type": "application/x-www-form-urlencoded"}
-        payload = {
-            "chat_id": str(self.get_config("TG_USER_ID")),
-            "text": f"{title}\n{content}",
-            "disable_web_page_preview": "true",
-        }
         proxies = None
         if self.get_config("TG_PROXY_HOST") and self.get_config("TG_PROXY_PORT"):
             if self.get_config("TG_PROXY_AUTH") != "" and "@" not in self.get_config(
@@ -610,9 +656,36 @@ class Push():
                 self.get_config("TG_PROXY_HOST"), self.get_config("TG_PROXY_PORT")
             )
             proxies = {"http": proxyStr, "https": proxyStr}
-        response = requests.post(
-            url=url, headers=headers, params=payload, proxies=proxies
-        ).json()
+
+        if self.get_config("TG_API_HOST"):
+            url = f"{self.get_config('TG_API_HOST')}/bot{self.get_config('TG_BOT_TOKEN')}/sendMessage"
+            photo_url = f"{self.get_config('TG_API_HOST')}/bot{self.get_config('TG_BOT_TOKEN')}/sendPhoto"
+        else:
+            url = (
+                f"https://api.telegram.org/bot{self.get_config('TG_BOT_TOKEN')}/sendMessage"
+            )
+            photo_url = f"https://api.telegram.org/bot{self.get_config('TG_BOT_TOKEN')}/sendPhoto"
+
+        if image:
+            # 发送图片
+            image.seek(0)
+            files = {
+                'photo': ('image.jpg', image.getvalue(), 'image/jpeg'),
+                'chat_id': (None, str(self.get_config("TG_USER_ID"))),
+                'caption': (None, f"{title}\n{content}")
+            }
+            response = requests.post(photo_url, files=files, proxies=proxies).json()
+        else:
+            # 发送消息
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            payload = {
+                "chat_id": str(self.get_config("TG_USER_ID")),
+                "text": f"{title}\n{content}",
+            }
+
+            response = requests.post(
+                url=url, headers=headers, params=payload, proxies=proxies
+            ).json()
 
         if response["ok"]:
             self.log_info("Telegram 推送成功！")
@@ -620,7 +693,7 @@ class Push():
             self.log_error("Telegram 推送失败！")
 
 
-    @track_push_method
+
     def aibotk(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 智能微秘书 推送消息。
@@ -651,7 +724,7 @@ class Push():
             self.log_error(f'智能微秘书 推送失败！{response["error"]}')
 
 
-    @track_push_method
+
     def smtp(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 SMTP 邮件 推送消息。
@@ -680,6 +753,8 @@ class Push():
                 if self.get_config("SMTP_SSL") == "true"
                 else smtplib.SMTP(self.get_config("SMTP_SERVER"))
             )
+            if self.get_config("SMTP_STARTTLS") == "true":
+                smtp_server.starttls()
             smtp_server.login(
                 self.get_config("SMTP_EMAIL"), self.get_config("SMTP_PASSWORD")
             )
@@ -694,7 +769,7 @@ class Push():
             self.log_error(f"SMTP 邮件 推送失败！{e}")
 
 
-    @track_push_method
+
     def pushme(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 PushMe 推送消息。
@@ -722,7 +797,7 @@ class Push():
             self.log_error(f"PushMe 推送失败！{response.status_code} {response.text}")
 
 
-    @track_push_method
+
     def chronocat(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 CHRONOCAT 推送消息。
@@ -765,7 +840,7 @@ class Push():
                         self.log_error(f"QQ群消息:{ids}推送失败！")
 
 
-    @track_push_method
+
     def ntfy(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 Ntfy 推送消息
@@ -790,6 +865,14 @@ class Push():
         data = content.encode(encoding="utf-8")
         headers = {"Title": encoded_title, "Priority": priority}  # 使用编码后的 title
 
+        if self.get_config("NTFY_TOKEN"):
+            headers['Authorization'] = "Bearer " + self.get_config("NTFY_TOKEN")
+        elif self.get_config("NTFY_USERNAME") and self.get_config("NTFY_PASSWORD"):
+            authStr = self.get_config("NTFY_USERNAME") + ":" + self.get_config("NTFY_PASSWORD")
+            headers['Authorization'] = "Basic " + base64.b64encode(authStr.encode('utf-8')).decode('utf-8')
+        if self.get_config("NTFY_ACTIONS"):
+            headers['Actions'] = encode_rfc2047(self.get_config("NTFY_ACTIONS"))
+
         url = self.get_config("NTFY_URL") + "/" + self.get_config("NTFY_TOPIC")
         response = requests.post(url, data=data, headers=headers)
         if response.status_code == 200:  # 使用 response.status_code 进行检查
@@ -798,7 +881,7 @@ class Push():
             self.log_error(f"Ntfy 推送失败！错误信息：{response.text}")
 
 
-    @track_push_method
+
     def wxpusher_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         通过 wxpusher 推送消息。
@@ -853,94 +936,75 @@ class Push():
             self.log_error(f"wxpusher 推送失败！错误信息：{response.get('msg')}")
 
 
-    def parse_headers(self, headers) -> dict:
-        if not headers:
-            return {}
-
-        parsed = {}
-        lines = headers.split("\n")
-
-        for line in lines:
-            i = line.find(":")
-            if i == -1:
-                continue
-
-            key = line[:i].strip().lower()
-            val = line[i + 1 :].strip()
-            parsed[key] = parsed.get(key, "") + ", " + val if key in parsed else val
-
-        return parsed
-
-
-    def parse_string(self, input_string, value_format_fn=None) -> dict:
-        matches = {}
-        pattern = r"(\w+):\s*((?:(?!\n\w+:).)*)"
-        regex = re.compile(pattern)
-        for match in regex.finditer(input_string):
-            key, value = match.group(1).strip(), match.group(2).strip()
-            try:
-                value = value_format_fn(value) if value_format_fn else value
-                json_value = json.loads(value)
-                matches[key] = json_value
-            except:
-                matches[key] = value
-        return matches
-
-
-    def parse_body(self, body, content_type, value_format_fn=None) -> str:
-        if not body or content_type == "text/plain":
-            return value_format_fn(body) if value_format_fn and body else body
-
-        parsed = self.parse_string(body, value_format_fn)
-
-        if content_type == "application/x-www-form-urlencoded":
-            data = urllib.parse.urlencode(parsed, doseq=True)
-            return data
-
-        if content_type == "application/json":
-            data = json.dumps(parsed)
-            return data
-
-        return parsed
-
-
-    def custom_notify(self, title: str, content: str, image: Optional[BytesIO]) -> None:
+    def webhook_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
-        通过 自定义通知 推送消息。
+        通过通用 Webhook 推送消息
         """
-
-        self.log_info("自定义通知服务启动")
+        self.log_info("通用 Webhook 服务启动")
 
         url = self.get_config("WEBHOOK_URL")
-        method = self.get_config("WEBHOOK_METHOD")
-        content_type = self.get_config("WEBHOOK_CONTENT_TYPE")
+        method = (self.get_config("WEBHOOK_METHOD")).upper()
+        headers_str = self.get_config("WEBHOOK_HEADERS")
         body = self.get_config("WEBHOOK_BODY")
-        headers = self.get_config("WEBHOOK_HEADERS")
+        content_type = self.get_config("WEBHOOK_CONTENT_TYPE")
 
-        if "$title" not in url and "$title" not in body:
-            self.log_info("请求头或者请求体中必须包含 $title 和 $content")
-            return
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        iso_timestamp = datetime.datetime.now().isoformat()
+        unix_timestamp = str(int(time.time()))
 
-        headers = self.parse_headers(headers)
-        body = self.parse_body(
-            body,
-            content_type,
-            lambda v: v.replace("$title", title.replace("\n", "\\n")).replace(
-                "$content", content.replace("\n", "\\n")
-            ),
-        )
-        formatted_url = url.replace(
-            "$title", urllib.parse.quote_plus(title)
-        ).replace("$content", urllib.parse.quote_plus(content))
+        # 变量替换
+        replacements = {
+            "$title": title, "{{title}}": title,
+            "$content": content, "{{content}}": content,
+            "$timestamp": timestamp, "{{timestamp}}": timestamp,
+            "$iso_timestamp": iso_timestamp, "{{iso_timestamp}}": iso_timestamp,
+            "$unix_timestamp": unix_timestamp, "{{unix_timestamp}}": unix_timestamp,
+        }
+
+        for placeholder, value in replacements.items():
+            # 对 URL 中的变量进行编码，对 Body 和 Headers 则不需要
+            url = url.replace(placeholder, urllib.parse.quote_plus(str(value)))
+            body = body.replace(placeholder, str(value).replace("\n", "\\n")) # JSON字符串中换行符需要转义
+            headers_str = headers_str.replace(placeholder, str(value))
+
+        if "$image" in body:
+            image_base64 = ""
+            if image:
+                image.seek(0)
+                image_base64 = base64.b64encode(image.getvalue()).decode('utf-8')
+            body = body.replace("$image", image_base64)
+
+        # 解析 headers 字符串为字典
+        try:
+            headers = json.loads(headers_str) if headers_str and headers_str != "{}" else {}
+        except json.JSONDecodeError:
+            # 如果解析失败，尝试解析为键值对格式
+            headers = {}
+            if headers_str and headers_str != "{}":
+                for line in headers_str.split('\n'):
+                    if ':' in line:
+                        key, value = line.split(':', 1)
+                        headers[key.strip()] = value.strip()
+
+        # 添加 Content-Type
+        headers['Content-Type'] = content_type
+
+        self.log_info(f"发送 Webhook 请求: {method} {url}")
+        self.log_info(f"请求头: {headers}")
+        self.log_info(f"请求体: {body}")
+
         response = requests.request(
-            method=method, url=formatted_url, headers=headers, timeout=15, data=body
+            method=method,
+            url=url,
+            headers=headers,
+            data=body.encode("utf-8"),
+            timeout=15
         )
 
-        if response.status_code == 200:
-            self.log_info("自定义通知推送成功！")
-        else:
-            self.log_error(f"自定义通知推送失败！{response.status_code} {response.text}")
+        # 通过 response.raise_for_status() 可以自动检查 4xx/5xx 错误并抛出异常
+        response.raise_for_status()
 
+        self.log_info(f"Webhook 推送成功！状态码: {response.status_code}")
 
     def add_notify_function(self) -> list:
         notify_function = []
@@ -986,7 +1050,6 @@ class Push():
             notify_function.append(self.aibotk)
         if (
             self.get_config("SMTP_SERVER")
-            and self.get_config("SMTP_SSL")
             and self.get_config("SMTP_EMAIL")
             and self.get_config("SMTP_PASSWORD")
             and self.get_config("SMTP_NAME")
@@ -1000,8 +1063,8 @@ class Push():
             and self.get_config("CHRONOCAT_TOKEN")
         ):
             notify_function.append(self.chronocat)
-        if self.get_config("WEBHOOK_URL") and self.get_config("WEBHOOK_METHOD"):
-            notify_function.append(self.custom_notify)
+        if self.get_config("WEBHOOK_URL") and self.get_config("WEBHOOK_BODY"):
+            notify_function.append(self.webhook_bot)
         if self.get_config("NTFY_TOPIC"):
             notify_function.append(self.ntfy)
         if self.get_config("WXPUSHER_APP_TOKEN") and (
@@ -1031,17 +1094,76 @@ class Push():
     def send(self, content: str, image: Optional[BytesIO] = None, test_method: Optional[str] = None) -> None:
         title = self.ctx.push_config.custom_push_title
 
-        notify_function = self.add_notify_function()
+        if test_method:
+            # 测试指定的推送方式
+            notify_function = self.get_specific_notify_function(test_method)
+        else:
+            # 使用所有已配置的推送方式
+            notify_function = self.add_notify_function()
+            if not notify_function:
+                raise ValueError("未找到可用的推送方式，请检查通知设置是否正确")
 
         # 遥测埋点：记录推送方法使用情况
         self._track_push_usage(notify_function, test_method)
 
-        ts = [
-            threading.Thread(target=mode, args=(title, content, image), name=mode.__name__)
-            for mode in notify_function
-        ]
-        [t.start() for t in ts]
-        [t.join() for t in ts]
+        # 如果是测试模式，直接在主线程中执行，这样异常可以被前端捕获
+        if test_method:
+            for mode in notify_function:
+                mode(title, content, image)
+        else:
+            # 正常推送使用多线程
+            ts = [
+                threading.Thread(target=mode, args=(title, content, image), name=mode.__name__)
+                for mode in notify_function
+            ]
+            [t.start() for t in ts]
+            [t.join() for t in ts]
+
+    def get_specific_notify_function(self, method: str) -> list:
+        """获取指定的推送方式函数"""
+        # 直接从add_notify_function获取所有可用的通知方式
+        all_functions = self.add_notify_function()
+
+        # 通过方法名匹配对应的函数
+        method = method.upper()
+
+        # 配置键名到函数名的映射（UI传入的method已经是配置键名）
+        method_to_function_name = {
+            'BARK': 'bark',
+            'CONSOLE': 'console',
+            'DD_BOT': 'dingding_bot',
+            'FS': 'feishu_bot',
+            'ONEBOT': 'one_bot',
+            'GOTIFY': 'gotify',
+            'IGOT': 'iGot',
+            'SERVERCHAN': 'serverchan',
+            'DEER': 'pushdeer',
+            'CHAT': 'chat',
+            'PUSH_PLUS': 'pushplus_bot',
+            'WE_PLUS_BOT': 'weplus_bot',
+            'QMSG': 'qmsg_bot',
+            'QYWX': 'wecom_app',
+            'DISCORD': 'discord_bot',
+            'TG': 'telegram_bot',
+            'AIBOTK': 'aibotk',
+            'SMTP': 'smtp',
+            'PUSHME': 'pushme',
+            'CHRONOCAT': 'chronocat',
+            'WEBHOOK': 'webhook_bot',
+            'NTFY': 'ntfy',
+            'WXPUSHER': 'wxpusher_bot',
+        }
+
+        target_function_name = method_to_function_name.get(method)
+        if not target_function_name:
+            raise ValueError(f"未支持的推送方式: {method}")
+
+        # 查找匹配的函数
+        for func in all_functions:
+            if func.__name__ == target_function_name:
+                return [func]
+
+        raise ValueError(f"{method} 推送方式未正确配置")
 
     def _track_push_usage(self, notify_functions: list, test_method: Optional[str] = None) -> None:
         """跟踪推送方法使用情况"""

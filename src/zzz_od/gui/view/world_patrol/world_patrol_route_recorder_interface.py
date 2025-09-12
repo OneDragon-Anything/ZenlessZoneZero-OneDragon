@@ -25,6 +25,7 @@ from zzz_od.application.world_patrol.world_patrol_area import WorldPatrolEntry, 
 from zzz_od.application.world_patrol.world_patrol_route import WorldPatrolRoute
 from zzz_od.application.world_patrol.world_patrol_service import WorldPatrolService
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.gui.view.world_patrol.route_operation_editor_dialog import RouteOperationEditorDialog
 
 
 class DebugRouteRunner(QThread):
@@ -132,6 +133,8 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         self.delete_route_btn.clicked.connect(self.on_delete_route_btn_clicked)
         self.cancel_route_btn = PushButton(text='取消')
         self.cancel_route_btn.clicked.connect(self.on_cancel_route_btn_clicked)
+        self.edit_operations_btn = PushButton(text='编辑操作')
+        self.edit_operations_btn.clicked.connect(self.on_edit_operations_btn_clicked)
         self.rout_opt_row = MultiPushSettingCard(
             icon=FluentIcon.SAVE, title='编辑',
             btn_list=[
@@ -139,6 +142,7 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
                 self.save_route_btn,
                 self.delete_route_btn,
                 self.cancel_route_btn,
+                self.edit_operations_btn,
             ]
         )
         control_layout.addWidget(self.rout_opt_row)
@@ -254,6 +258,7 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         self.save_route_btn.setDisabled(not has_route)
         self.delete_route_btn.setDisabled(not has_route)
         self.cancel_route_btn.setDisabled(not has_route)
+        self.edit_operations_btn.setDisabled(not has_route)
         self.debug_route_btn.setDisabled(not has_route)
         self.screenshot_btn.setDisabled(not has_large_map)
         self.add_move_btn.setDisabled(not has_route)
@@ -417,7 +422,7 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         self.chosen_route = None
 
         # 重置路线选择
-        self.route_combo_box.setCurrentIndex(0)
+        self.route_combo_box.setCurrentIndex(-1)
 
         # 清除计算结果
         self.mini_map_pos_mr = None
@@ -539,7 +544,7 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         log.info('[截图] 开始')
         _, screen = self.ctx.controller.screenshot()
         mini_map_wrapper = self.ctx.world_patrol_service.cut_mini_map(screen)
-        self.mini_map = large_map_recorder_utils.create_mini_map_snapshot(self.ctx, mini_map_wrapper)
+        self.mini_map = large_map_recorder_utils.create_mini_map_snapshot(self.ctx, mini_map_wrapper, 0.7)
 
         self._update_mini_map_display()
         log.info('[截图] 完成')
@@ -644,3 +649,30 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         self.debug_runner.op = WorldPatrolRunRoute(self.ctx, self.chosen_route,
                                                    start_idx=self.debug_start_input.value())
         self.debug_runner.start()
+
+    def on_edit_operations_btn_clicked(self) -> None:
+        """编辑操作按钮点击"""
+        if self.chosen_route is None:
+            log.error('请先选择路线')
+            return
+
+        # 创建编辑对话框
+        dialog = RouteOperationEditorDialog(self.chosen_route.op_list, self)
+        dialog.operations_updated.connect(self._on_operations_updated)
+        dialog.exec()
+
+    def _on_operations_updated(self, updated_op_list: list) -> None:
+        """操作列表更新后的处理"""
+        if self.chosen_route is None:
+            return
+
+        # 更新路线的操作列表
+        self.chosen_route.op_list = updated_op_list
+
+        # 更新大地图显示
+        self._update_large_map_display()
+
+        # 更新按钮状态
+        self._update_btn_display()
+
+        log.info(f'路线操作已更新，当前操作数: {len(self.chosen_route.op_list)}')

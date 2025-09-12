@@ -1,0 +1,32 @@
+idx: 1
+op_list:
+- data:
+  - '392'
+  - '349'
+  op_type: move
+- data:
+  - '375'
+  - '375'
+  op_type: move
+- data:
+  - '355'
+  - '375'
+  op_type: move
+- data:
+  - '284'
+  - '376'
+  op_type: move
+- data:
+  - '278'
+  - '311'
+  op_type: move
+- data:
+  - '278'
+  - '285'
+  op_type: move
+- data:
+  - '248'
+  - '255'
+  op_type: move
+tp_area_id: production_area_rooftop
+tp_name: 大楼顶楼

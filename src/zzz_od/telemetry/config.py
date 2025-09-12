@@ -42,24 +42,34 @@ class TelemetryConfigLoader:
 
     def _load_from_env(self, config: TelemetryConfig) -> None:
         """从env.yml加载配置"""
-        # 尝试从env.yml加载 API key
+        # 从环境变量加载Loki认证信息
         env_yml_path = self.config_dir / "env.yml"
         if env_yml_path.exists():
             try:
                 with open(env_yml_path, 'r', encoding='utf-8') as f:
                     env_config = yaml.safe_load(f)
-                    if env_config and 'api_key' in env_config:
-                        config.api_key = env_config['api_key']
-                        logger.debug("Loaded PostHog API key from env.yml")
+                    if env_config:
+                        # 加载Loki认证信息
+                        if 'loki_tenant_id' in env_config:
+                            config.loki_tenant_id = env_config['loki_tenant_id']
+                            logger.debug("Loaded Loki tenant ID from env.yml")
+                        if 'loki_auth_token' in env_config:
+                            config.loki_auth_token = env_config['loki_auth_token']
+                            logger.debug("Loaded Loki auth token from env.yml")
             except Exception as e:
-                logger.debug(f"Failed to load API key from env.yml: {e}")
+                logger.debug(f"Failed to load config from env.yml: {e}")
 
-        # 如果还是没有API key，使用硬编码的后备方案
-        if not config.api_key:
-            config.api_key = "phc_UoZgjCvKVVu9M51bwegt89uszMY0w7AOvnxIBYY9G1t"
-            logger.debug("Using hardcoded PostHog API key")
+        # 如果没有从环境变量加载到认证信息，使用硬编码的fallback
+        if not config.loki_tenant_id:
+            config.loki_tenant_id = "1109268"
+            logger.debug("Using hardcoded Loki tenant ID")
 
-        logger.debug(f"Final API key: {'***' if config.api_key else 'None'}")
+        if not config.loki_auth_token:
+            config.loki_auth_token = "glc_eyJvIjoiMTMyOTM0MSIsIm4iOiJ6enotb2Qtenp6LW9kIiwiayI6IjhzYnVvMkNXNkU4czg3Nlk0UjBiMEhJTSIsIm0iOnsiciI6InVzIn19"
+            logger.debug("Using hardcoded Loki auth token")
+
+        logger.debug(f"Final Loki tenant ID: {'***' if config.loki_tenant_id else 'None'}")
+        logger.debug(f"Final Loki auth token: {'***' if config.loki_auth_token else 'None'}")
 
     def _load_from_file(self, config: TelemetryConfig) -> None:
         """从配置文件加载配置"""
@@ -72,20 +82,6 @@ class TelemetryConfigLoader:
 
                 # 基本设置
                 config.enabled = telemetry_config.get('enabled', config.enabled)
-                config.host = telemetry_config.get('host', config.host)
-
-                # 只有在 api_key 还没有设置时才从配置文件加载
-                logger.debug(f"Before file load - API key: {'***' if config.api_key else 'None'}")
-                if not config.api_key:
-                    file_api_key = telemetry_config.get('api_key', '')
-                    logger.debug(f"File API key: {file_api_key}")
-                    if file_api_key:
-                        config.api_key = file_api_key
-                        logger.debug("Set API key from file")
-                    else:
-                        logger.debug("No API key in file")
-                else:
-                    logger.debug("API key already set, skipping file load")
 
                 # 功能开关
                 features = telemetry_config.get('features', {})
@@ -102,6 +98,16 @@ class TelemetryConfigLoader:
                 debug = telemetry_config.get('debug', {})
                 config.debug_mode = debug.get('enabled', config.debug_mode)
 
+                # 后端配置
+                config.backend_type = telemetry_config.get('backend_type', config.backend_type)
+
+                # Loki配置
+                loki_config = telemetry_config.get('loki', {})
+                config.loki_url = loki_config.get('url', config.loki_url)
+                config.loki_tenant_id = loki_config.get('tenant_id', config.loki_tenant_id)
+                config.loki_auth_token = loki_config.get('auth_token', config.loki_auth_token)
+                config.loki_labels = loki_config.get('labels', config.loki_labels)
+
         except Exception as e:
             logger.debug(f"Failed to load config from file: {e}")
 
@@ -113,12 +119,21 @@ class TelemetryConfigLoader:
             default_config = {
                 'telemetry': {
                     'enabled': True,
-                    'api_key': '',
-                    'host': 'https://app.posthog.com',
+                    'backend_type': 'loki',
                     'features': {
                         'analytics': True,
                         'error_reporting': True,
                         'performance_monitoring': True
+                    },
+                    'loki': {
+                        'url': 'https://logs-prod-012.grafana.net',
+                        'tenant_id': '1109268',
+                        'auth_token': 'glc_eyJvIjoiMTMyOTM0MSIsIm4iOiJ6enotb2Qtenp6LW9kIiwiayI6IjhzYnVvMkNXNkU4czg3Nlk0UjBiMEhJTSIsIm0iOnsiciI6InVzIn19',
+                        'labels': {
+                            'job': 'one_dragon',
+                            'project': 'zzz_od',
+                            'environment': 'production'
+                        }
                     },
                     'privacy': {
                         'anonymize_user_data': True,
@@ -151,11 +166,17 @@ class TelemetryConfigLoader:
             config_data = {
                 'telemetry': {
                     'enabled': config.enabled,
-                    'host': config.host,
+                    'backend_type': config.backend_type,
                     'features': {
                         'analytics': config.analytics_enabled,
                         'error_reporting': config.error_reporting_enabled,
                         'performance_monitoring': config.performance_monitoring_enabled
+                    },
+                    'loki': {
+                        'url': config.loki_url,
+                        'tenant_id': config.loki_tenant_id,
+                        'auth_token': config.loki_auth_token,
+                        'labels': config.loki_labels
                     },
                     'performance': {
                         'flush_interval': config.flush_interval,

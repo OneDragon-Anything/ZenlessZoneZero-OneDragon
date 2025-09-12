@@ -25,6 +25,62 @@ from one_dragon.utils.i18_utils import coalesce_gt, gt
 from one_dragon.utils.log_utils import log
 
 
+class PreviousNodeStateProxy:
+    """
+    一个代理类，用于安全、便捷地访问上一个节点的静态信息和动态执行结果。
+    """
+
+    def __init__(self, node: Optional[OperationNode], result: Optional[OperationRoundResult]):
+        self._node = node
+        self._result = result
+
+    @property
+    def name(self) -> Optional[str]:
+        """
+        上一个节点的名称
+        """
+        return self._node.cn if self._node else None
+
+    @property
+    def status(self) -> Optional[str]:
+        """
+        上一个节点的返回状态
+        """
+        return self._result.status if self._result else None
+
+    @property
+    def data(self) -> Optional[Any]:
+        """
+        上一个节点的返回数据
+        """
+        return self._result.data if self._result else None
+
+    @property
+    def is_success(self) -> bool:
+        """
+        上一个节点是否成功
+        """
+        if self._result is None:
+            return False
+        return self._result.result == OperationRoundResultEnum.SUCCESS
+
+    @property
+    def is_fail(self) -> bool:
+        """
+        上一个节点是否失败
+        """
+        if self._result is None:
+            return False
+        return self._result.result == OperationRoundResultEnum.FAIL
+
+    @property
+    def raw_node(self) -> Optional[OperationNode]:
+        """
+        获取原始的 OperationNode 对象，用于高级访问
+        """
+        return self._node
+
+
 class Operation(OperationBase):
 
     STATUS_TIMEOUT: ClassVar[str] = '执行超时'
@@ -107,6 +163,12 @@ class Operation(OperationBase):
         self._current_node: OperationNode | None = None
         """当前执行的节点"""
 
+        self._previous_node: OperationNode | None = None
+        """上一个执行的节点"""
+
+        self._previous_round_result: OperationRoundResult | None = None
+        """上一个执行节点的结果"""
+
         self.node_clicked: bool = False
         """本节点是否已经完成了点击"""
 
@@ -118,6 +180,9 @@ class Operation(OperationBase):
 
         self.last_screenshot_time: float = 0
         """上一次截图的时间"""
+
+        self.node_status: dict[str, PreviousNodeStateProxy] = {}
+        """已保存节点状态的字典"""
 
     def _init_before_execute(self):
         """在操作开始前初始化执行状态。
@@ -141,6 +206,8 @@ class Operation(OperationBase):
         self.node_retry_times = 0
         self.node_clicked = False
         self._current_node_start_time = now
+        self._previous_round_result = None
+        self.node_status.clear()
 
         # 监听事件
         self.ctx.unlisten_all_event(self)
@@ -250,6 +317,8 @@ class Operation(OperationBase):
         # 初始化开始节点
         self._start_node = start_node
         self._current_node = start_node
+        self._previous_node = None
+        self._previous_round_result = None
 
     def _add_check_game_node(self, start_node: OperationNode) -> OperationNode:
         """
@@ -350,13 +419,15 @@ class Operation(OperationBase):
                         or (self._current_node is not None and not self._current_node.mute)
                 ):
                     node_name = 'none' if self._current_node is None else self._current_node.cn
+                    from_node_name = 'none' if self._previous_node is None else self._previous_node.cn
                     round_result_status = 'none' if round_result is None else coalesce_gt(round_result.status, round_result.status_display, model='ui')
                     if (self._current_node is not None
                             and self._current_node.mute
                         and (round_result.result == OperationRoundResultEnum.WAIT or round_result.result == OperationRoundResultEnum.RETRY)):
                         pass
                     else:
-                        log.info('%s 节点 %s 返回状态 %s', self.display_name, node_name, round_result_status)
+                        arrow = f"{from_node_name} -> {node_name}" if self._previous_node is not None else node_name
+                        log.info('%s 节点 %s 返回状态 %s', self.display_name, arrow, round_result_status)
                 if self.ctx.is_context_pause:  # 有可能触发暂停的时候仍在执行指令 执行完成后 再次触发暂停回调 保证操作的暂停回调真正生效
                     self._on_pause()
             except Exception as e:
@@ -394,6 +465,8 @@ class Operation(OperationBase):
                     op_result = self.op_fail(round_result.status)
                     break
             else:  # 继续下一个节点
+                self._previous_round_result = round_result
+                self._previous_node = self._current_node
                 self._current_node = next_node
                 self._reset_status_for_new_node()  # 充值状态
                 continue
@@ -428,6 +501,12 @@ class Operation(OperationBase):
                                                            wait=self._current_node.wait_after_op)
         else:
             return self.round_fail('节点处理函数和指令都没有设置')
+
+        # 自动保存启用了 save_status 的节点状态
+        if self._current_node.save_status and current_round_result.result in (
+            OperationRoundResultEnum.SUCCESS, OperationRoundResultEnum.FAIL
+        ):
+            self.node_status[self._current_node.cn] = PreviousNodeStateProxy(self._current_node, current_round_result)
 
         return current_round_result
 
@@ -856,10 +935,10 @@ class Operation(OperationBase):
         """
         # 优先使用OCR缓存服务
         if self.ctx.env_config.ocr_cache:
-            ocr_result_map = self.ctx.ocr_service.get_ocr_result_list(
+            ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
                 image=screen,
                 color_range=color_range,
-                rect=None if area is None else area.rect
+                rect=area.rect if area is not None else None
             )
         else:
             # 回退到原有方法
@@ -942,10 +1021,10 @@ class Operation(OperationBase):
 
         # 优先使用OCR缓存服务
         if self.ctx.env_config.ocr_cache:
-            ocr_result_map = self.ctx.ocr_service.get_ocr_result_list(
+            ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
                 image=screen,
                 color_range=color_range,
-                rect=area.rect,
+                rect=area.rect if area is not None else None
             )
         else:
             # 回退到原有方法
@@ -1104,3 +1183,27 @@ class Operation(OperationBase):
         current_screen_name = self.ctx.screen_loader.current_screen_name
         route = self.ctx.screen_loader.get_screen_route(current_screen_name, screen_name)
         return route is not None and route.can_go
+
+    @property
+    def previous_node(self) -> PreviousNodeStateProxy:
+        """
+        获取一个代理对象，用于安全地访问上一个节点的执行状态和结果。
+
+        在节点的执行函数中，可以通过 `self.previous_node` 来获取前一个节点的信息，
+        这对于根据上一步的结果来决定当前步骤的行为非常有用。
+
+        Returns:
+            PreviousNodeStateProxy: 一个包含上一个节点状态和结果的代理对象。
+
+        Example:
+            @operation_node(name='处理节点')
+            def process_node(self) -> OperationRoundResult:
+                # 检查上一个节点是否成功，并且状态是'前置完成'
+                if self.previous_node.is_success and self.previous_node.status == '前置完成':
+                    print(f'来自节点: {self.previous_node.name}')
+                    # 使用上一个节点返回的数据
+                    prev_data = self.previous_node.data
+                    # ... 进行处理 ...
+                return self.round_success()
+        """
+        return PreviousNodeStateProxy(self._previous_node, self._previous_round_result)

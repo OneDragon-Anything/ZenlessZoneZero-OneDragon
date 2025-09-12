@@ -9,7 +9,7 @@ class FlashClassifier(Yolov8Classifier):
 
     def __init__(
             self,
-            model_name: str = 'yolov8n-640-flash-20250622',
+            model_name: str = 'yolov8n-640-flash-20250906',
             backup_model_name: str = 'yolov8n-640-flash-20250622',
             model_parent_dir_path: Optional[str] = os.path.abspath(__file__),  # 默认使用本文件的目录
             gh_proxy: bool = True,

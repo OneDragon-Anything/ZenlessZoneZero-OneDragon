@@ -44,8 +44,7 @@ class ChargePlanApp(ZApplication):
         self.last_tried_plan = None
         return self.round_success()
 
-    @node_from(from_name='挑战成功')
-    @node_from(from_name='挑战失败')
+    @node_from(from_name='挑战完成')
     @node_from(from_name='开始体力计划')
     @node_from(from_name='电量不足')
     @node_from(from_name='恢复电量', success=True)
@@ -86,7 +85,7 @@ class ChargePlanApp(ZApplication):
             else:
                 return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
 
-        # 使用循环而不是递归来查找下一个可执行的任务
+        # 使用循环查找下一个可执行的任务
         while True:
             # 查找下一个未完成的计划
             candidate_plan = self.ctx.charge_plan_config.get_next_plan(self.last_tried_plan)
@@ -115,20 +114,21 @@ class ChargePlanApp(ZApplication):
 
             # 检查电量是否足够
             if not self.need_to_check_power_in_mission and self.charge_power < need_charge_power:
-                # 如果开启了恢复电量，立即触发恢复电量流程
-                if self.ctx.charge_plan_config.restore_charge != RestoreChargeEnum.NONE.value.value:
-                    # 设置下一个计划，然后触发恢复电量
-                    self.next_plan = candidate_plan
-                    self.required_charge = need_charge_power - self.charge_power
-                    return self.round_success(ChargePlanApp.STATUS_TRY_RESTORE_CHARGE)
-                # 如果没有开启恢复电量，执行原来的逻辑
-                else:
+                if (
+                    self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value
+                    or (self.node_status.get('恢复电量') and self.node_status.get('恢复电量').is_fail)
+                ):
                     if not self.ctx.charge_plan_config.skip_plan:
                         return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
                     else:
                         # 跳过当前计划，继续查找下一个任务
                         self.last_tried_plan = candidate_plan
                         continue
+                else:
+                    # 设置下一个计划，然后触发恢复电量
+                    self.next_plan = candidate_plan
+                    self.required_charge = need_charge_power - self.charge_power
+                    return self.round_success(ChargePlanApp.STATUS_TRY_RESTORE_CHARGE)
 
             # 计算可运行次数
             self.next_can_run_times = 0
@@ -196,10 +196,15 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='定期清剿', success=True)
     @node_from(from_name='专业挑战室', success=True)
     @node_from(from_name='恶名狩猎', success=True)
-    @operation_node(name='挑战成功')
-    def challenge_success(self) -> OperationRoundResult:
+    @node_from(from_name='实战模拟室', success=False)
+    @node_from(from_name='定期清剿', success=False)
+    @node_from(from_name='专业挑战室', success=False)
+    @node_from(from_name='恶名狩猎', success=False)
+    @operation_node(name='挑战完成')
+    def challenge_complete(self) -> OperationRoundResult:
         # 挑战成功后，重置last_tried_plan以继续查找下一个任务
-        self.last_tried_plan = None
+        if self.previous_node.is_success:
+            self.last_tried_plan = None
         return self.round_success()
 
     @node_from(from_name='实战模拟室', status=CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
@@ -218,16 +223,8 @@ class ChargePlanApp(ZApplication):
             self.last_tried_plan = None
             return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
 
-    @node_from(from_name='实战模拟室', success=False)
-    @node_from(from_name='定期清剿', success=False)
-    @node_from(from_name='专业挑战室', success=False)
-    @node_from(from_name='恶名狩猎', success=False)
-    @operation_node(name='挑战失败')
-    def challenge_failed(self) -> OperationRoundResult:
-        return self.round_success()
-
     @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_TRY_RESTORE_CHARGE)
-    @operation_node(name='恢复电量')
+    @operation_node(name='恢复电量', save_status=True)
     def restore_charge(self) -> OperationRoundResult:
         op = RestoreCharge(
             self.ctx,

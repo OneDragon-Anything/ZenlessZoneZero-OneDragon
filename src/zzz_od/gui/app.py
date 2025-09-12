@@ -77,6 +77,9 @@ try:
 
             self._check_first_run()
 
+            # 立即检查并应用已有的主题色，避免navbar颜色闪烁
+            self._apply_initial_theme_color()
+
             # 延迟发送应用启动事件，等待窗口完全显示
             self._launch_timer = QTimer()
             self._launch_timer.setSingleShot(True)
@@ -120,9 +123,6 @@ try:
             # print(self.stackedWidget.styleSheet())
             # print("————TITLE BAR STYLE————")
             # print(self.titleBar.styleSheet())
-
-            # 开启磨砂效果
-            # self.setAeroEffectEnabled(True)
 
         def create_sub_interface(self):
             """创建和添加各个子界面"""
@@ -187,14 +187,22 @@ try:
 
                     # 跟踪导航
                     previous_widget = self.stackedWidget.widget(self._last_stack_idx) if self._last_stack_idx < self.stackedWidget.count() else None
-                    previous_name = previous_widget.__class__.__name__ if previous_widget else 'unknown'
+                    if previous_widget:
+                        # 优先使用nav_text，如果没有则使用类名
+                        previous_name = getattr(previous_widget, 'nav_text', previous_widget.__class__.__name__)
+                    else:
+                        previous_name = 'app_start'
 
-                    self.ctx.telemetry.track_navigation(previous_name, interface_name)
+                    # 获取当前界面的显示名称
+                    current_display_name = getattr(current_widget, 'nav_text', interface_name)
+
+                    self.ctx.telemetry.track_navigation(previous_name, current_display_name)
 
                     # 跟踪功能使用
-                    self.ctx.telemetry.track_feature_usage(interface_name, {
+                    self.ctx.telemetry.track_feature_usage(current_display_name, {
                         'interface_type': 'gui',
-                        'navigation_index': index
+                        'navigation_index': index,
+                        'interface_class': interface_name
                     })
 
                     self._last_stack_idx = index
@@ -230,12 +238,16 @@ try:
         def _check_first_run(self):
             """首次运行时显示防倒卖弹窗"""
             if self.ctx.env_config.is_first_run:
-                # 显示欢迎对话框
-                welcome_dialog = ZWelcomeDialog(self)
-                if welcome_dialog.exec():
+                dialog = ZWelcomeDialog(self)
+                if dialog.exec():
                     self.ctx.env_config.is_first_run = False
 
-
+        def _apply_initial_theme_color(self):
+            """立即应用已有的主题色，避免navbar颜色闪烁"""
+            # 从配置文件加载主题色到theme_manager
+            from one_dragon_qt.services.theme_manager import ThemeManager
+            ThemeManager.load_from_config(self.ctx)
+            self.navigationInterface.update_all_buttons_theme_color(ThemeManager.get_current_color())
 
         def _track_app_launch(self):
             """跟踪应用启动"""
@@ -291,15 +303,21 @@ try:
 except Exception as e:
     import ctypes
     import traceback
+    import webbrowser
 
     stack_trace = traceback.format_exc()
     _init_error = f"启动一条龙失败，报错信息如下:\n{stack_trace}"
+    
+    # 自动打开浏览器访问错误排障文档
+    webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
 
 
 # 初始化应用程序，并启动主窗口
 if __name__ == "__main__":
     if _init_error is not None:
-        ctypes.windll.user32.MessageBoxW(0, _init_error, "错误", 0x10)
+        # 显示错误弹窗，并提示用户已自动打开排障文档
+        error_message = f"{_init_error}\n\n已自动为您打开排障文档，请查看解决方案。"
+        ctypes.windll.user32.MessageBoxW(0, error_message, "错误", 0x10)
         sys.exit(1)
 
     QApplication.setHighDpiScaleFactorRoundingPolicy(

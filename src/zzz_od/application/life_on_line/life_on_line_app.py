@@ -36,7 +36,6 @@ class LifeOnLineApp(ZApplication):
         self.is_over_night: bool = False  # 本次结束是否过夜了
         self.chosen_team: bool = False  # 是否已经选择过配队了
 
-    @node_from(from_name='检查运行次数', status=STATUS_CONTINUE_OVER_NIGHT)
     @operation_node(name='传送', is_start_node=True)
     def tp(self) -> OperationRoundResult:
         op = Transport(self.ctx, '录像店', 'HDD')
@@ -49,6 +48,7 @@ class LifeOnLineApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='等待加载')
+    @node_from(from_name='检查运行次数', status=STATUS_CONTINUE_OVER_NIGHT)
     @operation_node(name='交互')
     def interact(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, 'HDD', '街区')

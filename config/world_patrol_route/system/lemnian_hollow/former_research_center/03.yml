@@ -1,0 +1,44 @@
+idx: 3
+op_list:
+- data:
+  - '987'
+  - '1008'
+  op_type: move
+- data:
+  - '952'
+  - '1069'
+  op_type: move
+- data:
+  - '971'
+  - '1015'
+  op_type: move
+- data:
+  - '970'
+  - '971'
+  op_type: move
+- data:
+  - '967'
+  - '883'
+  op_type: move
+- data:
+  - '970'
+  - '803'
+  op_type: move
+- data:
+  - '972'
+  - '732'
+  op_type: move
+- data:
+  - '965'
+  - '661'
+  op_type: move
+- data:
+  - '939'
+  - '621'
+  op_type: move
+- data:
+  - '964'
+  - '563'
+  op_type: move
+tp_area_id: former_research_center
+tp_name: 二楼平台

@@ -61,9 +61,9 @@ area_list:
 - area_name: 按键-返回
   id_mark: false
   pc_rect:
-  - 54
-  - 8
-  - 176
+  - 50
+  - 10
+  - 208
   - 90
   text: ''
   lcs_percent: 0.5

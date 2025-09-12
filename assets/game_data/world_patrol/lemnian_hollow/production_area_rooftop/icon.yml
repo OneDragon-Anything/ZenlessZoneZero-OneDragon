@@ -1,0 +1,16 @@
+- icon_name: 大楼顶楼
+  template_id: map_icon_01
+  lm_pos:
+  - 386
+  - 318
+  tp_pos:
+  - 386
+  - 318
+- icon_name: ''
+  template_id: map_icon_03
+  lm_pos:
+  - 295
+  - 416
+  tp_pos:
+  - 295
+  - 416

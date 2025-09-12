@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTableWidget,
-                               QTableWidgetItem, QPushButton, QHeaderView, QAbstractItemView, QLabel)
+                               QTableWidgetItem, QPushButton, QHeaderView, QAbstractItemView, QLabel, QMessageBox)
 from qfluentwidgets import FluentIcon, PushButton
 
 from zzz_od.application.world_patrol.world_patrol_area import WorldPatrolLargeMapIcon
@@ -57,7 +57,7 @@ class IconEditorDialog(QDialog):
         layout.addWidget(self.table)
 
         # 状态标签
-        self.status_label = QLabel('提示：点击表格行可在主窗口地图上高亮对应图标位置；选中行后可设置传送坐标')
+        self.status_label = QLabel('提示：点击表格行可在主窗口地图上高亮对应图标位置；选中行后可设置传送坐标或删除图标')
         self.status_label.setStyleSheet("color: #666; font-size: 12px; padding: 5px;")
         layout.addWidget(self.status_label)
 
@@ -70,6 +70,12 @@ class IconEditorDialog(QDialog):
         self.set_tp_pos_btn.clicked.connect(self._on_set_tp_pos_clicked)
         self.set_tp_pos_btn.setEnabled(False)  # 初始状态禁用
 
+        self.delete_btn = PushButton('删除图标', self)
+        self.delete_btn.setIcon(FluentIcon.DELETE)
+        self.delete_btn.setToolTip('删除选中的图标')
+        self.delete_btn.clicked.connect(self._on_delete_clicked)
+        self.delete_btn.setEnabled(False)  # 初始状态禁用
+
         self.save_btn = PushButton('保存', self)
         self.save_btn.setIcon(FluentIcon.SAVE)
         self.save_btn.setToolTip('保存图标名称修改')
@@ -81,6 +87,7 @@ class IconEditorDialog(QDialog):
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
 
         button_layout.addWidget(self.set_tp_pos_btn)
+        button_layout.addWidget(self.delete_btn)
         button_layout.addStretch()
         button_layout.addWidget(self.save_btn)
         button_layout.addWidget(self.cancel_btn)
@@ -135,6 +142,52 @@ class IconEditorDialog(QDialog):
             
         # 连接数据变化信号
         self.table.itemChanged.connect(self._on_item_changed)
+
+    def _reload_table_data(self):
+        """重新加载表格数据"""
+        # 断开信号连接，避免在重新加载时触发
+        self.table.itemChanged.disconnect()
+
+        # 清空表格
+        self.table.setRowCount(0)
+
+        # 重新设置行数
+        self.table.setRowCount(len(self.current_icon_list))
+
+        # 重新填充数据
+        for row, icon in enumerate(self.current_icon_list):
+            # 图标名称 - 可编辑
+            name_item = QTableWidgetItem(icon.icon_name)
+            name_item.setFlags(name_item.flags() | Qt.ItemIsEditable)
+            self.table.setItem(row, 0, name_item)
+
+            # 模板ID - 只读
+            template_item = QTableWidgetItem(icon.template_id)
+            template_item.setFlags(template_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row, 1, template_item)
+
+            # X坐标 - 只读
+            x_item = QTableWidgetItem(str(icon.lm_pos.x))
+            x_item.setFlags(x_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row, 2, x_item)
+
+            # Y坐标 - 只读
+            y_item = QTableWidgetItem(str(icon.lm_pos.y))
+            y_item.setFlags(y_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row, 3, y_item)
+
+            # 传送X坐标 - 只读
+            tp_x_item = QTableWidgetItem(str(icon.tp_pos.x) if icon.tp_pos else '')
+            tp_x_item.setFlags(tp_x_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row, 4, tp_x_item)
+
+            # 传送Y坐标 - 只读
+            tp_y_item = QTableWidgetItem(str(icon.tp_pos.y) if icon.tp_pos else '')
+            tp_y_item.setFlags(tp_y_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row, 5, tp_y_item)
+
+        # 重新连接信号
+        self.table.itemChanged.connect(self._on_item_changed)
         
     def _on_selection_changed(self):
         """处理选择变化"""
@@ -142,10 +195,12 @@ class IconEditorDialog(QDialog):
         if selected_items:
             self.selected_row = selected_items[0].row()
             self.set_tp_pos_btn.setEnabled(True)  # 有选中行时启用按钮
+            self.delete_btn.setEnabled(True)  # 有选中行时启用删除按钮
             self.icon_selected.emit(self.selected_row)
         else:
             self.selected_row = -1
             self.set_tp_pos_btn.setEnabled(False)  # 无选中行时禁用按钮
+            self.delete_btn.setEnabled(False)  # 无选中行时禁用删除按钮
             
     def _on_item_changed(self, item):
         """处理项目变化"""
@@ -162,6 +217,34 @@ class IconEditorDialog(QDialog):
     def _on_cancel_clicked(self):
         """取消按钮点击"""
         self.reject()
+
+    def _on_delete_clicked(self):
+        """删除按钮点击"""
+        if self.selected_row >= 0 and self.selected_row < len(self.current_icon_list):
+            # 显示确认对话框
+            icon = self.current_icon_list[self.selected_row]
+            reply = QMessageBox.question(
+                self,
+                '确认删除',
+                f'确定要删除图标 "{icon.icon_name}" ({icon.template_id}) 吗？\n此操作不可撤销。',
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+
+            if reply == QMessageBox.Yes:
+                # 删除图标
+                del self.current_icon_list[self.selected_row]
+
+                # 重新加载表格数据
+                self._reload_table_data()
+
+                # 清除选择状态
+                self.selected_row = -1
+                self.set_tp_pos_btn.setEnabled(False)
+                self.delete_btn.setEnabled(False)
+
+                # 发送图标列表更新信号
+                self.icons_saved.emit(self.current_icon_list)
 
     def _on_set_tp_pos_clicked(self):
         """设置传送坐标按钮点击"""

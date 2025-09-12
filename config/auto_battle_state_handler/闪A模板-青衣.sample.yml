@@ -12,28 +12,12 @@ handlers:
           - op_name: "按键-普通攻击"
             post_delay: 0.1
             repeat: 12
-      - states: "[青衣-电压]{60, 75}"
-        operations:
-          - op_name: "设置状态"
-            state: "自定义-动作不打断"
-            seconds: 1
-          - op_name: "等待秒数"
-            seconds: 0.05
-          - operation_template: "通用-闪避-左"
-          - op_name: "按键-普通攻击"
-            post_delay: 0.1
-            repeat: 10
-          - operation_template: "青衣-醉花云月转"
       - states: ""
         operations:
           - op_name: "设置状态"
             state: "自定义-动作不打断"
             seconds: 1
-          - op_name: "等待秒数"
-            seconds: 0.05
           - operation_template: "通用-闪避-左"
           - op_name: "按键-普通攻击"
             post_delay: 0.1
             repeat: 10
-          - op_name: "设置状态"
-            state: "自定义-青衣-续普攻"

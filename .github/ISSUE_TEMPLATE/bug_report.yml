@@ -14,7 +14,7 @@ body:
           required: true
         - label: 已为所有模型以及战斗脚本更新至最新版
           required: true
-        - label: 已经依照 [官方文档](https://one-dragon.com/zzz/zh/home.html) 和 [常见问题排查](https://www.kdocs.cn/l/cbSJUUNotJ3Z) 进行过问题自查
+        - label: 已经依照 [官方文档](https://one-dragon.com/zzz/zh/home.html) 和 [常见问题排查](https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5) 进行过问题自查
           required: true
         - label: 运行时无任何帧率显示或其他覆盖层窗口遮盖游戏
           required: true

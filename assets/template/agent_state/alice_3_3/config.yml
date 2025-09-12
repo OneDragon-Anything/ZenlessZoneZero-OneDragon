@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: alice_3_3
+template_name: 角色状态-爱丽丝-33
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 758, 97
+- 815, 99

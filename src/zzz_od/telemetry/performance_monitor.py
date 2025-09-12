@@ -1,391 +1,551 @@
 """
-性能监控器
-监控应用程序性能指标，包括启动时间、操作耗时、资源使用等
+性能监控统计模块
+提供遥测系统的性能监控和统计功能
 """
 import time
 import threading
-import logging
-from typing import Dict, Any, Optional, List, Callable
 from datetime import datetime, timedelta
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass, field
 from collections import defaultdict, deque
-from contextlib import contextmanager
-
-from .posthog_client import PostHogClient
-from .privacy_controller import PrivacyController
 
 
-logger = logging.getLogger(__name__)
+@dataclass
+class PerformanceMetrics:
+    """性能指标数据结构"""
+    # 事件处理性能
+    events_processed: int = 0
+    events_per_second: float = 0.0
+    avg_processing_time_ms: float = 0.0
+    max_processing_time_ms: float = 0.0
+
+    # 队列性能
+    queue_size: int = 0
+    max_queue_size: int = 0
+    queue_full_count: int = 0
+
+    # 网络性能
+    network_requests: int = 0
+    network_failures: int = 0
+    avg_response_time_ms: float = 0.0
+    max_response_time_ms: float = 0.0
+
+    # 内存使用
+    memory_usage_mb: float = 0.0
+    max_memory_usage_mb: float = 0.0
+
+    # 错误统计
+    format_errors: int = 0
+    send_errors: int = 0
+    total_errors: int = 0
+
+    # 时间戳
+    last_updated: datetime = field(default_factory=datetime.now)
+
+    @property
+    def success_rate(self) -> float:
+        """成功率"""
+        total = self.events_processed + self.total_errors
+        if total == 0:
+            return 100.0
+        return (self.events_processed / total) * 100
+
+    @property
+    def network_success_rate(self) -> float:
+        """网络成功率"""
+        if self.network_requests == 0:
+            return 100.0
+        return ((self.network_requests - self.network_failures) / self.network_requests) * 100
+
+
+@dataclass
+class TimingRecord:
+    """时间记录"""
+    timestamp: datetime
+    duration_ms: float
+    operation: str
+    success: bool
 
 
 class PerformanceMonitor:
     """性能监控器"""
 
-    def __init__(self, posthog_client: PostHogClient, privacy_controller: PrivacyController):
-        self.posthog_client = posthog_client
+    def __init__(self, telemetry_client=None, privacy_controller=None, window_size_minutes: int = 5):
+        self.telemetry_client = telemetry_client
         self.privacy_controller = privacy_controller
+        self.window_size = timedelta(minutes=window_size_minutes)
+        self.metrics = PerformanceMetrics()
 
-        # 性能指标存储
-        self.metrics_history = defaultdict(lambda: deque(maxlen=100))
-        self.active_timers = {}
+        # 时间窗口数据
+        self._timing_records: deque = deque()
+        self._event_timestamps: deque = deque()
+        self._network_records: deque = deque()
 
-        # 系统监控
-        self.system_monitor_active = False
-        self.system_monitor_thread = None
-        self.system_metrics = deque(maxlen=60)  # 保留1分钟的系统指标
+        # 线程安全锁
+        self._lock = threading.RLock()
 
-        # 性能阈值
-        self.performance_thresholds = {
-            'startup_time': 10.0,  # 秒
-            'operation_time': 5.0,  # 秒
-            'memory_usage': 32768,  # MB (32GB) - 调整为更高的阈值，适应大型应用
-            'cpu_usage': 80.0,     # 百分比
-            'image_processing': 1.0  # 秒
-        }
+        # 内存监控
+        self._memory_samples: deque = deque(maxlen=100)
 
-        # 线程锁
-        self._lock = threading.Lock()
+        # 启动时间
+        self._start_time = datetime.now()
 
-        # 应用启动时间
-        self.app_start_time = time.time()
+    def record_event_processing(self, duration_ms: float, success: bool = True) -> None:
+        """记录事件处理性能"""
+        with self._lock:
+            current_time = datetime.now()
 
-    def track_startup_time(self, startup_duration: float, components: Dict[str, float] = None) -> None:
-        """跟踪应用启动时间"""
+            # 记录时间数据
+            record = TimingRecord(
+                timestamp=current_time,
+                duration_ms=duration_ms,
+                operation='event_processing',
+                success=success
+            )
+            self._timing_records.append(record)
+
+            if success:
+                self.metrics.events_processed += 1
+                self._event_timestamps.append(current_time)
+            else:
+                self.metrics.total_errors += 1
+
+            # 更新最大处理时间
+            if duration_ms > self.metrics.max_processing_time_ms:
+                self.metrics.max_processing_time_ms = duration_ms
+
+            # 清理过期数据
+            self._cleanup_old_records()
+
+            # 更新统计
+            self._update_processing_stats()
+
+    def record_network_request(self, duration_ms: float, success: bool = True) -> None:
+        """记录网络请求性能"""
+        with self._lock:
+            current_time = datetime.now()
+
+            record = TimingRecord(
+                timestamp=current_time,
+                duration_ms=duration_ms,
+                operation='network_request',
+                success=success
+            )
+            self._network_records.append(record)
+
+            self.metrics.network_requests += 1
+            if not success:
+                self.metrics.network_failures += 1
+                self.metrics.send_errors += 1
+                self.metrics.total_errors += 1
+
+            # 更新最大响应时间
+            if duration_ms > self.metrics.max_response_time_ms:
+                self.metrics.max_response_time_ms = duration_ms
+
+            # 清理过期数据
+            self._cleanup_old_records()
+
+            # 更新网络统计
+            self._update_network_stats()
+
+    def record_queue_status(self, current_size: int, is_full: bool = False) -> None:
+        """记录队列状态"""
+        with self._lock:
+            self.metrics.queue_size = current_size
+
+            if current_size > self.metrics.max_queue_size:
+                self.metrics.max_queue_size = current_size
+
+            if is_full:
+                self.metrics.queue_full_count += 1
+
+    def record_format_error(self) -> None:
+        """记录格式化错误"""
+        with self._lock:
+            self.metrics.format_errors += 1
+            self.metrics.total_errors += 1
+
+    def record_memory_usage(self, memory_mb: float) -> None:
+        """记录内存使用"""
+        with self._lock:
+            self.metrics.memory_usage_mb = memory_mb
+            self._memory_samples.append(memory_mb)
+
+            if memory_mb > self.metrics.max_memory_usage_mb:
+                self.metrics.max_memory_usage_mb = memory_mb
+
+    def send_performance_event(self, metric_name: str, metric_value: float,
+                              metadata: Dict[str, Any] = None, user_id: str = None) -> None:
+        """发送性能指标事件到telemetry client"""
+        if not self.telemetry_client:
+            return
+
+        # 检查隐私设置
+        if self.privacy_controller and not self.privacy_controller.is_analytics_enabled():
+            return
+
         properties = {
-            'startup_duration_seconds': startup_duration,
-            'is_slow_startup': startup_duration > self.performance_thresholds['startup_time'],
-            'metric_category': 'startup',
-            'timestamp': datetime.now().isoformat()
-        }
-
-        # 添加组件启动时间
-        if components:
-            properties['components'] = components
-            properties['slowest_component'] = max(components.items(), key=lambda x: x[1])[0]
-
-        self._record_metric('startup_time', startup_duration, properties)
-
-        logger.debug(f"Tracked startup time: {startup_duration:.2f}s")
-
-    def track_operation_time(self, operation: str, duration: float, success: bool,
-                           metadata: Dict[str, Any] = None) -> None:
-        """跟踪操作执行时间"""
-        properties = {
-            'operation_name': operation,
-            'duration_seconds': duration,
-            'success': success,
-            'is_slow_operation': duration > self.performance_thresholds['operation_time'],
-            'metric_category': 'operation_time',
+            'metric_name': metric_name,
+            'metric_value': metric_value,
             'timestamp': datetime.now().isoformat(),
             **(metadata or {})
         }
 
-        metric_name = f"operation_time_{operation}"
-        self._record_metric(metric_name, duration, properties)
+        # 隐私过滤
+        if self.privacy_controller:
+            properties = self.privacy_controller.filter_sensitive_info(properties)
 
-        logger.debug(f"Tracked operation time: {operation} - {duration:.2f}s ({'success' if success else 'failed'})")
+        # 调用telemetry_client，如果没有user_id则让LokiClient生成默认ID
+        self.telemetry_client.capture(
+            distinct_id=user_id,  # 可以为None，LokiClient会处理
+            event='performance_metric',
+            properties=properties
+        )
+
+    def get_current_metrics(self) -> PerformanceMetrics:
+        """获取当前性能指标"""
+        with self._lock:
+            # 更新时间戳
+            self.metrics.last_updated = datetime.now()
+            return self.metrics
+
+    def get_detailed_stats(self) -> Dict[str, Any]:
+        """获取详细统计信息"""
+        with self._lock:
+            current_time = datetime.now()
+            uptime = current_time - self._start_time
+
+            # 计算时间窗口内的统计
+            recent_processing_times = [
+                r.duration_ms for r in self._timing_records
+                if r.operation == 'event_processing' and r.success
+            ]
+
+            recent_network_times = [
+                r.duration_ms for r in self._network_records
+                if r.success
+            ]
+
+            return {
+                'uptime_seconds': uptime.total_seconds(),
+                'current_metrics': self.metrics,
+                'processing_stats': {
+                    'recent_count': len(recent_processing_times),
+                    'recent_avg_ms': sum(recent_processing_times) / len(recent_processing_times) if recent_processing_times else 0,
+                    'recent_min_ms': min(recent_processing_times) if recent_processing_times else 0,
+                    'recent_max_ms': max(recent_processing_times) if recent_processing_times else 0,
+                    'percentile_95_ms': self._calculate_percentile(recent_processing_times, 95),
+                    'percentile_99_ms': self._calculate_percentile(recent_processing_times, 99)
+                },
+                'network_stats': {
+                    'recent_count': len(recent_network_times),
+                    'recent_avg_ms': sum(recent_network_times) / len(recent_network_times) if recent_network_times else 0,
+                    'recent_min_ms': min(recent_network_times) if recent_network_times else 0,
+                    'recent_max_ms': max(recent_network_times) if recent_network_times else 0,
+                    'percentile_95_ms': self._calculate_percentile(recent_network_times, 95),
+                    'percentile_99_ms': self._calculate_percentile(recent_network_times, 99)
+                },
+                'memory_stats': {
+                    'current_mb': self.metrics.memory_usage_mb,
+                    'max_mb': self.metrics.max_memory_usage_mb,
+                    'avg_mb': sum(self._memory_samples) / len(self._memory_samples) if self._memory_samples else 0,
+                    'samples_count': len(self._memory_samples)
+                },
+                'error_breakdown': {
+                    'format_errors': self.metrics.format_errors,
+                    'send_errors': self.metrics.send_errors,
+                    'total_errors': self.metrics.total_errors,
+                    'error_rate': (self.metrics.total_errors / max(self.metrics.events_processed + self.metrics.total_errors, 1)) * 100
+                }
+            }
+
+    def get_health_assessment(self) -> Dict[str, Any]:
+        """获取健康评估"""
+        with self._lock:
+            metrics = self.get_current_metrics()
+
+            # 健康评分 (0-100)
+            health_score = 100
+            issues = []
+
+            # 检查成功率
+            if metrics.success_rate < 95:
+                health_score -= 20
+                issues.append(f"Low success rate: {metrics.success_rate:.1f}%")
+
+            # 检查网络成功率
+            if metrics.network_success_rate < 90:
+                health_score -= 15
+                issues.append(f"Low network success rate: {metrics.network_success_rate:.1f}%")
+
+            # 检查处理时间
+            if metrics.avg_processing_time_ms > 100:
+                health_score -= 10
+                issues.append(f"High processing time: {metrics.avg_processing_time_ms:.1f}ms")
+
+            # 检查队列积压
+            if metrics.queue_size > 500:
+                health_score -= 15
+                issues.append(f"High queue size: {metrics.queue_size}")
+
+            # 检查内存使用
+            if metrics.memory_usage_mb > 500:
+                health_score -= 10
+                issues.append(f"High memory usage: {metrics.memory_usage_mb:.1f}MB")
+
+            # 检查错误率
+            error_rate = (metrics.total_errors / max(metrics.events_processed + metrics.total_errors, 1)) * 100
+            if error_rate > 5:
+                health_score -= 20
+                issues.append(f"High error rate: {error_rate:.1f}%")
+
+            # 确定健康状态
+            if health_score >= 90:
+                status = 'healthy'
+            elif health_score >= 70:
+                status = 'degraded'
+            else:
+                status = 'unhealthy'
+
+            return {
+                'status': status,
+                'score': max(0, health_score),
+                'issues': issues,
+                'metrics_summary': {
+                    'events_processed': metrics.events_processed,
+                    'success_rate': metrics.success_rate,
+                    'avg_processing_time_ms': metrics.avg_processing_time_ms,
+                    'queue_size': metrics.queue_size,
+                    'memory_usage_mb': metrics.memory_usage_mb,
+                    'total_errors': metrics.total_errors
+                }
+            }
+
+    def reset_metrics(self) -> None:
+        """重置所有指标"""
+        with self._lock:
+            self.metrics = PerformanceMetrics()
+            self._timing_records.clear()
+            self._event_timestamps.clear()
+            self._network_records.clear()
+            self._memory_samples.clear()
+            self._start_time = datetime.now()
+
+    def _cleanup_old_records(self) -> None:
+        """清理过期记录"""
+        cutoff_time = datetime.now() - self.window_size
+
+        # 清理时间记录
+        while self._timing_records and self._timing_records[0].timestamp < cutoff_time:
+            self._timing_records.popleft()
+
+        # 清理事件时间戳
+        while self._event_timestamps and self._event_timestamps[0] < cutoff_time:
+            self._event_timestamps.popleft()
+
+        # 清理网络记录
+        while self._network_records and self._network_records[0].timestamp < cutoff_time:
+            self._network_records.popleft()
+
+    def _update_processing_stats(self) -> None:
+        """更新处理统计"""
+        # 计算事件处理速率
+        if len(self._event_timestamps) >= 2:
+            time_span = (self._event_timestamps[-1] - self._event_timestamps[0]).total_seconds()
+            if time_span > 0:
+                self.metrics.events_per_second = len(self._event_timestamps) / time_span
+
+        # 计算平均处理时间
+        processing_times = [
+            r.duration_ms for r in self._timing_records
+            if r.operation == 'event_processing' and r.success
+        ]
+
+        if processing_times:
+            self.metrics.avg_processing_time_ms = sum(processing_times) / len(processing_times)
+
+    def _update_network_stats(self) -> None:
+        """更新网络统计"""
+        # 计算平均响应时间
+        response_times = [
+            r.duration_ms for r in self._network_records
+            if r.success
+        ]
+
+        if response_times:
+            self.metrics.avg_response_time_ms = sum(response_times) / len(response_times)
+
+    def _calculate_percentile(self, values: List[float], percentile: int) -> float:
+        """计算百分位数"""
+        if not values:
+            return 0.0
+
+        sorted_values = sorted(values)
+        index = int((percentile / 100) * len(sorted_values))
+        index = min(index, len(sorted_values) - 1)
+
+        return sorted_values[index]
+
+    def start_system_monitoring(self, interval: float = 30.0) -> None:
+        """开始系统监控（占位方法）"""
+        # 这个方法在当前实现中不需要做任何事情
+        # 因为我们使用的是被动监控而不是主动监控
+        pass
+
+    def track_operation_time(self, operation: str, duration: float, success: bool, metadata: Dict[str, Any] = None) -> None:
+        """跟踪操作执行时间"""
+        duration_ms = duration * 1000  # 转换为毫秒
+        self.record_event_processing(duration_ms, success)
+
+        # 发送性能事件
+        self.send_performance_event(
+            f"operation_time_{operation}",
+            duration,
+            {
+                'operation': operation,
+                'success': success,
+                'duration_ms': duration_ms,
+                **(metadata or {})
+            }
+        )
+
+    def track_startup_time(self, startup_duration: float, components: Dict[str, float] = None) -> None:
+        """跟踪应用启动时间"""
+        self.send_performance_event(
+            "app_startup_time",
+            startup_duration,
+            {
+                'startup_duration': startup_duration,
+                'components': components or {},
+                'event_type': 'startup_performance'
+            }
+        )
 
     def track_memory_usage(self, usage_mb: float, peak_mb: float = None, component: str = None) -> None:
         """跟踪内存使用"""
-        properties = {
-            'memory_usage_mb': usage_mb,
-            'peak_memory_mb': peak_mb,
-            'component': component,
-            'is_high_memory': usage_mb > self.performance_thresholds['memory_usage'],
-            'metric_category': 'memory',
-            'timestamp': datetime.now().isoformat()
-        }
+        self.record_memory_usage(usage_mb)
 
-        self._record_metric('memory_usage', usage_mb, properties)
-
-        # 如果内存使用过高，记录警告（限制频率）
-        if usage_mb > self.performance_thresholds['memory_usage']:
-            # 限制警告频率，避免刷屏
-            current_time = time.time()
-            if not hasattr(self, '_last_memory_warning') or current_time - self._last_memory_warning > 60:
-                logger.warning(f"内存使用过高: {usage_mb:.1f}MB，建议检查内存泄漏")
-                self._last_memory_warning = current_time
-
-    def track_cpu_usage(self, usage_percent: float, duration: float, component: str = None) -> None:
-        """跟踪CPU使用率"""
-        properties = {
-            'cpu_usage_percent': usage_percent,
-            'duration_seconds': duration,
-            'component': component,
-            'is_high_cpu': usage_percent > self.performance_thresholds['cpu_usage'],
-            'metric_category': 'cpu',
-            'timestamp': datetime.now().isoformat()
-        }
-
-        self._record_metric('cpu_usage', usage_percent, properties)
-
-        # 如果CPU使用过高，记录警告（限制频率）
-        if usage_percent > self.performance_thresholds['cpu_usage']:
-            # 限制警告频率，避免刷屏
-            current_time = time.time()
-            if not hasattr(self, '_last_cpu_warning') or current_time - self._last_cpu_warning > 60:
-                logger.warning(f"CPU使用率过高: {usage_percent:.1f}%，建议检查性能问题")
-                self._last_cpu_warning = current_time
+        self.send_performance_event(
+            "memory_usage",
+            usage_mb,
+            {
+                'usage_mb': usage_mb,
+                'peak_mb': peak_mb,
+                'component': component,
+                'event_type': 'memory_performance'
+            }
+        )
 
     def track_image_recognition_performance(self, processing_time: float, accuracy: float = None,
                                           algorithm: str = None, image_size: str = None) -> None:
         """跟踪图像识别性能"""
-        properties = {
-            'processing_time_seconds': processing_time,
-            'accuracy_score': accuracy,
-            'algorithm': algorithm,
-            'image_size': image_size,
-            'is_slow_processing': processing_time > self.performance_thresholds['image_processing'],
-            'metric_category': 'image_recognition',
-            'timestamp': datetime.now().isoformat()
-        }
-
-        self._record_metric('image_recognition_performance', processing_time, properties)
-
-        logger.debug(f"Tracked image recognition performance: {processing_time:.3f}s")
+        self.send_performance_event(
+            "image_recognition_performance",
+            processing_time,
+            {
+                'processing_time': processing_time,
+                'accuracy': accuracy,
+                'algorithm': algorithm,
+                'image_size': image_size,
+                'event_type': 'image_recognition_performance'
+            }
+        )
 
     def start_timer(self, timer_name: str, metadata: Dict[str, Any] = None) -> None:
         """开始计时器"""
-        with self._lock:
-            self.active_timers[timer_name] = {
-                'start_time': time.time(),
-                'metadata': metadata or {}
-            }
+        if not hasattr(self, '_timers'):
+            self._timers = {}
 
-        logger.debug(f"Timer started: {timer_name}")
+        self._timers[timer_name] = {
+            'start_time': time.time(),
+            'metadata': metadata or {}
+        }
 
-    def stop_timer(self, timer_name: str, success: bool = True,
-                  additional_metadata: Dict[str, Any] = None) -> Optional[float]:
-        """停止计时器并返回持续时间"""
-        with self._lock:
-            if timer_name not in self.active_timers:
-                logger.warning(f"Timer not found: {timer_name}")
-                return None
+    def stop_timer(self, timer_name: str, success: bool = True, additional_metadata: Dict[str, Any] = None) -> Optional[float]:
+        """停止计时器"""
+        if not hasattr(self, '_timers') or timer_name not in self._timers:
+            return None
 
-            timer_info = self.active_timers.pop(timer_name)
-            duration = time.time() - timer_info['start_time']
+        timer_info = self._timers.pop(timer_name)
+        duration = time.time() - timer_info['start_time']
 
-            # 合并元数据
-            metadata = timer_info['metadata'].copy()
-            if additional_metadata:
-                metadata.update(additional_metadata)
+        # 合并元数据
+        metadata = timer_info['metadata'].copy()
+        if additional_metadata:
+            metadata.update(additional_metadata)
 
-            # 记录性能
-            self.track_operation_time(timer_name, duration, success, metadata)
+        # 跟踪操作时间
+        self.track_operation_time(timer_name, duration, success, metadata)
 
-            logger.debug(f"Timer stopped: {timer_name} - {duration:.3f}s")
-            return duration
+        return duration
 
-    @contextmanager
     def measure_time(self, operation_name: str, metadata: Dict[str, Any] = None):
         """上下文管理器形式的计时器"""
-        start_time = time.time()
-        success = True
-
-        try:
-            yield
-        except Exception as e:
-            success = False
-            raise
-        finally:
-            duration = time.time() - start_time
-            self.track_operation_time(operation_name, duration, success, metadata)
-
-    def start_system_monitoring(self, interval: float = 5.0) -> None:
-        """开始系统监控"""
-        if self.system_monitor_active:
-            logger.warning("System monitoring already active")
-            return
-
-        self.system_monitor_active = True
-        self.system_monitor_thread = threading.Thread(
-            target=self._system_monitor_worker,
-            args=(interval,),
-            daemon=True,
-            name="SystemMonitor"
-        )
-        self.system_monitor_thread.start()
-
-        logger.debug(f"System monitoring started with {interval}s interval")
-
-    def stop_system_monitoring(self) -> None:
-        """停止系统监控"""
-        self.system_monitor_active = False
-
-        if self.system_monitor_thread and self.system_monitor_thread.is_alive():
-            self.system_monitor_thread.join(timeout=5)
-
-        logger.debug("System monitoring stopped")
-
-    def _system_monitor_worker(self, interval: float) -> None:
-        """系统监控工作线程"""
-        try:
-            import psutil
-
-            while self.system_monitor_active:
-                try:
-                    # 收集系统指标
-                    cpu_percent = psutil.cpu_percent(interval=1)
-                    memory = psutil.virtual_memory()
-
-                    system_metrics = {
-                        'timestamp': datetime.now(),
-                        'cpu_percent': cpu_percent,
-                        'memory_percent': memory.percent,
-                        'memory_used_mb': memory.used / (1024 * 1024),
-                        'memory_available_mb': memory.available / (1024 * 1024)
-                    }
-
-                    # 存储指标
-                    with self._lock:
-                        self.system_metrics.append(system_metrics)
-
-                    # 检查阈值并记录
-                    if cpu_percent > self.performance_thresholds['cpu_usage']:
-                        self.track_cpu_usage(cpu_percent, interval, 'system_monitor')
-
-                    if memory.used / (1024 * 1024) > self.performance_thresholds['memory_usage']:
-                        self.track_memory_usage(memory.used / (1024 * 1024), component='system_monitor')
-
-                    time.sleep(interval)
-
-                except Exception as e:
-                    logger.error(f"Error in system monitoring: {e}")
-                    time.sleep(interval)
-
-        except ImportError:
-            logger.warning("psutil not available, system monitoring disabled")
-        except Exception as e:
-            logger.error(f"System monitoring worker error: {e}")
-
-    def _record_metric(self, metric_name: str, value: float, properties: Dict[str, Any]) -> None:
-        """记录性能指标"""
-        try:
-            # 检查隐私设置
-            if not self.privacy_controller.is_performance_monitoring_enabled():
-                logger.debug(f"Performance monitoring disabled for metric: {metric_name}")
-                return
-
-            # 存储指标历史
-            with self._lock:
-                metric_record = {
-                    'value': value,
-                    'timestamp': datetime.now(),
-                    'properties': properties
-                }
-                self.metrics_history[metric_name].append(metric_record)
-
-            # 发送事件（实际发送在TelemetryManager中处理）
-            logger.debug(f"Performance metric recorded: {metric_name} = {value}")
-
-        except Exception as e:
-            logger.error(f"Failed to record metric: {e}")
-
-    def get_performance_summary(self) -> Dict[str, Any]:
-        """获取性能摘要"""
-        try:
-            with self._lock:
-                summary = {
-                    'app_uptime_seconds': time.time() - self.app_start_time,
-                    'active_timers': len(self.active_timers),
-                    'metrics_collected': sum(len(history) for history in self.metrics_history.values()),
-                    'system_monitoring_active': self.system_monitor_active
-                }
-
-                # 添加各类指标的统计
-                for metric_name, history in self.metrics_history.items():
-                    if history:
-                        values = [record['value'] for record in history]
-                        summary[f"{metric_name}_avg"] = sum(values) / len(values)
-                        summary[f"{metric_name}_max"] = max(values)
-                        summary[f"{metric_name}_min"] = min(values)
-                        summary[f"{metric_name}_count"] = len(values)
-
-                # 最近的系统指标
-                if self.system_metrics:
-                    latest_system = self.system_metrics[-1]
-                    summary['current_cpu_percent'] = latest_system['cpu_percent']
-                    summary['current_memory_percent'] = latest_system['memory_percent']
-                    summary['current_memory_used_mb'] = latest_system['memory_used_mb']
-
-                return summary
-
-        except Exception as e:
-            logger.error(f"Failed to get performance summary: {e}")
-            return {}
-
-    def get_slow_operations(self, threshold_multiplier: float = 2.0) -> List[Dict[str, Any]]:
-        """获取慢操作列表"""
-        try:
-            slow_operations = []
-
-            with self._lock:
-                for metric_name, history in self.metrics_history.items():
-                    if not metric_name.startswith('operation_time_'):
-                        continue
-
-                    operation_name = metric_name.replace('operation_time_', '')
-
-                    # 计算平均时间
-                    values = [record['value'] for record in history]
-                    if not values:
-                        continue
-
-                    avg_time = sum(values) / len(values)
-                    max_time = max(values)
-
-                    # 检查是否为慢操作
-                    threshold = self.performance_thresholds.get('operation_time', 5.0) * threshold_multiplier
-                    if max_time > threshold:
-                        slow_operations.append({
-                            'operation': operation_name,
-                            'avg_time': avg_time,
-                            'max_time': max_time,
-                            'occurrences': len(values),
-                            'threshold': threshold
-                        })
-
-            # 按最大时间排序
-            slow_operations.sort(key=lambda x: x['max_time'], reverse=True)
-            return slow_operations
-
-        except Exception as e:
-            logger.error(f"Failed to get slow operations: {e}")
-            return []
-
-    def clear_metrics_history(self) -> None:
-        """清除指标历史"""
-        try:
-            with self._lock:
-                self.metrics_history.clear()
-                self.system_metrics.clear()
-                self.active_timers.clear()
-
-            logger.info("Performance metrics history cleared")
-
-        except Exception as e:
-            logger.error(f"Failed to clear metrics history: {e}")
-
-    def set_performance_threshold(self, metric_name: str, threshold: float) -> None:
-        """设置性能阈值"""
-        try:
-            self.performance_thresholds[metric_name] = threshold
-            logger.info(f"Performance threshold set: {metric_name} = {threshold}")
-
-        except Exception as e:
-            logger.error(f"Failed to set performance threshold: {e}")
+        return PerformanceContext(self, operation_name)
 
     def shutdown(self) -> None:
         """关闭性能监控器"""
-        try:
-            # 停止系统监控
-            self.stop_system_monitoring()
+        # 清理资源
+        if hasattr(self, '_timers'):
+            self._timers.clear()
 
-            # 停止所有活动计时器
-            with self._lock:
-                for timer_name in list(self.active_timers.keys()):
-                    self.stop_timer(timer_name, success=False)
+        # 重置指标
+        self.reset_metrics()
 
-            logger.info("Performance monitor shutdown complete")
+    def get_performance_summary(self) -> Dict[str, Any]:
+        """获取性能摘要（兼容方法）"""
+        return self.get_detailed_stats()
 
-        except Exception as e:
-            logger.error(f"Error during performance monitor shutdown: {e}")
+
+class PerformanceContext:
+    """性能监控上下文管理器"""
+
+    def __init__(self, monitor: PerformanceMonitor, operation: str = 'event_processing'):
+        self.monitor = monitor
+        self.operation = operation
+        self.start_time = None
+        self.success = True
+
+    def __enter__(self):
+        self.start_time = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.start_time:
+            duration_ms = (time.time() - self.start_time) * 1000
+            # 只有在没有手动标记错误的情况下才根据异常状态设置success
+            if self.success:
+                self.success = exc_type is None
+
+            if self.operation == 'network_request':
+                self.monitor.record_network_request(duration_ms, self.success)
+            else:
+                self.monitor.record_event_processing(duration_ms, self.success)
+
+    def mark_error(self):
+        """标记操作失败"""
+        self.success = False
+
+
+# 全局性能监控实例
+_global_monitor: Optional[PerformanceMonitor] = None
+
+
+def get_global_monitor() -> PerformanceMonitor:
+    """获取全局性能监控实例"""
+    global _global_monitor
+    if _global_monitor is None:
+        _global_monitor = PerformanceMonitor()
+    return _global_monitor
+
+
+def monitor_performance(operation: str = 'event_processing'):
+    """性能监控装饰器"""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            monitor = get_global_monitor()
+            with PerformanceContext(monitor, operation):
+                return func(*args, **kwargs)
+        return wrapper
+    return decorator
