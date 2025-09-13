@@ -64,14 +64,16 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="OneDragon ZZZ API", version="v1", lifespan=lifespan)
 
 # CORS - allow local tools by default (configurable later)
-# 使用 allow_origin_regex 来匹配带端口的 localhost/127.0.0.1；保留 tauri://localhost 在 allow_origins 中
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "http://localhost",
+        "http://localhost:*",
+        "http://127.0.0.1",
+        "http://127.0.0.1:*",
         "tauri://localhost",
+        "http://localhost:1420",  # Add specific port for frontend
     ],
-    # 匹配 http://localhost(:port) 和 http://127.0.0.1(:port)，支持 http 和 https
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
