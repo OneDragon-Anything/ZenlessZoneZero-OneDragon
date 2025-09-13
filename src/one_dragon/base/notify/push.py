@@ -574,7 +574,7 @@ class Push():
         self.log_info("企业微信机器人服务启动")
 
         origin = self.get_config("QYWX_ORIGIN") or "https://qyapi.weixin.qq.com"
-        key = self.get_config('QYWX_KEY')
+        key = self.get_config('QYWX_KEY') or ""
         if not key:
             self.log_error("企业微信机器人 key 未配置！")
             return
@@ -586,7 +586,7 @@ class Push():
         try:
             text_data = {"msgtype": "text", "text": {"content": f"{title}\n{content}"}}
             resp = requests.post(url, data=json.dumps(text_data), headers=headers, timeout=15).json()
-            if resp.get("errcode") == 0:
+            if resp and resp.get("errcode") == 0:
                 self.log_info("企业微信机器人文字推送成功！")
             else:
                 self.log_error(f"企业微信机器人文字推送失败！{resp}")
@@ -597,17 +597,9 @@ class Push():
         if image:
             try:
                 image.seek(0)
-                img_bytes = image.getvalue()
+                img_bytes = image.getvalue() if image else b""
                 # 判断格式和大小
                 img_format = self._detect_image_format(img_bytes)
-    def _detect_image_format(self, b: bytes) -> Optional[str]:
-        """
-                    img_format = self._detect_image_format(img_bytes)
-        if len(b) >= 3 and b[:3] == b"\xFF\xD8\xFF":
-            return "jpeg"
-        if len(b) >= 8 and b[:8] == b"\x89PNG\r\n\x1a\n":
-            return "png"
-        return None
                 if img_format in ('jpeg', 'png') and len(img_bytes) <= 2 * 1024 * 1024:
                     # 直接发送，无需 Pillow 处理
                     img_base64 = base64.b64encode(img_bytes).decode('utf-8')
@@ -617,14 +609,14 @@ class Push():
                         "image": {"base64": img_base64, "md5": img_md5}
                     }
                     resp = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15).json()
-                    if resp.get("errcode") == 0:
+                    if resp and resp.get("errcode") == 0:
                         self.log_info("企业微信机器人图片推送成功！(无需压缩)")
                     else:
                         self.log_error(f"企业微信机器人图片推送失败！{resp}")
                 else:
                     # 图片太大，要用 Pillow 处理
                     img_bytes_c, img_type = self._compress_image(image)
-                    if img_bytes_c is None:
+                    if not img_bytes_c:
                         self.log_error("图片处理失败，未发送图片！")
                         return
                     elif len(img_bytes_c) > 2 * 1024 * 1024:
@@ -637,7 +629,7 @@ class Push():
                         "image": {"base64": img_base64, "md5": img_md5}
                     }
                     resp = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15).json()
-                    if resp.get("errcode") == 0:
+                    if resp and resp.get("errcode") == 0:
                         self.log_info("企业微信机器人图片推送成功！(压缩后)")
                     else:
                         self.log_error(f"企业微信机器人图片推送失败！{resp}")
@@ -646,7 +638,7 @@ class Push():
 
     def _compress_image(self, image: BytesIO) -> Tuple[Optional[bytes], Optional[str]]:
         """
-        自动将图片压缩为 JPG 或 PNG，优先 JPG，确保 ≤2MB。
+        自动将图片压缩为 JPG 或 PNG, 优先 JPG, 确保 ≤2MB.
         """
         try:
             import io
@@ -674,18 +666,24 @@ class Push():
                 if len(img_bytes) <= 2 * 1024 * 1024:
                     return img_bytes, 'jpeg'
             return None, None
-         except ImportError:
-             self.log_error("图片压缩失败：未安装 Pillow，请先安装 pillow 以启用图片压缩（pip install pillow）。")
-             return None, None
-         except Exception as e:
-             self.log_error(f"图片压缩异常: {e}")
-             return None, None
+        except ImportError:
+            self.log_error("图片压缩失败：未安装 Pillow，请先安装 pillow 以启用图片压缩（pip install pillow）。")
+            return None, None
+        except Exception as e:
             self.log_error(f"图片压缩异常: {e}")
             return None, None
 
     def _md5(self, b: bytes) -> str:
         import hashlib
         return hashlib.md5(b).hexdigest()
+
+    def _detect_image_format(self, b: bytes) -> Optional[str]:
+        """轻量魔数判断，仅支持 jpeg/png。"""
+        if len(b) >= 3 and b[:3] == b"\xFF\xD8\xFF":
+            return "jpeg"
+        if len(b) >= 8 and b[:8] == b"\x89PNG\r\n\x1a\n":
+            return "png"
+        return None
 
 
 
