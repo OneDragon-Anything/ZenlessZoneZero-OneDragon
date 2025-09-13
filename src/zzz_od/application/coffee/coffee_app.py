@@ -7,6 +7,7 @@ from typing import Optional, List, ClassVar
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
+from one_dragon.base.notify.application_notify import node_notify
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -369,8 +370,9 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='定期清剿')
     @node_from(from_name='专业挑战室')
     @operation_node(name='返回大世界')
+    @node_notify(when='after_success', capture='after', finished=True,
+                 custom_message=gt('返回大世界节点完成'))
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
@@ -400,5 +402,3 @@ def __debug():
 
 if __name__ == '__main__':
     __debug()
-
-
