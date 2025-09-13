@@ -38,6 +38,7 @@ from zzz_od.api.routers import game_assistant
 from zzz_od.api.routers import battle_assistant
 from zzz_od.api.routers import random_play
 from zzz_od.api.routers import drive_disc_dismantle
+from zzz_od.api.middleware import BattleAssistantExceptionHandler, create_battle_assistant_exception_handlers
 
 
 @asynccontextmanager
@@ -72,6 +73,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="OneDragon ZZZ API", version="v1", lifespan=lifespan)
+
+# 添加战斗助手异常处理中间件
+app.add_middleware(BattleAssistantExceptionHandler)
 
 # CORS - allow local tools by default (configurable later)
 app.add_middleware(
@@ -115,7 +119,13 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": {"code": "HTTP_ERROR", "message": message, "details": details}},
-)
+    )
+
+
+# 添加战斗助手专用异常处理器
+battle_assistant_handlers = create_battle_assistant_exception_handlers()
+for exception_type, handler in battle_assistant_handlers.items():
+    app.add_exception_handler(exception_type, handler)
 
 
 @app.get("/healthz")
