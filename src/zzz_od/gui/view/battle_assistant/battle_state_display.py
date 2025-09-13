@@ -3,7 +3,7 @@ import time
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import QTableWidgetItem
-from qfluentwidgets import TableWidget, FluentThemeColor
+from qfluentwidgets import TableWidget, FluentThemeColor, isDarkTheme
 from typing import Optional, List, Dict
 
 from one_dragon.base.conditional_operation.state_recorder import StateRecord, StateRecorder
@@ -11,23 +11,29 @@ from one_dragon.utils.i18_utils import gt
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 
 
-# 自定义绿色颜色定义
+# 自定义颜色定义
 class StateIndicatorColors:
-    """状态指示器颜色定义"""
-    # 最深绿 - 最后一次触发
-    DEEPEST_GREEN = QColor(0, 100, 0)       # #006400
-    
-    # 深绿 - 倒数第二次触发
-    DEEP_GREEN = QColor(34, 139, 34)        # #228B22
-    
-    # 中绿 - 倒数第三次触发  
-    MEDIUM_GREEN = QColor(50, 205, 50)      # #32CD32
-    
-    # 浅绿 - 倒数第四次触发
-    LIGHT_GREEN = QColor(144, 238, 144)     # #90EE90
-    
-    # 最浅绿 - 倒数第五次触发
-    LIGHTEST_GREEN = QColor(127, 255, 127)  # #7FFF7F
+    """状态指示器颜色定义 - 支持亮暗主题"""
+    @staticmethod
+    def get_theme_colors(is_dark_theme: bool = False):
+        if is_dark_theme:
+            # 暗色主题下的颜色 - 使用较亮但低饱和度的绿色
+            return {
+                "deepest": QColor(76, 175, 80),     # 较深但可见
+                "deep": QColor(102, 187, 106),      # 稍亮
+                "medium": QColor(129, 199, 132),    # 中等亮度
+                "light": QColor(165, 214, 167),     # 较亮
+                "lightest": QColor(200, 230, 201)   # 最亮
+            }
+        else:
+            # 亮色主题下的颜色 - 使用柔和的绿色
+            return {
+                "deepest": QColor(56, 142, 60),     # 较深橄榄绿
+                "deep": QColor(76, 175, 80),        # 柔和森林绿
+                "medium": QColor(129, 199, 132),    # 淡青绿
+                "light": QColor(165, 214, 167),     # 薄荷绿
+                "lightest": QColor(200, 230, 201)   # 最浅薄荷绿
+            }
 
 
 class BattleStateDisplay(TableWidget):
@@ -61,6 +67,8 @@ class BattleStateDisplay(TableWidget):
 
     def get_state_trigger_color(self, state_name: str, trigger_time: float) -> QColor:
         """根据状态的触发次序获取对应的颜色"""
+        from qfluentwidgets import Theme, isDarkTheme
+        
         if state_name not in self.state_trigger_history:
             self.state_trigger_history[state_name] = []
         
@@ -72,19 +80,22 @@ class BattleStateDisplay(TableWidget):
         # 只保留最近5次的记录
         if len(history) > 5:
             history.pop(0)
+            
+        # 获取当前主题下的颜色集
+        theme_colors = StateIndicatorColors.get_theme_colors(isDarkTheme())
         
         # 根据触发次序确定颜色（从最后一次往前数）
         history_len = len(history)
         if history_len >= 5:
-            return StateIndicatorColors.DEEPEST_GREEN  # 最后一次触发 - 最深绿
+            return theme_colors["deepest"]    # 最后一次触发
         elif history_len == 4:
-            return StateIndicatorColors.DEEP_GREEN     # 倒数第二次触发 - 深绿
+            return theme_colors["deep"]       # 倒数第二次触发
         elif history_len == 3:
-            return StateIndicatorColors.MEDIUM_GREEN   # 倒数第三次触发 - 中绿
+            return theme_colors["medium"]     # 倒数第三次触发
         elif history_len == 2:
-            return StateIndicatorColors.LIGHT_GREEN    # 倒数第四次触发 - 浅绿
+            return theme_colors["light"]      # 倒数第四次触发
         else:
-            return StateIndicatorColors.LIGHTEST_GREEN # 倒数第五次触发 - 最浅绿
+            return theme_colors["lightest"]   # 倒数第五次触发
 
     def set_update_display(self, to_update: bool) -> None:
         if to_update:
@@ -127,7 +138,8 @@ class BattleStateDisplay(TableWidget):
             state_item = QTableWidgetItem(new_states[i].state_name)
             if i >= len(self.last_states) or new_states[i].state_name != self.last_states[i].state_name:
                 # 状态名称变化使用浅绿
-                state_item.setBackground(QBrush(StateIndicatorColors.LIGHT_GREEN))
+                theme_colors = StateIndicatorColors.get_theme_colors(isDarkTheme())
+                state_item.setBackground(QBrush(theme_colors["light"]))
 
             time_diff = now - new_states[i].trigger_time
             if time_diff > 999:
