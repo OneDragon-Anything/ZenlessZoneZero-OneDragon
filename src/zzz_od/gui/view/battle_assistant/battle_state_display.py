@@ -16,24 +16,15 @@ class StateIndicatorColors:
     """状态指示器颜色定义 - 支持亮暗主题"""
     @staticmethod
     def get_theme_colors(is_dark_theme: bool = False):
-        if is_dark_theme:
-            # 暗色主题下的颜色 - 使用较亮但低饱和度的绿色
-            return {
-                "deepest": QColor(76, 175, 80),     # 较深但可见
-                "deep": QColor(102, 187, 106),      # 稍亮
-                "medium": QColor(129, 199, 132),    # 中等亮度
-                "light": QColor(165, 214, 167),     # 较亮
-                "lightest": QColor(200, 230, 201)   # 最亮
-            }
-        else:
-            # 亮色主题下的颜色 - 使用柔和的绿色
-            return {
-                "deepest": QColor(56, 142, 60),     # 较深橄榄绿
-                "deep": QColor(76, 175, 80),        # 柔和森林绿
-                "medium": QColor(129, 199, 132),    # 淡青绿
-                "light": QColor(165, 214, 167),     # 薄荷绿
-                "lightest": QColor(200, 230, 201)   # 最浅薄荷绿
-            }
+        """状态指示器颜色定义 - 统一以基色 + lighter() 生成 5 档绿色"""
+        base = QColor(70, 110, 85) if is_dark_theme else QColor(80, 130, 100)
+        return {
+            "deepest": QColor(base),
+            "deep": QColor(base).lighter(110),
+            "medium": QColor(base).lighter(125),
+            "light": QColor(base).lighter(150),
+            "lightest": QColor(base).lighter(175),
+        }
 
 
 class BattleStateDisplay(TableWidget):
@@ -80,16 +71,9 @@ class BattleStateDisplay(TableWidget):
             rank_newest_first = history[::-1].index(trigger_time)
         except ValueError:
             rank_newest_first = 4
-        if rank_newest_first == 0:
-            return theme_colors["deepest"]
-        elif rank_newest_first == 1:
-            return theme_colors["deep"]
-        elif rank_newest_first == 2:
-            return theme_colors["medium"]
-        elif rank_newest_first == 3:
-            return theme_colors["light"]
-        else:
-            return theme_colors["lightest"]
+        palette = ["lightest", "light", "medium", "deep", "deepest"]
+        idx = max(0, min(4, 4 - rank_newest_first))
+        return theme_colors[palette[idx]]
 
     def set_update_display(self, to_update: bool) -> None:
         if to_update:
@@ -118,21 +102,18 @@ class BattleStateDisplay(TableWidget):
             if (
                     recorder.last_record_time == 0
                     and
-                    (
-                            recorder.state_name.startswith("前台-")
-                            or recorder.state_name.startswith("后台-")
-                    )
+                    recorder.state_name.startswith(("前台-", "后台-"))
             ):
                 continue
             new_states.append(StateRecord(recorder.state_name, recorder.last_record_time, recorder.last_value))
 
         total = len(new_states)
         self.setRowCount(total)
+        theme_colors = StateIndicatorColors.get_theme_colors(isDarkTheme())
         for i in range(total):
             state_item = QTableWidgetItem(new_states[i].state_name)
             if i >= len(self.last_states) or new_states[i].state_name != self.last_states[i].state_name:
                 # 状态名称变化使用浅绿
-                theme_colors = StateIndicatorColors.get_theme_colors(isDarkTheme())
                 state_item.setBackground(QBrush(theme_colors["light"]))
 
             time_diff = now - new_states[i].trigger_time
