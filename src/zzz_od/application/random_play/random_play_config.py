@@ -17,17 +17,17 @@ class RandomPlayConfig(YamlConfig):
         return '随机'
 
     @property
-    def agent_name_1(self) -> float:
+    def agent_name_1(self) -> str:
         return self.get('agent_name_1', self.random_agent_name())
 
     @agent_name_1.setter
-    def agent_name_1(self, new_value: float) -> None:
+    def agent_name_1(self, new_value: str) -> None:
         self.update('agent_name_1', new_value)
 
     @property
-    def agent_name_2(self) -> float:
+    def agent_name_2(self) -> str:
         return self.get('agent_name_2', self.random_agent_name())
 
     @agent_name_2.setter
-    def agent_name_2(self, new_value: float) -> None:
+    def agent_name_2(self, new_value: str) -> None:
         self.update('agent_name_2', new_value)
