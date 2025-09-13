@@ -43,7 +43,7 @@ class BattleStateDisplay(TableWidget):
 
         self.auto_op: Optional[AutoBattleOperator] = None
         self.last_states: List[StateRecord] = []
-        
+
         # 跟踪每个状态的最近触发时间，用于次序区分（支持最后5次）
         self.state_trigger_history: Dict[str, List[float]] = {}
 
@@ -66,36 +66,30 @@ class BattleStateDisplay(TableWidget):
         self.update_timer.timeout.connect(self._update_display)
 
     def get_state_trigger_color(self, state_name: str, trigger_time: float) -> QColor:
-        """根据状态的触发次序获取对应的颜色"""
-        from qfluentwidgets import Theme, isDarkTheme
-        
-        if state_name not in self.state_trigger_history:
-            self.state_trigger_history[state_name] = []
-        
-        history = self.state_trigger_history[state_name]
-        
-        # 添加当前触发时间
-        history.append(trigger_time)
-        
-        # 只保留最近5次的记录
-        if len(history) > 5:
-            history.pop(0)
-            
-        # 获取当前主题下的颜色集
+        """按“最近5次触发”的相对次序取色：最新=最深；避免同一帧重复累计。"""
+        history = self.state_trigger_history.setdefault(state_name, [])
+        # 仅在出现“新的触发时间”时记录（同一帧内两处调用不会重复追加）
+        if not history or history[-1] != trigger_time:
+            history.append(trigger_time)
+            if len(history) > 5:
+                history.pop(0)
+        # 颜色表（按主题）
         theme_colors = StateIndicatorColors.get_theme_colors(isDarkTheme())
-        
-        # 根据触发次序确定颜色（从最后一次往前数）
-        history_len = len(history)
-        if history_len >= 5:
-            return theme_colors["deepest"]    # 最后一次触发
-        elif history_len == 4:
-            return theme_colors["deep"]       # 倒数第二次触发
-        elif history_len == 3:
-            return theme_colors["medium"]     # 倒数第三次触发
-        elif history_len == 2:
-            return theme_colors["light"]      # 倒数第四次触发
+        # 计算从“最新”开始的排名（0=最新，4=最旧）；容错：未找到时按最旧处理
+        try:
+            rank_newest_first = history[::-1].index(trigger_time)
+        except ValueError:
+            rank_newest_first = 4
+        if rank_newest_first == 0:
+            return theme_colors["deepest"]
+        elif rank_newest_first == 1:
+            return theme_colors["deep"]
+        elif rank_newest_first == 2:
+            return theme_colors["medium"]
+        elif rank_newest_first == 3:
+            return theme_colors["light"]
         else:
-            return theme_colors["lightest"]   # 倒数第五次触发
+            return theme_colors["lightest"]
 
     def set_update_display(self, to_update: bool) -> None:
         if to_update:
@@ -145,16 +139,17 @@ class BattleStateDisplay(TableWidget):
             if time_diff > 999:
                 time_diff = 999
             time_item = QTableWidgetItem("%.4f" % time_diff)
+            color_for_row = None
             if i >= len(self.last_states) or new_states[i].trigger_time != self.last_states[i].trigger_time:
                 # 根据触发次序设置颜色
-                color = self.get_state_trigger_color(new_states[i].state_name, new_states[i].trigger_time)
-                time_item.setBackground(QBrush(color))
+                color_for_row = color_for_row or self.get_state_trigger_color(new_states[i].state_name, new_states[i].trigger_time)
+                time_item.setBackground(QBrush(color_for_row))
 
             value_item = QTableWidgetItem(str(new_states[i].value) if new_states[i].value is not None else "")
             if i >= len(self.last_states) or new_states[i].value != self.last_states[i].value:
-                # 根据触发次序设置颜色
-                color = self.get_state_trigger_color(new_states[i].state_name, new_states[i].trigger_time)
-                value_item.setBackground(QBrush(color))
+                # 根据触发次序设置颜色（与时间列同色）
+                color_for_row = color_for_row or self.get_state_trigger_color(new_states[i].state_name, new_states[i].trigger_time)
+                value_item.setBackground(QBrush(color_for_row))
 
             self.setItem(i, 0, state_item)
             self.setItem(i, 1, time_item)
