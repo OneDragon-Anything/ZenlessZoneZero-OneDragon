@@ -109,10 +109,10 @@ class BattleEventType(str, Enum):
 
 class DodgeAssistantConfig(BaseModel):
     """闪避助手配置"""
-    enabled: bool = True
     dodge_method: str = Field(default="闪避", description="闪避方式")
-    sensitivity: float = Field(default=0.8, ge=0.0, le=1.0, description="敏感度")
-    reaction_time: float = Field(default=0.1, ge=0.0, le=1.0, description="反应时间(秒)")
+    use_gpu: bool = Field(default=True, description="是否使用GPU")
+    screenshot_interval: float = Field(default=0.02, ge=0.01, le=1.0, description="截图间隔(秒)")
+    gamepad_type: str = Field(default="none", description="手柄类型")
 
 
 class AutoBattleConfig(BaseModel):
@@ -230,10 +230,10 @@ class WebSocketMessage(BaseModel):
 
 class DodgeAssistantConfigUpdate(BaseModel):
     """闪避助手配置更新请求"""
-    enabled: Optional[bool] = None
     dodge_method: Optional[str] = None
-    sensitivity: Optional[float] = Field(None, ge=0.0, le=1.0)
-    reaction_time: Optional[float] = Field(None, ge=0.0, le=1.0)
+    use_gpu: Optional[bool] = None
+    screenshot_interval: Optional[float] = Field(None, ge=0.01, le=1.0)
+    gamepad_type: Optional[str] = None
 
 
 class AutoBattleConfigUpdate(BaseModel):

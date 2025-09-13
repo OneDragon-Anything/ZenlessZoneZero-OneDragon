@@ -361,22 +361,12 @@ def get_dodge_config(ctx: ZContext = Depends(get_ctx)):
         config_file = f"{config_name}.yml"
         config_path = os.path.join(config_dir, config_file)
 
-        # 检查配置文件是否存在
-        if not os.path.exists(config_path):
-            # 如果配置文件不存在，返回默认配置
-            return DodgeAssistantConfig(
-                enabled=True,
-                dodge_method=config_name,
-                sensitivity=0.8,
-                reaction_time=0.1
-            )
-
         # 返回当前配置
         return DodgeAssistantConfig(
-            enabled=True,
             dodge_method=config_name,
-            sensitivity=0.8,
-            reaction_time=0.1
+            use_gpu=ctx.model_config.flash_classifier_gpu,
+            screenshot_interval=ctx.battle_assistant_config.screenshot_interval,
+            gamepad_type=ctx.battle_assistant_config.gamepad_type
         )
     except Exception as e:
         raise HTTPException(
@@ -423,19 +413,40 @@ def update_dodge_config(config: DodgeAssistantConfigUpdate, ctx: ZContext = Depe
     ```
     """
     try:
-        # 更新配置名称（如果提供）
+        updated_fields = []
+
+        # 更新闪避方式
         if config.dodge_method is not None:
             ctx.battle_assistant_config.dodge_assistant_config = config.dodge_method
+            updated_fields.append("dodge_method")
+
+        # 更新GPU设置
+        if config.use_gpu is not None:
+            ctx.model_config.flash_classifier_gpu = config.use_gpu
+            updated_fields.append("use_gpu")
+
+        # 更新截图间隔
+        if config.screenshot_interval is not None:
+            ctx.battle_assistant_config.screenshot_interval = config.screenshot_interval
+            updated_fields.append("screenshot_interval")
+
+        # 更新手柄类型
+        if config.gamepad_type is not None:
+            ctx.battle_assistant_config.gamepad_type = config.gamepad_type
+            updated_fields.append("gamepad_type")
+
+        # 保存配置
+        if updated_fields:
             ctx.battle_assistant_config.save()
+            if config.use_gpu is not None:
+                ctx.model_config.save()
 
             # 广播配置更新事件
             broadcast_battle_assistant_event(
                 BattleAssistantEventType.CONFIG_UPDATED,
                 {
                     "config_type": "dodge",
-                    "config_data": {
-                        "dodge_method": config.dodge_method
-                    }
+                    "config_data": {field: getattr(config, field) for field in updated_fields if hasattr(config, field)}
                 }
             )
 
@@ -1574,7 +1585,7 @@ def update_battle_assistant_settings(settings: BattleAssistantSettingsUpdate, ct
         # 更新手柄类型（如果提供）
         if settings.gamepad_type is not None:
             # 验证手柄类型是否受支持
-            supported_gamepad_types = ["none", "xbox", "ps4", "ps5", "switch_pro"]
+            supported_gamepad_types = ["none", "xbox", "ds4"]
             if settings.gamepad_type not in supported_gamepad_types:
                 raise HTTPException(
                     status_code=400,
@@ -1654,21 +1665,9 @@ def get_gamepad_types():
                 supported=True
             ),
             GamepadTypeInfo(
-                value="ps4",
-                display_name="PS4手柄",
+                value="ds4",
+                display_name="DS4手柄",
                 description="Sony PlayStation 4 DualShock 4手柄",
-                supported=True
-            ),
-            GamepadTypeInfo(
-                value="ps5",
-                display_name="PS5手柄",
-                description="Sony PlayStation 5 DualSense手柄",
-                supported=True
-            ),
-            GamepadTypeInfo(
-                value="switch_pro",
-                display_name="Switch Pro手柄",
-                description="Nintendo Switch Pro Controller",
                 supported=True
             )
         ]
