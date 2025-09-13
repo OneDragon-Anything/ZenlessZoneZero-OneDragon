@@ -34,7 +34,7 @@ class NotifyDialog(MessageBoxBase):
         grid_layout.setContentsMargins(0, 10, 0, 10)
         grid_layout.setSpacing(10)
 
-        app_list = self.ctx.notify_config.app_list
+        app_list = self.ctx.notify_config.app_map
 
         # 每行放置3个复选框
         column_count = 3
