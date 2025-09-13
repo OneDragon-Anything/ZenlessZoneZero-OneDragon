@@ -18,6 +18,8 @@ dependencies = [
     "librosa==0.10.2.post1",
     "gensim==4.3.3",
     "pygit2==1.19.0",
+    "fastapi>=0.116.1",
+    "uvicorn>=0.35.0",
 ]
 
 [dependency-groups]
