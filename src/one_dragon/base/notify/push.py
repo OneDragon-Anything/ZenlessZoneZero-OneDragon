@@ -674,11 +674,10 @@ class Push():
                 if len(img_bytes) <= 2 * 1024 * 1024:
                     return img_bytes, 'jpeg'
             return None, None
--        except Exception as e:
-+        except ImportError:
-+            self.log_error("图片压缩失败：未安装 Pillow，请先安装 pillow 以启用图片压缩（pip install pillow）。")
-+            return None, None
-+        except Exception as e:
+         except ImportError:
+             self.log_error("图片压缩失败：未安装 Pillow，请先安装 pillow 以启用图片压缩（pip install pillow）。")
+             return None, None
+         except Exception as e:
              self.log_error(f"图片压缩异常: {e}")
              return None, None
             self.log_error(f"图片压缩异常: {e}")
