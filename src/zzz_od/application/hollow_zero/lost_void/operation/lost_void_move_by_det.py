@@ -20,7 +20,10 @@ from one_dragon.utils.log_utils import log
 
 class MoveTargetWrapper:
 
-    def __init__(self, detect_result: DetectObjectResult):
+    def __init__(
+        self,
+        detect_result: DetectObjectResult,
+    ):
         self.is_mixed: bool = False  # 是否混合楼层
         self.target_name_list: List[str] = [detect_result.detect_class.class_name[5:]]
         self.target_rect_list: List[Rect] = [Rect(detect_result.x1, detect_result.y1, detect_result.x2, detect_result.y2)]
@@ -92,12 +95,15 @@ class LostVoidMoveByDet(ZOperation):
     STATUS_INTERACT: ClassVar[str] = '处于交互中'
     STATUS_NEED_DETECT: ClassVar[str] = '需要重新识别'
 
-    def __init__(self, ctx: ZContext,
-                 current_region: LostVoidRegionType, target_type: str,
-                 stop_when_interact: bool = True,
-                 stop_when_disappear: bool = True,
-                 ignore_entry_list: Optional[List[str]] = None
-                 ):
+    def __init__(
+        self,
+        ctx: ZContext,
+        current_region: LostVoidRegionType,
+        target_type: str,
+        stop_when_interact: bool = True,
+        stop_when_disappear: bool = True,
+        ignore_entry_list: Optional[List[str]] = None
+    ):
         """
         朝识别目标移动 最终返回目标图标 data=LostVoidRegionType.label
         @param ctx:
@@ -107,7 +113,12 @@ class LostVoidMoveByDet(ZOperation):
         @param stop_when_disappear:
         @param ignore_entry_list:
         """
-        ZOperation.__init__(self, ctx, op_name=f'迷失之地-识别寻路-{target_type[5:]}')
+        ZOperation.__init__(
+            self,
+            ctx,
+            op_name=f'迷失之地-识别寻路-{target_type[5:]}',
+            timeout_seconds=180,  # 3分钟走不到 基本就是卡死了
+        )
 
         self.current_region: LostVoidRegionType = current_region
         self.target_type: str = target_type

@@ -353,8 +353,7 @@ class LostVoidContext:
         return filter_result_list, error_msg
 
     def get_artifact_pos(
-            self, screen: MatLike,
-            to_choose_gear_branch: bool = False
+        self, screen: MatLike, to_choose_gear_branch: bool = False
     ) -> list[LostVoidArtifactPos]:
         """
         识别画面中出现的藏品
@@ -368,11 +367,25 @@ class LostVoidContext:
         for art in self.ctx.lost_void.all_artifact_list:
             artifact_name_list.append(gt(art.display_name, 'game'))
 
+        # 识别其它标识
+        title_word_list = [
+            gt('有同流派武备', 'game'),
+            gt('已选择', 'game'),
+            gt('齿轮硬币不足', 'game'),
+            gt('NEW!', 'game')
+        ]
+
+        # 其它标识也要一起匹配 防止部分鸣徽名称和这些很相似
+        artifact_name_list.extend(title_word_list)
+
         artifact_pos_list: list[LostVoidArtifactPos] = []
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
         for ocr_result, mrl in ocr_result_map.items():
             title_idx: int = str_utils.find_best_match_by_difflib(ocr_result, artifact_name_list)
             if title_idx is None or title_idx < 0:
+                continue
+
+            if title_idx >= len(self.ctx.lost_void.all_artifact_list):
                 continue
 
             artifact = self.ctx.lost_void.all_artifact_list[title_idx]
@@ -412,13 +425,6 @@ class LostVoidContext:
                     if branch_artifact is not None:
                         closest_artifact_pos.artifact = branch_artifact
 
-        # 识别其它标识
-        title_word_list = [
-            gt('有同流派武备', 'game'),
-            gt('已选择', 'game'),
-            gt('齿轮硬币不足', 'game'),
-            gt('NEW!', 'game')
-        ]
         for ocr_result, mrl in ocr_result_map.items():
             title_idx: int = str_utils.find_best_match_by_difflib(ocr_result, title_word_list)
             if title_idx is None or title_idx < 0:

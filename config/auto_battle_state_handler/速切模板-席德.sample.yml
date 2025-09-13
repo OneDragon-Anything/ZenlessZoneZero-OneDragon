@@ -1,0 +1,64 @@
+template_name: "速切模板-席德"
+handlers:
+  - states: "[前台-席德]"
+    sub_handlers:
+      - states: "[自定义-黄光切人, 0, 1]"
+        operations:
+          - operation_template: "通用-支援攻击"
+
+      - states: "[自定义-红光闪避, 0, 1]"
+        sub_handlers:
+        - states: ""
+          operations:
+            - operation_template: "通用-闪A"
+
+      - states: "[按键可用-连携技, 0, 0.5]"
+        operations:
+          - operation_template: "通用-连携攻击"
+
+      # 防呆
+      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "切人后等待"
+        sub_handlers:
+          - states: "[按键可用-快速支援, 0, 0.5]"
+            operations:
+              - operation_template: "通用-快速支援"
+          - states: ""
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
+
+      - states: "[席德-终结技可用]"
+        debug_name: "席德终结技"
+        operations:
+          - operation_template: "席德-终结技"
+
+      - states: "[自定义-席德-准备合轴,0,99]"
+        debug_name: "席德合轴"
+        operations:
+          - op_name: "清除状态"
+            data: ["自定义-席德-准备合轴"]
+          - op_name: "设置状态"
+            data: ["自定义-速切结束"]
+
+      - states: "[席德-钢能]{120,999}"
+        interrupt_states: "[席德-钢能]{0, 100}"
+        debug_name: "席德铁拳合轴"
+        operations:
+          - op_name: "设置状态"
+            data: ["自定义-席德-准备合轴"]
+          - op_name: "按键-普通攻击"
+            post_delay: 0.1
+            repeat: 50
+
+      - states: "[席德-特殊技可用]"
+        debug_name: "席德射击"
+        operations:
+          - operation_template: "席德-强化特殊技"
+
+      - states: ""
+        debug_name: "没能量了"
+        operations:
+          - op_name: "按键-普通攻击"
+            post_delay: 0.1
+            repeat: 10

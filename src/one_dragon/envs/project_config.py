@@ -22,3 +22,6 @@ class ProjectConfig(YamlConfig):
         self.notice_url = self.get('notice_url')
         self.qq_link = self.get('qq_link')
         self.quick_start_link = self.get('quick_start_link')  # 链接 - 快速开始
+        self.home_page_link = self.get('home_page_link')  # 链接 - 主页
+        self.chat_link = self.get('chat_link')  # 链接 - 社群
+        self.doc_link = self.get('doc_link')  # 链接 - 文档

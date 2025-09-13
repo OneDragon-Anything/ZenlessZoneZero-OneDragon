@@ -90,6 +90,8 @@
           mission_type_name_display: "如影相随 法厄同之歌"
         - mission_type_name: "口舌与刀兵"
           mission_type_name_display: "云岿如我 山大王"
+        - mission_type_name: "铁律与狂徒"
+          mission_type_name_display: "拂晓生花 月光骑士颂"
         - mission_type_name: "代理人方案培养"
 
     - category_name: "专业挑战室"

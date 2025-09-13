@@ -9,8 +9,8 @@ from one_dragon.utils import yolo_config_utils
 _GITHUB_MODEL_DOWNLOAD_URL = 'https://github.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model'
 _GITEE_MODEL_DOWNLOAD_URL = 'https://gitee.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model'
 
-_DEFAULT_FLASH_CLASSIFIER = 'yolov8n-640-flash-20250622'
-_BACKUP_FLASH_CLASSIFIER = 'yolov8n-640-flash-0127'
+_DEFAULT_FLASH_CLASSIFIER = 'yolov8n-640-flash-20250906'
+_BACKUP_FLASH_CLASSIFIER = 'yolov8n-640-flash-20250622'
 
 _DEFAULT_HOLLOW_ZERO_EVENT = 'yolov8s-736-hollow-zero-event-0126'
 _BACKUP_HOLLOW_ZERO_EVENT = 'yolov8s-736-hollow-zero-event-1130'

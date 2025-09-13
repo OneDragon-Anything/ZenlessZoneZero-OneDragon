@@ -76,7 +76,12 @@ class LostVoidRunLevel(ZOperation):
         @param region_type: 当前区域类型，决定初始处理逻辑
         @return: 成功时返回下一个可能的区域类型作为data
         """
-        ZOperation.__init__(self, ctx, op_name='迷失之地-层间移动')
+        ZOperation.__init__(
+            self,
+            ctx,
+            op_name='迷失之地-层间移动',
+            # timeout_seconds=600,  # 不在这里设置超时 而是统一在 '非战斗画面识别' 中处理
+        )
 
         self.region_type: LostVoidRegionType = region_type
         self.detector: LostVoidDetector = self.ctx.lost_void.detector
@@ -205,7 +210,12 @@ class LostVoidRunLevel(ZOperation):
                 # 有小概率交互入口后 没处理好结束本次RunLevel 重新从等待加载 开始
                 return self.round_success('未在大世界')
             else:
-                return self.round_wait('未在大世界', wait=1)
+                return self.round_wait("未在大世界", wait=1)
+
+        # 在大世界 判断整体超时
+        # 在这里判断是因为需要确保在大世界画面 可以按到菜单退出按钮 防止卡在事件选择之类的地方
+        if self.last_screenshot_time - self.operation_start_time >= 600:  # 10分钟超时
+            return self.round_fail(Operation.STATUS_TIMEOUT)
 
         # 在大世界 开始检测
         frame_result: DetectFrameResult = self.ctx.lost_void.detect_to_go(
@@ -229,6 +239,8 @@ class LostVoidRunLevel(ZOperation):
                 else:
                     self.interact_target = LostVoidInteractTarget(name='感叹号', icon='感叹号', is_exclamation=True)
                     return self.round_success(LostVoidDetector.CLASS_INTERACT, wait=1)
+            elif op_result.status == Operation.STATUS_TIMEOUT:  # 移动超时
+                return self.round_fail(Operation.STATUS_TIMEOUT)
             else:
                 return self.round_retry('移动失败')
 
@@ -560,8 +572,9 @@ class LostVoidRunLevel(ZOperation):
                 return self.round_success('挑战结果-完成', wait=2)
 
         if self.interact_target is not None and self.interact_target.is_entry:
-            return self.round_success(LostVoidRunLevel.STATUS_NEXT_LEVEL,
-                                      data=self.interact_target.icon)
+            return self.round_success(
+                LostVoidRunLevel.STATUS_NEXT_LEVEL, data=self.interact_target.icon
+            )
 
         return self.round_retry('等待画面返回', wait=1)
 
@@ -578,13 +591,12 @@ class LostVoidRunLevel(ZOperation):
 
         if self.region_type == LostVoidRegionType.ENTRY:
             # 第一层 两个武备选择后 往后走 可以方便走上楼梯
-            self.ctx.controller.move_s(press=True, press_time=1, release=True)
-            # 2.0版本 入口左侧增加了一个研究员 因此从其他角色交互后 往左移动一点
+            # 2.0版本 入口左侧增加了一个研究员 因此交互后往后多走一点 方便看到这个研究员
+            self.ctx.controller.move_s(press=True, press_time=2, release=True)
             if self.interact_target.is_npc:
                 if self.interact_target.name == LostVoidInteractNPC.SCGMDYJY.value:
+                    # 研究员交互后 往右一点方便走到白点位置
                     self.ctx.controller.move_d(press=True, press_time=0.5, release=True)
-                else:
-                    self.ctx.controller.move_a(press=True, press_time=0.5, release=True)
         elif self.region_type == LostVoidRegionType.FRIENDLY_TALK:
             # 挚交会谈
             if self.interact_target.is_agent:  # 如果是代理人 向后右移动 可以避开中间桌子的障碍
@@ -790,6 +802,7 @@ def __debug():
     ctx.init_ocr()
     ctx.start_running()
 
+    ctx.lost_void.init_auto_op()
     op = LostVoidRunLevel(ctx, LostVoidRegionType.ENTRY)
     op.execute()
 

@@ -309,10 +309,7 @@ except Exception as e:
     _init_error = f"启动一条龙失败，报错信息如下:\n{stack_trace}"
     
     # 自动打开浏览器访问错误排障文档
-    try:
-        webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
-    except Exception:
-        pass  # 如果打开浏览器失败，不影响错误弹窗的显示
+    webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
 
 
 # 初始化应用程序，并启动主窗口

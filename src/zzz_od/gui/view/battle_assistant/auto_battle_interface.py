@@ -1,6 +1,7 @@
 import os.path
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from qfluentwidgets import FluentIcon, PushButton, ToolButton
 from typing import Optional
@@ -57,7 +58,7 @@ class AutoBattleInterface(AppRunInterface):
         self.debug_btn.clicked.connect(self._on_debug_clicked)
         self.config_opt.hBoxLayout.addWidget(self.debug_btn, alignment=Qt.AlignmentFlag.AlignRight)
         self.config_opt.hBoxLayout.addSpacing(16)
-        self.shared_btn = PushButton(gt('配置共享'))
+        self.shared_btn = PushButton(gt('前往社区'))
         self.shared_btn.clicked.connect(self._on_shared_clicked)
         self.config_opt.hBoxLayout.addWidget(self.shared_btn, alignment=Qt.AlignmentFlag.AlignRight)
         self.config_opt.hBoxLayout.addSpacing(16)
@@ -73,7 +74,7 @@ class AutoBattleInterface(AppRunInterface):
 
         self.screenshot_interval_opt = DoubleSpinBoxSettingCard(
             icon=FluentIcon.GAME, title='截图间隔(秒)',
-            content='游戏画面掉帧的话 可以适当加大截图间隔',
+            content='游戏画面掉帧的话 可以适当加大截图间隔(小心,太久会关不掉软件的)',
         )
         top_widget.add_widget(self.screenshot_interval_opt)
 
@@ -163,13 +164,18 @@ class AutoBattleInterface(AppRunInterface):
 
     def _on_shared_clicked(self) -> None:
         """
-        弹出列表
+        打开配置共享频道
         """
-        dialog = SharedConfigDialog(self)
-        if dialog.exec():
-            self._refresh_interface()
-        else:
-            self._refresh_interface()
+        QDesktopServices.openUrl(QUrl("https://pd.qq.com/g/onedrag00n"))
+
+        # """
+        # 弹出列表, 此功能对接服务器已经消失, 暂时隐藏
+        # """
+        # dialog = SharedConfigDialog(self)
+        # if dialog.exec():
+        #     self._refresh_interface()
+        # else:
+        #     self._refresh_interface()
 
 
     def _on_del_clicked(self) -> None:

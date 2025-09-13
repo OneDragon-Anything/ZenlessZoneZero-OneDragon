@@ -85,7 +85,7 @@ class ChargePlanApp(ZApplication):
             else:
                 return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
 
-        # 使用循环而不是递归来查找下一个可执行的任务
+        # 使用循环查找下一个可执行的任务
         while True:
             # 查找下一个未完成的计划
             candidate_plan = self.ctx.charge_plan_config.get_next_plan(self.last_tried_plan)

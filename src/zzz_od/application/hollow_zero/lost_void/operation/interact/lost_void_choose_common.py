@@ -195,7 +195,7 @@ def __get_get_artifact_pos():
 
     op = LostVoidChooseCommon(ctx)
     from one_dragon.utils import debug_utils
-    screen = debug_utils.get_debug_image('_1749883678280')
+    screen = debug_utils.get_debug_image('484035848-554c6a8d-340e-404d-ab88-8baac21637ca')
     art_list, chosen_list = op.get_artifact_pos(screen)
     print(len(art_list), len(chosen_list))
     cv2_utils.show_image(screen, chosen_list[0] if len(chosen_list) > 0 else None, wait=0)
@@ -204,4 +204,4 @@ def __get_get_artifact_pos():
 
 
 if __name__ == '__main__':
-    __debug()
+    __get_get_artifact_pos()

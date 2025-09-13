@@ -1,5 +1,3 @@
-from typing import Optional
-
 from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -8,7 +6,6 @@ from one_dragon.utils.i18_utils import gt
 from zzz_od.application.battle_assistant.auto_battle_app import AutoBattleApp
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.auto_battle import auto_battle_utils
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.config.game_config import GamepadTypeEnum
 from zzz_od.context.zzz_context import ZContext
 
@@ -25,8 +22,6 @@ class DodgeAssistantApp(ZApplication):
             op_name=gt('闪避助手'),
             need_ocr=False
         )
-
-        self.auto_op: Optional[AutoBattleOperator] = None
 
     def handle_init(self) -> None:
         """
@@ -62,17 +57,21 @@ class DodgeAssistantApp(ZApplication):
         加载战斗指令
         :return:
         """
-        result = auto_battle_utils.load_auto_op(self, 'dodge',
-                                                self.ctx.battle_assistant_config.dodge_assistant_config)
-
-        if result.is_success:
-            self.ctx.dispatch_event(
-                AutoBattleApp.EVENT_OP_LOADED,
-                self.auto_op
+        try:
+            self.ctx.init_auto_op(
+                sub_dir='dodge',
+                op_name=self.ctx.battle_assistant_config.dodge_assistant_config
             )
-            self.auto_op.start_running_async()
+        except Exception as e:
+            return self.round_fail(status=f'加载指令失败: {e}')
 
-        return result
+        self.ctx.dispatch_event(
+            AutoBattleApp.EVENT_OP_LOADED,
+            self.ctx.auto_op
+        )
+        self.ctx.auto_op.start_running_async()
+
+        return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
     @operation_node(name='闪避判断', mute=True)
@@ -81,14 +80,14 @@ class DodgeAssistantApp(ZApplication):
         识别当前画面 并进行点击
         :return:
         """
-        self.auto_op.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
+        self.ctx.auto_op.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
 
         return self.round_wait(wait_round_time=self.ctx.battle_assistant_config.screenshot_interval)
 
     def _on_pause(self, e=None):
         ZApplication._on_pause(self, e)
-        auto_battle_utils.stop_running(self.auto_op)
+        auto_battle_utils.stop_running(self.ctx.auto_op)
 
     def _on_resume(self, e=None):
         ZApplication._on_resume(self, e)
-        auto_battle_utils.resume_running(self.auto_op)
+        auto_battle_utils.resume_running(self.ctx.auto_op)

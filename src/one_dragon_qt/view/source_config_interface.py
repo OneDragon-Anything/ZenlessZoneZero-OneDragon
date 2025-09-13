@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget, QHBoxLayout
-from qfluentwidgets import FluentIcon, SettingCardGroup, TitleLabel, PrimaryPushButton
+from qfluentwidgets import FluentIcon, SettingCardGroup, TitleLabel, PrimaryPushButton, PushButton
+import webbrowser
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.envs.env_config import CpythonSourceEnum, EnvSourceEnum, ProxyTypeEnum, PipSourceEnum, RegionEnum, RepositoryTypeEnum
@@ -64,6 +65,42 @@ class SourceConfigInterface(VerticalScrollInterface):
         # 高级配置组
         self.advanced_group = self.get_advanced_group()
         content_widget.add_widget(self.advanced_group)
+
+        # 添加底部链接按钮组
+        links_group = SettingCardGroup(gt('相关链接'))
+        content_widget.add_widget(links_group)
+        
+        # 创建链接按钮容器
+        links_widget = QWidget()
+        links_layout = QHBoxLayout(links_widget)
+        links_layout.setContentsMargins(20, 15, 20, 15)
+        links_layout.setSpacing(15)
+        
+        # 帮助文档按钮
+        self.help_btn = PushButton('📚 帮助文档')
+        self.help_btn.setFixedSize(140, 35)
+        self.help_btn.clicked.connect(self._on_help_clicked)
+        links_layout.addWidget(self.help_btn)
+        
+        # 官方社区按钮
+        self.qq_channel_btn = PushButton('💬 官方社区')
+        self.qq_channel_btn.setFixedSize(140, 35)
+        self.qq_channel_btn.clicked.connect(self._on_qq_channel_clicked)
+        links_layout.addWidget(self.qq_channel_btn)
+        
+        # 官网按钮
+        self.website_btn = PushButton('🌐 官网')
+        self.website_btn.setFixedSize(140, 35)
+        self.website_btn.clicked.connect(self._on_website_clicked)
+        links_layout.addWidget(self.website_btn)
+        
+        # GitHub仓库按钮
+        self.github_btn = PushButton('⭐ GitHub')
+        self.github_btn.setFixedSize(140, 35)
+        self.github_btn.clicked.connect(self._on_github_clicked)
+        links_layout.addWidget(self.github_btn)
+        
+        content_widget.add_widget(links_widget)
 
         return content_widget
 
@@ -183,3 +220,19 @@ class SourceConfigInterface(VerticalScrollInterface):
     def on_interface_shown(self):
         VerticalScrollInterface.on_interface_shown(self)
         self._init_config_values()
+
+    def _on_help_clicked(self):
+        """点击帮助按钮时打开排障文档"""
+        webbrowser.open(self.ctx.project_config.doc_link)
+
+    def _on_qq_channel_clicked(self):
+        """点击官方社区按钮时打开官方社区"""
+        webbrowser.open(self.ctx.project_config.chat_link)
+
+    def _on_website_clicked(self):
+        """点击官网按钮时打开官网"""
+        webbrowser.open(self.ctx.project_config.home_page_link)
+
+    def _on_github_clicked(self):
+        """点击GitHub按钮时打开GitHub仓库"""
+        webbrowser.open(self.ctx.project_config.github_homepage)
