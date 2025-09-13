@@ -17,6 +17,8 @@ dependencies = [
     "soundcard==0.4.3",
     "librosa==0.10.2.post1",
     "gensim==4.3.3",
+    "fastapi>=0.116.1",
+    "uvicorn>=0.35.0",
 ]
 
 [dependency-groups]
