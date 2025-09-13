@@ -42,10 +42,18 @@ from zzz_od.api.routers import battle_assistant
 async def lifespan(app: FastAPI):
     # Startup: ensure ctx initialized
     try:
-        get_ctx()
+        print("Initializing ZContext...")
+        ctx = get_ctx()
+        print("ZContext initialized successfully")
         # 启动日志流 (INFO 及以上)
         log_stream.start_log_stream()
+        print("Log stream started")
         yield
+    except Exception as e:
+        print(f"Failed to initialize application: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
     finally:
         # Shutdown: best-effort stop
         try:
@@ -72,7 +80,8 @@ app.add_middleware(
         "http://127.0.0.1",
         "http://127.0.0.1:*",
         "tauri://localhost",
-        "http://localhost:1420",  # Add specific port for frontend
+        "http://localhost:1420",
+        "*",  # Allow all origins for development
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -140,4 +149,17 @@ app.include_router(ws_router)
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    try:
+        print("Starting FastAPI application...")
+        uvicorn.run(
+            "zzz_od.api.main:app",
+            host="127.0.0.1",
+            port=8000,
+            reload=True,
+            reload_dirs=["../src"]
+        )
+    except Exception as e:
+        print(f"Failed to start FastAPI application: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
