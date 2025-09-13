@@ -668,15 +668,26 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         if image_np is None:
             return
 
-        if len(image_np.shape) == 2:  # Mask (灰度图)
-            height, width = image_np.shape
-            q_image = QImage(image_np.data, width, height, width, QImage.Format.Format_Grayscale8).copy()
-        elif len(image_np.shape) == 3:  # RGB
-            height, width, channel = image_np.shape
-            if channel == 3:
-                q_image = QImage(image_np.data, width, height, 3 * width, QImage.Format.Format_RGB888).copy()
-        else:
+        # 根据维度判断图像类型并提取基本尺寸信息
+        ndim = image_np.ndim
+        if ndim not in (2, 3):
             return
+
+        height, width = image_np.shape[0], image_np.shape[1]
+
+        # 创建连续内存的 uint8 视图
+        arr = np.ascontiguousarray(image_np.astype(np.uint8, copy=False))
+
+        if ndim == 2:  # 灰度
+            q_image = QImage(arr.data, width, height, int(arr.strides[0]), QImage.Format.Format_Grayscale8).copy()
+        elif ndim == 3:  # 彩色
+            channel = image_np.shape[2]
+            if channel == 3:
+                q_image = QImage(arr.data, width, height, int(arr.strides[0]), QImage.Format.Format_RGB888).copy()
+            elif channel == 4:
+                q_image = QImage(arr.data, width, height, int(arr.strides[0]), QImage.Format.Format_RGBA8888).copy()
+            else:
+                return
 
         pixmap = QPixmap.fromImage(q_image)
         self.image_label.setPixmap(pixmap, preserve_state=True)
