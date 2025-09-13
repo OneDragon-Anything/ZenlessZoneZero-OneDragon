@@ -75,6 +75,41 @@ async def run_lost_void():
 # -------- Hollow Zero Challenge Config --------
 
 
+@router.get("/route-list", response_model=List[str], summary="获取路线名单")
+def get_hollow_zero_route_list() -> List[str]:
+    """
+    获取锄大地路线名单（挑战配置名称列表）
+
+    ## 功能描述
+    返回所有可用的锄大地挑战配置名称，用于GUI界面的路线选择下拉框。
+
+    ## 返回数据
+    配置名称字符串列表
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/route-list")
+    routes = response.json()
+    for route in routes:
+        print(f"路线: {route}")
+    ```
+    """
+    try:
+        configs = get_all_hollow_zero_challenge_config()
+        return [config.module_name for config in configs]
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": {
+                    "code": "ROUTE_LIST_FETCH_FAILED",
+                    "message": f"获取路线名单失败: {str(e)}"
+                }
+            }
+        )
+
+
 @router.get("/challenge-configs")
 def get_hollow_zero_challenge_configs() -> List[Dict[str, Any]]:
     """获取所有枯萎之都挑战配置"""
