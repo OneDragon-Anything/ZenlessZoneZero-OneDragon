@@ -28,6 +28,9 @@ from zzz_od.api.battle_assistant_models import (
     GamepadTypeInfo,
     GamepadTypesResponse,
     BattleState,
+    DetailedBattleState,
+    StateRecordInfo,
+    TaskInfo,
     BattleAssistantError,
     ConfigurationError,
     FileOperationError,
@@ -2228,3 +2231,279 @@ def _get_current_battle_state(ctx: ZContext) -> dict:
         "last_update": datetime.now().isoformat(),
         "performance_metrics": performance_metrics
     }
+
+
+@router.get("/detailed-battle-state", response_model=DetailedBattleState, summary="获取详细战斗状态")
+def get_detailed_battle_state(ctx: ZContext = Depends(get_ctx)):
+    """
+    获取详细的战斗状态信息，包括状态记录器和任务信息
+
+    ## 功能描述
+    返回完整的战斗状态信息，包括所有状态记录器的数据和当前运行任务的详细信息。
+    主要用于支持GUI中的实时状态显示功能。
+
+    ## 返回数据
+    - **basic_state**: 基本战斗状态信息- **state_records**: 所有状态记录器的详细信息列表
+    - **current_task**: 当前运行任务的信息
+    - **auto_op_running**: 自动操作器是否运行中
+
+    ## 状态记录信息
+    - **state_name**: 状态名称
+    - **trigger_time**: 触发时间戳
+    - **last_record_time**: 最后记录时间戳
+    - **value**: 状态值
+    - **time_diff**: 距离现在的时间差（秒）
+
+    ## 任务信息
+    - **trigger_display**: 触发器显示文本
+    - **expr_display**: 条件集显示文本
+    - **duration**: 任务持续时间（秒）
+    - **is_running**: 是否正在运行
+
+    ## WebSocket事件
+    状态变化时会自动通过WebSocket广播detailed_battle_state_changed事件
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/battle-assistant/detailed-battle-state")
+    state = response.json()
+    print(f"自动操作器运行: {state['auto_op_running']}")
+    print(f"状态记录数量: {len(state['state_records'])}")
+    if state['current_task']:
+        print(f"当前任务: {state['current_task']['trigger_display']}")
+    ```
+    """
+    try:
+        import time
+
+        # 获取基本战斗状态
+        basic_state = get_battle_state(ctx)
+
+        # 初始化返回数据
+        state_records = []
+        current_task = None
+        auto_op_running = False
+
+        # 如果有自动战斗操作器在运行，获取详细状态
+        if ctx.auto_op is not None:
+            auto_op_running = ctx.auto_op.is_running
+
+            if auto_op_running:
+                # 获取状态记录器信息
+                now = time.time()
+                states = ctx.auto_op.get_usage_states()
+                states = sorted(states)
+
+                state_recorders = sorted([i for i in ctx.auto_op.state_recorders.values()
+                                        if i.state_name in states],
+                                       key=lambda x: x.state_name)
+
+                for recorder in state_recorders:
+                    if recorder.last_record_time == -1:
+                        continue
+                    if (recorder.last_record_time == 0 and
+                        (recorder.state_name.startswith('前台-') or
+                         recorder.state_name.startswith('后台-'))):
+                        continue
+
+                    time_diff = now - recorder.last_record_time
+                    if time_diff > 999:
+                        time_diff = 999
+
+                    state_records.append(StateRecordInfo(
+                        state_name=recorder.state_name,
+                        trigger_time=recorder.last_record_time,
+                        last_record_time=recorder.last_record_time,
+                        value=recorder.last_value,
+                        time_diff=time_diff
+                    ))
+
+                # 获取当前任务信息
+                running_task = ctx.auto_op.running_task
+                if running_task is not None:
+                    duration = now - ctx.auto_op.last_trigger_time.get(running_task.trigger_display, 0)
+
+                    current_task = TaskInfo(
+                        trigger_display=running_task.trigger_display,
+                        expr_display=running_task.expr_display,
+                        duration=round(duration, 4),
+                        is_running=True
+                    )
+
+        detailed_state = DetailedBattleState(
+            basic_state=basic_state,
+            state_records=state_records,
+            current_task=current_task,
+            auto_op_running=auto_op_running
+        )
+
+        # 广播详细状态更新事件
+        if hasattr(ctx, '_battle_assistant_bridge'):
+            bridge = getattr(ctx, '_battle_assistant_bridge')
+            bridge.broadcast_detailed_battle_state({
+                "auto_op_running": auto_op_running,
+                "state_records_count": len(state_records),
+                "has_current_task": current_task is not None,
+                "last_update": datetime.now().isoformat()
+            })
+
+        return detailed_state
+
+    except Exception as e:
+        # 如果获取详细状态失败，返回基本状态
+        log.error(f"获取详细战斗状态失败: {str(e)}", exc_info=True)
+
+        # 广播错误事件
+        broadcast_battle_assistant_event(
+            BattleAssistantEventType.ERROR_OCCURRED,
+            {
+                "message": f"获取详细战斗状态失败: {str(e)}",
+                "details": {"error_type": "detailed_battle_state_error"}
+            }
+        )
+
+        return DetailedBattleState(
+            basic_state=BattleState(
+                is_in_battle=False,
+                current_action=None,
+                enemies_detected=0,
+                last_update=datetime.now(),
+                performance_metrics={"error": str(e)}
+            ),
+            state_records=[],
+            current_task=None,
+            auto_op_running=False
+        )
+
+
+@router.get("/state-records", response_model=List[StateRecordInfo], summary="获取状态记录列表")
+def get_state_records(ctx: ZContext = Depends(get_ctx)) -> List[StateRecordInfo]:
+    """
+    获取当前所有状态记录器的信息
+
+    ## 功能描述
+    返回自动战斗操作器中所有状态记录器的详细信息，用于实时监控战斗状态。
+
+    ## 返回数据
+    状态记录信息列表，每个记录包含：
+    - **state_name**: 状态名称
+    - **trigger_time**: 触发时间戳
+    - **last_record_time**: 最后记录时间戳
+    - **value**: 状态值
+    - **time_diff**: 距离现在的时间差（秒）
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/battle-assistant/state-records")
+    records = response.json()
+    for record in records:
+        print(f"状态: {record['state_name']}, 值: {record['value']}, 时间差: {record['time_diff']}s")
+    ```
+    """
+    try:
+        import time
+
+        state_records = []
+
+        if ctx.auto_op is not None and ctx.auto_op.is_running:
+            now = time.time()
+            states = ctx.auto_op.get_usage_states()
+            states = sorted(states)
+
+            state_recorders = sorted([i for i in ctx.auto_op.state_recorders.values()
+                                    if i.state_name in states],
+                                   key=lambda x: x.state_name)
+
+            for recorder in state_recorders:
+                if recorder.last_record_time == -1:
+                    continue
+                if (recorder.last_record_time == 0 and
+                    (recorder.state_name.startswith('前台-') or
+                     recorder.state_name.startswith('后台-'))):
+                    continue
+
+                time_diff = now - recorder.last_record_time
+                if time_diff > 999:
+                    time_diff = 999
+
+                state_records.append(StateRecordInfo(
+                    state_name=recorder.state_name,
+                    trigger_time=recorder.last_record_time,
+                    last_record_time=recorder.last_record_time,
+                    value=recorder.last_value,
+                    time_diff=time_diff
+                ))
+
+        return state_records
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": {
+                    "code": "STATE_RECORDS_FETCH_FAILED",
+                    "message": f"获取状态记录失败: {str(e)}"
+                }
+            }
+        )
+
+
+@router.get("/current-task", response_model=Optional[TaskInfo], summary="获取当前任务信息")
+def get_current_task(ctx: ZContext = Depends(get_ctx)) -> Optional[TaskInfo]:
+    """
+    获取当前运行任务的详细信息
+
+    ## 功能描述
+    返回自动战斗操作器当前正在执行的任务信息，包括触发器、条件集和持续时间。
+
+    ## 返回数据
+    如果有任务在运行，返回任务信息：
+    - **trigger_display**: 触发器显示文本
+    - **expr_display**: 条件集显示文本
+    - **duration**: 任务持续时间（秒）
+    - **is_running**: 是否正在运行
+
+    如果没有任务在运行，返回null
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/battle-assistant/current-task")
+    task = response.json()
+    if task:
+        print(f"当前任务: {task['trigger_display']}")
+        print(f"持续时间: {task['duration']}秒")
+    else:
+        print("没有任务在运行")
+    ```
+    """
+    try:
+        import time
+
+        if ctx.auto_op is not None and ctx.auto_op.is_running:
+            running_task = ctx.auto_op.running_task
+            if running_task is not None:
+                now = time.time()
+                duration = now - ctx.auto_op.last_trigger_time.get(running_task.trigger_display, 0)
+
+                return TaskInfo(
+                    trigger_display=running_task.trigger_display,
+                    expr_display=running_task.expr_display,
+                    duration=round(duration, 4),
+                    is_running=True
+                )
+
+        return None
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": {
+                    "code": "CURRENT_TASK_FETCH_FAILED",
+                    "message": f"获取当前任务信息失败: {str(e)}"
+                }
+            }
+        )

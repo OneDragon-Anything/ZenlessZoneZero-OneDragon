@@ -286,3 +286,26 @@ class SuccessResponse(BaseModel):
     """标准成功响应"""
     message: str = Field(..., description="成功消息")
     data: Optional[Dict[str, Any]] = Field(default=None, description="响应数据")
+
+
+class StateRecordInfo(BaseModel):
+    """状态记录信息"""
+    state_name: str = Field(..., description="状态名称")
+    trigger_time: float = Field(..., description="触发时间")
+    last_record_time: float = Field(..., description="最后记录时间")
+    value: Optional[Any] = Field(default=None, description="状态值")
+    time_diff: float = Field(..., description="距离现在的时间差")
+
+class TaskInfo(BaseModel):
+    """任务信息"""
+    trigger_display: str = Field(..., description="触发器显示")
+    expr_display: str = Field(..., description="条件集显示")
+    duration: float = Field(..., description="持续时间")
+    is_running: bool = Field(default=False, description="是否正在运行")
+
+class DetailedBattleState(BaseModel):
+    """详细战斗状态"""
+    basic_state: BattleState = Field(..., description="基本战斗状态")
+    state_records: List[StateRecordInfo] = Field(default_factory=list, description="状态记录列表")
+    current_task: Optional[TaskInfo] = Field(default=None, description="当前任务信息")
+    auto_op_running: bool = Field(default=False, description="自动操作器是否运行中")
