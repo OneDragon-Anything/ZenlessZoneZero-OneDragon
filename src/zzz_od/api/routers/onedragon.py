@@ -16,7 +16,7 @@ from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig
 from zzz_od.application.coffee.coffee_config import CoffeeConfig
 from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
-from zzz_od.game_data.agent import DmgTypeEnum
+from zzz_od.game_data.agent import DmgTypeEnum, AgentEnum
 from zzz_od.api.run_registry import get_global_run_registry
 from zzz_od.api.bridges import attach_run_event_bridge
 
@@ -32,7 +32,7 @@ _registry = get_global_run_registry()
 
 
 @router.post("/run", response_model=RunIdResponse)
-def onedragon_run() -> RunIdResponse:
+async def onedragon_run() -> RunIdResponse:
     ctx = get_ctx()
 
     def _factory() -> asyncio.Task:
@@ -63,8 +63,6 @@ async def onedragon_cancel(run_id: str):
 
 
 # -------- Charge plan --------
-
-
 @router.get("/charge-plan")
 def get_charge_plan():
     ctx = get_ctx()
@@ -706,7 +704,7 @@ def reorder_onedragon_apps(payload: dict):
 
 
 @router.post("/run-app/{app_id}")
-def run_single_app(app_id: str):
+async def run_single_app(app_id: str):
     """Run only a single OneDragon sub-app by app_id."""
     ctx = get_ctx()
 
