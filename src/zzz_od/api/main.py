@@ -36,6 +36,8 @@ from zzz_od.api.routers import world_patrol as world_patrol_router
 from zzz_od.api.routers import hollow_zero
 from zzz_od.api.routers import game_assistant
 from zzz_od.api.routers import battle_assistant
+from zzz_od.api.routers import random_play
+from zzz_od.api.routers import drive_disc_dismantle
 
 
 @asynccontextmanager
@@ -143,6 +145,8 @@ app.include_router(world_patrol_router.router)
 app.include_router(hollow_zero.router)
 app.include_router(game_assistant.router)
 app.include_router(battle_assistant.router)
+app.include_router(random_play.router)
+app.include_router(drive_disc_dismantle.router)
 app.include_router(ws_router)
 
 
