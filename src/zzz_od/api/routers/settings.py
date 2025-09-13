@@ -19,6 +19,7 @@ from one_dragon.base.config.push_config import PushConfig
 from one_dragon_qt.widgets.push_cards import PushCards  # GUI 使用的动态推送配置源
 from zzz_od.application.random_play.random_play_config import RandomPlayConfig
 from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import DriveDiscDismantleConfig
+from one_dragon.utils import cmd_utils
 
 
 router = APIRouter(
@@ -768,4 +769,101 @@ def update_git_remote() -> Dict[str, Any]:
         raise HTTPException(
             status_code=500,
             detail=f"更新Git远程地址失败: {str(e)}"
+        )
+
+
+# --- HDR Settings ---
+
+
+@router.post("/game/hdr/enable")
+def enable_hdr() -> Dict[str, Any]:
+    """
+    启用HDR设置
+
+    ## 功能描述
+    通过修改Windows注册表启用HDR，仅影响手动启动游戏，一条龙启动游戏会自动禁用HDR。
+
+    ## 返回数据
+    返回操作结果消息
+
+    ## 错误码
+    - **HDR_ENABLE_FAILED**: HDR启用失败
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/settings/game/hdr/enable")
+    result = response.json()
+    print(result["message"])
+    ```
+    """
+    try:
+        ctx = get_ctx()
+        game_path = ctx.game_account_config.game_path
+
+        cmd_utils.run_command([
+            'reg', 'add', 'HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences',
+            '/v', game_path, '/d', 'AutoHDREnable=2097;', '/f'
+        ])
+
+        return {
+            "ok": True,
+            "message": "HDR已启用"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": {
+                    "code": "HDR_ENABLE_FAILED",
+                    "message": f"启用HDR失败: {str(e)}"
+                }
+            }
+        )
+
+
+@router.post("/game/hdr/disable")
+def disable_hdr() -> Dict[str, Any]:
+    """
+    禁用HDR设置
+
+    ## 功能描述
+    通过修改Windows注册表禁用HDR，仅影响手动启动游戏，一条龙启动游戏会自动禁用HDR。
+
+    ## 返回数据
+    返回操作结果消息
+
+    ## 错误码
+    - **HDR_DISABLE_FAILED**: HDR禁用失败
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/settings/game/hdr/disable")
+    result = response.json()
+    print(result["message"])
+    ```
+    """
+    try:
+        ctx = get_ctx()
+        game_path = ctx.game_account_config.game_path
+
+        cmd_utils.run_command([
+            'reg', 'add', 'HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences',
+            '/v', game_path, '/d', 'AutoHDREnable=2096;', '/f'
+        ])
+
+        return {
+            "ok": True,
+            "message": "HDR已禁用"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": {
+                    "code": "HDR_DISABLE_FAILED",
+                    "message": f"禁用HDR失败: {str(e)}"
+                }
+            }
         )
