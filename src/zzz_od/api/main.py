@@ -35,6 +35,7 @@ from zzz_od.api.routers import settings as settings_router
 from zzz_od.api.routers import world_patrol as world_patrol_router
 from zzz_od.api.routers import hollow_zero
 from zzz_od.api.routers import game_assistant
+from zzz_od.api.routers import battle_assistant
 
 
 @asynccontextmanager
@@ -63,15 +64,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="OneDragon ZZZ API", version="v1", lifespan=lifespan)
 
 # CORS - allow local tools by default (configurable later)
+# 使用 allow_origin_regex 来匹配带端口的 localhost/127.0.0.1；保留 tauri://localhost 在 allow_origins 中
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost",
-        "http://localhost:*",
-        "http://127.0.0.1",
-        "http://127.0.0.1:*",
         "tauri://localhost",
     ],
+    # 匹配 http://localhost(:port) 和 http://127.0.0.1(:port)，支持 http 和 https
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -131,6 +131,7 @@ app.include_router(settings_router.router)
 app.include_router(world_patrol_router.router)
 app.include_router(hollow_zero.router)
 app.include_router(game_assistant.router)
+app.include_router(battle_assistant.router)
 app.include_router(ws_router)
 
 
