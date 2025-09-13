@@ -71,3 +71,39 @@ async def logs_ws(websocket: WebSocket):
         manager.disconnect(channel, websocket)
 
 
+@router.websocket("/battle-assistant/tasks/{task_id}")
+async def battle_assistant_task_ws(websocket: WebSocket, task_id: str):
+    """战斗助手任务事件通道: 订阅特定任务的进度和状态更新"""
+    channel = f"battle-assistant:tasks:{task_id}"
+    await manager.connect(channel, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(channel, websocket)
+
+
+@router.websocket("/battle-assistant/events")
+async def battle_assistant_events_ws(websocket: WebSocket):
+    """战斗助手全局事件通道: 订阅所有战斗助手相关事件"""
+    channel = "battle-assistant:events"
+    await manager.connect(channel, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(channel, websocket)
+
+
+@router.websocket("/battle-assistant/battle-state")
+async def battle_assistant_battle_state_ws(websocket: WebSocket):
+    """战斗状态实时更新通道: 订阅战斗状态变化"""
+    channel = "battle-assistant:battle-state"
+    await manager.connect(channel, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(channel, websocket)
+
+
