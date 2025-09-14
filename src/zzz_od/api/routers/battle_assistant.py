@@ -1158,8 +1158,8 @@ def get_operation_debug_config(ctx: ZContext = Depends(get_ctx)):
     try:
         # 从配置中获取当前模板名称和设置
         # 如果配置不存在，返回默认配置
-        template_name = getattr(ctx.battle_assistant_config, 'operation_debug_template', "安比-3A特殊攻击")
-        repeat_mode = getattr(ctx.battle_assistant_config, 'operation_debug_repeat_mode', True)
+        template_name = getattr(ctx.battle_assistant_config, 'debug_operation_config', "安比-3A特殊攻击")
+        repeat_mode = getattr(ctx.battle_assistant_config, 'debug_operation_repeat', True)
         gamepad_type = getattr(ctx.battle_assistant_config, 'gamepad_type', "none")
 
         return OperationDebugConfig(
