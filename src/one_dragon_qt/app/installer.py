@@ -5,6 +5,7 @@ from qfluentwidgets import NavigationItemPosition, SplashScreen
 from typing import Optional
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
+from one_dragon.version import __version__
 from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon_qt.windows.app_window_base import AppWindowBase
 from one_dragon.utils import os_utils
@@ -83,7 +84,7 @@ class InstallerWindowBase(AppWindowBase):
         self.setObjectName("PhosWindow")
         self.navigationInterface.setObjectName("NavigationInterface")
         self.stackedWidget.setObjectName("StackedWidget")
-        self.titleBar.setObjectName("TitleBar")    
+        self.titleBar.setObjectName("TitleBar")
 
         # 布局样式调整
         self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
