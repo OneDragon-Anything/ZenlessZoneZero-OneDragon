@@ -1265,41 +1265,6 @@ def update_operation_debug_config(config: OperationDebugConfigUpdate, ctx: ZCont
                 }
             }
         )
-        _assistant_config.operation_debug_repeat_mode = config.repeat_mode
-
-        # 更新手柄类型（如果提供）
-        if config.gamepad_type is not None:
-            ctx.battle_assistant_config.gamepad_type = config.gamepad_type
-
-        # 保存配置
-        ctx.battle_assistant_config.save()
-
-        # 广播配置更新事件
-        broadcast_battle_assistant_event(
-            BattleAssistantEventType.CONFIG_UPDATED,
-            {
-                "config_type": "operation_debug",
-                "config_data": {
-                    "template_name": config.template_name,
-                    "repeat_mode": config.repeat_mode,
-                    "gamepad_type": config.gamepad_type
-                }
-            }
-        )
-
-        return {"message": "指令调试配置更新成功"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": {
-                    "code": "CONFIG_UPDATE_FAILED",
-                    "message": f"更新指令调试配置失败: {str(e)}"
-                }
-            }
-        )
 
 
 @router.delete("/operation-debug/templates/{name}", summary="删除操作模板")
