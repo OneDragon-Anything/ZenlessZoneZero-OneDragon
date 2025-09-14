@@ -13,7 +13,7 @@ from zzz_od.api.models import RunIdResponse
 
 router = APIRouter(
     prefix="/api/v1/drive-disc-dismantle",
-    tags=["drive-disc-dismantle"],
+    tags=["驱动盘拆解 Drive Disc Dismantle"],
     dependencies=[Depends(get_api_key_dependency())],
 )
 
@@ -21,9 +21,27 @@ router = APIRouter(
 _registry = get_global_run_registry()
 
 
-@router.get("/config")
+@router.get("/config", response_model=Dict[str, Any], summary="获取驱动盘拆解配置")
 def get_drive_disc_dismantle_config() -> Dict[str, Any]:
-    """获取驱动盘拆解配置"""
+    """
+    获取驱动盘拆解的配置信息
+
+    ## 功能描述
+    返回驱动盘拆解的配置设置，包括拆解等级和是否拆解废弃驱动盘。
+
+    ## 返回数据
+    - **dismantleLevel**: 拆解等级设置
+    - **dismantleAbandon**: 是否拆解废弃驱动盘，布尔值
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/drive-disc-dismantle/config")
+    config = response.json()
+    print(f"拆解等级: {config['dismantleLevel']}")
+    print(f"拆解废弃: {config['dismantleAbandon']}")
+    ```
+    """
     ctx = get_ctx()
     config = ctx.drive_disc_dismantle_config
     return {
@@ -32,9 +50,33 @@ def get_drive_disc_dismantle_config() -> Dict[str, Any]:
     }
 
 
-@router.put("/config")
+@router.put("/config", response_model=Dict[str, Any], summary="更新驱动盘拆解配置")
 def update_drive_disc_dismantle_config(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """更新驱动盘拆解配置"""
+    """
+    更新驱动盘拆解的配置设置
+
+    ## 功能描述
+    更新驱动盘拆解的配置参数，支持部分更新。
+
+    ## 请求参数
+    - **dismantleLevel** (可选): 拆解等级设置
+    - **dismantleAbandon** (可选): 是否拆解废弃驱动盘，布尔值
+
+    ## 返回数据
+    - **message**: 更新成功消息
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "dismantleLevel": "B级及以下",
+        "dismantleAbandon": True
+    }
+    response = requests.put("http://localhost:8000/api/v1/drive-disc-dismantle/config", json=data)
+    result = response.json()
+    print(result["message"])
+    ```
+    """
     ctx = get_ctx()
     config = ctx.drive_disc_dismantle_config
 
@@ -46,24 +88,83 @@ def update_drive_disc_dismantle_config(payload: Dict[str, Any]) -> Dict[str, Any
     return {"message": "Configuration updated successfully"}
 
 
-@router.post("/run")
+@router.post("/run", response_model=RunIdResponse, summary="运行驱动盘拆解")
 async def run_drive_disc_dismantle():
-    """运行驱动盘拆解"""
+    """
+    启动驱动盘拆解自动化任务
+
+    ## 功能描述
+    启动驱动盘拆解任务，根据配置自动拆解指定等级的驱动盘。
+
+    ## 返回数据
+    - **runId**: 任务运行ID，用于后续状态查询和控制
+
+    ## 错误码
+    - **TASK_START_FAILED**: 任务启动失败
+    - **CONFIG_ERROR**: 配置错误
+    - **NO_DISCS_TO_DISMANTLE**: 没有可拆解的驱动盘
+
+    ## 注意事项
+    - 拆解操作不可逆，请确认配置正确
+    - 建议先备份重要的驱动盘
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/drive-disc-dismantle/run")
+    task_info = response.json()
+    print(f"驱动盘拆解任务ID: {task_info['runId']}")
+    ```
+    """
     run_id = _run_via_onedragon_with_temp(["drive_disc_dismantle"])
     return RunIdResponse(runId=run_id)
 
 
-@router.post("/reset-record")
+@router.post("/reset-record", response_model=Dict[str, Any], summary="重置驱动盘拆解运行记录")
 def reset_drive_disc_dismantle_record() -> Dict[str, Any]:
-    """重置驱动盘拆解运行记录"""
+    """
+    重置驱动盘拆解的运行记录
+
+    ## 功能描述
+    清除驱动盘拆解的历史运行记录，重新开始计算运行状态。
+
+    ## 返回数据
+    - **message**: 重置成功消息
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/drive-disc-dismantle/reset-record")
+    result = response.json()
+    print(result["message"])
+    ```
+    """
     ctx = get_ctx()
     ctx.drive_disc_dismantle_record.reset_record()
     return {"message": "Drive disc dismantle record reset successfully"}
 
 
-@router.get("/run-record")
+@router.get("/run-record", response_model=Dict[str, Any], summary="获取驱动盘拆解运行记录")
 def get_drive_disc_dismantle_run_record() -> Dict[str, Any]:
-    """获取驱动盘拆解运行记录"""
+    """
+    获取驱动盘拆解的运行记录
+
+    ## 功能描述
+    返回驱动盘拆解的历史运行记录，包括完成状态和耗时信息。
+
+    ## 返回数据
+    - **finished**: 是否已完成，布尔值
+    - **timeCost**: 运行耗时（秒）
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/drive-disc-dismantle/run-record")
+    record = response.json()
+    print(f"完成状态: {record['finished']}")
+    print(f"耗时: {record['timeCost']}秒")
+    ```
+    """
     ctx = get_ctx()
     record = ctx.drive_disc_dismantle_record
     return {
@@ -72,9 +173,28 @@ def get_drive_disc_dismantle_run_record() -> Dict[str, Any]:
     }
 
 
-@router.get("/dismantle-levels")
+@router.get("/dismantle-levels", response_model=Dict[str, Any], summary="获取可选的拆解等级")
 def get_dismantle_levels() -> Dict[str, Any]:
-    """获取可选的拆解等级"""
+    """
+    获取所有可选的驱动盘拆解等级
+
+    ## 功能描述
+    返回系统支持的所有驱动盘拆解等级选项，用于配置界面的选择。
+
+    ## 返回数据
+    - **levels**: 拆解等级选项列表
+      - **value**: 等级值
+      - **label**: 等级显示名称
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/drive-disc-dismantle/dismantle-levels")
+    levels = response.json()
+    for level in levels['levels']:
+        print(f"等级: {level['label']} (值: {level['value']})")
+    ```
+    """
     from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import DismantleLevelEnum
     return {
         "levels": [
