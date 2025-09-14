@@ -18,7 +18,7 @@ from qfluentwidgets import (
     MessageBox,
 )
 
-from one_dragon.base.config.game_account_config import GameRegionEnum, GameAccountConfig
+from one_dragon.base.config.game_account_config import ClientTypeEnum, GameRegionEnum
 from one_dragon.base.config.one_dragon_config import (
     OneDragonInstance,
     RunInOneDragonApp,
@@ -36,6 +36,7 @@ from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
     PasswordSwitchSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
+from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.column import Column
@@ -180,7 +181,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
         _le = LineEdit()
         # Base64 encoded placeholder text
-        _placeholder = base64.b64decode("6K+36L6T5YWl5a+G56CB").decode('utf-8') 
+        _placeholder = base64.b64decode("6K+36L6T5YWl5a+G56CB").decode('utf-8')
         _le.setPlaceholderText(gt(_placeholder))
         _le.setEchoMode(LineEdit.EchoMode.Password)
         _mb.textLayout.addWidget(_le)
@@ -195,7 +196,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
                 return True
             else:
                 # Base64 encoded error messages
-                _error_title = base64.b64decode("5a+G56CB6ZSZ6K+v").decode('utf-8') 
+                _error_title = base64.b64decode("5a+G56CB6ZSZ6K+v").decode('utf-8')
                 _error_content = base64.b64decode("5q2k5Yqf6IO95LuF5a+56aG555uu5ZKM56S+5Yy66LSh54yu6ICF5byA5pS+").decode('utf-8')
                 _law_text = base64.b64decode("5pmu5rOV").decode('utf-8')
                 _d = Dialog(gt(_error_title), gt(_error_content), self)
@@ -268,6 +269,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
     def init_game_account_config(self) -> None:
         # 初始化账号和密码
+        self.client_type_opt.init_with_adapter(self.ctx.game_account_config.get_prop_adapter('client_type'))
         self.game_path_opt.setContent(self.ctx.game_account_config.game_path)
         self.custom_win_title_opt.init_with_adapter(
             self.ctx.game_account_config.get_prop_adapter("use_custom_win_title")
@@ -305,7 +307,11 @@ class SettingInstanceInterface(VerticalScrollInterface):
         return instance_switch_group
 
     def _get_instanceSettings_group(self) -> QWidget:
-        instance_settings_group = SettingCardGroup(gt("当前账户设置"))
+        instance_settings_group = SettingCardGroup(gt('当前账户设置'))
+
+        self.client_type_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='游戏客户端', options_enum=ClientTypeEnum)
+        self.client_type_opt.value_changed.connect(self._on_client_type_changed)
+        instance_settings_group.addSettingCard(self.client_type_opt)
 
         self.game_path_opt = PushSettingCard(
             icon=FluentIcon.FOLDER, title="游戏路径", text="选择"
@@ -343,7 +349,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
             icon=FluentIcon.EXPRESSIVE_INPUT_ENTRY,
             title="密码",
             input_placeholder="请自行妥善管理",
-            is_password=True,  
+            is_password=True,
         )
         instance_settings_group.addSettingCard(self.game_password_opt)
 
@@ -395,6 +401,10 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.ctx.one_dragon_config.delete_instance(idx)
         self._acc_repo()
         self._init_content_widget()
+
+    def _on_client_type_changed(self, index, value) -> None:
+        self.game_path_opt.setContent(self.ctx.game_account_config.game_path)
+        self.ctx.init_by_config()
 
     def _on_game_region_changed(self, index, value):
         self.ctx.init_by_config()
