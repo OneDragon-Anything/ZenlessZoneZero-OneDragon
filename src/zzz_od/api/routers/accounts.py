@@ -15,7 +15,7 @@ from zzz_od.api.security import get_api_key_dependency
 
 router = APIRouter(
     prefix="/api/v1/accounts",
-    tags=["accounts"],
+    tags=["账户管理 Accounts"],
     dependencies=[Depends(get_api_key_dependency())],
 )
 
@@ -106,9 +106,35 @@ def _track_api_call(ctx, operation_name: str, properties: Dict[str, Any]) -> Non
         log.debug(f'API埋点记录失败: {e}')
 
 
-@router.get("/instances", response_model=InstanceListResponse)
+@router.get("/instances", response_model=InstanceListResponse, summary="获取所有实例列表")
 def list_instances():
-    """获取所有实例列表"""
+    """
+    获取所有游戏实例的列表
+
+    ## 功能描述
+    返回系统中所有配置的游戏实例信息，包括实例状态、名称和健康状况。
+
+    ## 返回数据
+    - **active_id**: 当前激活的实例ID
+    - **items**: 实例列表
+      - **id**: 实例唯一标识符 (格式: user-{idx})
+      - **idx**: 实例索引号
+      - **name**: 实例显示名称
+      - **active**: 是否为当前激活实例
+      - **active_in_od**: 是否参与一条龙批量运行
+      - **last_active**: 最后激活时间
+      - **health_status**: 健康状态 (healthy/inactive/warning/error)
+    - **total_count**: 实例总数
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/accounts/instances")
+    instances = response.json()
+    print(f"当前激活实例: {instances['active_id']}")
+    print(f"实例总数: {instances['total_count']}")
+    ```
+    """
     ctx = get_ctx()
     odc = ctx.one_dragon_config
 
@@ -140,9 +166,38 @@ def list_instances():
     )
 
 
-@router.get("/instances/{instance_id}", response_model=InstanceStatus)
+@router.get("/instances/{instance_id}", response_model=InstanceStatus, summary="获取单个实例详情")
 def get_instance(instance_id: str):
-    """获取单个实例详情"""
+    """
+    获取指定实例的详细信息
+
+    ## 功能描述
+    根据实例ID获取特定实例的详细配置和状态信息。
+
+    ## 路径参数
+    - **instance_id**: 实例ID，格式为 user-{idx}
+
+    ## 返回数据
+    - **id**: 实例唯一标识符
+    - **idx**: 实例索引号
+    - **name**: 实例显示名称
+    - **active**: 是否为当前激活实例
+    - **active_in_od**: 是否参与一条龙批量运行
+    - **last_active**: 最后激活时间
+    - **health_status**: 健康状态
+
+    ## 错误码
+    - **INVALID_INSTANCE_ID**: 实例ID格式错误 (400)
+    - **INSTANCE_NOT_FOUND**: 实例不存在 (404)
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/accounts/instances/user-1")
+    instance = response.json()
+    print(f"实例名称: {instance['name']}")
+    ```
+    """
     ctx = get_ctx()
     odc = ctx.one_dragon_config
     instance = _get_instance_or_404(instance_id, odc)
@@ -162,9 +217,29 @@ def get_instance(instance_id: str):
     )
 
 
-@router.get("/whoami", response_model=Optional[InstanceStatus])
+@router.get("/whoami", response_model=Optional[InstanceStatus], summary="获取当前激活的实例")
 def whoami():
-    """获取当前激活的实例"""
+    """
+    获取当前激活实例的信息
+
+    ## 功能描述
+    返回当前系统中激活的实例信息，如果没有激活的实例则返回null。
+
+    ## 返回数据
+    - 如果有激活实例：返回实例详细信息
+    - 如果无激活实例：返回null
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/accounts/whoami")
+    current_instance = response.json()
+    if current_instance:
+        print(f"当前实例: {current_instance['name']}")
+    else:
+        print("没有激活的实例")
+    ```
+    """
     ctx = get_ctx()
     odc = ctx.one_dragon_config
     curr = odc.current_active_instance
@@ -187,9 +262,37 @@ def whoami():
     )
 
 
-@router.put("/instances/{instance_id}/activate")
+@router.put("/instances/{instance_id}/activate", response_model=OkResponse, summary="激活指定的实例")
 def activate_instance(instance_id: str) -> OkResponse:
-    """激活指定的实例"""
+    """
+    激活指定的游戏实例
+
+    ## 功能描述
+    将指定的实例设置为当前激活状态，系统将切换到该实例的配置和数据。
+
+    ## 路径参数
+    - **instance_id**: 要激活的实例ID，格式为 user-{idx}
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+
+    ## 错误码
+    - **INVALID_INSTANCE_ID**: 实例ID格式错误 (400)
+    - **INSTANCE_NOT_FOUND**: 实例不存在 (404)
+    - **ACTIVATION_FAILED**: 激活失败 (500)
+
+    ## 注意事项
+    - 激活实例会切换当前的配置上下文
+    - 正在运行的任务可能会受到影响
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.put("http://localhost:8000/api/v1/accounts/instances/user-2/activate")
+    result = response.json()
+    print(f"激活结果: {result['ok']}")
+    ```
+    """
     start_time = time.time()
 
     ctx = get_ctx()
@@ -224,9 +327,39 @@ def activate_instance(instance_id: str) -> OkResponse:
     return OkResponse()
 
 
-@router.post("/instances")
+@router.post("/instances", response_model=InstanceStatus, summary="创建新实例")
 def create_instance(request: InstanceCreateRequest):
-    """创建新实例"""
+    """
+    创建新的游戏实例
+
+    ## 功能描述
+    创建一个新的游戏实例，可以选择从现有实例克隆配置或创建全新实例。
+
+    ## 请求参数
+    - **name** (可选): 实例显示名称，不提供时自动生成
+    - **activate** (可选): 是否创建后立即激活，默认false
+    - **clone_from** (可选): 从哪个实例索引克隆配置
+
+    ## 返回数据
+    返回新创建的实例详细信息
+
+    ## 错误码
+    - **SOURCE_INSTANCE_NOT_FOUND**: 克隆源实例不存在 (404)
+    - **INSTANCE_CREATE_FAILED**: 实例创建失败 (500)
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "name": "我的新实例",
+        "activate": True,
+        "clone_from": 1
+    }
+    response = requests.post("http://localhost:8000/api/v1/accounts/instances", json=data)
+    new_instance = response.json()
+    print(f"新实例ID: {new_instance['id']}")
+    ```
+    """
     start_time = time.time()
 
     ctx = get_ctx()
@@ -309,9 +442,41 @@ def create_instance(request: InstanceCreateRequest):
         )
 
 
-@router.put("/instances/{instance_id}")
+@router.put("/instances/{instance_id}", response_model=OkResponse, summary="更新实例信息")
 def update_instance(instance_id: str, request: InstanceUpdateRequest) -> OkResponse:
-    """更新实例信息"""
+    """
+    更新指定实例的配置信息
+
+    ## 功能描述
+    更新指定实例的名称和一条龙参与设置，支持部分更新。
+
+    ## 路径参数
+    - **instance_id**: 实例ID，格式为 user-{idx}
+
+    ## 请求参数
+    - **name** (可选): 新的实例名称
+    - **active_in_od** (可选): 是否参与一条龙批量运行
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+
+    ## 错误码
+    - **INVALID_INSTANCE_ID**: 实例ID格式错误 (400)
+    - **INSTANCE_NOT_FOUND**: 实例不存在 (404)
+    - **UPDATE_FAILED**: 更新失败 (500)
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "name": "新实例名称",
+        "active_in_od": True
+    }
+    response = requests.put("http://localhost:8000/api/v1/accounts/instances/user-1", json=data)
+    result = response.json()
+    print(f"更新结果: {result['ok']}")
+    ```
+    """
     start_time = time.time()
 
     ctx = get_ctx()
@@ -368,9 +533,38 @@ def update_instance(instance_id: str, request: InstanceUpdateRequest) -> OkRespo
         )
 
 
-@router.delete("/instances/{instance_id}")
+@router.delete("/instances/{instance_id}", response_model=OkResponse, summary="删除指定的实例")
 def delete_instance(instance_id: str) -> OkResponse:
-    """删除指定的实例"""
+    """
+    删除指定的游戏实例
+
+    ## 功能描述
+    删除指定的游戏实例，包括其所有配置和数据。系统至少保留一个实例。
+
+    ## 路径参数
+    - **instance_id**: 要删除的实例ID，格式为 user-{idx}
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+
+    ## 错误码
+    - **INVALID_INSTANCE_ID**: 实例ID格式错误 (400)
+    - **INSTANCE_NOT_FOUND**: 实例不存在 (404)
+    - **CANNOT_DELETE_LAST**: 至少保留一个实例 (400)
+
+    ## 注意事项
+    - 删除操作不可逆，请谨慎操作
+    - 如果删除的是当前激活实例，系统会自动切换到其他实例
+    - 系统至少保留一个实例
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.delete("http://localhost:8000/api/v1/accounts/instances/user-2")
+    result = response.json()
+    print(f"删除结果: {result['ok']}")
+    ```
+    """
     ctx = get_ctx()
     odc = ctx.one_dragon_config
 
@@ -400,9 +594,46 @@ def delete_instance(instance_id: str) -> OkResponse:
     return OkResponse()
 
 
-@router.post("/instances/batch")
+@router.post("/instances/batch", response_model=Dict[str, Any], summary="批量操作实例")
 def batch_operation(request: BatchOperationRequest) -> Dict[str, Any]:
-    """批量操作实例"""
+    """
+    对多个实例执行批量操作
+
+    ## 功能描述
+    对指定的多个实例执行批量操作，支持激活、停用和删除操作。
+
+    ## 请求参数
+    - **instance_ids**: 要操作的实例ID列表
+    - **operation**: 操作类型
+      - "activate": 激活实例
+      - "deactivate": 停用实例
+      - "delete": 删除实例
+
+    ## 返回数据
+    - **total_count**: 总操作数量
+    - **success_count**: 成功操作数量
+    - **error_count**: 失败操作数量
+    - **results**: 详细操作结果列表
+      - **instance_id**: 实例ID
+      - **success**: 操作是否成功
+      - **error** (失败时): 错误信息
+
+    ## 错误码
+    - **EMPTY_INSTANCE_LIST**: 实例ID列表不能为空 (400)
+    - **UNSUPPORTED_OPERATION**: 不支持的操作类型
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "instance_ids": ["user-1", "user-2", "user-3"],
+        "operation": "activate"
+    }
+    response = requests.post("http://localhost:8000/api/v1/accounts/instances/batch", json=data)
+    result = response.json()
+    print(f"成功: {result['success_count']}, 失败: {result['error_count']}")
+    ```
+    """
     if not request.instance_ids:
         raise HTTPException(
             status_code=400,
@@ -469,9 +700,41 @@ def batch_operation(request: BatchOperationRequest) -> Dict[str, Any]:
     }
 
 
-@router.post("/instances/{instance_id}/clone")
+@router.post("/instances/{instance_id}/clone", response_model=InstanceStatus, summary="克隆指定的实例")
 def clone_instance(instance_id: str, request: InstanceCreateRequest) -> InstanceStatus:
-    """克隆指定的实例"""
+    """
+    克隆指定的游戏实例
+
+    ## 功能描述
+    基于现有实例创建一个新的实例副本，复制源实例的配置设置。
+
+    ## 路径参数
+    - **instance_id**: 要克隆的源实例ID，格式为 user-{idx}
+
+    ## 请求参数
+    - **name** (可选): 新实例的名称，默认为"源实例名 (副本)"
+    - **activate** (可选): 是否创建后立即激活，默认false
+
+    ## 返回数据
+    返回新创建的克隆实例详细信息
+
+    ## 错误码
+    - **INVALID_INSTANCE_ID**: 实例ID格式错误 (400)
+    - **INSTANCE_NOT_FOUND**: 源实例不存在 (404)
+    - **CLONE_FAILED**: 克隆失败 (500)
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "name": "克隆实例",
+        "activate": True
+    }
+    response = requests.post("http://localhost:8000/api/v1/accounts/instances/user-1/clone", json=data)
+    new_instance = response.json()
+    print(f"克隆实例ID: {new_instance['id']}")
+    ```
+    """
     ctx = get_ctx()
     odc = ctx.one_dragon_config
     source_instance = _get_instance_or_404(instance_id, odc)
@@ -515,9 +778,31 @@ def clone_instance(instance_id: str, request: InstanceCreateRequest) -> Instance
         )
 
 
-@router.get("/instances/stats")
+@router.get("/instances/stats", response_model=Dict[str, Any], summary="获取实例统计信息")
 def get_instances_stats() -> Dict[str, Any]:
-    """获取实例统计信息"""
+    """
+    获取所有实例的统计信息
+
+    ## 功能描述
+    返回实例的统计数据，包括总数、激活状态分布等信息。
+
+    ## 返回数据
+    - **total_instances**: 实例总数
+    - **active_instances**: 激活实例数量
+    - **inactive_instances**: 未激活实例数量
+    - **active_in_od_instances**: 参与一条龙的实例数量
+    - **current_active_idx**: 当前激活实例的索引
+    - **current_active_name**: 当前激活实例的名称
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/accounts/instances/stats")
+    stats = response.json()
+    print(f"总实例数: {stats['total_instances']}")
+    print(f"当前激活: {stats['current_active_name']}")
+    ```
+    """
     ctx = get_ctx()
     odc = ctx.one_dragon_config
 
@@ -535,9 +820,42 @@ def get_instances_stats() -> Dict[str, Any]:
     }
 
 
-@router.get("/instances/{instance_id}/config")
+@router.get("/instances/{instance_id}/config", response_model=Dict[str, Any], summary="导出实例配置")
 def export_instance_config(instance_id: str) -> Dict[str, Any]:
-    """导出实例配置（用于备份或迁移）"""
+    """
+    导出指定实例的配置信息
+
+    ## 功能描述
+    导出指定实例的配置数据，用于备份或迁移到其他系统。
+
+    ## 路径参数
+    - **instance_id**: 要导出配置的实例ID，格式为 user-{idx}
+
+    ## 返回数据
+    - **instance**: 实例配置信息
+      - **idx**: 实例索引
+      - **name**: 实例名称
+      - **active**: 是否激活
+      - **active_in_od**: 是否参与一条龙
+    - **exported_at**: 导出时间（ISO格式）
+    - **version**: 配置版本号
+
+    ## 错误码
+    - **INVALID_INSTANCE_ID**: 实例ID格式错误 (400)
+    - **INSTANCE_NOT_FOUND**: 实例不存在 (404)
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/accounts/instances/user-1/config")
+    config = response.json()
+    print(f"导出时间: {config['exported_at']}")
+    # 保存配置到文件
+    import json
+    with open("instance_backup.json", "w") as f:
+        json.dump(config, f)
+    ```
+    """
     ctx = get_ctx()
     odc = ctx.one_dragon_config
     instance = _get_instance_or_404(instance_id, odc)
@@ -556,9 +874,49 @@ def export_instance_config(instance_id: str) -> Dict[str, Any]:
     }
 
 
-@router.post("/instances/{instance_id}/config/import")
+@router.post("/instances/{instance_id}/config/import", response_model=OkResponse, summary="导入实例配置")
 def import_instance_config(instance_id: str, config: Dict[str, Any]) -> OkResponse:
-    """导入实例配置"""
+    """
+    导入实例配置信息
+
+    ## 功能描述
+    将之前导出的配置数据导入到指定实例，用于配置恢复或迁移。
+
+    ## 路径参数
+    - **instance_id**: 要导入配置的实例ID，格式为 user-{idx}
+
+    ## 请求参数
+    - **instance**: 实例配置对象
+      - **name** (可选): 实例名称
+      - **active_in_od** (可选): 是否参与一条龙
+    - **exported_at** (可选): 导出时间
+    - **version** (可选): 配置版本
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+
+    ## 错误码
+    - **INVALID_INSTANCE_ID**: 实例ID格式错误 (400)
+    - **INSTANCE_NOT_FOUND**: 实例不存在 (404)
+    - **IMPORT_FAILED**: 导入失败 (400)
+
+    ## 使用示例
+    ```python
+    import requests
+    import json
+
+    # 从文件加载配置
+    with open("instance_backup.json", "r") as f:
+        config_data = json.load(f)
+
+    response = requests.post(
+        "http://localhost:8000/api/v1/accounts/instances/user-1/config/import",
+        json=config_data
+    )
+    result = response.json()
+    print(f"导入结果: {result['ok']}")
+    ```
+    """
     ctx = get_ctx()
     odc = ctx.one_dragon_config
     instance = _get_instance_or_404(instance_id, odc)
@@ -590,9 +948,42 @@ def import_instance_config(instance_id: str, config: Dict[str, Any]) -> OkRespon
         )
 
 
-@router.get("/instances/health")
+@router.get("/instances/health", response_model=Dict[str, Any], summary="获取所有实例的健康状态")
 def get_instances_health() -> Dict[str, Any]:
-    """获取所有实例的健康状态"""
+    """
+    获取所有实例的健康检查结果
+
+    ## 功能描述
+    检查所有实例的健康状态，识别潜在问题和配置异常。
+
+    ## 返回数据
+    - **overall_status**: 整体健康状态 (healthy/warning/error)
+    - **instances**: 各实例健康状态列表
+      - **instance_id**: 实例ID
+      - **name**: 实例名称
+      - **status**: 健康状态 (healthy/inactive/warning/error)
+      - **issues**: 问题列表
+
+    ## 健康状态说明
+    - **healthy**: 实例运行正常
+    - **inactive**: 实例未激活
+    - **warning**: 存在潜在问题
+    - **error**: 存在严重问题
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/accounts/instances/health")
+    health = response.json()
+    print(f"整体状态: {health['overall_status']}")
+
+    for instance in health['instances']:
+        if instance['status'] != 'healthy':
+            print(f"实例 {instance['name']} 状态: {instance['status']}")
+            for issue in instance['issues']:
+                print(f"  问题: {issue}")
+    ```
+    """
     ctx = get_ctx()
     odc = ctx.one_dragon_config
 
@@ -628,9 +1019,43 @@ def get_instances_health() -> Dict[str, Any]:
     }
 
 
-@router.get("/game-account", response_model=GameAccountConfigDTO)
+@router.get("/game-account", response_model=GameAccountConfigDTO, summary="获取游戏账户配置")
 def get_game_account(mask_sensitive: bool = Query(True, description="是否掩码敏感信息")):
-    """获取游戏账户配置"""
+    """
+    获取当前实例的游戏账户配置
+
+    ## 功能描述
+    返回当前激活实例的游戏账户配置信息，包括平台、区域、路径等设置。
+
+    ## 查询参数
+    - **mask_sensitive**: 是否掩码敏感信息（账号、密码），默认true
+
+    ## 返回数据
+    - **platform**: 游戏平台
+    - **gameRegion**: 游戏区域
+    - **gamePath**: 游戏安装路径
+    - **gameLanguage**: 游戏语言
+    - **useCustomWinTitle**: 是否使用自定义窗口标题
+    - **customWinTitle**: 自定义窗口标题
+    - **account**: 游戏账号（可能被掩码）
+    - **password**: 游戏密码（可能被掩码）
+
+    ## 安全说明
+    - 默认情况下敏感信息会被掩码处理
+    - 只有特殊权限才能获取完整信息
+
+    ## 使用示例
+    ```python
+    import requests
+    # 获取掩码后的信息
+    response = requests.get("http://localhost:8000/api/v1/accounts/game-account")
+    config = response.json()
+    print(f"游戏平台: {config['platform']}")
+
+    # 获取完整信息（需要权限）
+    response = requests.get("http://localhost:8000/api/v1/accounts/game-account?mask_sensitive=false")
+    ```
+    """
     ctx = get_ctx()
     gac = ctx.game_account_config
 
@@ -672,8 +1097,48 @@ def _mask_string(value: str, visible_chars: int = 2) -> str:
     return value[:visible_chars] + "*" * (len(value) - visible_chars)
 
 
-@router.put("/game-account")
+@router.put("/game-account", response_model=OkResponse, summary="更新游戏账户配置")
 def update_game_account(payload: Dict[str, Any]) -> OkResponse:
+    """
+    更新当前实例的游戏账户配置
+
+    ## 功能描述
+    更新当前激活实例的游戏账户相关配置，支持部分更新。
+
+    ## 请求参数
+    - **platform** (可选): 游戏平台
+    - **gameRegion** (可选): 游戏区域
+    - **gamePath** (可选): 游戏安装路径
+    - **gameLanguage** (可选): 游戏语言
+    - **useCustomWinTitle** (可选): 是否使用自定义窗口标题
+    - **customWinTitle** (可选): 自定义窗口标题
+    - **account** (可选): 游戏账号
+    - **password** (可选): 游戏密码
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+
+    ## 错误码
+    - **CONFIG_UPDATE_FAILED**: 配置更新失败 (500)
+    - **VALIDATION_ERROR**: 参数验证失败 (400)
+
+    ## 安全说明
+    - 敏感信息（账号、密码）会被安全处理
+    - 系统会记录配置变更日志（不包含敏感信息）
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "platform": "PC",
+        "gameRegion": "cn",
+        "gameLanguage": "zh-cn"
+    }
+    response = requests.put("http://localhost:8000/api/v1/accounts/game-account", json=data)
+    result = response.json()
+    print(f"更新结果: {result['ok']}")
+    ```
+    """
     import time
     start_time = time.time()
 
@@ -753,9 +1218,32 @@ def update_game_account(payload: Dict[str, Any]) -> OkResponse:
         raise
 
 
-@router.get("/options")
+@router.get("/options", response_model=Dict[str, Any], summary="获取多账户全局选项")
 def get_account_options() -> Dict[str, Any]:
-    """读取多账户相关全局选项。"""
+    """
+    获取多账户相关的全局配置选项
+
+    ## 功能描述
+    返回多账户系统的全局配置设置，包括实例运行模式和完成后操作。
+
+    ## 返回数据
+    - **instanceRun**: 实例运行模式
+      - "ALL": 运行所有启用的实例
+      - "CURRENT": 仅运行当前实例
+    - **afterDone**: 完成后操作
+      - "NONE": 无操作
+      - "CLOSE_GAME": 关闭游戏
+      - "SHUTDOWN": 关机
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/accounts/options")
+    options = response.json()
+    print(f"运行模式: {options['instanceRun']}")
+    print(f"完成后操作: {options['afterDone']}")
+    ```
+    """
     ctx = get_ctx()
     odc = ctx.one_dragon_config
     return {
@@ -764,11 +1252,37 @@ def get_account_options() -> Dict[str, Any]:
     }
 
 
-@router.put("/options")
+@router.put("/options", response_model=Dict[str, Any], summary="更新多账户全局选项")
 def update_account_options(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """更新多账户相关全局选项。
-    - instanceRun: ALL | CURRENT
-    - afterDone: NONE | CLOSE_GAME | SHUTDOWN
+    """
+    更新多账户相关的全局配置选项
+
+    ## 功能描述
+    更新多账户系统的全局配置设置，控制实例运行行为和完成后操作。
+
+    ## 请求参数
+    - **instanceRun** (可选): 实例运行模式
+      - "ALL": 运行所有启用的实例
+      - "CURRENT": 仅运行当前实例
+    - **afterDone** (可选): 完成后操作
+      - "NONE": 无操作
+      - "CLOSE_GAME": 关闭游戏
+      - "SHUTDOWN": 关机
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "instanceRun": "ALL",
+        "afterDone": "CLOSE_GAME"
+    }
+    response = requests.put("http://localhost:8000/api/v1/accounts/options", json=data)
+    result = response.json()
+    print(f"更新结果: {result['ok']}")
+    ```
     """
     ctx = get_ctx()
     odc = ctx.one_dragon_config

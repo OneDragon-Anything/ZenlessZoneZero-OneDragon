@@ -14,13 +14,32 @@ from zzz_od.api.security import get_api_key_dependency
 
 router = APIRouter(
     prefix="/api/v1/home",
-    tags=["home"],
+    tags=["首页 Home"],
     dependencies=[Depends(get_api_key_dependency())],
 )
 
 
-@router.get("/version")
+@router.get("/version", response_model=Dict[str, str], summary="获取版本信息")
 def get_version() -> Dict[str, str]:
+    """
+    获取应用程序版本信息
+
+    ## 功能描述
+    返回启动器版本和代码版本信息，用于版本检查和显示。
+
+    ## 返回数据
+    - **launcherVersion**: 启动器版本号
+    - **codeVersion**: 代码版本号
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/home/version")
+    version_info = response.json()
+    print(f"启动器版本: {version_info['launcherVersion']}")
+    print(f"代码版本: {version_info['codeVersion']}")
+    ```
+    """
     ctx = get_ctx()
     return {
         "launcherVersion": app_utils.get_launcher_version(),
@@ -44,8 +63,31 @@ def _choose_banner(ctx) -> tuple[str, str, bool]:
         return "default", index_banner_path, os.path.exists(index_banner_path)
 
 
-@router.get("/banner")
+@router.get("/banner", response_model=Dict[str, Any], summary="获取横幅配置")
 def get_banner() -> Dict[str, Any]:
+    """
+    获取首页横幅的配置和状态
+
+    ## 功能描述
+    返回当前横幅的显示模式、路径和相关设置信息。
+
+    ## 返回数据
+    - **mode**: 横幅模式 (custom/version_poster/remote/default)
+    - **path**: 横幅文件路径
+    - **exists**: 文件是否存在
+    - **settings**: 横幅设置
+      - **customBanner**: 是否启用自定义横幅
+      - **remoteBanner**: 是否启用远程横幅
+      - **versionPoster**: 是否启用版本海报
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/home/banner")
+    banner_info = response.json()
+    print(f"横幅模式: {banner_info['mode']}")
+    ```
+    """
     ctx = get_ctx()
     mode, path, exists = _choose_banner(ctx)
     return {
@@ -60,8 +102,33 @@ def get_banner() -> Dict[str, Any]:
     }
 
 
-@router.post("/banner")
+@router.post("/banner", summary="设置横幅配置")
 def set_banner_settings(payload: Dict[str, Any]):
+    """
+    更新首页横幅的显示设置
+
+    ## 功能描述
+    更新横幅的显示配置，包括自定义横幅、远程横幅和版本海报的开关。
+
+    ## 请求参数
+    - **customBanner** (可选): 是否启用自定义横幅，布尔值
+    - **remoteBanner** (可选): 是否启用远程横幅，布尔值
+    - **versionPoster** (可选): 是否启用版本海报，布尔值
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "customBanner": True,
+        "remoteBanner": False
+    }
+    response = requests.post("http://localhost:8000/api/v1/home/banner", json=data)
+    print(response.json()["ok"])
+    ```
+    """
     ctx = get_ctx()
     if "customBanner" in payload:
         ctx.custom_config.custom_banner = bool(payload["customBanner"])
@@ -72,8 +139,36 @@ def set_banner_settings(payload: Dict[str, Any]):
     return {"ok": True}
 
 
-@router.post("/banner:reload")
+@router.post("/banner:reload", summary="重新加载横幅")
 def reload_banner():
+    """
+    重新下载和加载横幅图片
+
+    ## 功能描述
+    根据当前设置重新从远程服务器下载横幅图片，包括版本海报和远程横幅。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **error** (可选): 错误信息
+      - **code**: 错误代码
+      - **message**: 错误消息
+
+    ## 错误码
+    - **NO_IMAGE**: 未获取到图片地址
+    - **DOWNLOAD_FAIL**: 图片下载失败
+    - **EXCEPTION**: 其他异常
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/home/banner:reload")
+    result = response.json()
+    if result["ok"]:
+        print("横幅重新加载成功")
+    else:
+        print(f"加载失败: {result['error']['message']}")
+    ```
+    """
     ctx = get_ctx()
 
     assets_ui = os_utils.get_path_under_work_dir('assets', 'ui')
@@ -130,22 +225,85 @@ def reload_banner():
         return {"ok": False, "error": {"code": "EXCEPTION", "message": str(e)}}
 
 
-@router.get("/notices")
+@router.get("/notices", summary="获取公告设置")
 def get_notices():
+    """
+    获取公告卡片的显示设置
+
+    ## 功能描述
+    返回首页公告卡片是否启用的设置状态。
+
+    ## 返回数据
+    - **enabled**: 是否启用公告卡片显示
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/home/notices")
+    notices_info = response.json()
+    print(f"公告启用状态: {notices_info['enabled']}")
+    ```
+    """
     ctx = get_ctx()
     return {"enabled": ctx.custom_config.notice_card}
 
 
-@router.post("/notices")
+@router.post("/notices", summary="设置公告显示")
 def set_notices(payload: Dict[str, Any]):
+    """
+    设置公告卡片的显示状态
+
+    ## 功能描述
+    更新首页公告卡片的显示开关设置。
+
+    ## 请求参数
+    - **enabled**: 是否启用公告卡片显示，布尔值
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {"enabled": True}
+    response = requests.post("http://localhost:8000/api/v1/home/notices", json=data)
+    print(response.json()["ok"])
+    ```
+    """
     enabled = bool(payload.get("enabled", True))
     ctx = get_ctx()
     ctx.custom_config.notice_card = enabled
     return {"ok": True}
 
 
-@router.get("/update/code")
+@router.get("/update/code", summary="检查代码更新")
 def check_code_update():
+    """
+    检查代码是否有可用更新
+
+    ## 功能描述
+    检查当前代码版本与远程仓库的最新版本，判断是否需要更新。
+
+    ## 返回数据
+    - **needUpdate**: 是否需要更新，布尔值
+    - **message**: 检查结果消息
+
+    ## 可能的消息
+    - "与远程分支不一致": 需要更新
+    - "获取远程代码失败": 网络或其他错误
+    - 其他状态消息
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/home/update/code")
+    update_info = response.json()
+    if update_info["needUpdate"]:
+        print(f"需要更新: {update_info['message']}")
+    else:
+        print("代码已是最新版本")
+    ```
+    """
     ctx = get_ctx()
     is_latest, msg = ctx.git_service.is_current_branch_latest()
     if msg == "与远程分支不一致":
@@ -157,8 +315,28 @@ def check_code_update():
     return {"needUpdate": bool(need_update), "message": msg}
 
 
-@router.get("/update/model")
+@router.get("/update/model", summary="检查模型更新")
 def check_model_update():
+    """
+    检查AI模型是否有可用更新
+
+    ## 功能描述
+    检查当前使用的AI模型是否为旧版本，判断是否需要更新到最新模型。
+
+    ## 返回数据
+    - **needUpdate**: 是否需要更新模型，布尔值
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/home/update/model")
+    model_info = response.json()
+    if model_info["needUpdate"]:
+        print("需要更新AI模型")
+    else:
+        print("AI模型已是最新版本")
+    ```
+    """
     ctx = get_ctx()
     need_update = ctx.model_config.using_old_model()
     return {"needUpdate": bool(need_update)}
