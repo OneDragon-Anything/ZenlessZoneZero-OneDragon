@@ -19,7 +19,7 @@ from zzz_od.api.battle_assistant_models import (
     TaskAlreadyRunningError,
     ConfigNotFoundError,
     TemplateNotFoundError,
-    PermissionError
+    AccessDeniedError
 )
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ def handle_battle_assistant_errors(func: F) -> F:
         except FileNotFoundError as e:
             raise ConfigNotFoundError(f"文件未找到: {str(e)}")
         except PermissionError as e:
-            raise PermissionError(f"权限不足: {str(e)}")
+            raise AccessDeniedError(f"权限不足: {str(e)}")
         except ValueError as e:
             raise ValidationError(f"参数验证失败: {str(e)}")
         except Exception as e:
@@ -208,7 +208,7 @@ def ensure_directory_writable(directory_path: str) -> None:
     """确保目录可写"""
     import os
     if not os.access(directory_path, os.W_OK):
-        raise PermissionError(f"目录不可写: {directory_path}")
+        raise AccessDeniedError(f"目录不可写: {directory_path}")
 
 
 def ensure_config_not_current(config_name: str, current_config: str, config_type: str = "配置") -> None:
