@@ -38,6 +38,8 @@ from zzz_od.api.routers import game_assistant
 from zzz_od.api.routers import battle_assistant
 from zzz_od.api.routers import random_play
 from zzz_od.api.routers import drive_disc_dismantle
+from zzz_od.api.routers import context
+from zzz_od.api.routers import logs
 from zzz_od.api.middleware import BattleAssistantExceptionHandler, create_battle_assistant_exception_handlers
 
 
@@ -157,6 +159,8 @@ app.include_router(game_assistant.router)
 app.include_router(battle_assistant.router)
 app.include_router(random_play.router)
 app.include_router(drive_disc_dismantle.router)
+app.include_router(context.router)
+app.include_router(logs.router)
 app.include_router(ws_router)
 
 
