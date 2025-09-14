@@ -238,7 +238,7 @@ try:
         def _check_first_run(self):
             """首次运行时显示防倒卖弹窗"""
             if self.ctx.env_config.is_first_run:
-                dialog = ZWelcomeDialog(self, self.ctx)
+                dialog = ZWelcomeDialog(self.ctx, self)
                 if dialog.exec():
                     self.ctx.env_config.is_first_run = False
 

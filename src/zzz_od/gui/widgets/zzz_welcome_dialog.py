@@ -10,7 +10,7 @@ from one_dragon_qt.widgets.welcome_dialog import WelcomeDialog
 class ZWelcomeDialog(WelcomeDialog):
     """自定义欢迎对话框，继承自 WelcomeDialog"""
 
-    def __init__(self, ctx, parent=None):
+    def __init__(self, ctx: OneDragonContext, parent=None):
         WelcomeDialog.__init__(self, parent, title=gt('欢迎使用绝区零一条龙'))
         self.ctx: OneDragonContext = ctx
 
@@ -31,14 +31,12 @@ class ZWelcomeDialog(WelcomeDialog):
         github_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         github_button.adjustSize()
 
-        spacer = QSpacerItem(10, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-
         button_layout = QHBoxLayout()
         button_layout.addStretch(1)
         button_layout.addWidget(essential_setup_button)
-        button_layout.addItem(spacer)
+        button_layout.addSpacing(10)
         button_layout.addWidget(doc_button)
-        button_layout.addItem(spacer)
+        button_layout.addSpacing(10)
         button_layout.addWidget(github_button)
         button_layout.addStretch(1)
         self.viewLayout.addLayout(button_layout)
