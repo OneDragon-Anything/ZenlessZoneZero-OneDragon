@@ -238,7 +238,7 @@ try:
         def _check_first_run(self):
             """首次运行时显示防倒卖弹窗"""
             if self.ctx.env_config.is_first_run:
-                dialog = ZWelcomeDialog(self)
+                dialog = ZWelcomeDialog(self, self.ctx)
                 if dialog.exec():
                     self.ctx.env_config.is_first_run = False
 
@@ -307,7 +307,7 @@ except Exception as e:
 
     stack_trace = traceback.format_exc()
     _init_error = f"启动一条龙失败，报错信息如下:\n{stack_trace}"
-    
+
     # 自动打开浏览器访问错误排障文档
     webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
 
