@@ -22,7 +22,7 @@ from zzz_od.api.battle_assistant_models import (
     TaskAlreadyRunningError,
     ConfigNotFoundError,
     TemplateNotFoundError,
-    PermissionError,
+    AccessDeniedError,
     ErrorResponse,
     ErrorDetail
 )
@@ -178,7 +178,7 @@ def create_battle_assistant_exception_handlers():
         """处理模板未找到错误"""
         return await handle_battle_assistant_error(request, exc)
 
-    async def handle_permission_error(request: Request, exc: PermissionError):
+    async def handle_access_denied_error(request: Request, exc: AccessDeniedError):
         """处理权限错误"""
         return await handle_battle_assistant_error(request, exc)
 
@@ -192,5 +192,5 @@ def create_battle_assistant_exception_handlers():
         TaskAlreadyRunningError: handle_task_already_running_error,
         ConfigNotFoundError: handle_config_not_found_error,
         TemplateNotFoundError: handle_template_not_found_error,
-        PermissionError: handle_permission_error,
+        AccessDeniedError: handle_access_denied_error,
     }
