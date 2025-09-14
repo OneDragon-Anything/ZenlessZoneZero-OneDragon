@@ -577,6 +577,12 @@ class InstallerInterface(VerticalScrollInterface):
         self.back_btn.clicked.connect(self.show_quick)
         button_layout.addWidget(self.back_btn)
 
+        # 源配置按钮
+        self.source_config_btn = PushButton(gt('源配置'))
+        self.source_config_btn.setFixedSize(120, 40)
+        self.source_config_btn.clicked.connect(lambda: self.window().stackedWidget.setCurrentIndex(0))
+        button_layout.addWidget(self.source_config_btn)
+
         # 将后续按钮推向右侧
         button_layout.addStretch()
 
