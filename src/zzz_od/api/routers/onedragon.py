@@ -622,8 +622,8 @@ def get_team():
     - **teams**: 队伍列表
       - **idx**: 队伍索引
       - **name**: 队伍名称
-      - **members**: 队伍成员列表
       - **autoBattle**: 自动战斗配置
+      - **members**: 队伍成员列表 [{"agentId": string, "name": string}]
 
     ## 使用示例
     ```python
@@ -636,31 +636,45 @@ def get_team():
     """
     from zzz_od.game_data.agent import AgentEnum
 
-    def agent_id_to_name(agent_id: str) -> str:
-        if agent_id == 'unknown':
-            return '未知'
+    # 构建agent_id到name的映射，提高查询效率
+    agent_name_map = {'unknown': '未知'}
+    try:
         for agent_enum in AgentEnum:
-            if agent_enum.value.agent_id == agent_id:
-                return agent_enum.value.agent_name
-        return agent_id
+            agent = agent_enum.value
+            if hasattr(agent, 'agent_id') and hasattr(agent, 'agent_name'):
+                agent_name_map[agent.agent_id] = agent.agent_name
+    except Exception as e:
+        # 如果构建映射失败，使用默认映射
+        pass
 
     ctx = get_ctx()
     tc = ctx.team_config
-    teams = [
-        {
+    teams = []
+
+    for t in tc.team_list:
+        members = []
+        for agent_id in t.agent_id_list:
+            # 确保agent_id是字符串类型
+            if isinstance(agent_id, str):
+                members.append({
+                    "agentId": agent_id,
+                    "name": agent_name_map.get(agent_id, agent_id)
+                })
+            elif isinstance(agent_id, dict) and 'agent_id' in agent_id:
+                # 如果agent_id是字典，提取agent_id字段
+                actual_id = agent_id['agent_id']
+                members.append({
+                    "agentId": actual_id,
+                    "name": agent_name_map.get(actual_id, actual_id)
+                })
+
+        teams.append({
             "idx": t.idx,
             "name": t.name,
-            "members": [
-                {
-                    "agentId": agent_id,
-                    "name": agent_id_to_name(agent_id)
-                }
-                for agent_id in t.agent_id_list
-            ],
             "autoBattle": t.auto_battle,
-        }
-        for t in tc.team_list
-    ]
+            "members": members
+        })
+
     return {"teams": teams}
 
 

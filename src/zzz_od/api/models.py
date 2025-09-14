@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field
+from typing import List
 
 
 class OkResponse(BaseModel):
@@ -52,6 +53,22 @@ class GameAccountConfigDTO(BaseModel):
     customWinTitle: Optional[str] = None
     account: Optional[str] = None
     password: Optional[str] = None
+
+
+class TeamMemberDTO(BaseModel):
+    agentId: str = Field(..., description="代理人ID")
+    name: str = Field(..., description="代理人名称")
+
+
+class TeamDTO(BaseModel):
+    idx: int = Field(..., description="队伍索引")
+    name: str = Field(..., description="队伍名称")
+    members: List[TeamMemberDTO] = Field(..., description="队伍成员列表")
+    autoBattle: str = Field(..., description="自动战斗配置")
+
+
+class TeamListResponse(BaseModel):
+    teams: List[TeamDTO] = Field(..., description="队伍列表")
 
 
 
