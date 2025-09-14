@@ -73,9 +73,8 @@ class InstallerWindowBase(AppWindowBase):
 
     # 继承初始化函数
     def init_window(self):
-        # 增高以容纳新的链接按钮组，同时设定最小尺寸，避免小屏溢出
-        self.setMinimumSize(960, 720)
-        self.resize(960, 720)
+        self.resize(960, 640)
+        self.setMinimumSize(960, 640)
 
         # 初始化位置
         self.move(100, 100)
@@ -98,4 +97,5 @@ class InstallerWindowBase(AppWindowBase):
         OdQtStyleSheet.TITLE_BAR.apply(self.titleBar)
 
         # 设置参数
+        self.titleBar.setInstallerVersion(__version__)
         self.titleBar.issue_url = f"{self.ctx.project_config.github_homepage}/issues"
