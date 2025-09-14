@@ -129,7 +129,10 @@ class ApplicationRunContext:
         return factory.create_application(instance_idx=instance_idx, group_id=group_id)
 
     def get_config(
-        self, app_id: str, instance_idx: int, group_id: str
+        self,
+        app_id: Optional[str] = None,
+        instance_idx: Optional[int] = None,
+        group_id: Optional[str] = None,
     ) -> Optional[ApplicationConfig]:
         """
         获取配置实例。
@@ -137,32 +140,54 @@ class ApplicationRunContext:
         通过已注册的工厂获取指定参数的应用配置。
 
         Args:
-            app_id: 应用ID
-            instance_idx: 账号实例下标
-            group_id: 应用组ID，不同应用组可以有不同的应用配置
+            app_id: 应用ID 为空时使用当前运行的
+            instance_idx: 账号实例下标 为空时使用当前运行的
+            group_id: 应用组ID 为空时使用当前运行的，不同应用组可以有不同的应用配置
 
         Returns:
             Optional[ApplicationConfig]: 应用配置对象，如果应用未注册则返回None
         """
+        if app_id is None:
+            app_id = self.current_app_id
+        if instance_idx is None:
+            instance_idx = self.current_instance_idx
+        if group_id is None:
+            group_id = self.current_group_id
+
+        if app_id is None or instance_idx is None or group_id is None:
+            return None
+
         if app_id not in self._application_factory_map:
             return None
 
         factory = self._application_factory_map[app_id]
         return factory.get_config(instance_idx, group_id)
 
-    def get_run_record(self, app_id: str, instance_idx: int) -> Optional[AppRunRecord]:
+    def get_run_record(
+        self,
+        app_id: Optional[str] = None,
+        instance_idx: Optional[int] = None,
+    ) -> Optional[AppRunRecord]:
         """
         获取运行记录实例。
 
         通过已注册的工厂获取指定参数的应用运行记录。
 
         Args:
-            app_id: 应用ID
-            instance_idx: 账号实例下标
+            app_id: 应用ID 为空时使用当前运行的
+            instance_idx: 账号实例下标 为空时使用当前运行的
 
         Returns:
             Optional[AppRunRecord]: 运行记录对象，如果应用未注册则返回None
         """
+        if app_id is None:
+            app_id = self.current_app_id
+        if instance_idx is None:
+            instance_idx = self.current_instance_idx
+
+        if app_id is None or instance_idx is None:
+            return None
+
         if app_id not in self._application_factory_map:
             return None
 

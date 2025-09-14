@@ -1018,6 +1018,8 @@ class Operation(OperationBase):
         """
         if screen is None:
             screen = self.last_screenshot
+        if screen is None:
+            _, screen = self.screenshot()
 
         # 优先使用OCR缓存服务
         if self.ctx.env_config.ocr_cache:

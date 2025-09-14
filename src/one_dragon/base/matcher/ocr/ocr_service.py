@@ -43,7 +43,7 @@ class OcrService:
         self.max_cache_size = max_cache_size
         
         # 缓存存储：key=图片ID，value为缓存条目
-        self._cache: dict[int, list[OcrCacheEntry]] = {}
+        self._cache: dict[int, list[OcrCacheEntry]] = {}  # TODO 这个ID有可能重复
         self._cache_list: list[OcrCacheEntry] = []
 
     def _clean_expired_cache(self) -> None:

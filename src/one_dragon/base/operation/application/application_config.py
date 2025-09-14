@@ -1,3 +1,5 @@
+import os
+
 from one_dragon.base.config.yaml_operator import YamlOperator
 from one_dragon.utils import os_utils
 
@@ -14,7 +16,8 @@ class ApplicationConfig(YamlOperator):
             instance_idx: 实例下标
             group_id: 应用组ID
         """
-        file_path = os_utils.get_path_under_work_dir(
-            "config", str(instance_idx), group_id, f"{app_id}.yml"
+        file_path = os.path.join(
+            os_utils.get_path_under_work_dir("config", ('%02d' % instance_idx), group_id),
+            f"{app_id}.yml",
         )
         YamlOperator.__init__(self, file_path=file_path)
