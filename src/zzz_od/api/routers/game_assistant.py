@@ -316,7 +316,7 @@ def get_life_on_line_record() -> Dict[str, Any]:
     record = ctx.life_on_line_record
     return {
         "dailyRunTimes": record.daily_run_times,
-        "isFinishedByTimes": record.is_finished_by_times,
+        "isFinishedByTimes": record.is_finished_by_times(),
     }
 
 
