@@ -275,9 +275,10 @@ def update_charge_plan(payload: dict):
     更新体力计划配置
 
     ## 功能描述
-    更新体力计划的全局设置，如循环、跳过等选项。
+    更新体力计划的全局设置和计划列表。
 
     ## 请求参数
+    - **planList** (可选): 计划项目列表，如果提供则完全替换现有列表
     - **loop** (可选): 是否循环执行
     - **skipPlan** (可选): 是否跳过计划
     - **useCoupon** (可选): 是否使用优惠券
@@ -295,6 +296,30 @@ def update_charge_plan(payload: dict):
     """
     ctx = get_ctx()
     cc = ctx.charge_plan_config
+
+    # 处理计划列表
+    if "planList" in payload:
+        plan_list = payload["planList"]
+        cc.plan_list.clear()
+        for item in plan_list:
+            plan = ChargePlanItem(
+                tab_name=item.get('tabName', '训练'),
+                category_name=item.get('categoryName', '实战模拟室'),
+                mission_type_name=item.get('missionTypeName', '基础材料'),
+                mission_name=item.get('missionName', '调查专项'),
+                level=item.get('level', '默认等级'),
+                auto_battle_config=item.get('autoBattleConfig', '全配队通用'),
+                run_times=item.get('runTimes', 0),
+                plan_times=item.get('planTimes', 1),
+                card_num=str(item.get('cardNum')) if item.get('cardNum') is not None else '默认数量',
+                predefined_team_idx=item.get('predefinedTeamIdx', -1),
+                notorious_hunt_buff_num=item.get('notoriousHuntBuffNum', 1),
+                plan_id=item.get('planId'),
+            )
+            cc.plan_list.append(plan)
+        cc.save()
+
+    # 处理全局设置
     if "loop" in payload:
         cc.loop = bool(payload["loop"])
     if "skipPlan" in payload:
