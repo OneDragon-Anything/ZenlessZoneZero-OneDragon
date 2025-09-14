@@ -932,7 +932,17 @@ def update_team(payload: dict):
         name = item.get("name") or f"编队{idx+1}"
         members = item.get("members") or []
         auto_battle = item.get("autoBattle") or "全配队通用"
-        t = PredefinedTeamInfo(idx=idx, name=name, auto_battle=auto_battle, agent_id_list=members)
+
+        # 从members数组中提取agentId字段
+        agent_id_list = []
+        for member in members:
+            if isinstance(member, dict) and "agentId" in member:
+                agent_id_list.append(member["agentId"])
+            elif isinstance(member, str):
+                # 兼容旧格式，如果直接是字符串
+                agent_id_list.append(member)
+
+        t = PredefinedTeamInfo(idx=idx, name=name, auto_battle=auto_battle, agent_id_list=agent_id_list)
         tc.update_team(t)
     return {"ok": True}
 
