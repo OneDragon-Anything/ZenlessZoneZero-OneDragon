@@ -18,7 +18,7 @@ from zzz_od.application.battle_assistant.auto_battle_config import get_auto_batt
 
 router = APIRouter(
     prefix="/api/v1/hollow-zero",
-    tags=["hollow-zero"],
+    tags=["零号空洞 Hollow Zero"],
     dependencies=[Depends(get_api_key_dependency())],
 )
 
@@ -58,16 +58,56 @@ def _start_app_run(app_factory) -> str:
     return run_id
 
 
-@router.post("/run")
+@router.post("/run", response_model=RunIdResponse, summary="运行零号空洞 - 枯萎之都")
 async def run_hollow_zero():
-    """运行零号空洞 - 枯萎之都"""
+    """
+    启动零号空洞 - 枯萎之都自动化任务
+
+    ## 功能描述
+    启动零号空洞枯萎之都的自动化挑战任务，使用当前配置的挑战策略和队伍配置。
+
+    ## 返回数据
+    - **runId**: 任务运行ID，用于后续状态查询和控制
+
+    ## 错误码
+    - **TASK_START_FAILED**: 任务启动失败
+    - **CONFIG_ERROR**: 配置错误
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/run")
+    task_info = response.json()
+    print(f"任务ID: {task_info['runId']}")
+    ```
+    """
     run_id = _run_via_onedragon_with_temp(["hollow_zero"])
     return RunIdResponse(runId=run_id)
 
 
-@router.post("/lost-void/run")
+@router.post("/lost-void/run", response_model=RunIdResponse, summary="运行零号空洞 - 迷失之地")
 async def run_lost_void():
-    """运行零号空洞 - 迷失之地"""
+    """
+    启动零号空洞 - 迷失之地自动化任务
+
+    ## 功能描述
+    启动零号空洞迷失之地的自动化挑战任务，使用当前配置的挑战策略和队伍配置。
+
+    ## 返回数据
+    - **runId**: 任务运行ID，用于后续状态查询和控制
+
+    ## 错误码
+    - **TASK_START_FAILED**: 任务启动失败
+    - **CONFIG_ERROR**: 配置错误
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/lost-void/run")
+    task_info = response.json()
+    print(f"迷失之地任务ID: {task_info['runId']}")
+    ```
+    """
     run_id = _run_via_onedragon_with_temp(["lost_void"])
     return RunIdResponse(runId=run_id)
 
@@ -110,9 +150,38 @@ def get_hollow_zero_route_list() -> List[str]:
         )
 
 
-@router.get("/challenge-configs")
+@router.get("/challenge-configs", response_model=List[Dict[str, Any]], summary="获取所有枯萎之都挑战配置")
 def get_hollow_zero_challenge_configs() -> List[Dict[str, Any]]:
-    """获取所有枯萎之都挑战配置"""
+    """
+    获取所有枯萎之都挑战配置列表
+
+    ## 功能描述
+    返回系统中所有可用的枯萎之都挑战配置，包括自动战斗设置、鸣徽优先级、事件优先级等详细配置信息。
+
+    ## 返回数据
+    配置对象列表，每个配置包含：
+    - **moduleName**: 配置模块名称
+    - **autoBattle**: 自动战斗配置名称
+    - **resoniumPriority**: 鸣徽优先级列表
+    - **eventPriority**: 事件优先级列表
+    - **targetAgents**: 目标代理人列表
+    - **pathFinding**: 寻路策略设置
+    - **goIn1Step**: 一步可达入口列表
+    - **waypoint**: 优先途经点列表
+    - **avoid**: 避免途经点列表
+
+    ## 错误码
+    - **CONFIG_FETCH_FAILED**: 获取配置失败
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/challenge-configs")
+    configs = response.json()
+    for config in configs:
+        print(f"配置: {config['moduleName']}")
+    ```
+    """
     configs = get_all_hollow_zero_challenge_config()
     return [
         {
@@ -130,9 +199,41 @@ def get_hollow_zero_challenge_configs() -> List[Dict[str, Any]]:
     ]
 
 
-@router.get("/challenge-configs/{module_name}")
+@router.get("/challenge-configs/{module_name}", response_model=Dict[str, Any], summary="获取指定的枯萎之都挑战配置")
 def get_hollow_zero_challenge_config(module_name: str) -> Dict[str, Any]:
-    """获取指定的枯萎之都挑战配置"""
+    """
+    获取指定名称的枯萎之都挑战配置详情
+
+    ## 功能描述
+    根据配置模块名称获取特定的枯萎之都挑战配置的详细信息。
+
+    ## 路径参数
+    - **module_name**: 配置模块名称
+
+    ## 返回数据
+    配置对象，包含：
+    - **moduleName**: 配置模块名称
+    - **autoBattle**: 自动战斗配置名称
+    - **resoniumPriority**: 鸣徽优先级列表
+    - **eventPriority**: 事件优先级列表
+    - **targetAgents**: 目标代理人列表
+    - **pathFinding**: 寻路策略设置
+    - **goIn1Step**: 一步可达入口列表
+    - **waypoint**: 优先途经点列表
+    - **avoid**: 避免途经点列表
+
+    ## 错误码
+    - **CONFIG_NOT_FOUND**: 配置不存在 (404)
+    - **CONFIG_FETCH_FAILED**: 获取配置失败
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/challenge-configs/默认配置")
+    config = response.json()
+    print(f"自动战斗配置: {config['autoBattle']}")
+    ```
+    """
     configs = get_all_hollow_zero_challenge_config()
     config = next((c for c in configs if c.module_name == module_name), None)
     if not config:
@@ -151,9 +252,46 @@ def get_hollow_zero_challenge_config(module_name: str) -> Dict[str, Any]:
     }
 
 
-@router.post("/challenge-configs")
+@router.post("/challenge-configs", response_model=Dict[str, Any], summary="创建新的枯萎之都挑战配置")
 def create_hollow_zero_challenge_config(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """创建新的枯萎之都挑战配置"""
+    """
+    创建新的枯萎之都挑战配置
+
+    ## 功能描述
+    根据提供的配置参数创建一个新的枯萎之都挑战配置文件。
+
+    ## 请求参数
+    - **moduleName** (可选): 配置模块名称，不提供时自动生成
+    - **autoBattle** (可选): 自动战斗配置名称
+    - **resoniumPriority** (可选): 鸣徽优先级列表
+    - **eventPriority** (可选): 事件优先级列表
+    - **targetAgents** (可选): 目标代理人列表
+    - **pathFinding** (可选): 寻路策略设置
+    - **goIn1Step** (可选): 一步可达入口列表
+    - **waypoint** (可选): 优先途经点列表
+    - **avoid** (可选): 避免途经点列表
+
+    ## 返回数据
+    - **moduleName**: 创建的配置模块名称
+    - **message**: 创建成功消息
+
+    ## 错误码
+    - **CONFIG_CREATE_FAILED**: 配置创建失败
+    - **VALIDATION_ERROR**: 参数验证失败
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "moduleName": "我的配置",
+        "autoBattle": "全配队通用",
+        "resoniumPriority": ["强袭 攻击", "顽强 防御"]
+    }
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/challenge-configs", json=data)
+    result = response.json()
+    print(f"创建配置: {result['moduleName']}")
+    ```
+    """
     module_name = payload.get("moduleName", get_hollow_zero_challenge_new_name())
     config = HollowZeroChallengeConfig(module_name)
 
@@ -180,9 +318,49 @@ def create_hollow_zero_challenge_config(payload: Dict[str, Any]) -> Dict[str, An
     return {"moduleName": config.module_name, "message": "Configuration created successfully"}
 
 
-@router.put("/challenge-configs/{module_name}")
+@router.put("/challenge-configs/{module_name}", response_model=Dict[str, Any], summary="更新指定的枯萎之都挑战配置")
 def update_hollow_zero_challenge_config(module_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    """更新指定的枯萎之都挑战配置"""
+    """
+    更新指定的枯萎之都挑战配置
+
+    ## 功能描述
+    根据配置模块名称更新现有的枯萎之都挑战配置，支持部分更新。
+
+    ## 路径参数
+    - **module_name**: 要更新的配置模块名称
+
+    ## 请求参数
+    - **moduleName** (可选): 新的配置模块名称
+    - **autoBattle** (可选): 自动战斗配置名称
+    - **resoniumPriority** (可选): 鸣徽优先级列表
+    - **eventPriority** (可选): 事件优先级列表
+    - **targetAgents** (可选): 目标代理人列表
+    - **pathFinding** (可选): 寻路策略设置
+    - **goIn1Step** (可选): 一步可达入口列表
+    - **waypoint** (可选): 优先途经点列表
+    - **avoid** (可选): 避免途经点列表
+
+    ## 返回数据
+    - **moduleName**: 更新后的配置模块名称
+    - **message**: 更新成功消息
+
+    ## 错误码
+    - **CONFIG_NOT_FOUND**: 配置不存在 (404)
+    - **CONFIG_UPDATE_FAILED**: 配置更新失败
+    - **VALIDATION_ERROR**: 参数验证失败
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "autoBattle": "新的战斗配置",
+        "resoniumPriority": ["更新的鸣徽优先级"]
+    }
+    response = requests.put("http://localhost:8000/api/v1/hollow-zero/challenge-configs/我的配置", json=data)
+    result = response.json()
+    print(result['message'])
+    ```
+    """
     configs = get_all_hollow_zero_challenge_config()
     config = next((c for c in configs if c.module_name == module_name), None)
     if not config:
@@ -213,9 +391,37 @@ def update_hollow_zero_challenge_config(module_name: str, payload: Dict[str, Any
     return {"moduleName": config.module_name, "message": "Configuration updated successfully"}
 
 
-@router.delete("/challenge-configs/{module_name}")
+@router.delete("/challenge-configs/{module_name}", response_model=Dict[str, Any], summary="删除指定的枯萎之都挑战配置")
 def delete_hollow_zero_challenge_config(module_name: str) -> Dict[str, Any]:
-    """删除指定的枯萎之都挑战配置"""
+    """
+    删除指定的枯萎之都挑战配置
+
+    ## 功能描述
+    根据配置模块名称删除指定的枯萎之都挑战配置文件。
+
+    ## 路径参数
+    - **module_name**: 要删除的配置模块名称
+
+    ## 返回数据
+    - **message**: 删除成功消息
+
+    ## 错误码
+    - **CONFIG_NOT_FOUND**: 配置不存在 (404)
+    - **CONFIG_DELETE_FAILED**: 配置删除失败
+    - **PERMISSION_ERROR**: 权限错误（如尝试删除系统配置）
+
+    ## 注意事项
+    - 删除操作不可逆，请谨慎操作
+    - 系统默认配置可能无法删除
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.delete("http://localhost:8000/api/v1/hollow-zero/challenge-configs/我的配置")
+    result = response.json()
+    print(result['message'])
+    ```
+    """
     configs = get_all_hollow_zero_challenge_config()
     config = next((c for c in configs if c.module_name == module_name), None)
     if not config:
@@ -232,9 +438,39 @@ def delete_hollow_zero_challenge_config(module_name: str) -> Dict[str, Any]:
 # -------- Lost Void Challenge Config --------
 
 
-@router.get("/lost-void/challenge-configs")
+@router.get("/lost-void/challenge-configs", response_model=List[Dict[str, Any]], summary="获取所有迷失之地挑战配置")
 def get_lost_void_challenge_configs() -> List[Dict[str, Any]]:
-    """获取所有迷失之地挑战配置"""
+    """
+    获取所有迷失之地挑战配置列表
+
+    ## 功能描述
+    返回系统中所有可用的迷失之地挑战配置，包括队伍选择、自动战斗设置、藏品优先级等详细配置信息。
+
+    ## 返回数据
+    配置对象列表，每个配置包含：
+    - **moduleName**: 配置模块名称
+    - **predefinedTeamIdx**: 预设队伍索引
+    - **chooseTeamByPriority**: 是否按优先级选择队伍
+    - **autoBattle**: 自动战斗配置名称
+    - **artifactPriorityNew**: 新藏品优先级列表
+    - **artifactPriority**: 藏品优先级列表
+    - **artifactPriority2**: 二级藏品优先级列表
+    - **regionTypePriority**: 区域类型优先级列表
+    - **periodBuffNo**: 周期增益编号
+    - **buyOnlyPriority1**: 是否只购买优先级1的物品
+
+    ## 错误码
+    - **CONFIG_FETCH_FAILED**: 获取配置失败
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/lost-void/challenge-configs")
+    configs = response.json()
+    for config in configs:
+        print(f"迷失之地配置: {config['moduleName']}")
+    ```
+    """
     configs = get_all_lost_void_challenge_config()
     return [
         {
@@ -253,9 +489,42 @@ def get_lost_void_challenge_configs() -> List[Dict[str, Any]]:
     ]
 
 
-@router.get("/lost-void/challenge-configs/{module_name}")
+@router.get("/lost-void/challenge-configs/{module_name}", response_model=Dict[str, Any], summary="获取指定的迷失之地挑战配置")
 def get_lost_void_challenge_config(module_name: str) -> Dict[str, Any]:
-    """获取指定的迷失之地挑战配置"""
+    """
+    获取指定名称的迷失之地挑战配置详情
+
+    ## 功能描述
+    根据配置模块名称获取特定的迷失之地挑战配置的详细信息。
+
+    ## 路径参数
+    - **module_name**: 配置模块名称
+
+    ## 返回数据
+    配置对象，包含：
+    - **moduleName**: 配置模块名称
+    - **predefinedTeamIdx**: 预设队伍索引 (-1表示游戏内配队)
+    - **chooseTeamByPriority**: 是否按优先级选择队伍
+    - **autoBattle**: 自动战斗配置名称
+    - **artifactPriorityNew**: 新藏品优先级列表
+    - **artifactPriority**: 藏品优先级列表
+    - **artifactPriority2**: 二级藏品优先级列表
+    - **regionTypePriority**: 区域类型优先级列表
+    - **periodBuffNo**: 周期增益编号
+    - **buyOnlyPriority1**: 是否只购买优先级1的物品
+
+    ## 错误码
+    - **CONFIG_NOT_FOUND**: 配置不存在 (404)
+    - **CONFIG_FETCH_FAILED**: 获取配置失败
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/lost-void/challenge-configs/默认配置")
+    config = response.json()
+    print(f"队伍索引: {config['predefinedTeamIdx']}")
+    ```
+    """
     configs = get_all_lost_void_challenge_config()
     config = next((c for c in configs if c.module_name == module_name), None)
     if not config:
@@ -275,9 +544,47 @@ def get_lost_void_challenge_config(module_name: str) -> Dict[str, Any]:
     }
 
 
-@router.post("/lost-void/challenge-configs")
+@router.post("/lost-void/challenge-configs", response_model=Dict[str, Any], summary="创建新的迷失之地挑战配置")
 def create_lost_void_challenge_config(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """创建新的迷失之地挑战配置"""
+    """
+    创建新的迷失之地挑战配置
+
+    ## 功能描述
+    根据提供的配置参数创建一个新的迷失之地挑战配置文件。
+
+    ## 请求参数
+    - **moduleName** (可选): 配置模块名称，不提供时自动生成
+    - **predefinedTeamIdx** (可选): 预设队伍索引，-1表示游戏内配队
+    - **chooseTeamByPriority** (可选): 是否按优先级选择队伍
+    - **autoBattle** (可选): 自动战斗配置名称
+    - **artifactPriorityNew** (可选): 新藏品优先级列表
+    - **artifactPriority** (可选): 藏品优先级列表
+    - **artifactPriority2** (可选): 二级藏品优先级列表
+    - **regionTypePriority** (可选): 区域类型优先级列表
+    - **periodBuffNo** (可选): 周期增益编号
+    - **buyOnlyPriority1** (可选): 是否只购买优先级1的物品
+
+    ## 返回数据
+    - **moduleName**: 创建的配置模块名称
+    - **message**: 创建成功消息
+
+    ## 错误码
+    - **CONFIG_CREATE_FAILED**: 配置创建失败
+    - **VALIDATION_ERROR**: 参数验证失败
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "moduleName": "我的迷失之地配置",
+        "predefinedTeamIdx": 1,
+        "autoBattle": "全配队通用"
+    }
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/lost-void/challenge-configs", json=data)
+    result = response.json()
+    print(f"创建配置: {result['moduleName']}")
+    ```
+    """
     module_name = payload.get("moduleName", get_lost_void_challenge_new_name())
     config = LostVoidChallengeConfig(module_name)
 
@@ -306,9 +613,50 @@ def create_lost_void_challenge_config(payload: Dict[str, Any]) -> Dict[str, Any]
     return {"moduleName": config.module_name, "message": "Configuration created successfully"}
 
 
-@router.put("/lost-void/challenge-configs/{module_name}")
+@router.put("/lost-void/challenge-configs/{module_name}", response_model=Dict[str, Any], summary="更新指定的迷失之地挑战配置")
 def update_lost_void_challenge_config(module_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-    """更新指定的迷失之地挑战配置"""
+    """
+    更新指定的迷失之地挑战配置
+
+    ## 功能描述
+    根据配置模块名称更新现有的迷失之地挑战配置，支持部分更新。
+
+    ## 路径参数
+    - **module_name**: 要更新的配置模块名称
+
+    ## 请求参数
+    - **moduleName** (可选): 新的配置模块名称
+    - **predefinedTeamIdx** (可选): 预设队伍索引，-1表示游戏内配队
+    - **chooseTeamByPriority** (可选): 是否按优先级选择队伍
+    - **autoBattle** (可选): 自动战斗配置名称
+    - **artifactPriorityNew** (可选): 新藏品优先级列表
+    - **artifactPriority** (可选): 藏品优先级列表
+    - **artifactPriority2** (可选): 二级藏品优先级列表
+    - **regionTypePriority** (可选): 区域类型优先级列表
+    - **periodBuffNo** (可选): 周期增益编号
+    - **buyOnlyPriority1** (可选): 是否只购买优先级1的物品
+
+    ## 返回数据
+    - **moduleName**: 更新后的配置模块名称
+    - **message**: 更新成功消息
+
+    ## 错误码
+    - **CONFIG_NOT_FOUND**: 配置不存在 (404)
+    - **CONFIG_UPDATE_FAILED**: 配置更新失败
+    - **VALIDATION_ERROR**: 参数验证失败
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "predefinedTeamIdx": 2,
+        "autoBattle": "新的战斗配置"
+    }
+    response = requests.put("http://localhost:8000/api/v1/hollow-zero/lost-void/challenge-configs/我的配置", json=data)
+    result = response.json()
+    print(result['message'])
+    ```
+    """
     configs = get_all_lost_void_challenge_config()
     config = next((c for c in configs if c.module_name == module_name), None)
     if not config:
@@ -341,9 +689,37 @@ def update_lost_void_challenge_config(module_name: str, payload: Dict[str, Any])
     return {"moduleName": config.module_name, "message": "Configuration updated successfully"}
 
 
-@router.delete("/lost-void/challenge-configs/{module_name}")
+@router.delete("/lost-void/challenge-configs/{module_name}", response_model=Dict[str, Any], summary="删除指定的迷失之地挑战配置")
 def delete_lost_void_challenge_config(module_name: str) -> Dict[str, Any]:
-    """删除指定的迷失之地挑战配置"""
+    """
+    删除指定的迷失之地挑战配置
+
+    ## 功能描述
+    根据配置模块名称删除指定的迷失之地挑战配置文件。
+
+    ## 路径参数
+    - **module_name**: 要删除的配置模块名称
+
+    ## 返回数据
+    - **message**: 删除成功消息
+
+    ## 错误码
+    - **CONFIG_NOT_FOUND**: 配置不存在 (404)
+    - **CONFIG_DELETE_FAILED**: 配置删除失败
+    - **PERMISSION_ERROR**: 权限错误（如尝试删除系统配置）
+
+    ## 注意事项
+    - 删除操作不可逆，请谨慎操作
+    - 系统默认配置可能无法删除
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.delete("http://localhost:8000/api/v1/hollow-zero/lost-void/challenge-configs/我的配置")
+    result = response.json()
+    print(result['message'])
+    ```
+    """
     configs = get_all_lost_void_challenge_config()
     config = next((c for c in configs if c.module_name == module_name), None)
     if not config:
