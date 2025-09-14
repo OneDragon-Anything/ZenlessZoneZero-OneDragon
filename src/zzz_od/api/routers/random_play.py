@@ -13,7 +13,7 @@ from zzz_od.api.models import RunIdResponse
 
 router = APIRouter(
     prefix="/api/v1/random-play",
-    tags=["random-play"],
+    tags=["录像店 Random Play"],
     dependencies=[Depends(get_api_key_dependency())],
 )
 
@@ -21,9 +21,27 @@ router = APIRouter(
 _registry = get_global_run_registry()
 
 
-@router.get("/config")
+@router.get("/config", response_model=Dict[str, Any], summary="获取录像店配置")
 def get_random_play_config() -> Dict[str, Any]:
-    """获取影像店配置"""
+    """
+    获取录像店营业的配置信息
+
+    ## 功能描述
+    返回录像店营业的配置设置，包括代理人选择配置。
+
+    ## 返回数据
+    - **agentName1**: 第一个代理人名称
+    - **agentName2**: 第二个代理人名称
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/random-play/config")
+    config = response.json()
+    print(f"代理人1: {config['agentName1']}")
+    print(f"代理人2: {config['agentName2']}")
+    ```
+    """
     ctx = get_ctx()
     config = ctx.random_play_config
     return {
@@ -32,9 +50,33 @@ def get_random_play_config() -> Dict[str, Any]:
     }
 
 
-@router.put("/config")
+@router.put("/config", response_model=Dict[str, Any], summary="更新录像店配置")
 def update_random_play_config(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """更新影像店配置"""
+    """
+    更新录像店营业的配置设置
+
+    ## 功能描述
+    更新录像店营业的配置参数，支持部分更新。
+
+    ## 请求参数
+    - **agentName1** (可选): 第一个代理人名称
+    - **agentName2** (可选): 第二个代理人名称
+
+    ## 返回数据
+    - **message**: 更新成功消息
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "agentName1": "妮可",
+        "agentName2": "艾莲"
+    }
+    response = requests.put("http://localhost:8000/api/v1/random-play/config", json=data)
+    result = response.json()
+    print(result["message"])
+    ```
+    """
     ctx = get_ctx()
     config = ctx.random_play_config
 
@@ -46,24 +88,78 @@ def update_random_play_config(payload: Dict[str, Any]) -> Dict[str, Any]:
     return {"message": "Configuration updated successfully"}
 
 
-@router.post("/run")
+@router.post("/run", response_model=RunIdResponse, summary="运行录像店营业")
 async def run_random_play():
-    """运行影像店营业"""
+    """
+    启动录像店营业自动化任务
+
+    ## 功能描述
+    启动录像店营业任务，自动完成录像店的营业流程。
+
+    ## 返回数据
+    - **runId**: 任务运行ID，用于后续状态查询和控制
+
+    ## 错误码
+    - **TASK_START_FAILED**: 任务启动失败
+    - **CONFIG_ERROR**: 配置错误
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/random-play/run")
+    task_info = response.json()
+    print(f"录像店任务ID: {task_info['runId']}")
+    ```
+    """
     run_id = _run_via_onedragon_with_temp(["random_play"])
     return RunIdResponse(runId=run_id)
 
 
-@router.post("/reset-record")
+@router.post("/reset-record", response_model=Dict[str, Any], summary="重置录像店运行记录")
 def reset_random_play_record() -> Dict[str, Any]:
-    """重置影像店运行记录"""
+    """
+    重置录像店营业的运行记录
+
+    ## 功能描述
+    清除录像店营业的历史运行记录，重新开始计算运行状态。
+
+    ## 返回数据
+    - **message**: 重置成功消息
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/random-play/reset-record")
+    result = response.json()
+    print(result["message"])
+    ```
+    """
     ctx = get_ctx()
     ctx.random_play_run_record.reset_record()
     return {"message": "Random play record reset successfully"}
 
 
-@router.get("/run-record")
+@router.get("/run-record", response_model=Dict[str, Any], summary="获取录像店运行记录")
 def get_random_play_run_record() -> Dict[str, Any]:
-    """获取影像店运行记录"""
+    """
+    获取录像店营业的运行记录
+
+    ## 功能描述
+    返回录像店营业的历史运行记录，包括完成状态和耗时信息。
+
+    ## 返回数据
+    - **finished**: 是否已完成，布尔值
+    - **timeCost**: 运行耗时（秒）
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/random-play/run-record")
+    record = response.json()
+    print(f"完成状态: {record['finished']}")
+    print(f"耗时: {record['timeCost']}秒")
+    ```
+    """
     ctx = get_ctx()
     record = ctx.random_play_run_record
     return {

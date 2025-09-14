@@ -41,7 +41,7 @@ from zzz_od.api.bridges import attach_run_event_bridge, attach_battle_assistant_
 
 router = APIRouter(
     prefix="/api/v1/battle-assistant",
-    tags=["Battle Assistant"],
+    tags=["战斗助手 Battle Assistant"],
 )
 
 _registry = get_global_run_registry()
