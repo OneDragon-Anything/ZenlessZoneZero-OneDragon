@@ -1036,6 +1036,9 @@ class Operation(OperationBase):
                 # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
 
             ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
+            for _, mrl in ocr_result_map.items():
+                for mr in mrl:
+                    mr.add_offset(area.left_top)
 
         match_word, match_word_mrl = ocr_utils.match_word_list_by_priority(
             ocr_result_map,
@@ -1044,9 +1047,6 @@ class Operation(OperationBase):
         )
         if match_word is not None and match_word_mrl is not None and match_word_mrl.max is not None:
             to_click = match_word_mrl.max.center
-
-            if area is not None:
-                to_click = to_click + area.left_top
 
             if offset is not None:
                 to_click = to_click + offset
