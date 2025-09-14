@@ -12,12 +12,46 @@ jobs:
     runs-on: macos-latest
     if: ${{ github.repository_owner == 'OneDragon-Anything' && (github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch') }}
     steps:
+      - name: Get latest release and determine channel
+        id: get_release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 1
+            });
+            
+            if (releases.length === 0) {
+              core.setFailed('No releases found');
+              return;
+            }
+            
+            const release = releases[0];
+            const tagName = release.tag_name;
+            
+            // 移除v前缀（如果存在）
+            const version = tagName.replace(/^v/, '');
+            
+            // 检查是否为小版本（x.x.x格式，且第三位不为0）
+            const versionParts = version.split('.');
+            const isMinorVersion = versionParts.length === 3 && parseInt(versionParts[2]) > 0;
+            
+            core.setOutput('tag_name', tagName);
+            core.setOutput('is_minor_version', isMinorVersion);
+            core.setOutput('channel', isMinorVersion ? 'beta' : 'stable');
+            
+            console.log(`Version: ${version}`);
+            console.log(`Is minor version: ${isMinorVersion}`);
+            console.log(`Channel: ${isMinorVersion ? 'beta' : 'stable'}`);
+
       - uses: MirrorChyan/uploading-action@v1
         with:
           filetype: latest-release
           filename: "ZenlessZoneZero-OneDragon-*-Full-Environment.zip"
           mirrorchyan_rid: ZZZ-OneDragon
-
+          channel: ${{ steps.get_release.outputs.channel }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           owner: DoctorReid
           repo: ZenlessZoneZero-OneDragon

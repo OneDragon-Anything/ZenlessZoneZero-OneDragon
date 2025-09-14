@@ -37,8 +37,26 @@ jobs:
           git tag $tag
           git push origin $tag
         }
+        
+        # 检查版本类型
+        $cleanVersion = $version -replace '^v', ''
+        $versionParts = $cleanVersion.Split('.')
+        $isMinorVersion = $false
+        $channel = "stable"
+        
+        if ($versionParts.Length -eq 3 -and [int]$versionParts[2] -gt 0) {
+          $isMinorVersion = $true
+          $channel = "beta"
+        }
+        
+        Write-Host "Version: $cleanVersion"
+        Write-Host "Is minor version: $isMinorVersion"
+        Write-Host "Channel: $channel"
+        
         echo "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         echo "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        echo "is_minor_version=$isMinorVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        echo "channel=$channel" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         echo "__version__ = '$version'" | Out-File -FilePath src/one_dragon/version.py -Encoding utf8
 
     - name: Set up Python
@@ -424,7 +442,9 @@ jobs:
         tag_name: ${{ steps.get_version.outputs.tag }}
         name: "Release ${{ steps.get_version.outputs.version }}"
         body: |
-          # 安装方式
+          ${{ steps.get_version.outputs.channel == 'beta' && '> **⚠️ 注意**：这是一个修复更新版本，包含最新的Bug修复和小功能改进。
+
+          ' || '' }}# 安装方式
 
           - `ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Full-Environment.zip` 为带环境的完整包，不需要额外下载资源。
           - `ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Full.zip` 为完整包，解压后选择解压目录为安装目录，只需要下载环境依赖。
@@ -445,6 +465,6 @@ jobs:
           deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
           deploy/dist/ZenlessZoneZero-OneDragon-Launcher.zip
         generate_release_notes: false
-        prerelease: ${{ github.event_name == 'workflow_dispatch' }}
+        prerelease: ${{ steps.get_version.outputs.is_minor_version == 'true' || github.event_name == 'workflow_dispatch' }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
