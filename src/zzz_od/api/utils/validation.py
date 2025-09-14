@@ -16,7 +16,7 @@ from zzz_od.api.battle_assistant_models import (
     ValidationError,
     ConfigNotFoundError,
     TemplateNotFoundError,
-    PermissionError
+    AccessDeniedError
 )
 
 
@@ -78,7 +78,7 @@ class FileOperationHelper:
         try:
             Path(directory_path).mkdir(parents=True, exist_ok=True)
         except PermissionError as e:
-            raise PermissionError(f"没有权限创建目录: {directory_path}")
+            raise AccessDeniedError(f"没有权限创建目录: {directory_path}")
         except Exception as e:
             raise FileOperationError(f"创建目录失败: {directory_path}, 错误: {str(e)}")
 
@@ -100,13 +100,13 @@ class FileOperationHelper:
             return
 
         if operation == "读取" and not os.access(file_path, os.R_OK):
-            raise PermissionError(f"没有权限读取文件: {file_path}")
+            raise AccessDeniedError(f"没有权限读取文件: {file_path}")
         elif operation == "写入" and not os.access(file_path, os.W_OK):
-            raise PermissionError(f"没有权限写入文件: {file_path}")
+            raise AccessDeniedError(f"没有权限写入文件: {file_path}")
         elif operation == "删除":
             parent_dir = os.path.dirname(file_path)
             if not os.access(parent_dir, os.W_OK):
-                raise PermissionError(f"没有权限删除文件: {file_path}")
+                raise AccessDeniedError(f"没有权限删除文件: {file_path}")
 
     @staticmethod
     def safe_read_yaml(file_path: str) -> Dict[str, Any]:
@@ -121,7 +121,7 @@ class FileOperationHelper:
         except (yaml.YAMLError, UnicodeDecodeError) as e:
             raise ConfigurationError(f"配置文件格式错误: {file_path}, 错误: {str(e)}")
         except Exception as e:
-            if isinstance(e, (ConfigNotFoundError, PermissionError)):
+            if isinstance(e, (ConfigNotFoundError, AccessDeniedError)):
                 raise
             raise FileOperationError(f"读取配置文件失败: {file_path}, 错误: {str(e)}")
 
@@ -141,7 +141,7 @@ class FileOperationHelper:
             with open(file_path, 'w', encoding='utf-8') as f:
                 yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True)
         except Exception as e:
-            if isinstance(e, (PermissionError, FileOperationError)):
+            if isinstance(e, (AccessDeniedError, FileOperationError)):
                 raise
             raise FileOperationError(f"写入配置文件失败: {file_path}, 错误: {str(e)}")
 
@@ -157,7 +157,7 @@ class FileOperationHelper:
             FileOperationHelper.check_file_permissions(file_path, "删除")
             os.remove(file_path)
         except Exception as e:
-            if isinstance(e, (PermissionError, FileOperationError)):
+            if isinstance(e, (AccessDeniedError, FileOperationError)):
                 raise
             raise FileOperationError(f"删除文件失败: {file_path}, 错误: {str(e)}")
 
