@@ -534,10 +534,7 @@ class HomeInterface(VerticalScrollInterface):
         # 监听背景刷新信号，确保主题色在背景变化时更新
         self._last_reload_banner_signal = False
 
-        # 使用Qt生命周期信号进行安全清理
-        self.destroyed.connect(lambda: self._cleanup_threads() if hasattr(self, '_cleanup_threads') else None)
-        self.destroyed.connect(lambda: self.notice_container.cleanup_resources()
-                              if hasattr(self, 'notice_container') and self.notice_container else None)
+
 
     def _init_check_runners(self):
         """初始化检查更新的线程"""
