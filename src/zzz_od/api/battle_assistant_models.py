@@ -73,7 +73,7 @@ class TemplateNotFoundError(BattleAssistantError):
         super().__init__(message, "TEMPLATE_NOT_FOUND", details)
 
 
-class PermissionError(BattleAssistantError):
+class AccessDeniedError(BattleAssistantError):
     """权限错误"""
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
         super().__init__(message, "PERMISSION_ERROR", details)
