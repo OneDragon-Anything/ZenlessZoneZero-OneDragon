@@ -40,16 +40,16 @@ def handle_battle_assistant_errors(func: F) -> F:
             # 已经是战斗助手异常，直接抛出
             raise
         except FileNotFoundError as e:
-            raise ConfigNotFoundError(f"文件未找到: {str(e)}")
+            raise ConfigNotFoundError(f"文件未找到: {str(e)}") from e
         except PermissionError as e:
-            raise AccessDeniedError(f"权限不足: {str(e)}")
+            raise AccessDeniedError(f"权限不足: {str(e)}") from e
         except ValueError as e:
-            raise ValidationError(f"参数验证失败: {str(e)}")
+            raise ValidationError(f"参数验证失败: {str(e)}") from e
         except Exception as e:
             logger.exception(f"Unexpected error in {func.__name__}: {str(e)}")
             raise BattleAssistantError(f"操作失败: {str(e)}")
 
-    return wper
+    return wrapper
 
 
 def raise_config_error(message: str, details: Optional[Dict[str, Any]] = None) -> None:
