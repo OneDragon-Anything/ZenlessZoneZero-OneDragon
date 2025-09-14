@@ -245,6 +245,10 @@ class BaseThread(QThread):
         self._is_running = False
 
     def run(self):
+        # 在开始运行前检查是否已被请求中断
+        if self.isInterruptionRequested():
+            return
+
         self._is_running = True
         try:
             self._run_impl()  # 子类实现具体逻辑
@@ -257,17 +261,20 @@ class BaseThread(QThread):
 
     def stop(self):
         """安全停止线程"""
-        self._is_running = False
+        # 首先请求中断
+        self.requestInterruption()
+
         if self.isRunning():
-            self.quit()
+            # 等待线程自然结束，不调用quit()因为这些线程不运行事件循环
             if not self.wait(2000):  # 等待最多2秒
                 log.warning(f"线程 {self.__class__.__name__} 无法正常退出，强制终止")
+                # 作为最后手段才使用terminate()
                 self.terminate()
                 self.wait(1000)  # 再等待1秒确保终止完成
 
     def is_stop_requested(self):
         """检查是否请求停止"""
-        return not self._is_running
+        return self.isInterruptionRequested()
 
 
 class CheckRunnerBase(BaseThread):
