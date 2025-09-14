@@ -224,7 +224,7 @@ def validate_battle_assistant_config(config_data: Dict[str, Any], config_type: s
 
     # 通用验证
     if "gamepad_type" in config_data:
-        supported_types = ["none", "xbox", "ps4", "ps5", "generic"]  # 根据实际支持的类型调整
+        supported_types = ["none", "xbox", "ds4"]  # 根据实际支持的类型调整
         validator.validate_gamepad_type(config_data["gamepad_type"], supported_types)
 
 
