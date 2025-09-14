@@ -1602,9 +1602,7 @@ def get_gamepad_types():
     ## 支持的手柄类型
     - **none**: 无手柄（仅键盘）
     - **xbox**: Xbox系列手柄
-    - **ps4**: PlayStation 4手柄
-    - **ps5**: PlayStation 5手柄
-    - **switch_pro**: Nintendo Switch Pro手柄
+    - **ds4**: PlayStation 4 DualShock 4手柄
 
     ## 错误码
     - **GAMEPAD_TYPES_FAILED**: 获取手柄类型列表失败
