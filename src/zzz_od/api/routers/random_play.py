@@ -149,7 +149,7 @@ def get_random_play_run_record() -> Dict[str, Any]:
 
     ## 返回数据
     - **finished**: 是否已完成，布尔值
-    - **timeCost**: 运行耗时（秒）
+    - **status**: 运行状态（0=未运行，1=成功，2=失败，3=运行中）
 
     ## 使用示例
     ```python
@@ -157,14 +157,14 @@ def get_random_play_run_record() -> Dict[str, Any]:
     response = requests.get("http://localhost:8000/api/v1/random-play/run-record")
     record = response.json()
     print(f"完成状态: {record['finished']}")
-    print(f"耗时: {record['timeCost']}秒")
+    print(f"运行状态: {record['status']}")
     ```
     """
     ctx = get_ctx()
     record = ctx.random_play_run_record
     return {
-        "finished": record.finished,
-        "timeCost": record.time_cost,
+        "finished": record.run_status == record.STATUS_SUCCESS,
+        "status": record.run_status_under_now
     }
 
 
