@@ -174,7 +174,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         layout.addWidget(self.toggle_view_btn)
         self.run_btn = PushButton(text=gt('执行'), icon=FluentIcon.PLAY_SOLID)
         layout.addWidget(self.run_btn)
-        self.color_channel_btn = PushButton(text='色彩通道', icon=FluentIcon.INFO)
+        self.color_channel_btn = PushButton(text=gt('色彩通道'), icon=FluentIcon.INFO)
         layout.addWidget(self.color_channel_btn)
         layout.addStretch(1)
         return widget
@@ -712,7 +712,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
                 'pos': color_info.get('pos'),
                 'rgb': color_info.get('display_rgb'),
                 'hsv': color_info.get('display_hsv'),
-                'title': '当前图像'
+                'title': gt('当前图像')
             })
 
         # 原始图像信息
@@ -721,7 +721,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
                 'pos': color_info.get('source_pos'),
                 'rgb': color_info.get('source_rgb'),
                 'hsv': color_info.get('source_hsv'),
-                'title': '原始图像'
+                'title': gt('原始图像')
             })
 
         # 显示颜色提示框
@@ -749,8 +749,8 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         """
         if self.logic.context is None:
             InfoBar.error(
-                title='错误',
-                content='请先打开一张图片',
+                title=gt('错误'),
+                content=gt('请先打开一张图片'),
                 duration=3000,
                 parent=self,
                 position=InfoBarPosition.TOP
@@ -761,8 +761,8 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         display_image = self.logic.get_display_image()
         if display_image is None:
             InfoBar.error(
-                title='错误',
-                content='没有可用的图像进行分析',
+                title=gt('错误'),
+                content=gt('没有可用的图像进行分析'),
                 duration=3000,
                 parent=self,
                 position=InfoBarPosition.TOP
