@@ -657,9 +657,38 @@ def batch_operation(request: BatchOperationRequest) -> Dict[str, Any]:
 
             elif request.operation == "deactivate":
                 instance = _get_instance_or_404(instance_id, odc)
-                # 停用实例的逻辑（如果有的话）
-                results.append({"instance_id": instance_id, "success": True})
-                success_count += 1
+                try:
+                    # 设置实例为非活跃状态
+                    instance.active = False
+                    instance.active_in_od = False
+
+                    # 如果停用的是当前活跃实例，需要切换到另一个活跃实例
+                    if odc.current_active_instance and odc.current_active_instance.idx == instance.idx:
+                        # 找到第一个仍然活跃的实例
+                        next_active = next((i for i in odc.instance_list if i.active and i.idx != instance.idx), None)
+                        if next_active:
+                            odc.active_instance(next_active.idx)
+                            ctx.switch_instance(next_active.idx)
+                        else:
+                            # 如果没有其他活跃实例，激活第一个可用实例
+                            if odc.instance_list and len(odc.instance_list) > 1:
+                                first_other = next((i for i in odc.instance_list if i.idx != instance.idx), None)
+                                if first_other:
+                                    first_other.active = True
+                                    odc.active_instance(first_other.idx)
+                                    ctx.switch_instance(first_other.idx)
+
+                    # 保存配置更改
+                    odc.save()
+
+                    results.append({"instance_id": instance_id, "success": True})
+                    success_count += 1
+                except Exception as e:
+                    results.append({
+                        "instance_id": instance_id,
+                        "success": False,
+                        "error": f"停用实例失败: {str(e)}"
+                    })
 
             elif request.operation == "delete":
                 if len(odc.instance_list) <= 1:
