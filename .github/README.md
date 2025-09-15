@@ -80,7 +80,7 @@ __ZenlessZoneZero-OneDragon__
 <div>
 
 
- 🔗 [官方网站](https://one-dragon.com/zzz/zh/home.html)
+ 🔗 [官方网站]((https://one-dragon.com/))
 > 功能使用教程(提供脚本配置和长期性问题汇总等帮助)
 
  💬 [官方频道](https://pd.qq.com/g/onedrag00n)
@@ -89,11 +89,11 @@ __ZenlessZoneZero-OneDragon__
  ❓ [官方文档](https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5)
 > 疑难杂症诊断(提供版本更新指南和短期性问题等帮助)
 
- 👉 [问题反馈](https://github.com/DoctorReid/ZenlessZoneZero-OneDragon/issues)
+ 👉 [问题反馈](https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon/issues))
 
  ⏳ 官方Q群！
-> 一条龙玩家交流互助群,人数容量有限,请您通过官方频道申请加入申请入群!
-> 入群需要对该项目点星星,并填入Github账号的ID作为入群申请 (右上角头像 -> Your Profile，网址上显示的ID), 请遵守群规，友善交流。
+> 一条龙玩家交流互助群，名额有限，请通过“官方频道”申请入群！
+> 申请入群，建议先为本仓库点 ⭐Star ，并填写 GitHub 账号 ID（头像 → Your Profile，URL 中的 ID），请遵守群规，友善交流。
 
 
 
