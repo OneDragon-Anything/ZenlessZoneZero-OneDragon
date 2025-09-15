@@ -707,31 +707,61 @@ def get_team():
 def get_apps():
     """
     返回一条龙可运行的应用清单（按当前顺序与启停）。
-    - items: [{ appId, name, enabled, orderIndex }]
-    - 兼容：附带 appOrder / appRunList 便于前端调试或迁移
+
+    ## 功能描述
+    获取一条龙中所有可用应用的详细信息，包括运行状态和历史记录。
+
+    ## 返回数据
+    - **items**: 应用列表
+      - **appId**: 应用唯一标识符
+      - **name**: 应用显示名称
+      - **enabled**: 是否在一条龙中启用
+      - **orderIndex**: 运行顺序索引
+      - **runStatus**: 运行状态 (0=未运行, 1=成功, 2=失败, 3=运行中)
+      - **runTime**: 上次运行时间 (格式: MM-DD HH:MM)
+    - **appOrder**: 应用顺序数组（兼容字段）
+    - **appRunList**: 启用的应用ID列表（兼容字段）
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/onedragon/apps")
+    data = response.json()
+    for app in data['items']:
+        status_text = ['未运行', '成功', '失败', '运行中'][app['runStatus']]
+        print(f"{app['name']}: {status_text} - {app['runTime']}")
+    ```
     """
     ctx = get_ctx()
     items = []
     try:
-        # 复用统一的目录构建（同模块函数）
-        items = _get_app_catalog()
+        from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+        zapp = ZOneDragonApp(ctx)
+        run_set = set(ctx.one_dragon_app_config.app_run_list)
+        for idx, app in enumerate(zapp.get_one_dragon_apps_in_order()):
+            app_id = getattr(app, 'app_id', '')
+            app_name = getattr(app, 'op_name', app_id)
+
+            # 获取运行记录信息
+            run_record = getattr(app, 'run_record', None)
+            if run_record:
+                run_record.check_and_update_status()
+                run_status = run_record.run_status_under_now
+                run_time = run_record.run_time
+            else:
+                run_status = 0  # STATUS_WAIT
+                run_time = '-'
+
+            items.append({
+                'appId': app_id,
+                'name': app_name,
+                'enabled': app_id in run_set,
+                'orderIndex': idx,
+                'runStatus': run_status,
+                'runTime': run_time,
+            })
     except Exception:
-        # 兜底：最小化返回
-        try:
-            from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
-            zapp = ZOneDragonApp(ctx)
-            run_set = set(ctx.one_dragon_app_config.app_run_list)
-            for idx, app in enumerate(zapp.get_one_dragon_apps_in_order()):
-                app_id = getattr(app, 'app_id', '')
-                app_name = getattr(app, 'op_name', app_id)
-                items.append({
-                    'appId': app_id,
-                    'name': app_name,
-                    'enabled': app_id in run_set,
-                    'orderIndex': idx,
-                })
-        except Exception:
-            pass
+        pass
     odc = ctx.one_dragon_app_config
     return {
         'items': items,
