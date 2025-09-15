@@ -1928,7 +1928,7 @@ def _collect_battle_state_info(ctx: ZContext) -> dict:
 
 
 @router.get("/battle-state/detailed", summary="获取详细战斗状态信息")
-def get_detailed_battle_state(ctx: ZContext = Depends(get_ctx)):
+def get_battle_state_with_metrics(ctx: ZContext = Depends(get_ctx)):
     """
     获取详细的战斗状态信息，包括性能指标和系统状态
 
@@ -2197,7 +2197,7 @@ def _get_current_battle_state(ctx: ZContext) -> dict:
 
 
 @router.get("/detailed-battle-state", response_model=DetailedBattleState, summary="获取详细战斗状态")
-def get_detailed_battle_state(ctx: ZContext = Depends(get_ctx)):
+def get_detailed_battle_state_with_records(ctx: ZContext = Depends(get_ctx)):
     """
     获取详细的战斗状态信息，包括状态记录器和任务信息
 
