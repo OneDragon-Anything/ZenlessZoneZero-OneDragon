@@ -737,7 +737,8 @@ def get_apps():
     try:
         from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
         zapp = ZOneDragonApp(ctx)
-        run_set = set(ctx.one_dragon_app_config.app_run_list)
+        # 使用配置文件中的实际app_run_list，避免被临时运行列表影响
+        run_set = set(ctx.one_dragon_app_config.get("app_run_list", []))
         for idx, app in enumerate(zapp.get_one_dragon_apps_in_order()):
             app_id = getattr(app, 'app_id', '')
             app_name = getattr(app, 'op_name', app_id)
@@ -766,7 +767,7 @@ def get_apps():
     return {
         'items': items,
         'appOrder': odc.app_order,
-        'appRunList': odc.app_run_list,
+        'appRunList': odc.get("app_run_list", []),
     }
 
 
