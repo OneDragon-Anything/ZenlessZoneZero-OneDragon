@@ -44,7 +44,7 @@ class ContextOperationResponse(BaseModel):
 
 
 @router.post("/start", response_model=ContextOperationResponse, summary="启动上下文")
-def start_context(ctx: ZContext = Depends(get_ctx)):
+async def start_context(ctx: ZContext = Depends(get_ctx)):
     """
     启动当前上下文的主要任务
 
@@ -90,7 +90,7 @@ def start_context(ctx: ZContext = Depends(get_ctx)):
                     app = ZOneDragonApp(ctx)
                     app.execute()
 
-                await loop.run_in_executor(None, _exec)
+                return await loop.run_in_executor(None, _exec)
 
             return asyncio.create_task(runner())
 
