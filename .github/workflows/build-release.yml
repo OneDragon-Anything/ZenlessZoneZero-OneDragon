@@ -55,8 +55,8 @@ jobs:
         
         echo "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         echo "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-        echo "is_minor_version=$isMinorVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-        echo "channel=$channel" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        echo "is_minor_version=$($isMinorVersion.ToString().ToLower())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        echo "channel=$($channel.ToLower())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         echo "__version__ = '$version'" | Out-File -FilePath src/one_dragon/version.py -Encoding utf8
 
     - name: Set up Python
@@ -442,9 +442,9 @@ jobs:
         tag_name: ${{ steps.get_version.outputs.tag }}
         name: "Release ${{ steps.get_version.outputs.version }}"
         body: |
-          ${{ steps.get_version.outputs.channel == 'beta' && '> **⚠️ 注意**：这是一个修复更新版本，包含最新的Bug修复和小功能改进。
+          ${{ steps.get_version.outputs.channel == 'beta' && '> **⚠️ 注意**：这是一个修复更新版本，包含最新的Bug修复和小功能改进。' || '' }}
 
-          ' || '' }}# 安装方式
+          # 安装方式
 
           - `ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Full-Environment.zip` 为带环境的完整包，不需要额外下载资源。
           - `ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Full.zip` 为完整包，解压后选择解压目录为安装目录，只需要下载环境依赖。
