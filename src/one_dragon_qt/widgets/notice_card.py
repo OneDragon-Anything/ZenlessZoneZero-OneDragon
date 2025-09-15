@@ -18,9 +18,10 @@ from PySide6.QtWidgets import (
 )
 from qfluentwidgets import SimpleCardWidget, HorizontalFlipView, ListWidget, qconfig, Theme, PipsPager, PipsScrollButtonDisplayMode
 
-from one_dragon_qt.services.styles_manager import OdQtStyleSheet
-from one_dragon_qt.widgets.pivot import CustomListItemDelegate, PhosPivot
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
+from one_dragon_qt.widgets.pivot import CustomListItemDelegate, PhosPivot
 from .label import EllipsisLabel
 
 
@@ -104,7 +105,7 @@ class SkeletonContent(QWidget):
 
 class BannerImageLoader(QThread):
     """异步banner图片加载器"""
-    image_loaded = Signal(QPixmap, str)  # pixmap, url
+    image_loaded = Signal(QImage, str)  # image, url
     all_images_loaded = Signal()
 
     def __init__(self, banners, device_pixel_ratio, parent=None):
@@ -120,18 +121,8 @@ class BannerImageLoader(QThread):
             try:
                 response = requests.get(banner["image"]["url"], timeout=5)
                 if response.status_code == 200:
-                    pixmap = QPixmap()
-                    pixmap.loadFromData(response.content)
-
-                    # 按设备像素比缩放
-                    size = QSize(pixmap.width(), pixmap.height())
-                    pixmap = pixmap.scaled(
-                        size * self.device_pixel_ratio,
-                        Qt.AspectRatioMode.IgnoreAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                    pixmap.setDevicePixelRatio(self.device_pixel_ratio)
-                    self.image_loaded.emit(pixmap, banner["image"]["link"])
+                    image = QImage.fromData(response.content)
+                    self.image_loaded.emit(image, banner["image"]["link"])
             except Exception as e:
                 log.error(f"加载banner图片失败: {e}")
 
@@ -368,8 +359,15 @@ class NoticeCard(SimpleCardWidget):
         self._banner_loader.finished.connect(self._on_banner_loading_finished,Qt.ConnectionType.QueuedConnection)
         self._banner_loader.start()
 
-    def _on_banner_image_loaded(self, pixmap: QPixmap, url: str):
+    def _on_banner_image_loaded(self, image: QImage, url: str):
         """单个banner图片加载完成的回调"""
+        pixmap = QPixmap.fromImage(image)
+        pixmap = scale_pixmap_for_high_dpi(
+            pixmap,
+            pixmap.size(),
+            self.devicePixelRatioF(),
+            Qt.AspectRatioMode.IgnoreAspectRatio,
+        )
         self.banners.append(pixmap)
         self.banner_urls.append(url)
 

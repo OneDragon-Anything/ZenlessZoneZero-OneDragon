@@ -2,6 +2,7 @@ import os
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap, QPainter, QPainterPath, QImage
 from PySide6.QtWidgets import QWidget
+from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 
 
 class Banner(QWidget):
@@ -34,17 +35,13 @@ class Banner(QWidget):
         if self.banner_image.isNull():
             return
 
-        # 获取设备像素比例用于高DPI适配
-        pixel_ratio = self.devicePixelRatio()
-        target_size = self.size()
-
-        scaled_image = self.banner_image.scaled(
-            target_size * pixel_ratio,
-            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-            Qt.TransformationMode.SmoothTransformation
+        original_pixmap = QPixmap.fromImage(self.banner_image)
+        self.scaled_image = scale_pixmap_for_high_dpi(
+            original_pixmap,
+            self.size(),
+            self.devicePixelRatio(),
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding
         )
-        self.scaled_image = QPixmap.fromImage(scaled_image)
-        self.scaled_image.setDevicePixelRatio(pixel_ratio)
         self.update()
 
     def paintEvent(self, event):
