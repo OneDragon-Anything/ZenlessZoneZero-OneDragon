@@ -27,6 +27,8 @@ class SuibianTempleAdventureDispatch(ZOperation):
     1. 选择时间
     2. 自动选择邦布
     3. 派遣
+
+    TODO 未处理情况：进入已派遣的副本
     """
 
     STATUS_CANT_DISPATCH: str = '无法完成派遣'

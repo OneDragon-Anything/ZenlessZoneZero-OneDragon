@@ -55,12 +55,12 @@ class SuibianTempleYumChaSin(ZOperation):
         self.last_yum_cha_opt: str = ''  # 上一次饮茶仙的选项
         self.last_yum_cha_period: bool = False  # 饮茶仙是否点击过定期采购了
 
-        self.done_procurement_list: set[str] = set()  # 已经点击过的定期采办列表
+        self.done_procurement_list: list[str] = []  # 已经点击过的定期采办列表
         self.done_material_list: set[Rect] = set()  # 已经点击过的材料
         self.done_craft: bool = False  #  是否进行了制造
         self.skip_adventure: bool = False  # 已经无法再派遣了 后续跳过
 
-    @operation_node(name='邻里心愿提交', is_start_node=False)
+    @operation_node(name='邻里心愿提交', is_start_node=True)
     def neighborhood_wished_submit(self) -> OperationRoundResult:
         """
         邻里心愿 提交
@@ -145,15 +145,22 @@ class SuibianTempleYumChaSin(ZOperation):
         4. 遍历采办清单 选择其中一个
         """
         current_list = self.get_regular_procurement_pos(self.last_screenshot)
-        for current_task in current_list:
-            if current_task.name in self.done_procurement_list:
+        for current_item in current_list:
+            # 使用近似匹配 因为委托名称前的符合会被识别成随机文本
+            done_idx = str_utils.find_best_match_by_difflib(current_item.name, self.done_procurement_list)
+            if done_idx is not None and done_idx > -1:
                 continue
 
-            self.done_procurement_list.add(current_task.name)
-            self.ctx.controller.click(current_task.pos.center)
+            self.done_procurement_list.append(current_item.name)
+            self.ctx.controller.click(current_item.pos.center)
 
             self.done_material_list = set()
-            return self.round_success(status=current_task.name, wait=1)
+            return self.round_success(status=current_item.name, wait=1)
+
+        area = self.ctx.screen_loader.get_area('随便观-饮茶仙', '区域-任务列表')
+        start = area.center
+        end = start + Point(0, -400)
+        self.ctx.controller.drag_to(start=start, end=end)
 
         return self.round_retry(status='未发现新委托', wait=0.5)
 
@@ -296,7 +303,7 @@ class SuibianTempleYumChaSin(ZOperation):
         result = self.round_by_find_and_click_area(screen_name='随便观-饮茶仙', area_name='按钮-返回')
         if result.is_success:
             time.sleep(0.5)  # 移开鼠标 防止挡住了返回按钮
-            area = self.ctx.screen_loader.get_area('随便观-游历', '按钮-返回')
+            area = self.ctx.screen_loader.get_area('随便观-饮茶仙', '按钮-返回')
             self.ctx.controller.mouse_move(area.right_bottom + Point(50, 50))
             return self.round_wait(status=result.status, wait=0.5)
 
@@ -309,7 +316,7 @@ class SuibianTempleYumChaSin(ZOperation):
     @node_from(from_name='检查缺少的素材', success=False)
     @node_from(from_name='前往游历', status='无需前往游历')
     @node_from(from_name='从游历返回材料菜单')
-    @operation_node(name='返回定期采办', is_start_node=True)
+    @operation_node(name='返回定期采办')
     def back_to_regular_procurement(self) -> OperationRoundResult:
         screen = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-饮茶仙'])
         if screen is not None:
