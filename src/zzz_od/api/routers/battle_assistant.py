@@ -37,7 +37,24 @@ from zzz_od.api.battle_assistant_models import (
     TaskExecutionError
 )
 from zzz_od.api.run_registry import get_global_run_registry
-from zzz_od.api.bridges import attach_run_event_bridge, attach_battle_assistant_event_bridge, broadcast_battle_assistant_event, BattleAssistantEventType
+from zzz_od.api.bridges import attach_run_event_bridge, attach_battle_assistant_event_bridge, BattleAssistantEventType, broadcast_battle_assistant_event
+from zzz_od.api.status_builder import build_onedragon_aggregate
+from zzz_od.config.game_config import GamepadTypeEnum
+
+# 全局注册表
+_registry = get_global_run_registry()
+
+
+def _normalize_gamepad_type(gamepad_type: str) -> str:
+    """将显示名称转换为实际的枚举值"""
+    if gamepad_type == "无手柄":
+        return "none"
+    elif gamepad_type == "Xbox手柄":
+        return "xbox"
+    elif gamepad_type == "DS4手柄":
+        return "ds4"
+    else:
+        return gamepad_type  # 如果已经是正确的值，直接返回
 
 router = APIRouter(
     prefix="/api/v1/battle-assistant",
@@ -146,7 +163,7 @@ def update_auto_battle_config(config: AutoBattleConfigUpdate, ctx: ZContext = De
 
         # 更新手柄类型（如果提供）
         if config.gamepad_type is not None:
-            ctx.battle_assistant_config.gamepad_type = config.gamepad_type
+            ctx.battle_assistant_config.gamepad_type = _normalize_gamepad_type(config.gamepad_type)
 
         # 保存配置
         ctx.battle_assistant_config.save()
@@ -435,7 +452,7 @@ def update_dodge_config(config: DodgeAssistantConfigUpdate, ctx: ZContext = Depe
 
         # 更新手柄类型
         if config.gamepad_type is not None:
-            ctx.battle_assistant_config.gamepad_type = config.gamepad_type
+            ctx.battle_assistant_config.gamepad_type = _normalize_gamepad_type(config.gamepad_type)
             updated_fields.append("gamepad_type")
 
         # 保存配置
@@ -575,7 +592,7 @@ def delete_dodge_config(name: str, ctx: ZContext = Depends(get_ctx)):
 # ============================================================================
 
 @router.post("/dodge/run", response_model=TaskResponse, summary="启动闪避助手")
-def start_dodge_assistant(ctx: ZContext = Depends(get_ctx)):
+async def start_dodge_assistant(ctx: ZContext = Depends(get_ctx)):
     """
     启动闪避助手任务
 
@@ -625,7 +642,7 @@ def start_dodge_assistant(ctx: ZContext = Depends(get_ctx)):
                     app = DodgeAssistantApp(ctx)
                     app.execute()
 
-                await loop.run_in_executor(None, _exec)
+                return await loop.run_in_executor(None, _exec)
 
             return asyncio.create_task(runner())
 
@@ -765,11 +782,10 @@ def get_battle_state(ctx: ZContext = Depends(get_ctx)):
                 latest_time = 0
 
                 for recorder in ctx.auto_op.state_recorders.values():
-                    if recorder.records:
-                        last_record = recorder.records[-1]
-                        if last_record.record_time > latest_time:
-                            latest_time = last_record.record_time
-                            latest_state = last_record.state_name
+                    if recorder.last_record_time > 0:  # 检查是否有有效的记录时间
+                        if recorder.last_record_time > latest_time:
+                            latest_time = recorder.last_record_time
+                            latest_state = recorder.state_name
 
                 if latest_state:
                     current_action = latest_state
@@ -856,7 +872,7 @@ def get_battle_state(ctx: ZContext = Depends(get_ctx)):
 # ============================================================================
 
 @router.post("/auto-battle/run", response_model=TaskResponse, summary="启动自动战斗")
-def start_auto_battle(ctx: ZContext = Depends(get_ctx)):
+async def start_auto_battle(ctx: ZContext = Depends(get_ctx)):
     """
     启动自动战斗任务（正常模式）
 
@@ -906,7 +922,7 @@ def start_auto_battle(ctx: ZContext = Depends(get_ctx)):
                     app = AutoBattleApp(ctx)
                     app.execute()
 
-                await loop.run_in_executor(None, _exec)
+                return await loop.run_in_executor(None, _exec)
 
             return asyncio.create_task(runner())
 
@@ -937,7 +953,7 @@ def start_auto_battle(ctx: ZContext = Depends(get_ctx)):
 
 
 @router.post("/auto-battle/debug", response_model=TaskResponse, summary="启动自动战斗调试")
-def start_auto_battle_debug(ctx: ZContext = Depends(get_ctx)):
+async def start_auto_battle_debug(ctx: ZContext = Depends(get_ctx)):
     """
     启动自动战斗任务（调试模式）
 
@@ -988,7 +1004,7 @@ def start_auto_battle_debug(ctx: ZContext = Depends(get_ctx)):
                     app = AutoBattleDebugApp(ctx)
                     app.execute()
 
-                await loop.run_in_executor(None, _exec)
+                return await loop.run_in_executor(None, _exec)
 
             return asyncio.create_task(runner())
 
@@ -1234,7 +1250,7 @@ def update_operation_debug_config(config: OperationDebugConfigUpdate, ctx: ZCont
 
         # 更新手柄类型（如果提供）
         if config.gamepad_type is not None:
-            ctx.battle_assistant_config.gamepad_type = config.gamepad_type
+            ctx.battle_assistant_config.gamepad_type = _normalize_gamepad_type(config.gamepad_type)
 
         # 保存配置
         ctx.battle_assistant_config.save()
@@ -1341,7 +1357,7 @@ def delete_operation_debug_template(name: str, ctx: ZContext = Depends(get_ctx))
 # ============================================================================
 
 @router.post("/operation-debug/run", response_model=TaskResponse, summary="启动指令调试")
-def start_operation_debug(ctx: ZContext = Depends(get_ctx)):
+async def start_operation_debug(ctx: ZContext = Depends(get_ctx)):
     """
     启动指令调试任务
     支持重复模式和单次执行模式
@@ -1382,7 +1398,7 @@ def start_operation_debug(ctx: ZContext = Depends(get_ctx)):
                     app = OperationDebugApp(ctx)
                     app.execute()
 
-                await loop.run_in_executor(None, _exec)
+                return await loop.run_in_executor(None, _exec)
 
             return asyncio.create_task(runner())
 
@@ -2304,7 +2320,7 @@ def get_detailed_battle_state_with_records(ctx: ZContext = Depends(get_ctx)):
         # 广播详细状态更新事件
         if hasattr(ctx, '_battle_assistant_bridge'):
             bridge = getattr(ctx, '_battle_assistant_bridge')
-            bridge.broadcast_detailed_battle_state({
+            bridge.broadcast_battle_state({
                 "auto_op_running": auto_op_running,
                 "state_records_count": len(state_records),
                 "has_current_task": current_task is not None,
