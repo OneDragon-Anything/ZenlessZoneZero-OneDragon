@@ -30,6 +30,23 @@ from zzz_od.api.battle_assistant_models import (
 logger = logging.getLogger(__name__)
 
 
+def _get_status_code_for_error(error: BattleAssistantError) -> int:
+    """根据错误类型获取HTTP状态码"""
+    status_code_map = {
+        "CONFIGURATION_ERROR": 400,
+        "VALIDATION_ERROR": 400,
+        "TASK_ALREADY_RUNNING": 409,
+        "CONFIG_NOT_FOUND": 404,
+        "TEMPLATE_NOT_FOUND": 404,
+        "PERMISSION_ERROR": 403,
+        "FILE_OPERATION_ERROR": 500,
+        "TASK_EXECUTION_ERROR": 500,
+        "GAMEPAD_ERROR": 400,
+        "BATTLE_ASSISTANT_ERROR": 500
+    }
+    return status_code_map.get(error.code, 500)
+
+
 class BattleAssistantExceptionHandler(BaseHTTPMiddleware):
     """战斗助手异常处理中间件"""
 
@@ -75,19 +92,7 @@ class BattleAssistantExceptionHandler(BaseHTTPMiddleware):
 
     def _get_status_code_for_error(self, error: BattleAssistantError) -> int:
         """根据错误类型获取HTTP状态码"""
-        status_code_map = {
-            "CONFIGURATION_ERROR": 400,
-            "VALIDATION_ERROR": 400,
-            "TASK_ALREADY_RUNNING": 409,
-            "CONFIG_NOT_FOUND": 404,
-            "TEMPLATE_NOT_FOUND": 404,
-            "PERMISSION_ERROR": 403,
-            "FILE_OPERATION_ERROR": 500,
-            "TASK_EXECUTION_ERROR": 500,
-            "GAMEPAD_ERROR": 400,
-            "BATTLE_ASSISTANT_ERROR": 500
-        }
-        return status_code_map.get(error.code, 500)
+        return _get_status_code_for_error(error)
 
     def _create_error_response(
         self,
@@ -118,20 +123,7 @@ def create_battle_assistant_exception_handlers():
         """处理战斗助手基础异常"""
         logger.exception(f"BattleAssistantError in {request.method} {request.url}: {exc.message}")
 
-        status_code_map = {
-            "CONFIGURATION_ERROR": 400,
-            "VALIDATION_ERROR": 400,
-            "TASK_ALREADY_RUNNING": 409,
-            "CONFIG_NOT_FOUND": 404,
-            "TEMPLATE_NOT_FOUND": 404,
-            "PERMISSION_ERROR": 403,
-            "FILE_OPERATION_ERROR": 500,
-            "TASK_EXECUTION_ERROR": 500,
-            "GAMEPAD_ERROR": 400,
-            "BATTLE_ASSISTANT_ERROR": 500
-        }
-
-        status_code = status_code_map.get(exc.code, 500)
+        status_code = _get_status_code_for_error(exc)
 
         error_response = ErrorResponse(
             error=ErrorDetail(
