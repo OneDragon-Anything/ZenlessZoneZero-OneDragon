@@ -75,7 +75,7 @@ __ZenlessZoneZero-OneDragon__
 
 </div>
 
-## 📢 加入社区
+## 📢 官方渠道
 
 <div>
 
