@@ -12,6 +12,7 @@ from zzz_od.api.run_registry import get_global_run_registry
 from zzz_od.api.bridges import attach_run_event_bridge
 from zzz_od.hollow_zero.hollow_zero_challenge_config import HollowZeroChallengeConfig, get_all_hollow_zero_challenge_config, get_hollow_zero_challenge_new_name, HollowZeroChallengePathFinding
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidChallengeConfig, get_all_lost_void_challenge_config, get_lost_void_challenge_new_name, LostVoidPeriodBuffNo
+from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig, LostVoidExtraTask
 from zzz_od.game_data.agent import AgentTypeEnum
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
 
@@ -731,6 +732,123 @@ def delete_lost_void_challenge_config(module_name: str) -> Dict[str, Any]:
         os.remove(config.file_path)
 
     return {"message": "Configuration deleted successfully"}
+
+
+# -------- Lost Void Base Config --------
+
+
+@router.get("/lost-void/config", response_model=Dict[str, Any], summary="获取迷失之地基础配置")
+def get_lost_void_config(ctx = Depends(get_ctx)) -> Dict[str, Any]:
+    """
+    获取迷失之地基础配置
+
+    ## 功能描述
+    获取迷失之地的基础运行配置，包括每日计划次数、每周计划次数、额外任务、任务名称和挑战配置。
+
+    ## 返回数据
+    - **dailyPlanTimes**: 每日计划次数
+    - **weeklyPlanTimes**: 每周计划次数
+    - **extraTask**: 额外任务类型
+    - **missionName**: 任务名称
+    - **challengeConfig**: 挑战配置名称
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/lost-void/config")
+    config = response.json()
+    print(f"每日计划次数: {config['dailyPlanTimes']}")
+    ```
+    """
+    config = ctx.lost_void_config
+    return {
+        "dailyPlanTimes": config.daily_plan_times,
+        "weeklyPlanTimes": config.weekly_plan_times,
+        "extraTask": config.extra_task,
+        "missionName": config.mission_name,
+        "challengeConfig": config.challenge_config,
+    }
+
+
+@router.put("/lost-void/config", response_model=Dict[str, Any], summary="更新迷失之地基础配置")
+def update_lost_void_config(payload: Dict[str, Any], ctx = Depends(get_ctx)) -> Dict[str, Any]:
+    """
+    更新迷失之地基础配置
+
+    ## 功能描述
+    更新迷失之地的基础运行配置，支持部分更新。
+
+    ## 请求参数
+    - **dailyPlanTimes** (可选): 每日计划次数
+    - **weeklyPlanTimes** (可选): 每周计划次数
+    - **extraTask** (可选): 额外任务类型
+    - **missionName** (可选): 任务名称
+    - **challengeConfig** (可选): 挑战配置名称
+
+    ## 返回数据
+    - **message**: 更新成功消息
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "dailyPlanTimes": 3,
+        "weeklyPlanTimes": 1,
+        "extraTask": "刷满业绩点"
+    }
+    response = requests.put("http://localhost:8000/api/v1/hollow-zero/lost-void/config", json=data)
+    result = response.json()
+    print(result['message'])
+    ```
+    """
+    config = ctx.lost_void_config
+
+    # 更新配置属性
+    if "dailyPlanTimes" in payload:
+        config.daily_plan_times = payload["dailyPlanTimes"]
+    if "weeklyPlanTimes" in payload:
+        config.weekly_plan_times = payload["weeklyPlanTimes"]
+    if "extraTask" in payload:
+        config.extra_task = payload["extraTask"]
+    if "missionName" in payload:
+        config.mission_name = payload["missionName"]
+    if "challengeConfig" in payload:
+        config.challenge_config = payload["challengeConfig"]
+
+    config.save()
+
+    return {"message": "Lost void configuration updated successfully"}
+
+
+@router.get("/lost-void/extra-task-options", response_model=List[Dict[str, str]], summary="获取迷失之地额外任务选项")
+def get_lost_void_extra_task_options() -> List[Dict[str, str]]:
+    """
+    获取迷失之地额外任务选项列表
+
+    ## 功能描述
+    返回所有可用的迷失之地额外任务选项，用于配置界面的选择。
+
+    ## 返回数据
+    - **value**: 任务值
+    - **label**: 任务显示名称
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/lost-void/extra-task-options")
+    options = response.json()
+    for option in options:
+        print(f"任务: {option['label']}")
+    ```
+    """
+    options = []
+    for task in LostVoidExtraTask:
+        options.append({
+            "value": task.value.value,
+            "label": task.value.value
+        })
+    return options
+
 
 # ============================================================================
 # 数据模型定义
