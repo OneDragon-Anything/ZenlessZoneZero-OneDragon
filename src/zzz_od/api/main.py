@@ -33,16 +33,32 @@ from zzz_od.api.routers import runs as runs_router
 from zzz_od.api.routers import resources as resources_router
 from zzz_od.api.routers import settings as settings_router
 from zzz_od.api.routers import world_patrol as world_patrol_router
+from zzz_od.api.routers import hollow_zero
+from zzz_od.api.routers import game_assistant
+from zzz_od.api.routers import battle_assistant
+from zzz_od.api.routers import random_play
+from zzz_od.api.routers import drive_disc_dismantle
+from zzz_od.api.routers import context
+from zzz_od.api.routers import logs
+from zzz_od.api.middleware import BattleAssistantExceptionHandler, create_battle_assistant_exception_handlers
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: ensure ctx initialized
     try:
-        get_ctx()
+        print("Initializing ZContext...")
+        ctx = get_ctx()
+        print("ZContext initialized successfully")
         # 启动日志流 (INFO 及以上)
         log_stream.start_log_stream()
+        print("Log stream started")
         yield
+    except Exception as e:
+        print(f"Failed to initialize application: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
     finally:
         # Shutdown: best-effort stop
         try:
@@ -60,6 +76,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="OneDragon ZZZ API", version="v1", lifespan=lifespan)
 
+# 添加战斗助手异常处理中间件
+app.add_middleware(BattleAssistantExceptionHandler)
+
 # CORS - allow local tools by default (configurable later)
 app.add_middleware(
     CORSMiddleware,
@@ -69,6 +88,8 @@ app.add_middleware(
         "http://127.0.0.1",
         "http://127.0.0.1:*",
         "tauri://localhost",
+        "http://localhost:1420",
+        "*",  # Allow all origins for development
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -100,7 +121,13 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": {"code": "HTTP_ERROR", "message": message, "details": details}},
-)
+    )
+
+
+# 添加战斗助手专用异常处理器
+battle_assistant_handlers = create_battle_assistant_exception_handlers()
+for exception_type, handler in battle_assistant_handlers.items():
+    app.add_exception_handler(exception_type, handler)
 
 
 @app.get("/healthz")
@@ -127,10 +154,30 @@ app.include_router(runs_router.router)
 app.include_router(resources_router.router)
 app.include_router(settings_router.router)
 app.include_router(world_patrol_router.router)
+app.include_router(hollow_zero.router)
+app.include_router(game_assistant.router)
+app.include_router(battle_assistant.router)
+app.include_router(random_play.router)
+app.include_router(drive_disc_dismantle.router)
+app.include_router(context.router)
+app.include_router(logs.router)
 app.include_router(ws_router)
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    try:
+        print("Starting FastAPI application...")
+        uvicorn.run(
+            "zzz_od.api.main:app",
+            host="127.0.0.1",
+            port=8000,
+            reload=True,
+            reload_dirs=["../src"]
+        )
+    except Exception as e:
+        print(f"Failed to start FastAPI application: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
