@@ -51,7 +51,7 @@ class SuibianTempleYumChaSin(ZOperation):
         ZOperation.__init__(self, ctx,
                             op_name=f'{gt("随便观", "game")} {gt("饮茶仙", "game")}')
 
-        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(app_id='suibian_temple')
+        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(app_id='suibian_temple')  # type: ignore
         self.last_yum_cha_opt: str = ''  # 上一次饮茶仙的选项
         self.last_yum_cha_period: bool = False  # 饮茶仙是否点击过定期采购了
 
@@ -60,7 +60,7 @@ class SuibianTempleYumChaSin(ZOperation):
         self.done_craft: bool = False  #  是否进行了制造
         self.skip_adventure: bool = False  # 已经无法再派遣了 后续跳过
 
-    @operation_node(name='邻里心愿提交', is_start_node=True)
+    @operation_node(name='邻里心愿提交', is_start_node=True, node_max_retry_times=2)
     def neighborhood_wished_submit(self) -> OperationRoundResult:
         """
         邻里心愿 提交
@@ -92,7 +92,7 @@ class SuibianTempleYumChaSin(ZOperation):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='前往定期采办')
-    @operation_node(name='定期采办提交')
+    @operation_node(name='定期采办提交', node_max_retry_times=2)
     def regular_procurement_submit(self) -> OperationRoundResult:
         """
         3. 不断点击 提交、刷新
@@ -119,7 +119,7 @@ class SuibianTempleYumChaSin(ZOperation):
                 if result.is_success:
                     return self.round_wait(status=result.status, wait=1)
 
-        return self.round_retry(status='未发现可提交委托', wait=1)
+        return self.round_retry(status='未发现可提交委托', wait=0.5)
 
     def is_btn_available(self, btn_part: MatLike) -> bool:
         """
@@ -139,7 +139,7 @@ class SuibianTempleYumChaSin(ZOperation):
 
     @node_from(from_name='定期采办提交', success=False)
     @node_from(from_name='返回定期采办')
-    @operation_node(name='检查定期采办委托')
+    @operation_node(name='检查定期采办委托', node_max_retry_times=2)
     def check_regular_procurement(self) -> OperationRoundResult:
         """
         4. 遍历采办清单 选择其中一个
@@ -195,14 +195,14 @@ class SuibianTempleYumChaSin(ZOperation):
         return task_list
 
     @node_from(from_name='检查定期采办委托')
-    @operation_node(name='检查缺少的素材')
+    @operation_node(name='检查缺少的素材', node_max_retry_times=2)
     def check_lack_of_material(self) -> OperationRoundResult:
         """
         点击缺少的素材 (找红色的数字)
         """
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
-            color_range=[[200, 0, 0], [255, 100, 100]],
+            color_range=[[200, 0, 0], [255, 130, 100]],
             rect=self.ctx.screen_loader.get_area('随便观-饮茶仙', '区域-材料数量').rect,
         )
         for ocr_result in ocr_result_list:
@@ -222,9 +222,12 @@ class SuibianTempleYumChaSin(ZOperation):
 
             # 找到最接近的材料
             for i in range(1, 4):
-                material_area = self.ctx.screen_loader.get_area('随便观-饮茶仙', f'区域-材料-{i}')
+                material_area = self.ctx.screen_loader.get_area(
+                    "随便观-饮茶仙", f"区域-材料-{i}"
+                )
                 material_rect = material_area.rect
                 if abs(material_rect.center.y - ocr_result.rect.center.y) < min(material_rect.height, ocr_result.rect.height) * 0.3:
+                    self.done_material_list.add(material_rect)
                     self.ctx.controller.click(material_rect.center)
                     return self.round_success(wait=1)
 
@@ -234,6 +237,7 @@ class SuibianTempleYumChaSin(ZOperation):
     @operation_node(name='前往制作')
     def goto_craft(self) -> OperationRoundResult:
         self.done_craft = False
+        # TODO 增加记录已经处理的材料名称 后续可以减少相同材料的处理
         return self.round_by_find_and_click_area(screen_name='随便观-饮茶仙', area_name='按钮-制造',
                                                  success_wait=1, retry_wait=1)
 

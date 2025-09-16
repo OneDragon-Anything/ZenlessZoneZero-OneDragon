@@ -88,33 +88,10 @@ class SuibianTempleApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='处理游历')
-    @operation_node(name='前往经营')
-    def goto_business(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(
-            self.last_screenshot, '随便观-入口', '按钮-经营',
-            success_wait=1, retry_wait=1,
-            until_not_find_all=[('随便观-入口', '按钮-经营')]
-        )
-
-    @node_from(from_name='前往经营')
-    @operation_node(name='前往制造')
-    def goto_craft(self) -> OperationRoundResult:
-        return self.round_by_ocr_and_click(self.last_screenshot, '制造', success_wait=1, retry_wait=1)
-
-    @node_from(from_name='前往制造')
-    @operation_node(name='处理制造坊')
-    def handle_craft(self) -> OperationRoundResult:
-        op = SuibianTempleCraft(self.ctx)
-        return self.round_by_op_result(op.execute())
-
-    @node_from(from_name='处理制造坊')
-    @operation_node(name='前往饮茶仙')
+    @operation_node(name='前往饮茶仙')  # TODO 未处理跳过饮茶仙和重新派遣
     def goto_yum_cha_sin(self) -> OperationRoundResult:
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-饮茶仙'])
         if current_screen_name is not None:
-            # 引入饮茶仙前做一些初始化
-            self.last_yum_cha_opt = ''
-            self.last_yum_cha_period = False
             return self.round_success(status=current_screen_name)
 
         target_cn_list: list[str] = [
@@ -136,6 +113,26 @@ class SuibianTempleApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='处理饮茶仙')
+    @operation_node(name='前往经营')
+    def goto_business(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(
+            self.last_screenshot, '随便观-入口', '按钮-经营',
+            success_wait=1, retry_wait=1,
+            until_not_find_all=[('随便观-入口', '按钮-经营')]
+        )
+
+    @node_from(from_name='前往经营')
+    @operation_node(name='前往制造')
+    def goto_craft(self) -> OperationRoundResult:
+        return self.round_by_ocr_and_click(self.last_screenshot, '制造', success_wait=1, retry_wait=1)
+
+    @node_from(from_name='前往制造')
+    @operation_node(name='处理制造坊')
+    def handle_craft(self) -> OperationRoundResult:
+        op = SuibianTempleCraft(self.ctx)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='处理制造坊')
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
         self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
@@ -146,6 +143,9 @@ class SuibianTempleApp(ZApplication):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
+    ctx.run_context.current_instance_idx = ctx.current_instance_idx
+    ctx.run_context.current_app_id = 'suibian_temple'
+    ctx.run_context.current_group_id = 'one_dragon'
     app = SuibianTempleApp(ctx)
     app.execute()
 

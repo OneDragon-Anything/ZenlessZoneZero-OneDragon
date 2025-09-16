@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import difflib
 import inspect
 import time
 from functools import cached_property
 from io import BytesIO
-from typing import Optional, ClassVar, Callable, Any
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Optional
 
 import cv2
 import numpy as np
@@ -12,18 +14,22 @@ from cv2.typing import MatLike
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
-from one_dragon.base.operation.one_dragon_context import OneDragonContext, ContextRunningStateEventEnum
 from one_dragon.base.operation.operation_base import OperationBase, OperationResult
 from one_dragon.base.operation.operation_edge import OperationEdge, OperationEdgeDesc
 from one_dragon.base.operation.operation_node import OperationNode
-from one_dragon.base.operation.operation_round_result import OperationRoundResultEnum, OperationRoundResult
+from one_dragon.base.operation.operation_round_result import (
+    OperationRoundResult,
+    OperationRoundResultEnum,
+)
 from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_area import ScreenArea
-from one_dragon.base.screen.screen_utils import OcrClickResultEnum, FindAreaResultEnum
-from one_dragon.utils import debug_utils, cv2_utils, str_utils
+from one_dragon.base.screen.screen_utils import FindAreaResultEnum, OcrClickResultEnum
+from one_dragon.utils import cv2_utils, debug_utils, str_utils
 from one_dragon.utils.i18_utils import coalesce_gt, gt
 from one_dragon.utils.log_utils import log
 
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 class PreviousNodeStateProxy:
     """
@@ -211,6 +217,9 @@ class Operation(OperationBase):
 
         # 监听事件
         self.ctx.unlisten_all_event(self)
+        from one_dragon.base.operation.one_dragon_context import (
+            ContextRunningStateEventEnum,
+        )
         self.ctx.listen_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, self._on_pause)
         self.ctx.listen_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, self._on_resume)
 
@@ -1018,8 +1027,6 @@ class Operation(OperationBase):
         """
         if screen is None:
             screen = self.last_screenshot
-        if screen is None:
-            _, screen = self.screenshot()
 
         # 优先使用OCR缓存服务
         if self.ctx.env_config.ocr_cache:
@@ -1038,9 +1045,9 @@ class Operation(OperationBase):
                 # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
 
             ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
-            for _, mrl in ocr_result_map.items():
-                for mr in mrl:
-                    mr.add_offset(area.left_top)
+            if area is not None:
+                for _, mrl in ocr_result_map.items():
+                    mrl.add_offset(area.left_top)
 
         match_word, match_word_mrl = ocr_utils.match_word_list_by_priority(
             ocr_result_map,

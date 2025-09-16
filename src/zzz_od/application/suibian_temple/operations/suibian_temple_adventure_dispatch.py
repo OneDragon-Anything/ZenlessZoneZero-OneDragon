@@ -28,7 +28,6 @@ class SuibianTempleAdventureDispatch(ZOperation):
     2. 自动选择邦布
     3. 派遣
 
-    TODO 未处理情况：进入已派遣的副本
     """
 
     STATUS_CANT_DISPATCH: str = '无法完成派遣'
@@ -71,26 +70,29 @@ class SuibianTempleAdventureDispatch(ZOperation):
 
             return self.round_wait(status=result.status, wait=1)
 
+        result = self.round_by_ocr(
+            screen=self.last_screenshot,
+            target_cn='提前收获',
+        )
+        if result.is_success:
+            return self.round_success(status=result.status, wait=1)
+
         # 没有弹窗相关点击时 点击按钮显示弹窗
         self.round_by_click_area('随便观-游历', '按钮-选择时间')
         return self.round_retry(status='未识别弹窗', wait=2)
 
-    @node_from(from_name='选择游历时间')
+    @node_from(from_name='选择游历时间', status='确认')
     @operation_node(name='点击自动选择邦布')
     def click_auto_choose(self) -> OperationRoundResult:
-        target_word_list = [
-            '自动选择邦布'
-        ]
-        return self.round_by_ocr_and_click_by_priority(
-            target_cn_list=target_word_list,
-            success_wait=1,
-            retry_wait=1,
-        )
+        # 邦布电量不足 会不显示自动选择邦布 因此直接点击图标 issue 1179
+        return self.round_by_click_area(screen_name='随便观-游历', area_name='按钮-自动选择邦布',
+                                        success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击自动选择邦布')
-    @operation_node(name='点击派遣')
+    @operation_node(name="点击派遣")
     def click_dispatch(self) -> OperationRoundResult:
         target_word_list = [
+            '邦布电量不足',
             '派遣'
         ]
         return self.round_by_ocr_and_click_by_priority(
@@ -99,7 +101,7 @@ class SuibianTempleAdventureDispatch(ZOperation):
             retry_wait=1,
         )
 
-    @node_from(from_name='点击派遣')
+    @node_from(from_name='点击派遣', status='派遣')
     @operation_node(name='检查弹窗')
     def check_dialog(self) -> OperationRoundResult:
         target_word_list = [
@@ -111,9 +113,15 @@ class SuibianTempleAdventureDispatch(ZOperation):
             retry_wait=0.5,
         )
 
+    @node_from(from_name='选择游历时间', status='提前收获')
+    @operation_node(name='已派遣')
+    def already_dispatch(self) -> OperationRoundResult:
+        return self.round_success(status='已派遣')
+
+    @node_from(from_name='点击派遣', status='邦布电量不足')
     @node_from(from_name='检查弹窗', status='确认')
-    @operation_node(name='弹窗确认')
-    def after_dialog_confirm(self) -> OperationRoundResult:
+    @operation_node(name='无法派遣')
+    def cant_dispatch(self) -> OperationRoundResult:
         return self.round_success(status=SuibianTempleAdventureDispatch.STATUS_CANT_DISPATCH)
 
     @node_from(from_name='检查弹窗', success=False)  # 没有出现对话框的确认就是成功

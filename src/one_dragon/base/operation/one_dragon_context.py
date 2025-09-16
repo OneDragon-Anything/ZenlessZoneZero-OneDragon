@@ -1,26 +1,32 @@
 import logging
 from enum import Enum
-from pynput import keyboard, mouse
 from typing import Optional
+
+from pynput import keyboard, mouse
 
 from one_dragon.base.config.custom_config import CustomConfig, UILanguageEnum
 from one_dragon.base.config.game_account_config import GameAccountConfig
 from one_dragon.base.config.one_dragon_app_config import OneDragonAppConfig
 from one_dragon.base.config.one_dragon_config import OneDragonConfig
 from one_dragon.base.config.push_config import PushConfig
-from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
-from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher, OnnxOcrParam
 from one_dragon.base.matcher.ocr.ocr_service import OcrService
+from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher, OnnxOcrParam
 from one_dragon.base.matcher.template_matcher import TemplateMatcher
+from one_dragon.base.operation.application.application_run_context import (
+    ApplicationRunContext,
+)
 from one_dragon.base.operation.context_event_bus import ContextEventBus
-from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext, ONE_DRAGON_CONTEXT_EXECUTOR
+from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
+from one_dragon.base.operation.one_dragon_env_context import (
+    ONE_DRAGON_CONTEXT_EXECUTOR,
+    OneDragonEnvContext,
+)
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
-from one_dragon.utils import debug_utils, i18_utils, log_utils
-from one_dragon.utils import thread_utils
+from one_dragon.utils import debug_utils, i18_utils, log_utils, thread_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
@@ -84,6 +90,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.mouse_controller = mouse.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
         self.btn_listener.start()
+
+        # 注册应用
+        self.run_context: ApplicationRunContext = ApplicationRunContext()
+        self.register_application_factory()
 
     def init_by_config(self) -> None:
         """
@@ -253,3 +263,12 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.one_dragon_app_config.clear_temp_app_run_list()
         ContextEventBus.after_app_shutdown(self)
         OneDragonEnvContext.after_app_shutdown(self)
+
+    def register_application_factory(self) -> None:
+        """
+        注册应用
+
+        Returns:
+            None
+        """
+        pass

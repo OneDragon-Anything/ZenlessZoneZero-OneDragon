@@ -1,15 +1,18 @@
-from concurrent.futures import ThreadPoolExecutor
+from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
-from typing import Optional, Callable
 from io import BytesIO
+from typing import TYPE_CHECKING, Callable, Optional
 
 from one_dragon.base.notify.push import Push
 from one_dragon.base.operation.application_run_record import AppRunRecord
-from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.utils.i18_utils import gt
+
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 _app_preheat_executor = ThreadPoolExecutor(thread_name_prefix='od_app_preheat', max_workers=1)
 _notify_executor = ThreadPoolExecutor(thread_name_prefix='od_app_notify', max_workers=1)

@@ -1,5 +1,9 @@
 # 代码来自whyour/qinglong/develop/sample/notify.py, 感谢原作者的贡献
+from __future__ import annotations
+
 import base64
+import datetime
+import functools
 import hashlib
 import hmac
 import json
@@ -7,20 +11,19 @@ import re
 import smtplib
 import threading
 import time
-import datetime
 import urllib.parse
-import functools
-
-from io import BytesIO
-from email.mime.text import MIMEText
 from email.header import Header
+from email.mime.text import MIMEText
 from email.utils import formataddr
-from typing import Optional
-
-from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from one_dragon.utils.log_utils import log
+from io import BytesIO
+from typing import TYPE_CHECKING, Optional
 
 import requests
+
+from one_dragon.utils.log_utils import log
+
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 def track_push_method(func):
     """装饰器：自动为推送方法添加遥测功能"""

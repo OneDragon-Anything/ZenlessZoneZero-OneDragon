@@ -7,13 +7,6 @@ from zzz_od.game_data.agent import AgentEnum
 class ZContext(OneDragonContext):
 
     def __init__(self,):
-        # 注册应用
-        from one_dragon.base.operation.application.application_run_context import (
-            ApplicationRunContext,
-        )
-        self.run_context: ApplicationRunContext = ApplicationRunContext()
-        self.register_application_factory()
-
         OneDragonContext.__init__(self)
 
         from zzz_od.context.hollow_context import HollowContext
