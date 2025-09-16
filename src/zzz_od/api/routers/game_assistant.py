@@ -66,7 +66,8 @@ async def run_commission_assistant():
     启动委托助手自动化任务
 
     ## 功能描述
-    启动委托助手，自动完成游戏中的委托任务，包括对话处理、战斗和任务流程。
+    直接启动委托助手应用，自动完成游戏中的委托任务，包括对话处理、战斗和任务流程。
+    不会执行一条龙的完整流程，只运行委托助手本身。
 
     ## 返回数据
     - **runId**: 任务运行ID，用于后续状态查询和控制
@@ -83,7 +84,7 @@ async def run_commission_assistant():
     print(f"委托助手任务ID: {task_info['runId']}")
     ```
     """
-    run_id = _run_via_onedragon_with_temp(["commission_assistant"])
+    run_id = _start_app_run(lambda c: CommissionAssistantApp(c))
     return RunIdResponse(runId=run_id)
 
 
@@ -135,6 +136,7 @@ def update_commission_assistant_config(payload: Dict[str, Any]) -> Dict[str, Any
 
     ## 功能描述
     更新委托助手的配置设置，支持部分更新。只需要提供需要修改的字段。
+    配置更新后会通过WebSocket推送给前端，减少轮询请求。
 
     ## 请求参数
     - **dialogClickInterval** (可选): 对话点击间隔时间，单位秒
@@ -147,6 +149,9 @@ def update_commission_assistant_config(payload: Dict[str, Any]) -> Dict[str, Any
 
     ## 返回数据
     - **message**: 更新成功消息
+
+    ## WebSocket推送
+    配置更新后会向 `/ws/v1/game-assistant/config-updates` 推送更新事件
 
     ## 错误码
     - **CONFIG_UPDATE_FAILED**: 配置更新失败
@@ -166,20 +171,60 @@ def update_commission_assistant_config(payload: Dict[str, Any]) -> Dict[str, Any
     ctx = get_ctx()
     config = ctx.commission_assistant_config
 
+    updated_fields = []
+
     if "dialogClickInterval" in payload:
         config.dialog_click_interval = float(payload["dialogClickInterval"])
+        updated_fields.append("dialogClickInterval")
     if "storyMode" in payload:
         config.story_mode = payload["storyMode"]
+        updated_fields.append("storyMode")
     if "dialogOption" in payload:
         config.dialog_option = payload["dialogOption"]
+        updated_fields.append("dialogOption")
     if "dodgeConfig" in payload:
         config.dodge_config = payload["dodgeConfig"]
+        updated_fields.append("dodgeConfig")
     if "dodgeSwitch" in payload:
         config.dodge_switch = payload["dodgeSwitch"]
+        updated_fields.append("dodgeSwitch")
     if "autoBattle" in payload:
         config.auto_battle = payload["autoBattle"]
+        updated_fields.append("autoBattle")
     if "autoBattleSwitch" in payload:
         config.auto_battle_switch = payload["autoBattleSwitch"]
+        updated_fields.append("autoBattleSwitch")
+
+    # 推送配置更新事件到WebSocket
+    if updated_fields:
+        import asyncio
+        from zzz_od.api.ws import manager
+
+        def broadcast_config_update():
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.create_task(manager.broadcast_json(
+                        "game-assistant:config-updates",
+                        {
+                            "type": "commission_assistant_config_updated",
+                            "component": "commission-assistant",
+                            "updated_fields": updated_fields,
+                            "config": {
+                                "dialogClickInterval": config.dialog_click_interval,
+                                "storyMode": config.story_mode,
+                                "dialogOption": config.dialog_option,
+                                "dodgeConfig": config.dodge_config,
+                                "dodgeSwitch": config.dodge_switch,
+                                "autoBattle": config.auto_battle,
+                                "autoBattleSwitch": config.auto_battle_switch,
+                            }
+                        }
+                    ))
+            except Exception:
+                pass  # WebSocket推送失败不影响配置更新
+
+        broadcast_config_update()
 
     return {"message": "Configuration updated successfully"}
 
@@ -193,7 +238,8 @@ async def run_life_on_line():
     启动拿命验收自动化任务
 
     ## 功能描述
-    启动拿命验收任务，自动完成游戏中的拿命验收挑战，包括队伍选择和战斗流程。
+    直接启动拿命验收应用，自动完成游戏中的拿命验收挑战，包括队伍选择和战斗流程。
+    不会执行一条龙的完整流程，只运行拿命验收本身。
 
     ## 返回数据
     - **runId**: 任务运行ID，用于后续状态查询和控制
@@ -211,7 +257,7 @@ async def run_life_on_line():
     print(f"拿命验收任务ID: {task_info['runId']}")
     ```
     """
-    run_id = _run_via_onedragon_with_temp(["life_on_line"])
+    run_id = _start_app_run(lambda c: LifeOnLineApp(c))
     return RunIdResponse(runId=run_id)
 
 
@@ -254,6 +300,7 @@ def update_life_on_line_config(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     ## 功能描述
     更新拿命验收的配置设置，支持部分更新。只需要提供需要修改的字段。
+    配置更新后会通过WebSocket推送给前端。
 
     ## 请求参数
     - **dailyPlanTimes** (可选): 每日计划运行次数，整数
@@ -261,6 +308,9 @@ def update_life_on_line_config(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     ## 返回数据
     - **message**: 更新成功消息
+
+    ## WebSocket推送
+    配置更新后会向 `/ws/v1/game-assistant/config-updates` 推送更新事件
 
     ## 错误码
     - **CONFIG_UPDATE_FAILED**: 配置更新失败
@@ -280,10 +330,40 @@ def update_life_on_line_config(payload: Dict[str, Any]) -> Dict[str, Any]:
     ctx = get_ctx()
     config = ctx.life_on_line_config
 
+    updated_fields = []
+
     if "dailyPlanTimes" in payload:
         config.daily_plan_times = int(payload["dailyPlanTimes"])
+        updated_fields.append("dailyPlanTimes")
     if "predefinedTeamIdx" in payload:
         config.predefined_team_idx = int(payload["predefinedTeamIdx"])
+        updated_fields.append("predefinedTeamIdx")
+
+    # 推送配置更新事件到WebSocket
+    if updated_fields:
+        import asyncio
+        from zzz_od.api.ws import manager
+
+        def broadcast_config_update():
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.create_task(manager.broadcast_json(
+                        "game-assistant:config-updates",
+                        {
+                            "type": "life_on_line_config_updated",
+                            "component": "life-on-line",
+                            "updated_fields": updated_fields,
+                            "config": {
+                                "dailyPlanTimes": config.daily_plan_times,
+                                "predefinedTeamIdx": config.predefined_team_idx,
+                            }
+                        }
+                    ))
+            except Exception:
+                pass  # WebSocket推送失败不影响配置更新
+
+        broadcast_config_update()
 
     return {"message": "Configuration updated successfully"}
 
@@ -329,7 +409,8 @@ async def run_mouse_sensitivity_checker():
     启动鼠标灵敏度校准任务
 
     ## 功能描述
-    启动鼠标灵敏度检查器，自动检测和校准游戏中的鼠标灵敏度设置，确保操作精度。
+    直接启动鼠标灵敏度检查器，自动检测和校准游戏中的鼠标灵敏度设置，确保操作精度。
+    不会执行一条龙的完整流程，只运行鼠标校准本身。
 
     ## 返回数据
     - **runId**: 任务运行ID，用于后续状态查询和控制
@@ -350,7 +431,7 @@ async def run_mouse_sensitivity_checker():
     print(f"鼠标校准任务ID: {task_info['runId']}")
     ```
     """
-    run_id = _run_via_onedragon_with_temp(["mouse_sensitivity_checker"])
+    run_id = _start_app_run(lambda c: MouseSensitivityChecker(c))
     return RunIdResponse(runId=run_id)
 
 
@@ -363,7 +444,8 @@ async def run_predefined_team_checker():
     启动预设队伍识别任务
 
     ## 功能描述
-    启动预设队伍检查器，自动识别和验证游戏中的预设队伍配置，确保队伍设置正确。
+    直接启动预设队伍检查器，自动识别和验证游戏中的预设队伍配置，确保队伍设置正确。
+    不会执行一条龙的完整流程，只运行队伍检查本身。
 
     ## 返回数据
     - **runId**: 任务运行ID，用于后续状态查询和控制
@@ -384,5 +466,5 @@ async def run_predefined_team_checker():
     print(f"队伍检查任务ID: {task_info['runId']}")
     ```
     """
-    run_id = _run_via_onedragon_with_temp(["predefined_team_checker"])
+    run_id = _start_app_run(lambda c: PredefinedTeamChecker(c))
     return RunIdResponse(runId=run_id)
