@@ -25,6 +25,10 @@ def load_auto_op(op: Union[ZOperation, ZApplication], auto_config_sub_dir: str, 
     if op.auto_op is not None:  # 如果有上一个 先销毁
         op.auto_op.dispose()
     op.auto_op = AutoBattleOperator(op.ctx, auto_config_sub_dir, auto_config_name)
+    
+    # 同步设置到ctx.auto_op，以便API端点能访问到
+    op.ctx.auto_op = op.auto_op
+    
     success, msg = op.auto_op.init_before_running()
     if not success:
         return op.round_fail(msg)
@@ -36,6 +40,10 @@ def load_auto_op_async(op: Union[ZOperation, ZApplication], auto_config_sub_dir:
     if op.auto_op is not None:  # 如果有上一个 先销毁
         op.auto_op.dispose()
     op.auto_op = AutoBattleOperator(op.ctx, auto_config_sub_dir, auto_config_name)
+    
+    # 同步设置到ctx.auto_op，以便API端点能访问到
+    op.ctx.auto_op = op.auto_op
+    
     return op.auto_op.init_before_running_async()
 
 
