@@ -707,8 +707,10 @@ def stop_dodge_assistant(ctx: ZContext = Depends(get_ctx)):
         cancelled_count = 0
 
         for status in statuses:
-            if status.status.value in ["pending", "running"]:
-                if _registry.cancel(status.runId):
+            status_value = getattr(status.status, 'value', str(status.status)) if hasattr(status, 'status') else 'unknown'
+            if status_value in ["pending", "running"]:
+                run_id = getattr(status, 'runId', None)
+                if run_id and _registry.cancel(run_id):
                     cancelled_count += 1
 
         return {
@@ -778,17 +780,20 @@ def get_battle_state(ctx: ZContext = Depends(get_ctx)):
             # 获取当前动作（从状态记录器中获取最近的动作）
             if hasattr(ctx.auto_op, 'state_recorders') and ctx.auto_op.state_recorders:
                 # 获取最近的状态记录
-                latest_state = None
-                latest_time = 0
+                latest_action_state = None
+                latest_action_time = 0
+                latest_any_state = None
+                latest_any_time = 0
 
                 for recorder in ctx.auto_op.state_recorders.values():
                     if recorder.last_record_time > 0:  # 检查是否有有效的记录时间
-                        if recorder.last_record_time > latest_time:
-                            latest_time = recorder.last_record_time
-                            latest_state = recorder.state_name
+                        if recorder.last_record_time > latest_any_time:
+                            latest_any_time = recorder.last_record_time
+                            latest_any_state = recorder.state_name
 
-                if latest_state:
-                    current_action = latest_state
+                # 使用最新状态，与PySide GUI保持一致
+                if latest_any_state:
+                    current_action = latest_any_state
 
             # 获取敌人检测信息
             if hasattr(auto_battle_context, 'target_context'):
@@ -821,9 +826,17 @@ def get_battle_state(ctx: ZContext = Depends(get_ctx)):
             # 可以根据运行的应用类型推断状态
             performance_metrics["context_running"] = True
             performance_metrics["running_tasks"] = len(_registry.list_statuses())
+
+            # 如果没有auto_op但上下文在运行，可能是其他类型的任务
+            if ctx.auto_op is None:
+                current_action = "任务运行中"
         else:
             performance_metrics["context_running"] = False
             performance_metrics["running_tasks"] = 0
+
+            # 如果没有任何任务运行，显示待机状态
+            if current_action is None:
+                current_action = "待机"
 
         battle_state = BattleState(
             is_in_battle=is_in_battle,
@@ -1841,13 +1854,43 @@ def _collect_battle_performance_metrics(ctx: ZContext) -> dict:
     metrics["task_details"] = []
 
     for status in task_statuses:
-        metrics["task_details"].append({
-            "run_id": status.runId,
-            "status": status.status.value,
-            "created_at": status.createdAt.isoformat() if status.createdAt else None,
-            "started_at": status.startedAt.isoformat() if status.startedAt else None,
-            "finished_at": status.finishedAt.isoformat() if status.finishedAt else None
-        })
+        task_detail = {
+            "run_id": getattr(status, 'runId', None),
+            "status": getattr(status.status, 'value', str(status.status)) if hasattr(status, 'status') else 'unknown'
+        }
+
+        # 安全地获取时间属性
+        def safe_time_format(time_attr):
+            if time_attr is None:
+                return None
+            if isinstance(time_attr, str):
+                return time_attr  # 已经是字符串，直接返回
+            if hasattr(time_attr, 'isoformat'):
+                return time_attr.isoformat()  # datetime对象
+            return str(time_attr)  # 其他类型转为字符串
+
+        if hasattr(status, 'createdAt') and status.createdAt:
+            task_detail["created_at"] = safe_time_format(status.createdAt)
+        elif hasattr(status, 'created_at') and status.created_at:
+            task_detail["created_at"] = safe_time_format(status.created_at)
+        else:
+            task_detail["created_at"] = None
+
+        if hasattr(status, 'startedAt') and status.startedAt:
+            task_detail["started_at"] = safe_time_format(status.startedAt)
+        elif hasattr(status, 'started_at') and status.started_at:
+            task_detail["started_at"] = safe_time_format(status.started_at)
+        else:
+            task_detail["started_at"] = None
+
+        if hasattr(status, 'finishedAt') and status.finishedAt:
+            task_detail["finished_at"] = safe_time_format(status.finishedAt)
+        elif hasattr(status, 'finished_at') and status.finished_at:
+            task_detail["finished_at"] = safe_time_format(status.finished_at)
+        else:
+            task_detail["finished_at"] = None
+
+        metrics["task_details"].append(task_detail)
 
     # 收集配置信息
     if hasattr(ctx, 'battle_assistant_config'):
@@ -1886,19 +1929,22 @@ def _collect_battle_state_info(ctx: ZContext) -> dict:
 
         # 获取最近的动作状态
         if hasattr(ctx.auto_op, 'state_recorders') and ctx.auto_op.state_recorders:
-            latest_state = None
-            latest_time = 0
+            latest_action_state = None
+            latest_action_time = 0
+            latest_any_state = None
+            latest_any_time = 0
 
             for recorder_name, recorder in ctx.auto_op.state_recorders.items():
-                if recorder.records:
-                    last_record = recorder.records[-1]
-                    if last_record.record_time > latest_time:
-                        latest_time = last_record.record_time
-                        latest_state = last_record.state_name
+                if recorder.last_record_time > 0:  # 检查是否有有效的记录时间
+                    # 记录所有状态中最新的
+                    if recorder.last_record_time > latest_any_time:
+                        latest_any_time = recorder.last_record_time
+                        latest_any_state = recorder.state_name
 
-            if latest_state:
-                battle_info["current_action"] = latest_state
-                battle_info["last_action_time"] = latest_time
+            # 使用最新状态，与PySide GUI保持一致
+            if latest_any_state:
+                battle_info["current_action"] = latest_any_state
+                battle_info["last_action_time"] = latest_any_time
 
         # 代理信息
         if hasattr(auto_battle_context, 'agent_context'):
@@ -2185,11 +2231,10 @@ def _get_current_battle_state(ctx: ZContext) -> dict:
             latest_time = 0
 
             for recorder in ctx.auto_op.state_recorders.values():
-                if recorder.records:
-                    last_record = recorder.records[-1]
-                    if last_record.record_time > latest_time:
-                        latest_time = last_record.record_time
-                        latest_state = last_record.state_name
+                if recorder.last_record_time > 0:  # 检查是否有有效的记录时间
+                    if recorder.last_record_time > latest_time:
+                        latest_time = recorder.last_record_time
+                        latest_state = recorder.state_name
 
             if latest_state:
                 current_action = latest_state
@@ -2266,17 +2311,27 @@ def get_detailed_battle_state_with_records(ctx: ZContext = Depends(get_ctx)):
 
         # 如果有自动战斗操作器在运行，获取详细状态
         if ctx.auto_op is not None:
-            auto_op_running = ctx.auto_op.is_running
+            # 更准确地判断auto_op是否在运行
+            auto_op_running = bool(ctx.auto_op.is_running or (ctx.is_context_running and hasattr(ctx.auto_op, 'state_recorders') and bool(ctx.auto_op.state_recorders)))
 
-            if auto_op_running:
+            # 即使auto_op.is_running为False，如果上下文在运行且有state_recorders，也应该获取状态
+            should_get_state = auto_op_running or (ctx.is_context_running and hasattr(ctx.auto_op, 'state_recorders'))
+
+            if should_get_state:
                 # 获取状态记录器信息
                 now = time.time()
-                states = ctx.auto_op.get_usage_states()
-                states = sorted(states)
 
-                state_recorders = sorted([i for i in ctx.auto_op.state_recorders.values()
-                                        if i.state_name in states],
-                                       key=lambda x: x.state_name)
+                # 尝试获取usage_states，如果失败则使用所有state_recorders
+                try:
+                    states = ctx.auto_op.get_usage_states()
+                    states = sorted(states)
+                    state_recorders = sorted([i for i in ctx.auto_op.state_recorders.values()
+                                            if i.state_name in states],
+                                           key=lambda x: x.state_name)
+                except:
+                    # 如果get_usage_states失败，直接使用所有state_recorders
+                    state_recorders = sorted(ctx.auto_op.state_recorders.values(),
+                                           key=lambda x: x.state_name)
 
                 for recorder in state_recorders:
                     if recorder.last_record_time == -1:
@@ -2299,9 +2354,10 @@ def get_detailed_battle_state_with_records(ctx: ZContext = Depends(get_ctx)):
                     ))
 
                 # 获取当前任务信息
-                running_task = ctx.auto_op.running_task
+                running_task = getattr(ctx.auto_op, 'running_task', None)
                 if running_task is not None:
-                    duration = now - ctx.auto_op.last_trigger_time.get(running_task.trigger_display, 0)
+                    last_trigger_time = getattr(ctx.auto_op, 'last_trigger_time', {})
+                    duration = now - last_trigger_time.get(running_task.trigger_display, 0)
 
                     current_task = TaskInfo(
                         trigger_display=running_task.trigger_display,
@@ -2314,7 +2370,7 @@ def get_detailed_battle_state_with_records(ctx: ZContext = Depends(get_ctx)):
             basic_state=basic_state,
             state_records=state_records,
             current_task=current_task,
-            auto_op_running=auto_op_running
+            auto_op_running=bool(auto_op_running)  # 确保是布尔值
         )
 
         # 广播详细状态更新事件
@@ -2461,18 +2517,24 @@ def get_current_task(ctx: ZContext = Depends(get_ctx)) -> Optional[TaskInfo]:
     try:
         import time
 
-        if ctx.auto_op is not None and ctx.auto_op.is_running:
-            running_task = ctx.auto_op.running_task
-            if running_task is not None:
-                now = time.time()
-                duration = now - ctx.auto_op.last_trigger_time.get(running_task.trigger_display, 0)
+        # 检查auto_op是否存在且有运行任务
+        if ctx.auto_op is not None:
+            # 即使is_running为False，如果上下文在运行且有running_task，也应该返回任务信息
+            should_check_task = ctx.auto_op.is_running or (ctx.is_context_running and hasattr(ctx.auto_op, 'running_task'))
 
-                return TaskInfo(
-                    trigger_display=running_task.trigger_display,
-                    expr_display=running_task.expr_display,
-                    duration=round(duration, 4),
-                    is_running=True
-                )
+            if should_check_task:
+                running_task = getattr(ctx.auto_op, 'running_task', None)
+                if running_task is not None:
+                    now = time.time()
+                    last_trigger_time = getattr(ctx.auto_op, 'last_trigger_time', {})
+                    duration = now - last_trigger_time.get(running_task.trigger_display, 0)
+
+                    return TaskInfo(
+                        trigger_display=running_task.trigger_display,
+                        expr_display=running_task.expr_display,
+                        duration=round(duration, 4),
+                        is_running=True
+                    )
 
         return None
 
