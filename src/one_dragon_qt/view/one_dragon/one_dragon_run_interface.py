@@ -227,6 +227,10 @@ class OneDragonRunInterface(VerticalScrollInterface):
             cmd_utils.cancel_shutdown_sys()
 
     def run_app(self, app: Application) -> None:
+        self.ctx.run_context.current_instance_idx = self.ctx.current_instance_idx
+        self.ctx.run_context.current_group_id = 'one_dragon'
+        self.ctx.run_context.current_app_id = app.app_id
+
         self.app_runner.app = app
         if app.run_record is not None:
             app.run_record.check_and_update_status()

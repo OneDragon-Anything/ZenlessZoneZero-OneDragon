@@ -30,6 +30,10 @@ class SuibianTempleApp(ZApplication):
         )
         self.config: SuibianTempleConfig = self.ctx.run_context.get_config(app_id='suibian_temple')  # type: ignore
 
+    def handle_init(self):
+        ZApplication.handle_init(self)
+        self.config = self.ctx.run_context.get_config(app_id="suibian_temple")
+
     @operation_node(name='识别初始画面', is_start_node=True)
     def check_initial_screen(self) -> OperationRoundResult:
         current_screen_name, can_go = self.check_screen_with_can_go(self.last_screenshot, '快捷手册-目标')
