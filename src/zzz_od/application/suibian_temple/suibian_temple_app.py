@@ -2,9 +2,16 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_squad import SuibianTempleAdventureSquad
-from zzz_od.application.suibian_temple.operations.suibian_temple_craft import SuibianTempleCraft
-from zzz_od.application.suibian_temple.operations.suibian_temple_yum_cha_sin import SuibianTempleYumChaSin
+from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_squad import (
+    SuibianTempleAdventureSquad,
+)
+from zzz_od.application.suibian_temple.operations.suibian_temple_craft import (
+    SuibianTempleCraft,
+)
+from zzz_od.application.suibian_temple.operations.suibian_temple_yum_cha_sin import (
+    SuibianTempleYumChaSin,
+)
+from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempleConfig
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -21,6 +28,7 @@ class SuibianTempleApp(ZApplication):
             retry_in_od=True,  # 传送落地有可能会歪 重试
             need_notify=True,
         )
+        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(app_id='suibian_temple')  # type: ignore
 
     @operation_node(name='识别初始画面', is_start_node=True)
     def check_initial_screen(self) -> OperationRoundResult:
@@ -84,12 +92,19 @@ class SuibianTempleApp(ZApplication):
     @node_from(from_name='前往游历')
     @operation_node(name='处理游历')
     def handle_adventure_squad(self) -> OperationRoundResult:
-        op = SuibianTempleAdventureSquad(self.ctx)
+        op = SuibianTempleAdventureSquad(
+            self.ctx,
+            claim=True,
+            dispatch=not self.config.yum_cha_sin,  # 开启饮茶仙就不收获
+        )
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='处理游历')
-    @operation_node(name='前往饮茶仙')  # TODO 未处理跳过饮茶仙和重新派遣
+    @operation_node(name='前往饮茶仙')
     def goto_yum_cha_sin(self) -> OperationRoundResult:
+        if not self.config.yum_cha_sin:
+            return self.round_success(status='未开启')
+
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-饮茶仙'])
         if current_screen_name is not None:
             return self.round_success(status=current_screen_name)
@@ -113,6 +128,22 @@ class SuibianTempleApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='处理饮茶仙')
+    @operation_node(name='饮茶仙后前往游历')
+    def goto_adventure_2(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(
+            self.last_screenshot, '随便观-入口', '按钮-游历',
+            success_wait=1, retry_wait=1,
+            until_not_find_all=[('随便观-入口', '按钮-游历')]
+        )
+
+    @node_from(from_name='饮茶仙后前往游历')
+    @operation_node(name='饮茶仙后处理游历')
+    def handle_adventure_squad_2(self) -> OperationRoundResult:
+        op = SuibianTempleAdventureSquad(self.ctx, claim=False, dispatch=True)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='前往饮茶仙', status='未开启')
+    @node_from(from_name='饮茶仙后处理游历')
     @operation_node(name='前往经营')
     def goto_business(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(

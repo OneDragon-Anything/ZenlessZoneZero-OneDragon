@@ -93,10 +93,15 @@ class SuibianTempleAdventureDispatch(ZOperation):
     def click_dispatch(self) -> OperationRoundResult:
         target_word_list = [
             '邦布电量不足',
-            '派遣'
+            '派遣',
+            '可派遣小队',
+        ]
+        ignore_word_list = [
+            '可派遣小队',
         ]
         return self.round_by_ocr_and_click_by_priority(
             target_cn_list=target_word_list,
+            ignore_cn_list=ignore_word_list,
             success_wait=1,
             retry_wait=1,
         )
