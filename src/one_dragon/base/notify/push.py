@@ -219,6 +219,118 @@ class Push():
 
 
 
+    def lark_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
+        """
+        使用 Lark机器人 推送消息。
+        """
+
+        self.log_info("Lark 服务启动")
+
+        # 获取配置参数
+        webhook_url = self.get_config("LARK_WEBHOOK_URL")
+        app_id = self.get_config("LARK_APP_ID")
+        app_secret = self.get_config("LARK_APP_SECRET")
+
+        # 验证必要的配置参数
+        if not webhook_url:
+            self.log_error("Lark webhook URL 未配置")
+            self._track_push_failure('lark_bot', 'Webhook URL not configured')
+            return
+
+        self.log_info(f"Lark 配置获取完成，开始发送消息")
+
+        # 处理图片上传和富文本消息功能
+        image_key = None
+        if image and app_id and app_secret and app_id != "" and app_secret != "":
+            try:
+                image.seek(0)
+                # 实现获取tenant_access_token的逻辑
+                auth_endpoint = "https://open.larksuite.com/open-apis/auth/v3/tenant_access_token/internal"
+                auth_headers = {
+                    "Content-Type": "application/json; charset=utf-8"
+                }
+                auth_response = requests.post(auth_endpoint, headers=auth_headers, json={
+                    "app_id": app_id,
+                    "app_secret": app_secret
+                })
+                auth_response.raise_for_status()
+                tenant_access_token = auth_response.json()["tenant_access_token"]
+
+                # 实现图片上传到Lark服务器的功能
+                image_endpoint = "https://open.larksuite.com/open-apis/im/v1/images"
+                image_headers = {
+                    "Authorization": f"Bearer {tenant_access_token}"
+                }
+                files = {
+                    'image': ('image.jpg', image.getvalue(), 'image/jpeg'),
+                    'image_type': (None, 'message')
+                }
+                image_response = requests.post(image_endpoint, headers=image_headers, files=files)
+                if (image_response.status_code % 100 != 2):
+                    log.error(image_response.text)
+                    image_response.raise_for_status()
+                image_key = image_response.json()["data"]["image_key"]
+            except Exception as e:
+                # 添加图片处理的错误处理机制
+                self.log_error(f"Lark 图片上传失败: {e}")
+                # 图片上传失败时继续发送文本消息
+                image_key = None
+
+        # 构建消息数据结构
+        if image_key:
+            # 构建包含图片的富文本消息格式
+            data = {
+                "msg_type": "post",
+                "content": {
+                    "post": {
+                        "zh_cn": {
+                            "title": title,
+                            "content": [
+                                [{
+                                    "tag": "text",
+                                    "text": f"{content}"
+                                }, {
+                                    "tag": "img",
+                                    "image_key": image_key
+                                }]
+                            ]
+                        }
+                    }
+                }
+            }
+        else:
+            # 构建文本消息的JSON数据结构
+            data = {
+                "msg_type": "text",
+                "content": {
+                    "text": f"{title}\n{content}"
+                }
+            }
+
+        # 实现HTTP POST请求发送逻辑
+        headers = {"Content-Type": "application/json;charset=utf-8"}
+
+        try:
+            response = requests.post(
+                url=webhook_url,
+                data=json.dumps(data),
+                headers=headers,
+                timeout=15
+            ).json()
+
+            # 添加响应状态检查和错误处理
+            if response.get("StatusCode") == 0 or response.get("code") == 0:
+                self.log_info("Lark 推送成功！")
+                self._track_push_success('lark_bot')
+            else:
+                self.log_error(f"Lark 推送失败！错误信息：{response}")
+                self._track_push_failure('lark_bot', str(response))
+        except Exception as e:
+            self.log_error(f"Lark 推送异常: {e}")
+            self._track_push_failure('lark_bot', str(e))
+
+
+
     def one_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
         使用 OneBot 推送消息。
@@ -1074,6 +1186,8 @@ class Push():
             self.get_config("WXPUSHER_TOPIC_IDS") or self.get_config("WXPUSHER_UIDS")
         ):
             notify_function.append(self.wxpusher_bot)
+        if self.get_config("LARK_WEBHOOK_URL"):
+            notify_function.append(self.lark_bot)
         if not notify_function:
             self.log_error(f"无推送渠道，请检查通知设置是否正确")
         return notify_function
@@ -1155,6 +1269,7 @@ class Push():
             'WEBHOOK': 'webhook_bot',
             'NTFY': 'ntfy',
             'WXPUSHER': 'wxpusher_bot',
+            'LARK': 'lark_bot',
         }
 
         target_function_name = method_to_function_name.get(method)

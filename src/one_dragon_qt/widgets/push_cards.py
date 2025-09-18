@@ -149,6 +149,32 @@ class PushCards:
             "required": False
         }
     ],
+    "LARK": [
+        {
+            "var_suffix": "WEBHOOK_URL",
+            "title": "Webhook URL",
+            "icon": "LINK",
+            "placeholder": "请输入 Lark 机器人的 Webhook URL",
+            "type": "text",
+            "required": True
+        },
+        {
+            "var_suffix": "APP_ID",
+            "title": "应用 ID",
+            "icon": "APPLICATION",
+            "placeholder": "非必填，填写则用于发送图片",
+            "type": "text",
+            "required": False
+        },
+        {
+            "var_suffix": "APP_SECRET",
+            "title": "应用密钥",
+            "icon": "VPN",
+            "placeholder": "非必填，填写则用于发送图片",
+            "type": "text",
+            "required": False
+        }
+    ],
     "ONEBOT": [
         {
             "var_suffix": "URL",

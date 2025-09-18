@@ -14,6 +14,7 @@ class NotifyMethodEnum(Enum):
     QYWX = ConfigItem('企业微信', 'QYWX')
     DD_BOT = ConfigItem('钉钉机器人', 'DD_BOT')
     FS =  ConfigItem('飞书机器人', 'FS')
+    LARK = ConfigItem('Lark', 'LARK')
     DISCORD = ConfigItem('Discord', 'DISCORD')
     TELEGRAM = ConfigItem('Telegram', 'TG')
     BARK = ConfigItem('Bark', 'BARK')
