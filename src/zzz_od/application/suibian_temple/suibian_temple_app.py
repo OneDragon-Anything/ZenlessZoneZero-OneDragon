@@ -1,3 +1,6 @@
+import logging
+
+from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -10,6 +13,9 @@ from zzz_od.application.suibian_temple.operations.suibian_temple_craft import (
 )
 from zzz_od.application.suibian_temple.operations.suibian_temple_yum_cha_sin import (
     SuibianTempleYumChaSin,
+)
+from zzz_od.application.suibian_temple.operations.suibian_temple_good_goods import (
+    SuibianTempleGoodGoods,
 )
 from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempleConfig
 from zzz_od.application.zzz_application import ZApplication
@@ -168,6 +174,22 @@ class SuibianTempleApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='处理制造坊')
+    @operation_node(name='检查购买配置-好物铺')
+    def check_good_goods_config(self) -> OperationRoundResult:
+        """检查是否启用好物铺购买功能，决定后续流程"""
+        if self.config.good_goods_purchase_enabled:
+            return self.round_success(status='启用购买-好物铺')
+        else:
+            return self.round_success(status='禁用购买-好物铺')
+
+    @node_from(from_name='检查购买配置-好物铺', status='启用购买-好物铺')
+    @operation_node(name='处理好物铺')
+    def handle_good_goods(self) -> OperationRoundResult:
+        op = SuibianTempleGoodGoods(self.ctx)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='检查购买配置-好物铺', status='禁用购买-好物铺')
+    @node_from(from_name='处理好物铺')
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
         self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图

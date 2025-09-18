@@ -89,6 +89,14 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
         )
         content_widget.add_widget(self.adventure_mission_4_opt)
 
+        # 好物铺购买功能设置
+        self.good_goods_purchase_switch = SwitchSettingCard(
+            icon=FluentIcon.SHOPPING_CART,
+            title='好物铺购买',
+            content='自动购买好物铺中的指定商品'
+        )
+        content_widget.add_widget(self.good_goods_purchase_switch)
+
         content_widget.add_stretch(1)
 
         return content_widget
@@ -109,3 +117,6 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
         self.adventure_mission_2_opt.init_with_adapter(get_prop_adapter(self.config, 'adventure_mission_2'))
         self.adventure_mission_3_opt.init_with_adapter(get_prop_adapter(self.config, 'adventure_mission_3'))
         self.adventure_mission_4_opt.init_with_adapter(get_prop_adapter(self.config, 'adventure_mission_4'))
+
+        # 初始化好物铺购买功能设置
+        self.good_goods_purchase_switch.init_with_adapter(get_prop_adapter(self.config, 'good_goods_purchase_enabled'))

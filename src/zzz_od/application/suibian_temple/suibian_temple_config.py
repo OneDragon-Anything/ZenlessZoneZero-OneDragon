@@ -73,6 +73,15 @@ class SuibianTempleConfig(ApplicationConfig):
     def adventure_mission_4(self, value: str):
         self.update('adventure_mission', value)
 
+    @property
+    def good_goods_purchase_enabled(self) -> bool:
+        """好物铺购买-开关"""
+        return self.get('good_goods_purchase_enabled', False)
+
+    @good_goods_purchase_enabled.setter
+    def good_goods_purchase_enabled(self, value: bool):
+        self.update('good_goods_purchase_enabled', value)
+
 
 class SuibianTempleAdventureMission(StrEnum):
 
