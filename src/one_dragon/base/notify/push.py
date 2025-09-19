@@ -571,26 +571,121 @@ class Push():
 
     def wecom_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
-        通过 企业微信机器人 推送消息。
+        通过 企业微信机器人推送消息,文字和图片分开发送,图片自动压缩为JPG/PNG,base64+md5,大小≤2MB。
         """
-
         self.log_info("企业微信机器人服务启动")
 
-        origin = "https://qyapi.weixin.qq.com"
-        if self.get_config("QYWX_ORIGIN"):
-            origin = self.get_config("QYWX_ORIGIN")
+        origin = self.get_config("QYWX_ORIGIN") or "https://qyapi.weixin.qq.com"
+        key = self.get_config('QYWX_KEY') or ""
+        if not key:
+            self.log_error("企业微信机器人 key 未配置！")
+            return
 
-        url = f"{origin}/cgi-bin/webhook/send?key={self.get_config('QYWX_KEY')}"
+        url = f"{origin}/cgi-bin/webhook/send?key={key}"
         headers = {"Content-Type": "application/json;charset=utf-8"}
-        data = {"msgtype": "text", "text": {"content": f"{title}\n{content}"}}
-        response = requests.post(
-            url=url, data=json.dumps(data), headers=headers, timeout=15
-        ).json()
 
-        if response["errcode"] == 0:
-            self.log_info("企业微信机器人推送成功！")
-        else:
-            self.log_error("企业微信机器人推送失败！")
+        # 1. 先发文字
+        try:
+            text_data = {"msgtype": "text", "text": {"content": f"{title}\n{content}"}}
+            resp = requests.post(url, data=json.dumps(text_data), headers=headers, timeout=15).json()
+            if resp and resp.get("errcode") == 0:
+                self.log_info("企业微信机器人文字推送成功！")
+            else:
+                self.log_error(f"企业微信机器人文字推送失败！{resp}")
+        except Exception as e:
+            self.log_error(f"企业微信机器人文字推送异常: {e}")
+
+        # 2. 再发图片
+        if image:
+            try:
+                image.seek(0)
+                img_bytes = image.getvalue() if image else b""
+                # 判断格式和大小
+                img_format = self._detect_image_format(img_bytes)
+                if img_format in ('jpeg', 'png') and len(img_bytes) <= 2 * 1024 * 1024:
+                    # 直接发送，无需 Pillow 处理
+                    img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+                    img_md5 = self._md5(img_bytes)
+                    img_data = {
+                        "msgtype": "image",
+                        "image": {"base64": img_base64, "md5": img_md5}
+                    }
+                    resp = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15).json()
+                    if resp and resp.get("errcode") == 0:
+                        self.log_info("企业微信机器人图片推送成功！(无需压缩)")
+                    else:
+                        self.log_error(f"企业微信机器人图片推送失败！{resp}")
+                else:
+                    # 图片太大，要用 Pillow 处理
+                    img_bytes_c, img_type = self._compress_image(image)
+                    if not img_bytes_c:
+                        self.log_error("图片处理失败，未发送图片！")
+                        return
+                    elif len(img_bytes_c) > 2 * 1024 * 1024:
+                        self.log_error("图片压缩后仍超过2MB,未发送图片！")
+                        return
+                    img_base64 = base64.b64encode(img_bytes_c).decode('utf-8')
+                    img_md5 = self._md5(img_bytes_c)
+                    img_data = {
+                        "msgtype": "image",
+                        "image": {"base64": img_base64, "md5": img_md5}
+                    }
+                    resp = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15).json()
+                    if resp and resp.get("errcode") == 0:
+                        self.log_info("企业微信机器人图片推送成功！(压缩后)")
+                    else:
+                        self.log_error(f"企业微信机器人图片推送失败！{resp}")
+            except Exception as e:
+                self.log_error(f"企业微信机器人图片推送异常: {e}")
+
+    def _compress_image(self, image: BytesIO) -> tuple[bytes | None, str | None]:
+        """
+        自动将图片压缩为 JPG 或 PNG, 优先 JPG, 确保 ≤2MB.
+        """
+        try:
+            import io
+            from PIL import Image
+            image.seek(0)
+            pil_img = Image.open(image)
+            # 优先压缩为 JPEG（仅此分支转 RGB）
+            with io.BytesIO() as output:
+                pil_img_rgb = pil_img.convert('RGB')
+                pil_img_rgb.save(output, format='JPEG', quality=85, optimize=True)
+                img_bytes = output.getvalue()
+                if len(img_bytes) <= 2 * 1024 * 1024:
+                    return img_bytes, 'jpeg'
+            # 如果 JPEG 超过 2MB，则尝试 PNG（保留原透明度）
+            with io.BytesIO() as output:
+                pil_img.save(output, format='PNG', optimize=True)
+                img_bytes = output.getvalue()
+                if len(img_bytes) <= 2 * 1024 * 1024:
+                    return img_bytes, 'png'
+            # 兜底尝试，最低质量 JPEG
+            with io.BytesIO() as output:
+                pil_img_rgb = pil_img.convert('RGB')
+                pil_img_rgb.save(output, format='JPEG', quality=10, optimize=True)
+                img_bytes = output.getvalue()
+                if len(img_bytes) <= 2 * 1024 * 1024:
+                    return img_bytes, 'jpeg'
+            return None, None
+        except ImportError:
+            self.log_error("图片压缩失败：未安装 Pillow,请先安装 pillow 以启用图片压缩(pip install pillow)")
+            return None, None
+        except Exception as e:
+            self.log_error(f"图片压缩异常: {e}")
+            return None, None
+
+    def _md5(self, b: bytes) -> str:
+        import hashlib
+        return hashlib.md5(b).hexdigest()
+
+    def _detect_image_format(self, b: bytes) -> Optional[str]:
+        """轻量魔数判断，仅支持 jpeg/png。"""
+        if len(b) >= 3 and b[:3] == b"\xFF\xD8\xFF":
+            return "jpeg"
+        if len(b) >= 8 and b[:8] == b"\x89PNG\r\n\x1a\n":
+            return "png"
+        return None
 
 
 
