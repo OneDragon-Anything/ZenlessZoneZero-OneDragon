@@ -599,13 +599,24 @@ class Push():
         if image:
             try:
                 image.seek(0)
-                img_bytes = image.getvalue() if image else b""
-                # 判断格式和大小
-                img_format = self._detect_image_format(img_bytes)
+                img_bytes = image.getvalue()
+                # 共用工具：图片格式魔数判断 / base64 / MD5（就地定义，统一使用）
+                def detect_format(_b: bytes):
+                    if len(_b) >= 3 and _b[:3] == b"\xFF\xD8\xFF":
+                        return 'jpeg'
+                    if len(_b) >= 8 and _b[:8] == b"\x89PNG\r\n\x1a\n":
+                        return 'png'
+                    return None
+                def b64str(_b: bytes) -> str:
+                    return base64.b64encode(_b).decode('utf-8')
+                from hashlib import md5 as _md5
+                def md5_hex(_b: bytes) -> str:
+                    return _md5(_b).hexdigest()
+                img_format = detect_format(img_bytes)
                 if img_format in ('jpeg', 'png') and len(img_bytes) <= 2 * 1024 * 1024:
                     # 直接发送，无需处理
-                    img_base64 = base64.b64encode(img_bytes).decode('utf-8')
-                    img_md5 = self._md5(img_bytes)
+                    img_base64 = b64str(img_bytes)
+                    img_md5 = md5_hex(img_bytes)
                     img_data = {
                         "msgtype": "image",
                         "image": {"base64": img_base64, "md5": img_md5}
@@ -617,15 +628,15 @@ class Push():
                         self.log_error(f"企业微信机器人图片推送失败！{resp}")
                 else:
                     # 图片太大，需要处理
-                    img_bytes_c, img_type = self._compress_image(image)
+                    img_bytes_c, _ = self._compress_image(image)
                     if not img_bytes_c:
                         self.log_error("图片处理失败，未发送图片！")
                         return
                     elif len(img_bytes_c) > 2 * 1024 * 1024:
                         self.log_error("图片压缩后仍超过2MB,未发送图片！")
                         return
-                    img_base64 = base64.b64encode(img_bytes_c).decode('utf-8')
-                    img_md5 = self._md5(img_bytes_c)
+                    img_base64 = b64str(img_bytes_c)
+                    img_md5 = md5_hex(img_bytes_c)
                     img_data = {
                         "msgtype": "image",
                         "image": {"base64": img_base64, "md5": img_md5}
@@ -640,40 +651,60 @@ class Push():
 
     def _compress_image(self, image: BytesIO) -> tuple[bytes | None, str | None]:
         """
-        自动将图片压缩为 JPG,必要时降质为低质量 JPG,确保 ≤2MB。
+        自动将图片压缩为渐进式 JPG，使用二分搜索质量，尽量贴近 2MB 上限。
         """
         try:
             import cv2
             import numpy as np
             image.seek(0)
-            img_array = np.frombuffer(image.getvalue(), dtype=np.uint8)
-            img = cv2.imdecode(img_array, cv2.IMREAD_UNCHANGED)
-            # 优先压缩为 JPEG（转为BGR）
-            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 85]
-            success, img_bytes = cv2.imencode('.jpg', img, encode_param)
-            if success and len(img_bytes) <= 2 * 1024 * 1024:
-                return img_bytes.tobytes(), 'jpeg'
-            # 兜底最低质量 JPEG
-            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 10]
-            success, img_bytes = cv2.imencode('.jpg', img, encode_param)
-            if success and len(img_bytes) <= 2 * 1024 * 1024:
-                return img_bytes.tobytes(), 'jpeg'
-            return None, None
+            data = image.getvalue()
+            if not data:
+                return None, None
+            arr = np.frombuffer(data, dtype=np.uint8)
+            img = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
+            if img is None:
+                return None, None
+
+            # JPEG 仅支持 1/3 通道，若为 4 通道则转为 BGR
+            if len(img.shape) == 2:
+                bgr = img
+            else:
+                if img.shape[2] == 4:
+                    bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+                elif img.shape[2] == 3:
+                    bgr = img
+                else:
+                    bgr = img[:, :, :3]
+
+            max_size = 2 * 1024 * 1024
+            best: bytes | None = None
+
+            # 二分搜索质量，尽量贴近 2MB
+            lo, hi = 30, 90
+            while lo <= hi:
+                q = (lo + hi) // 2
+                params = [
+                    int(cv2.IMWRITE_JPEG_QUALITY), int(q),
+                    int(cv2.IMWRITE_JPEG_OPTIMIZE), 1,
+                    int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
+                ]
+                ok, enc = cv2.imencode('.jpg', bgr, params)
+                if not ok:
+                    break
+                size = enc.nbytes
+                if size <= max_size:
+                    best = enc.tobytes()
+                    lo = q + 1  # 尝试更高质量
+                else:
+                    hi = q - 1  # 降低质量
+
+            if best:
+                return best, 'jpeg'
+            else:
+                return None, None
         except Exception as e:
             self.log_error(f"图片压缩异常: {e}")
             return None, None
-
-    def _md5(self, b: bytes) -> str:
-        import hashlib
-        return hashlib.md5(b).hexdigest()
-
-    def _detect_image_format(self, b: bytes) -> Optional[str]:
-        """轻量魔数判断，仅支持 jpeg/png。"""
-        if len(b) >= 3 and b[:3] == b"\xFF\xD8\xFF":
-            return "jpeg"
-        if len(b) >= 8 and b[:8] == b"\x89PNG\r\n\x1a\n":
-            return "png"
-        return None
 
 
 
