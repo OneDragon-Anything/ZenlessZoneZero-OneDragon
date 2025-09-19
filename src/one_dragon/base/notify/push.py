@@ -571,7 +571,8 @@ class Push():
 
     def wecom_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
-        通过 企业微信机器人推送消息，文字和图片分开发送；图片需压缩时仅压缩为 JPG,base64+md5,大小≤2MB。
+        通过企业微信机器人推送, 文本与图片分开发送, 图片需base64+md5, 大小≤2MB
+        图片若为JPG/PNG且大小≤2MB直接发送; 若格式不符或超过2MB, 则压缩并统一转为JPG格式后发送
         """
         self.log_info("企业微信机器人服务启动")
 
@@ -587,20 +588,32 @@ class Push():
         # 1. 先发文字
         try:
             text_data = {"msgtype": "text", "text": {"content": f"{title}\n{content}"}}
-            resp = requests.post(url, data=json.dumps(text_data), headers=headers, timeout=15).json()
+            resp_obj = requests.post(url, data=json.dumps(text_data), headers=headers, timeout=15)
+            status = getattr(resp_obj, "status_code", None)
+            body_snip = (resp_obj.text or "")[:300] if hasattr(resp_obj, "text") else ""
+            resp = None
+            try:
+                resp = resp_obj.json()
+            except Exception as je:
+                self.log_error(f"企业微信机器人文字响应解析失败: {type(je).__name__}: {je}; status={status}; body_snip={body_snip}")
             if resp and resp.get("errcode") == 0:
                 self.log_info("企业微信机器人文字推送成功！")
             else:
-                self.log_error(f"企业微信机器人文字推送失败！{resp}")
+                errcode = resp.get("errcode") if resp else None
+                errmsg = resp.get("errmsg") if resp else None
+                self.log_error(
+                    f"企业微信机器人文字推送失败!status={status}; errcode={errcode}; errmsg={errmsg}; body_snip={body_snip}"
+                )
         except Exception as e:
-            self.log_error(f"企业微信机器人文字推送异常: {e}")
+            self.log_error(f"企业微信机器人文字推送异常: {type(e).__name__}: {e}")
 
         # 2. 再发图片
         if image:
             try:
                 image.seek(0)
                 img_bytes = image.getvalue()
-                # 共用工具：图片格式魔数判断 / base64 / MD5（就地定义，统一使用）
+                orig_size = len(img_bytes)
+                # 辅助工具：图片格式魔数判断 / base64 / MD5
                 def detect_format(_b: bytes):
                     if len(_b) >= 3 and _b[:3] == b"\xFF\xD8\xFF":
                         return 'jpeg'
@@ -614,26 +627,37 @@ class Push():
                     return _md5(_b).hexdigest()
                 img_format = detect_format(img_bytes)
                 if img_format in ('jpeg', 'png') and len(img_bytes) <= 2 * 1024 * 1024:
-                    # 直接发送，无需处理
+                    # 直接发送, 格式符合且大小≤2MB, 无需压缩
                     img_base64 = b64str(img_bytes)
                     img_md5 = md5_hex(img_bytes)
                     img_data = {
                         "msgtype": "image",
                         "image": {"base64": img_base64, "md5": img_md5}
                     }
-                    resp = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15).json()
+                    resp_obj = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15)
+                    status = getattr(resp_obj, "status_code", None)
+                    body_snip = (resp_obj.text or "")[:300] if hasattr(resp_obj, "text") else ""
+                    resp = None
+                    try:
+                        resp = resp_obj.json()
+                    except Exception as je:
+                        self.log_error(f"企业微信机器人图片响应解析失败(直发): {type(je).__name__}: {je}; status={status}; body_snip={body_snip}")
                     if resp and resp.get("errcode") == 0:
                         self.log_info("企业微信机器人图片推送成功！(无需压缩)")
                     else:
-                        self.log_error(f"企业微信机器人图片推送失败！{resp}")
+                        errcode = resp.get("errcode") if resp else None
+                        errmsg = resp.get("errmsg") if resp else None
+                        self.log_error(
+                            f"企业微信机器人图片推送失败(直发)! status={status}; errcode={errcode}; errmsg={errmsg}; format={img_format}; size={orig_size}B; body_snip={body_snip}"
+                        )
                 else:
-                    # 图片太大，需要处理
-                    img_bytes_c, _ = self._compress_image(image)
+                    # 压缩发送, 格式不符或图片太大，调用 _compress_image, 依赖 cv2 和 numpy 库
+                    img_bytes_c, _, quality = self._compress_image(image)
                     if not img_bytes_c:
-                        self.log_error("图片处理失败，未发送图片！")
+                        self.log_error(f"图片处理失败, 未发送图片! format={img_format}; orig_size={orig_size}B")
                         return
                     elif len(img_bytes_c) > 2 * 1024 * 1024:
-                        self.log_error("图片压缩后仍超过2MB,未发送图片！")
+                        self.log_error(f"图片压缩后仍超过2MB,未发送图片! format={img_format}; orig_size={orig_size}B; compressed_size={len(img_bytes_c)}B")
                         return
                     img_base64 = b64str(img_bytes_c)
                     img_md5 = md5_hex(img_bytes_c)
@@ -641,14 +665,24 @@ class Push():
                         "msgtype": "image",
                         "image": {"base64": img_base64, "md5": img_md5}
                     }
-                    resp = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15).json()
+                    resp_obj = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15)
+                    status = getattr(resp_obj, "status_code", None)
+                    body_snip = (resp_obj.text or "")[:300] if hasattr(resp_obj, "text") else ""
+                    resp = None
+                    try:
+                        resp = resp_obj.json()
+                    except Exception as je:
+                        self.log_error(f"企业微信机器人图片响应解析失败(压缩): {type(je).__name__}: {je}; status={status}; body_snip={body_snip}")
                     if resp and resp.get("errcode") == 0:
-                        self.log_info("企业微信机器人图片推送成功！(压缩后)")
+                        self.log_info(f"企业微信机器人图片推送成功！(压缩质量 {quality})")
                     else:
-                        self.log_error(f"企业微信机器人图片推送失败！{resp}")
+                        errcode = resp.get("errcode") if resp else None
+                        errmsg = resp.get("errmsg") if resp else None
+                        self.log_error(
+                            f"企业微信机器人图片推送失败(压缩)! status={status}; errcode={errcode}; errmsg={errmsg}; format={img_format}; orig_size={orig_size}B; compressed_size={len(img_bytes_c)}B; body_snip={body_snip}"
+                        )
             except Exception as e:
-                self.log_error(f"企业微信机器人图片推送异常: {e}")
-    
+                self.log_error(f"企业微信机器人图片推送异常: {type(e).__name__}: {e}; format=N/A; size={len(img_bytes) if 'img_bytes' in locals() else 'N/A'}B")
 
 
 
@@ -1265,7 +1299,7 @@ class Push():
                 'error_message': error_message
             })
 
-    def _compress_image(self, image: BytesIO) -> tuple[bytes | None, str | None]:
+    def _compress_image(self, image: BytesIO) -> tuple[bytes | None, str | None, int]:
         """
         自动将图片压缩为渐进式 JPG,使用二分搜索质量,尽量贴近 2MB 上限
         """
@@ -1275,11 +1309,11 @@ class Push():
             image.seek(0)
             data = image.getvalue()
             if not data:
-                return None, None
+                return None, None, -1
             arr = np.frombuffer(data, dtype=np.uint8)
             img = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
             if img is None:
-                return None, None
+                return None, None, -1
 
             # JPEG 仅支持 1/3 通道，若为 4 通道则转为 BGR
             if len(img.shape) == 2:
@@ -1294,6 +1328,7 @@ class Push():
 
             max_size = 2 * 1024 * 1024
             best: bytes | None = None
+            best_q: int = -1
 
             # 二分搜索质量，尽量贴近 2MB
             lo, hi = 30, 90
@@ -1310,17 +1345,18 @@ class Push():
                 size = enc.nbytes
                 if size <= max_size:
                     best = enc.tobytes()
+                    best_q = q
                     lo = q + 1  # 尝试更高质量
                 else:
                     hi = q - 1  # 降低质量
 
             if best:
-                return best, 'jpeg'
+                return best, 'jpeg', best_q
             else:
-                return None, None
+                return None, None, -1
         except Exception as e:
             self.log_error(f"图片压缩异常: {e}")
-            return None, None
+            return None, None, -1
 
 
 def main():
