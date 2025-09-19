@@ -17,6 +17,9 @@ from zzz_od.application.suibian_temple.operations.suibian_temple_yum_cha_sin imp
 from zzz_od.application.suibian_temple.operations.suibian_temple_good_goods import (
     SuibianTempleGoodGoods,
 )
+from zzz_od.application.suibian_temple.operations.suibian_temple_boo_box import (
+    SuibianTempleBooBox,
+)
 from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempleConfig
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -190,6 +193,22 @@ class SuibianTempleApp(ZApplication):
 
     @node_from(from_name='检查购买配置-好物铺', status='禁用购买-好物铺')
     @node_from(from_name='处理好物铺')
+    @operation_node(name='检查购买配置-邦巢')
+    def check_boo_box_config(self) -> OperationRoundResult:
+        """检查是否启用邦巢购买功能，决定后续流程"""
+        if self.config.boo_box_purchase_enabled:
+            return self.round_success(status='启用购买-邦巢')
+        else:
+            return self.round_success(status='禁用购买-邦巢')
+
+    @node_from(from_name='检查购买配置-邦巢', status='启用购买-邦巢')
+    @operation_node(name='处理邦巢')
+    def handle_boo_box(self) -> OperationRoundResult:
+        op = SuibianTempleBooBox(self.ctx)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='检查购买配置-邦巢', status='禁用购买-邦巢')
+    @node_from(from_name='处理邦巢')
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
         self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图

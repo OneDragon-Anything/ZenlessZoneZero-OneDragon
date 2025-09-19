@@ -82,6 +82,15 @@ class SuibianTempleConfig(ApplicationConfig):
     def good_goods_purchase_enabled(self, value: bool):
         self.update('good_goods_purchase_enabled', value)
 
+    @property
+    def boo_box_purchase_enabled(self) -> bool:
+        """邦巢-购买"""
+        return self.get('boo_box_purchase_enabled', False)
+
+    @boo_box_purchase_enabled.setter
+    def boo_box_purchase_enabled(self, value: bool):
+        self.update('boo_box_purchase_enabled', value)
+
 
 class SuibianTempleAdventureMission(StrEnum):
 

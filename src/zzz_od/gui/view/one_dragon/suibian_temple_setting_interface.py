@@ -97,6 +97,12 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
         )
         content_widget.add_widget(self.good_goods_purchase_switch)
 
+        # 邦巢设置
+        self.boo_box_purchase_switch = SwitchSettingCard(
+            icon=FluentIcon.VIDEO, title='邦巢-购买',
+            content='自动刷新购买S级别邦布。随便观25级后可用。'
+        )
+        content_widget.add_widget(self.boo_box_purchase_switch)
         content_widget.add_stretch(1)
 
         return content_widget
@@ -120,3 +126,5 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
 
         # 初始化好物铺购买功能设置
         self.good_goods_purchase_switch.init_with_adapter(get_prop_adapter(self.config, 'good_goods_purchase_enabled'))
+
+        self.boo_box_purchase_switch.init_with_adapter(get_prop_adapter(self.config, 'boo_box_purchase_enabled'))
