@@ -571,7 +571,7 @@ class Push():
 
     def wecom_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
-        通过 企业微信机器人推送消息,文字和图片分开发送,图片自动压缩为JPG/PNG,base64+md5,大小≤2MB。
+        通过 企业微信机器人推送消息，文字和图片分开发送；图片需压缩时仅压缩为 JPG,base64+md5,大小≤2MB。
         """
         self.log_info("企业微信机器人服务启动")
 
@@ -640,7 +640,7 @@ class Push():
 
     def _compress_image(self, image: BytesIO) -> tuple[bytes | None, str | None]:
         """
-        自动将图片压缩为 JPG 或 PNG, 优先 JPG, 确保 ≤2MB.
+        自动将图片压缩为 JPG,必要时降质为低质量 JPG,确保 ≤2MB。
         """
         try:
             import cv2
@@ -653,10 +653,6 @@ class Push():
             success, img_bytes = cv2.imencode('.jpg', img, encode_param)
             if success and len(img_bytes) <= 2 * 1024 * 1024:
                 return img_bytes.tobytes(), 'jpeg'
-            # 如果 JPEG 超过 2MB，则尝试 PNG
-            success, img_bytes = cv2.imencode('.png', img, [cv2.IMWRITE_PNG_COMPRESSION, 3])
-            if success and len(img_bytes) <= 2 * 1024 * 1024:
-                return img_bytes.tobytes(), 'png'
             # 兜底最低质量 JPEG
             encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 10]
             success, img_bytes = cv2.imencode('.jpg', img, encode_param)
