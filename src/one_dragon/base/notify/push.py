@@ -648,63 +648,7 @@ class Push():
                         self.log_error(f"企业微信机器人图片推送失败！{resp}")
             except Exception as e:
                 self.log_error(f"企业微信机器人图片推送异常: {e}")
-
-    def _compress_image(self, image: BytesIO) -> tuple[bytes | None, str | None]:
-        """
-        自动将图片压缩为渐进式 JPG，使用二分搜索质量，尽量贴近 2MB 上限。
-        """
-        try:
-            import cv2
-            import numpy as np
-            image.seek(0)
-            data = image.getvalue()
-            if not data:
-                return None, None
-            arr = np.frombuffer(data, dtype=np.uint8)
-            img = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
-            if img is None:
-                return None, None
-
-            # JPEG 仅支持 1/3 通道，若为 4 通道则转为 BGR
-            if len(img.shape) == 2:
-                bgr = img
-            else:
-                if img.shape[2] == 4:
-                    bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
-                elif img.shape[2] == 3:
-                    bgr = img
-                else:
-                    bgr = img[:, :, :3]
-
-            max_size = 2 * 1024 * 1024
-            best: bytes | None = None
-
-            # 二分搜索质量，尽量贴近 2MB
-            lo, hi = 30, 90
-            while lo <= hi:
-                q = (lo + hi) // 2
-                params = [
-                    int(cv2.IMWRITE_JPEG_QUALITY), int(q),
-                    int(cv2.IMWRITE_JPEG_OPTIMIZE), 1,
-                    int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
-                ]
-                ok, enc = cv2.imencode('.jpg', bgr, params)
-                if not ok:
-                    break
-                size = enc.nbytes
-                if size <= max_size:
-                    best = enc.tobytes()
-                    lo = q + 1  # 尝试更高质量
-                else:
-                    hi = q - 1  # 降低质量
-
-            if best:
-                return best, 'jpeg'
-            else:
-                return None, None
-        except Exception as e:
-            self.log_error(f"图片压缩异常: {e}")
-            return None, None
+    
 
 
 
@@ -1320,6 +1264,63 @@ class Push():
                 'status': 'failure',
                 'error_message': error_message
             })
+
+    def _compress_image(self, image: BytesIO) -> tuple[bytes | None, str | None]:
+        """
+        自动将图片压缩为渐进式 JPG,使用二分搜索质量,尽量贴近 2MB 上限
+        """
+        try:
+            import cv2
+            import numpy as np
+            image.seek(0)
+            data = image.getvalue()
+            if not data:
+                return None, None
+            arr = np.frombuffer(data, dtype=np.uint8)
+            img = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
+            if img is None:
+                return None, None
+
+            # JPEG 仅支持 1/3 通道，若为 4 通道则转为 BGR
+            if len(img.shape) == 2:
+                bgr = img
+            else:
+                if img.shape[2] == 4:
+                    bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+                elif img.shape[2] == 3:
+                    bgr = img
+                else:
+                    bgr = img[:, :, :3]
+
+            max_size = 2 * 1024 * 1024
+            best: bytes | None = None
+
+            # 二分搜索质量，尽量贴近 2MB
+            lo, hi = 30, 90
+            while lo <= hi:
+                q = (lo + hi) // 2
+                params = [
+                    int(cv2.IMWRITE_JPEG_QUALITY), int(q),
+                    int(cv2.IMWRITE_JPEG_OPTIMIZE), 1,
+                    int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
+                ]
+                ok, enc = cv2.imencode('.jpg', bgr, params)
+                if not ok:
+                    break
+                size = enc.nbytes
+                if size <= max_size:
+                    best = enc.tobytes()
+                    lo = q + 1  # 尝试更高质量
+                else:
+                    hi = q - 1  # 降低质量
+
+            if best:
+                return best, 'jpeg'
+            else:
+                return None, None
+        except Exception as e:
+            self.log_error(f"图片压缩异常: {e}")
+            return None, None
 
 
 def main():
