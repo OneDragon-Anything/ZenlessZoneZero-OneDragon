@@ -603,7 +603,7 @@ class Push():
                 # 判断格式和大小
                 img_format = self._detect_image_format(img_bytes)
                 if img_format in ('jpeg', 'png') and len(img_bytes) <= 2 * 1024 * 1024:
-                    # 直接发送，无需 Pillow 处理
+                    # 直接发送，无需处理
                     img_base64 = base64.b64encode(img_bytes).decode('utf-8')
                     img_md5 = self._md5(img_bytes)
                     img_data = {
@@ -616,7 +616,7 @@ class Push():
                     else:
                         self.log_error(f"企业微信机器人图片推送失败！{resp}")
                 else:
-                    # 图片太大，要用 Pillow 处理
+                    # 图片太大，需要处理
                     img_bytes_c, img_type = self._compress_image(image)
                     if not img_bytes_c:
                         self.log_error("图片处理失败，未发送图片！")
@@ -643,33 +643,25 @@ class Push():
         自动将图片压缩为 JPG 或 PNG, 优先 JPG, 确保 ≤2MB.
         """
         try:
-            import io
-            from PIL import Image
+            import cv2
+            import numpy as np
             image.seek(0)
-            pil_img = Image.open(image)
-            # 优先压缩为 JPEG（仅此分支转 RGB）
-            with io.BytesIO() as output:
-                pil_img_rgb = pil_img.convert('RGB')
-                pil_img_rgb.save(output, format='JPEG', quality=85, optimize=True)
-                img_bytes = output.getvalue()
-                if len(img_bytes) <= 2 * 1024 * 1024:
-                    return img_bytes, 'jpeg'
-            # 如果 JPEG 超过 2MB，则尝试 PNG（保留原透明度）
-            with io.BytesIO() as output:
-                pil_img.save(output, format='PNG', optimize=True)
-                img_bytes = output.getvalue()
-                if len(img_bytes) <= 2 * 1024 * 1024:
-                    return img_bytes, 'png'
-            # 兜底尝试，最低质量 JPEG
-            with io.BytesIO() as output:
-                pil_img_rgb = pil_img.convert('RGB')
-                pil_img_rgb.save(output, format='JPEG', quality=10, optimize=True)
-                img_bytes = output.getvalue()
-                if len(img_bytes) <= 2 * 1024 * 1024:
-                    return img_bytes, 'jpeg'
-            return None, None
-        except ImportError:
-            self.log_error("图片压缩失败：未安装 Pillow,请先安装 pillow 以启用图片压缩(pip install pillow)")
+            img_array = np.frombuffer(image.getvalue(), dtype=np.uint8)
+            img = cv2.imdecode(img_array, cv2.IMREAD_UNCHANGED)
+            # 优先压缩为 JPEG（转为BGR）
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 85]
+            success, img_bytes = cv2.imencode('.jpg', img, encode_param)
+            if success and len(img_bytes) <= 2 * 1024 * 1024:
+                return img_bytes.tobytes(), 'jpeg'
+            # 如果 JPEG 超过 2MB，则尝试 PNG
+            success, img_bytes = cv2.imencode('.png', img, [cv2.IMWRITE_PNG_COMPRESSION, 3])
+            if success and len(img_bytes) <= 2 * 1024 * 1024:
+                return img_bytes.tobytes(), 'png'
+            # 兜底最低质量 JPEG
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 10]
+            success, img_bytes = cv2.imencode('.jpg', img, encode_param)
+            if success and len(img_bytes) <= 2 * 1024 * 1024:
+                return img_bytes.tobytes(), 'jpeg'
             return None, None
         except Exception as e:
             self.log_error(f"图片压缩异常: {e}")
