@@ -607,10 +607,13 @@ class Push():
 
         # 2. 再发图片
         if image:
+            # 企业微信机器人图片最大支持2MB
+            TARGET_SIZE = 2 * 1024 * 1024
+
             image.seek(0)
             img_bytes = image.getvalue()
             orig_size = len(img_bytes)
-            if len(img_bytes) <= 2 * 1024 * 1024:
+            if len(img_bytes) <= TARGET_SIZE:
                 # 直接发送，传入图片为png格式，大小≤2MB, 无需压缩
                 img_base64 = base64.b64encode(img_bytes).decode('utf-8')
                 img_md5 = hashlib.md5(img_bytes).hexdigest()
@@ -639,11 +642,12 @@ class Push():
                             f"企业微信机器人图片推送失败(直发)! status={status}; errcode={errcode}; errmsg={errmsg}; size={orig_size}B; body_snip={body_snip}"
                         )
             else:
-                img_bytes_c, _, quality = self._compress_image(image)
-                if not img_bytes_c:
+                try:
+                    img_bytes_c, _, quality = self._compress_image(image, TARGET_SIZE)
+                except Exception as e:
                     self.log_error(f"图片处理失败, 未发送图片! orig_size={orig_size}B")
                     return
-                elif len(img_bytes_c) > 2 * 1024 * 1024:
+                if len(img_bytes_c) > TARGET_SIZE:
                     self.log_error(f"图片压缩后仍超过2MB,未发送图片! orig_size={orig_size}B; compressed_size={len(img_bytes_c)}B")
                     return
                 img_base64 = base64.b64encode(img_bytes_c).decode('utf-8')
@@ -1288,63 +1292,60 @@ class Push():
                 'error_message': error_message
             })
 
-    def _compress_image(self, image: BytesIO) -> tuple[bytes | None, str | None, int]:
+    def _compress_image(self, image: BytesIO, target_size: int) -> tuple[bytes | None, str | None, int]:
         """
         自动将图片压缩为渐进式 JPG,使用二分搜索质量,尽量贴近 2MB 上限
         """
-        try:
-            import cv2
-            import numpy as np
-            image.seek(0)
-            data = image.getvalue()
-            if not data:
-                return None, None, -1
-            arr = np.frombuffer(data, dtype=np.uint8)
-            img = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
-            if img is None:
-                return None, None, -1
+        import cv2
+        import numpy as np
 
-            # JPEG 仅支持 1/3 通道，若为 4 通道则转为 BGR
-            if len(img.shape) == 2:
+        image.seek(0)
+        data = image.getvalue()
+        if not data:
+            return None, None, -1
+
+        arr = np.frombuffer(data, dtype=np.uint8)
+        img = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
+        if img is None:
+            return None, None, -1
+
+        # JPEG 仅支持 1/3 通道，若为 4 通道则转为 BGR
+        if len(img.shape) == 2:
+            bgr = img
+        else:
+            if img.shape[2] == 4:
+                bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+            elif img.shape[2] == 3:
                 bgr = img
             else:
-                if img.shape[2] == 4:
-                    bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
-                elif img.shape[2] == 3:
-                    bgr = img
-                else:
-                    bgr = img[:, :, :3]
+                bgr = img[:, :, :3]
 
-            max_size = 2 * 1024 * 1024
-            best: bytes | None = None
-            best_q: int = -1
+        best: bytes | None = None
+        best_q: int = -1
 
-            # 二分搜索质量，尽量贴近 2MB
-            lo, hi = 30, 90
-            while lo <= hi:
-                q = (lo + hi) // 2
-                params = [
-                    int(cv2.IMWRITE_JPEG_QUALITY), int(q),
-                    int(cv2.IMWRITE_JPEG_OPTIMIZE), 1,
-                    int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
-                ]
-                ok, enc = cv2.imencode('.jpg', bgr, params)
-                if not ok:
-                    break
-                size = enc.nbytes
-                if size <= max_size:
-                    best = enc.tobytes()
-                    best_q = q
-                    lo = q + 1  # 尝试更高质量
-                else:
-                    hi = q - 1  # 降低质量
-
-            if best:
-                return best, 'jpeg', best_q
+        # 二分搜索质量，尽量贴近 2MB
+        lo, hi = 30, 90
+        while lo <= hi:
+            q = (lo + hi) // 2
+            params = [
+                int(cv2.IMWRITE_JPEG_QUALITY), int(q),
+                int(cv2.IMWRITE_JPEG_OPTIMIZE), 1,
+                int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
+            ]
+            ok, enc = cv2.imencode('.jpg', bgr, params)
+            if not ok:
+                break
+            size = enc.nbytes
+            if size <= target_size:
+                best = enc.tobytes()
+                best_q = q
+                lo = q + 1  # 尝试更高质量
             else:
-                return None, None, -1
-        except Exception as e:
-            self.log_error(f"图片压缩异常: {e}")
+                hi = q - 1  # 降低质量
+
+        if best:
+            return best, 'jpeg', best_q
+        else:
             return None, None, -1
 
 
