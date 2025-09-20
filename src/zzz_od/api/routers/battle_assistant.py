@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from one_dragon.utils.log_utils import log
 
 from zzz_od.api.deps import get_ctx
+from zzz_od.api.models import ControlResponse, StatusResponse, LogReplayResponse
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.api.utils.config_manager import config_manager, template_manager
 from zzz_od.api.utils.config_validation import config_validator
@@ -599,6 +600,8 @@ async def start_dodge_assistant(ctx: ZContext = Depends(get_ctx)):
     ## 功能描述
     启动闪避助手自动化任务，开始监控游戏画面并自动执行闪避操作。
 
+    **注意**: 此端点为兼容性端点，内部转发到统一控制接口。推荐使用 `/dodge/start` 端点。
+
     ## 返回数据
     - **task_id**: 任务唯一标识符，用于后续状态查询和控制
     - **message**: 启动状态消息
@@ -621,41 +624,13 @@ async def start_dodge_assistant(ctx: ZContext = Depends(get_ctx)):
     ```
     """
     try:
-        # 检查是否已有任务在运行
-        if ctx.is_context_running:
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": {
-                        "code": "TASK_ALREADY_RUNNING",
-                        "message": "已有任务正在运行，请先停止当前任务"
-                    }
-                }
-            )
+        # 转发到统一控制接口
+        result = await dodge_controller.start(ctx)
 
-        def _factory() -> asyncio.Task:
-            async def runner():
-                loop = asyncio.get_running_loop()
-
-                def _exec():
-                    from zzz_od.application.battle_assistant.dodge_assitant.dodge_assistant_app import DodgeAssistantApp
-                    app = DodgeAssistantApp(ctx)
-                    app.execute()
-
-                return await loop.run_in_executor(None, _exec)
-
-            return asyncio.create_task(runner())
-
-        # 创建任务
-        run_id = _registry.create(_factory)
-
-        # 附加事件桥接用于WebSocket通信
-        attach_run_event_bridge(ctx, run_id)
-        attach_battle_assistant_event_bridge(ctx, run_id)
-
+        # 转换响应格式以保持兼容性
         return TaskResponse(
-            task_id=run_id,
-            message="闪避助手已启动"
+            task_id=result.runId,
+            message=result.message
         )
 
     except HTTPException:
@@ -673,12 +648,14 @@ async def start_dodge_assistant(ctx: ZContext = Depends(get_ctx)):
 
 
 @router.post("/dodge/stop", summary="停止闪避助手")
-def stop_dodge_assistant(ctx: ZContext = Depends(get_ctx)):
+async def stop_dodge_assistant(ctx: ZContext = Depends(get_ctx)):
     """
     停止闪避助手任务
 
     ## 功能描述
     停止当前运行的闪避助手任务，取消所有相关的异步任务。
+
+    **注意**: 此端点为兼容性端点，内部转发到统一控制接口。推荐使用 `/dodge/stop` 统一接口端点。
 
     ## 返回数据
     返回停止操作的结果消息，包括取消的任务数量
@@ -699,24 +676,16 @@ def stop_dodge_assistant(ctx: ZContext = Depends(get_ctx)):
     ```
     """
     try:
-        # 停止上下文运行
-        ctx.stop_running()
+        # 转发到统一控制接口
+        result = await dodge_controller.stop()
 
-        # 取消所有相关任务
-        statuses = _registry.list_statuses()
-        cancelled_count = 0
-
-        for status in statuses:
-            status_value = getattr(status.status, 'value', str(status.status)) if hasattr(status, 'status') else 'unknown'
-            if status_value in ["pending", "running"]:
-                run_id = getattr(status, 'runId', None)
-                if run_id and _registry.cancel(run_id):
-                    cancelled_count += 1
-
+        # 转换响应格式以保持兼容性
         return {
-            "message": f"闪避助手已停止，取消了 {cancelled_count} 个任务"
+            "message": result.message
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -892,6 +861,8 @@ async def start_auto_battle(ctx: ZContext = Depends(get_ctx)):
     ## 功能描述
     启动自动战斗任务，使用当前配置的战斗策略自动执行战斗操作。
 
+    **注意**: 此端点为兼容性端点，内部转发到统一控制接口。推荐使用 `/auto-battle/start` 端点。
+
     ## 返回数据
     - **task_id**: 任务唯一标识符
     - **message**: 启动状态消息
@@ -914,41 +885,13 @@ async def start_auto_battle(ctx: ZContext = Depends(get_ctx)):
     ```
     """
     try:
-        # 检查是否已有任务在运行
-        if ctx.is_context_running:
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": {
-                        "code": "TASK_ALREADY_RUNNING",
-                        "message": "已有任务正在运行，请先停止当前任务"
-                    }
-                }
-            )
+        # 转发到统一控制接口
+        result = await auto_battle_controller.start(ctx)
 
-        def _factory() -> asyncio.Task:
-            async def runner():
-                loop = asyncio.get_running_loop()
-
-                def _exec():
-                    from zzz_od.application.battle_assistant.auto_battle_app import AutoBattleApp
-                    app = AutoBattleApp(ctx)
-                    app.execute()
-
-                return await loop.run_in_executor(None, _exec)
-
-            return asyncio.create_task(runner())
-
-        # 创建任务
-        run_id = _registry.create(_factory)
-
-        # 附加事件桥接用于WebSocket通信
-        attach_run_event_bridge(ctx, run_id)
-        attach_battle_assistant_event_bridge(ctx, run_id)
-
+        # 转换响应格式以保持兼容性
         return TaskResponse(
-            task_id=run_id,
-            message="自动战斗已启动"
+            task_id=result.runId,
+            message=result.message
         )
 
     except HTTPException:
@@ -1443,6 +1386,190 @@ async def start_operation_debug(ctx: ZContext = Depends(get_ctx)):
                 }
             }
         )
+
+
+@router.post("/operation-debug/start", response_model=ControlResponse, summary="启动指令调试（统一接口）")
+async def start_operation_debug_unified():
+    """
+    启动指令调试任务（统一控制接口）
+
+    ## 功能描述
+    使用统一控制接口启动指令调试任务，按照当前配置的模板执行调试操作。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 任务运行ID（成功时）
+    - **capabilities**: 模块能力标识
+
+    ## 错误码
+    - **TASK_START_FAILED**: 任务启动失败 (500)
+    - **TASK_ALREADY_RUNNING**: 任务已在运行 (409)
+    - **TEMPLATE_NOT_FOUND**: 模板不存在 (404)
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/battle-assistant/operation-debug/start")
+    result = response.json()
+    print(f"启动结果: {result['message']}")
+    ```
+    """
+    return await operation_debug_controller.start()
+
+
+@router.post("/operation-debug/stop", response_model=ControlResponse, summary="停止指令调试（统一接口）")
+async def stop_operation_debug_unified():
+    """
+    停止指令调试任务（统一控制接口）
+
+    ## 功能描述
+    使用统一控制接口停止当前运行的指令调试任务。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/battle-assistant/operation-debug/stop")
+    result = response.json()
+    print(f"停止结果: {result['message']}")
+    ```
+    """
+    return await operation_debug_controller.stop()
+
+
+@router.get("/operation-debug/status", response_model=StatusResponse, summary="获取指令调试状态（统一接口）")
+async def get_operation_debug_status_unified():
+    """
+    获取指令调试的运行状态（统一控制接口）
+
+    ## 功能描述
+    返回指令调试的当前运行状态，使用统一的状态响应格式。
+
+    ## 返回数据
+    - **is_running**: 是否正在运行
+    - **context_state**: 上下文状态 (idle | running | paused)
+    - **running_tasks**: 运行中的任务数量
+    - **message**: 状态消息
+    - **runId**: 当前运行ID
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/battle-assistant/operation-debug/status")
+    status = response.json()
+    print(f"运行状态: {status['context_state']}")
+    ```
+    """
+    return await operation_debug_controller.status()
+
+
+@router.post("/operation-debug/pause", response_model=ControlResponse, summary="暂停指令调试（统一接口）")
+async def pause_operation_debug_unified():
+    """
+    暂停指令调试任务
+
+    ## 功能描述
+    暂停当前正在运行的指令调试任务，保持状态以便后续恢复。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/battle-assistant/operation-debug/pause")
+    result = response.json()
+    print(f"暂停结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await operation_debug_controller.pause()
+
+
+@router.post("/operation-debug/resume", response_model=ControlResponse, summary="恢复指令调试（统一接口）")
+async def resume_operation_debug_unified():
+    """
+    恢复指令调试任务
+
+    ## 功能描述
+    恢复之前暂停的指令调试任务执行。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/battle-assistant/operation-debug/resume")
+    result = response.json()
+    print(f"恢复结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await operation_debug_controller.resume()
+
+
+@router.get("/operation-debug/logs", response_model=LogReplayResponse, summary="获取指令调试运行日志")
+async def operation_debug_logs(
+    runId: str = None,
+    tail: int = 1000
+) -> LogReplayResponse:
+    """
+    获取指令调试运行日志回放
+
+    ## 功能描述
+    获取指定runId的指令调试运行日志，支持回放最近的日志记录。所有时间戳使用UTC ISO8601格式。
+
+    ## 查询参数
+    - **runId** (可选): 运行ID，不提供则使用当前运行的ID
+    - **tail** (可选): 返回最后N条日志，默认1000，最大2000
+
+    ## 返回数据
+    - **logs**: 日志条目列表
+      - **timestamp**: 时间戳，UTC ISO8601格式（2025-09-20T12:34:56.789Z）
+      - **level**: 日志级别 (debug | info | warning | error)
+      - **message**: 日志消息
+      - **runId**: 运行ID
+      - **module**: 模块名称
+      - **seq**: 序列号
+      - **extra**: 额外信息
+    - **total_count**: 返回的日志条数
+    - **runId**: 查询的运行ID
+    - **module**: 模块名称
+    - **has_more**: 是否还有更多日志（当前实现中始终为false）
+    - **message**: 响应消息
+
+    ## 默认策略
+    - 当runId不存在时，返回空日志列表和说明消息
+    - 当无日志记录时，返回"暂无日志记录"消息
+    - 日志条数限制在2000条以内
+
+    ## 使用示例
+    ```python
+    import requests
+
+    # 获取当前运行的最新1000条日志
+    response = requests.get("http://localhost:8000/api/v1/battle-assistant/operation-debug/logs")
+
+    # 获取指定runId的最新500条日志
+    response = requests.get("http://localhost:8000/api/v1/battle-assistant/operation-debug/logs?runId=abc123&tail=500")
+
+    logs = response.json()
+    for log in logs['logs']:
+        print(f"[{log['timestamp']}] {log['level'].upper()}: {log['message']}")
+    ```
+    """
+    return await operation_debug_controller.get_logs(runId, tail)
 
 
 @router.post("/operation-debug/stop", summary="停止指令调试")
@@ -2548,3 +2675,425 @@ def get_current_task(ctx: ZContext = Depends(get_ctx)) -> Optional[TaskInfo]:
                 }
             }
         )
+
+
+# ============================================================================
+# 统一控制接口端点
+# ============================================================================
+
+from zzz_od.api.battle_assistant_controllers import auto_battle_controller, dodge_controller, operation_debug_controller
+from zzz_od.api.models import ControlResponse, StatusResponse, LogReplayResponse
+
+
+@router.post("/auto-battle/start", response_model=ControlResponse, summary="启动自动战斗（统一接口）")
+async def start_auto_battle_unified(ctx: ZContext = Depends(get_ctx)):
+    """
+    启动自动战斗任务（统一控制接口）
+
+    ## 功能描述
+    使用统一控制接口启动自动战斗任务，支持幂等性处理和标准化响应格式。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 运行实例ID
+    - **capabilities**: 模块能力标识
+      - **canPause**: 是否支持暂停（true）
+      - **canResume**: 是否支持恢复（true）
+
+    ## 幂等性
+    如果模块已在运行，返回当前运行的runId而不是错误
+
+    ## WebSocket事件
+    启动后会通过统一WebSocket事件系统发送：
+    - **status_update**: 状态更新事件
+    - **task_started**: 任务开始事件
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/battle-assistant/auto-battle/start")
+    result = response.json()
+    print(f"运行ID: {result['runId']}")
+    print(f"支持暂停: {result['capabilities']['canPause']}")
+    ```
+    """
+    return await auto_battle_controller.start(ctx)
+
+
+@router.post("/auto-battle/stop", response_model=ControlResponse, summary="停止自动战斗（统一接口）")
+async def stop_auto_battle_unified():
+    """
+    停止自动战斗任务（统一控制接口）
+
+    ## 功能描述
+    使用统一控制接口停止自动战斗任务，支持幂等性处理。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **capabilities**: 模块能力标识
+
+    ## 幂等性
+    如果模块未在运行，返回成功状态而不是错误
+
+    ## WebSocket事件
+    停止后会通过统一WebSocket事件系统发送：
+    - **status_update**: 状态更新事件
+    - **task_completed**: 任务完成事件
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/battle-assistant/auto-battle/stop")
+    result = response.json()
+    print(f"停止结果: {result['message']}")
+    ```
+    """
+    return await auto_battle_controller.stop()
+
+
+@router.post("/auto-battle/pause", response_model=ControlResponse, summary="暂停自动战斗（统一接口）")
+async def pause_auto_battle_unified():
+    """
+    暂停自动战斗任务（统一控制接口）
+
+    ## 功能描述
+    暂停当前运行的自动战斗任务。自动战斗模块支持暂停功能。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **capabilities**: 模块能力标识
+
+    ## 错误码
+    - **405**: 模块不支持暂停操作
+    - **501**: 暂停功能尚未实现
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/battle-assistant/auto-battle/pause")
+    result = response.json()
+    print(f"暂停结果: {result['message']}")
+    ```
+    """
+    return await auto_battle_controller.pause()
+
+
+@router.post("/auto-battle/resume", response_model=ControlResponse, summary="恢复自动战斗（统一接口）")
+async def resume_auto_battle_unified():
+    """
+    恢复自动战斗任务（统一控制接口）
+
+    ## 功能描述
+    恢复已暂停的自动战斗任务。自动战斗模块支持恢复功能。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **capabilities**: 模块能力标识
+
+    ## 错误码
+    - **405**: 模块不支持恢复操作
+    - **501**: 恢复功能尚未实现
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/battle-assistant/auto-battle/resume")
+    result = response.json()
+    print(f"恢复结果: {result['message']}")
+    ```
+    """
+    return await auto_battle_controller.resume()
+
+
+@router.get("/auto-battle/status", response_model=StatusResponse, summary="获取自动战斗状态（统一接口）")
+async def get_auto_battle_status_unified():
+    """
+    获取自动战斗模块状态（统一控制接口）
+
+    ## 功能描述
+    获取自动战斗模块的当前运行状态，包括运行状态、上下文状态和能力信息。
+
+    ## 返回数据
+    - **is_running**: 是否正在运行
+    - **context_state**: 上下文状态（idle | running | paused）
+    - **running_tasks**: 运行中的任务数量（可选）
+    - **message**: 状态消息（可选）
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+      - **canPause**: 是否支持暂停（true）
+      - **canResume**: 是否支持恢复（true）
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/battle-assistant/auto-battle/status")
+    status = response.json()
+    print(f"运行状态: {status['is_running']}")
+    print(f"上下文状态: {status['context_state']}")
+    print(f"支持暂停: {status['capabilities']['canPause']}")
+    ```
+    """
+    return await auto_battle_controller.status()
+
+
+@router.get("/auto-battle/logs", response_model=LogReplayResponse, summary="获取自动战斗运行日志")
+async def auto_battle_logs(
+    runId: str = None,
+    tail: int = 1000
+) -> LogReplayResponse:
+    """
+    获取自动战斗运行日志回放
+
+    ## 功能描述
+    获取指定runId的自动战斗运行日志，支持回放最近的日志记录。所有时间戳使用UTC ISO8601格式。
+
+    ## 查询参数
+    - **runId** (可选): 运行ID，不提供则使用当前运行的ID
+    - **tail** (可选): 返回最后N条日志，默认1000，最大2000
+
+    ## 返回数据
+    - **logs**: 日志条目列表
+      - **timestamp**: 时间戳，UTC ISO8601格式（2025-09-20T12:34:56.789Z）
+      - **level**: 日志级别 (debug | info | warning | error)
+      - **message**: 日志消息
+      - **runId**: 运行ID
+      - **module**: 模块名称
+      - **seq**: 序列号
+      - **extra**: 额外信息
+    - **total_count**: 返回的日志条数
+    - **runId**: 查询的运行ID
+    - **module**: 模块名称
+    - **has_more**: 是否还有更多日志（当前实现中始终为false）
+    - **message**: 响应消息
+
+    ## 默认策略
+    - 当runId不存在时，返回空日志列表和说明消息
+    - 当无日志记录时，返回"暂无日志记录"消息
+    - 日志条数限制在2000条以内
+
+    ## 使用示例
+    ```python
+    import requests
+
+    # 获取当前运行的最新1000条日志
+    response = requests.get("http://localhost:8000/api/v1/battle-assistant/auto-battle/logs")
+
+    # 获取指定runId的最新500条日志
+    response = requests.get("http://localhost:8000/api/v1/battle-assistant/auto-battle/logs?runId=abc123&tail=500")
+
+    logs = response.json()
+    for log in logs['logs']:
+        print(f"[{log['timestamp']}] {log['level'].upper()}: {log['message']}")
+    ```
+    """
+    return await auto_battle_controller.get_logs(runId, tail)
+
+
+@router.post("/dodge/start", response_model=ControlResponse, summary="启动闪避助手（统一接口）")
+async def start_dodge_unified(ctx: ZContext = Depends(get_ctx)):
+    """
+    启动闪避助手任务（统一控制接口）
+
+    ## 功能描述
+    使用统一控制接口启动闪避助手任务，支持幂等性处理和标准化响应格式。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 运行实例ID
+    - **capabilities**: 模块能力标识
+      - **canPause**: 是否支持暂停（false）
+      - **canResume**: 是否支持恢复（false）
+
+    ## 幂等性
+    如果模块已在运行，返回当前运行的runId而不是错误
+
+    ## WebSocket事件
+    启动后会通过统一WebSocket事件系统发送：
+    - **status_update**: 状态更新事件
+    - **task_started**: 任务开始事件
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/battle-assistant/dodge/start")
+    result = response.json()
+    print(f"运行ID: {result['runId']}")
+    print(f"支持暂停: {result['capabilities']['canPause']}")
+    ```
+    """
+    return await dodge_controller.start(ctx)
+
+
+@router.post("/dodge/stop", response_model=ControlResponse, summary="停止闪避助手（统一接口）")
+async def stop_dodge_unified():
+    """
+    停止闪避助手任务（统一控制接口）
+
+    ## 功能描述
+    使用统一控制接口停止闪避助手任务，支持幂等性处理。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **capabilities**: 模块能力标识
+
+    ## 幂等性
+    如果模块未在运行，返回成功状态而不是错误
+
+    ## WebSocket事件
+    停止后会通过统一WebSocket事件系统发送：
+    - **status_update**: 状态更新事件
+    - **task_completed**: 任务完成事件
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/battle-assistant/dodge/stop")
+    result = response.json()
+    print(f"停止结果: {result['message']}")
+    ```
+    """
+    return await dodge_controller.stop()
+
+
+@router.get("/dodge/status", response_model=StatusResponse, summary="获取闪避助手状态（统一接口）")
+async def get_dodge_status_unified():
+    """
+    获取闪避助手模块状态（统一控制接口）
+
+    ## 功能描述
+    获取闪避助手模块的当前运行状态，包括运行状态、上下文状态和能力信息。
+
+    ## 返回数据
+    - **is_running**: 是否正在运行
+    - **context_state**: 上下文状态（idle | running | paused）
+    - **running_tasks**: 运行中的任务数量（可选）
+    - **message**: 状态消息（可选）
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+      - **canPause**: 是否支持暂停（false）
+      - **canResume**: 是否支持恢复（false）
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/battle-assistant/dodge/status")
+    status = response.json()
+    print(f"运行状态: {status['is_running']}")
+    print(f"上下文状态: {status['context_state']}")
+    print(f"支持暂停: {status['capabilities']['canPause']}")
+    ```
+    """
+    return await dodge_controller.status()
+
+
+@router.post("/dodge/pause", response_model=ControlResponse, summary="暂停闪避助手（统一接口）")
+async def pause_dodge_unified():
+    """
+    暂停闪避助手自动化任务
+
+    ## 功能描述
+    暂停当前正在运行的闪避助手任务，保持状态以便后续恢复。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/battle-assistant/dodge/pause")
+    result = response.json()
+    print(f"暂停结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await dodge_controller.pause()
+
+
+@router.post("/dodge/resume", response_model=ControlResponse, summary="恢复闪避助手（统一接口）")
+async def resume_dodge_unified():
+    """
+    恢复闪避助手自动化任务
+
+    ## 功能描述
+    恢复之前暂停的闪避助手任务执行。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/battle-assistant/dodge/resume")
+    result = response.json()
+    print(f"恢复结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await dodge_controller.resume()
+
+
+@router.get("/dodge/logs", response_model=LogReplayResponse, summary="获取闪避助手运行日志")
+async def dodge_logs(
+    runId: str = None,
+    tail: int = 1000
+) -> LogReplayResponse:
+    """
+    获取闪避助手运行日志回放
+
+    ## 功能描述
+    获取指定runId的闪避助手运行日志，支持回放最近的日志记录。所有时间戳使用UTC ISO8601格式。
+
+    ## 查询参数
+    - **runId** (可选): 运行ID，不提供则使用当前运行的ID
+    - **tail** (可选): 返回最后N条日志，默认1000，最大2000
+
+    ## 返回数据
+    - **logs**: 日志条目列表
+      - **timestamp**: 时间戳，UTC ISO8601格式（2025-09-20T12:34:56.789Z）
+      - **level**: 日志级别 (debug | info | warning | error)
+      - **message**: 日志消息
+      - **runId**: 运行ID
+      - **module**: 模块名称
+      - **seq**: 序列号
+      - **extra**: 额外信息
+    - **total_count**: 返回的日志条数
+    - **runId**: 查询的运行ID
+    - **module**: 模块名称
+    - **has_more**: 是否还有更多日志（当前实现中始终为false）
+    - **message**: 响应消息
+
+    ## 默认策略
+    - 当runId不存在时，返回空日志列表和说明消息
+    - 当无日志记录时，返回"暂无日志记录"消息
+    - 日志条数限制在2000条以内
+
+    ## 使用示例
+    ```python
+    import requests
+
+    # 获取当前运行的最新1000条日志
+    response = requests.get("http://localhost:8000/api/v1/battle-assistant/dodge/logs")
+
+    # 获取指定runId的最新500条日志
+    response = requests.get("http://localhost:8000/api/v1/battle-assistant/dodge/logs?runId=abc123&tail=500")
+
+    logs = response.json()
+    for log in logs['logs']:
+        print(f"[{log['timestamp']}] {log['level'].upper()}: {log['message']}")
+    ```
+    """
+    return await dodge_controller.get_logs(runId, tail)
+
+
+# 为了保持向后兼容性，现有的/run端点内部转发到新的/start端点
+# 这些修改将在现有端点的实现中进行

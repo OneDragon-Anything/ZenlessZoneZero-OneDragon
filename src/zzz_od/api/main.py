@@ -40,7 +40,9 @@ from zzz_od.api.routers import random_play
 from zzz_od.api.routers import drive_disc_dismantle
 from zzz_od.api.routers import context
 from zzz_od.api.routers import logs
+from zzz_od.api.routers import monitoring
 from zzz_od.api.middleware import BattleAssistantExceptionHandler, create_battle_assistant_exception_handlers
+from zzz_od.api.monitoring import APIMonitoringMiddleware, setup_websocket_monitoring, setup_module_monitoring
 
 
 @asynccontextmanager
@@ -53,6 +55,12 @@ async def lifespan(app: FastAPI):
         # 启动日志流 (INFO 及以上)
         log_stream.start_log_stream()
         print("Log stream started")
+
+        # 设置监控系统
+        setup_websocket_monitoring()
+        setup_module_monitoring()
+        print("Monitoring system initialized")
+
         yield
     except Exception as e:
         print(f"Failed to initialize application: {e}")
@@ -75,6 +83,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="OneDragon ZZZ API", version="v1", lifespan=lifespan)
+
+# 添加监控中间件
+app.add_middleware(APIMonitoringMiddleware)
 
 # 添加战斗助手异常处理中间件
 app.add_middleware(BattleAssistantExceptionHandler)
@@ -161,6 +172,7 @@ app.include_router(random_play.router)
 app.include_router(drive_disc_dismantle.router)
 app.include_router(context.router)
 app.include_router(logs.router)
+app.include_router(monitoring.router)
 app.include_router(ws_router)
 
 
