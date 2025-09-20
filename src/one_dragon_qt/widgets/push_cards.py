@@ -125,6 +125,15 @@ class PushCards:
     ],
     "FS": [
         {
+            "var_suffix": "CHANNEL",
+            "title": "服务类型",
+            "icon": "APPLICATION",
+            "type": "combo",
+            "options": ["飞书", "Lark"],
+            "default": "飞书",
+            "required": True
+        },
+        {
             "var_suffix": "KEY",
             "title": "密钥",
             "icon": "CERTIFICATE",
