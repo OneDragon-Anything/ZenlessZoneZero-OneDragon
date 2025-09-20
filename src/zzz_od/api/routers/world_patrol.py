@@ -8,7 +8,8 @@ from zzz_od.api.deps import get_ctx
 from zzz_od.api.security import get_api_key_dependency
 from zzz_od.api.run_registry import get_global_run_registry
 from zzz_od.api.bridges import attach_run_event_bridge
-from zzz_od.api.models import RunIdResponse
+from zzz_od.api.models import RunIdResponse, ControlResponse, StatusResponse, LogReplayResponse
+from zzz_od.api.controllers.world_patrol_controller import WorldPatrolController
 from zzz_od.application.world_patrol.world_patrol_service import WorldPatrolService
 from zzz_od.application.world_patrol.world_patrol_route import WorldPatrolRoute, WorldPatrolOperation
 from zzz_od.application.world_patrol.world_patrol_area import WorldPatrolArea
@@ -24,6 +25,7 @@ router = APIRouter(
 
 
 _registry = get_global_run_registry()
+_controller = WorldPatrolController()
 
 
 @router.get("/entries", response_model=List[Dict[str, Any]], summary="获取入口列表")
@@ -404,13 +406,199 @@ def delete_large_map(areaFullId: str):
 # -------- World Patrol Run (锄大地运行) --------
 
 
-@router.post("/run", response_model=RunIdResponse, summary="运行锄大地")
-async def run_world_patrol():
+@router.post("/start", response_model=ControlResponse, summary="启动锄大地")
+async def start_world_patrol():
     """
     启动锄大地自动化任务
 
     ## 功能描述
     启动锄大地任务，按照配置的路线自动执行锄大地操作。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 任务运行ID，用于后续状态查询和控制
+    - **capabilities**: 模块能力标识
+
+    ## 错误码
+    - **TASK_START_FAILED**: 任务启动失败
+    - **CONFIG_ERROR**: 配置错误
+    - **NO_ROUTES_CONFIGURED**: 没有配置路线
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/world-patrol/start")
+    result = response.json()
+    print(f"启动结果: {result['ok']}, 任务ID: {result['runId']}")
+    ```
+    """
+    return await _controller.start()
+
+
+@router.post("/stop", response_model=ControlResponse, summary="停止锄大地")
+async def stop_world_patrol():
+    """
+    停止锄大地自动化任务
+
+    ## 功能描述
+    停止当前正在运行的锄大地任务。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/world-patrol/stop")
+    result = response.json()
+    print(f"停止结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await _controller.stop()
+
+
+@router.get("/status", response_model=StatusResponse, summary="获取锄大地状态")
+async def get_world_patrol_status():
+    """
+    获取锄大地的运行状态
+
+    ## 功能描述
+    返回锄大地的当前运行状态，包括是否正在运行、上下文状态等信息。
+
+    ## 返回数据
+    - **is_running**: 是否正在运行
+    - **context_state**: 上下文状态 (idle | running | paused)
+    - **running_tasks**: 正在运行的任务数量（可选）
+    - **message**: 状态消息（可选）
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/world-patrol/status")
+    status = response.json()
+    print(f"运行状态: {status['is_running']}, 上下文状态: {status['context_state']}")
+    ```
+    """
+    return await _controller.status()
+
+
+@router.post("/pause", response_model=ControlResponse, summary="暂停锄大地")
+async def pause_world_patrol():
+    """
+    暂停锄大地自动化任务
+
+    ## 功能描述
+    暂停当前正在运行的锄大地任务，保持状态以便后续恢复。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/world-patrol/pause")
+    result = response.json()
+    print(f"暂停结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await _controller.pause()
+
+
+@router.post("/resume", response_model=ControlResponse, summary="恢复锄大地")
+async def resume_world_patrol():
+    """
+    恢复锄大地自动化任务
+
+    ## 功能描述
+    恢复之前暂停的锄大地任务执行。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/world-patrol/resume")
+    result = response.json()
+    print(f"恢复结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await _controller.resume()
+
+
+@router.get("/logs", response_model=LogReplayResponse, summary="获取锄大地运行日志")
+async def world_patrol_logs(
+    runId: str = None,
+    tail: int = 1000
+) -> LogReplayResponse:
+    """
+    获取锄大地运行日志回放
+
+    ## 功能描述
+    获取指定runId的锄大地运行日志，支持回放最近的日志记录。所有时间戳使用UTC ISO8601格式。
+
+    ## 查询参数
+    - **runId** (可选): 运行ID，不提供则使用当前运行的ID
+    - **tail** (可选): 返回最后N条日志，默认1000，最大2000
+
+    ## 返回数据
+    - **logs**: 日志条目列表
+      - **timestamp**: 时间戳，UTC ISO8601格式（2025-09-20T12:34:56.789Z）
+      - **level**: 日志级别 (debug | info | warning | error)
+      - **message**: 日志消息
+      - **runId**: 运行ID
+      - **module**: 模块名称
+      - **seq**: 序列号
+      - **extra**: 额外信息
+    - **total_count**: 返回的日志条数
+    - **runId**: 查询的运行ID
+    - **module**: 模块名称
+    - **has_more**: 是否还有更多日志（当前实现中始终为false）
+    - **message**: 响应消息
+
+    ## 默认策略
+    - 当runId不存在时，返回空日志列表和说明消息
+    - 当无日志记录时，返回"暂无日志记录"消息
+    - 日志条数限制在2000条以内
+
+    ## 使用示例
+    ```python
+    import requests
+
+    # 获取当前运行的最新1000条日志
+    response = requests.get("http://localhost:8000/api/v1/world-patrol/logs")
+
+    # 获取指定runId的最新500条日志
+    response = requests.get("http://localhost:8000/api/v1/world-patrol/logs?runId=abc123&tail=500")
+
+    logs = response.json()
+    for log in logs['logs']:
+        print(f"[{log['timestamp']}] {log['level'].upper()}: {log['message']}")
+    ```
+    """
+    return await _controller.get_logs(runId, tail)
+
+
+@router.post("/run", response_model=RunIdResponse, summary="运行锄大地（兼容性端点）", deprecated=True)
+async def run_world_patrol():
+    """
+    启动锄大地自动化任务（兼容性端点）
+
+    ## 功能描述
+    启动锄大地任务，按照配置的路线自动执行锄大地操作。
+
+    **注意**: 此端点已弃用，建议使用 `/start` 端点。
 
     ## 返回数据
     - **runId**: 任务运行ID，用于后续状态查询和控制
@@ -428,8 +616,9 @@ async def run_world_patrol():
     print(f"锄大地任务ID: {task_info['runId']}")
     ```
     """
-    run_id = _run_via_onedragon_with_temp(["world_patrol"])
-    return RunIdResponse(runId=run_id)
+    # 内部转发到新的start端点
+    result = await _controller.start()
+    return RunIdResponse(runId=result.runId)
 
 
 def _run_via_onedragon_with_temp(app_ids: list[str]) -> str:

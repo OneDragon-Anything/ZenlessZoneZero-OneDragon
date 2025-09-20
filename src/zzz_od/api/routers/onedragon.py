@@ -3,15 +3,16 @@ from __future__ import annotations
 import asyncio
 from typing import Dict, List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from zzz_od.api.deps import get_ctx
-from zzz_od.api.models import RunIdResponse, RunStatusResponse, RunStatusEnum
+from zzz_od.api.models import RunIdResponse, RunStatusResponse, RunStatusEnum, ControlResponse, StatusResponse, LogReplayResponse
 from zzz_od.api.run_registry import get_global_run_registry
 from zzz_od.api.security import get_api_key_dependency
 from zzz_od.api.bridges import attach_run_event_bridge
 from zzz_od.api.status_builder import build_onedragon_aggregate
+from zzz_od.api.controllers.onedragon_controller import OneDragonController
 from zzz_od.config.team_config import PredefinedTeamInfo
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig
@@ -37,15 +38,18 @@ router = APIRouter(
 
 
 _registry = get_global_run_registry()
+_controller = OneDragonController()
 
 
-@router.post("/run", response_model=RunIdResponse, summary="启动一条龙")
+@router.post("/run", response_model=RunIdResponse, summary="启动一条龙", deprecated=True)
 async def onedragon_run() -> RunIdResponse:
     """
     启动一条龙主任务
 
     ## 功能描述
     启动一条龙自动化任务，按照配置的应用列表依次执行各个功能模块。
+
+    **⚠️ 已弃用**: 此端点已被弃用，请使用 `/start` 端点替代。
 
     ## 返回数据
     - **runId**: 任务运行ID，用于后续状态查询和控制
@@ -61,34 +65,24 @@ async def onedragon_run() -> RunIdResponse:
     print(f"一条龙任务ID: {task_info['runId']}")
     ```
     """
-    ctx = get_ctx()
+    # 内部转发到新的 /start 端点以保持向后兼容性
+    control_response = await _controller.start()
 
-    def _factory() -> asyncio.Task:
-        async def runner():
-            loop = asyncio.get_running_loop()
-            from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
-
-            def _exec():
-                app = ZOneDragonApp(ctx)
-                app.execute()
-
-            await loop.run_in_executor(None, _exec)
-
-        return asyncio.create_task(runner())
-
-    run_id = _registry.create(_factory)
-    # attach event bridge for WS and status message updates
-    attach_run_event_bridge(ctx, run_id)
-    return RunIdResponse(runId=run_id)
+    if control_response.ok:
+        return RunIdResponse(runId=control_response.runId)
+    else:
+        raise HTTPException(status_code=500, detail="任务启动失败")
 
 
-@router.post("/run/{run_id}:cancel", summary="取消一条龙任务")
+@router.post("/run/{run_id}:cancel", summary="取消一条龙任务", deprecated=True)
 async def onedragon_cancel(run_id: str):
     """
     取消指定的一条龙任务
 
     ## 功能描述
     取消正在运行或等待中的一条龙任务。
+
+    **⚠️ 已弃用**: 此端点已被弃用，请使用 `/stop` 端点替代。
 
     ## 路径参数
     - **run_id**: 任务运行ID
@@ -104,10 +98,9 @@ async def onedragon_cancel(run_id: str):
     print(f"取消结果: {result['ok']}")
     ```
     """
-    _registry.cancel(run_id)
-    ctx = get_ctx()
-    ctx.stop_running()
-    return {"ok": True}
+    # 内部转发到新的 /stop 端点以保持向后兼容性
+    control_response = await _controller.stop()
+    return {"ok": control_response.ok}
 
 
 @router.get("/agents", response_model=List[AgentInfo], summary="获取代理人列表")
@@ -632,6 +625,140 @@ async def onedragon_status(run_id: str) -> RunStatusResponse:
     return status
 
 
+# -------- 统一控制接口 --------
+
+@router.post("/start", response_model=ControlResponse, summary="启动一条龙")
+async def onedragon_start() -> ControlResponse:
+    """
+    启动一条龙主任务
+
+    ## 功能描述
+    启动一条龙自动化任务，按照配置的应用列表依次执行各个功能模块。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 响应消息
+    - **runId**: 任务运行ID，用于后续状态查询和控制
+    - **capabilities**: 模块能力标识
+
+    ## 错误码
+    - **TASK_START_FAILED**: 任务启动失败
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/onedragon/start")
+    result = response.json()
+    print(f"一条龙任务ID: {result['runId']}")
+    ```
+    """
+    return await _controller.start()
+
+
+@router.post("/stop", response_model=ControlResponse, summary="停止一条龙")
+async def onedragon_stop() -> ControlResponse:
+    """
+    停止一条龙任务
+
+    ## 功能描述
+    停止正在运行的一条龙任务。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 响应消息
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/onedragon/stop")
+    result = response.json()
+    print(f"停止结果: {result['message']}")
+    ```
+    """
+    return await _controller.stop()
+
+
+@router.get("/status", response_model=StatusResponse, summary="获取一条龙状态")
+async def onedragon_unified_status() -> StatusResponse:
+    """
+    获取一条龙运行状态
+
+    ## 功能描述
+    获取一条龙当前的运行状态，包括是否运行中、上下文状态等信息。
+
+    ## 返回数据
+    - **is_running**: 是否正在运行
+    - **context_state**: 上下文状态 (idle | running | paused)
+    - **running_tasks**: 正在运行的任务数量
+    - **message**: 状态消息
+    - **runId**: 当前运行ID
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/onedragon/status")
+    status = response.json()
+    print(f"运行状态: {status['context_state']}")
+    ```
+    """
+    return await _controller.status()
+
+
+@router.get("/logs", response_model=LogReplayResponse, summary="获取一条龙运行日志")
+async def onedragon_logs(
+    runId: str = None,
+    tail: int = 1000
+) -> LogReplayResponse:
+    """
+    获取一条龙运行日志回放
+
+    ## 功能描述
+    获取指定runId的运行日志，支持回放最近的日志记录。所有时间戳使用UTC ISO8601格式。
+
+    ## 查询参数
+    - **runId** (可选): 运行ID，不提供则使用当前运行的ID
+    - **tail** (可选): 返回最后N条日志，默认1000，最大2000
+
+    ## 返回数据
+    - **logs**: 日志条目列表
+      - **timestamp**: 时间戳，UTC ISO8601格式（2025-09-20T12:34:56.789Z）
+      - **level**: 日志级别 (debug | info | warning | error)
+      - **message**: 日志消息
+      - **runId**: 运行ID
+      - **module**: 模块名称
+      - **seq**: 序列号
+      - **extra**: 额外信息
+    - **total_count**: 返回的日志条数
+    - **runId**: 查询的运行ID
+    - **module**: 模块名称
+    - **has_more**: 是否还有更多日志（当前实现中始终为false）
+    - **message**: 响应消息
+
+    ## 默认策略
+    - 当runId不存在时，返回空日志列表和说明消息
+    - 当无日志记录时，返回"暂无日志记录"消息
+    - 日志条数限制在2000条以内
+
+    ## 使用示例
+    ```python
+    import requests
+
+    # 获取当前运行的最新1000条日志
+    response = requests.get("http://localhost:8000/api/v1/onedragon/logs")
+
+    # 获取指定runId的最新500条日志
+    response = requests.get("http://localhost:8000/api/v1/onedragon/logs?runId=abc123&tail=500")
+
+    logs = response.json()
+    for log in logs['logs']:
+        print(f"[{log['timestamp']}] {log['level'].upper()}: {log['message']}")
+    ```
+    """
+    return await _controller.get_logs(runId, tail)
+
+
 # -------- Team config --------
 
 
@@ -1088,5 +1215,7 @@ async def run_single_app(app_id: str):
     run_id = _registry.create(_factory)
     attach_run_event_bridge(ctx, run_id)
     return RunIdResponse(runId=run_id)
+
+
 
 
