@@ -91,6 +91,33 @@ class SuibianTempleConfig(ApplicationConfig):
     def boo_box_purchase_enabled(self, value: bool):
         self.update('boo_box_purchase_enabled', value)
 
+    @property
+    def boo_box_adventure_price(self) -> str:
+        """邦巢-游历-最低价格"""
+        return self.get('boo_box_adventure_price', BangbooPrice.S4.name)
+
+    @boo_box_adventure_price.setter
+    def boo_box_adventure_price(self, value: str):
+        self.update('boo_box_adventure_price', value)
+
+    @property
+    def boo_box_craft_price(self) -> str:
+        """邦巢-制造-最低价格"""
+        return self.get('boo_box_craft_price', BangbooPrice.S4.name)
+
+    @boo_box_craft_price.setter
+    def boo_box_craft_price(self, value: str):
+        self.update('boo_box_craft_price', value)
+
+    @property
+    def boo_box_sell_price(self) -> str:
+        """邦巢-售卖-最低价格"""
+        return self.get('boo_box_sell_price', BangbooPrice.S4.name)
+
+    @boo_box_sell_price.setter
+    def boo_box_sell_price(self, value: str):
+        self.update('boo_box_sell_price', value)
+
 
 class SuibianTempleAdventureMission(StrEnum):
 
@@ -138,3 +165,12 @@ class SuibianTempleAdventureMission(StrEnum):
     RESEARCH_3_2 = '科研院旧址3-2'
     RESEARCH_3_3 = '科研院旧址3-3'
     RESEARCH_3_4 = "科研院旧址3-4"
+
+
+class BangbooPrice(StrEnum):
+
+    S1 = '40000'
+    S2 = '35000'
+    S3 = '30000'
+    S4 = '25000'
+    NONE = '不购买'
