@@ -6,10 +6,11 @@ from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException
 
 from zzz_od.api.deps import get_ctx
-from zzz_od.api.models import RunIdResponse
+from zzz_od.api.models import RunIdResponse, ControlResponse, StatusResponse, LogReplayResponse
 from zzz_od.api.security import get_api_key_dependency
 from zzz_od.api.run_registry import get_global_run_registry
 from zzz_od.api.bridges import attach_run_event_bridge
+from zzz_od.api.controllers.hollow_zero_controller import HollowZeroController, LostVoidController
 from zzz_od.hollow_zero.hollow_zero_challenge_config import HollowZeroChallengeConfig, get_all_hollow_zero_challenge_config, get_hollow_zero_challenge_new_name, HollowZeroChallengePathFinding
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidChallengeConfig, get_all_lost_void_challenge_config, get_lost_void_challenge_new_name, LostVoidPeriodBuffNo
 from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig, LostVoidExtraTask
@@ -25,6 +26,10 @@ router = APIRouter(
 
 
 _registry = get_global_run_registry()
+
+# 创建控制器实例
+_hollow_zero_controller = HollowZeroController()
+_lost_void_controller = LostVoidController()
 
 
 def _run_via_onedragon_with_temp(app_ids: list[str]) -> str:
@@ -59,13 +64,15 @@ def _start_app_run(app_factory) -> str:
     return run_id
 
 
-@router.post("/run", response_model=RunIdResponse, summary="运行零号空洞 - 枯萎之都")
+@router.post("/run", response_model=RunIdResponse, summary="运行零号空洞 - 枯萎之都", deprecated=True)
 async def run_hollow_zero():
     """
-    启动零号空洞 - 枯萎之都自动化任务
+    启动零号空洞 - 枯萎之都自动化任务（兼容性端点）
 
     ## 功能描述
     启动零号空洞枯萎之都的自动化挑战任务，使用当前配置的挑战策略和队伍配置。
+
+    **注意**: 此端点已弃用，建议使用 `/start` 端点。
 
     ## 返回数据
     - **runId**: 任务运行ID，用于后续状态查询和控制
@@ -86,13 +93,252 @@ async def run_hollow_zero():
     return RunIdResponse(runId=run_id)
 
 
-@router.post("/lost-void/run", response_model=RunIdResponse, summary="运行零号空洞 - 迷失之地")
+# ============================================================================
+# 统一控制端点
+# ============================================================================
+
+@router.post("/start", response_model=ControlResponse, summary="启动零号空洞 - 枯萎之都")
+async def start_hollow_zero():
+    """
+    启动零号空洞 - 枯萎之都自动化任务（统一控制接口）
+
+    ## 功能描述
+    使用统一控制接口启动零号空洞枯萎之都的自动化挑战任务。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 任务运行ID（成功时）
+    - **capabilities**: 模块能力标识
+
+    ## 错误码
+    - **TASK_START_FAILED**: 任务启动失败 (500)
+    - **TASK_ALREADY_RUNNING**: 任务已在运行 (409)
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/start")
+    result = response.json()
+    print(f"启动结果: {result['message']}")
+    ```
+    """
+    return await _hollow_zero_controller.start()
+
+
+@router.post("/stop", response_model=ControlResponse, summary="停止零号空洞运行（统一控制接口）")
+async def stop_hollow_zero_unified():
+    """
+    停止当前运行的零号空洞任务（统一控制接口）
+
+    ## 功能描述
+    使用统一控制接口停止所有正在运行的零号空洞相关任务。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/stop")
+    result = response.json()
+    print(f"停止结果: {result['message']}")
+    ```
+    """
+    return await _hollow_zero_controller.stop()
+
+
+@router.get("/status", response_model=StatusResponse, summary="获取零号空洞运行状态（统一控制接口）")
+async def get_hollow_zero_status_unified():
+    """
+    获取当前零号空洞的运行状态（统一控制接口）
+
+    ## 功能描述
+    返回当前零号空洞应用的运行状态，使用统一的状态响应格式。
+
+    ## 返回数据
+    - **is_running**: 是否正在运行
+    - **context_state**: 上下文状态 (idle | running | paused)
+    - **running_tasks**: 运行中的任务数量
+    - **message**: 状态消息
+    - **runId**: 当前运行ID
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/status")
+    status = response.json()
+    print(f"运行状态: {status['context_state']}")
+    ```
+    """
+    return await _hollow_zero_controller.status()
+
+
+@router.post("/pause", response_model=ControlResponse, summary="暂停零号空洞 - 枯萎之都")
+async def pause_hollow_zero():
+    """
+    暂停零号空洞 - 枯萎之都自动化任务
+
+    ## 功能描述
+    暂停当前正在运行的零号空洞枯萎之都任务，保持状态以便后续恢复。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/pause")
+    result = response.json()
+    print(f"暂停结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await _hollow_zero_controller.pause()
+
+
+@router.post("/resume", response_model=ControlResponse, summary="恢复零号空洞 - 枯萎之都")
+async def resume_hollow_zero():
+    """
+    恢复零号空洞 - 枯萎之都自动化任务
+
+    ## 功能描述
+    恢复之前暂停的零号空洞枯萎之都任务执行。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/resume")
+    result = response.json()
+    print(f"恢复结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await _hollow_zero_controller.resume()
+
+
+@router.post("/lost-void/pause", response_model=ControlResponse, summary="暂停零号空洞 - 迷失之地")
+async def pause_lost_void():
+    """
+    暂停零号空洞 - 迷失之地自动化任务
+
+    ## 功能描述
+    暂停当前正在运行的零号空洞迷失之地任务，保持状态以便后续恢复。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/lost-void/pause")
+    result = response.json()
+    print(f"暂停结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await _lost_void_controller.pause()
+
+
+@router.post("/lost-void/resume", response_model=ControlResponse, summary="恢复零号空洞 - 迷失之地")
+async def resume_lost_void():
+    """
+    恢复零号空洞 - 迷失之地自动化任务
+
+    ## 功能描述
+    恢复之前暂停的零号空洞迷失之地任务执行。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/lost-void/resume")
+    result = response.json()
+    print(f"恢复结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await _lost_void_controller.resume()
+
+
+@router.get("/logs", response_model=LogReplayResponse, summary="获取零号空洞运行日志")
+async def hollow_zero_logs(
+    runId: str = None,
+    tail: int = 1000
+) -> LogReplayResponse:
+    """
+    获取零号空洞运行日志回放
+
+    ## 功能描述
+    获取指定runId的零号空洞运行日志，支持回放最近的日志记录。所有时间戳使用UTC ISO8601格式。
+
+    ## 查询参数
+    - **runId** (可选): 运行ID，不提供则使用当前运行的ID
+    - **tail** (可选): 返回最后N条日志，默认1000，最大2000
+
+    ## 返回数据
+    - **logs**: 日志条目列表
+      - **timestamp**: 时间戳，UTC ISO8601格式（2025-09-20T12:34:56.789Z）
+      - **level**: 日志级别 (debug | info | warning | error)
+      - **message**: 日志消息
+      - **runId**: 运行ID
+      - **module**: 模块名称
+      - **seq**: 序列号
+      - **extra**: 额外信息
+    - **total_count**: 返回的日志条数
+    - **runId**: 查询的运行ID
+    - **module**: 模块名称
+    - **has_more**: 是否还有更多日志（当前实现中始终为false）
+    - **message**: 响应消息
+
+    ## 默认策略
+    - 当runId不存在时，返回空日志列表和说明消息
+    - 当无日志记录时，返回"暂无日志记录"消息
+    - 日志条数限制在2000条以内
+
+    ## 使用示例
+    ```python
+    import requests
+
+    # 获取当前运行的最新1000条日志
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/logs")
+
+    # 获取指定runId的最新500条日志
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/logs?runId=abc123&tail=500")
+
+    logs = response.json()
+    for log in logs['logs']:
+        print(f"[{log['timestamp']}] {log['level'].upper()}: {log['message']}")
+    ```
+    """
+    return await _hollow_zero_controller.get_logs(runId, tail)
+
+
+@router.post("/lost-void/run", response_model=RunIdResponse, summary="运行零号空洞 - 迷失之地", deprecated=True)
 async def run_lost_void():
     """
-    启动零号空洞 - 迷失之地自动化任务
+    启动零号空洞 - 迷失之地自动化任务（兼容性端点）
 
     ## 功能描述
     启动零号空洞迷失之地的自动化挑战任务，使用当前配置的挑战策略和队伍配置。
+
+    **注意**: 此端点已弃用，建议使用 `/lost-void/start` 端点。
 
     ## 返回数据
     - **runId**: 任务运行ID，用于后续状态查询和控制
@@ -111,6 +357,139 @@ async def run_lost_void():
     """
     run_id = _run_via_onedragon_with_temp(["lost_void"])
     return RunIdResponse(runId=run_id)
+
+
+@router.post("/lost-void/start", response_model=ControlResponse, summary="启动零号空洞 - 迷失之地")
+async def start_lost_void():
+    """
+    启动零号空洞 - 迷失之地自动化任务（统一控制接口）
+
+    ## 功能描述
+    使用统一控制接口启动零号空洞迷失之地的自动化挑战任务。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 任务运行ID（成功时）
+    - **capabilities**: 模块能力标识
+
+    ## 错误码
+    - **TASK_START_FAILED**: 任务启动失败 (500)
+    - **TASK_ALREADY_RUNNING**: 任务已在运行 (409)
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/lost-void/start")
+    result = response.json()
+    print(f"启动结果: {result['message']}")
+    ```
+    """
+    return await _lost_void_controller.start()
+
+
+@router.post("/lost-void/stop", response_model=ControlResponse, summary="停止迷失之地运行（统一控制接口）")
+async def stop_lost_void_unified():
+    """
+    停止当前运行的迷失之地任务（统一控制接口）
+
+    ## 功能描述
+    使用统一控制接口停止所有正在运行的迷失之地相关任务。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/lost-void/stop")
+    result = response.json()
+    print(f"停止结果: {result['message']}")
+    ```
+    """
+    return await _lost_void_controller.stop()
+
+
+@router.get("/lost-void/status", response_model=StatusResponse, summary="获取迷失之地运行状态（统一控制接口）")
+async def get_lost_void_status():
+    """
+    获取当前迷失之地的运行状态（统一控制接口）
+
+    ## 功能描述
+    返回当前迷失之地应用的运行状态，使用统一的状态响应格式。
+
+    ## 返回数据
+    - **is_running**: 是否正在运行
+    - **context_state**: 上下文状态 (idle | running | paused)
+    - **running_tasks**: 运行中的任务数量
+    - **message**: 状态消息
+    - **runId**: 当前运行ID
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/lost-void/status")
+    status = response.json()
+    print(f"运行状态: {status['context_state']}")
+    ```
+    """
+    return await _lost_void_controller.status()
+
+
+@router.get("/lost-void/logs", response_model=LogReplayResponse, summary="获取迷失之地运行日志")
+async def lost_void_logs(
+    runId: str = None,
+    tail: int = 1000
+) -> LogReplayResponse:
+    """
+    获取迷失之地运行日志回放
+
+    ## 功能描述
+    获取指定runId的迷失之地运行日志，支持回放最近的日志记录。所有时间戳使用UTC ISO8601格式。
+
+    ## 查询参数
+    - **runId** (可选): 运行ID，不提供则使用当前运行的ID
+    - **tail** (可选): 返回最后N条日志，默认1000，最大2000
+
+    ## 返回数据
+    - **logs**: 日志条目列表
+      - **timestamp**: 时间戳，UTC ISO8601格式（2025-09-20T12:34:56.789Z）
+      - **level**: 日志级别 (debug | info | warning | error)
+      - **message**: 日志消息
+      - **runId**: 运行ID
+      - **module**: 模块名称
+      - **seq**: 序列号
+      - **extra**: 额外信息
+    - **total_count**: 返回的日志条数
+    - **runId**: 查询的运行ID
+    - **module**: 模块名称
+    - **has_more**: 是否还有更多日志（当前实现中始终为false）
+    - **message**: 响应消息
+
+    ## 默认策略
+    - 当runId不存在时，返回空日志列表和说明消息
+    - 当无日志记录时，返回"暂无日志记录"消息
+    - 日志条数限制在2000条以内
+
+    ## 使用示例
+    ```python
+    import requests
+
+    # 获取当前运行的最新1000条日志
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/lost-void/logs")
+
+    # 获取指定runId的最新500条日志
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/lost-void/logs?runId=abc123&tail=500")
+
+    logs = response.json()
+    for log in logs['logs']:
+        print(f"[{log['timestamp']}] {log['level'].upper()}: {log['message']}")
+    ```
+    """
+    return await _lost_void_controller.get_logs(runId, tail)
 
 
 # -------- Hollow Zero Challenge Config --------
@@ -1902,13 +2281,16 @@ class HollowZeroStatus(BaseModel):
     error_message: Optional[str] = None
     last_update: Optional[str] = None
 
-@router.get("/status", response_model=HollowZeroStatus, summary="获取零号空洞运行状态")
-def get_hollow_zero_status(ctx = Depends(get_ctx)) -> HollowZeroStatus:
+@router.get("/status-legacy", response_model=HollowZeroStatus, summary="获取零号空洞运行状态（已弃用）", deprecated=True)
+def get_hollow_zero_status_legacy(ctx = Depends(get_ctx)) -> HollowZeroStatus:
     """
-    获取当前零号空洞的运行状态
+    获取当前零号空洞的运行状态（已弃用，请使用 /status 端点）
 
     ## 功能描述
     返回当前零号空洞应用的运行状态，包括是否运行中、当前进度等信息。
+
+    ## 弃用说明
+    此端点已弃用，请使用新的统一控制接口 `/status` 端点。
 
     ## 返回数据
     - **is_running**: 是否正在运行
@@ -1920,7 +2302,7 @@ def get_hollow_zero_status(ctx = Depends(get_ctx)) -> HollowZeroStatus:
     ## 使用示例
     ```python
     import requests
-    response = requests.get("http://localhost:8000/api/v1/hollow-zero/status")
+    response = requests.get("http://localhost:8000/api/v1/hollow-zero/status-legacy")
     status = response.json()
     print(f"运行状态: {'运行中' if status['is_running'] else '未运行'}")
     ```
@@ -1958,13 +2340,16 @@ def get_hollow_zero_status(ctx = Depends(get_ctx)) -> HollowZeroStatus:
         )
 
 
-@router.post("/stop", summary="停止零号空洞运行")
-def stop_hollow_zero(ctx = Depends(get_ctx)) -> Dict[str, str]:
+@router.post("/stop-legacy", summary="停止零号空洞运行（已弃用）", deprecated=True)
+def stop_hollow_zero_legacy(ctx = Depends(get_ctx)) -> Dict[str, str]:
     """
-    停止当前运行的零号空洞任务
+    停止当前运行的零号空洞任务（已弃用，请使用 /stop 端点）
 
     ## 功能描述
     停止所有正在运行的零号空洞相关任务。
+
+    ## 弃用说明
+    此端点已弃用，请使用新的统一控制接口 `/stop` 端点。
 
     ## 返回数据
     返回停止操作的结果消息
@@ -1972,7 +2357,7 @@ def stop_hollow_zero(ctx = Depends(get_ctx)) -> Dict[str, str]:
     ## 使用示例
     ```python
     import requests
-    response = requests.post("http://localhost:8000/api/v1/hollow-zero/stop")
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/stop-legacy")
     result = response.json()
     print(result["message"])
     ```
@@ -2003,13 +2388,16 @@ def stop_hollow_zero(ctx = Depends(get_ctx)) -> Dict[str, str]:
         )
 
 
-@router.post("/lost-void/stop", summary="停止迷失之地运行")
-def stop_lost_void(ctx = Depends(get_ctx)) -> Dict[str, str]:
+@router.post("/lost-void/stop-legacy", summary="停止迷失之地运行（已弃用）", deprecated=True)
+def stop_lost_void_legacy(ctx = Depends(get_ctx)) -> Dict[str, str]:
     """
-    停止当前运行的迷失之地任务
+    停止当前运行的迷失之地任务（已弃用，请使用 /lost-void/stop 端点）
 
     ## 功能描述
     停止所有正在运行的迷失之地相关任务。
+
+    ## 弃用说明
+    此端点已弃用，请使用新的统一控制接口 `/lost-void/stop` 端点。
 
     ## 返回数据
     返回停止操作的结果消息
@@ -2017,7 +2405,7 @@ def stop_lost_void(ctx = Depends(get_ctx)) -> Dict[str, str]:
     ## 使用示例
     ```python
     import requests
-    response = requests.post("http://localhost:8000/api/v1/hollow-zero/lost-void/stop")
+    response = requests.post("http://localhost:8000/api/v1/hollow-zero/lost-void/stop-legacy")
     result = response.json()
     print(result["message"])
     ```

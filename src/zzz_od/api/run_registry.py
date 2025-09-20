@@ -34,6 +34,7 @@ class RunRegistry:
         self._lock = threading.Lock()
         self._runs: Dict[str, RunEntry] = {}
         self._bridges: Dict[str, Callable[[], None]] = {}
+        self._module_runs: Dict[str, str] = {}  # module_name -> current_run_id
 
     def create(self, task_factory: Callable[[], asyncio.Task]) -> str:
         run_id = str(uuid.uuid4())
@@ -154,6 +155,38 @@ class RunRegistry:
                 return
             entry.status = status
             entry.updated_at = time.time()
+
+    def create_for_module(self, module_name: str, task_factory: Callable[[], asyncio.Task]) -> str:
+        """为特定模块创建运行实例"""
+        # 确保同一模块同时只有一个活跃运行
+        with self._lock:
+            if module_name in self._module_runs:
+                old_run_id = self._module_runs[module_name]
+                if old_run_id in self._runs and not self._runs[old_run_id].task.done():
+                    self.cancel(old_run_id)
+
+        run_id = self.create(task_factory)
+        with self._lock:
+            self._module_runs[module_name] = run_id
+        return run_id
+
+    def get_current_run_id(self, module_name: str) -> Optional[str]:
+        """获取模块当前的运行ID"""
+        with self._lock:
+            return self._module_runs.get(module_name)
+
+    def cleanup_module_run(self, module_name: str):
+        """清理模块运行记录"""
+        with self._lock:
+            self._module_runs.pop(module_name, None)
+
+    def is_running(self, run_id: str) -> bool:
+        """检查指定运行ID是否正在运行"""
+        with self._lock:
+            entry = self._runs.get(run_id)
+            if not entry:
+                return False
+            return not entry.task.done() and not entry.task.cancelled()
 
 
 _GLOBAL_REGISTRY: Optional[RunRegistry] = None
