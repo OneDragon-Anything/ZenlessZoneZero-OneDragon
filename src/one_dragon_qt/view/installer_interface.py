@@ -787,6 +787,7 @@ class InstallerInterface(VerticalScrollInterface):
     def on_step_completed(self, success: bool):
         """步骤完成回调"""
         self.update_step_display()
+        self.update_all_install_cards()
         if success and self.current_step < len(self.install_steps) - 1:
             QTimer.singleShot(1000, self.auto_next_step)
 
@@ -970,6 +971,12 @@ class InstallerInterface(VerticalScrollInterface):
             self.progress_label.setText(gt('资源解压失败！已自动打开排障文档'))
             self.progress_label.setStyleSheet("color: #d13438;")
 
+    def update_all_install_cards(self):
+        """更新所有安装卡的状态"""
+        for card in self.all_install_cards:
+            if card:
+                card.check_and_update_display()
+
     def on_interface_shown(self) -> None:
         super().on_interface_shown()
 
@@ -978,9 +985,7 @@ class InstallerInterface(VerticalScrollInterface):
         self.start_placebo_progress()
 
         # 更新所有安装卡的状态
-        for card in self.all_install_cards:
-            if card:
-                card.check_and_update_display()
+        self.update_all_install_cards()
 
         # 如果是高级模式，检查所有步骤的状态
         if self.is_advanced_mode:
