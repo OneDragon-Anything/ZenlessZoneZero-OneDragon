@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import Dict, Any
+from typing import Dict, Any, Callable
 
 from fastapi import APIRouter, Depends
 
 from zzz_od.api.deps import get_ctx
-from zzz_od.api.models import RunIdResponse
+from zzz_od.api.models import RunIdResponse, ControlResponse, StatusResponse, Capabilities, LogReplayResponse
 from zzz_od.api.security import get_api_key_dependency
 from zzz_od.api.run_registry import get_global_run_registry
 from zzz_od.api.bridges import attach_run_event_bridge
+from zzz_od.api.unified_controller import UnifiedController
 from zzz_od.application.commission_assistant.commission_assistant_app import CommissionAssistantApp
 from zzz_od.application.life_on_line.life_on_line_app import LifeOnLineApp
 from zzz_od.application.game_config_checker.mouse_sensitivity_checker import MouseSensitivityChecker
@@ -23,6 +24,47 @@ router = APIRouter(
 
 
 _registry = get_global_run_registry()
+
+
+class CommissionAssistantController(UnifiedController):
+    """委托助手统一控制器"""
+
+    def __init__(self):
+        super().__init__("commission-assistant")
+
+    def get_capabilities(self) -> Capabilities:
+        """委托助手支持暂停/恢复"""
+        return Capabilities(canPause=True, canResume=True)
+
+    def create_app_factory(self) -> Callable:
+        """创建委托助手应用工厂"""
+        def factory():
+            ctx = get_ctx()
+            return CommissionAssistantApp(ctx)
+        return factory
+
+
+class LifeOnLineController(UnifiedController):
+    """拿命验收统一控制器"""
+
+    def __init__(self):
+        super().__init__("life-on-line")
+
+    def get_capabilities(self) -> Capabilities:
+        """拿命验收支持暂停/恢复"""
+        return Capabilities(canPause=True, canResume=True)
+
+    def create_app_factory(self) -> Callable:
+        """创建拿命验收应用工厂"""
+        def factory():
+            ctx = get_ctx()
+            return LifeOnLineApp(ctx)
+        return factory
+
+
+# 创建控制器实例
+_commission_assistant_controller = CommissionAssistantController()
+_life_on_line_controller = LifeOnLineController()
 
 
 def _run_via_onedragon_with_temp(app_ids: list[str]) -> str:
@@ -60,14 +102,202 @@ def _start_app_run(app_factory) -> str:
 # -------- Commission Assistant (委托助手) --------
 
 
-@router.post("/commission-assistant/run", response_model=RunIdResponse, summary="运行委托助手")
-async def run_commission_assistant():
+@router.post("/commission-assistant/start", response_model=ControlResponse, summary="启动委托助手")
+async def start_commission_assistant():
     """
     启动委托助手自动化任务
 
     ## 功能描述
+    启动委托助手应用，自动完成游戏中的委托任务，包括对话处理、战斗和任务流程。
+    支持幂等性操作，重复调用会返回当前运行状态。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 任务运行ID，用于后续状态查询和控制
+    - **capabilities**: 模块能力标识
+
+    ## 错误码
+    - **TASK_START_FAILED**: 任务启动失败
+    - **CONFIG_ERROR**: 配置错误
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/game-assistant/commission-assistant/start")
+    result = response.json()
+    print(f"启动结果: {result['message']}")
+    print(f"任务ID: {result['runId']}")
+    ```
+    """
+    return await _commission_assistant_controller.start()
+
+
+@router.post("/commission-assistant/stop", response_model=ControlResponse, summary="停止委托助手")
+async def stop_commission_assistant():
+    """
+    停止委托助手自动化任务
+
+    ## 功能描述
+    停止当前运行的委托助手任务。支持幂等性操作，重复调用不会报错。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/game-assistant/commission-assistant/stop")
+    result = response.json()
+    print(f"停止结果: {result['message']}")
+    ```
+    """
+    return await _commission_assistant_controller.stop()
+
+
+@router.get("/commission-assistant/status", response_model=StatusResponse, summary="获取委托助手状态")
+async def get_commission_assistant_status():
+    """
+    获取委托助手的运行状态
+
+    ## 功能描述
+    返回委托助手的当前运行状态，包括是否运行中、上下文状态等信息。
+
+    ## 返回数据
+    - **is_running**: 是否正在运行
+    - **context_state**: 上下文状态 (idle | running | paused)
+    - **running_tasks**: 运行中的任务数量（可选）
+    - **message**: 状态消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/game-assistant/commission-assistant/status")
+    status = response.json()
+    print(f"运行状态: {status['context_state']}")
+    print(f"是否运行: {status['is_running']}")
+    ```
+    """
+    return await _commission_assistant_controller.status()
+
+
+@router.post("/commission-assistant/pause", response_model=ControlResponse, summary="暂停委托助手")
+async def pause_commission_assistant():
+    """
+    暂停委托助手自动化任务
+
+    ## 功能描述
+    暂停当前正在运行的委托助手任务，保持状态以便后续恢复。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/game-assistant/commission-assistant/pause")
+    result = response.json()
+    print(f"暂停结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await _commission_assistant_controller.pause()
+
+
+@router.post("/commission-assistant/resume", response_model=ControlResponse, summary="恢复委托助手")
+async def resume_commission_assistant():
+    """
+    恢复委托助手自动化任务
+
+    ## 功能描述
+    恢复之前暂停的委托助手任务执行。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/game-assistant/commission-assistant/resume")
+    result = response.json()
+    print(f"恢复结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await _commission_assistant_controller.resume()
+
+
+@router.get("/commission-assistant/logs", response_model=LogReplayResponse, summary="获取委托助手运行日志")
+async def commission_assistant_logs(
+    runId: str = None,
+    tail: int = 1000
+) -> LogReplayResponse:
+    """
+    获取委托助手运行日志回放
+
+    ## 功能描述
+    获取指定runId的委托助手运行日志，支持回放最近的日志记录。所有时间戳使用UTC ISO8601格式。
+
+    ## 查询参数
+    - **runId** (可选): 运行ID，不提供则使用当前运行的ID
+    - **tail** (可选): 返回最后N条日志，默认1000，最大2000
+
+    ## 返回数据
+    - **logs**: 日志条目列表
+      - **timestamp**: 时间戳，UTC ISO8601格式（2025-09-20T12:34:56.789Z）
+      - **level**: 日志级别 (debug | info | warning | error)
+      - **message**: 日志消息
+      - **runId**: 运行ID
+      - **module**: 模块名称
+      - **seq**: 序列号
+      - **extra**: 额外信息
+    - **total_count**: 返回的日志条数
+    - **runId**: 查询的运行ID
+    - **module**: 模块名称
+    - **has_more**: 是否还有更多日志（当前实现中始终为false）
+    - **message**: 响应消息
+
+    ## 默认策略
+    - 当runId不存在时，返回空日志列表和说明消息
+    - 当无日志记录时，返回"暂无日志记录"消息
+    - 日志条数限制在2000条以内
+
+    ## 使用示例
+    ```python
+    import requests
+
+    # 获取当前运行的最新1000条日志
+    response = requests.get("http://localhost:8000/api/v1/game-assistant/commission-assistant/logs")
+
+    # 获取指定runId的最新500条日志
+    response = requests.get("http://localhost:8000/api/v1/game-assistant/commission-assistant/logs?runId=abc123&tail=500")
+
+    logs = response.json()
+    for log in logs['logs']:
+        print(f"[{log['timestamp']}] {log['level'].upper()}: {log['message']}")
+    ```
+    """
+    return await _commission_assistant_controller.get_logs(runId, tail)
+
+
+@router.post("/commission-assistant/run", response_model=RunIdResponse, summary="运行委托助手")
+async def run_commission_assistant():
+    """
+    启动委托助手自动化任务（兼容性端点）
+
+    ## 功能描述
     直接启动委托助手应用，自动完成游戏中的委托任务，包括对话处理、战斗和任务流程。
     不会执行一条龙的完整流程，只运行委托助手本身。
+
+    **注意**: 此端点已废弃，建议使用 `/start` 端点。
 
     ## 返回数据
     - **runId**: 任务运行ID，用于后续状态查询和控制
@@ -84,8 +314,9 @@ async def run_commission_assistant():
     print(f"委托助手任务ID: {task_info['runId']}")
     ```
     """
-    run_id = _start_app_run(lambda c: CommissionAssistantApp(c))
-    return RunIdResponse(runId=run_id)
+    # 内部转发到新的start端点
+    result = await _commission_assistant_controller.start()
+    return RunIdResponse(runId=result.runId)
 
 
 @router.get("/commission-assistant/config", response_model=Dict[str, Any], summary="获取委托助手配置")
@@ -232,14 +463,203 @@ def update_commission_assistant_config(payload: Dict[str, Any]) -> Dict[str, Any
 # -------- Life on Line (拿命验收) --------
 
 
-@router.post("/life-on-line/run", response_model=RunIdResponse, summary="运行拿命验收")
-async def run_life_on_line():
+@router.post("/life-on-line/start", response_model=ControlResponse, summary="启动拿命验收")
+async def start_life_on_line():
     """
     启动拿命验收自动化任务
 
     ## 功能描述
+    启动拿命验收应用，自动完成游戏中的拿命验收挑战，包括队伍选择和战斗流程。
+    支持幂等性操作，重复调用会返回当前运行状态。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 任务运行ID，用于后续状态查询和控制
+    - **capabilities**: 模块能力标识
+
+    ## 错误码
+    - **TASK_START_FAILED**: 任务启动失败
+    - **CONFIG_ERROR**: 配置错误
+    - **DAILY_LIMIT_REACHED**: 已达到每日运行次数限制
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/game-assistant/life-on-line/start")
+    result = response.json()
+    print(f"启动结果: {result['message']}")
+    print(f"任务ID: {result['runId']}")
+    ```
+    """
+    return await _life_on_line_controller.start()
+
+
+@router.post("/life-on-line/stop", response_model=ControlResponse, summary="停止拿命验收")
+async def stop_life_on_line():
+    """
+    停止拿命验收自动化任务
+
+    ## 功能描述
+    停止当前运行的拿命验收任务。支持幂等性操作，重复调用不会报错。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/game-assistant/life-on-line/stop")
+    result = response.json()
+    print(f"停止结果: {result['message']}")
+    ```
+    """
+    return await _life_on_line_controller.stop()
+
+
+@router.get("/life-on-line/status", response_model=StatusResponse, summary="获取拿命验收状态")
+async def get_life_on_line_status():
+    """
+    获取拿命验收的运行状态
+
+    ## 功能描述
+    返回拿命验收的当前运行状态，包括是否运行中、上下文状态等信息。
+
+    ## 返回数据
+    - **is_running**: 是否正在运行
+    - **context_state**: 上下文状态 (idle | running | paused)
+    - **running_tasks**: 运行中的任务数量（可选）
+    - **message**: 状态消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/game-assistant/life-on-line/status")
+    status = response.json()
+    print(f"运行状态: {status['context_state']}")
+    print(f"是否运行: {status['is_running']}")
+    ```
+    """
+    return await _life_on_line_controller.status()
+
+
+@router.post("/life-on-line/pause", response_model=ControlResponse, summary="暂停拿命验收")
+async def pause_life_on_line():
+    """
+    暂停拿命验收自动化任务
+
+    ## 功能描述
+    暂停当前正在运行的拿命验收任务，保持状态以便后续恢复。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/game-assistant/life-on-line/pause")
+    result = response.json()
+    print(f"暂停结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await _life_on_line_controller.pause()
+
+
+@router.post("/life-on-line/resume", response_model=ControlResponse, summary="恢复拿命验收")
+async def resume_life_on_line():
+    """
+    恢复拿命验收自动化任务
+
+    ## 功能描述
+    恢复之前暂停的拿命验收任务执行。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 操作结果消息
+    - **runId**: 当前运行ID（如果有）
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/game-assistant/life-on-line/resume")
+    result = response.json()
+    print(f"恢复结果: {result['ok']}, 消息: {result['message']}")
+    ```
+    """
+    return await _life_on_line_controller.resume()
+
+
+@router.get("/life-on-line/logs", response_model=LogReplayResponse, summary="获取拿命验收运行日志")
+async def life_on_line_logs(
+    runId: str = None,
+    tail: int = 1000
+) -> LogReplayResponse:
+    """
+    获取拿命验收运行日志回放
+
+    ## 功能描述
+    获取指定runId的拿命验收运行日志，支持回放最近的日志记录。所有时间戳使用UTC ISO8601格式。
+
+    ## 查询参数
+    - **runId** (可选): 运行ID，不提供则使用当前运行的ID
+    - **tail** (可选): 返回最后N条日志，默认1000，最大2000
+
+    ## 返回数据
+    - **logs**: 日志条目列表
+      - **timestamp**: 时间戳，UTC ISO8601格式（2025-09-20T12:34:56.789Z）
+      - **level**: 日志级别 (debug | info | warning | error)
+      - **message**: 日志消息
+      - **runId**: 运行ID
+      - **module**: 模块名称
+      - **seq**: 序列号
+      - **extra**: 额外信息
+    - **total_count**: 返回的日志条数
+    - **runId**: 查询的运行ID
+    - **module**: 模块名称
+    - **has_more**: 是否还有更多日志（当前实现中始终为false）
+    - **message**: 响应消息
+
+    ## 默认策略
+    - 当runId不存在时，返回空日志列表和说明消息
+    - 当无日志记录时，返回"暂无日志记录"消息
+    - 日志条数限制在2000条以内
+
+    ## 使用示例
+    ```python
+    import requests
+
+    # 获取当前运行的最新1000条日志
+    response = requests.get("http://localhost:8000/api/v1/game-assistant/life-on-line/logs")
+
+    # 获取指定runId的最新500条日志
+    response = requests.get("http://localhost:8000/api/v1/game-assistant/life-on-line/logs?runId=abc123&tail=500")
+
+    logs = response.json()
+    for log in logs['logs']:
+        print(f"[{log['timestamp']}] {log['level'].upper()}: {log['message']}")
+    ```
+    """
+    return await _life_on_line_controller.get_logs(runId, tail)
+
+
+@router.post("/life-on-line/run", response_model=RunIdResponse, summary="运行拿命验收")
+async def run_life_on_line():
+    """
+    启动拿命验收自动化任务（兼容性端点）
+
+    ## 功能描述
     直接启动拿命验收应用，自动完成游戏中的拿命验收挑战，包括队伍选择和战斗流程。
     不会执行一条龙的完整流程，只运行拿命验收本身。
+
+    **注意**: 此端点已废弃，建议使用 `/start` 端点。
 
     ## 返回数据
     - **runId**: 任务运行ID，用于后续状态查询和控制
@@ -257,8 +677,9 @@ async def run_life_on_line():
     print(f"拿命验收任务ID: {task_info['runId']}")
     ```
     """
-    run_id = _start_app_run(lambda c: LifeOnLineApp(c))
-    return RunIdResponse(runId=run_id)
+    # 内部转发到新的start端点
+    result = await _life_on_line_controller.start()
+    return RunIdResponse(runId=result.runId)
 
 
 @router.get("/life-on-line/config", response_model=Dict[str, Any], summary="获取拿命验收配置")
