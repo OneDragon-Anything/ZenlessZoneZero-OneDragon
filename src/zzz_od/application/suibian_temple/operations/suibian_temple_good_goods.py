@@ -1,6 +1,6 @@
 import re
+from typing import Optional
 
-import cv2
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.operation_edge import node_from
@@ -11,7 +11,6 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempleConfig
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -35,7 +34,7 @@ class SuibianTempleGoodGoods(ZOperation):
         ZOperation.__init__(self, ctx,
                             op_name=f'{gt("随便观", "game")} {gt("好物铺", "game")}')
 
-        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(app_id='suibian_temple')
+        self.config: Optional[SuibianTempleConfig] = self.ctx.run_context.get_config(app_id='suibian_temple')
 
         self.purchased_count: int = 0  # 已购买商品数量
 
@@ -88,8 +87,8 @@ class SuibianTempleGoodGoods(ZOperation):
         if self.round_by_ocr(screen, '兑换确认').is_success:
             # 直接使用精确坐标拖拽滑块到最大值
             start_point = Point(755, 672)
-            end_point = Point(1200, 672)
-            self.ctx.controller.drag_to(start=start_point, end=end_point)
+            end_point = Point(1300, 672)
+            self.ctx.controller.drag_to(start=start_point, end=end_point, duration=2)
 
             # 点击兑换确认
             confirm_result = self.round_by_ocr_and_click(screen, '确认')
@@ -212,6 +211,7 @@ class SuibianTempleGoodGoods(ZOperation):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
+    ctx.start_running()
     ctx.run_context.current_instance_idx = ctx.current_instance_idx
     ctx.run_context.current_app_id = 'suibian_temple'
     ctx.run_context.current_group_id = 'one_dragon'
