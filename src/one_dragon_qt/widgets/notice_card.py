@@ -251,8 +251,8 @@ class NoticeCard(SimpleCardWidget):
         self._is_loading_banners = False
 
         # 自动滚动定时器
-        self.auto_scroll_timer = QTimer()
-        self.auto_scroll_timer.timeout.connect(self.scrollNext)
+        self.auto_scroll_timer = QTimer(self)
+        self.auto_scroll_timer.timeout.connect(self.scrollNext, Qt.ConnectionType.UniqueConnection)
         self.auto_scroll_interval = 5000  # 5秒滚动一次
         self.auto_scroll_enabled = True
 
@@ -263,7 +263,7 @@ class NoticeCard(SimpleCardWidget):
         self.fetch_data()
 
         # 主题设置
-        qconfig.themeChanged.connect(self._on_theme_changed)
+        qconfig.themeChanged.connect(self._on_theme_changed, Qt.ConnectionType.UniqueConnection)
         self.apply_theme_colors()
         self.update()
 
@@ -316,11 +316,18 @@ class NoticeCard(SimpleCardWidget):
                 getattr(self, widget_name).show()
 
     def fetch_data(self):
+        # 清理现有的数据获取器
+        if hasattr(self, 'fetcher') and self.fetcher is not None:
+            if self.fetcher.isRunning():
+                self.fetcher.terminate()
+                self.fetcher.wait(1000)
+            self.fetcher.deleteLater()
+            
         self.fetcher = DataFetcher(url=self.notice_url)
         # 使用队列连接确保线程安全
         self.fetcher.data_fetched.connect(
             self.handle_data,
-            Qt.ConnectionType.QueuedConnection
+            Qt.ConnectionType.UniqueConnection
         )
         self.fetcher.start()
 
@@ -339,12 +346,36 @@ class NoticeCard(SimpleCardWidget):
         self.error_label.hide()
         self.update_ui()
 
+    def _cleanup_banner_loader(self):
+        """清理现有的banner加载器"""
+        if self._banner_loader is not None:
+            # 断开信号连接
+            try:
+                self._banner_loader.image_loaded.disconnect()
+                self._banner_loader.all_images_loaded.disconnect()
+                self._banner_loader.finished.disconnect()
+            except RuntimeError:
+                # 信号已经断开，忽略错误
+                pass
+            
+            # 等待线程结束并清理
+            if self._banner_loader.isRunning():
+                self._banner_loader.terminate()
+                self._banner_loader.wait(1000)  # 等待最多1秒
+            
+            self._banner_loader.deleteLater()
+            self._banner_loader = None
+            self._is_loading_banners = False
+
     def load_banners_async(self, banners):
         """
         异步加载banner图片
         """
         if self._is_loading_banners or not banners:
             return
+
+        # 清理现有的banner加载器
+        self._cleanup_banner_loader()
 
         # 清空现有的banners，准备加载新的
         self.banners.clear()
@@ -354,9 +385,9 @@ class NoticeCard(SimpleCardWidget):
         pixel_ratio = self.devicePixelRatio()
 
         self._banner_loader = BannerImageLoader(banners, pixel_ratio, self)
-        self._banner_loader.image_loaded.connect(self._on_banner_image_loaded,Qt.ConnectionType.QueuedConnection)
-        self._banner_loader.all_images_loaded.connect(self._on_all_banners_loaded,Qt.ConnectionType.QueuedConnection)
-        self._banner_loader.finished.connect(self._on_banner_loading_finished,Qt.ConnectionType.QueuedConnection)
+        self._banner_loader.image_loaded.connect(self._on_banner_image_loaded, Qt.ConnectionType.UniqueConnection)
+        self._banner_loader.all_images_loaded.connect(self._on_all_banners_loaded, Qt.ConnectionType.UniqueConnection)
+        self._banner_loader.finished.connect(self._on_banner_loading_finished, Qt.ConnectionType.UniqueConnection)
         self._banner_loader.start()
 
     def _on_banner_image_loaded(self, image: QImage, url: str):
@@ -421,11 +452,11 @@ class NoticeCard(SimpleCardWidget):
         self.flipView.addImages(self.banners)
         self.flipView.setItemSize(QSize(345, 160))
         self.flipView.setFixedSize(QSize(345, 160))
-        self.flipView.itemClicked.connect(self.open_banner_link)
+        self.flipView.itemClicked.connect(self.open_banner_link, Qt.ConnectionType.UniqueConnection)
         banner_layout.addWidget(self.flipView)
 
         # 监听 FlipView 的页面变化，用于同步 PipsPager
-        self.flipView.currentIndexChanged.connect(self._on_banner_index_changed)
+        self.flipView.currentIndexChanged.connect(self._on_banner_index_changed, Qt.ConnectionType.UniqueConnection)
 
         # PipsPager - 页面指示器（嵌入 Banner 内部）
         self.pipsPager = PipsPager(self.banner_container)
@@ -434,7 +465,7 @@ class NoticeCard(SimpleCardWidget):
         self.pipsPager.setNextButtonDisplayMode(PipsScrollButtonDisplayMode.NEVER)
         self.pipsPager.setPreviousButtonDisplayMode(PipsScrollButtonDisplayMode.NEVER)
         self.pipsPager.setCurrentIndex(0)
-        self.pipsPager.currentIndexChanged.connect(self._on_pips_index_changed)
+        self.pipsPager.currentIndexChanged.connect(self._on_pips_index_changed, Qt.ConnectionType.UniqueConnection)
 
         # 外壳（带半透明背景与圆角）
         self.pipsHolder = QWidget(self.banner_container)
@@ -484,7 +515,7 @@ class NoticeCard(SimpleCardWidget):
             )
             self.addSubInterface(widget, post_type, name)
 
-        self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
+        self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged, Qt.ConnectionType.UniqueConnection)
         self.stackedWidget.setCurrentWidget(self.activityWidget)
         self.pivot.setCurrentItem(self.activityWidget.objectName())
         self.mainLayout.addWidget(self.pivot, 0, Qt.AlignmentFlag.AlignLeft)
@@ -511,8 +542,10 @@ class NoticeCard(SimpleCardWidget):
 
         # 更新PipsPager
         if hasattr(self, 'pipsPager'):
-            self.pipsPager.setPageNumber(len(self.banners) if self.banners else 1)
-            self.pipsPager.setVisibleNumber(min(8, len(self.banners) if self.banners else 1))
+            banner_count = len(self.banners) if self.banners else 1
+            visible_count = min(8, banner_count)
+            self.pipsPager.setPageNumber(banner_count)
+            self.pipsPager.setVisibleNumber(visible_count)
             self.pipsPager.setCurrentIndex(0)
             # 尝试重新定位 pips（可能尺寸变化）
             if hasattr(self, '_update_pips_position'):
@@ -694,6 +727,43 @@ class NoticeCard(SimpleCardWidget):
         layout.setStretch(1, 0)
         return item_widget
 
+    def cleanup_resources(self):
+        """清理所有资源，防止内存泄漏"""
+        # 停止所有定时器
+        if hasattr(self, 'auto_scroll_timer'):
+            self.auto_scroll_timer.stop()
+            
+        if hasattr(self, '_pips_hide_timer'):
+            self._pips_hide_timer.stop()
+            
+        # 清理banner加载器
+        self._cleanup_banner_loader()
+        
+        # 清理数据获取器
+        if hasattr(self, 'fetcher') and self.fetcher is not None:
+            if self.fetcher.isRunning():
+                self.fetcher.terminate()
+                self.fetcher.wait(1000)
+            self.fetcher.deleteLater()
+            self.fetcher = None
+            
+        # 清理banners列表
+        if hasattr(self, 'banners'):
+            self.banners.clear()
+        if hasattr(self, 'banner_urls'):
+            self.banner_urls.clear()
+            
+        # 断开主题变化信号
+        try:
+            qconfig.themeChanged.disconnect(self._on_theme_changed)
+        except (RuntimeError, TypeError):
+            pass
+
+    def closeEvent(self, event):
+        """窗口关闭时清理资源"""
+        self.cleanup_resources()
+        super().closeEvent(event)
+
 
 class NoticeCardContainer(QWidget):
     """公告卡片容器 - 支持动态显示/隐藏，无需重启"""
@@ -760,3 +830,13 @@ class NoticeCardContainer(QWidget):
         """设置banner自动滚动间隔（毫秒）"""
         if self.notice_card:
             self.notice_card.set_auto_scroll_interval(interval)
+            
+    def cleanup_resources(self):
+        """清理资源"""
+        if self.notice_card:
+            self.notice_card.cleanup_resources()
+            
+    def closeEvent(self, event):
+        """窗口关闭时清理资源"""
+        self.cleanup_resources()
+        super().closeEvent(event)
