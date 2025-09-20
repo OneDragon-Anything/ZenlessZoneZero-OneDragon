@@ -610,23 +610,10 @@ class Push():
             image.seek(0)
             img_bytes = image.getvalue()
             orig_size = len(img_bytes)
-            # 辅助工具：图片格式魔数判断 / base64 / MD5
-            def detect_format(_b: bytes):
-                if len(_b) >= 3 and _b[:3] == b"\xFF\xD8\xFF":
-                    return 'jpeg'
-                if len(_b) >= 8 and _b[:8] == b"\x89PNG\r\n\x1a\n":
-                    return 'png'
-                return None
-            def b64str(_b: bytes) -> str:
-                return base64.b64encode(_b).decode('utf-8')
-            from hashlib import md5 as _md5
-            def md5_hex(_b: bytes) -> str:
-                return _md5(_b).hexdigest()
-            img_format = detect_format(img_bytes)
-            if img_format in ('jpeg', 'png') and len(img_bytes) <= 2 * 1024 * 1024:
-                # 直接发送, 格式符合且大小≤2MB, 无需压缩
-                img_base64 = b64str(img_bytes)
-                img_md5 = md5_hex(img_bytes)
+            if len(img_bytes) <= 2 * 1024 * 1024:
+                # 直接发送，传入图片为png格式，大小≤2MB, 无需压缩
+                img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+                img_md5 = hashlib.md5(img_bytes).hexdigest()
                 img_data = {
                     "msgtype": "image",
                     "image": {"base64": img_base64, "md5": img_md5}
@@ -634,7 +621,7 @@ class Push():
                 try:
                     resp_obj = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15)
                 except requests.RequestException as e:
-                    self.log_error(f"企业微信机器人图片推送请求异常(直发): {type(e).__name__}: {e}; format={img_format}; size={orig_size}B")
+                    self.log_error(f"企业微信机器人图片推送请求异常(直发): {type(e).__name__}: {e}; size={orig_size}B")
                 else:
                     status = getattr(resp_obj, "status_code", None)
                     body_snip = (resp_obj.text or "")[:300] if hasattr(resp_obj, "text") else ""
@@ -649,19 +636,18 @@ class Push():
                         errcode = resp.get("errcode") if resp else None
                         errmsg = resp.get("errmsg") if resp else None
                         self.log_error(
-                            f"企业微信机器人图片推送失败(直发)! status={status}; errcode={errcode}; errmsg={errmsg}; format={img_format}; size={orig_size}B; body_snip={body_snip}"
+                            f"企业微信机器人图片推送失败(直发)! status={status}; errcode={errcode}; errmsg={errmsg}; size={orig_size}B; body_snip={body_snip}"
                         )
             else:
-                # 压缩发送, 格式不符或图片太大，调用 _compress_image, 依赖 cv2 和 numpy 库
                 img_bytes_c, _, quality = self._compress_image(image)
                 if not img_bytes_c:
-                    self.log_error(f"图片处理失败, 未发送图片! format={img_format}; orig_size={orig_size}B")
+                    self.log_error(f"图片处理失败, 未发送图片! orig_size={orig_size}B")
                     return
                 elif len(img_bytes_c) > 2 * 1024 * 1024:
-                    self.log_error(f"图片压缩后仍超过2MB,未发送图片! format={img_format}; orig_size={orig_size}B; compressed_size={len(img_bytes_c)}B")
+                    self.log_error(f"图片压缩后仍超过2MB,未发送图片! orig_size={orig_size}B; compressed_size={len(img_bytes_c)}B")
                     return
-                img_base64 = b64str(img_bytes_c)
-                img_md5 = md5_hex(img_bytes_c)
+                img_base64 = base64.b64encode(img_bytes_c).decode('utf-8')
+                img_md5 = hashlib.md5(img_bytes_c).hexdigest()
                 img_data = {
                     "msgtype": "image",
                     "image": {"base64": img_base64, "md5": img_md5}
@@ -669,7 +655,7 @@ class Push():
                 try:
                     resp_obj = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15)
                 except requests.RequestException as e:
-                    self.log_error(f"企业微信机器人图片推送请求异常(压缩): {type(e).__name__}: {e}; format={img_format}; orig_size={orig_size}B; compressed_size={len(img_bytes_c)}B")
+                    self.log_error(f"企业微信机器人图片推送请求异常(压缩): {type(e).__name__}: {e}; orig_size={orig_size}B; compressed_size={len(img_bytes_c)}B")
                 else:
                     status = getattr(resp_obj, "status_code", None)
                     body_snip = (resp_obj.text or "")[:300] if hasattr(resp_obj, "text") else ""
@@ -684,7 +670,7 @@ class Push():
                         errcode = resp.get("errcode") if resp else None
                         errmsg = resp.get("errmsg") if resp else None
                         self.log_error(
-                            f"企业微信机器人图片推送失败(压缩)! status={status}; errcode={errcode}; errmsg={errmsg}; format={img_format}; orig_size={orig_size}B; compressed_size={len(img_bytes_c)}B; body_snip={body_snip}"
+                            f"企业微信机器人图片推送失败(压缩)! status={status}; errcode={errcode}; errmsg={errmsg}; orig_size={orig_size}B; compressed_size={len(img_bytes_c)}B; body_snip={body_snip}"
                         )
 
 
