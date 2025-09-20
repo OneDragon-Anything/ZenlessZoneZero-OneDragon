@@ -8,6 +8,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import str_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -34,7 +35,7 @@ class SuibianTempleCraft(ZOperation):
                             op_name=f'{gt("随便观", "game")} {gt("制造", "game")}')
 
         self.last_item_list: list[str] = []  # 上一次的商品列表
-        self.chosen_item_list: list[str] = []  # 已经选择过的货品列表
+        self.chosen_item_list: list[str] = []  # 已经选择过的商品列表
         self.scroll_after_choose: bool = False  # 选择后是否已经滑动了
 
     @operation_node(name='前往制造', is_start_node=True)
@@ -71,7 +72,7 @@ class SuibianTempleCraft(ZOperation):
             success_wait=1, retry_wait=0.5)
 
     @node_from(from_name='点击开工')
-    @operation_node(name='选择物品')
+    @operation_node(name='选择商品')
     def choose_item(self) -> OperationRoundResult:
         target_cn_list: list[str] = [
             '所需材料不足',
@@ -80,13 +81,27 @@ class SuibianTempleCraft(ZOperation):
         if not result.is_success:
             return self.round_success(status='材料充足')
 
-        # 不能制造的 换一个货品
+        # 不能制造的 换一个商品
         area = self.ctx.screen_loader.get_area('随便观-制造坊', '区域-商品列表')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
             rect=area.rect,
+            color_range=[[230, 230, 230], [255, 255, 255]],
         )
         goods_ocr_result_list: list[OcrMatchResult] = []  # 商品列表
+
+        for ocr_result in ocr_result_list:
+            # 移除字符串中的所有数字
+            ocr_word: str = re.sub(r'\d+', '', ocr_result.data)
+            if len(ocr_word) == 0:  # 全是数字的
+                continue
+
+            goods_ocr_result_list.append(ocr_result)
+
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            self.last_screenshot,
+            rect=area.rect,
+        )
         can_make_pos_list: list[Rect] = []  # 可制造的位置
 
         for ocr_result in ocr_result_list:
@@ -98,8 +113,6 @@ class SuibianTempleCraft(ZOperation):
             can_make_idx = str_utils.find_best_match_by_difflib(ocr_word, ['可制造'])
             if can_make_idx is not None and can_make_idx >= 0:
                 can_make_pos_list.append(ocr_result.rect)
-            else:
-                goods_ocr_result_list.append(ocr_result)
 
         # 右方有可制造的商品
         can_make_goods_list: list[OcrMatchResult] = []
@@ -123,19 +136,20 @@ class SuibianTempleCraft(ZOperation):
                 continue
             self.scroll_after_choose = False
             self.chosen_item_list.append(ocr_result.data)
-            self.ctx.controller.click(ocr_result.right_bottom + Point(50, 0))  # 往右方点击 防止遮挡到货品名称
-            return self.round_wait(status='选择下一个货品', wait=1)
+            self.ctx.controller.click(ocr_result.right_bottom + Point(50, 0))  # 往右方点击 防止遮挡到商品名称
+            return self.round_wait(status='选择下一个商品', wait=1)
 
         # 判断当前列表是否有变化
         new_item_list: list[str] = [i.data for i in goods_ocr_result_list]
         with_new_item: bool = False  # 是否出现了新商品
         for new_item in new_item_list:
             old_idx = str_utils.find_best_match_by_difflib(new_item, self.last_item_list)
-            if old_idx is None or old_idx < 0:
+            if old_idx is not None and old_idx >= 0:
                 continue
             with_new_item = True
             break
         self.last_item_list = new_item_list
+        log.info('当前识别商品 %s', new_item_list)
 
         if not with_new_item and self.scroll_after_choose:
             return self.round_success(status='未发现新商品', wait=1)
@@ -144,18 +158,19 @@ class SuibianTempleCraft(ZOperation):
             start = area.center
             end = start + Point(0, -300)
             self.ctx.controller.drag_to(start=start, end=end)
-            return self.round_wait(status='滑动找未选择过的货品', wait=1)
+            return self.round_wait(status='滑动找未选择过的商品', wait=1)
 
-    @node_from(from_name='选择物品')
+    @node_from(from_name='选择商品')
     @operation_node(name='点击开始制造')
     def click_start_crafting(self) -> OperationRoundResult:
         target_cn_list: list[str] = [
             '开始制造',
         ]
-        return self.round_by_ocr_and_click_by_priority(target_cn_list)
+        return self.round_by_ocr_and_click_by_priority(target_cn_list, success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击开工', success=False)
-    @node_from(from_name='选择物品', success=False)
+    @node_from(from_name='选择商品', success=False)
+    @node_from(from_name='选择商品', status='未发现新商品')
     @operation_node(name='返回随便观')
     def back_to_entry(self) -> OperationRoundResult:
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-入口'])

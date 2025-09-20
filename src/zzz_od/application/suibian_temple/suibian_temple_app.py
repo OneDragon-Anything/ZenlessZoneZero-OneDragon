@@ -1,6 +1,3 @@
-import logging
-
-from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -8,17 +5,20 @@ from one_dragon.utils.i18_utils import gt
 from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_squad import (
     SuibianTempleAdventureSquad,
 )
+from zzz_od.application.suibian_temple.operations.suibian_temple_boo_box import (
+    SuibianTempleBooBox,
+)
 from zzz_od.application.suibian_temple.operations.suibian_temple_craft import (
     SuibianTempleCraft,
-)
-from zzz_od.application.suibian_temple.operations.suibian_temple_yum_cha_sin import (
-    SuibianTempleYumChaSin,
 )
 from zzz_od.application.suibian_temple.operations.suibian_temple_good_goods import (
     SuibianTempleGoodGoods,
 )
-from zzz_od.application.suibian_temple.operations.suibian_temple_boo_box import (
-    SuibianTempleBooBox,
+from zzz_od.application.suibian_temple.operations.suibian_temple_sales_stall import (
+    SuibianTempleSalesStall,
+)
+from zzz_od.application.suibian_temple.operations.suibian_temple_yum_cha_sin import (
+    SuibianTempleYumChaSin,
 )
 from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempleConfig
 from zzz_od.application.zzz_application import ZApplication
@@ -126,6 +126,12 @@ class SuibianTempleApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='处理制造坊')
+    @operation_node(name='处理售卖铺')
+    def handle_sales_stall(self) -> OperationRoundResult:
+        op = SuibianTempleSalesStall(self.ctx)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='处理售卖铺')
     @operation_node(name='处理好物铺')
     def handle_good_goods(self) -> OperationRoundResult:
         if self.config.good_goods_purchase_enabled:

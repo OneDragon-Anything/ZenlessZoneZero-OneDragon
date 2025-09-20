@@ -86,6 +86,19 @@ class SuibianTempleAdventureDispatch(ZOperation):
         return self.round_retry(status='未识别弹窗', wait=2)
 
     @node_from(from_name='选择游历时间', status='确认')
+    @operation_node(name='游历时间弹窗确认', node_max_retry_times=1)
+    def choose_period_confirm_dialog(self) -> OperationRoundResult:
+        target_word_list = [
+            '确认'
+        ]
+        return self.round_by_ocr_and_click_by_priority(
+            target_cn_list=target_word_list,
+            success_wait=1,
+            retry_wait=0.3,
+        )
+
+    @node_from(from_name='游历时间弹窗确认')
+    @node_from(from_name='游历时间弹窗确认', success=False)
     @operation_node(name='点击自动选择邦布')
     def click_auto_choose(self) -> OperationRoundResult:
         # 邦布电量不足 会不显示自动选择邦布 因此直接点击图标 issue 1179
@@ -111,8 +124,8 @@ class SuibianTempleAdventureDispatch(ZOperation):
         )
 
     @node_from(from_name='点击派遣', status='派遣')
-    @operation_node(name='检查弹窗', node_max_retry_times=2)
-    def check_dialog(self) -> OperationRoundResult:
+    @operation_node(name='点击派遣弹窗确认', node_max_retry_times=1)
+    def click_dispatch_confirm_dialog(self) -> OperationRoundResult:
         target_word_list = [
             '确认'
         ]
@@ -128,12 +141,12 @@ class SuibianTempleAdventureDispatch(ZOperation):
         return self.round_success(status='已派遣')
 
     @node_from(from_name='点击派遣', status='邦布电量不足')
-    @node_from(from_name='检查弹窗', status='确认')
+    @node_from(from_name='点击派遣弹窗确认', status='确认')
     @operation_node(name='无法派遣')
     def cant_dispatch(self) -> OperationRoundResult:
         return self.round_success(status=SuibianTempleAdventureDispatch.STATUS_CANT_DISPATCH)
 
-    @node_from(from_name='检查弹窗', success=False)  # 没有出现对话框的确认就是成功
+    @node_from(from_name='点击派遣弹窗确认', success=False)  # 没有出现对话框的确认就是成功
     @operation_node(name='派遣成功')
     def dispatch_success(self) -> OperationRoundResult:
         return self.round_success(status='派遣成功')
