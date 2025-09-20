@@ -13,7 +13,7 @@ class NotifyMethodEnum(Enum):
     ONEBOT = ConfigItem('OneBot', 'ONEBOT')
     QYWX = ConfigItem('企业微信', 'QYWX')
     DD_BOT = ConfigItem('钉钉机器人', 'DD_BOT')
-    FS =  ConfigItem('飞书机器人', 'FS')
+    FS =  ConfigItem('飞书/Lark 机器人', 'FS')
     DISCORD = ConfigItem('Discord', 'DISCORD')
     TELEGRAM = ConfigItem('Telegram', 'TG')
     BARK = ConfigItem('Bark', 'BARK')
