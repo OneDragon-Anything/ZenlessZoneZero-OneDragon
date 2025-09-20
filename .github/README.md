@@ -97,7 +97,8 @@ __ZenlessZoneZero-OneDragon__
 
 > 👨‍👨‍👦‍👦 玩家互助聊天群
 > 
-> 建议先为该项目点星星并通过官方频道申请入群,入群需填入 Github 账号的 ID(头像 → Your Profile，URL 中的 ID), 请遵守群规,友善交流
+> 见频道关联群聊
+> 请先对该项目点⭐（右上角“star")，入群需填入 Github 账号的 ID(头像 → Your Profile，URL 中的 ID), 请遵守群规,友善交流
 
 </div>
 
