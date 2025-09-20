@@ -571,18 +571,15 @@ class Push():
 
     def wecom_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
-        通过企业微信机器人推送, 文本与图片分开发送, 图片需base64+md5, 大小≤2MB
-        图片若为JPG/PNG且大小≤2MB直接发送; 若格式不符或超过2MB, 则压缩并统一转为JPG格式后发送
+        通过 企业微信机器人 推送消息
+        文本与图片分开发送, 图片需base64+md5, 大小≤2MB
+        图片若为JPG/PNG且大小≤2MB直接发送; 若格式不符或超过2MB, 则统一转为JPG格式后发送
         """
         self.log_info("企业微信机器人服务启动")
 
-        origin = self.get_config("QYWX_ORIGIN") or "https://qyapi.weixin.qq.com"
-        key = self.get_config('QYWX_KEY') or ""
-        if not key:
-            self.log_error("企业微信机器人 key 未配置！")
-            return
+        origin = self.get_config("QYWX_ORIGIN", "https://qyapi.weixin.qq.com")
 
-        url = f"{origin}/cgi-bin/webhook/send?key={key}"
+        url = f"{origin}/cgi-bin/webhook/send?key={self.get_config('QYWX_KEY')}"
         headers = {"Content-Type": "application/json;charset=utf-8"}
 
         # 1. 先发文字
@@ -1129,10 +1126,10 @@ class Push():
             notify_function.append(self.weplus_bot)
         if self.get_config("QMSG_KEY") and self.get_config("QMSG_TYPE"):
             notify_function.append(self.qmsg_bot)
-        if self.get_config("QYWX_KEY"):
-            notify_function.append(self.wecom_bot)
         if self.get_config("QYWX_AM"):
             notify_function.append(self.wecom_app)
+        if self.get_config("QYWX_KEY"):
+            notify_function.append(self.wecom_bot)
         if self.get_config("DISCORD_BOT_TOKEN") and self.get_config("DISCORD_USER_ID"):
             notify_function.append(self.discord_bot)
         if self.get_config("TG_BOT_TOKEN") and self.get_config("TG_USER_ID"):
@@ -1181,9 +1178,9 @@ class Push():
         log.error(f'指令[ 通知 ] {message}')
 
 
-    def get_config(self, key: str):
+    def get_config(self, key: str, default: str | None = None) -> Optional[str]:
         """获取推送配置值"""
-        return getattr(self.ctx.push_config, key.lower(), None)
+        return getattr(self.ctx.push_config, key.lower(), default)
 
 
     def send(self, content: str, image: Optional[BytesIO] = None, test_method: Optional[str] = None) -> None:
@@ -1237,7 +1234,7 @@ class Push():
             'PUSH_PLUS': 'pushplus_bot',
             'WE_PLUS_BOT': 'weplus_bot',
             'QMSG': 'qmsg_bot',
-            'QYWX': 'wecom_app',
+            'QYWX': 'wecom_bot',
             'DISCORD': 'discord_bot',
             'TG': 'telegram_bot',
             'AIBOTK': 'aibotk',
@@ -1248,20 +1245,6 @@ class Push():
             'NTFY': 'ntfy',
             'WXPUSHER': 'wxpusher_bot',
         }
-
-        # 特殊处理企业微信，根据配置动态选择
-        if method == 'QYWX':
-            # 优先使用 wecom_bot (机器人)
-            if self.get_config("QYWX_KEY"):
-                for func in all_functions:
-                    if func.__name__ == 'wecom_bot':
-                        return [func]
-            # 其次使用 wecom_app (应用)
-            if self.get_config("QYWX_AM"):
-                for func in all_functions:
-                    if func.__name__ == 'wecom_app':
-                        return [func]
-            raise ValueError(f"QYWX 推送方式未正确配置，请检查 QYWX_KEY 或 QYWX_AM")
 
         target_function_name = method_to_function_name.get(method)
         if not target_function_name:
