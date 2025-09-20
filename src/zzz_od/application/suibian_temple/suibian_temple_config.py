@@ -40,38 +40,38 @@ class SuibianTempleConfig(ApplicationConfig):
     @property
     def adventure_mission_1(self) -> str:
         """游历-任务1"""
-        return self.get('adventure_mission', SuibianTempleAdventureMission.RESEARCH_3_4.name)
+        return self.get('adventure_mission_1', SuibianTempleAdventureMission.RESEARCH_3_4.name)
 
     @adventure_mission_1.setter
     def adventure_mission_1(self, value: str):
-        self.update('adventure_mission', value)
+        self.update('adventure_mission_1', value)
 
     @property
     def adventure_mission_2(self) -> str:
         """游历-任务2"""
-        return self.get('adventure_mission', SuibianTempleAdventureMission.RESEARCH_2_4.name)
+        return self.get('adventure_mission_2', SuibianTempleAdventureMission.RESEARCH_2_4.name)
 
     @adventure_mission_2.setter
     def adventure_mission_2(self, value: str):
-        self.update('adventure_mission', value)
+        self.update('adventure_mission_2', value)
 
     @property
     def adventure_mission_3(self) -> str:
         """游历-任务3"""
-        return self.get('adventure_mission', SuibianTempleAdventureMission.RESEARCH_1_4.name)
+        return self.get('adventure_mission_3', SuibianTempleAdventureMission.RESEARCH_1_4.name)
 
     @adventure_mission_3.setter
     def adventure_mission_3(self, value: str):
-        self.update('adventure_mission', value)
+        self.update('adventure_mission_3', value)
 
     @property
     def adventure_mission_4(self) -> str:
         """游历-任务4"""
-        return self.get('adventure_mission', SuibianTempleAdventureMission.COMMUNITY_3_4.name)
+        return self.get('adventure_mission_4', SuibianTempleAdventureMission.COMMUNITY_3_4.name)
 
     @adventure_mission_4.setter
     def adventure_mission_4(self, value: str):
-        self.update('adventure_mission', value)
+        self.update('adventure_mission_4', value)
 
     @property
     def good_goods_purchase_enabled(self) -> bool:

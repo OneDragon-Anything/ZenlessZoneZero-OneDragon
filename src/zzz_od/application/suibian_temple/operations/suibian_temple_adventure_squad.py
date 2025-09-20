@@ -54,7 +54,7 @@ class SuibianTempleAdventureSquad(ZOperation):
         self.dispatch: bool = dispatch  # 是否派遣
         self.config: Optional[SuibianTempleConfig] = self.ctx.run_context.get_config(app_id='suibian_temple')
         self.mission_list: list[type[SuibianTempleAdventureMission]] = [
-            '',
+            'fake',
             SuibianTempleAdventureMission[self.config.adventure_mission_1],
             SuibianTempleAdventureMission[self.config.adventure_mission_2],
             SuibianTempleAdventureMission[self.config.adventure_mission_3],
