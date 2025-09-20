@@ -62,12 +62,12 @@ jobs:
             $betaNumber = 1
             $tag = "$baseVersion-beta.$betaNumber"
           } else {
-            # 按语义版本排序：Major DESC, Minor DESC, Patch DESC, Stable(=IsBeta:$false) < Beta, Beta number DESC
+            # 按语义版本排序：Major DESC, Minor DESC, Patch DESC, Stable(=IsBeta:$false) > Beta, Beta number DESC
             $latest = $parsed | Sort-Object -Property @(
               @{Expression='Major';Descending=$true}
               @{Expression='Minor';Descending=$true}
               @{Expression='Patch';Descending=$true}
-              @{Expression='IsBeta';Descending=$true}
+              @{Expression='IsBeta';Descending=$false}
               @{Expression='Beta';Descending=$true}
             ) | Select-Object -First 1
 
@@ -79,7 +79,8 @@ jobs:
               $tag = "$baseVersion-beta.$betaNumber"
             } else {
               # 稳定版本，开始新的 beta 序列
-              $baseVersion = $latestTag
+              $latestTag -match '^(v\d+\.\d+\.)(\d+)$'
+              $baseVersion = $matches[1] + ([int]$matches[2] + 1)
               $betaNumber = 1
               $tag = "$baseVersion-beta.$betaNumber"
             }
