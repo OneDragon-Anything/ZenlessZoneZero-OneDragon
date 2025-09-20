@@ -124,7 +124,7 @@ class SuibianTemplePawnshop(ZOperation):
     @node_from(from_name='选择百通宝商品', success=False)
     @operation_node(name='切换到云纹徽-周期')
     def goto_crest(self) -> OperationRoundResult:
-        if not self.config.pawnshop_omnicoin_enabled:
+        if not self.config.pawnshop_crest_enabled:
             return self.round_success(status='未开启')
 
         return self.round_by_find_and_click_area(
@@ -210,7 +210,7 @@ class SuibianTemplePawnshop(ZOperation):
             for goods in goods_list:
                 # 已售罄在商品名称下方
                 if not ocr_result.rect.center.y > goods.pos.center.y:
-                    break
+                    continue
                 # 找距离最近的
                 if target_goods is None:
                     old_dis = 9999
