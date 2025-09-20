@@ -226,13 +226,14 @@ class Push():
 
         self.log_info("OneBot 服务启动")
 
-        url = self.get_config("ONEBOT_URL").rstrip("/")
+        url = self.get_config("ONEBOT_URL")
         user_id = self.get_config("ONEBOT_USER")
         group_id = self.get_config("ONEBOT_GROUP")
         token = self.get_config("ONEBOT_TOKEN")
 
-        if not url.endswith("/send_msg"):
-                url += "/send_msg"
+        if url:
+            url = url.rstrip("/")
+            url += "" if url.endswith("/send_msg") else "/send_msg"
 
         headers = {'Content-Type': "application/json"}
         message = [{"type": "text", "data": {"text": f"{title}\n{content}"}}]
@@ -1031,7 +1032,7 @@ class Push():
         self.log_info("通用 Webhook 服务启动")
 
         url = self.get_config("WEBHOOK_URL")
-        method = (self.get_config("WEBHOOK_METHOD")).upper()
+        method = self.get_config("WEBHOOK_METHOD")
         headers_str = self.get_config("WEBHOOK_HEADERS")
         body = self.get_config("WEBHOOK_BODY")
         content_type = self.get_config("WEBHOOK_CONTENT_TYPE")
