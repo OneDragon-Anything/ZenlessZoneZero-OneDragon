@@ -72,7 +72,7 @@ class SuibianTempleSalesStall(ZOperation):
 
     @node_from(from_name='更换邦布')
     @node_from(from_name='取消售卖后返回售卖铺')
-    @operation_node(name='选择库存不足货架')
+    @operation_node(name='选择库存不足货架', node_max_retry_times=2)
     def choose_shelf_with_not_enough(self) -> OperationRoundResult:
         target_cn_list: list[str] = [
             '库存不足',
@@ -83,7 +83,7 @@ class SuibianTempleSalesStall(ZOperation):
             target_cn_list=target_cn_list,
             ignore_cn_list=ignore_cn_list,
             success_wait=1,
-            retry_wait=0.5,
+            retry_wait=0.3,
         )
 
     @node_from(from_name='选择库存不足货架')
@@ -113,7 +113,7 @@ class SuibianTempleSalesStall(ZOperation):
 
     @node_from(from_name='选择库存不足货架', success=False)
     @node_from(from_name='点击开始售卖')
-    @operation_node(name='选择货架开始售卖')
+    @operation_node(name='选择货架开始售卖', node_max_retry_times=2)
     def click_choose_shelf_sell(self) -> OperationRoundResult:
         target_cn_list: list[str] = [
             '开始售卖',
@@ -126,7 +126,7 @@ class SuibianTempleSalesStall(ZOperation):
             target_cn_list=target_cn_list,
             ignore_cn_list=ignore_cn_list,
             success_wait=1,
-            retry_wait=0.5,
+            retry_wait=0.3,
         )
 
     @node_from(from_name="选择货架开始售卖")
