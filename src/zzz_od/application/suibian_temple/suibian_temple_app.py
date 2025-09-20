@@ -14,6 +14,7 @@ from zzz_od.application.suibian_temple.operations.suibian_temple_craft import (
 from zzz_od.application.suibian_temple.operations.suibian_temple_good_goods import (
     SuibianTempleGoodGoods,
 )
+from zzz_od.application.suibian_temple.operations.suibian_temple_pawnshop import SuibianTemplePawnshop
 from zzz_od.application.suibian_temple.operations.suibian_temple_sales_stall import (
     SuibianTempleSalesStall,
 )
@@ -151,6 +152,15 @@ class SuibianTempleApp(ZApplication):
             return self.round_success(status='未开启')
 
     @node_from(from_name='处理邦巢')
+    @operation_node(name='处理德丰大押')
+    def handle_pawnshop(self) -> OperationRoundResult:
+        if self.config.pawnshop_crest_enabled or self.config.pawnshop_omnicoin_enabled:
+            op = SuibianTemplePawnshop(self.ctx)
+            return self.round_by_op_result(op.execute())
+        else:
+            return self.round_success(status='未开启')
+
+    @node_from(from_name='处理德丰大押')
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
         self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图

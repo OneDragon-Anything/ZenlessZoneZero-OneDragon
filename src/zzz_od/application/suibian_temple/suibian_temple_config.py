@@ -118,6 +118,57 @@ class SuibianTempleConfig(ApplicationConfig):
     def boo_box_sell_price(self, value: str):
         self.update('boo_box_sell_price', value)
 
+    @property
+    def pawnshop_omnicoin_enabled(self) -> bool:
+        """德丰大押-百宝通-开关"""
+        return self.get('pawnshop_omnicoin_enabled', True)
+
+    @pawnshop_omnicoin_enabled.setter
+    def pawnshop_omnicoin_enabled(self, value: bool):
+        self.update('pawnshop_omnicoin_enabled', value)
+
+    @property
+    def pawnshop_omnicoin_priority(self) -> list[str]:
+        """德丰大押-百宝通-优先级"""
+        return self.get('pawnshop_omnicoin_priority', [
+            i.name
+            for i in PawnshopOmnicoinGoods
+        ])
+
+    @pawnshop_omnicoin_priority.setter
+    def pawnshop_omnicoin_priority(self, value: list[str]):
+        self.update('pawnshop_omnicoin_priority', value)
+
+    @property
+    def pawnshop_crest_enabled(self) -> bool:
+        """德丰大押-云纹徽-开关"""
+        return self.get('pawnshop_crest_enabled', True)
+
+    @pawnshop_crest_enabled.setter
+    def pawnshop_crest_enabled(self, value: bool):
+        self.update('pawnshop_crest_enabled', value)
+
+    @property
+    def pawnshop_crest_priority(self) -> list[str]:
+        """德丰大押-云纹徽-优先级"""
+        return self.get('pawnshop_crest_priority', [
+            i.name
+            for i in PawnshopCrestGoods
+        ])
+
+    @pawnshop_crest_priority.setter
+    def pawnshop_crest_priority(self, value: list[str]):
+        self.update('pawnshop_crest_priority', value)
+
+    @property
+    def pawnshop_crest_unlimited_denny_enabled(self) -> bool:
+        """德丰大押-云纹徽-不限购丁尼-开关"""
+        return self.get('pawnshop_crest_unlimited_denny_enabled', False)
+
+    @pawnshop_crest_unlimited_denny_enabled.setter
+    def pawnshop_crest_unlimited_denny_enabled(self, value: bool):
+        self.update('pawnshop_crest_unlimited_denny_enabled', value)
+
 
 class SuibianTempleAdventureMission(StrEnum):
 
@@ -174,3 +225,18 @@ class BangbooPrice(StrEnum):
     S3 = '30000'
     S4 = '25000'
     NONE = '不购买'
+
+
+class PawnshopOmnicoinGoods(StrEnum):
+
+    HIFI_MASTER_COPY = "高保真母盘"
+    SENIOR_INVESTIGATOR_LOG = '资深调查员记录'
+    W_ENGINE_ENERGY_MODULE = '音擎能源模块'
+    ETHER_PLATING_AGENT = '以太镀剂'
+    PREPAID_POWER_CARD = '储值电卡'
+
+
+class PawnshopCrestGoods(StrEnum):
+
+    BANGBOO_SYSTEM_WIDGET = "邦布系统控件"
+    DENNY = "丁尼"
