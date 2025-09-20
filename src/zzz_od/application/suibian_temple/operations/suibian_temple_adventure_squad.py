@@ -28,9 +28,10 @@ class SuibianTempleAdventureSquad(ZOperation):
         """
         随便观 - 游历
 
-        需要在游历画面时候调用，完成后返回随便观主界面
+        需要在随便观主界面时候调用，完成后返回随便观主界面
 
         操作步骤
+        0. 前往游历画面
         1. 如果进行收获，则点击游历小队；否则跳到4
         2. 点击游历完成，如果有的话
             2.1. 点击 可收获 -> 确认
@@ -62,9 +63,18 @@ class SuibianTempleAdventureSquad(ZOperation):
         ]
         self.current_mission_idx: int = 0  # 派遣选择副本的下标
 
+    @operation_node(name='前往游历', is_start_node=True)
+    def goto_adventure(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(
+            self.last_screenshot, '随便观-入口', '按钮-游历',
+            success_wait=1, retry_wait=1,
+            until_not_find_all=[('随便观-入口', '按钮-游历')]
+        )
+
+    @node_from(from_name='前往游历')
     @node_from(from_name='收获后重新派遣')
     @node_from(from_name='收获后重新派遣', success=False)
-    @operation_node(name='点击游历小队', is_start_node=True)
+    @operation_node(name='点击游历小队')
     def click_squad_team(self) -> OperationRoundResult:
         if not self.claim:
             return self.round_success(status='跳过收获')
