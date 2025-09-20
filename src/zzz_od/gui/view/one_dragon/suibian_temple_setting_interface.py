@@ -17,6 +17,7 @@ from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_dispa
 from zzz_od.application.suibian_temple.suibian_temple_config import (
     SuibianTempleConfig,
     SuibianTempleAdventureMission,
+    BangbooPrice,
 )
 from zzz_od.context.zzz_context import ZContext
 
@@ -103,8 +104,35 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
             content='自动刷新购买S级别邦布。随便观25级后可用。'
         )
         content_widget.add_widget(self.boo_box_purchase_switch)
-        content_widget.add_stretch(1)
 
+        self.boo_box_adventure_price = ComboBoxSettingCard(
+            icon=FluentIcon.VIDEO, title='邦巢-游历-最低购买价格',
+            options_list=[
+                ConfigItem(label=i, value=i.name)
+                for i in BangbooPrice
+            ]
+        )
+        content_widget.add_widget(self.boo_box_adventure_price)
+
+        self.boo_box_craft_price = ComboBoxSettingCard(
+            icon=FluentIcon.VIDEO, title='邦巢-制造-最低购买价格',
+            options_list=[
+                ConfigItem(label=i, value=i.name)
+                for i in BangbooPrice
+            ]
+        )
+        content_widget.add_widget(self.boo_box_craft_price)
+
+        self.boo_box_sell_price = ComboBoxSettingCard(
+            icon=FluentIcon.VIDEO, title='邦巢-出售-最低购买价格',
+            options_list=[
+                ConfigItem(label=i, value=i.name)
+                for i in BangbooPrice
+            ]
+        )
+        content_widget.add_widget(self.boo_box_sell_price)
+
+        content_widget.add_stretch(1)
         return content_widget
 
     def on_interface_shown(self) -> None:
@@ -127,4 +155,8 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
         # 初始化好物铺购买功能设置
         self.good_goods_purchase_switch.init_with_adapter(get_prop_adapter(self.config, 'good_goods_purchase_enabled'))
 
+        # 邦巢相关设置
         self.boo_box_purchase_switch.init_with_adapter(get_prop_adapter(self.config, 'boo_box_purchase_enabled'))
+        self.boo_box_adventure_price.init_with_adapter(get_prop_adapter(self.config, 'boo_box_adventure_price'))
+        self.boo_box_craft_price.init_with_adapter(get_prop_adapter(self.config, 'boo_box_craft_price'))
+        self.boo_box_sell_price.init_with_adapter(get_prop_adapter(self.config, 'boo_box_sell_price'))
