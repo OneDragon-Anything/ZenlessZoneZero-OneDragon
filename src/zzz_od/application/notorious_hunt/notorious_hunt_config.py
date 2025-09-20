@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Optional, List
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 
 
@@ -23,10 +23,10 @@ class NotoriousHuntBuffEnum(Enum):
     BUFF_3 = ConfigItem('第三个BUFF', 3)
 
 
-class NotoriousHuntConfig(YamlConfig):
+class NotoriousHuntConfig(UserConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+        UserConfig.__init__(
             self,
             module_name='notorious_hunt',
             instance_idx=instance_idx,
@@ -81,7 +81,7 @@ class NotoriousHuntConfig(YamlConfig):
                 'notorious_hunt_buff_num': plan_item.notorious_hunt_buff_num,
             })
 
-        YamlConfig.save(self)
+        UserConfig.save()
 
     def update_plan(self, idx: int, plan: ChargePlanItem) -> None:
         if idx < 0 or idx >= len(self.plan_list):

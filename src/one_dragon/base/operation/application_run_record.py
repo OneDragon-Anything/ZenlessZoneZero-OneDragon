@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 from one_dragon.utils import os_utils
 
 
@@ -13,7 +13,7 @@ class AppRunRecordPeriod(Enum):
     WEEKLY = 2
 
 
-class AppRunRecord(YamlConfig):
+class AppRunRecord(UserConfig):
 
     STATUS_WAIT = 0
     STATUS_SUCCESS = 1
@@ -33,7 +33,7 @@ class AppRunRecord(YamlConfig):
         self.run_status: int = AppRunRecord.STATUS_WAIT  # 0=未运行 1=成功 2=失败 3=运行中
         self.game_refresh_hour_offset: int = game_refresh_hour_offset  # 游戏内每天刷新的偏移小时数 以凌晨12点为界限
         self.record_period: AppRunRecordPeriod = record_period
-        super().__init__(app_id, instance_idx=instance_idx, sub_dir=['app_run_record'], sample=False)
+        UserConfig.__init__(self, app_id, instance_idx=instance_idx, sub_dir=['app_run_record'])
 
         self._init_after_read_file()
 
