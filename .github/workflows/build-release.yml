@@ -191,15 +191,7 @@ jobs:
         # 准备离线运行所需的 .install 资源
         Invoke-WebRequest -Uri "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ZenlessZoneZero-OneDragon/uv-x86_64-pc-windows-msvc.zip" -OutFile "$envDir/uv-x86_64-pc-windows-msvc.zip"
         Invoke-WebRequest -Uri "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ZenlessZoneZero-OneDragon/MinGit.zip" -OutFile "$envDir/MinGit.zip"
-
-        # 下载并提取 Python 到 .install/python
-        $pythonDir = "$envDir/python"
-        $pythonTargetDir = "$pythonDir/cpython-3.11.12-windows-x86_64-none"
-        New-Item -ItemType Directory -Path $pythonTargetDir -Force | Out-Null
-        $pythonTarGz = "$envDir/python.tar.gz"
-        Invoke-WebRequest -Uri "https://github.com/astral-sh/python-build-standalone/releases/download/20250517/cpython-3.11.12+20250517-x86_64-pc-windows-msvc-install_only_stripped.tar.gz" -OutFile $pythonTarGz
-        tar -xzf $pythonTarGz -C $pythonTargetDir --strip-components=1
-        Remove-Item -Path $pythonTarGz -Force
+        Invoke-WebRequest -Uri "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ZenlessZoneZero-OneDragon/cpython-3.11.zip" -OutFile "$envDir/cpython-3.11.zip"
 
         # 将安装器复制到仓库根目录
         Copy-Item "$distDir/OneDragon-Installer.exe" -Destination "OneDragon-Installer.exe" -Force
