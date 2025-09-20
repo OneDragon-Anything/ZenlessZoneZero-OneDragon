@@ -151,12 +151,15 @@ class Push():
 
         self.log_info("飞书 服务启动")
 
+        channel = self.get_config("FS_CHANNEL")
+        base_url = "open.feishu.cn" if channel == "飞书" else "open.larksuite.com"
+
         app_id = self.get_config("FS_APPID")
         app_secret = self.get_config("FS_APPSECRET")
         if image and app_id and app_secret and app_id != "" and app_secret != "":
             image.seek(0)
             # 获取飞书自建应用的tenant_access_token
-            auth_endpoint = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
+            auth_endpoint = f"https://{base_url}/open-apis/auth/v3/tenant_access_token/internal"
             auth_headers = {
                 "Content-Type": "application/json; charset=utf-8"
             }
@@ -167,7 +170,7 @@ class Push():
             auth_response.raise_for_status()
             tenant_access_token = auth_response.json()["tenant_access_token"]
             # 上传图片并获取图片的image_key
-            image_endpoint = "https://open.feishu.cn/open-apis/im/v1/images"
+            image_endpoint = f"https://{base_url}/open-apis/im/v1/images"
             image_headers = {
                 "Authorization": f"Bearer {tenant_access_token}"
             }
@@ -209,7 +212,7 @@ class Push():
                 "content": {"text": f"{title}\n{content}"}
             }
 
-        url = f'https://open.feishu.cn/open-apis/bot/v2/hook/{self.get_config("FS_KEY")}'
+        url = f'https://{base_url}/open-apis/bot/v2/hook/{self.get_config("FS_KEY")}'
         response = requests.post(url, data=json.dumps(data)).json()
 
         if response.get("StatusCode") == 0 or response.get("code") == 0:
