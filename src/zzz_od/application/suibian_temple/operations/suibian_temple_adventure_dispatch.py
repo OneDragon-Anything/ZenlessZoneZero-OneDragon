@@ -13,6 +13,7 @@ class SuibianTempleAdventureDispatchDuration(StrEnum):
     MIN_3 = '3分钟'
     MIN_15 = '15分钟'
     HOUR_1 = '1小时'
+    HOUR_2 = '2小时'
     HOUR_6 = '6小时'
     HOUR_12 = '12小时'
     HOUR_20 = '20小时'
@@ -50,16 +51,19 @@ class SuibianTempleAdventureDispatch(ZOperation):
     @operation_node(name='选择游历时间')
     def choose_period(self) -> OperationRoundResult:
         target_word_list = []
+        ignore_word_list = []
         if not self.chosen_duration:
-            target_word_list.append(self.duration)
+            target_word_list.append(str(self.duration))
             for i in SuibianTempleAdventureDispatchDuration:
                 if i != self.duration:
-                    target_word_list.append(i)
+                    target_word_list.append(str(i))
+                    ignore_word_list.append(str(i))
 
         target_word_list.append('确认')
 
         result = self.round_by_ocr_and_click_by_priority(
             target_cn_list=target_word_list,
+            ignore_cn_list=ignore_word_list,
             area=self.ctx.screen_loader.get_area('随便观-游历', '弹窗-游历时间选择')
         )
         if result.is_success:
@@ -107,7 +111,7 @@ class SuibianTempleAdventureDispatch(ZOperation):
         )
 
     @node_from(from_name='点击派遣', status='派遣')
-    @operation_node(name='检查弹窗')
+    @operation_node(name='检查弹窗', node_max_retry_times=2)
     def check_dialog(self) -> OperationRoundResult:
         target_word_list = [
             '确认'
@@ -115,7 +119,7 @@ class SuibianTempleAdventureDispatch(ZOperation):
         return self.round_by_ocr_and_click_by_priority(
             target_cn_list=target_word_list,
             success_wait=1,
-            retry_wait=0.5,
+            retry_wait=0.3,
         )
 
     @node_from(from_name='选择游历时间', status='提前收获')
@@ -141,7 +145,7 @@ def __debug() -> None:
     ctx.init_ocr()
     ctx.start_running()
 
-    op = SuibianTempleAdventureDispatch(ctx, SuibianTempleAdventureDispatchDuration.HOUR_12)
+    op = SuibianTempleAdventureDispatch(ctx, SuibianTempleAdventureDispatchDuration.HOUR_20)
     op.execute()
     ctx.stop_running()
     ctx.after_app_shutdown()

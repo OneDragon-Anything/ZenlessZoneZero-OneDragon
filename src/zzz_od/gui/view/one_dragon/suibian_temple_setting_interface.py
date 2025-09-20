@@ -14,7 +14,10 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_dispatch import (
     SuibianTempleAdventureDispatchDuration,
 )
-from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempleConfig
+from zzz_od.application.suibian_temple.suibian_temple_config import (
+    SuibianTempleConfig,
+    SuibianTempleAdventureMission,
+)
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -41,14 +44,50 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
         self.yum_cha_sin_refresh_switch = SwitchSettingCard(icon=FluentIcon.GAME, title='饮茶仙-委托刷新')
         content_widget.add_widget(self.yum_cha_sin_refresh_switch)
 
-        self.squad_duration_opt = ComboBoxSettingCard(
+        self.adventure_duration_opt = ComboBoxSettingCard(
             icon=FluentIcon.GAME, title='派遣-时长',
             options_list=[
                 ConfigItem(label=i, value=i.name)
                 for i in SuibianTempleAdventureDispatchDuration
             ]
         )
-        content_widget.add_widget(self.squad_duration_opt)
+        content_widget.add_widget(self.adventure_duration_opt)
+
+        self.adventure_mission_1_opt = ComboBoxSettingCard(
+            icon=FluentIcon.GAME, title='派遣-副本1',
+            options_list=[
+                ConfigItem(label=i, value=i.name)
+                for i in SuibianTempleAdventureMission
+            ]
+        )
+        content_widget.add_widget(self.adventure_mission_1_opt)
+
+        self.adventure_mission_2_opt = ComboBoxSettingCard(
+            icon=FluentIcon.GAME, title='派遣-副本2',
+            options_list=[
+                ConfigItem(label=i, value=i.name)
+                for i in SuibianTempleAdventureMission
+            ]
+        )
+        content_widget.add_widget(self.adventure_mission_2_opt)
+
+        self.adventure_mission_3_opt = ComboBoxSettingCard(
+            icon=FluentIcon.GAME, title='派遣-副本3',
+            options_list=[
+                ConfigItem(label=i, value=i.name)
+                for i in SuibianTempleAdventureMission
+            ]
+        )
+        content_widget.add_widget(self.adventure_mission_3_opt)
+
+        self.adventure_mission_4_opt = ComboBoxSettingCard(
+            icon=FluentIcon.GAME, title='派遣-副本4',
+            options_list=[
+                ConfigItem(label=i, value=i.name)
+                for i in SuibianTempleAdventureMission
+            ]
+        )
+        content_widget.add_widget(self.adventure_mission_4_opt)
 
         content_widget.add_stretch(1)
 
@@ -65,4 +104,8 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
 
         self.yum_cha_sin_switch.init_with_adapter(get_prop_adapter(self.config, 'yum_cha_sin'))
         self.yum_cha_sin_refresh_switch.init_with_adapter(get_prop_adapter(self.config, 'yum_cha_sin_period_refresh'))
-        self.squad_duration_opt.init_with_adapter(get_prop_adapter(self.config, 'squad_duration'))
+        self.adventure_duration_opt.init_with_adapter(get_prop_adapter(self.config, 'adventure_duration'))
+        self.adventure_mission_1_opt.init_with_adapter(get_prop_adapter(self.config, 'adventure_mission_1'))
+        self.adventure_mission_2_opt.init_with_adapter(get_prop_adapter(self.config, 'adventure_mission_2'))
+        self.adventure_mission_3_opt.init_with_adapter(get_prop_adapter(self.config, 'adventure_mission_3'))
+        self.adventure_mission_4_opt.init_with_adapter(get_prop_adapter(self.config, 'adventure_mission_4'))
