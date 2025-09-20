@@ -146,7 +146,20 @@ class Push():
 
     def feishu_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
-        使用 飞书机器人 推送消息。
+        使用飞书（Feishu/Lark）机器人发送通知。
+        
+        根据配置决定使用 open.feishu.cn（当 FS_CHANNEL == "飞书"）或 open.larksuite.com 作为基础域名；通过 webhook key（FS_KEY）发送文本或富媒体(post) 消息。若传入 image 且同时提供自建应用凭证（FS_APPID 和 FS_APPSECRET），函数会先使用自建应用的 tenant_access_token 上传图片以获取 image_key，然后以 post 格式发送包含图片的富文本消息；否则发送简单文本消息（标题 + 内容）。
+        
+        参数说明（仅在类型/语义不显而易见时提供额外说明）：
+        - title: 消息标题。
+        - content: 消息正文。
+        - image: 可选的 BytesIO 对象；若提供且存在有效的 FS_APPID/FS_APPSECRET，则函数会尝试上传该二进制图片并在消息中引用。
+        
+        返回值：
+        - 无。成功与否通过内部日志记录。
+        
+        异常：
+        - 当与 Feishu/Lark 的 HTTP 请求返回错误状态时，requests.raise_for_status() 可能抛出 HTTPError；上传或发送接口返回非预期 JSON 结构也可能导致 KeyError/ValueError。
         """
 
         self.log_info("飞书 服务启动")
