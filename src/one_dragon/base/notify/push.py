@@ -1129,10 +1129,10 @@ class Push():
             notify_function.append(self.weplus_bot)
         if self.get_config("QMSG_KEY") and self.get_config("QMSG_TYPE"):
             notify_function.append(self.qmsg_bot)
-        if self.get_config("QYWX_AM"):
-            notify_function.append(self.wecom_app)
         if self.get_config("QYWX_KEY"):
             notify_function.append(self.wecom_bot)
+        if self.get_config("QYWX_AM"):
+            notify_function.append(self.wecom_app)
         if self.get_config("DISCORD_BOT_TOKEN") and self.get_config("DISCORD_USER_ID"):
             notify_function.append(self.discord_bot)
         if self.get_config("TG_BOT_TOKEN") and self.get_config("TG_USER_ID"):
@@ -1248,6 +1248,20 @@ class Push():
             'NTFY': 'ntfy',
             'WXPUSHER': 'wxpusher_bot',
         }
+
+        # 特殊处理企业微信，根据配置动态选择
+        if method == 'QYWX':
+            # 优先使用 wecom_bot (机器人)
+            if self.get_config("QYWX_KEY"):
+                for func in all_functions:
+                    if func.__name__ == 'wecom_bot':
+                        return [func]
+            # 其次使用 wecom_app (应用)
+            if self.get_config("QYWX_AM"):
+                for func in all_functions:
+                    if func.__name__ == 'wecom_app':
+                        return [func]
+            raise ValueError(f"QYWX 推送方式未正确配置，请检查 QYWX_KEY 或 QYWX_AM")
 
         target_function_name = method_to_function_name.get(method)
         if not target_function_name:
