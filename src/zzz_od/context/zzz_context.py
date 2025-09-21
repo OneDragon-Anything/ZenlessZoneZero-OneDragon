@@ -336,7 +336,16 @@ class ZContext(OneDragonContext):
         from zzz_od.application.battle_assistant.dodge_assitant.dodge_assistant_factory import (
             DodgeAssistantFactory,
         )
+
         self.run_context.registry_application(DodgeAssistantFactory(self))
+
+        from zzz_od.application.redemption_code.redemption_code_factory import (
+            RedemptionCodeFactory,
+        )
+        self.run_context.registry_application(RedemptionCodeFactory(self))
+
+        from zzz_od.application.email_app.email_app_factory import EmailAppFactory
+        self.run_context.registry_application(EmailAppFactory(self))
 
         from zzz_od.application.suibian_temple.suibian_temple_factory import (
             SuibianTempleFactory,
