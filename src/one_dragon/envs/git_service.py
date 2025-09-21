@@ -390,23 +390,43 @@ class GitService:
         log_list = self.fetch_page_commit(0, 1)
         return None if len(log_list) == 0 else log_list[0].commit_id
 
-    def get_latest_tag(self) -> Optional[str]:
+    def get_latest_tag(self) -> tuple[Optional[str], Optional[str]]:
         """
-        获取最新tag
-        @return: 最新的tag名称，如果没有tag则返回None
+        获取最新的稳定版与测试版 tag
+        测试版通过标签名包含 "-beta" 识别
+        @return: (稳定版tag, 测试版tag)。若不存在对应类型则为 None。
         """
-        # 从远程获取最新标签
-        result = cmd_utils.run_command([self.env_config.git_path, 'ls-remote', '--refs', '--tags', '--sort=-version:refname', 'origin'])
+        # 从远程获取最新标签（按语义版本倒序）
+        result = cmd_utils.run_command([
+            self.env_config.git_path, 'ls-remote', '--refs', '--tags', '--sort=-version:refname', 'origin'
+        ])
+
+        latest_stable: Optional[str] = None
+        latest_beta: Optional[str] = None
+
         if result is not None and result.strip() != '':
             lines = result.strip().split('\n')
-            if lines:
-                first_line = lines[0]
-                # 截取 refs/tags/ 后面的版本号
-                if 'refs/tags/' in first_line:
-                    tag_name = first_line.split('refs/tags/')[1]
-                    return tag_name
+            for line in lines:
+                # 形如：<sha>\trefs/tags/v1.2.3 或 refs/tags/v1.2.3-beta.1
+                if 'refs/tags/' not in line:
+                    continue
+                tag_name = line.split('refs/tags/')[1]
+                # 跳过可能存在的解引用后缀（尽管 --refs 一般不会出现）
+                if tag_name.endswith('^{}'):
+                    tag_name = tag_name[:-3]
 
-        return None
+                if '-beta' in tag_name:
+                    if latest_beta is None:
+                        latest_beta = tag_name
+                else:
+                    if latest_stable is None:
+                        latest_stable = tag_name
+
+                # 已经都找到了，提前结束
+                if latest_stable is not None and latest_beta is not None:
+                    break
+
+        return latest_stable, latest_beta
 
 def __fetch_latest_code():
     project_config = ProjectConfig()

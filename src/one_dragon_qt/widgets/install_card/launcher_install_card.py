@@ -71,10 +71,18 @@ class LauncherInstallCard(BaseInstallCard):
 
     def check_launcher_update(self) -> Tuple[bool, str, str]:
         current_version = app_utils.get_launcher_version()
-        latest_version = self.ctx.git_service.get_latest_tag()
-        if current_version == latest_version:
-            return True, latest_version, current_version
-        return False, latest_version, current_version
+        latest_stable, latest_beta = self.ctx.git_service.get_latest_tag()
+        # 根据当前版本是否包含 -beta 来确定比较通道
+        if current_version and '-beta' in current_version:
+            # 测试通道：与最新测试版比较；若不存在测试版，则视为已最新
+            target_latest = latest_beta or current_version
+        else:
+            # 稳定通道：与最新稳定版比较；若不存在稳定版，则视为已最新
+            target_latest = latest_stable or current_version
+
+        if current_version == target_latest:
+            return True, target_latest, current_version
+        return False, target_latest, current_version
 
     def after_progress_done(self, success: bool, msg: str) -> None:
         """
