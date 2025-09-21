@@ -8,10 +8,33 @@ from collections import defaultdict, deque
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, Query
 
+import os
 from .security import get_api_key_dependency
+from .unified_errors import AuthenticationException
 
 
-router = APIRouter(prefix="/ws/v1", tags=["ws"], dependencies=[Depends(get_api_key_dependency())])
+router = APIRouter(prefix="/ws", tags=["ws"])
+
+
+async def authenticate_websocket(websocket: WebSocket) -> bool:
+    """
+    WebSocket认证检查
+    如果设置了OD_API_KEY环境变量，则需要在查询参数中提供api_key
+    """
+    expected_key = os.getenv("OD_API_KEY")
+    if not expected_key:
+        # 没有设置API密钥，允许连接
+        return True
+
+    # 从查询参数中获取API密钥
+    query_params = dict(websocket.query_params)
+    provided_key = query_params.get("api_key")
+
+    if not provided_key or provided_key != expected_key:
+        await websocket.close(code=1008, reason="Authentication failed")
+        return False
+
+    return True
 
 
 class RateLimiter:
@@ -289,8 +312,11 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-@router.websocket("/runs/{run_id}")
+@router.websocket("/v1/runs/{run_id}")
 async def runs_ws(websocket: WebSocket, run_id: str):
+    if not await authenticate_websocket(websocket):
+        return
+
     channel = f"runs:{run_id}"
     await manager.connect(channel, websocket)
     try:
@@ -301,9 +327,12 @@ async def runs_ws(websocket: WebSocket, run_id: str):
         manager.disconnect(channel, websocket)
 
 
-@router.websocket("/logs")
+@router.websocket("/v1/logs")
 async def logs_ws(websocket: WebSocket):
     """实时日志通道: 连接后即可接收 type=log 消息, 客户端可定期发送 ping 保持连接."""
+    if not await authenticate_websocket(websocket):
+        return
+
     channel = "logs"
     await manager.connect(channel, websocket)
     try:
@@ -314,9 +343,12 @@ async def logs_ws(websocket: WebSocket):
         manager.disconnect(channel, websocket)
 
 
-@router.websocket("/battle-assistant/tasks/{task_id}")
+@router.websocket("/v1/battle-assistant/tasks/{task_id}")
 async def battle_assistant_task_ws(websocket: WebSocket, task_id: str):
     """战斗助手任务事件通道: 订阅特定任务的进度和状态更新"""
+    if not await authenticate_websocket(websocket):
+        return
+
     channel = f"battle-assistant:tasks:{task_id}"
     await manager.connect(channel, websocket)
     try:
@@ -326,9 +358,12 @@ async def battle_assistant_task_ws(websocket: WebSocket, task_id: str):
         manager.disconnect(channel, websocket)
 
 
-@router.websocket("/battle-assistant/events")
+@router.websocket("/v1/battle-assistant/events")
 async def battle_assistant_events_ws(websocket: WebSocket):
     """战斗助手全局事件通道: 订阅所有战斗助手相关事件"""
+    if not await authenticate_websocket(websocket):
+        return
+
     channel = "battle-assistant:events"
     await manager.connect(channel, websocket)
     try:
@@ -338,9 +373,12 @@ async def battle_assistant_events_ws(websocket: WebSocket):
         manager.disconnect(channel, websocket)
 
 
-@router.websocket("/battle-assistant/battle-state")
+@router.websocket("/v1/battle-assistant/battle-state")
 async def battle_assistant_battle_state_ws(websocket: WebSocket):
     """战斗状态实时更新通道: 订阅战斗状态变化"""
+    if not await authenticate_websocket(websocket):
+        return
+
     channel = "battle-assistant:battle-state"
     await manager.connect(channel, websocket)
     try:
@@ -350,11 +388,11 @@ async def battle_assistant_battle_state_ws(websocket: WebSocket):
         manager.disconnect(channel, websocket)
 
 
-@router.websocket("/")
-async def unified_ws(websocket: WebSocket,
-                    module: Optional[str] = Query(None, description="模块过滤器"),
-                    runId: Optional[str] = Query(None, description="运行ID过滤器")):
-    """统一WebSocket端点，支持ping/pong心跳和消息过滤"""
+async def unified_ws_impl(websocket: WebSocket, module: Optional[str], runId: Optional[str]):
+    """统一WebSocket端点的实现"""
+    if not await authenticate_websocket(websocket):
+        return
+
     channel = "unified:v1"
     await manager.connect(channel, websocket, module, runId)
 
@@ -395,5 +433,21 @@ async def unified_ws(websocket: WebSocket,
             pass
         finally:
             manager.disconnect(channel, websocket)
+
+
+@router.websocket("/v1")
+async def unified_ws_no_slash(websocket: WebSocket,
+                             module: Optional[str] = Query(None, description="模块过滤器"),
+                             runId: Optional[str] = Query(None, description="运行ID过滤器")):
+    """统一WebSocket端点（无末尾斜杠），支持ping/pong心跳和消息过滤"""
+    await unified_ws_impl(websocket, module, runId)
+
+
+@router.websocket("/v1/")
+async def unified_ws(websocket: WebSocket,
+                    module: Optional[str] = Query(None, description="模块过滤器"),
+                    runId: Optional[str] = Query(None, description="运行ID过滤器")):
+    """统一WebSocket端点，支持ping/pong心跳和消息过滤"""
+    await unified_ws_impl(websocket, module, runId)
 
 
