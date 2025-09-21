@@ -20,6 +20,7 @@ class LauncherInstallCard(BaseInstallCard):
             title_cn='启动器',
             install_method=self.install_launcher
         )
+        self.latest_version = "latest"
 
     def install_launcher(self, progress_callback: Optional[Callable[[float, str], None]]) -> Tuple[bool, str]:
         msg = gt('正在安装启动器...')
@@ -30,7 +31,7 @@ class LauncherInstallCard(BaseInstallCard):
         for _ in range(2):
             zip_file_name = f'{self.ctx.project_config.project_name}-Launcher.zip'
             zip_file_path = os.path.join(DEFAULT_ENV_PATH, zip_file_name)
-            download_url = f'{self.ctx.project_config.github_homepage}/releases/latest/download/{zip_file_name}'
+            download_url = f'{self.ctx.project_config.github_homepage}/releases/{self.latest_version}/download/{zip_file_name}'
             if not os.path.exists(zip_file_path):
                 success = self.ctx.download_service.download_file_from_url(download_url, zip_file_path, progress_callback=progress_callback)
                 if not success:
@@ -82,7 +83,9 @@ class LauncherInstallCard(BaseInstallCard):
 
         if current_version == target_latest:
             return True, target_latest, current_version
-        return False, target_latest, current_version
+        else:
+            self.latest_version = target_latest
+            return False, target_latest, current_version
 
     def after_progress_done(self, success: bool, msg: str) -> None:
         """
@@ -102,13 +105,17 @@ class LauncherInstallCard(BaseInstallCard):
         :return: 显示的图标、文本
         """
         if self.check_launcher_exist():
+            self.install_btn.setText(gt('检查中...'))
             is_latest, latest_version, current_version = self.check_launcher_update()
+            self.install_btn.setDisabled(is_latest)
             if is_latest or os_utils.run_in_exe():  # 安装器中不检查更新
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
                 msg = f"{gt('已安装')} {current_version}"
+                self.install_btn.setText(gt('已安装'))
             else:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
                 msg = f"{gt('需更新')} {gt('当前版本')}: {current_version}; {gt('最新版本')}: {latest_version}"
+                self.install_btn.setText(gt('更新'))
         else:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
             msg = gt('需下载')
