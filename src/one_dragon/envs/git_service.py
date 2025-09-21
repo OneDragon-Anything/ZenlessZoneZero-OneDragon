@@ -394,6 +394,7 @@ class GitService:
         """
         获取最新的稳定版与测试版 tag
         测试版通过标签名包含 "-beta" 识别
+        若稳定版在测试版前面（列表首个出现即稳定），则认为没有测试版。
         @return: (稳定版tag, 测试版tag)。若不存在对应类型则为 None。
         """
         # 从远程获取最新标签（按语义版本倒序）
@@ -403,6 +404,7 @@ class GitService:
 
         latest_stable: Optional[str] = None
         latest_beta: Optional[str] = None
+        first_seen_type: Optional[str] = None  # 'stable' 或 'beta'
 
         if result is not None and result.strip() != '':
             lines = result.strip().split('\n')
@@ -415,15 +417,24 @@ class GitService:
                 if tag_name.endswith('^{}'):
                     tag_name = tag_name[:-3]
 
-                if '-beta' in tag_name:
-                    if latest_beta is None:
-                        latest_beta = tag_name
-                else:
-                    if latest_stable is None:
-                        latest_stable = tag_name
+                is_beta = '-beta' in tag_name
 
-                # 已经都找到了，提前结束
-                if latest_stable is not None and latest_beta is not None:
+                # 首个出现的标签决定通道优先级
+                if first_seen_type is None:
+                    if is_beta:
+                        first_seen_type = 'beta'
+                        latest_beta = tag_name
+                        # 继续向后查找第一个稳定版
+                        continue
+                    else:
+                        # 稳定版先出现，则视为无测试版
+                        first_seen_type = 'stable'
+                        latest_stable = tag_name
+                        break
+
+                # 若先看到的是 beta，则继续找第一个稳定版
+                if first_seen_type == 'beta' and not is_beta and latest_stable is None:
+                    latest_stable = tag_name
                     break
 
         return latest_stable, latest_beta
