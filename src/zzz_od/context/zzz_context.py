@@ -113,8 +113,6 @@ class ZContext(OneDragonContext):
         self.coffee_config: CoffeeConfig = CoffeeConfig(self.current_instance_idx)
         self.life_on_line_config: LifeOnLineConfig = LifeOnLineConfig(self.current_instance_idx)
         self.commission_assistant_config: CommissionAssistantConfig = CommissionAssistantConfig(self.current_instance_idx)
-        from zzz_od.application.random_play.random_play_config import RandomPlayConfig
-        self.random_play_config: RandomPlayConfig = RandomPlayConfig(self.current_instance_idx)
 
         from zzz_od.config.agent_outfit_config import AgentOutfitConfig
         self.agent_outfit_config: AgentOutfitConfig = AgentOutfitConfig(self.current_instance_idx)
@@ -351,3 +349,8 @@ class ZContext(OneDragonContext):
             SuibianTempleFactory,
         )
         self.run_context.registry_application(SuibianTempleFactory(self))
+
+        from zzz_od.application.random_play.random_play_factory import (
+            RandomPlayFactory,
+        )
+        self.run_context.registry_application(RandomPlayFactory(self))
