@@ -83,26 +83,38 @@ class UnifiedEventBridge:
 
             # 发送到统一WebSocket通道
             channel = f"unified:v1"
-            asyncio.create_task(manager.broadcast_json(channel, event.dict()))
+            task1 = asyncio.create_task(manager.broadcast_json(channel, event.dict()))
+            task1.add_done_callback(lambda t: None)  # 防止协程警告
 
             # 也发送到模块专用通道（兼容性）
             module_channel = f"{self.module_name}:{self.run_id}"
-            asyncio.create_task(manager.broadcast_json(module_channel, event.dict()))
+            task2 = asyncio.create_task(manager.broadcast_json(module_channel, event.dict()))
+            task2.add_done_callback(lambda t: None)  # 防止协程警告
 
-            # 记录WebSocket事件到监控系统
-            monitor.record_websocket_event(
-                channel, "message_sent",
-                message_count=1,
-                run_id=self.run_id
-            )
+            # 记录WebSocket事件到监控系统（带错误处理）
+            try:
+                monitor.record_websocket_event(
+                    channel, "message_sent",
+                    message_count=1,
+                    run_id=self.run_id
+                )
+            except Exception:
+                pass  # 忽略监控错误，不影响主要功能
 
         except Exception as e:
-            # 记录WebSocket错误事件
-            monitor.record_websocket_event(
-                f"unified:v1", "error",
-                run_id=self.run_id,
-                error=str(e)
-            )
+            # 记录WebSocket错误事件（带错误处理）
+            try:
+                monitor.record_websocket_event(
+                    f"unified:v1", "error",
+                    run_id=self.run_id,
+                    error=str(e)
+                )
+            except Exception:
+                pass  # 忽略监控错误
+
+            # 同时记录到日志
+            import logging
+            logging.getLogger("unified_event_bridge").error(f"WebSocket广播失败: {e}")
 
     def send_status_update(self, is_running: bool, context_state: str, **kwargs):
         """发送状态更新事件"""
