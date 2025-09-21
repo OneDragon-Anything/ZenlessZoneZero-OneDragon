@@ -233,7 +233,11 @@ class SuibianTemplePawnshop(ZOperation):
 
     def buy_goods(self) -> OperationRoundResult:
         result = self.round_by_ocr_and_click_by_priority(
-            target_cn_list=['[百通宝]数量不足', '[云纹徽]数量不足'],
+            target_cn_list=[
+                '[百通宝]数量不足',
+                '[云纹徽]数量不足',
+                '已达背包容量上限',  # issue #1449
+            ],
         )
         if result.is_success:
             return self.round_success(status=result.status)
@@ -261,7 +265,12 @@ class SuibianTemplePawnshop(ZOperation):
             return self.round_success(status=screen_name)
 
         result = self.round_by_ocr_and_click_by_priority(
-            target_cn_list=['[百通宝]数量不足', '[云纹徽]数量不足', '确认'],
+            target_cn_list=[
+                '[百通宝]数量不足',
+                '[云纹徽]数量不足',
+                '已达背包容量上限',
+                '确认'
+            ],
         )
         if result.is_success and result.status == '确认':
             return self.round_wait(status=result.status, wait=1)
