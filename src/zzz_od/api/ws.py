@@ -116,12 +116,17 @@ class ConnectionManager:
 
     async def connect(self, channel: str, websocket: WebSocket,
                      module_filter: Optional[str] = None,
-                     run_id_filter: Optional[str] = None) -> None:
+                     run_id_filter: Optional[str] = None,
+                     skip_accept: bool = False) -> None:
         """连接WebSocket并设置过滤器"""
         try:
-            await websocket.accept()
+            # 只在第一次连接时accept
+            if not skip_accept:
+                await websocket.accept()
             self.active_connections.setdefault(channel, []).append(websocket)
-            self.rate_limiters[websocket] = RateLimiter()
+            # 只在第一次设置rate limiter
+            if websocket not in self.rate_limiters:
+                self.rate_limiters[websocket] = RateLimiter()
 
             # 更新统计信息
             stats = self.connection_stats[channel]
@@ -393,8 +398,11 @@ async def unified_ws_impl(websocket: WebSocket, module: Optional[str], runId: Op
     if not await authenticate_websocket(websocket):
         return
 
+    # 连接到多个通道：unified:v1 和 logs
     channel = "unified:v1"
-    await manager.connect(channel, websocket, module, runId)
+    await manager.connect(channel, websocket, module, runId, skip_accept=False)
+    # 同时连接到logs通道以接收日志消息，skip_accept=True避免重复accept
+    await manager.connect("logs", websocket, skip_accept=True)
 
     try:
         while True:
@@ -425,6 +433,7 @@ async def unified_ws_impl(websocket: WebSocket, module: Optional[str], runId: Op
 
     except WebSocketDisconnect:
         manager.disconnect(channel, websocket)
+        manager.disconnect("logs", websocket)  # 也断开logs通道
     except Exception as e:
         # 优雅降级：记录错误但不中断其他连接
         try:
@@ -433,6 +442,7 @@ async def unified_ws_impl(websocket: WebSocket, module: Optional[str], runId: Op
             pass
         finally:
             manager.disconnect(channel, websocket)
+            manager.disconnect("logs", websocket)  # 也断开logs通道
 
 
 @router.websocket("/v1")
