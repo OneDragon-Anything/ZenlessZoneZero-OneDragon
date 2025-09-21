@@ -417,11 +417,14 @@ def setup_websocket_monitoring():
     async def monitored_broadcast_json(channel: str, payload: Dict):
         try:
             result = await original_broadcast_json(channel, payload)
-            monitor.record_websocket_event(
-                channel, "message_sent",
-                message_count=1,
-                run_id=payload.get('runId')
-            )
+            # 只在有活跃连接时记录消息发送事件
+            connection_count = len(ws_manager.active_connections.get(channel, []))
+            if connection_count > 0:
+                monitor.record_websocket_event(
+                    channel, "message_sent",
+                    message_count=1,
+                    run_id=payload.get('runId')
+                )
             return result
         except Exception as e:
             monitor.record_websocket_event(
