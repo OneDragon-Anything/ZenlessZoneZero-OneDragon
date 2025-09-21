@@ -420,18 +420,27 @@ def setup_websocket_monitoring():
             # 只在有活跃连接时记录消息发送事件
             connection_count = len(ws_manager.active_connections.get(channel, []))
             if connection_count > 0:
-                monitor.record_websocket_event(
-                    channel, "message_sent",
-                    message_count=1,
-                    run_id=payload.get('runId')
-                )
+                # 使用try-except包装监控调用，避免干扰主要功能
+                try:
+                    monitor.record_websocket_event(
+                        channel, "message_sent",
+                        message_count=1,
+                        run_id=payload.get('runId')
+                    )
+                except Exception:
+                    pass  # 忽略监控错误
             return result
         except Exception as e:
-            monitor.record_websocket_event(
-                channel, "error",
-                run_id=payload.get('runId'),
-                error=str(e)
-            )
+            # 只记录真正的错误，不记录协程警告
+            if not isinstance(e, RuntimeWarning):
+                try:
+                    monitor.record_websocket_event(
+                        channel, "error",
+                        run_id=payload.get('runId'),
+                        error=str(e)
+                    )
+                except Exception:
+                    pass  # 忽略监控错误
             raise
 
     # 替换原方法
