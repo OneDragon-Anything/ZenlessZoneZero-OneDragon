@@ -936,10 +936,13 @@ def _start_app_run(app_factory) -> str:
 
     def _factory_task():
         import asyncio
+        from zzz_od.api import log_stream
 
         async def runner():
             loop = asyncio.get_running_loop()
             def _exec():
+                # 确保WebSocket日志handler已经附加
+                log_stream.ensure_handler_attached()
                 app = app_factory(ctx)
                 app.execute()
             return await loop.run_in_executor(None, _exec)
@@ -1200,6 +1203,9 @@ async def run_single_app(app_id: str):
             def _exec():
                 original_temp = ctx.one_dragon_app_config._temp_app_run_list
                 try:
+                    # 确保WebSocket日志handler已经附加
+                    from zzz_od.api import log_stream
+                    log_stream.ensure_handler_attached()
                     ctx.one_dragon_app_config.set_temp_app_run_list([app_id])
                     from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
                     ZOneDragonApp(ctx).execute()

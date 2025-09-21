@@ -404,8 +404,8 @@ def setup_websocket_monitoring():
     original_disconnect = ws_manager.disconnect
     original_broadcast_json = ws_manager.broadcast_json
 
-    async def monitored_connect(channel: str, websocket, module_filter=None, run_id_filter=None):
-        result = await original_connect(channel, websocket, module_filter, run_id_filter)
+    async def monitored_connect(channel: str, websocket, module_filter=None, run_id_filter=None, skip_accept=False):
+        result = await original_connect(channel, websocket, module_filter, run_id_filter, skip_accept)
         monitor.record_websocket_event(channel, "connect", run_id=run_id_filter)
         return result
 

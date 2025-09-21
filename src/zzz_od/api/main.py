@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
         print("Initializing ZContext...")
         ctx = get_ctx()
         print("ZContext initialized successfully")
-        # 启动日志流 (INFO 及以上)
+        # 启动日志流 (默认捕获所有OneDragon业务日志)
         log_stream.start_log_stream()
         print("Log stream started")
 
