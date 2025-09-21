@@ -133,6 +133,15 @@ class AutoBattleOperator(ConditionalOperator):
         """
         ConditionalOperator.dispose(self)
 
+        # 清理所有状态记录器，重置时间戳
+        for sr in self.state_recorders.values():
+            sr.clear_state_record()
+
+        # 重置周期性操作的时间戳
+        self.last_lock_time = 0
+        self.last_turn_time = 0
+        self.last_turn_time = 0
+
     def start_running_async(self) -> bool:
         success = ConditionalOperator.start_running_async(self)
         if success:
