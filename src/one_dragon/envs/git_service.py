@@ -412,11 +412,8 @@ class GitService:
                 # 形如：<sha>\trefs/tags/v1.2.3 或 refs/tags/v1.2.3-beta.1
                 if 'refs/tags/' not in line:
                     continue
-                tag_name = line.split('refs/tags/')[1]
-                # 跳过可能存在的解引用后缀（尽管 --refs 一般不会出现）
-                if tag_name.endswith('^{}'):
-                    tag_name = tag_name[:-3]
 
+                tag_name = line.split('refs/tags/')[1]
                 is_beta = '-beta' in tag_name
 
                 # 首个出现的标签决定通道优先级
