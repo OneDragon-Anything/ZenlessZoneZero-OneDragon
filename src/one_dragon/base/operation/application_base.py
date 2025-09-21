@@ -50,6 +50,11 @@ class Application(Operation):
         """应用唯一标识"""
 
         self.run_record: Optional[AppRunRecord] = run_record
+        if run_record is None:
+            self.run_record = ctx.run_context.get_run_record(
+                app_id=self.app_id,
+                instance_idx=ctx.current_instance_idx,
+            )
         """运行记录"""
 
         self.init_context_before_start: bool = init_context_before_start

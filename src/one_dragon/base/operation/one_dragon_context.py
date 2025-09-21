@@ -15,6 +15,7 @@ from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.matcher.ocr.ocr_service import OcrService
 from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher, OnnxOcrParam
 from one_dragon.base.matcher.template_matcher import TemplateMatcher
+from one_dragon.base.operation.application.application_group_manager import ApplicationGroupManager
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
 )
@@ -99,6 +100,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext()
         self.register_application_factory()
+        self.app_group_manager: ApplicationGroupManager = ApplicationGroupManager()
+        self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
 
     def init_by_config(self) -> None:
         """
@@ -229,10 +232,16 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.dispatch_event(ContextInstanceEventEnum.instance_active.value, instance_idx)
 
     def load_instance_config(self):
+        """
+        加载账号实例相关的配置
+        子类需要继承加载更多的配置
+        """
         log.info('开始加载实例配置 %d' % self.current_instance_idx)
         self.one_dragon_app_config: OneDragonAppConfig = OneDragonAppConfig(self.current_instance_idx)
         self.game_account_config: GameAccountConfig = GameAccountConfig(self.current_instance_idx)
         self.push_config: PushConfig = PushConfig(self.current_instance_idx)
+
+        self.run_context.check_and_update_all_run_record(self.current_instance_idx)
 
     def async_init_ocr(self) -> None:
         """
@@ -276,8 +285,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     def register_application_factory(self) -> None:
         """
         注册应用
-
-        Returns:
-            None
+        由子类实现
         """
         pass

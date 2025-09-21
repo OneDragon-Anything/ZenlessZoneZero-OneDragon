@@ -68,7 +68,6 @@ class ZContext(OneDragonContext):
         from zzz_od.application.devtools.screenshot_helper.screenshot_helper_config import (
             ScreenshotHelperConfig,
         )
-        from zzz_od.application.email_app.email_run_record import EmailRunRecord
         from zzz_od.application.engagement_reward.engagement_reward_run_record import (
             EngagementRewardRunRecord,
         )
@@ -87,12 +86,6 @@ class ZContext(OneDragonContext):
         )
         from zzz_od.application.notorious_hunt.notorious_hunt_run_record import (
             NotoriousHuntRunRecord,
-        )
-        from zzz_od.application.random_play.random_play_run_record import (
-            RandomPlayRunRecord,
-        )
-        from zzz_od.application.redemption_code.redemption_code_run_record import (
-            RedemptionCodeRunRecord,
         )
         from zzz_od.application.scratch_card.scratch_card_run_record import (
             ScratchCardRunRecord,
@@ -119,10 +112,6 @@ class ZContext(OneDragonContext):
 
         # 运行记录
         game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
-        self.email_run_record: EmailRunRecord = EmailRunRecord(self.current_instance_idx, game_refresh_hour_offset)
-        self.email_run_record.check_and_update_status()
-        self.random_play_run_record: RandomPlayRunRecord = RandomPlayRunRecord(self.current_instance_idx, game_refresh_hour_offset)
-        self.random_play_run_record.check_and_update_status()
         self.scratch_card_run_record: ScratchCardRunRecord = ScratchCardRunRecord(self.current_instance_idx, game_refresh_hour_offset)
         self.scratch_card_run_record.check_and_update_status()
         self.charge_plan_run_record: ChargePlanRunRecord = ChargePlanRunRecord(self.current_instance_idx, game_refresh_hour_offset)
@@ -139,13 +128,6 @@ class ZContext(OneDragonContext):
         self.city_fund_record.check_and_update_status()
         self.life_on_line_record: LifeOnLineRunRecord = LifeOnLineRunRecord(self.life_on_line_config, self.current_instance_idx, game_refresh_hour_offset)
         self.life_on_line_record.check_and_update_status()
-        self.redemption_code_record: RedemptionCodeRunRecord = RedemptionCodeRunRecord(self.current_instance_idx, game_refresh_hour_offset)
-        self.redemption_code_record.check_and_update_status()
-        from zzz_od.application.trigrams_collection.trigrams_collection_record import (
-            TrigramsCollectionRunRecord,
-        )
-        self.trigrams_collection_record: TrigramsCollectionRunRecord = TrigramsCollectionRunRecord(self.current_instance_idx, game_refresh_hour_offset)
-        self.trigrams_collection_record.check_and_update_status()
 
         from zzz_od.application.ridu_weekly.ridu_weekly_run_record import (
             RiduWeeklyRunRecord,
@@ -191,11 +173,6 @@ class ZContext(OneDragonContext):
             LostVoidRunRecord,
         )
         self.lost_void_record: LostVoidRunRecord = LostVoidRunRecord(self.lost_void_config, self.current_instance_idx, game_refresh_hour_offset)
-
-        from zzz_od.application.suibian_temple.suibian_temple_run_record import (
-            SuibianTempleRunRecord,
-        )
-        self.suibian_temple_record: SuibianTempleRunRecord = SuibianTempleRunRecord(self.current_instance_idx, game_refresh_hour_offset)
 
         from zzz_od.application.world_patrol.world_patrol_config import (
             WorldPatrolConfig,
@@ -334,23 +311,29 @@ class ZContext(OneDragonContext):
         from zzz_od.application.battle_assistant.dodge_assitant.dodge_assistant_factory import (
             DodgeAssistantFactory,
         )
-
-        self.run_context.registry_application(DodgeAssistantFactory(self))
+        self.run_context.registry_application(
+            [DodgeAssistantFactory(self)],
+            default_group=False,
+        )
 
         from zzz_od.application.redemption_code.redemption_code_factory import (
             RedemptionCodeFactory,
         )
-        self.run_context.registry_application(RedemptionCodeFactory(self))
-
         from zzz_od.application.email_app.email_app_factory import EmailAppFactory
-        self.run_context.registry_application(EmailAppFactory(self))
-
         from zzz_od.application.suibian_temple.suibian_temple_factory import (
             SuibianTempleFactory,
         )
-        self.run_context.registry_application(SuibianTempleFactory(self))
-
         from zzz_od.application.random_play.random_play_factory import (
             RandomPlayFactory,
         )
-        self.run_context.registry_application(RandomPlayFactory(self))
+        from zzz_od.application.trigrams_collection.trigrams_collection_factory import TrigramsCollectionFactory
+        self.run_context.registry_application(
+            [
+                RedemptionCodeFactory(self),
+                EmailAppFactory(self),
+                RandomPlayFactory(self),
+                TrigramsCollectionFactory(self),
+                SuibianTempleFactory(self),
+            ],
+            default_group=True
+        )

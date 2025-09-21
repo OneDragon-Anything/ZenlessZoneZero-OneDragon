@@ -18,7 +18,11 @@ if TYPE_CHECKING:
 class RedemptionCodeFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(self, app_id="redemption_code")
+        ApplicationFactory.__init__(
+            self,
+            app_id="redemption_code",
+            app_name="兑换码",
+        )
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

@@ -63,6 +63,7 @@ class ApplicationRunContext:
         )
         self._controller: Optional[ControllerBase] = None  # 这个在后续初始化后设置
         self._event_bus: ContextEventBus = ContextEventBus()
+        self.default_group_apps: list = []  # 默认应用组的应用ID列表
 
         # 当前运行的应用
         self.current_app_id: Optional[str] = None
@@ -79,7 +80,9 @@ class ApplicationRunContext:
         self._controller = controller
 
     def registry_application(
-        self, factory: ApplicationFactory | list[ApplicationFactory]
+        self,
+        factory: ApplicationFactory | list[ApplicationFactory],
+        default_group: bool = False,
     ):
         """
         注册应用工厂。
@@ -88,12 +91,17 @@ class ApplicationRunContext:
 
         Args:
             factory: 应用工厂实例或工厂列表
+            default_group: 应用是否属于默认应用组，默认为False
         """
         if isinstance(factory, list):
             for f in factory:
                 self._application_factory_map[f.app_id] = f
+                if default_group:
+                    self.default_group_apps.append(f.app_id)
         else:
             self._application_factory_map[factory.app_id] = factory
+            if default_group:
+                self.default_group_apps.append(factory.app_id)
 
     def is_app_registered(self, app_id: str) -> bool:
         """
@@ -354,3 +362,15 @@ class ApplicationRunContext:
         future.add_done_callback(thread_utils.handle_future_result)
 
         return True
+
+    def check_and_update_all_run_record(self, instance_idx: int) -> None:
+        """
+        检查并刷新账号实例下的所有运行记录
+        Args:
+            instance_idx: 账号实例下标
+        """
+        for app_id in self._application_factory_map.keys():
+            run_record = self.get_run_record(app_id=app_id, instance_idx=instance_idx)
+            if run_record is None:
+                continue
+            run_record.check_and_update_status()
