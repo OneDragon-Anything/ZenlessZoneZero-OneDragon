@@ -16,7 +16,11 @@ if TYPE_CHECKING:
 class EmailAppFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(self, app_id="email")
+        ApplicationFactory.__init__(
+            self,
+            app_id="email",
+            app_name="邮件",
+        )
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
