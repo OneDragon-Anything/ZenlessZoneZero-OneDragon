@@ -1175,9 +1175,12 @@ class Push():
         log.error(f'指令[ 通知 ] {message}')
 
 
-    def get_config(self, key: str, default: str | None = None) -> Optional[str]:
+    def get_config(self, key: str, default: str = '') -> str:
         """获取推送配置值"""
-        return getattr(self.ctx.push_config, key.lower(), default)
+        value = getattr(self.ctx.push_config, key.lower(), default)
+        if value:
+            return str(value).strip()
+        return default
 
 
     def send(self, content: str, image: Optional[BytesIO] = None, test_method: Optional[str] = None) -> None:
