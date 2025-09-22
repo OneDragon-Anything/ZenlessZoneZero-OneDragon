@@ -35,20 +35,20 @@ class WSLogHandler(logging.Handler):
         global _dropped
         if _queue is None:
             return
-        
+
         # 只保留OneDragon相关的业务日志
         # 允许的logger名称前缀
         allowed_prefixes = ['OneDragon', 'zzz_od', 'one_dragon']
-        
+
         # 检查是否是允许的logger
         is_allowed = any(record.name.startswith(prefix) for prefix in allowed_prefixes)
         if not is_allowed:
             # 如果不是OneDragon相关的logger，直接跳过
             return
-            
+
         # 过滤掉监控系统和底层框架的日志
         excluded_names = [
-            'unified_api_monitor', 
+            'unified_api_monitor',
             'unified_event_bridge',
             'websockets',
             'websockets.server',
@@ -58,11 +58,11 @@ class WSLogHandler(logging.Handler):
             'auto_battle_target_context',
             'auto_battle_dodge_context'
         ]
-        
+
         for excluded in excluded_names:
             if excluded in record.name.lower():
                 return
-        
+
         # 过滤掉特定的消息内容
         message = record.getMessage()
         excluded_messages = [
@@ -75,11 +75,11 @@ class WSLogHandler(logging.Handler):
             'block_infos',
             'deque('
         ]
-        
+
         for excluded in excluded_messages:
             if excluded in message:
                 return
-            
+
         # GUI 的 LogDisplayCard 期待已经带方括号的完整行, 再进行着色处理
         try:
             formatted_line = self.format(record)  # 与普通控制台 handler 一致的完整行
@@ -106,7 +106,7 @@ class WSLogHandler(logging.Handler):
 async def _broadcast_worker() -> None:
     """后台协程: 从队列取出日志并广播."""
     assert _queue is not None
-    check_counter = 0
+
     while True:
         item = await _queue.get()
         try:
@@ -114,12 +114,8 @@ async def _broadcast_worker() -> None:
         except Exception:
             # 忽略广播异常
             pass
-        
-        # 每处理10条消息，检查一次handler是否仍然存在
-        check_counter += 1
-        if check_counter >= 10:
-            check_counter = 0
-            ensure_handler_attached()
+
+
 
 
 def start_log_stream(queue_size: int = 256, level: int = logging.DEBUG) -> None:
@@ -137,7 +133,7 @@ def start_log_stream(queue_size: int = 256, level: int = logging.DEBUG) -> None:
     _handler.setFormatter(logging.Formatter('[%(asctime)s.%(msecs)03d] [%(filename)s %(lineno)d] [%(levelname)s]: %(message)s', '%H:%M:%S'))
     # 添加到根logger
     logging.getLogger().addHandler(_handler)
-    
+
     # 重要：确保OneDragon logger已经被初始化（触发log_utils.get_logger）
     # 这会清除handlers，所以需要在之后重新添加
     try:
@@ -149,15 +145,15 @@ def start_log_stream(queue_size: int = 256, level: int = logging.DEBUG) -> None:
         has_ws_handler = any(isinstance(h, WSLogHandler) for h in onedragon_logger.handlers)
         if not has_ws_handler:
             onedragon_logger.addHandler(_handler)
-        
+
         # 不改变OneDragon logger的级别，保持其原有配置
-        
+
         # 同时为所有OneDragon子logger添加handler，但不改变级别
         for logger_name in ['OneDragon.onnx_ocr_matcher', 'OneDragon-YOLO']:
             sub_logger = logging.getLogger(logger_name)
             if not any(isinstance(h, WSLogHandler) for h in sub_logger.handlers):
                 sub_logger.addHandler(_handler)
-            
+
     except Exception as e:
         # 如果导入失败，至少添加到已知的logger
         logging.getLogger('OneDragon').addHandler(_handler)
@@ -199,20 +195,17 @@ def ensure_handler_attached() -> None:
     global _handler
     if _handler is None:
         return
-    
+
     try:
         onedragon_logger = logging.getLogger('OneDragon')
-        # 检查是否有WSLogHandler
-        has_ws_handler = any(isinstance(h, WSLogHandler) for h in onedragon_logger.handlers)
-        if not has_ws_handler:
-            # 重新添加handler，但不改变日志级别
+        # 检查是否有我们的特定handler实例（而不是类型）
+        if _handler not in onedragon_logger.handlers:
             onedragon_logger.addHandler(_handler)
-            
-        # 同时检查子logger
-        for logger_name in ['OneDragon.onnx_ocr_matcher', 'OneDragon-YOLO']:
-            sub_logger = logging.getLogger(logger_name)
-            if not any(isinstance(h, WSLogHandler) for h in sub_logger.handlers):
-                sub_logger.addHandler(_handler)
+
+        # 同时检查YOLO logger
+        yolo_logger = logging.getLogger('OneDragon-YOLO')
+        if _handler not in yolo_logger.handlers:
+            yolo_logger.addHandler(_handler)
     except Exception:
         pass
 
