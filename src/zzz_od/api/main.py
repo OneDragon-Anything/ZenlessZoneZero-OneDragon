@@ -148,12 +148,12 @@ def healthz():
 
 @app.get("/version")
 def version_alias():
-    ctx = get_ctx()
-    from one_dragon.utils import app_utils
-
+    # 复用home路由的缓存版本信息
+    from zzz_od.api.routers.home import get_version
+    version_info = get_version()
     return {
-        "version": app_utils.get_launcher_version(),
-        "gitRevision": ctx.git_service.get_current_version(),
+        "version": version_info["launcherVersion"],
+        "gitRevision": version_info["codeVersion"],
     }
 
 
