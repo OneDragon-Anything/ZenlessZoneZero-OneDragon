@@ -122,7 +122,7 @@ handlers:
           - op_name: "清除状态"
             state: "自定义-动作不打断"
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state_list: ["自定义-速切结束"]
       # E技能
       - states: "[莱特-能量]{80, 120} & [莱特-特殊技可用]"
         operations:
@@ -135,7 +135,7 @@ handlers:
           - op_name: "清除状态"
             state: "自定义-动作不打断"
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state_list: ["自定义-速切结束"]
 
       # 加不了BUFF也没有技能，不普通攻击，直接下场
       - states: ""
