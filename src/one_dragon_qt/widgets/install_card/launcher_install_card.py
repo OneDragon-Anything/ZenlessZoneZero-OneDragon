@@ -105,10 +105,12 @@ class LauncherInstallCard(BaseInstallCard):
         :return: 显示的图标、文本
         """
         if self.check_launcher_exist():
+            if os_utils.run_in_exe():  # 安装器中不检查更新
+                return FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value), gt('已安装')
             self.install_btn.setText(gt('检查中...'))
             is_latest, latest_version, current_version = self.check_launcher_update()
             self.install_btn.setDisabled(is_latest)
-            if is_latest or os_utils.run_in_exe():  # 安装器中不检查更新
+            if is_latest:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
                 msg = f"{gt('已安装')} {current_version}"
                 self.install_btn.setText(gt('已安装'))
