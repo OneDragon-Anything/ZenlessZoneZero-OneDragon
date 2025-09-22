@@ -31,7 +31,12 @@ class LauncherInstallCard(BaseInstallCard):
         for _ in range(2):
             zip_file_name = f'{self.ctx.project_config.project_name}-Launcher.zip'
             zip_file_path = os.path.join(DEFAULT_ENV_PATH, zip_file_name)
-            download_url = f'{self.ctx.project_config.github_homepage}/releases/{self.latest_version}/download/{zip_file_name}'
+            base = (
+                'latest/download'
+                if self.latest_version == 'latest'
+                else f'download/{self.latest_version}'
+            )
+            download_url = f'{self.ctx.project_config.github_homepage}/releases/{base}/{zip_file_name}'
             if not os.path.exists(zip_file_path):
                 success = self.ctx.download_service.download_file_from_url(download_url, zip_file_path, progress_callback=progress_callback)
                 if not success:
