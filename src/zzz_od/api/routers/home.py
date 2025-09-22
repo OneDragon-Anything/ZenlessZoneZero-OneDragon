@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import os
+import time
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import requests
 from fastapi import APIRouter, Depends
@@ -18,6 +19,18 @@ router = APIRouter(
     dependencies=[Depends(get_api_key_dependency())],
 )
 
+# 版本信息缓存
+_version_cache: Optional[Dict[str, str]] = None
+_version_cache_time: float = 0
+_version_cache_ttl: float = 300  # 缓存5分钟
+
+
+def clear_version_cache():
+    """清除版本缓存，用于代码更新后立即获取新版本"""
+    global _version_cache, _version_cache_time
+    _version_cache = None
+    _version_cache_time = 0
+
 
 @router.get("/version", response_model=Dict[str, str], summary="获取版本信息")
 def get_version() -> Dict[str, str]:
@@ -26,6 +39,7 @@ def get_version() -> Dict[str, str]:
 
     ## 功能描述
     返回启动器版本和代码版本信息，用于版本检查和显示。
+    版本信息会缓存5分钟，减少git命令调用频率。
 
     ## 返回数据
     - **launcherVersion**: 启动器版本号
@@ -40,11 +54,20 @@ def get_version() -> Dict[str, str]:
     print(f"代码版本: {version_info['codeVersion']}")
     ```
     """
-    ctx = get_ctx()
-    return {
-        "launcherVersion": app_utils.get_launcher_version(),
-        "codeVersion": ctx.git_service.get_current_version(),
-    }
+    global _version_cache, _version_cache_time
+
+    current_time = time.time()
+
+    # 检查缓存是否有效
+    if _version_cache is None or (current_time - _version_cache_time) > _version_cache_ttl:
+        ctx = get_ctx()
+        _version_cache = {
+            "launcherVersion": app_utils.get_launcher_version(),
+            "codeVersion": ctx.git_service.get_current_version(),
+        }
+        _version_cache_time = current_time
+
+    return _version_cache
 
 
 def _choose_banner(ctx) -> tuple[str, str, bool]:

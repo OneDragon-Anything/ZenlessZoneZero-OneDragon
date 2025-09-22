@@ -1316,6 +1316,11 @@ def update_git_remote() -> Dict[str, Any]:
     try:
         # 更新Git远程地址
         ctx.git_service.update_git_remote()
+
+        # 清除版本缓存，以便获取最新版本信息
+        from zzz_od.api.routers.home import clear_version_cache
+        clear_version_cache()
+
         return {
             "ok": True,
             "message": "Git remote updated successfully"
