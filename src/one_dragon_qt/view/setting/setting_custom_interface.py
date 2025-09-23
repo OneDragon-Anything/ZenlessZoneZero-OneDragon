@@ -1,11 +1,13 @@
 import os
 import shutil
 import ctypes
+import hashlib
 from ctypes import wintypes
+import base64
 
-from PySide6.QtWidgets import QWidget, QFileDialog
+from PySide6.QtWidgets import QWidget, QFileDialog, QVBoxLayout, QInputDialog, QLineEdit, QHBoxLayout
 from PySide6.QtGui import QColor
-from qfluentwidgets import Dialog, FluentIcon, PrimaryPushButton, SettingCardGroup, setTheme, Theme, ColorDialog
+from qfluentwidgets import Dialog, FluentIcon, PrimaryPushButton, SettingCardGroup, setTheme, Theme, ColorDialog, LineEdit, ToolButton
 
 from one_dragon.base.config.custom_config import ThemeEnum, UILanguageEnum, ThemeColorModeEnum
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -20,6 +22,13 @@ from one_dragon.utils.i18_utils import gt
 
 
 class SettingCustomInterface(VerticalScrollInterface):
+
+    @property
+    def theme_color_password_salt(self) -> str:
+        """从环境变量获取salt，如果没有则使用默认值"""
+        return os.environ.get('THEME_COLOR_SALT', base64.b64decode('dGhlbWVfY29sb3Jfc2FsdF8yMDI0').decode('utf-8'))
+
+    THEME_COLOR_PASSWORD_HASH = '9d8236e0db1853aea3953f7758b20057a88393e43913ceb85a778ba58b868c8b'  # greedisgood with salt
 
     def __init__(self, ctx: OneDragonContext, parent=None):
         self.ctx: OneDragonContext = ctx
@@ -70,6 +79,30 @@ class SettingCustomInterface(VerticalScrollInterface):
         self.theme_color_mode_opt.hBoxLayout.addWidget(self.custom_theme_color_btn, 0)
         self.theme_color_mode_opt.hBoxLayout.addSpacing(16)
         self.custom_theme_color_btn.setEnabled(self.ctx.custom_config.is_custom_theme_color)
+
+        # 主题色密码输入框
+        self.theme_color_password = LineEdit()
+        self.theme_color_password.setPlaceholderText(gt('请输入密码'))
+        self.theme_color_password.setEchoMode(LineEdit.EchoMode.Password)
+        self.theme_color_password.setMinimumWidth(150)
+        self.theme_color_password.setMaximumWidth(self.theme_color_password.maximumWidth() - 45)
+
+        # 切换显示/隐藏密码按钮
+        self.theme_color_password_toggle = ToolButton(FluentIcon.HIDE)
+        self.theme_color_password_toggle.setCheckable(True)
+        self.theme_color_password_toggle.clicked.connect(self._toggle_theme_color_password_visibility)
+
+        # 创建密码布局
+        self.theme_color_password_layout = QHBoxLayout()
+        self.theme_color_password_layout.setContentsMargins(0, 0, 0, 0)
+        self.theme_color_password_layout.addWidget(self.theme_color_password)
+        self.theme_color_password_layout.addSpacing(5)
+        self.theme_color_password_layout.addWidget(self.theme_color_password_toggle)
+
+        # 将密码布局添加到主题色配置中
+        self.theme_color_mode_opt.hBoxLayout.addSpacing(16)
+        self.theme_color_mode_opt.hBoxLayout.insertLayout(4, self.theme_color_password_layout, 0)
+
         basic_group.addSettingCard(self.theme_color_mode_opt)
 
         self.notice_card_opt = SwitchSettingCard(icon=FluentIcon.PIN, title='主页公告', content='在主页显示游戏公告')
@@ -140,6 +173,31 @@ class SettingCustomInterface(VerticalScrollInterface):
         """
         setTheme(Theme[self.ctx.custom_config.theme.upper()],lazy=True)
 
+    def _toggle_theme_color_password_visibility(self):
+        """切换主题色密码显示模式"""
+        if self.theme_color_password_toggle.isChecked():
+            self.theme_color_password.setEchoMode(LineEdit.EchoMode.Normal)  # 显示明文
+            self.theme_color_password_toggle.setIcon(FluentIcon.VIEW)
+        else:
+            self.theme_color_password.setEchoMode(LineEdit.EchoMode.Password)  # 隐藏明文
+            self.theme_color_password_toggle.setIcon(FluentIcon.HIDE)
+
+    def _verify_theme_color_password(self) -> bool:
+        """
+        验证主题色密码
+        :return: 是否验证成功
+        """
+        entered_password = self.theme_color_password.text()
+        hashed = hashlib.sha256((entered_password + self.theme_color_password_salt).encode()).hexdigest()
+        if hashed == self.THEME_COLOR_PASSWORD_HASH:
+            return True
+        else:
+            error_dialog = Dialog(gt('密码错误'), gt('密码不对哦~'), self)
+            error_dialog.yesButton.setText(gt('再试试吧'))
+            error_dialog.cancelButton.hide()
+            error_dialog.exec()
+            return False
+
     def _on_theme_color_mode_changed(self, index: int, value: str) -> None:
         """
         主题色模式改变
@@ -147,6 +205,13 @@ class SettingCustomInterface(VerticalScrollInterface):
         :param value: 值
         :return:
         """
+        # 如果切换到自定义模式，需要密码验证
+        if value == ThemeColorModeEnum.CUSTOM.value.value:
+            if not self._verify_theme_color_password():
+                # 密码验证失败，恢复到自动模式
+                self.theme_color_mode_opt.setValue(ThemeColorModeEnum.AUTO.value.value)
+                return
+
         # 如果切换到从背景提取，触发banner重载
         if value == ThemeColorModeEnum.AUTO.value.value:
             self.ctx.signal.reload_banner = True
@@ -156,6 +221,9 @@ class SettingCustomInterface(VerticalScrollInterface):
         """
         点击自定义主题色按钮
         """
+        if not self._verify_theme_color_password():
+            return
+
         color = self.ctx.custom_config.theme_color
         dialog = ColorDialog(QColor(color[0], color[1], color[2]), gt('请选择主题色'), self)
         dialog.colorChanged.connect(self._update_custom_theme_color)
