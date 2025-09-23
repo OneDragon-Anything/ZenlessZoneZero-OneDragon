@@ -78,6 +78,7 @@ class LauncherInstallCard(BaseInstallCard):
     def check_launcher_update(self) -> Tuple[bool, str, str]:
         current_version = app_utils.get_launcher_version()
         latest_stable, latest_beta = self.ctx.git_service.get_latest_tag()
+
         # 根据当前版本是否包含 -beta 来确定比较通道
         if current_version and '-beta' in current_version:
             # 测试通道：与最新测试版比较；若不存在测试版，则视为已最新
@@ -111,10 +112,14 @@ class LauncherInstallCard(BaseInstallCard):
         """
         if self.check_launcher_exist():
             if os_utils.run_in_exe():  # 安装器中不检查更新
-                return FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value), gt('已安装')
+                icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
+                msg = gt('已安装')
+                return icon, msg
+
             self.install_btn.setText(gt('检查中...'))
             is_latest, latest_version, current_version = self.check_launcher_update()
             self.install_btn.setDisabled(is_latest)
+
             if is_latest:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
                 msg = f"{gt('已安装')} {current_version}"
@@ -123,6 +128,7 @@ class LauncherInstallCard(BaseInstallCard):
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
                 msg = f"{gt('需更新')} {gt('当前版本')}: {current_version}; {gt('最新版本')}: {latest_version}"
                 self.install_btn.setText(gt('更新'))
+
         else:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
             msg = gt('需下载')
