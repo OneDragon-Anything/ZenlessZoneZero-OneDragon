@@ -54,6 +54,7 @@ class LostVoidApp(ZApplication):
 
     @operation_node(name='初始化加载', is_start_node=True)
     def init_for_lost_void(self) -> OperationRoundResult:
+        # 检查分配给今天的任务是否完成
         if self.ctx.lost_void_record.is_finished_by_day():
             return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
 
@@ -121,8 +122,28 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='通关后处理', status=STATUS_AGAIN)
     @operation_node(name='前往副本画面', node_max_retry_times=60)
     def goto_mission_screen(self) -> OperationRoundResult:
+        if self._check_period_reward():
+            # 周期奖励完成, 检查是否需要再刷
+            if self.ctx.lost_void_record.is_finished_by_day():
+                return self.round_success("已完成周期奖励")
         mission_name = self.ctx.lost_void_config.mission_name
         return self.round_by_goto_screen(screen_name=f'迷失之地-{mission_name}')
+
+    # 检查周期奖励
+    def _check_period_reward(self) -> bool:
+        ocr_result_map = self.ocr(self.last_screenshot, '迷失之地-大世界', '标签-悬赏委托完成进度')
+        # 找到了2个 8000 的算过 (悬赏委托完成进度 8000/8000)
+        # 找不到 8000 的也算过 (防止死循环)
+        count_8000 = 0
+        for ocr_result, mrl in ocr_result_map.items():
+            count_8000 += ocr_result.count('8000')
+        if count_8000 == 0 or count_8000 == 2:
+            # 如果周计划未完成, 设置为已完成
+            if not self.ctx.lost_void_record.period_reward_complete:
+                self.ctx.lost_void_record.period_reward_complete = True
+            return True
+
+        return False
 
     @node_from(from_name='前往副本画面')
     @operation_node(name='副本画面识别')
@@ -445,6 +466,8 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='通关后处理')
     @operation_node(name='打开悬赏委托')
     def open_reward_list(self) -> OperationRoundResult:
+        if self._check_period_reward():
+            return self.round_success("已完成周期奖励")
         return self.round_by_find_and_click_area(screen_name='迷失之地-入口', area_name='按钮-悬赏委托',
                                                  until_not_find_all=[('迷失之地-入口', '按钮-悬赏委托')],
                                                  success_wait=1, retry_wait=1)
@@ -455,6 +478,8 @@ class LostVoidApp(ZApplication):
         return self.round_by_find_and_click_area(screen_name='迷失之地-入口', area_name='按钮-悬赏委托-全部领取',
                                                  success_wait=1, retry_wait=1)
 
+    @node_from(from_name='前往副本画面', status='已完成周期奖励')
+    @node_from(from_name='打开悬赏委托', status='已完成周期奖励')
     @node_from(from_name='全部领取')
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
