@@ -62,6 +62,7 @@ class LauncherInstallCard(BaseInstallCard):
             if not success:  # 解压失败的话 可能是之前下的zip包坏了 尝试删除重来
                 continue
             else:
+                self.window().titleBar.setLauncherVersion(app_utils.get_launcher_version())
                 return True, gt('安装启动器成功')
 
         # 重试之后还是失败了
