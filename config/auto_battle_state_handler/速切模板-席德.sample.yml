@@ -39,7 +39,7 @@ handlers:
           - op_name: "清除状态"
             data: ["自定义-席德-准备合轴"]
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state_list: ["自定义-速切结束"]
 
       - states: "[席德-钢能]{120,999}"
         interrupt_states: "[席德-钢能]{0, 100}"
