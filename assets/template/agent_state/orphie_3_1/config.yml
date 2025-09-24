@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: orphie_3_1
+template_name: 角色状态-奥菲丝-31
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 137, 123
+- 223, 124
