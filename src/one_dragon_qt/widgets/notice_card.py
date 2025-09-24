@@ -560,7 +560,7 @@ class NoticeCard(SimpleCardWidget):
             # 白色半透明 + 轻投影增强可见性
             bg = 'rgba(255,255,255,180)'
             # 使用自定义阴影（通过盒阴影模拟，Qt 样式对 box-shadow 支持有限，退化为边框方案）
-            shadow = '1px solid rgba(0,0,0,35)'
+            shadow = "1px solid rgba(0,0,0,35)"
         # 采用边框方式模拟浅色模式下的描边
         self.pipsHolder.setStyleSheet(f"""
             QWidget#pipsHolder {{
@@ -572,9 +572,11 @@ class NoticeCard(SimpleCardWidget):
 
     def scrollNext(self):
         if self.banners:
+            self.flipView.blockSignals(True)
             self.flipView.setCurrentIndex(
                 (self.flipView.currentIndex() + 1) % len(self.banners)
             )
+            self.flipView.blockSignals(False)
 
     def _start_auto_scroll(self):
         """启动自动滚动"""
