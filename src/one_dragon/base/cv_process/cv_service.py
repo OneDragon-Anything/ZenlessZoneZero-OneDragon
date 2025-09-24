@@ -33,7 +33,7 @@ class CvService:
         :param od_ctx: 总上下文
         """
         self.od_ctx: OneDragonContext = od_ctx
-        self.ocr = od_ctx.ocr
+        self.ocr = od_ctx.cv_ocr
         self.template_loader = od_ctx.template_loader
 
         # 可用的步骤类型
