@@ -51,6 +51,7 @@ class LostVoidApp(ZApplication):
         self.priority_agent_list: list[Agent] = []  # 优先选择的代理人列表
 
         self.use_priority_agent: bool = False  # 本次挑战是否使用了UP代理人
+        self._period_reward_finished: bool = False
 
     @operation_node(name='初始化加载', is_start_node=True)
     def init_for_lost_void(self) -> OperationRoundResult:
@@ -122,7 +123,8 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='通关后处理', status=STATUS_AGAIN)
     @operation_node(name='前往副本画面', node_max_retry_times=60)
     def goto_mission_screen(self) -> OperationRoundResult:
-        if self._check_period_reward():
+        self._period_reward_finished = self._check_period_reward()
+        if self._period_reward_finished:
             # 周期奖励完成, 检查是否需要再刷
             if self.ctx.lost_void_record.is_finished_by_day():
                 return self.round_success("已完成周期奖励")
@@ -466,8 +468,7 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='通关后处理')
     @operation_node(name='打开悬赏委托')
     def open_reward_list(self) -> OperationRoundResult:
-        if self._check_period_reward():
-            return self.round_success("已完成周期奖励")
+        self._period_reward_finished = self._check_period_reward()
         return self.round_by_find_and_click_area(screen_name='迷失之地-入口', area_name='按钮-悬赏委托',
                                                  until_not_find_all=[('迷失之地-入口', '按钮-悬赏委托')],
                                                  success_wait=1, retry_wait=1)
@@ -475,11 +476,14 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='打开悬赏委托')
     @operation_node(name='全部领取')
     def claim_all(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(screen_name='迷失之地-入口', area_name='按钮-悬赏委托-全部领取',
+        time.sleep(1)
+        status = self.round_by_find_and_click_area(screen_name='迷失之地-入口', area_name='按钮-悬赏委托-全部领取',
                                                  success_wait=1, retry_wait=1)
+        if (not status.is_success) and self._period_reward_finished:
+            return self.round_success("已完成周期奖励")
+        return status
 
     @node_from(from_name='前往副本画面', status='已完成周期奖励')
-    @node_from(from_name='打开悬赏委托', status='已完成周期奖励')
     @node_from(from_name='全部领取')
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
