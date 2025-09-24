@@ -57,6 +57,35 @@ def _normalize_gamepad_type(gamepad_type: str) -> str:
     else:
         return gamepad_type  # 如果已经是正确的值，直接返回
 
+def _calc_task_duration(auto_op, running_task, now: float) -> float:
+    """根据当前任务所在的handler计算持续时间，未命中时返回0."""
+    if auto_op is None or running_task is None:
+        return 0.0
+
+    last_trigger_time = getattr(auto_op, 'last_trigger_time', {}) or {}
+    handler_key = None
+
+    trigger_name = getattr(running_task, 'trigger', None)
+    if trigger_name:
+        trigger_handlers = getattr(auto_op, 'trigger_scene_handler', {}) or {}
+        handler = trigger_handlers.get(trigger_name)
+        if handler is not None:
+            handler_key = id(handler)
+    else:
+        handler = getattr(auto_op, 'normal_scene_handler', None)
+        if handler is not None:
+            handler_key = id(handler)
+
+    if handler_key is None:
+        return 0.0
+
+    trigger_timestamp = last_trigger_time.get(handler_key)
+    if trigger_timestamp is None:
+        return 0.0
+
+    duration = now - trigger_timestamp
+    return duration if duration > 0 else 0.0
+
 router = APIRouter(
     prefix="/api/v1/battle-assistant",
     tags=["战斗助手 Battle Assistant"],
@@ -2483,8 +2512,7 @@ def get_detailed_battle_state_with_records(ctx: ZContext = Depends(get_ctx)):
                 # 获取当前任务信息
                 running_task = getattr(ctx.auto_op, 'running_task', None)
                 if running_task is not None:
-                    last_trigger_time = getattr(ctx.auto_op, 'last_trigger_time', {})
-                    duration = now - last_trigger_time.get(running_task.trigger_display, 0)
+                    duration = _calc_task_duration(ctx.auto_op, running_task, now)
 
                     current_task = TaskInfo(
                         trigger_display=running_task.trigger_display,
@@ -2653,8 +2681,7 @@ def get_current_task(ctx: ZContext = Depends(get_ctx)) -> Optional[TaskInfo]:
                 running_task = getattr(ctx.auto_op, 'running_task', None)
                 if running_task is not None:
                     now = time.time()
-                    last_trigger_time = getattr(ctx.auto_op, 'last_trigger_time', {})
-                    duration = now - last_trigger_time.get(running_task.trigger_display, 0)
+                    duration = _calc_task_duration(ctx.auto_op, running_task, now)
 
                     return TaskInfo(
                         trigger_display=running_task.trigger_display,
