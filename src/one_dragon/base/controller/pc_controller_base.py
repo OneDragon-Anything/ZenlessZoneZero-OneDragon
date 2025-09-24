@@ -29,8 +29,6 @@ class PcControllerBase(ControllerBase):
     MOUSEEVENTF_LEFTUP = 0x0004
     MOUSEEVENTF_ABSOLUTE = 0x8000
 
-    _screen_width = ctypes.windll.user32.GetSystemMetrics(0)
-    _screen_height = ctypes.windll.user32.GetSystemMetrics(1)
 
     def __init__(self, win_title: str,
                  standard_width: int = 1920,
@@ -184,7 +182,9 @@ class PcControllerBase(ControllerBase):
             from_pos = self.game_win.game2win_pos(start)
 
         to_pos = self.game_win.game2win_pos(end)
-        drag_mouse(from_pos, to_pos, duration=duration)
+        drag_mouse(from_pos, to_pos, duration=duration,
+                  screen_width=self.game_win.win_rect.width,
+                  screen_height=self.game_win.win_rect.height)
 
     def close_game(self):
         """
@@ -266,15 +266,21 @@ def get_mouse_sensitivity():
     return speed.value
 
 
-def drag_mouse(start: Point, end: Point, duration: float = 0.5, steps: int = 20):
+def drag_mouse(start: Point, end: Point, duration: float = 0.5, steps: int = 20, screen_width: int = None, screen_height: int = None):
     """
     按住鼠标左键进行画面拖动
     :param start: 原位置
     :param end: 拖动位置
     :param duration: 拖动鼠标到目标位置，持续秒数
     :param steps: 拖拽步数，值越大拖拽越平滑
+    :param screen_width: 屏幕宽度，如果不提供则使用系统默认
+    :param screen_height: 屏幕高度，如果不提供则使用系统默认
     :return:
     """
+    if screen_width is None:
+        screen_width = ctypes.windll.user32.GetSystemMetrics(0)
+    if screen_height is None:
+        screen_height = ctypes.windll.user32.GetSystemMetrics(1)
     # 将鼠标移动到起始位置
     pyautogui.moveTo(start.x, start.y)
     time.sleep(0.05)  # 短暂延时确保移动完成
@@ -294,8 +300,8 @@ def drag_mouse(start: Point, end: Point, duration: float = 0.5, steps: int = 20)
         current_y = start.y + dy * (i + 1)
 
         # 转换为绝对坐标（0-65535）
-        abs_x = int(current_x * 65535 / PcControllerBase._screen_width)
-        abs_y = int(current_y * 65535 / PcControllerBase._screen_height)
+        abs_x = int(current_x * 65535 / screen_width)
+        abs_y = int(current_y * 65535 / screen_height)
 
         # 移动鼠标
         ctypes.windll.user32.mouse_event(
