@@ -28,14 +28,8 @@
     draw_contours: 0
 - step: 按面积过滤
   params:
-    min_area: 500
-    max_area: 1200
-    draw_contours: 0
-- step: 按周长过滤
-  params:
-    closed: true
-    min_length: 80
-    max_length: 150
+    min_area: 100
+    max_area: 1500
     draw_contours: 0
 - step: 按长宽比过滤
   params:
