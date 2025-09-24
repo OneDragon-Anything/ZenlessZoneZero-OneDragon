@@ -15,12 +15,21 @@
     - 100
 - step: 腐蚀
   params:
-    kernel_size: 1
+    kernel_size: 3
+    iterations: 1
+- step: 膨胀
+  params:
+    kernel_size: 3
     iterations: 1
 - step: 查找轮廓
   params:
-    mode: CCOMP
+    mode: LIST
     method: SIMPLE
+    draw_contours: 0
+- step: 按面积过滤
+  params:
+    min_area: 100
+    max_area: 1500
     draw_contours: 0
 - step: 按长宽比过滤
   params:
@@ -30,4 +39,4 @@
 - step: 按质心距离过滤
   params:
     max_distance: 1
-    draw_contours: 0
+    draw_contours: 2
