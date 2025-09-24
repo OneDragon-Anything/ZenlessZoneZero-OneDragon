@@ -1,0 +1,12 @@
+# 根据动画实测，动画持续2秒
+operations:
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 3.5
+  - op_name: "设置状态"
+    state: "自定义-无视闪光"
+    seconds: 3.5
+  - op_name: "按键-特殊攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 3.5
+  - op_name: "按键-特殊攻击-松开"

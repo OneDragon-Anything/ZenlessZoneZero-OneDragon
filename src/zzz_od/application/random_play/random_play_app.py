@@ -53,12 +53,6 @@ class RandomPlayApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')
-    @operation_node(name='等待加载')
-    def wait_world(self) -> OperationRoundResult:
-        op = WaitNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
-
-    @node_from(from_name='等待加载')
     @operation_node(name='移动交互')
     def move_and_interact(self) -> OperationRoundResult:
         """

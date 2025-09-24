@@ -7,6 +7,7 @@ on:
 jobs:
   process_issue:
     runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'OneDragon-Anything' }}
     permissions:
       issues: write
 
@@ -80,7 +81,7 @@ jobs:
           } else if (issueBody.includes('### 问题范围\n\n其他')) {
             scopePrefix = '[其他] ';
           }
-          
+
           let newTitle = issueTitle;
           if (scopePrefix && !issueTitle.startsWith(scopePrefix)) { // 避免重复添加前缀
             newTitle = scopePrefix + issueTitle;

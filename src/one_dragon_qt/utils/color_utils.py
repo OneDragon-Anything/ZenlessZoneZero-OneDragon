@@ -143,3 +143,33 @@ class ColorUtils:
             lr, lg, lb = tmp2.red(), tmp2.green(), tmp2.blue()
         
         return lr, lg, lb
+    
+    @staticmethod
+    def limit_color_intensity(r: int, g: int, b: int, max_saturation: float = 0.7, 
+                            max_value: float = 0.85, min_value: float = 0.3) -> tuple[int, int, int]:
+        """
+        限制颜色的饱和度和明度，避免过于鲜艳或过暗
+        
+        Args:
+            r, g, b: 原始RGB颜色值
+            max_saturation: 最大饱和度 (0-1)，默认0.7
+            max_value: 最大明度 (0-1)，默认0.85
+            min_value: 最小明度 (0-1)，默认0.3
+            
+        Returns:
+            Tuple[int, int, int]: 限制后的RGB颜色值
+        """
+        color = QColor(r, g, b)
+        h, s, v, a = color.getHsvF()
+        
+        if h < 0:  # 灰阶时 hue 可能为 -1
+            h = 0.0
+        
+        # 限制饱和度，避免过于鲜艳
+        s = min(max_saturation, s)
+        
+        # 限制明度范围，避免过亮或过暗
+        v = max(min_value, min(max_value, v))
+        
+        limited_color = QColor.fromHsvF(h, s, v, 1.0)
+        return limited_color.red(), limited_color.green(), limited_color.blue()

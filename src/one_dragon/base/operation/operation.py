@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import difflib
 import inspect
 import time
 from functools import cached_property
 from io import BytesIO
-from typing import Optional, ClassVar, Callable, Any
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Optional
 
 import cv2
 import numpy as np
@@ -12,18 +14,22 @@ from cv2.typing import MatLike
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
-from one_dragon.base.operation.one_dragon_context import OneDragonContext, ContextRunningStateEventEnum
 from one_dragon.base.operation.operation_base import OperationBase, OperationResult
 from one_dragon.base.operation.operation_edge import OperationEdge, OperationEdgeDesc
 from one_dragon.base.operation.operation_node import OperationNode
-from one_dragon.base.operation.operation_round_result import OperationRoundResultEnum, OperationRoundResult
+from one_dragon.base.operation.operation_round_result import (
+    OperationRoundResult,
+    OperationRoundResultEnum,
+)
 from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_area import ScreenArea
-from one_dragon.base.screen.screen_utils import OcrClickResultEnum, FindAreaResultEnum
-from one_dragon.utils import debug_utils, cv2_utils, str_utils
+from one_dragon.base.screen.screen_utils import FindAreaResultEnum, OcrClickResultEnum
+from one_dragon.utils import cv2_utils, debug_utils, str_utils
 from one_dragon.utils.i18_utils import coalesce_gt, gt
 from one_dragon.utils.log_utils import log
 
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 class PreviousNodeStateProxy:
     """
@@ -211,6 +217,9 @@ class Operation(OperationBase):
 
         # 监听事件
         self.ctx.unlisten_all_event(self)
+        from one_dragon.base.operation.one_dragon_context import (
+            ContextRunningStateEventEnum,
+        )
         self.ctx.listen_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, self._on_pause)
         self.ctx.listen_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, self._on_resume)
 
@@ -938,7 +947,7 @@ class Operation(OperationBase):
             ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
                 image=screen,
                 color_range=color_range,
-                rect=None if area is None else area.rect
+                rect=area.rect if area is not None else None
             )
         else:
             # 回退到原有方法
@@ -996,7 +1005,7 @@ class Operation(OperationBase):
             area: Optional[ScreenArea] = None,
             success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,
             retry_wait: Optional[float] = None, retry_wait_round: Optional[float] = None,
-            color_range: Optional[list] = None,
+            color_range: Optional[list[list[int]]] = None,
             offset: Optional[Point] = None,
     ) -> OperationRoundResult:
         """使用OCR按优先级在区域内查找文本并点击。
@@ -1024,18 +1033,21 @@ class Operation(OperationBase):
             ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
                 image=screen,
                 color_range=color_range,
-                rect=area.rect,
+                rect=area.rect if area is not None else None
             )
         else:
             # 回退到原有方法
             to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
             if color_range is not None:
-                mask = cv2.inRange(to_ocr_part, color_range[0], color_range[1])
+                mask = cv2.inRange(to_ocr_part, np.array(color_range[0]), np.array(color_range[1]))
                 mask = cv2_utils.dilate(mask, 5)
                 to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
                 # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
 
             ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
+            if area is not None:
+                for _, mrl in ocr_result_map.items():
+                    mrl.add_offset(area.left_top)
 
         match_word, match_word_mrl = ocr_utils.match_word_list_by_priority(
             ocr_result_map,
@@ -1044,9 +1056,6 @@ class Operation(OperationBase):
         )
         if match_word is not None and match_word_mrl is not None and match_word_mrl.max is not None:
             to_click = match_word_mrl.max.center
-
-            if area is not None:
-                to_click = to_click + area.left_top
 
             if offset is not None:
                 to_click = to_click + offset

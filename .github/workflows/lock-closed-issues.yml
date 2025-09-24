@@ -10,6 +10,7 @@ on:
 jobs:
   lock_closed:
     runs-on: ubuntu-latest
+    if: ${{ github.repository_owner == 'OneDragon-Anything' }}
     permissions:
       issues: write
       pull-requests: write

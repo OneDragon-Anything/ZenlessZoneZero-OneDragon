@@ -37,70 +37,93 @@ from zzz_od.context.zzz_context import ZContext
 class ButtonGroup(SimpleCardWidget):
     """显示主页和 GitHub 按钮的竖直按钮组"""
 
-    def __init__(self, parent=None):
+    def __init__(self, ctx: ZContext, parent=None):
         super().__init__(parent=parent)
+        self.ctx = ctx
 
-        self.setBorderRadius(4)
+        self.setBorderRadius(12)
 
-        self.setFixedSize(56, 180)
+        self.setFixedSize(70, 190)
+
+        # 添加阴影效果
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(30)
+        shadow.setOffset(0, 8)
+        shadow.setColor(QColor(0, 0, 0, 160))
+        self.setGraphicsEffect(shadow)
 
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.setSpacing(8)  # 增加按钮间距
+        layout.setContentsMargins(8, 8, 8, 8)  # 增加内边距
+
+        # 存储按钮列表，用于自动提示演示
+        self.buttons = []
 
         # 创建主页按钮
         home_button = IconButton(
             FluentIcon.HOME.icon(color=QColor("#fff")),
             tip_title="一条龙官网",
-            tip_content="使用说明都能在这找到",
+            tip_content="🏠一条龙软件说明书>>",
             isTooltip=True,
         )
-        home_button.setIconSize(QSize(32, 32))
+        home_button.setIconSize(QSize(42, 42))
         home_button.clicked.connect(self.open_home)
         layout.addWidget(home_button)
+        self.buttons.append(home_button)
 
         # 创建 GitHub 按钮
         github_button = IconButton(
             FluentIcon.GITHUB.icon(color=QColor("#fff")),
             tip_title="GitHub仓库",
-            tip_content="如果本项目有帮助到您~\n不妨给项目点一个Star⭐",
+            tip_content="⭐点击收藏关注项目动态",
             isTooltip=True,
         )
-        github_button.setIconSize(QSize(32, 32))
+        github_button.setIconSize(QSize(42, 42))
         github_button.clicked.connect(self.open_github)
         layout.addWidget(github_button)
+        self.buttons.append(github_button)
 
         # 创建 文档 按钮
         doc_button = IconButton(
             FluentIcon.LIBRARY.icon(color=QColor("#fff")),
             tip_title="自助排障文档",
-            tip_content="点击打开自助排障文档,好孩子都能看懂",
+            tip_content="📕遇到问题? 查看更详细文档教程",
             isTooltip=True,
         )
-        doc_button.setIconSize(QSize(32, 32))
+        doc_button.setIconSize(QSize(42, 42))
         doc_button.clicked.connect(self.open_doc)
         layout.addWidget(doc_button)
+        self.buttons.append(doc_button)
 
-        # 创建 Q群 按钮
-        doc_button = IconButton(
+        # 创建 频道 按钮
+        chat_button = IconButton(
             FluentIcon.CHAT.icon(color=QColor("#fff")),
-            tip_title="官方社群",
-            tip_content="点击加入官方频道【一条龍】",
+            tip_title="官方 社群",
+            tip_content="🔥立刻点击加入火辣官方社区>>>>",
             isTooltip=True,
         )
-        doc_button.setIconSize(QSize(32, 32))
-        doc_button.clicked.connect(self.open_chat)
-        layout.addWidget(doc_button)
+        chat_button.setIconSize(QSize(42, 42))
+        chat_button.clicked.connect(self.open_chat)
+        layout.addWidget(chat_button)
+        self.buttons.append(chat_button)
 
         # 创建 官方店铺 按钮 (当然没有)
-        doc_button = IconButton(
+        shop_button = IconButton(
             FluentIcon.SHOPPING_CART.icon(color=QColor("#fff")),
-            tip_title="官方店铺",
-            tip_content="当然没有官方店铺,本软件完全免费, 速速加入官方社群!",
+            tip_title="🏅官方店铺???",
+            tip_content="💵限时劲爆特惠仅需0元点击马上加入会员>>",
             isTooltip=True,
         )
-        doc_button.setIconSize(QSize(32, 32))
-        doc_button.clicked.connect(self.open_sales)
-        layout.addWidget(doc_button)
+        shop_button.setIconSize(QSize(42, 42))
+        shop_button.clicked.connect(self.open_sales)
+        layout.addWidget(shop_button)
+        self.buttons.append(shop_button)
+
+        # 初始化自动提示定时器
+        self.tooltip_timer = QTimer(self)
+        self.tooltip_timer.timeout.connect(self._show_next_tooltip)
+        self.tooltip_demo_active = False
 
         # 未完工区域, 暂时隐藏
         # # 添加一个可伸缩的空白区域
@@ -113,30 +136,106 @@ class ButtonGroup(SimpleCardWidget):
         # sync_button.setIconSize(QSize(32, 32))
         # layout.addWidget(sync_button)
 
+    def start_tooltip_demo(self):
+        """启动自动提示演示"""
+        if self.tooltip_demo_active:
+            return
+
+        self.tooltip_demo_active = True
+        # 临时禁用所有按钮的鼠标悬停事件处理
+        self._disable_buttons_hover()
+
+        # 延迟2秒后同时显示所有提示（使用对象持有的单次定时器）
+        if not hasattr(self, "_show_timer"):
+            self._show_timer = QTimer(self)
+            self._show_timer.setSingleShot(True)
+            self._show_timer.timeout.connect(self._show_all_tooltips)
+        if not hasattr(self, "_hide_timer"):
+            self._hide_timer = QTimer(self)
+            self._hide_timer.setSingleShot(True)
+            self._hide_timer.timeout.connect(self._hide_all_tooltips)
+        self._show_timer.start(2000)
+
+    def _show_all_tooltips(self):
+        """同时显示所有按钮的提示"""
+        if not self.tooltip_demo_active:
+            return
+
+        # 同时显示所有按钮的提示（优先使用公开方法）
+        for btn in self.buttons:
+            show_fn = getattr(btn, "show_tooltip", None) or getattr(btn, "_show_tooltip", None)
+            if callable(show_fn):
+                show_fn()
+
+        # 3秒后自动隐藏所有提示（对象级计时器，便于 stop 时取消）
+        if hasattr(self, "_hide_timer"):
+            self._hide_timer.start(3000)
+
+    def _hide_all_tooltips(self):
+        """隐藏所有按钮的提示"""
+        for btn in self.buttons:
+            hide_fn = getattr(btn, "hide_tooltip", None) or getattr(btn, "_hide_tooltip", None)
+            if callable(hide_fn):
+                hide_fn()
+        self.tooltip_demo_active = False
+        # 重新启用所有按钮的鼠标悬停事件处理
+        self._enable_buttons_hover()
+
+    def stop_tooltip_demo(self):
+        """停止提示演示并立即隐藏所有提示"""
+        self.tooltip_demo_active = False
+        self.tooltip_timer.stop()
+        if hasattr(self, "_show_timer"):
+            self._show_timer.stop()
+        if hasattr(self, "_hide_timer"):
+            self._hide_timer.stop()
+        self._hide_all_tooltips()
+
+    def _disable_buttons_hover(self):
+        """临时禁用所有按钮的鼠标悬停事件处理"""
+        for btn in self.buttons:
+            if hasattr(btn, 'removeEventFilter'):
+                btn.removeEventFilter(btn)
+                btn._hover_disabled = True
+
+    def _enable_buttons_hover(self):
+        """重新启用所有按钮的鼠标悬停事件处理"""
+        for btn in self.buttons:
+            if hasattr(btn, '_hover_disabled') and btn._hover_disabled:
+                btn.installEventFilter(btn)
+                btn._hover_disabled = False
+
+    def _start_demo_timer(self):
+        """开始演示定时器 - 不再使用，保留以兼容"""
+        pass
+
+    def _show_next_tooltip(self):
+        """显示下一个按钮的提示 - 不再使用，保留以兼容"""
+        pass
+
     def _normalBackgroundColor(self):
-        return QColor(0, 0, 0, 96)
+        # 使用更鲜艳的渐变背景，增强视觉效果
+        return QColor(0, 0, 0, 140)  # 增加透明度使其更显眼
 
     def open_home(self):
         """打开主页链接"""
-        QDesktopServices.openUrl(QUrl("https://one-dragon.com/zzz/zh/home.html"))
+        QDesktopServices.openUrl(QUrl(self.ctx.project_config.home_page_link))
 
     def open_github(self):
         """打开 GitHub 链接"""
-        QDesktopServices.openUrl(
-            QUrl("https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon")
-        )
+        QDesktopServices.openUrl(QUrl(self.ctx.project_config.github_homepage))
 
     def open_chat(self):
         """打开 频道 链接"""
-        QDesktopServices.openUrl(QUrl("https://pd.qq.com/s/fumylgkj4"))
+        QDesktopServices.openUrl(QUrl(self.ctx.project_config.qq_link))
 
     def open_doc(self):
-        """打开 巡夜的金山文档 链接"""
-        QDesktopServices.openUrl(QUrl("https://kdocs.cn/l/cbSJUUNotJ3Z"))
+        """打开 腾讯文档 链接, 感谢历任薪王的付出 """
+        QDesktopServices.openUrl(QUrl(self.ctx.project_config.doc_link))
 
     def open_sales(self):
         """打开 Q群 链接"""
-        QDesktopServices.openUrl(QUrl("https://qm.qq.com/q/N5iEy8sTu0"))
+        QDesktopServices.openUrl(QUrl(self.ctx.project_config.qq_link))
 
 class BaseThread(QThread):
     """基础线程类，提供统一的 _is_running 管理"""
@@ -308,9 +407,9 @@ class HomeInterface(VerticalScrollInterface):
         h1_layout.addStretch()
 
         # 按钮组
-        button_group = ButtonGroup()
-        button_group.setMaximumHeight(320)
-        h1_layout.addWidget(button_group)
+        self.button_group = ButtonGroup(self.ctx)
+        self.button_group.setMaximumHeight(320)
+        h1_layout.addWidget(self.button_group)
 
         # 空白占位符
         h1_layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
@@ -471,6 +570,18 @@ class HomeInterface(VerticalScrollInterface):
         # 初始化主题色，避免navbar颜色闪烁
         self._update_start_button_style_from_banner()
 
+        # 启动导航栏按钮自动提示演示
+        if hasattr(self, 'button_group'):
+            self.button_group.start_tooltip_demo()
+
+    def on_interface_hidden(self) -> None:
+        """界面隐藏时的处理"""
+        super().on_interface_hidden()
+
+        # 立即停止并隐藏所有提示
+        if hasattr(self, 'button_group'):
+            self.button_group.stop_tooltip_demo()
+
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
             self._show_info_bar("代码已是最新版本", "Enjoy it & have fun!")
@@ -630,12 +741,15 @@ class HomeInterface(VerticalScrollInterface):
         return self._process_extracted_color(r, g, b)
 
     def _process_extracted_color(self, r: int, g: int, b: int) -> tuple[int, int, int]:
-        """处理从图片提取的颜色，增强鲜艳度和亮度"""
+        """处理从图片提取的颜色，增强鲜艳度和亮度，并限制在舒适的范围内"""
         # 增强颜色鲜艳度
         lr, lg, lb = ColorUtils.enhance_color_vibrancy(r, g, b)
 
         # 如果太暗则适当提亮
         lr, lg, lb = ColorUtils.brighten_if_too_dark(lr, lg, lb)
+        
+        # 限制颜色强度，避免过于鲜艳，保持人眼舒适度
+        lr, lg, lb = ColorUtils.limit_color_intensity(lr, lg, lb)
 
         return lr, lg, lb
 
@@ -644,8 +758,8 @@ class HomeInterface(VerticalScrollInterface):
         lr, lg, lb = theme_color
         text_color = ColorUtils.get_text_color_for_background(lr, lg, lb)
 
-        # 本按钮局部样式：圆角为高度一半（胶囊形），背景从图取色
-        radius = 24  # 固定按钮高度48px的一半，确保胶囊形状
+        # 本按钮局部样式：圆角与主页按钮组统一为12px，背景从图取色
+        radius = 12  # 与ButtonGroup保持一致的圆角
 
         style_sheet = f"""
         background-color: rgb({lr}, {lg}, {lb});

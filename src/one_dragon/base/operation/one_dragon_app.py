@@ -144,6 +144,10 @@ class OneDragonApp(Application):
             return self.round_success(status=OneDragonApp.STATUS_ALL_DONE)
 
         app = self._to_run_app_list[self._current_app_idx]
+        # 临时设置运行应用 后续应该在run_context中自行设置
+        self.ctx.run_context.current_instance_idx = self._instance_list[self._instance_idx].idx
+        self.ctx.run_context.current_group_id = 'one_dragon'
+        self.ctx.run_context.current_app_id = app.app_id
         app_result = app.execute()
         if not app_result.success:
             self._fail_app_idx.append(self._current_app_idx)

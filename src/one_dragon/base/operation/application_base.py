@@ -1,15 +1,18 @@
-from concurrent.futures import ThreadPoolExecutor
+from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
-from typing import Optional, Callable
 from io import BytesIO
+from typing import TYPE_CHECKING, Callable, Optional
 
 from one_dragon.base.notify.push import Push
 from one_dragon.base.operation.application_run_record import AppRunRecord
-from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.utils.i18_utils import gt
+
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 _app_preheat_executor = ThreadPoolExecutor(thread_name_prefix='od_app_preheat', max_workers=1)
 _notify_executor = ThreadPoolExecutor(thread_name_prefix='od_app_notify', max_workers=1)
@@ -72,7 +75,7 @@ class Application(Operation):
             self.notify(None)
 
         self.init_for_application()
-        self.ctx.start_running()
+        self.ctx.start_running()  # TODO 后续将这个调用移入 ApplicationRunContext
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
 
     def handle_resume(self) -> None:
@@ -90,7 +93,7 @@ class Application(Operation):
         Operation.after_operation_done(self, result)
         self._update_record_after_stop(result)
         if self.stop_context_after_stop:
-            self.ctx.stop_running()
+            self.ctx.stop_running()  # TODO 后续将这个调用移入 ApplicationRunContext
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_STOP.value, self.app_id)
         if self.need_notify:
             self.notify(result.success)
@@ -167,6 +170,6 @@ class Application(Operation):
         """
         初始化
         """
-        if self.need_ocr:
+        if self.need_ocr:  # TODO 后续删除这个参数 OCR作为基础服务统一在ctx做初始化
             self.ctx.init_ocr()
         return True

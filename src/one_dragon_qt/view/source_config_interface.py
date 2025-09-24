@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget, QHBoxLayout
-from qfluentwidgets import FluentIcon, SettingCardGroup, TitleLabel, PrimaryPushButton
+from qfluentwidgets import FluentIcon, SettingCardGroup, TitleLabel, PrimaryPushButton, PushButton
+import webbrowser
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.envs.env_config import CpythonSourceEnum, EnvSourceEnum, ProxyTypeEnum, PipSourceEnum, RegionEnum, RepositoryTypeEnum
@@ -65,6 +66,10 @@ class SourceConfigInterface(VerticalScrollInterface):
         self.advanced_group = self.get_advanced_group()
         content_widget.add_widget(self.advanced_group)
 
+        # 链接按钮行
+        self.links_widget = self.get_links_widget()
+        content_widget.add_widget(self.links_widget, alignment=Qt.AlignmentFlag.AlignCenter)
+
         return content_widget
 
     def get_advanced_group(self) -> QWidget:
@@ -125,6 +130,39 @@ class SourceConfigInterface(VerticalScrollInterface):
 
         return advanced_group
 
+    def get_links_widget(self) -> QWidget:
+        """创建并返回底部的横向链接按钮行（不带标题）"""
+        links_widget = QWidget()
+        links_layout = QHBoxLayout(links_widget)
+        links_layout.setContentsMargins(0, 0, 0, 0)
+        links_layout.setSpacing(60)
+
+        # 官网按钮
+        self.website_btn = PushButton(gt('官网'), icon=FluentIcon.HOME)
+        self.website_btn.setFixedSize(140, 35)
+        self.website_btn.clicked.connect(self._on_website_clicked)
+        links_layout.addWidget(self.website_btn)
+
+        # GitHub仓库按钮
+        self.github_btn = PushButton(gt('开源地址'), icon=FluentIcon.GITHUB)
+        self.github_btn.setFixedSize(140, 35)
+        self.github_btn.clicked.connect(self._on_github_clicked)
+        links_layout.addWidget(self.github_btn)
+
+        # 帮助文档按钮
+        self.help_btn = PushButton(gt('帮助文档'), icon=FluentIcon.DICTIONARY)
+        self.help_btn.setFixedSize(140, 35)
+        self.help_btn.clicked.connect(self._on_help_clicked)
+        links_layout.addWidget(self.help_btn)
+
+        # 官方社区按钮
+        self.qq_channel_btn = PushButton(gt('官方社区'), icon=FluentIcon.CHAT)
+        self.qq_channel_btn.setFixedSize(140, 35)
+        self.qq_channel_btn.clicked.connect(self._on_qq_channel_clicked)
+        links_layout.addWidget(self.qq_channel_btn)
+
+        return links_widget
+
     def _on_region_changed(self, index: int, value: str):
         if index == 0:  # 中国 - Gitee
             self.ctx.env_config.repository_type = RepositoryTypeEnum.GITEE.value.value
@@ -183,3 +221,18 @@ class SourceConfigInterface(VerticalScrollInterface):
     def on_interface_shown(self):
         VerticalScrollInterface.on_interface_shown(self)
         self._init_config_values()
+    def _on_website_clicked(self):
+        """点击官网按钮时打开官网"""
+        webbrowser.open(self.ctx.project_config.home_page_link)
+
+    def _on_github_clicked(self):
+        """点击GitHub按钮时打开GitHub仓库"""
+        webbrowser.open(self.ctx.project_config.github_homepage)
+
+    def _on_help_clicked(self):
+        """点击帮助按钮时打开排障文档"""
+        webbrowser.open(self.ctx.project_config.doc_link)
+
+    def _on_qq_channel_clicked(self):
+        """点击官方社区按钮时打开官方社区"""
+        webbrowser.open(self.ctx.project_config.qq_link)

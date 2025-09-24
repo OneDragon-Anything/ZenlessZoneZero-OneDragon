@@ -1,6 +1,6 @@
 sub_dir: normal_world_investigation
 template_id: menu
-template_name: ''
+template_name: '勘域-菜单'
 template_shape: quadrilateral
 auto_mask: true
 point_list:

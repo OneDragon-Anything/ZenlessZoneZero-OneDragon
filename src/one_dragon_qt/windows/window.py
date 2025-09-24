@@ -424,6 +424,17 @@ class PhosTitleBar(SplitTitleBar):
             self.launcherVersionButton.setVisible(True)
         self.codeVersionButton.setVisible(True)
 
+    def setInstallerVersion(self, version: str) -> None:
+        """
+        设置安装器版本号 会更新UI
+        @param version: 版本号
+        @return:
+        """
+        self.launcher_version = version
+        self.launcherVersionButton.setText(f"ⓘ 安装器版本 {version}")
+        if version:
+            self.launcherVersionButton.setVisible(True)
+
     # 定义打开GitHub网页的函数
     def open_github(self):
         url = QUrl(self.issue_url)

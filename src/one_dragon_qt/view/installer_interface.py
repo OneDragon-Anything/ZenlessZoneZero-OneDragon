@@ -1,5 +1,6 @@
 import os
 import shutil
+import webbrowser
 
 from pathlib import Path
 from PySide6.QtCore import Qt, QThread, QTimer, QSize, Signal
@@ -13,6 +14,7 @@ from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 from one_dragon_qt.widgets.install_card.all_install_card import AllInstallCard
 from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
 from one_dragon_qt.widgets.install_card.git_install_card import GitInstallCard
@@ -33,22 +35,16 @@ class UnpackResourceRunner(QThread):
         self.work_dir = work_dir
 
     def run(self):
-        if Path(self.installer_dir) != Path(self.work_dir):
-            # 复制完整包资源
+        uv_zip_dir = Path(self.installer_dir) / '.install' / 'uv-x86_64-pc-windows-msvc.zip'
+        if Path(self.installer_dir) != Path(self.work_dir) and uv_zip_dir.exists():
             try:
-                install_dir = Path(self.installer_dir) / '.install'
-                dest_install_dir = Path(self.work_dir) / '.install'
-                if install_dir.exists():
-                    shutil.copytree(install_dir, dest_install_dir, dirs_exist_ok=True)
-
-                assets_dir = Path(self.installer_dir) / 'assets'
-                dest_assets_dir = Path(self.work_dir) / 'assets'
-                if assets_dir.exists():
-                    shutil.copytree(assets_dir, dest_assets_dir, dirs_exist_ok=True)
+                shutil.copytree(self.installer_dir, self.work_dir, dirs_exist_ok=True)
                 self.finished.emit(True)
             except Exception as e:
                 log.error(f"解包资源失败: {e}")
                 self.finished.emit(False)
+        else:
+            self.finished.emit(True)
 
 
 class ClickableStepCircle(QLabel):
@@ -318,6 +314,22 @@ class InstallStepWidget(QWidget):
             self.status_label.setText(gt('✗ 安装失败'))
             self.status_label.setStyleSheet("color: #d13438; font-weight: bold;")
             self.installing_idx = -1
+
+            # 安装失败时自动打开帮助文档
+            # 通过父级的ctx获取配置
+            ctx = None
+            if hasattr(self, 'install_cards') and self.install_cards:
+                for card in self.install_cards:
+                    if hasattr(card, 'ctx'):
+                        ctx = card.ctx
+                        break
+
+            if ctx and hasattr(ctx, 'project_config'):
+                webbrowser.open(ctx.project_config.doc_link)
+            else:
+                log.warning("未找到可用的 ctx，无法打开帮助文档")
+            log.info("步骤安装失败，已自动打开帮助文档")
+
             self.step_completed.emit(False)
         else:
             self.installing_idx += 1
@@ -394,12 +406,13 @@ class InstallerInterface(VerticalScrollInterface):
         logo_vlayout.addStretch(1)
         self.card_logo_label = QLabel()
         card_logo_pixmap = QPixmap('assets/ui/logo.ico')
-        pixel_ratio = self.devicePixelRatio()
+
         target_size = QSize(160, 160)
-        scaled_pixmap = card_logo_pixmap.scaled(target_size * pixel_ratio, 
-                                                Qt.AspectRatioMode.KeepAspectRatio, 
-                                                Qt.TransformationMode.SmoothTransformation)
-        scaled_pixmap.setDevicePixelRatio(pixel_ratio)
+        scaled_pixmap = scale_pixmap_for_high_dpi(
+            card_logo_pixmap,
+            target_size,
+            self.devicePixelRatio()
+        )
         self.card_logo_label.setPixmap(scaled_pixmap)
         self.card_logo_label.setFixedSize(target_size)
         self.card_logo_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
@@ -558,6 +571,12 @@ class InstallerInterface(VerticalScrollInterface):
         self.back_btn.clicked.connect(self.show_quick)
         button_layout.addWidget(self.back_btn)
 
+        # 源配置按钮
+        self.source_config_btn = PushButton(gt('源配置'))
+        self.source_config_btn.setFixedSize(120, 40)
+        self.source_config_btn.clicked.connect(lambda: self.window().stackedWidget.setCurrentIndex(0))
+        button_layout.addWidget(self.source_config_btn)
+
         # 将后续按钮推向右侧
         button_layout.addStretch()
 
@@ -644,6 +663,14 @@ class InstallerInterface(VerticalScrollInterface):
             else:
                 self.show_completion_message()
         else:
+            # 安装失败时自动打开帮助文档
+            webbrowser.open(self.ctx.project_config.doc_link)
+            log.info("安装失败，已自动打开帮助文档")
+            # 更新进度标签显示文档已打开的信息
+            self.progress_label.setText(gt('安装失败！已自动打开排障文档'))
+            self.progress_label.setStyleSheet("color: #d13438;")
+
+            self.progress_label.setVisible(True)
             self.install_btn.setVisible(True)
             self.progress_ring.setVisible(False)
             self.advanced_btn.setVisible(False)
@@ -937,7 +964,11 @@ class InstallerInterface(VerticalScrollInterface):
         self.progress_ring.setVisible(False)
         self.progress_label.setVisible(not success)
         if not success:
-            self.progress_label.setText(gt('资源解压失败，请更换安装目录'))
+            # 资源解压失败时自动打开帮助文档
+            webbrowser.open(self.ctx.project_config.doc_link)
+            log.info("资源解压失败，已自动打开帮助文档")
+            self.progress_label.setText(gt('资源解压失败！已自动打开排障文档'))
+            self.progress_label.setStyleSheet("color: #d13438;")
 
     def on_interface_shown(self) -> None:
         super().on_interface_shown()

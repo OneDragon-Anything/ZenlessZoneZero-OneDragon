@@ -1,0 +1,10 @@
+sub_dir: battle
+template_id: avatar_2_xx
+template_name: 模板-战斗-头像-2,3号位小头像
+template_shape: quadrilateral
+auto_mask: true
+point_list:
+- 582, 50
+- 569, 81
+- 639, 81
+- 652, 50

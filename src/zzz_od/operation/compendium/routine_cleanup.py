@@ -30,10 +30,13 @@ class RoutineCleanup(ZOperation):
     STATUS_CHARGE_ENOUGH: ClassVar[str] = '电量充足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
-    def __init__(self, ctx: ZContext, plan: ChargePlanItem,
-                 can_run_times: Optional[int] = None,
-                 need_check_power: bool = False
-                 ):
+    def __init__(
+        self,
+        ctx: ZContext,
+        plan: ChargePlanItem,
+        can_run_times: int,
+        need_check_power: bool = False
+    ):
         """
         使用快捷手册传送后
         用这个进行挑战
@@ -51,7 +54,7 @@ class RoutineCleanup(ZOperation):
         self.need_check_power: bool = need_check_power
         self.can_run_times: int = can_run_times
         self.charge_left: Optional[int] = None
-        self.charge_need: Optional[int] = None
+        self.charge_need: int = 60  # 固定消耗
 
         self.auto_op: Optional[AutoBattleOperator] = None
 
@@ -106,23 +109,24 @@ class RoutineCleanup(ZOperation):
             else:
                 return self.round_success(RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
 
-        area = self.ctx.screen_loader.get_area('定期清剿', '剩余电量')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-        self.charge_left = str_utils.get_positive_digits(ocr_result, None)
-        if self.charge_left is None:
+        area = self.ctx.screen_loader.get_area('定期清剿', '电量')
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot, rect=area.rect)
+        if len(ocr_result_map) == 0:
             return self.round_retry(status='识别 %s 失败' % '剩余电量', wait=1)
 
-        area = self.ctx.screen_loader.get_area('定期清剿', '需要电量')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-        self.charge_need = str_utils.get_positive_digits(ocr_result, None)
-        if self.charge_need is None:
-            return self.round_retry(status='识别 %s 失败' % '需要电量', wait=1)
+        for ocr_result, mrl in ocr_result_map.items():
+            text = ocr_result
+            if text.endswith('60'):
+                text.replace('60', '')
+            if text.endswith('/'):
+                text.replace("/", "")
+            elif text.endswith("1"):  # 有时候会识别错
+                text.replace('1', '')
 
-        log.info('所需电量 %d 剩余电量 %d', self.charge_need, self.charge_left)
-        if self.charge_need > self.charge_left:
-            return self.round_success(RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
+            self.charge_left = str_utils.get_positive_digits(text, None)
+
+        if self.charge_left is None:
+            return self.round_retry(status='识别 %s 失败' % '剩余电量', wait=1)
 
         self.can_run_times = self.charge_left // self.charge_need
         max_need_run_times = self.plan.plan_times - self.plan.run_times
@@ -295,14 +299,15 @@ def __debug():
     ctx.init_by_config()
     ctx.init_ocr()
     ctx.start_running()
-    op = RoutineCleanup(ctx, ChargePlanItem(
+    plan = ChargePlanItem(
         category_name='定期清剿',
-        mission_type_name='怪兽与怪客',
+        mission_type_name='铁律与狂徒',
         auto_battle_config='全配队通用',
         predefined_team_idx=0
-    ))
+    )
+    op = RoutineCleanup(ctx, plan, 2, need_check_power=True)
     op.execute()
 
 
 if __name__ == '__main__':
-    __debug_charge()
+    __debug()

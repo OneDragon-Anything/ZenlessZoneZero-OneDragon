@@ -19,6 +19,7 @@ from one_dragon.utils.log_utils import log
 class OcrCacheEntry:
     """OCR缓存条目"""
     image_id: int  # 图片在内存中的ID
+    image: MatLike  # 将图片也缓存起来 防止旧图片没引用被回收 导致出现新图片ID与旧图片重复
     ocr_result_list: list[OcrMatchResult]  # OCR识别结果
     create_time: float  # 创建时间
     color_range: list[list[int]] | None  # 颜色范围
@@ -28,7 +29,11 @@ class OcrService:
     """
     OCR服务
     - 提供缓存
-    - 提存并发识别 (未实现)
+    - 提供并发识别 (未实现)
+
+    缺点：
+    - 全图识别后，识别得到的文本无法按选定区域进行精准切割。
+      - 例如 [图标]真实文本，会将图标错误识别成某些文本拼在一起，无法通过选择区域精准识别真实文本部分.
     """
     
     def __init__(self, ocr_matcher: OcrMatcher, max_cache_size: int = 5):
@@ -66,7 +71,7 @@ class OcrService:
                 except ValueError:
                     # 在罕见的并发场景下，如果条目已经被移除，可能会发生这种情况，但可以安全地忽略。
                     pass
-    
+
     def _apply_color_filter(self, image: MatLike, color_range: list[list[int]]) -> MatLike:
         """
         应用颜色过滤，最后返回黑白图。
@@ -157,6 +162,7 @@ class OcrService:
                 create_time=time.time(),
                 color_range=color_range,
                 image_id=image_id,
+                image=image,
             )
             if image_id not in self._cache:
                 self._cache[image_id] = []

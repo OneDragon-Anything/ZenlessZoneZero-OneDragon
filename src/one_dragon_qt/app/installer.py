@@ -5,6 +5,7 @@ from qfluentwidgets import NavigationItemPosition, SplashScreen
 from typing import Optional
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
+from one_dragon.version import __version__
 from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon_qt.windows.app_window_base import AppWindowBase
 from one_dragon.utils import os_utils
@@ -73,6 +74,7 @@ class InstallerWindowBase(AppWindowBase):
     # 继承初始化函数
     def init_window(self):
         self.resize(960, 640)
+        self.setMinimumSize(960, 640)
 
         # 初始化位置
         self.move(100, 100)
@@ -81,7 +83,7 @@ class InstallerWindowBase(AppWindowBase):
         self.setObjectName("PhosWindow")
         self.navigationInterface.setObjectName("NavigationInterface")
         self.stackedWidget.setObjectName("StackedWidget")
-        self.titleBar.setObjectName("TitleBar")    
+        self.titleBar.setObjectName("TitleBar")
 
         # 布局样式调整
         self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
@@ -95,4 +97,5 @@ class InstallerWindowBase(AppWindowBase):
         OdQtStyleSheet.TITLE_BAR.apply(self.titleBar)
 
         # 设置参数
+        self.titleBar.setInstallerVersion(__version__)
         self.titleBar.issue_url = f"{self.ctx.project_config.github_homepage}/issues"

@@ -91,7 +91,7 @@ class SettingCustomInterface(VerticalScrollInterface):
             title='自定义主页背景',
             extra_btn=self.banner_select_btn,
             password_hint='使用此功能需要密码哦~',
-            password_hash='d7103a21d03b8b922c3af3d477a0adde1633053cde1a7574e8009293ca3b70f1',
+            password_hash='d678f04ece93caaa4d030696429101725cbf31657dd9ded4fdc3b71b3ee05c54',
             dialog_title='嘻嘻~',
             dialog_content='密码不对哦~',
             dialog_button_text='再试试吧',

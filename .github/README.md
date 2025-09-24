@@ -75,19 +75,30 @@ __ZenlessZoneZero-OneDragon__
 
 </div>
 
-## 📢 加入社区
+## 📢 官方渠道
 
 <div>
 
-🔗 **官方QQ群组**  
-👉 主群：`861603314`(请参阅下方内容)   
-👶 新手村：`925199190`
+> 🔗 [官方网站](https://one-dragon.com/)
+> 
+> 功能使用教程 (提供脚本配置和长期性问题汇总等帮助)
 
-💬 [问题反馈](https://github.com/DoctorReid/ZenlessZoneZero-OneDragon/issues)
+> 💬 [官方频道](https://pd.qq.com/g/onedrag00n)
+> 
+> 使用经验分享 (提供聊天吹水,晒卡吸欧,快速答疑,养成策略)
 
-> 申请主群，需要点星星，并填入Github账号的ID作为入群申请 (右上角头像 -> Your Profile，网址上显示的ID)，请遵守群规，友善交流。
+> ❓ [官方文档](https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5)
+> 
+> 疑难杂症诊断 (提供版本更新指南和短期性问题等帮助)
 
+> 👉 [问题反馈](https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon/issues)
+> 
+> 优化建议收集 (提供问题报错和功能优化建议提交渠道)
 
+> 👨‍👨‍👦‍👦 玩家互助聊天群
+> 
+> 见频道关联群聊
+> 请先对该项目点⭐（右上角“star")，入群需填入 Github 账号的 ID(头像 → Your Profile，URL 中的 ID), 请遵守群规,友善交流
 
 </div>
 

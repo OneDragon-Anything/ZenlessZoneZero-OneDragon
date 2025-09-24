@@ -1,13 +1,13 @@
 from functools import partial
 
 import numpy as np
-from PySide6.QtCore import Qt, QPoint
-from PySide6.QtGui import QImage, QPixmap, QClipboard
-from PySide6.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QHBoxLayout, QFileDialog, QFrame
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtWidgets import QWidget, QSizePolicy, QVBoxLayout, QHBoxLayout, QFileDialog, QApplication
 from qfluentwidgets import (
-    FluentIcon, ComboBox, CheckBox, SpinBox, DoubleSpinBox, PushButton, ToolButton, PlainTextEdit, LineEdit,
-    SubtitleLabel, BodyLabel, InfoBar, InfoBarPosition, ListWidget, SimpleCardWidget, ScrollArea,
-    MessageBoxBase, Dialog
+    ComboBox, CheckBox, SpinBox, DoubleSpinBox, PushButton, ToolButton, PlainTextEdit, LineEdit,
+    FluentIcon, SubtitleLabel, BodyLabel, InfoBar, InfoBarPosition, MessageBoxBase, Dialog,
+    ListWidget, SimpleCardWidget, SingleDirectionScrollArea
 )
 
 from one_dragon.base.cv_process.cv_step import CvStep
@@ -15,7 +15,7 @@ from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.logic.image_analysis_logic import ImageAnalysisLogic
 from one_dragon_qt.widgets.color_channel_dialog import ColorChannelDialog
-from one_dragon_qt.widgets.color_info_dialog import ColorInfoDialog
+from one_dragon_qt.widgets.color_tip import ColorTip
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
 
@@ -70,6 +70,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         """
         self.open_btn.clicked.connect(self._on_open_image)
         self.image_label.right_clicked_with_pos.connect(self._on_image_right_clicked)
+        self.image_label.rect_selected.connect(self._on_image_rect_selected)
         self.del_btn.clicked.connect(self._on_delete_step)
         self.copy_btn.clicked.connect(self._on_copy_code_clicked)
         self.up_btn.clicked.connect(self._on_move_step_up)
@@ -103,8 +104,8 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         # 右侧显示面板C
         display_panel_c = self._init_display_panel()
 
-        main_layout.addWidget(control_panel_b, stretch=1)
-        main_layout.addWidget(display_panel_c, stretch=2)
+        main_layout.addWidget(control_panel_b)
+        main_layout.addWidget(display_panel_c, stretch=1)
 
         return main_widget
 
@@ -113,9 +114,11 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         初始化左侧的控制面板 (容器B)，垂直布局
         """
         # 容器B，垂直布局
+        scroll_area = SingleDirectionScrollArea()
+
         control_widget = QWidget()
         control_layout = QVBoxLayout(control_widget)
-        control_layout.setContentsMargins(0, 0, 0, 0)
+        control_layout.setContentsMargins(0, 0, 16, 0)
         control_layout.setSpacing(12)
 
         # B1: 顶部操作按钮
@@ -131,11 +134,14 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         result_widget = self._init_result_widget()
 
         control_layout.addWidget(op_buttons_widget)
-        control_layout.addWidget(pipeline_widget, stretch=1)  # 可伸缩
-        control_layout.addWidget(param_widget, stretch=1)  # 可伸缩
+        control_layout.addWidget(pipeline_widget)
+        control_layout.addWidget(param_widget)
         control_layout.addWidget(result_widget)
 
-        return control_widget
+        scroll_area.setWidget(control_widget)
+        scroll_area.setWidgetResizable(True)
+
+        return scroll_area
 
     def _init_display_panel(self) -> QWidget:
         """
@@ -148,14 +154,9 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         display_layout.setSpacing(12)
 
         # C1: 图像显示区域
-        scroll_area = ScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-
         self.image_label = ZoomableClickImageLabel()
-        scroll_area.setWidget(self.image_label)
 
-        display_layout.addWidget(scroll_area, stretch=1)
+        display_layout.addWidget(self.image_label, stretch=1)
 
         return display_widget
 
@@ -173,7 +174,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         layout.addWidget(self.toggle_view_btn)
         self.run_btn = PushButton(text=gt('执行'), icon=FluentIcon.PLAY_SOLID)
         layout.addWidget(self.run_btn)
-        self.color_channel_btn = PushButton(text='色彩通道', icon=FluentIcon.INFO)
+        self.color_channel_btn = PushButton(text=gt('色彩通道'), icon=FluentIcon.INFO)
         layout.addWidget(self.color_channel_btn)
         layout.addStretch(1)
         return widget
@@ -191,6 +192,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         pipeline_manage_widget = self._init_pipeline_manage_widget()
         layout.addWidget(pipeline_manage_widget)
 
+        # 流水线步骤列表
         self.pipeline_list_widget = ListWidget()
         layout.addWidget(self.pipeline_list_widget)
 
@@ -550,7 +552,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         复制流水线代码到剪贴板
         """
         code = self.logic.get_pipeline_code()
-        clipboard = QClipboard()
+        clipboard = QApplication.clipboard()
         clipboard.setText(code)
         InfoBar.success(
             title=gt('成功'),
@@ -666,21 +668,29 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         if image_np is None:
             return
 
-        if len(image_np.shape) == 2:  # Mask (灰度图)
-            image_to_show = image_np.copy()
-            height, width = image_to_show.shape
-            bytes_per_line = width
-            q_image = QImage(image_to_show.data, width, height, bytes_per_line, QImage.Format.Format_Grayscale8)
-        elif len(image_np.shape) == 3:  # RGB
-            image_to_show = image_np.copy()
-            height, width, channel = image_to_show.shape
-            bytes_per_line = 3 * width
-            q_image = QImage(image_to_show.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
-        else:
+        # 根据维度判断图像类型并提取基本尺寸信息
+        ndim = image_np.ndim
+        if ndim not in (2, 3):
             return
 
+        height, width = image_np.shape[0], image_np.shape[1]
+
+        # 创建连续内存的 uint8 视图
+        arr = np.ascontiguousarray(image_np.astype(np.uint8, copy=False))
+
+        if ndim == 2:  # 灰度
+            q_image = QImage(arr.data, width, height, int(arr.strides[0]), QImage.Format.Format_Grayscale8).copy()
+        elif ndim == 3:  # 彩色
+            channel = image_np.shape[2]
+            if channel == 3:
+                q_image = QImage(arr.data, width, height, int(arr.strides[0]), QImage.Format.Format_RGB888).copy()
+            elif channel == 4:
+                q_image = QImage(arr.data, width, height, int(arr.strides[0]), QImage.Format.Format_RGBA8888).copy()
+            else:
+                return
+
         pixmap = QPixmap.fromImage(q_image)
-        self.image_label.setPixmap(pixmap)
+        self.image_label.setPixmap(pixmap, preserve_state=True)
 
     def _on_image_right_clicked(self, x: int, y: int):
         """
@@ -689,17 +699,49 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         if self.logic.context is None:
             return
 
-        display_pos = QPoint(x, y)
-        image_pos = self.image_label.map_display_to_image_coords(display_pos)
-        if image_pos is None:
-            return
-
-        color_info = self.logic.get_color_info_at(image_pos.x(), image_pos.y())
+        color_info = self.logic.get_color_info_at(x, y)
         if color_info is None:
             return
 
-        dialog = ColorInfoDialog(color_info, self.window())
-        dialog.exec()
+        # 准备颜色信息列表
+        color_infos = []
+
+        # 当前图像信息
+        if color_info.get('display_rgb') and color_info.get('display_hsv'):
+            color_infos.append({
+                'pos': color_info.get('pos'),
+                'rgb': color_info.get('display_rgb'),
+                'hsv': color_info.get('display_hsv'),
+                'title': gt('当前图像')
+            })
+
+        # 原始图像信息
+        if color_info.get('source_rgb') and color_info.get('source_hsv'):
+            color_infos.append({
+                'pos': color_info.get('source_pos'),
+                'rgb': color_info.get('source_rgb'),
+                'hsv': color_info.get('source_hsv'),
+                'title': gt('原始图像')
+            })
+
+        # 显示颜色提示框
+        if color_infos:
+            ColorTip.show_color_tip(self.image_label, color_infos, self)
+
+    def _on_image_rect_selected(self, left: int, top: int, right: int, bottom: int):
+        """
+        响应框选
+        """
+        if self.logic.context is None:
+            return
+        # 轻量反馈：仅提示选择区域坐标，避免误用再次坐标转换
+        InfoBar.success(
+            title=gt('已选择区域'),
+            content=f"({left}, {top}) - ({right}, {bottom})",
+            duration=2000,
+            parent=self,
+            position=InfoBarPosition.TOP
+        )
 
     def _on_color_channel_clicked(self):
         """
@@ -707,8 +749,8 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         """
         if self.logic.context is None:
             InfoBar.error(
-                title='错误',
-                content='请先打开一张图片',
+                title=gt('错误'),
+                content=gt('请先打开一张图片'),
                 duration=3000,
                 parent=self,
                 position=InfoBarPosition.TOP
@@ -719,8 +761,8 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         display_image = self.logic.get_display_image()
         if display_image is None:
             InfoBar.error(
-                title='错误',
-                content='没有可用的图像进行分析',
+                title=gt('错误'),
+                content=gt('没有可用的图像进行分析'),
                 duration=3000,
                 parent=self,
                 position=InfoBarPosition.TOP

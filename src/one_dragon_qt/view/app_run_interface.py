@@ -149,7 +149,7 @@ class AppRunInterface(VerticalScrollInterface):
         self.app_runner.app = app
         self.app_runner.start()
 
-    def get_app(self) -> Application:
+    def get_app(self) -> Optional[Application]:
         """
         获取本次运行的app 由子类实现
         由

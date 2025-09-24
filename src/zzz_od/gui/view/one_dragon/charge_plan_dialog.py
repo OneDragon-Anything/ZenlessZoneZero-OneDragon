@@ -23,7 +23,7 @@ class ChargePlanDialog(MessageBoxBase):
 
     def _setup_card(self):
         """设置体力计划卡片"""
-        plan = ChargePlanItem(
+        self.plan = ChargePlanItem(
             tab_name='训练',
             category_name='实战模拟室',
             mission_type_name='基础材料',
@@ -36,26 +36,9 @@ class ChargePlanDialog(MessageBoxBase):
             predefined_team_idx=0,
             notorious_hunt_buff_num=1,
         )
-        self.card = ChargePlanCard(self.ctx, idx=None, plan=plan)
-        self.card.move_up_btn.hide()
-        self.card.move_top_btn.hide()
-        self.card.del_btn.hide()
-        self.viewLayout.addWidget(self.card)
+        card = ChargePlanCard(self.ctx, idx=-1, plan=self.plan)
+        card.move_up_btn.hide()
+        card.move_top_btn.hide()
+        card.del_btn.hide()
+        self.viewLayout.addWidget(card)
         self.viewLayout.addStretch(1)
-
-    def get_card_properties(self):
-        properties = {}
-        if hasattr(self, 'card'):
-            properties = {
-                'category_name': self.card.plan.category_name,
-                'mission_type_name': self.card.plan.mission_type_name,
-                'mission_name': self.card.plan.mission_name,
-                'level': self.card.plan.level,
-                'auto_battle_config': self.card.plan.auto_battle_config,
-                'run_times': self.card.plan.run_times,
-                'plan_times': self.card.plan.plan_times,
-                'card_num': self.card.plan.card_num,
-                'predefined_team_idx': self.card.plan.predefined_team_idx,
-                'notorious_hunt_buff_num': self.card.plan.notorious_hunt_buff_num,
-            }
-        return properties

@@ -9,6 +9,10 @@ deploy/dist/
 .env
 recording.jsonl
 QWEN.md
+GEMINI.md
+CLAUDE.md
+.lingma/
+.qwen/
 
 # 子模块
 test/

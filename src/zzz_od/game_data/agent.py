@@ -340,7 +340,7 @@ class AgentEnum(Enum):
                     state_list=[
                         AgentStateDef('柚叶-甜度点', AgentStateCheckWay.COLOR_RANGE_CONNECT,
                                     'yuzuha', lower_color=(221, 107, 113), upper_color=(255, 255, 255),
-                                    connect_cnt=5)
+                                    connect_cnt=6)
                     ])
 
     ALICE = Agent('alice', '爱丽丝', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['alice', 'alice_sea_of_thyme'],
@@ -349,4 +349,12 @@ class AgentEnum(Enum):
                                       template_id='alice',
                                       hsv_color=(90,255,0), hsv_color_diff=(89,254,255),
                                       max_length=300)
+                    ])
+
+    SEED = Agent('seed', '席德', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ELECTRIC, ['seed'],
+                    state_list=[
+                        AgentStateDef('席德-钢能', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                      template_id='seed',
+                                      hsv_color=(90,255,255), hsv_color_diff=(89,55,55),
+                                      max_length=150)
                     ])

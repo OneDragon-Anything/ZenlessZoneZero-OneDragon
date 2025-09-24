@@ -1,0 +1,42 @@
+name: Auto Close Stale Issues
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 每天UTC时间00:00运行
+  workflow_dispatch:     # 允许手动触发
+
+jobs:
+  manage-stale-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Mark and close stale 'Cannot Reproduce' issues
+        uses: actions/stale@v10
+        with:
+          # 核心配置：只处理 Issue，忽略 PR
+          only-issues: true
+
+          # 核心配置：只处理带有「Cannot Reproduce | 无法复现」标签的Issue
+          only-issue-labels: 'Cannot Reproduce | 无法复现'
+
+          # 第一阶段：标记为Stale（杳无音信）
+          days-before-issue-stale: 7 # 7天后无活动则标记为stale
+          stale-issue-label: 'Stale | 杳无音信' # 添加的标签
+          stale-issue-message: |
+            此问题已被标记为「杳无音信」，因为自「无法复现」标签添加后已过去7天且没有新的活动。
+            如果这是您仍然遇到的问题，请提供更多信息（如日志、复现步骤、环境详情等）。
+            否则，此问题将在7天后自动关闭。
+
+          remove-issue-stale-when-updated: true # 如果用户回复，自动移除「杳无音信」标签
+
+          # 第二阶段：关闭已标记的Issue
+          days-before-issue-close: 7 # 标记为stale后再过7天关闭
+          close-issue-message: |
+            由于在标记为「杳无音信」后仍然没有收到任何回复或补充信息，
+            此问题现已被自动关闭。
+
+            如果您能提供更多信息来帮助复现此问题，请随时重新打开。
+
+          # 其他配置
+          operations-per-run: 10 # 每次运行处理的最大数量

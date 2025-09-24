@@ -17,6 +17,7 @@ if __name__ == '__main__':
     else:
         icon_path = Path.cwd() / 'assets/ui/logo.ico'
     installer_dir = Path(sys.argv[0]).resolve().parent
+
     picker_window = DirectoryPickerWindow(icon_path=icon_path)
     picker_window.exec()
     work_dir = picker_window.selected_directory
@@ -30,9 +31,9 @@ if __name__ == '__main__':
         shutil.copytree(resources_path, work_dir, dirs_exist_ok=True)
 
     # 延迟导入
-    from zzz_od.gui.zzz_installer_window import ZInstallerWindow
     from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
     from one_dragon.utils.i18_utils import gt, detect_and_set_default_language
+    from zzz_od.gui.zzz_installer_window import ZInstallerWindow
 
     _ctx = OneDragonEnvContext()
     _ctx.installer_dir = installer_dir

@@ -5,7 +5,7 @@ import json
 import os
 import requests
 import webbrowser
-from PySide6.QtCore import Qt, QSize, QTimer, QThread, Signal, QRectF
+from PySide6.QtCore import Qt, QSize, QTimer, QThread, Signal, QRectF, QEvent
 from PySide6.QtGui import QPixmap, QFont, QPainterPath, QColor, QPainter, QImage
 from PySide6.QtWidgets import (
     QVBoxLayout,
@@ -16,11 +16,12 @@ from PySide6.QtWidgets import (
     QStackedWidget,
     QFrame, QGraphicsDropShadowEffect,
 )
-from qfluentwidgets import SimpleCardWidget, HorizontalFlipView, ListWidget, qconfig, Theme
+from qfluentwidgets import SimpleCardWidget, HorizontalFlipView, ListWidget, qconfig, Theme, PipsPager, PipsScrollButtonDisplayMode
 
-from one_dragon_qt.services.styles_manager import OdQtStyleSheet
-from one_dragon_qt.widgets.pivot import CustomListItemDelegate, PhosPivot
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
+from one_dragon_qt.widgets.pivot import CustomListItemDelegate, PhosPivot
 from .label import EllipsisLabel
 
 
@@ -104,7 +105,7 @@ class SkeletonContent(QWidget):
 
 class BannerImageLoader(QThread):
     """异步banner图片加载器"""
-    image_loaded = Signal(QPixmap, str)  # pixmap, url
+    image_loaded = Signal(QImage, str)  # image, url
     all_images_loaded = Signal()
 
     def __init__(self, banners, device_pixel_ratio, parent=None):
@@ -120,18 +121,8 @@ class BannerImageLoader(QThread):
             try:
                 response = requests.get(banner["image"]["url"], timeout=5)
                 if response.status_code == 200:
-                    pixmap = QPixmap()
-                    pixmap.loadFromData(response.content)
-
-                    # 按设备像素比缩放
-                    size = QSize(pixmap.width(), pixmap.height())
-                    pixmap = pixmap.scaled(
-                        size * self.device_pixel_ratio,
-                        Qt.AspectRatioMode.IgnoreAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                    pixmap.setDevicePixelRatio(self.device_pixel_ratio)
-                    self.image_loaded.emit(pixmap, banner["image"]["link"])
+                    image = QImage.fromData(response.content)
+                    self.image_loaded.emit(image, banner["image"]["link"])
             except Exception as e:
                 log.error(f"加载banner图片失败: {e}")
 
@@ -259,6 +250,12 @@ class NoticeCard(SimpleCardWidget):
         self._banner_loader = None
         self._is_loading_banners = False
 
+        # 自动滚动定时器
+        self.auto_scroll_timer = QTimer()
+        self.auto_scroll_timer.timeout.connect(self.scrollNext)
+        self.auto_scroll_interval = 5000  # 5秒滚动一次
+        self.auto_scroll_enabled = True
+
         # 初始化和显示
         self._create_components()
         self.setup_ui()
@@ -299,7 +296,10 @@ class NoticeCard(SimpleCardWidget):
         # 确保骨架屏在最前面
         self.skeleton_banner.raise_()
         self.skeleton_content.raise_()
-
+        # 隐藏实际内容容器，避免骨架屏和 banner_container 叠加导致总体高度变大
+        if hasattr(self, 'banner_container'):
+            self.banner_container.hide()
+        # 其余内容（旧逻辑保留以防还没创建 banner_container 前调用）
         for widget_name in ['flipView', 'pivot', 'stackedWidget']:
             if hasattr(self, widget_name):
                 getattr(self, widget_name).hide()
@@ -308,7 +308,9 @@ class NoticeCard(SimpleCardWidget):
         """隐藏骨架屏"""
         self.skeleton_banner.hide()
         self.skeleton_content.hide()
-
+        # 显示实际内容容器
+        if hasattr(self, 'banner_container'):
+            self.banner_container.show()
         for widget_name in ['flipView', 'pivot', 'stackedWidget']:
             if hasattr(self, widget_name):
                 getattr(self, widget_name).show()
@@ -357,8 +359,15 @@ class NoticeCard(SimpleCardWidget):
         self._banner_loader.finished.connect(self._on_banner_loading_finished,Qt.ConnectionType.QueuedConnection)
         self._banner_loader.start()
 
-    def _on_banner_image_loaded(self, pixmap: QPixmap, url: str):
+    def _on_banner_image_loaded(self, image: QImage, url: str):
         """单个banner图片加载完成的回调"""
+        pixmap = QPixmap.fromImage(image)
+        pixmap = scale_pixmap_for_high_dpi(
+            pixmap,
+            pixmap.size(),
+            self.devicePixelRatioF(),
+            Qt.AspectRatioMode.IgnoreAspectRatio,
+        )
         self.banners.append(pixmap)
         self.banner_urls.append(url)
 
@@ -396,14 +405,64 @@ class NoticeCard(SimpleCardWidget):
                 })
 
     def setup_ui(self):
-        self.flipView = RoundedBannerView(radius=4, parent=self)
+        # Banner 区域容器（用于叠加 pips）
+        self.banner_container = QWidget(self)
+        self.banner_container.setFixedSize(QSize(345, 160))
+        self.banner_container.setObjectName("bannerContainer")
+        # 使其可追踪鼠标进入离开事件
+        self.banner_container.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+        self.banner_container.installEventFilter(self)
+        banner_layout = QVBoxLayout(self.banner_container)
+        banner_layout.setContentsMargins(0, 0, 0, 0)
+        banner_layout.setSpacing(0)
+
+        # Banner 视图
+        self.flipView = RoundedBannerView(radius=4, parent=self.banner_container)
         self.flipView.addImages(self.banners)
         self.flipView.setItemSize(QSize(345, 160))
         self.flipView.setFixedSize(QSize(345, 160))
         self.flipView.itemClicked.connect(self.open_banner_link)
+        banner_layout.addWidget(self.flipView)
 
-        self.mainLayout.addWidget(self.flipView)
-        QTimer.singleShot(7000, self.scrollNext)
+        # 监听 FlipView 的页面变化，用于同步 PipsPager
+        self.flipView.currentIndexChanged.connect(self._on_banner_index_changed)
+
+        # PipsPager - 页面指示器（嵌入 Banner 内部）
+        self.pipsPager = PipsPager(self.banner_container)
+        self.pipsPager.setPageNumber(len(self.banners) if self.banners else 1)
+        self.pipsPager.setVisibleNumber(min(8, len(self.banners) if self.banners else 1))
+        self.pipsPager.setNextButtonDisplayMode(PipsScrollButtonDisplayMode.NEVER)
+        self.pipsPager.setPreviousButtonDisplayMode(PipsScrollButtonDisplayMode.NEVER)
+        self.pipsPager.setCurrentIndex(0)
+        self.pipsPager.currentIndexChanged.connect(self._on_pips_index_changed)
+
+        # 外壳（带半透明背景与圆角）
+        self.pipsHolder = QWidget(self.banner_container)
+        self.pipsHolder.setObjectName("pipsHolder")
+        holder_layout = QHBoxLayout(self.pipsHolder)
+        holder_layout.setContentsMargins(10, 4, 10, 4)
+        holder_layout.setSpacing(6)
+        holder_layout.addWidget(self.pipsPager)
+        self.pipsHolder.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.pipsHolder.raise_()
+
+        # 悬停显示/自动隐藏 定时器
+        self._pips_hide_timer = QTimer(self)
+        self._pips_hide_timer.setSingleShot(True)
+        self._pips_hide_timer.timeout.connect(lambda: self.pipsHolder.hide())
+
+        # 样式（可根据主题再动态调整）
+        self._apply_pips_theme_style()
+        # 初始默认隐藏 pips
+        self.pipsHolder.hide()
+
+        # 先添加 banner 容器到主布局
+        self.mainLayout.addWidget(self.banner_container)
+        self._update_pips_position()  # 初始定位
+
+        # 启动自动滚动（延迟5秒开始）
+        if len(self.banners) > 1:
+            QTimer.singleShot(5000, self._start_auto_scroll)
 
         self.pivot = PhosPivot()
         self.stackedWidget = QStackedWidget(self)
@@ -431,10 +490,37 @@ class NoticeCard(SimpleCardWidget):
         self.mainLayout.addWidget(self.pivot, 0, Qt.AlignmentFlag.AlignLeft)
         self.mainLayout.addWidget(self.stackedWidget)
 
+    def eventFilter(self, obj, event):
+        # 悬停控制 pips 显示/隐藏
+        if obj is getattr(self, 'banner_container', None):
+            et = event.type()
+            if et in (QEvent.Type.Enter, QEvent.Type.HoverEnter):
+                if hasattr(self, 'pipsHolder'):
+                    self.pipsHolder.show()
+                if hasattr(self, '_pips_hide_timer'):
+                    self._pips_hide_timer.stop()
+            elif et in (QEvent.Type.Leave, QEvent.Type.HoverLeave):
+                if hasattr(self, '_pips_hide_timer'):
+                    self._pips_hide_timer.start(5000)  # 5s 后隐藏
+        return super().eventFilter(obj, event)
+
     def update_ui(self):
         # 清空现有内容，避免重复添加
         self.flipView.clear()
         self.flipView.addImages(self.banners)
+
+        # 更新PipsPager
+        if hasattr(self, 'pipsPager'):
+            self.pipsPager.setPageNumber(len(self.banners) if self.banners else 1)
+            self.pipsPager.setVisibleNumber(min(8, len(self.banners) if self.banners else 1))
+            self.pipsPager.setCurrentIndex(0)
+            # 尝试重新定位 pips（可能尺寸变化）
+            if hasattr(self, '_update_pips_position'):
+                QTimer.singleShot(0, self._update_pips_position)
+
+        # 启动自动滚动
+        if len(self.banners) > 1 and self.auto_scroll_enabled:
+            self._start_auto_scroll()
 
         # 清空并重新添加posts
         widgets = [self.activityWidget, self.announceWidget, self.infoWidget]
@@ -458,12 +544,95 @@ class NoticeCard(SimpleCardWidget):
             self._acrylic.tint = get_notice_theme_palette()['tint']
             self._acrylic.update()
         self.apply_theme_colors()
+        # 同步 pips holder 主题
+        if hasattr(self, '_apply_pips_theme_style'):
+            self._apply_pips_theme_style()
+
+    def _apply_pips_theme_style(self):
+        """根据当前主题应用 pipsHolder 样式（浅色白底+阴影，深色黑半透明）"""
+        if not hasattr(self, 'pipsHolder'):
+            return
+        is_dark = qconfig.theme == Theme.DARK
+        if is_dark:
+            bg = 'rgba(0,0,0,110)'
+            shadow = '0 0 0 0 rgba(0,0,0,0)'  # 不额外加
+        else:
+            # 白色半透明 + 轻投影增强可见性
+            bg = 'rgba(255,255,255,180)'
+            # 使用自定义阴影（通过盒阴影模拟，Qt 样式对 box-shadow 支持有限，退化为边框方案）
+            shadow = '1px solid rgba(0,0,0,35)'
+        # 采用边框方式模拟浅色模式下的描边
+        self.pipsHolder.setStyleSheet(f"""
+            QWidget#pipsHolder {{
+                background: {bg};
+                border-radius: 10px;
+                border: {'none' if is_dark else shadow};
+            }}
+        """)
 
     def scrollNext(self):
         if self.banners:
             self.flipView.setCurrentIndex(
                 (self.flipView.currentIndex() + 1) % len(self.banners)
             )
+
+    def _start_auto_scroll(self):
+        """启动自动滚动"""
+        if self.auto_scroll_enabled and len(self.banners) > 1:
+            self.auto_scroll_timer.start(self.auto_scroll_interval)
+
+    def _stop_auto_scroll(self):
+        """停止自动滚动"""
+        self.auto_scroll_timer.stop()
+
+    def _pause_auto_scroll(self, duration=10000):
+        """暂停自动滚动一段时间（用户交互时）"""
+        self._stop_auto_scroll()
+        if self.auto_scroll_enabled:
+            QTimer.singleShot(duration, self._start_auto_scroll)
+
+    def _on_banner_index_changed(self, index):
+        """Banner页面改变时同步PipsPager"""
+        if hasattr(self, 'pipsPager'):
+            self.pipsPager.setCurrentIndex(index)
+
+    def _on_pips_index_changed(self, index):
+        """PipsPager点击时切换Banner并暂停自动滚动"""
+        if hasattr(self, 'flipView') and index < len(self.banners):
+            self.flipView.setCurrentIndex(index)
+            self._pause_auto_scroll()  # 用户手动操作时暂停自动滚动
+
+    def _update_pips_position(self):
+        """在 banner 内部重新定位 pips 位置 (底部居中)"""
+        if not hasattr(self, 'pipsHolder'):
+            return
+        # 尺寸自适应
+        self.pipsHolder.adjustSize()
+        bw = self.banner_container.width()
+        bh = self.banner_container.height()
+        hw = self.pipsHolder.width()
+        hh = self.pipsHolder.height()
+        # 底部偏移量（可根据视觉微调）
+        bottom_margin = 12
+        x = (bw - hw) // 2
+        y = bh - hh - bottom_margin
+        self.pipsHolder.move(x, y)
+        self.pipsHolder.raise_()
+
+    def set_auto_scroll_enabled(self, enabled: bool):
+        """设置自动滚动开关"""
+        self.auto_scroll_enabled = enabled
+        if enabled and len(self.banners) > 1:
+            self._start_auto_scroll()
+        else:
+            self._stop_auto_scroll()
+
+    def set_auto_scroll_interval(self, interval: int):
+        """设置自动滚动间隔（毫秒）"""
+        self.auto_scroll_interval = interval
+        if self.auto_scroll_timer.isActive():
+            self._stop_auto_scroll()
+            self._start_auto_scroll()
 
     def addSubInterface(self, widget: ListWidget, objectName: str, text: str):
         widget.setObjectName(objectName)
@@ -482,6 +651,9 @@ class NoticeCard(SimpleCardWidget):
         # 背景层充满圆角卡片
         if hasattr(self, '_acrylic') and self._acrylic:
             self._acrylic.setGeometry(self.rect())
+        # 更新 pips 位置
+        if hasattr(self, '_update_pips_position'):
+            self._update_pips_position()
         return SimpleCardWidget.resizeEvent(self, event)
 
     def open_banner_link(self):
@@ -578,3 +750,13 @@ class NoticeCardContainer(QWidget):
         if self.notice_card is not None and self._notice_enabled:
             # 重新获取数据
             self.notice_card.fetch_data()
+
+    def set_auto_scroll_enabled(self, enabled: bool):
+        """设置banner自动滚动"""
+        if self.notice_card:
+            self.notice_card.set_auto_scroll_enabled(enabled)
+
+    def set_auto_scroll_interval(self, interval: int):
+        """设置banner自动滚动间隔（毫秒）"""
+        if self.notice_card:
+            self.notice_card.set_auto_scroll_interval(interval)

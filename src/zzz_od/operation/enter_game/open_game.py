@@ -23,7 +23,7 @@ class OpenGame(Operation):
         :return:
         """
         if self.ctx.game_account_config.game_path == '':
-            return self.round_fail('未配置游戏路径')
+            return self.round_fail('未配置游戏路径，请前往 [ 账户管理 ] -> [ 游戏路径 ] 手动设置')
         full_path = self.ctx.game_account_config.game_path
         dir_path = os.path.dirname(full_path)
         exe_name = os.path.basename(full_path)

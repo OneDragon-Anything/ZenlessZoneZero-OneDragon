@@ -12,7 +12,7 @@ concurrency:
 jobs:
   update-test-branch:
     runs-on: ubuntu-latest
-
+    if: ${{ github.repository_owner == 'OneDragon-Anything' }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -33,14 +33,24 @@ jobs:
         git pull origin main --ff-only
         git push origin test
 
+    - name: Find Comment
+      if: steps.merge-attempt.outcome == 'failure'
+      uses: peter-evans/find-comment@v3
+      id: fc
+      with:
+        issue-number: ${{ vars.SYNC_STATUS_ISSUE_NUMBER }}
+        comment-author: 'github-actions[bot]'
+        body-includes: 检测到合并冲突
+
     - name: Post a Comment on Failure
       if: steps.merge-attempt.outcome == 'failure'
       uses: peter-evans/create-or-update-comment@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        comment-id: ${{ steps.fc.outputs.comment-id }}
         issue-number: ${{ vars.SYNC_STATUS_ISSUE_NUMBER }}
         body: |
-          > :warning: **于 `$(TZ='Asia/Shanghai' date)` 检测到合并冲突**
+          > :warning: **检测到合并冲突**
 
           @${{ vars.ASSIGNEE_USERNAME }}
           `test` 分支和 `main` 分支有冲突，无法自动更新。

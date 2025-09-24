@@ -1,5 +1,9 @@
 # 代码来自whyour/qinglong/develop/sample/notify.py, 感谢原作者的贡献
+from __future__ import annotations
+
 import base64
+import datetime
+import functools
 import hashlib
 import hmac
 import json
@@ -7,20 +11,19 @@ import re
 import smtplib
 import threading
 import time
-import datetime
 import urllib.parse
-import functools
-
-from io import BytesIO
-from email.mime.text import MIMEText
 from email.header import Header
+from email.mime.text import MIMEText
 from email.utils import formataddr
-from typing import Optional
-
-from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from one_dragon.utils.log_utils import log
+from io import BytesIO
+from typing import TYPE_CHECKING, Optional
 
 import requests
+
+from one_dragon.utils.log_utils import log
+
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 def track_push_method(func):
     """装饰器：自动为推送方法添加遥测功能"""
@@ -148,12 +151,15 @@ class Push():
 
         self.log_info("飞书 服务启动")
 
+        channel = self.get_config("FS_CHANNEL")
+        base_url = "open.feishu.cn" if channel == "飞书" else "open.larksuite.com"
+
         app_id = self.get_config("FS_APPID")
         app_secret = self.get_config("FS_APPSECRET")
         if image and app_id and app_secret and app_id != "" and app_secret != "":
             image.seek(0)
             # 获取飞书自建应用的tenant_access_token
-            auth_endpoint = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
+            auth_endpoint = f"https://{base_url}/open-apis/auth/v3/tenant_access_token/internal"
             auth_headers = {
                 "Content-Type": "application/json; charset=utf-8"
             }
@@ -164,7 +170,7 @@ class Push():
             auth_response.raise_for_status()
             tenant_access_token = auth_response.json()["tenant_access_token"]
             # 上传图片并获取图片的image_key
-            image_endpoint = "https://open.feishu.cn/open-apis/im/v1/images"
+            image_endpoint = f"https://{base_url}/open-apis/im/v1/images"
             image_headers = {
                 "Authorization": f"Bearer {tenant_access_token}"
             }
@@ -206,7 +212,7 @@ class Push():
                 "content": {"text": f"{title}\n{content}"}
             }
 
-        url = f'https://open.feishu.cn/open-apis/bot/v2/hook/{self.get_config("FS_KEY")}'
+        url = f'https://{base_url}/open-apis/bot/v2/hook/{self.get_config("FS_KEY")}'
         response = requests.post(url, data=json.dumps(data)).json()
 
         if response.get("StatusCode") == 0 or response.get("code") == 0:
@@ -223,13 +229,14 @@ class Push():
 
         self.log_info("OneBot 服务启动")
 
-        url = self.get_config("ONEBOT_URL").rstrip("/")
+        url = self.get_config("ONEBOT_URL")
         user_id = self.get_config("ONEBOT_USER")
         group_id = self.get_config("ONEBOT_GROUP")
         token = self.get_config("ONEBOT_TOKEN")
 
-        if not url.endswith("/send_msg"):
-                url += "/send_msg"
+        if url:
+            url = url.rstrip("/")
+            url += "" if url.endswith("/send_msg") else "/send_msg"
 
         headers = {'Content-Type': "application/json"}
         message = [{"type": "text", "data": {"text": f"{title}\n{content}"}}]
@@ -568,26 +575,111 @@ class Push():
 
     def wecom_bot(self, title: str, content: str, image: Optional[BytesIO]) -> None:
         """
-        通过 企业微信机器人 推送消息。
+        通过 企业微信机器人 推送消息
+        文本与图片分开发送, 图片需base64+md5, 大小≤2MB
+        图片若为JPG/PNG且大小≤2MB直接发送; 若格式不符或超过2MB, 则统一转为JPG格式后发送
         """
-
         self.log_info("企业微信机器人服务启动")
 
-        origin = "https://qyapi.weixin.qq.com"
-        if self.get_config("QYWX_ORIGIN"):
-            origin = self.get_config("QYWX_ORIGIN")
+        origin = self.get_config("QYWX_ORIGIN", "https://qyapi.weixin.qq.com")
 
         url = f"{origin}/cgi-bin/webhook/send?key={self.get_config('QYWX_KEY')}"
         headers = {"Content-Type": "application/json;charset=utf-8"}
-        data = {"msgtype": "text", "text": {"content": f"{title}\n{content}"}}
-        response = requests.post(
-            url=url, data=json.dumps(data), headers=headers, timeout=15
-        ).json()
 
-        if response["errcode"] == 0:
-            self.log_info("企业微信机器人推送成功！")
+        # 1. 先发文字
+        text_data = {"msgtype": "text", "text": {"content": f"{title}\n{content}"}}
+        try:
+            resp_obj = requests.post(url, data=json.dumps(text_data), headers=headers, timeout=15)
+        except requests.RequestException as e:
+            self.log_error(f"企业微信机器人文字推送请求异常: {type(e).__name__}: {e}")
         else:
-            self.log_error("企业微信机器人推送失败！")
+            status = getattr(resp_obj, "status_code", None)
+            body_snip = (resp_obj.text or "")[:300] if hasattr(resp_obj, "text") else ""
+            resp = None
+            try:
+                resp = resp_obj.json()
+            except ValueError as je:
+                self.log_error(f"企业微信机器人文字响应解析失败: {type(je).__name__}: {je}; status={status}; body_snip={body_snip}")
+            if resp and resp.get("errcode") == 0:
+                self.log_info("企业微信机器人文字推送成功！")
+            else:
+                errcode = resp.get("errcode") if resp else None
+                errmsg = resp.get("errmsg") if resp else None
+                self.log_error(
+                    f"企业微信机器人文字推送失败!status={status}; errcode={errcode}; errmsg={errmsg}; body_snip={body_snip}"
+                )
+
+        # 2. 再发图片
+        if image:
+            # 企业微信机器人图片最大支持2MB
+            TARGET_SIZE = 2 * 1024 * 1024
+
+            image.seek(0)
+            img_bytes = image.getvalue()
+            orig_size = len(img_bytes)
+            if len(img_bytes) <= TARGET_SIZE:
+                # 直接发送，传入图片为png格式，大小≤2MB, 无需压缩
+                img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+                img_md5 = hashlib.md5(img_bytes).hexdigest()
+                img_data = {
+                    "msgtype": "image",
+                    "image": {"base64": img_base64, "md5": img_md5}
+                }
+                try:
+                    resp_obj = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15)
+                except requests.RequestException as e:
+                    self.log_error(f"企业微信机器人图片推送请求异常(直发): {type(e).__name__}: {e}; size={orig_size}B")
+                else:
+                    status = getattr(resp_obj, "status_code", None)
+                    body_snip = (resp_obj.text or "")[:300] if hasattr(resp_obj, "text") else ""
+                    resp = None
+                    try:
+                        resp = resp_obj.json()
+                    except ValueError as je:
+                        self.log_error(f"企业微信机器人图片响应解析失败(直发): {type(je).__name__}: {je}; status={status}; body_snip={body_snip}")
+                    if resp and resp.get("errcode") == 0:
+                        self.log_info("企业微信机器人图片推送成功！(无需压缩)")
+                    else:
+                        errcode = resp.get("errcode") if resp else None
+                        errmsg = resp.get("errmsg") if resp else None
+                        self.log_error(
+                            f"企业微信机器人图片推送失败(直发)! status={status}; errcode={errcode}; errmsg={errmsg}; size={orig_size}B; body_snip={body_snip}"
+                        )
+            else:
+                try:
+                    img_bytes_c, _, quality = self._compress_image(image, TARGET_SIZE)
+                except Exception as e:
+                    self.log_error(f"图片处理失败, 未发送图片! orig_size={orig_size}B")
+                    return
+                if len(img_bytes_c) > TARGET_SIZE:
+                    self.log_error(f"图片压缩后仍超过2MB,未发送图片! orig_size={orig_size}B; compressed_size={len(img_bytes_c)}B")
+                    return
+                img_base64 = base64.b64encode(img_bytes_c).decode('utf-8')
+                img_md5 = hashlib.md5(img_bytes_c).hexdigest()
+                img_data = {
+                    "msgtype": "image",
+                    "image": {"base64": img_base64, "md5": img_md5}
+                }
+                try:
+                    resp_obj = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15)
+                except requests.RequestException as e:
+                    self.log_error(f"企业微信机器人图片推送请求异常(压缩): {type(e).__name__}: {e}; orig_size={orig_size}B; compressed_size={len(img_bytes_c)}B")
+                else:
+                    status = getattr(resp_obj, "status_code", None)
+                    body_snip = (resp_obj.text or "")[:300] if hasattr(resp_obj, "text") else ""
+                    resp = None
+                    try:
+                        resp = resp_obj.json()
+                    except ValueError as je:
+                        self.log_error(f"企业微信机器人图片响应解析失败(压缩): {type(je).__name__}: {je}; status={status}; body_snip={body_snip}")
+                    if resp and resp.get("errcode") == 0:
+                        self.log_info(f"企业微信机器人图片推送成功！(压缩质量 {quality})")
+                    else:
+                        errcode = resp.get("errcode") if resp else None
+                        errmsg = resp.get("errmsg") if resp else None
+                        self.log_error(
+                            f"企业微信机器人图片推送失败(压缩)! status={status}; errcode={errcode}; errmsg={errmsg}; orig_size={orig_size}B; compressed_size={len(img_bytes_c)}B; body_snip={body_snip}"
+                        )
 
 
 
@@ -943,7 +1035,7 @@ class Push():
         self.log_info("通用 Webhook 服务启动")
 
         url = self.get_config("WEBHOOK_URL")
-        method = (self.get_config("WEBHOOK_METHOD")).upper()
+        method = self.get_config("WEBHOOK_METHOD")
         headers_str = self.get_config("WEBHOOK_HEADERS")
         body = self.get_config("WEBHOOK_BODY")
         content_type = self.get_config("WEBHOOK_CONTENT_TYPE")
@@ -1086,9 +1178,12 @@ class Push():
         log.error(f'指令[ 通知 ] {message}')
 
 
-    def get_config(self, key: str):
+    def get_config(self, key: str, default: str = '') -> str:
         """获取推送配置值"""
-        return getattr(self.ctx.push_config, key.lower(), None)
+        value = getattr(self.ctx.push_config, key.lower(), default)
+        if value:
+            return str(value).strip()
+        return default
 
 
     def send(self, content: str, image: Optional[BytesIO] = None, test_method: Optional[str] = None) -> None:
@@ -1142,7 +1237,7 @@ class Push():
             'PUSH_PLUS': 'pushplus_bot',
             'WE_PLUS_BOT': 'weplus_bot',
             'QMSG': 'qmsg_bot',
-            'QYWX': 'wecom_app',
+            'QYWX': 'wecom_bot',
             'DISCORD': 'discord_bot',
             'TG': 'telegram_bot',
             'AIBOTK': 'aibotk',
@@ -1203,6 +1298,62 @@ class Push():
                 'status': 'failure',
                 'error_message': error_message
             })
+
+    def _compress_image(self, image: BytesIO, target_size: int) -> tuple[bytes | None, str | None, int]:
+        """
+        自动将图片压缩为渐进式 JPG,使用二分搜索质量,尽量贴近 2MB 上限
+        """
+        import cv2
+        import numpy as np
+
+        image.seek(0)
+        data = image.getvalue()
+        if not data:
+            return None, None, -1
+
+        arr = np.frombuffer(data, dtype=np.uint8)
+        img = cv2.imdecode(arr, cv2.IMREAD_UNCHANGED)
+        if img is None:
+            return None, None, -1
+
+        # JPEG 仅支持 1/3 通道，若为 4 通道则转为 BGR
+        if len(img.shape) == 2:
+            bgr = img
+        else:
+            if img.shape[2] == 4:
+                bgr = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+            elif img.shape[2] == 3:
+                bgr = img
+            else:
+                bgr = img[:, :, :3]
+
+        best: bytes | None = None
+        best_q: int = -1
+
+        # 二分搜索质量，尽量贴近 2MB
+        lo, hi = 30, 90
+        while lo <= hi:
+            q = (lo + hi) // 2
+            params = [
+                int(cv2.IMWRITE_JPEG_QUALITY), int(q),
+                int(cv2.IMWRITE_JPEG_OPTIMIZE), 1,
+                int(cv2.IMWRITE_JPEG_PROGRESSIVE), 1,
+            ]
+            ok, enc = cv2.imencode('.jpg', bgr, params)
+            if not ok:
+                break
+            size = enc.nbytes
+            if size <= target_size:
+                best = enc.tobytes()
+                best_q = q
+                lo = q + 1  # 尝试更高质量
+            else:
+                hi = q - 1  # 降低质量
+
+        if best:
+            return best, 'jpeg', best_q
+        else:
+            return None, None, -1
 
 
 def main():
