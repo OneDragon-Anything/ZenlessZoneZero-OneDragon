@@ -36,7 +36,8 @@ handlers:
         operations:
           - op_name: "设置状态"
             state_list: ["自定义-速切结束"]
-          - op_name: "清除状态"
+          - op_name: "等待秒数"
+            seconds: 5
 
       - states: "[奥菲丝-蓄炎]{100, 125}"
         interrupt_states: "[奥菲丝-蓄炎]{0, 100}"
