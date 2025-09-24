@@ -450,12 +450,13 @@ class LostVoidApp(ZApplication):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='打开悬赏委托')
-    @operation_node(name='全部领取')
+    @operation_node(name='全部领取', node_max_retry_times=2)
     def claim_all(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(screen_name='迷失之地-入口', area_name='按钮-悬赏委托-全部领取',
-                                                 success_wait=1, retry_wait=1)
+                                                 success_wait=1, retry_wait=0.5)
 
     @node_from(from_name='全部领取')
+    @node_from(from_name='全部领取', success=False)
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
         self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
