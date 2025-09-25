@@ -6,36 +6,38 @@ from one_dragon.base.operation.application.application_config import Application
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
-from zzz_od.application.suibian_temple.suibian_temple_app import SuibianTempleApp
-from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempleConfig
-from zzz_od.application.suibian_temple.suibian_temple_run_record import (
-    SuibianTempleRunRecord,
+from zzz_od.application.trigrams_collection.trigrams_collection_app import (
+    TrigramsCollectionApp,
+)
+from zzz_od.application.trigrams_collection.trigrams_collection_record import (
+    TrigramsCollectionRunRecord,
 )
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
 
 
-class SuibianTempleFactory(ApplicationFactory):
+class TrigramsCollectionFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(
             self,
-            app_id="suibian_temple",
-            app_name='随便观',
+            app_id="trigrams_collection",
+            app_name="卦象集录",
         )
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
-        return SuibianTempleApp(self.ctx)
+        return TrigramsCollectionApp(self.ctx)
 
     def create_config(
         self, instance_idx: int, group_id: str
     ) -> Optional[ApplicationConfig]:
-        return SuibianTempleConfig(instance_idx, group_id)
+        # This app has no config, return None
+        return None
 
     def create_run_record(self, instance_idx: int) -> Optional[AppRunRecord]:
-        return SuibianTempleRunRecord(
+        return TrigramsCollectionRunRecord(
             instance_idx=instance_idx,
             game_refresh_hour_offset=self.ctx.game_account_config.game_refresh_hour_offset,
         )

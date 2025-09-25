@@ -19,7 +19,6 @@ class TrigramsCollectionApp(ZApplication):
             self,
             ctx=ctx, app_id='trigrams_collection',
             op_name=gt('卦象集录'),
-            run_record=ctx.trigrams_collection_record,
             retry_in_od=True,  # 传送落地有可能会歪 重试,
             need_notify=True,
         )
@@ -64,7 +63,7 @@ class TrigramsCollectionApp(ZApplication):
                 return self.round_wait(status=word, wait=1)
         elif word == '滑动屏幕以获取卦象':
             start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
-            end = start + Point(-500, 0)
+            end = start + Point(-800, 0)
             self.ctx.controller.drag_to(start=start, end=end)
             return self.round_wait(status=word, wait=1)
         elif word == '确认':

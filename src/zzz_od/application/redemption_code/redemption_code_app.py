@@ -20,7 +20,6 @@ class RedemptionCodeApp(ZApplication):
             self,
             ctx=ctx, app_id='redemption_code',
             op_name=gt('兑换码'),
-            run_record=ctx.redemption_code_record,
             need_notify=True,
         )
 

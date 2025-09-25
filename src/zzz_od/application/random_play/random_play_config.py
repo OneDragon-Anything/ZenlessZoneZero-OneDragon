@@ -1,33 +1,30 @@
-from typing import Optional
 
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.operation.application.application_config import ApplicationConfig
 
+RANDOM_AGENT_NAME = '随机'
 
-class RandomPlayConfig(YamlConfig):
+class RandomPlayConfig(ApplicationConfig):
 
-    def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+    def __init__(self, instance_idx: int, group_id: str):
+        ApplicationConfig.__init__(
             self,
-            module_name='random_play',
+            app_id='random_play',
             instance_idx=instance_idx,
+            group_id=group_id,
         )
 
-    @staticmethod
-    def random_agent_name() -> str:
-        return '随机'
-
     @property
-    def agent_name_1(self) -> float:
-        return self.get('agent_name_1', self.random_agent_name())
+    def agent_name_1(self) -> str:
+        return self.get('agent_name_1', RANDOM_AGENT_NAME)
 
     @agent_name_1.setter
-    def agent_name_1(self, new_value: float) -> None:
+    def agent_name_1(self, new_value: str) -> None:
         self.update('agent_name_1', new_value)
 
     @property
-    def agent_name_2(self) -> float:
-        return self.get('agent_name_2', self.random_agent_name())
+    def agent_name_2(self) -> str:
+        return self.get('agent_name_2', RANDOM_AGENT_NAME)
 
     @agent_name_2.setter
-    def agent_name_2(self, new_value: float) -> None:
+    def agent_name_2(self, new_value: str) -> None:
         self.update('agent_name_2', new_value)

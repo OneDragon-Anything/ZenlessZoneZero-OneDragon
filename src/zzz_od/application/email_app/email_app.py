@@ -16,7 +16,6 @@ class EmailApp(ZApplication):
             self,
             ctx=ctx, app_id='email',
             op_name=gt('邮件'),
-            run_record=ctx.email_run_record,
             need_notify=True,
         )
 

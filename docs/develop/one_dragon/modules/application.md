@@ -33,10 +33,28 @@
 (待补充更多说明)
 
 
+## 运行上下文
+
+`ApplicationRunContext` 提供以下功能：
+
+- 应用注册 - 所有需要运行的应用都将 `ApplicationFactory` 注册进来，后续用于获取应用相关内容。
+- 提供应用运行记录的统一刷新接口。
+
 ## 应用组
 
-(待补充)
+可以自由组合不同的应用成为一个应用组，每个应用组会有一个唯一标识 `group_id`。
 
+默认会有一个 `gourp_id='one_dragon'` 的应用组。
+
+### 应用组配置
+
+使用 `ApplicationGroupConfig`，主要包含 一个应用列表，说明了应用的运行顺序和是否启用。
+
+存放位置 `config/{instance_idx}/{group_id}/_group.yml`。
+
+### 应用组管理
+
+使用 `ApplicationGroupManager` 获取具体的应用组配置。
 
 ## 应用服务 - ApplicationService
 
