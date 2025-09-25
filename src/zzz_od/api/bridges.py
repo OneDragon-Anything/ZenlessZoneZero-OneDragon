@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from typing import Callable
+from datetime import datetime
+from enum import Enum
 
 from zzz_od.api.run_registry import get_global_run_registry
 from zzz_od.api.ws import manager
@@ -10,6 +12,17 @@ from one_dragon.base.operation.one_dragon_context import (
     ContextRunningStateEventEnum,
 )
 from one_dragon.base.operation.application_base import ApplicationEventId
+
+
+class BattleAssistantEventType(str, Enum):
+    """战斗助手事件类型"""
+    BATTLE_STATE_CHANGED = "battle_state_changed"
+    TASK_STARTED = "task_started"
+    TASK_PROGRESS = "task_progress"
+    TASK_COMPLETED = "task_completed"
+    TASK_FAILED = "task_failed"
+    CONFIG_UPDATED = "config_updated"
+    ERROR_OCCURRED = "error_occurred"
 
 
 def attach_run_event_bridge(ctx: ZContext, run_id: str) -> Callable[[], None]:
@@ -77,5 +90,165 @@ def attach_run_event_bridge(ctx: ZContext, run_id: str) -> Callable[[], None]:
 
     registry.set_bridge(run_id, _detach)
     return _detach
+
+
+def attach_battle_assistant_event_bridge(ctx: ZContext, run_id: str) -> Callable[[], None]:
+    """
+    为战斗助手创建专用的事件桥接，支持战斗状态更新和任务进度推送
+    """
+
+    registry = get_global_run_registry()
+    task_channel = f"battle-assistant:tasks:{run_id}"
+    events_channel = "battle-assistant:events"
+    battle_state_channel = "battle-assistant:battle-state"
+
+    class _BattleAssistantBridge:
+        def __init__(self, ctx: ZContext, run_id: str):
+            self.ctx = ctx
+            self.run_id = run_id
+            self.registry = registry
+            self.last_battle_state = None
+
+        def _broadcast_to_channels(self, event_type: str, data, include_battle_state: bool = False) -> None:
+            """向相关通道广播事件"""
+            try:
+                import asyncio
+                message = {
+                    "type": event_type,
+                    "data": data,
+                    "timestamp": datetime.now().isoformat(),
+                    "task_id": self.run_id
+                }
+
+                # 向任务专用通道广播
+                asyncio.create_task(manager.broadcast_json(task_channel, message))
+
+                # 向全局事件通道广播
+                asyncio.create_task(manager.broadcast_json(events_channel, message))
+
+                # 如果是战斗状态相关，也向战斗状态通道广播
+                if include_battle_state:
+                    asyncio.create_task(manager.broadcast_json(battle_state_channel, message))
+
+            except Exception:
+                pass
+
+        def on_running_state(self, event):
+            """处理运行状态变化"""
+            state = event.data
+            status_text = self.ctx.context_running_status_text
+            agg = build_onedragon_aggregate(self.ctx)
+
+            event_data = {
+                "state": state.name,
+                "text": status_text,
+                "progress": agg.get('progress', 0.0),
+                "aggregate": agg
+            }
+
+            if state.name == "START_RUNNING":
+                self._broadcast_to_channels(BattleAssistantEventType.TASK_STARTED, event_data)
+            elif state.name == "STOP_RUNNING":
+                # 检查是否是正常完成还是错误停止
+                if hasattr(self.ctx, 'last_error') and self.ctx.last_error:
+                    self._broadcast_to_channels(BattleAssistantEventType.TASK_FAILED, {
+                        **event_data,
+                        "error": str(self.ctx.last_error)
+                    })
+                else:
+                    self._broadcast_to_channels(BattleAssistantEventType.TASK_COMPLETED, event_data)
+            else:
+                self._broadcast_to_channels(BattleAssistantEventType.TASK_PROGRESS, event_data)
+
+        def on_app_event(self, event):
+            """处理应用事件"""
+            app_id = event.data
+            agg = build_onedragon_aggregate(self.ctx)
+
+            event_data = {
+                "appId": app_id,
+                "aggregate": agg,
+                "progress": agg.get('progress', 0.0)
+            }
+
+            self._broadcast_to_channels(BattleAssistantEventType.TASK_PROGRESS, event_data)
+
+        def broadcast_battle_state(self, battle_state_data):
+            """广播战斗状态更新"""
+            # 只有当状态真正发生变化时才广播
+            if self.last_battle_state != battle_state_data:
+                self.last_battle_state = battle_state_data.copy() if isinstance(battle_state_data, dict) else battle_state_data
+                self._broadcast_to_channels(
+                    BattleAssistantEventType.BATTLE_STATE_CHANGED,
+                    battle_state_data,
+                    include_battle_state=True
+                )
+
+        def broadcast_config_update(self, config_type: str, config_data):
+            """广播配置更新事件"""
+            event_data = {
+                "config_type": config_type,
+                "config_data": config_data
+            }
+            self._broadcast_to_channels(BattleAssistantEventType.CONFIG_UPDATED, event_data)
+
+        def broadcast_error(self, error_message: str, error_details=None):
+            """广播错误事件"""
+            event_data = {
+                "message": error_message,
+                "details": error_details
+            }
+            self._broadcast_to_channels(BattleAssistantEventType.ERROR_OCCURRED, event_data)
+
+    bridge = _BattleAssistantBridge(ctx, run_id)
+
+    # 监听上下文运行状态事件
+    ctx.listen_event(ContextRunningStateEventEnum.START_RUNNING.value, bridge.on_running_state)
+    ctx.listen_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, bridge.on_running_state)
+    ctx.listen_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, bridge.on_running_state)
+    ctx.listen_event(ContextRunningStateEventEnum.STOP_RUNNING.value, bridge.on_running_state)
+    ctx.listen_event(ApplicationEventId.APPLICATION_START.value, bridge.on_app_event)
+    ctx.listen_event(ApplicationEventId.APPLICATION_STOP.value, bridge.on_app_event)
+
+    def _detach() -> None:
+        try:
+            ctx.unlisten_event(ContextRunningStateEventEnum.START_RUNNING.value, bridge.on_running_state)
+            ctx.unlisten_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, bridge.on_running_state)
+            ctx.unlisten_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, bridge.on_running_state)
+            ctx.unlisten_event(ContextRunningStateEventEnum.STOP_RUNNING.value, bridge.on_running_state)
+            ctx.unlisten_event(ApplicationEventId.APPLICATION_START.value, bridge.on_app_event)
+            ctx.unlisten_event(ApplicationEventId.APPLICATION_STOP.value, bridge.on_app_event)
+        except Exception:
+            pass
+
+    # 将桥接对象存储到上下文中，以便后续使用
+    setattr(ctx, '_battle_assistant_bridge', bridge)
+
+    registry.set_bridge(run_id, _detach)
+    return _detach
+
+
+def broadcast_battle_assistant_event(event_type: str, data, task_id: str = None):
+    """
+    全局函数，用于从任何地方广播战斗助手事件
+    """
+    try:
+        import asyncio
+        message = {
+            "type": event_type,
+            "data": data,
+            "timestamp": datetime.now().isoformat(),
+            "task_id": task_id
+        }
+
+        # 向全局事件通道广播
+        asyncio.create_task(manager.broadcast_json("battle-assistant:events", message))
+
+        # 如果指定了任务ID，也向任务专用通道广播
+        if task_id:
+            asyncio.create_task(manager.broadcast_json(f"battle-assistant:tasks:{task_id}", message))
+
+    except Exception:
+        pass
 
 

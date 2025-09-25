@@ -100,5 +100,8 @@ class AutoBattleApp(ZApplication):
     def after_operation_done(self, result: OperationResult):
         ZApplication.after_operation_done(self, result)
         if self.auto_op is not None:
+            # 同时清理ctx中的引用（在dispose之前判断）
+            if self.ctx.auto_op == self.auto_op:
+                self.ctx.auto_op = None
             self.auto_op.dispose()
             self.auto_op = None

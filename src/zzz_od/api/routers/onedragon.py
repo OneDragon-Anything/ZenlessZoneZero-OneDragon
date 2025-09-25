@@ -3,22 +3,31 @@ from __future__ import annotations
 import asyncio
 from typing import Dict, List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from zzz_od.api.deps import get_ctx
-from zzz_od.api.models import RunIdResponse, RunStatusResponse, RunStatusEnum
+from zzz_od.api.models import RunIdResponse, RunStatusResponse, RunStatusEnum, ControlResponse, StatusResponse, LogReplayResponse
 from zzz_od.api.run_registry import get_global_run_registry
 from zzz_od.api.security import get_api_key_dependency
 from zzz_od.api.bridges import attach_run_event_bridge
 from zzz_od.api.status_builder import build_onedragon_aggregate
+from zzz_od.api.controllers.onedragon_controller import OneDragonController
 from zzz_od.config.team_config import PredefinedTeamInfo
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig
 from zzz_od.application.coffee.coffee_config import CoffeeConfig
 from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
-from zzz_od.game_data.agent import DmgTypeEnum
+from zzz_od.game_data.agent import DmgTypeEnum, AgentEnum
 from zzz_od.api.run_registry import get_global_run_registry
 from zzz_od.api.bridges import attach_run_event_bridge
+from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
+
+
+class AgentInfo(BaseModel):
+    """代理人信息"""
+    agentId: str
+    name: str
 
 
 router = APIRouter(
@@ -29,44 +38,160 @@ router = APIRouter(
 
 
 _registry = get_global_run_registry()
+_controller = OneDragonController()
 
 
-@router.post("/run", response_model=RunIdResponse)
-def onedragon_run() -> RunIdResponse:
-    ctx = get_ctx()
+@router.post("/run", response_model=RunIdResponse, summary="启动一条龙", deprecated=True)
+async def onedragon_run() -> RunIdResponse:
+    """
+    启动一条龙主任务
 
-    def _factory() -> asyncio.Task:
-        async def runner():
-            loop = asyncio.get_running_loop()
-            from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+    ## 功能描述
+    启动一条龙自动化任务，按照配置的应用列表依次执行各个功能模块。
 
-            def _exec():
-                app = ZOneDragonApp(ctx)
-                app.execute()
+    **⚠️ 已弃用**: 此端点已被弃用，请使用 `/start` 端点替代。
 
-            await loop.run_in_executor(None, _exec)
+    ## 返回数据
+    - **runId**: 任务运行ID，用于后续状态查询和控制
 
-        return asyncio.create_task(runner())
+    ## 错误码
+    - **TASK_START_FAILED**: 任务启动失败
 
-    run_id = _registry.create(_factory)
-    # attach event bridge for WS and status message updates
-    attach_run_event_bridge(ctx, run_id)
-    return RunIdResponse(runId=run_id)
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/onedragon/run")
+    task_info = response.json()
+    print(f"一条龙任务ID: {task_info['runId']}")
+    ```
+    """
+    # 内部转发到新的 /start 端点以保持向后兼容性
+    control_response = await _controller.start()
+
+    if control_response.ok:
+        return RunIdResponse(runId=control_response.runId)
+    else:
+        raise HTTPException(status_code=500, detail="任务启动失败")
 
 
-@router.post("/run/{run_id}:cancel")
+@router.post("/run/{run_id}:cancel", summary="取消一条龙任务", deprecated=True)
 async def onedragon_cancel(run_id: str):
-    _registry.cancel(run_id)
-    ctx = get_ctx()
-    ctx.stop_running()
-    return {"ok": True}
+    """
+    取消指定的一条龙任务
+
+    ## 功能描述
+    取消正在运行或等待中的一条龙任务。
+
+    **⚠️ 已弃用**: 此端点已被弃用，请使用 `/stop` 端点替代。
+
+    ## 路径参数
+    - **run_id**: 任务运行ID
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/onedragon/run/task-id:cancel")
+    result = response.json()
+    print(f"取消结果: {result['ok']}")
+    ```
+    """
+    # 内部转发到新的 /stop 端点以保持向后兼容性
+    control_response = await _controller.stop()
+    return {"ok": control_response.ok}
+
+
+@router.get("/agents", response_model=List[AgentInfo], summary="获取代理人列表")
+def get_agents():
+    """
+    获取所有可用代理人列表
+
+    ## 功能描述
+    返回游戏中所有可用的代理人信息，包括代理人ID和名称。
+
+    ## 返回数据
+    - **agentId**: 代理人唯一标识符
+    - **name**: 代理人显示名称
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/onedragon/agents")
+    agents = response.json()
+    for agent in agents:
+        print(f"代理人: {agent['name']} (ID: {agent['agentId']})")
+    ```
+    """
+    agents = []
+    # 添加"未知"代理人
+    agents.append(AgentInfo(agentId="unknown", name="未知"))
+
+    # 添加所有已定义的代理人
+    for agent_enum in AgentEnum:
+        agent = agent_enum.value
+        agents.append(AgentInfo(agentId=agent.agent_id, name=agent.agent_name))
+
+    return agents
+
+
+@router.get("/auto-battle-configs", response_model=List[str], summary="获取自动战斗配置列表")
+def get_auto_battle_configs():
+    """
+    获取自动战斗配置列表
+
+    ## 功能描述
+    返回系统中所有可用的自动战斗配置名称。
+
+    ## 返回数据
+    配置名称字符串列表
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/onedragon/auto-battle-configs")
+    configs = response.json()
+    for config in configs:
+        print(f"自动战斗配置: {config}")
+    ```
+    """
+    try:
+        config_list = get_auto_battle_op_config_list('auto_battle_state_handler')
+        # 提取配置名称
+        config_names = [config.value for config in config_list]
+        return config_names
+    except Exception:
+        # 如果获取失败，返回默认配置
+        return ["全配队通用"]
 
 
 # -------- Charge plan --------
 
 
-@router.get("/charge-plan")
+@router.get("/charge-plan", summary="获取体力计划配置")
 def get_charge_plan():
+    """
+    获取体力计划配置
+
+    ## 功能描述
+    返回当前的体力计划配置，包括计划列表和相关设置。
+
+    ## 返回数据
+    - **planList**: 计划项目列表
+    - **loop**: 是否循环执行
+    - **skipPlan**: 是否跳过计划
+    - **useCoupon**: 是否使用优惠券
+    - **restoreCharge**: 恢复体力设置
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/onedragon/charge-plan")
+    config = response.json()
+    print(f"计划数量: {len(config['planList'])}")
+    ```
+    """
     ctx = get_ctx()
     cc = ctx.charge_plan_config
     items = [
@@ -137,10 +262,57 @@ def get_charge_plan_options(category: str | None = None, missionType: str | None
     }
 
 
-@router.put("/charge-plan")
+@router.put("/charge-plan", summary="更新体力计划配置")
 def update_charge_plan(payload: dict):
+    """
+    更新体力计划配置
+
+    ## 功能描述
+    更新体力计划的全局设置和计划列表。
+
+    ## 请求参数
+    - **planList** (可选): 计划项目列表，如果提供则完全替换现有列表
+    - **loop** (可选): 是否循环执行
+    - **skipPlan** (可选): 是否跳过计划
+    - **useCoupon** (可选): 是否使用优惠券
+    - **restoreCharge** (可选): 恢复体力设置
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {"loop": True, "useCoupon": False}
+    response = requests.put("http://localhost:8000/api/v1/onedragon/charge-plan", json=data)
+    ```
+    """
     ctx = get_ctx()
     cc = ctx.charge_plan_config
+
+    # 处理计划列表
+    if "planList" in payload:
+        plan_list = payload["planList"]
+        cc.plan_list.clear()
+        for item in plan_list:
+            plan = ChargePlanItem(
+                tab_name=item.get('tabName', '训练'),
+                category_name=item.get('categoryName', '实战模拟室'),
+                mission_type_name=item.get('missionTypeName', '基础材料'),
+                mission_name=item.get('missionName', '调查专项'),
+                level=item.get('level', '默认等级'),
+                auto_battle_config=item.get('autoBattleConfig', '全配队通用'),
+                run_times=item.get('runTimes', 0),
+                plan_times=item.get('planTimes', 1),
+                card_num=str(item.get('cardNum')) if item.get('cardNum') is not None else '默认数量',
+                predefined_team_idx=item.get('predefinedTeamIdx', -1),
+                notorious_hunt_buff_num=item.get('notoriousHuntBuffNum', 1),
+                plan_id=item.get('planId'),
+            )
+            cc.plan_list.append(plan)
+        cc.save()
+
+    # 处理全局设置
     if "loop" in payload:
         cc.loop = bool(payload["loop"])
     if "skipPlan" in payload:
@@ -453,38 +625,208 @@ async def onedragon_status(run_id: str) -> RunStatusResponse:
     return status
 
 
+# -------- 统一控制接口 --------
+
+@router.post("/start", response_model=ControlResponse, summary="启动一条龙")
+async def onedragon_start() -> ControlResponse:
+    """
+    启动一条龙主任务
+
+    ## 功能描述
+    启动一条龙自动化任务，按照配置的应用列表依次执行各个功能模块。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 响应消息
+    - **runId**: 任务运行ID，用于后续状态查询和控制
+    - **capabilities**: 模块能力标识
+
+    ## 错误码
+    - **TASK_START_FAILED**: 任务启动失败
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/onedragon/start")
+    result = response.json()
+    print(f"一条龙任务ID: {result['runId']}")
+    ```
+    """
+    return await _controller.start()
+
+
+@router.post("/stop", response_model=ControlResponse, summary="停止一条龙")
+async def onedragon_stop() -> ControlResponse:
+    """
+    停止一条龙任务
+
+    ## 功能描述
+    停止正在运行的一条龙任务。
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+    - **message**: 响应消息
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/onedragon/stop")
+    result = response.json()
+    print(f"停止结果: {result['message']}")
+    ```
+    """
+    return await _controller.stop()
+
+
+@router.get("/status", response_model=StatusResponse, summary="获取一条龙状态")
+async def onedragon_unified_status() -> StatusResponse:
+    """
+    获取一条龙运行状态
+
+    ## 功能描述
+    获取一条龙当前的运行状态，包括是否运行中、上下文状态等信息。
+
+    ## 返回数据
+    - **is_running**: 是否正在运行
+    - **context_state**: 上下文状态 (idle | running | paused)
+    - **running_tasks**: 正在运行的任务数量
+    - **message**: 状态消息
+    - **runId**: 当前运行ID
+    - **capabilities**: 模块能力标识
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/onedragon/status")
+    status = response.json()
+    print(f"运行状态: {status['context_state']}")
+    ```
+    """
+    return await _controller.status()
+
+
+@router.get("/logs", response_model=LogReplayResponse, summary="获取一条龙运行日志")
+async def onedragon_logs(
+    runId: str = None,
+    tail: int = 1000
+) -> LogReplayResponse:
+    """
+    获取一条龙运行日志回放
+
+    ## 功能描述
+    获取指定runId的运行日志，支持回放最近的日志记录。所有时间戳使用UTC ISO8601格式。
+
+    ## 查询参数
+    - **runId** (可选): 运行ID，不提供则使用当前运行的ID
+    - **tail** (可选): 返回最后N条日志，默认1000，最大2000
+
+    ## 返回数据
+    - **logs**: 日志条目列表
+      - **timestamp**: 时间戳，UTC ISO8601格式（2025-09-20T12:34:56.789Z）
+      - **level**: 日志级别 (debug | info | warning | error)
+      - **message**: 日志消息
+      - **runId**: 运行ID
+      - **module**: 模块名称
+      - **seq**: 序列号
+      - **extra**: 额外信息
+    - **total_count**: 返回的日志条数
+    - **runId**: 查询的运行ID
+    - **module**: 模块名称
+    - **has_more**: 是否还有更多日志（当前实现中始终为false）
+    - **message**: 响应消息
+
+    ## 默认策略
+    - 当runId不存在时，返回空日志列表和说明消息
+    - 当无日志记录时，返回"暂无日志记录"消息
+    - 日志条数限制在2000条以内
+
+    ## 使用示例
+    ```python
+    import requests
+
+    # 获取当前运行的最新1000条日志
+    response = requests.get("http://localhost:8000/api/v1/onedragon/logs")
+
+    # 获取指定runId的最新500条日志
+    response = requests.get("http://localhost:8000/api/v1/onedragon/logs?runId=abc123&tail=500")
+
+    logs = response.json()
+    for log in logs['logs']:
+        print(f"[{log['timestamp']}] {log['level'].upper()}: {log['message']}")
+    ```
+    """
+    return await _controller.get_logs(runId, tail)
+
+
 # -------- Team config --------
 
 
-@router.get("/team")
+@router.get("/team", summary="获取队伍配置")
 def get_team():
+    """
+    获取队伍配置
+
+    ## 功能描述
+    返回所有预设队伍的配置信息，包括队伍成员和自动战斗设置。
+
+    ## 返回数据
+    - **teams**: 队伍列表
+      - **idx**: 队伍索引
+      - **name**: 队伍名称
+      - **autoBattle**: 自动战斗配置
+      - **members**: 队伍成员列表 [{"agentId": string, "name": string}]
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/onedragon/team")
+    teams = response.json()
+    for team in teams['teams']:
+        print(f"队伍: {team['name']}, 成员数: {len(team['members'])}")
+    ```
+    """
     from zzz_od.game_data.agent import AgentEnum
 
-    def agent_id_to_name(agent_id: str) -> str:
-        if agent_id == 'unknown':
-            return '未知'
+    # 构建agent_id到name的映射，提高查询效率
+    agent_name_map = {'unknown': '未知'}
+    try:
         for agent_enum in AgentEnum:
-            if agent_enum.value.agent_id == agent_id:
-                return agent_enum.value.agent_name
-        return agent_id
+            agent = agent_enum.value
+            if hasattr(agent, 'agent_id') and hasattr(agent, 'agent_name'):
+                agent_name_map[agent.agent_id] = agent.agent_name
+    except Exception as e:
+        # 如果构建映射失败，使用默认映射
+        pass
 
     ctx = get_ctx()
     tc = ctx.team_config
-    teams = [
-        {
+    teams = []
+
+    for t in tc.team_list:
+        members = []
+        for agent_id in t.agent_id_list:
+            # 确保agent_id是字符串类型
+            if isinstance(agent_id, str):
+                members.append({
+                    "agentId": agent_id,
+                    "name": agent_name_map.get(agent_id, agent_id)
+                })
+            elif isinstance(agent_id, dict) and 'agent_id' in agent_id:
+                # 如果agent_id是字典，提取agent_id字段
+                actual_id = agent_id['agent_id']
+                members.append({
+                    "agentId": actual_id,
+                    "name": agent_name_map.get(actual_id, actual_id)
+                })
+
+        teams.append({
             "idx": t.idx,
             "name": t.name,
-            "members": [
-                {
-                    "agentId": agent_id,
-                    "name": agent_id_to_name(agent_id)
-                }
-                for agent_id in t.agent_id_list
-            ],
             "autoBattle": t.auto_battle,
-        }
-        for t in tc.team_list
-    ]
+            "members": members
+        })
+
     return {"teams": teams}
 
 
@@ -492,36 +834,67 @@ def get_team():
 def get_apps():
     """
     返回一条龙可运行的应用清单（按当前顺序与启停）。
-    - items: [{ appId, name, enabled, orderIndex }]
-    - 兼容：附带 appOrder / appRunList 便于前端调试或迁移
+
+    ## 功能描述
+    获取一条龙中所有可用应用的详细信息，包括运行状态和历史记录。
+
+    ## 返回数据
+    - **items**: 应用列表
+      - **appId**: 应用唯一标识符
+      - **name**: 应用显示名称
+      - **enabled**: 是否在一条龙中启用
+      - **orderIndex**: 运行顺序索引
+      - **runStatus**: 运行状态 (0=未运行, 1=成功, 2=失败, 3=运行中)
+      - **runTime**: 上次运行时间 (格式: MM-DD HH:MM)
+    - **appOrder**: 应用顺序数组（兼容字段）
+    - **appRunList**: 启用的应用ID列表（兼容字段）
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.get("http://localhost:8000/api/v1/onedragon/apps")
+    data = response.json()
+    for app in data['items']:
+        status_text = ['未运行', '成功', '失败', '运行中'][app['runStatus']]
+        print(f"{app['name']}: {status_text} - {app['runTime']}")
+    ```
     """
     ctx = get_ctx()
     items = []
     try:
-        # 复用统一的目录构建（同模块函数）
-        items = _get_app_catalog()
+        from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+        zapp = ZOneDragonApp(ctx)
+        # 使用配置文件中的实际app_run_list，避免被临时运行列表影响
+        run_set = set(ctx.one_dragon_app_config.get("app_run_list", []))
+        for idx, app in enumerate(zapp.get_one_dragon_apps_in_order()):
+            app_id = getattr(app, 'app_id', '')
+            app_name = getattr(app, 'op_name', app_id)
+
+            # 获取运行记录信息
+            run_record = getattr(app, 'run_record', None)
+            if run_record:
+                run_record.check_and_update_status()
+                run_status = run_record.run_status_under_now
+                run_time = run_record.run_time
+            else:
+                run_status = 0  # STATUS_WAIT
+                run_time = '-'
+
+            items.append({
+                'appId': app_id,
+                'name': app_name,
+                'enabled': app_id in run_set,
+                'orderIndex': idx,
+                'runStatus': run_status,
+                'runTime': run_time,
+            })
     except Exception:
-        # 兜底：最小化返回
-        try:
-            from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
-            zapp = ZOneDragonApp(ctx)
-            run_set = set(ctx.one_dragon_app_config.app_run_list)
-            for idx, app in enumerate(zapp.get_one_dragon_apps_in_order()):
-                app_id = getattr(app, 'app_id', '')
-                app_name = getattr(app, 'op_name', app_id)
-                items.append({
-                    'appId': app_id,
-                    'name': app_name,
-                    'enabled': app_id in run_set,
-                    'orderIndex': idx,
-                })
-        except Exception:
-            pass
+        pass
     odc = ctx.one_dragon_app_config
     return {
         'items': items,
         'appOrder': odc.app_order,
-        'appRunList': odc.app_run_list,
+        'appRunList': odc.get("app_run_list", []),
     }
 
 
@@ -563,10 +936,13 @@ def _start_app_run(app_factory) -> str:
 
     def _factory_task():
         import asyncio
+        from zzz_od.api import log_stream
 
         async def runner():
             loop = asyncio.get_running_loop()
             def _exec():
+                # 确保WebSocket日志handler已经附加
+                log_stream.ensure_handler_attached()
                 app = app_factory(ctx)
                 app.execute()
             return await loop.run_in_executor(None, _exec)
@@ -589,26 +965,94 @@ def _run_via_onedragon_with_temp(app_ids: list[str]) -> str:
     return run_id
 
 
-@router.post("/charge-plan/run")
+@router.post("/charge-plan/run", summary="运行体力计划")
 async def run_charge_plan():
+    """
+    运行体力计划
+
+    ## 功能描述
+    启动体力计划任务，自动执行配置的体力消耗计划。
+
+    ## 返回数据
+    - **runId**: 任务运行ID
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/onedragon/charge-plan/run")
+    task_info = response.json()
+    print(f"体力计划任务ID: {task_info['runId']}")
+    ```
+    """
     run_id = _run_via_onedragon_with_temp(["charge_plan"])  # app_id 按实际定义
     return {"runId": run_id}
 
 
-@router.post("/notorious-hunt/run")
+@router.post("/notorious-hunt/run", summary="运行恶名狩猎")
 async def run_notorious_hunt():
+    """
+    运行恶名狩猎
+
+    ## 功能描述
+    启动恶名狩猎任务，自动执行恶名狩猎挑战。
+
+    ## 返回数据
+    - **runId**: 任务运行ID
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/onedragon/notorious-hunt/run")
+    task_info = response.json()
+    print(f"恶名狩猎任务ID: {task_info['runId']}")
+    ```
+    """
     run_id = _run_via_onedragon_with_temp(["notorious_hunt"])  # 以 GUI 内部 app_id 为准
     return {"runId": run_id}
 
 
-@router.post("/coffee-plan/run")
+@router.post("/coffee-plan/run", summary="运行咖啡计划")
 async def run_coffee_plan():
+    """
+    运行咖啡计划
+
+    ## 功能描述
+    启动咖啡计划任务，自动执行咖啡相关的挑战。
+
+    ## 返回数据
+    - **runId**: 任务运行ID
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/onedragon/coffee-plan/run")
+    task_info = response.json()
+    print(f"咖啡计划任务ID: {task_info['runId']}")
+    ```
+    """
     run_id = _run_via_onedragon_with_temp(["coffee"])  # 以 GUI 内部 app_id 为准
     return {"runId": run_id}
 
 
-@router.post("/shiyu-defense/run")
+@router.post("/shiyu-defense/run", summary="运行式舆防卫战")
 async def run_shiyu_defense():
+    """
+    运行式舆防卫战
+
+    ## 功能描述
+    启动式舆防卫战任务，自动执行式舆防卫战挑战。
+
+    ## 返回数据
+    - **runId**: 任务运行ID
+
+    ## 使用示例
+    ```python
+    import requests
+    response = requests.post("http://localhost:8000/api/v1/onedragon/shiyu-defense/run")
+    task_info = response.json()
+    print(f"式舆防卫战任务ID: {task_info['runId']}")
+    ```
+    """
     run_id = _run_via_onedragon_with_temp(["shiyu_defense"])  # 以 GUI 内部 app_id 为准
     return {"runId": run_id}
 
@@ -632,8 +1076,40 @@ async def run_app_alias_legacy(appId: str):
     return await run_app_by_id(appId)
 
 
-@router.put("/team")
+@router.put("/team", summary="更新队伍配置")
 def update_team(payload: dict):
+    """
+    更新队伍配置
+
+    ## 功能描述
+    更新预设队伍的配置，包括队伍成员和自动战斗设置。
+
+    ## 请求参数
+    - **teams**: 队伍配置列表
+      - **idx**: 队伍索引
+      - **name**: 队伍名称
+      - **members**: 队伍成员ID列表
+      - **autoBattle**: 自动战斗配置名称
+
+    ## 返回数据
+    - **ok**: 操作是否成功
+
+    ## 使用示例
+    ```python
+    import requests
+    data = {
+        "teams": [
+            {
+                "idx": 0,
+                "name": "主力队伍",
+                "members": ["agent1", "agent2", "agent3"],
+                "autoBattle": "全配队通用"
+            }
+        ]
+    }
+    response = requests.put("http://localhost:8000/api/v1/onedragon/team", json=data)
+    ```
+    """
     ctx = get_ctx()
     tc = ctx.team_config
     items = payload.get("teams") or []
@@ -642,7 +1118,17 @@ def update_team(payload: dict):
         name = item.get("name") or f"编队{idx+1}"
         members = item.get("members") or []
         auto_battle = item.get("autoBattle") or "全配队通用"
-        t = PredefinedTeamInfo(idx=idx, name=name, auto_battle=auto_battle, agent_id_list=members)
+
+        # 从members数组中提取agentId字段
+        agent_id_list = []
+        for member in members:
+            if isinstance(member, dict) and "agentId" in member:
+                agent_id_list.append(member["agentId"])
+            elif isinstance(member, str):
+                # 兼容旧格式，如果直接是字符串
+                agent_id_list.append(member)
+
+        t = PredefinedTeamInfo(idx=idx, name=name, auto_battle=auto_battle, agent_id_list=agent_id_list)
         tc.update_team(t)
     return {"ok": True}
 
@@ -706,7 +1192,7 @@ def reorder_onedragon_apps(payload: dict):
 
 
 @router.post("/run-app/{app_id}")
-def run_single_app(app_id: str):
+async def run_single_app(app_id: str):
     """Run only a single OneDragon sub-app by app_id."""
     ctx = get_ctx()
 
@@ -717,6 +1203,9 @@ def run_single_app(app_id: str):
             def _exec():
                 original_temp = ctx.one_dragon_app_config._temp_app_run_list
                 try:
+                    # 确保WebSocket日志handler已经附加
+                    from zzz_od.api import log_stream
+                    log_stream.ensure_handler_attached()
                     ctx.one_dragon_app_config.set_temp_app_run_list([app_id])
                     from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
                     ZOneDragonApp(ctx).execute()
@@ -732,5 +1221,7 @@ def run_single_app(app_id: str):
     run_id = _registry.create(_factory)
     attach_run_event_bridge(ctx, run_id)
     return RunIdResponse(runId=run_id)
+
+
 
 
