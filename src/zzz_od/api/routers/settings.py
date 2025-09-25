@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -628,18 +628,22 @@ def get_model_settings() -> Dict[str, Any]:
     获取AI模型的配置设置
 
     ## 功能描述
-    返回当前使用的AI模型配置，包括闪光分类器、零号空洞事件识别和迷失之地检测模型。
+    返回当前使用的AI模型配置，包括闪光分类器、零号空洞事件识别、迷失之地检测和OCR识别模型。
 
     ## 返回数据
     - **flashClassifier**: 闪光分类器配置
       - **selected**: 当前选择的模型
       - **gpu**: 是否使用GPU
-      - **options**: 可选模型列表
+      - **options**: 可选模型列表（最新的和备用的）
     - **hollowZeroEvent**: 零号空洞事件识别配置
       - **selected**: 当前选择的模型
       - **gpu**: 是否使用GPU
-      - **options**: 可选模型列表
+      - **options**: 可选模型列表（最新的和备用的）
     - **lostVoidDet**: 迷失之地检测配置
+      - **selected**: 当前选择的模型
+      - **gpu**: 是否使用GPU
+      - **options**: 可选模型列表（最新的和备用的）
+    - **ocr**: OCR识别配置
       - **selected**: 当前选择的模型
       - **gpu**: 是否使用GPU
       - **options**: 可选模型列表
@@ -654,26 +658,50 @@ def get_model_settings() -> Dict[str, Any]:
     ```
     """
     ctx = get_ctx()
+
+    def get_model_options_for_category(category: str) -> List[str]:
+        """获取指定类别的模型选项（默认+备用，去重）"""
+        if category == 'flash_classifier':
+            default = ctx.model_config.flash_classifier
+            backup = ctx.model_config.flash_classifier_backup
+        elif category == 'hollow_zero_event':
+            default = ctx.model_config.hollow_zero_event
+            backup = ctx.model_config.hollow_zero_event_backup
+        elif category == 'lost_void_det':
+            default = ctx.model_config.lost_void_det
+            backup = ctx.model_config.lost_void_det_backup
+        elif category == 'onnx_ocr':
+            default = ctx.model_config.ocr
+            backup = None  # OCR只有默认模型
+        else:
+            return []
+        
+        options = [default]
+        if backup and backup != default:
+            options.append(backup)
+            
+        return options
+
     return {
         "flashClassifier": {
             "selected": ctx.model_config.flash_classifier,
             "gpu": ctx.model_config.flash_classifier_gpu,
-            "options": [c.label for c in get_flash_classifier_opts()],
+            "options": get_model_options_for_category('flash_classifier'),
         },
         "hollowZeroEvent": {
             "selected": ctx.model_config.hollow_zero_event,
             "gpu": ctx.model_config.hollow_zero_event_gpu,
-            "options": [c.label for c in get_hollow_zero_event_opts()],
+            "options": get_model_options_for_category('hollow_zero_event'),
         },
         "lostVoidDet": {
             "selected": ctx.model_config.lost_void_det,
             "gpu": ctx.model_config.lost_void_det_gpu,
-            "options": [c.label for c in get_lost_void_det_opts()],
+            "options": get_model_options_for_category('lost_void_det'),
         },
         "ocr": {
             "selected": ctx.model_config.ocr,
             "gpu": ctx.model_config.ocr_gpu,
-            "options": [c.label for c in get_ocr_opts()]
+            "options": get_model_options_for_category('onnx_ocr')
         }
     }
 
