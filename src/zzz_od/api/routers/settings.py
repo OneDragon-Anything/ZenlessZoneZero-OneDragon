@@ -660,27 +660,32 @@ def get_model_settings() -> Dict[str, Any]:
     ctx = get_ctx()
 
     def get_model_options_for_category(category: str) -> List[str]:
-        """获取指定类别的模型选项（默认+备用，去重）"""
+        """获取指定类别的模型选项"""
+        from zzz_od.config.model_config import (
+            _DEFAULT_FLASH_CLASSIFIER, _BACKUP_FLASH_CLASSIFIER,
+            _DEFAULT_HOLLOW_ZERO_EVENT, _BACKUP_HOLLOW_ZERO_EVENT,
+            _DEFAULT_LOST_VOID_DET, _BACKUP_LOST_VOID_DET
+        )
+
         if category == 'flash_classifier':
-            default = ctx.model_config.flash_classifier
-            backup = ctx.model_config.flash_classifier_backup
+            return [_DEFAULT_FLASH_CLASSIFIER, _BACKUP_FLASH_CLASSIFIER]
         elif category == 'hollow_zero_event':
-            default = ctx.model_config.hollow_zero_event
-            backup = ctx.model_config.hollow_zero_event_backup
+            opts = get_hollow_zero_event_opts()
+            all_models = set([opt.label for opt in opts])
+            all_models.add(_DEFAULT_HOLLOW_ZERO_EVENT)
+            all_models.add(_BACKUP_HOLLOW_ZERO_EVENT)
+            return list(all_models)
         elif category == 'lost_void_det':
-            default = ctx.model_config.lost_void_det
-            backup = ctx.model_config.lost_void_det_backup
+            opts = get_lost_void_det_opts()
+            all_models = set([opt.label for opt in opts])
+            all_models.add(_DEFAULT_LOST_VOID_DET)
+            all_models.add(_BACKUP_LOST_VOID_DET)
+            return list(all_models)
         elif category == 'onnx_ocr':
-            default = ctx.model_config.ocr
-            backup = None  # OCR只有默认模型
+            opts = get_ocr_opts()
+            return [opt.label for opt in opts]
         else:
             return []
-        
-        options = [default]
-        if backup and backup != default:
-            options.append(backup)
-            
-        return options
 
     return {
         "flashClassifier": {
@@ -724,6 +729,9 @@ def update_model_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
     - **lostVoidDet** (可选): 迷失之地检测配置
       - **selected**: 选择的模型名称
       - **gpu**: 是否使用GPU，布尔值
+    - **ocr** (可选): OCR识别配置
+      - **selected**: 选择的模型名称
+      - **gpu**: 是否使用GPU，布尔值
 
     ## 返回数据
     - **ok**: 操作是否成功
@@ -738,6 +746,10 @@ def update_model_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
         },
         "hollowZeroEvent": {
             "gpu": False
+        },
+        "ocr": {
+            "selected": "ppocrv5",
+            "gpu": True
         }
     }
     response = requests.put("http://localhost:8000/api/v1/settings/model", json=data)
