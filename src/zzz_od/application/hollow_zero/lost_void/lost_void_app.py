@@ -8,7 +8,7 @@ from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.base.operation.operation_round_result import OperationRoundResult, OperationRoundResultEnum
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -52,6 +52,7 @@ class LostVoidApp(ZApplication):
 
         self.use_priority_agent: bool = False  # 本次挑战是否使用了UP代理人
         self._period_reward_finished: bool = False
+        self._period_reward_checked: bool = False  # 本次任务是否检查过周期挑战进度
 
     @operation_node(name='初始化加载', is_start_node=True)
     def init_for_lost_void(self) -> OperationRoundResult:
@@ -123,7 +124,16 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='通关后处理', status=STATUS_AGAIN)
     @operation_node(name='前往副本画面', node_max_retry_times=60)
     def goto_mission_screen(self) -> OperationRoundResult:
-        self._period_reward_finished = self._check_period_reward()
+        # goto_mission_screen 会循环执行, 只在最开始的时候检查一下周期奖励
+        if not self._period_reward_checked:
+            for i in range(30):
+                period_reward = self._check_period_reward()
+                if period_reward.result == OperationRoundResultEnum.SUCCESS:
+                    self._period_reward_finished = True
+                elif period_reward.result == OperationRoundResultEnum.FAIL:
+                    break
+            self._period_reward_checked = True
+
         if self._period_reward_finished:
             # 周期奖励完成, 检查是否需要再刷
             if self.ctx.lost_void_record.is_finished_by_day():
@@ -132,20 +142,21 @@ class LostVoidApp(ZApplication):
         return self.round_by_goto_screen(screen_name=f'迷失之地-{mission_name}')
 
     # 检查周期奖励
-    def _check_period_reward(self) -> bool:
+    def _check_period_reward(self) -> OperationRoundResult:
         ocr_result_map = self.ocr(self.last_screenshot, '迷失之地-大世界', '标签-悬赏委托完成进度')
-        # 找到了2个 8000 的算过 (悬赏委托完成进度 8000/8000)
-        # 找不到 8000 的也算过 (防止死循环)
         count_8000 = 0
         for ocr_result, mrl in ocr_result_map.items():
             count_8000 += ocr_result.count('8000')
-        if count_8000 == 0 or count_8000 == 2:
-            # 如果周计划未完成, 设置为已完成
+        if count_8000 == 0:
+            # 找不到 8000 返回重试
+            return self.round_retry('未找到周奖励 (xxxx/8000)', wait=1)
+        elif count_8000 == 2:
+            # 悬赏委托完成进度 8000/8000, 如果周计划未完成, 设置为已完成
             if not self.ctx.lost_void_record.period_reward_complete:
                 self.ctx.lost_void_record.period_reward_complete = True
-            return True
+            return self.round_success('已打满周奖励 (8000/8000)')
 
-        return False
+        return self.round_fail('未打满周奖励 (xxxx/8000)')
 
     @node_from(from_name='前往副本画面')
     @operation_node(name='副本画面识别')
@@ -452,6 +463,7 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='层间移动', status=LostVoidRunLevel.STATUS_COMPLETE)
     @operation_node(name='通关后处理', node_max_retry_times=60)
     def after_complete(self) -> OperationRoundResult:
+        self._period_reward_checked = False  # 完成后检查过周期挑战进度
         screen_name = self.check_and_update_current_screen(self.last_screenshot)
         if screen_name != '迷失之地-入口':
             return self.round_retry('等待画面加载')
@@ -468,7 +480,15 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='通关后处理')
     @operation_node(name='打开悬赏委托')
     def open_reward_list(self) -> OperationRoundResult:
-        self._period_reward_finished = self._check_period_reward()
+        if not self._period_reward_checked:
+            for i in range(30):
+                period_reward = self._check_period_reward()
+                if period_reward.result == OperationRoundResultEnum.SUCCESS:
+                    self._period_reward_finished = True
+                elif period_reward.result == OperationRoundResultEnum.FAIL:
+                    break
+            self._period_reward_checked = True
+
         return self.round_by_find_and_click_area(screen_name='迷失之地-入口', area_name='按钮-悬赏委托',
                                                  until_not_find_all=[('迷失之地-入口', '按钮-悬赏委托')],
                                                  success_wait=1, retry_wait=1)

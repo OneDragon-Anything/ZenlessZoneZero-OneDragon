@@ -129,13 +129,13 @@ def ocr(ctx: OneDragonContext, screen: MatLike, screen_name: str, area_name: str
 
             ocr_result_map = ctx.ocr.run_ocr(to_ocr)
 
-        return ocr_result_map
-
         # cv2.imwrite('y:/part.png', part)
         # for ocr_result, mrl in ocr_result_map.items():
         #     if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result, percent=area.lcs_percent):
         #         find = True
         #         break
+        return ocr_result_map
+
     return None
 
 
