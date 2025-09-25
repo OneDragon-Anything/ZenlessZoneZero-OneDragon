@@ -12,6 +12,7 @@ from zzz_od.config.model_config import (
     get_hollow_zero_event_opts,
     get_lost_void_det_opts,
 )
+from one_dragon.base.config.basic_model_config import get_ocr_opts
 from one_dragon.base.config.custom_config import CustomConfig
 
 from zzz_od.config.notify_config import NotifyConfig
@@ -669,6 +670,11 @@ def get_model_settings() -> Dict[str, Any]:
             "gpu": ctx.model_config.lost_void_det_gpu,
             "options": [c.label for c in get_lost_void_det_opts()],
         },
+        "ocr": {
+            "selected": ctx.model_config.ocr,
+            "gpu": ctx.model_config.ocr_gpu,
+            "options": [c.label for c in get_ocr_opts()]
+        }
     }
 
 
@@ -710,7 +716,7 @@ def update_model_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
     ```
     """
     ctx = get_ctx()
-    for name in ["flashClassifier", "hollowZeroEvent", "lostVoidDet"]:
+    for name in ["flashClassifier", "hollowZeroEvent", "lostVoidDet", "ocr"]:
         conf = payload.get(name) or {}
         if not conf:
             continue
@@ -729,6 +735,11 @@ def update_model_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
                 ctx.model_config.lost_void_det = conf["selected"]
             if "gpu" in conf:
                 ctx.model_config.lost_void_det_gpu = bool(conf["gpu"])
+        elif name == "ocr":
+            if "selected" in conf:
+                ctx.model_config.ocr = conf["selected"]
+            if "gpu" in conf:
+                ctx.model_config.ocr_gpu = bool(conf["gpu"])
     return {"ok": True}
 
 
