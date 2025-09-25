@@ -32,7 +32,9 @@ jobs:
         } else {
           # 手动 workflow_dispatch 触发：使用 git 的语义化版本排序，选出最新 tag，然后生成 / 递增 beta 版本
           # --refs 可避免出现带 ^{} 的 peeled 行，--sort=-version:refname 以版本名倒序排序，'v*' 仅匹配语义化版本前缀
-          $latestRef = git ls-remote --refs --tags --sort=-version:refname origin 'v*' | Select-Object -First 1
+          $latestRef = git ls-remote --refs --tags --sort=-version:refname origin 'v*' |
+            Where-Object { $_ -match 'refs/tags/(v\d+\.\d+\.\d+(?:-beta\.\d+)?)$' } |
+            Select-Object -First 1
 
           if (-not $latestRef) {
             # 仓库还没有任何符合语义版本的 tag，初始化为 v0.1.0-beta.1
