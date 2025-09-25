@@ -24,8 +24,10 @@ class EnterGame(ZOperation):
                             op_name=gt('进入游戏')
                             )
 
+        # 既然在脚本上创建过多个账号, 那么在游戏中也可能会登多个账号吧(偶尔帮朋友打个深渊之类的), 重新上下号避免登错号而没发现
         self.force_login: bool = (self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value
-            and len(self.ctx.one_dragon_config.instance_list_in_od) > 1)
+            and len(self.ctx.one_dragon_config.instance_list) > 1
+            and len(self.ctx.one_dragon_config.instance_list_in_od) > 0)
 
         # 切换账号的情况下 一定需要登录
         if switch:
