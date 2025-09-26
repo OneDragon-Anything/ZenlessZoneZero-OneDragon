@@ -4,6 +4,7 @@ import ctypes
 import hashlib
 from ctypes import wintypes
 import base64
+import uuid
 
 from PySide6.QtWidgets import QWidget, QFileDialog, QVBoxLayout, QInputDialog, QLineEdit, QHBoxLayout
 from PySide6.QtGui import QColor
@@ -25,10 +26,19 @@ class SettingCustomInterface(VerticalScrollInterface):
 
     @property
     def theme_color_password_salt(self) -> str:
-        """从环境变量获取salt，如果没有则使用默认值"""
-        return os.environ.get('THEME_COLOR_SALT', base64.b64decode('dGhlbWVfY29sb3Jfc2FsdF8yMDI0').decode('utf-8'))
+        _e = os.environ.get('THEME_COLOR_SALT')
+        if _e:
+            return _e
+        try:
+            import platform
+            _m = f"{platform.node()}-{platform.machine()}"
+            return str(uuid.uuid5(uuid.NAMESPACE_DNS, _m))
+        except Exception:
+            return str(uuid.uuid4())
 
-    THEME_COLOR_PASSWORD_HASH = '9d8236e0db1853aea3953f7758b20057a88393e43913ceb85a778ba58b868c8b'  # greedisgood with salt
+    def _get_pwd(self):
+        _x = [103, 114, 101, 101, 100, 105, 115, 103, 111, 111, 100]
+        return ''.join(chr(i) for i in _x)
 
     def __init__(self, ctx: OneDragonContext, parent=None):
         self.ctx: OneDragonContext = ctx
@@ -135,10 +145,6 @@ class SettingCustomInterface(VerticalScrollInterface):
         return basic_group
 
     def on_interface_shown(self) -> None:
-        """
-        子界面显示时 进行初始化
-        :return:
-        """
         VerticalScrollInterface.on_interface_shown(self)
         self.ui_language_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('ui_language'))
         self.theme_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('theme'))
@@ -149,12 +155,6 @@ class SettingCustomInterface(VerticalScrollInterface):
         self.version_poster_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('version_poster'))
 
     def _on_ui_language_changed(self, index: int, value: str) -> None:
-        """
-        界面语言改变
-        :param index: 选项下标
-        :param value: 值
-        :return:
-        """
         language = self.ctx.custom_config.ui_language
         dialog = Dialog(gt("提示", "ui", language), gt("语言切换成功，需要重启应用程序以生效", "ui", language), self)
         dialog.setTitleBarVisible(False)
@@ -165,94 +165,60 @@ class SettingCustomInterface(VerticalScrollInterface):
             app_utils.start_one_dragon(True)
 
     def _on_theme_changed(self, index: int, value: str) -> None:
-        """
-        主题类型改变
-        :param index: 选项下标
-        :param value: 值
-        :return:
-        """
         setTheme(Theme[self.ctx.custom_config.theme.upper()],lazy=True)
 
     def _toggle_theme_color_password_visibility(self):
-        """切换主题色密码显示模式"""
         if self.theme_color_password_toggle.isChecked():
-            self.theme_color_password.setEchoMode(LineEdit.EchoMode.Normal)  # 显示明文
+            self.theme_color_password.setEchoMode(LineEdit.EchoMode.Normal)
             self.theme_color_password_toggle.setIcon(FluentIcon.VIEW)
         else:
-            self.theme_color_password.setEchoMode(LineEdit.EchoMode.Password)  # 隐藏明文
+            self.theme_color_password.setEchoMode(LineEdit.EchoMode.Password)
             self.theme_color_password_toggle.setIcon(FluentIcon.HIDE)
 
     def _verify_theme_color_password(self) -> bool:
-        """
-        验证主题色密码
-        :return: 是否验证成功
-        """
-        entered_password = self.theme_color_password.text()
-        hashed = hashlib.sha256((entered_password + self.theme_color_password_salt).encode()).hexdigest()
-        if hashed == self.THEME_COLOR_PASSWORD_HASH:
+        _p = self.theme_color_password.text()
+        _h = hashlib.sha256((_p + self.theme_color_password_salt).encode()).hexdigest()
+        _expected = hashlib.sha256((self._get_pwd() + self.theme_color_password_salt).encode()).hexdigest()
+        if _h == _expected:
             return True
         else:
-            error_dialog = Dialog(gt('密码错误'), gt('密码不对哦~'), self)
-            error_dialog.yesButton.setText(gt('再试试吧'))
-            error_dialog.cancelButton.hide()
-            error_dialog.exec()
+            _d = Dialog(gt('密码错误'), gt('密码不对哦~'), self)
+            _d.yesButton.setText(gt('再试试吧'))
+            _d.cancelButton.hide()
+            _d.exec()
             return False
 
     def _on_theme_color_mode_changed(self, index: int, value: str) -> None:
-        """
-        主题色模式改变
-        :param index: 选项下标
-        :param value: 值
-        :return:
-        """
-        # 如果切换到自定义模式，需要密码验证
         if value == ThemeColorModeEnum.CUSTOM.value.value:
             if not self._verify_theme_color_password():
-                # 密码验证失败，恢复到自动模式
                 self.theme_color_mode_opt.setValue(ThemeColorModeEnum.AUTO.value.value)
                 return
-
-        # 如果切换到从背景提取，触发banner重载
         if value == ThemeColorModeEnum.AUTO.value.value:
             self.ctx.signal.reload_banner = True
         self.custom_theme_color_btn.setEnabled(value == ThemeColorModeEnum.CUSTOM.value.value)
 
     def _on_custom_theme_color_clicked(self) -> None:
-        """
-        点击自定义主题色按钮
-        """
         if not self._verify_theme_color_password():
             return
-
-        color = self.ctx.custom_config.theme_color
-        dialog = ColorDialog(QColor(color[0], color[1], color[2]), gt('请选择主题色'), self)
-        dialog.colorChanged.connect(self._update_custom_theme_color)
-        dialog.yesButton.setText(gt('确定'))
-        dialog.cancelButton.setText(gt('取消'))
-        dialog.exec()
+        _c = self.ctx.custom_config.theme_color
+        _d = ColorDialog(QColor(_c[0], _c[1], _c[2]), gt('请选择主题色'), self)
+        _d.colorChanged.connect(self._update_custom_theme_color)
+        _d.yesButton.setText(gt('确定'))
+        _d.cancelButton.setText(gt('取消'))
+        _d.exec()
 
     def _update_custom_theme_color(self, color: QColor) -> None:
-        """
-        更新自定义主题色
-        :param color: QColor对象
-        """
-        color_tuple = (color.red(), color.green(), color.blue())
-        self.ctx.custom_config.theme_color = color_tuple
-        ThemeManager.set_theme_color(color_tuple)
+        _ct = (color.red(), color.green(), color.blue())
+        self.ctx.custom_config.theme_color = _ct
+        ThemeManager.set_theme_color(_ct)
 
     def _on_banner_select_clicked(self) -> None:
-        """
-        选择背景图片并复制
-        """
-        # 将默认路径设为图片库路径
-        default_path = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
-        ctypes.windll.shell32.SHGetFolderPathW(None, 0x0027, None, 0, default_path)
-        file_path, _ = QFileDialog.getOpenFileName(self, f"{gt('选择你的')}{gt('背景图片')}", default_path.value, filter="Images (*.png *.jpg *.jpeg *.webp *.bmp)")
-        if file_path is not None and file_path != '':
-            banner_path = os.path.join(
-            os_utils.get_path_under_work_dir('custom', 'assets', 'ui'),
-            'banner')
-            shutil.copyfile(file_path, banner_path)
+        _dp = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
+        ctypes.windll.shell32.SHGetFolderPathW(None, 0x0027, None, 0, _dp)
+        _fp, _ = QFileDialog.getOpenFileName(self, f"{gt('选择你的')}{gt('背景图片')}", _dp.value, filter="Images (*.png *.jpg *.jpeg *.webp *.bmp)")
+        if _fp is not None and _fp != '':
+            _bp = os.path.join(os_utils.get_path_under_work_dir('custom', 'assets', 'ui'), 'banner')
+            shutil.copyfile(_fp, _bp)
             self.reload_banner()
 
     def _on_version_poster_changed(self, value: bool) -> None:
