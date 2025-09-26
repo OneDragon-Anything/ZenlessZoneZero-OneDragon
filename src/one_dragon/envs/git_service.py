@@ -1,281 +1,649 @@
+import contextlib
 import os
-import shutil
 import time
-from typing import Optional, Callable, List, Tuple
+from collections.abc import Callable
+from dataclasses import dataclass
 
-from one_dragon.envs.env_config import DEFAULT_ENV_PATH, DEFAULT_GIT_DIR_PATH, EnvConfig, RepositoryTypeEnum, GitMethodEnum
+import pygit2
+
+from one_dragon.envs.env_config import EnvConfig, GitMethodEnum, RepositoryTypeEnum
 from one_dragon.envs.project_config import ProjectConfig
-from one_dragon.envs.download_service import DownloadService
-from one_dragon.utils import cmd_utils, os_utils
+from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
 DOT_GIT_DIR_PATH = os.path.join(os_utils.get_work_dir(), '.git')
+PROXY_ENV_KEYS: tuple[str, ...] = (
+    'HTTP_PROXY',
+    'HTTPS_PROXY',
+    'http_proxy',
+    'https_proxy',
+    'NO_PROXY',
+    'no_proxy',
+)
 
 
 class GitLog:
 
-    def __init__(self, format_str: str):
-        arr = format_str.split(' #@# ')
-        self.commit_id: str = arr[0]
-        self.author: str = arr[1]
-        self.commit_time: str = arr[2]
-        self.commit_message: str = arr[3]
+    def __init__(self, commit_id: str, author: str, commit_time: str, commit_message: str):
+        self.commit_id: str = commit_id
+        self.author: str = author
+        self.commit_time: str = commit_time
+        self.commit_message: str = commit_message
+
+
+@dataclass
+class GitOperationResult:
+    success: bool
+    code: str
+    message: str
+    detail: str | None = None
+
+    def to_tuple(self) -> tuple[bool, str]:
+        return self.success, self.message
+
+
+class RepoStateManager:
+    """集中封装仓库实例缓存、远程配置与分支同步逻辑"""
+
+    def __init__(self, service: 'GitService'):
+        self._service = service
+        self._repo: pygit2.Repository | None = None
+
+    def invalidate(self) -> None:
+        self._repo = None
+
+    def open_repo(self, refresh: bool = False) -> pygit2.Repository:
+        if refresh:
+            self._repo = None
+
+        if self._repo is not None:
+            return self._repo
+
+        work_dir = os_utils.get_work_dir()
+        try:
+            self._repo = pygit2.Repository(work_dir)
+            return self._repo
+        except Exception:
+            self._repo = None
+            raise
+
+    def ensure_remote(self, repo: pygit2.Repository, remote_name: str = 'origin',
+                      remote_url: str | None = None) -> pygit2.Remote | None:
+        remote_url = remote_url or self._service.get_git_repository()
+        if not remote_url:
+            log.error('未能获取有效的远程仓库地址')
+            return None
+
+        try:
+            remote = repo.remotes[remote_name]
+            if remote.url != remote_url:
+                cfg = repo.config
+                cfg[f'remote.{remote_name}.url'] = remote_url
+                remote = repo.remotes[remote_name]
+            return remote
+        except KeyError:
+            try:
+                repo.remotes.create(remote_name, remote_url)
+                return repo.remotes[remote_name]
+            except (KeyError, AttributeError, pygit2.GitError) as exc:
+                log.error(f'配置远程 {remote_name} 失败: {exc}')
+                return None
+        except (AttributeError, pygit2.GitError) as exc:
+            log.error(f'读取远程 {remote_name} 失败: {exc}')
+            return None
+        except Exception as exc:  # pylint: disable=broad-except
+            log.error(f'配置远程 {remote_name} 时出现异常: {exc}')
+            return None
+
+    def sync_with_remote(self, repo: pygit2.Repository, target_branch: str,
+                         force_update: bool) -> GitOperationResult:
+        origin_ref_name = f'refs/remotes/origin/{target_branch}'
+        try:
+            if origin_ref_name not in repo.references:
+                return GitOperationResult(
+                    True,
+                    'REMOTE_BRANCH_MISSING',
+                    '',
+                    detail=f'missing reference {origin_ref_name}',
+                )
+
+            origin_ref = repo.references.get(origin_ref_name)
+            origin_oid = origin_ref.target
+
+            try:
+                local_oid = repo.head.target
+            except (KeyError, pygit2.GitError, ValueError):
+                local_oid = None
+
+            if local_oid is None:
+                if force_update:
+                    repo.reset(origin_oid, pygit2.GIT_RESET_HARD)
+                    return GitOperationResult(
+                        True,
+                        'RESET_HEAD_TO_REMOTE',
+                        gt('更新本地代码成功'),
+                        detail=f'head missing reset to {origin_oid}',
+                    )
+                return GitOperationResult(
+                    False,
+                    'LOCAL_HEAD_MISSING',
+                    gt('更新本地代码失败'),
+                    detail='HEAD reference is missing',
+                )
+
+            try:
+                remote_ahead = repo.descendant_of(origin_oid, local_oid)
+            except Exception as exc:
+                detail = f'{type(exc).__name__}: {exc}'
+                log.debug(f'判断分支祖先关系失败: {detail}')
+                remote_ahead = False
+
+            if remote_ahead:
+                repo.reset(origin_oid, pygit2.GIT_RESET_HARD)
+                return GitOperationResult(
+                    True,
+                    'FAST_FORWARD',
+                    gt('更新本地代码成功'),
+                    detail=f'{local_oid} -> {origin_oid}',
+                )
+
+            if force_update:
+                repo.reset(origin_oid, pygit2.GIT_RESET_HARD)
+                return GitOperationResult(
+                    True,
+                    'FORCED_RESET',
+                    gt('更新本地代码成功'),
+                    detail=f'{local_oid} -> {origin_oid}',
+                )
+
+            detail = f'local {local_oid} is ahead of origin {origin_oid}'
+            return GitOperationResult(
+                False,
+                'NEED_MANUAL_REBASE',
+                gt('更新本地代码失败'),
+                detail=detail,
+            )
+        except Exception as exc:
+            detail = f'{type(exc).__name__}: {exc}'
+            log.error(f'同步分支到远程失败: {detail}', exc_info=True)
+            return GitOperationResult(
+                False,
+                'SYNC_EXCEPTION',
+                gt('更新本地代码失败'),
+                detail=detail,
+            )
 
 
 class GitService:
 
-    def __init__(self, project_config: ProjectConfig, env_config: EnvConfig, download_service: DownloadService):
+    def __init__(self, project_config: ProjectConfig, env_config: EnvConfig):
         self.project_config: ProjectConfig = project_config
         self.env_config: EnvConfig = env_config
-        self.download_service: DownloadService = download_service
 
+        self._ensure_config_search_path()
         self.is_proxy_set: bool = False  # 是否已经设置代理了
+        self._repo_manager = RepoStateManager(self)
 
-    def get_os_git_path(self) -> Optional[str]:
-        """
-        获取系统环境变量中的git路径
-        :return:
-        """
-        log.info('获取系统环境变量的git')
-        message = cmd_utils.run_command(['where', 'git'])
-        if message is not None and message.endswith('.exe'):
-            return message
+    # ---- helpers ----
+    @staticmethod
+    def _ensure_config_search_path() -> None:
+        """覆盖 libgit2 的配置搜索路径，避免读取系统/用户级 gitconfig"""
+        settings = getattr(pygit2, 'settings', None)
+        if settings is None:
+            log.warning('pygit2.settings 不可用，无法覆盖 git config 搜索路径')
+            return
+
+        levels = [
+            getattr(pygit2, 'GIT_CONFIG_LEVEL_SYSTEM', None),
+            getattr(pygit2, 'GIT_CONFIG_LEVEL_GLOBAL', None),
+            getattr(pygit2, 'GIT_CONFIG_LEVEL_XDG', None),
+        ]
+        errors = []
+        for level in levels:
+            if level is None:
+                continue
+            try:
+                settings.set_search_path(level, '')
+            except Exception as exc:  # pylint: disable=broad-except
+                errors.append((level, exc))
+
+        if errors:
+            for level, exc in errors:
+                log.warning(f'禁用 git config 等级 {level} 失败: {exc}')
         else:
+            log.info('已禁用系统/用户级 git config 搜索路径，仅保留仓库级配置')
+
+    def _open_repo(self, refresh: bool = False) -> pygit2.Repository:
+        """打开当前工作目录的仓库（带缓存，可按需刷新）"""
+        return self._repo_manager.open_repo(refresh=refresh)
+
+    def _ensure_remote(self, repo: pygit2.Repository, remote_name: str = 'origin',
+                       remote_url: str | None = None) -> pygit2.Remote | None:
+        """确保仓库存在指定远程且指向期望 URL，返回远程对象"""
+        return self._repo_manager.ensure_remote(repo, remote_name=remote_name, remote_url=remote_url)
+
+    def _invalidate_repo_cache(self) -> None:
+        """当 .git 目录被重建等场景时，清空仓库缓存"""
+        self._repo_manager.invalidate()
+        self.is_proxy_set = False
+
+    @staticmethod
+    def _remote_branch_ref(branch: str) -> str:
+        return f'refs/remotes/origin/{branch}'
+
+    @staticmethod
+    def _local_branch_ref(branch: str) -> str:
+        return f'refs/heads/{branch}'
+
+    def _resolve_branch_commit(
+        self,
+        repo: pygit2.Repository,
+        branch: str,
+        *,
+        allow_local_fallback: bool,
+    ) -> pygit2.Commit | None:
+        remote_ref_name = self._remote_branch_ref(branch)
+        try:
+            remote_ref = repo.references.get(remote_ref_name)
+        except (KeyError, pygit2.GitError):
+            remote_ref = None
+
+        if remote_ref is not None:
+            try:
+                return repo.get(remote_ref.target)
+            except (KeyError, pygit2.GitError) as exc:
+                log.error(f'读取远程分支 {remote_ref_name} 失败: {exc}', exc_info=True)
+                return None
+
+        if not allow_local_fallback:
+            log.error(f'远程分支不存在: {remote_ref_name}')
             return None
 
-    def get_git_version(self) -> Optional[str]:
-        """
-        获取当前使用的git版本
-        :return:
-        """
-        log.info('检测当前git版本')
-        cmd_result = cmd_utils.run_command([self.env_config.git_path, '--version'])  # 示例 git version 2.35.2.windows.1
-        if cmd_result is not None:
-            prefix = 'git version '
-            return cmd_result[cmd_result.find(prefix) + len(prefix): ]
-        else:
+        try:
+            head = repo.head
+            if head is None:
+                log.error('当前仓库缺少 HEAD，无法切换到目标分支')
+                return None
+            peeled = head.peel()
+            if hasattr(peeled, 'oid'):
+                return peeled
+            return repo.get(head.target)
+        except (KeyError, ValueError, pygit2.GitError) as exc:
+            log.error(f'获取本地 HEAD 失败: {exc}', exc_info=True)
             return None
 
-    def install_default_git(self, progress_callback: Optional[Callable[[float, str], None]]) -> Tuple[bool, str]:
-        """
-        安装默认的git
-        :param progress_callback: 进度回调。进度发生改变时，通过该方法通知调用方。
-        :return: 是否安装成功
-        """
-        if self.get_git_version() is not None:
-            msg = gt('已经安装了 Git')
-            log.info(msg)
-            return True, msg
-
-        msg = gt('开始安装 Git')
-        if progress_callback is not None:
-            progress_callback(-1, msg)
-        log.info(msg)
-
-        zip_file_name = 'MinGit.zip'
-        success = self.download_service.download_and_extract_env_file(
-            zip_file_name, DEFAULT_ENV_PATH, DEFAULT_GIT_DIR_PATH, progress_callback
+    def _checkout_branch(
+        self,
+        repo: pygit2.Repository,
+        branch: str,
+        *,
+        allow_local_fallback: bool = False,
+    ) -> tuple[bool, pygit2.Oid | None]:
+        target_commit = self._resolve_branch_commit(
+            repo,
+            branch,
+            allow_local_fallback=allow_local_fallback,
         )
+        if target_commit is None:
+            return False, None
 
-        if success:
-            return True, gt('安装 Git 成功')
+        local_ref_name = self._local_branch_ref(branch)
+        try:
+            if local_ref_name in repo.references:
+                repo.lookup_reference(local_ref_name).set_target(target_commit.id)
+            else:
+                repo.create_branch(branch, target_commit)
+            repo.checkout(local_ref_name, strategy=pygit2.GIT_CHECKOUT_FORCE)
+            repo.set_head(local_ref_name)
+            return True, target_commit.id
+        except Exception as exc:  # pylint: disable=broad-except
+            log.error(f'切换到目标分支失败: {exc}', exc_info=True)
+            return False, None
+
+    def _resolve_proxy_address(self) -> str | None:
+        if not self.env_config.is_personal_proxy:
+            return None
+        proxy_address = self.env_config.personal_proxy.strip()
+        if not proxy_address:
+            return None
+        if proxy_address.startswith(('http://', 'https://', 'socks5://')):
+            return proxy_address
+        return f'http://{proxy_address}'
+
+    def _apply_repo_proxy(self, repo: pygit2.Repository) -> None:
+        proxy_address = self._resolve_proxy_address()
+        try:
+            cfg = repo.config
+        except Exception as exc:  # pylint: disable=broad-except
+            log.warning(f'读取仓库配置失败，无法设置代理: {exc}')
+            return
+
+        try:
+            if proxy_address is None:
+                for key in ('http.proxy', 'https.proxy'):
+                    try:
+                        cfg.delete_multivar(key, '.*')
+                    except (KeyError, pygit2.GitError):
+                        try:
+                            del cfg[key]
+                        except KeyError:
+                            pass
+            else:
+                cfg['http.proxy'] = proxy_address
+                cfg['https.proxy'] = proxy_address
+        except pygit2.GitError as exc:
+            log.warning(f'设置仓库级代理失败: {exc}')
+
+    def _set_proxy_env(self, proxy_address: str | None) -> None:
+        if proxy_address:
+            for key in ('HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy'):
+                os.environ[key] = proxy_address
+            for key in ('NO_PROXY', 'no_proxy'):
+                os.environ.pop(key, None)
         else:
-            return False, gt('安装 Git 失败')
+            for key in PROXY_ENV_KEYS:
+                os.environ.pop(key, None)
 
-    def fetch_latest_code(self, progress_callback: Optional[Callable[[float, str], None]] = None) -> Tuple[bool, str]:
+    @staticmethod
+    def _restore_proxy_env(snapshot: dict[str, str | None]) -> None:
+        for key, value in snapshot.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+    @contextlib.contextmanager
+    def _with_proxy(self, repo: pygit2.Repository | None = None):
+        repo_to_use = repo
+        if repo_to_use is None:
+            try:
+                repo_to_use = self._open_repo()
+            except Exception:
+                repo_to_use = None
+
+        if repo_to_use is not None:
+            self._apply_repo_proxy(repo_to_use)
+
+        env_backup = {key: os.environ.get(key) for key in PROXY_ENV_KEYS}
+        proxy_address = self._resolve_proxy_address()
+
+        try:
+            self._set_proxy_env(proxy_address)
+        except Exception:
+            self._restore_proxy_env(env_backup)
+            raise
+
+        try:
+            yield repo_to_use
+        finally:
+            self._restore_proxy_env(env_backup)
+
+    def _fetch_remote_code_result(self, repo: pygit2.Repository | None = None) -> GitOperationResult:
+        log.info(gt('获取远程代码'))
+        try:
+            repository = repo or self._open_repo()
+        except Exception as exc:
+            detail = f'{type(exc).__name__}: {exc}'
+            log.error(f'打开仓库失败: {detail}', exc_info=True)
+            return GitOperationResult(False, 'OPEN_REPO_FAILED', gt('获取远程代码失败'), detail=detail)
+
+        remote = self._ensure_remote(repository)
+        if remote is None:
+            return GitOperationResult(False, 'REMOTE_NOT_CONFIGURED', gt('获取远程代码失败'),
+                                      detail='remote origin missing')
+
+        try:
+            with self._with_proxy(repository):
+                remote.fetch()
+            log.info(gt('获取远程代码成功'))
+            return GitOperationResult(True, 'FETCH_SUCCESS', gt('获取远程代码成功'))
+        except pygit2.GitError as exc:
+            detail = f'{type(exc).__name__}: {exc}'
+            log.error(f'获取远程代码失败: {detail}', exc_info=True)
+            return GitOperationResult(False, 'FETCH_GIT_ERROR', gt('获取远程代码失败'), detail=detail)
+        except Exception as exc:
+            detail = f'{type(exc).__name__}: {exc}'
+            log.error(f'获取远程代码失败: {detail}', exc_info=True)
+            return GitOperationResult(False, 'FETCH_ERROR', gt('获取远程代码失败'), detail=detail)
+
+    # ---- public methods ----
+
+    def fetch_latest_code(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
         """
-        更新最新的代码
-        :return: 是否成功
+        更新最新的代码：不存在 .git 则克隆，存在则拉取并更新分支
         """
         log.info(f".git {gt('目录')} {DOT_GIT_DIR_PATH}")
         self.set_safe_dir()
         if not os.path.exists(DOT_GIT_DIR_PATH):  # 第一次直接克隆
             return self.clone_repository(progress_callback)
-        else:  # 已经克隆了
+        else:
             return self.checkout_latest_project_branch(progress_callback)
 
-    def clone_repository(self, progress_callback: Optional[Callable[[float, str], None]] = None) -> Tuple[bool, str]:
+    def clone_repository(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
         """
-        克隆仓库
-        :return: 是否成功
+        初始化本地仓库并同步远程目标分支
         """
-
-        msg = gt('清空临时文件夹')
-        log.info(msg)
-        if progress_callback is not None:
-            progress_callback(-1, msg)
-
-        # 先关闭打开的git 防止占据了.temp_clone文件夹
-        cmd_utils.run_command(['taskkill', '/F', '/IM', 'git.exe'])
-        cmd_utils.run_command(['taskkill', '/F', '/IM', 'ssh.exe'])
-
-        curr_path = os_utils.get_work_dir()
-        for sub_dir_name in os.listdir(curr_path):
-            if not sub_dir_name.startswith('.temp_clone_'):
-                continue
-            sub_dir_path = os.path.join(curr_path, sub_dir_name)
-            if not os.path.isdir(sub_dir_path):
-                continue
-            if os.path.exists(sub_dir_path):
-                try:
-                    shutil.rmtree(sub_dir_path)
-                except:
-                    pass
-
-        # 使用随机文件夹名称 避免重复
-        current_time = time.strftime('%H%M%S')
-        temp_folder = f'.temp_clone_{current_time}'
-        temp_dir_path = os.path.join(curr_path, temp_folder)
-
-        msg = gt('开始克隆仓库 初次克隆时间较长 请耐心等待')
-        log.info(msg)
-        if progress_callback is not None:
-            progress_callback(-1, msg)
+        work_dir = os_utils.get_work_dir()
         repo_url = self.get_git_repository(for_clone=True)
-        result = cmd_utils.run_command([self.env_config.git_path, 'clone',
-                                        '--depth', '1',
-                                        '-b', self.env_config.git_branch,
-                                        repo_url, temp_folder])
-        if result is None:
+
+        if not repo_url:
+            log.error('缺少有效的远程仓库地址')
             return False, gt('克隆仓库失败')
 
-        msg = gt('开始复制文件')
-        log.info(msg)
         if progress_callback is not None:
-            progress_callback(-1, msg)
-        result = cmd_utils.run_command(['xcopy', temp_dir_path, os_utils.get_work_dir(),
-                                        '/E', '/H', '/C', '/I', '/Y'
-                                        ])
-        success = result is not None
-        msg = gt('克隆仓库成功') if success else gt('克隆仓库失败')
-        shutil.rmtree(temp_dir_path, ignore_errors=True)  # 删除临时文件夹
-        return success, msg
+            progress_callback(-1, gt('初始化本地 Git 仓库'))
+        log.info(gt('初始化本地 Git 仓库'))
 
-    def fetch_remote_code(self) -> Tuple[bool, str]:
-        """
-        获取远程分支代码
-        """
-        log.info(gt('获取远程代码'))
-        cmd_utils.run_command([self.env_config.git_path, 'remote', 'set-branches', 'origin', '*'])
-        fetch_result = cmd_utils.run_command([self.env_config.git_path, 'fetch', 'origin'])
-        if fetch_result is None:
-            msg = gt('获取远程代码失败')
-            log.error(msg)
-            return False, msg
-        else:
-            msg = gt('获取远程代码成功')
-            log.info(msg)
-            return True, msg
+        try:
+            pygit2.init_repository(work_dir, False)
+        except pygit2.GitError as exc:
+            log.error(f'初始化本地仓库失败: {exc}', exc_info=True)
+            return False, gt('克隆仓库失败')
+        except Exception as exc:  # pylint: disable=broad-except
+            log.error(f'初始化本地仓库失败: {exc}', exc_info=True)
+            return False, gt('克隆仓库失败')
 
-    def checkout_latest_project_branch(self, progress_callback: Optional[Callable[[float, str], None]] = None) -> Tuple[bool, str]:
+        self._invalidate_repo_cache()
+
+        try:
+            repo = self._open_repo(refresh=True)
+        except Exception as exc:
+            log.error(f'打开仓库失败: {exc}', exc_info=True)
+            return False, gt('克隆仓库失败')
+
+        remote = self._ensure_remote(repo, remote_url=repo_url)
+        if remote is None:
+            return False, gt('克隆仓库失败')
+
+        fetch_result = self._fetch_remote_code_result(repo=repo)
+        if not fetch_result.success:
+            return fetch_result.to_tuple()
+
+        if progress_callback is not None:
+            progress_callback(0.6, fetch_result.message or gt('获取远程代码成功'))
+
+        target_branch = self.env_config.git_branch
+        branch_ready, target_oid = self._checkout_branch(
+            repo,
+            target_branch,
+            allow_local_fallback=False,
+        )
+        if not branch_ready:
+            return False, gt('克隆仓库失败')
+
+        if target_oid is not None:
+            repo.reset(target_oid, pygit2.GIT_RESET_HARD)
+
+        if progress_callback is not None:
+            progress_callback(1.0, gt('克隆仓库成功'))
+        return True, gt('克隆仓库成功')
+
+    def checkout_latest_project_branch(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
         """
-        切换到最新的目标分支
-        :return:
+        切换到最新的目标分支并更新代码
         """
         log.info(gt('核对当前仓库'))
-        current_repo = cmd_utils.run_command([self.env_config.git_path, 'config', '--get', 'remote.origin.url'])
-        if current_repo is None or not current_repo:
+        try:
+            repo = self._open_repo()
+        except Exception:
             log.info(gt('未找到远程仓库'))
             self.update_git_remote()
             log.info(gt('添加远程仓库地址'))
-        elif current_repo != self.get_git_repository():
-            log.info(gt('远程仓库地址不一致'))
-            self.update_git_remote()
-            log.info(gt('更新远程仓库地址'))
+            try:
+                repo = self._open_repo(refresh=True)
+            except Exception as exc:
+                log.error(f'打开仓库失败: {exc}', exc_info=True)
+                return False, gt('打开仓库失败')
 
-        log.info(gt('获取远程代码'))
-        fetch_result, msg = self.fetch_remote_code()
-        if not fetch_result:
+        desired_repo = self.get_git_repository()
+        if self._ensure_remote(repo, remote_url=desired_repo) is None:
+            msg = gt('更新远程仓库地址失败')
+            log.error(msg)
             return False, msg
-        elif progress_callback is not None:
-            progress_callback(1/5, msg)
+
+        fetch_result = self._fetch_remote_code_result(repo=repo)
+        if not fetch_result.success:
+            return fetch_result.to_tuple()
+        if progress_callback is not None:
+            progress_callback(1 / 5, fetch_result.message)
 
         clean_result = self.is_current_branch_clean()
         if clean_result is None or not clean_result:
             if self.env_config.force_update:
-                reset_result = cmd_utils.run_command(
-                    [self.env_config.git_path, 'reset', '--hard', f'origin/{self.env_config.git_branch}'])
-                if reset_result is None or not reset_result:
-                    msg = gt('强制更新失败')
-                    log.error(msg)
-                    return False, msg
+                target_commit = self._resolve_branch_commit(
+                    repo,
+                    self.env_config.git_branch,
+                    allow_local_fallback=False,
+                )
+                if target_commit is None:
+                    return False, gt('强制更新失败')
+                try:
+                    repo.reset(target_commit.id, pygit2.GIT_RESET_HARD)
+                except Exception as exc:
+                    log.error(f'强制更新失败: {exc}', exc_info=True)
+                    return False, gt('强制更新失败')
             else:
                 msg = gt('未开启强制更新 当前代码有修改 请自行处理后再更新')
                 log.error(msg)
                 return False, msg
-        elif progress_callback is not None:
-            progress_callback(2/5, gt('当前代码无修改'))
+        else:
+            if progress_callback is not None:
+                progress_callback(2 / 5, gt('当前代码无修改'))
 
-        current_result = self.get_current_branch()
-        if current_result is None:
+        current_branch = self.get_current_branch()
+        if current_branch is None:
             msg = gt('获取当前分支失败')
             log.error(msg)
             return False, msg
-        elif progress_callback is not None:
-            progress_callback(3/5, gt('获取当前分支成功'))
-
-        if current_result != self.env_config.git_branch:
-            checkout_result = cmd_utils.run_command([self.env_config.git_path, 'checkout', self.env_config.git_branch])
-            if checkout_result is None or not checkout_result:
-                msg = gt('切换到目标分支失败')
-                log.error(msg)
-                return False, msg
         if progress_callback is not None:
-            progress_callback(4/5, gt('切换到目标分支成功'))
+            progress_callback(3 / 5, gt('获取当前分支成功'))
 
-        rebase_result = cmd_utils.run_command([self.env_config.git_path, 'pull', '--rebase', 'origin', self.env_config.git_branch])
-        if rebase_result is None or not rebase_result:
-            msg = gt('更新本地代码失败')
-            log.error(msg)
-            cmd_utils.run_command([self.env_config.git_path, 'rebase', '--strategy-option theirs'])  # 回滚回去
-            return False, msg
-        elif progress_callback is not None:
-            progress_callback(5/5, gt('更新本地代码成功'))
+        target = self.env_config.git_branch
+        branch_ready, _ = self._checkout_branch(
+            repo,
+            target,
+            allow_local_fallback=True,
+        )
+        if not branch_ready:
+            return False, gt('切换到目标分支失败')
 
-        return True, ''
+        if progress_callback is not None:
+            progress_callback(4 / 5, gt('切换到目标分支成功'))
 
-    def get_current_branch(self) -> Optional[str]:
+        sync_result = self._repo_manager.sync_with_remote(
+            repo,
+            target_branch=target,
+            force_update=self.env_config.force_update
+        )
+        if not sync_result.success:
+            detail_log = f'[{sync_result.code}] {sync_result.detail}' if sync_result.detail else sync_result.code
+            log.error(f'{sync_result.message} {detail_log}')
+            return sync_result.to_tuple()
+
+        if progress_callback is not None:
+            progress_callback(5 / 5, sync_result.message or gt('更新本地代码成功'))
+
+        if sync_result.detail:
+            log.info(f'分支同步详情: {sync_result.detail}')
+
+        return sync_result.to_tuple()
+
+    def get_current_branch(self) -> str | None:
         """
         获取当前分支名称
         :return:
         """
         log.info(gt('检测当前代码分支'))
-        return cmd_utils.run_command([self.env_config.git_path, 'branch', '--show-current'])
+        try:
+            repo = self._open_repo()
+            head = repo.head
+            return None if head is None else head.shorthand
+        except Exception:
+            return None
 
-    def is_current_branch_clean(self) -> Optional[bool]:
+    def is_current_branch_clean(self) -> bool | None:
         """
         当前分支是否没有任何修改内容
         :return:
         """
         log.info(gt('检测当前代码是否有修改'))
-        status_str = cmd_utils.run_command([self.env_config.git_path, 'status'])
-        if status_str is None:
+        try:
+            repo = self._open_repo()
+            status = repo.status()
+            return len(status) == 0
+        except Exception:
             return None
-        else:
-            return status_str.find('nothing to commit, working tree clean') != -1
 
-    def is_current_branch_latest(self) -> Tuple[bool, str]:
+    def is_current_branch_latest(self) -> tuple[bool, str]:
         """
         当前分支是否已经最新 与远程分支一致
         """
-        fetch, msg = self.fetch_remote_code()
-        if not fetch:
-            return fetch, msg
+        fetch_result = self._fetch_remote_code_result()
+        if not fetch_result.success:
+            return fetch_result.to_tuple()
         log.info(gt('检测当前代码是否最新'))
-        diff_result = cmd_utils.run_command([self.env_config.git_path, 'diff', '--name-only', 'HEAD', f'origin/{self.env_config.git_branch}'])
-        if len(diff_result.strip()) == 0:
-            return True, ''
-        else:
+        try:
+            repo = self._open_repo()
+            origin_ref_name = f'refs/remotes/origin/{self.env_config.git_branch}'
+            if origin_ref_name in repo.references:
+                origin_oid = repo.references.get(origin_ref_name).target
+                local_oid = repo.head.target
+                if local_oid == origin_oid:
+                    return True, ''
+                local_tree = repo.get(local_oid).tree
+                origin_tree = repo.get(origin_oid).tree
+                diff = local_tree.diff(origin_tree)
+                if len(diff) == 0:
+                    return True, ''
+                return False, gt('与远程分支不一致')
+            else:
+                return False, gt('与远程分支不一致')
+        except Exception as exc:
+            log.error(f'is_current_branch_latest error: {exc}', exc_info=True)
             return False, gt('与远程分支不一致')
 
-    def get_requirement_time(self) -> Optional[str]:
+    def get_requirement_time(self) -> str | None:
         """
         获取 requirements.txt 的最后更新时间
         :return:
         """
         log.info(gt('获取依赖文件的最后修改时间'))
-        return cmd_utils.run_command([self.env_config.git_path, 'log', '-1', '--pretty=format:"%ai', '--', self.project_config.requirements])
+        try:
+            repo = self._open_repo()
+            walker = repo.walk(repo.head.target, pygit2.GIT_SORT_TIME)
+            req_path = self.project_config.requirements
+            for commit in walker:
+                try:
+                    tree = commit.tree
+                    if req_path in tree:
+                        t = time.gmtime(commit.commit_time)
+                        return time.strftime('%Y-%m-%d %H:%M:%S +0000', t)
+                except Exception:
+                    continue
+            return None
+        except Exception:
+            return None
 
     def fetch_total_commit(self) -> int:
         """
@@ -283,10 +651,17 @@ class GitService:
         :return:
         """
         log.info(gt('获取commit总数'))
-        result = cmd_utils.run_command([self.env_config.git_path, 'rev-list', '--count', 'HEAD'])
-        return 0 if result is None else int(result)
+        try:
+            repo = self._open_repo()
+            walker = repo.walk(repo.head.target, pygit2.GIT_SORT_TOPOLOGICAL)
+            count = 0
+            for _ in walker:
+                count += 1
+            return count
+        except Exception:
+            return 0
 
-    def fetch_page_commit(self, page_num: int, page_size: int) -> List[GitLog]:
+    def fetch_page_commit(self, page_num: int, page_size: int) -> list[GitLog]:
         """
         获取分页的commit
         :param page_num: 页码 从0开始
@@ -294,21 +669,27 @@ class GitService:
         :return:
         """
         log.info(f"{gt('获取commit')} 第{page_num + 1}页")
-        result = cmd_utils.run_command([
-            self.env_config.git_path, 'log', f'-{page_size}',
-            '--pretty=format:"%h #@# %an #@# %ai #@# %s"',
-            '--date=short',
-            f'--skip={page_num * page_size}'
-        ])
-
-        log_list: List[GitLog] = []
-        if result is None:
-            return log_list
-        str_list = result.split('\n')
-        for format_str in str_list:
-            log_list.append(GitLog(format_str))
-
-        return log_list
+        try:
+            repo = self._open_repo()
+            walker = repo.walk(repo.head.target, pygit2.GIT_SORT_TIME)
+            start = page_num * page_size
+            idx = 0
+            logs: list[GitLog] = []
+            for commit in walker:
+                if idx < start:
+                    idx += 1
+                    continue
+                if len(logs) >= page_size:
+                    break
+                short_id = commit.hex[:7]
+                author = commit.author.name if commit.author and commit.author.name else ''
+                commit_time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(commit.commit_time))
+                message = commit.message.splitlines()[0] if commit.message else ''
+                logs.append(GitLog(short_id, author, commit_time, message))
+                idx += 1
+            return logs
+        except Exception:
+            return []
 
     def get_git_repository(self, for_clone: bool = False) -> str:
         """
@@ -333,56 +714,63 @@ class GitService:
 
     def init_git_proxy(self) -> None:
         """
-        初始化 git 使用的代理
-        :return:
+        初始化 git 使用的代理：通过仓库级配置设置代理，避免污染进程环境
         """
         if self.is_proxy_set:
             return
         if not os.path.exists(DOT_GIT_DIR_PATH):  # 未有.git文件夹
             return
 
-        if not self.env_config.is_personal_proxy:  # 没有代理
-            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', '--unset', 'http.proxy'])
-            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', '--unset', 'https.proxy'])
-            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', 'http.noProxy', '*'])
-            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', 'https.noProxy', '*'])
-        else:
-            proxy_address = self.env_config.personal_proxy
-            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', '--unset', 'http.noProxy'])
-            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', '--unset', 'https.noProxy'])
-            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', 'http.proxy', proxy_address])
-            cmd_utils.run_command([self.env_config.git_path, 'config', '--local', 'https.proxy', proxy_address])
+        try:
+            repo = self._open_repo()
+        except Exception as exc:  # pylint: disable=broad-except
+            log.warning(f'init_git_proxy 打开仓库失败: {exc}', exc_info=True)
+            return
+
+        try:
+            with self._with_proxy(repo):
+                pass
+        except Exception as exc:  # pylint: disable=broad-except
+            log.warning(f'init_git_proxy 设置代理失败: {exc}', exc_info=True)
+            return
+
         self.is_proxy_set = True
 
     def update_git_remote(self) -> None:
         """
-        更新remote
+        更新remote（通过 repo.config 修改 remote.origin.url）
         """
         if not os.path.exists(DOT_GIT_DIR_PATH):  # 未有.git文件夹
             return
+        try:
+            repo = self._open_repo()
+        except Exception as exc:  # pylint: disable=broad-except
+            log.warning(f'update_git_remote 打开仓库失败: {exc}')
+            return
 
-        remote = self.get_git_repository()
-        cmd_utils.run_command([self.env_config.git_path, 'remote', 'set-url', 'origin', remote])
+        if self._ensure_remote(repo) is None:
+            log.warning('update_git_remote 无法配置远程 origin')
 
     def set_safe_dir(self) -> None:
         """
-        部分场景会没有权限clone代码 需要先授权
-        :return:
+        libgit2 不需要 safe.directory，保留为 no-op
         """
-        work_dir = os.path.normpath(os_utils.get_work_dir()).replace(os.path.sep, '/')
-        existing_safe_dirs = cmd_utils.run_command([self.env_config.git_path, 'config', '--global', '--get-all', 'safe.directory'])
-        if existing_safe_dirs is None or work_dir not in existing_safe_dirs.splitlines():
-            cmd_utils.run_command([self.env_config.git_path, 'config', '--global', '--add', 'safe.directory',
-                                   work_dir])
+        return
 
     def reset_to_commit(self, commit_id: str) -> bool:
         """
         回滚到特定commit
         """
-        reset_result = cmd_utils.run_command([self.env_config.git_path, 'reset', '--hard', commit_id])
-        return reset_result is not None
+        try:
+            repo = self._open_repo()
+            obj = repo.revparse_single(commit_id)
+            repo.reset(obj.id, pygit2.GIT_RESET_HARD)
+            return True
+        except Exception as exc:
+            log.error(f'reset_to_commit failed: {exc}', exc_info=True)
+            return False
 
-    def get_current_version(self) -> Optional[str]:
+    def get_current_version(self) -> str | None:
         """
         获取当前代码版本
         @return:
@@ -390,64 +778,66 @@ class GitService:
         log_list = self.fetch_page_commit(0, 1)
         return None if len(log_list) == 0 else log_list[0].commit_id
 
-    def get_latest_tag(self) -> tuple[Optional[str], Optional[str]]:
+    def get_latest_tag(self) -> tuple[str | None, str | None]:
         """
         获取最新的稳定版与测试版 tag
-        测试版通过标签名包含 "-beta" 识别
-        若稳定版在测试版前面（列表首个出现即稳定），则认为没有测试版。
-        @return: (稳定版tag, 测试版tag)。若不存在对应类型则为 None。
         """
-        # 从远程获取最新标签（按语义版本倒序）
-        result = cmd_utils.run_command([
-            self.env_config.git_path, 'ls-remote', '--refs', '--tags', '--sort=-version:refname', 'origin'
-        ])
+        try:
+            repo = self._open_repo()
+        except Exception as exc:
+            log.error(f'打开仓库失败: {exc}', exc_info=True)
+            return None, None
 
-        latest_stable: Optional[str] = None
-        latest_beta: Optional[str] = None
-        first_seen_type: Optional[str] = None  # 'stable' 或 'beta'
+        remote = self._ensure_remote(repo)
+        if remote is None:
+            return None, None
 
-        if result is not None and result.strip() != '':
-            lines = result.strip().split('\n')
-            for line in lines:
-                # 形如：<sha>\trefs/tags/v1.2.3 或 refs/tags/v1.2.3-beta.1
-                if 'refs/tags/' not in line:
+        try:
+            with self._with_proxy(repo):
+                remote_heads = remote.ls('refs/tags')
+        except (pygit2.GitError, ValueError) as exc:
+            log.error(f'获取远程标签失败: {exc}', exc_info=True)
+            return None, None
+
+        tags: list[str] = []
+        for head in remote_heads:
+            name = getattr(head, 'name', '')
+            if name and name.startswith('refs/tags/'):
+                tags.append(name[len('refs/tags/'):])
+
+        latest_stable: str | None = None
+        latest_beta: str | None = None
+        first_seen_type: str | None = None
+
+        tags_sorted = sorted(tags, reverse=True)
+        for tag_name in tags_sorted:
+            is_beta = '-beta' in tag_name
+            if first_seen_type is None:
+                if is_beta:
+                    first_seen_type = 'beta'
+                    latest_beta = tag_name
                     continue
-
-                tag_name = line.split('refs/tags/')[1]
-                is_beta = '-beta' in tag_name
-
-                # 首个出现的标签决定通道优先级
-                if first_seen_type is None:
-                    if is_beta:
-                        first_seen_type = 'beta'
-                        latest_beta = tag_name
-                        # 继续向后查找第一个稳定版
-                        continue
-                    else:
-                        # 稳定版先出现，则视为无测试版
-                        first_seen_type = 'stable'
-                        latest_stable = tag_name
-                        break
-
-                # 若先看到的是 beta，则继续找第一个稳定版
-                if first_seen_type == 'beta' and not is_beta and latest_stable is None:
+                else:
+                    first_seen_type = 'stable'
                     latest_stable = tag_name
                     break
+            if first_seen_type == 'beta' and not is_beta and latest_stable is None:
+                latest_stable = tag_name
+                break
 
         return latest_stable, latest_beta
+
 
 def __fetch_latest_code():
     project_config = ProjectConfig()
     env_config = EnvConfig()
-    download_service = DownloadService(project_config, env_config)
-    git_service = GitService(project_config, env_config, download_service)
+    git_service = GitService(project_config, env_config)
     return git_service.fetch_latest_code(progress_callback=None)
 
 def __debug_set_safe_dir():
     project_config = ProjectConfig()
     env_config = EnvConfig()
-    download_service = DownloadService(project_config, env_config)
-    git_service = GitService(project_config, env_config, download_service)
+    git_service = GitService(project_config, env_config)
     return git_service.set_safe_dir()
 
 if __name__ == '__main__':

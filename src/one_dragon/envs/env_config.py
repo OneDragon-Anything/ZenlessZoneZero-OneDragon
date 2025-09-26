@@ -7,8 +7,6 @@ from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.utils import os_utils
 
 DEFAULT_ENV_PATH = os_utils.get_path_under_work_dir('.install')
-DEFAULT_GIT_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'MinGit')  # 默认的git文件夹路径
-DEFAULT_GIT_PATH = os.path.join(DEFAULT_GIT_DIR_PATH, 'cmd', 'git.exe')  # 默认的git.exe文件路径
 DEFAULT_UV_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'uv')  # 默认的uv文件夹路径
 DEFAULT_UV_PATH = os.path.join(DEFAULT_UV_DIR_PATH, 'uv.exe')  # 默认的uv.exe文件路径
 DEFAULT_PYTHON_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'python')  # 默认的python文件夹路径

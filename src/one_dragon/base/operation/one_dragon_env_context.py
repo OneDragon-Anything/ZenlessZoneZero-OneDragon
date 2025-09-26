@@ -37,7 +37,7 @@ class OneDragonEnvContext:
 
     @cached_property
     def git_service(self):
-        return GitService(self.project_config, self.env_config, self.download_service)
+        return GitService(self.project_config, self.env_config)
 
     @cached_property
     def python_service(self):
