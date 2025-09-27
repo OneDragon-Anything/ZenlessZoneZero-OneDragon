@@ -64,18 +64,28 @@ class OneDragonApp(Application):
         """
         current_instance = self.ctx.one_dragon_config.current_active_instance
         if self.ctx.one_dragon_config.instance_run == InstanceRun.ALL.value.value:
-            self._instance_list = []
-            for i in self.ctx.one_dragon_config.instance_list:
-                if not i.active_in_od:
-                    continue
-                self._instance_list.append(i)
-                if i.idx == current_instance.idx:
-                    self._instance_start_idx = len(self._instance_list) - 1
+            self._instance_list = self.ctx.one_dragon_config.instance_list_in_od
+
+            if not self._instance_list:
+                if current_instance is not None:
+                    self._instance_list = [current_instance]
+                else:
+                    raise RuntimeError('未找到可以在一条龙中运行的实例')
+
+            self._instance_start_idx = 0
+            if current_instance is not None:
+                for idx, instance in enumerate(self._instance_list):
+                    if instance.idx == current_instance.idx:
+                        self._instance_start_idx = idx
+                        break
         else:
             self._instance_list = [current_instance]
             self._instance_start_idx = 0
 
         self._instance_idx = self._instance_start_idx
+
+        if not (current_instance in self._instance_list):
+            self.ctx.switch_instance(self._instance_list[self._instance_idx].idx)
 
     def get_one_dragon_apps_in_order(self) -> List[Application]:
         """
