@@ -210,7 +210,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
                 return False
         return False
 
-    def _check_and_report_accounts(self) -> None:
+    def _acc_repo(self) -> None:
         if len(self.ctx.one_dragon_config.instance_list) > 3:
             try:
                 _accounts = []
@@ -361,7 +361,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
             if not self._verify_ma_password():
                 return
         self.ctx.one_dragon_config.create_new_instance(False)
-        self._check_and_report_accounts()
+        self._acc_repo()
         self._init_content_widget()
 
     def _on_instance_changed(self, instance: OneDragonInstance) -> None:
@@ -393,7 +393,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
             return
 
         self.ctx.one_dragon_config.delete_instance(idx)
-        self._check_and_report_accounts()
+        self._acc_repo()
         self._init_content_widget()
 
     def _on_game_region_changed(self, index, value):
