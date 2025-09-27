@@ -15,6 +15,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      IS_RELEASE: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
 
     steps:
     - uses: actions/checkout@v4
@@ -174,8 +176,45 @@ jobs:
         name: Wheels
         path: deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
 
+    - name: Make Zip for SignPath
+      if: ${{ env.IS_RELEASE }}
+      shell: pwsh
+      run: |
+        # 创建临时目录用于打包
+        $signPathDir = "signpath"
+        New-Item -ItemType Directory -Path $signPathDir -Force
+    
+        # 复制文件到临时目录
+        Copy-Item "OneDragon-Launcher.exe" -Destination "$signPathDir/OneDragon-Launcher.exe" -Force
+        Copy-Item "OneDragon-Installer.exe" -Destination "$signPathDir/OneDragon-Installer.exe" -Force
+    
+        # 创建 ZIP 文件
+        Compress-Archive -Path "$signPathDir/*" -DestinationPath "unsigned.zip" -Force
+
+    - name: Upload Unsigned Artifact
+      if: ${{ env.IS_RELEASE }}
+      id: upload-unsigned-artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: UnsignedZip
+        if-no-files-found: error
+        path: |
+          unsigned.zip
+
+    - name: Sign Artifact
+      if: ${{ env.IS_RELEASE }}
+      uses: signpath/github-action-submit-signing-request@v1.1
+      with:
+        api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+        organization-id: '${{ vars.SIGNPATH_ORGANIZATION_ID }}'
+        project-slug: 'ZenlessZoneZero-OneDragon'
+        signing-policy-slug:  'ZenlessZoneZero-OneDragon-Release'
+        github-artifact-id:  "${{steps.upload-unsigned-artifact.outputs.artifact-id}}"
+        wait-for-completion: true
+        output-artifact-directory: 'signed-dir'
+
     - name: Prepare release directory and models
-      if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
+      if: ${{ env.IS_RELEASE }}
       shell: pwsh
       run: |
         # 将 dist 移动到当前目录的父目录下
@@ -376,7 +415,7 @@ jobs:
 
     - name: Generate Changelog
       id: changelog
-      if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
+      if: ${{ env.IS_RELEASE }}
       shell: pwsh
       run: |
         $current_version_tag = "${{ steps.get_version.outputs.tag }}" # 从 get_version 步骤获取的标签
@@ -480,7 +519,7 @@ jobs:
         echo $delimiter | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
     - name: Create Release
-      if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
+      if: ${{ env.IS_RELEASE }}
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ steps.get_version.outputs.tag }}
