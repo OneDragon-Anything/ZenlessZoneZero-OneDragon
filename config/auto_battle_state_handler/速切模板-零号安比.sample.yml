@@ -25,8 +25,8 @@ handlers:
 
       - states: "[自定义-零号安比-白雷, 0, 99]{300, 999}"
         operations:
-          - op_name: "清除状态"
-            data: ["自定义-速切结束"]
+          - op_name: "设置状态"
+            state_list: ["自定义-速切结束"]
           - operation_template: "零号安比-特殊技突进"
           - operation_template: "零号安比-特殊技突进"
           - operation_template: "零号安比-特殊技突进"
@@ -47,12 +47,12 @@ handlers:
 
       - states: "[自定义-零号安比-白雷, 0, 99]{150, 999}"
         operations:
-          - op_name: "清除状态"
-            data: ["自定义-速切结束"]
+          - op_name: "设置状态"
+            state_list: ["自定义-速切结束"]
           - operation_template: "零号安比-普通攻击合轴"
 
       - states: ""
         operations:
-          - op_name: "清除状态"
-            data: ["自定义-速切结束"]
+          - op_name: "设置状态"
+            state_list: ["自定义-速切结束"]
           - operation_template: "零号安比-普通攻击"

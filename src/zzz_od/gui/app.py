@@ -232,7 +232,8 @@ try:
             @param ver:
             @return:
             """
-            self.titleBar.setVersion(versions[0], versions[1])
+            self.titleBar.setLauncherVersion(versions[0])
+            self.titleBar.setCodeVersion(versions[1])
 
         def _check_first_run(self):
             """首次运行时显示防倒卖弹窗"""

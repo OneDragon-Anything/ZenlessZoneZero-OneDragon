@@ -40,7 +40,7 @@ handlers:
             data: ["自定义-凯撒-护盾"]
           - operation_template: "凯撒-特殊技合轴"
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state_list: ["自定义-速切结束"]
 
       - states: ""
         operations:
