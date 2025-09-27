@@ -1,13 +1,12 @@
 from typing import List, Optional
 
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
-class MiscellanyConfig(YamlConfig):
+class MiscellanyConfig(UserConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(self, 'miscellany',
-                            instance_idx=instance_idx, sample=False)
+        UserConfig.__init__(self, 'miscellany', instance_idx=instance_idx)
 
     @property
     def app_order(self) -> List[str]:

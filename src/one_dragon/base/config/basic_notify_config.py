@@ -1,12 +1,12 @@
 from typing import Optional
 
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
-class BasicNotifyConfig(YamlConfig):
+class BasicNotifyConfig(UserConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(self, 'notify', instance_idx=instance_idx)
+        UserConfig.__init__(self, 'notify', instance_idx=instance_idx)
         self._generate_dynamic_properties()
 
     @property

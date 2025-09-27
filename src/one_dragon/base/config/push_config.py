@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 from one_dragon_qt.widgets.push_cards import PushCards
 
 
@@ -32,10 +32,10 @@ class NotifyMethodEnum(Enum):
     PUSHME = ConfigItem('PushMe', 'PUSHME')
     WXPUSHER = ConfigItem('WxPusher', 'WXPUSHER')
 
-class PushConfig(YamlConfig):
+class PushConfig(UserConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(self, 'push', instance_idx=instance_idx)
+        UserConfig.__init__(self, 'push', instance_idx=instance_idx)
         self._generate_dynamic_properties()
 
     @property

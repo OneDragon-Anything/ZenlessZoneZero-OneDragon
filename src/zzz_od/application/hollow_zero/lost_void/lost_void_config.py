@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
 class LostVoidExtraTask(Enum):
@@ -12,10 +12,10 @@ class LostVoidExtraTask(Enum):
     PERIOD_REWARD = ConfigItem('刷满周期奖励')
 
 
-class LostVoidConfig(YamlConfig):
+class LostVoidConfig(UserConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+        UserConfig.__init__(
             self,
             module_name='lost_void',
             instance_idx=instance_idx,

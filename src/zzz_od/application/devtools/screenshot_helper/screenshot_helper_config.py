@@ -1,10 +1,10 @@
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
-class ScreenshotHelperConfig(YamlConfig):
+class ScreenshotHelperConfig(UserConfig):
 
     def __init__(self, instance_idx: int):
-        YamlConfig.__init__(self, 'screenshot_helper', instance_idx=instance_idx)
+        UserConfig.__init__(self, 'screenshot_helper', instance_idx=instance_idx)
 
     @property
     def frequency_second(self) -> float:

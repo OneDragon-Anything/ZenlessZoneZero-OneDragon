@@ -3,7 +3,7 @@ import urllib.parse
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 from one_dragon.utils import os_utils
 
 DEFAULT_ENV_PATH = os_utils.get_path_under_work_dir('.install')
@@ -70,10 +70,10 @@ class EnvSourceEnum(Enum):
     GITEE = ConfigItem('Gitee', 'https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download')
 
 
-class EnvConfig(YamlConfig):
+class EnvConfig(UserConfig):
 
     def __init__(self):
-        YamlConfig.__init__(self, module_name='env')
+        UserConfig.__init__(self, module_name='env')
 
     @property
     def git_path(self) -> str:
