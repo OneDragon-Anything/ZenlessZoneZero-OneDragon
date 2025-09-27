@@ -40,7 +40,7 @@ handlers:
         debug_name: "无能量普攻"
         operations:
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state_list: ["自定义-速切结束"]
           - operation_template: "雨果-普通攻击"
 
       - states: ""
@@ -48,4 +48,4 @@ handlers:
         operations:
           - operation_template: "雨果-普通攻击"
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state_list: ["自定义-速切结束"]

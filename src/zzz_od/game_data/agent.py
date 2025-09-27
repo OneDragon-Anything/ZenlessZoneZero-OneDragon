@@ -358,3 +358,11 @@ class AgentEnum(Enum):
                                       hsv_color=(90,255,255), hsv_color_diff=(89,55,55),
                                       max_length=150)
                     ])
+
+    ORPHIE = Agent('orphie', '奥菲丝', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.FIRE, ['orphie'],
+                    state_list=[
+                        AgentStateDef('奥菲丝-蓄炎', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                      template_id='orphie',
+                                      hsv_color=(90,255,255), hsv_color_diff=(89,255,55),
+                                      max_length=125)
+                    ])

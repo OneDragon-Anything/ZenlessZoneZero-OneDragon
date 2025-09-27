@@ -255,10 +255,6 @@ class SuibianTempleYumChaSin(ZOperation):
     @node_from(from_name='前往制作', status='按钮-制造')
     @operation_node(name='点击开始制作')
     def do_craft(self) -> OperationRoundResult:
-        screen = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-制造坊'])
-        if screen is None:
-            return self.round_retry(status='未识别当前画面', wait=1)
-
         target_cn_list: list[str] = [
             '所需材料不足',
             '开始制造',

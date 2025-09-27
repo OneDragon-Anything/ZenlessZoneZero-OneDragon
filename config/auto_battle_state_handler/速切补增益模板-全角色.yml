@@ -35,8 +35,8 @@ handlers:
               - op_name: "清除状态"
                 state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-          # 副C打完输出就应该走了
-          - states: "[前台-强攻] & [后台-席德] & ![前台-特殊技可用]"
+          # 副C打完输出就应该走了，奥菲丝速切用的是特殊能量而不是角色能量
+          - states: "[前台-强攻] & [后台-席德] & ![前台-特殊技可用] & ![奥菲丝-蓄炎]{100, 120}"
             debug_name: "席德打输出了"
             operations:
               - op_name: "按键-切换角色"
@@ -194,6 +194,15 @@ handlers:
                     operations:
                       - op_name: "按键-切换角色"
                         agent_name: "妮可"
+                      - op_name: "清除状态"
+                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+
+              - states: "![前台-奥菲丝]"
+                sub_handlers:
+                  - states: "[奥菲丝-终结技可用] | [奥菲丝-蓄炎]{100, 120}"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "奥菲丝"
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 

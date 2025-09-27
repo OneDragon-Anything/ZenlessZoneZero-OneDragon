@@ -28,18 +28,13 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[席德-终结技可用]"
-        debug_name: "席德终结技"
-        operations:
-          - operation_template: "席德-终结技"
-
       - states: "[自定义-席德-准备合轴,0,99]"
         debug_name: "席德合轴"
         operations:
           - op_name: "清除状态"
             data: ["自定义-席德-准备合轴"]
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state_list: ["自定义-速切结束" , "自定义-席德-铁拳冲击"]
 
       - states: "[席德-钢能]{120,999}"
         interrupt_states: "[席德-钢能]{0, 100}"
@@ -49,12 +44,23 @@ handlers:
             data: ["自定义-席德-准备合轴"]
           - op_name: "按键-普通攻击"
             post_delay: 0.1
-            repeat: 50
+            repeat: 5
+          - op_name: "按键-普通攻击-按下"
+          - op_name: "等待秒数"
+            seconds: 0.5
+          - op_name: "按键-普通攻击"
+            post_delay: 0.1
+            repeat: 30
 
       - states: "[席德-特殊技可用]"
         debug_name: "席德射击"
         operations:
           - operation_template: "席德-强化特殊技"
+
+      - states: "[席德-终结技可用] & ![自定义-席德-铁拳冲击, 0, 5]"
+        debug_name: "席德终结技"
+        operations:
+          - operation_template: "席德-终结技"
 
       - states: ""
         debug_name: "没能量了"

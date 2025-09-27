@@ -390,23 +390,51 @@ class GitService:
         log_list = self.fetch_page_commit(0, 1)
         return None if len(log_list) == 0 else log_list[0].commit_id
 
-    def get_latest_tag(self) -> Optional[str]:
+    def get_latest_tag(self) -> tuple[Optional[str], Optional[str]]:
         """
-        获取最新tag
-        @return: 最新的tag名称，如果没有tag则返回None
+        获取最新的稳定版与测试版 tag
+        测试版通过标签名包含 "-beta" 识别
+        若稳定版在测试版前面（列表首个出现即稳定），则认为没有测试版。
+        @return: (稳定版tag, 测试版tag)。若不存在对应类型则为 None。
         """
-        # 从远程获取最新标签
-        result = cmd_utils.run_command([self.env_config.git_path, 'ls-remote', '--refs', '--tags', '--sort=-version:refname', 'origin'])
+        # 从远程获取最新标签（按语义版本倒序）
+        result = cmd_utils.run_command([
+            self.env_config.git_path, 'ls-remote', '--refs', '--tags', '--sort=-version:refname', 'origin'
+        ])
+
+        latest_stable: Optional[str] = None
+        latest_beta: Optional[str] = None
+        first_seen_type: Optional[str] = None  # 'stable' 或 'beta'
+
         if result is not None and result.strip() != '':
             lines = result.strip().split('\n')
-            if lines:
-                first_line = lines[0]
-                # 截取 refs/tags/ 后面的版本号
-                if 'refs/tags/' in first_line:
-                    tag_name = first_line.split('refs/tags/')[1]
-                    return tag_name
+            for line in lines:
+                # 形如：<sha>\trefs/tags/v1.2.3 或 refs/tags/v1.2.3-beta.1
+                if 'refs/tags/' not in line:
+                    continue
 
-        return None
+                tag_name = line.split('refs/tags/')[1]
+                is_beta = '-beta' in tag_name
+
+                # 首个出现的标签决定通道优先级
+                if first_seen_type is None:
+                    if is_beta:
+                        first_seen_type = 'beta'
+                        latest_beta = tag_name
+                        # 继续向后查找第一个稳定版
+                        continue
+                    else:
+                        # 稳定版先出现，则视为无测试版
+                        first_seen_type = 'stable'
+                        latest_stable = tag_name
+                        break
+
+                # 若先看到的是 beta，则继续找第一个稳定版
+                if first_seen_type == 'beta' and not is_beta and latest_stable is None:
+                    latest_stable = tag_name
+                    break
+
+        return latest_stable, latest_beta
 
 def __fetch_latest_code():
     project_config = ProjectConfig()
