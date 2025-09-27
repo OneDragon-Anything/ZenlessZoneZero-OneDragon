@@ -160,13 +160,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
         _encoded = "QlYxcTJKUXpyRW1B"
         return base64.b64decode(_encoded).decode('utf-8')
 
-    def _is_ma_protection_active(self) -> bool:
-        try:
-            _release_date = datetime(2025, 9, 26)
-            _activation_date = _release_date + timedelta(days=15)
-            return datetime.now() >= _activation_date
-        except Exception:
-            return True
 
     def _is_ma_protection_active(self) -> bool:
         try:
