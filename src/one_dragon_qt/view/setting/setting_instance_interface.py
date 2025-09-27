@@ -18,7 +18,7 @@ from qfluentwidgets import (
     MessageBox,
 )
 
-from one_dragon.base.config.game_account_config import GameRegionEnum
+from one_dragon.base.config.game_account_config import GameRegionEnum, GameAccountConfig
 from one_dragon.base.config.one_dragon_config import (
     OneDragonInstance,
     RunInOneDragonApp,
@@ -133,6 +133,8 @@ class SettingInstanceInterface(VerticalScrollInterface):
     def __init__(
         self, ctx: OneDragonContext, show_login_btn: bool = False, parent=None
     ):
+        self.ctx: OneDragonContext = ctx
+        self.show_login_btn: bool = show_login_btn
         VerticalScrollInterface.__init__(
             self,
             object_name="setting_instance_interface",
@@ -140,8 +142,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
             parent=parent,
             nav_text_cn="多账户管理",
         )
-        self.ctx: OneDragonContext = ctx
-        self.show_login_btn: bool = show_login_btn
 
     @property
     def _ma_salt(self) -> str:
