@@ -1,12 +1,12 @@
 from typing import List, Optional
 
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
-class OneDragonAppConfig(YamlConfig):
+class OneDragonAppConfig(UserConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(self, 'one_dragon_app', instance_idx=instance_idx, sample=False)
+        UserConfig.__init__(self, 'one_dragon_app', instance_idx=instance_idx)
         self._temp_app_run_list: Optional[List[str]] = None
 
     def set_temp_app_run_list(self, app_run_list: Optional[List[str]]):

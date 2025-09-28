@@ -56,7 +56,7 @@ class LifeOnLineRunInterface(AppRunInterface):
         config_list = ([ConfigItem('游戏内配队', -1)] +
                        [ConfigItem(team.name, team.idx) for team in self.ctx.team_config.team_list])
         self.team_opt.set_options_by_list(config_list)
-        self.team_opt.init_with_adapter(self.ctx.life_on_line_config.predefined_team_idx_adapter)
+        self.team_opt.init_with_adapter(self.ctx.life_on_line_config.get_prop_adapter('predefined_team_idx'))
 
     def get_app(self) -> Application:
         return LifeOnLineApp(self.ctx)

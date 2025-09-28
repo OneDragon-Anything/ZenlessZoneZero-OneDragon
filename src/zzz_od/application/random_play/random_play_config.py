@@ -1,12 +1,12 @@
 from typing import Optional
 
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
-class RandomPlayConfig(YamlConfig):
+class RandomPlayConfig(UserConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+        UserConfig.__init__(
             self,
             module_name='random_play',
             instance_idx=instance_idx,

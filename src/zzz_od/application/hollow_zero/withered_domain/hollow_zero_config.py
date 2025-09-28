@@ -3,8 +3,7 @@ from enum import Enum
 from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
+from one_dragon.base.config.user_config import UserConfig
 
 
 class HollowZeroExtraTask(Enum):
@@ -21,10 +20,10 @@ class HollowZeroExtraExitEnum(Enum):
     LEVEL_3_EVA = ConfigItem('3层业绩后退出')
 
 
-class HollowZeroConfig(YamlConfig):
+class HollowZeroConfig(UserConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+        UserConfig.__init__(
             self,
             module_name='hollow_zero',
             instance_idx=instance_idx,
@@ -45,10 +44,6 @@ class HollowZeroConfig(YamlConfig):
     @challenge_config.setter
     def challenge_config(self, new_value: str):
         self.update('challenge_config', new_value)
-
-    @property
-    def challenge_config_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'challenge_config', '默认-专属空洞-艾莲')
 
     @property
     def weekly_plan_times(self) -> int:

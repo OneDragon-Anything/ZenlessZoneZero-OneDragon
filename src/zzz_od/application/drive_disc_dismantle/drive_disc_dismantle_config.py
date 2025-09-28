@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
 class DismantleLevelEnum(Enum):
@@ -12,10 +12,10 @@ class DismantleLevelEnum(Enum):
     LEVEL_S = ConfigItem('S及以下')
 
 
-class DriveDiscDismantleConfig(YamlConfig):
+class DriveDiscDismantleConfig(UserConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(self, 'drive_disc_dismantle', instance_idx=instance_idx)
+        UserConfig.__init__(self, 'drive_disc_dismantle', instance_idx=instance_idx)
 
     @property
     def dismantle_level(self) -> str:

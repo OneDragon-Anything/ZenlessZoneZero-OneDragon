@@ -1,8 +1,7 @@
 from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
+from one_dragon.base.config.user_config import UserConfig
 
 
 class TypeInputWay(Enum):
@@ -28,10 +27,10 @@ class MonitorEnum(Enum):
     MONITOR_4 = ConfigItem('4', '4')
 
 
-class BasicGameConfig(YamlConfig):
+class BasicGameConfig(UserConfig):
 
     def __init__(self, instance_idx: int):
-        YamlConfig.__init__(self, 'game', instance_idx=instance_idx)
+        UserConfig.__init__(self, 'game', instance_idx=instance_idx)
 
     @property
     def type_input_way(self) -> str:
@@ -40,10 +39,6 @@ class BasicGameConfig(YamlConfig):
     @type_input_way.setter
     def type_input_way(self, new_value: str):
         self.update('type_input_way', new_value)
-
-    @property
-    def type_input_way_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'type_input_way', TypeInputWay.CLIPBOARD.value.value)
 
     @property
     def hdr(self) -> bool:

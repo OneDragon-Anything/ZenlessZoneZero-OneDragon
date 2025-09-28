@@ -69,7 +69,7 @@ class CoffeePlanInterface(VerticalScrollInterface):
         team_idx = self.predefined_team_opt.combo_box.currentData()
         self.auto_battle_opt.setVisible(team_idx == -1)
 
-        self.run_charge_plan_afterwards_opt.init_with_adapter(self.ctx.coffee_config.run_charge_plan_afterwards_adapter)
+        self.run_charge_plan_afterwards_opt.init_with_adapter(self.ctx.coffee_config.get_prop_adapter('run_charge_plan_afterwards'))
 
     def on_predefined_team_changed(self, idx: int, value: str) -> None:
         team_idx = self.predefined_team_opt.combo_box.currentData()

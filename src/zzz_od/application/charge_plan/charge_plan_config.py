@@ -3,7 +3,7 @@ from typing import Optional, List
 import uuid
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.user_config import UserConfig
 
 
 class CardNumEnum(Enum):
@@ -65,10 +65,10 @@ class ChargePlanItem:
         )
 
 
-class ChargePlanConfig(YamlConfig):
+class ChargePlanConfig(UserConfig):
 
     def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+        UserConfig.__init__(
             self,
             module_name='charge_plan',
             instance_idx=instance_idx,
@@ -117,7 +117,7 @@ class ChargePlanConfig(YamlConfig):
         self.data['plan_list'] = plan_list
         self.data['history_list'] = new_history_list
 
-        YamlConfig.save(self)
+        UserConfig.save(self)
 
     def add_plan(self, plan: ChargePlanItem) -> None:
         self.plan_list.append(plan)
