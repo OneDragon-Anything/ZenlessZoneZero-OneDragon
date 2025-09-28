@@ -77,7 +77,10 @@ class SqliteOperator:
 
     def get(self, path: str) -> str | None:
         self.ensure_init()
-        session = self.Session()
+        session_factory = self.Session
+        if session_factory is None:
+            raise RuntimeError("数据库未初始化")
+        session = session_factory()
         try:
             record = session.query(ConfigContent).filter_by(path=path).first()
             if record:
@@ -85,11 +88,14 @@ class SqliteOperator:
             else:
                 return None
         finally:
-            self.Session.remove()
+            session_factory.remove()
 
     def save(self, path: str, content: str):
         self.ensure_init()
-        session = self.Session()
+        session_factory = self.Session
+        if session_factory is None:
+            raise RuntimeError("数据库未初始化")
+        session = session_factory()
         try:
             record = ConfigContent(path=path, content=content, timestamp=datetime.now())
             session.merge(record)
@@ -99,11 +105,14 @@ class SqliteOperator:
             log.error(f"保存配置失败 {path}", exc_info=True)
             raise
         finally:
-            self.Session.remove()
+            session_factory.remove()
 
     def delete(self, path: str):
         self.ensure_init()
-        session = self.Session()
+        session_factory = self.Session
+        if session_factory is None:
+            raise RuntimeError("数据库未初始化")
+        session = session_factory()
         try:
             record = session.query(ConfigContent).filter_by(path=path).first()
             if record:
@@ -114,15 +123,18 @@ class SqliteOperator:
             log.error(f"删除配置失败 {path}", exc_info=True)
             raise
         finally:
-            self.Session.remove()
+            session_factory.remove()
 
     def exists(self, path: str) -> bool:
         self.ensure_init()
-        session = self.Session()
+        session_factory = self.Session
+        if session_factory is None:
+            raise RuntimeError("数据库未初始化")
+        session = session_factory()
         try:
             return session.get(ConfigContent, path) is not None
         finally:
-            self.Session.remove()
+            session_factory.remove()
 
     def close_db(self, checkpoint: bool = True):
         """移除 sessions，可选 WAL checkpoint，然后 dispose engine。"""
