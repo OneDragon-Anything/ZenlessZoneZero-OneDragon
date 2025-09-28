@@ -1,7 +1,8 @@
 from datetime import datetime
 from pathlib import Path
+from threading import Lock
 
-from sqlalchemy import create_engine, event, Column, String, Integer, Text, DateTime
+from sqlalchemy import create_engine, event, Column, String, Text, DateTime
 from sqlalchemy.orm import DeclarativeBase, scoped_session, sessionmaker
 
 from one_dragon.utils import os_utils
@@ -31,101 +32,121 @@ class SqliteOperator:
         self.engine = None
         self.SessionFactory = None
         self.Session = None  # scoped_session
+        self._lock = Lock()
+        self._db_name = "config.db"
 
     def init_db(self, db_name: str = "config.db"):
         """Initialize database engine and session factory (idempotent)."""
         if self.engine is not None and self.Session is not None:
             return
 
-        db_dir = Path(os_utils.get_path_under_work_dir('config'))
-        db_dir.mkdir(parents=True, exist_ok=True)
-        db_path = (db_dir / db_name).resolve()
-        # Enable cross-thread access and WAL for better concurrency
-        self.engine = create_engine(
-            f'sqlite:///{db_path}',
-            connect_args={"check_same_thread": False}
-        )
+        with self._lock:
+            if self.engine is not None and self.Session is not None:
+                return
+            self._db_name = db_name
 
-        # 使用事件监听器，确保每个连接都开启 WAL 模式
-        @event.listens_for(self.engine, "connect")
-        def set_sqlite_pragma(dbapi_connection, connection_record):
-            """为每个 SQLite 连接设置 PRAGMA。"""
-            cursor = dbapi_connection.cursor()
-            try:
-                cursor.execute("PRAGMA journal_mode=WAL;")
-                cursor.execute("PRAGMA busy_timeout = 5000;") # 5秒超时
-                cursor.execute("PRAGMA foreign_keys=ON;")
-            finally:
-                cursor.close()
+            db_dir = Path(os_utils.get_path_under_work_dir('config'))
+            db_dir.mkdir(parents=True, exist_ok=True)
+            db_path = (db_dir / db_name).resolve()
+            # Enable cross-thread access and WAL for better concurrency
+            self.engine = create_engine(
+                f'sqlite:///{db_path}',
+                connect_args={"check_same_thread": False}
+            )
 
-        # 创建表和会话
-        Base.metadata.create_all(self.engine)
-        self.SessionFactory = sessionmaker(bind=self.engine)
-        self.Session = scoped_session(self.SessionFactory)
+            # 使用事件监听器，确保每个连接都开启 WAL 模式
+            @event.listens_for(self.engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                """为每个 SQLite 连接设置 PRAGMA。"""
+                cursor = dbapi_connection.cursor()
+                try:
+                    cursor.execute("PRAGMA journal_mode=WAL;")
+                    cursor.execute("PRAGMA busy_timeout = 5000;") # 5秒超时
+                    cursor.execute("PRAGMA foreign_keys=ON;")
+                finally:
+                    cursor.close()
+
+            # 创建表和会话
+            Base.metadata.create_all(self.engine)
+            self.SessionFactory = sessionmaker(bind=self.engine)
+            self.Session = scoped_session(self.SessionFactory)
 
     def ensure_init(self):
-        if self.Session is None:
-            raise RuntimeError("数据库未初始化")
+        if self.Session is None or self.engine is None:
+            self.init_db(self._db_name)
 
     def get(self, path: str) -> str | None:
         self.ensure_init()
-        with self.Session() as session:
+        session = self.Session()
+        try:
             record = session.query(ConfigContent).filter_by(path=path).first()
             if record:
                 return record.content
             else:
                 return None
+        finally:
+            self.Session.remove()
 
     def save(self, path: str, content: str):
         self.ensure_init()
-        with self.Session() as session:
-            try:
-                record = ConfigContent(path=path, content=content, timestamp=datetime.now())
-                session.merge(record)
-                session.commit()
-            except Exception:
-                session.rollback()
-                log.error(f"保存配置失败 {path}", exc_info=True)
+        session = self.Session()
+        try:
+            record = ConfigContent(path=path, content=content, timestamp=datetime.now())
+            session.merge(record)
+            session.commit()
+        except Exception:
+            session.rollback()
+            log.error(f"保存配置失败 {path}", exc_info=True)
+            raise
+        finally:
+            self.Session.remove()
 
     def delete(self, path: str):
         self.ensure_init()
-        with self.Session() as session:
-            try:
-                record = session.query(ConfigContent).filter_by(path=path).first()
-                if record:
-                    session.delete(record)
-                    session.commit()
-            except Exception:
-                session.rollback()
-                log.error(f"删除配置失败 {path}", exc_info=True)
+        session = self.Session()
+        try:
+            record = session.query(ConfigContent).filter_by(path=path).first()
+            if record:
+                session.delete(record)
+                session.commit()
+        except Exception:
+            session.rollback()
+            log.error(f"删除配置失败 {path}", exc_info=True)
+            raise
+        finally:
+            self.Session.remove()
 
     def exists(self, path: str) -> bool:
         self.ensure_init()
-        with self.Session() as session:
+        session = self.Session()
+        try:
             return session.get(ConfigContent, path) is not None
+        finally:
+            self.Session.remove()
 
     def close_db(self, checkpoint: bool = True):
         """移除 sessions，可选 WAL checkpoint，然后 dispose engine。"""
-        if self.Session is not None:
-            try:
-                self.Session.remove()
-            finally:
-                self.Session = None
-                self.SessionFactory = None
+        with self._lock:
+            if self.Session is not None:
+                try:
+                    self.Session.remove()
+                finally:
+                    self.Session = None
+                    self.SessionFactory = None
 
-        if checkpoint and self.engine is not None:
-            from sqlalchemy import text
-            try:
-                with self.engine.connect() as conn:
-                    conn.execute(text("PRAGMA wal_checkpoint(TRUNCATE);"))
-            except Exception:
-                log.exception("WAL checkpoint failed")
+            if checkpoint and self.engine is not None:
+                from sqlalchemy import text
+                try:
+                    with self.engine.connect() as conn:
+                        conn.execute(text("PRAGMA wal_checkpoint(TRUNCATE);"))
+                except Exception:
+                    log.exception("WAL checkpoint failed")
 
-        if self.engine is not None:
-            try:
-                self.engine.dispose()
-            finally:
-                self.engine = None
+            if self.engine is not None:
+                try:
+                    self.engine.dispose()
+                finally:
+                    self.engine = None
 
 
 SQLITE_OPERATOR = SqliteOperator()

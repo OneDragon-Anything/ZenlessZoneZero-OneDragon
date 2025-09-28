@@ -4,6 +4,7 @@ from typing import Optional
 
 from one_dragon.base.config.sqlite_operator import SQLITE_OPERATOR
 from one_dragon.utils import os_utils
+from one_dragon.utils.log_utils import log
 
 
 class UserConfig:
@@ -34,6 +35,8 @@ class UserConfig:
         if self.is_mock:
             return
 
+        SQLITE_OPERATOR.ensure_init()
+
         text = SQLITE_OPERATOR.get(self.key)
 
         if text is None:
@@ -51,11 +54,8 @@ class UserConfig:
     def save(self):
         if self.is_mock or self.key is None:
             return
-        try:
-            text = self._to_json_text(self.data or {})
-            SQLITE_OPERATOR.save(self.key, text)
-        except Exception:
-            pass
+        text = self._to_json_text(self.data or {})
+        SQLITE_OPERATOR.save(self.key, text)
 
     def update(self, key: str, value, save: bool = True):
         if self.data is None:
@@ -133,53 +133,67 @@ class UserConfig:
 
         try:
             raw = file_path.read_text(encoding='utf-8')
-            try:
-                import yaml
-                data = yaml.safe_load(raw) or {}
-            except Exception:
-                pass
+        except Exception:
+            log.warning("读取配置文件失败 %s", file_path, exc_info=True)
+            return None
+
+        data = {}
+        try:
+            import yaml
+            data = yaml.safe_load(raw) or {}
+        except Exception:
+            log.warning("解析配置文件失败 %s", file_path, exc_info=True)
+
+        try:
             text = self._to_json_text(data)
             SQLITE_OPERATOR.save(self.key, text)
-            # 迁移完成后删除原文件并清理空目录
-            self._cleanup_source_file_and_dirs(file_path)
-            return text
         except Exception:
+            log.error("配置迁移写入数据库失败 %s", file_path, exc_info=True)
             return None
+
+        # 迁移完成后删除原文件并清理空目录
+        self._cleanup_source_file_and_dirs(file_path)
+        return text
 
     def _cleanup_source_file_and_dirs(self, path: Path):
         """删除源 yml 文件，并自下而上清理空目录直到 config 根目录。"""
-        # try:
-        #     if not path:
-        #         return
-        #     # 跳过 sample 文件
-        #     if str(path).endswith('.sample.yml'):
-        #         return
-        #     if path.exists():
-        #         path.unlink()
-        # except Exception:
-        #     # 删除文件失败不阻塞
-        #     pass
+        if not path:
+            return
 
-        # try:
-        #     config_root = Path(os_utils.get_path_under_work_dir('config')).resolve()
-        #     # 自下而上清理空目录，但不越过 config 根
-        #     cur = Path(path).parent
-        #     while True:
-        #         cur_res = cur.resolve()
-        #         if cur_res == config_root:
-        #             break
-        #         try:
-        #             # 仅当目录存在且为空时删除
-        #             if cur.exists() and not any(cur.iterdir()):
-        #                 cur.rmdir()
-        #             else:
-        #                 break
-        #         except Exception:
-        #             break
-        #         cur = cur.parent
-        # except Exception:
-        #     pass
-        pass
+        if str(path).endswith('.sample.yml'):
+            return
+
+        try:
+            if path.exists():
+                path.unlink()
+        except Exception:
+            log.warning("删除配置文件失败 %s", path, exc_info=True)
+            return
+
+        try:
+            config_root = (Path(os_utils.get_work_dir()) / 'config').resolve()
+        except Exception:
+            return
+
+        cur = path.parent
+        while True:
+            try:
+                cur_res = cur.resolve()
+            except Exception:
+                break
+
+            if cur_res == config_root:
+                break
+
+            try:
+                if cur.exists() and cur.is_dir() and not any(cur.iterdir()):
+                    cur.rmdir()
+                    cur = cur.parent
+                    continue
+            except Exception:
+                log.debug("清理配置目录失败 %s", cur, exc_info=True)
+                break
+            break
 
     def _to_json_text(self, obj) -> str:
         """将对象序列化为 JSON 文本"""
