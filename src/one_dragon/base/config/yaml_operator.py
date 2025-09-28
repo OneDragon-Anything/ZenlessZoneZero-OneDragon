@@ -1,3 +1,4 @@
+import atexit
 from genericpath import getmtime
 import os
 import sys
@@ -70,11 +71,15 @@ def reload_cache_from_file():
     """
     import json
     if os.path.exists('.cache_store.json'):
-        with open('.cache_store.json', 'r', encoding='utf-8') as f:
-            cache_from_file = json.load(f)
-            for key, value in cache_from_file.items():
-                cached_yaml_data[key] = (value[0], value[1])
-        walk_and_clear_cache()
+        try:
+            with open('.cache_store.json', 'r', encoding='utf-8') as f:
+                cache_from_file = json.load(f)
+                for key, value in cache_from_file.items():
+                    cached_yaml_data[key] = (value[0], value[1])
+            walk_and_clear_cache()
+        except Exception:
+            log.error('缓存加载失败', exc_info=True)
+            os.remove('.cache_store.json')
 
 reload_cache_from_file()
 
@@ -117,6 +122,12 @@ def write_file_and_flush_cache(file_path: str, data: dict, sync: bool = False):
         write_to_file_and_load_modify_time()
     else:
         GlobalDaemonPool.instance().submit(write_to_file_and_load_modify_time)
+
+def cleanup():
+    GlobalDaemonPool.instance().shutdown(wait=True)
+    flush_cache_to_file()
+
+atexit.register(cleanup)
 
 class YamlOperator:
 
