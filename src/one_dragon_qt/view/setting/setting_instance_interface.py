@@ -335,14 +335,14 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.game_account_opt = TextSettingCard(
             icon=FluentIcon.PEOPLE,
             title="账号",
-            input_placeholder=base64.b64decode("5omA5pyJ5L+h5oGv6YO95piO5paH5L+d5a2Y5Zyo5pys5Zyw").decode('utf-8'), 
+            input_placeholder="所有信息都明文保存在本地",
         )
         instance_settings_group.addSettingCard(self.game_account_opt)
 
         self.game_password_opt = TextSettingCard(
             icon=FluentIcon.EXPRESSIVE_INPUT_ENTRY,
             title="密码",
-            input_placeholder=base64.b64decode("6K+36Ieq6KGM5aal5ZaE566h55CG").decode('utf-8'),  
+            input_placeholder="请自行妥善管理",
             is_password=True,  
         )
         instance_settings_group.addSettingCard(self.game_password_opt)

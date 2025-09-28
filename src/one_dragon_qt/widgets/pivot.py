@@ -42,7 +42,7 @@ class PhosPivot(Pivot):
         OdQtStyleSheet.PIVOT.apply(self)
 
         self.hBoxLayout.setSpacing(0)
-        self.hBoxLayout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.hBoxLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
 
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
@@ -67,11 +67,13 @@ class PhosPivot(Pivot):
         if onClick:
             widget.itemClicked.connect(onClick)
 
-        spacer = QSpacerItem(10, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-        self.hBoxLayout.insertItem(index, spacer)
+        # 在项目之间添加固定间距，实现等间距分布
+        if len(self.items) > 0:
+            spacer = QSpacerItem(30, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+            self.hBoxLayout.insertItem(index * 2, spacer)
 
         self.items[routeKey] = widget
-        self.hBoxLayout.insertWidget(index, widget, 1)
+        self.hBoxLayout.insertWidget(index * 2 + (1 if len(self.items) > 1 else 0), widget, 0)
 
     def paintEvent(self, e):
         QWidget().paintEvent(e)
