@@ -1,3 +1,4 @@
+from genericpath import getmtime
 import os
 import sys
 from typing import Optional
@@ -88,11 +89,15 @@ def get_temp_config_path(file_path: str) -> str:
             return mei_path
     return file_path
 
-def read_cache_or_load(file_path: str):
+def read_cache_or_load(file_path: str, getmtime = False):
     cached = cached_yaml_data.get(file_path)
     if cached is not None:
-        _, data = cached
-        return data
+        time, data = cached
+        if getmtime:
+            if os.path.getmtime(file_path) == time:
+                return data
+        else:
+            return data
 
     with open(file_path, 'r', encoding='utf-8') as file:
         log.debug(f"加载yaml: {file_path}")
@@ -115,7 +120,7 @@ def write_file_and_flush_cache(file_path: str, data: dict, sync: bool = False):
 
 class YamlOperator:
 
-    def __init__(self, file_path: Optional[str] = None):
+    def __init__(self, file_path: Optional[str] = None, getmtime: bool = False):
         """
         yml文件的操作器
         :param file_path: yml文件的路径。不传入时认为是mock，用于测试。
@@ -126,6 +131,8 @@ class YamlOperator:
 
         self.data: dict = {}
         """存放数据的地方"""
+
+        self.getmtime = getmtime
 
         self.__read_from_file()
 
@@ -140,7 +147,7 @@ class YamlOperator:
             return
 
         try:
-            self.data = read_cache_or_load(self.file_path)
+            self.data = read_cache_or_load(self.file_path, self.getmtime)
         except Exception:
             log.error(f'文件读取失败 将使用默认值 {self.file_path}', exc_info=True)
             return
