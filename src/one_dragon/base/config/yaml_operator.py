@@ -14,31 +14,20 @@ import threading
 mutex = threading.Lock()
 
 # 自定义守护线程池
-class DaemonThreadPoolExecutor(concurrent.futures.ThreadPoolExecutor):
-    def _adjust_thread_count(self):
-        def weakref_cb(_, q=self._work_queue):
-            q.put(None)
-        while len(self._threads) < self._max_workers:
-            t = threading.Thread(target=self._worker, args=(weakref_cb,))
-            t.daemon = True  # 守护线程
-            t.start()
-            self._threads.add(t)
-
-# 全局单例池对象
-class GlobalDaemonPool:
-    _instance = None
-
-    @classmethod
-    def instance(cls, max_workers=4):
-        if cls._instance is None:
-            cls._instance = DaemonThreadPoolExecutor(max_workers=max_workers)
-        return cls._instance
-
+_writer_executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=1, thread_name_prefix="yaml-writer"
+)
 
 storeable_cache_config_prefixes = [
-    "assets/",
-    "config/",
+    "assets",
+    "config",
 ]
+
+def _is_storeable_path(p: str) -> bool:
+    # 相对化并统一分隔符
+    rel = os.path.relpath(os.path.abspath(p), os.getcwd()).replace("\\", "/")
+    first = rel.split("/", 1)[0]
+    return first in storeable_cache_config_prefixes
 
 cached_yaml_data: dict[str, tuple[float, dict]] = {}
 
@@ -48,7 +37,7 @@ def flush_cache_to_file():
     """
     cache_to_store = {}
     for key, value in cached_yaml_data.items():
-        if any(key.startswith(prefix) for prefix in storeable_cache_config_prefixes):
+        if _is_storeable_path(key):
             cache_to_store[key] = value
     if cache_to_store:
         import json
@@ -123,10 +112,10 @@ def write_file_and_flush_cache(file_path: str, data: dict, sync: bool = False):
     if sync:
         write_to_file_and_load_modify_time()
     else:
-        GlobalDaemonPool.instance().submit(write_to_file_and_load_modify_time)
+        _writer_executor.submit(write_to_file_and_load_modify_time)
 
 def cleanup():
-    GlobalDaemonPool.instance().shutdown(wait=True)
+    _writer_executor    .shutdown(wait=True)
     flush_cache_to_file()
 
 atexit.register(cleanup)
