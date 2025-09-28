@@ -67,13 +67,25 @@ class PhosPivot(Pivot):
         if onClick:
             widget.itemClicked.connect(onClick)
 
-        # 在项目之间添加固定间距，实现等间距分布
-        if len(self.items) > 0:
-            spacer = QSpacerItem(30, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-            self.hBoxLayout.insertItem(index * 2, spacer)
-
+        existing_count = len(self.items)
         self.items[routeKey] = widget
-        self.hBoxLayout.insertWidget(index * 2 + (1 if len(self.items) > 1 else 0), widget, 0)
+
+        if existing_count == 0:
+            self.hBoxLayout.insertWidget(0, widget, 0)
+            return
+
+        spacer = QSpacerItem(30, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        if index <= 0:
+            self.hBoxLayout.insertWidget(0, widget, 0)
+            self.hBoxLayout.insertItem(1, spacer)
+        elif index >= existing_count:
+            pos = self.hBoxLayout.count()
+            self.hBoxLayout.insertItem(pos, spacer)
+            self.hBoxLayout.insertWidget(pos + 1, widget, 0)
+        else:
+            layout_index = index * 2
+            self.hBoxLayout.insertWidget(layout_index, widget, 0)
+            self.hBoxLayout.insertItem(layout_index + 1, spacer)
 
     def paintEvent(self, e):
         QWidget().paintEvent(e)
