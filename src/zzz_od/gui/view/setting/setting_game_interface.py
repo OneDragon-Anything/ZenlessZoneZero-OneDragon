@@ -308,7 +308,7 @@ class SettingGameInterface(VerticalScrollInterface):
         self.outfit_alice_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('alice'))
         self._update_agent_outfit_options(self.ctx.agent_outfit_config.compatibility_mode)
 
-        self.input_way_opt.init_with_adapter(self.ctx.game_config.type_input_way_adapter)
+        self.input_way_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('type_input_way'))
 
         self.launch_argument_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument'))
         self.screen_size_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('screen_size'))

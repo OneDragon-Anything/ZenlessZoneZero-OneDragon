@@ -132,7 +132,7 @@ class HollowZeroRunInterface(AppRunInterface):
         AppRunInterface.on_interface_shown(self)
         self._update_mission_options()
         self._update_challenge_config_options()
-        self.challenge_config_opt.init_with_adapter(self.ctx.hollow_zero_config.challenge_config_adapter)
+        self.challenge_config_opt.init_with_adapter(self.ctx.hollow_zero_config.get_prop_adapter('challenge_config'))
 
         self.mission_opt.setValue(self.ctx.hollow_zero_config.mission_name)
         self._update_run_record_display()

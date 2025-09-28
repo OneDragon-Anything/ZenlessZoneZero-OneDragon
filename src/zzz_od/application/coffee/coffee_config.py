@@ -3,7 +3,6 @@ from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.user_config import UserConfig
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class CoffeeChooseWay(Enum):
@@ -165,7 +164,3 @@ class CoffeeConfig(UserConfig):
     @run_charge_plan_afterwards.setter
     def run_charge_plan_afterwards(self, new_value: bool) -> None:
         self.update('run_charge_plan_afterwards', new_value)
-
-    @property
-    def run_charge_plan_afterwards_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'run_charge_plan_afterwards', False)

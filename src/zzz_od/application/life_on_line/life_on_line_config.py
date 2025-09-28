@@ -1,7 +1,6 @@
 from typing import Optional
 
 from one_dragon.base.config.user_config import UserConfig
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class LifeOnLineConfig(UserConfig):
@@ -33,7 +32,3 @@ class LifeOnLineConfig(UserConfig):
     @predefined_team_idx.setter
     def predefined_team_idx(self, new_value: int) -> None:
         self.update('predefined_team_idx', new_value)
-
-    @property
-    def predefined_team_idx_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'predefined_team_idx', -1)
