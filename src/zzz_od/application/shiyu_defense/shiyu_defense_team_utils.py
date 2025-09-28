@@ -2,10 +2,15 @@ import difflib
 from cv2.typing import MatLike
 from typing import List, Optional
 
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseTeamConfig
+from zzz_od.application.shiyu_defense import shiyu_defense_const
+from zzz_od.application.shiyu_defense.shiyu_defense_config import (
+    ShiyuDefenseTeamConfig,
+    ShiyuDefenseConfig,
+)
 from zzz_od.config.team_config import PredefinedTeamInfo
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import DmgTypeEnum
@@ -60,6 +65,13 @@ class DefenseTeamSearcher:
         @param team_list: 初始化的队伍 用于提供属性
         """
         self.ctx: ZContext = ctx
+
+        self.config: Optional[ShiyuDefenseConfig] = self.ctx.run_context.get_config(
+            app_id=shiyu_defense_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+
         self.team_list: List[DefensePhaseTeamInfo] = team_list
         self.best_team_list: List[DefensePhaseTeamInfo] = []
 
@@ -68,7 +80,7 @@ class DefenseTeamSearcher:
         self.defense_team_config: dict[int, ShiyuDefenseTeamConfig] = {}
 
         for team in self.predefined_team_list:
-            self.defense_team_config[team.idx] = self.ctx.shiyu_defense_config.get_config_by_team_idx(team.idx)
+            self.defense_team_config[team.idx] = self.config.get_config_by_team_idx(team.idx)
 
         self.chosen_idx: set = set()
 

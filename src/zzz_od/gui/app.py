@@ -4,15 +4,27 @@ try:
     from PySide6.QtCore import Qt, QThread, Signal, QTimer
     from PySide6.QtWidgets import QApplication
     from qfluentwidgets import NavigationItemPosition, setTheme, Theme
-
+    from one_dragon_qt.view.like_interface import LikeInterface
     from one_dragon.base.operation.one_dragon_context import ContextInstanceEventEnum
-    from one_dragon.utils import app_utils
-    from one_dragon.utils.i18_utils import gt
+
     from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+
+    from one_dragon_qt.view.code_interface import CodeInterface
     from one_dragon_qt.view.context_event_signal import ContextEventSignal
     from one_dragon_qt.windows.app_window_base import AppWindowBase
-    from one_dragon_qt.windows.window import PhosTitleBar
+    from one_dragon.utils import app_utils
+    from one_dragon.utils.i18_utils import gt
+
     from zzz_od.context.zzz_context import ZContext
+    from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
+    from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
+    from zzz_od.gui.view.devtools.app_devtools_interface import AppDevtoolsInterface
+    from zzz_od.gui.view.game_assistant.game_assistant_interface import GameAssistantInterface
+    from zzz_od.gui.view.hollow_zero.hollow_zero_interface import HollowZeroInterface
+    from zzz_od.gui.view.home.home_interface import HomeInterface
+    from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
+    from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
+    from zzz_od.gui.view.world_patrol.world_patrol_interface import WorldPatrolInterface
 
     _init_error = None
 
@@ -33,7 +45,6 @@ try:
 
     # 定义应用程序的主窗口类
     class AppWindow(AppWindowBase):
-        titleBar: PhosTitleBar
 
         def __init__(self, ctx: ZContext, parent=None):
             """初始化主窗口类，设置窗口标题和图标"""
@@ -116,59 +127,48 @@ try:
             """创建和添加各个子界面"""
 
             # 主页
-            from zzz_od.gui.view.home.home_interface import HomeInterface
             self.add_sub_interface(HomeInterface(self.ctx, parent=self))
 
             # 战斗助手
-            from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
             self.add_sub_interface(BattleAssistantInterface(self.ctx, parent=self))
 
             # 一条龙
-            from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
             self.add_sub_interface(ZOneDragonInterface(self.ctx, parent=self))
 
             # 空洞
-            from zzz_od.gui.view.hollow_zero.hollow_zero_interface import HollowZeroInterface
             self.add_sub_interface(HollowZeroInterface(self.ctx, parent=self))
 
             # 锄大地
-            from zzz_od.gui.view.world_patrol.world_patrol_interface import WorldPatrolInterface
             self.add_sub_interface(WorldPatrolInterface(self.ctx, parent=self))
 
             # 游戏助手
-            from zzz_od.gui.view.game_assistant.game_assistant_interface import GameAssistantInterface
             self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
 
             # 点赞
-            from one_dragon_qt.view.like_interface import LikeInterface
             self.add_sub_interface(
                 LikeInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
             # 开发工具
-            from zzz_od.gui.view.devtools.app_devtools_interface import AppDevtoolsInterface
             self.add_sub_interface(
                 AppDevtoolsInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
             # 代码同步
-            from one_dragon_qt.view.code_interface import CodeInterface
             self.add_sub_interface(
                 CodeInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
             # 多账号管理
-            from zzz_od.gui.view.accounts.app_accounts_interface import AccountsInterface
             self.add_sub_interface(
                 AccountsInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
             )
 
             # 设置
-            from zzz_od.gui.view.setting.app_setting_interface import AppSettingInterface
             self.add_sub_interface(
                 AppSettingInterface(self.ctx, parent=self),
                 position=NavigationItemPosition.BOTTOM,
@@ -232,8 +232,7 @@ try:
             @param ver:
             @return:
             """
-            self.titleBar.setLauncherVersion(versions[0])
-            self.titleBar.setCodeVersion(versions[1])
+            self.titleBar.setVersion(versions[0], versions[1])
 
         def _check_first_run(self):
             """首次运行时显示防倒卖弹窗"""

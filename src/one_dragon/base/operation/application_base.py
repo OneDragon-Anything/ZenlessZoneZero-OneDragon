@@ -36,9 +36,8 @@ class Application(Operation):
                  init_context_before_start: bool = True,
                  stop_context_after_stop: bool = True,
                  run_record: Optional[AppRunRecord] = None,
-                 need_ocr: bool = True,
-                 retry_in_od: bool = False,
-                 need_notify: bool = False
+                 need_ocr: bool = True,  # TODO 后续删掉这个标志 需要统一初始化
+                 need_notify: bool = False,
                  ):
         super().__init__(ctx, node_max_retry_times=node_max_retry_times, op_name=op_name,
                          timeout_seconds=timeout_seconds,
@@ -65,8 +64,6 @@ class Application(Operation):
 
         self.need_ocr: bool = need_ocr
         """需要OCR"""
-
-        self._retry_in_od: bool = retry_in_od  # 在一条龙中进行重试
 
         self.need_notify: bool = need_notify  # 节点运行结束后发送通知
 

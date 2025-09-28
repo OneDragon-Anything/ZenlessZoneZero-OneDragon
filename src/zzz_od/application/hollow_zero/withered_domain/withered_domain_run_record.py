@@ -1,21 +1,28 @@
 from typing import Optional
 
-from one_dragon.base.operation.application_run_record import AppRunRecord, AppRunRecordPeriod
+from one_dragon.base.operation.application_run_record import (
+    AppRunRecord,
+    AppRunRecordPeriod,
+)
 from one_dragon.utils import os_utils
-from zzz_od.application.hollow_zero.withered_domain.hollow_zero_config import HollowZeroConfig, HollowZeroExtraTask
+from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_config import (
+    HollowZeroExtraTask,
+    WitheredDomainConfig,
+)
 
 
-class HollowZeroRunRecord(AppRunRecord):
+class WitheredDomainRunRecord(AppRunRecord):
 
-    def __init__(self, config: HollowZeroConfig, instance_idx: Optional[int] = None, game_refresh_hour_offset: int = 0):
+    def __init__(self, config: WitheredDomainConfig, instance_idx: Optional[int] = None, game_refresh_hour_offset: int = 0):
         AppRunRecord.__init__(
             self,
-            'hollow_zero',
+            app_id=withered_domain_const.APP_ID,
             instance_idx=instance_idx,
             game_refresh_hour_offset=game_refresh_hour_offset,
             record_period=AppRunRecordPeriod.WEEKLY
         )
-        self.config: HollowZeroConfig = config
+        self.config: WitheredDomainConfig = config
 
     @property
     def run_status_under_now(self):

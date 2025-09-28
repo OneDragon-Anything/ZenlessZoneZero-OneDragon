@@ -136,6 +136,21 @@ class ApplicationRunContext:
         factory = self._application_factory_map[app_id]
         return factory.create_application(instance_idx=instance_idx, group_id=group_id)
 
+    def get_application_name(self, app_id: str) -> Optional[str]:
+        """
+        获取应用名称
+
+        Args:
+            app_id: 应用ID
+
+        Returns:
+            str: 应用名称
+        """
+        if app_id not in self._application_factory_map:
+            return None
+
+        return self._application_factory_map[app_id].app_name
+
     def get_config(
         self,
         app_id: Optional[str] = None,

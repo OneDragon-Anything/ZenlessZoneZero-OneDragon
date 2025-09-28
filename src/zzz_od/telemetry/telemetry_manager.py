@@ -2,22 +2,24 @@
 遥测管理器
 统一管理所有遥测组件，提供简单的API接口
 """
+import logging
 import platform
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Dict, Any, Optional
 
-from one_dragon.utils.log_utils import log
-
-from .config import PrivacySettingsManager, TelemetryConfigLoader
-from .data_sanitizer import DataSanitizer
-from .error_tracker import ErrorTracker
-from .event_collector import EventCollector
+from .models import TelemetryConfig, PrivacySettings
+from .config import TelemetryConfigLoader, PrivacySettingsManager
 from .loki_client import LokiClient
-from .models import PrivacySettings, TelemetryConfig
-from .performance_monitor import PerformanceMonitor
 from .privacy_controller import PrivacyController
+from .data_sanitizer import DataSanitizer
 from .ui_support import TelemetryUISupport
+from .event_collector import EventCollector
+from .error_tracker import ErrorTracker
+from .performance_monitor import PerformanceMonitor
+
+
+logger = logging.getLogger(__name__)
 
 
 class TelemetryManager:
@@ -56,7 +58,7 @@ class TelemetryManager:
     def initialize(self) -> bool:
         """初始化遥测系统"""
         try:
-            log.debug("Initializing telemetry system...")
+            logger.debug("Initializing telemetry system...")
 
             # 加载配置
             self.config = self.config_loader.load_config()
@@ -64,10 +66,10 @@ class TelemetryManager:
 
             # 检查是否启用遥测
             if not self.config.enabled:
-                log.debug("Telemetry is disabled by configuration")
+                logger.debug("Telemetry is disabled by configuration")
                 return True
 
-            log.debug("Telemetry is enabled, initializing components...")
+            logger.debug("Telemetry is enabled, initializing components...")
 
             # 初始化隐私控制器和数据清理器
             from one_dragon.utils import os_utils
@@ -77,19 +79,19 @@ class TelemetryManager:
             self.ui_support = TelemetryUISupport(self.privacy_controller)
 
             # 初始化Loki客户端
-            log.debug("Initializing Loki client...")
+            logger.debug("Initializing Loki client...")
             self.loki_client = LokiClient(self.config)
             if not self.loki_client.initialize():
-                log.warning("Failed to initialize Loki client")
+                logger.warning("Failed to initialize Loki client")
                 return False
 
-            log.debug("Loki client initialized successfully")
+            logger.debug("Loki client initialized successfully")
 
             # 生成用户ID（在创建 EventCollector 之前）
             self._user_id = self._generate_user_id()
 
             # 初始化核心遥测组件
-            log.debug("Initializing telemetry components...")
+            logger.debug("Initializing telemetry components...")
             self.event_collector = EventCollector(self.loki_client, self.privacy_controller, self._user_id)
             self.error_tracker = ErrorTracker(self.loki_client, self.privacy_controller)
             self.performance_monitor = PerformanceMonitor(self.loki_client, self.privacy_controller)
@@ -101,13 +103,13 @@ class TelemetryManager:
             self.performance_monitor.start_system_monitoring(interval=30.0)
 
             self._initialized = True
-            log.debug("Telemetry system initialized successfully")
+            logger.debug("Telemetry system initialized successfully")
             return True
 
         except Exception as e:
-            log.error(f"Failed to initialize telemetry system: {e}")
+            logger.error(f"Failed to initialize telemetry system: {e}")
             import traceback
-            log.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
             return False
 
 
@@ -119,13 +121,13 @@ class TelemetryManager:
             machine_id = f"{platform.node()}-{platform.machine()}"
             # 生成基于机器特征的稳定UUID
             user_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, machine_id))
-            log.debug(f"Generated user UUID: {user_uuid}")
+            logger.debug(f"Generated user UUID: {user_uuid}")
             return user_uuid
         except Exception as e:
             # 如果生成失败，使用随机ID
-            log.warning(f"Failed to generate user ID from machine features: {e}")
+            logger.warning(f"Failed to generate user ID from machine features: {e}")
             user_uuid = str(uuid.uuid4())
-            log.debug(f"Using random user UUID: {user_uuid}")
+            logger.debug(f"Using random user UUID: {user_uuid}")
             return user_uuid
 
     def _get_app_version(self) -> str:
@@ -174,7 +176,7 @@ class TelemetryManager:
             if self.privacy_controller:
                 processed_properties = self.privacy_controller.process_event_data(event_name, event_properties)
                 if processed_properties is None:
-                    log.debug(f"Event {event_name} blocked by privacy settings")
+                    logger.debug(f"Event {event_name} blocked by privacy settings")
                     return
                 event_properties = processed_properties
 
@@ -189,10 +191,10 @@ class TelemetryManager:
                 properties=event_properties
             )
 
-            log.debug(f"Captured event: {event_name}")
+            logger.debug(f"Captured event: {event_name}")
 
         except Exception as e:
-            log.error(f"Failed to capture event {event_name}: {e}")
+            logger.error(f"Failed to capture event {event_name}: {e}")
 
     def capture_error(self, error: Exception, context: Dict[str, Any] = None) -> None:
         """捕获错误"""
@@ -213,7 +215,7 @@ class TelemetryManager:
 
             # 隐私控制检查
             if self.privacy_controller and not self.privacy_controller.is_error_reporting_enabled():
-                log.debug("Error reporting disabled by privacy settings")
+                logger.debug("Error reporting disabled by privacy settings")
                 return
 
             # 数据清理
@@ -231,10 +233,10 @@ class TelemetryManager:
                 properties=error_data
             )
 
-            log.debug(f"Captured error: {type(error).__name__}")
+            logger.debug(f"Captured error: {type(error).__name__}")
 
         except Exception as e:
-            log.error(f"Failed to capture error: {e}")
+            logger.error(f"Failed to capture error: {e}")
 
     def capture_performance(self, metric_name: str, value: float, tags: Dict[str, Any] = None) -> None:
         """捕获性能指标"""
@@ -257,10 +259,10 @@ class TelemetryManager:
                 properties=performance_properties
             )
 
-            log.debug(f"Captured performance metric: {metric_name} = {value}")
+            logger.debug(f"Captured performance metric: {metric_name} = {value}")
 
         except Exception as e:
-            log.error(f"Failed to capture performance metric: {e}")
+            logger.error(f"Failed to capture performance metric: {e}")
 
     def track_custom_event(self, event_name: str, properties: Dict[str, Any] = None) -> None:
         """跟踪自定义事件"""
@@ -279,7 +281,7 @@ class TelemetryManager:
             if self.privacy_controller:
                 processed_properties = self.privacy_controller.process_event_data(event_name, event_properties)
                 if processed_properties is None:
-                    log.debug(f"Custom event {event_name} blocked by privacy settings")
+                    logger.debug(f"Custom event {event_name} blocked by privacy settings")
                     return
                 event_properties = processed_properties
 
@@ -294,10 +296,10 @@ class TelemetryManager:
                 properties=event_properties
             )
 
-            log.debug(f"Tracked custom event: {event_name}")
+            logger.debug(f"Tracked custom event: {event_name}")
 
         except Exception as e:
-            log.error(f"Failed to track custom event {event_name}: {e}")
+            logger.error(f"Failed to track custom event {event_name}: {e}")
 
     def identify_user(self, user_id: str, properties: Dict[str, Any] = None) -> None:
         """识别用户"""
@@ -316,10 +318,10 @@ class TelemetryManager:
                 self.loki_client.alias(self._user_id, user_id)
 
             self._user_id = user_id
-            log.debug(f"Identified user: {user_id}")
+            logger.debug(f"Identified user: {user_id}")
 
         except Exception as e:
-            log.error(f"Failed to identify user: {e}")
+            logger.error(f"Failed to identify user: {e}")
 
     def set_user_properties(self, properties: Dict[str, Any]) -> None:
         """设置用户属性"""
@@ -329,10 +331,10 @@ class TelemetryManager:
         try:
             # 设置用户属性到Loki
             self.loki_client.set_user_properties(self._user_id, properties)
-            log.debug("Set user properties")
+            logger.debug("Set user properties")
 
         except Exception as e:
-            log.error(f"Failed to set user properties: {e}")
+            logger.error(f"Failed to set user properties: {e}")
 
     def flush(self) -> None:
         """立即刷新所有待发送的数据"""
@@ -341,12 +343,12 @@ class TelemetryManager:
 
     def shutdown(self) -> None:
         """关闭遥测系统"""
-        log.debug("Shutting down telemetry system...")
+        logger.debug("Shutting down telemetry system...")
 
         try:
             # 强制刷新所有待发送的事件
             if self.is_enabled():
-                log.debug("Flushing all pending events before shutdown...")
+                logger.debug("Flushing all pending events before shutdown...")
                 self.flush()
 
                 # 记录应用关闭事件
@@ -369,10 +371,10 @@ class TelemetryManager:
                 self.loki_client.shutdown()
 
             self._initialized = False
-            log.debug("Telemetry system shutdown complete")
+            logger.debug("Telemetry system shutdown complete")
 
         except Exception as e:
-            log.error(f"Error during telemetry shutdown: {e}")
+            logger.error(f"Error during telemetry shutdown: {e}")
 
     def _get_session_duration(self) -> float:
         """获取会话持续时间（秒）"""
@@ -460,7 +462,7 @@ class TelemetryManager:
             if self.privacy_controller:
                 processed_properties = self.privacy_controller.process_event_data('ui_interaction', event_properties)
                 if processed_properties is None:
-                    log.debug(f"UI interaction {element}.{action} blocked by privacy settings")
+                    logger.debug(f"UI interaction {element}.{action} blocked by privacy settings")
                     return
                 event_properties = processed_properties
 
@@ -475,10 +477,10 @@ class TelemetryManager:
                 properties=event_properties
             )
 
-            log.debug(f"Tracked UI interaction: {element} - {action}")
+            logger.debug(f"Tracked UI interaction: {element} - {action}")
 
         except Exception as e:
-            log.error(f"Failed to track UI interaction {element}.{action}: {e}")
+            logger.error(f"Failed to track UI interaction {element}.{action}: {e}")
 
     def add_breadcrumb(self, message: str, category: str = "operation", level: str = "info",
                       properties: Dict[str, Any] = None) -> None:
@@ -522,7 +524,7 @@ class TelemetryManager:
             if self.privacy_controller:
                 processed_properties = self.privacy_controller.process_event_data('navigation', event_properties)
                 if processed_properties is None:
-                    log.debug(f"Navigation {from_page} -> {to_page} blocked by privacy settings")
+                    logger.debug(f"Navigation {from_page} -> {to_page} blocked by privacy settings")
                     return
                 event_properties = processed_properties
 
@@ -537,10 +539,10 @@ class TelemetryManager:
                 properties=event_properties
             )
 
-            log.debug(f"Tracked navigation: {from_page} -> {to_page}")
+            logger.debug(f"Tracked navigation: {from_page} -> {to_page}")
 
         except Exception as e:
-            log.error(f"Failed to track navigation {from_page} -> {to_page}: {e}")
+            logger.error(f"Failed to track navigation {from_page} -> {to_page}: {e}")
 
     def track_feature_usage(self, feature_name: str, properties: Dict[str, Any] = None) -> None:
         """跟踪功能使用（用于DAU统计）"""
@@ -561,7 +563,7 @@ class TelemetryManager:
             if self.privacy_controller:
                 processed_properties = self.privacy_controller.process_event_data('feature_usage', event_properties)
                 if processed_properties is None:
-                    log.debug(f"Feature usage {feature_name} blocked by privacy settings")
+                    logger.debug(f"Feature usage {feature_name} blocked by privacy settings")
                     return
                 event_properties = processed_properties
 
@@ -576,10 +578,10 @@ class TelemetryManager:
                 properties=event_properties
             )
 
-            log.debug(f"Tracked feature usage: {feature_name}")
+            logger.debug(f"Tracked feature usage: {feature_name}")
 
         except Exception as e:
-            log.error(f"Failed to track feature usage {feature_name}: {e}")
+            logger.error(f"Failed to track feature usage {feature_name}: {e}")
 
 
 

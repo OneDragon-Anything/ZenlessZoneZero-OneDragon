@@ -7,8 +7,8 @@ from one_dragon.base.operation.application.application_factory import Applicatio
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from zzz_od.application.redemption_code.redemption_code_app import RedemptionCodeApp
-from zzz_od.application.suibian_temple.suibian_temple_run_record import (
-    SuibianTempleRunRecord,
+from zzz_od.application.redemption_code.redemption_code_run_record import (
+    RedemptionCodeRunRecord,
 )
 
 if TYPE_CHECKING:
@@ -34,7 +34,7 @@ class RedemptionCodeFactory(ApplicationFactory):
         return None
 
     def create_run_record(self, instance_idx: int) -> Optional[AppRunRecord]:
-        return SuibianTempleRunRecord(
+        return RedemptionCodeRunRecord(
             instance_idx=instance_idx,
             game_refresh_hour_offset=self.ctx.game_account_config.game_refresh_hour_offset,
         )

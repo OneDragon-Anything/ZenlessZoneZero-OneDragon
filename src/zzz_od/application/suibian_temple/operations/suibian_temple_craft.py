@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -10,7 +9,6 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempleConfig
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -33,17 +31,12 @@ class SuibianTempleCraft(ZOperation):
         Args:
             ctx: 上下文
         """
-        ZOperation.__init__(
-            self, ctx, op_name=f"{gt('随便观', 'game')} {gt('制造', 'game')}"
-        )
-        self.config: Optional[SuibianTempleConfig] = self.ctx.run_context.get_config(
-            app_id="suibian_temple"
-        )
+        ZOperation.__init__(self, ctx,
+                            op_name=f'{gt("随便观", "game")} {gt("制造", "game")}')
 
         self.last_item_list: list[str] = []  # 上一次的商品列表
         self.chosen_item_list: list[str] = []  # 已经选择过的商品列表
         self.scroll_after_choose: bool = False  # 选择后是否已经滑动了
-        self.drag_times: int = 0  # 下拉次数
 
     @operation_node(name='前往制造', is_start_node=True)
     def goto_craft(self) -> OperationRoundResult:
@@ -72,9 +65,8 @@ class SuibianTempleCraft(ZOperation):
             '开物',
         ]
         ignore_cn_list: list[str] = [
-            "开物",
+            '开物',
         ]
-        self.drag_times = 0
         return self.round_by_ocr_and_click_by_priority(
             target_cn_list=target_cn_list, ignore_cn_list=ignore_cn_list,
             success_wait=1, retry_wait=0.5)
@@ -162,12 +154,9 @@ class SuibianTempleCraft(ZOperation):
         self.last_item_list = new_item_list
         log.info('当前识别商品 %s', new_item_list)
 
-        if self.drag_times >= self.config.craft_drag_times:
-            return self.round_success(status='已滑动次数达到上限', wait=1)
         if not with_new_item and self.scroll_after_choose:
             return self.round_success(status='未发现新商品', wait=1)
         else:
-            self.drag_times += 1
             self.scroll_after_choose = True
             start = area.center
             end = start + Point(0, -300)

@@ -1,6 +1,8 @@
 from typing import List, Optional, ClassVar
 
 from one_dragon.base.config.one_dragon_config import OneDragonInstance, InstanceRun
+from one_dragon.base.operation.application import application_const
+from one_dragon.base.operation.application.group_application import GroupApplication
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -13,25 +15,25 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
 
-class OneDragonApp(Application):
+class OneDragonApp(GroupApplication):
 
     STATUS_ALL_DONE: ClassVar[str] = '全部结束'
     STATUS_NEXT: ClassVar[str] = '下一个'
-    STATUS_NO_LOGIN: ClassVar[str] = '下一个'
+    STATUS_NO_LOGIN: ClassVar[str] = "下一个"
 
-    def __init__(self, ctx: OneDragonContext, app_id: str,
-                 op_name: str = '一条龙',
-                 op_to_enter_game: Optional[Operation] = None,
-                 op_to_switch_account: Optional[Operation] = None):
-        Application.__init__(
+    def __init__(
+        self,
+        ctx: OneDragonContext,
+        op_to_enter_game: Optional[Operation] = None,
+        op_to_switch_account: Optional[Operation] = None,
+    ):
+        GroupApplication.__init__(
             self,
-            ctx, app_id,
-            op_name=gt(op_name),
-            op_to_enter_game=op_to_enter_game
+            ctx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+            op_to_enter_game=op_to_enter_game,
         )
 
-        self._to_run_app_list: List[Application] = []  # 需要执行的app列表 有序
-        self._current_app_idx: int = 0  # 当前运行的app 下标
         self._instance_list: List[OneDragonInstance] = []  # 需要运行的实例
         self._instance_idx: int = 0  # 当前运行的实例下标
         self._instance_start_idx: int = 0  # 最初开始的实例下标

@@ -15,8 +15,10 @@ from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
 from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import (
     DismantleLevelEnum,
+    DriveDiscDismantleConfig,
 )
 from zzz_od.application.random_play.random_play_config import (
     RANDOM_AGENT_NAME,
@@ -29,8 +31,6 @@ from zzz_od.game_data.agent import AgentEnum
 class ZOneDragonSettingInterface(VerticalScrollInterface):
 
     def __init__(self, ctx: ZContext, parent=None):
-        self.ctx: ZContext = ctx
-
         VerticalScrollInterface.__init__(
             self,
             object_name='zzz_one_dragon_setting_interface',
@@ -41,6 +41,7 @@ class ZOneDragonSettingInterface(VerticalScrollInterface):
         self.group_id: str = 'one_dragon'  # 当前打开页面的group_id
 
         self.random_play_config: Optional[RandomPlayConfig] = None
+        self.drive_disc_dismantle_config: Optional[DriveDiscDismantleConfig] = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
@@ -97,5 +98,10 @@ class ZOneDragonSettingInterface(VerticalScrollInterface):
         self.random_play_agent_1.init_with_adapter(get_prop_adapter(self.random_play_config, 'agent_name_1'))
         self.random_play_agent_2.init_with_adapter(get_prop_adapter(self.random_play_config, 'agent_name_2'))
 
-        self.drive_disc_dismantle_level_opt.init_with_adapter(self.ctx.drive_disc_dismantle_config.get_prop_adapter('dismantle_level'))
-        self.drive_disc_dismantle_abandon_opt.init_with_adapter(self.ctx.drive_disc_dismantle_config.get_prop_adapter('dismantle_abandon'))
+        self.drive_disc_dismantle_config = self.ctx.run_context.get_config(
+            app_id=drive_disc_dismantle_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=self.group_id,
+        )
+        self.drive_disc_dismantle_level_opt.init_with_adapter(get_prop_adapter(self.drive_disc_dismantle_config, 'dismantle_level'))
+        self.drive_disc_dismantle_abandon_opt.init_with_adapter(get_prop_adapter(self.drive_disc_dismantle_config, 'dismantle_abandon'))

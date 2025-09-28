@@ -36,7 +36,6 @@ class SuibianTempleApp(ZApplication):
             self,
             ctx=ctx, app_id='suibian_temple',
             op_name=gt('随便观'),
-            retry_in_od=True,  # 传送落地有可能会歪 重试
             need_notify=True,
         )
         self.config: SuibianTempleConfig = self.ctx.run_context.get_config(app_id='suibian_temple')  # type: ignore

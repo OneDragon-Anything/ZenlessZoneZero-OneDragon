@@ -1,10 +1,9 @@
 from enum import Enum
 
-from typing import Optional
-
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.operation.application.application_config import ApplicationConfig
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
+from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
 
 
 class HollowZeroExtraTask(Enum):
@@ -21,13 +20,14 @@ class HollowZeroExtraExitEnum(Enum):
     LEVEL_3_EVA = ConfigItem('3层业绩后退出')
 
 
-class HollowZeroConfig(YamlConfig):
+class WitheredDomainConfig(ApplicationConfig):
 
-    def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+    def __init__(self, instance_idx: int, group_id: str):
+        ApplicationConfig.__init__(
             self,
-            module_name='hollow_zero',
+            app_id=withered_domain_const.APP_ID,
             instance_idx=instance_idx,
+            group_id=group_id,
         )
 
     @property

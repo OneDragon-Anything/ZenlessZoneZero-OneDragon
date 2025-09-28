@@ -8,7 +8,7 @@ from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_app import Dri
 from zzz_od.application.email_app.email_app import EmailApp
 from zzz_od.application.engagement_reward.engagement_reward_app import EngagementRewardApp
 from zzz_od.application.hollow_zero.lost_void.lost_void_app import LostVoidApp
-from zzz_od.application.hollow_zero.withered_domain.hollow_zero_app import HollowZeroApp
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_app import WitheredDomainApp
 from zzz_od.application.life_on_line.life_on_line_app import LifeOnLineApp
 from zzz_od.application.notorious_hunt.notorious_hunt_app import NotoriousHuntApp
 from zzz_od.application.random_play.random_play_app import RandomPlayApp
@@ -32,10 +32,18 @@ class ZOneDragonApp(OneDragonApp, ZApplication):
         op_to_enter_game = OpenAndEnterGame(ctx)
         op_to_switch_account = SwitchAccount(ctx)
 
-        ZApplication.__init__(self, ctx, app_id)
-        OneDragonApp.__init__(self, ctx, app_id,
-                              op_to_enter_game=op_to_enter_game,
-                              op_to_switch_account=op_to_switch_account)
+        ZApplication.__init__(
+            self,
+            ctx=ctx,
+            app_id=app_id,
+            op_to_enter_game=op_to_enter_game,
+        )
+        OneDragonApp.__init__(
+            self,
+            ctx=ctx,
+            op_to_enter_game=op_to_enter_game,
+            op_to_switch_account=op_to_switch_account,
+        )
 
     def get_app_list(self) -> List[ZApplication]:
         from zzz_od.application.notify.notify_app import NotifyApp
@@ -51,7 +59,7 @@ class ZOneDragonApp(OneDragonApp, ZApplication):
             CityFundApp(self.ctx),
             RiduWeeklyApp(self.ctx),
             NotoriousHuntApp(self.ctx),
-            HollowZeroApp(self.ctx),
+            WitheredDomainApp(self.ctx),
             LostVoidApp(self.ctx),
             WorldPatrolApp(self.ctx),
             ShiyuDefenseApp(self.ctx),

@@ -74,15 +74,6 @@ class SuibianTempleConfig(ApplicationConfig):
         self.update('adventure_mission_4', value)
 
     @property
-    def craft_drag_times(self) -> int:
-        """制造-最大下拉次数"""
-        return self.get('craft_drag_times', 10)
-
-    @craft_drag_times.setter
-    def craft_drag_times(self, value: int):
-        self.update('craft_drag_times', value)
-
-    @property
     def good_goods_purchase_enabled(self) -> bool:
         """好物铺购买-开关"""
         return self.get('good_goods_purchase_enabled', False)

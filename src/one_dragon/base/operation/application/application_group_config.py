@@ -16,6 +16,7 @@ class ApplicationGroupConfigItem:
         """
         self.app_id: str = app_id
         self.enabled: bool = enabled
+        self.app_name: str = ''  # 不需要保存 每次注入
 
 
 class ApplicationGroupConfig(YamlOperator):
@@ -34,26 +35,30 @@ class ApplicationGroupConfig(YamlOperator):
             ),
             "_group.yml",
         )
-
-        self.group_id: str = group_id
         YamlOperator.__init__(self, file_path=file_path)
 
-    @property
-    def app_list(self) -> list[ApplicationGroupConfigItem]:
-        dict_list = self.get("app_list", [])
-        return [
-            ApplicationGroupConfigItem(app_id=item["app_id"], enabled=item["enabled"])
-            for item in dict_list
-        ]
+        self.group_id: str = group_id
+        self.app_list: list[ApplicationGroupConfigItem] = []
 
-    @app_list.setter
-    def app_list(self, value: list[ApplicationGroupConfigItem]):
+        self._init_app_list()
+
+    def _init_app_list(self) -> None:
+        dict_list = self.get("app_list", [])
+        for item in dict_list:
+            self.app_list.append(
+                ApplicationGroupConfigItem(
+                    app_id=item.get("app_id", ""),
+                    enabled=item.get("enabled", False),
+                )
+            )
+
+    def save_app_list(self):
         self.update("app_list", [
             {
                 "app_id": item.app_id,
                 "enabled": item.enabled
             }
-            for item in value
+            for item in self.app_list
         ])
 
     def update_full_app_list(self, app_id_list: list[str]) -> None:
@@ -83,3 +88,71 @@ class ApplicationGroupConfig(YamlOperator):
 
         if changed:
             self.app_list = new_app_list
+            self.save_app_list()
+
+    def set_app_enable(self, app_id: str, enabled: bool) -> None:
+        """
+        设置应用是否启用
+
+        Args:
+            app_id: 应用ID
+            enabled: 是否启用
+        """
+        changed = False
+        app_list = self.app_list
+        for item in app_list:
+            if item.app_id == app_id:
+                if item.enabled != enabled:
+                    changed = True
+                    item.enabled = enabled
+                break
+
+        if changed:
+            self.save_app_list()
+
+    def set_app_order(self, app_id_list: list[str]) -> None:
+        """
+        设置应用运行顺序
+
+        Args:
+            app_id_list: 应用ID列表
+        """
+        changed = False
+        old_list = self.app_list
+        app_map: dict[str, ApplicationGroupConfigItem] = {}
+        for item in old_list:
+            app_map[item.app_id] = item
+
+        new_list: list[ApplicationGroupConfigItem] = [
+            app_map[app_id]
+            for app_id in app_id_list
+            if app_id in app_map
+        ]
+        for item in old_list:
+            if item.app_id not in app_id_list:
+                new_list.append(item)
+
+        if changed:
+            self.save_app_list()
+
+    def move_up_app(self, app_id: str) -> None:
+        """
+        将一个app的执行顺序往前调一位
+        Args:
+            app_id: 应用ID
+        """
+        idx = -1
+
+        for i in range(len(self.app_list)):
+            if self.app_list[i].app_id == app_id:
+                idx = i
+                break
+
+        if idx <= 0:  # 无法交换
+            return
+
+        temp = self.app_list[idx - 1]
+        self.app_list[idx - 1] = self.app_list[idx]
+        self.app_list[idx] = temp
+
+        self.save_app_list()

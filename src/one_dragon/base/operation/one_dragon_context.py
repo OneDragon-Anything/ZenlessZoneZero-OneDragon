@@ -84,11 +84,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
-        self.cv_ocr: OcrMatcher = OnnxOcrMatcher(
-            OnnxOcrParam(
-                det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
-            )
-        )
         self.ocr_service: OcrService | None = None  # 延迟初始化
         self.controller: ControllerBase = controller
 
@@ -100,7 +95,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext()
         self.register_application_factory()
-        self.app_group_manager: ApplicationGroupManager = ApplicationGroupManager()
+        self.app_group_manager: ApplicationGroupManager = ApplicationGroupManager(self)
         self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
 
     def init_by_config(self) -> None:
@@ -257,10 +252,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         :return:
         """
         self.ocr.init_model(
-            ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
-            proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
-        )
-        self.cv_ocr.init_model(
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
         )

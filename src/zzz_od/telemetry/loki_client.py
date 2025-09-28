@@ -2,21 +2,23 @@
 Loki客户端包装器
 提供与Loki服务的通信接口，包括本地队列、批量发送和重试机制
 """
-import json
-import platform
-import threading
+import os
 import time
-import uuid
-from collections import defaultdict
-from datetime import datetime
-from queue import Empty, Queue
-from typing import Any, Dict, Optional
-
+import json
+import logging
+import threading
 import requests
-
-from one_dragon.utils.log_utils import log
+import platform
+import uuid
+from queue import Queue, Empty
+from typing import Dict, Any, Optional
+from datetime import datetime, timedelta
+from collections import defaultdict
 
 from .models import TelemetryConfig
+
+
+logger = logging.getLogger(__name__)
 
 
 class LokiClient:
@@ -60,13 +62,13 @@ class LokiClient:
         """初始化Loki客户端"""
         try:
             if not self.config.loki_url:
-                log.warning("Loki URL not provided, telemetry disabled")
+                logger.warning("Loki URL not provided, telemetry disabled")
                 return False
 
-            log.debug(f"Initializing Loki client with URL: {self.config.loki_url}")
+            logger.debug(f"Initializing Loki client with URL: {self.config.loki_url}")
 
             # 发送应用启动事件
-            log.debug("Sending app startup event...")
+            logger.debug("Sending app startup event...")
             try:
                 # 生成一个基于机器特征的匿名用户ID
                 machine_id = f"{platform.node()}-{platform.machine()}"
@@ -82,21 +84,21 @@ class LokiClient:
                         "python_version": platform.python_version()
                     }
                 )
-                log.debug("App startup event sent successfully")
+                logger.debug("App startup event sent successfully")
             except Exception as e:
-                log.warning(f"Failed to send app startup event: {e}")
+                logger.warning(f"Failed to send app startup event: {e}")
 
             # 启动后台刷新线程
             self._start_flush_thread()
 
             self._initialized = True
-            log.debug(f"Loki client initialized successfully with URL: {self.config.loki_url}")
+            logger.debug(f"Loki client initialized successfully with URL: {self.config.loki_url}")
             return True
 
         except Exception as e:
-            log.error(f"Failed to initialize Loent: {e}")
+            logger.error(f"Failed to initialize Loent: {e}")
             import traceback
-            log.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
             return False
 
     def _start_flush_thread(self) -> None:
@@ -129,7 +131,7 @@ class LokiClient:
                     self._flush_queue()
 
             except Exception as e:
-                log.error(f"Error in flush worker: {e}")
+                logger.error(f"Error in flush worker: {e}")
                 time.sleep(5)  # 错误后等待5秒
 
     def _flush_queue(self) -> None:
@@ -155,13 +157,13 @@ class LokiClient:
             success = self._send_batch_to_loki(events_to_send)
             if success:
                 self.events_sent += len(events_to_send)
-                log.debug(f"Successfully sent {len(events_to_send)} events to Loki")
+                logger.debug(f"Successfully sent {len(events_to_send)} events to Loki")
             else:
                 self.events_failed += len(events_to_send)
-                log.debug(f"Failed to send {len(events_to_send)} events to Loki")
+                logger.debug(f"Failed to send {len(events_to_send)} events to Loki")
         except Exception as e:
             # 静默失败，不影响应用运行
-            log.debug(f"Error sending batch to Loki: {e}")
+            logger.debug(f"Error sending batch to Loki: {e}")
             self.events_failed += len(events_to_send)
 
         self._last_flush_time = datetime.now()
@@ -198,7 +200,7 @@ class LokiClient:
 
         except Exception as e:
             # 静默失败，不影响应用运行
-            log.debug(f"Error in _send_batch_to_loki: {e}")
+            logger.debug(f"Error in _send_batch_to_loki: {e}")
             return False
 
     def _send_with_retry(self, payload: Dict[str, Any], max_retries: int = 3) -> bool:
@@ -215,13 +217,13 @@ class LokiClient:
                 if response.status_code == 204:
                     return True
                 else:
-                    log.debug(f"Loki returned status {response.status_code}, attempt {attempt + 1}/{max_retries}")
+                    logger.debug(f"Loki returned status {response.status_code}, attempt {attempt + 1}/{max_retries}")
 
             except requests.exceptions.RequestException as e:
-                log.debug(f"Network error sending to Loki, attempt {attempt + 1}/{max_retries}: {e}")
+                logger.debug(f"Network error sending to Loki, attempt {attempt + 1}/{max_retries}: {e}")
 
             except Exception as e:
-                log.debug(f"Unexpected error sending to Loki, attempt {attempt + 1}/{max_retries}: {e}")
+                logger.debug(f"Unexpected error sending to Loki, attempt {attempt + 1}/{max_retries}: {e}")
 
             # 指数退避
             if attempt < max_retries - 1:
@@ -229,7 +231,7 @@ class LokiClient:
                 time.sleep(wait_time)
 
         # 所有重试都失败，静默失败
-        log.debug(f"Failed to send to Loki after {max_retries} attempts, silently failing")
+        logger.debug(f"Failed to send to Loki after {max_retries} attempts, silently failing")
         return False
 
     def _get_timestamp_ns(self) -> str:
@@ -350,7 +352,7 @@ class LokiClient:
             self._event_queue.put_nowait(event_data)
             self.queue_size = self._event_queue.qsize()
         except Exception as e:
-            log.error(f"Failed to enqueue event: {e}")
+            logger.error(f"Failed to enqueue event: {e}")
             self.events_failed += 1
 
     def flush(self) -> None:
@@ -360,7 +362,7 @@ class LokiClient:
 
     def shutdown(self) -> None:
         """关闭Loki客户端"""
-        log.debug("Shutting down Loki client...")
+        logger.debug("Shutting down Loki client...")
 
         try:
             self._shutdown = True
@@ -370,13 +372,13 @@ class LokiClient:
                 self._flush_thread.join(timeout=5)
 
             # 强制刷新所有剩余事件
-            log.debug("Flushing all remaining events...")
+            logger.debug("Flushing all remaining events...")
             self._flush_queue()
 
-            log.debug(f"Loki client shutdown complete. Events sent: {self.events_sent}, failed: {self.events_failed}")
+            logger.debug(f"Loki client shutdown complete. Events sent: {self.events_sent}, failed: {self.events_failed}")
 
         except Exception as e:
-            log.debug(f"Error during Loki client shutdown: {e}")
+            logger.debug(f"Error during Loki client shutdown: {e}")
 
     def get_health_status(self) -> Dict[str, Any]:
         """获取健康状态"""

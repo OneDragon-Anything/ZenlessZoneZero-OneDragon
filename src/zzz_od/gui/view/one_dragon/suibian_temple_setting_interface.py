@@ -11,7 +11,6 @@ from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
-from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_dispatch import (
@@ -82,14 +81,6 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
             ],
         )
         content_widget.add_widget(self.adventure_mission_opt)
-
-        # 制造坊
-        self.craft_drag_times = SpinBoxSettingCard(
-            icon=FluentIcon.GAME,
-            title="制造坊-最大下拉次数",
-            content="跳过底部的低级商品",
-        )
-        content_widget.add_widget(self.craft_drag_times)
 
         # 好物铺购买功能设置
         self.good_goods_purchase_switch = SwitchSettingCard(
@@ -224,9 +215,6 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
         self.adventure_mission_2_opt.init_with_adapter(get_prop_adapter(self.config, 'adventure_mission_2'))
         self.adventure_mission_3_opt.init_with_adapter(get_prop_adapter(self.config, 'adventure_mission_3'))
         self.adventure_mission_4_opt.init_with_adapter(get_prop_adapter(self.config, 'adventure_mission_4'))
-
-        # 制造坊
-        self.craft_drag_times.init_with_adapter(get_prop_adapter(self.config, 'craft_drag_times'))
 
         # 初始化好物铺购买功能设置
         self.good_goods_purchase_switch.init_with_adapter(get_prop_adapter(self.config, 'good_goods_purchase_enabled'))

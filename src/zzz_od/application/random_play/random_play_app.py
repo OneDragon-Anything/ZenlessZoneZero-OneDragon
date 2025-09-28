@@ -33,7 +33,6 @@ class RandomPlayApp(ZApplication):
             self,
             ctx=ctx, app_id='random_play',
             op_name=gt('录像店营业'),
-            retry_in_od=True,  # 传送落地有可能会歪 重试
             need_notify=True,
         )
 

@@ -1,12 +1,16 @@
 import time
 
-from typing import ClassVar
+from typing import ClassVar, Optional
 
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_config import WitheredDomainConfig
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import WitheredDomainRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.hollow_zero.event import hollow_event_utils
@@ -18,7 +22,7 @@ from zzz_od.operation.deploy import Deploy
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 
-class HollowZeroApp(ZApplication):
+class WitheredDomainApp(ZApplication):
 
     STATUS_IN_HOLLOW: ClassVar[str] = '在空洞内'
     STATUS_NO_REWARD: ClassVar[str] = '无奖励可领取'
@@ -28,10 +32,19 @@ class HollowZeroApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='hollow_zero',
-            op_name=gt('枯萎之都'),
-            run_record=ctx.hollow_zero_record,
+            ctx=ctx,
+            app_id=withered_domain_const.APP_ID,
+            op_name=gt(withered_domain_const.APP_NAME),
             need_notify=True,
+        )
+        self.config: Optional[WitheredDomainConfig] = self.ctx.run_context.get_config(
+            app_id=withered_domain_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+        self.run_record: Optional[WitheredDomainRunRecord] = self.ctx.run_context.get_run_record(
+            instance_idx=self.ctx.current_instance_idx,
+            app_id=withered_domain_const.APP_ID,
         )
 
         self.mission_name: str = '内部'
@@ -40,8 +53,8 @@ class HollowZeroApp(ZApplication):
         self.phase: int = 1
 
     def handle_init(self):
-        self.ctx.init_hollow_config()
-        mission_name = self.ctx.hollow_zero_config.mission_name
+        self.ctx.hollow.init_before_run()
+        mission_name = self.config.mission_name
         idx = mission_name.find('-')
         if idx != -1:
             self.mission_name = mission_name
@@ -60,7 +73,7 @@ class HollowZeroApp(ZApplication):
                 ]):
             self.level = -1
             self.phase = -1
-            return self.round_success(HollowZeroApp.STATUS_IN_HOLLOW)
+            return self.round_success(WitheredDomainApp.STATUS_IN_HOLLOW)
 
         result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
 
@@ -88,9 +101,9 @@ class HollowZeroApp(ZApplication):
     @node_from(from_name='等待入口加载')
     @operation_node(name='选择副本类型')
     def choose_mission_type(self) -> OperationRoundResult:
-        if (self.ctx.hollow_zero_record.is_finished_by_week()
-            or self.ctx.hollow_zero_record.is_finished_by_day()):
-            return self.round_success(HollowZeroApp.STATUS_TIMES_FINISHED)
+        if (self.run_record.is_finished_by_week()
+            or self.run_record.is_finished_by_day()):
+            return self.round_success(WitheredDomainApp.STATUS_TIMES_FINISHED)
 
         result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-入口', '下一步')
         if result.is_success:
@@ -167,7 +180,7 @@ class HollowZeroApp(ZApplication):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
-    op = HollowZeroApp(ctx)
+    op = WitheredDomainApp(ctx)
     op.execute()
 
 

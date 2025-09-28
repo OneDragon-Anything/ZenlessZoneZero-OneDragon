@@ -233,11 +233,7 @@ class SuibianTemplePawnshop(ZOperation):
 
     def buy_goods(self) -> OperationRoundResult:
         result = self.round_by_ocr_and_click_by_priority(
-            target_cn_list=[
-                '[百通宝]数量不足',
-                '[云纹徽]数量不足',
-                '已达背包容量上限',  # issue #1449
-            ],
+            target_cn_list=['[百通宝]数量不足', '[云纹徽]数量不足'],
         )
         if result.is_success:
             return self.round_success(status=result.status)
@@ -264,27 +260,8 @@ class SuibianTemplePawnshop(ZOperation):
         if screen_name is not None:
             return self.round_success(status=screen_name)
 
-        # 判断是否有货币不足的情况
-        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
-            self.last_screenshot,
-            rect=self.ctx.screen_loader.get_area(
-                "随便观-德丰大押", "区域-购买货币"
-            ).rect,
-            color_range=[[170, 50, 40], [200, 65, 50]],
-        )
-        for ocr_result in ocr_result_list:
-            digit = str_utils.get_positive_digits(ocr_result.data, err=None)
-            if digit is not None:
-                result = self.round_by_click_area('随便观-德丰大押', '按钮-兑换关闭')
-                return self.round_wait(status=result.status, wait=1)
-
         result = self.round_by_ocr_and_click_by_priority(
-            target_cn_list=[
-                '[百通宝]数量不足',
-                '[云纹徽]数量不足',
-                '已达背包容量上限',
-                '确认'
-            ],
+            target_cn_list=['[百通宝]数量不足', '[云纹徽]数量不足', '确认'],
         )
         if result.is_success and result.status == '确认':
             return self.round_wait(status=result.status, wait=1)

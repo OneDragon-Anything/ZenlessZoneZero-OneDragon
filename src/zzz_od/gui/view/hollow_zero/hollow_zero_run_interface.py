@@ -3,15 +3,19 @@ from qfluentwidgets import FluentIcon, PushSettingCard
 from typing import Optional, List
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.base.operation.application import application_const
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
 from one_dragon_qt.view.app_run_interface import AppRunInterface
-from zzz_od.application.hollow_zero.withered_domain.hollow_zero_app import HollowZeroApp
-from zzz_od.application.hollow_zero.withered_domain.hollow_zero_config import HollowZeroExtraTask, HollowZeroExtraExitEnum
-from zzz_od.application.hollow_zero.withered_domain.hollow_zero_debug_app import HollowZeroDebugApp
+from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_app import WitheredDomainApp
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_config import HollowZeroExtraTask, HollowZeroExtraExitEnum, \
+    WitheredDomainConfig
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_debug_app import HollowZeroDebugApp
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import WitheredDomainRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.hollow_zero.hollow_zero_challenge_config import get_all_hollow_zero_challenge_config, \
@@ -33,6 +37,9 @@ class HollowZeroRunInterface(AppRunInterface):
             nav_text_cn='枯萎之都',
             parent=parent,
         )
+
+        self.config: Optional[WitheredDomainConfig] = None
+        self.run_record: Optional[WitheredDomainRunRecord] = None
 
     def get_widget_at_top(self) -> QWidget:
         # 创建一个容器 widget 用于水平排列
@@ -130,25 +137,36 @@ class HollowZeroRunInterface(AppRunInterface):
         :return:
         """
         AppRunInterface.on_interface_shown(self)
+
+        self.config = self.ctx.run_context.get_config(
+            app_id=withered_domain_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+        self.run_record = self.ctx.run_context.get_run_record(
+            instance_idx=self.ctx.current_instance_idx,
+            app_id=withered_domain_const.APP_ID,
+        )
+
         self._update_mission_options()
         self._update_challenge_config_options()
-        self.challenge_config_opt.init_with_adapter(self.ctx.hollow_zero_config.challenge_config_adapter)
+        self.challenge_config_opt.init_with_adapter(self.config.challenge_config_adapter)
 
-        self.mission_opt.setValue(self.ctx.hollow_zero_config.mission_name)
+        self.mission_opt.setValue(self.config.mission_name)
         self._update_run_record_display()
 
-        self.weekly_plan_times_opt.init_with_adapter(self.ctx.hollow_zero_config.get_prop_adapter('weekly_plan_times'))
-        self.daily_plan_times_opt.init_with_adapter(self.ctx.hollow_zero_config.get_prop_adapter('daily_plan_times'))
-        self.extra_task_opt.setValue(self.ctx.hollow_zero_config.extra_task)
-        self.extra_exit_opt.setValue(self.ctx.hollow_zero_config.extra_exit)
+        self.weekly_plan_times_opt.init_with_adapter(self.config.get_prop_adapter('weekly_plan_times'))
+        self.daily_plan_times_opt.init_with_adapter(self.config.get_prop_adapter('daily_plan_times'))
+        self.extra_task_opt.setValue(self.config.extra_task)
+        self.extra_exit_opt.setValue(self.config.extra_exit)
 
     def _update_run_record_display(self) -> None:
-        if self.ctx.hollow_zero_record.period_reward_complete:
+        if self.run_record.period_reward_complete:
             content = '已完成刷取周期性奖励 如错误可重置'
-        elif self.ctx.hollow_zero_record.no_eval_point:
+        elif self.run_record.no_eval_point:
             content = '已完成刷取业绩 如错误可重置'
         else:
-            content = '通关次数 本日: %d, 本周: %d' % (self.ctx.hollow_zero_record.daily_run_times, self.ctx.hollow_zero_record.weekly_run_times)
+            content = '通关次数 本日: %d, 本周: %d' % (self.run_record.daily_run_times, self.run_record.weekly_run_times)
         self.run_record_opt.setContent(content)
 
     def _update_mission_options(self) -> None:
@@ -174,14 +192,14 @@ class HollowZeroRunInterface(AppRunInterface):
         self.challenge_config_opt.set_options_by_list(opt_list)
 
     def _on_mission_changed(self, idx, value) -> None:
-        self.ctx.hollow_zero_config.mission_name = value
+        self.config.mission_name = value
 
     def _on_challenge_config_changed(self, idx, value) -> None:
-        self.ctx.hollow_zero_config.challenge_config = value
-        self.ctx.init_hollow_config()
+        self.config.challenge_config = value
+        self.ctx.hollow.init_before_run()
 
     def _on_reset_record_clicked(self) -> None:
-        self.ctx.hollow_zero_record.reset_for_weekly()
+        self.run_record.reset_for_weekly()
         log.info('重置成功')
         self._update_run_record_display()
 
@@ -192,7 +210,7 @@ class HollowZeroRunInterface(AppRunInterface):
         """
         正常运行
         """
-        self.app = HollowZeroApp(self.ctx)
+        self.app = WitheredDomainApp(self.ctx)
         AppRunInterface._on_start_clicked(self)
 
     def _on_debug_clicked(self) -> None:
@@ -204,10 +222,10 @@ class HollowZeroRunInterface(AppRunInterface):
         AppRunInterface._on_start_clicked(self)
 
     def _on_extra_task_changed(self, idx: int, value: str) -> None:
-        self.ctx.hollow_zero_config.extra_task = value
+        self.config.extra_task = value
 
     def _on_extra_exit_changed(self, idx: int, value: str) -> None:
-        self.ctx.hollow_zero_config.extra_exit = value
+        self.config.extra_exit = value
 
     def _on_context_state_changed(self) -> None:
         """

@@ -6,6 +6,7 @@ from one_dragon.base.operation.application.application_config import Application
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
+from zzz_od.application.trigrams_collection import trigrams_collection_const
 from zzz_od.application.trigrams_collection.trigrams_collection_app import (
     TrigramsCollectionApp,
 )
@@ -22,8 +23,8 @@ class TrigramsCollectionFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(
             self,
-            app_id="trigrams_collection",
-            app_name="卦象集录",
+            app_id=trigrams_collection_const.APP_ID,
+            app_name=trigrams_collection_const.APP_NAME,
         )
         self.ctx: ZContext = ctx
 

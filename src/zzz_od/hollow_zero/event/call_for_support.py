@@ -113,7 +113,7 @@ class CallForSupport(ZOperation):
         """
         是否应该呼叫增援
         """
-        targets = self.ctx.hollow_zero_challenge_config.target_agents
+        targets = self.ctx.hollow.challenge_config.target_agents
         start_idx = 0
         for i in range(len(targets)):
             ta = targets[i]
