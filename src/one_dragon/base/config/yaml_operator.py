@@ -151,9 +151,7 @@ class YamlOperator:
     def save(self):
         if self.file_path is None:
             return
-
-        with open(self.file_path, 'w', encoding='utf-8') as file:
-            yaml.dump(self.data, file, allow_unicode=True, sort_keys=False)
+        write_file_and_flush_cache(self.file_path, self.data)
 
     def save_diy(self, text: str):
         """
