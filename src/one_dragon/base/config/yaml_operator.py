@@ -1,5 +1,4 @@
 import atexit
-from genericpath import getmtime
 import os
 import sys
 from typing import Optional
@@ -11,6 +10,8 @@ from one_dragon.utils.log_utils import log
 
 import concurrent.futures
 import threading
+
+mutex = threading.Lock()
 
 # 自定义守护线程池
 class DaemonThreadPoolExecutor(concurrent.futures.ThreadPoolExecutor):
@@ -114,10 +115,11 @@ def read_cache_or_load(file_path: str, getmtime = False):
 def write_file_and_flush_cache(file_path: str, data: dict, sync: bool = False):
     cached_yaml_data[file_path] = (0.0, data)
     def write_to_file_and_load_modify_time():
-        with open(file_path, 'w', encoding='utf-8') as file:
-            yaml.dump(data, file, allow_unicode=True, sort_keys=False)
-        last_modify = os.path.getmtime(file_path)
-        cached_yaml_data[file_path] = (last_modify, data)
+        with mutex:
+            with open(file_path, 'w', encoding='utf-8') as file:
+                yaml.dump(data, file, allow_unicode=True, sort_keys=False)
+            last_modify = os.path.getmtime(file_path)
+            cached_yaml_data[file_path] = (last_modify, data)
     if sync:
         write_to_file_and_load_modify_time()
     else:
