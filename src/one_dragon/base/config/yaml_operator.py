@@ -52,6 +52,7 @@ def walk_and_clear_cache():
         try:
             if not os.path.getmtime(str) == last_modify:
                 del cached_yaml_data[str]
+                read_cache_or_load(str);
         except FileNotFoundError:
             del cached_yaml_data[str]
 
