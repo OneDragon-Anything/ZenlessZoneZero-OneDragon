@@ -158,22 +158,6 @@ jobs:
         # 压缩生成的 wheels 目录
         Compress-Archive -Path deploy/dist/wheels/* -DestinationPath deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
 
-    - name: Make Zip for SignPath
-      if: ${{ env.IS_RELEASE }}
-      shell: pwsh
-      run: |
-        $distDir = "deploy/dist"
-        # 创建临时目录用于打包
-        $unsignedDir = Join-Path $distDir "unsigned"
-        New-Item -ItemType Directory -Path $unsignedDir -Force
-    
-        # 复制文件到临时目录
-        Copy-Item "$distDir/OneDragon-Launcher.exe" -Destination "$unsignedDir/OneDragon-Launcher.exe" -Force
-        Copy-Item "$distDir/OneDragon-Launcher.exe" -Destination "$unsignedDir/OneDragon-Installer.exe" -Force
-    
-        # 创建 ZIP 文件
-        Compress-Archive -Path "$unsignedDir/*" -DestinationPath "$unsignedDir/sign.zip" -Force
-
     - name: Upload Unsigned Artifact
       if: ${{ env.IS_RELEASE }}
       id: upload-unsigned-artifact
@@ -183,8 +167,8 @@ jobs:
         name: unsigned
         if-no-files-found: error
         path: |
-          .\deploy\dist\unsigned\OneDragon-Launcher.exe
-          .\deploy\dist\unsigned\OneDragon-Installer.exe
+          .\deploy\dist\OneDragon-Launcher.exe
+          .\deploy\dist\OneDragon-Installer.exe
 
     - name: Sign Artifact
       env:
@@ -202,16 +186,8 @@ jobs:
         signing-policy-slug: '${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}'
         github-artifact-id: "${{steps.upload-unsigned-artifact.outputs.artifact-id}}"
         wait-for-completion: true
-        # 签名后会自动下载到这个目录并解压
+        # 签名后会自动下载到这个目录并解压 文件名和原来的一样
         output-artifact-directory: 'deploy/dist/signed'
-
-    - name: Upload Signed Artifact
-      if: ${{ env.IS_RELEASE }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: signed
-        path: .\deploy\dist\signed
-        if-no-files-found: error
 
     - name: Overwrite With Signed Exe
       if: ${{ env.IS_RELEASE }}
