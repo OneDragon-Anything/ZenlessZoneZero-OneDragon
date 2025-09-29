@@ -188,7 +188,7 @@ jobs:
 
     - name: Sign Artifact
       env:
-        # select release-signing policy for main and release branches
+        # 后续修改这里 可以区分 release/beta 使用的签名
         SIGNPATH_SIGNING_POLICY_SLUG: | 
           ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) 
             && 'release-signing' 
@@ -202,9 +202,11 @@ jobs:
         signing-policy-slug: '${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}'
         github-artifact-id: "${{steps.upload-unsigned-artifact.outputs.artifact-id}}"
         wait-for-completion: true
+        # 签名后会自动下载到这个目录并解压
         output-artifact-directory: 'deploy/dist/signed'
 
     - name: Upload Signed Artifact
+      if: ${{ env.IS_RELEASE }}
       uses: actions/upload-artifact@v4
       with:
         name: signed
@@ -217,10 +219,6 @@ jobs:
       run: |
         $distDir = "deploy/dist"
         $signedDir = Join-Path $distDir "signed"
-        $signedZipPath = Join-Path $signedDir "unsigned.zip"
-  
-        # 将签名的 zip 文件解压到其所在的 signed 目录
-        Expand-Archive -Path $signedZipPath -DestinationPath $signedDir -Force
   
         # 从 signed 目录复制并覆盖原始的 exe 文件
         Copy-Item -Path (Join-Path $signedDir "OneDragon-Launcher.exe") -Destination (Join-Path $distDir "OneDragon-Launcher.exe") -Force
