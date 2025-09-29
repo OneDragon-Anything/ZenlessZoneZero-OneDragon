@@ -2,7 +2,7 @@
 name = "ZenlessZoneZero-OneDragon"
 version = "2.0.0"
 description = "绝区零 一条龙 | 全自动 | 自动闪避 | 自动每日 | 自动空洞 | 支持手柄"
-requires-python = ">=3.11.9,<=3.11.12"
+requires-python = ">=3.11.9,<3.12"
 dependencies = [
     "pyside6==6.8.0.2",
     "pyside6-fluent-widgets==1.7.0",
@@ -33,6 +33,7 @@ dev = [
 [tool.uv]
 package = false
 cache-dir = "./.install/uv_cache"
+environments = ["sys_platform == 'win32'"]
 default-groups = []
 
 # Ruff configuration

@@ -30,56 +30,34 @@ jobs:
           $version = $env:GITHUB_REF.Substring(10)
           $tag = $version
         } else {
-          # 手动 workflow_dispatch 触发：按语义版本排序选出最新 tag，生成 / 递增 beta 版本
-          # 使用远程 tags 列表
-          $remoteTags = git ls-remote --tags origin
-          $allTags = @()
-          foreach ($line in $remoteTags) {
-            # 每行格式为: <hash>\trefs/tags/<tagname> 或 带注释的 refs/tags/<tagname>^{}
-            if ($line -match 'refs/tags/(.+?)(\^\{\})?$') {
-              $allTags += $matches[1]
-            }
-          }
-          # 去重（某些 tag 会有带 ^{} 的 peeled 行，导致同名出现两次）
-          $allTags = $allTags | Sort-Object -Unique
-          $parsed = @()
-          foreach ($t in $allTags) {
-            if ($t -match '^v(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?$') {
-              $parsed += [pscustomobject]@{
-                Tag    = $t
-                Major  = [int]$matches[1]
-                Minor  = [int]$matches[2]
-                Patch  = [int]$matches[3]
-                IsBeta = [bool]$matches[4]
-                Beta   = if ($matches[4]) { [int]$matches[4] } else { 0 }
-              }
-            }
-          }
+          # 手动 workflow_dispatch 触发：使用 git 的语义化版本排序，选出最新 tag，然后生成 / 递增 beta 版本
+          # --refs 可避免出现带 ^{} 的 peeled 行，--sort=-version:refname 以版本名倒序排序，'v*' 仅匹配语义化版本前缀
+          $latestRef = git ls-remote --refs --tags --sort=-version:refname origin 'v*' |
+            Where-Object { $_ -match 'refs/tags/(v\d+\.\d+\.\d+(?:-beta\.\d+)?)$' } |
+            Select-Object -First 1
 
-          if ($parsed.Count -eq 0) {
-            # 仓库还没有任何符合语义版本的 tag，初始化为 v0.0.0-beta.1
-            $baseVersion = 'v0.0.0'
+          if (-not $latestRef) {
+            # 仓库还没有任何符合语义版本的 tag，初始化为 v0.1.0-beta.1
+            $baseVersion = 'v0.1.0'
             $betaNumber = 1
             $tag = "$baseVersion-beta.$betaNumber"
           } else {
-            # 按语义版本排序：Major DESC, Minor DESC, Patch DESC, Stable(=IsBeta:$false) < Beta, Beta number DESC
-            $latest = $parsed | Sort-Object -Property @(
-              @{Expression='Major';Descending=$true}
-              @{Expression='Minor';Descending=$true}
-              @{Expression='Patch';Descending=$true}
-              @{Expression='IsBeta';Descending=$true}
-              @{Expression='Beta';Descending=$true}
-            ) | Select-Object -First 1
+            # 行格式: <hash>\trefs/tags/<tagname>
+            if ($latestRef -match 'refs/tags/(.+)$') {
+              $latestTag = $matches[1]
+            } else {
+              throw "无法从 ls-remote 输出中解析最新 tag：$latestRef"
+            }
 
-            $latestTag = $latest.Tag
             if ($latestTag -match '^(v\d+\.\d+\.\d+)-beta\.(\d+)$') {
-              # 已经是 beta，递增 beta 号
+              # 最新即为 beta，直接在 beta 编号上 +1
               $baseVersion = $matches[1]
               $betaNumber = [int]$matches[2] + 1
               $tag = "$baseVersion-beta.$betaNumber"
             } else {
-              # 稳定版本，开始新的 beta 序列
-              $baseVersion = $latestTag
+              # 最新为稳定版本，从该稳定版本开始新的 beta 序列
+              $latestTag -match '^(v\d+\.\d+\.)(\d+)$'
+              $baseVersion = $matches[1] + ([int]$matches[2] + 1)
               $betaNumber = 1
               $tag = "$baseVersion-beta.$betaNumber"
             }
@@ -191,15 +169,7 @@ jobs:
         # 准备离线运行所需的 .install 资源
         Invoke-WebRequest -Uri "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ZenlessZoneZero-OneDragon/uv-x86_64-pc-windows-msvc.zip" -OutFile "$envDir/uv-x86_64-pc-windows-msvc.zip"
         Invoke-WebRequest -Uri "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ZenlessZoneZero-OneDragon/MinGit.zip" -OutFile "$envDir/MinGit.zip"
-
-        # 下载并提取 Python 到 .install/python
-        $pythonDir = "$envDir/python"
-        $pythonTargetDir = "$pythonDir/cpython-3.11.12-windows-x86_64-none"
-        New-Item -ItemType Directory -Path $pythonTargetDir -Force | Out-Null
-        $pythonTarGz = "$envDir/python.tar.gz"
-        Invoke-WebRequest -Uri "https://github.com/astral-sh/python-build-standalone/releases/download/20250517/cpython-3.11.12+20250517-x86_64-pc-windows-msvc-install_only_stripped.tar.gz" -OutFile $pythonTarGz
-        tar -xzf $pythonTarGz -C $pythonTargetDir --strip-components=1
-        Remove-Item -Path $pythonTarGz -Force
+        Invoke-WebRequest -Uri "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ZenlessZoneZero-OneDragon/cpython-3.11.zip" -OutFile "$envDir/cpython-3.11.zip"
 
         # 将安装器复制到仓库根目录
         Copy-Item "$distDir/OneDragon-Installer.exe" -Destination "OneDragon-Installer.exe" -Force

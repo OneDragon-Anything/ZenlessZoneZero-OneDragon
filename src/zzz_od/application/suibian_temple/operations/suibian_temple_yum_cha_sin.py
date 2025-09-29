@@ -257,6 +257,7 @@ class SuibianTempleYumChaSin(ZOperation):
     def do_craft(self) -> OperationRoundResult:
         target_cn_list: list[str] = [
             '所需材料不足',
+            '邦布电量不足',
             '开始制造',
         ]
         result = self.round_by_ocr_and_click_by_priority(target_cn_list)
