@@ -14,7 +14,6 @@ class ProjectConfig(YamlConfig):
         self.gitee_https_repository = self.get('gitee_https_repository')
         self.gitee_ssh_repository = self.get('gitee_ssh_repository')
         self.project_git_branch = self.get('project_git_branch')
-        self.requirements = self.get('requirements')
 
         self.screen_standard_width = int(self.get('screen_standard_width'))
         self.screen_standard_height = int(self.get('screen_standard_height'))
