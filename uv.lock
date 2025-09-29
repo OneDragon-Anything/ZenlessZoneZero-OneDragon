@@ -915,6 +915,12 @@ wheels = [
 ]
 
 [[package]]
+name = "vgamepad"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/8a/54/0eaddc33f84247963af078f364b37153d09fcd6cdc398f243ec3e8842c56/vgamepad-0.1.0.tar.gz", hash = "sha256:57f6bd01aec0c172947517fb782d150ef9b285f7f4d524c317374fa5c24a89de", size = 1174896, upload-time = "2023-10-14T20:29:06.154Z" }
+
+[[package]]
 name = "wrapt"
 version = "1.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -955,6 +961,9 @@ dev = [
     { name = "pytest-asyncio", marker = "sys_platform == 'win32'" },
     { name = "ruff", marker = "sys_platform == 'win32'" },
 ]
+gamepad = [
+    { name = "vgamepad", marker = "sys_platform == 'win32'" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -983,3 +992,4 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.1.0" },
     { name = "ruff", specifier = "==0.12.10" },
 ]
+gamepad = [{ name = "vgamepad", specifier = "==0.1.0" }]

@@ -95,7 +95,7 @@ jobs:
       shell: pwsh
       run: |
         .\.venv\Scripts\Activate.ps1
-        uv sync --all-groups
+        uv sync --group dev
 
     - name: Download and extract UPX into venv Scripts
       shell: pwsh

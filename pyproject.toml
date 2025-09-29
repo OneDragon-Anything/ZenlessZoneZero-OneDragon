@@ -30,6 +30,10 @@ dev = [
     "ruff==0.12.10",
 ]
 
+gamepad = [
+    "vgamepad==0.1.0",
+]
+
 [tool.uv]
 package = false
 cache-dir = "./.install/uv_cache"
