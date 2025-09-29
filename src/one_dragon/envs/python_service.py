@@ -1,9 +1,9 @@
-import os.path
+import os
 import re
 import shutil
 import time
 import urllib.parse
-from typing import Optional, Callable, Tuple
+from typing import Optional, Callable, Tuple, List
 
 from one_dragon.envs.download_service import DownloadService
 from one_dragon.envs.env_config import EnvConfig, PipSourceEnum, CpythonSourceEnum, DEFAULT_ENV_PATH, \
@@ -90,7 +90,11 @@ class PythonService:
 
         return success
 
-    def uv_sync(self, progress_callback: Optional[Callable[[float, str], None]] = None) -> Tuple[bool, str]:
+    def uv_sync(
+        self,
+        progress_callback: Optional[Callable[[float, str], None]] = None,
+        groups: List[str] | None = None
+    ) -> Tuple[bool, str]:
         """
         使用uv安装环境和依赖
         :return:
@@ -110,12 +114,12 @@ class PythonService:
                 msg = gt('解压环境包成功，正在安装运行依赖...')
                 log.info(msg)
 
-        if not os.path.exists(DEFAULT_WHEELS_DIR_PATH):
-            # 创建一个空文件夹 防止 uv sync --find-links 报错
-            os.mkdir(DEFAULT_WHEELS_DIR_PATH)
+        os.makedirs(DEFAULT_WHEELS_DIR_PATH, exist_ok=True)
 
         os.environ["UV_PYTHON_INSTALL_DIR"] = DEFAULT_PYTHON_DIR_PATH
-        result = cmd_utils.run_command([
+        os.environ["VIRTUAL_ENV"] = DEFAULT_VENV_DIR_PATH
+
+        command = [
             self.env_config.uv_path,
             'sync',
             '--frozen',
@@ -123,7 +127,13 @@ class PythonService:
             DEFAULT_WHEELS_DIR_PATH,
             '--default-index',
             self.env_config.pip_source
-        ])
+        ]
+
+        if groups is not None:
+            for group in groups:
+                command.extend(['--group', group])
+
+        result = cmd_utils.run_command(command)
         success = result is not None
         msg = gt('运行依赖安装成功') if success else gt('运行依赖安装失败')
         log.info(msg)
@@ -131,7 +141,11 @@ class PythonService:
             progress_callback(1, msg)
         return success, msg
 
-    def uv_check_sync_status(self, progress_callback: Optional[Callable[[float, str], None]] = None) -> bool:
+    def uv_check_sync_status(
+        self,
+        progress_callback: Optional[Callable[[float, str], None]] = None,
+        groups: List[str] | None = None
+    ) -> bool:
         """
         检查环境是否与项目同步
         :param progress_callback: 进度回调
@@ -143,7 +157,15 @@ class PythonService:
         log.info(msg)
 
         os.environ["UV_PYTHON_INSTALL_DIR"] = DEFAULT_PYTHON_DIR_PATH
-        result = cmd_utils.run_command([self.env_config.uv_path, 'sync', '--check'])
+        os.environ["VIRTUAL_ENV"] = DEFAULT_VENV_DIR_PATH
+
+        command = [self.env_config.uv_path, 'sync', '--check']
+
+        if groups is not None:
+            for group in groups:
+                command.extend(['--group', group])
+
+        result = cmd_utils.run_command(command)
 
         is_synced = result is not None
         return is_synced
