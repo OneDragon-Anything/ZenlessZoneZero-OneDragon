@@ -180,16 +180,17 @@ jobs:
       if: ${{ env.IS_RELEASE }}
       shell: pwsh
       run: |
+        $distDir = "deploy/dist"
         # 创建临时目录用于打包
-        $signPathDir = "signpath"
-        New-Item -ItemType Directory -Path $signPathDir -Force
+        $unsignedDir = Join-Path $distDir "unsigned"
+        New-Item -ItemType Directory -Path $unsignedDir -Force
     
         # 复制文件到临时目录
-        Copy-Item "OneDragon-Launcher.exe" -Destination "$signPathDir/OneDragon-Launcher.exe" -Force
-        Copy-Item "OneDragon-Installer.exe" -Destination "$signPathDir/OneDragon-Installer.exe" -Force
+        Copy-Item "$distDir/OneDragon-Launcher.exe" -Destination "$unsignedDir/OneDragon-Launcher.exe" -Force
+        Copy-Item "$distDir/OneDragon-Launcher.exe" -Destination "$unsignedDir/OneDragon-Installer.exe" -Force
     
         # 创建 ZIP 文件
-        Compress-Archive -Path "$signPathDir/*" -DestinationPath "unsigned.zip" -Force
+        Compress-Archive -Path "$unsignedDir/*" -DestinationPath "$unsignedDir/sign.zip" -Force
 
     - name: Upload Unsigned Artifact
       if: ${{ env.IS_RELEASE }}
@@ -199,19 +200,49 @@ jobs:
         name: UnsignedZip
         if-no-files-found: error
         path: |
-          unsigned.zip
+          .\deploy\dist\unsigned\sign.zip
 
     - name: Sign Artifact
+      env:
+        # select release-signing policy for main and release branches
+        SIGNPATH_SIGNING_POLICY_SLUG: | 
+          ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) 
+            && 'release-signing' 
+            || 'test-signing' }}
       if: ${{ env.IS_RELEASE }}
       uses: signpath/github-action-submit-signing-request@v1.1
       with:
         api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
         organization-id: '${{ vars.SIGNPATH_ORGANIZATION_ID }}'
         project-slug: 'ZenlessZoneZero-OneDragon'
-        signing-policy-slug:  'ZenlessZoneZero-OneDragon-Release'
-        github-artifact-id:  "${{steps.upload-unsigned-artifact.outputs.artifact-id}}"
+        signing-policy-slug: '${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}'
+        github-artifact-id: "${{steps.upload-unsigned-artifact.outputs.artifact-id}}"
         wait-for-completion: true
-        output-artifact-directory: 'signed-dir'
+        output-artifact-directory: 'deploy/dist/signed'
+
+    - name: Upload Signed Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SignedZip
+        path: .\deploy\dist\signed\sign.zip
+        if-no-files-found: error
+
+    - name: Overwrite With Signed Exe
+      if: ${{ env.IS_RELEASE }}
+      shell: pwsh
+      run: |
+        $distDir = "deploy/dist"
+        $signedDir = Join-Path $distDir "signed"
+        $signedZipPath = Join-Path $signedDir "sign.zip"
+  
+        # 将签名的 zip 文件解压到其所在的 signed 目录
+        Expand-Archive -Path $signedZipPath -DestinationPath $signedDir -Force
+  
+        # 从 signed 目录复制并覆盖原始的 exe 文件
+        Copy-Item -Path (Join-Path $signedDir "OneDragon-Launcher.exe") -Destination (Join-Path $distDir "OneDragon-Launcher.exe") -Force
+        Copy-Item -Path (Join-Path $signedDir "OneDragon-Installer.exe") -Destination (Join-Path $distDir "OneDragon-Installer.exe") -Force
+ 
+        Write-Host "Successfully overwrote executables with signed versions."
 
     - name: Prepare release directory and models
       if: ${{ env.IS_RELEASE }}
