@@ -1,5 +1,0 @@
-# extra requirements that development or deployment needs
-polib==1.2.0  # i18 compile .mo file into .po file
-pyinstaller==6.7.0  # package into exe
-pip-tools==7.4.1  # use pip-compile
-colorama==0.4.6
