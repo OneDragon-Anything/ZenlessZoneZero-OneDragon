@@ -158,24 +158,6 @@ jobs:
         # 压缩生成的 wheels 目录
         Compress-Archive -Path deploy/dist/wheels/* -DestinationPath deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
 
-    - name: Upload Installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: Installer
-        path: deploy/dist/OneDragon-Installer.exe
-
-    - name: Upload Launcher
-      uses: actions/upload-artifact@v4
-      with:
-        name: Launcher
-        path: deploy/dist/OneDragon-Launcher.exe
-
-    - name: Upload Wheels
-      uses: actions/upload-artifact@v4
-      with:
-        name: Wheels
-        path: deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
-
     - name: Make Zip for SignPath
       if: ${{ env.IS_RELEASE }}
       shell: pwsh
@@ -197,10 +179,12 @@ jobs:
       id: upload-unsigned-artifact
       uses: actions/upload-artifact@v4
       with:
-        name: UnsignedZip
+        # 上传后是 unsigned.zip
+        name: unsigned
         if-no-files-found: error
         path: |
-          .\deploy\dist\unsigned\sign.zip
+          .\deploy\dist\unsigned\OneDragon-Launcher.exe
+          .\deploy\dist\unsigned\OneDragon-Installer.exe
 
     - name: Sign Artifact
       env:
@@ -223,8 +207,8 @@ jobs:
     - name: Upload Signed Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: SignedZip
-        path: .\deploy\dist\signed\sign.zip
+        name: signed
+        path: .\deploy\dist\signed
         if-no-files-found: error
 
     - name: Overwrite With Signed Exe
@@ -233,7 +217,7 @@ jobs:
       run: |
         $distDir = "deploy/dist"
         $signedDir = Join-Path $distDir "signed"
-        $signedZipPath = Join-Path $signedDir "sign.zip"
+        $signedZipPath = Join-Path $signedDir "unsigned.zip"
   
         # 将签名的 zip 文件解压到其所在的 signed 目录
         Expand-Archive -Path $signedZipPath -DestinationPath $signedDir -Force
@@ -243,6 +227,24 @@ jobs:
         Copy-Item -Path (Join-Path $signedDir "OneDragon-Installer.exe") -Destination (Join-Path $distDir "OneDragon-Installer.exe") -Force
  
         Write-Host "Successfully overwrote executables with signed versions."
+
+    - name: Upload Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: Installer
+        path: deploy/dist/OneDragon-Installer.exe
+
+    - name: Upload Launcher
+      uses: actions/upload-artifact@v4
+      with:
+        name: Launcher
+        path: deploy/dist/OneDragon-Launcher.exe
+
+    - name: Upload Wheels
+      uses: actions/upload-artifact@v4
+      with:
+        name: Wheels
+        path: deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
 
     - name: Prepare release directory and models
       if: ${{ env.IS_RELEASE }}
