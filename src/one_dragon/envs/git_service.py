@@ -623,28 +623,6 @@ class GitService:
             log.error(f'is_current_branch_latest error: {exc}', exc_info=True)
             return False, gt('与远程分支不一致')
 
-    def get_requirement_time(self) -> str | None:
-        """
-        获取 requirements.txt 的最后更新时间
-        :return:
-        """
-        log.info(gt('获取依赖文件的最后修改时间'))
-        try:
-            repo = self._open_repo()
-            walker = repo.walk(repo.head.target, pygit2.GIT_SORT_TIME)
-            req_path = self.project_config.requirements
-            for commit in walker:
-                try:
-                    tree = commit.tree
-                    if req_path in tree:
-                        t = time.gmtime(commit.commit_time)
-                        return time.strftime('%Y-%m-%d %H:%M:%S +0000', t)
-                except Exception:
-                    continue
-            return None
-        except Exception:
-            return None
-
     def fetch_total_commit(self) -> int:
         """
         获取commit的总数。获取失败时返回0
