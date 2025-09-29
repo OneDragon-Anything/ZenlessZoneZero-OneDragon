@@ -74,22 +74,6 @@ class EnvConfig(YamlConfig):
         YamlConfig.__init__(self, module_name='env')
 
     @property
-    def git_path(self) -> str:
-        """
-        :return: git的路径
-        """
-        return self.get('git_path', '')
-
-    @git_path.setter
-    def git_path(self, new_value: str) -> None:
-        """
-        更新 git的路径 正常不需要调用
-        :param new_value:
-        :return:
-        """
-        self.update('git_path', new_value)
-
-    @property
     def uv_path(self) -> str:
         """
         uv的路径
