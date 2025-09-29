@@ -1,6 +1,7 @@
 import contextlib
 import os
 import time
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -11,6 +12,7 @@ from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon.utils.semver_utils import sort_tags
 
 DOT_GIT_DIR_PATH = os.path.join(os_utils.get_work_dir(), '.git')
 PROXY_ENV_KEYS: tuple[str, ...] = (
@@ -760,47 +762,39 @@ class GitService:
         """
         获取最新的稳定版与测试版 tag
         """
-        try:
-            repo = self._open_repo()
-        except Exception as exc:
-            log.error(f'打开仓库失败: {exc}', exc_info=True)
-            return None, None
+        with tempfile.TemporaryDirectory() as td:
+            repo = pygit2.init_repository(td, bare=True)
+            url = self.get_git_repository()
+            remote = repo.remotes.create_anonymous(url)
+            callbacks = pygit2.RemoteCallbacks()
+            heads = remote.list_heads(callbacks=callbacks, connect=True)
 
-        remote = self._ensure_remote(repo)
-        if remote is None:
-            return None, None
+            tags = []
+            for h in heads:
+                name = getattr(h, "name", None)
+                if name and name.startswith("refs/tags/"):
+                    tags.append(name[len("refs/tags/"):])
 
-        try:
-            with self._with_proxy(repo):
-                remote_heads = remote.ls('refs/tags')
-        except (pygit2.GitError, ValueError) as exc:
-            log.error(f'获取远程标签失败: {exc}', exc_info=True)
-            return None, None
-
-        tags: list[str] = []
-        for head in remote_heads:
-            name = getattr(head, 'name', '')
-            if name and name.startswith('refs/tags/'):
-                tags.append(name[len('refs/tags/'):])
+            uniq = list(dict.fromkeys(tags))
+            versions = sort_tags(uniq)
 
         latest_stable: str | None = None
         latest_beta: str | None = None
         first_seen_type: str | None = None
 
-        tags_sorted = sorted(tags, reverse=True)
-        for tag_name in tags_sorted:
-            is_beta = '-beta' in tag_name
+        for version in versions:
+            is_beta = '-beta' in version
             if first_seen_type is None:
                 if is_beta:
                     first_seen_type = 'beta'
-                    latest_beta = tag_name
+                    latest_beta = version
                     continue
                 else:
                     first_seen_type = 'stable'
-                    latest_stable = tag_name
+                    latest_stable = version
                     break
             if first_seen_type == 'beta' and not is_beta and latest_stable is None:
-                latest_stable = tag_name
+                latest_stable = version
                 break
 
         return latest_stable, latest_beta
