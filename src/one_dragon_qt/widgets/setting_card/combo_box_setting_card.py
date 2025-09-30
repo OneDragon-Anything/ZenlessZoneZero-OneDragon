@@ -10,11 +10,11 @@ from qfluentwidgets import ToolTip
 from typing import Optional, List, Iterable
 from typing import Union
 
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class ComboBoxSettingCard(SettingCardBase):
@@ -30,7 +30,7 @@ class ComboBoxSettingCard(SettingCardBase):
                  options_enum: Optional[Iterable[Enum]] = None,
                  options_list: Optional[List[ConfigItem]] = None,
                  tooltip: Optional[str] = None,
-                 adapter: Optional[YamlConfigAdapter] = None,
+                 adapter: Optional[ConfigAdapter] = None,
                  parent=None
                  ):
         SettingCardBase.__init__(
@@ -48,7 +48,7 @@ class ComboBoxSettingCard(SettingCardBase):
         self.hBoxLayout.addWidget(self.combo_box, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
 
-        self.adapter: YamlConfigAdapter = adapter
+        self.adapter: ConfigAdapter = adapter
 
         # 处理工具提示
         self.tooltip_text: str = tooltip
@@ -133,7 +133,7 @@ class ComboBoxSettingCard(SettingCardBase):
 
         self.combo_box.blockSignals(False)
 
-    def init_with_adapter(self, adapter: Optional[YamlConfigAdapter]) -> None:
+    def init_with_adapter(self, adapter: Optional[ConfigAdapter]) -> None:
         """初始化配置适配器。"""
         self.adapter = adapter
         self.setValue(None if adapter is None else adapter.get_value(), emit_signal=False)

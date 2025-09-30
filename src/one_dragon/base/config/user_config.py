@@ -81,8 +81,8 @@ class UserConfig:
         :param setter_convert: 设置时的转换器
         :return:
         """
-        from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
-        return YamlConfigAdapter(
+        from one_dragon.base.config.config_adapter import ConfigAdapter
+        return ConfigAdapter(
             config=self,
             field=prop,
             getter_convert=getter_convert,

@@ -3,9 +3,9 @@ from PySide6.QtGui import QIcon
 from qfluentwidgets import FluentIconBase, SpinBox, DoubleSpinBox
 from typing import Union, Optional
 
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class SpinBoxSettingCardBase(SettingCardBase):
@@ -17,7 +17,7 @@ class SpinBoxSettingCardBase(SettingCardBase):
                  icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str] = None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
+                 adapter: Optional[ConfigAdapter] = None,
                  parent=None):
 
         SettingCardBase.__init__(
@@ -35,7 +35,7 @@ class SpinBoxSettingCardBase(SettingCardBase):
         self.hBoxLayout.addWidget(self.spin_box, 0)
         self.hBoxLayout.addSpacing(16)
 
-        self.adapter: YamlConfigAdapter = adapter
+        self.adapter: ConfigAdapter = adapter
 
         # 绑定输入框内容变化信号
         self.spin_box.valueChanged.connect(self._on_value_changed)
@@ -56,7 +56,7 @@ class SpinBoxSettingCardBase(SettingCardBase):
 
         self.value_changed.emit(val)
 
-    def init_with_adapter(self, adapter: Optional[YamlConfigAdapter]) -> None:
+    def init_with_adapter(self, adapter: Optional[ConfigAdapter]) -> None:
         """使用配置适配器初始化值"""
         self.adapter = adapter
 
@@ -93,7 +93,7 @@ class SpinBoxSettingCard(SpinBoxSettingCardBase):
                  max_width: int = 300,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
+                 adapter: Optional[ConfigAdapter] = None,
                  parent=None):
 
         self.step = step
@@ -134,7 +134,7 @@ class DoubleSpinBoxSettingCard(SpinBoxSettingCardBase):
                  max_width: int = 300,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
+                 adapter: Optional[ConfigAdapter] = None,
                  parent=None):
 
         self.step = step

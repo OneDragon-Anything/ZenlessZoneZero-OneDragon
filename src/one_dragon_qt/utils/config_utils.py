@@ -1,7 +1,7 @@
 from typing import Optional
 
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon.base.config.yaml_operator import YamlOperator
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 def get_prop_adapter(
@@ -9,7 +9,7 @@ def get_prop_adapter(
     prop: str,
     getter_convert: Optional[str] = None,
     setter_convert: Optional[str] = None,
-) -> YamlConfigAdapter:
+) -> ConfigAdapter:
     """
     获取一个属性适配器
 
@@ -23,7 +23,7 @@ def get_prop_adapter(
         属性适配器
     """
 
-    return YamlConfigAdapter(
+    return ConfigAdapter(
         config=config,
         field=prop,
         getter_convert=getter_convert,

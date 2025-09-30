@@ -8,11 +8,11 @@ from PySide6.QtCore import QSize
 from qfluentwidgets import PlainTextEdit, FluentIconBase, FluentIcon, ToolButton, MessageBoxBase, SubtitleLabel,\
                            BodyLabel, isDarkTheme, ToolTipFilter, ToolTipPosition, RoundMenu, Action
 
-from one_dragon_qt.utils.layout_utils import Margins, IconSize
-from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.utils.layout_utils import Margins, IconSize
+from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 
 
 class TemplateVariables:
@@ -519,7 +519,7 @@ class CodeEditorSettingCard(SettingCardBase, CodeEditorMixin):
                  icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str] = None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
+                 adapter: Optional[ConfigAdapter] = None,
                  parent: Optional[QWidget] = None):
 
         SettingCardBase.__init__(
@@ -533,7 +533,7 @@ class CodeEditorSettingCard(SettingCardBase, CodeEditorMixin):
         )
 
         self.parent_window = parent
-        self.adapter: YamlConfigAdapter = adapter
+        self.adapter: ConfigAdapter = adapter
 
         # 首先创建编辑器
         self.editor = PlainTextEdit(self)

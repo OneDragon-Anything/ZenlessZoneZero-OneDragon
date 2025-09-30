@@ -7,9 +7,9 @@ from qfluentwidgets import Dialog, FluentIcon, FluentIconBase, IndicatorPosition
 from typing import Union, Optional
 
 from one_dragon.utils.i18_utils import gt
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class PasswordSwitchSettingCard(SettingCardBase):
@@ -23,7 +23,7 @@ class PasswordSwitchSettingCard(SettingCardBase):
                  margins: Margins = Margins(16, 16, 0, 16),
                  on_text_cn: str = "开",
                  off_text_cn: str = "关",
-                 adapter: Optional[YamlConfigAdapter] = None,
+                 adapter: Optional[ConfigAdapter] = None,
                  extra_btn: Optional[QAbstractButton] = None,
                  parent=None,
                  password_hint: str = "请输入密码",
@@ -56,7 +56,7 @@ class PasswordSwitchSettingCard(SettingCardBase):
         self.btn.label.setText(self.btn._offText)
         self.btn.checkedChanged.connect(self._on_value_changed)
 
-        self.adapter: YamlConfigAdapter = adapter
+        self.adapter: ConfigAdapter = adapter
 
         # 添加密码输入框
         self.password = LineEdit()
@@ -122,7 +122,7 @@ class PasswordSwitchSettingCard(SettingCardBase):
             self.adapter.set_value(value)
         self.value_changed.emit(value)
 
-    def init_with_adapter(self, adapter: YamlConfigAdapter) -> None:
+    def init_with_adapter(self, adapter: ConfigAdapter) -> None:
         """使用配置适配器初始化值"""
         self.adapter = adapter
         value = self.adapter.get_value()

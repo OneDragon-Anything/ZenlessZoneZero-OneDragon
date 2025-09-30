@@ -7,9 +7,9 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from qfluentwidgets import FluentIcon, FluentIconBase, LineEdit, PushButton, ToolButton
 
 from one_dragon.utils.i18_utils import gt
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class KeyValueSettingCard(SettingCardBase):
@@ -21,7 +21,7 @@ class KeyValueSettingCard(SettingCardBase):
                  icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str] = None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
+                 adapter: Optional[ConfigAdapter] = None,
                  parent: Optional[QWidget] = None):
 
         SettingCardBase.__init__(
@@ -34,7 +34,7 @@ class KeyValueSettingCard(SettingCardBase):
             parent=parent
         )
 
-        self.adapter: YamlConfigAdapter = adapter
+        self.adapter: ConfigAdapter = adapter
         self.vBoxLayout.setSpacing(8)
 
         # 主布局，包含一个用于显示键值对的垂直布局和一个添加按钮
@@ -189,7 +189,7 @@ class KeyValueSettingCard(SettingCardBase):
             # 重新连接信号
             self._block_signals(False)
 
-    def init_with_adapter(self, adapter: Optional[YamlConfigAdapter]) -> None:
+    def init_with_adapter(self, adapter: Optional[ConfigAdapter]) -> None:
         """使用配置适配器初始化值"""
         self.adapter = adapter
 

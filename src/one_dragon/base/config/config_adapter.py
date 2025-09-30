@@ -3,7 +3,7 @@ from typing import Any, Optional
 from one_dragon.base.config.yaml_operator import YamlOperator
 
 
-class YamlConfigAdapter:
+class ConfigAdapter:
 
     def __init__(self, config: YamlOperator, field: str, default_val: Any = None,
                  getter_convert: Optional[str] = None,

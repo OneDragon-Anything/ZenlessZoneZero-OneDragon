@@ -2,8 +2,8 @@ from typing import Any, List, Optional
 
 from qfluentwidgets import ComboBox as qtComboBox
 
+from one_dragon.base.config.config_adapter import ConfigAdapter
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
 class ComboBox(qtComboBox):
@@ -11,7 +11,7 @@ class ComboBox(qtComboBox):
     def __init__(self, parent=None):
         qtComboBox.__init__(self, parent)
 
-        self.adapter: Optional[YamlConfigAdapter] = None
+        self.adapter: Optional[ConfigAdapter] = None
 
         self.currentIndexChanged.connect(self._on_index_changed)
 
@@ -57,7 +57,7 @@ class ComboBox(qtComboBox):
         self.setCurrentIndex(self.findData(target_value))
         self.blockSignals(False)
 
-    def init_with_adapter(self, adapter: Optional[YamlConfigAdapter]) -> None:
+    def init_with_adapter(self, adapter: Optional[ConfigAdapter]) -> None:
         """初始化配置适配器。"""
         self.adapter = adapter
         self.set_value(None if adapter is None else adapter.get_value(), emit_signal=False)
