@@ -11,7 +11,7 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
@@ -260,7 +260,7 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
-        if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value:
+        if not self.ctx.charge_plan_config.is_restore_charge_enabled:
             return self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
         result = self.round_by_op_result(op.execute())
