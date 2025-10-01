@@ -6,7 +6,7 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.zzz_application import ZApplication
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
@@ -115,7 +115,7 @@ class ChargePlanApp(ZApplication):
             # 检查电量是否足够
             if not self.need_to_check_power_in_mission and self.charge_power < need_charge_power:
                 if (
-                    self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value
+                    not self.ctx.charge_plan_config.is_restore_charge_enabled
                     or (self.node_status.get('恢复电量') and self.node_status.get('恢复电量').is_fail)
                 ):
                     if not self.ctx.charge_plan_config.skip_plan:
