@@ -105,7 +105,7 @@ def ocr(ctx: OneDragonContext, screen: MatLike, screen_name: str, area_name: str
     """
     area: ScreenArea = ctx.screen_loader.get_area(screen_name, area_name)
     if area is None:
-        return None
+        return {}
 
     if area.is_text_area:
         if ctx.env_config.ocr_cache:
@@ -136,7 +136,7 @@ def ocr(ctx: OneDragonContext, screen: MatLike, screen_name: str, area_name: str
         #         break
         return ocr_result_map
 
-    return None
+    return {}
 
 
 def find_and_click_area(ctx: OneDragonContext, screen: MatLike, screen_name: str, area_name: str) -> OcrClickResultEnum:
