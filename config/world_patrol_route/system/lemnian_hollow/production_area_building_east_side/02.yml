@@ -5,12 +5,16 @@ op_list:
   - '1436'
   op_type: move
 - data:
-  - '883'
+  - '867'
   - '1356'
   op_type: move
 - data:
-  - '859'
+  - '867'
   - '1140'
+  op_type: move
+- data:
+  - '836'
+  - '1094'
   op_type: move
 - data:
   - '792'
