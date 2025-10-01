@@ -1,11 +1,9 @@
-from typing import Optional
-
 from one_dragon.base.config.yaml_config import YamlConfig
 
 
 class NotifyConfig(YamlConfig):
 
-    def __init__(self, instance_idx: Optional[int] = None, app_map: dict = {}):
+    def __init__(self, instance_idx: int, app_map: dict):
         YamlConfig.__init__(self, 'notify', instance_idx=instance_idx)
         self.app_map = app_map.copy()
         self._generate_dynamic_properties()
