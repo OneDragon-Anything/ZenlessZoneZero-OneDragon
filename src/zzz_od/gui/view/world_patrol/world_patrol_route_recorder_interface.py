@@ -176,6 +176,7 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         self.debug_start_input = QSpinBox()
         self.debug_start_input.setMinimum(0)
         self.debug_start_input.setValue(0)
+        self.debug_start_input.setMinimumWidth(80)
         self.debug_route_btn = PushButton(text='调试')
         self.debug_route_btn.clicked.connect(self.on_debug_route_btn_clicked)
         self.debug_row = MultiPushSettingCard(
