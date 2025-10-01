@@ -71,7 +71,7 @@
     - category_name: "定期清剿"
       mission_type_list:
         - mission_type_name: "怪兽与怪客"
-          mission_type_name_display: "摇滚爵士 混沌重金属"
+          mission_type_name_display: "摇摆爵士 混沌重金属"
         - mission_type_name: "恶拳与凶枪"
           mission_type_name_display: "激素朋克 獠牙重金属"
         - mission_type_name: "猎人与忠犬"
