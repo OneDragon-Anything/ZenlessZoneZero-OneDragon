@@ -70,21 +70,25 @@ class RepoStateManager:
             return None
 
         try:
-            remote = repo.remotes[remote_name]
-            if remote.url != remote_url:
-                cfg = repo.config
-                cfg[f'remote.{remote_name}.url'] = remote_url
+            if remote_name in repo.remotes:
                 remote = repo.remotes[remote_name]
-            return remote
-        except KeyError:
-            try:
-                repo.remotes.create(remote_name, remote_url)
-                return repo.remotes[remote_name]
-            except (KeyError, AttributeError, pygit2.GitError) as exc:
-                log.error(f'配置远程 {remote_name} 失败: {exc}')
-                return None
+                if remote.url != remote_url:
+                    cfg = repo.config
+                    cfg[f'remote.{remote_name}.url'] = remote_url
+                    remote = repo.remotes[remote_name]
+                return remote
         except (AttributeError, pygit2.GitError) as exc:
             log.error(f'读取远程 {remote_name} 失败: {exc}')
+            return None
+        except Exception as exc:  # pylint: disable=broad-except
+            log.error(f'配置远程 {remote_name} 时出现异常: {exc}')
+            return None
+
+        try:
+            repo.remotes.create(remote_name, remote_url)
+            return repo.remotes[remote_name]
+        except (KeyError, AttributeError, pygit2.GitError) as exc:
+            log.error(f'配置远程 {remote_name} 失败: {exc}')
             return None
         except Exception as exc:  # pylint: disable=broad-except
             log.error(f'配置远程 {remote_name} 时出现异常: {exc}')
@@ -211,6 +215,13 @@ class GitService:
     def _open_repo(self, refresh: bool = False) -> pygit2.Repository:
         """打开当前工作目录的仓库（带缓存，可按需刷新）"""
         return self._repo_manager.open_repo(refresh=refresh)
+
+    def _try_open_repo(self, refresh: bool = False) -> tuple[pygit2.Repository | None, Exception | None]:
+        """尝试打开仓库，避免在调用处出现多层 try/except"""
+        try:
+            return self._repo_manager.open_repo(refresh=refresh), None
+        except Exception as exc:  # pylint: disable=broad-except
+            return None, exc
 
     def _ensure_remote(self, repo: pygit2.Repository, remote_name: str = 'origin',
                        remote_url: str | None = None) -> pygit2.Remote | None:
@@ -444,16 +455,21 @@ class GitService:
         切换到最新的目标分支并更新代码
         """
         log.info(gt('核对当前仓库'))
-        try:
-            repo = self._open_repo()
-        except Exception:
+        repo, first_error = self._try_open_repo()
+        if repo is None:
             log.info(gt('未找到远程仓库'))
             self.update_git_remote()
             log.info(gt('添加远程仓库地址'))
-            try:
-                repo = self._open_repo(refresh=True)
-            except Exception as exc:
-                log.error(f'打开仓库失败: {exc}', exc_info=True)
+            repo, second_error = self._try_open_repo(refresh=True)
+            if repo is None:
+                error_to_report = second_error or first_error
+                if error_to_report is not None:
+                    log.error(
+                        f'打开仓库失败: {error_to_report}',
+                        exc_info=(type(error_to_report), error_to_report, error_to_report.__traceback__),
+                    )
+                else:
+                    log.error('打开仓库失败: 未知错误')
                 return False, gt('打开仓库失败')
 
         desired_repo = self.get_git_repository()
