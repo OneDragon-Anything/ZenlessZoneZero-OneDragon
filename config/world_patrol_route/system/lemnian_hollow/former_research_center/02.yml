@@ -13,8 +13,12 @@ op_list:
   - '342'
   op_type: move
 - data:
-  - '557'
-  - '338'
+  - '589'
+  - '342'
+  op_type: move
+- data:
+  - '568'
+  - '323'
   op_type: move
 - data:
   - '565'

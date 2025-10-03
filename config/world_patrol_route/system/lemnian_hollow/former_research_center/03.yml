@@ -33,12 +33,12 @@ op_list:
   - '661'
   op_type: move
 - data:
-  - '939'
-  - '621'
+  - '936'
+  - '629'
   op_type: move
 - data:
-  - '964'
-  - '563'
+  - '936'
+  - '606'
   op_type: move
 tp_area_id: former_research_center
 tp_name: 二楼平台
