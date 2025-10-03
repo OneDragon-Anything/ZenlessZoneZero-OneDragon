@@ -1,12 +1,12 @@
 idx: 4
 op_list:
 - data:
-  - '406'
-  - '704'
+  - '465'
+  - '751'
   op_type: move
 - data:
   - '474'
-  - '746'
+  - '785'
   op_type: move
 - data:
   - '474'

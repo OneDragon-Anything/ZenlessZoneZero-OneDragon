@@ -9,6 +9,10 @@ op_list:
   - '510'
   op_type: move
 - data:
+  - '455'
+  - '534'
+  op_type: move
+- data:
   - '457'
   - '599'
   op_type: move

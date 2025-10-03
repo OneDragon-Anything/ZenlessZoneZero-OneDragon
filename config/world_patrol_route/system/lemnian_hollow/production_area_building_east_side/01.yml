@@ -40,5 +40,13 @@ op_list:
   - '650'
   - '1737'
   op_type: move
+- data:
+  - '679'
+  - '1768'
+  op_type: move
+- data:
+  - '658'
+  - '1792'
+  op_type: move
 tp_area_id: production_area_building_east_side
 tp_name: 中央制造区入口
