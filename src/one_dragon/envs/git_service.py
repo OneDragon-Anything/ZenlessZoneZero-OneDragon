@@ -15,14 +15,6 @@ from one_dragon.utils.log_utils import log
 from one_dragon.utils.semver_utils import sort_tags
 
 DOT_GIT_DIR_PATH = os.path.join(os_utils.get_work_dir(), '.git')
-PROXY_ENV_KEYS: tuple[str, ...] = (
-    'HTTP_PROXY',
-    'HTTPS_PROXY',
-    'http_proxy',
-    'https_proxy',
-    'NO_PROXY',
-    'no_proxy',
-)
 
 
 class GitLog:
@@ -324,36 +316,15 @@ class GitService:
         try:
             if proxy_address is None:
                 for key in ('http.proxy', 'https.proxy'):
-                    try:
+                    with contextlib.suppress(KeyError, pygit2.GitError):
                         cfg.delete_multivar(key, '.*')
-                    except (KeyError, pygit2.GitError):
-                        try:
-                            del cfg[key]
-                        except KeyError:
-                            pass
+                    with contextlib.suppress(KeyError):
+                        del cfg[key]
             else:
                 cfg['http.proxy'] = proxy_address
                 cfg['https.proxy'] = proxy_address
         except pygit2.GitError as exc:
             log.warning(f'设置仓库级代理失败: {exc}')
-
-    def _set_proxy_env(self, proxy_address: str | None) -> None:
-        if proxy_address:
-            for key in ('HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy'):
-                os.environ[key] = proxy_address
-            for key in ('NO_PROXY', 'no_proxy'):
-                os.environ.pop(key, None)
-        else:
-            for key in PROXY_ENV_KEYS:
-                os.environ.pop(key, None)
-
-    @staticmethod
-    def _restore_proxy_env(snapshot: dict[str, str | None]) -> None:
-        for key, value in snapshot.items():
-            if value is None:
-                os.environ.pop(key, None)
-            else:
-                os.environ[key] = value
 
     @contextlib.contextmanager
     def _with_proxy(self, repo: pygit2.Repository | None = None):
@@ -366,20 +337,7 @@ class GitService:
 
         if repo_to_use is not None:
             self._apply_repo_proxy(repo_to_use)
-
-        env_backup = {key: os.environ.get(key) for key in PROXY_ENV_KEYS}
-        proxy_address = self._resolve_proxy_address()
-
-        try:
-            self._set_proxy_env(proxy_address)
-        except Exception:
-            self._restore_proxy_env(env_backup)
-            raise
-
-        try:
-            yield repo_to_use
-        finally:
-            self._restore_proxy_env(env_backup)
+        yield repo_to_use
 
     def _fetch_remote_code_result(self, repo: pygit2.Repository | None = None) -> GitOperationResult:
         log.info(gt('获取远程代码'))
