@@ -14,7 +14,7 @@ class NotifyConfig(BasicNotifyConfig):
         'coffee': '咖啡店',
         'notorious_hunt': '恶名狩猎',
         'engagement_reward': '活跃度奖励',
-        'hollow_zero': '枯萎之都',
+        'withered_domain': '枯萎之都',
         'lost_void': '迷失之地',
         'shiyu_defense': '式舆防卫战',
         'city_fund': '丽都城募',

@@ -53,7 +53,7 @@ def __debug():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.init_ocr()
-    ctx.start_running()
+    ctx.run_context.start_running()
     op = CompendiumChooseCategory(ctx, '定期清剿')
     op.execute()
 

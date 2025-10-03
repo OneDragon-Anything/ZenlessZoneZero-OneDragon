@@ -1,9 +1,10 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, CaptionLabel, LineEdit
-from typing import List
+from typing import List, Optional
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.base.operation.application import application_const
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
@@ -11,7 +12,9 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiLine
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
-from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntLevelEnum, NotoriousHuntBuffEnum
+from zzz_od.application.notorious_hunt import notorious_hunt_const
+from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntLevelEnum, NotoriousHuntBuffEnum, \
+    NotoriousHuntConfig
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -171,6 +174,8 @@ class NotoriousHuntPlanInterface(VerticalScrollInterface):
             nav_text_cn='恶名狩猎计划'
         )
 
+        self.config: Optional[NotoriousHuntConfig] = None
+
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
 
@@ -180,14 +185,14 @@ class NotoriousHuntPlanInterface(VerticalScrollInterface):
         return self.content_widget
 
     def update_plan_list_display(self):
-        plan_list = self.ctx.notorious_hunt_config.plan_list
+        plan_list = self.config.plan_list
 
         if len(plan_list) > len(self.card_list):
             self.content_widget.remove_widget(self.last_empty_widget)
 
             while len(self.card_list) < len(plan_list):
                 idx = len(self.card_list)
-                card = ChargePlanCard(self.ctx, idx, self.ctx.notorious_hunt_config.plan_list[idx])
+                card = ChargePlanCard(self.ctx, idx, self.config.plan_list[idx])
                 card.changed.connect(self._on_plan_item_changed)
 
                 self.card_list.append(card)
@@ -201,10 +206,17 @@ class NotoriousHuntPlanInterface(VerticalScrollInterface):
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
+
+        self.config = self.ctx.run_context.get_config(
+            app_id=notorious_hunt_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+
         self.update_plan_list_display()
 
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
 
     def _on_plan_item_changed(self, idx: int, plan: ChargePlanItem) -> None:
-        self.ctx.notorious_hunt_config.update_plan(idx, plan)
+        self.config.update_plan(idx, plan)

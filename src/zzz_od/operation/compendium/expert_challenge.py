@@ -1,6 +1,7 @@
 import time
-from typing import Optional, ClassVar
+from typing import ClassVar, Optional
 
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
@@ -9,11 +10,18 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, RestoreChargeEnum
+from zzz_od.application.charge_plan import charge_plan_const
+from zzz_od.application.charge_plan.charge_plan_config import (
+    ChargePlanConfig,
+    ChargePlanItem,
+    RestoreChargeEnum,
+)
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.challenge_mission.check_next_after_battle import ChooseNextOrFinishAfterBattle
+from zzz_od.operation.challenge_mission.check_next_after_battle import (
+    ChooseNextOrFinishAfterBattle,
+)
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.deploy import Deploy
@@ -43,6 +51,11 @@ class ExpertChallenge(ZOperation):
                 gt('专业挑战室', 'game'),
                 gt(plan.mission_type_name, 'game')
             )
+        )
+        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+            app_id=charge_plan_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
         )
 
         self.plan: ChargePlanItem = plan
@@ -113,7 +126,7 @@ class ExpertChallenge(ZOperation):
     @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
-        if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value:
+        if self.config.restore_charge == RestoreChargeEnum.NONE.value.value:
             return self.round_success(ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
         result = self.round_by_op_result(op.execute())
@@ -197,7 +210,7 @@ class ExpertChallenge(ZOperation):
     @operation_node(name='战斗结束')
     def after_battle(self) -> OperationRoundResult:
         self.can_run_times -= 1
-        self.ctx.charge_plan_config.add_plan_run_times(self.plan)
+        self.config.add_plan_run_times(self.plan)
         return self.round_success()
 
     @node_from(from_name='战斗结束')
@@ -271,7 +284,7 @@ def __debug():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.init_ocr()
-    ctx.start_running()
+    ctx.run_context.start_running()
     op = ExpertChallenge(ctx, ChargePlanItem(
         category_name='专业挑战室',
         mission_type_name='恶名·杜拉罕',

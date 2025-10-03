@@ -1,9 +1,11 @@
-from typing import List
+from typing import List, Optional
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
+from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import WitheredDomainRunRecord
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.hollow_zero.event import hollow_event_utils
 from zzz_od.hollow_zero.event.event_ocr_result_handler import EventOcrResultHandler
@@ -22,6 +24,11 @@ class CriticalStage(ZOperation):
         ZOperation.__init__(
             self, ctx,
             op_name=gt('关键进展', 'game')
+        )
+
+        self.run_record: Optional[WitheredDomainRunRecord] = self.ctx.run_context.get_run_record(
+            instance_idx=self.ctx.current_instance_idx,
+            app_id=withered_domain_const.APP_ID,
         )
 
         self._handlers: List[EventOcrResultHandler] = [
@@ -43,5 +50,5 @@ class CriticalStage(ZOperation):
     @node_from(from_name='自动战斗', status='普通战斗-完成')
     @operation_node(name='通关次数')
     def add_times(self) -> OperationRoundResult:
-        self.ctx.hollow_zero_record.add_times()
+        self.run_record.add_times()
         return self.round_success()

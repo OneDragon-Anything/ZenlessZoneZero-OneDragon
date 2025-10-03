@@ -156,11 +156,11 @@ def __debug() -> None:
     ctx = ZContext()
     ctx.init_by_config()
     ctx.init_ocr()
-    ctx.start_running()
+    ctx.run_context.start_running()
 
     op = SuibianTempleAdventureDispatch(ctx, SuibianTempleAdventureDispatchDuration.HOUR_20)
     op.execute()
-    ctx.stop_running()
+    ctx.run_context.stop_running()
     ctx.after_app_shutdown()
 
 

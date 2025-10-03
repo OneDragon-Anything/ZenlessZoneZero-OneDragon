@@ -1,10 +1,15 @@
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.operation.application.application_config import ApplicationConfig
 
 
-class ScreenshotHelperConfig(YamlConfig):
+class ScreenshotHelperConfig(ApplicationConfig):
 
-    def __init__(self, instance_idx: int):
-        YamlConfig.__init__(self, 'screenshot_helper', instance_idx=instance_idx)
+    def __init__(self, instance_idx: int, group_id: str):
+        ApplicationConfig.__init__(
+            self,
+            app_id='screenshot_helper',
+            instance_idx=instance_idx,
+            group_id=group_id,
+        )
 
     @property
     def frequency_second(self) -> float:
@@ -23,7 +28,7 @@ class ScreenshotHelperConfig(YamlConfig):
         self.update('length_second', new_value)
 
     @property
-    def key_save(self) -> int:
+    def key_save(self) -> str:
         return self.get('key_save', '1')
 
     @key_save.setter

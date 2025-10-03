@@ -178,7 +178,7 @@ class TransportBy3dMap(ZOperation):
         last_pos: Point | None = None
         least_confidence: float = 0  # 一些特殊情况 限制最低的置信度
         for mr in all_mrl:
-            if not self.ctx.is_context_running:
+            if not self.ctx.run_context.is_context_running:
                 break
 
             if mr.confidence < least_confidence:
@@ -281,9 +281,9 @@ def __debug():
 
     op = TransportBy3dMap(ctx, area, tp_name)
 
-    ctx.start_running()
+    ctx.run_context.start_running()
     op.execute()
-    ctx.stop_running()
+    ctx.run_context.stop_running()
 
 
 if __name__ == '__main__':

@@ -33,12 +33,9 @@ class Application(Operation):
                  op_callback: Optional[Callable[[OperationResult], None]] = None,
                  need_check_game_win: bool = True,
                  op_to_enter_game: Optional[Operation] = None,
-                 init_context_before_start: bool = True,
-                 stop_context_after_stop: bool = True,
                  run_record: Optional[AppRunRecord] = None,
-                 need_ocr: bool = True,
-                 retry_in_od: bool = False,
-                 need_notify: bool = False
+                 need_ocr: bool = True,  # TODO 后续删掉这个标志 需要统一初始化
+                 need_notify: bool = False,
                  ):
         super().__init__(ctx, node_max_retry_times=node_max_retry_times, op_name=op_name,
                          timeout_seconds=timeout_seconds,
@@ -50,18 +47,15 @@ class Application(Operation):
         """应用唯一标识"""
 
         self.run_record: Optional[AppRunRecord] = run_record
+        if run_record is None:
+            self.run_record = ctx.run_context.get_run_record(
+                app_id=self.app_id,
+                instance_idx=ctx.current_instance_idx,
+            )
         """运行记录"""
-
-        self.init_context_before_start: bool = init_context_before_start
-        """运行前是否初始化上下文 一条龙只有第一个应用需要"""
-
-        self.stop_context_after_stop: bool = stop_context_after_stop
-        """运行后是否停止上下文 一条龙只有最后一个应用需要"""
 
         self.need_ocr: bool = need_ocr
         """需要OCR"""
-
-        self._retry_in_od: bool = retry_in_od  # 在一条龙中进行重试
 
         self.need_notify: bool = need_notify  # 节点运行结束后发送通知
 
@@ -69,21 +63,20 @@ class Application(Operation):
 
     def _init_before_execute(self) -> None:
         Operation._init_before_execute(self)
+
+    def handle_init(self) -> None:
+        """
+        运行前初始化
+        """
+        Operation.handle_init(self)
         if self.run_record is not None:
+            self.run_record.check_and_update_status()  # 先判断是否重置记录
             self.run_record.update_status(AppRunRecord.STATUS_RUNNING)
         if self.need_notify:
             self.notify(None)
 
         self.init_for_application()
-        self.ctx.start_running()  # TODO 后续将这个调用移入 ApplicationRunContext
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
-
-    def handle_resume(self) -> None:
-        """
-        恢复运行后的处理 由子类实现
-        :return:
-        """
-        pass
 
     def after_operation_done(self, result: OperationResult):
         """
@@ -92,8 +85,6 @@ class Application(Operation):
         """
         Operation.after_operation_done(self, result)
         self._update_record_after_stop(result)
-        if self.stop_context_after_stop:
-            self.ctx.stop_running()  # TODO 后续将这个调用移入 ApplicationRunContext
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_STOP.value, self.app_id)
         if self.need_notify:
             self.notify(result.success)
