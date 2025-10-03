@@ -52,6 +52,7 @@ class GroupApplication(Application):
         return self.round_success()
 
     @node_from(from_name='获取应用组配置')
+    @node_from(from_name='执行应用')  # STATUS_ALL_DONE 以外的情况，都需要继续循环
     @operation_node(name='执行应用')
     def run_app(self) -> OperationRoundResult:
         """
@@ -85,7 +86,7 @@ class GroupApplication(Application):
         self.ctx.run_context.current_app_id = old_app_id
 
         if not app_result.success:
-            self._fail_app_idx_list.append(self._current_app_idx)
+            self._fail_app_idx_list.append(self._current_app_idx - 1)
 
         return self.round_success(status=GroupApplication.STATUS_NEXT)
 

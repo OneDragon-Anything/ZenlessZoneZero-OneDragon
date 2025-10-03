@@ -117,7 +117,6 @@ class ApplicationGroupConfig(YamlOperator):
         Args:
             app_id_list: 应用ID列表
         """
-        changed = False
         old_list = self.app_list
         app_map: dict[str, ApplicationGroupConfigItem] = {}
         for item in old_list:
@@ -132,8 +131,8 @@ class ApplicationGroupConfig(YamlOperator):
             if item.app_id not in app_id_list:
                 new_list.append(item)
 
-        if changed:
-            self.save_app_list()
+        self.app_list = new_list
+        self.save_app_list()
 
     def move_up_app(self, app_id: str) -> None:
         """
