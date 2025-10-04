@@ -1,0 +1,5 @@
+list_type: whitelist
+name: 粗加工中心
+route_items:
+- rough_machining_center_1
+- rough_machining_center_2
