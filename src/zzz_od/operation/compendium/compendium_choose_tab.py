@@ -52,7 +52,7 @@ def __debug():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.init_ocr()
-    ctx.start_running()
+    ctx.run_context.start_running()
     op = CompendiumChooseTab(ctx, tab_name='训练')
     op.execute()
 

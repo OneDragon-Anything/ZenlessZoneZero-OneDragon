@@ -1,18 +1,29 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout
-from qfluentwidgets import FluentIcon
 from typing import Optional
 
-from one_dragon.base.operation.application_base import Application
-from one_dragon.utils.i18_utils import gt
+from PySide6.QtWidgets import QVBoxLayout, QWidget
+from qfluentwidgets import FluentIcon
+
+from one_dragon.base.operation.application import application_const
+from one_dragon_qt.utils.config_utils import get_prop_adapter
+from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.row import Row
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
-from one_dragon_qt.widgets.setting_card.spin_box_setting_card import DoubleSpinBoxSettingCard
-from one_dragon_qt.view.app_run_interface import AppRunInterface
-from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
-from zzz_od.application.commission_assistant.commission_assistant_app import CommissionAssistantApp
-from zzz_od.application.commission_assistant.commission_assistant_config import DialogOptionEnum, StoryMode
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
+    DoubleSpinBoxSettingCard,
+)
+from zzz_od.application.battle_assistant.auto_battle_config import (
+    get_auto_battle_op_config_list,
+)
+from zzz_od.application.commission_assistant import commission_assistant_const
+from zzz_od.application.commission_assistant.commission_assistant_config import (
+    CommissionAssistantConfig,
+    DialogOptionEnum,
+    StoryMode,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 
@@ -28,10 +39,12 @@ class CommissionAssistantRunInterface(AppRunInterface):
         AppRunInterface.__init__(
             self,
             ctx=ctx,
+            app_id=commission_assistant_const.APP_ID,
             object_name='commission_assistant_run_interface',
             nav_text_cn='委托助手',
             parent=parent,
         )
+        self.config: Optional[CommissionAssistantConfig] = None
 
     def get_widget_at_top(self) -> QWidget:
         content = Row()
@@ -73,21 +86,23 @@ class CommissionAssistantRunInterface(AppRunInterface):
 
     def on_interface_shown(self) -> None:
         AppRunInterface.on_interface_shown(self)
+        self.config = self.ctx.run_context.get_config(
+            app_id=commission_assistant_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
 
-        self.dialog_click_interval_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('dialog_click_interval'))
-        self.dialog_option_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('dialog_option'))
-        self.story_mode_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('story_mode'))
+        self.dialog_click_interval_opt.init_with_adapter(get_prop_adapter(self.config, 'dialog_click_interval'))
+        self.dialog_option_opt.init_with_adapter(get_prop_adapter(self.config, 'dialog_option'))
+        self.story_mode_opt.init_with_adapter(get_prop_adapter(self.config, 'story_mode'))
 
         self.dodge_config_opt.set_options_by_list(get_auto_battle_op_config_list('dodge'))
-        self.dodge_config_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('dodge_config'))
-        self.dodge_switch_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('dodge_switch'))
+        self.dodge_config_opt.init_with_adapter(get_prop_adapter(self.config, 'dodge_config'))
+        self.dodge_switch_opt.init_with_adapter(get_prop_adapter(self.config, 'dodge_switch'))
 
         self.auto_battle_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
-        self.auto_battle_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('auto_battle'))
-        self.auto_battle_switch_opt.init_with_adapter(self.ctx.commission_assistant_config.get_prop_adapter('auto_battle_switch'))
+        self.auto_battle_opt.init_with_adapter(get_prop_adapter(self.config, 'auto_battle'))
+        self.auto_battle_switch_opt.init_with_adapter(get_prop_adapter(self.config, 'auto_battle_switch'))
 
     def on_interface_hidden(self) -> None:
         AppRunInterface.on_interface_hidden(self)
-
-    def get_app(self) -> Application:
-        return CommissionAssistantApp(self.ctx)

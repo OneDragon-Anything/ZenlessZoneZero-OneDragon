@@ -4,10 +4,10 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
+from zzz_od.application.ridu_weekly import ridu_weekly_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
-from zzz_od.operation.compendium.compendium_choose_tab import CompendiumChooseTab
 from zzz_od.operation.compendium.open_compendium import OpenCompendium
 
 
@@ -16,10 +16,9 @@ class RiduWeeklyApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='ridu_weekly',
-            op_name=gt('丽都周纪(领奖励)'),
-            run_record=ctx.ridu_weekly_record,
-            retry_in_od=True,  # 传送落地有可能会歪 重试
+            ctx=ctx,
+            app_id=ridu_weekly_const.APP_ID,
+            op_name=gt(ridu_weekly_const.APP_NAME),
             need_notify=True,
         )
 

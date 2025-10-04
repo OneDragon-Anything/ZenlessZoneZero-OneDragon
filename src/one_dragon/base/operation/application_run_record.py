@@ -88,6 +88,13 @@ class AppRunRecord(YamlConfig):
         else:
             return self.run_status
 
+    @property
+    def is_done(self) -> bool:
+        """
+        是否已经完成
+        """
+        return self.run_status == AppRunRecord.STATUS_SUCCESS
+
     def _should_reset_by_dt(self) -> bool:
         """
         根据时间判断是否应该重置状态

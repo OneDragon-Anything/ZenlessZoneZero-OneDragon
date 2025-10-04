@@ -1,16 +1,16 @@
-from typing import Optional
 
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.operation.application.application_config import ApplicationConfig
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
-class LifeOnLineConfig(YamlConfig):
+class LifeOnLineConfig(ApplicationConfig):
 
-    def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+    def __init__(self, instance_idx: int, group_id: str):
+        ApplicationConfig.__init__(
             self,
-            module_name='life_on_line',
+            app_id='life_on_line',
             instance_idx=instance_idx,
+            group_id=group_id,
         )
 
     @property
@@ -33,7 +33,3 @@ class LifeOnLineConfig(YamlConfig):
     @predefined_team_idx.setter
     def predefined_team_idx(self, new_value: int) -> None:
         self.update('predefined_team_idx', new_value)
-
-    @property
-    def predefined_team_idx_adapter(self) -> YamlConfigAdapter:
-        return YamlConfigAdapter(self, 'predefined_team_idx', -1)

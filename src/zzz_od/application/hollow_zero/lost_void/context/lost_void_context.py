@@ -6,18 +6,21 @@ from typing import Optional, List, Tuple
 
 from one_dragon.base.config.yaml_operator import YamlOperator
 from one_dragon.base.matcher.match_result import MatchResult
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_utils import FindAreaResultEnum
 from one_dragon.utils import os_utils, str_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
+from zzz_od.application.hollow_zero.lost_void import lost_void_const
 from zzz_od.application.hollow_zero.lost_void.context.lost_void_artifact import LostVoidArtifact
 from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import LostVoidDetector
 from zzz_od.application.hollow_zero.lost_void.context.lost_void_investigation_strategy import \
     LostVoidInvestigationStrategy
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidRegionType, \
     LostVoidChallengeConfig
+from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig
 from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_artifact_pos import LostVoidArtifactPos
 from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import MoveTargetWrapper
 from zzz_od.auto_battle.auto_battle_dodge_context import YoloStateEventEnum
@@ -136,7 +139,12 @@ class LostVoidContext:
         加载挑战配置
         :return:
         """
-        self.challenge_config = LostVoidChallengeConfig(self.ctx.lost_void_config.challenge_config)
+        config: Optional[LostVoidConfig] = self.ctx.run_context.get_config(
+            app_id=lost_void_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+        self.challenge_config = LostVoidChallengeConfig(config.challenge_config)
 
     def in_normal_world(self, screen: MatLike) -> bool:
         """

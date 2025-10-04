@@ -1,9 +1,8 @@
 from enum import Enum
-from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.yaml_config import YamlConfig
-from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
+from one_dragon.base.operation.application.application_config import ApplicationConfig
+from zzz_od.application.devtools.screenshot_helper import screenshot_helper_const
 
 
 class DialogOptionEnum(Enum):
@@ -19,13 +18,14 @@ class StoryMode(Enum):
     SKIP = ConfigItem('跳过剧情')
 
 
-class CommissionAssistantConfig(YamlConfig):
+class CommissionAssistantConfig(ApplicationConfig):
 
-    def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+    def __init__(self, instance_idx: int, group_id: str):
+        ApplicationConfig.__init__(
             self,
-            module_name='commission_assistant',
+            app_id=screenshot_helper_const.APP_ID,
             instance_idx=instance_idx,
+            group_id=group_id,
         )
 
     @property

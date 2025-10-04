@@ -1,15 +1,15 @@
-from typing import Optional
 
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.operation.application.application_config import ApplicationConfig
 
 
-class WorldPatrolConfig(YamlConfig):
+class WorldPatrolConfig(ApplicationConfig):
 
-    def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+    def __init__(self, instance_idx: int, group_id: str):
+        ApplicationConfig.__init__(
             self,
-            module_name='world_patrol',
+            app_id='world_patrol',
             instance_idx=instance_idx,
+            group_id=group_id,
         )
 
     @property

@@ -1,14 +1,22 @@
-from typing import ClassVar, List
+from typing import ClassVar, List, Optional
 
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.shiyu_defense import shiyu_defense_team_utils
+from zzz_od.application.shiyu_defense import (
+    shiyu_defense_const,
+    shiyu_defense_team_utils,
+)
 from zzz_od.application.shiyu_defense.shiyu_defense_battle import ShiyuDefenseBattle
-from zzz_od.application.shiyu_defense.shiyu_defense_team_utils import DefensePhaseTeamInfo
+from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
+from zzz_od.application.shiyu_defense.shiyu_defense_run_record import ShiyuDefenseRunRecord
+from zzz_od.application.shiyu_defense.shiyu_defense_team_utils import (
+    DefensePhaseTeamInfo,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -25,10 +33,19 @@ class ShiyuDefenseApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='shiyu_defense',
-            op_name=gt('式舆防卫战'),
-            run_record=ctx.shiyu_defense_record,
+            ctx=ctx, app_id=shiyu_defense_const.APP_ID,
+            op_name=gt(shiyu_defense_const.APP_NAME),
             need_notify=True,
+        )
+
+        self.config: Optional[ShiyuDefenseConfig] = self.ctx.run_context.get_config(
+            app_id=shiyu_defense_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+        self.run_record: Optional[ShiyuDefenseRunRecord] = self.ctx.run_context.get_run_record(
+            instance_idx=self.ctx.current_instance_idx,
+            app_id=shiyu_defense_const.APP_ID,
         )
 
         self.current_node_idx: int = 0  # 当前挑战的节点下标 跟着游戏的1开始
@@ -53,7 +70,7 @@ class ShiyuDefenseApp(ZApplication):
     @node_from(from_name='等待画面加载')
     @operation_node(name='选择节点')
     def choose_node_idx(self) -> OperationRoundResult:
-        idx = self.ctx.shiyu_defense_record.next_node_idx()
+        idx = self.run_record.next_node_idx()
 
         if idx is None:
             return self.round_success(ShiyuDefenseApp.STATUS_ALL_FINISHED)
@@ -72,7 +89,7 @@ class ShiyuDefenseApp(ZApplication):
 
         # 可能之前人工挑战了 这里重新判断看哪个节点可以挑战
         idx_to_check = (
-            [i for i in range(idx, self.ctx.shiyu_defense_config.critical_max_node_idx + 1)]  # 优先检测后续的关卡
+            [i for i in range(idx, self.config.critical_max_node_idx + 1)]  # 优先检测后续的关卡
             + [i for i in range(1, idx)]
         )
         for i in idx_to_check:
@@ -82,7 +99,7 @@ class ShiyuDefenseApp(ZApplication):
 
             if i > idx:
                 for j in range(1, i):
-                    self.ctx.shiyu_defense_record.add_node_finished(j)
+                    self.run_record.add_node_finished(j)
                 return self.round_wait(result2.status, wait=1)
             break
 
@@ -136,7 +153,7 @@ class ShiyuDefenseApp(ZApplication):
         if op_result.success:
             self.phase_idx += 1
             if self.phase_idx >= len(self.phase_team_list):
-                self.ctx.shiyu_defense_record.add_node_finished(self.current_node_idx)
+                self.run_record.add_node_finished(self.current_node_idx)
                 return self.round_success(ShiyuDefenseApp.STATUS_NEXT_NODE)
             else:
                 return self.round_wait()
@@ -152,7 +169,7 @@ class ShiyuDefenseApp(ZApplication):
             self.current_node_idx += 1
             return self.round_success(result.status, wait=1)
 
-        if self.current_node_idx == self.ctx.shiyu_defense_config.critical_max_node_idx:
+        if self.current_node_idx == self.config.critical_max_node_idx:
             # 已经是最后一层了
             return self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '战斗结束-退出',
                                                      success_wait=5, retry_wait=1)

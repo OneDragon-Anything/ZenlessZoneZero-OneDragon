@@ -3,6 +3,7 @@ from typing import Optional
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -10,14 +11,22 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cal_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from zzz_od.application.world_patrol import world_patrol_const
 from zzz_od.application.world_patrol.mini_map_wrapper import MiniMapWrapper
-from zzz_od.application.world_patrol.operation.transport_by_3d_map import TransportBy3dMap
+from zzz_od.application.world_patrol.operation.transport_by_3d_map import (
+    TransportBy3dMap,
+)
 from zzz_od.application.world_patrol.world_patrol_area import WorldPatrolLargeMap
-from zzz_od.application.world_patrol.world_patrol_route import WorldPatrolRoute, WorldPatrolOpType, WorldPatrolOperation
+from zzz_od.application.world_patrol.world_patrol_config import WorldPatrolConfig
+from zzz_od.application.world_patrol.world_patrol_route import (
+    WorldPatrolOperation,
+    WorldPatrolOpType,
+    WorldPatrolRoute,
+)
+from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.zzz_operation import ZOperation
-from zzz_od.auto_battle import auto_battle_utils
 
 
 class WorldPatrolRunRoute(ZOperation):
@@ -32,6 +41,12 @@ class WorldPatrolRunRoute(ZOperation):
         运行一条指定的路线
         """
         ZOperation.__init__(self, ctx, op_name=gt('运行路线'))
+        
+        self.config: Optional[WorldPatrolConfig] = self.ctx.run_context.get_config(
+            app_id=world_patrol_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
 
         self.route: WorldPatrolRoute = route
         self.current_large_map: WorldPatrolLargeMap = self.ctx.world_patrol_service.get_route_large_map(route)
@@ -232,7 +247,7 @@ class WorldPatrolRunRoute(ZOperation):
         self.ctx.controller.stop_moving_forward()
         if self.ctx.auto_op is None:
             # 只是个兜底 正常情况下 WorldPatrolApp 会做这个初始化
-            self.ctx.init_auto_op(self.ctx.world_patrol_config.auto_battle)
+            self.ctx.init_auto_op(self.config.auto_battle)
 
         self.in_battle = True
         self.ctx.start_auto_battle()
@@ -301,9 +316,9 @@ def __debug(area_full_id: str, route_idx: int):
         return
 
     op = WorldPatrolRunRoute(ctx, target_route)
-    ctx.start_running()
+    ctx.run_context.start_running()
     op.execute()
-    ctx.stop_running()
+    ctx.run_context.stop_running()
 
 
 if __name__ == '__main__':

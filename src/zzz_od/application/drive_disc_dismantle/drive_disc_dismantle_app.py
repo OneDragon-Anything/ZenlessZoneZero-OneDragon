@@ -1,7 +1,17 @@
+from typing import Optional
+
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
+from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
+from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import (
+    DriveDiscDismantleConfig,
+)
+from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_run_record import (
+    DriveDiscDismantleRunRecord,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -12,10 +22,20 @@ class DriveDiscDismantleApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='drive_disc_dismantle',
-            op_name=gt('驱动盘分解'),
-            run_record=ctx.drive_disc_dismantle_record,
+            ctx=ctx,
+            app_id=drive_disc_dismantle_const.APP_ID,
+            op_name=gt(drive_disc_dismantle_const.APP_NAME),
             need_notify=True,
+        )
+
+        self.config: Optional[DriveDiscDismantleConfig] = self.ctx.run_context.get_config(
+            app_id=drive_disc_dismantle_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+        self.run_record: Optional[DriveDiscDismantleRunRecord] = self.ctx.run_context.get_run_record(
+            instance_idx=self.ctx.current_instance_idx,
+            app_id=drive_disc_dismantle_const.APP_ID,
         )
 
     @operation_node(name='开始前返回', is_start_node=True)
@@ -38,14 +58,14 @@ class DriveDiscDismantleApp(ZApplication):
     @operation_node(name='选择等级')
     def choose_level(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
-            self.last_screenshot, '仓库-驱动仓库-驱动盘拆解', f'按钮-{self.ctx.drive_disc_dismantle_config.dismantle_level}',
+            self.last_screenshot, '仓库-驱动仓库-驱动盘拆解', f'按钮-{self.config.dismantle_level}',
             success_wait=1, retry_wait=1
         )
 
     @node_from(from_name='选择等级')
     @operation_node(name='选择弃置')
     def choose_abandon(self) -> OperationRoundResult:
-        if self.ctx.drive_disc_dismantle_config.dismantle_abandon:
+        if self.config.dismantle_abandon:
             return self.round_by_find_and_click_area(self.last_screenshot, '仓库-驱动仓库-驱动盘拆解', '按钮-全选已弃置',
                                                      success_wait=1, retry_wait=1)
         else:

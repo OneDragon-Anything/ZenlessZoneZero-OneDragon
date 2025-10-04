@@ -18,7 +18,8 @@ class MouseSensitivityChecker(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='mouse_sensitivity_checker',
+            ctx=ctx,
+            app_id='mouse_sensitivity_checker',
             op_name=gt('鼠标灵敏度检测'),
         )
 

@@ -1,9 +1,15 @@
+from typing import Optional
+
 from PySide6.QtWidgets import QWidget, QTableWidgetItem
 from qfluentwidgets import TableWidget, CheckBox, FluentIcon
 
+from one_dragon.base.operation.application import application_const
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon.utils.i18_utils import gt
+from zzz_od.application.shiyu_defense import shiyu_defense_const
+from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
+from zzz_od.application.shiyu_defense.shiyu_defense_run_record import ShiyuDefenseRunRecord
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import DmgTypeEnum
 
@@ -20,6 +26,9 @@ class ShiyuDefenseInterface(VerticalScrollInterface):
             content_widget=None, parent=parent,
             nav_text_cn='式舆防卫战'
         )
+
+        self.config: Optional[ShiyuDefenseConfig] = None
+        self.run_record: Optional[ShiyuDefenseRunRecord] = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
@@ -50,6 +59,17 @@ class ShiyuDefenseInterface(VerticalScrollInterface):
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
+
+        self.config = self.ctx.run_context.get_config(
+            app_id=shiyu_defense_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+        self.run_record = self.ctx.run_context.get_run_record(
+            instance_idx=self.ctx.current_instance_idx,
+            app_id=shiyu_defense_const.APP_ID,
+        )
+
         team_list = self.ctx.team_config.team_list
         new_len = len(team_list)
 
@@ -71,7 +91,7 @@ class ShiyuDefenseInterface(VerticalScrollInterface):
                     self.team_table.setCellWidget(idx, i + 2, btn)
 
         for row, team in enumerate(team_list):
-            team_config = self.ctx.shiyu_defense_config.get_config_by_team_idx(team.idx)
+            team_config = self.config.get_config_by_team_idx(team.idx)
 
             self.team_table.setItem(row, 0, QTableWidgetItem(team.name))
 
@@ -103,9 +123,9 @@ class ShiyuDefenseInterface(VerticalScrollInterface):
         dmg_type = DmgTypeEnum.from_name(btn.property('type'))
 
         if btn.isChecked():
-            self.ctx.shiyu_defense_config.add_weakness(team_idx, dmg_type)
+            self.config.add_weakness(team_idx, dmg_type)
         else:
-            self.ctx.shiyu_defense_config.remove_weakness(team_idx, dmg_type)
+            self.config.remove_weakness(team_idx, dmg_type)
 
     def on_critical_changed(self) -> None:
         """
@@ -114,7 +134,7 @@ class ShiyuDefenseInterface(VerticalScrollInterface):
         """
         btn: CheckBox = self.sender()
         team_idx = btn.property('team_idx')
-        self.ctx.shiyu_defense_config.change_for_critical(team_idx, btn.isChecked())
+        self.config.change_for_critical(team_idx, btn.isChecked())
 
     def on_critical_reset_clicked(self) -> None:
         self.ctx.shiyu_defense_record.reset_record()

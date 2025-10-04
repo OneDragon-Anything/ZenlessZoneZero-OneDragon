@@ -1,8 +1,8 @@
-import time
-
 import difflib
+import time
+from typing import ClassVar, List, Optional
+
 from cv2.typing import MatLike
-from typing import List, ClassVar, Optional
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
@@ -12,12 +12,15 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from zzz_od.application.random_play.random_play_config import (
+    RANDOM_AGENT_NAME,
+    RandomPlayConfig,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.game_data.agent import AgentEnum, Agent
+from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.transport import Transport
-from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 
 class RandomPlayApp(ZApplication):
@@ -30,10 +33,10 @@ class RandomPlayApp(ZApplication):
             self,
             ctx=ctx, app_id='random_play',
             op_name=gt('录像店营业'),
-            run_record=ctx.random_play_run_record,
-            retry_in_od=True,  # 传送落地有可能会歪 重试
             need_notify=True,
         )
+
+        self.config: Optional[RandomPlayConfig] = self.ctx.run_context.get_config(app_id=self.app_id)
 
     def handle_init(self) -> None:
         """
@@ -114,13 +117,13 @@ class RandomPlayApp(ZApplication):
         if not result.is_success:
             return self.round_retry(status=result.status, wait_round_time=1)
 
-        target_agent_name_1 = self.ctx.random_play_config.agent_name_1
-        target_agent_name_2 = self.ctx.random_play_config.agent_name_2
+        target_agent_name_1 = self.config.agent_name_1
+        target_agent_name_2 = self.config.agent_name_2
         dt = self.run_record.get_current_dt()
         idx = (int(dt[-1]) % 2) + 1
 
-        if (self.ctx.random_play_config.random_agent_name() == target_agent_name_1
-                or self.ctx.random_play_config.random_agent_name() == target_agent_name_2):
+        if (RANDOM_AGENT_NAME == target_agent_name_1
+                or RANDOM_AGENT_NAME == target_agent_name_2):
             # 随机选择
             self.round_by_click_area('影像店营业', '宣传员-%d' % idx)
             time.sleep(0.5)

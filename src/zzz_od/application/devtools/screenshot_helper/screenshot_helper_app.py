@@ -1,7 +1,7 @@
 import time
-
 from typing import Optional
 
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_context import ContextKeyboardEventEnum
 from one_dragon.base.operation.operation_base import OperationResult
@@ -11,6 +11,10 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import debug_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from zzz_od.application.devtools.screenshot_helper import screenshot_helper_const
+from zzz_od.application.devtools.screenshot_helper.screenshot_helper_config import (
+    ScreenshotHelperConfig,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
@@ -25,8 +29,14 @@ class ScreenshotHelperApp(ZApplication):
         """
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='screenshot_helper',
-            op_name=gt('闪避截图')
+            ctx=ctx,
+            app_id=screenshot_helper_const.APP_ID,
+            op_name=gt(screenshot_helper_const.APP_NAME),
+        )
+        self.config: Optional[ScreenshotHelperConfig] = self.ctx.run_context.get_config(
+            app_id=screenshot_helper_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
         )
 
         self.to_save_screenshot: bool = False  # 去保存截图 由按键触发
@@ -43,8 +53,8 @@ class ScreenshotHelperApp(ZApplication):
         注意初始化要全面 方便一个指令重复使用
         """
         ZApplication.handle_init(self)
-        length_second = self.ctx.screenshot_helper_config.length_second
-        freq_second = self.ctx.screenshot_helper_config.frequency_second
+        length_second = self.config.length_second
+        freq_second = self.config.frequency_second
         self.ctx.controller.screenshot_alive_seconds = length_second + 1
         self.ctx.controller.max_screenshot_cnt = length_second // freq_second + 5
         self.cache_max_count = length_second // freq_second + 1
@@ -70,7 +80,7 @@ class ScreenshotHelperApp(ZApplication):
             self.cache_start_time = self.last_screenshot_time
         self.screenshot_cache.append(self.last_screenshot)
 
-        if self.ctx.screenshot_helper_config.mini_map_angle_detect:
+        if self.config.mini_map_angle_detect:
             mm = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
             angle = mm.view_angle
             log.info(f'当前角度 {angle}')
@@ -80,20 +90,20 @@ class ScreenshotHelperApp(ZApplication):
         if len(self.screenshot_cache) > self.cache_max_count:
             self.screenshot_cache.pop(0)
 
-        if self.ctx.screenshot_helper_config.dodge_detect:
+        if self.config.dodge_detect:
             if self.auto_op.auto_battle_context.dodge_context.check_dodge_flash(self.last_screenshot, self.last_screenshot_time):
                 debug_utils.save_debug_image(self.last_screenshot, prefix='dodge')
             elif self.auto_op.auto_battle_context.dodge_context.check_dodge_audio(self.last_screenshot_time):
                 debug_utils.save_debug_image(self.last_screenshot, prefix='dodge')
 
         if self.to_save_screenshot:
-            if not self.ctx.screenshot_helper_config.screenshot_before_key and self.is_saving_after_key:
+            if not self.config.screenshot_before_key and self.is_saving_after_key:
                 # 在按键后截图模式下，保存当前截图
                 debug_utils.save_debug_image(self.last_screenshot, prefix='switch')
             return self.round_success()
         else:
             # 确保每次截图间隔正确
-            next_time = self.ctx.screenshot_helper_config.frequency_second - (time.time() - self.last_screenshot_time)
+            next_time = self.config.frequency_second - (time.time() - self.last_screenshot_time)
             return self.round_wait(wait_round_time=max(0.01, next_time))
 
     def _on_key_press(self, event: ContextEventItem) -> None:
@@ -105,7 +115,7 @@ class ScreenshotHelperApp(ZApplication):
         key: str = event.data
         if time.time() - self.last_save_screenshot_time <= 1:  # 每秒最多保持一次 防止战斗中按得太多
             return
-        if key != self.ctx.screenshot_helper_config.key_save:
+        if key != self.config.key_save:
             return
 
         self.to_save_screenshot = True
@@ -116,7 +126,7 @@ class ScreenshotHelperApp(ZApplication):
         """
         保存截图
         """
-        if self.ctx.screenshot_helper_config.screenshot_before_key:
+        if self.config.screenshot_before_key:
             # 保存缓存中的截图
             for screen in self.screenshot_cache:
                 debug_utils.save_debug_image(screen, prefix='switch')
@@ -130,7 +140,7 @@ class ScreenshotHelperApp(ZApplication):
             self.cache_start_time = time.time()
             self.is_saving_after_key = True
             # 等待一个截图周期后再关闭保存标志，以确保能够捕获按键后的截图
-            next_time = self.ctx.screenshot_helper_config.frequency_second
+            next_time = self.config.frequency_second
             return self.round_wait(wait_round_time=next_time)
         return self.round_success()
 

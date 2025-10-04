@@ -300,8 +300,8 @@ class EventFormatter:
         """根据事件名称分类组件"""
         event_lower = event_name.lower()
 
-        if 'hollow' in event_lower:
-            return 'hollow_zero'
+        if 'withered' in event_lower:
+            return 'withered_domain'
         elif 'void' in event_lower:
             return 'lost_void'
         elif 'patrol' in event_lower:

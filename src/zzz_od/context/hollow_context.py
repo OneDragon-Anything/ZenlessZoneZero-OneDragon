@@ -1,22 +1,37 @@
-from concurrent.futures import ThreadPoolExecutor, Future
+from __future__ import annotations
 
 import random
+from concurrent.futures import Future, ThreadPoolExecutor
+from typing import TYPE_CHECKING, List, Optional
+
 from cv2.typing import MatLike
-from typing import List, Optional
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
+from one_dragon.base.operation.application import application_const
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.log_utils import log
-from zzz_od.context.zzz_context import ZContext
+from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
+from zzz_od.application.hollow_zero.withered_domain.withered_domain_config import (
+    WitheredDomainConfig,
+)
 from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.hollow_zero.game_data.hollow_zero_event import HollowZeroEntry
 from zzz_od.hollow_zero.hollow_level_info import HollowLevelInfo
 from zzz_od.hollow_zero.hollow_map import hollow_map_utils, hollow_pathfinding
-from zzz_od.hollow_zero.hollow_map.hollow_zero_map import HollowZeroMap, HollowZeroMapNode
+from zzz_od.hollow_zero.hollow_map.hollow_zero_map import (
+    HollowZeroMap,
+    HollowZeroMapNode,
+)
 from zzz_od.hollow_zero.hollow_map.hollow_zero_map_service import HollowZeroMapService
-from zzz_od.hollow_zero.hollow_zero_challenge_config import HollowZeroChallengePathFinding
+from zzz_od.hollow_zero.hollow_zero_challenge_config import (
+    HollowZeroChallengeConfig,
+    HollowZeroChallengePathFinding,
+)
 from zzz_od.hollow_zero.hollow_zero_data_service import HallowZeroDataService
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
 _hollow_context_executor = ThreadPoolExecutor(thread_name_prefix='od_hollow_context', max_workers=16)
 
@@ -25,6 +40,8 @@ class HollowContext:
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
+
+        self.challenge_config: Optional[HollowZeroChallengeConfig] = None
         self.agent_list: Optional[List[Agent]] = None
 
         self.data_service: HallowZeroDataService = HallowZeroDataService()
@@ -38,6 +55,21 @@ class HollowContext:
         self._last_current_node: Optional[HollowZeroMapNode] = None  # 上一次当前所在的点
         self.speed_up_clicked: bool = False  # 是否已经点击加速
         self.invalid_map_times: int = 0  # 识别不到正确地图的次数
+
+    def init_before_run(self) -> None:
+        """
+        应用开始前的初始化
+        """
+        config: Optional[WitheredDomainConfig] = self.ctx.run_context.get_config(
+            app_id=withered_domain_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+
+        if config is None or config.challenge_config is None:
+            self.challenge_config = HollowZeroChallengeConfig('', is_mock=True)
+        else:
+            self.challenge_config = HollowZeroChallengeConfig(config.challenge_config)
 
     def _match_agent_in(self, img: MatLike, possible_agents: Optional[List[Agent]] = None) -> Optional[Agent]:
         """
@@ -349,12 +381,12 @@ class HollowContext:
         一步可达时前往
         :return:
         """
-        if self.ctx.hollow_zero_challenge_config.path_finding == HollowZeroChallengePathFinding.DEFAULT.value.value:
+        if self.challenge_config.path_finding == HollowZeroChallengePathFinding.DEFAULT.value.value:
             return self.data_service.get_default_go_in_1_step_entry_list()
-        elif self.ctx.hollow_zero_challenge_config.path_finding == HollowZeroChallengePathFinding.ONLY_BOSS.value.value:
+        elif self.challenge_config.path_finding == HollowZeroChallengePathFinding.ONLY_BOSS.value.value:
             return self.data_service.get_only_boss_go_in_1_step_entry_list()
-        elif self.ctx.hollow_zero_challenge_config.path_finding == HollowZeroChallengePathFinding.CUSTOM.value.value:
-            return self.ctx.hollow_zero_challenge_config.go_in_1_step
+        elif self.challenge_config.path_finding == HollowZeroChallengePathFinding.CUSTOM.value.value:
+            return self.challenge_config.go_in_1_step
         else:
             return []
 
@@ -363,12 +395,12 @@ class HollowContext:
         途经点
         :return:
         """
-        if self.ctx.hollow_zero_challenge_config.path_finding == HollowZeroChallengePathFinding.DEFAULT.value.value:
+        if self.challenge_config.path_finding == HollowZeroChallengePathFinding.DEFAULT.value.value:
             return self.data_service.get_default_waypoint_entry_list()
-        elif self.ctx.hollow_zero_challenge_config.path_finding == HollowZeroChallengePathFinding.ONLY_BOSS.value.value:
+        elif self.challenge_config.path_finding == HollowZeroChallengePathFinding.ONLY_BOSS.value.value:
             return self.data_service.get_only_boss_waypoint_entry_list()
-        elif self.ctx.hollow_zero_challenge_config.path_finding == HollowZeroChallengePathFinding.CUSTOM.value.value:
-            return self.ctx.hollow_zero_challenge_config.waypoint
+        elif self.challenge_config.path_finding == HollowZeroChallengePathFinding.CUSTOM.value.value:
+            return self.challenge_config.waypoint
         else:
             return []
 
@@ -377,12 +409,12 @@ class HollowContext:
         避免途经点
         :return:
         """
-        if self.ctx.hollow_zero_challenge_config.path_finding == HollowZeroChallengePathFinding.DEFAULT.value.value:
+        if self.challenge_config.path_finding == HollowZeroChallengePathFinding.DEFAULT.value.value:
             return self.data_service.get_default_avoid_entry_list()
-        elif self.ctx.hollow_zero_challenge_config.path_finding == HollowZeroChallengePathFinding.ONLY_BOSS.value.value:
+        elif self.challenge_config.path_finding == HollowZeroChallengePathFinding.ONLY_BOSS.value.value:
             return self.data_service.get_default_avoid_entry_list()
-        elif self.ctx.hollow_zero_challenge_config.path_finding == HollowZeroChallengePathFinding.CUSTOM.value.value:
-            return self.ctx.hollow_zero_challenge_config.avoid
+        elif self.challenge_config.path_finding == HollowZeroChallengePathFinding.CUSTOM.value.value:
+            return self.challenge_config.avoid
         else:
             return []
 

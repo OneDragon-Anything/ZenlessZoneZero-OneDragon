@@ -219,7 +219,7 @@ def __debug():
     ctx.init_by_config()
     ctx.init_ocr()
     ctx.lost_void.init_before_run()
-    ctx.start_running()
+    ctx.run_context.start_running()
 
     op = LostVoidBangbooStore(ctx)
     op.execute()

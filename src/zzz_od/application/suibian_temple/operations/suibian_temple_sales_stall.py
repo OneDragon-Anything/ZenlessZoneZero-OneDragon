@@ -170,7 +170,7 @@ def __debug():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.init_ocr()
-    ctx.start_running()
+    ctx.run_context.start_running()
     ctx.run_context.current_instance_idx = ctx.current_instance_idx
     ctx.run_context.current_app_id = 'suibian_temple'
     ctx.run_context.current_group_id = 'one_dragon'
