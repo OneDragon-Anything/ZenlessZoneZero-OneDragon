@@ -1,6 +1,8 @@
 import sys
-from typing import List
+from typing import List, Optional
 
+from one_dragon.base.operation.application import application_const
+from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.launcher.launcher_base import LauncherBase
 from one_dragon.utils import cmd_utils
 from one_dragon.utils.log_utils import log
@@ -11,7 +13,7 @@ class ApplicationLauncher(LauncherBase):
 
     def __init__(self):
         LauncherBase.__init__(self, "一条龙 应用启动器")
-        self.ctx = None
+        self.ctx: Optional[OneDragonContext] = None
 
     @staticmethod
     def parse_comma_separated_values(value: str, convert_func=None) -> List:
@@ -29,12 +31,8 @@ class ApplicationLauncher(LauncherBase):
             log.error(f"无效的参数值: {value}")
             return []
 
-    def create_context(self):
+    def create_context(self) -> OneDragonContext:
         """创建上下文，子类实现"""
-        pass
-
-    def get_app_class(self):
-        """获取应用类，子类实现"""
         pass
 
     def set_temp_instance_config(self, instance_indices: List[int]) -> bool:
@@ -76,9 +74,11 @@ class ApplicationLauncher(LauncherBase):
         """运行应用"""
         try:
             # 执行一条龙应用
-            app_class = self.get_app_class()
-            app = app_class(self.ctx)
-            app.execute()
+            self.ctx.run_context.run_application(
+                app_id=application_const.ONE_DRAGON_APP_ID,
+                instance_idx=self.ctx.current_instance_idx,
+                group_id=application_const.DEFAULT_GROUP_ID,
+            )
 
             # 运行后操作
             if args.close_game:

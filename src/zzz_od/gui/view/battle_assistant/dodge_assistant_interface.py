@@ -1,11 +1,9 @@
-import os.path
-from typing import Optional
+import os
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, ToolButton
 
-from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column

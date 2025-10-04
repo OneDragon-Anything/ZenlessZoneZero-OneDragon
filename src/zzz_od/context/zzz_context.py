@@ -202,7 +202,7 @@ class ZContext(OneDragonContext):
         from zzz_od.application.game_config_checker.predefined_team_checker_factory import (
             PredefinedTeamCheckerFactory,
         )
-        from zzz_od.application.one_dragon.zzz_one_dragon_app_factory import (
+        from zzz_od.application.one_dragon_app.zzz_one_dragon_app_factory import (
             ZzzOneDragonAppFactory,
         )
         self.run_context.registry_application(

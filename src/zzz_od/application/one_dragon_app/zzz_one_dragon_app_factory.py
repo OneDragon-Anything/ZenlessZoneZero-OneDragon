@@ -7,7 +7,7 @@ from one_dragon.base.operation.application.application_config import Application
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
-from zzz_od.application.one_dragon.zzz_one_dragon_app import ZOneDragonApp
+from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
