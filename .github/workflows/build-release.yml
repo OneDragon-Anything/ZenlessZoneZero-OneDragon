@@ -15,6 +15,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      IS_RELEASE: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
 
     steps:
     - uses: actions/checkout@v4
@@ -134,6 +136,50 @@ jobs:
         # 压缩生成的 wheels 目录
         Compress-Archive -Path deploy/dist/wheels/* -DestinationPath deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
 
+    - name: Upload Unsigned Artifact
+      if: ${{ env.IS_RELEASE }}
+      id: upload-unsigned-artifact
+      uses: actions/upload-artifact@v4
+      with:
+        # 上传后是 unsigned.zip
+        name: unsigned
+        if-no-files-found: error
+        path: |
+          .\deploy\dist\OneDragon-Launcher.exe
+          .\deploy\dist\OneDragon-Installer.exe
+
+    - name: Sign Artifact
+      env:
+        # 后续修改这里 可以区分 release/beta 使用的签名
+        SIGNPATH_SIGNING_POLICY_SLUG: | 
+          ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) 
+            && 'release-signing' 
+            || 'test-signing' }}
+      if: ${{ env.IS_RELEASE }}
+      uses: signpath/github-action-submit-signing-request@v1.1
+      with:
+        api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+        organization-id: '${{ vars.SIGNPATH_ORGANIZATION_ID }}'
+        project-slug: 'ZenlessZoneZero-OneDragon'
+        signing-policy-slug: '${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}'
+        github-artifact-id: "${{steps.upload-unsigned-artifact.outputs.artifact-id}}"
+        wait-for-completion: true
+        # 签名后会自动下载到这个目录并解压 文件名和原来的一样
+        output-artifact-directory: 'deploy/dist/signed'
+
+    - name: Overwrite With Signed Exe
+      if: ${{ env.IS_RELEASE }}
+      shell: pwsh
+      run: |
+        $distDir = "deploy/dist"
+        $signedDir = Join-Path $distDir "signed"
+  
+        # 从 signed 目录复制并覆盖原始的 exe 文件
+        Copy-Item -Path (Join-Path $signedDir "OneDragon-Launcher.exe") -Destination (Join-Path $distDir "OneDragon-Launcher.exe") -Force
+        Copy-Item -Path (Join-Path $signedDir "OneDragon-Installer.exe") -Destination (Join-Path $distDir "OneDragon-Installer.exe") -Force
+ 
+        Write-Host "Successfully overwrote executables with signed versions."
+
     - name: Upload Installer
       uses: actions/upload-artifact@v4
       with:
@@ -153,7 +199,7 @@ jobs:
         path: deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
 
     - name: Prepare release directory and models
-      if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
+      if: ${{ env.IS_RELEASE }}
       shell: pwsh
       run: |
         # 将 dist 移动到当前目录的父目录下
@@ -346,7 +392,7 @@ jobs:
 
     - name: Generate Changelog
       id: changelog
-      if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
+      if: ${{ env.IS_RELEASE }}
       shell: pwsh
       run: |
         $current_version_tag = "${{ steps.get_version.outputs.tag }}" # 从 get_version 步骤获取的标签
@@ -450,7 +496,7 @@ jobs:
         echo $delimiter | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
     - name: Create Release
-      if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
+      if: ${{ env.IS_RELEASE }}
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ steps.get_version.outputs.tag }}
