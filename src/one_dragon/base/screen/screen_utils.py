@@ -59,26 +59,7 @@ def find_area_in_screen(ctx: OneDragonContext, screen: MatLike, area: ScreenArea
 
     find: bool = False
     if area.is_text_area:
-        if ctx.env_config.ocr_cache:
-            ocr_result_map = ctx.ocr_service.get_ocr_result_map(
-                image=screen,
-                color_range=area.color_range,
-                rect=area.rect
-            )
-        else:
-            rect = area.rect
-            part = cv2_utils.crop_image_only(screen, rect)
-
-            if area.color_range is None:
-                to_ocr = part
-            else:
-                mask = cv2.inRange(part,
-                                   np.array(area.color_range[0], dtype=np.uint8),
-                                   np.array(area.color_range[1], dtype=np.uint8))
-                mask = cv2_utils.dilate(mask, 2)
-                to_ocr = cv2.bitwise_and(part, part, mask=mask)
-
-            ocr_result_map = ctx.ocr.run_ocr(to_ocr)
+        ocr_result_map = ocr_in_screen(ctx, screen, area)
 
         for ocr_result, mrl in ocr_result_map.items():
             if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result, percent=area.lcs_percent):
@@ -100,10 +81,22 @@ def ocr(ctx: OneDragonContext, screen: MatLike, screen_name: str, area_name: str
     游戏截图中 在对应区域中进行OCR以供进一步业务判断
     :param ctx: 上下文
     :param screen: 游戏截图
-    :param area: 区域
+    :param screen_name: 画面名称
+    :param area_name: 区域名称
     :return: 结果
     """
     area: ScreenArea = ctx.screen_loader.get_area(screen_name, area_name)
+    return ocr_in_screen(ctx, screen, area)
+
+
+def ocr_in_screen(ctx: OneDragonContext, screen: MatLike, area: ScreenArea) -> dict[str, MatchResultList]:
+    """
+    游戏截图中 在对应区域中进行OCR以供进一步业务判断
+    :param ctx: 上下文
+    :param screen: 游戏截图
+    :param area: 区域
+    :return: 结果
+    """
     if area is None:
         return {}
 

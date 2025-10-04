@@ -477,6 +477,7 @@ class LostVoidApp(ZApplication):
 
         return self.round_success(LostVoidApp.STATUS_AGAIN)
 
+    @node_from(from_name='前往副本画面', status='已完成周期奖励')
     @node_from(from_name='通关后处理')
     @operation_node(name='打开悬赏委托')
     def open_reward_list(self) -> OperationRoundResult:
@@ -503,7 +504,6 @@ class LostVoidApp(ZApplication):
             return self.round_success("已完成周期奖励")
         return status
 
-    @node_from(from_name='前往副本画面', status='已完成周期奖励')
     @node_from(from_name='全部领取')
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
