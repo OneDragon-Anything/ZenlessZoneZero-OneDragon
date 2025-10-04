@@ -1,28 +1,36 @@
 idx: 5
 op_list:
 - data:
-  - '677'
-  - '873'
+  - '665'
+  - '857'
   op_type: move
 - data:
-  - '694'
-  - '835'
+  - '712'
+  - '863'
   op_type: move
 - data:
-  - '708'
-  - '908'
+  - '768'
+  - '864'
   op_type: move
 - data:
-  - '784'
-  - '918'
+  - '775'
+  - '889'
   op_type: move
 - data:
-  - '810'
+  - '768'
   - '919'
   op_type: move
 - data:
+  - '810'
+  - '917'
+  op_type: move
+- data:
+  - '870'
+  - '940'
+  op_type: move
+- data:
   - '953'
-  - '944'
+  - '940'
   op_type: move
 - data:
   - '959'
