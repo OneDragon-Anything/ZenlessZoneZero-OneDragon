@@ -1,20 +1,52 @@
 idx: 6
 op_list:
 - data:
-  - '409'
-  - '1254'
+  - '600'
+  - '830'
   op_type: move
 - data:
-  - '444'
-  - '1288'
+  - '584'
+  - '776'
   op_type: move
 - data:
-  - '503'
-  - '1299'
+  - '578'
+  - '723'
   op_type: move
 - data:
-  - '423'
-  - '1292'
+  - '568'
+  - '672'
+  op_type: move
+- data:
+  - '523'
+  - '658'
+  op_type: move
+- data:
+  - '474'
+  - '660'
+  op_type: move
+- data:
+  - '422'
+  - '669'
+  op_type: move
+- data:
+  - '408'
+  - '704'
+  op_type: move
+- data:
+  - '390'
+  - '729'
+  op_type: move
+- data:
+  - '342'
+  - '736'
+  op_type: move
+- data:
+  - '300'
+  - '742'
+  op_type: move
+- data:
+  - '263'
+  - '746'
   op_type: move
 tp_area_id: former_employee_community
-tp_name: 职工宿舍西区
+tp_name: 西侧广场

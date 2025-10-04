@@ -1,48 +1,16 @@
 idx: 1
 op_list:
 - data:
-  - '1578'
-  - '898'
+  - '1335'
+  - '304'
   op_type: move
 - data:
-  - '1538'
-  - '899'
+  - '1352'
+  - '353'
   op_type: move
 - data:
-  - '1501'
-  - '899'
-  op_type: move
-- data:
-  - '1451'
-  - '836'
-  op_type: move
-- data:
-  - '1480'
-  - '906'
-  op_type: move
-- data:
-  - '1403'
-  - '833'
-  op_type: move
-- data:
-  - '1404'
-  - '809'
-  op_type: move
-- data:
-  - '1330'
-  - '806'
-  op_type: move
-- data:
-  - '1285'
-  - '770'
-  op_type: move
-- data:
-  - '1233'
-  - '739'
-  op_type: move
-- data:
-  - '1173'
-  - '753'
+  - '1376'
+  - '340'
   op_type: move
 tp_area_id: former_employee_community
-tp_name: 旧商业楼
+tp_name: 职工宿舍北区
