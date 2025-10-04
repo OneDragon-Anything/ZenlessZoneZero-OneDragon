@@ -72,8 +72,6 @@ def reload_cache_from_file():
             log.error('缓存加载失败', exc_info=True)
             os.remove('.cache_store.json')
 
-reload_cache_from_file()
-
 def get_temp_config_path(file_path: str) -> str:
     """
     优先检查PyInstaller运行时的_MEIPASS目录下是否有对应的yml文件
@@ -116,9 +114,10 @@ def write_file_and_flush_cache(file_path: str, data: dict, sync: bool = False):
         _writer_executor.submit(write_to_file_and_load_modify_time)
 
 def cleanup():
-    _writer_executor    .shutdown(wait=True)
+    _writer_executor.shutdown(wait=True)
     flush_cache_to_file()
 
+_writer_executor.submit(reload_cache_from_file)
 atexit.register(cleanup)
 
 class YamlOperator:
