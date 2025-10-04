@@ -1,3 +1,4 @@
+import atexit
 import os
 import sys
 from typing import Optional
@@ -6,8 +7,70 @@ import yaml
 
 from one_dragon.utils.log_utils import log
 
+
+import concurrent.futures
+import threading
+
+mutex = threading.Lock()
+
+# 自定义守护线程池
+_writer_executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=1, thread_name_prefix="yaml-writer"
+)
+
+storeable_cache_config_prefixes = [
+    "assets",
+    "config",
+]
+
+def _is_storeable_path(p: str) -> bool:
+    # 相对化并统一分隔符
+    rel = os.path.relpath(os.path.abspath(p), os.getcwd()).replace("\\", "/")
+    first = rel.split("/", 1)[0]
+    return first in storeable_cache_config_prefixes
+
 cached_yaml_data: dict[str, tuple[float, dict]] = {}
 
+def flush_cache_to_file():
+    """
+    将缓存中符合前缀要求的配置存储到文件中，供下次启动时加载
+    """
+    cache_to_store = {}
+    for key, value in cached_yaml_data.items():
+        if _is_storeable_path(key):
+            cache_to_store[key] = value
+    if cache_to_store:
+        import json
+        with open('.cache_store.json', 'w', encoding='utf-8') as f:
+            json.dump(cache_to_store, f, ensure_ascii=False, indent=4)
+
+def walk_and_clear_cache():
+    """
+    遍历，若文件被修改则清除缓存
+    """
+    for str, (last_modify, _) in list(cached_yaml_data.items()):
+        try:
+            if not os.path.getmtime(str) == last_modify:
+                del cached_yaml_data[str]
+                read_cache_or_load(str);
+        except FileNotFoundError:
+            del cached_yaml_data[str]
+
+def reload_cache_from_file():
+    """
+    从存储的缓存文件中加载缓存
+    """
+    import json
+    if os.path.exists('.cache_store.json'):
+        try:
+            with open('.cache_store.json', 'r', encoding='utf-8') as f:
+                cache_from_file = json.load(f)
+                for key, value in cache_from_file.items():
+                    cached_yaml_data[key] = (value[0], value[1])
+            walk_and_clear_cache()
+        except Exception:
+            log.error('缓存加载失败', exc_info=True)
+            os.remove('.cache_store.json')
 
 def get_temp_config_path(file_path: str) -> str:
     """
@@ -20,22 +83,46 @@ def get_temp_config_path(file_path: str) -> str:
             return mei_path
     return file_path
 
-def read_cache_or_load(file_path: str):
+def read_cache_or_load(file_path: str, getmtime = False):
     cached = cached_yaml_data.get(file_path)
-    last_modify = os.path.getmtime(file_path)
-    if cached is not None and cached[0] == last_modify:
-        return cached[1]
+    if cached is not None:
+        time, data = cached
+        if getmtime:
+            if os.path.getmtime(file_path) == time:
+                return data
+        else:
+            return data
 
     with open(file_path, 'r', encoding='utf-8') as file:
         log.debug(f"加载yaml: {file_path}")
+        last_modify = os.path.getmtime(file_path)
         data = yaml.safe_load(file)
         cached_yaml_data[file_path] = (last_modify, data)
         return data
 
+def write_file_and_flush_cache(file_path: str, data: dict, sync: bool = False):
+    cached_yaml_data[file_path] = (0.0, data)
+    def write_to_file_and_load_modify_time():
+        with mutex:
+            with open(file_path, 'w', encoding='utf-8') as file:
+                yaml.dump(data, file, allow_unicode=True, sort_keys=False)
+            last_modify = os.path.getmtime(file_path)
+            cached_yaml_data[file_path] = (last_modify, data)
+    if sync:
+        write_to_file_and_load_modify_time()
+    else:
+        _writer_executor.submit(write_to_file_and_load_modify_time)
+
+def cleanup():
+    _writer_executor.shutdown(wait=True)
+    flush_cache_to_file()
+
+_writer_executor.submit(reload_cache_from_file)
+atexit.register(cleanup)
 
 class YamlOperator:
 
-    def __init__(self, file_path: Optional[str] = None):
+    def __init__(self, file_path: Optional[str] = None, getmtime: bool = False):
         """
         yml文件的操作器
         :param file_path: yml文件的路径。不传入时认为是mock，用于测试。
@@ -46,6 +133,8 @@ class YamlOperator:
 
         self.data: dict = {}
         """存放数据的地方"""
+
+        self.getmtime = getmtime
 
         self.__read_from_file()
 
@@ -60,7 +149,7 @@ class YamlOperator:
             return
 
         try:
-            self.data = read_cache_or_load(self.file_path)
+            self.data = read_cache_or_load(self.file_path, self.getmtime)
         except Exception:
             log.error(f'文件读取失败 将使用默认值 {self.file_path}', exc_info=True)
             return
@@ -71,9 +160,7 @@ class YamlOperator:
     def save(self):
         if self.file_path is None:
             return
-
-        with open(self.file_path, 'w', encoding='utf-8') as file:
-            yaml.dump(self.data, file, allow_unicode=True, sort_keys=False)
+        write_file_and_flush_cache(self.file_path, self.data)
 
     def save_diy(self, text: str):
         """
