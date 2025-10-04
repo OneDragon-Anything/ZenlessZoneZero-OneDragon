@@ -9,7 +9,7 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, RestoreChargeEnum
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
@@ -113,7 +113,7 @@ class ExpertChallenge(ZOperation):
     @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
-        if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value:
+        if not self.ctx.charge_plan_config.is_restore_charge_enabled:
             return self.round_success(ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
         result = self.round_by_op_result(op.execute())
@@ -203,7 +203,7 @@ class ExpertChallenge(ZOperation):
     @node_from(from_name='战斗结束')
     @operation_node(name='判断下一次')
     def check_next(self) -> OperationRoundResult:
-        op = ChooseNextOrFinishAfterBattle(self.ctx, self.can_run_times > 0)
+        op = ChooseNextOrFinishAfterBattle(self.ctx, self.plan.plan_times > self.plan.run_times)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别电量', success=False)
