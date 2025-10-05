@@ -41,12 +41,12 @@ class DebugRouteRunner(QThread):
         :return:
         """
         try:
-            self.ctx.start_running()
+            self.ctx.run_context.start_running()
             self.op.execute()
         except Exception as e:
             log.error('调试异常', exc_info=True)
         finally:
-            self.ctx.stop_running()
+            self.ctx.run_context.stop_running()
 
 
 class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):

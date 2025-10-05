@@ -35,7 +35,6 @@ class ZOneDragonInterface(PivotNavigatorInterface):
         self.add_sub_interface(NotoriousHuntPlanInterface(self.ctx))
         self.add_sub_interface(CoffeePlanInterface(self.ctx))
         self.add_sub_interface(ShiyuDefenseInterface(self.ctx))
-        # self.add_sub_interface(MiscellanyRunInterface(self.ctx))
         self.add_sub_interface(SuibianTempleSettingInterface(self.ctx))
         self.add_sub_interface(ZOneDragonSettingInterface(self.ctx))
 

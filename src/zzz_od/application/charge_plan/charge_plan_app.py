@@ -1,12 +1,18 @@
 from typing import ClassVar, Optional
 
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
+from zzz_od.application.charge_plan import charge_plan_const
+from zzz_od.application.charge_plan.charge_plan_config import (
+    CardNumEnum,
+    ChargePlanConfig,
+    ChargePlanItem,
+)
 from zzz_od.application.zzz_application import ZApplication
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
@@ -27,11 +33,16 @@ class ChargePlanApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='charge_plan',
-            op_name=gt('体力刷本'),
-            run_record=ctx.charge_plan_run_record,
+            ctx=ctx, app_id=charge_plan_const.APP_ID,
+            op_name=gt(charge_plan_const.APP_NAME),
             need_notify=True,
         )
+        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+            app_id=charge_plan_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+
         self.charge_power: int = 0  # 剩余电量
         self.required_charge: int = 0  # 需要的电量
         self.need_to_check_power_in_mission: bool = False
@@ -77,18 +88,18 @@ class ChargePlanApp(ZApplication):
         如果找不到，返回计划完成状态。
         """
         # 检查是否所有计划都已完成
-        if self.ctx.charge_plan_config.all_plan_finished():
+        if self.config.all_plan_finished():
             # 如果开启了循环模式且所有计划已完成，重置计划并继续
-            if self.ctx.charge_plan_config.loop:
+            if self.config.loop:
                 self.last_tried_plan = None
-                self.ctx.charge_plan_config.reset_plans()
+                self.config.reset_plans()
             else:
                 return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
 
         # 使用循环查找下一个可执行的任务
         while True:
             # 查找下一个未完成的计划
-            candidate_plan = self.ctx.charge_plan_config.get_next_plan(self.last_tried_plan)
+            candidate_plan = self.config.get_next_plan(self.last_tried_plan)
             if candidate_plan is None:
                 return self.round_fail(ChargePlanApp.STATUS_NO_PLAN)
 
@@ -98,7 +109,7 @@ class ChargePlanApp(ZApplication):
 
             if candidate_plan.category_name == '实战模拟室' and candidate_plan.card_num == CardNumEnum.DEFAULT.value.value:
                 self.need_to_check_power_in_mission = True
-            elif candidate_plan.category_name == '定期清剿' and self.ctx.charge_plan_config.use_coupon:
+            elif candidate_plan.category_name == '定期清剿' and self.config.use_coupon:
                 self.need_to_check_power_in_mission = True
             else:
                 if candidate_plan.category_name == '实战模拟室':
@@ -115,10 +126,10 @@ class ChargePlanApp(ZApplication):
             # 检查电量是否足够
             if not self.need_to_check_power_in_mission and self.charge_power < need_charge_power:
                 if (
-                    self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value
+                    not self.config.is_restore_charge_enabled
                     or (self.node_status.get('恢复电量') and self.node_status.get('恢复电量').is_fail)
                 ):
-                    if not self.ctx.charge_plan_config.skip_plan:
+                    if not self.config.skip_plan:
                         return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
                     else:
                         # 跳过当前计划，继续查找下一个任务
@@ -214,7 +225,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
     @operation_node(name='电量不足')
     def charge_not_enough(self) -> OperationRoundResult:
-        if self.ctx.charge_plan_config.skip_plan or self.next_plan.mission_type_name == '代理人方案培养':
+        if self.config.skip_plan or self.next_plan.mission_type_name == '代理人方案培养':
             # 跳过当前计划，继续尝试下一个
             self.last_tried_plan = self.next_plan
             return self.round_success()

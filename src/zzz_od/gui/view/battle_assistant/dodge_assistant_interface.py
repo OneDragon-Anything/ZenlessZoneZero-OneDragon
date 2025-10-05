@@ -1,11 +1,9 @@
-import os.path
-from typing import Optional
+import os
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, ToolButton
 
-from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
@@ -17,11 +15,14 @@ from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
     DoubleSpinBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from zzz_od.application.battle_assistant.auto_battle_app import AutoBattleApp
+from zzz_od.application.battle_assistant.auto_battle.auto_battle_app import (
+    AutoBattleApp,
+)
 from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_config_file_path,
     get_auto_battle_op_config_list,
 )
+from zzz_od.application.battle_assistant.dodge_assitant import dodge_assistant_const
 from zzz_od.config.game_config import GamepadTypeEnum
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.battle_assistant.battle_state_display import BattleStateDisplay
@@ -39,6 +40,7 @@ class DodgeAssistantInterface(AppRunInterface):
         AppRunInterface.__init__(
             self,
             ctx=ctx,
+            app_id=dodge_assistant_const.APP_ID,
             object_name='dodge_assistant_interface',
             nav_text_cn='闪避助手',
             nav_icon=FluentIcon.GAME,
@@ -136,14 +138,6 @@ class DodgeAssistantInterface(AppRunInterface):
         """
         self.dodge_opt.set_options_by_list(get_auto_battle_op_config_list('dodge'))
 
-    def get_app(self) -> Optional[Application]:
-        app = self.ctx.run_context.get_application(
-            app_id='dodge_assistant',
-            instance_idx=self.ctx.current_instance_idx,
-            group_id='one_dragon',
-        )
-        return app
-
     def _on_del_clicked(self) -> None:
         """
         删除配置
@@ -170,7 +164,7 @@ class DodgeAssistantInterface(AppRunInterface):
         AppRunInterface.on_context_state_changed(self)
 
         if self.battle_state_display is not None:
-            self.battle_state_display.set_update_display(self.ctx.is_context_running)
+            self.battle_state_display.set_update_display(self.ctx.run_context.is_context_running)
 
     def _on_auto_op_loaded_event(self, event: ContextEventItem) -> None:
         """

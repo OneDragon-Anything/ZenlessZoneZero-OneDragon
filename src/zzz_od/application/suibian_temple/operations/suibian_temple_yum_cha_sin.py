@@ -15,6 +15,7 @@ from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_dispa
     SuibianTempleAdventureDispatch,
     SuibianTempleAdventureDispatchDuration,
 )
+from zzz_od.application.suibian_temple.operations.suibian_temple_craft_dispatch import SuibianTempleCraftDispatch
 from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempleConfig
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
@@ -61,7 +62,7 @@ class SuibianTempleYumChaSin(ZOperation):
         self.done_craft: bool = False  #  是否进行了制造
         self.skip_adventure: bool = False  # 已经无法再派遣了 后续跳过
 
-    @operation_node(name='前往饮茶仙', is_start_node=True)
+    @operation_node(name='前往饮茶仙', is_start_node=False)
     def goto_yum_cha_sin(self) -> OperationRoundResult:
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-饮茶仙'])
         if current_screen_name is not None:
@@ -253,46 +254,21 @@ class SuibianTempleYumChaSin(ZOperation):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='前往制作', status='按钮-制造')
-    @operation_node(name='点击开始制作')
-    def do_craft(self) -> OperationRoundResult:
-        target_cn_list: list[str] = [
-            '所需材料不足',
-            '邦布电量不足',
-            '开始制造',
-        ]
-        result = self.round_by_ocr_and_click_by_priority(target_cn_list)
-        if result.is_success:
-            if result.status == '开始制造':
-                self.done_craft = True
-            return self.round_success(status=result.status, wait=1)
+    @operation_node(name='制造派驻', is_start_node=True)
+    def craft_dispatch(self) -> OperationRoundResult:
+        op = SuibianTempleCraftDispatch(
+            self.ctx,
+            from_craft=False,
+            chosen_item_list=[],
+        )
+        op_result = op.execute()
+        if op_result.success and op_result.data == True:
+            self.done_craft = True
+        else:
+            self.done_craft = False
+        return self.round_success(status=op_result.status)
 
-        return self.round_retry(status='未找到开始制作按钮', wait=1)
-
-    @node_from(from_name='点击开始制作')
-    @operation_node(name='从制造返回材料菜单')
-    def back_to_material_menu(self) -> OperationRoundResult:
-        result = self.round_by_find_and_click_area(screen_name='随便观-饮茶仙', area_name='按钮-返回')
-        if result.is_success:
-            time.sleep(0.5)  # 移开鼠标 防止挡住了返回按钮
-            area = self.ctx.screen_loader.get_area('随便观-饮茶仙', '按钮-返回')
-            self.ctx.controller.mouse_move(area.right_bottom + Point(50, 50))
-            return self.round_wait(status=result.status, wait=0.5)
-
-        result = self.round_by_find_area(self.last_screenshot, screen_name='随便观-饮茶仙', area_name='按钮-制造')
-        if result.is_success:
-            return self.round_success(status=result.status, wait=1)
-
-        # 点击开始制造后 可能需要确认 (调整计划、返回材料)
-        target_cn_list: list[str] = [
-            '确认',
-        ]
-        result = self.round_by_ocr_and_click_by_priority(target_cn_list)
-        if result.is_success:
-            return self.round_wait(status=result.status, wait=1)
-
-        return self.round_retry(status='未找到返回按钮', wait=1)
-
-    @node_from(from_name='从制造返回材料菜单')
+    @node_from(from_name='制造派驻')
     @operation_node(name='前往游历')
     def goto_adventure(self) -> OperationRoundResult:
         if self.done_craft:
@@ -368,7 +344,7 @@ def __debug():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.init_ocr()
-    ctx.start_running()
+    ctx.run_context.start_running()
     ctx.run_context.current_instance_idx = ctx.current_instance_idx
     ctx.run_context.current_app_id = 'suibian_temple'
     ctx.run_context.current_group_id = 'one_dragon'

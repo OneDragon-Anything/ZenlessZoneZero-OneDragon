@@ -14,7 +14,9 @@ from zzz_od.application.suibian_temple.operations.suibian_temple_craft import (
 from zzz_od.application.suibian_temple.operations.suibian_temple_good_goods import (
     SuibianTempleGoodGoods,
 )
-from zzz_od.application.suibian_temple.operations.suibian_temple_pawnshop import SuibianTemplePawnshop
+from zzz_od.application.suibian_temple.operations.suibian_temple_pawnshop import (
+    SuibianTemplePawnshop,
+)
 from zzz_od.application.suibian_temple.operations.suibian_temple_sales_stall import (
     SuibianTempleSalesStall,
 )
@@ -34,8 +36,6 @@ class SuibianTempleApp(ZApplication):
             self,
             ctx=ctx, app_id='suibian_temple',
             op_name=gt('随便观'),
-            run_record=ctx.suibian_temple_record,
-            retry_in_od=True,  # 传送落地有可能会歪 重试
             need_notify=True,
         )
         self.config: SuibianTempleConfig = self.ctx.run_context.get_config(app_id='suibian_temple')  # type: ignore

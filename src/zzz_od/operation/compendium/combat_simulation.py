@@ -3,6 +3,7 @@ from concurrent.futures import Future
 from typing import Optional, ClassVar, Tuple
 
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
@@ -11,7 +12,8 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum
+from zzz_od.application.charge_plan import charge_plan_const
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, ChargePlanConfig
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
@@ -47,6 +49,11 @@ class CombatSimulation(ZOperation):
                 gt('实战模拟室', 'game'),
                 gt(plan.mission_name, 'game')
             )
+        )
+        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+            app_id=charge_plan_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
         )
 
         self.plan: ChargePlanItem = plan
@@ -260,7 +267,7 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
-        if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value:
+        if not self.config.is_restore_charge_enabled:
             return self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
         result = self.round_by_op_result(op.execute())
@@ -359,13 +366,13 @@ class CombatSimulation(ZOperation):
     @operation_node(name='战斗结束')
     def after_battle(self) -> OperationRoundResult:
         self.can_run_times -= 1
-        self.ctx.charge_plan_config.add_plan_run_times(self.plan)
+        self.config.add_plan_run_times(self.plan)
         return self.round_success()
 
     @node_from(from_name='战斗结束')
     @operation_node(name='判断下一次')
     def check_next(self) -> OperationRoundResult:
-        op = ChooseNextOrFinishAfterBattle(self.ctx, self.can_run_times > 0)
+        op = ChooseNextOrFinishAfterBattle(self.ctx, self.plan.plan_times > self.plan.run_times)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别电量', success=False)
@@ -411,14 +418,14 @@ def __debug_coffee():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.init_ocr()
-    ctx.start_running()
+    ctx.run_context.start_running()
     chosen_coffee = ctx.compendium_service.name_2_coffee['麦草拿提']
     charge_plan = ChargePlanItem(
         tab_name=chosen_coffee.tab.tab_name,
         category_name=chosen_coffee.category.category_name,
         mission_type_name=chosen_coffee.mission_type.mission_type_name,
         mission_name=None if chosen_coffee.mission is None else chosen_coffee.mission.mission_name,
-        auto_battle_config=ctx.coffee_config.auto_battle,
+        auto_battle_config='全配队通用',
         run_times=0,
         plan_times=1
     )
@@ -446,7 +453,7 @@ def __debug():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.init_ocr()
-    ctx.start_running()
+    ctx.run_context.start_running()
     charge_plan = ChargePlanItem(
         tab_name='训练',
         category_name='实战模拟室',
@@ -455,7 +462,7 @@ def __debug():
         run_times=0,
         plan_times=1,
         predefined_team_idx=-1,
-        auto_battle_config=ctx.coffee_config.auto_battle,
+        auto_battle_config='全配对通用',
     )
     op = CombatSimulation(ctx, charge_plan)
     op.can_run_times = 1

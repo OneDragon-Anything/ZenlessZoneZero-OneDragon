@@ -1,15 +1,16 @@
 from qfluentwidgets import MessageBoxBase, SubtitleLabel
 
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, ChargePlanConfig
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.one_dragon.charge_plan_interface import ChargePlanCard
 
 
 class ChargePlanDialog(MessageBoxBase):
 
-    def __init__(self, ctx: ZContext, parent=None):
-        self.ctx: ZContext = ctx
+    def __init__(self, ctx: ZContext, config: ChargePlanConfig, parent=None):
+        self.ctx = ctx
+        self.config = config
 
         super().__init__(parent)
 
@@ -36,7 +37,7 @@ class ChargePlanDialog(MessageBoxBase):
             predefined_team_idx=0,
             notorious_hunt_buff_num=1,
         )
-        card = ChargePlanCard(self.ctx, idx=-1, plan=self.plan)
+        card = ChargePlanCard(self.ctx, idx=-1, plan=self.plan, config=self.config)
         card.move_up_btn.hide()
         card.move_top_btn.hide()
         card.del_btn.hide()

@@ -14,6 +14,9 @@ from cv2.typing import MatLike
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
+from one_dragon.base.operation.application.application_run_context import (
+    ApplicationRunContextStateEventEnum,
+)
 from one_dragon.base.operation.operation_base import OperationBase, OperationResult
 from one_dragon.base.operation.operation_edge import OperationEdge, OperationEdgeDesc
 from one_dragon.base.operation.operation_node import OperationNode
@@ -216,12 +219,9 @@ class Operation(OperationBase):
         self.node_status.clear()
 
         # 监听事件
-        self.ctx.unlisten_all_event(self)
-        from one_dragon.base.operation.one_dragon_context import (
-            ContextRunningStateEventEnum,
-        )
-        self.ctx.listen_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, self._on_pause)
-        self.ctx.listen_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, self._on_resume)
+        self.ctx.run_context.event_bus.unlisten_all_event(self)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.PAUSE, self._on_pause)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.RESUME, self._on_resume)
 
         self.handle_init()
 
@@ -415,10 +415,10 @@ class Operation(OperationBase):
             if self.timeout_seconds != -1 and self.operation_usage_time >= self.timeout_seconds:
                 op_result = self.op_fail(Operation.STATUS_TIMEOUT)
                 break
-            if self.ctx.is_context_stop:
+            if self.ctx.run_context.is_context_stop:
                 op_result = self.op_fail('人工结束')
                 break
-            elif self.ctx.is_context_pause:
+            elif self.ctx.run_context.is_context_pause:
                 time.sleep(1)
                 continue
 
@@ -437,7 +437,7 @@ class Operation(OperationBase):
                     else:
                         arrow = f"{from_node_name} -> {node_name}" if self._previous_node is not None else node_name
                         log.info('%s 节点 %s 返回状态 %s', self.display_name, arrow, round_result_status)
-                if self.ctx.is_context_pause:  # 有可能触发暂停的时候仍在执行指令 执行完成后 再次触发暂停回调 保证操作的暂停回调真正生效
+                if self.ctx.run_context.is_context_pause:  # 有可能触发暂停的时候仍在执行指令 执行完成后 再次触发暂停回调 保证操作的暂停回调真正生效
                     self._on_pause()
             except Exception as e:
                 round_result: OperationRoundResult = self.round_retry('异常')
@@ -579,7 +579,7 @@ class Operation(OperationBase):
         Args:
             e: 事件参数（可选）。
         """
-        if not self.ctx.is_context_pause:
+        if not self.ctx.run_context.is_context_pause:
             return
         self.current_pause_time = 0
         self.pause_start_time = time.time()
@@ -598,7 +598,7 @@ class Operation(OperationBase):
         Args:
             e: 事件参数（可选）。
         """
-        if not self.ctx.is_context_running:
+        if not self.ctx.run_context.is_context_running:
             return
         self.current_pause_time = time.time() - self.pause_start_time
         self.pause_total_time += self.current_pause_time

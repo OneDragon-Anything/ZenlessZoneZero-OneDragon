@@ -1,15 +1,24 @@
+from __future__ import annotations
+
 from concurrent.futures import ThreadPoolExecutor
 from enum import StrEnum
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-from one_dragon.base.controller.controller_base import ControllerBase
-from one_dragon.base.operation.application.application_config import ApplicationConfig
-from one_dragon.base.operation.application.application_factory import ApplicationFactory
-from one_dragon.base.operation.application_base import Application
-from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.utils import thread_utils
+from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
+    from one_dragon.base.operation.application.application_config import (
+        ApplicationConfig,
+    )
+    from one_dragon.base.operation.application.application_factory import (
+        ApplicationFactory,
+    )
+    from one_dragon.base.operation.application_base import Application
+    from one_dragon.base.operation.application_run_record import AppRunRecord
 
 
 class ApplicationRunContextStateEnum(StrEnum):
@@ -48,12 +57,14 @@ class ApplicationRunContext:
 
     def __init__(
         self,
+        ctx: OneDragonContext
     ):
         """
         初始化应用运行上下文。
 
         创建空的工厂映射表、设置初始状态为停止、初始化线程池和事件总线。
         """
+        self.ctx: OneDragonContext = ctx
         self._application_factory_map: dict[str, ApplicationFactory] = {}
         self._run_state: ApplicationRunContextStateEnum = (
             ApplicationRunContextStateEnum.STOP
@@ -61,25 +72,18 @@ class ApplicationRunContext:
         self._executor = ThreadPoolExecutor(
             thread_name_prefix="one_dragon_app_run_context", max_workers=1
         )
-        self._controller: Optional[ControllerBase] = None  # 这个在后续初始化后设置
-        self._event_bus: ContextEventBus = ContextEventBus()
+        self.event_bus: ContextEventBus = ContextEventBus()
+        self.default_group_apps: list = []  # 默认应用组的应用ID列表
 
         # 当前运行的应用
         self.current_app_id: Optional[str] = None
         self.current_instance_idx: Optional[int] = None
         self.current_group_id: Optional[str] = None
 
-    def set_controller(self, controller: ControllerBase):
-        """
-        设置游戏控制器。
-
-        Args:
-            controller: 游戏控制器实例，用于发送游戏指令
-        """
-        self._controller = controller
-
     def registry_application(
-        self, factory: ApplicationFactory | list[ApplicationFactory]
+        self,
+        factory: ApplicationFactory | list[ApplicationFactory],
+        default_group: bool = False,
     ):
         """
         注册应用工厂。
@@ -88,12 +92,17 @@ class ApplicationRunContext:
 
         Args:
             factory: 应用工厂实例或工厂列表
+            default_group: 应用是否属于默认应用组，默认为False
         """
         if isinstance(factory, list):
             for f in factory:
                 self._application_factory_map[f.app_id] = f
+                if default_group:
+                    self.default_group_apps.append(f.app_id)
         else:
             self._application_factory_map[factory.app_id] = factory
+            if default_group:
+                self.default_group_apps.append(factory.app_id)
 
     def is_app_registered(self, app_id: str) -> bool:
         """
@@ -127,6 +136,21 @@ class ApplicationRunContext:
             return None
         factory = self._application_factory_map[app_id]
         return factory.create_application(instance_idx=instance_idx, group_id=group_id)
+
+    def get_application_name(self, app_id: str) -> Optional[str]:
+        """
+        获取应用名称
+
+        Args:
+            app_id: 应用ID
+
+        Returns:
+            str: 应用名称
+        """
+        if app_id not in self._application_factory_map:
+            return None
+
+        return self._application_factory_map[app_id].app_name
 
     def get_config(
         self,
@@ -237,13 +261,13 @@ class ApplicationRunContext:
         if not self.is_context_stop:
             log.error("请先结束其他运行中的功能 再启动")
             return False
-        if self._controller is None:
+        if self.ctx.controller is None:
             log.error("未初始化控制器")
             return False
 
-        if self._controller.init_before_context_run():
+        if self.ctx.controller.init_before_context_run():
             self._run_state = ApplicationRunContextStateEnum.RUNNING
-            self._event_bus.dispatch_event(
+            self.event_bus.dispatch_event(
                 ApplicationRunContextStateEventEnum.START, self._run_state
             )
             return True
@@ -262,7 +286,7 @@ class ApplicationRunContext:
             self.switch_context_pause_and_run()
         self._run_state = ApplicationRunContextStateEnum.STOP
         log.info("停止运行")
-        self._event_bus.dispatch_event(
+        self.event_bus.dispatch_event(
             ApplicationRunContextStateEventEnum.STOP, self._run_state
         )
 
@@ -275,15 +299,26 @@ class ApplicationRunContext:
         if self._run_state == ApplicationRunContextStateEnum.RUNNING:
             log.info("暂停运行")
             self._run_state = ApplicationRunContextStateEnum.PAUSE
-            self._event_bus.dispatch_event(
+            self.event_bus.dispatch_event(
                 ApplicationRunContextStateEventEnum.PAUSE, self._run_state
             )
         elif self._run_state == ApplicationRunContextStateEnum.PAUSE:
             log.info("恢复运行")
             self._run_state = ApplicationRunContextStateEnum.RUNNING
-            self._event_bus.dispatch_event(
+            self.event_bus.dispatch_event(
                 ApplicationRunContextStateEventEnum.RESUME, self._run_state
             )
+
+    @property
+    def run_status_text(self) -> str:
+        if self._run_state == ApplicationRunContextStateEnum.STOP:
+            return gt('空闲')
+        elif self._run_state == ApplicationRunContextStateEnum.RUNNING:
+            return gt('运行中')
+        elif self._run_state == ApplicationRunContextStateEnum.PAUSE:
+            return gt('暂停中')
+        else:
+            return gt('未知')
 
     def run_application(self, app_id: str, instance_idx: int, group_id: str) -> bool:
         """
@@ -354,3 +389,15 @@ class ApplicationRunContext:
         future.add_done_callback(thread_utils.handle_future_result)
 
         return True
+
+    def check_and_update_all_run_record(self, instance_idx: int) -> None:
+        """
+        检查并刷新账号实例下的所有运行记录
+        Args:
+            instance_idx: 账号实例下标
+        """
+        for app_id in self._application_factory_map.keys():
+            run_record = self.get_run_record(app_id=app_id, instance_idx=instance_idx)
+            if run_record is None:
+                continue
+            run_record.check_and_update_status()

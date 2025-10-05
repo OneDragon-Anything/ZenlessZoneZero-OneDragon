@@ -320,7 +320,7 @@ class EnterGame(ZOperation):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.start_running()
+    ctx.run_context.start_running()
     ctx.init_ocr()
     op = EnterGame(ctx, switch=False)
     op.execute()

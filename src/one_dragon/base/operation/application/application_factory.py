@@ -14,14 +14,20 @@ class ApplicationFactory(ABC):
     每个具体应用都需要继承此类并实现其抽象方法来定义应用的创建逻辑。
     """
 
-    def __init__(self, app_id: str):
+    def __init__(
+        self,
+        app_id: str,
+        app_name: str,
+    ):
         """
         初始化应用工厂。
 
         Args:
             app_id: 应用唯一标识符，用于区分不同的应用类型
+            app_name: 显示用的应用名称
         """
         self.app_id: str = app_id
+        self.app_name: str = app_name
         self._config_cache: dict[str, ApplicationConfig] = {}
         self._run_record_cache: dict[str, AppRunRecord] = {}
 

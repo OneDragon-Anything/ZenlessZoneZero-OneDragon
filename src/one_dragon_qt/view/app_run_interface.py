@@ -1,41 +1,58 @@
-from PySide6.QtCore import Qt, Signal, QThread
-from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
-from qfluentwidgets import FluentIconBase, PrimaryPushButton, FluentIcon, PushButton, SubtitleLabel
-from typing import Union, Optional
+from typing import Optional, Union
 
+from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+from qfluentwidgets import (
+    FluentIcon,
+    FluentIconBase,
+    PrimaryPushButton,
+    PushButton,
+    SubtitleLabel,
+)
+
+from one_dragon.base.operation.application import application_const
+from one_dragon.base.operation.application.application_run_context import (
+    ApplicationRunContextStateEventEnum,
+)
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.context_event_bus import ContextEventItem
-from one_dragon.base.operation.one_dragon_context import ContextKeyboardEventEnum, ContextRunningStateEventEnum, \
-    OneDragonContext
-from one_dragon_qt.widgets.log_display_card import LogDisplayCard
-from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from one_dragon.base.operation.one_dragon_context import (
+    ContextKeyboardEventEnum,
+    OneDragonContext,
+)
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.widgets.log_display_card import LogDisplayCard
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
 class AppRunner(QThread):
 
     state_changed = Signal()
 
-    def __init__(self, ctx: OneDragonContext, app: Optional[Application] = None):
-        super().__init__()
+    def __init__(self, ctx: OneDragonContext):
+        QThread.__init__(self)
         self.ctx: OneDragonContext = ctx
-        self.app: Application = app
+        self.app_id: str = ''
 
     def run(self):
         """
         运行 最后发送结束信号
         :return:
         """
-        self.ctx.listen_event(ContextRunningStateEventEnum.START_RUNNING.value, self._on_state_changed)
-        self.ctx.listen_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, self._on_state_changed)
-        self.ctx.listen_event(ContextRunningStateEventEnum.STOP_RUNNING.value, self._on_state_changed)
-        self.ctx.listen_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, self._on_state_changed)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.START, self._on_state_changed)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.PAUSE, self._on_state_changed)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.STOP, self._on_state_changed)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.RESUME, self._on_state_changed)
 
-        self.app.execute()
+        self.ctx.run_context.run_application(
+            app_id=self.app_id,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
 
-        self.ctx.unlisten_all_event(self)
+        self.ctx.run_context.event_bus.unlisten_all_event(self)
 
     def _on_state_changed(self, ignored) -> None:
         """
@@ -47,13 +64,15 @@ class AppRunner(QThread):
 
 class AppRunInterface(VerticalScrollInterface):
 
-    def __init__(self,
-                 ctx: OneDragonContext,
-                 object_name: str,
-                 nav_text_cn: str,
-                 nav_icon: Union[FluentIconBase, QIcon, str] = None,
-                 parent=None,
-                 ):
+    def __init__(
+        self,
+        ctx: OneDragonContext,
+        app_id: str,
+        object_name: str,
+        nav_text_cn: str,
+        nav_icon: Union[FluentIconBase, QIcon, str] = None,
+        parent=None,
+    ):
         VerticalScrollInterface.__init__(
             self,
             content_widget=None,
@@ -63,6 +82,7 @@ class AppRunInterface(VerticalScrollInterface):
             parent=parent
         )
         self.ctx: OneDragonContext = ctx
+        self.app_id: str = app_id
 
     def get_content_widget(self) -> QWidget:
         content_widget = QWidget()
@@ -74,7 +94,7 @@ class AppRunInterface(VerticalScrollInterface):
             content_layout.addWidget(widget_at_top)
 
         self.state_text = SubtitleLabel()
-        self.state_text.setText('%s %s' % (gt('当前状态'), self.ctx.context_running_status_text))
+        self.state_text.setText('%s %s' % (gt('当前状态'), self.ctx.run_context.run_status_text))
         self.state_text.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         content_layout.addWidget(self.state_text)
 
@@ -130,7 +150,7 @@ class AppRunInterface(VerticalScrollInterface):
         按键监听
         """
         key: str = event.data
-        if key == self.ctx.key_start_running and self.ctx.is_context_stop:
+        if key == self.ctx.key_start_running and self.ctx.run_context.is_context_stop:
             self._on_start_clicked()
 
     def run_app(self) -> None:
@@ -140,33 +160,19 @@ class AppRunInterface(VerticalScrollInterface):
         if self.app_runner.isRunning():
             log.error('已有应用在运行中')
             return
-        app = self.get_app()
-        if app is None:
-            log.error('未提供对应应用')
-            return
-        if app.run_record is not None:
-            app.run_record.check_and_update_status()
-        self.app_runner.app = app
+        self.app_runner.app_id = self.app_id
         self.app_runner.start()
-
-    def get_app(self) -> Optional[Application]:
-        """
-        获取本次运行的app 由子类实现
-        由
-        :return:
-        """
-        pass
 
     def on_context_state_changed(self) -> None:
         """
         按运行状态更新显示
         :return:
         """
-        if self.ctx.is_context_running:
+        if self.ctx.run_context.is_context_running:
             text = gt('暂停')
             icon = FluentIcon.PAUSE
             self.log_card.start()  # 开始日志更新
-        elif self.ctx.is_context_pause:
+        elif self.ctx.run_context.is_context_pause:
             text = gt('继续')
             icon = FluentIcon.PLAY
             self.log_card.pause()  # 暂停日志更新
@@ -177,15 +183,15 @@ class AppRunInterface(VerticalScrollInterface):
 
         self.start_btn.setText('%s %s' % (text, self.ctx.key_start_running.upper()))
         self.start_btn.setIcon(icon)
-        self.state_text.setText('%s %s' % (gt('当前状态'), self.ctx.context_running_status_text))
+        self.state_text.setText('%s %s' % (gt('当前状态'), self.ctx.run_context.run_status_text))
 
     def _on_start_clicked(self) -> None:
-        if self.ctx.is_context_stop:
+        if self.ctx.run_context.is_context_stop:
             self.run_app()
-        elif self.ctx.is_context_running:
-            self.ctx.switch_context_pause_and_run()
-        elif self.ctx.is_context_pause:
-            self.ctx.switch_context_pause_and_run()
+        elif self.ctx.run_context.is_context_running:
+            self.ctx.run_context.switch_context_pause_and_run()
+        elif self.ctx.run_context.is_context_pause:
+            self.ctx.run_context.switch_context_pause_and_run()
 
     def _on_stop_clicked(self) -> None:
-        self.ctx.stop_running()
+        self.ctx.run_context.stop_running()

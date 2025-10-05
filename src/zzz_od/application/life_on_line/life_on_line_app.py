@@ -1,12 +1,15 @@
 import time
 
-from typing import ClassVar
+from typing import ClassVar, Optional
 
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
+from zzz_od.application.life_on_line import life_on_line_const
+from zzz_od.application.life_on_line.life_on_line_config import LifeOnLineConfig
 from zzz_od.application.life_on_line.life_on_line_run_record import LifeOnLineRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -27,12 +30,20 @@ class LifeOnLineApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='life_on_line',
-            op_name=gt('真拿命验收'),
-            run_record=ctx.life_on_line_record,
+            ctx=ctx,
+            app_id=life_on_line_const.APP_ID,
+            op_name=gt(life_on_line_const.APP_NAME),
             need_notify=True,
         )
-        self.run_record: LifeOnLineRunRecord = ctx.life_on_line_record
+        self.config: Optional[LifeOnLineConfig] = self.ctx.run_context.get_config(
+            app_id=life_on_line_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+        self.run_record: Optional[LifeOnLineRunRecord] = self.ctx.run_context.get_run_record(
+            instance_idx=self.ctx.current_instance_idx,
+            app_id=life_on_line_const.APP_ID,
+        )
         self.is_over_night: bool = False  # 本次结束是否过夜了
         self.chosen_team: bool = False  # 是否已经选择过配队了
 
@@ -64,7 +75,7 @@ class LifeOnLineApp(ZApplication):
     @node_from(from_name='检查运行次数', status=STATUS_CONTINUE)
     @operation_node(name='进入副本')
     def enter_mission(self) -> OperationRoundResult:
-        target_team_idx: int = self.ctx.life_on_line_config.predefined_team_idx
+        target_team_idx: int = self.config.predefined_team_idx
         if self.chosen_team:  # 只需要选1次
             target_team_idx = -1
         op = EnterHddMission(self.ctx, '第二章间章', '战斗委托', '作战真拿命验收',
