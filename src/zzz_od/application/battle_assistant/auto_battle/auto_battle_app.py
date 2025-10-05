@@ -67,7 +67,7 @@ class AutoBattleApp(ZApplication):
         加载战斗指令
         :return:
         """
-        result = auto_battle_utils.load_auto_op(self, '',
+        result = auto_battle_utils.load_auto_op(self, 'auto_battle',
                                                 self.ctx.battle_assistant_config.auto_battle_config)
 
         if result.is_success:
