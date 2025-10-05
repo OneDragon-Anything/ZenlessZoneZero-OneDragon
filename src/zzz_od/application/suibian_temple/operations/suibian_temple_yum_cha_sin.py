@@ -119,7 +119,7 @@ class SuibianTempleYumChaSin(ZOperation):
                 if result.is_success:
                     return self.round_wait(status=result.status, wait=1)
 
-        return self.round_retry(status='未发现可提交委托', wait=0.5)
+        return self.round_retry(status='未发现可提交委托', wait=0.3)
 
     def is_btn_available(self, btn_part: MatLike) -> bool:
         """
@@ -202,7 +202,7 @@ class SuibianTempleYumChaSin(ZOperation):
         """
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
-            color_range=[[200, 0, 0], [255, 130, 100]],
+            color_range=[[220, 70, 30], [230, 140, 110]],
             rect=self.ctx.screen_loader.get_area('随便观-饮茶仙', '区域-材料数量').rect,
         )
         for ocr_result in ocr_result_list:
@@ -257,6 +257,7 @@ class SuibianTempleYumChaSin(ZOperation):
     def do_craft(self) -> OperationRoundResult:
         target_cn_list: list[str] = [
             '所需材料不足',
+            '邦布电量不足',
             '开始制造',
         ]
         result = self.round_by_ocr_and_click_by_priority(target_cn_list)
@@ -280,6 +281,14 @@ class SuibianTempleYumChaSin(ZOperation):
         result = self.round_by_find_area(self.last_screenshot, screen_name='随便观-饮茶仙', area_name='按钮-制造')
         if result.is_success:
             return self.round_success(status=result.status, wait=1)
+
+        # 点击开始制造后 可能需要确认 (调整计划、返回材料)
+        target_cn_list: list[str] = [
+            '确认',
+        ]
+        result = self.round_by_ocr_and_click_by_priority(target_cn_list)
+        if result.is_success:
+            return self.round_wait(status=result.status, wait=1)
 
         return self.round_retry(status='未找到返回按钮', wait=1)
 

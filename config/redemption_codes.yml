@@ -5,7 +5,7 @@
 #    end_dt: 过期时间
 # 过期时间格式: YYYYMMDD 长期有效就填 20990101
 codes:
-  - code: 'SEED0904'  # 2.2前瞻
-    end_dt: 20250825
+  - code: 'LUCIA1015'  # 2.3前瞻
+    end_dt: 20251002
   - code: 'ZZZ888'
     end_dt: 20990101

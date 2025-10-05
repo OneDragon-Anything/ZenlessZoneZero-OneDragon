@@ -5,16 +5,24 @@ op_list:
   - '1436'
   op_type: move
 - data:
-  - '883'
-  - '1356'
+  - '867'
+  - '1336'
   op_type: move
 - data:
-  - '859'
+  - '866'
+  - '1236'
+  op_type: move
+- data:
+  - '867'
   - '1140'
   op_type: move
 - data:
+  - '836'
+  - '1094'
+  op_type: move
+- data:
   - '792'
-  - '1148'
+  - '1150'
   op_type: move
 tp_area_id: production_area_building_east_side
 tp_name: 物流通道

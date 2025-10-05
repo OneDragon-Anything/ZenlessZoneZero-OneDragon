@@ -44,7 +44,8 @@ config/model.yml
 custom/assets/ui/banner
 assets/ui/version_poster.webp
 assets/ui/remote_banner.webp
-config/world_patrol_route_list/
+config/world_patrol_route_list/*
+!config/world_patrol_route_list/*.sample.yml
 
 # 执行文件
 *.exe

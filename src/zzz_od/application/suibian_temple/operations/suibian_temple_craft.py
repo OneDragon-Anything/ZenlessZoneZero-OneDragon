@@ -84,10 +84,13 @@ class SuibianTempleCraft(ZOperation):
     def choose_item(self) -> OperationRoundResult:
         target_cn_list: list[str] = [
             '所需材料不足',
+            '邦布电量不足',
         ]
         result = self.round_by_ocr_and_click_by_priority(target_cn_list)
         if not result.is_success:
             return self.round_success(status='材料充足')
+        if result.status == '邦布电量不足':
+            return self.round_success(status=result.status)
 
         # 不能制造的 换一个商品
         area = self.ctx.screen_loader.get_area('随便观-制造坊', '区域-商品列表')
@@ -182,6 +185,7 @@ class SuibianTempleCraft(ZOperation):
     @node_from(from_name='点击开工', success=False)
     @node_from(from_name='选择商品', success=False)
     @node_from(from_name='选择商品', status='未发现新商品')
+    @node_from(from_name='选择商品', status='邦布电量不足')
     @operation_node(name='返回随便观')
     def back_to_entry(self) -> OperationRoundResult:
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-入口'])
