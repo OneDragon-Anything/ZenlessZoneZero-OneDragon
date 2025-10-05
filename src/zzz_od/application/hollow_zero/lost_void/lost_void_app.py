@@ -141,23 +141,34 @@ class LostVoidApp(ZApplication):
     def _check_and_set_points_reward(self) -> None:
         if not self._need_check_points_reward:
             return
-        for i in range(30):
+        for i in range(10):
+            self.screenshot()
             points_reward = self._check_points_reward()
             if points_reward.result == OperationRoundResultEnum.SUCCESS:
+                # 识别到了2个 8000, 已完成悬赏委托, 退出循环
                 self._points_reward_finished = True
-            elif points_reward.result == OperationRoundResultEnum.FAIL:
+                self._need_check_points_reward = False
                 break
-        self._need_check_points_reward = False
+            elif points_reward.result == OperationRoundResultEnum.FAIL:
+                # 只识别到了一个 8000, 未完成悬赏委托
+                self._need_check_points_reward = False
+                # 有没有可能识别错误, 少识别到一个8000, 多识别几次?
+                # break
+            # 没看到 8000, 重新识别
+        # 识别出错, 记录日志
+        if self._need_check_points_reward:
+            log.error('识别悬赏委托进度出错')
+            self._need_check_points_reward = False
 
     # 检查悬赏委托
     def _check_points_reward(self) -> OperationRoundResult:
         ocr_result_map = self.ocr(self.last_screenshot, '迷失之地-大世界', '标签-悬赏委托完成进度')
         count_8000 = 0
-        for ocr_result, mrl in ocr_result_map.items():
+        for ocr_result, _ in ocr_result_map.items():
             count_8000 += ocr_result.count('8000')
         if count_8000 == 0:
             # 找不到 8000 返回重试
-            return self.round_retry('未找到悬赏委托 (xxxx/8000)', wait=1)
+            return self.round_retry('未找到悬赏委托 (xxxx/8000)', wait=0.2)
         elif count_8000 == 2:
             # 悬赏委托完成进度 8000/8000, 如果悬赏委托未完成, 设置为已完成
             if not self.ctx.lost_void_record.points_reward_complete:
