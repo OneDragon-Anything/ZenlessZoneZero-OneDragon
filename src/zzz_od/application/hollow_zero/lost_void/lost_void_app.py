@@ -146,7 +146,7 @@ class LostVoidApp(ZApplication):
         # goto_mission_screen 会循环执行, 只在最开始的时候检查一下悬赏委托
         self._check_and_set_points_reward()
         # 悬赏委托和基础次数都完成了
-        if self._points_reward_finished and self.ctx.lost_void_record.is_finished_by_day():
+        if self._points_reward_finished and self.run_record.is_finished_by_day():
             return self.round_success("已完成悬赏委托")
 
         mission_name = self.config.mission_name
