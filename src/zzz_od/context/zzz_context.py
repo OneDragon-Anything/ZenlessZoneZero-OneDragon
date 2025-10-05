@@ -24,7 +24,7 @@ class ZContext(OneDragonContext):
 
         # 游戏数据
         from zzz_od.game_data.map_area import MapAreaService
-        self.map_service: MapAreaService = MapAreaService()  # 这是
+        self.map_service: MapAreaService = MapAreaService()
         from zzz_od.game_data.compendium import CompendiumService
         self.compendium_service: CompendiumService = CompendiumService()
         from zzz_od.application.world_patrol.world_patrol_service import (
@@ -43,16 +43,11 @@ class ZContext(OneDragonContext):
         from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
         self.auto_op: AutoBattleOperator | None = None
 
-        # 实例独有的配置
-        self.load_instance_config()
-
     def load_instance_config(self) -> None:
         OneDragonContext.load_instance_config(self)
 
         from zzz_od.config.game_config import GameConfig
         self.game_config: GameConfig = GameConfig(self.current_instance_idx)
-        from one_dragon.base.config.game_account_config import GameAccountConfig
-        self.game_account_config: GameAccountConfig = GameAccountConfig(self.current_instance_idx)
 
         from zzz_od.application.battle_assistant.battle_assistant_config import (
             BattleAssistantConfig,
@@ -65,24 +60,15 @@ class ZContext(OneDragonContext):
 
         from zzz_od.config.agent_outfit_config import AgentOutfitConfig
         self.agent_outfit_config: AgentOutfitConfig = AgentOutfitConfig(self.current_instance_idx)
-
-        # 运行记录
-        game_refresh_hour_offset = self.game_account_config.game_refresh_hour_offset
+        if self.agent_outfit_config.compatibility_mode:
+            self.init_agent_template_id()
+        else:
+            self.init_agent_template_id_list()
 
         from zzz_od.config.notify_config import NotifyConfig
         self.notify_config: NotifyConfig = NotifyConfig(self.current_instance_idx)
 
-        self.init_by_config()
-
-        self.telemetry.initialize()
-
-    def init_by_config(self) -> None:
-        """
-        根据配置进行初始化
-        :return:
-        """
-        OneDragonContext.init_by_config(self)
-
+    def init_controller(self) -> None:
         from one_dragon.base.config.game_account_config import GamePlatformEnum
         from zzz_od.controller.zzz_pc_controller import ZPcController
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
@@ -98,11 +84,12 @@ class ZContext(OneDragonContext):
                 standard_height=self.project_config.screen_standard_height
             )
 
-        self.hollow.data_service.reload()
-        if self.agent_outfit_config.compatibility_mode:
-            self.init_agent_template_id()
-        else:
-            self.init_agent_template_id_list()
+    def init_for_application(self) -> None:
+        self.map_service.reload()  # 传送需要用的数据
+        self.compendium_service.reload()  # 快捷手册
+
+    def init_others(self) -> None:
+        self.telemetry.initialize()  # 遥测
 
     def init_agent_template_id(self) -> None:
         """

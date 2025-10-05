@@ -87,15 +87,16 @@ class NotoriousHuntApp(ZApplication):
         )
 
     @node_from(from_name='点击奖励入口')
-    @operation_node(name='全部领取')
+    @operation_node(name='全部领取', node_max_retry_times=2)
     def claim_all(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
             self.last_screenshot, '恶名狩猎', '全部领取',
-            success_wait=1, retry_wait=1
+            success_wait=1, retry_wait=0.5
         )
 
     @node_from(from_name='点击奖励入口', success=False)
     @node_from(from_name='全部领取')
+    @node_from(from_name='全部领取', success=False)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
         self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图

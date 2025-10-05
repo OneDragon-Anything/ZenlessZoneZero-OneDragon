@@ -29,7 +29,6 @@ class MapAreaService:
         """
         self.area_list: List[MapArea] = []
         self.area_name_map: dict[str, MapArea] = {}
-        self.reload()
 
     def reload(self) -> None:
         """

@@ -34,14 +34,18 @@ class Application(Operation):
                  need_check_game_win: bool = True,
                  op_to_enter_game: Optional[Operation] = None,
                  run_record: Optional[AppRunRecord] = None,
-                 need_ocr: bool = True,  # TODO 后续删掉这个标志 需要统一初始化
                  need_notify: bool = False,
                  ):
-        super().__init__(ctx, node_max_retry_times=node_max_retry_times, op_name=op_name,
-                         timeout_seconds=timeout_seconds,
-                         op_callback=op_callback,
-                         need_check_game_win=need_check_game_win,
-                         op_to_enter_game=op_to_enter_game)
+        Operation.__init__(
+            self,
+            ctx,
+            node_max_retry_times=node_max_retry_times,
+            op_name=op_name,
+            timeout_seconds=timeout_seconds,
+            op_callback=op_callback,
+            need_check_game_win=need_check_game_win,
+            op_to_enter_game=op_to_enter_game,
+        )
 
         self.app_id: str = app_id
         """应用唯一标识"""
@@ -53,9 +57,6 @@ class Application(Operation):
                 instance_idx=ctx.current_instance_idx,
             )
         """运行记录"""
-
-        self.need_ocr: bool = need_ocr
-        """需要OCR"""
 
         self.need_notify: bool = need_notify  # 节点运行结束后发送通知
 
@@ -75,7 +76,6 @@ class Application(Operation):
         if self.need_notify:
             self.notify(None)
 
-        self.init_for_application()
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
 
     def after_operation_done(self, result: OperationResult):
@@ -156,11 +156,3 @@ class Application(Operation):
     @staticmethod
     def get_preheat_executor() -> ThreadPoolExecutor:
         return _app_preheat_executor
-
-    def init_for_application(self) -> bool:
-        """
-        初始化
-        """
-        if self.need_ocr:  # TODO 后续删除这个参数 OCR作为基础服务统一在ctx做初始化
-            self.ctx.init_ocr()
-        return True

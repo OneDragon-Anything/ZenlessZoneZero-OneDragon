@@ -49,7 +49,6 @@ class ScreenContext:
         self._screen_area_map: dict[str, ScreenArea] = {}
         self.screen_route_map: dict[str, dict[str, ScreenRoute]] = {}
 
-        self.load_all()
         self.last_screen_name: Optional[str] = None  # 上一个画面名字
         self.current_screen_name: Optional[str] = None  # 当前的画面名字
 
