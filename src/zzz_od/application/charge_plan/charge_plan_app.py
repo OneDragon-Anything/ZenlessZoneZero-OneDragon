@@ -11,7 +11,6 @@ from zzz_od.application.charge_plan.charge_plan_config import (
     CardNumEnum,
     ChargePlanConfig,
     ChargePlanItem,
-    RestoreChargeEnum,
 )
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -127,7 +126,7 @@ class ChargePlanApp(ZApplication):
             # 检查电量是否足够
             if not self.need_to_check_power_in_mission and self.charge_power < need_charge_power:
                 if (
-                    self.config.restore_charge == RestoreChargeEnum.NONE.value.value
+                    not self.config.is_restore_charge_enabled
                     or (self.node_status.get('恢复电量') and self.node_status.get('恢复电量').is_fail)
                 ):
                     if not self.config.skip_plan:

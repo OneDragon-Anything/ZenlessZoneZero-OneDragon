@@ -310,3 +310,7 @@ class ChargePlanConfig(ApplicationConfig):
     @restore_charge.setter
     def restore_charge(self, new_value: str) -> None:
         self.update('restore_charge', new_value)
+
+    @property
+    def is_restore_charge_enabled(self) -> bool:
+        return self.restore_charge != RestoreChargeEnum.NONE.value.value

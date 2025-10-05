@@ -16,7 +16,6 @@ from one_dragon.yolo.detect_utils import DetectFrameResult
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanItem,
-    RestoreChargeEnum,
     ChargePlanConfig,
 )
 from zzz_od.application.notorious_hunt import notorious_hunt_const
@@ -265,7 +264,7 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
-        if self.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value:
+        if not self.charge_plan_config.is_restore_charge_enabled:
             return self.round_success(NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
         result = self.round_by_op_result(op.execute())
