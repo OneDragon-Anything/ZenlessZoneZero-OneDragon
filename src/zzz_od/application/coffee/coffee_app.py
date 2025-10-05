@@ -1,20 +1,29 @@
+import difflib
 import time
+from typing import ClassVar, List, Optional
 
 import cv2
-import difflib
 import numpy as np
-from typing import Optional, List, ClassVar
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import os_utils, cv2_utils, str_utils
+from one_dragon.utils import cv2_utils, os_utils, str_utils
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.charge_plan.charge_plan_app import ChargePlanApp
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
-from zzz_od.application.coffee.coffee_config import CoffeeChooseWay, CoffeeChallengeWay
+from zzz_od.application.charge_plan import charge_plan_const
+from zzz_od.application.charge_plan.charge_plan_config import (
+    ChargePlanConfig,
+    ChargePlanItem,
+)
+from zzz_od.application.coffee import coffee_app_const
+from zzz_od.application.coffee.coffee_config import (
+    CoffeeChallengeWay,
+    CoffeeChooseWay,
+    CoffeeConfig,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.compendium import Coffee
@@ -38,9 +47,18 @@ class CoffeeApp(ZApplication):
             self,
             ctx=ctx, app_id='coffee',
             op_name=gt('咖啡店'),
-            run_record=ctx.coffee_record,
-            retry_in_od=True,  # 传送落地有可能会歪 重试
             need_notify=True,
+        )
+
+        self.config: Optional[CoffeeConfig] = self.ctx.run_context.get_config(
+            app_id=coffee_app_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=self.ctx.run_context.current_group_id,
+        )
+        self.charge_plan_config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+            app_id=charge_plan_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
         )
 
         self.chosen_coffee: Optional[Coffee] = None  # 选择的咖啡
@@ -162,12 +180,12 @@ class CoffeeApp(ZApplication):
                 continue
             to_choose_list.append(i.coffee_name)
 
-        if self.ctx.coffee_config.choose_way == CoffeeChooseWay.PLAN_PRIORITY.value.value:
+        if self.config.choose_way == CoffeeChooseWay.PLAN_PRIORITY.value.value:
             opt_coffee_list = self.ctx.compendium_service.coffee_schedule[day]
 
-            self.ctx.charge_plan_config.reset_plans()
+            self.charge_plan_config.reset_plans()
             # 先找还没有完成的计划
-            for plan in self.ctx.charge_plan_config.plan_list:
+            for plan in self.charge_plan_config.plan_list:
                 if plan.run_times >= plan.plan_times:
                     continue
                 for coffee in opt_coffee_list:
@@ -176,7 +194,7 @@ class CoffeeApp(ZApplication):
                     break
 
             # 再找还已经完成的计划
-            for plan in self.ctx.charge_plan_config.plan_list:
+            for plan in self.charge_plan_config.plan_list:
                 if plan.run_times < plan.plan_times:
                     continue
                 for coffee in opt_coffee_list:
@@ -193,7 +211,7 @@ class CoffeeApp(ZApplication):
                         to_choose_list.append(coffee.coffee_name)
                         break
 
-        day_config_coffee = self.ctx.coffee_config.get_coffee_by_day(day)
+        day_config_coffee = self.config.get_coffee_by_day(day)
         if day_config_coffee not in self.had_coffee_list:
             to_choose_list.append(day_config_coffee)
 
@@ -286,15 +304,15 @@ class CoffeeApp(ZApplication):
             # 没有加成的
             return self.round_success('没有加成')
 
-        if self.ctx.coffee_config.challenge_way == CoffeeChallengeWay.NONE.value.value:
+        if self.config.challenge_way == CoffeeChallengeWay.NONE.value.value:
             # 不挑战的
             return self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '对话框确认',
                                                      success_wait=1, retry_wait=1)
 
-        if self.ctx.coffee_config.challenge_way == CoffeeChallengeWay.ONLY_PLAN.value.value:
+        if self.config.challenge_way == CoffeeChallengeWay.ONLY_PLAN.value.value:
             # 只挑战体力计划的
             in_plan = False
-            for plan in self.ctx.charge_plan_config.plan_list:
+            for plan in self.charge_plan_config.plan_list:
                 if self._is_coffee_for_plan(self.chosen_coffee, plan):
                     in_plan = True
                     break
@@ -313,13 +331,13 @@ class CoffeeApp(ZApplication):
             return self.round_fail('没有增益的咖啡')
 
         coffee_plan: Optional[ChargePlanItem] = None
-        for plan in self.ctx.charge_plan_config.plan_list:
+        for plan in self.charge_plan_config.plan_list:
             if self._is_coffee_for_plan(self.chosen_coffee, plan):
                 coffee_plan = plan
                 break
 
         if coffee_plan is None:
-            card_num = self.ctx.coffee_config.card_num
+            card_num = self.config.card_num
         else:
             card_num = coffee_plan.card_num
 
@@ -328,8 +346,8 @@ class CoffeeApp(ZApplication):
             category_name=self.chosen_coffee.category.category_name,
             mission_type_name=self.chosen_coffee.mission_type.mission_type_name,
             mission_name=None if self.chosen_coffee.mission is None else self.chosen_coffee.mission.mission_name,
-            predefined_team_idx=self.ctx.coffee_config.predefined_team_idx,
-            auto_battle_config=self.ctx.coffee_config.auto_battle,
+            predefined_team_idx=self.config.predefined_team_idx,
+            auto_battle_config=self.config.auto_battle,
             run_times=0,
             plan_times=1,
             card_num=card_num
@@ -377,10 +395,12 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='返回大世界')
     @operation_node(name='结束后运行体力计划')
     def charge_plan_afterwards(self) -> OperationRoundResult:
-        if self.ctx.coffee_config.run_charge_plan_afterwards:
-            op = ChargePlanApp(self.ctx)
-            op.init_context_before_start = False
-            op.stop_context_after_stop = False
+        if self.config.run_charge_plan_afterwards:
+            op = self.ctx.run_context.get_application(
+                app_id=charge_plan_const.APP_ID,
+                instance_idx=self.ctx.current_instance_idx,
+                group_id=self.ctx.run_context.current_group_id,
+            )
             return self.round_by_op_result(op.execute())
         else:
             return self.round_success('无需运行')

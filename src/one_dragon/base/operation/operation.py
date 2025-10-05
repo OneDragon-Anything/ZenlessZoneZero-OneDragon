@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import difflib
 import inspect
 import time
 from functools import cached_property
 from io import BytesIO
-from typing import Optional, ClassVar, Callable, Any
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Optional
 
 import cv2
 import numpy as np
@@ -12,18 +14,25 @@ from cv2.typing import MatLike
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.matcher.ocr import ocr_utils
-from one_dragon.base.operation.one_dragon_context import OneDragonContext, ContextRunningStateEventEnum
+from one_dragon.base.operation.application.application_run_context import (
+    ApplicationRunContextStateEventEnum,
+)
 from one_dragon.base.operation.operation_base import OperationBase, OperationResult
 from one_dragon.base.operation.operation_edge import OperationEdge, OperationEdgeDesc
 from one_dragon.base.operation.operation_node import OperationNode
-from one_dragon.base.operation.operation_round_result import OperationRoundResultEnum, OperationRoundResult
+from one_dragon.base.operation.operation_round_result import (
+    OperationRoundResult,
+    OperationRoundResultEnum,
+)
 from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_area import ScreenArea
-from one_dragon.base.screen.screen_utils import OcrClickResultEnum, FindAreaResultEnum
-from one_dragon.utils import debug_utils, cv2_utils, str_utils
+from one_dragon.base.screen.screen_utils import FindAreaResultEnum, OcrClickResultEnum
+from one_dragon.utils import cv2_utils, debug_utils, str_utils
 from one_dragon.utils.i18_utils import coalesce_gt, gt
 from one_dragon.utils.log_utils import log
 
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 class PreviousNodeStateProxy:
     """
@@ -210,9 +219,9 @@ class Operation(OperationBase):
         self.node_status.clear()
 
         # 监听事件
-        self.ctx.unlisten_all_event(self)
-        self.ctx.listen_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, self._on_pause)
-        self.ctx.listen_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, self._on_resume)
+        self.ctx.run_context.event_bus.unlisten_all_event(self)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.PAUSE, self._on_pause)
+        self.ctx.run_context.event_bus.listen_event(ApplicationRunContextStateEventEnum.RESUME, self._on_resume)
 
         self.handle_init()
 
@@ -406,10 +415,10 @@ class Operation(OperationBase):
             if self.timeout_seconds != -1 and self.operation_usage_time >= self.timeout_seconds:
                 op_result = self.op_fail(Operation.STATUS_TIMEOUT)
                 break
-            if self.ctx.is_context_stop:
+            if self.ctx.run_context.is_context_stop:
                 op_result = self.op_fail('人工结束')
                 break
-            elif self.ctx.is_context_pause:
+            elif self.ctx.run_context.is_context_pause:
                 time.sleep(1)
                 continue
 
@@ -428,7 +437,7 @@ class Operation(OperationBase):
                     else:
                         arrow = f"{from_node_name} -> {node_name}" if self._previous_node is not None else node_name
                         log.info('%s 节点 %s 返回状态 %s', self.display_name, arrow, round_result_status)
-                if self.ctx.is_context_pause:  # 有可能触发暂停的时候仍在执行指令 执行完成后 再次触发暂停回调 保证操作的暂停回调真正生效
+                if self.ctx.run_context.is_context_pause:  # 有可能触发暂停的时候仍在执行指令 执行完成后 再次触发暂停回调 保证操作的暂停回调真正生效
                     self._on_pause()
             except Exception as e:
                 round_result: OperationRoundResult = self.round_retry('异常')
@@ -570,7 +579,7 @@ class Operation(OperationBase):
         Args:
             e: 事件参数（可选）。
         """
-        if not self.ctx.is_context_pause:
+        if not self.ctx.run_context.is_context_pause:
             return
         self.current_pause_time = 0
         self.pause_start_time = time.time()
@@ -589,7 +598,7 @@ class Operation(OperationBase):
         Args:
             e: 事件参数（可选）。
         """
-        if not self.ctx.is_context_running:
+        if not self.ctx.run_context.is_context_running:
             return
         self.current_pause_time = time.time() - self.pause_start_time
         self.pause_total_time += self.current_pause_time
@@ -996,7 +1005,7 @@ class Operation(OperationBase):
             area: Optional[ScreenArea] = None,
             success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,
             retry_wait: Optional[float] = None, retry_wait_round: Optional[float] = None,
-            color_range: Optional[list] = None,
+            color_range: Optional[list[list[int]]] = None,
             offset: Optional[Point] = None,
     ) -> OperationRoundResult:
         """使用OCR按优先级在区域内查找文本并点击。
@@ -1030,12 +1039,15 @@ class Operation(OperationBase):
             # 回退到原有方法
             to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
             if color_range is not None:
-                mask = cv2.inRange(to_ocr_part, color_range[0], color_range[1])
+                mask = cv2.inRange(to_ocr_part, np.array(color_range[0]), np.array(color_range[1]))
                 mask = cv2_utils.dilate(mask, 5)
                 to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
                 # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
 
             ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
+            if area is not None:
+                for _, mrl in ocr_result_map.items():
+                    mrl.add_offset(area.left_top)
 
         match_word, match_word_mrl = ocr_utils.match_word_list_by_priority(
             ocr_result_map,
@@ -1044,9 +1056,6 @@ class Operation(OperationBase):
         )
         if match_word is not None and match_word_mrl is not None and match_word_mrl.max is not None:
             to_click = match_word_mrl.max.center
-
-            if area is not None:
-                to_click = to_click + area.left_top
 
             if offset is not None:
                 to_click = to_click + offset

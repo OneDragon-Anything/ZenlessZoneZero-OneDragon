@@ -3,7 +3,10 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.battle_assistant.auto_battle_app import AutoBattleApp
+from zzz_od.application.battle_assistant.auto_battle.auto_battle_app import (
+    AutoBattleApp,
+)
+from zzz_od.application.battle_assistant.dodge_assitant import dodge_assistant_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.config.game_config import GamepadTypeEnum
@@ -18,8 +21,9 @@ class DodgeAssistantApp(ZApplication):
         """
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='dodge_assistant',
-            op_name=gt('闪避助手'),
+            ctx=ctx,
+            app_id=dodge_assistant_const.APP_ID,
+            op_name=gt(dodge_assistant_const.APP_NAME),
             need_ocr=False
         )
 

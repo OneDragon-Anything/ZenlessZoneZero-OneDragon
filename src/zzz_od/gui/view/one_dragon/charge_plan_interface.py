@@ -4,7 +4,9 @@ from qfluentwidgets import PrimaryPushButton, FluentIcon, CaptionLabel, LineEdit
 from typing import Optional, List
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.base.operation.application import application_const
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.horizontal_setting_card_group import HorizontalSettingCardGroup
@@ -14,7 +16,9 @@ from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSetting
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum
+from zzz_od.application.charge_plan import charge_plan_const
+from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum, \
+    ChargePlanConfig
 from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntBuffEnum
 from zzz_od.context.zzz_context import ZContext
 
@@ -27,10 +31,12 @@ class ChargePlanCard(MultiLineSettingCard):
     move_top = Signal(int)
 
     def __init__(self, ctx: ZContext,
-                 idx: int, plan: ChargePlanItem):
+                 idx: int, plan: ChargePlanItem,
+                 config: ChargePlanConfig):
         self.ctx: ZContext = ctx
         self.idx: int = idx
         self.plan: ChargePlanItem = plan
+        self.config: ChargePlanConfig = config
 
         self.category_combo_box = ComboBox()
         self.category_combo_box.currentIndexChanged.connect(self._on_category_changed)
@@ -94,7 +100,7 @@ class ChargePlanCard(MultiLineSettingCard):
             ]
         )
 
-        self.init_with_plan(plan)
+        self.init_with_plan(plan, config)
 
     def init_category_combo_box(self) -> None:
         config_list = self.ctx.compendium_service.get_charge_plan_category_list()
@@ -145,11 +151,16 @@ class ChargePlanCard(MultiLineSettingCard):
         self.plan_times_input.setText(str(self.plan.plan_times))
         self.plan_times_input.blockSignals(False)
 
-    def init_with_plan(self, plan: ChargePlanItem) -> None:
+    def init_with_plan(
+        self,
+        plan: ChargePlanItem,
+        config: ChargePlanConfig,
+    ) -> None:
         """
         以一个体力计划进行初始化
         """
         self.plan = plan
+        self.config = config
 
         self.init_category_combo_box()
         self.init_mission_type_combo_box()
@@ -236,7 +247,7 @@ class ChargePlanCard(MultiLineSettingCard):
         """
         根据历史记录更新
         """
-        history = self.ctx.charge_plan_config.get_history_by_uid(self.plan)
+        history = self.config.get_history_by_uid(self.plan)
         if history is None:
             return
 
@@ -264,6 +275,8 @@ class ChargePlanInterface(VerticalScrollInterface):
             content_widget=None, parent=parent,
             nav_text_cn='体力计划'
         )
+
+        self.config: Optional[ChargePlanConfig] = None
 
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
@@ -307,25 +320,33 @@ class ChargePlanInterface(VerticalScrollInterface):
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
+
+        self.config = self.ctx.run_context.get_config(
+            app_id=charge_plan_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+
         self.update_plan_list_display()
 
-        self.loop_opt.init_with_adapter(self.ctx.charge_plan_config.get_prop_adapter('loop'))
-        self.skip_plan_opt.init_with_adapter(self.ctx.charge_plan_config.get_prop_adapter('skip_plan'))
-        self.coupon_opt.init_with_adapter(self.ctx.charge_plan_config.get_prop_adapter('use_coupon'))
-        self.restore_charge_opt.init_with_adapter(self.ctx.charge_plan_config.get_prop_adapter('restore_charge'))
+        self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
+        self.skip_plan_opt.init_with_adapter(get_prop_adapter(self.config, 'skip_plan'))
+        self.coupon_opt.init_with_adapter(get_prop_adapter(self.config, 'use_coupon'))
+        self.restore_charge_opt.init_with_adapter(get_prop_adapter(self.config, 'restore_charge'))
 
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
 
     def update_plan_list_display(self):
-        plan_list = self.ctx.charge_plan_config.plan_list
+        plan_list = self.config.plan_list
 
         if len(plan_list) > len(self.card_list):
             self.content_widget.remove_widget(self.plus_btn)
 
             while len(self.card_list) < len(plan_list):
                 idx = len(self.card_list)
-                card = ChargePlanCard(self.ctx, idx, self.ctx.charge_plan_config.plan_list[idx])
+                card = ChargePlanCard(self.ctx, idx, self.config.plan_list[idx],
+                                      config=self.config)
                 card.changed.connect(self._on_plan_item_changed)
                 card.delete.connect(self._on_plan_item_deleted)
                 card.move_up.connect(self._on_plan_item_move_up)
@@ -338,7 +359,7 @@ class ChargePlanInterface(VerticalScrollInterface):
 
         for idx, plan in enumerate(plan_list):
             card = self.card_list[idx]
-            card.init_with_plan(plan)
+            card.init_with_plan(plan, self.config)
 
         while len(self.card_list) > len(plan_list):
             card = self.card_list[-1]
@@ -348,25 +369,25 @@ class ChargePlanInterface(VerticalScrollInterface):
 
     def _on_add_clicked(self) -> None:
         from zzz_od.gui.view.one_dragon.charge_plan_dialog import ChargePlanDialog
-        dialog = ChargePlanDialog(self.ctx, parent=self)
+        dialog = ChargePlanDialog(self.ctx, self.config, parent=self)
         result = dialog.exec()
         if result:
-            self.ctx.charge_plan_config.add_plan(dialog.plan)
+            self.config.add_plan(dialog.plan)
         self.update_plan_list_display()
 
     def _on_plan_item_changed(self, idx: int, plan: ChargePlanItem) -> None:
-        self.ctx.charge_plan_config.update_plan(idx, plan)
+        self.config.update_plan(idx, plan)
 
     def _on_plan_item_deleted(self, idx: int) -> None:
-        self.ctx.charge_plan_config.delete_plan(idx)
+        self.config.delete_plan(idx)
         self.update_plan_list_display()
 
     def _on_plan_item_move_up(self, idx: int) -> None:
-        self.ctx.charge_plan_config.move_up(idx)
+        self.config.move_up(idx)
         self.update_plan_list_display()
 
     def _on_plan_item_move_top(self, idx: int) -> None:
-        self.ctx.charge_plan_config.move_top(idx)
+        self.config.move_top(idx)
         self.update_plan_list_display()
 
     def _on_remove_all_completed_clicked(self) -> None:
@@ -375,11 +396,11 @@ class ChargePlanInterface(VerticalScrollInterface):
         dialog.yesButton.setText('确定')
         dialog.cancelButton.setText('取消')
         if dialog.exec():
-            self.plan_list_backup = self.ctx.charge_plan_config.plan_list.copy()
-            not_completed_plans = [plan for plan in self.ctx.charge_plan_config.plan_list
+            self.plan_list_backup = self.config.plan_list.copy()
+            not_completed_plans = [plan for plan in self.config.plan_list
                                    if plan.run_times < plan.plan_times]
-            self.ctx.charge_plan_config.plan_list = not_completed_plans.copy()
-            self.ctx.charge_plan_config.save()
+            self.config.plan_list = not_completed_plans.copy()
+            self.config.save()
             self.cancel_btn.setEnabled(True)
         self.update_plan_list_display()
 
@@ -389,13 +410,13 @@ class ChargePlanInterface(VerticalScrollInterface):
         dialog.yesButton.setText('确定')
         dialog.cancelButton.setText('取消')
         if dialog.exec():
-            self.plan_list_backup = self.ctx.charge_plan_config.plan_list.copy()
-            self.ctx.charge_plan_config.plan_list.clear()
-            self.ctx.charge_plan_config.save()
+            self.plan_list_backup = self.config.plan_list.copy()
+            self.config.plan_list.clear()
+            self.config.save()
             self.cancel_btn.setEnabled(True)
         self.update_plan_list_display()
 
     def _on_cancel_clicked(self) -> None:
-        self.ctx.charge_plan_config.plan_list = self.plan_list_backup.copy()
+        self.config.plan_list = self.plan_list_backup.copy()
         self.cancel_btn.setEnabled(False)
         self.update_plan_list_display()

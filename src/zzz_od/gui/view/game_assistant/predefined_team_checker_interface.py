@@ -1,12 +1,10 @@
-from PySide6.QtWidgets import QWidget
-from typing import Optional
 
-from one_dragon.base.operation.application_base import Application
+from PySide6.QtWidgets import QWidget
+
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
-from zzz_od.application.game_config_checker.predefined_team_checker import PredefinedTeamChecker
-from zzz_od.application.zzz_application import ZApplication
+from zzz_od.application.game_config_checker import predefined_team_checker_const
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -16,11 +14,11 @@ class PredefinedTeamCheckerInterface(AppRunInterface):
                  ctx: ZContext,
                  parent=None):
         self.ctx: ZContext = ctx
-        self.app: Optional[ZApplication] = None
 
         AppRunInterface.__init__(
             self,
             ctx=ctx,
+            app_id=predefined_team_checker_const.APP_ID,
             object_name='predefined_team_checker_interface',
             nav_text_cn='预备编队识别',
             parent=parent,
@@ -37,6 +35,3 @@ class PredefinedTeamCheckerInterface(AppRunInterface):
 
     def on_interface_shown(self) -> None:
         AppRunInterface.on_interface_shown(self)
-
-    def get_app(self) -> Application:
-        return PredefinedTeamChecker(self.ctx)

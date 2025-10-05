@@ -1,13 +1,18 @@
 import time
-from typing import ClassVar
+from typing import ClassVar, Optional
 
+from one_dragon.base.geometry.point import Point
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
-from one_dragon.base.geometry.point import Point
-from zzz_od.application.charge_plan.charge_plan_config import RestoreChargeEnum
+from zzz_od.application.charge_plan import charge_plan_const
+from zzz_od.application.charge_plan.charge_plan_config import (
+    ChargePlanConfig,
+    RestoreChargeEnum,
+)
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -35,6 +40,12 @@ class RestoreCharge(ZOperation):
             ctx=ctx,
             op_name='恢复电量'
         )
+        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+            app_id=charge_plan_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+
         self.required_charge = required_charge
         self.is_menu = is_menu
 
@@ -53,11 +64,11 @@ class RestoreCharge(ZOperation):
     @node_from(from_name='打开恢复界面')
     @operation_node(name='选择电量来源')
     def select_charge_source(self) -> OperationRoundResult:
-        if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.BACKUP_ONLY.value.value:
+        if self.config.restore_charge == RestoreChargeEnum.BACKUP_ONLY.value.value:
             target_list = [self.SOURCE_BACKUP_CHARGE]
-        elif self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.ETHER_ONLY.value.value:
+        elif self.config.restore_charge == RestoreChargeEnum.ETHER_ONLY.value.value:
             target_list = [self.SOURCE_ETHER_BATTERY]
-        elif self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.BOTH.value.value:
+        elif self.config.restore_charge == RestoreChargeEnum.BOTH.value.value:
             target_list = [self.SOURCE_BACKUP_CHARGE, self.SOURCE_ETHER_BATTERY]
 
         target_text_list = [gt(text, 'game') for text in target_list]
@@ -154,7 +165,7 @@ def __debug_charge():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.init_ocr()
-    ctx.start_running()
+    ctx.run_context.start_running()
     from one_dragon.utils import debug_utils
     screen = debug_utils.get_debug_image('_1753519599239')
     amount_area = ctx.screen_loader.get_area('恢复电量', '当前数量')
@@ -169,7 +180,7 @@ def __debug():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.init_ocr()
-    ctx.start_running()
+    ctx.run_context.start_running()
     op = RestoreCharge(ctx, required_charge=10)
     op.execute()
 

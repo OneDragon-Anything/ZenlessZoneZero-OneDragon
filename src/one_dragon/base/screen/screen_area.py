@@ -45,6 +45,10 @@ class ScreenArea:
         return self.rect.left_top
 
     @property
+    def right_bottom(self) -> Point:
+        return self.rect.right_bottom
+
+    @property
     def x1(self) -> int:
         return self.rect.x1
 

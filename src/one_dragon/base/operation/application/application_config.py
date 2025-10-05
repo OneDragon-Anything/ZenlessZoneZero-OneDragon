@@ -1,3 +1,6 @@
+import os
+import shutil
+
 from one_dragon.base.config.yaml_operator import YamlOperator
 from one_dragon.utils import os_utils
 
@@ -14,7 +17,17 @@ class ApplicationConfig(YamlOperator):
             instance_idx: 实例下标
             group_id: 应用组ID
         """
-        file_path = os_utils.get_path_under_work_dir(
-            "config", str(instance_idx), group_id, f"{app_id}.yml"
+        file_path = os.path.join(
+            os_utils.get_path_under_work_dir("config", ('%02d' % instance_idx), group_id),
+            f"{app_id}.yml",
         )
+
+        # 需要从没有group_id的版本迁移过来 预计 2026-09-21 可以删除这段代码
+        old_path = os.path.join(
+            os_utils.get_path_under_work_dir("config", ('%02d' % instance_idx)),
+            f"{app_id}.yml",
+        )
+        if not os.path.exists(file_path) and os.path.exists(old_path):
+            shutil.copy2(old_path, file_path)
+
         YamlOperator.__init__(self, file_path=file_path)

@@ -1,9 +1,11 @@
-from enum import Enum
-from typing import Optional, List
 import uuid
+from enum import Enum
+from typing import List, Optional
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.operation.application.application_config import ApplicationConfig
+from zzz_od.application.charge_plan import charge_plan_const
 
 
 class CardNumEnum(Enum):
@@ -65,13 +67,14 @@ class ChargePlanItem:
         )
 
 
-class ChargePlanConfig(YamlConfig):
+class ChargePlanConfig(ApplicationConfig):
 
-    def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+    def __init__(self, instance_idx: int, group_id: str):
+        ApplicationConfig.__init__(
             self,
-            module_name='charge_plan',
             instance_idx=instance_idx,
+            group_id=group_id,
+            app_id=charge_plan_const.APP_ID,
         )
 
         self.plan_list: List[ChargePlanItem] = []
@@ -307,3 +310,7 @@ class ChargePlanConfig(YamlConfig):
     @restore_charge.setter
     def restore_charge(self, new_value: str) -> None:
         self.update('restore_charge', new_value)
+
+    @property
+    def is_restore_charge_enabled(self) -> bool:
+        return self.restore_charge != RestoreChargeEnum.NONE.value.value

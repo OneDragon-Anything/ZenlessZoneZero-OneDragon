@@ -212,6 +212,11 @@ class PcControllerBase(ControllerBase):
         if win_pos is not None:
             pyautogui.moveTo(win_pos.x, win_pos.y)
 
+    @property
+    def center_point(self) -> Point:
+        return Point(self.standard_width // 2, self.standard_height // 2)
+
+
 
 def win_click(pos: Point = None, press_time: float = 0, primary: bool = True):
     """

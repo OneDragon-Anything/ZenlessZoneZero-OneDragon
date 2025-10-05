@@ -14,7 +14,6 @@ class ProjectConfig(YamlConfig):
         self.gitee_https_repository = self.get('gitee_https_repository')
         self.gitee_ssh_repository = self.get('gitee_ssh_repository')
         self.project_git_branch = self.get('project_git_branch')
-        self.requirements = self.get('requirements')
 
         self.screen_standard_width = int(self.get('screen_standard_width'))
         self.screen_standard_height = int(self.get('screen_standard_height'))
@@ -23,5 +22,4 @@ class ProjectConfig(YamlConfig):
         self.qq_link = self.get('qq_link')
         self.quick_start_link = self.get('quick_start_link')  # 链接 - 快速开始
         self.home_page_link = self.get('home_page_link')  # 链接 - 主页
-        self.chat_link = self.get('chat_link')  # 链接 - 社群
         self.doc_link = self.get('doc_link')  # 链接 - 文档

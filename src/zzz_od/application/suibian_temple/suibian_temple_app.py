@@ -2,9 +2,28 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_squad import SuibianTempleAdventureSquad
-from zzz_od.application.suibian_temple.operations.suibian_temple_craft import SuibianTempleCraft
-from zzz_od.application.suibian_temple.operations.suibian_temple_yum_cha_sin import SuibianTempleYumChaSin
+from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_squad import (
+    SuibianTempleAdventureSquad,
+)
+from zzz_od.application.suibian_temple.operations.suibian_temple_boo_box import (
+    SuibianTempleBooBox,
+)
+from zzz_od.application.suibian_temple.operations.suibian_temple_craft import (
+    SuibianTempleCraft,
+)
+from zzz_od.application.suibian_temple.operations.suibian_temple_good_goods import (
+    SuibianTempleGoodGoods,
+)
+from zzz_od.application.suibian_temple.operations.suibian_temple_pawnshop import (
+    SuibianTemplePawnshop,
+)
+from zzz_od.application.suibian_temple.operations.suibian_temple_sales_stall import (
+    SuibianTempleSalesStall,
+)
+from zzz_od.application.suibian_temple.operations.suibian_temple_yum_cha_sin import (
+    SuibianTempleYumChaSin,
+)
+from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempleConfig
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -17,10 +36,13 @@ class SuibianTempleApp(ZApplication):
             self,
             ctx=ctx, app_id='suibian_temple',
             op_name=gt('随便观'),
-            run_record=ctx.suibian_temple_record,
-            retry_in_od=True,  # 传送落地有可能会歪 重试
             need_notify=True,
         )
+        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(app_id='suibian_temple')  # type: ignore
+
+    def handle_init(self):
+        ZApplication.handle_init(self)
+        self.config = self.ctx.run_context.get_config(app_id="suibian_temple")
 
     @operation_node(name='识别初始画面', is_start_node=True)
     def check_initial_screen(self) -> OperationRoundResult:
@@ -73,69 +95,72 @@ class SuibianTempleApp(ZApplication):
 
     @node_from(from_name='识别初始画面', status='随便观-入口')
     @node_from(from_name='前往随便观')
-    @operation_node(name='前往游历')
-    def goto_adventure(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(
-            self.last_screenshot, '随便观-入口', '按钮-游历',
-            success_wait=1, retry_wait=1,
-            until_not_find_all=[('随便观-入口', '按钮-游历')]
-        )
-
-    @node_from(from_name='前往游历')
     @operation_node(name='处理游历')
     def handle_adventure_squad(self) -> OperationRoundResult:
-        op = SuibianTempleAdventureSquad(self.ctx)
+        op = SuibianTempleAdventureSquad(
+            self.ctx,
+            claim=True,
+            dispatch=not self.config.yum_cha_sin,  # 开启饮茶仙就不收获
+        )
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='处理游历')
-    @operation_node(name='前往经营')
-    def goto_business(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(
-            self.last_screenshot, '随便观-入口', '按钮-经营',
-            success_wait=1, retry_wait=1,
-            until_not_find_all=[('随便观-入口', '按钮-经营')]
-        )
+    @operation_node(name='处理饮茶仙')
+    def handle_yum_cha_sin_submit(self) -> OperationRoundResult:
+        if self.config.yum_cha_sin:
+            op = SuibianTempleYumChaSin(self.ctx)
+            return self.round_by_op_result(op.execute())
+        else:
+            return self.round_success(status='未开启')
 
-    @node_from(from_name='前往经营')
-    @operation_node(name='前往制造')
-    def goto_craft(self) -> OperationRoundResult:
-        return self.round_by_ocr_and_click(self.last_screenshot, '制造', success_wait=1, retry_wait=1)
+    @node_from(from_name='处理饮茶仙')  # 只有开启了饮茶仙 才需要在饮茶仙之后再进一次游历
+    @operation_node(name='饮茶仙后处理游历')
+    def handle_adventure_squad_2(self) -> OperationRoundResult:
+        op = SuibianTempleAdventureSquad(self.ctx, claim=False, dispatch=True)
+        return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='前往制造')
+    @node_from(from_name='处理饮茶仙', status='未开启')
+    @node_from(from_name='饮茶仙后处理游历')
     @operation_node(name='处理制造坊')
     def handle_craft(self) -> OperationRoundResult:
         op = SuibianTempleCraft(self.ctx)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='处理制造坊')
-    @operation_node(name='前往饮茶仙')
-    def goto_yum_cha_sin(self) -> OperationRoundResult:
-        current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-饮茶仙'])
-        if current_screen_name is not None:
-            # 引入饮茶仙前做一些初始化
-            self.last_yum_cha_opt = ''
-            self.last_yum_cha_period = False
-            return self.round_success(status=current_screen_name)
-
-        target_cn_list: list[str] = [
-            '邻里街坊',
-            '饮茶仙',
-        ]
-        ignore_cn_list: list[str] = [
-        ]
-        result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=ignore_cn_list)
-        if result.is_success:
-            return self.round_wait(status=result.status, wait=1)
-
-        return self.round_retry(status='未识别当前画面', wait=1)
-
-    @node_from(from_name='前往饮茶仙')
-    @operation_node(name='处理饮茶仙')
-    def handle_yum_cha_sin_submit(self) -> OperationRoundResult:
-        op = SuibianTempleYumChaSin(self.ctx)
+    @operation_node(name='处理售卖铺')
+    def handle_sales_stall(self) -> OperationRoundResult:
+        op = SuibianTempleSalesStall(self.ctx)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='处理饮茶仙')
+    @node_from(from_name='处理售卖铺')
+    @operation_node(name='处理好物铺')
+    def handle_good_goods(self) -> OperationRoundResult:
+        if self.config.good_goods_purchase_enabled:
+            op = SuibianTempleGoodGoods(self.ctx)
+            return self.round_by_op_result(op.execute())
+        else:
+            return self.round_success(status='未开启')
+
+    @node_from(from_name='处理好物铺')
+    @operation_node(name='处理邦巢')
+    def handle_boo_box(self) -> OperationRoundResult:
+        """检查是否启用邦巢购买功能，决定后续流程"""
+        if self.config.boo_box_purchase_enabled:
+            op = SuibianTempleBooBox(self.ctx)
+            return self.round_by_op_result(op.execute())
+        else:
+            return self.round_success(status='未开启')
+
+    @node_from(from_name='处理邦巢')
+    @operation_node(name='处理德丰大押')
+    def handle_pawnshop(self) -> OperationRoundResult:
+        if self.config.pawnshop_crest_enabled or self.config.pawnshop_omnicoin_enabled:
+            op = SuibianTemplePawnshop(self.ctx)
+            return self.round_by_op_result(op.execute())
+        else:
+            return self.round_success(status='未开启')
+
+    @node_from(from_name='处理德丰大押')
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
         self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
@@ -146,6 +171,9 @@ class SuibianTempleApp(ZApplication):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
+    ctx.run_context.current_instance_idx = ctx.current_instance_idx
+    ctx.run_context.current_app_id = 'suibian_temple'
+    ctx.run_context.current_group_id = 'one_dragon'
     app = SuibianTempleApp(ctx)
     app.execute()
 

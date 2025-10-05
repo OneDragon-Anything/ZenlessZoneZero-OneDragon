@@ -6,6 +6,7 @@ from one_dragon.base.operation.application.application_config import Application
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
+from zzz_od.application.battle_assistant.dodge_assitant import dodge_assistant_const
 from zzz_od.application.battle_assistant.dodge_assitant.dodge_assistant_app import (
     DodgeAssistantApp,
 )
@@ -32,7 +33,11 @@ class DodgeAssistantFactory(ApplicationFactory):
         Args:
             ctx: 绝区零游戏上下文，提供游戏状态和操作接口
         """
-        ApplicationFactory.__init__(self, app_id="dodge_assistant")
+        ApplicationFactory.__init__(
+            self,
+            app_id=dodge_assistant_const.APP_ID,
+            app_name=dodge_assistant_const.APP_NAME,
+        )
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

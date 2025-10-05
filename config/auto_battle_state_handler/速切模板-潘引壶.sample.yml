@@ -44,4 +44,4 @@ handlers:
             post_delay: 0.1
             repeat: 10
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state_list: ["自定义-速切结束"]

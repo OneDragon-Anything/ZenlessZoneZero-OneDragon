@@ -1,0 +1,20 @@
+idx: 4
+op_list:
+- data:
+  - '311'
+  - '750'
+  op_type: move
+- data:
+  - '311'
+  - '863'
+  op_type: move
+- data:
+  - '344'
+  - '925'
+  op_type: move
+- data:
+  - '352'
+  - '939'
+  op_type: move
+tp_area_id: former_research_center
+tp_name: 科研院仓库

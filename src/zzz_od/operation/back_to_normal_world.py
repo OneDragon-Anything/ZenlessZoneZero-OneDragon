@@ -105,7 +105,12 @@ class BackToNormalWorld(ZOperation):
 
         click_back = self.round_by_click_area('菜单', '返回')
         if click_back.is_success:
-            return self.round_retry(click_back.status, wait_round_time=1)
+            # 由于上方识别可能耗时较长
+            # 这样就可能 当前截图是没加载的 耗时识别后加载好 但点击了返回
+            # 那如果使用wait_round_time=1的话 可能导致点击后基本不等待
+            # 进入下一轮截图就会识别到在大世界 但因为点击了返回又到了菜单
+            # 相关 issue #1357
+            return self.round_retry(click_back.status, wait=1)
         else:
             return self.round_fail()
 
@@ -170,7 +175,7 @@ def __debug_op():
     ctx.init_by_config()
     ctx.init_ocr()
     op = BackToNormalWorld(ctx)
-    ctx.start_running()
+    ctx.run_context.start_running()
     op.execute()
 
 

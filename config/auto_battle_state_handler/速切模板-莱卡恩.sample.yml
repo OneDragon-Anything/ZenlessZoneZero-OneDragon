@@ -33,7 +33,7 @@ handlers:
       - states: "[自定义-连携换人, 0, 10]"
         operations:
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state_list: ["自定义-速切结束"]
           - operation_template: "莱卡恩-普通攻击"
 
       # 终结技时刻，需要注意出场第一秒可能识别错误
@@ -50,7 +50,7 @@ handlers:
       - states: "[自定义-莱卡恩衔接长按蓄力, 0, 1]"
         operations:
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state_list: ["自定义-速切结束"]
           - operation_template: "莱卡恩-蓄力普通攻击"
           - op_name: "设置状态"
             state: "自定义-莱卡恩衔接长按蓄力A"
@@ -58,7 +58,7 @@ handlers:
       - states: ""
         operations:
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state_list: ["自定义-速切结束"]
           - operation_template: "莱卡恩-普通攻击"
           - op_name: "设置状态"
             state: "自定义-莱卡恩衔接长按蓄力A"

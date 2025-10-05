@@ -41,12 +41,12 @@ class DebugRouteRunner(QThread):
         :return:
         """
         try:
-            self.ctx.start_running()
+            self.ctx.run_context.start_running()
             self.op.execute()
         except Exception as e:
             log.error('调试异常', exc_info=True)
         finally:
-            self.ctx.stop_running()
+            self.ctx.run_context.stop_running()
 
 
 class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
@@ -176,6 +176,7 @@ class WorldPatrolRouteRecorderInterface(VerticalScrollInterface):
         self.debug_start_input = QSpinBox()
         self.debug_start_input.setMinimum(0)
         self.debug_start_input.setValue(0)
+        self.debug_start_input.setMinimumWidth(80)
         self.debug_route_btn = PushButton(text='调试')
         self.debug_route_btn.clicked.connect(self.on_debug_route_btn_clicked)
         self.debug_row = MultiPushSettingCard(

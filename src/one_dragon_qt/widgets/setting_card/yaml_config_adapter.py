@@ -1,14 +1,14 @@
-from typing import Optional, Any
+from typing import Any, Optional
 
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.config.yaml_operator import YamlOperator
 
 
 class YamlConfigAdapter:
 
-    def __init__(self, config: YamlConfig, field: str, default_val: Any = None,
+    def __init__(self, config: YamlOperator, field: str, default_val: Any = None,
                  getter_convert: Optional[str] = None,
                  setter_convert: Optional[str] = None):
-        self.config: YamlConfig = config
+        self.config: YamlOperator = config
         self.field: str = field
         self.default_val: Any = default_val
         self.getter_convert: Optional[str] = getter_convert

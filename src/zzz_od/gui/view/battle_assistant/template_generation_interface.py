@@ -163,7 +163,7 @@ class TemplateGenerationInterface(AppRunInterface):
         按键监听
         """
         key: str = event.data
-        if key == self.ctx.key_start_running and self.ctx.is_context_stop:
+        if key == self.ctx.key_start_running and self.ctx.run_context.is_context_stop:
             self._on_start_clicked()
         if key == self.ctx.key_stop_running:
             self._on_stop_clicked()
@@ -186,7 +186,7 @@ class TemplateGenerationInterface(AppRunInterface):
         self.app.button_listener.stop()
         self.app.battle.stop_context()
 
-        self.ctx.stop_running()
+        self.ctx.run_context.stop_running()
 
     def get_app(self) -> RecordContext:
         return self.app

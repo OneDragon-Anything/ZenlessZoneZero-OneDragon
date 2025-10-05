@@ -1,12 +1,17 @@
-from typing import Optional, ClassVar
+from typing import ClassVar, Optional
 
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.log_utils import log
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
+from zzz_od.application.charge_plan import charge_plan_const
+from zzz_od.application.charge_plan.charge_plan_config import (
+    ChargePlanConfig,
+    ChargePlanItem,
+)
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -21,6 +26,12 @@ class Coupon(ZOperation):
 
     def __init__(self, ctx: ZContext, plan: ChargePlanItem):
         ZOperation.__init__(self, ctx, op_name='处理家政券')
+        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+            app_id=charge_plan_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+
         self.plan: ChargePlanItem = plan
         self.coupon_num: Optional[int] = None
         self.can_use_times: int = 0
@@ -66,7 +77,7 @@ class Coupon(ZOperation):
         result = self.round_by_find_and_click_area(self.last_screenshot, '家政券', '确认')
         if result.is_success:
             # self.can_use_times -= 1
-            self.ctx.charge_plan_config.add_plan_run_times(self.plan)
+            self.config.add_plan_run_times(self.plan)
             return self.round_success(Coupon.STATUS_COUPON_AVAILABLE, wait=0.5)
         else:
             if self.plan.run_times < self.plan.plan_times:

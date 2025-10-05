@@ -410,19 +410,38 @@ class PhosTitleBar(SplitTitleBar):
     def setTitle(self, title: str):
         self.titleLabel.setText(title)
 
-    def setVersion(self, launcher_version: str, code_version: str) -> None:
+    def setLauncherVersion(self, version: str) -> None:
         """
-        设置版本号 会更新UI
+        设置启动器版本号 会更新UI
         @param version: 版本号
         @return:
         """
-        self.launcher_version = launcher_version
-        self.code_version = code_version
-        self.launcherVersionButton.setText(f"ⓘ 启动器版本 {launcher_version}")
-        self.codeVersionButton.setText(f"ⓘ 代码版本 {code_version}")
-        if launcher_version:
+        self.launcher_version = version
+        self.launcherVersionButton.setText(f"ⓘ 启动器版本 {version}")
+        if version:
             self.launcherVersionButton.setVisible(True)
-        self.codeVersionButton.setVisible(True)
+
+    def setCodeVersion(self, version: str) -> None:
+        """
+        设置代码版本号 会更新UI
+        @param version: 版本号
+        @return:
+        """
+        self.code_version = version
+        self.codeVersionButton.setText(f"ⓘ 代码版本 {version}")
+        if version:
+            self.codeVersionButton.setVisible(True)
+
+    def setInstallerVersion(self, version: str) -> None:
+        """
+        设置安装器版本号 会更新UI
+        @param version: 版本号
+        @return:
+        """
+        self.launcher_version = version
+        self.launcherVersionButton.setText(f"ⓘ 安装器版本 {version}")
+        if version:
+            self.launcherVersionButton.setVisible(True)
 
     # 定义打开GitHub网页的函数
     def open_github(self):

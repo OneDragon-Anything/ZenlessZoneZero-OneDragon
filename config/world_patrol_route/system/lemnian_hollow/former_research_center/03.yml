@@ -5,40 +5,44 @@ op_list:
   - '1008'
   op_type: move
 - data:
-  - '952'
-  - '1069'
+  - '946'
+  - '1056'
   op_type: move
 - data:
-  - '971'
-  - '1015'
+  - '978'
+  - '1073'
   op_type: move
 - data:
-  - '970'
-  - '971'
+  - '960'
+  - '987'
   op_type: move
 - data:
-  - '967'
-  - '883'
+  - '962'
+  - '923'
   op_type: move
 - data:
-  - '970'
-  - '803'
+  - '975'
+  - '826'
   op_type: move
 - data:
   - '972'
-  - '732'
+  - '757'
+  op_type: move
+- data:
+  - '976'
+  - '736'
   op_type: move
 - data:
   - '965'
   - '661'
   op_type: move
 - data:
-  - '939'
-  - '621'
+  - '947'
+  - '638'
   op_type: move
 - data:
-  - '964'
-  - '563'
+  - '930'
+  - '621'
   op_type: move
 tp_area_id: former_research_center
 tp_name: 二楼平台

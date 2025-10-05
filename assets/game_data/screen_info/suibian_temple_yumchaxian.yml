@@ -5,10 +5,10 @@ area_list:
 - area_name: 按钮-定期采办
   id_mark: true
   pc_rect:
-  - 1586
+  - 1560
   - 110
-  - 1858
-  - 170
+  - 1830
+  - 165
   text: 定期采办
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -19,11 +19,179 @@ area_list:
 - area_name: 按钮-邻里心愿
   id_mark: true
   pc_rect:
-  - 1306
+  - 1278
   - 110
-  - 1570
-  - 170
+  - 1546
+  - 165
   text: 邻里心愿
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 区域-任务列表
+  id_mark: false
+  pc_rect:
+  - 1365
+  - 264
+  - 1662
+  - 750
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按钮-定期采办-刷新
+  id_mark: false
+  pc_rect:
+  - 834
+  - 942
+  - 1096
+  - 990
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按钮-定期采办-提交
+  id_mark: false
+  pc_rect:
+  - 1446
+  - 944
+  - 1698
+  - 990
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 区域-材料-1
+  id_mark: false
+  pc_rect:
+  - 800
+  - 570
+  - 845
+  - 615
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 区域-材料-2
+  id_mark: false
+  pc_rect:
+  - 800
+  - 625
+  - 845
+  - 665
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 区域-材料-3
+  id_mark: false
+  pc_rect:
+  - 800
+  - 675
+  - 845
+  - 715
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 区域-材料数量
+  id_mark: false
+  pc_rect:
+  - 852
+  - 570
+  - 1122
+  - 720
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按钮-制造
+  id_mark: false
+  pc_rect:
+  - 632
+  - 536
+  - 1250
+  - 590
+  text: '[获取]经营-制造'
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按钮-游历
+  id_mark: false
+  pc_rect:
+  - 630
+  - 682
+  - 1250
+  - 734
+  text: '[材料]游历-'
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按钮-返回
+  id_mark: false
+  pc_rect:
+  - 82
+  - 13
+  - 150
+  - 90
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: menu
+  template_id: back
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 区域-材料名称
+  id_mark: false
+  pc_rect:
+  - 625
+  - 288
+  - 1065
+  - 337
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 文本-已达上限
+  id_mark: false
+  pc_rect:
+  - 1435
+  - 891
+  - 1704
+  - 934
+  text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''

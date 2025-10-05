@@ -15,8 +15,10 @@ from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
+from zzz_od.application.hollow_zero.lost_void import lost_void_const
 from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import LostVoidDetector
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidRegionType
+from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import LostVoidRunRecord
 from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_bangboo_store import LostVoidBangbooStore
 from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_common import LostVoidChooseCommon
 from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_gear import LostVoidChooseGear
@@ -81,6 +83,10 @@ class LostVoidRunLevel(ZOperation):
             ctx,
             op_name='迷失之地-层间移动',
             # timeout_seconds=600,  # 不在这里设置超时 而是统一在 '非战斗画面识别' 中处理
+        )
+        self.run_record: Optional[LostVoidRunRecord] = self.ctx.run_context.get_run_record(
+            instance_idx=self.ctx.current_instance_idx,
+            app_id=lost_void_const.APP_ID,
         )
 
         self.region_type: LostVoidRegionType = region_type
@@ -727,13 +733,13 @@ class LostVoidRunLevel(ZOperation):
         if result.is_success:
             if self.reward_eval_found:
                 # 有业绩点 说明两个都没达成
-                self.ctx.lost_void_record.eval_point_complete = False
-                self.ctx.lost_void_record.period_reward_complete = False
+                self.run_record.eval_point_complete = False
+                self.run_record.period_reward_complete = False
             else:
-                self.ctx.lost_void_record.eval_point_complete = True
-                self.ctx.lost_void_record.period_reward_complete = not self.reward_dn_found
+                self.run_record.eval_point_complete = True
+                self.run_record.period_reward_complete = not self.reward_dn_found
 
-            if self.ctx.lost_void_record.period_reward_complete:
+            if self.run_record.period_reward_complete:
                 if self.ctx.env_config.is_debug:
                     self.save_screenshot(prefix='period_reward_complete')
 
@@ -800,7 +806,7 @@ def __debug():
     ctx.init_by_config()
     ctx.lost_void.init_before_run()
     ctx.init_ocr()
-    ctx.start_running()
+    ctx.run_context.start_running()
 
     ctx.lost_void.init_auto_op()
     op = LostVoidRunLevel(ctx, LostVoidRegionType.ENTRY)

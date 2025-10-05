@@ -140,11 +140,11 @@ class ButtonGroup(SimpleCardWidget):
         """启动自动提示演示"""
         if self.tooltip_demo_active:
             return
-            
+
         self.tooltip_demo_active = True
         # 临时禁用所有按钮的鼠标悬停事件处理
         self._disable_buttons_hover()
-        
+
         # 延迟2秒后同时显示所有提示（使用对象持有的单次定时器）
         if not hasattr(self, "_show_timer"):
             self._show_timer = QTimer(self)
@@ -160,7 +160,7 @@ class ButtonGroup(SimpleCardWidget):
         """同时显示所有按钮的提示"""
         if not self.tooltip_demo_active:
             return
-            
+
         # 同时显示所有按钮的提示（优先使用公开方法）
         for btn in self.buttons:
             show_fn = getattr(btn, "show_tooltip", None) or getattr(btn, "_show_tooltip", None)
@@ -180,7 +180,7 @@ class ButtonGroup(SimpleCardWidget):
         self.tooltip_demo_active = False
         # 重新启用所有按钮的鼠标悬停事件处理
         self._enable_buttons_hover()
-        
+
     def stop_tooltip_demo(self):
         """停止提示演示并立即隐藏所有提示"""
         self.tooltip_demo_active = False
@@ -190,25 +190,25 @@ class ButtonGroup(SimpleCardWidget):
         if hasattr(self, "_hide_timer"):
             self._hide_timer.stop()
         self._hide_all_tooltips()
-        
+
     def _disable_buttons_hover(self):
         """临时禁用所有按钮的鼠标悬停事件处理"""
         for btn in self.buttons:
             if hasattr(btn, 'removeEventFilter'):
                 btn.removeEventFilter(btn)
                 btn._hover_disabled = True
-                
+
     def _enable_buttons_hover(self):
         """重新启用所有按钮的鼠标悬停事件处理"""
         for btn in self.buttons:
             if hasattr(btn, '_hover_disabled') and btn._hover_disabled:
                 btn.installEventFilter(btn)
                 btn._hover_disabled = False
-        
+
     def _start_demo_timer(self):
         """开始演示定时器 - 不再使用，保留以兼容"""
         pass
-        
+
     def _show_next_tooltip(self):
         """显示下一个按钮的提示 - 不再使用，保留以兼容"""
         pass
@@ -227,7 +227,7 @@ class ButtonGroup(SimpleCardWidget):
 
     def open_chat(self):
         """打开 频道 链接"""
-        QDesktopServices.openUrl(QUrl(self.ctx.project_config.chat_link))
+        QDesktopServices.openUrl(QUrl(self.ctx.project_config.qq_link))
 
     def open_doc(self):
         """打开 腾讯文档 链接, 感谢历任薪王的付出 """
@@ -577,7 +577,7 @@ class HomeInterface(VerticalScrollInterface):
     def on_interface_hidden(self) -> None:
         """界面隐藏时的处理"""
         super().on_interface_hidden()
-        
+
         # 立即停止并隐藏所有提示
         if hasattr(self, 'button_group'):
             self.button_group.stop_tooltip_demo()

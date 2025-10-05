@@ -35,22 +35,16 @@ class UnpackResourceRunner(QThread):
         self.work_dir = work_dir
 
     def run(self):
-        if Path(self.installer_dir) != Path(self.work_dir):
-            # 复制完整包资源
+        uv_zip_dir = Path(self.installer_dir) / '.install' / 'uv-x86_64-pc-windows-msvc.zip'
+        if Path(self.installer_dir) != Path(self.work_dir) and uv_zip_dir.exists():
             try:
-                install_dir = Path(self.installer_dir) / '.install'
-                dest_install_dir = Path(self.work_dir) / '.install'
-                if install_dir.exists():
-                    shutil.copytree(install_dir, dest_install_dir, dirs_exist_ok=True)
-
-                assets_dir = Path(self.installer_dir) / 'assets'
-                dest_assets_dir = Path(self.work_dir) / 'assets'
-                if assets_dir.exists():
-                    shutil.copytree(assets_dir, dest_assets_dir, dirs_exist_ok=True)
+                shutil.copytree(self.installer_dir, self.work_dir, dirs_exist_ok=True)
                 self.finished.emit(True)
             except Exception as e:
                 log.error(f"解包资源失败: {e}")
                 self.finished.emit(False)
+        else:
+            self.finished.emit(True)
 
 
 class ClickableStepCircle(QLabel):
@@ -320,7 +314,7 @@ class InstallStepWidget(QWidget):
             self.status_label.setText(gt('✗ 安装失败'))
             self.status_label.setStyleSheet("color: #d13438; font-weight: bold;")
             self.installing_idx = -1
-            
+
             # 安装失败时自动打开帮助文档
             # 通过父级的ctx获取配置
             ctx = None
@@ -329,13 +323,13 @@ class InstallStepWidget(QWidget):
                     if hasattr(card, 'ctx'):
                         ctx = card.ctx
                         break
-            
+
             if ctx and hasattr(ctx, 'project_config'):
                 webbrowser.open(ctx.project_config.doc_link)
             else:
                 log.warning("未找到可用的 ctx，无法打开帮助文档")
             log.info("步骤安装失败，已自动打开帮助文档")
-            
+
             self.step_completed.emit(False)
         else:
             self.installing_idx += 1
@@ -577,6 +571,12 @@ class InstallerInterface(VerticalScrollInterface):
         self.back_btn.clicked.connect(self.show_quick)
         button_layout.addWidget(self.back_btn)
 
+        # 源配置按钮
+        self.source_config_btn = PushButton(gt('源配置'))
+        self.source_config_btn.setFixedSize(120, 40)
+        self.source_config_btn.clicked.connect(lambda: self.window().stackedWidget.setCurrentIndex(0))
+        button_layout.addWidget(self.source_config_btn)
+
         # 将后续按钮推向右侧
         button_layout.addStretch()
 
@@ -669,7 +669,7 @@ class InstallerInterface(VerticalScrollInterface):
             # 更新进度标签显示文档已打开的信息
             self.progress_label.setText(gt('安装失败！已自动打开排障文档'))
             self.progress_label.setStyleSheet("color: #d13438;")
-            
+
             self.progress_label.setVisible(True)
             self.install_btn.setVisible(True)
             self.progress_ring.setVisible(False)
@@ -787,6 +787,7 @@ class InstallerInterface(VerticalScrollInterface):
     def on_step_completed(self, success: bool):
         """步骤完成回调"""
         self.update_step_display()
+        self.update_all_install_cards()
         if success and self.current_step < len(self.install_steps) - 1:
             QTimer.singleShot(1000, self.auto_next_step)
 
@@ -970,6 +971,12 @@ class InstallerInterface(VerticalScrollInterface):
             self.progress_label.setText(gt('资源解压失败！已自动打开排障文档'))
             self.progress_label.setStyleSheet("color: #d13438;")
 
+    def update_all_install_cards(self):
+        """更新所有安装卡的状态"""
+        for card in self.all_install_cards:
+            if card:
+                card.check_and_update_display()
+
     def on_interface_shown(self) -> None:
         super().on_interface_shown()
 
@@ -978,9 +985,7 @@ class InstallerInterface(VerticalScrollInterface):
         self.start_placebo_progress()
 
         # 更新所有安装卡的状态
-        for card in self.all_install_cards:
-            if card:
-                card.check_and_update_display()
+        self.update_all_install_cards()
 
         # 如果是高级模式，检查所有步骤的状态
         if self.is_advanced_mode:
