@@ -11,16 +11,12 @@ from one_dragon.utils.i18_utils import gt
 
 class AppRunCard(MultiPushSettingCard):
 
-    move_up = Signal(str)
     run = Signal(str)
     switched = Signal(str, bool)
 
     def __init__(self, app: Application, switch_on: bool = False,
                  parent: Optional[QWidget] = None):
         self.app: Application = app
-
-        self.move_up_btn = TransparentToolButton(FluentIcon.UP, None)
-        self.move_up_btn.clicked.connect(self._on_move_up_clicked)
 
         self.run_btn = TransparentToolButton(FluentIcon.PLAY, None)
         self.run_btn.clicked.connect(self._on_run_clicked)
@@ -31,13 +27,16 @@ class AppRunCard(MultiPushSettingCard):
         self.switch_btn.setChecked(switch_on)
         self.switch_btn.checkedChanged.connect(self._on_switch_changed)
 
+        # 先初始化主基类
         MultiPushSettingCard.__init__(
             self,
-            btn_list=[self.move_up_btn, self.run_btn, self.switch_btn],
+            btn_list=[self.run_btn, self.switch_btn],
             icon=FluentIcon.GAME,
             title=self.app.op_name,
             parent=parent,
         )
+
+        # 拖拽逻辑由容器级 mixin 负责，此处不再处理
 
     def update_display(self) -> None:
         """
@@ -62,13 +61,6 @@ class AppRunCard(MultiPushSettingCard):
         else:
             icon = FluentIcon.INFO
         self.iconLabel.setIcon(icon)
-
-    def _on_move_up_clicked(self) -> None:
-        """
-        向上移动运行顺序
-        :return:
-        """
-        self.move_up.emit(self.app.app_id)
 
     def _on_run_clicked(self) -> None:
         """
@@ -95,7 +87,6 @@ class AppRunCard(MultiPushSettingCard):
 
     def setDisabled(self, arg__1: bool) -> None:
         MultiPushSettingCard.setDisabled(self, arg__1)
-        self.move_up_btn.setDisabled(arg__1)
         self.run_btn.setDisabled(arg__1)
         self.switch_btn.setDisabled(arg__1)
 
