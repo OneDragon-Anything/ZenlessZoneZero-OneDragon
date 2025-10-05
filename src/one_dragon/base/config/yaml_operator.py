@@ -1,3 +1,4 @@
+import atexit
 import os
 import sys
 from typing import Optional
@@ -6,8 +7,29 @@ import yaml
 
 from one_dragon.utils.log_utils import log
 
+import concurrent.futures
+import threading
+
+mutex = threading.Lock()
+
+_writer_executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=1, thread_name_prefix="yaml-writer"
+)
+
 cached_yaml_data: dict[str, tuple[float, dict]] = {}
 
+def write_file_and_flush_cache(file_path: str, data: dict, sync: bool = False):
+    cached_yaml_data[file_path] = (0.0, data)
+    def write_to_file_and_load_modify_time():
+        with mutex:
+            with open(file_path, 'w', encoding='utf-8') as file:
+                yaml.dump(data, file, allow_unicode=True, sort_keys=False)
+            last_modify = os.path.getmtime(file_path)
+            cached_yaml_data[file_path] = (last_modify, data)
+    if sync:
+        write_to_file_and_load_modify_time()
+    else:
+        _writer_executor.submit(write_to_file_and_load_modify_time)
 
 def get_temp_config_path(file_path: str) -> str:
     """
@@ -32,6 +54,9 @@ def read_cache_or_load(file_path: str):
         cached_yaml_data[file_path] = (last_modify, data)
         return data
 
+def _writer_executor_atexit():
+    _writer_executor.shutdown(wait=True)
+atexit.register(_writer_executor_atexit)
 
 class YamlOperator:
 
@@ -71,9 +96,7 @@ class YamlOperator:
     def save(self):
         if self.file_path is None:
             return
-
-        with open(self.file_path, 'w', encoding='utf-8') as file:
-            yaml.dump(self.data, file, allow_unicode=True, sort_keys=False)
+        write_file_and_flush_cache(self.file_path, self.data)
 
     def save_diy(self, text: str):
         """
