@@ -128,9 +128,11 @@ class LostVoidRunInterface(AppRunInterface):
 
     def _update_run_record_display(self) -> None:
         if self.ctx.lost_void_record.period_reward_complete:
-            content = '已完成刷取周期性奖励 如错误可重置'
+            content = '已完成刷取周期奖励 如错误可重置'
         elif self.ctx.lost_void_record.eval_point_complete:
             content = '已完成刷取业绩 如错误可重置'
+        elif self.ctx.lost_void_record.points_reward_complete and self.ctx.lost_void_record.is_finished_by_day():
+            content = '已完成悬赏委托 如错误可重置'
         else:
             content = '通关次数 本日: %d, 本周: %d' % (self.ctx.lost_void_record.daily_run_times, self.ctx.lost_void_record.weekly_run_times)
         self.run_record_opt.setContent(content)

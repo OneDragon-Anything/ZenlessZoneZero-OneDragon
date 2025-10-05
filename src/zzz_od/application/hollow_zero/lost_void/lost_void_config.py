@@ -8,8 +8,9 @@ from one_dragon.base.config.yaml_config import YamlConfig
 class LostVoidExtraTask(Enum):
 
     NONE = ConfigItem('不进行')
+    POINTS_REWARD = ConfigItem('完成悬赏委托', desc='完成每周8000积分奖励')
     EVAL_POINT = ConfigItem('刷满业绩点')
-    PERIOD_REWARD = ConfigItem('刷满周期奖励')
+    PERIOD_REWARD = ConfigItem('刷满周期奖励', desc='刷满每周丁尼')
 
 
 class LostVoidConfig(YamlConfig):
