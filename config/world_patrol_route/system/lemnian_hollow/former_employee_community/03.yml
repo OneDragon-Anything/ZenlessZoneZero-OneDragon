@@ -16,5 +16,9 @@ op_list:
   - '1246'
   - '1506'
   op_type: move
+- data:
+  - '1271'
+  - '1544'
+  op_type: move
 tp_area_id: former_employee_community
 tp_name: 职工宿舍南区
