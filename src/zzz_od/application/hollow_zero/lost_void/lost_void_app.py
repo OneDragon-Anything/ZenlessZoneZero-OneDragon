@@ -543,6 +543,8 @@ class LostVoidApp(ZApplication):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
+    ctx.init_ocr()
+    ctx.run_context.start_running()
     op = LostVoidApp(ctx)
     op.execute()
 
