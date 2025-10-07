@@ -9,6 +9,7 @@ from qfluentwidgets import PlainTextEdit, FluentIconBase, FluentIcon, ToolButton
                            BodyLabel, isDarkTheme, ToolTipFilter, ToolTipPosition, RoundMenu, Action
 
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
+from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 from one_dragon.utils.i18_utils import gt
@@ -510,7 +511,7 @@ class JsonHighlighter(QSyntaxHighlighter):
                 self.setFormat(match.capturedStart(), match.capturedLength(), format)
 
 
-class CodeEditorSettingCard(SettingCardBase, CodeEditorMixin):
+class CodeEditorSettingCard(SettingCardBase, AdapterInitMixin, CodeEditorMixin):
     """ 带代码编辑器的设置卡片 """
 
     value_changed = Signal(str)
@@ -531,9 +532,10 @@ class CodeEditorSettingCard(SettingCardBase, CodeEditorMixin):
             margins=margins,
             parent=parent
         )
+        AdapterInitMixin.__init__(self)
 
         self.parent_window = parent
-        self.adapter: YamlConfigAdapter = adapter
+        self.adapter = adapter
 
         # 首先创建编辑器
         self.editor = PlainTextEdit(self)
@@ -604,15 +606,6 @@ class CodeEditorSettingCard(SettingCardBase, CodeEditorMixin):
         if not emit_signal:
             self.editor.blockSignals(False)
 
-    def init_with_adapter(self, adapter):
-        """使用配置适配器初始化值"""
-        self.adapter = adapter
-
-        if self.adapter is None:
-            self.setValue("", emit_signal=False)
-        else:
-            self.setValue(self.adapter.get_value(), emit_signal=False)
-
     def _pop_editor(self):
         """弹出代码编辑器窗口"""
         # 传递适配器给对话框，让对话框直接操作适配器
@@ -627,3 +620,6 @@ class CodeEditorSettingCard(SettingCardBase, CodeEditorMixin):
         if self.adapter is not None:
             # 从适配器重新获取值并更新显示，不触发信号避免重复写入
             self.setValue(self.adapter.get_value(), emit_signal=False)
+
+    def default_adapter_value(self) -> str:
+        return ""
