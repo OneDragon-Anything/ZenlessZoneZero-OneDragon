@@ -177,6 +177,18 @@ class OneDragonRunInterface(VerticalScrollInterface):
         layout.addWidget(self.log_card, stretch=1)
 
         return layout
+    
+    def _set_other_switch(self, app_id: str, value: bool) -> None:
+        """
+        应用开关切换
+        :param app_id:
+        :param value:
+        :return:
+        """
+        for card in self._app_run_cards:
+            if card.app.app_id == app_id:
+                card.callback_emit(value)
+                break
 
     def _init_app_list(self) -> None:
         """
@@ -201,6 +213,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
                     app,
                     run_record=run_record,
                     switch_on=app.enabled,
+                    set_other_switch=self._set_other_switch,
                 )
                 self._app_run_cards.append(app_run_card)
                 self.app_card_group.addSettingCard(app_run_card)

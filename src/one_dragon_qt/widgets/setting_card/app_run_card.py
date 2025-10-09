@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Callable
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
@@ -24,13 +24,15 @@ class AppRunCard(MultiPushSettingCard):
     move_up = Signal(str)
     run = Signal(str)
     switched = Signal(str, bool)
+    set_other_switch: Optional[Callable[[str, bool], None]] = None
 
     def __init__(
         self,
         app: ApplicationGroupConfigItem,
         run_record: Optional[AppRunRecord] = None,
         switch_on: bool = False,
-        parent: Optional[QWidget] = None
+        parent: Optional[QWidget] = None,
+        set_other_switch: Optional[Callable[[str, bool], None]] = None
     ):
         self.app: ApplicationGroupConfigItem = app
         self.run_record: Optional[AppRunRecord] = run_record
@@ -46,6 +48,8 @@ class AppRunCard(MultiPushSettingCard):
         self.switch_btn.setOffText('')
         self.switch_btn.setChecked(switch_on)
         self.switch_btn.checkedChanged.connect(self._on_switch_changed)
+
+        self.set_other_switch = set_other_switch
 
         MultiPushSettingCard.__init__(
             self,
@@ -102,6 +106,21 @@ class AppRunCard(MultiPushSettingCard):
         :return:
         """
         self.switched.emit(self.app.app_id, value)
+        if value:
+            if self.app.app_id == 'scratch_card':
+                self.set_other_switch('trigrams_collection', False)
+            if self.app.app_id == 'trigrams_collection':
+                self.set_other_switch('scratch_card', False)
+
+    def callback_emit(self, value: bool) -> None:
+        """
+        回调开关状态
+        :param value:
+        :return:
+        """
+        if value != self.switch_btn.isChecked():
+            self.switch_btn.setChecked(value)
+            self.switched.emit(self.app.app_id, value)
 
     def set_app(
         self,
