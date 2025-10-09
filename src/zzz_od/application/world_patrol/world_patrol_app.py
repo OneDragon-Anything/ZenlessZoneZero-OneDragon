@@ -116,6 +116,20 @@ class WorldPatrolApp(ZApplication):
 
         op = WorldPatrolRunRoute(self.ctx, route)
         result = op.execute()
+
+        # 特殊处理：卡住脱困超过上限时，等待3秒并从当前路线起点重启一次
+        if not result.success and isinstance(result.status, str) and '卡住超限，重启当前路线' in result.status:
+            # 二次尝试（从头）
+            retry_op = WorldPatrolRunRoute(self.ctx, route)
+            retry_result = retry_op.execute()
+            if retry_result.success:
+                self.run_record.add_record(route.full_id)
+                self.route_idx += 1
+                return self.round_wait(status=f'完成路线 {route.full_id}')
+            else:
+                self.route_idx += 1
+                return self.round_wait(status=f'路线失败 {retry_result.status} {route.full_id}')
+
         if result.success:
             self.run_record.add_record(route.full_id)
             self.route_idx += 1
