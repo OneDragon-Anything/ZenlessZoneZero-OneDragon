@@ -71,7 +71,7 @@ class NotoriousHuntApp(ZApplication):
     @node_from(from_name='恶名狩猎', success=False)
     @operation_node(name='判断剩余次数')
     def check_left_times(self) -> OperationRoundResult:
-        if self.ctx.notorious_hunt_record.left_times == 0:
+        if self.run_record.left_times == 0:
             return self.round_success(NotoriousHunt.STATUS_NO_LEFT_TIMES)
         else:
             self.next_plan = self.config.get_next_plan()
