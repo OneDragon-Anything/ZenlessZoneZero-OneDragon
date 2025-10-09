@@ -141,7 +141,7 @@ class LostVoidRunInterface(AppRunInterface):
             instance_idx=self.ctx.current_instance_idx,
             app_id=lost_void_const.APP_ID,
         )
-        
+
         self._update_mission_options()
         self._update_challenge_config_options()
         self.challenge_config_opt.init_with_adapter(get_prop_adapter(self.config, 'challenge_config'))
@@ -155,9 +155,11 @@ class LostVoidRunInterface(AppRunInterface):
 
     def _update_run_record_display(self) -> None:
         if self.run_record.period_reward_complete:
-            content = '已完成刷取周期性奖励 如错误可重置'
+            content = '已完成刷取周期奖励 如错误可重置'
         elif self.run_record.eval_point_complete:
             content = '已完成刷取业绩 如错误可重置'
+        elif self.run_record.points_reward_complete and self.run_record.is_finished_by_day():
+            content = '已完成悬赏委托 如错误可重置'
         else:
             content = '通关次数 本日: %d, 本周: %d' % (self.run_record.daily_run_times, self.run_record.weekly_run_times)
         self.run_record_opt.setContent(content)

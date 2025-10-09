@@ -8,6 +8,7 @@ import numpy as np
 from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_info import ScreenInfo
 from one_dragon.utils import cv2_utils, str_utils
@@ -58,6 +59,48 @@ def find_area_in_screen(ctx: OneDragonContext, screen: MatLike, area: ScreenArea
 
     find: bool = False
     if area.is_text_area:
+        ocr_result_map = ocr_in_screen(ctx, screen, area)
+
+        for ocr_result, mrl in ocr_result_map.items():
+            if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result, percent=area.lcs_percent):
+                find = True
+                break
+    elif area.is_template_area:
+        rect = area.rect
+        part = cv2_utils.crop_image_only(screen, rect)
+
+        mrl = ctx.tm.match_template(part, area.template_sub_dir, area.template_id,
+                                    threshold=area.template_match_threshold)
+        find = mrl.max is not None
+
+    return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
+
+
+def ocr(ctx: OneDragonContext, screen: MatLike, screen_name: str, area_name: str) -> dict[str, MatchResultList]:
+    """
+    游戏截图中 在对应区域中进行OCR以供进一步业务判断
+    :param ctx: 上下文
+    :param screen: 游戏截图
+    :param screen_name: 画面名称
+    :param area_name: 区域名称
+    :return: 结果
+    """
+    area: ScreenArea = ctx.screen_loader.get_area(screen_name, area_name)
+    return ocr_in_screen(ctx, screen, area)
+
+
+def ocr_in_screen(ctx: OneDragonContext, screen: MatLike, area: ScreenArea) -> dict[str, MatchResultList]:
+    """
+    游戏截图中 在对应区域中进行OCR以供进一步业务判断
+    :param ctx: 上下文
+    :param screen: 游戏截图
+    :param area: 区域
+    :return: 结果
+    """
+    if area is None:
+        return {}
+
+    if area.is_text_area:
         if ctx.env_config.ocr_cache:
             ocr_result_map = ctx.ocr_service.get_ocr_result_map(
                 image=screen,
@@ -79,19 +122,14 @@ def find_area_in_screen(ctx: OneDragonContext, screen: MatLike, area: ScreenArea
 
             ocr_result_map = ctx.ocr.run_ocr(to_ocr)
 
-        for ocr_result, mrl in ocr_result_map.items():
-            if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result, percent=area.lcs_percent):
-                find = True
-                break
-    elif area.is_template_area:
-        rect = area.rect
-        part = cv2_utils.crop_image_only(screen, rect)
+        # cv2.imwrite('y:/part.png', part)
+        # for ocr_result, mrl in ocr_result_map.items():
+        #     if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result, percent=area.lcs_percent):
+        #         find = True
+        #         break
+        return ocr_result_map
 
-        mrl = ctx.tm.match_template(part, area.template_sub_dir, area.template_id,
-                                    threshold=area.template_match_threshold)
-        find = mrl.max is not None
-
-    return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
+    return {}
 
 
 def find_and_click_area(ctx: OneDragonContext, screen: MatLike, screen_name: str, area_name: str) -> OcrClickResultEnum:
