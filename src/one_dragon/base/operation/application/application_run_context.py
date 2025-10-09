@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from concurrent.futures import ThreadPoolExecutor
 from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
@@ -320,7 +321,13 @@ class ApplicationRunContext:
         else:
             return gt('未知')
 
-    def run_application(self, app_id: str, instance_idx: int, group_id: str) -> bool:
+    def run_application(
+        self,
+        app_id: str,
+        instance_idx: int,
+        group_id: str,
+        init_timeout: int = 60,
+    ) -> bool:
         """
         同步运行指定的应用。
 
@@ -330,10 +337,20 @@ class ApplicationRunContext:
             app_id: 应用ID
             instance_idx: 账号实例下标
             group_id: 应用组ID，可将应用分组运行
+            init_timeout: 等待初始化的超时时间(秒)
 
         Returns:
             bool: 是否成功启动运行（不关心运行结果）
         """
+        start_time = time.time()
+        while not self.ctx.ready_for_application:
+            now = time.time()
+            if now - start_time >= init_timeout:
+                log.error("等待应用 {} 初始化超时", app_id)
+                return False
+
+            time.sleep(1)
+
         if not self.is_app_registered(app_id):
             log.error("应用 {} 未注册", app_id)
             return False
@@ -363,7 +380,11 @@ class ApplicationRunContext:
         return True
 
     def run_application_async(
-        self, app_id: str, instance_idx: int, group_id: str
+        self,
+        app_id: str,
+        instance_idx: int,
+        group_id: str,
+        init_timeout: int = 60,
     ) -> bool:
         """
         异步运行指定的应用。
@@ -375,6 +396,7 @@ class ApplicationRunContext:
             app_id: 应用ID
             instance_idx: 账号实例下标
             group_id: 应用组ID，可将应用分组运行
+            init_timeout: 等待初始化的超时时间(秒)
 
         Returns:
             bool: 是否成功提交到线程池（不关心运行结果）
@@ -385,7 +407,7 @@ class ApplicationRunContext:
         if not self.is_app_registered(app_id):
             return False
 
-        future = self._executor.submit(self.run_application, app_id, instance_idx, group_id)
+        future = self._executor.submit(self.run_application, app_id, instance_idx, group_id, init_timeout)
         future.add_done_callback(thread_utils.handle_future_result)
 
         return True

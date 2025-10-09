@@ -69,6 +69,7 @@ class EngagementRewardApp(ZApplication):
         return self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '活跃度奖励-确认', success_wait=1, retry_wait=1)
 
     @node_from(from_name='查看奖励结果', success=False)
+    @node_from(from_name='查看奖励结果')
     @node_from(from_name='识别活跃度', status=STATUS_NO_REWARD)
     @operation_node(name='完成后返回大世界')
     def back_afterwards(self) -> OperationRoundResult:
