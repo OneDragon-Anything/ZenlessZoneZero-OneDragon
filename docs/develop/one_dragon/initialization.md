@@ -20,7 +20,7 @@
 ## 普遍应用需要
 
 1. 创建 `ZContext`。
-2. 异步初始化 `ZContext.asnyc_init_before_application`。
+2. 异步初始化 `ZContext.init_async`。
 3. 运行应用前等待步骤2初始化完成，或超时退出。
 4. 应用运行。
 
@@ -39,4 +39,4 @@
 ## 其他
 
 1. 创建 `ZContext`。
-2. 异步初始化 `ZContext.async_init_others`。
+2. 异步初始化 `ZContext.init_others`。
