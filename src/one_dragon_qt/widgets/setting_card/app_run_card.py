@@ -106,7 +106,7 @@ class AppRunCard(MultiPushSettingCard):
         :return:
         """
         self.switched.emit(self.app.app_id, value)
-        if value:
+        if value and self.set_other_switch is not None:
             if self.app.app_id == 'scratch_card':
                 self.set_other_switch('trigrams_collection', False)
             if self.app.app_id == 'trigrams_collection':
