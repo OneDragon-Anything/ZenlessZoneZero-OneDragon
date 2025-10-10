@@ -446,112 +446,6 @@ jobs:
         # 将所有待发布文件移到当前目录
         Move-Item -Path "$distDir/*.zip" -Destination (Get-Location) -Force
 
-    - name: Generate Changelog
-      id: changelog
-      shell: pwsh
-      env:
-        CURRENT_TAG: ${{ needs.build.outputs.tag }}
-      run: |
-        $current_version_tag = $env:CURRENT_TAG
-        $commits = @()
-
-        if ($env:GITHUB_REF -like 'refs/tags/*') {
-          # 这是由标签触发的发布
-          # 尝试查找当前标签提交的父提交上的最新标签
-          $previous_tag_candidate = $(git describe --tags --abbrev=0 "$current_version_tag^" 2>$null)
-          if ($previous_tag_candidate) {
-            Write-Host "正在生成从 $previous_tag_candidate 到 $current_version_tag 的更新日志"
-            $commits = git log --pretty=format:"%s|%h" "$previous_tag_candidate..$current_version_tag"
-          } else {
-            Write-Host "未找到相对于 $current_version_tag^ 的上一个标签。列出 $current_version_tag 的最后10个提交。"
-            # 这可能是第一个标签。列出导致它的提交。
-            $commits = git log --pretty=format:"%s|%h" -n 10 "$current_version_tag"
-          }
-        } else {
-          # 这是手动 workflow_dispatch 或分支推送
-          Write-Host "手动或分支构建。列出 HEAD 的最后5个提交。"
-          $commits = git log --pretty=format:"%s|%h" -n 5 HEAD
-        }
-
-        # 按前缀分类提交
-        $categories = @{
-          "feat" = @()
-          "fix" = @()
-          "perf" = @()
-          "refactor" = @()
-          "style" = @()
-          "docs" = @()
-          "test" = @()
-          "ci" = @()
-          "build" = @()
-          "chore" = @()
-          "revert" = @()
-          "other" = @()
-        }
-
-        foreach ($commit in $commits) {
-          if ($commit -match "^(.+)\|(.+)$") {
-            $message = $matches[1]
-            $hash = $matches[2]
-
-            # 提取冒号前的前缀
-            if ($message -match "^([^:]+):(.*)$") {
-              $prefix = $matches[1].Trim().ToLower()
-              $content = $matches[2].Trim()
-
-              # 检查前缀是否在已知分类中
-              if ($categories.ContainsKey($prefix)) {
-                $categories[$prefix] += "- $content ($hash)"
-              } else {
-                $categories["other"] += "- $message ($hash)"
-              }
-            } else {
-              $categories["other"] += "- $message ($hash)"
-            }
-          }
-        }
-
-        # 生成分类后的更新日志
-        $changelog_content = ""
-        $category_names = @{
-          "feat" = "✨ 新功能"
-          "fix" = "🐛 Bug 修复"
-          "perf" = "⚡ 性能优化"
-          "refactor" = "♻️ 代码重构"
-          "style" = "💄 样式调整"
-          "docs" = "📄 文档更新"
-          "test" = "✅ 测试"
-          "ci" = "👷 CI/CD"
-          "build" = "📦 构建"
-          "chore" = "🔧 杂项"
-          "revert" = "⏪ 回滚"
-          "other" = "📝 其他更改"
-        }
-
-        # 定义输出顺序
-        $ordered_keys = @("feat", "fix", "perf", "refactor", "style", "docs", "test", "ci", "build", "chore", "revert", "other")
-
-        foreach ($key in $ordered_keys) {
-          if ($categories[$key].Count -gt 0) {
-            if ($changelog_content -ne "") {
-              $changelog_content += "`n`n"
-            }
-            $changelog_content += "## $($category_names[$key])`n"
-            $changelog_content += ($categories[$key] -join "`n")
-          }
-        }
-
-        if ([string]::IsNullOrWhiteSpace($changelog_content)) {
-          $changelog_content = "没有新的更改或无法确定更新日志。"
-        }
-
-        $output_name = "clean_changelog"
-        $delimiter = "CHANGELOG_DELIMITER_$(New-Guid)"
-
-        echo "$output_name<<$delimiter" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-        echo $changelog_content | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-        echo $delimiter | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
@@ -569,9 +463,6 @@ jobs:
           安装前请查看 [安装指南](https://one-dragon.com/zzz/zh/quickstart.html)
           若运行出错请查看 [自助排障指南](https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5)
 
-          # 更新内容
-
-          ${{ steps.changelog.outputs.clean_changelog }}
         files: |
           ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Full-Environment.zip
           ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Full.zip
