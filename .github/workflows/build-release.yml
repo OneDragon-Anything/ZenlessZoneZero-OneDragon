@@ -7,7 +7,12 @@ on:
   workflow_dispatch:
     inputs:
       create_release:
-        description: 'Create a release with current build'
+        description: 'Release'
+        required: true
+        default: false
+        type: boolean
+      sign:
+        description: 'Sign'
         required: true
         default: false
         type: boolean
@@ -21,7 +26,8 @@ jobs:
       unsigned_artifact_id: ${{ steps.upload-unsigned-artifact.outputs.artifact-id }}
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
       with:
         fetch-depth: 1
 
@@ -179,28 +185,10 @@ jobs:
           .\deploy\dist\OneDragon-Launcher.exe
           .\deploy\dist\OneDragon-Installer.exe
 
-    - name: Upload Installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: Installer
-        path: deploy/dist/OneDragon-Installer.exe
-
-    - name: Upload Launcher
-      uses: actions/upload-artifact@v4
-      with:
-        name: Launcher
-        path: deploy/dist/OneDragon-Launcher.exe
-
-    - name: Upload Wheels
-      uses: actions/upload-artifact@v4
-      with:
-        name: Wheels
-        path: deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
-
   sign:
     runs-on: windows-latest
     needs: build
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.sign == true) || startsWith(github.ref, 'refs/tags/') }}
     env:
       SIGNED_DIR: 'signed'
       SIGNPATH_SIGNING_POLICY_SLUG: 'test-signing'
@@ -218,24 +206,12 @@ jobs:
         # 签名后会自动下载到这个目录并解压 文件名和原来的一样
         output-artifact-directory: '${{ env.SIGNED_DIR }}'
 
-    - name: Upload signed dist
+    - name: Upload signed executables
       uses: actions/upload-artifact@v4
       with:
-        name: dist-signed
+        name: signed
         if-no-files-found: error
         path: ${{ env.SIGNED_DIR }}
-
-    - name: Upload Installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: Installer-Signed
-        path: ${{ env.SIGNED_DIR }}/OneDragon-Installer.exe
-
-    - name: Upload Launcher
-      uses: actions/upload-artifact@v4
-      with:
-        name: Launcher-Signed
-        path: ${{ env.SIGNED_DIR }}/OneDragon-Launcher.exe
 
   release:
     runs-on: windows-latest
@@ -244,15 +220,30 @@ jobs:
       - sign
     if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
       with:
         fetch-depth: 1
 
-    - name: Download signed dist
+    - name: Download dist
       uses: actions/download-artifact@v4
       with:
-        name: dist-signed
+        name: dist
         path: deploy/dist
+
+    - name: Download signed executables
+      if: ${{ needs.sign.result == 'success' }}
+      uses: actions/download-artifact@v4
+      with:
+        name: signed
+        path: deploy/dist/signed
+
+    - name: Replace unsigned executables with signed ones
+      if: ${{ needs.sign.result == 'success' }}
+      shell: pwsh
+      run: |
+        Copy-Item "deploy/dist/signed/OneDragon-Installer.exe" -Destination "deploy/dist/OneDragon-Installer.exe" -Force
+        Copy-Item "deploy/dist/signed/OneDragon-Launcher.exe" -Destination "deploy/dist/OneDragon-Launcher.exe" -Force
 
     - name: Prepare release directory and models
       shell: pwsh
