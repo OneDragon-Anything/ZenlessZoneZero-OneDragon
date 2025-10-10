@@ -132,30 +132,64 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
 
 
 
-    if args and '--piped' in args:
+    if args and '--piped' in args and os.name == 'nt':  
+        
         # 创建Job对象
-        job_handle = ctypes.windll.kernel32.CreateJobObjectW(None, None)
+        kernel32 = ctypes.windll.kernel32
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+        JobObjectExtendedLimitInformation = 9
+
+        class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
+            _fields_ = [
+                ("PerProcessUserTimeLimit", ctypes.c_longlong),
+                ("PerJobUserTimeLimit", ctypes.c_longlong),
+                ("LimitFlags", wintypes.DWORD),
+                ("MinimumWorkingSetSize", ctypes.c_size_t),
+                ("MaximumWorkingSetSize", ctypes.c_size_t),
+                ("ActiveProcessLimit", wintypes.DWORD),
+                ("Affinity", ctypes.c_size_t),
+                ("PriorityClass", wintypes.DWORD),
+                ("SchedulingClass", wintypes.DWORD),
+            ]
+
+        class IO_COUNTERS(ctypes.Structure):
+            _fields_ = [
+                ("ReadOperationCount", ctypes.c_ulonglong),
+                ("WriteOperationCount", ctypes.c_ulonglong),
+                ("OtherOperationCount", ctypes.c_ulonglong),
+                ("ReadTransferCount", ctypes.c_ulonglong),
+                ("WriteTransferCount", ctypes.c_ulonglong),
+                ("OtherTransferCount", ctypes.c_ulonglong),
+            ]
+
         class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
             _fields_ = [
-                ("BasicLimitInformation", ctypes.c_byte * 72),  # JOBOBJECT_BASIC_LIMIT_INFORMATION
-                ("IoInfo", ctypes.c_byte * 32),  # IO_COUNTERS
+                ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
+                ("IoInfo", IO_COUNTERS),
                 ("ProcessMemoryLimit", ctypes.c_size_t),
                 ("JobMemoryLimit", ctypes.c_size_t),
                 ("PeakProcessMemoryUsed", ctypes.c_size_t),
                 ("PeakJobMemoryUsed", ctypes.c_size_t),
             ]
+
+        job_handle = kernel32.CreateJobObjectW(None, None)
+        if not job_handle:
+            raise OSError("CreateJobObjectW failed")
         job_info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
-        job_info.BasicLimitInformation[0] = 0x00000008  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-        result = ctypes.windll.kernel32.SetInformationJobObject(
-            job_handle, 
-            9,  # JobObjectExtendedLimitInformation
-            ctypes.byref(job_info), 
-            ctypes.sizeof(job_info)
-        )
+        job_info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        if not kernel32.SetInformationJobObject(
+            job_handle,
+            JobObjectExtendedLimitInformation,
+            ctypes.byref(job_info),
+            ctypes.sizeof(job_info),
+        ):
+            kernel32.CloseHandle(job_handle)
+            raise OSError("SetInformationJobObject failed")
 
         # 创建进程
         process = subprocess.Popen(
-            f"{uv_path} {' '.join(run_args)}",
+            # f"{uv_path} {' '.join(run_args)}",
+            [uv_path] + run_args,
             stdout=None,
             stderr=None,
             stdin=None,
@@ -164,18 +198,39 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
             encoding='utf-8'
         )
         # 将进程加入Job对象
-        result = ctypes.windll.kernel32.AssignProcessToJobObject(job_handle, process._handle)
+        if not kernel32.AssignProcessToJobObject(job_handle, process._handle):
+            try:
+                process.terminate()
+            finally:
+                kernel32.CloseHandle(job_handle)
+            raise OSError("AssignProcessToJobObject failed")
 
         # 注册信号处理
-        def signal_handler(signum, frame):
-            process.terminate()
-            ctypes.windll.kernel32.CloseHandle(job_handle)
-        atexit.register(signal_handler)
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
+        def _cleanup():
+            try:
+                kernel32.CloseHandle(job_handle)
+            except Exception:
+                pass
+        atexit.register(_cleanup)
+
+        def _on_signal(signum, frame):
+            try:
+                process.send_signal(signal.CTRL_BREAK_EVENT)
+            except Exception:
+                process.terminate()
+        signal.signal(signal.SIGINT, _on_signal)
+        try:
+            signal.signal(signal.SIGTERM, _on_signal)
+        except Exception:
+            pass
 
         # 等待进程结束
-        sys.exit(process.wait())
+        exit_code = -1
+        try:
+            exit_code = process.wait()
+        finally:
+            ctypes.windll.kernel32.CloseHandle(job_handle)
+        sys.exit(exit_code)
     else:
         # 构建 PowerShell 命令
         powershell_command = [
