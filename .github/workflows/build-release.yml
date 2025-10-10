@@ -228,13 +228,13 @@ jobs:
     - name: Upload Installer
       uses: actions/upload-artifact@v4
       with:
-        name: Installer
+        name: Installer-Signed
         path: ${{ env.SIGNED_DIR }}/OneDragon-Installer.exe
 
     - name: Upload Launcher
       uses: actions/upload-artifact@v4
       with:
-        name: Launcher
+        name: Launcher-Signed
         path: ${{ env.SIGNED_DIR }}/OneDragon-Launcher.exe
 
   release:
