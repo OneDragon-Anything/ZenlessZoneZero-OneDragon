@@ -218,7 +218,7 @@ jobs:
     needs:
       - build
       - sign
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
+    if: ${{ ((github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/')) && needs.sign.result == 'success' }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -463,6 +463,8 @@ jobs:
           安装前请查看 [安装指南](https://one-dragon.com/zzz/zh/quickstart.html)
           若运行出错请查看 [自助排障指南](https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5)
 
+          已有 Mirror酱 CDK？前往 [Mirror酱](https://mirrorchyan.com/zh/projects?rid=ZZZ-OneDragon&source=zzzgh-release) 高速下载
+
         files: |
           ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Full-Environment.zip
           ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Full.zip
@@ -470,6 +472,6 @@ jobs:
           ZenlessZoneZero-OneDragon-Environment.zip
           ZenlessZoneZero-OneDragon-Launcher.zip
         generate_release_notes: false
-        prerelease: ${{ contains(needs.build.outputs.tag, '-beta.') }}
+        prerelease: ${{ contains(needs.build.outputs.version, '-beta.') }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
