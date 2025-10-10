@@ -1,5 +1,9 @@
 import sys
 import time
+import atexit
+import signal
+import ctypes
+from ctypes import wintypes
 
 import datetime
 import os
@@ -126,25 +130,71 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
     escaped_args = [escape_powershell_arg(arg) for arg in run_args]
     arg_list = ', '.join(f"'{arg}'" for arg in escaped_args)
 
-    # 构建 PowerShell 命令
-    powershell_command = [
-        "Start-Process",
-        f"'{escape_powershell_arg(uv_path)}'",
-        "-ArgumentList",
-        f"@({arg_list})",
-        "-NoNewWindow",
-        "-RedirectStandardOutput",
-        f"'{escape_powershell_arg(log_file_path)}'",
-        "-PassThru"
-    ]
-    full_command = " ".join(powershell_command)
 
-    # 使用 subprocess.Popen 启动新的 PowerShell 窗口并执行命令
-    if no_windows:
-        subprocess.Popen(["powershell", "-Command", full_command], creationflags=subprocess.CREATE_NO_WINDOW)
+
+    if args and '--piped' in args:
+        # 创建Job对象
+        job_handle = ctypes.windll.kernel32.CreateJobObjectW(None, None)
+        class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
+            _fields_ = [
+                ("BasicLimitInformation", ctypes.c_byte * 72),  # JOBOBJECT_BASIC_LIMIT_INFORMATION
+                ("IoInfo", ctypes.c_byte * 32),  # IO_COUNTERS
+                ("ProcessMemoryLimit", ctypes.c_size_t),
+                ("JobMemoryLimit", ctypes.c_size_t),
+                ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                ("PeakJobMemoryUsed", ctypes.c_size_t),
+            ]
+        job_info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+        job_info.BasicLimitInformation[0] = 0x00000008  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        result = ctypes.windll.kernel32.SetInformationJobObject(
+            job_handle, 
+            9,  # JobObjectExtendedLimitInformation
+            ctypes.byref(job_info), 
+            ctypes.sizeof(job_info)
+        )
+
+        # 创建进程
+        process = subprocess.Popen(
+            f"{uv_path} {' '.join(run_args)}",
+            stdout=None,
+            stderr=None,
+            stdin=None,
+            creationflags=subprocess.CREATE_NO_WINDOW if no_windows else 0,
+            text=True,
+            encoding='utf-8'
+        )
+        # 将进程加入Job对象
+        result = ctypes.windll.kernel32.AssignProcessToJobObject(job_handle, process._handle)
+
+        # 注册信号处理
+        def signal_handler(signum, frame):
+            process.terminate()
+            ctypes.windll.kernel32.CloseHandle(job_handle)
+        atexit.register(signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+
+        # 等待进程结束
+        sys.exit(process.wait())
     else:
-        subprocess.Popen(["powershell", "-Command", full_command])
-    print_message("一条龙 正在启动中，大约 3+ 秒...", "INFO")
+        # 构建 PowerShell 命令
+        powershell_command = [
+            "Start-Process",
+            f"'{escape_powershell_arg(uv_path)}'",
+            "-ArgumentList",
+            f"@({arg_list})",
+            "-NoNewWindow",
+            "-RedirectStandardOutput",
+            f"'{escape_powershell_arg(log_file_path)}'",
+            "-PassThru"
+        ]
+        full_command = " ".join(powershell_command)
+        # 使用 subprocess.Popen 启动新的 PowerShell 窗口并执行命令
+        subprocess.Popen(
+            ["powershell", "-Command", full_command],
+            creationflags=subprocess.CREATE_NO_WINDOW if no_windows else 0
+        )
+        print_message("一条龙 正在启动中，大约 3+ 秒...", "INFO")
 
 def run_python(app_path, no_windows: bool = True, args: list = None):
     # 主函数
