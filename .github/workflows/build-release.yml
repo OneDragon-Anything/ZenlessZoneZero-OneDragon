@@ -7,7 +7,12 @@ on:
   workflow_dispatch:
     inputs:
       create_release:
-        description: 'Create a release with current build'
+        description: 'Release'
+        required: true
+        default: false
+        type: boolean
+      sign:
+        description: 'Sign'
         required: true
         default: false
         type: boolean
@@ -15,9 +20,14 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      tag: ${{ steps.get_version.outputs.tag }}
+      unsigned_artifact_id: ${{ steps.upload-unsigned-artifact.outputs.artifact-id }}
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
       with:
         fetch-depth: 1
 
@@ -134,27 +144,89 @@ jobs:
         # 压缩生成的 wheels 目录
         Compress-Archive -Path deploy/dist/wheels/* -DestinationPath deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
 
-    - name: Upload Installer
+    - name: Upload Dist
       uses: actions/upload-artifact@v4
       with:
-        name: Installer
-        path: deploy/dist/OneDragon-Installer.exe
+        name: dist
+        if-no-files-found: error
+        path: deploy/dist
 
-    - name: Upload Launcher
+    - name: Upload Unsigned Artifact
+      if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
+      id: upload-unsigned-artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Launcher
-        path: deploy/dist/OneDragon-Launcher.exe
+        # 上传后是 unsigned.zip
+        name: unsigned
+        if-no-files-found: error
+        path: |
+          .\deploy\dist\OneDragon-Launcher.exe
+          .\deploy\dist\OneDragon-Installer.exe
 
-    - name: Upload Wheels
+  sign:
+    runs-on: windows-latest
+    needs: build
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.sign == true) || startsWith(github.ref, 'refs/tags/') }}
+    env:
+      SIGNED_DIR: 'signed'
+      SIGNPATH_SIGNING_POLICY_SLUG: 'test-signing'
+    steps:
+    - name: Sign Artifact
+      if: ${{ needs.build.outputs.unsigned_artifact_id != '' }}
+      uses: signpath/github-action-submit-signing-request@v1.1
+      with:
+        api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+        organization-id: '${{ vars.SIGNPATH_ORGANIZATION_ID }}'
+        project-slug: 'ZenlessZoneZero-OneDragon'
+        signing-policy-slug: '${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}'
+        github-artifact-id: "${{ needs.build.outputs.unsigned_artifact_id }}"
+        wait-for-completion: true
+        # 签名后会自动下载到这个目录并解压 文件名和原来的一样
+        output-artifact-directory: '${{ env.SIGNED_DIR }}'
+
+    - name: Upload signed executables
       uses: actions/upload-artifact@v4
       with:
-        name: Wheels
-        path: deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
+        name: signed
+        if-no-files-found: error
+        path: ${{ env.SIGNED_DIR }}
+
+  release:
+    runs-on: windows-latest
+    needs:
+      - build
+      - sign
+    if: ${{ ((github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/')) && needs.sign.result == 'success' }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: Download dist
+      uses: actions/download-artifact@v4
+      with:
+        name: dist
+        path: deploy/dist
+
+    - name: Download signed executables
+      if: ${{ needs.sign.result == 'success' }}
+      uses: actions/download-artifact@v4
+      with:
+        name: signed
+        path: deploy/dist/signed
+
+    - name: Replace unsigned executables with signed ones
+      if: ${{ needs.sign.result == 'success' }}
+      shell: pwsh
+      run: |
+        Copy-Item "deploy/dist/signed/OneDragon-Installer.exe" -Destination "deploy/dist/OneDragon-Installer.exe" -Force
+        Copy-Item "deploy/dist/signed/OneDragon-Launcher.exe" -Destination "deploy/dist/OneDragon-Launcher.exe" -Force
 
     - name: Prepare release directory and models
-      if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
       shell: pwsh
+      env:
+        RELEASE_VERSION: ${{ needs.build.outputs.version }}
       run: |
         # 将 dist 移动到当前目录的父目录下
         $distDir = "deploy/dist"
@@ -320,7 +392,7 @@ jobs:
         }
 
         # 获取版本号
-        $version = "${{ steps.get_version.outputs.version }}"
+        $version = $env:RELEASE_VERSION
 
         # 打包前删除不需要的目录
         Remove-Item -Path "deploy/build" -Recurse -Force -ErrorAction SilentlyContinue
@@ -344,139 +416,32 @@ jobs:
         # 将所有待发布文件移到当前目录
         Move-Item -Path "$distDir/*.zip" -Destination (Get-Location) -Force
 
-    - name: Generate Changelog
-      id: changelog
-      if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
-      shell: pwsh
-      run: |
-        $current_version_tag = "${{ steps.get_version.outputs.tag }}" # 从 get_version 步骤获取的标签
-        $commits = @()
-
-        if ($env:GITHUB_REF -like 'refs/tags/*') {
-          # 这是由标签触发的发布
-          # 尝试查找当前标签提交的父提交上的最新标签
-          $previous_tag_candidate = $(git describe --tags --abbrev=0 "$current_version_tag^" 2>$null)
-          if ($previous_tag_candidate) {
-            Write-Host "正在生成从 $previous_tag_candidate 到 $current_version_tag 的更新日志"
-            $commits = git log --pretty=format:"%s|%h" "$previous_tag_candidate..$current_version_tag"
-          } else {
-            Write-Host "未找到相对于 $current_version_tag^ 的上一个标签。列出 $current_version_tag 的最后10个提交。"
-            # 这可能是第一个标签。列出导致它的提交。
-            $commits = git log --pretty=format:"%s|%h" -n 10 "$current_version_tag"
-          }
-        } else {
-          # 这是手动 workflow_dispatch 或分支推送
-          Write-Host "手动或分支构建。列出 HEAD 的最后5个提交。"
-          $commits = git log --pretty=format:"%s|%h" -n 5 HEAD
-        }
-
-        # 按前缀分类提交
-        $categories = @{
-          "feat" = @()
-          "fix" = @()
-          "perf" = @()
-          "refactor" = @()
-          "style" = @()
-          "docs" = @()
-          "test" = @()
-          "ci" = @()
-          "build" = @()
-          "chore" = @()
-          "revert" = @()
-          "other" = @()
-        }
-
-        foreach ($commit in $commits) {
-          if ($commit -match "^(.+)\|(.+)$") {
-            $message = $matches[1]
-            $hash = $matches[2]
-
-            # 提取冒号前的前缀
-            if ($message -match "^([^:]+):(.*)$") {
-              $prefix = $matches[1].Trim().ToLower()
-              $content = $matches[2].Trim()
-
-              # 检查前缀是否在已知分类中
-              if ($categories.ContainsKey($prefix)) {
-                $categories[$prefix] += "- $content ($hash)"
-              } else {
-                $categories["other"] += "- $message ($hash)"
-              }
-            } else {
-              $categories["other"] += "- $message ($hash)"
-            }
-          }
-        }
-
-        # 生成分类后的更新日志
-        $changelog_content = ""
-        $category_names = @{
-          "feat" = "✨ 新功能"
-          "fix" = "🐛 Bug 修复"
-          "perf" = "⚡ 性能优化"
-          "refactor" = "♻️ 代码重构"
-          "style" = "💄 样式调整"
-          "docs" = "📄 文档更新"
-          "test" = "✅ 测试"
-          "ci" = "👷 CI/CD"
-          "build" = "📦 构建"
-          "chore" = "🔧 杂项"
-          "revert" = "⏪ 回滚"
-          "other" = "📝 其他更改"
-        }
-
-        # 定义输出顺序
-        $ordered_keys = @("feat", "fix", "perf", "refactor", "style", "docs", "test", "ci", "build", "chore", "revert", "other")
-
-        foreach ($key in $ordered_keys) {
-          if ($categories[$key].Count -gt 0) {
-            if ($changelog_content -ne "") {
-              $changelog_content += "`n`n"
-            }
-            $changelog_content += "## $($category_names[$key])`n"
-            $changelog_content += ($categories[$key] -join "`n")
-          }
-        }
-
-        if ([string]::IsNullOrWhiteSpace($changelog_content)) {
-          $changelog_content = "没有新的更改或无法确定更新日志。"
-        }
-
-        $output_name = "clean_changelog"
-        $delimiter = "CHANGELOG_DELIMITER_$(New-Guid)"
-
-        echo "$output_name<<$delimiter" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-        echo $changelog_content | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-        echo $delimiter | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-
     - name: Create Release
-      if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ steps.get_version.outputs.tag }}
-        name: "Release ${{ steps.get_version.outputs.version }}"
+        tag_name: ${{ needs.build.outputs.tag }}
+        name: "Release ${{ needs.build.outputs.version }}"
         body: |
           # 安装方式
 
-          - `ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Full-Environment.zip` 为带环境的完整包，不需要额外下载资源。
-          - `ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Full.zip` 为完整包，解压后选择解压目录为安装目录，只需要下载环境依赖。
-          - `ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Installer.exe` 为精简安装程序，运行后会自动下载所需的资源。
+          - `ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Full-Environment.zip` 为带环境的完整包，不需要额外下载资源。
+          - `ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Full.zip` 为完整包，解压后选择解压目录为安装目录，只需要下载环境依赖。
+          - `ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Installer.exe` 为精简安装程序，运行后会自动下载所需的资源。
           - 如果你想更新启动器，前往主程序【设置】-【资源下载】页面更新，或者下载 `ZenlessZoneZero-OneDragon-Launcher.zip`，解压后替换。
           - __不要下载Source Code__
 
           安装前请查看 [安装指南](https://one-dragon.com/zzz/zh/quickstart.html)
           若运行出错请查看 [自助排障指南](https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5)
 
-          # 更新内容
+          已有 Mirror酱 CDK？前往 [Mirror酱](https://mirrorchyan.com/zh/projects?rid=ZZZ-OneDragon&source=zzzgh-release) 高速下载
 
-          ${{ steps.changelog.outputs.clean_changelog }}
         files: |
-          ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Full-Environment.zip
-          ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Full.zip
-          ZenlessZoneZero-OneDragon-${{ steps.get_version.outputs.version }}-Installer.exe
+          ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Full-Environment.zip
+          ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Full.zip
+          ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Installer.exe
           ZenlessZoneZero-OneDragon-Environment.zip
           ZenlessZoneZero-OneDragon-Launcher.zip
         generate_release_notes: false
-        prerelease: ${{ contains(steps.get_version.outputs.tag, '-beta.') }}
+        prerelease: ${{ contains(needs.build.outputs.version, '-beta.') }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
