@@ -43,7 +43,10 @@ class OpenGame(Operation):
         log.info('命令行指令 %s', command)
 
         try:
-            subprocess.Popen(command)
+            subprocess.Popen(
+                command,
+                creationflags=subprocess.CREATE_BREAKAWAY_FROM_JOB
+            )
 
             # 埋点：游戏启动事件
             if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:

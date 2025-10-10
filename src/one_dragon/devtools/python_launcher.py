@@ -137,6 +137,7 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
         # 创建Job对象
         kernel32 = ctypes.windll.kernel32
         JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+        JOB_OBJECT_LIMIT_BREAKAWAY_OK = 0x00000800
         JobObjectExtendedLimitInformation = 9
 
         class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
@@ -176,7 +177,7 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
         if not job_handle:
             raise OSError("CreateJobObjectW failed")
         job_info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
-        job_info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        job_info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_BREAKAWAY_OK
         if not kernel32.SetInformationJobObject(
             job_handle,
             JobObjectExtendedLimitInformation,
@@ -188,7 +189,6 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
 
         # 创建进程
         process = subprocess.Popen(
-            # f"{uv_path} {' '.join(run_args)}",
             [uv_path] + run_args,
             stdout=None,
             stderr=None,
@@ -197,6 +197,7 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
             text=True,
             encoding='utf-8'
         )
+        
         # 将进程加入Job对象
         if not kernel32.AssignProcessToJobObject(job_handle, process._handle):
             try:
