@@ -4,11 +4,17 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends
 
+from zzz_od.api.context_helpers import (
+    get_app_config,
+    get_app_run_record,
+    get_one_dragon_app_config,
+)
 from zzz_od.api.deps import get_ctx
 from zzz_od.api.security import get_api_key_dependency
 from zzz_od.api.run_registry import get_global_run_registry
 from zzz_od.api.bridges import attach_run_event_bridge
 from zzz_od.api.models import RunIdResponse
+from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
 
 
 router = APIRouter(
@@ -43,7 +49,7 @@ def get_drive_disc_dismantle_config() -> Dict[str, Any]:
     ```
     """
     ctx = get_ctx()
-    config = ctx.drive_disc_dismantle_config
+    config = get_app_config(ctx, app_id=drive_disc_dismantle_const.APP_ID)
     return {
         "dismantleLevel": config.dismantle_level,
         "dismantleAbandon": config.dismantle_abandon,
@@ -78,7 +84,7 @@ def update_drive_disc_dismantle_config(payload: Dict[str, Any]) -> Dict[str, Any
     ```
     """
     ctx = get_ctx()
-    config = ctx.drive_disc_dismantle_config
+    config = get_app_config(ctx, app_id=drive_disc_dismantle_const.APP_ID)
 
     if "dismantleLevel" in payload:
         config.dismantle_level = payload["dismantleLevel"]
@@ -140,7 +146,11 @@ def reset_drive_disc_dismantle_record() -> Dict[str, Any]:
     ```
     """
     ctx = get_ctx()
-    ctx.drive_disc_dismantle_record.reset_record()
+    record = get_app_run_record(
+        ctx,
+        app_id=drive_disc_dismantle_const.APP_ID,
+    )
+    record.reset_record()
     return {"message": "Drive disc dismantle record reset successfully"}
 
 
@@ -166,7 +176,10 @@ def get_drive_disc_dismantle_run_record() -> Dict[str, Any]:
     ```
     """
     ctx = get_ctx()
-    record = ctx.drive_disc_dismantle_record
+    record = get_app_run_record(
+        ctx,
+        app_id=drive_disc_dismantle_const.APP_ID,
+    )
     return {
         "finished": record.run_status == record.STATUS_SUCCESS,
         "status": record.run_status_under_now
@@ -207,9 +220,10 @@ def get_dismantle_levels() -> Dict[str, Any]:
 def _run_via_onedragon_with_temp(app_ids: list[str]) -> str:
     """通过一条龙总控运行指定 appId 列表（临时运行清单）。"""
     ctx = get_ctx()
-    original_temp = getattr(ctx.one_dragon_app_config, "_temp_app_run_list", None)
-    ctx.one_dragon_app_config.set_temp_app_run_list(app_ids)
-    from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+    config = get_one_dragon_app_config(ctx)
+    original_temp = config.temp_app_run_list
+    config.set_temp_app_run_list(app_ids)
+    from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
     run_id = _start_app_run(lambda c: ZOneDragonApp(c))
     return run_id
 

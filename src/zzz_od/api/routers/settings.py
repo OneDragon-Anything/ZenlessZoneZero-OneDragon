@@ -1208,7 +1208,7 @@ def update_environment_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
         env_config.key_debug = keys["debug"]
 
     # 重新初始化上下文
-    ctx.init_by_config()
+    ctx.init()
 
     return {"ok": True}
 
