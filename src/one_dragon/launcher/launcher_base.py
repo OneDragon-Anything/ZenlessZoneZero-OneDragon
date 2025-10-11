@@ -27,7 +27,7 @@ class LauncherBase:
         parser.add_argument("-s", "--shutdown", type=int, nargs='?', const=60, help="运行后关机，可指定延迟秒数，默认60秒")
         parser.add_argument("-i", "--instance", type=str, help="指定运行的账号实例，多个用英文逗号分隔，如：1,2")
         parser.add_argument("-a", "--app", type=str, help="指定运行的应用，多个用英文逗号分隔")
-        parser.add_argument("-p", "--piped", action="store_true", help="获得该进程控制权，而非通过powershell启动子进程")
+        parser.add_argument("-p", "--piped", action="store_true", help="获取该进程控制权并阻塞运行，不启动脱离的子进程，适合在脚本或其他应用中调用一条龙时配合-o使用")
 
     def run(self) -> None:
         """运行启动器"""
