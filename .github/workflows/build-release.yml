@@ -7,12 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       create_release:
-        description: 'Release'
-        required: true
-        default: false
-        type: boolean
-      sign:
-        description: 'Sign'
+        description: 'Create Release'
         required: true
         default: false
         type: boolean
@@ -188,7 +183,7 @@ jobs:
   sign:
     runs-on: windows-latest
     needs: build
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.sign == true) || startsWith(github.ref, 'refs/tags/') }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
     env:
       SIGNED_DIR: 'signed'
       SIGNPATH_SIGNING_POLICY_SLUG: 'test-signing'
