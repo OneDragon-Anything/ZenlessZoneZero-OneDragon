@@ -5,6 +5,7 @@ from typing import Callable
 from zzz_od.api.models import Capabilities
 from zzz_od.api.unified_controller import UnifiedController
 from zzz_od.api.deps import get_ctx
+from zzz_od.api.context_helpers import get_one_dragon_app_config
 
 
 class HollowZeroController(UnifiedController):
@@ -24,10 +25,11 @@ class HollowZeroController(UnifiedController):
         """创建空洞零号应用工厂函数"""
         def factory():
             ctx = get_ctx()
+            config = get_one_dragon_app_config(ctx)
             # 设置临时运行清单为空洞零号
-            ctx.one_dragon_app_config.set_temp_app_run_list(["hollow_zero"])
+            config.set_temp_app_run_list(["hollow_zero"])
 
-            from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+            from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
             return ZOneDragonApp(ctx)
 
         return factory
@@ -50,10 +52,11 @@ class LostVoidController(UnifiedController):
         """创建迷失之地应用工厂函数"""
         def factory():
             ctx = get_ctx()
+            config = get_one_dragon_app_config(ctx)
             # 设置临时运行清单为迷失之地
-            ctx.one_dragon_app_config.set_temp_app_run_list(["lost_void"])
+            config.set_temp_app_run_list(["lost_void"])
 
-            from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+            from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
             return ZOneDragonApp(ctx)
 
         return factory

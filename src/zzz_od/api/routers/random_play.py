@@ -4,6 +4,11 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends
 
+from zzz_od.api.context_helpers import (
+    get_app_config,
+    get_app_run_record,
+    get_one_dragon_app_config,
+)
 from zzz_od.api.deps import get_ctx
 from zzz_od.api.security import get_api_key_dependency
 from zzz_od.api.run_registry import get_global_run_registry
@@ -19,6 +24,7 @@ router = APIRouter(
 
 
 _registry = get_global_run_registry()
+APP_ID = "random_play"
 
 
 @router.get("/config", response_model=Dict[str, Any], summary="获取录像店配置")
@@ -43,7 +49,7 @@ def get_random_play_config() -> Dict[str, Any]:
     ```
     """
     ctx = get_ctx()
-    config = ctx.random_play_config
+    config = get_app_config(ctx, app_id=APP_ID)
     return {
         "agentName1": config.agent_name_1,
         "agentName2": config.agent_name_2,
@@ -78,7 +84,7 @@ def update_random_play_config(payload: Dict[str, Any]) -> Dict[str, Any]:
     ```
     """
     ctx = get_ctx()
-    config = ctx.random_play_config
+    config = get_app_config(ctx, app_id=APP_ID)
 
     if "agentName1" in payload:
         config.agent_name_1 = payload["agentName1"]
@@ -111,7 +117,7 @@ async def run_random_play():
     print(f"录像店任务ID: {task_info['runId']}")
     ```
     """
-    run_id = _run_via_onedragon_with_temp(["random_play"])
+    run_id = _run_via_onedragon_with_temp([APP_ID])
     return RunIdResponse(runId=run_id)
 
 
@@ -135,7 +141,8 @@ def reset_random_play_record() -> Dict[str, Any]:
     ```
     """
     ctx = get_ctx()
-    ctx.random_play_run_record.reset_record()
+    record = get_app_run_record(ctx, app_id=APP_ID)
+    record.reset_record()
     return {"message": "Random play record reset successfully"}
 
 
@@ -161,7 +168,7 @@ def get_random_play_run_record() -> Dict[str, Any]:
     ```
     """
     ctx = get_ctx()
-    record = ctx.random_play_run_record
+    record = get_app_run_record(ctx, app_id=APP_ID)
     return {
         "finished": record.run_status == record.STATUS_SUCCESS,
         "status": record.run_status_under_now
@@ -171,9 +178,10 @@ def get_random_play_run_record() -> Dict[str, Any]:
 def _run_via_onedragon_with_temp(app_ids: list[str]) -> str:
     """通过一条龙总控运行指定 appId 列表（临时运行清单）。"""
     ctx = get_ctx()
-    original_temp = getattr(ctx.one_dragon_app_config, "_temp_app_run_list", None)
-    ctx.one_dragon_app_config.set_temp_app_run_list(app_ids)
-    from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+    config = get_one_dragon_app_config(ctx)
+    original_temp = config.temp_app_run_list
+    config.set_temp_app_run_list(app_ids)
+    from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
     run_id = _start_app_run(lambda c: ZOneDragonApp(c))
     return run_id
 

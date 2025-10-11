@@ -8,8 +8,8 @@ from zzz_od.api.run_registry import get_global_run_registry
 from zzz_od.api.ws import manager
 from zzz_od.api.status_builder import build_onedragon_aggregate
 from zzz_od.context.zzz_context import ZContext
-from one_dragon.base.operation.one_dragon_context import (
-    ContextRunningStateEventEnum,
+from one_dragon.base.operation.application.application_run_context import (
+    ApplicationRunContextStateEventEnum,
 )
 from one_dragon.base.operation.application_base import ApplicationEventId
 
@@ -57,7 +57,7 @@ def attach_run_event_bridge(ctx: ZContext, run_id: str) -> Callable[[], None]:
 
         def on_running_state(self, event):  # bound method, has __self__
             state = event.data
-            status_text = self.ctx.context_running_status_text
+            status_text = getattr(self.ctx.run_context, "run_status_text", "")
             agg = build_onedragon_aggregate(self.ctx)
             display_text = f"{status_text} ({int(agg['progress']*100)}%)"
             self.registry.update_message(self.run_id, display_text)
@@ -70,19 +70,20 @@ def attach_run_event_bridge(ctx: ZContext, run_id: str) -> Callable[[], None]:
 
     listener = _BridgeCallbacks(ctx, run_id, channel)
 
-    ctx.listen_event(ContextRunningStateEventEnum.START_RUNNING.value, listener.on_running_state)
-    ctx.listen_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, listener.on_running_state)
-    ctx.listen_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, listener.on_running_state)
-    ctx.listen_event(ContextRunningStateEventEnum.STOP_RUNNING.value, listener.on_running_state)
+    run_event_bus = ctx.run_context.event_bus
+    run_event_bus.listen_event(ApplicationRunContextStateEventEnum.START.value, listener.on_running_state)
+    run_event_bus.listen_event(ApplicationRunContextStateEventEnum.PAUSE.value, listener.on_running_state)
+    run_event_bus.listen_event(ApplicationRunContextStateEventEnum.RESUME.value, listener.on_running_state)
+    run_event_bus.listen_event(ApplicationRunContextStateEventEnum.STOP.value, listener.on_running_state)
     ctx.listen_event(ApplicationEventId.APPLICATION_START.value, listener.on_app_event)
     ctx.listen_event(ApplicationEventId.APPLICATION_STOP.value, listener.on_app_event)
 
     def _detach() -> None:
         try:
-            ctx.unlisten_event(ContextRunningStateEventEnum.START_RUNNING.value, listener.on_running_state)
-            ctx.unlisten_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, listener.on_running_state)
-            ctx.unlisten_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, listener.on_running_state)
-            ctx.unlisten_event(ContextRunningStateEventEnum.STOP_RUNNING.value, listener.on_running_state)
+            run_event_bus.unlisten_event(ApplicationRunContextStateEventEnum.START.value, listener.on_running_state)
+            run_event_bus.unlisten_event(ApplicationRunContextStateEventEnum.PAUSE.value, listener.on_running_state)
+            run_event_bus.unlisten_event(ApplicationRunContextStateEventEnum.RESUME.value, listener.on_running_state)
+            run_event_bus.unlisten_event(ApplicationRunContextStateEventEnum.STOP.value, listener.on_running_state)
             ctx.unlisten_event(ApplicationEventId.APPLICATION_START.value, listener.on_app_event)
             ctx.unlisten_event(ApplicationEventId.APPLICATION_STOP.value, listener.on_app_event)
         except Exception:
@@ -136,19 +137,20 @@ def attach_battle_assistant_event_bridge(ctx: ZContext, run_id: str) -> Callable
         def on_running_state(self, event):
             """处理运行状态变化"""
             state = event.data
-            status_text = self.ctx.context_running_status_text
+            event_id = event.event_id
+            status_text = getattr(self.ctx.run_context, "run_status_text", "")
             agg = build_onedragon_aggregate(self.ctx)
 
             event_data = {
-                "state": state.name,
+                "state": state.name if hasattr(state, "name") else str(state),
                 "text": status_text,
                 "progress": agg.get('progress', 0.0),
                 "aggregate": agg
             }
 
-            if state.name == "START_RUNNING":
+            if event_id == ApplicationRunContextStateEventEnum.START.value:
                 self._broadcast_to_channels(BattleAssistantEventType.TASK_STARTED, event_data)
-            elif state.name == "STOP_RUNNING":
+            elif event_id == ApplicationRunContextStateEventEnum.STOP.value:
                 # 检查是否是正常完成还是错误停止
                 if hasattr(self.ctx, 'last_error') and self.ctx.last_error:
                     self._broadcast_to_channels(BattleAssistantEventType.TASK_FAILED, {
@@ -203,19 +205,20 @@ def attach_battle_assistant_event_bridge(ctx: ZContext, run_id: str) -> Callable
     bridge = _BattleAssistantBridge(ctx, run_id)
 
     # 监听上下文运行状态事件
-    ctx.listen_event(ContextRunningStateEventEnum.START_RUNNING.value, bridge.on_running_state)
-    ctx.listen_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, bridge.on_running_state)
-    ctx.listen_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, bridge.on_running_state)
-    ctx.listen_event(ContextRunningStateEventEnum.STOP_RUNNING.value, bridge.on_running_state)
+    run_event_bus = ctx.run_context.event_bus
+    run_event_bus.listen_event(ApplicationRunContextStateEventEnum.START.value, bridge.on_running_state)
+    run_event_bus.listen_event(ApplicationRunContextStateEventEnum.PAUSE.value, bridge.on_running_state)
+    run_event_bus.listen_event(ApplicationRunContextStateEventEnum.RESUME.value, bridge.on_running_state)
+    run_event_bus.listen_event(ApplicationRunContextStateEventEnum.STOP.value, bridge.on_running_state)
     ctx.listen_event(ApplicationEventId.APPLICATION_START.value, bridge.on_app_event)
     ctx.listen_event(ApplicationEventId.APPLICATION_STOP.value, bridge.on_app_event)
 
     def _detach() -> None:
         try:
-            ctx.unlisten_event(ContextRunningStateEventEnum.START_RUNNING.value, bridge.on_running_state)
-            ctx.unlisten_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, bridge.on_running_state)
-            ctx.unlisten_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, bridge.on_running_state)
-            ctx.unlisten_event(ContextRunningStateEventEnum.STOP_RUNNING.value, bridge.on_running_state)
+            run_event_bus.unlisten_event(ApplicationRunContextStateEventEnum.START.value, bridge.on_running_state)
+            run_event_bus.unlisten_event(ApplicationRunContextStateEventEnum.PAUSE.value, bridge.on_running_state)
+            run_event_bus.unlisten_event(ApplicationRunContextStateEventEnum.RESUME.value, bridge.on_running_state)
+            run_event_bus.unlisten_event(ApplicationRunContextStateEventEnum.STOP.value, bridge.on_running_state)
             ctx.unlisten_event(ApplicationEventId.APPLICATION_START.value, bridge.on_app_event)
             ctx.unlisten_event(ApplicationEventId.APPLICATION_STOP.value, bridge.on_app_event)
         except Exception:
