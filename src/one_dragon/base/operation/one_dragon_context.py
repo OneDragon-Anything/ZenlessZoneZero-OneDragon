@@ -79,6 +79,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         # 初始化相关
         self._init_lock = threading.Lock()
+        self._application_registered: bool = False  # 应用是否注册完毕
         self.ready_for_application: bool = False  # 初始化完成 可以运行应用了
 
     #------------------- 需要懒加载的都使用 @cached_property -------------------#
@@ -121,8 +122,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             log_utils.set_log_level(logging.DEBUG if self.env_config.is_debug else logging.INFO)
 
-            self.register_application_factory()
-            self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
+            if not self._application_registered:  # 只需要注册一次
+                self.register_application_factory()
+                self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
+                self._application_registered = True
 
             self.init_ocr()
 
