@@ -13,7 +13,9 @@ from zzz_od.api.monitoring import monitor
 from zzz_od.api.log_storage import get_global_log_storage
 from zzz_od.api.models import LogLevelEnum
 from zzz_od.context.zzz_context import ZContext
-from one_dragon.base.operation.one_dragon_context import ContextRunningStateEventEnum
+from one_dragon.base.operation.application.application_run_context import (
+    ApplicationRunContextStateEventEnum,
+)
 from one_dragon.base.operation.application_base import ApplicationEventId
 
 
@@ -76,7 +78,7 @@ class UnifiedEventBridge:
                 type=event_type,
                 module=self.module_name,
                 runId=self.run_id,
-                timestamp=datetime.utcnow().isoformat() + "Z",
+                timestamp=datetime.now(datetime.UTC).isoformat() + "Z",
                 data=data,
                 seq=self._get_next_seq()
             )
@@ -190,17 +192,20 @@ class UnifiedEventBridge:
 
     def _setup_listeners(self):
         """设置事件监听器"""
-        self.ctx.listen_event(ContextRunningStateEventEnum.START_RUNNING.value, self._on_running_state)
-        self.ctx.listen_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, self._on_running_state)
-        self.ctx.listen_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, self._on_running_state)
-        self.ctx.listen_event(ContextRunningStateEventEnum.STOP_RUNNING.value, self._on_running_state)
+        run_event_bus = self.ctx.run_context.event_bus
+        run_event_bus.listen_event(ApplicationRunContextStateEventEnum.START.value, self._on_running_state)
+        run_event_bus.listen_event(ApplicationRunContextStateEventEnum.PAUSE.value, self._on_running_state)
+        run_event_bus.listen_event(ApplicationRunContextStateEventEnum.RESUME.value, self._on_running_state)
+        run_event_bus.listen_event(ApplicationRunContextStateEventEnum.STOP.value, self._on_running_state)
         self.ctx.listen_event(ApplicationEventId.APPLICATION_START.value, self._on_app_event)
         self.ctx.listen_event(ApplicationEventId.APPLICATION_STOP.value, self._on_app_event)
+        self._run_event_bus = run_event_bus
 
     def _on_running_state(self, event):
         """处理运行状态变化"""
         state = event.data
-        status_text = self.ctx.context_running_status_text
+        event_id = event.event_id
+        status_text = getattr(self.ctx.run_context, "run_status_text", "")
 
         # 更新注册表中的消息
         self.registry.update_message(self.run_id, status_text)
@@ -209,17 +214,17 @@ class UnifiedEventBridge:
         context_state = "idle"
         is_running = False
 
-        if state.name == "START_RUNNING":
+        if event_id == ApplicationRunContextStateEventEnum.START.value:
             context_state = "running"
             is_running = True
             self.send_task_started(message=status_text)
-        elif state.name == "PAUSE_RUNNING":
+        elif event_id == ApplicationRunContextStateEventEnum.PAUSE.value:
             context_state = "paused"
             is_running = True
-        elif state.name == "RESUME_RUNNING":
+        elif event_id == ApplicationRunContextStateEventEnum.RESUME.value:
             context_state = "running"
             is_running = True
-        elif state.name == "STOP_RUNNING":
+        elif event_id == ApplicationRunContextStateEventEnum.STOP.value:
             context_state = "idle"
             is_running = False
             # 检查是否是错误停止
@@ -245,10 +250,11 @@ class UnifiedEventBridge:
     def detach(self):
         """解除事件监听"""
         try:
-            self.ctx.unlisten_event(ContextRunningStateEventEnum.START_RUNNING.value, self._on_running_state)
-            self.ctx.unlisten_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, self._on_running_state)
-            self.ctx.unlisten_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, self._on_running_state)
-            self.ctx.unlisten_event(ContextRunningStateEventEnum.STOP_RUNNING.value, self._on_running_state)
+            if hasattr(self, "_run_event_bus"):
+                self._run_event_bus.unlisten_event(ApplicationRunContextStateEventEnum.START.value, self._on_running_state)
+                self._run_event_bus.unlisten_event(ApplicationRunContextStateEventEnum.PAUSE.value, self._on_running_state)
+                self._run_event_bus.unlisten_event(ApplicationRunContextStateEventEnum.RESUME.value, self._on_running_state)
+                self._run_event_bus.unlisten_event(ApplicationRunContextStateEventEnum.STOP.value, self._on_running_state)
             self.ctx.unlisten_event(ApplicationEventId.APPLICATION_START.value, self._on_app_event)
             self.ctx.unlisten_event(ApplicationEventId.APPLICATION_STOP.value, self._on_app_event)
         except Exception:

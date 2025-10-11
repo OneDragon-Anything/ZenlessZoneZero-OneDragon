@@ -27,7 +27,7 @@ class RunRegistry:
     线程安全的运行注册表。负责管理 runId -> asyncio.Task 映射及状态汇总。
     状态来源：
       - 任务生命周期（pending/running/done/cancelled）
-      - 应用内部上下文（如 ctx.is_context_running / AppRunRecord）
+      - 应用内部上下文（如 ctx.run_context.is_context_running / AppRunRecord）
     """
 
     def __init__(self) -> None:

@@ -94,7 +94,7 @@ def raise_template_not_found_error(template_name: str) -> None:
 
 def check_task_not_running(ctx, error_message: str = "已有任务正在运行，请先停止当前任务") -> None:
     """检查任务是否未在运行，如果在运行则抛出异常"""
-    if ctx.is_context_running:
+    if ctx.run_context.is_context_running:
         raise_task_running_error(error_message)
 
 

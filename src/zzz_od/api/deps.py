@@ -24,7 +24,7 @@ class AppContainer:
             if cls._ctx is None:
                 ctx = ZContext()
                 # Load configs and initialize minimal services.
-                ctx.init_by_config()
+                ctx.init()
                 # Lazy OCR/model load remains on-demand
                 cls._ctx = ctx
         return cls._ctx
