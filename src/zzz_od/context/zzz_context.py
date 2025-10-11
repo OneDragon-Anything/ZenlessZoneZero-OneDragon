@@ -64,7 +64,7 @@ class ZContext(OneDragonContext):
         )
         return WitheredDomainContext(self)
 
-    #------------------- 以下是 账号实例级别的 需要在 load_instance_config 中刷新 -------------------#
+    #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
 
     @cached_property
     def game_config(self):
@@ -93,8 +93,19 @@ class ZContext(OneDragonContext):
         from zzz_od.config.notify_config import NotifyConfig
         return NotifyConfig(self.current_instance_idx)
 
-    def load_instance_config(self) -> None:
-        OneDragonContext.load_instance_config(self)
+    def reload_instance_config(self) -> None:
+        OneDragonContext.reload_instance_config(self)
+
+        to_clear_props = [
+            'game_config',
+            'team_config',
+            'battle_assistant_config',
+            'agent_outfit_config',
+            'notify_config',
+        ]
+        for prop in to_clear_props:
+            if hasattr(self, prop):
+                delattr(self, prop)
 
         if self.agent_outfit_config.compatibility_mode:
             self.init_agent_template_id()

@@ -95,6 +95,18 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         from one_dragon.base.config.custom_config import CustomConfig
         return CustomConfig()
 
+    #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
+
+    @cached_property
+    def game_account_config(self):
+        from one_dragon.base.config.game_account_config import GameAccountConfig
+        return GameAccountConfig(self.current_instance_idx)
+
+    @cached_property
+    def push_config(self):
+        from one_dragon.base.config.push_config import PushConfig
+        return PushConfig(self.current_instance_idx)
+
     def init(self) -> None:
         if not self._init_lock.acquire(blocking=False):
             return
@@ -117,7 +129,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             self.screen_loader.load_all()
 
             # 账号实例层级的配置 不是应用特有的配置
-            self.load_instance_config()
+            self.reload_instance_config()
 
             # 初始化控制器
             self.init_controller()
@@ -224,20 +236,25 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """
         self.one_dragon_config.active_instance(instance_idx)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
-        self.load_instance_config()
+        self.reload_instance_config()
         self.init_controller()
         self.dispatch_event(ContextInstanceEventEnum.instance_active.value, instance_idx)
 
-    def load_instance_config(self):
+    def reload_instance_config(self):
         """
-        加载账号实例相关的配置，不是单个应用特有的配置
+        重新加载账号实例相关的配置，不是单个应用特有的配置
+        注意如果有缓存需要清理缓存
         子类需要继承加载更多的配置
         """
         log.info('开始加载实例配置 %d' % self.current_instance_idx)
-        from one_dragon.base.config.game_account_config import GameAccountConfig
-        self.game_account_config: GameAccountConfig = GameAccountConfig(self.current_instance_idx)
-        from one_dragon.base.config.push_config import PushConfig
-        self.push_config: PushConfig = PushConfig(self.current_instance_idx)
+
+        to_clear_props = [
+            'game_account_config',
+            'push_config',
+        ]
+        for prop in to_clear_props:
+            if hasattr(self, prop):
+                delattr(self, prop)
 
     def init_ocr(self) -> None:
         """
