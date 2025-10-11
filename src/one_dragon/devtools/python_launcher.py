@@ -135,6 +135,11 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
     if args and '--piped' in args and os.name == 'nt':  
         
         # 创建Job对象
+        # 用于管理进程组，解决 `taskkill /f /im OneDragon-Launcher.exe` 后Python.exe进程仍然存活的问题
+        # 设置JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE后， OneDragon-Launcher.exe 退出后将会kill掉所有分配进Job对象的子进程
+        # （若希望进程从中jobobject逃离，则需要设置 JOB_OBJECT_LIMIT_BREAKAWAY_OK，并设置创建进程时使用 creationflags=subprocess.CREATE_BREAKAWAY_FROM_JOB）
+        # https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects
+        # https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_basic_limit_information
         kernel32 = ctypes.windll.kernel32
         JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
         JOB_OBJECT_LIMIT_BREAKAWAY_OK = 0x00000800
@@ -188,6 +193,7 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
             raise OSError("SetInformationJobObject failed")
 
         # 创建进程
+        # stdout, stderr 设置为 None 将会输出到当前程序相应的管道中
         process = subprocess.Popen(
             [uv_path] + run_args,
             stdout=None,
@@ -206,7 +212,7 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
                 kernel32.CloseHandle(job_handle)
             raise OSError("AssignProcessToJobObject failed")
 
-        # 注册信号处理
+        # 注册退出处理函数，当前程序退出时，尝试主动关闭Job对象
         def _cleanup():
             try:
                 kernel32.CloseHandle(job_handle)
@@ -214,6 +220,8 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
                 pass
         atexit.register(_cleanup)
 
+        # 注册信号处理，当前程序收到CTRL+C信号时，将信号传递给python子进程，这会使得 `process.wait()` 退出, 并得到返回值
+        # 此时控制台打印的错误信息是子进程输出的
         def _on_signal(signum, frame):
             try:
                 process.send_signal(signal.CTRL_BREAK_EVENT)
@@ -226,12 +234,14 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
             pass
 
         # 等待进程结束
-        exit_code = -1
+        exit_code = 0
         try:
             exit_code = process.wait()
         finally:
             ctypes.windll.kernel32.CloseHandle(job_handle)
-        sys.exit(exit_code)
+        # 如果子进程退出码不为0，则以同样的退出码退出当前程序
+        if exit_code != 0:
+            sys.exit(exit_code)
     else:
         # 构建 PowerShell 命令
         powershell_command = [
