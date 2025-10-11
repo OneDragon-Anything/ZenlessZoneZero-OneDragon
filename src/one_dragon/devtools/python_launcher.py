@@ -191,15 +191,18 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
         ):
             kernel32.CloseHandle(job_handle)
             raise OSError("SetInformationJobObject failed")
-
         # 创建进程
         # stdout, stderr 设置为 None 将会输出到当前程序相应的管道中
+        
+        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
+        if no_windows:
+            creationflags |= subprocess.CREATE_NO_WINDOW
         process = subprocess.Popen(
             [uv_path] + run_args,
             stdout=None,
             stderr=None,
             stdin=None,
-            creationflags=subprocess.CREATE_NO_WINDOW if no_windows else 0,
+            creationflags=creationflags,
             text=True,
             encoding='utf-8'
         )
