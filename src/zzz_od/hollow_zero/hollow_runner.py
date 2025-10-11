@@ -143,7 +143,7 @@ class HollowRunner(ZOperation):
             HollowZeroSpecialEvent.RESONIUM_STORE_5.value.event_name,  # 商人格子也需要寻路
             HollowZeroSpecialEvent.DOOR_BATTLE_ENTRY.value.event_name,  # 门扉禁闭-善战 开不了门 就移动去其他地方
         ]:
-            current_map = self.ctx.hollow.map_service.cal_map_by_screen(self.last_screenshot, self.last_screenshot_time)
+            current_map = self.ctx.withered_domain.map_service.cal_map_by_screen(self.last_screenshot, self.last_screenshot_time)
             if current_map is not None:
                 result = self.try_move_by_map(self.last_screenshot, self.last_screenshot_time, current_map)
                 if result is not None:
@@ -163,7 +163,7 @@ class HollowRunner(ZOperation):
         :param event_name:
         :return:
         """
-        normal_event = self.ctx.hollow.data_service.get_normal_event_by_name(event_name=event_name)
+        normal_event = self.ctx.withered_domain.data_service.get_normal_event_by_name(event_name=event_name)
         any_match = False
         if normal_event is not None:
             any_match = True
@@ -203,7 +203,7 @@ class HollowRunner(ZOperation):
         :param current_map: 分析得到的地图
         :return:
         """
-        target_node: HollowZeroMapNode = self.ctx.hollow.get_next_to_move(current_map)
+        target_node: HollowZeroMapNode = self.ctx.withered_domain.get_next_to_move(current_map)
         if target_node is None:
             return None
 
@@ -224,7 +224,7 @@ class HollowRunner(ZOperation):
             return self.round_retry('自动寻路失败')
 
         if pathfinding_success:
-            self.ctx.hollow.check_info_before_move(screen, current_map)
+            self.ctx.withered_domain.check_info_before_move(screen, current_map)
             # self._try_click_speed_up(screen)  # 可以在游戏内设置继承上一次
             extra_finished = self._check_extra_task_finished(screen, current_map)
             if extra_finished:
@@ -240,10 +240,10 @@ class HollowRunner(ZOperation):
         # 如果是特殊需要选项的格子 则使用对应的事件指令处理 可以同时用来等待移动的时间
         op: Optional[ZOperation] = None
         entry_name = next_to_move.entry.entry_name
-        if entry_name in self._entry_event_handlers and not self.ctx.hollow.had_been_entry(entry_name):
+        if entry_name in self._entry_event_handlers and not self.ctx.withered_domain.had_been_entry(entry_name):
             op = self._entry_event_handlers[entry_name](self.ctx)
 
-        self.ctx.hollow.update_context_after_move(current_map, next_to_move)
+        self.ctx.withered_domain.update_context_after_move(current_map, next_to_move)
         self._handled_events.clear()
 
         # 如果是特殊需要选项的格子 则使用对应的事件指令处理 可以同时用来等待移动的时间
@@ -295,11 +295,11 @@ class HollowRunner(ZOperation):
 
     def _try_click_speed_up(self, screen: MatLike) -> None:
         # 快进
-        if not self.ctx.hollow.speed_up_clicked:
+        if not self.ctx.withered_domain.speed_up_clicked:
             result = self.round_by_find_and_click_area(screen, '零号空洞-事件', '快进')
             time.sleep(0.2)
             if result.is_success:
-                self.ctx.hollow.speed_up_clicked = True
+                self.ctx.withered_domain.speed_up_clicked = True
 
     def _check_extra_task_finished(self, screen: MatLike, current_map: HollowZeroMap) -> bool:
         """
@@ -308,7 +308,7 @@ class HollowRunner(ZOperation):
         :param current_map:
         :return:
         """
-        level_info = self.ctx.hollow.level_info
+        level_info = self.ctx.withered_domain.level_info
 
         if self.run_record.is_finished_by_day():
             # 已经完成了
@@ -329,7 +329,7 @@ class HollowRunner(ZOperation):
             if level_info.level > 2 or (level_info.level == 2 and level_info.phase > 1):  # 已经过了指定的楼层
                 extra_exit_by_level = True
             if level_info.level == 2 and level_info.phase == 1:
-                if self.ctx.hollow.had_been_entry('业绩考察点') and not current_map.contains_entry('业绩考察点'):
+                if self.ctx.withered_domain.had_been_entry('业绩考察点') and not current_map.contains_entry('业绩考察点'):
                     extra_exit_by_level = True
                 if current_map.contains_entry('业绩考察点空'):
                     extra_exit_by_level = True
@@ -337,7 +337,7 @@ class HollowRunner(ZOperation):
             if level_info.level == 3 and level_info.phase > 1:  # 已经过了指定的楼层
                 extra_exit_by_level = True
             if level_info.level == 3 and level_info.phase == 1:
-                if self.ctx.hollow.had_been_entry('业绩考察点') and not current_map.contains_entry('业绩考察点'):
+                if self.ctx.withered_domain.had_been_entry('业绩考察点') and not current_map.contains_entry('业绩考察点'):
                     extra_exit_by_level = True
                 if current_map.contains_entry('业绩考察点空'):
                     extra_exit_by_level = True
@@ -408,7 +408,7 @@ def __debug():
     ctx.init_by_config()
     ctx.run_context.start_running()
     ctx.init_ocr()
-    ctx.hollow.init_before_hollow_start('旧都列车', '旧都列车-核心')
+    ctx.withered_domain.init_before_hollow_start('旧都列车', '旧都列车-核心')
     op = HollowRunner(ctx)
     # from one_dragon.utils import debug_utils
     # screen = debug_utils.get_debug_image('_1723977819253')

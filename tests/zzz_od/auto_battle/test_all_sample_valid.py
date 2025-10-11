@@ -1,12 +1,5 @@
 import pytest
-import time
-from unittest.mock import Mock, patch, MagicMock
-from concurrent.futures import Future
 
-from one_dragon.base.conditional_operation.conditional_operator import ConditionalOperator
-from one_dragon.base.conditional_operation.state_recorder import StateRecord, StateRecorder
-from one_dragon.base.conditional_operation.operation_task import OperationTask
-from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext

@@ -1,3 +1,5 @@
+from functools import cached_property
+
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from zzz_od.game_data.agent import AgentEnum
 
@@ -5,68 +7,110 @@ from zzz_od.game_data.agent import AgentEnum
 class ZContext(OneDragonContext):
 
     def __init__(self,):
+
         OneDragonContext.__init__(self)
-
-        from zzz_od.context.hollow_context import HollowContext
-        self.hollow: HollowContext = HollowContext(self)
-        from zzz_od.application.hollow_zero.lost_void.context.lost_void_context import (
-            LostVoidContext,
-        )
-        self.lost_void: LostVoidContext = LostVoidContext(self)
-        from zzz_od.application.hollow_zero.withered_domain.withered_domain_context import (
-            WitheredDomainContext,
-        )
-        self.withered_domain: WitheredDomainContext = WitheredDomainContext(self)
-
-        # 基础配置
-        from zzz_od.config.model_config import ModelConfig
-        self.model_config: ModelConfig = ModelConfig()
-
-        # 游戏数据
-        from zzz_od.game_data.map_area import MapAreaService
-        self.map_service: MapAreaService = MapAreaService()
-        from zzz_od.game_data.compendium import CompendiumService
-        self.compendium_service: CompendiumService = CompendiumService()
-        from zzz_od.application.world_patrol.world_patrol_service import (
-            WorldPatrolService,
-        )
-        self.world_patrol_service: WorldPatrolService = WorldPatrolService(self)
-
-        # 服务
-        from one_dragon.base.cv_process.cv_service import CvService
-        self.cv_service: CvService = CvService(self)
-
-        from zzz_od.telemetry.telemetry_manager import TelemetryManager
-        self.telemetry: TelemetryManager = TelemetryManager(self)
 
         # 后续所有用到自动战斗的 都统一设置到这个里面
         from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
         self.auto_op: AutoBattleOperator | None = None
 
-    def load_instance_config(self) -> None:
-        OneDragonContext.load_instance_config(self)
+    #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
+    #------------------- 以下是 游戏/脚本级别的 -------------------#
+
+    @cached_property
+    def model_config(self):
+        from zzz_od.config.model_config import ModelConfig
+        return ModelConfig()
+
+    @cached_property
+    def map_service(self):
+        from zzz_od.game_data.map_area import MapAreaService
+        return MapAreaService()
+
+    @cached_property
+    def compendium_service(self):
+        from zzz_od.game_data.compendium import CompendiumService
+        return CompendiumService()
+
+    @cached_property
+    def world_patrol_service(self):
+        from zzz_od.application.world_patrol.world_patrol_service import (
+            WorldPatrolService,
+        )
+        return WorldPatrolService(self)
+
+    @cached_property
+    def cv_service(self):
+        from one_dragon.base.cv_process.cv_service import CvService
+        return CvService(self)
+
+    @cached_property
+    def telemetry(self):
+        from zzz_od.telemetry.telemetry_manager import TelemetryManager
+        return TelemetryManager(self)
+
+    @cached_property
+    def lost_void(self):
+        from zzz_od.application.hollow_zero.lost_void.context.lost_void_context import (
+            LostVoidContext,
+        )
+        return LostVoidContext(self)
+
+    @cached_property
+    def withered_domain(self):
+        from zzz_od.application.hollow_zero.withered_domain.withered_domain_context import (
+            WitheredDomainContext,
+        )
+        return WitheredDomainContext(self)
+
+    #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
+
+    @cached_property
+    def game_config(self):
         from zzz_od.config.game_config import GameConfig
-        self.game_config: GameConfig = GameConfig(self.current_instance_idx)
+        return GameConfig(self.current_instance_idx)
 
+    @cached_property
+    def team_config(self):
+        from zzz_od.config.team_config import TeamConfig
+        return TeamConfig(self.current_instance_idx)
+
+    @cached_property
+    def battle_assistant_config(self):
         from zzz_od.application.battle_assistant.battle_assistant_config import (
             BattleAssistantConfig,
         )
-        from zzz_od.config.team_config import TeamConfig
-        self.team_config: TeamConfig = TeamConfig(self.current_instance_idx)
+        return BattleAssistantConfig(self.current_instance_idx)
 
-        # 应用配置
-        self.battle_assistant_config: BattleAssistantConfig = BattleAssistantConfig(self.current_instance_idx)
-
+    @cached_property
+    def agent_outfit_config(self):
         from zzz_od.config.agent_outfit_config import AgentOutfitConfig
-        self.agent_outfit_config: AgentOutfitConfig = AgentOutfitConfig(self.current_instance_idx)
+        return AgentOutfitConfig(self.current_instance_idx)
+
+    @cached_property
+    def notify_config(self):
+        from zzz_od.config.notify_config import NotifyConfig
+        return NotifyConfig(self.current_instance_idx)
+
+    def reload_instance_config(self) -> None:
+        OneDragonContext.reload_instance_config(self)
+
+        to_clear_props = [
+            'game_config',
+            'team_config',
+            'battle_assistant_config',
+            'agent_outfit_config',
+            'notify_config',
+        ]
+        for prop in to_clear_props:
+            if hasattr(self, prop):
+                delattr(self, prop)
+
         if self.agent_outfit_config.compatibility_mode:
             self.init_agent_template_id()
         else:
             self.init_agent_template_id_list()
-
-        from zzz_od.config.notify_config import NotifyConfig
-        self.notify_config: NotifyConfig = NotifyConfig(self.current_instance_idx)
 
     def init_controller(self) -> None:
         from one_dragon.base.config.game_account_config import GamePlatformEnum
@@ -124,6 +168,7 @@ class ZContext(OneDragonContext):
             self.telemetry.shutdown()
 
         OneDragonContext.after_app_shutdown(self)
+        self.withered_domain.after_app_shutdown()
 
     def init_auto_op(self, op_name: str, sub_dir: str = 'auto_battle') -> None:
         """

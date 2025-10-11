@@ -108,12 +108,12 @@ def __debug_cal_current_map_by_screen():
     from one_dragon.utils import debug_utils
     screen = debug_utils.get_debug_image('_1733016932243')
     import time
-    ctx.hollow.init_before_hollow_start('旧都列车', '旧都列车-核心')
+    ctx.withered_domain.init_before_hollow_start('旧都列车', '旧都列车-核心')
     current_map = service.cal_current_map_by_screen(screen, time.time())
-    ctx.hollow.check_info_before_move(screen, current_map)
+    ctx.withered_domain.check_info_before_move(screen, current_map)
     from zzz_od.hollow_zero.hollow_map import hollow_pathfinding
-    hollow_pathfinding.search_map(current_map, ctx.hollow._get_avoid(), [])
-    target = ctx.hollow.get_next_to_move(current_map)
+    hollow_pathfinding.search_map(current_map, ctx.withered_domain._get_avoid(), [])
+    target = ctx.withered_domain.get_next_to_move(current_map)
     next_node_to_move = target.next_node_to_move
     from zzz_od.hollow_zero.hollow_runner import HollowRunner
     runner = HollowRunner(ctx)
