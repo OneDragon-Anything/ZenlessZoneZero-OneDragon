@@ -62,7 +62,7 @@ class SuibianTempleYumChaSin(ZOperation):
         self.done_craft: bool = False  #  是否进行了制造
         self.skip_adventure: bool = False  # 已经无法再派遣了 后续跳过
 
-    @operation_node(name='前往饮茶仙', is_start_node=False)
+    @operation_node(name='前往饮茶仙', is_start_node=True)
     def goto_yum_cha_sin(self) -> OperationRoundResult:
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-饮茶仙'])
         if current_screen_name is not None:
@@ -254,7 +254,7 @@ class SuibianTempleYumChaSin(ZOperation):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='前往制作', status='按钮-制造')
-    @operation_node(name='制造派驻', is_start_node=True)
+    @operation_node(name='制造派驻')
     def craft_dispatch(self) -> OperationRoundResult:
         op = SuibianTempleCraftDispatch(
             self.ctx,

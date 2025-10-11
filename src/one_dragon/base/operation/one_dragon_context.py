@@ -1,14 +1,12 @@
 import logging
+import threading
 from enum import Enum
 from typing import Optional
 
 from pynput import keyboard, mouse
 
 from one_dragon.base.config.custom_config import CustomConfig, UILanguageEnum
-from one_dragon.base.config.game_account_config import GameAccountConfig
-from one_dragon.base.config.one_dragon_app_config import OneDragonAppConfig
 from one_dragon.base.config.one_dragon_config import OneDragonConfig
-from one_dragon.base.config.push_config import PushConfig
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
@@ -70,7 +68,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
-        self.ocr_service: OcrService | None = None  # 延迟初始化
+        self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
         self.controller: ControllerBase = controller
 
         self.keyboard_controller = keyboard.Controller()
@@ -84,17 +82,76 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.app_group_manager: ApplicationGroupManager = ApplicationGroupManager(self)
         self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
 
-    def init_by_config(self) -> None:
+        # 初始化相关
+        self._init_lock = threading.Lock()
+        self.ready_for_application: bool = False  # 初始化完成 可以运行应用了
+
+    def init(self) -> None:
+        if not self._init_lock.acquire(blocking=False):
+            return
+
+        try:
+            self.ready_for_application = False
+
+            if self.custom_config.ui_language == UILanguageEnum.AUTO.value.value:
+                i18_utils.detect_and_set_default_language()
+            else:
+                i18_utils.update_default_lang(self.custom_config.ui_language)
+
+            log_utils.set_log_level(logging.DEBUG if self.env_config.is_debug else logging.INFO)
+
+            self.init_ocr()
+
+            self.screen_loader.load_all()
+
+            # 账号实例层级的配置 不是应用特有的配置
+            self.load_instance_config()
+
+            # 初始化控制器
+            self.init_controller()
+
+            self.init_for_application()
+
+            self.ready_for_application = True
+
+            self.run_context.check_and_update_all_run_record(self.current_instance_idx)
+
+            self.gh_proxy_service.update_proxy_url()
+
+            self.init_others()
+        except Exception:
+            log.error('识别连携技出错', exc_info=True)
+        finally:
+            self._init_lock.release()
+
+    def init_controller(self) -> None:
         """
-        根据配置进行初始化
-        不能在 __init__ 中调用，因为子类可能还没有完成初始化
-        :return:
+        初始化控制器
+        由子类自行实现
         """
-        if self.custom_config.ui_language == UILanguageEnum.AUTO.value.value:
-            i18_utils.detect_and_set_default_language()
-        else:
-            i18_utils.update_default_lang(self.custom_config.ui_language)
-        log_utils.set_log_level(logging.DEBUG if self.env_config.is_debug else logging.INFO)
+        pass
+
+    def init_for_application(self) -> None:
+        """
+        执行应用前 还需要做的初始化
+        应该加载游戏级别
+        由子类自行实现
+        """
+        pass
+
+    def init_others(self) -> None:
+        """
+        其他非必要的初始化
+        由子类自行实现
+        """
+        pass
+
+    def init_async(self) -> None:
+        """
+        异步初始化
+        """
+        f = ONE_DRAGON_CONTEXT_EXECUTOR.submit(self.init)
+        f.add_done_callback(thread_utils.handle_future_result)
 
     def _on_key_press(self, key: str):
         """
@@ -156,27 +213,19 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.one_dragon_config.active_instance(instance_idx)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
         self.load_instance_config()
+        self.init_controller()
         self.dispatch_event(ContextInstanceEventEnum.instance_active.value, instance_idx)
 
     def load_instance_config(self):
         """
-        加载账号实例相关的配置
+        加载账号实例相关的配置，不是单个应用特有的配置
         子类需要继承加载更多的配置
         """
         log.info('开始加载实例配置 %d' % self.current_instance_idx)
-        self.one_dragon_app_config: OneDragonAppConfig = OneDragonAppConfig(self.current_instance_idx)
+        from one_dragon.base.config.game_account_config import GameAccountConfig
         self.game_account_config: GameAccountConfig = GameAccountConfig(self.current_instance_idx)
+        from one_dragon.base.config.push_config import PushConfig
         self.push_config: PushConfig = PushConfig(self.current_instance_idx)
-
-        self.run_context.check_and_update_all_run_record(self.current_instance_idx)
-
-    def async_init_ocr(self) -> None:
-        """
-        异步初始化OCR
-        :return:
-        """
-        f = ONE_DRAGON_CONTEXT_EXECUTOR.submit(self.init_ocr)
-        f.add_done_callback(thread_utils.handle_future_result)
 
     def init_ocr(self) -> None:
         """
@@ -192,12 +241,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
         )
 
-        # 初始化OCR缓存服务
-        if self.ocr_service is None:
-            self.ocr_service = OcrService(ocr_matcher=self.ocr)
-        else:
-            self.ocr_service.ocr_matcher = self.ocr
-
     def after_app_shutdown(self) -> None:
         """
         App关闭后进行的操作 关闭一切可能资源操作
@@ -205,7 +248,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """
         self.btn_listener.stop()
         self.one_dragon_config.clear_temp_instance_indices()
-        self.one_dragon_app_config.clear_temp_app_run_list()
         ContextEventBus.after_app_shutdown(self)
         OneDragonEnvContext.after_app_shutdown(self)
 

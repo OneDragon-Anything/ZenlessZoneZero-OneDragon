@@ -329,15 +329,6 @@ if __name__ == "__main__":
 
     _ctx = ZContext()
 
-    # 加载配置
-    _ctx.init_by_config()
-
-    # 异步加载OCR
-    _ctx.async_init_ocr()
-
-    # 异步更新免费代理
-    _ctx.async_update_gh_proxy()
-
     # 设置主题
     setTheme(Theme[_ctx.custom_config.theme.upper()])
 
@@ -346,6 +337,9 @@ if __name__ == "__main__":
 
     w.show()
     w.activateWindow()
+
+    # 加载配置
+    _ctx.init_async()
 
     # 启动应用程序事件循环
     app.exec()

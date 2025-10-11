@@ -181,6 +181,7 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
         :return:
         """
         VerticalScrollInterface.on_interface_shown(self)
+        self.ctx.hollow.data_service.reload()
         self._update_whole_display()
 
     def _update_whole_display(self) -> None:

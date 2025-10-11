@@ -56,10 +56,7 @@ class ApplicationLauncher(LauncherBase):
     def init_context(self) -> None:
         """初始化上下文"""
         self.ctx = self.create_context()
-        self.ctx.init_by_config()
-
-        # 异步加载OCR
-        self.ctx.async_init_ocr()
+        self.ctx.init_async()
 
     def process_arguments(self, args) -> None:
         """处理命令行参数"""

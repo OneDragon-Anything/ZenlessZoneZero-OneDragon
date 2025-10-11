@@ -27,17 +27,6 @@ class OneDragonEnvContext:
         self.gh_proxy_service: GhProxyService = GhProxyService(self.env_config)
         self.installer_dir: Optional[str] = None
 
-    def init_by_config(self) -> None:
-        pass
-
-    def async_update_gh_proxy(self) -> None:
-        """
-        异步更新gh proxy
-        :return:
-        """
-        future = ONE_DRAGON_CONTEXT_EXECUTOR.submit(self.gh_proxy_service.update_proxy_url)
-        future.add_done_callback(thread_utils.handle_future_result)
-
     def after_app_shutdown(self) -> None:
         """
         App关闭后进行的操作 关闭一切可能资源操作

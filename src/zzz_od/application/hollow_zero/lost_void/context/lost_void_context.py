@@ -1,11 +1,10 @@
-import time
-
 import os
-from cv2.typing import MatLike
+import time
 from typing import Optional, List, Tuple
 
+from cv2.typing import MatLike
+
 from one_dragon.base.config.yaml_operator import YamlOperator
-from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_utils import FindAreaResultEnum
@@ -47,7 +46,6 @@ class LostVoidContext:
         self.predefined_team_idx: int = -1  # 本次挑战所使用的预备编队
         self.priority_updated: bool = False  # 动态优先级是否已经更新
         self.dynamic_priority_list: list[str] = []  # 动态获取的优先级列表
-
 
     def init_before_run(self) -> None:
         self.priority_updated = False
