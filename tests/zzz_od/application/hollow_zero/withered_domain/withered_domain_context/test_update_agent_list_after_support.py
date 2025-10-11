@@ -164,4 +164,4 @@ class TestUpdateAgentListAfterSupport:
         # 位置0会导致idx=-1，访问最后一个元素。因为位置为空，直接赋值
         assert withered_domain_context.agent_list[0] == AgentEnum.ZHU_YUAN.value
         assert withered_domain_context.agent_list[1] is None
-        assert withered_domain_context.agent_list[2] == AgentEnum.QINGYI.value
+        assert withered_domain_context.agent_list[2] is None

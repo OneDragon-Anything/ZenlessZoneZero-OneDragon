@@ -350,7 +350,7 @@ class WitheredDomainContext:
         if self.agent_list is None:
             return
         idx = pos - 1
-        if idx >= len(self.agent_list):
+        if idx < 0 or idx >= len(self.agent_list):
             return
         if self.agent_list[idx] is None:  # 接替的位置为空 直接赋值
             self.agent_list[idx] = new_agent

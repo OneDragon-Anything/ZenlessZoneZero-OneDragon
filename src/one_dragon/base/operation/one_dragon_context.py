@@ -199,7 +199,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         游戏窗口是否已经出现
         :return:
         """
-        return self.controller.is_game_window_ready
+        return self.controller is not None and self.controller.is_game_window_ready
 
     @property
     def key_start_running(self) -> str:
