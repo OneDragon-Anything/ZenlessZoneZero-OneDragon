@@ -1,12 +1,12 @@
 import logging
 import threading
 from enum import Enum
+from functools import cached_property
 from typing import Optional
 
 from pynput import keyboard, mouse
 
-from one_dragon.base.config.custom_config import CustomConfig, UILanguageEnum
-from one_dragon.base.config.one_dragon_config import OneDragonConfig
+from one_dragon.base.config.custom_config import UILanguageEnum
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
@@ -43,12 +43,10 @@ class ContextInstanceEventEnum(Enum):
 
 class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
-    def __init__(self, controller: Optional[ControllerBase] = None):
+    def __init__(self):
         ContextEventBus.__init__(self)
         OneDragonEnvContext.__init__(self)
 
-        self.one_dragon_config: OneDragonConfig = OneDragonConfig()
-        self.custom_config: CustomConfig = CustomConfig()
         self.signal: ContextLazySignal = ContextLazySignal()
 
         if self.one_dragon_config.current_active_instance is None:
@@ -69,22 +67,33 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             )
         )
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
-        self.controller: ControllerBase = controller
+        self.controller: Optional[ControllerBase] = None
 
         self.keyboard_controller = keyboard.Controller()
-        self.mouse_controller = mouse.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
         self.btn_listener.start()
 
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext(self)
-        self.register_application_factory()
         self.app_group_manager: ApplicationGroupManager = ApplicationGroupManager(self)
-        self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
 
         # 初始化相关
         self._init_lock = threading.Lock()
         self.ready_for_application: bool = False  # 初始化完成 可以运行应用了
+
+    #------------------- 需要懒加载的都使用 @cached_property -------------------#
+
+    #------------------- 以下是 游戏/脚本级别的 -------------------#
+
+    @cached_property
+    def one_dragon_config(self):
+        from one_dragon.base.config.one_dragon_config import OneDragonConfig
+        return OneDragonConfig()
+
+    @cached_property
+    def custom_config(self):
+        from one_dragon.base.config.custom_config import CustomConfig
+        return CustomConfig()
 
     def init(self) -> None:
         if not self._init_lock.acquire(blocking=False):
@@ -99,6 +108,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 i18_utils.update_default_lang(self.custom_config.ui_language)
 
             log_utils.set_log_level(logging.DEBUG if self.env_config.is_debug else logging.INFO)
+
+            self.register_application_factory()
+            self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
 
             self.init_ocr()
 

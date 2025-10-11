@@ -80,7 +80,7 @@ def construct_map_from_nodes(
                 # 此时 只保留最新识别到的结果
                 if nodes[current_idx].check_time < nodes[i].check_time:
                     # 将错误的[当前]节点 设置为未知 且0置信度 等待后续被识别结果覆盖
-                    nodes[current_idx].entry = ctx.hollow.data_service.name_2_entry['未知']
+                    nodes[current_idx].entry = ctx.withered_domain.data_service.name_2_entry['未知']
                     nodes[current_idx].confidence = 0
                     current_idx = i
             else:

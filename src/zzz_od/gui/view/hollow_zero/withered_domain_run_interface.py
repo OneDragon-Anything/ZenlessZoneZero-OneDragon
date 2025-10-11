@@ -203,7 +203,7 @@ class WitheredDomainRunInterface(AppRunInterface):
 
     def _on_challenge_config_changed(self, idx, value) -> None:
         self.config.challenge_config = value
-        self.ctx.hollow.init_before_run()
+        self.ctx.withered_domain.init_before_run()
 
     def _on_reset_record_clicked(self) -> None:
         self.run_record.reset_for_weekly()

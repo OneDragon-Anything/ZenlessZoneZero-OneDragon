@@ -22,8 +22,8 @@ def track_hollow_level_progress(func: Callable) -> Callable:
 
         # 获取层数信息
         level_info = None
-        if hasattr(self, 'ctx') and hasattr(self.ctx, 'hollow') and hasattr(self.ctx.hollow, 'level_info'):
-            level_info = self.ctx.hollow.level_info
+        if hasattr(self, 'ctx') and hasattr(self.ctx, 'withered_domain') and hasattr(self.ctx.withered_domain, 'level_info'):
+            level_info = self.ctx.withered_domain.level_info
 
         # 初始化层数跟踪状态
         if not hasattr(self, '_hollow_level_tracking'):

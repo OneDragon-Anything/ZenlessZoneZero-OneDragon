@@ -61,9 +61,6 @@ try:
 
             self._check_version_runner = CheckVersionRunner(self.ctx)
             self._check_version_runner.get.connect(self._update_version)
-            self._check_version_runner.start()
-
-            self._check_first_run()
 
             # 立即检查并应用已有的主题色，避免navbar颜色闪烁
             self._apply_initial_theme_color()
@@ -71,7 +68,7 @@ try:
             # 延迟发送应用启动事件，等待窗口完全显示
             self._launch_timer = QTimer()
             self._launch_timer.setSingleShot(True)
-            self._launch_timer.timeout.connect(self._track_app_launch)
+            self._launch_timer.timeout.connect(self._after_app_launch)
             self._launch_timer.start(2000)  # 2秒后发送，确保UI完全渲染
 
         # 继承初始化函数
@@ -101,16 +98,6 @@ try:
             OdQtStyleSheet.STACKED_WIDGET.apply(self.stackedWidget)
             OdQtStyleSheet.AREA_WIDGET.apply(self.areaWidget)
             OdQtStyleSheet.TITLE_BAR.apply(self.titleBar)
-
-            # DEBUG
-            # print("————APP WINDOW STYLE————")
-            # print(self.styleSheet())
-            # print("————NAVIGATION INTERFACE STYLE————")
-            # print(self.navigationInterface.styleSheet())
-            # print("————STACKED WIDGET STYLE————")
-            # print(self.stackedWidget.styleSheet())
-            # print("————TITLE BAR STYLE————")
-            # print(self.titleBar.styleSheet())
 
         def create_sub_interface(self):
             """创建和添加各个子界面"""
@@ -249,6 +236,12 @@ try:
             from one_dragon_qt.services.theme_manager import ThemeManager
             ThemeManager.load_from_config(self.ctx)
             self.navigationInterface.update_all_buttons_theme_color(ThemeManager.get_current_color())
+
+        def _after_app_launch(self):
+            """异步处理应用启动后需要处理的事情"""
+            self._check_version_runner.start()
+            self._check_first_run()
+            self._track_app_launch()
 
         def _track_app_launch(self):
             """跟踪应用启动"""

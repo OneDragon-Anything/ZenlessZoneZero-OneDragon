@@ -3,6 +3,7 @@ import yaml
 from typing import Optional, List
 
 from one_dragon.base.operation.application_run_record import AppRunRecord
+from one_dragon.utils import os_utils
 
 
 class RedemptionCode:
@@ -28,7 +29,7 @@ class RedemptionCodeRunRecord(AppRunRecord):
         """
         从配置文件加载兑换码
         """
-        codes_file_path = os.path.join(os.getcwd(), 'config', 'redemption_codes.yml')
+        codes_file_path = os.path.join(os_utils.get_path_under_work_dir('config'), 'redemption_codes.yml')
         if not os.path.exists(codes_file_path):
             print(f"错误：未找到兑换码配置文件：{codes_file_path}")
             return []

@@ -34,7 +34,7 @@ def check_event_at_right(ctx: ZContext, screen: MatLike, ignore_events: set[str]
 
     event_name_list = []
     event_name_gt_list = []
-    for event in ctx.hollow.data_service.normal_events:
+    for event in ctx.withered_domain.data_service.normal_events:
         if event.event_name in ignore_events:
             continue
         event_name_list.append(event.event_name)
