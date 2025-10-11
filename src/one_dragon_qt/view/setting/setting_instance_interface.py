@@ -282,6 +282,9 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.game_password_opt.init_with_adapter(
             self.ctx.game_account_config.get_prop_adapter("password")
         )
+        self.bilibili_account_name.init_with_adapter(
+            self.ctx.game_account_config.get_prop_adapter("bilibili_account_name")
+        )
 
     def _get_instanceSwitch_group(self) -> QWidget:
         instance_switch_group = SettingCardGroup(gt("账户列表"))
@@ -344,6 +347,14 @@ class SettingInstanceInterface(VerticalScrollInterface):
             is_password=True,  
         )
         instance_settings_group.addSettingCard(self.game_password_opt)
+
+        self.bilibili_account_name = TextSettingCard(
+            icon=FluentIcon.PEOPLE,
+            title="用户名 (B服专用)",
+            content="B服需要先手动登录游戏并记住用户，可以不用填上面的账号密码",
+            input_placeholder="填写游戏中切换B服账号时显示的用户名",
+        )
+        instance_settings_group.addSettingCard(self.bilibili_account_name)
 
         # self.input_way_opt = ComboBoxSettingCard(icon=FluentIcon.CLIPPING_TOOL, title='输入方式',
         #                                          options_enum=TypeInputWay)

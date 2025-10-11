@@ -1,6 +1,8 @@
 import time
 from typing import Optional
 
+import cv2
+import numpy as np
 from cv2.typing import MatLike
 
 from one_dragon.base.config.basic_game_config import TypeInputWay
@@ -12,6 +14,7 @@ from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
@@ -36,10 +39,15 @@ class EnterGame(ZOperation):
 
     @node_from(from_name='国服-输入账号密码')
     @node_from(from_name='国服-输入账号密码-新')
-    @node_from(from_name='B服-输入账号密码')
+    @node_from(from_name='B服新-选择登录过的账号')
+    # @node_from(from_name='B服-输入账号密码')
     @node_from(from_name='国际服-换服')
+    @node_from(from_name='画面识别', status='B服新-同意隐私政策')
     @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
+        # self.screenshot()
+        # cv2_utils.show_image(self.last_screenshot, win_name='debug', wait=1)
+
         login_result = self.check_login_related(self.last_screenshot)
         if login_result is not None:
             return login_result
@@ -88,13 +96,23 @@ class EnterGame(ZOperation):
         if result.is_success:
             return self.round_success(result.status, wait=1)
 
+        result = self.round_by_find_area(screen, '打开游戏', 'B服新-登录记录')
+        if result.is_success:
+            return self.round_success(result.status)
+
         result = self.round_by_find_and_click_area(screen, '打开游戏', '按钮-登陆其他账号')
         if result.is_success:
             return self.round_wait(result.status, wait=1)
 
-        result = self.round_by_find_and_click_area(screen, '打开游戏', 'B服-登陆')
+        # region 当B服弹出这些提示的时候, 就代表需要重新输账号密码和验证码了, 脚本搞不定, 直接终止脚本运行最容易让用户发现问题
+        result = self.round_by_find_area(screen, '打开游戏', 'B服新-手机号登录')
         if result.is_success:
-            return self.round_success(result.status, wait=1)
+            return self.round_fail(result.status)
+        # B服账号过期会提示同意隐私政策
+        result = self.round_by_find_area(screen, '打开游戏', 'B服新-隐私政策提示')
+        if result.is_success:
+            return self.round_by_find_and_click_area(screen, '打开游戏', 'B服新-同意隐私政策')
+        # endregion
 
         if self.ctx.game_account_config.game_region != GameRegionEnum.CN.value.value:
             return self.check_screen_intl(screen)
@@ -180,8 +198,8 @@ class EnterGame(ZOperation):
         self.already_login = True
         return self.round_by_find_and_click_area(screen, '打开游戏', '国服-账号密码进入游戏-新',
                                                  success_wait=5, retry_wait=1)
-
-    @node_from(from_name='画面识别', status='B服-登陆')
+    ''' B服登录需要验证码, 先不处理
+    @node_from(from_name='画面识别', status='B服-登录')
     @operation_node(name='B服-输入账号密码')
     def input_bilibili_account_password(self) -> OperationRoundResult:
         if self.ctx.game_account_config.account == '' or self.ctx.game_account_config.password == '':
@@ -214,7 +232,44 @@ class EnterGame(ZOperation):
 
         screen = self.screenshot()
         self.already_login = True
-        return self.round_by_find_and_click_area(screen, '打开游戏', 'B服-登陆',
+        return self.round_by_find_and_click_area(screen, '打开游戏', 'B服-登录',
+                                                 success_wait=5, retry_wait=1)
+    '''
+
+    @node_from(from_name='画面识别', status='B服新-登录记录')
+    @operation_node(name='B服新-选择登录过的账号')
+    def switch_bilibili_account(self) -> OperationRoundResult:
+        if self.ctx.game_account_config.bilibili_account_name == '':
+            return self.round_fail('未配置B服用户名, 无法切换已登录的B服账号')
+
+        self.round_by_find_and_click_area(self.screenshot(), '打开游戏', 'B服新-切换账号')
+        time.sleep(0.8)
+
+        # region ocr切换账号
+        area = self.ctx.screen_loader.get_area('打开游戏', 'B服新-账号列表')
+        part = cv2_utils.crop_image_only(self.screenshot(), area.rect)
+        # cv2_utils.show_image(part, win_name='debug', wait=1)
+
+        mask = cv2.inRange(part,
+                           np.array([220, 220, 220], dtype=np.uint8),
+                           np.array([255, 255, 255], dtype=np.uint8))
+        to_ocr = cv2.bitwise_and(part, part, mask=cv2_utils.dilate(mask, 5))
+
+        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
+        find = False
+        for ocr_result, mrl in ocr_result_map.items():
+            if str_utils.find_by_lcs(self.ctx.game_account_config.bilibili_account_name, ocr_result, percent=0.7):
+                find = True
+                self.ctx.controller.click(mrl.max.center + area.left_top)
+                break
+        if not find:
+            error_msg = "未找到已登录的用户: " + self.ctx.game_account_config.bilibili_account_name
+            return self.round_retry(error_msg, wait=0.2)
+        # endregion
+
+        screen = self.screenshot()
+        self.already_login = True
+        return self.round_by_find_and_click_area(screen, '打开游戏', 'B服-登录',
                                                  success_wait=5, retry_wait=1)
 
     @node_from(from_name='画面识别', status='国际服-密码输入区域')
@@ -319,7 +374,7 @@ class EnterGame(ZOperation):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.run_context.start_running()
     ctx.init_ocr()
     op = EnterGame(ctx, switch=False)

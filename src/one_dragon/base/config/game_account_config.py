@@ -95,6 +95,14 @@ class GameAccountConfig(YamlConfig):
         self.update('password', new_value)
 
     @property
+    def bilibili_account_name(self) -> str:
+        return self.get('bilibili_account_name', '')
+
+    @bilibili_account_name.setter
+    def bilibili_account_name(self, new_value: str) -> None:
+        self.update('bilibili_account_name', new_value)
+
+    @property
     def game_refresh_hour_offset(self) -> int:
         if self.game_region == GameRegionEnum.CN.value.value:
             return 4
