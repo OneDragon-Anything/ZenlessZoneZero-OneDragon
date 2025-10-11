@@ -22,7 +22,8 @@ _registry = get_global_run_registry()
 @router.get("/{run_id}", response_model=RunStatusResponse)
 async def get_run_status(run_id: str) -> RunStatusResponse:
     ctx = get_ctx()
-    status = _registry.get_status(run_id, message=ctx.context_running_status_text)
+    status_text = getattr(ctx.run_context, "run_status_text", "")
+    status = _registry.get_status(run_id, message=status_text)
     if status is None:
         return RunStatusResponse(runId=run_id, status=RunStatusEnum.FAILED, message="Run not found", progress=0.0)
     return status
@@ -32,7 +33,7 @@ async def get_run_status(run_id: str) -> RunStatusResponse:
 async def cancel_run(run_id: str):
     _registry.cancel(run_id)
     ctx = get_ctx()
-    ctx.stop_running()
+    ctx.run_context.stop_running()
     return {"ok": True}
 
 

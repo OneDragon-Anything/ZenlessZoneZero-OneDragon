@@ -70,7 +70,7 @@ async def lifespan(app: FastAPI):
     finally:
         # Shutdown: best-effort stop
         try:
-            get_ctx().stop_running()
+            get_ctx().run_context.stop_running()
         except Exception:
             pass
         try:

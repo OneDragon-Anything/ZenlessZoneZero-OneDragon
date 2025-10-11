@@ -5,6 +5,11 @@ from pydantic import BaseModel
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from zzz_od.api.context_helpers import (
+    get_app_config,
+    get_app_run_record,
+    get_one_dragon_app_config,
+)
 from zzz_od.api.deps import get_ctx
 from zzz_od.api.models import RunIdResponse, ControlResponse, StatusResponse, LogReplayResponse
 from zzz_od.api.security import get_api_key_dependency
@@ -13,6 +18,8 @@ from zzz_od.api.bridges import attach_run_event_bridge
 from zzz_od.api.controllers.hollow_zero_controller import HollowZeroController, LostVoidController
 from zzz_od.hollow_zero.hollow_zero_challenge_config import HollowZeroChallengeConfig, get_all_hollow_zero_challenge_config, get_hollow_zero_challenge_new_name, HollowZeroChallengePathFinding
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidChallengeConfig, get_all_lost_void_challenge_config, get_lost_void_challenge_new_name, LostVoidPeriodBuffNo
+from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
+from zzz_od.application.hollow_zero.lost_void import lost_void_const
 from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig, LostVoidExtraTask
 from zzz_od.game_data.agent import AgentTypeEnum
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
@@ -35,9 +42,10 @@ _lost_void_controller = LostVoidController()
 def _run_via_onedragon_with_temp(app_ids: list[str]) -> str:
     """通过一条龙总控运行指定 appId 列表（临时运行清单）。"""
     ctx = get_ctx()
-    original_temp = getattr(ctx.one_dragon_app_config, "_temp_app_run_list", None)
-    ctx.one_dragon_app_config.set_temp_app_run_list(app_ids)
-    from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+    config = get_one_dragon_app_config(ctx)
+    original_temp = config.temp_app_run_list
+    config.set_temp_app_run_list(app_ids)
+    from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
     run_id = _start_app_run(lambda c: ZOneDragonApp(c))
     # 由 after_app_shutdown 自动清理 temp；若需要也可在桥接 detach 里兜底
     return run_id
@@ -1139,7 +1147,7 @@ def get_lost_void_config(ctx = Depends(get_ctx)) -> Dict[str, Any]:
     print(f"每日计划次数: {config['dailyPlanTimes']}")
     ```
     """
-    config = ctx.lost_void_config
+    config = get_app_config(ctx, app_id=lost_void_const.APP_ID)
     return {
         "dailyPlanTimes": config.daily_plan_times,
         "weeklyPlanTimes": config.weekly_plan_times,
@@ -1180,7 +1188,7 @@ def update_lost_void_config(payload: Dict[str, Any], ctx = Depends(get_ctx)) -> 
     print(result['message'])
     ```
     """
-    config = ctx.lost_void_config
+    config = get_app_config(ctx, app_id=lost_void_const.APP_ID)
 
     # 更新配置属性
     if "dailyPlanTimes" in payload:
@@ -1592,7 +1600,7 @@ def get_resonium_categories(ctx = Depends(get_ctx)) -> List[str]:
     ```
     """
     try:
-        return ctx.hollow.data_service.resonium_cate_list
+        return ctx.withered_domain.data_service.resonium_cate_list
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -1630,7 +1638,7 @@ def get_resonium_list(ctx = Depends(get_ctx)) -> List[ResoniumInfo]:
     """
     try:
         resoniums = []
-        for i, resonium in enumerate(ctx.hollow.data_service.resonium_list):
+        for i, resonium in enumerate(ctx.withered_domain.data_service.resonium_list):
             resoniums.append(ResoniumInfo(
                 resonium_id=f"resonium_{i}",
                 resonium_name=resonium.name,
@@ -1676,7 +1684,7 @@ def get_events(ctx = Depends(get_ctx)) -> List[EventInfo]:
     """
     try:
         events = []
-        for i, event in enumerate(ctx.hollow.data_service.normal_events):
+        for i, event in enumerate(ctx.withered_domain.data_service.normal_events):
             events.append(EventInfo(
                 event_id=f"event_{i}",
                 event_name=event.event_name,
@@ -1722,7 +1730,7 @@ def get_entry_types(ctx = Depends(get_ctx)) -> List[EntryTypeInfo]:
     """
     try:
         entries = []
-        for i, entry in enumerate(ctx.hollow.data_service.entry_list):
+        for i, entry in enumerate(ctx.withered_domain.data_service.entry_list):
             entries.append(EntryTypeInfo(
                 entry_id=f"entry_{i}",
                 entry_name=entry.entry_name,
@@ -1768,9 +1776,9 @@ def get_default_pathfinding_options(ctx = Depends(get_ctx)) -> DefaultPathfindin
     """
     try:
         return DefaultPathfindingOptions(
-            go_in_1_step=ctx.hollow.data_service.get_default_go_in_1_step_entry_list(),
-            waypoint=ctx.hollow.data_service.get_default_waypoint_entry_list(),
-            avoid=ctx.hollow.data_service.get_default_avoid_entry_list()
+            go_in_1_step=ctx.withered_domain.data_service.get_default_go_in_1_step_entry_list(),
+            waypoint=ctx.withered_domain.data_service.get_default_waypoint_entry_list(),
+            avoid=ctx.withered_domain.data_service.get_default_avoid_entry_list()
         )
     except Exception as e:
         raise HTTPException(
@@ -1814,7 +1822,7 @@ def validate_resonium_priority(request: ValidationRequest, ctx = Depends(get_ctx
     ```
     """
     try:
-        validated_list, error_msg = ctx.hollow.data_service.check_resonium_priority(request.input_text)
+        validated_list, error_msg = ctx.withered_domain.data_service.check_resonium_priority(request.input_text)
 
         return ValidationResponse(
             is_valid=len(error_msg) == 0,
@@ -1859,7 +1867,7 @@ def validate_entry_list(request: ValidationRequest, ctx = Depends(get_ctx)) -> V
     ```
     """
     try:
-        validated_list, error_msg = ctx.hollow.data_service.check_entry_list_input(request.input_text)
+        validated_list, error_msg = ctx.withered_domain.data_service.check_entry_list_input(request.input_text)
 
         return ValidationResponse(
             is_valid=len(error_msg) == 0,
@@ -1905,11 +1913,12 @@ def get_hollow_zero_records(ctx = Depends(get_ctx)) -> RunRecordInfo:
     ```
     """
     try:
+        record = get_app_run_record(ctx, app_id=withered_domain_const.APP_ID)
         return RunRecordInfo(
-            daily_run_times=ctx.hollow_zero_record.daily_run_times,
-            weekly_run_times=ctx.hollow_zero_record.weekly_run_times,
-            period_reward_complete=ctx.hollow_zero_record.period_reward_complete,
-            no_eval_point=getattr(ctx.hollow_zero_record, 'no_eval_point', False)
+            daily_run_times=record.daily_run_times,
+            weekly_run_times=record.weekly_run_times,
+            period_reward_complete=record.period_reward_complete,
+            no_eval_point=getattr(record, 'no_eval_point', False)
         )
     except Exception as e:
         raise HTTPException(
@@ -1943,7 +1952,8 @@ def reset_hollow_zero_records(ctx = Depends(get_ctx)) -> Dict[str, str]:
     ```
     """
     try:
-        ctx.hollow_zero_record.reset_for_weekly()
+        record = get_app_run_record(ctx, app_id=withered_domain_const.APP_ID)
+        record.reset_for_weekly()
         return {"message": "枯萎之都运行记录重置成功"}
     except Exception as e:
         raise HTTPException(
@@ -1980,11 +1990,12 @@ def get_lost_void_records(ctx = Depends(get_ctx)) -> RunRecordInfo:
     ```
     """
     try:
+        record = get_app_run_record(ctx, app_id=lost_void_const.APP_ID)
         return RunRecordInfo(
-            daily_run_times=ctx.lost_void_record.daily_run_times,
-            weekly_run_times=ctx.lost_void_record.weekly_run_times,
-            period_reward_complete=ctx.lost_void_record.period_reward_complete,
-            eval_point_complete=getattr(ctx.lost_void_record, 'eval_point_complete', False)
+            daily_run_times=record.daily_run_times,
+            weekly_run_times=record.weekly_run_times,
+            period_reward_complete=record.period_reward_complete,
+            eval_point_complete=getattr(record, 'eval_point_complete', False)
         )
     except Exception as e:
         raise HTTPException(
@@ -2018,8 +2029,9 @@ def reset_lost_void_records(ctx = Depends(get_ctx)) -> Dict[str, str]:
     ```
     """
     try:
-        ctx.lost_void_record.reset_record()
-        ctx.lost_void_record.reset_for_weekly()
+        record = get_app_run_record(ctx, app_id=lost_void_const.APP_ID)
+        record.reset_record()
+        record.reset_for_weekly()
         return {"message": "迷失之地运行记录重置成功"}
     except Exception as e:
         raise HTTPException(
@@ -2310,7 +2322,7 @@ def get_hollow_zero_status_legacy(ctx = Depends(get_ctx)) -> HollowZeroStatus:
     try:
         from datetime import datetime
 
-        is_running = ctx.is_context_running
+        is_running = ctx.run_context.is_context_running
         current_app = None
         progress = None
         error_message = None
@@ -2364,7 +2376,7 @@ def stop_hollow_zero_legacy(ctx = Depends(get_ctx)) -> Dict[str, str]:
     """
     try:
         # 停止上下文运行
-        ctx.stop_running()
+        ctx.run_context.stop_running()
 
         # 取消所有相关任务
         statuses = _registry.list_statuses()
@@ -2412,7 +2424,7 @@ def stop_lost_void_legacy(ctx = Depends(get_ctx)) -> Dict[str, str]:
     """
     try:
         # 停止上下文运行
-        ctx.stop_running()
+        ctx.run_context.stop_running()
 
         # 取消所有相关任务
         statuses = _registry.list_statuses()

@@ -23,7 +23,7 @@ class OneDragonController(UnifiedController):
     def create_app_factory(self) -> Callable:
         """创建一条龙应用工厂函数"""
         def factory():
-            from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+            from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
             ctx = get_ctx()
             return ZOneDragonApp(ctx)
 

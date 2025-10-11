@@ -164,7 +164,7 @@ class UnifiedController(ABC):
             from zzz_od.api.deps import get_ctx
             ctx = get_ctx()
 
-            if not ctx.is_context_running:
+            if not ctx.run_context.is_context_running:
                 return ControlResponse(
                     ok=True,
                     message="上下文未在运行，无需暂停",

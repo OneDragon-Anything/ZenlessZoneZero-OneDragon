@@ -73,7 +73,7 @@ async def start_context(ctx: ZContext = Depends(get_ctx)):
     """
     try:
         # 检查是否已在运行
-        if getattr(ctx, 'is_context_running', False):
+        if ctx.run_context.is_context_running:
             return ContextOperationResponse(
                 success=False,
                 message="上下文已在运行中",
@@ -86,7 +86,7 @@ async def start_context(ctx: ZContext = Depends(get_ctx)):
                 loop = asyncio.get_running_loop()
 
                 def _exec():
-                    from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+                    from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
                     app = ZOneDragonApp(ctx)
                     app.execute()
 
@@ -143,7 +143,7 @@ def stop_context(ctx: ZContext = Depends(get_ctx)):
     try:
         # 停止上下文运行（类似PySide GUI的实现）
         if hasattr(ctx, 'stop_running'):
-            ctx.stop_running()
+            ctx.run_context.stop_running()
 
         # 取消所有相关任务
         statuses = _registry.list_statuses()
@@ -313,10 +313,10 @@ def get_context_status(ctx: ZContext = Depends(get_ctx)):
     """
     try:
         # 检查上下文运行状态（类似PySide GUI的检查方式）
-        is_running = getattr(ctx, 'is_context_running', False)
+        is_running = ctx.run_context.is_context_running
 
         # 获取状态文本
-        status_text = getattr(ctx, 'context_running_status_text', '')
+        status_text = getattr(ctx.run_context, 'run_status_text', '')
 
         # 获取任务统计
         statuses = _registry.list_statuses()

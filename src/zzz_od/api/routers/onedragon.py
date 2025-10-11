@@ -6,6 +6,7 @@ from typing import Dict, List
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from zzz_od.api.context_helpers import get_app_config, get_one_dragon_app_config
 from zzz_od.api.deps import get_ctx
 from zzz_od.api.models import RunIdResponse, RunStatusResponse, RunStatusEnum, ControlResponse, StatusResponse, LogReplayResponse
 from zzz_od.api.run_registry import get_global_run_registry
@@ -14,10 +15,14 @@ from zzz_od.api.bridges import attach_run_event_bridge
 from zzz_od.api.status_builder import build_onedragon_aggregate
 from zzz_od.api.controllers.onedragon_controller import OneDragonController
 from zzz_od.config.team_config import PredefinedTeamInfo
+from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig
+from zzz_od.application.notorious_hunt import notorious_hunt_const
 from zzz_od.application.coffee.coffee_config import CoffeeConfig
+from zzz_od.application.coffee import coffee_app_const
 from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
+from zzz_od.application.shiyu_defense import shiyu_defense_const
 from zzz_od.game_data.agent import DmgTypeEnum, AgentEnum
 from zzz_od.api.run_registry import get_global_run_registry
 from zzz_od.api.bridges import attach_run_event_bridge
@@ -193,7 +198,7 @@ def get_charge_plan():
     ```
     """
     ctx = get_ctx()
-    cc = ctx.charge_plan_config
+    cc = get_app_config(ctx, app_id=charge_plan_const.APP_ID)
     items = [
         {
             "tabName": p.tab_name,
@@ -288,7 +293,7 @@ def update_charge_plan(payload: dict):
     ```
     """
     ctx = get_ctx()
-    cc = ctx.charge_plan_config
+    cc = get_app_config(ctx, app_id=charge_plan_const.APP_ID)
 
     # 处理计划列表
     if "planList" in payload:
@@ -330,7 +335,7 @@ def update_charge_plan(payload: dict):
 @router.get("/coffee-plan")
 def get_coffee_plan():
     ctx = get_ctx()
-    c: CoffeeConfig = ctx.coffee_config
+    c: CoffeeConfig = get_app_config(ctx, app_id=coffee_app_const.APP_ID)
     return {
         "chooseWay": c.choose_way,  # 选择方式（优先体力计划/汀曼特调）
         "challengeWay": c.challenge_way,  # 挑战方式（全都/只计划/不挑战）
@@ -353,7 +358,7 @@ def get_coffee_plan():
 @router.put("/coffee-plan")
 def update_coffee_plan(payload: dict):
     ctx = get_ctx()
-    c: CoffeeConfig = ctx.coffee_config
+    c: CoffeeConfig = get_app_config(ctx, app_id=coffee_app_const.APP_ID)
     if "chooseWay" in payload:
         c.choose_way = payload["chooseWay"]
     if "challengeWay" in payload:
@@ -390,7 +395,7 @@ def update_coffee_plan(payload: dict):
 @router.get("/shiyu-defense")
 def get_shiyu_defense():
     ctx = get_ctx()
-    s: ShiyuDefenseConfig = ctx.shiyu_defense_config
+    s: ShiyuDefenseConfig = get_app_config(ctx, app_id=shiyu_defense_const.APP_ID)
     return {
         "criticalMaxNodeIdx": s.critical_max_node_idx,
         "teams": [
@@ -407,7 +412,7 @@ def get_shiyu_defense():
 @router.put("/shiyu-defense")
 def update_shiyu_defense(payload: dict):
     ctx = get_ctx()
-    s: ShiyuDefenseConfig = ctx.shiyu_defense_config
+    s: ShiyuDefenseConfig = get_app_config(ctx, app_id=shiyu_defense_const.APP_ID)
     if "criticalMaxNodeIdx" in payload:
         s.critical_max_node_idx = int(payload["criticalMaxNodeIdx"])
     teams = payload.get("teams") or []
@@ -431,7 +436,7 @@ def update_shiyu_defense(payload: dict):
 @router.post("/charge-plan")
 def add_charge_plan(payload: dict):
     ctx = get_ctx()
-    cc = ctx.charge_plan_config
+    cc = get_app_config(ctx, app_id=charge_plan_const.APP_ID)
     cc.add_plan({
         'tab_name': payload.get('tabName', '训练'),
         'category_name': payload.get('categoryName', '实战模拟室'),
@@ -451,7 +456,7 @@ def add_charge_plan(payload: dict):
 @router.put("/charge-plan/{idx}")
 def update_charge_plan_item(idx: int, payload: dict):
     ctx = get_ctx()
-    cc = ctx.charge_plan_config
+    cc = get_app_config(ctx, app_id=charge_plan_const.APP_ID)
     plan = ChargePlanItem(
         tab_name=payload.get('tabName', '训练'),
         category_name=payload.get('categoryName', '实战模拟室'),
@@ -473,7 +478,8 @@ def update_charge_plan_item(idx: int, payload: dict):
 @router.delete("/charge-plan/{idx}")
 def delete_charge_plan_item(idx: int):
     ctx = get_ctx()
-    ctx.charge_plan_config.delete_plan(idx)
+    cc = get_app_config(ctx, app_id=charge_plan_const.APP_ID)
+    cc.delete_plan(idx)
     return {"ok": True}
 
 
@@ -486,7 +492,7 @@ def reorder_charge_plan(payload: dict):
     其余模式暂不支持。
     """
     ctx = get_ctx()
-    cc = ctx.charge_plan_config
+    cc = get_app_config(ctx, app_id=charge_plan_const.APP_ID)
     mode = (payload.get("mode") or "").lower()
     try:
         _from_val = payload.get("from")
@@ -505,7 +511,7 @@ def reorder_charge_plan(payload: dict):
 @router.post("/charge-plan:clear-completed")
 def clear_completed_charge_plan():
     ctx = get_ctx()
-    cc = ctx.charge_plan_config
+    cc = get_app_config(ctx, app_id=charge_plan_const.APP_ID)
     not_completed = [p for p in cc.plan_list if p.run_times < p.plan_times]
     cc.plan_list = not_completed
     cc.save()
@@ -516,7 +522,7 @@ def clear_completed_charge_plan():
 def clear_all_charge_plan():
     """删除所有体力计划（对应 PySide '删除所有' 按钮）。"""
     ctx = get_ctx()
-    cc = ctx.charge_plan_config
+    cc = get_app_config(ctx, app_id=charge_plan_const.APP_ID)
     cc.plan_list.clear()
     cc.save()
     return {"ok": True}
@@ -572,7 +578,7 @@ def get_notorious_hunt_options():
 @router.get("/notorious-hunt")
 def get_notorious_hunt():
     ctx = get_ctx()
-    nh: NotoriousHuntConfig = ctx.notorious_hunt_config
+    nh: NotoriousHuntConfig = get_app_config(ctx, app_id=notorious_hunt_const.APP_ID)
     items = [
         {
             "tabName": p.tab_name,
@@ -594,7 +600,7 @@ def get_notorious_hunt():
 @router.put("/notorious-hunt")
 def update_notorious_hunt(payload: dict):
     ctx = get_ctx()
-    nh: NotoriousHuntConfig = ctx.notorious_hunt_config
+    nh: NotoriousHuntConfig = get_app_config(ctx, app_id=notorious_hunt_const.APP_ID)
     items = payload.get("planList") or []
     for i, item in enumerate(items):
         plan = ChargePlanItem(
@@ -618,7 +624,8 @@ async def onedragon_status(run_id: str) -> RunStatusResponse:
     ctx = get_ctx()
     # augment status with aggregate progress info
     agg = build_onedragon_aggregate(ctx)
-    message = f"{ctx.context_running_status_text} ({int(agg['progress']*100)}%)"
+    status_text = getattr(ctx.run_context, "run_status_text", "")
+    message = f"{status_text} ({int(agg['progress']*100)}%)"
     status = _registry.get_status(run_id, message=message)
     if status is None:
         return RunStatusResponse(runId=run_id, status=RunStatusEnum.FAILED, message="Run not found", progress=0.0)
@@ -862,10 +869,11 @@ def get_apps():
     ctx = get_ctx()
     items = []
     try:
-        from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+        from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
         zapp = ZOneDragonApp(ctx)
+        config = get_one_dragon_app_config(ctx)
         # 使用配置文件中的实际app_run_list，避免被临时运行列表影响
-        run_set = set(ctx.one_dragon_app_config.get("app_run_list", []))
+        run_set = set(config.get("app_run_list", []))
         for idx, app in enumerate(zapp.get_one_dragon_apps_in_order()):
             app_id = getattr(app, 'app_id', '')
             app_name = getattr(app, 'op_name', app_id)
@@ -890,7 +898,7 @@ def get_apps():
             })
     except Exception:
         pass
-    odc = ctx.one_dragon_app_config
+    odc = get_one_dragon_app_config(ctx)
     return {
         'items': items,
         'appOrder': odc.app_order,
@@ -906,8 +914,7 @@ def update_apps(payload: dict):
     - appRunList: 需要在一条龙中运行的 app_id 列表（可选）
     """
     ctx = get_ctx()
-    # 写入 OneDragonAppConfig
-    odc = ctx.one_dragon_app_config
+    odc = get_one_dragon_app_config(ctx)
     items = payload.get("items")
     if isinstance(items, list) and items:
         # 由 items 推导顺序与启停
@@ -957,9 +964,10 @@ def _start_app_run(app_factory) -> str:
 def _run_via_onedragon_with_temp(app_ids: list[str]) -> str:
     """通过一条龙总控运行指定 appId 列表（临时运行清单）。"""
     ctx = get_ctx()
-    original_temp = getattr(ctx.one_dragon_app_config, "_temp_app_run_list", None)
-    ctx.one_dragon_app_config.set_temp_app_run_list(app_ids)
-    from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+    config = get_one_dragon_app_config(ctx)
+    original_temp = config.temp_app_run_list
+    config.set_temp_app_run_list(app_ids)
+    from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
     run_id = _start_app_run(lambda c: ZOneDragonApp(c))
     # 由 after_app_shutdown 自动清理 temp；若需要也可在桥接 detach 里兜底
     return run_id
@@ -1138,8 +1146,9 @@ def update_team(payload: dict):
 
 def _get_app_catalog() -> List[dict]:
     ctx = get_ctx()
-    run_set = set(ctx.one_dragon_app_config.app_run_list)
-    from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+    config = get_one_dragon_app_config(ctx)
+    run_set = set(config.app_run_list)
+    from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
 
     app = ZOneDragonApp(ctx)
     apps = app.get_one_dragon_apps_in_order()
@@ -1161,7 +1170,8 @@ def _get_app_catalog() -> List[dict]:
 def set_onedragon_app_enabled(app_id: str, payload: dict):
     ctx = get_ctx()
     to_run = bool(payload.get("toRun", True))
-    ctx.one_dragon_app_config.set_app_run(app_id, to_run)
+    config = get_one_dragon_app_config(ctx)
+    config.set_app_run(app_id, to_run)
     return {"ok": True}
 
 
@@ -1179,14 +1189,16 @@ def reorder_onedragon_apps(payload: dict):
         return {"ok": False, "error": {"code": "INVALID_ARGUMENT", "message": "appId required"}}
 
     if mode == "move_up":
-        ctx.one_dragon_app_config.move_up_app(app_id)
+        config = get_one_dragon_app_config(ctx)
+        config.move_up_app(app_id)
         return {"ok": True}
     if mode == "move_top":
-        orders: List[str] = list(ctx.one_dragon_app_config.app_order)
+        config = get_one_dragon_app_config(ctx)
+        orders: List[str] = list(config.app_order)
         if app_id in orders:
             orders.remove(app_id)
             orders.insert(0, app_id)
-            ctx.one_dragon_app_config.app_order = orders
+            config.app_order = orders
         return {"ok": True}
     return {"ok": False, "error": {"code": "UNSUPPORTED_MODE", "message": mode}}
 
@@ -1201,18 +1213,19 @@ async def run_single_app(app_id: str):
             loop = asyncio.get_running_loop()
 
             def _exec():
-                original_temp = ctx.one_dragon_app_config._temp_app_run_list
+                config = get_one_dragon_app_config(ctx)
+                original_temp = config.temp_app_run_list
                 try:
                     # 确保WebSocket日志handler已经附加
                     from zzz_od.api import log_stream
                     log_stream.ensure_handler_attached()
-                    ctx.one_dragon_app_config.set_temp_app_run_list([app_id])
-                    from zzz_od.application.zzz_one_dragon_app import ZOneDragonApp
+                    config.set_temp_app_run_list([app_id])
+                    from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
                     ZOneDragonApp(ctx).execute()
                 finally:
-                    ctx.one_dragon_app_config.clear_temp_app_run_list()
+                    config.clear_temp_app_run_list()
                     if original_temp is not None:
-                        ctx.one_dragon_app_config.set_temp_app_run_list(original_temp)
+                        config.set_temp_app_run_list(original_temp)
 
             await loop.run_in_executor(None, _exec)
 

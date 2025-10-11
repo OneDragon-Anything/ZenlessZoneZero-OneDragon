@@ -820,7 +820,7 @@ def get_battle_state(ctx: ZContext = Depends(get_ctx)):
                 }
 
         # 如果上下文正在运行，表示可能在战斗中
-        if ctx.is_context_running:
+        if ctx.run_context.is_context_running:
             # 可以根据运行的应用类型推断状态
             performance_metrics["context_running"] = True
             performance_metrics["running_tasks"] = len(_registry.list_statuses())
@@ -969,7 +969,7 @@ async def start_auto_battle_debug(ctx: ZContext = Depends(get_ctx)):
     """
     try:
         # 检查是否已有任务在运行
-        if ctx.is_context_running:
+        if ctx.run_context.is_context_running:
             raise HTTPException(
                 status_code=400,
                 detail={
@@ -985,8 +985,8 @@ async def start_auto_battle_debug(ctx: ZContext = Depends(get_ctx)):
                 loop = asyncio.get_running_loop()
 
                 def _exec():
-                    from zzz_od.application.battle_assistant.auto_battle_debug_app import AutoBattleDebugApp
-                    app = AutoBattleDebugApp(ctx)
+                    from zzz_od.application.battle_assistant.operation_debug.operation_debug_app import OperationDebugApp
+                    app = OperationDebugApp(ctx)
                     app.execute()
 
                 return await loop.run_in_executor(None, _exec)
@@ -1046,7 +1046,7 @@ def stop_auto_battle(ctx: ZContext = Depends(get_ctx)):
     """
     try:
         # 停止上下文运行
-        ctx.stop_running()
+        ctx.run_context.stop_running()
 
         # 取消所有相关任务
         statuses = _registry.list_statuses()
@@ -1349,7 +1349,7 @@ async def start_operation_debug(ctx: ZContext = Depends(get_ctx)):
     """
     try:
         # 检查是否已有任务在运行
-        if ctx.is_context_running:
+        if ctx.run_context.is_context_running:
             raise HTTPException(
                 status_code=400,
                 detail={
@@ -1379,7 +1379,7 @@ async def start_operation_debug(ctx: ZContext = Depends(get_ctx)):
                 loop = asyncio.get_running_loop()
 
                 def _exec():
-                    from zzz_od.application.battle_assistant.operation_debug_app import OperationDebugApp
+                    from zzz_od.application.battle_assistant.operation_debug.operation_debug_app import OperationDebugApp
                     app = OperationDebugApp(ctx)
                     app.execute()
 
@@ -1608,7 +1608,7 @@ def stop_operation_debug(ctx: ZContext = Depends(get_ctx)):
     """
     try:
         # 停止上下文运行
-        ctx.stop_running()
+        ctx.run_context.stop_running()
 
         # 取消所有相关任务
         statuses = _registry.list_statuses()
@@ -2000,7 +2000,7 @@ def _collect_battle_performance_metrics(ctx: ZContext) -> dict:
     """
     metrics = {
         "timestamp": datetime.now().isoformat(),
-        "context_running": ctx.is_context_running,
+        "context_running": ctx.run_context.is_context_running,
         "running_tasks": len(_registry.list_statuses()),
         "system_info": {}
     }
@@ -2274,7 +2274,7 @@ def get_system_status(ctx: ZContext = Depends(get_ctx)):
             "healthy": True,
             "timestamp": datetime.now().isoformat(),
             "context_status": {
-                "is_running": ctx.is_context_running,
+                "is_running": ctx.run_context.is_context_running,
                 "instance_idx": getattr(ctx, 'current_instance_idx', 0)
             },
             "task_manager": {
@@ -2335,7 +2335,7 @@ def start_battle_state_monitor(ctx: ZContext):
         """战斗状态监控循环"""
         last_state = None
 
-        while ctx.is_context_running:
+        while ctx.run_context.is_context_running:
             try:
                 # 获取当前战斗状态
                 current_state = _get_current_battle_state(ctx)
@@ -2397,7 +2397,7 @@ def _get_current_battle_state(ctx: ZContext) -> dict:
 
         # 收集性能指标
         performance_metrics = {
-            "context_running": ctx.is_context_running,
+            "context_running": ctx.run_context.is_context_running,
             "running_tasks": len(_registry.list_statuses()),
             "last_check_distance": getattr(auto_battle_context, 'last_check_distance', 0),
             "without_distance_times": getattr(auto_battle_context, 'without_distance_times', 0),
@@ -2468,10 +2468,10 @@ def get_detailed_battle_state_with_records(ctx: ZContext = Depends(get_ctx)):
         # 如果有自动战斗操作器在运行，获取详细状态
         if ctx.auto_op is not None:
             # 更准确地判断auto_op是否在运行
-            auto_op_running = bool(ctx.auto_op.is_running or (ctx.is_context_running and hasattr(ctx.auto_op, 'state_recorders') and bool(ctx.auto_op.state_recorders)))
+            auto_op_running = bool(ctx.auto_op.is_running or (ctx.run_context.is_context_running and hasattr(ctx.auto_op, 'state_recorders') and bool(ctx.auto_op.state_recorders)))
 
             # 即使auto_op.is_running为False，如果上下文在运行且有state_recorders，也应该获取状态
-            should_get_state = auto_op_running or (ctx.is_context_running and hasattr(ctx.auto_op, 'state_recorders'))
+            should_get_state = auto_op_running or (ctx.run_context.is_context_running and hasattr(ctx.auto_op, 'state_recorders'))
 
             if should_get_state:
                 # 获取状态记录器信息
@@ -2675,7 +2675,7 @@ def get_current_task(ctx: ZContext = Depends(get_ctx)) -> Optional[TaskInfo]:
         # 检查auto_op是否存在且有运行任务
         if ctx.auto_op is not None:
             # 即使is_running为False，如果上下文在运行且有running_task，也应该返回任务信息
-            should_check_task = ctx.auto_op.is_running or (ctx.is_context_running and hasattr(ctx.auto_op, 'running_task'))
+            should_check_task = ctx.auto_op.is_running or (ctx.run_context.is_context_running and hasattr(ctx.auto_op, 'running_task'))
 
             if should_check_task:
                 running_task = getattr(ctx.auto_op, 'running_task', None)
