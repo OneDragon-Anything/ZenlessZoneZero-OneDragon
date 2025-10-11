@@ -114,7 +114,7 @@ area_list:
   template_match_threshold: 0.7
   color_range: null
   goto_list: []
-- area_name: B服-登陆
+- area_name: B服-登录
   id_mark: false
   pc_rect:
   - 839
@@ -122,6 +122,20 @@ area_list:
   - 1080
   - 664
   text: 登录
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: B服新-手机号登录
+  id_mark: false
+  pc_rect:
+  - 839
+  - 626
+  - 1080
+  - 664
+  text: 登录/注册
   lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''
@@ -181,6 +195,76 @@ area_list:
   lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: B服新-隐私政策提示
+  id_mark: false
+  pc_rect:
+  - 739
+  - 380
+  - 1180
+  - 480
+  text: bilibili游戏隐私政策提示
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: B服新-同意隐私政策
+  id_mark: false
+  pc_rect:
+  - 930
+  - 560
+  - 1100
+  - 708
+  text: 同意
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: B服新-登录记录
+  id_mark: false
+  pc_rect:
+  - 739
+  - 380
+  - 1180
+  - 440
+  text: 登录记录
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: B服新-切换账号
+  id_mark: false
+  pc_rect:
+  - 1050
+  - 350
+  - 1200
+  - 550
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: enter_game
+  template_id: bilibili_switch_account
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: B服新-账号列表
+  id_mark: false
+  pc_rect:
+  - 739
+  - 500
+  - 1180
+  - 840
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: enter_game
+  template_id: bilibili_switch_account
   template_match_threshold: 0.7
   color_range: null
   goto_list: []
