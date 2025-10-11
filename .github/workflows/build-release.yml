@@ -165,28 +165,28 @@ jobs:
         Compress-Archive -Path deploy/dist/wheels/* -DestinationPath deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
 
     - name: Upload Installer
-      if: ${{ !env.CREATE_RELEASE }}
+      if: ${{ env.CREATE_RELEASE == 'false' }}
       uses: actions/upload-artifact@v4
       with:
         name: Installer
         path: deploy/dist/OneDragon-Installer.exe
 
     - name: Upload Launcher
-      if: ${{ !env.CREATE_RELEASE }}
+      if: ${{ env.CREATE_RELEASE == 'false' }}
       uses: actions/upload-artifact@v4
       with:
         name: Launcher
         path: deploy/dist/OneDragon-Launcher.exe
 
     - name: Upload Wheels
-      if: ${{ !env.CREATE_RELEASE }}
+      if: ${{ env.CREATE_RELEASE == 'false' }}
       uses: actions/upload-artifact@v4
       with:
         name: Wheels
         path: deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
 
     - name: Upload Dist
-      if: ${{ env.CREATE_RELEASE }}
+      if: ${{ env.CREATE_RELEASE == 'true' }}
       uses: actions/upload-artifact@v4
       with:
         name: dist
@@ -194,7 +194,7 @@ jobs:
         path: deploy/dist
 
     - name: Upload Unsigned Artifact
-      if: ${{ env.CREATE_RELEASE }}
+      if: ${{ env.CREATE_RELEASE == 'true' }}
       id: upload-unsigned-artifact
       uses: actions/upload-artifact@v4
       with:
