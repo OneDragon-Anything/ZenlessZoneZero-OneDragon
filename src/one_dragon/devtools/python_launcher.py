@@ -85,7 +85,7 @@ def create_log_folder():
     print_message(f"日志文件夹路径：{log_folder}", "PASS")
     return log_folder
 
-def execute_python_script(app_path, log_folder, no_windows: bool, args: list = None):
+def execute_python_script(app_path, log_folder, no_windows: bool, args: list = None, piped: bool = False):
     # 执行 Python 脚本并重定向输出到日志文件
     timestamp = datetime.datetime.now().strftime("%H.%M")
     log_file_path = os.path.join(log_folder, f"python_{timestamp}.log")
@@ -132,7 +132,7 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
 
 
 
-    if args and '--piped' in args and os.name == 'nt':  
+    if piped and os.name == 'nt':  
         
         # 创建Job对象
         # 用于管理进程组，解决 `taskkill /f /im OneDragon-Launcher.exe` 后Python.exe进程仍然存活的问题
@@ -194,15 +194,12 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
         # 创建进程
         # stdout, stderr 设置为 None 将会输出到当前程序相应的管道中
         
-        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
-        if no_windows:
-            creationflags |= subprocess.CREATE_NO_WINDOW
         process = subprocess.Popen(
             [uv_path] + run_args,
             stdout=None,
             stderr=None,
             stdin=None,
-            creationflags=creationflags,
+            creationflags=subprocess.CREATE_NO_WINDOW if no_windows else 0,
             text=True,
             encoding='utf-8'
         )
@@ -265,14 +262,14 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
         )
         print_message("一条龙 正在启动中，大约 3+ 秒...", "INFO")
 
-def run_python(app_path, no_windows: bool = True, args: list = None):
+def run_python(app_path, no_windows: bool = True, args: list = None, piped: bool = False):
     # 主函数
     try:
         print_message(f"当前工作目录：{path}", "INFO")
         verify_path_issues()
         configure_environment()
         log_folder = create_log_folder()
-        execute_python_script(app_path, log_folder, no_windows, args)
+        execute_python_script(app_path, log_folder, no_windows, args, piped)
     except SystemExit as e:
         print_message(f"程序已退出，状态码：{e.code}", "ERROR")
     except Exception as e:

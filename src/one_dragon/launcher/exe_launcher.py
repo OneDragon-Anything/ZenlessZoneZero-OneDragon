@@ -33,8 +33,6 @@ class ExeLauncher(LauncherBase):
             launch_args.append("--close-game")
         if args.shutdown:
             launch_args.extend(["--shutdown", str(args.shutdown)])
-        if args.piped:
-            launch_args.append("--piped")
         return launch_args
 
     def run_onedragon_mode(self, launch_args) -> None:
