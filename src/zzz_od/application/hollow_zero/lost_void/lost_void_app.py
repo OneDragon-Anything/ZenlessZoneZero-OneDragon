@@ -184,7 +184,9 @@ class LostVoidApp(ZApplication):
             return self.round_fail('未实现' + self.config.mission_name + '模式下的查找悬赏委托完成进度')
         result = self._check_points_reward(ocr_area_name)
         if result.status == "已完成悬赏委托":
-            self.round_by_click_area('菜单', '返回')
+            click_result = self.round_by_click_area('菜单', '返回')
+            if not click_result.is_success:
+                result = self.round_retry('点击返回失败', wait=1)
         return result
 
     @node_from(from_name='识别悬赏委托完成进度')
