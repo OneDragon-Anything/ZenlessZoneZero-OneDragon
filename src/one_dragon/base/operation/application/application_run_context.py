@@ -82,6 +82,9 @@ class ApplicationRunContext:
         self.current_instance_idx: Optional[int] = None
         self.current_group_id: Optional[str] = None
 
+        # 缓存 need_notify=True 的应用 {app_id: op_name} 映射，避免每次都实例化全部应用
+        self._cached_notify_app_map: Optional[dict[str, str]] = None
+
     def registry_application(
         self,
         factory: ApplicationFactory | list[ApplicationFactory],
@@ -105,6 +108,39 @@ class ApplicationRunContext:
             self._application_factory_map[factory.app_id] = factory
             if default_group:
                 self.default_group_apps.append(factory.app_id)
+
+        # 注册新应用后失效缓存
+        self._cached_notify_app_map = None
+
+    @property
+    def notify_app_map(self) -> dict[str, str]:
+        """返回 need_notify=True 的应用字典: {app_id: op_name}。
+
+        说明:
+            1. 通过创建应用实例探测其 ``need_notify`` 标记。
+            2. 结果缓存，注册新应用时自动失效。
+            3. 探测用默认参数 instance_idx=0, group_id='default'；若某应用只在特定 group 开启通知，这里不会包含。
+            4. 若应用没有设置 op_name，则使用 app_id 作为值兜底。
+
+        Returns:
+            dict[str,str]: need_notify 为 True 的应用映射，按 app_id 排序。
+        """
+        if self._cached_notify_app_map is not None:
+            return self._cached_notify_app_map
+
+        tmp: list[tuple[str, str]] = []
+        for app_id, factory in self._application_factory_map.items():
+            try:
+                app = factory.create_application(instance_idx=0, group_id='default')
+                if getattr(app, 'need_notify', False):
+                    op_name = getattr(app, 'op_name', None) or app_id
+                    tmp.append((app_id, op_name))
+            except Exception as e:  # noqa: PERF203
+                log.debug("探测应用 {} need_notify 失败: {}", app_id, e)
+                continue
+
+        self._cached_notify_app_map = {k: v for k, v in sorted(tmp, key=lambda x: x[0])}
+        return self._cached_notify_app_map
 
     def is_app_registered(self, app_id: str) -> bool:
         """

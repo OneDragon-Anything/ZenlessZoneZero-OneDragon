@@ -34,12 +34,10 @@ class NotifyDialog(MessageBoxBase):
         grid_layout.setContentsMargins(0, 10, 0, 10)
         grid_layout.setSpacing(10)
 
-        app_list = self.ctx.notify_config.app_list
-
         # 每行放置3个复选框
         column_count = 3
         # 使用 enumerate 和 items() 遍历字典获取索引、键和值
-        for i, (app_id, app_name) in enumerate(app_list.items()):
+        for i, (app_id, app_name) in enumerate(self.ctx.notify_config.app_map.items()):
             row = i // column_count
             col = i % column_count
 

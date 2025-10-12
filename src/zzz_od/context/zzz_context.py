@@ -84,8 +84,8 @@ class ZContext(OneDragonContext):
 
     @cached_property
     def notify_config(self):
-        from zzz_od.config.notify_config import NotifyConfig
-        return NotifyConfig(self.current_instance_idx)
+        from one_dragon.base.config.notify_config import NotifyConfig
+        return NotifyConfig(self.current_instance_idx, self.run_context.notify_app_map)
 
     def reload_instance_config(self) -> None:
         OneDragonContext.reload_instance_config(self)
