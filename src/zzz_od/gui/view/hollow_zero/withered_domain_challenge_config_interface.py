@@ -181,7 +181,7 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
         :return:
         """
         VerticalScrollInterface.on_interface_shown(self)
-        self.ctx.hollow.data_service.reload()
+        self.ctx.withered_domain.data_service.reload()
         self._update_whole_display()
 
     def _update_whole_display(self) -> None:
@@ -372,11 +372,11 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
 
         if value == HollowZeroChallengePathFinding.CUSTOM.value.value:
             if self.chosen_config.go_in_1_step is None:
-                self.chosen_config.go_in_1_step = self.ctx.hollow.data_service.get_default_go_in_1_step_entry_list()
+                self.chosen_config.go_in_1_step = self.ctx.withered_domain.data_service.get_default_go_in_1_step_entry_list()
             if self.chosen_config.waypoint is None:
-                self.chosen_config.waypoint = self.ctx.hollow.data_service.get_default_waypoint_entry_list()
+                self.chosen_config.waypoint = self.ctx.withered_domain.data_service.get_default_waypoint_entry_list()
             if self.chosen_config.avoid is None:
-                self.chosen_config.avoid = self.ctx.hollow.data_service.get_default_avoid_entry_list()
+                self.chosen_config.avoid = self.ctx.withered_domain.data_service.get_default_avoid_entry_list()
 
         self._update_pathfinding_input_display()
 
@@ -392,7 +392,7 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
             return
 
         value = self.resonium_priority_input.toPlainText()
-        priority_list, err_msg = self.ctx.hollow.data_service.check_resonium_priority(value)
+        priority_list, err_msg = self.ctx.withered_domain.data_service.check_resonium_priority(value)
         self._update_error_message(err_msg)
 
         self.chosen_config.resonium_priority = priority_list
@@ -410,7 +410,7 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
             return
 
         value = self.go_in_1_step_input.toPlainText()
-        entry_list, err_msg = self.ctx.hollow.data_service.check_entry_list_input(value)
+        entry_list, err_msg = self.ctx.withered_domain.data_service.check_entry_list_input(value)
         self._update_error_message(err_msg)
 
         self.chosen_config.go_in_1_step = entry_list
@@ -420,7 +420,7 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
             return
 
         value = self.waypoint_input.toPlainText()
-        entry_list, err_msg = self.ctx.hollow.data_service.check_entry_list_input(value)
+        entry_list, err_msg = self.ctx.withered_domain.data_service.check_entry_list_input(value)
         self._update_error_message(err_msg)
 
         self.chosen_config.waypoint = entry_list
@@ -430,7 +430,7 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
             return
 
         value = self.avoid_input.toPlainText()
-        entry_list, err_msg = self.ctx.hollow.data_service.check_entry_list_input(value)
+        entry_list, err_msg = self.ctx.withered_domain.data_service.check_entry_list_input(value)
         self._update_error_message(err_msg)
 
         self.chosen_config.avoid = entry_list

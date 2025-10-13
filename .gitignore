@@ -13,6 +13,7 @@ GEMINI.md
 CLAUDE.md
 .lingma/
 .qwen/
+.claude/
 
 # 子模块
 test/

@@ -65,7 +65,7 @@ class TrigramsCollectionApp(ZApplication):
         elif word == '滑动屏幕以获取卦象':
             start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
             end = start + Point(-800, 0)
-            self.ctx.controller.drag_to(start=start, end=end)
+            self.ctx.controller.drag_to(start=start, end=end, duration=0.2)
             return self.round_wait(status=word, wait=1)
         elif word == '确认':
             self.claim_reward = True

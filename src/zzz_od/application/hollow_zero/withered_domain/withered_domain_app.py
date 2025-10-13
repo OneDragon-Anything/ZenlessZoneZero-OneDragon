@@ -53,7 +53,7 @@ class WitheredDomainApp(ZApplication):
         self.phase: int = 1
 
     def handle_init(self):
-        self.ctx.hollow.init_before_run()
+        self.ctx.withered_domain.init_before_run()
         mission_name = self.config.mission_name
         idx = mission_name.find('-')
         if idx != -1:
@@ -157,7 +157,7 @@ class WitheredDomainApp(ZApplication):
     @operation_node(name='自动运行')
     def auto_run(self) -> OperationRoundResult:
         try:
-            self.ctx.hollow.init_before_hollow_start(self.mission_type_name, self.mission_name, self.level, self.phase)
+            self.ctx.withered_domain.init_before_hollow_start(self.mission_type_name, self.mission_name, self.level, self.phase)
         except Exception:
             log.error('模型加载失败', exc_info=True)
             return self.round_fail('模型加载失败 请重新下载模型')
