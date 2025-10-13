@@ -12,6 +12,8 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.enter_game.switch_account import SwitchAccount
 
 
 class OneDragonApp(Application):
@@ -24,7 +26,6 @@ class OneDragonApp(Application):
         self,
         ctx: OneDragonContext,
         op_to_enter_game: Optional[Operation] = None,
-        op_to_stop_exe_and_switch_account: Optional[Operation] = None,
         op_to_switch_account: Optional[Operation] = None,
     ):
         Application.__init__(
@@ -39,7 +40,6 @@ class OneDragonApp(Application):
         self._instance_idx: int = 0  # 当前运行的实例下标
         self._instance_start_idx: int = 0  # 最初开始的实例下标
         self._instance_prev_game_path: str = None # 上一个账号的游戏路径
-        self._op_to_stop_exe_and_switch_account: Operation = op_to_stop_exe_and_switch_account  # 换服, 然后切换账号的op
         self._op_to_switch_account: Operation = op_to_switch_account  # 切换账号的op
 
     def handle_init(self) -> None:
@@ -100,19 +100,15 @@ class OneDragonApp(Application):
         # 检测前后账号的游戏路径是否一致, 如果一致可以直接切换账号, 不一致需要先关闭当前账号的游戏然后打开下一个账号的游戏
         instance_game_path = self.ctx.game_account_config.game_path
         # 如果任一账号没配置游戏路径, 则不关闭游戏
-        if (self._instance_prev_game_path is None) or (instance_game_path is None) \
-                or (self._instance_prev_game_path == instance_game_path):
-            op_to_switch_account_merged = self._op_to_switch_account
-        else:
-            op_to_switch_account_merged = self._op_to_stop_exe_and_switch_account
+        self._op_to_switch_account._is_exe_same = (self._instance_prev_game_path is None) \
+                                                  or (instance_game_path is None) \
+                                                  or (self._instance_prev_game_path == instance_game_path)
 
         if len(self._instance_list) == 1:
             return self.round_success('无需切换账号')
-        if op_to_switch_account_merged is None:
-            return self.round_fail('未实现切换账号')
         else:
             # return self.round_success(wait=1)  # 调试用
-            return self.round_by_op_result(op_to_switch_account_merged.execute())
+            return self.round_by_op_result(self._op_to_switch_account.execute())
 
     @node_from(from_name='切换账号')
     @operation_node(name='切换账号后处理')
@@ -124,3 +120,16 @@ class OneDragonApp(Application):
 
     def after_operation_done(self, result: OperationResult):
         Application.after_operation_done(self, result)
+
+
+def __debug():
+    ctx = ZContext()
+    ctx.init()
+    ctx.run_context.start_running()
+    ctx.init_ocr()
+    op = OneDragonApp(ctx, op_to_switch_account=SwitchAccount(ctx))
+    op.execute()
+
+
+if __name__ == '__main__':
+    __debug()
