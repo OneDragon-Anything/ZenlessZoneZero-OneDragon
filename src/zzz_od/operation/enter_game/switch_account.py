@@ -24,28 +24,28 @@ class SwitchAccount(ZOperation):
         return self.round_success('需要切换游戏区服')
 
     @node_from(from_name='准备切换账号', status='需要切换游戏区服')
-    @operation_node(name='切换游戏区服', node_max_retry_times=3)
+    @operation_node(name='切换游戏区服', node_max_retry_times=3, screenshot_before_round=False)
     def close_exe(self) -> OperationRoundResult:
         # 关闭游戏
-        if self.ctx.controller.is_game_window_ready:
+        if self.ctx.controller_prev_user.is_game_window_ready:
             # 第一次尝试
-            res = self.ctx.controller.close_game()
+            res = self.ctx.controller_prev_user.close_game()
             if res != 0:
                 log.warning('关闭游戏失败，2秒后重试一次')
                 time.sleep(2)
                 # 第二次尝试
-                res = self.ctx.controller.close_game()
+                res = self.ctx.controller_prev_user.close_game()
             # 轮询等待窗口释放，最多15秒
             wait_left = 15
             while res == 0 and wait_left > 0:
                 # 刷新窗口句柄，避免旧缓存导致误判
-                self.ctx.controller.game_win.init_win()
-                if not self.ctx.controller.is_game_window_ready:
+                self.ctx.controller_prev_user.game_win.init_win()
+                if not self.ctx.controller_prev_user.is_game_window_ready:
                     break
                 time.sleep(1)
                 wait_left -= 1
             # 仍未关闭则返回重试，交给节点重试机制
-            if self.ctx.controller.is_game_window_ready:
+            if self.ctx.controller_prev_user.is_game_window_ready:
                 return self.round_retry('关闭游戏失败', wait=5)
 
         # 有时候游戏关闭了, 游戏占用的配置等文件没关闭, 故需等一会
