@@ -1,15 +1,14 @@
-from typing import Optional
-
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.operation.application.application_config import ApplicationConfig
 
 
-class CloudQueueConfig(YamlConfig):
+class CloudQueueConfig(ApplicationConfig):
 
-    def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+    def __init__(self, instance_idx: int, group_id: str):
+        ApplicationConfig.__init__(
             self,
             module_name='cloud_queue',
             instance_idx=instance_idx,
+            group_id=group_id,
         )
 
     @property

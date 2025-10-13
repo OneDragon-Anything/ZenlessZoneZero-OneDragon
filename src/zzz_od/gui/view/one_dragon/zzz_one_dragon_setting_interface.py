@@ -15,6 +15,7 @@ from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from zzz_od.application.cloud_queue.cloud_queue_config import CloudQueueConfig
 from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
 from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import (
     DismantleLevelEnum,
@@ -40,6 +41,7 @@ class ZOneDragonSettingInterface(VerticalScrollInterface):
         self.ctx: ZContext = ctx
         self.group_id: str = 'one_dragon'  # 当前打开页面的group_id
 
+        self.cloud_queue_config: Optional[CloudQueueConfig] = None
         self.random_play_config: Optional[RandomPlayConfig] = None
         self.drive_disc_dismantle_config: Optional[DriveDiscDismantleConfig] = None
 
