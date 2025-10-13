@@ -1,5 +1,6 @@
 from typing import List
 
+import cv2
 from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
@@ -8,7 +9,7 @@ from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cv2_utils, str_utils
+from one_dragon.utils import cv2_utils, str_utils, cal_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.game_config_checker import predefined_team_checker_const
@@ -123,10 +124,63 @@ class PredefinedTeamChecker(ZApplication):
 
             # agent_mr_list 按横坐标排序
             agent_mr_list.sort(key=lambda x: x.left_top.x)
+            filter_agent_mr_list = []
 
-            log.info(f'编队名称: {team_name} 识别代理人: {[i.data.agent_name for i in agent_mr_list]}')
+            # 有时候同一个位置可能识别到多个角色 进行相似度判断过滤 issue #1487
+            for curr_mr in agent_mr_list:
+                if len(filter_agent_mr_list) == 0:
+                    filter_agent_mr_list.append(curr_mr)
+                    continue
 
-            self.ctx.team_config.update_team_members(team_name, [i.data for i in agent_mr_list])
+                prev_mr = filter_agent_mr_list[-1]
+                if cal_utils.cal_overlap_percent(curr_mr.rect, prev_mr.rect) < 0.7:
+                    filter_agent_mr_list.append(curr_mr)
+                    continue
+
+                if curr_mr.confidence > prev_mr.confidence:
+                    filter_agent_mr_list[-1] = curr_mr
+
+            log.info(f'编队名称: {team_name} 识别代理人: {[i.data.agent_name for i in filter_agent_mr_list]}')
+
+            self.ctx.team_config.update_team_members(team_name, [i.data for i in filter_agent_mr_list])
+
+    def is_better_agent(self, part: MatLike, old_agent: Agent, new_agent: Agent) -> bool:
+        """
+        根据特征相似度 判断第二个代理人是否更合适
+
+        Args:
+            part: 重叠范围的截图
+            old_agent: 旧的代理人
+            new_agent: 新的代理人
+
+        Returns:
+            新的代理人更合适 (相似度更高)
+        """
+        if old_agent.agent_id == new_agent.agent_id:
+            return False
+
+        bf = cv2.BFMatcher(cv2.NORM_L2)  # SIFT使用L2范数
+        source_kps, source_desc = cv2_utils.feature_detect_and_compute(part)
+
+        old_dis = None
+        for template_id in old_agent.template_id_list:
+            template = self.ctx.template_loader.get_template('predefined_team', f'avatar_{template_id}')
+            if template is None:
+                continue
+            template_kps, template_desc = template.features
+            matches = bf.knnMatch(template_kps, template_desc, k=2)
+            # 2. Lowe's ratio test - 过滤好匹配
+            good_matches = []
+            for m, n in matches:
+                if m.distance < 0.75 * n.distance:  # 经典阈值
+                    good_matches.append(m)
+
+            # 3. 计算相似度
+            if len(good_matches) == 0:
+                continue
+
+            avg_distance = sum(m.distance for m in good_matches) / len(good_matches)
+
 
     @node_from(from_name='识别编队角色')
     @operation_node(name='成功后返回')
@@ -135,10 +189,18 @@ class PredefinedTeamChecker(ZApplication):
         return self.round_by_op_result(op.execute())
 
 
+def __debug_update_team_members():
+    ctx = ZContext()
+    ctx.init()
+    from one_dragon.utils import debug_utils
+    screen = debug_utils.get_debug_image('497657553-30334c5e-a162-460e-b797-e31e75f7b03b')
+    op = PredefinedTeamChecker(ctx)
+    op.update_team_members(screen)
+
+
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
-    ctx.init_ocr()
+    ctx.init()
     ctx.run_context.start_running()
 
     op = PredefinedTeamChecker(ctx)
@@ -146,4 +208,4 @@ def __debug():
 
 
 if __name__ == '__main__':
-    __debug()
+    __debug_update_team_members()
