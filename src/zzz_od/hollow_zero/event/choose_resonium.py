@@ -28,7 +28,7 @@ class ChooseResonium(ZOperation):
             return self.round_retry(status='识别不到选项', wait=0.5)
 
         idx_list = resonium_utils.choose_resonium_by_priority([i.data for i in item_list],
-                                                              self.ctx.hollow_zero_challenge_config.resonium_priority)
+                                                              self.ctx.withered_domain.challenge_config.resonium_priority)
         if len(idx_list) == 0:
             if len(item_list) >= 3:  # 如果都识别到了 那证明就是没有匹配到优先级
                 return self.round_fail(status='优先级无返回')
@@ -56,7 +56,7 @@ class ChooseResonium(ZOperation):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.start_running()
+    ctx.run_context.start_running()
     ctx.init_ocr()
     op = ChooseResonium(ctx)
     op.execute()

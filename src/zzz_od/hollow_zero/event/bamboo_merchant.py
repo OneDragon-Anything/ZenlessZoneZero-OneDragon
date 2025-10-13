@@ -102,7 +102,7 @@ class BambooMerchant(ZOperation):
         pos_list = []
         # 只保留有价格的
         for ocr_result, mrl in desc_ocr_result_map.items():
-            item = self.ctx.hollow.data_service.match_resonium_by_ocr_full(ocr_result)
+            item = self.ctx.withered_domain.data_service.match_resonium_by_ocr_full(ocr_result)
             log.info('%s 匹配鸣徽 %s' % (ocr_result, item.name if item is not None else 'none'))
             if item is None:
                 continue
@@ -118,8 +118,8 @@ class BambooMerchant(ZOperation):
             pos_list.append(mrl.max.center)
 
         if len(item_list) > 0:
-            idx_list = resonium_utils.choose_resonium_by_priority(item_list, self.ctx.hollow_zero_challenge_config.resonium_priority,
-                                                                  only_priority=self.ctx.hollow_zero_challenge_config.buy_only_priority)
+            idx_list = resonium_utils.choose_resonium_by_priority(item_list, self.ctx.withered_domain.challenge_config.resonium_priority,
+                                                                  only_priority=self.ctx.withered_domain.challenge_config.buy_only_priority)
             if len(idx_list) > 0:
                 to_choose = pos_list[idx_list[0]]
             else:

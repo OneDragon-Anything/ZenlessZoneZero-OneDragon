@@ -3,6 +3,7 @@ from typing import Optional, ClassVar, List
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
@@ -12,8 +13,17 @@ from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, RestoreChargeEnum
-from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntLevelEnum
+from zzz_od.application.charge_plan import charge_plan_const
+from zzz_od.application.charge_plan.charge_plan_config import (
+    ChargePlanItem,
+    ChargePlanConfig,
+)
+from zzz_od.application.notorious_hunt import notorious_hunt_const
+from zzz_od.application.notorious_hunt.notorious_hunt_config import (
+    NotoriousHuntLevelEnum,
+    NotoriousHuntConfig,
+)
+from zzz_od.application.notorious_hunt.notorious_hunt_run_record import NotoriousHuntRunRecord
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
@@ -48,6 +58,22 @@ class NotoriousHunt(ZOperation):
                 gt('恶名狩猎', 'game'),
                 gt(plan.mission_type_name, 'game')
             )
+        )
+        self.charge_plan_config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+            app_id=charge_plan_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+
+        self.config: Optional[NotoriousHuntConfig] = self.ctx.run_context.get_config(
+            app_id=notorious_hunt_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+
+        self.run_record: Optional[NotoriousHuntRunRecord] = self.ctx.run_context.get_run_record(
+            app_id=notorious_hunt_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
         )
 
         self.plan: ChargePlanItem = plan
@@ -189,7 +215,7 @@ class NotoriousHunt(ZOperation):
         else:
             result = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '按钮-无报酬模式')
             if result.is_success:  # 可能是其他设备挑战了 没有剩余次数了
-                self.ctx.notorious_hunt_record.left_times = 0
+                self.run_record.left_times = 0
                 return self.round_success(NotoriousHunt.STATUS_NO_LEFT_TIMES)
 
             area = self.ctx.screen_loader.get_area('恶名狩猎', '剩余次数')
@@ -198,7 +224,7 @@ class NotoriousHunt(ZOperation):
             ocr_result = self.ctx.ocr.run_ocr_single_line(part)
             left_times = str_utils.get_positive_digits(ocr_result, None)
             if left_times is None:  # 识别不到时 使用记录中的数量
-                self.can_run_times = self.ctx.notorious_hunt_record.left_times
+                self.can_run_times = self.run_record.left_times
             else:
                 self.can_run_times = left_times
 
@@ -238,7 +264,7 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
-        if self.ctx.charge_plan_config.restore_charge == RestoreChargeEnum.NONE.value.value:
+        if not self.charge_plan_config.is_restore_charge_enabled:
             return self.round_success(NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
         op = RestoreCharge(self.ctx)
         result = self.round_by_op_result(op.execute())
@@ -514,10 +540,10 @@ class NotoriousHunt(ZOperation):
     def after_battle(self) -> OperationRoundResult:
         self.can_run_times -= 1
         if self.use_charge_power:
-            self.ctx.charge_plan_config.add_plan_run_times(self.plan)
+            self.charge_plan_config.add_plan_run_times(self.plan)
         else:
-            self.ctx.notorious_hunt_record.left_times = self.ctx.notorious_hunt_record.left_times - 1
-            self.ctx.notorious_hunt_config.add_plan_run_times(self.plan)
+            self.run_record.left_times = self.run_record.left_times - 1
+            self.config.add_plan_run_times(self.plan)
         return self.round_success()
 
     @node_from(from_name='战斗结束')
@@ -538,7 +564,7 @@ class NotoriousHunt(ZOperation):
         if self.use_charge_power:
             pass
         else:
-            self.ctx.notorious_hunt_record.left_times = 0
+            self.run_record.left_times = 0
         return self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-完成',
                                                  success_wait=5, retry_wait_round=1)
 
@@ -636,7 +662,7 @@ def __debug():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.init_ocr()
-    ctx.start_running()
+    ctx.run_context.start_running()
     op = NotoriousHunt(
         ctx,
         ChargePlanItem(

@@ -62,7 +62,7 @@ class CallForSupport(ZOperation):
         """
         判断当前配队 决定选择的角色
         """
-        agent_list = self.ctx.hollow.check_agent_list(self.last_screenshot)
+        agent_list = self.ctx.withered_domain.check_agent_list(self.last_screenshot)
 
         if agent_list is None:
             return self.round_retry('无法识别当前角色列表', wait=1)
@@ -113,7 +113,7 @@ class CallForSupport(ZOperation):
         """
         是否应该呼叫增援
         """
-        targets = self.ctx.hollow_zero_challenge_config.target_agents
+        targets = self.ctx.withered_domain.challenge_config.target_agents
         start_idx = 0
         for i in range(len(targets)):
             ta = targets[i]
@@ -202,7 +202,7 @@ class CallForSupport(ZOperation):
     @node_from(from_name='选择位置')
     @operation_node(name='确认')
     def confirm(self) -> OperationRoundResult:
-        self.ctx.hollow.update_agent_list_after_support(self.new_agent, self.should_call_pos)
+        self.ctx.withered_domain.update_agent_list_after_support(self.new_agent, self.should_call_pos)
         return hollow_event_utils.click_empty(self)
 
     @node_from(from_name='画面识别', status=STATUS_NO_NEED)
@@ -261,7 +261,7 @@ class CallForSupport(ZOperation):
 def __debug():
     ctx = ZContext()
     ctx.init_by_config()
-    ctx.start_running()
+    ctx.run_context.start_running()
     ctx.init_ocr()
     op = CallForSupport(ctx)
     op.execute()
@@ -294,7 +294,7 @@ def __debug_current_agent():
     ))
     from one_dragon.utils import debug_utils
     screen = debug_utils.get_debug_image('1')
-    agent_list = ctx.hollow.check_agent_list(screen)
+    agent_list = ctx.withered_domain.check_agent_list(screen)
     print([i.agent_name for i in agent_list if i is not None])
     print(op._get_support_agent(screen).agent_name)
 

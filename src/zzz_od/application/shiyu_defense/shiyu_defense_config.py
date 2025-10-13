@@ -1,6 +1,6 @@
-from typing import Optional, List
+from typing import List
 
-from one_dragon.base.config.yaml_config import YamlConfig
+from one_dragon.base.operation.application.application_config import ApplicationConfig
 from zzz_od.game_data.agent import DmgTypeEnum
 
 
@@ -17,13 +17,14 @@ class ShiyuDefenseTeamConfig:
         self.weakness_list: List[DmgTypeEnum] = weakness_list  # 应付弱点
 
 
-class ShiyuDefenseConfig(YamlConfig):
+class ShiyuDefenseConfig(ApplicationConfig):
 
-    def __init__(self, instance_idx: Optional[int] = None):
-        YamlConfig.__init__(
+    def __init__(self, instance_idx: int, group_id: str):
+        ApplicationConfig.__init__(
             self,
-            module_name='shiyu_defense',
+            app_id='shiyu_defense',
             instance_idx=instance_idx,
+            group_id=group_id,
         )
 
         self.team_list: List[ShiyuDefenseTeamConfig] = []

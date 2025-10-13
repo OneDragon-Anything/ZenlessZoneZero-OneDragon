@@ -4,16 +4,22 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, ToolButton
 
-from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
-from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import EditableComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import (
+    EditableComboBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_config_file_path
-from zzz_od.application.battle_assistant.operation_debug_app import OperationDebugApp
-from zzz_od.application.battle_assistant.operation_template_config import get_operation_template_config_list
-from zzz_od.application.zzz_application import ZApplication
+from zzz_od.application.battle_assistant.auto_battle_config import (
+    get_auto_battle_config_file_path,
+)
+from zzz_od.application.battle_assistant.operation_debug import operation_debug_const
+from zzz_od.application.battle_assistant.operation_template_config import (
+    get_operation_template_config_list,
+)
 from zzz_od.config.game_config import GamepadTypeEnum
 from zzz_od.context.zzz_context import ZContext
 
@@ -28,6 +34,7 @@ class OperationDebugInterface(AppRunInterface):
         AppRunInterface.__init__(
             self,
             ctx=ctx,
+            app_id=operation_debug_const.APP_ID,
             object_name='operation_debug_interface',
             nav_text_cn='指令调试',
             nav_icon=FluentIcon.GAME,
@@ -95,9 +102,6 @@ class OperationDebugInterface(AppRunInterface):
 
     def _on_repeat_changed(self, value: bool) -> None:
         self.ctx.battle_assistant_config.debug_operation_repeat = value
-
-    def get_app(self) -> ZApplication:
-        return OperationDebugApp(self.ctx)
 
     def _on_del_clicked(self) -> None:
         """

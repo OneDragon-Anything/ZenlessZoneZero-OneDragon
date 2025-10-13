@@ -33,6 +33,7 @@ def get_best_agent_for_moving(team_info: TeamInfo) -> Optional[AgentInfo]:
 def _get_agent_priority(agent: Agent) -> int:
     """
     获取角色的优先级
+    身高不会挡住传送点的同时，速度越慢越好
     :param agent:
     :return:
     """

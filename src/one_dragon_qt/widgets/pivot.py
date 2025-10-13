@@ -7,7 +7,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QSizePolicy,
     QApplication,
-    QSpacerItem,
     QStackedWidget,
     QVBoxLayout,
 )
@@ -41,8 +40,8 @@ class PhosPivot(Pivot):
 
         OdQtStyleSheet.PIVOT.apply(self)
 
-        self.hBoxLayout.setSpacing(0)
-        self.hBoxLayout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.hBoxLayout.setSpacing(30)  # 设置统一间距，替代手动添加spacer
+        self.hBoxLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
 
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
@@ -67,11 +66,16 @@ class PhosPivot(Pivot):
         if onClick:
             widget.itemClicked.connect(onClick)
 
-        spacer = QSpacerItem(10, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
-        self.hBoxLayout.insertItem(index, spacer)
-
+        existing_count = len(self.items)
         self.items[routeKey] = widget
-        self.hBoxLayout.insertWidget(index, widget, 1)
+
+        # 使用setSpacing统一管理间距，无需手动添加spacer
+        if index <= 0:
+            self.hBoxLayout.insertWidget(0, widget, 0)
+        elif index >= existing_count:
+            self.hBoxLayout.addWidget(widget, 0)
+        else:
+            self.hBoxLayout.insertWidget(index, widget, 0)
 
     def paintEvent(self, e):
         QWidget().paintEvent(e)

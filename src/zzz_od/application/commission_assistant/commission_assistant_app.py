@@ -1,18 +1,27 @@
 import time
-
-from cv2.typing import MatLike
 from typing import Optional
 
+from cv2.typing import MatLike
+
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_context import ContextKeyboardEventEnum
 from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_round_result import OperationRoundResult, OperationRoundResultEnum
+from one_dragon.base.operation.operation_round_result import (
+    OperationRoundResult,
+    OperationRoundResultEnum,
+)
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.commission_assistant.commission_assistant_config import DialogOptionEnum, StoryMode
+from zzz_od.application.commission_assistant import commission_assistant_const
+from zzz_od.application.commission_assistant.commission_assistant_config import (
+    CommissionAssistantConfig,
+    DialogOptionEnum,
+    StoryMode,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
@@ -25,8 +34,14 @@ class CommissionAssistantApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='commission_assistant',
-            op_name=gt('委托助手'),
+            ctx=ctx,
+            app_id=commission_assistant_const.APP_ID,
+            op_name=gt(commission_assistant_const.APP_NAME),
+        )
+        self.config: Optional[CommissionAssistantConfig] = self.ctx.run_context.get_config(
+            app_id=commission_assistant_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
         )
 
         self.run_mode: int = 0  # 0=对话 1=闪避 2=自动战斗
@@ -48,11 +63,11 @@ class CommissionAssistantApp(ZApplication):
         self.ctx.listen_event(ContextKeyboardEventEnum.PRESS.value, self._on_key_press)
 
     def _on_key_press(self, event: ContextEventItem):
-        if not self.ctx.is_context_running:
+        if not self.ctx.run_context.is_context_running:
             return
         key = event.data
-        if key == self.ctx.commission_assistant_config.dodge_switch:
-            if self.auto_op is not None and self.ctx.commission_assistant_config.dodge_config != self.auto_op.module_name:
+        if key == self.config.dodge_switch:
+            if self.auto_op is not None and self.config.dodge_config != self.auto_op.module_name:
                 self.auto_op = None  # 切换过选项
             if self.run_mode == 0:
                 self.run_mode = 1
@@ -60,8 +75,8 @@ class CommissionAssistantApp(ZApplication):
                 self.run_mode = 0
             else:  # 防止并发有问题导致值错乱 最后兜底成初始值
                 self.run_mode = 0
-        elif key == self.ctx.commission_assistant_config.auto_battle_switch:
-            if self.auto_op is not None and self.ctx.commission_assistant_config.auto_battle != self.auto_op.module_name:
+        elif key == self.config.auto_battle_switch:
+            if self.auto_op is not None and self.config.auto_battle != self.auto_op.module_name:
                 self.auto_op = None  # 切换过选项
             if self.run_mode == 0:
                 self.run_mode = 2
@@ -78,7 +93,7 @@ class CommissionAssistantApp(ZApplication):
         if self.run_mode in [1, 2]:
             return self.round_success('战斗模式')
 
-        config = self.ctx.commission_assistant_config
+        config = self.config
 
         result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
         if result.is_success:
@@ -170,7 +185,7 @@ class CommissionAssistantApp(ZApplication):
                 # 忽略上一次一样的选项 这大概率是背景污染
                 continue
 
-            if self.ctx.commission_assistant_config.dialog_option == DialogOptionEnum.LAST.value.value:
+            if self.config.dialog_option == DialogOptionEnum.LAST.value.value:
                 if to_click is None or opt_point.y > to_click.y:  # 最后一个选项 找y轴最大的
                     to_click = opt_point
                     to_choose_opt = ocr_result
@@ -212,10 +227,10 @@ class CommissionAssistantApp(ZApplication):
         """
         # 空洞内不好处理事件
         # return self.round_wait(status='空洞中', wait=1) # Original line, commented out as per previous logic.
-        self.ctx.hollow.init_event_yolo(self.ctx.model_config.hollow_zero_event_gpu)
+        self.ctx.withered_domain.init_event_yolo()
 
         # 判断当前邦布是否存在
-        hollow_map = self.ctx.hollow.map_service.cal_current_map_by_screen(self.last_screenshot, screenshot_time)
+        hollow_map = self.ctx.withered_domain.map_service.cal_current_map_by_screen(self.last_screenshot, screenshot_time)
         if hollow_map is None or hollow_map.contains_entry('当前'):
             return self.round_wait(status='空洞走格子中', wait=1)
 
@@ -271,7 +286,7 @@ class CommissionAssistantApp(ZApplication):
         if self.auto_op is None:
             auto_battle_utils.load_auto_op(self,
                                            'auto_battle' if self.run_mode == 2 else 'dodge',
-                                           self.ctx.commission_assistant_config.auto_battle if self.run_mode == 2 else self.ctx.commission_assistant_config.dodge_config)
+                                           self.config.auto_battle if self.run_mode == 2 else self.config.dodge_config)
         self.auto_op.start_running_async()
 
     def check_fishing(self) -> Optional[OperationRoundResult]:
@@ -321,9 +336,9 @@ class CommissionAssistantApp(ZApplication):
         if idx == -1:  # 不在剧情模式
             return None
 
-        if self.ctx.commission_assistant_config.story_mode == StoryMode.CLICK.value.value:
+        if self.config.story_mode == StoryMode.CLICK.value.value:
             return None  # 返回外层点击
-        elif self.ctx.commission_assistant_config.story_mode == StoryMode.AUTO.value.value:
+        elif self.config.story_mode == StoryMode.AUTO.value.value:
             if idx == 1:  # 自动
                 return self.round_wait('剧情自动播放中 选项需手动点击', wait=1)
             else:  # 切换到自动

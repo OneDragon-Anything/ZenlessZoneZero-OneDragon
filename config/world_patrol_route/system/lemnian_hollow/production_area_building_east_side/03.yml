@@ -5,24 +5,24 @@ op_list:
   - '814'
   op_type: move
 - data:
-  - '802'
-  - '736'
+  - '798'
+  - '750'
   op_type: move
 - data:
-  - '844'
-  - '714'
+  - '832'
+  - '716'
   op_type: move
 - data:
-  - '844'
-  - '598'
+  - '832'
+  - '601'
   op_type: move
 - data:
-  - '864'
-  - '548'
+  - '863'
+  - '560'
   op_type: move
 - data:
-  - '864'
-  - '522'
+  - '863'
+  - '521'
   op_type: move
 - data:
   - '789'
@@ -37,8 +37,8 @@ op_list:
   - '598'
   op_type: move
 - data:
-  - '587'
-  - '619'
+  - '579'
+  - '634'
   op_type: move
 tp_area_id: production_area_building_east_side
 tp_name: 制造平台

@@ -1,0 +1,11 @@
+list_type: whitelist
+name: 中央制造区
+route_items:
+- production_area_building_east_side_1
+- production_area_building_east_side_2
+- production_area_building_east_side_3
+- production_area_building_east_side_4
+- production_area_building_east_side_5
+- production_area_building_west_side_1
+- production_area_building_west_side_2
+- production_area_rooftop_1

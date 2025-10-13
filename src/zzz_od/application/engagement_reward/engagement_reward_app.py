@@ -5,11 +5,10 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
+from zzz_od.application.engagement_reward import engagement_reward_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
-from zzz_od.operation.compendium.compendium_choose_tab import CompendiumChooseTab
-from zzz_od.operation.compendium.open_compendium import OpenCompendium
 
 
 class EngagementRewardApp(ZApplication):
@@ -22,9 +21,9 @@ class EngagementRewardApp(ZApplication):
         """
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='engagement_reward',
-            op_name=gt('活跃度奖励'),
-            run_record=ctx.engagement_reward_run_record,
+            ctx=ctx,
+            app_id=engagement_reward_const.APP_ID,
+            op_name=gt(engagement_reward_const.APP_NAME),
             need_notify=True,
         )
 
@@ -70,6 +69,7 @@ class EngagementRewardApp(ZApplication):
         return self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '活跃度奖励-确认', success_wait=1, retry_wait=1)
 
     @node_from(from_name='查看奖励结果', success=False)
+    @node_from(from_name='查看奖励结果')
     @node_from(from_name='识别活跃度', status=STATUS_NO_REWARD)
     @operation_node(name='完成后返回大世界')
     def back_afterwards(self) -> OperationRoundResult:
@@ -81,7 +81,7 @@ def __debug():
     ctx = ZContext()
     ctx.init_by_config()
     ctx.init_ocr()
-    ctx.start_running()
+    ctx.run_context.start_running()
     op = EngagementRewardApp(ctx)
     op.execute()
 

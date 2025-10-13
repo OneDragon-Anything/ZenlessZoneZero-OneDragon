@@ -490,6 +490,7 @@ class ImageViewerWidget(QWidget):
         self.scale_spinbox.setRange(10, 1000)
         self.scale_spinbox.setValue(100)
         self.scale_spinbox.setSuffix("%")
+        self.scale_spinbox.setMinimumWidth(160)
         self.scale_spinbox.valueChanged.connect(self.on_scale_changed)
         toolbar_layout.addWidget(self.scale_spinbox)
 

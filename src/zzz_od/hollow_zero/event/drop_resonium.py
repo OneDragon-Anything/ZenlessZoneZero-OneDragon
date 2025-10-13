@@ -30,7 +30,7 @@ class DropResoniumBase(ZOperation):
             return self.round_retry(status='识别不到选项', wait=0.5)
 
         idx_list = resonium_utils.choose_resonium_by_priority([i.data for i in item_list],
-                                                              self.ctx.hollow_zero_challenge_config.resonium_priority)
+                                                              self.ctx.withered_domain.challenge_config.resonium_priority)
         if len(idx_list) == 0:
             return self.round_retry(status='优先级无返回', wait=0.5)
 

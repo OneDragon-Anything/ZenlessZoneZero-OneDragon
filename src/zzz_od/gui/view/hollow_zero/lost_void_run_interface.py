@@ -1,18 +1,31 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
+from typing import List, Optional
+
+from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, PushSettingCard
-from typing import Optional, List
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.utils.i18_utils import gt
+from one_dragon.base.operation.application import application_const
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.view.app_run_interface import AppRunInterface
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
+from zzz_od.application.hollow_zero.lost_void import lost_void_const
 from zzz_od.application.hollow_zero.lost_void.lost_void_app import LostVoidApp
-from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidChallengeConfig, \
-    get_all_lost_void_challenge_config
-from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidExtraTask
+from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
+    LostVoidChallengeConfig,
+    get_all_lost_void_challenge_config,
+)
+from zzz_od.application.hollow_zero.lost_void.lost_void_config import (
+    LostVoidConfig,
+    LostVoidExtraTask,
+)
+from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import (
+    LostVoidRunRecord,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 
@@ -28,10 +41,14 @@ class LostVoidRunInterface(AppRunInterface):
         AppRunInterface.__init__(
             self,
             ctx=ctx,
+            app_id=lost_void_const.APP_ID,
             object_name='lost_void_run_interface',
             nav_text_cn='迷失之地',
             parent=parent,
         )
+
+        self.config: Optional[LostVoidConfig] = None
+        self.run_record: Optional[LostVoidRunRecord] = None
 
     def get_widget_at_top(self) -> QWidget:
         # 创建一个容器 widget 用于水平排列
@@ -51,7 +68,7 @@ class LostVoidRunInterface(AppRunInterface):
         left_layout = QVBoxLayout(left_widget)
         left_widget.setLayout(left_layout)
 
-        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_lost_void.html')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_hollow_zero.html')
         left_layout.addWidget(self.help_opt)
 
         self.mission_opt = ComboBoxSettingCard(
@@ -115,24 +132,34 @@ class LostVoidRunInterface(AppRunInterface):
         :return:
         """
         AppRunInterface.on_interface_shown(self)
+        self.config: Optional[LostVoidConfig] = self.ctx.run_context.get_config(
+            app_id=lost_void_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+        self.run_record: Optional[LostVoidRunRecord] = self.ctx.run_context.get_run_record(
+            instance_idx=self.ctx.current_instance_idx,
+            app_id=lost_void_const.APP_ID,
+        )
+        
         self._update_mission_options()
         self._update_challenge_config_options()
-        self.challenge_config_opt.init_with_adapter(self.ctx.lost_void_config.get_prop_adapter('challenge_config'))
+        self.challenge_config_opt.init_with_adapter(get_prop_adapter(self.config, 'challenge_config'))
 
-        self.mission_opt.init_with_adapter(self.ctx.lost_void_config.get_prop_adapter('mission_name'))
+        self.mission_opt.init_with_adapter(get_prop_adapter(self.config, 'mission_name'))
         self._update_run_record_display()
 
-        self.weekly_plan_times_opt.init_with_adapter(self.ctx.lost_void_config.get_prop_adapter('weekly_plan_times'))
-        self.daily_plan_times_opt.init_with_adapter(self.ctx.lost_void_config.get_prop_adapter('daily_plan_times'))
-        self.extra_task_opt.init_with_adapter(self.ctx.lost_void_config.get_prop_adapter('extra_task'))
+        self.weekly_plan_times_opt.init_with_adapter(get_prop_adapter(self.config, 'weekly_plan_times'))
+        self.daily_plan_times_opt.init_with_adapter(get_prop_adapter(self.config, 'daily_plan_times'))
+        self.extra_task_opt.init_with_adapter(get_prop_adapter(self.config, 'extra_task'))
 
     def _update_run_record_display(self) -> None:
-        if self.ctx.lost_void_record.period_reward_complete:
+        if self.run_record.period_reward_complete:
             content = '已完成刷取周期性奖励 如错误可重置'
-        elif self.ctx.lost_void_record.eval_point_complete:
+        elif self.run_record.eval_point_complete:
             content = '已完成刷取业绩 如错误可重置'
         else:
-            content = '通关次数 本日: %d, 本周: %d' % (self.ctx.lost_void_record.daily_run_times, self.ctx.lost_void_record.weekly_run_times)
+            content = '通关次数 本日: %d, 本周: %d' % (self.run_record.daily_run_times, self.run_record.weekly_run_times)
         self.run_record_opt.setContent(content)
 
     def _update_mission_options(self) -> None:
@@ -157,21 +184,11 @@ class LostVoidRunInterface(AppRunInterface):
         ]
         self.challenge_config_opt.set_options_by_list(opt_list)
 
-    def _on_mission_changed(self, idx, value) -> None:
-        self.ctx.lost_void_config.mission_name = value
-
-    def _on_challenge_config_changed(self, idx, value) -> None:
-        self.ctx.lost_void_config.challenge_config = value
-        self.ctx.init_hollow_config()
-
     def _on_reset_record_clicked(self) -> None:
-        self.ctx.lost_void_record.reset_record()
-        self.ctx.lost_void_record.reset_for_weekly()
+        self.run_record.reset_record()
+        self.run_record.reset_for_weekly()
         log.info('重置成功')
         self._update_run_record_display()
-
-    def get_app(self) -> ZApplication:
-        return self.app
 
     def _on_start_clicked(self) -> None:
         """

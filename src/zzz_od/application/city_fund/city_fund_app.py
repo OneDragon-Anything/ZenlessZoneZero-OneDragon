@@ -2,6 +2,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
+from zzz_od.application.city_fund import city_fund_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -13,9 +14,9 @@ class CityFundApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='city_fund',
-            op_name=gt('丽都城募'),
-            run_record=ctx.city_fund_record,
+            ctx=ctx,
+            app_id=city_fund_const.APP_ID,
+            op_name=gt(city_fund_const.APP_NAME),
             need_notify=True,
         )
 

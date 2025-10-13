@@ -170,22 +170,6 @@ class EnvConfig(YamlConfig):
         self.update('personal_proxy', new_value)
 
     @property
-    def requirement_time(self) -> str:
-        """
-        安装依赖时 使用的 requirement.txt 的最后修改时间
-        :return:
-        """
-        return self.get('requirement_time', '')
-
-    @requirement_time.setter
-    def requirement_time(self, new_value: str) -> None:
-        """
-        安装依赖时 使用的 requirement.txt 的最后修改时间
-        :return:
-        """
-        self.update('requirement_time', new_value)
-
-    @property
     def repository_type(self) -> str:
         """
         仓库类型 GitHub / Gitee

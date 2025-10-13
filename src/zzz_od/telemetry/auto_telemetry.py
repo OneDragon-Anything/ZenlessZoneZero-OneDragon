@@ -100,8 +100,6 @@ class TelemetryApplicationMixin(AutoTelemetryMixin):
         # 添加应用特定属性
         if hasattr(self, 'app_id'):
             properties['app_id'] = self.app_id
-        if hasattr(self, 'need_ocr'):
-            properties['need_ocr'] = self.need_ocr
         if hasattr(self, 'need_check_game_win'):
             properties['need_check_game_win'] = self.need_check_game_win
 

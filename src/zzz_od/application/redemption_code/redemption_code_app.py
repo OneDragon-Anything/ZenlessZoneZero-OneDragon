@@ -1,10 +1,14 @@
 import time
-from typing import List
+from typing import List, Optional
 
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
+from zzz_od.application.redemption_code import redemption_code_const
+from zzz_od.application.redemption_code.redemption_code_run_record import (
+    RedemptionCodeRunRecord,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -18,10 +22,14 @@ class RedemptionCodeApp(ZApplication):
         """
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='redemption_code',
-            op_name=gt('兑换码'),
-            run_record=ctx.redemption_code_record,
+            ctx=ctx,
+            app_id=redemption_code_const.APP_ID,
+            op_name=redemption_code_const.APP_NAME,
             need_notify=True,
+        )
+        self.run_record: Optional[RedemptionCodeRunRecord] = self.ctx.run_context.get_run_record(
+            app_id=redemption_code_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
         )
 
         self.unused_code_list: List[str] = []
@@ -36,7 +44,7 @@ class RedemptionCodeApp(ZApplication):
 
     @operation_node(name='检测新兑换码', is_start_node=True)
     def check_new_code(self) -> OperationRoundResult:
-        self.unused_code_list = self.ctx.redemption_code_record.get_unused_code_list(self.ctx.redemption_code_record.get_current_dt())
+        self.unused_code_list = self.run_record.get_unused_code_list(self.run_record.get_current_dt())
         if len(self.unused_code_list) == 0:
             return self.round_success('无新的兑换码')
         else:
@@ -83,7 +91,7 @@ class RedemptionCodeApp(ZApplication):
     def confirm_code(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '兑换码兑换')
         if result.is_success:
-            self.ctx.redemption_code_record.add_used_code(self.unused_code_list[self.code_idx])
+            self.run_record.add_used_code(self.unused_code_list[self.code_idx])
             self.code_idx += 1
             return self.round_success(result.status, wait=1)
 
@@ -99,9 +107,12 @@ class RedemptionCodeApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
-    app = RedemptionCodeApp(ctx)
-    app.execute()
+    ctx.init()
+    ctx.run_context.run_application(
+        app_id=redemption_code_const.APP_ID,
+        instance_idx=ctx.current_instance_idx,
+        group_id=application_const.DEFAULT_GROUP_ID,
+    )
 
 
 if __name__ == '__main__':

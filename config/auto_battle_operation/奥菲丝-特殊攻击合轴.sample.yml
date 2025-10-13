@@ -1,0 +1,11 @@
+# 根据动画实测
+operations:
+  - op_name: "设置状态"
+    data: ["自定义-奥菲丝-喷火中"]
+  - op_name: "按键-特殊攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 2.5
+  - op_name: "设置状态"
+    data: ["自定义-速切结束"]
+  - op_name: "等待秒数"
+    seconds: 3.0

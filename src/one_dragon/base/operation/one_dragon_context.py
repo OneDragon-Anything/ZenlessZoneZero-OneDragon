@@ -1,20 +1,21 @@
 import logging
+import threading
 from enum import Enum
+from functools import cached_property
 from typing import Optional
 
 from pynput import keyboard, mouse
 
-from one_dragon.base.config.custom_config import CustomConfig, UILanguageEnum
-from one_dragon.base.config.game_account_config import GameAccountConfig
-from one_dragon.base.config.one_dragon_app_config import OneDragonAppConfig
-from one_dragon.base.config.one_dragon_config import OneDragonConfig
-from one_dragon.base.config.push_config import PushConfig
+from one_dragon.base.config.custom_config import UILanguageEnum
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.matcher.ocr.ocr_service import OcrService
 from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher, OnnxOcrParam
 from one_dragon.base.matcher.template_matcher import TemplateMatcher
+from one_dragon.base.operation.application.application_group_manager import (
+    ApplicationGroupManager,
+)
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
 )
@@ -27,26 +28,7 @@ from one_dragon.base.operation.one_dragon_env_context import (
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
 from one_dragon.utils import debug_utils, i18_utils, log_utils, thread_utils
-from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-
-
-class ContextRunStateEnum(Enum):
-
-    STOP: int = 0  # 停止
-    RUN: int = 1  # 正在运行
-    PAUSE: int = 2  # 暂停
-
-
-class ContextRunningStateEventEnum(Enum):
-    """
-    运行状态相关的事件 事件体为 ContextRunStateEnum
-    """
-
-    START_RUNNING: str = 'context_start_running'
-    PAUSE_RUNNING: str = 'context_pause_running'
-    RESUME_RUNNING: str = 'context_resume_running'
-    STOP_RUNNING: str = 'context_stop_running'
 
 
 class ContextKeyboardEventEnum(Enum):
@@ -61,19 +43,15 @@ class ContextInstanceEventEnum(Enum):
 
 class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
-    def __init__(self, controller: Optional[ControllerBase] = None):
+    def __init__(self):
         ContextEventBus.__init__(self)
         OneDragonEnvContext.__init__(self)
 
-        self.one_dragon_config: OneDragonConfig = OneDragonConfig()
-        self.custom_config: CustomConfig = CustomConfig()
         self.signal: ContextLazySignal = ContextLazySignal()
 
         if self.one_dragon_config.current_active_instance is None:
             self.one_dragon_config.create_new_instance(True)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
-
-        self.context_running_state: ContextRunStateEnum = ContextRunStateEnum.STOP
 
         self.screen_loader: ScreenContext = ScreenContext()
         self.template_loader: TemplateLoader = TemplateLoader()
@@ -83,83 +61,124 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
-        self.ocr_service: OcrService | None = None  # 延迟初始化
-        self.controller: ControllerBase = controller
+        self.cv_ocr: OcrMatcher = OnnxOcrMatcher(
+            OnnxOcrParam(
+                det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
+            )
+        )
+        self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
+        self.controller: Optional[ControllerBase] = None
 
         self.keyboard_controller = keyboard.Controller()
-        self.mouse_controller = mouse.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
         self.btn_listener.start()
 
         # 注册应用
-        self.run_context: ApplicationRunContext = ApplicationRunContext()
-        self.register_application_factory()
+        self.run_context: ApplicationRunContext = ApplicationRunContext(self)
+        self.app_group_manager: ApplicationGroupManager = ApplicationGroupManager(self)
 
-    def init_by_config(self) -> None:
+        # 初始化相关
+        self._init_lock = threading.Lock()
+        self._application_registered: bool = False  # 应用是否注册完毕
+        self.ready_for_application: bool = False  # 初始化完成 可以运行应用了
+
+    #------------------- 需要懒加载的都使用 @cached_property -------------------#
+
+    #------------------- 以下是 游戏/脚本级别的 -------------------#
+
+    @cached_property
+    def one_dragon_config(self):
+        from one_dragon.base.config.one_dragon_config import OneDragonConfig
+        return OneDragonConfig()
+
+    @cached_property
+    def custom_config(self):
+        from one_dragon.base.config.custom_config import CustomConfig
+        return CustomConfig()
+
+    #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
+
+    @cached_property
+    def game_account_config(self):
+        from one_dragon.base.config.game_account_config import GameAccountConfig
+        return GameAccountConfig(self.current_instance_idx)
+
+    @cached_property
+    def push_config(self):
+        from one_dragon.base.config.push_config import PushConfig
+        return PushConfig(self.current_instance_idx)
+
+    def init(self) -> None:
+        if not self._init_lock.acquire(blocking=False):
+            return
+
+        try:
+            self.ready_for_application = False
+
+            if self.custom_config.ui_language == UILanguageEnum.AUTO.value.value:
+                i18_utils.detect_and_set_default_language()
+            else:
+                i18_utils.update_default_lang(self.custom_config.ui_language)
+
+            log_utils.set_log_level(logging.DEBUG if self.env_config.is_debug else logging.INFO)
+
+            if not self._application_registered:  # 只需要注册一次
+                self.register_application_factory()
+                self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
+                self._application_registered = True
+
+            self.init_ocr()
+
+            self.screen_loader.load_all()
+
+            # 账号实例层级的配置 不是应用特有的配置
+            self.reload_instance_config()
+
+            # 初始化控制器
+            self.init_controller()
+
+            self.init_for_application()
+
+            self.ready_for_application = True
+
+            self.run_context.check_and_update_all_run_record(self.current_instance_idx)
+
+            self.gh_proxy_service.update_proxy_url()
+
+            self.init_others()
+        except Exception:
+            log.error('识别连携技出错', exc_info=True)
+        finally:
+            self._init_lock.release()
+
+    def init_controller(self) -> None:
         """
-        根据配置进行初始化
-        不能在 __init__ 中调用，因为子类可能还没有完成初始化
-        :return:
+        初始化控制器
+        由子类自行实现
         """
-        if self.custom_config.ui_language == UILanguageEnum.AUTO.value.value:
-            i18_utils.detect_and_set_default_language()
-        else:
-            i18_utils.update_default_lang(self.custom_config.ui_language)
-        log_utils.set_log_level(logging.DEBUG if self.env_config.is_debug else logging.INFO)
+        pass
 
-    def start_running(self) -> bool:
+    def init_for_application(self) -> None:
         """
-        开始运行
-        :return:
+        执行应用前 还需要做的初始化
+        应该加载游戏级别
+        由子类自行实现
         """
-        if self.context_running_state != ContextRunStateEnum.STOP:
-            log.error('请先结束其他运行中的功能 再启动')
-            return False
+        pass
 
-        self.context_running_state = ContextRunStateEnum.RUN
-        self.controller.init_before_context_run()
-        self.dispatch_event(ContextRunningStateEventEnum.START_RUNNING.value, self.context_running_state)
-        return True
+    def init_others(self) -> None:
+        """
+        其他非必要的初始化
+        由子类自行实现
+        """
+        pass
 
-    def stop_running(self):
-        if self.is_context_running:  # 先触发暂停 让执行中的指令停止
-            self.switch_context_pause_and_run()
-        self.context_running_state = ContextRunStateEnum.STOP
-        log.info('停止运行')
-        self.dispatch_event(ContextRunningStateEventEnum.STOP_RUNNING.value, self.context_running_state)
-
-    @property
-    def is_context_stop(self) -> bool:
-        return self.context_running_state == ContextRunStateEnum.STOP
-
-    @property
-    def is_context_running(self) -> bool:
-        return self.context_running_state == ContextRunStateEnum.RUN
-
-    @property
-    def is_context_pause(self) -> bool:
-        return self.context_running_state == ContextRunStateEnum.PAUSE
-
-    @property
-    def context_running_status_text(self) -> str:
-        if self.context_running_state == ContextRunStateEnum.STOP:
-            return gt('空闲')
-        elif self.context_running_state == ContextRunStateEnum.RUN:
-            return gt('运行中')
-        elif self.context_running_state == ContextRunStateEnum.PAUSE:
-            return gt('暂停中')
-        else:
-            return gt('未知')
-
-    def switch_context_pause_and_run(self):
-        if self.context_running_state == ContextRunStateEnum.RUN:
-            log.info('暂停运行')
-            self.context_running_state = ContextRunStateEnum.PAUSE
-            self.dispatch_event(ContextRunningStateEventEnum.PAUSE_RUNNING.value, self.context_running_state)
-        elif self.context_running_state == ContextRunStateEnum.PAUSE:
-            log.info('恢复运行')
-            self.context_running_state = ContextRunStateEnum.RUN
-            self.dispatch_event(ContextRunningStateEventEnum.RESUME_RUNNING.value, self.context_running_state)
+    def init_async(self) -> None:
+        """
+        异步初始化
+        """
+        f = ONE_DRAGON_CONTEXT_EXECUTOR.submit(self.init)
+        f.add_done_callback(thread_utils.handle_future_result)
 
     def _on_key_press(self, key: str):
         """
@@ -169,9 +188,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """
         # log.info('按键 %s' % key)
         if key == self.key_start_running:
-            self.switch_context_pause_and_run()
+            self.run_context.switch_context_pause_and_run()
         elif key == self.key_stop_running:
-            self.stop_running()
+            self.run_context.stop_running()
         elif key == self.key_screenshot:
             self.screenshot_and_save_debug(self.env_config.copy_screenshot)
 
@@ -183,7 +202,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         游戏窗口是否已经出现
         :return:
         """
-        return self.controller.is_game_window_ready
+        return self.controller is not None and self.controller.is_game_window_ready
 
     @property
     def key_start_running(self) -> str:
@@ -220,22 +239,25 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """
         self.one_dragon_config.active_instance(instance_idx)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
-        self.load_instance_config()
+        self.reload_instance_config()
+        self.init_controller()
         self.dispatch_event(ContextInstanceEventEnum.instance_active.value, instance_idx)
 
-    def load_instance_config(self):
+    def reload_instance_config(self):
+        """
+        重新加载账号实例相关的配置，不是单个应用特有的配置
+        注意如果有缓存需要清理缓存
+        子类需要继承加载更多的配置
+        """
         log.info('开始加载实例配置 %d' % self.current_instance_idx)
-        self.one_dragon_app_config: OneDragonAppConfig = OneDragonAppConfig(self.current_instance_idx)
-        self.game_account_config: GameAccountConfig = GameAccountConfig(self.current_instance_idx)
-        self.push_config: PushConfig = PushConfig(self.current_instance_idx)
 
-    def async_init_ocr(self) -> None:
-        """
-        异步初始化OCR
-        :return:
-        """
-        f = ONE_DRAGON_CONTEXT_EXECUTOR.submit(self.init_ocr)
-        f.add_done_callback(thread_utils.handle_future_result)
+        to_clear_props = [
+            'game_account_config',
+            'push_config',
+        ]
+        for prop in to_clear_props:
+            if hasattr(self, prop):
+                delattr(self, prop)
 
     def init_ocr(self) -> None:
         """
@@ -246,12 +268,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
         )
-
-        # 初始化OCR缓存服务
-        if self.ocr_service is None:
-            self.ocr_service = OcrService(ocr_matcher=self.ocr)
-        else:
-            self.ocr_service.ocr_matcher = self.ocr
+        self.cv_ocr.init_model(
+            ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
+            proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
+        )
 
     def after_app_shutdown(self) -> None:
         """
@@ -260,15 +280,12 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """
         self.btn_listener.stop()
         self.one_dragon_config.clear_temp_instance_indices()
-        self.one_dragon_app_config.clear_temp_app_run_list()
         ContextEventBus.after_app_shutdown(self)
         OneDragonEnvContext.after_app_shutdown(self)
 
     def register_application_factory(self) -> None:
         """
         注册应用
-
-        Returns:
-            None
+        由子类实现
         """
         pass

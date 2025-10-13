@@ -6,22 +6,22 @@ op_list:
   op_type: move
 - data:
   - '375'
-  - '375'
+  - '373'
   op_type: move
 - data:
   - '355'
-  - '375'
+  - '374'
   op_type: move
 - data:
-  - '284'
-  - '376'
+  - '277'
+  - '373'
   op_type: move
 - data:
-  - '278'
+  - '277'
   - '311'
   op_type: move
 - data:
-  - '278'
+  - '276'
   - '285'
   op_type: move
 - data:

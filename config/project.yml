@@ -6,7 +6,6 @@ github_ssh_repository: "git@github.com:OneDragon-Anything/ZenlessZoneZero-OneDra
 gitee_https_repository: "https://gitee.com/OneDragon-Anything/ZenlessZoneZero-OneDragon.git"
 gitee_ssh_repository: "git@gitee.com:OneDragon-Anything/ZenlessZoneZero-OneDragon.git"
 project_git_branch: "main"
-requirements: "requirements-prod.txt"
 screen_standard_width: 1920
 screen_standard_height: 1080
 pip_source: "https://pypi.tuna.tsinghua.edu.cn/simple"

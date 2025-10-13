@@ -1,52 +1,72 @@
 idx: 5
 op_list:
 - data:
-  - '600'
-  - '830'
+  - '665'
+  - '857'
   op_type: move
 - data:
-  - '584'
-  - '776'
+  - '712'
+  - '863'
   op_type: move
 - data:
-  - '578'
-  - '723'
+  - '768'
+  - '864'
   op_type: move
 - data:
-  - '568'
-  - '672'
+  - '775'
+  - '889'
   op_type: move
 - data:
-  - '523'
-  - '658'
+  - '768'
+  - '919'
   op_type: move
 - data:
-  - '474'
-  - '660'
+  - '810'
+  - '917'
   op_type: move
 - data:
-  - '422'
-  - '669'
+  - '870'
+  - '940'
   op_type: move
 - data:
-  - '408'
-  - '704'
+  - '953'
+  - '940'
   op_type: move
 - data:
-  - '390'
-  - '729'
+  - '959'
+  - '986'
   op_type: move
 - data:
-  - '342'
-  - '736'
+  - '940'
+  - '1015'
   op_type: move
 - data:
-  - '300'
-  - '742'
+  - '943'
+  - '1063'
   op_type: move
 - data:
-  - '263'
-  - '746'
+  - '964'
+  - '1112'
+  op_type: move
+- data:
+  - '1022'
+  - '1116'
+  op_type: move
+- data:
+  - '1025'
+  - '1148'
+  op_type: move
+- data:
+  - '1020'
+  - '1179'
+  op_type: move
+- data:
+  - '1032'
+  - '1234'
+  op_type: move
+- data:
+  - '1087'
+  - '1260'
   op_type: move
 tp_area_id: former_employee_community
 tp_name: 西侧广场

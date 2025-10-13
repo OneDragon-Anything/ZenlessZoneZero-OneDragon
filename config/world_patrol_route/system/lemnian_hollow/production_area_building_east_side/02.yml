@@ -1,20 +1,52 @@
 idx: 2
 op_list:
 - data:
+  - '903'
+  - '1520'
+  op_type: move
+- data:
+  - '925'
+  - '1615'
+  op_type: move
+- data:
+  - '894'
+  - '1623'
+  op_type: move
+- data:
+  - '903'
+  - '1559'
+  op_type: move
+- data:
+  - '876'
+  - '1506'
+  op_type: move
+- data:
   - '867'
   - '1436'
   op_type: move
 - data:
-  - '883'
-  - '1356'
+  - '867'
+  - '1336'
   op_type: move
 - data:
-  - '859'
+  - '866'
+  - '1236'
+  op_type: move
+- data:
+  - '877'
+  - '1182'
+  op_type: move
+- data:
+  - '867'
   - '1140'
   op_type: move
 - data:
+  - '836'
+  - '1094'
+  op_type: move
+- data:
   - '792'
-  - '1148'
+  - '1150'
   op_type: move
 tp_area_id: production_area_building_east_side
 tp_name: 物流通道

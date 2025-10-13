@@ -5,28 +5,36 @@ op_list:
   - '457'
   op_type: move
 - data:
-  - '706'
-  - '392'
+  - '751'
+  - '360'
   op_type: move
 - data:
-  - '696'
-  - '342'
+  - '744'
+  - '309'
   op_type: move
 - data:
-  - '557'
-  - '338'
+  - '757'
+  - '262'
   op_type: move
 - data:
-  - '565'
+  - '732'
+  - '230'
+  op_type: move
+- data:
+  - '688'
+  - '248'
+  op_type: move
+- data:
+  - '633'
+  - '246'
+  op_type: move
+- data:
+  - '567'
   - '280'
   op_type: move
 - data:
-  - '590'
-  - '280'
-  op_type: move
-- data:
-  - '611'
-  - '253'
+  - '568'
+  - '323'
   op_type: move
 tp_area_id: former_research_center
 tp_name: 科研院内

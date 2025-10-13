@@ -90,4 +90,4 @@ handlers:
         operations:
           - operation_template: "11号-火刀八连"
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state_list: ["自定义-速切结束"]

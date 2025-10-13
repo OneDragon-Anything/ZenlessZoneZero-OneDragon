@@ -1,11 +1,11 @@
 import os
-import yaml
 from typing import List, Optional
+
+import yaml
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
-
 
 
 class CompendiumTab:
@@ -116,8 +116,6 @@ class CompendiumService:
         self.coffee_list: List[Coffee] = []
         self.name_2_coffee: dict[str, Coffee] = {}
         self.coffee_schedule: dict[int, List[Coffee]] = {}
-
-        self.reload()
 
     def reload(self) -> None:
         """

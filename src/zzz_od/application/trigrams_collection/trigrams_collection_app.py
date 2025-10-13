@@ -6,6 +6,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
+from zzz_od.application.trigrams_collection import trigrams_collection_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -17,10 +18,9 @@ class TrigramsCollectionApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='trigrams_collection',
-            op_name=gt('卦象集录'),
-            run_record=ctx.trigrams_collection_record,
-            retry_in_od=True,  # 传送落地有可能会歪 重试,
+            ctx=ctx,
+            app_id=trigrams_collection_const.APP_ID,
+            op_name=gt(trigrams_collection_const.APP_NAME),
             need_notify=True,
         )
         self.claim_reward: bool = False  # 是否已获取卦象
@@ -46,7 +46,7 @@ class TrigramsCollectionApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='移动交互')
-    @operation_node(name='获取卦象')
+    @operation_node(name='获取卦象', node_max_retry_times=5)
     def get_trigram(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
 
@@ -64,8 +64,8 @@ class TrigramsCollectionApp(ZApplication):
                 return self.round_wait(status=word, wait=1)
         elif word == '滑动屏幕以获取卦象':
             start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
-            end = start + Point(-500, 0)
-            self.ctx.controller.drag_to(start=start, end=end)
+            end = start + Point(-800, 0)
+            self.ctx.controller.drag_to(start=start, end=end, duration=0.2)
             return self.round_wait(status=word, wait=1)
         elif word == '确认':
             self.claim_reward = True
