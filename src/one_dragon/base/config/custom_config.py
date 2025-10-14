@@ -23,6 +23,13 @@ class ThemeColorModeEnum(Enum):
     CUSTOM = ConfigItem('自定义', 'custom')
 
 
+class BackgroundTypeEnum(Enum):
+
+    REMOTE_BANNER = ConfigItem('官方启动器主页背景', 'remote_banner')
+    VERSION_POSTER = ConfigItem('版本海报', 'version_poster')
+    OFFICIAL_DYNAMIC = ConfigItem('官方动态背景', 'official_dynamic')
+
+
 class CustomConfig(YamlConfig):
 
     def __init__(self):
@@ -93,37 +100,25 @@ class CustomConfig(YamlConfig):
         self.update('custom_banner', new_value)
 
     @property
-    def remote_banner(self) -> bool:
+    def background_type(self) -> str:
         """
-        是否启用远端主页背景
+        主页背景类型（官方启动器/版本海报/官方动态）
         """
-        return self.get('remote_banner', True)
+        value = self.get('background_type', None)
+        if value is None:
+            # 迁移旧配置
+            if self.get('official_dynamic', False):
+                value = BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value
+            elif self.get('version_poster', False):
+                value = BackgroundTypeEnum.VERSION_POSTER.value.value
+            else:
+                value = BackgroundTypeEnum.REMOTE_BANNER.value.value
+            self.update('background_type', value)
+        return value
 
-    @remote_banner.setter
-    def remote_banner(self, new_value: bool) -> None:
-        self.update('remote_banner', new_value)
-
-    @property
-    def version_poster(self) -> bool:
-        """
-        是否启用版本海报
-        """
-        return self.get('version_poster', False)
-
-    @version_poster.setter
-    def version_poster(self, new_value: bool) -> None:
-        self.update('version_poster', new_value)
-
-    @property
-    def official_dynamic(self) -> bool:
-        """
-        是否启用官方动态背景
-        """
-        return self.get('official_dynamic', False)
-
-    @official_dynamic.setter
-    def official_dynamic(self, new_value: bool) -> None:
-        self.update('official_dynamic', new_value)
+    @background_type.setter
+    def background_type(self, new_value: str) -> None:
+        self.update('background_type', new_value)
 
     @property
     def last_remote_banner_fetch_time(self) -> str:
