@@ -279,6 +279,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         @return:
         """
         self.btn_listener.stop()
+        self.controller.cleanup_after_app_shutdown()
         self.one_dragon_config.clear_temp_instance_indices()
         ContextEventBus.after_app_shutdown(self)
         OneDragonEnvContext.after_app_shutdown(self)
