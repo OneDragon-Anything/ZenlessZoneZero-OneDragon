@@ -105,7 +105,7 @@ class OneDragonApp(Application):
     @node_from(from_name='检查游戏路径', status='游戏路径不同')
     @operation_node(name='关闭游戏', screenshot_before_round=False)
     def close_game(self) -> OperationRoundResult:
-        # 刷新窗口句柄，避免旧缓存导致误判
+        # 刷新窗口句柄, 避免旧缓存导致误判
         self.ctx.controller.game_win.init_win()
         if self.ctx.controller.is_game_window_ready:
             # 关闭游戏
