@@ -61,6 +61,10 @@ class TelemetryConfig:
     loki_auth_token: str = ""
     loki_labels: Dict[str, str] = field(default_factory=dict)
 
+    # 阿里云 WebTracking 配置
+    aliyun_web_tracking_enabled: bool = True
+    aliyun_web_tracking_endpoint: str = ""
+
     def update_from_dict(self, data: Dict[str, Any]) -> None:
         """从字典更新配置"""
         for key, value in data.items():
