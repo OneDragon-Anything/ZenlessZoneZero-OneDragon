@@ -65,9 +65,6 @@ class Application(Operation):
 
         self.notify_screenshot: Optional[MatLike] = None  # 发送通知的截图
 
-    def _init_before_execute(self) -> None:
-        Operation._init_before_execute(self)
-
     def handle_init(self) -> None:
         """
         运行前初始化
