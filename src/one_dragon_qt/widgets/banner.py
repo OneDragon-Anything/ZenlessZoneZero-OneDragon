@@ -1,6 +1,6 @@
 import os
-from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QPixmap, QPainter, QPainterPath, QImage
+from PySide6.QtCore import Qt, QUrl, QRectF
+from PySide6.QtGui import QPixmap, QPainter, QPainterPath, QImage, QRegion, QBitmap
 from PySide6.QtWidgets import QWidget, QGraphicsView, QGraphicsScene
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from PySide6.QtMultimediaWidgets import QGraphicsVideoItem
@@ -88,7 +88,7 @@ class Banner(QWidget):
             self.graphics_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             self.graphics_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             self.graphics_view.setFrameShape(QGraphicsView.Shape.NoFrame)
-            self.graphics_view.setStyleSheet("border-radius: 4px; background: transparent;")
+            self.graphics_view.setStyleSheet("background: transparent;")
             
             # 渲染质量优化设置
             self.graphics_view.setRenderHints(
@@ -180,6 +180,9 @@ class Banner(QWidget):
         # 设置视图大小和位置（始终填充整个 widget）
         self.graphics_view.setGeometry(self.rect())
         
+        # 应用圆角遮罩
+        self._apply_rounded_mask()
+        
         # 获取视频原始尺寸
         video_size = self.video_item.nativeSize()
         if video_size.isEmpty():
@@ -211,6 +214,19 @@ class Banner(QWidget):
         
         # 确保视图居中显示
         self.graphics_view.centerOn(self.video_item)
+    
+    def _apply_rounded_mask(self) -> None:
+        """为视频视图应用圆角遮罩"""
+        if not self.graphics_view:
+            return
+        
+        # 创建圆角区域
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(self.graphics_view.rect()), 4, 4)
+        
+        # 将路径转换为 QRegion 并应用为遮罩
+        region = QRegion(path.toFillPolygon().toPolygon())
+        self.graphics_view.setMask(region)
 
     def load_banner_image(self, image_path: str) -> QImage:
         """加载横幅图片，或创建渐变备用图片"""
@@ -242,14 +258,15 @@ class Banner(QWidget):
         self.update()
 
     def paintEvent(self, event):
-        """重载 paintEvent 以绘制缩放后的图片"""
-        if self.is_video:
-            # 视频模式下不需要绘制
-            return
+        """重载 paintEvent 以绘制缩放后的图片，视频模式下绘制圆角遮罩"""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        if self.scaled_image:
-            painter = QPainter(self)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        if self.is_video:
+            # 视频模式下，绘制一个透明的圆角遮罩层
+            # 这样可以给视频添加圆角效果
+            pass
+        elif self.scaled_image:
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
             # 创建圆角路径
