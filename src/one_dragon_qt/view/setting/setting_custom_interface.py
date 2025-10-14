@@ -122,7 +122,7 @@ class SettingCustomInterface(VerticalScrollInterface):
             content='选择主页显示的背景',
             options_enum=BackgroundTypeEnum
         )
-        self.background_type_opt.value_changed.connect(self.reload_banner)
+        self.background_type_opt.value_changed.connect(self._on_background_type_changed)
         basic_group.addSettingCard(self.background_type_opt)
 
         self.banner_select_btn = PrimaryPushButton(FluentIcon.EDIT, gt('选择'), self)
@@ -222,6 +222,10 @@ class SettingCustomInterface(VerticalScrollInterface):
             _bp = os.path.join(os_utils.get_path_under_work_dir('custom', 'assets', 'ui'), 'banner')
             shutil.copyfile(_fp, _bp)
             self.reload_banner()
+
+    def _on_background_type_changed(self, index: int, value: str) -> None:
+        """背景类型改变时的回调"""
+        self.reload_banner()
 
     def reload_banner(self) -> None:
         self.ctx.signal.reload_banner = True
