@@ -219,6 +219,9 @@ msgstr "界面主题"
 msgid "主页公告"
 msgstr "主页公告"
 
+msgid "启用官方动态背景"
+msgstr "启用官方动态背景"
+
 msgid "启用版本海报"
 msgstr "启用版本海报"
 

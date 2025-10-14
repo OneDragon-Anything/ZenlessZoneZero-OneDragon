@@ -206,6 +206,9 @@ msgstr "UI Theme"
 msgid "主页公告"
 msgstr "Homepage Announcement"
 
+msgid "启用官方动态背景"
+msgstr "Enable Official Dynamic Background"
+
 msgid "启用版本海报"
 msgstr "Enable Version Poster"
 

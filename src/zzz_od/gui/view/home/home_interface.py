@@ -311,6 +311,11 @@ class BackgroundImageDownloader(BaseThread):
             self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getAllGameBasicInfo?launcher_id=jGHBHlcOq1&language=zh-cn"
             self.config_key = f'last_{download_type}_fetch_time'
             self.error_msg = "当前版本主页背景异步获取失败"
+        elif download_type == "official_dynamic":
+            self.save_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'official_dynamic.webm')
+            self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getAllGameBasicInfo?launcher_id=jGHBHlcOq1&language=zh-cn"
+            self.config_key = f'last_{download_type}_fetch_time'
+            self.error_msg = "官方动态背景异步获取失败"
 
     def _run_impl(self):
         if not os.path.exists(self.save_path):
@@ -370,6 +375,17 @@ class BackgroundImageDownloader(BaseThread):
                 backgrounds = game.get("backgrounds", [])
                 if backgrounds:
                     return backgrounds[0]["background"]["url"]
+        elif self.download_type == "official_dynamic":
+            for game in data.get("data", {}).get("game_info_list", []):
+                if game.get("game", {}).get("biz") != "nap_cn":
+                    continue
+
+                backgrounds = game.get("backgrounds", [])
+                for bg in backgrounds:
+                    if bg.get("type") == "BACKGROUND_TYPE_VIDEO":
+                        video_url = bg.get("video", {}).get("url")
+                        if video_url:
+                            return video_url
         return None
 
     def _save_image(self, content):
@@ -534,6 +550,12 @@ class HomeInterface(VerticalScrollInterface):
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
+        self._official_dynamic_downloader = BackgroundImageDownloader(self.ctx, "official_dynamic")
+        # 使用队列连接确保线程安全
+        self._official_dynamic_downloader.image_downloaded.connect(
+            self.reload_banner,
+            Qt.ConnectionType.QueuedConnection
+        )
 
     def closeEvent(self, event):
         """界面关闭事件处理"""
@@ -542,7 +564,7 @@ class HomeInterface(VerticalScrollInterface):
 
     def _cleanup_threads(self):
         """清理所有线程"""
-        for thread_name in ['_banner_downloader', '_version_poster_downloader',
+        for thread_name in ['_banner_downloader', '_version_poster_downloader', '_official_dynamic_downloader',
                             '_check_code_runner', '_check_model_runner', '_check_banner_runner']:
             if hasattr(self, thread_name):
                 thread = getattr(self, thread_name)
@@ -556,7 +578,9 @@ class HomeInterface(VerticalScrollInterface):
         self._check_model_runner.start()
         self._check_banner_runner.start()
         # 根据配置启动相应的背景下载器
-        if self.ctx.custom_config.version_poster:
+        if self.ctx.custom_config.official_dynamic:
+            self._official_dynamic_downloader.start()
+        elif self.ctx.custom_config.version_poster:
             self._version_poster_downloader.start()
         elif self.ctx.custom_config.remote_banner:
             self._banner_downloader.start()
@@ -638,14 +662,22 @@ class HomeInterface(VerticalScrollInterface):
 
     def choose_banner_image(self) -> str:
         # 获取背景图片路径
-        custom_banner_path = os.path.join(os_utils.get_path_under_work_dir('custom', 'assets', 'ui'), 'banner')
+        custom_banner_dir = os.path.join(os_utils.get_path_under_work_dir('custom', 'assets', 'ui'), 'banner')
+        official_dynamic_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'official_dynamic.webm')
         version_poster_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'version_poster.webp')
         remote_banner_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'remote_banner.webp')
         index_banner_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'index.png')
 
-        # 主页背景优先级：自定义 > 远端 > index.png
-        if self.ctx.custom_config.custom_banner and os.path.exists(custom_banner_path):
-            banner_path = custom_banner_path
+        # 主页背景优先级：自定义 > 官方动态 > 版本海报 > 官方启动 > index.png
+        if self.ctx.custom_config.custom_banner:
+            # 检测自定义背景文件（支持图片和视频）
+            custom_banner_path = self._find_custom_banner(custom_banner_dir)
+            if custom_banner_path and os.path.exists(custom_banner_path):
+                banner_path = custom_banner_path
+            else:
+                banner_path = index_banner_path
+        elif self.ctx.custom_config.official_dynamic and os.path.exists(official_dynamic_path):
+            banner_path = official_dynamic_path
         elif self.ctx.custom_config.version_poster and os.path.exists(version_poster_path):
             banner_path = version_poster_path
         elif self.ctx.custom_config.remote_banner and os.path.exists(remote_banner_path):
@@ -654,6 +686,25 @@ class HomeInterface(VerticalScrollInterface):
             banner_path = index_banner_path
 
         return banner_path
+
+    def _find_custom_banner(self, base_path: str) -> str:
+        """
+        查找自定义背景文件，优先查找无扩展名的 banner 文件
+        :param base_path: 基础路径（不含扩展名）
+        :return: 找到的文件路径，如果没有找到返回空字符串
+        """
+        # 优先查找无扩展名的文件（标准保存方式）
+        if os.path.exists(base_path):
+            return base_path
+        
+        # 兼容：查找带扩展名的文件（旧版本或手动放置的文件）
+        extensions = ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.webm', '.mp4', '.avi', '.mov', '.mkv']
+        for ext in extensions:
+            file_path = base_path + ext
+            if os.path.exists(file_path):
+                return file_path
+        
+        return ''
 
     def _check_notice_config_change(self):
         """检查公告卡片配置是否发生变化"""

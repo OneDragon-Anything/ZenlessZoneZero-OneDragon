@@ -115,6 +115,17 @@ class CustomConfig(YamlConfig):
         self.update('version_poster', new_value)
 
     @property
+    def official_dynamic(self) -> bool:
+        """
+        是否启用官方动态背景
+        """
+        return self.get('official_dynamic', False)
+
+    @official_dynamic.setter
+    def official_dynamic(self, new_value: bool) -> None:
+        self.update('official_dynamic', new_value)
+
+    @property
     def last_remote_banner_fetch_time(self) -> str:
         """
         上次获取远端主页背景的时间
@@ -135,6 +146,17 @@ class CustomConfig(YamlConfig):
     @last_version_poster_fetch_time.setter
     def last_version_poster_fetch_time(self, new_value: str) -> None:
         self.update('last_version_poster_fetch_time', new_value)
+
+    @property
+    def last_official_dynamic_fetch_time(self) -> str:
+        """
+        上次获取官方动态的时间
+        """
+        return self.get('last_official_dynamic_fetch_time', '')
+
+    @last_official_dynamic_fetch_time.setter
+    def last_official_dynamic_fetch_time(self, new_value: str) -> None:
+        self.update('last_official_dynamic_fetch_time', new_value)
 
     @property
     def theme_color_mode(self) -> str:
