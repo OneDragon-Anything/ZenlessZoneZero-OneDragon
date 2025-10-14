@@ -25,6 +25,7 @@ from qfluentwidgets import (
 
 from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
+from one_dragon.base.config.custom_config import BackgroundTypeEnum
 from one_dragon_qt.services.theme_manager import ThemeManager
 from one_dragon_qt.utils.color_utils import ColorUtils
 from one_dragon_qt.widgets.banner import Banner
@@ -606,11 +607,13 @@ class HomeInterface(VerticalScrollInterface):
         self._check_model_runner.start()
         self._check_banner_runner.start()
         # 根据配置启动相应的背景下载器
-        if self.ctx.custom_config.official_dynamic:
+        from one_dragon.base.config.custom_config import BackgroundTypeEnum
+        background_type = self.ctx.custom_config.background_type
+        if background_type == BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value:
             self._official_dynamic_downloader.start()
-        elif self.ctx.custom_config.version_poster:
+        elif background_type == BackgroundTypeEnum.VERSION_POSTER.value.value:
             self._version_poster_downloader.start()
-        elif self.ctx.custom_config.remote_banner:
+        elif background_type == BackgroundTypeEnum.REMOTE_BANNER.value.value:
             self._banner_downloader.start()
 
         # 检查公告卡片配置是否变化
@@ -689,6 +692,7 @@ class HomeInterface(VerticalScrollInterface):
             log.error(f"刷新背景时出错: {e}")
 
     def choose_banner_image(self) -> str:
+        
         # 获取背景图片路径
         custom_banner_dir = os.path.join(os_utils.get_path_under_work_dir('custom', 'assets', 'ui'), 'banner')
         official_dynamic_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'official_dynamic.webm')
@@ -696,24 +700,25 @@ class HomeInterface(VerticalScrollInterface):
         remote_banner_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'remote_banner.webp')
         index_banner_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'index.png')
 
-        # 主页背景优先级：自定义 > 官方动态 > 版本海报 > 官方启动 > index.png
+        # 主页背景优先级：自定义 > 枚举选项 > index.png
         if self.ctx.custom_config.custom_banner:
             # 检测自定义背景文件（支持图片和视频）
             custom_banner_path = self._find_custom_banner(custom_banner_dir)
             if custom_banner_path and os.path.exists(custom_banner_path):
-                banner_path = custom_banner_path
+                return custom_banner_path
             else:
-                banner_path = index_banner_path
-        elif self.ctx.custom_config.official_dynamic and os.path.exists(official_dynamic_path):
-            banner_path = official_dynamic_path
-        elif self.ctx.custom_config.version_poster and os.path.exists(version_poster_path):
-            banner_path = version_poster_path
-        elif self.ctx.custom_config.remote_banner and os.path.exists(remote_banner_path):
-            banner_path = remote_banner_path
+                return index_banner_path
+        
+        # 根据枚举类型选择背景
+        background_type = self.ctx.custom_config.background_type
+        if background_type == BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value and os.path.exists(official_dynamic_path):
+            return official_dynamic_path
+        elif background_type == BackgroundTypeEnum.VERSION_POSTER.value.value and os.path.exists(version_poster_path):
+            return version_poster_path
+        elif background_type == BackgroundTypeEnum.REMOTE_BANNER.value.value and os.path.exists(remote_banner_path):
+            return remote_banner_path
         else:
-            banner_path = index_banner_path
-
-        return banner_path
+            return index_banner_path
 
     def _find_custom_banner(self, base_path: str) -> str:
         """
