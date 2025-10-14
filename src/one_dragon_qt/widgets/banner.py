@@ -22,6 +22,7 @@ class Banner(QWidget):
         self.audio_output = None
         self.graphics_view = None
         self.video_item = None
+        self._was_playing = False
         
         self._init_media(image_path)
 
@@ -161,6 +162,7 @@ class Banner(QWidget):
             self.media_player.stop()
             self.media_player.deleteLater()
             self.media_player = None
+            self._was_playing = False
         
         if self.audio_output:
             self.audio_output.deleteLater()
@@ -172,6 +174,21 @@ class Banner(QWidget):
         
         self.video_item = None
 
+    def pause_media(self) -> None:
+        """暂停视频播放"""
+        if self.is_video and self.media_player:
+            self._was_playing = self.media_player.playbackState() == QMediaPlayer.PlaybackState.PlayingState
+            if self._was_playing:
+                self.media_player.pause()
+        else:
+            self._was_playing = False
+
+    def resume_media(self) -> None:
+        """恢复媒体播放"""
+        if self.is_video and self.media_player and self._was_playing:
+            self.media_player.play()
+            self._was_playing = False
+
     def _resize_video_view(self) -> None:
         """调整视频视图大小"""
         if not self.graphics_view or not self.video_item:
@@ -179,9 +196,6 @@ class Banner(QWidget):
         
         # 设置视图大小和位置（始终填充整个 widget）
         self.graphics_view.setGeometry(self.rect())
-        
-        # 应用圆角遮罩
-        self._apply_rounded_mask()
         
         # 获取视频原始尺寸
         video_size = self.video_item.nativeSize()
@@ -215,19 +229,6 @@ class Banner(QWidget):
         # 确保视图居中显示
         self.graphics_view.centerOn(self.video_item)
     
-    def _apply_rounded_mask(self) -> None:
-        """为视频视图应用圆角遮罩"""
-        if not self.graphics_view:
-            return
-        
-        # 创建圆角区域
-        path = QPainterPath()
-        path.addRoundedRect(QRectF(self.graphics_view.rect()), 4, 4)
-        
-        # 将路径转换为 QRegion 并应用为遮罩
-        region = QRegion(path.toFillPolygon().toPolygon())
-        self.graphics_view.setMask(region)
-
     def load_banner_image(self, image_path: str) -> QImage:
         """加载横幅图片，或创建渐变备用图片"""
         if os.path.isfile(image_path):

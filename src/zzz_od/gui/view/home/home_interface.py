@@ -603,6 +603,8 @@ class HomeInterface(VerticalScrollInterface):
     def on_interface_shown(self) -> None:
         """界面显示时启动检查更新的线程"""
         super().on_interface_shown()
+        if self._banner_widget:
+            self._banner_widget.resume_media()
         self._check_code_runner.start()
         self._check_model_runner.start()
         self._check_banner_runner.start()
@@ -632,6 +634,8 @@ class HomeInterface(VerticalScrollInterface):
     def on_interface_hidden(self) -> None:
         """界面隐藏时的处理"""
         super().on_interface_hidden()
+        if self._banner_widget:
+            self._banner_widget.pause_media()
 
         # 立即停止并隐藏所有提示
         if hasattr(self, 'button_group'):
