@@ -187,6 +187,10 @@ class Banner(QWidget):
             return
         
         # 计算缩放比例以填充整个区域（保持宽高比）
+        # 防止除零错误（控件初次布局或隐藏时）
+        if self.width() == 0 or self.height() == 0:
+            return
+        
         widget_ratio = self.width() / self.height()
         video_ratio = video_size.width() / video_size.height()
         
