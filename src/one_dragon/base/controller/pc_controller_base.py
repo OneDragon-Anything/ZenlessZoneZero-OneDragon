@@ -189,12 +189,9 @@ class PcControllerBase(ControllerBase):
         """
         try:
             self.game_win.get_win().close()
-        except Exception:
-            log.error('关闭游戏失败', exc_info=True)
-            return -1
-        else:
             log.info('关闭游戏成功')
-            return 0
+        except:
+            log.error('关闭游戏失败', exc_info=True)
 
     def input_str(self, to_input: str, interval: float = 0.1):
         """

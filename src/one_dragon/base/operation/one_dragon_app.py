@@ -12,8 +12,6 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.enter_game.switch_account import SwitchAccount
 
 
 class OneDragonApp(Application):
@@ -39,7 +37,7 @@ class OneDragonApp(Application):
         self._instance_list: List[OneDragonInstance] = []  # 需要运行的实例
         self._instance_idx: int = 0  # 当前运行的实例下标
         self._instance_start_idx: int = 0  # 最初开始的实例下标
-        self._instance_prev_game_path: str = None # 上一个账号的游戏路径
+        self._is_game_path_same: bool = True  # 前后账号的游戏路径是否相同
         self._op_to_switch_account: Operation = op_to_switch_account  # 切换账号的op
 
     def handle_init(self) -> None:
@@ -78,40 +76,71 @@ class OneDragonApp(Application):
         op = GroupApplication(
             ctx=self.ctx,
             group_id=application_const.DEFAULT_GROUP_ID,
+            op_to_enter_game=self.op_to_enter_game
         )
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='运行应用组')
-    @operation_node(name='切换实例配置')
-    def switch_instance(self) -> OperationRoundResult:
+    @operation_node(name='检查游戏路径', screenshot_before_round=False)
+    def check_game_path(self) -> OperationRoundResult:
         self._instance_idx += 1
         if self._instance_idx >= len(self._instance_list):
             self._instance_idx = 0
 
-        self._instance_prev_game_path = self.ctx.game_account_config.game_path
-        self.ctx.switch_instance(self._instance_list[self._instance_idx].idx)
-        log.info('下一个实例 %s', self.ctx.one_dragon_config.current_active_instance.name)
+        _instance_prev_game_path = self.ctx.game_account_config.game_path
 
-        return self.round_success()
+        # self.ctx.one_dragon_config.active_instance(self._instance_idx)
+        self.ctx.current_instance_idx = self._instance_list[self._instance_idx].idx
+        self.ctx.reload_instance_config()
 
-    @node_from(from_name='切换实例配置')
-    @operation_node(name='切换账号')
-    def switch_account(self) -> OperationRoundResult:
         # 检测前后账号的游戏路径是否一致, 如果一致可以直接切换账号, 不一致需要先关闭当前账号的游戏然后打开下一个账号的游戏
         instance_game_path = self.ctx.game_account_config.game_path
         # 如果任一账号没配置游戏路径, 则不关闭游戏
-        self._op_to_switch_account._is_exe_same = (self._instance_prev_game_path is None) \
-                                                  or (instance_game_path is None) \
-                                                  or (self._instance_prev_game_path == instance_game_path)
+        self._is_game_path_same = (_instance_prev_game_path is None) or (instance_game_path is None) or (
+                    _instance_prev_game_path == instance_game_path)
+        if self._is_game_path_same:
+            return self.round_success()
+        return self.round_success('游戏路径不同')
 
+    @node_from(from_name='检查游戏路径', status='游戏路径不同')
+    @operation_node(name='关闭游戏', screenshot_before_round=False)
+    def close_game(self) -> OperationRoundResult:
+        # 刷新窗口句柄，避免旧缓存导致误判
+        self.ctx.controller.game_win.init_win()
+        if self.ctx.controller.is_game_window_ready:
+            # 关闭游戏
+            self.ctx.controller.close_game()
+            return self.round_retry('检查是否关闭成功', wait=3)
+
+        # 有时候游戏关闭了, 游戏占用的配置等文件没关闭, 故需等一会
+        log.info('等待游戏占用文件释放(10s)...')
+        return self.round_success(wait=10)
+
+    @node_from(from_name='关闭游戏')
+    @node_from(from_name='检查游戏路径')
+    @operation_node(name='切换实例配置', screenshot_before_round=False)
+    def switch_instance(self) -> OperationRoundResult:
+        self.ctx.switch_instance(self._instance_list[self._instance_idx].idx)
+        log.info('下一个实例 %s', self.ctx.one_dragon_config.current_active_instance.name)
+
+        if self._is_game_path_same:
+            return self.round_success()
+        return self.round_success('游戏路径不同')
+
+    @node_from(from_name='切换实例配置')
+    @operation_node(name='切换账号', screenshot_before_round=False)
+    def switch_account(self) -> OperationRoundResult:
         if len(self._instance_list) == 1:
             return self.round_success('无需切换账号')
+        if self._op_to_switch_account is None:
+            return self.round_fail('未实现切换账号')
         else:
             # return self.round_success(wait=1)  # 调试用
             return self.round_by_op_result(self._op_to_switch_account.execute())
 
+    @node_from(from_name='切换实例配置', status='游戏路径不同')
     @node_from(from_name='切换账号')
-    @operation_node(name='切换账号后处理')
+    @operation_node(name='切换账号后处理', screenshot_before_round=False)
     def after_switch_account(self) -> OperationRoundResult:
         if self._instance_idx == self._instance_start_idx:  # 已经完成一轮了
             return self.round_success(OneDragonApp.STATUS_ALL_DONE)
@@ -120,16 +149,3 @@ class OneDragonApp(Application):
 
     def after_operation_done(self, result: OperationResult):
         Application.after_operation_done(self, result)
-
-
-def __debug():
-    ctx = ZContext()
-    ctx.init()
-    ctx.run_context.start_running()
-    ctx.init_ocr()
-    op = OneDragonApp(ctx, op_to_switch_account=SwitchAccount(ctx))
-    op.execute()
-
-
-if __name__ == '__main__':
-    __debug()

@@ -66,10 +66,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
-
-        # 前一个用户的游戏环境, 主要用于关闭前一个用户的游戏
-        self.controller_prev_user: Optional[ControllerBase] = None
-
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
         self.controller: Optional[ControllerBase] = None
 
