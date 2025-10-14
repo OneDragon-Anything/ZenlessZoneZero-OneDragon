@@ -340,15 +340,28 @@ class BackgroundImageDownloader(BaseThread):
             resp = requests.get(self.url, timeout=5)
             data = resp.json()
 
-            img_url = self._extract_image_url(data)
-            if not img_url:
+            result = self._extract_image_url(data)
+            if not result:
                 return
 
-            img_resp = requests.get(img_url, timeout=5)
-            if img_resp.status_code != 200:
-                return
+            # 处理官方动态的特殊情况（只下载视频）
+            if self.download_type == "official_dynamic" and isinstance(result, tuple):
 
-            self._save_image(img_resp.content)
+                # @shadowlemoon 要求不叠加图片左上角版本号
+                video_url, _ = result  # 忽略叠加图 URL
+                
+                # 下载视频
+                video_resp = requests.get(video_url, timeout=10)
+                if video_resp.status_code != 200:
+                    return
+                self._save_image(video_resp.content)
+            else:
+                # 普通图片下载
+                img_resp = requests.get(result, timeout=5)
+                if img_resp.status_code != 200:
+                    return
+                self._save_image(img_resp.content)
+            
             setattr(self.ctx.custom_config, self.config_key, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             # 使用队列连接确保线程安全
             self.image_downloaded.emit(True)
@@ -389,13 +402,28 @@ class BackgroundImageDownloader(BaseThread):
         return None
 
     def _save_image(self, content):
-        """保存图片"""
+        """保存图片/视频，确保临时文件被正确清理"""
         temp_path = self.save_path + '.tmp'
-        with open(temp_path, "wb") as f:
-            f.write(content)
-        if os.path.exists(self.save_path):
-            os.remove(self.save_path)
-        os.rename(temp_path, self.save_path)
+        try:
+            # 写入临时文件
+            with open(temp_path, "wb") as f:
+                f.write(content)
+            
+            # 删除旧文件（如果存在）
+            if os.path.exists(self.save_path):
+                os.remove(self.save_path)
+            
+            # 重命名临时文件为正式文件
+            os.rename(temp_path, self.save_path)
+            
+        except Exception as e:
+            # 清理失败的临时文件
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except Exception:
+                    pass
+            raise e
 
 class HomeInterface(VerticalScrollInterface):
     """主页界面"""
