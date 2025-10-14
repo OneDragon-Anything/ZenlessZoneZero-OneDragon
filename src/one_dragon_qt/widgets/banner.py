@@ -90,9 +90,13 @@ class Banner(QWidget):
             self.graphics_view.setFrameShape(QGraphicsView.Shape.NoFrame)
             self.graphics_view.setStyleSheet("border-radius: 4px; background: transparent;")
             
-            # 性能优化设置
+            # 渲染质量优化设置
+            self.graphics_view.setRenderHints(
+                QPainter.RenderHint.Antialiasing | 
+                QPainter.RenderHint.SmoothPixmapTransform |
+                QPainter.RenderHint.TextAntialiasing
+            )
             self.graphics_view.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.MinimalViewportUpdate)
-            self.graphics_view.setOptimizationFlag(QGraphicsView.OptimizationFlag.DontAdjustForAntialiasing, True)
             self.graphics_view.setOptimizationFlag(QGraphicsView.OptimizationFlag.DontSavePainterState, True)
             self.graphics_view.setCacheMode(QGraphicsView.CacheModeFlag.CacheBackground)
             
@@ -197,7 +201,9 @@ class Banner(QWidget):
         self.video_item.setSize(video_size * scale)
         
         # 更新场景矩形以适配视频项
-        self.graphics_view.scene().setSceneRect(self.video_item.boundingRect())
+        scene = self.graphics_view.scene()
+        if scene:
+            scene.setSceneRect(self.video_item.boundingRect())
         
         # 确保视图居中显示
         self.graphics_view.centerOn(self.video_item)
