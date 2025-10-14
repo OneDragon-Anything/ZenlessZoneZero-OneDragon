@@ -245,30 +245,30 @@ try:
 
         def _track_app_launch(self):
             """跟踪应用启动"""
+            from one_dragon.utils.log_utils import log
+
             if not hasattr(self.ctx, 'telemetry') or not self.ctx.telemetry:
-                from one_dragon.utils.log_utils import log
-                log.info("遥测系统未初始化，跳过app_launched事件")
+                log.debug("Telemetry manager not available, skip app_launched event")
                 return
 
-            if not self.ctx.telemetry.is_enabled():
-                from one_dragon.utils.log_utils import log
-                log.info("遥测系统已禁用，跳过app_launched事件")
-                return
+            telemetry = self.ctx.telemetry
+            if not telemetry.is_enabled():
+                log.debug("Telemetry not enabled, attempting re-initialization before sending app_launched")
+                telemetry.initialize()
 
             import time
             launch_time = time.time() - self._app_start_time
 
-            from one_dragon.utils.log_utils import log
             log.debug(f"发送app_launched事件，启动时间: {launch_time:.2f}秒")
 
             # 跟踪应用启动
-            self.ctx.telemetry.track_app_launch(launch_time)
+            telemetry.track_app_launch(launch_time)
 
             # 跟踪启动时间性能
-            self.ctx.telemetry.track_startup_time(launch_time)
+            telemetry.track_startup_time(launch_time)
 
             # 跟踪UI交互
-            self.ctx.telemetry.track_ui_interaction('main_window', 'show', {
+            telemetry.track_ui_interaction('main_window', 'show', {
                 'window_title': self.windowTitle(),
                 'first_run': self.ctx.env_config.is_first_run
             })
