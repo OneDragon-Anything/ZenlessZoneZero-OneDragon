@@ -111,8 +111,11 @@ class CustomConfig(YamlConfig):
                 value = BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value
             elif self.get('version_poster', False):
                 value = BackgroundTypeEnum.VERSION_POSTER.value.value
-            else:
+            elif self.get('remote_banner', False):
                 value = BackgroundTypeEnum.REMOTE_BANNER.value.value
+            else:
+                # 默认使用官方动态背景
+                value = BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value
             self.update('background_type', value)
         return value
 
