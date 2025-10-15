@@ -33,15 +33,13 @@ from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 class RoutineCleanup(ZOperation):
 
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
-    STATUS_CHARGE_ENOUGH: ClassVar[str] = '电量充足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
     def __init__(
         self,
         ctx: ZContext,
         plan: ChargePlanItem,
-        can_run_times: int,
-        need_check_power: bool = False
+        can_run_times: int
     ):
         """
         使用快捷手册传送后
@@ -62,10 +60,7 @@ class RoutineCleanup(ZOperation):
         )
 
         self.plan: ChargePlanItem = plan
-        self.need_check_power: bool = need_check_power
         self.can_run_times: int = can_run_times
-        self.charge_left: Optional[int] = None
-        self.charge_need: int = 60  # 固定消耗
 
         self.auto_op: Optional[AutoBattleOperator] = None
 
@@ -112,52 +107,6 @@ class RoutineCleanup(ZOperation):
 
     @node_from(from_name='处理家政券', success=False)
     @node_from(from_name='处理家政券', status=Coupon.STATUS_CONTINUE_RUN_WITH_CHARGE)
-    @operation_node(name='识别电量')
-    def check_charge(self) -> OperationRoundResult:
-        if not self.need_check_power:
-            if self.can_run_times > 0:
-                return self.round_success(RoutineCleanup.STATUS_CHARGE_ENOUGH)
-            else:
-                return self.round_success(RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
-
-        area = self.ctx.screen_loader.get_area('定期清剿', '电量')
-        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot, rect=area.rect)
-        if len(ocr_result_map) == 0:
-            return self.round_retry(status='识别 %s 失败' % '剩余电量', wait=1)
-
-        for ocr_result, mrl in ocr_result_map.items():
-            text = ocr_result
-            if text.endswith('60'):
-                text.replace('60', '')
-            if text.endswith('/'):
-                text.replace("/", "")
-            elif text.endswith("1"):  # 有时候会识别错
-                text.replace('1', '')
-
-            self.charge_left = str_utils.get_positive_digits(text, None)
-
-        if self.charge_left is None:
-            return self.round_retry(status='识别 %s 失败' % '剩余电量', wait=1)
-
-        self.can_run_times = self.charge_left // self.charge_need
-        max_need_run_times = self.plan.plan_times - self.plan.run_times
-
-        if self.can_run_times > max_need_run_times:
-            self.can_run_times = max_need_run_times
-
-        return self.round_success(RoutineCleanup.STATUS_CHARGE_ENOUGH)
-
-    @node_from(from_name='识别电量', status=STATUS_CHARGE_NOT_ENOUGH)
-    @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
-    @operation_node(name='恢复电量')
-    def restore_charge(self) -> OperationRoundResult:
-        if not self.config.is_restore_charge_enabled:
-            return self.round_success(RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
-        op = RestoreCharge(self.ctx)
-        result = self.round_by_op_result(op.execute())
-        return result if result.is_success else self.round_success(RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
-
-    @node_from(from_name='识别电量', status=STATUS_CHARGE_ENOUGH)
     @node_from(from_name='恢复电量', status='恢复电量成功')
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
@@ -178,6 +127,15 @@ class RoutineCleanup(ZOperation):
             return self.round_wait(result.status, wait=0.5)
 
         return self.round_retry(result.status, wait=1)
+
+    @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
+    @operation_node(name='恢复电量')
+    def restore_charge(self) -> OperationRoundResult:
+        if not self.config.is_restore_charge_enabled:
+            return self.round_success(RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
+        op = RestoreCharge(self.ctx)
+        result = self.round_by_op_result(op.execute())
+        return result if result.is_success else self.round_success(RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
 
     @node_from(from_name='下一步', status='出战')
     @operation_node(name='选择预备编队')
@@ -244,11 +202,6 @@ class RoutineCleanup(ZOperation):
     def check_next(self) -> OperationRoundResult:
         op = ChooseNextOrFinishAfterBattle(self.ctx, self.plan.plan_times > self.plan.run_times)
         return self.round_by_op_result(op.execute())
-
-    @node_from(from_name='识别电量', success=False)
-    @operation_node(name='识别电量失败')
-    def check_charge_fail(self) -> OperationRoundResult:
-        return self.round_success(RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
 
     @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)
     @operation_node(name='战斗超时')
