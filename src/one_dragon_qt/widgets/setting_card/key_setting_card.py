@@ -122,37 +122,9 @@ class KeySettingCard(SettingCardBase):
         :return:
         """
         self.value = value
-        display_name = self._get_display_name(value)
-        self.btn.setText(display_name.upper())
+        self.btn.setText(value.upper())
         if emit_signal:
             self.value_changed.emit(value)
-
-    def _get_display_name(self, key: str) -> str:
-        """
-        获取按键的显示名称
-        :param key: 按键内部名称
-        :return: 用户友好的显示名称
-        """
-        # 小键盘按键显示名称映射
-        numpad_display_map = {
-            'numpad_0': '小键盘 0',
-            'numpad_1': '小键盘 1',
-            'numpad_2': '小键盘 2', 
-            'numpad_3': '小键盘 3',
-            'numpad_4': '小键盘 4',
-            'numpad_5': '小键盘 5',
-            'numpad_6': '小键盘 6',
-            'numpad_7': '小键盘 7',
-            'numpad_8': '小键盘 8',
-            'numpad_9': '小键盘 9',
-            'numpad_multiply': '小键盘 *',
-            'numpad_add': '小键盘 +',
-            'numpad_subtract': '小键盘 -',
-            'numpad_decimal': '小键盘 .',
-            'numpad_divide': '小键盘 /',
-        }
-        
-        return numpad_display_map.get(key, key)
 
     def _stop_listener(self) -> None:
         """

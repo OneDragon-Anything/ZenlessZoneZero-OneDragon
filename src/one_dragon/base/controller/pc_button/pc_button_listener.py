@@ -44,7 +44,7 @@ class PcButtonListener:
         # 确保按键名称不为空
         if k is None or k == '':
             return
-            
+
         self._call_button_tap_callback(k)
 
     def _get_numpad_key_name(self, vk: int) -> str:
@@ -53,26 +53,12 @@ class PcButtonListener:
         :param vk: 虚拟键码
         :return: 按键名称
         """
-        numpad_map = {
-            96: 'numpad_0',    # 小键盘 0
-            97: 'numpad_1',    # 小键盘 1
-            98: 'numpad_2',    # 小键盘 2
-            99: 'numpad_3',    # 小键盘 3
-            100: 'numpad_4',   # 小键盘 4
-            101: 'numpad_5',   # 小键盘 5
-            102: 'numpad_6',   # 小键盘 6
-            103: 'numpad_7',   # 小键盘 7
-            104: 'numpad_8',   # 小键盘 8
-            105: 'numpad_9',   # 小键盘 9
-            106: 'numpad_multiply',  # 小键盘 *
-            107: 'numpad_add',       # 小键盘 +
-            108: 'numpad_separator', # 小键盘分隔符
-            109: 'numpad_subtract',  # 小键盘 -
-            110: 'numpad_decimal',   # 小键盘 .
-            111: 'numpad_divide',    # 小键盘 /
-        }
-        
-        return numpad_map.get(vk, f'vk_{vk}')
+        # 小键盘数字键: vk 96-105 对应 numpad_0 到 numpad_9
+        if 96 <= vk <= 105:
+            return f'numpad_{vk - 96}'
+
+        # 其他按键返回通用格式
+        return f'vk_{vk}'
 
     def _on_mouse_click(self, x, y, button: mouse.Button, pressed):
         if pressed == 1:
