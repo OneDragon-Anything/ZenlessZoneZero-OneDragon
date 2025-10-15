@@ -366,3 +366,11 @@ class AgentEnum(Enum):
                                       hsv_color=(90,255,255), hsv_color_diff=(89,255,55),
                                       max_length=125)
                     ])
+
+    LUCIA = Agent('lucia', '卢西娅', RareTypeEnum.S, AgentTypeEnum.SUPPORT, DmgTypeEnum.ETHER, ['lucia'],
+                    state_list=[
+                        AgentStateDef('卢西娅-梦境值', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                      template_id='lucia',
+                                      hsv_color=(90,255,255), hsv_color_diff=(89,255,55),
+                                      max_length=100)
+                    ])
