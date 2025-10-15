@@ -48,8 +48,7 @@ class NotoriousHunt(ZOperation):
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
     def __init__(self, ctx: ZContext, plan: ChargePlanItem,
-                 use_charge_power: bool = False,
-                 can_run_times: int | None = None):
+                 use_charge_power: bool = False):
         """
         使用快捷手册传送后
         用这个进行挑战
@@ -81,7 +80,7 @@ class NotoriousHunt(ZOperation):
 
         self.plan: ChargePlanItem = plan
         self.use_charge_power: bool = use_charge_power  # 是否使用电量 深度追猎
-        self.can_run_times: int = can_run_times
+        self.can_run_times: int = -1
 
         self.auto_op: AutoBattleOperator | None = None
         self.move_times: int = 0  # 移动次数

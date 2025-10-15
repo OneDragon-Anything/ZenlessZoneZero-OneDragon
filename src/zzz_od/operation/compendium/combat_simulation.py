@@ -40,8 +40,7 @@ class CombatSimulation(ZOperation):
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
-    def __init__(self, ctx: ZContext, plan: ChargePlanItem,
-                 can_run_times: int | None = None):
+    def __init__(self, ctx: ZContext, plan: ChargePlanItem):
         """
         使用快捷手册传送后
         用这个进行挑战
@@ -61,7 +60,6 @@ class CombatSimulation(ZOperation):
         )
 
         self.plan: ChargePlanItem = plan
-        self.can_run_times: int = can_run_times
         self.scroll_count: int = 0  # 滑动次数计数器
 
         self.auto_op: AutoBattleOperator | None = None
@@ -330,7 +328,6 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='自动战斗')
     @operation_node(name='战斗结束')
     def after_battle(self) -> OperationRoundResult:
-        self.can_run_times -= 1
         self.config.add_plan_run_times(self.plan)
         return self.round_success()
 
@@ -390,7 +387,6 @@ def __debug_coffee():
         plan_times=1
     )
     op = CombatSimulation(ctx, charge_plan)
-    op.can_run_times = 1
     op.execute()
 
 def __debug_charge():
@@ -425,7 +421,6 @@ def __debug():
         auto_battle_config='全配对通用',
     )
     op = CombatSimulation(ctx, charge_plan)
-    op.can_run_times = 1
     op.execute()
 
 

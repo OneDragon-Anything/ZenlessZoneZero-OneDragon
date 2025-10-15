@@ -35,8 +35,7 @@ class RoutineCleanup(ZOperation):
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
-    def __init__(self, ctx: ZContext, plan: ChargePlanItem,
-                 can_run_times: int | None = None):
+    def __init__(self, ctx: ZContext, plan: ChargePlanItem):
         """
         使用快捷手册传送后
         用这个进行挑战
@@ -56,7 +55,6 @@ class RoutineCleanup(ZOperation):
         )
 
         self.plan: ChargePlanItem = plan
-        self.can_run_times: int = can_run_times
 
         self.auto_op: AutoBattleOperator | None = None
 
@@ -189,7 +187,6 @@ class RoutineCleanup(ZOperation):
     @node_from(from_name='自动战斗')
     @operation_node(name='战斗结束')
     def after_battle(self) -> OperationRoundResult:
-        self.can_run_times -= 1
         self.config.add_plan_run_times(self.plan)
         return self.round_success()
 
