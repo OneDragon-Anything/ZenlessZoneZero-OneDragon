@@ -8,23 +8,18 @@
 
 请在使用本软件前，仔细阅读并充分理解本政策。使用本软件即表示您已同意本政策的全部内容。
 
-### **一、我们收集的信息及使用目的**
+### **一、收集的信息及使用目的**
 
 为了保证本软件的正常运行和持续优化，我们仅会出于以下目的，收集和使用您的必要信息：
 
 * **运行配置信息**：
-  * **信息内容**：您为使用自动化功能而提供的游戏账号、密码及相关的运行参数配置。
-  * **使用目的**：用于实现游戏自动登录、执行自动化任务等核心功能。此类信息通常仅保存在您的本地设备上。
-
-我们将在以后可能：
-* **诊断与分析数据**：
+  * **信息内容**：您为使用自动化功能而设置的运行参数配置。
+  * **使用目的**：用于实现游戏自动登录、执行自动化任务等核心功能。
+  * **保存位置**：仅保存在您的本地设备上。
+* * **运行记录数据**：
   * **信息内容**：匿名的运行时错误日志、性能指标及基本的用户操作记录。
-  * **使用目的**：用于调试程序错误、优化软件性能、改善用户体验。我们承诺，此类数据将经过脱敏处理，不会用于识别您的个人身份，并可以选择退出。
-
-同时，我们保留以下权利：
-* **安全保障与反作弊**：
-  * **信息内容**：为了保障软件安全运行，我们可能会收集匿名的设备信息、网络环境及软件运行状态数据。
-  * **使用目的**：用于分析和识别疑似使用外挂、代练等违规行为，以维护服务的公平、公正和安全。
+  * **使用目的**：用于调试程序错误、优化软件性能、改善用户体验。
+  * **保存位置**：阿里云日志服务。最多保留14天。
 
 ### **二、信息的共享、转让与公开披露**
 
@@ -102,16 +97,13 @@ Please read and fully understand this policy before using the Software. By using
 To ensure the proper functioning and continuous optimization of the Software, we will only collect and use your necessary information for the following purposes:
 
 * **Running Configuration Information**:
-  * **Information Content**: Game account, password, and related operational parameter configurations you provide to use the automation features.
-  * **Purpose of Use**: To enable core functions such as automatic game login and execution of automated tasks. This information is typically stored only on your local device.
-We might:
-* **Diagnostics and Analytics Data**:
-  * **Information Content**: Anonymous runtime error logs, performance metrics, and basic user interaction records.
-  * **Purpose of Use**: To debug program errors, optimize software performance, and improve user experience. We promise that this data will be anonymized, will not be used to identify you personally, and you may opt-out of this collection.
-We keep the right to:
-* **Security and Anti-Cheating**:
-  * **Information Content**: To ensure the secure operation of the software, we may collect anonymous device information, network environment data, and software runtime status data.
-  * **Purpose of Use**: To analyze and identify suspected use of cheats, account boosting, or other prohibited activities to maintain the fairness, integrity, and security of the service.
+  * **Information Content**: Operational parameter configurations you set to use automation features.
+  * **Purpose of Use**: To implement core functions such as automatic game login and execution of automated tasks.
+  * **Storage Location**: Stored only on your local device.
+* **Runtime Record Data**:
+  * **Information Content**: Anonymous runtime error logs, performance metrics, and basic user operation records.
+  * **Purpose of Use**: Used for debugging program errors, optimizing software performance, and improving user experience.
+  * **Storage Location**: Alibaba Cloud Log Service. Retained for up to 14 days.
 
 ### **II. Sharing, Transfer, and Public Disclosure of Information**
 
