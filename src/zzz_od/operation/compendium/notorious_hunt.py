@@ -32,6 +32,7 @@ from zzz_od.application.notorious_hunt.notorious_hunt_run_record import (
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.challenge_mission.check_next_after_battle import ChooseNextOrFinishAfterBattle
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.challenge_mission.restart_in_battle import RestartInBattle
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
@@ -516,24 +517,16 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='战斗结束')
     @operation_node(name='判断下一次')
     def check_next(self) -> OperationRoundResult:
-        if self.can_run_times == 0:
-            return self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-完成',
-                                                     success_wait=5, retry_wait_round=1)
-        else:
-            return self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-再来一次',
-                                                     success_wait=1, retry_wait_round=1)
-
-    @node_from(from_name='判断下一次', success=False)
-    @operation_node(name='判断下一次失败处理')
-    def no_left_times(self) -> OperationRoundResult:
-        # 本地记录的剩余次数错误 找不到再来一次
-        # 可能在其它设备上完成了挑战 也可能是上面识别错了
         if self.use_charge_power:
-            pass
+            try_next = self.plan.plan_times > self.plan.run_times
         else:
+            try_next = self.can_run_times > 0
+        op = ChooseNextOrFinishAfterBattle(self.ctx, try_next)
+        result = op.execute()
+        if result.status == '战斗结果-完成' and self.can_run_times > 0:
+            # 可能是其他设备挑战了 没有剩余次数了
             self.run_record.left_times = 0
-        return self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-完成',
-                                                 success_wait=5, retry_wait_round=1)
+        return self.round_by_op_result(result)
 
     @node_from(from_name='判断下一次', status='战斗结果-再来一次')
     @operation_node(name='重新开始-确认')
@@ -544,7 +537,6 @@ class NotoriousHunt(ZOperation):
                                                  success_wait=1, retry_wait_round=1)
 
     @node_from(from_name='判断下一次', status='战斗结果-完成')
-    @node_from(from_name='判断下一次失败处理', status='战斗结果-完成')
     @operation_node(name='等待返回入口', node_max_retry_times=60)
     def wait_back_to_entry(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '剩余奖励次数')
