@@ -1,5 +1,4 @@
-import threading
-from typing import Any, Optional
+from typing import Any
 
 from PySide6.QtCore import QTimer
 
@@ -10,7 +9,7 @@ from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAda
 class AdapterInitMixin:
     """为依赖 ``YamlConfigAdapter`` 的控件提供统一的初始化逻辑。"""
 
-    adapter: Optional[YamlConfigAdapter]
+    adapter: YamlConfigAdapter | None
     _adapter_load_generation: int
 
     def __init__(self, *args, **kwargs) -> None:
@@ -20,7 +19,7 @@ class AdapterInitMixin:
         self.adapter = None
         self._adapter_load_generation = 0
 
-    def init_with_adapter(self, adapter: Optional[YamlConfigAdapter]) -> None:
+    def init_with_adapter(self, adapter: YamlConfigAdapter | None) -> None:
         """绑定适配器并异步同步初始值。"""
         self.adapter = adapter
         self._adapter_load_generation += 1
@@ -30,16 +29,14 @@ class AdapterInitMixin:
             self._schedule_value_apply(self.default_adapter_value(), current_generation)
             return
 
-        def worker():
+        def load_value():
             try:
                 value = self._get_adapter_value(adapter)
+                self._schedule_value_apply(value, current_generation)
             except Exception:
                 log.error("加载配置项失败", exc_info=True)
-                return
 
-            self._schedule_value_apply(value, current_generation)
-
-        threading.Thread(target=worker, daemon=True).start()
+        QTimer.singleShot(0, load_value)
 
     def default_adapter_value(self) -> Any:
         """当没有适配器时使用的默认值。"""
