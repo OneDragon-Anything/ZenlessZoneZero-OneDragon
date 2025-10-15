@@ -25,7 +25,6 @@ class TextSettingCard(SettingCardBase, AdapterInitMixin):
                  margins: Margins = Margins(16, 16, 0, 16),
                  input_placeholder: Optional[str] = None,
                  input_max_width: int = 300,
-                 adapter: Optional[YamlConfigAdapter] = None,
                  is_password: bool = False,  # 控制是否为密码模式
                  parent=None):
 
@@ -45,8 +44,6 @@ class TextSettingCard(SettingCardBase, AdapterInitMixin):
         self.line_edit.setMaximumWidth(input_max_width)
         self.line_edit.setPlaceholderText(gt(input_placeholder))
         self.line_edit.setClearButtonEnabled(True)
-
-        self.adapter = adapter
 
         # 设置密码模式
         if is_password:

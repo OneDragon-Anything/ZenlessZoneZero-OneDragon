@@ -31,7 +31,6 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
                  options_enum: Optional[Iterable[Enum]] = None,
                  options_list: Optional[List[ConfigItem]] = None,
                  tooltip: Optional[str] = None,
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent=None
                  ):
 
@@ -50,8 +49,6 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
         self.combo_box = ComboBox(self)
         self.hBoxLayout.addWidget(self.combo_box, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
-
-        self.adapter = adapter
 
         # 处理工具提示
         self.tooltip_text: str = tooltip

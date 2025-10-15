@@ -22,7 +22,6 @@ class KeyValueSettingCard(SettingCardBase, AdapterInitMixin):
                  icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str] = None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent: Optional[QWidget] = None):
 
         SettingCardBase.__init__(
@@ -35,8 +34,6 @@ class KeyValueSettingCard(SettingCardBase, AdapterInitMixin):
             parent=parent
         )
         AdapterInitMixin.__init__(self)
-
-        self.adapter = adapter
         self.vBoxLayout.setSpacing(8)
 
         # 主布局，包含一个用于显示键值对的垂直布局和一个添加按钮

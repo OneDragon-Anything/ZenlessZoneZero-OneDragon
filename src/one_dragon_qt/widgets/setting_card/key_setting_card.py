@@ -36,7 +36,6 @@ class KeySettingCard(SettingCardBase, AdapterInitMixin):
                  icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str]=None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent=None):
 
         SettingCardBase.__init__(
@@ -55,8 +54,6 @@ class KeySettingCard(SettingCardBase, AdapterInitMixin):
         self.btn = PushButton(text='', parent=self)
         self.btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.btn.clicked.connect(self._on_btn_clicked)
-
-        self.adapter = adapter
 
         # 初始化监听器和键盘事件工作者
         self.button_listener = None  # 按键监听

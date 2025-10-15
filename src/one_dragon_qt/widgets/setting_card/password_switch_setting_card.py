@@ -24,7 +24,6 @@ class PasswordSwitchSettingCard(SettingCardBase, AdapterInitMixin):
                  margins: Margins = Margins(16, 16, 0, 16),
                  on_text_cn: str = "开",
                  off_text_cn: str = "关",
-                 adapter: Optional[YamlConfigAdapter] = None,
                  extra_btn: Optional[QAbstractButton] = None,
                  parent=None,
                  password_hint: str = "请输入密码",
@@ -57,8 +56,6 @@ class PasswordSwitchSettingCard(SettingCardBase, AdapterInitMixin):
         self.btn._onText = gt(on_text_cn)
         self.btn.label.setText(self.btn._offText)
         self.btn.checkedChanged.connect(self._on_value_changed)
-
-        self.adapter = adapter
 
         # 添加密码输入框
         self.password = LineEdit()

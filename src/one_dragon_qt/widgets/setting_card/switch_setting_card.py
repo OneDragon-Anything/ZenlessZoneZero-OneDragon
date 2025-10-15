@@ -22,7 +22,6 @@ class SwitchSettingCard(SettingCardBase, AdapterInitMixin):
                  margins: Margins = Margins(16, 16, 0, 16),
                  on_text_cn: str = "开",
                  off_text_cn: str = "关",
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent=None):
 
         SettingCardBase.__init__(
@@ -42,8 +41,6 @@ class SwitchSettingCard(SettingCardBase, AdapterInitMixin):
         self.btn._onText = gt(on_text_cn)
         self.btn.label.setText(self.btn._offText)
         self.btn.checkedChanged.connect(self._on_value_changed)
-
-        self.adapter = adapter
 
         # 将按钮添加到布局
         self.hBoxLayout.addWidget(self.btn, 0, Qt.AlignmentFlag.AlignRight)

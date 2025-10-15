@@ -370,7 +370,6 @@ class CodeEditorDialog(MessageBoxBase, CodeEditorMixin):
 
     def __init__(self, parent=None, title: str = "代码编辑器", adapter=None):
         super().__init__(parent)
-
         self.adapter = adapter
 
         # 设置标题
@@ -520,7 +519,6 @@ class CodeEditorSettingCard(SettingCardBase, AdapterInitMixin, CodeEditorMixin):
                  icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str] = None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent: Optional[QWidget] = None):
 
         SettingCardBase.__init__(
@@ -535,7 +533,6 @@ class CodeEditorSettingCard(SettingCardBase, AdapterInitMixin, CodeEditorMixin):
         AdapterInitMixin.__init__(self)
 
         self.parent_window = parent
-        self.adapter = adapter
 
         # 首先创建编辑器
         self.editor = PlainTextEdit(self)

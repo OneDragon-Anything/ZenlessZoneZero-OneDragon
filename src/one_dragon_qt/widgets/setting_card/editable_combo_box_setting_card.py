@@ -33,7 +33,6 @@ class EditableComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
                  options_list: Optional[List[ConfigItem]] = None,
                  input_placeholder: Optional[str] = None,
                  tooltip: Optional[str] = None,
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent=None
                  ):
 
@@ -53,8 +52,6 @@ class EditableComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
         self.combo_box.setPlaceholderText(input_placeholder)
         self.hBoxLayout.addWidget(self.combo_box, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
-
-        self.adapter = adapter
 
         # 处理工具提示
         self.tooltip_text: str = tooltip

@@ -18,7 +18,6 @@ class SpinBoxSettingCardBase(SettingCardBase, AdapterInitMixin):
                  icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str] = None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent=None):
 
         SettingCardBase.__init__(
@@ -36,8 +35,6 @@ class SpinBoxSettingCardBase(SettingCardBase, AdapterInitMixin):
         self.spin_box = self._create_spin_box()
         self.hBoxLayout.addWidget(self.spin_box, 0)
         self.hBoxLayout.addSpacing(16)
-
-        self.adapter = adapter
 
         # 绑定输入框内容变化信号
         self.spin_box.valueChanged.connect(self._on_value_changed)
@@ -89,7 +86,6 @@ class SpinBoxSettingCard(SpinBoxSettingCardBase):
                  max_width: int = 300,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent=None):
 
         self.step = step
@@ -105,7 +101,6 @@ class SpinBoxSettingCard(SpinBoxSettingCardBase):
             content=content,
             icon_size=icon_size,
             margins= margins,
-            adapter=adapter,
             parent=parent
         )
 
@@ -130,7 +125,6 @@ class DoubleSpinBoxSettingCard(SpinBoxSettingCardBase):
                  max_width: int = 300,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent=None):
 
         self.step = step
@@ -146,7 +140,6 @@ class DoubleSpinBoxSettingCard(SpinBoxSettingCardBase):
             content=content,
             icon_size=icon_size,
             margins= margins,
-            adapter=adapter,
             parent=parent
         )
 
