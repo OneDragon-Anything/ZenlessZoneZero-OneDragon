@@ -1,5 +1,5 @@
 import time
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
@@ -7,9 +7,8 @@ from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cv2_utils, str_utils
+from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
-from one_dragon.utils.log_utils import log
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanConfig,
@@ -35,8 +34,7 @@ class ExpertChallenge(ZOperation):
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
     def __init__(self, ctx: ZContext, plan: ChargePlanItem,
-                 can_run_times: Optional[int] = None
-                 ):
+                 can_run_times: int | None = None):
         """
         使用快捷手册传送后
         用这个进行挑战
@@ -49,7 +47,7 @@ class ExpertChallenge(ZOperation):
                 gt(plan.mission_type_name, 'game')
             )
         )
-        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.config: ChargePlanConfig | None = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
@@ -58,7 +56,7 @@ class ExpertChallenge(ZOperation):
         self.plan: ChargePlanItem = plan
         self.can_run_times: int = can_run_times
 
-        self.auto_op: Optional[AutoBattleOperator] = None
+        self.auto_op: AutoBattleOperator | None = None
 
     @operation_node(name='等待入口加载', is_start_node=True, node_max_retry_times=60)
     def wait_entry_load(self) -> OperationRoundResult:

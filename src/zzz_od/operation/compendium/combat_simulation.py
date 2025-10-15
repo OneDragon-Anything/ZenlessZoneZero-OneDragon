@@ -1,6 +1,6 @@
 import time
 from concurrent.futures import Future
-from typing import Optional, ClassVar, Tuple
+from typing import ClassVar
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
@@ -13,11 +13,17 @@ from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.charge_plan import charge_plan_const
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, ChargePlanConfig
+from zzz_od.application.charge_plan.charge_plan_config import (
+    CardNumEnum,
+    ChargePlanConfig,
+    ChargePlanItem,
+)
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.challenge_mission.check_next_after_battle import ChooseNextOrFinishAfterBattle
+from zzz_od.operation.challenge_mission.check_next_after_battle import (
+    ChooseNextOrFinishAfterBattle,
+)
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.deploy import Deploy
@@ -35,7 +41,7 @@ class CombatSimulation(ZOperation):
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
     def __init__(self, ctx: ZContext, plan: ChargePlanItem,
-                 can_run_times: Optional[int] = None):
+                 can_run_times: int | None = None):
         """
         使用快捷手册传送后
         用这个进行挑战
@@ -48,7 +54,7 @@ class CombatSimulation(ZOperation):
                 gt(plan.mission_name, 'game')
             )
         )
-        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.config: ChargePlanConfig | None = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
@@ -58,8 +64,8 @@ class CombatSimulation(ZOperation):
         self.can_run_times: int = can_run_times
         self.scroll_count: int = 0  # 滑动次数计数器
 
-        self.auto_op: Optional[AutoBattleOperator] = None
-        self.async_init_future: Optional[Future[Tuple[bool, str]]] = None  # 初始化自动战斗的future
+        self.auto_op: AutoBattleOperator | None = None
+        self.async_init_future: Future[tuple[bool, str]] | None = None  # 初始化自动战斗的future
 
     @operation_node(name='异步初始化自动战斗')
     def async_init_auto_op(self) -> OperationRoundResult:
@@ -136,7 +142,7 @@ class CombatSimulation(ZOperation):
             return self.round_success(status=CombatSimulation.STATUS_CHOOSE_FAIL)
 
         if self.plan.mission_name == '代理人方案培养':
-            target_point: Optional[Point] = None
+            target_point: Point | None = None
 
             area = self.ctx.screen_loader.get_area('实战模拟室', '副本名称列表顶部')
             part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
@@ -158,13 +164,13 @@ class CombatSimulation(ZOperation):
                 end = start + Point(-400, 0)
                 self.ctx.controller.drag_to(start=start, end=end)
                 self.scroll_count += 1
-                return self.round_retry(status='找不到 %s' % self.plan.mission_name, wait=1)
+                return self.round_retry(status=f'找不到 {self.plan.mission_name}', wait=1)
 
         else:
             area = self.ctx.screen_loader.get_area('实战模拟室', '副本名称列表')
             part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
-            target_point: Optional[Point] = None
+            target_point: Point | None = None
             ocr_result_map = self.ctx.ocr.run_ocr(part)
             ocr_word_list = []
             mrl_list = []
@@ -189,7 +195,7 @@ class CombatSimulation(ZOperation):
                 end = start + Point(400 * (-1 if is_after else 1), 0)
                 self.ctx.controller.drag_to(start=start, end=end)
                 self.scroll_count += 1
-                return self.round_retry(status='找不到 %s' % self.plan.mission_name, wait=1)
+                return self.round_retry(status=f'找不到 {self.plan.mission_name}', wait=1)
 
         self.ctx.controller.click(target_point)
         return self.round_success(status=CombatSimulation.STATUS_CHOOSE_SUCCESS, wait=1)
@@ -280,7 +286,7 @@ class CombatSimulation(ZOperation):
                     return self.round_fail(msg)
                 else:
                     return self.round_success()
-            except Exception as e:
+            except Exception:
                 return self.round_fail('自动战斗初始化失败')
         else:
             if self.plan.predefined_team_idx == -1:

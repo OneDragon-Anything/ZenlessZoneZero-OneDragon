@@ -1,5 +1,5 @@
 import time
-from typing import Optional, ClassVar, List
+from typing import ClassVar
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
@@ -8,22 +8,27 @@ from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_round_result import OperationRoundResult, OperationRoundResultEnum
+from one_dragon.base.operation.operation_round_result import (
+    OperationRoundResult,
+    OperationRoundResultEnum,
+)
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import (
-    ChargePlanItem,
     ChargePlanConfig,
+    ChargePlanItem,
 )
 from zzz_od.application.notorious_hunt import notorious_hunt_const
 from zzz_od.application.notorious_hunt.notorious_hunt_config import (
-    NotoriousHuntLevelEnum,
     NotoriousHuntConfig,
+    NotoriousHuntLevelEnum,
 )
-from zzz_od.application.notorious_hunt.notorious_hunt_run_record import NotoriousHuntRunRecord
+from zzz_od.application.notorious_hunt.notorious_hunt_run_record import (
+    NotoriousHuntRunRecord,
+)
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
@@ -44,7 +49,7 @@ class NotoriousHunt(ZOperation):
 
     def __init__(self, ctx: ZContext, plan: ChargePlanItem,
                  use_charge_power: bool = False,
-                 can_run_times: Optional[int] = None):
+                 can_run_times: int | None = None):
         """
         使用快捷手册传送后
         用这个进行挑战
@@ -57,19 +62,19 @@ class NotoriousHunt(ZOperation):
                 gt(plan.mission_type_name, 'game')
             )
         )
-        self.charge_plan_config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.charge_plan_config: ChargePlanConfig | None = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
 
-        self.config: Optional[NotoriousHuntConfig] = self.ctx.run_context.get_config(
+        self.config: NotoriousHuntConfig | None = self.ctx.run_context.get_config(
             app_id=notorious_hunt_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
 
-        self.run_record: Optional[NotoriousHuntRunRecord] = self.ctx.run_context.get_run_record(
+        self.run_record: NotoriousHuntRunRecord | None = self.ctx.run_context.get_run_record(
             app_id=notorious_hunt_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
         )
@@ -78,7 +83,7 @@ class NotoriousHunt(ZOperation):
         self.use_charge_power: bool = use_charge_power  # 是否使用电量 深度追猎
         self.can_run_times: int = can_run_times
 
-        self.auto_op: Optional[AutoBattleOperator] = None
+        self.auto_op: AutoBattleOperator | None = None
         self.move_times: int = 0  # 移动次数
         self.no_dis_times: int = 0  # 识别不到距离的次数
         self.restart_times: int = 0  # 重新开始战斗次数
@@ -398,7 +403,7 @@ class NotoriousHunt(ZOperation):
             return self.round_success(self.plan.mission_type_name)
 
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-        choose_mr_list: List[MatchResult] = []
+        choose_mr_list: list[MatchResult] = []
 
         for ocr_result, mrl in ocr_result_map.items():
             if str_utils.find_by_lcs(gt('选择', 'game'), ocr_result, percent=1):

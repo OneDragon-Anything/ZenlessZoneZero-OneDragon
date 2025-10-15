@@ -1,5 +1,5 @@
 import time
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
@@ -35,12 +35,8 @@ class RoutineCleanup(ZOperation):
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
-    def __init__(
-        self,
-        ctx: ZContext,
-        plan: ChargePlanItem,
-        can_run_times: int
-    ):
+    def __init__(self, ctx: ZContext, plan: ChargePlanItem,
+                 can_run_times: int | None = None):
         """
         使用快捷手册传送后
         用这个进行挑战
@@ -53,7 +49,7 @@ class RoutineCleanup(ZOperation):
                 gt(plan.mission_type_name, 'game')
             )
         )
-        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.config: ChargePlanConfig | None = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
@@ -62,7 +58,7 @@ class RoutineCleanup(ZOperation):
         self.plan: ChargePlanItem = plan
         self.can_run_times: int = can_run_times
 
-        self.auto_op: Optional[AutoBattleOperator] = None
+        self.auto_op: AutoBattleOperator | None = None
 
     @operation_node(name='等待入口加载', is_start_node=True, node_max_retry_times=60)
     def wait_entry_load(self) -> OperationRoundResult:
@@ -78,7 +74,7 @@ class RoutineCleanup(ZOperation):
         area = self.ctx.screen_loader.get_area('定期清剿', '副本名称列表')
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
-        target_point: Optional[Point] = None
+        target_point: Point | None = None
         ocr_result_map = self.ctx.ocr.run_ocr(part)
         for ocr_result, mrl in ocr_result_map.items():
             if not str_utils.find_by_lcs(gt(self.plan.mission_type_name, 'game'), ocr_result, percent=0.5):
@@ -91,9 +87,9 @@ class RoutineCleanup(ZOperation):
             start = area.center
             end = start + Point(-100, 0)
             self.ctx.controller.drag_to(start=start, end=end)
-            return self.round_retry(status='找不到 %s' % self.plan.mission_type_name, wait=1)
+            return self.round_retry(status=f'找不到 {self.plan.mission_type_name}', wait=1)
 
-        click = self.ctx.controller.click(target_point)
+        self.ctx.controller.click(target_point)
         return self.round_success(wait=1)
 
     @node_from(from_name='等待入口加载')
