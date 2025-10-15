@@ -278,7 +278,7 @@ class CombatSimulation(ZOperation):
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
         # 防止前面电量识别错误
-        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '恢复电量')
+        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题')
         if result.is_success:
             return self.round_success(status=CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
 

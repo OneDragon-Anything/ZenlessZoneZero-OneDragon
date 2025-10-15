@@ -52,7 +52,7 @@ class RestoreCharge(ZOperation):
     @operation_node(name='打开恢复界面', is_start_node=True)
     def click_charge_text(self) -> OperationRoundResult:
         # 检查是否已经在恢复界面
-        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '恢复电量')
+        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题')
         if result.is_success:
             return self.round_success()
 
