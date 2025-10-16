@@ -56,7 +56,7 @@ class ErrorTracker:
             if hasattr(threading, 'excepthook'):
                 threading.excepthook = self._thread_exception_handler
 
-            logger.info("Global exception handler set up")
+            logger.debug("Global exception handler set up")
 
         except Exception as e:
             logger.error(f"Failed to setup exception handler: {e}")
@@ -68,7 +68,7 @@ class ErrorTracker:
                 sys.excepthook = self.original_excepthook
                 self.original_excepthook = None
 
-            logger.info("Original exception handler restored")
+            logger.debug("Original exception handler restored")
 
         except Exception as e:
             logger.error(f"Failed to restore exception handler: {e}")
@@ -369,7 +369,7 @@ class ErrorTracker:
             self.error_counts.clear()
             self.error_history.clear()
             self.breadcrumbs.clear()
-            logger.info("Error history cleared")
+            logger.debug("Error history cleared")
 
     def add_exception_handler(self, handler: Callable[[Exception, Dict[str, Any]], None]) -> None:
         """添加自定义异常处理器"""
@@ -397,7 +397,7 @@ class ErrorTracker:
             # 清理资源
             self.exception_handlers.clear()
 
-            logger.info("Error tracker shutdown complete")
+            logger.debug("Error tracker shutdown complete")
 
         except Exception as e:
             logger.error(f"Error during error tracker shutdown: {e}")

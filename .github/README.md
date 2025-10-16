@@ -19,7 +19,8 @@ __ZenlessZoneZero-OneDragon__
     <img alt="stars" src="https://img.shields.io/github/stars/DoctorReid/ZenlessZoneZero-OneDragon?style=social">
     <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/DoctorReid/ZenlessZoneZero-OneDragon/total?style=social">
 </div>
-<br>
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/OneDragon-Anything/ZenlessZoneZero-OneDragon)
 
 学习实践 __图像识别 & 自动化__ 的智能解决方案
 

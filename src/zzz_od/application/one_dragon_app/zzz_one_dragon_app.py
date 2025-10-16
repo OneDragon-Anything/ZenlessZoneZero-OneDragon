@@ -29,8 +29,6 @@ def __debug():
     ctx = ZContext()
     # 加载配置
     ctx.init_async()
-    # 异步更新免费代理
-    ctx.async_update_gh_proxy()
 
     if ctx.env_config.auto_update:
         from one_dragon.utils.log_utils import log

@@ -108,6 +108,15 @@ class TelemetryConfigLoader:
                 config.loki_auth_token = loki_config.get('auth_token', config.loki_auth_token)
                 config.loki_labels = loki_config.get('labels', config.loki_labels)
 
+                # 阿里云 WebTracking 配置
+                aliyun_config = telemetry_config.get('aliyun_web_tracking', {})
+                config.aliyun_web_tracking_enabled = aliyun_config.get(
+                    'enabled', config.aliyun_web_tracking_enabled
+                )
+                config.aliyun_web_tracking_endpoint = aliyun_config.get(
+                    'endpoint', config.aliyun_web_tracking_endpoint
+                )
+
         except Exception as e:
             logger.debug(f"Failed to load config from file: {e}")
 
@@ -148,6 +157,10 @@ class TelemetryConfigLoader:
                         'enabled': False,
                         'log_events': False,
                         'validate_data': True
+                    },
+                    'aliyun_web_tracking': {
+                        'enabled': False,
+                        'endpoint': ''
                     }
                 }
             }
@@ -177,6 +190,10 @@ class TelemetryConfigLoader:
                         'tenant_id': config.loki_tenant_id,
                         'auth_token': config.loki_auth_token,
                         'labels': config.loki_labels
+                    },
+                    'aliyun_web_tracking': {
+                        'enabled': config.aliyun_web_tracking_enabled,
+                        'endpoint': config.aliyun_web_tracking_endpoint
                     },
                     'performance': {
                         'flush_interval': config.flush_interval,
@@ -247,7 +264,7 @@ class PrivacySettingsManager:
             with open(self.privacy_file, 'w', encoding='utf-8') as f:
                 yaml.dump(privacy_data, f, default_flow_style=False, allow_unicode=True)
 
-            logger.info("Privacy settings saved successfully")
+            logger.debug("Privacy settings saved successfully")
             return True
 
         except Exception as e:

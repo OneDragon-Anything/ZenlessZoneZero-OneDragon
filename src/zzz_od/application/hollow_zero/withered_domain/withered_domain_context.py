@@ -48,7 +48,7 @@ class WitheredDomainContext:
         self.data_service: HallowZeroDataService = HallowZeroDataService()
         self.level_info: HollowLevelInfo = HollowLevelInfo()
 
-        self.map_service: HollowZeroMapService = HollowZeroMapService(ctx)
+        self.map_service: HollowZeroMapService = HollowZeroMapService(ctx, self.data_service)
 
         self.map_results: List[HollowZeroMap] = []  # 识别的地图结果
         self._visited_nodes: List[HollowZeroMapNode] = []  # 已经去过的点

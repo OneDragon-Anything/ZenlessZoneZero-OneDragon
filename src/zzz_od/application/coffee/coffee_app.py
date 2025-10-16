@@ -53,7 +53,7 @@ class CoffeeApp(ZApplication):
         self.config: Optional[CoffeeConfig] = self.ctx.run_context.get_config(
             app_id=coffee_app_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
-            group_id=self.ctx.run_context.current_group_id,
+            group_id=application_const.DEFAULT_GROUP_ID,
         )
         self.charge_plan_config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
@@ -370,7 +370,7 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='传送副本', status='定期清剿')
     @operation_node(name='定期清剿')
     def routine_cleanup(self) -> OperationRoundResult:
-        op = RoutineCleanup(self.ctx, self.charge_plan)
+        op = RoutineCleanup(self.ctx, self.charge_plan, can_run_times=1)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送副本', status='专业挑战室')
@@ -399,7 +399,7 @@ class CoffeeApp(ZApplication):
             op = self.ctx.run_context.get_application(
                 app_id=charge_plan_const.APP_ID,
                 instance_idx=self.ctx.current_instance_idx,
-                group_id=self.ctx.run_context.current_group_id,
+                group_id=application_const.DEFAULT_GROUP_ID,
             )
             return self.round_by_op_result(op.execute())
         else:
@@ -408,14 +408,14 @@ class CoffeeApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
+    ctx.run_context.start_running()
     app = CoffeeApp(ctx)
     app.chosen_coffee = ctx.compendium_service.name_2_coffee['汀曼特调']
-    app._init_before_execute()
     # app.tp_mission()
     # app.had_coffee_list.add('沙罗特调（浓）')
-    app.choose_coffee()
-    # app.execute()
+    # app.choose_coffee()
+    app.execute()
 
 
 if __name__ == '__main__':
