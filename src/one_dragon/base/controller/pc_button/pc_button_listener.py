@@ -36,8 +36,10 @@ class PcButtonListener:
             elif hasattr(event, 'vk') and event.vk is not None:
                 # 使用虚拟键码来识别小键盘按键
                 k = self._get_numpad_key_name(event.vk)
+            elif hasattr(event, 'vk'):
+                k = f'vk_{event.vk}'  # vk 为 None 的情况
             else:
-                k = f'key_{event.vk}' if hasattr(event, 'vk') else 'unknown'
+                k = 'unknown'  # 没有 vk 属性
         else:
             return
 
