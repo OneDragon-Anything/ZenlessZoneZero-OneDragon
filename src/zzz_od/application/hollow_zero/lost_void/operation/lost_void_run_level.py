@@ -111,6 +111,7 @@ class LostVoidRunLevel(ZOperation):
 
     @node_from(from_name='非战斗画面识别', status='未在大世界')  # 有小概率交互入口后 没处理好结束本次RunLevel 重新从等待加载 开始
     @node_from(from_name='非战斗画面识别', status='按钮-挑战-确认')  # 挑战类型的对话框确认后 第一次点击可能无效 跳回来这里点击到最后生效为止
+    @node_from(from_name='处理寻路失败', status='准备重试')  # 寻路失败后重试
     @operation_node(name='等待加载', node_max_retry_times=60, is_start_node=True)
     def wait_loading(self) -> OperationRoundResult:
         if self.ctx.lost_void.in_normal_world(self.last_screenshot):
@@ -761,7 +762,8 @@ class LostVoidRunLevel(ZOperation):
             op = RestartInBattle(self.ctx)
             op_result = op.execute()
             if op_result.success:
-                return self.round_success(self.STATUS_COMPLETE)
+                # 重试时 按进入下一层的逻辑处理
+                return self.round_success(status='准备重试')
             else:
                 return self.round_fail(op_result.status)
         else:
@@ -808,11 +810,9 @@ class LostVoidRunLevel(ZOperation):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.lost_void.init_before_run()
-    ctx.init_ocr()
     ctx.run_context.start_running()
-
     ctx.lost_void.init_auto_op()
     op = LostVoidRunLevel(ctx, LostVoidRegionType.ENTRY)
     op.execute()
