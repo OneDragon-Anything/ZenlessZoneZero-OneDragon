@@ -63,7 +63,7 @@ def __debug_opts():
     # )
     event_name = hollow_event_utils.check_screen(op.ctx, screen, set())
     print(event_name)
-    e = ctx.hollow.data_service.get_normal_event_by_name(event_name)
+    e = ctx.withered_domain.data_service.get_normal_event_by_name(event_name)
     op2 = NormalEventHandler(ctx, e)
     hollow_event_utils.check_event_text_and_run(op, screen, op2._handlers)
 

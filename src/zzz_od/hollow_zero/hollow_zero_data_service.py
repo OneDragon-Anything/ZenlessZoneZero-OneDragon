@@ -1,7 +1,8 @@
 import difflib
 import os
-import yaml
 from typing import List, Optional, Tuple
+
+import yaml
 
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
@@ -22,8 +23,6 @@ class HallowZeroDataService:
         self.resonium_list: List[Resonium] = []
         self.resonium_cate_list: List[str] = []
         self.cate_2_resonium: dict[str, List[Resonium]] = {}
-
-        self.reload()
 
     def reload(self):
         self._load_normal_events()

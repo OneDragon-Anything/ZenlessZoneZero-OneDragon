@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from functools import cached_property
 from typing import Optional
 
 from one_dragon.envs.download_service import DownloadService
@@ -7,7 +8,6 @@ from one_dragon.envs.ghproxy_service import GhProxyService
 from one_dragon.envs.git_service import GitService
 from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.envs.python_service import PythonService
-from one_dragon.utils import thread_utils
 
 ONE_DRAGON_CONTEXT_EXECUTOR = ThreadPoolExecutor(thread_name_prefix='one_dragon_context', max_workers=1)
 
@@ -19,24 +19,33 @@ class OneDragonEnvContext:
         存项目和环境信息的
         安装器可以使用这个减少引入依赖
         """
-        self.project_config: ProjectConfig = ProjectConfig()
-        self.env_config: EnvConfig = EnvConfig()
-        self.download_service: DownloadService = DownloadService(self.project_config, self.env_config)
-        self.git_service: GitService = GitService(self.project_config, self.env_config, self.download_service)
-        self.python_service: PythonService = PythonService(self.project_config, self.env_config, self.download_service)
-        self.gh_proxy_service: GhProxyService = GhProxyService(self.env_config)
         self.installer_dir: Optional[str] = None
 
-    def init_by_config(self) -> None:
-        pass
+    #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
-    def async_update_gh_proxy(self) -> None:
-        """
-        异步更新gh proxy
-        :return:
-        """
-        future = ONE_DRAGON_CONTEXT_EXECUTOR.submit(self.gh_proxy_service.update_proxy_url)
-        future.add_done_callback(thread_utils.handle_future_result)
+    @cached_property
+    def project_config(self):
+        return ProjectConfig()
+
+    @cached_property
+    def env_config(self):
+        return EnvConfig()
+
+    @cached_property
+    def download_service(self):
+        return DownloadService(self.project_config, self.env_config)
+
+    @cached_property
+    def git_service(self):
+        return GitService(self.project_config, self.env_config, self.download_service)
+
+    @cached_property
+    def python_service(self):
+        return PythonService(self.project_config, self.env_config, self.download_service)
+
+    @cached_property
+    def gh_proxy_service(self):
+        return GhProxyService(self.env_config)
 
     def after_app_shutdown(self) -> None:
         """

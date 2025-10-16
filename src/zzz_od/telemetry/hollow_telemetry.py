@@ -22,8 +22,8 @@ def track_hollow_level_progress(func: Callable) -> Callable:
 
         # 获取层数信息
         level_info = None
-        if hasattr(self, 'ctx') and hasattr(self.ctx, 'hollow') and hasattr(self.ctx.hollow, 'level_info'):
-            level_info = self.ctx.hollow.level_info
+        if hasattr(self, 'ctx') and hasattr(self.ctx, 'withered_domain') and hasattr(self.ctx.withered_domain, 'level_info'):
+            level_info = self.ctx.withered_domain.level_info
 
         # 初始化层数跟踪状态
         if not hasattr(self, '_hollow_level_tracking'):
@@ -56,7 +56,7 @@ def track_hollow_level_progress(func: Callable) -> Callable:
                             'duration_seconds': duration,
                             'event_category': 'hollow_progress'
                         })
-                        logger.info(f"迷失之地倒数第二层完成，耗时: {duration:.2f}秒")
+                        logger.debug(f"迷失之地倒数第二层完成，耗时: {duration:.2f}秒")
 
                 # 开始新层计时
                 tracking['current_level'] = current_level
@@ -72,7 +72,7 @@ def track_hollow_level_progress(func: Callable) -> Callable:
 
                 # 特别记录倒数第二层开始
                 if current_level == 2:
-                    logger.info(f"迷失之地倒数第二层开始，层数: {current_level}, 阶段: {current_phase}")
+                    logger.debug(f"迷失之地倒数第二层开始，层数: {current_level}, 阶段: {current_phase}")
 
         # 执行原方法
         result = func(self, *args, **kwargs)

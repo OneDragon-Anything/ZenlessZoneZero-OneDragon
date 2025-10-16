@@ -201,6 +201,7 @@ class LostVoidRunLevel(ZOperation):
     @node_from(from_name='交互后处理', status='大世界')  # 目前交互之后都不会有战斗
     @node_from(from_name='战斗中', status='识别需移动交互')  # 战斗后出现距离 或者下层入口
     @node_from(from_name='尝试交互', success=False)  # 没能交互到
+    @node_from(from_name='更新优先级')  # 更新优先级后
     @operation_node(name='非战斗画面识别', timeout_seconds=180)
     def non_battle_check(self) -> OperationRoundResult:
         # 不在大世界处理
@@ -456,7 +457,7 @@ class LostVoidRunLevel(ZOperation):
         # 交互后 可能出现了后续的交互
         return self.round_retry(status=f'未知画面', wait_round_time=1)
 
-    def try_talk(self, screen: MatLike) -> OperationRoundResult:
+    def try_talk(self, screen: MatLike) -> OperationRoundResult | None:
         """
         判断是否在对话 并进行点击
         @return:
@@ -679,13 +680,17 @@ class LostVoidRunLevel(ZOperation):
                 or (self.no_in_battle_times > 0 and self.last_screenshot_time - self.last_check_finish_time >= 0.1)  # 之前也识别到脱离战斗 0.1秒识别一次
             ):
                 self.last_check_finish_time = self.last_screenshot_time
+
+                # 部分情况刚好战斗结束站在交互点上
+                interact_result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
+
                 no_in_battle_screen_name_list = [
                     '迷失之地-武备选择', '迷失之地-通用选择',
                     '迷失之地-挑战结果',
                     '迷失之地-战斗失败'
                 ]
                 screen_name = self.check_and_update_current_screen(self.last_screenshot, no_in_battle_screen_name_list)
-                if screen_name in no_in_battle_screen_name_list:
+                if screen_name in no_in_battle_screen_name_list or interact_result.is_success:
                     self.no_in_battle_times += 1
                 else:
                     self.no_in_battle_times = 0

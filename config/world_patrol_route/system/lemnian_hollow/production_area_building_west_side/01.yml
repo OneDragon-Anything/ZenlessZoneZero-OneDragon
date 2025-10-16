@@ -9,6 +9,14 @@ op_list:
   - '398'
   op_type: move
 - data:
+  - '1002'
+  - '417'
+  op_type: move
+- data:
+  - '1072'
+  - '429'
+  op_type: move
+- data:
   - '1042'
   - '465'
   op_type: move

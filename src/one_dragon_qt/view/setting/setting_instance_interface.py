@@ -220,13 +220,15 @@ class SettingInstanceInterface(VerticalScrollInterface):
                     if _acc and _acc.strip():
                         _accounts.append(_acc.strip())
 
-                if _accounts and hasattr(self.ctx, "tm") and self.ctx.tm:
+                telemetry = getattr(self.ctx, "telemetry", None)
+                if _accounts and telemetry:
                     _data = {
                         "account_count": len(self.ctx.one_dragon_config.instance_list),
-                        "accounts": _accounts,
-                        "user_id": getattr(self.ctx.tm, "_user_id", "unknown"),
+                        "account_identifiers": _accounts,
+                        "user_id": getattr(telemetry, "_user_id", "unknown"),
+                        "reported_from": "ui",
                     }
-                    self.ctx.tm.capture_event("multi_account_usage", _data)
+                    telemetry.track_custom_event("multi_account_usage", _data)
             except Exception:
                 pass
 
@@ -242,7 +244,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
-        self._init_content_widget()
+        self.init_game_account_config()
 
     def _init_content_widget(self) -> None:
         """
@@ -263,8 +265,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.content_widget.add_widget(self._get_instanceSettings_group())
         self.content_widget.add_widget(self._get_instanceSwitch_group())
         self.content_widget.add_stretch(1)
-
-        self.init_game_account_config()
 
     def init_game_account_config(self) -> None:
         # 初始化账号和密码

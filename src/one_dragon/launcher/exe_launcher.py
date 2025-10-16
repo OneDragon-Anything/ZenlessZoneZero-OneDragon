@@ -27,8 +27,6 @@ class ExeLauncher(LauncherBase):
         launch_args = []
         if args.instance:
             launch_args.extend(["--instance", args.instance])
-        if args.app:
-            launch_args.extend(["--app", args.app])
         if args.close_game:
             launch_args.append("--close-game")
         if args.shutdown:

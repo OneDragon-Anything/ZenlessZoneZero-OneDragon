@@ -28,12 +28,12 @@ class AppWindowBase(PhosWindow):
             app_icon_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), app_icon)
             self.setWindowIcon(QIcon(app_icon_path))
 
-        # 初始化窗口
-        self.init_window()
-
         # 创建启动页面
         self.splashScreen = SplashScreen(self.windowIcon(), self)
         self.splashScreen.setIconSize(QSize(144, 144))
+
+        # 初始化窗口
+        self.init_window()
 
         # 在创建其他子页面前先显示主界面
         self.show()

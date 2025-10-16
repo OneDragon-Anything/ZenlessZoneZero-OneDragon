@@ -68,7 +68,7 @@ class LostVoidRunInterface(AppRunInterface):
         left_layout = QVBoxLayout(left_widget)
         left_widget.setLayout(left_layout)
 
-        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_lost_void.html')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_hollow_zero.html')
         left_layout.addWidget(self.help_opt)
 
         self.mission_opt = ComboBoxSettingCard(

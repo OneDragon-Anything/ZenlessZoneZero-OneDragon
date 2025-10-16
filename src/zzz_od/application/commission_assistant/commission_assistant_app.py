@@ -227,10 +227,10 @@ class CommissionAssistantApp(ZApplication):
         """
         # 空洞内不好处理事件
         # return self.round_wait(status='空洞中', wait=1) # Original line, commented out as per previous logic.
-        self.ctx.hollow.init_event_yolo(self.ctx.model_config.hollow_zero_event_gpu)
+        self.ctx.withered_domain.init_event_yolo()
 
         # 判断当前邦布是否存在
-        hollow_map = self.ctx.hollow.map_service.cal_current_map_by_screen(self.last_screenshot, screenshot_time)
+        hollow_map = self.ctx.withered_domain.map_service.cal_current_map_by_screen(self.last_screenshot, screenshot_time)
         if hollow_map is None or hollow_map.contains_entry('当前'):
             return self.round_wait(status='空洞走格子中', wait=1)
 

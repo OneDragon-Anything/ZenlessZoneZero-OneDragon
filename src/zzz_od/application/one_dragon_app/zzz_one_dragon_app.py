@@ -28,13 +28,7 @@ class ZOneDragonApp(OneDragonApp, ZApplication):
 def __debug():
     ctx = ZContext()
     # 加载配置
-    ctx.init_by_config()
-
-    # 异步加载OCR
-    ctx.async_init_ocr()
-
-    # 异步更新免费代理
-    ctx.async_update_gh_proxy()
+    ctx.init_async()
 
     if ctx.env_config.auto_update:
         from one_dragon.utils.log_utils import log

@@ -23,7 +23,6 @@ class ZApplication(Application, TelemetryApplicationMixin):
                  need_check_game_win: bool = True,
                  op_to_enter_game: Optional[Operation] = None,
                  run_record: Optional[AppRunRecord] = None,
-                 need_ocr: bool = True,
                  need_notify: bool = False
                  ):
         self.ctx: ZContext = ctx
@@ -40,7 +39,6 @@ class ZApplication(Application, TelemetryApplicationMixin):
             need_check_game_win=need_check_game_win,
             op_to_enter_game=op_to_enter_game,
             run_record=run_record,
-            need_ocr=need_ocr,
             need_notify=need_notify,
         )
 

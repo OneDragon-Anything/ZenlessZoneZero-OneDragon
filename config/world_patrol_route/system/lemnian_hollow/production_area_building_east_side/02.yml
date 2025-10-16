@@ -1,6 +1,26 @@
 idx: 2
 op_list:
 - data:
+  - '903'
+  - '1520'
+  op_type: move
+- data:
+  - '925'
+  - '1615'
+  op_type: move
+- data:
+  - '894'
+  - '1623'
+  op_type: move
+- data:
+  - '903'
+  - '1559'
+  op_type: move
+- data:
+  - '876'
+  - '1506'
+  op_type: move
+- data:
   - '867'
   - '1436'
   op_type: move

@@ -26,7 +26,6 @@ class LauncherBase:
         parser.add_argument("-c", "--close-game", action="store_true", help="运行后关闭游戏")
         parser.add_argument("-s", "--shutdown", type=int, nargs='?', const=60, help="运行后关机，可指定延迟秒数，默认60秒")
         parser.add_argument("-i", "--instance", type=str, help="指定运行的账号实例，多个用英文逗号分隔，如：1,2")
-        parser.add_argument("-a", "--app", type=str, help="指定运行的应用，多个用英文逗号分隔")
 
     def run(self) -> None:
         """运行启动器"""

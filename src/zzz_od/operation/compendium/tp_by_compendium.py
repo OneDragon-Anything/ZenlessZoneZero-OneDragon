@@ -3,11 +3,9 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.game_data.compendium import CompendiumTab
+from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.compendium_choose_category import CompendiumChooseCategory
 from zzz_od.operation.compendium.compendium_choose_mission_type import CompendiumChooseMissionType
-from zzz_od.operation.compendium.compendium_choose_tab import CompendiumChooseTab
-from zzz_od.operation.compendium.open_compendium import OpenCompendium
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -34,34 +32,17 @@ class TransportByCompendium(ZOperation):
         if self.mission_type_name == '自定义模板':  # 没法直接传送到自定义
             self.mission_type_name: str = '基础材料'
 
-    @operation_node(name='识别初始画面', is_start_node=True)
-    def check_first_screen(self) -> OperationRoundResult:
-        possible_screen_names = [
-            '快捷手册-目标',
-            '快捷手册-日常',
-            '快捷手册-训练',
-            '快捷手册-作战',
-            '快捷手册-战术'
-        ]
-        screen_name = self.check_and_update_current_screen(self.last_screenshot, possible_screen_names)
-        if screen_name is None:
-            return self.round_success()
-        else:
-            return self.round_success('快捷手册')
-
-    @node_from(from_name='识别初始画面')
-    @operation_node(name='快捷手册')
-    def open_compendium(self) -> OperationRoundResult:
-        op = OpenCompendium(self.ctx)
+    @operation_node(name='返回大世界', is_start_node=True)
+    def back_to_world(self) -> OperationRoundResult:
+        op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='识别初始画面', status='快捷手册')
-    @node_from(from_name='快捷手册')
-    @operation_node(name='选择TAB')
+    @node_from(from_name='返回大世界')
+    @operation_node(name='快捷手册')
     def choose_tab(self) -> OperationRoundResult:
         return self.round_by_goto_screen(screen_name=f'快捷手册-{self.tab_name}')
 
-    @node_from(from_name='选择TAB')
+    @node_from(from_name='快捷手册')
     @operation_node(name='选择分类')
     def choose_category(self) -> OperationRoundResult:
         op = CompendiumChooseCategory(self.ctx, self.category_name)

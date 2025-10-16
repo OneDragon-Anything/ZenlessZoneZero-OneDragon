@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import random
-from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, List, Optional
-
 from typing import Optional
+from typing import TYPE_CHECKING
 
 from one_dragon.base.config.one_dragon_app_config import OneDragonAppConfig
+
 from one_dragon.base.operation.application.application_const import DEFAULT_GROUP_ID
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfig,
