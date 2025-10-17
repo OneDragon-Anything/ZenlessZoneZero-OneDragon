@@ -734,13 +734,6 @@ class HomeInterface(VerticalScrollInterface):
         if os.path.exists(base_path):
             return base_path
         
-        # 兼容：查找带扩展名的文件（旧版本或手动放置的文件）
-        extensions = ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.webm', '.mp4', '.avi', '.mov', '.mkv']
-        for ext in extensions:
-            file_path = base_path + ext
-            if os.path.exists(file_path):
-                return file_path
-        
         return ''
 
     def _check_notice_config_change(self):

@@ -306,8 +306,3 @@ class Banner(QWidget):
         """设置背景图片或视频"""
         self.image_path = image_path
         self._init_media(image_path)
-
-    def closeEvent(self, event):
-        """窗口关闭时清理资源"""
-        self._cleanup_video()
-        super().closeEvent(event)
