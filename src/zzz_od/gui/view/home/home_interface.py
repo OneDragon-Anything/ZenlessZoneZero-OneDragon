@@ -348,7 +348,6 @@ class BackgroundImageDownloader(BaseThread):
             # 处理官方动态的特殊情况（只下载视频）
             if self.download_type == "official_dynamic" and isinstance(result, tuple):
 
-                # @shadowlemoon 要求不叠加图片左上角版本号
                 video_url, _ = result  # 忽略叠加图 URL
                 
                 # 下载视频
