@@ -1,5 +1,6 @@
 import os
 import requests
+from pathlib import Path
 from datetime import datetime, timedelta
 from PySide6.QtCore import Qt, QThread, Signal, QSize, QUrl, QTimer
 from PySide6.QtWidgets import QGraphicsDropShadowEffect
@@ -302,24 +303,26 @@ class BackgroundImageDownloader(BaseThread):
         self.ctx = ctx
         self.download_type = download_type
 
+        ui_dir = Path(os_utils.get_path_under_work_dir('assets', 'ui'))
+        
         if download_type == "version_poster":
-            self.save_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'version_poster.webp')
+            self.save_path = ui_dir / 'version_poster.webp'
             self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getGames?launcher_id=jGHBHlcOq1&language=zh-cn"
             self.config_key = f'last_{download_type}_fetch_time'
             self.error_msg = "版本海报异步获取失败"
         elif download_type == "remote_banner":
-            self.save_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'remote_banner.webp')
+            self.save_path = ui_dir / 'remote_banner.webp'
             self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getAllGameBasicInfo?launcher_id=jGHBHlcOq1&language=zh-cn"
             self.config_key = f'last_{download_type}_fetch_time'
             self.error_msg = "当前版本主页背景异步获取失败"
         elif download_type == "official_dynamic":
-            self.save_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'official_dynamic.webm')
+            self.save_path = ui_dir / 'official_dynamic.webm'
             self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getAllGameBasicInfo?launcher_id=jGHBHlcOq1&language=zh-cn"
             self.config_key = f'last_{download_type}_fetch_time'
             self.error_msg = "官方动态背景异步获取失败"
 
     def _run_impl(self):
-        if not os.path.exists(self.save_path):
+        if not self.save_path.exists():
             self.get()
 
         last_fetch_time_str = getattr(self.ctx.custom_config, self.config_key)
@@ -349,7 +352,7 @@ class BackgroundImageDownloader(BaseThread):
             if self.download_type == "official_dynamic" and isinstance(result, tuple):
 
                 video_url, _ = result  # 忽略叠加图 URL
-                
+
                 # 下载视频
                 video_resp = requests.get(video_url, timeout=10)
                 if video_resp.status_code != 200:
@@ -361,7 +364,7 @@ class BackgroundImageDownloader(BaseThread):
                 if img_resp.status_code != 200:
                     return
                 self._save_image(img_resp.content)
-            
+
             setattr(self.ctx.custom_config, self.config_key, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             # 使用队列连接确保线程安全
             self.image_downloaded.emit(True)
@@ -403,24 +406,23 @@ class BackgroundImageDownloader(BaseThread):
 
     def _save_image(self, content):
         """保存图片/视频，确保临时文件被正确清理"""
-        temp_path = self.save_path + '.tmp'
+        temp_path = self.save_path.with_suffix(self.save_path.suffix + '.tmp')
         try:
             # 写入临时文件
-            with open(temp_path, "wb") as f:
-                f.write(content)
-            
+            temp_path.write_bytes(content)
+
             # 删除旧文件（如果存在）
-            if os.path.exists(self.save_path):
-                os.remove(self.save_path)
-            
+            if self.save_path.exists():
+                self.save_path.unlink()
+
             # 重命名临时文件为正式文件
-            os.rename(temp_path, self.save_path)
-            
+            temp_path.rename(self.save_path)
+
         except Exception as e:
             # 清理失败的临时文件
-            if os.path.exists(temp_path):
+            if temp_path.exists():
                 try:
-                    os.remove(temp_path)
+                    temp_path.unlink()
                 except Exception:
                     pass
             raise e
@@ -695,45 +697,46 @@ class HomeInterface(VerticalScrollInterface):
             log.error(f"刷新背景时出错: {e}")
 
     def choose_banner_image(self) -> str:
-        
+
         # 获取背景图片路径
-        custom_banner_dir = os.path.join(os_utils.get_path_under_work_dir('custom', 'assets', 'ui'), 'banner')
-        official_dynamic_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'official_dynamic.webm')
-        version_poster_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'version_poster.webp')
-        remote_banner_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'remote_banner.webp')
-        index_banner_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), 'index.png')
+        custom_banner_dir = Path(os_utils.get_path_under_work_dir('custom', 'assets', 'ui')) / 'banner'
+        ui_dir = Path(os_utils.get_path_under_work_dir('assets', 'ui'))
+        official_dynamic_path = ui_dir / 'official_dynamic.webm'
+        version_poster_path = ui_dir / 'version_poster.webp'
+        remote_banner_path = ui_dir / 'remote_banner.webp'
+        index_banner_path = ui_dir / 'index.png'
 
         # 主页背景优先级：自定义 > 枚举选项 > index.png
         if self.ctx.custom_config.custom_banner:
             # 检测自定义背景文件（支持图片和视频）
             custom_banner_path = self._find_custom_banner(custom_banner_dir)
-            if custom_banner_path and os.path.exists(custom_banner_path):
-                return custom_banner_path
+            if custom_banner_path and custom_banner_path.exists():
+                return str(custom_banner_path)
             else:
-                return index_banner_path
-        
+                return str(index_banner_path)
+
         # 根据枚举类型选择背景
         background_type = self.ctx.custom_config.background_type
-        if background_type == BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value and os.path.exists(official_dynamic_path):
-            return official_dynamic_path
-        elif background_type == BackgroundTypeEnum.VERSION_POSTER.value.value and os.path.exists(version_poster_path):
-            return version_poster_path
-        elif background_type == BackgroundTypeEnum.OFFICIAL_STATIC.value.value and os.path.exists(remote_banner_path):
-            return remote_banner_path
+        if background_type == BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value and official_dynamic_path.exists():
+            return str(official_dynamic_path)
+        elif background_type == BackgroundTypeEnum.VERSION_POSTER.value.value and version_poster_path.exists():
+            return str(version_poster_path)
+        elif background_type == BackgroundTypeEnum.OFFICIAL_STATIC.value.value and remote_banner_path.exists():
+            return str(remote_banner_path)
         else:
-            return index_banner_path
+            return str(index_banner_path)
 
-    def _find_custom_banner(self, base_path: str) -> str:
+    def _find_custom_banner(self, base_path: Path) -> Path | None:
         """
         查找自定义背景文件，优先查找无扩展名的 banner 文件
         :param base_path: 基础路径（不含扩展名）
-        :return: 找到的文件路径，如果没有找到返回空字符串
+        :return: 找到的文件路径，如果没有找到返回 None
         """
         # 优先查找无扩展名的文件（标准保存方式）
-        if os.path.exists(base_path):
+        if base_path.exists():
             return base_path
-        
-        return ''
+
+        return None
 
     def _check_notice_config_change(self):
         """检查公告卡片配置是否发生变化"""
@@ -827,7 +830,7 @@ class HomeInterface(VerticalScrollInterface):
 
         # 如果太暗则适当提亮
         lr, lg, lb = ColorUtils.brighten_if_too_dark(lr, lg, lb)
-        
+
         # 限制颜色强度，避免过于鲜艳，保持人眼舒适度
         lr, lg, lb = ColorUtils.limit_color_intensity(lr, lg, lb)
 
@@ -860,12 +863,14 @@ class HomeInterface(VerticalScrollInterface):
     def _can_use_cached_theme_color(self, current_banner_path: str) -> bool:
         """检查是否可以使用缓存的主题色"""
         cached_path = self.ctx.custom_config.theme_color_banner_path
-        if cached_path != current_banner_path or not os.path.exists(current_banner_path):
+        current_path = Path(current_banner_path)
+        
+        if cached_path != current_banner_path or not current_path.exists():
             return False
 
         # 检查文件修改时间是否改变
         try:
-            current_mtime = os.path.getmtime(current_banner_path)
+            current_mtime = current_path.stat().st_mtime
             cached_mtime = self.ctx.custom_config.theme_color_banner_mtime
 
             if current_mtime != cached_mtime:
@@ -882,6 +887,6 @@ class HomeInterface(VerticalScrollInterface):
         """更新主题色缓存"""
         self.ctx.custom_config.theme_color_banner_path = banner_path
         try:
-            self.ctx.custom_config.theme_color_banner_mtime = os.path.getmtime(banner_path)
+            self.ctx.custom_config.theme_color_banner_mtime = Path(banner_path).stat().st_mtime
         except OSError:
             self.ctx.custom_config.theme_color_banner_mtime = 0.0
