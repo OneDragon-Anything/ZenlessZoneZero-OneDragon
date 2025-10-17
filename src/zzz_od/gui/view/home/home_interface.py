@@ -297,6 +297,7 @@ class CheckBannerRunner(CheckRunnerBase):
 class BackgroundImageDownloader(BaseThread):
     """背景图片下载器"""
     image_downloaded = Signal(bool)
+    download_starting = Signal()
 
     def __init__(self, ctx: ZContext, download_type: str, parent=None):
         super().__init__(parent)
@@ -350,6 +351,7 @@ class BackgroundImageDownloader(BaseThread):
 
             # 官方动态使用流式下载避免内存溢出
             if self.download_type == "official_dynamic":
+                self.download_starting.emit()
                 temp_path = self.save_path.with_suffix(self.save_path.suffix + '.tmp')
                 try:
                     with requests.get(result, stream=True, timeout=30) as video_resp:
@@ -596,11 +598,26 @@ class HomeInterface(VerticalScrollInterface):
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
+        self._official_dynamic_downloader.download_starting.connect(
+            self._on_official_dynamic_download_start,
+            Qt.ConnectionType.BlockingQueuedConnection
+        )
 
     def closeEvent(self, event):
         """界面关闭事件处理"""
         self._cleanup_threads()
         super().closeEvent(event)
+
+    def _on_official_dynamic_download_start(self) -> None:
+        """在后台下载新的视频前释放当前播放器占用"""
+        if not self._banner_widget:
+            return
+
+        if self.ctx.custom_config.background_type != BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value:
+            return
+
+        if hasattr(self._banner_widget, "release_media"):
+            self._banner_widget.release_media()
 
     def _cleanup_threads(self):
         """清理所有线程"""

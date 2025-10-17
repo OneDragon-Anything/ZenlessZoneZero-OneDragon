@@ -183,6 +183,18 @@ class Banner(QWidget):
             self.media_player.play()
             self._was_playing = False
 
+    def release_media(self) -> None:
+        """释放当前媒体资源，便于外部更新文件"""
+        if not self.is_video:
+            return
+
+        self._cleanup_video()
+        self.is_video = False
+        self.banner_image = self._create_fallback_image()
+        self.scaled_image = None
+        self.update_scaled_image()
+        self.update()
+
     def _resize_video_view(self) -> None:
         """调整视频视图大小"""
         if not self.graphics_view or not self.video_item:
