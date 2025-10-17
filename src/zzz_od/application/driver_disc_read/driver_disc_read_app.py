@@ -50,7 +50,8 @@ class DriverDiscReadApp(ZApplication):
         self.worker_count = self.ctx.model_config.ocr_worker_count
         self.workers = []
         self.workers_running = False
-        self.ocr_lock = threading.Lock()  # OCR 调用锁，确保线程安全
+        self.worker_ocr_instances = {}  # 为每个 worker 创建独立的 OCR 实例
+        self.onnx_global_lock = threading.Lock()  # 全局锁：防止 ONNX Runtime 内部状态冲突
 
     @operation_node(name='开始前返回', is_start_node=True)
     def back_at_first(self):
@@ -146,24 +147,45 @@ class DriverDiscReadApp(ZApplication):
         return self.round_success(f'识别完成: {len(self.disc_data_dict)}个')
 
     def _start_workers(self):
-        """启动 worker 线程"""
+        """启动 worker 线程并为每个创建独立的 OCR 实例"""
         self.workers_running = True
         self.workers = []
+        
+        # 为每个 worker 创建独立的 OCR 实例
+        log.info(f'正在为 {self.worker_count} 个 worker 创建 OCR 实例...')
+        from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher, OnnxOcrParam
+        
         for i in range(self.worker_count):
+            # 创建独立的 OCR 实例和锁
+            worker_ocr = OnnxOcrMatcher(
+                OnnxOcrParam(
+                    det_limit_side_len=max(
+                        self.ctx.project_config.screen_standard_width,
+                        self.ctx.project_config.screen_standard_height
+                    ),
+                    use_gpu=self.ctx.model_config.ocr_gpu,
+                )
+            )
+            self.worker_ocr_instances[i] = worker_ocr
+            
+            # 启动 worker 线程
             worker = threading.Thread(target=self._worker_thread, args=(i,), daemon=True)
             worker.start()
             self.workers.append(worker)
-        log.info(f'已启动 {self.worker_count} 个 OCR worker 线程')
+        
+        log.info(f'已启动 {self.worker_count} 个 OCR worker 线程（独立实例 + 全局锁保护）')
 
     def _stop_workers(self):
-        """停止 worker 线程"""
+        """停止 worker 线程并清理 OCR 实例"""
         self.workers_running = False
         # 等待队列清空
         self.screenshot_queue.join()
         # 等待所有线程结束
         for worker in self.workers:
             worker.join(timeout=2)
-        log.info('所有 worker 线程已停止')
+        # 清理 OCR 实例
+        self.worker_ocr_instances.clear()
+        log.info('所有 worker 线程已停止，OCR 实例已清理')
 
     def _worker_thread(self, worker_id: int):
         """Worker 线程：从队列获取截图并进行 OCR 识别"""
@@ -176,8 +198,8 @@ class DriverDiscReadApp(ZApplication):
                 try:
                     global_index, screen = task
 
-                    # OCR 识别
-                    disc_data = self._read_disc_detail(screen)
+                    # OCR 识别（使用当前 worker 专属的 OCR 实例）
+                    disc_data = self._read_disc_detail(screen, worker_id)
 
                     if disc_data and disc_data.get('name', '').strip():
                         self.disc_data_dict[global_index] = disc_data
@@ -202,10 +224,11 @@ class DriverDiscReadApp(ZApplication):
         log.info(f'Worker-{worker_id} 已退出')
 
     def _capture_and_queue_disc(self, grid_position: int, global_index: int):
-        """点击位置、截图并放入队列"""
+        """点击位置、截图并放入队列（已优化：减少等待时间）"""
         click_pos = self._get_disc_position(grid_position)
         self.ctx.controller.click(click_pos)
-        time.sleep(0.03)
+        # 减少等待时间：游戏响应通常很快，不需要 30ms
+        time.sleep(0.01)  # 10ms 足够让界面稳定
 
         screen = self.screenshot()
         if screen is not None:
@@ -218,17 +241,17 @@ class DriverDiscReadApp(ZApplication):
         click_y = self.grid_config['start_y'] + row * self.grid_config['height']
         return Point(click_x, click_y)
 
-    def _read_disc_detail(self, screen: MatLike):
-        """从截图中识别驱动盘详情"""
+    def _read_disc_detail(self, screen: MatLike, worker_id: int):
+        """从截图中识别驱动盘详情（使用 worker 专属的 OCR 实例）"""
         screen_name = '仓库-驱动盘'
         if screen is None:
             return None
 
         try:
             disc_data = {}
-            disc_data['name'] = self._ocr_area(screen, screen_name, '驱动盘名称')
+            disc_data['name'] = self._ocr_area(screen, screen_name, '驱动盘名称', worker_id)
 
-            level_text = self._ocr_area(screen, screen_name, '驱动板等级')
+            level_text = self._ocr_area(screen, screen_name, '驱动板等级', worker_id)
             level_match = re.search(r'(\d+)/(\d+)', level_text)
             if level_match:
                 disc_data['rating'] = level_match.group(1)
@@ -237,21 +260,21 @@ class DriverDiscReadApp(ZApplication):
                 disc_data['rating'] = ''
                 disc_data['level'] = level_text
 
-            disc_data['main_stat'] = self._ocr_area(screen, screen_name, '驱动盘主属性')
-            disc_data['main_stat_value'] = self._ocr_area(screen, screen_name, '驱动盘主属性值')
+            disc_data['main_stat'] = self._ocr_area(screen, screen_name, '驱动盘主属性', worker_id)
+            disc_data['main_stat_value'] = self._ocr_area(screen, screen_name, '驱动盘主属性值', worker_id)
 
             for i in range(1, 5):
-                disc_data[f'sub_stat{i}'] = self._ocr_area(screen, screen_name, f'驱动盘副属性{i}')
-                sub_value = self._ocr_area(screen, screen_name, f'驱动盘副属性{i}值')
+                disc_data[f'sub_stat{i}'] = self._ocr_area(screen, screen_name, f'驱动盘副属性{i}', worker_id)
+                sub_value = self._ocr_area(screen, screen_name, f'驱动盘副属性{i}值', worker_id)
                 disc_data[f'sub_stat{i}_value'] = sub_value.strip() if sub_value else ''
 
             return disc_data
         except Exception as e:
-            log.error(f'读取驱动盘详情出错: {e}', exc_info=True)
+            log.error(f'Worker-{worker_id} 读取驱动盘详情出错: {e}', exc_info=True)
             return None
 
-    def _ocr_area(self, screen, screen_name, area_name):
-        """OCR 识别指定区域（线程安全）"""
+    def _ocr_area(self, screen, screen_name, area_name, worker_id: int):
+        """OCR 识别指定区域（使用全局锁保护 ONNX Runtime 调用）"""
         try:
             area = self.ctx.screen_loader.get_area(screen_name, area_name)
             if area is None:
@@ -259,16 +282,18 @@ class DriverDiscReadApp(ZApplication):
 
             part = cv2_utils.crop_image_only(screen, area.rect)
             
-            # 使用锁保护 OCR 调用，确保线程安全
-            with self.ocr_lock:
-                ocr_result_map = self.ctx.ocr.run_ocr(part)
+            # 使用全局锁保护 ONNX Runtime 调用
+            # 原因：虽然每个 worker 有独立实例，但 ONNX Runtime 内部可能有全局状态冲突
+            with self.onnx_global_lock:
+                worker_ocr = self.worker_ocr_instances[worker_id]
+                ocr_result_map = worker_ocr.run_ocr(part)
 
             if ocr_result_map:
                 result_text = list(ocr_result_map.keys())[0]
                 return result_text.strip()
             return ''
         except Exception as e:
-            log.error(f'OCR识别区域 [{area_name}] 出错: {e}', exc_info=True)
+            log.error(f'Worker-{worker_id} OCR识别区域 [{area_name}] 出错: {e}', exc_info=True)
             return ''
 
     @node_from(from_name='扫描驱动盘')
