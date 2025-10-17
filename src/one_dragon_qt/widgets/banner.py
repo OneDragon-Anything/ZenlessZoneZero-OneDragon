@@ -137,21 +137,18 @@ class Banner(QWidget):
 
     def _on_video_size_changed(self, size) -> None:
         """视频尺寸改变（加载完成），调整视图并提取第一帧"""
-        try:
-            # 调整视频视图大小以适配新尺寸
-            self._resize_video_view()
+        # 调整视频视图大小以适配新尺寸
+        self._resize_video_view()
 
-            # 提取第一帧用于主题色
-            if not self.video_item or not self.media_player:
-                return
+        # 提取第一帧用于主题色
+        if not self.video_item or not self.media_player:
+            return
 
-            video_sink = self.media_player.videoSink()
-            if video_sink:
-                frame = video_sink.videoFrame()
-                if frame.isValid():
-                    self.banner_image = frame.toImage()
-        except Exception:
-            pass
+        video_sink = self.media_player.videoSink()
+        if video_sink:
+            frame = video_sink.videoFrame()
+            if frame.isValid():
+                self.banner_image = frame.toImage()
 
     def _cleanup_video(self) -> None:
         """清理视频播放器资源"""
