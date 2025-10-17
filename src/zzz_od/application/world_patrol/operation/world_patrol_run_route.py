@@ -168,6 +168,8 @@ class WorldPatrolRunRoute(ZOperation):
                 self.ctx.controller.stop_moving_forward()
                 # 有坐标但卡住：执行一次脱困；若达到尝试上限则触发当前路线重启
                 if self._get_rid_of_stuck():
+                    self.stuck_pos = Point(0, 0)  # 尝试脱困后 重置脱困坐标
+                    self.stuck_pos_start_time = 0
                     return self.round_fail(status='卡住超限，重启当前路线')
         else:
             self.stuck_pos = next_pos
