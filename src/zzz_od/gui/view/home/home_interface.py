@@ -341,9 +341,10 @@ class BackgroundImageDownloader(BaseThread):
         if not self._is_running:
             return
 
+        success = False
         try:
-            resp = requests.get(self.url, timeout=5)
-            data = resp.json()
+            with requests.get(self.url, timeout=5) as resp:
+                data = resp.json()
 
             result = self._extract_image_url(data)
             if not result:
@@ -351,35 +352,18 @@ class BackgroundImageDownloader(BaseThread):
 
             # 官方动态使用流式下载避免内存溢出
             if self.download_type == "official_dynamic":
-                self.download_starting.emit()
-                temp_path = self.save_path.with_suffix(self.save_path.suffix + '.tmp')
-                try:
-                    with requests.get(result, stream=True, timeout=30) as video_resp:
-                        if video_resp.status_code != 200:
-                            return
-                        with open(temp_path, 'wb') as f:
-                            for chunk in video_resp.iter_content(chunk_size=256 * 1024):
-                                if not self._is_running:
-                                    return
-                                if chunk:
-                                    f.write(chunk)
-                    if self.save_path.exists():
-                        self.save_path.unlink()
-                    temp_path.rename(self.save_path)
-                except Exception:
-                    if temp_path.exists():
-                        temp_path.unlink()
-                    raise
+                success = self._download_official_dynamic_video(result)
             else:
                 # 普通图片下载
-                img_resp = requests.get(result, timeout=5)
-                if img_resp.status_code != 200:
-                    return
-                self._save_image(img_resp.content)
+                with requests.get(result, timeout=5) as img_resp:
+                    if img_resp.status_code == 200:
+                        self._save_image(img_resp.content)
+                        success = True
 
-            setattr(self.ctx.custom_config, self.config_key, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-            # 使用队列连接确保线程安全
-            self.image_downloaded.emit(True)
+            if success:
+                setattr(self.ctx.custom_config, self.config_key, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                # 使用队列连接确保线程安全
+                self.image_downloaded.emit(True)
 
         except Exception as e:
             log.error(f"{self.error_msg}: {e}")
@@ -438,6 +422,52 @@ class BackgroundImageDownloader(BaseThread):
                 except Exception as cleanup_err:
                     log.warning(f"清理临时文件失败: {cleanup_err}")
             raise
+
+    def _download_official_dynamic_video(self, video_url: str) -> bool:
+        """下载官方动态背景视频，确保取消时清理临时文件"""
+        self.download_starting.emit()
+
+        temp_path = self.save_path.with_suffix(self.save_path.suffix + '.tmp')
+        download_success = False
+        cancelled = False
+        status_ok = False
+
+        try:
+            with requests.get(video_url, stream=True, timeout=30) as video_resp:
+                status_ok = video_resp.status_code == 200
+                if status_ok:
+                    with open(temp_path, 'wb') as f:
+                        for chunk in video_resp.iter_content(chunk_size=256 * 1024):
+                            if not self._is_running:
+                                cancelled = True
+                                break
+                            if chunk:
+                                f.write(chunk)
+                        else:
+                            download_success = True
+        finally:
+            if temp_path.exists() and not download_success:
+                try:
+                    temp_path.unlink()
+                except Exception:
+                    pass
+
+        if not status_ok or cancelled or not download_success:
+            return False
+
+        try:
+            if self.save_path.exists():
+                self.save_path.unlink()
+            temp_path.rename(self.save_path)
+        except Exception:
+            if temp_path.exists():
+                try:
+                    temp_path.unlink()
+                except Exception:
+                    pass
+            raise
+
+        return True
 
 class HomeInterface(VerticalScrollInterface):
     """主页界面"""
