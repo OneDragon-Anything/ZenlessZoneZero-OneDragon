@@ -433,9 +433,9 @@ class BackgroundImageDownloader(BaseThread):
             if temp_path.exists():
                 try:
                     temp_path.unlink()
-                except Exception:
-                    pass
-            raise e
+                except Exception as cleanup_err:
+                    log.warning(f"清理临时文件失败: {cleanup_err}")
+            raise
 
 class HomeInterface(VerticalScrollInterface):
     """主页界面"""
@@ -861,7 +861,7 @@ class HomeInterface(VerticalScrollInterface):
         """检查是否可以使用缓存的主题色"""
         cached_path = self.ctx.custom_config.theme_color_banner_path
         current_path = Path(current_banner_path)
-        
+
         if cached_path != current_banner_path or not current_path.exists():
             return False
 
