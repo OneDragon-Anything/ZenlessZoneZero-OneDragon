@@ -1,6 +1,7 @@
 template_name: "速切模板-波可娜"
 handlers:
   - states: "[前台-波可娜]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-波可娜]"
     sub_handlers:
       - states: "[自定义-黄光切人, 0, 0.5]"
         operations:
@@ -11,7 +12,7 @@ handlers:
           - operation_template: "通用-闪A"
 
       # 连携
-      - states: "[按键可用-连携技, 0, 0.5]"
+      - states: "[自定义-连携换人, 0, 0.5]"
         operations:
           - operation_template: "通用-连携攻击"
 
