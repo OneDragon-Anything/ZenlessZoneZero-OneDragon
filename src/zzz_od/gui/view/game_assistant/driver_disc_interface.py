@@ -1,10 +1,12 @@
 from PySide6.QtWidgets import QWidget, QHeaderView, QTableWidgetItem
 from qfluentwidgets import FluentIcon, PushButton, TableWidget
 
+from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.row import Row
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
 from zzz_od.application.driver_disc_read import driver_disc_read_const
 from zzz_od.context.zzz_context import ZContext
 
@@ -29,9 +31,21 @@ class DriverDiscInterface(AppRunInterface):
         # 帮助卡片
         self.help_opt = HelpCard(
             title='驱动盘识别',
-            content='自动识别驱动盘属性并导出'
+            content='自动识别驱动盘属性并导出。支持多线程并行处理，GPU 模式推荐 4-8 个线程，CPU 模式推荐 2-4 个线程。'
         )
         content.add_widget(self.help_opt)
+
+        # OCR 线程数配置
+        self.ocr_worker_card = SpinBoxSettingCard(
+            icon=FluentIcon.IOT,
+            title='OCR 处理线程数',
+            content='并行处理 OCR 识别的线程数量。GPU 模式推荐 4-8，CPU 模式推荐 2-4。修改后需重启程序生效。',
+            adapter=get_prop_adapter(self.ctx.model_config, 'ocr_worker_count'),
+            minimum=1,
+            maximum=8,
+            step=1
+        )
+        content.add_widget(self.ocr_worker_card)
 
         # 表格区域
         table_row = Row()
