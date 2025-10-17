@@ -2,7 +2,7 @@ import os
 from PySide6.QtCore import Qt, QUrl, QRectF
 from PySide6.QtGui import QPixmap, QPainter, QPainterPath, QImage, QRegion, QBitmap
 from PySide6.QtWidgets import QWidget, QGraphicsView, QGraphicsScene
-from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
+from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QGraphicsVideoItem
 from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 
@@ -19,7 +19,6 @@ class Banner(QWidget):
 
         # 视频播放器组件
         self.media_player = None
-        self.audio_output = None
         self.graphics_view = None
         self.video_item = None
         self._was_playing = False
@@ -162,10 +161,6 @@ class Banner(QWidget):
             self.media_player.deleteLater()
             self.media_player = None
             self._was_playing = False
-
-        if self.audio_output:
-            self.audio_output.deleteLater()
-            self.audio_output = None
 
         if self.graphics_view:
             self.graphics_view.deleteLater()
