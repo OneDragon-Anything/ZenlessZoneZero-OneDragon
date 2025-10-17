@@ -116,8 +116,13 @@ class Banner(QWidget):
             # 设置视频源
             self.media_player.setSource(QUrl.fromLocalFile(video_path))
 
-            # 设置循环播放（Qt 6.8+ 支持，更流畅的无缝循环）
-            self.media_player.setLoops(QMediaPlayer.Loops.Infinite)
+            # 设置循环播放
+            infinite_loops = getattr(QMediaPlayer, "Infinite", None)
+            if infinite_loops is None and hasattr(QMediaPlayer, "Loops"):
+                infinite_loops = getattr(QMediaPlayer.Loops, "Infinite", -1)
+            if infinite_loops is None:
+                infinite_loops = -1
+            self.media_player.setLoops(int(infinite_loops))
 
             # 监听视频尺寸变化，用于自动调整和提取第一帧
             self.video_item.nativeSizeChanged.connect(self._on_video_size_changed)
