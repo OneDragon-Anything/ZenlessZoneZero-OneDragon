@@ -53,17 +53,29 @@ handlers:
             post_delay: 0.1
             repeat: 30
 
-      - states: "[席德-特殊技可用]"
-        debug_name: "席德射击"
-        operations:
-          - operation_template: "席德-强化特殊技"
-
       - states: "[席德-终结技可用] & ![自定义-席德-铁拳冲击, 0, 5]"
         debug_name: "席德终结技"
         operations:
           - operation_template: "席德-终结技"
 
+      - states: "[席德-特殊技可用]"
+        interrupt_states: "[席德-终结技可用] & [自定义-连携换人, 0, 10]"
+        debug_name: "席德射击"
+        operations:
+          - operation_template: "席德-强化特殊技"
+
+      - states: "[后台-1-强攻] & [后台-1-特殊技可用] | [后台-2-强攻] & [后台-2-特殊技可用]"
+        interrupt_states: "[席德-终结技可用]"
+        debug_name: "给队友开火吧"
+        operations:
+          - op_name: "设置状态"
+            state_list: ["自定义-速切结束"]
+          - op_name: "按键-普通攻击"
+            post_delay: 0.1
+            repeat: 10
+
       - states: ""
+        interrupt_states: "[席德-终结技可用]"
         debug_name: "没能量了"
         operations:
           - op_name: "按键-普通攻击"

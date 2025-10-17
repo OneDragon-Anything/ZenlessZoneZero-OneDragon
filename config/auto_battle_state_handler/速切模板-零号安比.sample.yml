@@ -31,7 +31,7 @@ handlers:
         operations:
           - operation_template: "零号安比-特殊技突进"
 
-      - states: "[自定义-连携换人, 1, 10]"
+      - states: "[自定义-连携换人, 1, 12]"
         debug_name: "失衡期"
         sub_handlers:
           - states: "[自定义-零号安比-白雷, 0, 999]{660, 9990}"
@@ -51,10 +51,6 @@ handlers:
             operations:
               - operation_template: "零号安比-强化特殊技"
 
-      - states: "[后台-席德] & [零号安比-特殊技可用]"
-        operations:
-          - operation_template: "零号安比-给席德的专属强化特殊技合轴"
-
       - states: "![自定义-零号安比-白雷, 500, 999]"
         debug_name: "无白雷"
         sub_handlers:
@@ -64,7 +60,7 @@ handlers:
 
           - states: "[零号安比-特殊技可用] & [零号安比-能量]{110, 120}"
             operations:
-              - operation_template: "零号安比-强化特殊技"
+              - operation_template: "零号安比-给席德的专属强化特殊技合轴"
 
       - states: "[自定义-零号安比-白雷, 0, 999]{450, 9999} & ([后台-1-特殊技可用] | [后台-2-特殊技可用])"
         operations:

@@ -35,13 +35,6 @@ handlers:
               - op_name: "清除状态"
                 state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-          # 副C打完输出就应该走了，奥菲丝速切用的是特殊能量而不是角色能量
-          - states: "[前台-强攻] & [后台-席德] & ![前台-特殊技可用] & ![奥菲丝-蓄炎]{100, 120} & ![自定义-零号安比-白雷, 0, 999]"
-            debug_name: "席德打输出了"
-            operations:
-              - op_name: "按键-切换角色"
-                agent_name: "席德"
-
           # 没有上面的几位高贵，就藏这里好了
           - states: ""
             sub_handlers:
@@ -54,94 +47,106 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-扳机]" # 扳机补强化
+              - states: "![自定义-连携换人, 0, 12]"
+                debug_name: "非失衡期间才有你们"
                 sub_handlers:
-                  - states: "([扳机-特殊技可用] | [扳机-终结技可用]) & ![自定义-扳机-强化追击, 0, 7]"
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "扳机"
-                      - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                  - states: "![前台-扳机]" # 扳机补强化
+                    sub_handlers:
+                      - states: "([扳机-特殊技可用] | [扳机-终结技可用]) & ![自定义-扳机-强化追击, 0, 7]"
+                        operations:
+                          - op_name: "按键-切换角色"
+                            agent_name: "扳机"
+                          - op_name: "清除状态"
+                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-本]" # 本要补护盾
-                sub_handlers:
-                  - states: "[本-特殊技可用] & ![自定义-本-守卫, 0, 20]"
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "本"
-                      - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                  - states: "![前台-本]" # 本要补护盾
+                    sub_handlers:
+                      - states: "[本-特殊技可用] & ![自定义-本-守卫, 0, 20]"
+                        operations:
+                          - op_name: "按键-切换角色"
+                            agent_name: "本"
+                          - op_name: "清除状态"
+                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-凯撒]" # 凯撒要补护盾
-                sub_handlers:
-                  - states: "[凯撒-特殊技可用] & ([自定义-血量扣减, 0, 3] | ![自定义-凯撒-护盾, 0, 20]) | "
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "凯撒"
-                      - op_name: "清除状态"
-                        state_list:
-                          [
-                            "自定义-血量扣减",
-                            "自定义-速切结束",
-                            "自定义-动作不打断",
-                          ]
+                  - states: "![前台-凯撒]" # 凯撒要补护盾
+                    sub_handlers:
+                      - states: "[凯撒-特殊技可用] & ([自定义-血量扣减, 0, 3] | ![自定义-凯撒-护盾, 0, 20])"
+                        operations:
+                          - op_name: "按键-切换角色"
+                            agent_name: "凯撒"
+                          - op_name: "清除状态"
+                            state_list:
+                              [
+                                "自定义-血量扣减",
+                                "自定义-速切结束",
+                                "自定义-动作不打断",
+                              ]
 
-                  - states: "[凯撒-终结技可用] & ![自定义-连携换人, 0, 10]"
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "凯撒"
-                      - op_name: "清除状态"
-                        state_list:
-                          [
-                            "自定义-血量扣减",
-                            "自定义-速切结束",
-                            "自定义-动作不打断",
-                          ]
+                      - states: "[凯撒-终结技可用] & ![自定义-连携换人, 0, 10]"
+                        operations:
+                          - op_name: "按键-切换角色"
+                            agent_name: "凯撒"
+                          - op_name: "清除状态"
+                            state_list:
+                              [
+                                "自定义-血量扣减",
+                                "自定义-速切结束",
+                                "自定义-动作不打断",
+                              ]
 
-              - states: "![前台-莱特]"
-                sub_handlers:
-                  - states: "[莱特-能量]{80, 120} | ![自定义-莱特-BUFF, 0, 15] & [莱特-士气]{80, 100}"
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "莱特"
-                      - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                  - states: "![前台-莱特]"
+                    sub_handlers:
+                      - states: "[莱特-能量]{80, 120} | ![自定义-莱特-BUFF, 0, 15] & [莱特-士气]{80, 100}"
+                        operations:
+                          - op_name: "按键-切换角色"
+                            agent_name: "莱特"
+                          - op_name: "清除状态"
+                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-波可娜] & [波可娜-猎步]{0, 0}"
-                sub_handlers:
-                  - states: "[波可娜-特殊技可用] | [波可娜-终结技可用]"
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "波可娜"
-                      - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                  - states: "![前台-波可娜] & [波可娜-猎步]{0, 0}"
+                    sub_handlers:
+                      - states: "[波可娜-特殊技可用] | [波可娜-终结技可用]"
+                        operations:
+                          - op_name: "按键-切换角色"
+                            agent_name: "波可娜"
+                          - op_name: "清除状态"
+                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-潘引壶] & ![自定义-潘引壶-通窍, 0, 10]"
-                sub_handlers:
-                  - states: "[潘引壶-特殊技可用]"
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "潘引壶"
-                      - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                  - states: "![前台-潘引壶] & ![自定义-潘引壶-通窍, 0, 10]"
+                    sub_handlers:
+                      - states: "[潘引壶-特殊技可用]"
+                        operations:
+                          - op_name: "按键-切换角色"
+                            agent_name: "潘引壶"
+                          - op_name: "清除状态"
+                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-莱卡恩]"
-                sub_handlers:
-                  - states: "[莱卡恩-特殊技可用]"
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "莱卡恩"
-                      - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                  - states: "![前台-莱卡恩]"
+                    sub_handlers:
+                      - states: "[莱卡恩-特殊技可用]"
+                        operations:
+                          - op_name: "按键-切换角色"
+                            agent_name: "莱卡恩"
+                          - op_name: "清除状态"
+                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
-              - states: "![前台-橘福福]"
-                sub_handlers:
-                  - states: "[橘福福-特殊技可用]"
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "橘福福"
-                      - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                  - states: "![前台-橘福福]"
+                    sub_handlers:
+                      - states: "[橘福福-特殊技可用]"
+                        operations:
+                          - op_name: "按键-切换角色"
+                            agent_name: "橘福福"
+                          - op_name: "清除状态"
+                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
+
+                  - states: "![前台-珂蕾妲]"
+                    sub_handlers:
+                      - states: "[珂蕾妲-特殊技可用]"
+                        operations:
+                          - op_name: "按键-切换角色"
+                            agent_name: "珂蕾妲"
+                          - op_name: "清除状态"
+                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
               - states: "![前台-卢西娅]"
                 sub_handlers:
@@ -158,15 +163,6 @@ handlers:
                     operations:
                       - op_name: "按键-切换角色"
                         agent_name: "浮波柚叶"
-                      - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
-
-              - states: "![前台-珂蕾妲]"
-                sub_handlers:
-                  - states: "[珂蕾妲-特殊技可用]"
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "珂蕾妲"
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
