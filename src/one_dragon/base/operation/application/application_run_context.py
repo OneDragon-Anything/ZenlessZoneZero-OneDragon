@@ -120,7 +120,7 @@ class ApplicationRunContext:
 
     def get_application(
         self, app_id: str, instance_idx: int, group_id: str
-    ) -> Optional[Application]:
+    ) -> Application:
         """
         创建应用实例。
 
@@ -132,14 +132,14 @@ class ApplicationRunContext:
             group_id: 应用组ID，可将应用分组运行
 
         Returns:
-            Optional[Application]: 创建的应用实例，如果应用未注册则返回None
+            Application: 创建的应用实例
         """
         if app_id not in self._application_factory_map:
-            return None
+            raise Exception(f"应用未注册 {app_id}")
         factory = self._application_factory_map[app_id]
         return factory.create_application(instance_idx=instance_idx, group_id=group_id)
 
-    def get_application_name(self, app_id: str) -> Optional[str]:
+    def get_application_name(self, app_id: str) -> str:
         """
         获取应用名称
 
@@ -150,7 +150,7 @@ class ApplicationRunContext:
             str: 应用名称
         """
         if app_id not in self._application_factory_map:
-            return None
+            raise Exception(f"应用未注册 {app_id}")
 
         return self._application_factory_map[app_id].app_name
 
@@ -172,6 +172,9 @@ class ApplicationRunContext:
 
         Returns:
             ApplicationConfig: 应用配置对象
+
+        Raises:
+            Exception: 如果注册应用无需配置(ApplicationFactory.create_config未实现)时，调用本方法会抛出异常
         """
         if app_id is None:
             app_id = self.current_app_id
@@ -205,6 +208,9 @@ class ApplicationRunContext:
 
         Returns:
             AppRunRecord: 运行记录对象
+
+        Raises:
+            Exception: 如果子类应用无需配置(ApplicationFactory.create_run_record未实现)时，调用本方法会抛出异常
         """
         if app_id is None:
             app_id = self.current_app_id

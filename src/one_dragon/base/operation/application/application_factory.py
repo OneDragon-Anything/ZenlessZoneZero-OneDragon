@@ -1,5 +1,4 @@
 from abc import ABC
-from typing import Optional
 
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from one_dragon.base.operation.application_base import Application
@@ -63,7 +62,7 @@ class ApplicationFactory(ABC):
         """
         raise Exception(f"未提供应用配置创建方法 {self.app_id}")
 
-    def create_run_record(self, instance_idx: int) -> Optional[AppRunRecord]:
+    def create_run_record(self, instance_idx: int) -> AppRunRecord:
         """
         创建运行记录实例。
 
@@ -90,7 +89,10 @@ class ApplicationFactory(ABC):
             group_id: 应用组ID，不同应用组可以有不同的应用配置
 
         Returns:
-            Optional[ApplicationConfig]: 配置对象，如果创建失败则返回None
+            ApplicationConfig: 配置对象
+
+        Raises:
+            Exception: 如果子类应用无需配置(即不提供create_config)时，调用本方法会抛出异常
         """
         key = f"{instance_idx}_{group_id}"
         if key in self._config_cache:
@@ -112,7 +114,10 @@ class ApplicationFactory(ABC):
             instance_idx: 账号实例下标
 
         Returns:
-            Optional[AppRunRecord]: 运行记录对象，如果创建失败则返回None
+            AppRunRecord: 运行记录对象，如果创建失败则返回None
+
+        Raises:
+            Exception: 如果子类应用无需配置(即不提供create_run_record)时，调用本方法会抛出异常
         """
         key = f"{instance_idx}"
         if key in self._run_record_cache:
