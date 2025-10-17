@@ -35,6 +35,23 @@ class CustomConfig(YamlConfig):
 
     def __init__(self):
         super().__init__(module_name='custom')
+        self._migrate_background_type()
+
+    def _migrate_background_type(self) -> None:
+        """迁移旧版本的背景配置到新的枚举类型"""
+        if self.get('background_type', None) is not None:
+            return
+
+        if self.get('official_dynamic', False):
+            new_value = BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value
+        elif self.get('version_poster', False):
+            new_value = BackgroundTypeEnum.VERSION_POSTER.value.value
+        elif self.get('remote_banner', False):
+            new_value = BackgroundTypeEnum.OFFICIAL_STATIC.value.value
+        else:
+            new_value = BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value
+
+        self.update('background_type', new_value)
 
     @property
     def ui_language(self) -> str:
@@ -103,22 +120,9 @@ class CustomConfig(YamlConfig):
     @property
     def background_type(self) -> str:
         """
-        主页背景类型（官方启动器/版本海报/官方动态）
+        主页背景类型（官方静态/版本海报/官方动态/无）
         """
-        value = self.get('background_type', None)
-        if value is None:
-            # 迁移旧配置
-            if self.get('official_dynamic', False):
-                value = BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value
-            elif self.get('version_poster', False):
-                value = BackgroundTypeEnum.VERSION_POSTER.value.value
-            elif self.get('remote_banner', False):
-                value = BackgroundTypeEnum.REMOTE_BANNER.value.value
-            else:
-                # 默认使用官方动态背景
-                value = BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value
-            self.update('background_type', value)
-        return value
+        return self.get('background_type', BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value)
 
     @background_type.setter
     def background_type(self, new_value: str) -> None:
