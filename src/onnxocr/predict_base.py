@@ -7,11 +7,15 @@ class PredictBase(object):
     def get_onnx_session(self, model_dir, use_gpu):
         # 使用gpu
         if use_gpu:
-            providers =[('CUDAExecutionProvider',{"cudnn_conv_algo_search": "DEFAULT"}),'CPUExecutionProvider']
+            availables = onnxruntime.get_available_providers()
+            if 'DmlExecutionProvider' in availables:
+                providers = ['DmlExecutionProvider', 'CPUExecutionProvider']
+            else:
+                providers = ['CPUExecutionProvider']
         else:
-            providers =['CPUExecutionProvider']
+            providers = ['CPUExecutionProvider']
 
-        onnx_session = onnxruntime.InferenceSession(model_dir, None,providers=providers)
+        onnx_session = onnxruntime.InferenceSession(model_dir, None, providers=providers)
 
         # print("providers:", onnxruntime.get_device())
         return onnx_session
