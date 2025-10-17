@@ -25,9 +25,10 @@ class ThemeColorModeEnum(Enum):
 
 class BackgroundTypeEnum(Enum):
 
-    REMOTE_BANNER = ConfigItem('官方启动器主页背景', 'remote_banner')
+    OFFICIAL_STATIC = ConfigItem('官方静态背景', 'official_static')
     VERSION_POSTER = ConfigItem('版本海报', 'version_poster')
     OFFICIAL_DYNAMIC = ConfigItem('官方动态背景', 'official_dynamic')
+    NONE = ConfigItem('无', 'none')
 
 
 class CustomConfig(YamlConfig):
