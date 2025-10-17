@@ -95,6 +95,19 @@ class AgentOutfitConfig(YamlConfig):
     def alice(self, value: str) -> None:
         self.update('alice', value)
 
+    @property
+    def vivian_outfit_list(self) -> str:
+        return self.get('vivian_outfit_list', [AgentOutfitVivian.DEFAULT.value.value,
+                                               AgentOutfitVivian.IRIS_OF_THE_SHORE.value.value])
+
+    @property
+    def vivian(self) -> str:
+        return self.get('vivian', AgentOutfitVivian.DEFAULT.value.value)
+
+    @vivian.setter
+    def vivian(self, value: str) -> None:
+        self.update('vivian', value)
+
 class AgentOutfitNicole(Enum):
     """
     妮可皮肤
@@ -138,3 +151,10 @@ class AgentOutfitAlice(Enum):
     """
     DEFAULT = ConfigItem('默认', 'alice')
     SEA_OF_THYME = ConfigItem('百里香之海', 'alice_sea_of_thyme')
+
+class AgentOutfitVivian(Enum):
+    """
+    薇薇安皮肤
+    """
+    DEFAULT = ConfigItem('默认', 'vivian')
+    IRIS_OF_THE_SHORE = ConfigItem('鸢花池畔', 'vivian_iris_of_the_shore')

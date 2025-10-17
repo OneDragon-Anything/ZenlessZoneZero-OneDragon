@@ -146,6 +146,7 @@ class ZContext(OneDragonContext):
         AgentEnum.YIXUAN.value.template_id_list = [self.agent_outfit_config.yixuan]
         AgentEnum.YUZUHA.value.template_id_list = [self.agent_outfit_config.yuzuha]
         AgentEnum.ALICE.value.template_id_list = [self.agent_outfit_config.alice]
+        AgentEnum.VIVIAN.value.template_id_list = [self.agent_outfit_config.vivian]
 
     def init_agent_template_id_list(self) -> None:
         """
@@ -158,6 +159,7 @@ class ZContext(OneDragonContext):
         AgentEnum.YIXUAN.value.template_id_list = self.agent_outfit_config.yixuan_outfit_list
         AgentEnum.YUZUHA.value.template_id_list = self.agent_outfit_config.yuzuha_outfit_list
         AgentEnum.ALICE.value.template_id_list = self.agent_outfit_config.alice_outfit_list
+        AgentEnum.VIVIAN.value.template_id_list = self.agent_outfit_config.vivian_outfit_list
 
     def after_app_shutdown(self) -> None:
         """
