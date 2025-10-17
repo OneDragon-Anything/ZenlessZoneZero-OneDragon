@@ -64,6 +64,9 @@ notice_cache/
 # 需自行下载的模型文件
 models/
 
+# 驱动盘识别导出数据
+driver_disc/
+
 # telemetry
 config/telemetry.yml
 config/privacy.yml

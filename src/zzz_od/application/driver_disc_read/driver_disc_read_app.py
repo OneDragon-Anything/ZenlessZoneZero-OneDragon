@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from queue import Empty
 from typing import Optional, Dict
+import numpy as np
 
 from cv2.typing import MatLike
 from one_dragon.base.geometry.point import Point
@@ -29,6 +30,7 @@ def _ocr_worker_process(
     screenshot_queue: multiprocessing.Queue,
     result_queue: multiprocessing.Queue,
     ready_queue: multiprocessing.Queue,  # 就绪信号队列
+    warmup_queue: multiprocessing.Queue,  # 预热完成信号队列
     ocr_areas: Dict[str, tuple],  # {area_name: (x, y, w, h)}
     use_gpu: bool,
     det_limit_side_len: int
@@ -40,31 +42,45 @@ def _ocr_worker_process(
     try:
         # 在进程内创建独立的 OCR 实例
         from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher, OnnxOcrParam
-        
+
         worker_ocr = OnnxOcrMatcher(
             OnnxOcrParam(
                 det_limit_side_len=det_limit_side_len,
                 use_gpu=use_gpu,
             )
         )
-        
+
         log.info(f'Worker-{worker_id} OCR 实例创建完成（进程 PID: {multiprocessing.current_process().pid}）')
-        
+
         # 发送就绪信号
         ready_queue.put(worker_id)
-        
+
+        # 创建一个小的测试图像用于预热（200x300 像素的白色背景）
+        warmup_image = np.ones((200, 300, 3), dtype=np.uint8) * 255
+
+        for warmup_round in range(2):
+            try:
+                _ = worker_ocr.run_ocr(warmup_image)
+            except Exception as e:
+                log.warning(f'Worker-{worker_id} 预热第 {warmup_round + 1} 次出错: {e}')
+
+        log.info(f'Worker-{worker_id} OCR 模型预热完成')
+
+        # 发送预热完成信号
+        warmup_queue.put(worker_id)
+
         while True:
             try:
                 # 从队列获取任务（超时 1 秒）
                 item = screenshot_queue.get(timeout=1)
-                
+
                 # None 作为停止信号
                 if item is None:
                     log.info(f'Worker-{worker_id} 收到停止信号')
                     break
-                
+
                 global_index, screen = item
-                
+
                 # 处理 OCR
                 disc_data = {}
                 try:
@@ -73,36 +89,55 @@ def _ocr_worker_process(
                         x, y, w, h = rect_tuple
                         part = screen[y:y+h, x:x+w]
                         ocr_result_map = worker_ocr.run_ocr(part)
-                        
+
                         if ocr_result_map:
                             result_text = list(ocr_result_map.keys())[0].strip()
                         else:
                             result_text = ''
-                        
+
                         disc_data[area_name] = result_text
-                    
-                    # 解析等级信息
-                    if 'level' in disc_data:
-                        level_match = re.search(r'(\d+)/(\d+)', disc_data['level'])
+
+                    # 解析等级信息（格式：等级03/15）
+                    level_text = disc_data.get('驱动板等级', '')
+                    if level_text:
+                        # 提取 "等级XX/YY" 中的数字
+                        level_match = re.search(r'(\d+)/(\d+)', level_text)
                         if level_match:
-                            disc_data['rating'] = level_match.group(1)
-                            disc_data['level'] = level_match.group(2)
-                    
+                            current_level = level_match.group(1)  # 前面的数字（当前等级）
+                            max_level = level_match.group(2)      # 后面的数字（最大等级）
+
+                            # 根据最大等级判断评级
+                            if max_level == '15':
+                                rating = 'S'
+                            elif max_level == '12':
+                                rating = 'A'
+                            else:
+                                rating = 'B'
+
+                            disc_data['level'] = current_level
+                            disc_data['rating'] = rating
+                        else:
+                            disc_data['level'] = level_text
+                            disc_data['rating'] = ''
+                    else:
+                        disc_data['level'] = ''
+                        disc_data['rating'] = ''
+
                     # 将结果放入结果队列
                     result_queue.put((global_index, disc_data))
-                    
+
                 except Exception as e:
                     log.error(f'Worker-{worker_id} 处理截图出错: {e}', exc_info=True)
                     result_queue.put((global_index, None))
-                    
+
             except Empty:
                 continue
             except Exception as e:
                 log.error(f'Worker-{worker_id} 队列处理异常: {e}', exc_info=True)
                 break
-        
+
         log.info(f'Worker-{worker_id} 进程退出')
-        
+
     except Exception as e:
         log.error(f'Worker-{worker_id} 初始化失败: {e}', exc_info=True)
 
@@ -135,6 +170,7 @@ class DriverDiscReadApp(ZApplication):
         self.screenshot_queue = multiprocessing.Queue(maxsize=10)
         self.result_queue = multiprocessing.Queue()
         self.ready_queue = multiprocessing.Queue()  # 用于接收 worker 就绪信号
+        self.warmup_queue = multiprocessing.Queue()  # 用于接收 worker 预热完成信号
         self.worker_count = self.ctx.model_config.ocr_worker_count
         self.workers = []  # 存储 Process 对象
         self.workers_running = False
@@ -184,7 +220,7 @@ class DriverDiscReadApp(ZApplication):
 
         # 启动 worker 进程
         self._start_workers()
-        
+
         # 启动结果收集线程
         collector_thread = threading.Thread(target=self._result_collector_thread, daemon=True)
         collector_thread.start()
@@ -241,7 +277,7 @@ class DriverDiscReadApp(ZApplication):
         """启动 worker 进程（GPU 多进程）"""
         self.workers_running = True
         self.workers = []
-        
+
         # 预提取所有 OCR 区域坐标（传递给子进程）
         screen_name = '仓库-驱动盘'
         area_names = [
@@ -251,21 +287,21 @@ class DriverDiscReadApp(ZApplication):
             '驱动盘副属性3', '驱动盘副属性3值',
             '驱动盘副属性4', '驱动盘副属性4值',
         ]
-        
+
         self.ocr_areas = {}
         for area_name in area_names:
             area = self.ctx.screen_loader.get_area(screen_name, area_name)
             if area:
                 rect = area.rect
                 self.ocr_areas[area_name] = (rect.x1, rect.y1, rect.width, rect.height)
-        
+
         log.info(f'正在启动 {self.worker_count} 个 OCR worker 进程（GPU 多进程）...')
-        
+
         det_limit_side_len = max(
             self.ctx.project_config.screen_standard_width,
             self.ctx.project_config.screen_standard_height
         )
-        
+
         for i in range(self.worker_count):
             # 启动 worker 进程
             worker = multiprocessing.Process(
@@ -275,6 +311,7 @@ class DriverDiscReadApp(ZApplication):
                     self.screenshot_queue,
                     self.result_queue,
                     self.ready_queue,  # 传递就绪信号队列
+                    self.warmup_queue,  # 传递预热完成信号队列
                     self.ocr_areas,
                     self.ctx.model_config.ocr_gpu,
                     det_limit_side_len
@@ -283,7 +320,7 @@ class DriverDiscReadApp(ZApplication):
             )
             worker.start()
             self.workers.append(worker)
-        
+
         # 等待所有 worker 进程就绪（OCR 实例创建完成）
         ready_count = 0
         log.info(f'等待 {self.worker_count} 个 worker 进程就绪...')
@@ -295,47 +332,65 @@ class DriverDiscReadApp(ZApplication):
             except Empty:
                 log.error(f'等待 worker 进程就绪超时，已就绪: {ready_count}/{self.worker_count}')
                 break
-        
+
         if ready_count == self.worker_count:
-            log.info(f'所有 {self.worker_count} 个 OCR worker 进程已就绪，开始扫描')
+            log.info(f'所有 {self.worker_count} 个 OCR worker 进程已就绪')
         else:
             log.warning(f'只有 {ready_count}/{self.worker_count} 个进程就绪')
+            return
+
+        # 等待所有 worker 进程预热完成
+        warmup_count = 0
+        log.info(f'等待 {self.worker_count} 个 worker 进程预热完成...')
+        while warmup_count < self.worker_count:
+            try:
+                worker_id = self.warmup_queue.get(timeout=60)  # 预热可能需要更长时间
+                warmup_count += 1
+                log.info(f'Worker-{worker_id} 预热完成 ({warmup_count}/{self.worker_count})')
+            except Empty:
+                log.error(f'等待 worker 进程预热超时，已完成: {warmup_count}/{self.worker_count}')
+                break
+
+        if warmup_count == self.worker_count:
+            log.info(f'所有 {self.worker_count} 个 OCR worker 进程预热完成，开始扫描')
+        else:
+            log.warning(f'只有 {warmup_count}/{self.worker_count} 个进程完成预热')
 
     def _stop_workers(self):
         """停止 worker 进程"""
         self.workers_running = False
-        
+
         # 发送停止信号（None sentinel）给每个 worker
         for _ in range(self.worker_count):
             self.screenshot_queue.put(None)
-        
+
         # 等待所有进程结束
         for worker in self.workers:
             worker.join(timeout=3)
             if worker.is_alive():
                 log.warning(f'Worker 进程 {worker.pid} 未能正常退出，强制终止')
                 worker.terminate()
-        
+
         log.info('所有 worker 进程已停止')
-    
+
     def _result_collector_thread(self):
         """结果收集线程：从 result_queue 收集 worker 进程的识别结果"""
         log.info('结果收集线程已启动')
         while self.workers_running or not self.result_queue.empty():
             try:
                 result = self.result_queue.get(timeout=0.5)
-                
+
                 if result is None:  # 停止信号
                     break
-                
+
                 global_index, disc_data = result
-                
+
                 if disc_data:
-                    # 解析区域名称到字段映射
+                    # 解析区域名称到字段映射（level 和 rating 已经在 worker 中解析好了）
                     parsed_data = {
                         'name': disc_data.get('驱动盘名称', ''),
+                        'level': disc_data.get('level', ''),
                         'rating': disc_data.get('rating', ''),
-                        'level': disc_data.get('level', disc_data.get('驱动板等级', '')),
                         'main_stat': disc_data.get('驱动盘主属性', ''),
                         'main_stat_value': disc_data.get('驱动盘主属性值', ''),
                         'sub_stat1': disc_data.get('驱动盘副属性1', ''),
@@ -347,7 +402,7 @@ class DriverDiscReadApp(ZApplication):
                         'sub_stat4': disc_data.get('驱动盘副属性4', ''),
                         'sub_stat4_value': disc_data.get('驱动盘副属性4值', ''),
                     }
-                    
+
                     if parsed_data['name'].strip():
                         self.disc_data_dict[global_index] = parsed_data
                         log.info(f'识别完成 [{len(self.disc_data_dict)}/{self.total_disc_count}]: {parsed_data["name"]}')
@@ -355,12 +410,12 @@ class DriverDiscReadApp(ZApplication):
                         log.warning(f'未识别到驱动盘 [{global_index}]')
                 else:
                     log.warning(f'驱动盘识别失败 [{global_index}]')
-            
+
             except Empty:
                 continue
             except Exception as e:
                 log.error(f'结果收集异常: {e}', exc_info=True)
-        
+
         log.info('结果收集线程已退出')
 
     def _capture_and_queue_disc(self, grid_position: int, global_index: int):
