@@ -1,5 +1,9 @@
 import sys
 import time
+import atexit
+import signal
+import ctypes
+from ctypes import wintypes
 
 import datetime
 import os
@@ -81,7 +85,7 @@ def create_log_folder():
     print_message(f"日志文件夹路径：{log_folder}", "PASS")
     return log_folder
 
-def execute_python_script(app_path, log_folder, no_windows: bool, args: list = None):
+def execute_python_script(app_path, log_folder, no_windows: bool, args: list = None, piped: bool = False):
     # 执行 Python 脚本并重定向输出到日志文件
     timestamp = datetime.datetime.now().strftime("%H.%M")
     log_file_path = os.path.join(log_folder, f"python_{timestamp}.log")
@@ -126,34 +130,146 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
     escaped_args = [escape_powershell_arg(arg) for arg in run_args]
     arg_list = ', '.join(f"'{arg}'" for arg in escaped_args)
 
-    # 构建 PowerShell 命令
-    powershell_command = [
-        "Start-Process",
-        f"'{escape_powershell_arg(uv_path)}'",
-        "-ArgumentList",
-        f"@({arg_list})",
-        "-NoNewWindow",
-        "-RedirectStandardOutput",
-        f"'{escape_powershell_arg(log_file_path)}'",
-        "-PassThru"
-    ]
-    full_command = " ".join(powershell_command)
 
-    # 使用 subprocess.Popen 启动新的 PowerShell 窗口并执行命令
-    if no_windows:
-        subprocess.Popen(["powershell", "-Command", full_command], creationflags=subprocess.CREATE_NO_WINDOW)
+
+    if piped and os.name == 'nt':  
+        
+        # 创建Job对象
+        # 用于管理进程组，解决 `taskkill /f /im OneDragon-Launcher.exe` 后Python.exe进程仍然存活的问题
+        # 设置JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE后， OneDragon-Launcher.exe 退出后将会kill掉所有分配进Job对象的子进程
+        # （若希望进程从中jobobject逃离，则需要设置 JOB_OBJECT_LIMIT_BREAKAWAY_OK，并设置创建进程时使用 creationflags=subprocess.CREATE_BREAKAWAY_FROM_JOB）
+        # https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects
+        # https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_basic_limit_information
+        kernel32 = ctypes.windll.kernel32
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+        JOB_OBJECT_LIMIT_BREAKAWAY_OK = 0x00000800
+        JobObjectExtendedLimitInformation = 9
+
+        class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
+            _fields_ = [
+                ("PerProcessUserTimeLimit", ctypes.c_longlong),
+                ("PerJobUserTimeLimit", ctypes.c_longlong),
+                ("LimitFlags", wintypes.DWORD),
+                ("MinimumWorkingSetSize", ctypes.c_size_t),
+                ("MaximumWorkingSetSize", ctypes.c_size_t),
+                ("ActiveProcessLimit", wintypes.DWORD),
+                ("Affinity", ctypes.c_size_t),
+                ("PriorityClass", wintypes.DWORD),
+                ("SchedulingClass", wintypes.DWORD),
+            ]
+
+        class IO_COUNTERS(ctypes.Structure):
+            _fields_ = [
+                ("ReadOperationCount", ctypes.c_ulonglong),
+                ("WriteOperationCount", ctypes.c_ulonglong),
+                ("OtherOperationCount", ctypes.c_ulonglong),
+                ("ReadTransferCount", ctypes.c_ulonglong),
+                ("WriteTransferCount", ctypes.c_ulonglong),
+                ("OtherTransferCount", ctypes.c_ulonglong),
+            ]
+
+        class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
+            _fields_ = [
+                ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
+                ("IoInfo", IO_COUNTERS),
+                ("ProcessMemoryLimit", ctypes.c_size_t),
+                ("JobMemoryLimit", ctypes.c_size_t),
+                ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                ("PeakJobMemoryUsed", ctypes.c_size_t),
+            ]
+
+        job_handle = kernel32.CreateJobObjectW(None, None)
+        if not job_handle:
+            raise OSError("CreateJobObjectW failed")
+        job_info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+        job_info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_BREAKAWAY_OK
+        if not kernel32.SetInformationJobObject(
+            job_handle,
+            JobObjectExtendedLimitInformation,
+            ctypes.byref(job_info),
+            ctypes.sizeof(job_info),
+        ):
+            kernel32.CloseHandle(job_handle)
+            raise OSError("SetInformationJobObject failed")
+        # 创建进程
+        # stdout, stderr 设置为 None 将会输出到当前程序相应的管道中
+        
+        process = subprocess.Popen(
+            [uv_path] + run_args,
+            stdout=None,
+            stderr=None,
+            stdin=None,
+            creationflags=subprocess.CREATE_NO_WINDOW if no_windows else 0,
+            text=True,
+            encoding='utf-8'
+        )
+        
+        # 将进程加入Job对象
+        if not kernel32.AssignProcessToJobObject(job_handle, process._handle):
+            try:
+                process.terminate()
+            finally:
+                kernel32.CloseHandle(job_handle)
+            raise OSError("AssignProcessToJobObject failed")
+
+        # 注册退出处理函数，当前程序退出时，尝试主动关闭Job对象
+        def _cleanup():
+            try:
+                kernel32.CloseHandle(job_handle)
+            except Exception:
+                pass
+        atexit.register(_cleanup)
+
+        # 注册信号处理，当前程序收到CTRL+C信号时，将信号传递给python子进程，这会使得 `process.wait()` 退出, 并得到返回值
+        # 此时控制台打印的错误信息是子进程输出的
+        def _on_signal(signum, frame):
+            try:
+                process.send_signal(signal.CTRL_BREAK_EVENT)
+            except Exception:
+                process.terminate()
+        signal.signal(signal.SIGINT, _on_signal)
+        try:
+            signal.signal(signal.SIGTERM, _on_signal)
+        except Exception:
+            pass
+
+        # 等待进程结束
+        exit_code = 0
+        try:
+            exit_code = process.wait()
+        finally:
+            ctypes.windll.kernel32.CloseHandle(job_handle)
+        # 如果子进程退出码不为0，则以同样的退出码退出当前程序
+        if exit_code != 0:
+            sys.exit(exit_code)
     else:
-        subprocess.Popen(["powershell", "-Command", full_command])
-    print_message("一条龙 正在启动中，大约 3+ 秒...", "INFO")
+        # 构建 PowerShell 命令
+        powershell_command = [
+            "Start-Process",
+            f"'{escape_powershell_arg(uv_path)}'",
+            "-ArgumentList",
+            f"@({arg_list})",
+            "-NoNewWindow",
+            "-RedirectStandardOutput",
+            f"'{escape_powershell_arg(log_file_path)}'",
+            "-PassThru"
+        ]
+        full_command = " ".join(powershell_command)
+        # 使用 subprocess.Popen 启动新的 PowerShell 窗口并执行命令
+        subprocess.Popen(
+            ["powershell", "-Command", full_command],
+            creationflags=subprocess.CREATE_NO_WINDOW if no_windows else 0
+        )
+        print_message("一条龙 正在启动中，大约 3+ 秒...", "INFO")
 
-def run_python(app_path, no_windows: bool = True, args: list = None):
+def run_python(app_path, no_windows: bool = True, args: list = None, piped: bool = False):
     # 主函数
     try:
         print_message(f"当前工作目录：{path}", "INFO")
         verify_path_issues()
         configure_environment()
         log_folder = create_log_folder()
-        execute_python_script(app_path, log_folder, no_windows, args)
+        execute_python_script(app_path, log_folder, no_windows, args, piped)
     except SystemExit as e:
         print_message(f"程序已退出，状态码：{e.code}", "ERROR")
     except Exception as e:

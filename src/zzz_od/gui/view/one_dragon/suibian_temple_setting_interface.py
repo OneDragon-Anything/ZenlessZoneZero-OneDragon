@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QWidget, QLabel
 from qfluentwidgets import FluentIcon
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.base.operation.application import application_const
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
@@ -211,10 +212,10 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
-        self.config: Optional[SuibianTempleConfig] = self.ctx.run_context.get_config(
+        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
             app_id='suibian_temple',
             instance_idx=self.ctx.current_instance_idx,
-            group_id='one_dragon'
+            group_id=application_const.DEFAULT_GROUP_ID,
         )
 
         self.yum_cha_sin_switch.init_with_adapter(get_prop_adapter(self.config, 'yum_cha_sin'))

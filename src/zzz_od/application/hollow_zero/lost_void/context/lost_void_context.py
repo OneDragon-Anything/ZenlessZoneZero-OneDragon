@@ -137,7 +137,7 @@ class LostVoidContext:
         加载挑战配置
         :return:
         """
-        config: Optional[LostVoidConfig] = self.ctx.run_context.get_config(
+        config: LostVoidConfig = self.ctx.run_context.get_config(
             app_id=lost_void_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,

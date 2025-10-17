@@ -32,11 +32,11 @@ class AppWindowBase(PhosWindow):
         self.splashScreen = SplashScreen(self.windowIcon(), self)
         self.splashScreen.setIconSize(QSize(144, 144))
 
-        # 在创建其他子页面前先显示主界面
-        self.show()
-
         # 初始化窗口
         self.init_window()
+
+        # 在创建其他子页面前先显示主界面
+        self.show()
 
         self.stackedWidget.currentChanged.connect(self.init_interface_on_shown)
         self.create_sub_interface()

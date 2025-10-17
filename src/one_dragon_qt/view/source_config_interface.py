@@ -170,14 +170,12 @@ class SourceConfigInterface(VerticalScrollInterface):
             self.ctx.env_config.cpython_source = CpythonSourceEnum.GITEE.value.value
             self.ctx.env_config.pip_source = PipSourceEnum.ALIBABA.value.value
             self.ctx.env_config.proxy_type = ProxyTypeEnum.GHPROXY.value.value
-            self.ctx.async_update_gh_proxy()
         elif index == 1:  # 中国 - GitHub 代理
             self.ctx.env_config.repository_type = RepositoryTypeEnum.GITHUB.value.value
             self.ctx.env_config.env_source = EnvSourceEnum.GITHUB.value.value
             self.ctx.env_config.cpython_source = CpythonSourceEnum.GITHUB.value.value
             self.ctx.env_config.pip_source = PipSourceEnum.ALIBABA.value.value
             self.ctx.env_config.proxy_type = ProxyTypeEnum.GHPROXY.value.value
-            self.ctx.async_update_gh_proxy()
         elif index == 2:  # 海外
             self.ctx.env_config.repository_type = RepositoryTypeEnum.GITHUB.value.value
             self.ctx.env_config.env_source = EnvSourceEnum.GITHUB.value.value

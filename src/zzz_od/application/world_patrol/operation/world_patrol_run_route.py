@@ -42,7 +42,7 @@ class WorldPatrolRunRoute(ZOperation):
         """
         ZOperation.__init__(self, ctx, op_name=gt('运行路线'))
         
-        self.config: Optional[WorldPatrolConfig] = self.ctx.run_context.get_config(
+        self.config: WorldPatrolConfig = self.ctx.run_context.get_config(
             app_id=world_patrol_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
@@ -58,6 +58,7 @@ class WorldPatrolRunRoute(ZOperation):
         self.no_pos_start_time: float = 0  # 计算坐标失败的开始时间
         self.stuck_pos: Point = self.current_pos  # 被困的坐标
         self.stuck_pos_start_time: float = 0  # 被困坐标的开始时间
+        self.stuck_unstuck_attempts: int = 0  # 连续“有坐标但卡住/无法计算坐标”触发的脱困尝试次数，用于限次（6方向*2轮=12次）
 
         self.in_battle: bool = False  # 是否在战斗中
         self.last_check_battle_time: float = 0  # 上一次检测是否还在战斗的时间
@@ -146,9 +147,11 @@ class WorldPatrolRunRoute(ZOperation):
             if self.no_pos_start_time == 0:
                 self.no_pos_start_time = self.last_screenshot_time
             elif no_pos_seconds > 20:
-                return self.round_fail(status=f'无法计算坐标')
+                return self.round_fail(status='无法计算坐标')
             elif no_pos_seconds > 4:
-                self._get_rid_of_stuck()
+                # 无法计算坐标超过4秒，执行一次脱困；若达到尝试上限则触发当前路线重启
+                if self._get_rid_of_stuck():
+                    return self.round_fail(status='卡住超限，重启当前路线')
             elif no_pos_seconds > 2:
                 self.ctx.controller.stop_moving_forward()
 
@@ -163,7 +166,11 @@ class WorldPatrolRunRoute(ZOperation):
                 self.stuck_pos_start_time = self.last_screenshot_time
             elif self.last_screenshot_time - self.stuck_pos_start_time > 2:
                 self.ctx.controller.stop_moving_forward()
-                self._get_rid_of_stuck()
+                # 有坐标但卡住：执行一次脱困；若达到尝试上限则触发当前路线重启
+                if self._get_rid_of_stuck():
+                    self.stuck_pos = Point(0, 0)  # 尝试脱困后 重置脱困坐标
+                    self.stuck_pos_start_time = 0
+                    return self.round_fail(status='卡住超限，重启当前路线')
         else:
             self.stuck_pos = next_pos
             self.stuck_pos_start_time = 0
@@ -208,15 +215,32 @@ class WorldPatrolRunRoute(ZOperation):
             self.current_idx += 1
             if not is_next_move:
                 self.ctx.controller.stop_moving_forward()
+            # 到达目标点后，重置脱困尝试计数
+            if self.stuck_unstuck_attempts:
+                self.stuck_unstuck_attempts = 0
             return self.round_wait(status=f'已到达目标点 {target_pos}')
 
         return self.round_wait(status=f'当前坐标 {self.current_pos} 角度 {current_angle} 目标点 {target_pos}',
                                wait_round_time=0.3,  # 这个时间设置太小的话 会出现转向之后方向判断不准
                                )
 
-    def _get_rid_of_stuck(self):
-        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx.auto_op)  # 移动前切换到最佳角色
-        log.info('本次脱困方向 %s' % self.stuck_move_direction)
+    def _get_rid_of_stuck(self) -> bool:
+        """
+        执行一次脱困动作，并统一累计尝试次数；若达到上限返回 True 以触发上层重启当前路线。
+        Returns:
+            bool: 是否达到尝试上限
+        """
+        # 积累脱困尝试次数（无论来源于“有坐标但卡住”还是“无法计算坐标”）
+        self.stuck_unstuck_attempts += 1
+        if self.stuck_unstuck_attempts >= 12:
+            log.info('脱困已尝试 12 次，停止 3 秒后重启当前路线')
+            time.sleep(3)
+            self.stuck_unstuck_attempts = 0
+            return True
+
+        if self.ctx.auto_op is not None:
+            auto_battle_utils.switch_to_best_agent_for_moving(self.ctx.auto_op)  # 移动前切换到最佳角色
+        log.info(f'本次脱困方向 {self.stuck_move_direction}')
         if self.stuck_move_direction == 0:  # 向左走
             self.ctx.controller.move_a(press=True, press_time=1, release=True)
         elif self.stuck_move_direction == 1:  # 向右走
@@ -240,6 +264,7 @@ class WorldPatrolRunRoute(ZOperation):
         self.stuck_move_direction += 1
         if self.stuck_move_direction > 5:
             self.stuck_move_direction = 0
+        return False
 
     @node_from(from_name='运行指令', status='进入战斗')
     @operation_node(name='初始化自动战斗')

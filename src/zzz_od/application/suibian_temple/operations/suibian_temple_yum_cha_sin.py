@@ -6,6 +6,7 @@ from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -52,7 +53,11 @@ class SuibianTempleYumChaSin(ZOperation):
         ZOperation.__init__(self, ctx,
                             op_name=f'{gt("随便观", "game")} {gt("饮茶仙", "game")}')
 
-        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(app_id='suibian_temple')  # type: ignore
+        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
+            app_id='suibian_temple',
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
         self.last_yum_cha_opt: str = ''  # 上一次饮茶仙的选项
         self.last_yum_cha_period: bool = False  # 饮茶仙是否点击过定期采购了
 

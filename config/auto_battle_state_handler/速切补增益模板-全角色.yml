@@ -143,6 +143,15 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-速切结束", "自定义-动作不打断"]
 
+              - states: "![前台-卢西娅]"
+                sub_handlers:
+                  - states: "[卢西娅-特殊技可用]"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "卢西娅"
+                      - op_name: "清除状态"
+                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+
               - states: "![前台-浮波柚叶] & [后台-1-浮波柚叶]"
                 sub_handlers:
                   - states: "[浮波柚叶-特殊技可用]"

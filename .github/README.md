@@ -19,7 +19,8 @@ __ZenlessZoneZero-OneDragon__
     <img alt="stars" src="https://img.shields.io/github/stars/DoctorReid/ZenlessZoneZero-OneDragon?style=social">
     <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/DoctorReid/ZenlessZoneZero-OneDragon/total?style=social">
 </div>
-<br>
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/OneDragon-Anything/ZenlessZoneZero-OneDragon)
 
 学习实践 __图像识别 & 自动化__ 的智能解决方案
 
@@ -101,6 +102,22 @@ __ZenlessZoneZero-OneDragon__
 > 请先对该项目点⭐（右上角“star")，入群需填入 Github 账号的 ID(头像 → Your Profile，URL 中的 ID), 请遵守群规,友善交流
 
 </div>
+
+## 📝 签名策略 (Code Signing Policy)
+
+免费代码签名由 [SignPath.io](https://signpath.io/) 提供，证书由 [SignPath Foundation](https://signpath.org/) 颁发
+
+审批人：[DoctorReid](https://github.com/DoctorReid) [ShadowLemoon](https://github.com/ShadowLemoon)
+
+Free code signing provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/)
+
+Approvers: [DoctorReid](https://github.com/DoctorReid) [ShadowLemoon](https://github.com/ShadowLemoon)
+
+## 🔒 隐私政策 (Privacy Policy)
+
+本程序的隐私政策详见：[隐私政策](PRIVACY.md)。
+
+See the [Privacy Policy](PRIVACY.md).
 
 ## ☕ 支持我们
 

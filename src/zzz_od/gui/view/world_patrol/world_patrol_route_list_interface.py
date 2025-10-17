@@ -351,7 +351,7 @@ class WorldPatrolRouteListInterface(VerticalScrollInterface):
 
         route_indices = [route.idx for route in self.available_routes]
         for route in self.available_routes:
-            self.current_route_list.add_route(route.full_id())
+            self.current_route_list.add_route(route.full_id)
         self._update_route_list_display()
         log.info(f'添加整个区域: {self.chosen_area.full_name} ({len(route_indices)}条路线)')
 

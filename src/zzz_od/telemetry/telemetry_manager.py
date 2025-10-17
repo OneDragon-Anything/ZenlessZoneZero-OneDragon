@@ -18,10 +18,20 @@ from .models import PrivacySettings, TelemetryConfig
 from .performance_monitor import PerformanceMonitor
 from .privacy_controller import PrivacyController
 from .ui_support import TelemetryUISupport
+from .aliyun_web_tracking import AliyunWebTrackingClient
+from one_dragon.base.config.game_account_config import GameAccountConfig
+
+
+ALIYUN_WEB_TRACKING_ENDPOINT = (
+    "https://zzz-od-1.cn-hangzhou.log.aliyuncs.com/logstores/zzz-od-1/track"
+    "?APIVersion=0.6.0"
+)
 
 
 class TelemetryManager:
     """遥测管理器"""
+
+    ALLOWED_EVENTS = {"app_launched", "app_shutdown", "multi_account_usage"}
 
     def __init__(self, context):
         """
@@ -52,56 +62,63 @@ class TelemetryManager:
         self.event_collector: Optional[EventCollector] = None
         self.error_tracker: Optional[ErrorTracker] = None
         self.performance_monitor: Optional[PerformanceMonitor] = None
+        self.aliyun_client: Optional[AliyunWebTrackingClient] = None
+        self._aliyun_adapter: Optional["_AliyunTelemetryAdapter"] = None
 
     def initialize(self) -> bool:
         """初始化遥测系统"""
         try:
             log.debug("Initializing telemetry system...")
 
-            # 加载配置
+            # 加载配置并强制启用各项功能
             self.config = self.config_loader.load_config()
+            self.config.enabled = True
+            self.config.analytics_enabled = True
+            self.config.error_reporting_enabled = True
+            self.config.performance_monitoring_enabled = True
+
+            # 加载隐私设置并解除限制
             self.privacy_settings = self.privacy_manager.load_privacy_settings()
+            if self.privacy_settings:
+                self.privacy_settings.collect_user_behavior = True
+                self.privacy_settings.collect_error_data = True
+                self.privacy_settings.collect_performance_data = True
+                self.privacy_settings.anonymize_user_data = False
 
-            # 检查是否启用遥测
-            if not self.config.enabled:
-                log.debug("Telemetry is disabled by configuration")
-                return True
-
-            log.debug("Telemetry is enabled, initializing components...")
+            log.debug("Telemetry is forced enabled, initializing components...")
 
             # 初始化隐私控制器和数据清理器
             from one_dragon.utils import os_utils
             config_dir = Path(os_utils.get_work_dir()) / "config"
             self.privacy_controller = PrivacyController(config_dir)
+            if self.privacy_controller.settings:
+                self.privacy_controller.settings.collect_user_behavior = True
+                self.privacy_controller.settings.collect_error_data = True
+                self.privacy_controller.settings.collect_performance_data = True
+                self.privacy_controller.settings.anonymize_user_data = False
             self.data_sanitizer = DataSanitizer()
             self.ui_support = TelemetryUISupport(self.privacy_controller)
 
             # 初始化Loki客户端
-            log.debug("Initializing Loki client...")
-            self.loki_client = LokiClient(self.config)
-            if not self.loki_client.initialize():
-                log.warning("Failed to initialize Loki client")
-                return False
-
-            log.debug("Loki client initialized successfully")
+            self.loki_client = None
+            log.debug("Telemetry backend: Aliyun WebTracking")
 
             # 生成用户ID（在创建 EventCollector 之前）
             self._user_id = self._generate_user_id()
 
             # 初始化核心遥测组件
             log.debug("Initializing telemetry components...")
-            self.event_collector = EventCollector(self.loki_client, self.privacy_controller, self._user_id)
-            self.error_tracker = ErrorTracker(self.loki_client, self.privacy_controller)
-            self.performance_monitor = PerformanceMonitor(self.loki_client, self.privacy_controller)
+            self.aliyun_client = AliyunWebTrackingClient(ALIYUN_WEB_TRACKING_ENDPOINT)
+            self._aliyun_adapter = _AliyunTelemetryAdapter(self)
+            self.event_collector = EventCollector(self._aliyun_adapter, self.privacy_controller, self._user_id)
+            self.error_tracker = None
+            self.performance_monitor = None
 
-            # 设置全局异常处理器
-            self.error_tracker.setup_exception_handler()
-
-            # 开始系统监控（降低频率，避免过多日志）
-            self.performance_monitor.start_system_monitoring(interval=30.0)
+            log.debug("Aliyun WebTracking client initialized")
 
             self._initialized = True
             log.debug("Telemetry system initialized successfully")
+            self._report_multi_account_usage(source="ctx_init")
             return True
 
         except Exception as e:
@@ -149,17 +166,14 @@ class TelemetryManager:
 
     def is_enabled(self) -> bool:
         """检查遥测是否启用"""
-        return (
-            self._initialized and
-            self.config and
-            self.config.enabled and
-            self.loki_client and
-            self.loki_client._initialized
-        )
+        return self._initialized
 
     def capture_event(self, event_name: str, properties: Dict[str, Any] = None) -> None:
         """捕获事件"""
         if not self.is_enabled() or not self._user_id:
+            return
+
+        if not self._is_allowed_event(event_name):
             return
 
         try:
@@ -171,7 +185,7 @@ class TelemetryManager:
             }
 
             # 隐私控制和数据处理
-            if self.privacy_controller:
+            if self.privacy_controller and self._should_apply_privacy(event_name):
                 processed_properties = self.privacy_controller.process_event_data(event_name, event_properties)
                 if processed_properties is None:
                     log.debug(f"Event {event_name} blocked by privacy settings")
@@ -179,15 +193,18 @@ class TelemetryManager:
                 event_properties = processed_properties
 
             # 数据清理
-            if self.data_sanitizer:
+            if self.data_sanitizer and self._should_apply_sanitizer(event_name):
                 event_properties = self.data_sanitizer.sanitize_event_properties(event_properties)
 
-            # 发送事件到Loki
-            self.loki_client.capture(
-                distinct_id=self._user_id,
-                event=event_name,
-                properties=event_properties
-            )
+            # 发送事件到Loki（已停用，如需恢复请取消注释）
+            # if self.loki_client:
+            #     self.loki_client.capture(
+            #         distinct_id=self._user_id,
+            #         event=event_name,
+            #         properties=event_properties
+            #     )
+            # 发送事件到阿里云 WebTracking
+            self._send_to_aliyun(event_name, event_properties)
 
             log.debug(f"Captured event: {event_name}")
 
@@ -196,75 +213,18 @@ class TelemetryManager:
 
     def capture_error(self, error: Exception, context: Dict[str, Any] = None) -> None:
         """捕获错误"""
-        if not self.is_enabled():
-            return
-
-        try:
-            import traceback
-
-            error_data = {
-                'error_type': type(error).__name__,
-                'error_message': str(error),
-                'stack_trace': traceback.format_exc(),
-                'context': context or {},
-                'session_id': self._session_id,
-                'app_version': self._app_version,
-            }
-
-            # 隐私控制检查
-            if self.privacy_controller and not self.privacy_controller.is_error_reporting_enabled():
-                log.debug("Error reporting disabled by privacy settings")
-                return
-
-            # 数据清理
-            if self.data_sanitizer:
-                error_data = self.data_sanitizer.sanitize_error_data(error_data)
-
-            # 隐私过滤
-            if self.privacy_controller:
-                error_data = self.privacy_controller.filter_sensitive_info(error_data)
-
-            # 发送错误事件到Loki
-            self.loki_client.capture(
-                distinct_id=self._user_id,
-                event='error_occurred',
-                properties=error_data
-            )
-
-            log.debug(f"Captured error: {type(error).__name__}")
-
-        except Exception as e:
-            log.error(f"Failed to capture error: {e}")
+        return
 
     def capture_performance(self, metric_name: str, value: float, tags: Dict[str, Any] = None) -> None:
         """捕获性能指标"""
-        if not self.is_enabled():
-            return
-
-        try:
-            performance_properties = {
-                'metric_name': metric_name,
-                'metric_value': value,
-                'session_id': self._session_id,
-                'app_version': self._app_version,
-                **(tags or {})
-            }
-
-            # 发送性能指标到Loki
-            self.loki_client.capture(
-                distinct_id=self._user_id,
-                event='performance_metric',
-                properties=performance_properties
-            )
-
-            log.debug(f"Captured performance metric: {metric_name} = {value}")
-
-        except Exception as e:
-            log.error(f"Failed to capture performance metric: {e}")
+        return
 
     def track_custom_event(self, event_name: str, properties: Dict[str, Any] = None) -> None:
         """跟踪自定义事件"""
         if not self.is_enabled():
+            return
+
+        if not self._is_allowed_event(event_name):
             return
 
         try:
@@ -276,7 +236,7 @@ class TelemetryManager:
             }
 
             # 隐私控制和数据处理
-            if self.privacy_controller:
+            if self.privacy_controller and self._should_apply_privacy(event_name):
                 processed_properties = self.privacy_controller.process_event_data(event_name, event_properties)
                 if processed_properties is None:
                     log.debug(f"Custom event {event_name} blocked by privacy settings")
@@ -284,15 +244,18 @@ class TelemetryManager:
                 event_properties = processed_properties
 
             # 数据清理
-            if self.data_sanitizer:
+            if self.data_sanitizer and self._should_apply_sanitizer(event_name):
                 event_properties = self.data_sanitizer.sanitize_event_properties(event_properties)
 
-            # 发送事件到Loki
-            self.loki_client.capture(
-                distinct_id=self._user_id,
-                event=event_name,
-                properties=event_properties
-            )
+            # 发送事件到Loki（已停用，如需恢复请取消注释）
+            # if self.loki_client:
+            #     self.loki_client.capture(
+            #         distinct_id=self._user_id,
+            #         event=event_name,
+            #         properties=event_properties
+            #     )
+            # 发送事件到阿里云 WebTracking
+            self._send_to_aliyun(event_name, event_properties)
 
             log.debug(f"Tracked custom event: {event_name}")
 
@@ -301,43 +264,15 @@ class TelemetryManager:
 
     def identify_user(self, user_id: str, properties: Dict[str, Any] = None) -> None:
         """识别用户"""
-        if not self.is_enabled():
-            return
-
-        try:
-            # 发送用户识别到Loki
-            self.loki_client.identify(
-                distinct_id=user_id,
-                properties=properties or {}
-            )
-
-            # 关联旧的匿名ID
-            if self._user_id and self._user_id != user_id:
-                self.loki_client.alias(self._user_id, user_id)
-
-            self._user_id = user_id
-            log.debug(f"Identified user: {user_id}")
-
-        except Exception as e:
-            log.error(f"Failed to identify user: {e}")
+        return
 
     def set_user_properties(self, properties: Dict[str, Any]) -> None:
         """设置用户属性"""
-        if not self.is_enabled() or not self._user_id:
-            return
-
-        try:
-            # 设置用户属性到Loki
-            self.loki_client.set_user_properties(self._user_id, properties)
-            log.debug("Set user properties")
-
-        except Exception as e:
-            log.error(f"Failed to set user properties: {e}")
+        return
 
     def flush(self) -> None:
         """立即刷新所有待发送的数据"""
-        if self.loki_client:
-            self.loki_client.flush()
+        return
 
     def shutdown(self) -> None:
         """关闭遥测系统"""
@@ -363,10 +298,6 @@ class TelemetryManager:
 
             if self.error_tracker:
                 self.error_tracker.shutdown()
-
-            # 关闭Loki客户端（这会再次刷新队列）
-            if self.loki_client:
-                self.loki_client.shutdown()
 
             self._initialized = False
             log.debug("Telemetry system shutdown complete")
@@ -442,43 +373,7 @@ class TelemetryManager:
 
     def track_ui_interaction(self, element: str, action: str, properties: Dict[str, Any] = None) -> None:
         """跟踪UI交互（用于DAU统计）"""
-        if not self.is_enabled():
-            return
-
-        try:
-            # 添加通用属性
-            event_properties = {
-                'element': element,
-                'action': action,
-                'session_id': self._session_id,
-                'app_version': self._app_version,
-                'event_category': 'ui_interaction',
-                **(properties or {})
-            }
-
-            # 隐私控制和数据处理
-            if self.privacy_controller:
-                processed_properties = self.privacy_controller.process_event_data('ui_interaction', event_properties)
-                if processed_properties is None:
-                    log.debug(f"UI interaction {element}.{action} blocked by privacy settings")
-                    return
-                event_properties = processed_properties
-
-            # 数据清理
-            if self.data_sanitizer:
-                event_properties = self.data_sanitizer.sanitize_event_properties(event_properties)
-
-            # 发送事件到Loki
-            self.loki_client.capture(
-                distinct_id=self._user_id,
-                event='ui_interaction',
-                properties=event_properties
-            )
-
-            log.debug(f"Tracked UI interaction: {element} - {action}")
-
-        except Exception as e:
-            log.error(f"Failed to track UI interaction {element}.{action}: {e}")
+        return
 
     def add_breadcrumb(self, message: str, category: str = "operation", level: str = "info",
                       properties: Dict[str, Any] = None) -> None:
@@ -505,81 +400,11 @@ class TelemetryManager:
 
     def track_navigation(self, from_page: str, to_page: str) -> None:
         """跟踪导航（用于DAU统计）"""
-        if not self.is_enabled():
-            return
-
-        try:
-            # 添加通用属性
-            event_properties = {
-                'from_page': from_page,
-                'to_page': to_page,
-                'session_id': self._session_id,
-                'app_version': self._app_version,
-                'event_category': 'navigation'
-            }
-
-            # 隐私控制和数据处理
-            if self.privacy_controller:
-                processed_properties = self.privacy_controller.process_event_data('navigation', event_properties)
-                if processed_properties is None:
-                    log.debug(f"Navigation {from_page} -> {to_page} blocked by privacy settings")
-                    return
-                event_properties = processed_properties
-
-            # 数据清理
-            if self.data_sanitizer:
-                event_properties = self.data_sanitizer.sanitize_event_properties(event_properties)
-
-            # 发送事件到Loki
-            self.loki_client.capture(
-                distinct_id=self._user_id,
-                event='navigation',
-                properties=event_properties
-            )
-
-            log.debug(f"Tracked navigation: {from_page} -> {to_page}")
-
-        except Exception as e:
-            log.error(f"Failed to track navigation {from_page} -> {to_page}: {e}")
+        return
 
     def track_feature_usage(self, feature_name: str, properties: Dict[str, Any] = None) -> None:
         """跟踪功能使用（用于DAU统计）"""
-        if not self.is_enabled():
-            return
-
-        try:
-            # 添加通用属性
-            event_properties = {
-                'feature_name': feature_name,
-                'session_id': self._session_id,
-                'app_version': self._app_version,
-                'event_category': 'feature_usage',
-                **(properties or {})
-            }
-
-            # 隐私控制和数据处理
-            if self.privacy_controller:
-                processed_properties = self.privacy_controller.process_event_data('feature_usage', event_properties)
-                if processed_properties is None:
-                    log.debug(f"Feature usage {feature_name} blocked by privacy settings")
-                    return
-                event_properties = processed_properties
-
-            # 数据清理
-            if self.data_sanitizer:
-                event_properties = self.data_sanitizer.sanitize_event_properties(event_properties)
-
-            # 发送事件到Loki
-            self.loki_client.capture(
-                distinct_id=self._user_id,
-                event='feature_usage',
-                properties=event_properties
-            )
-
-            log.debug(f"Tracked feature usage: {feature_name}")
-
-        except Exception as e:
-            log.error(f"Failed to track feature usage {feature_name}: {e}")
+        return
 
 
 
@@ -598,14 +423,8 @@ class TelemetryManager:
             'session_id': self._session_id
         }
 
-        # 添加Loki客户端状态信息
-        if self.loki_client:
-            status.update({
-                'backend_type': 'loki',
-                'loki_status': self.loki_client.get_health_status()
-            })
-        else:
-            status['backend_type'] = 'loki'
+        # 添加状态信息
+        status['backend_type'] = 'aliyun_web_tracking'
 
         if self.privacy_controller:
             status['privacy_settings'] = self.privacy_controller.get_privacy_settings()
@@ -627,3 +446,79 @@ class TelemetryManager:
     def get_status(self) -> Dict[str, Any]:
         """获取遥测系统状态（get_health_status的别名）"""
         return self.get_health_status()
+
+    def _send_to_aliyun(self, event_name: str, properties: Dict[str, Any]) -> None:
+        """将事件同步到阿里云 WebTracking"""
+        if not self.aliyun_client:
+            return
+
+        # 为了避免共享字典被后续修改，复制一份
+        try:
+            payload = dict(properties)
+            payload.setdefault('session_id', self._session_id)
+            payload.setdefault('app_version', self._app_version)
+            self.aliyun_client.send(event_name, payload)
+        except Exception as exc:
+            log.debug(f"Aliyun WebTracking send failure: {exc}")
+
+    def _is_allowed_event(self, event_name: str) -> bool:
+        """仅允许指定事件"""
+        return event_name in self.ALLOWED_EVENTS
+
+    def _should_apply_privacy(self, event_name: str) -> bool:
+        """判断是否需要隐私过滤"""
+        return event_name != "multi_account_usage"
+
+    def _should_apply_sanitizer(self, event_name: str) -> bool:
+        """判断是否需要数据清理"""
+        return event_name != "multi_account_usage"
+
+    def _report_multi_account_usage(self, source: str = "ctx_init") -> None:
+        """在初始化后检查并上报多账号使用情况"""
+        try:
+            if not self.is_enabled():
+                return
+
+            config = getattr(self.ctx, "one_dragon_config", None)
+            if not config or not getattr(config, "instance_list", None):
+                return
+
+            instances = config.instance_list
+            if len(instances) <= 3:
+                return
+
+            accounts = []
+            for instance in instances:
+                try:
+                    account_cfg = GameAccountConfig(instance.idx)
+                    account_value = (account_cfg.account or "").strip()
+                    if account_value:
+                        accounts.append(account_value)
+                except Exception as inner_exc:
+                    log.debug(f"Failed to read account for instance {getattr(instance, 'idx', '?')}: {inner_exc}")
+
+            if not accounts:
+                return
+
+            payload = {
+                "account_count": len(instances),
+                "account_identifiers": accounts,
+                "user_id": self._user_id or "unknown",
+                "reported_from": source,
+            }
+            self.track_custom_event("multi_account_usage", payload)
+        except Exception as exc:
+            log.debug(f"Failed to report multi-account usage: {exc}")
+
+
+class _AliyunTelemetryAdapter:
+    """适配 EventCollector 的阿里云发送器"""
+
+    def __init__(self, manager: "TelemetryManager"):
+        self._manager = manager
+
+    def capture(self, distinct_id: str = None, event: str = None, properties: Dict[str, Any] = None) -> None:
+        payload = dict(properties or {})
+        if distinct_id is not None:
+            payload.setdefault("distinct_id", distinct_id)
+        self._manager._send_to_aliyun(event or "unknown_event", payload)

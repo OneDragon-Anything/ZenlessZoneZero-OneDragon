@@ -3,6 +3,7 @@
 为隐私控制界面提供后端支持
 """
 import logging
+from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
 
@@ -299,7 +300,7 @@ class TelemetryUISupport:
 
             report = {
                 'report_info': {
-                    'generated_at': logger.info("Privacy report generated"),
+                    'generated_at': datetime.now().isoformat(),
                     'report_version': '1.0',
                     'user_consent': summary['telemetry_enabled']
                 },
@@ -309,6 +310,7 @@ class TelemetryUISupport:
                 'privacy_impact': self.get_privacy_impact_info()
             }
 
+            logger.debug("Privacy report generated")
             return report
 
         except Exception as e:

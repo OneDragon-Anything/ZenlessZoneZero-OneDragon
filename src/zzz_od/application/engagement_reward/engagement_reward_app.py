@@ -34,7 +34,13 @@ class EngagementRewardApp(ZApplication):
         """
         self.idx: int = 4
 
-    @operation_node(name='快捷手册-日常', is_start_node=True)
+    @operation_node(name='返回大世界', is_start_node=True)
+    def back_at_first(self) -> OperationRoundResult:
+        op = BackToNormalWorld(self.ctx)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='返回大世界')
+    @operation_node(name='快捷手册-日常')
     def goto_compendium_daily(self) -> OperationRoundResult:
         return self.round_by_goto_screen(screen_name='快捷手册-日常')
 

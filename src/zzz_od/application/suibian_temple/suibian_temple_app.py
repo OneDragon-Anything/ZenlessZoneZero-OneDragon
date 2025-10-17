@@ -1,3 +1,4 @@
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -38,11 +39,11 @@ class SuibianTempleApp(ZApplication):
             op_name=gt('随便观'),
             need_notify=True,
         )
-        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(app_id='suibian_temple')  # type: ignore
-
-    def handle_init(self):
-        ZApplication.handle_init(self)
-        self.config = self.ctx.run_context.get_config(app_id="suibian_temple")
+        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
+            app_id='suibian_temple',
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
 
     @operation_node(name='识别初始画面', is_start_node=True)
     def check_initial_screen(self) -> OperationRoundResult:

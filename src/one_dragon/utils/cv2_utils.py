@@ -443,7 +443,7 @@ def feature_match_for_one(source_kp, source_desc, template_kp, template_desc,
     source_points = np.float32([source_kp[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)  # 原图的
 
     # 使用RANSAC算法估计模板位置和尺度
-    _, mask = cv2.findHomography(template_points, source_points, cv2.RANSAC, 5.0, mask=source_mask)
+    homography_matrix, mask = cv2.findHomography(template_points, source_points, cv2.RANSAC, 5.0, mask=source_mask)
     # 获取内点的索引 拿最高置信度的
     inlier_indices = np.where(mask.ravel() == 1)[0]
     if len(inlier_indices) == 0:  # mask 里没找到就算了 再用good_matches的结果也是很不准的
@@ -470,7 +470,22 @@ def feature_match_for_one(source_kp, source_desc, template_kp, template_desc,
     scaled_width = int(template_width * template_scale)
     scaled_height = int(template_height * template_scale)
 
-    return MatchResult(1, offset_x, offset_y, scaled_width, scaled_height, template_scale)
+    # 计算综合置信度
+    # 1. 内点比例 - RANSAC内点占总good_matches的比例
+    inlier_ratio = len(inlier_indices) / len(good_matches)
+    # 2. 距离因子 - 距离越小越好，但要处理0距离的情况
+    distance_factor = 1.0 / (1.0 + best_match.distance / 100.0) if best_match.distance > 0 else 1.0
+    # 3. 内点数量因子 - 内点越多越好
+    inlier_count_factor = min(1.0, len(inlier_indices) / 10.0)
+
+    confidence = (
+        0.4 * inlier_ratio +
+        0.4 * distance_factor +
+        0.2 * inlier_count_factor
+    )
+    confidence = np.clip(confidence, 0.0, 1.0)
+
+    return MatchResult(confidence, offset_x, offset_y, scaled_width, scaled_height, template_scale)
 
 
 def feature_match_for_multi(
