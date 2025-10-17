@@ -47,7 +47,15 @@ class EmailApp(ZApplication):
         邮件画面 领取后点击确认
         :return:
         """
-        return self.round_by_find_and_click_area(self.last_screenshot, '邮件', '确认', success_wait=1, retry_wait=1)
+        target_word_list = [
+            '确认',  # 正常领取的情况
+            '确定',  # 某种物品爆满了
+        ]
+        return self.round_by_ocr_and_click_by_priority(
+            target_cn_list=target_word_list,
+            success_wait=1,
+            retry_wait=1,
+        )
 
     @node_from(from_name='确认')  # 确认之后返回
     @node_from(from_name='确认', success=False)  # 没有确认 其实就是没有东西能领取 也返回

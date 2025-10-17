@@ -50,12 +50,12 @@ class CoffeeApp(ZApplication):
             need_notify=True,
         )
 
-        self.config: Optional[CoffeeConfig] = self.ctx.run_context.get_config(
+        self.config: CoffeeConfig = self.ctx.run_context.get_config(
             app_id=coffee_app_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
-        self.charge_plan_config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.charge_plan_config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,

@@ -51,7 +51,7 @@ class ExpertChallenge(ZOperation):
                 gt(plan.mission_type_name, 'game')
             )
         )
-        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,

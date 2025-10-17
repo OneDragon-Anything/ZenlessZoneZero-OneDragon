@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Optional
 
 from one_dragon.base.operation.application.application_config import ApplicationConfig
@@ -31,7 +31,6 @@ class ApplicationFactory(ABC):
         self._config_cache: dict[str, ApplicationConfig] = {}
         self._run_record_cache: dict[str, AppRunRecord] = {}
 
-    @abstractmethod
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         """
         创建应用实例。
@@ -45,12 +44,11 @@ class ApplicationFactory(ABC):
         Returns:
             Application: 创建的应用实例对象
         """
-        pass
+        raise Exception(f"未提供应用创建方法 {self.app_id}")
 
-    @abstractmethod
     def create_config(
         self, instance_idx: int, group_id: str
-    ) -> Optional[ApplicationConfig]:
+    ) -> ApplicationConfig:
         """
         创建配置实例。
 
@@ -61,11 +59,10 @@ class ApplicationFactory(ABC):
             group_id: 应用组ID，不同应用组可以有不同的应用配置
 
         Returns:
-            Optional[ApplicationConfig]: 创建的配置对象，如果不需要配置则返回None
+            ApplicationConfig: 创建的配置对象
         """
-        pass
+        raise Exception(f"未提供应用配置创建方法 {self.app_id}")
 
-    @abstractmethod
     def create_run_record(self, instance_idx: int) -> Optional[AppRunRecord]:
         """
         创建运行记录实例。
@@ -76,13 +73,13 @@ class ApplicationFactory(ABC):
             instance_idx: 账号实例下标
 
         Returns:
-            Optional[AppRunRecord]: 创建的运行记录对象，如果不需要记录则返回None
+            AppRunRecord: 创建的运行记录对象
         """
-        pass
+        raise Exception(f"未提供应用运行记录创建方法 {self.app_id}")
 
     def get_config(
         self, instance_idx: int, group_id: str
-    ) -> Optional[ApplicationConfig]:
+    ) -> ApplicationConfig:
         """
         获取配置实例。
 
@@ -105,7 +102,7 @@ class ApplicationFactory(ABC):
 
         return config
 
-    def get_run_record(self, instance_idx: int) -> Optional[AppRunRecord]:
+    def get_run_record(self, instance_idx: int) -> AppRunRecord:
         """
         获取运行记录实例。
 

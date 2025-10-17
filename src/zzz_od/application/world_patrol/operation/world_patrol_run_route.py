@@ -42,7 +42,7 @@ class WorldPatrolRunRoute(ZOperation):
         """
         ZOperation.__init__(self, ctx, op_name=gt('运行路线'))
         
-        self.config: Optional[WorldPatrolConfig] = self.ctx.run_context.get_config(
+        self.config: WorldPatrolConfig = self.ctx.run_context.get_config(
             app_id=world_patrol_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,

@@ -1,4 +1,4 @@
-from typing import ClassVar, List, Optional
+from typing import ClassVar, List
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
@@ -38,12 +38,12 @@ class ShiyuDefenseApp(ZApplication):
             need_notify=True,
         )
 
-        self.config: Optional[ShiyuDefenseConfig] = self.ctx.run_context.get_config(
+        self.config: ShiyuDefenseConfig = self.ctx.run_context.get_config(
             app_id=shiyu_defense_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
-        self.run_record: Optional[ShiyuDefenseRunRecord] = self.ctx.run_context.get_run_record(
+        self.run_record: ShiyuDefenseRunRecord = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
             app_id=shiyu_defense_const.APP_ID,
         )

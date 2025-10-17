@@ -1,5 +1,3 @@
-from typing import Optional
-
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -28,12 +26,12 @@ class WorldPatrolApp(ZApplication):
             op_name=world_patrol_const.APP_NAME,
             need_notify=False,
         )
-        self.config: Optional[WorldPatrolConfig] = self.ctx.run_context.get_config(
+        self.config: WorldPatrolConfig = self.ctx.run_context.get_config(
             app_id=world_patrol_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
-        self.run_record: Optional[WorldPatrolRunRecord] = self.ctx.run_context.get_run_record(
+        self.run_record: WorldPatrolRunRecord = self.ctx.run_context.get_run_record(
             app_id=world_patrol_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
         )

@@ -42,7 +42,7 @@ class ChooseNextOrFinishAfterBattle(ZOperation):
             # 没有弹窗，直接返回再来一次的结果
             return self.round_success(status='战斗结果-再来一次')
 
-        config: ChargePlanConfig | None = self.ctx.run_context.get_config(
+        config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,

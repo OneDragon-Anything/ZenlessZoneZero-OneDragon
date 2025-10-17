@@ -37,7 +37,7 @@ class ChargePlanApp(ZApplication):
             op_name=gt(charge_plan_const.APP_NAME),
             need_notify=True,
         )
-        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,

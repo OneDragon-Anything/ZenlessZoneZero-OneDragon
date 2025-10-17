@@ -37,7 +37,7 @@ class RandomPlayApp(ZApplication):
             need_notify=True,
         )
 
-        self.config: Optional[RandomPlayConfig] = self.ctx.run_context.get_config(
+        self.config: RandomPlayConfig = self.ctx.run_context.get_config(
             app_id=self.app_id,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,

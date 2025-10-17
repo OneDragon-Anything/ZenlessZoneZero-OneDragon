@@ -59,19 +59,19 @@ class NotoriousHunt(ZOperation):
                 gt(plan.mission_type_name, 'game')
             )
         )
-        self.charge_plan_config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.charge_plan_config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
 
-        self.config: Optional[NotoriousHuntConfig] = self.ctx.run_context.get_config(
+        self.config: NotoriousHuntConfig = self.ctx.run_context.get_config(
             app_id=notorious_hunt_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
 
-        self.run_record: Optional[NotoriousHuntRunRecord] = self.ctx.run_context.get_run_record(
+        self.run_record: NotoriousHuntRunRecord = self.ctx.run_context.get_run_record(
             app_id=notorious_hunt_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
         )
