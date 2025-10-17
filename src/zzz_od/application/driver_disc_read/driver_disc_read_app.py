@@ -28,6 +28,7 @@ def _ocr_worker_process(
     worker_id: int,
     screenshot_queue: multiprocessing.Queue,
     result_queue: multiprocessing.Queue,
+    ready_queue: multiprocessing.Queue,  # 就绪信号队列
     ocr_areas: Dict[str, tuple],  # {area_name: (x, y, w, h)}
     use_gpu: bool,
     det_limit_side_len: int
@@ -48,6 +49,9 @@ def _ocr_worker_process(
         )
         
         log.info(f'Worker-{worker_id} OCR 实例创建完成（进程 PID: {multiprocessing.current_process().pid}）')
+        
+        # 发送就绪信号
+        ready_queue.put(worker_id)
         
         while True:
             try:
@@ -130,6 +134,7 @@ class DriverDiscReadApp(ZApplication):
         # 多进程相关
         self.screenshot_queue = multiprocessing.Queue(maxsize=10)
         self.result_queue = multiprocessing.Queue()
+        self.ready_queue = multiprocessing.Queue()  # 用于接收 worker 就绪信号
         self.worker_count = self.ctx.model_config.ocr_worker_count
         self.workers = []  # 存储 Process 对象
         self.workers_running = False
@@ -269,6 +274,7 @@ class DriverDiscReadApp(ZApplication):
                     i,
                     self.screenshot_queue,
                     self.result_queue,
+                    self.ready_queue,  # 传递就绪信号队列
                     self.ocr_areas,
                     self.ctx.model_config.ocr_gpu,
                     det_limit_side_len
@@ -278,7 +284,22 @@ class DriverDiscReadApp(ZApplication):
             worker.start()
             self.workers.append(worker)
         
-        log.info(f'已启动 {self.worker_count} 个 OCR worker 进程（每个进程独立 GPU 实例）')
+        # 等待所有 worker 进程就绪（OCR 实例创建完成）
+        ready_count = 0
+        log.info(f'等待 {self.worker_count} 个 worker 进程就绪...')
+        while ready_count < self.worker_count:
+            try:
+                worker_id = self.ready_queue.get(timeout=30)  # 最多等待 30 秒
+                ready_count += 1
+                log.info(f'Worker-{worker_id} 已就绪 ({ready_count}/{self.worker_count})')
+            except Empty:
+                log.error(f'等待 worker 进程就绪超时，已就绪: {ready_count}/{self.worker_count}')
+                break
+        
+        if ready_count == self.worker_count:
+            log.info(f'所有 {self.worker_count} 个 OCR worker 进程已就绪，开始扫描')
+        else:
+            log.warning(f'只有 {ready_count}/{self.worker_count} 个进程就绪')
 
     def _stop_workers(self):
         """停止 worker 进程"""
@@ -343,11 +364,11 @@ class DriverDiscReadApp(ZApplication):
         log.info('结果收集线程已退出')
 
     def _capture_and_queue_disc(self, grid_position: int, global_index: int):
-        """点击位置、截图并放入队列（已优化：减少等待时间）"""
+        """点击位置、截图并放入队列"""
         click_pos = self._get_disc_position(grid_position)
         self.ctx.controller.click(click_pos)
-        # 减少等待时间：游戏响应通常很快，不需要 30ms
-        time.sleep(0.01)  # 10ms 足够让界面稳定
+        # 等待界面稳定后再截图
+        time.sleep(0.05)
 
         screen = self.screenshot()
         if screen is not None:
