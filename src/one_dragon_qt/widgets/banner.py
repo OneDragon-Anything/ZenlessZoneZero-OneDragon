@@ -254,14 +254,14 @@ class Banner(QWidget):
 
     def paintEvent(self, event):
         """重载 paintEvent 以绘制缩放后的图片，视频模式下绘制圆角遮罩"""
+        if self.is_video:
+            # 视频模式下无需额外绘制
+            return
+
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        if self.is_video:
-            # 视频模式下，绘制一个透明的圆角遮罩层
-            # 这样可以给视频添加圆角效果
-            pass
-        elif self.scaled_image:
+        if self.scaled_image:
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
             # 创建圆角路径
@@ -271,10 +271,10 @@ class Banner(QWidget):
 
             # 计算绘制位置，使图片居中
             pixel_ratio = self.scaled_image.devicePixelRatio()
-            logical_width = int(self.scaled_image.width() / pixel_ratio)
-            logical_height = int(self.scaled_image.height() / pixel_ratio)
-            x = int((self.width() - logical_width) / 2)
-            y = int((self.height() - logical_height) / 2)
+            logical_width = self.scaled_image.width() // pixel_ratio
+            logical_height = self.scaled_image.height() // pixel_ratio
+            x = (self.width() - logical_width) // 2
+            y = (self.height() - logical_height) // 2
 
             # 绘制缩放后的图片
             painter.drawPixmap(x, y, self.scaled_image)
