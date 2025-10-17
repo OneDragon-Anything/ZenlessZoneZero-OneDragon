@@ -40,11 +40,12 @@ class DriverDiscInterface(AppRunInterface):
             icon=FluentIcon.IOT,
             title='OCR 处理线程数',
             content='并行处理 OCR 识别的线程数量。GPU 模式推荐 4-8，CPU 模式推荐 2-4。修改后需重启程序生效。',
-            adapter=get_prop_adapter(self.ctx.model_config, 'ocr_worker_count'),
             minimum=1,
             maximum=8,
             step=1
         )
+        # 初始化时加载配置值
+        self.ocr_worker_card.init_with_adapter(get_prop_adapter(self.ctx.model_config, 'ocr_worker_count'))
         content.add_widget(self.ocr_worker_card)
 
         # 表格区域
