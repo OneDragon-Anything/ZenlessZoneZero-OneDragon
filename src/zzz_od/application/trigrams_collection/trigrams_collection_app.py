@@ -64,7 +64,7 @@ class TrigramsCollectionApp(ZApplication):
                 return self.round_wait(status=word, wait=1)
         elif word == '滑动屏幕以获取卦象':
             start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
-            end = start + Point(-800, 0)
+            end = start + Point(-900, 0)
             self.ctx.controller.drag_to(start=start, end=end, duration=0.2)
             return self.round_wait(status=word, wait=1)
         elif word == '确认':
@@ -72,8 +72,7 @@ class TrigramsCollectionApp(ZApplication):
             self.ctx.controller.click(mrl.max.center)
             return self.round_wait(status=word, wait=1)
 
-        return self.round_by_click_area('卦象集录', '区域-开卦象',
-                                        success_wait=1)
+        return self.round_success()
 
     @node_from(from_name='获取卦象')
     @operation_node(name='结束后返回')
