@@ -615,7 +615,7 @@ class HomeInterface(VerticalScrollInterface):
             self._official_dynamic_downloader.start()
         elif background_type == BackgroundTypeEnum.VERSION_POSTER.value.value:
             self._version_poster_downloader.start()
-        elif background_type == BackgroundTypeEnum.REMOTE_BANNER.value.value:
+        elif background_type == BackgroundTypeEnum.OFFICIAL_STATIC.value.value:
             self._banner_downloader.start()
 
         # 检查公告卡片配置是否变化
@@ -719,7 +719,7 @@ class HomeInterface(VerticalScrollInterface):
             return official_dynamic_path
         elif background_type == BackgroundTypeEnum.VERSION_POSTER.value.value and os.path.exists(version_poster_path):
             return version_poster_path
-        elif background_type == BackgroundTypeEnum.REMOTE_BANNER.value.value and os.path.exists(remote_banner_path):
+        elif background_type == BackgroundTypeEnum.OFFICIAL_STATIC.value.value and os.path.exists(remote_banner_path):
             return remote_banner_path
         else:
             return index_banner_path
