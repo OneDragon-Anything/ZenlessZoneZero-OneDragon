@@ -709,9 +709,8 @@ class HomeInterface(VerticalScrollInterface):
         # 主页背景优先级：自定义 > 枚举选项 > index.png
         if self.ctx.custom_config.custom_banner:
             # 检测自定义背景文件（支持图片和视频）
-            custom_banner_path = self._find_custom_banner(custom_banner_dir)
-            if custom_banner_path and custom_banner_path.exists():
-                return str(custom_banner_path)
+            if custom_banner_dir:
+                return str(custom_banner_dir)
             else:
                 return str(index_banner_path)
 
@@ -725,18 +724,6 @@ class HomeInterface(VerticalScrollInterface):
             return str(remote_banner_path)
         else:
             return str(index_banner_path)
-
-    def _find_custom_banner(self, base_path: Path) -> Path | None:
-        """
-        查找自定义背景文件，优先查找无扩展名的 banner 文件
-        :param base_path: 基础路径（不含扩展名）
-        :return: 找到的文件路径，如果没有找到返回 None
-        """
-        # 优先查找无扩展名的文件（标准保存方式）
-        if base_path.exists():
-            return base_path
-
-        return None
 
     def _check_notice_config_change(self):
         """检查公告卡片配置是否发生变化"""
