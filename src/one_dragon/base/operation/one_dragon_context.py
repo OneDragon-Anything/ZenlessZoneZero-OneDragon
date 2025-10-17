@@ -56,14 +56,17 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.screen_loader: ScreenContext = ScreenContext()
         self.template_loader: TemplateLoader = TemplateLoader()
         self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
+
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
+                use_gpu=self.model_config.ocr_gpu,
             )
         )
         self.cv_ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
+                use_gpu=self.model_config.ocr_gpu,
             )
         )
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
