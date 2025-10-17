@@ -348,16 +348,26 @@ class BackgroundImageDownloader(BaseThread):
             if not result:
                 return
 
-            # 处理官方动态的特殊情况（只下载视频）
-            if self.download_type == "official_dynamic" and isinstance(result, tuple):
-
-                video_url, _ = result  # 忽略叠加图 URL
-
-                # 下载视频
-                video_resp = requests.get(video_url, timeout=10)
-                if video_resp.status_code != 200:
-                    return
-                self._save_image(video_resp.content)
+            # 官方动态使用流式下载避免内存溢出
+            if self.download_type == "official_dynamic":
+                temp_path = self.save_path.with_suffix(self.save_path.suffix + '.tmp')
+                try:
+                    with requests.get(result, stream=True, timeout=30) as video_resp:
+                        if video_resp.status_code != 200:
+                            return
+                        with open(temp_path, 'wb') as f:
+                            for chunk in video_resp.iter_content(chunk_size=256 * 1024):
+                                if not self._is_running:
+                                    return
+                                if chunk:
+                                    f.write(chunk)
+                    if self.save_path.exists():
+                        self.save_path.unlink()
+                    temp_path.rename(self.save_path)
+                except Exception:
+                    if temp_path.exists():
+                        temp_path.unlink()
+                    raise
             else:
                 # 普通图片下载
                 img_resp = requests.get(result, timeout=5)
