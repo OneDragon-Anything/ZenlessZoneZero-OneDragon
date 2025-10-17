@@ -682,7 +682,12 @@ class AutoBattleAgentContext:
         else:
             agent_name = chain_name_list[0]
 
-        _, states = self.switch_by_agent_name(agent_name, update_time, update_state=update_state)
+        # 通过状态重构逻辑强制设置正确的角色状态
+        states = self._force_reconstruct_agent_states(agent_name, update_time)
+
+        if update_state:
+            self.auto_op.batch_update_states(states)
+
         return states
 
     def chain_right(self, update_time: float, update_state: bool = True) -> List[StateRecord]:
@@ -702,7 +707,12 @@ class AutoBattleAgentContext:
         else:
             agent_name = chain_name_list[1]
 
-        _, states = self.switch_by_agent_name(agent_name, update_time, update_state=update_state)
+        # 通过状态重构逻辑强制设置正确的角色状态
+        states = self._force_reconstruct_agent_states(agent_name, update_time)
+
+        if update_state:
+            self.auto_op.batch_update_states(states)
+
         return states
 
     def get_chain_name(self) -> List[str]:
@@ -752,6 +762,37 @@ class AutoBattleAgentContext:
             return target_agent_pos, self.switch_prev_agent(update_time, update_state=update_state, check_agent=True)
         else:
             return 0, []
+
+    def _force_reconstruct_agent_states(self, new_front_agent_name: str, update_time: float) -> List[StateRecord]:
+        """
+        强制重构所有角色状态，确保前台角色状态绝对正确。
+        这个方法不依赖任何底层切换逻辑，直接根据目标角色名生成正确的状态记录。
+        :param new_front_agent_name: 新前台角色的名称
+        :param update_time: 更新时间
+        :return: 需要应用的状态记录列表
+        """
+        states: List[StateRecord] = []
+
+        # 生成前台状态：目标角色为 True，其余为 False
+        for agent_info in self.team_info.agent_list:
+            if agent_info.agent is not None:
+                is_front = (agent_info.agent.agent_name == new_front_agent_name)
+                states.append(StateRecord(f'前台-{agent_info.agent.agent_name}', update_time, state_val=is_front))
+
+        # 生成后台状态：根据队伍中的实际位置设置正确的后台角色
+        background_count = 1
+        for agent_info in self.team_info.agent_list:
+            if agent_info.agent is not None and agent_info.agent.agent_name != new_front_agent_name:
+                states.append(StateRecord(f'后台-{background_count}-{agent_info.agent.agent_name}', update_time))
+                background_count += 1
+
+        # 生成切换角色触发器状态
+        states.append(StateRecord(f'切换角色-{new_front_agent_name}', update_time))
+
+        # 手动更新切换时间戳，确保后续状态逻辑正常工作
+        self._last_switch_agent_time = update_time
+
+        return states
 
     def _get_agent_state_records(self, update_time: float, switch: bool = False) -> List[StateRecord]:
         """
