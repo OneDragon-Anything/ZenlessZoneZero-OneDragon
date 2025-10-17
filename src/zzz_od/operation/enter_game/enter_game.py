@@ -34,12 +34,16 @@ class EnterGame(ZOperation):
         self.already_login: bool = False  # 是否已经登录了
         self.use_clipboard: bool = self.ctx.game_config.type_input_way == TypeInputWay.CLIPBOARD.value.value  # 使用剪切板输入
 
+        self.interact_ignore_word_list: list[str] = []  # 进入游戏时 交互需要忽略的文本
+
     @node_from(from_name='国服-输入账号密码')
     @node_from(from_name='国服-输入账号密码-新')
     @node_from(from_name='B服-输入账号密码')
     @node_from(from_name='国际服-换服')
     @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
+        self.interact_ignore_word_list.clear()
+
         login_result = self.check_login_related(self.last_screenshot)
         if login_result is not None:
             return login_result
@@ -321,12 +325,13 @@ class EnterGame(ZOperation):
             '05', # 同上
             '06', # 同上
             '07', # 同上
-        ]
+        ] + self.interact_ignore_word_list
+
         target_word_idx_map: dict[str, int] = {}
         to_match_list: list[str] = []
         for idx, target_word in enumerate(target_word_list):
             target_word_idx_map[target_word] = idx
-            to_match_list.append(gt(target_word, 'game'))
+            to_match_list.append(gt(target_word, "game"))
 
         match_word, match_word_mrl = ocr_utils.match_word_list_by_priority(
             ocr_result_map,
@@ -334,6 +339,11 @@ class EnterGame(ZOperation):
             ignore_list=ignore_list
         )
         if match_word is not None and match_word_mrl is not None and match_word_mrl.max is not None:
+            # 新版本的10连奖励 有滑动条导致左边"已领取"在画面上只显示了"领取"
+            # 因此这部分的文本都设置只点击一次 后续忽略
+            if match_word.find('领取') != -1:
+                self.interact_ignore_word_list.append(match_word)
+
             time.sleep(0.5) # 等待画面稳定
             self.ctx.controller.click(match_word_mrl.max.center)
             return self.round_wait(status=match_word, wait=1)
