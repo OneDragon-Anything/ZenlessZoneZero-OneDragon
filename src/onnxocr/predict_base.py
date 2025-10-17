@@ -8,10 +8,7 @@ class PredictBase(object):
         # 使用gpu
         if use_gpu:
             availables = onnxruntime.get_available_providers()
-            # 优先使用 CUDA (NVIDIA)，其次使用 DirectML (AMD/Intel)，最后使用 CPU
-            if 'CUDAExecutionProvider' in availables:
-                providers = [('CUDAExecutionProvider', {"cudnn_conv_algo_search": "DEFAULT"}), 'CPUExecutionProvider']
-            elif 'DmlExecutionProvider' in availables:
+            if 'DmlExecutionProvider' in availables:
                 providers = ['DmlExecutionProvider', 'CPUExecutionProvider']
             else:
                 providers = ['CPUExecutionProvider']
