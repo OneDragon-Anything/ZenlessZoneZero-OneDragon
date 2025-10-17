@@ -59,14 +59,14 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
-                det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
                 use_gpu=self.model_config.ocr_gpu,
+                det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
         self.cv_ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
-                det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
                 use_gpu=self.model_config.ocr_gpu,
+                det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
