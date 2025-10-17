@@ -16,14 +16,14 @@ class Banner(QWidget):
         self.is_video = False
         self.banner_image = None
         self.scaled_image = None
-        
+
         # 视频播放器组件
         self.media_player = None
         self.audio_output = None
         self.graphics_view = None
         self.video_item = None
         self._was_playing = False
-        
+
         self._init_media(image_path)
 
     def _init_media(self, media_path: str) -> None:
@@ -33,104 +33,101 @@ class Banner(QWidget):
             self.banner_image = self._create_fallback_image()
             self.update_scaled_image()
             return
-        
+
         # 检查是否为视频文件（通过扩展名或文件头判断）
         self.is_video = self._is_video_file(media_path)
-        
+
         if self.is_video:
             self._init_video(media_path)
         else:
             self._cleanup_video()
             self.banner_image = self.load_banner_image(media_path)
             self.update_scaled_image()
-    
+
     def _is_video_file(self, file_path: str) -> bool:
         """判断文件是否为视频格式"""
         # 先检查扩展名
         ext = os.path.splitext(file_path)[1].lower()
         if ext in ['.webm', '.mp4', '.avi', '.mov', '.mkv']:
             return True
-        
+
         # 无扩展名时，通过文件头（magic bytes）判断
         try:
             with open(file_path, 'rb') as f:
                 header = f.read(12)
-                
+
                 # WebM: 1A 45 DF A3
                 if header[:4] == b'\x1a\x45\xdf\xa3':
                     return True
-                
+
                 # MP4/MOV: 开头4字节后是 ftyp
                 if len(header) >= 8 and header[4:8] == b'ftyp':
                     return True
-                
+
                 # AVI: RIFF....AVI
                 if header[:4] == b'RIFF' and len(header) >= 12 and header[8:12] == b'AVI ':
                     return True
-                
+
         except Exception:
             pass
-        
+
         return False
 
     def _init_video(self, video_path: str) -> None:
         """初始化视频播放，使用硬件加速"""
         try:
             self._cleanup_video()
-            
+
             # 创建媒体播放器（Qt 会自动尝试使用硬件加速）
             self.media_player = QMediaPlayer(self)
-            self.audio_output = QAudioOutput(self)
-            self.audio_output.setVolume(0)  # 静音
-            self.media_player.setAudioOutput(self.audio_output)
-            
+
             # 创建图形视图和视频项
             self.graphics_view = QGraphicsView(self)
             self.graphics_view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             self.graphics_view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             self.graphics_view.setFrameShape(QGraphicsView.Shape.NoFrame)
             self.graphics_view.setStyleSheet("background: transparent;")
-            
+
             # 渲染质量优化设置
             self.graphics_view.setRenderHints(
-                QPainter.RenderHint.Antialiasing | 
+                QPainter.RenderHint.Antialiasing |
                 QPainter.RenderHint.SmoothPixmapTransform |
                 QPainter.RenderHint.TextAntialiasing
             )
             self.graphics_view.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.MinimalViewportUpdate)
             self.graphics_view.setOptimizationFlag(QGraphicsView.OptimizationFlag.DontSavePainterState, True)
             self.graphics_view.setCacheMode(QGraphicsView.CacheModeFlag.CacheBackground)
-            
+
             # 设置初始几何位置
             self.graphics_view.setGeometry(self.rect())
-            
+
             # 将视图降到底层作为背景
             self.graphics_view.lower()
-            
+
             scene = QGraphicsScene(self)
             self.graphics_view.setScene(scene)
-            
+
             self.video_item = QGraphicsVideoItem()
             scene.addItem(self.video_item)
-            
+
             # 设置视频输出
             self.media_player.setVideoOutput(self.video_item)
-            
+
             # 设置视频源
             self.media_player.setSource(QUrl.fromLocalFile(video_path))
-            
+
             # 设置循环播放（Qt 6.8+ 支持，更流畅的无缝循环）
             self.media_player.setLoops(QMediaPlayer.Loops.Infinite)
-            
+
             # 监听视频尺寸变化，用于自动调整和提取第一帧
             self.video_item.nativeSizeChanged.connect(self._on_video_size_changed)
-            
+
             # 显示视图
             self.graphics_view.show()
-            
+
             # 开始播放
             self.media_player.play()
-            
+
         except Exception:
             # 回退到图片模式
             self.is_video = False
@@ -143,11 +140,11 @@ class Banner(QWidget):
         try:
             # 调整视频视图大小以适配新尺寸
             self._resize_video_view()
-            
+
             # 提取第一帧用于主题色
             if not self.video_item or not self.media_player:
                 return
-            
+
             video_sink = self.media_player.videoSink()
             if video_sink:
                 frame = video_sink.videoFrame()
@@ -163,15 +160,15 @@ class Banner(QWidget):
             self.media_player.deleteLater()
             self.media_player = None
             self._was_playing = False
-        
+
         if self.audio_output:
             self.audio_output.deleteLater()
             self.audio_output = None
-        
+
         if self.graphics_view:
             self.graphics_view.deleteLater()
             self.graphics_view = None
-        
+
         self.video_item = None
 
     def pause_media(self) -> None:
@@ -193,42 +190,42 @@ class Banner(QWidget):
         """调整视频视图大小"""
         if not self.graphics_view or not self.video_item:
             return
-        
+
         # 设置视图大小和位置（始终填充整个 widget）
         self.graphics_view.setGeometry(self.rect())
-        
+
         # 获取视频原始尺寸
         video_size = self.video_item.nativeSize()
         if video_size.isEmpty():
             # 视频尺寸未加载时，先设置一个默认大小
             return
-        
+
         # 计算缩放比例以填充整个区域（保持宽高比）
         # 防止除零错误（控件初次布局或隐藏时）
         if self.width() == 0 or self.height() == 0:
             return
-        
+
         widget_ratio = self.width() / self.height()
         video_ratio = video_size.width() / video_size.height()
-        
+
         if widget_ratio > video_ratio:
             # 视频较窄，以宽度为准
             scale = self.width() / video_size.width()
         else:
             # 视频较宽，以高度为准
             scale = self.height() / video_size.height()
-        
+
         # 设置视频项大小
         self.video_item.setSize(video_size * scale)
-        
+
         # 更新场景矩形以适配视频项
         scene = self.graphics_view.scene()
         if scene:
             scene.setSceneRect(self.video_item.boundingRect())
-        
+
         # 确保视图居中显示
         self.graphics_view.centerOn(self.video_item)
-    
+
     def load_banner_image(self, image_path: str) -> QImage:
         """加载横幅图片，或创建渐变备用图片"""
         if os.path.isfile(image_path):
@@ -245,7 +242,7 @@ class Banner(QWidget):
         """更新缩放后的图片"""
         if self.is_video or not self.banner_image:
             return
-        
+
         if self.banner_image.isNull():
             return
 
@@ -262,7 +259,7 @@ class Banner(QWidget):
         """重载 paintEvent 以绘制缩放后的图片，视频模式下绘制圆角遮罩"""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
+
         if self.is_video:
             # 视频模式下，绘制一个透明的圆角遮罩层
             # 这样可以给视频添加圆角效果
@@ -312,7 +309,7 @@ class Banner(QWidget):
         """设置背景图片或视频"""
         self.image_path = image_path
         self._init_media(image_path)
-    
+
     def closeEvent(self, event):
         """窗口关闭时清理资源"""
         self._cleanup_video()
