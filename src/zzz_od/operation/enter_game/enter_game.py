@@ -35,6 +35,10 @@ class EnterGame(ZOperation):
         self.use_clipboard: bool = self.ctx.game_config.type_input_way == TypeInputWay.CLIPBOARD.value.value  # 使用剪切板输入
 
         self.interact_ignore_word_list: list[str] = []  # 进入游戏时 交互需要忽略的文本
+        
+    def handle_init(self):
+        # 本OP会被复用 多次登录时重置这个记录
+        self.interact_ignore_word_list.clear()
 
     @node_from(from_name='国服-输入账号密码')
     @node_from(from_name='国服-输入账号密码-新')
@@ -42,8 +46,6 @@ class EnterGame(ZOperation):
     @node_from(from_name='国际服-换服')
     @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True)
     def check_screen(self) -> OperationRoundResult:
-        self.interact_ignore_word_list.clear()
-
         login_result = self.check_login_related(self.last_screenshot)
         if login_result is not None:
             return login_result
