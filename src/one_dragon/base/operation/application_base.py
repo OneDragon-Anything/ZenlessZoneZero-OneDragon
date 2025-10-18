@@ -5,17 +5,14 @@ from enum import Enum
 from io import BytesIO
 from typing import TYPE_CHECKING, Callable, Optional
 
-from one_dragon.base.notify.push import Push
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
-from one_dragon.utils.i18_utils import gt
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 _app_preheat_executor = ThreadPoolExecutor(thread_name_prefix='od_app_preheat', max_workers=1)
-_notify_executor = ThreadPoolExecutor(thread_name_prefix='od_app_notify', max_workers=1)
 
 
 class ApplicationEventId(Enum):
@@ -76,8 +73,6 @@ class Application(Operation):
         if self.run_record is not None:
             self.run_record.check_and_update_status()  # 先判断是否重置记录
             self.run_record.update_status(AppRunRecord.STATUS_RUNNING)
-        if self.need_notify:
-            self.notify(None)
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
 
@@ -89,8 +84,6 @@ class Application(Operation):
         Operation.after_operation_done(self, result)
         self._update_record_after_stop(result)
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_STOP.value, self.app_id)
-        if self.need_notify:
-            self.notify(result.success)
 
     def _update_record_after_stop(self, result: OperationResult):
         """
@@ -103,42 +96,6 @@ class Application(Operation):
                 self.run_record.update_status(AppRunRecord.STATUS_SUCCESS)
             else:
                 self.run_record.update_status(AppRunRecord.STATUS_FAIL)
-
-    def notify(self, is_success: Optional[bool] = True) -> None:
-        """
-        发送通知 应用开始或停止时调用 会在调用的时候截图
-        :return:
-        """
-        if not hasattr(self.ctx, 'notify_config'):
-            return
-        if not getattr(self.ctx.notify_config, 'enable_notify', False):
-            return
-        if not getattr(self.ctx.notify_config, 'enable_before_notify', False) and is_success is None:
-            return
-
-        app_id = getattr(self, 'app_id', None)
-        app_name = getattr(self, 'op_name', None)
-
-        if not getattr(self.ctx.notify_config, app_id, False):
-            return
-
-        if is_success is True:
-            status = gt('成功')
-            image_source = self.notify_screenshot
-        elif is_success is False:
-            status = gt('失败')
-            image_source = self.save_screenshot_bytes()
-        elif is_success is None:
-            status = gt('开始')
-            image_source = None
-
-        send_image = getattr(self.ctx.push_config, 'send_image', False)
-        image = image_source if send_image else None
-
-        message = f"{gt('任务「')}{app_name}{gt('」运行')}{status}\n"
-
-        pusher = Push(self.ctx)
-        _notify_executor.submit(pusher.send, message, image)
 
     @property
     def current_execution_desc(self) -> str:
