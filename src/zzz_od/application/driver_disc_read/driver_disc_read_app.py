@@ -259,7 +259,9 @@ class DriverDiscReadApp(ZApplication):
         log.info(f'开始扫描驱动盘 总数:{self.total_disc_count} Worker进程数:{self.worker_count}')
 
         # 启动 worker 进程
-        self._start_workers()
+        if not self._start_workers():
+            log.error('Worker 进程启动失败，无法继续扫描')
+            return self.round_fail('Worker 进程启动失败')
 
         # 启动结果收集线程
         self.collector_thread = threading.Thread(target=self._result_collector_thread, daemon=True)
@@ -314,9 +316,12 @@ class DriverDiscReadApp(ZApplication):
         log.info(f'扫描完成 共识别:{len(self.disc_data_dict)}个')
         return self.round_success(f'识别完成: {len(self.disc_data_dict)}个')
 
-    def _start_workers(self):
-        """启动 worker 进程（GPU 多进程）"""
-        self.workers_running = True
+    def _start_workers(self) -> bool:
+        """启动 worker 进程（GPU 多进程）
+        
+        Returns:
+            bool: 启动成功返回 True，失败返回 False
+        """
         self.workers = []
 
         # 预提取所有 OCR 区域坐标（传递给子进程）
@@ -373,13 +378,10 @@ class DriverDiscReadApp(ZApplication):
                 log.info(f'Worker-{worker_id} 已就绪 ({ready_count}/{self.worker_count})')
             except Empty:
                 log.error(f'等待 worker 进程就绪超时，已就绪: {ready_count}/{self.worker_count}')
-                break
+                self._cleanup_failed_workers()
+                return False
 
-        if ready_count == self.worker_count:
-            log.info(f'所有 {self.worker_count} 个 OCR worker 进程已就绪')
-        else:
-            log.warning(f'只有 {ready_count}/{self.worker_count} 个进程就绪')
-            return
+        log.info(f'所有 {self.worker_count} 个 OCR worker 进程已就绪')
 
         # 等待所有 worker 进程预热完成
         warmup_count = 0
@@ -390,22 +392,55 @@ class DriverDiscReadApp(ZApplication):
                 warmup_count += 1
                 log.info(f'Worker-{worker_id} 预热完成 ({warmup_count}/{self.worker_count})')
             except Empty:
-                log.error(f'等待 worker 进程预热超时，已完成: {warmup_count}/{self.worker_count}')
+                log.warning(f'等待 worker 进程预热超时，已完成: {warmup_count}/{self.worker_count}')
+                # 预热超时只记录警告，不视为启动失败（worker 可能仍能工作）
                 break
 
         if warmup_count == self.worker_count:
             log.info(f'所有 {self.worker_count} 个 OCR worker 进程预热完成，开始扫描')
         else:
-            log.warning(f'只有 {warmup_count}/{self.worker_count} 个进程完成预热')
+            log.warning(f'只有 {warmup_count}/{self.worker_count} 个进程完成预热，继续尝试扫描')
+
+        # 只有在全部就绪后才设置 workers_running 为 True
+        self.workers_running = True
+        return True
+
+    def _cleanup_failed_workers(self):
+        """清理启动失败的 worker 进程"""
+        log.warning('正在清理未成功启动的 worker 进程...')
+        for worker in self.workers:
+            if worker.is_alive():
+                worker.terminate()
+                worker.join(timeout=2)
+                if worker.is_alive():
+                    log.warning(f'Worker 进程 {worker.pid} 强制终止')
+                    worker.kill()
+        self.workers = []
+        log.info('已清理所有 worker 进程')
 
     def _stop_workers(self):
         """停止 worker 进程"""
         if not self.workers_running:
             return
 
+        # 先清空队列，避免队列满时投递哨兵阻塞
+        cleared_count = 0
+        while not self.screenshot_queue.empty():
+            try:
+                self.screenshot_queue.get_nowait()
+                cleared_count += 1
+            except Exception:
+                break
+        if cleared_count > 0:
+            log.info(f'清空队列中 {cleared_count} 个未处理的截图')
+
         # 发送停止信号（None sentinel）给每个 worker
-        for _ in range(self.worker_count):
-            self.screenshot_queue.put(None)
+        for i in range(self.worker_count):
+            try:
+                self.screenshot_queue.put(None, timeout=1)
+            except Exception as e:
+                log.warning(f'发送第 {i+1} 个停止信号失败: {e}，直接终止剩余进程')
+                break
 
         # 等待所有进程结束
         for worker in self.workers:
