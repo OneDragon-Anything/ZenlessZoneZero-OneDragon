@@ -44,7 +44,7 @@ jobs:
       - name: Checkout test repo (default branch)
         id: checkout-test-repo-default
         if: steps.checkout-test-repo.outcome == 'failure'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: OneDragon-Anything/zzz-od-test
           path: zzz-od-test
