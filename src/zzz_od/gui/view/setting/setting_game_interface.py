@@ -254,15 +254,6 @@ class SettingGameInterface(VerticalScrollInterface):
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
-        self.compatibility_mode_switch.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('compatibility_mode'))
-        self.outfit_nicole_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('nicole'))
-        self.outfit_ellen_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('ellen'))
-        self.outfit_astra_yao_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('astra_yao'))
-        self.outfit_yixuan_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('yixuan'))
-        self.outfit_yuzuha_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('yuzuha'))
-        self.outfit_alice_opt.init_with_adapter(self.ctx.agent_outfit_config.get_prop_adapter('alice'))
-        self._update_agent_outfit_options(self.ctx.agent_outfit_config.compatibility_mode)
-
         self.input_way_opt.init_with_adapter(self.ctx.game_config.type_input_way_adapter)
 
         self.launch_argument_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument'))
@@ -372,22 +363,6 @@ class SettingGameInterface(VerticalScrollInterface):
 
     def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
         self._update_gamepad_part()
-
-    def _on_compatibility_mode_changed(self, value: bool) -> None:
-        self.ctx.agent_outfit_config.compatibility_mode = value
-        if value:
-            self.ctx.init_agent_template_id()
-        else:
-            self.ctx.init_agent_template_id_list()
-        self._update_agent_outfit_options(value)
-
-    def _update_agent_outfit_options(self, value: bool) -> None:
-        self.agent_outfit_row1.setVisible(value)
-        self.agent_outfit_row2.setVisible(value)
-
-    def _on_agent_outfit_changed(self) -> None:
-        if self.ctx.agent_outfit_config.compatibility_mode:
-            self.ctx.init_agent_template_id()
 
     def _on_hdr_enable_clicked(self) -> None:
         self.hdr_btn_enable.setEnabled(False)
