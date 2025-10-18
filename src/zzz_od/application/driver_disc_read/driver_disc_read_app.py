@@ -118,21 +118,23 @@ def _ocr_worker_process(
                         # 因为图片已经预裁剪到精确区域，不需要文本检测
                         rec_results = worker_ocr._model.text_recognizer(images)
                         
-                        for idx, (text, score) in zip(indices, rec_results):
+                        for idx, (text, _score) in zip(indices, rec_results, strict=False):
                             all_results[idx][area_name] = text.strip()
                     except Exception as e:
                         # 降级：批量调用失败时逐个处理
                         log.warning(f'批量OCR识别失败，降级为逐个处理: {e}')
-                        for idx, img in zip(indices, images):
-                            ocr_result_map = worker_ocr.run_ocr(img)
-                            if ocr_result_map:
-                                result_text = list(ocr_result_map.keys())[0].strip()
-                            else:
+                        for idx, img in zip(indices, images, strict=False):
+                            try:
+                                ocr_result_map = worker_ocr.run_ocr(img)
+                                result_text = next(iter(ocr_result_map.keys())).strip() if ocr_result_map else ''
+                            except Exception as ex:
+                                log.warning(f'单图OCR失败 idx={idx}: {ex}')
                                 result_text = ''
                             all_results[idx][area_name] = result_text
-                        # 填充空结果
+                        # 仅为缺失项填默认空值，避免覆盖已有识别结果
                         for idx in indices:
-                            all_results[idx][area_name] = ''
+                            all_results.setdefault(idx, {})
+                            all_results[idx].setdefault(area_name, '')
 
                 # 解析并返回结果
                 for global_index in all_results.keys():
