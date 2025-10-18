@@ -48,7 +48,7 @@ jobs:
         with:
           repository: OneDragon-Anything/zzz-od-test
           path: zzz-od-test
-          ref: ${{ github.event_name == 'pull_request' && github.head_ref || 'main' }}
+          ref: main
           fetch-depth: 1
 
       - name: Run tests
