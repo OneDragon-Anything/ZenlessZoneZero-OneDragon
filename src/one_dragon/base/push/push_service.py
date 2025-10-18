@@ -10,7 +10,9 @@ from cv2.typing import MatLike
 
 from one_dragon.base.push.channel.bark import Bark
 from one_dragon.base.push.channel.dingding import DingDingBot
+from one_dragon.base.push.channel.fake import FakePushChannel
 from one_dragon.base.push.channel.feishu import FeiShu
+from one_dragon.base.push.channel.gotify import Gotify
 from one_dragon.base.push.channel.ntfy import Ntfy
 from one_dragon.base.push.channel.one_bot import OneBot
 from one_dragon.base.push.channel.push_plus import PushPlus
@@ -62,6 +64,8 @@ class PushService:
             self._add_channel(WorkWeixin())
             self._add_channel(Telegram())
             self._add_channel(Ntfy())
+            self._add_channel(FakePushChannel())
+            self._add_channel(Gotify())
 
             self._inited = True
         finally:
