@@ -23,10 +23,35 @@ class ThemeColorModeEnum(Enum):
     CUSTOM = ConfigItem('自定义', 'custom')
 
 
+class BackgroundTypeEnum(Enum):
+
+    OFFICIAL_STATIC = ConfigItem('官方静态背景', 'official_static')
+    VERSION_POSTER = ConfigItem('版本海报', 'version_poster')
+    OFFICIAL_DYNAMIC = ConfigItem('官方动态背景', 'official_dynamic')
+    NONE = ConfigItem('无', 'none')
+
+
 class CustomConfig(YamlConfig):
 
     def __init__(self):
         super().__init__(module_name='custom')
+        self._migrate_background_type()
+
+    def _migrate_background_type(self) -> None:
+        """迁移旧版本的背景配置到新的枚举类型"""
+        if self.get('background_type', None) is not None:
+            return
+
+        if self.get('official_dynamic', False):
+            new_value = BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value
+        elif self.get('version_poster', False):
+            new_value = BackgroundTypeEnum.VERSION_POSTER.value.value
+        elif self.get('remote_banner', False):
+            new_value = BackgroundTypeEnum.OFFICIAL_STATIC.value.value
+        else:
+            new_value = BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value
+
+        self.update('background_type', new_value)
 
     @property
     def ui_language(self) -> str:
@@ -93,26 +118,15 @@ class CustomConfig(YamlConfig):
         self.update('custom_banner', new_value)
 
     @property
-    def remote_banner(self) -> bool:
+    def background_type(self) -> str:
         """
-        是否启用远端主页背景
+        主页背景类型（官方静态/版本海报/官方动态/无）
         """
-        return self.get('remote_banner', True)
+        return self.get('background_type', BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value)
 
-    @remote_banner.setter
-    def remote_banner(self, new_value: bool) -> None:
-        self.update('remote_banner', new_value)
-
-    @property
-    def version_poster(self) -> bool:
-        """
-        是否启用版本海报
-        """
-        return self.get('version_poster', False)
-
-    @version_poster.setter
-    def version_poster(self, new_value: bool) -> None:
-        self.update('version_poster', new_value)
+    @background_type.setter
+    def background_type(self, new_value: str) -> None:
+        self.update('background_type', new_value)
 
     @property
     def last_remote_banner_fetch_time(self) -> str:
@@ -135,6 +149,17 @@ class CustomConfig(YamlConfig):
     @last_version_poster_fetch_time.setter
     def last_version_poster_fetch_time(self, new_value: str) -> None:
         self.update('last_version_poster_fetch_time', new_value)
+
+    @property
+    def last_official_dynamic_fetch_time(self) -> str:
+        """
+        上次获取官方动态的时间
+        """
+        return self.get('last_official_dynamic_fetch_time', '')
+
+    @last_official_dynamic_fetch_time.setter
+    def last_official_dynamic_fetch_time(self, new_value: str) -> None:
+        self.update('last_official_dynamic_fetch_time', new_value)
 
     @property
     def theme_color_mode(self) -> str:
