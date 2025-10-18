@@ -110,9 +110,9 @@ class OneDragonApp(Application):
         if self._last_controller is None:
             return self.round_success()
 
-        if self.ctx.controller.is_game_window_ready:
+        if self._last_controller.is_game_window_ready:
             # 关闭游戏
-            self.ctx.controller.close_game()
+            self._last_controller.close_game()
             return self.round_retry('检查是否关闭成功', wait=3)
 
         # 有时候游戏关闭了, 游戏占用的配置等文件没关闭, 故需等一会
