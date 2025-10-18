@@ -10,6 +10,7 @@ from typing import Union, Optional
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
+from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
@@ -27,7 +28,7 @@ class KeyEventWorker(QObject):
         self.key_pressed.emit(key)
 
 
-class KeySettingCard(SettingCardBase):
+class KeySettingCard(SettingCardBase, AdapterInitMixin):
 
     value_changed = Signal(str)
 
@@ -35,7 +36,6 @@ class KeySettingCard(SettingCardBase):
                  icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str]=None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent=None):
 
         SettingCardBase.__init__(
@@ -47,14 +47,13 @@ class KeySettingCard(SettingCardBase):
             margins=margins,
             parent=parent
         )
+        AdapterInitMixin.__init__(self)
 
         # 初始化 PushButton
         self.value: str = ''
         self.btn = PushButton(text='', parent=self)
         self.btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.btn.clicked.connect(self._on_btn_clicked)
-
-        self.adapter: YamlConfigAdapter = adapter
 
         # 初始化监听器和键盘事件工作者
         self.button_listener = None  # 按键监听
@@ -99,13 +98,6 @@ class KeySettingCard(SettingCardBase):
         if self.adapter is not None:
             self.adapter.set_value(key)
 
-    def init_with_adapter(self, adapter: YamlConfigAdapter) -> None:
-        """
-        初始化值
-        """
-        self.adapter = adapter
-        self.setValue(self.adapter.get_value(), emit_signal=False)
-
     def setContent(self, content: str) -> None:
         """
         更新左侧详细文本
@@ -134,3 +126,6 @@ class KeySettingCard(SettingCardBase):
         if self.button_listener is not None:
             self.button_listener.stop()
             self.button_listener = None
+
+    def default_adapter_value(self) -> str:
+        return ""

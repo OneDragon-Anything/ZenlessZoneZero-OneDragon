@@ -4,11 +4,12 @@ from qfluentwidgets import FluentIconBase, SpinBox, DoubleSpinBox
 from typing import Union, Optional
 
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
+from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
-class SpinBoxSettingCardBase(SettingCardBase):
+class SpinBoxSettingCardBase(SettingCardBase, AdapterInitMixin):
     """带微调框的设置卡片基类"""
 
     value_changed = Signal(object)
@@ -17,7 +18,6 @@ class SpinBoxSettingCardBase(SettingCardBase):
                  icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str] = None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent=None):
 
         SettingCardBase.__init__(
@@ -29,13 +29,12 @@ class SpinBoxSettingCardBase(SettingCardBase):
             margins=margins,
             parent=parent
         )
+        AdapterInitMixin.__init__(self)
 
         # 创建输入框控件
         self.spin_box = self._create_spin_box()
         self.hBoxLayout.addWidget(self.spin_box, 0)
         self.hBoxLayout.addSpacing(16)
-
-        self.adapter: YamlConfigAdapter = adapter
 
         # 绑定输入框内容变化信号
         self.spin_box.valueChanged.connect(self._on_value_changed)
@@ -56,15 +55,6 @@ class SpinBoxSettingCardBase(SettingCardBase):
 
         self.value_changed.emit(val)
 
-    def init_with_adapter(self, adapter: Optional[YamlConfigAdapter]) -> None:
-        """使用配置适配器初始化值"""
-        self.adapter = adapter
-
-        if self.adapter is None:
-            self.setValue(0, emit_signal=False)
-        else:
-            self.setValue(self.adapter.get_value(), emit_signal=False)
-
     def setValue(self, value, emit_signal: bool = True) -> None:
         """设置输入框的值"""
         if not emit_signal:
@@ -81,6 +71,9 @@ class SpinBoxSettingCardBase(SettingCardBase):
         """设置微调框的步长"""
         self.spin_box.setSingleStep(step)
 
+    def default_adapter_value(self):
+        return 0
+
 class SpinBoxSettingCard(SpinBoxSettingCardBase):
     """带整数微调框的设置卡片类"""
 
@@ -93,7 +86,6 @@ class SpinBoxSettingCard(SpinBoxSettingCardBase):
                  max_width: int = 300,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent=None):
 
         self.step = step
@@ -109,7 +101,6 @@ class SpinBoxSettingCard(SpinBoxSettingCardBase):
             content=content,
             icon_size=icon_size,
             margins= margins,
-            adapter=adapter,
             parent=parent
         )
 
@@ -134,7 +125,6 @@ class DoubleSpinBoxSettingCard(SpinBoxSettingCardBase):
                  max_width: int = 300,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent=None):
 
         self.step = step
@@ -150,7 +140,6 @@ class DoubleSpinBoxSettingCard(SpinBoxSettingCardBase):
             content=content,
             icon_size=icon_size,
             margins= margins,
-            adapter=adapter,
             parent=parent
         )
 
