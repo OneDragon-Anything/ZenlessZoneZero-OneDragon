@@ -90,6 +90,9 @@ class OneDragonApp(Application):
         self._last_account_config = self.ctx.game_account_config
         self._last_controller = self.ctx.controller
 
+        self._instance_idx += 1
+        if self._instance_idx >= len(self._instance_list):
+            self._instance_idx = 0
         self.ctx.switch_instance(self._instance_list[self._instance_idx].idx)
         log.info('下一个实例 %s', self.ctx.one_dragon_config.current_active_instance.name)
 
@@ -117,7 +120,6 @@ class OneDragonApp(Application):
         return self.round_success(wait=10)
 
     @node_from(from_name='切换实例配置')
-    @node_from(from_name='关闭游戏')
     @operation_node(name='切换账号', screenshot_before_round=False)
     def switch_account(self) -> OperationRoundResult:
         if len(self._instance_list) == 1:
@@ -128,8 +130,16 @@ class OneDragonApp(Application):
             # return self.round_success(wait=1)  # 调试用
             return self.round_by_op_result(self._op_to_switch_account.execute())
 
-    @node_from(from_name='切换实例配置', status='游戏路径不同')
+    @node_from(from_name='关闭游戏')
+    @operation_node(name='切换账号重新打开游戏', screenshot_before_round=False)
+    def after_close_game(self) -> OperationRoundResult:
+        if self.op_to_enter_game is None:
+            return self.round_fail('未提供打开游戏方式')
+        else:
+            return self.round_by_op_result(self.op_to_enter_game.execute())
+
     @node_from(from_name='切换账号')
+    @node_from(from_name='切换账号重新打开游戏')
     @operation_node(name='切换账号后处理', screenshot_before_round=False)
     def after_switch_account(self) -> OperationRoundResult:
         if self._instance_idx == self._instance_start_idx:  # 已经完成一轮了
