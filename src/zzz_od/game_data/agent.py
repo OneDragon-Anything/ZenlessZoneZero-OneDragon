@@ -302,7 +302,7 @@ class AgentEnum(Enum):
                                       lower_color=(0, 50, 0), upper_color=(255, 255, 255))
                     ])
 
-    VIVIAN = Agent('vivian', '薇薇安', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ETHER, ['vivian'],
+    VIVIAN = Agent('vivian', '薇薇安', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ETHER, ['vivian', 'vivian_iris_of_the_shore'],
                     state_list=[
                         AgentStateDef('薇薇安-飞羽', AgentStateCheckWay.COLOR_RANGE_CONNECT,
                                     'vivian_master_1', lower_color=(150, 110, 170), upper_color=(255, 255, 255),
