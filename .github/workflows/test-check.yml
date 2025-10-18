@@ -60,6 +60,7 @@ jobs:
           PUSH_DD_BOT_TOKEN: ${{ secrets.PUSH_DD_BOT_TOKEN }}
 
       - name: Test failure notification
+        if: failure()
         run: |
           $message = @"
             ::notice::当前触发事件: ${{ github.event_name }}
