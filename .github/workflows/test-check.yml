@@ -58,8 +58,10 @@ jobs:
           uv run pytest zzz-od-test/ -v --tb=short --color=yes
         env:
           PYTHONPATH: src
+          PUSH_SERVER_CHAN_PUSH_KEY: ${{ secrets.PUSH_SERVER_CHAN_PUSH_KEY }}
           PUSH_DD_BOT_SECRET: ${{ secrets.PUSH_DD_BOT_SECRET }}
           PUSH_DD_BOT_TOKEN: ${{ secrets.PUSH_DD_BOT_TOKEN }}
+          PUSH_PUSH_PLUS_TOKEN: ${{ secrets.PUSH_PUSH_PLUS_TOKEN }}
 
       - name: Test failure notification
         if: failure()

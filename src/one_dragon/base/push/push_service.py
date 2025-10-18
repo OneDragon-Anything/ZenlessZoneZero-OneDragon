@@ -2,16 +2,20 @@ from __future__ import annotations
 
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from typing import TYPE_CHECKING
 
 from cv2.typing import MatLike
 
+from one_dragon.base.push.channel.bark import Bark
 from one_dragon.base.push.channel.dingding import DingDingBot
+from one_dragon.base.push.channel.push_plus import PushPlus
 from one_dragon.base.push.channel.server_chan import ServerChan
 from one_dragon.base.push.push_channel import PushChannel
 from one_dragon.base.push.push_channel_config import PushChannelConfigField
 from one_dragon.base.push.push_config import PushConfig
+from one_dragon.utils import thread_utils
 from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
@@ -22,6 +26,10 @@ class PushService:
 
     def __init__(self, ctx: OneDragonContext):
         self.ctx: OneDragonContext = ctx
+
+        self._executor = ThreadPoolExecutor(
+            thread_name_prefix="one_dragon_push_service", max_workers=1
+        )
 
         self._init_lock = threading.Lock()
         self._inited: bool = False
@@ -42,6 +50,8 @@ class PushService:
 
             self._add_channel(ServerChan())
             self._add_channel(DingDingBot())
+            self._add_channel(Bark())
+            self._add_channel(PushPlus())
 
         finally:
             self._inited = True
@@ -158,7 +168,36 @@ class PushService:
         push_config = self.push_config
         fields = self._id_2_channel_schemas[channel_id]
         for field in fields:
-            value = push_config.get_channel_config_value(channel_id, field.var_suffix)
+            value = push_config.get_channel_config_value(
+                channel_id=channel_id,
+                field_name=field.var_suffix,
+                default_value=field.default,
+            )
             config[field.var_suffix] = value
 
         return config
+
+    def push_async(
+        self,
+        content: str,
+        image: MatLike | None = None,
+        title: str | None = None,
+        channel_id: str | None = None,
+    ) -> None:
+        """
+        异步推送消息
+
+        Args:
+            content: 内容
+            image: 图片
+            title: 标题 未传入时使用 push_config.custom_push_title
+            channel_id: 推送渠道ID 未传入时使用所有能通过配置校验的渠道
+        """
+        future = self._executor.submit(
+            self.push,
+            content,
+            image,
+            title,
+            channel_id,
+        )
+        future.add_done_callback(thread_utils.handle_future_result)
