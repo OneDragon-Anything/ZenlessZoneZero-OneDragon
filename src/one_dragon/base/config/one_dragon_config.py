@@ -189,3 +189,12 @@ class OneDragonConfig(YamlConfig):
     @after_done.setter
     def after_done(self, new_value: str):
         self.update('after_done', new_value)
+
+    @property
+    def disc_export_path(self) -> str:
+        """驱动盘数据导出路径"""
+        return self.get('disc_export_path', '')
+
+    @disc_export_path.setter
+    def disc_export_path(self, new_value: str):
+        self.update('disc_export_path', new_value)

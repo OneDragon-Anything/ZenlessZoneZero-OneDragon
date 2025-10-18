@@ -33,10 +33,11 @@ def _ocr_worker_process(
     warmup_queue: multiprocessing.Queue,  # 预热完成信号队列
     ocr_areas: Dict[str, tuple],  # {area_name: (x, y, w, h)}
     use_gpu: bool,
-    det_limit_side_len: int
+    det_limit_side_len: int,
+    batch_size: int  # 批量大小
 ):
     """
-    OCR Worker 进程函数
+    OCR Worker 进程函数（支持批量推理）
     每个进程独立创建 OCR 实例，避免 DirectML 内存冲突
     """
     try:
@@ -50,7 +51,7 @@ def _ocr_worker_process(
             )
         )
 
-        log.info(f'Worker-{worker_id} OCR 实例创建完成（进程 PID: {multiprocessing.current_process().pid}）')
+        log.info(f'Worker-{worker_id} OCR 实例创建完成（进程 PID: {multiprocessing.current_process().pid}），批量大小: {batch_size}')
 
         # 发送就绪信号
         ready_queue.put(worker_id)
@@ -70,33 +71,67 @@ def _ocr_worker_process(
         warmup_queue.put(worker_id)
 
         while True:
+            # 批量取出截图
+            batch = []
             try:
-                # 从队列获取任务（超时 1 秒）
-                item = screenshot_queue.get(timeout=1)
+                # 至少取1个，最多取batch_size个
+                for _ in range(batch_size):
+                    try:
+                        item = screenshot_queue.get(timeout=0.1)
+                        if item is None:  # 停止信号
+                            log.info(f'Worker-{worker_id} 收到停止信号')
+                            # 处理完当前batch后退出
+                            if batch:
+                                break
+                            else:
+                                return
+                        batch.append(item)
+                    except Empty:
+                        # 队列空了，处理已有的batch
+                        break
+                
+                if not batch:
+                    # 没有任务，继续等待
+                    continue
 
-                # None 作为停止信号
-                if item is None:
-                    log.info(f'Worker-{worker_id} 收到停止信号')
-                    break
-
-                global_index, screen = item
-
-                # 处理 OCR
-                disc_data = {}
-                try:
-                    # OCR 识别各个区域
+                # 按区域类型分组：{area_name: [(global_index, crop_image), ...]}
+                area_groups = {}
+                for global_index, screen in batch:
                     for area_name, rect_tuple in ocr_areas.items():
                         x, y, w, h = rect_tuple
                         part = screen[y:y+h, x:x+w]
-                        ocr_result_map = worker_ocr.run_ocr(part)
+                        if area_name not in area_groups:
+                            area_groups[area_name] = []
+                        area_groups[area_name].append((global_index, part))
 
-                        if ocr_result_map:
-                            result_text = list(ocr_result_map.keys())[0].strip()
-                        else:
-                            result_text = ''
+                # 对每个区域类型进行批量OCR
+                # 存储所有结果：{global_index: {area_name: result_text}}
+                all_results = {global_index: {} for global_index, _ in batch}
 
-                        disc_data[area_name] = result_text
+                for area_name, items in area_groups.items():
+                    indices = [idx for idx, _ in items]
+                    images = [img for _, img in items]
 
+                    # 批量OCR识别
+                    try:
+                        # 对每张图片单独OCR（因为run_ocr不支持批量，但内部会自动批量）
+                        for idx, img in zip(indices, images):
+                            ocr_result_map = worker_ocr.run_ocr(img)
+                            if ocr_result_map:
+                                result_text = list(ocr_result_map.keys())[0].strip()
+                            else:
+                                result_text = ''
+                            all_results[idx][area_name] = result_text
+                    except Exception as e:
+                        log.error(f'Worker-{worker_id} 批量OCR出错 ({area_name}): {e}', exc_info=True)
+                        # 填充空结果
+                        for idx in indices:
+                            all_results[idx][area_name] = ''
+
+                # 解析并返回结果
+                for global_index in all_results.keys():
+                    disc_data = all_results[global_index]
+                    
                     # 解析等级信息（格式：等级03/15）
                     level_text = disc_data.get('驱动板等级', '')
                     if level_text:
@@ -126,15 +161,11 @@ def _ocr_worker_process(
                     # 将结果放入结果队列
                     result_queue.put((global_index, disc_data))
 
-                except Exception as e:
-                    log.error(f'Worker-{worker_id} 处理截图出错: {e}', exc_info=True)
-                    result_queue.put((global_index, None))
-
-            except Empty:
-                continue
             except Exception as e:
-                log.error(f'Worker-{worker_id} 队列处理异常: {e}', exc_info=True)
-                break
+                log.error(f'Worker-{worker_id} 批量处理异常: {e}', exc_info=True)
+                # 对batch中所有任务返回None
+                for global_index, _ in batch:
+                    result_queue.put((global_index, None))
 
         log.info(f'Worker-{worker_id} 进程退出')
 
@@ -314,7 +345,8 @@ class DriverDiscReadApp(ZApplication):
                     self.warmup_queue,  # 传递预热完成信号队列
                     self.ocr_areas,
                     self.ctx.model_config.ocr_gpu,
-                    det_limit_side_len
+                    det_limit_side_len,
+                    self.ctx.model_config.ocr_batch_size  # 传递批量大小
                 ),
                 daemon=True
             )
@@ -419,11 +451,18 @@ class DriverDiscReadApp(ZApplication):
         log.info('结果收集线程已退出')
 
     def _capture_and_queue_disc(self, grid_position: int, global_index: int):
-        """点击位置、截图并放入队列"""
+        """点击位置、截图并放入队列（智能等待优化）"""
         click_pos = self._get_disc_position(grid_position)
+        
+        # 点击前获取当前面板签名
+        prev_signature = self._get_panel_signature()
+        
         self.ctx.controller.click(click_pos)
-        # 等待界面稳定后再截图
-        time.sleep(0.05)
+        
+        # 智能等待面板更新（最多150ms）
+        panel_updated = self._wait_for_panel_update(prev_signature, timeout=0.15)
+        if not panel_updated:
+            log.debug(f'面板更新超时 (驱动盘 {global_index})，继续截图')
 
         screen = self.screenshot()
         if screen is not None:
@@ -446,11 +485,23 @@ class DriverDiscReadApp(ZApplication):
         # 将字典转换为列表（按 global_index 排序）
         disc_data_list = [self.disc_data_dict[i] for i in sorted(self.disc_data_dict.keys())]
 
-        output_dir = Path(os_utils.get_path_under_work_dir('config', 'driver_disc_data'))
-        output_dir.mkdir(parents=True, exist_ok=True)
-
+        # 从配置读取导出路径
+        export_path = self.ctx.one_dragon_config.get('disc_export_path', '')
+        
+        # 生成带时间戳的文件名
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        csv_file = output_dir / f'driver_disc_{timestamp}.csv'
+        
+        if export_path:
+            # 使用配置的路径，在文件名中插入时间戳
+            base_path = Path(os_utils.get_path_under_work_dir(export_path))
+            # 例如：my_data.csv -> my_data_20251018_143022.csv
+            csv_file = base_path.parent / f'{base_path.stem}_{timestamp}{base_path.suffix}'
+        else:
+            # 使用默认路径，带时间戳
+            csv_file = Path(os_utils.get_path_under_work_dir('driver_disc', f'driver_disc_data_{timestamp}.csv'))
+        
+        # 确保目录存在
+        csv_file.parent.mkdir(parents=True, exist_ok=True)
 
         with open(csv_file, 'w', newline='', encoding='utf-8-sig') as f:
             fieldnames = ['name', 'level', 'rating', 'main_stat', 'main_stat_value',
@@ -466,7 +517,7 @@ class DriverDiscReadApp(ZApplication):
             writer.writerows(disc_data_list)
 
         log.info(f'数据已保存到: {csv_file}')
-        return self.round_success(f'已保存 {len(disc_data_list)} 条数据')
+        return self.round_success(f'已保存 {len(disc_data_list)} 条数据到 {csv_file}')
 
     @node_from(from_name='保存数据')
     @operation_node(name='完成后返回')
