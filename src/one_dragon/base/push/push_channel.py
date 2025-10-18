@@ -60,14 +60,14 @@ class PushChannel(ABC):
         将图片转换为字节数组
 
         Args:
-            image: 图片
+            image: 图片 RGB格式
             max_bytes: 图片最大字节数 超过时压缩
 
         Returns:
-            bytes: 图片字节数组
+            BytesIO: 图片数据 统一jpeg格式
         """
         bgr_image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        retval, buffer = cv2.imencode('.png', bgr_image)
+        retval, buffer = cv2.imencode('.jpg', bgr_image)
 
         if retval:
             image_bytes = BytesIO(buffer.tobytes())
@@ -90,7 +90,7 @@ class PushChannel(ABC):
             max_bytes: 最大字节数
 
         Returns:
-            tuple[bytes | None, str | None, int]: 压缩后的图片数据、格式、质量
+            BytesIO: 压缩后的图片数据 统一jpeg格式
         """
 
         import cv2

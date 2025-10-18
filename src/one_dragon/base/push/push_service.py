@@ -14,7 +14,7 @@ from one_dragon.base.push.channel.feishu import FeiShu
 from one_dragon.base.push.channel.one_bot import OneBot
 from one_dragon.base.push.channel.push_plus import PushPlus
 from one_dragon.base.push.channel.server_chan import ServerChan
-from one_dragon.base.push.channel.work_wexin import WorkWeixin
+from one_dragon.base.push.channel.work_weixin import WorkWeixin
 from one_dragon.base.push.push_channel import PushChannel
 from one_dragon.base.push.push_channel_config import PushChannelConfigField
 from one_dragon.base.push.push_config import PushConfig

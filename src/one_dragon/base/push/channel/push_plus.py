@@ -112,9 +112,8 @@ class PushPlus(PushChannel):
             }
 
             # 发送请求
-            body = json.dumps(data).encode(encoding="utf-8")
             headers = {"Content-Type": "application/json"}
-            response = requests.post(url=url, data=body, headers=headers).json()
+            response = requests.post(url=url, json=data, headers=headers, timeout=15).json()
 
             code = response.get("code")
             if code == 200:
@@ -125,7 +124,7 @@ class PushPlus(PushChannel):
                 # 尝试备用地址
                 url_old = "http://pushplus.hxtrip.com/send"
                 headers["Accept"] = "application/json"
-                response_old = requests.post(url=url_old, data=body, headers=headers).json()
+                response_old = requests.post(url=url_old, json=data, headers=headers, timeout=15).json()
 
                 if response_old.get("code") == 200:
                     return True, "PushPlus(hxtrip) 推送成功！"

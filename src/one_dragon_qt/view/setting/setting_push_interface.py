@@ -255,8 +255,8 @@ class SettingPushInterface(VerticalScrollInterface):
 
         config = self.ctx.push_service.push_config
 
-        self.custom_push_title.init_with_adapter(get_prop_adapter(self.ctx.push_config, 'custom_push_title'))
-        self.send_image_opt.init_with_adapter(get_prop_adapter(self.ctx.push_config, 'send_image'))
+        self.custom_push_title.init_with_adapter(get_prop_adapter(config, 'custom_push_title'))
+        self.send_image_opt.init_with_adapter(get_prop_adapter(config, 'send_image'))
 
         # 动态初始化所有通知卡片
         for channel in self.ctx.push_service.channels:
@@ -274,12 +274,13 @@ class SettingPushInterface(VerticalScrollInterface):
     def _generate_curl(self, style: str):
         """生成 cURL 示例命令"""
         # 获取配置
+        push_config = self.ctx.push_service.push_config
         config = {
-            'url': getattr(self.ctx.push_config, "webhook_url", None),
-            'method': getattr(self.ctx.push_config, "webhook_method", "POST"),
-            'content_type': getattr(self.ctx.push_config, "webhook_content_type", "application/json"),
-            'headers': getattr(self.ctx.push_config, "webhook_headers", "{}"),
-            'body': getattr(self.ctx.push_config, "webhook_body", None)
+            'url': getattr(push_config, "webhook_url", None),
+            'method': getattr(push_config, "webhook_method", "POST"),
+            'content_type': getattr(push_config, "webhook_content_type", "application/json"),
+            'headers': getattr(push_config, "webhook_headers", "{}"),
+            'body': getattr(push_config, "webhook_body", None)
         }
 
         # 检查必需的 URL 配置
@@ -304,13 +305,14 @@ class SettingPushInterface(VerticalScrollInterface):
         验证Webhook配置
         验证失败时抛出异常
         """
-        url = getattr(self.ctx.push_config, "webhook_url", None)
+        push_config = self.ctx.push_service.push_config
+        url = getattr(push_config, "webhook_url", None)
         if not url:
             raise ValueError("Webhook URL 未配置，无法推送")
 
-        body = getattr(self.ctx.push_config, "webhook_body", None)
-        headers = getattr(self.ctx.push_config, "webhook_headers", "{}")
-        content_type = getattr(self.ctx.push_config, "webhook_content_type", "application/json")
+        body = getattr(push_config, "webhook_body", None)
+        headers = getattr(push_config, "webhook_headers", "{}")
+        content_type = getattr(push_config, "webhook_content_type", "application/json")
 
         # 检查是否包含 $content
         if not any('$content' in str(field) for field in [url, body, headers]):

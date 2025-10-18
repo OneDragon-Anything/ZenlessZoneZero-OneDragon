@@ -1,7 +1,6 @@
 import base64
 import hashlib
 import json
-from typing import Any
 
 import requests
 from cv2.typing import MatLike
@@ -20,7 +19,8 @@ class WorkWeixin(PushChannel):
                 title="企业微信代理地址",
                 icon="SEND",
                 field_type=FieldTypeEnum.TEXT,
-                placeholder="可选"
+                placeholder="可选",
+                default='https://qyapi.weixin.qq.com',
             ),
             PushChannelConfigField(
                 var_suffix="AM",
@@ -65,7 +65,7 @@ class WorkWeixin(PushChannel):
             tuple[bool, str]: 是否成功、错误信息
         """
         try:
-            origin = config.get('ORIGIN', 'https://qyapi.weixin.qq.com')
+            origin = config.get('ORIGIN', '')
             if len(origin) == 0:
                 origin = 'https://qyapi.weixin.qq.com'
             key = config.get('KEY', '')
@@ -140,43 +140,41 @@ class WorkWeixin(PushChannel):
         Returns:
             bool: 是否发送成功
         """
+        # 企业微信机器人图片最大支持2MB
+        TARGET_SIZE = 2 * 1024 * 1024
+        img_bytes = self.image_to_bytes(image, max_bytes=TARGET_SIZE).getvalue()
+        if img_bytes is None:
+            error_msg = "图片转换失败"
+            error_messages.append(error_msg)
+            log.error(error_msg)
+            return False
+        img_size = len(img_bytes)
+        img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+        img_md5 = hashlib.md5(img_bytes).hexdigest()
+        img_data = {
+            "msgtype": "image",
+            "image": {"base64": img_base64, "md5": img_md5}
+        }
+
+        resp_obj = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15)
+        status = resp_obj.status_code
+        body_snip = (resp_obj.text or "")[:300] if hasattr(resp_obj, "text") else ""
+
         try:
-            # 企业微信机器人图片最大支持2MB
-            TARGET_SIZE = 2 * 1024 * 1024
-            img_bytes = self.image_to_bytes(image, max_bytes=TARGET_SIZE).getvalue()
-            img_size = len(img_bytes)
-            img_base64 = base64.b64encode(img_bytes).decode('utf-8')
-            img_md5 = hashlib.md5(img_bytes).hexdigest()
-            img_data = {
-                "msgtype": "image",
-                "image": {"base64": img_base64, "md5": img_md5}
-            }
+            resp = resp_obj.json()
+        except Exception as je:
+            error_msg = f"企业微信机器人图片响应解析失败: {type(je).__name__}: {je}; status={status}; body_snip={body_snip}"
+            error_messages.append(error_msg)
+            log.error(error_msg)
+            return False
 
-            resp_obj = requests.post(url, data=json.dumps(img_data), headers=headers, timeout=15)
-            status = resp_obj.status_code
-            body_snip = (resp_obj.text or "")[:300] if hasattr(resp_obj, "text") else ""
-            resp = None
-
-            try:
-                resp = resp_obj.json()
-            except Exception as je:
-                error_msg = f"企业微信机器人图片响应解析失败: {type(je).__name__}: {je}; status={status}; body_snip={body_snip}"
-                error_messages.append(error_msg)
-                log.error(error_msg)
-                return False
-
-            if resp and resp.get("errcode") == 0:
-                log.info("企业微信机器人图片推送成功！")
-                return True
-            else:
-                errcode = resp.get("errcode") if resp else None
-                errmsg = resp.get("errmsg") if resp else None
-                error_msg = f"企业微信机器人图片推送失败! status={status}; errcode={errcode}; errmsg={errmsg}; size={img_size}B; body_snip={body_snip}"
-                error_messages.append(error_msg)
-                log.error(error_msg)
-                return False
-        except Exception as e:
-            error_msg = f"企业微信机器人图片推送请求异常: {type(e).__name__}: {e}; size={img_size}B"
+        if resp and resp.get("errcode") == 0:
+            log.info("企业微信机器人图片推送成功！")
+            return True
+        else:
+            errcode = resp.get("errcode") if resp else None
+            errmsg = resp.get("errmsg") if resp else None
+            error_msg = f"企业微信机器人图片推送失败! status={status}; errcode={errcode}; errmsg={errmsg}; size={img_size}B; body_snip={body_snip}"
             error_messages.append(error_msg)
             log.error(error_msg)
             return False

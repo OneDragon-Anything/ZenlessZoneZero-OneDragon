@@ -1,10 +1,7 @@
-import json
 import base64
 import hashlib
 import hmac
-import json
 import time
-from typing import Any
 
 import requests
 from cv2.typing import MatLike
@@ -98,11 +95,11 @@ class FeiShu(PushChannel):
             tuple[bool, str]: 是否成功、错误信息
         """
         try:
-            key = config.get('KEY')
-            bot_secret = config.get('BOT_SECRET')
-            channel = config.get('CHANNEL')
-            app_id = config.get('APPID')
-            app_secret = config.get('APPSECRET')
+            key = config.get('KEY', '')
+            bot_secret = config.get('BOT_SECRET', '')
+            channel = config.get('CHANNEL', '')
+            app_id = config.get('APPID', '')
+            app_secret = config.get('APPSECRET', '')
 
             ok, msg = self.validate_config(config)
             if not ok:
@@ -154,7 +151,7 @@ class FeiShu(PushChannel):
 
             # 发送消息
             url = f'https://{base_url}/open-apis/bot/v2/hook/{key}'
-            response = requests.post(url, data=json.dumps(message_data), timeout=15)
+            response = requests.post(url, json=message_data, timeout=15)
             response.raise_for_status()
             result = response.json()
 
