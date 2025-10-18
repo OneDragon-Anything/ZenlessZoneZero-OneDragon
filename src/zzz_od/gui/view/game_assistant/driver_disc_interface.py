@@ -1,6 +1,7 @@
+from pathlib import Path
 from typing import Optional
 
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget, QFileDialog
 from qfluentwidgets import FluentIcon
 
 from one_dragon.utils import os_utils
@@ -9,7 +10,7 @@ from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
-from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
+from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from zzz_od.application.driver_disc_read import driver_disc_read_const
 from zzz_od.context.zzz_context import ZContext
 
@@ -64,15 +65,52 @@ class DriverDiscInterface(AppRunInterface):
         content.add_widget(self.ocr_batch_card)
 
         # 导出路径配置
-        self.export_path_card = TextSettingCard(
+        self.export_path_adapter = get_prop_adapter(self.ctx.one_dragon_config, 'disc_export_path')
+        current_export_path = self.export_path_adapter.get_value()
+
+        self.export_path_card = PushSettingCard(
             icon=FluentIcon.FOLDER,
             title='导出路径',
-            content='驱动盘数据 CSV 文件的导出路径。留空则保存到使用默认路径 driver_disc 下'
+            text='选择文件夹',
+            content=self._format_export_path(current_export_path),
         )
-        self.export_path_card.init_with_adapter(get_prop_adapter(self.ctx.one_dragon_config, 'disc_export_path'))
+        self.export_path_card.clicked.connect(self._on_choose_export_path)
         content.add_widget(self.export_path_card)
 
         return content
 
     def on_interface_shown(self) -> None:
         AppRunInterface.on_interface_shown(self)
+
+    def _on_choose_export_path(self) -> None:
+        """弹出文件夹选择器并保存结果"""
+        current_value = self.export_path_adapter.get_value()
+        if current_value:
+            current_path = Path(current_value)
+            if not current_path.is_absolute():
+                current_path = Path(os_utils.get_work_dir()) / current_path
+        else:
+            current_path = Path(os_utils.get_path_under_work_dir('driver_disc'))
+
+        selected_dir = QFileDialog.getExistingDirectory(self, '选择导出文件夹', str(current_path))
+        if not selected_dir:
+            return
+
+        selected_path = Path(selected_dir)
+        work_dir = Path(os_utils.get_work_dir())
+
+        try:
+            relative_path = selected_path.relative_to(work_dir)
+            save_value = relative_path.as_posix()
+        except ValueError:
+            save_value = str(selected_path)
+
+        self.export_path_adapter.set_value(save_value)
+        self.export_path_card.setContent(self._format_export_path(save_value))
+
+    @staticmethod
+    def _format_export_path(path_value: Optional[str]) -> str:
+        """格式化导出路径显示"""
+        if not path_value:
+            return '使用默认路径（driver_disc）'
+        return path_value
