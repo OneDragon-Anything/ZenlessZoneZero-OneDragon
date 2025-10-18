@@ -95,78 +95,80 @@ class Ntfy(PushChannel):
         Returns:
             tuple[bool, str]: 是否成功、错误信息
         """
+        url = config.get('URL', 'https://ntfy.sh')
+        topic = config.get('TOPIC', '')
+        priority = config.get('PRIORITY', '3')
+        token = config.get('TOKEN', '')
+        username = config.get('USERNAME', '')
+        password = config.get('PASSWORD', '')
+        actions = config.get('ACTIONS', '')
+
+        ok, msg = self.validate_config(config)
+        if not ok:
+            return False, msg
+
+        def encode_rfc2047(text: str) -> str:
+            """将文本编码为符合 RFC 2047 标准的格式"""
+            encoded_bytes = base64.b64encode(text.encode("utf-8"))
+            encoded_str = encoded_bytes.decode("utf-8")
+            return f"=?utf-8?B?{encoded_str}?="
+
+        # 使用 RFC 2047 编码 title
+        encoded_title = encode_rfc2047(title)
+
+        data_list = []
+        # 处理图片
+        if image is not None:
+            image_bytes = self.image_to_bytes(image)
+            if image_bytes is None:
+                return False, "图片处理失败"
+
+            image_bytes.seek(0)
+            data_list.append(image_bytes.getvalue())
+        data_list.append(content.encode(encoding="utf-8"))
+
+        # 构建请求头
+        headers = {"Title": encoded_title, "Priority": priority}
+
+        # 添加认证信息
+        if token:
+            headers['Authorization'] = "Bearer " + token
+        elif username and password:
+            auth_str = f"{username}:{password}"
+            headers['Authorization'] = "Basic " + base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
+
+        # 添加用户动作
+        if actions:
+            headers['Actions'] = encode_rfc2047(actions)
+
+        # 构建完整URL
+        full_url = f"{url}/{topic}"
+
+        success_cnt = 0
         try:
-            url = config.get('URL', 'https://ntfy.sh')
-            topic = config.get('TOPIC', '')
-            priority = config.get('PRIORITY', '3')
-            token = config.get('TOKEN', '')
-            username = config.get('USERNAME', '')
-            password = config.get('PASSWORD', '')
-            actions = config.get('ACTIONS', '')
-
-            ok, msg = self.validate_config(config)
-            if not ok:
-                return False, msg
-
-            def encode_rfc2047(text: str) -> str:
-                """将文本编码为符合 RFC 2047 标准的格式"""
-                encoded_bytes = base64.b64encode(text.encode("utf-8"))
-                encoded_str = encoded_bytes.decode("utf-8")
-                return f"=?utf-8?B?{encoded_str}?="
-
-            # 使用 RFC 2047 编码 title
-            encoded_title = encode_rfc2047(title)
-
-            # 处理图片
-            if image is not None:
-                image_bytes = self.image_to_bytes(image)
-                if image_bytes is None:
-                    return False, "图片处理失败"
-
-                image_bytes.seek(0)
-                data = image_bytes.getvalue()
-            else:
-                data = content.encode(encoding="utf-8")
-
-            # 构建请求头
-            headers = {"Title": encoded_title, "Priority": priority}
-
-            # 添加认证信息
-            if token:
-                headers['Authorization'] = "Bearer " + token
-            elif username and password:
-                auth_str = f"{username}:{password}"
-                headers['Authorization'] = "Basic " + base64.b64encode(auth_str.encode('utf-8')).decode('utf-8')
-
-            # 添加用户动作
-            if actions:
-                headers['Actions'] = encode_rfc2047(actions)
-
-            # 构建完整URL
-            full_url = f"{url}/{topic}"
-
-            try:
+            for data in data_list:
                 response = requests.post(full_url, data=data, headers=headers, timeout=15)
+                response.raise_for_status()
 
                 if response.status_code == 200:
                     log.info("Ntfy 推送成功！")
-                    return True, "推送成功"
+                    success_cnt += 1
                 else:
                     error_msg = f"Ntfy 推送失败！错误信息：{response.text}"
                     log.error(error_msg)
-                    return False, error_msg
 
-            except requests.RequestException as e:
-                error_msg = f"Ntfy 请求异常: {str(e)}"
-                log.error(error_msg)
-                return False, error_msg
-            except Exception as e:
-                error_msg = f"Ntfy 推送异常: {str(e)}"
-                log.error(error_msg)
-                return False, error_msg
+            if success_cnt == len(data_list):
+                return True, "Ntfy 推送成功！"
+            elif success_cnt > 0:
+                return True, "部分 Ntfy 推送成功！"
+            else:
+                return False, "Ntfy 推送失败！"
 
         except Exception as e:
-            return False, f"Ntfy 推送系统异常: {str(e)}"
+            error_msg = f"Ntfy 推送异常: {str(e)}"
+            log.error(error_msg, exc_info=True)
+            return False, error_msg
+
 
     def validate_config(self, config: dict[str, str]) -> tuple[bool, str]:
         """

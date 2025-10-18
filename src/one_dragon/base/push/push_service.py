@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from cv2.typing import MatLike
 
+from one_dragon.base.push.channel.ai_botk import AiBotK
 from one_dragon.base.push.channel.bark import Bark
 from one_dragon.base.push.channel.dingding import DingDingBot
 from one_dragon.base.push.channel.fake import FakePushChannel
@@ -19,6 +20,7 @@ from one_dragon.base.push.channel.push_plus import PushPlus
 from one_dragon.base.push.channel.server_chan import ServerChan
 from one_dragon.base.push.channel.telegram import Telegram
 from one_dragon.base.push.channel.work_weixin import WorkWeixin
+from one_dragon.base.push.channel.wx_pusher import WxPusher
 from one_dragon.base.push.push_channel import PushChannel
 from one_dragon.base.push.push_channel_config import PushChannelConfigField
 from one_dragon.base.push.push_config import PushConfig
@@ -66,6 +68,8 @@ class PushService:
             self._add_channel(Ntfy())
             self._add_channel(FakePushChannel())
             self._add_channel(Gotify())
+            self._add_channel(AiBotK())
+            self._add_channel(WxPusher())
 
             self._inited = True
         finally:
@@ -153,14 +157,15 @@ class PushService:
             channel = self._id_2_channels.get(channel_id)
             if channel is None:
                 return False, f'推送渠道不存在: {channel_id}'
-
             channel_config = self._extract_channel_config(channel_id)
-            any_ok, err_msg = channel.push(
-                config=channel_config,
-                title=title,
-                content=content,
-                image=image,
-            )
+            ok, msg = channel.validate_config(channel_config)
+            if ok:
+                any_ok, err_msg = channel.push(
+                    config=channel_config,
+                    title=title,
+                    content=content,
+                    image=image,
+                )
 
         return any_ok, err_msg
 
