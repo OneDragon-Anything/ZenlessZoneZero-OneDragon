@@ -32,6 +32,7 @@ jobs:
           uv sync --group dev
 
       - name: Checkout test repo
+        id: checkout-test-repo
         uses: actions/checkout@v5
         with:
           repository: ${{ github.event_name == 'pull_request' && (github.event.pull_request.head.repo.full_name && format('{0}/zzz-od-test', github.event.pull_request.head.repo.owner.login) || 'OneDragon-Anything/zzz-od-test') || 'OneDragon-Anything/zzz-od-test' }}
@@ -41,7 +42,8 @@ jobs:
         continue-on-error: true
 
       - name: Checkout test repo (default branch)
-        if: failure()
+        id: checkout-test-repo-default
+        if: steps.checkout-test-repo.outcome == 'failure'
         uses: actions/checkout@v4
         with:
           repository: OneDragon-Anything/zzz-od-test
