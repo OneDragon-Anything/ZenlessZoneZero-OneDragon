@@ -1,0 +1,71 @@
+name: Test Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+jobs:
+  test-check:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Install uv
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://astral.sh/uv/install.ps1 | Invoke-Expression
+
+      - name: Create and activate virtual environment
+        shell: pwsh
+        run: |
+          uv venv .venv --python=3.11.12
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\Activate.ps1
+          uv sync --group dev
+
+      - name: Checkout test repo
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.event_name == 'pull_request' && (github.event.pull_request.head.repo.full_name && format('{0}/zzz-od-test', github.event.pull_request.head.repo.owner.login) || 'OneDragon-Anything/zzz-od-test') || 'OneDragon-Anything/zzz-od-test' }}
+          path: zzz-od-test
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || 'main' }}
+          fetch-depth: 1
+        continue-on-error: true
+
+      - name: Checkout test repo (default branch)
+        if: failure()
+        uses: actions/checkout@v4
+        with:
+          repository: OneDragon-Anything/zzz-od-test
+          path: zzz-od-test
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || 'main' }}
+          fetch-depth: 1
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\Activate.ps1
+          uv run pytest zzz-od-test/ -v --tb=short --color=yes
+        env:
+          PYTHONPATH: src
+          PUSH_DD_BOT_SECRET: ${{ secrets.PUSH_DD_BOT_SECRET }}
+          PUSH_DD_BOT_TOKEN: ${{ secrets.PUSH_DD_BOT_TOKEN }}
+
+      - name: Test failure notification
+        run: |
+          $message = @"
+            ::notice::当前触发事件: ${{ github.event_name }}
+            ::error::测试失败！请检查上方的测试结果并修复问题。
+            ::notice::您可以fork测试仓库 https://github.com/OneDragon-Anything/zzz-od-test 创建相同分支来修改测试代码
+            ::notice::您可以使用以下命令在本地运行测试: uv run pytest zzz-od-test/ -v
+          "@
+          Write-Host $message
+        shell: pwsh
