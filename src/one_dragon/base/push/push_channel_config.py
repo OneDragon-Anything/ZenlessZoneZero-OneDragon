@@ -31,5 +31,5 @@ class PushChannelConfigField:
     placeholder: str = ''
     required: bool = False
     options: list[str] = field(default_factory=list)
-    default: Any = None
+    default: str = ''
     language: Optional[str] = None  # 代码编辑器的语言类型
