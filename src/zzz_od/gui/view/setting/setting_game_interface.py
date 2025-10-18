@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, SettingCardGroup, Dialog, PushButton
+from qfluentwidgets import FluentIcon, SettingCardGroup, PushButton
 
 from one_dragon.base.config.basic_game_config import TypeInputWay, ScreenSizeEnum, FullScreenEnum, MonitorEnum
 from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonEnum
@@ -7,17 +7,14 @@ from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButt
 from one_dragon.utils import cmd_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.horizontal_setting_card_group import HorizontalSettingCardGroup
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
-from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
-from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import DoubleSpinBoxSettingCard
+from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.config.game_config import GamepadTypeEnum
-from zzz_od.config.agent_outfit_config import AgentOutfitNicole, AgentOutfitEllen, AgentOutfitAstraYao, AgentOutfitYiXuan, AgentOutfitYuzuha, AgentOutfitAlice
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -37,7 +34,6 @@ class SettingGameInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
-        content_widget.add_widget(self._get_agent_outfit_group())
         content_widget.add_widget(self._get_basic_group())
         content_widget.add_widget(self._get_launch_argument_group())
         content_widget.add_widget(self._get_key_group())
@@ -45,47 +41,6 @@ class SettingGameInterface(VerticalScrollInterface):
         content_widget.add_stretch(1)
 
         return content_widget
-
-    def _get_agent_outfit_group(self) -> QWidget:
-        agent_outfit_group = SettingCardGroup(gt('代理人皮肤'))
-
-        self.compatibility_mode_switch = SwitchSettingCard(icon=FluentIcon.INFO, title='兼容模式', content='自动战斗识别出问题的时候可尝试开启')
-        self.compatibility_mode_switch.value_changed.connect(self._on_compatibility_mode_changed)
-        agent_outfit_group.addSettingCard(self.compatibility_mode_switch)
-
-        self.outfit_nicole_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='妮可', options_enum=AgentOutfitNicole)
-        self.outfit_nicole_opt.value_changed.connect(self._on_agent_outfit_changed)
-
-        self.outfit_ellen_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='艾莲', options_enum=AgentOutfitEllen)
-        self.outfit_ellen_opt.value_changed.connect(self._on_agent_outfit_changed)
-
-        self.outfit_astra_yao_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='耀嘉音', options_enum=AgentOutfitAstraYao)
-        self.outfit_astra_yao_opt.value_changed.connect(self._on_agent_outfit_changed)
-
-        self.outfit_yixuan_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='仪玄', options_enum=AgentOutfitYiXuan)
-        self.outfit_yixuan_opt.value_changed.connect(self._on_agent_outfit_changed)
-
-        self.outfit_yuzuha_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='浮波柚叶', options_enum=AgentOutfitYuzuha)
-        self.outfit_yuzuha_opt.value_changed.connect(self._on_agent_outfit_changed)
-
-        self.outfit_alice_opt = ComboBoxSettingCard(icon=FluentIcon.PEOPLE, title='爱丽丝', options_enum=AgentOutfitAlice)
-        self.outfit_alice_opt.value_changed.connect(self._on_agent_outfit_changed)
-
-        self.agent_outfit_row1 = HorizontalSettingCardGroup([
-            self.outfit_nicole_opt,
-            self.outfit_ellen_opt,
-            self.outfit_astra_yao_opt,
-        ])
-        agent_outfit_group.addSettingCard(self.agent_outfit_row1)
-
-        self.agent_outfit_row2 = HorizontalSettingCardGroup([
-            self.outfit_yixuan_opt,
-            self.outfit_yuzuha_opt,
-            self.outfit_alice_opt,
-        ])
-        agent_outfit_group.addSettingCard(self.agent_outfit_row2)
-
-        return agent_outfit_group
 
     def _get_basic_group(self) -> QWidget:
         basic_group = SettingCardGroup(gt('游戏基础'))

@@ -1,7 +1,6 @@
 from functools import cached_property
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from zzz_od.game_data.agent import AgentEnum
 
 
 class ZContext(OneDragonContext):
@@ -84,11 +83,6 @@ class ZContext(OneDragonContext):
         return BattleAssistantConfig(self.current_instance_idx)
 
     @cached_property
-    def agent_outfit_config(self):
-        from zzz_od.config.agent_outfit_config import AgentOutfitConfig
-        return AgentOutfitConfig(self.current_instance_idx)
-
-    @cached_property
     def notify_config(self):
         from zzz_od.config.notify_config import NotifyConfig
         return NotifyConfig(self.current_instance_idx)
@@ -100,17 +94,11 @@ class ZContext(OneDragonContext):
             'game_config',
             'team_config',
             'battle_assistant_config',
-            'agent_outfit_config',
             'notify_config',
         ]
         for prop in to_clear_props:
             if hasattr(self, prop):
                 delattr(self, prop)
-
-        if self.agent_outfit_config.compatibility_mode:
-            self.init_agent_template_id()
-        else:
-            self.init_agent_template_id_list()
 
     def init_controller(self) -> None:
         from one_dragon.base.config.game_account_config import GamePlatformEnum
@@ -134,30 +122,6 @@ class ZContext(OneDragonContext):
 
     def init_others(self) -> None:
         self.telemetry.initialize()  # 遥测
-
-    def init_agent_template_id(self) -> None:
-        """
-        代理人头像模板ID的初始化
-        :return:
-        """
-        AgentEnum.NICOLE.value.template_id_list = [self.agent_outfit_config.nicole]
-        AgentEnum.ELLEN.value.template_id_list = [self.agent_outfit_config.ellen]
-        AgentEnum.ASTRA_YAO.value.template_id_list = [self.agent_outfit_config.astra_yao]
-        AgentEnum.YIXUAN.value.template_id_list = [self.agent_outfit_config.yixuan]
-        AgentEnum.YUZUHA.value.template_id_list = [self.agent_outfit_config.yuzuha]
-        AgentEnum.ALICE.value.template_id_list = [self.agent_outfit_config.alice]
-
-    def init_agent_template_id_list(self) -> None:
-        """
-        代理人头像模板ID的初始化
-        :return:
-        """
-        AgentEnum.NICOLE.value.template_id_list = self.agent_outfit_config.nicole_outfit_list
-        AgentEnum.ELLEN.value.template_id_list = self.agent_outfit_config.ellen_outfit_list
-        AgentEnum.ASTRA_YAO.value.template_id_list = self.agent_outfit_config.astra_yao_outfit_list
-        AgentEnum.YIXUAN.value.template_id_list = self.agent_outfit_config.yixuan_outfit_list
-        AgentEnum.YUZUHA.value.template_id_list = self.agent_outfit_config.yuzuha_outfit_list
-        AgentEnum.ALICE.value.template_id_list = self.agent_outfit_config.alice_outfit_list
 
     def after_app_shutdown(self) -> None:
         """
