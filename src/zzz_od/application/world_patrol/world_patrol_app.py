@@ -1,5 +1,3 @@
-from typing import Optional
-
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -28,12 +26,12 @@ class WorldPatrolApp(ZApplication):
             op_name=world_patrol_const.APP_NAME,
             need_notify=False,
         )
-        self.config: Optional[WorldPatrolConfig] = self.ctx.run_context.get_config(
+        self.config: WorldPatrolConfig = self.ctx.run_context.get_config(
             app_id=world_patrol_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
-        self.run_record: Optional[WorldPatrolRunRecord] = self.ctx.run_context.get_run_record(
+        self.run_record: WorldPatrolRunRecord = self.ctx.run_context.get_run_record(
             app_id=world_patrol_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
         )
@@ -116,6 +114,20 @@ class WorldPatrolApp(ZApplication):
 
         op = WorldPatrolRunRoute(self.ctx, route)
         result = op.execute()
+
+        # 特殊处理：卡住脱困超过上限时，等待3秒并从当前路线起点重启一次
+        if not result.success and isinstance(result.status, str) and '卡住超限，重启当前路线' in result.status:
+            # 二次尝试（从头）
+            retry_op = WorldPatrolRunRoute(self.ctx, route)
+            retry_result = retry_op.execute()
+            if retry_result.success:
+                self.run_record.add_record(route.full_id)
+                self.route_idx += 1
+                return self.round_wait(status=f'完成路线 {route.full_id}')
+            else:
+                self.route_idx += 1
+                return self.round_wait(status=f'路线失败 {retry_result.status} {route.full_id}')
+
         if result.success:
             self.run_record.add_record(route.full_id)
             self.route_idx += 1

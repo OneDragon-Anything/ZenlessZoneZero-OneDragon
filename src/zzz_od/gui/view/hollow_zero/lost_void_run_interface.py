@@ -132,12 +132,12 @@ class LostVoidRunInterface(AppRunInterface):
         :return:
         """
         AppRunInterface.on_interface_shown(self)
-        self.config: Optional[LostVoidConfig] = self.ctx.run_context.get_config(
+        self.config: LostVoidConfig = self.ctx.run_context.get_config(
             app_id=lost_void_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
-        self.run_record: Optional[LostVoidRunRecord] = self.ctx.run_context.get_run_record(
+        self.run_record: LostVoidRunRecord = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
             app_id=lost_void_const.APP_ID,
         )

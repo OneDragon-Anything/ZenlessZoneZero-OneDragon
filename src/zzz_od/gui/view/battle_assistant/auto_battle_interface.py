@@ -157,9 +157,6 @@ class AutoBattleInterface(AppRunInterface):
     def _on_auto_battle_config_changed(self, index, value):
         self.ctx.battle_assistant_config.auto_battle_config = value
 
-        self.app = auto_battle_const.APP_ID
-        AppRunInterface._on_start_clicked(self)
-
     def _on_shared_clicked(self) -> None:
         """
         打开配置共享频道

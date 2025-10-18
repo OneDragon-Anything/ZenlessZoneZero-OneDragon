@@ -62,7 +62,7 @@ class WitheredDomainContext:
         应用开始前的初始化
         """
         self.data_service.reload()
-        config: Optional[WitheredDomainConfig] = self.ctx.run_context.get_config(
+        config: WitheredDomainConfig = self.ctx.run_context.get_config(
             app_id=withered_domain_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,

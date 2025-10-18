@@ -140,9 +140,9 @@ class BambooMerchant(ZOperation):
         area = self.ctx.screen_loader.get_area('零号空洞-商店', '商品价格区域')
         part = cv2_utils.crop_image_only(screen, area.rect)
         mask = cv2.inRange(part, (240, 140, 0), (255, 255, 50))
-        mask = cv2_utils.dilate(mask, 5)
+        mask = cv2_utils.dilate(mask, 2)
 
-        to_ocr = cv2.bitwise_and(part, part, mask=mask)
+        to_ocr = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
         # cv2_utils.show_image(to_ocr, wait=0)
 
         result_result_map = {}
@@ -161,8 +161,9 @@ class BambooMerchant(ZOperation):
                     area = self.ctx.screen_loader.get_area('零号空洞-商店', f'商品价格-{i}-{j}')
                     part = cv2_utils.crop_image_only(screen, area.rect)
                     mask = cv2.inRange(part, (240, 140, 0), (255, 255, 50))
-                    mask = cv2_utils.dilate(mask, 5)
-                    to_ocr = cv2.bitwise_and(part, part, mask=mask)
+                    mask = cv2_utils.dilate(mask, 2)
+                    to_ocr = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+                    # cv2_utils.show_image(to_ocr, wait=0)
                     # 底层onnx的ocr 使用 run_ocr 会对只有一个0的情况识别不到 只能用这个方法
                     ocr_result = self.ctx.ocr.run_ocr_single_line(to_ocr)
                     for special_char in ['.', '。', 'o', 'O']:  # 0 有可能被识别成其它字符 特殊处理
@@ -179,7 +180,7 @@ class BambooMerchant(ZOperation):
                                     data=digit_str)
                     )
 
-        return ocr_result_map
+        return result_result_map
 
     def _ocr_desc_area(self, screen: MatLike) -> dict[str, MatchResultList]:
         area = self.ctx.screen_loader.get_area('零号空洞-商店', '商品描述区域')

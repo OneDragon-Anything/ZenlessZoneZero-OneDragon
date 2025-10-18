@@ -27,26 +27,10 @@ class ZOneDragonApp(OneDragonApp, ZApplication):
 
 def __debug():
     ctx = ZContext()
-    # 加载配置
-    ctx.init_async()
-
-    if ctx.env_config.auto_update:
-        from one_dragon.utils.log_utils import log
-        log.info('开始自动更新...')
-        ctx.git_service.fetch_latest_code()
-
+    ctx.init()
+    ctx.run_context.start_running()
     app = ZOneDragonApp(ctx)
     app.execute()
-
-    from one_dragon.base.config.one_dragon_config import AfterDoneOpEnum
-    if ctx.one_dragon_config.after_done == AfterDoneOpEnum.SHUTDOWN.value.value:
-        from one_dragon.utils import cmd_utils
-        cmd_utils.shutdown_sys(60)
-    elif ctx.one_dragon_config.after_done == AfterDoneOpEnum.CLOSE_GAME.value.value:
-        ctx.controller.close_game()
-
-    ctx.btn_listener.stop()
-
 
 if __name__ == '__main__':
     __debug()

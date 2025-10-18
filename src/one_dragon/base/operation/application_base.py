@@ -52,10 +52,13 @@ class Application(Operation):
 
         self.run_record: Optional[AppRunRecord] = run_record
         if run_record is None:
-            self.run_record = ctx.run_context.get_run_record(
-                app_id=self.app_id,
-                instance_idx=ctx.current_instance_idx,
-            )
+            try:
+                self.run_record = ctx.run_context.get_run_record(
+                    app_id=self.app_id,
+                    instance_idx=ctx.current_instance_idx,
+                )
+            except Exception:  # 部分应用没有运行记录 跳过即可
+                pass
         """运行记录"""
 
         self.need_notify: bool = need_notify  # 节点运行结束后发送通知
