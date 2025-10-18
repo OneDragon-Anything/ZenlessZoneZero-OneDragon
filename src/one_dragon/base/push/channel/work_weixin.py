@@ -115,6 +115,8 @@ class WorkWeixin(PushChannel):
             # 2. 再发图片
             if image is not None:
                 image_success = self._send_image(url, headers, image, error_messages)
+            else:
+                image_success = True
 
             # 判断整体结果
             if text_success and image_success:
@@ -142,12 +144,13 @@ class WorkWeixin(PushChannel):
         """
         # 企业微信机器人图片最大支持2MB
         TARGET_SIZE = 2 * 1024 * 1024
-        img_bytes = self.image_to_bytes(image, max_bytes=TARGET_SIZE).getvalue()
+        img_bytes = self.image_to_bytes(image, max_bytes=TARGET_SIZE)
         if img_bytes is None:
             error_msg = "图片转换失败"
             error_messages.append(error_msg)
             log.error(error_msg)
             return False
+        img_bytes = img_bytes.getvalue()
         img_size = len(img_bytes)
         img_base64 = base64.b64encode(img_bytes).decode('utf-8')
         img_md5 = hashlib.md5(img_bytes).hexdigest()
