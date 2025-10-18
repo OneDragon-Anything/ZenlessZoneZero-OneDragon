@@ -114,7 +114,15 @@ def _ocr_worker_process(
 
                     # 批量OCR识别
                     try:
-                        # 对每张图片单独OCR（因为run_ocr不支持批量，但内部会自动批量）
+                        # 直接调用底层text_recognizer进行批量推理
+                        # 因为图片已经预裁剪到精确区域，不需要文本检测
+                        rec_results = worker_ocr._model.text_recognizer(images)
+                        
+                        for idx, (text, score) in zip(indices, rec_results):
+                            all_results[idx][area_name] = text.strip()
+                    except Exception as e:
+                        # 降级：批量调用失败时逐个处理
+                        log.warning(f'批量OCR识别失败，降级为逐个处理: {e}')
                         for idx, img in zip(indices, images):
                             ocr_result_map = worker_ocr.run_ocr(img)
                             if ocr_result_map:
@@ -122,8 +130,6 @@ def _ocr_worker_process(
                             else:
                                 result_text = ''
                             all_results[idx][area_name] = result_text
-                    except Exception as e:
-                        log.error(f'Worker-{worker_id} 批量OCR出错 ({area_name}): {e}', exc_info=True)
                         # 填充空结果
                         for idx in indices:
                             all_results[idx][area_name] = ''
@@ -450,6 +456,44 @@ class DriverDiscReadApp(ZApplication):
 
         log.info('结果收集线程已退出')
 
+    def _get_panel_signature(self) -> float:
+        """获取当前驱动盘详情面板的签名（用于检测面板是否更新）"""
+        screen = self.screenshot()
+        if screen is None:
+            return 0.0
+        
+        # 使用详情面板区域的像素均值作为签名
+        # 详情面板位置约在 (1100, 200) 到 (1800, 900)
+        panel_area = screen[200:900, 1100:1800]
+        signature = float(np.mean(panel_area))
+        return signature
+
+    def _wait_for_panel_update(self, prev_signature: float, timeout: float = 0.15) -> bool:
+        """
+        智能等待面板更新
+        
+        Args:
+            prev_signature: 之前的面板签名
+            timeout: 最大等待时间（秒）
+            
+        Returns:
+            是否检测到面板更新
+        """
+        import time
+        start_time = time.time()
+        check_interval = 0.005  # 5ms 采样间隔
+        
+        while time.time() - start_time < timeout:
+            current_signature = self._get_panel_signature()
+            
+            # 如果签名差异超过阈值，认为面板已更新
+            if abs(current_signature - prev_signature) > 1.0:
+                return True
+            
+            time.sleep(check_interval)
+        
+        return False
+
     def _capture_and_queue_disc(self, grid_position: int, global_index: int):
         """点击位置、截图并放入队列（智能等待优化）"""
         click_pos = self._get_disc_position(grid_position)
@@ -490,34 +534,61 @@ class DriverDiscReadApp(ZApplication):
         
         # 生成带时间戳的文件名
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        
+
+        # 解析导出路径，支持相对/绝对路径以及文件/目录两种写法
         if export_path:
-            # 使用配置的路径，在文件名中插入时间戳
-            base_path = Path(os_utils.get_path_under_work_dir(export_path))
-            # 例如：my_data.csv -> my_data_20251018_143022.csv
-            csv_file = base_path.parent / f'{base_path.stem}_{timestamp}{base_path.suffix}'
+            user_path = Path(export_path)
+            if not user_path.is_absolute():
+                user_path = Path(os_utils.get_work_dir()) / user_path
+
+            if user_path.suffix:  # 指定了文件名
+                base_dir = user_path.parent
+                file_stem = user_path.stem
+                file_suffix = user_path.suffix
+            else:  # 指定的是目录
+                base_dir = user_path
+                file_stem = 'driver_disc_data'
+                file_suffix = '.csv'
         else:
-            # 使用默认路径，带时间戳
-            csv_file = Path(os_utils.get_path_under_work_dir('driver_disc', f'driver_disc_data_{timestamp}.csv'))
-        
+            base_dir = Path(os_utils.get_path_under_work_dir('driver_disc'))
+            file_stem = 'driver_disc_data'
+            file_suffix = '.csv'
+
+        csv_file = base_dir / f'{file_stem}_{timestamp}{file_suffix}'
+
         # 确保目录存在
-        csv_file.parent.mkdir(parents=True, exist_ok=True)
+        base_dir.mkdir(parents=True, exist_ok=True)
 
-        with open(csv_file, 'w', newline='', encoding='utf-8-sig') as f:
-            fieldnames = ['name', 'level', 'rating', 'main_stat', 'main_stat_value',
-                          'sub_stat1', 'sub_stat1_value', 'sub_stat2', 'sub_stat2_value',
-                          'sub_stat3', 'sub_stat3_value', 'sub_stat4', 'sub_stat4_value']
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writerow({'name': '驱动盘名称', 'level': '等级', 'rating': '评级',
-                             'main_stat': '主属性', 'main_stat_value': '主属性值',
-                             'sub_stat1': '副属性1', 'sub_stat1_value': '副属性1值',
-                             'sub_stat2': '副属性2', 'sub_stat2_value': '副属性2值',
-                             'sub_stat3': '副属性3', 'sub_stat3_value': '副属性3值',
-                             'sub_stat4': '副属性4', 'sub_stat4_value': '副属性4值'})
-            writer.writerows(disc_data_list)
-
-        log.info(f'数据已保存到: {csv_file}')
-        return self.round_success(f'已保存 {len(disc_data_list)} 条数据到 {csv_file}')
+        # 重试写入（防止文件被占用）
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                with open(csv_file, 'w', newline='', encoding='utf-8-sig') as f:
+                    fieldnames = ['name', 'level', 'rating', 'main_stat', 'main_stat_value',
+                                  'sub_stat1', 'sub_stat1_value', 'sub_stat2', 'sub_stat2_value',
+                                  'sub_stat3', 'sub_stat3_value', 'sub_stat4', 'sub_stat4_value']
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    writer.writerow({'name': '驱动盘名称', 'level': '等级', 'rating': '评级',
+                                     'main_stat': '主属性', 'main_stat_value': '主属性值',
+                                     'sub_stat1': '副属性1', 'sub_stat1_value': '副属性1值',
+                                     'sub_stat2': '副属性2', 'sub_stat2_value': '副属性2值',
+                                     'sub_stat3': '副属性3', 'sub_stat3_value': '副属性3值',
+                                     'sub_stat4': '副属性4', 'sub_stat4_value': '副属性4值'})
+                    writer.writerows(disc_data_list)
+                
+                log.info(f'数据已保存到: {csv_file}')
+                return self.round_success(f'已保存 {len(disc_data_list)} 条数据到 {csv_file}')
+                
+            except PermissionError as e:
+                if attempt < max_retries - 1:
+                    # 尝试生成新的文件名
+                    timestamp_new = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]  # 添加毫秒
+                    csv_file = base_dir / f'{file_stem}_{timestamp_new}{file_suffix}'
+                    log.warning(f'文件被占用，尝试新文件名: {csv_file}')
+                    time.sleep(0.1)
+                else:
+                    log.error(f'无法保存文件（已尝试 {max_retries} 次），请关闭可能占用文件的程序（如 Excel）')
+                    return self.round_fail(f'保存失败: 文件被占用，请关闭 {csv_file.name} 后重试')
 
     @node_from(from_name='保存数据')
     @operation_node(name='完成后返回')
