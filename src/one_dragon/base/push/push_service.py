@@ -1,0 +1,164 @@
+from __future__ import annotations
+
+import threading
+import time
+from functools import cached_property
+from typing import TYPE_CHECKING
+
+from cv2.typing import MatLike
+
+from one_dragon.base.push.channel.dingding import DingDingBot
+from one_dragon.base.push.channel.server_chan import ServerChan
+from one_dragon.base.push.push_channel import PushChannel
+from one_dragon.base.push.push_channel_config import PushChannelConfigField
+from one_dragon.base.push.push_config import PushConfig
+from one_dragon.utils.log_utils import log
+
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
+
+
+class PushService:
+
+    def __init__(self, ctx: OneDragonContext):
+        self.ctx: OneDragonContext = ctx
+
+        self._init_lock = threading.Lock()
+        self._inited: bool = False
+        self.channels: list[PushChannel] = []
+        self._id_2_channels: dict[str, PushChannel] = {}
+        self._id_2_channel_schemas: dict[str, list[PushChannelConfigField]] = {}
+
+    def init_push_channels(self) -> None:
+        """
+        初始化推送渠道 由上层决定什么时候初始化
+        """
+        if not self._init_lock.acquire(blocking=False):
+            return
+
+        try:
+            if self._inited:
+                return
+
+            self._add_channel(ServerChan())
+            self._add_channel(DingDingBot())
+
+        finally:
+            self._inited = True
+            self._init_lock.release()
+
+    def _add_channel(self, channel: PushChannel) -> None:
+        """
+        添加一个推送渠道
+        Args:
+            channel: 推送渠道
+
+        """
+        self.channels.append(channel)
+        self._id_2_channels[channel.channel_id] = channel
+        self._id_2_channel_schemas[channel.channel_id] = channel.config_schema
+
+    @cached_property
+    def push_config(self) -> PushConfig:
+        self.init_push_channels()
+        start_time = time.time()
+        while not self._inited:
+            time.sleep(1)
+            if time.time() - start_time > 5:
+                raise Exception('推送服务初始化超时')
+
+        config = PushConfig()
+        config.generate_channel_fields(self._id_2_channel_schemas)
+
+        return config
+
+    def push(
+        self,
+        content: str,
+        image: MatLike | None = None,
+        title: str | None = None,
+        channel_id: str | None = None,
+    ) -> tuple[bool, str]:
+        """
+        推送消息
+
+        Args:
+            content: 内容
+            image: 图片
+            title: 标题 未传入时使用 push_config.custom_push_title
+            channel_id: 推送渠道ID 未传入时使用所有能通过配置校验的渠道
+
+        Returns:
+            tuple[bool, str]: 是否成功、错误信息
+        """
+        if title is None:
+            title = self.push_config.custom_push_title
+
+        if not self.push_config.send_image:
+            image = None
+
+        any_ok: bool = False
+        err_msg: str = ''
+        if channel_id is None:
+            any_push = False
+            for channel_id, channel in self._id_2_channels.items():
+                channel_config = self._extract_channel_config(channel_id)
+                ok, msg = channel.validate_config(channel_config)
+                if not ok:
+                    continue
+
+                any_push = True
+
+                ok, msg = channel.push(
+                    config=channel_config,
+                    title=title,
+                    content=content,
+                    image=image,
+                )
+                if not ok:
+                    log.error(f'推送失败: {channel_id} {msg}')
+                    err_msg += f'{channel_id} {msg}\n'
+                    continue
+
+                any_ok = True
+                log.info(f'推送成功: {channel_id}')
+
+            if not any_push:
+                return False, '没有可用的推送渠道'
+        else:
+            channel = self._id_2_channels.get(channel_id)
+            if channel is None:
+                return False, f'推送渠道不存在: {channel_id}'
+
+            channel_config = self._extract_channel_config(channel_id)
+            any_ok, err_msg = channel.push(
+                config=channel_config,
+                title=title,
+                content=content,
+                image=image,
+            )
+
+        return any_ok, err_msg
+
+    def _extract_channel_config(self, channel_id: str) -> dict[str, str]:
+        """
+        提取推送渠道配置
+
+        Args:
+            channel_id: 推送渠道ID
+
+        Returns:
+            dict[str, str]: 推送渠道配置 key是schema中定义的var_suffix
+        """
+        config: dict[str, str] = {}
+
+        if channel_id not in self._id_2_channel_schemas:
+            return config
+
+        push_config = self.push_config
+        fields = self._id_2_channel_schemas[channel_id]
+        for field in fields:
+            value = push_config.get_channel_config_value(channel_id, field.var_suffix)
+            config[field.var_suffix] = value
+
+        return config

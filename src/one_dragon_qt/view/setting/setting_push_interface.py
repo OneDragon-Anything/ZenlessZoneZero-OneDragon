@@ -4,21 +4,19 @@ from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, PushButton, InfoBar, InfoBarPosition
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.config.push_config import NotifyMethodEnum
 from one_dragon.base.controller.pc_clipboard import PcClipboard
 from one_dragon.base.notify.curl_generator import CurlGenerator
-from one_dragon.base.notify.push import Push
 from one_dragon.base.notify.push_email_services import PushEmailServices
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
+from one_dragon.base.push.push_channel_config import PushChannelConfigField, FieldTypeEnum
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.push_cards import PushCards
 from one_dragon_qt.widgets.setting_card.code_editor_setting_card import CodeEditorSettingCard
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import EditableComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.key_value_setting_card import KeyValueSettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
-from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
@@ -67,7 +65,10 @@ class SettingPushInterface(VerticalScrollInterface):
         self.notification_method_opt = ComboBoxSettingCard(
             icon=FluentIcon.MESSAGE,
             title='通知方式',
-            options_enum=NotifyMethodEnum
+            options_list=[
+                ConfigItem(label=i.channel_name, value=i.channel_id)
+                for i in self.ctx.push_service.channels
+            ]
         )
         self.notification_method_opt.value_changed.connect(self._update_notification_ui)
         content_widget.add_widget(self.notification_method_opt)
@@ -96,64 +97,87 @@ class SettingPushInterface(VerticalScrollInterface):
         self.email_service_opt.setVisible(False)  # 默认隐藏，SMTP方式时显示
         content_widget.add_widget(self.email_service_opt)
 
-        self.cards = {}
+        self.push_channel_cards: dict[str, list] = {}
         all_cards_widget = Column()
-        for method, configs in PushCards.get_configs().items():
-            method_cards = []
+        for channel in self.ctx.push_service.channels:
+            channel_cards = []
 
-            for config in configs:
-                card = self._create_card(method, config)
-                method_cards.append(card)
+            for field in channel.config_schema:
+                card = self._create_card(channel.channel_id, field)
+                channel_cards.append(card)
                 all_cards_widget.add_widget(card)
 
-            self.cards[method] = method_cards
+            self.push_channel_cards[channel.channel_id] = channel_cards
 
         content_widget.add_widget(all_cards_widget)
         content_widget.add_stretch(1)
 
         return content_widget
 
-    def _create_card(self, method: str, config: dict):
-        """根据配置动态创建卡片"""
-        var_name = f"{method}_{config['var_suffix']}_push_card".lower()
-        title = config["title"]
-        card_type = config.get("type", "text")
-        is_required = config.get("required", False)
+    def _create_card(self, channel_id: str, field: PushChannelConfigField) -> QWidget:
+        """
+        根据推送渠道所需的配置字段 动态创建配置组件
+
+        Args:
+            channel_id: 推送渠道ID
+            field: 配置字段
+
+        Returns:
+            QWidget: 配置组件
+        """
+
+        """"""
+        var_name = self._get_channel_field_card_name(channel_id, field)
+        title = field.title
+        card_type = field.field_type
+        is_required = field.required
 
         # 如果是必选项，在标题后添加红色星号
         if is_required:
             title += " <span style='color: #ff6b6b;'>*</span>"
 
-        if card_type == "combo":
-            options = config.get("options", [])
+        if card_type == FieldTypeEnum.COMBO:
+            options = field.options
             card = ComboBoxSettingCard(
-                icon=getattr(FluentIcon, config["icon"]),
+                icon=getattr(FluentIcon, field.icon),
                 title=title,
                 options_list=[ConfigItem(label=opt, value=opt) for opt in options]
             )
-        elif card_type == "key_value":
+        elif card_type == FieldTypeEnum.KEY_VALUE:
             card = KeyValueSettingCard(
-                icon=getattr(FluentIcon, config["icon"]),
+                icon=getattr(FluentIcon, field.icon),
                 title=title,
             )
-        elif card_type == "code_editor":
+        elif card_type == FieldTypeEnum.CODE_EDITOR:
             card = CodeEditorSettingCard(
-                icon=getattr(FluentIcon, config["icon"]),
+                icon=getattr(FluentIcon, field.icon),
                 title=title,
-                parent=self
             )
         else:  # 默认为 text
             card = TextSettingCard(
-                icon=getattr(FluentIcon, config["icon"]),
+                icon=getattr(FluentIcon, field.icon),
                 title=title,
                 input_max_width=320,
-                input_placeholder=config.get("placeholder", "")
+                input_placeholder=field.placeholder,
             )
 
         card.setObjectName(var_name)
         card.setVisible(False)
         setattr(self, var_name, card)
         return card
+
+    def _get_channel_field_card_name(self, channel_id: str, field: PushChannelConfigField) -> str:
+        """
+        获取推送渠道的配置字段的组件名称
+
+        Args:
+            channel_id: 推送渠道ID
+            field: 推送渠道的配置字段
+
+        Returns:
+            str: 组件名称
+        """
+        return f"{channel_id}_{field.var_suffix}_push_card".lower()
 
     def _send_test_message(self):
         """发送测试消息到当前选择的通知方式"""
@@ -168,9 +192,14 @@ class SettingPushInterface(VerticalScrollInterface):
                 return
 
         try:
-            pusher = Push(self.ctx)
-            pusher.send(gt('这是一条测试消息'), None, test_method)
-            self._show_success_message("已向当前通知方式发送测试消息")
+            ok, msg = self.ctx.push_service.push(
+                channel_id=test_method,
+                content=gt('这是一条测试消息'),
+            )
+            if not ok:
+                self._show_error_message(msg)
+            else:
+                self._show_success_message("已向当前通知方式发送测试消息")
         except ValueError as e:
             self._show_error_message(str(e))
         except Exception as e:
@@ -180,9 +209,13 @@ class SettingPushInterface(VerticalScrollInterface):
         """发送测试消息到所有已配置的通知方式"""
         try:
             self._show_success_message("正在向所有已配置的通知方式发送测试消息...")
-            pusher = Push(self.ctx)
-            pusher.send(gt('这是一条测试消息'), None, None)
-            self._show_success_message("已向所有已配置的通知方式发送测试消息")
+            ok, msg = self.ctx.push_service.push(
+                content=gt('这是一条测试消息'),
+            )
+            if not ok:
+                self._show_error_message(msg)
+            else:
+                self._show_success_message("已向所有已配置的通知方式发送测试消息")
         except ValueError as e:
             self._show_error_message(str(e))
         except Exception as e:
@@ -208,7 +241,7 @@ class SettingPushInterface(VerticalScrollInterface):
         selected_method = self.notification_method_opt.getValue()
 
         # 隐藏所有卡片
-        for method_name, method_cards in self.cards.items():
+        for method_name, method_cards in self.push_channel_cards.items():
             is_selected = (method_name == selected_method)
             for card in method_cards:
                 card.setVisible(is_selected)
@@ -220,18 +253,20 @@ class SettingPushInterface(VerticalScrollInterface):
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
-        self.custom_push_title.init_with_adapter(self.ctx.push_config.get_prop_adapter('custom_push_title'))
-        self.send_image_opt.init_with_adapter(self.ctx.push_config.get_prop_adapter('send_image'))
+        config = self.ctx.push_service.push_config
+
+        self.custom_push_title.init_with_adapter(get_prop_adapter(self.ctx.push_config, 'custom_push_title'))
+        self.send_image_opt.init_with_adapter(get_prop_adapter(self.ctx.push_config, 'send_image'))
 
         # 动态初始化所有通知卡片
-        for method, configs in PushCards.get_configs().items():
-            for item_config in configs:
-                var_suffix: str = item_config["var_suffix"]
-                var_name = f"{method.lower()}_{var_suffix.lower()}_push_card"
-                config_key = f"{method.lower()}_{var_suffix.lower()}"
+        for channel in self.ctx.push_service.channels:
+            channel_id = channel.channel_id
+            for field in channel.config_schema:
+                var_name = self._get_channel_field_card_name(channel_id, field)
+                config_key = self.ctx.push_service.push_config.get_channel_config_key(channel_id, field.var_suffix)
                 card = getattr(self, var_name, None)
-                if card:
-                    card.init_with_adapter(self.ctx.push_config.get_prop_adapter(config_key))
+                if card is not None:
+                    card.init_with_adapter(get_prop_adapter(config, config_key))
 
         # 初始更新界面状态
         self._update_notification_ui()
