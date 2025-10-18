@@ -92,9 +92,6 @@ class DingDingBot(PushChannel):
             timestamp = str(round(time.time() * 1000))
             sign = self._generate_sign(secret, timestamp)
 
-            # 构建请求URL
-            webhook_url = f"https://oapi.dingtalk.com/robot/send?access_token={token}&timestamp={timestamp}&sign={sign}"
-
             # 构建消息内容
             message_data = {
                 "msgtype": "markdown",
@@ -106,7 +103,21 @@ class DingDingBot(PushChannel):
 
             # 发送请求
             headers = {'Content-Type': 'application/json'}
-            response = requests.post(webhook_url, json=message_data, headers=headers, timeout=10)
+
+            # 构建请求URL与查询参数（由 requests 进行 URL 编码）
+            webhook_base = "https://oapi.dingtalk.com/robot/send"
+            params = {
+                "access_token": token,
+                "timestamp": timestamp,
+                "sign": sign,
+            }
+            response = requests.post(
+                webhook_base,
+                params=params,
+                json=message_data,
+                headers=headers,
+                timeout=10
+            )
 
             if response.status_code == 200:
                 result = response.json()

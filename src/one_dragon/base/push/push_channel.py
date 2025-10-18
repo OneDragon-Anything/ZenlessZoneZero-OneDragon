@@ -1,5 +1,7 @@
 from abc import abstractmethod, ABC
+from io import BytesIO
 
+import cv2
 from cv2.typing import MatLike
 
 from one_dragon.base.push.push_channel_config import PushChannelConfigField
@@ -51,3 +53,19 @@ class PushChannel(ABC):
             tuple[bool, str]: 验证是否通过、错误信息
         """
         pass
+
+    def image_to_bytes(self, image: MatLike) -> BytesIO | None:
+        """
+        将图片转换为字节数组
+
+        Args:
+            image: 图片
+
+        Returns:
+            bytes: 图片字节数组
+        """
+        retval, buffer = cv2.imencode('.png', cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+        if retval:
+            return BytesIO(buffer.tobytes())
+        else:
+            return None

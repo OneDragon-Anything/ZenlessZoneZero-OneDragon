@@ -62,6 +62,10 @@ jobs:
           PUSH_DD_BOT_SECRET: ${{ secrets.PUSH_DD_BOT_SECRET }}
           PUSH_DD_BOT_TOKEN: ${{ secrets.PUSH_DD_BOT_TOKEN }}
           PUSH_PUSH_PLUS_TOKEN: ${{ secrets.PUSH_PUSH_PLUS_TOKEN }}
+          PUSH_FS_KEY: ${{ secrets.PUSH_FS_KEY }}
+          PUSH_FS_BOT_SECRET: ${{ secrets.PUSH_FS_BOT_SECRET }}
+          PUSH_FS_APP_ID: ${{ secrets.PUSH_FS_APP_ID }}
+          PUSH_FS_APP_SECRET: ${{ secrets.PUSH_FS_APP_SECRET }}
 
       - name: Test failure notification
         if: failure()
