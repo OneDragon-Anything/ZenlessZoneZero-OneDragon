@@ -27,6 +27,7 @@ config/game.yml
 config/dodge_assistant.yml
 config/zzz_one_dragon.yml
 config/one_dragon.yml
+config/push.yml
 config/[0-9]*/
 config/dodge/*
 !config/dodge/*.sample.yml

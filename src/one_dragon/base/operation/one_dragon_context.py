@@ -25,6 +25,7 @@ from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
     OneDragonEnvContext,
 )
+from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
 from one_dragon.utils import debug_utils, i18_utils, log_utils, thread_utils
@@ -79,6 +80,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext(self)
         self.app_group_manager: ApplicationGroupManager = ApplicationGroupManager(self)
+
+        self.push_service: PushService = PushService(self)
 
         # 初始化相关
         self._init_lock = threading.Lock()
@@ -145,6 +148,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             self.ready_for_application = True
 
             self.run_context.check_and_update_all_run_record(self.current_instance_idx)
+
+            self.push_service.init_push_channels()
 
             self.gh_proxy_service.update_proxy_url()
 
