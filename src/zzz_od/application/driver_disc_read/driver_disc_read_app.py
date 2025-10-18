@@ -212,6 +212,7 @@ class DriverDiscReadApp(ZApplication):
         self.workers = []  # 存储 Process 对象
         self.workers_running = False
         self.ocr_areas = {}  # 预提取的 OCR 区域坐标
+        self.collector_thread: Optional[threading.Thread] = None
 
     @operation_node(name='开始前返回', is_start_node=True)
     def back_at_first(self):
@@ -259,8 +260,8 @@ class DriverDiscReadApp(ZApplication):
         self._start_workers()
 
         # 启动结果收集线程
-        collector_thread = threading.Thread(target=self._result_collector_thread, daemon=True)
-        collector_thread.start()
+        self.collector_thread = threading.Thread(target=self._result_collector_thread, daemon=True)
+        self.collector_thread.start()
 
         try:
             global_index = 0
@@ -306,6 +307,7 @@ class DriverDiscReadApp(ZApplication):
         finally:
             # 停止 worker 线程
             self._stop_workers()
+            self._wait_collector_thread()
 
         log.info(f'扫描完成 共识别:{len(self.disc_data_dict)}个')
         return self.round_success(f'识别完成: {len(self.disc_data_dict)}个')
@@ -396,7 +398,8 @@ class DriverDiscReadApp(ZApplication):
 
     def _stop_workers(self):
         """停止 worker 进程"""
-        self.workers_running = False
+        if not self.workers_running:
+            return
 
         # 发送停止信号（None sentinel）给每个 worker
         for _ in range(self.worker_count):
@@ -409,7 +412,19 @@ class DriverDiscReadApp(ZApplication):
                 log.warning(f'Worker 进程 {worker.pid} 未能正常退出，强制终止')
                 worker.terminate()
 
+        # 所有 worker 已停止，通知结果收集线程
+        self.result_queue.put(None)
+        self.workers_running = False
+
         log.info('所有 worker 进程已停止')
+
+    def _wait_collector_thread(self):
+        """等待结果收集线程结束"""
+        if self.collector_thread and self.collector_thread.is_alive():
+            self.collector_thread.join(timeout=5)
+            if self.collector_thread.is_alive():
+                log.warning('结果收集线程未在预期时间内退出')
+        self.collector_thread = None
 
     def _result_collector_thread(self):
         """结果收集线程：从 result_queue 收集 worker 进程的识别结果"""
