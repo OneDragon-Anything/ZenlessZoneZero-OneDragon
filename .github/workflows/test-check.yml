@@ -66,6 +66,7 @@ jobs:
           PUSH_FS_BOT_SECRET: ${{ secrets.PUSH_FS_BOT_SECRET }}
           PUSH_FS_APP_ID: ${{ secrets.PUSH_FS_APP_ID }}
           PUSH_FS_APP_SECRET: ${{ secrets.PUSH_FS_APP_SECRET }}
+          PUSH_WORK_WEIXIN_KEY: ${{ secrets.PUSH_WORK_WEIXIN_KEY }}
 
       - name: Test failure notification
         if: failure()

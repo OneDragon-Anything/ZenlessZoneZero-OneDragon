@@ -11,8 +11,10 @@ from cv2.typing import MatLike
 from one_dragon.base.push.channel.bark import Bark
 from one_dragon.base.push.channel.dingding import DingDingBot
 from one_dragon.base.push.channel.feishu import FeiShu
+from one_dragon.base.push.channel.one_bot import OneBot
 from one_dragon.base.push.channel.push_plus import PushPlus
 from one_dragon.base.push.channel.server_chan import ServerChan
+from one_dragon.base.push.channel.work_wexin import WorkWeixin
 from one_dragon.base.push.push_channel import PushChannel
 from one_dragon.base.push.push_channel_config import PushChannelConfigField
 from one_dragon.base.push.push_config import PushConfig
@@ -54,9 +56,11 @@ class PushService:
             self._add_channel(PushPlus())
             self._add_channel(DingDingBot())
             self._add_channel(FeiShu())
+            self._add_channel(OneBot())
+            self._add_channel(WorkWeixin())
 
-        finally:
             self._inited = True
+        finally:
             self._init_lock.release()
 
     def _add_channel(self, channel: PushChannel) -> None:
