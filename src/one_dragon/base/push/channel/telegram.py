@@ -107,7 +107,7 @@ class Telegram(PushChannel):
                         "chat_id": str(user_id),
                         "text": f"{title}\n{content}",
                     }
-                    response = requests.post(url, headers=headers, params=payload, proxies=proxies, timeout=15)
+                    response = requests.post(url, data=payload, proxies=proxies, timeout=15)
 
                 response.raise_for_status()
                 result = response.json()

@@ -23,13 +23,12 @@ class FakePushChannel(PushChannel):
         proxy_url: str | None = None,
     ) -> tuple[bool, str]:
         """
-        推送消息到钉钉机器人
 
         Args:
-            config: 配置字典，包含 SECRET 和 TOKEN
+            config: 配置字典
             title: 消息标题
             content: 消息内容
-            image: 图片数据（钉钉机器人暂不支持图片推送）
+            image: 图片数据
             proxy_url: 代理地址
 
         Returns:
