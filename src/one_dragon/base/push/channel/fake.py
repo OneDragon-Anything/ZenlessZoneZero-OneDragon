@@ -39,7 +39,6 @@ class FakePushChannel(PushChannel):
 
     def validate_config(self, config: dict[str, str]) -> tuple[bool, str]:
         """
-        验证钉钉机器人配置
 
         Args:
             config: 配置字典
