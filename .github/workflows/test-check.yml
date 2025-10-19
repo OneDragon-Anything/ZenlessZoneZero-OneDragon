@@ -59,7 +59,14 @@ jobs:
           [Console]::InputEncoding = [System.Text.Encoding]::UTF8
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           .\.venv\Scripts\Activate.ps1
-          uv run pytest zzz-od-test/ -v --tb=short --color=yes
+          
+          if ("${{ github.event_name }}" -eq "pull_request") {
+            # PR时只运行不需要secrets的测试
+            uv run pytest zzz-od-test/ -v --tb=short --color=yes -m "not requires_secrets"
+          } else {
+            # main分支更新时运行所有测试
+            uv run pytest zzz-od-test/ -v --tb=short --color=yes
+          }
         env:
           PYTHONPATH: src
           PYTHONIOENCODING: utf-8
