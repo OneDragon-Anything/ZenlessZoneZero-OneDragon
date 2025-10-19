@@ -10,16 +10,24 @@ from cv2.typing import MatLike
 
 from one_dragon.base.push.channel.ai_botk import AiBotK
 from one_dragon.base.push.channel.bark import Bark
+from one_dragon.base.push.channel.chronocat import Chronocat
 from one_dragon.base.push.channel.dingding import DingDingBot
+from one_dragon.base.push.channel.discord import Discord
 from one_dragon.base.push.channel.fake import FakePushChannel
 from one_dragon.base.push.channel.feishu import FeiShu
 from one_dragon.base.push.channel.gotify import Gotify
+from one_dragon.base.push.channel.i_got import IGot
 from one_dragon.base.push.channel.ntfy import Ntfy
 from one_dragon.base.push.channel.one_bot import OneBot
+from one_dragon.base.push.channel.push_deer import PushDeer
+from one_dragon.base.push.channel.push_me import PushMe
 from one_dragon.base.push.channel.push_plus import PushPlus
+from one_dragon.base.push.channel.q_msg import QMsg
 from one_dragon.base.push.channel.server_chan import ServerChan
 from one_dragon.base.push.channel.smtp import Smtp
+from one_dragon.base.push.channel.synology_chat import SynologyChat
 from one_dragon.base.push.channel.telegram import Telegram
+from one_dragon.base.push.channel.we_plus_bot import WePlusBot
 from one_dragon.base.push.channel.webhook import Webhook
 from one_dragon.base.push.channel.work_weixin import WorkWeixin
 from one_dragon.base.push.channel.wx_pusher import WxPusher
@@ -71,9 +79,17 @@ class PushService:
             self._add_channel(Smtp())
             self._add_channel(FakePushChannel())
             self._add_channel(OneBot())
+            self._add_channel(Discord())
             self._add_channel(Gotify())
             self._add_channel(AiBotK())
             self._add_channel(WxPusher())
+            self._add_channel(WePlusBot())
+            self._add_channel(QMsg())
+            self._add_channel(PushMe())
+            self._add_channel(Chronocat())
+            self._add_channel(PushDeer())
+            self._add_channel(IGot())
+            self._add_channel(SynologyChat())
 
             self._inited = True
         finally:

@@ -59,7 +59,28 @@ class Webhook(PushChannel):
                 language="json",
                 placeholder="请输入请求体内容",
                 required=True
-            )
+            ),
+            PushChannelConfigField(
+                var_suffix="PROXY_HOST",
+                title="代理 URL",
+                icon="CLOUD",
+                field_type=FieldTypeEnum.TEXT,
+                placeholder="127.0.0.1"
+            ),
+            PushChannelConfigField(
+                var_suffix="PROXY_PORT",
+                title="代理端口",
+                icon="CLOUD",
+                field_type=FieldTypeEnum.TEXT,
+                placeholder="7890"
+            ),
+            PushChannelConfigField(
+                var_suffix="PROXY_AUTH",
+                title="PROXY_AUTH",
+                icon="CLOUD",
+                field_type=FieldTypeEnum.TEXT,
+                placeholder="代理认证参数"
+            ),
         ]
 
         PushChannel.__init__(
@@ -99,6 +120,17 @@ class Webhook(PushChannel):
             content_type = config.get('CONTENT_TYPE', 'application/json')
             headers_str = config.get('HEADERS', '{}')
             body = config.get('BODY', '')
+            proxy_host = config.get('PROXY_HOST', '')
+            proxy_port = config.get('PROXY_PORT', '')
+            proxy_auth = config.get('PROXY_AUTH', '')
+
+            # 配置代理
+            proxies = None
+            if proxy_host and proxy_port:
+                if proxy_auth and "@" not in proxy_host:
+                    proxy_host = f"{proxy_auth}@{proxy_host}"
+                proxy_str = f"http://{proxy_host}:{proxy_port}"
+                proxies = {"http": proxy_str, "https": proxy_str}
 
             # 生成时间戳变量
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -149,13 +181,16 @@ class Webhook(PushChannel):
             # 添加Content-Type
             headers['Content-Type'] = content_type
 
+            # GET 请求通常不包含 body
+            request_data = None if method == "GET" else processed_body.encode("utf-8")
             # 发送请求
             response = requests.request(
                 method=method,
                 url=processed_url,
                 headers=headers,
-                data=processed_body.encode("utf-8"),
-                timeout=15
+                data=request_data,
+                timeout=15,
+                proxies=proxies,
             )
 
             # 检查响应状态
