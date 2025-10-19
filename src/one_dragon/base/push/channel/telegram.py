@@ -30,27 +30,6 @@ class Telegram(PushChannel):
                 required=True
             ),
             PushChannelConfigField(
-                var_suffix="PROXY_HOST",
-                title="代理 URL",
-                icon="CLOUD",
-                field_type=FieldTypeEnum.TEXT,
-                placeholder="127.0.0.1"
-            ),
-            PushChannelConfigField(
-                var_suffix="PROXY_PORT",
-                title="代理端口",
-                icon="CLOUD",
-                field_type=FieldTypeEnum.TEXT,
-                placeholder="7890"
-            ),
-            PushChannelConfigField(
-                var_suffix="PROXY_AUTH",
-                title="PROXY_AUTH",
-                icon="CLOUD",
-                field_type=FieldTypeEnum.TEXT,
-                placeholder="代理认证参数"
-            ),
-            PushChannelConfigField(
                 var_suffix="API_HOST",
                 title="API_HOST",
                 icon="CLOUD",
@@ -71,16 +50,18 @@ class Telegram(PushChannel):
         config: dict[str, str],
         title: str,
         content: str,
-        image: MatLike | None = None
+        image: MatLike | None = None,
+        proxy_url: str | None = None,
     ) -> tuple[bool, str]:
         """
         推送消息到 Telegram 机器人
 
         Args:
-            config: 配置字典，包含 BOT_TOKEN、USER_ID、PROXY_HOST、PROXY_PORT、PROXY_AUTH、API_HOST
+            config: 配置字典，包含 BOT_TOKEN、USER_ID
             title: 消息标题
             content: 消息内容
             image: 图片数据（可选）
+            proxy_url: 代理地址
 
         Returns:
             tuple[bool, str]: 是否成功、错误信息
@@ -88,9 +69,6 @@ class Telegram(PushChannel):
         try:
             bot_token = config.get('BOT_TOKEN', '')
             user_id = config.get('USER_ID', '')
-            proxy_host = config.get('PROXY_HOST', '')
-            proxy_port = config.get('PROXY_PORT', '')
-            proxy_auth = config.get('PROXY_AUTH', '')
             api_host = config.get('API_HOST', '')
 
             ok, msg = self.validate_config(config)
@@ -98,12 +76,7 @@ class Telegram(PushChannel):
                 return False, msg
 
             # 配置代理
-            proxies = None
-            if proxy_host and proxy_port:
-                if proxy_auth and "@" not in proxy_host:
-                    proxy_host = f"{proxy_auth}@{proxy_host}"
-                proxy_str = f"http://{proxy_host}:{proxy_port}"
-                proxies = {"http": proxy_str, "https": proxy_str}
+            proxies = self.get_proxy(proxy_url)
 
             # 设置 API 地址
             if api_host:

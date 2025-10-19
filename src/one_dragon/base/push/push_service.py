@@ -33,7 +33,7 @@ from one_dragon.base.push.channel.work_weixin import WorkWeixin
 from one_dragon.base.push.channel.wx_pusher import WxPusher
 from one_dragon.base.push.push_channel import PushChannel
 from one_dragon.base.push.push_channel_config import PushChannelConfigField
-from one_dragon.base.push.push_config import PushConfig
+from one_dragon.base.push.push_config import PushConfig, PushProxy
 from one_dragon.utils import thread_utils
 from one_dragon.utils.log_utils import log
 
@@ -162,6 +162,7 @@ class PushService:
                     title=title,
                     content=content,
                     image=image,
+                    proxy_url=self.get_proxy(),
                 )
                 if not ok:
                     log.error(f'推送失败: {channel_id} {msg}')
@@ -186,6 +187,7 @@ class PushService:
                 title=title,
                 content=content,
                 image=image,
+                proxy_url=self.get_proxy(),
             )
 
         return any_ok, err_msg
@@ -241,3 +243,15 @@ class PushService:
             channel_id,
         )
         future.add_done_callback(thread_utils.handle_future_result)
+
+    def get_proxy(self) -> str | None:
+        """
+        Returns:
+            获取配置使用的代理地址
+        """
+        config = self.push_config
+        if (config.proxy == PushProxy.PERSONAL.value.value
+            and self.ctx.env_config.is_personal_proxy):
+            return self.ctx.env_config.personal_proxy
+
+        return None

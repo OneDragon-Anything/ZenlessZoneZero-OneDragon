@@ -6,6 +6,7 @@ from qfluentwidgets import FluentIcon, PushButton, InfoBar, InfoBarPosition, Set
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.controller.pc_clipboard import PcClipboard
 from one_dragon.base.push.curl_generator import CurlGenerator
+from one_dragon.base.push.push_config import PushProxy
 from one_dragon.base.push.push_email_services import PushEmailServices
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.push.push_channel_config import PushChannelConfigField, FieldTypeEnum
@@ -48,6 +49,13 @@ class SettingPushInterface(VerticalScrollInterface):
 
         self.send_image_opt = SwitchSettingCard(icon=FluentIcon.PHOTO, title='通知中附带图片')
         content_widget.add_widget(self.send_image_opt)
+
+        self.proxy_opt = ComboBoxSettingCard(
+            icon=FluentIcon.GLOBE,
+            title='代理设置',
+            options_enum=PushProxy,
+        )
+        content_widget.add_widget(self.proxy_opt)
 
         self.test_current_btn = PushButton(text='测试当前方式', icon=FluentIcon.SEND, parent=self)
         self.test_current_btn.clicked.connect(self._send_test_message)
@@ -265,6 +273,7 @@ class SettingPushInterface(VerticalScrollInterface):
 
         self.custom_push_title.init_with_adapter(get_prop_adapter(config, 'custom_push_title'))
         self.send_image_opt.init_with_adapter(get_prop_adapter(config, 'send_image'))
+        self.proxy_opt.init_with_adapter(get_prop_adapter(config, 'proxy'))
 
         # 动态初始化所有通知卡片
         for channel in self.ctx.push_service.channels:

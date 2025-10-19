@@ -1,9 +1,17 @@
 import os
 import shutil
+from enum import Enum, StrEnum
 
+from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.base.push.push_channel_config import PushChannelConfigField
 from one_dragon.utils import os_utils
+
+
+class PushProxy(Enum):
+
+    NONE = ConfigItem(label="不启用", value="NONE", desc="不使用代理发送")
+    PERSONAL = ConfigItem(label="个人代理", value="PERSONAL", desc="沿用脚本环境的个人代理发送")
 
 
 class PushConfig(YamlConfig):
@@ -43,6 +51,14 @@ class PushConfig(YamlConfig):
     @send_image.setter
     def send_image(self, new_value: bool) -> None:
         self.update('send_image', new_value)
+
+    @property
+    def proxy(self) -> str:
+        return self.get('proxy', PushProxy.NONE.value.value)
+
+    @proxy.setter
+    def proxy(self, new_value: str) -> None:
+        self.update('proxy', new_value)
 
     def generate_channel_fields(self, channel_config_schemas: dict[str, list[PushChannelConfigField]]) -> None:
         """

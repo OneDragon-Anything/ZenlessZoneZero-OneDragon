@@ -27,6 +27,7 @@ class PushChannel(ABC):
         title: str,
         content: str,
         image: MatLike | None = None,
+        proxy_url: str | None = None,
     ) -> tuple[bool, str]:
         """
         推送消息
@@ -36,6 +37,7 @@ class PushChannel(ABC):
             title: 标题
             content: 内容
             image: 图片
+            proxy_url: 代理地址 暂不支持验证
 
         Returns:
             tuple[bool, str]: 是否成功、错误信息
@@ -133,3 +135,18 @@ class PushChannel(ABC):
             return None
         image_bytes.seek(0)
         return base64.b64encode(image_bytes.getvalue()).decode('utf-8')
+
+    def get_proxy(self, proxy_url: str) -> dict | None:
+        """
+        获取代理配置
+
+        Args:
+            proxy_url: 代理地址
+
+        Returns:
+            dict | None: 代理配置
+        """
+        if proxy_url is not None and proxy_url != "":
+            return {"http": proxy_url, "https": proxy_url}
+        else:
+            return None

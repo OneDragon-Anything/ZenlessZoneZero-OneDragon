@@ -40,7 +40,8 @@ class IGot(PushChannel):
         config: dict[str, str],
         title: str,
         content: str,
-        image: MatLike | None = None
+        image: MatLike | None = None,
+        proxy_url: str | None = None,
     ) -> tuple[bool, str]:
         """
         推送消息到 iGot
@@ -50,6 +51,7 @@ class IGot(PushChannel):
             title: 消息标题
             content: 消息内容
             image: 图片数据（暂不支持）
+            proxy_url: 代理地址
 
         Returns:
             tuple[bool, str]: 是否成功、错误信息
