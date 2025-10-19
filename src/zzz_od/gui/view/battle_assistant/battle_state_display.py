@@ -226,7 +226,8 @@ class TaskDisplay(TableWidget):
             return
 
         # 计算持续时间
-        past_time = str(round(now - self.auto_op.last_trigger_time.get(task.trigger_display, 0), 4))
+        trigger_time = self.auto_op.last_trigger_time.get(task.handler_id, now) if task.handler_id is not None else now
+        past_time = str(round(now - trigger_time, 4))
         states = task.expr_display
 
         data = [
