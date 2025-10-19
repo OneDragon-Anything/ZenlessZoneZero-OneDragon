@@ -18,7 +18,9 @@ from one_dragon.base.push.channel.ntfy import Ntfy
 from one_dragon.base.push.channel.one_bot import OneBot
 from one_dragon.base.push.channel.push_plus import PushPlus
 from one_dragon.base.push.channel.server_chan import ServerChan
+from one_dragon.base.push.channel.smtp import Smtp
 from one_dragon.base.push.channel.telegram import Telegram
+from one_dragon.base.push.channel.webhook import Webhook
 from one_dragon.base.push.channel.work_weixin import WorkWeixin
 from one_dragon.base.push.channel.wx_pusher import WxPusher
 from one_dragon.base.push.push_channel import PushChannel
@@ -66,6 +68,8 @@ class PushService:
             self._add_channel(WorkWeixin())
             self._add_channel(Telegram())
             self._add_channel(Ntfy())
+            self._add_channel(Webhook())
+            self._add_channel(Smtp())
             self._add_channel(FakePushChannel())
             self._add_channel(Gotify())
             self._add_channel(AiBotK())
