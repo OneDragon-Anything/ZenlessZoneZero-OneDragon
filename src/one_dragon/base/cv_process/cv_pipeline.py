@@ -1,8 +1,11 @@
 # coding: utf-8
-from typing import List
+from typing import List, TYPE_CHECKING
 import numpy as np
 import time
 from one_dragon.base.cv_process.cv_step import CvStep, CvPipelineContext
+
+if TYPE_CHECKING:
+    from one_dragon.base.cv_process.cv_service import CvService
 
 
 class CvPipeline:
@@ -13,7 +16,7 @@ class CvPipeline:
     def __init__(self):
         self.steps: List[CvStep] = []
 
-    def execute(self, source_image: np.ndarray, service: 'CvService' = None, debug_mode: bool = True, start_time: float = None, timeout: float = None) -> CvPipelineContext:
+    def execute(self, source_image: np.ndarray, service: 'CvService | None' = None, debug_mode: bool = True, start_time: float | None = None, timeout: float | None = None) -> CvPipelineContext:
         """
         按顺序执行流水线中的所有步骤，并记录时间
         :param source_image: 原始输入图像
@@ -26,7 +29,7 @@ class CvPipeline:
         context = CvPipelineContext(source_image, service=service, debug_mode=debug_mode, start_time=start_time, timeout=timeout)
         pipeline_start_time = context.start_time  # 使用context的开始时间
 
-        for i, step in enumerate(self.steps):
+        for _, step in enumerate(self.steps):
             # 在每一步开始前检查超时
             if context.check_timeout():
                 context.error_str = f"流水线执行超时 (限制 {context.timeout} 秒)"

@@ -76,7 +76,7 @@ class TargetStateChecker:
             log.debug(f"未知的 TargetCheckWay: {state_def.check_way} for state {state_def.state_name}")
             return False # 未知check_way视为不处理
 
-    def _check_contour_count(self, cv_result: CvPipelineContext, state_def: TargetStateDef, start_time: float) -> bool | None:
+    def _check_contour_count(self, cv_result: CvPipelineContext, state_def: TargetStateDef, _start_time: float) -> bool | None:
         """
         处理 CONTOUR_COUNT_IN_RANGE
         """
@@ -93,7 +93,7 @@ class TargetStateChecker:
         else:
             return None if state_def.clear_on_miss else False
 
-    def _check_ocr_as_number(self, cv_result: CvPipelineContext, state_def: TargetStateDef, start_time: float) -> tuple | bool | None:
+    def _check_ocr_as_number(self, cv_result: CvPipelineContext, state_def: TargetStateDef, _start_time: float) -> tuple | bool | None:
         """
         处理 OCR_RESULT_AS_NUMBER
         """
@@ -114,7 +114,7 @@ class TargetStateChecker:
         # 对于OCR_RESULT_AS_NUMBER，如果没有数字，则根据clear_on_miss决定
         return None if state_def.clear_on_miss else False
 
-    def _check_ocr_text_contains(self, cv_result: CvPipelineContext, state_def: TargetStateDef, start_time: float) -> bool | None:
+    def _check_ocr_text_contains(self, cv_result: CvPipelineContext, state_def: TargetStateDef, _start_time: float) -> bool | None:
         """
         处理 OCR_TEXT_CONTAINS
         """
@@ -156,12 +156,16 @@ class TargetStateChecker:
                     return None if state_def.clear_on_miss else False
 
             # 检查包含项
+            found = False
             if mode == 'any':
                 if any(c_text in processed_ocr_text for c_text in processed_contains):
-                    return True
+                    found = True
             elif mode == 'all':
                 if all(c_text in processed_ocr_text for c_text in processed_contains):
-                    return True
+                    found = True
+
+            if found:
+                return True
 
             # 如果以上条件都不满足，则说明未命中
             return None if state_def.clear_on_miss else False
@@ -170,7 +174,7 @@ class TargetStateChecker:
             # 异常情况也视为无有效结果
             return None if state_def.clear_on_miss else False
 
-    def _check_map_contour_length_to_percent(self, cv_result: CvPipelineContext, state_def: TargetStateDef, start_time: float) -> tuple | bool | None:
+    def _check_map_contour_length_to_percent(self, cv_result: CvPipelineContext, state_def: TargetStateDef, _start_time: float) -> tuple | bool | None:
         """
         处理 MAP_CONTOUR_LENGTH_TO_PERCENT (最终逻辑)
         计算轮廓的【外接矩形宽度】与【遮罩图像宽度】的比值
@@ -213,11 +217,11 @@ class TargetStateChecker:
 
             return True, result_percent
 
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError) as e:
             log.exception(f"计算轮廓宽度与遮罩宽度比率时出错: {e}")
             return None if state_def.clear_on_miss else False
 
-    def _check_ocr_text_similarity(self, cv_result: CvPipelineContext, state_def: TargetStateDef, start_time: float) -> bool | None:
+    def _check_ocr_text_similarity(self, cv_result: CvPipelineContext, state_def: TargetStateDef, _start_time: float) -> bool | None:
         """
         处理 OCR_TEXT_SIMILARITY
         使用编辑距离计算相似度

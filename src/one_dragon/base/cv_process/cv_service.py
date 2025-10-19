@@ -66,7 +66,7 @@ class CvService:
         if not os.path.exists(self.TEMPLATE_DIR):
             os.makedirs(self.TEMPLATE_DIR)
 
-    def run_pipeline(self, pipeline_name: str, image: np.ndarray, debug_mode: bool = False, start_time: float = None, timeout: float = None) -> CvPipelineContext:
+    def run_pipeline(self, pipeline_name: str, image: np.ndarray, debug_mode: bool = False, start_time: float | None = None, timeout: float | None = None) -> CvPipelineContext:
         """
         加载并运行指定的流水线
         :param pipeline_name: 流水线名称

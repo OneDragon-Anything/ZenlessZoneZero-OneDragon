@@ -30,7 +30,7 @@ class CvFindContoursStep(CvStep):
             'noise_threshold_ratio': {'type': 'float', 'default': 0.25, 'range': (0.0, 1.0), 'label': '噪点比例阈值', 'tooltip': '输入图像的白色像素比例若高于此值，则跳过轮廓查找以防止卡死。建议范围：0.1-0.4'},
         }
 
-    def _execute(self, context: CvPipelineContext, mode: str = 'EXTERNAL', method: str = 'SIMPLE', draw_contours: bool = True, noise_threshold_ratio: float = 0.25, **kwargs):
+    def _execute(self, context: CvPipelineContext, mode: str = 'EXTERNAL', method: str = 'SIMPLE', draw_contours: bool = True, noise_threshold_ratio: float = 0.25, **_kwargs):
         if context.mask_image is None:
             return
 

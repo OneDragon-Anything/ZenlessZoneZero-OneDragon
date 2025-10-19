@@ -1,17 +1,20 @@
 # coding: utf-8
-from typing import Dict, Any, List
+from typing import Dict, Any, List, TYPE_CHECKING
 import cv2
 import numpy as np
 import time
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.utils import cv2_utils
 
+if TYPE_CHECKING:
+    from one_dragon.base.cv_process.cv_service import CvService
+
 
 class CvPipelineContext:
     """
     一个图像处理流水线的上下文
     """
-    def __init__(self, source_image: np.ndarray, service: 'CvService' = None, debug_mode: bool = True, start_time: float = None, timeout: float = None):
+    def __init__(self, source_image: np.ndarray, service: 'CvService | None' = None, debug_mode: bool = True, start_time: float | None = None, timeout: float | None = None):
         self.source_image: np.ndarray = source_image  # 原始输入图像 (只读)
         self.service: 'CvService' = service
         self.debug_mode: bool = debug_mode  # 是否为调试模式
