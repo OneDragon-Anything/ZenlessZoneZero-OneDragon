@@ -9,8 +9,8 @@ import time
 import numpy as np
 from unittest.mock import MagicMock, patch
 
-# 假设这些类在实际项目中可以导入
-# 我们需要根据实际项目结构调整导入路径
+# 尝试导入项目依赖类
+IMPORTS_AVAILABLE = False
 try:
     from one_dragon.base.cv_process.cv_pipeline import CvPipeline
     from one_dragon.base.cv_process.cv_step import CvStep, CvPipelineContext
@@ -18,134 +18,20 @@ try:
     from zzz_od.auto_battle.target_state.target_state_checker import TargetStateChecker
     from zzz_od.context.zzz_context import ZContext
     from zzz_od.game_data.target_state import DetectionTask, TargetStateDef, TargetCheckWay
+    IMPORTS_AVAILABLE = True
 except ImportError:
-    # 如果无法导入实际类，我们将创建模拟类用于测试
-    class CvPipeline:
-        def __init__(self):
-            self.steps = []
-
-        def execute(self, source_image, service=None, debug_mode=True, start_time=None, timeout=None):
-            context = CvPipelineContext(source_image, service=service, debug_mode=debug_mode, start_time=start_time, timeout=timeout)
-
-            # 模拟真实的执行逻辑，包括超时检查
-            pipeline_start_time = context.start_time
-
-            for step in self.steps:
-                # 在每一步开始前检查超时
-                if context.check_timeout():
-                    context.error_str = f"流水线执行超时 (限制 {context.timeout} 秒)"
-                    context.success = False
-                    break  # 超时则中断后续步骤
-
-                step_start_time = time.time()
-                step.execute(context)
-                step_end_time = time.time()
-                execution_time_ms = (step_end_time - step_start_time) * 1000
-                context.step_execution_times.append((step.name, execution_time_ms))
-
-            pipeline_end_time = time.time()
-            context.total_execution_time = (pipeline_end_time - pipeline_start_time) * 1000
-            return context
-
-    class CvStep:
-        def __init__(self, name="test_step"):
-            self.name = name
-            self.params = {}
-
-        def execute(self, context):
-            pass
-
-    class CvPipelineContext:
-        def __init__(self, source_image, service=None, debug_mode=True, start_time=None, timeout=None):
-            self.source_image = source_image
-            self.service = service
-            self.debug_mode = debug_mode
-            self.display_image = source_image.copy()
-            self.crop_offset = (0, 0)
-            self.mask_image = None
-            self.contours = []
-            self.analysis_results = []
-            self.match_result = None
-            self.ocr_result = None
-            self.step_execution_times = []
-            self.total_execution_time = 0.0
-            self.error_str = None
-            self.success = True
-
-            # 超时控制相关
-            import time
-            self.start_time = start_time if start_time is not None else time.time()
-            self.timeout = timeout  # 允许的执行时间（秒），None表示无限制
-
-        def check_timeout(self):
-            """
-            检查是否已经超时
-            :return: True表示已超时，False表示未超时
-            """
-            if self.timeout is None:
-                return False
-            return time.time() - self.start_time > self.timeout
-
-        def is_success(self):
-            return self.error_str is None and self.success
-
-    class CvService:
-        def __init__(self, od_ctx=None):
-            self.od_ctx = od_ctx
-
-        def run_pipeline(self, pipeline_name, image, debug_mode=False, start_time=None, timeout=None):
-            # 模拟一个简单的流水线执行
-            pipeline = CvPipeline()
-            return pipeline.execute(image, service=self, debug_mode=debug_mode, start_time=start_time, timeout=timeout)
-
-    class TargetStateChecker:
-        def __init__(self, ctx):
-            self.ctx = ctx
-
-        def run_task(self, screen, task, debug_mode=False):
-            start_time = time.time()
-
-            # 1. 运行一次CV流水线，并传入1秒的软超时
-            cv_result = self.ctx.cv_service.run_pipeline(
-                task.pipeline_name,
-                screen,
-                debug_mode=debug_mode,
-                start_time=start_time,
-                timeout=1.0  # 自动战斗要求1秒超时
-            )
-
-            # 2. 循环解读结果（简化）
-            results = []
-            return cv_result, results
-
-    class ZContext:
-        def __init__(self):
-            self.cv_service = CvService()
-
-    class TargetCheckWay:
-        CONTOUR_COUNT_IN_RANGE = "contour_count_in_range"
-        OCR_RESULT_AS_NUMBER = "ocr_result_as_number"
-
-    class TargetStateDef:
-        def __init__(self, state_name, check_way, check_params=None, clear_on_miss=False):
-            self.state_name = state_name
-            self.check_way = check_way
-            self.check_params = check_params or {}
-            self.clear_on_miss = clear_on_miss
-
-    class DetectionTask:
-        def __init__(self, task_id, pipeline_name, state_definitions, enabled=True, interval=1.0, is_async=False, dynamic_interval_config=None):
-            self.task_id = task_id
-            self.pipeline_name = pipeline_name
-            self.state_definitions = state_definitions
-            self.enabled = enabled
-            self.interval = interval
-            self.is_async = is_async
-            self.dynamic_interval_config = dynamic_interval_config or {}
+    # 依赖不可用时，IMPORTS_AVAILABLE保持False
+    pass
 
 
 class TestCvTimeoutControl(unittest.TestCase):
     """CV流水线超时控制功能测试类"""
+
+    @classmethod
+    def setUpClass(cls):
+        """测试类初始化，检查依赖是否可用"""
+        if not IMPORTS_AVAILABLE:
+            raise unittest.SkipTest("因缺少核心CV模块而跳过此测试套件")
 
     def setUp(self):
         """测试初始化"""
