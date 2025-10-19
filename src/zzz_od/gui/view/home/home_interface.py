@@ -667,7 +667,6 @@ class HomeInterface(VerticalScrollInterface):
         self._check_model_runner.start()
         self._check_banner_runner.start()
         # 根据配置启动相应的背景下载器
-        from one_dragon.base.config.custom_config import BackgroundTypeEnum
         background_type = self.ctx.custom_config.background_type
         if background_type == BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value:
             self._official_dynamic_downloader.start()
