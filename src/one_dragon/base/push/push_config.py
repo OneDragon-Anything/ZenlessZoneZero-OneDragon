@@ -70,11 +70,9 @@ class PushConfig(YamlConfig):
         """
         # 遍历所有配置组
         for channel_id, field_list in channel_config_schemas.items():
-            channel_id_lower = channel_id.lower()
             # 遍历组内的每个配置项
             for field in field_list:
                 var_suffix = field.var_suffix
-                var_suffix_lower = var_suffix.lower()
                 prop_name = self.get_channel_config_key(channel_id, var_suffix)
 
                 # 定义getter和setter，使用闭包捕获当前的prop_name和default值
