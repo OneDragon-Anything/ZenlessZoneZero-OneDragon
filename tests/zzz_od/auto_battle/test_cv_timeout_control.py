@@ -180,10 +180,11 @@ class TestCvTimeoutControl(unittest.TestCase):
                 timeout=1.0
             )
 
-            # 由于超时已到期，应该失败
-            self.assertFalse(context.success)
-            self.assertIsNotNone(context.error_str)
-            self.assertIn("超时", context.error_str)
+        # 无论走哪个分支，都必须验证超时行为
+        # 由于超时已到期，应该失败
+        self.assertFalse(context.success)
+        self.assertIsNotNone(context.error_str)
+        self.assertIn("超时", context.error_str)
 
     def test_target_state_checker_run_task_with_timeout(self):
         """测试TargetStateChecker运行任务时的超时控制"""
