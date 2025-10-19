@@ -4,7 +4,7 @@ from enum import Enum
 from functools import cached_property
 from typing import Optional
 
-from pynput import keyboard, mouse
+from pynput import keyboard
 
 from one_dragon.base.config.custom_config import UILanguageEnum
 from one_dragon.base.controller.controller_base import ControllerBase
@@ -108,11 +108,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     def game_account_config(self):
         from one_dragon.base.config.game_account_config import GameAccountConfig
         return GameAccountConfig(self.current_instance_idx)
-
-    @cached_property
-    def push_config(self):
-        from one_dragon.base.config.push_config import PushConfig
-        return PushConfig(self.current_instance_idx)
 
     def init(self) -> None:
         if not self._init_lock.acquire(blocking=False):
@@ -261,7 +256,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         to_clear_props = [
             'game_account_config',
-            'push_config',
         ]
         for prop in to_clear_props:
             if hasattr(self, prop):

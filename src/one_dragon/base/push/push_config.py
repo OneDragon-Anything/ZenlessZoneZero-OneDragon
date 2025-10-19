@@ -1,6 +1,5 @@
 import os
 import shutil
-from typing import Optional
 
 from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.base.push.push_channel_config import PushChannelConfigField
@@ -9,28 +8,22 @@ from one_dragon.utils import os_utils
 
 class PushConfig(YamlConfig):
 
-    def __init__(self, instance_idx: Optional[int] = None):
+    def __init__(self):
         """
         推送配置
         应该是一个全局配置
-        目前传入账号实例只是为了向后兼容
-        实际会将账号下的配置复制到全局配置中
-
-        Args:
-            instance_idx: 账号实例
         """
         # 将账号实例下的配置复制到全局 预计 2026-01-01 可删除这部分兼容代码
-        if instance_idx is not None:
-            instance_config_file_path = os.path.join(
-                os_utils.get_path_under_work_dir('config', f'{instance_idx:02d}'),
-                'push.yml'
-            )
-            global_config_file_path = os.path.join(
-                os_utils.get_path_under_work_dir('config'),
-                'push.yml'
-            )
-            if not os.path.exists(global_config_file_path) and os.path.exists(instance_config_file_path):
-                shutil.copy(instance_config_file_path, global_config_file_path)
+        instance_config_file_path = os.path.join(
+            os_utils.get_path_under_work_dir('config', '01'),
+            'push.yml'
+        )
+        global_config_file_path = os.path.join(
+            os_utils.get_path_under_work_dir('config'),
+            'push.yml'
+        )
+        if not os.path.exists(global_config_file_path) and os.path.exists(instance_config_file_path):
+            shutil.copy(instance_config_file_path, global_config_file_path)
 
         YamlConfig.__init__(self, 'push')
 

@@ -5,8 +5,8 @@ from qfluentwidgets import FluentIcon, PushButton, InfoBar, InfoBarPosition, Set
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.controller.pc_clipboard import PcClipboard
-from one_dragon.base.notify.curl_generator import CurlGenerator
-from one_dragon.base.notify.push_email_services import PushEmailServices
+from one_dragon.base.push.curl_generator import CurlGenerator
+from one_dragon.base.push.push_email_services import PushEmailServices
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.push.push_channel_config import PushChannelConfigField, FieldTypeEnum
 from one_dragon.utils.i18_utils import gt
