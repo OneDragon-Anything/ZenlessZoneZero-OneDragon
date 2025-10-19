@@ -179,13 +179,14 @@ class PushService:
                 return False, f'推送渠道不存在: {channel_id}'
             channel_config = self.get_channel_config(channel_id)
             ok, msg = channel.validate_config(channel_config)
-            if ok:
-                any_ok, err_msg = channel.push(
-                    config=channel_config,
-                    title=title,
-                    content=content,
-                    image=image,
-                )
+            if not ok:
+                return False, msg
+            any_ok, err_msg = channel.push(
+                config=channel_config,
+                title=title,
+                content=content,
+                image=image,
+            )
 
         return any_ok, err_msg
 
