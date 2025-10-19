@@ -151,7 +151,6 @@ class Ntfy(PushChannel):
                 response.raise_for_status()
 
                 if response.status_code == 200:
-                    log.info("Ntfy 推送成功！")
                     success_cnt += 1
                 else:
                     error_msg = f"Ntfy 推送失败！错误信息：{response.text}"

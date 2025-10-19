@@ -140,7 +140,6 @@ class Telegram(PushChannel):
                 result = response.json()
 
                 if result.get("ok"):
-                    log.info("Telegram 推送成功！")
                     return True, "推送成功"
                 else:
                     error_msg = f"Telegram 推送失败: {result.get('description', '未知错误')}"

@@ -5,7 +5,8 @@ from enum import Enum
 from io import BytesIO
 from typing import TYPE_CHECKING, Callable, Optional
 
-from one_dragon.base.notify.push import Push
+from cv2.typing import MatLike
+
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
@@ -15,7 +16,6 @@ if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 _app_preheat_executor = ThreadPoolExecutor(thread_name_prefix='od_app_preheat', max_workers=1)
-_notify_executor = ThreadPoolExecutor(thread_name_prefix='od_app_notify', max_workers=1)
 
 
 class ApplicationEventId(Enum):
@@ -63,7 +63,7 @@ class Application(Operation):
 
         self.need_notify: bool = need_notify  # 节点运行结束后发送通知
 
-        self.notify_screenshot: Optional[BytesIO] = None  # 发送通知的截图
+        self.notify_screenshot: Optional[MatLike] = None  # 发送通知的截图
 
     def _init_before_execute(self) -> None:
         Operation._init_before_execute(self)
@@ -124,21 +124,22 @@ class Application(Operation):
 
         if is_success is True:
             status = gt('成功')
-            image_source = self.notify_screenshot
+            image = self.notify_screenshot
         elif is_success is False:
             status = gt('失败')
-            image_source = self.save_screenshot_bytes()
+            image = self.screenshot()
         elif is_success is None:
             status = gt('开始')
-            image_source = None
-
-        send_image = getattr(self.ctx.push_config, 'send_image', False)
-        image = image_source if send_image else None
+            image = None
+        else:
+            image = None
 
         message = f"{gt('任务「')}{app_name}{gt('」运行')}{status}\n"
 
-        pusher = Push(self.ctx)
-        _notify_executor.submit(pusher.send, message, image)
+        self.ctx.push_service.push_async(
+            content=message,
+            image=image
+        )
 
     @property
     def current_execution_desc(self) -> str:

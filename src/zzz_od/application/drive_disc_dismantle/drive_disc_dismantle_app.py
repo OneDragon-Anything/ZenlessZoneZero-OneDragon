@@ -93,7 +93,7 @@ class DriveDiscDismantleApp(ZApplication):
     @node_from(from_name='点击拆解确认', success=False)  # 可能没有需要拆解的
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
-        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
+        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

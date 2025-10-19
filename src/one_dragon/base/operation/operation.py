@@ -4,7 +4,6 @@ import difflib
 import inspect
 import time
 from functools import cached_property
-from io import BytesIO
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Optional
 
 import cv2
@@ -647,19 +646,6 @@ class Operation(OperationBase):
         if prefix is None:
             prefix = self.__class__.__name__
         return debug_utils.save_debug_image(self.last_screenshot, prefix=prefix)
-
-    def save_screenshot_bytes(self) -> Optional[BytesIO]:
-        """截图并保存为字节。
-
-        Returns:
-            BytesIO or None: 字节流对象，如果截图不存在则为None。
-        """
-        screen = self.screenshot()
-        retval, buffer = cv2.imencode('.png', cv2.cvtColor(screen, cv2.COLOR_RGB2BGR))
-        if retval:
-            return BytesIO(buffer.tobytes())
-        else:
-            return None
 
     @cached_property
     def display_name(self) -> str:

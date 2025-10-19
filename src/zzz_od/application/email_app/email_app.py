@@ -67,5 +67,5 @@ class EmailApp(ZApplication):
         领取后的确认按钮可以不按 直接点击外层也可以返回
         :return:
         """
-        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
+        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         return self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回', success_wait=1, retry_wait=1)

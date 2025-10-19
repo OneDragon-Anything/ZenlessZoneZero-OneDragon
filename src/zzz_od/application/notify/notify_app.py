@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-from one_dragon.base.notify.push import Push
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -30,12 +29,11 @@ class NotifyApp(ZApplication):
         self.exist_failure = False
 
         message = self.format_message()
-        image = None
-        if self.ctx.push_config.send_image:
-            image = self.save_screenshot_bytes()
 
-        pusher = Push(self.ctx)
-        pusher.send(message, image)
+        self.ctx.push_service.push(
+            content=message,
+            image=self.last_screenshot
+        )
 
         if self.exist_failure:
             return self.round_fail(wait=5)
