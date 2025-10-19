@@ -282,14 +282,10 @@ class SettingPushInterface(VerticalScrollInterface):
     def _generate_curl(self, style: str):
         """生成 cURL 示例命令"""
         # 获取配置
-        push_config = self.ctx.push_service.push_config
-        config = {
-            'url': getattr(push_config, "webhook_url", None),
-            'method': getattr(push_config, "webhook_method", "POST"),
-            'content_type': getattr(push_config, "webhook_content_type", "application/json"),
-            'headers': getattr(push_config, "webhook_headers", "{}"),
-            'body': getattr(push_config, "webhook_body", None)
-        }
+        original_config = self.ctx.push_service.get_channel_config('WEBHOOK')
+        config = {}
+        for key, value in original_config.items():
+            config[key.lower()] = value
 
         # 检查必需的 URL 配置
         if not config['url']:
@@ -313,14 +309,14 @@ class SettingPushInterface(VerticalScrollInterface):
         验证Webhook配置
         验证失败时抛出异常
         """
-        push_config = self.ctx.push_service.push_config
-        url = getattr(push_config, "webhook_url", None)
+        config = self.ctx.push_service.get_channel_config('WEBHOOK')
+        url = config.get('URL')
         if not url:
             raise ValueError("Webhook URL 未配置，无法推送")
 
-        body = getattr(push_config, "webhook_body", None)
-        headers = getattr(push_config, "webhook_headers", "{}")
-        content_type = getattr(push_config, "webhook_content_type", "application/json")
+        body = config.get('BODY')
+        headers = config.get('HEADERS')
+        content_type = config.get('CONTENT_TYPE')
 
         # 检查是否包含 $content
         if not any('$content' in str(field) for field in [url, body, headers]):

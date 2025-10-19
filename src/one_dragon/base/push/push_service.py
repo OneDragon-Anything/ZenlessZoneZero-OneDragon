@@ -64,13 +64,13 @@ class PushService:
             self._add_channel(PushPlus())
             self._add_channel(DingDingBot())
             self._add_channel(FeiShu())
-            self._add_channel(OneBot())
             self._add_channel(WorkWeixin())
             self._add_channel(Telegram())
             self._add_channel(Ntfy())
             self._add_channel(Webhook())
             self._add_channel(Smtp())
             self._add_channel(FakePushChannel())
+            self._add_channel(OneBot())
             self._add_channel(Gotify())
             self._add_channel(AiBotK())
             self._add_channel(WxPusher())
@@ -134,7 +134,7 @@ class PushService:
         if channel_id is None:
             any_push = False
             for channel_id, channel in self._id_2_channels.items():
-                channel_config = self._extract_channel_config(channel_id)
+                channel_config = self.get_channel_config(channel_id)
                 ok, msg = channel.validate_config(channel_config)
                 if not ok:
                     continue
@@ -161,7 +161,7 @@ class PushService:
             channel = self._id_2_channels.get(channel_id)
             if channel is None:
                 return False, f'推送渠道不存在: {channel_id}'
-            channel_config = self._extract_channel_config(channel_id)
+            channel_config = self.get_channel_config(channel_id)
             ok, msg = channel.validate_config(channel_config)
             if ok:
                 any_ok, err_msg = channel.push(
@@ -173,7 +173,7 @@ class PushService:
 
         return any_ok, err_msg
 
-    def _extract_channel_config(self, channel_id: str) -> dict[str, str]:
+    def get_channel_config(self, channel_id: str) -> dict[str, str]:
         """
         提取推送渠道配置
 

@@ -76,6 +76,7 @@ jobs:
           PUSH_TG_USER_ID: ${{ secrets.PUSH_TG_USER_ID }}
           PUSH_NTFY_TOPIC: ${{ secrets.PUSH_NTFY_TOPIC }}
           PUSH_NTFY_TOKEN: ${{ secrets.PUSH_NTFY_TOKEN }}
+          PUSH_WEBHOOK_FS_URL: ${{ secrets.PUSH_WEBHOOK_FS_URL }}
           PUSH_SMTP_QQ_EMAIL: ${{ secrets.PUSH_SMTP_QQ_EMAIL }}
           PUSH_SMTP_QQ_PASSWORD: ${{ secrets.PUSH_SMTP_QQ_PASSWORD }}
           PUSH_WXPUSHER_APP_TOKEN: ${{ secrets.PUSH_WXPUSHER_APP_TOKEN }}

@@ -118,11 +118,13 @@ class Smtp(PushChannel):
                  email)
             )
             message["Subject"] = Header(title, "utf-8")
-
+            # 解析服务器地址和端口
+            host, port = server.split(":")
+            port_int = int(port) if port else None
             # 连接SMTP服务器并发送邮件
             smtp_server = (
-                smtplib.SMTP_SSL(server) if use_ssl
-                else smtplib.SMTP(server)
+                smtplib.SMTP_SSL(host, port_int) if use_ssl
+                else smtplib.SMTP(host, port_int)
             )
 
             try:
@@ -149,15 +151,6 @@ class Smtp(PushChannel):
             finally:
                 smtp_server.close()
 
-        except smtplib.SMTPAuthenticationError as e:
-            log.error('SMTP邮件推送异常', exc_info=True)
-            return False, f"SMTP认证失败: {str(e)}"
-        except smtplib.SMTPConnectError as e:
-            log.error('SMTP邮件推送异常', exc_info=True)
-            return False, f"SMTP连接失败: {str(e)}"
-        except smtplib.SMTPException as e:
-            log.error('SMTP邮件推送异常', exc_info=True)
-            return False, f"SMTP发送失败: {str(e)}"
         except Exception as e:
             log.error('SMTP邮件推送异常', exc_info=True)
             return False, f"SMTP邮件推送异常: {str(e)}"
