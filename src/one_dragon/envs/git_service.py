@@ -176,8 +176,7 @@ class GitService:
 
         yield repo
 
-    def _fetch_remote(self, repo: pygit2.Repository | None = None,
-                      remote: pygit2.Remote | None = None) -> GitOperationResult:
+    def _fetch_remote(self, repo: pygit2.Repository, remote: pygit2.Remote) -> GitOperationResult:
         """获取远程代码
 
         Args:
@@ -185,17 +184,6 @@ class GitService:
             remote: 远程对象
         """
         log.info(gt('获取远程代码'))
-
-        try:
-            repo = repo or self._open_repo()
-        except Exception as exc:
-            log.error(f'打开仓库失败: {exc}', exc_info=True)
-            return GitOperationResult(False, 'OPEN_REPO_FAILED', gt('获取远程代码失败'),
-                                      detail=str(exc))
-
-        if remote is None:
-            return GitOperationResult(False, 'REMOTE_NOT_CONFIGURED', gt('获取远程代码失败'),
-                                      detail='remote origin missing')
 
         try:
             with self._with_proxy(repo):
