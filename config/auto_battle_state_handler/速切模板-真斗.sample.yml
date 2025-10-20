@@ -45,7 +45,7 @@ handlers:
                   - operation_template: "真斗-基础连段"
 
           - states: ""
-            debug_name: "常态暑促和"
+            debug_name: "常态输出"
             interrupt_states: "[真斗-炽心]{0, 0}"
             operations:
               - operation_template: "真斗-基础连段"
