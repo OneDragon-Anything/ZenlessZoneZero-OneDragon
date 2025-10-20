@@ -182,7 +182,7 @@ class GitService:
 
         Args:
             repo: 仓库对象，如果为None则自动打开
-            remote: 远程对象，如果为None则自动确保remote配置
+            remote: 远程对象
         """
         log.info(gt('获取远程代码'))
 
@@ -193,15 +193,9 @@ class GitService:
             return GitOperationResult(False, 'OPEN_REPO_FAILED', gt('获取远程代码失败'),
                                       detail=str(exc))
 
-        # 如果没有传入remote对象，则确保remote配置
-        # 不传入repo参数，让_ensure_remote自动获取最新的仓库对象，避免缓存问题
         if remote is None:
-            remote = self._ensure_remote(None)
-            if remote is None:
-                return GitOperationResult(False, 'REMOTE_NOT_CONFIGURED', gt('获取远程代码失败'),
-                                          detail='remote origin missing')
-            # 重新获取repo对象，确保与remote同步
-            repo = self._open_repo()
+            return GitOperationResult(False, 'REMOTE_NOT_CONFIGURED', gt('获取远程代码失败'),
+                                      detail='remote origin missing')
 
         try:
             with self._with_proxy(repo):
@@ -481,6 +475,11 @@ class GitService:
         """
         当前分支是否已经最新 与远程分支一致
         """
+        # 更新远程配置
+        remote = self._ensure_remote(repo, self.get_git_repository())
+        if remote is None:
+            return False, gt('更新远程仓库地址失败')
+
         fetch_result = self._fetch_remote()
         if not fetch_result.success:
             return fetch_result.to_tuple()
@@ -496,12 +495,10 @@ class GitService:
             remote_oid = repo.references[remote_ref].target
             local_oid = repo.head.target
 
-            if local_oid == remote_oid:
-                return True, ''
-
             # 比较提交是否相同；否则比较树差异
             if local_oid == remote_oid:
                 return True, ''
+
             diff = repo.diff(local_oid, remote_oid)
             is_same = diff.patch is None or len(diff) == 0
             return (is_same, '' if is_same else gt('与远程分支不一致'))
