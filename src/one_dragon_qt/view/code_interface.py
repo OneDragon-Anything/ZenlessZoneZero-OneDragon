@@ -9,7 +9,6 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.password_switch_setting_card import PasswordSwitchSettingCard
 from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
-from one_dragon_qt.widgets.install_card.git_install_card import GitInstallCard
 from one_dragon.utils.app_utils import start_one_dragon
 from one_dragon.utils.i18_utils import gt
 
@@ -53,11 +52,6 @@ class CodeInterface(VerticalScrollInterface):
             icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
         )
         v_layout.addWidget(self.force_update_opt)
-
-        self.git_card = GitInstallCard(ctx)
-        self.git_card.install_btn.setDisabled(True)
-        self.git_card.finished.connect(self._on_git_updated)
-        v_layout.addWidget(self.git_card)
 
         self.code_card = CodeInstallCard(ctx)
         self.code_card.finished.connect(self.on_code_updated)
@@ -133,7 +127,6 @@ class CodeInterface(VerticalScrollInterface):
         self.custom_git_branch_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('custom_git_branch'))
         self.custom_git_branch_lineedit.setText(self.ctx.env_config.git_branch)
         self.start_fetch_total()
-        self.git_card.check_and_update_display()
         self.code_card.check_and_update_display()
 
     def start_fetch_total(self) -> None:
@@ -221,7 +214,6 @@ class CodeInterface(VerticalScrollInterface):
         """
         if not success:
             return
-        self.git_card.check_and_update_display()
         self.code_card.check_and_update_display()
 
     def on_code_updated(self, success: bool) -> None:
