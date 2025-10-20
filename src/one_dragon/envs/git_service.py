@@ -88,8 +88,16 @@ class GitService:
         self._repo = None
         self.is_proxy_set = False
 
-    def _ensure_remote(self, repo: pygit2.Repository, remote_url: str | None = None) -> pygit2.Remote | None:
-        """确保远程仓库配置正确"""
+    def _ensure_remote(self, repo: pygit2.Repository | None = None, remote_url: str | None = None) -> pygit2.Remote | None:
+        """确保远程仓库配置正确
+
+        Args:
+            repo: 仓库对象，如果为None则自动获取最新的仓库对象
+            remote_url: 远程仓库URL，如果为None则使用默认配置
+
+        Returns:
+            Remote对象，失败时返回None
+        """
         remote_url = remote_url or self.get_git_repository()
         if not remote_url:
             log.error('未能获取有效的远程仓库地址')
@@ -98,20 +106,30 @@ class GitService:
         remote_name = 'origin'
 
         try:
-            # 检查并更新已存在的远程
-            if remote_name in repo.remotes:
-                remote = repo.remotes[remote_name]
-                if remote.url != remote_url:
-                    repo.config[f'remote.{remote_name}.url'] = remote_url
-                    remote = repo.remotes[remote_name]
-                return remote
+            # 如果没有传入repo，则获取最新的仓库对象（避免使用过期缓存）
+            if repo is None:
+                repo = self._open_repo()
 
-            # 创建新的远程
+            # 检查远程是否已存在（使用最新的repo对象）
+            if remote_name in repo.remotes.names():
+                remote = repo.remotes[remote_name]
+
+                # URL相同，直接返回
+                if remote.url == remote_url:
+                    return remote
+
+                # URL不同，需要更新
+                log.info(f'更新远程仓库地址: {remote.url} -> {remote_url}')
+                repo.remotes.set_url(remote_name, remote_url)
+                return repo.remotes[remote_name]
+
+            # 远程不存在，创建新的
+            log.info(f'创建远程仓库: {remote_name} -> {remote_url}')
             repo.remotes.create(remote_name, remote_url)
             return repo.remotes[remote_name]
 
         except Exception as exc:
-            log.error(f'配置远程仓库失败: {exc}')
+            log.error(f'配置远程仓库失败: {exc}', exc_info=True)
             return None
 
     def _get_proxy_address(self) -> str | None:
@@ -158,8 +176,14 @@ class GitService:
 
         yield repo
 
-    def _fetch_remote(self, repo: pygit2.Repository | None = None) -> GitOperationResult:
-        """获取远程代码"""
+    def _fetch_remote(self, repo: pygit2.Repository | None = None,
+                      remote: pygit2.Remote | None = None) -> GitOperationResult:
+        """获取远程代码
+
+        Args:
+            repo: 仓库对象，如果为None则自动打开
+            remote: 远程对象，如果为None则自动确保remote配置
+        """
         log.info(gt('获取远程代码'))
 
         try:
@@ -169,10 +193,15 @@ class GitService:
             return GitOperationResult(False, 'OPEN_REPO_FAILED', gt('获取远程代码失败'),
                                       detail=str(exc))
 
-        remote = self._ensure_remote(repo)
+        # 如果没有传入remote对象，则确保remote配置
+        # 不传入repo参数，让_ensure_remote自动获取最新的仓库对象，避免缓存问题
         if remote is None:
-            return GitOperationResult(False, 'REMOTE_NOT_CONFIGURED', gt('获取远程代码失败'),
-                                      detail='remote origin missing')
+            remote = self._ensure_remote(None)
+            if remote is None:
+                return GitOperationResult(False, 'REMOTE_NOT_CONFIGURED', gt('获取远程代码失败'),
+                                          detail='remote origin missing')
+            # 重新获取repo对象，确保与remote同步
+            repo = self._open_repo()
 
         try:
             with self._with_proxy(repo):
@@ -222,6 +251,7 @@ class GitService:
             # 切换分支
             repo.checkout(local_ref, strategy=pygit2.GIT_CHECKOUT_FORCE)
             repo.set_head(local_ref)
+
             return True, commit.id
 
         except Exception as exc:
@@ -321,11 +351,12 @@ class GitService:
             return False, gt('克隆仓库失败')
 
         # 配置远程
-        if self._ensure_remote(repo, repo_url) is None:
+        remote = self._ensure_remote(repo, repo_url)
+        if remote is None:
             return False, gt('克隆仓库失败')
 
         # 获取远程代码
-        fetch_result = self._fetch_remote(repo)
+        fetch_result = self._fetch_remote(repo, remote)
         if not fetch_result.success:
             return fetch_result.to_tuple()
 
@@ -356,22 +387,17 @@ class GitService:
         # 打开仓库
         try:
             repo = self._open_repo()
-        except Exception:
-            log.info(gt('未找到远程仓库'))
-            self.update_git_remote()
-            log.info(gt('添加远程仓库地址'))
-            try:
-                repo = self._open_repo(refresh=True)
-            except Exception as exc:
-                log.error(f'打开仓库失败: {exc}', exc_info=True)
-                return False, gt('打开仓库失败')
+        except Exception as exc:
+            log.error(f'打开仓库失败: {exc}', exc_info=True)
+            return False, gt('打开仓库失败')
 
         # 更新远程配置
-        if self._ensure_remote(repo, self.get_git_repository()) is None:
+        remote = self._ensure_remote(repo, self.get_git_repository())
+        if remote is None:
             return False, gt('更新远程仓库地址失败')
 
         # 获取远程代码
-        fetch_result = self._fetch_remote(repo)
+        fetch_result = self._fetch_remote(repo, remote)
         if not fetch_result.success:
             return fetch_result.to_tuple()
 
@@ -491,9 +517,18 @@ class GitService:
         log.info(gt('获取commit总数'))
         try:
             repo = self._open_repo()
-            walker = repo.walk(repo.head.target, pygit2.GIT_SORT_TOPOLOGICAL)
+
+            # 检查HEAD是否有效
+            try:
+                head_target = repo.head.target
+            except Exception as exc:
+                log.error(f'获取HEAD失败: {exc}，可能仓库为空或HEAD不存在')
+                return 0
+
+            walker = repo.walk(head_target, pygit2.GIT_SORT_TOPOLOGICAL)
             return sum(1 for _ in walker)
-        except Exception:
+        except Exception as exc:
+            log.error(f'获取commit总数失败: {exc}', exc_info=True)
             return 0
 
     def fetch_page_commit(self, page_num: int, page_size: int) -> list[GitLog]:
@@ -506,7 +541,15 @@ class GitService:
         log.info(f"{gt('获取commit')} 第{page_num + 1}页")
         try:
             repo = self._open_repo()
-            walker = repo.walk(repo.head.target, pygit2.GIT_SORT_TIME)
+
+            # 检查HEAD是否有效
+            try:
+                head_target = repo.head.target
+            except Exception as exc:
+                log.error(f'获取HEAD失败: {exc}，可能仓库为空或HEAD不存在')
+                return []
+
+            walker = repo.walk(head_target, pygit2.GIT_SORT_TIME)
 
             logs: list[GitLog] = []
             for idx, commit in enumerate(walker):
@@ -515,7 +558,7 @@ class GitService:
                 if len(logs) >= page_size:
                     break
 
-                short_id = commit.hex[:7]
+                short_id = str(commit.id)[:7]
                 author = commit.author.name if commit.author and commit.author.name else ''
                 commit_time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(commit.commit_time))
                 message = commit.message.splitlines()[0] if commit.message else ''
@@ -523,7 +566,8 @@ class GitService:
                 logs.append(GitLog(short_id, author, commit_time, message))
 
             return logs
-        except Exception:
+        except Exception as exc:
+            log.error(f'获取commit失败: {exc}', exc_info=True)
             return []
 
     def get_git_repository(self, for_clone: bool = False) -> str:
@@ -567,14 +611,14 @@ class GitService:
 
     def update_git_remote(self) -> None:
         """
-        更新remote（通过 repo.config 修改 remote.origin.url）
+        更新remote
         """
         if not os.path.exists(DOT_GIT_DIR_PATH):
             return
 
         try:
-            repo = self._open_repo()
-            self._ensure_remote(repo)
+            # 不传入repo参数，让_ensure_remote自动获取最新的仓库对象
+            self._ensure_remote()
         except Exception as exc:
             log.warning(f'更新远程仓库失败: {exc}')
 
@@ -657,4 +701,4 @@ def __debug_set_safe_dir():
     return git_service.set_safe_dir()
 
 if __name__ == '__main__':
-    __debug_set_safe_dir()
+    __fetch_latest_code()
