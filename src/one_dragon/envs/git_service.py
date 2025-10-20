@@ -499,12 +499,12 @@ class GitService:
             if local_oid == remote_oid:
                 return True, ''
 
-            # 比较树对象
-            local_tree = repo.get(local_oid).tree
-            remote_tree = repo.get(remote_oid).tree
-            diff = local_tree.diff(remote_tree)
-
-            return (len(diff) == 0, '' if len(diff) == 0 else gt('与远程分支不一致'))
+            # 比较提交是否相同；否则比较树差异
+            if local_oid == remote_oid:
+                return True, ''
+            diff = repo.diff(local_oid, remote_oid)
+            is_same = diff.patch is None or len(diff) == 0
+            return (is_same, '' if is_same else gt('与远程分支不一致'))
 
         except Exception as exc:
             log.error(f'检测代码是否最新失败: {exc}', exc_info=True)
