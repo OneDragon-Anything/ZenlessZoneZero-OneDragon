@@ -475,20 +475,18 @@ class GitService:
         """
         当前分支是否已经最新 与远程分支一致
         """
-        # 更新远程配置
-        remote = self._ensure_remote(repo, self.get_git_repository())
-        if remote is None:
-            return False, gt('更新远程仓库地址失败')
-
-        fetch_result = self._fetch_remote()
-        if not fetch_result.success:
-            return fetch_result.to_tuple()
-
         log.info(gt('检测当前代码是否最新'))
         try:
             repo = self._open_repo()
-            remote_ref = f'refs/remotes/origin/{self.env_config.git_branch}'
+            remote = self._ensure_remote(repo, self.get_git_repository())
+            if remote is None:
+                return False, gt('更新远程仓库地址失败')
 
+            fetch_result = self._fetch_remote(repo, remote)
+            if not fetch_result.success:
+                return fetch_result.to_tuple()
+
+            remote_ref = f'refs/remotes/origin/{self.env_config.git_branch}'
             if remote_ref not in repo.references:
                 return False, gt('与远程分支不一致')
 
