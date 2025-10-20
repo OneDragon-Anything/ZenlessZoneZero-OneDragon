@@ -374,3 +374,11 @@ class AgentEnum(Enum):
                                       hsv_color=(90,255,255), hsv_color_diff=(89,255,55),
                                       max_length=100)
                     ])
+
+    MANATO = Agent('manato', '真斗', RareTypeEnum.A, AgentTypeEnum.RUPTURE, DmgTypeEnum.FIRE, ['manato'],
+                        state_list=[
+                            AgentStateDef('真斗-炽心', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                          template_id='manato',
+                                          hsv_color=(20,255,255), hsv_color_diff=(15,255,55),
+                                          max_length=100)
+                        ])
