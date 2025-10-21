@@ -7,7 +7,7 @@ resonium_priority:
   - 诡术 华丽手杖
   - 邦布 阿崔巡查
   - 邦布 左轮布
-auto_battle: 专属配队-简
+auto_battle: 全配队通用
 event_priority:
   - ""
 path_finding: 默认
