@@ -55,7 +55,14 @@ class SettingPushInterface(VerticalScrollInterface):
             title='代理设置',
             options_enum=PushProxy,
         )
+        self.proxy_opt.value_changed.connect(self._set_proxy_input_visibility)
         content_widget.add_widget(self.proxy_opt)
+
+        self.proxy_input_opt = TextSettingCard(
+            icon=FluentIcon.GLOBE,
+            title='个人代理地址',
+        )
+        content_widget.add_widget(self.proxy_input_opt)
 
         self.test_current_btn = PushButton(text='测试当前方式', icon=FluentIcon.SEND, parent=self)
         self.test_current_btn.clicked.connect(self._send_test_message)
@@ -266,6 +273,10 @@ class SettingPushInterface(VerticalScrollInterface):
         self.email_service_opt.setVisible(selected_method == "SMTP")
         self.curl_btn.setVisible(selected_method == "WEBHOOK")
 
+    def _set_proxy_input_visibility(self):
+        """设置代理输入框的可见性"""
+        self.proxy_input_opt.setVisible(self.proxy_opt.getValue() == PushProxy.PERSONAL.value.value)
+
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
@@ -274,6 +285,7 @@ class SettingPushInterface(VerticalScrollInterface):
         self.custom_push_title.init_with_adapter(get_prop_adapter(config, 'custom_push_title'))
         self.send_image_opt.init_with_adapter(get_prop_adapter(config, 'send_image'))
         self.proxy_opt.init_with_adapter(get_prop_adapter(config, 'proxy'))
+        self.proxy_input_opt.init_with_adapter(get_prop_adapter(self.ctx.env_config, 'personal_proxy'))
 
         # 动态初始化所有通知卡片
         for channel in self.ctx.push_service.channels:
@@ -287,6 +299,7 @@ class SettingPushInterface(VerticalScrollInterface):
 
         # 初始更新界面状态
         self._update_notification_ui()
+        self._set_proxy_input_visibility()
 
     def _generate_curl(self, style: str):
         """生成 cURL 示例命令"""
