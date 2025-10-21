@@ -8,7 +8,6 @@ from ctypes import wintypes
 import datetime
 import os
 import subprocess
-import yaml
 from colorama import init, Fore, Style
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
@@ -39,30 +38,24 @@ def verify_path_issues():
     print_message("目录核验通过", "PASS")
 
 def configure_environment(ctx: OneDragonEnvContext):
-    python_path = ctx.env_config.get('python_path')
-    if not python_path or not os.path.exists(python_path):
-        print_message("获取 Python 路径失败，请检查路径设置。", "ERROR")
-        sys.exit(1)
-    uv_path = ctx.env_config.get('uv_path')
+    uv_path = ctx.env_config.uv_path
     if not uv_path or not os.path.exists(uv_path):
         print_message("获取 UV 路径失败，请检查路径设置。", "ERROR")
         sys.exit(1)
     # 配置环境变量
     print_message("开始配置环境变量...", "INFO")
     os.environ.update({
-        'PYTHON': python_path,
         'PYTHONPATH': os.path.join(path, "src"),
-        'UV_PATH': uv_path,
-        'UV_DEFAULT_INDEX': ctx.env_config.get('pip_source', 'https://mirrors.aliyun.com/pypi/simple'),
+        'UV_DEFAULT_INDEX': ctx.env_config.pip_source,
     })
-    for var in ['PYTHON', 'PYTHONPATH', 'UV_PATH']:
+    for var in ['PYTHONPATH', 'UV_DEFAULT_INDEX']:
         if not os.environ.get(var):
             print_message(f"{var} 未设置", "ERROR")
             sys.exit(1)
-    print_message(f"PYTHON：{os.environ['PYTHON']}", "PASS")
     print_message(f"PYTHONPATH：{os.environ['PYTHONPATH']}", "PASS")
+    print_message(f"UV_DEFAULT_INDEX：{os.environ['UV_DEFAULT_INDEX']}", "PASS")
 
-def execute_python_script(app_path, no_windows: bool, args: list = None, piped: bool = False):
+def execute_python_script(ctx: OneDragonEnvContext, app_path, no_windows: bool, args: list | None = None, piped: bool = False):
     app_script_path = os.environ.get('PYTHONPATH')
     for sub_path in app_path:
         app_script_path = os.path.join(app_script_path, sub_path)
@@ -71,11 +64,7 @@ def execute_python_script(app_path, no_windows: bool, args: list = None, piped: 
         print_message(f"PYTHONPATH 设置错误，无法找到 {app_script_path}", "ERROR")
         sys.exit(1)
 
-    uv_path = os.environ.get('UV_PATH')
-    if not uv_path:
-        print_message("UV 路径未设置", "ERROR")
-        sys.exit(1)
-
+    uv_path = ctx.env_config.uv_path
     # 构建 uv run 命令参数
     run_args = ['run', '--frozen', app_script_path]
     if args:
@@ -232,7 +221,7 @@ def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
     else:
         print_message(f'代码更新失败 {msg}', "ERROR")
 
-def run_python(app_path, no_windows: bool = True, args: list = None, piped: bool = False):
+def run_python(app_path, no_windows: bool = True, args: list | None = None, piped: bool = False):
     # 主函数
     try:
         print_message(f"当前工作目录：{path}", "INFO")
@@ -240,7 +229,7 @@ def run_python(app_path, no_windows: bool = True, args: list = None, piped: bool
         ctx = OneDragonEnvContext()
         configure_environment(ctx)
         fetch_latest_code(ctx)
-        execute_python_script(app_path, no_windows, args, piped)
+        execute_python_script(ctx, app_path, no_windows, args, piped)
     except SystemExit as e:
         print_message(f"程序已退出，状态码：{e.code}", "ERROR")
     except Exception as e:
