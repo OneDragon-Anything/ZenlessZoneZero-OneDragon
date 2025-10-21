@@ -1,7 +1,7 @@
-import os
-import requests
-from pathlib import Path
 from datetime import datetime, timedelta
+from pathlib import Path
+
+import requests
 from PySide6.QtCore import Qt, QThread, Signal, QSize, QUrl, QTimer
 from PySide6.QtWidgets import QGraphicsDropShadowEffect
 from PySide6.QtGui import (
