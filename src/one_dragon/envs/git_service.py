@@ -17,14 +17,13 @@ from one_dragon.utils.semver_utils import sort_tags
 DOT_GIT_DIR_PATH = os.path.join(os_utils.get_work_dir(), '.git')
 
 
+@dataclass
 class GitLog:
     """Git 提交日志"""
-
-    def __init__(self, commit_id: str, author: str, commit_time: str, commit_message: str):
-        self.commit_id: str = commit_id
-        self.author: str = author
-        self.commit_time: str = commit_time
-        self.commit_message: str = commit_message
+    commit_id: str
+    author: str
+    commit_time: str
+    commit_message: str
 
 
 @dataclass
