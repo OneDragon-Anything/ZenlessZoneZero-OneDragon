@@ -50,12 +50,12 @@ class CoffeeApp(ZApplication):
             need_notify=True,
         )
 
-        self.config: Optional[CoffeeConfig] = self.ctx.run_context.get_config(
+        self.config: CoffeeConfig = self.ctx.run_context.get_config(
             app_id=coffee_app_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
-        self.charge_plan_config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.charge_plan_config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
@@ -388,7 +388,7 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='专业挑战室')
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
+        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

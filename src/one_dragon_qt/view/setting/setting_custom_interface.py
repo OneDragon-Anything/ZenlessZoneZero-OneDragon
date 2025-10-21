@@ -108,9 +108,6 @@ class SettingCustomInterface(VerticalScrollInterface):
         self.theme_color_password_layout.addWidget(self.theme_color_password)
         self.theme_color_password_layout.addSpacing(5)
         self.theme_color_password_layout.addWidget(self.theme_color_password_toggle)
-
-        # 将密码布局添加到主题色配置中
-        self.theme_color_mode_opt.hBoxLayout.addSpacing(16)
         self.theme_color_mode_opt.hBoxLayout.insertLayout(4, self.theme_color_password_layout, 0)
 
         basic_group.addSettingCard(self.theme_color_mode_opt)

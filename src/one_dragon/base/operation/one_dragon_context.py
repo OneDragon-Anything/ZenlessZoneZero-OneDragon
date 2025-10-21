@@ -4,7 +4,7 @@ from enum import Enum
 from functools import cached_property
 from typing import Optional
 
-from pynput import keyboard, mouse
+from pynput import keyboard
 
 from one_dragon.base.config.custom_config import UILanguageEnum
 from one_dragon.base.controller.controller_base import ControllerBase
@@ -25,6 +25,7 @@ from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
     OneDragonEnvContext,
 )
+from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
 from one_dragon.utils import debug_utils, i18_utils, log_utils, thread_utils
@@ -56,13 +57,16 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.screen_loader: ScreenContext = ScreenContext()
         self.template_loader: TemplateLoader = TemplateLoader()
         self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
+
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
+                use_gpu=False,  # 目前OCR使用GPU会闪退
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
         self.cv_ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
+                use_gpu=False,  # 目前OCR使用GPU会闪退
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
@@ -76,6 +80,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext(self)
         self.app_group_manager: ApplicationGroupManager = ApplicationGroupManager(self)
+
+        self.push_service: PushService = PushService(self)
 
         # 初始化相关
         self._init_lock = threading.Lock()
@@ -102,11 +108,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     def game_account_config(self):
         from one_dragon.base.config.game_account_config import GameAccountConfig
         return GameAccountConfig(self.current_instance_idx)
-
-    @cached_property
-    def push_config(self):
-        from one_dragon.base.config.push_config import PushConfig
-        return PushConfig(self.current_instance_idx)
 
     def init(self) -> None:
         if not self._init_lock.acquire(blocking=False):
@@ -142,6 +143,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             self.ready_for_application = True
 
             self.run_context.check_and_update_all_run_record(self.current_instance_idx)
+
+            self.push_service.init_push_channels()
 
             self.gh_proxy_service.update_proxy_url()
 
@@ -253,7 +256,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         to_clear_props = [
             'game_account_config',
-            'push_config',
         ]
         for prop in to_clear_props:
             if hasattr(self, prop):

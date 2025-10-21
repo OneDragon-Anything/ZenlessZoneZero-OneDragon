@@ -1,6 +1,5 @@
-from typing import Optional
-
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -53,7 +52,11 @@ class SuibianTempleAdventureSquad(ZOperation):
 
         self.claim: bool = claim  # 是否收获
         self.dispatch: bool = dispatch  # 是否派遣
-        self.config: Optional[SuibianTempleConfig] = self.ctx.run_context.get_config(app_id='suibian_temple')
+        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
+            app_id='suibian_temple',
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
         self.mission_list: list[type[SuibianTempleAdventureMission]] = [
             'fake',
             SuibianTempleAdventureMission[self.config.adventure_mission_1],

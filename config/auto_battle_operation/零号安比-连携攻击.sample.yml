@@ -5,9 +5,9 @@ operations:
     seconds_add: -1
   - op_name: "设置状态"
     state: "自定义-动作不打断"
-    seconds: 2.4
+    seconds: 2.2
   - op_name: "等待秒数"
-    seconds: 2.4
+    seconds: 2.2
   - op_name: "设置状态"
     state: "自定义-零号安比-白雷"
-    add: 70
+    add: 240

@@ -103,6 +103,22 @@ __ZenlessZoneZero-OneDragon__
 
 </div>
 
+## 📝 签名策略 (Code Signing Policy)
+
+免费代码签名由 [SignPath.io](https://signpath.io/) 提供，证书由 [SignPath Foundation](https://signpath.org/) 颁发
+
+审批人：[DoctorReid](https://github.com/DoctorReid) [ShadowLemoon](https://github.com/ShadowLemoon)
+
+Free code signing provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/)
+
+Approvers: [DoctorReid](https://github.com/DoctorReid) [ShadowLemoon](https://github.com/ShadowLemoon)
+
+## 🔒 隐私政策 (Privacy Policy)
+
+本程序的隐私政策详见：[隐私政策](PRIVACY.md)。
+
+See the [Privacy Policy](PRIVACY.md).
+
 ## ☕ 支持我们
 
 <div align="center">

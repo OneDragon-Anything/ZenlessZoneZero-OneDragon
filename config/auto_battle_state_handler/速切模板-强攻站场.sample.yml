@@ -1,6 +1,7 @@
 description: "希望由强攻站场 不是强攻时切换角色"
 handlers:
   - states: "[前台-强攻]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-强攻]"
     sub_handlers:
       - state_template: "速切模板-全角色"
   - states: "[后台-2-强攻]"

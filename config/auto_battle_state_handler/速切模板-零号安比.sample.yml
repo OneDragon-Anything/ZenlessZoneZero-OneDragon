@@ -1,6 +1,7 @@
 template_name: "速切模板-零号安比"
 handlers:
   - states: "[前台-零号安比]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-零号安比]"
     sub_handlers:
       - states: "[自定义-黄光切人, 0, 0.5]"
         operations:
@@ -9,9 +10,11 @@ handlers:
       - states: "[自定义-红光闪避, 0, 0.5]"
         operations:
           - operation_template: "零号安比-闪A"  # 连携
-      - states: "[按键可用-连携技, 0, 0.5]"
+
+      - states: "[自定义-连携换人, 0, 0.5]"
         operations:
           - operation_template: "零号安比-连携攻击"  # 防呆
+
       - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
         debug_name: "切人后等待"
         sub_handlers:
@@ -23,36 +26,46 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[自定义-零号安比-白雷, 0, 99]{300, 999}"
+      - states: "[自定义-零号安比-白雷, 0, 999]{990, 9990}"
+        debug_name: "三连突刺"
         operations:
-          - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
           - operation_template: "零号安比-特殊技突进"
-          - operation_template: "零号安比-特殊技突进"
-          - operation_template: "零号安比-特殊技突进"
-          - op_name: "清除状态"
-            state: "自定义-零号安比-白雷"
 
-      - states: "![自定义-零号安比-白雷, 0, 99]"
+      - states: "[自定义-连携换人, 1, 12]"
+        debug_name: "失衡期"
         sub_handlers:
+          - states: "[自定义-零号安比-白雷, 0, 999]{660, 9990}"
+            debug_name: "不管如何先清空三连突刺"
+            operations:
+              - operation_template: "零号安比-特殊技突进"
+
           - states: "[零号安比-终结技可用]"
             operations:
               - operation_template: "零号安比-终结技"
 
+          - states: "[零号安比-特殊技可用] & ([妮可-特殊技可用] | [妮可-终结技可用])"
+            operations:
+              - operation_template: "零号安比-强化特殊技合轴"
+
           - states: "[零号安比-特殊技可用]"
             operations:
-              - op_name: "清除状态"
-                data: ["自定义-速切结束"]
               - operation_template: "零号安比-强化特殊技"
 
-      - states: "[自定义-零号安比-白雷, 0, 99]{150, 999}"
+      - states: "![自定义-零号安比-白雷, 500, 999]"
+        debug_name: "无白雷"
+        sub_handlers:
+          - states: "[零号安比-终结技可用] & (![后台-1-击破] & ![后台-2-击破])"
+            operations:
+              - operation_template: "零号安比-终结技"
+
+          - states: "[零号安比-特殊技可用] & [零号安比-能量]{110, 120}"
+            operations:
+              - operation_template: "零号安比-给席德的专属强化特殊技合轴"
+
+      - states: "[自定义-零号安比-白雷, 0, 999]{450, 9999} & ([后台-1-特殊技可用] | [后台-2-特殊技可用])"
         operations:
-          - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
           - operation_template: "零号安比-普通攻击合轴"
 
       - states: ""
         operations:
-          - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
           - operation_template: "零号安比-普通攻击"

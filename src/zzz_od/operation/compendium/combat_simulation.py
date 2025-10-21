@@ -1,6 +1,6 @@
 import time
 from concurrent.futures import Future
-from typing import Optional, ClassVar, Tuple
+from typing import ClassVar
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
@@ -13,11 +13,17 @@ from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.charge_plan import charge_plan_const
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, ChargePlanConfig
+from zzz_od.application.charge_plan.charge_plan_config import (
+    CardNumEnum,
+    ChargePlanConfig,
+    ChargePlanItem,
+)
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.challenge_mission.check_next_after_battle import ChooseNextOrFinishAfterBattle
+from zzz_od.operation.challenge_mission.check_next_after_battle import (
+    ChooseNextOrFinishAfterBattle,
+)
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 from zzz_od.operation.deploy import Deploy
@@ -32,12 +38,9 @@ class CombatSimulation(ZOperation):
     STATUS_CHOOSE_SUCCESS: ClassVar[str] = '选择成功'
     STATUS_CHOOSE_FAIL: ClassVar[str] = '选择失败'
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
-    STATUS_CHARGE_ENOUGH: ClassVar[str] = '电量充足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
-    def __init__(self, ctx: ZContext, plan: ChargePlanItem,
-                 can_run_times: Optional[int] = None,
-                 need_check_power: bool = False):
+    def __init__(self, ctx: ZContext, plan: ChargePlanItem):
         """
         使用快捷手册传送后
         用这个进行挑战
@@ -50,21 +53,17 @@ class CombatSimulation(ZOperation):
                 gt(plan.mission_name, 'game')
             )
         )
-        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
 
         self.plan: ChargePlanItem = plan
-        self.need_check_power: bool = need_check_power
-        self.can_run_times: int = can_run_times
-        self.charge_left: Optional[int] = None
-        self.charge_need: Optional[int] = None
         self.scroll_count: int = 0  # 滑动次数计数器
 
-        self.auto_op: Optional[AutoBattleOperator] = None
-        self.async_init_future: Optional[Future[Tuple[bool, str]]] = None  # 初始化自动战斗的future
+        self.auto_op: AutoBattleOperator | None = None
+        self.async_init_future: Future[tuple[bool, str]] | None = None  # 初始化自动战斗的future
 
     @operation_node(name='异步初始化自动战斗')
     def async_init_auto_op(self) -> OperationRoundResult:
@@ -141,7 +140,7 @@ class CombatSimulation(ZOperation):
             return self.round_success(status=CombatSimulation.STATUS_CHOOSE_FAIL)
 
         if self.plan.mission_name == '代理人方案培养':
-            target_point: Optional[Point] = None
+            target_point: Point | None = None
 
             area = self.ctx.screen_loader.get_area('实战模拟室', '副本名称列表顶部')
             part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
@@ -163,13 +162,13 @@ class CombatSimulation(ZOperation):
                 end = start + Point(-400, 0)
                 self.ctx.controller.drag_to(start=start, end=end)
                 self.scroll_count += 1
-                return self.round_retry(status='找不到 %s' % self.plan.mission_name, wait=1)
+                return self.round_retry(status=f'找不到 {self.plan.mission_name}', wait=1)
 
         else:
             area = self.ctx.screen_loader.get_area('实战模拟室', '副本名称列表')
             part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
-            target_point: Optional[Point] = None
+            target_point: Point | None = None
             ocr_result_map = self.ctx.ocr.run_ocr(part)
             ocr_word_list = []
             mrl_list = []
@@ -194,7 +193,7 @@ class CombatSimulation(ZOperation):
                 end = start + Point(400 * (-1 if is_after else 1), 0)
                 self.ctx.controller.drag_to(start=start, end=end)
                 self.scroll_count += 1
-                return self.round_retry(status='找不到 %s' % self.plan.mission_name, wait=1)
+                return self.round_retry(status=f'找不到 {self.plan.mission_name}', wait=1)
 
         self.ctx.controller.click(target_point)
         return self.round_success(status=CombatSimulation.STATUS_CHOOSE_SUCCESS, wait=1)
@@ -229,56 +228,11 @@ class CombatSimulation(ZOperation):
 
     @node_from(from_name='进入选择数量', status=CardNumEnum.DEFAULT.value.value)
     @node_from(from_name='选择数量')
-    @operation_node(name='识别电量')
-    def check_charge(self) -> OperationRoundResult:
-        if not self.need_check_power:
-            if self.can_run_times > 0:
-                return self.round_success(CombatSimulation.STATUS_CHARGE_ENOUGH)
-            else:
-                return self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
-
-        area = self.ctx.screen_loader.get_area('实战模拟室', '剩余电量')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-        self.charge_left = str_utils.get_positive_digits(ocr_result, None)
-        if self.charge_left is None:
-            return self.round_retry(status='识别 %s 失败' % '剩余电量', wait=1)
-
-        area = self.ctx.screen_loader.get_area('实战模拟室', '需要电量')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-        self.charge_need = str_utils.get_positive_digits(ocr_result, None)
-        if self.charge_need is None:
-            return self.round_retry(status='识别 %s 失败' % '需要电量', wait=1)
-
-        log.info('所需电量 %d 剩余电量 %d', self.charge_need, self.charge_left)
-        if self.charge_need > self.charge_left:
-            return self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
-
-        self.can_run_times = self.charge_left // self.charge_need
-        max_need_run_times = self.plan.plan_times - self.plan.run_times
-
-        if self.can_run_times > max_need_run_times:
-            self.can_run_times = max_need_run_times
-
-        return self.round_success(CombatSimulation.STATUS_CHARGE_ENOUGH)
-
-    @node_from(from_name='识别电量', status=STATUS_CHARGE_NOT_ENOUGH)
-    @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
-    @operation_node(name='恢复电量')
-    def restore_charge(self) -> OperationRoundResult:
-        if not self.config.is_restore_charge_enabled:
-            return self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
-        op = RestoreCharge(self.ctx)
-        result = self.round_by_op_result(op.execute())
-        return result if result.is_success else self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
-
-    @node_from(from_name='识别电量', status=STATUS_CHARGE_ENOUGH)
     @node_from(from_name='恢复电量', status='恢复电量成功')
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
         # 防止前面电量识别错误
-        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '恢复电量')
+        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题')
         if result.is_success:
             return self.round_success(status=CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
 
@@ -294,6 +248,15 @@ class CombatSimulation(ZOperation):
             return self.round_wait(result.status, wait=0.5)
 
         return self.round_retry(result.status, wait=1)
+
+    @node_from(from_name='下一步', status=STATUS_CHARGE_NOT_ENOUGH)
+    @operation_node(name='恢复电量')
+    def restore_charge(self) -> OperationRoundResult:
+        if not self.config.is_restore_charge_enabled:
+            return self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
+        op = RestoreCharge(self.ctx)
+        result = self.round_by_op_result(op.execute())
+        return result if result.is_success else self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
 
     @node_from(from_name='下一步', status='出战')
     @operation_node(name='选择预备编队')
@@ -321,7 +284,7 @@ class CombatSimulation(ZOperation):
                     return self.round_fail(msg)
                 else:
                     return self.round_success()
-            except Exception as e:
+            except Exception:
                 return self.round_fail('自动战斗初始化失败')
         else:
             if self.plan.predefined_team_idx == -1:
@@ -365,7 +328,6 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='自动战斗')
     @operation_node(name='战斗结束')
     def after_battle(self) -> OperationRoundResult:
-        self.can_run_times -= 1
         self.config.add_plan_run_times(self.plan)
         return self.round_success()
 
@@ -374,11 +336,6 @@ class CombatSimulation(ZOperation):
     def check_next(self) -> OperationRoundResult:
         op = ChooseNextOrFinishAfterBattle(self.ctx, self.plan.plan_times > self.plan.run_times)
         return self.round_by_op_result(op.execute())
-
-    @node_from(from_name='识别电量', success=False)
-    @operation_node(name='识别电量失败')
-    def check_charge_fail(self) -> OperationRoundResult:
-        return self.round_success(CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
 
     @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)
     @operation_node(name='战斗超时')
@@ -430,7 +387,6 @@ def __debug_coffee():
         plan_times=1
     )
     op = CombatSimulation(ctx, charge_plan)
-    op.can_run_times = 1
     op.execute()
 
 def __debug_charge():
@@ -465,7 +421,6 @@ def __debug():
         auto_battle_config='全配对通用',
     )
     op = CombatSimulation(ctx, charge_plan)
-    op.can_run_times = 1
     op.execute()
 
 

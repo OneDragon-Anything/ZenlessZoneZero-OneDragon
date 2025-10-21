@@ -64,7 +64,7 @@ class RiduWeeklyApp(ZApplication):
     @node_from(from_name='领取奖励')
     @operation_node(name='完成后返回')
     def finish(self) -> OperationRoundResult:
-        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
+        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

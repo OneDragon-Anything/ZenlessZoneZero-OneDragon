@@ -1,6 +1,7 @@
 import difflib
-from cv2.typing import MatLike
 from typing import List, Optional
+
+from cv2.typing import MatLike
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.screen.screen_area import ScreenArea
@@ -66,7 +67,7 @@ class DefenseTeamSearcher:
         """
         self.ctx: ZContext = ctx
 
-        self.config: Optional[ShiyuDefenseConfig] = self.ctx.run_context.get_config(
+        self.config: ShiyuDefenseConfig = self.ctx.run_context.get_config(
             app_id=shiyu_defense_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,

@@ -917,6 +917,55 @@
   level: "S"
   is_gear: true
 
+  # 卢西娅
+- category: "卢西娅"
+  name: "溯梦潮流"
+  level: "S"
+  is_gear: true
+  template_id: "gear_lucia_1"
+
+- category: "卢西娅"
+  name: "溯梦潮流-a"
+  level: "S"
+  is_gear: true
+
+- category: "卢西娅"
+  name: "溯梦潮流-b"
+  level: "S"
+  is_gear: true
+
+- category: "卢西娅"
+  name: "夜籁盈生"
+  level: "S"
+  is_gear: true
+  template_id: "gear_lucia_2"
+
+- category: "卢西娅"
+  name: "夜籁盈生-a"
+  level: "S"
+  is_gear: true
+
+- category: "卢西娅"
+  name: "夜籁盈生-b"
+  level: "S"
+  is_gear: true
+
+- category: "卢西娅"
+  name: "幽魄凝心"
+  level: "S"
+  is_gear: true
+  template_id: "gear_lucia_3"
+
+- category: "卢西娅"
+  name: "幽魄凝心-a"
+  level: "S"
+  is_gear: true
+
+- category: "卢西娅"
+  name: "幽魄凝心-b"
+  level: "S"
+  is_gear: true
+
   # 携游
 - category: "携游"
   name: "节能载具"

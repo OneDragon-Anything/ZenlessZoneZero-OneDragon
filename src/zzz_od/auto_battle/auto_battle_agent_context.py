@@ -682,7 +682,12 @@ class AutoBattleAgentContext:
         else:
             agent_name = chain_name_list[0]
 
-        _, states = self.switch_by_agent_name(agent_name, update_time, update_state=update_state)
+        # 通过状态重构逻辑强制设置正确的角色状态
+        states = self._force_reconstruct_agent_states(agent_name, update_time)
+
+        if update_state:
+            self.auto_op.batch_update_states(states)
+
         return states
 
     def chain_right(self, update_time: float, update_state: bool = True) -> List[StateRecord]:
@@ -702,7 +707,12 @@ class AutoBattleAgentContext:
         else:
             agent_name = chain_name_list[1]
 
-        _, states = self.switch_by_agent_name(agent_name, update_time, update_state=update_state)
+        # 通过状态重构逻辑强制设置正确的角色状态
+        states = self._force_reconstruct_agent_states(agent_name, update_time)
+
+        if update_state:
+            self.auto_op.batch_update_states(states)
+
         return states
 
     def get_chain_name(self) -> List[str]:
@@ -752,6 +762,43 @@ class AutoBattleAgentContext:
             return target_agent_pos, self.switch_prev_agent(update_time, update_state=update_state, check_agent=True)
         else:
             return 0, []
+
+    def _force_reconstruct_agent_states(self, new_front_agent_name: str, update_time: float) -> List[StateRecord]:
+        """
+        强制重构所有角色状态，确保前台角色状态绝对正确。
+        这个方法会重排队伍列表，然后生成所有角色的状态。
+        :param new_front_agent_name: 新前台角色的名称
+        :param update_time: 更新时间
+        :return: 需要应用的状态记录列表
+        """
+        with self.team_info.update_agent_lock:
+            if not self.team_info.agent_list:
+                return []
+
+            # 如果目标已经是前台角色，则不进行任何操作
+            if (self.team_info.agent_list[0].agent and
+                    self.team_info.agent_list[0].agent.agent_name == new_front_agent_name):
+                return []
+
+            target_agent_info = None
+            other_agent_infos = []
+            # 找到目标角色，并将其余角色放入另一个列表
+            for agent_info in self.team_info.agent_list:
+                if agent_info.agent and agent_info.agent.agent_name == new_front_agent_name:
+                    target_agent_info = agent_info
+                else:
+                    other_agent_infos.append(agent_info)
+
+            # 如果没在队伍里找到目标角色，则不进行任何操作
+            if target_agent_info is None:
+                return []
+
+            # 构建新的列表，目标角色在第一位
+            self.team_info.agent_list = [target_agent_info] + other_agent_infos
+            self.team_info.agent_update_time = update_time
+
+        # 使用通用的状态生成函数来创建所有更新记录
+        return self._get_agent_state_records(update_time, switch=True)
 
     def _get_agent_state_records(self, update_time: float, switch: bool = False) -> List[StateRecord]:
         """

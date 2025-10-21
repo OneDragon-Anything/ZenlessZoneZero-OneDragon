@@ -251,7 +251,7 @@ class AgentEnum(Enum):
 
     JANE_DOE = Agent('jane_doe', '简', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['jane_doe'],
                      state_list=[AgentStateDef('简-萨霍夫跳', AgentStateCheckWay.COLOR_RANGE_EXIST,
-                                               template_id='jane_attack', lower_color=(100, 20, 20), upper_color=(255, 255, 255), connect_cnt=50),
+                                               template_id='jane_attack', lower_color=(100, 20, 20), upper_color=(255, 255, 255), connect_cnt=20),
                                  AgentStateDef('简-狂热心流', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                                template_id='jane_red', lower_color=(200, 20, 20), upper_color=(255, 255, 255), connect_cnt=10)
                                  ])
@@ -302,7 +302,7 @@ class AgentEnum(Enum):
                                       lower_color=(0, 50, 0), upper_color=(255, 255, 255))
                     ])
 
-    VIVIAN = Agent('vivian', '薇薇安', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ETHER, ['vivian'],
+    VIVIAN = Agent('vivian', '薇薇安', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ETHER, ['vivian', 'vivian_iris_of_the_shore'],
                     state_list=[
                         AgentStateDef('薇薇安-飞羽', AgentStateCheckWay.COLOR_RANGE_CONNECT,
                                     'vivian_master_1', lower_color=(150, 110, 170), upper_color=(255, 255, 255),
@@ -374,3 +374,11 @@ class AgentEnum(Enum):
                                       hsv_color=(90,255,255), hsv_color_diff=(89,255,55),
                                       max_length=100)
                     ])
+
+    MANATO = Agent('manato', '真斗', RareTypeEnum.A, AgentTypeEnum.RUPTURE, DmgTypeEnum.FIRE, ['manato'],
+                        state_list=[
+                            AgentStateDef('真斗-炽心', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                          template_id='manato',
+                                          hsv_color=(20,255,255), hsv_color_diff=(15,255,55),
+                                          max_length=100)
+                        ])

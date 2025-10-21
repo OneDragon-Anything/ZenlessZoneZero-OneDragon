@@ -1,0 +1,64 @@
+template_name: "速切模板-真斗"
+handlers:
+  - states: "[前台-真斗]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-真斗]"
+    sub_handlers:
+      # 遇到黄光闪避时优先使用拜年剑法（格挡＋普攻）
+      - states: "[自定义-黄光切人, 0, 1]"
+        operations:
+          - operation_template: "真斗-支援攻击"
+          - operation_template: "真斗-拜年剑法"
+
+      - states: "[自定义-红光闪避, 0, 1]"
+        operations:
+          - operation_template: "真斗-格挡"
+          - operation_template: "真斗-拜年剑法"
+
+      - states: "[自定义-连携换人, 0, 0.5]"
+        operations:
+          - operation_template: "真斗-连携攻击"
+
+      # 失衡时刻
+
+      # 默认执行基础连段
+      - states: "[真斗-炽心]{1,100}"
+        sub_handlers:
+          - states: "[自定义-连携换人, 0, 10]"
+            debug_name: "失衡期间"
+            sub_handlers:
+              # 有终结技时优先释放终结技爆发
+              - states: "[真斗-终结技可用]"
+                debug_name: "终结技爆发"
+                operations:
+                  - operation_template: "真斗-终结技"
+
+              # 特殊技可用时执行高级循环，连续多段特殊技并普攻
+              - states: "[真斗-特殊技可用]"
+                debug_name: "使用强化特殊技"
+                operations:
+                  - operation_template: "真斗-强化特殊技"
+
+              - states: ""
+                debug_name: "失衡阶段输出"
+                interrupt_states: "[真斗-炽心]{0, 0} | [真斗-终结技可用] | [真斗-特殊技可用]"
+                operations:
+                  - operation_template: "真斗-基础连段"
+
+          - states: ""
+            debug_name: "常态输出"
+            interrupt_states: "[真斗-炽心]{0, 0}"
+            operations:
+              - operation_template: "真斗-基础连段"
+
+      # 队友特殊技可用时立即速切
+      - states: "![自定义-真斗-观测队友, 0, 7] & ([后台-1-特殊技可用] | [后台-2-特殊技可用])"
+        debug_name: "队友速切支援"
+        operations:
+          - op_name: "设置状态"
+            state_list: ["自定义-速切结束" , “自定义-真斗-观测队友”]
+
+      # 特殊技不可用时通过擦火刀蓄能（仅队友强化特殊技都不可用时）
+      - states: ""
+        debug_name: "擦火刀蓄能"
+        operations:
+          - operation_template: "真斗-擦火刀"
