@@ -294,7 +294,6 @@ class GitService:
         更新最新的代码：不存在 .git 则克隆，存在则拉取并更新分支
         """
         log.info(f".git {gt('目录')} {DOT_GIT_DIR_PATH}")
-        self.set_safe_dir()
 
         if not os.path.exists(DOT_GIT_DIR_PATH):
             return self.clone_repository(progress_callback)
@@ -580,12 +579,6 @@ class GitService:
 
         self._ensure_remote()
 
-    def set_safe_dir(self) -> None:
-        """
-        libgit2 不需要 safe.directory，保留为 no-op
-        """
-        pass
-
     def reset_to_commit(self, commit_id: str) -> bool:
         """
         回滚到特定commit
@@ -658,12 +651,6 @@ def __fetch_latest_code():
     env_config = EnvConfig()
     git_service = GitService(project_config, env_config)
     return git_service.fetch_latest_code(progress_callback=None)
-
-def __debug_set_safe_dir():
-    project_config = ProjectConfig()
-    env_config = EnvConfig()
-    git_service = GitService(project_config, env_config)
-    return git_service.set_safe_dir()
 
 if __name__ == '__main__':
     __fetch_latest_code()
