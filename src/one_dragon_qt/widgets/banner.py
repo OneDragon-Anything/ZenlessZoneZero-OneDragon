@@ -55,21 +55,23 @@ class Banner(QWidget):
         try:
             with open(file_path, 'rb') as f:
                 header = f.read(12)
+        except OSError:
+            return False
 
-                # WebM: 1A 45 DF A3
-                if header[:4] == b'\x1a\x45\xdf\xa3':
-                    return True
+        if not header:
+            return False
 
-                # MP4/MOV: 开头4字节后是 ftyp
-                if len(header) >= 8 and header[4:8] == b'ftyp':
-                    return True
+        # WebM: 1A 45 DF A3
+        if header[:4] == b'\x1a\x45\xdf\xa3':
+            return True
 
-                # AVI: RIFF....AVI
-                if header[:4] == b'RIFF' and len(header) >= 12 and header[8:12] == b'AVI ':
-                    return True
+        # MP4/MOV: 开头4字节后是 ftyp
+        if len(header) >= 8 and header[4:8] == b'ftyp':
+            return True
 
-        except Exception:
-            pass
+        # AVI: RIFF....AVI
+        if header[:4] == b'RIFF' and header[8:12] == b'AVI ':
+            return True
 
         return False
 
