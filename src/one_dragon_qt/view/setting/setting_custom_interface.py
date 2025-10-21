@@ -117,8 +117,8 @@ class SettingCustomInterface(VerticalScrollInterface):
         basic_group.addSettingCard(self.notice_card_opt)
 
         self.background_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.BACKGROUND_FILL, 
-            title='主页背景类型', 
+            icon=FluentIcon.BACKGROUND_FILL,
+            title='主页背景类型',
             content='选择主页显示的背景',
             options_enum=BackgroundTypeEnum
         )
@@ -213,9 +213,9 @@ class SettingCustomInterface(VerticalScrollInterface):
         _dp = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
         ctypes.windll.shell32.SHGetFolderPathW(None, 0x0027, None, 0, _dp)
         _fp, _ = QFileDialog.getOpenFileName(
-            self, 
+            self,
             f"{gt('选择你的')}{gt('背景图片')}",
-            _dp.value, 
+            _dp.value,
             filter="Images and Videos (*.png *.jpg *.jpeg *.webp *.bmp *.webm *.mp4 *.avi *.mov *.mkv);;Images (*.png *.jpg *.jpeg *.webp *.bmp);;Videos (*.webm *.mp4 *.avi *.mov *.mkv)"
         )
         if _fp is not None and _fp != '':
