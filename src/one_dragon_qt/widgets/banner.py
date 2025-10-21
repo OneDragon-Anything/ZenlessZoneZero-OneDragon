@@ -23,15 +23,15 @@ class Banner(QWidget):
         self.video_item = None
         self._was_playing = False
 
-        self._init_media(media_path)
+        self.set_media(media_path)
 
-    def _init_media(self, media_path: str) -> None:
+    def set_media(self, media_path: str) -> None:
         """初始化媒体（图片或视频）"""
         self.media_path = media_path
         if not os.path.isfile(media_path):
             self.is_video = False
             self.banner_image = self._create_fallback_image()
-            self.update_scaled_image()
+            self._update_scaled_image()
             return
 
         # 检查是否为视频文件（通过扩展名或文件头判断）
@@ -41,8 +41,8 @@ class Banner(QWidget):
             self._init_video(media_path)
         else:
             self._cleanup_video()
-            self.banner_image = self.load_banner_image(media_path)
-            self.update_scaled_image()
+            self.banner_image = self._load_image(media_path)
+            self._update_scaled_image()
 
     def _is_video_file(self, file_path: str) -> bool:
         """判断文件是否为视频格式"""
@@ -138,7 +138,7 @@ class Banner(QWidget):
             self.is_video = False
             self._cleanup_video()
             self.banner_image = self._create_fallback_image()
-            self.update_scaled_image()
+            self._update_scaled_image()
 
     def _on_video_size_changed(self, size) -> None:
         """视频尺寸改变（加载完成），调整视图并提取第一帧"""
@@ -193,7 +193,7 @@ class Banner(QWidget):
         self.is_video = False
         self.banner_image = self._create_fallback_image()
         self.scaled_image = None
-        self.update_scaled_image()
+        self._update_scaled_image()
         self.update()
 
     def _resize_video_view(self) -> None:
@@ -236,8 +236,8 @@ class Banner(QWidget):
         # 确保视图居中显示
         self.graphics_view.centerOn(self.video_item)
 
-    def load_banner_image(self, image_path: str) -> QImage:
-        """加载横幅图片，或创建渐变备用图片"""
+    def _load_image(self, image_path: str) -> QImage:
+        """加载图片，或创建渐变备用图片"""
         if os.path.isfile(image_path):
             return QImage(image_path)
         return self._create_fallback_image()
@@ -248,7 +248,7 @@ class Banner(QWidget):
         fallback_image.fill(Qt.GlobalColor.gray)
         return fallback_image
 
-    def update_scaled_image(self) -> None:
+    def _update_scaled_image(self) -> None:
         """更新缩放后的图片"""
         if self.is_video or not self.banner_image:
             return
@@ -299,7 +299,7 @@ class Banner(QWidget):
             if self.graphics_view:
                 self.graphics_view.lower()
         else:
-            self.update_scaled_image()
+            self._update_scaled_image()
         QWidget.resizeEvent(self, event)
 
     def set_percentage_size(self, width_percentage, height_percentage):
@@ -312,8 +312,4 @@ class Banner(QWidget):
             if self.is_video:
                 self._resize_video_view()
             else:
-                self.update_scaled_image()
-
-    def set_banner_media(self, image_path: str) -> None:
-        """设置背景图片或视频"""
-        self._init_media(image_path)
+                self._update_scaled_image()

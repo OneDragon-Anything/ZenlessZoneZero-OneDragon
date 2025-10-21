@@ -743,7 +743,7 @@ class HomeInterface(VerticalScrollInterface):
             self._clear_theme_color_cache()
 
             # 更新背景图片
-            self._banner_widget.set_banner_media(self.choose_banner_media())
+            self._banner_widget.set_media(self.choose_banner_media())
             # 依据背景重新计算按钮配色
             self._update_start_button_style_from_banner()
             self.ctx.signal.reload_banner = False
