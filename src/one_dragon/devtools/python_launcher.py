@@ -11,6 +11,8 @@ import subprocess
 import yaml
 from colorama import init, Fore, Style
 
+from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
+
 # 初始化 colorama
 init(autoreset=True)
 
@@ -36,59 +38,31 @@ def verify_path_issues():
         sys.exit(1)
     print_message("目录核验通过", "PASS")
 
-def load_yaml_config(file_path):
-    # 读取 YAML 配置文件
-    try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            return yaml.safe_load(file)
-    except Exception as e:
-        print_message(f"读取 YAML 文件错误：{e}", "ERROR")
-        sys.exit(1)
-
-def configure_environment():
-    # 从 YAML 文件中获取可执行文件路径
-    yaml_file_path = os.path.join(path, "config", "env.yml")
-    print_message("读取 YAML 文件中...", "INFO")
-    config = load_yaml_config(yaml_file_path)
-    print_message("YAML 文件读取成功", "PASS")
-    python_path = config.get('python_path')
+def configure_environment(ctx: OneDragonEnvContext):
+    python_path = ctx.env_config.get('python_path')
     if not python_path or not os.path.exists(python_path):
         print_message("获取 Python 路径失败，请检查路径设置。", "ERROR")
         sys.exit(1)
-    uv_path = config.get('uv_path')
+    uv_path = ctx.env_config.get('uv_path')
     if not uv_path or not os.path.exists(uv_path):
         print_message("获取 UV 路径失败，请检查路径设置。", "ERROR")
         sys.exit(1)
-    auto_update = config.get('auto_update', True)
     # 配置环境变量
     print_message("开始配置环境变量...", "INFO")
     os.environ.update({
         'PYTHON': python_path,
         'PYTHONPATH': os.path.join(path, "src"),
         'UV_PATH': uv_path,
-        'UV_DEFAULT_INDEX': config.get('pip_source', 'https://mirrors.aliyun.com/pypi/simple'),
-        'AUTO_UPDATE': str(auto_update).lower(),
+        'UV_DEFAULT_INDEX': ctx.env_config.get('pip_source', 'https://mirrors.aliyun.com/pypi/simple'),
     })
-    for var in ['PYTHON', 'PYTHONPATH', 'UV_PATH', 'AUTO_UPDATE']:
+    for var in ['PYTHON', 'PYTHONPATH', 'UV_PATH']:
         if not os.environ.get(var):
             print_message(f"{var} 未设置", "ERROR")
             sys.exit(1)
     print_message(f"PYTHON：{os.environ['PYTHON']}", "PASS")
     print_message(f"PYTHONPATH：{os.environ['PYTHONPATH']}", "PASS")
 
-def create_log_folder():
-    # 创建日志文件夹
-    print_message("开始配置日志...", "INFO")
-    date_str = datetime.datetime.now().strftime("%Y%m%d")
-    log_folder = os.path.join(path, ".log", date_str)
-    os.makedirs(log_folder, exist_ok=True)
-    print_message(f"日志文件夹路径：{log_folder}", "PASS")
-    return log_folder
-
-def execute_python_script(app_path, log_folder, no_windows: bool, args: list = None, piped: bool = False):
-    # 执行 Python 脚本并重定向输出到日志文件
-    timestamp = datetime.datetime.now().strftime("%H.%M")
-    log_file_path = os.path.join(log_folder, f"python_{timestamp}.log")
+def execute_python_script(app_path, no_windows: bool, args: list = None, piped: bool = False):
     app_script_path = os.environ.get('PYTHONPATH')
     for sub_path in app_path:
         app_script_path = os.path.join(app_script_path, sub_path)
@@ -101,20 +75,6 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
     if not uv_path:
         print_message("UV 路径未设置", "ERROR")
         sys.exit(1)
-
-    auto_update = os.environ.get('AUTO_UPDATE', 'true').lower() == 'true'
-    if not auto_update:
-        print_message("未开启代码自动更新 跳过", "INFO")
-    else:
-        print_message("开始获取最新代码...", "INFO")
-        try:
-            result = subprocess.run([uv_path, 'run', '--frozen', '-m', 'one_dragon.envs.git_service'])
-            if result.returncode == 0:
-                print_message("代码更新完成", "PASS")
-            else:
-                print_message(f"代码更新失败: {result.stderr}", "ERROR")
-        except Exception as e:
-            print_message(f"代码更新异常: {e}", "ERROR")
 
     # 构建 uv run 命令参数
     run_args = ['run', '--frozen', app_script_path]
@@ -130,10 +90,8 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
     escaped_args = [escape_powershell_arg(arg) for arg in run_args]
     arg_list = ', '.join(f"'{arg}'" for arg in escaped_args)
 
+    if piped and os.name == 'nt':
 
-
-    if piped and os.name == 'nt':  
-        
         # 创建Job对象
         # 用于管理进程组，解决 `taskkill /f /im OneDragon-Launcher.exe` 后Python.exe进程仍然存活的问题
         # 设置JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE后， OneDragon-Launcher.exe 退出后将会kill掉所有分配进Job对象的子进程
@@ -193,7 +151,7 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
             raise OSError("SetInformationJobObject failed")
         # 创建进程
         # stdout, stderr 设置为 None 将会输出到当前程序相应的管道中
-        
+
         process = subprocess.Popen(
             [uv_path] + run_args,
             stdout=None,
@@ -203,7 +161,7 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
             text=True,
             encoding='utf-8'
         )
-        
+
         # 将进程加入Job对象
         if not kernel32.AssignProcessToJobObject(job_handle, process._handle):
             try:
@@ -250,8 +208,6 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
             "-ArgumentList",
             f"@({arg_list})",
             "-NoNewWindow",
-            "-RedirectStandardOutput",
-            f"'{escape_powershell_arg(log_file_path)}'",
             "-PassThru"
         ]
         full_command = " ".join(powershell_command)
@@ -262,14 +218,29 @@ def execute_python_script(app_path, log_folder, no_windows: bool, args: list = N
         )
         print_message("一条龙 正在启动中，大约 3+ 秒...", "INFO")
 
+def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
+    """
+    获取最新代码
+    """
+    if not ctx.env_config.auto_update:
+        print_message("未开启代码自动更新 跳过", "INFO")
+        return
+    print_message("开始获取最新代码...", "INFO")
+    success, msg = ctx.git_service.fetch_latest_code()
+    if success:
+        print_message("最新代码获取成功", "PASS")
+    else:
+        print_message(f'代码更新失败 {msg}', "ERROR")
+
 def run_python(app_path, no_windows: bool = True, args: list = None, piped: bool = False):
     # 主函数
     try:
         print_message(f"当前工作目录：{path}", "INFO")
         verify_path_issues()
-        configure_environment()
-        log_folder = create_log_folder()
-        execute_python_script(app_path, log_folder, no_windows, args, piped)
+        ctx = OneDragonEnvContext()
+        configure_environment(ctx)
+        fetch_latest_code(ctx)
+        execute_python_script(app_path, no_windows, args, piped)
     except SystemExit as e:
         print_message(f"程序已退出，状态码：{e.code}", "ERROR")
     except Exception as e:
