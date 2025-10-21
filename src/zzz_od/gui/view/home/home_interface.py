@@ -346,7 +346,7 @@ class BackgroundImageDownloader(BaseThread):
             with requests.get(self.url, timeout=5) as resp:
                 data = resp.json()
 
-            result = self._extract_image_url(data)
+            result = self._extract_media_url(data)
             if not result:
                 return
 
@@ -368,8 +368,8 @@ class BackgroundImageDownloader(BaseThread):
         except Exception as e:
             log.error(f"{self.error_msg}: {e}")
 
-    def _extract_image_url(self, data):
-        """提取图片URL"""
+    def _extract_media_url(self, data):
+        """提取图片/视频URL"""
         if self.download_type == "version_poster":
             for game in data.get("data", {}).get("games", []):
                 if game.get("biz") != "nap_cn":
@@ -401,7 +401,7 @@ class BackgroundImageDownloader(BaseThread):
         return None
 
     def _save_image(self, content):
-        """保存图片/视频，确保临时文件被正确清理"""
+        """保存图片，确保临时文件被正确清理"""
         temp_path = self.save_path.with_suffix(self.save_path.suffix + '.tmp')
         try:
             # 写入临时文件
@@ -476,7 +476,7 @@ class HomeInterface(VerticalScrollInterface):
         self.ctx: ZContext = ctx
         self.main_window = parent
 
-        self._banner_widget = Banner(self.choose_banner_image())
+        self._banner_widget = Banner(self.choose_banner_media())
         self._banner_widget.set_percentage_size(0.8, 0.5)
 
         v_layout = QVBoxLayout(self._banner_widget)
@@ -743,7 +743,7 @@ class HomeInterface(VerticalScrollInterface):
             self._clear_theme_color_cache()
 
             # 更新背景图片
-            self._banner_widget.set_banner_image(self.choose_banner_image())
+            self._banner_widget.set_banner_media(self.choose_banner_media())
             # 依据背景重新计算按钮配色
             self._update_start_button_style_from_banner()
             self.ctx.signal.reload_banner = False
@@ -752,7 +752,7 @@ class HomeInterface(VerticalScrollInterface):
         except Exception as e:
             log.error(f"刷新背景时出错: {e}")
 
-    def choose_banner_image(self) -> str:
+    def choose_banner_media(self) -> str:
 
         # 获取背景图片路径
         custom_banner_path = Path(os_utils.get_path_under_work_dir('custom', 'assets', 'ui')) / 'banner'
@@ -802,7 +802,7 @@ class HomeInterface(VerticalScrollInterface):
             return
 
         # 检查是否能使用缓存
-        current_banner_path = self.choose_banner_image()
+        current_banner_path = self.choose_banner_media()
         if self._can_use_cached_theme_color(current_banner_path):
             log.debug(f"使用缓存的主题色，跳过样式更新: {current_banner_path}")
             return
@@ -823,7 +823,7 @@ class HomeInterface(VerticalScrollInterface):
         if self.ctx.custom_config.is_custom_theme_color:
             return self.ctx.custom_config.theme_color
 
-        current_banner_path = self.choose_banner_image()
+        current_banner_path = self.choose_banner_media()
 
         # 检查是否能使用缓存的主题色
         if self._can_use_cached_theme_color(current_banner_path):

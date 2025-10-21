@@ -10,9 +10,9 @@ from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 class Banner(QWidget):
     """展示带有圆角的固定大小横幅小部件，支持图片和视频"""
 
-    def __init__(self, image_path: str, parent=None):
+    def __init__(self, media_path: str, parent=None):
         QWidget.__init__(self, parent)
-        self.image_path = image_path
+        self.media_path = media_path
         self.is_video = False
         self.banner_image = None
         self.scaled_image = None
@@ -23,10 +23,11 @@ class Banner(QWidget):
         self.video_item = None
         self._was_playing = False
 
-        self._init_media(image_path)
+        self._init_media(media_path)
 
     def _init_media(self, media_path: str) -> None:
         """初始化媒体（图片或视频）"""
+        self.media_path = media_path
         if not os.path.isfile(media_path):
             self.is_video = False
             self.banner_image = self._create_fallback_image()
@@ -313,7 +314,6 @@ class Banner(QWidget):
             else:
                 self.update_scaled_image()
 
-    def set_banner_image(self, image_path: str) -> None:
+    def set_banner_media(self, image_path: str) -> None:
         """设置背景图片或视频"""
-        self.image_path = image_path
         self._init_media(image_path)
