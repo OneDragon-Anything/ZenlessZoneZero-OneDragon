@@ -27,10 +27,10 @@ class CvFindContoursStep(CvStep):
             'mode': {'type': 'enum', 'default': 'EXTERNAL', 'options': list(self.mode_map.keys()), 'label': '轮廓检索模式', 'tooltip': 'EXTERNAL:只找最外层轮廓。LIST:查找所有轮廓，不建立层次结构。TREE:建立完整层次结构。'},
             'method': {'type': 'enum', 'default': 'SIMPLE', 'options': list(self.method_map.keys()), 'label': '轮廓逼近方法', 'tooltip': 'SIMPLE:压缩水平、垂直和对角线段，只保留端点。NONE:存储所有轮廓点。'},
             'draw_contours': {'type': 'bool', 'default': True, 'label': '绘制轮廓', 'tooltip': '是否在调试图像上用绿色线条画出找到的轮廓。'},
-            'noise_threshold_ratio': {'type': 'float', 'default': 0.25, 'range': (0.0, 1.0), 'label': '噪点比例阈值', 'tooltip': '输入图像的白色像素比例若高于此值，则跳过轮廓查找以防止卡死。建议范围：0.1-0.4'},
+            'noise_threshold_ratio': {'type': 'float', 'default': 0.45, 'range': (0.0, 1.0), 'label': '噪点比例阈值', 'tooltip': '输入图像的白色像素比例若高于此值，则跳过轮廓查找以防止卡死。建议范围：0.1-0.4'},
         }
 
-    def _execute(self, context: CvPipelineContext, mode: str = 'EXTERNAL', method: str = 'SIMPLE', draw_contours: bool = True, noise_threshold_ratio: float = 0.25, **_kwargs):
+    def _execute(self, context: CvPipelineContext, mode: str = 'EXTERNAL', method: str = 'SIMPLE', draw_contours: bool = True, noise_threshold_ratio: float = 0.45, **_kwargs):
         if context.mask_image is None:
             return
 
