@@ -44,7 +44,6 @@ class GitService:
     def __init__(self, project_config: ProjectConfig, env_config: EnvConfig):
         self.project_config: ProjectConfig = project_config
         self.env_config: EnvConfig = env_config
-        self.is_proxy_set: bool = False
 
         self._repo: pygit2.Repository | None = None
         self._ensure_config_search_path()
@@ -81,11 +80,6 @@ class GitService:
             self._repo = pygit2.Repository(os_utils.get_work_dir())
 
         return self._repo
-
-    def _invalidate_repo_cache(self) -> None:
-        """清空仓库缓存"""
-        self._repo = None
-        self.is_proxy_set = False
 
     def _ensure_remote(self, repo: pygit2.Repository | None = None, remote_url: str | None = None) -> pygit2.Remote | None:
         """确保远程仓库配置正确
@@ -163,18 +157,6 @@ class GitService:
         except Exception as exc:
             log.warning(f'设置代理失败: {exc}')
 
-    @contextlib.contextmanager
-    def _with_proxy(self, repo: pygit2.Repository | None = None):
-        """在代理环境中执行操作"""
-        if repo is None:
-            with contextlib.suppress(Exception):
-                repo = self._open_repo()
-
-        if repo is not None:
-            self._apply_proxy(repo)
-
-        yield repo
-
     def _fetch_remote(self, repo: pygit2.Repository, remote: pygit2.Remote) -> GitOperationResult:
         """获取远程代码
 
@@ -185,8 +167,8 @@ class GitService:
         log.info(gt('获取远程代码'))
 
         try:
-            with self._with_proxy(repo):
-                remote.fetch()
+            self._apply_proxy(repo)
+            remote.fetch()
             log.info(gt('获取远程代码成功'))
             return GitOperationResult(True, 'FETCH_SUCCESS', gt('获取远程代码成功'))
         except Exception as exc:
@@ -325,7 +307,6 @@ class GitService:
 
         try:
             pygit2.init_repository(work_dir, False)
-            self._invalidate_repo_cache()
             repo = self._open_repo(refresh=True)
         except Exception as exc:
             log.error(f'初始化仓库失败: {exc}', exc_info=True)
@@ -580,14 +561,12 @@ class GitService:
         """
         初始化 git 使用的代理：通过仓库级配置设置代理，避免污染进程环境
         """
-        if self.is_proxy_set or not os.path.exists(DOT_GIT_DIR_PATH):
+        if not os.path.exists(DOT_GIT_DIR_PATH):
             return
 
         try:
             repo = self._open_repo()
-            with self._with_proxy(repo):
-                pass
-            self.is_proxy_set = True
+            self._apply_proxy(repo)
         except Exception as exc:
             log.warning(f'初始化代理失败: {exc}', exc_info=True)
 
@@ -637,6 +616,7 @@ class GitService:
         try:
             with tempfile.TemporaryDirectory() as td:
                 repo = pygit2.init_repository(td, bare=True)
+                self._apply_proxy(repo)
                 remote = repo.remotes.create_anonymous(self.get_git_repository())
                 heads = remote.list_heads(callbacks=pygit2.RemoteCallbacks(), connect=True)
 
