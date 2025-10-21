@@ -12,8 +12,6 @@ from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from one_dragon.utils.semver_utils import sort_tags
-
 DOT_GIT_DIR_PATH = os.path.join(os_utils.get_work_dir(), '.git')
 
 
@@ -612,47 +610,47 @@ class GitService:
         """
         获取最新的稳定版与测试版 tag
         """
+        # 如果不存在本地仓库，返回空
+        if not os.path.exists(DOT_GIT_DIR_PATH):
+            return None, None
+
+        remote = self._ensure_remote()
+        if remote is None:
+            log.error('更新远程仓库地址失败')
+            return None, None
+
+        # 应用代理配置
+        self._apply_proxy()
         try:
-            # 如果不存在本地仓库，返回空
-            if not os.path.exists(DOT_GIT_DIR_PATH):
-                return None, None
-
-            remote = self._ensure_remote()
-            if remote is None:
-                log.error('更新远程仓库地址失败')
-                return None, None
-
-            # 应用代理配置
-            self._apply_proxy()
             heads = remote.list_heads(callbacks=pygit2.RemoteCallbacks(), connect=True)
-
-            # 提取标签名称
-            tags = []
-            for h in heads:
-                if h.name.startswith("refs/tags/"):
-                    tags.append(h.name[len("refs/tags/"):])
-
-            # 去重并排序
-            versions = sort_tags(list(dict.fromkeys(tags)))
-
-            # 找出最新的稳定版和测试版
-            latest_stable: str | None = None
-            latest_beta: str | None = None
-
-            for version in versions:
-                if '-beta' in version:
-                    if latest_beta is None:
-                        latest_beta = version
-                else:
-                    if latest_stable is None:
-                        latest_stable = version
-                        break
-
-            return latest_stable, latest_beta
-
         except Exception as exc:
             log.error(f'获取最新标签失败: {exc}', exc_info=True)
             return None, None
+
+        # 提取标签名称
+        tags = []
+        for h in heads:
+            if h.name.startswith("refs/tags/"):
+                tags.append(h.name[len("refs/tags/"):])
+
+        # 去重并排序
+        from packaging.version import Version
+        versions = sorted(set(tags), key=Version)
+
+        # 找出最新的稳定版和测试版
+        latest_stable: str | None = None
+        latest_beta: str | None = None
+
+        for version in versions:
+            if '-beta' in version:
+                if latest_beta is None:
+                    latest_beta = version
+            else:
+                if latest_stable is None:
+                    latest_stable = version
+                    break
+
+        return latest_stable, latest_beta
 
 
 def __fetch_latest_code():
