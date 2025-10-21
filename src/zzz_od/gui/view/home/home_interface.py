@@ -305,7 +305,7 @@ class BackgroundImageDownloader(BaseThread):
         self.download_type = download_type
 
         ui_dir = Path(os_utils.get_path_under_work_dir('assets', 'ui'))
-        
+
         if download_type == "version_poster":
             self.save_path = ui_dir / 'version_poster.webp'
             self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getGames?launcher_id=jGHBHlcOq1&language=zh-cn"
@@ -765,10 +765,8 @@ class HomeInterface(VerticalScrollInterface):
         # 主页背景优先级：自定义 > 枚举选项 > index.png
         if self.ctx.custom_config.custom_banner:
             # 检测自定义背景文件（支持图片和视频）
-            if custom_banner_path:
+            if custom_banner_path.exists() and custom_banner_path.is_file():
                 return str(custom_banner_path)
-            else:
-                return str(index_banner_path)
 
         # 根据枚举类型选择背景
         background_type = self.ctx.custom_config.background_type
