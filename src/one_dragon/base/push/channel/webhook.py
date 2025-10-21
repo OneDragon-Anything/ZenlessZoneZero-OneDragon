@@ -132,11 +132,16 @@ class Webhook(PushChannel):
             # 处理图片变量
             if "$image" in processed_body:
                 image_base64 = ""
-                if image:
-                    image_bytes = self.image_to_bytes(image)
-                    if image_bytes:
-                        image_bytes.seek(0)
-                        image_base64 = base64.b64encode(image_bytes.getvalue()).decode('utf-8')
+                if image is not None:  # image是MatLike，可能具有多个参数，此时if image会歧义
+                    try:
+                        image_bytes = self.image_to_bytes(image)
+                        if image_bytes:
+                            image_bytes.seek(0)
+                            image_base64 = base64.b64encode(image_bytes.getvalue()).decode('utf-8')
+                    except Exception as e:
+                        log.error(f"图片处理失败: {e}")
+                        image_base64 = ""
+    
                 processed_body = processed_body.replace("$image", image_base64)
 
             # 解析请求头
