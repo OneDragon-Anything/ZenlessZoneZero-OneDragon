@@ -25,6 +25,7 @@
     mode: EXTERNAL
     method: SIMPLE
     draw_contours: 0
+    noise_threshold_ratio: 0.4  # 仅对此流水线使用更高噪点比例阈值, 此处需要大于0.3
 - step: 按长宽比过滤
   params:
     min_ratio: 0.9
