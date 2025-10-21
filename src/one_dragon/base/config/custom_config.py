@@ -35,23 +35,6 @@ class CustomConfig(YamlConfig):
 
     def __init__(self):
         super().__init__(module_name='custom')
-        self._migrate_background_type()
-
-    def _migrate_background_type(self) -> None:
-        """迁移旧版本的背景配置到新的枚举类型"""
-        if self.get('background_type', None) is not None:
-            return
-
-        if self.get('official_dynamic', False):
-            new_value = BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value
-        elif self.get('version_poster', False):
-            new_value = BackgroundTypeEnum.VERSION_POSTER.value.value
-        elif self.get('remote_banner', False):
-            new_value = BackgroundTypeEnum.OFFICIAL_STATIC.value.value
-        else:
-            new_value = BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value
-
-        self.update('background_type', new_value)
 
     @property
     def ui_language(self) -> str:
