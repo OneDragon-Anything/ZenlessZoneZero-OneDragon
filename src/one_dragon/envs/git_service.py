@@ -1,17 +1,18 @@
 import contextlib
 import os
-import tempfile
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
 import pygit2
+from packaging.version import Version
 
 from one_dragon.envs.env_config import EnvConfig, GitMethodEnum, RepositoryTypeEnum
 from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+
 DOT_GIT_DIR_PATH = os.path.join(os_utils.get_work_dir(), '.git')
 
 
@@ -627,7 +628,6 @@ class GitService:
                 tags.append(h.name[len("refs/tags/"):])
 
         # 去重并排序
-        from packaging.version import Version
         versions = sorted(set(tags), key=Version)
 
         # 找出最新的稳定版和测试版
