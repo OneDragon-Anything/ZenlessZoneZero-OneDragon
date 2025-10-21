@@ -293,7 +293,8 @@ class LostVoidApp(ZApplication):
         """
         滑动调查战略列表
         """
-        start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
+        # 调查战略的详情打开之后鼠标不能在详情处滑, 会滑不动
+        start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2.5)
         end = start + Point(-800, 0)
         self.ctx.controller.drag_to(start=start, end=end)
         time.sleep(1)
