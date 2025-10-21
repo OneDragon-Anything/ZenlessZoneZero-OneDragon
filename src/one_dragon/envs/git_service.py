@@ -81,17 +81,16 @@ class GitService:
 
         return self._repo
 
-    def _ensure_remote(self, repo: pygit2.Repository | None = None, remote_url: str | None = None) -> pygit2.Remote | None:
+    def _ensure_remote(self, for_clone: bool = False) -> pygit2.Remote | None:
         """确保远程仓库配置正确
 
         Args:
-            repo: 仓库对象，如果为None则自动获取最新的仓库对象
-            remote_url: 远程仓库URL，如果为None则使用默认配置
+            for_clone: 是否用于克隆（会影响代理地址的选择）
 
         Returns:
             Remote对象，失败时返回None
         """
-        remote_url = remote_url or self.get_git_repository()
+        remote_url = self.get_git_repository(for_clone)
         if not remote_url:
             log.error('未能获取有效的远程仓库地址')
             return None
@@ -99,11 +98,10 @@ class GitService:
         remote_name = 'origin'
 
         try:
-            # 如果没有传入repo，则获取最新的仓库对象（避免使用过期缓存）
-            if repo is None:
-                repo = self._open_repo()
+            # 获取最新的仓库对象
+            repo = self._open_repo()
 
-            # 检查远程是否已存在（使用最新的repo对象）
+            # 检查远程是否已存在
             if remote_name in repo.remotes.names():
                 remote = repo.remotes[remote_name]
 
@@ -139,11 +137,12 @@ class GitService:
 
         return f'http://{proxy}'
 
-    def _apply_proxy(self, repo: pygit2.Repository) -> None:
+    def _apply_proxy(self) -> None:
         """应用代理配置到仓库"""
         proxy = self._get_proxy_address()
 
         try:
+            repo = self._open_repo()
             cfg = repo.config
             if proxy is None:
                 # 清除代理
@@ -157,17 +156,16 @@ class GitService:
         except Exception as exc:
             log.warning(f'设置代理失败: {exc}')
 
-    def _fetch_remote(self, repo: pygit2.Repository, remote: pygit2.Remote) -> GitOperationResult:
+    def _fetch_remote(self, remote: pygit2.Remote) -> GitOperationResult:
         """获取远程代码
 
         Args:
-            repo: 仓库对象，如果为None则自动打开
             remote: 远程对象
         """
         log.info(gt('获取远程代码'))
 
         try:
-            self._apply_proxy(repo)
+            self._apply_proxy()
             remote.fetch()
             log.info(gt('获取远程代码成功'))
             return GitOperationResult(True, 'FETCH_SUCCESS', gt('获取远程代码成功'))
@@ -176,9 +174,15 @@ class GitService:
             return GitOperationResult(False, 'FETCH_ERROR', gt('获取远程代码失败'),
                                       detail=str(exc))
 
-    def _get_branch_commit(self, repo: pygit2.Repository, branch: str,
-                           allow_local: bool = False) -> pygit2.Commit | None:
-        """获取分支的提交对象"""
+    def _get_branch_commit(self, branch: str, allow_local: bool = False) -> pygit2.Commit | None:
+        """获取分支的提交对象
+
+        Args:
+            branch: 分支名称
+            allow_local: 如果远程分支不存在，是否允许回退到本地 HEAD
+        """
+        repo = self._open_repo()
+
         # 优先使用远程分支
         remote_ref = f'refs/remotes/origin/{branch}'
         try:
@@ -196,13 +200,18 @@ class GitService:
 
         return None
 
-    def _checkout_branch(self, repo: pygit2.Repository, branch: str,
-                         allow_local: bool = False) -> tuple[bool, pygit2.Oid | None]:
-        """切换到指定分支"""
-        commit = self._get_branch_commit(repo, branch, allow_local)
+    def _checkout_branch(self, branch: str, allow_local: bool = False) -> tuple[bool, pygit2.Oid | None]:
+        """切换到指定分支
+
+        Args:
+            branch: 分支名称
+            allow_local: 如果远程分支不存在，是否允许使用本地 HEAD
+        """
+        commit = self._get_branch_commit(branch, allow_local)
         if commit is None:
             return False, None
 
+        repo = self._open_repo()
         local_ref = f'refs/heads/{branch}'
         try:
             # 更新或创建本地分支
@@ -221,9 +230,14 @@ class GitService:
             log.error(f'切换分支失败: {exc}', exc_info=True)
             return False, None
 
-    def _sync_with_remote(self, repo: pygit2.Repository, branch: str,
-                          force: bool) -> GitOperationResult:
-        """同步本地分支到远程"""
+    def _sync_with_remote(self, branch: str, force: bool) -> GitOperationResult:
+        """同步远程分支到本地
+
+        Args:
+            branch: 分支名称
+            force: 是否强制更新（重置本地修改）
+        """
+        repo = self._open_repo()
         remote_ref = f'refs/remotes/origin/{branch}'
 
         try:
@@ -294,11 +308,6 @@ class GitService:
         初始化本地仓库并同步远程目标分支
         """
         work_dir = os_utils.get_work_dir()
-        repo_url = self.get_git_repository(for_clone=True)
-
-        if not repo_url:
-            log.error('缺少有效的远程仓库地址')
-            return False, gt('克隆仓库失败')
 
         # 初始化仓库
         if progress_callback:
@@ -313,12 +322,12 @@ class GitService:
             return False, gt('克隆仓库失败')
 
         # 配置远程
-        remote = self._ensure_remote(repo, repo_url)
+        remote = self._ensure_remote(for_clone=True)
         if remote is None:
             return False, gt('克隆仓库失败')
 
         # 获取远程代码
-        fetch_result = self._fetch_remote(repo, remote)
+        fetch_result = self._fetch_remote(remote)
         if not fetch_result.success:
             return fetch_result.to_tuple()
 
@@ -327,12 +336,13 @@ class GitService:
 
         # 切换分支
         target_branch = self.env_config.git_branch
-        success, target_oid = self._checkout_branch(repo, target_branch, allow_local=False)
+        success, target_oid = self._checkout_branch(target_branch, allow_local=False)
         if not success:
             return False, gt('克隆仓库失败')
 
         # 重置到目标提交
         if target_oid:
+            repo = self._open_repo()
             repo.reset(target_oid, pygit2.GIT_RESET_HARD)
 
         if progress_callback:
@@ -346,20 +356,13 @@ class GitService:
         """
         log.info(gt('核对当前仓库'))
 
-        # 打开仓库
-        try:
-            repo = self._open_repo()
-        except Exception as exc:
-            log.error(f'打开仓库失败: {exc}', exc_info=True)
-            return False, gt('打开仓库失败')
-
         # 更新远程配置
-        remote = self._ensure_remote(repo, self.get_git_repository())
+        remote = self._ensure_remote()
         if remote is None:
             return False, gt('更新远程仓库地址失败')
 
         # 获取远程代码
-        fetch_result = self._fetch_remote(repo, remote)
+        fetch_result = self._fetch_remote(remote)
         if not fetch_result.success:
             return fetch_result.to_tuple()
 
@@ -371,10 +374,11 @@ class GitService:
         if not is_clean:
             if self.env_config.force_update:
                 # 强制重置
-                commit = self._get_branch_commit(repo, self.env_config.git_branch, allow_local=False)
+                commit = self._get_branch_commit(self.env_config.git_branch, allow_local=False)
                 if commit is None:
                     return False, gt('强制更新失败')
                 try:
+                    repo = self._open_repo()
                     repo.reset(commit.id, pygit2.GIT_RESET_HARD)
                 except Exception as exc:
                     log.error(f'强制更新失败: {exc}', exc_info=True)
@@ -395,7 +399,7 @@ class GitService:
 
         # 切换到目标分支
         target = self.env_config.git_branch
-        success, _ = self._checkout_branch(repo, target, allow_local=True)
+        success, _ = self._checkout_branch(target, allow_local=True)
         if not success:
             return False, gt('切换到目标分支失败')
 
@@ -403,7 +407,7 @@ class GitService:
             progress_callback(0.8, gt('切换到目标分支成功'))
 
         # 同步远程分支
-        sync_result = self._sync_with_remote(repo, target, self.env_config.force_update)
+        sync_result = self._sync_with_remote(target, self.env_config.force_update)
         if not sync_result.success:
             log.error(f'{sync_result.message} [{sync_result.code}] {sync_result.detail or ""}')
             return sync_result.to_tuple()
@@ -445,15 +449,15 @@ class GitService:
         """
         log.info(gt('检测当前代码是否最新'))
         try:
-            repo = self._open_repo()
-            remote = self._ensure_remote(repo, self.get_git_repository())
+            remote = self._ensure_remote()
             if remote is None:
                 return False, gt('更新远程仓库地址失败')
 
-            fetch_result = self._fetch_remote(repo, remote)
+            fetch_result = self._fetch_remote(remote)
             if not fetch_result.success:
                 return fetch_result.to_tuple()
 
+            repo = self._open_repo()
             remote_ref = f'refs/remotes/origin/{self.env_config.git_branch}'
             if remote_ref not in repo.references:
                 return False, gt('与远程分支不一致')
@@ -565,8 +569,7 @@ class GitService:
             return
 
         try:
-            repo = self._open_repo()
-            self._apply_proxy(repo)
+            self._apply_proxy()
         except Exception as exc:
             log.warning(f'初始化代理失败: {exc}', exc_info=True)
 
@@ -578,7 +581,6 @@ class GitService:
             return
 
         try:
-            # 不传入repo参数，让_ensure_remote自动获取最新的仓库对象
             self._ensure_remote()
         except Exception as exc:
             log.warning(f'更新远程仓库失败: {exc}')
@@ -614,21 +616,27 @@ class GitService:
         获取最新的稳定版与测试版 tag
         """
         try:
-            with tempfile.TemporaryDirectory() as td:
-                repo = pygit2.init_repository(td, bare=True)
-                self._apply_proxy(repo)
-                remote = repo.remotes.create_anonymous(self.get_git_repository())
-                heads = remote.list_heads(callbacks=pygit2.RemoteCallbacks(), connect=True)
+            # 如果不存在本地仓库，返回空
+            if not os.path.exists(DOT_GIT_DIR_PATH):
+                return None, None
 
-                # 提取标签名称
-                tags = []
-                for h in heads:
-                    name = getattr(h, "name", None)
-                    if name and name.startswith("refs/tags/"):
-                        tags.append(name[len("refs/tags/"):])
+            remote = self._ensure_remote()
+            if remote is None:
+                log.error('无法配置远程仓库')
+                return None, None
 
-                # 去重并排序
-                versions = sort_tags(list(dict.fromkeys(tags)))
+            # 应用代理配置
+            self._apply_proxy()
+            heads = remote.list_heads(callbacks=pygit2.RemoteCallbacks(), connect=True)
+
+            # 提取标签名称
+            tags = []
+            for h in heads:
+                if h.name.startswith("refs/tags/"):
+                    tags.append(h.name[len("refs/tags/"):])
+
+            # 去重并排序
+            versions = sort_tags(list(dict.fromkeys(tags)))
 
             # 找出最新的稳定版和测试版
             latest_stable: str | None = None
