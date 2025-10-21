@@ -1,7 +1,7 @@
 from PySide6.QtCore import Signal, QThread
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QAbstractButton
-from qfluentwidgets import SettingCard, FluentIconBase, PushButton
+from qfluentwidgets import SettingCard, FluentIconBase, PrimaryPushButton
 from typing import Union, Optional, List
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -38,12 +38,12 @@ class DownloadRunner(QThread):
                 skip_if_existed=False,
             )
             if result:
-                self.finished.emit(True, '下载模型成功')
+                self.finished.emit(True, '下载资源成功')
             else:
-                self.finished.emit(False, '下载模型失败 请尝试更换代理')
+                self.finished.emit(False, '下载资源失败 请尝试更换代理')
         except Exception:
-            log.error(f'下载模型失败', exc_info=True)
-            self.finished.emit(False, '下载模型失败 请尝试更换代理')
+            log.error(f'下载资源失败', exc_info=True)
+            self.finished.emit(False, '下载资源失败 请尝试更换代理')
 
 
 class CommonDownloaderSettingCard(MultiPushSettingCard):
@@ -73,7 +73,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
 
         self.combo_box.currentIndexChanged.connect(self.on_index_changed)
 
-        self.download_btn = PushButton(text=gt('下载'))
+        self.download_btn = PrimaryPushButton(text=gt('下载'))
         self.download_btn.clicked.connect(self._on_download_click)
 
         btn_list = [self.combo_box, self.download_btn]
@@ -156,7 +156,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
 
     def _on_download_click(self) -> None:
         if self.download_runner is None:
-            log.warning('未选择模型')
+            log.warning('未选择资源')
             return
         if self.download_runner.isRunning():
             log.warning('我知道你很急 但你先别急 正在运行了')
