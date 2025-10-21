@@ -25,7 +25,6 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self.latest_stable = ""
         self.latest_beta = ""
 
-        # 使用父类的 ComboBox 和 download_btn
         ZipDownloaderSettingCard.__init__(
             self,
             ctx=ctx,
@@ -41,12 +40,6 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             ConfigItem('测试版', 'beta')
         ])
 
-        # 默认选择稳定版
-        self.combo_box.setCurrentIndex(0)
-
-        # 初始化显示状态
-        self.check_and_update_display()
-
     def on_index_changed(self, index: int) -> None:
         """
         重写父类方法，当版本通道改变时重新检查更新
@@ -58,7 +51,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self.last_index = index
 
         # 重新检查并更新显示
-        self.check_and_update_display()
+        self.check_and_update_display_async()
 
     def _create_downloader_param(self) -> CommonDownloaderParam:
         """

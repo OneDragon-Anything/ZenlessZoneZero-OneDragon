@@ -1,4 +1,4 @@
-from PySide6.QtCore import Signal, QThread
+from PySide6.QtCore import Signal, QThread, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QAbstractButton
 from qfluentwidgets import SettingCard, FluentIconBase, PrimaryPushButton
@@ -118,7 +118,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         self.downloader = CommonDownloader(param=param)
         self.download_runner = DownloadRunner(self.ctx, self.downloader)
         self.download_runner.finished.connect(self._on_download_finish)
-        self.check_and_update_display()
+        self.check_and_update_display_async()
 
     def setContent(self, content: str) -> None:
         """
@@ -142,11 +142,10 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
     def getValue(self):
         return self.combo_box.itemData(self.combo_box.currentIndex())
 
+    def check_and_update_display_async(self) -> None:
+        QTimer.singleShot(0, self.check_and_update_display)
+
     def check_and_update_display(self) -> None:
-        """
-        检查模型是否已经存在
-        :return:
-        """
         if self.downloader is not None and self.downloader.is_file_existed():
             self.download_btn.setText(gt('已下载'))
             self.download_btn.setDisabled(True)
@@ -167,7 +166,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
 
     def _on_download_finish(self, result, message):
         log.info(message)
-        self.check_and_update_display()
+        self.check_and_update_display_async()
 
 
 class ZipDownloaderSettingCard(CommonDownloaderSettingCard):
