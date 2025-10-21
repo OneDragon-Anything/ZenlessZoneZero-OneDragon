@@ -104,6 +104,44 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         for opt_item in options:
             self.combo_box.addItem(opt_item.ui_text, userData=opt_item.value)
 
+    def _get_downloader_param(self, index: int) -> CommonDownloaderParam:
+        """
+        获取下载器参数
+        :param index: 选择的下标
+        :return: 下载器参数
+        """
+        return self.combo_box.itemData(index)
+
+    def _create_downloader(self, param: CommonDownloaderParam) -> CommonDownloader:
+        """
+        创建下载器对象，子类可以重写此方法来创建不同类型的下载器
+        :param param: 下载器参数
+        :return: 下载器对象
+        """
+        return CommonDownloader(param=param)
+
+    def _update_downloader_and_runner(self, param: CommonDownloaderParam = None) -> None:
+        """
+        更新下载器和运行线程对象
+        :param param: 下载器参数，如果为 None 则不更新当前下载器
+        :return:
+        """
+        if param is not None:
+            self.downloader = self._create_downloader(param)
+
+        # 如果已有线程对象，只替换 downloader；否则创建新线程
+        if self.download_runner is not None:
+            if self.download_runner.isRunning():
+                # 线程正在运行，先停止再替换
+                self.download_runner.quit()
+                self.download_runner.wait()
+            # 替换 downloader 对象
+            self.download_runner.downloader = self.downloader
+        else:
+            # 首次创建线程对象
+            self.download_runner = DownloadRunner(self.ctx, self.downloader)
+            self.download_runner.finished.connect(self._on_download_finish)
+
     def on_index_changed(self, index: int) -> None:
         """
         值发生改变时 往外发送信号
@@ -113,11 +151,10 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         if index == self.last_index:  # 没改变时 不发送信号
             return
         self.last_index = index
-        param: CommonDownloaderParam = self.combo_box.itemData(index)
+        param: CommonDownloaderParam = self._get_downloader_param(index)
         self.value_changed.emit(index, param)
-        self.downloader = CommonDownloader(param=param)
-        self.download_runner = DownloadRunner(self.ctx, self.downloader)
-        self.download_runner.finished.connect(self._on_download_finish)
+
+        self._update_downloader_and_runner(param)
         self.check_and_update_display_async()
 
     def setContent(self, content: str) -> None:
@@ -190,18 +227,10 @@ class ZipDownloaderSettingCard(CommonDownloaderSettingCard):
             parent=parent
         )
 
-    def on_index_changed(self, index: int) -> None:
+    def _create_downloader(self, param: CommonDownloaderParam) -> CommonDownloader:
         """
-        值发生改变时 往外发送信号
-        :param index:
-        :return:
+        创建 Zip 下载器对象
+        :param param: 下载器参数
+        :return: Zip 下载器对象
         """
-        if index == self.last_index:  # 没改变时 不发送信号
-            return
-        self.last_index = index
-        param: CommonDownloaderParam = self.combo_box.itemData(index)
-        self.value_changed.emit(index, param)
-        self.downloader = ZipDownloader(param=param)
-        self.download_runner = DownloadRunner(self.ctx, self.downloader)
-        self.download_runner.finished.connect(self._on_download_finish)
-        self.check_and_update_display()
+        return ZipDownloader(param=param)

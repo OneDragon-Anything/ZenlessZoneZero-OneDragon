@@ -77,6 +77,14 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             unzip_dir_path=os_utils.get_work_dir()
         )
 
+    def _create_downloader(self, param: CommonDownloaderParam = None) -> ZipDownloader:
+        """
+        创建下载器对象，使用动态生成的参数
+        :param param: 下载器参数（未使用，由 _create_downloader_param 动态生成）
+        :return: Zip 下载器对象
+        """
+        return ZipDownloader(param=self._create_downloader_param())
+
     def check_launcher_exist(self) -> bool:
         """
         检查启动器是否存在
@@ -125,12 +133,6 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             self.download_btn.setText(gt('检查中...'))
             is_latest = self.check_launcher_update()
 
-            # 更新下载器参数
-            param = self._create_downloader_param()
-            self.downloader = ZipDownloader(param=param)
-            if self.download_runner is not None:
-                self.download_runner.downloader = self.downloader
-
             if is_latest:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
                 msg = f"{gt('已安装')} {self.current_version}"
@@ -147,11 +149,9 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             self.download_btn.setText(gt('下载'))
             self.download_btn.setDisabled(False)
 
-            # 更新下载器参数
-            param = self._create_downloader_param()
-            self.downloader = ZipDownloader(param=param)
-            if self.download_runner is not None:
-                self.download_runner.downloader = self.downloader
+        # 更新下载器和线程
+        self.downloader = self._create_downloader()
+        self._update_downloader_and_runner()
 
         self.update_display(icon, msg)
 
@@ -167,15 +167,10 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
     def _on_download_click(self) -> None:
         """
-        重写父类的下载点击方法，添加删除旧启动器的逻辑
+        添加删除旧启动器的逻辑
         :return:
         """
-        if self.download_runner is None:
-            log.warning('下载器未初始化')
-            return
-        if self.download_runner.isRunning():
-            log.warning('我知道你很急 但你先别急 正在运行了')
-            return
+        ZipDownloaderSettingCard._on_download_click(self)
 
         # 删除旧的启动器
         old_launcher_path = os.path.join(os_utils.get_work_dir(), 'OneDragon-Launcher.exe')
@@ -185,19 +180,14 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             except Exception as e:
                 log.error(f'删除旧启动器失败: {e}')
 
-        # 调用父类的下载逻辑
-        self.download_btn.setText(gt('安装中'))
-        self.download_btn.setDisabled(True)
-        self.download_runner.start()
-
     def _on_download_finish(self, success: bool, message: str) -> None:
         """
-        重写父类的下载完成方法，添加更新标题栏版本号的逻辑
+        添加更新标题栏版本号的逻辑
         :param success: 是否成功
         :param message: 消息
         :return:
         """
-        log.info(message)
+        ZipDownloaderSettingCard._on_download_finish(self, success, message)
         if success:
             # 重置当前版本号以便下次检查更新
             self.current_version = ""
@@ -206,14 +196,3 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
                 self.window().titleBar.setLauncherVersion(app_utils.get_launcher_version())
             except Exception as e:
                 log.error(f'更新标题栏版本号失败: {e}')
-
-            icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
-            msg = gt('安装成功')
-            self.update_display(icon, msg)
-            self.download_btn.setText(gt('已安装'))
-            self.download_btn.setDisabled(True)
-        else:
-            icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
-            self.update_display(icon, message)
-            self.download_btn.setText(gt('重试'))
-            self.download_btn.setDisabled(False)
