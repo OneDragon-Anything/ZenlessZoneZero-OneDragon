@@ -65,7 +65,7 @@ class ShiyuDefenseApp(ZApplication):
             self.round_by_click_area('式舆防卫战', '前次-关闭')
             return self.round_wait(result.status, wait=2)
 
-        # 判断是否已进入到主界面（“前哨档案”出现）
+        # 判断是否已进入到主界面(“前哨档案”文本出现)
         return self.round_by_find_area(self.last_screenshot, '式舆防卫战', '前哨档案', retry_wait=1)
 
     @node_from(from_name='等待画面加载')
@@ -211,7 +211,7 @@ class ShiyuDefenseApp(ZApplication):
     @node_from(from_name='领取奖励')
     @operation_node(name='关闭奖励')
     def close_reward(self) -> OperationRoundResult:
-        # 判断是否已回到主界面（“前哨档案”出现）
+        # 判断是否已回到主界面(“前哨档案”出现)
         result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '前哨档案')
         if result.is_success:
             return self.round_success(result.status)
