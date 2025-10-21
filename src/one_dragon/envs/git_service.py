@@ -324,7 +324,7 @@ class GitService:
         # 配置远程
         remote = self._ensure_remote(for_clone=True)
         if remote is None:
-            return False, gt('克隆仓库失败')
+            return False, gt('更新远程仓库地址失败')
 
         # 获取远程代码
         fetch_result = self._fetch_remote(remote)
@@ -580,10 +580,7 @@ class GitService:
         if not os.path.exists(DOT_GIT_DIR_PATH):
             return
 
-        try:
-            self._ensure_remote()
-        except Exception as exc:
-            log.warning(f'更新远程仓库失败: {exc}')
+        self._ensure_remote()
 
     def set_safe_dir(self) -> None:
         """
@@ -622,7 +619,7 @@ class GitService:
 
             remote = self._ensure_remote()
             if remote is None:
-                log.error('无法配置远程仓库')
+                log.error('更新远程仓库地址失败')
                 return None, None
 
             # 应用代理配置
