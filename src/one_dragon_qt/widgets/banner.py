@@ -1,6 +1,6 @@
 import os
-from PySide6.QtCore import Qt, QUrl, QRectF
-from PySide6.QtGui import QPixmap, QPainter, QPainterPath, QImage, QRegion, QBitmap
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QPixmap, QPainter, QPainterPath, QImage
 from PySide6.QtWidgets import QWidget, QGraphicsView, QGraphicsScene
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QGraphicsVideoItem
@@ -265,15 +265,14 @@ class Banner(QWidget):
         self.update()
 
     def paintEvent(self, event):
-        """重载 paintEvent 以绘制缩放后的图片，视频模式下绘制圆角遮罩"""
+        """重载 paintEvent 以绘制缩放后的图片"""
         if self.is_video:
             # 视频模式下无需额外绘制
             return
 
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
         if self.scaled_image:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
             # 创建圆角路径
