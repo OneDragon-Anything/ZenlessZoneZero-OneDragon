@@ -400,22 +400,15 @@ class BackgroundImageDownloader(BaseThread):
                             return video_url
         return None
 
-    def _save_image(self, content):
+    def _save_image(self, content: bytes):
         """保存图片，确保临时文件被正确清理"""
-        temp_path = self.save_path.with_suffix(self.save_path.suffix + '.tmp')
+        temp_path: Path = self.save_path.with_suffix(self.save_path.suffix + '.tmp')
         try:
-            # 写入临时文件
-            temp_path.write_bytes(content)
-
-            # 删除旧文件（如果存在）
-            if self.save_path.exists():
-                self.save_path.unlink()
-
-            # 重命名临时文件为正式文件
-            temp_path.rename(self.save_path)
-
-        except Exception as e:
-            # 清理失败的临时文件
+            with temp_path.open('wb') as f:
+                f.write(content)
+                f.flush()
+            temp_path.replace(self.save_path)
+        except Exception:
             if temp_path.exists():
                 try:
                     temp_path.unlink()
@@ -427,23 +420,29 @@ class BackgroundImageDownloader(BaseThread):
         """下载官方动态背景视频，确保取消时清理临时文件"""
         self.download_starting.emit()
 
-        temp_path = self.save_path.with_suffix(self.save_path.suffix + '.tmp')
+        temp_path: Path = self.save_path.with_suffix(self.save_path.suffix + '.tmp')
         download_success = False
         cancelled = False
         status_ok = False
 
         try:
-            with requests.get(video_url, stream=True, timeout=30) as video_resp:
-                status_ok = video_resp.status_code == 200
+            with requests.get(video_url, stream=True, timeout=30) as r:
+                try:
+                    r.raise_for_status()
+                    status_ok = True
+                except Exception:
+                    status_ok = False
+
                 if status_ok:
-                    with open(temp_path, 'wb') as f:
-                        for chunk in video_resp.iter_content(chunk_size=256 * 1024):
+                    with temp_path.open('wb') as f:
+                        for chunk in r.iter_content(chunk_size=256 * 1024):
                             if not self._is_running:
                                 cancelled = True
                                 break
                             if chunk:
                                 f.write(chunk)
-                        else:
+                        if not cancelled:
+                            f.flush()
                             download_success = True
         finally:
             if temp_path.exists() and not download_success:
@@ -456,9 +455,7 @@ class BackgroundImageDownloader(BaseThread):
             return False
 
         try:
-            if self.save_path.exists():
-                self.save_path.unlink()
-            temp_path.rename(self.save_path)
+            temp_path.replace(self.save_path)
         except Exception:
             if temp_path.exists():
                 try:
