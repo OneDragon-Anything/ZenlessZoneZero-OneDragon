@@ -645,7 +645,7 @@ class DriverDiscReadApp(ZApplication):
     @node_from(from_name='保存数据')
     @operation_node(name='完成后返回')
     def back_at_last(self):
-        self.notify_screenshot = self.save_screenshot_bytes()
+        self.notify_screenshot = self.last_screenshot
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
