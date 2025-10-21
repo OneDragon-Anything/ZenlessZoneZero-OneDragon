@@ -105,7 +105,7 @@
 
   # 星见雅
 - category: "星见雅"
-  name: "花雪憩蜂"
+  name: "花间憩蜂"
   level: "S"
   is_gear: true
   template_id: "gear_hoshimi_miyabi_1"
@@ -794,7 +794,7 @@
   template_id: "gear_ju_fufu_2"
 
 - category: "橘福福"
-  name: 「风雷」之音-a"
+  name: "「风雷」之音-a"
   level: "S"
   is_gear: true
 
@@ -966,6 +966,23 @@
   level: "S"
   is_gear: true
 
+  # 异影
+- category: "杰佩托"
+  name: "处决指令"
+  level: "S"
+
+- category: "杰佩托"
+  name: "审判时刻"
+  level: "S"
+
+- category: "杰佩托"
+  name: "以血还血"
+  level: "A"
+
+- category: "杰佩托"
+  name: "近身突刺"
+  level: "A"
+
   # 携游
 - category: "携游"
   name: "节能载具"
@@ -1100,6 +1117,10 @@
   level: "A"
 
   # 通用
+- category: "通用"
+  name: "射吸式焊炬"
+  level: "S"
+
 - category: "通用"
   name: "瓶中幸运星"
   level: "A"
@@ -1598,28 +1619,6 @@
 
 - category: "卡牌"
   name: "「符号学原理」马拉松"
-  level: "S"
-
-  # 杰佩托
-- category: "杰佩托"
-  name: "处决指令"
-  level: "S"
-
-- category: "杰佩托"
-  name: "审判时刻"
-  level: "S"
-
-- category: "杰佩托"
-  name: "以血还血"
-  level: "A"
-
-- category: "杰佩托"
-  name: "近身突刺"
-  level: "A"
-
-  # 焊炬
-- category: "射吸式焊炬"
-  name: "射吸式焊炬"
   level: "S"
 
   # 无详情的特殊品
