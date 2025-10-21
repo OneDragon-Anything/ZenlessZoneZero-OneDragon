@@ -21,6 +21,9 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
     def __init__(self, ctx: OneDragonEnvContext):
         self.ctx: OneDragonEnvContext = ctx
         self.latest_version = "latest"
+        self.current_version = ""
+        self.latest_stable = ""
+        self.latest_beta = ""
 
         # 使用父类的 ComboBox 和 download_btn
         ZipDownloaderSettingCard.__init__(
@@ -94,23 +97,22 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         检查启动器更新
         :return: (是否最新, 最新版本, 当前版本)
         """
-        current_version = app_utils.get_launcher_version()
-        latest_stable, latest_beta = self.ctx.git_service.get_latest_tag()
+        if not self.current_version:
+            self.current_version = app_utils.get_launcher_version()
+
+        if not self.latest_beta or not self.latest_stable:
+            self.latest_stable, self.latest_beta = self.ctx.git_service.get_latest_tag()
 
         # 根据下拉框选择的通道决定检查哪个版本
         selected_channel = self.combo_box.currentData()
-        if selected_channel == 'beta':
-            # 测试版通道：与最新测试版比较；若不存在测试版，则视为已最新
-            target_latest = latest_beta or current_version
-        else:
+        if selected_channel == 'stable':
             # 稳定版通道：与最新稳定版比较；若不存在稳定版，则视为已最新
-            target_latest = latest_stable or current_version
-
-        if current_version == target_latest:
-            return True, target_latest, current_version
+            self.latest_version = self.latest_stable or self.current_version
         else:
-            self.latest_version = target_latest
-            return False, target_latest, current_version
+            # 测试版通道：与最新测试版比较；若不存在测试版，则视为已最新
+            self.latest_version = self.latest_beta or self.current_version
+
+        return self.current_version == self.latest_version
 
     def check_and_update_display(self) -> None:
         """
@@ -128,7 +130,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
                 return
 
             self.download_btn.setText(gt('检查中...'))
-            is_latest, latest_version, current_version = self.check_launcher_update()
+            is_latest = self.check_launcher_update()
 
             # 更新下载器参数
             param = self._create_downloader_param()
@@ -138,12 +140,12 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
             if is_latest:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
-                msg = f"{gt('已安装')} {current_version}"
+                msg = f"{gt('已安装')} {self.current_version}"
                 self.download_btn.setText(gt('已安装'))
                 self.download_btn.setDisabled(True)
             else:
                 icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
-                msg = f"{gt('需更新')} {gt('当前版本')}: {current_version}; {gt('最新版本')}: {latest_version}"
+                msg = f"{gt('需更新')} {gt('当前版本')}: {self.current_version}; {gt('最新版本')}: {self.latest_version}"
                 self.download_btn.setText(gt('更新'))
                 self.download_btn.setDisabled(False)
         else:
@@ -204,6 +206,8 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         """
         log.info(message)
         if success:
+            # 重置当前版本号以便下次检查更新
+            self.current_version = ""
             # 更新标题栏版本号
             try:
                 self.window().titleBar.setLauncherVersion(app_utils.get_launcher_version())
