@@ -755,7 +755,7 @@ class HomeInterface(VerticalScrollInterface):
     def choose_banner_image(self) -> str:
 
         # 获取背景图片路径
-        custom_banner_dir = Path(os_utils.get_path_under_work_dir('custom', 'assets', 'ui')) / 'banner'
+        custom_banner_path = Path(os_utils.get_path_under_work_dir('custom', 'assets', 'ui')) / 'banner'
         ui_dir = Path(os_utils.get_path_under_work_dir('assets', 'ui'))
         official_dynamic_path = ui_dir / 'official_dynamic.webm'
         version_poster_path = ui_dir / 'version_poster.webp'
@@ -765,8 +765,8 @@ class HomeInterface(VerticalScrollInterface):
         # 主页背景优先级：自定义 > 枚举选项 > index.png
         if self.ctx.custom_config.custom_banner:
             # 检测自定义背景文件（支持图片和视频）
-            if custom_banner_dir:
-                return str(custom_banner_dir)
+            if custom_banner_path:
+                return str(custom_banner_path)
             else:
                 return str(index_banner_path)
 
