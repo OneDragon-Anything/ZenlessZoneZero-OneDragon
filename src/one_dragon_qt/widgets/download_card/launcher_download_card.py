@@ -43,22 +43,10 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             ConfigItem('测试版', 'beta')
         ])
 
-    def on_index_changed(self, index: int) -> None:
+    def _get_downloader_param(self, index: int = None) -> CommonDownloaderParam:
         """
-        重写父类方法，当版本通道改变时重新检查更新
-        :param index: 选项索引
-        :return:
-        """
-        if index == self.last_index:  # 没改变时 不发送信号
-            return
-        self.last_index = index
-
-        # 重新检查并更新显示
-        self.check_and_update_display_async()
-
-    def _create_downloader_param(self) -> CommonDownloaderParam:
-        """
-        创建下载器参数
+        动态生成下载器参数
+        :param index: 选择的下标（未使用，因为 LauncherInstallCard 不依赖 combo_box 数据）
         :return: CommonDownloaderParam
         """
         zip_file_name = f'{self.ctx.project_config.project_name}-Launcher.zip'
@@ -78,14 +66,6 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             check_existed_list=[launcher_path],
             unzip_dir_path=os_utils.get_work_dir()
         )
-
-    def _create_downloader(self, param: CommonDownloaderParam = None) -> ZipDownloader:
-        """
-        创建下载器对象，使用动态生成的参数
-        :param param: 下载器参数（未使用，由 _create_downloader_param 动态生成）
-        :return: Zip 下载器对象
-        """
-        return ZipDownloader(param=self._create_downloader_param())
 
     def check_launcher_exist(self) -> bool:
         """
@@ -150,10 +130,6 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             msg = gt('需下载')
             self.download_btn.setText(gt('下载'))
             self.download_btn.setDisabled(False)
-
-        # 更新下载器和线程
-        self.downloader = self._create_downloader()
-        self._update_downloader_and_runner()
 
         self.update_display(icon, msg)
 

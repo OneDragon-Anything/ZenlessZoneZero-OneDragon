@@ -1,4 +1,4 @@
-from PySide6.QtCore import Signal, QThread, QTimer
+from PySide6.QtCore import Signal, QThread
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QAbstractButton
 from qfluentwidgets import SettingCard, FluentIconBase, PrimaryPushButton
@@ -104,30 +104,32 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         for opt_item in options:
             self.combo_box.addItem(opt_item.ui_text, userData=opt_item.value)
 
-    def _get_downloader_param(self, index: int) -> CommonDownloaderParam:
+    def _get_downloader_param(self, index: int | None = None) -> CommonDownloaderParam:
         """
         获取下载器参数
-        :param index: 选择的下标
+        :param index: 选择的下标，如果为 None 则使用当前选中的下标
         :return: 下载器参数
         """
+        if index is None:
+            index = self.combo_box.currentIndex()
         return self.combo_box.itemData(index)
 
-    def _create_downloader(self, param: CommonDownloaderParam) -> CommonDownloader:
+    def _create_downloader(self) -> CommonDownloader:
         """
         创建下载器对象，子类可以重写此方法来创建不同类型的下载器
-        :param param: 下载器参数
         :return: 下载器对象
         """
+        param = self._get_downloader_param()
         return CommonDownloader(param=param)
 
-    def _update_downloader_and_runner(self, param: CommonDownloaderParam = None) -> None:
+    def _update_downloader_and_runner(self) -> None:
         """
         更新下载器和运行线程对象
-        :param param: 下载器参数，如果为 None 则不更新当前下载器
+        总是重新创建下载器以确保使用最新的参数和状态
         :return:
         """
-        if param is not None:
-            self.downloader = self._create_downloader(param)
+        # 创建下载器
+        self.downloader = self._create_downloader()
 
         # 如果已有线程对象，只替换 downloader；否则创建新线程
         if self.download_runner is not None:
@@ -158,11 +160,12 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         if index == self.last_index:  # 没改变时 不发送信号
             return
         self.last_index = index
+
+        self._update_downloader_and_runner()
+        self.check_and_update_display()
+
         param: CommonDownloaderParam = self._get_downloader_param(index)
         self.value_changed.emit(index, param)
-
-        self._update_downloader_and_runner(param)
-        self.check_and_update_display_async()
 
     def setContent(self, content: str) -> None:
         """
@@ -186,9 +189,6 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
     def getValue(self):
         return self.combo_box.itemData(self.combo_box.currentIndex())
 
-    def check_and_update_display_async(self) -> None:
-        QTimer.singleShot(0, self.check_and_update_display)
-
     def check_and_update_display(self) -> None:
         if self.downloader is not None and self.downloader.is_file_existed():
             self.download_btn.setText(gt('已下载'))
@@ -210,7 +210,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
 
     def _on_download_finish(self, result, message):
         log.info(message)
-        self.check_and_update_display_async()
+        self.check_and_update_display()
 
 
 class ZipDownloaderSettingCard(CommonDownloaderSettingCard):
@@ -234,10 +234,11 @@ class ZipDownloaderSettingCard(CommonDownloaderSettingCard):
             parent=parent
         )
 
-    def _create_downloader(self, param: CommonDownloaderParam) -> CommonDownloader:
+    def _create_downloader(self) -> ZipDownloader:
         """
         创建 Zip 下载器对象
-        :param param: 下载器参数
+        :param param: 下载器参数，如果为 None 则通过 _get_downloader_param 获取
         :return: Zip 下载器对象
         """
+        param = self._get_downloader_param()
         return ZipDownloader(param=param)
