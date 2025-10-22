@@ -194,7 +194,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
             self.download_btn.setDisabled(True)
         else:
             self.download_btn.setText(gt('下载'))
-            self.download_btn.setDisabled(False)
+            self.download_btn.setEnabled(True)
 
     def _on_download_click(self) -> None:
         if self.download_runner is None:
@@ -204,7 +204,7 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
             log.warning('我知道你很急 但你先别急 正在运行了')
             return
         self.download_btn.setText(gt('下载中'))
-        self.download_btn.setDisabled(False)
+        self.download_btn.setDisabled(True)
         self.download_runner.start()
 
     def _on_download_finish(self, result, message):
