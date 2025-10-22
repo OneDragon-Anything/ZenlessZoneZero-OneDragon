@@ -4,6 +4,8 @@ import numpy as np
 paddle = None
 # from paddle.nn import functional as F
 import re
+import os
+from datetime import datetime
 
 from one_dragon.utils.log_utils import log
 
@@ -36,6 +38,21 @@ class BaseRecLabelDecode(object):
                         try:
                             decoded_line = line.decode("gbk").strip("\n").strip("\r\n")
                         except UnicodeDecodeError:
+                            # 保存字典文件调试信息
+                            debug_dir = os.path.join(os.getcwd(), "ocr_dict_debug")
+                            os.makedirs(debug_dir, exist_ok=True)
+                            
+                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                            debug_file_path = os.path.join(
+                                debug_dir, 
+                                f"dict_decode_error_{timestamp}_{os.path.basename(character_dict_path)}.txt"
+                            )
+                            
+                            with open(debug_file_path, "wb") as debug_file:
+                                debug_file.write(line)
+                            
+                            log.error(f"字典文件解码失败，已保存调试信息到 {debug_file_path}，行内容(hex): {line[:50].hex()}...")
+                            
                             # 最后使用 ignore 模式并记录日志
                             try:
                                 decoded_line = line.decode("utf-8", errors="ignore").strip("\n").strip("\r\n")
