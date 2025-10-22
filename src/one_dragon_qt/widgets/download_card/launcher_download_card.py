@@ -8,7 +8,6 @@ from qfluentwidgets import FluentIcon, FluentThemeColor
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
-from one_dragon.base.web.zip_downloader import ZipDownloader
 from one_dragon.envs.env_config import DEFAULT_ENV_PATH
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.i18_utils import gt
@@ -45,6 +44,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
     def __init__(self, ctx: OneDragonEnvContext):
         self.ctx: OneDragonEnvContext = ctx
         self.version_checker = LauncherVersionChecker(ctx)
+        self.version_checker.check_finished.connect(self._on_version_check_finished)
         self.latest_version = "latest"
         self.current_version = ""
         self.latest_stable = ""
@@ -65,7 +65,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             ConfigItem('测试版', 'beta')
         ])
 
-    def _get_downloader_param(self, index: int = None) -> CommonDownloaderParam:
+    def _get_downloader_param(self, index) -> CommonDownloaderParam:
         """
         动态生成下载器参数
         :param index: 选择的下标（未使用，因为 LauncherInstallCard 不依赖 combo_box 数据）
@@ -139,16 +139,16 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         重写父类方法以实现启动器特有的逻辑
         :return:
         """
+        # 先更新UI为检查中状态
+        self.download_btn.setText(gt('检查中...'))
+        self.download_btn.setDisabled(True)
+
         # 获取当前版本和启动器存在状态
         launcher_exist = self._check_launcher_exist()
         if launcher_exist:
             self.current_version = app_utils.get_launcher_version()
 
-        # 先更新UI为检查中状态
-        self.download_btn.setText(gt('检查中...'))
-        self.download_btn.setDisabled(True)
-
-        # 如果启动器不存在或在安装器中，直接更新UI，不需要后台检查
+        # 如果启动器不存在，直接更新UI，不需要后台检查
         if not launcher_exist:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
             msg = gt('需下载')
@@ -157,17 +157,12 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             self.download_btn.setDisabled(False)
             return
 
-        if os_utils.run_in_exe():
-            icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
-            msg = gt('已安装')
-            self._update_display(icon, msg)
-            self.download_btn.setText(gt('已安装'))
-            self.download_btn.setDisabled(True)
-            return
-
-        # 创建并启动检查版本号线程
-        self.version_checker.check_finished.connect(self._on_version_check_finished)
-        self.version_checker.start()
+        is_version_checked = (self.latest_stable or self.latest_beta)
+        if not self.version_checker.isRunning() and not is_version_checked:
+            self.version_checker.start()
+        else:
+            # 如果版本号已经检查过，直接调用回调更新UI
+            self._on_version_check_finished(self.latest_stable, self.latest_beta)
 
     def _update_display(self, icon: QIcon, msg: str) -> None:
         """
@@ -265,13 +260,12 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             # 下载成功，删除备份文件
             self._cleanup_backup_launcher()
 
-            # 重置当前版本号以便下次检查更新
-            self.current_version = ""
             # 更新标题栏版本号
+            self.current_version = app_utils.get_launcher_version()
             try:
-                self.window().titleBar.setLauncherVersion(app_utils.get_launcher_version())
-            except Exception as e:
-                log.error(f'更新标题栏版本号失败: {e}')
+                self.window().titleBar.setLauncherVersion(self.current_version)
+            except Exception:
+                pass
         else:
             # 下载失败，回滚到备份文件
             self._swap_launcher_and_backup(backup=False)
