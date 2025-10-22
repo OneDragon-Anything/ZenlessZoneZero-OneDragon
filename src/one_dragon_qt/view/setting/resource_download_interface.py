@@ -5,10 +5,10 @@ from one_dragon.base.config.basic_model_config import get_ocr_opts
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.download_card.onnx_model_download_card import OnnxModelDownloadCard
 from one_dragon_qt.widgets.install_card.launcher_install_card import LauncherInstallCard
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
-from one_dragon_qt.widgets.setting_card.onnx_model_download_card import OnnxModelDownloadCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 

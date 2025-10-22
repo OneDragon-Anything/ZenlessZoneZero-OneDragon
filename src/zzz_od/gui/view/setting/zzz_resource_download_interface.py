@@ -2,7 +2,7 @@ from qfluentwidgets import SettingCardGroup, FluentIcon
 
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon_qt.view.setting.resource_download_interface import ResourceDownloadInterface
-from one_dragon_qt.widgets.setting_card.onnx_model_download_card import OnnxModelDownloadCard
+from one_dragon_qt.widgets.download_card.onnx_model_download_card import OnnxModelDownloadCard
 from zzz_od.config.model_config import get_flash_classifier_opts, get_hollow_zero_event_opts, get_lost_void_det_opts
 from zzz_od.context.zzz_context import ZContext
 
