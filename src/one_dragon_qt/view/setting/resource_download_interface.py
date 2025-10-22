@@ -51,13 +51,9 @@ class ResourceDownloadInterface(VerticalScrollInterface):
         self.launcher_opt.check_and_update_display()
         group.addSettingCard(self.launcher_opt)
 
-        self.ocr_opt = OnnxModelDownloadCard(
-            ctx=self.ctx,
-            icon=FluentIcon.GLOBE,
-            title='OCR识别',
-            enable_gpu_switch=False
-        )
+        self.ocr_opt = OnnxModelDownloadCard(ctx=self.ctx, icon=FluentIcon.GLOBE, title='OCR识别')
         self.ocr_opt.value_changed.connect(self.on_ocr_changed)
+        self.ocr_opt.gpu_changed.connect(self.on_ocr_gpu_changed)
         group.addSettingCard(self.ocr_opt)
 
         self._add_model_cards(group)
@@ -80,9 +76,13 @@ class ResourceDownloadInterface(VerticalScrollInterface):
         self.ocr_opt.blockSignals(True)
         self.ocr_opt.set_options_by_list(get_ocr_opts())
         self.ocr_opt.set_value_by_save_file_name(f'{self.ctx.model_config.ocr}.zip')
+        self.ocr_opt.gpu_opt.setChecked(self.ctx.model_config.ocr_gpu)
         self.ocr_opt.check_and_update_display()
         self.ocr_opt.blockSignals(False)
 
     def on_ocr_changed(self, index: int, value: CommonDownloaderParam) -> None:
         self.ctx.model_config.ocr = value.save_file_name[:-4]
         self.ocr_opt.check_and_update_display()
+
+    def on_ocr_gpu_changed(self, value: bool) -> None:
+        self.ctx.model_config.ocr_gpu = value
