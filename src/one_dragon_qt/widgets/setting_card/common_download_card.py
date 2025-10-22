@@ -42,7 +42,6 @@ class DownloadRunner(QThread):
             else:
                 self.finished.emit(False, '下载资源失败 请尝试更换代理')
         except Exception:
-            log.error(f'下载资源失败', exc_info=True)
             self.finished.emit(False, '下载资源失败 请尝试更换代理')
 
 

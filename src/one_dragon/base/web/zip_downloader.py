@@ -76,6 +76,7 @@ class ZipDownloader(CommonDownloader):
 
         # 使用指定的解压路径，如果没有指定则使用save_file_path
         unzip_dir = self.param.unzip_dir_path if self.param.unzip_dir_path is not None else self.param.save_file_path
+        os.makedirs(unzip_dir, exist_ok=True)
         file_utils.unzip_file(zip_file_path=zip_file_path, unzip_dir_path=unzip_dir)
         log.info(f"解压完成 {zip_file_path} 到 {unzip_dir}")
 
