@@ -55,11 +55,8 @@ class CodeInstallCard(BaseInstallCard):
         获取需要显示的状态，由子类自行实现
         :return: 显示的图标、文本
         """
-        git_path = self.ctx.env_config.git_path
         current_branch = self.ctx.git_service.get_current_branch()
-        if git_path == '':
-            return FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt('未配置Git')
-        elif current_branch is None:
+        if current_branch is None:
             return FluentIcon.INFO.icon(color=FluentThemeColor.RED.value), gt('未同步代码')
         elif current_branch != self.ctx.env_config.git_branch:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
