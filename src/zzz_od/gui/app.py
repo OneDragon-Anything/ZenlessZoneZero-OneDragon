@@ -1,5 +1,7 @@
 try:
     import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     from typing import Tuple
     from PySide6.QtCore import Qt, QThread, Signal, QTimer
     from PySide6.QtWidgets import QApplication
