@@ -1,15 +1,14 @@
 import sys
-from typing import Optional
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
-from qfluentwidgets import NavigationItemPosition, setTheme, Theme
+from qfluentwidgets import Theme, setTheme
 
-from one_dragon_qt.services.styles_manager import OdQtStyleSheet
-from one_dragon_qt.windows.app_window_base import AppWindowBase
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
-
 from one_dragon_qt.app.devtools.image_processing_interface import ImageProcessingInterface
+from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+from one_dragon_qt.windows.app_window_base import AppWindowBase
 
 
 class DevtoolsAppWindow(AppWindowBase):
@@ -61,13 +60,13 @@ class DevtoolsAppWindow(AppWindowBase):
         self.add_sub_interface(ImageProcessingInterface(self.ctx, parent=self))
 
 
-def create_devtools_app(ctx: Optional[OneDragonContext] = None):
+def create_devtools_app(ctx: OneDragonContext | None = None):
     """创建开发工具应用程序"""
     if ctx is None:
         # 如果没有提供上下文，创建一个基础的上下文
         from one_dragon.base.operation.one_dragon_context import OneDragonContext
         ctx = OneDragonContext()
-        ctx.init_by_config()
+        ctx.init_async()
 
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough

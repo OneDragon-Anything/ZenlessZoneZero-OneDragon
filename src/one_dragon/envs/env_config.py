@@ -120,7 +120,6 @@ class EnvConfig(YamlConfig):
         :return:
         """
         self.update('python_path', new_value)
-        self.write_env_bat()
 
     @property
     def pythonw_path(self) -> str:
@@ -340,16 +339,6 @@ class EnvConfig(YamlConfig):
     @auto_fetch_gh_proxy_url.setter
     def auto_fetch_gh_proxy_url(self, new_value: bool) -> None:
         self.update('auto_fetch_gh_proxy_url', new_value)
-
-    def write_env_bat(self) -> None:
-        """
-        写入环境变量的bat
-        :return:
-        """
-        env_path = os.path.join(os_utils.get_work_dir(), 'env.bat')
-
-        with open(env_path, 'w', encoding='utf-8') as file:
-            file.write(f'set "PYTHON={self.pythonw_path}"')
 
     @property
     def is_debug(self) -> bool:
