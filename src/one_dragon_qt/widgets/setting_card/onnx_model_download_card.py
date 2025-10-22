@@ -1,6 +1,6 @@
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon, Qt
-from qfluentwidgets import FluentIconBase, SwitchButton, IndicatorPosition, BodyLabel
+from qfluentwidgets import FluentIconBase, SwitchButton, IndicatorPosition
 from typing import Union
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -17,17 +17,13 @@ class OnnxModelDownloadCard(ZipDownloaderSettingCard):
             icon: Union[str, QIcon, FluentIconBase],
             title: str,
             content=None,
-            parent=None,
-            enable_gpu_switch=True  # 默认显示GPU开关
+            parent=None
     ):
-        if enable_gpu_switch:
-            self.gpu_opt = SwitchButton(indicatorPos=IndicatorPosition.LEFT)
-            self.gpu_opt._offText = 'CPU'
-            self.gpu_opt._onText = 'GPU'
-            self.gpu_opt.label.setText(self.gpu_opt._offText)
-            self.gpu_opt.checkedChanged.connect(self.on_gpu_value_changed)
-        else:
-            self.gpu_opt = BodyLabel('CPU')
+        self.gpu_opt = SwitchButton(indicatorPos=IndicatorPosition.LEFT)
+        self.gpu_opt._offText = 'CPU'
+        self.gpu_opt._onText = 'GPU'
+        self.gpu_opt.label.setText(self.gpu_opt._offText)
+        self.gpu_opt.checkedChanged.connect(self.on_gpu_value_changed)
 
         ZipDownloaderSettingCard.__init__(
             self,
