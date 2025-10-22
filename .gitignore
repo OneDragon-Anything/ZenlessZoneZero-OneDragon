@@ -62,6 +62,7 @@ config/world_patrol_route_list/*
 .conda/
 .venv/
 notice_cache/
+*.bak
 
 # 需自行下载的模型文件
 models/
