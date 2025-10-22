@@ -14,6 +14,7 @@ from one_dragon.utils import os_utils, thread_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.atomic_op.btn_chain_left import AtomicBtnChainLeft
 from zzz_od.auto_battle.atomic_op.btn_chain_right import AtomicBtnChainRight
+from zzz_od.auto_battle.atomic_op.btn_chain_cancel import AtomicBtnChainCancel
 from zzz_od.auto_battle.atomic_op.btn_common import AtomicBtnCommon
 from zzz_od.auto_battle.atomic_op.btn_dodge import AtomicBtnDodge
 from zzz_od.auto_battle.atomic_op.btn_lock import AtomicBtnLock
@@ -297,6 +298,8 @@ class AutoBattleOperator(ConditionalOperator):
             return AtomicBtnChainLeft(self.auto_battle_context, press=press, press_time=press_time, release=release)
         elif op_name.startswith(BattleStateEnum.BTN_CHAIN_RIGHT.value):
             return AtomicBtnChainRight(self.auto_battle_context, press=press, press_time=press_time, release=release)
+        elif op_name.startswith(BattleStateEnum.BTN_CHAIN_CANCEL.value):
+            return AtomicBtnChainCancel(self.auto_battle_context, press=press, press_time=press_time, release=release)
         elif op_name.startswith(BattleStateEnum.BTN_MOVE_W.value):
             return AtomicBtnMoveW(self.auto_battle_context, press=press, press_time=press_time, release=release)
         elif op_name.startswith(BattleStateEnum.BTN_MOVE_S.value):
