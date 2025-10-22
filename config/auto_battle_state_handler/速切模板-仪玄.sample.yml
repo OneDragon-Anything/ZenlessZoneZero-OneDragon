@@ -35,7 +35,7 @@ handlers:
 
       - states: "[自定义-连携换人, 0, 10]"
         sub_handlers:
-          - states: "[仪玄-终结技可用] & [仪玄-术法值]{120, 120}"
+          - states: "[仪玄-终结技可用] & [仪玄-术法值全满] & [仪玄-术法值]{120, 120}"
             debug_name: "法术终结技"
             operations:
               - operation_template: "仪玄-法术终结技"
@@ -46,7 +46,7 @@ handlers:
               - operation_template: "仪玄-喧嚣终结技"
 
           - states: "[仪玄-特殊技可用]"
-            interrupt_states: "[仪玄-术法值]{120, 120}"
+            interrupt_states: "[仪玄-术法值]{120, 120} & [仪玄-术法值全满]"
             operations:
               - operation_template: "仪玄-凸"
 
@@ -80,7 +80,7 @@ handlers:
             data: ["自定义-仪玄-太极"]
           - operation_template: "仪玄-太极合轴"
 
-      - states: "[仪玄-终结技可用] & [仪玄-术法值]{120, 120} & [仪玄-能量]{60, 120}"
+      - states: "[仪玄-终结技可用] & [仪玄-术法值全满] & [仪玄-术法值]{120, 120} & [仪玄-能量]{60, 120}"
         debug_name: "法术终结技"
         operations:
           - operation_template: "仪玄-法术终结技"

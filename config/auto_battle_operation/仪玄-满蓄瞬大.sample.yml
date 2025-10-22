@@ -8,5 +8,3 @@ operations:
   - op_name: "等待秒数"
     seconds: 3.0
   - op_name: "按键-普通攻击-松开"
-  - op_name: "等待秒数"
-    seconds: 0.1
