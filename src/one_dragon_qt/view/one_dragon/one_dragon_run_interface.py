@@ -388,15 +388,29 @@ class OneDragonRunInterface(ContainerReorderMixin, VerticalScrollInterface):
     def _on_reorder_commit(self, app_id: str, target_index: int) -> None:
         """容器级拖拽完成时提交顺序变更，由 mixin 回调。"""
         try:
-            self.get_one_dragon_app_config().move_app_to_position(app_id, target_index)
+            # 获取当前顺序
+            current_order = [app.app_id for app in self.config.app_list]
+            
+            # 找到要移动的应用的当前位置
+            current_idx = -1
+            for i, aid in enumerate(current_order):
+                if aid == app_id:
+                    current_idx = i
+                    break
+            
+            if current_idx == -1 or current_idx == target_index:
+                return
+            
+            # 重新排序
+            current_order.pop(current_idx)
+            current_order.insert(target_index, app_id)
+            
+            # 保存新顺序
+            self.config.set_app_order(current_order)
         finally:
             self._refresh_app_cards_order_display()
 
     def _refresh_app_cards_order_display(self) -> None:
         """根据配置中的顺序刷新卡片的显示（不变更控件实例顺序，仅更新内容）"""
-        self.app_list = self.get_one_dragon_app().get_one_dragon_apps_in_order()
-        app_run_list = self.get_app_run_list()
-        for idx, app in enumerate(self.app_list):
-            if idx < len(self._app_run_cards):
-                self._app_run_cards[idx].set_app(app)
-                self._app_run_cards[idx].set_switch_on(app.app_id in app_run_list)
+        # 重新初始化应用列表以获取最新顺序
+        self._init_app_list()
