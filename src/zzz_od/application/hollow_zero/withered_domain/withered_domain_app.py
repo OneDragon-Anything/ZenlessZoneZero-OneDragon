@@ -116,9 +116,9 @@ class WitheredDomainApp(ZApplication):
     def choose_mission(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('零号空洞-入口', '副本列表')
         if self.mission_type_name == "枯败花圃":
-            if self.mission_name == "枯败花圃-探索":
+            if self.mission_name == "枯败花圃-核心":
                 self.mission_name = "探索"
-            elif self.mission_name == "枯败花圃-闪击":
+            elif self.mission_name == "枯败花圃-苗床":
                 self.mission_name = "闪击"
         return self.round_by_ocr_and_click(self.last_screenshot, self.mission_name, area=area,
                                            success_wait=1, retry_wait=1)
