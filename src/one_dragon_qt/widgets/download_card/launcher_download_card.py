@@ -65,7 +65,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             ConfigItem('测试版', 'beta')
         ])
 
-    def _get_downloader_param(self, index) -> CommonDownloaderParam:
+    def _get_downloader_param(self, index: int | None = None) -> CommonDownloaderParam:
         """
         动态生成下载器参数
         :param index: 选择的下标（未使用，因为 LauncherInstallCard 不依赖 combo_box 数据）
