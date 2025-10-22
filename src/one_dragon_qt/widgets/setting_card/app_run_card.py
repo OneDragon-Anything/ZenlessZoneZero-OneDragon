@@ -18,7 +18,6 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
 )
-from one_dragon_qt.widgets.setting_card.draggable_widget_mixin import DraggableWidgetMixin
 
 
 class AppRunCard(MultiPushSettingCard):
