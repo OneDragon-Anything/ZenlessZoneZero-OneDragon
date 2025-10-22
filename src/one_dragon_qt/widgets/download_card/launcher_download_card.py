@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from PySide6.QtGui import QIcon
 from qfluentwidgets import FluentIcon, FluentThemeColor
@@ -15,6 +16,8 @@ from one_dragon_qt.widgets.setting_card.common_download_card import (
     ZipDownloaderSettingCard,
 )
 
+LAUNCHER_EXE_NAME = 'OneDragon-Launcher.exe'
+LAUNCHER_BACKUP_NAME = LAUNCHER_EXE_NAME + '.bak'
 
 class LauncherDownloadCard(ZipDownloaderSettingCard):
 
@@ -59,8 +62,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         :return: CommonDownloaderParam
         """
         zip_file_name = f'{self.ctx.project_config.project_name}-Launcher.zip'
-        launcher_exe = 'OneDragon-Launcher.exe'
-        launcher_path = os.path.join(os_utils.get_work_dir(), launcher_exe)
+        launcher_path = os.path.join(os_utils.get_work_dir(), LAUNCHER_EXE_NAME)
 
         base = (
             'latest/download'
@@ -90,8 +92,8 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         检查启动器是否存在
         :return: 是否存在
         """
-        launcher_path = os.path.join(os_utils.get_work_dir(), 'OneDragon-Launcher.exe')
-        return os.path.exists(launcher_path)
+        launcher_path = Path(os_utils.get_work_dir()) / LAUNCHER_EXE_NAME
+        return launcher_path.exists()
 
     def check_launcher_update(self) -> tuple[bool, str, str]:
         """
@@ -167,28 +169,90 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
     def _on_download_click(self) -> None:
         """
-        添加删除旧启动器的逻辑
+        备份旧启动器文件并删除遗留文件
         :return:
         """
+        # 备份需要更新的启动器文件
+        self._swap_launcher_and_backup(backup=True)
+
+        # 删除旧版本遗留的文件
+        self._delete_legacy_files()
+
         ZipDownloaderSettingCard._on_download_click(self)
 
-        # 删除旧的启动器
-        old_launcher_path = os.path.join(os_utils.get_work_dir(), 'OneDragon-Launcher.exe')
-        if os.path.exists(old_launcher_path):
+    def _swap_launcher_and_backup(self, backup: bool) -> None:
+        """
+        在启动器文件和备份文件之间进行交换
+        :param backup: True=备份，False=回滚
+        """
+        work_dir = Path(os_utils.get_work_dir())
+        launcher_path = work_dir / LAUNCHER_EXE_NAME
+        backup_path = work_dir / LAUNCHER_BACKUP_NAME
+        src, dst, action = (
+            (launcher_path, backup_path, '备份')
+            if backup else
+            (backup_path, launcher_path, '回滚')
+        )
+
+        if not src.exists():
+            return  # 没有可操作文件，直接返回
+
+        try:
+            # 仅在备份时需要清理旧备份
+            if backup and dst.exists():
+                dst.unlink()
+            os.replace(str(src), str(dst))
+            log.info(f'{action}文件: {src.name} -> {dst.name}')
+        except Exception as e:
+            log.error(f'{action}文件失败 {src.name}: {e}')
+
+    def _delete_legacy_files(self) -> None:
+        """
+        删除旧版本遗留的文件
+        :return:
+        """
+        work_dir = os_utils.get_work_dir()
+        legacy_files = [
+            'OneDragon Installer.exe',
+            'OneDragon Launcher.exe',
+            'OneDragon Scheduler.exe'
+        ]
+
+        for legacy_file in legacy_files:
+            legacy_path = Path(work_dir) / legacy_file
+            if legacy_path.exists():
+                try:
+                    legacy_path.unlink()
+                    log.info(f'删除旧版本遗留文件: {legacy_file}')
+                except Exception as e:
+                    log.error(f'删除旧版本遗留文件失败 {legacy_file}: {e}')
+
+    def _cleanup_backup_launcher(self) -> None:
+        """
+        删除备份的启动器文件
+        :return:
+        """
+        work_dir = os_utils.get_work_dir()
+        backup_path = Path(work_dir) / LAUNCHER_BACKUP_NAME
+
+        if backup_path.exists():
             try:
-                os.remove(old_launcher_path)
+                backup_path.unlink()
+                log.info(f'删除备份文件: {LAUNCHER_BACKUP_NAME}')
             except Exception as e:
-                log.error(f'删除旧启动器失败: {e}')
+                log.error(f'删除备份文件失败 {LAUNCHER_BACKUP_NAME}: {e}')
 
     def _on_download_finish(self, success: bool, message: str) -> None:
         """
-        添加更新标题栏版本号的逻辑
+        下载完成后处理备份：成功则删除备份，失败则回滚
         :param success: 是否成功
         :param message: 消息
         :return:
         """
-        ZipDownloaderSettingCard._on_download_finish(self, success, message)
         if success:
+            # 下载成功，删除备份文件
+            self._cleanup_backup_launcher()
+
             # 重置当前版本号以便下次检查更新
             self.current_version = ""
             # 更新标题栏版本号
@@ -196,3 +260,8 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
                 self.window().titleBar.setLauncherVersion(app_utils.get_launcher_version())
             except Exception as e:
                 log.error(f'更新标题栏版本号失败: {e}')
+        else:
+            # 下载失败，回滚到备份文件
+            self._swap_launcher_and_backup(backup=False)
+
+        ZipDownloaderSettingCard._on_download_finish(self, success, message)
