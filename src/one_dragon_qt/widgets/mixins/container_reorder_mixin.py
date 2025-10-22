@@ -282,6 +282,14 @@ class ContainerReorderMixin:
         self._container_drag_start_pos = container_pos
         drag_item_id = self._get_item_id(items[hit_idx])
         self._dragging_id = drag_item_id
+        
+        # 不在按下时创建预览，避免卡顿
+        # 预览将在第一次移动时延迟创建
+        self._dragging_widget = items[hit_idx]
+        
+        # 立即应用闭合手势光标
+        self._apply_cursor(Qt.CursorShape.ClosedHandCursor)
+        
         # 开启自动滚动
         self._auto_scroll_dir = 0
         self._auto_scroll_timer.start()
@@ -290,24 +298,24 @@ class ContainerReorderMixin:
         if not self._container_drag_active:
             return
 
-        current_time = time.time() * 1000
-
-        # 性能优化：移动事件节流，避免过于频繁的UI更新
-        if current_time - self._last_move_time < self._move_throttle_ms:
-            return
-        self._last_move_time = current_time
-
         global_pos = obj.mapToGlobal(event.pos())
         container_pos = self._container.mapFromGlobal(global_pos)
         drop_parent = self._get_drop_parent() if self._get_drop_parent else self._container
         parent_pos = drop_parent.mapFromGlobal(global_pos)
 
+        # 检查是否超过拖拽阈值
         if not self._container_drag_started:
             if (container_pos - self._container_drag_start_pos).manhattanLength() > self._container_drag_threshold:
                 self._container_drag_started = True
-                if self._dragging_id:
-                    self._start_preview()
-                    self._apply_cursor(Qt.CursorShape.ClosedHandCursor)
+                # 使用 QTimer 异步创建预览，避免阻塞当前移动事件
+                if self._dragging_id and self._dragging_widget:
+                    # 先隐藏原始卡片
+                    if self._opt.hide_original_on_drag:
+                        self._dragging_widget.setVisible(False)
+                    # 异步创建预览（0ms延迟，在下一个事件循环中执行）
+                    QTimer.singleShot(0, lambda: self._async_prepare_preview(parent_pos))
+        
+        # 更新预览位置和拖放指示器
         if self._container_drag_started and self._dragging_id:
             # 性能优化：只在位置真正变化时才更新预览
             current_preview_pos = (parent_pos.x(), parent_pos.y())
@@ -358,17 +366,13 @@ class ContainerReorderMixin:
         self._end_drag()
 
     def _start_preview(self) -> None:
+        """此方法已简化，主要逻辑在按下时就执行了"""
+        # 计算锚点（用于后续的拖拽定位）
         items = self._get_items() or []
         card = next((w for w in items if self._get_item_id(w) == self._dragging_id), None)
         if card is None:
             return
-        # 记录被拖拽控件与原始位置
-        self._dragging_widget = card
-        self._original_index = next((i for i, w in enumerate(items) if w is card), -1)
-        # 拖拽时隐藏原卡片（可选）
-        if self._opt.hide_original_on_drag:
-            card.setVisible(False)
-        # 计算锚点
+            
         grab_x = None
         if self._opt.preview_anchor_mode == "grab":
             global_pos = QCursor.pos()
@@ -380,16 +384,22 @@ class ContainerReorderMixin:
             grab_x = card.width() // 2
         self._drag_anchor_in_card_x = grab_x
 
+    def _prepare_preview(self, card: QWidget) -> None:
+        """在按下时预创建预览，避免移动时卡顿"""
         if not self._opt.preview_enabled:
             return
+            
+        # 立即抓取截图（在按下时完成，避免移动时卡顿）
         pm: QPixmap = card.grab()
         scale = self._opt.preview_scale
         w = max(1, int(pm.width() * scale))
         h = max(1, int(pm.height() * scale))
         pm = pm.scaled(w, h, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        
         drop_parent = self._get_drop_parent() if self._get_drop_parent else self._container
         if drop_parent is None:
             return
+            
         if self._float_container is None:
             self._float_container = QFrame(drop_parent)
             self._float_container.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
@@ -413,8 +423,29 @@ class ContainerReorderMixin:
         self._float_label.setPixmap(pm)
         self._float_label.resize(pm.size())
         self._float_container.resize(self._float_label.size())
-        self._float_container.show()
-        self._float_container.raise_()
+        # 注意：这里不显示，等到真正开始拖拽时再显示
+        self._float_container.hide()
+
+    def _async_prepare_preview(self, initial_pos: QPoint) -> None:
+        """异步创建预览，避免阻塞鼠标移动事件"""
+        if not self._dragging_widget or not self._container_drag_started:
+            return
+            
+        # 创建预览
+        self._prepare_preview(self._dragging_widget)
+        
+        # 立即更新到当前鼠标位置
+        current_pos = QCursor.pos()
+        drop_parent = self._get_drop_parent() if self._get_drop_parent else self._container
+        if drop_parent:
+            parent_pos = drop_parent.mapFromGlobal(current_pos)
+            self._move_preview(parent_pos.x(), parent_pos.y())
+            self._last_preview_pos = (parent_pos.x(), parent_pos.y())
+        
+        # 显示预览
+        if self._float_container is not None:
+            self._float_container.show()
+            self._float_container.raise_()
 
     def _move_preview(self, x: int, y: int) -> None:
         if self._float_container is not None and self._float_container.isVisible():

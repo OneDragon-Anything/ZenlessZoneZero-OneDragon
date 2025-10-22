@@ -329,14 +329,14 @@ class ChargePlanInterface(ContainerReorderMixin, VerticalScrollInterface):
                 on_reorder=self._on_reorder_commit,
                 get_drop_parent=lambda: self.content_widget,
                 get_drag_handle=None,
-                options=ReorderDragOptions(
-                    preview_enabled=False,  # 禁用预览，消除卡顿
-                    hide_original_on_drag=True,  # 拖拽时隐藏原卡片
-                    handle_left_width=None,  # 整个卡片都可拖拽
-                    placeholder_css="border: 2px dashed #0078d4; background-color: rgba(0,120,212,0.1); border-radius: 6px;",
-                    insert_line_color="#0078d4",
-                    highlight_duration_ms=600,
-                )
+                options=ReorderDragOptions(preview_enabled=True,
+                                           preview_scale=1.0,
+                                           preview_opacity=0.6,
+                                           handle_left_width=None,
+                                           hide_original_on_drag=True,
+                                           highlight_duration_ms=600,
+                                           preview_anchor_mode="left",
+                                           anchor_left_padding=8)
             )
 
         self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
