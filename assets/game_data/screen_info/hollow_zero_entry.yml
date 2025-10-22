@@ -16,8 +16,8 @@ area_list:
 - area_name: 副本列表
   pc_rect:
   - 1128
-  - 184
-  - 1604
+  - 10
+  - 1769
   - 904
   text: ''
   lcs_percent: 0.5

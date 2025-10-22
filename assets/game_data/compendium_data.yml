@@ -148,6 +148,10 @@
             - mission_name: "巨厦遗骸-内部"
             - mission_name: "巨厦遗骸-腹地"
             - mission_name: "巨厦遗骸-核心"
+        - mission_type_name: "枯败花圃"
+          mission_list:
+            - mission_name: "枯败花圃-探索"
+            - mission_name: "枯败花圃-闪击"
     - category_name: "式舆防卫战"
       mission_type_list:
         - mission_type_name: "剧变节点"
