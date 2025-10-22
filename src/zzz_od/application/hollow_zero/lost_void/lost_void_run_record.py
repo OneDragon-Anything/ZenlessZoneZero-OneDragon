@@ -70,6 +70,20 @@ class LostVoidRunRecord(AppRunRecord):
         """
         self.update('period_reward_complete', new_value)
 
+    @property
+    def points_reward_complete(self) -> bool:
+        """
+        是否已经刷满悬赏委托 (8000/8000积分奖励)
+        """
+        return self.get('points_reward_complete', False)
+
+    @points_reward_complete.setter
+    def points_reward_complete(self, new_value: bool) -> None:
+        """
+        是否已经刷满悬赏委托 (8000/8000积分奖励)
+        """
+        self.update('points_reward_complete', new_value)
+
     def is_finished_by_week(self) -> bool:
         """
         按周的角度看是否已经完成
@@ -85,6 +99,9 @@ class LostVoidRunRecord(AppRunRecord):
             return self.eval_point_complete
         elif self.config.extra_task == LostVoidExtraTask.PERIOD_REWARD.value.value:
             return self.period_reward_complete
+        elif self.config.extra_task == LostVoidExtraTask.POINTS_REWARD.value.value:
+            # 检查悬赏委托的 8000/8000 是否完成
+            return self.points_reward_complete
         else:
             return False
 
@@ -146,6 +163,7 @@ class LostVoidRunRecord(AppRunRecord):
         self.daily_run_times = 0
         self.eval_point_complete = False
         self.period_reward_complete = False
+        self.points_reward_complete = False
         self.complete_task_force_with_up = False
 
     @property

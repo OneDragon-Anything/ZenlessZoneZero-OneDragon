@@ -18,6 +18,7 @@ from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import 
     LostVoidRegionType,
 )
 from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig
+from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidExtraTask
 from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import (
     LostVoidRunRecord,
 )
@@ -69,6 +70,7 @@ class LostVoidApp(ZApplication):
 
     @operation_node(name='初始化加载', is_start_node=True)
     def init_for_lost_void(self) -> OperationRoundResult:
+        # 检查分配给今天的任务是否完成
         if self.run_record.is_finished_by_day():
             return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
 
@@ -134,6 +136,49 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='识别初始画面', status='可前往副本画面')
     @node_from(from_name='选择迷失之地')
     @node_from(from_name='通关后处理', status=STATUS_AGAIN)
+    @operation_node(name='开始前等待入口加载')
+    def wait_lost_void_entry(self) -> OperationRoundResult:
+        screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
+        if screen_name != '迷失之地-入口':
+            return self.round_retry(status='等待画面加载', wait=1)
+        return self.round_success(status=screen_name)
+
+    @node_from(from_name='开始前等待入口加载')
+    @operation_node(name='开始前识别悬赏委托完成进度')
+    def check_points_reward_1(self) -> OperationRoundResult:
+        if self.config.extra_task != LostVoidExtraTask.POINTS_REWARD.value.value:
+            return self.round_success()
+        return self._check_points_reward('标签-悬赏委托完成进度(主界面+战线肃清)')
+
+    # 识别悬赏委托分数
+    def _check_points_reward(self, area_name) -> OperationRoundResult:
+        last_count_8000 = -1
+        # 默认设置找不到 8000 返回重试
+        result = self.round_retry('未找到悬赏委托 (xxxx/8000)', wait=0.2)
+        # 识别到两次一致的结果就退出循环
+        for _ in range(10):
+            ocr_result_map = self.ocr(self.screenshot(), '迷失之地-大世界', area_name)
+            count_8000 = 0
+
+            for ocr_result, _ in ocr_result_map.items():
+                count_8000 += ocr_result.count('8000')
+            if last_count_8000 != count_8000:
+                last_count_8000 = count_8000
+                time.sleep(1)
+                continue
+
+            if count_8000 == 1:
+                # 只有一个 8000
+                result = self.round_success('未打满悬赏委托 (xxxx/8000)')
+            elif count_8000 == 2:
+                # 悬赏委托完成进度 8000/8000, 如果悬赏委托未完成, 设置为已完成
+                if not self.run_record.points_reward_complete:
+                    self.run_record.points_reward_complete = True
+                result = self.round_success('已完成悬赏委托')
+            break
+        return result
+
+    @node_from(from_name='开始前识别悬赏委托完成进度')
     @operation_node(name='前往副本画面', node_max_retry_times=60)
     def goto_mission_screen(self) -> OperationRoundResult:
         mission_name = self.config.mission_name
@@ -443,12 +488,16 @@ class LostVoidApp(ZApplication):
         return self.round_by_op_result(op_result)
 
     @node_from(from_name='层间移动', status=LostVoidRunLevel.STATUS_COMPLETE)
+    @operation_node(name='通关后等待入口加载', node_max_retry_times=60)
+    def wait_lost_void_entry_after_complete(self) -> OperationRoundResult:
+        screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
+        if screen_name != '迷失之地-入口':
+            return self.round_retry('等待画面加载', wait=1)
+        return self.round_success()
+
+    @node_from(from_name='通关后等待入口加载')
     @operation_node(name='通关后处理', node_max_retry_times=60)
     def after_complete(self) -> OperationRoundResult:
-        screen_name = self.check_and_update_current_screen(self.last_screenshot)
-        if screen_name != '迷失之地-入口':
-            return self.round_retry('等待画面加载')
-
         self.run_record.add_complete_times()
         if self.use_priority_agent:
             self.run_record.complete_task_force_with_up = True
@@ -458,7 +507,15 @@ class LostVoidApp(ZApplication):
 
         return self.round_success(LostVoidApp.STATUS_AGAIN)
 
-    @node_from(from_name='通关后处理')
+    @node_from(from_name='通关后处理', status=STATUS_ENOUGH_TIMES)
+    @operation_node(name='通关后识别悬赏委托完成进度')
+    def check_points_reward_2(self) -> OperationRoundResult:
+        if self.config.extra_task == LostVoidExtraTask.POINTS_REWARD.value.value and not self.run_record.points_reward_complete:
+            return self._check_points_reward('标签-悬赏委托完成进度(主界面+战线肃清)')
+        return self.round_success(status='无需检查')
+
+    @node_from(from_name='开始前识别悬赏委托完成进度', status='已完成悬赏委托')
+    @node_from(from_name='通关后识别悬赏委托完成进度')
     @operation_node(name='打开悬赏委托')
     def open_reward_list(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(screen_name='迷失之地-入口', area_name='按钮-悬赏委托',
@@ -482,7 +539,8 @@ class LostVoidApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
+    ctx.run_context.start_running()
     op = LostVoidApp(ctx)
     op.execute()
 
