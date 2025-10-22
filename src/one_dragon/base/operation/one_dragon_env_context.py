@@ -6,6 +6,8 @@ from one_dragon.envs.download_service import DownloadService
 from one_dragon.envs.env_config import EnvConfig
 from one_dragon.envs.ghproxy_service import GhProxyService
 from one_dragon.envs.git_service import GitService
+from one_dragon.envs.mirrorchyan_config import MirrorChyanConfig
+from one_dragon.envs.mirrorchyan_service import MirrorChyanService
 from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.envs.python_service import PythonService
 
@@ -32,6 +34,10 @@ class OneDragonEnvContext:
         return EnvConfig()
 
     @cached_property
+    def mirrorchyan_config(self):
+        return MirrorChyanConfig(self.env_config)
+
+    @cached_property
     def download_service(self):
         return DownloadService(self.project_config, self.env_config)
 
@@ -46,6 +52,10 @@ class OneDragonEnvContext:
     @cached_property
     def gh_proxy_service(self):
         return GhProxyService(self.env_config)
+
+    @cached_property
+    def mirrorchyan_service(self):
+        return MirrorChyanService(self.mirrorchyan_config, self.download_service)
 
     def after_app_shutdown(self) -> None:
         """
