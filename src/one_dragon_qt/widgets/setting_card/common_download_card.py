@@ -236,7 +236,6 @@ class ZipDownloaderSettingCard(CommonDownloaderSettingCard):
     def _create_downloader(self) -> ZipDownloader:
         """
         创建 Zip 下载器对象
-        :param param: 下载器参数，如果为 None 则通过 _get_downloader_param 获取
         :return: Zip 下载器对象
         """
         param = self._get_downloader_param()

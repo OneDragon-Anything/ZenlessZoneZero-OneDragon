@@ -23,7 +23,7 @@ LAUNCHER_BACKUP_NAME = LAUNCHER_EXE_NAME + '.bak'
 class LauncherVersionChecker(QThread):
     """启动器版本号检查器。
 
-    该线程在后台获取最新的稳定版和测试版标签，并读取当前本地启动器版本。
+    该线程在后台获取最新的稳定版和测试版标签。
     运行结束后通过 check_finished 信号发出两个字符串参数：
         latest_stable: 最新稳定版标签（或空字符串）
         latest_beta: 最新测试版标签（或空字符串）
@@ -45,7 +45,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self.ctx: OneDragonEnvContext = ctx
         self.version_checker = LauncherVersionChecker(ctx)
         self.version_checker.check_finished.connect(self._on_version_check_finished)
-        self.latest_version = "latest"
+        self.target_version = "latest"
         self.current_version = ""
         self.latest_stable = ""
         self.latest_beta = ""
@@ -55,8 +55,6 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             ctx=ctx,
             icon=FluentIcon.INFO,
             title=gt('启动器'),
-            content=gt('未安装'),
-            parent=None
         )
 
         # 设置下拉框选项：稳定版和测试版
@@ -65,10 +63,9 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             ConfigItem('测试版', 'beta')
         ])
 
-    def _get_downloader_param(self, index: int | None = None) -> CommonDownloaderParam:
+    def _get_downloader_param(self, _idx = None) -> CommonDownloaderParam:
         """
         动态生成下载器参数
-        :param index: 选择的下标（未使用，因为 LauncherInstallCard 不依赖 combo_box 数据）
         :return: CommonDownloaderParam
         """
         zip_file_name = f'{self.ctx.project_config.project_name}-Launcher.zip'
@@ -76,8 +73,8 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
         base = (
             'latest/download'
-            if self.latest_version == 'latest'
-            else f'download/{self.latest_version}'
+            if self.target_version == 'latest'
+            else f'download/{self.target_version}'
         )
         download_url = f'{self.ctx.project_config.github_homepage}/releases/{base}/{zip_file_name}'
 
@@ -111,16 +108,14 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         # 根据下拉框选择的通道决定检查哪个版本
         selected_channel = self.combo_box.currentData()
         if selected_channel == 'stable':
-            # 稳定版通道：与最新稳定版比较；若不存在稳定版，则视为已最新
-            self.latest_version = self.latest_stable or self.current_version
+            self.target_version = self.latest_stable or 'latest'
         else:
-            # 测试版通道：与最新测试版比较；若不存在测试版，则视为已最新
-            self.latest_version = self.latest_beta or self.current_version
+            self.target_version = self.latest_beta or self.latest_stable
 
         self._update_downloader_and_runner()
 
         # 在主线程中更新UI
-        if self.current_version == self.latest_version:
+        if self.current_version == self.target_version:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
             msg = f"{gt('已安装')} {self.current_version}"
             self._update_display(icon, msg)
@@ -128,9 +123,9 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             self.download_btn.setDisabled(True)
         else:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
-            msg = f"{gt('需更新')} {gt('当前版本')}: {self.current_version}; {gt('最新版本')}: {self.latest_version}"
+            msg = f"{gt('可下载')} {gt('当前版本')}: {self.current_version}; {gt('目标版本')}: {self.target_version}"
             self._update_display(icon, msg)
-            self.download_btn.setText(gt('更新'))
+            self.download_btn.setText(gt('下载'))
             self.download_btn.setDisabled(False)
 
     def check_and_update_display(self) -> None:

@@ -16,7 +16,6 @@ from one_dragon_qt.widgets.install_card.base_install_card import BaseInstallCard
 class LauncherInstallCard(BaseInstallCard):
 
     def __init__(self, ctx: OneDragonEnvContext):
-        self.ctx: OneDragonEnvContext = ctx
 
         BaseInstallCard.__init__(
             self,

@@ -93,4 +93,4 @@ class ZipDownloader(CommonDownloader):
             return True
 
         zip_file_path = os.path.join(self.param.save_file_path, self.param.save_file_name)
-        return bool(os.path.exists(zip_file_path))
+        return os.path.exists(zip_file_path)
