@@ -95,10 +95,10 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         launcher_path = Path(os_utils.get_work_dir()) / LAUNCHER_EXE_NAME
         return launcher_path.exists()
 
-    def check_launcher_update(self) -> tuple[bool, str, str]:
+    def check_launcher_update(self) -> bool:
         """
         检查启动器更新
-        :return: (是否最新, 最新版本, 当前版本)
+        :return: 是否最新
         """
         if not self.current_version:
             self.current_version = app_utils.get_launcher_version()
