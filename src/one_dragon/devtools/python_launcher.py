@@ -40,18 +40,21 @@ def verify_path_issues():
 def configure_environment(ctx: OneDragonEnvContext):
     uv_path = ctx.env_config.uv_path
     if not uv_path or not os.path.exists(uv_path):
-        print_message("获取 UV 路径失败，请检查路径设置。", "ERROR")
+        print_message("获取 UV 路径失败，请运行安装程序。", "ERROR")
         sys.exit(1)
+
     # 配置环境变量
     print_message("开始配置环境变量...", "INFO")
     os.environ.update({
         'PYTHONPATH': os.path.join(path, "src"),
         'UV_DEFAULT_INDEX': ctx.env_config.pip_source,
     })
+
     for var in ['PYTHONPATH', 'UV_DEFAULT_INDEX']:
         if not os.environ.get(var):
             print_message(f"{var} 未设置", "ERROR")
             sys.exit(1)
+
     print_message(f"PYTHONPATH：{os.environ['PYTHONPATH']}", "PASS")
     print_message(f"UV_DEFAULT_INDEX：{os.environ['UV_DEFAULT_INDEX']}", "PASS")
 
