@@ -89,7 +89,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             unzip_dir_path=os_utils.get_work_dir()
         )
 
-    def check_launcher_exist(self) -> bool:
+    def _check_launcher_exist(self) -> bool:
         """
         检查启动器是否存在
         :return: 是否存在
@@ -123,13 +123,13 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         if self.current_version == self.latest_version:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
             msg = f"{gt('已安装')} {self.current_version}"
-            self.update_display(icon, msg)
+            self._update_display(icon, msg)
             self.download_btn.setText(gt('已安装'))
             self.download_btn.setDisabled(True)
         else:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
             msg = f"{gt('需更新')} {gt('当前版本')}: {self.current_version}; {gt('最新版本')}: {self.latest_version}"
-            self.update_display(icon, msg)
+            self._update_display(icon, msg)
             self.download_btn.setText(gt('更新'))
             self.download_btn.setDisabled(False)
 
@@ -140,7 +140,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         :return:
         """
         # 获取当前版本和启动器存在状态
-        launcher_exist = self.check_launcher_exist()
+        launcher_exist = self._check_launcher_exist()
         if launcher_exist:
             self.current_version = app_utils.get_launcher_version()
 
@@ -152,7 +152,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         if not launcher_exist:
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
             msg = gt('需下载')
-            self.update_display(icon, msg)
+            self._update_display(icon, msg)
             self.download_btn.setText(gt('下载'))
             self.download_btn.setDisabled(False)
             return
@@ -160,7 +160,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         if os_utils.run_in_exe():
             icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
             msg = gt('已安装')
-            self.update_display(icon, msg)
+            self._update_display(icon, msg)
             self.download_btn.setText(gt('已安装'))
             self.download_btn.setDisabled(True)
             return
@@ -169,7 +169,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self.version_checker.check_finished.connect(self._on_version_check_finished)
         self.version_checker.start()
 
-    def update_display(self, icon: QIcon, msg: str) -> None:
+    def _update_display(self, icon: QIcon, msg: str) -> None:
         """
         更新显示内容
         :param icon: 图标
