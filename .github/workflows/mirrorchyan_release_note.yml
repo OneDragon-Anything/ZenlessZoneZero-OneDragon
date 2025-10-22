@@ -15,7 +15,6 @@ jobs:
     if: ${{ github.repository_owner == 'OneDragon-Anything' && (github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' || github.event_name == 'release') }}
     steps:
       - name: Upload Release Note
-        if: ${{ github.repository_owner == 'OneDragon-Anything' }}
         id: uploading
         uses: MirrorChyan/release-note-action@v1
         with:
