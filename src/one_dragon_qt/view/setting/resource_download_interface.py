@@ -60,7 +60,7 @@ class ResourceDownloadInterface(VerticalScrollInterface):
 
         return group
 
-    def _add_model_cards(self) -> None:
+    def _add_model_cards(self, group: SettingCardGroup) -> None:
         pass
 
     def on_interface_shown(self) -> None:
