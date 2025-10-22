@@ -126,7 +126,14 @@ class OneDragonRunInterface(ContainerReorderMixin, VerticalScrollInterface):
             on_reorder=self._on_reorder_commit,
             get_drag_handle=None,
             get_drop_parent=lambda: self._app_run_cards[0].parentWidget() if self._app_run_cards else self.app_card_group,
-            options=ReorderDragOptions(preview_enabled=True, preview_scale=1.0, preview_opacity=0.6, handle_left_width=None, hide_original_on_drag=True, highlight_duration_ms=600, preview_anchor_mode="left", anchor_left_padding=8)
+            options=ReorderDragOptions(
+                preview_enabled=False,  # 禁用预览，消除卡顿
+                hide_original_on_drag=True,  # 拖拽时隐藏原卡片
+                handle_left_width=None,  # 整个卡片都可拖拽
+                placeholder_css="border: 2px dashed #0078d4; background-color: rgba(0,120,212,0.1); border-radius: 6px;",
+                insert_line_color="#0078d4",
+                highlight_duration_ms=600,
+            )
         )
 
         return layout
