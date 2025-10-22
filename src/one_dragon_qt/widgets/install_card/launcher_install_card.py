@@ -7,13 +7,13 @@ from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.base.web.zip_downloader import ZipDownloader
 from one_dragon.envs.env_config import DEFAULT_ENV_PATH
-from one_dragon.utils import os_utils, file_utils
+from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.widgets.install_card.base_install_card import BaseInstallCard
 
 
-class LauncherInstallCard(BaseInstallCard, ZipDownloader):
+class LauncherInstallCard(BaseInstallCard):
 
     def __init__(self, ctx: OneDragonEnvContext):
         self.ctx: OneDragonEnvContext = ctx
@@ -35,13 +35,12 @@ class LauncherInstallCard(BaseInstallCard, ZipDownloader):
             check_existed_list=[os.path.join(work_dir, 'OneDragon-Launcher.exe')],
             unzip_dir_path=work_dir,
         )
-
-        ZipDownloader.__init__(self, param=param)
+        self.downloader = ZipDownloader(param)
 
     def install_launcher(self, progress_callback: Optional[Callable[[float, str], None]]) -> Tuple[bool, str]:
         proxy_url = self.ctx.env_config.personal_proxy if self.ctx.env_config.is_personal_proxy else None
         ghproxy_url = self.ctx.env_config.gh_proxy_url if self.ctx.env_config.is_gh_proxy else None
-        success = self.download(proxy_url=proxy_url, ghproxy_url=ghproxy_url, progress_callback=progress_callback)
+        success = self.downloader.download(proxy_url=proxy_url, ghproxy_url=ghproxy_url, progress_callback=progress_callback)
         return (True, gt('安装启动器成功')) if success else (False, gt('安装启动器失败'))
 
     def check_launcher_exist(self) -> bool:
