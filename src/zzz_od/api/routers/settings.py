@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from zzz_od.api.security import get_api_key_dependency
 from zzz_od.api.deps import get_ctx
-from zzz_od.config.agent_outfit_config import AgentOutfitConfig
 from zzz_od.config.model_config import (
     get_flash_classifier_opts,
     get_hollow_zero_event_opts,
@@ -16,8 +15,7 @@ from one_dragon.base.config.basic_model_config import get_ocr_opts
 from one_dragon.base.config.custom_config import CustomConfig
 
 from zzz_od.config.notify_config import NotifyConfig
-from one_dragon.base.config.push_config import PushConfig
-from one_dragon_qt.widgets.push_cards import PushCards  # GUI 使用的动态推送配置源
+from one_dragon.base.push.push_config import PushProxy
 from zzz_od.application.random_play.random_play_config import RandomPlayConfig
 from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import DriveDiscDismantleConfig
 from one_dragon.utils import cmd_utils
@@ -494,131 +492,6 @@ def update_keys_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
     return {"ok": True}
 
 
-# --- Agent outfit ---
-
-
-@router.get("/agent-outfit", response_model=Dict[str, Any], summary="获取代理人服装配置")
-def get_agent_outfit() -> Dict[str, Any]:
-    """
-    获取代理人服装识别配置
-
-    ## 功能描述
-    返回代理人服装识别的配置信息，包括兼容模式和各代理人的服装设置。
-
-    ## 返回数据
-    - **compatibilityMode**: 兼容模式，布尔值
-    - **current**: 当前选择的服装配置
-      - **nicole**: 妮可当前服装
-      - **ellen**: 艾莲当前服装
-      - **astraYao**: 星见雅当前服装
-      - **yixuan**: 一弦当前服装
-      - **yuzuha**: 柚子当前服装
-      - **alice**: 爱丽丝当前服装
-    - **options**: 可选服装列表
-      - 各代理人的可选服装列表
-
-    ## 使用示例
-    ```python
-    import requests
-    response = requests.get("http://localhost:8000/api/v1/settings/agent-outfit")
-    outfit = response.json()
-    print(f"兼容模式: {outfit['compatibilityMode']}")
-    print(f"妮可当前服装: {outfit['current']['nicole']}")
-    ```
-    """
-    ctx = get_ctx()
-    ac: AgentOutfitConfig = ctx.agent_outfit_config
-    return {
-        "compatibilityMode": ac.compatibility_mode,
-        "current": {
-            "nicole": ac.nicole,
-            "ellen": ac.ellen,
-            "astraYao": ac.astra_yao,
-            "yixuan": ac.yixuan,
-            "yuzuha": ac.yuzuha,
-            "alice": ac.alice,
-        },
-        "options": {
-            "nicole": ac.nicole_outfit_list,
-            "ellen": ac.ellen_outfit_list,
-            "astraYao": ac.astra_yao_outfit_list,
-            "yixuan": ac.yixuan_outfit_list,
-            "yuzuha": ac.yuzuha_outfit_list,
-            "alice": ac.alice_outfit_list,
-        },
-    }
-
-
-@router.put("/agent-outfit", response_model=Dict[str, Any], summary="更新代理人服装配置")
-def update_agent_outfit(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    更新代理人服装识别配置
-
-    ## 功能描述
-    更新代理人服装识别的配置，支持兼容模式切换和服装选择。
-
-    ## 请求参数
-    - **compatibilityMode** (可选): 兼容模式，布尔值
-    - **current** (可选): 当前服装配置（兼容模式下使用）
-    - **options** (可选): 服装选项列表（多选模式下使用）
-
-    ## 返回数据
-    - **ok**: 操作是否成功
-
-    ## 注意事项
-    - 兼容模式：每个代理人只能选择一个服装
-    - 多选模式：每个代理人可以选择多个服装进行识别
-
-    ## 使用示例
-    ```python
-    import requests
-    # 兼容模式
-    data = {
-        "compatibilityMode": True,
-        "current": {
-            "nicole": "默认服装",
-            "ellen": "特殊服装"
-        }
-    }
-    response = requests.put("http://localhost:8000/api/v1/settings/agent-outfit", json=data)
-    ```
-    """
-    ctx = get_ctx()
-    ac: AgentOutfitConfig = ctx.agent_outfit_config
-    if "compatibilityMode" in payload:
-        ac.compatibility_mode = bool(payload["compatibilityMode"])
-    current = payload.get("current") or {}
-    if ac.compatibility_mode:
-        # 单选模式
-        for key, attr in [
-            ("nicole", "nicole"),
-            ("ellen", "ellen"),
-            ("astraYao", "astra_yao"),
-            ("yixuan", "yixuan"),
-            ("yuzuha", "yuzuha"),
-            ("alice", "alice"),
-        ]:
-            if key in current:
-                setattr(ac, attr, current[key])
-        ctx.init_agent_template_id()
-    else:
-        # 多选列表模式
-        lists = payload.get("options") or {}
-        for key, attr in [
-            ("nicole", "nicole_outfit_list"),
-            ("ellen", "ellen_outfit_list"),
-            ("astraYao", "astra_yao_outfit_list"),
-            ("yixuan", "yixuan_outfit_list"),
-            ("yuzuha", "yuzuha_outfit_list"),
-            ("alice", "alice_outfit_list"),
-        ]:
-            if key in lists:
-                # 通过底层适配器写入更安全；此处直接赋值
-                setattr(ac, attr, lists[key])
-        ctx.init_agent_template_id_list()
-    return {"ok": True}
-
-
 # --- Model selection (alias of resources/models) ---
 
 
@@ -900,8 +773,10 @@ def get_notify_settings() -> Dict[str, Any]:
     - **push**: 推送基础配置
       - **customPushTitle**: 自定义推送标题
       - **sendImage**: 是否发送图片
+      - **proxy**: 发送推送时使用的代理类型
+      - **proxyOptions**: 可用代理选项
     - **methods**: 推送方式配置
-      - 各种推送方式的详细配置参数
+      - 各推送渠道的配置字段、当前值以及辅助信息
 
     ## 使用示例
     ```python
@@ -914,7 +789,9 @@ def get_notify_settings() -> Dict[str, Any]:
     """
     ctx = get_ctx()
     nc: NotifyConfig = ctx.notify_config
-    pc: PushConfig = ctx.push_config
+
+    push_service = ctx.push_service
+    push_config = push_service.push_config
 
     # 1. 应用开关映射
     apps: Dict[str, bool] = {}
@@ -926,27 +803,64 @@ def get_notify_settings() -> Dict[str, Any]:
 
     # 2. 推送方式配置快照（与 GUI setting_push_interface 初始化字段一致）
     methods: Dict[str, Dict[str, Any]] = {}
-    for method_name, configs in PushCards.get_configs().items():  # method_name 如 WEBHOOK / SMTP 等
-        method_lower = method_name.lower()
-        method_map: Dict[str, Any] = {}
-        for conf in configs:
-            var_suffix = conf.get('var_suffix')  # e.g. URL / METHOD / BODY ...
-            if not var_suffix:
-                continue
-            key = f"{method_lower}_{var_suffix.lower()}"  # push_config 动态属性名
-            try:
-                method_map[var_suffix.lower()] = getattr(pc, key)
-            except Exception:
-                method_map[var_suffix.lower()] = None
-        methods[method_lower] = method_map
+    for channel in push_service.channels:
+        channel_id = channel.channel_id
+        method_lower = channel_id.lower()
+        fields_payload: List[Dict[str, Any]] = []
+        values_original: Dict[str, Any] = {}
+        values_lower: Dict[str, Any] = {}
+
+        for field in channel.config_schema:
+            value = push_config.get_channel_config_value(
+                channel_id=channel_id,
+                field_name=field.var_suffix,
+                default_value=field.default,
+            )
+            config_key = push_config.get_channel_config_key(channel_id, field.var_suffix)
+            field_payload: Dict[str, Any] = {
+                "varSuffix": field.var_suffix,
+                "title": field.title,
+                "icon": field.icon,
+                "type": field.field_type.value,
+                "placeholder": field.placeholder,
+                "required": field.required,
+                "options": field.options,
+                "default": field.default,
+                "language": field.language,
+                "configKey": config_key,
+                "value": value,
+            }
+            fields_payload.append(field_payload)
+            values_original[field.var_suffix] = value
+            values_lower[field.var_suffix.lower()] = value
+
+        method_entry: Dict[str, Any] = {
+            "channelId": channel.channel_id,
+            "channelName": channel.channel_name,
+            "fields": fields_payload,
+            "values": values_original,
+        }
+        # 兼容旧格式：将小写key直接铺平在字典上
+        method_entry.update(values_lower)
+
+        methods[method_lower] = method_entry
 
     return {
         "enableNotify": nc.enable_notify,
         "enableBeforeNotify": nc.enable_before_notify,
         "apps": apps,
         "push": {
-            "customPushTitle": pc.custom_push_title,
-            "sendImage": pc.send_image,
+            "customPushTitle": push_config.custom_push_title,
+            "sendImage": push_config.send_image,
+            "proxy": push_config.proxy,
+            "proxyOptions": [
+                {
+                    "label": option.value.label,
+                    "value": option.value.value,
+                    "desc": option.value.desc,
+                }
+                for option in PushProxy
+            ],
         },
         "methods": methods,
     }
@@ -967,7 +881,8 @@ def update_notify_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
     - **push** (可选): 推送基础配置
       - **customPushTitle**: 自定义推送标题
       - **sendImage**: 是否发送图片，布尔值
-    - **methods** (可选): 推送方式配置对象
+      - **proxy**: 代理选项
+    - **methods** (可选): 推送方式配置对象，支持直接提供键值对或包含 `fields/config/values` 的结构
 
     ## 返回数据
     - **ok**: 操作是否成功
@@ -991,7 +906,8 @@ def update_notify_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
     """
     ctx = get_ctx()
     nc: NotifyConfig = ctx.notify_config
-    pc: PushConfig = ctx.push_config
+    push_service = ctx.push_service
+    push_config = push_service.push_config
     if "enableNotify" in payload:
         nc.enable_notify = bool(payload["enableNotify"])  # type: ignore[assignment]
     if "enableBeforeNotify" in payload:
@@ -1006,20 +922,61 @@ def update_notify_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
                 pass
     push = payload.get("push") or {}
     if "customPushTitle" in push:
-        pc.custom_push_title = push["customPushTitle"]
+        push_config.custom_push_title = push["customPushTitle"]
     if "sendImage" in push:
-        pc.send_image = bool(push["sendImage"])  # type: ignore[assignment]
+        push_config.send_image = bool(push["sendImage"])  # type: ignore[assignment]
+    if "proxy" in push:
+        push_config.proxy = push["proxy"]
+
     methods = payload.get("methods") or {}
-    for group_name, kv in methods.items():
-        if not isinstance(kv, dict):
-            continue
-        for var, value in kv.items():
-            key = f"{group_name}_{var}".lower()
-            if hasattr(pc, key):
-                try:
-                    setattr(pc, key, value)
-                except Exception:
-                    pass
+    if isinstance(methods, dict):
+        channel_map = {channel.channel_id.lower(): channel for channel in push_service.channels}
+        for group_name, group_payload in methods.items():
+            if not isinstance(group_payload, dict):
+                continue
+            channel = channel_map.get(str(group_name).lower())
+            if channel is None:
+                continue
+
+            candidate_dicts: List[Dict[str, Any]] = [group_payload]
+            for key in ("config", "values", "valuesLower"):
+                nested = group_payload.get(key)
+                if isinstance(nested, dict):
+                    candidate_dicts.append(nested)
+
+            fields_section = group_payload.get("fields")
+            if isinstance(fields_section, list):
+                for field_entry in fields_section:
+                    if not isinstance(field_entry, dict):
+                        continue
+                    var_suffix = field_entry.get("varSuffix") or field_entry.get("var_suffix")
+                    if not var_suffix:
+                        continue
+                    value = field_entry.get("value")
+                    candidate_dicts.append({var_suffix: value})
+                    candidate_dicts.append({str(var_suffix).lower(): value})
+
+            for field in channel.config_schema:
+                updated = False
+                lookup_keys = {
+                    field.var_suffix,
+                    field.var_suffix.lower(),
+                    field.var_suffix.upper(),
+                }
+                for candidate in candidate_dicts:
+                    if not isinstance(candidate, dict):
+                        continue
+                    for lookup_key in lookup_keys:
+                        if lookup_key in candidate:
+                            push_config.update_channel_config_value(
+                                channel_id=channel.channel_id,
+                                field_name=field.var_suffix,
+                                new_value=candidate[lookup_key],
+                            )
+                            updated = True
+                            break
+                    if updated:
+                        break
     return {"ok": True}
 
 
