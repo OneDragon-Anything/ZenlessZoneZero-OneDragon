@@ -62,6 +62,12 @@ class WitheredDomainApp(ZApplication):
             self.mission_name = mission_name
             self.mission_type_name = mission_name
 
+        if self.mission_type_name == "枯败花圃":
+            if self.mission_name == "枯败花圃-核心":
+                self.mission_name = "探索"
+            elif self.mission_name == "枯败花圃-苗床":
+                self.mission_name = "闪击"
+
     @operation_node(name='初始画面识别', is_start_node=True)
     def check_first_screen(self) -> OperationRoundResult:
         event_name = hollow_event_utils.check_screen(self.ctx, self.last_screenshot, set())
@@ -115,11 +121,6 @@ class WitheredDomainApp(ZApplication):
     @operation_node(name='选择副本')
     def choose_mission(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('零号空洞-入口', '副本列表')
-        if self.mission_type_name == "枯败花圃":
-            if self.mission_name == "枯败花圃-核心":
-                self.mission_name = "探索"
-            elif self.mission_name == "枯败花圃-苗床":
-                self.mission_name = "闪击"
         return self.round_by_ocr_and_click(self.last_screenshot, self.mission_name, area=area,
                                            success_wait=1, retry_wait=1)
 

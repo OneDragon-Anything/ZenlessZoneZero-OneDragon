@@ -178,7 +178,7 @@ class WitheredDomainRunInterface(AppRunInterface):
 
     def _update_mission_options(self) -> None:
         self.mission_opt.blockSignals(True)
-        mission_list: List[str] = self.ctx.compendium_service.get_hollow_zero_mission_name_list()
+        mission_list: List[str] = self.ctx.compendium_service.get_withered_domain_mission_name_list()
         opt_list = [
             ConfigItem(mission_name)
             for mission_name in mission_list
