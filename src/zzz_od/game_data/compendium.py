@@ -269,7 +269,7 @@ class CompendiumService:
 
         return config_list
 
-    def get_withered_domain_mission_name_list(self) -> List[str]:
+    def get_hollow_zero_mission_name_list(self) -> List[str]:
         mission_type_list = self.get_mission_type_list_data('作战', '零号空洞')
         return [
             mission.mission_name
