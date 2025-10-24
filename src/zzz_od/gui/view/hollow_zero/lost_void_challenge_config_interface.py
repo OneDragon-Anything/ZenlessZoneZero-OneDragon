@@ -102,6 +102,10 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
                                                       options_enum=LostVoidPeriodBuffNo)
         widget.add_widget(self.period_buff_no_opt)
 
+        self.store_gold_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='商店-使用金币购买',
+                                                content='只推荐在刷取成就:「空洞金融大亨」时关闭')
+        widget.add_widget(self.store_gold_opt)
+
         self.store_blood_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='商店-使用血量购买',
                                                  content='练度低情况下 仅建议绝境武备开启')
         widget.add_widget(self.store_blood_opt)
@@ -187,6 +191,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.chase_new_mode_opt.setDisabled(not chosen or is_sample)
         self.investigation_strategy_opt.setDisabled(not chosen or is_sample)
         self.period_buff_no_opt.setDisabled(not chosen or is_sample)
+        self.store_gold_opt.setDisabled(not chosen or is_sample)
         self.store_blood_opt.setDisabled(not chosen or is_sample)
         self.store_blood_min_opt.setDisabled(not chosen or is_sample)
         self.priority_new_opt.setDisabled(not chosen or is_sample)
@@ -214,6 +219,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
             self.chase_new_mode_opt.init_with_adapter(self.chosen_config.get_prop_adapter('chase_new_mode'))
             self.investigation_strategy_opt.init_with_adapter(self.chosen_config.get_prop_adapter('investigation_strategy'))
             self.period_buff_no_opt.init_with_adapter(self.chosen_config.get_prop_adapter('period_buff_no'))
+            self.store_gold_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_gold'))
             self.store_blood_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_blood'))
             self.store_blood_min_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_blood_min', getter_convert='str', setter_convert='int'))
             self.priority_new_opt.init_with_adapter(self.chosen_config.get_prop_adapter('artifact_priority_new'))
