@@ -103,7 +103,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         widget.add_widget(self.period_buff_no_opt)
 
         self.store_gold_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='商店-使用金币购买',
-                                                content='只推荐在刷取成就:「空洞金融大亨」时关闭')
+                                                content='想不买东西速刷时或在刷取成就:「空洞金融大亨」时关闭')
         widget.add_widget(self.store_gold_opt)
 
         self.store_blood_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='商店-使用血量购买',
