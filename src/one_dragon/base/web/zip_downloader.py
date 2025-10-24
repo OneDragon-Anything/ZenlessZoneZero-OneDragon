@@ -34,6 +34,7 @@ class ZipDownloader(CommonDownloader):
             proxy_url: str | None = None,
             ghproxy_url: str | None = None,
             skip_if_existed: bool = True,
+            progress_signal: dict[str, str | None] | None = None,
             progress_callback: Callable[[float, str], None] | None = None
             ) -> bool:
         for i in range(2):
@@ -45,6 +46,7 @@ class ZipDownloader(CommonDownloader):
                 proxy_url=proxy_url,
                 ghproxy_url=ghproxy_url,
                 skip_if_existed=skip_if_existed if i == 0 else False,  # 第2次重试时必定重新下载
+                progress_signal=progress_signal,
                 progress_callback=progress_callback,
             )
 
