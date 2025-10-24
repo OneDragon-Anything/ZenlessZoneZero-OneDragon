@@ -60,6 +60,7 @@ class CommonDownloader:
             proxy_url: str | None = None,
             ghproxy_url: str | None = None,
             skip_if_existed: bool = True,
+            progress_signal: dict[str, str | None] | None = None,
             progress_callback: Callable[[float, str], None] | None = None
             ) -> bool:
         if skip_if_existed and self.is_file_existed():
@@ -84,6 +85,7 @@ class CommonDownloader:
             download_url=download_url,
             save_file_path=os.path.join(self.param.save_file_path, self.param.save_file_name),
             proxy=proxy_url,
+            progress_signal=progress_signal,
             progress_callback=progress_callback)
 
     def is_file_existed(self) -> bool:

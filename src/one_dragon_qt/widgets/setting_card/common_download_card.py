@@ -25,6 +25,7 @@ class DownloadRunner(QThread):
         super().__init__()
         self.ctx: OneDragonContext = ctx
         self.downloader: CommonDownloader = downloader
+        self.progress_signal: dict[str, str | None] = {'signal': None}
 
     def run(self):
         """
@@ -36,13 +37,28 @@ class DownloadRunner(QThread):
                 ghproxy_url=self.ctx.env_config.gh_proxy_url if self.ctx.env_config.is_gh_proxy else None,
                 proxy_url=self.ctx.env_config.personal_proxy if self.ctx.env_config.is_personal_proxy else None,
                 skip_if_existed=False,
+                progress_signal=self.progress_signal
             )
             if result:
                 self.finished.emit(True, '下载资源成功')
             else:
-                self.finished.emit(False, '下载资源失败 请尝试更换代理')
+                # 检查是否是取消导致的失败
+                if self.progress_signal.get('signal') == 'cancel':
+                    self.finished.emit(False, '下载已取消')
+                else:
+                    self.finished.emit(False, '下载资源失败 请尝试更换代理')
         except Exception:
-            self.finished.emit(False, '下载资源失败 请尝试更换代理')
+            if self.progress_signal.get('signal') == 'cancel':
+                self.finished.emit(False, '下载已取消')
+            else:
+                self.finished.emit(False, '下载资源失败 请尝试更换代理')
+
+    def cancel(self):
+        """
+        取消下载
+        :return:
+        """
+        self.progress_signal['signal'] = 'cancel'
 
 
 class CommonDownloaderSettingCard(MultiPushSettingCard):
@@ -75,7 +91,11 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         self.download_btn = PrimaryPushButton(text=gt('下载'))
         self.download_btn.clicked.connect(self._on_download_click)
 
-        btn_list = [self.combo_box, self.download_btn]
+        self.cancel_btn = PrimaryPushButton(text=gt('取消'))
+        self.cancel_btn.clicked.connect(self._on_cancel_click)
+        self.cancel_btn.setVisible(False)  # 初始隐藏取消按钮
+
+        btn_list = [self.combo_box, self.download_btn, self.cancel_btn]
         if extra_btn_list is not None:
             btn_list.extend(extra_btn_list)
 
@@ -189,25 +209,72 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         return self.combo_box.itemData(self.combo_box.currentIndex())
 
     def check_and_update_display(self) -> None:
-        if self.downloader is not None and self.downloader.is_file_existed():
+        """
+        检查并更新显示状态
+        根据下载器状态和下载任务运行状态来设置各个按钮的启用/禁用状态
+        """
+        is_running = self.download_runner is not None and self.download_runner.isRunning()
+        is_downloaded = self.downloader is not None and self.downloader.is_file_existed()
+
+        # 下拉框：只有在非下载状态时才能切换
+        self.combo_box.setDisabled(is_running)
+
+        # 下载按钮：下载中或已下载时禁用
+        self.download_btn.setDisabled(is_running or is_downloaded)
+        if is_running:
+            self.download_btn.setText(gt('下载中'))
+        elif is_downloaded:
             self.download_btn.setText(gt('已下载'))
-            self.download_btn.setDisabled(True)
         else:
             self.download_btn.setText(gt('下载'))
-            self.download_btn.setEnabled(True)
+
+        # 取消按钮：下载中时显示
+        self.cancel_btn.setVisible(is_running)
+        self.cancel_btn.setEnabled(is_running)
 
     def _on_download_click(self) -> None:
+        """
+        处理下载按钮点击事件
+        """
         if self.download_runner is None:
             log.warning('未选择资源')
             return
         if self.download_runner.isRunning():
             log.warning('我知道你很急 但你先别急 正在运行了')
             return
-        self.download_btn.setText(gt('下载中'))
-        self.download_btn.setDisabled(True)
+
+        # 重置取消信号
+        self.download_runner.progress_signal['signal'] = None
+
+        # 启动下载并更新UI状态
         self.download_runner.start()
+        self.check_and_update_display()
+
+    def _on_cancel_click(self) -> None:
+        """
+        处理取消按钮点击事件
+        """
+        if self.download_runner is None:
+            log.warning('未选择资源')
+            return
+        if not self.download_runner.isRunning():
+            log.warning('当前没有下载任务在运行')
+            return
+
+        # 取消下载
+        self.download_runner.cancel()
+        log.info('正在取消下载...')
+
+        # 更新UI状态：禁用取消按钮，显示取消中
+        self.download_btn.setText(gt('取消中'))
+        self.cancel_btn.setDisabled(True)
 
     def _on_download_finish(self, result, message):
+        """
+        处理下载完成事件
+        :param result: 下载是否成功
+        :param message: 结果消息
+        """
         log.info(message)
         self.check_and_update_display()
 
