@@ -57,6 +57,9 @@ class LostVoidBangbooStore(ZOperation):
 
             if not self.check_min_blood_valid(self.last_screenshot):
                 return self.round_fail('血量低于设定最小值')
+        elif self.store_type == '标识-金币':
+            if not self.ctx.lost_void.challenge_config.store_gold:
+                return self.round_fail('不使用金币购买')
 
         # 按刷新之后的确认
         result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-邦布商店', '按钮-刷新-确认')

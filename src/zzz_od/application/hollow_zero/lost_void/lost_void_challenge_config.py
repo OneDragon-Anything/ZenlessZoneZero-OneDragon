@@ -206,6 +206,17 @@ class LostVoidChallengeConfig(YamlConfig):
         self.update('buy_only_priority_2', new_value)
 
     @property
+    def store_gold(self) -> bool:
+        """
+        @return: 是否使用金币购买商店
+        """
+        return self.get('store_gold', True)
+
+    @store_gold.setter
+    def store_gold(self, new_value: bool):
+        self.update('store_gold', new_value)
+
+    @property
     def store_blood(self) -> bool:
         """
         @return: 是否使用血量购买商店

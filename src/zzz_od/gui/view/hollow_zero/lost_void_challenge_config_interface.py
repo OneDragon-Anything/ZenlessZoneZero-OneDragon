@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, FluentThemeColor, PlainTextEdit, SubtitleLabel, BodyLabel, \
-     PushButton, ToolButton
+    PushButton, ToolButton, MessageBox
 from typing import List, Optional
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -63,7 +63,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.delete_btn.clicked.connect(self._on_delete_clicked)
         btn_row.add_widget(self.delete_btn)
 
-        self.cancel_btn = PushButton(text=gt('取消'))
+        self.cancel_btn = PushButton(text=gt('关闭'))
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
         btn_row.add_widget(self.cancel_btn)
 
@@ -101,6 +101,10 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.period_buff_no_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='周期增益',
                                                       options_enum=LostVoidPeriodBuffNo)
         widget.add_widget(self.period_buff_no_opt)
+
+        self.store_gold_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='商店-使用金币购买',
+                                                content='想不买东西速刷时或在刷取成就:「空洞金融大亨」时关闭')
+        widget.add_widget(self.store_gold_opt)
 
         self.store_blood_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='商店-使用血量购买',
                                                  content='练度低情况下 仅建议绝境武备开启')
@@ -187,6 +191,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.chase_new_mode_opt.setDisabled(not chosen or is_sample)
         self.investigation_strategy_opt.setDisabled(not chosen or is_sample)
         self.period_buff_no_opt.setDisabled(not chosen or is_sample)
+        self.store_gold_opt.setDisabled(not chosen or is_sample)
         self.store_blood_opt.setDisabled(not chosen or is_sample)
         self.store_blood_min_opt.setDisabled(not chosen or is_sample)
         self.priority_new_opt.setDisabled(not chosen or is_sample)
@@ -214,6 +219,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
             self.chase_new_mode_opt.init_with_adapter(self.chosen_config.get_prop_adapter('chase_new_mode'))
             self.investigation_strategy_opt.init_with_adapter(self.chosen_config.get_prop_adapter('investigation_strategy'))
             self.period_buff_no_opt.init_with_adapter(self.chosen_config.get_prop_adapter('period_buff_no'))
+            self.store_gold_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_gold'))
             self.store_blood_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_blood'))
             self.store_blood_min_opt.init_with_adapter(self.chosen_config.get_prop_adapter('store_blood_min', getter_convert='str', setter_convert='int'))
             self.priority_new_opt.init_with_adapter(self.chosen_config.get_prop_adapter('artifact_priority_new'))
@@ -303,6 +309,14 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         删除
         :return:
         """
+        _title = '删除确认'
+        _content = '即将删除该配置'
+        _mb = MessageBox(gt(_title), gt(_content), self)
+        _mb.yesButton.setText(gt("确定"))
+        _mb.cancelButton.setText(gt("取消"))
+
+        if not _mb.exec():
+            return
         if self.chosen_config is None:
             return
         self.chosen_config.delete()
