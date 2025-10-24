@@ -1,5 +1,6 @@
 import contextlib
 import os
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -628,7 +629,11 @@ class GitService:
                 tags.append(h.name[len("refs/tags/"):])
 
         # 去重并排序
-        versions = sorted(set(tags), key=Version)
+        for version in tags:
+            # 过滤不符合语义化版本的标签
+            if not re.match(r'^v\d+\.\d+\.\d+(-beta\d*)?$', version):
+                tags.remove(version)
+        versions = sorted(set(tags), key=Version, reverse=True)
 
         # 找出最新的稳定版和测试版
         latest_stable: str | None = None
