@@ -27,6 +27,7 @@ from zzz_od.game_data.agent import DmgTypeEnum, AgentEnum
 from zzz_od.api.run_registry import get_global_run_registry
 from zzz_od.api.bridges import attach_run_event_bridge
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
+from one_dragon.base.operation.application import application_const
 
 
 class AgentInfo(BaseModel):
@@ -867,15 +868,18 @@ def get_apps():
     ```
     """
     ctx = get_ctx()
+    odc = get_one_dragon_app_config(ctx)
+    app_order = odc.app_order
+    run_set = set(odc.app_run_list)
+
     items = []
-    try:
-        from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
-        zapp = ZOneDragonApp(ctx)
-        config = get_one_dragon_app_config(ctx)
-        # 使用配置文件中的实际app_run_list，避免被临时运行列表影响
-        run_set = set(config.get("app_run_list", []))
-        for idx, app in enumerate(zapp.get_one_dragon_apps_in_order()):
-            app_id = getattr(app, 'app_id', '')
+    for idx, app_id in enumerate(app_order):
+        try:
+            app = ctx.run_context.get_application(
+                app_id=app_id,
+                instance_idx=ctx.current_instance_idx,
+                group_id=application_const.DEFAULT_GROUP_ID,
+            )
             app_name = getattr(app, 'op_name', app_id)
 
             # 获取运行记录信息
@@ -896,13 +900,14 @@ def get_apps():
                 'runStatus': run_status,
                 'runTime': run_time,
             })
-    except Exception:
-        pass
-    odc = get_one_dragon_app_config(ctx)
+        except Exception:
+            # 如果获取应用失败，跳过
+            pass
+
     return {
         'items': items,
         'appOrder': odc.app_order,
-        'appRunList': odc.get("app_run_list", []),
+        'appRunList': odc.app_run_list,
     }
 
 
@@ -1148,18 +1153,24 @@ def _get_app_catalog() -> List[dict]:
     ctx = get_ctx()
     config = get_one_dragon_app_config(ctx)
     run_set = set(config.app_run_list)
-    from zzz_od.application.one_dragon_app.zzz_one_dragon_app import ZOneDragonApp
+    app_order = config.app_order
 
-    app = ZOneDragonApp(ctx)
-    apps = app.get_one_dragon_apps_in_order()
     items: List[dict] = []
-    for idx, a in enumerate(apps):
-        items.append({
-            "appId": getattr(a, "app_id", f"app-{idx}"),
-            "name": getattr(a, "op_name", getattr(a, "app_id", f"app-{idx}")),
-            "enabled": getattr(a, "app_id", None) in run_set,
-            "orderIndex": idx,
-        })
+    for idx, app_id in enumerate(app_order):
+        try:
+            app = ctx.run_context.get_application(
+                app_id=app_id,
+                instance_idx=ctx.current_instance_idx,
+                group_id=application_const.DEFAULT_GROUP_ID,
+            )
+            items.append({
+                "appId": app_id,
+                "name": getattr(app, "op_name", app_id),
+                "enabled": app_id in run_set,
+                "orderIndex": idx,
+            })
+        except Exception:
+            pass
     return items
 
 
