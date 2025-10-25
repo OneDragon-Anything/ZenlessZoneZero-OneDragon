@@ -1,12 +1,11 @@
 import contextlib
 import os
-import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
 import pygit2
-from packaging.version import Version
+from packaging import version
 
 from one_dragon.envs.env_config import EnvConfig, GitMethodEnum, RepositoryTypeEnum
 from one_dragon.envs.project_config import ProjectConfig
@@ -629,23 +628,19 @@ class GitService:
                 tags.append(h.name[len("refs/tags/"):])
 
         # 去重并排序
-        for version in tags:
-            # 过滤不符合语义化版本的标签
-            if not re.match(r'^v\d+\.\d+\.\d+(-beta\d*)?$', version):
-                tags.remove(version)
-        versions = sorted(set(tags), key=Version, reverse=True)
+        versions = sorted(set(tags), key=version.parse, reverse=True)
 
         # 找出最新的稳定版和测试版
         latest_stable: str | None = None
         latest_beta: str | None = None
 
-        for version in versions:
-            if '-beta' in version:
+        for v in versions:
+            if version.parse(v).is_prerelease:
                 if latest_beta is None:
-                    latest_beta = version
+                    latest_beta = v
             else:
                 if latest_stable is None:
-                    latest_stable = version
+                    latest_stable = v
                     break
 
         return latest_stable, latest_beta
