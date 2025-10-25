@@ -1,5 +1,5 @@
 import os
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from one_dragon.utils import http_utils
 from one_dragon.utils.log_utils import log
@@ -11,10 +11,11 @@ class CommonDownloaderParam:
             self,
             save_file_path: str,
             save_file_name: str,
-            github_release_download_url: Optional[str] = None,
-            gitee_release_download_url: Optional[str] = None,
-            mirror_chan_download_url: Optional[str] = None,
-            check_existed_list: Optional[list[str]] = None,
+            github_release_download_url: str | None = None,
+            gitee_release_download_url: str | None = None,
+            mirror_chan_download_url: str | None = None,
+            check_existed_list: list[str] | None = None,
+            unzip_dir_path: str | None = None,
     ):
         """
         一个通用下载器 可提供3个下载源 并检查文件是否存在 如果存在则不进行下载
@@ -26,13 +27,15 @@ class CommonDownloaderParam:
             gitee_release_download_url (Optional[str], optional): Gitee Release下载地址. Defaults to None.
             mirror_chan_download_url (Optional[str], optional): Mirror酱下载地址. Defaults to None.
             check_existed_list (Optional[list[str]], optional): 需要检查文件是否存在的列表 完整路径的列表. Defaults to None.
+            unzip_dir_path (Optional[str], optional): 解压目录路径，如果为None则解压到save_file_path. Defaults to None.
         """
         self.save_file_path: str = save_file_path
         self.save_file_name: str = save_file_name
-        self.github_release_download_url: Optional[str] = github_release_download_url
-        self.gitee_release_download_url: Optional[str] = gitee_release_download_url
-        self.mirror_chan_download_url: Optional[str] = mirror_chan_download_url
+        self.github_release_download_url: str | None = github_release_download_url
+        self.gitee_release_download_url: str | None = gitee_release_download_url
+        self.mirror_chan_download_url: str | None = mirror_chan_download_url
         self.check_existed_list: list[str] = [] if check_existed_list is None else check_existed_list
+        self.unzip_dir_path: str | None = unzip_dir_path
 
 
 class CommonDownloader:
@@ -54,10 +57,11 @@ class CommonDownloader:
             download_by_github: bool = True,
             download_by_gitee: bool = False,
             download_by_mirror_chan: bool = False,
-            proxy_url: Optional[str] = None,
-            ghproxy_url: Optional[str] = None,
+            proxy_url: str | None = None,
+            ghproxy_url: str | None = None,
             skip_if_existed: bool = True,
-            progress_callback: Optional[Callable[[float, str], None]] = None
+            progress_signal: dict[str, str | None] | None = None,
+            progress_callback: Callable[[float, str], None] | None = None
             ) -> bool:
         if skip_if_existed and self.is_file_existed():
             return True
@@ -81,6 +85,7 @@ class CommonDownloader:
             download_url=download_url,
             save_file_path=os.path.join(self.param.save_file_path, self.param.save_file_name),
             proxy=proxy_url,
+            progress_signal=progress_signal,
             progress_callback=progress_callback)
 
     def is_file_existed(self) -> bool:
