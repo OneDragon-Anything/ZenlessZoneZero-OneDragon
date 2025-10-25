@@ -310,7 +310,7 @@ class GitService:
 
         # 初始化仓库
         if progress_callback:
-            progress_callback(-1, gt('初始化本地 Git 仓库'))
+            progress_callback(0.0, gt('初始化本地 Git 仓库'))
         log.info(gt('初始化本地 Git 仓库'))
 
         try:
@@ -331,7 +331,7 @@ class GitService:
             return fetch_result.to_tuple()
 
         if progress_callback:
-            progress_callback(0.6, fetch_result.message or gt('获取远程代码成功'))
+            progress_callback(0.5, fetch_result.message or gt('获取远程代码成功'))
 
         # 切换分支
         target_branch = self.env_config.git_branch
