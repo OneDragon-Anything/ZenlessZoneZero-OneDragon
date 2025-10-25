@@ -55,6 +55,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             ctx=ctx,
             icon=FluentIcon.INFO,
             title=gt('启动器'),
+            content=gt('检查中...'),
         )
 
         # 设置下拉框选项：稳定版和测试版
@@ -114,19 +115,23 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
         self._update_downloader_and_runner()
 
-        # 在主线程中更新UI
+        # 更新UI显示
         if self.current_version == self.target_version:
-            icon = FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value)
-            msg = f"{gt('已安装')} {self.current_version}"
-            self._update_display(icon, msg)
-            self.download_btn.setText(gt('已安装'))
-            self.download_btn.setDisabled(True)
+            # 版本一致：已安装
+            self._update_ui_state(
+                icon=FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value),
+                message=f"{gt('已安装')} {self.current_version}",
+                button_text=gt('已安装'),
+                button_enabled=False
+            )
         else:
-            icon = FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value)
-            msg = f"{gt('可下载')} {gt('当前版本')}: {self.current_version}; {gt('目标版本')}: {self.target_version}"
-            self._update_display(icon, msg)
-            self.download_btn.setText(gt('下载'))
-            self.download_btn.setDisabled(False)
+            # 有新版本：可下载
+            self._update_ui_state(
+                icon=FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value),
+                message=f"{gt('可下载')} {gt('当前版本')}: {self.current_version}; {gt('目标版本')}: {self.target_version}",
+                button_text=gt('下载'),
+                button_enabled=True
+            )
 
     def check_and_update_display(self) -> None:
         """
@@ -134,9 +139,22 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         重写父类方法以实现启动器特有的逻辑
         :return:
         """
-        # 先更新UI为检查中状态
-        self.download_btn.setText(gt('检查中...'))
-        self.download_btn.setDisabled(True)
+        # 检查是否正在下载
+        is_running = self.download_runner is not None and self.download_runner.isRunning()
+
+        # 更新取消按钮的显示状态
+        self.cancel_btn.setVisible(is_running)
+        self.cancel_btn.setEnabled(is_running)
+
+        # 如果正在下载，设置下载按钮状态并返回
+        if is_running:
+            self.download_btn.setText(gt('下载中'))
+            self.download_btn.setDisabled(True)
+            self.combo_box.setDisabled(True)
+            return
+
+        # 启用下拉框
+        self.combo_box.setEnabled(True)
 
         # 获取当前版本和启动器存在状态
         launcher_exist = self._check_launcher_exist()
@@ -145,33 +163,53 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
         # 如果启动器不存在，直接更新UI，不需要后台检查
         if not launcher_exist:
-            icon = FluentIcon.INFO.icon(color=FluentThemeColor.RED.value)
-            msg = gt('需下载')
-            self._update_display(icon, msg)
-            self.download_btn.setText(gt('下载'))
-            self.download_btn.setDisabled(False)
+            self._update_ui_state(
+                icon=FluentIcon.INFO.icon(color=FluentThemeColor.RED.value),
+                message=gt('未安装'),
+                button_text=gt('下载'),
+                button_enabled=True
+            )
             return
 
+        # 如果版本号尚未检查，启动检查
         is_version_checked = (self.latest_stable or self.latest_beta)
         if not self.version_checker.isRunning() and not is_version_checked:
+            # 显示检查中状态
+            self._update_ui_state(
+                icon=FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value),
+                message=gt('正在检查版本...'),
+                button_text=gt('检查中...'),
+                button_enabled=False
+            )
             self.version_checker.start()
-        else:
-            # 如果版本号已经检查过，直接调用回调更新UI
-            self._on_version_check_finished(self.latest_stable, self.latest_beta)
+            return
 
-    def _update_display(self, icon: QIcon, msg: str) -> None:
+        # 如果版本号已经检查过，直接调用回调更新UI
+        self._on_version_check_finished(self.latest_stable, self.latest_beta)
+
+    def _update_ui_state(
+        self,
+        icon: QIcon,
+        message: str,
+        button_text: str,
+        button_enabled: bool
+    ) -> None:
         """
-        更新显示内容
+        统一更新UI状态的方法
         :param icon: 图标
-        :param msg: 消息
+        :param message: 提示消息
+        :param button_text: 按钮文本
+        :param button_enabled: 按钮是否启用
         :return:
         """
         self.iconLabel.setIcon(icon)
-        self.contentLabel.setText(msg)
+        self.contentLabel.setText(message)
+        self.download_btn.setText(button_text)
+        self.download_btn.setEnabled(button_enabled)
 
     def _on_download_click(self) -> None:
         """
-        备份旧启动器文件并删除遗留文件
+        下载前的准备工作：备份旧启动器文件并删除遗留文件
         :return:
         """
         # 备份需要更新的启动器文件
@@ -180,6 +218,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         # 删除旧版本遗留的文件
         self._delete_legacy_files()
 
+        # 调用父类方法执行下载
         ZipDownloaderSettingCard._on_download_click(self)
 
     def _swap_launcher_and_backup(self, backup: bool) -> None:
