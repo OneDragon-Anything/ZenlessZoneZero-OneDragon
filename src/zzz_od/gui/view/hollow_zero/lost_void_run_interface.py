@@ -21,7 +21,7 @@ from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import 
 )
 from zzz_od.application.hollow_zero.lost_void.lost_void_config import (
     LostVoidConfig,
-    LostVoidExtraTask,
+    LostVoidTaskEnum,
 )
 from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import (
     LostVoidRunRecord,
@@ -78,20 +78,20 @@ class LostVoidRunInterface(AppRunInterface):
         )
         left_layout.addWidget(self.mission_opt)
 
+        self.task_type_opt = ComboBoxSettingCard(
+            icon=FluentIcon.CALENDAR,  # 选择与时间相关的图标
+            title='刷取目标',
+            options_enum=LostVoidTaskEnum
+        )
+        self.task_type_opt.value_changed.connect(self._update_run_record_display)
+        left_layout.addWidget(self.task_type_opt)
+
         self.weekly_plan_times_opt = SpinBoxSettingCard(
             icon=FluentIcon.CALENDAR,  # 选择与时间相关的图标
-            title='每周基础次数',
-            content='用于完成悬赏委托'
+            title='每周进入次数',
         )
+        self.weekly_plan_times_opt.setVisible(False)
         left_layout.addWidget(self.weekly_plan_times_opt)
-
-        self.extra_task_opt = ComboBoxSettingCard(
-            icon=FluentIcon.CALENDAR,  # 选择与时间相关的图标
-            title='额外刷取',
-            content='完成基础次数后，继续刷取',
-            options_enum=LostVoidExtraTask
-        )
-        left_layout.addWidget(self.extra_task_opt)
 
         left_layout.addStretch(1)
         return left_widget
@@ -149,20 +149,21 @@ class LostVoidRunInterface(AppRunInterface):
         self.mission_opt.init_with_adapter(get_prop_adapter(self.config, 'mission_name'))
         self._update_run_record_display()
 
-        self.weekly_plan_times_opt.init_with_adapter(get_prop_adapter(self.config, 'weekly_plan_times'))
         self.daily_plan_times_opt.init_with_adapter(get_prop_adapter(self.config, 'daily_plan_times'))
-        self.extra_task_opt.init_with_adapter(get_prop_adapter(self.config, 'extra_task'))
+        self.task_type_opt.init_with_adapter(get_prop_adapter(self.config, 'extra_task'))
+        self.weekly_plan_times_opt.init_with_adapter(get_prop_adapter(self.config, 'weekly_plan_times'))
 
     def _update_run_record_display(self) -> None:
-        if self.run_record.period_reward_complete:
+        if self.run_record.bounty_commission_complete:
+            content = '已完成悬赏委托 如错误可重置'
+        elif self.run_record.period_reward_complete:
             content = '已完成刷取周期奖励 如错误可重置'
         elif self.run_record.eval_point_complete:
             content = '已完成刷取业绩 如错误可重置'
-        elif self.run_record.points_reward_complete and self.run_record.is_finished_by_day():
-            content = '已完成悬赏委托 如错误可重置'
         else:
             content = '通关次数 本日: %d, 本周: %d' % (self.run_record.daily_run_times, self.run_record.weekly_run_times)
         self.run_record_opt.setContent(content)
+        self.weekly_plan_times_opt.setVisible(self.config.extra_task == LostVoidTaskEnum.WEEKLY_PLAN_TIMES.value.value)
 
     def _update_mission_options(self) -> None:
         self.mission_opt.blockSignals(True)

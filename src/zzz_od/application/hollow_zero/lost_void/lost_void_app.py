@@ -18,7 +18,6 @@ from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import 
     LostVoidRegionType,
 )
 from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig
-from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidExtraTask
 from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import (
     LostVoidRunRecord,
 )
@@ -71,7 +70,7 @@ class LostVoidApp(ZApplication):
     @operation_node(name='初始化加载', is_start_node=True)
     def init_for_lost_void(self) -> OperationRoundResult:
         # 检查分配给今天的任务是否完成
-        if self.run_record.is_finished_by_day():
+        if self.run_record.is_finished_by_day:
             return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
 
         try:
@@ -145,10 +144,8 @@ class LostVoidApp(ZApplication):
 
     @node_from(from_name='开始前等待入口加载')
     @operation_node(name='开始前识别悬赏委托完成进度')
-    def check_points_reward_1(self) -> OperationRoundResult:
-        if self.config.extra_task != LostVoidExtraTask.POINTS_REWARD.value.value:
-            return self.round_success()
-        return self._check_points_reward()
+    def check_bounty_commission_before(self) -> OperationRoundResult:
+        return self._check_bounty_commission()
 
     @node_from(from_name='开始前识别悬赏委托完成进度')
     @operation_node(name='前往副本画面', node_max_retry_times=60)
@@ -468,17 +465,15 @@ class LostVoidApp(ZApplication):
         if self.use_priority_agent:
             self.run_record.complete_task_force_with_up = True
 
-        if self.run_record.is_finished_by_day():
+        if self.run_record.is_finished_by_day:
             return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
 
         return self.round_success(LostVoidApp.STATUS_AGAIN)
 
     @node_from(from_name='通关后处理', status=STATUS_ENOUGH_TIMES)
     @operation_node(name='通关后识别悬赏委托完成进度')
-    def check_points_reward_2(self) -> OperationRoundResult:
-        if self.config.extra_task == LostVoidExtraTask.POINTS_REWARD.value.value and not self.run_record.points_reward_complete:
-            return self._check_points_reward()
-        return self.round_success(status='无需检查')
+    def check_bounty_commission_after(self) -> OperationRoundResult:
+        return self._check_bounty_commission()
 
     @node_from(from_name='开始前识别悬赏委托完成进度', status='已完成悬赏委托')
     @node_from(from_name='通关后识别悬赏委托完成进度')
@@ -503,7 +498,9 @@ class LostVoidApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     # 识别悬赏委托分数
-    def _check_points_reward(self) -> OperationRoundResult:
+    def _check_bounty_commission(self) -> OperationRoundResult:
+        if not self.config.is_bounty_commission_mode:
+            return self.round_success('非悬赏委托模式')
         area_name = '标签-悬赏委托完成进度(主界面+战线肃清)'
         last_count_8000 = -1
         # 默认设置找不到 8000 返回重试
@@ -525,8 +522,8 @@ class LostVoidApp(ZApplication):
                 result = self.round_success('未打满悬赏委托 (xxxx/8000)')
             elif count_8000 == 2:
                 # 悬赏委托完成进度 8000/8000, 如果悬赏委托未完成, 设置为已完成
-                if not self.run_record.points_reward_complete:
-                    self.run_record.points_reward_complete = True
+                if not self.run_record.bounty_commission_complete:
+                    self.run_record.bounty_commission_complete = True
                 result = self.round_success('已完成悬赏委托')
             break
         return result

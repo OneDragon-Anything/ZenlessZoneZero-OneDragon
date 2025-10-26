@@ -4,12 +4,12 @@ from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 
 
-class LostVoidExtraTask(Enum):
+class LostVoidTaskEnum(Enum):
 
-    NONE = ConfigItem('不进行')
-    POINTS_REWARD = ConfigItem('完成悬赏委托', desc='完成每周8000积分奖励')
-    EVAL_POINT = ConfigItem('刷满业绩点')
+    BOUNTY_COMMISSION = ConfigItem('完成悬赏委托', desc='完成每周8000积分奖励')
+    EVAL_POINT = ConfigItem('刷满业绩点', desc='刷满每周业绩点')
     PERIOD_REWARD = ConfigItem('刷满周期奖励', desc='刷满每周丁尼')
+    WEEKLY_PLAN_TIMES = ConfigItem('完成周计划次数', desc='完成配置的每周计划次数')
 
 
 class LostVoidConfig(ApplicationConfig):
@@ -40,11 +40,15 @@ class LostVoidConfig(ApplicationConfig):
 
     @property
     def extra_task(self) -> str:
-        return self.get('extra_task', LostVoidExtraTask.PERIOD_REWARD.value.value)
+        return self.get('extra_task', LostVoidTaskEnum.BOUNTY_COMMISSION.value.value)
 
     @extra_task.setter
     def extra_task(self, new_value: str):
         self.update('extra_task', new_value)
+
+    @property
+    def is_bounty_commission_mode(self) -> bool:
+        return self.extra_task == LostVoidTaskEnum.BOUNTY_COMMISSION.value.value
 
     @property
     def mission_name(self) -> str:
