@@ -1098,20 +1098,6 @@ class Operation(OperationBase):
         else:
             return self.round_retry(f'找不到 {target_cn}', wait=retry_wait, wait_round_time=retry_wait_round)
 
-    def ocr(self, screen: np.ndarray, screen_name: str, area_name: str) -> dict[str, MatchResultList]:
-        """在区域内使用OCR。
-
-        Args:
-            screen: 截图图像。
-            screen_name: 屏幕名称。
-            area_name: 区域名称。
-
-        Returns:
-            OperationRoundResult: 匹配结果。
-        """
-
-        return screen_utils.ocr(ctx=self.ctx, screen=screen, screen_name=screen_name, area_name=area_name)
-
 
     def round_by_goto_screen(self, screen: Optional[np.ndarray] = None, screen_name: Optional[str] = None,
                              success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,

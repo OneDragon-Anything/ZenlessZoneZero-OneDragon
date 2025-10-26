@@ -4,7 +4,7 @@ from typing import ClassVar, Optional
 import cv2
 
 from one_dragon.base.geometry.point import Point
-from one_dragon.base.matcher.match_result import MatchResult
+from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
@@ -499,34 +499,41 @@ class LostVoidApp(ZApplication):
 
     # 识别悬赏委托分数
     def _check_bounty_commission(self) -> OperationRoundResult:
+        """
+        识别悬赏委托完成进度
+        通过OCR识别屏幕中 '8000' 出现的次数来判断:
+        - 1次: xxxx/8000 (未完成)
+        - 2次: 8000/8000 (已完成)
+
+        :return: 操作结果
+        """
         if not self.config.is_bounty_commission_mode:
             return self.round_success('非悬赏委托模式')
-        area_name = '标签-悬赏委托完成进度(主界面+战线肃清)'
-        last_count_8000 = -1
-        # 默认设置找不到 8000 返回重试
-        result = self.round_retry('未找到悬赏委托 (xxxx/8000)', wait=0.2)
-        # 识别到两次一致的结果就退出循环
-        for _ in range(10):
-            ocr_result_map = self.ocr(self.screenshot(), '迷失之地-大世界', area_name)
-            count_8000 = 0
 
-            for ocr_result, _ in ocr_result_map.items():
-                count_8000 += ocr_result.count('8000')
-            if last_count_8000 != count_8000:
-                last_count_8000 = count_8000
-                time.sleep(1)
-                continue
+        TARGET_SCORE = '8000'  # 目标分数文本
 
-            if count_8000 == 1:
-                # 只有一个 8000
-                result = self.round_success('未打满悬赏委托 (xxxx/8000)')
-            elif count_8000 == 2:
-                # 悬赏委托完成进度 8000/8000, 如果悬赏委托未完成, 设置为已完成
-                if not self.run_record.bounty_commission_complete:
-                    self.run_record.bounty_commission_complete = True
-                result = self.round_success('已完成悬赏委托')
-            break
-        return result
+        # 裁剪悬赏委托进度区域
+        area = self.ctx.screen_loader.get_area('迷失之地-入口', '区域-悬赏委托-进度')
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
+
+        # OCR识别
+        ocr_result_list = self.ctx.ocr.ocr(part)
+
+        # 统计 '8000' 出现次数
+        target_count = sum(ocr_text.data.count(TARGET_SCORE) for ocr_text in ocr_result_list)
+
+        # 根据次数判断完成状态
+        if target_count == 1:
+            # 只有一个 8000,表示 xxxx/8000 (未完成)
+            return self.round_success('未打满悬赏委托')
+        elif target_count == 2:
+            # 两个 8000,表示 8000/8000 (已完成)
+            if not self.run_record.bounty_commission_complete:
+                self.run_record.bounty_commission_complete = True
+            return self.round_success('已完成悬赏委托')
+        else:
+            # 未识别到预期的结果(0次或3次以上),返回重试
+            return self.round_retry('未找到悬赏委托', wait=0.5)
 
 
 def __debug():
