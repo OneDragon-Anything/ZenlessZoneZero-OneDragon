@@ -98,7 +98,7 @@ class LostVoidRunRecord(AppRunRecord):
         elif self.config.extra_task == LostVoidTaskEnum.PERIOD_REWARD.value.value:
             return self.period_reward_complete
         elif self.config.extra_task == LostVoidTaskEnum.WEEKLY_PLAN_TIMES.value.value:
-            return self.weekly_run_times < self.config.weekly_plan_times
+            return self.weekly_run_times >= self.config.weekly_plan_times
         else:
             return False
 
