@@ -128,7 +128,7 @@ class BaseInstallCard(MultiPushSettingCard):
             self.progress_changed.emit(100, None)
         else:
             self.progress_changed.emit(0, None)
-        self.install_btn.setDisabled(success)
+        self.install_btn.setEnabled(True)
         self.finished.emit(success)
         self.after_progress_done(success, msg)
 
