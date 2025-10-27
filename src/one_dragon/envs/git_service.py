@@ -630,7 +630,12 @@ class GitService:
         tags = []
         for h in heads:
             if h.name.startswith("refs/tags/"):
-                tags.append(h.name[len("refs/tags/"):])
+                tag = h.name[len("refs/tags/"):]
+                try:
+                    version.parse(tag)  # 验证是否为有效版本
+                    tags.append(tag)
+                except version.InvalidVersion:
+                    continue
 
         # 去重并排序
         versions = sorted(set(tags), key=version.parse, reverse=True)
