@@ -242,7 +242,7 @@ class EnterGame(ZOperation):
         if self.ctx.game_account_config.bilibili_account_name == '':
             return self.round_fail('未配置B服用户名, 无法切换已登录的B服账号')
 
-        self.round_by_find_and_click_area(self.screenshot(), '打开游戏', 'B服新-切换账号')
+        self.round_by_find_and_click_area(self.last_screenshot, '打开游戏', 'B服新-切换账号')
         time.sleep(0.8)
 
         # region ocr切换账号
