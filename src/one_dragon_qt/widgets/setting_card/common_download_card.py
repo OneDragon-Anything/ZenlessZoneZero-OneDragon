@@ -39,19 +39,18 @@ class DownloadRunner(QThread):
                 skip_if_existed=False,
                 progress_signal=self.progress_signal
             )
-            if result:
-                self.finished.emit(True, '下载资源成功')
-            else:
-                # 检查是否是取消导致的失败
-                if self.progress_signal.get('signal') == 'cancel':
-                    self.finished.emit(False, '下载已取消')
-                else:
-                    self.finished.emit(False, '下载资源失败 请尝试更换代理')
         except Exception:
+            result = False
+
+        if result:
+            message = '下载资源成功'
+        else:
             if self.progress_signal.get('signal') == 'cancel':
-                self.finished.emit(False, '下载已取消')
+                message = '下载已取消'
             else:
-                self.finished.emit(False, '下载资源失败 请尝试更换代理')
+                message = '下载资源失败 请尝试更换代理'
+
+        self.finished.emit(result, message)
 
     def cancel(self):
         """
