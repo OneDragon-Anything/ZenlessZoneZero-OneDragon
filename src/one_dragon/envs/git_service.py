@@ -262,6 +262,11 @@ class GitService:
                 return GitOperationResult(False, 'HEAD_MISSING', gt('更新本地代码失败'),
                                           detail='HEAD missing')
 
+            # 如果相同则无需更新
+            if local_oid == remote_oid:
+                return GitOperationResult(True, 'ALREADY_UP_TO_DATE', gt('本地代码已是最新'),
+                                          detail=f'{local_oid} == {remote_oid}')
+
             # 检查是否可以快进
             can_fast_forward = False
             with contextlib.suppress(Exception):
