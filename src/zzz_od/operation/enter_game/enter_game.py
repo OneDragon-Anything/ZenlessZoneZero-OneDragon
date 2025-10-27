@@ -237,17 +237,19 @@ class EnterGame(ZOperation):
     '''
 
     @node_from(from_name='画面识别', status='B服新-登录记录')
-    @operation_node(name='B服新-选择登录过的账号')
-    def switch_bilibili_account(self) -> OperationRoundResult:
+    @operation_node(name='B服新-点击下拉菜单')
+    def click_drop_button(self) -> OperationRoundResult:
         if self.ctx.game_account_config.bilibili_account_name == '':
             return self.round_fail('未配置B服用户名, 无法切换已登录的B服账号')
 
-        self.round_by_find_and_click_area(self.last_screenshot, '打开游戏', 'B服新-切换账号')
-        time.sleep(0.8)
+        return self.round_by_find_and_click_area(self.last_screenshot, '打开游戏', 'B服新-切换账号', success_wait=0.8)
 
+    @node_from(from_name='B服新-点击下拉菜单')
+    @operation_node(name='B服新-选择登录过的账号')
+    def switch_bilibili_account(self) -> OperationRoundResult:
         # region ocr切换账号
         area = self.ctx.screen_loader.get_area('打开游戏', 'B服新-账号列表')
-        part = cv2_utils.crop_image_only(self.screenshot(), area.rect)
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         # cv2_utils.show_image(part, win_name='debug', wait=1)
 
         mask = cv2.inRange(part,
@@ -263,8 +265,9 @@ class EnterGame(ZOperation):
                 self.ctx.controller.click(mrl.max.center + area.left_top)
                 break
         if not find:
-            error_msg = "未找到已登录的用户: " + self.ctx.game_account_config.bilibili_account_name
-            return self.round_retry(error_msg, wait=0.2)
+            name = self.ctx.game_account_config.bilibili_account_name
+            masked = (name[:1] + '*' * max(len(name) - 2, 1) + name[-1:]) if len(name) >= 2 else '*'
+            return self.round_retry(f"未找到已登录的用户: {masked}")
         # endregion
 
         screen = self.screenshot()
