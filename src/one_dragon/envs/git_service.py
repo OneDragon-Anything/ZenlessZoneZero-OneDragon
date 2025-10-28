@@ -575,18 +575,18 @@ class GitService:
         logs = self.fetch_page_commit(0, 1)
         return logs[0].commit_id if logs else None
 
-    def get_latest_tag(self) -> tuple[str | None, str | None]:
+    def get_latest_tag(self) -> tuple[str, str]:
         """
         获取最新的稳定版与测试版 tag
         """
         # 如果不存在本地仓库，返回空
         if not os.path.exists(DOT_GIT_DIR_PATH):
-            return None, None
+            return '', ''
 
         remote = self._ensure_remote()
         if remote is None:
             log.error('更新远程仓库地址失败')
-            return None, None
+            return '', ''
 
         # 应用代理配置
         self._apply_proxy()
@@ -594,7 +594,7 @@ class GitService:
             heads = remote.list_heads(callbacks=pygit2.RemoteCallbacks(), connect=True)
         except Exception as exc:
             log.error(f'获取最新标签失败: {exc}', exc_info=True)
-            return None, None
+            return '', ''
 
         # 提取标签名称
         tags = []
@@ -610,15 +610,15 @@ class GitService:
         versions = sorted(set(tags), key=version.parse, reverse=True)
 
         # 找出最新的稳定版和测试版
-        latest_stable: str | None = None
-        latest_beta: str | None = None
+        latest_stable = ''
+        latest_beta = ''
 
         for v in versions:
             if version.parse(v).is_prerelease:
-                if latest_beta is None:
+                if not latest_beta:
                     latest_beta = v
             else:
-                if latest_stable is None:
+                if not latest_stable:
                     latest_stable = v
                     break
 
