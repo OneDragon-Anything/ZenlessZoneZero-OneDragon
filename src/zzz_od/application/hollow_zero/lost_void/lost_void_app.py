@@ -219,6 +219,23 @@ class LostVoidApp(ZApplication):
         """
         追新模式下的选择逻辑
         """
+        # 优先寻找无等级战略
+        log.debug("【追新模式】 开始执行无等级圈圈流水线分析...")
+        no_level_context = self.ctx.cv_service.run_pipeline('调查战略无等级圈圈', self.last_screenshot)
+        if no_level_context.is_success and no_level_context.contours:
+            target_contour = no_level_context.contours[0]
+            M = cv2.moments(target_contour)
+            center_x = int(M["m10"] / M["m00"])
+            center_y = int(M["m01"] / M["m00"])
+            offset_x, offset_y = no_level_context.crop_offset
+            click_pos = Point(center_x + offset_x, center_y + offset_y)
+            log.debug(f"【追新模式】 找到无等级战略，点击坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {no_level_context.crop_offset})")
+            self.ctx.controller.click(click_pos)
+            time.sleep(1)
+            return self._click_confirm_after_strategy_chosen()
+        
+        log.debug("【追新模式】 未找到无等级战略，使用原有逻辑...")
+        
         swipe_attempts = 0
         MAX_SWIPES = 3
 
