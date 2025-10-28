@@ -34,6 +34,38 @@ class PushConfig(YamlConfig):
             shutil.copy(instance_config_file_path, global_config_file_path)
 
         YamlConfig.__init__(self, 'push')
+        # 企业微信App AM参数迁移
+        migrated = False
+        old_am_key = 'qywx_am'
+
+        # 检查旧的 qywx_am 配置是否存在且有值
+        if self.data and isinstance(self.data.get(old_am_key), str) and self.data.get(old_am_key, '').strip():
+            am_value = self.data.get(old_am_key)
+            
+            parts = [part.strip() for part in am_value.split(',')]
+
+            # 确认参数个数正确
+            if len(parts) >= 4:
+                migration_map = {
+                    'qywx_app_corp_id': parts[0],
+                    'qywx_app_corp_secret': parts[1],
+                    'qywx_app_to_user': parts[2],
+                    'qywx_app_agent_id': parts[3]
+                }
+                # 可选的media id
+                if len(parts) == 5:
+                    migration_map['qywx_app_media_id'] = parts[4]
+
+                for new_key, new_value in migration_map.items():
+                    # 只有当新key不存在或为空时，才进行迁移，避免覆盖用户的新设置
+                    if not self.data.get(new_key):
+                        self.data[new_key] = new_value
+                        migrated = True
+
+        if migrated:
+            # 迁移成功，删除旧key并保存
+            del self.data[old_am_key]
+            self.save()
 
     @property
     def custom_push_title(self) -> str:
