@@ -85,23 +85,6 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             unzip_dir_path=os_utils.get_work_dir()
         )
 
-    @property
-    def _is_launcher_exist(self) -> bool:
-        """
-        检查启动器是否存在
-        :return: 是否存在
-        """
-        launcher_path = Path(os_utils.get_work_dir()) / LAUNCHER_EXE_NAME
-        return launcher_path.exists()
-
-    @property
-    def _is_version_checked(self) -> bool:
-        """
-        检查版本号是否已经获取
-        :return: 如果至少有一个版本号不为 None 则返回 True
-        """
-        return self.latest_stable is not None or self.latest_beta is not None
-
     def _on_version_check_finished(self, versions: tuple[str | None, str | None]) -> None:
         """
         版本检查完成后的回调
@@ -172,12 +155,11 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self.combo_box.setEnabled(True)
 
         # 获取当前版本和启动器存在状态
-        launcher_exist = self._is_launcher_exist
-        if launcher_exist:
+        launcher_path = Path(os_utils.get_work_dir()) / LAUNCHER_EXE_NAME
+        if launcher_path.exists():
             self.current_version = app_utils.get_launcher_version()
-
-        # 如果启动器不存在，直接更新UI，不需要后台检查
-        if not launcher_exist:
+        else:
+            # 如果启动器不存在，直接更新UI，不需要后台检查
             self._update_ui_state(
                 icon=FluentIcon.INFO.icon(color=FluentThemeColor.RED.value),
                 message=gt('未安装'),
@@ -187,7 +169,8 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             return
 
         # 如果版本号尚未检查，启动检查
-        if not self.version_checker.isRunning() and not self._is_version_checked:
+        is_version_checked = self.latest_stable is not None or self.latest_beta is not None
+        if not self.version_checker.isRunning() and not is_version_checked:
             # 显示检查中状态
             self._update_ui_state(
                 icon=FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value),
