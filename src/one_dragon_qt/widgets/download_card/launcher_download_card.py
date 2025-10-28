@@ -1,4 +1,5 @@
 import os
+from contextlib import suppress
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
@@ -305,10 +306,8 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
             # 更新标题栏版本号
             self.current_version = app_utils.get_launcher_version()
-            try:
+            with suppress(Exception):
                 self.window().titleBar.setLauncherVersion(self.current_version)
-            except Exception:
-                pass
         else:
             # 下载失败，回滚到备份文件
             self._swap_launcher_and_backup(backup=False)
