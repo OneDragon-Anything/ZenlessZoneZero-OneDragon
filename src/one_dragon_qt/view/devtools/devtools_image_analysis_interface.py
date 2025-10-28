@@ -737,17 +737,17 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
 
         # 获取HSV分析结果
         hsv_result = self.logic.get_hsv_analysis_in_rect(left, top, right, bottom)
-        
+
         # 构建显示内容
         content = f"({left}, {top}) - ({right}, {bottom})"
-        
+
         if hsv_result:
             center_hsv = hsv_result['center_hsv']
             diff_hsv = hsv_result['diff_hsv']
-            
+
             content += f"\nHSV中心: {center_hsv}"
             content += f"\nHSV差值: {diff_hsv}"
-        
+
         # 显示结果
         InfoBar.success(
             title=gt('已选择区域'),

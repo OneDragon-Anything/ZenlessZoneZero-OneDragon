@@ -236,9 +236,9 @@ class LostVoidApp(ZApplication):
                 self.ctx.controller.click(click_pos)
                 time.sleep(1)
                 return self._click_confirm_after_strategy_chosen()
-        
+
         log.debug("【追新模式】 未找到无等级战略，使用原有逻辑...")
-        
+
         swipe_attempts = 0
         MAX_SWIPES = 3
 

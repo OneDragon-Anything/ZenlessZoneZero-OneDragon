@@ -298,7 +298,7 @@ class ImageAnalysisLogic:
         # 对原始图像进行HSV分析
         from one_dragon.utils import cv2_utils
         hsv_result = cv2_utils.get_hsv_range_in_rect(
-            self.context.source_image, 
+            self.context.source_image,
             source_left, source_top, source_right, source_bottom
         )
 
