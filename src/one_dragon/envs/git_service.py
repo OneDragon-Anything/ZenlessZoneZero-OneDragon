@@ -544,10 +544,7 @@ class GitService:
         if not os.path.exists(DOT_GIT_DIR_PATH):
             return
 
-        try:
-            self._apply_proxy()
-        except Exception as exc:
-            log.warning(f'初始化代理失败: {exc}', exc_info=True)
+        self._apply_proxy()
 
     def update_git_remote(self) -> None:
         """
