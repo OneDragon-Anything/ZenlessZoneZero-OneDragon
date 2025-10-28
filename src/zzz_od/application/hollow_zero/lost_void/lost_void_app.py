@@ -4,7 +4,7 @@ from typing import ClassVar, Optional
 import cv2
 
 from one_dragon.base.geometry.point import Point
-from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
+from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
