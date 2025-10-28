@@ -51,24 +51,15 @@ class GitService:
 
     @staticmethod
     def _ensure_config_search_path() -> None:
-        """禁用系统/用户级 git config，仅使用仓库级配置"""
-        settings = getattr(pygit2, 'settings', None)
-        if settings is None:
-            log.warning('pygit2.settings 不可用，无法覆盖 git config 搜索路径')
-            return
-
-        levels = [
-            getattr(pygit2, 'GIT_CONFIG_LEVEL_SYSTEM', None),
-            getattr(pygit2, 'GIT_CONFIG_LEVEL_GLOBAL', None),
-            getattr(pygit2, 'GIT_CONFIG_LEVEL_XDG', None),
-        ]
-
-        for level in levels:
-            if level is not None:
-                with contextlib.suppress(Exception):
-                    settings.set_search_path(level, '')
-
-        log.info('已禁用系统/用户级 git config 搜索路径，仅保留仓库级配置')
+        """
+        通过设置配置搜索路径为空字符串，忽略用户的系统级和全局级 git 配置。
+        这可以避免用户的全局配置（如 http.proxy、user.name、SSL 证书路径等）影响程序的 git 操作。
+        同时忽略用户可能残留的无效 SSL 证书配置，让 libgit2 使用系统默认的证书验证机制，避免 SSL 证书问题。
+        """
+        pygit2.settings.search_path[pygit2.enums.ConfigLevel.SYSTEM] = ''  # 系统级配置 (如 /etc/gitconfig)
+        pygit2.settings.search_path[pygit2.enums.ConfigLevel.GLOBAL] = ''  # 全局用户配置 (~/.gitconfig)
+        pygit2.settings.search_path[pygit2.enums.ConfigLevel.XDG] = ''     # XDG 配置 (~/.config/git/config)
+        pygit2.settings.owner_validation = False  # 禁用仓库所有权验证
 
     def _open_repo(self, refresh: bool = False) -> pygit2.Repository:
         """打开仓库（带缓存）"""
@@ -299,8 +290,6 @@ class GitService:
         """
         更新最新的代码：不存在 .git 则克隆，存在则拉取并更新分支
         """
-        log.info(f".git {gt('目录')} {DOT_GIT_DIR_PATH}")
-
         if not os.path.exists(DOT_GIT_DIR_PATH):
             return self.clone_repository(progress_callback)
         else:
