@@ -22,20 +22,37 @@ LAUNCHER_BACKUP_NAME = LAUNCHER_EXE_NAME + '.bak'
 
 
 class LauncherVersionChecker(QThread):
-    """启动器版本号检查器。
+    """启动器版本信息检查器。
 
-    该线程在后台获取最新的稳定版和测试版标签。
-    运行结束后通过 check_finished 信号发出一个元组：
-        (latest_stable, latest_beta) - 包含最新稳定版和测试版标签的元组
+    该线程在后台获取当前启动器版本号和最新版本信息。
+    运行结束后通过 check_finished 信号发出三个字符串：
+        (current_version, latest_stable, latest_beta)
+        - current_version: 当前启动器版本号，如果不存在则为空字符串
+        - latest_stable: 最新稳定版标签
+        - latest_beta: 最新测试版标签
     """
-    check_finished = Signal(object)
+    check_finished = Signal(str, str, str)
 
     def __init__(self, ctx: OneDragonEnvContext):
         super().__init__()
         self.ctx = ctx
 
     def run(self):
-        self.check_finished.emit(self.ctx.git_service.get_latest_tag())
+        # 检查当前版本
+        launcher_path = Path(os_utils.get_work_dir()) / LAUNCHER_EXE_NAME
+        if launcher_path.exists():
+            current_version = app_utils.get_launcher_version()
+        else:
+            current_version = ""
+
+        # 检查最新版本
+        latest_stable, latest_beta = self.ctx.git_service.get_latest_tag()
+
+        self.check_finished.emit(
+            current_version,
+            latest_stable,
+            latest_beta,
+        )
 
 
 class LauncherDownloadCard(ZipDownloaderSettingCard):
@@ -45,7 +62,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self.version_checker = LauncherVersionChecker(ctx)
         self.version_checker.check_finished.connect(self._on_version_check_finished)
         self.target_version = "latest"
-        self.current_version = ""
+        self.current_version: str | None = None
         self.latest_stable: str | None = None
         self.latest_beta: str | None = None
 
@@ -86,36 +103,49 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             unzip_dir_path=os_utils.get_work_dir()
         )
 
-    def _on_version_check_finished(self, versions: tuple[str | None, str | None]) -> None:
+    def _on_version_check_finished(self, current_version: str, latest_stable: str, latest_beta: str) -> None:
         """
-        版本检查完成后的回调
-        :param versions: 包含最新稳定版和测试版的元组 (latest_stable, latest_beta)
-        :return:
+        版本检查完成后的回调（空字符串表示不存在）
+
+        Args:
+            current_version: 当前启动器版本号
+            latest_stable: 最新稳定版标签
+            latest_beta: 最新测试版标签
         """
-        self.latest_stable, self.latest_beta = versions
+        # 保存版本信息
+        self.current_version = current_version
+        self.latest_stable = latest_stable
+        self.latest_beta = latest_beta
+
+        # 尝试更新标题栏版本号
+        if self.current_version:
+            with suppress(Exception):
+                self.window().titleBar.setLauncherVersion(self.current_version)
 
         # 根据当前版本初始化下拉框的值
         self._select_channel_by_version()
 
         # 更新UI显示
-        self._update_ui_by_version()
+        self.check_and_update_display()
 
     def _update_ui_by_version(self) -> None:
         """
         根据版本信息更新UI显示
         :return:
         """
-        # 根据下拉框选择的通道决定检查哪个版本
+        # 根据下拉框选择的通道决定目标版本
         selected_channel = self.combo_box.currentData()
         if selected_channel == 'stable':
+            # 稳定版通道
             self.target_version = self.latest_stable or 'latest'
         else:
-            self.target_version = self.latest_beta or self.latest_stable
+            # 测试版通道：优先测试版，其次稳定版，最后兜底
+            self.target_version = self.latest_beta or self.latest_stable or 'latest'
 
         self._update_downloader_and_runner()
 
         # 更新UI显示
-        if self.current_version == self.target_version:
+        if self.current_version and self.current_version == self.target_version:
             # 版本一致：已安装
             self._update_ui_state(
                 icon=FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value),
@@ -123,11 +153,19 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
                 button_text=gt('已安装'),
                 button_enabled=False
             )
-        else:
+        elif self.current_version:
             # 有新版本：可下载
             self._update_ui_state(
                 icon=FluentIcon.INFO.icon(color=FluentThemeColor.GOLD.value),
                 message=f"{gt('可下载')} {gt('当前版本')}: {self.current_version}; {gt('目标版本')}: {self.target_version}",
+                button_text=gt('下载'),
+                button_enabled=True
+            )
+        else:
+            # 未安装：可下载
+            self._update_ui_state(
+                icon=FluentIcon.INFO.icon(color=FluentThemeColor.RED.value),
+                message=f"{gt('未安装')} {gt('目标版本')}: {self.target_version}",
                 button_text=gt('下载'),
                 button_enabled=True
             )
@@ -155,35 +193,33 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         # 启用下拉框
         self.combo_box.setEnabled(True)
 
-        # 获取当前版本和启动器存在状态
-        launcher_path = Path(os_utils.get_work_dir()) / LAUNCHER_EXE_NAME
-        if launcher_path.exists():
-            self.current_version = app_utils.get_launcher_version()
-        else:
-            # 如果启动器不存在，直接更新UI，不需要后台检查
-            self._update_ui_state(
-                icon=FluentIcon.INFO.icon(color=FluentThemeColor.RED.value),
-                message=gt('未安装'),
-                button_text=gt('下载'),
-                button_enabled=True
-            )
-            return
+        # 检查版本检查线程状态
+        is_checking = self.version_checker.isRunning()
 
-        # 如果版本号尚未检查，启动检查
-        is_version_checked = self.latest_stable is not None or self.latest_beta is not None
-        if not self.version_checker.isRunning() and not is_version_checked:
-            # 显示检查中状态
+        # 检查是否需要启动版本检查
+        need_check = (
+            self.current_version is None  # 当前版本未检查
+            or self.latest_stable is None  # 稳定版未检查
+            or self.latest_beta is None  # 测试版未检查
+        )
+
+        # 启动检查（如果需要且未在检查）
+        if need_check and not is_checking:
+            self.version_checker.start()
+            is_checking = True  # 标记为检查中
+
+        # 根据检查状态更新UI
+        if is_checking or need_check:
+            # 正在检查或刚启动检查，显示检查中状态
             self._update_ui_state(
-                icon=FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value),
+                icon=FluentIcon.INFO,
                 message=gt('正在检查版本...'),
                 button_text=gt('检查中...'),
                 button_enabled=False
             )
-            self.version_checker.start()
-            return
-
-        # 如果版本号已经检查过，直接更新UI
-        self._update_ui_by_version()
+        else:
+            # 所有信息已获取，更新UI
+            self._update_ui_by_version()
 
     def _update_ui_state(
         self,
@@ -210,11 +246,12 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         根据当前版本自动选择通道（稳定版/测试版）
         :return:
         """
-        if 'beta' in self.current_version.lower():
+        # 只有当前版本存在且不为空时才根据版本选择通道
+        if self.current_version and 'beta' in self.current_version.lower():
             # 设置为测试版
             self.combo_box.setCurrentIndex(1)
         else:
-            # 设置为稳定版
+            # 设置为稳定版（包括未安装、未检查或稳定版的情况）
             self.combo_box.setCurrentIndex(0)
 
     def _on_download_click(self) -> None:
@@ -304,10 +341,9 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             # 下载成功，删除备份文件
             self._cleanup_backup_launcher()
 
-            # 更新标题栏版本号
-            self.current_version = app_utils.get_launcher_version()
-            with suppress(Exception):
-                self.window().titleBar.setLauncherVersion(self.current_version)
+            # 使用后台线程更新版本号
+            if not self.version_checker.isRunning():
+                self.version_checker.start()
         else:
             # 下载失败，回滚到备份文件
             self._swap_launcher_and_backup(backup=False)
