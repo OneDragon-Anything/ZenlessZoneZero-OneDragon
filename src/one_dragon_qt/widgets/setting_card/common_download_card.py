@@ -149,21 +149,9 @@ class CommonDownloaderSettingCard(MultiPushSettingCard):
         # 创建下载器
         self.downloader = self._create_downloader()
 
-        # 如果已有线程对象，只替换 downloader；否则创建新线程
+        # 如果已有线程对象，只替换 downloader；否则创建新的线程对象
         if self.download_runner is not None:
-            if self.download_runner.isRunning():
-                # 避免阻塞 UI：在线程结束时再替换 downloader
-                def _swap_downloader_on_finish(*_args):
-                    try:
-                        self.download_runner.downloader = self.downloader
-                    finally:
-                        try:
-                            self.download_runner.finished.disconnect(_swap_downloader_on_finish)
-                        except Exception:
-                            pass
-                self.download_runner.finished.connect(_swap_downloader_on_finish)
-            else:
-                self.download_runner.downloader = self.downloader
+            self.download_runner.downloader = self.downloader
         else:
             # 首次创建线程对象
             self.download_runner = DownloadRunner(self.ctx, self.downloader)
