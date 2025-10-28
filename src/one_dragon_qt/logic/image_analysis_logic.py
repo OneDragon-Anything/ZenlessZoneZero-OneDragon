@@ -270,3 +270,36 @@ class ImageAnalysisLogic:
 
     def rename_template(self, old_name: str, new_name: str):
         self.cv_service.rename_template_contour(old_name, new_name)
+
+    def get_hsv_analysis_in_rect(self, left: int, top: int, right: int, bottom: int) -> dict | None:
+        """
+        获取矩形区域内的HSV分析结果
+        :param left: 矩形左边界
+        :param top: 矩形上边界
+        :param right: 矩形右边界
+        :param bottom: 矩形下边界
+        :return: HSV分析结果字典
+        """
+        if self.context is None or self.context.source_image is None:
+            return None
+
+        # 获取当前显示的图像
+        display_image = self.get_display_image()
+        if display_image is None:
+            return None
+
+        # 计算在原始图像中的坐标
+        offset_x, offset_y = self.context.crop_offset
+        source_left = left + offset_x
+        source_top = top + offset_y
+        source_right = right + offset_x
+        source_bottom = bottom + offset_y
+
+        # 对原始图像进行HSV分析
+        from one_dragon.utils import cv2_utils
+        hsv_result = cv2_utils.get_hsv_range_in_rect(
+            self.context.source_image, 
+            source_left, source_top, source_right, source_bottom
+        )
+
+        return hsv_result
