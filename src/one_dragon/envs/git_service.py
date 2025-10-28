@@ -239,10 +239,7 @@ class GitService:
             remote_oid = repo.references[remote_ref].target
 
             # 获取本地 HEAD
-            try:
-                local_oid = repo.head.target
-            except Exception:
-                local_oid = None
+            local_oid = getattr(repo.head, 'target', None) if hasattr(repo, 'head') else None
 
             # HEAD 不存在，直接重置
             if local_oid is None:
@@ -369,8 +366,9 @@ class GitService:
                 commit = self._get_branch_commit(self.env_config.git_branch, allow_local=False)
                 if commit is None:
                     return False, gt('强制更新失败')
+
+                repo = self._open_repo()
                 try:
-                    repo = self._open_repo()
                     repo.reset(commit.id, pygit2.GIT_RESET_HARD)
                 except Exception as exc:
                     log.error(f'强制更新失败: {exc}', exc_info=True)
@@ -476,18 +474,11 @@ class GitService:
         log.info(gt('获取commit总数'))
         try:
             repo = self._open_repo()
-
-            # 检查HEAD是否有效
-            try:
-                head_target = repo.head.target
-            except Exception as exc:
-                log.error(f'获取HEAD失败: {exc}，可能仓库为空或HEAD不存在')
-                return 0
-
+            head_target = repo.head.target
             walker = repo.walk(head_target, pygit2.GIT_SORT_TOPOLOGICAL)
             return sum(1 for _ in walker)
         except Exception as exc:
-            log.error(f'获取commit总数失败: {exc}', exc_info=True)
+            log.error(f'获取commit总数失败: {exc}，可能仓库为空或HEAD不存在', exc_info=True)
             return 0
 
     def fetch_page_commit(self, page_num: int, page_size: int) -> list[GitLog]:
@@ -500,14 +491,7 @@ class GitService:
         log.info(f"{gt('获取commit')} 第{page_num + 1}页")
         try:
             repo = self._open_repo()
-
-            # 检查HEAD是否有效
-            try:
-                head_target = repo.head.target
-            except Exception as exc:
-                log.error(f'获取HEAD失败: {exc}，可能仓库为空或HEAD不存在')
-                return []
-
+            head_target = repo.head.target
             walker = repo.walk(head_target, pygit2.GIT_SORT_TIME)
 
             logs: list[GitLog] = []
@@ -526,7 +510,7 @@ class GitService:
 
             return logs
         except Exception as exc:
-            log.error(f'获取commit失败: {exc}', exc_info=True)
+            log.error(f'获取commit失败: {exc}，可能仓库为空或HEAD不存在', exc_info=True)
             return []
 
     def get_git_repository(self, for_clone: bool = False) -> str:
@@ -620,11 +604,10 @@ class GitService:
         for h in heads:
             if h.name.startswith("refs/tags/"):
                 tag = h.name[len("refs/tags/"):]
-                try:
-                    version.parse(tag)  # 验证是否为有效版本
+                # 验证是否为有效版本
+                with contextlib.suppress(version.InvalidVersion):
+                    version.parse(tag)
                     tags.append(tag)
-                except version.InvalidVersion:
-                    continue
 
         # 去重并排序
         versions = sorted(set(tags), key=version.parse, reverse=True)
