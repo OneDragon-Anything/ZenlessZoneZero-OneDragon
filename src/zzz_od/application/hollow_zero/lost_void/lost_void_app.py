@@ -225,14 +225,17 @@ class LostVoidApp(ZApplication):
         if no_level_context.is_success and no_level_context.contours:
             target_contour = no_level_context.contours[0]
             M = cv2.moments(target_contour)
-            center_x = int(M["m10"] / M["m00"])
-            center_y = int(M["m01"] / M["m00"])
-            offset_x, offset_y = no_level_context.crop_offset
-            click_pos = Point(center_x + offset_x, center_y + offset_y)
-            log.debug(f"【追新模式】 找到无等级战略，点击坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {no_level_context.crop_offset})")
-            self.ctx.controller.click(click_pos)
-            time.sleep(1)
-            return self._click_confirm_after_strategy_chosen()
+            if M["m00"] == 0:
+                log.debug("【追新模式】 轮廓面积为零，跳过无等级战略检测")
+            else:
+                center_x = int(M["m10"] / M["m00"])
+                center_y = int(M["m01"] / M["m00"])
+                offset_x, offset_y = no_level_context.crop_offset
+                click_pos = Point(center_x + offset_x, center_y + offset_y)
+                log.debug(f"【追新模式】 找到无等级战略，点击坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {no_level_context.crop_offset})")
+                self.ctx.controller.click(click_pos)
+                time.sleep(1)
+                return self._click_confirm_after_strategy_chosen()
         
         log.debug("【追新模式】 未找到无等级战略，使用原有逻辑...")
         
