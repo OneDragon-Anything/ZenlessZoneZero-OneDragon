@@ -24,19 +24,17 @@ class LauncherVersionChecker(QThread):
     """启动器版本号检查器。
 
     该线程在后台获取最新的稳定版和测试版标签。
-    运行结束后通过 check_finished 信号发出两个字符串参数：
-        latest_stable: 最新稳定版标签（或空字符串）
-        latest_beta: 最新测试版标签（或空字符串）
+    运行结束后通过 check_finished 信号发出一个元组：
+        (latest_stable, latest_beta) - 包含最新稳定版和测试版标签的元组
     """
-    check_finished = Signal(str, str)
+    check_finished = Signal(object)
 
     def __init__(self, ctx: OneDragonEnvContext):
         super().__init__()
         self.ctx = ctx
 
     def run(self):
-        latest_stable, latest_beta = self.ctx.git_service.get_latest_tag()
-        self.check_finished.emit(latest_stable or '', latest_beta or '')
+        self.check_finished.emit(self.ctx.git_service.get_latest_tag())
 
 
 class LauncherDownloadCard(ZipDownloaderSettingCard):
@@ -47,8 +45,8 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self.version_checker.check_finished.connect(self._on_version_check_finished)
         self.target_version = "latest"
         self.current_version = ""
-        self.latest_stable = ""
-        self.latest_beta = ""
+        self.latest_stable: str | None = None
+        self.latest_beta: str | None = None
 
         ZipDownloaderSettingCard.__init__(
             self,
@@ -87,7 +85,8 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             unzip_dir_path=os_utils.get_work_dir()
         )
 
-    def _check_launcher_exist(self) -> bool:
+    @property
+    def _is_launcher_exist(self) -> bool:
         """
         检查启动器是否存在
         :return: 是否存在
@@ -95,17 +94,33 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         launcher_path = Path(os_utils.get_work_dir()) / LAUNCHER_EXE_NAME
         return launcher_path.exists()
 
-    def _on_version_check_finished(self, latest_stable: str, latest_beta: str) -> None:
+    @property
+    def _is_version_checked(self) -> bool:
+        """
+        检查版本号是否已经获取
+        :return: 如果至少有一个版本号不为 None 则返回 True
+        """
+        return self.latest_stable is not None or self.latest_beta is not None
+
+    def _on_version_check_finished(self, versions: tuple[str | None, str | None]) -> None:
         """
         版本检查完成后的回调
-        :param latest_stable: 最新稳定版
-        :param latest_beta: 最新测试版
+        :param versions: 包含最新稳定版和测试版的元组 (latest_stable, latest_beta)
         :return:
         """
-        # 更新实例变量
-        self.latest_stable = latest_stable
-        self.latest_beta = latest_beta
+        self.latest_stable, self.latest_beta = versions
 
+        # 根据当前版本初始化下拉框的值
+        self._select_channel_by_version()
+
+        # 更新UI显示
+        self._update_ui_by_version()
+
+    def _update_ui_by_version(self) -> None:
+        """
+        根据版本信息更新UI显示
+        :return:
+        """
         # 根据下拉框选择的通道决定检查哪个版本
         selected_channel = self.combo_box.currentData()
         if selected_channel == 'stable':
@@ -157,7 +172,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self.combo_box.setEnabled(True)
 
         # 获取当前版本和启动器存在状态
-        launcher_exist = self._check_launcher_exist()
+        launcher_exist = self._is_launcher_exist
         if launcher_exist:
             self.current_version = app_utils.get_launcher_version()
 
@@ -172,8 +187,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             return
 
         # 如果版本号尚未检查，启动检查
-        is_version_checked = (self.latest_stable or self.latest_beta)
-        if not self.version_checker.isRunning() and not is_version_checked:
+        if not self.version_checker.isRunning() and not self._is_version_checked:
             # 显示检查中状态
             self._update_ui_state(
                 icon=FluentIcon.INFO.icon(color=FluentThemeColor.DEFAULT_BLUE.value),
@@ -184,8 +198,8 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             self.version_checker.start()
             return
 
-        # 如果版本号已经检查过，直接调用回调更新UI
-        self._on_version_check_finished(self.latest_stable, self.latest_beta)
+        # 如果版本号已经检查过，直接更新UI
+        self._update_ui_by_version()
 
     def _update_ui_state(
         self,
@@ -206,6 +220,18 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         self.contentLabel.setText(message)
         self.download_btn.setText(button_text)
         self.download_btn.setEnabled(button_enabled)
+
+    def _select_channel_by_version(self) -> None:
+        """
+        根据当前版本自动选择通道（稳定版/测试版）
+        :return:
+        """
+        if 'beta' in self.current_version.lower():
+            # 设置为测试版
+            self.combo_box.setCurrentIndex(1)
+        else:
+            # 设置为稳定版
+            self.combo_box.setCurrentIndex(0)
 
     def _on_download_click(self) -> None:
         """
