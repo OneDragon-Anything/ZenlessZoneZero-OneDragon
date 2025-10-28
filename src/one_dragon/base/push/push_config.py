@@ -21,7 +21,19 @@ class PushConfig(YamlConfig):
         推送配置
         应该是一个全局配置
         """
-        # 将账号实例下的配置复制到全局 预计 2026-01-01 可删除这部分兼容代码
+        # 执行配置文件路径层面的迁移
+        self._migrate_legacy_config_file_path()
+
+        YamlConfig.__init__(self, 'push')
+
+        # 执行配置文件数据内容层面的迁移
+        self._migrate_legacy_qywx_am_param()
+
+    def _migrate_legacy_config_file_path(self) -> None:
+        """
+        迁移旧版本配置文件路径：将单实例（如 'config/01'）目录下的 push.yml
+        复制到全局配置目录 'config/'。预计 2026-01-01 可删除这部分兼容代码。
+        """
         instance_config_file_path = os.path.join(
             os_utils.get_path_under_work_dir('config', '01'),
             'push.yml'
@@ -33,9 +45,11 @@ class PushConfig(YamlConfig):
         if not os.path.exists(global_config_file_path) and os.path.exists(instance_config_file_path):
             shutil.copy(instance_config_file_path, global_config_file_path)
 
-        YamlConfig.__init__(self, 'push')
-        # 企业微信App AM参数迁移
-        migrated = False
+    def _migrate_legacy_qywx_am_param(self) -> None:
+        """
+        迁移旧的 'qywx_am' 参数，将其拆分为 'qywx_app_corp_id' 等新字段。
+        """
+        has_migrated = False
         old_am_key = 'qywx_am'
 
         # 检查旧的 qywx_am 配置是否存在且有值
@@ -60,9 +74,9 @@ class PushConfig(YamlConfig):
                     # 只有当新key不存在或为空时，才进行迁移，避免覆盖用户的新设置
                     if not self.data.get(new_key):
                         self.data[new_key] = new_value
-                        migrated = True
+                        has_migrated = True
 
-        if migrated:
+        if has_migrated:
             # 迁移成功，删除旧key并保存
             del self.data[old_am_key]
             self.save()
