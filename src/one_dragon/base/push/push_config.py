@@ -49,7 +49,6 @@ class PushConfig(YamlConfig):
         """
         迁移旧的 'qywx_am' 参数，将其拆分为 'qywx_app_corp_id' 等新字段。
         """
-        has_migrated = False
         old_am_key = 'qywx_am'
 
         # 检查旧的 qywx_am 配置是否存在且有值
@@ -67,17 +66,15 @@ class PushConfig(YamlConfig):
                     'qywx_app_agent_id': parts[3]
                 }
                 # 可选的media id
-                if len(parts) == 5:
+                if len(parts) >= 5:
                     migration_map['qywx_app_media_id'] = parts[4]
 
                 for new_key, new_value in migration_map.items():
                     # 只有当新key不存在或为空时，才进行迁移，避免覆盖用户的新设置
                     if not self.data.get(new_key):
                         self.data[new_key] = new_value
-                        has_migrated = True
 
-        if has_migrated:
-            # 迁移成功，删除旧key并保存
+            # 迁移完成，删除旧key并保存
             del self.data[old_am_key]
             self.save()
 
