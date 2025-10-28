@@ -1,5 +1,6 @@
 import os
 from contextlib import suppress
+from packaging import version
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
@@ -243,11 +244,15 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
     def _select_channel_by_version(self) -> None:
         """
-        根据当前版本自动选择通道（稳定版/测试版）
+        根据当前版本自动选择通道(稳定版/测试版)
         :return:
         """
-        # 只有当前版本存在且不为空时才根据版本选择通道
-        if self.current_version and 'beta' in self.current_version.lower():
+        try:
+            is_beta = (self.current_version and version.parse(self.current_version).is_prerelease)
+        except Exception:
+            is_beta = False
+
+        if is_beta:
             # 设置为测试版
             self.combo_box.setCurrentIndex(1)
         else:
