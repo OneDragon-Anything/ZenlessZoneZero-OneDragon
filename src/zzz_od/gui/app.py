@@ -1,9 +1,9 @@
 try:
     import sys
-    from typing import Tuple
-    from PySide6.QtCore import Qt, QThread, Signal, QTimer
+
+    from PySide6.QtCore import Qt, QThread, QTimer, Signal
     from PySide6.QtWidgets import QApplication
-    from qfluentwidgets import NavigationItemPosition, setTheme, Theme
+    from qfluentwidgets import NavigationItemPosition, Theme, setTheme
 
     from one_dragon.base.operation.one_dragon_context import ContextInstanceEventEnum
     from one_dragon.utils import app_utils
@@ -224,7 +224,7 @@ try:
                 )
             )
 
-        def _update_version(self, versions: Tuple[str, str]) -> None:
+        def _update_version(self, versions: tuple[str, str]) -> None:
             """
             更新版本显示
             @param ver:
@@ -314,7 +314,7 @@ except Exception:
 
 
 # 初始化应用程序，并启动主窗口
-if __name__ == "__main__":
+def main() -> None:
     if _init_error is not None:
         # 显示错误弹窗，询问用户是否打开排障文档
         error_message = f"启动一条龙失败,报错信息如下:\n{stack_trace}\n\n是否打开排障文档查看解决方案?"
@@ -350,6 +350,12 @@ if __name__ == "__main__":
     init_runner.start()
 
     # 启动应用程序事件循环
-    app.exec()
+    quit_code = app.exec()
 
     _ctx.after_app_shutdown()
+
+    sys.exit(quit_code)
+
+
+if __name__ == "__main__":
+    main()

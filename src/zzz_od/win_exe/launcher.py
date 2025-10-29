@@ -1,4 +1,3 @@
-from one_dragon.devtools import python_launcher
 from one_dragon.launcher.exe_launcher import ExeLauncher
 from one_dragon.version import __version__
 
@@ -9,11 +8,13 @@ class ZLauncher(ExeLauncher):
     def __init__(self):
         ExeLauncher.__init__(self, "绝区零 一条龙 启动器", __version__)
 
-    def run_onedragon_mode(self, launch_args) -> None:
-        python_launcher.run_python(["zzz_od", "application", "zzz_application_launcher.py"], no_windows=False, args=launch_args, piped=True)
+    def run_onedragon_mode(self, launch_args: list[str]) -> None:
+        from zzz_od.application.zzz_application_launcher import main
+        main(launch_args)
 
     def run_gui_mode(self) -> None:
-        python_launcher.run_python(["zzz_od", "gui", "app.py"], no_windows=True)
+        from zzz_od.gui.app import main
+        main()
 
 
 if __name__ == '__main__':
