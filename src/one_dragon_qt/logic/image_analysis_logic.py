@@ -1,5 +1,3 @@
-from typing import List, Dict, Type
-
 import cv2
 import numpy as np
 
@@ -28,13 +26,13 @@ class ImageAnalysisLogic:
         self.context: CvPipelineContext = None
         self.active_pipeline_name: str = None  # 当前激活的流水线名称
 
-        self.view_options: List[str] = ['原始图像', '遮罩', '最终结果']
+        self.view_options: list[str] = ['原始图像', '遮罩', '最终结果']
         self.current_view_index: int = 0
 
         # UI层仍然需要知道有哪些可用的步骤，以便在界面上显示
-        self.available_steps: Dict[str, Type[CvStep]] = self.cv_service.available_steps
+        self.available_steps: dict[str, type[CvStep]] = self.cv_service.available_steps
 
-    def get_available_step_names(self) -> List[str]:
+    def get_available_step_names(self) -> list[str]:
         """
         获取所有可用步骤的名称
         """
@@ -69,7 +67,7 @@ class ImageAnalysisLogic:
         if index >= 0 and index < len(self.pipeline.steps) - 1:
             self.pipeline.steps.insert(index + 1, self.pipeline.steps.pop(index))
 
-    def execute_pipeline(self) -> tuple[np.ndarray, List[str]]:
+    def execute_pipeline(self) -> tuple[np.ndarray, list[str]]:
         """
         执行流水线
         """
@@ -198,7 +196,7 @@ class ImageAnalysisLogic:
 
     # ==================== 流水线文件操作(委托给CvService) ====================
 
-    def get_pipeline_names(self) -> List[str]:
+    def get_pipeline_names(self) -> list[str]:
         return self.cv_service.get_pipeline_names()
 
     def save_pipeline(self, name: str) -> bool:
@@ -228,13 +226,13 @@ class ImageAnalysisLogic:
 
     # ==================== 模板文件操作(委托给CvService) ====================
 
-    def get_screen_names(self) -> List[str]:
+    def get_screen_names(self) -> list[str]:
         """
         获取所有画面的名称，用于UI下拉框
         """
         return list(self.ctx.screen_loader.screen_info_map.keys())
 
-    def get_area_names_by_screen(self, screen_name: str) -> List[str]:
+    def get_area_names_by_screen(self, screen_name: str) -> list[str]:
         """
         根据画面名称，获取其下所有区域的名称
         """
@@ -243,10 +241,10 @@ class ImageAnalysisLogic:
             return []
         return [area.area_name for area in screen.area_list]
 
-    def get_template_names(self) -> List[str]:
+    def get_template_names(self) -> list[str]:
         return self.cv_service.get_template_names()
 
-    def get_template_info_list(self) -> List[TemplateInfo]:
+    def get_template_info_list(self) -> list[TemplateInfo]:
         """
         获取所有模板的信息
         """
@@ -296,7 +294,6 @@ class ImageAnalysisLogic:
         source_bottom = bottom + offset_y
 
         # 对原始图像进行HSV分析
-        from one_dragon.utils import cv2_utils
         hsv_result = cv2_utils.get_hsv_range_in_rect(
             self.context.source_image,
             source_left, source_top, source_right, source_bottom
