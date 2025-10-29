@@ -43,7 +43,7 @@ class CodeInterface(VerticalScrollInterface):
         content_widget = QWidget()
 
         self.page_num: int = -1
-        self.page_size: int = 10
+        self.page_size: int = 11
 
         v_layout = VBoxLayout(content_widget)
         v_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -205,16 +205,6 @@ class CodeInterface(VerticalScrollInterface):
             return
         self.page_num = page
         self.start_fetch_page()
-
-    def _on_git_updated(self, success: bool) -> None:
-        """
-        Git选择后更新显示
-        :param success: 是否成功
-        :return:
-        """
-        if not success:
-            return
-        self.code_card.check_and_update_display()
 
     def on_code_updated(self, success: bool) -> None:
         """
