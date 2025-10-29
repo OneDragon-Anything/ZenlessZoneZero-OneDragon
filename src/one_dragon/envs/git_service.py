@@ -503,7 +503,7 @@ class GitService:
 
                 short_id = str(commit.id)[:7]
                 author = commit.author.name if commit.author and commit.author.name else ''
-                commit_time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(commit.commit_time))
+                commit_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(commit.commit_time))
                 message = commit.message.splitlines()[0] if commit.message else ''
 
                 logs.append(GitLog(short_id, author, commit_time, message))
