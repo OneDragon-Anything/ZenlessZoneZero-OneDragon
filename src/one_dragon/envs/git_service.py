@@ -605,30 +605,30 @@ class GitService:
             log.error(f'获取最新标签失败: {exc}', exc_info=True)
             return '', ''
 
-        # 提取标签名称
-        tags = []
+        # 提取标签名称并解析为 Version 对象
+        tags: dict[str, version.Version] = {}
         for h in heads:
             if h.name.startswith("refs/tags/"):
                 tag = h.name[len("refs/tags/"):]
                 # 验证是否为有效版本
                 with contextlib.suppress(version.InvalidVersion):
-                    version.parse(tag)
-                    tags.append(tag)
+                    parsed = version.parse(tag)
+                    tags[tag] = parsed
 
-        # 去重并排序
-        versions = sorted(set(tags), key=version.parse, reverse=True)
+        # 按 Version 对象排序
+        versions = sorted(tags.items(), key=lambda x: x[1], reverse=True)
 
         # 找出最新的稳定版和测试版
         latest_stable = ''
         latest_beta = ''
 
-        for v in versions:
-            if version.parse(v).is_prerelease:
+        for tag, ver in versions:
+            if ver.is_prerelease:
                 if not latest_beta:
-                    latest_beta = v
+                    latest_beta = tag
             else:
                 if not latest_stable:
-                    latest_stable = v
+                    latest_stable = tag
                     break
 
         return latest_stable, latest_beta
