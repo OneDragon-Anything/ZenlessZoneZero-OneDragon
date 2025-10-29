@@ -157,17 +157,20 @@ class SettingPushInterface(VerticalScrollInterface):
             card = ComboBoxSettingCard(
                 icon=getattr(FluentIcon, field.icon),
                 title=title,
-                options_list=[ConfigItem(label=opt, value=opt) for opt in options]
+                options_list=[ConfigItem(label=opt, value=opt) for opt in options],
+                parent=self,
             )
         elif card_type == FieldTypeEnum.KEY_VALUE:
             card = KeyValueSettingCard(
                 icon=getattr(FluentIcon, field.icon),
                 title=title,
+                parent=self,
             )
         elif card_type == FieldTypeEnum.CODE_EDITOR:
             card = CodeEditorSettingCard(
                 icon=getattr(FluentIcon, field.icon),
                 title=title,
+                parent=self,
             )
         else:  # 默认为 text
             card = TextSettingCard(
@@ -175,6 +178,7 @@ class SettingPushInterface(VerticalScrollInterface):
                 title=title,
                 input_max_width=320,
                 input_placeholder=field.placeholder,
+                parent=self,
             )
 
         card.setObjectName(var_name)
