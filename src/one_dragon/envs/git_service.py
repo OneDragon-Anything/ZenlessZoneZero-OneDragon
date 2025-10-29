@@ -38,7 +38,6 @@ class GitOperationResult:
 
 
 class GitService:
-    """Git 服务，提供仓库管理和代码同步功能"""
 
     def __init__(self, project_config: ProjectConfig, env_config: EnvConfig):
         self.project_config: ProjectConfig = project_config
@@ -128,7 +127,7 @@ class GitService:
         return f'http://{proxy}'
 
     def _apply_proxy(self) -> None:
-        """应用代理配置到仓库"""
+        """应用代理配置"""
         proxy = self._get_proxy_address()
 
         try:
@@ -151,6 +150,9 @@ class GitService:
 
         Args:
             remote: 远程对象
+
+        Returns:
+            Git操作结果
         """
         log.info(gt('获取远程代码'))
 
@@ -165,7 +167,7 @@ class GitService:
                                       detail=str(exc))
 
     def _get_branch_commit(self, branch: str, allow_local: bool = False) -> pygit2.Commit | None:
-        """获取分支的提交对象
+        """获取分支提交对象
 
         Args:
             branch: 分支名称
@@ -482,11 +484,14 @@ class GitService:
             return 0
 
     def fetch_page_commit(self, page_num: int, page_size: int) -> list[GitLog]:
-        """
-        获取分页的commit
-        :param page_num: 页码 从0开始
-        :param page_size: 每页数量
-        :return:
+        """获取分页commit
+
+        Args:
+            page_num: 页码（从0开始）
+            page_size: 每页数量
+
+        Returns:
+            GitLog列表
         """
         log.info(f"{gt('获取commit')} 第{page_num + 1}页")
         try:
@@ -514,8 +519,10 @@ class GitService:
             return []
 
     def get_git_repository(self, for_clone: bool = False) -> str:
-        """
-        获取使用的仓库地址
+        """获取仓库地址
+
+        Args:
+            for_clone: 是否用于克隆
         """
         repo_type = self.env_config.repository_type
         git_method = self.env_config.git_method
@@ -576,8 +583,10 @@ class GitService:
         return logs[0].commit_id if logs else None
 
     def get_latest_tag(self) -> tuple[str, str]:
-        """
-        获取最新的稳定版与测试版 tag
+        """获取最新tag，未找到时返回空字符串
+
+        Returns:
+            (最新稳定版, 最新测试版)
         """
         # 如果不存在本地仓库，返回空
         if not os.path.exists(DOT_GIT_DIR_PATH):
