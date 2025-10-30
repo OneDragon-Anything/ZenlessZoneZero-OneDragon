@@ -150,7 +150,10 @@ class GitService:
 
         try:
             self._apply_proxy()
-            remote.fetch()
+            remote.fetch(
+                refspecs=['+refs/heads/*:refs/remotes/origin/*'],
+                depth=1
+            )
             log.info(gt('获取远程代码成功'))
             return True
         except Exception:
