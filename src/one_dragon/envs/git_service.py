@@ -66,7 +66,11 @@ class GitService:
             self._repo = None
 
         if self._repo is None:
-            self._repo = pygit2.Repository(os_utils.get_work_dir())
+            work_dir = os_utils.get_work_dir()
+            # 检查是否是有效的 git 仓库
+            if not pygit2.discover_repository(work_dir):
+                raise pygit2.GitError(f'目录 {work_dir} 不是有效的 Git 仓库')
+            self._repo = pygit2.Repository(work_dir)
 
         return self._repo
 
