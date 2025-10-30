@@ -243,78 +243,83 @@ class GitService:
         Returns:
             是否成功, 消息
         """
-        repo = self._open_repo()
+        try:
+            repo = self._open_repo()
+        except Exception:
+            msg = gt('打开本地仓库失败')
+            log.error(msg, exc_info=True)
+            return False, msg
+
         remote_ref = f'refs/remotes/origin/{branch}'
 
-        try:
-            # 检查远程分支是否存在
-            if remote_ref not in repo.references:
-                msg = f'{gt("远程分支不存在")}: {remote_ref}'
-                log.error(msg)
-                return False, msg
-
-            remote_oid = repo.references[remote_ref].target
-
-            # 获取本地 HEAD
-            local_oid = getattr(repo.head, 'target', None) if hasattr(repo, 'head') else None
-
-            # HEAD 不存在，直接重置
-            if local_oid is None:
-                if force:
-                    if self._reset_to_oid(remote_oid):
-                        msg = gt('更新本地代码成功')
-                        log.debug(f'重置到远程提交成功: {remote_oid}')
-                        return True, msg
-
-                    msg = f'{gt("重置到远程提交失败")}: {remote_oid}'
-                    log.error(msg)
-                    return False, msg
-
-                msg = gt('HEAD 不存在且未开启强制更新')
-                log.error(msg)
-                return False, msg
-
-            # 如果相同则无需更新
-            if local_oid == remote_oid:
-                log.info(f'本地代码已是最新: {local_oid}')
-                return True, gt('本地代码已是最新')
-
-            # 检查是否可以快进
-            can_fast_forward = False
-            with contextlib.suppress(Exception):
-                can_fast_forward = repo.descendant_of(remote_oid, local_oid)
-
-            # 快进更新
-            if can_fast_forward:
-                if self._reset_to_oid(remote_oid):
-                    msg = gt('更新本地代码成功')
-                    log.debug(f'快进更新成功: {local_oid} -> {remote_oid}')
-                    return True, msg
-
-                msg = f'{gt("快进更新失败")}: {local_oid} -> {remote_oid}'
-                log.error(msg)
-                return False, msg
-
-            # 强制更新
-            if force:
-                if self._reset_to_oid(remote_oid):
-                    msg = gt('更新本地代码成功')
-                    log.debug(f'强制更新成功: {local_oid} -> {remote_oid}')
-                    return True, msg
-
-                msg = f'{gt("强制更新失败")}: {local_oid} -> {remote_oid}'
-                log.error(msg)
-                return False, msg
-
-            # 需要手动处理
-            msg = f'{gt("本地代码有修改且无法快进更新，请手动处理后再更新")}: {local_oid} -> {remote_oid}'
+        # 检查远程分支是否存在
+        if remote_ref not in repo.references:
+            msg = f'{gt("远程分支不存在")}: {remote_ref}'
             log.error(msg)
             return False, msg
 
-        except Exception as exc:
-            msg = gt('同步分支失败')
+        try:
+            remote_oid = repo.references[remote_ref].target
+        except Exception:
+            msg = gt('获取远程分支提交失败')
             log.error(msg, exc_info=True)
             return False, msg
+
+        # 获取本地 HEAD
+        local_oid = getattr(repo.head, 'target', None) if hasattr(repo, 'head') else None
+
+        # HEAD 不存在，直接重置
+        if local_oid is None:
+            if force:
+                if self._reset_to_oid(remote_oid):
+                    msg = gt('更新本地代码成功')
+                    log.debug(f'重置到远程提交成功: {remote_oid}')
+                    return True, msg
+
+                msg = f'{gt("重置到远程提交失败")}: {remote_oid}'
+                log.error(msg)
+                return False, msg
+
+            msg = gt('HEAD 不存在且未开启强制更新')
+            log.error(msg)
+            return False, msg
+
+        # 如果相同则无需更新
+        if local_oid == remote_oid:
+            log.info(f'本地代码已是最新: {local_oid}')
+            return True, gt('本地代码已是最新')
+
+        # 检查是否可以快进
+        can_fast_forward = False
+        with contextlib.suppress(Exception):
+            can_fast_forward = repo.descendant_of(remote_oid, local_oid)
+
+        # 快进更新
+        if can_fast_forward:
+            if self._reset_to_oid(remote_oid):
+                msg = gt('更新本地代码成功')
+                log.debug(f'快进更新成功: {local_oid} -> {remote_oid}')
+                return True, msg
+
+            msg = f'{gt("快进更新失败")}: {local_oid} -> {remote_oid}'
+            log.error(msg)
+            return False, msg
+
+        # 强制更新
+        if force:
+            if self._reset_to_oid(remote_oid):
+                msg = gt('更新本地代码成功')
+                log.debug(f'强制更新成功: {local_oid} -> {remote_oid}')
+                return True, msg
+
+            msg = f'{gt("强制更新失败")}: {local_oid} -> {remote_oid}'
+            log.error(msg)
+            return False, msg
+
+        # 需要手动处理
+        msg = f'{gt("本地代码有修改且无法快进更新，请手动处理后再更新")}: {local_oid} -> {remote_oid}'
+        log.error(msg)
+        return False, msg
 
     # ================== 公共 API ==================
 
