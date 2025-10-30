@@ -46,6 +46,8 @@ class VerticalScrollInterface(BaseInterface):
         # 创建一个垂直布局
         main_layout = QVBoxLayout(self)
         scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
+        # 暴露滚动区域，方便容器级拖拽等场景使用
+        self.scroll_area = scroll_area
         main_layout.addWidget(scroll_area, stretch=0)
 
         content_widget = self._param_content_widget
