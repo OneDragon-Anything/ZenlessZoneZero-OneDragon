@@ -25,18 +25,6 @@ class GitLog:
     commit_message: str
 
 
-@dataclass
-class GitOperationResult:
-    """Git 操作结果"""
-    success: bool
-    code: str
-    message: str
-    detail: str | None = None
-
-    def to_tuple(self) -> tuple[bool, str]:
-        return self.success, self.message
-
-
 class GitService:
 
     def __init__(self, project_config: ProjectConfig, env_config: EnvConfig):
@@ -112,8 +100,8 @@ class GitService:
             repo.remotes.create(remote_name, remote_url)
             return repo.remotes[remote_name]
 
-        except Exception as exc:
-            log.error(f'配置远程仓库失败: {exc}', exc_info=True)
+        except Exception:
+            log.error('配置远程仓库失败', exc_info=True)
             return None
 
     def _get_proxy_address(self) -> str | None:
@@ -146,17 +134,17 @@ class GitService:
                 # 设置代理
                 cfg['http.proxy'] = proxy
                 cfg['https.proxy'] = proxy
-        except Exception as exc:
-            log.warning(f'设置代理失败: {exc}')
+        except Exception:
+            log.error('设置代理失败', exc_info=True)
 
-    def _fetch_remote(self, remote: pygit2.Remote) -> GitOperationResult:
+    def _fetch_remote(self, remote: pygit2.Remote) -> bool:
         """获取远程代码
 
         Args:
             remote: 远程对象
 
         Returns:
-            Git操作结果
+            是否成功
         """
         log.info(gt('获取远程代码'))
 
@@ -164,11 +152,10 @@ class GitService:
             self._apply_proxy()
             remote.fetch()
             log.info(gt('获取远程代码成功'))
-            return GitOperationResult(True, 'FETCH_SUCCESS', gt('获取远程代码成功'))
-        except Exception as exc:
-            log.error(f'获取远程代码失败: {exc}', exc_info=True)
-            return GitOperationResult(False, 'FETCH_ERROR', gt('获取远程代码失败'),
-                                      detail=str(exc))
+            return True
+        except Exception:
+            log.error('获取远程代码失败', exc_info=True)
+            return False
 
     def _get_branch_commit(self, branch: str, allow_local: bool = False) -> pygit2.Commit | None:
         """获取分支提交对象
@@ -184,15 +171,15 @@ class GitService:
         try:
             if remote_ref in repo.references:
                 return repo.get(repo.references[remote_ref].target)
-        except Exception as exc:
-            log.error(f'读取远程分支 {remote_ref} 失败: {exc}')
+        except Exception:
+            log.error(f'读取远程分支 {remote_ref} 失败', exc_info=True)
 
         # 回退到本地 HEAD
         if allow_local:
             try:
                 return repo.head.peel()
-            except Exception as exc:
-                log.error(f'获取本地 HEAD 失败: {exc}')
+            except Exception:
+                log.error('获取本地 HEAD 失败', exc_info=True)
 
         return None
 
@@ -225,8 +212,8 @@ class GitService:
 
             return True, commit.id
 
-        except Exception as exc:
-            log.error(f'切换分支失败: {exc}', exc_info=True)
+        except Exception:
+            log.error('切换分支失败', exc_info=True)
             return False, None
 
     def _reset_to_oid(self, target_oid: pygit2.Oid) -> bool:
@@ -242,16 +229,19 @@ class GitService:
             repo = self._open_repo()
             repo.reset(target_oid, pygit2.GIT_RESET_HARD)
             return True
-        except Exception as exc:
-            log.error(f'重置到提交 {target_oid} 失败: {exc}', exc_info=True)
+        except Exception:
+            log.error(f'重置到提交 {target_oid} 失败', exc_info=True)
             return False
 
-    def _sync_with_remote(self, branch: str, force: bool) -> GitOperationResult:
+    def _sync_with_remote(self, branch: str, force: bool) -> tuple[bool, str]:
         """同步远程分支到本地
 
         Args:
             branch: 分支名称
             force: 是否强制更新（重置本地修改）
+
+        Returns:
+            是否成功, 消息
         """
         repo = self._open_repo()
         remote_ref = f'refs/remotes/origin/{branch}'
@@ -259,8 +249,9 @@ class GitService:
         try:
             # 检查远程分支是否存在
             if remote_ref not in repo.references:
-                return GitOperationResult(True, 'REMOTE_BRANCH_MISSING', '',
-                                          detail=f'missing {remote_ref}')
+                msg = f'{gt("远程分支不存在")}: {remote_ref}'
+                log.error(msg)
+                return False, msg
 
             remote_oid = repo.references[remote_ref].target
 
@@ -271,17 +262,22 @@ class GitService:
             if local_oid is None:
                 if force:
                     if self._reset_to_oid(remote_oid):
-                        return GitOperationResult(True, 'RESET_HEAD', gt('更新本地代码成功'),
-                                                  detail=f'reset to {remote_oid}')
-                    return GitOperationResult(False, 'RESET_FAILED', gt('更新本地代码失败'),
-                                              detail=f'failed to reset to {remote_oid}')
-                return GitOperationResult(False, 'HEAD_MISSING', gt('更新本地代码失败'),
-                                          detail='HEAD missing')
+                        msg = gt('更新本地代码成功')
+                        log.debug(f'重置到远程提交成功: {remote_oid}')
+                        return True, msg
+
+                    msg = f'{gt("重置到远程提交失败")}: {remote_oid}'
+                    log.error(msg)
+                    return False, msg
+
+                msg = gt('HEAD 不存在且未开启强制更新')
+                log.error(msg)
+                return False, msg
 
             # 如果相同则无需更新
             if local_oid == remote_oid:
-                return GitOperationResult(True, 'ALREADY_UP_TO_DATE', gt('本地代码已是最新'),
-                                          detail=f'{local_oid} == {remote_oid}')
+                log.info(f'本地代码已是最新: {local_oid}')
+                return True, gt('本地代码已是最新')
 
             # 检查是否可以快进
             can_fast_forward = False
@@ -291,27 +287,34 @@ class GitService:
             # 快进更新
             if can_fast_forward:
                 if self._reset_to_oid(remote_oid):
-                    return GitOperationResult(True, 'FAST_FORWARD', gt('更新本地代码成功'),
-                                              detail=f'{local_oid} -> {remote_oid}')
-                return GitOperationResult(False, 'RESET_FAILED', gt('更新本地代码失败'),
-                                          detail=f'failed to reset from {local_oid} to {remote_oid}')
+                    msg = gt('更新本地代码成功')
+                    log.debug(f'快进更新成功: {local_oid} -> {remote_oid}')
+                    return True, msg
+
+                msg = f'{gt("快进更新失败")}: {local_oid} -> {remote_oid}'
+                log.error(msg)
+                return False, msg
 
             # 强制更新
             if force:
                 if self._reset_to_oid(remote_oid):
-                    return GitOperationResult(True, 'FORCED_RESET', gt('更新本地代码成功'),
-                                              detail=f'{local_oid} -> {remote_oid}')
-                return GitOperationResult(False, 'RESET_FAILED', gt('更新本地代码失败'),
-                                          detail=f'failed to reset from {local_oid} to {remote_oid}')
+                    msg = gt('更新本地代码成功')
+                    log.debug(f'强制更新成功: {local_oid} -> {remote_oid}')
+                    return True, msg
+
+                msg = f'{gt("强制更新失败")}: {local_oid} -> {remote_oid}'
+                log.error(msg)
+                return False, msg
 
             # 需要手动处理
-            return GitOperationResult(False, 'NEED_MANUAL_REBASE', gt('更新本地代码失败'),
-                                      detail=f'local {local_oid} ahead of {remote_oid}')
+            msg = f'{gt("本地代码有修改且无法快进更新，请手动处理后再更新")}: {local_oid} -> {remote_oid}'
+            log.error(msg)
+            return False, msg
 
         except Exception as exc:
-            log.error(f'同步分支失败: {exc}', exc_info=True)
-            return GitOperationResult(False, 'SYNC_ERROR', gt('更新本地代码失败'),
-                                      detail=str(exc))
+            msg = gt('同步分支失败')
+            log.error(msg, exc_info=True)
+            return False, msg
 
     # ================== 公共 API ==================
 
@@ -332,49 +335,49 @@ class GitService:
 
         # 初始化仓库
         if progress_callback:
-            progress_callback(1/5, gt('初始化本地 Git 仓库') + ' (1/5)')
+            progress_callback(1/6, gt('初始化本地 Git 仓库') + ' (1/5)')
 
         try:
             pygit2.init_repository(work_dir, False)
-        except Exception as exc:
-            log.error(f'初始化仓库失败: {exc}', exc_info=True)
-            return False, gt('克隆仓库失败')
+        except Exception:
+            msg = gt('初始化本地 Git 仓库失败')
+            log.error(msg, exc_info=True)
+            return False, msg
 
         # 配置远程
         if progress_callback:
-            progress_callback(2/5, gt('配置远程仓库地址') + ' (2/5)')
+            progress_callback(2/6, gt('配置远程仓库地址') + ' (2/5)')
 
         remote = self._ensure_remote(for_clone=True)
         if remote is None:
-            return False, gt('更新远程仓库地址失败')
+            return False, gt('配置远程仓库地址失败')
 
         # 获取远程代码
         if progress_callback:
-            progress_callback(3/5, gt('获取远程代码') + ' (3/5)')
+            progress_callback(3/6, gt('获取远程代码') + ' (3/5)')
 
-        fetch_result = self._fetch_remote(remote)
-        if not fetch_result.success:
-            return fetch_result.to_tuple()
+        if not self._fetch_remote(remote):
+            return False, gt('获取远程代码失败')
 
         # 切换分支
         if progress_callback:
-            progress_callback(4/5, gt('切换到目标分支') + ' (4/5)')
+            progress_callback(4/6, gt('切换到目标分支') + ' (4/5)')
 
         target_branch = self.env_config.git_branch
         success, target_oid = self._checkout_branch(target_branch, allow_local=False)
         if not success:
-            return False, gt('克隆仓库失败')
+            return False, gt('切换到目标分支失败')
 
         # 重置到目标提交
         if progress_callback:
-            progress_callback(5/5, gt('重置到目标提交') + ' (5/5)')
+            progress_callback(5/6, gt('重置到目标提交') + ' (5/5)')
 
         if target_oid:
             if not self._reset_to_oid(target_oid):
-                return False, gt('克隆仓库失败')
+                return False, gt('重置到目标提交失败')
 
         if progress_callback:
-            progress_callback(1.0, gt('克隆仓库成功'))
+            progress_callback(6/6, gt('克隆仓库成功'))
 
         return True, gt('克隆仓库成功')
 
@@ -385,19 +388,24 @@ class GitService:
         log.info(gt('核对当前仓库'))
 
         # 更新远程配置
+        if progress_callback:
+            progress_callback(1/6, gt('配置远程仓库地址') + ' (1/5)')
+
         remote = self._ensure_remote()
         if remote is None:
             return False, gt('更新远程仓库地址失败')
 
         # 获取远程代码
-        fetch_result = self._fetch_remote(remote)
-        if not fetch_result.success:
-            return fetch_result.to_tuple()
-
         if progress_callback:
-            progress_callback(0.2, fetch_result.message)
+            progress_callback(2/6, gt('获取远程代码') + ' (2/5)')
+
+        if not self._fetch_remote(remote):
+            return False, gt('获取远程代码失败')
 
         # 检查工作区状态
+        if progress_callback:
+            progress_callback(3/6, gt('检查工作区状态') + ' (3/5)')
+
         is_clean = self.is_current_branch_clean()
         if not is_clean:
             if self.env_config.force_update:
@@ -411,39 +419,27 @@ class GitService:
             else:
                 return False, gt('未开启强制更新 当前代码有修改 请自行处理后再更新')
 
-        if progress_callback:
-            progress_callback(0.4, gt('当前代码无修改'))
-
-        # 获取当前分支
-        current_branch = self.get_current_branch()
-        if current_branch is None:
-            return False, gt('获取当前分支失败')
-
-        if progress_callback:
-            progress_callback(0.6, gt('获取当前分支成功'))
-
         # 切换到目标分支
+        if progress_callback:
+            progress_callback(4/6, gt('切换到目标分支') + ' (4/5)')
+
         target = self.env_config.git_branch
         success, _ = self._checkout_branch(target, allow_local=True)
         if not success:
             return False, gt('切换到目标分支失败')
 
-        if progress_callback:
-            progress_callback(0.8, gt('切换到目标分支成功'))
-
         # 同步远程分支
-        sync_result = self._sync_with_remote(target, self.env_config.force_update)
-        if not sync_result.success:
-            log.error(f'{sync_result.message} [{sync_result.code}] {sync_result.detail or ""}')
-            return sync_result.to_tuple()
+        if progress_callback:
+            progress_callback(5/6, gt('同步远程分支') + ' (5/5)')
+
+        success, message = self._sync_with_remote(target, self.env_config.force_update)
+        if not success:
+            return False, message
 
         if progress_callback:
-            progress_callback(1.0, sync_result.message or gt('更新本地代码成功'))
+            progress_callback(6/6, message)
 
-        if sync_result.detail:
-            log.info(f'分支同步详情: {sync_result.detail}')
-
-        return sync_result.to_tuple()
+        return True, message
 
     def get_current_branch(self) -> str | None:
         """
@@ -455,6 +451,7 @@ class GitService:
             head = repo.head
             return head.shorthand if head else None
         except Exception:
+            log.error('获取当前分支失败', exc_info=True)
             return None
 
     def is_current_branch_clean(self) -> bool | None:
@@ -466,6 +463,7 @@ class GitService:
             repo = self._open_repo()
             return len(repo.status()) == 0
         except Exception:
+            log.error('检测当前代码是否有修改失败', exc_info=True)
             return None
 
     def is_current_branch_latest(self) -> tuple[bool, str]:
@@ -478,9 +476,8 @@ class GitService:
             if remote is None:
                 return False, gt('更新远程仓库地址失败')
 
-            fetch_result = self._fetch_remote(remote)
-            if not fetch_result.success:
-                return fetch_result.to_tuple()
+            if not self._fetch_remote(remote):
+                return False, gt('获取远程代码失败')
 
             repo = self._open_repo()
             remote_ref = f'refs/remotes/origin/{self.env_config.git_branch}'
@@ -498,8 +495,8 @@ class GitService:
             is_same = diff.patch is None or len(diff) == 0
             return (is_same, '' if is_same else gt('与远程分支不一致'))
 
-        except Exception as exc:
-            log.error(f'检测代码是否最新失败: {exc}', exc_info=True)
+        except Exception:
+            log.error('检测代码是否最新失败', exc_info=True)
             return False, gt('与远程分支不一致')
 
     def fetch_total_commit(self) -> int:
@@ -512,8 +509,8 @@ class GitService:
             head_target = repo.head.target
             walker = repo.walk(head_target, pygit2.GIT_SORT_TOPOLOGICAL)
             return sum(1 for _ in walker)
-        except Exception as exc:
-            log.error(f'获取commit总数失败: {exc}，可能仓库为空或HEAD不存在', exc_info=True)
+        except Exception:
+            log.error('获取commit总数失败，可能仓库为空或HEAD不存在', exc_info=True)
             return 0
 
     def fetch_page_commit(self, page_num: int, page_size: int) -> list[GitLog]:
@@ -547,8 +544,8 @@ class GitService:
                 logs.append(GitLog(short_id, author, commit_time, message))
 
             return logs
-        except Exception as exc:
-            log.error(f'获取commit失败: {exc}，可能仓库为空或HEAD不存在', exc_info=True)
+        except Exception:
+            log.error('获取commit失败，可能仓库为空或HEAD不存在', exc_info=True)
             return []
 
     def get_git_repository(self, for_clone: bool = False) -> str:
@@ -603,8 +600,8 @@ class GitService:
             repo = self._open_repo()
             obj = repo.revparse_single(commit_id)
             return self._reset_to_oid(obj.id)
-        except Exception as exc:
-            log.error(f'回滚到提交失败: {exc}', exc_info=True)
+        except Exception:
+            log.error(f'回滚到提交 {commit_id} 失败', exc_info=True)
             return False
 
     def get_current_version(self) -> str | None:
@@ -633,8 +630,8 @@ class GitService:
         self._apply_proxy()
         try:
             heads = remote.list_heads(callbacks=pygit2.RemoteCallbacks(), connect=True)
-        except Exception as exc:
-            log.error(f'获取最新标签失败: {exc}', exc_info=True)
+        except Exception:
+            log.error('获取最新标签失败', exc_info=True)
             return '', ''
 
         # 提取标签名称并解析为 Version 对象
