@@ -148,10 +148,16 @@ class GitService:
         """
         log.info(gt('获取远程代码'))
 
+        refspecs = []
+        branches = ['main', 'test', self.env_config.git_branch]
+
+        for branch in branches:
+            refspecs.append(f'+refs/heads/{branch}:refs/remotes/origin/{branch}')
+
         try:
             self._apply_proxy()
             remote.fetch(
-                refspecs=['+refs/heads/*:refs/remotes/origin/*'],
+                refspecs=refspecs,
                 depth=1
             )
             log.info(gt('获取远程代码成功'))
@@ -324,17 +330,6 @@ class GitService:
         log.error(msg)
         return False, msg
 
-    # ================== 公共 API ==================
-
-    def fetch_latest_code(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
-        """
-        更新最新的代码：不存在 .git 则克隆，存在则拉取并更新分支
-        """
-        if not os.path.exists(DOT_GIT_DIR_PATH):
-            return self.clone_repository(progress_callback)
-        else:
-            return self.checkout_latest_project_branch(progress_callback)
-
     def clone_repository(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
         """
         初始化本地仓库并同步远程目标分支
@@ -389,7 +384,7 @@ class GitService:
 
         return True, gt('克隆仓库成功')
 
-    def checkout_latest_project_branch(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
+    def fetch_and_checkout_latest_branch(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
         """
         切换到最新的目标分支并更新代码
         """
@@ -448,6 +443,17 @@ class GitService:
             progress_callback(6/6, message)
 
         return True, message
+
+    # ================== 公共 API ==================
+
+    def fetch_latest_code(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
+        """
+        更新最新的代码：不存在 .git 则克隆，存在则拉取并更新分支
+        """
+        if not os.path.exists(DOT_GIT_DIR_PATH):
+            return self.clone_repository(progress_callback)
+        else:
+            return self.fetch_and_checkout_latest_branch(progress_callback)
 
     def get_current_branch(self) -> str | None:
         """
