@@ -126,8 +126,9 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
                                                        content='刷新多少次数内 只购买第二优先级内的藏品')
         widget.add_widget(self.buy_only_priority_2_opt)
 
+        # 「谁是衰仔」「没有衰仔」SL 刷取方法: https://www.bilibili.com/video/BV1ywQKY4E5M/
         self.stop_when_found_lottery_opt = SwitchSettingCard(icon=FluentIcon.CAFE, title='遇到「衰仔」时推送消息并停止脚本运行',
-                                                             content='在使用SL法刷成就「谁是衰仔」「没有衰仔」时开启')
+                                                             content='在「战线肃清」SL刷成就「谁是衰仔」「没有衰仔」时开启')
         widget.add_widget(self.stop_when_found_lottery_opt)
 
         widget.add_stretch(1)
