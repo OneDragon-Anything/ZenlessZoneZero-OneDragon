@@ -332,36 +332,43 @@ class GitService:
 
         # 初始化仓库
         if progress_callback:
-            progress_callback(0.0, gt('初始化本地 Git 仓库'))
-        log.info(gt('初始化本地 Git 仓库'))
+            progress_callback(1/5, gt('初始化本地 Git 仓库') + ' (1/5)')
 
         try:
             pygit2.init_repository(work_dir, False)
-            repo = self._open_repo(refresh=True)
         except Exception as exc:
             log.error(f'初始化仓库失败: {exc}', exc_info=True)
             return False, gt('克隆仓库失败')
 
         # 配置远程
+        if progress_callback:
+            progress_callback(2/5, gt('配置远程仓库地址') + ' (2/5)')
+
         remote = self._ensure_remote(for_clone=True)
         if remote is None:
             return False, gt('更新远程仓库地址失败')
 
         # 获取远程代码
+        if progress_callback:
+            progress_callback(3/5, gt('获取远程代码') + ' (3/5)')
+
         fetch_result = self._fetch_remote(remote)
         if not fetch_result.success:
             return fetch_result.to_tuple()
 
-        if progress_callback:
-            progress_callback(0.5, fetch_result.message or gt('获取远程代码成功'))
-
         # 切换分支
+        if progress_callback:
+            progress_callback(4/5, gt('切换到目标分支') + ' (4/5)')
+
         target_branch = self.env_config.git_branch
         success, target_oid = self._checkout_branch(target_branch, allow_local=False)
         if not success:
             return False, gt('克隆仓库失败')
 
         # 重置到目标提交
+        if progress_callback:
+            progress_callback(5/5, gt('重置到目标提交') + ' (5/5)')
+
         if target_oid:
             if not self._reset_to_oid(target_oid):
                 return False, gt('克隆仓库失败')
