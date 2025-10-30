@@ -202,6 +202,9 @@ class GitService:
         Args:
             branch: 分支名称
             allow_local: 如果远程分支不存在，是否允许使用本地 HEAD
+
+        Returns:
+            是否成功，目标提交ID
         """
         commit = self._get_branch_commit(branch, allow_local)
         if commit is None:
@@ -225,6 +228,23 @@ class GitService:
         except Exception as exc:
             log.error(f'切换分支失败: {exc}', exc_info=True)
             return False, None
+
+    def _reset_to_oid(self, target_oid: pygit2.Oid) -> bool:
+        """重置仓库到指定提交
+
+        Args:
+            target_oid: 目标提交ID
+
+        Returns:
+            是否成功
+        """
+        try:
+            repo = self._open_repo()
+            repo.reset(target_oid, pygit2.GIT_RESET_HARD)
+            return True
+        except Exception as exc:
+            log.error(f'重置到提交 {target_oid} 失败: {exc}', exc_info=True)
+            return False
 
     def _sync_with_remote(self, branch: str, force: bool) -> GitOperationResult:
         """同步远程分支到本地
@@ -250,9 +270,11 @@ class GitService:
             # HEAD 不存在，直接重置
             if local_oid is None:
                 if force:
-                    repo.reset(remote_oid, pygit2.GIT_RESET_HARD)
-                    return GitOperationResult(True, 'RESET_HEAD', gt('更新本地代码成功'),
-                                              detail=f'reset to {remote_oid}')
+                    if self._reset_to_oid(remote_oid):
+                        return GitOperationResult(True, 'RESET_HEAD', gt('更新本地代码成功'),
+                                                  detail=f'reset to {remote_oid}')
+                    return GitOperationResult(False, 'RESET_FAILED', gt('更新本地代码失败'),
+                                              detail=f'failed to reset to {remote_oid}')
                 return GitOperationResult(False, 'HEAD_MISSING', gt('更新本地代码失败'),
                                           detail='HEAD missing')
 
@@ -268,15 +290,19 @@ class GitService:
 
             # 快进更新
             if can_fast_forward:
-                repo.reset(remote_oid, pygit2.GIT_RESET_HARD)
-                return GitOperationResult(True, 'FAST_FORWARD', gt('更新本地代码成功'),
-                                          detail=f'{local_oid} -> {remote_oid}')
+                if self._reset_to_oid(remote_oid):
+                    return GitOperationResult(True, 'FAST_FORWARD', gt('更新本地代码成功'),
+                                              detail=f'{local_oid} -> {remote_oid}')
+                return GitOperationResult(False, 'RESET_FAILED', gt('更新本地代码失败'),
+                                          detail=f'failed to reset from {local_oid} to {remote_oid}')
 
             # 强制更新
             if force:
-                repo.reset(remote_oid, pygit2.GIT_RESET_HARD)
-                return GitOperationResult(True, 'FORCED_RESET', gt('更新本地代码成功'),
-                                          detail=f'{local_oid} -> {remote_oid}')
+                if self._reset_to_oid(remote_oid):
+                    return GitOperationResult(True, 'FORCED_RESET', gt('更新本地代码成功'),
+                                              detail=f'{local_oid} -> {remote_oid}')
+                return GitOperationResult(False, 'RESET_FAILED', gt('更新本地代码失败'),
+                                          detail=f'failed to reset from {local_oid} to {remote_oid}')
 
             # 需要手动处理
             return GitOperationResult(False, 'NEED_MANUAL_REBASE', gt('更新本地代码失败'),
@@ -337,8 +363,8 @@ class GitService:
 
         # 重置到目标提交
         if target_oid:
-            repo = self._open_repo()
-            repo.reset(target_oid, pygit2.GIT_RESET_HARD)
+            if not self._reset_to_oid(target_oid):
+                return False, gt('克隆仓库失败')
 
         if progress_callback:
             progress_callback(1.0, gt('克隆仓库成功'))
@@ -373,11 +399,7 @@ class GitService:
                 if commit is None:
                     return False, gt('强制更新失败')
 
-                repo = self._open_repo()
-                try:
-                    repo.reset(commit.id, pygit2.GIT_RESET_HARD)
-                except Exception as exc:
-                    log.error(f'强制更新失败: {exc}', exc_info=True)
+                if not self._reset_to_oid(commit.id):
                     return False, gt('强制更新失败')
             else:
                 return False, gt('未开启强制更新 当前代码有修改 请自行处理后再更新')
@@ -573,8 +595,7 @@ class GitService:
         try:
             repo = self._open_repo()
             obj = repo.revparse_single(commit_id)
-            repo.reset(obj.id, pygit2.GIT_RESET_HARD)
-            return True
+            return self._reset_to_oid(obj.id)
         except Exception as exc:
             log.error(f'回滚到提交失败: {exc}', exc_info=True)
             return False
