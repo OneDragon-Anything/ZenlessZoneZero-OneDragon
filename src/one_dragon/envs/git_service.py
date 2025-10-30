@@ -330,7 +330,7 @@ class GitService:
         log.error(msg)
         return False, msg
 
-    def clone_repository(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
+    def _clone_repository(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
         """
         初始化本地仓库并同步远程目标分支
         """
@@ -384,7 +384,7 @@ class GitService:
 
         return True, gt('克隆仓库成功')
 
-    def fetch_and_checkout_latest_branch(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
+    def _fetch_and_checkout_latest_branch(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
         """
         切换到最新的目标分支并更新代码
         """
@@ -451,9 +451,9 @@ class GitService:
         更新最新的代码：不存在 .git 则克隆，存在则拉取并更新分支
         """
         if not os.path.exists(DOT_GIT_DIR_PATH):
-            return self.clone_repository(progress_callback)
+            return self._clone_repository(progress_callback)
         else:
-            return self.fetch_and_checkout_latest_branch(progress_callback)
+            return self._fetch_and_checkout_latest_branch(progress_callback)
 
     def get_current_branch(self) -> str | None:
         """
