@@ -29,11 +29,10 @@ class NotifyApp(ZApplication):
         """
         self.exist_failure = False
 
-        if self.message is None:
-            self.message = self.format_message()
+        message = self.message if (self.message is not None) else (self.format_message())
 
         self.ctx.push_service.push(
-            content=self.message,
+            content=message,
             image=self.last_screenshot
         )
 
