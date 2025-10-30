@@ -949,6 +949,7 @@ dependencies = [
     { name = "pyyaml", marker = "sys_platform == 'win32'" },
     { name = "shapely", marker = "sys_platform == 'win32'" },
     { name = "soundcard", marker = "sys_platform == 'win32'" },
+    { name = "vgamepad", marker = "sys_platform == 'win32'" },
 ]
 
 [package.dev-dependencies]
@@ -960,9 +961,6 @@ dev = [
     { name = "pytest", marker = "sys_platform == 'win32'" },
     { name = "pytest-asyncio", marker = "sys_platform == 'win32'" },
     { name = "ruff", marker = "sys_platform == 'win32'" },
-]
-gamepad = [
-    { name = "vgamepad", marker = "sys_platform == 'win32'" },
 ]
 
 [package.metadata]
@@ -980,6 +978,7 @@ requires-dist = [
     { name = "pyyaml", specifier = "==6.0.1" },
     { name = "shapely", specifier = "==2.0.4" },
     { name = "soundcard", specifier = "==0.4.3" },
+    { name = "vgamepad", specifier = "==0.1.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -992,4 +991,3 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.1.0" },
     { name = "ruff", specifier = "==0.12.10" },
 ]
-gamepad = [{ name = "vgamepad", specifier = "==0.1.0" }]

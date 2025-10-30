@@ -16,6 +16,7 @@ dependencies = [
     "pyclipper==1.3.0.post5",
     "soundcard==0.4.3",
     "librosa==0.10.2.post1",
+    "vgamepad==0.1.0",
     "gensim==4.3.3",
 ]
 
@@ -28,10 +29,6 @@ dev = [
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
     "ruff==0.12.10",
-]
-
-gamepad = [
-    "vgamepad==0.1.0",
 ]
 
 [tool.uv]
