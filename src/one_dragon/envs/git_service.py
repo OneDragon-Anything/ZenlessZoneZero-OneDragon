@@ -112,25 +112,6 @@ class GitService:
 
         return f'http://{proxy}'
 
-    def _apply_proxy(self) -> None:
-        """应用代理配置"""
-        proxy = self._get_proxy_address()
-
-        try:
-            repo = self._open_repo()
-            cfg = repo.config
-            if proxy is None:
-                # 清除代理
-                for key in ('http.proxy', 'https.proxy'):
-                    with contextlib.suppress(KeyError, pygit2.GitError):
-                        del cfg[key]
-            else:
-                # 设置代理
-                cfg['http.proxy'] = proxy
-                cfg['https.proxy'] = proxy
-        except Exception:
-            log.error('设置代理失败', exc_info=True)
-
     def _fetch_remote(self) -> bool:
         """获取远程代码
 
@@ -140,12 +121,11 @@ class GitService:
         log.info(gt('获取远程代码'))
 
         try:
-            self._apply_proxy()
-
             branch = self.env_config.git_branch
             remote = self._ensure_remote()
             remote.fetch(
                 refspecs=[f'+refs/heads/{branch}:refs/remotes/{remote.name}/{branch}'],
+                proxy=self._get_proxy_address(),
                 depth=1
             )
             log.info(gt('获取远程代码成功'))
@@ -556,16 +536,7 @@ class GitService:
 
         return ''
 
-    def init_git_proxy(self) -> None:
-        """
-        初始化 git 使用的代理：通过仓库级配置设置代理，避免污染进程环境
-        """
-        if not os.path.exists(DOT_GIT_DIR_PATH):
-            return
-
-        self._apply_proxy()
-
-    def update_git_remote(self) -> None:
+    def update_remote(self) -> None:
         """
         更新remote
         """
@@ -607,9 +578,8 @@ class GitService:
             return '', ''
 
         try:
-            self._apply_proxy()
             remote = self._ensure_remote()
-            heads = remote.list_heads(callbacks=pygit2.RemoteCallbacks(), connect=True)
+            heads = remote.list_heads(proxy=self._get_proxy_address())
         except Exception:
             log.error('获取最新标签失败', exc_info=True)
             return '', ''

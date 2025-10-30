@@ -68,14 +68,14 @@ class SettingEnvInterface(VerticalScrollInterface):
             icon=FluentIcon.APPLICATION, title='代码源', content='国内无法访问GitHub则选择Gitee',
             options_enum=RepositoryTypeEnum
         )
-        self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_git_remote())
+        self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
         code_group.addSettingCard(self.repository_type_opt)
 
         self.git_method_opt = ComboBoxSettingCard(
             icon=FluentIcon.SYNC, title='拉取方式', content='不懂什么是ssh就选https',
             options_enum=GitMethodEnum
         )
-        self.git_method_opt.value_changed.connect(lambda: self.ctx.git_service.update_git_remote())
+        self.git_method_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
         code_group.addSettingCard(self.git_method_opt)
 
         self.force_update_opt = SwitchSettingCard(
@@ -212,8 +212,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         :return:
         """
         self.ctx.env_config.init_system_proxy()
-        self.ctx.git_service.is_proxy_set = False
-        self.ctx.git_service.init_git_proxy()
 
     def on_fetch_gh_proxy_url_clicked(self) -> None:
         self.ctx.gh_proxy_service.update_proxy_url()
