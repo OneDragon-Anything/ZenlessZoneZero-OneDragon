@@ -103,7 +103,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         widget.add_widget(self.period_buff_no_opt)
 
         self.store_gold_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='商店-使用金币购买',
-                                                content='想不买东西速刷时或在刷取成就:「空洞金融大亨」时关闭')
+                                                content='想不买东西速刷时或在刷取成就「空洞金融大亨」时关闭')
         widget.add_widget(self.store_gold_opt)
 
         self.store_blood_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='商店-使用血量购买',
@@ -125,6 +125,10 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.buy_only_priority_2_opt = TextSettingCard(icon=FluentIcon.GAME, title='只购买第二优先级',
                                                        content='刷新多少次数内 只购买第二优先级内的藏品')
         widget.add_widget(self.buy_only_priority_2_opt)
+
+        self.stop_when_found_lottery_opt = SwitchSettingCard(icon=FluentIcon.CAFE, title='遇到「衰仔」时推送消息并停止脚本运行',
+                                                             content='在使用SL法刷成就「谁是衰仔」「没有衰仔」时开启')
+        widget.add_widget(self.stop_when_found_lottery_opt)
 
         widget.add_stretch(1)
         return widget
@@ -200,6 +204,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.artifact_priority_input.setDisabled(not chosen or is_sample)
         self.artifact_priority_input_2.setDisabled(not chosen or is_sample)
         self.region_type_priority_input.setDisabled(not chosen or is_sample)
+        self.stop_when_found_lottery_opt.setDisabled(not chosen or is_sample)
 
         self._update_existed_yml_options()
         team_config_list = ([ConfigItem('游戏内配队', -1)] +
@@ -225,6 +230,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
             self.priority_new_opt.init_with_adapter(self.chosen_config.get_prop_adapter('artifact_priority_new'))
             self.buy_only_priority_1_opt.init_with_adapter(self.chosen_config.get_prop_adapter('buy_only_priority_1', getter_convert='str', setter_convert='int'))
             self.buy_only_priority_2_opt.init_with_adapter(self.chosen_config.get_prop_adapter('buy_only_priority_2', getter_convert='str', setter_convert='int'))
+            self.stop_when_found_lottery_opt.init_with_adapter(self.chosen_config.get_prop_adapter('stop_when_found_lottery'))
 
             self.artifact_priority_input.blockSignals(True)
             self.artifact_priority_input.setPlainText(self.chosen_config.artifact_priority_str)

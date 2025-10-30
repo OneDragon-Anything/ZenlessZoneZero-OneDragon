@@ -257,6 +257,16 @@ class LostVoidChallengeConfig(YamlConfig):
     def chase_new_mode(self, new_value: bool):
         self.update('chase_new_mode', new_value)
 
+    @property
+    def stop_when_found_lottery(self) -> bool:
+        """
+        @return: 遇到衰仔时推送消息并停止运行
+        """
+        return self.get('stop_when_found_lottery', False)
+
+    @stop_when_found_lottery.setter
+    def stop_when_found_lottery(self, new_value: bool):
+        self.update('stop_when_found_lottery', new_value)
 
 def get_all_lost_void_challenge_config(with_sample: bool = True) -> List[LostVoidChallengeConfig]:
     config_list: List[LostVoidChallengeConfig] = []

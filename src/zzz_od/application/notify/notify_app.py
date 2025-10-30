@@ -11,7 +11,7 @@ from zzz_od.context.zzz_context import ZContext
 
 class NotifyApp(ZApplication):
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext, message: str = None):
         ZApplication.__init__(
             self,
             ctx,
@@ -19,6 +19,7 @@ class NotifyApp(ZApplication):
             op_name=gt(notify_const.APP_NAME),
             need_check_game_win=True,
         )
+        self.message = message
 
     @operation_node(name='发送通知', is_start_node=True)
     def notify(self) -> OperationRoundResult:
@@ -28,10 +29,11 @@ class NotifyApp(ZApplication):
         """
         self.exist_failure = False
 
-        message = self.format_message()
+        if self.message is None:
+            self.message = self.format_message()
 
         self.ctx.push_service.push(
-            content=message,
+            content=self.message,
             image=self.last_screenshot
         )
 
