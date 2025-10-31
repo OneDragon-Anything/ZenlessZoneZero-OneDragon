@@ -145,8 +145,11 @@ class GitService:
 
         return f'http://{proxy}'
 
-    def _fetch_remote(self) -> bool:
+    def _fetch_remote(self, for_clone: bool = False) -> bool:
         """获取远程代码
+
+        Args:
+            for_clone: 是否用于克隆（会影响代理地址的选择）
 
         Returns:
             是否成功
@@ -154,7 +157,7 @@ class GitService:
         log.info(gt('获取远程代码'))
 
         try:
-            remote = self._ensure_remote()
+            remote = self._ensure_remote(for_clone)
             branch_name = self.env_config.git_branch
             refspec = f'+refs/heads/{branch_name}:refs/remotes/{remote.name}/{branch_name}'
 
@@ -412,7 +415,7 @@ class GitService:
         if progress_callback:
             progress_callback(2/5, gt('获取远程代码'))
 
-        if not self._fetch_remote():
+        if not self._fetch_remote(for_clone=True):
             return False, gt('获取远程代码失败')
 
         # 切换到目标分支
