@@ -49,6 +49,11 @@ class PipSourceEnum(Enum):
     TSING_HUA = ConfigItem('清华大学', 'https://pypi.tuna.tsinghua.edu.cn/simple')
     ALIBABA = ConfigItem('阿里云', 'https://mirrors.aliyun.com/pypi/simple')
 
+class GitRemoteEnum(Enum):
+
+    ORIGIN = ConfigItem('origin')
+    UPSTREAM = ConfigItem('upstream')
+
 
 class GitBranchEnum(Enum):
 
@@ -262,6 +267,22 @@ class EnvConfig(YamlConfig):
         :return:
         """
         return urllib.parse.urlparse(self.pip_source).netloc
+
+    @property
+    def git_remote(self) -> str:
+        """
+        远程
+        :return:
+        """
+        return self.get('git_remote', GitRemoteEnum.ORIGIN.value.value)
+
+    @git_remote.setter
+    def git_remote(self, new_value: str) -> None:
+        """
+        远程
+        :return:
+        """
+        self.update('git_remote', new_value)
 
     @property
     def git_branch(self) -> str:

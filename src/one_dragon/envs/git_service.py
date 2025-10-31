@@ -75,10 +75,8 @@ class GitService:
         if not remote_url:
             raise pygit2.GitError('未能获取有效的远程仓库地址')
 
-        remote_name = 'origin'
-
-        # 获取最新的仓库对象
         repo = self._open_repo()
+        remote_name = self.env_config.git_remote
 
         # 检查远程是否已存在
         if remote_name in repo.remotes.names():
@@ -207,9 +205,10 @@ class GitService:
             log.error('打开本地仓库失败', exc_info=True)
             return False
 
+        remote_name = self.env_config.git_remote
         branch = self.env_config.git_branch
         local_ref = f'refs/heads/{branch}'
-        remote_ref = f'refs/remotes/origin/{branch}'
+        remote_ref = f'refs/remotes/{remote_name}/{branch}'
 
         # 确保本地分支存在
         if local_ref not in repo.references:
@@ -228,12 +227,11 @@ class GitService:
 
         # 配置远程追踪
         try:
-            remote = self._ensure_remote()
             local_branch = repo.branches.get(branch)
-            remote_branch = repo.lookup_branch(f'{remote.name}/{branch}', pygit2.GIT_BRANCH_REMOTE)
+            remote_branch = repo.lookup_branch(f'{remote_name}/{branch}', pygit2.GIT_BRANCH_REMOTE)
             if local_branch and remote_branch:
                 local_branch.upstream = remote_branch
-                log.debug(f'配置分支追踪: {branch} -> {remote.name}/{branch}')
+                log.debug(f'配置分支追踪: {branch} -> {remote_name}/{branch}')
         except Exception:
             log.error('配置远程追踪失败', exc_info=True)
 
@@ -264,7 +262,7 @@ class GitService:
             return False, msg
 
         # 检查远程分支是否存在
-        remote_ref = f'refs/remotes/origin/{self.env_config.git_branch}'
+        remote_ref = f'refs/remotes/{self.env_config.git_remote}/{self.env_config.git_branch}'
         if remote_ref not in repo.references:
             msg = f'{gt("远程分支不存在")}: {remote_ref}'
             log.error(msg)
@@ -455,8 +453,8 @@ class GitService:
             if not self._fetch_remote():
                 return False, gt('获取远程代码失败')
 
+            remote_ref = f'refs/remotes/{self.env_config.git_remote}/{self.env_config.git_branch}'
             repo = self._open_repo()
-            remote_ref = f'refs/remotes/origin/{self.env_config.git_branch}'
             if remote_ref not in repo.references:
                 return False, gt('与远程分支不一致')
 
