@@ -121,10 +121,16 @@ class GitService:
         log.info(gt('获取远程代码'))
 
         try:
-            branch = self.env_config.git_branch
             remote = self._ensure_remote()
+            branch = self.env_config.git_branch
+            refspec = f'+refs/heads/{branch}:refs/remotes/{remote.name}/{branch}'
+
+            repo = self._open_repo()
+            with contextlib.suppress(Exception):
+                repo.config.set_multivar(f'remote.{remote.name}.fetch', '.*', refspec)
+
             remote.fetch(
-                refspecs=[f'+refs/heads/{branch}:refs/remotes/{remote.name}/{branch}'],
+                refspecs=[refspec],
                 proxy=self._get_proxy_address(),
                 depth=1
             )
