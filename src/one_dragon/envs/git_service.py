@@ -451,32 +451,37 @@ class GitService:
         当前分支是否已经最新 与远程分支一致
         """
         log.info(gt('检测当前代码是否最新'))
+
+        if not self._fetch_remote():
+            return False, gt('获取远程代码失败')
+
         try:
-            if not self._fetch_remote():
-                return False, gt('获取远程代码失败')
-
-            remote_branch_name = f'{self.env_config.git_remote}/{self.env_config.git_branch}'
-            remote_ref = f'refs/remotes/{remote_branch_name}'
             repo = self._open_repo()
-            if remote_ref not in repo.references:
-                msg = f'{gt("远程分支不存在")}: {remote_branch_name}'
-                log.error(msg)
-                return False, msg
+        except Exception:
+            msg = gt('打开本地仓库失败')
+            log.error(msg, exc_info=True)
+            return False, msg
 
+        remote_branch_name = f'{self.env_config.git_remote}/{self.env_config.git_branch}'
+        remote_ref = f'refs/remotes/{remote_branch_name}'
+        if remote_ref not in repo.references:
+            msg = f'{gt("远程分支不存在")}: {remote_branch_name}'
+            log.error(msg)
+            return False, msg
+
+        try:
             remote_oid = repo.references[remote_ref].target
             local_oid = repo.head.target
-
-            # 比较提交是否相同；否则比较树差异
-            if local_oid == remote_oid:
-                return True, ''
-
-            diff = repo.diff(local_oid, remote_oid)
-            is_same = diff.patch is None or len(diff) == 0
-            return (is_same, '' if is_same else gt('与远程分支不一致'))
-
         except Exception:
-            log.error('检测代码是否最新失败', exc_info=True)
-            return False, gt('与远程分支不一致')
+            msg = gt('获取提交信息失败')
+            log.error(msg, exc_info=True)
+            return False, msg
+
+        # 比较提交是否相同
+        if local_oid == remote_oid:
+            return True, ''
+
+        return False, gt('与远程分支不一致')
 
     def fetch_total_commit(self) -> int:
         """
