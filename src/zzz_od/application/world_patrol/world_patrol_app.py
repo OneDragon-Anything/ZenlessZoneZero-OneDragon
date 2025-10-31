@@ -105,7 +105,7 @@ class WorldPatrolApp(ZApplication):
     @operation_node(name='执行路线')
     def run_route(self) -> OperationRoundResult:
         if self.route_idx >= len(self.route_list):
-            return self.round_success(status=f'路线已全部完成')
+            return self.round_success(status='路线已全部完成')
 
         route: WorldPatrolRoute = self.route_list[self.route_idx]
         if route.full_id in self.run_record.finished:
@@ -115,25 +115,32 @@ class WorldPatrolApp(ZApplication):
         op = WorldPatrolRunRoute(self.ctx, route)
         result = op.execute()
 
-        if not result.success and isinstance(result.status, str) and '卡住超限，重启当前路线' in result.status:
+        def _is_stuck_over_limit_status(status: object) -> bool:
+            return isinstance(status, str) and '卡住超限，重启当前路线' in status
+
+        route_finished = False
+        fail_status = None
+
+        if result.success:
+            route_finished = True
+        elif _is_stuck_over_limit_status(result.status):
             # 二次尝试（从头）
             retry_op = WorldPatrolRunRoute(self.ctx, route)
             retry_result = retry_op.execute()
-            if retry_result.success:
-                self.run_record.add_record(route.full_id)
-                self.route_idx += 1
-                return self.round_wait(status=f'完成路线 {route.full_id}')
+            if retry_result.success or _is_stuck_over_limit_status(retry_result.status):
+                route_finished = True
             else:
-                self.route_idx += 1
-                return self.round_wait(status=f'路线失败 {retry_result.status} {route.full_id}')
+                fail_status = retry_result.status
+        else:
+            fail_status = result.status
 
-        if result.success:
+        if route_finished:
             self.run_record.add_record(route.full_id)
             self.route_idx += 1
             return self.round_wait(status=f'完成路线 {route.full_id}')
         else:
             self.route_idx += 1
-            return self.round_wait(status=f'路线失败 {result.status} {route.full_id}')
+            return self.round_wait(status=f'路线失败 {fail_status} {route.full_id}')
 
 
 def __debug():

@@ -1,4 +1,5 @@
 import time
+from typing import Optional
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -52,6 +53,14 @@ class WorldPatrolRunRoute(ZOperation):
         self.current_idx: int = start_idx
         self.current_pos: Point = Point(0, 0)
 
+        # 智能回溯状态变量
+        self.backtrack_active: bool = False  # 是否正在回溯到上一个点位
+        self.backtrack_target: Point | None = None  # 回溯目标点
+        self.backtrack_deadline: float = 0  # 回溯超时时间
+        self.last_backtrack_target: Point | None = None  # 上一个目标点（可作为回溯点）
+        self.route_start_pos: Point | None = None  # 起点（可作为初始回溯点）
+
+        # 执行脱困状态变量
         self.stuck_move_direction: int = 0  # 脱困使用的方向
         self.route_op_start_time: float = 0  # 某个指令的开始时间
         self.no_pos_start_time: float = 0  # 计算坐标失败的开始时间
@@ -59,6 +68,7 @@ class WorldPatrolRunRoute(ZOperation):
         self.stuck_pos_start_time: float = 0  # 被困坐标的开始时间
         self.pos_stuck_attempts: int = 0  # 有坐标但卡住的连续脱困尝试次数
 
+        # 自动战斗状态变量
         self.in_battle: bool = False  # 是否在战斗中
         self.last_check_battle_time: float = 0  # 上一次检测是否还在战斗的时间
 
@@ -66,6 +76,9 @@ class WorldPatrolRunRoute(ZOperation):
         self.sensitivity: float = 1.0  # 转向灵敏度
         self.last_angle: float | None = None  # 上一次获取到的人物朝向
         self.last_angle_diff_command: float | None = None  # 上一次下发的转向指令
+
+    # 距离判定阈值（用于到达/回溯成功/卡住判定的统一半径）
+    REACH_DISTANCE: int = 10
 
     @operation_node(name='初始回到大世界', is_start_node=True)
     def back_at_first(self) -> OperationRoundResult:
@@ -92,6 +105,7 @@ class WorldPatrolRunRoute(ZOperation):
             log.error('未找到初始坐标，请检查路线配置')
             return self.round_fail(status='路线或开始下标有误')
         self.current_pos = start_pos
+        self.route_start_pos = start_pos  # 记录起点
         self.ctx.controller.turn_vertical_by_distance(300)
         return self.round_success(wait=1)
 
@@ -128,26 +142,32 @@ class WorldPatrolRunRoute(ZOperation):
         """
         处理移动指令的核心逻辑
         """
-        # 1. 更新当前位置，并处理无法计算坐标的情况
-        update_res = self._update_current_pos(mini_map)
-        # None 表示下层判定应当失败，这里优雅地回归上层统一处理
-        if update_res is None:
-            return self.round_fail(status='无法计算坐标，时间已达上限')
-        if isinstance(update_res, OperationRoundResult):
-            return update_res
-        self.current_pos = update_res
+        # 1. 更新当前位置，并处理无法计算坐标/卡住超限的情况
+        res = self._update_current_pos(mini_map)
+        if isinstance(res, OperationRoundResult):
+            return res
+        if res is None or self._process_stuck_with_pos(res):
+            return self.round_fail(status='卡住超限，重启当前路线')
+        self.current_pos = res
 
-        # 处理有坐标但卡住的情况
-        if self._process_stuck_with_pos(self.current_pos):
-            return self.round_fail(status='有坐标但卡住，脱困尝试超限')
+        # 回溯态维护与目标点选择
+        backtrack_status = None
+        if self.backtrack_active:
+            backtrack_status = self._backtrack_step(self.current_pos)
+            if backtrack_status == 'reached':
+                return self.round_wait(status='回溯成功，已到达回溯点')
 
         # 2. 执行转向和移动
-        target_pos = Point(int(op.data[0]), int(op.data[1]))
+        target_pos = (
+            self.backtrack_target
+            if (self.backtrack_active and self.backtrack_target is not None)
+            else Point(int(op.data[0]), int(op.data[1]))
+        )
         self._turn_and_move(target_pos, mini_map)
 
-        # 3. 判断是否到达目的地
-        # 到达目标的距离阈值
-        if cal_utils.distance_between(self.current_pos, target_pos) < 10:
+        # 3. 判断是否到达目标点
+        # 到达目标点距离阈值
+        if (not self.backtrack_active) and cal_utils.distance_between(self.current_pos, target_pos) < self.REACH_DISTANCE:
             self.current_idx += 1
             if is_next_move:
                 # 到达途径点后，点刹，用于校准
@@ -225,19 +245,24 @@ class WorldPatrolRunRoute(ZOperation):
         Returns:
             bool: True 表示达到脱困上限，重启当前路线；False 表示已处理或无需处理
         """
-        # 判断“有坐标但卡住”的距离阈值
-        if cal_utils.distance_between(next_pos, self.stuck_pos) < 10:
+        # 疑似卡住的阈值（若当时移动较慢或转向未完成，过小可能误判，过大转悠太久）
+        if cal_utils.distance_between(next_pos, self.stuck_pos) < self.REACH_DISTANCE:
             if self.stuck_pos_start_time == 0:
                 self.stuck_pos_start_time = self.last_screenshot_time
-            elif self.last_screenshot_time - self.stuck_pos_start_time >  4.0:  # 卡住时间阈值（如果代理人当时走得慢或未完成转向，小于 2 偶尔会误判）
+            elif self.last_screenshot_time - self.stuck_pos_start_time > 2:
                 self.ctx.controller.stop_moving_forward()
-                # 有坐标脱困：计数并在达到上限时重启，否则执行一次脱困动作
-                self.pos_stuck_attempts += 1
-                if self.pos_stuck_attempts >= 6:  # 脱困最大尝试次数
-                    log.info('[with-pos]卡住，重启当前路线')
-                    self.pos_stuck_attempts = 0
-                    return True
-                self._do_unstuck_move('with-pos')
+                # 先尝试智能回溯
+                status = self._backtrack_step(next_pos, emit_log=True)
+                if status in ('unavailable', 'expired'):
+                    # 回溯超时/跳过，则尝试执行脱困（计数）
+                    self._do_unstuck_move('with-pos')
+                    self.pos_stuck_attempts += 1
+                    if self.pos_stuck_attempts >= 6:  # 脱困最大尝试次数
+                        log.info('[with-pos]卡住，重启当前路线')
+                        self.pos_stuck_attempts = 0
+                        return True
+                elif status == 'started':
+                    pass
                 # 成功执行一次脱困后，重置卡点计时，避免连续触发
                 self.stuck_pos = Point(0, 0)
                 self.stuck_pos_start_time = 0
@@ -301,6 +326,59 @@ class WorldPatrolRunRoute(ZOperation):
 
         # 4. 开始移动
         self.ctx.controller.start_moving_forward()
+
+    def _backtrack_step(self, next_pos: Point, emit_log: bool = False) -> str:
+        """
+        智能回溯：推进一次“折返到上一个目标点”的状态机
+        :param next_pos: 当前计算出的角色坐标
+        :param emit_log: 是否输出通用日志
+        :return:状态字符串：'started'（开始回溯）、'ongoing'（正在回溯）、'reached'（回溯成功）、
+                           'expired'（回溯超时）、'unavailable'（回溯跳过）
+        """
+        now = self.last_screenshot_time
+
+        # 尝试启动回溯：决定 unavailable 或 started
+        if not self.backtrack_active or self.backtrack_target is None:
+            prev_pos = self.ctx.world_patrol_service.get_route_pos_before_op_idx(self.route, self.current_idx)
+            if prev_pos is None and self.route_start_pos is not None:
+                prev_pos = self.route_start_pos
+            last_target = self.last_backtrack_target
+            same_as_last = (
+                prev_pos is not None
+                and last_target is not None
+                and cal_utils.distance_between(prev_pos, last_target) < self.REACH_DISTANCE
+            )
+            if prev_pos is None or same_as_last:
+                if emit_log and same_as_last:
+                    log.info('回溯跳过，回溯点与上次相同')
+                return 'unavailable'
+
+            if emit_log:
+                log.info(f'尝试回溯到上一个目标点 {prev_pos}')
+            self.backtrack_active = True
+            self.backtrack_target = prev_pos
+            self.backtrack_deadline = now + 6.0
+            self.ctx.controller.start_moving_forward()
+            return 'started'
+
+        # 维护进行中的回溯：先返回 ongoing，再处理 reached / expired
+        reached = cal_utils.distance_between(next_pos, self.backtrack_target) < self.REACH_DISTANCE
+        expired = now >= self.backtrack_deadline
+        if not reached and not expired:
+            return 'ongoing'
+        target = self.backtrack_target
+        if reached:
+            self.ctx.controller.stop_moving_forward()
+            if emit_log:
+                log.info(f'回溯成功，已到达 {target}')
+        elif emit_log:
+            log.info('回溯超时')
+        # 清理状态
+        self.last_backtrack_target = self.backtrack_target
+        self.backtrack_active = False
+        self.backtrack_target = None
+        self.backtrack_deadline = 0
+        return 'reached' if reached else 'expired'
 
     def _do_unstuck_move(self, tag: str):
         """
