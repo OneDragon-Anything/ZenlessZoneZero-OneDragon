@@ -65,9 +65,10 @@ class GitService:
         if self._repo is None:
             work_dir = os_utils.get_work_dir()
             # 检查是否是有效的 git 仓库
-            if not discover_repository(work_dir):
+            git_dir = discover_repository(work_dir)
+            if not git_dir:
                 raise ValueError(f'目录 {work_dir} 不是有效的 Git 仓库')
-            self._repo = Repository(work_dir)
+            self._repo = Repository(git_dir)
 
         return self._repo
 
