@@ -11,7 +11,7 @@ import requests
 import threading
 from typing import Optional, Tuple
 
-from cv2.typing import MatLike
+from cv2.typing import MatLike # 假设 MatLike 是 cv2 图像类型
 
 from one_dragon.base.push.push_channel import PushChannel
 from one_dragon.base.push.push_channel_config import PushChannelConfigField, FieldTypeEnum
@@ -64,14 +64,6 @@ class WorkWeixinApp(PushChannel):
                 default="@all",
                 required=False,
             ),
-            PushChannelConfigField(
-                var_suffix="MEDIA_ID",
-                title="预设图文封面 Media ID",
-                icon="PHOTO",
-                field_type=FieldTypeEnum.TEXT,
-                placeholder="可选。填写则优先用作图文消息封面。如需动态上传图片，无需填写此项",
-                required=False,
-            ),
         ]
 
         PushChannel.__init__(
@@ -99,7 +91,7 @@ class WorkWeixinApp(PushChannel):
                 return cached_token, ""
 
             # 获取新的 access_token
-            get_token_url = f"{self._BASE_API_URL}/cgi-bin/gettoken" # 直接使用内部常量
+            get_token_url = f"{self._BASE_API_URL}/cgi-bin/gettoken"
             params = {
                 "corpid": corpid,
                 "corpsecret": corpsecret,
@@ -131,7 +123,7 @@ class WorkWeixinApp(PushChannel):
         上传图片到企业微信临时素材，获取 media_id。
         临时素材 media_id 在 3 天内有效。
         """
-        upload_url = f"{self._BASE_API_URL}/cgi-bin/media/upload?access_token={access_token}&type=image" # 直接使用内部常量
+        upload_url = f"{self._BASE_API_URL}/cgi-bin/media/upload?access_token={access_token}&type=image"
         
         # 企业微信临时素材文件大小限制：图片最大2MB
         TARGET_SIZE = 2 * 1024 * 1024 
@@ -151,8 +143,47 @@ class WorkWeixinApp(PushChannel):
             data = response.json()
 
             if data.get("errcode") == 0:
-                log.info(f"企业微信应用图片上传成功，media_id: {data.get('media_id')}")
+                log.info(f"企业微信应用临时图片素材上传成功，media_id: {data.get('media_id')}")
                 return data["media_id"], ""
+            else:
+                return "", f"临时图片素材上传失败: {data.get('errmsg', '未知错误')}"
+        except Exception as e:
+            log.error("企业微信应用临时图片素材上传请求异常", exc_info=True)
+            return "", f"临时图片素材上传异常: {str(e)}"
+
+    def _upload_image_permanent(
+        self,
+        access_token: str,
+        image: MatLike,
+        proxies: Optional[dict[str, str]]
+    ) -> Tuple[str, str]:
+        """
+        上传图片到企业微信，获取永久URL。
+        文档地址：https://qyapi.weixin.qq.com/cgi-bin/media/uploadimg?access_token=ACCESS_TOKEN
+        """
+        upload_url = f"{self._BASE_API_URL}/cgi-bin/media/uploadimg?access_token={access_token}"
+        
+        # 文档中提到图片文件大小应在 5B ~ 2MB 之间
+        TARGET_SIZE = 2 * 1024 * 1024 
+        image_bytes_io = self.image_to_bytes(image, max_bytes=TARGET_SIZE)
+
+        if image_bytes_io is None:
+            return "", "图片转换或压缩失败"
+        
+        image_bytes = image_bytes_io.getvalue()
+
+        files = {
+            'media': ('image.jpg', image_bytes, 'image/jpeg') # filename, content, content-type
+        }
+        try:
+            response = requests.post(upload_url, files=files, proxies=proxies, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+
+            if data.get("errcode") == 0:
+                permanent_url = data["url"]
+                log.info(f"企业微信应用图片上传成功，获取永久URL: {permanent_url}")
+                return permanent_url, ""
             else:
                 return "", f"图片上传失败: {data.get('errmsg', '未知错误')}"
         except Exception as e:
@@ -166,7 +197,7 @@ class WorkWeixinApp(PushChannel):
         proxies: Optional[dict[str, str]]
     ) -> Tuple[bool, str]:
         """封装企业微信发送消息 API 调用"""
-        send_url = f"{self._BASE_API_URL}/cgi-bin/message/send?access_token={access_token}" # 直接使用内部常量
+        send_url = f"{self._BASE_API_URL}/cgi-bin/message/send?access_token={access_token}"
         headers = {"Content-Type": "application/json; charset=utf-8"}
         
         try:
@@ -200,10 +231,10 @@ class WorkWeixinApp(PushChannel):
         推送消息到企业微信应用
 
         Args:
-            config: 配置字典，包含 CORP_ID、CORP_SECRET、AGENT_ID、TO_USER、MEDIA_ID
+            config: 配置字典，包含 CORP_ID、CORP_SECRET、AGENT_ID、TO_USER
             title: 消息标题
             content: 消息内容
-            image: 图片数据（可选，将作为图文消息的封面图）
+            image: 图片数据（可选，将作为图文消息的封面图，并将其URL插入到content尾部）
             proxy_url: 代理地址
 
         Returns:
@@ -219,8 +250,6 @@ class WorkWeixinApp(PushChannel):
             corpsecret = config.get('CORP_SECRET', '')
             agentid = config.get('AGENT_ID', '')
             touser = config.get('TO_USER', '@all')
-            pre_configured_media_id = config.get('MEDIA_ID', '')
-            # 移除了 origin 的获取，直接使用 _BASE_API_URL
 
             proxies = self.get_proxy(proxy_url)
 
@@ -230,27 +259,33 @@ class WorkWeixinApp(PushChannel):
                 log.error(f"企业微信应用推送失败：{token_err}")
                 return False, f"企业微信应用推送失败：{token_err}"
 
-            # 2. 处理图片：如果传入了图片，尝试上传获取 media_id
-            effective_media_id_used = False # 标记是否使用了 media_id
-            effective_media_id = pre_configured_media_id
-            if image is not None:
-                uploaded_media_id, upload_err = self._upload_image_media(access_token, image, proxies)
-                if uploaded_media_id:
-                    effective_media_id = uploaded_media_id
-                    effective_media_id_used = True
-                    log.info("企业微信应用动态图片成功上传，将以图文消息形式发送。")
-                else:
-                    log.warning(f"企业微信应用动态图片上传失败，将尝试以文本消息形式发送。错误: {upload_err}")
-                    # 如果动态图片上传失败，且没有预设 media_id，则effective_media_id可能为空，这时会走文本消息
-                    if not pre_configured_media_id:
-                        effective_media_id = "" # 确保在图片上传失败时不会误用旧的media_id
-            
-            if effective_media_id and not effective_media_id_used: # 如果有预设的media_id，也要将其标记为已使用
-                effective_media_id_used = True
+            # 2. 处理图片：如果传入了图片，尝试上传获取永久URL和临时media_id
+            permanent_image_url = "" # 用于在content中插入img标签
+            effective_thumb_media_id = "" # 用于mpnews的封面thumb_media_id
+            img_tag_context = "" # img标签字符串
 
-            # 3. 构建消息体：根据是否有 effective_media_id 决定发送文本还是图文消息
+            if image is not None:
+                # 尝试上传图片获取永久URL，用于插入到content中
+                temp_permanent_image_url, permanent_upload_err = self._upload_image_permanent(access_token, image, proxies)
+                if temp_permanent_image_url:
+                    permanent_image_url = temp_permanent_image_url
+                else:
+                    log.warning(f"企业微信应用图片上传获取永久URL失败，无法在消息体中插入图片。错误: {permanent_upload_err}")
+
+                # 尝试上传图片获取临时media_id，用于mpnews封面
+                temp_uploaded_media_id, upload_media_err = self._upload_image_media(access_token, image, proxies)
+                if temp_uploaded_media_id:
+                    effective_thumb_media_id = temp_uploaded_media_id
+                else:
+                    log.warning(f"企业微信应用图片上传获取临时media_id失败，无法作为封面图。错误: {upload_media_err}")
+
+            # 根据是否获取到永久URL，追加content
+            if permanent_image_url:
+                img_tag_context = f'<br/>\n<img src="{permanent_image_url}">'
+            
+            # 3. 构建消息体：根据是否有 effective_thumb_media_id 决定发送文本还是图文消息
             message_payload: dict
-            if effective_media_id_used: # 判断是否使用 media_id
+            if effective_thumb_media_id: # 如果有封面media_id，发送图文消息
                 # 发送图文消息 (mpnews)
                 # 注意: mpnews 的 `content` 字段支持 HTML 标记，这里使用 <br/> 替换换行符
                 message_payload = {
@@ -261,10 +296,10 @@ class WorkWeixinApp(PushChannel):
                         "articles": [
                             {
                                 "title": title,
-                                "thumb_media_id": effective_media_id,
+                                "thumb_media_id": effective_thumb_media_id,
                                 "author": "OneDragon", # 可自定义
                                 "content_source_url": "",  # 可选，可留空
-                                "content": content.replace("\n", "<br/>\n"),  # 图文消息内容支持 HTML
+                                "content": content.replace("\n", "<br/>\n") + img_tag_context,  # 图文消息内容支持 HTML
                                 "digest": content, # 摘要，不含 HTML
                             }
                         ]
@@ -285,7 +320,7 @@ class WorkWeixinApp(PushChannel):
             send_ok, send_msg = self._send_message_api(access_token, message_payload, proxies)
 
             # 如果图文消息发送失败，尝试回退到文本消息（仅当原意是发送图文且发送失败时）
-            if not send_ok and effective_media_id_used:
+            if not send_ok and effective_thumb_media_id:
                 log.warning(f"企业微信应用图文消息发送失败：{send_msg}，尝试发送纯文本消息。")
                 text_fallback_payload = {
                     "touser": touser,
@@ -337,4 +372,3 @@ class WorkWeixinApp(PushChannel):
             return False, "应用 AgentId 必须是有效的数字"
 
         return True, "配置验证通过"
-
