@@ -14,7 +14,7 @@ from pygit2 import (
     init_repository,
     settings,
 )
-from pygit2.enums import BranchType, CheckoutStrategy, ConfigLevel, ResetMode, SortMode
+from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
 
 from one_dragon.envs.env_config import EnvConfig, GitMethodEnum, RepositoryTypeEnum
 from one_dragon.envs.project_config import ProjectConfig
@@ -306,16 +306,6 @@ class GitService:
             else:
                 log.error(f'本地和远程都不存在分支 {branch_name}')
                 return False
-
-        # 配置远程追踪
-        try:
-            local_branch = repo.branches.get(branch_name)
-            remote_branch = repo.lookup_branch(remote_branch_name, BranchType.REMOTE)
-            if local_branch and remote_branch:
-                local_branch.upstream = remote_branch
-                log.debug(f'配置分支追踪: {branch_name} -> {remote_branch_name}')
-        except Exception:
-            log.error('配置远程追踪失败', exc_info=True)
 
         # 切换到分支
         try:
