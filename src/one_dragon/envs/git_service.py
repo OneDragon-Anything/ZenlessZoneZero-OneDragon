@@ -233,6 +233,23 @@ class GitService:
 
         return True, ''
 
+    def _get_commit_walker(self, sort_mode: SortMode = SortMode.TOPOLOGICAL) -> Repository.walker | None:
+        """获取commit遍历器
+
+        Args:
+            sort_mode: 排序模式
+
+        Returns:
+            commit遍历器，失败时返回None
+        """
+        try:
+            repo = self._open_repo()
+            head_target = repo.head.target
+            return repo.walk(head_target, sort_mode)
+        except Exception:
+            log.error('获取commit遍历器失败', exc_info=True)
+            return None
+
     def _checkout_branch(self) -> bool:
         """切换到指定分支
 
@@ -489,14 +506,8 @@ class GitService:
         获取commit的总数。获取失败时返回0
         """
         log.info(gt('获取commit总数'))
-        try:
-            repo = self._open_repo()
-            head_target = repo.head.target
-            walker = repo.walk(head_target, SortMode.TOPOLOGICAL)
-            return sum(1 for _ in walker)
-        except Exception:
-            log.error('获取commit总数失败，可能仓库为空或HEAD不存在', exc_info=True)
-            return 0
+        walker = self._get_commit_walker()
+        return sum(1 for _ in walker) if walker else 0
 
     def fetch_page_commit(self, page_num: int, page_size: int) -> list[GitLog]:
         """获取分页commit
@@ -509,29 +520,25 @@ class GitService:
             GitLog列表
         """
         log.info(f"{gt('获取commit')} 第{page_num + 1}页")
-        try:
-            repo = self._open_repo()
-            head_target = repo.head.target
-            walker = repo.walk(head_target, SortMode.TIME)
-
-            logs: list[GitLog] = []
-            for idx, commit in enumerate(walker):
-                if idx < page_num * page_size:
-                    continue
-                if len(logs) >= page_size:
-                    break
-
-                short_id = str(commit.id)[:7]
-                author = commit.author.name if commit.author and commit.author.name else ''
-                commit_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(commit.commit_time))
-                message = commit.message.splitlines()[0] if commit.message else ''
-
-                logs.append(GitLog(short_id, author, commit_time, message))
-
-            return logs
-        except Exception:
-            log.error('获取commit失败，可能仓库为空或HEAD不存在', exc_info=True)
+        walker = self._get_commit_walker()
+        if not walker:
             return []
+
+        logs: list[GitLog] = []
+        for idx, commit in enumerate(walker):
+            if idx < page_num * page_size:
+                continue
+            if len(logs) >= page_size:
+                break
+
+            short_id = str(commit.id)[:7]
+            author = commit.author.name if commit.author and commit.author.name else ''
+            commit_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(commit.commit_time))
+            message = commit.message.splitlines()[0] if commit.message else ''
+
+            logs.append(GitLog(short_id, author, commit_time, message))
+
+        return logs
 
     def update_remote(self) -> None:
         """
