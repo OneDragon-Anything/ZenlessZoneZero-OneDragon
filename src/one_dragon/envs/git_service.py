@@ -4,8 +4,9 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
-import pygit2
 from packaging import version
+from pygit2 import Remote, Repository, discover_repository, init_repository, settings
+from pygit2.enums import BranchType, CheckoutStrategy, ConfigLevel, ResetMode, SortMode
 
 from one_dragon.envs.env_config import EnvConfig, GitMethodEnum, RepositoryTypeEnum
 from one_dragon.envs.project_config import ProjectConfig
@@ -31,7 +32,7 @@ class GitService:
         self.project_config: ProjectConfig = project_config
         self.env_config: EnvConfig = env_config
 
-        self._repo: pygit2.Repository | None = None
+        self._repo: Repository | None = None
         self._ensure_config_search_path()
 
     # ================== 私有辅助方法 ==================
@@ -43,12 +44,12 @@ class GitService:
         这可以避免用户的全局配置（如 http.proxy、user.name、SSL 证书路径等）影响程序的 git 操作。
         同时忽略用户可能残留的无效 SSL 证书配置，让 libgit2 使用系统默认的证书验证机制，避免 SSL 证书问题。
         """
-        pygit2.settings.search_path[pygit2.enums.ConfigLevel.SYSTEM] = ''  # 系统级配置 (如 /etc/gitconfig)
-        pygit2.settings.search_path[pygit2.enums.ConfigLevel.GLOBAL] = ''  # 全局用户配置 (~/.gitconfig)
-        pygit2.settings.search_path[pygit2.enums.ConfigLevel.XDG] = ''     # XDG 配置 (~/.config/git/config)
-        pygit2.settings.owner_validation = False  # 禁用仓库所有权验证
+        settings.search_path[ConfigLevel.SYSTEM] = ''  # 系统级配置 (如 /etc/gitconfig)
+        settings.search_path[ConfigLevel.GLOBAL] = ''  # 全局用户配置 (~/.gitconfig)
+        settings.search_path[ConfigLevel.XDG] = ''     # XDG 配置 (~/.config/git/config)
+        settings.owner_validation = False              # 禁用仓库所有权验证
 
-    def _open_repo(self, refresh: bool = False) -> pygit2.Repository:
+    def _open_repo(self, refresh: bool = False) -> Repository:
         """打开仓库（带缓存）"""
         if refresh:
             self._repo = None
@@ -56,13 +57,13 @@ class GitService:
         if self._repo is None:
             work_dir = os_utils.get_work_dir()
             # 检查是否是有效的 git 仓库
-            if not pygit2.discover_repository(work_dir):
-                raise pygit2.GitError(f'目录 {work_dir} 不是有效的 Git 仓库')
-            self._repo = pygit2.Repository(work_dir)
+            if not discover_repository(work_dir):
+                raise ValueError(f'目录 {work_dir} 不是有效的 Git 仓库')
+            self._repo = Repository(work_dir)
 
         return self._repo
 
-    def _ensure_remote(self, for_clone: bool = False) -> pygit2.Remote | None:
+    def _ensure_remote(self, for_clone: bool = False) -> Remote | None:
         """确保远程仓库配置正确
 
         Args:
@@ -73,7 +74,7 @@ class GitService:
         """
         remote_url = self._get_git_repository(for_clone)
         if not remote_url:
-            raise pygit2.GitError('未能获取有效的远程仓库地址')
+            raise ValueError('未能获取有效的远程仓库地址')
 
         repo = self._open_repo()
         remote_name = self.env_config.git_remote
@@ -164,7 +165,7 @@ class GitService:
             log.error('获取远程代码失败', exc_info=True)
             return False
 
-    def _reset_to_oid(self, target_oid: pygit2.Oid) -> bool:
+    def _reset_to_oid(self, target_oid) -> bool:
         """重置仓库到指定提交
 
         Args:
@@ -175,7 +176,7 @@ class GitService:
         """
         try:
             repo = self._open_repo()
-            repo.reset(target_oid, pygit2.GIT_RESET_HARD)
+            repo.reset(target_oid, ResetMode.HARD)
             return True
         except Exception:
             log.error(f'重置到提交 {target_oid} 失败', exc_info=True)
@@ -229,7 +230,7 @@ class GitService:
         # 配置远程追踪
         try:
             local_branch = repo.branches.get(branch_name)
-            remote_branch = repo.lookup_branch(remote_branch_name, pygit2.GIT_BRANCH_REMOTE)
+            remote_branch = repo.lookup_branch(remote_branch_name, BranchType.REMOTE)
             if local_branch and remote_branch:
                 local_branch.upstream = remote_branch
                 log.debug(f'配置分支追踪: {branch_name} -> {remote_branch_name}')
@@ -238,7 +239,7 @@ class GitService:
 
         # 切换到分支
         try:
-            repo.checkout(local_ref, strategy=pygit2.GIT_CHECKOUT_FORCE)
+            repo.checkout(local_ref, strategy=CheckoutStrategy.FORCE)
             repo.set_head(local_ref)
             log.info(f'成功切换到分支 {branch_name}')
             return True
@@ -344,7 +345,7 @@ class GitService:
             progress_callback(1/5, gt('初始化本地 Git 仓库'))
 
         try:
-            pygit2.init_repository(work_dir, False)
+            init_repository(work_dir, False)
         except Exception:
             msg = gt('初始化本地 Git 仓库失败')
             log.error(msg, exc_info=True)
@@ -491,7 +492,7 @@ class GitService:
         try:
             repo = self._open_repo()
             head_target = repo.head.target
-            walker = repo.walk(head_target, pygit2.GIT_SORT_TOPOLOGICAL)
+            walker = repo.walk(head_target, SortMode.TOPOLOGICAL)
             return sum(1 for _ in walker)
         except Exception:
             log.error('获取commit总数失败，可能仓库为空或HEAD不存在', exc_info=True)
@@ -511,7 +512,7 @@ class GitService:
         try:
             repo = self._open_repo()
             head_target = repo.head.target
-            walker = repo.walk(head_target, pygit2.GIT_SORT_TIME)
+            walker = repo.walk(head_target, SortMode.TIME)
 
             logs: list[GitLog] = []
             for idx, commit in enumerate(walker):
