@@ -166,65 +166,6 @@ class GitService:
             log.error('获取远程代码失败', exc_info=True)
             return False
 
-    def _get_branch_commit(self, branch: str, allow_local: bool = False) -> pygit2.Commit | None:
-        """获取分支提交对象
-
-        Args:
-            branch: 分支名称
-            allow_local: 如果远程分支不存在，是否允许回退到本地 HEAD
-        """
-        repo = self._open_repo()
-
-        # 优先使用远程分支
-        remote_ref = f'refs/remotes/origin/{branch}'
-        try:
-            if remote_ref in repo.references:
-                return repo.get(repo.references[remote_ref].target)
-        except Exception:
-            log.error(f'读取远程分支 {remote_ref} 失败', exc_info=True)
-
-        # 回退到本地 HEAD
-        if allow_local:
-            try:
-                return repo.head.peel()
-            except Exception:
-                log.error('获取本地 HEAD 失败', exc_info=True)
-
-        return None
-
-    def _checkout_branch(self, branch: str, allow_local: bool = False) -> tuple[bool, pygit2.Oid | None]:
-        """切换到指定分支
-
-        Args:
-            branch: 分支名称
-            allow_local: 如果远程分支不存在，是否允许使用本地 HEAD
-
-        Returns:
-            是否成功，目标提交ID
-        """
-        commit = self._get_branch_commit(branch, allow_local)
-        if commit is None:
-            return False, None
-
-        repo = self._open_repo()
-        local_ref = f'refs/heads/{branch}'
-        try:
-            # 更新或创建本地分支
-            if local_ref in repo.references:
-                repo.references[local_ref].set_target(commit.id)
-            else:
-                repo.create_branch(branch, commit)
-
-            # 切换分支
-            repo.checkout(local_ref, strategy=pygit2.GIT_CHECKOUT_FORCE)
-            repo.set_head(local_ref)
-
-            return True, commit.id
-
-        except Exception:
-            log.error('切换分支失败', exc_info=True)
-            return False, None
-
     def _reset_to_oid(self, target_oid: pygit2.Oid) -> bool:
         """重置仓库到指定提交
 
@@ -254,11 +195,62 @@ class GitService:
             log.error('检测当前代码是否有修改失败', exc_info=True)
             return None
 
-    def _sync_with_remote(self, branch: str, force: bool) -> tuple[bool, str]:
+    def _checkout_branch(self) -> bool:
+        """切换到指定分支
+
+        Returns:
+            是否成功
+        """
+        try:
+            repo = self._open_repo()
+        except Exception:
+            log.error('打开本地仓库失败', exc_info=True)
+            return False
+
+        branch = self.env_config.git_branch
+        local_ref = f'refs/heads/{branch}'
+        remote_ref = f'refs/remotes/origin/{branch}'
+
+        # 确保本地分支存在
+        if local_ref not in repo.references:
+            # 尝试从远程分支创建
+            if remote_ref in repo.references:
+                try:
+                    remote_commit = repo.get(repo.references[remote_ref].target)
+                    repo.create_branch(branch, remote_commit)
+                    log.debug(f'从远程分支创建本地分支: {branch}')
+                except Exception:
+                    log.error(f'创建本地分支 {branch} 失败', exc_info=True)
+                    return False
+            else:
+                log.error(f'本地和远程都不存在分支 {branch}')
+                return False
+
+        # 配置远程追踪
+        try:
+            remote = self._ensure_remote()
+            local_branch = repo.branches.get(branch)
+            remote_branch = repo.lookup_branch(f'{remote.name}/{branch}', pygit2.GIT_BRANCH_REMOTE)
+            if local_branch and remote_branch:
+                local_branch.upstream = remote_branch
+                log.debug(f'配置分支追踪: {branch} -> {remote.name}/{branch}')
+        except Exception:
+            log.error('配置远程追踪失败', exc_info=True)
+
+        # 切换到分支
+        try:
+            repo.checkout(local_ref, strategy=pygit2.GIT_CHECKOUT_FORCE)
+            repo.set_head(local_ref)
+            log.info(f'成功切换到分支 {branch}')
+            return True
+        except Exception:
+            log.error(f'切换到分支 {branch} 失败', exc_info=True)
+            return False
+
+    def _sync_with_remote(self, force: bool) -> tuple[bool, str]:
         """同步远程分支到本地
 
         Args:
-            branch: 分支名称
             force: 是否强制更新（重置本地修改）
 
         Returns:
@@ -271,9 +263,8 @@ class GitService:
             log.error(msg, exc_info=True)
             return False, msg
 
-        remote_ref = f'refs/remotes/origin/{branch}'
-
         # 检查远程分支是否存在
+        remote_ref = f'refs/remotes/origin/{self.env_config.git_branch}'
         if remote_ref not in repo.references:
             msg = f'{gt("远程分支不存在")}: {remote_ref}'
             log.error(msg)
@@ -366,22 +357,20 @@ class GitService:
         if not self._fetch_remote():
             return False, gt('获取远程代码失败')
 
-        # 切换分支
+        # 切换到目标分支
         if progress_callback:
             progress_callback(3/5, gt('切换到目标分支'))
 
-        target_branch = self.env_config.git_branch
-        success, target_oid = self._checkout_branch(target_branch, allow_local=False)
-        if not success:
+        if not self._checkout_branch():
             return False, gt('切换到目标分支失败')
 
-        # 重置到目标提交
+        # 同步远程代码
         if progress_callback:
-            progress_callback(4/5, gt('重置到目标提交'))
+            progress_callback(4/5, gt('同步远程代码'))
 
-        if target_oid:
-            if not self._reset_to_oid(target_oid):
-                return False, gt('重置到目标提交失败')
+        success, message = self._sync_with_remote(force=True)
+        if not success:
+            return False, message
 
         if progress_callback:
             progress_callback(5/5, gt('克隆仓库成功'))
@@ -406,32 +395,25 @@ class GitService:
             progress_callback(2/5, gt('检查工作区状态'))
 
         is_clean = self._is_current_branch_clean()
-        if not is_clean:
-            if self.env_config.force_update:
-                # 强制重置
-                commit = self._get_branch_commit(self.env_config.git_branch, allow_local=False)
-                if commit is None:
-                    return False, gt('强制更新失败')
+        if is_clean is None:
+            return False, gt('检测当前代码状态失败')
 
-                if not self._reset_to_oid(commit.id):
-                    return False, gt('强制更新失败')
-            else:
-                return False, gt('未开启强制更新 当前代码有修改 请自行处理后再更新')
+        # 工作区不干净且未开启强制更新时，拒绝操作
+        if not is_clean and not self.env_config.force_update:
+            return False, gt('当前代码有修改 请自行处理或开启强制更新')
 
         # 切换到目标分支
         if progress_callback:
             progress_callback(3/5, gt('切换到目标分支'))
 
-        target = self.env_config.git_branch
-        success, _ = self._checkout_branch(target, allow_local=True)
-        if not success:
+        if not self._checkout_branch():
             return False, gt('切换到目标分支失败')
 
         # 同步远程分支
         if progress_callback:
             progress_callback(4/5, gt('同步远程分支'))
 
-        success, message = self._sync_with_remote(target, self.env_config.force_update)
+        success, message = self._sync_with_remote(self.env_config.force_update)
         if not success:
             return False, message
 
