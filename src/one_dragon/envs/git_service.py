@@ -336,11 +336,11 @@ class GitService:
             if force:
                 if self._reset_hard(remote_oid):
                     msg = gt('更新本地代码成功')
-                    log.debug(f'重置到远程提交成功: {remote_oid}')
+                    log.debug(f'重置到远程提交成功: {str(remote_oid)[:7]}')
                     return True, msg
 
-                msg = f'{gt("重置到远程提交失败")}: {remote_oid}'
-                log.error(msg)
+                msg = gt('重置到远程提交失败')
+                log.error(f'{msg}: {str(remote_oid)[:7]}')
                 return False, msg
 
             msg = gt('HEAD 不存在且未开启强制更新')
@@ -349,7 +349,7 @@ class GitService:
 
         # 如果相同则无需更新
         if local_oid == remote_oid:
-            log.info(f'本地代码已是最新: {local_oid}')
+            log.info(f'本地代码已是最新: {str(local_oid)[:7]}')
             return True, gt('本地代码已是最新')
 
         # 检查是否可以快进
@@ -362,27 +362,27 @@ class GitService:
         if can_fast_forward:
             if self._reset_hard(remote_oid):
                 msg = gt('更新本地代码成功')
-                log.debug(f'快进更新成功: {local_oid} -> {remote_oid}')
+                log.debug(f'快进更新成功: {str(local_oid)[:7]} -> {str(remote_oid)[:7]}')
                 return True, msg
 
-            msg = f'{gt("快进更新失败")}: {local_oid} -> {remote_oid}'
-            log.error(msg)
+            msg = gt('快进更新失败')
+            log.error(f'{msg}: {str(local_oid)[:7]} -> {str(remote_oid)[:7]}')
             return False, msg
 
         # 强制更新
         if force:
             if self._reset_hard(remote_oid):
                 msg = gt('更新本地代码成功')
-                log.debug(f'强制更新成功: {local_oid} -> {remote_oid}')
+                log.debug(f'强制更新成功: {str(local_oid)[:7]} -> {str(remote_oid)[:7]}')
                 return True, msg
 
-            msg = f'{gt("强制更新失败")}: {local_oid} -> {remote_oid}'
-            log.error(msg)
+            msg = gt('强制更新失败')
+            log.error(f'{msg}: {str(local_oid)[:7]} -> {str(remote_oid)[:7]}')
             return False, msg
 
         # 需要手动处理
-        msg = f'{gt("本地代码有修改且无法快进更新，请手动处理后再更新")}: {local_oid} -> {remote_oid}'
-        log.error(msg)
+        msg = gt('本地代码有修改且无法快进更新，请手动处理后再更新')
+        log.error(f'{msg}: {str(local_oid)[:7]} -> {str(remote_oid)[:7]}')
         return False, msg
 
     def _clone_repository(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
