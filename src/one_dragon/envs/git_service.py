@@ -165,21 +165,33 @@ class GitService:
             log.error('获取远程代码失败', exc_info=True)
             return False
 
-    def _reset_to_oid(self, target_oid) -> bool:
-        """重置仓库到指定提交
+    def _reset_hard(self, target_id: str | object) -> bool:
+        """硬重置仓库到指定提交
+        会丢弃工作区和暂存区的所有修改
 
         Args:
-            target_oid: 目标提交ID
+            target_id: 目标提交ID，支持以下格式:
+                - OID 对象: pygit2.Oid 实例
+                - 提交哈希: 完整或短格式的 commit hash (如 'abc123' 或 'abc123def456...')
+                - 引用名称: 分支名、标签名等 (如 'main', 'v1.0.0')
+                - 相对引用: HEAD~1, HEAD^, origin/main 等
 
         Returns:
             是否成功
         """
         try:
             repo = self._open_repo()
+            # 如果是字符串，需要先解析为OID对象
+            if isinstance(target_id, str):
+                obj = repo.revparse_single(target_id)
+                target_oid = obj.id
+            else:
+                target_oid = target_id
+
             repo.reset(target_oid, ResetMode.HARD)
             return True
         except Exception:
-            log.error(f'重置到提交 {target_oid} 失败', exc_info=True)
+            log.error(f'重置到提交 {target_id} 失败', exc_info=True)
             return False
 
     def _get_local_and_remote_oid(self) -> tuple[str | None, str | None, str]:
@@ -320,7 +332,7 @@ class GitService:
         # HEAD 不存在，直接重置
         if local_oid is None:
             if force:
-                if self._reset_to_oid(remote_oid):
+                if self._reset_hard(remote_oid):
                     msg = gt('更新本地代码成功')
                     log.debug(f'重置到远程提交成功: {remote_oid}')
                     return True, msg
@@ -346,7 +358,7 @@ class GitService:
 
         # 快进更新
         if can_fast_forward:
-            if self._reset_to_oid(remote_oid):
+            if self._reset_hard(remote_oid):
                 msg = gt('更新本地代码成功')
                 log.debug(f'快进更新成功: {local_oid} -> {remote_oid}')
                 return True, msg
@@ -357,7 +369,7 @@ class GitService:
 
         # 强制更新
         if force:
-            if self._reset_to_oid(remote_oid):
+            if self._reset_hard(remote_oid):
                 msg = gt('更新本地代码成功')
                 log.debug(f'强制更新成功: {local_oid} -> {remote_oid}')
                 return True, msg
@@ -556,13 +568,7 @@ class GitService:
         """
         回滚到特定commit
         """
-        try:
-            repo = self._open_repo()
-            obj = repo.revparse_single(commit_id)
-            return self._reset_to_oid(obj.id)
-        except Exception:
-            log.error(f'回滚到提交 {commit_id} 失败', exc_info=True)
-            return False
+        return self._reset_hard(commit_id)
 
     def get_current_version(self) -> str | None:
         """
