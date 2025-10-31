@@ -5,7 +5,15 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from packaging import version
-from pygit2 import Remote, Repository, discover_repository, init_repository, settings
+from pygit2 import (
+    Oid,
+    Remote,
+    Repository,
+    Walker,
+    discover_repository,
+    init_repository,
+    settings,
+)
 from pygit2.enums import BranchType, CheckoutStrategy, ConfigLevel, ResetMode, SortMode
 
 from one_dragon.envs.env_config import EnvConfig, GitMethodEnum, RepositoryTypeEnum
@@ -165,7 +173,7 @@ class GitService:
             log.error('获取远程代码失败', exc_info=True)
             return False
 
-    def _reset_hard(self, target_id: str | object) -> bool:
+    def _reset_hard(self, target_id: str | Oid) -> bool:
         """硬重置仓库到指定提交
         会丢弃工作区和暂存区的所有修改
 
@@ -245,7 +253,7 @@ class GitService:
 
         return True, ''
 
-    def _get_commit_walker(self, sort_mode: SortMode = SortMode.TOPOLOGICAL) -> Repository.walker | None:
+    def _get_commit_walker(self, sort_mode: SortMode = SortMode.TOPOLOGICAL) -> Walker | None:
         """获取commit遍历器
 
         Args:
