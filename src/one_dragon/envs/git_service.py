@@ -182,6 +182,38 @@ class GitService:
             log.error(f'重置到提交 {target_oid} 失败', exc_info=True)
             return False
 
+    def _get_local_and_remote_oid(self) -> tuple[str | None, str | None, str]:
+        """获取本地HEAD和远程分支的提交ID
+
+        Returns:
+            (本地提交ID, 远程提交ID, 错误消息) - 远程提交ID为None时表示失败
+        """
+        try:
+            repo = self._open_repo()
+            local_oid = repo.head.target
+        except Exception:
+            local_oid = None
+            msg = gt('获取本地提交信息失败')
+            log.error(msg, exc_info=True)
+            return local_oid, None, msg
+
+        # 检查远程分支是否存在
+        remote_branch_name = f'{self.env_config.git_remote}/{self.env_config.git_branch}'
+        remote_ref = f'refs/remotes/{remote_branch_name}'
+        if remote_ref not in repo.references:
+            msg = f'{gt("远程分支不存在")}: {remote_branch_name}'
+            log.error(msg)
+            return local_oid, None, msg
+
+        try:
+            remote_oid = repo.references[remote_ref].target
+        except Exception:
+            msg = gt('获取远程提交信息失败')
+            log.error(msg, exc_info=True)
+            return local_oid, None, msg
+
+        return local_oid, remote_oid, ''
+
     def _is_current_branch_clean(self) -> bool | None:
         """
         当前分支是否没有任何修改内容
@@ -254,32 +286,12 @@ class GitService:
             force: 是否强制更新（重置本地修改）
 
         Returns:
-            是否成功, 消息
+            (是否成功, 消息)
         """
-        try:
-            repo = self._open_repo()
-        except Exception:
-            msg = gt('打开本地仓库失败')
-            log.error(msg, exc_info=True)
+        # 获取本地和远程的提交ID
+        local_oid, remote_oid, msg = self._get_local_and_remote_oid()
+        if remote_oid is None:
             return False, msg
-
-        # 检查远程分支是否存在
-        remote_branch_name = f'{self.env_config.git_remote}/{self.env_config.git_branch}'
-        remote_ref = f'refs/remotes/{remote_branch_name}'
-        if remote_ref not in repo.references:
-            msg = f'{gt("远程分支不存在")}: {remote_branch_name}'
-            log.error(msg)
-            return False, msg
-
-        try:
-            remote_oid = repo.references[remote_ref].target
-        except Exception:
-            msg = gt('获取远程分支提交失败')
-            log.error(msg, exc_info=True)
-            return False, msg
-
-        # 获取本地 HEAD
-        local_oid = getattr(repo.head, 'target', None) if hasattr(repo, 'head') else None
 
         # HEAD 不存在，直接重置
         if local_oid is None:
@@ -305,6 +317,7 @@ class GitService:
         # 检查是否可以快进
         can_fast_forward = False
         with contextlib.suppress(Exception):
+            repo = self._open_repo()
             can_fast_forward = repo.descendant_of(remote_oid, local_oid)
 
         # 快进更新
@@ -456,26 +469,10 @@ class GitService:
         if not self._fetch_remote():
             return False, gt('获取远程代码失败')
 
-        try:
-            repo = self._open_repo()
-        except Exception:
-            msg = gt('打开本地仓库失败')
-            log.error(msg, exc_info=True)
-            return False, msg
-
-        remote_branch_name = f'{self.env_config.git_remote}/{self.env_config.git_branch}'
-        remote_ref = f'refs/remotes/{remote_branch_name}'
-        if remote_ref not in repo.references:
-            msg = f'{gt("远程分支不存在")}: {remote_branch_name}'
+        # 获取本地和远程的提交ID
+        local_oid, remote_oid, msg = self._get_local_and_remote_oid()
+        if local_oid is None or remote_oid is None:
             log.error(msg)
-            return False, msg
-
-        try:
-            remote_oid = repo.references[remote_ref].target
-            local_oid = repo.head.target
-        except Exception:
-            msg = gt('获取提交信息失败')
-            log.error(msg, exc_info=True)
             return False, msg
 
         # 比较提交是否相同
