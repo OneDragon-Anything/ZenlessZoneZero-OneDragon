@@ -146,8 +146,8 @@ class GitService:
 
         try:
             remote = self._ensure_remote()
-            branch = self.env_config.git_branch
-            refspec = f'+refs/heads/{branch}:refs/remotes/{remote.name}/{branch}'
+            branch_name = self.env_config.git_branch
+            refspec = f'+refs/heads/{branch_name}:refs/remotes/{remote.name}/{branch_name}'
 
             repo = self._open_repo()
             with contextlib.suppress(Exception):
@@ -206,9 +206,10 @@ class GitService:
             return False
 
         remote_name = self.env_config.git_remote
-        branch = self.env_config.git_branch
-        local_ref = f'refs/heads/{branch}'
-        remote_ref = f'refs/remotes/{remote_name}/{branch}'
+        branch_name = self.env_config.git_branch
+        remote_branch_name = f'{remote_name}/{branch_name}'
+        local_ref = f'refs/heads/{branch_name}'
+        remote_ref = f'refs/remotes/{remote_branch_name}'
 
         # 确保本地分支存在
         if local_ref not in repo.references:
@@ -216,22 +217,22 @@ class GitService:
             if remote_ref in repo.references:
                 try:
                     remote_commit = repo.get(repo.references[remote_ref].target)
-                    repo.create_branch(branch, remote_commit)
-                    log.debug(f'从远程分支创建本地分支: {branch}')
+                    repo.create_branch(branch_name, remote_commit)
+                    log.debug(f'从远程分支创建本地分支: {branch_name}')
                 except Exception:
-                    log.error(f'创建本地分支 {branch} 失败', exc_info=True)
+                    log.error(f'创建本地分支 {branch_name} 失败', exc_info=True)
                     return False
             else:
-                log.error(f'本地和远程都不存在分支 {branch}')
+                log.error(f'本地和远程都不存在分支 {branch_name}')
                 return False
 
         # 配置远程追踪
         try:
-            local_branch = repo.branches.get(branch)
-            remote_branch = repo.lookup_branch(f'{remote_name}/{branch}', pygit2.GIT_BRANCH_REMOTE)
+            local_branch = repo.branches.get(branch_name)
+            remote_branch = repo.lookup_branch(remote_branch_name, pygit2.GIT_BRANCH_REMOTE)
             if local_branch and remote_branch:
                 local_branch.upstream = remote_branch
-                log.debug(f'配置分支追踪: {branch} -> {remote_name}/{branch}')
+                log.debug(f'配置分支追踪: {branch_name} -> {remote_branch_name}')
         except Exception:
             log.error('配置远程追踪失败', exc_info=True)
 
@@ -239,10 +240,10 @@ class GitService:
         try:
             repo.checkout(local_ref, strategy=pygit2.GIT_CHECKOUT_FORCE)
             repo.set_head(local_ref)
-            log.info(f'成功切换到分支 {branch}')
+            log.info(f'成功切换到分支 {branch_name}')
             return True
         except Exception:
-            log.error(f'切换到分支 {branch} 失败', exc_info=True)
+            log.error(f'切换到分支 {branch_name} 失败', exc_info=True)
             return False
 
     def _sync_with_remote(self, force: bool) -> tuple[bool, str]:
@@ -262,9 +263,10 @@ class GitService:
             return False, msg
 
         # 检查远程分支是否存在
-        remote_ref = f'refs/remotes/{self.env_config.git_remote}/{self.env_config.git_branch}'
+        remote_branch_name = f'{self.env_config.git_remote}/{self.env_config.git_branch}'
+        remote_ref = f'refs/remotes/{remote_branch_name}'
         if remote_ref not in repo.references:
-            msg = f'{gt("远程分支不存在")}: {remote_ref}'
+            msg = f'{gt("远程分支不存在")}: {remote_branch_name}'
             log.error(msg)
             return False, msg
 
@@ -453,10 +455,13 @@ class GitService:
             if not self._fetch_remote():
                 return False, gt('获取远程代码失败')
 
-            remote_ref = f'refs/remotes/{self.env_config.git_remote}/{self.env_config.git_branch}'
+            remote_branch_name = f'{self.env_config.git_remote}/{self.env_config.git_branch}'
+            remote_ref = f'refs/remotes/{remote_branch_name}'
             repo = self._open_repo()
             if remote_ref not in repo.references:
-                return False, gt('与远程分支不一致')
+                msg = f'{gt("远程分支不存在")}: {remote_branch_name}'
+                log.error(msg)
+                return False, msg
 
             remote_oid = repo.references[remote_ref].target
             local_oid = repo.head.target
