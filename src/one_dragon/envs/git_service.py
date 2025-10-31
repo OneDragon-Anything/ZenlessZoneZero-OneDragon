@@ -165,7 +165,7 @@ class GitService:
             remote.fetch(
                 refspecs=[refspec],
                 proxy=self._get_proxy_address(),
-                depth=1
+                depth=self.env_config.git_depth
             )
             log.info(gt('获取远程代码成功'))
             return True

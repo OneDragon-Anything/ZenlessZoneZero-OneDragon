@@ -317,6 +317,22 @@ class EnvConfig(YamlConfig):
         self.update('custom_git_branch', new_value)
 
     @property
+    def git_depth(self) -> int:
+        """
+        git fetch的深度
+        :return:
+        """
+        return self.get('git_depth', 50)
+
+    @git_depth.setter
+    def git_depth(self, new_value: int) -> None:
+        """
+        git fetch的深度
+        :return:
+        """
+        self.update('git_depth', new_value)
+
+    @property
     def gh_proxy_url(self) -> str:
         """
         免费代理的url
