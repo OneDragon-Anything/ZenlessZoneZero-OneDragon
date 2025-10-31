@@ -144,7 +144,7 @@ class CodeInterface(VerticalScrollInterface):
         :param total:
         :return:
         """
-        self.pager.setPageNumber(total // self.page_size + 1)
+        self.pager.setPageNumber((total + self.page_size - 1) // self.page_size)
         if self.page_num == -1:  # 还没有加载过任何分页
             self.page_num = 0
             self.start_fetch_page()
