@@ -307,16 +307,6 @@ class GitService:
                 log.error(f'本地和远程都不存在分支 {branch_name}')
                 return False
 
-        # 配置远程追踪
-        try:
-            local_branch = repo.branches.get(branch_name)
-            remote_branch = repo.lookup_branch(remote_branch_name, BranchType.REMOTE)
-            if local_branch and remote_branch:
-                local_branch.upstream = remote_branch
-                log.debug(f'配置分支追踪: {branch_name} -> {remote_branch_name}')
-        except Exception:
-            log.error('配置远程追踪失败', exc_info=True)
-
         # 切换到分支
         try:
             repo.checkout(local_ref, strategy=CheckoutStrategy.FORCE)
