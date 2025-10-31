@@ -6,6 +6,7 @@ from typing import Callable, List
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.envs.git_service import GitLog
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.password_switch_setting_card import PasswordSwitchSettingCard
 from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
@@ -43,7 +44,7 @@ class CodeInterface(VerticalScrollInterface):
         content_widget = QWidget()
 
         self.page_num: int = -1
-        self.page_size: int = 11
+        self.page_size: int = 10
 
         v_layout = VBoxLayout(content_widget)
         v_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -71,6 +72,15 @@ class CodeInterface(VerticalScrollInterface):
             password_hash='9eccbf284f363f3a5f416e879aa9bcb2c8d8445997f97740270fccc98d360a33'
         )
         v_layout.addWidget(self.custom_git_branch_opt)
+
+        self.git_fetch_depth_opt = SpinBoxSettingCard(
+            icon=FluentIcon.FILTER,
+            title='Git 拉取深度',
+            content='0 表示拉取所有历史。数值越小，拉取的提交历史越少。',
+            minimum=0,
+            maximum=500,
+        )
+        v_layout.addWidget(self.git_fetch_depth_opt)
 
         self.log_table = TableWidget()
         self.log_table.setMinimumHeight(self.page_size * 42)
@@ -126,6 +136,7 @@ class CodeInterface(VerticalScrollInterface):
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
         self.custom_git_branch_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('custom_git_branch'))
         self.custom_git_branch_lineedit.setText(self.ctx.env_config.git_branch)
+        self.git_fetch_depth_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('git_fetch_depth'))
         self.start_fetch_total()
         self.code_card.check_and_update_display()
 
