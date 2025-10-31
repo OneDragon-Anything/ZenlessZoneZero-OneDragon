@@ -17,7 +17,7 @@ dependencies = [
     "soundcard==0.4.3",
     "librosa==0.10.2.post1",
     "gensim==4.3.3",
-    "pygit2==1.18.2",
+    "pygit2==1.19.0",
 ]
 
 [dependency-groups]
