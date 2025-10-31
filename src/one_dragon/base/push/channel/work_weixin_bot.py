@@ -10,7 +10,7 @@ from one_dragon.base.push.push_channel_config import PushChannelConfigField, Fie
 from one_dragon.utils.log_utils import log
 
 
-class WorkWeixin(PushChannel):
+class WorkWeixinBot(PushChannel):
 
     def __init__(self):
         config_schema = [
@@ -21,13 +21,6 @@ class WorkWeixin(PushChannel):
                 field_type=FieldTypeEnum.TEXT,
                 placeholder="可选",
                 default='https://qyapi.weixin.qq.com',
-            ),
-            PushChannelConfigField(
-                var_suffix="AM",
-                title="企业微信应用",
-                icon="APPLICATION",
-                field_type=FieldTypeEnum.TEXT,
-                placeholder="http://note.youdao.com/s/HMiudGkb"
             ),
             PushChannelConfigField(
                 var_suffix="KEY",
@@ -57,7 +50,7 @@ class WorkWeixin(PushChannel):
         推送消息到企业微信机器人
 
         Args:
-            config: 配置字典，包含 ORIGIN、AM、KEY
+            config: 配置字典，包含 ORIGIN、KEY
             title: 消息标题
             content: 消息内容
             image: 图片数据（可选）
