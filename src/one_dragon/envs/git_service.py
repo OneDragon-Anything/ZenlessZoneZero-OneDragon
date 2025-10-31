@@ -71,7 +71,7 @@ class GitService:
         Returns:
             Remote对象，失败时返回None
         """
-        remote_url = self.get_git_repository(for_clone)
+        remote_url = self._get_git_repository(for_clone)
         if not remote_url:
             raise pygit2.GitError('未能获取有效的远程仓库地址')
 
@@ -97,6 +97,32 @@ class GitService:
         log.info(f'创建远程仓库: {remote_name} -> {remote_url}')
         repo.remotes.create(remote_name, remote_url)
         return repo.remotes[remote_name]
+
+    def _get_git_repository(self, for_clone: bool = False) -> str:
+        """获取仓库地址
+
+        Args:
+            for_clone: 是否用于克隆
+        """
+        repo_type = self.env_config.repository_type
+        git_method = self.env_config.git_method
+
+        if repo_type == RepositoryTypeEnum.GITHUB.value.value:
+            if git_method == GitMethodEnum.HTTPS.value.value:
+                repo = self.project_config.github_https_repository
+                if self.env_config.is_gh_proxy and for_clone:
+                    return f'{self.env_config.gh_proxy_url}/{repo}'
+                return repo
+            else:
+                return self.project_config.github_ssh_repository
+
+        elif repo_type == RepositoryTypeEnum.GITEE.value.value:
+            if git_method == GitMethodEnum.HTTPS.value.value:
+                return self.project_config.gitee_https_repository
+            else:
+                return self.project_config.gitee_ssh_repository
+
+        return ''
 
     def _get_proxy_address(self) -> str | None:
         """获取代理地址"""
@@ -215,6 +241,18 @@ class GitService:
         except Exception:
             log.error(f'重置到提交 {target_oid} 失败', exc_info=True)
             return False
+
+    def _is_current_branch_clean(self) -> bool | None:
+        """
+        当前分支是否没有任何修改内容
+        """
+        log.info(gt('检测当前代码是否有修改'))
+        try:
+            repo = self._open_repo()
+            return len(repo.status()) == 0
+        except Exception:
+            log.error('检测当前代码是否有修改失败', exc_info=True)
+            return None
 
     def _sync_with_remote(self, branch: str, force: bool) -> tuple[bool, str]:
         """同步远程分支到本地
@@ -367,7 +405,7 @@ class GitService:
         if progress_callback:
             progress_callback(2/5, gt('检查工作区状态'))
 
-        is_clean = self.is_current_branch_clean()
+        is_clean = self._is_current_branch_clean()
         if not is_clean:
             if self.env_config.force_update:
                 # 强制重置
@@ -424,18 +462,6 @@ class GitService:
             return head.shorthand if head else None
         except Exception:
             log.error('获取当前分支失败', exc_info=True)
-            return None
-
-    def is_current_branch_clean(self) -> bool | None:
-        """
-        当前分支是否没有任何修改内容
-        """
-        log.info(gt('检测当前代码是否有修改'))
-        try:
-            repo = self._open_repo()
-            return len(repo.status()) == 0
-        except Exception:
-            log.error('检测当前代码是否有修改失败', exc_info=True)
             return None
 
     def is_current_branch_latest(self) -> tuple[bool, str]:
@@ -515,32 +541,6 @@ class GitService:
         except Exception:
             log.error('获取commit失败，可能仓库为空或HEAD不存在', exc_info=True)
             return []
-
-    def get_git_repository(self, for_clone: bool = False) -> str:
-        """获取仓库地址
-
-        Args:
-            for_clone: 是否用于克隆
-        """
-        repo_type = self.env_config.repository_type
-        git_method = self.env_config.git_method
-
-        if repo_type == RepositoryTypeEnum.GITHUB.value.value:
-            if git_method == GitMethodEnum.HTTPS.value.value:
-                repo = self.project_config.github_https_repository
-                if self.env_config.is_gh_proxy and for_clone:
-                    return f'{self.env_config.gh_proxy_url}/{repo}'
-                return repo
-            else:
-                return self.project_config.github_ssh_repository
-
-        elif repo_type == RepositoryTypeEnum.GITEE.value.value:
-            if git_method == GitMethodEnum.HTTPS.value.value:
-                return self.project_config.gitee_https_repository
-            else:
-                return self.project_config.gitee_ssh_repository
-
-        return ''
 
     def update_remote(self) -> None:
         """
