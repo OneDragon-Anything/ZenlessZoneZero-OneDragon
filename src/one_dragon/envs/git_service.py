@@ -214,17 +214,24 @@ class GitService:
 
         return local_oid, remote_oid, ''
 
-    def _is_current_branch_clean(self) -> bool | None:
-        """
-        当前分支是否没有任何修改内容
+    def _validate_working_directory(self) -> tuple[bool, str]:
+        """验证工作区状态
+
+        Returns:
+            (是否可以继续, 错误消息)
         """
         log.info(gt('检测当前代码是否有修改'))
         try:
             repo = self._open_repo()
-            return len(repo.status()) == 0
+            is_clean = len(repo.status()) == 0
         except Exception:
             log.error('检测当前代码是否有修改失败', exc_info=True)
-            return None
+            return False, gt('检测当前代码状态失败')
+
+        if not is_clean and not self.env_config.force_update:
+            return False, gt('当前代码有修改 请自行处理或开启强制更新')
+
+        return True, ''
 
     def _checkout_branch(self) -> bool:
         """切换到指定分支
@@ -408,13 +415,9 @@ class GitService:
         if progress_callback:
             progress_callback(2/5, gt('检查工作区状态'))
 
-        is_clean = self._is_current_branch_clean()
-        if is_clean is None:
-            return False, gt('检测当前代码状态失败')
-
-        # 工作区不干净且未开启强制更新时，拒绝操作
-        if not is_clean and not self.env_config.force_update:
-            return False, gt('当前代码有修改 请自行处理或开启强制更新')
+        success, message = self._validate_working_directory()
+        if not success:
+            return False, message
 
         # 切换到目标分支
         if progress_callback:
