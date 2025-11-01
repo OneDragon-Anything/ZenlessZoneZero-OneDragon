@@ -162,10 +162,6 @@ class GitService:
             branch_name = self.env_config.git_branch
             refspec = f'+refs/heads/{branch_name}:refs/remotes/{remote.name}/{branch_name}'
 
-            repo = self._open_repo()
-            with contextlib.suppress(Exception):
-                repo.config.set_multivar(f'remote.{remote.name}.fetch', '.*', refspec)
-
             remote.fetch(
                 refspecs=[refspec],
                 proxy=self._get_proxy_address(),
