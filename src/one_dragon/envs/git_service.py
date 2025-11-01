@@ -169,7 +169,7 @@ class GitService:
             remote.fetch(
                 refspecs=[refspec],
                 proxy=self._get_proxy_address(),
-                depth=1
+                depth=1 if for_clone else 0
             )
             log.info(gt('获取远程代码成功'))
             return True
