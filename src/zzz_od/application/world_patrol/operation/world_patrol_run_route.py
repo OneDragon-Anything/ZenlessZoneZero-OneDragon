@@ -1,5 +1,4 @@
 import time
-from typing import Optional
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -77,8 +76,23 @@ class WorldPatrolRunRoute(ZOperation):
         self.last_angle: float | None = None  # 上一次获取到的人物朝向
         self.last_angle_diff_command: float | None = None  # 上一次下发的转向指令
 
+        # 重启的路线，不再脱困，直接判定失败以跳过本路线
+        self._skip_unstuck = WorldPatrolRunRoute._route_next_attempt_should_skip.pop(route.full_id, False)
+
+    # 进程内记录每条路线的尝试次数
+    _route_attempts: dict[str, int] = {}
+
+    # 下一次尝试需快速跳过的路线集合（一次性标记）
+    _route_next_attempt_should_skip: dict[str, bool] = {}
+
     # 距离判定阈值（用于到达/回溯成功/卡住判定的统一半径）
     REACH_DISTANCE: int = 10
+
+    @classmethod
+    def _increase_attempt_and_is_second(cls, route_id: str) -> bool:
+        """尝试计数+1，返回是否已到第2次"""
+        cls._route_attempts[route_id] = cls._route_attempts.get(route_id, 0) + 1
+        return cls._route_attempts[route_id] >= 2
 
     @operation_node(name='初始回到大世界', is_start_node=True)
     def back_at_first(self) -> OperationRoundResult:
@@ -147,6 +161,9 @@ class WorldPatrolRunRoute(ZOperation):
         if isinstance(res, OperationRoundResult):
             return res
         if res is None or self._process_stuck_with_pos(res):
+            # 若因卡住而请求重启，则标记下一次进入该路线时快速跳过
+            if not self._skip_unstuck:
+                WorldPatrolRunRoute._route_next_attempt_should_skip[self.route.full_id] = True
             return self.round_fail(status='卡住超限，重启当前路线')
         self.current_pos = res
 
@@ -221,6 +238,12 @@ class WorldPatrolRunRoute(ZOperation):
             if self.no_pos_start_time == 0:
                 # 首次进入无坐标态，记录起始时间
                 self.no_pos_start_time = self.last_screenshot_time
+            # 二次尝试（上一轮因卡住而重启）：若无坐标超时，则直接判定失败以跳过该路线
+            if self._skip_unstuck:
+                if no_pos_seconds > 2.0:  # 给一点缓冲，避免瞬时抖动
+                    log.info('[no-pos] 再次卡住，跳过当前路线')
+                    return None
+                return self.round_wait(status=f'坐标计算失败 持续 {no_pos_seconds:.2f} 秒')
             # 达到重启阈值：请求重启
             elif no_pos_seconds > 20.0:
                 log.error('[no-pos]卡住，重启当前路线')
@@ -251,6 +274,11 @@ class WorldPatrolRunRoute(ZOperation):
                 self.stuck_pos_start_time = self.last_screenshot_time
             elif self.last_screenshot_time - self.stuck_pos_start_time > 2:
                 self.ctx.controller.stop_moving_forward()
+                # 二次尝试（上一轮因卡住而重启）：若再次卡住，直接判定失败以跳过该路线
+                if self._skip_unstuck:
+                    log.info('[with-pos] 再次卡住，跳过当前路线')
+                    self.pos_stuck_attempts = 0
+                    return True
                 # 先尝试智能回溯
                 status = self._backtrack_step(next_pos, emit_log=True)
                 if status in ('unavailable', 'expired'):
