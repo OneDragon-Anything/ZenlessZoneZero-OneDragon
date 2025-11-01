@@ -7,8 +7,6 @@ from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.utils import os_utils
 
 DEFAULT_ENV_PATH = os_utils.get_path_under_work_dir('.install')
-DEFAULT_GIT_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'MinGit')  # 默认的git文件夹路径
-DEFAULT_GIT_PATH = os.path.join(DEFAULT_GIT_DIR_PATH, 'cmd', 'git.exe')  # 默认的git.exe文件路径
 DEFAULT_UV_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'uv')  # 默认的uv文件夹路径
 DEFAULT_UV_PATH = os.path.join(DEFAULT_UV_DIR_PATH, 'uv.exe')  # 默认的uv.exe文件路径
 DEFAULT_PYTHON_DIR_PATH = os.path.join(DEFAULT_ENV_PATH, 'python')  # 默认的python文件夹路径
@@ -51,6 +49,11 @@ class PipSourceEnum(Enum):
     TSING_HUA = ConfigItem('清华大学', 'https://pypi.tuna.tsinghua.edu.cn/simple')
     ALIBABA = ConfigItem('阿里云', 'https://mirrors.aliyun.com/pypi/simple')
 
+class GitRemoteEnum(Enum):
+
+    ORIGIN = ConfigItem('origin')
+    UPSTREAM = ConfigItem('upstream')
+
 
 class GitBranchEnum(Enum):
 
@@ -74,22 +77,6 @@ class EnvConfig(YamlConfig):
 
     def __init__(self):
         YamlConfig.__init__(self, module_name='env')
-
-    @property
-    def git_path(self) -> str:
-        """
-        :return: git的路径
-        """
-        return self.get('git_path', '')
-
-    @git_path.setter
-    def git_path(self, new_value: str) -> None:
-        """
-        更新 git的路径 正常不需要调用
-        :param new_value:
-        :return:
-        """
-        self.update('git_path', new_value)
 
     @property
     def uv_path(self) -> str:
@@ -280,6 +267,22 @@ class EnvConfig(YamlConfig):
         :return:
         """
         return urllib.parse.urlparse(self.pip_source).netloc
+
+    @property
+    def git_remote(self) -> str:
+        """
+        远程
+        :return:
+        """
+        return self.get('git_remote', GitRemoteEnum.ORIGIN.value.value)
+
+    @git_remote.setter
+    def git_remote(self, new_value: str) -> None:
+        """
+        远程
+        :return:
+        """
+        self.update('git_remote', new_value)
 
     @property
     def git_branch(self) -> str:
