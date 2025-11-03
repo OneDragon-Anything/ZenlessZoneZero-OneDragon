@@ -137,7 +137,7 @@ class NotoriousHunt(ZOperation):
         # 未匹配时 判断该往哪边滑动
         hunt_category = self.ctx.compendium_service.get_category_data('作战', '恶名狩猎')
         with_left: bool = False  # 当前识别有在目标左边的副本
-        for mission_type in hunt_category.mission_type_list:
+        for mission_type in reversed(hunt_category.mission_type_list):
             if mission_type.mission_type_name == self.plan.mission_type_name:
                 break
 
@@ -629,7 +629,7 @@ def __debug():
         ctx,
         ChargePlanItem(
             category_name='恶名狩猎',
-            mission_type_name='彷徨猎手',
+            mission_type_name='初生死路屠夫',
             level=NotoriousHuntLevelEnum.DEFAULT.value.value,
             auto_battle_config='全配对通用',
             predefined_team_idx=0,
