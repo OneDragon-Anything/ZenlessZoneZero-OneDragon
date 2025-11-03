@@ -47,6 +47,7 @@ class LostVoidLottery(ZOperation):
                 interact_op = NotifyApp(self.ctx, "谁是衰仔?就在今天!")
                 interact_op.execute()
                 # 不管消息推送成不成功都需要停止脚本运行
+                # stop_running() 会设置停止标志，脚本将在此函数返回之后结束运行
                 self.ctx.run_context.stop_running()
             # 保存上一次的抽奖剩余次数, 避免叻仔的 1/3 误识别为衰仔
             if lottery_draw_count != -1:
