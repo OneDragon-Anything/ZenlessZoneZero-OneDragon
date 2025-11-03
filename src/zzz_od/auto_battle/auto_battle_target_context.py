@@ -4,7 +4,7 @@ import threading
 
 from cv2.typing import MatLike
 
-from one_dragon.base.conditional_operation.conditional_operator import ConditionalOperator
+from one_dragon.base.conditional_operation.operator import ConditionalOperator
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
 from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.target_state.target_state_checker import TargetStateChecker
@@ -155,3 +155,9 @@ class AutoBattleTargetContext:
         if not found_watched_state:
             # 如果循环结束都没找到'hit'的被观察状态，则使用 not_state 的间隔
             self._current_intervals[task.task_id] = dynamic_config.get('interval_if_not_state', task.interval)
+
+    def after_app_shutdown(self) -> None:
+        """
+        App关闭后进行的操作 关闭一切可能资源操作
+        """
+        _target_context_executor.shutdown(wait=False, cancel_futures=True)

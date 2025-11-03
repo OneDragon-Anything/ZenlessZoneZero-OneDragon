@@ -1,7 +1,7 @@
 import os
 from typing import List, Optional
 
-from one_dragon.base.conditional_operation.conditional_operator import ConditionalOperator
+from one_dragon.base.conditional_operation.operator import ConditionalOperator
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils import os_utils
 

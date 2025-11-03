@@ -1,11 +1,13 @@
-import time
-from concurrent.futures import ThreadPoolExecutor, Future
+from __future__ import annotations
 
 import threading
-from cv2.typing import MatLike
+import time
+from concurrent.futures import ThreadPoolExecutor, Future
 from typing import Optional, List, Union, Tuple
+from typing import TYPE_CHECKING
 
-from one_dragon.base.conditional_operation.conditional_operator import ConditionalOperator
+from cv2.typing import MatLike
+
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.screen import screen_utils
@@ -13,13 +15,18 @@ from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_utils import FindAreaResultEnum
 from one_dragon.utils import cv2_utils, thread_utils, cal_utils, str_utils
 from one_dragon.utils.log_utils import log
+from zzz_od.auto_battle.atomic_op.atomic_op_factory import AtomicOpFactory
 from zzz_od.auto_battle.auto_battle_agent_context import AutoBattleAgentContext
 from zzz_od.auto_battle.auto_battle_custom_context import AutoBattleCustomContext
 from zzz_od.auto_battle.auto_battle_dodge_context import AutoBattleDodgeContext
-from zzz_od.auto_battle.auto_battle_target_context import AutoBattleTargetContext
+from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
-from zzz_od.context.zzz_context import ZContext
+from zzz_od.auto_battle.auto_battle_target_context import AutoBattleTargetContext
 from zzz_od.game_data.agent import Agent
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
+
 
 _battle_state_check_executor = ThreadPoolExecutor(thread_name_prefix='od_battle_state_check', max_workers=16)
 
@@ -32,7 +39,10 @@ class AutoBattleContext:
         self.dodge_context: AutoBattleDodgeContext = AutoBattleDodgeContext(self.ctx)
         self.custom_context: AutoBattleCustomContext = AutoBattleCustomContext(self.ctx)
         self.target_context: AutoBattleTargetContext = AutoBattleTargetContext(self.ctx)
-        self.auto_op: ConditionalOperator = ConditionalOperator('', '', is_mock=True)
+        self.atomic_op_factory: AtomicOpFactory = AtomicOpFactory(self)
+
+        self.auto_op: AutoBattleOperator | None = None
+        self._op_cache: dict[str, AutoBattleOperator] = {}  # 缓存自动战斗配置
 
         # 识别区域
         self._check_distance_area: Optional[ScreenArea] = None
@@ -61,6 +71,71 @@ class AutoBattleContext:
         self.last_check_distance: float = -1  # 最后一次识别的距离
         self.without_distance_times: int = 0  # 没有显示距离的次数
         self.with_distance_times: int = 0  # 有显示距离的次数
+
+    def init_auto_op(
+        self,
+        op_name: str,
+        sub_dir: str = 'auto_battle',
+        read_from_merged: bool = True,
+    ) -> None:
+        """
+        加载自动战斗指令
+
+        Args:
+            sub_dir: 子文件夹
+            op_name: 模板名称
+            read_from_merged: 是否从合并的模板中读取
+        """
+        # 先设置为空 防止中途错误又保留了旧的值
+        self.auto_op = None
+
+        key = f'{sub_dir}-{op_name}'
+        # 只有是从合并文件读取 才使用缓存
+        if read_from_merged and key in self._op_cache:
+            self.auto_op = self._op_cache[key]
+        else:
+            self.auto_op = AutoBattleOperator(
+                ctx=self,
+                sub_dir=sub_dir,
+                template_name=op_name,
+                read_from_merged=read_from_merged,
+            )
+            success, msg = self.auto_op.init_before_running()
+            if not success:
+                raise Exception(msg)
+
+        if read_from_merged and key not in self._op_cache:
+            self._op_cache[key] = self.auto_op
+
+    def start_auto_battle(self) -> None:
+        """
+        开始自动战斗
+        """
+        if self.auto_op is not None:
+            self.auto_op.start_running_async()
+            self.start_context_async()
+
+    def stop_auto_battle(self) -> None:
+        """
+        停止自动战斗
+        Returns:
+            None
+        """
+        if self.auto_op is not None:
+            self.auto_op.stop_running()
+        self.stop_context()
+
+    def after_app_shutdown(self) -> None:
+        """
+        App关闭后进行的操作 关闭一切可能资源操作
+        """
+        self.stop_auto_battle()
+        _battle_state_check_executor.shutdown(wait=False, cancel_futures=True)
+
+        self.agent_context.after_app_shutdown()
+        self.dodge_context.after_app_shutdown()
+        self.custom_context.after_app_shutdown()
+        self.target_context.after_app_shutdown()
 
     def dodge(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         if press:
@@ -319,8 +394,7 @@ class AutoBattleContext:
 
     def init_battle_context(
             self,
-            auto_op: ConditionalOperator,
-            use_gpu: bool = True,
+            auto_op: AutoBattleOperator,
             check_dodge_interval: Union[float, List[float]] = 0,
             agent_names: Optional[List[str]] = None,
             to_check_state_list: Optional[List[str]] = None,
@@ -335,7 +409,8 @@ class AutoBattleContext:
         自动战斗前的初始化
         :return:
         """
-        self.auto_op: ConditionalOperator = auto_op
+        use_gpu: bool = self.ctx.model_config.flash_classifier_gpu
+        self.auto_op: AutoBattleOperator = auto_op
         self.agent_context.init_battle_agent_context(
             auto_op,
             agent_names,
@@ -726,12 +801,12 @@ class AutoBattleContext:
                                          threshold=0.9)
         return mrl.max is not None
 
-    def start_context(self) -> None:
+    def start_context_async(self) -> None:
         """
         启动上下文
         :return:
         """
-        self.dodge_context.start_context()
+        self.dodge_context.start_context_async()
 
     def stop_context(self) -> None:
         """

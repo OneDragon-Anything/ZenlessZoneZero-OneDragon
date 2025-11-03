@@ -1,17 +1,21 @@
+from __future__ import annotations
+
 import time
+from typing import List, TYPE_CHECKING
 
-from typing import List
-
-from one_dragon.base.conditional_operation.conditional_operator import ConditionalOperator
+from one_dragon.base.conditional_operation.operator import ConditionalOperator
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
-from zzz_od.context.zzz_context import ZContext
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
+    from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 
 
 class AutoBattleCustomContext:
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
-        self.auto_op: ConditionalOperator = ConditionalOperator('', '', is_mock=True)
+        self.auto_op: AutoBattleOperator | None = None
 
     def init_battle_custom_context(self, auto_op: ConditionalOperator):
         self.auto_op = auto_op

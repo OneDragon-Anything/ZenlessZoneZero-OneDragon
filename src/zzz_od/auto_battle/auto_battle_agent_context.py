@@ -1,10 +1,11 @@
-from concurrent.futures import ThreadPoolExecutor, Future
+from __future__ import annotations
 
 import threading
-from cv2.typing import MatLike
-from typing import Optional, List, Union, Tuple, Callable
+from concurrent.futures import ThreadPoolExecutor, Future
+from typing import Optional, List, Union, Tuple, Callable, TYPE_CHECKING
 
-from one_dragon.base.conditional_operation.conditional_operator import ConditionalOperator
+from cv2.typing import MatLike
+
 from one_dragon.base.conditional_operation.state_recorder import StateRecord, StateRecorder
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.utils import cv2_utils, cal_utils
@@ -13,6 +14,9 @@ from zzz_od.auto_battle.agent_state import agent_state_checker
 from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum, AgentStateCheckWay, CommonAgentStateEnum, AgentStateDef
+
+if TYPE_CHECKING:
+    from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 
 _battle_agent_context_executor = ThreadPoolExecutor(thread_name_prefix='od_battle_agent_context', max_workers=16)
 _agent_state_check_method: dict[AgentStateCheckWay, Callable] = {
@@ -274,7 +278,7 @@ class AutoBattleAgentContext:
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
-        self.auto_op: ConditionalOperator = ConditionalOperator('', '', is_mock=True)
+        self.auto_op: AutoBattleOperator | None = None
         self.team_info: TeamInfo = TeamInfo()
 
         # 识别锁 保证每种类型只有1实例在进行识别
@@ -282,7 +286,7 @@ class AutoBattleAgentContext:
 
     def init_battle_agent_context(
             self,
-            auto_op: ConditionalOperator,
+            auto_op: AutoBattleOperator,
             agent_names: Optional[List[str]] = None,
             to_check_state_list: Optional[List[str]] = None,
             check_agent_interval: Union[float, List[float]] = 0,) -> None:
@@ -290,7 +294,7 @@ class AutoBattleAgentContext:
         自动战斗前的初始化
         :return:
         """
-        self.auto_op: ConditionalOperator = auto_op
+        self.auto_op = auto_op
         self.team_info: TeamInfo = TeamInfo(agent_names)
 
         # 识别区域 先读取出来 不要每次用的时候再读取
@@ -843,22 +847,8 @@ class AutoBattleAgentContext:
 
         return state_records
 
-
-def __debug_agent():
-    ctx = ZContext()
-    ctx.init_by_config()
-    from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
-    op = AutoBattleOperator(ctx, '' , '', is_mock=True)
-    agent_ctx = AutoBattleAgentContext(ctx)
-    agent_ctx.init_battle_agent_context(op)
-
-    from one_dragon.utils import debug_utils
-    import time
-    screen = debug_utils.get_debug_image('1')
-    agent_ctx.check_agent_related(screen, time.time())
-    for i in agent_ctx.team_info.agent_list:
-        print('角色 %s 能量 %d' % (i.agent.agent_name if i.agent is not None else 'none', i.energy))
-
-
-if __name__ == '__main__':
-    __debug_agent()
+    def after_app_shutdown(self) -> None:
+        """
+        App关闭后进行的操作 关闭一切可能资源操作
+        """
+        _battle_agent_context_executor.shutdown(wait=False, cancel_futures=True)

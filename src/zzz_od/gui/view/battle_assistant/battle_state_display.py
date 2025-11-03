@@ -244,19 +244,20 @@ class TaskDisplay(TableWidget):
 
             return
 
-        task = self.auto_op.running_task
+        info = self.auto_op.current_execution_info
+        executor = self.auto_op.running_executor
         now = time.time()
 
-        if task is None:
+        if info is None:
             return
 
         # 计算持续时间
-        trigger_time = self.auto_op.last_trigger_time.get(task.handler_id, now) if task.handler_id is not None else now
+        trigger_time = executor.trigger_time
         past_time = str(round(now - trigger_time, 4))
-        states = task.expr_display
+        states = info.expr_display
 
         data = [
-            ["[触发器]", task.trigger_display],
+            ["[触发器]", info.trigger_display],
             ["[条件集]", states],
             ["[持续时间]", past_time]
         ]
