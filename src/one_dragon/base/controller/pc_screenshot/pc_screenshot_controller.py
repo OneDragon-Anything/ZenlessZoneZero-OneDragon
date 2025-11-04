@@ -3,6 +3,7 @@ from typing import Optional, Dict
 from cv2.typing import MatLike
 
 from one_dragon.base.controller.pc_game_window import PcGameWindow
+from one_dragon.base.controller.pc_screenshot.bitblt_screencapper import BitBltScreencapper, BitBltFullscreenScreencapper
 from one_dragon.base.controller.pc_screenshot.mss_screencapper import MssScreencapper
 from one_dragon.base.controller.pc_screenshot.pil_screencapper import PilScreencapper
 from one_dragon.base.controller.pc_screenshot.print_window_screencapper import PrintWindowScreencapper
@@ -24,16 +25,21 @@ class PcScreenshotController:
 
         self.strategies: Dict[str, ScreencapperBase] = {
             "print_window": PrintWindowScreencapper(game_win, standard_width, standard_height),
+            "bitblt": BitBltScreencapper(game_win, standard_width, standard_height),
+            "bitblt_fullscreen": BitBltFullscreenScreencapper(game_win, standard_width, standard_height),
             "mss": MssScreencapper(game_win, standard_width, standard_height),
             "pil": PilScreencapper(game_win, standard_width, standard_height)
         }
         self.active_strategy_name: Optional[str] = None
 
     def get_screenshot(self, independent: bool = False) -> Optional[MatLike]:
-        """
-        根据初始化的方法获取截图
-        :param independent: 是否独立截图（不进行初始化，使用临时的截图器）
-        :return: 截图数组
+        """根据初始化的方法获取截图
+
+        Args:
+            independent: 是否独立截图（不进行初始化，使用临时的截图器）
+
+        Returns:
+            截图数组，失败返回 None
         """
         if not self.active_strategy_name and not independent:
             log.error('截图方法尚未初始化，请先调用 init_screenshot()')
@@ -66,13 +72,16 @@ class PcScreenshotController:
 
             except Exception:
                 continue
-        log.error("所有截图方法都失败了")
         return None
 
     def init_screenshot(self, method: str) -> Optional[str]:
-        """
-        初始化截图方法，带有回退机制
-        :param method: 首选的截图方法 ("auto", "print_window", "mss", "pil")
+        """初始化截图方法，带有回退机制
+
+        Args:
+            method: 首选的截图方法
+
+        Returns:
+            成功初始化的方法名称，全部失败返回 None
         """
         self.cleanup_resources()
 
@@ -82,41 +91,39 @@ class PcScreenshotController:
             strategy = self.strategies.get(attempt_method)
             if strategy and strategy.init():
                 self.active_strategy_name = attempt_method
-                if attempt_method != method:
-                    log.debug(f"截图方法 '{method}' 初始化失败，回退到 '{attempt_method}'")
-                else:
-                    log.debug(f"截图方法 '{attempt_method}' 初始化成功")
                 return attempt_method
 
-        log.error(f"所有截图方法初始化都失败了，尝试的方法: {methods_to_try}")
         self.active_strategy_name = None
         return None
 
     def cleanup_resources(self):
-        """
-        清理所有截图策略的资源
-        """
+        """清理所有截图策略的资源"""
         for strategy in self.strategies.values():
             strategy.cleanup()
         self.active_strategy_name = None
 
     def cleanup(self):
-        """
-        清理资源
-        """
+        """清理资源"""
         self.cleanup_resources()
 
     def _get_method_priority_list(self, method: str) -> list:
-        """
-        获取截图方法的优先级列表
-        :param method: 首选方法 ("auto", "print_window", "mss", "pil")
-        :return: 方法名称列表，按优先级排序
-        """
-        fallback_order = {
-            "auto": ["print_window", "mss", "pil"],
-            "print_window": ["print_window", "mss", "pil"],
-            "mss": ["mss", "print_window", "pil"],
-            "pil": ["pil", "print_window", "mss"]
-        }
+        """获取截图方法的优先级列表
 
-        return fallback_order.get(method, ["print_window", "mss", "pil"])
+        Args:
+            method: 首选方法 ("auto", "print_window", "bitblt", "bitblt_fullscreen", "mss", "pil")
+
+        Returns:
+            方法名称列表，按优先级排序
+        """
+        default_priority = ["print_window", "bitblt", "mss", "pil"]
+
+        if method == "auto" or method not in self.strategies:
+            return default_priority.copy()
+
+        priority_list = [method]
+
+        for m in default_priority:
+            if m not in priority_list:
+                priority_list.append(m)
+
+        return priority_list
