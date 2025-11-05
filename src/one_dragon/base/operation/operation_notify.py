@@ -172,7 +172,7 @@ class _NotifyImageContext:
         return None
 
 
-def notify_application(app: Application, is_success: Optional[bool] = True) -> None:
+def application_notify(app: Application, is_success: Optional[bool]) -> None:
     """向外部推送应用运行状态通知。
 
     参数含义与原 `Application.notify` 一致。该函数被抽离出来便于复用与单元测试，
@@ -188,31 +188,23 @@ def notify_application(app: Application, is_success: Optional[bool] = True) -> N
 
     # before 通知需要额外检查
     if is_success is None:
-        if not hasattr(app.ctx, 'notify_config'):
-            return
-        if not getattr(app.ctx.notify_config, 'enable_before_notify', False):
+        if not app.ctx.notify_config.enable_before_notify:
             return
 
     # 确定状态和图片来源
     if is_success is True:
         status = gt('成功')
-        image_source: Optional[BytesIO] = app.notify_screenshot  # 运行成功时使用预先截图
     elif is_success is False:
         status = gt('失败')
-        image_source = app.save_screenshot_bytes()  # 失败时即时截图
     else:  # is_success is None
         status = gt('开始')
-        image_source = None
 
     # 构建消息
     app_name = getattr(app, 'op_name', '')
     message = _build_application_message(app_name, status)
 
-    # 判断是否发送图片
-    image = image_source if _should_send_image(app) else None
-
     # 异步推送
-    app.ctx.push_service.push_async(message, image)
+    app.ctx.push_service.push_async(message)
 
 
 class NodeNotifyDesc:

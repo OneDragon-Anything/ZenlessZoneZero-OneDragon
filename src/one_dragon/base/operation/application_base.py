@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
-from io import BytesIO
 from typing import TYPE_CHECKING, Callable, Optional
 
 from cv2.typing import MatLike
@@ -10,6 +9,7 @@ from cv2.typing import MatLike
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
+from one_dragon.base.operation.operation_notify import application_notify
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -60,9 +60,7 @@ class Application(Operation):
                 pass
         """运行记录"""
 
-        self.need_notify: bool = need_notify  # 节点运行结束后发送通知
-
-        self.notify_screenshot: Optional[MatLike] = None  # 发送通知的截图
+        self.need_notify: bool = need_notify  # 应用运行前后发送通知
 
     def _init_before_execute(self) -> None:
         Operation._init_before_execute(self)
@@ -75,6 +73,8 @@ class Application(Operation):
         if self.run_record is not None:
             self.run_record.check_and_update_status()  # 先判断是否重置记录
             self.run_record.update_status(AppRunRecord.STATUS_RUNNING)
+        if self.need_notify:
+            application_notify(self, None)
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
 
@@ -85,6 +85,10 @@ class Application(Operation):
         """
         Operation.after_operation_done(self, result)
         self._update_record_after_stop(result)
+
+        if self.need_notify:
+            application_notify(self, result.success)
+
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_STOP.value, self.app_id)
 
     def _update_record_after_stop(self, result: OperationResult):
