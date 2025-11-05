@@ -4,7 +4,7 @@ template_name: 勘域编队
 template_shape: quadrilateral
 auto_mask: true
 point_list:
-- 1353, 50
-- 1415, 50
-- 1415, 94
-- 1353, 94
+- 1356, 52
+- 1413, 52
+- 1413, 92
+- 1356, 92

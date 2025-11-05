@@ -49,10 +49,10 @@ area_list:
 - area_name: 勘域编队
   id_mark: false
   pc_rect:
-  - 1343
-  - 40
-  - 1425
-  - 104
+  - 1346
+  - 42
+  - 1423
+  - 102
   text: ''
   lcs_percent: 0.5
   template_sub_dir: normal_world_investigation
