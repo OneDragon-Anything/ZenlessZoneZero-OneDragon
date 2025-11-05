@@ -60,17 +60,18 @@ def check_battle_encounter(ctx: ZContext, screen: MatLike, screenshot_time: floa
     @return: 是否进入了战斗
     """
     in_battle = ctx.auto_battle_context.is_normal_attack_btn_available(screen)
+    state_record_service = ctx.auto_battle_context.state_record_service
     if in_battle:
         ctx.auto_battle_context.agent_context.check_agent_related(screen, screenshot_time)
-        state = ctx.auto_battle_context.get_state_recorder(CommonAgentStateEnum.LIFE_DEDUCTION_31.value.state_name)
+        state = state_record_service.get_state_recorder(CommonAgentStateEnum.LIFE_DEDUCTION_31.value.state_name)
         if state is not None and state.last_record_time == screenshot_time:
             return True
 
         ctx.auto_battle_context.dodge_context.check_dodge_flash(screen, screenshot_time)
-        state = ctx.auto_battle_context.get_state_recorder(YoloStateEventEnum.DODGE_RED.value)
+        state = state_record_service.get_state_recorder(YoloStateEventEnum.DODGE_RED.value)
         if state is not None and state.last_record_time == screenshot_time:
             return True
-        state = ctx.auto_battle_context.get_state_recorder(YoloStateEventEnum.DODGE_YELLOW.value)
+        state = state_record_service.get_state_recorder(YoloStateEventEnum.DODGE_YELLOW.value)
         if state is not None and state.last_record_time == screenshot_time:
             return True
 

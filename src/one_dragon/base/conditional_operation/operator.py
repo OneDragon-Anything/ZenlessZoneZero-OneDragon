@@ -258,7 +258,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 result = future.result()
                 if result:  # 顺利执行完毕
                     self.running_executor_cnt.dec()
-                    self.running_executor.priority = None
+                    self.current_execution_info.priority = None
             except Exception:  # run_async里有callback打印日志
                 pass
 

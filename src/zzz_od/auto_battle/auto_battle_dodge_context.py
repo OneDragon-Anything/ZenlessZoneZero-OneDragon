@@ -176,9 +176,6 @@ class AutoBattleDodgeContext:
     ) -> None:
         """
         初始化上下文，在运行前调用。
-
-        Args:
-            use_gpu: 是否使用GPU
         """
         # 上一次识别的时间
         self._last_check_dodge_time = 0

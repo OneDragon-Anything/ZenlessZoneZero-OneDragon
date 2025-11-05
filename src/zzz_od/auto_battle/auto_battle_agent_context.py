@@ -840,17 +840,6 @@ class AutoBattleAgentContext:
 
         return state_records
 
-    def batch_update_states(self, state_records: List[StateRecord]) -> None:
-        """
-        批量更新状态
-
-        Args:
-            state_records: 状态记录列表
-        """
-        if self.auto_op is None:
-            return
-        self.ctx.auto_battle_context.state_record_service.batch_update_states(state_records)
-
     def after_app_shutdown(self) -> None:
         """
         App关闭后进行的操作 关闭一切可能资源操作
