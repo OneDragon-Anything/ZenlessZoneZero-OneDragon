@@ -55,13 +55,13 @@ class EnterGame(ZOperation):
             return interact_result
 
         # 判定是否进入大世界
-        for screen_name, area_name in [
-            ('大世界-普通', '按钮-信息'),
-            ('大世界-勘域', '勘域编队'),
-        ]:
-            result = self.round_by_find_area(self.last_screenshot, screen_name, area_name)
-            if result.is_success:
-                return self.round_success('大世界', wait=1)
+        world_screens = ['大世界-普通', '大世界-勘域']
+        current_screen = self.check_and_update_current_screen(
+            self.last_screenshot,
+            screen_name_list=world_screens,
+        )
+        if current_screen in world_screens:
+            return self.round_success('大世界', wait=1)
 
         return self.round_retry(status='未知画面', wait=1)
 
