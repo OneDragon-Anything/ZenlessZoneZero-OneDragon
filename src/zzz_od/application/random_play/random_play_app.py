@@ -6,6 +6,7 @@ from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -36,7 +37,11 @@ class RandomPlayApp(ZApplication):
             need_notify=True,
         )
 
-        self.config: Optional[RandomPlayConfig] = self.ctx.run_context.get_config(app_id=self.app_id)
+        self.config: RandomPlayConfig = self.ctx.run_context.get_config(
+            app_id=self.app_id,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
 
     def handle_init(self) -> None:
         """
@@ -347,7 +352,7 @@ class RandomPlayApp(ZApplication):
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
+        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

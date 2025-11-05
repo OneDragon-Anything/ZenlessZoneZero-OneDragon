@@ -1,19 +1,20 @@
 import time
 import urllib.request
-from typing import Optional, Callable
+from collections.abc import Callable
 
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
 
 def download_file(download_url: str, save_file_path: str,
-                  proxy: Optional[str] = None,
-                  progress_callback: Optional[Callable[[float, str], None]] = None) -> bool:
+                  proxy: str | None = None, progress_signal: dict[str, str | None] | None = None,
+                  progress_callback: Callable[[float, str], None] | None = None) -> bool:
     """
     下载文件
     :param download_url: 下载的url
     :param save_file_path: 保存的文件路径，包含文件名
     :param proxy: 使用的代理地址
+    :param progress_signal: 进度信号字典，当字典中 'signal' 键的值为 'cancel' 时会取消下载
     :param progress_callback: 下载进度的回调，进度发生改变时，通过该方法通知调用方。
     :return: 是否下载成功
     """
@@ -27,6 +28,10 @@ def download_file(download_url: str, save_file_path: str,
 
     def log_download_progress(block_num, block_size, total_size):
         nonlocal last_log_time
+        # 检查是否需要取消下载
+        if progress_signal is not None and progress_signal.get('signal') == 'cancel':
+            raise DownloadCancelledError("下载已取消")
+
         now = time.time()
         if now - last_log_time < 1:
             return
@@ -50,9 +55,18 @@ def download_file(download_url: str, save_file_path: str,
         if progress_callback is not None:
             progress_callback(1, msg)
         return True
+    except DownloadCancelledError:
+        msg = f"{gt('下载已取消')}"
+        log.info(msg)
+        if progress_callback is not None:
+            progress_callback(0, msg)
+        return False
     except Exception as e:
         msg = f"{gt('下载失败')} {e}"
         if progress_callback is not None:
             progress_callback(0, msg)
         log.error(msg, exc_info=True)
         return False
+
+class DownloadCancelledError(Exception):
+    pass

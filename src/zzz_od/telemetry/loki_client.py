@@ -60,7 +60,7 @@ class LokiClient:
         """初始化Loki客户端"""
         try:
             if not self.config.loki_url:
-                log.warning("Loki URL not provided, telemetry disabled")
+                log.debug("Loki URL not provided, telemetry disabled")
                 return False
 
             log.debug(f"Initializing Loki client with URL: {self.config.loki_url}")
@@ -84,7 +84,7 @@ class LokiClient:
                 )
                 log.debug("App startup event sent successfully")
             except Exception as e:
-                log.warning(f"Failed to send app startup event: {e}")
+                log.debug(f"Failed to send app startup event: {e}")
 
             # 启动后台刷新线程
             self._start_flush_thread()

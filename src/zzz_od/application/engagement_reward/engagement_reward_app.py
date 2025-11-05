@@ -34,7 +34,13 @@ class EngagementRewardApp(ZApplication):
         """
         self.idx: int = 4
 
-    @operation_node(name='快捷手册-日常', is_start_node=True)
+    @operation_node(name='返回大世界', is_start_node=True)
+    def back_at_first(self) -> OperationRoundResult:
+        op = BackToNormalWorld(self.ctx)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='返回大世界')
+    @operation_node(name='快捷手册-日常')
     def goto_compendium_daily(self) -> OperationRoundResult:
         return self.round_by_goto_screen(screen_name='快捷手册-日常')
 
@@ -65,7 +71,7 @@ class EngagementRewardApp(ZApplication):
     @node_from(from_name='点击奖励')
     @operation_node(name='查看奖励结果')
     def check_reward(self) -> OperationRoundResult:
-        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
+        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         return self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '活跃度奖励-确认', success_wait=1, retry_wait=1)
 
     @node_from(from_name='查看奖励结果', success=False)

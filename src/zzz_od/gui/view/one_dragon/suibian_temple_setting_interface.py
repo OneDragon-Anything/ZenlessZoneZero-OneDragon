@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QWidget, QLabel
 from qfluentwidgets import FluentIcon
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.base.operation.application import application_const
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
@@ -211,10 +212,10 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
-        self.config: Optional[SuibianTempleConfig] = self.ctx.run_context.get_config(
+        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
             app_id='suibian_temple',
             instance_idx=self.ctx.current_instance_idx,
-            group_id='one_dragon'
+            group_id=application_const.DEFAULT_GROUP_ID,
         )
 
         self.yum_cha_sin_switch.init_with_adapter(get_prop_adapter(self.config, 'yum_cha_sin'))
@@ -242,31 +243,31 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
         # 德丰大押相关设置
         self.pawnshop_omnicoin_switch.init_with_adapter(get_prop_adapter(self.config, 'pawnshop_omnicoin_enabled'))
         priority_list = self.config.pawnshop_omnicoin_priority
-        self.pawnshop_omnicoin_priority_1.set_value(priority_list[0], emit_signal=False)
-        self.pawnshop_omnicoin_priority_2.set_value(priority_list[1], emit_signal=False)
-        self.pawnshop_omnicoin_priority_3.set_value(priority_list[2], emit_signal=False)
-        self.pawnshop_omnicoin_priority_4.set_value(priority_list[3], emit_signal=False)
-        self.pawnshop_omnicoin_priority_5.set_value(priority_list[4], emit_signal=False)
+        self.pawnshop_omnicoin_priority_1.setValue(priority_list[0], emit_signal=False)
+        self.pawnshop_omnicoin_priority_2.setValue(priority_list[1], emit_signal=False)
+        self.pawnshop_omnicoin_priority_3.setValue(priority_list[2], emit_signal=False)
+        self.pawnshop_omnicoin_priority_4.setValue(priority_list[3], emit_signal=False)
+        self.pawnshop_omnicoin_priority_5.setValue(priority_list[4], emit_signal=False)
 
         self.pawnshop_crest_switch.init_with_adapter(get_prop_adapter(self.config, 'pawnshop_crest_enabled'))
         priority_list = self.config.pawnshop_crest_priority
-        self.pawnshop_crest_priority_1.set_value(priority_list[0], emit_signal=False)
-        self.pawnshop_crest_priority_2.set_value(priority_list[1], emit_signal=False)
+        self.pawnshop_crest_priority_1.setValue(priority_list[0], emit_signal=False)
+        self.pawnshop_crest_priority_2.setValue(priority_list[1], emit_signal=False)
         self.pawnshop_crest_unlimited_denny_switch.init_with_adapter(get_prop_adapter(self.config, 'pawnshop_crest_unlimited_denny_enabled'))
 
     def _on_pawnshop_omnicoin_priority_changed(self, _) -> None:
         priority_list = [
-            self.pawnshop_omnicoin_priority_1.get_value(),
-            self.pawnshop_omnicoin_priority_2.get_value(),
-            self.pawnshop_omnicoin_priority_3.get_value(),
-            self.pawnshop_omnicoin_priority_4.get_value(),
-            self.pawnshop_omnicoin_priority_5.get_value(),
+            self.pawnshop_omnicoin_priority_1.getValue(),
+            self.pawnshop_omnicoin_priority_2.getValue(),
+            self.pawnshop_omnicoin_priority_3.getValue(),
+            self.pawnshop_omnicoin_priority_4.getValue(),
+            self.pawnshop_omnicoin_priority_5.getValue(),
         ]
         self.config.pawnshop_omnicoin_priority = priority_list
 
     def _on_pawnshop_crest_priority_changed(self, _) -> None:
         priority_list = [
-            self.pawnshop_crest_priority_1.get_value(),
-            self.pawnshop_crest_priority_2.get_value(),
+            self.pawnshop_crest_priority_1.getValue(),
+            self.pawnshop_crest_priority_2.getValue(),
         ]
         self.config.pawnshop_crest_priority = priority_list

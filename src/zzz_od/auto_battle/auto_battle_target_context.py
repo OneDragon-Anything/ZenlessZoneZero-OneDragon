@@ -102,7 +102,7 @@ class AutoBattleTargetContext:
             # 处理异步任务结果
             for future, task in futures.items():
                 try:
-                    cv_ctx, async_results = future.result(timeout=3)
+                    _cv_ctx, async_results = future.result(timeout=1)
                     self._handle_results(records_to_update, async_results, screenshot_time, task)
                 except Exception:
                     log.error(f"异步检测任务失败 [task_id={task.task_id}]", exc_info=True)

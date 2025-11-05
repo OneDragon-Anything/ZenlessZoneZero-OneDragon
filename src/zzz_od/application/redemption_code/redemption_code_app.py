@@ -1,6 +1,7 @@
 import time
 from typing import List, Optional
 
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -90,7 +91,7 @@ class RedemptionCodeApp(ZApplication):
     def confirm_code(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '兑换码兑换')
         if result.is_success:
-            self.ctx.redemption_code_record.add_used_code(self.unused_code_list[self.code_idx])
+            self.run_record.add_used_code(self.unused_code_list[self.code_idx])
             self.code_idx += 1
             return self.round_success(result.status, wait=1)
 
@@ -99,16 +100,19 @@ class RedemptionCodeApp(ZApplication):
     @node_from(from_name='输入兑换码', status='全部兑换完毕')
     @operation_node(name='返回大世界')
     def back(self) -> OperationRoundResult:
-        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
+        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
-    app = RedemptionCodeApp(ctx)
-    app.execute()
+    ctx.init()
+    ctx.run_context.run_application(
+        app_id=redemption_code_const.APP_ID,
+        instance_idx=ctx.current_instance_idx,
+        group_id=application_const.DEFAULT_GROUP_ID,
+    )
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 template_name: "速切模板-浮波柚叶"
 handlers:
   - states: "[前台-浮波柚叶]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-浮波柚叶]"
     sub_handlers:
       # 支援
       - states: "[自定义-黄光切人, 0, 1]"
@@ -12,7 +13,7 @@ handlers:
           - operation_template: "浮波柚叶-闪A"
 
       # 连携
-      - states: "[按键可用-连携技, 0, 0.5]"
+      - states: "[自定义-连携换人, 0, 0.5]"
         operations:
           - operation_template: "通用-连携攻击"
 

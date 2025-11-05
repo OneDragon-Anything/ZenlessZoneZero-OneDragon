@@ -25,7 +25,7 @@ class DoorBattle(ZOperation):
             EventOcrResultHandler(HollowZeroSpecialEvent.DOOR_BATTLE_ENTRY.value.event_name, click_wait=3),
         ]
 
-        for e in self.ctx.hollow.data_service.normal_events:
+        for e in self.ctx.withered_domain.data_service.normal_events:
             if e.entry_name == '门扉禁闭-侵蚀':  # 兼容识别错误的情况
                 for opt in e.options:
                     self._handlers.append(EventOcrResultHandler(opt.option_name))

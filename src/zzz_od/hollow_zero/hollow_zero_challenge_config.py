@@ -119,7 +119,7 @@ class HollowZeroChallengeConfig(YamlConfig):
         一步可达时前往
         :return:
         """
-        return self.get('go_in_1_step', None)
+        return self.get('go_in_1_step', [])
 
     @go_in_1_step.setter
     def go_in_1_step(self, new_value: List[str]):
@@ -131,7 +131,7 @@ class HollowZeroChallengeConfig(YamlConfig):
         途经点
         :return:
         """
-        return self.get('waypoint', None)
+        return self.get('waypoint', [])
 
     @waypoint.setter
     def waypoint(self, new_value: List[str]):
@@ -143,7 +143,7 @@ class HollowZeroChallengeConfig(YamlConfig):
         避免
         :return:
         """
-        return self.get('avoid', None)
+        return self.get('avoid', [])
 
     @avoid.setter
     def avoid(self, new_value: List[str]):

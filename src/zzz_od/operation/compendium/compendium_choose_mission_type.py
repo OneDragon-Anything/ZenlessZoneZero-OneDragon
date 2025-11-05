@@ -88,7 +88,7 @@ class CompendiumChooseMissionType(ZOperation):
         return self.handle_go_button(self.last_screenshot, target_point)
 
     @node_from(from_name='选择副本', status=AGENT_PLAN)
-    @operation_node(name='选择代理人方案', node_max_retry_times=5)
+    @operation_node(name='选择代理人方案', node_max_retry_times=10)
     def choose_mission_type_by_agent(self) -> OperationRoundResult:
         """
         专门处理"代理人方案培养"的方法
@@ -117,7 +117,7 @@ class CompendiumChooseMissionType(ZOperation):
         目前看只需要往下滚动即可
         """
         # 滑动
-        start = area.center
+        start = area.center + Point(-100, 0)
         end = start + Point(0, 300 * -1)
         self.ctx.controller.drag_to(start=start, end=end)
         return self.round_retry(status='找不到 %s' % self.mission_type.mission_type_name, wait=1)

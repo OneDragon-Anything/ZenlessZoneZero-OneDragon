@@ -174,7 +174,8 @@ class AutoBattleContext:
         state_records = [StateRecord(e, finish_time)]
         if update_agent:
             # 切换角色的状态时间应该是按键开始时间
-            agent_records = self.agent_context.switch_prev_agent(start_time, False)
+            # 使用正确的连携技逻辑，而不是简单的切换到上一个角色
+            agent_records = self.agent_context.chain_left(start_time, False)
             for i in agent_records:
                 state_records.append(i)
         self.auto_op.batch_update_states(state_records)
@@ -197,7 +198,8 @@ class AutoBattleContext:
         state_records = [StateRecord(e, finish_time)]
         if update_agent:
             # 切换角色的状态时间应该是按键开始时间
-            agent_records = self.agent_context.switch_next_agent(start_time, False)
+            # 使用正确的连携技逻辑，而不是简单的切换到下一个角色
+            agent_records = self.agent_context.chain_right(start_time, False)
             for i in agent_records:
                 state_records.append(i)
         self.auto_op.batch_update_states(state_records)

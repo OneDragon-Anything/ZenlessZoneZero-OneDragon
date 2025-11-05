@@ -1,0 +1,6 @@
+# 狛野真斗-基础连段
+operations:
+  - op_name: "按键-普通攻击"
+    repeat: 24
+    post_delay: 0.2
+  - operation_template: "通用-闪避-左"

@@ -1,6 +1,7 @@
 template_name: "速切模板-雅"
 handlers:
   - states: "[前台-雅]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-雅]"
     sub_handlers:
       # 这里代表了异常角色出场，要清空其他异常积累的累计
       # 比如雅是烈霜异常，所以要清空火冰物电，一般只有异常角色需要清空
@@ -27,7 +28,7 @@ handlers:
           - operation_template: "雅-闪A"
 
       # 连携
-      - states: "[按键可用-连携技, 0, 0.5]"
+      - states: "[自定义-连携换人, 0, 0.5]"
         operations:
           - operation_template: "雅-连携攻击"
 

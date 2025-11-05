@@ -43,7 +43,11 @@ class OpenGame(Operation):
         log.info('命令行指令 %s', command)
 
         try:
-            subprocess.Popen(command)
+            # 若启动器使用了进程组管理，使用 CREATE_BREAKAWAY_FROM_JOB 可使子进程从jobobject中逃离， 避免OneDragon-Launcher.exe退出后，游戏被杀死
+            subprocess.Popen(
+                command,
+                creationflags=subprocess.CREATE_BREAKAWAY_FROM_JOB
+            )
 
             # 埋点：游戏启动事件
             if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:

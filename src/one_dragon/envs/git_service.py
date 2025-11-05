@@ -443,5 +443,12 @@ def __fetch_latest_code():
     git_service = GitService(project_config, env_config, download_service)
     return git_service.fetch_latest_code(progress_callback=None)
 
+def __debug_set_safe_dir():
+    project_config = ProjectConfig()
+    env_config = EnvConfig()
+    download_service = DownloadService(project_config, env_config)
+    git_service = GitService(project_config, env_config, download_service)
+    return git_service.set_safe_dir()
+
 if __name__ == '__main__':
-    __fetch_latest_code()
+    __debug_set_safe_dir()

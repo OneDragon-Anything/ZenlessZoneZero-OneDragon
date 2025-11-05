@@ -37,12 +37,12 @@ class ChooseNextOrFinishAfterBattle(ZOperation):
     @operation_node(name='恢复电量')
     def restore_charge(self) -> OperationRoundResult:
         # 检查是否在恢复电量界面
-        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '恢复电量')
+        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题')
         if not result.is_success:
             # 没有弹窗，直接返回再来一次的结果
             return self.round_success(status='战斗结果-再来一次')
 
-        config: ChargePlanConfig | None = self.ctx.run_context.get_config(
+        config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,

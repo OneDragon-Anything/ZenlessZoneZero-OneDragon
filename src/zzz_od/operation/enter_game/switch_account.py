@@ -52,8 +52,7 @@ class SwitchAccount(ZOperation):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
-    ctx.init_ocr()
+    ctx.init()
     ctx.run_context.start_running()
     op = SwitchAccount(ctx)
     op.execute()

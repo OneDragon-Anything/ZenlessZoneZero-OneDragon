@@ -3,8 +3,7 @@ from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import QThread, Signal
 from qfluentwidgets import FluentIcon, SettingCardGroup, VBoxLayout, PushButton, HyperlinkButton, InfoBar, InfoBarPosition
 
-from one_dragon.base.config.config_item import get_config_item_from_enum
-from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
+from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.envs.env_config import RepositoryTypeEnum, GitMethodEnum, ProxyTypeEnum, PipSourceEnum, CpythonSourceEnum
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
@@ -16,8 +15,8 @@ from one_dragon.utils.i18_utils import gt
 
 class SettingEnvInterface(VerticalScrollInterface):
 
-    def __init__(self, ctx: OneDragonEnvContext, parent=None):
-        self.ctx: OneDragonEnvContext = ctx
+    def __init__(self, ctx: OneDragonContext, parent=None):
+        self.ctx: OneDragonContext = ctx
 
         VerticalScrollInterface.__init__(
             self,
@@ -45,7 +44,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.debug_opt = SwitchSettingCard(
             icon=FluentIcon.SEARCH, title='调试模式', content='正常无需开启'
         )
-        self.debug_opt.value_changed.connect(lambda: self.ctx.init_by_config())
+        self.debug_opt.value_changed.connect(lambda: self.ctx.init_async())
         basic_group.addSettingCard(self.debug_opt)
 
         self.copy_screenshot_opt = SwitchSettingCard(
@@ -292,8 +291,8 @@ class SpeedTestRunnerBase(QThread):
     log_signal = Signal(str, int)
     result_signal = Signal(str, int, str)
 
-    def __init__(self, ctx: OneDragonEnvContext, parent=None):
-        self.ctx: OneDragonEnvContext = ctx
+    def __init__(self, ctx: OneDragonContext, parent=None):
+        self.ctx: OneDragonContext = ctx
         super().__init__(parent)
 
 

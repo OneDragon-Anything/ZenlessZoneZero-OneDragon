@@ -219,11 +219,14 @@ msgstr "界面主题"
 msgid "主页公告"
 msgstr "主页公告"
 
-msgid "启用版本海报"
-msgstr "启用版本海报"
+msgid "官方静态背景"
+msgstr "官方静态背景"
 
-msgid "启用官方启动器主页背景"
-msgstr "启用官方启动器主页背景"
+msgid "版本海报"
+msgstr "版本海报"
+
+msgid "官方动态背景"
+msgstr "官方动态背景"
 
 msgid "自定义主页背景"
 msgstr "自定义主页背景"

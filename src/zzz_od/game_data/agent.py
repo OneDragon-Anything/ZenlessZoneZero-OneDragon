@@ -251,7 +251,7 @@ class AgentEnum(Enum):
 
     JANE_DOE = Agent('jane_doe', '简', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['jane_doe'],
                      state_list=[AgentStateDef('简-萨霍夫跳', AgentStateCheckWay.COLOR_RANGE_EXIST,
-                                               template_id='jane_attack', lower_color=(100, 20, 20), upper_color=(255, 255, 255), connect_cnt=50),
+                                               template_id='jane_attack', lower_color=(100, 20, 20), upper_color=(255, 255, 255), connect_cnt=20),
                                  AgentStateDef('简-狂热心流', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                                template_id='jane_red', lower_color=(200, 20, 20), upper_color=(255, 255, 255), connect_cnt=10)
                                  ])
@@ -302,7 +302,7 @@ class AgentEnum(Enum):
                                       lower_color=(0, 50, 0), upper_color=(255, 255, 255))
                     ])
 
-    VIVIAN = Agent('vivian', '薇薇安', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ETHER, ['vivian'],
+    VIVIAN = Agent('vivian', '薇薇安', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ETHER, ['vivian', 'vivian_iris_of_the_shore'],
                     state_list=[
                         AgentStateDef('薇薇安-飞羽', AgentStateCheckWay.COLOR_RANGE_CONNECT,
                                     'vivian_master_1', lower_color=(150, 110, 170), upper_color=(255, 255, 255),
@@ -320,9 +320,13 @@ class AgentEnum(Enum):
                                      template_id='yixuan_auric_Ink',
                                      hsv_color=(20, 127, 255), hsv_color_diff=(15, 128, 50),
                                      connect_cnt=10, min_value_trigger_state=0),
+                       AgentStateDef('仪玄-术法值全满', AgentStateCheckWay.COLOR_RANGE_EXIST,
+                                     template_id='yixuan_technique',
+                                     hsv_color=(30, 140, 255), hsv_color_diff=(20, 100, 50),
+                                     connect_cnt=10, min_value_trigger_state=0),
                        AgentStateDef('仪玄-术法值', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                      template_id='yixuan_technique',
-                                     hsv_color=(30, 127, 255), hsv_color_diff=(20, 128, 50),
+                                     hsv_color=(30, 255, 255), hsv_color_diff=(20, 175, 50),
                                      max_length=120)
                    ])
 
@@ -366,3 +370,19 @@ class AgentEnum(Enum):
                                       hsv_color=(90,255,255), hsv_color_diff=(89,255,55),
                                       max_length=125)
                     ])
+
+    LUCIA = Agent('lucia', '卢西娅', RareTypeEnum.S, AgentTypeEnum.SUPPORT, DmgTypeEnum.ETHER, ['lucia'],
+                    state_list=[
+                        AgentStateDef('卢西娅-梦境值', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                      template_id='lucia',
+                                      hsv_color=(90,255,255), hsv_color_diff=(89,255,55),
+                                      max_length=100)
+                    ])
+
+    MANATO = Agent('manato', '真斗', RareTypeEnum.A, AgentTypeEnum.RUPTURE, DmgTypeEnum.FIRE, ['manato'],
+                        state_list=[
+                            AgentStateDef('真斗-炽心', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                          template_id='manato',
+                                          hsv_color=(20,255,255), hsv_color_diff=(15,255,55),
+                                          max_length=100)
+                        ])

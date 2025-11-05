@@ -3,13 +3,15 @@ from typing import Any, List, Optional
 from qfluentwidgets import ComboBox as qtComboBox
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
-class ComboBox(qtComboBox):
+class ComboBox(qtComboBox, AdapterInitMixin):
 
     def __init__(self, parent=None):
         qtComboBox.__init__(self, parent)
+        AdapterInitMixin.__init__(self)
 
         self.adapter: Optional[YamlConfigAdapter] = None
 
@@ -57,11 +59,6 @@ class ComboBox(qtComboBox):
         self.setCurrentIndex(self.findData(target_value))
         self.blockSignals(False)
 
-    def init_with_adapter(self, adapter: Optional[YamlConfigAdapter]) -> None:
-        """初始化配置适配器。"""
-        self.adapter = adapter
-        self.set_value(None if adapter is None else adapter.get_value(), emit_signal=False)
-
     def _on_index_changed(self, index: int) -> None:
         """索引变化时发射信号"""
         val = self.itemData(index)
@@ -69,7 +66,7 @@ class ComboBox(qtComboBox):
         if self.adapter is not None:
             self.adapter.set_value(val)
 
-    def set_value(self, value: object, emit_signal: bool = True) -> None:
+    def setValue(self, value: object, emit_signal: bool = True) -> None:
         """设置下拉框的值。"""
         if not emit_signal:
             self.blockSignals(True)
@@ -86,6 +83,6 @@ class ComboBox(qtComboBox):
         if not emit_signal:
             self.blockSignals(False)
 
-    def get_value(self) -> object:
+    def getValue(self) -> object:
         """获取下拉框的值。"""
         return self.itemData(self.currentIndex())

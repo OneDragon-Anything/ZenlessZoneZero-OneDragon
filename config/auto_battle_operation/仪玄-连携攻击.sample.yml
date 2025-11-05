@@ -7,4 +7,4 @@ operations:
     state: "自定义-动作不打断"
     seconds: 2
   - op_name: "等待秒数"
-    seconds: 2
+    seconds: 1.9

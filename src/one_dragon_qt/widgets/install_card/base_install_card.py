@@ -106,6 +106,7 @@ class BaseInstallCard(MultiPushSettingCard):
         if self.install_runner.isRunning():
             log.warning('我知道你很急 但你先别急 正在运行了')
             return
+        self.install_btn.setDisabled(True)
         self.install_runner.start()
 
     def update_progress(self, progress: float, message: str) -> None:
@@ -127,6 +128,7 @@ class BaseInstallCard(MultiPushSettingCard):
             self.progress_changed.emit(100, None)
         else:
             self.progress_changed.emit(0, None)
+        self.install_btn.setEnabled(True)
         self.finished.emit(success)
         self.after_progress_done(success, msg)
 

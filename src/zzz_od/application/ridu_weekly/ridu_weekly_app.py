@@ -8,7 +8,6 @@ from zzz_od.application.ridu_weekly import ridu_weekly_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
-from zzz_od.operation.compendium.open_compendium import OpenCompendium
 
 
 class RiduWeeklyApp(ZApplication):
@@ -22,15 +21,15 @@ class RiduWeeklyApp(ZApplication):
             need_notify=True,
         )
 
-    @operation_node(name='快捷手册', is_start_node=True)
-    def open_compendium(self) -> OperationRoundResult:
-        op = OpenCompendium(self.ctx)
+    @operation_node(name='返回大世界', is_start_node=True)
+    def back_at_first(self) -> OperationRoundResult:
+        op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='快捷手册')
+    @node_from(from_name='返回大世界')
     @operation_node(name='日常')
-    def choose_train(self) -> OperationRoundResult:
-        return self.round_by_goto_screen(screen_name=f'快捷手册-日常')
+    def choose_daily(self) -> OperationRoundResult:
+        return self.round_by_goto_screen(screen_name='快捷手册-日常')
 
     @node_from(from_name='日常')
     @operation_node(name='丽都周纪')
@@ -65,7 +64,7 @@ class RiduWeeklyApp(ZApplication):
     @node_from(from_name='领取奖励')
     @operation_node(name='完成后返回')
     def finish(self) -> OperationRoundResult:
-        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
+        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

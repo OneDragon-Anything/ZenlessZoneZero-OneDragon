@@ -1,20 +1,14 @@
 handlers:
   - states: ""
     operations:
+      - op_name: "等待秒数"
+        seconds: 0.1
       - op_name: "设置状态"
         state: "自定义-连携跳过"
-      - op_name: "按键-连携技-取消"
-        way: "按下"
-        press: 0.02
-        post_delay: 0.01
-        repeat: 2
-      - op_name: "等待秒数"
-        seconds: 0.3
-      - op_name: "设置状态"
-        state: "按键可用-连携技"
-        seconds_add: -1
       - op_name: "设置状态"
         state: "自定义-连携换人"
-        seconds: -1
+      - op_name: "按键-连携技-取消-按下"
+      - op_name: "等待秒数"
+        seconds: 1
       - op_name: "清除状态"
         state: "按键可用-连携技"

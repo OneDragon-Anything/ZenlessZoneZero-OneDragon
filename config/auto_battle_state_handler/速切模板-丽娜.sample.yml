@@ -1,6 +1,7 @@
 template_name: "速切模板-丽娜"
 handlers:
   - states: "[前台-丽娜]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-丽娜]"
     sub_handlers:
       - states: "[自定义-黄光切人, 0, 1]"  # 丽娜的连携特别快
         operations:
@@ -16,7 +17,7 @@ handlers:
             seconds: 12
           - operation_template: "通用-闪A"
 
-      - states: "[按键可用-连携技, 0, 0.5]"  # 丽娜的连携特别快
+      - states: "[自定义-连携换人, 0, 0.5]"  # 丽娜的连携特别快
         operations:
           - op_name: "设置状态"
             state: "自定义-丽娜-人偶"

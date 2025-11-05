@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
-from one_dragon.base.operation.application_run_record import AppRunRecord
 from zzz_od.application.commission_assistant import commission_assistant_const
 from zzz_od.application.commission_assistant.commission_assistant_app import (
     CommissionAssistantApp,
@@ -33,11 +32,8 @@ class CommissionAssistantAppFactory(ApplicationFactory):
 
     def create_config(
         self, instance_idx: int, group_id: str
-    ) -> Optional[ApplicationConfig]:
+    ) -> ApplicationConfig:
         return CommissionAssistantConfig(
             instance_idx=instance_idx,
             group_id=group_id,
         )
-
-    def create_run_record(self, instance_idx: int) -> Optional[AppRunRecord]:
-        return None

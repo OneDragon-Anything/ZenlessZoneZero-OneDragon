@@ -1,4 +1,5 @@
 import re
+import time
 from typing import List, Tuple, Any
 
 import cv2
@@ -38,8 +39,17 @@ class TargetStateChecker:
         :param debug_mode: 是否开启CV流水线的调试模式
         :return: CV结果上下文, 状态元组列表 (state_name, result)
         """
-        # 1. 运行一次CV流水线
-        cv_result = self.ctx.cv_service.run_pipeline(task.pipeline_name, screen, debug_mode=debug_mode)
+        # 记录任务开始时间
+        start_time = time.time()
+
+        # 1. 运行一次CV流水线，并传入1秒的软超时
+        cv_result = self.ctx.cv_service.run_pipeline(
+            task.pipeline_name,
+            screen,
+            debug_mode=debug_mode,
+            start_time=start_time,
+            timeout=1.0  # 自动战斗要求1秒超时
+        )
 
         # 2. 循环解读结果
         results = []
@@ -60,15 +70,20 @@ class TargetStateChecker:
 
         handler = self._check_way_handlers.get(state_def.check_way)
         if handler:
-            return handler(cv_result, state_def)
+            # 将start_time传递给具体的检查函数
+            return handler(cv_result, state_def, cv_result.start_time)
         else:
             log.debug(f"未知的 TargetCheckWay: {state_def.check_way} for state {state_def.state_name}")
             return False # 未知check_way视为不处理
 
-    def _check_contour_count(self, cv_result: CvPipelineContext, state_def: TargetStateDef) -> bool | None:
+    def _check_contour_count(self, cv_result: CvPipelineContext, state_def: TargetStateDef, _start_time: float) -> bool | None:
         """
         处理 CONTOUR_COUNT_IN_RANGE
         """
+        # 检查点: 进入函数时检查超时
+        if cv_result.check_timeout():
+            return None  # 超时则返回None，表示未检测到状态
+
         params = state_def.check_params
         count = len(cv_result.contours)
         min_count = params.get('min_count', 0)
@@ -78,10 +93,14 @@ class TargetStateChecker:
         else:
             return None if state_def.clear_on_miss else False
 
-    def _check_ocr_as_number(self, cv_result: CvPipelineContext, state_def: TargetStateDef) -> tuple | bool | None:
+    def _check_ocr_as_number(self, cv_result: CvPipelineContext, state_def: TargetStateDef, _start_time: float) -> tuple | bool | None:
         """
         处理 OCR_RESULT_AS_NUMBER
         """
+        # 检查点: 进入函数时检查超时
+        if cv_result.check_timeout():
+            return None  # 超时则返回None，表示未检测到状态
+
         try:
             # 兼容dict和OcrResult两种返回类型
             ocr_text = "".join(cv_result.ocr_result.keys()) if isinstance(cv_result.ocr_result,
@@ -95,10 +114,14 @@ class TargetStateChecker:
         # 对于OCR_RESULT_AS_NUMBER，如果没有数字，则根据clear_on_miss决定
         return None if state_def.clear_on_miss else False
 
-    def _check_ocr_text_contains(self, cv_result: CvPipelineContext, state_def: TargetStateDef) -> bool | None:
+    def _check_ocr_text_contains(self, cv_result: CvPipelineContext, state_def: TargetStateDef, _start_time: float) -> bool | None:
         """
         处理 OCR_TEXT_CONTAINS
         """
+        # 检查点: 进入函数时检查超时
+        if cv_result.check_timeout():
+            return None  # 超时则返回None，表示未检测到状态
+
         params = state_def.check_params
         try:
             # 兼容dict和OcrResult两种返回类型
@@ -133,13 +156,17 @@ class TargetStateChecker:
                     return None if state_def.clear_on_miss else False
 
             # 检查包含项
+            found = False
             if mode == 'any':
                 if any(c_text in processed_ocr_text for c_text in processed_contains):
-                    return True
+                    found = True
             elif mode == 'all':
                 if all(c_text in processed_ocr_text for c_text in processed_contains):
-                    return True
-            
+                    found = True
+
+            if found:
+                return True
+
             # 如果以上条件都不满足，则说明未命中
             return None if state_def.clear_on_miss else False
 
@@ -147,11 +174,15 @@ class TargetStateChecker:
             # 异常情况也视为无有效结果
             return None if state_def.clear_on_miss else False
 
-    def _check_map_contour_length_to_percent(self, cv_result: CvPipelineContext, state_def: TargetStateDef) -> tuple | bool | None:
+    def _check_map_contour_length_to_percent(self, cv_result: CvPipelineContext, state_def: TargetStateDef, _start_time: float) -> tuple | bool | None:
         """
         处理 MAP_CONTOUR_LENGTH_TO_PERCENT (最终逻辑)
         计算轮廓的【外接矩形宽度】与【遮罩图像宽度】的比值
         """
+        # 检查点: 进入函数时检查超时
+        if cv_result.check_timeout():
+            return None  # 超时则返回None，表示未检测到状态
+
         # 1. 验证输入
         if not cv_result.contours:
             log.debug(f"状态 {state_def.state_name}: 未找到轮廓")
@@ -181,20 +212,24 @@ class TargetStateChecker:
             contour_width = w
 
             ratio = min(contour_width, mask_width) / mask_width
-            
+
             result_percent = int(ratio * 100)
-            
+
             return True, result_percent
 
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError) as e:
             log.exception(f"计算轮廓宽度与遮罩宽度比率时出错: {e}")
             return None if state_def.clear_on_miss else False
 
-    def _check_ocr_text_similarity(self, cv_result: CvPipelineContext, state_def: TargetStateDef) -> bool | None:
+    def _check_ocr_text_similarity(self, cv_result: CvPipelineContext, state_def: TargetStateDef, _start_time: float) -> bool | None:
         """
         处理 OCR_TEXT_SIMILARITY
         使用编辑距离计算相似度
         """
+        # 检查点: 进入函数时检查超时
+        if cv_result.check_timeout():
+            return None  # 超时则返回None，表示未检测到状态
+
         params = state_def.check_params
         try:
             # 兼容dict和OcrResult两种返回类型

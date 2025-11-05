@@ -13,6 +13,7 @@ GEMINI.md
 CLAUDE.md
 .lingma/
 .qwen/
+.claude/
 
 # 子模块
 test/
@@ -26,6 +27,7 @@ config/game.yml
 config/dodge_assistant.yml
 config/zzz_one_dragon.yml
 config/one_dragon.yml
+config/push.yml
 config/[0-9]*/
 config/dodge/*
 !config/dodge/*.sample.yml
@@ -44,6 +46,7 @@ config/model.yml
 custom/assets/ui/banner
 assets/ui/version_poster.webp
 assets/ui/remote_banner.webp
+assets/ui/official_dynamic.webm
 config/world_patrol_route_list/*
 !config/world_patrol_route_list/*.sample.yml
 
@@ -59,6 +62,7 @@ config/world_patrol_route_list/*
 .conda/
 .venv/
 notice_cache/
+*.bak
 
 # 需自行下载的模型文件
 models/

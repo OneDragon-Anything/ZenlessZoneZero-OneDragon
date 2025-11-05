@@ -7,11 +7,12 @@ from typing import Union, Optional
 
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
+from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
-class TextSettingCard(SettingCardBase):
+class TextSettingCard(SettingCardBase, AdapterInitMixin):
     """带文本输入框的设置卡片类"""
 
     title: str
@@ -24,7 +25,6 @@ class TextSettingCard(SettingCardBase):
                  margins: Margins = Margins(16, 16, 0, 16),
                  input_placeholder: Optional[str] = None,
                  input_max_width: int = 300,
-                 adapter: Optional[YamlConfigAdapter] = None,
                  is_password: bool = False,  # 控制是否为密码模式
                  parent=None):
 
@@ -37,14 +37,13 @@ class TextSettingCard(SettingCardBase):
             margins=margins,
             parent=parent
         )
+        AdapterInitMixin.__init__(self)
 
         # 创建输入框控件
         self.line_edit = LineEdit(self)
         self.line_edit.setMaximumWidth(input_max_width)
         self.line_edit.setPlaceholderText(gt(input_placeholder))
         self.line_edit.setClearButtonEnabled(True)
-
-        self.adapter: YamlConfigAdapter = adapter
 
         # 设置密码模式
         if is_password:
@@ -94,15 +93,6 @@ class TextSettingCard(SettingCardBase):
 
         self.value_changed.emit(val)
 
-    def init_with_adapter(self, adapter: Optional[YamlConfigAdapter]) -> None:
-        """使用配置适配器初始化值"""
-        self.adapter = adapter
-
-        if self.adapter is None:
-            self.setValue("", emit_signal=False)
-        else:
-            self.setValue(self.adapter.get_value(), emit_signal=False)
-
     def setValue(self, value: str, emit_signal: bool = True) -> None:
         """设置输入框的值"""
         if not emit_signal:
@@ -115,4 +105,5 @@ class TextSettingCard(SettingCardBase):
         """获取输入框的值"""
         return self.line_edit.text()
 
-
+    def default_adapter_value(self) -> str:
+        return ""

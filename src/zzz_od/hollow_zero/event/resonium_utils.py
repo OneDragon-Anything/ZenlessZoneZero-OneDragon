@@ -29,7 +29,7 @@ def get_to_choose_list(ctx: ZContext, screen: MatLike, target_cn: str, target_lc
         if not str_utils.find_by_lcs(gt(target_cn, 'game'), confirm_str, percent=target_lcs_percent):
             continue
 
-        r = ctx.hollow.data_service.match_resonium_by_ocr_full(name_full_str)
+        r = ctx.withered_domain.data_service.match_resonium_by_ocr_full(name_full_str)
         if r is None:
             continue
 

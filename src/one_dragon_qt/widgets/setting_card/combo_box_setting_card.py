@@ -12,12 +12,13 @@ from typing import Union
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
+from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
-class ComboBoxSettingCard(SettingCardBase):
+class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
     """包含下拉框的自定义设置卡片类。"""
 
 
@@ -30,9 +31,9 @@ class ComboBoxSettingCard(SettingCardBase):
                  options_enum: Optional[Iterable[Enum]] = None,
                  options_list: Optional[List[ConfigItem]] = None,
                  tooltip: Optional[str] = None,
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent=None
                  ):
+
         SettingCardBase.__init__(
             self,
             icon=icon,
@@ -42,13 +43,12 @@ class ComboBoxSettingCard(SettingCardBase):
             margins=margins,
             parent=parent
         )
+        AdapterInitMixin.__init__(self)
 
         # 初始化下拉框
         self.combo_box = ComboBox(self)
         self.hBoxLayout.addWidget(self.combo_box, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
-
-        self.adapter: YamlConfigAdapter = adapter
 
         # 处理工具提示
         self.tooltip_text: str = tooltip
@@ -132,11 +132,6 @@ class ComboBoxSettingCard(SettingCardBase):
             self.combo_box.addItem(opt_item.ui_text, userData=opt_item.value)
 
         self.combo_box.blockSignals(False)
-
-    def init_with_adapter(self, adapter: Optional[YamlConfigAdapter]) -> None:
-        """初始化配置适配器。"""
-        self.adapter = adapter
-        self.setValue(None if adapter is None else adapter.get_value(), emit_signal=False)
 
     def _on_index_changed(self, index: int) -> None:
         """索引变化时发射信号。"""

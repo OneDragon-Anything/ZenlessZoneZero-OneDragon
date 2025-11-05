@@ -220,13 +220,15 @@ class SettingInstanceInterface(VerticalScrollInterface):
                     if _acc and _acc.strip():
                         _accounts.append(_acc.strip())
 
-                if _accounts and hasattr(self.ctx, "tm") and self.ctx.tm:
+                telemetry = getattr(self.ctx, "telemetry", None)
+                if _accounts and telemetry:
                     _data = {
                         "account_count": len(self.ctx.one_dragon_config.instance_list),
-                        "accounts": _accounts,
-                        "user_id": getattr(self.ctx.tm, "_user_id", "unknown"),
+                        "account_identifiers": _accounts,
+                        "user_id": getattr(telemetry, "_user_id", "unknown"),
+                        "reported_from": "ui",
                     }
-                    self.ctx.tm.capture_event("multi_account_usage", _data)
+                    telemetry.track_custom_event("multi_account_usage", _data)
             except Exception:
                 pass
 

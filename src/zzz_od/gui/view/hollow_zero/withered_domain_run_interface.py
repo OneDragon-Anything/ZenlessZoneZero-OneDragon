@@ -145,7 +145,7 @@ class WitheredDomainRunInterface(AppRunInterface):
         """
         AppRunInterface.on_interface_shown(self)
 
-        self.config: Optional[WitheredDomainConfig] = self.ctx.run_context.get_config(
+        self.config = self.ctx.run_context.get_config(
             app_id=withered_domain_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
@@ -203,7 +203,7 @@ class WitheredDomainRunInterface(AppRunInterface):
 
     def _on_challenge_config_changed(self, idx, value) -> None:
         self.config.challenge_config = value
-        self.ctx.hollow.init_before_run()
+        self.ctx.withered_domain.init_before_run()
 
     def _on_reset_record_clicked(self) -> None:
         self.run_record.reset_for_weekly()

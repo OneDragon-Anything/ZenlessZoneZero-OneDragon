@@ -1,6 +1,7 @@
 template_name: "速切模板-妮可"
 handlers:
   - states: "[前台-妮可]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-妮可]"
     sub_handlers:
       - states: "[自定义-黄光切人, 0, 1]"
         operations:
@@ -27,7 +28,7 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[按键可用-连携技, 0, 0.5]"
+      - states: "[自定义-连携换人, 0, 0.5]"
         operations:
           - operation_template: "妮可-连携攻击"
 

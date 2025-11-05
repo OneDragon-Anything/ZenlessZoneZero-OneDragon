@@ -270,12 +270,13 @@ class CompendiumService:
         return config_list
 
     def get_hollow_zero_mission_name_list(self) -> List[str]:
-        mission_name_list: List[str] = []
         mission_type_list = self.get_mission_type_list_data('作战', '零号空洞')
-        for mission_type in mission_type_list:
-            for mission in mission_type.mission_list:
-                mission_name_list.append(mission.mission_name)
-        return mission_name_list
+        return [
+            mission.mission_name
+            for mission_type in mission_type_list
+            if mission_type.mission_type_name != '迷失之地'
+            for mission in mission_type.mission_list
+        ]
 
     def _load_coffee(self) -> None:
         """

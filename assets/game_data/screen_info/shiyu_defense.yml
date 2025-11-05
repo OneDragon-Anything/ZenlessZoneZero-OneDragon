@@ -46,6 +46,17 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+- area_name: 前哨档案
+  pc_rect:
+  - 1521
+  - 27
+  - 1748
+  - 74
+  text: 前哨档案
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
 - area_name: 弱点-1-1
   pc_rect:
   - 850
