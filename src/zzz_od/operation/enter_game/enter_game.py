@@ -74,6 +74,19 @@ class EnterGame(ZOperation):
         :param screen: 游戏画面
         :return: 是否有相关操作 有的话返回对应操作结果
         """
+        # 先识别国服的退出 '按钮-退出登录-确定', 再识别 'B服新-登录记录'
+        result = self.round_by_find_area(screen, '打开游戏', '标题-退出登录')
+        if result.is_success:
+            result2 = self.round_by_find_and_click_area(screen, '打开游戏', '按钮-退出登录-确定')
+            if result2.is_success:
+                return self.round_wait(result2.status, wait=1)
+
+        # B服切换账号时会直接弹出这个框, 此时不需要点击切换账号
+        result = self.round_by_find_area(screen, '打开游戏', 'B服新-登录记录')
+        if result.is_success:
+            return self.round_success(result.status)
+
+        # 判断是否要切换账号
         if self.force_login and not self.already_login:
             result = self.round_by_find_area(screen, '打开游戏', '点击进入游戏')
             if result.is_success:
@@ -88,12 +101,6 @@ class EnterGame(ZOperation):
             if result.is_success:
                 return self.round_wait(result.status, wait=5)
 
-        result = self.round_by_find_area(screen, '打开游戏', '标题-退出登录')
-        if result.is_success:
-            result2 = self.round_by_find_and_click_area(screen, '打开游戏', '按钮-退出登录-确定')
-            if result2.is_success:
-                return self.round_wait(result2.status, wait=1)
-
         result = self.round_by_find_and_click_area(screen, '打开游戏', '国服-账号密码')
         if result.is_success:
             return self.round_success(result.status, wait=1)
@@ -102,9 +109,6 @@ class EnterGame(ZOperation):
         if result.is_success:
             return self.round_success(result.status, wait=1)
 
-        result = self.round_by_find_area(screen, '打开游戏', 'B服新-登录记录')
-        if result.is_success:
-            return self.round_success(result.status)
 
         result = self.round_by_find_and_click_area(screen, '打开游戏', '按钮-登陆其他账号')
         if result.is_success:
