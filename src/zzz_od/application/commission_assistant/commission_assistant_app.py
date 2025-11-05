@@ -38,7 +38,7 @@ class CommissionAssistantApp(ZApplication):
             app_id=commission_assistant_const.APP_ID,
             op_name=gt(commission_assistant_const.APP_NAME),
         )
-        self.config: Optional[CommissionAssistantConfig] = self.ctx.run_context.get_config(
+        self.config: CommissionAssistantConfig = self.ctx.run_context.get_config(
             app_id=commission_assistant_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
@@ -461,7 +461,8 @@ class CommissionAssistantApp(ZApplication):
     def handle_resume(self) -> None:
         ZApplication.handle_resume(self)
         self._listen_btn()
-        auto_battle_utils.resume_running(self.auto_op)
+        if self.run_mode != 0:
+            auto_battle_utils.resume_running(self.auto_op)
 
     def after_operation_done(self, result: OperationResult):
         ZApplication.after_operation_done(self, result)

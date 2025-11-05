@@ -26,7 +26,7 @@ class Coupon(ZOperation):
 
     def __init__(self, ctx: ZContext, plan: ChargePlanItem):
         ZOperation.__init__(self, ctx, op_name='处理家政券')
-        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,

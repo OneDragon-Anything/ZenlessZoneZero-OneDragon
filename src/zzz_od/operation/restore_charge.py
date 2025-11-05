@@ -1,5 +1,5 @@
 import time
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
@@ -40,7 +40,7 @@ class RestoreCharge(ZOperation):
             ctx=ctx,
             op_name='恢复电量'
         )
-        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
@@ -52,7 +52,7 @@ class RestoreCharge(ZOperation):
     @operation_node(name='打开恢复界面', is_start_node=True)
     def click_charge_text(self) -> OperationRoundResult:
         # 检查是否已经在恢复界面
-        result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '恢复电量')
+        result = self.round_by_find_area(self.last_screenshot, '恢复电量', '标题')
         if result.is_success:
             return self.round_success()
 

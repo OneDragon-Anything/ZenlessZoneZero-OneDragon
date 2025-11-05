@@ -81,7 +81,11 @@ def switch_to_best_agent_for_moving(auto_op: AutoBattleOperator, timeout_seconds
             continue
 
         # 如果最佳角色就是当前角色，则无需切换
-        if team_info.agent_list[0].agent.agent_id == best_agent.agent.agent_id:
+        if (
+            len(team_info.agent_list) > 0
+            and team_info.agent_list[0].agent is not None
+            and team_info.agent_list[0].agent.agent_id == best_agent.agent.agent_id
+        ):
             break
 
         auto_op.auto_battle_context.switch_by_name(best_agent.agent.agent_name)

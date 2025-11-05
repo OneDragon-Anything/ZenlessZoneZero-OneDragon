@@ -46,7 +46,7 @@ class TrigramsCollectionApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='移动交互')
-    @operation_node(name='获取卦象', node_max_retry_times=5)
+    @operation_node(name='获取卦象', node_max_retry_times=10)
     def get_trigram(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
 
@@ -65,20 +65,19 @@ class TrigramsCollectionApp(ZApplication):
         elif word == '滑动屏幕以获取卦象':
             start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
             end = start + Point(-800, 0)
-            self.ctx.controller.drag_to(start=start, end=end, duration=0.2)
+            self.ctx.controller.drag_to(start=start, end=end, duration=2)  # 这里是越慢拖动越多
             return self.round_wait(status=word, wait=1)
         elif word == '确认':
             self.claim_reward = True
             self.ctx.controller.click(mrl.max.center)
             return self.round_wait(status=word, wait=1)
 
-        return self.round_by_click_area('卦象集录', '区域-开卦象',
-                                        success_wait=1)
+        return self.round_retry(status='未识别目标文本', wait=1)
 
     @node_from(from_name='获取卦象')
     @operation_node(name='结束后返回')
     def back_at_last(self) -> OperationRoundResult:
-        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
+        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

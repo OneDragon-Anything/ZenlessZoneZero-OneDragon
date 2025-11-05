@@ -72,6 +72,7 @@ scenes:
           sub_handlers:
             - state_template: "支援攻击模板-特殊情况"  # 特殊情况
             - state_template: "支援攻击模板-击破"  # 格挡攻击优先击破可以快速打进失衡
+            - state_template: "支援攻击模板-命破"  # 修复了命破不能弹刀的神秘特性
             - state_template: "支援攻击模板-防护"  # 防护一般格挡性能优越
             - state_template: "支援攻击模板-异常"  # 异常一般格挡上异常效率也不错
             - state_template: "支援攻击模板-下一个"  # 剩下的都不优秀了

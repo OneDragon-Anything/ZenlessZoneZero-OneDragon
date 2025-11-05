@@ -66,21 +66,23 @@ class CvService:
         if not os.path.exists(self.TEMPLATE_DIR):
             os.makedirs(self.TEMPLATE_DIR)
 
-    def run_pipeline(self, pipeline_name: str, image: np.ndarray, debug_mode: bool = False) -> CvPipelineContext:
+    def run_pipeline(self, pipeline_name: str, image: np.ndarray, debug_mode: bool = False, start_time: float | None = None, timeout: float | None = None) -> CvPipelineContext:
         """
         加载并运行指定的流水线
         :param pipeline_name: 流水线名称
         :param image: RGB图像
         :param debug_mode: 是否为调试模式
+        :param start_time: 流水线开始执行的时间
+        :param timeout: 允许的执行时间（秒），None表示无限制
         :return: 包含所有结果的上下文
         """
         pipeline = self.load_pipeline(pipeline_name)
         if pipeline is None:
-            ctx = CvPipelineContext(image, service=self, debug_mode=debug_mode)
+            ctx = CvPipelineContext(image, service=self, debug_mode=debug_mode, start_time=start_time, timeout=timeout)
             ctx.error_str = f"流水线 {pipeline_name} 加载失败"
             return ctx
 
-        return pipeline.execute(image, service=self, debug_mode=debug_mode)
+        return pipeline.execute(image, service=self, debug_mode=debug_mode, start_time=start_time, timeout=timeout)
 
     def get_pipeline_names(self) -> List[str]:
         """

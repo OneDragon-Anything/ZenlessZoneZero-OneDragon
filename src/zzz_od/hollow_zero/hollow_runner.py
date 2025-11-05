@@ -59,12 +59,12 @@ class HollowRunner(ZOperation):
             op_name=gt('空洞操作器', 'game')
         )
 
-        self.config: Optional[WitheredDomainConfig] = self.ctx.run_context.get_config(
+        self.config: WitheredDomainConfig = self.ctx.run_context.get_config(
             app_id=withered_domain_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
-        self.run_record: Optional[WitheredDomainRunRecord] = self.ctx.run_context.get_run_record(
+        self.run_record: WitheredDomainRunRecord = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
             app_id=withered_domain_const.APP_ID,
         )

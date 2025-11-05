@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 class EventCollector:
     """事件收集器"""
 
-    def __init__(self, telemetry_client, privacy_controller: PrivacyController, user_id: str):
+    ALLOWED_EVENTS = {"app_launched", "app_shutdown"}
+
+    def __init__(self, telemetry_client, privacy_controller: Optional[PrivacyController], user_id: str):
         self.telemetry_client = telemetry_client
         self.privacy_controller = privacy_controller
         self.user_id = user_id
@@ -66,21 +68,11 @@ class EventCollector:
 
     def track_custom_event(self, event_name: str, properties: Dict[str, Any] = None) -> None:
         """跟踪自定义事件"""
-        event_properties = {
-            'event_category': 'custom',
-            **(properties or {})
-        }
-
-        self._capture_event(event_name, event_properties)
-        self._update_activity_time()
-
-        logger.debug(f"Tracked custom event: {event_name}")
+        return
 
     def _capture_event(self, event_name: str, properties: Dict[str, Any]) -> None:
         """内部事件捕获方法"""
-        # 检查隐私设置
-        if not self.privacy_controller.is_analytics_enabled():
-            logger.debug(f"Event {event_name} blocked by privacy settings")
+        if event_name not in self.ALLOWED_EVENTS:
             return
 
         # 添加通用属性
@@ -92,9 +84,14 @@ class EventCollector:
         }
 
         # 通过隐私控制器处理数据
-        processed_properties = self.privacy_controller.process_event_data(event_name, enhanced_properties)
-        if processed_properties is None:
-            return
+        processed_properties = enhanced_properties
+        if self.privacy_controller:
+            if not self.privacy_controller.is_analytics_enabled():
+                logger.debug(f"Event {event_name} blocked by privacy settings")
+                return
+            filtered = self.privacy_controller.process_event_data(event_name, enhanced_properties)
+            if filtered is not None:
+                processed_properties = filtered
 
         if not self.user_id:
             logger.debug(f"Cannot send event {event_name}: user_id is None")

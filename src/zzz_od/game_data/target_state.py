@@ -128,7 +128,8 @@ DETECTION_TASKS: List[DetectionTask] = [
     DetectionTask(
         task_id="boss_stun_by_length",
         pipeline_name="boss_stun_line",  # 使用您指定的流水线
-        interval=0.5,
+        interval=0,
+        enabled = False,  # 禁用
         is_async=True,
         state_definitions=[
             TargetStateDef(

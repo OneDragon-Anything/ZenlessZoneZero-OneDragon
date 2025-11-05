@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: manato_3_2
+template_name: 角色状态-真斗-32
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 583, 98
+- 629, 99

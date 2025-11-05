@@ -4,4 +4,4 @@ operations:
     seconds: 1.1
   - op_name: "设置状态"
     state: "自定义-零号安比-白雷"
-    add: 35
+    add: 64

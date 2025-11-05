@@ -1,0 +1,103 @@
+name: Test Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+jobs:
+  test-check:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Install uv
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://astral.sh/uv/install.ps1 | Invoke-Expression
+
+      - name: Create and activate virtual environment
+        shell: pwsh
+        run: |
+          uv venv .venv --python=3.11.12
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\Activate.ps1
+          uv sync --group dev
+
+      - name: Checkout test repo
+        id: checkout-test-repo
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.event_name == 'pull_request' && (github.event.pull_request.head.repo.full_name && format('{0}/zzz-od-test', github.event.pull_request.head.repo.owner.login) || 'OneDragon-Anything/zzz-od-test') || 'OneDragon-Anything/zzz-od-test' }}
+          path: zzz-od-test
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || 'main' }}
+          fetch-depth: 1
+        continue-on-error: true
+
+      - name: Checkout test repo (default branch)
+        id: checkout-test-repo-default
+        if: steps.checkout-test-repo.outcome == 'failure'
+        uses: actions/checkout@v5
+        with:
+          repository: OneDragon-Anything/zzz-od-test
+          path: zzz-od-test
+          ref: main
+          fetch-depth: 1
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          chcp 65001
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          [Console]::InputEncoding = [System.Text.Encoding]::UTF8
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          .\.venv\Scripts\Activate.ps1
+          
+          if ("${{ github.event_name }}" -eq "pull_request") {
+            # PR时只运行不需要secrets的测试
+            uv run pytest zzz-od-test/ -v --tb=short --color=yes -m "not requires_secrets"
+          } else {
+            # main分支更新时运行所有测试
+            uv run pytest zzz-od-test/ -v --tb=short --color=yes
+          }
+        env:
+          PYTHONPATH: src
+          PYTHONIOENCODING: utf-8
+          PUSH_SERVER_CHAN_PUSH_KEY: ${{ secrets.PUSH_SERVER_CHAN_PUSH_KEY }}
+          PUSH_DD_BOT_SECRET: ${{ secrets.PUSH_DD_BOT_SECRET }}
+          PUSH_DD_BOT_TOKEN: ${{ secrets.PUSH_DD_BOT_TOKEN }}
+          PUSH_PUSH_PLUS_TOKEN: ${{ secrets.PUSH_PUSH_PLUS_TOKEN }}
+          PUSH_FS_KEY: ${{ secrets.PUSH_FS_KEY }}
+          PUSH_FS_BOT_SECRET: ${{ secrets.PUSH_FS_BOT_SECRET }}
+          PUSH_FS_APP_ID: ${{ secrets.PUSH_FS_APP_ID }}
+          PUSH_FS_APP_SECRET: ${{ secrets.PUSH_FS_APP_SECRET }}
+          PUSH_WORK_WEIXIN_KEY: ${{ secrets.PUSH_WORK_WEIXIN_KEY }}
+          PUSH_TG_BOT_TOKEN: ${{ secrets.PUSH_TG_BOT_TOKEN }}
+          PUSH_TG_USER_ID: ${{ secrets.PUSH_TG_USER_ID }}
+          PUSH_NTFY_TOPIC: ${{ secrets.PUSH_NTFY_TOPIC }}
+          PUSH_NTFY_TOKEN: ${{ secrets.PUSH_NTFY_TOKEN }}
+          PUSH_WEBHOOK_FS_URL: ${{ secrets.PUSH_WEBHOOK_FS_URL }}
+          PUSH_WEBHOOK_DISCORD_URL: ${{ secrets.PUSH_WEBHOOK_DISCORD_URL }}
+          PUSH_SMTP_QQ_EMAIL: ${{ secrets.PUSH_SMTP_QQ_EMAIL }}
+          PUSH_SMTP_QQ_PASSWORD: ${{ secrets.PUSH_SMTP_QQ_PASSWORD }}
+          PUSH_WXPUSHER_APP_TOKEN: ${{ secrets.PUSH_WXPUSHER_APP_TOKEN }}
+          PUSH_WXPUSHER_UIDS: ${{ secrets.PUSH_WXPUSHER_UIDS }}
+
+      - name: Test failure notification
+        if: failure()
+        run: |
+          $message = @"
+            ::notice::当前触发事件: ${{ github.event_name }}
+            ::error::测试失败！请检查上方的测试结果并修复问题。
+            ::notice::您可以fork测试仓库 https://github.com/OneDragon-Anything/zzz-od-test 创建相同分支来修改测试代码
+            ::notice::您可以使用以下命令在本地运行测试: uv run pytest zzz-od-test/ -v
+          "@
+          Write-Host $message
+        shell: pwsh

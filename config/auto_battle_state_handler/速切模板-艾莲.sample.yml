@@ -1,6 +1,7 @@
 template_name: "速切模板-艾莲"
 handlers:
   - states: "[前台-艾莲]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-艾莲]"
     sub_handlers:
       # 黄光操作
       - states: "[自定义-黄光切人, 0, 1]"
@@ -14,7 +15,7 @@ handlers:
             state: "[自定义-艾莲-快速蓄力]"
           - operation_template: "艾莲-闪A"
       # 连携操作
-      - states: "[按键可用-连携技, 0, 0.5]"
+      - states: "[自定义-连携换人, 0, 0.5]"
         operations:
           - operation_template: "艾莲-连携攻击"
       # 清状态

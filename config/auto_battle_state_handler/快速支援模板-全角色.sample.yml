@@ -4,14 +4,14 @@ handlers:
     debug_name: "快速支援可用"
     sub_handlers:
       # 终结技快速支援变连携
-      - states: "[自定义-耀嘉音-终结技连携, 0, 99]{1, 2}"
+      - states: "[自定义-非失衡连携, 0, 99]{1, 2}"
         operations:
           - op_name: "按键-快速支援"
           - op_name: "设置状态"
-            state: "自定义-耀嘉音-终结技连携"
+            state: "自定义-非失衡连携"
             add: -1
           - op_name: "设置状态"
-            state: "按键可用-连携技"
+            state: "自定义-连携换人"
           - op_name: "清除状态"
             state_list: ["自定义-速切结束", "自定义-动作不打断"]
           - op_name: "等待秒数"
@@ -20,9 +20,9 @@ handlers:
       - states: "[前台-耀嘉音] & ![耀嘉音-终结技可用]"
         operations:
           - op_name: "设置状态"
-            state: "自定义-快速支援换人"
-          - op_name: "设置状态"
             state: "自定义-耀嘉音-唱歌"
+          - op_name: "设置状态"
+            state: "自定义-快速支援换人"
           - op_name: "按键-快速支援"
           - op_name: "清除状态"
             state_list: ["自定义-速切结束", "自定义-动作不打断"]
@@ -40,6 +40,9 @@ handlers:
             state_list: ["自定义-速切结束", "自定义-动作不打断"]
           - op_name: "等待秒数"
             seconds: 0.1
+      - states: "[耀嘉音-能量]{0, 120} & ![自定义-快速支援换人, 0, 10] & ![自定义-动作不打断] & ![自定义-连携换人, 0, 15]"
+        debug_name: "嘉音套快没了"
+        operations: *switch_to_next
       - states: "[前台-支援]"
         operations: *switch_to_next
       - states: "[前台-防护]"

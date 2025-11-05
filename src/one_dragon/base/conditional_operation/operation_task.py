@@ -22,6 +22,7 @@ class OperationTask:
         self.interrupt_cal_tree: Optional['StateCalNode'] = None  # 可被打断的状态
         self.is_trigger: bool = False  # 是否触发器场景
         self.priority: Optional[int] = None  # 优先级 只能被高等级的打断；为None时可以被随意打断
+        self.handler_id: Optional[int] = None  # handler的ID，用于获取触发时间
 
         self.op_list: List[AtomicOp] = op_list
         self.running: bool = False

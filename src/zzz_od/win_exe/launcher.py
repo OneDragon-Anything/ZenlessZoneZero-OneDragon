@@ -10,7 +10,7 @@ class ZLauncher(ExeLauncher):
         ExeLauncher.__init__(self, "绝区零 一条龙 启动器", __version__)
 
     def run_onedragon_mode(self, launch_args) -> None:
-        python_launcher.run_python(["zzz_od", "application", "zzz_application_launcher.py"], no_windows=False, args=launch_args)
+        python_launcher.run_python(["zzz_od", "application", "zzz_application_launcher.py"], no_windows=False, args=launch_args, piped=True)
 
     def run_gui_mode(self) -> None:
         python_launcher.run_python(["zzz_od", "gui", "app.py"], no_windows=True)

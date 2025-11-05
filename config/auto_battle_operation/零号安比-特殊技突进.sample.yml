@@ -2,10 +2,23 @@
 operations:
   - op_name: "设置状态"
     state: "自定义-动作不打断"
-    seconds: 0.5
-  - op_name: "按键-特殊攻击"
-    post_delay: 0.10
-    repeat: 4
+    seconds: 2
   - op_name: "设置状态"
     state: "自定义-零号安比-白雷"
-    add: -100
+    add: -330
+  - op_name: "按键-特殊攻击"
+    post_delay: 0.25
+    repeat: 2
+  - op_name: "设置状态"
+    state: "自定义-零号安比-白雷"
+    add: -330
+  - op_name: "按键-特殊攻击"
+    post_delay: 0.25
+    repeat: 2
+  - op_name: "清除状态"
+    state: "自定义-零号安比-白雷"
+  - op_name: "按键-特殊攻击"
+    post_delay: 0.25
+    repeat: 3
+  - op_name: "等待秒数"
+    seconds: 0.2

@@ -141,6 +141,7 @@ class ConditionalOperator(YamlConfig):
                         new_task = self.normal_scene_handler.get_operations(trigger_time)
                         if new_task is not None:
                             log.debug(f'当前场景 主循环 当前条件 {new_task.expr_display}')
+                            new_task.handler_id = normal_handler_id
                             self.running_task = new_task
                             self.last_trigger_time[normal_handler_id] = trigger_time
                             self.running_task_cnt.inc()
@@ -202,6 +203,7 @@ class ConditionalOperator(YamlConfig):
             log.debug(f'当前场景 {state_name} 当前条件 {new_task.expr_display}')
 
             new_task.set_trigger(state_name)
+            new_task.handler_id = trigger_handler_id
             self.running_task = new_task
             self.last_trigger_time[trigger_handler_id] = trigger_time
             future = self.running_task.run_async()

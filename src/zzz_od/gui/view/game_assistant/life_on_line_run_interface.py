@@ -59,12 +59,12 @@ class LifeOnLineRunInterface(AppRunInterface):
     def on_interface_shown(self) -> None:
         AppRunInterface.on_interface_shown(self)
 
-        self.config: Optional[LifeOnLineConfig] = self.ctx.run_context.get_config(
+        self.config: LifeOnLineConfig = self.ctx.run_context.get_config(
             app_id=life_on_line_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
-        self.run_record: Optional[LifeOnLineRunRecord] = self.ctx.run_context.get_run_record(
+        self.run_record: LifeOnLineRunRecord = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
             app_id=life_on_line_const.APP_ID,
         )

@@ -56,7 +56,7 @@ def track_hollow_level_progress(func: Callable) -> Callable:
                             'duration_seconds': duration,
                             'event_category': 'hollow_progress'
                         })
-                        logger.info(f"迷失之地倒数第二层完成，耗时: {duration:.2f}秒")
+                        logger.debug(f"迷失之地倒数第二层完成，耗时: {duration:.2f}秒")
 
                 # 开始新层计时
                 tracking['current_level'] = current_level
@@ -72,7 +72,7 @@ def track_hollow_level_progress(func: Callable) -> Callable:
 
                 # 特别记录倒数第二层开始
                 if current_level == 2:
-                    logger.info(f"迷失之地倒数第二层开始，层数: {current_level}, 阶段: {current_phase}")
+                    logger.debug(f"迷失之地倒数第二层开始，层数: {current_level}, 阶段: {current_phase}")
 
         # 执行原方法
         result = func(self, *args, **kwargs)

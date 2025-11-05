@@ -1,0 +1,67 @@
+template_name: "速切模板-朱鸢"
+handlers:
+  - states: "[前台-朱鸢]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-朱鸢]"
+    sub_handlers:
+      # 支援
+      - states: "[自定义-黄光切人, 0, 1]"
+        operations:
+          - operation_template: "朱鸢-支援攻击"
+
+      - states: "[自定义-红光闪避, 0, 1]"
+        operations:
+          - operation_template: "朱鸢-闪A"
+
+      # 连携
+      - states: "[自定义-连携换人, 0, 0.5]"
+        operations:
+          - operation_template: "朱鸢-连携攻击"
+
+      # 防呆
+      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "切人后等待"
+        sub_handlers:
+          - states: "[按键可用-快速支援, 0, 0.5]"
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.5
+          - states: ""
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
+
+      # 失衡时刻
+      - states: "[自定义-连携换人, 0, 10]"
+        sub_handlers:
+          # 失衡了你还不射还等什么！
+          - states: "[朱鸢-子弹数]{3, 9}"
+            operations:
+              - operation_template: "朱鸢-长按A"
+            # 失衡的时候就不用考虑这么多了，射吧
+          - states: "[朱鸢-终结技可用] & ![朱鸢-子弹数]{7, 9}"
+            operations:
+              - operation_template: "朱鸢-终结技"
+          # 朴实无华
+          - states: "[朱鸢-特殊技可用]"
+            operations:
+              - operation_template: "朱鸢-强化特殊攻击"
+
+      # 终结技时刻，需要注意出场第一秒可能识别错误
+      - states: "[朱鸢-终结技可用] &![朱鸢-子弹数]{7, 9} & (![后台-1-击破] & ![后台-2-击破])"
+        operations:
+          - operation_template: "朱鸢-终结技"
+
+        # 子弹太多了
+      - states: "[朱鸢-子弹数]{9, 9}"
+        operations:
+          - operation_template: "朱鸢-长按A"
+
+      # 朴实无华
+      - states: "[朱鸢-特殊技可用] & ![朱鸢-子弹数]{7, 9}"
+        operations:
+          - operation_template: "朱鸢-强化特殊攻击"
+
+      # 朴实无华
+      - states: ""
+        operations:
+          - operation_template: "通用-切人普通攻击"

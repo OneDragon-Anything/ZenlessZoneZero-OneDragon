@@ -145,7 +145,7 @@ class WitheredDomainRunInterface(AppRunInterface):
         """
         AppRunInterface.on_interface_shown(self)
 
-        self.config: Optional[WitheredDomainConfig] = self.ctx.run_context.get_config(
+        self.config = self.ctx.run_context.get_config(
             app_id=withered_domain_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,

@@ -112,4 +112,5 @@ class UpdatePriorityOperation(ZOperation):
         点击返回按钮关闭菜单
         """
         return self.round_by_find_and_click_area(screen_name='迷失之地-藏品面板', area_name='返回按钮',
-                                                 success_wait=1, retry_wait=1)
+                                                 success_wait=1, retry_wait=1,
+                                                 until_not_find_all=[('迷失之地-藏品面板', '返回按钮')])

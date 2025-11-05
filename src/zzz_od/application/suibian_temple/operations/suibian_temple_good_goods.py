@@ -1,8 +1,8 @@
 import re
-from typing import Optional
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -34,7 +34,11 @@ class SuibianTempleGoodGoods(ZOperation):
         ZOperation.__init__(self, ctx,
                             op_name=f'{gt("随便观", "game")} {gt("好物铺", "game")}')
 
-        self.config: Optional[SuibianTempleConfig] = self.ctx.run_context.get_config(app_id='suibian_temple')
+        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
+            app_id='suibian_temple',
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
 
         self.purchased_count: int = 0  # 已购买商品数量
 

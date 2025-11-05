@@ -1,7 +1,7 @@
 import time
+from typing import List, Optional
 
 from cv2.typing import MatLike
-from typing import List, Optional
 
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
@@ -13,10 +13,10 @@ from zzz_od.yolo.hollow_event_detector import HollowEventDetector
 
 class HollowZeroMapService:
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext, data_service: HallowZeroDataService):
         self.ctx: ZContext = ctx
 
-        self.data_service: HallowZeroDataService = HallowZeroDataService()
+        self.data_service: HallowZeroDataService = data_service
         self.event_model: Optional[HollowEventDetector] = None
         self.map_list: List[HollowZeroMap] = []
 
