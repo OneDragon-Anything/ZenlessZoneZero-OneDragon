@@ -24,7 +24,13 @@ def print_message(message, level="INFO"):
 
 def verify_working_directory():
     # 设置当前工作目录
-    cwd = os.path.dirname(sys.argv[0])
+    if getattr(sys, 'frozen', False):
+        cwd = os.path.dirname(sys.executable)
+
+    # 如果目录为空，使用当前工作目录
+    if not cwd:
+        cwd = os.getcwd()
+
     os.chdir(cwd)
     print_message(f"当前工作目录：{cwd}", "INFO")
 
