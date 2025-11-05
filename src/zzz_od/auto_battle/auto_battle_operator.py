@@ -50,6 +50,7 @@ class AutoBattleOperator(ConditionalOperator):
             operation_template_sub_dir=['auto_battle_operation'],
             state_handler_template_sub_dir=['auto_battle_state_handler'],
             read_from_merged=read_from_merged,
+            state_record_service=ctx.state_record_service,
         )
 
         # 配置文件的zzz定制内容
@@ -112,14 +113,6 @@ class AutoBattleOperator(ConditionalOperator):
         except Exception as e:
             log.error('自动战斗初始化失败 共享配队文件请在群内提醒对应作者修复', exc_info=True)
             return False, '初始化失败'
-
-    def get_state_recorder(self, state_name: str) -> Optional[StateRecorder]:
-        """
-        获取状态记录器
-        :param state_name:
-        :return:
-        """
-        return self.ctx.get_state_recorder(state_name)
 
     def get_atomic_op(self, op_def: OperationDef) -> AtomicOp:
         """

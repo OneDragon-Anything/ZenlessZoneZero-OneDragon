@@ -7,7 +7,6 @@ from cv2.typing import MatLike
 
 from zzz_od.application.shiyu_defense.agent_selector import get_best_agent_for_moving
 from zzz_od.auto_battle.auto_battle_dodge_context import YoloStateEventEnum
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.game_data.agent import CommonAgentStateEnum
 
 if TYPE_CHECKING:
@@ -51,8 +50,7 @@ def switch_to_best_agent_for_moving(ctx: ZContext, timeout_seconds: float = 5) -
         ctx.auto_battle_context.switch_by_name(best_agent.agent.agent_name)
         time.sleep(0.2)
 
-
-def check_battle_encounter(auto_op: AutoBattleOperator, screen: MatLike, screenshot_time: float) -> bool:
+def check_battle_encounter(ctx: ZContext, screen: MatLike, screenshot_time: float) -> bool:
     """
     判断是否进入了战斗
     1. 识别角色血量扣减
@@ -61,28 +59,25 @@ def check_battle_encounter(auto_op: AutoBattleOperator, screen: MatLike, screens
     @param screenshot_time: 截图时间
     @return: 是否进入了战斗
     """
-    if auto_op is None:
-        return False
-
-    in_battle = auto_op.auto_battle_context.is_normal_attack_btn_available(screen)
+    in_battle = ctx.auto_battle_context.is_normal_attack_btn_available(screen)
     if in_battle:
-        auto_op.auto_battle_context.agent_context.check_agent_related(screen, screenshot_time)
-        state = auto_op.get_state_recorder(CommonAgentStateEnum.LIFE_DEDUCTION_31.value.state_name)
+        ctx.auto_battle_context.agent_context.check_agent_related(screen, screenshot_time)
+        state = ctx.auto_battle_context.get_state_recorder(CommonAgentStateEnum.LIFE_DEDUCTION_31.value.state_name)
         if state is not None and state.last_record_time == screenshot_time:
             return True
 
-        auto_op.auto_battle_context.dodge_context.check_dodge_flash(screen, screenshot_time)
-        state = auto_op.get_state_recorder(YoloStateEventEnum.DODGE_RED.value)
+        ctx.auto_battle_context.dodge_context.check_dodge_flash(screen, screenshot_time)
+        state = ctx.auto_battle_context.get_state_recorder(YoloStateEventEnum.DODGE_RED.value)
         if state is not None and state.last_record_time == screenshot_time:
             return True
-        state = auto_op.get_state_recorder(YoloStateEventEnum.DODGE_YELLOW.value)
+        state = ctx.auto_battle_context.get_state_recorder(YoloStateEventEnum.DODGE_YELLOW.value)
         if state is not None and state.last_record_time == screenshot_time:
             return True
 
     return False
 
 
-def check_battle_encounter_in_period(ctx: ZContext, auto_op: AutoBattleOperator, total_check_seconds: float) -> bool:
+def check_battle_encounter_in_period(ctx: ZContext, total_check_seconds: float) -> bool:
     """
     持续一段时间检测是否进入战斗
     @param total_check_seconds: 总共检测的秒数
@@ -97,7 +92,7 @@ def check_battle_encounter_in_period(ctx: ZContext, auto_op: AutoBattleOperator,
             return False
 
         screenshot_time, screen = ctx.controller.screenshot()
-        if check_battle_encounter(auto_op, screen, screenshot_time):
+        if check_battle_encounter(ctx, screen, screenshot_time):
             return True
 
         time.sleep(ctx.battle_assistant_config.screenshot_interval)

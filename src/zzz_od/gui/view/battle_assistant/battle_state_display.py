@@ -257,7 +257,7 @@ class TaskDisplay(TableWidget):
         executor = auto_op.running_executor
         now = time.time()
 
-        if info is None:
+        if info is None or executor is None:
             return
 
         # 计算持续时间

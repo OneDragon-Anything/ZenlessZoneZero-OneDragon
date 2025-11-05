@@ -86,7 +86,7 @@ class StateHandler:
                 i.build(
                     state_recorder_getter=state_recorder_getter,
                     op_getter=op_getter,
-                    parent_interrupt_states_cal_tree=parent_interrupt_states_cal_tree
+                    parent_interrupt_states_cal_tree=self.interrupt_states_cal_tree
                 )
         elif len(self.operations) > 0:
             self.op_list = [

@@ -180,19 +180,20 @@ class LostVoidContext:
         @return: 是否进入了战斗
         """
         auto_op = self.ctx.auto_battle_context.auto_op
+        state_record_service = self.ctx.auto_battle_context.state_record_service
         if auto_op is not None:
             in_battle = self.ctx.auto_battle_context.is_normal_attack_btn_available(screen)
             if in_battle:
                 self.ctx.auto_battle_context.agent_context.check_agent_related(screen, screenshot_time)
-                state = auto_op.get_state_recorder(CommonAgentStateEnum.LIFE_DEDUCTION_31.value.state_name)
+                state = state_record_service.get_state_recorder(CommonAgentStateEnum.LIFE_DEDUCTION_31.value.state_name)
                 if state is not None and state.last_record_time == screenshot_time:
                     return True
 
                 self.ctx.auto_battle_context.dodge_context.check_dodge_flash(screen, screenshot_time)
-                state = auto_op.get_state_recorder(YoloStateEventEnum.DODGE_RED.value)
+                state = state_record_service.get_state_recorder(YoloStateEventEnum.DODGE_RED.value)
                 if state is not None and state.last_record_time == screenshot_time:
                     return True
-                state = auto_op.get_state_recorder(YoloStateEventEnum.DODGE_YELLOW.value)
+                state = state_record_service.get_state_recorder(YoloStateEventEnum.DODGE_YELLOW.value)
                 if state is not None and state.last_record_time == screenshot_time:
                     return True
 

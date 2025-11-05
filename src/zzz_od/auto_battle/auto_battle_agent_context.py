@@ -278,40 +278,50 @@ class AutoBattleAgentContext:
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
-        self.auto_op: AutoBattleOperator | None = None
         self.team_info: TeamInfo = TeamInfo()
 
         # 识别锁 保证每种类型只有1实例在进行识别
         self._check_agent_lock = threading.Lock()
 
-    def init_battle_agent_context(
-            self,
-            auto_op: AutoBattleOperator,
-    ) -> None:
-        """
-        自动战斗前的初始化
-        :return:
-        """
-        self.auto_op = auto_op
-        self.team_info: TeamInfo = TeamInfo()
+        # 识别区域 先读取出来 不要每次用的时候再读取
+        self.area_agent_3_1: ScreenArea | None = None
+        self.area_agent_3_2: ScreenArea | None = None
+        self.area_agent_3_3: ScreenArea | None = None
+        self.area_agent_2_2: ScreenArea | None = None
 
+        # 识别间隔
+        self._check_agent_interval: float = 0.5
+
+        # 上一次识别的时间
+        self._last_check_agent_time: float = 0
+        self._last_switch_agent_time: float = 0
+
+    def init_screen_area(self) -> None:
         # 识别区域 先读取出来 不要每次用的时候再读取
         self.area_agent_3_1: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '头像-3-1')
         self.area_agent_3_2: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '头像-3-2')
         self.area_agent_3_3: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '头像-3-3')
         self.area_agent_2_2: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '头像-2-2')
 
-        # 识别间隔
-        self._check_agent_interval = self.auto_op.check_agent_interval
+    def init_auto_op(
+            self,
+            auto_op: AutoBattleOperator,
+    ) -> None:
+        """
+        加载自动战斗操作器时的动作
+        """
+        self._check_agent_interval = auto_op.check_agent_interval
 
+    def init_battle_agent_context(
+            self,
+    ) -> None:
+        """
+        自动战斗前的初始化
+        """
+        self.team_info: TeamInfo = TeamInfo()
         # 上一次识别的时间
         self._last_check_agent_time: float = 0
         self._last_switch_agent_time: float = 0
-
-    def reset_context_status(self) -> None:
-        """
-        重置上下文状态 在新战斗开始时触发
-        """
 
     def get_possible_agent_list(self) -> Optional[List[Tuple[Agent, Optional[str]]]]:
         """
@@ -365,7 +375,7 @@ class AutoBattleAgentContext:
                 for i in other_state_list:
                     update_state_record_list.append(i)
 
-            self.auto_op.batch_update_states(update_state_record_list)
+            self.ctx.auto_battle_context.state_record_service.batch_update_states(update_state_record_list)
         except Exception:
             log.error('识别画面角色失败', exc_info=True)
         finally:
@@ -600,7 +610,7 @@ class AutoBattleAgentContext:
                 self._last_check_agent_time = 0
             records = self._get_agent_state_records(update_time, switch=True)
             if update_state:
-                self.auto_op.batch_update_states(records)
+                self.ctx.auto_battle_context.state_record_service.batch_update_states(records)
             return records
         return []
 
@@ -616,7 +626,7 @@ class AutoBattleAgentContext:
                 self._last_check_agent_time = 0
             records = self._get_agent_state_records(update_time, switch=True)
             if update_state:
-                self.auto_op.batch_update_states(records)
+                self.ctx.auto_battle_context.state_record_service.batch_update_states(records)
             return records
         return []
 
@@ -633,7 +643,7 @@ class AutoBattleAgentContext:
         for agent_enum in AgentEnum:
             agent = agent_enum.value
             state_name = f'快速支援-{agent.agent_name}'
-            state_recorder = self.auto_op.get_state_recorder(state_name)
+            state_recorder = self.ctx.auto_battle_context.state_record_service.get_state_recorder(state_name)
             if state_recorder is None or state_recorder.last_record_time <= 0:
                 continue
 
@@ -673,7 +683,7 @@ class AutoBattleAgentContext:
         states = self._force_reconstruct_agent_states(agent_name, update_time)
 
         if update_state:
-            self.auto_op.batch_update_states(states)
+            self.ctx.auto_battle_context.state_record_service.batch_update_states(states)
 
         return states
 
@@ -698,7 +708,7 @@ class AutoBattleAgentContext:
         states = self._force_reconstruct_agent_states(agent_name, update_time)
 
         if update_state:
-            self.auto_op.batch_update_states(states)
+            self.ctx.auto_battle_context.state_record_service.batch_update_states(states)
 
         return states
 
@@ -714,7 +724,7 @@ class AutoBattleAgentContext:
             latest_recorder: Optional[StateRecorder] = None
             for name in all_name_list:
                 state_name = f'连携技-{i}-{name}'
-                state_recorder = self.auto_op.get_state_recorder(state_name)
+                state_recorder = self.ctx.auto_battle_context.state_record_service.get_state_recorder(state_name)
                 if state_recorder is None or state_recorder.last_record_time <= 0:
                     continue
 
@@ -829,6 +839,17 @@ class AutoBattleAgentContext:
             state_records.append(StateRecord(f'{prefix}终结技可用', update_time, is_clear=not agent_info.ultimate_ready))
 
         return state_records
+
+    def batch_update_states(self, state_records: List[StateRecord]) -> None:
+        """
+        批量更新状态
+
+        Args:
+            state_records: 状态记录列表
+        """
+        if self.auto_op is None:
+            return
+        self.ctx.auto_battle_context.state_record_service.batch_update_states(state_records)
 
     def after_app_shutdown(self) -> None:
         """

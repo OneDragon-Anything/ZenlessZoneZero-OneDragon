@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from zzz_od.auto_battle.auto_battle_state import BattleStateEnum

@@ -1,10 +1,9 @@
 import time
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
 from threading import Lock
-from typing import List, Optional
+from typing import Optional
 
-from one_dragon.base.conditional_operation.state_recorder import StateRecord
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from one_dragon.base.conditional_operation.execution_info import ExecutionInfo
 from one_dragon.base.conditional_operation.loader import ConditionalOperatorLoader
@@ -13,7 +12,8 @@ from one_dragon.base.conditional_operation.operation_executor import (
     OperationExecutor,
 )
 from one_dragon.base.conditional_operation.scene import Scene
-from one_dragon.base.conditional_operation.state_recorder import StateRecorder
+from one_dragon.base.conditional_operation.state_record_service import StateRecordService
+from one_dragon.base.conditional_operation.state_recorder import StateRecord
 from one_dragon.thread.atomic_int import AtomicInt
 from one_dragon.utils import thread_utils
 from one_dragon.utils.log_utils import log
@@ -30,6 +30,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
         template_name: str,
         operation_template_sub_dir: list[str],
         state_handler_template_sub_dir: list[str],
+        state_record_service: StateRecordService,
         read_from_merged: bool = True,
     ):
         ConditionalOperatorLoader.__init__(
@@ -40,6 +41,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
             state_handler_template_sub_dir=state_handler_template_sub_dir,
             read_from_merged=read_from_merged,
         )
+        self.state_record_service: StateRecordService = state_record_service
 
         self.trigger_2_scene: dict[str, Scene] = {}  # 需要状态触发的场景处理
         self.normal_scene: Scene | None = None  # 不需要状态触发的场景处理
@@ -62,6 +64,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
         self.dispose()
         self.load()
         self.build()
+        self.state_record_service.register_operator(self)
 
         self._inited = True
 
@@ -77,7 +80,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
 
         for scene in self.scenes:
             scene.build(
-                state_recorder_getter=self.get_state_recorder,
+                state_recorder_getter=self.state_record_service.get_state_recorder,
                 op_getter=self.get_atomic_op,
             )
             if len(scene.triggers) > 0:
@@ -90,14 +93,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
         """
         销毁操作器
         """
-        pass
-
-    @abstractmethod
-    def get_state_recorder(self, state_name: str) -> StateRecorder | None:
-        """
-        如何获取状态记录器 由具体子类实现
-        """
-        pass
+        self.state_record_service.unregister_operator(self)
 
     @abstractmethod
     def get_atomic_op(self, op_def: OperationDef) -> AtomicOp:
@@ -223,6 +219,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
 
             new_execution_info.trigger = state_name
             new_execution_info.handler_id = trigger_handler_id
+            self.current_execution_info = new_execution_info
             self.running_executor = OperationExecutor(new_execution_info.op_list, trigger_time)
             self.last_trigger_time[trigger_handler_id] = trigger_time
             future = self.running_executor.run_async()
@@ -280,26 +277,9 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 states = states.union(handler.usage_states)
         return states
 
-    def update_state(self, state_record: StateRecord) -> None:
+    def batch_update_states(self, state_records: list[StateRecord]) -> None:
         """
-        更新一个状态
-        然后看是否需要触发对应的场景 清除状态的不进行触发
-        :param state_record: 状态记录
-        :return:
-        """
-        # 先统一更新状态值
-        state_recorder = self._update_state_recorder(state_record)
-        if state_recorder is None:
-            return
-
-        # 再去触发具体的场景 由自己的线程处理
-        if not state_record.is_clear:
-            future: Future = _od_conditional_op_executor.submit(self._trigger_scene, state_recorder.state_name)
-            future.add_done_callback(thread_utils.handle_future_result)
-
-    def batch_update_states(self, state_records: List[StateRecord]) -> None:
-        """
-        批量更新多个状态
+        批量更新多个状态后的回调
         然后看是否需要触发对应的场景 清除状态的不进行触发
         只触发优先级最高的一个
         多个相同优先级时 随机触发一个
@@ -307,12 +287,15 @@ class ConditionalOperator(ConditionalOperatorLoader):
         :param state_records: 状态记录列表
         :return:
         """
+        if not self.is_running:
+            return
+
         top_priority_scene: Optional[Scene] = None
         top_priority_state: Optional[str] = None
 
         for state_record in state_records:
             state_name = state_record.state_name
-            state_recorder = self._update_state_recorder(state_record)
+            state_recorder = self.state_record_service.get_state_recorder(state_name)
             if state_recorder is None:
                 continue
             if state_record.is_clear:
@@ -353,26 +336,3 @@ class ConditionalOperator(ConditionalOperatorLoader):
                         log.debug('复合中断条件满足，执行中断')
                 if interrupt:
                     self._stop_running_task()
-
-    def _update_state_recorder(self, new_record: StateRecord) -> Optional[StateRecorder]:
-        """
-        更新一个状态记录
-        :param new_record: 新的状态记录
-        :return:
-        """
-        recorder = self.get_state_recorder(new_record.state_name)
-        if recorder is None:
-            return
-
-        if new_record.is_clear:
-            recorder.clear_state_record()
-        else:
-            recorder.update_state_record(new_record)
-            if recorder.mutex_list is not None:
-                for mutex_state in recorder.mutex_list:
-                    mutex_recorder = self.get_state_recorder(mutex_state)
-                    if mutex_recorder is None:
-                        continue
-                    mutex_recorder.clear_state_record()
-
-        return recorder

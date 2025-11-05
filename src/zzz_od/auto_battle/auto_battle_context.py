@@ -3,13 +3,12 @@ from __future__ import annotations
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, Future
-from functools import cached_property, lru_cache
 from typing import Optional, Union, Tuple
 from typing import TYPE_CHECKING
 
 from cv2.typing import MatLike
 
-from one_dragon.base.conditional_operation.state_recorder import StateRecord, StateRecorder
+from one_dragon.base.conditional_operation.state_recorder import StateRecord
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_area import ScreenArea
@@ -19,12 +18,12 @@ from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.atomic_op.atomic_op_factory import AtomicOpFactory
 from zzz_od.auto_battle.auto_battle_agent_context import AutoBattleAgentContext
 from zzz_od.auto_battle.auto_battle_custom_context import AutoBattleCustomContext
-from zzz_od.auto_battle.auto_battle_dodge_context import AutoBattleDodgeContext, YoloStateEventEnum
+from zzz_od.auto_battle.auto_battle_dodge_context import AutoBattleDodgeContext
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
+from zzz_od.auto_battle.auto_battle_state_record_service import AutoBattleStateRecordService
 from zzz_od.auto_battle.auto_battle_target_context import AutoBattleTargetContext
-from zzz_od.game_data.agent import Agent, AgentEnum, AgentTypeEnum, CommonAgentStateEnum
-from zzz_od.game_data.target_state import DETECTION_TASKS
+from zzz_od.game_data.agent import Agent
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
@@ -42,10 +41,7 @@ class AutoBattleContext:
         self.custom_context: AutoBattleCustomContext = AutoBattleCustomContext(self.ctx)
         self.target_context: AutoBattleTargetContext = AutoBattleTargetContext(self.ctx)
         self.atomic_op_factory: AtomicOpFactory = AtomicOpFactory(self)
-
-        # 状态记录相关
-        self.state_recorders: dict[str, StateRecorder] = {}  # 状态记录器
-        self._mutex_list: dict[str, list[str]] = {}  # 状态互斥列表
+        self.state_record_service: AutoBattleStateRecordService = AutoBattleStateRecordService()
 
         self.auto_op: AutoBattleOperator | None = None
         self._op_cache: dict[str, AutoBattleOperator] = {}  # 缓存自动战斗配置
@@ -77,148 +73,6 @@ class AutoBattleContext:
         self.last_check_distance: float = -1  # 最后一次识别的距离
         self.without_distance_times: int = 0  # 没有显示距离的次数
         self.with_distance_times: int = 0  # 有显示距离的次数
-
-    def _init_mutex_list(self) -> None:
-        """
-        初始化状态互斥列表
-        """
-        self._mutex_list: dict[str, list[str]] = {}
-
-        for agent_enum in AgentEnum:
-            mutex_list: list[str] = []
-            for mutex_agent_enum in AgentEnum:
-                if mutex_agent_enum == agent_enum:
-                    continue
-                mutex_list.append(mutex_agent_enum.value.agent_name)
-
-            agent_name = agent_enum.value.agent_name
-            self._mutex_list[f'前台-{agent_name}'] = [f'前台-{i}' for i in mutex_list] + [f'后台-1-{agent_name}', f'后台-2-{agent_name}', f'后台-{agent_name}']
-            self._mutex_list[f'后台-{agent_name}'] = [f'前台-{agent_name}']
-            self._mutex_list[f'后台-1-{agent_name}'] = [f'后台-1-{i}' for i in mutex_list] + [f'后台-2-{agent_name}', f'前台-{agent_name}']
-            self._mutex_list[f'后台-2-{agent_name}'] = [f'后台-2-{i}' for i in mutex_list] + [f'后台-1-{agent_name}', f'前台-{agent_name}']
-            self._mutex_list[f'连携技-1-{agent_name}'] = [f'连携技-1-{i}' for i in (mutex_list + ['邦布'])]
-            self._mutex_list[f'连携技-2-{agent_name}'] = [f'连携技-2-{i}' for i in (mutex_list + ['邦布'])]
-            self._mutex_list[f'快速支援-{agent_name}'] = [f'快速支援-{i}' for i in mutex_list]
-            self._mutex_list[f'切换角色-{agent_name}'] = [f'切换角色-{i}' for i in mutex_list]
-
-        for agent_type_enum in AgentTypeEnum:
-            if agent_type_enum == AgentTypeEnum.UNKNOWN:
-                continue
-            mutex_list: list[str] = []
-            for mutex_agent_type_enum in AgentTypeEnum:
-                if mutex_agent_type_enum == AgentTypeEnum.UNKNOWN:
-                    continue
-                if mutex_agent_type_enum == agent_type_enum:
-                    continue
-                mutex_list.append(mutex_agent_type_enum.value)
-
-            self._mutex_list['前台-' + agent_type_enum.value] = ['前台-' + i for i in mutex_list]
-            self._mutex_list['后台-1-' + agent_type_enum.value] = ['后台-1-' + i for i in mutex_list]
-            self._mutex_list['后台-2-' + agent_type_enum.value] = ['后台-2-' + i for i in mutex_list]
-            self._mutex_list['连携技-1-' + agent_type_enum.value] = ['连携技-1-' + i for i in mutex_list]
-            self._mutex_list['连携技-2-' + agent_type_enum.value] = ['连携技-2-' + i for i in mutex_list]
-            self._mutex_list['快速支援-' + agent_type_enum.value] = ['快速支援-' + i for i in mutex_list]
-            self._mutex_list['切换角色-' + agent_type_enum.value] = ['切换角色-' + i for i in mutex_list]
-
-        # 特殊处理连携技的互斥
-        for i in range(1, 3):
-            self._mutex_list[f'连携技-{i}-邦布'] = [f'连携技-{i}-{agent_enum.value.agent_name}' for agent_enum in AgentEnum]
-
-    @cached_property
-    def all_state_event_ids(self) -> list[str]:
-        """
-        目前可用的状态事件ID
-        """
-        event_ids = []
-
-        for event_enum in YoloStateEventEnum:
-            event_ids.append(event_enum.value)
-
-        for event_enum in BattleStateEnum:
-            event_ids.append(event_enum.value)
-
-        for agent_enum in AgentEnum:
-            agent = agent_enum.value
-            agent_name = agent.agent_name
-            event_ids.append(f'前台-{agent_name}')
-            event_ids.append(f'后台-{agent_name}')
-            event_ids.append(f'后台-1-{agent_name}')
-            event_ids.append(f'后台-2-{agent_name}')
-            event_ids.append(f'连携技-1-{agent_name}')
-            event_ids.append(f'连携技-2-{agent_name}')
-            event_ids.append(f'快速支援-{agent_name}')
-            event_ids.append(f'切换角色-{agent_name}')
-            event_ids.append(f'{agent_name}-能量')
-            event_ids.append(f'{agent_name}-特殊技可用')
-            event_ids.append(f'{agent_name}-终结技可用')
-
-            if agent.state_list is not None:
-                for state in agent.state_list:
-                    event_ids.append(state.state_name)
-
-        for agent_type_enum in AgentTypeEnum:
-            if agent_type_enum == AgentTypeEnum.UNKNOWN:
-                continue
-            event_ids.append('前台-' + agent_type_enum.value)
-            event_ids.append('后台-1-' + agent_type_enum.value)
-            event_ids.append('后台-2-' + agent_type_enum.value)
-            event_ids.append('连携技-1-' + agent_type_enum.value)
-            event_ids.append('连携技-2-' + agent_type_enum.value)
-            event_ids.append('快速支援-' + agent_type_enum.value)
-            event_ids.append('切换角色-' + agent_type_enum.value)
-
-        for state_enum in CommonAgentStateEnum:
-            common_agent_state = state_enum.value
-            if common_agent_state.state_name not in event_ids:
-                event_ids.append(common_agent_state.state_name)
-
-        # 特殊处理邦布
-        for i in range(1, 3):
-            event_ids.append(f'连携技-{i}-邦布')
-
-        # 添加目标状态 (V10: 从数据定义中动态获取)
-        for task in DETECTION_TASKS:
-            if not task.enabled:
-                continue
-            for state_def in task.state_definitions:
-                if state_def.state_name not in event_ids:
-                    event_ids.append(state_def.state_name)
-
-        return event_ids
-
-    @lru_cache(maxsize=None)
-    def is_valid_state(self, state_name: str) -> bool:
-        """
-        判断一个状态是否合法
-
-        Args:
-            state_name: 状态名称
-
-        Returns:
-            bool: 是否合法
-        """
-        if state_name in self.all_state_event_ids:
-            return True
-        elif state_name.startswith('自定义-'):
-            return True
-        else:
-            return False
-
-    def get_state_recorder(self, state_name: str) -> Optional[StateRecorder]:
-        """
-        获取状态记录器
-        :param state_name:
-        :return:
-        """
-        if self.is_valid_state(state_name):
-            if state_name in self.state_recorders:
-                return self.state_recorders[state_name]
-            else:
-                r = StateRecorder(state_name, mutex_list=self._mutex_list.get(state_name, None))
-                self.state_recorders[state_name] = r
-                return r
-        else:
-            return None
 
     def init_auto_op(
         self,
@@ -255,6 +109,17 @@ class AutoBattleContext:
         if read_from_merged and key not in self._op_cache:
             self._op_cache[key] = self.auto_op
 
+        # 识别间隔
+        self._check_chain_interval = self.auto_op.check_chain_interval
+        self._check_quick_interval = self.auto_op.check_quick_interval
+        self._check_end_interval = self.auto_op.check_end_interval
+        self._check_distance_interval = 5
+
+        # 初始化其它相关内容
+        self.agent_context.init_auto_op(auto_op=self.auto_op)
+        self.dodge_context.init_auto_op(auto_op=self.auto_op)
+        self.target_context.init_auto_op(auto_op=self.auto_op)
+
     def start_auto_battle(self) -> None:
         """
         开始自动战斗
@@ -288,26 +153,8 @@ class AutoBattleContext:
         """
         初始化自动战斗上下文 在进入一个新的战斗时调用
         """
-        use_gpu: bool = self.ctx.model_config.flash_classifier_gpu
-        self.agent_context.init_battle_agent_context(
-            auto_op=self.auto_op,
-        )
-        self.dodge_context.init_battle_dodge_context(
-            auto_op=self.auto_op,
-            use_gpu=use_gpu,
-        )
-        self.custom_context.init_battle_custom_context(
-            auto_op=self.auto_op,
-        )
-        self.target_context.init_battle_target_context(
-            auto_op=self.auto_op,
-        )
-
-        # 识别间隔
-        self._check_chain_interval = self.auto_op.check_chain_interval
-        self._check_quick_interval = self.auto_op.check_quick_interval
-        self._check_end_interval = self.auto_op.check_end_interval
-        self._check_distance_interval = 5
+        self.agent_context.init_battle_agent_context()
+        self.dodge_context.init_battle_dodge_context()
 
         # 上一次识别的时间
         self._last_check_chain_time: float = 0
@@ -335,6 +182,8 @@ class AutoBattleContext:
         self.area_chain_1: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '连携技-1')
         self.area_chain_2: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '连携技-2')
 
+        self.agent_context.init_screen_area()
+
     def after_app_shutdown(self) -> None:
         """
         App关闭后进行的操作 关闭一切可能资源操作
@@ -356,7 +205,7 @@ class AutoBattleContext:
 
         self.ctx.controller.dodge(press=press, press_time=press_time, release=release)
         finish_time = time.time()
-        self.auto_op.update_state(StateRecord(e, finish_time))
+        self.state_record_service.update_state(StateRecord(e, finish_time))
 
     def switch_next(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         update_agent = False
@@ -379,7 +228,7 @@ class AutoBattleContext:
             agent_records = self.agent_context.switch_next_agent(start_time, False, check_agent=True)
             for i in agent_records:
                 state_records.append(i)
-        self.auto_op.batch_update_states(state_records)
+        self.state_record_service.batch_update_states(state_records)
 
     def switch_prev(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         update_agent = False
@@ -402,7 +251,7 @@ class AutoBattleContext:
             agent_records = self.agent_context.switch_prev_agent(start_time, False, check_agent=True)
             for i in agent_records:
                 state_records.append(i)
-        self.auto_op.batch_update_states(state_records)
+        self.state_record_service.batch_update_states(state_records)
 
     def normal_attack(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         if press:
@@ -414,7 +263,7 @@ class AutoBattleContext:
 
         self.ctx.controller.normal_attack(press=press, press_time=press_time, release=release)
         finish_time = time.time()
-        self.auto_op.update_state(StateRecord(e, finish_time))
+        self.state_record_service.update_state(StateRecord(e, finish_time))
 
     def special_attack(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         if press:
@@ -426,7 +275,7 @@ class AutoBattleContext:
 
         self.ctx.controller.special_attack(press=press, press_time=press_time, release=release)
         finish_time = time.time()
-        self.auto_op.update_state(StateRecord(e, finish_time))
+        self.state_record_service.update_state(StateRecord(e, finish_time))
 
     def ultimate(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         if press:
@@ -438,7 +287,7 @@ class AutoBattleContext:
 
         self.ctx.controller.ultimate(press=press, press_time=press_time, release=release)
         finish_time = time.time()
-        self.auto_op.update_state(StateRecord(e, finish_time))
+        self.state_record_service.update_state(StateRecord(e, finish_time))
 
     def chain_left(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         update_agent = False
@@ -462,7 +311,7 @@ class AutoBattleContext:
             agent_records = self.agent_context.chain_left(start_time, False)
             for i in agent_records:
                 state_records.append(i)
-        self.auto_op.batch_update_states(state_records)
+        self.state_record_service.batch_update_states(state_records)
 
     def chain_right(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         update_agent = False
@@ -486,7 +335,7 @@ class AutoBattleContext:
             agent_records = self.agent_context.chain_right(start_time, False)
             for i in agent_records:
                 state_records.append(i)
-        self.auto_op.batch_update_states(state_records)
+        self.state_record_service.batch_update_states(state_records)
 
     def move_w(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         if press:
@@ -498,7 +347,7 @@ class AutoBattleContext:
 
         self.ctx.controller.move_w(press=press, press_time=press_time, release=release)
         finish_time = time.time()
-        self.auto_op.update_state(StateRecord(e, finish_time))
+        self.state_record_service.update_state(StateRecord(e, finish_time))
 
     def move_s(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         if press:
@@ -510,7 +359,7 @@ class AutoBattleContext:
 
         self.ctx.controller.move_s(press=press, press_time=press_time, release=release)
         finish_time = time.time()
-        self.auto_op.update_state(StateRecord(e, finish_time))
+        self.state_record_service.update_state(StateRecord(e, finish_time))
 
     def move_a(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         if press:
@@ -522,7 +371,7 @@ class AutoBattleContext:
 
         self.ctx.controller.move_a(press=press, press_time=press_time, release=release)
         finish_time = time.time()
-        self.auto_op.update_state(StateRecord(e, finish_time))
+        self.state_record_service.update_state(StateRecord(e, finish_time))
 
     def move_d(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         if press:
@@ -534,7 +383,7 @@ class AutoBattleContext:
 
         self.ctx.controller.move_d(press=press, press_time=press_time, release=release)
         finish_time = time.time()
-        self.auto_op.update_state(StateRecord(e, finish_time))
+        self.state_record_service.update_state(StateRecord(e, finish_time))
 
     def lock(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         if press:
@@ -546,7 +395,7 @@ class AutoBattleContext:
 
         self.ctx.controller.lock(press=press, press_time=press_time, release=release)
         finish_time = time.time()
-        self.auto_op.update_state(StateRecord(e, finish_time))
+        self.state_record_service.update_state(StateRecord(e, finish_time))
 
     def chain_cancel(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
         if press:
@@ -558,7 +407,7 @@ class AutoBattleContext:
 
         self.ctx.controller.chain_cancel(press=press, press_time=press_time, release=release)
         finish_time = time.time()
-        self.auto_op.update_state(StateRecord(e, finish_time))
+        self.state_record_service.update_state(StateRecord(e, finish_time))
 
     def quick_assist(self):
         # 切换角色的状态时间应该是按键开始时间
@@ -576,7 +425,7 @@ class AutoBattleContext:
 
         finish_time = time.time()
         state_records.append(StateRecord(btn_name, finish_time))
-        self.auto_op.batch_update_states(state_records)
+        self.state_record_service.batch_update_states(state_records)
 
     def switch_by_name(self, agent_name: str) -> None:
         """
@@ -599,7 +448,7 @@ class AutoBattleContext:
 
         finish_time = time.time()
         state_records.append(StateRecord(btn_name, finish_time))
-        self.auto_op.batch_update_states(state_records)
+        self.state_record_service.batch_update_states(state_records)
 
     def check_battle_state(
             self, screen: MatLike, screenshot_time: float,
@@ -716,7 +565,7 @@ class AutoBattleContext:
                 state_records.append(StateRecord(f'连携技-{i + 1}-邦布', screenshot_time))
 
             state_records.append(StateRecord(BattleStateEnum.STATUS_CHAIN_READY.value, screenshot_time))
-            self.auto_op.batch_update_states(state_records)
+            self.state_record_service.batch_update_states(state_records)
 
     def _match_chain_agent_in(self, img: MatLike, possible_agents: Optional[list[Tuple[Agent, Optional[str]]]]) -> Optional[Agent]:
         """
@@ -766,7 +615,7 @@ class AutoBattleContext:
                     StateRecord(f'快速支援-{agent.agent_type.value}', screenshot_time),
                     StateRecord(BattleStateEnum.STATUS_QUICK_ASSIST_READY.value, screenshot_time),
                 ]
-                self.auto_op.batch_update_states(state_records)
+                self.state_record_service.batch_update_states(state_records)
         except Exception:
             log.error('识别快速支援失败', exc_info=True)
         finally:

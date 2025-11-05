@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import threading
 from concurrent.futures import ThreadPoolExecutor, Future
-from typing import List, Optional, Any, Tuple, Dict, TYPE_CHECKING
+from typing import List, Any, Tuple, Dict, TYPE_CHECKING
 
 from cv2.typing import MatLike
 
@@ -31,7 +31,6 @@ class AutoBattleTargetContext:
         构造函数
         """
         self.ctx: ZContext = ctx
-        self.auto_op: Optional[AutoBattleOperator] = None
         self.checker: TargetStateChecker = TargetStateChecker(ctx)
 
         self._check_lock = threading.Lock()
@@ -43,20 +42,17 @@ class AutoBattleTargetContext:
         self._last_check_times: Dict[str, float] = {task.task_id: 0 for task in self.tasks}
         self._current_intervals: Dict[str, float] = {task.task_id: task.interval for task in self.tasks}
 
-    def init_battle_target_context(
-        self,
-        auto_op: AutoBattleOperator,
+    def init_auto_op(
+            self,
+            auto_op: AutoBattleOperator,
     ) -> None:
         """
-        初始化上下文
+        加载自动战斗操作器时的动作
         """
-        self.auto_op = auto_op
-        # 应用配置文件中的间隔
         self._apply_config_intervals(
-            self.auto_op.target_lock_interval,
-            self.auto_op.abnormal_status_interval,
+            auto_op.target_lock_interval,
+            auto_op.abnormal_status_interval,
         )
-        log.info("目标上下文初始化完成 (由数据驱动)")
 
     def _apply_config_intervals(self, target_lock_interval: float, abnormal_status_interval: float):
         """
@@ -82,9 +78,6 @@ class AutoBattleTargetContext:
         遍历所有检测任务，并执行到期的任务。
         这是模块的主入口，由外部的统一战斗循环在每一帧调用。
         """
-        if self.auto_op is None or not self.auto_op.is_running:
-            return
-
         if not self._check_lock.acquire(blocking=False):
             return
 
@@ -118,7 +111,7 @@ class AutoBattleTargetContext:
 
             # 批量提交状态更新
             if records_to_update:
-                self.auto_op.batch_update_states(records_to_update)
+                self.ctx.auto_battle_context.state_record_service.batch_update_states(records_to_update)
 
         finally:
             self._check_lock.release()

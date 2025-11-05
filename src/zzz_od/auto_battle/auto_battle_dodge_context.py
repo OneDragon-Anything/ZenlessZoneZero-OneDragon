@@ -128,7 +128,6 @@ class AutoBattleDodgeContext:
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx  # 上下文对象
-        self.auto_op: AutoBattleOperator | None = None
 
         self._flash_model: Optional[FlashClassifier] = None  # 闪避分类器
         self._audio_recorder: AudioRecorder = AudioRecorder()  # 音频录制器
@@ -150,20 +149,17 @@ class AutoBattleDodgeContext:
         self._audio_event_interval: float = 0.1
         self._last_audio_event_time: float = 0
 
-    def init_battle_dodge_context(
+    def init_auto_op(
             self,
             auto_op: AutoBattleOperator,
-            use_gpu: bool = True,
     ) -> None:
         """
-        初始化上下文，在运行前调用。
-
-        Args:
-            auto_op: 自动战斗操作对象
-            use_gpu: 是否使用GPU
+        加载自动战斗操作器时的动作
         """
-        self.auto_op = auto_op
+        self._check_dodge_interval = auto_op.check_dodge_interval
+        self._check_audio_interval = 0.02
 
+        use_gpu = self.ctx.battle_assistant_config.use_gpu
         if self._flash_model is None or self._flash_model.gpu != use_gpu:
             self._flash_model = FlashClassifier(
                 model_name=self.ctx.model_config.flash_classifier,
@@ -175,10 +171,15 @@ class AutoBattleDodgeContext:
                 gpu=use_gpu
             )
 
-        # 识别间隔
-        self._check_dodge_interval = self.auto_op.check_dodge_interval
-        self._check_audio_interval = 0.02
+    def init_battle_dodge_context(
+            self,
+    ) -> None:
+        """
+        初始化上下文，在运行前调用。
 
+        Args:
+            use_gpu: 是否使用GPU
+        """
         # 上一次识别的时间
         self._last_check_dodge_time = 0
         self._last_check_audio_time = 0
@@ -233,7 +234,7 @@ class AutoBattleDodgeContext:
 
             should_dodge = state_name is not None
             if should_dodge:
-                self.auto_op.update_state(StateRecord(state_name, screenshot_time))
+                self.ctx.auto_battle_context.state_record_service.update_state(StateRecord(state_name, screenshot_time))
 
             return should_dodge
         except Exception:
