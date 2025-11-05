@@ -7,23 +7,30 @@ from pyautogui import screenshot as pyautogui_screenshot
 
 from one_dragon.base.controller.pc_screenshot.screencapper_base import ScreencapperBase
 from one_dragon.base.geometry.rectangle import Rect
-from one_dragon.utils.log_utils import log
 
 
 class PilScreencapper(ScreencapperBase):
-    """
-    使用 PIL (pyautogui) 进行截图的策略
-    """
+    """使用 PIL (pyautogui) 进行截图的策略"""
 
     def init(self) -> bool:
-        """
-        PIL不需要初始化
+        """初始化 PIL 截图方法
+
+        PIL 不需要初始化
+
+        Returns:
+            始终返回 True
         """
         return True
 
     def capture(self, rect: Rect, independent: bool = False) -> Optional[MatLike]:
-        """
-        使用PIL截图
+        """使用 PIL 截图
+
+        Args:
+            rect: 截图区域
+            independent: 是否独立截图
+
+        Returns:
+            截图数组，失败返回 None
         """
         try:
             img = pyautogui_screenshot(region=(rect.x1, rect.y1, rect.width, rect.height))
@@ -39,7 +46,5 @@ class PilScreencapper(ScreencapperBase):
         return result
 
     def cleanup(self):
-        """
-        PIL不需要清理资源
-        """
+        """PIL不需要清理资源"""
         pass
