@@ -1,6 +1,7 @@
-from cv2.typing import MatLike
 from enum import Enum
 from typing import Optional, List, Union, Tuple
+
+from cv2.typing import MatLike
 
 from one_dragon.utils.i18_utils import gt
 
@@ -94,7 +95,6 @@ class AgentStateDef:
         self.state_name: str = state_name
         self.template_id: str = template_id
         self.check_way: AgentStateCheckWay = check_way
-        self.should_check_in_battle: bool = True  # 是否需要在战斗中检测 自动战斗开始前进行初始化
 
         # 需要匹配的颜色范围RGB
         self.lower_color: Union[MatLike, int] = lower_color

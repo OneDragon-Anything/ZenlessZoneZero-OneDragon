@@ -12,7 +12,6 @@ from cv2.typing import MatLike
 from scipy.signal import correlate, butter, filtfilt
 from sklearn.preprocessing import scale
 
-from one_dragon.base.conditional_operation.operator import ConditionalOperator
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
 from one_dragon.utils import cal_utils, yolo_config_utils
 from one_dragon.utils import thread_utils, os_utils
@@ -153,16 +152,15 @@ class AutoBattleDodgeContext:
 
     def init_battle_dodge_context(
             self,
-            auto_op: ConditionalOperator,
+            auto_op: AutoBattleOperator,
             use_gpu: bool = True,
-            check_dodge_interval: Union[float, List[float]] = 0,
-            check_audio_interval: float = 0.02
     ) -> None:
         """
         初始化上下文，在运行前调用。
-        :param use_gpu: 是否使用GPU
-        :param check_dodge_interval: 闪避识别间隔
-        :param check_audio_interval: 音频识别间隔
+
+        Args:
+            auto_op: 自动战斗操作对象
+            use_gpu: 是否使用GPU
         """
         self.auto_op = auto_op
 
@@ -178,8 +176,8 @@ class AutoBattleDodgeContext:
             )
 
         # 识别间隔
-        self._check_dodge_interval = check_dodge_interval
-        self._check_audio_interval = check_audio_interval
+        self._check_dodge_interval = self.auto_op.check_dodge_interval
+        self._check_audio_interval = 0.02
 
         # 上一次识别的时间
         self._last_check_dodge_time = 0

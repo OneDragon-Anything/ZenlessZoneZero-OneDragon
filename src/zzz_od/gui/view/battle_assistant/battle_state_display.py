@@ -1,14 +1,18 @@
+from __future__ import annotations
+
 import time
+from typing import List, Dict, TYPE_CHECKING
 
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import QTableWidgetItem, QWidget, QVBoxLayout
-from qfluentwidgets import TableWidget, FluentThemeColor, isDarkTheme, LineEdit
-from typing import Optional, List, Dict
+from qfluentwidgets import TableWidget, isDarkTheme, LineEdit
 
 from one_dragon.base.conditional_operation.state_recorder import StateRecord, StateRecorder
 from one_dragon.utils.i18_utils import gt
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
 
 # 自定义颜色定义
@@ -38,10 +42,10 @@ class StateIndicatorColors:
 
 class BattleStateDisplay(QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, ctx: ZContext, parent=None):
         super().__init__(parent=parent)
 
-        self.auto_op: Optional[AutoBattleOperator] = None
+        self.ctx: ZContext = ctx
         self.last_states: List[StateRecord] = []
         self.state_trigger_history: Dict[str, List[float]] = {}
         self._filter_text = ""  # 新增：用于存储过滤文本
@@ -111,14 +115,18 @@ class BattleStateDisplay(QWidget):
             self.update_timer.stop()
 
     def _update_display(self) -> None:
-        if self.auto_op is None or not self.auto_op.is_running:
+        auto_op = self.ctx.auto_battle_context.auto_op
+        if auto_op is None or not auto_op.is_running:
             self.table.setRowCount(0)
             return
 
-        states = self.auto_op.get_usage_states()
+        states = auto_op.get_usage_states()
 
-        state_recorders: List[StateRecorder] = [i for i in self.auto_op.state_recorders.values()
-                                                       if i.state_name in states]
+        state_recorders: List[StateRecorder] = [
+            i
+            for i in self.ctx.auto_battle_context.state_recorders.values()
+            if i.state_name in states
+        ]
 
         now = time.time()
         new_states = []
@@ -185,10 +193,10 @@ class BattleStateDisplay(QWidget):
 
 class TaskDisplay(TableWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, ctx: ZContext, parent=None):
         TableWidget.__init__(self, parent=parent)
 
-        self.auto_op: Optional[AutoBattleOperator] = None
+        self.ctx: ZContext = ctx
 
         self.setBorderVisible(True)
         self.setBorderRadius(8)
@@ -231,7 +239,8 @@ class TaskDisplay(TableWidget):
             self.update_timer.stop()
 
     def _update_display(self) -> None:
-        if self.auto_op is None or not self.auto_op.is_running:
+        auto_op = self.ctx.auto_battle_context.auto_op
+        if auto_op is None or not auto_op.is_running:
             data = [
                 ["[触发器]", "/"],
                 ["[条件集]", "/"],
@@ -244,8 +253,8 @@ class TaskDisplay(TableWidget):
 
             return
 
-        info = self.auto_op.current_execution_info
-        executor = self.auto_op.running_executor
+        info = auto_op.current_execution_info
+        executor = auto_op.running_executor
         now = time.time()
 
         if info is None:

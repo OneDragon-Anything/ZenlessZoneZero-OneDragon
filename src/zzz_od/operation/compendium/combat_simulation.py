@@ -333,7 +333,7 @@ class CombatSimulation(ZOperation):
         self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self):
-        self.ctx.auto_battle_context.start_auto_battle()
+        self.ctx.auto_battle_context.resume_auto_battle()
 
 
 def __debug_coffee():

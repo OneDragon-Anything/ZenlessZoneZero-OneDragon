@@ -114,10 +114,10 @@ class AutoBattleInterface(AppRunInterface):
         left_layout.addWidget(AppRunInterface.get_content_widget(self))
         right_layout = QVBoxLayout()
 
-        self.task_display = TaskDisplay()
+        self.task_display = TaskDisplay(self.ctx)
         right_layout.addWidget(self.task_display)
 
-        self.battle_state_display = BattleStateDisplay()
+        self.battle_state_display = BattleStateDisplay(self.ctx)
         right_layout.addWidget(self.battle_state_display)
 
         horizontal_layout.addLayout(left_layout, stretch=1)
@@ -219,8 +219,6 @@ class AutoBattleInterface(AppRunInterface):
         """
         if self.battle_state_display is None or self.task_display is None:
             return
-        self.battle_state_display.auto_op = event.data
-        self.task_display.auto_op = event.data
         self.auto_op_loaded_signal.emit()
 
     def _on_auto_op_loaded_signal(self) -> None:

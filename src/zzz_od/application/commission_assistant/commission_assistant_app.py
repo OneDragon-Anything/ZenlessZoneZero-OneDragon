@@ -458,7 +458,7 @@ class CommissionAssistantApp(ZApplication):
         ZApplication.handle_resume(self)
         self._listen_btn()
         if self.run_mode != 0:
-            self.ctx.auto_battle_context.start_auto_battle()
+            self.ctx.auto_battle_context.resume_auto_battle()
 
     def after_operation_done(self, result: OperationResult):
         ZApplication.after_operation_done(self, result)

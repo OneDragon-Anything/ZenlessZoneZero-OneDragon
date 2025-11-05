@@ -66,7 +66,7 @@ class ShiyuDefenseBattle(ZOperation):
 
         if self.distance_pos is None:
             if self.ctx.auto_battle_context.without_distance_times >= 10:
-                self.ctx.auto_battle_context.start_auto_battle()
+                self.ctx.auto_battle_context.resume_auto_battle()
                 self.move_times = 0
                 return self.round_success()
             else:
@@ -224,4 +224,4 @@ class ShiyuDefenseBattle(ZOperation):
         self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self, e=None):
-        self.ctx.auto_battle_context.start_auto_battle()
+        self.ctx.auto_battle_context.resume_auto_battle()

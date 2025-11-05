@@ -1,15 +1,20 @@
-from typing import List, Optional, Any, Tuple, Dict
-from concurrent.futures import ThreadPoolExecutor, Future
+from __future__ import annotations
+
 import threading
+from concurrent.futures import ThreadPoolExecutor, Future
+from typing import List, Optional, Any, Tuple, Dict, TYPE_CHECKING
 
 from cv2.typing import MatLike
 
-from one_dragon.base.conditional_operation.operator import ConditionalOperator
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
 from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.target_state.target_state_checker import TargetStateChecker
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.target_state import DETECTION_TASKS, DetectionTask
+
+if TYPE_CHECKING:
+    from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
+
 
 # 模块私有的独立线程池，用于并行处理状态检测任务
 _target_context_executor = ThreadPoolExecutor(thread_name_prefix='od_target_context', max_workers=8)
@@ -26,7 +31,7 @@ class AutoBattleTargetContext:
         构造函数
         """
         self.ctx: ZContext = ctx
-        self.auto_op: Optional[ConditionalOperator] = None
+        self.auto_op: Optional[AutoBattleOperator] = None
         self.checker: TargetStateChecker = TargetStateChecker(ctx)
 
         self._check_lock = threading.Lock()
@@ -38,15 +43,19 @@ class AutoBattleTargetContext:
         self._last_check_times: Dict[str, float] = {task.task_id: 0 for task in self.tasks}
         self._current_intervals: Dict[str, float] = {task.task_id: task.interval for task in self.tasks}
 
-    def init_battle_target_context(self,
-                                   auto_op: ConditionalOperator,
-                                   target_lock_interval: float = 0,
-                                   abnormal_status_interval: float = 0):
+    def init_battle_target_context(
+        self,
+        auto_op: AutoBattleOperator,
+    ) -> None:
         """
         初始化上下文
         """
         self.auto_op = auto_op
-        self._apply_config_intervals(target_lock_interval, abnormal_status_interval)  # 应用配置文件中的间隔
+        # 应用配置文件中的间隔
+        self._apply_config_intervals(
+            self.auto_op.target_lock_interval,
+            self.auto_op.abnormal_status_interval,
+        )
         log.info("目标上下文初始化完成 (由数据驱动)")
 
     def _apply_config_intervals(self, target_lock_interval: float, abnormal_status_interval: float):

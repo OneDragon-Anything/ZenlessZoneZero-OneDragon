@@ -353,6 +353,8 @@ class NotoriousHunt(ZOperation):
             self.last_distance = current_distance
             log.info(f'识别距离: {current_distance}')
             press_time = self.ctx.auto_battle_context.last_check_distance / 7.2  # 朱鸢测出来的速度
+            # 有可能识别错距离 设置一个最大的移动时间
+            press_time = min(press_time, 5)
             if press_time > 0:
                 self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
                 self.move_times += 1
@@ -481,7 +483,8 @@ class NotoriousHunt(ZOperation):
 
         self.ctx.auto_battle_context.check_battle_state(
             self.last_screenshot, self.last_screenshot_time,
-            check_battle_end_normal_result=True)
+            check_battle_end_normal_result=True,
+        )
 
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
@@ -599,7 +602,7 @@ class NotoriousHunt(ZOperation):
         self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self, e=None):
-        self.ctx.auto_battle_context.start_auto_battle()
+        self.ctx.auto_battle_context.resume_auto_battle()
 
 
 def __debug_charge():

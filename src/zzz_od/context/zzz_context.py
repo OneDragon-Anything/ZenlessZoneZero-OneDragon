@@ -119,6 +119,7 @@ class ZContext(OneDragonContext):
     def init_for_application(self) -> None:
         self.map_service.reload()  # 传送需要用的数据
         self.compendium_service.reload()  # 快捷手册
+        self.auto_battle_context.init_screen_area()  # 自动战斗相关的区域 依赖 ScreenLoader
 
     def init_others(self) -> None:
         self.telemetry.initialize()  # 遥测

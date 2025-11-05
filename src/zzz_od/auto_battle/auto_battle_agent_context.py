@@ -287,15 +287,13 @@ class AutoBattleAgentContext:
     def init_battle_agent_context(
             self,
             auto_op: AutoBattleOperator,
-            agent_names: Optional[List[str]] = None,
-            to_check_state_list: Optional[List[str]] = None,
-            check_agent_interval: Union[float, List[float]] = 0,) -> None:
+    ) -> None:
         """
         自动战斗前的初始化
         :return:
         """
         self.auto_op = auto_op
-        self.team_info: TeamInfo = TeamInfo(agent_names)
+        self.team_info: TeamInfo = TeamInfo()
 
         # 识别区域 先读取出来 不要每次用的时候再读取
         self.area_agent_3_1: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '头像-3-1')
@@ -304,29 +302,16 @@ class AutoBattleAgentContext:
         self.area_agent_2_2: ScreenArea = self.ctx.screen_loader.get_area('战斗画面', '头像-2-2')
 
         # 识别间隔
-        self._check_agent_interval = check_agent_interval
+        self._check_agent_interval = self.auto_op.check_agent_interval
 
         # 上一次识别的时间
         self._last_check_agent_time: float = 0
         self._last_switch_agent_time: float = 0
 
-        # 初始化需要检测的状态
-        for agent_enum in AgentEnum:
-            agent = agent_enum.value
-            if agent.state_list is None:
-                continue
-            for state in agent.state_list:
-                if to_check_state_list is not None:
-                    state.should_check_in_battle = state.state_name in to_check_state_list
-                else:
-                    state.should_check_in_battle = True
-
-        for state_enum in CommonAgentStateEnum:
-            state = state_enum.value
-            if to_check_state_list is not None:
-                state.should_check_in_battle = state.state_name in to_check_state_list
-            else:
-                state.should_check_in_battle = True
+    def reset_context_status(self) -> None:
+        """
+        重置上下文状态 在新战斗开始时触发
+        """
 
     def get_possible_agent_list(self) -> Optional[List[Tuple[Agent, Optional[str]]]]:
         """
@@ -478,8 +463,6 @@ class AutoBattleAgentContext:
         """
         future_list: List[Future] = []
         for state in agent_state_list:
-            if not state.state.should_check_in_battle:
-                continue
             future_list.append(_battle_agent_context_executor.submit(self._check_agent_state, screen, screenshot_time, state))
 
         result_list: List[Optional[StateRecord]] = []
