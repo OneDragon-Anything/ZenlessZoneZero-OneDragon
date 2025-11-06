@@ -859,7 +859,7 @@
   template_id: "gear_yuzuha_3"
 
 - category: "柚叶"
-  name: "狸影重重-a"  
+  name: "狸影重重-a"
   level: "S"
   is_gear: true
 
@@ -974,6 +974,10 @@
 - category: "杰佩托"
   name: "审判时刻"
   level: "S"
+
+- category: "杰佩托"
+  name: "稳定牵制"
+  level: "A"
 
 - category: "杰佩托"
   name: "以血还血"
