@@ -28,45 +28,75 @@ class CaptureStrategy(str, Enum):
     AFTER = 'after'
 
 
-def _should_notify(app: Application, desc: Optional[NodeNotifyDesc] = None) -> bool:
+def _get_app_id_and_name(operation: Operation) -> tuple[Optional[str], Optional[str]]:
+    """
+    从 Operation 实例获取关联的应用 ID 和名称
+
+    Args:
+        operation: Operation 实例
+
+    Returns:
+        (app_id, app_name) 元组，如果无法获取则返回 (None, None)
+    """
+    # 如果本身就是 Application，直接返回其信息
+    from one_dragon.base.operation.application_base import Application
+    if isinstance(operation, Application):
+        return getattr(operation, 'app_id', None), getattr(operation, 'op_name', None)
+
+    # 否则从 run_context 获取当前运行的应用信息
+    app_id = operation.ctx.run_context.current_app_id
+    if app_id is None:
+        return None, None
+
+    # 尝试获取应用名称
+    try:
+        app_name = operation.ctx.run_context.get_application_name(app_id)
+        return app_id, app_name
+    except Exception:
+        return app_id, None
+
+
+def _should_notify(operation: Operation, desc: Optional[NodeNotifyDesc] = None) -> bool:
     """
     检查是否应该发送通知
 
     Args:
-        app: Application 实例
+        operation: Operation 实例
         desc: 节点通知描述（可选，用于节点级通知）
 
     Returns:
         bool: 是否应该发送通知
     """
     # 检查全局通知开关
-    if not app.ctx.notify_config.enable_notify:
+    if not operation.ctx.notify_config.enable_notify:
         return False
 
     # 检查 before 通知开关
     if desc and desc.when == NotifyTiming.BEFORE:
-        if not app.ctx.notify_config.enable_before_notify:
+        if not operation.ctx.notify_config.enable_before_notify:
             return False
 
     # 检查应用级别的通知开关
-    if app.app_id and not getattr(app.ctx.notify_config, app.app_id, False):
-        return False
+    app_id, _ = _get_app_id_and_name(operation)
+    if app_id is not None:
+        if not getattr(operation.ctx.notify_config, app_id, True):
+            return False
 
     return True
 
 
-def _should_send_image(app: Application, desc: NodeNotifyDesc) -> bool:
+def _should_send_image(operation: Operation, desc: NodeNotifyDesc) -> bool:
     """
     检查是否应该发送图片
 
     Args:
-        app: Application 实例
+        operation: Operation 实例
         desc: 节点通知描述
 
     Returns:
         bool: 是否应该发送图片
     """
-    if app.ctx.push_service.push_config.send_image:
+    if operation.ctx.push_service.push_config.send_image:
         return desc.send_image
 
     return False
@@ -325,7 +355,7 @@ def node_notify(
 
 
 def send_node_notify(
-        app: Application,
+        operation: Operation,
         node_name: str,
         success: Optional[bool],
         desc: NodeNotifyDesc,
@@ -336,7 +366,7 @@ def send_node_notify(
     发送节点级通知
 
     Args:
-        app: Application 实例
+        operation: Operation 实例
         node_name: 节点名称
         success: 是否成功（None=未知）
         desc: 节点通知描述
@@ -344,7 +374,7 @@ def send_node_notify(
         status: 状态信息（可选）
     """
     # 验证配置
-    if not _should_notify(app, desc):
+    if not _should_notify(operation, desc):
         return
 
     # 判定是否需要发送（after_success / after_fail 需要匹配）
@@ -356,9 +386,14 @@ def send_node_notify(
     # 获取阶段文本
     phase = _get_phase_text(desc.when, success)
 
+    # 获取应用名称
+    _, app_name = _get_app_id_and_name(operation)
+    if app_name is None:
+        app_name = operation.op_name
+
     # 构建消息
     msg = _build_node_message(
-        app_name=app.op_name,
+        app_name=app_name,
         node_name=node_name,
         phase=phase,
         custom_message=desc.custom_message,
@@ -367,11 +402,11 @@ def send_node_notify(
     )
 
     # 判断是否发送图片
-    should_send_image = _should_send_image(app, desc)
+    should_send_image = _should_send_image(operation, desc)
     img = image if should_send_image else None
 
     # 异步推送
-    app.ctx.push_service.push_async(msg, img)
+    operation.ctx.push_service.push_async(msg, img)
 
 
 def process_node_notifications(
