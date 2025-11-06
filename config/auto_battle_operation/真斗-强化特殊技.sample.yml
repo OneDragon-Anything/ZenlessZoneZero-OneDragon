@@ -3,4 +3,3 @@ operations:
   - op_name: "按键-特殊攻击"
     post_delay: 0.2
     repeat: 9
-  - operation_template: "通用-闪避-左"

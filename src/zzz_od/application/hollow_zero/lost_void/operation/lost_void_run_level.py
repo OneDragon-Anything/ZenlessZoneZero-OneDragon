@@ -111,6 +111,7 @@ class LostVoidRunLevel(ZOperation):
 
     @node_from(from_name='非战斗画面识别', status='未在大世界')  # 有小概率交互入口后 没处理好结束本次RunLevel 重新从等待加载 开始
     @node_from(from_name='非战斗画面识别', status='按钮-挑战-确认')  # 挑战类型的对话框确认后 第一次点击可能无效 跳回来这里点击到最后生效为止
+    @node_from(from_name='处理寻路失败', status='准备重试')  # 寻路失败后重试
     @operation_node(name='等待加载', node_max_retry_times=60, is_start_node=True)
     def wait_loading(self) -> OperationRoundResult:
         if self.ctx.lost_void.in_normal_world(self.last_screenshot):
@@ -690,7 +691,16 @@ class LostVoidRunLevel(ZOperation):
                     '迷失之地-战斗失败'
                 ]
                 screen_name = self.check_and_update_current_screen(self.last_screenshot, no_in_battle_screen_name_list)
-                if screen_name in no_in_battle_screen_name_list or interact_result.is_success:
+
+                # 以下情况会出现对话框
+                # 1. 所有战术棱镜均已升级
+                confirm_result = self.round_by_find_and_click_area(
+                    screen=self.last_screenshot,
+                    screen_name='迷失之地-大世界',
+                    area_name='按钮-挑战-确认'
+                )
+
+                if screen_name in no_in_battle_screen_name_list or interact_result.is_success or confirm_result.is_success:
                     self.no_in_battle_times += 1
                 else:
                     self.no_in_battle_times = 0
@@ -761,7 +771,8 @@ class LostVoidRunLevel(ZOperation):
             op = RestartInBattle(self.ctx)
             op_result = op.execute()
             if op_result.success:
-                return self.round_success(self.STATUS_COMPLETE)
+                # 重试时 按进入下一层的逻辑处理
+                return self.round_success(status='准备重试')
             else:
                 return self.round_fail(op_result.status)
         else:
@@ -808,11 +819,9 @@ class LostVoidRunLevel(ZOperation):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.lost_void.init_before_run()
-    ctx.init_ocr()
     ctx.run_context.start_running()
-
     ctx.lost_void.init_auto_op()
     op = LostVoidRunLevel(ctx, LostVoidRegionType.ENTRY)
     op.execute()

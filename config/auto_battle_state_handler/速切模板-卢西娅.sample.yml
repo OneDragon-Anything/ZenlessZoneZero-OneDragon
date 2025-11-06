@@ -39,6 +39,6 @@ handlers:
         operations:
           - operation_template: "卢西娅-强化特殊技合轴"
 
-      - states: "[卢西娅-梦境值]{0,100}"
+      - states: ""
         operations:
           - operation_template: "卢西娅-普通攻击合轴"

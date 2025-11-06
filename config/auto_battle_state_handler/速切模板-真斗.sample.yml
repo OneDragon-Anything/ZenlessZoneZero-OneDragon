@@ -42,6 +42,8 @@ handlers:
                 debug_name: "失衡阶段输出"
                 interrupt_states: "[真斗-炽心]{0, 0} | [真斗-终结技可用] | [真斗-特殊技可用]"
                 operations:
+                  #先触发6命再进行普攻
+                  - operation_template: "真斗-强化特殊技"
                   - operation_template: "真斗-基础连段"
 
           - states: ""

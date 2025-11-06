@@ -70,7 +70,7 @@ class SuibianTempleCraftDispatch(ZOperation):
     @node_from(from_name='检查邦布')
     @operation_node(name='打开选择邦布')
     def open_choose_bangboo(self) -> OperationRoundResult:
-        self.current_bangboo_idx = 1
+        self.current_bangboo_idx = 2
         return self.round_by_click_area('随便观-制造坊', '区域-选择邦布',
                                         success_wait=1, retry_wait=1)
 

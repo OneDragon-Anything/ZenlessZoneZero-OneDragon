@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QWidget, QFileDialog, QVBoxLayout, QInputDialog, Q
 from PySide6.QtGui import QColor
 from qfluentwidgets import Dialog, FluentIcon, PrimaryPushButton, SettingCardGroup, setTheme, Theme, ColorDialog, LineEdit, ToolButton
 
-from one_dragon.base.config.custom_config import ThemeEnum, UILanguageEnum, ThemeColorModeEnum
+from one_dragon.base.config.custom_config import ThemeEnum, UILanguageEnum, ThemeColorModeEnum, BackgroundTypeEnum
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon_qt.services.theme_manager import ThemeManager
 from one_dragon_qt.widgets.column import Column
@@ -116,13 +116,14 @@ class SettingCustomInterface(VerticalScrollInterface):
         self.notice_card_opt.value_changed.connect(lambda: setattr(self.ctx.signal, 'notice_card_config_changed', True))
         basic_group.addSettingCard(self.notice_card_opt)
 
-        self.version_poster_opt = SwitchSettingCard(icon=FluentIcon.IMAGE_EXPORT, title='启用版本海报', content='版本活动海报持续整个版本')
-        self.version_poster_opt.value_changed.connect(self._on_version_poster_changed)
-        basic_group.addSettingCard(self.version_poster_opt)
-
-        self.remote_banner_opt = SwitchSettingCard(icon=FluentIcon.CLOUD, title='启用官方启动器主页背景', content='关闭后仅用本地图片')
-        self.remote_banner_opt.value_changed.connect(self._on_remote_banner_changed)
-        basic_group.addSettingCard(self.remote_banner_opt)
+        self.background_type_opt = ComboBoxSettingCard(
+            icon=FluentIcon.BACKGROUND_FILL,
+            title='主页背景类型',
+            content='选择主页显示的背景',
+            options_enum=BackgroundTypeEnum
+        )
+        self.background_type_opt.value_changed.connect(self._on_background_type_changed)
+        basic_group.addSettingCard(self.background_type_opt)
 
         self.banner_select_btn = PrimaryPushButton(FluentIcon.EDIT, gt('选择'), self)
         self.banner_select_btn.clicked.connect(self._on_banner_select_clicked)
@@ -148,8 +149,7 @@ class SettingCustomInterface(VerticalScrollInterface):
         self.theme_color_mode_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('theme_color_mode'))
         self.notice_card_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('notice_card'))
         self.custom_banner_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('custom_banner'))
-        self.remote_banner_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('remote_banner'))
-        self.version_poster_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('version_poster'))
+        self.background_type_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('background_type'))
 
     def _on_ui_language_changed(self, index: int, value: str) -> None:
         language = self.ctx.custom_config.ui_language
@@ -212,20 +212,19 @@ class SettingCustomInterface(VerticalScrollInterface):
     def _on_banner_select_clicked(self) -> None:
         _dp = ctypes.create_unicode_buffer(wintypes.MAX_PATH)
         ctypes.windll.shell32.SHGetFolderPathW(None, 0x0027, None, 0, _dp)
-        _fp, _ = QFileDialog.getOpenFileName(self, f"{gt('选择你的')}{gt('背景图片')}", _dp.value, filter="Images (*.png *.jpg *.jpeg *.webp *.bmp)")
+        _fp, _ = QFileDialog.getOpenFileName(
+            self,
+            f"{gt('选择你的')}{gt('背景图片')}",
+            _dp.value,
+            filter="Images and Videos (*.png *.jpg *.jpeg *.webp *.bmp *.webm *.mp4 *.avi *.mov *.mkv);;Images (*.png *.jpg *.jpeg *.webp *.bmp);;Videos (*.webm *.mp4 *.avi *.mov *.mkv)"
+        )
         if _fp is not None and _fp != '':
             _bp = os.path.join(os_utils.get_path_under_work_dir('custom', 'assets', 'ui'), 'banner')
             shutil.copyfile(_fp, _bp)
             self.reload_banner()
 
-    def _on_version_poster_changed(self, value: bool) -> None:
-        if value:
-            self.remote_banner_opt.setValue(False)
-        self.reload_banner()
-
-    def _on_remote_banner_changed(self, value: bool) -> None:
-        if value:
-            self.version_poster_opt.setValue(False)
+    def _on_background_type_changed(self, index: int, value: str) -> None:
+        """背景类型改变时的回调"""
         self.reload_banner()
 
     def reload_banner(self) -> None:

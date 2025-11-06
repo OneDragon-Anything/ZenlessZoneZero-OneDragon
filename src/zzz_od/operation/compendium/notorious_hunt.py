@@ -348,10 +348,14 @@ class NotoriousHunt(ZOperation):
             return self.round_wait(wait=0.5)
         else:
             self.last_distance = current_distance
+            log.info(f'识别距离: {current_distance}')
             press_time = self.auto_op.auto_battle_context.last_check_distance / 7.2  # 朱鸢测出来的速度
-            self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
-            self.move_times += 1
-            return self.round_wait(wait=0.5)
+            if press_time > 0:
+                self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
+                self.move_times += 1
+                return self.round_wait(wait=0.5)
+            else:
+                return self.round_retry(status='识别距离失败', wait=1)
 
     def turn_to_target(self, target: Point) -> bool:
         """
@@ -619,19 +623,18 @@ def __debug_charge():
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
-    ctx.init_ocr()
+    ctx.init()
     ctx.run_context.start_running()
     op = NotoriousHunt(
         ctx,
         ChargePlanItem(
             category_name='恶名狩猎',
-            mission_type_name='冥宁芙·双子',
+            mission_type_name='彷徨猎手',
             level=NotoriousHuntLevelEnum.DEFAULT.value.value,
-            auto_battle_config='专属配队-简',
+            auto_battle_config='全配对通用',
             predefined_team_idx=0,
         ),
-        use_charge_power=True)
+        use_charge_power=False)
     op.can_run_times = 1
     op.auto_op = None
     op.init_auto_battle()

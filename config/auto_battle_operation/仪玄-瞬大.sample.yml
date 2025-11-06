@@ -6,7 +6,5 @@ operations:
     post_delay: 0.1
   - op_name: "按键-普通攻击-按下"
   - op_name: "等待秒数"
-    seconds: 3.0
+    seconds: 0.8
   - op_name: "按键-普通攻击-松开"
-  - op_name: "等待秒数"
-    seconds: 0.1

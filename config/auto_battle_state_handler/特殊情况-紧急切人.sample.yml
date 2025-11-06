@@ -17,12 +17,24 @@ handlers:
         operations:
           - op_name: "按键-切换角色"
             agent_name: "耀嘉音"
+          - op_name: "按键-移动-前-按下"
+          - op_name: "按键-特殊攻击"
+            post_delay: 0.1
+            repeat: 3
+          - op_name: "等待秒数"
+            seconds: 2
 
       - states: "[耀嘉音-能量]{0, 120} & ![前台-耀嘉音] & ![自定义-耀嘉音-唱歌, 0, 180]"
         debug_name: "耀嘉音补唱歌"
         operations:
           - op_name: "按键-切换角色"
             agent_name: "耀嘉音"
+          - op_name: "按键-移动-前-按下"
+          - op_name: "按键-特殊攻击"
+            post_delay: 0.1
+            repeat: 3
+          - op_name: "等待秒数"
+            seconds: 2
 
   # 我看啊，是放错了终结技
   - states: "[自定义-耀嘉音-尝试释放终结技, 2, 99] & [耀嘉音-终结技可用]"
@@ -33,6 +45,14 @@ handlers:
       - op_name: "清除状态"
         state: "自定义-非失衡连携"
         add: 2
+
+  # 卢西娅进场需要先放一次技能
+  - states: "![自定义-卢西娅-暗破, 0, 999] & [后台-卢西娅]"
+    debug_name: "卢西娅进场先开暗破"
+    operations:
+      - op_name: "按键-切换角色"
+        agent_name: "卢西娅"
+      - operation_template: "卢西娅-普通攻击合轴"
 
   # 青衣在失衡其间不小心切出来了就切到输出去
   - states: "[前台-青衣] & [自定义-连携换人, 0, 10]"
@@ -62,6 +82,13 @@ handlers:
     operations:
       - op_name: "按键-切换角色"
         agent_name: "仪玄"
+
+  # 真斗也要失衡其间要输出
+  - states: "[前台-击破] & [后台-真斗] & [自定义-连携换人, 0, 10]"
+    debug_name: "真斗打输出了"
+    operations:
+      - op_name: "按键-切换角色"
+        agent_name: "真斗"
 
   #零号安比的追击白银点
   - states: "[零号安比-能量] & ![自定义-零号安比-追击回能, 0, 5] & ([后台-扳机] | [后台-奥菲丝] | [后台-波可娜])"

@@ -105,7 +105,7 @@
 
   # 星见雅
 - category: "星见雅"
-  name: "花雪憩蜂"
+  name: "花间憩蜂"
   level: "S"
   is_gear: true
   template_id: "gear_hoshimi_miyabi_1"
@@ -794,7 +794,7 @@
   template_id: "gear_ju_fufu_2"
 
 - category: "橘福福"
-  name: 「风雷」之音-a"
+  name: "「风雷」之音-a"
   level: "S"
   is_gear: true
 
@@ -966,6 +966,23 @@
   level: "S"
   is_gear: true
 
+  # 异影
+- category: "杰佩托"
+  name: "处决指令"
+  level: "S"
+
+- category: "杰佩托"
+  name: "审判时刻"
+  level: "S"
+
+- category: "杰佩托"
+  name: "以血还血"
+  level: "A"
+
+- category: "杰佩托"
+  name: "近身突刺"
+  level: "A"
+
   # 携游
 - category: "携游"
   name: "节能载具"
@@ -1101,6 +1118,10 @@
 
   # 通用
 - category: "通用"
+  name: "射吸式焊炬"
+  level: "S"
+
+- category: "通用"
   name: "瓶中幸运星"
   level: "A"
 
@@ -1199,22 +1220,6 @@
   # 契合
 
 - category: "契合"
-  name: "返场时刻"
-  level: "S"
-
-- category: "契合"
-  name: "干票大的"
-  level: "S"
-
-- category: "契合"
-  name: "往日手感"
-  level: "S"
-
-- category: "契合"
-  name: "银心的鸣破"
-  level: "S"
-
-- category: "契合"
   name: "充盈电鸣"
   level: "S"
 
@@ -1224,10 +1229,6 @@
 
 - category: "契合"
   name: "火力全开"
-  level: "S"
-
-- category: "契合"
-  name: "天衣无缝"
   level: "S"
 
 - category: "契合"
@@ -1243,7 +1244,11 @@
   level: "S"
 
 - category: "契合"
-  name: "饭前运动"
+  name: "邦布赐予我力量"
+  level: "S"
+
+- category: "契合"
+  name: "烈锤火花"
   level: "S"
 
 - category: "契合"
@@ -1251,11 +1256,7 @@
   level: "S"
 
 - category: "契合"
-  name: "邦布赐予我力量"
-  level: "S"
-
-- category: "契合"
-  name: "对敌起床气"
+  name: "对敌型起床气"
   level: "S"
 
 - category: "契合"
@@ -1267,23 +1268,27 @@
   level: "S"
 
 - category: "契合"
-  name: "烈锤火花"
+  name: "天衣无缝"
+  level: "S"
+
+- category: "契合"
+  name: "银心的鸣破"
+  level: "S"
+
+- category: "契合"
+  name: "与你的旋律"
+  level: "S"
+
+- category: "契合"
+  name: "废墟上的花"
+  level: "S"
+
+- category: "契合"
+  name: "三个火枪手"
   level: "S"
 
 - category: "契合"
   name: "砥砺同行"
-  level: "S"
-
-- category: "契合"
-  name: "大小姐冲锋"
-  level: "S"
-
-- category: "契合"
-  name: "拳法：综合果味"
-  level: "S"
-
-- category: "契合"
-  name: "希望的力量"
   level: "S"
 
 - category: "契合"
@@ -1299,11 +1304,27 @@
   level: "S"
 
 - category: "契合"
+  name: "大小姐冲锋"
+  level: "S"
+
+- category: "契合"
+  name: "希望的力量"
+  level: "S"
+
+- category: "契合"
   name: "霸主同行"
   level: "S"
 
 - category: "契合"
   name: "燃油饮欢宴"
+  level: "S"
+
+- category: "契合"
+  name: "拳法：综合果味"
+  level: "S"
+
+- category: "契合"
+  name: "干票大的"
   level: "S"
 
 - category: "契合"
@@ -1319,6 +1340,10 @@
   level: "S"
 
 - category: "契合"
+  name: "饭前运动"
+  level: "S"
+
+- category: "契合"
   name: "返场时刻"
   level: "S"
 
@@ -1327,23 +1352,15 @@
   level: "S"
 
 - category: "契合"
-  name: "银心的鸣破"
-  level: "S"
-
-- category: "契合"
-  name: "与你的旋律"
-  level: "S"
-
-- category: "契合"
   name: "少女的阳伞"
   level: "S"
 
 - category: "契合"
-  name: "守华照寂"
+  name: "怪盗的魔法"
   level: "S"
 
 - category: "契合"
-  name: "好大威风"
+  name: "守花照寂"
   level: "S"
 
 - category: "契合"
@@ -1351,7 +1368,7 @@
   level: "S"
 
 - category: "契合"
-  name: "最佳对称拍档"
+  name: "好大威风"
   level: "S"
 
 - category: "契合"
@@ -1359,8 +1376,16 @@
   level: "S"
 
 - category: "契合"
-  name: "命破战术交流"
-  level: "A"
+  name: "最佳对称拍档"
+  level: "S"
+
+- category: "契合"
+  name: "月夜大冒险"
+  level: "S"
+
+- category: "契合"
+  name: "百炼重刃"
+  level: "S"
 
 - category: "契合"
   name: "强攻战术交流"
@@ -1598,28 +1623,6 @@
 
 - category: "卡牌"
   name: "「符号学原理」马拉松"
-  level: "S"
-
-  # 杰佩托
-- category: "杰佩托"
-  name: "处决指令"
-  level: "S"
-
-- category: "杰佩托"
-  name: "审判时刻"
-  level: "S"
-
-- category: "杰佩托"
-  name: "以血还血"
-  level: "A"
-
-- category: "杰佩托"
-  name: "近身突刺"
-  level: "A"
-
-  # 焊炬
-- category: "射吸式焊炬"
-  name: "射吸式焊炬"
   level: "S"
 
   # 无详情的特殊品

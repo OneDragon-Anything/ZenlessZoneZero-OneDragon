@@ -1,0 +1,32 @@
+- step: 按区域裁剪
+  params:
+    screen_name: 迷失之地-调查战略选择
+    area_name: 战略等级
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 179
+    - 59
+    - 63
+    hsv_diff:
+    - 15
+    - 51
+    - 63
+- step: 腐蚀
+  params:
+    kernel_size: 3
+    iterations: 1
+- step: 膨胀
+  params:
+    kernel_size: 3
+    iterations: 1
+- step: 查找轮廓
+  params:
+    mode: EXTERNAL
+    method: SIMPLE
+    draw_contours: 0
+- step: 按面积过滤
+  params:
+    min_area: 3000
+    max_area: 4000
+    draw_contours: true

@@ -88,12 +88,12 @@ class DingDingBot(PushChannel):
             # 生成时间戳和签名
             timestamp = str(round(time.time() * 1000))
             sign = self._generate_sign(secret, timestamp)
-
             # 构建消息内容
             message_data = {
                 "msgtype": "markdown",
                 "markdown": {
-                    "title": title,
+                    "title": f"{title}\n{content}",
+                    #需要在"title"中添加消息具体内容{content},否则钉钉在系统通知栏只显示{title}部分无法识别对应的具体步骤
                     "text": f"## {title}\n\n{content}"
                 }
             }
