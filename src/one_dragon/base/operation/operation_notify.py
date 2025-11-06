@@ -6,7 +6,6 @@ from enum import Enum
 from dataclasses import dataclass
 
 from one_dragon.utils.i18_utils import gt
-from one_dragon.base.config.notify_config import NotifyConfig
 from one_dragon.base.operation.operation_round_result import OperationRoundResult, OperationRoundResultEnum
 
 if TYPE_CHECKING:
@@ -40,23 +39,17 @@ def _should_notify(app: Application, desc: Optional[NodeNotifyDesc] = None) -> b
     Returns:
         bool: 是否应该发送通知
     """
-    if not hasattr(app.ctx, 'notify_config'):
-        return False
-
-    notify_cfg: NotifyConfig = app.ctx.notify_config
-
     # 检查全局通知开关
-    if not getattr(notify_cfg, 'enable_notify', False):
+    if not app.ctx.notify_config.enable_notify:
         return False
 
     # 检查 before 通知开关
     if desc and desc.when == NotifyTiming.BEFORE:
-        if not getattr(notify_cfg, 'enable_before_notify', False):
+        if not app.ctx.notify_config.enable_before_notify:
             return False
 
     # 检查应用级别的通知开关
-    app_id = getattr(app, 'app_id', None)
-    if app_id and not getattr(notify_cfg, app_id, False):
+    if app.app_id and not getattr(app.ctx.notify_config, app.app_id, False):
         return False
 
     return True
@@ -369,9 +362,8 @@ def send_node_notify(
     phase = _get_phase_text(desc.when, success)
 
     # 构建消息
-    app_name = getattr(app, 'op_name', '')
     msg = _build_node_message(
-        app_name=app_name,
+        app_name=app.op_name,
         node_name=node_name,
         phase=phase,
         custom_message=desc.custom_message,
