@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  test-check:
+  build-auto-battle-merged-files:
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -46,12 +46,14 @@ jobs:
 
       - name: Commit changes
         run: |
-          if ! git diff --quiet; then
+          $hasChanges = git diff --quiet -- config/auto_battle/*.merged.yml
+          if ($LASTEXITCODE -ne 0) {
             git config user.name github-actions
             git config user.email github-actions@github.com
             git add config/auto_battle/*.merged.yml
-            git commit -m "自动合并自动战斗文件提交 $(date +%Y-%m-%d)"
+            $date = Get-Date -Format "yyyy-MM-dd"
+            git commit -m "自动合并自动战斗文件提交 $date"
             git push
-          else
-            echo "No file modifications"
-          fi
+          } else {
+            Write-Host "No file modifications"
+          }
