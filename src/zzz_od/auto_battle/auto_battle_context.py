@@ -77,8 +77,7 @@ class AutoBattleContext:
     def init_auto_op(
         self,
         op_name: str,
-        sub_dir: str = 'auto_battle',
-        read_from_merged: bool = True,
+        sub_dir: str = 'auto_battle'
     ) -> None:
         """
         加载自动战斗指令
@@ -86,13 +85,13 @@ class AutoBattleContext:
         Args:
             sub_dir: 子文件夹
             op_name: 模板名称
-            read_from_merged: 是否从合并的模板中读取
         """
         # 先设置为空 防止中途错误又保留了旧的值
         self.auto_op = None
 
         key = f'{sub_dir}-{op_name}'
         # 只有是从合并文件读取 才使用缓存
+        read_from_merged = self.ctx.battle_assistant_config.use_merged_file
         if read_from_merged and key in self._op_cache:
             self.auto_op = self._op_cache[key]
         else:

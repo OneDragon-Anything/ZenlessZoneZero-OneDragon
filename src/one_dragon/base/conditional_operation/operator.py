@@ -93,6 +93,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
         """
         销毁操作器
         """
+        self.stop_running()
         self.state_record_service.unregister_operator(self)
 
     @abstractmethod
