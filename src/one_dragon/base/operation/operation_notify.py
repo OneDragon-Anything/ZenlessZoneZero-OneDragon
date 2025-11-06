@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from typing import Optional, Callable, List, TYPE_CHECKING, Literal
-from io import BytesIO
 from enum import Enum
 from dataclasses import dataclass
+
+from cv2.typing import MatLike
 
 from one_dragon.utils.i18_utils import gt
 from one_dragon.base.operation.operation_round_result import OperationRoundResult, OperationRoundResultEnum
@@ -181,10 +182,10 @@ def _get_phase_text(timing: NotifyTiming, success: Optional[bool]) -> str:
 @dataclass
 class _NotifyImageContext:
     """通知图片上下文 - 管理截图状态（内部使用）"""
-    before_image: Optional[BytesIO] = None
-    after_image: Optional[BytesIO] = None
+    before_image: Optional[MatLike] = None
+    after_image: Optional[MatLike] = None
 
-    def get_image(self, strategy: CaptureStrategy) -> Optional[BytesIO]:
+    def get_image(self, strategy: CaptureStrategy) -> Optional[MatLike]:
         """根据策略获取对应的图片"""
         if strategy == CaptureStrategy.BEFORE:
             return self.before_image
@@ -359,7 +360,7 @@ def send_node_notify(
         node_name: str,
         success: Optional[bool],
         desc: NodeNotifyDesc,
-        image: Optional[BytesIO] = None,
+        image: Optional[MatLike] = None,
         status: Optional[str] = None,
 ):
     """
