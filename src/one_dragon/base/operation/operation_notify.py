@@ -55,23 +55,21 @@ def _should_notify(app: Application, desc: Optional[NodeNotifyDesc] = None) -> b
     return True
 
 
-def _should_send_image(app: Application, desc: Optional[NodeNotifyDesc] = None) -> bool:
+def _should_send_image(app: Application, desc: NodeNotifyDesc) -> bool:
     """
     检查是否应该发送图片
 
     Args:
         app: Application 实例
-        desc: 节点通知描述（可选）
+        desc: 节点通知描述
 
     Returns:
         bool: 是否应该发送图片
     """
-    # 如果描述中明确指定了是否发送图片，优先使用
-    if desc and desc.send_image is not None:
+    if app.ctx.push_service.push_config.send_image:
         return desc.send_image
 
-    # 否则使用全局配置
-    return app.ctx.push_service.push_config.send_image
+    return False
 
 
 def _build_application_message(app_name: str, status: str) -> str:
@@ -224,9 +222,8 @@ class NodeNotifyDesc:
     def custom_node(...): ...
 
     # 控制图片发送
-    @node_notify(send_image=True)               # 强制发送截图
-    @node_notify(send_image=False)              # 强制不发送截图
-    @node_notify(send_image=None)               # 使用全局配置（默认）
+    @node_notify(send_image=True)               # 发送截图
+    @node_notify(send_image=False)              # 不发送截图
     def image_node(...): ...
 
     # 组合使用
@@ -237,7 +234,7 @@ class NodeNotifyDesc:
     参数说明：
     - when: 控制通知触发时机（before/after/after_success/after_fail）
     - custom_message: 自定义附加消息，会追加在标准消息后
-    - send_image: 控制是否发送截图（True/False/None），None 表示使用全局配置
+    - send_image: 控制是否发送截图（True/False）
     - detail: 是否显示详细信息（节点名和返回状态）
 
     自动行为：
@@ -252,7 +249,7 @@ class NodeNotifyDesc:
             self,
             when: Literal['before', 'after', 'after_success', 'after_fail'] = 'after',
             custom_message: Optional[str] = None,
-            send_image: Optional[bool] = None,
+            send_image: bool = True,
             detail: bool = False,
     ):
         """
@@ -266,9 +263,8 @@ class NodeNotifyDesc:
                 - 'after_fail': 仅在节点失败后发送通知
             custom_message: 自定义附加消息，会追加在标准消息后面
             send_image: 是否随通知发送截图
-                - True: 强制发送截图
-                - False: 强制不发送截图
-                - None: 使用全局配置（push_config.send_image）
+                - True: 发送截图
+                - False: 不发送截图
             detail: 是否显示详细信息（节点名称和返回状态）
                 - True: 显示完整信息，如"任务「xxx」节点「node」成功 [status]"
                 - False: 简化消息，如"任务「xxx」成功"
@@ -286,14 +282,14 @@ class NodeNotifyDesc:
             self.capture: CaptureStrategy = CaptureStrategy.AFTER
 
         self.custom_message: Optional[str] = custom_message
-        self.send_image: Optional[bool] = send_image
+        self.send_image: bool = send_image
         self.detail: bool = detail
 
 
 def node_notify(
     when: Literal['before', 'after', 'after_success', 'after_fail'] = 'after',
     custom_message: Optional[str] = None,
-    send_image: Optional[bool] = None,
+    send_image: bool = True,
     detail: bool = False,
 ):
     """为操作节点函数附加通知元数据的装饰器（仿照 operation_edge.node_from 实现）。
@@ -306,9 +302,8 @@ def node_notify(
             - 'after_fail': 仅在节点失败后发送通知
         custom_message: 自定义附加消息，会追加在标准消息后面
         send_image: 是否随通知发送截图
-            - True: 强制发送截图（覆盖全局配置）
-            - False: 强制不发送截图（覆盖全局配置）
-            - None: 使用全局配置（push_config.send_image，默认值）
+            - True: 发送截图
+            - False: 不发送截图
         detail: 是否显示详细信息（节点名称和返回状态），默认 False
             - True: 显示完整信息，如"任务「xxx」节点「node」成功 [status]"
             - False: 简化消息，如"任务「xxx」成功"
