@@ -1,8 +1,8 @@
 import contextlib
-import os
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from packaging import version
 from pygit2 import (
@@ -22,8 +22,6 @@ from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
-DOT_GIT_DIR_PATH = os.path.join(os_utils.get_work_dir(), '.git')
-
 
 @dataclass
 class GitLog:
@@ -36,9 +34,16 @@ class GitLog:
 
 class GitService:
 
-    def __init__(self, project_config: ProjectConfig, env_config: EnvConfig):
+    def __init__(self, project_config: ProjectConfig, env_config: EnvConfig, repo_dir: str | None = None):
         self.project_config: ProjectConfig = project_config
         self.env_config: EnvConfig = env_config
+
+        if repo_dir:
+            if not Path(repo_dir).is_absolute():
+                repo_dir = str(Path(os_utils.get_work_dir()) / repo_dir)
+        else:
+            repo_dir = os_utils.get_work_dir()
+        self.repo_dir: str = repo_dir
 
         self._repo: Repository | None = None
         self._ensure_config_search_path()
@@ -63,16 +68,15 @@ class GitService:
             self._repo = None
 
         if self._repo is None:
-            work_dir = os_utils.get_work_dir()
             # 检查是否是有效的 git 仓库
-            git_dir = discover_repository(work_dir)
+            git_dir = discover_repository(self.repo_dir)
             if not git_dir:
-                raise ValueError(f'目录 {work_dir} 不是有效的 Git 仓库')
+                raise ValueError(f'目录 {self.repo_dir} 不是有效的 Git 仓库')
             self._repo = Repository(git_dir)
 
         return self._repo
 
-    def _ensure_remote(self, for_clone: bool = False) -> Remote | None:
+    def _ensure_remote(self) -> Remote | None:
         """确保远程仓库配置正确
 
         Args:
@@ -81,7 +85,7 @@ class GitService:
         Returns:
             Remote对象，失败时返回None
         """
-        remote_url = self._get_git_repository(for_clone)
+        remote_url = self._get_git_repository()
         if not remote_url:
             raise ValueError('未能获取有效的远程仓库地址')
 
@@ -106,7 +110,7 @@ class GitService:
         repo.remotes.create(remote_name, remote_url)
         return repo.remotes[remote_name]
 
-    def _get_git_repository(self, for_clone: bool = False) -> str:
+    def _get_git_repository(self) -> str:
         """获取仓库地址
 
         Args:
@@ -118,7 +122,7 @@ class GitService:
         if repo_type == RepositoryTypeEnum.GITHUB.value.value:
             if git_method == GitMethodEnum.HTTPS.value.value:
                 repo = self.project_config.github_https_repository
-                if self.env_config.is_gh_proxy and for_clone:
+                if self.env_config.is_gh_proxy:
                     return f'{self.env_config.gh_proxy_url}/{repo}'
                 return repo
             else:
@@ -158,7 +162,7 @@ class GitService:
         log.info(gt('获取远程代码'))
 
         try:
-            remote = self._ensure_remote(for_clone)
+            remote = self._ensure_remote()
             branch_name = self.env_config.git_branch
             refspec = f'+refs/heads/{branch_name}:refs/remotes/{remote.name}/{branch_name}'
 
@@ -468,11 +472,17 @@ class GitService:
 
     # ================== 公共 API ==================
 
+    def check_repo_exists(self) -> bool:
+        """
+        检查本地仓库是否存在
+        """
+        return Path(self.repo_dir, '.git').exists()
+
     def fetch_latest_code(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
         """
         更新最新的代码：不存在 .git 则克隆，存在则拉取并更新分支
         """
-        if not os.path.exists(DOT_GIT_DIR_PATH):
+        if not self.check_repo_exists():
             return self._clone_repository(progress_callback)
         else:
             return self._fetch_and_checkout_latest_branch(progress_callback)
@@ -554,7 +564,7 @@ class GitService:
         """
         更新remote
         """
-        if not os.path.exists(DOT_GIT_DIR_PATH):
+        if not self.check_repo_exists():
             return
 
         try:
@@ -582,7 +592,7 @@ class GitService:
             (最新稳定版, 最新测试版)
         """
         # 如果不存在本地仓库，返回空
-        if not os.path.exists(DOT_GIT_DIR_PATH):
+        if not self.check_repo_exists():
             return '', ''
 
         try:
