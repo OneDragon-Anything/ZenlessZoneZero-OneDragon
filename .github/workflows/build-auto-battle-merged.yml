@@ -9,6 +9,8 @@ on:
 jobs:
   build-auto-battle-merged-files:
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -40,7 +42,7 @@ jobs:
          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
          .\.venv\Scripts\Activate.ps1
          
-         uv run src/zzz_od/auto_battle/build_utils.py
+         uv run python src/zzz_od/auto_battle/build_utils.py
         env:
          PYTHONPATH: src
 

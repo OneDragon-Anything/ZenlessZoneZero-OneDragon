@@ -142,7 +142,7 @@ class AutoBattleInterface(AppRunInterface):
         self._update_auto_battle_config_opts()
         self.config_opt.setValue(self.ctx.battle_assistant_config.auto_battle_config)
         self.gpu_opt.init_with_adapter(get_prop_adapter(self.ctx.model_config, 'flash_classifier_gpu'))
-        self.merged_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'merged_config'))
+        self.merged_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'use_merged_file'))
         self.screenshot_interval_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'screenshot_interval'))
         self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.gamepad_type)
         self.ctx.listen_event(AutoBattleApp.EVENT_OP_LOADED, self._on_auto_op_loaded_event)
