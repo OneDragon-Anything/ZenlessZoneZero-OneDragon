@@ -4,6 +4,7 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.transport import Transport
 from zzz_od.operation.compendium.compendium_choose_category import CompendiumChooseCategory
 from zzz_od.operation.compendium.compendium_choose_mission_type import CompendiumChooseMissionType
 from zzz_od.operation.zzz_operation import ZOperation
@@ -34,8 +35,15 @@ class TransportByCompendium(ZOperation):
 
     @operation_node(name='返回大世界', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
+        # 先回到大世界
         op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
+        result = op.execute()
+        if result.success and result.status == '大世界-勘域':
+            # 仅在需要使用快捷手册的场景下，并且返回后不处于大世界-普通时，
+            # 先传送到不成文规定的统一起点，避免传送确认弹窗差异
+            tp = Transport(self.ctx, '录像店', '房间')  # 不成文规定：先前的鼠标校准功能选择的传送点
+            return self.round_by_op_result(tp.execute())
+        return self.round_by_op_result(result)
 
     @node_from(from_name='返回大世界')
     @operation_node(name='快捷手册')
