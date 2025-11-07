@@ -386,3 +386,11 @@ class AgentEnum(Enum):
                                           hsv_color=(20,255,255), hsv_color_diff=(15,255,55),
                                           max_length=100)
                         ])
+
+    YIDHARI = Agent('yidhari', '伊德海莉', RareTypeEnum.S, AgentTypeEnum.RUPTURE, DmgTypeEnum.ICE, ['yidhari'],
+                        state_list=[
+                            AgentStateDef('伊德海莉-蓄力段数', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                    template_id='yidhari',
+                                    hsv_color=(95, 100, 245), hsv_color_diff=(5, 125, 20),
+                                    max_length=85)
+                        ])
