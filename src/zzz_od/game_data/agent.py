@@ -379,7 +379,7 @@ class AgentEnum(Enum):
                                       max_length=100)
                     ])
 
-    MANATO = Agent('manato', '真斗', RareTypeEnum.A, AgentTypeEnum.RUPTURE, DmgTypeEnum.FIRE, ['manato'],
+    MANATO = Agent('manato', '真斗', RareTypeEnum.A, AgentTypeEnum.RUPTURE, DmgTypeEnum.FIRE, ['manato', 'manato_white_heart_silhouette'],
                         state_list=[
                             AgentStateDef('真斗-炽心', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                           template_id='manato',
