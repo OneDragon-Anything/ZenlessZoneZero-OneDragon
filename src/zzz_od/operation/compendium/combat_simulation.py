@@ -134,8 +134,8 @@ class CombatSimulation(ZOperation):
     @operation_node(name='选择副本')
     def choose_mission(self) -> OperationRoundResult:
 
-        # 滑动次数大于5则返回失败
-        if self.scroll_count > 5:
+        # 滑动次数大于10则返回失败
+        if self.scroll_count > 10:
             self.scroll_count = 0
             return self.round_success(status=CombatSimulation.STATUS_CHOOSE_FAIL)
 
@@ -158,7 +158,7 @@ class CombatSimulation(ZOperation):
                 log.info(f'找到代理人目标，点击位置: {target_point}')
 
             if target_point is None:
-                start = area.center
+                start = area.center + Point(-100, 0)
                 end = start + Point(-400, 0)
                 self.ctx.controller.drag_to(start=start, end=end)
                 self.scroll_count += 1

@@ -1,24 +1,19 @@
-import sys
-import time
 import atexit
-import signal
 import ctypes
-from ctypes import wintypes
-
 import datetime
 import os
+import signal
 import subprocess
-from colorama import init, Fore, Style
+import sys
+import time
+from ctypes import wintypes
+
+from colorama import Fore, Style, init
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 
 # 初始化 colorama
 init(autoreset=True)
-
-# 设置当前工作目录
-# 最后exe存放的目录
-path = os.path.dirname(sys.argv[0])
-os.chdir(path)
 
 def print_message(message, level="INFO"):
     # 打印消息，带有时间戳和日志级别
@@ -27,17 +22,30 @@ def print_message(message, level="INFO"):
     color = colors.get(level, Fore.WHITE)
     print(f"{timestamp} | {color}{level}{Style.RESET_ALL} | {message}")
 
-def verify_path_issues():
+def verify_working_directory():
+    # 设置当前工作目录
+    if getattr(sys, 'frozen', False):
+        cwd = os.path.dirname(sys.executable)
+
+    # 如果目录为空，使用当前工作目录
+    if not cwd:
+        cwd = os.getcwd()
+
+    os.chdir(cwd)
+    print_message(f"当前工作目录：{cwd}", "INFO")
+
     # 验证路径是否存在问题
-    if any('\u4e00' <= char <= '\u9fff' for char in path):
+    if any('\u4e00' <= char <= '\u9fff' for char in cwd):
         print_message("路径包含中文字符", "ERROR")
         sys.exit(1)
-    if ' ' in path:
+    if ' ' in cwd:
         print_message("路径中存在空格", "ERROR")
         sys.exit(1)
     print_message("目录核验通过", "PASS")
 
-def configure_environment(ctx: OneDragonEnvContext):
+    return cwd
+
+def configure_environment(ctx: OneDragonEnvContext, cwd):
     uv_path = ctx.env_config.uv_path
     if not uv_path or not os.path.exists(uv_path):
         print_message("获取 UV 路径失败，请运行安装程序。", "ERROR")
@@ -46,7 +54,7 @@ def configure_environment(ctx: OneDragonEnvContext):
     # 配置环境变量
     print_message("开始配置环境变量...", "INFO")
     os.environ.update({
-        'PYTHONPATH': os.path.join(path, "src"),
+        'PYTHONPATH': os.path.join(cwd, "src"),
         'UV_DEFAULT_INDEX': ctx.env_config.pip_source,
     })
 
@@ -227,10 +235,9 @@ def fetch_latest_code(ctx: OneDragonEnvContext) -> None:
 def run_python(app_path, no_windows: bool = True, args: list | None = None, piped: bool = False):
     # 主函数
     try:
-        print_message(f"当前工作目录：{path}", "INFO")
-        verify_path_issues()
+        cwd = verify_working_directory()
         ctx = OneDragonEnvContext()
-        configure_environment(ctx)
+        configure_environment(ctx, cwd)
         fetch_latest_code(ctx)
         execute_python_script(ctx, app_path, no_windows, args, piped)
     except SystemExit as e:
