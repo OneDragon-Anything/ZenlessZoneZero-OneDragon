@@ -4,6 +4,7 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -35,7 +36,6 @@ class ShiyuDefenseApp(ZApplication):
             self,
             ctx=ctx, app_id=shiyu_defense_const.APP_ID,
             op_name=gt(shiyu_defense_const.APP_NAME),
-            need_notify=True,
         )
 
         self.config: ShiyuDefenseConfig = self.ctx.run_context.get_config(
@@ -162,6 +162,7 @@ class ShiyuDefenseApp(ZApplication):
             return self.round_success()
 
     @node_from(from_name='自动战斗', status=STATUS_NEXT_NODE)
+    @node_notify(when='before', detail=True)
     @operation_node(name='下一节点')
     def to_next_node(self) -> OperationRoundResult:
         # 点击直到下一步出现 出现后 再等一会等属性出现
@@ -198,13 +199,16 @@ class ShiyuDefenseApp(ZApplication):
 
     @node_from(from_name='所有节点完成')
     @node_from(from_name='选择节点', status=STATUS_ALL_FINISHED)
+    @node_notify(when='after', detail=True)
     @operation_node(name='领取奖励')
     def claim_reward(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '全部领取')
         if result.is_success:
             return self.round_success(result.status, wait=1)
 
-        self.round_by_click_area('式舆防卫战', '奖励入口')
+        result = self.round_by_click_area('式舆防卫战', '奖励入口')
+        if result.is_success:
+            return self.round_wait(result.status, wait=0.5)
 
         return self.round_retry(result.status, wait=1)
 
@@ -218,9 +222,12 @@ class ShiyuDefenseApp(ZApplication):
 
         result = self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '领取奖励-确认')
         if result.is_success:
-            return self.round_wait(result.status, wait=1)
+            return self.round_wait(result.status, wait=0.5)
 
-        self.round_by_click_area('式舆防卫战', '领取奖励-关闭')
+        result = self.round_by_click_area('式舆防卫战', '领取奖励-关闭')
+        if result.is_success:
+            return self.round_wait(result.status, wait=0.5)
+
         return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='自动战斗')  # 战斗失败的情况
@@ -228,7 +235,6 @@ class ShiyuDefenseApp(ZApplication):
     @operation_node(name='结束后返回')
     def back_after_all(self) -> OperationRoundResult:
         log.info('新一期刷新后 可到「式舆防卫战」重置运行记录')
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

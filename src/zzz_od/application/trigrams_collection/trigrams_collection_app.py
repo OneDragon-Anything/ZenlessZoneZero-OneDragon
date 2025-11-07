@@ -4,6 +4,7 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.trigrams_collection import trigrams_collection_const
@@ -21,7 +22,6 @@ class TrigramsCollectionApp(ZApplication):
             ctx=ctx,
             app_id=trigrams_collection_const.APP_ID,
             op_name=gt(trigrams_collection_const.APP_NAME),
-            need_notify=True,
         )
         self.claim_reward: bool = False  # 是否已获取卦象
 
@@ -46,6 +46,7 @@ class TrigramsCollectionApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='移动交互')
+    @node_notify(when='after')
     @operation_node(name='获取卦象', node_max_retry_times=10)
     def get_trigram(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
@@ -77,7 +78,6 @@ class TrigramsCollectionApp(ZApplication):
     @node_from(from_name='获取卦象')
     @operation_node(name='结束后返回')
     def back_at_last(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
