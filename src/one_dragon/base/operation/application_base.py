@@ -33,7 +33,6 @@ class Application(Operation):
                  need_check_game_win: bool = True,
                  op_to_enter_game: Optional[Operation] = None,
                  run_record: Optional[AppRunRecord] = None,
-                 need_notify: bool = False,
                  ):
         Operation.__init__(
             self,
@@ -60,8 +59,6 @@ class Application(Operation):
                 pass
         """运行记录"""
 
-        self.need_notify: bool = need_notify  # 应用运行前后发送通知
-
     def _init_before_execute(self) -> None:
         Operation._init_before_execute(self)
 
@@ -73,7 +70,8 @@ class Application(Operation):
         if self.run_record is not None:
             self.run_record.check_and_update_status()  # 先判断是否重置记录
             self.run_record.update_status(AppRunRecord.STATUS_RUNNING)
-        if self.need_notify:
+
+        if self.ctx.run_context.is_app_need_notify(self.app_id):
             application_notify(self, None)
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
@@ -86,7 +84,7 @@ class Application(Operation):
         Operation.after_operation_done(self, result)
         self._update_record_after_stop(result)
 
-        if self.need_notify:
+        if self.ctx.run_context.is_app_need_notify(self.app_id):
             application_notify(self, result.success)
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_STOP.value, self.app_id)

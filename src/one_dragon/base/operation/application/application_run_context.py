@@ -82,9 +82,6 @@ class ApplicationRunContext:
         self.current_instance_idx: Optional[int] = None
         self.current_group_id: Optional[str] = None
 
-        # 缓存 need_notify=True 的应用 {app_id: op_name} 映射，避免每次都实例化全部应用
-        self._cached_notify_app_map: Optional[dict[str, str]] = None
-
     def registry_application(
         self,
         factory: ApplicationFactory | list[ApplicationFactory],
@@ -109,38 +106,24 @@ class ApplicationRunContext:
             if default_group:
                 self.default_group_apps.append(factory.app_id)
 
-        # 注册新应用后失效缓存
-        self._cached_notify_app_map = None
-
     @property
     def notify_app_map(self) -> dict[str, str]:
-        """返回 need_notify=True 的应用字典: {app_id: op_name}。
+        """返回需要通知的应用字典: {app_id: app_name}。
 
         说明:
-            1. 通过创建应用实例探测其 ``need_notify`` 标记。
-            2. 结果缓存，注册新应用时自动失效。
-            3. 探测用默认参数 instance_idx=0, group_id='default'；若某应用只在特定 group 开启通知，这里不会包含。
-            4. 若应用没有设置 op_name，则使用 app_id 作为值兜底。
+            1. 通过工厂的 need_notify 标记判断是否需要通知。
+            2. 若应用没有设置 app_name，则使用 app_id 作为值兜底。
 
         Returns:
             dict[str,str]: need_notify 为 True 的应用映射，按 app_id 排序。
         """
-        if self._cached_notify_app_map is not None:
-            return self._cached_notify_app_map
-
         tmp: list[tuple[str, str]] = []
         for app_id, factory in self._application_factory_map.items():
-            try:
-                app = factory.create_application(instance_idx=0, group_id='default')
-                if getattr(app, 'need_notify', False):
-                    op_name = getattr(app, 'op_name', None) or app_id
-                    tmp.append((app_id, op_name))
-            except Exception as e:  # noqa: PERF203
-                log.debug("探测应用 {} need_notify 失败: {}", app_id, e)
-                continue
+            if factory.need_notify:
+                app_name = factory.app_name or app_id
+                tmp.append((app_id, app_name))
 
-        self._cached_notify_app_map = {k: v for k, v in sorted(tmp, key=lambda x: x[0])}
-        return self._cached_notify_app_map
+        return {k: v for k, v in sorted(tmp, key=lambda x: x[0])}
 
     def is_app_registered(self, app_id: str) -> bool:
         """
@@ -153,6 +136,19 @@ class ApplicationRunContext:
             bool: 应用是否已注册
         """
         return app_id in self._application_factory_map
+
+    def is_app_need_notify(self, app_id: str) -> bool:
+        """
+        检查应用是否需要通知。
+
+        Args:
+            app_id: 应用ID
+
+        Returns:
+            bool: 应用是否需要通知，如果应用未注册则返回False
+        """
+        factory = self._application_factory_map.get(app_id)
+        return factory.need_notify if factory else False
 
     def get_application(
         self, app_id: str, instance_idx: int, group_id: str
