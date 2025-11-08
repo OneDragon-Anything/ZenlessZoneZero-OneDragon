@@ -110,6 +110,8 @@ class ScreenContext:
         """
         key = screen_name
         screen = self.screen_info_map.get(key, None)
+        if screen is None:
+            raise Exception(f"未找到画面: {screen_name}")
         if copy:
             return ScreenInfo(screen.to_dict())
         else:
