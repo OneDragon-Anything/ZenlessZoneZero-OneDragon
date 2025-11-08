@@ -121,20 +121,19 @@ def _extract_zip(zip_path: Path, dest_dir: Path) -> None:
 
 
 def _zip_dir_contents(root_dir: Path, zip_path: Path, *, root_prefix: str) -> None:
-    # 把 root_dir 下的所有内容打进 zip（路径相对 root_dir），并强制单根目录 root_prefix/
+    # 把 root_dir 下的所有内容打进 zip（路径相对 root_dir），可选单根目录 root_prefix/
     zip_path.parent.mkdir(parents=True, exist_ok=True)
     if zip_path.exists():
         zip_path.unlink()
 
     prefix = root_prefix.strip("/\\")
-    if not prefix:
-        raise ValueError("root_prefix must be non-empty")
 
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
         for p in root_dir.rglob("*"):
             if p.is_file():
                 rel = p.relative_to(root_dir).as_posix()
-                zf.write(p, f"{prefix}/{rel}")
+                arcname = f"{prefix}/{rel}" if prefix else rel
+                zf.write(p, arcname)
 
 
 def _zip_single_file(file_path: Path, zip_path: Path) -> None:
@@ -199,24 +198,32 @@ def main() -> int:
     signed_dir = dist_dir / "signed"
     if signed_dir.exists():
         _log("Found signed executables, replacing...")
-        for exe in ["OneDragon-Installer.exe", "OneDragon-Launcher.exe"]:
-            src = signed_dir / exe
-            if src.exists():
-                shutil.copy2(src, dist_dir / exe)
+        installer_signed = signed_dir / "OneDragon-Installer.exe"
+        if installer_signed.exists():
+            shutil.copy2(installer_signed, dist_dir / "OneDragon-Installer.exe")
+        launcher_signed = signed_dir / "OneDragon-Launcher.exe"
+        if launcher_signed.exists():
+            shutil.copy2(launcher_signed, dist_dir / "OneDragon-Launcher" / "OneDragon-Launcher.exe")
 
-    # 5. 把安装器/启动器复制到仓库根目录，并打包启动器 zip
+    # 5. 把安装器复制到仓库根目录，并打包启动器目录为 zip
     installer_exe = dist_dir / "OneDragon-Installer.exe"
-    launcher_exe = dist_dir / "OneDragon-Launcher.exe"
+    launcher_dir = dist_dir / "OneDragon-Launcher"
     if not installer_exe.exists():
         raise SystemExit(f"Missing {installer_exe}")
-    if not launcher_exe.exists():
-        raise SystemExit(f"Missing {launcher_exe}")
+    if not launcher_dir.exists():
+        raise SystemExit(f"Missing {launcher_dir}")
 
     shutil.copy2(installer_exe, repo_root / "OneDragon-Installer.exe")
-    shutil.copy2(launcher_exe, repo_root / "OneDragon-Launcher.exe")
+    # 将启动器 exe 和 .runtime 目录复制到仓库根目录
+    launcher_exe = launcher_dir / "OneDragon-Launcher.exe"
+    if launcher_exe.exists():
+        shutil.copy2(launcher_exe, repo_root / "OneDragon-Launcher.exe")
+    runtime_dir = launcher_dir / ".runtime"
+    if runtime_dir.exists():
+        shutil.copytree(runtime_dir, repo_root / ".runtime", dirs_exist_ok=True)
 
     launcher_zip = dist_dir / "ZenlessZoneZero-OneDragon-Launcher.zip"
-    _zip_single_file(launcher_exe, launcher_zip)
+    _zip_dir_contents(launcher_dir, launcher_zip, root_prefix="")
 
     # 6. 下载并解压模型到 assets/models
     model_base = repo_root / "assets/models"
@@ -301,20 +308,6 @@ def main() -> int:
     full_zip = dist_dir / f"ZenlessZoneZero-OneDragon-{release_version}-Full.zip"
     _log(f"Create Full zip: {full_zip}")
     _zip_dir_contents(repo_root, full_zip, root_prefix=f"ZenlessZoneZero-OneDragon-{release_version}-Full")
-
-    # 8. Full-Environment：把环境包放入 .install 后重新生成清单并打包
-    env_zip = dist_dir / "ZenlessZoneZero-OneDragon-Environment.zip"
-    if not env_zip.exists():
-        raise SystemExit(f"Missing {env_zip}")
-
-    shutil.copy2(env_zip, env_dir / "ZenlessZoneZero-OneDragon-Environment.zip")
-
-    _log("Generate install manifest (Full-Environment)")
-    _run([sys.executable, "tools/ci/generate_install_manifest.py"], cwd=repo_root)
-
-    full_env_zip = dist_dir / f"ZenlessZoneZero-OneDragon-{release_version}-Full-Environment.zip"
-    _log(f"Create Full-Environment zip: {full_env_zip}")
-    _zip_dir_contents(repo_root, full_env_zip, root_prefix=f"ZenlessZoneZero-OneDragon-{release_version}-Full-Environment")
 
     # 9. 复制安装器到版本化文件名
     shutil.copy2(repo_root / "OneDragon-Installer.exe", repo_root / f"ZenlessZoneZero-OneDragon-{release_version}-Installer.exe")

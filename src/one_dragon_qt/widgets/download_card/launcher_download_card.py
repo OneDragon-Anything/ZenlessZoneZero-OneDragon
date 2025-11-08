@@ -1,4 +1,5 @@
 import os
+import shutil
 from contextlib import suppress
 from pathlib import Path
 
@@ -21,6 +22,8 @@ from one_dragon_qt.widgets.setting_card.common_download_card import (
 LAUNCHER_NAME = 'OneDragon-Launcher'
 LAUNCHER_EXE_NAME = LAUNCHER_NAME + '.exe'
 LAUNCHER_BACKUP_NAME = LAUNCHER_NAME + '.bak' + '.exe'
+RUNTIME_DIR_NAME = '.runtime'
+RUNTIME_BACKUP_NAME = '.runtime.bak'
 
 
 class LauncherVersionChecker(QThread):
@@ -280,25 +283,35 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         :param backup: True=备份，False=回滚
         """
         work_dir = Path(os_utils.get_work_dir())
+        action = '备份' if backup else '回滚'
+
+        # 处理 exe 文件
         launcher_path = work_dir / LAUNCHER_EXE_NAME
         backup_path = work_dir / LAUNCHER_BACKUP_NAME
-        src, dst, action = (
-            (launcher_path, backup_path, '备份')
-            if backup else
-            (backup_path, launcher_path, '回滚')
-        )
+        src, dst = (launcher_path, backup_path) if backup else (backup_path, launcher_path)
 
-        if not src.exists():
-            return  # 没有可操作文件，直接返回
+        if src.exists():
+            try:
+                if backup and dst.exists():
+                    dst.unlink()
+                os.replace(str(src), str(dst))
+                log.info(f'{action}文件: {src.name} -> {dst.name}')
+            except Exception as e:
+                log.error(f'{action}文件失败 {src.name}: {e}')
 
-        try:
-            # 仅在备份时需要清理旧备份
-            if backup and dst.exists():
-                dst.unlink()
-            os.replace(str(src), str(dst))
-            log.info(f'{action}文件: {src.name} -> {dst.name}')
-        except Exception as e:
-            log.error(f'{action}文件失败 {src.name}: {e}')
+        # 处理 .runtime 目录
+        runtime_path = work_dir / RUNTIME_DIR_NAME
+        runtime_backup = work_dir / RUNTIME_BACKUP_NAME
+        src_dir, dst_dir = (runtime_path, runtime_backup) if backup else (runtime_backup, runtime_path)
+
+        if src_dir.exists():
+            try:
+                if backup and dst_dir.exists():
+                    shutil.rmtree(dst_dir)
+                src_dir.rename(dst_dir)
+                log.info(f'{action}目录: {src_dir.name} -> {dst_dir.name}')
+            except Exception as e:
+                log.error(f'{action}目录失败 {src_dir.name}: {e}')
 
     def _delete_legacy_files(self) -> None:
         """
@@ -323,18 +336,26 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
     def _cleanup_backup_launcher(self) -> None:
         """
-        删除备份的启动器文件
+        删除备份的启动器文件和 .runtime 目录
         :return:
         """
-        work_dir = os_utils.get_work_dir()
-        backup_path = Path(work_dir) / LAUNCHER_BACKUP_NAME
+        work_dir = Path(os_utils.get_work_dir())
 
+        backup_path = work_dir / LAUNCHER_BACKUP_NAME
         if backup_path.exists():
             try:
                 backup_path.unlink()
                 log.info(f'删除备份文件: {LAUNCHER_BACKUP_NAME}')
             except Exception as e:
                 log.error(f'删除备份文件失败 {LAUNCHER_BACKUP_NAME}: {e}')
+
+        runtime_backup = work_dir / RUNTIME_BACKUP_NAME
+        if runtime_backup.exists():
+            try:
+                shutil.rmtree(runtime_backup)
+                log.info(f'删除备份目录: {RUNTIME_BACKUP_NAME}')
+            except Exception as e:
+                log.error(f'删除备份目录失败 {RUNTIME_BACKUP_NAME}: {e}')
 
     def _on_download_finish(self, success: bool, message: str) -> None:
         """
