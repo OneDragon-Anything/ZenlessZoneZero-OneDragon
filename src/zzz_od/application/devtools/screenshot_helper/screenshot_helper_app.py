@@ -17,7 +17,6 @@ from zzz_od.application.devtools.screenshot_helper.screenshot_helper_config impo
 )
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.auto_battle import auto_battle_utils
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -41,7 +40,6 @@ class ScreenshotHelperApp(ZApplication):
 
         self.to_save_screenshot: bool = False  # 去保存截图 由按键触发
         self.last_save_screenshot_time: float = 0  # 上次保存截图时间
-        self.auto_op: Optional[AutoBattleOperator] = None
         self.screenshot_cache: list = []  # 缓存所有截图
         self.cache_start_time: Optional[float] = None  # 缓存开始时间
         self.cache_max_count: int = 0  # 最大缓存数量
@@ -64,8 +62,10 @@ class ScreenshotHelperApp(ZApplication):
 
     @operation_node(name='初始化上下文', is_start_node=True)
     def init_context(self) -> OperationRoundResult:
-        auto_battle_utils.load_auto_op(self, 'dodge',
-                                       self.ctx.battle_assistant_config.dodge_assistant_config)
+        self.ctx.auto_battle_context.init_auto_op(
+            sub_dir='dodge',
+            op_name=self.ctx.battle_assistant_config.dodge_assistant_config,
+        )
         return self.round_success()
 
     @node_from(from_name='初始化上下文')
@@ -91,9 +91,9 @@ class ScreenshotHelperApp(ZApplication):
             self.screenshot_cache.pop(0)
 
         if self.config.dodge_detect:
-            if self.auto_op.auto_battle_context.dodge_context.check_dodge_flash(self.last_screenshot, self.last_screenshot_time):
+            if self.ctx.auto_battle_context.dodge_context.check_dodge_flash(self.last_screenshot, self.last_screenshot_time):
                 debug_utils.save_debug_image(self.last_screenshot, prefix='dodge')
-            elif self.auto_op.auto_battle_context.dodge_context.check_dodge_audio(self.last_screenshot_time):
+            elif self.ctx.auto_battle_context.dodge_context.check_dodge_audio(self.last_screenshot_time):
                 debug_utils.save_debug_image(self.last_screenshot, prefix='dodge')
 
         if self.to_save_screenshot:

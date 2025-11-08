@@ -457,7 +457,10 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='出战')
     @operation_node(name='加载自动战斗配置')
     def load_auto_op(self) -> OperationRoundResult:
-        self.ctx.lost_void.init_auto_op()
+        self.ctx.auto_battle_context.init_auto_op(
+            sub_dir='auto_battle',
+            op_name=self.ctx.lost_void.get_auto_op_name(),
+        )
         return self.round_success()
 
     @node_from(from_name='加载自动战斗配置')

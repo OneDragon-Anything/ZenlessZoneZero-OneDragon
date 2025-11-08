@@ -1,7 +1,6 @@
 from typing import List, Optional
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
-from one_dragon.base.conditional_operation.utils import get_ops_by_template
 from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node

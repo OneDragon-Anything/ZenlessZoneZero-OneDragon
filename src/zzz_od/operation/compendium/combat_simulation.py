@@ -1,11 +1,9 @@
 import time
-from concurrent.futures import Future
 from typing import ClassVar
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
-from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -18,8 +16,6 @@ from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanConfig,
     ChargePlanItem,
 )
-from zzz_od.auto_battle import auto_battle_utils
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.challenge_mission.check_next_after_battle import (
     ChooseNextOrFinishAfterBattle,
@@ -62,24 +58,6 @@ class CombatSimulation(ZOperation):
         self.plan: ChargePlanItem = plan
         self.scroll_count: int = 0  # 滑动次数计数器
 
-        self.auto_op: AutoBattleOperator | None = None
-        self.async_init_future: Future[tuple[bool, str]] | None = None  # 初始化自动战斗的future
-
-    @operation_node(name='异步初始化自动战斗')
-    def async_init_auto_op(self) -> OperationRoundResult:
-        """
-        暂时不需要异步加载
-        """
-        if self.plan.predefined_team_idx == -1:
-            auto_battle = self.plan.auto_battle_config
-        else:
-            team_list = self.ctx.team_config.team_list
-            auto_battle = team_list[self.plan.predefined_team_idx].auto_battle
-
-        self.async_init_future = auto_battle_utils.load_auto_op_async(self, 'auto_battle', auto_battle)
-        return self.round_success(auto_battle)
-
-    @node_from(from_name='异步初始化自动战斗')
     @operation_node(name='等待入口加载', is_start_node=True, node_max_retry_times=60)
     def wait_entry_load(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '实战模拟室', '挑战等级')
@@ -277,23 +255,17 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='判断下一次', status='战斗结果-再来一次')
     @operation_node(name='加载自动战斗指令')
     def init_auto_battle(self) -> OperationRoundResult:
-        if self.async_init_future is not None:
-            try:
-                success, msg = self.async_init_future.result(60)
-                if not success:
-                    return self.round_fail(msg)
-                else:
-                    return self.round_success()
-            except Exception:
-                return self.round_fail('自动战斗初始化失败')
+        if self.plan.predefined_team_idx == -1:
+            auto_battle = self.plan.auto_battle_config
         else:
-            if self.plan.predefined_team_idx == -1:
-                auto_battle = self.plan.auto_battle_config
-            else:
-                team_list = self.ctx.team_config.team_list
-                auto_battle = team_list[self.plan.predefined_team_idx].auto_battle
+            team_list = self.ctx.team_config.team_list
+            auto_battle = team_list[self.plan.predefined_team_idx].auto_battle
 
-            return auto_battle_utils.load_auto_op(self, 'auto_battle', auto_battle)
+        self.ctx.auto_battle_context.init_auto_op(
+            sub_dir='auto_battle',
+            op_name=auto_battle,
+        )
+        return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
@@ -309,17 +281,17 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='向前移动准备战斗')
     @operation_node(name='开始自动战斗')
     def start_auto_op(self) -> OperationRoundResult:
-        self.auto_op.start_running_async()
+        self.ctx.auto_battle_context.start_auto_battle()
         return self.round_success()
 
     @node_from(from_name='开始自动战斗')
     @operation_node(name='自动战斗', mute=True, timeout_seconds=600)
     def auto_battle(self) -> OperationRoundResult:
-        if self.auto_op.auto_battle_context.last_check_end_result is not None:
-            auto_battle_utils.stop_running(self.auto_op)
-            return self.round_success(status=self.auto_op.auto_battle_context.last_check_end_result)
+        if self.ctx.auto_battle_context.last_check_end_result is not None:
+            self.ctx.auto_battle_context.stop_auto_battle()
+            return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
 
-        self.auto_op.auto_battle_context.check_battle_state(
+        self.ctx.auto_battle_context.check_battle_state(
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True)
 
@@ -340,7 +312,7 @@ class CombatSimulation(ZOperation):
     @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)
     @operation_node(name='战斗超时')
     def battle_timeout(self) -> OperationRoundResult:
-        auto_battle_utils.stop_running(self.auto_op)
+        self.ctx.auto_battle_context.stop_auto_battle()
         op = ExitInBattle(self.ctx, '画面-通用', '左上角-街区')
         result = self.round_by_op_result(op.execute())
         if result.is_success:
@@ -358,17 +330,10 @@ class CombatSimulation(ZOperation):
         return self.round_retry(result.status, wait=1)
 
     def handle_pause(self):
-        if self.auto_op is not None:
-            self.auto_op.stop_running()
+        self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self):
-        auto_battle_utils.resume_running(self.auto_op)
-
-    def after_operation_done(self, result: OperationResult):
-        ZOperation.after_operation_done(self, result)
-        if self.auto_op is not None:
-            self.auto_op.dispose()
-            self.auto_op = None
+        self.ctx.auto_battle_context.resume_auto_battle()
 
 
 def __debug_coffee():

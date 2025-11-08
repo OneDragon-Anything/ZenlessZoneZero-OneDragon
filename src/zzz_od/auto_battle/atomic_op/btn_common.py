@@ -1,16 +1,19 @@
-import time
+from __future__ import annotations
 
 import threading
-from enum import Enum
-from typing import Callable
+import time
+from enum import StrEnum, IntEnum
+from typing import TYPE_CHECKING, Callable
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from one_dragon.base.conditional_operation.operation_def import OperationDef
-from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
 from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
 
+if TYPE_CHECKING:
+    from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
 
-class BtnWayEnum(Enum):
+
+class BtnWayEnum(StrEnum):
 
     PRESS = '按下'
     RELEASE = '松开'
@@ -26,7 +29,7 @@ class BtnWayEnum(Enum):
         return None
 
 
-class BtnRunStatus(Enum):
+class BtnRunStatus(IntEnum):
 
     WAIT = 0
     RUNNING = 1

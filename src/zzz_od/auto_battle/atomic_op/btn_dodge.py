@@ -1,8 +1,12 @@
-from typing import Optional
+from __future__ import annotations
+
+from typing import Optional, TYPE_CHECKING
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
-from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
 from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
+
+if TYPE_CHECKING:
+    from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
 
 
 class AtomicBtnDodge(AtomicOp):

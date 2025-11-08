@@ -236,7 +236,7 @@ scenes:
 
       # 凯撒
       - states: "[前台-凯撒]"
-        interrupt_states: ["后台-凯撒"]
+        interrupt_states: "[后台-凯撒]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -303,7 +303,7 @@ scenes:
 
       # 露西
       - states: "[前台-露西]"
-        interrupt_states: ["后台-露西"]
+        interrupt_states: "[后台-露西]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -370,7 +370,7 @@ scenes:
 
       # 莱特
       - states: "[前台-莱特]"
-        interrupt_states: ["后台-莱特"]
+        interrupt_states: "[后台-莱特]"
         sub_handlers:
           - states: "[自定义-莱特-欧拉欧拉, 0, 30]"
             sub_handlers:

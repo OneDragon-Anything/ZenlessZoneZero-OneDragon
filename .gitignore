@@ -33,6 +33,7 @@ config/dodge/*
 !config/dodge/*.sample.yml
 config/auto_battle/*
 !config/auto_battle/*.sample.yml
+!config/auto_battle/*.merged.yml
 config/auto_battle_state_handler/*
 !config/auto_battle_state_handler/*.sample.yml
 config/auto_battle_operation/*
