@@ -1,5 +1,4 @@
 import time
-from typing import Any
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -78,9 +77,6 @@ class WorldPatrolRunRoute(ZOperation):
         self.sensitivity: float = 1.0  # 转向灵敏度
         self.last_angle: float | None = None  # 上一次获取到的人物朝向
         self.last_angle_diff_command: float | None = None  # 上一次下发的转向指令
-        # 截图相关属性（基类运行时赋值，这里声明以便类型检查）
-        self.last_screenshot_time: float = 0.0
-        self.last_screenshot: Any = None
 
     # 距离判定阈值（用于到达/回溯成功/卡住判定的统一半径）
     REACH_DISTANCE: int = 10
@@ -154,7 +150,7 @@ class WorldPatrolRunRoute(ZOperation):
         if res is None:
             return self.round_fail(status='坐标计算失败，重启当前路线')
         if self._process_stuck_with_pos(res):
-            return self.round_fail(status='移动卡住，重启当前路线')
+            return self.round_fail(status='有坐标但卡住，重启当前路线')
         self.current_pos = res
 
         # 回溯态维护与目标点选择

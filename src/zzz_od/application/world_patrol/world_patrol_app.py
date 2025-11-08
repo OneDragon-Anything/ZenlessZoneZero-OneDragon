@@ -119,7 +119,7 @@ class WorldPatrolApp(ZApplication):
         result = op.execute()
 
         def _is_stuck_over_limit_status(status: object) -> bool:
-            return isinstance(status, str) and '卡住超限，重启当前路线' in status
+            return isinstance(status, str) and '重启当前路线' in status
 
         route_finished = False
         fail_status = None
