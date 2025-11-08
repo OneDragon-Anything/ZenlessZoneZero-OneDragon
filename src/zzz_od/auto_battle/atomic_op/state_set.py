@@ -1,8 +1,12 @@
-from typing import ClassVar, List
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, ClassVar
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from one_dragon.base.conditional_operation.operation_def import OperationDef
-from zzz_od.auto_battle.auto_battle_custom_context import AutoBattleCustomContext
+
+if TYPE_CHECKING:
+    from zzz_od.auto_battle.auto_battle_custom_context import AutoBattleCustomContext
 
 
 class AtomicSetState(AtomicOp):
@@ -12,7 +16,7 @@ class AtomicSetState(AtomicOp):
     def __init__(self, ctx: AutoBattleCustomContext, op_def: OperationDef):
         self.ctx: AutoBattleCustomContext = ctx
         self.state_name: str = op_def.state_name
-        self.state_name_list: List[str] = op_def.state_name_list
+        self.state_name_list: list[str] = op_def.state_name_list
         self.diff_time: float = op_def.state_seconds
         self.diff_time_add: float = op_def.state_seconds_add
         self.value: int = op_def.state_value

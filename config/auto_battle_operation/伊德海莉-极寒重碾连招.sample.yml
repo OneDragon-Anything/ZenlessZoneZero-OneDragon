@@ -1,0 +1,9 @@
+operations:
+  # 按特殊技发动极寒重碾
+  - op_name: "按键-特殊攻击"
+  - op_name: "等待秒数"
+    seconds: 3.0
+  # 招式结束后，点击普攻再次下砸
+  - op_name: "按键-普通攻击"
+  - op_name: "等待秒数"
+    seconds: 2.0

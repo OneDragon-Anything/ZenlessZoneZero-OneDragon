@@ -1,0 +1,7 @@
+operations:
+  - op_name: "按键-闪避"
+  - op_name: "等待秒数"
+    seconds: 0.2
+  - op_name: "按键-普通攻击"
+  - op_name: "等待秒数"
+    seconds: 1.1

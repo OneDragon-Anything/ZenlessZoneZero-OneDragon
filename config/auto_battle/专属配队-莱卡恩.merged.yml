@@ -1,0 +1,568 @@
+"scenes":
+- "handlers":
+  - "states": "![自定义-动作不打断, 0, 30]"
+    "sub_handlers":
+    - "states": "[闪避识别-黄光]"
+      "sub_handlers":
+      - "operations":
+        - &id001
+          "op_name": "设置状态"
+          "state": "自定义-凯撒-战意激昂"
+        - &id002
+          "op_name": "设置状态"
+          "state": "自定义-招架支援"
+        - &id003
+          "op_name": "设置状态"
+          "state": "自定义-原始朋克"
+        - &id004
+          "agent_name": "凯撒"
+          "op_name": "按键-切换角色"
+        - &id005
+          "op_name": "清除状态"
+          "state_list":
+          - "自定义-连携技换人"
+          - "自定义-快速支援换人"
+          - "自定义-下场"
+          - "自定义-动作不打断"
+        "states": "[后台-凯撒] & ![自定义-凯撒-战意激昂, 0, 25]"
+      - "states": "[后台-苍角]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-招架支援"
+          - "op_name": "设置状态"
+            "state": "自定义-原始朋克"
+          - "agent_name": "苍角"
+            "op_name": "按键-切换角色"
+          - "op_name": "清除状态"
+            "state_list":
+            - "自定义-连携技换人"
+            - "自定义-快速支援换人"
+            - "自定义-下场"
+            - "自定义-动作不打断"
+          "states": "![自定义-苍角-展旗, 0, 25]"
+      - "states": "![自定义-原始朋克, 0, 9]"
+        "sub_handlers":
+        - "operations":
+          - &id006
+            "op_name": "设置状态"
+            "state": "自定义-招架支援"
+          - &id007
+            "op_name": "设置状态"
+            "state": "自定义-原始朋克"
+          - &id008
+            "agent_name": "莱卡恩"
+            "op_name": "按键-切换角色"
+          - &id009
+            "op_name": "清除状态"
+            "state_list":
+            - "自定义-连携技换人"
+            - "自定义-快速支援换人"
+            - "自定义-下场"
+            - "自定义-动作不打断"
+          "states": "[后台-莱卡恩]"
+        - "operations":
+          - *id001
+          - *id002
+          - *id003
+          - *id004
+          - *id005
+          "states": "[后台-凯撒]"
+      - "operations":
+        - *id006
+        - *id007
+        - *id008
+        - *id009
+        "states": "[后台-莱卡恩]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-闪避"
+        - "op_name": "按键-闪避"
+          "post_delay": 0.2
+        "states": ""
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-闪避"
+      - "op_name": "按键-闪避"
+        "post_delay": 0.2
+      "states": ""
+  "interval": 1
+  "triggers":
+  - "闪避识别-黄光"
+  - "闪避识别-红光"
+  - "闪避识别-声音"
+- "handlers":
+  - "states": "[按键可用-快速支援]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-苍角-展旗"
+      - "op_name": "按键-快速支援"
+      - "op_name": "按键-普通攻击"
+        "way": "松开"
+      - "op_name": "按键-特殊攻击"
+        "way": "松开"
+      - "op_name": "设置状态"
+        "state": "自定义-快速支援换人"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[前台-苍角]"
+    - "operations":
+      - "op_name": "按键-快速支援"
+      - "op_name": "设置状态"
+        "state": "自定义-快速支援换人"
+      "states": ""
+  "interval": 1
+  "triggers":
+  - "按键可用-快速支援"
+- "handlers":
+  - "states": "[按键可用-连携技]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "按键-连携技-左"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "清除状态"
+        "state": "自定义-下场"
+      - "op_name": "等待秒数"
+        "seconds": 3
+      "states": "[连携技-1-邦布]"
+    - "states": "([连携技-1-莱卡恩] | [连携技-2-莱卡恩]) & [自定义-苍角-展旗, 0, 3]"
+      "sub_handlers":
+      - "operations":
+        - &id010
+          "op_name": "按键-连携技-左"
+        - &id011
+          "op_name": "设置状态"
+          "state": "自定义-连携技换人"
+        - &id012
+          "op_name": "清除状态"
+          "state_list":
+          - "自定义-招架支援"
+          - "自定义-快速支援换人"
+          - "自定义-下场"
+          - "自定义-动作不打断"
+        "states": "[连携技-1-莱卡恩]"
+      - "operations":
+        - &id013
+          "op_name": "按键-连携技-右"
+        - &id014
+          "op_name": "设置状态"
+          "state": "自定义-连携技换人"
+        - &id015
+          "op_name": "清除状态"
+          "state_list":
+          - "自定义-招架支援"
+          - "自定义-快速支援换人"
+          - "自定义-下场"
+          - "自定义-动作不打断"
+        "states": "[连携技-2-莱卡恩]"
+    - "states": "([连携技-1-苍角] | [连携技-2-苍角]) & [苍角-涡流, 0, 10]{2, 3}"
+      "sub_handlers":
+      - "operations":
+        - *id010
+        - *id011
+        - *id012
+        "states": "[连携技-1-苍角]"
+      - "operations":
+        - *id013
+        - *id014
+        - *id015
+        "states": "[连携技-2-苍角]"
+    - "states": "([连携技-1-凯撒] | [连携技-2-凯撒]) & ![自定义-凯撒-战意激昂, 0, 25]"
+      "sub_handlers":
+      - "operations":
+        - *id010
+        - *id011
+        - *id012
+        "states": "[连携技-1-凯撒]"
+      - "operations":
+        - *id013
+        - *id014
+        - *id015
+        "states": "[连携技-2-凯撒]"
+    - "operations":
+      - *id010
+      - *id011
+      - *id012
+      "states": "[连携技-1-莱卡恩]"
+    - "operations":
+      - *id013
+      - *id014
+      - *id015
+      "states": "[连携技-2-莱卡恩]"
+    - "operations":
+      - *id010
+      - *id011
+      - *id012
+      "states": "[连携技-1-凯撒]"
+    - "operations":
+      - *id013
+      - *id014
+      - *id015
+      "states": "[连携技-2-凯撒]"
+    - "operations":
+      - *id010
+      - *id011
+      - *id012
+      "states": "[连携技-1-苍角]"
+    - "operations":
+      - *id013
+      - *id014
+      - *id015
+      "states": "[连携技-2-苍角]"
+  "interval": 1
+  "triggers":
+  - "按键可用-连携技"
+- "handlers":
+  - "debug_name": "角色识别中，检查皮肤设置"
+    "operations":
+    - "op_name": "按键-特殊攻击"
+      "way": "松开"
+    - "op_name": "按键-移动-前"
+      "way": "松开"
+    - "op_name": "按键-移动-左"
+      "way": "松开"
+    - "op_name": "按键-移动-后"
+      "way": "松开"
+    - "op_name": "按键-移动-右"
+      "way": "松开"
+    - "op_name": "等待秒数"
+      "seconds": 0.1
+    "states": "![前台-击破] & ![前台-强攻] & ![前台-支援] & ![前台-防护] & ![前台-异常]& ![前台-命破]"
+  - "states": "[自定义-下场]"
+    "sub_handlers":
+    - "operations":
+      - &id019
+        "agent_name": "凯撒"
+        "op_name": "按键-切换角色"
+      - &id020
+        "op_name": "清除状态"
+        "state_list":
+        - "自定义-招架支援"
+        - "自定义-连携技换人"
+        - "自定义-快速支援换人"
+        - "自定义-下场"
+        - "自定义-动作不打断"
+      - &id021
+        "op_name": "等待秒数"
+        "seconds": 0.2
+      "states": "![自定义-凯撒-战意激昂, 0, 25] & [后台-凯撒] & [凯撒-能量]{40, 120}"
+    - "states": "![自定义-苍角-展旗, 0, 25] & [后台-苍角]"
+      "sub_handlers":
+      - "operations":
+        - &id016
+          "agent_name": "苍角"
+          "op_name": "按键-切换角色"
+        - &id017
+          "op_name": "清除状态"
+          "state_list":
+          - "自定义-招架支援"
+          - "自定义-连携技换人"
+          - "自定义-快速支援换人"
+          - "自定义-下场"
+          - "自定义-动作不打断"
+        - &id018
+          "op_name": "等待秒数"
+          "seconds": 0.3
+        "states": "[苍角-涡流]{3, 3}"
+      - "operations":
+        - *id016
+        - *id017
+        - *id018
+        "states": "[苍角-涡流]{1, 2} & [后台-苍角] & [苍角-能量]{60, 120}"
+      - "operations":
+        - *id016
+        - *id017
+        - *id018
+        "states": "[苍角-涡流]{0, 0} & [后台-苍角] & [苍角-能量]{90, 120}"
+    - "operations":
+      - "agent_name": "莱卡恩"
+        "op_name": "按键-切换角色"
+      - "op_name": "清除状态"
+        "state_list":
+        - "自定义-招架支援"
+        - "自定义-连携技换人"
+        - "自定义-快速支援换人"
+        - "自定义-下场"
+        - "自定义-动作不打断"
+      - "op_name": "等待秒数"
+        "seconds": 0.3
+      "states": "![自定义-莱卡恩-普攻后摇, 0, 1.5]"
+  - "interrupt_states": "[后台-凯撒]"
+    "states": "[前台-凯撒]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+        "repeat": 2
+      "states": "[自定义-闪避]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.15
+        "pre_delay": 0.15
+        "repeat": 2
+      "states": "[自定义-快速支援换人]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.1
+        "pre_delay": 0.1
+        "repeat": 10
+      - "op_name": "等待秒数"
+        "seconds": 0.5
+      "states": "[自定义-招架支援]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "seconds": 2
+      - "op_name": "设置状态"
+        "state": "自定义-凯撒-战意激昂"
+      "states": "[自定义-连携技换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.1
+        "repeat": 7
+      - "op_name": "设置状态"
+        "state": "自定义-凯撒-战意激昂"
+      - "op_name": "设置状态"
+        "state": "自定义-凯撒-招架反击"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[前台-能量]{40, 120} & ![自定义-凯撒-招架反击, 0, 3]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": ""
+  - "interrupt_states": "[后台-苍角]"
+    "states": "[前台-苍角]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.1
+        "repeat": 10
+      "states": "[自定义-闪避]"
+    - "states": "[自定义-连携技换人, 0, 6]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-苍角-展旗"
+        "states": "[苍角-涡流, 0, 10]{3, 3}"
+      - "operations":
+        - "op_name": "等待秒数"
+          "seconds": 0.1
+        "states": ""
+    - "states": "[自定义-招架支援]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "pre_delay": 0.1
+          "repeat": 3
+        - "op_name": "按键-普通攻击"
+          "post_delay": 5
+          "way": "按下"
+        - "op_name": "设置状态"
+          "state": "自定义-下场"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "![自定义-苍角-展旗, 0, 25] & [苍角-涡流]{3, 3}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 30
+        - "op_name": "按键-闪避"
+          "post_delay": 0.1
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": ""
+    - "states": "![自定义-苍角-展旗, 0, 25]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 5
+          "way": "按下"
+        - "op_name": "设置状态"
+          "state": "自定义-下场"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[苍角-涡流]{3, 3}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+          "repeat": 2
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 5
+          "way": "按下"
+        - "op_name": "设置状态"
+          "state": "自定义-下场"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[前台-能量]{60, 120} & [苍角-涡流]{2, 2}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+          "repeat": 5
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 5
+          "way": "按下"
+        - "op_name": "设置状态"
+          "state": "自定义-下场"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[前台-能量]{60, 120} & [苍角-涡流]{1, 1}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+          "repeat": 10
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 5
+          "way": "按下"
+        - "op_name": "设置状态"
+          "state": "自定义-下场"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[前台-能量]{90, 120} & [苍角-涡流]{0, 0}"
+    - "states": "[苍角-能量]{60, 120}"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+          "repeat": 10
+        - "op_name": "设置状态"
+          "state": "自定义-下场"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[苍角-涡流]{0, 0}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+          "repeat": 5
+        - "op_name": "设置状态"
+          "state": "自定义-下场"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[苍角-涡流]{1, 1}"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": ""
+  - "interrupt_states": "[后台-莱卡恩]"
+    "states": "[前台-莱卡恩]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.1
+        "repeat": 3
+      - "op_name": "等待秒数"
+        "seconds": 0.6
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-闪避]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+        "pre_delay": 0.2
+        "repeat": 3
+      - "op_name": "等待秒数"
+        "seconds": 1
+      "states": "[自定义-招架支援]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "seconds": 2.5
+      "states": "[自定义-连携技换人]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "post_delay": 0.2
+      "states": "[自定义-快速支援换人]"
+    - "states": "![切换角色-莱卡恩]"
+      "sub_handlers":
+      - "operations":
+        - *id019
+        - *id020
+        - *id021
+        "states": "![自定义-凯撒-战意激昂, 0, 25] & [后台-凯撒] & [凯撒-能量]{40, 120}"
+      - "states": "![自定义-苍角-展旗, 0, 25] & [后台-苍角]"
+        "sub_handlers":
+        - "operations":
+          - *id016
+          - *id017
+          - *id018
+          "states": "[苍角-涡流]{3, 3}"
+        - "operations":
+          - *id016
+          - *id017
+          - *id018
+          "states": "[苍角-涡流]{1, 2} & [后台-苍角] & [苍角-能量]{60, 120}"
+        - "operations":
+          - *id016
+          - *id017
+          - *id018
+          "states": "[苍角-涡流]{0, 0} & [后台-苍角] & [苍角-能量]{90, 120}"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-终结技"
+        "post_delay": 0.1
+        "repeat": 10
+      - "op_name": "等待秒数"
+        "seconds": 3.6
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "![切换角色-莱卡恩] & [按键可用-终结技]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.2
+        "press": 0.3
+        "way": "按下"
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 1.6
+        "press": 0.3
+        "way": "按下"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[前台-能量]{60, 120} & ![切换角色-莱卡恩]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.8
+        "press": 0.3
+        "way": "按下"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.8
+        "press": 0.3
+        "way": "按下"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 1.3
+        "press": 0.6
+        "way": "按下"
+      - "op_name": "设置状态"
+        "state": "自定义-莱卡恩-普攻后摇"
+      "states": ""
+  "interval": 0.02
+  "triggers": []

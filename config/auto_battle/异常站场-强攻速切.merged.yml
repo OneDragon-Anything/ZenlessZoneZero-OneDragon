@@ -1,0 +1,2541 @@
+"scenes":
+- "handlers":
+  - "states": "![自定义-动作不打断, 0, 999]{1, 1} & [闪避识别-黄光]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "等待秒数"
+        "seconds": 0.1
+      - "op_name": "按键-闪避"
+        "post_delay": 0.1
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+      - "op_name": "按键-切换角色-上一个"
+        "post_delay": 0.1
+      - "data":
+        - "自定义-黄光切人"
+        "op_name": "设置状态"
+      "states": "[后台-2-强攻]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "seconds": 0.1
+      - "op_name": "按键-闪避"
+        "post_delay": 0.1
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+      - "op_name": "按键-切换角色-下一个"
+        "post_delay": 0.1
+      - "data":
+        - "自定义-黄光切人"
+        "op_name": "设置状态"
+      "states": "[后台-1-强攻]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "seconds": 0.1
+      - "op_name": "按键-闪避"
+        "post_delay": 0.1
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+      - "op_name": "按键-切换角色-上一个"
+        "post_delay": 0.1
+      - "data":
+        - "自定义-黄光切人"
+        "op_name": "设置状态"
+      "states": "[后台-2-异常]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "seconds": 0.1
+      - "op_name": "按键-闪避"
+        "post_delay": 0.1
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+      - "op_name": "按键-切换角色-下一个"
+        "post_delay": 0.1
+      - "data":
+        - "自定义-黄光切人"
+        "op_name": "设置状态"
+      "states": "[后台-1-异常]"
+    - "states": "[前台-青衣] & [按键可用-特殊攻击]"
+      "sub_handlers":
+      - "states": "[前台-青衣]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "设置状态"
+            "seconds": 1.2
+            "state": "自定义-动作不打断"
+          - "op_name": "等待秒数"
+            "seconds": 0.05
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 12
+          "states": "[自定义-青衣-醉花云月转, 0.5, 2]"
+        - "operations":
+          - "op_name": "设置状态"
+            "seconds": 1
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-移动-左"
+            "post_delay": 0.1
+            "way": "按下"
+          - "op_name": "按键-闪避"
+            "post_delay": 0.2
+          - "op_name": "按键-移动-左"
+            "way": "松开"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 10
+          "states": ""
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds": 1
+          "state": "自定义-动作不打断"
+        - "op_name": "等待秒数"
+          "seconds": 0.05
+        - "op_name": "按键-移动-左"
+          "post_delay": 0.1
+          "way": "按下"
+        - "op_name": "按键-闪避"
+          "post_delay": 0.2
+        - "op_name": "按键-移动-左"
+          "way": "松开"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 10
+        "states": ""
+    - "operations":
+      - "op_name": "等待秒数"
+        "seconds": 0.1
+      - "op_name": "按键-闪避"
+        "post_delay": 0.1
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+      - "op_name": "按键-切换角色-下一个"
+        "post_delay": 0.1
+      - "data":
+        - "自定义-黄光切人"
+        "op_name": "设置状态"
+      "states": ""
+  - "states": "![自定义-动作不打断, 0, 999]{1, 1} & ([闪避识别-红光] | [闪避识别-声音])"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-红光闪避"
+      "states": ""
+  "interval": 1
+  "triggers":
+  - "闪避识别-黄光"
+  - "闪避识别-红光"
+  - "闪避识别-声音"
+- "handlers":
+  - "operations":
+    - "op_name": "按键-快速支援"
+    - "op_name": "设置状态"
+      "state": "自定义-快速支援换人"
+    "states": "[按键可用-快速支援]"
+  "interval": 1
+  "triggers":
+  - "按键可用-快速支援"
+- "handlers":
+  - "states": "[按键可用-连携技]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "按键-连携技-左"
+      - "op_name": "设置状态"
+        "state": "自定义-连携换人"
+      "states": "[连携技-1-强攻]"
+    - "operations":
+      - "op_name": "按键-连携技-右"
+      - "op_name": "设置状态"
+        "state": "自定义-连携换人"
+      "states": "[连携技-2-强攻]"
+    - "operations":
+      - "op_name": "按键-连携技-左"
+      - "op_name": "设置状态"
+        "state": "自定义-连携换人"
+      "states": "[连携技-1-支援] & ![连携技-1-苍角] & ![连携技-1-耀嘉音]"
+    - "operations":
+      - "op_name": "按键-连携技-右"
+      - "op_name": "设置状态"
+        "state": "自定义-连携换人"
+      "states": "[连携技-2-支援] & ![连携技-2-苍角] & ![连携技-2-耀嘉音]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "seconds": 0.1
+      - "op_name": "设置状态"
+        "state": "自定义-连携跳过"
+      - "op_name": "设置状态"
+        "state": "自定义-连携换人"
+      - "op_name": "按键-连携技-取消-按下"
+      - "op_name": "等待秒数"
+        "seconds": 1
+      - "op_name": "清除状态"
+        "state": "按键可用-连携技"
+      "states": ""
+  "interval": 1
+  "triggers":
+  - "按键可用-连携技"
+- "handlers":
+  - "debug_name": "角色识别中，检查皮肤设置"
+    "operations":
+    - "op_name": "按键-特殊攻击"
+      "way": "松开"
+    - "op_name": "按键-移动-前"
+      "way": "松开"
+    - "op_name": "按键-移动-左"
+      "way": "松开"
+    - "op_name": "按键-移动-后"
+      "way": "松开"
+    - "op_name": "按键-移动-右"
+      "way": "松开"
+    - "op_name": "等待秒数"
+      "seconds": 0.1
+    "states": "![前台-击破] & ![前台-强攻] & ![前台-支援] & ![前台-防护] & ![前台-异常]& ![前台-命破]"
+  - "states": "[自定义-黄光切人, 0, 2] | [自定义-红光闪避, 0, 2] | [自定义-临时站场]"
+    "sub_handlers":
+    - "states": "[前台-11号]"
+      "sub_handlers":
+      - "operations":
+        - "data": []
+          "op_name": "按键-终结技"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.4
+          "repeat": 8
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.4
+          "repeat": 8
+        "states": "[按键可用-终结技]"
+      - "operations":
+        - "op_name": "按键-闪避"
+          "post_delay": 0.2
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 1.2
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.4
+          "repeat": 8
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.4
+          "repeat": 8
+        "states": ""
+    - "states": "[前台-青衣]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-青衣-醉花云月转"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.5
+          "press": 2.5
+          "way": "按下"
+        - "op_name": "设置状态"
+          "state": "自定义-青衣-特殊技续普攻"
+        - "op_name": "清除状态"
+          "state": "自定义-青衣-普攻次数"
+        "states": "[青衣-电压]{80, 101}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 2
+          "repeat": 2
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-终结技] & ![自定义-动作不打断, 0, 30] & ![自定义-青衣-醉花云月转, 0, 3]"
+      - "operations":
+        - "op_name": "按键-移动-前"
+          "post_delay": 0.1
+          "way": "按下"
+        - "op_name": "按键-闪避"
+          "post_delay": 0.2
+        - "op_name": "按键-移动-前"
+          "way": "松开"
+        - "op_name": "清除状态"
+          "state": "自定义-青衣-特殊技续普攻"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 10
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.5
+        "states": "![按键可用-特殊攻击] & [自定义-青衣-特殊技续普攻, 0, 2]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.5
+          "repeat": 4
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-特殊攻击] & [自定义-青衣-特殊技续普攻, 0, 2]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 20
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.5
+        - "op_name": "设置状态"
+          "state": "自定义-青衣-特殊技续普攻"
+        "states": "[青衣-电压]{0, 90}"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 10
+        "states": ""
+    - "states": "[前台-安比]"
+      "sub_handlers":
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "1.2"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.2"
+          "op_name": "等待秒数"
+        - "data":
+          - "1"
+          "op_name": "按键-普通攻击-按下"
+        - "data":
+          - "1"
+          "op_name": "等待秒数"
+        - "data":
+          - "自定义-黄光切人"
+          "op_name": "清除状态"
+        "states": "[自定义-黄光切人]"
+      - "operations":
+        - "data":
+          - "0.8"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.2"
+          "op_name": "等待秒数"
+        - "data":
+          - "1"
+          "op_name": "按键-普通攻击-按下"
+        - "data":
+          - "1"
+          "op_name": "等待秒数"
+        - "data":
+          - "自定义-红光闪避"
+          "op_name": "清除状态"
+        "states": "[自定义-红光闪避]"
+      - "operations":
+        - "data":
+          - "2"
+          "op_name": "等待秒数"
+        "states": "[自定义-连携换人]"
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data":
+          - "自定义-快速支援换人"
+          "op_name": "清除状态"
+        "states": "[自定义-快速支援换人]"
+      - "operations":
+        - "data": []
+          "op_name": "按键-终结技"
+        - "data":
+          - "5"
+          "op_name": "等待秒数"
+        "states": "[按键可用-终结技]"
+      - "operations":
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.3"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.9"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-特殊攻击"
+        - "data":
+          - "1.4"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.2"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "1.0"
+          "op_name": "等待秒数"
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.3"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.2"
+          "op_name": "等待秒数"
+        - "data":
+          - "1"
+          "op_name": "按键-普通攻击-按下"
+        - "data":
+          - "1"
+          "op_name": "等待秒数"
+        "states": ""
+    - "states": "[前台-莱卡恩]"
+      "sub_handlers":
+      - "operations":
+        - "data": []
+          "op_name": "按键-终结技"
+        - "data":
+          - "5"
+          "op_name": "等待秒数"
+        "states": "[按键可用-终结技]"
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "按键-特殊攻击-按下"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "按键-普通攻击-按下"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        "states": ""
+    - "states": "[前台-妮可]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-终结技"
+          "post_delay": 3
+        "states": "[按键可用-终结技]"
+      - "operations":
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.3
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.3
+        "states": ""
+    - "states": "[前台-朱鸢]"
+      "sub_handlers":
+      - "states": "[自定义-黄光切人, 0, 2]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "清除状态"
+            "state_list":
+            - "自定义-速切结束"
+            - "自定义-动作不打断"
+          - "op_name": "设置状态"
+            "seconds": 2
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 10
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          "states": ""
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -1
+          "state": "自定义-连携换人"
+        - "op_name": "设置状态"
+          "seconds": 2
+          "state": "自定义-动作不打断"
+        - "op_name": "等待秒数"
+          "seconds": 2
+        "states": "[自定义-连携换人, 0, 1]"
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -1
+          "state": "自定义-连携换人"
+        - "op_name": "设置状态"
+          "seconds": 2
+          "state": "自定义-动作不打断"
+        - "op_name": "等待秒数"
+          "seconds": 2
+        "states": "[自定义-连携换人, 0, 1]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 1
+          "pre_delay": 0.8
+        - "op_name": "按键-普通攻击"
+          "post_delay": 1
+          "repeat": 2
+        - "op_name": "清除状态"
+          "state": "自定义-红光闪避"
+        "states": "[自定义-红光闪避]"
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data":
+          - "自定义-快速支援换人"
+          "op_name": "清除状态"
+        - "op_name": "设置状态"
+          "state": "自定义-临时站场"
+        "states": "[自定义-快速支援换人]"
+      - "operations":
+        - "op_name": "按键-闪避"
+          "post_delay": 0.5
+          "pre_delay": 0.5
+        - "op_name": "清除状态"
+          "state": "自定义-血量扣减"
+        "states": "[自定义-血量扣减]"
+      - "states": ""
+        "sub_handlers":
+        - "operations":
+          - "op_name": "按键-移动-前"
+            "way": "按下"
+          - "data":
+            - "0.2"
+            "op_name": "等待秒数"
+          - "op_name": "按键-闪避"
+            "post_delay": 0.1
+          - "op_name": "按键-普通攻击"
+          - "op_name": "按键-移动-前"
+            "way": "松开"
+          - "data":
+            - "0.3"
+            "op_name": "等待秒数"
+          - "op_name": "按键-终结技"
+            "post_delay": 4
+          "states": "[按键可用-终结技] & ![自定义-临时站场] & ![朱鸢-子弹数, 0, 999]{7, 9}"
+        - "states": "[按键可用-特殊攻击] & ![自定义-朱鸢-特殊攻击] & ![朱鸢-子弹数, 0, 999]{7, 9}"
+          "sub_handlers":
+          - "operations":
+            - "op_name": "按键-普通攻击"
+              "post_delay": 0.8
+            - "op_name": "按键-特殊攻击"
+              "post_delay": 1.2
+            - "data":
+              - "自定义-朱鸢-特殊攻击"
+              "op_name": "设置状态"
+            "states": "[自定义-朱鸢-下发普攻前滑]"
+          - "operations":
+            - "op_name": "按键-移动-前"
+              "way": "按下"
+            - "data":
+              - "0.2"
+              "op_name": "等待秒数"
+            - "op_name": "按键-闪避"
+              "post_delay": 0.1
+            - "op_name": "按键-普通攻击"
+            - "op_name": "按键-移动-前"
+              "way": "松开"
+            - "op_name": "按键-特殊攻击"
+              "post_delay": 1.2
+              "pre_delay": 0.8
+            - "data":
+              - "自定义-朱鸢-特殊攻击"
+              "op_name": "设置状态"
+            "states": ""
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.5
+          - "op_name": "按键-普通攻击"
+            "press": 1
+            "way": "按下"
+          - "op_name": "按键-普通攻击"
+            "way": "松开"
+          - "op_name": "等待秒数"
+            "seconds": 0.1
+          - "op_name": "按键-普通攻击"
+            "press": 0.5
+            "repeat": 3
+            "way": "按下"
+          - "op_name": "等待秒数"
+            "seconds": 1
+          "states": "[自定义-朱鸢-特殊攻击]"
+        - "operations":
+          - "op_name": "按键-移动-前"
+            "way": "按下"
+          - "data":
+            - "0.2"
+            "op_name": "等待秒数"
+          - "op_name": "按键-闪避"
+            "post_delay": 0.1
+          - "op_name": "按键-普通攻击"
+          - "op_name": "按键-移动-前"
+            "way": "松开"
+          - "op_name": "按键-普通攻击"
+            "pre_delay": 0.3
+            "press": 0.5
+            "way": "按下"
+          - "op_name": "按键-普通攻击"
+            "way": "松开"
+          - "op_name": "等待秒数"
+            "seconds": 0.1
+          - "op_name": "按键-普通攻击"
+            "press": 0.5
+            "repeat": 3
+            "way": "按下"
+          - "op_name": "等待秒数"
+            "seconds": 1
+          "states": "[朱鸢-子弹数, 0, 999]{2, 9}"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.7
+          - "op_name": "按键-普通攻击"
+            "post_delay": 1
+            "repeat": 3
+          - "data":
+            - "自定义-朱鸢-下发普攻前滑"
+            "op_name": "设置状态"
+          "states": "[自定义-朱鸢-下发普攻前滑]"
+        - "operations":
+          - "op_name": "按键-移动-前"
+            "way": "按下"
+          - "data":
+            - "0.2"
+            "op_name": "等待秒数"
+          - "op_name": "按键-闪避"
+            "post_delay": 0.1
+          - "op_name": "按键-普通攻击"
+          - "op_name": "按键-移动-前"
+            "way": "松开"
+          - "data":
+            - "0.6"
+            "op_name": "等待秒数"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.5
+          - "op_name": "按键-普通攻击"
+            "post_delay": 1
+            "repeat": 4
+          - "data":
+            - "自定义-朱鸢-下发普攻前滑"
+            "op_name": "设置状态"
+          "states": ""
+    - "states": "[前台-可琳]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "清除状态"
+          "state": "自定义-可琳-这次不打特殊技"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 20
+        "states": "[自定义-连携换人, 0, 1]"
+      - "operations":
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 10
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 30
+        "states": "[按键可用-终结技] & [自定义-连携换人, 0, 10]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-可琳-这次不打特殊技"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.1
+          "repeat": 40
+        "states": "[按键可用-特殊攻击] & [自定义-连携换人, 2, 10] & ![自定义-可琳-这次不打特殊技, 0, 12]"
+      - "operations":
+        - "op_name": "清除状态"
+          "state": "自定义-可琳-这次不打特殊技"
+        "states": "[自定义-连携换人, 10, 999] & [自定义-可琳-这次不打特殊技, 0, 12]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 35
+        "states": "![按键可用-特殊攻击]"
+    - "states": "[前台-格莉丝]"
+      "sub_handlers":
+      - "operations":
+        - "data": []
+          "op_name": "按键-终结技"
+        - "data":
+          - "3"
+          "op_name": "等待秒数"
+        "states": "[按键可用-终结技]"
+      - "operations":
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.3"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-特殊攻击"
+        - "data":
+          - "0.6"
+          "op_name": "等待秒数"
+        "states": ""
+    - "states": "[前台-派派]"
+      "sub_handlers":
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "op_name": "按键-普通攻击"
+          "press": 0.8
+          "way": "按下"
+        - "op_name": "按键-普通攻击"
+          "way": "松开"
+        - "op_name": "按键-特殊攻击"
+          "press": 0.8
+          "repeat": 5
+          "way": "按下"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.8
+          "way": "松开"
+        - "data":
+          - "自定义-黄光切人"
+          "op_name": "清除状态"
+        "states": "[自定义-黄光切人]"
+      - "operations":
+        - "data":
+          - "0.8"
+          "op_name": "等待秒数"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "op_name": "按键-普通攻击"
+          "press": 0.8
+          "way": "按下"
+        - "op_name": "按键-普通攻击"
+          "way": "松开"
+        - "op_name": "按键-特殊攻击"
+          "press": 0.8
+          "repeat": 5
+          "way": "按下"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.8
+          "way": "松开"
+        - "data":
+          - "自定义-红光闪避"
+          "op_name": "清除状态"
+        "states": "[自定义-红光闪避]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.6
+          "repeat": 2
+        - "op_name": "按键-特殊攻击"
+          "press": 0.8
+          "repeat": 5
+          "way": "按下"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.8
+          "way": "松开"
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.6
+          "repeat": 2
+        - "op_name": "按键-特殊攻击"
+          "press": 0.8
+          "repeat": 5
+          "way": "按下"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.8
+          "way": "松开"
+        "states": ""
+    - "states": "[前台-雅]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 8
+        "states": "[按键-切换角色-下一个, 0, 0.8]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-星见雅使用过拔刀斩"
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 2
+          "way": "按下"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "等待秒数"
+          "seconds": 1
+        "states": "[雅-落霜]{6, 6}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 1
+          "repeat": 5
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-终结技] & ![自定义-星见雅使用过拔刀斩, 0, 5] & [雅-落霜]{0, 3}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.5
+          "repeat": 2
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 25
+        "states": ""
+    - "states": "[前台-柳]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 4
+        "states": "[按键-切换角色-下一个, 0, 0.4]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.7
+          "way": "按下"
+        - "op_name": "按键-特殊攻击"
+          "way": "松开"
+        - "op_name": "设置状态"
+          "state": "自定义-柳-森罗万象"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 1
+          "repeat": 5
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-终结技] & ![自定义-动作不打断, 0, 15]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 20
+        "states": "[自定义-柳-森罗万象, 0, 15]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 35
+        "states": ""
+    - "states": "[前台-简]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-闪避"
+          "post_delay": 0.1
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+          "value": 1
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.2
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.9
+          "way": "按下"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.1
+          "repeat": 18
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "![简-狂热心流]{60, 101} & [简-萨霍夫跳]"
+      - "operations":
+        - "op_name": "按键-终结技"
+          "post_delay": 0.2
+          "repeat": 2
+        "states": "[按键可用-终结技]"
+      - "operations":
+        - "op_name": "按键-特殊攻击"
+          "press": 0.5
+          "repeat": 4
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.2
+        "states": ""
+    - "states": "[前台-悠真]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 4
+        "states": "[按键-切换角色-下一个, 0, 0.4]"
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-普通攻击"
+          "press": 1.2
+          "way": "按下"
+        - "op_name": "按键-普通攻击"
+          "way": "松开"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 20
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[自定义-连携换人, 0, 2]"
+      - "operations":
+        - "data":
+          - "0.4"
+          "op_name": "等待秒数"
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "press": 2
+          "way": "按下"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 20
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 2
+          "repeat": 2
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-终结技] & [自定义-连携换人, 0, 10]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "press": 1.2
+          "way": "按下"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 25
+        "states": "![按键可用-特殊攻击]"
+    - "operations":
+      - "data": []
+        "op_name": "按键-终结技"
+      - "data":
+        - "3"
+        "op_name": "等待秒数"
+      "states": "[按键可用-终结技]"
+    - "operations":
+      - "data": []
+        "op_name": "按键-特殊攻击"
+      - "data":
+        - "0.3"
+        "op_name": "等待秒数"
+      "states": "[按键可用-特殊攻击]"
+    - "operations":
+      - "data": []
+        "op_name": "按键-普通攻击"
+      - "data":
+        - "0.3"
+        "op_name": "等待秒数"
+      "states": ""
+  - "states": "[自定义-连携换人, 0, 12] | [自定义-连携换人, 0, 12]"
+    "sub_handlers":
+    - "states": "[前台-强攻]"
+      "sub_handlers":
+      - "states": "[前台-11号]"
+        "sub_handlers":
+        - "operations":
+          - "data": []
+            "op_name": "按键-终结技"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.4
+            "repeat": 8
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.4
+            "repeat": 8
+          "states": "[按键可用-终结技]"
+        - "operations":
+          - "op_name": "按键-闪避"
+            "post_delay": 0.2
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 1.2
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.4
+            "repeat": 8
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.4
+            "repeat": 8
+          "states": ""
+      - "states": "[前台-青衣]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-青衣-醉花云月转"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.5
+            "press": 2.5
+            "way": "按下"
+          - "op_name": "设置状态"
+            "state": "自定义-青衣-特殊技续普攻"
+          - "op_name": "清除状态"
+            "state": "自定义-青衣-普攻次数"
+          "states": "[青衣-电压]{80, 101}"
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-终结技"
+            "post_delay": 2
+            "repeat": 2
+          - "op_name": "清除状态"
+            "state": "自定义-动作不打断"
+          "states": "[按键可用-终结技] & ![自定义-动作不打断, 0, 30] & ![自定义-青衣-醉花云月转, 0, 3]"
+        - "operations":
+          - "op_name": "按键-移动-前"
+            "post_delay": 0.1
+            "way": "按下"
+          - "op_name": "按键-闪避"
+            "post_delay": 0.2
+          - "op_name": "按键-移动-前"
+            "way": "松开"
+          - "op_name": "清除状态"
+            "state": "自定义-青衣-特殊技续普攻"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 10
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.5
+          "states": "![按键可用-特殊攻击] & [自定义-青衣-特殊技续普攻, 0, 2]"
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.5
+            "repeat": 4
+          - "op_name": "清除状态"
+            "state": "自定义-动作不打断"
+          "states": "[按键可用-特殊攻击] & [自定义-青衣-特殊技续普攻, 0, 2]"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 20
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.5
+          - "op_name": "设置状态"
+            "state": "自定义-青衣-特殊技续普攻"
+          "states": "[青衣-电压]{0, 90}"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 10
+          "states": ""
+      - "states": "[前台-安比]"
+        "sub_handlers":
+        - "operations":
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "1.2"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.2"
+            "op_name": "等待秒数"
+          - "data":
+            - "1"
+            "op_name": "按键-普通攻击-按下"
+          - "data":
+            - "1"
+            "op_name": "等待秒数"
+          - "data":
+            - "自定义-黄光切人"
+            "op_name": "清除状态"
+          "states": "[自定义-黄光切人]"
+        - "operations":
+          - "data":
+            - "0.8"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.2"
+            "op_name": "等待秒数"
+          - "data":
+            - "1"
+            "op_name": "按键-普通攻击-按下"
+          - "data":
+            - "1"
+            "op_name": "等待秒数"
+          - "data":
+            - "自定义-红光闪避"
+            "op_name": "清除状态"
+          "states": "[自定义-红光闪避]"
+        - "operations":
+          - "data":
+            - "2"
+            "op_name": "等待秒数"
+          "states": "[自定义-连携换人]"
+        - "operations":
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          - "data":
+            - "自定义-快速支援换人"
+            "op_name": "清除状态"
+          "states": "[自定义-快速支援换人]"
+        - "operations":
+          - "data": []
+            "op_name": "按键-终结技"
+          - "data":
+            - "5"
+            "op_name": "等待秒数"
+          "states": "[按键可用-终结技]"
+        - "operations":
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.3"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.9"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-特殊攻击"
+          - "data":
+            - "1.4"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.2"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "1.0"
+            "op_name": "等待秒数"
+          "states": "[按键可用-特殊攻击]"
+        - "operations":
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.3"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.2"
+            "op_name": "等待秒数"
+          - "data":
+            - "1"
+            "op_name": "按键-普通攻击-按下"
+          - "data":
+            - "1"
+            "op_name": "等待秒数"
+          "states": ""
+      - "states": "[前台-莱卡恩]"
+        "sub_handlers":
+        - "operations":
+          - "data": []
+            "op_name": "按键-终结技"
+          - "data":
+            - "5"
+            "op_name": "等待秒数"
+          "states": "[按键可用-终结技]"
+        - "operations":
+          - "data":
+            - "0.5"
+            "op_name": "按键-特殊攻击-按下"
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          "states": "[按键可用-特殊攻击]"
+        - "operations":
+          - "data":
+            - "0.5"
+            "op_name": "按键-普通攻击-按下"
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          "states": ""
+      - "states": "[前台-妮可]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "按键-终结技"
+            "post_delay": 3
+          "states": "[按键可用-终结技]"
+        - "operations":
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.3
+          "states": "[按键可用-特殊攻击]"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.3
+          "states": ""
+      - "states": "[前台-朱鸢]"
+        "sub_handlers":
+        - "states": "[自定义-黄光切人, 0, 2]"
+          "sub_handlers":
+          - "operations":
+            - "op_name": "清除状态"
+              "state_list":
+              - "自定义-速切结束"
+              - "自定义-动作不打断"
+            - "op_name": "设置状态"
+              "seconds": 2
+              "state": "自定义-动作不打断"
+            - "op_name": "按键-普通攻击"
+              "post_delay": 0.1
+              "repeat": 10
+            - "op_name": "等待秒数"
+              "seconds": 0.5
+            - "op_name": "等待秒数"
+              "seconds": 0.5
+            "states": ""
+        - "operations":
+          - "op_name": "设置状态"
+            "seconds_add": -1
+            "state": "自定义-连携换人"
+          - "op_name": "设置状态"
+            "seconds": 2
+            "state": "自定义-动作不打断"
+          - "op_name": "等待秒数"
+            "seconds": 2
+          "states": "[自定义-连携换人, 0, 1]"
+        - "operations":
+          - "op_name": "设置状态"
+            "seconds_add": -1
+            "state": "自定义-连携换人"
+          - "op_name": "设置状态"
+            "seconds": 2
+            "state": "自定义-动作不打断"
+          - "op_name": "等待秒数"
+            "seconds": 2
+          "states": "[自定义-连携换人, 0, 1]"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 1
+            "pre_delay": 0.8
+          - "op_name": "按键-普通攻击"
+            "post_delay": 1
+            "repeat": 2
+          - "op_name": "清除状态"
+            "state": "自定义-红光闪避"
+          "states": "[自定义-红光闪避]"
+        - "operations":
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          - "data":
+            - "自定义-快速支援换人"
+            "op_name": "清除状态"
+          - "op_name": "设置状态"
+            "state": "自定义-临时站场"
+          "states": "[自定义-快速支援换人]"
+        - "operations":
+          - "op_name": "按键-闪避"
+            "post_delay": 0.5
+            "pre_delay": 0.5
+          - "op_name": "清除状态"
+            "state": "自定义-血量扣减"
+          "states": "[自定义-血量扣减]"
+        - "states": ""
+          "sub_handlers":
+          - "operations":
+            - "op_name": "按键-移动-前"
+              "way": "按下"
+            - "data":
+              - "0.2"
+              "op_name": "等待秒数"
+            - "op_name": "按键-闪避"
+              "post_delay": 0.1
+            - "op_name": "按键-普通攻击"
+            - "op_name": "按键-移动-前"
+              "way": "松开"
+            - "data":
+              - "0.3"
+              "op_name": "等待秒数"
+            - "op_name": "按键-终结技"
+              "post_delay": 4
+            "states": "[按键可用-终结技] & ![自定义-临时站场] & ![朱鸢-子弹数, 0, 999]{7, 9}"
+          - "states": "[按键可用-特殊攻击] & ![自定义-朱鸢-特殊攻击] & ![朱鸢-子弹数, 0, 999]{7, 9}"
+            "sub_handlers":
+            - "operations":
+              - "op_name": "按键-普通攻击"
+                "post_delay": 0.8
+              - "op_name": "按键-特殊攻击"
+                "post_delay": 1.2
+              - "data":
+                - "自定义-朱鸢-特殊攻击"
+                "op_name": "设置状态"
+              "states": "[自定义-朱鸢-下发普攻前滑]"
+            - "operations":
+              - "op_name": "按键-移动-前"
+                "way": "按下"
+              - "data":
+                - "0.2"
+                "op_name": "等待秒数"
+              - "op_name": "按键-闪避"
+                "post_delay": 0.1
+              - "op_name": "按键-普通攻击"
+              - "op_name": "按键-移动-前"
+                "way": "松开"
+              - "op_name": "按键-特殊攻击"
+                "post_delay": 1.2
+                "pre_delay": 0.8
+              - "data":
+                - "自定义-朱鸢-特殊攻击"
+                "op_name": "设置状态"
+              "states": ""
+          - "operations":
+            - "op_name": "按键-普通攻击"
+              "post_delay": 0.5
+            - "op_name": "按键-普通攻击"
+              "press": 1
+              "way": "按下"
+            - "op_name": "按键-普通攻击"
+              "way": "松开"
+            - "op_name": "等待秒数"
+              "seconds": 0.1
+            - "op_name": "按键-普通攻击"
+              "press": 0.5
+              "repeat": 3
+              "way": "按下"
+            - "op_name": "等待秒数"
+              "seconds": 1
+            "states": "[自定义-朱鸢-特殊攻击]"
+          - "operations":
+            - "op_name": "按键-移动-前"
+              "way": "按下"
+            - "data":
+              - "0.2"
+              "op_name": "等待秒数"
+            - "op_name": "按键-闪避"
+              "post_delay": 0.1
+            - "op_name": "按键-普通攻击"
+            - "op_name": "按键-移动-前"
+              "way": "松开"
+            - "op_name": "按键-普通攻击"
+              "pre_delay": 0.3
+              "press": 0.5
+              "way": "按下"
+            - "op_name": "按键-普通攻击"
+              "way": "松开"
+            - "op_name": "等待秒数"
+              "seconds": 0.1
+            - "op_name": "按键-普通攻击"
+              "press": 0.5
+              "repeat": 3
+              "way": "按下"
+            - "op_name": "等待秒数"
+              "seconds": 1
+            "states": "[朱鸢-子弹数, 0, 999]{2, 9}"
+          - "operations":
+            - "op_name": "按键-普通攻击"
+              "post_delay": 0.7
+            - "op_name": "按键-普通攻击"
+              "post_delay": 1
+              "repeat": 3
+            - "data":
+              - "自定义-朱鸢-下发普攻前滑"
+              "op_name": "设置状态"
+            "states": "[自定义-朱鸢-下发普攻前滑]"
+          - "operations":
+            - "op_name": "按键-移动-前"
+              "way": "按下"
+            - "data":
+              - "0.2"
+              "op_name": "等待秒数"
+            - "op_name": "按键-闪避"
+              "post_delay": 0.1
+            - "op_name": "按键-普通攻击"
+            - "op_name": "按键-移动-前"
+              "way": "松开"
+            - "data":
+              - "0.6"
+              "op_name": "等待秒数"
+            - "op_name": "按键-普通攻击"
+              "post_delay": 0.5
+            - "op_name": "按键-普通攻击"
+              "post_delay": 1
+              "repeat": 4
+            - "data":
+              - "自定义-朱鸢-下发普攻前滑"
+              "op_name": "设置状态"
+            "states": ""
+      - "states": "[前台-可琳]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "清除状态"
+            "state": "自定义-可琳-这次不打特殊技"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 20
+          "states": "[自定义-连携换人, 0, 1]"
+        - "operations":
+          - "op_name": "按键-终结技"
+            "post_delay": 0.1
+            "repeat": 10
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 30
+          "states": "[按键可用-终结技] & [自定义-连携换人, 0, 10]"
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-可琳-这次不打特殊技"
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.1
+            "repeat": 40
+          "states": "[按键可用-特殊攻击] & [自定义-连携换人, 2, 10] & ![自定义-可琳-这次不打特殊技, 0, 12]"
+        - "operations":
+          - "op_name": "清除状态"
+            "state": "自定义-可琳-这次不打特殊技"
+          "states": "[自定义-连携换人, 10, 999] & [自定义-可琳-这次不打特殊技, 0, 12]"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 35
+          "states": "![按键可用-特殊攻击]"
+      - "states": "[前台-格莉丝]"
+        "sub_handlers":
+        - "operations":
+          - "data": []
+            "op_name": "按键-终结技"
+          - "data":
+            - "3"
+            "op_name": "等待秒数"
+          "states": "[按键可用-终结技]"
+        - "operations":
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.3"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-普通攻击"
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          - "data": []
+            "op_name": "按键-特殊攻击"
+          - "data":
+            - "0.6"
+            "op_name": "等待秒数"
+          "states": ""
+      - "states": "[前台-派派]"
+        "sub_handlers":
+        - "operations":
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          - "op_name": "按键-普通攻击"
+            "press": 0.8
+            "way": "按下"
+          - "op_name": "按键-普通攻击"
+            "way": "松开"
+          - "op_name": "按键-特殊攻击"
+            "press": 0.8
+            "repeat": 5
+            "way": "按下"
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.8
+            "way": "松开"
+          - "data":
+            - "自定义-黄光切人"
+            "op_name": "清除状态"
+          "states": "[自定义-黄光切人]"
+        - "operations":
+          - "data":
+            - "0.8"
+            "op_name": "等待秒数"
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          - "op_name": "按键-普通攻击"
+            "press": 0.8
+            "way": "按下"
+          - "op_name": "按键-普通攻击"
+            "way": "松开"
+          - "op_name": "按键-特殊攻击"
+            "press": 0.8
+            "repeat": 5
+            "way": "按下"
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.8
+            "way": "松开"
+          - "data":
+            - "自定义-红光闪避"
+            "op_name": "清除状态"
+          "states": "[自定义-红光闪避]"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.6
+            "repeat": 2
+          - "op_name": "按键-特殊攻击"
+            "press": 0.8
+            "repeat": 5
+            "way": "按下"
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.8
+            "way": "松开"
+          "states": "[按键可用-特殊攻击]"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.6
+            "repeat": 2
+          - "op_name": "按键-特殊攻击"
+            "press": 0.8
+            "repeat": 5
+            "way": "按下"
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.8
+            "way": "松开"
+          "states": ""
+      - "states": "[前台-雅]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 8
+          "states": "[按键-切换角色-下一个, 0, 0.8]"
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-星见雅使用过拔刀斩"
+          - "op_name": "设置状态"
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 2
+            "way": "按下"
+          - "op_name": "清除状态"
+            "state": "自定义-动作不打断"
+          - "op_name": "等待秒数"
+            "seconds": 1
+          "states": "[雅-落霜]{6, 6}"
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-终结技"
+            "post_delay": 1
+            "repeat": 5
+          - "op_name": "清除状态"
+            "state": "自定义-动作不打断"
+          "states": "[按键可用-终结技] & ![自定义-星见雅使用过拔刀斩, 0, 5] & [雅-落霜]{0, 3}"
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.5
+            "repeat": 2
+          - "op_name": "清除状态"
+            "state": "自定义-动作不打断"
+          "states": "[按键可用-特殊攻击]"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 25
+          "states": ""
+      - "states": "[前台-柳]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 4
+          "states": "[按键-切换角色-下一个, 0, 0.4]"
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.7
+            "way": "按下"
+          - "op_name": "按键-特殊攻击"
+            "way": "松开"
+          - "op_name": "设置状态"
+            "state": "自定义-柳-森罗万象"
+          - "op_name": "清除状态"
+            "state": "自定义-动作不打断"
+          "states": "[按键可用-特殊攻击]"
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-终结技"
+            "post_delay": 1
+            "repeat": 5
+          - "op_name": "清除状态"
+            "state": "自定义-动作不打断"
+          "states": "[按键可用-终结技] & ![自定义-动作不打断, 0, 15]"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 20
+          "states": "[自定义-柳-森罗万象, 0, 15]"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 35
+          "states": ""
+      - "states": "[前台-简]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "按键-闪避"
+            "post_delay": 0.1
+          - "op_name": "设置状态"
+            "state": "自定义-动作不打断"
+            "value": 1
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.2
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.9
+            "way": "按下"
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.1
+            "repeat": 18
+          - "op_name": "清除状态"
+            "state": "自定义-动作不打断"
+          "states": "![简-狂热心流]{60, 101} & [简-萨霍夫跳]"
+        - "operations":
+          - "op_name": "按键-终结技"
+            "post_delay": 0.2
+            "repeat": 2
+          "states": "[按键可用-终结技]"
+        - "operations":
+          - "op_name": "按键-特殊攻击"
+            "press": 0.5
+            "repeat": 4
+          "states": "[按键可用-特殊攻击]"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.2
+          "states": ""
+      - "states": "[前台-悠真]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 4
+          "states": "[按键-切换角色-下一个, 0, 0.4]"
+        - "operations":
+          - "data":
+            - "0.5"
+            "op_name": "等待秒数"
+          - "op_name": "设置状态"
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-普通攻击"
+            "press": 1.2
+            "way": "按下"
+          - "op_name": "按键-普通攻击"
+            "way": "松开"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 20
+          - "op_name": "清除状态"
+            "state": "自定义-动作不打断"
+          "states": "[自定义-连携换人, 0, 2]"
+        - "operations":
+          - "data":
+            - "0.4"
+            "op_name": "等待秒数"
+          - "op_name": "设置状态"
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-特殊攻击"
+            "press": 2
+            "way": "按下"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 20
+          - "op_name": "清除状态"
+            "state": "自定义-动作不打断"
+          "states": "[按键可用-特殊攻击]"
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-终结技"
+            "post_delay": 2
+            "repeat": 2
+          - "op_name": "清除状态"
+            "state": "自定义-动作不打断"
+          "states": "[按键可用-终结技] & [自定义-连携换人, 0, 10]"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "press": 1.2
+            "way": "按下"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 25
+          "states": "![按键可用-特殊攻击]"
+      - "operations":
+        - "data": []
+          "op_name": "按键-终结技"
+        - "data":
+          - "3"
+          "op_name": "等待秒数"
+        "states": "[按键可用-终结技]"
+      - "operations":
+        - "data": []
+          "op_name": "按键-特殊攻击"
+        - "data":
+          - "0.3"
+          "op_name": "等待秒数"
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.3"
+          "op_name": "等待秒数"
+        "states": ""
+    - "operations":
+      - "data": []
+        "op_name": "按键-切换角色-上一个"
+      - "data":
+        - "0.1"
+        "op_name": "等待秒数"
+      "states": "[后台-2-强攻]"
+    - "operations":
+      - "data": []
+        "op_name": "按键-切换角色-下一个"
+      - "data":
+        - "0.1"
+        "op_name": "等待秒数"
+      "states": "[后台-1-强攻]"
+  - "states": "[前台-异常]"
+    "sub_handlers":
+    - "states": "[前台-11号]"
+      "sub_handlers":
+      - "operations":
+        - "data": []
+          "op_name": "按键-终结技"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.4
+          "repeat": 8
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.4
+          "repeat": 8
+        "states": "[按键可用-终结技]"
+      - "operations":
+        - "op_name": "按键-闪避"
+          "post_delay": 0.2
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 1.2
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.4
+          "repeat": 8
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.4
+          "repeat": 8
+        "states": ""
+    - "states": "[前台-青衣]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-青衣-醉花云月转"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.5
+          "press": 2.5
+          "way": "按下"
+        - "op_name": "设置状态"
+          "state": "自定义-青衣-特殊技续普攻"
+        - "op_name": "清除状态"
+          "state": "自定义-青衣-普攻次数"
+        "states": "[青衣-电压]{80, 101}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 2
+          "repeat": 2
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-终结技] & ![自定义-动作不打断, 0, 30] & ![自定义-青衣-醉花云月转, 0, 3]"
+      - "operations":
+        - "op_name": "按键-移动-前"
+          "post_delay": 0.1
+          "way": "按下"
+        - "op_name": "按键-闪避"
+          "post_delay": 0.2
+        - "op_name": "按键-移动-前"
+          "way": "松开"
+        - "op_name": "清除状态"
+          "state": "自定义-青衣-特殊技续普攻"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 10
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.5
+        "states": "![按键可用-特殊攻击] & [自定义-青衣-特殊技续普攻, 0, 2]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.5
+          "repeat": 4
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-特殊攻击] & [自定义-青衣-特殊技续普攻, 0, 2]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 20
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.5
+        - "op_name": "设置状态"
+          "state": "自定义-青衣-特殊技续普攻"
+        "states": "[青衣-电压]{0, 90}"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 10
+        "states": ""
+    - "states": "[前台-安比]"
+      "sub_handlers":
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "1.2"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.2"
+          "op_name": "等待秒数"
+        - "data":
+          - "1"
+          "op_name": "按键-普通攻击-按下"
+        - "data":
+          - "1"
+          "op_name": "等待秒数"
+        - "data":
+          - "自定义-黄光切人"
+          "op_name": "清除状态"
+        "states": "[自定义-黄光切人]"
+      - "operations":
+        - "data":
+          - "0.8"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.2"
+          "op_name": "等待秒数"
+        - "data":
+          - "1"
+          "op_name": "按键-普通攻击-按下"
+        - "data":
+          - "1"
+          "op_name": "等待秒数"
+        - "data":
+          - "自定义-红光闪避"
+          "op_name": "清除状态"
+        "states": "[自定义-红光闪避]"
+      - "operations":
+        - "data":
+          - "2"
+          "op_name": "等待秒数"
+        "states": "[自定义-连携换人]"
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data":
+          - "自定义-快速支援换人"
+          "op_name": "清除状态"
+        "states": "[自定义-快速支援换人]"
+      - "operations":
+        - "data": []
+          "op_name": "按键-终结技"
+        - "data":
+          - "5"
+          "op_name": "等待秒数"
+        "states": "[按键可用-终结技]"
+      - "operations":
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.3"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.9"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-特殊攻击"
+        - "data":
+          - "1.4"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.2"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "1.0"
+          "op_name": "等待秒数"
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.3"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.2"
+          "op_name": "等待秒数"
+        - "data":
+          - "1"
+          "op_name": "按键-普通攻击-按下"
+        - "data":
+          - "1"
+          "op_name": "等待秒数"
+        "states": ""
+    - "states": "[前台-莱卡恩]"
+      "sub_handlers":
+      - "operations":
+        - "data": []
+          "op_name": "按键-终结技"
+        - "data":
+          - "5"
+          "op_name": "等待秒数"
+        "states": "[按键可用-终结技]"
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "按键-特殊攻击-按下"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "按键-普通攻击-按下"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        "states": ""
+    - "states": "[前台-妮可]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-终结技"
+          "post_delay": 3
+        "states": "[按键可用-终结技]"
+      - "operations":
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.3
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.3
+        "states": ""
+    - "states": "[前台-朱鸢]"
+      "sub_handlers":
+      - "states": "[自定义-黄光切人, 0, 2]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "清除状态"
+            "state_list":
+            - "自定义-速切结束"
+            - "自定义-动作不打断"
+          - "op_name": "设置状态"
+            "seconds": 2
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 10
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          "states": ""
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -1
+          "state": "自定义-连携换人"
+        - "op_name": "设置状态"
+          "seconds": 2
+          "state": "自定义-动作不打断"
+        - "op_name": "等待秒数"
+          "seconds": 2
+        "states": "[自定义-连携换人, 0, 1]"
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -1
+          "state": "自定义-连携换人"
+        - "op_name": "设置状态"
+          "seconds": 2
+          "state": "自定义-动作不打断"
+        - "op_name": "等待秒数"
+          "seconds": 2
+        "states": "[自定义-连携换人, 0, 1]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 1
+          "pre_delay": 0.8
+        - "op_name": "按键-普通攻击"
+          "post_delay": 1
+          "repeat": 2
+        - "op_name": "清除状态"
+          "state": "自定义-红光闪避"
+        "states": "[自定义-红光闪避]"
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data":
+          - "自定义-快速支援换人"
+          "op_name": "清除状态"
+        - "op_name": "设置状态"
+          "state": "自定义-临时站场"
+        "states": "[自定义-快速支援换人]"
+      - "operations":
+        - "op_name": "按键-闪避"
+          "post_delay": 0.5
+          "pre_delay": 0.5
+        - "op_name": "清除状态"
+          "state": "自定义-血量扣减"
+        "states": "[自定义-血量扣减]"
+      - "states": ""
+        "sub_handlers":
+        - "operations":
+          - "op_name": "按键-移动-前"
+            "way": "按下"
+          - "data":
+            - "0.2"
+            "op_name": "等待秒数"
+          - "op_name": "按键-闪避"
+            "post_delay": 0.1
+          - "op_name": "按键-普通攻击"
+          - "op_name": "按键-移动-前"
+            "way": "松开"
+          - "data":
+            - "0.3"
+            "op_name": "等待秒数"
+          - "op_name": "按键-终结技"
+            "post_delay": 4
+          "states": "[按键可用-终结技] & ![自定义-临时站场] & ![朱鸢-子弹数, 0, 999]{7, 9}"
+        - "states": "[按键可用-特殊攻击] & ![自定义-朱鸢-特殊攻击] & ![朱鸢-子弹数, 0, 999]{7, 9}"
+          "sub_handlers":
+          - "operations":
+            - "op_name": "按键-普通攻击"
+              "post_delay": 0.8
+            - "op_name": "按键-特殊攻击"
+              "post_delay": 1.2
+            - "data":
+              - "自定义-朱鸢-特殊攻击"
+              "op_name": "设置状态"
+            "states": "[自定义-朱鸢-下发普攻前滑]"
+          - "operations":
+            - "op_name": "按键-移动-前"
+              "way": "按下"
+            - "data":
+              - "0.2"
+              "op_name": "等待秒数"
+            - "op_name": "按键-闪避"
+              "post_delay": 0.1
+            - "op_name": "按键-普通攻击"
+            - "op_name": "按键-移动-前"
+              "way": "松开"
+            - "op_name": "按键-特殊攻击"
+              "post_delay": 1.2
+              "pre_delay": 0.8
+            - "data":
+              - "自定义-朱鸢-特殊攻击"
+              "op_name": "设置状态"
+            "states": ""
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.5
+          - "op_name": "按键-普通攻击"
+            "press": 1
+            "way": "按下"
+          - "op_name": "按键-普通攻击"
+            "way": "松开"
+          - "op_name": "等待秒数"
+            "seconds": 0.1
+          - "op_name": "按键-普通攻击"
+            "press": 0.5
+            "repeat": 3
+            "way": "按下"
+          - "op_name": "等待秒数"
+            "seconds": 1
+          "states": "[自定义-朱鸢-特殊攻击]"
+        - "operations":
+          - "op_name": "按键-移动-前"
+            "way": "按下"
+          - "data":
+            - "0.2"
+            "op_name": "等待秒数"
+          - "op_name": "按键-闪避"
+            "post_delay": 0.1
+          - "op_name": "按键-普通攻击"
+          - "op_name": "按键-移动-前"
+            "way": "松开"
+          - "op_name": "按键-普通攻击"
+            "pre_delay": 0.3
+            "press": 0.5
+            "way": "按下"
+          - "op_name": "按键-普通攻击"
+            "way": "松开"
+          - "op_name": "等待秒数"
+            "seconds": 0.1
+          - "op_name": "按键-普通攻击"
+            "press": 0.5
+            "repeat": 3
+            "way": "按下"
+          - "op_name": "等待秒数"
+            "seconds": 1
+          "states": "[朱鸢-子弹数, 0, 999]{2, 9}"
+        - "operations":
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.7
+          - "op_name": "按键-普通攻击"
+            "post_delay": 1
+            "repeat": 3
+          - "data":
+            - "自定义-朱鸢-下发普攻前滑"
+            "op_name": "设置状态"
+          "states": "[自定义-朱鸢-下发普攻前滑]"
+        - "operations":
+          - "op_name": "按键-移动-前"
+            "way": "按下"
+          - "data":
+            - "0.2"
+            "op_name": "等待秒数"
+          - "op_name": "按键-闪避"
+            "post_delay": 0.1
+          - "op_name": "按键-普通攻击"
+          - "op_name": "按键-移动-前"
+            "way": "松开"
+          - "data":
+            - "0.6"
+            "op_name": "等待秒数"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.5
+          - "op_name": "按键-普通攻击"
+            "post_delay": 1
+            "repeat": 4
+          - "data":
+            - "自定义-朱鸢-下发普攻前滑"
+            "op_name": "设置状态"
+          "states": ""
+    - "states": "[前台-可琳]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "清除状态"
+          "state": "自定义-可琳-这次不打特殊技"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 20
+        "states": "[自定义-连携换人, 0, 1]"
+      - "operations":
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 10
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 30
+        "states": "[按键可用-终结技] & [自定义-连携换人, 0, 10]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-可琳-这次不打特殊技"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.1
+          "repeat": 40
+        "states": "[按键可用-特殊攻击] & [自定义-连携换人, 2, 10] & ![自定义-可琳-这次不打特殊技, 0, 12]"
+      - "operations":
+        - "op_name": "清除状态"
+          "state": "自定义-可琳-这次不打特殊技"
+        "states": "[自定义-连携换人, 10, 999] & [自定义-可琳-这次不打特殊技, 0, 12]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 35
+        "states": "![按键可用-特殊攻击]"
+    - "states": "[前台-格莉丝]"
+      "sub_handlers":
+      - "operations":
+        - "data": []
+          "op_name": "按键-终结技"
+        - "data":
+          - "3"
+          "op_name": "等待秒数"
+        "states": "[按键可用-终结技]"
+      - "operations":
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.3"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-普通攻击"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "data": []
+          "op_name": "按键-特殊攻击"
+        - "data":
+          - "0.6"
+          "op_name": "等待秒数"
+        "states": ""
+    - "states": "[前台-派派]"
+      "sub_handlers":
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "op_name": "按键-普通攻击"
+          "press": 0.8
+          "way": "按下"
+        - "op_name": "按键-普通攻击"
+          "way": "松开"
+        - "op_name": "按键-特殊攻击"
+          "press": 0.8
+          "repeat": 5
+          "way": "按下"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.8
+          "way": "松开"
+        - "data":
+          - "自定义-黄光切人"
+          "op_name": "清除状态"
+        "states": "[自定义-黄光切人]"
+      - "operations":
+        - "data":
+          - "0.8"
+          "op_name": "等待秒数"
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "op_name": "按键-普通攻击"
+          "press": 0.8
+          "way": "按下"
+        - "op_name": "按键-普通攻击"
+          "way": "松开"
+        - "op_name": "按键-特殊攻击"
+          "press": 0.8
+          "repeat": 5
+          "way": "按下"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.8
+          "way": "松开"
+        - "data":
+          - "自定义-红光闪避"
+          "op_name": "清除状态"
+        "states": "[自定义-红光闪避]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.6
+          "repeat": 2
+        - "op_name": "按键-特殊攻击"
+          "press": 0.8
+          "repeat": 5
+          "way": "按下"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.8
+          "way": "松开"
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.6
+          "repeat": 2
+        - "op_name": "按键-特殊攻击"
+          "press": 0.8
+          "repeat": 5
+          "way": "按下"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.8
+          "way": "松开"
+        "states": ""
+    - "states": "[前台-雅]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 8
+        "states": "[按键-切换角色-下一个, 0, 0.8]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-星见雅使用过拔刀斩"
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 2
+          "way": "按下"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "等待秒数"
+          "seconds": 1
+        "states": "[雅-落霜]{6, 6}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 1
+          "repeat": 5
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-终结技] & ![自定义-星见雅使用过拔刀斩, 0, 5] & [雅-落霜]{0, 3}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.5
+          "repeat": 2
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 25
+        "states": ""
+    - "states": "[前台-柳]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 4
+        "states": "[按键-切换角色-下一个, 0, 0.4]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.7
+          "way": "按下"
+        - "op_name": "按键-特殊攻击"
+          "way": "松开"
+        - "op_name": "设置状态"
+          "state": "自定义-柳-森罗万象"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 1
+          "repeat": 5
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-终结技] & ![自定义-动作不打断, 0, 15]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 20
+        "states": "[自定义-柳-森罗万象, 0, 15]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 35
+        "states": ""
+    - "states": "[前台-简]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-闪避"
+          "post_delay": 0.1
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+          "value": 1
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.2
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.9
+          "way": "按下"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.1
+          "repeat": 18
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "![简-狂热心流]{60, 101} & [简-萨霍夫跳]"
+      - "operations":
+        - "op_name": "按键-终结技"
+          "post_delay": 0.2
+          "repeat": 2
+        "states": "[按键可用-终结技]"
+      - "operations":
+        - "op_name": "按键-特殊攻击"
+          "press": 0.5
+          "repeat": 4
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.2
+        "states": ""
+    - "states": "[前台-悠真]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 4
+        "states": "[按键-切换角色-下一个, 0, 0.4]"
+      - "operations":
+        - "data":
+          - "0.5"
+          "op_name": "等待秒数"
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-普通攻击"
+          "press": 1.2
+          "way": "按下"
+        - "op_name": "按键-普通攻击"
+          "way": "松开"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 20
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[自定义-连携换人, 0, 2]"
+      - "operations":
+        - "data":
+          - "0.4"
+          "op_name": "等待秒数"
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "press": 2
+          "way": "按下"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 20
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-特殊攻击]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 2
+          "repeat": 2
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[按键可用-终结技] & [自定义-连携换人, 0, 10]"
+      - "operations":
+        - "op_name": "按键-普通攻击"
+          "press": 1.2
+          "way": "按下"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 25
+        "states": "![按键可用-特殊攻击]"
+    - "operations":
+      - "data": []
+        "op_name": "按键-终结技"
+      - "data":
+        - "3"
+        "op_name": "等待秒数"
+      "states": "[按键可用-终结技]"
+    - "operations":
+      - "data": []
+        "op_name": "按键-特殊攻击"
+      - "data":
+        - "0.3"
+        "op_name": "等待秒数"
+      "states": "[按键可用-特殊攻击]"
+    - "operations":
+      - "data": []
+        "op_name": "按键-普通攻击"
+      - "data":
+        - "0.3"
+        "op_name": "等待秒数"
+      "states": ""
+  - "operations":
+    - "data": []
+      "op_name": "按键-切换角色-上一个"
+    - "data":
+      - "0.1"
+      "op_name": "等待秒数"
+    "states": "[后台-2-异常]"
+  - "operations":
+    - "data": []
+      "op_name": "按键-切换角色-下一个"
+    - "data":
+      - "0.1"
+      "op_name": "等待秒数"
+    "states": "[后台-1-异常]"
+  "interval": 0.02
+  "triggers": []

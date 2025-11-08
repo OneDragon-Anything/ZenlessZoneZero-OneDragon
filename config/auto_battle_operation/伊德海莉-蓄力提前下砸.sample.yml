@@ -1,0 +1,15 @@
+operations:
+  # 长按普攻至三段蓄力开始旋转
+  - op_name: "按键-普通攻击"
+    way: "按下"
+    press: 2.2
+  - op_name: "等待秒数"
+    seconds: 0.1
+  # 松开并立即按普攻，提前触发下砸
+  - op_name: "按键-普通攻击"
+    way: "松开"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击"
+  - op_name: "等待秒数"
+    seconds: 1.5

@@ -1,0 +1,1522 @@
+"scenes":
+- "handlers":
+  - "states": "![自定义-动作不打断, 0, 30]"
+    "sub_handlers":
+    - "states": "[闪避识别-黄光]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-移动-右"
+          "way": "按下"
+        - "op_name": "设置状态"
+          "state": "自定义-闪避"
+        - "op_name": "按键-闪避"
+          "post_delay": 0.05
+          "repeat": 4
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.05
+          "repeat": 2
+        - "op_name": "按键-移动-右"
+          "way": "松开"
+        "states": "[前台-艾莲] & [自定义-艾莲-冰渊潜袭,1.5,2]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-凯撒-战意激昂"
+        - "op_name": "设置状态"
+          "state": "自定义-招架支援"
+        - "agent_name": "凯撒"
+          "op_name": "按键-切换角色"
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-连携技换人"
+          - "自定义-快速支援换人"
+          - "自定义-下场"
+          - "自定义-动作不打断"
+        "states": "[后台-凯撒] & ![自定义-凯撒-战意激昂, 0, 25]"
+      - "states": "[后台-苍角]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-招架支援"
+          - "agent_name": "苍角"
+            "op_name": "按键-切换角色"
+          - "op_name": "清除状态"
+            "state_list":
+            - "自定义-连携技换人"
+            - "自定义-快速支援换人"
+            - "自定义-下场"
+            - "自定义-动作不打断"
+          "states": "![自定义-苍角-展旗, 0, 25]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-招架支援"
+        - "agent_name": "露西"
+          "op_name": "按键-切换角色"
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-连携技换人"
+          - "自定义-快速支援换人"
+          - "自定义-下场"
+          - "自定义-动作不打断"
+        "states": "[后台-露西] & ![自定义-露西-加油, -5, 13]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-招架支援"
+        - "agent_name": "薇薇安"
+          "op_name": "按键-切换角色"
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-连携技换人"
+          - "自定义-快速支援换人"
+          - "自定义-下场"
+          - "自定义-动作不打断"
+        "states": "[后台-薇薇安] & [薇薇安-飞羽]{0, 3}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-招架支援"
+        - "agent_name": "艾莲"
+          "op_name": "按键-切换角色"
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-连携技换人"
+          - "自定义-快速支援换人"
+          - "自定义-下场"
+          - "自定义-动作不打断"
+        "states": "[后台-艾莲]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-招架支援"
+        - "agent_name": "妮可"
+          "op_name": "按键-切换角色"
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-连携技换人"
+          - "自定义-快速支援换人"
+          - "自定义-下场"
+          - "自定义-动作不打断"
+        "states": "[后台-妮可]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-招架支援"
+        - "agent_name": "莱卡恩"
+          "op_name": "按键-切换角色"
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-连携技换人"
+          - "自定义-快速支援换人"
+          - "自定义-下场"
+          - "自定义-动作不打断"
+        "states": "[后台-莱卡恩]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-招架支援"
+        - "agent_name": "柳"
+          "op_name": "按键-切换角色"
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-连携技换人"
+          - "自定义-快速支援换人"
+          - "自定义-下场"
+          - "自定义-动作不打断"
+        "states": "[后台-柳]"
+      - "operations":
+        - "op_name": "按键-移动-右"
+          "way": "按下"
+        - "op_name": "设置状态"
+          "state": "自定义-闪避"
+        - "op_name": "按键-闪避"
+          "post_delay": 0.05
+          "repeat": 4
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.05
+          "repeat": 2
+        - "op_name": "按键-移动-右"
+          "way": "松开"
+        "states": ""
+    - "operations":
+      - "op_name": "按键-移动-右"
+        "way": "按下"
+      - "op_name": "设置状态"
+        "state": "自定义-闪避"
+      - "op_name": "按键-闪避"
+        "post_delay": 0.05
+        "repeat": 4
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+        "repeat": 2
+      - "op_name": "按键-移动-右"
+        "way": "松开"
+      "states": ""
+  "interval": 0.4
+  "triggers":
+  - "闪避识别-黄光"
+  - "闪避识别-红光"
+  - "闪避识别-声音"
+- "handlers":
+  - "states": "![自定义-动作不打断, 0, 30]"
+    "sub_handlers":
+    - "operations":
+      - &id007
+        "agent_name": "凯撒"
+        "op_name": "按键-切换角色"
+      - &id008
+        "op_name": "清除状态"
+        "state_list":
+        - "自定义-招架支援"
+        - "自定义-连携技换人"
+        - "自定义-快速支援换人"
+        - "自定义-下场"
+        - "自定义-动作不打断"
+      - &id009
+        "op_name": "等待秒数"
+        "seconds": 0.1
+      "states": "[后台-凯撒] & [自定义-艾莲-冰渊潜袭,1.5,2]"
+    - "operations":
+      - "op_name": "按键-移动-右"
+        "way": "按下"
+      - "op_name": "设置状态"
+        "state": "自定义-闪避"
+      - "op_name": "按键-闪避"
+        "post_delay": 0.05
+        "repeat": 4
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+        "repeat": 2
+      - "op_name": "按键-移动-右"
+        "way": "松开"
+      "states": ""
+  "interval": 0.3
+  "triggers":
+  - "前台-血量扣减"
+- "handlers":
+  - "states": "[按键可用-快速支援]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-苍角-展旗"
+      - "op_name": "按键-快速支援"
+      - "op_name": "按键-普通攻击"
+        "way": "松开"
+      - "op_name": "按键-特殊攻击"
+        "way": "松开"
+      - "op_name": "设置状态"
+        "state": "自定义-快速支援换人"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[前台-苍角]"
+    - "operations":
+      - "op_name": "按键-快速支援"
+      - "op_name": "设置状态"
+        "state": "自定义-耀嘉音-如歌的行板"
+      - "op_name": "设置状态"
+        "state": "自定义-快速支援换人"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[前台-耀嘉音]"
+    - "states": "[前台-艾莲]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-快速支援"
+        - "op_name": "设置状态"
+          "state": "自定义-快速支援换人"
+        "states": "![自定义-艾莲-冰渊潜袭,1.5,2]"
+  "interval": 0.5
+  "triggers":
+  - "按键可用-快速支援"
+- "handlers":
+  - "states": "[按键可用-连携技]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "按键-连携技-左"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "清除状态"
+        "state": "自定义-下场"
+      - "op_name": "等待秒数"
+        "seconds": 3
+      "states": "[连携技-1-邦布]"
+    - "states": "([连携技-1-凯撒] | [连携技-2-凯撒]) & ![自定义-凯撒-战意激昂, 0, 25]"
+      "sub_handlers":
+      - "operations":
+        - &id001
+          "op_name": "按键-连携技-左"
+        - &id002
+          "op_name": "设置状态"
+          "state": "自定义-连携技换人"
+        - &id003
+          "op_name": "清除状态"
+          "state_list":
+          - "自定义-招架支援"
+          - "自定义-快速支援换人"
+          - "自定义-下场"
+          - "自定义-动作不打断"
+        "states": "[连携技-1-凯撒]"
+      - "operations":
+        - &id004
+          "op_name": "按键-连携技-右"
+        - &id005
+          "op_name": "设置状态"
+          "state": "自定义-连携技换人"
+        - &id006
+          "op_name": "清除状态"
+          "state_list":
+          - "自定义-招架支援"
+          - "自定义-快速支援换人"
+          - "自定义-下场"
+          - "自定义-动作不打断"
+        "states": "[连携技-2-凯撒]"
+    - "states": "([连携技-1-艾莲] | [连携技-2-艾莲]) & [自定义-苍角-展旗, 0, 2.5]"
+      "sub_handlers":
+      - "operations":
+        - *id001
+        - *id002
+        - *id003
+        "states": "[连携技-1-艾莲]"
+      - "operations":
+        - *id004
+        - *id005
+        - *id006
+        "states": "[连携技-2-艾莲]"
+    - "states": "([连携技-1-苍角] | [连携技-2-苍角]) & [苍角-涡流, 0, 10]{2, 3}"
+      "sub_handlers":
+      - "operations":
+        - *id001
+        - *id002
+        - *id003
+        "states": "[连携技-1-苍角]"
+      - "operations":
+        - *id004
+        - *id005
+        - *id006
+        "states": "[连携技-2-苍角]"
+    - "operations":
+      - *id001
+      - *id002
+      - *id003
+      "states": "[连携技-1-艾莲]"
+    - "operations":
+      - *id004
+      - *id005
+      - *id006
+      "states": "[连携技-2-艾莲]"
+    - "operations":
+      - *id001
+      - *id002
+      - *id003
+      "states": "[连携技-1-莱卡恩]"
+    - "operations":
+      - *id004
+      - *id005
+      - *id006
+      "states": "[连携技-2-莱卡恩]"
+    - "operations":
+      - *id001
+      - *id002
+      - *id003
+      "states": "[连携技-1-柳]"
+    - "operations":
+      - *id004
+      - *id005
+      - *id006
+      "states": "[连携技-2-柳]"
+    - "operations":
+      - *id001
+      - *id002
+      - *id003
+      "states": "[连携技-1-柏妮思]"
+    - "operations":
+      - *id004
+      - *id005
+      - *id006
+      "states": "[连携技-2-柏妮思]"
+    - "operations":
+      - *id001
+      - *id002
+      - *id003
+      "states": "[连携技-1-薇薇安]"
+    - "operations":
+      - *id004
+      - *id005
+      - *id006
+      "states": "[连携技-2-薇薇安]"
+    - "operations":
+      - *id001
+      - *id002
+      - *id003
+      "states": "[连携技-1-妮可]"
+    - "operations":
+      - *id004
+      - *id005
+      - *id006
+      "states": "[连携技-2-妮可]"
+    - "operations":
+      - *id001
+      - *id002
+      - *id003
+      "states": "[连携技-1-苍角]"
+    - "operations":
+      - *id004
+      - *id005
+      - *id006
+      "states": "[连携技-2-苍角]"
+    - "operations":
+      - *id001
+      - *id002
+      - *id003
+      "states": "[连携技-1-露西]"
+    - "operations":
+      - *id004
+      - *id005
+      - *id006
+      "states": "[连携技-2-露西]"
+    - "operations":
+      - *id001
+      - *id002
+      - *id003
+      "states": "[连携技-1-耀嘉音]"
+    - "operations":
+      - *id004
+      - *id005
+      - *id006
+      "states": "[连携技-2-耀嘉音]"
+    - "operations":
+      - *id001
+      - *id002
+      - *id003
+      "states": "[连携技-1-凯撒]"
+    - "operations":
+      - *id004
+      - *id005
+      - *id006
+      "states": "[连携技-2-凯撒]"
+  "interval": 1
+  "triggers":
+  - "按键可用-连携技"
+- "handlers":
+  - "states": "[自定义-下场]"
+    "sub_handlers":
+    - "operations":
+      - "agent_name": "艾莲"
+        "op_name": "按键-切换角色"
+      - "op_name": "清除状态"
+        "state_list":
+        - "自定义-招架支援"
+        - "自定义-连携技换人"
+        - "自定义-快速支援换人"
+        - "自定义-下场"
+        - "自定义-动作不打断"
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-动作不打断"
+        - "自定义-艾莲-冰渊潜袭"
+      - "op_name": "按键-锁定敌人"
+        "post_delay": 0.01
+      - "op_name": "按键-移动-前"
+        "post_delay": 0.01
+        "way": "按下"
+      - "op_name": "按键-闪避"
+        "post_delay": 0.15
+        "press": 0.01
+      - "op_name": "按键-闪避"
+        "post_delay": 0.1
+        "press": 0.01
+      - "op_name": "按键-闪避"
+        "post_delay": 0.05
+        "press": 0.01
+      - "op_name": "按键-普通攻击"
+        "post_delay": 1.2
+        "way": "按下"
+      - "op_name": "按键-普通攻击"
+        "way": "松开"
+      - "op_name": "按键-锁定敌人"
+        "post_delay": 0.1
+      - "op_name": "清除状态"
+        "state_list":
+        - "自定义-动作不打断"
+        - "自定义-艾莲-急冻修剪法"
+        - "自定义-艾莲-鲨卷风"
+        - "自定义-艾莲-冰渊潜袭"
+      "states": "[后台-艾莲]"
+    - "operations":
+      - &id010
+        "agent_name": "耀嘉音"
+        "op_name": "按键-切换角色"
+      - &id011
+        "op_name": "清除状态"
+        "state_list":
+        - "自定义-招架支援"
+        - "自定义-连携技换人"
+        - "自定义-快速支援换人"
+        - "自定义-下场"
+        - "自定义-动作不打断"
+      - &id012
+        "op_name": "等待秒数"
+        "seconds": 0.1
+      "states": "[耀嘉音-终结技可用] & [后台-耀嘉音]"
+    - "operations":
+      - &id028
+        "agent_name": "妮可"
+        "op_name": "按键-切换角色"
+      - &id029
+        "op_name": "清除状态"
+        "state_list":
+        - "自定义-招架支援"
+        - "自定义-连携技换人"
+        - "自定义-快速支援换人"
+        - "自定义-下场"
+        - "自定义-动作不打断"
+      - &id030
+        "op_name": "等待秒数"
+        "seconds": 0.1
+      "states": "[妮可-终结技可用] & [后台-妮可]"
+    - "operations":
+      - &id016
+        "agent_name": "露西"
+        "op_name": "按键-切换角色"
+      - &id017
+        "op_name": "清除状态"
+        "state_list":
+        - "自定义-招架支援"
+        - "自定义-连携技换人"
+        - "自定义-快速支援换人"
+        - "自定义-下场"
+        - "自定义-动作不打断"
+      - &id018
+        "op_name": "等待秒数"
+        "seconds": 0.1
+      "states": "[露西-终结技可用] & [后台-露西]"
+    - "operations":
+      - &id019
+        "agent_name": "苍角"
+        "op_name": "按键-切换角色"
+      - &id020
+        "op_name": "清除状态"
+        "state_list":
+        - "自定义-招架支援"
+        - "自定义-连携技换人"
+        - "自定义-快速支援换人"
+        - "自定义-下场"
+        - "自定义-动作不打断"
+      - &id021
+        "op_name": "等待秒数"
+        "seconds": 0.1
+      "states": "[苍角-终结技可用] & [后台-苍角]"
+    - "operations":
+      - &id025
+        "agent_name": "莱卡恩"
+        "op_name": "按键-切换角色"
+      - &id026
+        "op_name": "清除状态"
+        "state_list":
+        - "自定义-招架支援"
+        - "自定义-连携技换人"
+        - "自定义-快速支援换人"
+        - "自定义-下场"
+        - "自定义-动作不打断"
+      - &id027
+        "op_name": "等待秒数"
+        "seconds": 0.1
+      "states": "[莱卡恩-终结技可用] & [后台-莱卡恩]"
+    - "operations":
+      - &id022
+        "agent_name": "柳"
+        "op_name": "按键-切换角色"
+      - &id023
+        "op_name": "清除状态"
+        "state_list":
+        - "自定义-招架支援"
+        - "自定义-连携技换人"
+        - "自定义-快速支援换人"
+        - "自定义-下场"
+        - "自定义-动作不打断"
+      - &id024
+        "op_name": "等待秒数"
+        "seconds": 0.1
+      "states": "[柳-终结技可用] & [后台-柳]"
+    - "operations":
+      - &id031
+        "agent_name": "柏妮思"
+        "op_name": "按键-切换角色"
+      - &id032
+        "op_name": "清除状态"
+        "state_list":
+        - "自定义-招架支援"
+        - "自定义-连携技换人"
+        - "自定义-快速支援换人"
+        - "自定义-下场"
+        - "自定义-动作不打断"
+      - &id033
+        "op_name": "等待秒数"
+        "seconds": 0.1
+      "states": "[柏妮思-终结技可用] & [后台-柏妮思]"
+    - "operations":
+      - &id013
+        "agent_name": "薇薇安"
+        "op_name": "按键-切换角色"
+      - &id014
+        "op_name": "清除状态"
+        "state_list":
+        - "自定义-招架支援"
+        - "自定义-连携技换人"
+        - "自定义-快速支援换人"
+        - "自定义-下场"
+        - "自定义-动作不打断"
+      - &id015
+        "op_name": "等待秒数"
+        "seconds": 0.1
+      "states": "[薇薇安-终结技可用] & [后台-薇薇安] & [薇薇安-飞羽]{0, 1} & [薇薇安-护羽]{0, 1}"
+    - "operations":
+      - *id007
+      - *id008
+      - *id009
+      "states": "[凯撒-终结技可用] & [后台-凯撒]"
+    - "operations":
+      - *id010
+      - *id011
+      - *id012
+      "states": "![自定义-耀嘉音-如歌的行板, 0, 20] & [后台-耀嘉音] & [耀嘉音-能量]{30, 120}"
+    - "operations":
+      - *id013
+      - *id014
+      - *id015
+      "states": "[薇薇安-飞羽]{0, 2} & [薇薇安-护羽]{0, 3} & [后台-薇薇安] & [薇薇安-能量]{65, 120}"
+    - "operations":
+      - *id007
+      - *id008
+      - *id009
+      "states": "![自定义-凯撒-战意激昂, 0, 25] & [后台-凯撒] & [凯撒-能量]{45, 120}"
+    - "operations":
+      - *id016
+      - *id017
+      - *id018
+      "states": "![自定义-露西-加油, -5, 15] & [后台-露西] & [露西-能量]{65, 120}"
+    - "states": "![自定义-苍角-展旗, 0, 25] & [后台-苍角]"
+      "sub_handlers":
+      - "operations":
+        - *id019
+        - *id020
+        - *id021
+        "states": "[苍角-涡流]{3, 3}"
+      - "operations":
+        - *id019
+        - *id020
+        - *id021
+        "states": "[苍角-涡流]{1, 2} & [后台-苍角] & [苍角-能量]{60, 120}"
+      - "operations":
+        - *id019
+        - *id020
+        - *id021
+        "states": "[苍角-涡流]{0, 0} & [后台-苍角] & [苍角-能量]{90, 120}"
+    - "operations":
+      - *id022
+      - *id023
+      - *id024
+      "states": "[后台-柳]"
+    - "operations":
+      - *id025
+      - *id026
+      - *id027
+      "states": "[后台-莱卡恩]"
+    - "operations":
+      - *id028
+      - *id029
+      - *id030
+      "states": "[后台-妮可]"
+    - "operations":
+      - *id031
+      - *id032
+      - *id033
+      "states": "[后台-柏妮思]"
+    - "operations":
+      - *id013
+      - *id014
+      - *id015
+      "states": "[后台-薇薇安]"
+  - "interrupt_states": "[后台-耀嘉音]"
+    "states": "[前台-耀嘉音]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+        "repeat": 2
+      - "op_name": "等待秒数"
+        "seconds": 1
+      "states": "[自定义-闪避]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.15
+        "pre_delay": 0.15
+        "repeat": 2
+      - "op_name": "清除状态"
+        "post_delay": 0.3
+        "state": "自定义-动作不打断"
+      "states": "[自定义-快速支援换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+        "repeat": 28
+      - "op_name": "等待秒数"
+        "seconds": 1
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-招架支援]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "等待秒数"
+        "seconds": 2
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-连携技换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-动作不打断"
+      - "op_name": "按键-终结技"
+        "post_delay": 0.1
+        "repeat": 10
+      - "op_name": "等待秒数"
+        "seconds": 3
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": "[按键可用-终结技]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-移动-前"
+        "post_delay": 0.01
+        "way": "松开"
+      - "op_name": "按键-闪避"
+        "post_delay": 0.01
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.1
+        "press": 0.05
+        "repeat": 2
+      - "op_name": "按键-终结技"
+        "post_delay": 0.1
+        "repeat": 15
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-下场"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": ""
+  - "interrupt_states": "[后台-妮可]"
+    "states": "[前台-妮可]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+        "repeat": 2
+      - "op_name": "等待秒数"
+        "seconds": 1
+      "states": "[自定义-闪避]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.15
+        "pre_delay": 0.15
+        "repeat": 5
+      "states": "[自定义-快速支援换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+        "repeat": 28
+      - "op_name": "等待秒数"
+        "seconds": 1
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-招架支援]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "等待秒数"
+        "seconds": 2
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-连携技换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-动作不打断"
+      - "op_name": "按键-终结技"
+        "post_delay": 0.1
+        "repeat": 10
+      - "op_name": "等待秒数"
+        "seconds": 1.5
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": "[按键可用-终结技]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.05
+        "repeat": 24
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-下场"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[妮可-能量]{85, 120}"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.15
+        "repeat": 2
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": ""
+  - "interrupt_states": "[后台-露西]"
+    "states": "[前台-露西]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+        "repeat": 2
+      - "op_name": "等待秒数"
+        "seconds": 1
+      "states": "[自定义-闪避]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.15
+        "pre_delay": 0.15
+        "repeat": 5
+      "states": "[自定义-快速支援换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+        "repeat": 28
+      - "op_name": "等待秒数"
+        "seconds": 1
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-招架支援]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "等待秒数"
+        "seconds": 2
+      - "op_name": "设置状态"
+        "seconds": -3
+        "state": "自定义-露西-加油"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-连携技换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-动作不打断"
+        - "自定义-露西-加油"
+      - "op_name": "按键-终结技"
+        "post_delay": 0.1
+        "repeat": 10
+      - "op_name": "等待秒数"
+        "seconds": 3
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": "[按键可用-终结技]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.05
+        "repeat": 24
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-下场"
+        - "自定义-露西-加油"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[露西-能量]{65, 120} & ![自定义-露西-加油, -5, 15]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.15
+        "repeat": 3
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": "![切换角色-露西]"
+  - "interrupt_states": "[后台-苍角]"
+    "states": "[前台-苍角]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "按键-移动-前"
+        "way": "松开"
+      - "op_name": "按键-闪避"
+        "post_delay": 0.05
+        "pre_delay": 0.05
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.2
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 2
+        "way": "按下"
+      - "op_name": "按键-特殊攻击"
+        "way": "松开"
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-苍角-展旗"
+      "states": "[自定义-闪避]"
+    - "states": "[自定义-连携技换人, 0, 6]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-苍角-展旗"
+        "states": "[苍角-涡流, 0, 10]{3, 3}"
+      - "operations":
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.05
+        "states": ""
+    - "states": "[自定义-招架支援]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-移动-前"
+          "way": "松开"
+        - "op_name": "按键-闪避"
+          "post_delay": 0.05
+          "pre_delay": 0.05
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 2
+          "way": "按下"
+        - "op_name": "按键-特殊攻击"
+          "way": "松开"
+        - "op_name": "设置状态"
+          "state_list":
+          - "自定义-下场"
+          - "自定义-苍角-展旗"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": ""
+    - "operations":
+      - "op_name": "等待秒数"
+        "post_delay": 0.2
+      "states": "[自定义-快速支援换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-动作不打断"
+        - "自定义-苍角-展旗"
+      - "op_name": "按键-终结技"
+        "post_delay": 0.1
+        "repeat": 10
+      - "op_name": "等待秒数"
+        "seconds": 3.6
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[按键可用-终结技]"
+    - "states": "![自定义-苍角-展旗, 0, 25]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-移动-前"
+          "way": "松开"
+        - "op_name": "按键-闪避"
+          "post_delay": 0.05
+          "pre_delay": 0.05
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 2
+          "way": "按下"
+        - "op_name": "设置状态"
+          "state_list":
+          - "自定义-下场"
+          - "自定义-苍角-展旗"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": ""
+    - "states": "[苍角-能量]{60, 120}"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+          "repeat": 10
+        - "op_name": "设置状态"
+          "state": "自定义-下场"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[苍角-涡流]{0, 0}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+          "repeat": 5
+        - "op_name": "设置状态"
+          "state": "自定义-下场"
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "[苍角-涡流]{1, 1}"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": ""
+  - "interrupt_states": "[后台-凯撒]"
+    "states": "[前台-凯撒]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.1
+        "repeat": 2
+      "states": "[自定义-闪避]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.15
+        "pre_delay": 0.15
+        "repeat": 2
+      "states": "[自定义-快速支援换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.1
+        "pre_delay": 0.1
+        "repeat": 10
+      - "op_name": "等待秒数"
+        "seconds": 0.3
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-招架支援]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "等待秒数"
+        "seconds": 2
+      - "op_name": "设置状态"
+        "state": "自定义-凯撒-战意激昂"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-连携技换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-动作不打断"
+        - "自定义-凯撒-战意激昂"
+      - "op_name": "按键-终结技"
+        "post_delay": 0.1
+        "repeat": 10
+      - "op_name": "等待秒数"
+        "seconds": 4.4
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": "[按键可用-终结技]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.1
+        "repeat": 7
+      - "op_name": "设置状态"
+        "state": "自定义-凯撒-战意激昂"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[前台-能量]{40, 120} & ![自定义-凯撒-招架反击, 0, 3]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.1
+        "repeat": 7
+      - "op_name": "设置状态"
+        "state": "自定义-凯撒-战意激昂"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": ""
+  - "interrupt_states": "[后台-莱卡恩]"
+    "states": "[前台-莱卡恩]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-终结技"
+        "post_delay": 0.1
+        "repeat": 10
+      - "op_name": "等待秒数"
+        "seconds": 3.3
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[按键可用-终结技]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+        "repeat": 12
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-闪避]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.1
+        "pre_delay": 0.15
+        "repeat": 6
+      "states": "[自定义-招架支援]"
+    - "operations":
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.05
+        "press": 0.01
+        "repeat": 6
+      "states": "[自定义-连携技换人]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "post_delay": 0.2
+      "states": "[自定义-快速支援换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.1
+        "press": 0.15
+        "repeat": 6
+        "way": "按下"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[前台-能量]{60, 120}"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.1
+        "press": 0.15
+        "repeat": 12
+        "way": "按下"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": ""
+  - "interrupt_states": "[后台-柳]"
+    "states": "[前台-柳]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+        "repeat": 10
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-闪避]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+        "pre_delay": 0.2
+        "repeat": 3
+      - "op_name": "等待秒数"
+        "seconds": 1
+      "states": "[自定义-招架支援]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "seconds": 2.5
+      "states": "[自定义-连携技换人]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "post_delay": 0.2
+      "states": "[自定义-快速支援换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-终结技"
+        "post_delay": 0.1
+        "repeat": 10
+      - "op_name": "等待秒数"
+        "seconds": 4.4
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": "[按键可用-终结技]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-动作不打断"
+        - "自定义-柳-月蚀"
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 1.5
+        "way": "按下"
+      - "op_name": "等待秒数"
+        "seconds": 0.5
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": "[柳-能量]{45, 120} & ![自定义-艾莲-冰渊潜袭,1.5,2]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+        "repeat": 6
+      - "op_name": "等待秒数"
+        "seconds": 0.2
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.2
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": ""
+  - "interrupt_states": "[后台-柏妮思]"
+    "states": "[前台-柏妮思]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+        "repeat": 3
+      - "op_name": "等待秒数"
+        "seconds": 0.4
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-闪避]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+        "pre_delay": 0.2
+        "repeat": 3
+      - "op_name": "等待秒数"
+        "seconds": 1
+      "states": "[自定义-招架支援]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "seconds": 2.5
+      "states": "[自定义-连携技换人]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "post_delay": 0.2
+      "states": "[自定义-快速支援换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-终结技"
+        "post_delay": 0.1
+        "repeat": 10
+      - "op_name": "等待秒数"
+        "seconds": 2.8
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": "[按键可用-终结技]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-动作不打断"
+      - "op_name": "等待秒数"
+        "seconds": 0.2
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.1
+        "repeat": 2
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 1.5
+        "way": "按下"
+      - "op_name": "等待秒数"
+        "seconds": 0.5
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": "[柏妮思-能量]{60, 120} & ![柏妮思-燃点]{20, 100}"
+    - "operations":
+      - "op_name": "设置状态"
+        "state_list":
+        - "自定义-动作不打断"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.5
+        "way": "按下"
+      - "op_name": "等待秒数"
+        "seconds": 1
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.1
+        "repeat": 2
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 1.5
+        "way": "按下"
+      - "op_name": "等待秒数"
+        "seconds": 0.5
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": "[柏妮思-能量]{40, 120} & ![柏妮思-燃点]{0, 50}"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": ""
+  - "interrupt_states": "[后台-薇薇安]"
+    "states": "[前台-薇薇安]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+        "repeat": 2
+      - "op_name": "等待秒数"
+        "seconds": 1
+      "states": "[自定义-闪避]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.15
+        "pre_delay": 0.15
+        "repeat": 2
+      - "op_name": "等待秒数"
+        "seconds": 1
+      - "op_name": "按键-闪避"
+        "post_delay": 0.1
+        "repeat": 4
+      "states": "[自定义-快速支援换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+        "repeat": 28
+      - "op_name": "等待秒数"
+        "seconds": 1.5
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-招架支援]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "等待秒数"
+        "seconds": 2
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-连携技换人]"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-终结技"
+        "post_delay": 0.1
+        "repeat": 30
+      - "op_name": "等待秒数"
+        "seconds": 2
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": "[按键可用-终结技] & [薇薇安-飞羽]{0, 1} & [薇薇安-护羽]{0, 1}"
+    - "operations":
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-特殊攻击"
+        "post_delay": 0.1
+        "repeat": 18
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": "[薇薇安-飞羽]{0, 2} & [薇薇安-护羽]{0, 3} & [薇薇安-能量]{65, 120}"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+        "repeat": 16
+      - "op_name": "设置状态"
+        "state": "自定义-下场"
+      "states": ""
+  - "interrupt_states": "[后台-艾莲]"
+    "states": "[前台-艾莲]"
+    "sub_handlers":
+    - "operations":
+      - "op_name": "清除状态"
+        "state": "自定义-闪避"
+      - "op_name": "设置状态"
+        "state": "自定义-动作不打断"
+      - "op_name": "按键-移动-前"
+        "post_delay": 0.01
+        "way": "按下"
+      - "op_name": "按键-闪避"
+        "post_delay": 0.1
+        "press": 0.01
+        "way": "按下"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.05
+        "repeat": 2
+      - "op_name": "按键-移动-前"
+        "post_delay": 0.15
+        "way": "松开"
+      - "op_name": "清除状态"
+        "state": "自定义-动作不打断"
+      "states": "[自定义-闪避]"
+    - "operations":
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+        "pre_delay": 0.2
+        "repeat": 3
+      - "op_name": "等待秒数"
+        "seconds": 1
+      "states": "[自定义-招架支援]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "seconds": 2.5
+      "states": "[自定义-连携技换人]"
+    - "operations":
+      - "op_name": "等待秒数"
+        "post_delay": 0.05
+      - "op_name": "按键-闪避"
+        "post_delay": 0.05
+        "repeat": 2
+      - "op_name": "按键-终结技"
+        "post_delay": 0.05
+        "repeat": 10
+      "states": "[自定义-快速支援换人]"
+    - "states": "![切换角色-艾莲]"
+      "sub_handlers":
+      - "operations":
+        - *id010
+        - *id011
+        - *id012
+        "states": "![自定义-耀嘉音-如歌的行板, 0, 20] & [后台-耀嘉音] & [耀嘉音-能量]{30, 120}"
+      - "operations":
+        - *id007
+        - *id008
+        - *id009
+        "states": "![自定义-凯撒-战意激昂, 0, 25] & [后台-凯撒] & [凯撒-能量]{45, 120}"
+      - "operations":
+        - *id031
+        - *id032
+        - *id033
+        "states": "![柏妮思-燃点]{20, 100} & [后台-柏妮思] & [柏妮思-能量]{60, 120}"
+      - "operations":
+        - *id016
+        - *id017
+        - *id018
+        "states": "![自定义-露西-加油, -5, 15] & [后台-露西] & [露西-能量]{65, 120}"
+      - "states": "![自定义-苍角-展旗, 0, 25] & [后台-苍角]"
+        "sub_handlers":
+        - "operations":
+          - *id019
+          - *id020
+          - *id021
+          "states": "[苍角-涡流]{3, 3}"
+        - "operations":
+          - *id019
+          - *id020
+          - *id021
+          "states": "[苍角-涡流]{1, 2} & [后台-苍角] & [苍角-能量]{60, 120}"
+        - "operations":
+          - *id019
+          - *id020
+          - *id021
+          "states": "[苍角-涡流]{0, 0} & [后台-苍角] & [苍角-能量]{90, 120}"
+      - "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 20
+        - "op_name": "等待秒数"
+          "seconds": 3
+        - "op_name": "清除状态"
+          "state": "自定义-动作不打断"
+        "states": "![自定义-艾莲-冰渊潜袭,1.5,3] & [按键可用-终结技]"
+      - "states": "[艾莲-急冻充能, 0, 999]{3, 6}"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "设置状态"
+            "state_list":
+            - "自定义-动作不打断"
+            - "自定义-艾莲-鲨卷风"
+          - "op_name": "按键-闪避"
+            "post_delay": 0.01
+            "press": 0.01
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.05
+            "press": 0.05
+            "repeat": 45
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.05
+            "press": 0.05
+            "repeat": 36
+          - "op_name": "按键-普通攻击"
+          - "op_name": "清除状态"
+            "state_list":
+            - "自定义-动作不打断"
+            - "自定义-艾莲-急冻修剪法"
+            - "自定义-艾莲-鲨卷风"
+            - "自定义-艾莲-冰渊潜袭"
+          "states": "[前台-能量, 0, 999]{80, 120}"
+        - "operations":
+          - "op_name": "设置状态"
+            "state_list":
+            - "自定义-动作不打断"
+            - "自定义-艾莲-急冻修剪法"
+          - "op_name": "按键-移动-前"
+            "post_delay": 0.05
+            "way": "松开"
+          - "op_name": "按键-移动-前"
+            "post_delay": 0.05
+            "way": "按下"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "press": 0.01
+            "repeat": 26
+          - "op_name": "按键-移动-前"
+            "post_delay": 0.25
+            "way": "松开"
+          - "op_name": "清除状态"
+            "state_list":
+            - "自定义-动作不打断"
+            - "自定义-艾莲-急冻修剪法"
+            - "自定义-艾莲-鲨卷风"
+            - "自定义-艾莲-冰渊潜袭"
+          "states": ""
+      - "operations":
+        - "op_name": "设置状态"
+          "state_list":
+          - "自定义-动作不打断"
+          - "自定义-艾莲-冰渊潜袭"
+        - "op_name": "按键-锁定敌人"
+          "post_delay": 0.01
+        - "op_name": "按键-移动-前"
+          "post_delay": 0.01
+          "way": "按下"
+        - "op_name": "按键-闪避"
+          "post_delay": 0.15
+          "press": 0.01
+        - "op_name": "按键-闪避"
+          "post_delay": 0.1
+          "press": 0.01
+        - "op_name": "按键-闪避"
+          "post_delay": 0.05
+          "press": 0.01
+        - "op_name": "按键-普通攻击"
+          "post_delay": 1.2
+          "way": "按下"
+        - "op_name": "按键-普通攻击"
+          "way": "松开"
+        - "op_name": "按键-锁定敌人"
+          "post_delay": 0.1
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-动作不打断"
+          - "自定义-艾莲-急冻修剪法"
+          - "自定义-艾莲-鲨卷风"
+          - "自定义-艾莲-冰渊潜袭"
+        "states": "![艾莲-急冻充能, 0, 999]{3, 6}"
+  "interval": 0.15
+  "triggers": []

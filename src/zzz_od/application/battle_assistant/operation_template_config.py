@@ -1,25 +1,13 @@
 import os
-from typing import List
 
-from one_dragon.base.conditional_operation.operation_template import OperationTemplate
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils import os_utils
 
 
-def get_operation_template_config_list() -> List[ConfigItem]:
+def get_operation_template_config_list() -> list[ConfigItem]:
     """
     获取用于配置页面显示的指令列表，支持子目录。
     :return: 配置页面的选项列表
-    """
-    op_list: List[OperationTemplate] = get_all_operation_template()
-    return [ConfigItem(label=op.module_name, value=op.module_name) for op in op_list]
-
-
-
-def get_all_operation_template() -> List[OperationTemplate]:
-    """
-    加载所有的自动战斗指令，支持递归查找子目录。
-    :return: OperationTemplate 对象列表
     """
     auto_battle_dir_path = os_utils.get_path_under_work_dir('config', 'auto_battle_operation')
 
@@ -42,23 +30,4 @@ def get_all_operation_template() -> List[OperationTemplate]:
     # 将 template_name_set 转换为列表并排序
     sorted_template_names = sorted(template_name_set, key=lambda x: x.lower())
 
-    # 创建 OperationTemplate 对象列表
-    result_op_list = []
-    for template_name in sorted_template_names:
-        op = OperationTemplate('auto_battle_operation', template_name)
-        result_op_list.append(op)
-
-    return result_op_list
-
-
-def get_operation_template_config_file_path(template_name: str) -> str:
-    """
-    自动战斗配置文件路径，支持子目录。
-    :param template_name: 模板名称（包含子目录的相对路径）
-    :return: 完整的模板文件路径
-    """
-    return os.path.join(
-        os_utils.get_path_under_work_dir('config', 'auto_battle_operation'),
-        f'{template_name}.yml'
-    )
-
+    return [ConfigItem(label=op, value=op) for op in sorted_template_names]

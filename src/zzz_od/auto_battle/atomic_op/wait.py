@@ -1,5 +1,4 @@
 import time
-
 from typing import ClassVar
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp

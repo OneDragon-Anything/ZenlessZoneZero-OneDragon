@@ -44,7 +44,6 @@ class HollowBattle(ZOperation):
         )
 
         self.is_critical_stage: bool = is_critical_stage  # 是否关键进展
-        self.auto_op: Optional[AutoBattleOperator] = None
         self.move_times: int = 0  # 向前移动的次数
         self.turn_times: int = 0  # 转动的次数
         self.last_distance: Optional[float] = None  # 上次移动前的距离
@@ -57,10 +56,11 @@ class HollowBattle(ZOperation):
 
     @operation_node(name='加载自动战斗指令', is_start_node=True)
     def load_auto_op(self) -> OperationRoundResult:
-        return auto_battle_utils.load_auto_op(
-            self, 'auto_battle',
-            self.ctx.withered_domain.challenge_config.auto_battle
+        self.ctx.auto_battle_context.init_auto_op(
+            sub_dir='auto_battle',
+            op_name=self.ctx.withered_domain.challenge_config.auto_battle,
         )
+        return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
@@ -73,10 +73,10 @@ class HollowBattle(ZOperation):
     def check_special_move(self):
         self.check_distance_to_move(self.last_screenshot)
 
-        if self.auto_op.auto_battle_context.with_distance_times >= 10:
+        if self.ctx.auto_battle_context.with_distance_times >= 10:
             return self.round_success(HollowBattle.STATUS_NEED_SPECIAL_MOVE)
-        if self.auto_op.auto_battle_context.without_distance_times >= 10:
-            self.auto_op.start_running_async()
+        if self.ctx.auto_battle_context.without_distance_times >= 10:
+            self.ctx.auto_battle_context.start_auto_battle()
             return self.round_success(HollowBattle.STATUS_NO_NEED_SPECIAL_MOVE)
 
         return self.round_wait()
@@ -99,8 +99,8 @@ class HollowBattle(ZOperation):
         self.check_distance_to_move(self.last_screenshot)
 
         if self.distance_pos is None:
-            if self.auto_op.auto_battle_context.without_distance_times >= 10:
-                self.auto_op.start_running_async()
+            if self.ctx.auto_battle_context.without_distance_times >= 10:
+                self.ctx.auto_battle_context.start_auto_battle()
                 return self.round_success()
             else:
                 return self.round_wait(wait=0.02)
@@ -109,7 +109,7 @@ class HollowBattle(ZOperation):
             # 移动比较久也没到 就自动退出了
             return self.round_fail(HollowBattle.STATUS_FAIL_TO_MOVE)
 
-        current_distance = self.auto_op.auto_battle_context.last_check_distance
+        current_distance = self.ctx.auto_battle_context.last_check_distance
         if self.last_distance is not None and abs(self.last_distance - current_distance) < 0.5:
             log.info('上次移动后距离没有发生变化 尝试脱困')
             if self.last_stuck_distance is not None and abs(self.last_stuck_distance - current_distance) < 0.5:
@@ -137,7 +137,7 @@ class HollowBattle(ZOperation):
             return self.round_wait(wait=0.5)
         else:
             self.last_distance = current_distance
-            press_time = self.auto_op.auto_battle_context.last_check_distance / 7.2  # 朱鸢测出来的速度
+            press_time = self.ctx.auto_battle_context.last_check_distance / 7.2  # 朱鸢测出来的速度
             self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
             self.move_times += 1
             self.last_distance_to_turn = None  # 移动完后重新识别
@@ -172,15 +172,15 @@ class HollowBattle(ZOperation):
     def auto_battle(self) -> OperationRoundResult:
         self.move_times = 0
         self.turn_times = 0
-        if self.auto_op.auto_battle_context.last_check_end_result is not None:
-            auto_battle_utils.stop_running(self.auto_op)
-            return self.round_success(status=self.auto_op.auto_battle_context.last_check_end_result)
+        if self.ctx.auto_battle_context.last_check_end_result is not None:
+            self.ctx.auto_battle_context.stop_auto_battle()
+            return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
 
-        if self.auto_op.auto_battle_context.with_distance_times >= 5:
-            auto_battle_utils.stop_running(self.auto_op)
+        if self.ctx.auto_battle_context.with_distance_times >= 5:
+            self.ctx.auto_battle_context.stop_auto_battle()
             return self.round_success(status=HollowBattle.STATUS_NEED_SPECIAL_MOVE)
 
-        self.auto_op.auto_battle_context.check_battle_state(
+        self.ctx.auto_battle_context.check_battle_state(
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True,
             check_battle_end_hollow_result=True,
@@ -253,8 +253,7 @@ class HollowBattle(ZOperation):
     @node_from(from_name='向前移动准备战斗', success=False, status=STATUS_FAIL_TO_MOVE)
     @operation_node(name='移动失败')
     def move_fail(self) -> OperationRoundResult:
-        if self.auto_op is not None:
-            self.auto_op.stop_running()
+        self.ctx.auto_battle_context.stop_auto_battle()
 
         result = self.round_by_find_area(self.last_screenshot, '零号空洞-战斗', '退出战斗')
         if result.is_success:
@@ -282,7 +281,7 @@ class HollowBattle(ZOperation):
                                        success_wait=2, retry_wait=1)  # 找到后稍微等待 按钮刚出来的时候按没有用
 
     def check_distance_to_move(self, screen: MatLike) -> None:
-        mr = self.auto_op.auto_battle_context.check_battle_distance(screen, self.last_distance_to_turn)
+        mr = self.ctx.auto_battle_context.check_battle_distance(screen, self.last_distance_to_turn)
 
         if mr is None:
             self.distance_pos = None
@@ -290,19 +289,11 @@ class HollowBattle(ZOperation):
             self.distance_pos = mr.rect
             self.last_distance_to_turn = mr.data
 
-    def _on_pause(self, e=None):
-        ZOperation._on_pause(self, e)
-        auto_battle_utils.stop_running(self.auto_op)
+    def handle_pause(self, e=None):
+        self.ctx.auto_battle_context.stop_auto_battle()
 
-    def _on_resume(self, e=None):
-        ZOperation._on_resume(self, e)
-        auto_battle_utils.resume_running(self.auto_op)
-
-    def after_operation_done(self, result: OperationResult):
-        ZOperation.after_operation_done(self, result)
-        if self.auto_op is not None:
-            self.auto_op.dispose()
-            self.auto_op = None
+    def handle_resume(self, e=None):
+        self.ctx.auto_battle_context.resume_auto_battle()
 
 
 def __debug():

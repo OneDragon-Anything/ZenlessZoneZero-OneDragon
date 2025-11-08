@@ -1,12 +1,15 @@
-import time
+from __future__ import annotations
 
 import threading
-from typing import ClassVar
+import time
+from typing import TYPE_CHECKING, ClassVar
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from one_dragon.base.conditional_operation.operation_def import OperationDef
 from zzz_od.auto_battle.atomic_op.btn_common import BtnRunStatus
-from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
+
+if TYPE_CHECKING:
+    from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
 
 
 class AtomicBtnQuickAssist(AtomicOp):

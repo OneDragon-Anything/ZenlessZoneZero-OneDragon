@@ -1,0 +1,4 @@
+operations:
+  - op_name: "按键-终结技"
+  - op_name: "等待秒数"
+    seconds: 4.1

@@ -1,0 +1,4 @@
+operations:
+  - op_name: "按键-闪避" # 游戏内提示按空格触发
+  - op_name: "等待秒数"
+    seconds: 1.6

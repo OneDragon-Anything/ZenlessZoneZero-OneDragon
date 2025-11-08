@@ -6,7 +6,6 @@ from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation import Operation
-from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -29,7 +28,6 @@ from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_route
 from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import LostVoidMoveByDet
 from zzz_od.application.hollow_zero.lost_void.operation.update_priority_operation import UpdatePriorityOperation
 from zzz_od.auto_battle import auto_battle_utils
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.challenge_mission.restart_in_battle import RestartInBattle
@@ -91,7 +89,6 @@ class LostVoidRunLevel(ZOperation):
 
         self.region_type: LostVoidRegionType = region_type
         self.detector: LostVoidDetector = self.ctx.lost_void.detector
-        self.auto_op: AutoBattleOperator = self.ctx.lost_void.auto_op
         self.nothing_times: int = 0  # 识别不到内容的次数
         self.find_target_fail_count: int = 0  # 寻路失败次数
         self.interact_target: Optional[LostVoidInteractTarget] = None  # 最终识别的交互目标 后续改动应该都是用这个判断
@@ -631,13 +628,16 @@ class LostVoidRunLevel(ZOperation):
     @node_from(from_name='非战斗画面识别', status='进入战斗')  # 非挑战类型的 识别开始战斗后
     @node_from(from_name='非战斗画面识别', status=LostVoidMoveByDet.STATUS_IN_BATTLE)  # 移动过程中 识别到战斗
     @node_from(from_name='区域类型初始化', status='战斗区域')  # 区域类型就是战斗的
+    @operation_node(name='准备自动战斗')
+    def init_auto_op(self) -> OperationRoundResult:
+        self.ctx.auto_battle_context.start_auto_battle()
+        return self.round_success()
+
+    @node_from(from_name='准备自动战斗')
     @operation_node(name='战斗中', mute=True, timeout_seconds=600)
     def in_battle(self) -> OperationRoundResult:
-        if not self.auto_op.is_running:
-            self.auto_op.start_running_async()
-
         self.last_frame_in_battle = self.current_frame_in_battle
-        self.current_frame_in_battle = self.auto_op.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
+        self.current_frame_in_battle = self.ctx.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
 
         if self.current_frame_in_battle:  # 当前回到可战斗画面
             if (not self.last_frame_in_battle  # 之前在非战斗画面
@@ -672,7 +672,7 @@ class LostVoidRunLevel(ZOperation):
                     self.no_in_battle_times = 0
 
                 if self.no_in_battle_times >= 10:
-                    auto_battle_utils.stop_running(self.auto_op)
+                    self.ctx.auto_battle_context.stop_auto_battle()
                     return self.round_success('识别需移动交互')
 
                 return self.round_wait(wait_round_time=self.ctx.battle_assistant_config.screenshot_interval)
@@ -706,7 +706,7 @@ class LostVoidRunLevel(ZOperation):
                     self.no_in_battle_times = 0
 
                 if self.no_in_battle_times >= 10:
-                    auto_battle_utils.stop_running(self.auto_op)
+                    self.ctx.auto_battle_context.stop_auto_battle()
                     self.no_in_battle_times = 0
 
                     if screen_name == '迷失之地-战斗失败':
@@ -784,7 +784,7 @@ class LostVoidRunLevel(ZOperation):
     @node_from(from_name='处理寻路失败', status='准备最终退出')
     @operation_node(name='失败退出空洞')
     def fail_exit_lost_void(self) -> OperationRoundResult:
-        auto_battle_utils.stop_running(self.auto_op)
+        self.ctx.auto_battle_context.stop_auto_battle()
         op = ExitInBattle(self.ctx, '迷失之地-挑战结果', '按钮-完成')
         return self.round_by_op_result(op.execute())
 
@@ -810,11 +810,7 @@ class LostVoidRunLevel(ZOperation):
 
     def handle_pause(self) -> None:
         ZOperation.handle_pause(self)
-        auto_battle_utils.stop_running(self.auto_op)
-
-    def after_operation_done(self, result: OperationResult):
-        ZOperation.after_operation_done(self, result)
-        auto_battle_utils.stop_running(self.auto_op)
+        self.ctx.auto_battle_context.stop_auto_battle()
 
 
 def __debug():

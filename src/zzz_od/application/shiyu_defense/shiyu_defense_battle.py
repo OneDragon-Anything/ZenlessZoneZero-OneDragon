@@ -40,7 +40,6 @@ class ShiyuDefenseBattle(ZOperation):
         )
 
         self.team_config: PredefinedTeamInfo = self.ctx.team_config.get_team_by_idx(predefined_team_idx)
-        self.auto_op: Optional[AutoBattleOperator] = None
         self.distance_pos: Optional[Rect] = None  # 显示距离的区域
         self.move_times: int = 0  # 移动次数
         self.battle_fail: Optional[str] = None  # 战斗失败的原因
@@ -48,10 +47,11 @@ class ShiyuDefenseBattle(ZOperation):
 
     @operation_node(name='加载自动战斗指令', is_start_node=True)
     def load_auto_op(self) -> OperationRoundResult:
-        return auto_battle_utils.load_auto_op(
-            self, 'auto_battle',
-            self.ctx.battle_assistant_config.auto_battle if self.team_config is None else self.team_config.auto_battle
+        self.ctx.auto_battle_context.init_auto_op(
+            sub_dir='auto_battle',
+            op_name=self.ctx.battle_assistant_config.auto_battle if self.team_config is None else self.team_config.auto_battle,
         )
+        return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
@@ -65,8 +65,8 @@ class ShiyuDefenseBattle(ZOperation):
         self.check_distance(self.last_screenshot)
 
         if self.distance_pos is None:
-            if self.auto_op.auto_battle_context.without_distance_times >= 10:
-                self.auto_op.start_running_async()
+            if self.ctx.auto_battle_context.without_distance_times >= 10:
+                self.ctx.auto_battle_context.resume_auto_battle()
                 self.move_times = 0
                 return self.round_success()
             else:
@@ -85,7 +85,7 @@ class ShiyuDefenseBattle(ZOperation):
             self.ctx.controller.turn_by_distance(+50)
             return self.round_wait(wait=0.5)
         else:
-            press_time = self.auto_op.auto_battle_context.last_check_distance / 7.2  # 朱鸢测出来的速度
+            press_time = self.ctx.auto_battle_context.last_check_distance / 7.2  # 朱鸢测出来的速度
             self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
             self.move_times += 1
             return self.round_wait(wait=0.5)
@@ -93,15 +93,15 @@ class ShiyuDefenseBattle(ZOperation):
     @node_from(from_name='向前移动准备战斗')
     @operation_node(name='自动战斗', timeout_seconds=600, mute=True)
     def auto_battle(self) -> OperationRoundResult:
-        if self.auto_op.auto_battle_context.last_check_end_result is not None:
-            auto_battle_utils.stop_running(self.auto_op)
-            return self.round_success(status=self.auto_op.auto_battle_context.last_check_end_result)
+        if self.ctx.auto_battle_context.last_check_end_result is not None:
+            self.ctx.auto_battle_context.stop_auto_battle()
+            return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
 
-        if self.auto_op.auto_battle_context.with_distance_times >= 5:
-            auto_battle_utils.stop_running(self.auto_op)
+        if self.ctx.auto_battle_context.with_distance_times >= 5:
+            self.ctx.auto_battle_context.stop_auto_battle()
             return self.round_success(status=ShiyuDefenseBattle.STATUS_NEED_SPECIAL_MOVE)
 
-        in_battle = self.auto_op.auto_battle_context.check_battle_state(
+        in_battle = self.ctx.auto_battle_context.check_battle_state(
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True,
             check_battle_end_defense_result=True,
@@ -115,7 +115,7 @@ class ShiyuDefenseBattle(ZOperation):
                 self.find_interact_btn_times = 0
 
             if self.find_interact_btn_times >= 10:
-                auto_battle_utils.stop_running(self.auto_op)
+                self.ctx.auto_battle_context.stop_auto_battle()
                 return self.round_success(status=ShiyuDefenseBattle.STATUS_NEED_SPECIAL_MOVE)
 
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
@@ -132,7 +132,7 @@ class ShiyuDefenseBattle(ZOperation):
         if not result2.is_success:
             # 交互和普通攻击都没有找到 说明战斗胜利了
             return self.round_success(ShiyuDefenseBattle.STATUS_TO_NEXT_PHASE)
-        auto_battle_utils.switch_to_best_agent_for_moving(self.auto_op)  # 移动前切换到最佳角色
+        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)  # 移动前切换到最佳角色
 
         self.check_distance(self.last_screenshot)
 
@@ -153,7 +153,7 @@ class ShiyuDefenseBattle(ZOperation):
             self.ctx.controller.turn_by_distance(+50)
             return self.round_wait(wait=0.5)
         else:
-            press_time = self.auto_op.auto_battle_context.last_check_distance / 7.2  # 朱鸢测出来的速度
+            press_time = self.ctx.auto_battle_context.last_check_distance / 7.2  # 朱鸢测出来的速度
             if press_time > 1:  # 不要移动太久 防止错过了下层入口
                 press_time = 1
             self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
@@ -161,7 +161,7 @@ class ShiyuDefenseBattle(ZOperation):
             return self.round_wait(wait=0.5)
 
     def check_distance(self, screen: MatLike) -> None:
-        mr = self.auto_op.auto_battle_context.check_battle_distance(screen)
+        mr = self.ctx.auto_battle_context.check_battle_distance(screen)
 
         if mr is None:
             self.distance_pos = None
@@ -179,7 +179,7 @@ class ShiyuDefenseBattle(ZOperation):
     @node_from(from_name='战斗后移动', success=False)
     @operation_node(name='主动退出')
     def voluntary_exit(self) -> OperationRoundResult:
-        auto_battle_utils.stop_running(self.auto_op)
+        self.ctx.auto_battle_context.stop_auto_battle()
         result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '退出战斗')
         if result.is_success:
             return self.round_success(wait=0.5)  # 稍微等一下让按钮可按
@@ -220,15 +220,8 @@ class ShiyuDefenseBattle(ZOperation):
 
         return self.round_retry(result.status, wait=1)
 
-    def _on_pause(self, e=None):
-        ZOperation._on_pause(self, e)
-        auto_battle_utils.stop_running(self.auto_op)
+    def handle_pause(self, e=None):
+        self.ctx.auto_battle_context.stop_auto_battle()
 
-    def _on_resume(self, e=None):
-        ZOperation._on_resume(self, e)
-        auto_battle_utils.resume_running(self.auto_op)
-
-    def after_operation_done(self, result: OperationResult):
-        ZOperation.after_operation_done(self, result)
-
-        auto_battle_utils.stop_running(self.auto_op)
+    def handle_resume(self, e=None):
+        self.ctx.auto_battle_context.resume_auto_battle()

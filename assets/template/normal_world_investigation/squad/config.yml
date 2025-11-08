@@ -1,0 +1,10 @@
+sub_dir: normal_world_investigation
+template_id: squad
+template_name: 勘域编队
+template_shape: quadrilateral
+auto_mask: true
+point_list:
+- 1356, 52
+- 1413, 52
+- 1413, 92
+- 1356, 92

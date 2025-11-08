@@ -8,6 +8,7 @@ from qfluentwidgets import FluentIcon, PushButton, ToolButton
 
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
@@ -85,6 +86,10 @@ class AutoBattleInterface(AppRunInterface):
         self.gpu_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='GPU运算', content='游戏画面掉帧的话 可以不启用')
         top_widget.add_widget(self.gpu_opt)
 
+        self.merged_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='使用合并配置文件',
+                                            content='关闭用于调试模板文件 正常开启即可')
+        top_widget.add_widget(self.merged_opt)
+
         self.screenshot_interval_opt = DoubleSpinBoxSettingCard(
             icon=FluentIcon.GAME, title='截图间隔(秒)',
             content='游戏画面掉帧的话 可以适当加大截图间隔(小心,太久会关不掉软件的)',
@@ -114,10 +119,10 @@ class AutoBattleInterface(AppRunInterface):
         left_layout.addWidget(AppRunInterface.get_content_widget(self))
         right_layout = QVBoxLayout()
 
-        self.task_display = TaskDisplay()
+        self.task_display = TaskDisplay(self.ctx)
         right_layout.addWidget(self.task_display)
 
-        self.battle_state_display = BattleStateDisplay()
+        self.battle_state_display = BattleStateDisplay(self.ctx)
         right_layout.addWidget(self.battle_state_display)
 
         horizontal_layout.addLayout(left_layout, stretch=1)
@@ -136,8 +141,9 @@ class AutoBattleInterface(AppRunInterface):
         AppRunInterface.on_interface_shown(self)
         self._update_auto_battle_config_opts()
         self.config_opt.setValue(self.ctx.battle_assistant_config.auto_battle_config)
-        self.gpu_opt.init_with_adapter(self.ctx.model_config.get_prop_adapter('flash_classifier_gpu'))
-        self.screenshot_interval_opt.init_with_adapter(self.ctx.battle_assistant_config.get_prop_adapter('screenshot_interval'))
+        self.gpu_opt.init_with_adapter(get_prop_adapter(self.ctx.model_config, 'flash_classifier_gpu'))
+        self.merged_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'use_merged_file'))
+        self.screenshot_interval_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'screenshot_interval'))
         self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.gamepad_type)
         self.ctx.listen_event(AutoBattleApp.EVENT_OP_LOADED, self._on_auto_op_loaded_event)
 
@@ -219,8 +225,6 @@ class AutoBattleInterface(AppRunInterface):
         """
         if self.battle_state_display is None or self.task_display is None:
             return
-        self.battle_state_display.auto_op = event.data
-        self.task_display.auto_op = event.data
         self.auto_op_loaded_signal.emit()
 
     def _on_auto_op_loaded_signal(self) -> None:

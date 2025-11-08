@@ -1,0 +1,72 @@
+name: Build Running Resources
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+jobs:
+  build-running-resources:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Install uv
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://astral.sh/uv/install.ps1 | Invoke-Expression
+
+      - name: Create and activate virtual environment
+        shell: pwsh
+        run: |
+          uv venv .venv --python=3.11.12
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\Activate.ps1
+          uv sync --group dev
+
+      - name: Build auto-battle merged files
+        shell: pwsh
+        run: |
+          chcp 65001
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          [Console]::InputEncoding = [System.Text.Encoding]::UTF8
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          .\.venv\Scripts\Activate.ps1
+          uv run python src/one_dragon/devtools/compile_po.py
+          uv run python src/zzz_od/auto_battle/build_utils.py
+        env:
+          PYTHONPATH: src
+
+      - name: Commit changes
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          
+          # 检查是否有修改的文件（包括新文件）
+          $modifiedFiles = $(git status --porcelain config/auto_battle/*.merged.yml)
+          $hasChangesAutoBattle = if ($modifiedFiles) { 1 } else { 0 }
+          
+          # 检查.mo文件的修改
+          $modifiedMoFiles = $(git status --porcelain assets/text/output/**/*.mo)
+          $hasChangesMo = if ($modifiedMoFiles) { 1 } else { 0 }
+          
+          if ($hasChangesAutoBattle -ne 0 -or $hasChangesMo -ne 0) {
+            git add config/auto_battle/*.merged.yml
+            git add assets/text/output/**/*.mo
+            $date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            git commit -m "自动构建运行资源 $date"
+            git push
+          } else {
+            Write-Host "No file modifications"
+          }

@@ -1,0 +1,9 @@
+operations:
+  # 在蓄力/旋转期间点特殊技触发溯寒
+  - op_name: "按键-特殊攻击"
+  - op_name: "等待秒数"
+    seconds: 0.6
+  # 立刻接下砸
+  - op_name: "按键-普通攻击"
+  - op_name: "等待秒数"
+    seconds: 1.8

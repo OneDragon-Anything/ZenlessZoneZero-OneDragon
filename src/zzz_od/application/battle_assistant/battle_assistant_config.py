@@ -62,3 +62,12 @@ class BattleAssistantConfig(YamlConfig):
     @debug_operation_repeat.setter
     def debug_operation_repeat(self, new_value: bool) -> None:
         self.update('debug_operation_repeat', new_value)
+
+    @property
+    def use_merged_file(self) -> bool:
+        """使用合并后的单文件"""
+        return self.get('use_merged_file', True)
+
+    @use_merged_file.setter
+    def use_merged_file(self, new_value: bool) -> None:
+        self.update('use_merged_file', new_value)
