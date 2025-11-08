@@ -40,12 +40,12 @@ class SettingPushInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
-        self.custom_push_title = TextSettingCard(
+        self.notify_title = TextSettingCard(
             icon=FluentIcon.MESSAGE,
             title='自定义通知标题',
-            input_placeholder='一条龙运行通知'
+            input_placeholder='一条龙 运行通知'
         )
-        content_widget.add_widget(self.custom_push_title)
+        content_widget.add_widget(self.notify_title)
 
         self.send_image_opt = SwitchSettingCard(icon=FluentIcon.PHOTO, title='通知中附带图片')
         content_widget.add_widget(self.send_image_opt)
@@ -286,7 +286,7 @@ class SettingPushInterface(VerticalScrollInterface):
 
         config = self.ctx.push_service.push_config
 
-        self.custom_push_title.init_with_adapter(get_prop_adapter(config, 'custom_push_title'))
+        self.notify_title.init_with_adapter(get_prop_adapter(self.ctx.notify_config, 'notify_title'))
         self.send_image_opt.init_with_adapter(get_prop_adapter(config, 'send_image'))
         self.proxy_opt.init_with_adapter(get_prop_adapter(config, 'proxy'))
         self.proxy_input_opt.init_with_adapter(get_prop_adapter(self.ctx.env_config, 'personal_proxy'))

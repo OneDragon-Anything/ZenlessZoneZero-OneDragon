@@ -36,14 +36,6 @@ class PushConfig(YamlConfig):
         YamlConfig.__init__(self, 'push')
 
     @property
-    def custom_push_title(self) -> str:
-        return self.get('custom_push_title', '一条龙运行通知')
-
-    @custom_push_title.setter
-    def custom_push_title(self, new_value: str) -> None:
-        self.update('custom_push_title', new_value)
-
-    @property
     def send_image(self) -> bool:
         """ 是否发送图片 """
         return self.get('send_image', True)

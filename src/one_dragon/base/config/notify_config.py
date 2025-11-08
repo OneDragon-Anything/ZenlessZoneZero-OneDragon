@@ -9,6 +9,14 @@ class NotifyConfig(YamlConfig):
         self._generate_dynamic_properties()
 
     @property
+    def notify_title(self) -> str:
+        return self.get('notify_title', '绝区零 一条龙 运行通知')
+
+    @notify_title.setter
+    def notify_title(self, new_value: str) -> None:
+        self.update('notify_title', new_value)
+
+    @property
     def enable_notify(self) -> bool:
         return self.get('enable_notify', True)
 

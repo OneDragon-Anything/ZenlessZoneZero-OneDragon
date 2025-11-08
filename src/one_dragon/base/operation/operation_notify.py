@@ -226,7 +226,10 @@ def application_notify(app: Application, is_success: Optional[bool]) -> None:
     message = _build_application_message(app_name, status)
 
     # 异步推送
-    app.ctx.push_service.push_async(message)
+    app.ctx.push_service.push_async(
+        title=app.ctx.notify_config.notify_title,
+        content=message,
+    )
 
 
 class NodeNotifyDesc:
@@ -393,7 +396,7 @@ def send_node_notify(
         app_name = operation.op_name
 
     # 构建消息
-    msg = _build_node_message(
+    message = _build_node_message(
         app_name=app_name,
         node_name=node_name,
         phase=phase,
@@ -404,11 +407,14 @@ def send_node_notify(
 
     # 判断是否发送图片
     should_send_image = _should_send_image(operation, desc)
-    img = image if should_send_image else None
+    image = image if should_send_image else None
 
     # 异步推送
-    operation.ctx.push_service.push_async(msg, img)
-
+    operation.ctx.push_service.push_async(
+        title=operation.ctx.notify_config.notify_title,
+        content=message,
+        image=image,
+    )
 
 def process_node_notifications(
     operation: Operation,

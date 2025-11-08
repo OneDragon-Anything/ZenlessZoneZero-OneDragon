@@ -133,14 +133,14 @@ class PushService:
         Args:
             content: 内容
             image: 图片
-            title: 标题 未传入时使用 push_config.custom_push_title
+            title: 标题 未传入时使用默认值
             channel_id: 推送渠道ID 未传入时使用所有能通过配置校验的渠道
 
         Returns:
             tuple[bool, str]: 是否成功、错误信息
         """
         if title is None:
-            title = self.push_config.custom_push_title
+            title = '一条龙 运行通知'
 
         if not self.push_config.send_image:
             image = None
@@ -232,7 +232,7 @@ class PushService:
         Args:
             content: 内容
             image: 图片
-            title: 标题 未传入时使用 push_config.custom_push_title
+            title: 标题 未传入时使用默认值
             channel_id: 推送渠道ID 未传入时使用所有能通过配置校验的渠道
         """
         future = self._executor.submit(
