@@ -1,6 +1,7 @@
 import os
 import shutil
 from enum import Enum, StrEnum
+from typing import Optional
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -16,24 +17,29 @@ class PushProxy(Enum):
 
 class PushConfig(YamlConfig):
 
-    def __init__(self):
+    def __init__(self, instance_idx: Optional[int] = None):
         """
         推送配置
-        应该是一个全局配置
+        支持按账号实例配置，每个账号可以有独立的推送设置
+        
+        Args:
+            instance_idx: 账号实例索引，如果为None则使用全局配置（兼容旧版本）
         """
         # 将账号实例下的配置复制到全局 预计 2026-01-01 可删除这部分兼容代码
-        instance_config_file_path = os.path.join(
-            os_utils.get_path_under_work_dir('config', '01'),
-            'push.yml'
-        )
-        global_config_file_path = os.path.join(
-            os_utils.get_path_under_work_dir('config'),
-            'push.yml'
-        )
-        if not os.path.exists(global_config_file_path) and os.path.exists(instance_config_file_path):
-            shutil.copy(instance_config_file_path, global_config_file_path)
+        # 仅在未指定实例且全局配置不存在时执行迁移
+        if instance_idx is None:
+            instance_config_file_path = os.path.join(
+                os_utils.get_path_under_work_dir('config', '01'),
+                'push.yml'
+            )
+            global_config_file_path = os.path.join(
+                os_utils.get_path_under_work_dir('config'),
+                'push.yml'
+            )
+            if not os.path.exists(global_config_file_path) and os.path.exists(instance_config_file_path):
+                shutil.copy(instance_config_file_path, global_config_file_path)
 
-        YamlConfig.__init__(self, 'push')
+        YamlConfig.__init__(self, 'push', instance_idx=instance_idx)
 
     @property
     def custom_push_title(self) -> str:

@@ -260,6 +260,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         for prop in to_clear_props:
             if hasattr(self, prop):
                 delattr(self, prop)
+        
+        # 清除 push_service 中的 push_config 缓存，使其按新账号重新加载
+        if hasattr(self, 'push_service') and hasattr(self.push_service, 'push_config'):
+            delattr(self.push_service, 'push_config')
 
     def init_ocr(self) -> None:
         """

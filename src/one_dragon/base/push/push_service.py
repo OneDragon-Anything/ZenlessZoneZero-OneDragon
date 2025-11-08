@@ -108,6 +108,13 @@ class PushService:
 
     @cached_property
     def push_config(self) -> PushConfig:
+        """
+        获取推送配置
+        支持按账号实例获取配置，每个账号可以有独立的推送设置
+        
+        Returns:
+            PushConfig: 推送配置对象
+        """
         self.init_push_channels()
         start_time = time.time()
         while not self._inited:
@@ -115,7 +122,9 @@ class PushService:
             if time.time() - start_time > 5:
                 raise Exception('推送服务初始化超时')
 
-        config = PushConfig()
+        # 使用当前账号实例索引创建配置，实现按账号独立配置
+        instance_idx = getattr(self.ctx, 'current_instance_idx', None)
+        config = PushConfig(instance_idx=instance_idx)
         config.generate_channel_fields(self._id_2_channel_schemas)
 
         return config
