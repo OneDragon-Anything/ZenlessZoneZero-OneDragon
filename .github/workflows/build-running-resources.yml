@@ -1,4 +1,4 @@
-name: Build Auto Battle Merged Files
+name: Build Running Resources
 
 on:
   pull_request:
@@ -52,8 +52,15 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git diff --quiet -- config/auto_battle/*.merged.yml; $hasChangesAutoBattle = $LASTEXITCODE
-          git diff --quiet -- assets/text/output/**/*.mo; $hasChangesMo = $LASTEXITCODE
+          
+          # 检查是否有修改的文件（包括新文件）
+          $modifiedFiles = $(git status --porcelain config/auto_battle/*.merged.yml)
+          $hasChangesAutoBattle = if ($modifiedFiles) { 1 } else { 0 }
+          
+          # 检查.mo文件的修改
+          $modifiedMoFiles = $(git status --porcelain assets/text/output/**/*.mo)
+          $hasChangesMo = if ($modifiedMoFiles) { 1 } else { 0 }
+          
           if ($hasChangesAutoBattle -ne 0 -or $hasChangesMo -ne 0) {
             git add config/auto_battle/*.merged.yml
             git add assets/text/output/**/*.mo
