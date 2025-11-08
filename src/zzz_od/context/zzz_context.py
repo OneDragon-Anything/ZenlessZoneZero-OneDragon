@@ -10,8 +10,8 @@ class ZContext(OneDragonContext):
         OneDragonContext.__init__(self)
 
         # 后续所有用到自动战斗的 都统一设置到这个里面
-        from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
-        self.auto_op: AutoBattleOperator | None = None
+        from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
+        self.auto_battle_context: AutoBattleContext = AutoBattleContext(self)
 
     #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
@@ -119,6 +119,7 @@ class ZContext(OneDragonContext):
     def init_for_application(self) -> None:
         self.map_service.reload()  # 传送需要用的数据
         self.compendium_service.reload()  # 快捷手册
+        self.auto_battle_context.init_screen_area()  # 自动战斗相关的区域 依赖 ScreenLoader
 
     def init_others(self) -> None:
         self.telemetry.initialize()  # 遥测
@@ -126,49 +127,16 @@ class ZContext(OneDragonContext):
     def after_app_shutdown(self) -> None:
         """
         App关闭后进行的操作 关闭一切可能资源操作
-        @return:
         """
         if hasattr(self, 'telemetry') and self.telemetry:
             self.telemetry.shutdown()
 
         OneDragonContext.after_app_shutdown(self)
         self.withered_domain.after_app_shutdown()
-
-    def init_auto_op(self, op_name: str, sub_dir: str = 'auto_battle') -> None:
-        """
-        加载自动战斗指令
-
-        Args:
-            sub_dir: 子文件夹
-            op_name: 模板名称
-
-        Returns:
-            None
-        """
-        if self.auto_op is not None:  # 如果有上一个 先销毁
-            self.auto_op.dispose()
+        self.auto_battle_context.after_app_shutdown()
 
         from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
-        self.auto_op = AutoBattleOperator(self, sub_dir, op_name)
-        success, msg = self.auto_op.init_before_running()
-        if not success:
-            raise Exception(msg)
-
-    def stop_auto_battle(self) -> None:
-        """
-        停止自动战斗
-        Returns:
-            None
-        """
-        if self.auto_op is not None:
-            self.auto_op.stop_running()
-
-    def start_auto_battle(self) -> None:
-        """
-        开始自动战斗
-        """
-        if self.auto_op is not None:
-            self.auto_op.start_running_async()
+        AutoBattleOperator.after_app_shutdown()
 
     def register_application_factory(self) -> None:
         """

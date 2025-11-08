@@ -267,7 +267,7 @@ scenes:
 
       # 凯撒
       - states: "[前台-凯撒]"
-        interrupt_states: ["后台-凯撒"]
+        interrupt_states: "[后台-凯撒]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -326,7 +326,7 @@ scenes:
 
       # 苍角
       - states: "[前台-苍角]"
-        interrupt_states: ["后台-苍角"]
+        interrupt_states: "[后台-苍角]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -476,7 +476,7 @@ scenes:
 
       # 莱卡恩
       - states: "[前台-莱卡恩]"
-        interrupt_states: ["后台-莱卡恩"]
+        interrupt_states: "[后台-莱卡恩]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:

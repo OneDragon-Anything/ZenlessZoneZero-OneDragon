@@ -1,15 +1,20 @@
-from typing import List, Optional, Any, Tuple, Dict
-from concurrent.futures import ThreadPoolExecutor, Future
+from __future__ import annotations
+
 import threading
+from concurrent.futures import ThreadPoolExecutor, Future
+from typing import List, Any, Tuple, Dict, TYPE_CHECKING
 
 from cv2.typing import MatLike
 
-from one_dragon.base.conditional_operation.conditional_operator import ConditionalOperator
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
 from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.target_state.target_state_checker import TargetStateChecker
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.target_state import DETECTION_TASKS, DetectionTask
+
+if TYPE_CHECKING:
+    from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
+
 
 # 模块私有的独立线程池，用于并行处理状态检测任务
 _target_context_executor = ThreadPoolExecutor(thread_name_prefix='od_target_context', max_workers=8)
@@ -26,7 +31,6 @@ class AutoBattleTargetContext:
         构造函数
         """
         self.ctx: ZContext = ctx
-        self.auto_op: Optional[ConditionalOperator] = None
         self.checker: TargetStateChecker = TargetStateChecker(ctx)
 
         self._check_lock = threading.Lock()
@@ -38,16 +42,17 @@ class AutoBattleTargetContext:
         self._last_check_times: Dict[str, float] = {task.task_id: 0 for task in self.tasks}
         self._current_intervals: Dict[str, float] = {task.task_id: task.interval for task in self.tasks}
 
-    def init_battle_target_context(self,
-                                   auto_op: ConditionalOperator,
-                                   target_lock_interval: float = 0,
-                                   abnormal_status_interval: float = 0):
+    def init_auto_op(
+            self,
+            auto_op: AutoBattleOperator,
+    ) -> None:
         """
-        初始化上下文
+        加载自动战斗操作器时的动作
         """
-        self.auto_op = auto_op
-        self._apply_config_intervals(target_lock_interval, abnormal_status_interval)  # 应用配置文件中的间隔
-        log.info("目标上下文初始化完成 (由数据驱动)")
+        self._apply_config_intervals(
+            auto_op.target_lock_interval,
+            auto_op.abnormal_status_interval,
+        )
 
     def _apply_config_intervals(self, target_lock_interval: float, abnormal_status_interval: float):
         """
@@ -73,9 +78,6 @@ class AutoBattleTargetContext:
         遍历所有检测任务，并执行到期的任务。
         这是模块的主入口，由外部的统一战斗循环在每一帧调用。
         """
-        if self.auto_op is None or not self.auto_op.is_running:
-            return
-
         if not self._check_lock.acquire(blocking=False):
             return
 
@@ -109,7 +111,7 @@ class AutoBattleTargetContext:
 
             # 批量提交状态更新
             if records_to_update:
-                self.auto_op.batch_update_states(records_to_update)
+                self.ctx.auto_battle_context.state_record_service.batch_update_states(records_to_update)
 
         finally:
             self._check_lock.release()
@@ -155,3 +157,9 @@ class AutoBattleTargetContext:
         if not found_watched_state:
             # 如果循环结束都没找到'hit'的被观察状态，则使用 not_state 的间隔
             self._current_intervals[task.task_id] = dynamic_config.get('interval_if_not_state', task.interval)
+
+    def after_app_shutdown(self) -> None:
+        """
+        App关闭后进行的操作 关闭一切可能资源操作
+        """
+        _target_context_executor.shutdown(wait=False, cancel_futures=True)

@@ -23,7 +23,6 @@ from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidCo
 from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_artifact_pos import LostVoidArtifactPos
 from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import MoveTargetWrapper
 from zzz_od.auto_battle.auto_battle_dodge_context import YoloStateEventEnum
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import CommonAgentStateEnum
 
@@ -34,7 +33,6 @@ class LostVoidContext:
         self.ctx: ZContext = ctx
 
         self.detector: Optional[LostVoidDetector] = None
-        self.auto_op: Optional[AutoBattleOperator] = None  # 自动战斗指令
         self.challenge_config: Optional[LostVoidChallengeConfig] = None
 
         self.all_artifact_list: List[LostVoidArtifact] = []  # 武备 + 鸣徽
@@ -102,19 +100,6 @@ class LostVoidContext:
                 personal_proxy=self.ctx.env_config.personal_proxy if self.ctx.env_config.is_personal_proxy else None,
                 gpu=use_gpu
             )
-
-    def init_auto_op(self) -> None:
-        """
-        初始化自动战斗指令
-        @return:
-        """
-        if self.auto_op is not None:  # 如果有上一个 先销毁
-            self.auto_op.dispose()
-
-        self.auto_op = AutoBattleOperator(self.ctx, 'auto_battle', self.get_auto_op_name())
-        success, msg = self.auto_op.init_before_running()
-        if not success:
-            raise Exception(msg)
 
     def get_auto_op_name(self) -> str:
         """
@@ -194,19 +179,21 @@ class LostVoidContext:
         @param screenshot_time: 截图时间
         @return: 是否进入了战斗
         """
-        if self.auto_op is not None:
-            in_battle = self.auto_op.auto_battle_context.is_normal_attack_btn_available(screen)
+        auto_op = self.ctx.auto_battle_context.auto_op
+        state_record_service = self.ctx.auto_battle_context.state_record_service
+        if auto_op is not None:
+            in_battle = self.ctx.auto_battle_context.is_normal_attack_btn_available(screen)
             if in_battle:
-                self.auto_op.auto_battle_context.agent_context.check_agent_related(screen, screenshot_time)
-                state = self.auto_op.get_state_recorder(CommonAgentStateEnum.LIFE_DEDUCTION_31.value.state_name)
+                self.ctx.auto_battle_context.agent_context.check_agent_related(screen, screenshot_time)
+                state = state_record_service.get_state_recorder(CommonAgentStateEnum.LIFE_DEDUCTION_31.value.state_name)
                 if state is not None and state.last_record_time == screenshot_time:
                     return True
 
-                self.auto_op.auto_battle_context.dodge_context.check_dodge_flash(screen, screenshot_time)
-                state = self.auto_op.get_state_recorder(YoloStateEventEnum.DODGE_RED.value)
+                self.ctx.auto_battle_context.dodge_context.check_dodge_flash(screen, screenshot_time)
+                state = state_record_service.get_state_recorder(YoloStateEventEnum.DODGE_RED.value)
                 if state is not None and state.last_record_time == screenshot_time:
                     return True
-                state = self.auto_op.get_state_recorder(YoloStateEventEnum.DODGE_YELLOW.value)
+                state = state_record_service.get_state_recorder(YoloStateEventEnum.DODGE_YELLOW.value)
                 if state is not None and state.last_record_time == screenshot_time:
                     return True
 
@@ -664,12 +651,3 @@ class LostVoidContext:
                 target = entry
 
         return target
-
-    def after_app_shutdown(self) -> None:
-        """
-        App关闭后进行的操作 关闭一切可能资源操作
-        @return:
-        """
-        if self.auto_op is not None:
-            self.auto_op.stop_running()
-            self.auto_op.dispose()

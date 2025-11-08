@@ -1,11 +1,10 @@
-from one_dragon.base.conditional_operation import utils
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
+from one_dragon.base.conditional_operation.operation_def import OperationDef
 from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 
@@ -23,14 +22,15 @@ class KeySimRunner(ZOperation):
 
     @operation_node(name='加载配置', is_start_node=True)
     def load_config(self) -> OperationRoundResult:
-        fake_op = AutoBattleOperator(self.ctx, 'auto_battle', '专属配队-艾莲', is_mock=True)
         config = YamlConfig(self.config_name, sub_dir=['key_sim'], sample=True, copy_from_sample=False)
-        self.ops = utils.get_ops_from_data(
-            config.data.get('operations', []),
-            fake_op.get_atomic_op,
-            fake_op.get_operation_template,
-            set()
-        )
+        op_def_list = [
+            OperationDef(i)
+            for i in config.data.get('operations', [])
+        ]
+        self.ops = [
+            self.ctx.auto_battle_context.atomic_op_factory.get_atomic_op(i)
+            for i in op_def_list
+        ]
 
         return self.round_success()
 
