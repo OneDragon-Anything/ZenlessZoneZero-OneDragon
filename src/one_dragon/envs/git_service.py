@@ -356,7 +356,7 @@ class GitService:
         can_fast_forward = False
         with contextlib.suppress(Exception):
             repo = self._open_repo()
-            can_fast_forward = repo.descendant_of(remote_oid, local_oid)
+            can_fast_forward = repo.descendant_of(remote_oid, local_oid) and len(repo.status()) == 0
 
         # 快进更新
         if can_fast_forward:
