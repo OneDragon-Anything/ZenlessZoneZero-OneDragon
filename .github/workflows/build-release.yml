@@ -34,6 +34,7 @@ jobs:
         python-version: '3.11'
 
     - name: Get version
+      if: ${{ env.CREATE_RELEASE == 'true' }}
       id: get_version
       shell: pwsh
       run: python tools/ci/get_version.py
@@ -157,7 +158,9 @@ jobs:
     needs:
       - version
       - build
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
+    if: ${{ github.repository_owner == 'OneDragon-Anything' &&
+            ((github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/'))
+        }}
     env:
       SIGNED_DIR: 'signed'
       SIGNPATH_SIGNING_POLICY_SLUG: 'release-signing'
@@ -188,7 +191,11 @@ jobs:
       - version
       - build
       - sign
-    if: ${{ ((github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/')) && needs.sign.result == 'success' }}
+    if: ${{ always() &&
+            needs.build.result == 'success' &&
+            ((github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/')) &&
+            (github.repository_owner != 'OneDragon-Anything' || needs.sign.result == 'success')
+        }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
