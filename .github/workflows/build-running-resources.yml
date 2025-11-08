@@ -47,12 +47,13 @@ jobs:
          PYTHONPATH: src
 
       - name: Commit changes
+        if: github.event_name != 'pull_request'
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           $hasChangesAutoBattle = git diff --quiet -- config/auto_battle/*.merged.yml
           $hasChangesMo = git diff --quiet -- assets/text/output/**/*.mo
-          if ($hasChangesAutoBattle -ne 0 -or $hasChangesAssets -ne 0) {
+          if ($hasChangesAutoBattle -ne 0 -or $hasChangesMo -ne 0) {
             git add config/auto_battle/*.merged.yml
             git add assets/text/output/**/*.mo
             $date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
