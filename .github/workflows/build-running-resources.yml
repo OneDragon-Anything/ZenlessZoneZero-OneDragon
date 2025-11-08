@@ -48,6 +48,7 @@ jobs:
 
       - name: Commit changes
         if: github.event_name != 'pull_request'
+        shell: pwsh
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
