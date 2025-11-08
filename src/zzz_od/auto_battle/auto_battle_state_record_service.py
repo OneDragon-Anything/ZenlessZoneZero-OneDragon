@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from one_dragon.base.conditional_operation.state_record_service import StateRecordService
 from one_dragon.base.conditional_operation.state_recorder import StateRecorder
+from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.auto_battle_dodge_context import YoloStateEventEnum
 from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
 from zzz_od.game_data.agent import AgentEnum, AgentTypeEnum, CommonAgentStateEnum
@@ -34,6 +35,7 @@ class AutoBattleStateRecordService(StateRecordService):
         if self.is_valid_state(state_name):
             return StateRecorder(state_name, mutex_list=self.mutex_list.get(state_name, None))
         else:
+            log.error(f'使用了不合法的状态 {state_name}')
             return None
 
     @lru_cache(maxsize=None)
@@ -66,6 +68,8 @@ class AutoBattleStateRecordService(StateRecordService):
 
         for event_enum in BattleStateEnum:
             event_ids.append(event_enum.value)
+            event_ids.append(event_enum.value + '-松开')
+            event_ids.append(event_enum.value + '-按下')
 
         for agent_enum in AgentEnum:
             agent = agent_enum.value
@@ -113,6 +117,9 @@ class AutoBattleStateRecordService(StateRecordService):
             for state_def in task.state_definitions:
                 if state_def.state_name not in event_ids:
                     event_ids.append(state_def.state_name)
+
+        # 这是一个旧的状态 等待后续删除或者恢复识别
+        event_ids.append('格挡-破碎')
 
         return event_ids
 

@@ -73,8 +73,6 @@ class AutoBattleOperator(ConditionalOperator):
 
         self.ctx: AutoBattleContext = ctx
 
-        self.state_recorders: dict[str, StateRecorder] = {}
-
         # 自动周期
         self.last_lock_time: float = 0  # 上一次锁定的时间
         self.last_turn_time: float = 0  # 上一次转动视角的时间
@@ -100,6 +98,8 @@ class AutoBattleOperator(ConditionalOperator):
         self.check_end_interval = data.get('check_end_interval', 5)
         self.target_lock_interval = data.get('target_lock_interval', 1)
         self.abnormal_status_interval = data.get('abnormal_status_interval', 0)
+        self.auto_lock_interval = data.get('auto_lock_interval', 1)
+        self.auto_turn_interval = data.get('auto_turn_interval', 2)
 
     def init_before_running(self) -> Tuple[bool, str]:
         """
@@ -185,7 +185,8 @@ def __debug():
     ctx = ZContext()
     ctx.init()
     auto_op = AutoBattleOperator(ctx.auto_battle_context, 'auto_battle', '全配队通用')
-    auto_op.init_before_running()
+    auto_op.init()
+    auto_op.usage_states
     # auto_op.start_running_async()
     # time.sleep(5)
     # auto_op.stop_running()

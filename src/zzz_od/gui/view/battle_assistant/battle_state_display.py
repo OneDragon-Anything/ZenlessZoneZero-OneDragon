@@ -120,13 +120,13 @@ class BattleStateDisplay(QWidget):
             self.table.setRowCount(0)
             return
 
-        states = auto_op.get_usage_states()
-
-        state_recorders: List[StateRecorder] = [
-            i
-            for i in self.ctx.auto_battle_context.state_recorders.values()
-            if i.state_name in states
-        ]
+        states = auto_op.usage_states
+        state_recorders: list[StateRecorder] = []
+        for state in states:
+            recorder = self.ctx.auto_battle_context.state_record_service.get_state_recorder(state)
+            if recorder is None:
+                continue
+            state_recorders.append(recorder)
 
         now = time.time()
         new_states = []

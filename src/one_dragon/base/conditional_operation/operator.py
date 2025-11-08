@@ -1,6 +1,7 @@
 import time
 from abc import abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
+from functools import cached_property
 from threading import Lock
 from typing import Optional
 
@@ -128,7 +129,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
         主循环
         :return:
         """
-        normal_handler_id = id(self.normal_scene)
+        normal_scene_id = id(self.normal_scene)
         while self.is_running:
             if self.running_executor_cnt.get() > 0:
                 # 有其它场景在运行 等待
@@ -145,7 +146,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
                     break
 
                 trigger_time = time.time()
-                last_trigger_time = self.last_trigger_time.get(normal_handler_id, 0)
+                last_trigger_time = self.last_trigger_time.get(normal_scene_id, 0)
                 past_time = trigger_time - last_trigger_time
                 if past_time < self.normal_scene.interval_seconds:
                     to_sleep = self.normal_scene.interval_seconds - past_time
@@ -153,13 +154,14 @@ class ConditionalOperator(ConditionalOperatorLoader):
                     new_execution_info = self.normal_scene.match_execution(trigger_time)
                     if new_execution_info is not None:
                         log.debug(f'当前场景 主循环 当前条件 {new_execution_info.expr_display}')
-                        new_execution_info.handler_id = normal_handler_id
+                        new_execution_info.priority = self.normal_scene.priority
+
                         self.current_execution_info = new_execution_info
                         self.running_executor = OperationExecutor(
                             op_list=new_execution_info.op_list,
                             trigger_time=trigger_time,
                         )
-                        self.last_trigger_time[normal_handler_id] = trigger_time
+                        self.last_trigger_time[normal_scene_id] = trigger_time
                         self.running_executor_cnt.inc()
                         future = self.running_executor.run_async()
                         future.add_done_callback(self._on_task_done)
@@ -178,8 +180,8 @@ class ConditionalOperator(ConditionalOperatorLoader):
         """
         if state_name not in self.trigger_2_scene:
             return
-        handler = self.trigger_2_scene[state_name]
-        trigger_handler_id = id(handler)
+        scene = self.trigger_2_scene[state_name]
+        trigger_scene_id = id(scene)
 
         # 上锁后确保运行状态不会被篡改
         with self._task_lock:
@@ -188,14 +190,15 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 return
 
             trigger_time: float = time.time()  # 这里不应该使用事件发生时间 而是应该使用当前的实际操作时间
-            last_trigger_time = self.last_trigger_time.get(trigger_handler_id, 0)
-            if trigger_time - last_trigger_time < handler.interval_seconds:  # 冷却时间没过 不触发
+            last_trigger_time = self.last_trigger_time.get(trigger_scene_id, 0)
+            if trigger_time - last_trigger_time < scene.interval_seconds:  # 冷却时间没过 不触发
                 return
 
-            new_execution_info = handler.match_execution(trigger_time)
+            new_execution_info = scene.match_execution(trigger_time)
             # 若new_execution_info为空，即无匹配state，则不打断当前运行
             if new_execution_info is None:
                 return
+            new_execution_info.priority = scene.priority
 
             can_interrupt: bool = False
             if self.running_executor is not None:
@@ -219,10 +222,9 @@ class ConditionalOperator(ConditionalOperatorLoader):
             log.debug(f'当前场景 {state_name} 当前条件 {new_execution_info.expr_display}')
 
             new_execution_info.trigger = state_name
-            new_execution_info.handler_id = trigger_handler_id
             self.current_execution_info = new_execution_info
             self.running_executor = OperationExecutor(new_execution_info.op_list, trigger_time)
-            self.last_trigger_time[trigger_handler_id] = trigger_time
+            self.last_trigger_time[trigger_scene_id] = trigger_time
             future = self.running_executor.run_async()
             future.add_done_callback(self._on_task_done)
 
@@ -259,11 +261,11 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 result = future.result()
                 if result:  # 顺利执行完毕
                     self.running_executor_cnt.dec()
-                    self.current_execution_info.priority = None
             except Exception:  # run_async里有callback打印日志
                 pass
 
-    def get_usage_states(self) -> set[str]:
+    @cached_property
+    def usage_states(self) -> set[str]:
         """
         获取使用的状态 需要init之后使用
         Returns:
@@ -273,9 +275,9 @@ class ConditionalOperator(ConditionalOperatorLoader):
         if self.normal_scene is not None:
             states = states.union(self.normal_scene.usage_states)
         if self.trigger_2_scene is not None:
-            for event_id, handler in self.trigger_2_scene.items():
+            for event_id, scene in self.trigger_2_scene.items():
                 states.add(event_id)
-                states = states.union(handler.usage_states)
+                states = states.union(scene.usage_states)
         return states
 
     def batch_update_states(self, state_records: list[StateRecord]) -> None:
@@ -303,8 +305,8 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 continue
 
             # 找优先级最高的场景
-            handler = self.trigger_2_scene.get(state_name)
-            if handler is None:
+            scene = self.trigger_2_scene.get(state_name)
+            if scene is None:
                 continue
 
             replace = False
@@ -312,13 +314,13 @@ class ConditionalOperator(ConditionalOperatorLoader):
                 replace = True
             elif top_priority_scene.priority is None:  # 可随意打断
                 replace = True
-            elif handler.priority is None:  # 可随意打断
+            elif scene.priority is None:  # 可随意打断
                 pass
-            elif handler.priority > top_priority_scene.priority:  # 新触发场景优先级更高
+            elif scene.priority > top_priority_scene.priority:  # 新触发场景优先级更高
                 replace = True
 
             if replace:
-                top_priority_scene = handler
+                top_priority_scene = scene
                 top_priority_state = state_name
 
         # 触发具体的场景 由自己的线程处理
