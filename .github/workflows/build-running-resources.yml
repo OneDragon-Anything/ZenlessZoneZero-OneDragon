@@ -44,15 +44,15 @@ jobs:
           uv run python src/one_dragon/devtools/compile_po.py
           uv run python src/zzz_od/auto_battle/build_utils.py
         env:
-         PYTHONPATH: src
+          PYTHONPATH: src
 
       - name: Commit changes
         if: github.event_name != 'pull_request'
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          $hasChangesAutoBattle = git diff --quiet -- config/auto_battle/*.merged.yml
-          $hasChangesMo = git diff --quiet -- assets/text/output/**/*.mo
+          git diff --quiet -- config/auto_battle/*.merged.yml; $hasChangesAutoBattle = $LASTEXITCODE
+          git diff --quiet -- assets/text/output/**/*.mo; $hasChangesMo = $LASTEXITCODE
           if ($hasChangesAutoBattle -ne 0 -or $hasChangesMo -ne 0) {
             git add config/auto_battle/*.merged.yml
             git add assets/text/output/**/*.mo
