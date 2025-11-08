@@ -79,9 +79,6 @@ class GitService:
     def _ensure_remote(self) -> Remote | None:
         """确保远程仓库配置正确
 
-        Args:
-            for_clone: 是否用于克隆（会影响代理地址的选择）
-
         Returns:
             Remote对象，失败时返回None
         """
@@ -111,11 +108,7 @@ class GitService:
         return repo.remotes[remote_name]
 
     def _get_git_repository(self) -> str:
-        """获取仓库地址
-
-        Args:
-            for_clone: 是否用于克隆
-        """
+        """获取仓库地址"""
         repo_type = self.env_config.repository_type
         git_method = self.env_config.git_method
 
@@ -154,7 +147,7 @@ class GitService:
         """获取远程代码
 
         Args:
-            for_clone: 是否用于克隆（会影响代理地址的选择）
+            for_clone: 是否用于克隆（克隆时拉取深度为1，更新时为0）
 
         Returns:
             是否成功
