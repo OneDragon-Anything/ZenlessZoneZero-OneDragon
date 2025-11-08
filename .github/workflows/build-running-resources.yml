@@ -33,7 +33,7 @@ jobs:
           .\.venv\Scripts\Activate.ps1
           uv sync --group dev
 
-      - name: Build auto-battle merged files
+      - name: Build files
         shell: pwsh
         run: |
           chcp 65001
@@ -43,6 +43,7 @@ jobs:
           .\.venv\Scripts\Activate.ps1
           uv run python src/one_dragon/devtools/compile_po.py
           uv run python src/zzz_od/auto_battle/build_utils.py
+          uv run python deploy/generate_freeze_seed.py
         env:
           PYTHONPATH: src
 
@@ -52,20 +53,20 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          
+
           # 检查是否有修改的文件（包括新文件）
-          $modifiedFiles = $(git status --porcelain config/auto_battle/*.merged.yml)
-          $hasChangesAutoBattle = if ($modifiedFiles) { 1 } else { 0 }
-          
-          # 检查.mo文件的修改
-          $modifiedMoFiles = $(git status --porcelain assets/text/output/**/*.mo)
-          $hasChangesMo = if ($modifiedMoFiles) { 1 } else { 0 }
-          
-          if ($hasChangesAutoBattle -ne 0 -or $hasChangesMo -ne 0) {
+          $modifiedFiles = @(
+            $(git status --porcelain config/auto_battle/*.merged.yml)
+            $(git status --porcelain assets/text/output/**/*.mo)
+            $(git status --porcelain deploy/freeze_seed.py)
+          ) | Where-Object { $_ -ne "" }
+
+          if ($modifiedFiles.Count -gt 0) {
             git add config/auto_battle/*.merged.yml
             git add assets/text/output/**/*.mo
+            git add deploy/freeze_seed.py
             $date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            git commit -m "自动构建运行资源 $date"
+            git commit -m "chore: 自动构建运行资源 $date"
             git push
           } else {
             Write-Host "No file modifications"
