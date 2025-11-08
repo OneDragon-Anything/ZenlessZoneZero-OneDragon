@@ -903,7 +903,7 @@ def color_in_hsv_range(
     return part
 
 
-def find_character_avatars(img: MatLike, min_area: int = 800, 
+def find_character_avatars(img: MatLike, min_area: int = 800,
                           hsv_lower_bound: Tuple[int, int, int] = (0, 0, 0),
                           hsv_upper_bound: Tuple[int, int, int] = (10, 10, 255)) -> List[Tuple[int, int, int, int]]:
     """
@@ -1043,3 +1043,134 @@ def filter_by_color(
     else:
         # 未知模式，或者没有提供足够的参数，返回全黑的mask
         return np.full((image.shape[0], image.shape[1]), 0, dtype=np.uint8)
+
+
+def get_hsv_range_in_rect(image: MatLike, left: int, top: int, right: int, bottom: int) -> dict:
+    """
+    获取矩形区域内所有像素的HSV范围
+    :param image: RGB格式的图像
+    :param left: 矩形左边界
+    :param top: 矩形上边界
+    :param right: 矩形右边界
+    :param bottom: 矩形下边界
+    :return: 包含HSV中心值、差值和范围的字典
+    """
+    if image is None or image.size == 0:
+        return None
+
+    # 确保坐标在图像范围内
+    height, width = image.shape[:2]
+    left = max(0, min(left, width - 1))
+    top = max(0, min(top, height - 1))
+    right = max(left + 1, min(right, width))
+    bottom = max(top + 1, min(bottom, height))
+
+    # 提取矩形区域
+    roi = image[top:bottom, left:right]
+
+    # 转换为HSV
+    hsv_roi = cv2.cvtColor(roi, cv2.COLOR_RGB2HSV)
+
+    # S、V通道保持原有的线性计算
+    s_min, v_min = np.min(hsv_roi[:, :, 1:], axis=(0, 1))
+    s_max, v_max = np.max(hsv_roi[:, :, 1:], axis=(0, 1))
+
+    # 使用双区间比较算法计算H通道的中心值和差值
+    h_values = hsv_roi[:, :, 0].flatten()
+    h_min = int(np.min(h_values))
+    h_max = int(np.max(h_values))
+
+    # 计算线性区间长度：[min, max]
+    linear_length = h_max - h_min
+
+    # 计算环形区间长度：[max, min]
+    circular_length = (180 - h_max) + h_min
+
+    if linear_length <= circular_length:
+        # 选择线性区间
+        h_center = (h_min + h_max) // 2
+        h_diff = linear_length // 2
+    else:
+        # 选择环形区间
+        # 环形区间的中心计算：从max开始，加上环形长度的一半
+        half_circular = circular_length // 2
+        h_center = h_max + half_circular
+        if h_center >= 180:
+            h_center -= 180  # 转换为0-179范围
+        h_diff = half_circular
+
+    # S和V通道保持线性计算
+    s_center = int((int(s_min) + int(s_max)) // 2)
+    v_center = int((int(v_min) + int(v_max)) // 2)
+    s_diff = int(s_max - s_min)
+    v_diff = int(v_max - v_min)
+
+    return {
+        'center_hsv': (int(h_center), int(s_center), int(v_center)),
+        'diff_hsv': (int(h_diff), int(s_diff), int(v_diff))
+    }
+
+
+def get_hsv_range_in_contour(image: MatLike, contour: np.ndarray) -> dict:
+    """
+    获取轮廓区域内所有像素的HSV范围
+    :param image: RGB格式的图像
+    :param contour: 轮廓点集
+    :return: 包含HSV中心值、差值和范围的字典
+    """
+    if image is None or image.size == 0 or contour is None or len(contour) == 0:
+        return None
+
+    # 创建与图像同样大小的掩码
+    mask = np.zeros(image.shape[:2], dtype=np.uint8)
+
+    # 在掩码上绘制填充的轮廓
+    cv2.drawContours(mask, [contour], -1, 255, -1)
+
+    # 转换为HSV
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+
+    # 只分析轮廓内的像素
+    masked_hsv = hsv_image[mask > 0]
+
+    if len(masked_hsv) == 0:
+        return None
+
+    # S、V通道保持原有的线性计算
+    s_min, v_min = np.min(masked_hsv[:, 1:], axis=0)
+    s_max, v_max = np.max(masked_hsv[:, 1:], axis=0)
+
+    # 使用双区间比较算法计算H通道的中心值和差值
+    h_values = masked_hsv[:, 0]
+    h_min = int(np.min(h_values))
+    h_max = int(np.max(h_values))
+
+    # 计算线性区间长度：[min, max]
+    linear_length = h_max - h_min
+
+    # 计算环形区间长度：[max, min]
+    circular_length = (180 - h_max) + h_min
+
+    if linear_length <= circular_length:
+        # 选择线性区间
+        h_center = (h_min + h_max) // 2
+        h_diff = linear_length // 2
+    else:
+        # 选择环形区间
+        # 环形区间的中心计算：从max开始，加上环形长度的一半
+        half_circular = circular_length // 2
+        h_center = h_max + half_circular
+        if h_center >= 180:
+            h_center -= 180  # 转换为0-179范围
+        h_diff = half_circular
+
+    # S和V通道保持线性计算
+    s_center = int((int(s_min) + int(s_max)) // 2)
+    v_center = int((int(v_min) + int(v_max)) // 2)
+    s_diff = int(s_max - s_min)
+    v_diff = int(v_max - v_min)
+
+    return {
+        'center_hsv': (int(h_center), int(s_center), int(v_center)),
+        'diff_hsv': (int(h_diff), int(s_diff), int(v_diff))
+    }

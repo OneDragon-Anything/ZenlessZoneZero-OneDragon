@@ -69,7 +69,8 @@ class LostVoidApp(ZApplication):
 
     @operation_node(name='初始化加载', is_start_node=True)
     def init_for_lost_void(self) -> OperationRoundResult:
-        if self.run_record.is_finished_by_day():
+        # 检查分配给今天的任务是否完成
+        if self.run_record.is_finished_by_day:
             return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
 
         try:
@@ -133,7 +134,56 @@ class LostVoidApp(ZApplication):
 
     @node_from(from_name='识别初始画面', status='可前往副本画面')
     @node_from(from_name='选择迷失之地')
-    @node_from(from_name='通关后处理', status=STATUS_AGAIN)
+    @operation_node(name='开始前等待入口加载')
+    def wait_lost_void_entry(self) -> OperationRoundResult:
+        screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
+        if screen_name != '迷失之地-入口':
+            return self.round_wait(status='等待画面加载', wait=1)
+        return self.round_success(status=screen_name)
+
+    @node_from(from_name='开始前等待入口加载')
+    @node_from(from_name='通关后处理')
+    @operation_node(name='识别悬赏委托完成进度')
+    def check_bounty_commission_before(self) -> OperationRoundResult:
+        """
+        识别悬赏委托完成进度
+        通过OCR识别屏幕中 '8000' 出现的次数来判断:
+        - 1次: xxxx/8000 (未完成)
+        - 2次: 8000/8000 (已完成)
+
+        :return: 操作结果
+        """
+        if not self.config.is_bounty_commission_mode:
+            if self.run_record.is_finished_by_day:
+                return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
+            return self.round_success(LostVoidApp.STATUS_AGAIN)
+
+        TARGET_SCORE = '8000'  # 目标分数文本
+
+        # 裁剪悬赏委托进度区域
+        area = self.ctx.screen_loader.get_area('迷失之地-入口', '区域-悬赏委托-进度')
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
+
+        # OCR识别
+        ocr_result_list = self.ctx.ocr.ocr(part)
+
+        # 统计 '8000' 出现次数
+        target_count = sum(ocr_text.data.count(TARGET_SCORE) for ocr_text in ocr_result_list)
+
+        # 根据次数判断完成状态
+        if target_count == 1:
+            # 只有一个 8000,表示 xxxx/8000 (未完成)
+            return self.round_success(LostVoidApp.STATUS_AGAIN)
+        elif target_count == 2:
+            # 两个 8000,表示 8000/8000 (已完成)
+            if not self.run_record.bounty_commission_complete:
+                self.run_record.bounty_commission_complete = True
+            return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
+        else:
+            # 未识别到预期的结果(0次或3次以上),返回重试
+            return self.round_retry(wait=0.5)
+
+    @node_from(from_name='识别悬赏委托完成进度', status=STATUS_AGAIN)
     @operation_node(name='前往副本画面', node_max_retry_times=60)
     def goto_mission_screen(self) -> OperationRoundResult:
         mission_name = self.config.mission_name
@@ -219,6 +269,26 @@ class LostVoidApp(ZApplication):
         """
         追新模式下的选择逻辑
         """
+        # 优先寻找无等级战略
+        log.debug("【追新模式】 开始执行无等级圈圈流水线分析...")
+        no_level_context = self.ctx.cv_service.run_pipeline('调查战略无等级圈圈', self.last_screenshot)
+        if no_level_context.is_success and no_level_context.contours:
+            target_contour = no_level_context.contours[0]
+            M = cv2.moments(target_contour)
+            if M["m00"] == 0:
+                log.debug("【追新模式】 轮廓面积为零，跳过无等级战略检测")
+            else:
+                center_x = int(M["m10"] / M["m00"])
+                center_y = int(M["m01"] / M["m00"])
+                offset_x, offset_y = no_level_context.crop_offset
+                click_pos = Point(center_x + offset_x, center_y + offset_y)
+                log.debug(f"【追新模式】 找到无等级战略，点击坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {no_level_context.crop_offset})")
+                self.ctx.controller.click(click_pos)
+                time.sleep(1)
+                return self._click_confirm_after_strategy_chosen()
+
+        log.debug("【追新模式】 未找到无等级战略，使用原有逻辑...")
+
         swipe_attempts = 0
         MAX_SWIPES = 3
 
@@ -423,7 +493,10 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='出战')
     @operation_node(name='加载自动战斗配置')
     def load_auto_op(self) -> OperationRoundResult:
-        self.ctx.lost_void.init_auto_op()
+        self.ctx.auto_battle_context.init_auto_op(
+            sub_dir='auto_battle',
+            op_name=self.ctx.lost_void.get_auto_op_name(),
+        )
         return self.round_success()
 
     @node_from(from_name='加载自动战斗配置')
@@ -443,22 +516,18 @@ class LostVoidApp(ZApplication):
         return self.round_by_op_result(op_result)
 
     @node_from(from_name='层间移动', status=LostVoidRunLevel.STATUS_COMPLETE)
-    @operation_node(name='通关后处理', node_max_retry_times=60)
+    @operation_node(name='通关后处理')
     def after_complete(self) -> OperationRoundResult:
-        screen_name = self.check_and_update_current_screen(self.last_screenshot)
+        screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
         if screen_name != '迷失之地-入口':
-            return self.round_retry('等待画面加载')
-
+            return self.round_wait('等待画面加载', wait=1)
         self.run_record.add_complete_times()
         if self.use_priority_agent:
             self.run_record.complete_task_force_with_up = True
 
-        if self.run_record.is_finished_by_day():
-            return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
+        return self.round_success()
 
-        return self.round_success(LostVoidApp.STATUS_AGAIN)
-
-    @node_from(from_name='通关后处理')
+    @node_from(from_name='识别悬赏委托完成进度', status=STATUS_ENOUGH_TIMES)
     @operation_node(name='打开悬赏委托')
     def open_reward_list(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(screen_name='迷失之地-入口', area_name='按钮-悬赏委托',
@@ -482,7 +551,8 @@ class LostVoidApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
+    ctx.run_context.start_running()
     op = LostVoidApp(ctx)
     op.execute()
 

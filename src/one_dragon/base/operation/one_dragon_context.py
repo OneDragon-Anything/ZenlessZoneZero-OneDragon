@@ -284,6 +284,13 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.one_dragon_config.clear_temp_instance_indices()
         ContextEventBus.after_app_shutdown(self)
         OneDragonEnvContext.after_app_shutdown(self)
+        from one_dragon.base.conditional_operation.operator import ConditionalOperator
+        ConditionalOperator.after_app_shutdown()
+        from one_dragon.base.conditional_operation.operation_executor import OperationExecutor
+        OperationExecutor.after_app_shutdown()
+        from one_dragon.base.conditional_operation.state_record_service import StateRecordService
+        StateRecordService.after_app_shutdown()
+
 
     def register_application_factory(self) -> None:
         """

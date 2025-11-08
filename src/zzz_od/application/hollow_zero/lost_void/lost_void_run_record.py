@@ -2,7 +2,7 @@ from typing import Optional
 
 from one_dragon.base.operation.application_run_record import AppRunRecord, AppRunRecordPeriod
 from one_dragon.utils import os_utils
-from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig, LostVoidExtraTask
+from zzz_od.application.hollow_zero.lost_void.lost_void_config import LostVoidConfig, LostVoidTaskEnum
 
 
 class LostVoidRunRecord(AppRunRecord):
@@ -43,6 +43,20 @@ class LostVoidRunRecord(AppRunRecord):
         self.weekly_run_times += 1
 
     @property
+    def bounty_commission_complete(self) -> bool:
+        """
+        是否已经刷满悬赏委托
+        """
+        return self.get('bounty_commission_complete', False)
+
+    @bounty_commission_complete.setter
+    def bounty_commission_complete(self, new_value: bool) -> None:
+        """
+        是否已经刷满悬赏委托
+        """
+        self.update('bounty_commission_complete', new_value)
+
+    @property
     def eval_point_complete(self) -> bool:
         """
         是否已经刷满业绩点
@@ -70,35 +84,33 @@ class LostVoidRunRecord(AppRunRecord):
         """
         self.update('period_reward_complete', new_value)
 
+    @property
     def is_finished_by_week(self) -> bool:
         """
         按周的角度看是否已经完成
         """
-        if self.weekly_run_times < self.config.weekly_plan_times:
-            # 基础次数都还没有完成
-            return False
-        if self.config.extra_task == LostVoidExtraTask.NONE.value.value:
-            # 完成基础次数 不需要额外刷取
-            return True
-        elif self.config.extra_task == LostVoidExtraTask.EVAL_POINT.value.value:
-            # 完成基础次数 需要刷业绩 就看空业绩点出来没有
+        if self.config.extra_task == LostVoidTaskEnum.BOUNTY_COMMISSION.value.value:
+            # 需要刷悬赏委托 就看8000积分奖励完成没有
+            return self.bounty_commission_complete
+        elif self.config.extra_task == LostVoidTaskEnum.EVAL_POINT.value.value:
+            # 需要刷业绩 就看空业绩点出来没有
             return self.eval_point_complete
-        elif self.config.extra_task == LostVoidExtraTask.PERIOD_REWARD.value.value:
+        elif self.config.extra_task == LostVoidTaskEnum.PERIOD_REWARD.value.value:
             return self.period_reward_complete
+        elif self.config.extra_task == LostVoidTaskEnum.WEEKLY_PLAN_TIMES.value.value:
+            return self.weekly_run_times >= self.config.weekly_plan_times
         else:
             return False
 
+    @property
     def is_finished_by_day(self) -> bool:
         """
-        按天角度看是否已经完成
+        按天的角度看是否已经完成
         """
-        if self.is_finished_by_week():
+        if self.is_finished_by_week:
             return True
-        elif self.daily_run_times < self.config.daily_plan_times:
-            # 基础次数都还没有完成
-            return False
-        else:
-            return True
+        # 当周未完成的情况下，按照每天上限次数判断当天是否完成
+        return self.daily_run_times >= self.config.daily_plan_times
 
     @property
     def run_status_under_now(self):
@@ -111,12 +123,12 @@ class LostVoidRunRecord(AppRunRecord):
             # 必定是重置
             return AppRunRecord.STATUS_WAIT
         elif self.dt != current_dt:  # 上一次运行已经是一天前
-            if self.is_finished_by_week():  # 看本周是否已经完成
+            if self.is_finished_by_week:  # 看本周是否已经完成
                 return AppRunRecord.STATUS_SUCCESS
             else:
                 return AppRunRecord.STATUS_WAIT
         else:  # 当天的
-            if self.is_finished_by_day():  # 看当天是否已经完成
+            if self.is_finished_by_day:  # 看当天是否已经完成
                 return AppRunRecord.STATUS_SUCCESS
             else:
                 return AppRunRecord.STATUS_WAIT
@@ -134,9 +146,9 @@ class LostVoidRunRecord(AppRunRecord):
             self.reset_record()
             self.daily_run_times = 0
         else:  # 当天的
-            if self.is_finished_by_week():
+            if self.is_finished_by_week:
                 pass
-            elif self.is_finished_by_day():
+            elif self.is_finished_by_day:
                 pass
             else:
                 self.reset_record()
@@ -144,6 +156,7 @@ class LostVoidRunRecord(AppRunRecord):
     def reset_for_weekly(self) -> None:
         self.weekly_run_times = 0
         self.daily_run_times = 0
+        self.bounty_commission_complete = False
         self.eval_point_complete = False
         self.period_reward_complete = False
         self.complete_task_force_with_up = False

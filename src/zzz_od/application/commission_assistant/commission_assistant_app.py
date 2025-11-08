@@ -45,7 +45,6 @@ class CommissionAssistantApp(ZApplication):
         )
 
         self.run_mode: int = 0  # 0=对话 1=闪避 2=自动战斗
-        self.auto_op: Optional[AutoBattleOperator] = None  # 战斗指令
 
         self.last_dialog_opts: set[str] = set()  # 上一次对话的全部选项
         self.last_chosen_opt: str = ''  # 上一次选择的对话选项
@@ -67,8 +66,6 @@ class CommissionAssistantApp(ZApplication):
             return
         key = event.data
         if key == self.config.dodge_switch:
-            if self.auto_op is not None and self.config.dodge_config != self.auto_op.module_name:
-                self.auto_op = None  # 切换过选项
             if self.run_mode == 0:
                 self.run_mode = 1
             elif self.run_mode == 1:
@@ -76,8 +73,6 @@ class CommissionAssistantApp(ZApplication):
             else:  # 防止并发有问题导致值错乱 最后兜底成初始值
                 self.run_mode = 0
         elif key == self.config.auto_battle_switch:
-            if self.auto_op is not None and self.config.auto_battle != self.auto_op.module_name:
-                self.auto_op = None  # 切换过选项
             if self.run_mode == 0:
                 self.run_mode = 2
             elif self.run_mode == 2:
@@ -91,6 +86,7 @@ class CommissionAssistantApp(ZApplication):
     @operation_node(name='自动对话模式', is_start_node=True)
     def dialog_mode(self) -> OperationRoundResult:
         if self.run_mode in [1, 2]:
+            self._load_auto_op()
             return self.round_success('战斗模式')
 
         config = self.config
@@ -271,11 +267,10 @@ class CommissionAssistantApp(ZApplication):
     @operation_node(name='自动战斗模式')
     def auto_mode(self) -> OperationRoundResult:
         if self.run_mode == 0:
-            auto_battle_utils.stop_running(self.auto_op)
+            self.ctx.auto_battle_context.stop_auto_battle()
             return self.round_success()
-        self._load_auto_op()
 
-        self.auto_op.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
+        self.ctx.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
 
         return self.round_wait(wait_round_time=self.ctx.battle_assistant_config.screenshot_interval)
 
@@ -283,11 +278,11 @@ class CommissionAssistantApp(ZApplication):
         """
         加载战斗指令
         """
-        if self.auto_op is None:
-            auto_battle_utils.load_auto_op(self,
-                                           'auto_battle' if self.run_mode == 2 else 'dodge',
-                                           self.config.auto_battle if self.run_mode == 2 else self.config.dodge_config)
-        self.auto_op.start_running_async()
+        self.ctx.auto_battle_context.init_auto_op(
+            sub_dir='auto_battle' if self.run_mode == 2 else 'dodge',
+            op_name=self.config.auto_battle if self.run_mode == 2 else self.config.dodge_config
+        )
+        self.ctx.auto_battle_context.start_auto_battle()
 
     def check_fishing(self) -> Optional[OperationRoundResult]:
         """
@@ -456,25 +451,23 @@ class CommissionAssistantApp(ZApplication):
     def handle_pause(self):
         ZApplication.handle_pause(self)
         self._unlisten_btn()
-        auto_battle_utils.stop_running(self.auto_op)
+        if self.run_mode != 0:
+            self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self) -> None:
         ZApplication.handle_resume(self)
         self._listen_btn()
         if self.run_mode != 0:
-            auto_battle_utils.resume_running(self.auto_op)
+            self.ctx.auto_battle_context.resume_auto_battle()
 
     def after_operation_done(self, result: OperationResult):
         ZApplication.after_operation_done(self, result)
         self._unlisten_btn()
-        if self.auto_op is not None:
-            self.auto_op.dispose()
-            self.auto_op = None
 
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     app = CommissionAssistantApp(ctx)
     app.execute()
 

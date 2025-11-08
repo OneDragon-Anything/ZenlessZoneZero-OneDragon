@@ -1,22 +1,27 @@
+from __future__ import annotations
+
+import os
+import threading
 from concurrent.futures import ThreadPoolExecutor, Future
+from enum import Enum
+from typing import Optional, List, Union, TYPE_CHECKING
 
 import librosa
 import numpy as np
-import os
-import threading
 from cv2.typing import MatLike
-from enum import Enum
 from scipy.signal import correlate, butter, filtfilt
 from sklearn.preprocessing import scale
-from typing import Optional, List, Union
 
-from one_dragon.base.conditional_operation.conditional_operator import ConditionalOperator
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
 from one_dragon.utils import cal_utils, yolo_config_utils
 from one_dragon.utils import thread_utils, os_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.yolo.flash_classifier import FlashClassifier
+
+if TYPE_CHECKING:
+    from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
+
 
 # 创建一个线程池执行器，用于异步执行任务
 _dodge_check_executor = ThreadPoolExecutor(thread_name_prefix='od_dodge_check', max_workers=16)
@@ -41,8 +46,14 @@ class AudioRecorder:
         self._filter_degree = 4  # 四阶bathworth多项式, 越大阻带区域滤波程度越大
         self._cut_off = 1000  # Hz,截止频率,对该频率一下的声音进行滤波,若需要识别人声可适当降低
 
-        self.filter_b, self.filter_a = butter(self._filter_degree, self._cut_off, btype='highpass', output='ba',
-                                              fs=self._sample_rate)  # Butterworth高通滤波
+        # Butterworth高通滤波
+        self.filter_b, self.filter_a = butter(
+            self._filter_degree,
+            self._cut_off,
+            btype='highpass',
+            output='ba',
+            fs=self._sample_rate
+        )
 
         self.latest_audio = np.empty(shape=(0,), dtype=np.float64)  # 存储最新的音频数据
         self._update_audio_lock = threading.Lock()
@@ -117,7 +128,6 @@ class AutoBattleDodgeContext:
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx  # 上下文对象
-        self.auto_op: ConditionalOperator = ConditionalOperator('', '', is_mock=True)
 
         self._flash_model: Optional[FlashClassifier] = None  # 闪避分类器
         self._audio_recorder: AudioRecorder = AudioRecorder()  # 音频录制器
@@ -139,21 +149,17 @@ class AutoBattleDodgeContext:
         self._audio_event_interval: float = 0.1
         self._last_audio_event_time: float = 0
 
-    def init_battle_dodge_context(
+    def init_auto_op(
             self,
-            auto_op: ConditionalOperator,
-            use_gpu: bool = True,
-            check_dodge_interval: Union[float, List[float]] = 0,
-            check_audio_interval: float = 0.02
+            auto_op: AutoBattleOperator,
     ) -> None:
         """
-        初始化上下文，在运行前调用。
-        :param use_gpu: 是否使用GPU
-        :param check_dodge_interval: 闪避识别间隔
-        :param check_audio_interval: 音频识别间隔
+        加载自动战斗操作器时的动作
         """
-        self.auto_op = auto_op
+        self._check_dodge_interval = auto_op.check_dodge_interval
+        self._check_audio_interval = 0.02
 
+        use_gpu = self.ctx.battle_assistant_config.use_gpu
         if self._flash_model is None or self._flash_model.gpu != use_gpu:
             self._flash_model = FlashClassifier(
                 model_name=self.ctx.model_config.flash_classifier,
@@ -165,10 +171,12 @@ class AutoBattleDodgeContext:
                 gpu=use_gpu
             )
 
-        # 识别间隔
-        self._check_dodge_interval = check_dodge_interval
-        self._check_audio_interval = check_audio_interval
-
+    def init_battle_dodge_context(
+            self,
+    ) -> None:
+        """
+        初始化上下文，在运行前调用。
+        """
         # 上一次识别的时间
         self._last_check_dodge_time = 0
         self._last_check_audio_time = 0
@@ -223,11 +231,12 @@ class AutoBattleDodgeContext:
 
             should_dodge = state_name is not None
             if should_dodge:
-                self.auto_op.update_state(StateRecord(state_name, screenshot_time))
+                self.ctx.auto_battle_context.state_record_service.update_state(StateRecord(state_name, screenshot_time))
 
             return should_dodge
         except Exception:
             log.error('识别画面闪光失败', exc_info=True)
+            return False
         finally:
             self._check_dodge_flash_lock.release()
 
@@ -263,6 +272,7 @@ class AutoBattleDodgeContext:
             return False
         except Exception:
             log.error('识别画面闪光失败', exc_info=True)
+            return False
         finally:
             self._check_audio_lock.release()
 
@@ -300,7 +310,7 @@ class AutoBattleDodgeContext:
                       x)
         return wx
 
-    def start_context(self) -> None:
+    def start_context_async(self) -> None:
         """
         启动上下文，启动音频录制。
         """
@@ -311,3 +321,9 @@ class AutoBattleDodgeContext:
         停止上下文，停止音频录制。
         """
         self._audio_recorder.stop_running()
+
+    def after_app_shutdown(self) -> None:
+        """
+        App关闭后进行的操作 关闭一切可能资源操作
+        """
+        _dodge_check_executor.shutdown(wait=False, cancel_futures=True)

@@ -4,7 +4,6 @@ from typing import ClassVar
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
-from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -15,8 +14,6 @@ from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanConfig,
     ChargePlanItem,
 )
-from zzz_od.auto_battle import auto_battle_utils
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.challenge_mission.check_next_after_battle import (
     ChooseNextOrFinishAfterBattle,
@@ -55,8 +52,6 @@ class RoutineCleanup(ZOperation):
         )
 
         self.plan: ChargePlanItem = plan
-
-        self.auto_op: AutoBattleOperator | None = None
 
     @operation_node(name='等待入口加载', is_start_node=True, node_max_retry_times=60)
     def wait_entry_load(self) -> OperationRoundResult:
@@ -156,7 +151,11 @@ class RoutineCleanup(ZOperation):
             team_list = self.ctx.team_config.team_list
             auto_battle = team_list[self.plan.predefined_team_idx].auto_battle
 
-        return auto_battle_utils.load_auto_op(self, 'auto_battle', auto_battle)
+        self.ctx.auto_battle_context.init_auto_op(
+            sub_dir='auto_battle',
+            op_name=auto_battle,
+        )
+        return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
@@ -168,17 +167,17 @@ class RoutineCleanup(ZOperation):
     @operation_node(name='向前移动准备战斗')
     def move_to_battle(self) -> OperationRoundResult:
         self.ctx.controller.move_w(press=True, press_time=1, release=True)
-        self.auto_op.start_running_async()
+        self.ctx.auto_battle_context.start_auto_battle()
         return self.round_success()
 
     @node_from(from_name='向前移动准备战斗')
     @operation_node(name='自动战斗', mute=True, timeout_seconds=600)
     def auto_battle(self) -> OperationRoundResult:
-        if self.auto_op.auto_battle_context.last_check_end_result is not None:
-            auto_battle_utils.stop_running(self.auto_op)
-            return self.round_success(status=self.auto_op.auto_battle_context.last_check_end_result)
+        if self.ctx.auto_battle_context.last_check_end_result is not None:
+            self.ctx.auto_battle_context.stop_auto_battle()
+            return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
 
-        self.auto_op.auto_battle_context.check_battle_state(
+        self.ctx.auto_battle_context.check_battle_state(
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True)
 
@@ -199,7 +198,7 @@ class RoutineCleanup(ZOperation):
     @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)
     @operation_node(name='战斗超时')
     def battle_timeout(self) -> OperationRoundResult:
-        auto_battle_utils.stop_running(self.auto_op)
+        self.ctx.auto_battle_context.stop_auto_battle()
         op = ExitInBattle(self.ctx, '战斗-挑战结果-失败', '按钮-退出')
         return self.round_by_op_result(op.execute())
 
@@ -224,16 +223,11 @@ class RoutineCleanup(ZOperation):
         return self.round_retry(result.status, wait=1)
 
     def handle_pause(self):
-        auto_battle_utils.stop_running(self.auto_op)
+        self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self):
-        auto_battle_utils.resume_running(self.auto_op)
+        self.ctx.auto_battle_context.resume_auto_battle()
 
-    def after_operation_done(self, result: OperationResult):
-        ZOperation.after_operation_done(self, result)
-        if self.auto_op is not None:
-            self.auto_op.dispose()
-            self.auto_op = None
 
 def __debug_charge():
     """
@@ -253,8 +247,7 @@ def __debug_charge():
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
-    ctx.init_ocr()
+    ctx.init()
     ctx.run_context.start_running()
     plan = ChargePlanItem(
         category_name='定期清剿',

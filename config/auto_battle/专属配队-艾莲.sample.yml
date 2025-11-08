@@ -589,7 +589,7 @@ scenes:
 
       # 耀嘉音
       - states: "[前台-耀嘉音]"
-        interrupt_states: ["后台-耀嘉音"]
+        interrupt_states: "[后台-耀嘉音]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -669,7 +669,7 @@ scenes:
 
       # 妮可
       - states: "[前台-妮可]"
-        interrupt_states: ["后台-妮可"]
+        interrupt_states: "[后台-妮可]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -743,7 +743,7 @@ scenes:
 
       # 露西
       - states: "[前台-露西]"
-        interrupt_states: ["后台-露西"]
+        interrupt_states: "[后台-露西]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -822,7 +822,7 @@ scenes:
 
       # 苍角
       - states: "[前台-苍角]"
-        interrupt_states: ["后台-苍角"]
+        interrupt_states: "[后台-苍角]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -954,7 +954,7 @@ scenes:
 
       # 凯撒
       - states: "[前台-凯撒]"
-        interrupt_states: ["后台-凯撒"]
+        interrupt_states: "[后台-凯撒]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -1042,7 +1042,7 @@ scenes:
 
       # 莱卡恩
       - states: "[前台-莱卡恩]"
-        interrupt_states: ["后台-莱卡恩"]
+        interrupt_states: "[后台-莱卡恩]"
         sub_handlers:
 
           - states: "[按键可用-终结技]"
@@ -1113,7 +1113,7 @@ scenes:
 
       # 柳
       - states: "[前台-柳]"
-        interrupt_states: ["后台-柳"]
+        interrupt_states: "[后台-柳]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -1186,7 +1186,7 @@ scenes:
 
       # 柏妮思
       - states: "[前台-柏妮思]"
-        interrupt_states: ["后台-柏妮思"]
+        interrupt_states: "[后台-柏妮思]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -1285,7 +1285,7 @@ scenes:
 
       # 薇薇安
       - states: "[前台-薇薇安]"
-        interrupt_states: ["后台-薇薇安"]
+        interrupt_states: "[后台-薇薇安]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -1364,7 +1364,7 @@ scenes:
 
       # 艾莲
       - states: "[前台-艾莲]"
-        interrupt_states: ["后台-艾莲"]
+        interrupt_states: "[后台-艾莲]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:

@@ -393,11 +393,10 @@ class WorldPatrolRunRoute(ZOperation):
     def _do_unstuck_move(self, tag: str):
         """
         执行一次脱困动作，自动切换角色并按 stuck_move_direction 选择方向
-        tag: 日志标记（如 'with-pos' 或 'no-pos'）
+        tag: 日志标记（如 'with-pos' 或 'no-pos')
         """
-        if self.ctx.auto_op is not None:
-            # 脱困前，切换到下一位（利用不同角色体型/站位尝试摆脱卡点）
-            self.ctx.auto_op.auto_battle_context.switch_next()
+        # 脱困前，切换到下一位（利用不同角色体型/站位尝试摆脱卡点）
+        self.ctx.auto_battle_context.switch_next()
         log.info(f'[{tag}] 本次脱困方向 {self.stuck_move_direction}')
         if self.stuck_move_direction == 0:  # 向左走
             self.ctx.controller.move_a(press=True, press_time=1, release=True)
@@ -427,7 +426,7 @@ class WorldPatrolRunRoute(ZOperation):
     @operation_node(name='初始化自动战斗')
     def init_auto_battle(self) -> OperationRoundResult:
         self.ctx.controller.stop_moving_forward()
-        if self.ctx.auto_op is None:
+        if self.ctx.auto_battle_context.auto_op is None:
             # 只是个兜底 正常情况下 WorldPatrolApp 会做这个初始化
             self.ctx.init_auto_op(self.config.auto_battle)
 
@@ -441,15 +440,15 @@ class WorldPatrolRunRoute(ZOperation):
         if self.ctx.auto_op is None:
             return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
-        if self.ctx.auto_op.auto_battle_context.last_check_end_result is not None:
+        if self.ctx.auto_battle_context.last_check_end_result is not None:
             self.ctx.stop_auto_battle()
-            return self.round_success(status=self.ctx.auto_op.auto_battle_context.last_check_end_result)
+            return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
 
-        self.ctx.auto_op.auto_battle_context.check_battle_state(
+        self.ctx.auto_battle_context.check_battle_state(
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True)
 
-        if self.ctx.auto_op.auto_battle_context.last_check_in_battle and self.last_screenshot_time - self.last_check_battle_time > 1:
+        if self.ctx.auto_battle_context.last_check_in_battle and self.last_screenshot_time - self.last_check_battle_time > 1:
             mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
             # 更新节流时间戳，避免每轮重复切小地图
             self.last_check_battle_time = self.last_screenshot_time
@@ -466,7 +465,7 @@ class WorldPatrolRunRoute(ZOperation):
         time.sleep(5)  # 等待一会 自动战斗停止需要松开按键
         # 战斗后，切换到最佳行走位
         if self.ctx.auto_op is not None:
-            auto_battle_utils.switch_to_best_agent_for_moving(self.ctx.auto_op)
+            auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
         self.ctx.controller.turn_vertical_by_distance(300)
         return self.round_success()
 

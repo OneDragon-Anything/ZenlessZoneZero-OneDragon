@@ -1,36 +1,40 @@
-from enum import Enum
-from typing import Optional, Callable
+from __future__ import annotations
+
+from enum import IntEnum
+from functools import cached_property
+from typing import Callable, Optional
 
 from one_dragon.base.conditional_operation.state_recorder import StateRecorder
 from one_dragon.utils.log_utils import log
 
 
-class StateCalNodeType(Enum):
+class StateCalNodeType(IntEnum):
 
-    OP: int = 0
-    STATE: int = 1
-    TRUE: int =2
+    OP = 0
+    STATE = 1
+    TRUE =2
 
 
-class StateCalOpType(Enum):
+class StateCalOpType(IntEnum):
 
-    AND: int = 0
-    OR: int = 1
-    NOT: int = 2
+    AND = 0
+    OR = 1
+    NOT = 2
 
 
 class StateCalNode:
-
-    def __init__(self, node_type: StateCalNodeType,
-                 op_type: Optional[StateCalOpType] = None,
-                 left_child: Optional = None,
-                 right_child: Optional = None,
-                 state_recorder: Optional[StateRecorder] = None,
-                 state_time_range_min: float = None,
-                 state_time_range_max: float = None,
-                 state_value_range_min: int = None,
-                 state_value_range_max: int = None,
-                 ):
+    def __init__(
+        self,
+        node_type: StateCalNodeType,
+        op_type: StateCalOpType | None = None,
+        left_child: StateCalNode | None = None,
+        right_child: StateCalNode | None = None,
+        state_recorder: Optional[StateRecorder] = None,
+        state_time_range_min: float = None,
+        state_time_range_max: float = None,
+        state_value_range_min: int = None,
+        state_value_range_max: int = None,
+    ):
         """
         状态计算树的一个节点
         叶子节点为具体的状态记录器
@@ -96,18 +100,20 @@ class StateCalNode:
         elif self.node_type == StateCalNodeType.TRUE:
             return True
 
-    def get_usage_states(self) -> set[str]:
+        return False
+
+    @cached_property
+    def usage_states(self) -> set[str]:
         """
-        获取使用的状态
-        :return:
+        需要用到的全部场景
         """
         states: set[str] = set()
         if self.state_recorder is not None:
             states.add(self.state_recorder.state_name)
         if self.left_child is not None:
-            states = states.union(self.left_child.get_usage_states())
+            states = states.union(self.left_child.usage_states)
         if self.right_child is not None:
-            states = states.union(self.right_child.get_usage_states())
+            states = states.union(self.right_child.usage_states)
         return states
 
     def dispose(self) -> None:
@@ -120,22 +126,23 @@ class StateCalNode:
                 self.left_child.dispose()
                 self.right_child.dispose()
             elif self.op_type == StateCalOpType.NOT:
-                return self.left_child.dispose()
+                self.left_child.dispose()
         elif self.node_type == StateCalNodeType.STATE:
             self.state_recorder.dispose()
 
 
-def construct_state_cal_tree(expr_str: str, state_getter: Callable[[str], StateRecorder], debugname: Optional[str] = None) -> StateCalNode:
+def construct_state_cal_tree(
+    expr_str: str,
+    state_getter: Callable[[str], StateRecorder],
+) -> StateCalNode:
     """
     根据表达式 构造出状态判断树
     :param expr_str: 表达式字符串
     :param state_getter: 状态记录器获取方法
-    :param debugname: 调试名称
     :return: 构造成功时，返回状态判断树的根节点；构造失败时，返回原因
     """
     if len(expr_str) == 0:
         return StateCalNode(StateCalNodeType.TRUE)
-    log.debug('构造状态判断树 ' + (debugname or expr_str))  # 修改这里，优先使用debugname
 
     op_stack = []  # 运算符的压栈
     op_idx_stack = []  # 运算符下标
@@ -271,22 +278,3 @@ def construct_state_cal_tree(expr_str: str, state_getter: Callable[[str], StateR
         raise ValueError('有多段表达式 未使用运算符连接')
     else:
         return node_stack[0]
-
-
-def __debug():
-    expr = "( [闪避识别-黄光, 0, 1] | [闪避识别-红光, 0, 1] ) & ![按键-闪避, 0, 1]{0, 1}"
-    ctx = None
-    sr1 = StateRecorder('闪避识别-黄光')
-    sr1.last_record_time = 1
-    sr2 = StateRecorder('闪避识别-红光')
-    sr2.last_record_time = 2
-    sr3 = StateRecorder('按键-闪避')
-    sr3.last_record_time = 1
-    node = construct_state_cal_tree(expr, [sr1, sr2, sr3])
-    assert node.in_time_range(2)  # True
-    sr3.last_value = 1
-    assert not node.in_time_range(2)  # False
-
-
-if __name__ == '__main__':
-    __debug()
