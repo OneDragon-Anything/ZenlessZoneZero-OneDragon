@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build-auto-battle-merged-files:
+  build-running-resources:
     runs-on: windows-latest
     permissions:
       contents: write
@@ -33,28 +33,30 @@ jobs:
           .\.venv\Scripts\Activate.ps1
           uv sync --group dev
 
-      - name: Build merged files
+      - name: Build auto-battle merged files
         shell: pwsh
         run: |
-         chcp 65001
-         $OutputEncoding = [System.Text.Encoding]::UTF8
-         [Console]::InputEncoding = [System.Text.Encoding]::UTF8
-         [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-         .\.venv\Scripts\Activate.ps1
-         
-         uv run python src/zzz_od/auto_battle/build_utils.py
+          chcp 65001
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          [Console]::InputEncoding = [System.Text.Encoding]::UTF8
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          .\.venv\Scripts\Activate.ps1
+          uv run python src/one_dragon/devtools/compile_po.py
+          uv run python src/zzz_od/auto_battle/build_utils.py
         env:
          PYTHONPATH: src
 
       - name: Commit changes
         run: |
-          $hasChanges = git diff --quiet -- config/auto_battle/*.merged.yml
-          if ($LASTEXITCODE -ne 0) {
-            git config user.name github-actions
-            git config user.email github-actions@github.com
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          $hasChangesAutoBattle = git diff --quiet -- config/auto_battle/*.merged.yml
+          $hasChangesMo = git diff --quiet -- assets/text/output/**/*.mo
+          if ($hasChangesAutoBattle -ne 0 -or $hasChangesAssets -ne 0) {
             git add config/auto_battle/*.merged.yml
-            $date = Get-Date -Format "yyyy-MM-dd"
-            git commit -m "自动合并自动战斗文件提交 $date"
+            git add assets/text/output/**/*.mo
+            $date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            git commit -m "自动构建运行资源 $date"
             git push
           } else {
             Write-Host "No file modifications"
