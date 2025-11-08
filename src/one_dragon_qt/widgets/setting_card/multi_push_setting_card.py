@@ -55,7 +55,7 @@ class MultiLineSettingCard(SettingCardBase):
                  icon: Union[str, QIcon, FluentIconBase], title: str, content: Optional[str]=None,
                  icon_size: IconSize = IconSize(16, 16),
                  margins: Margins = Margins(16, 16, 0, 16),
-                 line_list: List[List[QAbstractButton]] = None,
+                 line_list: List[List[QWidget]] = None,
                  parent=None):
 
         SettingCardBase.__init__(
