@@ -135,6 +135,9 @@ class ZContext(OneDragonContext):
         self.withered_domain.after_app_shutdown()
         self.auto_battle_context.after_app_shutdown()
 
+        from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
+        AutoBattleOperator.after_app_shutdown()
+
     def register_application_factory(self) -> None:
         """
         注册应用

@@ -96,3 +96,10 @@ class StateRecordService(ABC):
                     mutex_recorder.clear_state_record()
 
         return recorder
+
+    @staticmethod
+    def after_app_shutdown() -> None:
+        """
+        整个脚本运行结束后的清理
+        """
+        _state_record_service_executor.shutdown(wait=False, cancel_futures=True)

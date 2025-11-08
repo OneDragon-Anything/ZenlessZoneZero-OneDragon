@@ -19,7 +19,7 @@ from zzz_od.context.zzz_context import ZContext
 if TYPE_CHECKING:
     from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
 
-_auto_battle_operator_executor = ThreadPoolExecutor(thread_name_prefix='_auto_battle_operator_executor', max_workers=1)
+_auto_battle_operator_executor = ThreadPoolExecutor(thread_name_prefix='_auto_battle_operator_executor', max_workers=2)
 
 # 自动战斗配置的默认回退模板名
 FALLBACK_TEMPLATE_NAME = '全配队通用'
@@ -172,6 +172,13 @@ class AutoBattleOperator(ConditionalOperator):
 
             if not any_done:
                 time.sleep(0.2)
+
+    @staticmethod
+    def after_app_shutdown() -> None:
+        """
+        整个脚本运行结束后的清理
+        """
+        _auto_battle_operator_executor.shutdown(wait=False, cancel_futures=True)
 
 
 def __debug():

@@ -92,3 +92,10 @@ class OperationExecutor:
                 op.stop()
             self._async_ops.clear()
             return False
+
+    @staticmethod
+    def after_app_shutdown() -> None:
+        """
+        整个脚本运行结束后的清理
+        """
+        _od_op_task_executor.shutdown(wait=False, cancel_futures=True)

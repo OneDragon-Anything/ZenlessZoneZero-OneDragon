@@ -337,3 +337,10 @@ class ConditionalOperator(ConditionalOperatorLoader):
                         log.debug('复合中断条件满足，执行中断')
                 if interrupt:
                     self._stop_running_task()
+
+    @staticmethod
+    def after_app_shutdown() -> None:
+        """
+        整个脚本运行结束后的清理
+        """
+        _od_conditional_op_executor.shutdown(wait=False, cancel_futures=True)
