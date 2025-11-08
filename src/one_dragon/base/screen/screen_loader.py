@@ -1,11 +1,8 @@
 import os
-
-import yaml
-from cv2.typing import MatLike
 from typing import Optional
 
-from one_dragon.base.config.yaml_config import YamlConfig
-from one_dragon.base.config.yaml_operator import YamlOperator, read_cache_or_load
+import yaml
+
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_info import ScreenInfo
 from one_dragon.utils import os_utils
@@ -249,26 +246,3 @@ class ScreenContext:
         """
         self.last_screen_name = self.current_screen_name
         self.current_screen_name = screen_name
-
-
-def __debug():
-    ctx = ScreenContext()
-    ctx.load_all()
-
-    all_data = []
-    for screen in ctx.screen_info_list:
-        screen.save()
-        all_data.append(screen.data)
-
-    save_path = os.path.join(
-        ScreenInfo.get_dir_path(),
-        '_od_merged.yml'
-    )
-
-    with open(save_path, 'w', encoding='utf-8') as file:
-        import yaml
-        yaml.dump(all_data, file, allow_unicode=True)
-
-
-if __name__ == '__main__':
-    __debug()
