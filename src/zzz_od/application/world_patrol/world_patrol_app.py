@@ -1,3 +1,5 @@
+from typing import cast
+
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -31,7 +33,7 @@ class WorldPatrolApp(ZApplication):
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
-        self.run_record: WorldPatrolRunRecord = self.ctx.run_context.get_run_record(
+        self.run_record = self.ctx.run_context.get_run_record(
             app_id=world_patrol_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
         )
@@ -41,7 +43,7 @@ class WorldPatrolApp(ZApplication):
 
     @operation_node(name='初始化', is_start_node=True)
     def init_world_patrol(self) -> OperationRoundResult:
-        self.ctx.init_auto_op(self.config.auto_battle)
+        self.ctx.auto_battle_context.init_auto_op(self.config.auto_battle)
 
         self.ctx.world_patrol_service.load_data()
         for area in self.ctx.world_patrol_service.area_list:
@@ -108,7 +110,8 @@ class WorldPatrolApp(ZApplication):
             return self.round_success(status='路线已全部完成')
 
         route: WorldPatrolRoute = self.route_list[self.route_idx]
-        if route.full_id in self.run_record.finished:
+        run_record = cast(WorldPatrolRunRecord, self.run_record)
+        if route.full_id in run_record.finished:
             self.route_idx += 1
             return self.round_wait(status=f'跳过已完成路线 {route.full_id}')
 
@@ -138,7 +141,7 @@ class WorldPatrolApp(ZApplication):
             fail_status = result.status
 
         if route_finished:
-            self.run_record.add_record(route.full_id)
+            run_record.add_record(route.full_id)
             self.route_idx += 1
             return self.round_wait(status=f'完成路线 {route.full_id}')
         else:

@@ -1,5 +1,5 @@
 import time
-from typing import Optional
+from typing import Any
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -78,6 +78,9 @@ class WorldPatrolRunRoute(ZOperation):
         self.sensitivity: float = 1.0  # 转向灵敏度
         self.last_angle: float | None = None  # 上一次获取到的人物朝向
         self.last_angle_diff_command: float | None = None  # 上一次下发的转向指令
+        # 截图相关属性（基类运行时赋值，这里声明以便类型检查）
+        self.last_screenshot_time: float = 0.0
+        self.last_screenshot: Any = None
 
     # 距离判定阈值（用于到达/回溯成功/卡住判定的统一半径）
     REACH_DISTANCE: int = 10
@@ -148,16 +151,15 @@ class WorldPatrolRunRoute(ZOperation):
         res = self._update_current_pos(mini_map)
         if isinstance(res, OperationRoundResult):
             return res
-        if res is None or self._process_stuck_with_pos(res):
-            return self.round_fail(status='卡住超限，重启当前路线')
+        if res is None:
+            return self.round_fail(status='坐标计算失败，重启当前路线')
+        if self._process_stuck_with_pos(res):
+            return self.round_fail(status='移动卡住，重启当前路线')
         self.current_pos = res
 
         # 回溯态维护与目标点选择
-        backtrack_status = None
-        if self.backtrack_active:
-            backtrack_status = self._backtrack_step(self.current_pos)
-            if backtrack_status == 'reached':
-                return self.round_wait(status='回溯成功，已到达回溯点')
+        if self.backtrack_active and self._backtrack_step(self.current_pos) == 'reached':
+            return self.round_wait(status='回溯成功，已到达回溯点')
 
         # 2. 执行转向和移动
         target_pos = (
@@ -428,20 +430,19 @@ class WorldPatrolRunRoute(ZOperation):
         self.ctx.controller.stop_moving_forward()
         if self.ctx.auto_battle_context.auto_op is None:
             # 只是个兜底 正常情况下 WorldPatrolApp 会做这个初始化
-            self.ctx.init_auto_op(self.config.auto_battle)
-
+            self.ctx.auto_battle_context.init_auto_op(self.config.auto_battle)
         self.in_battle = True
-        self.ctx.start_auto_battle()
+        self.ctx.auto_battle_context.start_auto_battle()
         return self.round_success()
 
     @node_from(from_name='初始化自动战斗')
     @operation_node(name='自动战斗')
     def auto_battle(self) -> OperationRoundResult:
-        if self.ctx.auto_op is None:
+        if self.ctx.auto_battle_context.auto_op is None:
             return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
         if self.ctx.auto_battle_context.last_check_end_result is not None:
-            self.ctx.stop_auto_battle()
+            self.ctx.auto_battle_context.stop_auto_battle()
             return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
 
         self.ctx.auto_battle_context.check_battle_state(
@@ -461,25 +462,25 @@ class WorldPatrolRunRoute(ZOperation):
     @operation_node(name='自动战斗结束')
     def after_auto_battle(self) -> OperationRoundResult:
         self.in_battle = False
-        self.ctx.stop_auto_battle()
+        self.ctx.auto_battle_context.stop_auto_battle()
         time.sleep(5)  # 等待一会 自动战斗停止需要松开按键
         # 战斗后，切换到最佳行走位
-        if self.ctx.auto_op is not None:
+        if self.ctx.auto_battle_context.auto_op is not None:
             auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
         self.ctx.controller.turn_vertical_by_distance(300)
         return self.round_success()
 
     def handle_pause(self) -> None:
         if self.in_battle:
-            self.ctx.stop_auto_battle()
+            self.ctx.auto_battle_context.stop_auto_battle()
         else:
             self.ctx.controller.stop_moving_forward()
 
     def handle_resume(self) -> None:
         if self.in_battle:
-            self.ctx.start_auto_battle()
+            self.ctx.auto_battle_context.start_auto_battle()
 
-    def after_operation_done(self, result: OperationResult):
+    def after_operation_done(self, result: OperationResult) -> None:
         ZOperation.after_operation_done(self, result)
         self.ctx.controller.stop_moving_forward()
 
