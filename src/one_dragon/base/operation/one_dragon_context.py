@@ -102,6 +102,11 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         from one_dragon.base.config.custom_config import CustomConfig
         return CustomConfig()
 
+    @cached_property
+    def cv_service(self):
+        from one_dragon.base.cv_process.cv_service import CvService
+        return CvService(self)
+
     #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
 
     @cached_property
