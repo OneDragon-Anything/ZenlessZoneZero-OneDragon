@@ -31,7 +31,7 @@ class WorldPatrolApp(ZApplication):
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
-        self.run_record = self.ctx.run_context.get_run_record(
+        self.run_record: WorldPatrolRunRecord = self.ctx.run_context.get_run_record(
             app_id=world_patrol_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
         )
@@ -104,11 +104,8 @@ class WorldPatrolApp(ZApplication):
     @node_from(from_name='停止追踪后返回大世界')
     @operation_node(name='执行路线')
     def run_route(self) -> OperationRoundResult:
-        if not isinstance(self.run_record, WorldPatrolRunRecord):
-            return self.round_fail(status='运行记录类型错误')
-
         if self.route_idx >= len(self.route_list):
-            return self.round_success(status='路线已全部完成')
+            return self.round_success(status=f'路线已全部完成')
 
         route: WorldPatrolRoute = self.route_list[self.route_idx]
         if route.full_id in self.run_record.finished:
@@ -142,7 +139,7 @@ class WorldPatrolApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_for_application()
+    ctx.init_by_config()
 
     app = WorldPatrolApp(ctx)
     app.execute()

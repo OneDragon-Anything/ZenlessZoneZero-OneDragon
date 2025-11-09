@@ -86,11 +86,9 @@ class WorldPatrolRunRoute(ZOperation):
     @node_from(from_name='传送')
     @operation_node(name='设置起始坐标')
     def set_start_idx(self) -> OperationRoundResult:
-        start_pos = self.ctx.world_patrol_service.get_route_pos_before_op_idx(self.route, self.current_idx)
-        if start_pos is None:
+        self.current_pos = self.ctx.world_patrol_service.get_route_pos_before_op_idx(self.route, self.current_idx)
+        if self.current_pos is None:
             return self.round_fail(status='路线或开始下标有误')
-        self.current_pos = start_pos
-        self.route_start_pos = start_pos  # 记录起点
         self.ctx.controller.turn_vertical_by_distance(300)
         return self.round_success(wait=1)
 
@@ -317,7 +315,7 @@ class WorldPatrolRunRoute(ZOperation):
         if self.in_battle:
             self.ctx.auto_battle_context.start_auto_battle()
 
-    def after_operation_done(self, result: OperationResult) -> None:
+    def after_operation_done(self, result: OperationResult):
         ZOperation.after_operation_done(self, result)
         self.ctx.controller.stop_moving_forward()
 
@@ -325,7 +323,7 @@ class WorldPatrolRunRoute(ZOperation):
 def __debug(area_full_id: str, route_idx: int):
     ctx = ZContext()
     ctx.init_ocr()
-    ctx.init_for_application()
+    ctx.init_by_config()
     ctx.world_patrol_service.load_data()
 
     target_route: WorldPatrolRoute | None = None
