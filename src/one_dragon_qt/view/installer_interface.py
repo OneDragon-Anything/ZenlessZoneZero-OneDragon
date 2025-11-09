@@ -348,12 +348,12 @@ class InstallStepWidget(QWidget):
 
 class InstallerInterface(VerticalScrollInterface):
 
-    def __init__(self, ctx: OneDragonEnvContext, extra_install_cards: list = None, parent=None):
+    def __init__(self, ctx: OneDragonEnvContext, extra_install_cards: list | None = None, parent=None):
         VerticalScrollInterface.__init__(self, object_name='install_interface',
                                          parent=parent, content_widget=None,
                                          nav_text_cn='一键安装', nav_icon=FluentIcon.DOWNLOAD)
         self.ctx: OneDragonEnvContext = ctx
-        self.extra_install_cards: list = extra_install_cards
+        self.extra_install_cards: list | None = extra_install_cards
         self._progress_value = 0
         self._progress_message = ''
         self._installing = False

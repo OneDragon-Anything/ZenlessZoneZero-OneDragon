@@ -34,12 +34,12 @@ from one_dragon.utils.log_utils import log
 
 class ContextKeyboardEventEnum(Enum):
 
-    PRESS: str = 'context_keyboard_press'
+    PRESS = 'context_keyboard_press'
 
 
 class ContextInstanceEventEnum(Enum):
 
-    instance_active: str = 'instance_active'
+    instance_active = 'instance_active'
 
 
 class OneDragonContext(ContextEventBus, OneDragonEnvContext):
