@@ -61,7 +61,7 @@ class DodgeAssistantApp(ZApplication):
         :return:
         """
         try:
-            self.ctx.init_auto_op(
+            self.ctx.auto_battle_context.init_auto_op(
                 sub_dir='dodge',
                 op_name=self.ctx.battle_assistant_config.dodge_assistant_config
             )
