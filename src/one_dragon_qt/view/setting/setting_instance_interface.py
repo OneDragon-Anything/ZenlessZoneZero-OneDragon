@@ -180,7 +180,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
         _le = LineEdit()
         # Base64 encoded placeholder text
-        _placeholder = base64.b64decode("6K+36L6T5YWl5a+G56CB").decode('utf-8') 
+        _placeholder = base64.b64decode("6K+36L6T5YWl5a+G56CB").decode('utf-8')
         _le.setPlaceholderText(gt(_placeholder))
         _le.setEchoMode(LineEdit.EchoMode.Password)
         _mb.textLayout.addWidget(_le)
@@ -195,7 +195,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
                 return True
             else:
                 # Base64 encoded error messages
-                _error_title = base64.b64decode("5a+G56CB6ZSZ6K+v").decode('utf-8') 
+                _error_title = base64.b64decode("5a+G56CB6ZSZ6K+v").decode('utf-8')
                 _error_content = base64.b64decode("5q2k5Yqf6IO95LuF5a+56aG555uu5ZKM56S+5Yy66LSh54yu6ICF5byA5pS+").decode('utf-8')
                 _law_text = base64.b64decode("5pmu5rOV").decode('utf-8')
                 _d = Dialog(gt(_error_title), gt(_error_content), self)
@@ -343,7 +343,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
             icon=FluentIcon.EXPRESSIVE_INPUT_ENTRY,
             title="密码",
             input_placeholder="请自行妥善管理",
-            is_password=True,  
+            is_password=True,
         )
         instance_settings_group.addSettingCard(self.game_password_opt)
 
@@ -397,7 +397,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self._init_content_widget()
 
     def _on_game_region_changed(self, index, value):
-        self.ctx.init_by_config()
+        self.ctx.init_controller()
 
     def _on_game_path_clicked(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
@@ -415,4 +415,4 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.ctx.game_account_config.custom_win_title = (
             self.custom_win_title_input.text()
         )
-        self.ctx.init_by_config()
+        self.ctx.init_controller()
