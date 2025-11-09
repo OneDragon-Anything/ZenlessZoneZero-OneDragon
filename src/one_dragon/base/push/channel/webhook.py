@@ -49,7 +49,6 @@ class Webhook(PushChannel):
                 title="请求头 (Headers)",
                 icon="LEFT_ARROW",
                 field_type=FieldTypeEnum.KEY_VALUE,
-                placeholder={"key": "Key", "value": "Value"}
             ),
             PushChannelConfigField(
                 var_suffix="BODY",
@@ -141,7 +140,7 @@ class Webhook(PushChannel):
                     except Exception as e:
                         log.error(f"图片处理失败: {e}")
                         image_base64 = ""
-    
+
                 processed_body = processed_body.replace("$image", image_base64)
 
             # 解析请求头
