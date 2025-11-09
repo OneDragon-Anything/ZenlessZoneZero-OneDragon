@@ -1,4 +1,3 @@
-import os
 import shutil
 import webbrowser
 
@@ -29,12 +28,16 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 class UnpackResourceRunner(QThread):
     """资源解包线程"""
     finished = Signal(bool)
-    def __init__(self, installer_dir:str, work_dir: str, parent=None):
+    def __init__(self, installer_dir: str | None, work_dir: str, parent=None):
         super().__init__(parent)
         self.installer_dir = installer_dir
         self.work_dir = work_dir
 
     def run(self):
+        if self.installer_dir is None:
+            self.finished.emit(False)
+            return
+
         uv_zip_dir = Path(self.installer_dir) / '.install' / 'uv-x86_64-pc-windows-msvc.zip'
         if Path(self.installer_dir) != Path(self.work_dir) and uv_zip_dir.exists():
             try:
