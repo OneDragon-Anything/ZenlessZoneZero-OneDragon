@@ -142,9 +142,8 @@ jobs:
         echo "__version__ = '$env:RELEASE_VERSION'" | Out-File -FilePath src/one_dragon/version.py -Encoding utf8
         .\.venv\Scripts\Activate.ps1
         cd deploy
-        pyinstaller "OneDragon-Installer.spec"
-        uv run generate_freeze_seed.py
-        pyinstaller "OneDragon-Launcher.spec"
+        uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
+        uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 
     - name: Upload Installer
       if: ${{ env.CREATE_RELEASE == 'false' }}

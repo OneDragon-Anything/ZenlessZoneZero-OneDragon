@@ -195,6 +195,8 @@ def main():
 
     print("Done!")
 
+    return local_pkg_names
+
 
 if __name__ == "__main__":
     main()
