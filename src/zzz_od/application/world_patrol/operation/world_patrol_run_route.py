@@ -86,8 +86,8 @@ class WorldPatrolRunRoute(ZOperation):
     @node_from(from_name='传送')
     @operation_node(name='设置起始坐标')
     def set_start_idx(self) -> OperationRoundResult:
-        self.current_pos = self.ctx.world_patrol_service.get_route_pos_before_op_idx(self.route, self.current_idx)
-        if self.current_pos is None:
+        start_pos = self.ctx.world_patrol_service.get_route_pos_before_op_idx(self.route, self.current_idx)
+        if start_pos is None:
             return self.round_fail(status='路线或开始下标有误')
         self.ctx.controller.turn_vertical_by_distance(300)
         return self.round_success(wait=1)
@@ -271,17 +271,17 @@ class WorldPatrolRunRoute(ZOperation):
         self.ctx.controller.stop_moving_forward()
         if self.ctx.auto_battle_context.auto_op is None:
             # 只是个兜底 正常情况下 WorldPatrolApp 会做这个初始化
-            self.ctx.init_auto_op(self.config.auto_battle)
+            self.ctx.auto_battle_context.init_auto_op(self.config.auto_battle)
 
         self.in_battle = True
-        self.ctx.start_auto_battle()
+        self.ctx.auto_battle_context.start_auto_battle()
         return self.round_success()
 
     @node_from(from_name='初始化自动战斗')
     @operation_node(name='自动战斗')
     def auto_battle(self) -> OperationRoundResult:
         if self.ctx.auto_battle_context.last_check_end_result is not None:
-            self.ctx.stop_auto_battle()
+            self.ctx.auto_battle_context.stop_auto_battle()
             return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
 
         self.ctx.auto_battle_context.check_battle_state(
@@ -300,22 +300,22 @@ class WorldPatrolRunRoute(ZOperation):
     @operation_node(name='自动战斗结束')
     def after_auto_battle(self) -> OperationRoundResult:
         self.in_battle = False
-        self.ctx.stop_auto_battle()
+        self.ctx.auto_battle_context.stop_auto_battle()
         time.sleep(5)  # 等待一会 自动战斗停止需要松开按键
         self.ctx.controller.turn_vertical_by_distance(300)
         return self.round_success()
 
     def handle_pause(self) -> None:
         if self.in_battle:
-            self.ctx.stop_auto_battle()
+            self.ctx.auto_battle_context.stop_auto_battle()
         else:
             self.ctx.controller.stop_moving_forward()
 
     def handle_resume(self) -> None:
         if self.in_battle:
-            self.ctx.start_auto_battle()
+            self.ctx.auto_battle_context.start_auto_battle()
 
-    def after_operation_done(self, result: OperationResult):
+    def after_operation_done(self, result: OperationResult) -> None:
         ZOperation.after_operation_done(self, result)
         self.ctx.controller.stop_moving_forward()
 
@@ -323,7 +323,7 @@ class WorldPatrolRunRoute(ZOperation):
 def __debug(area_full_id: str, route_idx: int):
     ctx = ZContext()
     ctx.init_ocr()
-    ctx.init_by_config()
+    ctx.init_for_application()
     ctx.world_patrol_service.load_data()
 
     target_route: WorldPatrolRoute | None = None
