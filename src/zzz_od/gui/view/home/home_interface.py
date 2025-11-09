@@ -854,9 +854,9 @@ class HomeInterface(VerticalScrollInterface):
             return 64, 158, 255
 
         # 计算采样步长，使得样本点约为 100x100 或更少
-        target_samples = 10000  # 上限采样点数
-        step_x = max(1, int(w / min(w, max(1, int((target_samples ** 0.5)) ))))
-        step_y = max(1, int(h / min(h, max(1, int((target_samples ** 0.5)) ))))
+        samples_per_axis = 100  # 每个方向的采样数
+        step_x = max(1, w // samples_per_axis)
+        step_y = max(1, h // samples_per_axis)
 
         weight_acc = 0.0
         sum_cos = 0.0
@@ -908,11 +908,11 @@ class HomeInterface(VerticalScrollInterface):
         # Qt QColor.fromHsl: h in [0..359], s,l in [0..255]
         h_int = int(hue_mean) % 360
         if is_dark:
-            s_val = int(220)
-            l_val = int(160)
+            s_val = 220
+            l_val = 160
         else:
-            s_val = int(200)
-            l_val = int(140)
+            s_val = 200
+            l_val = 140
 
         q = QColor.fromHsl(h_int, s_val, l_val)
         lr, lg, lb = q.red(), q.green(), q.blue()
