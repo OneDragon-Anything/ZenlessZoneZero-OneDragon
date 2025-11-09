@@ -143,11 +143,12 @@ class GitService:
 
         return f'http://{proxy}'
 
-    def _fetch_remote(self, for_clone: bool = False) -> bool:
+    def _fetch_remote(self) -> bool:
         """获取远程代码
 
-        Args:
-            for_clone: 是否用于克隆（克隆时拉取深度为1，更新时为0）
+        根据本地是否存在有内容的同名分支来决定拉取深度：
+        - 若本地不存在该分支或分支为空，则使用深度1（拉取最新1条）
+        - 若本地已有该分支且有提交历史，则使用深度0（增量拉取）
 
         Returns:
             是否成功
@@ -155,14 +156,24 @@ class GitService:
         log.info(gt('获取远程代码'))
 
         try:
+            repo = self._open_repo()
             remote = self._ensure_remote()
             branch_name = self.env_config.git_branch
-            refspec = f'+refs/heads/{branch_name}:refs/remotes/{remote.name}/{branch_name}'
+
+            # 检查本地是否存在该分支且有提交历史
+            depth = 1  # 默认深度为1
+            local_ref = f'refs/heads/{branch_name}'
+            if local_ref in repo.references:
+                # 分支存在，检查是否有提交历史
+                branch_target = repo.references[local_ref].target
+                if branch_target is not None:
+                    # 有提交历史，使用增量拉取
+                    depth = 0
 
             remote.fetch(
-                refspecs=[refspec],
+                refspecs=[f'+refs/heads/{branch_name}:refs/remotes/{remote.name}/{branch_name}'],
                 proxy=self._get_proxy_address(),
-                depth=1 if for_clone else 0
+                depth=depth
             )
             log.info(gt('获取远程代码成功'))
             return True
@@ -399,7 +410,7 @@ class GitService:
         if progress_callback:
             progress_callback(2/5, gt('获取远程代码'))
 
-        if not self._fetch_remote(for_clone=True):
+        if not self._fetch_remote():
             return False, gt('获取远程代码失败')
 
         # 切换到目标分支
