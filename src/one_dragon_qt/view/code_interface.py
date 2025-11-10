@@ -128,6 +128,7 @@ class CodeInterface(VerticalScrollInterface):
         :return:
         """
         VerticalScrollInterface.on_interface_shown(self)
+        self.auto_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update'))
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
         self.custom_git_branch_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('custom_git_branch'))
         self.custom_git_branch_lineedit.setText(self.ctx.env_config.git_branch)
