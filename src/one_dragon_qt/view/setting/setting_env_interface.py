@@ -78,15 +78,15 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.git_method_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
         code_group.addSettingCard(self.git_method_opt)
 
-        self.force_update_opt = SwitchSettingCard(
-            icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
-        )
-        code_group.addSettingCard(self.force_update_opt)
-
         self.auto_update_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
         )
         code_group.addSettingCard(self.auto_update_opt)
+
+        self.force_update_opt = SwitchSettingCard(
+            icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
+        )
+        code_group.addSettingCard(self.force_update_opt)
 
         return code_group
 

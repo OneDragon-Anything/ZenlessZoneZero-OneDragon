@@ -43,10 +43,15 @@ class CodeInterface(VerticalScrollInterface):
         content_widget = QWidget()
 
         self.page_num: int = -1
-        self.page_size: int = 11
+        self.page_size: int = 10
 
         v_layout = VBoxLayout(content_widget)
         v_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        self.auto_update_opt = SwitchSettingCard(
+            icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
+        )
+        v_layout.addWidget(self.auto_update_opt)
 
         self.force_update_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
