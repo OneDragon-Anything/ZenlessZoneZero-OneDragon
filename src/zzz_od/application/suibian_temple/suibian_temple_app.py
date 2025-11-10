@@ -39,7 +39,7 @@ class SuibianTempleApp(ZApplication):
             self,
             ctx=ctx,
             app_id=suibian_temple_const.APP_ID,
-            op_name=gt(suibian_temple_const.APP_NAME),
+            op_name=suibian_temple_const.APP_NAME,
         )
         self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
             app_id='suibian_temple',

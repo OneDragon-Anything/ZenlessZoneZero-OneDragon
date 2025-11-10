@@ -23,7 +23,7 @@ class DriveDiscDismantleApp(ZApplication):
             self,
             ctx=ctx,
             app_id=drive_disc_dismantle_const.APP_ID,
-            op_name=gt(drive_disc_dismantle_const.APP_NAME),
+            op_name=drive_disc_dismantle_const.APP_NAME,
         )
 
         self.config: DriveDiscDismantleConfig = self.ctx.run_context.get_config(

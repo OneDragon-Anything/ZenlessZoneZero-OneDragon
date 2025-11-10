@@ -20,7 +20,7 @@ class CityFundApp(ZApplication):
             self,
             ctx=ctx,
             app_id=city_fund_const.APP_ID,
-            op_name=gt(city_fund_const.APP_NAME),
+            op_name=city_fund_const.APP_NAME,
         )
 
     @operation_node(name='打开菜单', is_start_node=True)

@@ -21,7 +21,7 @@ class MouseSensitivityChecker(ZApplication):
             self,
             ctx=ctx,
             app_id=mouse_sensitivity_checker_const.APP_ID,
-            op_name=gt(mouse_sensitivity_checker_const.APP_NAME),
+            op_name=mouse_sensitivity_checker_const.APP_NAME,
         )
 
         self.turn_distance: int = 500  # 转向时鼠标移动的距离

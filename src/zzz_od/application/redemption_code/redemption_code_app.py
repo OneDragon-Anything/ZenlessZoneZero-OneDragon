@@ -26,7 +26,7 @@ class RedemptionCodeApp(ZApplication):
             self,
             ctx=ctx,
             app_id=redemption_code_const.APP_ID,
-            op_name=gt(redemption_code_const.APP_NAME),
+            op_name=redemption_code_const.APP_NAME,
         )
         self.run_record: Optional[RedemptionCodeRunRecord] = self.ctx.run_context.get_run_record(
             app_id=redemption_code_const.APP_ID,

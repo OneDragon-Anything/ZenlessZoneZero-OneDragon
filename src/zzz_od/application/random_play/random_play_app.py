@@ -36,7 +36,7 @@ class RandomPlayApp(ZApplication):
             self,
             ctx=ctx,
             app_id=random_play_const.APP_ID,
-            op_name=gt(random_play_const.APP_NAME),
+            op_name=random_play_const.APP_NAME,
         )
 
         self.config: RandomPlayConfig = self.ctx.run_context.get_config(

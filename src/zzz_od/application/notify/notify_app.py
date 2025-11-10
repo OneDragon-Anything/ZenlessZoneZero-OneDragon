@@ -16,7 +16,7 @@ class NotifyApp(ZApplication):
             self,
             ctx,
             notify_const.APP_ID,
-            op_name=gt(notify_const.APP_NAME),
+            op_name=notify_const.APP_NAME,
             need_check_game_win=True,
         )
 

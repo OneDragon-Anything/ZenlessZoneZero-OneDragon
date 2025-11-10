@@ -34,7 +34,7 @@ class WitheredDomainApp(ZApplication):
             self,
             ctx=ctx,
             app_id=withered_domain_const.APP_ID,
-            op_name=gt(withered_domain_const.APP_NAME),
+            op_name=withered_domain_const.APP_NAME,
         )
         self.config: WitheredDomainConfig = self.ctx.run_context.get_config(
             app_id=withered_domain_const.APP_ID,

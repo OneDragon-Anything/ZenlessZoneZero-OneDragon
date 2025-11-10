@@ -33,7 +33,7 @@ class LifeOnLineApp(ZApplication):
             self,
             ctx=ctx,
             app_id=life_on_line_const.APP_ID,
-            op_name=gt(life_on_line_const.APP_NAME),
+            op_name=life_on_line_const.APP_NAME,
         )
         self.config: LifeOnLineConfig = self.ctx.run_context.get_config(
             app_id=life_on_line_const.APP_ID,

@@ -21,7 +21,7 @@ class TrigramsCollectionApp(ZApplication):
             self,
             ctx=ctx,
             app_id=trigrams_collection_const.APP_ID,
-            op_name=gt(trigrams_collection_const.APP_NAME),
+            op_name=trigrams_collection_const.APP_NAME,
         )
         self.claim_reward: bool = False  # 是否已获取卦象
 

@@ -27,7 +27,7 @@ class AutoBattleApp(ZApplication):
             self,
             ctx=ctx,
             app_id=auto_battle_const.APP_ID,
-            op_name=gt(auto_battle_const.APP_NAME),
+            op_name=auto_battle_const.APP_NAME,
         )
 
     def handle_init(self) -> None:

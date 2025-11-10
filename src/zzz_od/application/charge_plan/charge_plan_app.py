@@ -36,7 +36,7 @@ class ChargePlanApp(ZApplication):
             self,
             ctx=ctx,
             app_id=charge_plan_const.APP_ID,
-            op_name=gt(charge_plan_const.APP_NAME),
+            op_name=charge_plan_const.APP_NAME,
         )
         self.config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,

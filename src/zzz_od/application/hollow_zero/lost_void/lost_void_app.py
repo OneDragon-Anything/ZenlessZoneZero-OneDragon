@@ -50,7 +50,7 @@ class LostVoidApp(ZApplication):
             self,
             ctx=ctx,
             app_id=lost_void_const.APP_ID,
-            op_name=gt(lost_void_const.APP_NAME),
+            op_name=lost_void_const.APP_NAME,
         )
         self.config: LostVoidConfig = self.ctx.run_context.get_config(
             app_id=lost_void_const.APP_ID,

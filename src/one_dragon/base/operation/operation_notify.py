@@ -222,7 +222,7 @@ def application_notify(app: Application, is_success: Optional[bool]) -> None:
         status = gt('开始')
 
     # 构建消息
-    app_name = getattr(app, 'op_name', '')
+    app_name = gt(getattr(app, 'op_name', ''))
     message = _build_application_message(app_name, status)
 
     # 异步推送
@@ -394,6 +394,7 @@ def send_node_notify(
     _, app_name = _get_app_id_and_name(operation)
     if app_name is None:
         app_name = operation.op_name
+    app_name = gt(app_name)
 
     # 构建消息
     message = _build_node_message(

@@ -27,7 +27,7 @@ class NotoriousHuntApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id=notorious_hunt_const.APP_ID,
-            op_name=gt(notorious_hunt_const.APP_NAME),
+            op_name=notorious_hunt_const.APP_NAME,
         )
 
         self.config: NotoriousHuntConfig = self.ctx.run_context.get_config(

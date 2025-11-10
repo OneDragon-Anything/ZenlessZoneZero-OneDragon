@@ -18,7 +18,7 @@ class EmailApp(ZApplication):
             self,
             ctx=ctx,
             app_id=email_app_const.APP_ID,
-            op_name=gt(email_app_const.APP_NAME),
+            op_name=email_app_const.APP_NAME,
         )
 
     def handle_init(self) -> None:

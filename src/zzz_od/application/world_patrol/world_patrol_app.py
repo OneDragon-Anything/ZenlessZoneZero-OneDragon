@@ -25,7 +25,7 @@ class WorldPatrolApp(ZApplication):
             self,
             ctx=ctx,
             app_id=world_patrol_const.APP_ID,
-            op_name=gt(world_patrol_const.APP_NAME),
+            op_name=world_patrol_const.APP_NAME,
         )
 
         self.config: WorldPatrolConfig = self.ctx.run_context.get_config(

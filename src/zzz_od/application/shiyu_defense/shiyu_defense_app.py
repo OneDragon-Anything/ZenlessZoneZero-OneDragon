@@ -35,7 +35,7 @@ class ShiyuDefenseApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id=shiyu_defense_const.APP_ID,
-            op_name=gt(shiyu_defense_const.APP_NAME),
+            op_name=shiyu_defense_const.APP_NAME,
         )
 
         self.config: ShiyuDefenseConfig = self.ctx.run_context.get_config(

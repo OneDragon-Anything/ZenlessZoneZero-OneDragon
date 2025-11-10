@@ -24,7 +24,7 @@ class EngagementRewardApp(ZApplication):
             self,
             ctx=ctx,
             app_id=engagement_reward_const.APP_ID,
-            op_name=gt(engagement_reward_const.APP_NAME),
+            op_name=engagement_reward_const.APP_NAME,
         )
 
     def handle_init(self) -> None:

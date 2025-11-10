@@ -19,7 +19,7 @@ class ScratchCardApp(ZApplication):
             self,
             ctx=ctx,
             app_id=scratch_card_const.APP_ID,
-            op_name=gt(scratch_card_const.APP_NAME),
+            op_name=scratch_card_const.APP_NAME,
         )
 
     @operation_node(name='传送', is_start_node=True)

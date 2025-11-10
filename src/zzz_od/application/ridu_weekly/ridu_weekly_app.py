@@ -18,7 +18,7 @@ class RiduWeeklyApp(ZApplication):
             self,
             ctx=ctx,
             app_id=ridu_weekly_const.APP_ID,
-            op_name=gt(ridu_weekly_const.APP_NAME),
+            op_name=ridu_weekly_const.APP_NAME,
         )
 
     @operation_node(name='返回大世界', is_start_node=True)

@@ -48,7 +48,7 @@ class CoffeeApp(ZApplication):
             self,
             ctx=ctx,
             app_id=coffee_app_const.APP_ID,
-            op_name=gt(coffee_app_const.APP_NAME),
+            op_name=coffee_app_const.APP_NAME,
         )
 
         self.config: CoffeeConfig = self.ctx.run_context.get_config(
