@@ -254,7 +254,8 @@ class EnterGame(ZOperation):
     @node_from(from_name='画面识别', status='B服新-登录记录')
     @operation_node(name='B服新-点击下拉菜单')
     def click_drop_button(self) -> OperationRoundResult:
-        if self.ctx.game_account_config.bilibili_account_name == '':
+        name = self.ctx.game_account_config.bilibili_account_name.strip()
+        if not name:
             return self.round_fail('未配置B服用户名, 无法切换已登录的B服账号')
 
         return self.round_by_find_and_click_area(self.last_screenshot, '打开游戏', 'B服新-切换账号', success_wait=0.8)
@@ -272,16 +273,16 @@ class EnterGame(ZOperation):
                            np.array([255, 255, 255], dtype=np.uint8))
         to_ocr = cv2.bitwise_and(part, part, mask=cv2_utils.dilate(mask, 5))
 
+        striped_name = self.ctx.game_account_config.bilibili_account_name.strip()
         ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
         find = False
         for ocr_result, mrl in ocr_result_map.items():
-            if str_utils.find_by_lcs(self.ctx.game_account_config.bilibili_account_name, ocr_result, percent=0.7):
+            if striped_name and str_utils.find_by_lcs(striped_name, ocr_result, percent=0.7):
                 find = True
                 self.ctx.controller.click(mrl.max.center + area.left_top)
                 break
         if not find:
-            name = self.ctx.game_account_config.bilibili_account_name
-            masked = (name[:1] + '*' * max(len(name) - 2, 1) + name[-1:]) if len(name) >= 2 else '*'
+            masked = (striped_name[:1] + '*' * max(len(striped_name) - 2, 1) + striped_name[-1:]) if len(striped_name) >= 2 else '*'
             return self.round_retry(f"未找到已登录的用户: {masked}")
         # endregion
 
