@@ -62,7 +62,7 @@ class SettingEnvInterface(VerticalScrollInterface):
             icon=FluentIcon.CAMERA, title='截图方法',
             options_enum=ScreenshotMethodEnum
         )
-        self.screenshot_method_opt.value_changed.connect(lambda: self.ctx.init_by_config())
+        self.screenshot_method_opt.value_changed.connect(lambda: self.ctx.init_controller())
         basic_group.addSettingCard(self.screenshot_method_opt)
 
         return basic_group
