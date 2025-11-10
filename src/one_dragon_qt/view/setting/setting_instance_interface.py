@@ -330,6 +330,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.game_region_opt = ComboBoxSettingCard(
             icon=FluentIcon.HOME, title="游戏区服", options_enum=GameRegionEnum
         )
+        self.game_region_opt.value_changed.connect(lambda: self.ctx.init_controller())
         instance_settings_group.addSettingCard(self.game_region_opt)
 
         self.game_account_opt = TextSettingCard(
@@ -395,9 +396,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.ctx.one_dragon_config.delete_instance(idx)
         self._acc_repo()
         self._init_content_widget()
-
-    def _on_game_region_changed(self, index, value):
-        self.ctx.init_controller()
 
     def _on_game_path_clicked(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
