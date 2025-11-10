@@ -62,6 +62,7 @@ select = [
     "SIM",    # simplify
     "TID",    # tidy imports
 ]
+ignore = ["RUF001", "RUF003"]
 extend-ignore = [
     "E501",   # line too long - already handled by black style
 ]
