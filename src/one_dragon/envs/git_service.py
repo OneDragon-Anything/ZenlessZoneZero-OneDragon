@@ -159,6 +159,8 @@ class GitService:
             repo = self._open_repo()
             remote = self._ensure_remote()
             branch_name = self.env_config.git_branch
+            refspecs = [f'+refs/heads/{branch_name}:refs/remotes/{remote.name}/{branch_name}']
+            proxy = self._get_proxy_address()
 
             # 检查本地是否存在该分支且有提交历史
             depth = 1  # 默认深度为1
@@ -170,11 +172,16 @@ class GitService:
                     # 有提交历史，使用增量拉取
                     depth = 0
 
-            remote.fetch(
-                refspecs=[f'+refs/heads/{branch_name}:refs/remotes/{remote.name}/{branch_name}'],
-                proxy=self._get_proxy_address(),
-                depth=depth
-            )
+            try:
+                remote.fetch(refspecs=refspecs, proxy=proxy, depth=depth)
+            except KeyError as e:
+                # 如果是因为找不到对象导致的错误，使用 depth=1 重试
+                if 'object not found' in str(e) and depth == 0:
+                    log.warning(f'增量拉取失败({e})，使用 depth=1 重试')
+                    remote.fetch(refspecs=refspecs, proxy=proxy, depth=1)
+                else:
+                    raise
+
             log.info(gt('获取远程代码成功'))
             return True
         except Exception:
