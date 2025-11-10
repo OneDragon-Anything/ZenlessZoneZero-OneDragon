@@ -76,11 +76,11 @@ class GitService:
 
         return self._repo
 
-    def _ensure_remote(self) -> Remote | None:
+    def _ensure_remote(self) -> Remote:
         """确保远程仓库配置正确
 
         Returns:
-            Remote对象，失败时返回None
+            Remote 对象
         """
         remote_url = self._get_git_repository()
         if not remote_url:
@@ -400,14 +400,12 @@ class GitService:
         """
         初始化本地仓库并同步远程目标分支
         """
-        work_dir = os_utils.get_work_dir()
-
         # 初始化仓库
         if progress_callback:
             progress_callback(1/5, gt('初始化本地 Git 仓库'))
 
         try:
-            init_repository(work_dir, False)
+            init_repository(self.repo_dir)
         except Exception:
             msg = gt('初始化本地 Git 仓库失败')
             log.error(msg, exc_info=True)
@@ -487,7 +485,7 @@ class GitService:
         """
         检查本地仓库是否存在
         """
-        return Path(self.repo_dir, '.git').exists()
+        return discover_repository(self.repo_dir) is not None
 
     def fetch_latest_code(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[bool, str]:
         """
