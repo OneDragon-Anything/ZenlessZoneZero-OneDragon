@@ -1,6 +1,7 @@
-from cv2.typing import MatLike
 from enum import Enum
 from typing import Optional, List, Union, Tuple
+
+from cv2.typing import MatLike
 
 from one_dragon.utils.i18_utils import gt
 
@@ -94,7 +95,6 @@ class AgentStateDef:
         self.state_name: str = state_name
         self.template_id: str = template_id
         self.check_way: AgentStateCheckWay = check_way
-        self.should_check_in_battle: bool = True  # 是否需要在战斗中检测 自动战斗开始前进行初始化
 
         # 需要匹配的颜色范围RGB
         self.lower_color: Union[MatLike, int] = lower_color
@@ -379,10 +379,18 @@ class AgentEnum(Enum):
                                       max_length=100)
                     ])
 
-    MANATO = Agent('manato', '真斗', RareTypeEnum.A, AgentTypeEnum.RUPTURE, DmgTypeEnum.FIRE, ['manato'],
+    MANATO = Agent('manato', '真斗', RareTypeEnum.A, AgentTypeEnum.RUPTURE, DmgTypeEnum.FIRE, ['manato', 'manato_white_heart_silhouette'],
                         state_list=[
                             AgentStateDef('真斗-炽心', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                           template_id='manato',
                                           hsv_color=(20,255,255), hsv_color_diff=(15,255,55),
                                           max_length=100)
+                        ])
+
+    YIDHARI = Agent('yidhari', '伊德海莉', RareTypeEnum.S, AgentTypeEnum.RUPTURE, DmgTypeEnum.ICE, ['yidhari'],
+                        state_list=[
+                            AgentStateDef('伊德海莉-蓄力段数', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                    template_id='yidhari',
+                                    hsv_color=(95, 100, 245), hsv_color_diff=(5, 125, 20),
+                                    max_length=85)
                         ])

@@ -238,8 +238,7 @@ class WorldPatrolRunRoute(ZOperation):
             self.stuck_unstuck_attempts = 0
             return True
 
-        if self.ctx.auto_op is not None:
-            auto_battle_utils.switch_to_best_agent_for_moving(self.ctx.auto_op)  # 移动前切换到最佳角色
+        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)  # 移动前切换到最佳角色
         log.info(f'本次脱困方向 {self.stuck_move_direction}')
         if self.stuck_move_direction == 0:  # 向左走
             self.ctx.controller.move_a(press=True, press_time=1, release=True)
@@ -270,26 +269,26 @@ class WorldPatrolRunRoute(ZOperation):
     @operation_node(name='初始化自动战斗')
     def init_auto_battle(self) -> OperationRoundResult:
         self.ctx.controller.stop_moving_forward()
-        if self.ctx.auto_op is None:
+        if self.ctx.auto_battle_context.auto_op is None:
             # 只是个兜底 正常情况下 WorldPatrolApp 会做这个初始化
-            self.ctx.init_auto_op(self.config.auto_battle)
+            self.ctx.auto_battle_context.init_auto_op(self.config.auto_battle)
 
         self.in_battle = True
-        self.ctx.start_auto_battle()
+        self.ctx.auto_battle_context.start_auto_battle()
         return self.round_success()
 
     @node_from(from_name='初始化自动战斗')
     @operation_node(name='自动战斗')
     def auto_battle(self) -> OperationRoundResult:
-        if self.ctx.auto_op.auto_battle_context.last_check_end_result is not None:
-            self.ctx.stop_auto_battle()
-            return self.round_success(status=self.ctx.auto_op.auto_battle_context.last_check_end_result)
+        if self.ctx.auto_battle_context.last_check_end_result is not None:
+            self.ctx.auto_battle_context.stop_auto_battle()
+            return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
 
-        self.ctx.auto_op.auto_battle_context.check_battle_state(
+        self.ctx.auto_battle_context.check_battle_state(
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True)
 
-        if self.ctx.auto_op.auto_battle_context.last_check_in_battle:
+        if self.ctx.auto_battle_context.last_check_in_battle:
             if self.last_screenshot_time - self.last_check_battle_time > 1:
                 mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
                 if mini_map.play_mask_found:
@@ -301,20 +300,20 @@ class WorldPatrolRunRoute(ZOperation):
     @operation_node(name='自动战斗结束')
     def after_auto_battle(self) -> OperationRoundResult:
         self.in_battle = False
-        self.ctx.stop_auto_battle()
+        self.ctx.auto_battle_context.stop_auto_battle()
         time.sleep(5)  # 等待一会 自动战斗停止需要松开按键
         self.ctx.controller.turn_vertical_by_distance(300)
         return self.round_success()
 
     def handle_pause(self) -> None:
         if self.in_battle:
-            self.ctx.stop_auto_battle()
+            self.ctx.auto_battle_context.stop_auto_battle()
         else:
             self.ctx.controller.stop_moving_forward()
 
     def handle_resume(self) -> None:
         if self.in_battle:
-            self.ctx.start_auto_battle()
+            self.ctx.auto_battle_context.start_auto_battle()
 
     def after_operation_done(self, result: OperationResult):
         ZOperation.after_operation_done(self, result)

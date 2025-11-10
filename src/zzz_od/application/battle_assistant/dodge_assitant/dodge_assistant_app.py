@@ -61,7 +61,7 @@ class DodgeAssistantApp(ZApplication):
         :return:
         """
         try:
-            self.ctx.init_auto_op(
+            self.ctx.auto_battle_context.init_auto_op(
                 sub_dir='dodge',
                 op_name=self.ctx.battle_assistant_config.dodge_assistant_config
             )
@@ -70,9 +70,9 @@ class DodgeAssistantApp(ZApplication):
 
         self.ctx.dispatch_event(
             AutoBattleApp.EVENT_OP_LOADED,
-            self.ctx.auto_op
+            self.ctx.auto_battle_context.auto_op
         )
-        self.ctx.auto_op.start_running_async()
+        self.ctx.auto_battle_context.start_auto_battle()
 
         return self.round_success()
 
@@ -83,14 +83,12 @@ class DodgeAssistantApp(ZApplication):
         识别当前画面 并进行点击
         :return:
         """
-        self.ctx.auto_op.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
+        self.ctx.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
 
         return self.round_wait(wait_round_time=self.ctx.battle_assistant_config.screenshot_interval)
 
-    def _on_pause(self, e=None):
-        ZApplication._on_pause(self, e)
-        auto_battle_utils.stop_running(self.ctx.auto_op)
+    def handle_pause(self, e=None):
+        self.ctx.auto_battle_context.stop_auto_battle()
 
-    def _on_resume(self, e=None):
-        ZApplication._on_resume(self, e)
-        auto_battle_utils.resume_running(self.ctx.auto_op)
+    def handle_resume(self, e=None):
+        self.ctx.auto_battle_context.resume_auto_battle()

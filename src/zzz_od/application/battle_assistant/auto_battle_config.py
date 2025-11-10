@@ -1,7 +1,7 @@
 import os
 from typing import List, Optional
 
-from one_dragon.base.conditional_operation.conditional_operator import ConditionalOperator
+from one_dragon.base.conditional_operation.operator import ConditionalOperator
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils import os_utils
 
@@ -16,6 +16,8 @@ def get_auto_battle_op_config_list(sub_dir: str) -> List[ConfigItem]:
     template_name_set = set()
     for file_name in os.listdir(auto_battle_dir_path):
         if file_name.endswith('.sample.yml'):
+            template_name = file_name[:-11]
+        elif file_name.endswith('.merged.yml'):
             template_name = file_name[:-11]
         elif file_name.endswith('.yml'):
             template_name = file_name[:-4]

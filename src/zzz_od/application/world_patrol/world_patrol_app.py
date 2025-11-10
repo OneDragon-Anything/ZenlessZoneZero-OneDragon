@@ -41,7 +41,7 @@ class WorldPatrolApp(ZApplication):
 
     @operation_node(name='初始化', is_start_node=True)
     def init_world_patrol(self) -> OperationRoundResult:
-        self.ctx.init_auto_op(self.config.auto_battle)
+        self.ctx.auto_battle_context.init_auto_op(self.config.auto_battle)
 
         self.ctx.world_patrol_service.load_data()
         for area in self.ctx.world_patrol_service.area_list:

@@ -38,7 +38,7 @@ class EnterGame(ZOperation):
         self.use_clipboard: bool = self.ctx.game_config.type_input_way == TypeInputWay.CLIPBOARD.value.value  # 使用剪切板输入
 
         self.interact_ignore_word_list: list[str] = []  # 进入游戏时 交互需要忽略的文本
-        
+
     def handle_init(self):
         # 本OP会被复用 多次登录时重置这个记录
         self.interact_ignore_word_list.clear()
@@ -62,8 +62,13 @@ class EnterGame(ZOperation):
         if interact_result is not None:
             return interact_result
 
-        in_game_result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
-        if in_game_result.is_success:
+        # 判定是否进入大世界
+        world_screens = ['大世界-普通', '大世界-勘域']
+        current_screen = self.check_and_update_current_screen(
+            self.last_screenshot,
+            screen_name_list=world_screens,
+        )
+        if current_screen in world_screens:
             return self.round_success('大世界', wait=1)
 
         return self.round_retry(status='未知画面', wait=1)
