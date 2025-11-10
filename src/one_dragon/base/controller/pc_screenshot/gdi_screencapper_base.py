@@ -128,7 +128,7 @@ class GdiScreencapperBase(ScreencapperBase):
                     log.debug("删除 mfcDC 失败", exc_info=True)
 
             # 释放窗口 DC
-            if self.hwndDC and self.hwnd_for_dc:
+            if self.hwndDC and self.hwnd_for_dc is not None:
                 try:
                     ctypes.windll.user32.ReleaseDC(self.hwnd_for_dc, self.hwndDC)
                 except Exception:
