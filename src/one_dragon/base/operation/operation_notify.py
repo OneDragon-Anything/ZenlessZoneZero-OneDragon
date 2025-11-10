@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Optional, Callable, List, TYPE_CHECKING, Literal
 from enum import Enum
-from dataclasses import dataclass
 
 from cv2.typing import MatLike
 
@@ -177,21 +176,6 @@ def _get_phase_text(timing: NotifyTiming, success: Optional[bool]) -> str:
             return gt('结束')
 
     return ''
-
-
-@dataclass
-class _NotifyImageContext:
-    """通知图片上下文 - 管理截图状态（内部使用）"""
-    before_image: Optional[MatLike] = None
-    after_image: Optional[MatLike] = None
-
-    def get_image(self, strategy: CaptureStrategy) -> Optional[MatLike]:
-        """根据策略获取对应的图片"""
-        if strategy == CaptureStrategy.BEFORE:
-            return self.before_image
-        elif strategy == CaptureStrategy.AFTER:
-            return self.after_image
-        return None
 
 
 def application_notify(app: Application, is_success: Optional[bool]) -> None:
@@ -439,32 +423,25 @@ def process_node_notifications(
     if not notify_list:
         return
 
-    # 使用上下文对象管理图片状态
-    image_ctx = _NotifyImageContext()
-
     if phase == 'before':
-        # before 阶段：捕获需要的截图并发送 before 通知
+        # before 阶段：捕获截图并发送 before 通知
+        image: Optional[MatLike] = None
         if any(d.capture == CaptureStrategy.BEFORE for d in notify_list):
-            image_ctx.before_image = operation.last_screenshot
-            setattr(operation, '_node_notify_image_ctx', image_ctx)
+            image = operation.screenshot()
 
         for desc in notify_list:
             if desc.when == NotifyTiming.BEFORE:
-                img = image_ctx.get_image(desc.capture)
-                send_node_notify(operation, current_node.cn, None, desc, image=img)
+                send_node_notify(operation, current_node.cn, None, desc, image=image)
 
     elif phase == 'after':
         # after 阶段：处理 after 相关的通知
         if round_result is None:
             return
 
-        # 恢复 before 阶段的图片上下文
-        if hasattr(operation, '_node_notify_image_ctx'):
-            image_ctx = getattr(operation, '_node_notify_image_ctx')
-
         # 捕获 after 截图（如果需要）
+        image: Optional[MatLike] = None
         if any(d.capture == CaptureStrategy.AFTER for d in notify_list):
-            image_ctx.after_image = operation.last_screenshot
+            image = operation.screenshot()
 
         # 确定成功状态
         success_flag: Optional[bool] = None
@@ -482,19 +459,12 @@ def process_node_notifications(
             if desc.when == NotifyTiming.AFTER_FAIL and success_flag is not False:
                 continue
 
-            # 获取对应的图片
-            img = image_ctx.get_image(desc.capture)
-
             # 发送通知
             send_node_notify(
                 operation,
                 current_node.cn,
                 success_flag,
                 desc,
-                image=img,
+                image=image,
                 status=round_result.status
             )
-
-        # 清理图片上下文
-        if hasattr(operation, '_node_notify_image_ctx'):
-            delattr(operation, '_node_notify_image_ctx')
