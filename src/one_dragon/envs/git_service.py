@@ -57,10 +57,11 @@ class GitService:
         这可以避免用户的全局配置（如 http.proxy、user.name、SSL 证书路径等）影响程序的 git 操作。
         同时忽略用户可能残留的无效 SSL 证书配置，让 libgit2 使用系统默认的证书验证机制，避免 SSL 证书问题。
         """
-        settings.search_path[ConfigLevel.SYSTEM] = ''  # 系统级配置 (如 /etc/gitconfig)
-        settings.search_path[ConfigLevel.GLOBAL] = ''  # 全局用户配置 (~/.gitconfig)
-        settings.search_path[ConfigLevel.XDG] = ''     # XDG 配置 (~/.config/git/config)
-        settings.owner_validation = False              # 禁用仓库所有权验证
+        settings.search_path[ConfigLevel.PROGRAMDATA] = ''  # 机器范围 (C:\ProgramData\Git\config)
+        settings.search_path[ConfigLevel.SYSTEM] = ''       # 系统级 (如 C:\Program Files\Git\mingw64\etc\gitconfig)
+        settings.search_path[ConfigLevel.GLOBAL] = ''       # 用户全局 (%USERPROFILE%\.gitconfig)
+        settings.search_path[ConfigLevel.XDG] = ''          # XDG 配置 (%USERPROFILE%\.config\git\config)
+        settings.owner_validation = False                   # 禁用仓库所有权验证
 
     def _open_repo(self, refresh: bool = False) -> Repository:
         """打开仓库（带缓存）"""
