@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 from enum import Enum
 from typing import TYPE_CHECKING, Callable, Optional
 
@@ -45,19 +46,18 @@ class Application(Operation):
             op_to_enter_game=op_to_enter_game,
         )
 
+        # 应用唯一标识
         self.app_id: str = app_id
-        """应用唯一标识"""
 
+        # 运行记录
         self.run_record: Optional[AppRunRecord] = run_record
         if run_record is None:
-            try:
+            # 部分应用没有运行记录 跳过即可
+            with suppress(Exception):
                 self.run_record = ctx.run_context.get_run_record(
                     app_id=self.app_id,
                     instance_idx=ctx.current_instance_idx,
                 )
-            except Exception:  # 部分应用没有运行记录 跳过即可
-                pass
-        """运行记录"""
 
     def _init_before_execute(self) -> None:
         Operation._init_before_execute(self)
