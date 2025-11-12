@@ -2,7 +2,7 @@ from cv2.typing import MatLike
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.ridu_weekly import ridu_weekly_const
@@ -56,7 +56,7 @@ class RiduWeeklyApp(ZApplication):
         return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='领取积分', success=False)  # 没有100积分之后
-    @node_notify(when='after')
+    @node_notify(when=NotifyTiming.AFTER)
     @operation_node(name='领取奖励')
     def confirm_schedule(self) -> OperationRoundResult:
         return self.round_by_click_area('丽都周纪', '领取奖励',

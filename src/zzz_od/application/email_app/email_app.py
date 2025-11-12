@@ -1,6 +1,6 @@
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.email_app import email_app_const
@@ -33,7 +33,7 @@ class EmailApp(ZApplication):
         return self.round_by_goto_screen(screen_name='邮件')
 
     @node_from(from_name='打开邮件')
-    @node_notify(when='after_success')
+    @node_notify(when=NotifyTiming.AFTER_SUCCESS)
     @operation_node(name='全部领取')
     def click_get_all(self) -> OperationRoundResult:
         """

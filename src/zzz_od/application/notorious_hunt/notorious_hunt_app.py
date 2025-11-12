@@ -3,7 +3,7 @@ from typing import ClassVar, Optional
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
@@ -83,7 +83,7 @@ class NotoriousHuntApp(ZApplication):
         )
 
     @node_from(from_name='点击奖励入口')
-    @node_notify(when='after')
+    @node_notify(when=NotifyTiming.AFTER)
     @operation_node(name='全部领取', node_max_retry_times=2)
     def claim_all(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(

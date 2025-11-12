@@ -9,7 +9,7 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -143,7 +143,7 @@ class LostVoidApp(ZApplication):
 
     @node_from(from_name='开始前等待入口加载')
     @node_from(from_name='通关后处理')
-    @node_notify(when='after', send_image=False, detail=True)
+    @node_notify(when=NotifyTiming.AFTER, send_image=False, detail=True)
     @operation_node(name='识别悬赏委托完成进度')
     def check_bounty_commission_before(self) -> OperationRoundResult:
         """
@@ -502,7 +502,7 @@ class LostVoidApp(ZApplication):
 
     @node_from(from_name='加载自动战斗配置')
     @node_from(from_name='层间移动')
-    @node_notify(when='after', detail=True)
+    @node_notify(when=NotifyTiming.AFTER, detail=True)
     @operation_node(name='层间移动')
     def run_level(self) -> OperationRoundResult:
         log.info(f'推测楼层类型 {self.next_region_type.value.value}')
@@ -537,7 +537,7 @@ class LostVoidApp(ZApplication):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='打开悬赏委托')
-    @node_notify(when='after')
+    @node_notify(when=NotifyTiming.AFTER)
     @operation_node(name='全部领取', node_max_retry_times=2)
     def claim_all(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(screen_name='迷失之地-入口', area_name='按钮-悬赏委托-全部领取',

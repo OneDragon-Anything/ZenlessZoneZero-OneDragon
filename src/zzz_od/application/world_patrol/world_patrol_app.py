@@ -1,7 +1,7 @@
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.world_patrol import world_patrol_const
@@ -104,7 +104,7 @@ class WorldPatrolApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='停止追踪后返回大世界')
-    @node_notify(when='after', detail=True)
+    @node_notify(when=NotifyTiming.AFTER, detail=True)
     @operation_node(name='执行路线')
     def run_route(self) -> OperationRoundResult:
         if self.route_idx >= len(self.route_list):

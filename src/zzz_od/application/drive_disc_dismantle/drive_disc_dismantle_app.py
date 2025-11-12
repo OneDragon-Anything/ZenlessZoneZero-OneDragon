@@ -1,7 +1,7 @@
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
@@ -78,7 +78,7 @@ class DriveDiscDismantleApp(ZApplication):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='快速选择确认')
-    @node_notify(when='after_success')
+    @node_notify(when=NotifyTiming.AFTER_SUCCESS)
     @operation_node(name='点击拆解')
     def click_salvage(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '仓库-驱动仓库-驱动盘拆解', '按钮-拆解',

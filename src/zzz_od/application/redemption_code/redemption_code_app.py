@@ -4,7 +4,7 @@ from typing import List, Optional
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.redemption_code import redemption_code_const
@@ -88,7 +88,7 @@ class RedemptionCodeApp(ZApplication):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='输入兑换码', status='兑换码兑换')
-    @node_notify(when='after_success')
+    @node_notify(when=NotifyTiming.AFTER_SUCCESS)
     @operation_node(name='兑换后确认')
     def confirm_code(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '兑换码兑换')

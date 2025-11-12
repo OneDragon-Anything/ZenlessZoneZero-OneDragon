@@ -10,7 +10,7 @@ from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, os_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -286,7 +286,7 @@ class CoffeeApp(ZApplication):
         return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='点单后跳过')
-    @node_notify(when='after_success')
+    @node_notify(when=NotifyTiming.AFTER_SUCCESS)
     @operation_node(name='电量确认')
     def charge_confirm(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '电量确认')

@@ -2,7 +2,7 @@ from typing import ClassVar
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -60,7 +60,7 @@ class EngagementRewardApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='识别活跃度')
-    @node_notify(when='after')
+    @node_notify(when=NotifyTiming.AFTER)
     @operation_node(name='点击奖励')
     def click_reward(self) -> OperationRoundResult:
         if self.idx > 1:

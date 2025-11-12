@@ -4,7 +4,7 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -162,7 +162,7 @@ class ShiyuDefenseApp(ZApplication):
             return self.round_success()
 
     @node_from(from_name='自动战斗', status=STATUS_NEXT_NODE)
-    @node_notify(when='before', detail=True)
+    @node_notify(when=NotifyTiming.BEFORE, detail=True)
     @operation_node(name='下一节点')
     def to_next_node(self) -> OperationRoundResult:
         # 点击直到下一步出现 出现后 再等一会等属性出现
@@ -199,7 +199,7 @@ class ShiyuDefenseApp(ZApplication):
 
     @node_from(from_name='所有节点完成')
     @node_from(from_name='选择节点', status=STATUS_ALL_FINISHED)
-    @node_notify(when='after', detail=True)
+    @node_notify(when=NotifyTiming.AFTER, detail=True)
     @operation_node(name='领取奖励')
     def claim_reward(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '全部领取')

@@ -1,6 +1,6 @@
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.city_fund import city_fund_const
@@ -62,7 +62,7 @@ class CityFundApp(ZApplication):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击等级回馈')
-    @node_notify(when='after_success')
+    @node_notify(when=NotifyTiming.AFTER_SUCCESS)
     @operation_node(name='等级全部领取')
     def click_level_claim(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '丽都城募', '等级-全部领取',
