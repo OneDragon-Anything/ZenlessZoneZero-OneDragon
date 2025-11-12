@@ -77,11 +77,6 @@ class ZContext(OneDragonContext):
         )
         return BattleAssistantConfig(self.current_instance_idx)
 
-    @cached_property
-    def notify_config(self):
-        from zzz_od.config.notify_config import NotifyConfig
-        return NotifyConfig(self.current_instance_idx)
-
     def reload_instance_config(self) -> None:
         OneDragonContext.reload_instance_config(self)
 
@@ -89,7 +84,6 @@ class ZContext(OneDragonContext):
             'game_config',
             'team_config',
             'battle_assistant_config',
-            'notify_config',
         ]
         for prop in to_clear_props:
             if hasattr(self, prop):

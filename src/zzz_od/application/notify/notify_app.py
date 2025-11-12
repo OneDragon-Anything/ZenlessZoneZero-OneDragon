@@ -16,7 +16,7 @@ class NotifyApp(ZApplication):
             self,
             ctx,
             notify_const.APP_ID,
-            op_name=gt(notify_const.APP_NAME),
+            op_name=notify_const.APP_NAME,
             need_check_game_win=True,
         )
 
@@ -31,6 +31,7 @@ class NotifyApp(ZApplication):
         message = self.format_message()
 
         self.ctx.push_service.push(
+            title=self.ctx.notify_config.notify_title,
             content=message,
             image=self.last_screenshot
         )

@@ -20,6 +20,7 @@ class RiduWeeklyAppFactory(ApplicationFactory):
             self,
             app_id=ridu_weekly_const.APP_ID,
             app_name=ridu_weekly_const.APP_NAME,
+            need_notify=ridu_weekly_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

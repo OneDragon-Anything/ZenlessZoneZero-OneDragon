@@ -28,6 +28,7 @@ class DriveDiscDismantleAppFactory(ApplicationFactory):
             self,
             app_id=drive_disc_dismantle_const.APP_ID,
             app_name=drive_disc_dismantle_const.APP_NAME,
+            need_notify=drive_disc_dismantle_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

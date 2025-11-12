@@ -30,7 +30,7 @@ class ScreenshotHelperApp(ZApplication):
             self,
             ctx=ctx,
             app_id=screenshot_helper_const.APP_ID,
-            op_name=gt(screenshot_helper_const.APP_NAME),
+            op_name=screenshot_helper_const.APP_NAME,
         )
         self.config: ScreenshotHelperConfig = self.ctx.run_context.get_config(
             app_id=screenshot_helper_const.APP_ID,

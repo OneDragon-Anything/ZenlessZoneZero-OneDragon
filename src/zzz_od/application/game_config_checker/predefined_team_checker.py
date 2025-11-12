@@ -34,7 +34,7 @@ class PredefinedTeamChecker(ZApplication):
             self,
             ctx=ctx,
             app_id=predefined_team_checker_const.APP_ID,
-            op_name=gt(predefined_team_checker_const.APP_NAME),
+            op_name=predefined_team_checker_const.APP_NAME,
         )
 
         self.scroll_times: int = 0  # 下滑次数

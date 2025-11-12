@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
-from io import BytesIO
 from typing import TYPE_CHECKING, Callable, Optional
 
 from cv2.typing import MatLike
@@ -10,7 +9,7 @@ from cv2.typing import MatLike
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
-from one_dragon.utils.i18_utils import gt
+from one_dragon.base.operation.operation_notify import send_application_notify
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -34,7 +33,6 @@ class Application(Operation):
                  need_check_game_win: bool = True,
                  op_to_enter_game: Optional[Operation] = None,
                  run_record: Optional[AppRunRecord] = None,
-                 need_notify: bool = False,
                  ):
         Operation.__init__(
             self,
@@ -61,10 +59,6 @@ class Application(Operation):
                 pass
         """运行记录"""
 
-        self.need_notify: bool = need_notify  # 节点运行结束后发送通知
-
-        self.notify_screenshot: Optional[MatLike] = None  # 发送通知的截图
-
     def handle_init(self) -> None:
         """
         运行前初始化
@@ -73,8 +67,9 @@ class Application(Operation):
         if self.run_record is not None:
             self.run_record.check_and_update_status()  # 先判断是否重置记录
             self.run_record.update_status(AppRunRecord.STATUS_RUNNING)
-        if self.need_notify:
-            self.notify(None)
+
+        if self.ctx.run_context.is_app_need_notify(self.app_id):
+            send_application_notify(self, None)
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
 
@@ -85,9 +80,11 @@ class Application(Operation):
         """
         Operation.after_operation_done(self, result)
         self._update_record_after_stop(result)
+
+        if self.ctx.run_context.is_app_need_notify(self.app_id):
+            send_application_notify(self, result.success)
+
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_STOP.value, self.app_id)
-        if self.need_notify:
-            self.notify(result.success)
 
     def _update_record_after_stop(self, result: OperationResult):
         """
@@ -100,43 +97,6 @@ class Application(Operation):
                 self.run_record.update_status(AppRunRecord.STATUS_SUCCESS)
             else:
                 self.run_record.update_status(AppRunRecord.STATUS_FAIL)
-
-    def notify(self, is_success: Optional[bool] = True) -> None:
-        """
-        发送通知 应用开始或停止时调用 会在调用的时候截图
-        :return:
-        """
-        if not hasattr(self.ctx, 'notify_config'):
-            return
-        if not getattr(self.ctx.notify_config, 'enable_notify', False):
-            return
-        if not getattr(self.ctx.notify_config, 'enable_before_notify', False) and is_success is None:
-            return
-
-        app_id = getattr(self, 'app_id', None)
-        app_name = getattr(self, 'op_name', None)
-
-        if not getattr(self.ctx.notify_config, app_id, False):
-            return
-
-        if is_success is True:
-            status = gt('成功')
-            image = self.notify_screenshot
-        elif is_success is False:
-            status = gt('失败')
-            image = self.screenshot()
-        elif is_success is None:
-            status = gt('开始')
-            image = None
-        else:
-            image = None
-
-        message = f"{gt('任务「')}{app_name}{gt('」运行')}{status}\n"
-
-        self.ctx.push_service.push_async(
-            content=message,
-            image=image
-        )
 
     @property
     def current_execution_desc(self) -> str:

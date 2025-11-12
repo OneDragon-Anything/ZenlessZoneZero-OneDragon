@@ -32,7 +32,7 @@ class OneDragonApp(Application):
             self,
             ctx,
             app_id=application_const.ONE_DRAGON_APP_ID,
-            op_name=gt(application_const.ONE_DRAGON_APP_NAME),
+            op_name=application_const.ONE_DRAGON_APP_NAME,
             op_to_enter_game=op_to_enter_game,
         )
 

@@ -24,7 +24,7 @@ class OperationDebugApp(ZApplication):
             self,
             ctx=ctx,
             app_id=operation_debug_const.APP_ID,
-            op_name=gt(operation_debug_const.APP_NAME),
+            op_name=operation_debug_const.APP_NAME,
         )
 
         self.ops: Optional[List[AtomicOp]] = None
