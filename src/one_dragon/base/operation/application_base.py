@@ -9,7 +9,7 @@ from cv2.typing import MatLike
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
-from one_dragon.base.operation.operation_notify import application_notify
+from one_dragon.base.operation.operation_notify import send_application_notify
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -72,7 +72,7 @@ class Application(Operation):
             self.run_record.update_status(AppRunRecord.STATUS_RUNNING)
 
         if self.ctx.run_context.is_app_need_notify(self.app_id):
-            application_notify(self, None)
+            send_application_notify(self, None)
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_START.value, self.app_id)
 
@@ -85,7 +85,7 @@ class Application(Operation):
         self._update_record_after_stop(result)
 
         if self.ctx.run_context.is_app_need_notify(self.app_id):
-            application_notify(self, result.success)
+            send_application_notify(self, result.success)
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_STOP.value, self.app_id)
 
