@@ -64,18 +64,18 @@ class NodeStateProxy:
         return self.result.data if self.result is not None else None
 
     @property
-    def is_success(self) -> bool | None:
+    def is_success(self) -> bool:
         """
         节点是否成功
         """
-        return self.result.is_success if self.result is not None else None
+        return self.result.is_success if self.result is not None else False
 
     @property
-    def is_fail(self) -> bool | None:
+    def is_fail(self) -> bool:
         """
         节点是否失败
         """
-        return self.result.is_fail if self.result is not None else None
+        return self.result.is_fail if self.result is not None else False
 
 
 class Operation(OperationBase):
