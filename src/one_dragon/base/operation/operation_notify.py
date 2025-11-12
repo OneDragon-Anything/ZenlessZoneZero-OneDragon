@@ -151,7 +151,7 @@ def send_application_notify(app: Application, status: bool | None) -> None:
 
     # 异步推送
     app.ctx.push_service.push_async(
-        title=app.ctx.notify_config.notify_title,
+        title=app.ctx.notify_config.title,
         content=message,
     )
 
@@ -273,7 +273,7 @@ def send_node_notify(
 
     # 异步推送
     operation.ctx.push_service.push_async(
-        title=operation.ctx.notify_config.notify_title,
+        title=operation.ctx.notify_config.title,
         content=message,
         image=image,
     )
