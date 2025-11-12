@@ -10,7 +10,7 @@ class NotifyConfig(YamlConfig):
 
     @property
     def notify_title(self) -> str:
-        return self.get('notify_title', '绝区零 一条龙 运行通知')
+        return self.get('notify_title', '一条龙 运行通知')
 
     @notify_title.setter
     def notify_title(self, new_value: str) -> None:
@@ -32,22 +32,27 @@ class NotifyConfig(YamlConfig):
     def enable_before_notify(self, new_value: bool) -> None:
         self.update('enable_before_notify', new_value)
 
+    def is_app_notify_enabled(self, app_id: str) -> bool:
+        """
+        获取指定 app_id 是否开启了通知
+        如果 app_id 为空或在配置中未找到，默认返回 True
+        """
+        if not app_id:
+            return True
+        return self.get(app_id, True)
+
     def _generate_dynamic_properties(self):
-        for app in self.app_map.items():
-            prop_name = app[0]
-            def create_getter(name: str):
+        # 为 app_map 中的每个 app_id 动态生成 property，便于通过属性访问和更新配置
+        for app_id in self.app_map.keys():
+            def make_getter(name: str):
                 def getter(self) -> bool:
                     return self.get(name, True)
                 return getter
 
-            def create_setter(name: str):
+            def make_setter(name: str):
                 def setter(self, new_value: bool) -> None:
                     self.update(name, new_value)
                 return setter
 
-            # 创建property并添加到类
-            prop = property(
-                create_getter(prop_name),
-                create_setter(prop_name)
-            )
-            setattr(NotifyConfig, prop_name, prop)
+            prop = property(make_getter(app_id), make_setter(app_id))
+            setattr(self.__class__, app_id, prop)
