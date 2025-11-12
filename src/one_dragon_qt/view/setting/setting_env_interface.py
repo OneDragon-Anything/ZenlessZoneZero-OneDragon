@@ -71,13 +71,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
         code_group.addSettingCard(self.repository_type_opt)
 
-        self.git_method_opt = ComboBoxSettingCard(
-            icon=FluentIcon.SYNC, title='拉取方式', content='不懂什么是ssh就选https',
-            options_enum=GitMethodEnum
-        )
-        self.git_method_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
-        code_group.addSettingCard(self.git_method_opt)
-
         self.auto_update_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
         )
@@ -189,7 +182,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.key_debug_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_debug'))
 
         self.repository_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_type'))
-        self.git_method_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('git_method'))
 
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
         self.auto_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update'))

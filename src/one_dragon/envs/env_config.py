@@ -37,12 +37,6 @@ class RegionEnum(Enum):
     OVERSEA = ConfigItem('海外', 'oversea')
 
 
-class GitMethodEnum(Enum):
-
-    HTTPS = ConfigItem('https')
-    SSH = ConfigItem('ssh')
-
-
 class PipSourceEnum(Enum):
 
     PYPI = ConfigItem('官方', 'https://pypi.org/simple')
@@ -171,18 +165,6 @@ class EnvConfig(YamlConfig):
         :return:
         """
         self.update('repository_type', new_value)
-
-    @property
-    def git_method(self) -> str:
-        """
-        git使用https还是ssh
-        :return:
-        """
-        return self.get('git_method', GitMethodEnum.HTTPS.value.value)
-
-    @git_method.setter
-    def git_method(self, new_value: str) -> None:
-        self.update('git_method', new_value)
 
     @property
     def force_update(self) -> bool:

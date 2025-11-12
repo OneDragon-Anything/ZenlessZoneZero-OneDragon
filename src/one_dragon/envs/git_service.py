@@ -16,7 +16,7 @@ from pygit2 import (
 )
 from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
 
-from one_dragon.envs.env_config import EnvConfig, GitMethodEnum, RepositoryTypeEnum
+from one_dragon.envs.env_config import EnvConfig, RepositoryTypeEnum
 from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
@@ -110,22 +110,15 @@ class GitService:
     def _get_git_repository(self) -> str:
         """获取仓库地址"""
         repo_type = self.env_config.repository_type
-        git_method = self.env_config.git_method
 
         if repo_type == RepositoryTypeEnum.GITHUB.value.value:
-            if git_method == GitMethodEnum.HTTPS.value.value:
-                repo = self.project_config.github_https_repository
-                if self.env_config.is_gh_proxy:
-                    return f'{self.env_config.gh_proxy_url}/{repo}'
-                return repo
-            else:
-                return self.project_config.github_ssh_repository
+            repo = self.project_config.github_https_repository
+            if self.env_config.is_gh_proxy:
+                return f'{self.env_config.gh_proxy_url}/{repo}'
+            return repo
 
         elif repo_type == RepositoryTypeEnum.GITEE.value.value:
-            if git_method == GitMethodEnum.HTTPS.value.value:
-                return self.project_config.gitee_https_repository
-            else:
-                return self.project_config.gitee_ssh_repository
+            return self.project_config.gitee_https_repository
 
         return ''
 
