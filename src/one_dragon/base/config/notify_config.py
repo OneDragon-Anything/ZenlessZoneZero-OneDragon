@@ -10,7 +10,7 @@ class NotifyConfig(YamlConfig):
 
     @property
     def notify_title(self) -> str:
-        return self.get('notify_title', '一条龙 运行通知')
+        return self.get('notify_title', '一条龙运行通知')
 
     @notify_title.setter
     def notify_title(self, new_value: str) -> None:
@@ -44,15 +44,15 @@ class NotifyConfig(YamlConfig):
     def _generate_dynamic_properties(self):
         # 为 app_map 中的每个 app_id 动态生成 property，便于通过属性访问和更新配置
         for app_id in self.app_map.keys():
-            def make_getter(name: str):
+            def create_getter(name: str):
                 def getter(self) -> bool:
                     return self.get(name, True)
                 return getter
 
-            def make_setter(name: str):
+            def create_setter(name: str):
                 def setter(self, new_value: bool) -> None:
                     self.update(name, new_value)
                 return setter
 
-            prop = property(make_getter(app_id), make_setter(app_id))
+            prop = property(create_getter(app_id), create_setter(app_id))
             setattr(self.__class__, app_id, prop)

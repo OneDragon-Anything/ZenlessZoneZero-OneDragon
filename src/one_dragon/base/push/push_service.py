@@ -140,7 +140,7 @@ class PushService:
             tuple[bool, str]: 是否成功、错误信息
         """
         if title is None:
-            title = '一条龙 运行通知'
+            title = '一条龙运行通知'
 
         if not self.push_config.send_image:
             image = None

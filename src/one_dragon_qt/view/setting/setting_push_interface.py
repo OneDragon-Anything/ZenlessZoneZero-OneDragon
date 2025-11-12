@@ -43,7 +43,7 @@ class SettingPushInterface(VerticalScrollInterface):
         self.notify_title = TextSettingCard(
             icon=FluentIcon.MESSAGE,
             title='自定义通知标题',
-            input_placeholder='一条龙 运行通知'
+            input_placeholder='一条龙运行通知'
         )
         content_widget.add_widget(self.notify_title)
 
