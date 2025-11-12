@@ -1177,7 +1177,7 @@ class Operation(OperationBase):
         这对于根据上一步的结果来决定当前步骤的行为非常有用。
 
         Returns:
-            PreviousNodeStateProxy: 一个包含上一个节点状态和结果的代理对象。
+            NodeStateProxy: 一个包含上一个节点状态和结果的代理对象。
 
         Example:
             @operation_node(name='处理节点')
@@ -1197,6 +1197,6 @@ class Operation(OperationBase):
         """获取当前执行的节点的代理对象。
 
         Returns:
-            PreviousNodeStateProxy: 一个包含当前节点的代理对象。
+            NodeStateProxy: 一个包含当前节点的代理对象。
         """
         return NodeStateProxy(self._current_node)
