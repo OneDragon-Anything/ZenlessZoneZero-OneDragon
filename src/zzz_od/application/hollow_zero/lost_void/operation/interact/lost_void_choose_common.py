@@ -43,7 +43,10 @@ class LostVoidChooseCommon(ZOperation):
         art: Optional[LostVoidArtifactPos] = None
         if self.to_choose_num > 0:
             if len(art_list) == 0:
-                return self.round_retry(status='无法识别藏品', wait=1)
+                if len(chosen_list) > 0:
+                    log.debug(f"检测到已选择 {len(chosen_list)} 个藏品，跳过选择步骤")
+                else:
+                    return self.round_retry(status='无法识别藏品', wait=1)
 
             priority_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(
                 art_list, self.to_choose_num,
@@ -189,18 +192,17 @@ def __debug():
 
 def __get_get_artifact_pos():
     ctx = ZContext()
-    ctx.init_by_config()
-    ctx.init_ocr()
+    ctx.init()
     ctx.lost_void.init_before_run()
 
     op = LostVoidChooseCommon(ctx)
     from one_dragon.utils import debug_utils
-    screen = debug_utils.get_debug_image('484035848-554c6a8d-340e-404d-ab88-8baac21637ca')
+    screen = debug_utils.get_debug_image('123')
     art_list, chosen_list = op.get_artifact_pos(screen)
     print(len(art_list), len(chosen_list))
-    cv2_utils.show_image(screen, chosen_list[0] if len(chosen_list) > 0 else None, wait=0)
     import cv2
-    cv2.destroyAllWindows()
+    # cv2_utils.show_image(screen, chosen_list[0] if len(chosen_list) > 0 else None, wait=0)
+    # cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':

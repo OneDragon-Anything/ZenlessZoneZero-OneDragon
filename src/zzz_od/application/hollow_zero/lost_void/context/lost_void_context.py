@@ -446,7 +446,9 @@ class LostVoidContext:
                 elif title_idx == 3:  # NEW!
                     closest_artifact_pos.is_new = True
 
-        artifact_pos_list = [i for i in artifact_pos_list if i.can_choose]
+        # 修复：不再在这里过滤can_choose的藏品，由调用方get_artifact_pos自行处理
+        # 这样可以确保已选择的藏品信息也能正确返回，避免"无法识别藏品"的问题
+        # 原始代码：artifact_pos_list = [i for i in artifact_pos_list if i.can_choose]
 
         display_text = ', '.join([i.artifact.display_name for i in artifact_pos_list]) if len(artifact_pos_list) > 0 else '无'
         log.info(f'当前识别藏品 {display_text}')
@@ -474,15 +476,15 @@ class LostVoidContext:
         artifact_list = self.remove_overlapping_artifacts(artifact_list)
 
         log.info(f'当前考虑优先级 数量={choose_num} NEW!={consider_priority_new} 第一优先级={consider_priority_1} 第二优先级={consider_priority_2} 其他={consider_not_in_priority}')
-        
+
         # 合并动态优先级和静态优先级
         priority_list_to_consider = []
-        
+
         final_priority_list_1 = self.dynamic_priority_list.copy()
         if consider_priority_1 and self.challenge_config.artifact_priority:
             final_priority_list_1.extend(self.challenge_config.artifact_priority)
         priority_list_to_consider.append(final_priority_list_1)
-        
+
         if consider_priority_2 and self.challenge_config.artifact_priority_2:
             priority_list_to_consider.append(self.challenge_config.artifact_priority_2)
 
