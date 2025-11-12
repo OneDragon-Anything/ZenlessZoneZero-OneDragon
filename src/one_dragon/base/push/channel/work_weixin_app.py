@@ -11,7 +11,7 @@ import requests
 import threading
 from typing import Optional, Tuple
 
-from cv2.typing import MatLike # 假设 MatLike 是 cv2 图像类型
+from cv2.typing import MatLike
 
 from one_dragon.base.push.push_channel import PushChannel
 from one_dragon.base.push.push_channel_config import PushChannelConfigField, FieldTypeEnum
@@ -124,14 +124,14 @@ class WorkWeixinApp(PushChannel):
         临时素材 media_id 在 3 天内有效。
         """
         upload_url = f"{self._BASE_API_URL}/cgi-bin/media/upload?access_token={access_token}&type=image"
-        
+
         # 企业微信临时素材文件大小限制：图片最大2MB
-        TARGET_SIZE = 2 * 1024 * 1024 
+        TARGET_SIZE = 2 * 1024 * 1024
         image_bytes_io = self.image_to_bytes(image, max_bytes=TARGET_SIZE)
 
         if image_bytes_io is None:
             return "", "图片转换或压缩失败"
-        
+
         image_bytes = image_bytes_io.getvalue()
 
         files = {
@@ -162,14 +162,14 @@ class WorkWeixinApp(PushChannel):
         文档地址：https://qyapi.weixin.qq.com/cgi-bin/media/uploadimg?access_token=ACCESS_TOKEN
         """
         upload_url = f"{self._BASE_API_URL}/cgi-bin/media/uploadimg?access_token={access_token}"
-        
+
         # 文档中提到图片文件大小应在 5B ~ 2MB 之间
-        TARGET_SIZE = 2 * 1024 * 1024 
+        TARGET_SIZE = 2 * 1024 * 1024
         image_bytes_io = self.image_to_bytes(image, max_bytes=TARGET_SIZE)
 
         if image_bytes_io is None:
             return "", "图片转换或压缩失败"
-        
+
         image_bytes = image_bytes_io.getvalue()
 
         files = {
@@ -199,7 +199,7 @@ class WorkWeixinApp(PushChannel):
         """封装企业微信发送消息 API 调用"""
         send_url = f"{self._BASE_API_URL}/cgi-bin/message/send?access_token={access_token}"
         headers = {"Content-Type": "application/json; charset=utf-8"}
-        
+
         try:
             response = requests.post(
                 send_url,
@@ -240,110 +240,105 @@ class WorkWeixinApp(PushChannel):
         Returns:
             tuple[bool, str]: 是否成功、错误信息
         """
-        try:
-            ok, msg = self.validate_config(config)
-            if not ok:
-                log.error(f"企业微信应用校验失败：{msg}")
-                return False, msg
+        ok, msg = self.validate_config(config)
+        if not ok:
+            log.error(f"企业微信应用校验失败：{msg}")
+            return False, msg
 
-            corpid = config.get('CORP_ID', '')
-            corpsecret = config.get('CORP_SECRET', '')
-            agentid = config.get('AGENT_ID', '')
-            touser = config.get('TO_USER', '@all')
+        corpid = config.get('CORP_ID', '')
+        corpsecret = config.get('CORP_SECRET', '')
+        agentid = config.get('AGENT_ID', '')
+        touser = config.get('TO_USER', '@all')
 
-            proxies = self.get_proxy(proxy_url)
+        proxies = self.get_proxy(proxy_url)
 
-            # 1. 获取 Access Token
-            access_token, token_err = self._get_access_token(corpid, corpsecret, proxies)
-            if not access_token:
-                log.error(f"企业微信应用推送失败：{token_err}")
-                return False, f"企业微信应用推送失败：{token_err}"
+        # 1. 获取 Access Token
+        access_token, token_err = self._get_access_token(corpid, corpsecret, proxies)
+        if not access_token:
+            log.error(f"企业微信应用推送失败：{token_err}")
+            return False, f"企业微信应用推送失败：{token_err}"
 
-            # 2. 处理图片：如果传入了图片，尝试上传获取永久URL和临时media_id
-            permanent_image_url = "" # 用于在content中插入img标签
-            effective_thumb_media_id = "" # 用于mpnews的封面thumb_media_id
-            img_tag_context = "" # img标签字符串
+        # 2. 处理图片：如果传入了图片，尝试上传获取永久URL和临时media_id
+        permanent_image_url = ""       # 用于在content中插入img标签
+        effective_thumb_media_id = ""  # 用于mpnews的封面thumb_media_id
+        img_tag_context = ""           # img标签字符串
 
-            if image is not None:
-                # 尝试上传图片获取永久URL，用于插入到content中
-                temp_permanent_image_url, permanent_upload_err = self._upload_image_permanent(access_token, image, proxies)
-                if temp_permanent_image_url:
-                    permanent_image_url = temp_permanent_image_url
-                else:
-                    log.warning(f"企业微信应用图片上传获取永久URL失败，无法在消息体中插入图片。错误: {permanent_upload_err}")
-
-                # 尝试上传图片获取临时media_id，用于mpnews封面
-                temp_uploaded_media_id, upload_media_err = self._upload_image_media(access_token, image, proxies)
-                if temp_uploaded_media_id:
-                    effective_thumb_media_id = temp_uploaded_media_id
-                else:
-                    log.warning(f"企业微信应用图片上传获取临时media_id失败，无法作为封面图。错误: {upload_media_err}")
-
-            # 根据是否获取到永久URL，追加content
-            if permanent_image_url:
-                img_tag_context = f'<br/>\n<img src="{permanent_image_url}">'
-            
-            # 3. 构建消息体：根据是否有 effective_thumb_media_id 决定发送文本还是图文消息
-            message_payload: dict
-            if effective_thumb_media_id: # 如果有封面media_id，发送图文消息
-                # 发送图文消息 (mpnews)
-                # 注意: mpnews 的 `content` 字段支持 HTML 标记，这里使用 <br/> 替换换行符
-                message_payload = {
-                    "touser": touser,
-                    "msgtype": "mpnews",
-                    "agentid": int(agentid), # AgentId 需要是 int 类型
-                    "mpnews": {
-                        "articles": [
-                            {
-                                "title": title,
-                                "thumb_media_id": effective_thumb_media_id,
-                                "author": "OneDragon", # 可自定义
-                                "content_source_url": "",  # 可选，可留空
-                                "content": content.replace("\n", "<br/>\n") + img_tag_context,  # 图文消息内容支持 HTML
-                                "digest": content, # 摘要，不含 HTML
-                            }
-                        ]
-                    },
-                    "safe": "0", # 是否保密，1 为保密，0 为不保密
-                }
+        if image is not None:
+            # 尝试上传图片获取永久URL，用于插入到content中
+            temp_permanent_image_url, permanent_upload_err = self._upload_image_permanent(access_token, image, proxies)
+            if temp_permanent_image_url:
+                permanent_image_url = temp_permanent_image_url
             else:
-                # 发送文本消息
-                message_payload = {
-                    "touser": touser,
-                    "msgtype": "text",
-                    "agentid": int(agentid), # AgentId 需要是 int 类型
-                    "text": {"content": f"{title}\n{content}"},
-                    "safe": "0",
-                }
+                log.warning(f"企业微信应用图片上传获取永久URL失败，无法在消息体中插入图片。错误: {permanent_upload_err}")
 
-            # 4. 发送消息
-            send_ok, send_msg = self._send_message_api(access_token, message_payload, proxies)
+            # 尝试上传图片获取临时media_id，用于mpnews封面
+            temp_uploaded_media_id, upload_media_err = self._upload_image_media(access_token, image, proxies)
+            if temp_uploaded_media_id:
+                effective_thumb_media_id = temp_uploaded_media_id
+            else:
+                log.warning(f"企业微信应用图片上传获取临时media_id失败，无法作为封面图。错误: {upload_media_err}")
 
-            # 如果图文消息发送失败，尝试回退到文本消息（仅当原意是发送图文且发送失败时）
-            if not send_ok and effective_thumb_media_id:
-                log.warning(f"企业微信应用图文消息发送失败：{send_msg}，尝试发送纯文本消息。")
-                text_fallback_payload = {
-                    "touser": touser,
-                    "msgtype": "text",
-                    "agentid": int(agentid),
-                    "text": {"content": f"{title}\n{content}"},
-                    "safe": "0",
-                }
-                text_fallback_ok, text_fallback_msg = self._send_message_api(
-                    access_token, text_fallback_payload, proxies
-                )
-                if text_fallback_ok:
-                    log.info("企业微信应用图文消息失败，已回退至文本消息推送成功")
-                    return True, "图文消息失败，已回退至文本消息推送成功"
-                else:
-                    log.error(f"企业微信应用图文消息和文本消息均失败: {send_msg}; 文本回退失败: {text_fallback_msg}")
-                    return False, f"图文消息和文本消息均失败: {send_msg}; 文本回退失败: {text_fallback_msg}"
-            
-            return send_ok, send_msg
+        # 根据是否获取到永久URL，追加content
+        if permanent_image_url:
+            img_tag_context = f'<br/>\n<img src="{permanent_image_url}">'
 
-        except Exception as e:
-            log.error("企业微信应用推送异常", exc_info=True)
-            return False, f"企业微信应用推送异常: {str(e)}"
+        # 3. 构建消息体：根据是否有 effective_thumb_media_id 决定发送文本还是图文消息
+        message_payload: dict
+        if effective_thumb_media_id: # 如果有封面media_id，发送图文消息
+            # 发送图文消息 (mpnews)
+            # 注意: mpnews 的 `content` 字段支持 HTML 标记，这里使用 <br/> 替换换行符
+            message_payload = {
+                "touser": touser,
+                "msgtype": "mpnews",
+                "agentid": int(agentid), # AgentId 需要是 int 类型
+                "mpnews": {
+                    "articles": [
+                        {
+                            "title": title,
+                            "thumb_media_id": effective_thumb_media_id,
+                            "author": "OneDragon", # 可自定义
+                            "content_source_url": "",  # 可选，可留空
+                            "content": content.replace("\n", "<br/>\n") + img_tag_context,  # 图文消息内容支持 HTML
+                            "digest": content, # 摘要，不含 HTML
+                        }
+                    ]
+                },
+                "safe": "0", # 是否保密，1 为保密，0 为不保密
+            }
+        else:
+            # 发送文本消息
+            message_payload = {
+                "touser": touser,
+                "msgtype": "text",
+                "agentid": int(agentid), # AgentId 需要是 int 类型
+                "text": {"content": f"{title}\n{content}"},
+                "safe": "0",
+            }
+
+        # 4. 发送消息
+        send_ok, send_msg = self._send_message_api(access_token, message_payload, proxies)
+
+        # 如果图文消息发送失败，尝试回退到文本消息（仅当原意是发送图文且发送失败时）
+        if not send_ok and effective_thumb_media_id:
+            log.warning(f"企业微信应用图文消息发送失败：{send_msg}，尝试发送纯文本消息。")
+            text_fallback_payload = {
+                "touser": touser,
+                "msgtype": "text",
+                "agentid": int(agentid),
+                "text": {"content": f"{title}\n{content}"},
+                "safe": "0",
+            }
+            text_fallback_ok, text_fallback_msg = self._send_message_api(
+                access_token, text_fallback_payload, proxies
+            )
+            if text_fallback_ok:
+                log.info("企业微信应用图文消息失败，已回退至文本消息推送成功")
+                return True, "图文消息失败，已回退至文本消息推送成功"
+            else:
+                log.error(f"企业微信应用图文消息和文本消息均失败: {send_msg}; 文本回退失败: {text_fallback_msg}")
+                return False, f"图文消息和文本消息均失败: {send_msg}; 文本回退失败: {text_fallback_msg}"
+
+        return send_ok, send_msg
 
     def validate_config(self, config: dict[str, str]) -> tuple[bool, str]:
         """

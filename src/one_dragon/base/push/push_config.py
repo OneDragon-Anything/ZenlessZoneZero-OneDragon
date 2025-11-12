@@ -54,7 +54,7 @@ class PushConfig(YamlConfig):
         # 检查旧的 qywx_am 配置是否存在且有值
         if self.data and isinstance(self.data.get(old_am_key), str) and self.data.get(old_am_key, '').strip():
             am_value = self.data.get(old_am_key)
-            
+
             parts = [part.strip() for part in am_value.split(',')]
 
             # 确认参数个数正确
