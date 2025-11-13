@@ -3,7 +3,6 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.suibian_temple import suibian_temple_const
 from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_squad import (
     SuibianTempleAdventureSquad,
@@ -42,7 +41,7 @@ class SuibianTempleApp(ZApplication):
             op_name=suibian_temple_const.APP_NAME,
         )
         self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
-            app_id='suibian_temple',
+            app_id=suibian_temple_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
