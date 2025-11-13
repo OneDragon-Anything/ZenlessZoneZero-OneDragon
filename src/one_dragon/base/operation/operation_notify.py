@@ -4,8 +4,6 @@ from collections.abc import Callable
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from cv2.typing import MatLike
-
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 
@@ -33,12 +31,7 @@ def _get_app_info(operation: Operation) -> tuple[str | None, str | None]:
     Returns:
         (app_id, app_name) 元组，如果无法获取则返回 (None, None)
     """
-    # 如果本身就是 Application，直接返回其信息
-    from one_dragon.base.operation.application_base import Application
-    if isinstance(operation, Application):
-        return getattr(operation, 'app_id', None), getattr(operation, 'op_name', None)
-
-    # 否则从 run_context 获取当前运行的应用信息
+    # 从 run_context 获取当前运行的应用信息
     app_id = operation.ctx.run_context.current_app_id
     if app_id is None:
         return None, None
@@ -70,57 +63,6 @@ def _should_notify(operation: Operation) -> bool:
     return operation.ctx.notify_config.is_app_notify_enabled(app_id)
 
 
-def _build_app_message(app_name: str, status: str) -> str:
-    """
-    构建应用级别的通知消息
-
-    Args:
-        app_name: 应用名称
-        status: 状态（成功/失败/开始）
-
-    Returns:
-        str: 格式化的消息
-    """
-    return f"{gt('任务「')}{app_name}{gt('」运行')}{status}"
-
-
-def _build_node_message(
-    app_name: str,
-    node_name: str,
-    phase: str,
-    custom_message: str | None = None,
-    status: str | None = None,
-    detail: bool = False
-) -> str:
-    """
-    构建节点级别的通知消息
-
-    Args:
-        app_name: 应用名称
-        node_name: 节点名称
-        phase: 阶段描述（成功/失败/开始/结束）
-        custom_message: 自定义消息
-        status: 状态信息
-        detail: 是否显示详细信息（节点名和状态）
-
-    Returns:
-        str: 格式化的消息
-    """
-    if detail:
-        # 显示详细信息：任务名、节点名、阶段、状态
-        status_text = f" [{status}]" if status else ''
-        msg = (f"{gt('任务「')}{app_name}{gt('」节点「')}{node_name}"
-               f"{gt('」')}{phase}{status_text}")
-    else:
-        # 简化消息：只显示任务名和阶段
-        msg = f"{gt('任务「')}{app_name}{gt('」')}{phase}"
-
-    if custom_message:
-        msg += '\n' + custom_message
-
-    return msg
-
-
 def send_application_notify(app: Application, status: bool | None) -> None:
     """向外部推送应用运行状态通知。
 
@@ -134,7 +76,7 @@ def send_application_notify(app: Application, status: bool | None) -> None:
 
     # 检查全局的开始前通知开关
     if status is None and not app.ctx.notify_config.enable_before_notify:
-            return
+        return
 
     # 确定状态和图片来源
     if status is True:
@@ -147,7 +89,7 @@ def send_application_notify(app: Application, status: bool | None) -> None:
     # 构建消息
     _, app_name = _get_app_info(app)
     app_name = gt(app_name)
-    message = _build_app_message(app_name, status)
+    message = f"{gt('任务')}「{app_name}」{gt('运行')}{status}"
 
     # 异步推送
     app.ctx.push_service.push_async(
@@ -228,118 +170,95 @@ def node_notify(
 
 
 def send_node_notify(
-        operation: Operation,
-        node_name: str,
-        is_success: bool,
-        desc: NodeNotifyDesc,
-        image: MatLike | None = None,
-        status: str | None = None,
+    operation: Operation,
+    round_result: OperationRoundResult,
+    current_node: OperationNode | None = None,
+    next_node: OperationNode | None = None
 ):
     """
     发送节点级通知
 
     Args:
         operation: Operation 实例
-        node_name: 节点名称
-        is_success: 是否成功
-        desc: 节点通知描述
-        image: 截图（可选）
-        status: 状态信息（可选）
-    """
-    # 获取应用名称
-    _, app_name = _get_app_info(operation)
-    if app_name is None:
-        app_name = operation.op_name
-    app_name = gt(app_name)
-
-    # 获取阶段文本
-    if is_success is True:
-        phase = gt('成功')
-    else:
-        phase = gt('失败')
-
-    # 构建消息
-    message = _build_node_message(
-        app_name=app_name,
-        node_name=node_name,
-        phase=phase,
-        custom_message=desc.custom_message,
-        status=status,
-        detail=desc.detail
-    )
-
-    # 判断是否发送图片
-    image = image if desc.send_image else None
-
-    # 异步推送
-    operation.ctx.push_service.push_async(
-        title=operation.ctx.notify_config.title,
-        content=message,
-        image=image,
-    )
-
-def process_node_notifications(
-    operation: Operation,
-    round_result: OperationRoundResult,
-    next_node: OperationNode | None = None
-):
-    """
-    集中处理一个节点的所有通知
-
-    Args:
-        operation: Operation 实例
         round_result: OperationRoundResult 实例
-        next_node: 下一个要执行的节点（用于处理 before 通知）
+        current_node: 当前正在执行的节点
+        next_node: 下一个要执行的节点
     """
-    # 当前节点或方法不存在时直接返回
-    current_node = operation.current_node.node
-    if current_node is None or current_node.op_method is None:
+    if not _should_notify(operation) or current_node is None:
         return
 
-    if not _should_notify(operation):
-        return
+    # 初始化通知列表
+    current_notify_list: list[NodeNotifyDesc] = []
+    next_notify_list: list[NodeNotifyDesc] = []
 
-    notify_list: list[NodeNotifyDesc] = getattr(current_node.op_method, 'operation_notify_annotation', [])
-    if not notify_list:
-        return
+    # 检查当前节点通知列表
+    if current_node is not None and current_node.op_method is not None:
+        current_notify_list = getattr(current_node.op_method, 'operation_notify_annotation', [])
 
-    node_name = current_node.cn
+    # 检查下一节点通知列表
+    if next_node is not None and next_node.op_method is not None:
+        next_notify_list = getattr(next_node.op_method, 'operation_notify_annotation', [])
+
+    # 合并所有需要处理的通知
+    all_notifications: list[NodeNotifyDesc] = []
     is_success = round_result.is_success
-    image = operation.last_screenshot
-    status = round_result.status
 
-    # 发送当前节点的通知
-    for desc in notify_list:
-        # 根据时机过滤
+    # 收集当前节点的非 BEFORE 通知
+    for desc in current_notify_list:
         if desc.when == NotifyTiming.BEFORE:
             continue
         if desc.when == NotifyTiming.AFTER_SUCCESS and is_success is not True:
             continue
         if desc.when == NotifyTiming.AFTER_FAIL and is_success is not False:
             continue
+        all_notifications.append(desc)
 
-        send_node_notify(
-            operation,
-            node_name,
-            is_success,
-            desc,
-            image,
-            status,
-        )
+    # 收集下一节点的 BEFORE 通知
+    for desc in next_notify_list:
+        if desc.when == NotifyTiming.BEFORE:
+            all_notifications.append(desc)
 
-    # 检查是否需要为下一节点发送通知
-    if next_node is not None and next_node.op_method is not None:
-        next_notify_list: list[NodeNotifyDesc] = getattr(
-            next_node.op_method, 'operation_notify_annotation', []
-        )
+    if not all_notifications:
+        return
 
-        for desc in next_notify_list:
-            if desc.when == NotifyTiming.BEFORE:
-                send_node_notify(
-                    operation,
-                    node_name,
-                    is_success,
-                    desc,
-                    image,
-                    status,
-                )
+    detail = False
+    send_image = False
+    custom_message = ''
+
+    for desc in all_notifications:
+        if desc.detail:
+            detail = True
+
+        if desc.send_image:
+            send_image = True
+
+        if desc.custom_message:
+            custom_message += f'\n{desc.custom_message}'
+
+    # 构建消息内容
+    _, app_name = _get_app_info(operation)
+    if app_name is None:
+        app_name = operation.op_name
+
+    app_name = gt(app_name)
+    node_name = gt(current_node.cn)
+
+    result = gt('成功') if is_success else gt('失败')
+
+    message = (f"{gt('任务')}「{app_name}」"
+               f"{gt('节点')}「{node_name}」\n"
+               f"{gt('运行')}「{result}」")
+
+    if detail:
+        status = round_result.status
+        message += f"状态「{status}」" if status else ''
+
+    if custom_message:
+        message += custom_message
+
+    # 异步推送
+    operation.ctx.push_service.push_async(
+        title=operation.ctx.notify_config.title,
+        content=message,
+        image=operation.last_screenshot if send_image else None,
+    )
