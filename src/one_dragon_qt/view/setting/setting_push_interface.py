@@ -213,8 +213,9 @@ class SettingPushInterface(VerticalScrollInterface):
 
         try:
             ok, msg = self.ctx.push_service.push(
-                channel_id=test_method,
+                title=gt('测试推送通知'),
                 content=gt('这是一条测试消息'),
+                channel_id=test_method,
             )
             if not ok:
                 self._show_error_message(msg)
@@ -230,6 +231,7 @@ class SettingPushInterface(VerticalScrollInterface):
         try:
             self._show_success_message("正在向所有已配置的通知方式发送测试消息...")
             ok, msg = self.ctx.push_service.push(
+                title=gt('测试推送通知'),
                 content=gt('这是一条测试消息'),
             )
             if not ok:
