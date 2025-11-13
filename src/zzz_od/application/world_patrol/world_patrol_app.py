@@ -103,7 +103,7 @@ class WorldPatrolApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='停止追踪后返回大世界')
-    @node_notify(when=NotifyTiming.AFTER, detail=True)
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='执行路线')
     def run_route(self) -> OperationRoundResult:
         if self.route_idx >= len(self.route_list):

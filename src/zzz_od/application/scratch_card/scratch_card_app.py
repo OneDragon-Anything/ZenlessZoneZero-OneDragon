@@ -114,7 +114,7 @@ class ScratchCardApp(ZApplication):
 
     @node_from(from_name='点击刮刮卡', status='按钮-同类型确认')
     @node_from(from_name='刮刮')
-    @node_notify(when=NotifyTiming.BEFORE)
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx)

@@ -64,7 +64,7 @@ class ChargePlanApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='打开菜单')
-    @node_notify(when=NotifyTiming.AFTER_SUCCESS, detail=True)
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS, detail=True)
     @operation_node(name='识别电量')
     def check_charge_power(self) -> OperationRoundResult:
         # 不能在快捷手册里面识别电量 因为每个人的备用电量不一样

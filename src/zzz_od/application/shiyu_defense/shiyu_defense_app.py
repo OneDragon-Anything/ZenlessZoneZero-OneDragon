@@ -161,7 +161,7 @@ class ShiyuDefenseApp(ZApplication):
             return self.round_success()
 
     @node_from(from_name='自动战斗', status=STATUS_NEXT_NODE)
-    @node_notify(when=NotifyTiming.BEFORE, detail=True)
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE, detail=True)
     @operation_node(name='下一节点')
     def to_next_node(self) -> OperationRoundResult:
         # 点击直到下一步出现 出现后 再等一会等属性出现
@@ -198,7 +198,7 @@ class ShiyuDefenseApp(ZApplication):
 
     @node_from(from_name='所有节点完成')
     @node_from(from_name='选择节点', status=STATUS_ALL_FINISHED)
-    @node_notify(when=NotifyTiming.AFTER, detail=True)
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='领取奖励')
     def claim_reward(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '全部领取')

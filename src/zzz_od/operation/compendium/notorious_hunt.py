@@ -515,7 +515,7 @@ class NotoriousHunt(ZOperation):
             return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='自动战斗')
-    @node_notify(when=NotifyTiming.AFTER_SUCCESS, detail=True)
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS, detail=True)
     @operation_node(name='战斗结束')
     def after_battle(self) -> OperationRoundResult:
         self.can_run_times -= 1

@@ -15,10 +15,10 @@ if TYPE_CHECKING:
 
 class NotifyTiming(Enum):
     """通知触发时机枚举"""
-    BEFORE = 'before'
-    AFTER = 'after'
-    AFTER_SUCCESS = 'after_success'
-    AFTER_FAIL = 'after_fail'
+    PREVIOUS_DONE = 'previous_done'
+    CURRENT_DONE = 'current_done'
+    CURRENT_SUCCESS = 'current_success'
+    CURRENT_FAIL = 'current_fail'
 
 
 def _get_app_info(operation: Operation) -> tuple[str | None, str | None]:
@@ -129,27 +129,24 @@ def node_notify(
     """为操作节点函数附加通知元数据的装饰器。
 
     用法示例：
-        @node_notify(when=NotifyTiming.AFTER)               # 节点结束后发送通知
-        @node_notify(when=NotifyTiming.BEFORE)              # 上一节点完成后发送通知
-        @node_notify(when=NotifyTiming.AFTER_SUCCESS)       # 仅成功后发送通知
-        @node_notify(when=NotifyTiming.AFTER_FAIL)          # 仅失败后发送通知
+        @node_notify(when=NotifyTiming.CURRENT_DONE)        # 节点完成后发送通知
         @node_notify(detail=True)                           # 显示节点名和返回状态
         @node_notify(custom_message='处理完成')             # 添加自定义消息
         @node_notify(send_image=False)                      # 不发送截图
 
     Args:
         when: 通知触发时机
-            - BEFORE: 上一节点完成后发送（展示上一节点信息）
-            - AFTER: 节点结束后发送（成功或失败都发送）
-            - AFTER_SUCCESS: 仅节点成功后发送
-            - AFTER_FAIL: 仅节点失败后发送
+            - PREVIOUS_DONE: 上一节点完成后发送（显示上一节点信息）
+            - CURRENT_DONE: 当前节点完成后发送（无论成功失败）
+            - CURRENT_SUCCESS: 仅当前节点成功后发送
+            - CURRENT_FAIL: 仅当前节点失败后发送
         custom_message: 自定义附加消息
         send_image: 是否发送截图
         detail: 是否显示详细信息（节点名和状态）
 
     自动行为：
         - 截图使用节点执行时的 last_screenshot
-        - BEFORE 通知在上一节点的结束阶段发送
+        - PREVIOUS_DONE 通知在上一节点的结束阶段发送
         - 其他通知在当前节点的结束阶段发送
         - 可多次装饰同一函数以实现多种时机通知
     """
@@ -203,19 +200,19 @@ def send_node_notify(
     all_notifications: list[NodeNotifyDesc] = []
     is_success = round_result.is_success
 
-    # 收集当前节点的非 BEFORE 通知
+    # 收集当前节点的非 PREVIOUS_DONE 通知
     for desc in current_notify_list:
-        if desc.when == NotifyTiming.BEFORE:
+        if desc.when == NotifyTiming.PREVIOUS_DONE:
             continue
-        if desc.when == NotifyTiming.AFTER_SUCCESS and is_success is not True:
+        if desc.when == NotifyTiming.CURRENT_SUCCESS and is_success is not True:
             continue
-        if desc.when == NotifyTiming.AFTER_FAIL and is_success is not False:
+        if desc.when == NotifyTiming.CURRENT_FAIL and is_success is not False:
             continue
         all_notifications.append(desc)
 
-    # 收集下一节点的 BEFORE 通知
+    # 收集下一节点的 PREVIOUS_DONE 通知
     for desc in next_notify_list:
-        if desc.when == NotifyTiming.BEFORE:
+        if desc.when == NotifyTiming.PREVIOUS_DONE:
             all_notifications.append(desc)
 
     if not all_notifications:

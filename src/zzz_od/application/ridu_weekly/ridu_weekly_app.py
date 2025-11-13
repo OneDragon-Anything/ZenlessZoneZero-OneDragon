@@ -55,7 +55,7 @@ class RiduWeeklyApp(ZApplication):
         return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='领取积分', success=False)  # 没有100积分之后
-    @node_notify(when=NotifyTiming.AFTER)
+    @node_notify(when=NotifyTiming.CURRENT_DONE)
     @operation_node(name='领取奖励')
     def confirm_schedule(self) -> OperationRoundResult:
         return self.round_by_click_area('丽都周纪', '领取奖励',

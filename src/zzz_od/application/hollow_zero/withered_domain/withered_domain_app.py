@@ -168,7 +168,7 @@ class WitheredDomainApp(ZApplication):
         return self.round_by_find_area(self.last_screenshot, '零号空洞-入口', '街区', retry_wait=1)
 
     @node_from(from_name='完成后等待加载')
-    @node_notify(when=NotifyTiming.BEFORE)
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='完成')
     def finish(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx)

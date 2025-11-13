@@ -87,7 +87,7 @@ class RedemptionCodeApp(ZApplication):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='输入兑换码', status='兑换码兑换')
-    @node_notify(when=NotifyTiming.AFTER_SUCCESS)
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='兑换后确认')
     def confirm_code(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '兑换码兑换')

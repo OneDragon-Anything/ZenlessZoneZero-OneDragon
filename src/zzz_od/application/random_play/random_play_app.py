@@ -352,7 +352,7 @@ class RandomPlayApp(ZApplication):
 
     @node_from(from_name='开始营业确认')
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
-    @node_notify(when=NotifyTiming.BEFORE)
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx)

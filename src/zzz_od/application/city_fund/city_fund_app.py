@@ -61,7 +61,7 @@ class CityFundApp(ZApplication):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击等级回馈')
-    @node_notify(when=NotifyTiming.AFTER_SUCCESS)
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='等级全部领取')
     def click_level_claim(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '丽都城募', '等级-全部领取',

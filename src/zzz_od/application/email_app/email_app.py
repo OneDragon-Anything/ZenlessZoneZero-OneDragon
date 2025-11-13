@@ -32,7 +32,7 @@ class EmailApp(ZApplication):
         return self.round_by_goto_screen(screen_name='邮件')
 
     @node_from(from_name='打开邮件')
-    @node_notify(when=NotifyTiming.AFTER_SUCCESS)
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='全部领取')
     def click_get_all(self) -> OperationRoundResult:
         """

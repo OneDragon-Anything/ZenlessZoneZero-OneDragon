@@ -77,7 +77,7 @@ class DriveDiscDismantleApp(ZApplication):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='快速选择确认')
-    @node_notify(when=NotifyTiming.AFTER_SUCCESS)
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='点击拆解')
     def click_salvage(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '仓库-驱动仓库-驱动盘拆解', '按钮-拆解',

@@ -286,7 +286,7 @@ class CoffeeApp(ZApplication):
         return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='点单后跳过')
-    @node_notify(when=NotifyTiming.AFTER_SUCCESS)
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='电量确认')
     def charge_confirm(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '电量确认')

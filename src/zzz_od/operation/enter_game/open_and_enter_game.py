@@ -40,7 +40,7 @@ class OpenAndEnterGame(Operation):
             return self.round_retry(wait=1)
 
     @node_from(from_name='等待游戏打开')
-    @node_notify(when=NotifyTiming.AFTER_FAIL, detail=True)
+    @node_notify(when=NotifyTiming.CURRENT_FAIL, detail=True)
     @operation_node(name='进入游戏')
     def enter_game(self) -> OperationRoundResult:
         from zzz_od.operation.enter_game.enter_game import EnterGame

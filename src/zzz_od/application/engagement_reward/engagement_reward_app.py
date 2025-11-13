@@ -59,7 +59,7 @@ class EngagementRewardApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='识别活跃度')
-    @node_notify(when=NotifyTiming.AFTER)
+    @node_notify(when=NotifyTiming.CURRENT_DONE)
     @operation_node(name='点击奖励')
     def click_reward(self) -> OperationRoundResult:
         if self.idx > 1:

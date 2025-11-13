@@ -45,7 +45,7 @@ class TrigramsCollectionApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='移动交互')
-    @node_notify(when=NotifyTiming.AFTER)
+    @node_notify(when=NotifyTiming.CURRENT_DONE)
     @operation_node(name='获取卦象', node_max_retry_times=10)
     def get_trigram(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)

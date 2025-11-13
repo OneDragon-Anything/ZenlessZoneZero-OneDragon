@@ -165,7 +165,7 @@ class LifeOnLineApp(ZApplication):
                 return self.round_success(LifeOnLineApp.STATUS_CONTINUE)
 
     @node_from(from_name='检查运行次数', status=STATUS_TIMES_FINISHED)
-    @node_notify(when=NotifyTiming.BEFORE)
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx)
