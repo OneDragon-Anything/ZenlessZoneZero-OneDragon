@@ -1,0 +1,35 @@
+# 适用于异常和击破角色，提高通关效率和概率
+# 该流派旨在于提升失衡值、失衡易伤倍率、属性异常积蓄值和属性异常积蓄效率
+auto_battle: 全配队通用
+region_type_priority:
+  #异常角色要给每波次的怪物重新上一次 debuff
+  - 战斗-武备
+  - 战斗-鸣徽
+  - 邦布商店
+  - 挚交会谈
+  - 战斗-道中危机
+  - 战斗-终结之役
+  - 战斗-硬币
+  - 挑战-限时
+  - 挑战-无伤
+artifact_priority:
+  - 异常·击破
+  - 爱丽丝
+  - 简
+  - 薇薇安
+  - 异常·击破 溶剂弹射枪
+  - 无详情 获得鸣徽
+artifact_priority_2:
+  - 携游 旋转木马
+  - 机敏 机敏挡位
+  - 机敏 安全气囊
+  - 通用
+  - 绝境 靶向抗体
+  - 绝境 阵痛激素
+buy_only_priority_1: 2
+buy_only_priority_2: 1
+period_buff_no: 第三个
+investigation_strategy: 抢占先机战略
+chase_new_mode: false
+artifact_priority_new: false
+store_blood: false
