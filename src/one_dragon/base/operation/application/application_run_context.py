@@ -11,7 +11,6 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
-    from one_dragon.base.operation.one_dragon_context import OneDragonContext
     from one_dragon.base.operation.application.application_config import (
         ApplicationConfig,
     )
@@ -20,6 +19,7 @@ if TYPE_CHECKING:
     )
     from one_dragon.base.operation.application_base import Application
     from one_dragon.base.operation.application_run_record import AppRunRecord
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 
 class ApplicationRunContextStateEnum(StrEnum):
@@ -123,7 +123,7 @@ class ApplicationRunContext:
                 app_name = factory.app_name or app_id
                 tmp.append((app_id, app_name))
 
-        return {k: v for k, v in sorted(tmp, key=lambda x: x[0])}
+        return dict(sorted(tmp, key=lambda x: x[0]))
 
     def is_app_registered(self, app_id: str) -> bool:
         """

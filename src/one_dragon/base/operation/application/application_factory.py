@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from one_dragon.base.operation.application_base import Application
@@ -33,6 +33,7 @@ class ApplicationFactory(ABC):
         self._config_cache: dict[str, ApplicationConfig] = {}
         self._run_record_cache: dict[str, AppRunRecord] = {}
 
+    @abstractmethod
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         """
         创建应用实例。
@@ -48,6 +49,7 @@ class ApplicationFactory(ABC):
         """
         raise Exception(f"未提供应用创建方法 {self.app_id}")
 
+    @abstractmethod
     def create_config(
         self, instance_idx: int, group_id: str
     ) -> ApplicationConfig:
@@ -65,6 +67,7 @@ class ApplicationFactory(ABC):
         """
         raise Exception(f"未提供应用配置创建方法 {self.app_id}")
 
+    @abstractmethod
     def create_run_record(self, instance_idx: int) -> AppRunRecord:
         """
         创建运行记录实例。

@@ -1,5 +1,6 @@
-from PySide6.QtWidgets import QWidget, QGridLayout
-from qfluentwidgets import MessageBoxBase, SubtitleLabel, SwitchButton, CheckBox
+from PySide6.QtWidgets import QGridLayout, QWidget
+from qfluentwidgets import CheckBox, MessageBoxBase, SubtitleLabel, SwitchButton
+
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 
@@ -55,7 +56,7 @@ class NotifyDialog(MessageBoxBase):
 
     def accept(self):
         """点击确定时，更新配置"""
-        setattr(self.ctx.notify_config, 'enable_before_notify', self.before_notify_switch.isChecked())
+        self.ctx.notify_config.enable_before_notify = self.before_notify_switch.isChecked()
         for app_id, checkbox in self.app_checkboxes.items():
             setattr(self.ctx.notify_config, app_id, checkbox.isChecked())
         super().accept()

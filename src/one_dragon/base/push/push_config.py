@@ -1,6 +1,6 @@
 import os
 import shutil
-from enum import Enum, StrEnum
+from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig

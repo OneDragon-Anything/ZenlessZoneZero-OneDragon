@@ -100,7 +100,7 @@ class SettingPushInterface(VerticalScrollInterface):
         content_widget.add_widget(self.curl_btn)
 
         email_services = PushEmailServices.load_services()
-        service_options = [ConfigItem(label=name, value=name, desc="") for name in email_services.keys()]
+        service_options = [ConfigItem(label=name, value=name, desc="") for name in email_services]
         self.email_service_opt = EditableComboBoxSettingCard(
             icon=FluentIcon.MESSAGE,
             title='邮箱服务选择',
@@ -349,15 +349,11 @@ class SettingPushInterface(VerticalScrollInterface):
             raise ValueError("URL、请求头或者请求体中必须包含 $content 变量")
 
         # 如果是JSON格式，验证JSON的合法性
-        if content_type == "application/json":
-            # 检查body模板是否为合法JSON
-            if not self._validate_json_format(body):
-                raise ValueError("请求体不是合法的JSON格式")
+        if content_type == "application/json" and not self._validate_json_format(body):
+            raise ValueError("请求体不是合法的JSON格式")
 
-        # 检查请求头是否为合法JSON
-        if headers and headers != "{}":
-            if not self._validate_json_format(headers):
-                raise ValueError("请求头不是合法的JSON格式")
+        if headers and headers != "{}" and not self._validate_json_format(headers):
+            raise ValueError("请求头不是合法的JSON格式")
 
     def _validate_json_format(self, json_str: str) -> bool:
         """验证JSON格式的合法性"""

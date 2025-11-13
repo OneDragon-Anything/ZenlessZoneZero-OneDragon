@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Optional
-
-from cv2.typing import MatLike
+from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation import Operation
@@ -30,10 +29,10 @@ class Application(Operation):
                  node_max_retry_times: int = 1,
                  op_name: str = None,
                  timeout_seconds: float = -1,
-                 op_callback: Optional[Callable[[OperationResult], None]] = None,
+                 op_callback: Callable[[OperationResult], None] | None = None,
                  need_check_game_win: bool = True,
-                 op_to_enter_game: Optional[Operation] = None,
-                 run_record: Optional[AppRunRecord] = None,
+                 op_to_enter_game: Operation | None = None,
+                 run_record: AppRunRecord | None = None,
                  ):
         Operation.__init__(
             self,
@@ -50,7 +49,7 @@ class Application(Operation):
         self.app_id: str = app_id
 
         # 运行记录
-        self.run_record: Optional[AppRunRecord] = run_record
+        self.run_record: AppRunRecord | None = run_record
         if run_record is None:
             # 部分应用没有运行记录 跳过即可
             with suppress(Exception):
