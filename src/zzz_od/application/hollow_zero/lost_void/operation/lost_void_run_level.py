@@ -818,8 +818,8 @@ def __debug():
     ctx.init()
     ctx.lost_void.init_before_run()
     ctx.run_context.start_running()
-    # ctx.lost_void.init_auto_op()
-    op = LostVoidRunLevel(ctx, LostVoidRegionType.BANGBOO_STORE)
+    ctx.lost_void.init_auto_op()
+    op = LostVoidRunLevel(ctx, LostVoidRegionType.ENTRY)
     op.execute()
 
 
