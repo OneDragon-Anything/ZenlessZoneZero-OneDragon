@@ -1,11 +1,12 @@
+from abc import ABC, abstractmethod
+
 from cv2.typing import MatLike
-from typing import Optional
 
 from one_dragon.base.controller.pc_game_window import PcGameWindow
 from one_dragon.base.geometry.rectangle import Rect
 
 
-class ScreencapperBase:
+class ScreencapperBase(ABC):
     """截图方法的抽象基类"""
 
     def __init__(self, game_win: PcGameWindow, standard_width: int, standard_height: int):
@@ -13,6 +14,7 @@ class ScreencapperBase:
         self.standard_width: int = standard_width
         self.standard_height: int = standard_height
 
+    @abstractmethod
     def init(self) -> bool:
         """初始化截图器
 
@@ -21,7 +23,8 @@ class ScreencapperBase:
         """
         raise NotImplementedError
 
-    def capture(self, rect: Rect, independent: bool = False) -> Optional[MatLike]:
+    @abstractmethod
+    def capture(self, rect: Rect, independent: bool = False) -> MatLike | None:
         """执行截图
 
         Args:
@@ -33,6 +36,7 @@ class ScreencapperBase:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def cleanup(self):
         """清理截图器使用的资源"""
         raise NotImplementedError

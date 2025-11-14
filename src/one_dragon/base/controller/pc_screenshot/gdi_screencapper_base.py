@@ -1,5 +1,4 @@
 import ctypes
-from typing import Optional
 import threading
 
 import cv2
@@ -25,14 +24,14 @@ class GdiScreencapperBase(ScreencapperBase):
 
     def __init__(self, game_win: PcGameWindow, standard_width: int, standard_height: int):
         ScreencapperBase.__init__(self, game_win, standard_width, standard_height)
-        self.hwndDC: Optional[int] = None
-        self.mfcDC: Optional[int] = None
-        self.saveBitMap: Optional[int] = None
-        self.buffer: Optional[ctypes.Array] = None
-        self.bmpinfo_buffer: Optional[ctypes.Array] = None
+        self.hwndDC: int | None = None
+        self.mfcDC: int | None = None
+        self.saveBitMap: int | None = None
+        self.buffer: ctypes.Array | None = None
+        self.bmpinfo_buffer: ctypes.Array | None = None
         self.width: int = 0
         self.height: int = 0
-        self.hwnd_for_dc: Optional[int] = None  # 保存获取DC时的句柄，用于正确释放DC
+        self.hwnd_for_dc: int | None = None  # 保存获取DC时的句柄，用于正确释放DC
         self._lock = threading.RLock()
 
     def init(self) -> bool:
@@ -66,7 +65,7 @@ class GdiScreencapperBase(ScreencapperBase):
             self.cleanup()
             return False
 
-    def capture(self, rect: Rect, independent: bool = False) -> Optional[MatLike]:
+    def capture(self, rect: Rect, independent: bool = False) -> MatLike | None:
         """获取窗口截图
 
         Args:
@@ -147,7 +146,7 @@ class GdiScreencapperBase(ScreencapperBase):
         self.height = 0
         self.hwnd_for_dc = None
 
-    def _capture_with_retry(self, hwnd, width, height) -> Optional[MatLike]:
+    def _capture_with_retry(self, hwnd, width, height) -> MatLike | None:
         """尝试执行一次截图操作"""
         needs_create = (self.saveBitMap is None
                         or self.width != width
@@ -180,7 +179,7 @@ class GdiScreencapperBase(ScreencapperBase):
                                               self.hwndDC, self.mfcDC, self.saveBitMap,
                                               self.buffer, self.bmpinfo_buffer)
 
-    def _capture_independent(self, hwnd, width, height) -> Optional[MatLike]:
+    def _capture_independent(self, hwnd, width, height) -> MatLike | None:
         """独立模式截图，自管理资源
 
         Args:
@@ -268,7 +267,7 @@ class GdiScreencapperBase(ScreencapperBase):
 
     def _capture_window_to_bitmap(self, hwnd, width, height,
                                   hwndDC, mfcDC, saveBitMap,
-                                  buffer, bmpinfo_buffer) -> Optional[MatLike]:
+                                  buffer, bmpinfo_buffer) -> MatLike | None:
         """执行窗口截图的核心逻辑
 
         子类需要实现具体的截图方法（PrintWindow 或 BitBlt）

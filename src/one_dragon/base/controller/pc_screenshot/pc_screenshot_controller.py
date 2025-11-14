@@ -1,12 +1,15 @@
-from typing import Optional, Dict
-
 from cv2.typing import MatLike
 
 from one_dragon.base.controller.pc_game_window import PcGameWindow
-from one_dragon.base.controller.pc_screenshot.bitblt_screencapper import BitBltScreencapper, BitBltFullscreenScreencapper
+from one_dragon.base.controller.pc_screenshot.bitblt_screencapper import (
+    BitBltFullscreenScreencapper,
+    BitBltScreencapper,
+)
 from one_dragon.base.controller.pc_screenshot.mss_screencapper import MssScreencapper
 from one_dragon.base.controller.pc_screenshot.pil_screencapper import PilScreencapper
-from one_dragon.base.controller.pc_screenshot.print_window_screencapper import PrintWindowScreencapper
+from one_dragon.base.controller.pc_screenshot.print_window_screencapper import (
+    PrintWindowScreencapper,
+)
 from one_dragon.base.controller.pc_screenshot.screencapper_base import ScreencapperBase
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.utils.log_utils import log
@@ -23,16 +26,16 @@ class PcScreenshotController:
         self.standard_width: int = standard_width
         self.standard_height: int = standard_height
 
-        self.strategies: Dict[str, ScreencapperBase] = {
+        self.strategies: dict[str, ScreencapperBase] = {
             "print_window": PrintWindowScreencapper(game_win, standard_width, standard_height),
             "bitblt": BitBltScreencapper(game_win, standard_width, standard_height),
             "bitblt_fullscreen": BitBltFullscreenScreencapper(game_win, standard_width, standard_height),
             "mss": MssScreencapper(game_win, standard_width, standard_height),
             "pil": PilScreencapper(game_win, standard_width, standard_height)
         }
-        self.active_strategy_name: Optional[str] = None
+        self.active_strategy_name: str | None = None
 
-    def get_screenshot(self, independent: bool = False) -> Optional[MatLike]:
+    def get_screenshot(self, independent: bool = False) -> MatLike | None:
         """根据初始化的方法获取截图
 
         Args:
@@ -74,7 +77,7 @@ class PcScreenshotController:
                 continue
         return None
 
-    def init_screenshot(self, method: str) -> Optional[str]:
+    def init_screenshot(self, method: str) -> str | None:
         """初始化截图方法，带有回退机制
 
         Args:

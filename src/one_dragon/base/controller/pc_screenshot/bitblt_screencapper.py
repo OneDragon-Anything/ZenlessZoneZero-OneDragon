@@ -1,12 +1,14 @@
 import ctypes
-from typing import Optional
 
 import cv2
-import numpy as np
 from cv2.typing import MatLike
 
 from one_dragon.base.controller.pc_game_window import PcGameWindow
-from one_dragon.base.controller.pc_screenshot.gdi_screencapper_base import GdiScreencapperBase, SRCCOPY, CAPTUREBLT
+from one_dragon.base.controller.pc_screenshot.gdi_screencapper_base import (
+    CAPTUREBLT,
+    SRCCOPY,
+    GdiScreencapperBase,
+)
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.utils.log_utils import log
 
@@ -143,7 +145,7 @@ class BitBltFullscreenScreencapper(BitBltScreencapperBase):
             self.cleanup()
             return False
 
-    def capture(self, rect: Rect, independent: bool = False) -> Optional[MatLike]:
+    def capture(self, rect: Rect, independent: bool = False) -> MatLike | None:
         """获取全屏截图并裁剪到窗口区域
 
         Args:
@@ -154,7 +156,7 @@ class BitBltFullscreenScreencapper(BitBltScreencapperBase):
             截图数组，失败返回 None
         """
         if independent:
-            return self._capture_independent_fullscreen(rect)
+            return self._capture_independent(rect)
 
         # 使用实例级锁保护对共享 GDI 资源的使用
         with self._lock:
@@ -180,7 +182,7 @@ class BitBltFullscreenScreencapper(BitBltScreencapperBase):
 
     def _crop_to_window(self, fullscreen: MatLike, rect: Rect,
                         virtual_left: int, virtual_top: int,
-                        virtual_width: int, virtual_height: int) -> Optional[MatLike]:
+                        virtual_width: int, virtual_height: int) -> MatLike | None:
         """将全屏截图裁剪到窗口区域
 
         Args:
@@ -210,7 +212,7 @@ class BitBltFullscreenScreencapper(BitBltScreencapperBase):
 
         return screenshot
 
-    def _capture_independent_fullscreen(self, rect: Rect) -> Optional[MatLike]:
+    def _capture_independent(self, rect: Rect) -> MatLike | None:
         """独立模式全屏截图
 
         Args:

@@ -1,20 +1,27 @@
 import ctypes
-import pyautogui
 import time
-
-from cv2.typing import MatLike
 from functools import lru_cache
+
+import pyautogui
+from cv2.typing import MatLike
 from pynput import keyboard
-from typing import Optional
 
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button import pc_button_utils
-from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonController
-from one_dragon.base.controller.pc_button.keyboard_mouse_controller import KeyboardMouseController
+from one_dragon.base.controller.pc_button.ds4_button_controller import (
+    Ds4ButtonController,
+)
+from one_dragon.base.controller.pc_button.keyboard_mouse_controller import (
+    KeyboardMouseController,
+)
 from one_dragon.base.controller.pc_button.pc_button_controller import PcButtonController
-from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonController
+from one_dragon.base.controller.pc_button.xbox_button_controller import (
+    XboxButtonController,
+)
 from one_dragon.base.controller.pc_game_window import PcGameWindow
-from one_dragon.base.controller.pc_screenshot.pc_screenshot_controller import PcScreenshotController
+from one_dragon.base.controller.pc_screenshot.pc_screenshot_controller import (
+    PcScreenshotController,
+)
 from one_dragon.base.geometry.point import Point
 from one_dragon.utils.log_utils import log
 
@@ -36,8 +43,8 @@ class PcControllerBase(ControllerBase):
                                                    standard_width=standard_width, standard_height=standard_height)
 
         self.keyboard_controller: KeyboardMouseController = KeyboardMouseController()
-        self.xbox_controller: Optional[XboxButtonController] = None
-        self.ds4_controller: Optional[Ds4ButtonController] = None
+        self.xbox_controller: XboxButtonController | None = None
+        self.ds4_controller: Ds4ButtonController | None = None
 
         self.btn_controller: PcButtonController = self.keyboard_controller
         self.screenshot_controller: PcScreenshotController = PcScreenshotController(self.game_win, standard_width, standard_height)
@@ -168,7 +175,7 @@ class PcControllerBase(ControllerBase):
         try:
             self.game_win.get_win().close()
             log.info('关闭游戏成功')
-        except:
+        except Exception:
             log.error('关闭游戏失败', exc_info=True)
 
     def input_str(self, to_input: str, interval: float = 0.1):

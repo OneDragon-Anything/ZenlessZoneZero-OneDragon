@@ -1,6 +1,8 @@
 import ctypes
 
-from one_dragon.base.controller.pc_screenshot.gdi_screencapper_base import GdiScreencapperBase
+from one_dragon.base.controller.pc_screenshot.gdi_screencapper_base import (
+    GdiScreencapperBase,
+)
 
 # WinAPI / GDI constants
 PW_CLIENTONLY = 0x00000001
@@ -24,7 +26,4 @@ class PrintWindowScreencapper(GdiScreencapperBase):
         Returns:
             是否截图成功
         """
-        result = ctypes.windll.user32.PrintWindow(hwnd, mfcDC, PW_FLAGS)
-        if not result:
-            return False
-        return True
+        return ctypes.windll.user32.PrintWindow(hwnd, mfcDC, PW_FLAGS)
