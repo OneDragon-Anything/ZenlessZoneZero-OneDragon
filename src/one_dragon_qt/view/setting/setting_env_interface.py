@@ -17,6 +17,7 @@ from one_dragon.envs.env_config import (
     PipSourceEnum,
     ProxyTypeEnum,
     RepositoryTypeEnum,
+    ScreenshotMethodEnum,
 )
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
@@ -72,6 +73,13 @@ class SettingEnvInterface(VerticalScrollInterface):
             icon=FluentIcon.SEARCH, title='OCR缓存模式', content='降低CPU占用(测试中)'
         )
         basic_group.addSettingCard(self.ocr_cache_opt)
+
+        self.screenshot_method_opt = ComboBoxSettingCard(
+            icon=FluentIcon.CAMERA, title='截图方法',
+            options_enum=ScreenshotMethodEnum
+        )
+        self.screenshot_method_opt.value_changed.connect(lambda: self.ctx.init_controller())
+        basic_group.addSettingCard(self.screenshot_method_opt)
 
         return basic_group
 
@@ -189,6 +197,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.debug_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('is_debug'))
         self.copy_screenshot_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('copy_screenshot'))
         self.ocr_cache_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('ocr_cache'))
+        self.screenshot_method_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('screenshot_method'))
 
         self.key_start_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_start_running'))
         self.key_stop_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_stop_running'))

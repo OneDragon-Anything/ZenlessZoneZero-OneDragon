@@ -1,24 +1,28 @@
-import time
-
 import ctypes
-import cv2
-import numpy as np
-import pyautogui
-from PIL.Image import Image
-from cv2.typing import MatLike
+import time
 from functools import lru_cache
+
+import pyautogui
+from cv2.typing import MatLike
 from pynput import keyboard
-from typing import Optional
 
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button import pc_button_utils
-from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonController
-from one_dragon.base.controller.pc_button.keyboard_mouse_controller import KeyboardMouseController
+from one_dragon.base.controller.pc_button.ds4_button_controller import (
+    Ds4ButtonController,
+)
+from one_dragon.base.controller.pc_button.keyboard_mouse_controller import (
+    KeyboardMouseController,
+)
 from one_dragon.base.controller.pc_button.pc_button_controller import PcButtonController
-from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonController
+from one_dragon.base.controller.pc_button.xbox_button_controller import (
+    XboxButtonController,
+)
 from one_dragon.base.controller.pc_game_window import PcGameWindow
+from one_dragon.base.controller.pc_screenshot.pc_screenshot_controller import (
+    PcScreenshotController,
+)
 from one_dragon.base.geometry.point import Point
-from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.utils.log_utils import log
 
 
@@ -29,6 +33,7 @@ class PcControllerBase(ControllerBase):
     MOUSEEVENTF_LEFTUP = 0x0004
 
     def __init__(self, win_title: str,
+                 screenshot_method: str,
                  standard_width: int = 1920,
                  standard_height: int = 1080):
         ControllerBase.__init__(self)
@@ -38,27 +43,37 @@ class PcControllerBase(ControllerBase):
                                                    standard_width=standard_width, standard_height=standard_height)
 
         self.keyboard_controller: KeyboardMouseController = KeyboardMouseController()
-        self.xbox_controller: Optional[XboxButtonController] = None
-        self.ds4_controller: Optional[Ds4ButtonController] = None
+        self.xbox_controller: XboxButtonController | None = None
+        self.ds4_controller: Ds4ButtonController | None = None
 
         self.btn_controller: PcButtonController = self.keyboard_controller
-        self.sct = None
+        self.screenshot_controller: PcScreenshotController = PcScreenshotController(self.game_win, standard_width, standard_height)
+        self.screenshot_method: str = screenshot_method
+
+    def init_game_win(self) -> bool:
+        """
+        初始化游戏窗口相关内容
+        Returns:
+            是否初始化成功
+        """
+        self.game_win.init_win()
+        if self.is_game_window_ready:
+            self.screenshot_controller.init_screenshot(self.screenshot_method)
+            return True
+        else:
+            return False
 
     def init_before_context_run(self) -> bool:
         pyautogui.FAILSAFE = False  # 禁用 Fail-Safe,防止鼠标接近屏幕的边缘或角落时报错
-        if self.sct is not None:  # 新一次app前 先关闭上一个
-            try:
-                self.sct.close()
-            except Exception:
-                pass
-        try:
-            import mss
-            self.sct = mss.mss()
-        except Exception:
-            pass
-        self.active_window()
-
+        self.init_game_win()
+        self.game_win.active()
         return True
+
+    def cleanup_after_app_shutdown(self) -> None:
+        """
+        清理资源
+        """
+        self.screenshot_controller.cleanup()
 
     def active_window(self) -> None:
         """
@@ -117,41 +132,11 @@ class PcControllerBase(ControllerBase):
             self.keyboard_controller.keyboard.release(keyboard.Key.alt)
         return True
 
-    def get_screenshot(self, independent: bool = False) -> MatLike | None:
-        """
-        截图 如果分辨率和默认不一样则进行缩放
-        :return: 截图
-        """
-        rect: Rect = self.game_win.win_rect
-        if rect is None:
-            return None
-
-        left = rect.x1
-        top = rect.y1
-        width = rect.width
-        height = rect.height
-
-        if self.sct is not None:
-            monitor = {"top": top, "left": left, "width": width, "height": height}
-            if independent:
-                try:
-                    import mss
-                    with mss.mss() as sct:
-                        screenshot = cv2.cvtColor(np.array(sct.grab(monitor)), cv2.COLOR_BGRA2RGB)
-                except Exception:
-                    pass
-            else:
-                screenshot = cv2.cvtColor(np.array(self.sct.grab(monitor)), cv2.COLOR_BGRA2RGB)
+    def get_screenshot(self, independent: bool = False) -> MatLike:
+        if self.is_game_window_ready:
+            return self.screenshot_controller.get_screenshot(independent)
         else:
-            img: Image = pyautogui.screenshot(region=(left, top, width, height))
-            screenshot = np.array(img)
-
-        if self.game_win.is_win_scale:
-            result = cv2.resize(screenshot, (self.standard_width, self.standard_height))
-        else:
-            result = screenshot
-
-        return result
+            raise RuntimeError('游戏窗口未就绪')
 
     def scroll(self, down: int, pos: Point = None):
         """
@@ -190,7 +175,7 @@ class PcControllerBase(ControllerBase):
         try:
             self.game_win.get_win().close()
             log.info('关闭游戏成功')
-        except:
+        except Exception:
             log.error('关闭游戏失败', exc_info=True)
 
     def input_str(self, to_input: str, interval: float = 0.1):
