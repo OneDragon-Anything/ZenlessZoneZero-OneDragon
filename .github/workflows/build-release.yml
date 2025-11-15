@@ -99,6 +99,16 @@ jobs:
       run: |
         uv venv .venv --python=3.11.12
 
+    - name: Fake ViGEmBus uninstall entries
+      shell: pwsh
+      run: |
+        $paths = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ViGEmFake','HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\ViGEmFake'
+        foreach ($p in $paths) {
+          New-Item -Path $p -Force | Out-Null
+          New-ItemProperty -Path $p -Name 'DisplayName' -Value 'Nefarius Virtual Gamepad Emulation Bus Driver' -PropertyType String -Force | Out-Null
+          New-ItemProperty -Path $p -Name 'DisplayVersion' -Value '1.17.333.0' -PropertyType String -Force | Out-Null
+        }
+
     - name: Install dependencies
       shell: pwsh
       run: |

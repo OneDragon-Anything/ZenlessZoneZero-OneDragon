@@ -25,6 +25,16 @@ jobs:
         run: |
           uv venv .venv --python=3.11.12
 
+      - name: Fake ViGEmBus uninstall entries
+        shell: pwsh
+        run: |
+          $paths = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ViGEmFake','HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\ViGEmFake'
+          foreach ($p in $paths) {
+            New-Item -Path $p -Force | Out-Null
+            New-ItemProperty -Path $p -Name 'DisplayName' -Value 'Nefarius Virtual Gamepad Emulation Bus Driver' -PropertyType String -Force | Out-Null
+            New-ItemProperty -Path $p -Name 'DisplayVersion' -Value '1.17.333.0' -PropertyType String -Force | Out-Null
+          }
+
       - name: Install dependencies
         shell: pwsh
         run: |
@@ -59,7 +69,7 @@ jobs:
           [Console]::InputEncoding = [System.Text.Encoding]::UTF8
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           .\.venv\Scripts\Activate.ps1
-          
+
           if ("${{ github.event_name }}" -eq "pull_request") {
             # PR时只运行不需要secrets的测试
             uv run pytest zzz-od-test/ -v --tb=short --color=yes -m "not requires_secrets"
