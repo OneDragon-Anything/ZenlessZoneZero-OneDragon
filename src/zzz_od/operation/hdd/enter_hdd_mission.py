@@ -72,6 +72,8 @@ class EnterHddMission(ZOperation):
         area = self.ctx.screen_loader.get_area('HDD', '副本区域')
         result = self.round_by_ocr_and_click(self.last_screenshot, self.mission_name, area=area)
         if result.is_success:
+            # 少数情况下首次点击未成功改变选中项，追加一次原地轻点以提高选择稳定性
+            self.ctx.controller.click()  # 在当前位置再点一次，相当于双击保障
             return self.round_success(wait=1)
 
         # 找不到时候 往下滑
