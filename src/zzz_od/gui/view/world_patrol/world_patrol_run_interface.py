@@ -60,7 +60,7 @@ class WorldPatrolRunInterface(AppRunInterface):
         widget.setLayout(layout)
 
         self.help_opt = HelpCard(url='',
-                                 content='使用此功能前请先到 [游戏助手]->[鼠标校准] 运行一次')
+                                 content='使用此功能前，建议勘域编队中要有一名合适的行走位')
         layout.addWidget(self.help_opt)
 
         self.auto_battle_opt = ComboBoxSettingCard(icon=FluentIcon.SEARCH, title='自动战斗')
