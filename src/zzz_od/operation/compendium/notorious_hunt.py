@@ -83,7 +83,6 @@ class NotoriousHunt(ZOperation):
         self.use_charge_power: bool = use_charge_power  # 是否使用电量 深度追猎
         self.can_run_times: int = -1
 
-        self.auto_op: AutoBattleOperator | None = None
         self.move_times: int = 0  # 移动次数
         self.no_dis_times: int = 0  # 识别不到距离的次数
         self.restart_times: int = 0  # 重新开始战斗次数
@@ -137,7 +136,7 @@ class NotoriousHunt(ZOperation):
         # 未匹配时 判断该往哪边滑动
         hunt_category = self.ctx.compendium_service.get_category_data('作战', '恶名狩猎')
         with_left: bool = False  # 当前识别有在目标左边的副本
-        for mission_type in hunt_category.mission_type_list:
+        for mission_type in reversed(hunt_category.mission_type_list):
             if mission_type.mission_type_name == self.plan.mission_type_name:
                 break
 
@@ -289,7 +288,11 @@ class NotoriousHunt(ZOperation):
 
         self.ctx.lost_void.init_lost_void_det_model()  # 借用迷失之地的模型来识别距离白点
 
-        return auto_battle_utils.load_auto_op(self, 'auto_battle', auto_battle)
+        self.ctx.auto_battle_context.init_auto_op(
+            sub_dir='auto_battle',
+            op_name=auto_battle,
+        )
+        return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
     @node_from(from_name='主动重新开始')
@@ -329,7 +332,7 @@ class NotoriousHunt(ZOperation):
             return self.round_success(status=result.status, wait=2)  # 按键后 等待一段时间选择鸣徽界面出现
 
         det_result: DetectFrameResult = self.ctx.lost_void.detector.run(self.last_screenshot, label_list=['0001-距离'])
-        self.auto_op.auto_battle_context.check_battle_distance(self.last_screenshot)
+        self.ctx.auto_battle_context.check_battle_distance(self.last_screenshot)
         distance_pos = None
         if len(det_result.results) > 0:
             distance_pos = Point(det_result.results[0].center[0], det_result.results[0].center[1])
@@ -341,7 +344,7 @@ class NotoriousHunt(ZOperation):
         if distance_pos is None:
             return self.round_retry(wait=1)
 
-        current_distance = self.auto_op.auto_battle_context.last_check_distance
+        current_distance = self.ctx.auto_battle_context.last_check_distance
 
         turn_result = self.turn_to_target(distance_pos)
         if turn_result:
@@ -349,7 +352,9 @@ class NotoriousHunt(ZOperation):
         else:
             self.last_distance = current_distance
             log.info(f'识别距离: {current_distance}')
-            press_time = self.auto_op.auto_battle_context.last_check_distance / 7.2  # 朱鸢测出来的速度
+            press_time = self.ctx.auto_battle_context.last_check_distance / 7.2  # 朱鸢测出来的速度
+            # 有可能识别错距离 设置一个最大的移动时间
+            press_time = min(press_time, 5)
             if press_time > 0:
                 self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
                 self.move_times += 1
@@ -466,19 +471,20 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='战斗失败', status='战斗结果-倒带')
     @operation_node(name='开始自动战斗')
     def start_auto_op(self) -> OperationRoundResult:
-        self.auto_op.start_running_async()
+        self.ctx.auto_battle_context.start_auto_battle()
         return self.round_success()
 
     @node_from(from_name='开始自动战斗')
     @operation_node(name='自动战斗', mute=True, timeout_seconds=600)
     def auto_battle(self) -> OperationRoundResult:
-        if self.auto_op.auto_battle_context.last_check_end_result is not None:
-            auto_battle_utils.stop_running(self.auto_op)
-            return self.round_success(status=self.auto_op.auto_battle_context.last_check_end_result)
+        if self.ctx.auto_battle_context.last_check_end_result is not None:
+            self.ctx.auto_battle_context.stop_auto_battle()
+            return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
 
-        self.auto_op.auto_battle_context.check_battle_state(
+        self.ctx.auto_battle_context.check_battle_state(
             self.last_screenshot, self.last_screenshot_time,
-            check_battle_end_normal_result=True)
+            check_battle_end_normal_result=True,
+        )
 
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
@@ -488,7 +494,7 @@ class NotoriousHunt(ZOperation):
         result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-倒带')
 
         if result.is_success:
-            self.auto_op.auto_battle_context.last_check_end_result = None
+            self.ctx.auto_battle_context.last_check_end_result = None
             return self.round_success(result.status, wait=1)
 
         result = self.round_by_find_and_click_area(self.last_screenshot, '战斗画面', '战斗结果-撤退')
@@ -557,7 +563,7 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)
     @operation_node(name='退出战斗')
     def exit_battle(self) -> OperationRoundResult:
-        auto_battle_utils.stop_running(self.auto_op)
+        self.ctx.auto_battle_context.stop_auto_battle()
         op = ExitInBattle(self.ctx, '战斗-挑战结果-失败', '按钮-退出')
         return self.round_by_op_result(op.execute())
 
@@ -593,17 +599,11 @@ class NotoriousHunt(ZOperation):
                 return self.round_retry(op_result.status, wait=1)
 
     def handle_pause(self, e=None):
-        if self.auto_op is not None:
-            self.auto_op.stop_running()
+        self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self, e=None):
-        auto_battle_utils.resume_running(self.auto_op)
+        self.ctx.auto_battle_context.resume_auto_battle()
 
-    def after_operation_done(self, result: OperationResult):
-        ZOperation.after_operation_done(self, result)
-        if self.auto_op is not None:
-            self.auto_op.dispose()
-            self.auto_op = None
 
 def __debug_charge():
     """
@@ -629,7 +629,7 @@ def __debug():
         ctx,
         ChargePlanItem(
             category_name='恶名狩猎',
-            mission_type_name='彷徨猎手',
+            mission_type_name='初生死路屠夫',
             level=NotoriousHuntLevelEnum.DEFAULT.value.value,
             auto_battle_config='全配对通用',
             predefined_team_idx=0,

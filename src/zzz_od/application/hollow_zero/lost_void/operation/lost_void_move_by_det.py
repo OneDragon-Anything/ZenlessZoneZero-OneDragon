@@ -210,7 +210,7 @@ class LostVoidMoveByDet(ZOperation):
             return self.round_wait('转动朝向目标', wait=0.5)
 
         # 移动前切换到最佳角色
-        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx.lost_void.auto_op)
+        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
         return self.round_success('开始移动')
 
     @node_from(from_name='移动前转向', status='开始移动')
@@ -455,7 +455,7 @@ class LostVoidMoveByDet(ZOperation):
         @return:
         """
         # 在大世界 先切换到移动最优角色
-        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx.lost_void.auto_op)
+        auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
         # 部分障碍物可以破坏 尝试攻击
         self.ctx.controller.normal_attack(press=True, press_time=0.2, release=True)
 

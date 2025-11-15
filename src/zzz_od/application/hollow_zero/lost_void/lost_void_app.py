@@ -134,7 +134,6 @@ class LostVoidApp(ZApplication):
 
     @node_from(from_name='识别初始画面', status='可前往副本画面')
     @node_from(from_name='选择迷失之地')
-    @node_from(from_name='通关后处理', status=STATUS_AGAIN)
     @operation_node(name='开始前等待入口加载')
     def wait_lost_void_entry(self) -> OperationRoundResult:
         screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
@@ -143,11 +142,48 @@ class LostVoidApp(ZApplication):
         return self.round_success(status=screen_name)
 
     @node_from(from_name='开始前等待入口加载')
-    @operation_node(name='开始前识别悬赏委托完成进度')
+    @node_from(from_name='通关后处理')
+    @operation_node(name='识别悬赏委托完成进度')
     def check_bounty_commission_before(self) -> OperationRoundResult:
-        return self._check_bounty_commission()
+        """
+        识别悬赏委托完成进度
+        通过OCR识别屏幕中 '8000' 出现的次数来判断:
+        - 1次: xxxx/8000 (未完成)
+        - 2次: 8000/8000 (已完成)
 
-    @node_from(from_name='开始前识别悬赏委托完成进度')
+        :return: 操作结果
+        """
+        if not self.config.is_bounty_commission_mode:
+            if self.run_record.is_finished_by_day:
+                return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
+            return self.round_success(LostVoidApp.STATUS_AGAIN)
+
+        TARGET_SCORE = '8000'  # 目标分数文本
+
+        # 裁剪悬赏委托进度区域
+        area = self.ctx.screen_loader.get_area('迷失之地-入口', '区域-悬赏委托-进度')
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
+
+        # OCR识别
+        ocr_result_list = self.ctx.ocr.ocr(part)
+
+        # 统计 '8000' 出现次数
+        target_count = sum(ocr_text.data.count(TARGET_SCORE) for ocr_text in ocr_result_list)
+
+        # 根据次数判断完成状态
+        if target_count == 1:
+            # 只有一个 8000,表示 xxxx/8000 (未完成)
+            return self.round_success(LostVoidApp.STATUS_AGAIN)
+        elif target_count == 2:
+            # 两个 8000,表示 8000/8000 (已完成)
+            if not self.run_record.bounty_commission_complete:
+                self.run_record.bounty_commission_complete = True
+            return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
+        else:
+            # 未识别到预期的结果(0次或3次以上),返回重试
+            return self.round_retry(wait=0.5)
+
+    @node_from(from_name='识别悬赏委托完成进度', status=STATUS_AGAIN)
     @operation_node(name='前往副本画面', node_max_retry_times=60)
     def goto_mission_screen(self) -> OperationRoundResult:
         mission_name = self.config.mission_name
@@ -457,7 +493,10 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='出战')
     @operation_node(name='加载自动战斗配置')
     def load_auto_op(self) -> OperationRoundResult:
-        self.ctx.lost_void.init_auto_op()
+        self.ctx.auto_battle_context.init_auto_op(
+            sub_dir='auto_battle',
+            op_name=self.ctx.lost_void.get_auto_op_name(),
+        )
         return self.round_success()
 
     @node_from(from_name='加载自动战斗配置')
@@ -486,18 +525,9 @@ class LostVoidApp(ZApplication):
         if self.use_priority_agent:
             self.run_record.complete_task_force_with_up = True
 
-        if self.run_record.is_finished_by_day:
-            return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
+        return self.round_success()
 
-        return self.round_success(LostVoidApp.STATUS_AGAIN)
-
-    @node_from(from_name='通关后处理', status=STATUS_ENOUGH_TIMES)
-    @operation_node(name='通关后识别悬赏委托完成进度')
-    def check_bounty_commission_after(self) -> OperationRoundResult:
-        return self._check_bounty_commission()
-
-    @node_from(from_name='开始前识别悬赏委托完成进度', status='已完成悬赏委托')
-    @node_from(from_name='通关后识别悬赏委托完成进度')
+    @node_from(from_name='识别悬赏委托完成进度', status=STATUS_ENOUGH_TIMES)
     @operation_node(name='打开悬赏委托')
     def open_reward_list(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(screen_name='迷失之地-入口', area_name='按钮-悬赏委托',
@@ -517,44 +547,6 @@ class LostVoidApp(ZApplication):
         self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
-
-    # 识别悬赏委托分数
-    def _check_bounty_commission(self) -> OperationRoundResult:
-        """
-        识别悬赏委托完成进度
-        通过OCR识别屏幕中 '8000' 出现的次数来判断:
-        - 1次: xxxx/8000 (未完成)
-        - 2次: 8000/8000 (已完成)
-
-        :return: 操作结果
-        """
-        if not self.config.is_bounty_commission_mode:
-            return self.round_success('非悬赏委托模式')
-
-        TARGET_SCORE = '8000'  # 目标分数文本
-
-        # 裁剪悬赏委托进度区域
-        area = self.ctx.screen_loader.get_area('迷失之地-入口', '区域-悬赏委托-进度')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-
-        # OCR识别
-        ocr_result_list = self.ctx.ocr.ocr(part)
-
-        # 统计 '8000' 出现次数
-        target_count = sum(ocr_text.data.count(TARGET_SCORE) for ocr_text in ocr_result_list)
-
-        # 根据次数判断完成状态
-        if target_count == 1:
-            # 只有一个 8000,表示 xxxx/8000 (未完成)
-            return self.round_success('未打满悬赏委托')
-        elif target_count == 2:
-            # 两个 8000,表示 8000/8000 (已完成)
-            if not self.run_record.bounty_commission_complete:
-                self.run_record.bounty_commission_complete = True
-            return self.round_success('已完成悬赏委托')
-        else:
-            # 未识别到预期的结果(0次或3次以上),返回重试
-            return self.round_retry('未找到悬赏委托', wait=0.5)
 
 
 def __debug():

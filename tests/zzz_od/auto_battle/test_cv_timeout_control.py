@@ -298,7 +298,7 @@ class TestCvTimeoutControl(unittest.TestCase):
         try:
             from zzz_od.auto_battle.auto_battle_target_context import AutoBattleTargetContext
             from zzz_od.context.zzz_context import ZContext
-            from one_dragon.base.conditional_operation.conditional_operator import ConditionalOperator
+            from one_dragon.base.conditional_operation.operator import ConditionalOperator
 
             # 创建真实上下文
             ctx = ZContext()

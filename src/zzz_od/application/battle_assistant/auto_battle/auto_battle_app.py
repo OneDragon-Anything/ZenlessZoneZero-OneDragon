@@ -1,17 +1,18 @@
-from typing import ClassVar, Optional
+from __future__ import annotations
+
+from typing import ClassVar, TYPE_CHECKING
 
 from one_dragon.base.controller.pc_button import pc_button_utils
-from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.battle_assistant.auto_battle import auto_battle_const
 from zzz_od.application.zzz_application import ZApplication
-from zzz_od.auto_battle import auto_battle_utils
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.config.game_config import GamepadTypeEnum
-from zzz_od.context.zzz_context import ZContext
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
 
 class AutoBattleApp(ZApplication):
@@ -28,8 +29,6 @@ class AutoBattleApp(ZApplication):
             app_id=auto_battle_const.APP_ID,
             op_name=gt(auto_battle_const.APP_NAME),
         )
-
-        self.auto_op: Optional[AutoBattleOperator] = None
 
     def handle_init(self) -> None:
         """
@@ -67,17 +66,18 @@ class AutoBattleApp(ZApplication):
         加载战斗指令
         :return:
         """
-        result = auto_battle_utils.load_auto_op(self, 'auto_battle',
-                                                self.ctx.battle_assistant_config.auto_battle_config)
+        self.ctx.auto_battle_context.init_auto_op(
+            sub_dir='auto_battle',
+            op_name=self.ctx.battle_assistant_config.auto_battle_config,
+        )
 
-        if result.is_success:
-            self.ctx.dispatch_event(
-                AutoBattleApp.EVENT_OP_LOADED,
-                self.auto_op,
-            )
-            self.auto_op.start_running_async()
+        self.ctx.dispatch_event(
+            AutoBattleApp.EVENT_OP_LOADED,
+            self.ctx.auto_battle_context.auto_op,
+        )
+        self.ctx.auto_battle_context.start_auto_battle()
 
-        return result
+        return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
     @operation_node(name='画面识别', mute=True)
@@ -86,20 +86,11 @@ class AutoBattleApp(ZApplication):
         识别当前画面 并进行点击
         :return:
         """
-        self.auto_op.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
-
+        self.ctx.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
         return self.round_wait(wait_round_time=self.ctx.battle_assistant_config.screenshot_interval)
 
-    def _on_pause(self, e=None):
-        ZApplication._on_pause(self, e)
-        auto_battle_utils.stop_running(self.auto_op)
+    def handle_pause(self, e=None):
+        self.ctx.auto_battle_context.stop_auto_battle()
 
-    def _on_resume(self, e=None):
-        ZApplication._on_resume(self, e)
-        auto_battle_utils.resume_running(self.auto_op)
-
-    def after_operation_done(self, result: OperationResult):
-        ZApplication.after_operation_done(self, result)
-        if self.auto_op is not None:
-            self.auto_op.dispose()
-            self.auto_op = None
+    def handle_resume(self, e=None):
+        self.ctx.auto_battle_context.resume_auto_battle()

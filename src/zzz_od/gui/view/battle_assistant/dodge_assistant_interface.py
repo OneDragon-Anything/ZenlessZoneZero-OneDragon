@@ -95,7 +95,7 @@ class DodgeAssistantInterface(AppRunInterface):
         left_layout.addWidget(AppRunInterface.get_content_widget(self))
 
         right_layout = QVBoxLayout()
-        self.battle_state_display = BattleStateDisplay()
+        self.battle_state_display = BattleStateDisplay(self.ctx)
         right_layout.addWidget(self.battle_state_display)
 
         horizontal_layout.addLayout(left_layout, stretch=1)
@@ -174,7 +174,6 @@ class DodgeAssistantInterface(AppRunInterface):
         """
         if self.battle_state_display is None:
             return
-        self.battle_state_display.auto_op = event.data
         self.auto_op_loaded_signal.emit()
 
     def _on_auto_op_loaded_signal(self) -> None:

@@ -122,7 +122,8 @@ class BackToNormalWorld(ZOperation):
         part = cv2_utils.crop_image_only(screen, area.rect)
         ocr_result_map = self.ctx.ocr.run_ocr(part)
         ocr_result_list = [i for i in ocr_result_map.keys()]
-        agent_name_list = [gt(i.value.agent_name, 'game') for i in AgentEnum]
+        agent_name_list = [i.value.agent_name for i in AgentEnum] + ['小黑']
+        agent_name_list = [gt(i, 'game') for i in agent_name_list]
         idx1, idx2 = str_utils.find_most_similar(ocr_result_list, agent_name_list)
         return idx1 is not None and idx2 is not None
 
@@ -170,6 +171,7 @@ class BackToNormalWorld(ZOperation):
         if tab_num >= 2:  # 找到了多个tab
             return self.round_by_click_area('快捷手册', '按钮-退出')
 
+
 def __debug_op():
     ctx = ZContext()
     ctx.init_by_config()
@@ -181,15 +183,14 @@ def __debug_op():
 
 def _debug():
     ctx = ZContext()
-    ctx.init_by_config()
-    ctx.init_ocr()
+    ctx.init()
     op = BackToNormalWorld(ctx)
     from one_dragon.utils import debug_utils
-    screen = debug_utils.get_debug_image('111')
+    screen = debug_utils.get_debug_image('508500962-c6b83e60-fc00-49ce-83d0-17e0e49a5aa1')
     import cv2
     op.last_screenshot = cv2.resize(screen, (1920, 1080))
-    print(op.check_screen_and_run(screen).status)
+    print(op.check_screen_and_run().status)
 
 
 if __name__ == '__main__':
-    __debug_op()
+    _debug()

@@ -25,5 +25,13 @@ class WaitNormalWorld(ZOperation):
         识别游戏画面
         :return:
         """
-        return self.round_by_find_area(self.last_screenshot, '大世界', '信息',
-                                       retry_wait=1)
+        # 大世界有两种画面：大世界-普通 / 大世界-勘域
+        world_screens = ['大世界-普通', '大世界-勘域']
+        current = self.check_and_update_current_screen(
+            self.last_screenshot,
+            screen_name_list=world_screens,
+        )
+        if current in world_screens:
+            return self.round_success(status=current)
+
+        return self.round_retry('未到达大世界', wait=1)
