@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from one_dragon.base.operation.application_base import Application
@@ -17,6 +17,7 @@ class ApplicationFactory(ABC):
         self,
         app_id: str,
         app_name: str,
+        need_notify: bool = False,
     ):
         """
         初始化应用工厂。
@@ -24,12 +25,15 @@ class ApplicationFactory(ABC):
         Args:
             app_id: 应用唯一标识符，用于区分不同的应用类型
             app_name: 显示用的应用名称
+            need_notify: 应用是否需要通知
         """
         self.app_id: str = app_id
         self.app_name: str = app_name
+        self.need_notify: bool = need_notify
         self._config_cache: dict[str, ApplicationConfig] = {}
         self._run_record_cache: dict[str, AppRunRecord] = {}
 
+    @abstractmethod
     def create_application(self, instance_idx: int, group_id: str) -> Application:
         """
         创建应用实例。
@@ -45,6 +49,7 @@ class ApplicationFactory(ABC):
         """
         raise Exception(f"未提供应用创建方法 {self.app_id}")
 
+    @abstractmethod
     def create_config(
         self, instance_idx: int, group_id: str
     ) -> ApplicationConfig:
@@ -62,6 +67,7 @@ class ApplicationFactory(ABC):
         """
         raise Exception(f"未提供应用配置创建方法 {self.app_id}")
 
+    @abstractmethod
     def create_run_record(self, instance_idx: int) -> AppRunRecord:
         """
         创建运行记录实例。

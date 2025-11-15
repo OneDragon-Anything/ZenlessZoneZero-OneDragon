@@ -1,5 +1,6 @@
-from PySide6.QtWidgets import QWidget, QGridLayout
-from qfluentwidgets import MessageBoxBase, SubtitleLabel, SwitchButton, CheckBox
+from PySide6.QtWidgets import QGridLayout, QWidget
+from qfluentwidgets import CheckBox, MessageBoxBase, SubtitleLabel, SwitchButton
+
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 
@@ -34,12 +35,10 @@ class NotifyDialog(MessageBoxBase):
         grid_layout.setContentsMargins(0, 10, 0, 10)
         grid_layout.setSpacing(10)
 
-        app_list = self.ctx.notify_config.app_list
-
         # 每行放置3个复选框
         column_count = 3
         # 使用 enumerate 和 items() 遍历字典获取索引、键和值
-        for i, (app_id, app_name) in enumerate(app_list.items()):
+        for i, (app_id, app_name) in enumerate(self.ctx.notify_config.app_map.items()):
             row = i // column_count
             col = i % column_count
 
@@ -57,7 +56,7 @@ class NotifyDialog(MessageBoxBase):
 
     def accept(self):
         """点击确定时，更新配置"""
-        setattr(self.ctx.notify_config, 'enable_before_notify', self.before_notify_switch.isChecked())
+        self.ctx.notify_config.enable_before_notify = self.before_notify_switch.isChecked()
         for app_id, checkbox in self.app_checkboxes.items():
             setattr(self.ctx.notify_config, app_id, checkbox.isChecked())
         super().accept()
