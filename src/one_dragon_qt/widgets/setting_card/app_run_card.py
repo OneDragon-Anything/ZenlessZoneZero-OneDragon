@@ -1,6 +1,7 @@
 from typing import Optional
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, QPoint, Qt
+from PySide6.QtGui import QMouseEvent, QPainter, QPen, QColor
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
     FluentIcon,
@@ -21,7 +22,6 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
 
 class AppRunCard(MultiPushSettingCard):
 
-    move_up = Signal(str)
     run = Signal(str)
     switched = Signal(str, bool)
 
@@ -35,9 +35,6 @@ class AppRunCard(MultiPushSettingCard):
         self.app: ApplicationGroupConfigItem = app
         self.run_record: Optional[AppRunRecord] = run_record
 
-        self.move_up_btn = TransparentToolButton(FluentIcon.UP, None)
-        self.move_up_btn.clicked.connect(self._on_move_up_clicked)
-
         self.run_btn = TransparentToolButton(FluentIcon.PLAY, None)
         self.run_btn.clicked.connect(self._on_run_clicked)
 
@@ -47,13 +44,16 @@ class AppRunCard(MultiPushSettingCard):
         self.switch_btn.setChecked(switch_on)
         self.switch_btn.checkedChanged.connect(self._on_switch_changed)
 
+        # 先初始化主基类
         MultiPushSettingCard.__init__(
             self,
-            btn_list=[self.move_up_btn, self.run_btn, self.switch_btn],
+            btn_list=[self.run_btn, self.switch_btn],
             icon=FluentIcon.GAME,
             title=self.app.app_name,
             parent=parent,
         )
+
+        # 拖拽逻辑由容器级 mixin 负责，此处不再处理
 
     def update_display(self) -> None:
         """
@@ -81,13 +81,6 @@ class AppRunCard(MultiPushSettingCard):
             else:
                 icon = FluentIcon.INFO
             self.iconLabel.setIcon(icon)
-
-    def _on_move_up_clicked(self) -> None:
-        """
-        向上移动运行顺序
-        :return:
-        """
-        self.move_up.emit(self.app.app_id)
 
     def _on_run_clicked(self) -> None:
         """
@@ -119,7 +112,6 @@ class AppRunCard(MultiPushSettingCard):
 
     def setDisabled(self, arg__1: bool) -> None:
         MultiPushSettingCard.setDisabled(self, arg__1)
-        self.move_up_btn.setDisabled(arg__1)
         self.run_btn.setDisabled(arg__1)
         self.switch_btn.setDisabled(arg__1)
 
