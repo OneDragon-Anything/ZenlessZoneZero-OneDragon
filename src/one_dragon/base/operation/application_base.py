@@ -20,8 +20,8 @@ _app_preheat_executor = ThreadPoolExecutor(thread_name_prefix='od_app_preheat', 
 
 class ApplicationEventId(Enum):
 
-    APPLICATION_START: str = '应用开始运行'
-    APPLICATION_STOP: str = '应用停止运行'
+    APPLICATION_START = '应用开始运行'
+    APPLICATION_STOP = '应用停止运行'
 
 
 class Application(Operation):

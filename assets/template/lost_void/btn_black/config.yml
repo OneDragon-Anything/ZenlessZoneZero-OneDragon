@@ -1,0 +1,8 @@
+sub_dir: lost_void
+template_id: btn_black
+template_name: 黑屏文本按钮
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 940, 605
+- 980, 635

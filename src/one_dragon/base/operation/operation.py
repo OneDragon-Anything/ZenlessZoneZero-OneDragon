@@ -33,60 +33,49 @@ from one_dragon.utils.log_utils import log
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
-class PreviousNodeStateProxy:
+class NodeStateProxy:
     """
-    一个代理类，用于安全、便捷地访问上一个节点的静态信息和动态执行结果。
+    一个代理类，用于安全、便捷地访问节点的静态信息和动态执行结果。
     """
 
-    def __init__(self, node: Optional[OperationNode], result: Optional[OperationRoundResult]):
-        self._node = node
-        self._result = result
+    def __init__(self, node: OperationNode | None, result: OperationRoundResult | None = None):
+        self.node = node
+        self.result = result
 
     @property
-    def name(self) -> Optional[str]:
+    def name(self) -> str | None:
         """
-        上一个节点的名称
+        节点的名称
         """
-        return self._node.cn if self._node else None
+        return self.node.cn if self.node is not None else None
 
     @property
-    def status(self) -> Optional[str]:
+    def status(self) -> str | None:
         """
-        上一个节点的返回状态
+        节点的返回状态
         """
-        return self._result.status if self._result else None
+        return self.result.status if self.result is not None else None
 
     @property
-    def data(self) -> Optional[Any]:
+    def data(self) -> Any | None:
         """
-        上一个节点的返回数据
+        节点的返回数据
         """
-        return self._result.data if self._result else None
+        return self.result.data if self.result is not None else None
 
     @property
     def is_success(self) -> bool:
         """
-        上一个节点是否成功
+        节点是否成功
         """
-        if self._result is None:
-            return False
-        return self._result.result == OperationRoundResultEnum.SUCCESS
+        return self.result.is_success if self.result is not None else False
 
     @property
     def is_fail(self) -> bool:
         """
-        上一个节点是否失败
+        节点是否失败
         """
-        if self._result is None:
-            return False
-        return self._result.result == OperationRoundResultEnum.FAIL
-
-    @property
-    def raw_node(self) -> Optional[OperationNode]:
-        """
-        获取原始的 OperationNode 对象，用于高级访问
-        """
-        return self._node
+        return self.result.is_fail if self.result is not None else False
 
 
 class Operation(OperationBase):
@@ -189,7 +178,7 @@ class Operation(OperationBase):
         self.last_screenshot_time: float = 0
         """上一次截图的时间"""
 
-        self.node_status: dict[str, PreviousNodeStateProxy] = {}
+        self.node_status: dict[str, NodeStateProxy] = {}
         """已保存节点状态的字典"""
 
     def _init_before_execute(self):
@@ -514,7 +503,7 @@ class Operation(OperationBase):
         if self._current_node.save_status and current_round_result.result in (
             OperationRoundResultEnum.SUCCESS, OperationRoundResultEnum.FAIL
         ):
-            self.node_status[self._current_node.cn] = PreviousNodeStateProxy(self._current_node, current_round_result)
+            self.node_status[self._current_node.cn] = NodeStateProxy(self._current_node, current_round_result)
 
         return current_round_result
 
@@ -1180,7 +1169,7 @@ class Operation(OperationBase):
         return route is not None and route.can_go
 
     @property
-    def previous_node(self) -> PreviousNodeStateProxy:
+    def previous_node(self) -> NodeStateProxy:
         """
         获取一个代理对象，用于安全地访问上一个节点的执行状态和结果。
 
@@ -1188,7 +1177,7 @@ class Operation(OperationBase):
         这对于根据上一步的结果来决定当前步骤的行为非常有用。
 
         Returns:
-            PreviousNodeStateProxy: 一个包含上一个节点状态和结果的代理对象。
+            NodeStateProxy: 一个包含上一个节点状态和结果的代理对象。
 
         Example:
             @operation_node(name='处理节点')
@@ -1201,4 +1190,13 @@ class Operation(OperationBase):
                     # ... 进行处理 ...
                 return self.round_success()
         """
-        return PreviousNodeStateProxy(self._previous_node, self._previous_round_result)
+        return NodeStateProxy(self._previous_node, self._previous_round_result)
+
+    @property
+    def current_node(self) -> NodeStateProxy:
+        """获取当前执行的节点的代理对象。
+
+        Returns:
+            NodeStateProxy: 一个包含当前节点的代理对象。
+        """
+        return NodeStateProxy(self._current_node)

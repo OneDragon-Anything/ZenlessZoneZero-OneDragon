@@ -36,7 +36,7 @@ if __name__ == '__main__':
     from zzz_od.gui.zzz_installer_window import ZInstallerWindow
 
     _ctx = OneDragonEnvContext()
-    _ctx.installer_dir = installer_dir
+    _ctx.installer_dir = str(installer_dir)
     detect_and_set_default_language()
     w = ZInstallerWindow(_ctx, gt(f'{_ctx.project_config.project_name}-installer'))
     w.show()

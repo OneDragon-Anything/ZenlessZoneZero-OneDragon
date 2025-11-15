@@ -8,6 +8,7 @@ from one_dragon.utils.i18_utils import gt
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 from zzz_od.application.notorious_hunt import notorious_hunt_const
 from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig
+from zzz_od.application.notorious_hunt.notorious_hunt_run_record import NotoriousHuntRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -21,7 +22,7 @@ class NotoriousHuntApp(ZApplication):
 
     def __init__(self, ctx: ZContext):
         """
-        每天自动接收邮件奖励
+        恶名狩猎
         """
         ZApplication.__init__(
             self,
@@ -34,6 +35,11 @@ class NotoriousHuntApp(ZApplication):
             app_id=notorious_hunt_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
+        )
+
+        self.run_record: NotoriousHuntRunRecord = self.ctx.run_context.get_run_record(
+            app_id=notorious_hunt_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
         )
 
     def handle_init(self) -> None:

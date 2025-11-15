@@ -42,7 +42,8 @@ class LostVoidChooseCommon(ZOperation):
         art_list, chosen_list = self.get_artifact_pos(self.last_screenshot)
         art: Optional[LostVoidArtifactPos] = None
         if self.to_choose_num > 0:
-            if len(art_list) == 0:
+            if len(art_list) == 0 and len(chosen_list) == 0:  # 已选和可选都没有才算没有
+                # 如果初始可选=0 已选=1 即自动战斗结束不及时导致误点屏幕中心选到了卡牌 且正好为单选 会一直无法识别而卡住 而不是去直接点确认 这种小概率情况会出现在秘宝猎人战略
                 return self.round_retry(status='无法识别藏品', wait=1)
 
             priority_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(
@@ -178,7 +179,7 @@ class LostVoidChooseCommon(ZOperation):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.init_ocr()
     ctx.lost_void.init_before_run()
     ctx.run_context.start_running()
@@ -189,13 +190,13 @@ def __debug():
 
 def __get_get_artifact_pos():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.init_ocr()
     ctx.lost_void.init_before_run()
 
     op = LostVoidChooseCommon(ctx)
     from one_dragon.utils import debug_utils
-    screen = debug_utils.get_debug_image('484035848-554c6a8d-340e-404d-ab88-8baac21637ca')
+    screen = debug_utils.get_debug_image('20251112133547')
     art_list, chosen_list = op.get_artifact_pos(screen)
     print(len(art_list), len(chosen_list))
     cv2_utils.show_image(screen, chosen_list[0] if len(chosen_list) > 0 else None, wait=0)
@@ -204,4 +205,4 @@ def __get_get_artifact_pos():
 
 
 if __name__ == '__main__':
-    __get_get_artifact_pos()
+    __debug()

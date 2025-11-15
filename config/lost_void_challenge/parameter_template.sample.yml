@@ -34,7 +34,7 @@ artifact_priority:
   - 月城柳
   - 比利
   - 卡牌
-  - 异常·击破 战斗维生包
+  - 绝境 战斗维生包
   - 无详情 获得鸣徽
 
 # 藏品第二优先级
@@ -54,3 +54,19 @@ buy_only_priority_2: 1
 # 周期增益
 # 可选参数: 第一个, 第二个, 第三个
 period_buff_no: 第一个
+
+# 调查策略
+# 选择使用的调查战略名称, 对应内部加载的战略列表条目, 影响进入副本时的战略选择逻辑
+investigation_strategy: 攻其不备战略
+
+# 追新模式
+# 开启后优先选择未满级的调查战略
+chase_new_mode: true
+
+# 优先选择NEW！藏品
+# 开启后在藏品筛选时对未记录过的新藏品给予额外考虑
+artifact_priority_new: true
+
+# 商店-使用血量购买
+# 关闭后不允许在邦布商店用当前角色血量作为货币购买
+store_blood: false

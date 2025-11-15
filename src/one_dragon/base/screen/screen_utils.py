@@ -19,17 +19,17 @@ if TYPE_CHECKING:
 
 class OcrClickResultEnum(Enum):
 
-    OCR_CLICK_SUCCESS: int = 1  # OCR并点击成功
-    OCR_CLICK_FAIL: int = 0  # OCR成功但点击失败 基本不会出现
-    OCR_CLICK_NOT_FOUND: int = -1  # OCR找不到目标
-    AREA_NO_CONFIG: int = -2  # 区域配置找不到
+    OCR_CLICK_SUCCESS = 1  # OCR并点击成功
+    OCR_CLICK_FAIL = 0  # OCR成功但点击失败 基本不会出现
+    OCR_CLICK_NOT_FOUND = -1  # OCR找不到目标
+    AREA_NO_CONFIG = -2  # 区域配置找不到
 
 
 class FindAreaResultEnum(Enum):
 
-    TRUE: int = 1  # 找到了
-    FALSE: int = 0  # 找不到
-    AREA_NO_CONFIG: int = -2  # 区域配置找不到
+    TRUE = 1  # 找到了
+    FALSE = 0  # 找不到
+    AREA_NO_CONFIG = -2  # 区域配置找不到
 
 
 def find_area(ctx: OneDragonContext, screen: MatLike, screen_name: str, area_name: str) -> FindAreaResultEnum:

@@ -1,4 +1,3 @@
-import os
 import shutil
 import webbrowser
 
@@ -17,7 +16,6 @@ from one_dragon.utils.log_utils import log
 from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 from one_dragon_qt.widgets.install_card.all_install_card import AllInstallCard
 from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
-from one_dragon_qt.widgets.install_card.git_install_card import GitInstallCard
 from one_dragon_qt.widgets.install_card.launcher_install_card import LauncherInstallCard
 from one_dragon_qt.widgets.install_card.python_install_card import PythonInstallCard
 from one_dragon_qt.widgets.install_card.uv_install_card import UVInstallCard
@@ -29,12 +27,16 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 class UnpackResourceRunner(QThread):
     """资源解包线程"""
     finished = Signal(bool)
-    def __init__(self, installer_dir:str, work_dir: str, parent=None):
+    def __init__(self, installer_dir: str | None, work_dir: str, parent=None):
         super().__init__(parent)
         self.installer_dir = installer_dir
         self.work_dir = work_dir
 
     def run(self):
+        if self.installer_dir is None:
+            self.finished.emit(False)
+            return
+
         uv_zip_dir = Path(self.installer_dir) / '.install' / 'uv-x86_64-pc-windows-msvc.zip'
         if Path(self.installer_dir) != Path(self.work_dir) and uv_zip_dir.exists():
             try:
@@ -348,12 +350,12 @@ class InstallStepWidget(QWidget):
 
 class InstallerInterface(VerticalScrollInterface):
 
-    def __init__(self, ctx: OneDragonEnvContext, extra_install_cards: list = None, parent=None):
+    def __init__(self, ctx: OneDragonEnvContext, extra_install_cards: list | None = None, parent=None):
         VerticalScrollInterface.__init__(self, object_name='install_interface',
                                          parent=parent, content_widget=None,
                                          nav_text_cn='一键安装', nav_icon=FluentIcon.DOWNLOAD)
         self.ctx: OneDragonEnvContext = ctx
-        self.extra_install_cards: list = extra_install_cards
+        self.extra_install_cards: list | None = extra_install_cards
         self._progress_value = 0
         self._progress_message = ''
         self._installing = False
@@ -475,7 +477,6 @@ class InstallerInterface(VerticalScrollInterface):
         main_vlayout.addSpacing(40)
 
         # 高级安装卡片组
-        self.git_opt = GitInstallCard(self.ctx)
         self.code_opt = CodeInstallCard(self.ctx)
         self.uv_opt = UVInstallCard(self.ctx)
         self.python_opt = PythonInstallCard(self.ctx)
@@ -483,7 +484,7 @@ class InstallerInterface(VerticalScrollInterface):
         self.launcher_opt = LauncherInstallCard(self.ctx)
 
         # 基础安装组件
-        base_install_cards = [self.git_opt, self.code_opt, self.uv_opt, self.python_opt, self.venv_opt, self.launcher_opt]
+        base_install_cards = [self.code_opt, self.uv_opt, self.python_opt, self.venv_opt, self.launcher_opt]
 
         # 所有安装组件
         self.all_install_cards = base_install_cards.copy()
@@ -511,7 +512,7 @@ class InstallerInterface(VerticalScrollInterface):
         main_layout.addWidget(title_label, stretch=1)
 
         # 步骤指示器
-        step_names = ["Git 环境", "代码同步", "环境配置", "安装启动器"]
+        step_names = ["代码同步", "环境配置", "安装启动器"]
         if self.extra_install_cards:
             step_names.append("扩展安装")
         self.step_indicator = StepIndicator(step_names)
@@ -521,10 +522,6 @@ class InstallerInterface(VerticalScrollInterface):
 
         # 创建安装步骤
         self.install_steps = [
-            InstallStepWidget(
-            "安装 Git 版本控制工具，用于代码版本管理和项目更新。",
-            [self.git_opt]
-            ),
             InstallStepWidget(
             "从 GitHub 仓库同步最新项目代码，确保使用最新功能和修复。",
             [self.code_opt]

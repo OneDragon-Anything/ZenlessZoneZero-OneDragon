@@ -452,6 +452,11 @@ class LostVoidRunLevel(ZOperation):
         if self.interact_target is not None and self.interact_target.is_entry:
             return self.round_success(LostVoidRunLevel.STATUS_NEXT_LEVEL)
 
+        # 交互过程中可能会出现全屏黑屏文本需要点击
+        result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-大世界', '按钮-黑屏文本-确认')
+        if result.is_success:
+            return self.round_wait(status=result.status, wait=1)
+
         # 交互后 可能出现了后续的交互
         return self.round_retry(status=f'未知画面', wait_round_time=1)
 
@@ -818,7 +823,7 @@ def __debug():
     ctx.init()
     ctx.lost_void.init_before_run()
     ctx.run_context.start_running()
-    ctx.lost_void.init_auto_op()
+    # ctx.lost_void.init_auto_op()
     op = LostVoidRunLevel(ctx, LostVoidRegionType.ENTRY)
     op.execute()
 

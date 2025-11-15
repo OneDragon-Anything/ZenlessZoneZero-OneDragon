@@ -859,7 +859,7 @@
   template_id: "gear_yuzuha_3"
 
 - category: "柚叶"
-  name: "狸影重重-a"  
+  name: "狸影重重-a"
   level: "S"
   is_gear: true
 
@@ -966,6 +966,55 @@
   level: "S"
   is_gear: true
 
+  # 伊德海莉
+- category: "伊德海莉"
+  name: "冽光傍身"
+  level: "S"
+  is_gear: true
+  template_id: "gear_idrila_1"
+
+- category: "伊德海莉"
+  name: "冽光傍身-a"
+  level: "S"
+  is_gear: true
+
+- category: "伊德海莉"
+  name: "冽光傍身-b"
+  level: "S"
+  is_gear: true
+
+- category: "伊德海莉"
+  name: "凛霜彻骨"
+  level: "S"
+  is_gear: true
+  template_id: "gear_idrila_2"
+
+- category: "伊德海莉"
+  name: "凛霜彻骨-a"
+  level: "S"
+  is_gear: true
+
+- category: "伊德海莉"
+  name: "凛霜彻骨-b"
+  level: "S"
+  is_gear: true
+
+- category: "伊德海莉"
+  name: "倾心筑梦"
+  level: "S"
+  is_gear: true
+  template_id: "gear_idrila_3"
+
+- category: "伊德海莉"
+  name: "倾心筑梦-a"
+  level: "S"
+  is_gear: true
+
+- category: "伊德海莉"
+  name: "倾心筑梦-b"
+  level: "S"
+  is_gear: true
+
   # 异影
 - category: "杰佩托"
   name: "处决指令"
@@ -974,6 +1023,10 @@
 - category: "杰佩托"
   name: "审判时刻"
   level: "S"
+
+- category: "杰佩托"
+  name: "稳定牵制"
+  level: "A"
 
 - category: "杰佩托"
   name: "以血还血"
@@ -1385,6 +1438,10 @@
 
 - category: "契合"
   name: "百炼重刃"
+  level: "S"
+
+- category: "契合"
+  name: "倾听潮汐"
   level: "S"
 
 - category: "契合"

@@ -4,9 +4,9 @@ import numpy as np
 from one_dragon.base.cv_process.cv_code_generator import CvCodeGenerator
 from one_dragon.base.cv_process.cv_pipeline import CvPipeline, CvPipelineContext
 from one_dragon.base.cv_process.cv_step import CvStep
+from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.screen.template_info import TemplateInfo
 from one_dragon.utils import cv2_utils
-from zzz_od.context.zzz_context import ZContext
 
 
 class ImageAnalysisLogic:
@@ -15,11 +15,11 @@ class ImageAnalysisLogic:
     负责响应界面事件，调用核心CV服务，并管理界面状态
     """
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: OneDragonContext):
         """
         业务逻辑的初始化
         """
-        self.ctx: ZContext = ctx
+        self.ctx: OneDragonContext = ctx
         self.cv_service = ctx.cv_service  # 从上下文中获取核心服务
 
         self.pipeline: CvPipeline = CvPipeline()
