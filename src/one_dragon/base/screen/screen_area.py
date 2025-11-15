@@ -123,11 +123,7 @@ class ScreenArea:
         else:
             return np.array(self.color_range[1], dtype=np.uint8)
 
-    def to_order_dict(self) -> dict:
-        """
-        有顺序的dict 用于保存时候展示
-        :return:
-        """
+    def to_dict(self) -> dict:
         order_dict = dict()
         order_dict['area_name'] = self.area_name
         order_dict['id_mark'] = self.id_mark

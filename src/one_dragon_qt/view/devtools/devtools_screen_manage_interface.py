@@ -1,10 +1,11 @@
 import os
+from typing import Optional, Any
+
 from PySide6.QtCore import QObject, Signal, Qt
-from PySide6.QtWidgets import QWidget, QFileDialog, QTableWidgetItem, QVBoxLayout, QHBoxLayout
 from PySide6.QtGui import QKeyEvent
+from PySide6.QtWidgets import QWidget, QFileDialog, QTableWidgetItem, QVBoxLayout, QHBoxLayout
 from qfluentwidgets import (FluentIcon, PushButton, ToolButton, CheckBox, LineEdit, BodyLabel,
                             TableWidget, SimpleCardWidget, SingleDirectionScrollArea, ScrollArea)
-from typing import Optional, Any
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.geometry.rectangle import Rect
@@ -17,13 +18,12 @@ from one_dragon.utils import os_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.mixins.history_mixin import HistoryMixin
-from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.row import Row
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard, MultiLineSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
 
 
 class ScreenInfoWorker(QObject):
@@ -99,7 +99,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.save_btn.clicked.connect(self._on_save_clicked)
         btn_row.add_widget(self.save_btn)
 
-        self.delete_btn = ToolButton(FluentIcon.DELETE)
+        self.delete_btn = ToolButton(FluentIcon.DELETE, parent=None)
         self.delete_btn.clicked.connect(self._on_delete_clicked)
         btn_row.add_widget(self.delete_btn)
 
@@ -136,10 +136,14 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.screen_name_edit.setMinimumWidth(200)
         self.screen_name_edit.editingFinished.connect(self._on_screen_name_changed)
 
-        self.screen_info_opt = MultiLineSettingCard(icon=FluentIcon.HOME, title=gt('画面信息'), line_list=[
-            [self.screen_id_label, self.screen_id_edit],
-            [self.screen_name_label, self.screen_name_edit]
-        ])
+        self.screen_info_opt = MultiLineSettingCard(
+            icon=FluentIcon.HOME,
+            title=gt('画面信息'),
+            line_list=[
+                [self.screen_id_label, self.screen_id_edit],
+                [self.screen_name_label, self.screen_name_edit]
+            ]
+        )
         control_layout.addWidget(self.screen_info_opt)
 
         self.table_widget = self._init_area_table_widget()
@@ -350,14 +354,11 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         :param screen_name:
         :return:
         """
-        for screen_info in self.ctx.screen_loader.screen_info_list:
-            if screen_info.screen_name == screen_name:
-                self.chosen_screen = ScreenInfo(screen_id=screen_info.screen_id)
-                # 清除撤回记录
-                self._clear_history()
-                self._update_history_buttons()
-                self._whole_update.signal.emit()
-                break
+        self.chosen_screen = self.ctx.screen_loader.get_screen(screen_name, copy=True)
+        # 清除撤回记录
+        self._clear_history()
+        self._update_history_buttons()
+        self._whole_update.signal.emit()
 
     def _on_create_clicked(self):
         """
@@ -367,7 +368,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         if self.chosen_screen is not None:
             return
 
-        self.chosen_screen = ScreenInfo(create_new=True)
+        self.chosen_screen = ScreenInfo({})
         # 清除撤回记录
         self._clear_history()
         self._whole_update.signal.emit()
@@ -380,8 +381,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         if self.chosen_screen is None:
             return
 
-        self.chosen_screen.save()
-        self.ctx.screen_loader.load_all()
+        self.ctx.screen_loader.save_screen(self.chosen_screen)
         self._existed_yml_update.signal.emit()
 
     def _on_delete_clicked(self) -> None:
@@ -391,8 +391,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         """
         if self.chosen_screen is None:
             return
-        self.chosen_screen.delete()
-        self.chosen_screen = None
+        self.ctx.screen_loader.delete_screen(self.chosen_screen.screen_id)
         self._whole_update.signal.emit()
         self._existed_yml_update.signal.emit()
 
@@ -402,7 +401,9 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         :return:
         """
         self.chosen_screen = None
+        self.existed_yml_btn.blockSignals(True)
         self.existed_yml_btn.setCurrentIndex(-1)
+        self.existed_yml_btn.blockSignals(False)
         self.area_table_row_selected = -1
         self.x_pos_label.setText('')
         self.y_pos_label.setText('')
