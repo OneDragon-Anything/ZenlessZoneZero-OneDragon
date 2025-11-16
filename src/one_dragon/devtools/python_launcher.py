@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import atexit
+import contextlib
 import ctypes
 import datetime
 import os
@@ -7,10 +10,12 @@ import subprocess
 import sys
 import time
 from ctypes import wintypes
+from typing import TYPE_CHECKING
 
 from colorama import Fore, Style, init
 
-from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 
 # 初始化 colorama
 init(autoreset=True)
@@ -172,10 +177,8 @@ def execute_python_script(ctx: OneDragonEnvContext, app_path, no_windows: bool, 
 
         # 注册退出处理函数，当前程序退出时，尝试主动关闭Job对象
         def _cleanup():
-            try:
+            with contextlib.suppress(Exception):
                 kernel32.CloseHandle(job_handle)
-            except Exception:
-                pass
         atexit.register(_cleanup)
 
         # 注册信号处理，当前程序收到CTRL+C信号时，将信号传递给python子进程，这会使得 `process.wait()` 退出, 并得到返回值
@@ -186,10 +189,8 @@ def execute_python_script(ctx: OneDragonEnvContext, app_path, no_windows: bool, 
             except Exception:
                 process.terminate()
         signal.signal(signal.SIGINT, _on_signal)
-        try:
+        with contextlib.suppress(Exception):
             signal.signal(signal.SIGTERM, _on_signal)
-        except Exception:
-            pass
 
         # 等待进程结束
         exit_code = 0
@@ -236,6 +237,7 @@ def run_python(app_path, no_windows: bool = True, args: list | None = None, pipe
     # 主函数
     try:
         cwd = verify_working_directory()
+        from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
         ctx = OneDragonEnvContext()
         configure_environment(ctx, cwd)
         fetch_latest_code(ctx)
