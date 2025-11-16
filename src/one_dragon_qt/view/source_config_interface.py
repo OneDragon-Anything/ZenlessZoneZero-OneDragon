@@ -84,7 +84,7 @@ class SourceConfigInterface(VerticalScrollInterface):
             title='代码仓库',
             options_enum=RepositoryTypeEnum
         )
-        self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_git_remote())
+        self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
 
         self.env_source_opt = ComboBoxSettingCard(
             icon=FluentIcon.CLOUD_DOWNLOAD,
@@ -213,8 +213,6 @@ class SourceConfigInterface(VerticalScrollInterface):
     def _init_proxy(self):
         """初始化代理设置"""
         self.ctx.env_config.init_system_proxy()
-        self.ctx.git_service.is_proxy_set = False
-        self.ctx.git_service.init_git_proxy()
 
     def on_interface_shown(self):
         VerticalScrollInterface.on_interface_shown(self)

@@ -40,11 +40,6 @@ class ZContext(OneDragonContext):
         return WorldPatrolService(self)
 
     @cached_property
-    def cv_service(self):
-        from one_dragon.base.cv_process.cv_service import CvService
-        return CvService(self)
-
-    @cached_property
     def telemetry(self):
         from zzz_od.telemetry.telemetry_manager import TelemetryManager
         return TelemetryManager(self)

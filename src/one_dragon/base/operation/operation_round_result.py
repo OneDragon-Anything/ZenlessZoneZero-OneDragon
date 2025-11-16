@@ -4,10 +4,10 @@ from enum import Enum
 
 
 class OperationRoundResultEnum(Enum):
-    RETRY: int = 0  # 重试
-    SUCCESS: int = 1  # 成功
-    WAIT: int = 2  # 等待 本轮不计入
-    FAIL: int = -1  # 失败
+    RETRY = 0  # 重试
+    SUCCESS = 1  # 成功
+    WAIT = 2  # 等待 本轮不计入
+    FAIL = -1  # 失败
 
 
 class OperationRoundResult:

@@ -34,12 +34,12 @@ from one_dragon.utils.log_utils import log
 
 class ContextKeyboardEventEnum(Enum):
 
-    PRESS: str = 'context_keyboard_press'
+    PRESS = 'context_keyboard_press'
 
 
 class ContextInstanceEventEnum(Enum):
 
-    instance_active: str = 'instance_active'
+    instance_active = 'instance_active'
 
 
 class OneDragonContext(ContextEventBus, OneDragonEnvContext):
@@ -101,6 +101,11 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     def custom_config(self):
         from one_dragon.base.config.custom_config import CustomConfig
         return CustomConfig()
+
+    @cached_property
+    def cv_service(self):
+        from one_dragon.base.cv_process.cv_service import CvService
+        return CvService(self)
 
     #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
 
