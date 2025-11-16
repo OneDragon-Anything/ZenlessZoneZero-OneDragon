@@ -54,6 +54,7 @@ class ExeLauncher(LauncherBase):
 
         if not pyuac.isUserAdmin():
             pyuac.runAsAdmin(sys.argv)
+            sys.exit(0)
         else:
             if args.onedragon:
                 launch_args = self.build_launch_args(args)
