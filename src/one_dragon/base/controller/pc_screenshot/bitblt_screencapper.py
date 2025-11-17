@@ -27,46 +27,8 @@ class BitBltScreencapperBase(GdiScreencapperBase):
         GdiScreencapperBase.__init__(self, game_win, standard_width, standard_height)
         self.use_captureblt = True
 
-    def _do_bitblt(self, dest_dc, dest_x, dest_y, width, height,
-                   src_dc, src_x, src_y) -> bool:
-        """执行 BitBlt 操作，自动处理 CAPTUREBLT 标志
-
-        Args:
-            dest_dc: 目标设备上下文
-            dest_x: 目标 X 坐标
-            dest_y: 目标 Y 坐标
-            width: 宽度
-            height: 高度
-            src_dc: 源设备上下文
-            src_x: 源 X 坐标
-            src_y: 源 Y 坐标
-
-        Returns:
-            是否成功
-        """
-        blt_flags = SRCCOPY | CAPTUREBLT if self.use_captureblt else SRCCOPY
-        result = ctypes.windll.gdi32.BitBlt(
-            dest_dc, dest_x, dest_y, width, height,
-            src_dc, src_x, src_y, blt_flags
-        )
-
-        # 如果使用 CAPTUREBLT 失败，尝试不使用该标志重试
-        if not result and self.use_captureblt:
-            result = ctypes.windll.gdi32.BitBlt(
-                dest_dc, dest_x, dest_y, width, height,
-                src_dc, src_x, src_y, SRCCOPY
-            )
-            if result:
-                self.use_captureblt = False
-
-        return result != 0
-
-
-class BitBltScreencapper(BitBltScreencapperBase):
-    """使用 BitBlt API 直接截取窗口的策略"""
-
     def _do_capture(self, hwnd, width, height, hwndDC, mfcDC) -> bool:
-        """使用 BitBlt API 执行截图
+        """使用 BitBlt API 执行截图，自动处理 CAPTUREBLT 标志
 
         Args:
             hwnd: 窗口句柄
@@ -78,7 +40,26 @@ class BitBltScreencapper(BitBltScreencapperBase):
         Returns:
             是否截图成功
         """
-        return self._do_bitblt(mfcDC, 0, 0, width, height, hwndDC, 0, 0)
+        blt_flags = SRCCOPY | CAPTUREBLT if self.use_captureblt else SRCCOPY
+        result = ctypes.windll.gdi32.BitBlt(
+            mfcDC, 0, 0, width, height,
+            hwndDC, 0, 0, blt_flags
+        )
+
+        # 如果使用 CAPTUREBLT 失败，尝试不使用该标志重试
+        if not result and self.use_captureblt:
+            result = ctypes.windll.gdi32.BitBlt(
+                mfcDC, 0, 0, width, height,
+                hwndDC, 0, 0, SRCCOPY
+            )
+            if result:
+                self.use_captureblt = False
+
+        return result != 0
+
+
+class BitBltScreencapper(BitBltScreencapperBase):
+    """使用 BitBlt API 直接截取窗口的策略"""
 
 
 class BitBltFullscreenScreencapper(BitBltScreencapperBase):
@@ -99,23 +80,6 @@ class BitBltFullscreenScreencapper(BitBltScreencapperBase):
         width = ctypes.windll.user32.GetSystemMetrics(78)   # SM_CXVIRTUALSCREEN
         height = ctypes.windll.user32.GetSystemMetrics(79)  # SM_CYVIRTUALSCREEN
         return left, top, width, height
-
-    def _do_capture(self, hwnd, width, height, hwndDC, mfcDC) -> bool:
-        """使用 BitBlt API 执行全屏截图
-
-        Args:
-            hwnd: 窗口句柄（0 表示全屏）
-            width: 截图宽度
-            height: 截图高度
-            hwndDC: 设备上下文
-            mfcDC: 内存设备上下文
-
-        Returns:
-            是否截图成功
-        """
-        # 获取虚拟屏幕起点作为源偏移量
-        src_x, src_y, _, _ = self._get_virtual_screen_info()
-        return self._do_bitblt(mfcDC, 0, 0, width, height, hwndDC, src_x, src_y)
 
     def init(self) -> bool:
         """初始化全屏截图资源
