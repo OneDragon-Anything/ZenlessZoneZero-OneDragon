@@ -1,25 +1,30 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 import importlib.util
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PyInstaller.utils.hooks import collect_submodules
 
 if TYPE_CHECKING:
-    from PyInstaller.building.build_main import Analysis
     from PyInstaller.building.api import COLLECT, EXE, PYZ
+    from PyInstaller.building.build_main import Analysis
+
+# 将源码目录添加到 sys.path,以便 collect_submodules 能找到模块
+REPO_ROOT = Path.cwd().parent
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 # 保留的模块树
 KEEP_TREES = [
-    "one_dragon.envs.git_service",
     "one_dragon.launcher",
     "one_dragon.version",
 ]
 
 # 导入 generate_freeze_seed 模块以生成 freeze_seed.py 并获取源码包列表
 GEN_PATH = Path.cwd() / "generate_freeze_seed.py"
-
 spec = importlib.util.spec_from_file_location("generate_freeze_seed", str(GEN_PATH))
 generate_freeze_seed = importlib.util.module_from_spec(spec)
 assert spec.loader is not None
@@ -28,21 +33,23 @@ spec.loader.exec_module(generate_freeze_seed)
 # 这里顺便生成了 freeze_seed.py
 src_packages = generate_freeze_seed.main()
 
-# 把 src 下除了 one_dragon 的其它顶级包全部排除
-exclude_roots = [p for p in src_packages if p != "one_dragon"]
+# 收集所有源码包的所有子模块
+all_src_modules = set()
+for package in src_packages:
+    all_src_modules.update(collect_submodules(package))
 
-# one_dragon 下，排除除 KEEP_TREES 以外的所有子模块
-all_one_dragon_modules = set(collect_submodules("one_dragon"))
+# 收集需要保留的模块：KEEP_TREES 及其所有父模块和子模块
+keep_modules = set()
 
-# 收集需要保留的模块：基础模块 + KEEP_TREES 及其子模块
-keep_one_dragon_modules = {"one_dragon", "one_dragon.envs"}
-for tree in KEEP_TREES:
-    keep_one_dragon_modules.add(tree)
-    keep_one_dragon_modules.update(collect_submodules(tree))
+for tree_path in KEEP_TREES:
+    # 添加路径本身
+    keep_modules.add(tree_path)
 
-exclude_one_dragon = [m for m in all_one_dragon_modules if m not in keep_one_dragon_modules]
+    # 添加所有子模块
+    keep_modules.update(m for m in all_src_modules if m.startswith(tree_path + "."))
 
-excludes = sorted(set(exclude_roots + exclude_one_dragon))
+# 排除所有不在保留列表中的模块
+excludes = sorted(all_src_modules - keep_modules)
 
 
 a = Analysis(
