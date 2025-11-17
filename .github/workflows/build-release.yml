@@ -36,7 +36,7 @@ jobs:
           # 已由 tag 推送触发，直接使用该 tag 作为版本
           $version = $env:GITHUB_REF.Substring(10)
           $tag = $version
-        } else if ($env:CREATE_RELEASE -eq 'false') {
+        } elseif ($env:CREATE_RELEASE -eq 'false') {
           # 非 release 构建，使用日期作为版本号
           $date = Get-Date -Format "MMdd"
           $time = Get-Date -Format "HHmm"
