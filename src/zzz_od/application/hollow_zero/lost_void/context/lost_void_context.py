@@ -446,7 +446,7 @@ class LostVoidContext:
                 elif title_idx == 3:  # NEW!
                     closest_artifact_pos.is_new = True
 
-        artifact_pos_list = [i for i in artifact_pos_list if i.can_choose]
+        # artifact_pos_list = [i for i in artifact_pos_list if i.can_choose]  # 这行导致了chosen_list只会是空的
 
         display_text = ', '.join([i.artifact.display_name for i in artifact_pos_list]) if len(artifact_pos_list) > 0 else '无'
         log.info(f'当前识别藏品 {display_text}')
