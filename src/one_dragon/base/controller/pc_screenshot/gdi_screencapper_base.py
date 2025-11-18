@@ -148,7 +148,7 @@ class GdiScreencapperBase(ScreencapperBase):
             hwnd: 窗口句柄
             width: 截图宽度
             height: 截图高度
-            hwndDC: 设备上下文句柄
+            hwndDC: 窗口设备上下文
 
         Returns:
             截图数组，失败返回 None
@@ -184,13 +184,13 @@ class GdiScreencapperBase(ScreencapperBase):
             self.buffer, self.bmpinfo_buffer
         )
 
-    def _recreate_bitmap_resources(self, width, height, dc_handle=None) -> bool:
+    def _recreate_bitmap_resources(self, width, height, hwndDC) -> bool:
         """重新创建位图资源
 
         Args:
             width: 位图宽度
             height: 位图高度
-            dc_handle: 设备上下文句柄，未提供时使用 self.hwndDC
+            hwndDC: 窗口设备上下文
 
         Returns:
             是否创建成功
@@ -203,9 +203,7 @@ class GdiScreencapperBase(ScreencapperBase):
                 log.debug("删除旧 saveBitMap 失败", exc_info=True)
 
         try:
-            saveBitMap, buffer, bmpinfo_buffer = self._create_bitmap_resources(
-                width, height, dc_handle
-            )
+            saveBitMap, buffer, bmpinfo_buffer = self._create_bitmap_resources(width, height, hwndDC)
         except Exception as e:
             log.debug("创建位图资源失败: %s", e, exc_info=True)
             return False
@@ -278,20 +276,7 @@ class GdiScreencapperBase(ScreencapperBase):
         buffer_size = width * height * 4
         buffer = ctypes.create_string_buffer(buffer_size)
 
-        bmpinfo_buffer = self._create_bmpinfo_buffer(width, height)
-
-        return saveBitMap, buffer, bmpinfo_buffer
-
-    def _create_bmpinfo_buffer(self, width, height):
-        """创建位图信息结构
-
-        Args:
-            width: 位图宽度
-            height: 位图高度
-
-        Returns:
-            位图信息缓冲区
-        """
+        # 创建位图信息结构
         bmpinfo_buffer = ctypes.create_string_buffer(40)
         ctypes.c_uint32.from_address(ctypes.addressof(bmpinfo_buffer)).value = 40
         ctypes.c_int32.from_address(ctypes.addressof(bmpinfo_buffer) + 4).value = width
@@ -299,7 +284,8 @@ class GdiScreencapperBase(ScreencapperBase):
         ctypes.c_uint16.from_address(ctypes.addressof(bmpinfo_buffer) + 12).value = 1
         ctypes.c_uint16.from_address(ctypes.addressof(bmpinfo_buffer) + 14).value = 32
         ctypes.c_uint32.from_address(ctypes.addressof(bmpinfo_buffer) + 16).value = 0
-        return bmpinfo_buffer
+
+        return saveBitMap, buffer, bmpinfo_buffer
 
     def _capture_and_convert_bitmap(self, hwnd, width, height,
                                     hwndDC, mfcDC, saveBitMap,
@@ -310,7 +296,7 @@ class GdiScreencapperBase(ScreencapperBase):
             hwnd: 窗口句柄
             width: 截图宽度
             height: 截图高度
-            hwndDC: 设备上下文
+            hwndDC: 窗口设备上下文
             mfcDC: 内存设备上下文
             saveBitMap: 位图句柄
             buffer: 数据缓冲区
@@ -360,7 +346,7 @@ class GdiScreencapperBase(ScreencapperBase):
             hwnd: 窗口句柄
             width: 截图宽度
             height: 截图高度
-            hwndDC: 设备上下文
+            hwndDC: 窗口设备上下文
             mfcDC: 内存设备上下文
 
         Returns:
