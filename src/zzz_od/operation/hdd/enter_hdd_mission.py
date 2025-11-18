@@ -44,7 +44,7 @@ class EnterHddMission(ZOperation):
         # 完成一次退出后 可能在副本列表画面
         result = self.round_by_find_area(self.last_screenshot, 'HDD', '下一步')
         if result.is_success:
-            return self.round_success(status=result.status,wait=2)
+            return self.round_success(status=result.status, wait=2)
 
         # 不符合时 点击弹出选项
         result = self.round_by_click_area('HDD', '章节显示')
@@ -72,8 +72,10 @@ class EnterHddMission(ZOperation):
         area = self.ctx.screen_loader.get_area('HDD', '副本区域')
         result = self.round_by_ocr_and_click(self.last_screenshot, self.mission_name, area=area)
         if result.is_success:
-            # 少数情况下首次点击未成功改变选中项，追加一次原地轻点以提高选择稳定性
-            self.ctx.controller.click()  # 在当前位置再点一次，相当于双击保障
+            # 使用首次点击返回的坐标再次点击，确保在同一位置完成双击保障
+            to_click = result.data
+            if to_click is not None:
+                self.ctx.controller.click(pos=to_click)
             return self.round_success(wait=1)
 
         # 找不到时候 往下滑
