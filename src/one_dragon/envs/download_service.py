@@ -44,7 +44,7 @@ class DownloadService:
             elif self.env_config.is_personal_proxy:
                 proxy = self.env_config.personal_proxy
 
-        return http_utils.download_file(download_url, save_file_path, proxy, progress_callback)
+        return http_utils.download_file(download_url, save_file_path, proxy, None, progress_callback)
 
     def download_and_extract_env_file(self, file_name: str, temp_dir: str, extract_dir: str,
                                       progress_callback: Optional[Callable[[float, str], None]] = None,
