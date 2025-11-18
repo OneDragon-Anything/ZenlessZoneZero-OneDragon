@@ -12,6 +12,7 @@ from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
@@ -53,6 +54,22 @@ class EnterGame(ZOperation):
         interact_result = self.check_screen_to_interact(self.last_screenshot)
         if interact_result is not None:
             return interact_result
+
+        # 处理国服登录时账号或密码输入框为空的错误 适用于Ctrl+V有小概率没粘贴上的情况 直接返回重试
+        login_prompts = [
+            ('国服-账号输入区域-新', gt('输入手机号/邮箱', 'game')),
+            ('国服-密码输入区域-新', gt('输入密码', 'game')),
+        ]
+
+        for area_name, prompt_text in login_prompts:
+            area = self.ctx.screen_loader.get_area('打开游戏', area_name)
+            part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
+            ocr_result_map = self.ctx.ocr.run_ocr(part)
+
+            for ocr_result in ocr_result_map.keys():
+                if str_utils.find_by_lcs(prompt_text, ocr_result, percent=0.5):
+                    self.round_by_click_area('打开游戏', '国服-返回按钮')
+                    return self.round_retry(status='返回重试', wait=1)
 
         # 判定是否进入大世界
         world_screens = ['大世界-普通', '大世界-勘域']
