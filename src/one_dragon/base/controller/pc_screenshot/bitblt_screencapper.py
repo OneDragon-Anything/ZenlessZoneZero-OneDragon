@@ -81,34 +81,6 @@ class BitBltFullscreenScreencapper(BitBltScreencapperBase):
         height = ctypes.windll.user32.GetSystemMetrics(79)  # SM_CYVIRTUALSCREEN
         return left, top, width, height
 
-    def init(self) -> bool:
-        """初始化全屏截图资源
-
-        Returns:
-            是否初始化成功
-        """
-        self.cleanup()
-
-        try:
-            # 获取屏幕 DC (0 表示整个屏幕)
-            hwndDC = ctypes.windll.user32.GetDC(0)
-            if not hwndDC:
-                raise Exception('无法获取屏幕设备上下文')
-
-            mfcDC = ctypes.windll.gdi32.CreateCompatibleDC(hwndDC)
-            if not mfcDC:
-                ctypes.windll.user32.ReleaseDC(0, hwndDC)
-                raise Exception('无法创建兼容设备上下文')
-
-            self.hwndDC = hwndDC
-            self.mfcDC = mfcDC
-            self.hwnd_for_dc = 0  # 全屏模式使用 0
-            return True
-        except Exception:
-            log.debug(f"初始化 {self.__class__.__name__} 失败", exc_info=True)
-            self.cleanup()
-            return False
-
     def capture(self, rect: Rect, independent: bool = False) -> MatLike | None:
         """获取全屏截图并裁剪到窗口区域
 
@@ -122,27 +94,34 @@ class BitBltFullscreenScreencapper(BitBltScreencapperBase):
         if independent:
             return self._capture_independent(rect)
 
+        v_left, v_top, v_width, v_height = self._get_virtual_screen_info()
+
         # 使用实例级锁保护对共享 GDI 资源的使用
         with self._lock:
-            if self.hwndDC is None or self.mfcDC is None:
-                if not self.init():
+            if self.mfcDC is None and not self.init():
                     return None
 
-            # 获取虚拟屏幕信息（支持多屏，坐标可能为负）
-            v_left, v_top, v_width, v_height = self._get_virtual_screen_info()
-
-            screenshot = self._capture_with_retry(0, v_width, v_height)
-            if screenshot is None:
-                # 如果第一次失败，尝试重新初始化并重试一次
-                if not self.init():
-                    return None
-                screenshot = self._capture_with_retry(0, v_width, v_height)
-
-            if screenshot is None:
+            # 每次临时获取屏幕 DC
+            screen_dc = ctypes.windll.user32.GetDC(0)
+            if not screen_dc:
                 return None
 
-            # 裁剪到窗口区域
-            return self._crop_to_window(screenshot, rect, v_left, v_top, v_width, v_height)
+            try:
+                screenshot = self._capture_with_retry(0, v_width, v_height, screen_dc)
+                if screenshot is None:
+                    # 如果失败，尝试重新初始化 mfcDC 并重试
+                    if not self.init():
+                        return None
+                    screenshot = self._capture_with_retry(0, v_width, v_height, screen_dc)
+
+                if screenshot is None:
+                    return None
+
+                # 裁剪到窗口区域
+                return self._crop_to_window(screenshot, rect, v_left, v_top, v_width, v_height)
+            finally:
+                # 始终释放屏幕 DC
+                ctypes.windll.user32.ReleaseDC(0, screen_dc)
 
     def _crop_to_window(self, fullscreen: MatLike, rect: Rect,
                         virtual_left: int, virtual_top: int,
@@ -194,7 +173,7 @@ class BitBltFullscreenScreencapper(BitBltScreencapperBase):
             if not hwndDC:
                 raise Exception('无法获取屏幕设备上下文')
 
-            # 获取虚拟屏幕信息（支持多屏，坐标可能为负）
+            # 获取虚拟屏幕信息
             v_left, v_top, v_width, v_height = self._get_virtual_screen_info()
 
             mfcDC = ctypes.windll.gdi32.CreateCompatibleDC(hwndDC)
@@ -205,7 +184,7 @@ class BitBltFullscreenScreencapper(BitBltScreencapperBase):
                 v_width, v_height, hwndDC
             )
 
-            fullscreen = self._capture_window_to_bitmap(
+            fullscreen = self._capture_and_convert_bitmap(
                 0, v_width, v_height, hwndDC, mfcDC,
                 saveBitMap, buffer, bmpinfo_buffer
             )

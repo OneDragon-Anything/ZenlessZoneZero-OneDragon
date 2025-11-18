@@ -24,14 +24,12 @@ class GdiScreencapperBase(ScreencapperBase):
 
     def __init__(self, game_win: PcGameWindow, standard_width: int, standard_height: int):
         ScreencapperBase.__init__(self, game_win, standard_width, standard_height)
-        self.hwndDC: int | None = None
         self.mfcDC: int | None = None
         self.saveBitMap: int | None = None
         self.buffer: ctypes.Array | None = None
         self.bmpinfo_buffer: ctypes.Array | None = None
         self.width: int = 0
         self.height: int = 0
-        self.hwnd_for_dc: int | None = None  # 保存获取DC时的句柄，用于正确释放DC
         self._lock = threading.RLock()
 
     def init(self) -> bool:
@@ -47,19 +45,21 @@ class GdiScreencapperBase(ScreencapperBase):
             if not hwnd:
                 raise Exception(f'未找到目标窗口，无法初始化 {self.__class__.__name__}')
 
-            hwndDC = ctypes.windll.user32.GetDC(hwnd)
-            if not hwndDC:
+            # 临时获取 DC 用于创建兼容 DC
+            temp_dc = ctypes.windll.user32.GetDC(hwnd)
+            if not temp_dc:
                 raise Exception('无法获取窗口设备上下文')
 
-            mfcDC = ctypes.windll.gdi32.CreateCompatibleDC(hwndDC)
-            if not mfcDC:
-                ctypes.windll.user32.ReleaseDC(hwnd, hwndDC)
-                raise Exception('无法创建兼容设备上下文')
+            try:
+                mfcDC = ctypes.windll.gdi32.CreateCompatibleDC(temp_dc)
+                if not mfcDC:
+                    raise Exception('无法创建兼容设备上下文')
 
-            self.hwndDC = hwndDC
-            self.mfcDC = mfcDC
-            self.hwnd_for_dc = hwnd
-            return True
+                self.mfcDC = mfcDC
+                return True
+            finally:
+                # 立即释放临时 DC
+                ctypes.windll.user32.ReleaseDC(hwnd, temp_dc)
         except Exception:
             log.debug(f"初始化 {self.__class__.__name__} 失败", exc_info=True)
             self.cleanup()
@@ -90,25 +90,37 @@ class GdiScreencapperBase(ScreencapperBase):
 
         # 使用实例级锁保护对共享 GDI 资源的使用
         with self._lock:
-            if self.hwndDC is None or self.mfcDC is None:
+            # 确保 mfcDC 已初始化
+            if self.mfcDC is None and not self.init():
+                return None
+
+            # 每次临时获取窗口 DC
+            hwndDC = ctypes.windll.user32.GetDC(hwnd)
+            if not hwndDC:
+                return None
+
+            try:
+                screenshot = self._capture_with_retry(hwnd, width, height, hwndDC)
+                if screenshot is not None:
+                    return screenshot
+
+                # 如果失败，尝试重新初始化 mfcDC 并重试
                 if not self.init():
                     return None
 
-            screenshot = self._capture_with_retry(hwnd, width, height)
-            if screenshot is not None:
-                return screenshot
-
-            # 如果第一次失败，尝试重新初始化并重试一次
-            if not self.init():
-                return None
-
-            return self._capture_with_retry(hwnd, width, height)
+                return self._capture_with_retry(hwnd, width, height, hwndDC)
+            finally:
+                # 始终释放窗口 DC
+                try:
+                    ctypes.windll.user32.ReleaseDC(hwnd, hwndDC)
+                except Exception:
+                    log.debug("ReleaseDC 失败", exc_info=True)
 
     def cleanup(self):
         """清理 GDI 相关资源"""
         with self._lock:
             # 如果没有任何资源，直接清理字段并返回
-            if not (self.hwndDC or self.mfcDC or self.saveBitMap):
+            if not (self.mfcDC or self.saveBitMap):
                 self._clear_fields()
                 return
 
@@ -126,58 +138,63 @@ class GdiScreencapperBase(ScreencapperBase):
                 except Exception:
                     log.debug("删除 mfcDC 失败", exc_info=True)
 
-            # 释放窗口 DC
-            if self.hwndDC and self.hwnd_for_dc is not None:
-                try:
-                    ctypes.windll.user32.ReleaseDC(self.hwnd_for_dc, self.hwndDC)
-                except Exception:
-                    log.debug("ReleaseDC 失败", exc_info=True)
-
             self._clear_fields()
 
     def _clear_fields(self):
         """清空所有字段"""
-        self.hwndDC = None
         self.mfcDC = None
         self.saveBitMap = None
         self.buffer = None
         self.bmpinfo_buffer = None
         self.width = 0
         self.height = 0
-        self.hwnd_for_dc = None
 
-    def _capture_with_retry(self, hwnd, width, height) -> MatLike | None:
-        """尝试执行一次截图操作"""
-        needs_create = (self.saveBitMap is None
-                        or self.width != width
-                        or self.height != height)
-        if needs_create:
-            with self._lock:
-                if (self.saveBitMap is None
-                        or self.width != width
-                        or self.height != height):
-                    # 删除旧位图
-                    if self.saveBitMap:
-                        try:
-                            ctypes.windll.gdi32.DeleteObject(self.saveBitMap)
-                        except Exception:
-                            log.debug("删除旧 saveBitMap 失败", exc_info=True)
+    def _capture_with_retry(self, hwnd, width, height, hwndDC) -> MatLike | None:
+        """尝试执行一次截图操作，使用传入的 hwndDC"""
+        # 检查是否需要重新创建位图资源
+        if (self.saveBitMap is None or self.width != width or self.height != height):
+            recreate_success = self._recreate_bitmap_resources(width, height, hwndDC)
+            if not recreate_success:
+                return None
 
-                    try:
-                        saveBitMap, buffer, bmpinfo_buffer = self._create_bitmap_resources(width, height)
-                    except Exception as e:
-                        log.debug("创建位图资源失败: %s", e, exc_info=True)
-                        return None
+        return self._capture_and_convert_bitmap(
+            hwnd, width, height,
+            hwndDC, self.mfcDC, self.saveBitMap,
+            self.buffer, self.bmpinfo_buffer
+        )
 
-                    self.saveBitMap = saveBitMap
-                    self.buffer = buffer
-                    self.bmpinfo_buffer = bmpinfo_buffer
-                    self.width = width
-                    self.height = height
+    def _recreate_bitmap_resources(self, width, height, dc_handle=None) -> bool:
+        """重新创建位图资源
 
-        return self._capture_window_to_bitmap(hwnd, width, height,
-                                              self.hwndDC, self.mfcDC, self.saveBitMap,
-                                              self.buffer, self.bmpinfo_buffer)
+        Args:
+            width: 位图宽度
+            height: 位图高度
+            dc_handle: 设备上下文句柄，未提供时使用 self.hwndDC
+
+        Returns:
+            是否创建成功
+        """
+        # 删除旧位图
+        if self.saveBitMap:
+            try:
+                ctypes.windll.gdi32.DeleteObject(self.saveBitMap)
+            except Exception:
+                log.debug("删除旧 saveBitMap 失败", exc_info=True)
+
+        try:
+            saveBitMap, buffer, bmpinfo_buffer = self._create_bitmap_resources(
+                width, height, dc_handle
+            )
+        except Exception as e:
+            log.debug("创建位图资源失败: %s", e, exc_info=True)
+            return False
+
+        self.saveBitMap = saveBitMap
+        self.buffer = buffer
+        self.bmpinfo_buffer = bmpinfo_buffer
+        self.width = width
+        self.height = height
+        return True
 
     def _capture_independent(self, hwnd, width, height) -> MatLike | None:
         """独立模式截图，自管理资源
@@ -205,8 +222,8 @@ class GdiScreencapperBase(ScreencapperBase):
 
             saveBitMap, buffer, bmpinfo_buffer = self._create_bitmap_resources(width, height, hwndDC)
 
-            return self._capture_window_to_bitmap(hwnd, width, height, hwndDC, mfcDC,
-                                                  saveBitMap, buffer, bmpinfo_buffer)
+            return self._capture_and_convert_bitmap(hwnd, width, height, hwndDC, mfcDC,
+                                                    saveBitMap, buffer, bmpinfo_buffer)
         except Exception:
             log.debug("独立模式截图失败", exc_info=True)
             return None
@@ -221,19 +238,17 @@ class GdiScreencapperBase(ScreencapperBase):
             except Exception:
                 log.debug("独立模式资源释放失败", exc_info=True)
 
-    def _create_bitmap_resources(self, width, height, dc_handle=None):
+    def _create_bitmap_resources(self, width, height, dc_handle):
         """创建位图相关资源
 
         Args:
             width: 位图宽度
             height: 位图高度
-            dc_handle: 设备上下文句柄，未提供时使用 self.hwndDC
+            dc_handle: 设备上下文句柄
 
         Returns:
             (saveBitMap, buffer, bmpinfo_buffer) 元组
         """
-        if dc_handle is None:
-            dc_handle = self.hwndDC
 
         saveBitMap = ctypes.windll.gdi32.CreateCompatibleBitmap(dc_handle, width, height)
         if not saveBitMap:
@@ -265,12 +280,10 @@ class GdiScreencapperBase(ScreencapperBase):
         ctypes.c_uint32.from_address(ctypes.addressof(bmpinfo_buffer) + 16).value = 0
         return bmpinfo_buffer
 
-    def _capture_window_to_bitmap(self, hwnd, width, height,
-                                  hwndDC, mfcDC, saveBitMap,
-                                  buffer, bmpinfo_buffer) -> MatLike | None:
-        """执行窗口截图的核心逻辑
-
-        子类需要实现具体的截图方法（PrintWindow 或 BitBlt）
+    def _capture_and_convert_bitmap(self, hwnd, width, height,
+                                    hwndDC, mfcDC, saveBitMap,
+                                    buffer, bmpinfo_buffer) -> MatLike | None:
+        """执行截图并转换为数组
 
         Args:
             hwnd: 窗口句柄
