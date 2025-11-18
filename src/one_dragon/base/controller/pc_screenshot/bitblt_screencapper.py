@@ -109,12 +109,6 @@ class BitBltFullscreenScreencapper(BitBltScreencapperBase):
             try:
                 screenshot = self._capture_with_retry(0, v_width, v_height, screen_dc)
                 if screenshot is None:
-                    # 如果失败，尝试重新初始化 mfcDC 并重试
-                    if not self.init():
-                        return None
-                    screenshot = self._capture_with_retry(0, v_width, v_height, screen_dc)
-
-                if screenshot is None:
                     return None
 
                 # 裁剪到窗口区域

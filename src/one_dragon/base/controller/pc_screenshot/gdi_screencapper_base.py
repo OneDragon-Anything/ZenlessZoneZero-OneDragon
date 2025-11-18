@@ -100,14 +100,6 @@ class GdiScreencapperBase(ScreencapperBase):
                 return None
 
             try:
-                screenshot = self._capture_with_retry(hwnd, width, height, hwndDC)
-                if screenshot is not None:
-                    return screenshot
-
-                # 如果失败，尝试重新初始化 mfcDC 并重试
-                if not self.init():
-                    return None
-
                 return self._capture_with_retry(hwnd, width, height, hwndDC)
             finally:
                 # 始终释放窗口 DC
@@ -150,12 +142,41 @@ class GdiScreencapperBase(ScreencapperBase):
         self.height = 0
 
     def _capture_with_retry(self, hwnd, width, height, hwndDC) -> MatLike | None:
-        """尝试执行一次截图操作，使用传入的 hwndDC"""
+        """尝试执行截图操作，失败时自动重新初始化 mfcDC 并重试一次
+
+        Args:
+            hwnd: 窗口句柄
+            width: 截图宽度
+            height: 截图高度
+            hwndDC: 设备上下文句柄
+
+        Returns:
+            截图数组，失败返回 None
+        """
         # 检查是否需要重新创建位图资源
         if (self.saveBitMap is None or self.width != width or self.height != height):
             recreate_success = self._recreate_bitmap_resources(width, height, hwndDC)
             if not recreate_success:
                 return None
+
+        # 第一次尝试截图
+        screenshot = self._capture_and_convert_bitmap(
+            hwnd, width, height,
+            hwndDC, self.mfcDC, self.saveBitMap,
+            self.buffer, self.bmpinfo_buffer
+        )
+
+        if screenshot is not None:
+            return screenshot
+
+        # 如果失败，尝试重新初始化 mfcDC 并重试
+        if not self.init():
+            return None
+
+        # 重新初始化后重建位图资源
+        recreate_success = self._recreate_bitmap_resources(width, height, hwndDC)
+        if not recreate_success:
+            return None
 
         return self._capture_and_convert_bitmap(
             hwnd, width, height,
