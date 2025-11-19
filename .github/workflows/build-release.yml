@@ -142,22 +142,8 @@ jobs:
         echo "__version__ = '$env:RELEASE_VERSION'" | Out-File -FilePath src/one_dragon/version.py -Encoding utf8
         .\.venv\Scripts\Activate.ps1
         cd deploy
-        pyinstaller "OneDragon-Installer.spec"
-        pyinstaller "OneDragon-Launcher.spec"
-
-    - name: Bundle dependencies into wheels
-      shell: pwsh
-      run: |
-        # 激活虚拟环境
-        .\.venv\Scripts\Activate.ps1
-
-        # 创建目标目录并生成 wheel 包
-        New-Item -ItemType Directory -Path deploy/dist/wheels -Force
-        uv export --no-hashes --no-dev --format requirements-txt > deploy/dist/requirements.txt
-        pip wheel --wheel-dir=deploy/dist/wheels -r deploy/dist/requirements.txt
-
-        # 压缩生成的 wheels 目录
-        Compress-Archive -Path deploy/dist/wheels/* -DestinationPath deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
+        uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
+        uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 
     - name: Upload Installer
       if: ${{ env.CREATE_RELEASE == 'false' }}
@@ -171,20 +157,15 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Launcher
-        path: deploy/dist/OneDragon-Launcher.exe
-
-    - name: Upload Wheels
-      if: ${{ env.CREATE_RELEASE == 'false' }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: Wheels
-        path: deploy/dist/ZenlessZoneZero-OneDragon-Environment.zip
+        include-hidden-files: true
+        path: deploy/dist/OneDragon-Launcher/
 
     - name: Upload Dist
       if: ${{ env.CREATE_RELEASE == 'true' }}
       uses: actions/upload-artifact@v4
       with:
         name: dist
+        include-hidden-files: true
         if-no-files-found: error
         path: deploy/dist
 
@@ -197,7 +178,7 @@ jobs:
         name: unsigned
         if-no-files-found: error
         path: |
-          .\deploy\dist\OneDragon-Launcher.exe
+          .\deploy\dist\OneDragon-Launcher\OneDragon-Launcher.exe
           .\deploy\dist\OneDragon-Installer.exe
 
   sign:
@@ -261,7 +242,7 @@ jobs:
       shell: pwsh
       run: |
         Copy-Item "deploy/dist/signed/OneDragon-Installer.exe" -Destination "deploy/dist/OneDragon-Installer.exe" -Force
-        Copy-Item "deploy/dist/signed/OneDragon-Launcher.exe" -Destination "deploy/dist/OneDragon-Launcher.exe" -Force
+        Copy-Item "deploy/dist/signed/OneDragon-Launcher.exe" -Destination "deploy/dist/OneDragon-Launcher/OneDragon-Launcher.exe" -Force
 
     - name: Prepare release directory and models
       shell: pwsh
@@ -282,12 +263,13 @@ jobs:
         Invoke-WebRequest -Uri "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ZenlessZoneZero-OneDragon/uv-x86_64-pc-windows-msvc.zip" -OutFile "$envDir/uv-x86_64-pc-windows-msvc.zip"
         Invoke-WebRequest -Uri "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ZenlessZoneZero-OneDragon/cpython-3.11.zip" -OutFile "$envDir/cpython-3.11.zip"
 
-        # 将安装器复制到仓库根目录
+        # 将构建结果复制到仓库根目录
         Copy-Item "$distDir/OneDragon-Installer.exe" -Destination "OneDragon-Installer.exe" -Force
+        Copy-Item "$distDir/OneDragon-Launcher/OneDragon-Launcher.exe" -Destination "OneDragon-Launcher.exe" -Force
+        Copy-Item "$distDir/OneDragon-Launcher/.runtime/" -Destination ".runtime" -Recurse -Force
 
-        # 打包启动器
-        Compress-Archive -Path "$distDir/OneDragon-Launcher.exe" -DestinationPath "$distDir/ZenlessZoneZero-OneDragon-Launcher.zip" -Force
-        Copy-Item "$distDir/OneDragon-Launcher.exe" -Destination "OneDragon-Launcher.exe" -Force
+        # 打包启动器目录
+        Compress-Archive -Path "$distDir/OneDragon-Launcher/*" -DestinationPath "$distDir/ZenlessZoneZero-OneDragon-Launcher.zip" -Force
 
         # 模型目录（放在仓库根 assets/models 下）
         $modelBase = "assets/models"
@@ -440,16 +422,11 @@ jobs:
         git reset --hard HEAD
         git clean -fd | Out-Null
 
-        # 第一次打包（Full）枚举根目录全部项目
+        # 打包完整包 枚举根目录全部项目
         $items = Get-ChildItem -Force | ForEach-Object { $_.FullName }
         Compress-Archive -Path $items -DestinationPath "$distDir/ZenlessZoneZero-OneDragon-$version-Full.zip" -Force
 
-        # 将环境依赖包放入 .install 后进行第二次打包（Full-Environment）
-        Copy-Item "$distDir/ZenlessZoneZero-OneDragon-Environment.zip" -Destination "$envDir/ZenlessZoneZero-OneDragon-Environment.zip" -Force
-        $items = Get-ChildItem -Force | ForEach-Object { $_.FullName }
-        Compress-Archive -Path $items -DestinationPath "$distDir/ZenlessZoneZero-OneDragon-$version-Full-Environment.zip" -Force
-
-        # 复制安装器
+        # 安装器加上版本号
         Copy-Item "OneDragon-Installer.exe" -Destination "ZenlessZoneZero-OneDragon-$version-Installer.exe" -Force
 
         # 将所有待发布文件移到当前目录
@@ -463,8 +440,7 @@ jobs:
         body: |
           ## 安装方式
 
-          - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full-Environment.zip` 为带环境的完整包，不需要额外下载资源。
-          - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full.zip` 为完整包，解压后选择解压目录为安装目录，只需要下载环境依赖。
+          - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full.zip` 为完整包，不需要额外下载资源。
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Installer.exe` 为精简安装程序，运行后会自动下载所需的资源。
           - 如果你想更新启动器，前往主程序【设置】-【资源下载】页面更新，或者下载 `ZenlessZoneZero-OneDragon-Launcher.zip`，解压后替换。
           - __不要下载Source Code__
@@ -491,10 +467,8 @@ jobs:
           See the [Privacy Policy](.github/PRIVACY.md).
 
         files: |
-          ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full-Environment.zip
           ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full.zip
           ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Installer.exe
-          ZenlessZoneZero-OneDragon-Environment.zip
           ZenlessZoneZero-OneDragon-Launcher.zip
         generate_release_notes: false
         prerelease: ${{ contains(needs.version.outputs.version, '-beta.') }}
