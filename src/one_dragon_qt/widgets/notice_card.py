@@ -1,28 +1,40 @@
-import time
-import random
-
+import builtins
+import contextlib
 import json
 import os
-import requests
+import random
+import time
 import webbrowser
-from PySide6.QtCore import Qt, QSize, QTimer, QThread, Signal, QRectF, QEvent
-from PySide6.QtGui import QPixmap, QFont, QPainterPath, QColor, QPainter, QImage
-from PySide6.QtWidgets import (
-    QVBoxLayout,
-    QListWidgetItem,
-    QWidget,
-    QLabel,
-    QHBoxLayout,
-    QStackedWidget,
-    QFrame, QGraphicsDropShadowEffect,
-)
-from qfluentwidgets import SimpleCardWidget, HorizontalFlipView, ListWidget, qconfig, Theme, PipsPager, PipsScrollButtonDisplayMode
 
-from one_dragon.utils.log_utils import log
+import requests
+from PySide6.QtCore import QEvent, QRectF, QSize, Qt, QThread, QTimer, Signal
+from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPainterPath, QPixmap
+from PySide6.QtWidgets import (
+    QFrame,
+    QGraphicsDropShadowEffect,
+    QHBoxLayout,
+    QLabel,
+    QListWidgetItem,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
+from qfluentwidgets import (
+    HorizontalFlipView,
+    ListWidget,
+    PipsPager,
+    PipsScrollButtonDisplayMode,
+    SimpleCardWidget,
+    Theme,
+    qconfig,
+)
+
 from one_dragon.utils import os_utils
+from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 from one_dragon_qt.widgets.pivot import CustomListItemDelegate, PhosPivot
+
 from .label import EllipsisLabel
 
 
@@ -191,10 +203,8 @@ class BannerImageLoader(QThread):
             # 清理临时文件
             temp_path = self._get_cache_path(url) + '.tmp'
             if os.path.exists(temp_path):
-                try:
+                with contextlib.suppress(builtins.BaseException):
                     os.remove(temp_path)
-                except:
-                    pass
 
 
 class RoundedBannerView(HorizontalFlipView):
@@ -224,7 +234,7 @@ class DataFetcher(QThread):
     def run(self):
         # 确保缓存目录存在
         self.ensure_cache_dir()
-        
+
         try:
             response = requests.get(self.url, timeout=DataFetcher.TIMEOUTNUM)
             response.raise_for_status()
@@ -235,7 +245,7 @@ class DataFetcher(QThread):
         except requests.RequestException as e:
             if self.is_cache_valid():
                 try:
-                    with open(DataFetcher.CACHE_FILE, "r", encoding="utf-8") as cache_file:
+                    with open(DataFetcher.CACHE_FILE, encoding="utf-8") as cache_file:
                         cached_data = json.load(cache_file)
                         self.data_fetched.emit(cached_data)
                 except (FileNotFoundError, json.JSONDecodeError) as cache_error:
@@ -409,7 +419,14 @@ class NoticeCard(SimpleCardWidget):
                 getattr(self, widget_name).show()
 
     def fetch_data(self):
-        self.fetcher = DataFetcher(url=self.notice_url)
+        # 如果已有fetcher在运行，先停止它
+        if hasattr(self, 'fetcher') and self.fetcher is not None:
+            if self.fetcher.isRunning():
+                self.fetcher.quit()
+                self.fetcher.wait()
+            self.fetcher.deleteLater()
+
+        self.fetcher = DataFetcher(url=self.notice_url, parent=self)
         # 使用队列连接确保线程安全
         self.fetcher.data_fetched.connect(
             self.handle_data,

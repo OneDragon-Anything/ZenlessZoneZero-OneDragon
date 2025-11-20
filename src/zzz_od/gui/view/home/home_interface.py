@@ -271,8 +271,8 @@ class CheckRunner(BaseThread):
 
     need_update = Signal(bool)
 
-    def __init__(self, ctx: ZContext, check_func: Callable[[ZContext], bool | None]):
-        super().__init__()
+    def __init__(self, ctx: ZContext, check_func: Callable[[ZContext], bool | None], parent=None):
+        super().__init__(parent)
         self.ctx = ctx
         self.check_func = check_func
 
@@ -576,6 +576,10 @@ class HomeInterface(VerticalScrollInterface):
         # 监听背景刷新信号，确保主题色在背景变化时更新
         self._last_reload_banner_signal = False
 
+        # 记录上次自动检查更新的时间
+        self._last_auto_check_time = 0
+        self._auto_check_interval = 300  # 5分钟冷却时间
+
     def _init_check_runners(self):
         """初始化检查更新的线程"""
         def check_code(ctx: ZContext) -> bool | None:
@@ -586,7 +590,7 @@ class HomeInterface(VerticalScrollInterface):
                 return not is_latest
             return None
 
-        self._check_code_runner = CheckRunner(self.ctx, check_code)
+        self._check_code_runner = CheckRunner(self.ctx, check_code, self)
         self._check_code_runner.need_update.connect(
             self._need_to_update_code,
             Qt.ConnectionType.QueuedConnection
@@ -594,7 +598,8 @@ class HomeInterface(VerticalScrollInterface):
 
         self._check_model_runner = CheckRunner(
             self.ctx,
-            lambda ctx: ctx.model_config.using_old_model()
+            lambda ctx: ctx.model_config.using_old_model(),
+            self
         )
         self._check_model_runner.need_update.connect(
             self._need_to_update_resource,
@@ -617,7 +622,8 @@ class HomeInterface(VerticalScrollInterface):
 
         self._check_launcher_runner = CheckRunner(
             self.ctx,
-            check_launcher_update
+            check_launcher_update,
+            self
         )
         self._check_launcher_runner.need_update.connect(
             self._need_to_update_resource,
@@ -626,7 +632,8 @@ class HomeInterface(VerticalScrollInterface):
 
         self._check_banner_runner = CheckRunner(
             self.ctx,
-            lambda ctx: True if ctx.signal.reload_banner else None
+            lambda ctx: True if ctx.signal.reload_banner else None,
+            self
         )
         self._check_banner_runner.need_update.connect(
             self.reload_banner,
@@ -634,19 +641,19 @@ class HomeInterface(VerticalScrollInterface):
         )
 
         # 初始化背景下载器
-        self._banner_downloader = BackgroundImageDownloader(self.ctx, "remote_banner")
+        self._banner_downloader = BackgroundImageDownloader(self.ctx, "remote_banner", self)
 
         self._banner_downloader.image_downloaded.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
-        self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster")
+        self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster", self)
 
         self._version_poster_downloader.image_downloaded.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
-        self._official_dynamic_downloader = BackgroundImageDownloader(self.ctx, "official_dynamic")
+        self._official_dynamic_downloader = BackgroundImageDownloader(self.ctx, "official_dynamic", self)
 
         self._official_dynamic_downloader.image_downloaded.connect(
             self.reload_banner,
@@ -673,19 +680,36 @@ class HomeInterface(VerticalScrollInterface):
         super().on_interface_shown()
         if self._banner_widget:
             self._banner_widget.resume_media()
-        self._check_code_runner.start()
-        self._check_model_runner.start()
-        self._check_banner_runner.start()
-        self._check_launcher_runner.start()
+
+        # 检查是否满足自动检查的冷却时间
+        import time
+        current_time = time.time()
+        should_check = (current_time - self._last_auto_check_time) > self._auto_check_interval
+
+        if should_check:
+            if not self._check_code_runner.isRunning():
+                self._check_code_runner.start()
+            if not self._check_model_runner.isRunning():
+                self._check_model_runner.start()
+            if not self._check_launcher_runner.isRunning():
+                self._check_launcher_runner.start()
+            self._last_auto_check_time = current_time
+
+        # Banner 刷新检查不需要冷却，因为它依赖信号
+        if not self._check_banner_runner.isRunning():
+            self._check_banner_runner.start()
 
         # 根据配置启动相应的背景下载器
         background_type = self.ctx.custom_config.background_type
         if background_type == BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value:
-            self._official_dynamic_downloader.start()
+            if not self._official_dynamic_downloader.isRunning():
+                self._official_dynamic_downloader.start()
         elif background_type == BackgroundTypeEnum.VERSION_POSTER.value.value:
-            self._version_poster_downloader.start()
+            if not self._version_poster_downloader.isRunning():
+                self._version_poster_downloader.start()
         elif background_type == BackgroundTypeEnum.OFFICIAL_STATIC.value.value:
-            self._banner_downloader.start()
+            if not self._banner_downloader.isRunning():
+                self._banner_downloader.start()
 
         # 检查公告卡片配置是否变化
         self._check_notice_config_change()
@@ -704,6 +728,14 @@ class HomeInterface(VerticalScrollInterface):
         super().on_interface_hidden()
         if self._banner_widget:
             self._banner_widget.pause_media()
+
+        # 停止所有下载器，避免后台占用资源
+        if self._official_dynamic_downloader.isRunning():
+            self._official_dynamic_downloader.stop()
+        if self._version_poster_downloader.isRunning():
+            self._version_poster_downloader.stop()
+        if self._banner_downloader.isRunning():
+            self._banner_downloader.stop()
 
         # 立即停止并隐藏所有提示
         self.button_group.stop_tooltip_demo()
@@ -773,10 +805,9 @@ class HomeInterface(VerticalScrollInterface):
         index_banner_path = ui_dir / 'index.png'
 
         # 主页背景优先级：自定义 > 枚举选项 > index.png
-        if self.ctx.custom_config.custom_banner:
-            # 检测自定义背景文件（支持图片和视频）
-            if custom_banner_path.exists() and custom_banner_path.is_file():
-                return str(custom_banner_path)
+        # 检测自定义背景文件（支持图片和视频）
+        if self.ctx.custom_config.custom_banner and custom_banner_path.exists() and custom_banner_path.is_file():
+            return str(custom_banner_path)
 
         # 根据枚举类型选择背景
         background_type = self.ctx.custom_config.background_type
