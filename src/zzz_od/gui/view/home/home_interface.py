@@ -1,4 +1,5 @@
 import contextlib
+import time
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -578,15 +579,11 @@ class HomeInterface(VerticalScrollInterface):
 
     def _init_check_runners(self):
         """初始化检查更新的线程"""
-        def check_code(ctx: ZContext) -> bool | None:
-            is_latest, msg = ctx.git_service.is_current_branch_latest()
-            if msg == "与远程分支不一致":
-                return True
-            elif msg != "获取远程代码失败":
-                return not is_latest
-            return None
-
-        self._check_code_runner = CheckRunner(self.ctx, check_code, self)
+        self._check_code_runner = CheckRunner(
+            self.ctx,
+            lambda ctx: not ctx.git_service.is_current_branch_latest()[0],
+            self
+        )
         self._check_code_runner.need_update.connect(
             self._need_to_update_code,
             Qt.ConnectionType.QueuedConnection
@@ -678,7 +675,6 @@ class HomeInterface(VerticalScrollInterface):
             self._banner_widget.resume_media()
 
         # 检查是否满足自动检查的冷却时间
-        import time
         current_time = time.time()
         should_check = (current_time - self._last_auto_check_time) > self._auto_check_interval
 
