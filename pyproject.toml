@@ -28,7 +28,8 @@ dev = [
     "pyinstaller==6.7.0",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
-    "ruff==0.12.10",
+    "ruff>=0.12.10",
+    "pyuac==0.0.3",
 ]
 
 gamepad = [

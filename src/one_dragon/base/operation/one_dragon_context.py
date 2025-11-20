@@ -135,7 +135,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.init_ocr()
 
-            self.screen_loader.load_all()
+            self.screen_loader.reload()
 
             # 账号实例层级的配置 不是应用特有的配置
             self.reload_instance_config()

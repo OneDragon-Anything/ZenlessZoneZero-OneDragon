@@ -38,9 +38,7 @@ jobs:
           $tag = $version
         } elseif ($env:CREATE_RELEASE -eq 'false') {
           # 非 release 构建，使用日期作为版本号
-          $date = Get-Date -Format "MMdd"
-          $time = Get-Date -Format "HHmm"
-          $version = "v$date.$time"
+          $version = (Get-Date).ToUniversalTime().AddHours(8).ToString('vyyyy.MMdd.HHmm')
           $tag = $version
         } else {
           # 手动 workflow_dispatch 触发：使用 git 的语义化版本排序，选出最新 tag，然后生成 / 递增 beta 版本
@@ -138,8 +136,10 @@ jobs:
 
     - name: Build executables
       shell: pwsh
+      env:
+        RELEASE_VERSION: ${{ needs.version.outputs.version }}
       run: |
-        echo "__version__ = '$version'" | Out-File -FilePath src/one_dragon/version.py -Encoding utf8
+        echo "__version__ = '$env:RELEASE_VERSION'" | Out-File -FilePath src/one_dragon/version.py -Encoding utf8
         .\.venv\Scripts\Activate.ps1
         cd deploy
         pyinstaller "OneDragon-Installer.spec"
