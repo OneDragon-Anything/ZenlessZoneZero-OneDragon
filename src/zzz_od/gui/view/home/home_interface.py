@@ -272,16 +272,14 @@ class CheckRunner(BaseThread):
 
     need_update = Signal(bool)
 
-    def __init__(self, ctx: ZContext, check_func: Callable[[ZContext], bool | None], parent=None):
+    def __init__(self, ctx: ZContext, check_func: Callable[[ZContext], bool], parent=None):
         super().__init__(parent)
         self.ctx = ctx
         self.check_func = check_func
 
     def _run_impl(self):
         try:
-            result = self.check_func(self.ctx)
-            if result is not None:
-                self.need_update.emit(result)
+            self.need_update.emit(self.check_func(self.ctx))
         except Exception as e:
             log.error(f"Check runner failed: {e}")
 
@@ -625,7 +623,7 @@ class HomeInterface(VerticalScrollInterface):
 
         self._check_banner_runner = CheckRunner(
             self.ctx,
-            lambda ctx: True if ctx.signal.reload_banner else None,
+            lambda ctx: ctx.signal.reload_banner,
             self
         )
         self._check_banner_runner.need_update.connect(
@@ -635,19 +633,18 @@ class HomeInterface(VerticalScrollInterface):
 
         # 初始化背景下载器
         self._banner_downloader = BackgroundImageDownloader(self.ctx, "remote_banner", self)
-
         self._banner_downloader.image_downloaded.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
-        self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster", self)
 
+        self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster", self)
         self._version_poster_downloader.image_downloaded.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
-        self._official_dynamic_downloader = BackgroundImageDownloader(self.ctx, "official_dynamic", self)
 
+        self._official_dynamic_downloader = BackgroundImageDownloader(self.ctx, "official_dynamic", self)
         self._official_dynamic_downloader.image_downloaded.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
