@@ -1,32 +1,30 @@
+import contextlib
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
-from PySide6.QtCore import Qt, QThread, Signal, QSize, QUrl, QTimer
-from PySide6.QtWidgets import QGraphicsDropShadowEffect
-from PySide6.QtGui import (
-    QFont,
-    QFontMetrics,
-    QDesktopServices, QColor
-)
+from PySide6.QtCore import QSize, Qt, QThread, QTimer, QUrl, Signal
+from PySide6.QtGui import QColor, QDesktopServices, QFont, QFontMetrics
 from PySide6.QtWidgets import (
-    QVBoxLayout,
+    QGraphicsDropShadowEffect,
     QHBoxLayout,
-    QSpacerItem,
     QSizePolicy,
+    QSpacerItem,
+    QVBoxLayout,
     QWidget,
 )
 from qfluentwidgets import (
     FluentIcon,
     InfoBar,
     InfoBarPosition,
-    SimpleCardWidget,
     PrimaryPushButton,
+    SimpleCardWidget,
 )
 
-from one_dragon.utils import os_utils
-from one_dragon.utils.log_utils import log
 from one_dragon.base.config.custom_config import BackgroundTypeEnum
+from one_dragon.utils import app_utils, os_utils
+from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.theme_manager import ThemeManager
 from one_dragon_qt.utils.color_utils import ColorUtils
 from one_dragon_qt.widgets.banner import Banner
@@ -268,31 +266,23 @@ class BaseThread(QThread):
                 self.wait()
 
 
-class CheckRunnerBase(BaseThread):
-    """检查更新的基础线程类"""
+class CheckRunner(BaseThread):
+    """通用的检查更新线程"""
 
     need_update = Signal(bool)
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext, check_func: Callable[[ZContext], bool | None]):
         super().__init__()
         self.ctx = ctx
+        self.check_func = check_func
 
-class CheckCodeRunner(CheckRunnerBase):
     def _run_impl(self):
-        is_latest, msg = self.ctx.git_service.is_current_branch_latest()
-        if msg == "与远程分支不一致":
-            self.need_update.emit(True)
-        elif msg != "获取远程代码失败":
-            self.need_update.emit(not is_latest)
-
-class CheckModelRunner(CheckRunnerBase):
-    def _run_impl(self):
-        self.need_update.emit(self.ctx.model_config.using_old_model())
-
-class CheckBannerRunner(CheckRunnerBase):
-    def _run_impl(self):
-        if self.ctx.signal.reload_banner:
-            self.need_update.emit(True)
+        try:
+            result = self.check_func(self.ctx)
+            if result is not None:
+                self.need_update.emit(result)
+        except Exception as e:
+            log.error(f"Check runner failed: {e}")
 
 class BackgroundImageDownloader(BaseThread):
     """背景图片下载器"""
@@ -446,10 +436,8 @@ class BackgroundImageDownloader(BaseThread):
                             download_success = True
         finally:
             if temp_path.exists() and not download_success:
-                try:
+                with contextlib.suppress(Exception):
                     temp_path.unlink()
-                except Exception:
-                    pass
 
         if not status_ok or cancelled or not download_success:
             return False
@@ -458,10 +446,8 @@ class BackgroundImageDownloader(BaseThread):
             temp_path.replace(self.save_path)
         except Exception:
             if temp_path.exists():
-                try:
+                with contextlib.suppress(Exception):
                     temp_path.unlink()
-                except Exception:
-                    pass
             raise
 
         return True
@@ -592,35 +578,76 @@ class HomeInterface(VerticalScrollInterface):
 
     def _init_check_runners(self):
         """初始化检查更新的线程"""
-        self._check_code_runner = CheckCodeRunner(self.ctx)
+        def check_code(ctx: ZContext) -> bool | None:
+            is_latest, msg = ctx.git_service.is_current_branch_latest()
+            if msg == "与远程分支不一致":
+                return True
+            elif msg != "获取远程代码失败":
+                return not is_latest
+            return None
+
+        self._check_code_runner = CheckRunner(self.ctx, check_code)
         self._check_code_runner.need_update.connect(
             self._need_to_update_code,
             Qt.ConnectionType.QueuedConnection
         )
-        self._check_model_runner = CheckModelRunner(self.ctx)
+
+        self._check_model_runner = CheckRunner(
+            self.ctx,
+            lambda ctx: ctx.model_config.using_old_model()
+        )
         self._check_model_runner.need_update.connect(
-            self._need_to_update_model,
+            self._need_to_update_resource,
             Qt.ConnectionType.QueuedConnection
         )
-        self._check_banner_runner = CheckBannerRunner(self.ctx)
+
+        def check_launcher_update(ctx: ZContext) -> tuple[bool, str, str]:
+            current_version = app_utils.get_launcher_version()
+            latest_stable, latest_beta = ctx.git_service.get_latest_tag()
+
+            # 根据当前版本是否包含 -beta 来确定比较通道
+            if current_version and '-beta' in current_version:
+                # 测试通道：与最新测试版比较；若不存在测试版，则和稳定版比较
+                target_latest = latest_beta or latest_stable
+            else:
+                # 稳定通道：与最新稳定版比较；若不存在稳定版，则视为已最新
+                target_latest = latest_stable or current_version
+
+            return current_version == target_latest
+
+        self._check_launcher_runner = CheckRunner(
+            self.ctx,
+            check_launcher_update
+        )
+        self._check_launcher_runner.need_update.connect(
+            self._need_to_update_resource,
+            Qt.ConnectionType.QueuedConnection
+        )
+
+        self._check_banner_runner = CheckRunner(
+            self.ctx,
+            lambda ctx: True if ctx.signal.reload_banner else None
+        )
         self._check_banner_runner.need_update.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
+
+        # 初始化背景下载器
         self._banner_downloader = BackgroundImageDownloader(self.ctx, "remote_banner")
-        # 使用队列连接确保线程安全
+
         self._banner_downloader.image_downloaded.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
         self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster")
-        # 使用队列连接确保线程安全
+
         self._version_poster_downloader.image_downloaded.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
         self._official_dynamic_downloader = BackgroundImageDownloader(self.ctx, "official_dynamic")
-        # 使用队列连接确保线程安全
+
         self._official_dynamic_downloader.image_downloaded.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
@@ -629,11 +656,6 @@ class HomeInterface(VerticalScrollInterface):
             self._on_official_dynamic_download_start,
             Qt.ConnectionType.BlockingQueuedConnection
         )
-
-    def closeEvent(self, event):
-        """界面关闭事件处理"""
-        self._cleanup_threads()
-        super().closeEvent(event)
 
     def _on_official_dynamic_download_start(self) -> None:
         """在后台下载新的视频前释放当前播放器占用"""
@@ -646,15 +668,6 @@ class HomeInterface(VerticalScrollInterface):
         if hasattr(self._banner_widget, "release_media"):
             self._banner_widget.release_media()
 
-    def _cleanup_threads(self):
-        """清理所有线程"""
-        for thread_name in ['_banner_downloader', '_version_poster_downloader', '_official_dynamic_downloader',
-                            '_check_code_runner', '_check_model_runner', '_check_banner_runner']:
-            if hasattr(self, thread_name):
-                thread = getattr(self, thread_name)
-                if thread and thread.isRunning():
-                    thread.stop()
-
     def on_interface_shown(self) -> None:
         """界面显示时启动检查更新的线程"""
         super().on_interface_shown()
@@ -663,6 +676,8 @@ class HomeInterface(VerticalScrollInterface):
         self._check_code_runner.start()
         self._check_model_runner.start()
         self._check_banner_runner.start()
+        self._check_launcher_runner.start()
+
         # 根据配置启动相应的背景下载器
         background_type = self.ctx.custom_config.background_type
         if background_type == BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value:
@@ -682,8 +697,7 @@ class HomeInterface(VerticalScrollInterface):
         self._update_start_button_style_from_banner()
 
         # 启动导航栏按钮自动提示演示
-        if hasattr(self, 'button_group'):
-            self.button_group.start_tooltip_demo()
+        self.button_group.start_tooltip_demo()
 
     def on_interface_hidden(self) -> None:
         """界面隐藏时的处理"""
@@ -692,8 +706,7 @@ class HomeInterface(VerticalScrollInterface):
             self._banner_widget.pause_media()
 
         # 立即停止并隐藏所有提示
-        if hasattr(self, 'button_group'):
-            self.button_group.stop_tooltip_demo()
+        self.button_group.stop_tooltip_demo()
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
@@ -702,9 +715,9 @@ class HomeInterface(VerticalScrollInterface):
         else:
             self._show_info_bar("有新版本啦", "稍安勿躁~")
 
-    def _need_to_update_model(self, with_new: bool):
+    def _need_to_update_resource(self, with_new: bool):
         if with_new:
-            self._show_info_bar("有新模型啦", "到[设置-模型选择]更新吧~", 5000)
+            self._show_info_bar("有新模型/启动器啦", "到[设置-资源下载]更新吧~", 5000)
 
     def _show_info_bar(self, title: str, content: str, duration: int = 20000):
         """显示信息条"""
