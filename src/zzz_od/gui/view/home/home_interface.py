@@ -533,8 +533,6 @@ class HomeInterface(VerticalScrollInterface):
         # noticecard的高度和启动一条龙按钮的高度 谁能修谁自己tm修吧我是修不明白了
         # 核心是阴影+到底部margin的高度=20px
 
-
-
         # 计算阴影向下扩展：min(20, max(0, offsetY + blurRadius/2))
         shadow_down_extent = max(0, int(8 + 24 / 2))  # 8 偏移 + 12 模糊半径的一半 ≈ 20
         shadow_down_extent = min(20, shadow_down_extent)
@@ -553,8 +551,6 @@ class HomeInterface(VerticalScrollInterface):
         button_v_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
 
         h2_layout.addWidget(button_container)
-
-
 
         # 将底部容器添加到主垂直布局
         v_layout.addWidget(bottom_bar)
@@ -602,11 +598,11 @@ class HomeInterface(VerticalScrollInterface):
             self
         )
         self._check_model_runner.need_update.connect(
-            self._need_to_update_resource,
+            self._need_to_update_model,
             Qt.ConnectionType.QueuedConnection
         )
 
-        def check_launcher_update(ctx: ZContext) -> tuple[bool, str, str]:
+        def check_launcher_update(ctx: ZContext) -> bool:
             current_version = app_utils.get_launcher_version()
             latest_stable, latest_beta = ctx.git_service.get_latest_tag()
 
@@ -618,7 +614,7 @@ class HomeInterface(VerticalScrollInterface):
                 # 稳定通道：与最新稳定版比较；若不存在稳定版，则视为已最新
                 target_latest = latest_stable or current_version
 
-            return current_version == target_latest
+            return current_version != target_latest
 
         self._check_launcher_runner = CheckRunner(
             self.ctx,
@@ -626,7 +622,7 @@ class HomeInterface(VerticalScrollInterface):
             self
         )
         self._check_launcher_runner.need_update.connect(
-            self._need_to_update_resource,
+            self._need_to_update_launcher,
             Qt.ConnectionType.QueuedConnection
         )
 
@@ -747,9 +743,13 @@ class HomeInterface(VerticalScrollInterface):
         else:
             self._show_info_bar("有新版本啦", "稍安勿躁~")
 
-    def _need_to_update_resource(self, with_new: bool):
+    def _need_to_update_model(self, with_new: bool):
         if with_new:
-            self._show_info_bar("有新模型/启动器啦", "到[设置-资源下载]更新吧~", 5000)
+            self._show_info_bar("有新模型啦", "到[设置-资源下载]更新吧~", 5000)
+
+    def _need_to_update_launcher(self, with_new: bool):
+        if with_new:
+            self._show_info_bar("有新启动器啦", "到[设置-资源下载]更新吧~", 5000)
 
     def _show_info_bar(self, title: str, content: str, duration: int = 20000):
         """显示信息条"""
