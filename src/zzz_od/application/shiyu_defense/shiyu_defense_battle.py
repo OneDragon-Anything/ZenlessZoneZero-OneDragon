@@ -9,6 +9,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.config.team_config import PredefinedTeamInfo
@@ -44,6 +45,7 @@ class ShiyuDefenseBattle(ZOperation):
         self.move_times: int = 0  # 移动次数
         self.battle_fail: Optional[str] = None  # 战斗失败的原因
         self.find_interact_btn_times: int = 0  # 发现交互按钮的次数
+        self.no_countdown_start_time: Optional[float] = None  # 连续没有倒计时的开始时间戳
 
     @operation_node(name='加载自动战斗指令', is_start_node=True)
     def load_auto_op(self) -> OperationRoundResult:
@@ -97,17 +99,47 @@ class ShiyuDefenseBattle(ZOperation):
             self.ctx.auto_battle_context.stop_auto_battle()
             return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
 
-        if self.ctx.auto_battle_context.with_distance_times >= 5:
-            self.ctx.auto_battle_context.stop_auto_battle()
-            return self.round_success(status=ShiyuDefenseBattle.STATUS_NEED_SPECIAL_MOVE)
 
         in_battle = self.ctx.auto_battle_context.check_battle_state(
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True,
             check_battle_end_defense_result=True,
-            check_distance=True)
+            check_distance=False)
 
-        if not in_battle:
+        if in_battle:
+            # 在战斗中检测倒计时状态
+            current_time = self.last_screenshot_time
+
+            # 每1秒检测一次倒计时
+            if not hasattr(self, '_last_countdown_check_time'):
+                self._last_countdown_check_time = 0
+
+            if current_time - self._last_countdown_check_time < 1:
+                # 还没到检测间隔
+                return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
+
+            # 执行倒计时检测
+            self._last_countdown_check_time = current_time
+            if self.check_shiyu_countdown(self.last_screenshot):
+                # 有倒计时，重置连续时间记录
+                self.no_countdown_start_time = None
+            else:
+                # 没有倒计时
+                if self.no_countdown_start_time is None:
+                    # 第一次检测到没有倒计时，记录连续期间的开始时间
+                    self.no_countdown_start_time = current_time
+                else:
+                    # 已经在连续没有倒计时的期间，检查从开始到现在的时间差
+                    time_diff = current_time - self.no_countdown_start_time
+
+                    # 连续5秒没有倒计时才认定战斗结束
+                    if time_diff >= 5.0:
+                        self.no_countdown_start_time = None
+                        self.ctx.auto_battle_context.stop_auto_battle()
+                        return self.round_success(status=ShiyuDefenseBattle.STATUS_NEED_SPECIAL_MOVE)
+        else:
+            # 不在战斗画面，重置连续没有倒计时的时间记录
+            self.no_countdown_start_time = None
             result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
             if result.is_success:
                 self.find_interact_btn_times += 1
@@ -167,6 +199,33 @@ class ShiyuDefenseBattle(ZOperation):
             self.distance_pos = None
         else:
             self.distance_pos = mr.rect
+
+    def check_shiyu_countdown(self, screen: MatLike) -> bool:
+        """
+        检查防卫战倒计时状态
+        :param screen: 屏幕截图
+        :return: True表示有倒计时（战斗继续），False表示没有倒计时（战斗结束）
+        """
+        try:
+            # 使用CV流水线检测倒计时
+            result = self.ctx.cv_service.run_pipeline('防卫战倒计时', screen, timeout=1.0)
+
+            if result is None or not result.is_success:
+                # CV流水线执行失败，默认认为没有倒计时
+                return False
+
+            contour_count = len(result.contours)
+
+            if contour_count == 4:
+                # 4个轮廓 = 倒计时数字，有倒计时
+                return True
+            else:
+                # 轮廓数量不对，认为没有倒计时
+                return False
+
+        except Exception:
+            # 异常情况，默认认为没有倒计时
+            return False
 
     @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)
     @operation_node(name='战斗超时')
