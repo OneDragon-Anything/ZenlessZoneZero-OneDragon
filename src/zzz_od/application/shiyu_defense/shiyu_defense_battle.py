@@ -9,7 +9,6 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
-from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.config.team_config import PredefinedTeamInfo
@@ -66,7 +65,6 @@ class ShiyuDefenseBattle(ZOperation):
     def start_move(self):
         # 在移动阶段也检测倒计时，一旦检测到倒计时就停止移动开始战斗
         if self.check_shiyu_countdown(self.last_screenshot):
-            log.info('防卫战移动: 在移动阶段检测到倒计时，战斗开始，停止移动')
             self.ctx.auto_battle_context.resume_auto_battle()
             self.move_times = 0
             return self.round_success()
@@ -183,25 +181,20 @@ class ShiyuDefenseBattle(ZOperation):
             target_pos = self.distance_pos.center
             target_type = "距离显示"
             move_distance = self.ctx.auto_battle_context.last_check_distance
-            log.info(f'防卫战后移动: 找到{target_type}，位置 {target_pos}，距离 {move_distance}m')
 
         # 第2层：检测传送点
         if target_pos is None:
-            log.info('防卫战后移动: 未找到距离显示，进入第2层检测 - 传送点检测')
             teleport_rect = self.check_teleport_point(self.last_screenshot)
             if teleport_rect is not None:
                 target_pos = teleport_rect.center
                 target_type = "传送点"
                 move_distance = 5.0  # 传送点固定移动5米
-                log.info(f'防卫战后移动: 找到{target_type}，位置 {target_pos}')
 
         # 第3层：盲动转向
         if target_pos is None:
-            log.info('防卫战后移动: 未找到距离和传送点，进入第3层检测 - 盲动转向')
             if not hasattr(self, '_blind_turn_direction'):
                 self._blind_turn_direction = 1  # 1=右转，-1=左转
 
-            log.info(f'防卫战后移动: 盲动转向，固定方向 {"右" if self._blind_turn_direction > 0 else "左"}，像素200')
             self.ctx.controller.turn_by_distance(self._blind_turn_direction * 200)  # 统一使用200像素
             return self.round_wait(wait=0.5)
 
@@ -211,8 +204,6 @@ class ShiyuDefenseBattle(ZOperation):
         deviation = target_x - screen_center_x
 
         if abs(deviation) > 50:  # 偏差大于50像素需要转向
-            direction = "右转" if deviation > 0 else "左转"
-            log.info(f'防卫战后移动: {target_type}偏{direction}，像素 50')
             self.ctx.controller.turn_by_distance(50 if deviation > 0 else -50)
         else:
             # 目标在屏幕中心，前进
@@ -221,21 +212,12 @@ class ShiyuDefenseBattle(ZOperation):
                 if press_time > 1:  # 不要移动太久
                     press_time = 1
 
-                if target_type == "距离显示":
-                    log.info(f'防卫战后移动: {target_type}居中，向前移动 {press_time:.2f} 秒')
-                else:
-                    log.info(f'防卫战后移动: {target_type}居中，向前移动 {press_time:.2f} 秒')
-
                 self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
                 self.move_times += 1
-            else:
-                log.info(f'防卫战后移动: {target_type}居中，但无法确定移动距离')
 
         return self.round_wait(wait=0.5)
 
         if self.move_times >= 60:
-            log.info('防卫战后移动: 移动次数过多，判定移动失败')
-            # 移动比较久也没到 就自动退出了
             self.battle_fail = ShiyuDefenseBattle.STATUS_FAIL_TO_MOVE
             return self.round_fail(ShiyuDefenseBattle.STATUS_FAIL_TO_MOVE)
 
@@ -254,24 +236,14 @@ class ShiyuDefenseBattle(ZOperation):
         :return: True表示有倒计时（战斗继续），False表示没有倒计时（战斗结束）
         """
         try:
-            # 使用CV流水线检测倒计时
             result = self.ctx.cv_service.run_pipeline('防卫战倒计时', screen, timeout=1.0)
 
             if result is None or not result.is_success:
-                # CV流水线执行失败，默认认为没有倒计时
                 return False
 
-            contour_count = len(result.contours)
-
-            if contour_count == 4:
-                # 4个轮廓 = 倒计时数字，有倒计时
-                return True
-            else:
-                # 轮廓数量不对，认为没有倒计时
-                return False
+            return len(result.contours) == 4
 
         except Exception:
-            # 异常情况，默认认为没有倒计时
             return False
 
     def check_teleport_point(self, screen: MatLike) -> Optional[Rect]:
@@ -281,29 +253,21 @@ class ShiyuDefenseBattle(ZOperation):
         :return: 传送点的矩形区域，找不到返回None
         """
         try:
-            # 使用CV流水线检测传送点
             result = self.ctx.cv_service.run_pipeline('防卫战空洞传送点', screen, timeout=1.0)
 
             if result is None or not result.is_success:
-                # CV流水线执行失败或没有检测到传送点
-                log.debug('防卫战传送点检测: CV流水线执行失败或未检测到传送点')
                 return None
 
-            # 获取轮廓和对应的绝对坐标矩形框对
             rect_pairs = result.get_absolute_rect_pairs()
 
             if len(rect_pairs) > 0:
-                # 找到轮廓点最多的（通常是最大的轮廓）
-                max_pair = max(rect_pairs, key=lambda pair: len(pair[0]))  # 使用轮廓内点的数量
+                max_pair = max(rect_pairs, key=lambda pair: len(pair[0]))
                 _, (x1, y1, x2, y2) = max_pair
                 return Rect(x1, y1, x2, y2)
             else:
-                log.debug('防卫战传送点检测: 未检测到轮廓')
                 return None
 
-        except Exception as e:
-            # 异常情况，返回None
-            log.error(f'防卫战传送点检测: 异常 - {str(e)}')
+        except Exception:
             return None
 
     @node_from(from_name='自动战斗', success=False, status=Operation.STATUS_TIMEOUT)
