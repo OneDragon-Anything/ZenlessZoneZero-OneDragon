@@ -58,9 +58,6 @@ class Application(Operation):
                     instance_idx=ctx.current_instance_idx,
                 )
 
-    def _init_before_execute(self) -> None:
-        Operation._init_before_execute(self)
-
     def handle_init(self) -> None:
         """
         运行前初始化
