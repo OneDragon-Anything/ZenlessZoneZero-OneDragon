@@ -71,6 +71,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self.need_multiple_instance: bool = need_multiple_instance  # 是否需要多实例
         self.need_after_done_opt: bool = need_after_done_opt  # 结束后
         self.current_group_id: str = application_const.DEFAULT_GROUP_ID  # 当前选择的组ID
+        self._group_selector_inited: bool = False
 
     def get_content_widget(self) -> QWidget:
         """
@@ -423,10 +424,12 @@ class OneDragonRunInterface(VerticalScrollInterface):
         :return:
         """
         self._refresh_group_list()
-        self.group_combo.currentTextChanged.connect(self._on_group_changed)
-        self.create_btn.clicked.connect(self._on_create_group)
-        self.rename_btn.clicked.connect(self._on_rename_group)
-        self.delete_btn.clicked.connect(self._on_delete_group)
+        if not self._group_selector_inited:
+            self.group_combo.currentTextChanged.connect(self._on_group_changed)
+            self.create_btn.clicked.connect(self._on_create_group)
+            self.rename_btn.clicked.connect(self._on_rename_group)
+            self.delete_btn.clicked.connect(self._on_delete_group)
+            self._group_selector_inited = True
 
     def _refresh_group_list(self) -> None:
         """
