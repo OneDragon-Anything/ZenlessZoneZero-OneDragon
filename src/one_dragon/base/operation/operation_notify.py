@@ -248,7 +248,7 @@ def send_node_notify(
 
     if detail:
         status = round_result.status
-        message += f"状态「{status}」" if status else ''
+        message += f"{gt('状态')}「{status}」" if status else ''
 
     if custom_message:
         message += custom_message
