@@ -489,7 +489,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
             w.buttonLayout.insertStretch(1)
             w.exec()
             return
-        
+
         dialog = InputDialog(gt('重命名列表'), gt('输入新名称:'), self)
         dialog.lineEdit.setText(self.current_group_id)
         if dialog.exec():
@@ -498,6 +498,9 @@ class OneDragonRunInterface(VerticalScrollInterface):
                 if self.ctx.app_group_manager.rename_group(self.ctx.current_instance_idx, self.current_group_id, new_name):
                     self.current_group_id = new_name
                     self._refresh_group_list()
+                    # 重新加载配置，否则self.config仍指向旧路径
+                    self.config = self.ctx.app_group_manager.get_group_config(self.ctx.current_instance_idx, self.current_group_id)
+                    self._init_app_list()
                 else:
                     w = MessageBox(gt('重命名失败'), gt('新名称已存在或无效'), self)
                     w.yesButton.setText(gt('确定'))
@@ -517,12 +520,15 @@ class OneDragonRunInterface(VerticalScrollInterface):
             w.buttonLayout.insertStretch(1)
             w.exec()
             return
-            
+
         w = MessageBox(gt('确认删除'), gt('确定删除列表 "{}" 吗？此操作不可撤销。').format(self.current_group_id), self)
         if w.exec():
             if self.ctx.app_group_manager.delete_group(self.ctx.current_instance_idx, self.current_group_id):
                 self.current_group_id = application_const.DEFAULT_GROUP_ID
                 self._refresh_group_list()
+                # 重新加载配置，否则self.config仍指向已删除的组
+                self.config = self.ctx.app_group_manager.get_group_config(self.ctx.current_instance_idx, self.current_group_id)
+                self._init_app_list()
             else:
                 w = MessageBox(gt('删除失败'), gt('删除过程中发生错误'), self)
                 w.yesButton.setText(gt('确定'))
