@@ -5,9 +5,9 @@ from typing import ClassVar, Optional
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.life_on_line import life_on_line_const
 from zzz_od.application.life_on_line.life_on_line_config import LifeOnLineConfig
 from zzz_od.application.life_on_line.life_on_line_run_record import LifeOnLineRunRecord
@@ -32,8 +32,7 @@ class LifeOnLineApp(ZApplication):
             self,
             ctx=ctx,
             app_id=life_on_line_const.APP_ID,
-            op_name=gt(life_on_line_const.APP_NAME),
-            need_notify=True,
+            op_name=life_on_line_const.APP_NAME,
         )
         self.config: LifeOnLineConfig = self.ctx.run_context.get_config(
             app_id=life_on_line_const.APP_ID,
@@ -166,9 +165,9 @@ class LifeOnLineApp(ZApplication):
                 return self.round_success(LifeOnLineApp.STATUS_CONTINUE)
 
     @node_from(from_name='检查运行次数', status=STATUS_TIMES_FINISHED)
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

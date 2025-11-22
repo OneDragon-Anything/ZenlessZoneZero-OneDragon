@@ -1,8 +1,8 @@
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
 from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import (
     DriveDiscDismantleConfig,
@@ -22,8 +22,7 @@ class DriveDiscDismantleApp(ZApplication):
             self,
             ctx=ctx,
             app_id=drive_disc_dismantle_const.APP_ID,
-            op_name=gt(drive_disc_dismantle_const.APP_NAME),
-            need_notify=True,
+            op_name=drive_disc_dismantle_const.APP_NAME,
         )
 
         self.config: DriveDiscDismantleConfig = self.ctx.run_context.get_config(
@@ -78,6 +77,7 @@ class DriveDiscDismantleApp(ZApplication):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='快速选择确认')
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='点击拆解')
     def click_salvage(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '仓库-驱动仓库-驱动盘拆解', '按钮-拆解',
@@ -93,7 +93,6 @@ class DriveDiscDismantleApp(ZApplication):
     @node_from(from_name='点击拆解确认', success=False)  # 可能没有需要拆解的
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

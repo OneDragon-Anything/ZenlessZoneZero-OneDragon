@@ -3,8 +3,8 @@ from typing import ClassVar, Optional
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 from zzz_od.application.notorious_hunt import notorious_hunt_const
 from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntConfig
@@ -27,8 +27,7 @@ class NotoriousHuntApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx, app_id=notorious_hunt_const.APP_ID,
-            op_name=gt(notorious_hunt_const.APP_NAME),
-            need_notify=True,
+            op_name=notorious_hunt_const.APP_NAME,
         )
 
         self.config: NotoriousHuntConfig = self.ctx.run_context.get_config(
@@ -89,6 +88,7 @@ class NotoriousHuntApp(ZApplication):
         )
 
     @node_from(from_name='点击奖励入口')
+    @node_notify(when=NotifyTiming.CURRENT_DONE)
     @operation_node(name='全部领取', node_max_retry_times=2)
     def claim_all(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
@@ -101,6 +101,5 @@ class NotoriousHuntApp(ZApplication):
     @node_from(from_name='全部领取', success=False)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())

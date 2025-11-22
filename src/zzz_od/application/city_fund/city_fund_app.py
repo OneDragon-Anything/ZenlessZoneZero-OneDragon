@@ -1,7 +1,7 @@
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.city_fund import city_fund_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -12,12 +12,14 @@ from zzz_od.operation.goto.goto_menu import GotoMenu
 class CityFundApp(ZApplication):
 
     def __init__(self, ctx: ZContext):
+        """
+        领取大月卡
+        """
         ZApplication.__init__(
             self,
             ctx=ctx,
             app_id=city_fund_const.APP_ID,
-            op_name=gt(city_fund_const.APP_NAME),
-            need_notify=True,
+            op_name=city_fund_const.APP_NAME,
         )
 
     @operation_node(name='打开菜单', is_start_node=True)
@@ -59,6 +61,7 @@ class CityFundApp(ZApplication):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击等级回馈')
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='等级全部领取')
     def click_level_claim(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '丽都城募', '等级-全部领取',
@@ -69,7 +72,6 @@ class CityFundApp(ZApplication):
     @node_from(from_name='等级全部领取', success=False)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
