@@ -19,6 +19,7 @@ from one_dragon.base.operation.application.application_run_context import (
 from one_dragon.base.operation.operation_base import OperationBase, OperationResult
 from one_dragon.base.operation.operation_edge import OperationEdge, OperationEdgeDesc
 from one_dragon.base.operation.operation_node import OperationNode
+from one_dragon.base.operation.operation_notify import send_node_notify
 from one_dragon.base.operation.operation_round_result import (
     OperationRoundResult,
     OperationRoundResultEnum,
@@ -450,6 +451,10 @@ class Operation(OperationBase):
 
             # 成功或者失败的 找下一个节点
             next_node = self._get_next_node(round_result)
+
+            # 结束后发送节点通知
+            send_node_notify(self, round_result, self._current_node, next_node)
+
             if next_node is None:  # 没有下一个节点了 当前返回什么就是什么
                 if round_result.result == OperationRoundResultEnum.SUCCESS:
                     op_result = self.op_success(round_result.status, round_result.data)
@@ -465,7 +470,7 @@ class Operation(OperationBase):
                 self._previous_round_result = round_result
                 self._previous_node = self._current_node
                 self._current_node = next_node
-                self._reset_status_for_new_node()  # 充值状态
+                self._reset_status_for_new_node()  # 重置状态
                 continue
 
         self.after_operation_done(op_result)

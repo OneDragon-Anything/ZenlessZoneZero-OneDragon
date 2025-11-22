@@ -22,6 +22,7 @@ class ChargePlanAppFactory(ApplicationFactory):
             self,
             app_id=charge_plan_const.APP_ID,
             app_name=charge_plan_const.APP_NAME,
+            need_notify=charge_plan_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

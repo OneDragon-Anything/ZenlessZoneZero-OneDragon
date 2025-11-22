@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
+from zzz_od.application.scratch_card import scratch_card_const
 from zzz_od.application.scratch_card.scratch_card_app import ScratchCardApp
 from zzz_od.application.scratch_card.scratch_card_run_record import ScratchCardRunRecord
 
@@ -17,8 +18,9 @@ class ScratchCardFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(
             self,
-            app_id="scratch_card",
-            app_name="刮刮卡"
+            app_id=scratch_card_const.APP_ID,
+            app_name=scratch_card_const.APP_NAME,
+            need_notify=scratch_card_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

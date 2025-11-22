@@ -6,6 +6,7 @@ from one_dragon.base.operation.application.application_config import Application
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
+from zzz_od.application.suibian_temple import suibian_temple_const
 from zzz_od.application.suibian_temple.suibian_temple_app import SuibianTempleApp
 from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempleConfig
 from zzz_od.application.suibian_temple.suibian_temple_run_record import (
@@ -21,8 +22,9 @@ class SuibianTempleFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(
             self,
-            app_id="suibian_temple",
-            app_name='随便观',
+            app_id=suibian_temple_const.APP_ID,
+            app_name=suibian_temple_const.APP_NAME,
+            need_notify=suibian_temple_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

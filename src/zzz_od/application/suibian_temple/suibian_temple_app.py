@@ -1,8 +1,9 @@
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
+from zzz_od.application.suibian_temple import suibian_temple_const
 from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_squad import (
     SuibianTempleAdventureSquad,
 )
@@ -35,12 +36,12 @@ class SuibianTempleApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='suibian_temple',
-            op_name=gt('随便观'),
-            need_notify=True,
+            ctx=ctx,
+            app_id=suibian_temple_const.APP_ID,
+            op_name=suibian_temple_const.APP_NAME,
         )
         self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
-            app_id='suibian_temple',
+            app_id=suibian_temple_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
@@ -96,6 +97,7 @@ class SuibianTempleApp(ZApplication):
 
     @node_from(from_name='识别初始画面', status='随便观-入口')
     @node_from(from_name='前往随便观')
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='处理游历')
     def handle_adventure_squad(self) -> OperationRoundResult:
         op = SuibianTempleAdventureSquad(
@@ -106,6 +108,7 @@ class SuibianTempleApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='处理游历')
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='处理饮茶仙')
     def handle_yum_cha_sin_submit(self) -> OperationRoundResult:
         if self.config.yum_cha_sin:
@@ -115,6 +118,7 @@ class SuibianTempleApp(ZApplication):
             return self.round_success(status='未开启')
 
     @node_from(from_name='处理饮茶仙')  # 只有开启了饮茶仙 才需要在饮茶仙之后再进一次游历
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='饮茶仙后处理游历')
     def handle_adventure_squad_2(self) -> OperationRoundResult:
         op = SuibianTempleAdventureSquad(self.ctx, claim=False, dispatch=True)
@@ -122,18 +126,21 @@ class SuibianTempleApp(ZApplication):
 
     @node_from(from_name='处理饮茶仙', status='未开启')
     @node_from(from_name='饮茶仙后处理游历')
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='处理制造坊')
     def handle_craft(self) -> OperationRoundResult:
         op = SuibianTempleCraft(self.ctx)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='处理制造坊')
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='处理售卖铺')
     def handle_sales_stall(self) -> OperationRoundResult:
         op = SuibianTempleSalesStall(self.ctx)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='处理售卖铺')
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='处理好物铺')
     def handle_good_goods(self) -> OperationRoundResult:
         if self.config.good_goods_purchase_enabled:
@@ -143,6 +150,7 @@ class SuibianTempleApp(ZApplication):
             return self.round_success(status='未开启')
 
     @node_from(from_name='处理好物铺')
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='处理邦巢')
     def handle_boo_box(self) -> OperationRoundResult:
         """检查是否启用邦巢购买功能，决定后续流程"""
@@ -153,6 +161,7 @@ class SuibianTempleApp(ZApplication):
             return self.round_success(status='未开启')
 
     @node_from(from_name='处理邦巢')
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='处理德丰大押')
     def handle_pawnshop(self) -> OperationRoundResult:
         if self.config.pawnshop_crest_enabled or self.config.pawnshop_omnicoin_enabled:
@@ -164,7 +173,6 @@ class SuibianTempleApp(ZApplication):
     @node_from(from_name='处理德丰大押')
     @operation_node(name='完成后返回')
     def back_at_last(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

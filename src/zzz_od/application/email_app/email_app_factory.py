@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
+from zzz_od.application.email_app import email_app_const
 from zzz_od.application.email_app.email_app import EmailApp
 from zzz_od.application.email_app.email_run_record import EmailRunRecord
 
@@ -17,8 +18,9 @@ class EmailAppFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(
             self,
-            app_id="email",
-            app_name="邮件",
+            app_id=email_app_const.APP_ID,
+            app_name=email_app_const.APP_NAME,
+            need_notify=email_app_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

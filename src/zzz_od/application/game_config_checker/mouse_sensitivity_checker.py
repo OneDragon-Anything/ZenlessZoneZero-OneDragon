@@ -5,8 +5,8 @@ import numpy as np
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from zzz_od.application.game_config_checker import mouse_sensitivity_checker_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -19,8 +19,8 @@ class MouseSensitivityChecker(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx,
-            app_id='mouse_sensitivity_checker',
-            op_name=gt('鼠标灵敏度检测'),
+            app_id=mouse_sensitivity_checker_const.APP_ID,
+            op_name=mouse_sensitivity_checker_const.APP_NAME,
         )
 
         self.turn_distance: int = 500  # 转向时鼠标移动的距离

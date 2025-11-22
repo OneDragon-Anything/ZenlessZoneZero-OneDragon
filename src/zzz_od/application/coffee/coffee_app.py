@@ -10,6 +10,7 @@ from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, os_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -41,13 +42,13 @@ class CoffeeApp(ZApplication):
 
     def __init__(self, ctx: ZContext):
         """
-        每天自动接收邮件奖励
+        喝咖啡
         """
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='coffee',
-            op_name=gt('咖啡店'),
-            need_notify=True,
+            ctx=ctx,
+            app_id=coffee_app_const.APP_ID,
+            op_name=coffee_app_const.APP_NAME,
         )
 
         self.config: CoffeeConfig = self.ctx.run_context.get_config(
@@ -285,6 +286,7 @@ class CoffeeApp(ZApplication):
         return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='点单后跳过')
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='电量确认')
     def charge_confirm(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '电量确认')
@@ -388,7 +390,6 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='专业挑战室')
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

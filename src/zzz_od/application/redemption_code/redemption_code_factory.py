@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
+from zzz_od.application.redemption_code import redemption_code_const
 from zzz_od.application.redemption_code.redemption_code_app import RedemptionCodeApp
 from zzz_od.application.redemption_code.redemption_code_run_record import (
     RedemptionCodeRunRecord,
@@ -19,8 +20,9 @@ class RedemptionCodeFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
         ApplicationFactory.__init__(
             self,
-            app_id="redemption_code",
-            app_name="兑换码",
+            app_id=redemption_code_const.APP_ID,
+            app_name=redemption_code_const.APP_NAME,
+            need_notify=redemption_code_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 
