@@ -17,14 +17,12 @@ class UpdatePriorityOperation(ZOperation):
     @operation_node(name='进入藏品页面')
     def enter_collections(self) -> OperationRoundResult:
         # 1: 打开菜单
-        result = self.round_by_find_and_click_area(screen_name='迷失之地-大世界', area_name='迷失之地-TAB',
-                                                 success_wait=1, retry_wait=1)
+        result = self.round_by_find_and_click_area(screen_name='迷失之地-大世界', area_name='迷失之地-TAB')
         if result.is_success:
             return self.round_wait(status=result.status, wait=1)
 
         # 2: 切换到藏品页
-        result = self.round_by_find_and_click_area(screen_name='迷失之地-藏品面板', area_name='藏品',
-                                                 success_wait=1, retry_wait=1)
+        result = self.round_by_find_and_click_area(screen_name='迷失之地-藏品面板', area_name='藏品')
         if result.is_success:
             return self.round_success(status=result.status, wait=1)
 
