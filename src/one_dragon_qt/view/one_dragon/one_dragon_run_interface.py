@@ -3,12 +3,15 @@ from typing import List, Optional
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import (
+    ComboBox,
     FluentIcon,
+    MessageBox,
     PrimaryPushButton,
     PushButton,
     SettingCardGroup,
     SingleDirectionScrollArea,
     SubtitleLabel,
+    TransparentToolButton,
 )
 
 from one_dragon.base.config.one_dragon_config import AfterDoneOpEnum, InstanceRun
@@ -29,6 +32,7 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.view.app_run_interface import AppRunner
 from one_dragon_qt.view.context_event_signal import ContextEventSignal
+from one_dragon_qt.widgets.input_dialog import InputDialog
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
 from one_dragon_qt.widgets.notify_dialog import NotifyDialog
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
@@ -66,6 +70,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self.help_url: str = help_url  # 使用说明的链接
         self.need_multiple_instance: bool = need_multiple_instance  # 是否需要多实例
         self.need_after_done_opt: bool = need_after_done_opt  # 结束后
+        self.current_group_id: str = application_const.DEFAULT_GROUP_ID  # 当前选择的组ID
 
     def get_content_widget(self) -> QWidget:
         """
@@ -107,7 +112,33 @@ class OneDragonRunInterface(VerticalScrollInterface):
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_layout.setContentsMargins(0, 0, 16, 0)
 
-        self.app_card_group = SettingCardGroup(gt('任务列表'))
+        # 标题行：任务列表 + 组选择器 + 管理按钮
+        title_layout = QHBoxLayout()
+        title_label = SubtitleLabel(gt('任务列表'))
+        title_layout.addWidget(title_label)
+        title_layout.addSpacing(16)
+
+        self.group_combo = ComboBox()
+        self.group_combo.setFixedWidth(160)
+        title_layout.addWidget(self.group_combo)
+        title_layout.addSpacing(8)
+
+        self.create_btn = TransparentToolButton(FluentIcon.ADD, self)
+        self.create_btn.setToolTip(gt('新建列表'))
+        title_layout.addWidget(self.create_btn)
+
+        self.rename_btn = TransparentToolButton(FluentIcon.EDIT, self)
+        self.rename_btn.setToolTip(gt('重命名列表'))
+        title_layout.addWidget(self.rename_btn)
+
+        self.delete_btn = TransparentToolButton(FluentIcon.DELETE, self)
+        self.delete_btn.setToolTip(gt('删除列表'))
+        title_layout.addWidget(self.delete_btn)
+
+        title_layout.addStretch(1)
+        scroll_layout.addLayout(title_layout)
+
+        self.app_card_group = SettingCardGroup('')
         scroll_layout.addWidget(self.app_card_group)
         scroll_layout.addStretch(1)
 
@@ -184,13 +215,18 @@ class OneDragonRunInterface(VerticalScrollInterface):
         :return:
         """
         if len(self._app_run_cards) > 0:  # 之前已经添加了组件了 这次只是调整顺序
-            for idx, app in enumerate(self.config.app_list):
-                run_record = self.ctx.run_context.get_run_record(
-                    app_id=app.app_id,
-                    instance_idx=self.ctx.current_instance_idx
-                )
-                self._app_run_cards[idx].set_app(app, run_record)
-                self._app_run_cards[idx].set_switch_on(app.enabled)
+            for idx, card in enumerate(self._app_run_cards):
+                if idx < len(self.config.app_list):
+                    app = self.config.app_list[idx]
+                    run_record = self.ctx.run_context.get_run_record(
+                        app_id=app.app_id,
+                        instance_idx=self.ctx.current_instance_idx
+                    )
+                    card.set_app(app, run_record)
+                    card.set_switch_on(app.enabled)
+                    card.setVisible(True)
+                else:
+                    card.setVisible(False)
         else:
             for app in self.config.app_list:
                 run_record = self.ctx.run_context.get_run_record(
@@ -212,10 +248,13 @@ class OneDragonRunInterface(VerticalScrollInterface):
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
-        self.config = self.ctx.app_group_manager.get_one_dragon_group_config(
+        self.current_group_id = application_const.DEFAULT_GROUP_ID
+        self.config = self.ctx.app_group_manager.get_group_config(
             instance_idx=self.ctx.current_instance_idx,
+            group_id=self.current_group_id
         )
         self._init_app_list()
+        self._init_group_selector()
         self.notify_switch.init_with_adapter(self.ctx.notify_config.get_prop_adapter('enable_notify'))
 
         self.ctx.listen_event(ContextKeyboardEventEnum.PRESS.value, self._on_key_press)
@@ -357,7 +396,10 @@ class OneDragonRunInterface(VerticalScrollInterface):
         实例变更 这是signal 可以改ui
         :return:
         """
+        self.current_group_id = application_const.DEFAULT_GROUP_ID
+        self.config = self.ctx.app_group_manager.get_group_config(self.ctx.current_instance_idx, self.current_group_id)
         self._init_app_list()
+        self._refresh_group_list()
 
     def _on_instance_run_changed(self, idx: int, value: str) -> None:
         self.ctx.one_dragon_config.instance_run = value
@@ -374,3 +416,116 @@ class OneDragonRunInterface(VerticalScrollInterface):
         """
         dialog = NotifyDialog(self, self.ctx)
         dialog.exec()
+
+    def _init_group_selector(self) -> None:
+        """
+        初始化组选择器
+        :return:
+        """
+        self._refresh_group_list()
+        self.group_combo.currentTextChanged.connect(self._on_group_changed)
+        self.create_btn.clicked.connect(self._on_create_group)
+        self.rename_btn.clicked.connect(self._on_rename_group)
+        self.delete_btn.clicked.connect(self._on_delete_group)
+
+    def _refresh_group_list(self) -> None:
+        """
+        刷新组列表
+        :return:
+        """
+        group_list = self.ctx.app_group_manager.get_group_list(self.ctx.current_instance_idx)
+        self.group_combo.blockSignals(True)
+        self.group_combo.clear()
+        for group in group_list:
+            self.group_combo.addItem(group)
+        # 设置当前选中
+        if self.current_group_id in group_list:
+            self.group_combo.setCurrentText(self.current_group_id)
+        else:
+            self.current_group_id = application_const.DEFAULT_GROUP_ID
+            self.group_combo.setCurrentText(self.current_group_id)
+        self.group_combo.blockSignals(False)
+
+    def _on_group_changed(self, group_id: str) -> None:
+        """
+        组切换
+        :param group_id:
+        :return:
+        """
+        if group_id == self.current_group_id:
+            return
+        self.current_group_id = group_id
+        self.config = self.ctx.app_group_manager.get_group_config(self.ctx.current_instance_idx, group_id)
+        self._init_app_list()
+
+    def _on_create_group(self) -> None:
+        """
+        新建组
+        :return:
+        """
+        dialog = InputDialog(gt('新建列表'), gt('输入列表名称:'), self)
+        if dialog.exec():
+            group_name = dialog.lineEdit.text().strip()
+            if group_name:
+                if self.ctx.app_group_manager.create_group(self.ctx.current_instance_idx, group_name):
+                    self._refresh_group_list()
+                    self.group_combo.setCurrentText(group_name)
+                else:
+                    w = MessageBox(gt('创建失败'), gt('列表名称已存在或无效'), self)
+                    w.yesButton.setText(gt('确定'))
+                    w.cancelButton.hide()
+                    w.buttonLayout.insertStretch(1)
+                    w.exec()
+
+    def _on_rename_group(self) -> None:
+        """
+        重命名组
+        :return:
+        """
+        if self.current_group_id == application_const.DEFAULT_GROUP_ID:
+            w = MessageBox(gt('无法重命名'), gt('默认列表不能重命名'), self)
+            w.yesButton.setText(gt('确定'))
+            w.cancelButton.hide()
+            w.buttonLayout.insertStretch(1)
+            w.exec()
+            return
+        
+        dialog = InputDialog(gt('重命名列表'), gt('输入新名称:'), self)
+        dialog.lineEdit.setText(self.current_group_id)
+        if dialog.exec():
+            new_name = dialog.lineEdit.text().strip()
+            if new_name and new_name != self.current_group_id:
+                if self.ctx.app_group_manager.rename_group(self.ctx.current_instance_idx, self.current_group_id, new_name):
+                    self.current_group_id = new_name
+                    self._refresh_group_list()
+                else:
+                    w = MessageBox(gt('重命名失败'), gt('新名称已存在或无效'), self)
+                    w.yesButton.setText(gt('确定'))
+                    w.cancelButton.hide()
+                    w.buttonLayout.insertStretch(1)
+                    w.exec()
+
+    def _on_delete_group(self) -> None:
+        """
+        删除组
+        :return:
+        """
+        if self.current_group_id == application_const.DEFAULT_GROUP_ID:
+            w = MessageBox(gt('无法删除'), gt('默认列表不能删除'), self)
+            w.yesButton.setText(gt('确定'))
+            w.cancelButton.hide()
+            w.buttonLayout.insertStretch(1)
+            w.exec()
+            return
+            
+        w = MessageBox(gt('确认删除'), gt('确定删除列表 "{}" 吗？此操作不可撤销。').format(self.current_group_id), self)
+        if w.exec():
+            if self.ctx.app_group_manager.delete_group(self.ctx.current_instance_idx, self.current_group_id):
+                self.current_group_id = application_const.DEFAULT_GROUP_ID
+                self._refresh_group_list()
+            else:
+                w = MessageBox(gt('删除失败'), gt('删除过程中发生错误'), self)
+                w.yesButton.setText(gt('确定'))
+                w.cancelButton.hide()
+                w.buttonLayout.insertStretch(1)
+                w.exec()
