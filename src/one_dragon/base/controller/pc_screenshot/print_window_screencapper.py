@@ -3,6 +3,7 @@ import ctypes
 from cv2.typing import MatLike
 
 from one_dragon.base.controller.pc_screenshot.gdi_screencapper_base import (
+    GdiCaptureContext,
     GdiScreencapperBase,
 )
 from one_dragon.base.geometry.rectangle import Rect
@@ -41,17 +42,13 @@ class PrintWindowScreencapper(GdiScreencapperBase):
 
         return self._capture_shared(hwnd, width, height)
 
-    def _do_capture(self, hwnd, width, height, hwndDC, mfcDC) -> bool:
+    def _do_capture(self, context: GdiCaptureContext) -> bool:
         """使用 PrintWindow API 执行截图
 
         Args:
-            hwnd: 窗口句柄
-            width: 截图宽度
-            height: 截图高度
-            hwndDC: 设备上下文
-            mfcDC: 内存设备上下文
+            context: 截图上下文
 
         Returns:
             是否截图成功
         """
-        return ctypes.windll.user32.PrintWindow(hwnd, mfcDC, PW_FLAGS)
+        return ctypes.windll.user32.PrintWindow(context.hwnd, context.mfcDC, PW_FLAGS)
