@@ -65,14 +65,14 @@ class ShiyuDefenseBattle(ZOperation):
     def start_move(self):
         # 在移动阶段也检测倒计时，一旦检测到倒计时就停止移动开始战斗
         if self.check_shiyu_countdown(self.last_screenshot):
-            self.ctx.auto_battle_context.resume_auto_battle()
+            self.ctx.auto_battle_context.start_auto_battle()
             self.move_times = 0
             return self.round_success()
         self.check_distance(self.last_screenshot)
 
         if self.distance_pos is None:
             if self.ctx.auto_battle_context.without_distance_times >= 10:
-                self.ctx.auto_battle_context.resume_auto_battle()
+                self.ctx.auto_battle_context.start_auto_battle()
                 self.move_times = 0
                 return self.round_success()
             else:
@@ -92,6 +92,8 @@ class ShiyuDefenseBattle(ZOperation):
             return self.round_wait(wait=0.5)
         else:
             press_time = self.ctx.auto_battle_context.last_check_distance / 7.2  # 朱鸢测出来的速度
+            # 有可能识别错距离 设置一个最大的移动时间
+            press_time = min(press_time, 4)
             self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
             self.move_times += 1
             return self.round_wait(wait=0.5)
@@ -102,7 +104,6 @@ class ShiyuDefenseBattle(ZOperation):
         if self.ctx.auto_battle_context.last_check_end_result is not None:
             self.ctx.auto_battle_context.stop_auto_battle()
             return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
-
 
         in_battle = self.ctx.auto_battle_context.check_battle_state(
             self.last_screenshot, self.last_screenshot_time,
