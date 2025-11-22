@@ -13,11 +13,11 @@ from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.utils.log_utils import log
 
 
-class BitBltScreencapperBase(GdiScreencapperBase):
-    """BitBlt 截图的基类，封装 CAPTUREBLT 自动回退逻辑"""
+class BitBltScreencapper(GdiScreencapperBase):
+    """使用 BitBlt API 先截取全屏再裁剪到窗口区域的策略"""
 
     def __init__(self, game_win: PcGameWindow, standard_width: int, standard_height: int):
-        """初始化 BitBlt 截图器基类
+        """初始化 BitBlt 截图器
 
         Args:
             game_win: 游戏窗口对象
@@ -26,47 +26,6 @@ class BitBltScreencapperBase(GdiScreencapperBase):
         """
         GdiScreencapperBase.__init__(self, game_win, standard_width, standard_height)
         self.use_captureblt = True
-
-    def _do_capture(self, hwnd, width, height, hwndDC, mfcDC) -> bool:
-        """使用 BitBlt API 执行截图，自动处理 CAPTUREBLT 标志
-
-        Args:
-            hwnd: 窗口句柄
-            width: 截图宽度
-            height: 截图高度
-            hwndDC: 设备上下文
-            mfcDC: 内存设备上下文
-
-        Returns:
-            是否截图成功
-        """
-        blt_flags = SRCCOPY | CAPTUREBLT if self.use_captureblt else SRCCOPY
-        result = ctypes.windll.gdi32.BitBlt(
-            mfcDC, 0, 0, width, height,
-            hwndDC, 0, 0, blt_flags
-        )
-
-        # 如果使用 CAPTUREBLT 失败，尝试不使用该标志重试
-        if not result and self.use_captureblt:
-            result = ctypes.windll.gdi32.BitBlt(
-                mfcDC, 0, 0, width, height,
-                hwndDC, 0, 0, SRCCOPY
-            )
-            if result:
-                self.use_captureblt = False
-
-        return result != 0
-
-
-class BitBltScreencapper(BitBltScreencapperBase):
-    """使用 BitBlt API 直接截取窗口的策略"""
-
-
-class BitBltFullscreenScreencapper(BitBltScreencapperBase):
-    """使用 BitBlt API 先截取全屏再裁剪到窗口区域的策略
-
-    适用于某些窗口模式下 BitBlt 直接截取效果不佳的情况
-    """
 
     @staticmethod
     def _get_virtual_screen_info() -> tuple[int, int, int, int]:
@@ -116,6 +75,36 @@ class BitBltFullscreenScreencapper(BitBltScreencapperBase):
             finally:
                 # 始终释放屏幕 DC
                 ctypes.windll.user32.ReleaseDC(0, screen_dc)
+
+    def _do_capture(self, hwnd, width, height, hwndDC, mfcDC) -> bool:
+        """使用 BitBlt API 执行截图，自动处理 CAPTUREBLT 标志
+
+        Args:
+            hwnd: 窗口句柄
+            width: 截图宽度
+            height: 截图高度
+            hwndDC: 设备上下文
+            mfcDC: 内存设备上下文
+
+        Returns:
+            是否截图成功
+        """
+        blt_flags = SRCCOPY | CAPTUREBLT if self.use_captureblt else SRCCOPY
+        result = ctypes.windll.gdi32.BitBlt(
+            mfcDC, 0, 0, width, height,
+            hwndDC, 0, 0, blt_flags
+        )
+
+        # 如果使用 CAPTUREBLT 失败，尝试不使用该标志重试
+        if not result and self.use_captureblt:
+            result = ctypes.windll.gdi32.BitBlt(
+                mfcDC, 0, 0, width, height,
+                hwndDC, 0, 0, SRCCOPY
+            )
+            if result:
+                self.use_captureblt = False
+
+        return result != 0
 
     def _crop_to_window(self, fullscreen: MatLike, rect: Rect,
                         virtual_left: int, virtual_top: int,

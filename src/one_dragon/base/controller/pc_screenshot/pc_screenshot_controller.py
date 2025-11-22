@@ -2,7 +2,6 @@ from cv2.typing import MatLike
 
 from one_dragon.base.controller.pc_game_window import PcGameWindow
 from one_dragon.base.controller.pc_screenshot.bitblt_screencapper import (
-    BitBltFullscreenScreencapper,
     BitBltScreencapper,
 )
 from one_dragon.base.controller.pc_screenshot.mss_screencapper import MssScreencapper
@@ -21,7 +20,9 @@ class PcScreenshotController:
     使用策略模式管理不同的截图方法
     """
 
-    def __init__(self, game_win: PcGameWindow, standard_width: int, standard_height: int):
+    def __init__(
+        self, game_win: PcGameWindow, standard_width: int, standard_height: int
+    ):
         self.game_win: PcGameWindow = game_win
         self.standard_width: int = standard_width
         self.standard_height: int = standard_height
@@ -29,9 +30,8 @@ class PcScreenshotController:
         self.strategies: dict[str, ScreencapperBase] = {
             "print_window": PrintWindowScreencapper(game_win, standard_width, standard_height),
             "bitblt": BitBltScreencapper(game_win, standard_width, standard_height),
-            "bitblt_fullscreen": BitBltFullscreenScreencapper(game_win, standard_width, standard_height),
             "mss": MssScreencapper(game_win, standard_width, standard_height),
-            "pil": PilScreencapper(game_win, standard_width, standard_height)
+            "pil": PilScreencapper(game_win, standard_width, standard_height),
         }
         self.active_strategy_name: str | None = None
 
@@ -45,7 +45,7 @@ class PcScreenshotController:
             截图数组，失败返回 None
         """
         if not self.active_strategy_name and not independent:
-            log.error('截图方法尚未初始化，请先调用 init_screenshot()')
+            log.error("截图方法尚未初始化，请先调用 init_screenshot()")
             return None
 
         rect: Rect = self.game_win.win_rect
@@ -113,12 +113,17 @@ class PcScreenshotController:
         """获取截图方法的优先级列表
 
         Args:
-            method: 首选方法 ("auto", "print_window", "bitblt", "bitblt_fullscreen", "mss", "pil")
+            method: 首选方法
 
         Returns:
             方法名称列表，按优先级排序
         """
-        default_priority = ["print_window", "bitblt", "mss", "pil"]
+        default_priority = [
+            "print_window",
+            "bitblt",
+            "mss",
+            "pil",
+        ]
 
         if method == "auto" or method not in self.strategies:
             return default_priority.copy()

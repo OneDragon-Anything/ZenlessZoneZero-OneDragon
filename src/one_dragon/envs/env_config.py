@@ -72,7 +72,6 @@ class ScreenshotMethodEnum(Enum):
     AUTO = ConfigItem('自动', 'auto')
     PRINT_WINDOW = ConfigItem('Print Window', 'print_window')
     BITBLT = ConfigItem('BitBlt', 'bitblt')
-    BITBLT_FULLSCREEN = ConfigItem('BitBlt (全屏裁剪)', 'bitblt_fullscreen')
     MSS = ConfigItem('MSS', 'mss')
     PIL = ConfigItem('PIL', 'pil')
 
