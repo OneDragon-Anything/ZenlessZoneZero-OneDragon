@@ -968,7 +968,8 @@ class Operation(OperationBase):
 
         click = self.ctx.controller.click(to_click)
         if click:
-            return self.round_success(target_cn, wait=success_wait, wait_round_time=success_wait_round)
+            # 将点击坐标通过 data 返回，便于调用方进行同位置的二次点击等后续操作
+            return self.round_success(target_cn, data=to_click, wait=success_wait, wait_round_time=success_wait_round)
         else:
             return self.round_retry(f'点击 {target_cn} 失败', wait=retry_wait, wait_round_time=retry_wait_round)
 
@@ -1036,7 +1037,7 @@ class Operation(OperationBase):
                 to_click = to_click + offset
 
             self.ctx.controller.click(to_click)
-            return self.round_success(status=match_word, wait=success_wait, wait_round_time=success_wait_round)
+            return self.round_success(status=match_word, data=to_click, wait=success_wait, wait_round_time=success_wait_round)
 
         return self.round_retry(status='未匹配到目标文本', wait=retry_wait, wait_round_time=retry_wait_round)
 
