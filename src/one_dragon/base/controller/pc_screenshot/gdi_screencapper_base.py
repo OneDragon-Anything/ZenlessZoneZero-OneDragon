@@ -21,7 +21,7 @@ class GdiScreencapperBase(ScreencapperBase):
         ScreencapperBase.__init__(self, game_win, standard_width, standard_height)
         self.mfcDC: int | None = None
         self.saveBitMap: int | None = None
-        self.buffer: ctypes.Array | None = None
+        self.buffer: ctypes.c_void_p | None = None
         self.bmpinfo_buffer: ctypes.Array | None = None
         self.width: int = 0
         self.height: int = 0
@@ -211,14 +211,6 @@ class GdiScreencapperBase(ScreencapperBase):
         Returns:
             (saveBitMap, buffer, bmpinfo_buffer) 元组
         """
-
-        saveBitMap = ctypes.windll.gdi32.CreateCompatibleBitmap(dc_handle, width, height)
-        if not saveBitMap:
-            raise Exception('无法创建兼容位图')
-
-        buffer_size = width * height * 4
-        buffer = ctypes.create_string_buffer(buffer_size)
-
         # 创建位图信息结构
         bmpinfo_buffer = ctypes.create_string_buffer(40)
         ctypes.c_uint32.from_address(ctypes.addressof(bmpinfo_buffer)).value = 40
@@ -228,7 +220,22 @@ class GdiScreencapperBase(ScreencapperBase):
         ctypes.c_uint16.from_address(ctypes.addressof(bmpinfo_buffer) + 14).value = 32
         ctypes.c_uint32.from_address(ctypes.addressof(bmpinfo_buffer) + 16).value = 0
 
-        return saveBitMap, buffer, bmpinfo_buffer
+        pBits = ctypes.c_void_p()
+
+        # DIB_RGB_COLORS = 0
+        saveBitMap = ctypes.windll.gdi32.CreateDIBSection(
+            dc_handle,
+            bmpinfo_buffer,
+            0,
+            ctypes.byref(pBits),
+            0,
+            0
+        )
+
+        if not saveBitMap:
+            raise Exception('无法创建 DIBSection')
+
+        return saveBitMap, pBits, bmpinfo_buffer
 
     def _capture_and_convert_bitmap(self, hwnd, width, height,
                                     hwndDC, mfcDC, saveBitMap,
@@ -242,7 +249,7 @@ class GdiScreencapperBase(ScreencapperBase):
             hwndDC: 窗口设备上下文
             mfcDC: 内存设备上下文
             saveBitMap: 位图句柄
-            buffer: 数据缓冲区
+            buffer: 数据缓冲区指针
             bmpinfo_buffer: 位图信息缓冲区
 
         Returns:
@@ -259,14 +266,12 @@ class GdiScreencapperBase(ScreencapperBase):
             if not self._do_capture(hwnd, width, height, hwndDC, mfcDC):
                 return None
 
-            # 从位图获取数据
-            lines = ctypes.windll.gdi32.GetDIBits(mfcDC, saveBitMap,
-                                                  0, height, buffer,
-                                                  bmpinfo_buffer, 0)
-            if lines != height:
-                return None
+            # 直接从内存构建 numpy 数组
+            size = width * height * 4
+            array_type = ctypes.c_ubyte * size
+            buffer_array = ctypes.cast(buffer, ctypes.POINTER(array_type)).contents
 
-            img_array = np.frombuffer(buffer, dtype=np.uint8).reshape((height, width, 4))
+            img_array = np.frombuffer(buffer_array, dtype=np.uint8).reshape((height, width, 4))
             screenshot = cv2.cvtColor(img_array, cv2.COLOR_BGRA2RGB)
 
             if self.game_win.is_win_scale:
