@@ -67,6 +67,8 @@ select = [
 ignore = ["RUF001", "RUF003"]
 extend-ignore = [
     "E501",   # line too long - already handled by black style
+    "C901",   # method too complex - need refactor
+    "SIM102", # nested if statements - maybe more clear to seperate conditions
 ]
 
 [tool.ruff.format]
