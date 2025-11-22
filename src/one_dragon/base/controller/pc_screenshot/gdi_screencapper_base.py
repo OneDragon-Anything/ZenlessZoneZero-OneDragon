@@ -41,14 +41,11 @@ class GdiScreencapperBase(ScreencapperBase):
         self.cleanup()
 
         try:
-            hwnd = self.game_win.get_hwnd()
-            if not hwnd:
-                raise Exception(f'未找到目标窗口，无法初始化 {self.__class__.__name__}')
-
-            # 临时获取 DC 用于创建兼容 DC
-            temp_dc = ctypes.windll.user32.GetDC(hwnd)
+            # 使用屏幕 DC 来创建兼容 DC，这样可以避免窗口跨屏幕移动导致 DC 不兼容的问题
+            # 同时也解决了共享模式下 mfcDC 与实时获取的 hwndDC 可能不匹配的问题
+            temp_dc = ctypes.windll.user32.GetDC(0)
             if not temp_dc:
-                raise Exception('无法获取窗口设备上下文')
+                raise Exception('无法获取屏幕设备上下文')
 
             try:
                 mfcDC = ctypes.windll.gdi32.CreateCompatibleDC(temp_dc)
@@ -59,7 +56,7 @@ class GdiScreencapperBase(ScreencapperBase):
                 return True
             finally:
                 # 立即释放临时 DC
-                ctypes.windll.user32.ReleaseDC(hwnd, temp_dc)
+                ctypes.windll.user32.ReleaseDC(0, temp_dc)
         except Exception:
             log.debug(f"初始化 {self.__class__.__name__} 失败", exc_info=True)
             self.cleanup()
@@ -202,11 +199,20 @@ class GdiScreencapperBase(ScreencapperBase):
             except Exception:
                 log.debug("删除旧 saveBitMap 失败", exc_info=True)
 
+        # 使用屏幕 DC 创建位图，确保与 mfcDC (也是基于屏幕 DC 创建) 兼容
+        # 避免因为 hwndDC 与 mfcDC 不兼容导致 SelectObject 失败
+        screen_dc = ctypes.windll.user32.GetDC(0)
+        if not screen_dc:
+            log.error("无法获取屏幕 DC")
+            return False
+
         try:
-            saveBitMap, buffer, bmpinfo_buffer = self._create_bitmap_resources(width, height, hwndDC)
+            saveBitMap, buffer, bmpinfo_buffer = self._create_bitmap_resources(width, height, screen_dc)
         except Exception as e:
             log.debug("创建位图资源失败: %s", e, exc_info=True)
             return False
+        finally:
+            ctypes.windll.user32.ReleaseDC(0, screen_dc)
 
         self.saveBitMap = saveBitMap
         self.buffer = buffer
