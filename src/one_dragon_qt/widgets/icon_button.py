@@ -2,13 +2,12 @@ from PySide6.QtCore import QEvent
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
-    TeachingTip,
-    TransparentToolButton,
-    TeachingTipTailPosition,
     FluentIconBase,
+    TeachingTip,
+    TeachingTipTailPosition,
+    TransparentToolButton,
 )
 from qfluentwidgets.common.overload import singledispatchmethod
-from typing import Optional, Union
 
 
 class IconButton(TransparentToolButton):
@@ -18,15 +17,15 @@ class IconButton(TransparentToolButton):
     def __init__(self, parent: QWidget = None):
         TransparentToolButton.__init__(self, parent)
 
-        self._tooltip: Optional[TeachingTip] = None
+        self._tooltip: TeachingTip | None = None
 
     @__init__.register
-    def _(self, icon: Union[str, QIcon, FluentIconBase], parent: QWidget = None):
+    def _(self, icon: str | QIcon | FluentIconBase, parent: QWidget = None):
         self.__init__(parent)
         self.setIcon(icon)
 
     @__init__.register
-    def _(self, icon: Union[str, QIcon, FluentIconBase],
+    def _(self, icon: str | QIcon | FluentIconBase,
           isTooltip: bool,
           tip_title: str,
           tip_content: str,
@@ -73,6 +72,7 @@ class IconButton(TransparentToolButton):
         """隐藏工具提示。"""
         if self._tooltip:
             self._tooltip.close()
+            self._tooltip.deleteLater()
             self._tooltip = None
 
     def __hash__(self):

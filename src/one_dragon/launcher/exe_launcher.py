@@ -1,6 +1,7 @@
 import argparse
 import sys
-from typing import List
+
+import pyuac
 
 from one_dragon.launcher.launcher_base import LauncherBase
 
@@ -22,7 +23,7 @@ class ExeLauncher(LauncherBase):
         print(f"{self.description} {self.version}")
         sys.exit(0)
 
-    def build_launch_args(self, args) -> List[str]:
+    def build_launch_args(self, args) -> list[str]:
         """构建启动参数列表"""
         launch_args = []
         if args.instance:
@@ -31,6 +32,7 @@ class ExeLauncher(LauncherBase):
             launch_args.append("--close-game")
         if args.shutdown:
             launch_args.extend(["--shutdown", str(args.shutdown)])
+
         return launch_args
 
     def run_onedragon_mode(self, launch_args) -> None:
@@ -50,8 +52,12 @@ class ExeLauncher(LauncherBase):
             print("错误：参数 --close-game, --shutdown, --instance 只能在指定 --onedragon 时使用")
             sys.exit(1)
 
-        if args.onedragon:
-            launch_args = self.build_launch_args(args)
-            self.run_onedragon_mode(launch_args)
+        if not pyuac.isUserAdmin():
+            pyuac.runAsAdmin(sys.argv)
+            sys.exit(0)
         else:
-            self.run_gui_mode()
+            if args.onedragon:
+                launch_args = self.build_launch_args(args)
+                self.run_onedragon_mode(launch_args)
+            else:
+                self.run_gui_mode()

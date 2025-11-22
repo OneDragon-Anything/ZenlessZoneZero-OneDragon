@@ -79,6 +79,9 @@ jobs:
           PUSH_FS_APP_ID: ${{ secrets.PUSH_FS_APP_ID }}
           PUSH_FS_APP_SECRET: ${{ secrets.PUSH_FS_APP_SECRET }}
           PUSH_WORK_WEIXIN_KEY: ${{ secrets.PUSH_WORK_WEIXIN_KEY }}
+          PUSH_QYWX_APP_CORP_ID: ${{ secrets.PUSH_QYWX_APP_CORP_ID }}
+          PUSH_QYWX_APP_CORP_SECRET: ${{ secrets.PUSH_QYWX_APP_CORP_SECRET }}
+          PUSH_QYWX_APP_AGENT_ID: ${{ secrets.PUSH_QYWX_APP_AGENT_ID }}
           PUSH_TG_BOT_TOKEN: ${{ secrets.PUSH_TG_BOT_TOKEN }}
           PUSH_TG_USER_ID: ${{ secrets.PUSH_TG_USER_ID }}
           PUSH_NTFY_TOPIC: ${{ secrets.PUSH_NTFY_TOPIC }}

@@ -6,7 +6,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=['_cffi_backend'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -35,6 +35,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    uac_admin=True,
+    uac_admin=False,
     icon=['..\\assets\\ui\\logo.ico'],
 )

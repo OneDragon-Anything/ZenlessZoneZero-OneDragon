@@ -3,14 +3,22 @@ import re
 import shutil
 import time
 import urllib.parse
-from typing import Optional, Callable, Tuple, List
+from collections.abc import Callable
 
 from one_dragon.envs.download_service import DownloadService
-from one_dragon.envs.env_config import EnvConfig, PipSourceEnum, CpythonSourceEnum, DEFAULT_ENV_PATH, \
-    DEFAULT_UV_DIR_PATH, \
-    DEFAULT_PYTHON_DIR_PATH, DEFAULT_WHEELS_DIR_PATH, DEFAULT_VENV_DIR_PATH, DEFAULT_VENV_PYTHON_PATH
+from one_dragon.envs.env_config import (
+    DEFAULT_ENV_PATH,
+    DEFAULT_PYTHON_DIR_PATH,
+    DEFAULT_UV_DIR_PATH,
+    DEFAULT_VENV_DIR_PATH,
+    DEFAULT_VENV_PYTHON_PATH,
+    DEFAULT_WHEELS_DIR_PATH,
+    CpythonSourceEnum,
+    EnvConfig,
+    PipSourceEnum,
+)
 from one_dragon.envs.project_config import ProjectConfig
-from one_dragon.utils import file_utils, cmd_utils
+from one_dragon.utils import cmd_utils, file_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
@@ -22,7 +30,7 @@ class PythonService:
         self.env_config = env_config
         self.download_service: DownloadService = download_service
 
-    def install_default_uv(self, progress_callback: Optional[Callable[[float, str], None]]) -> Tuple[bool, str]:
+    def install_default_uv(self, progress_callback: Callable[[float, str], None] | None) -> tuple[bool, str]:
         """
         使用通用下载服务安装 UV
         :param progress_callback:
@@ -48,7 +56,7 @@ class PythonService:
         else:
             return False, gt('安装 UV 失败')
 
-    def install_standalone_python(self, progress_callback: Optional[Callable[[float, str], None]]) -> bool:
+    def install_standalone_python(self, progress_callback: Callable[[float, str], None] | None) -> bool:
         """
         使用通用下载服务安装 Python
         :param progress_callback:
@@ -66,7 +74,7 @@ class PythonService:
 
         return success
 
-    def uv_create_venv(self, progress_callback: Optional[Callable[[float, str], None]]) -> bool:
+    def uv_create_venv(self, progress_callback: Callable[[float, str], None] | None) -> bool:
         """
         使用uv创建虚拟环境
         :param progress_callback:
@@ -92,9 +100,9 @@ class PythonService:
 
     def uv_sync(
         self,
-        progress_callback: Optional[Callable[[float, str], None]] = None,
-        groups: List[str] | None = None
-    ) -> Tuple[bool, str]:
+        progress_callback: Callable[[float, str], None] | None = None,
+        groups: list[str] | None = None
+    ) -> tuple[bool, str]:
         """
         使用uv安装环境和依赖
         :return:
@@ -122,7 +130,6 @@ class PythonService:
         command = [
             self.env_config.uv_path,
             'sync',
-            '--frozen',
             '--find-links',
             DEFAULT_WHEELS_DIR_PATH,
             '--default-index',
@@ -143,8 +150,8 @@ class PythonService:
 
     def uv_check_sync_status(
         self,
-        progress_callback: Optional[Callable[[float, str], None]] = None,
-        groups: List[str] | None = None
+        progress_callback: Callable[[float, str], None] | None = None,
+        groups: list[str] | None = None
     ) -> bool:
         """
         检查环境是否与项目同步
@@ -170,7 +177,7 @@ class PythonService:
         is_synced = result is not None
         return is_synced
 
-    def get_os_uv_path(self) -> Optional[str]:
+    def get_os_uv_path(self) -> str | None:
         """
         获取当前系统环境变量中的uv路径
         :return:
@@ -182,7 +189,7 @@ class PythonService:
         else:
             return None
 
-    def get_uv_version(self) -> Optional[str]:
+    def get_uv_version(self) -> str | None:
         """
         :return: 当前使用的uv版本
         """
@@ -197,7 +204,7 @@ class PythonService:
         else:
             return None
 
-    def get_python_version(self) -> Optional[str]:
+    def get_python_version(self) -> str | None:
         """
         :return: 当前使用的python版本
         """
@@ -212,7 +219,7 @@ class PythonService:
         else:
             return None
 
-    def uv_install_python_venv(self, progress_callback: Optional[Callable[[float, str], None]]) -> Tuple[bool, str]:
+    def uv_install_python_venv(self, progress_callback: Callable[[float, str], None] | None) -> tuple[bool, str]:
         """
         完整流程安装python环境
         :param progress_callback:
@@ -240,8 +247,8 @@ class PythonService:
         source_enum_cls,
         log_prefix: str,
         config_attr_name: str,
-        progress_callback: Optional[Callable[[float, str], None]] = None
-    ) -> Optional[Tuple[str, int]]:
+        progress_callback: Callable[[float, str], None] | None = None
+    ) -> tuple[str, int] | None:
         """
         对指定类型的源进行测速 并选择最佳一个
         :param source_enum_cls: 源的枚举类 (例如 PipSourceEnum, CpythonSourceEnum)
@@ -310,7 +317,7 @@ class PythonService:
         setattr(self.env_config, config_attr_name, best_source_obj.value)
         return best_source_obj.label, best_source_ms
 
-    def choose_best_pip_source(self, progress_callback: Optional[Callable[[float, str], None]] = None) -> Optional[Tuple[str, int]]:
+    def choose_best_pip_source(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[str, int] | None:
         """
         对pip源进行测速 并选择最佳一个
         :return: (最佳源的标签, 延迟ms) or None if no sources
@@ -322,7 +329,7 @@ class PythonService:
             progress_callback
         )
 
-    def choose_best_cpython_source(self, progress_callback: Optional[Callable[[float, str], None]] = None) -> Optional[Tuple[str, int]]:
+    def choose_best_cpython_source(self, progress_callback: Callable[[float, str], None] | None = None) -> tuple[str, int] | None:
         """
         对Python下载源进行测速 并选择最佳一个
         :return: (最佳源的标签, 延迟ms) or None if no sources

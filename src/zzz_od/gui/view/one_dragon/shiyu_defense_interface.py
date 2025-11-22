@@ -137,4 +137,4 @@ class ShiyuDefenseInterface(VerticalScrollInterface):
         self.config.change_for_critical(team_idx, btn.isChecked())
 
     def on_critical_reset_clicked(self) -> None:
-        self.ctx.shiyu_defense_record.reset_record()
+        self.run_record.reset_record()

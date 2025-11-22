@@ -1,9 +1,11 @@
 import os
+
 from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QPixmap, QPainter, QPainterPath, QImage
-from PySide6.QtWidgets import QWidget, QGraphicsView, QGraphicsScene
+from PySide6.QtGui import QImage, QPainter, QPainterPath, QPixmap
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QGraphicsVideoItem
+from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QWidget
+
 from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 
 
@@ -20,6 +22,7 @@ class Banner(QWidget):
         # 视频播放器组件
         self.media_player = None
         self.graphics_view = None
+        self.scene = None
         self.video_item = None
         self._was_playing = False
 
@@ -106,11 +109,11 @@ class Banner(QWidget):
             # 将视图降到底层作为背景
             self.graphics_view.lower()
 
-            scene = QGraphicsScene(self)
-            self.graphics_view.setScene(scene)
+            self.scene = QGraphicsScene(self)
+            self.graphics_view.setScene(self.scene)
 
             self.video_item = QGraphicsVideoItem()
-            scene.addItem(self.video_item)
+            self.scene.addItem(self.video_item)
 
             # 设置视频输出
             self.media_player.setVideoOutput(self.video_item)
@@ -168,6 +171,10 @@ class Banner(QWidget):
         if self.graphics_view:
             self.graphics_view.deleteLater()
             self.graphics_view = None
+
+        if self.scene:
+            self.scene.deleteLater()
+            self.scene = None
 
         self.video_item = None
 

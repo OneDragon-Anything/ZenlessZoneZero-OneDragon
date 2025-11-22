@@ -370,7 +370,7 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='传送副本', status='定期清剿')
     @operation_node(name='定期清剿')
     def routine_cleanup(self) -> OperationRoundResult:
-        op = RoutineCleanup(self.ctx, self.charge_plan, can_run_times=1)
+        op = RoutineCleanup(self.ctx, self.charge_plan)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送副本', status='专业挑战室')
@@ -420,5 +420,3 @@ def __debug():
 
 if __name__ == '__main__':
     __debug()
-
-
