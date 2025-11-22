@@ -1,5 +1,5 @@
 import time
-from typing import ClassVar, Optional, List
+from typing import ClassVar, List, Optional
 
 import cv2
 from cv2.typing import MatLike
@@ -15,19 +15,41 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
-from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import LostVoidDetector
-from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidRegionType
-from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import LostVoidRunRecord
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_bangboo_store import LostVoidBangbooStore
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_common import LostVoidChooseCommon
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_gear import LostVoidChooseGear
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_interact_target_const import \
-    match_interact_target, LostVoidInteractTarget, LostVoidInteractNPC
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_lottery import LostVoidLottery
-from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_route_change import LostVoidRouteChange
-from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import LostVoidMoveByDet
-from zzz_od.application.hollow_zero.lost_void.operation.update_priority_operation import UpdatePriorityOperation
-from zzz_od.auto_battle import auto_battle_utils
+from zzz_od.application.hollow_zero.lost_void.context.lost_void_detector import (
+    LostVoidDetector,
+)
+from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
+    LostVoidRegionType,
+)
+from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import (
+    LostVoidRunRecord,
+)
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_bangboo_store import (
+    LostVoidBangbooStore,
+)
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_common import (
+    LostVoidChooseCommon,
+)
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_choose_gear import (
+    LostVoidChooseGear,
+)
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_interact_target_const import (
+    LostVoidInteractNPC,
+    LostVoidInteractTarget,
+    match_interact_target,
+)
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_lottery import (
+    LostVoidLottery,
+)
+from zzz_od.application.hollow_zero.lost_void.operation.interact.lost_void_route_change import (
+    LostVoidRouteChange,
+)
+from zzz_od.application.hollow_zero.lost_void.operation.lost_void_move_by_det import (
+    LostVoidMoveByDet,
+)
+from zzz_od.application.hollow_zero.lost_void.operation.update_priority_operation import (
+    UpdatePriorityOperation,
+)
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.challenge_mission.restart_in_battle import RestartInBattle
@@ -817,13 +839,21 @@ class LostVoidRunLevel(ZOperation):
         ZOperation.handle_pause(self)
         self.ctx.auto_battle_context.stop_auto_battle()
 
+    def handle_resume(self) -> None:
+        ZOperation.handle_resume(self)
+        if self.current_node.node is not None and self.current_node.node.cn == '战斗中':
+            self.ctx.auto_battle_context.resume_auto_battle()
+
 
 def __debug():
     ctx = ZContext()
     ctx.init()
     ctx.lost_void.init_before_run()
     ctx.run_context.start_running()
-    # ctx.lost_void.init_auto_op()
+    ctx.auto_battle_context.init_auto_op(
+        sub_dir='auto_battle',
+        op_name=ctx.lost_void.get_auto_op_name(),
+    )
     op = LostVoidRunLevel(ctx, LostVoidRegionType.ENTRY)
     op.execute()
 
