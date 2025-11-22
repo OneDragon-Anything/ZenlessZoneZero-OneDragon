@@ -7,12 +7,8 @@ from cv2.typing import MatLike
 
 from one_dragon.base.controller.pc_game_window import PcGameWindow
 from one_dragon.base.controller.pc_screenshot.screencapper_base import ScreencapperBase
+from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.utils.log_utils import log
-
-# WinAPI / GDI constants
-SRCCOPY = 0x00CC0020
-CAPTUREBLT = 0x40000000
-DIB_RGB_COLORS = 0
 
 
 class GdiScreencapperBase(ScreencapperBase):
@@ -93,6 +89,33 @@ class GdiScreencapperBase(ScreencapperBase):
         self.bmpinfo_buffer = None
         self.width = 0
         self.height = 0
+
+    def _capture_shared(self, hwnd_for_dc: int, width: int, height: int) -> MatLike | None:
+        """使用共享资源进行截图的通用流程
+
+        Args:
+            hwnd_for_dc: 用于获取 DC 的窗口句柄 (0 表示屏幕)
+            width: 截图宽度
+            height: 截图高度
+
+        Returns:
+            截图结果
+        """
+        with self._lock:
+            if self.mfcDC is None and not self.init():
+                return None
+
+            hwndDC = ctypes.windll.user32.GetDC(hwnd_for_dc)
+            if not hwndDC:
+                return None
+
+            try:
+                return self._capture_with_retry(hwnd_for_dc, width, height, hwndDC)
+            finally:
+                try:
+                    ctypes.windll.user32.ReleaseDC(hwnd_for_dc, hwndDC)
+                except Exception:
+                    log.debug("ReleaseDC 失败", exc_info=True)
 
     def _capture_with_retry(self, hwnd, width, height, hwndDC) -> MatLike | None:
         """尝试执行截图操作，失败时自动重新初始化 mfcDC 并重试一次
@@ -177,48 +200,6 @@ class GdiScreencapperBase(ScreencapperBase):
         self.height = height
         return True
 
-    def _capture_independent(self, hwnd, width, height) -> MatLike | None:
-        """独立模式截图，自管理资源
-
-        Args:
-            hwnd: 窗口句柄
-            width: 截图宽度
-            height: 截图高度
-
-        Returns:
-            截图数组，失败返回 None
-        """
-        hwndDC = None
-        mfcDC = None
-        saveBitMap = None
-
-        try:
-            hwndDC = ctypes.windll.user32.GetDC(hwnd)
-            if not hwndDC:
-                raise Exception('无法获取窗口设备上下文')
-
-            mfcDC = ctypes.windll.gdi32.CreateCompatibleDC(hwndDC)
-            if not mfcDC:
-                raise Exception('无法创建兼容设备上下文')
-
-            saveBitMap, buffer, bmpinfo_buffer = self._create_bitmap_resources(width, height, hwndDC)
-
-            return self._capture_and_convert_bitmap(hwnd, width, height, hwndDC, mfcDC,
-                                                    saveBitMap, buffer, bmpinfo_buffer)
-        except Exception:
-            log.debug("独立模式截图失败", exc_info=True)
-            return None
-        finally:
-            try:
-                if saveBitMap:
-                    ctypes.windll.gdi32.DeleteObject(saveBitMap)
-                if mfcDC:
-                    ctypes.windll.gdi32.DeleteDC(mfcDC)
-                if hwndDC:
-                    ctypes.windll.user32.ReleaseDC(hwnd, hwndDC)
-            except Exception:
-                log.debug("独立模式资源释放失败", exc_info=True)
-
     def _create_bitmap_resources(self, width, height, dc_handle):
         """创建位图相关资源
 
@@ -281,7 +262,7 @@ class GdiScreencapperBase(ScreencapperBase):
             # 从位图获取数据
             lines = ctypes.windll.gdi32.GetDIBits(mfcDC, saveBitMap,
                                                   0, height, buffer,
-                                                  bmpinfo_buffer, DIB_RGB_COLORS)
+                                                  bmpinfo_buffer, 0)
             if lines != height:
                 return None
 
@@ -302,8 +283,20 @@ class GdiScreencapperBase(ScreencapperBase):
             except Exception:
                 log.debug("恢复原始 DC 对象失败", exc_info=True)
 
+    def capture(self, rect: Rect, independent: bool = False) -> MatLike | None:
+        """获取全屏截图并裁剪到窗口区域
+
+        Args:
+            rect: 截图区域（窗口在屏幕上的坐标）
+            independent: 是否独立截图
+
+        Returns:
+            截图数组，失败返回 None
+        """
+        raise NotImplementedError("子类必须实现 capture 方法")
+
     def _do_capture(self, hwnd, width, height, hwndDC, mfcDC) -> bool:
-        """执行具体的截图操作（抽象方法，由子类实现）
+        """执行具体的截图操作
         Args:
             hwnd: 窗口句柄
             width: 截图宽度
@@ -315,3 +308,45 @@ class GdiScreencapperBase(ScreencapperBase):
             是否截图成功
         """
         raise NotImplementedError("子类必须实现 _do_capture 方法")
+
+    def _capture_independent(self, hwnd_for_dc: int, width: int, height: int) -> MatLike | None:
+        """独立模式截图，自管理资源
+
+        Args:
+            hwnd_for_dc: 用于获取 DC 的窗口句柄 (0 表示屏幕)
+            width: 截图宽度
+            height: 截图高度
+
+        Returns:
+            截图数组，失败返回 None
+        """
+        hwndDC = None
+        mfcDC = None
+        saveBitMap = None
+
+        try:
+            hwndDC = ctypes.windll.user32.GetDC(hwnd_for_dc)
+            if not hwndDC:
+                raise Exception('无法获取设备上下文')
+
+            mfcDC = ctypes.windll.gdi32.CreateCompatibleDC(hwndDC)
+            if not mfcDC:
+                raise Exception('无法创建兼容设备上下文')
+
+            saveBitMap, buffer, bmpinfo_buffer = self._create_bitmap_resources(width, height, hwndDC)
+
+            return self._capture_and_convert_bitmap(hwnd_for_dc, width, height, hwndDC, mfcDC,
+                                                    saveBitMap, buffer, bmpinfo_buffer)
+        except Exception:
+            log.debug("独立模式截图失败", exc_info=True)
+            return None
+        finally:
+            try:
+                if saveBitMap:
+                    ctypes.windll.gdi32.DeleteObject(saveBitMap)
+                if mfcDC:
+                    ctypes.windll.gdi32.DeleteDC(mfcDC)
+                if hwndDC:
+                    ctypes.windll.user32.ReleaseDC(hwnd_for_dc, hwndDC)
+            except Exception:
+                log.debug("独立模式资源释放失败", exc_info=True)

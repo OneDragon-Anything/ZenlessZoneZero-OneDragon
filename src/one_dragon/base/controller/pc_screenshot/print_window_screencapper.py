@@ -6,7 +6,6 @@ from one_dragon.base.controller.pc_screenshot.gdi_screencapper_base import (
     GdiScreencapperBase,
 )
 from one_dragon.base.geometry.rectangle import Rect
-from one_dragon.utils.log_utils import log
 
 # WinAPI / GDI constants
 PW_CLIENTONLY = 0x00000001
@@ -40,25 +39,7 @@ class PrintWindowScreencapper(GdiScreencapperBase):
         if independent:
             return self._capture_independent(hwnd, width, height)
 
-        # 使用实例级锁保护对共享 GDI 资源的使用
-        with self._lock:
-            # 确保 mfcDC 已初始化
-            if self.mfcDC is None and not self.init():
-                return None
-
-            # 每次临时获取窗口 DC
-            hwndDC = ctypes.windll.user32.GetDC(hwnd)
-            if not hwndDC:
-                return None
-
-            try:
-                return self._capture_with_retry(hwnd, width, height, hwndDC)
-            finally:
-                # 始终释放窗口 DC
-                try:
-                    ctypes.windll.user32.ReleaseDC(hwnd, hwndDC)
-                except Exception:
-                    log.debug("ReleaseDC 失败", exc_info=True)
+        return self._capture_shared(hwnd, width, height)
 
     def _do_capture(self, hwnd, width, height, hwndDC, mfcDC) -> bool:
         """使用 PrintWindow API 执行截图

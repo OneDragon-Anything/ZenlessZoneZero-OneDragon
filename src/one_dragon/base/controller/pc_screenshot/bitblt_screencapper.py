@@ -3,29 +3,16 @@ import ctypes
 import cv2
 from cv2.typing import MatLike
 
-from one_dragon.base.controller.pc_game_window import PcGameWindow
 from one_dragon.base.controller.pc_screenshot.gdi_screencapper_base import (
-    CAPTUREBLT,
-    SRCCOPY,
     GdiScreencapperBase,
 )
 from one_dragon.base.geometry.rectangle import Rect
-from one_dragon.utils.log_utils import log
 
+# WinAPI / GDI constants
+SRCCOPY = 0x00CC0020
 
 class BitBltScreencapper(GdiScreencapperBase):
     """使用 BitBlt API 先截取全屏再裁剪到窗口区域的策略"""
-
-    def __init__(self, game_win: PcGameWindow, standard_width: int, standard_height: int):
-        """初始化 BitBlt 截图器
-
-        Args:
-            game_win: 游戏窗口对象
-            standard_width: 标准宽度
-            standard_height: 标准高度
-        """
-        GdiScreencapperBase.__init__(self, game_win, standard_width, standard_height)
-        self.use_captureblt = True
 
     @staticmethod
     def _get_virtual_screen_info() -> tuple[int, int, int, int]:
@@ -50,31 +37,18 @@ class BitBltScreencapper(GdiScreencapperBase):
         Returns:
             截图数组，失败返回 None
         """
-        if independent:
-            return self._capture_independent(rect)
-
         v_left, v_top, v_width, v_height = self._get_virtual_screen_info()
 
-        # 使用实例级锁保护对共享 GDI 资源的使用
-        with self._lock:
-            if self.mfcDC is None and not self.init():
-                    return None
+        if independent:
+            screenshot = self._capture_independent(0, v_width, v_height)
+        else:
+            screenshot = self._capture_shared(0, v_width, v_height)
 
-            # 每次临时获取屏幕 DC
-            screen_dc = ctypes.windll.user32.GetDC(0)
-            if not screen_dc:
-                return None
+        if screenshot is None:
+            return None
 
-            try:
-                screenshot = self._capture_with_retry(0, v_width, v_height, screen_dc)
-                if screenshot is None:
-                    return None
-
-                # 裁剪到窗口区域
-                return self._crop_to_window(screenshot, rect, v_left, v_top, v_width, v_height)
-            finally:
-                # 始终释放屏幕 DC
-                ctypes.windll.user32.ReleaseDC(0, screen_dc)
+        # 裁剪到窗口区域
+        return self._crop_to_window(screenshot, rect, v_left, v_top, v_width, v_height)
 
     def _do_capture(self, hwnd, width, height, hwndDC, mfcDC) -> bool:
         """使用 BitBlt API 执行截图，自动处理 CAPTUREBLT 标志
@@ -89,22 +63,10 @@ class BitBltScreencapper(GdiScreencapperBase):
         Returns:
             是否截图成功
         """
-        blt_flags = SRCCOPY | CAPTUREBLT if self.use_captureblt else SRCCOPY
-        result = ctypes.windll.gdi32.BitBlt(
+        return ctypes.windll.gdi32.BitBlt(
             mfcDC, 0, 0, width, height,
-            hwndDC, 0, 0, blt_flags
+            hwndDC, 0, 0, SRCCOPY
         )
-
-        # 如果使用 CAPTUREBLT 失败，尝试不使用该标志重试
-        if not result and self.use_captureblt:
-            result = ctypes.windll.gdi32.BitBlt(
-                mfcDC, 0, 0, width, height,
-                hwndDC, 0, 0, SRCCOPY
-            )
-            if result:
-                self.use_captureblt = False
-
-        return result != 0
 
     def _crop_to_window(self, fullscreen: MatLike, rect: Rect,
                         virtual_left: int, virtual_top: int,
@@ -137,57 +99,3 @@ class BitBltScreencapper(GdiScreencapperBase):
             screenshot = cv2.resize(screenshot, (self.standard_width, self.standard_height))
 
         return screenshot
-
-    def _capture_independent(self, rect: Rect) -> MatLike | None:
-        """独立模式全屏截图
-
-        Args:
-            rect: 截图区域
-
-        Returns:
-            截图数组，失败返回 None
-        """
-        hwndDC = None
-        mfcDC = None
-        saveBitMap = None
-
-        try:
-            hwndDC = ctypes.windll.user32.GetDC(0)
-            if not hwndDC:
-                raise Exception('无法获取屏幕设备上下文')
-
-            # 获取虚拟屏幕信息
-            v_left, v_top, v_width, v_height = self._get_virtual_screen_info()
-
-            mfcDC = ctypes.windll.gdi32.CreateCompatibleDC(hwndDC)
-            if not mfcDC:
-                raise Exception('无法创建兼容设备上下文')
-
-            saveBitMap, buffer, bmpinfo_buffer = self._create_bitmap_resources(
-                v_width, v_height, hwndDC
-            )
-
-            fullscreen = self._capture_and_convert_bitmap(
-                0, v_width, v_height, hwndDC, mfcDC,
-                saveBitMap, buffer, bmpinfo_buffer
-            )
-
-            if fullscreen is None:
-                return None
-
-            return self._crop_to_window(fullscreen, rect, v_left, v_top, v_width, v_height)
-
-        except Exception:
-            log.debug("独立模式全屏截图失败", exc_info=True)
-            return None
-
-        finally:
-            try:
-                if saveBitMap:
-                    ctypes.windll.gdi32.DeleteObject(saveBitMap)
-                if mfcDC:
-                    ctypes.windll.gdi32.DeleteDC(mfcDC)
-                if hwndDC:
-                    ctypes.windll.user32.ReleaseDC(0, hwndDC)
-            except Exception:
-                log.debug("独立模式资源释放失败", exc_info=True)
