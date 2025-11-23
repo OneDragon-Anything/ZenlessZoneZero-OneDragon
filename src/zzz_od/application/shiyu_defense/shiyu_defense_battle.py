@@ -99,6 +99,7 @@ class ShiyuDefenseBattle(ZOperation):
             return self.round_wait(wait=0.5)
 
     @node_from(from_name='向前移动准备战斗')
+    @node_from(from_name='战斗后移动', status='返回战斗')
     @operation_node(name='自动战斗', timeout_seconds=600, mute=True)
     def auto_battle(self) -> OperationRoundResult:
         if self.ctx.auto_battle_context.last_check_end_result is not None:
@@ -160,6 +161,15 @@ class ShiyuDefenseBattle(ZOperation):
     @node_from(from_name='自动战斗', status=STATUS_NEED_SPECIAL_MOVE)
     @operation_node(name='战斗后移动', node_max_retry_times=5)
     def move_after_battle(self) -> OperationRoundResult:
+        # 在战斗后移动阶段也检测倒计时，如果检测到倒计时则返回战斗中
+        if self.check_shiyu_countdown(self.last_screenshot):
+            # 重新启动自动战斗
+            self.ctx.auto_battle_context.start_auto_battle()
+            # 重置移动次数和连续无倒计时记录
+            self.move_times = 0
+            self.no_countdown_start_time = None
+            return self.round_success(status='返回战斗')
+
         result1 = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
         if result1.is_success:
             self.ctx.controller.interact(press=True, press_time=0.2, release=True)
