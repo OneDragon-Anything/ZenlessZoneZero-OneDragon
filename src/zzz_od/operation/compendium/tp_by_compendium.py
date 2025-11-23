@@ -1,3 +1,4 @@
+from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -48,6 +49,28 @@ class TransportByCompendium(ZOperation):
     @node_from(from_name='返回大世界')
     @operation_node(name='快捷手册')
     def choose_tab(self) -> OperationRoundResult:
+        # 优先使用cvpipe图像分析流程
+        cv_context = self.ctx.cv_service.run_pipeline('大世界-快捷手册坐标', self.last_screenshot)
+
+        # 检查分析结果，判断轮廓数量
+        if cv_context.is_success and hasattr(cv_context, 'contours') and len(cv_context.contours) == 1:
+            # 如果只有一个轮廓，获取其绝对坐标并计算外接矩形中心点
+            contour = cv_context.contours[0]
+
+            # 使用 get_absolute_rect_pairs 获取绝对坐标
+            absolute_rects = cv_context.get_absolute_rect_pairs()
+            if absolute_rects:
+                rect = absolute_rects[0][1]
+                center_x = (rect[0] + rect[2]) // 2
+                center_y = (rect[1] + rect[3]) // 2
+
+                # 使用 self.ctx.controller.click 点击，并为大世界屏幕启用 pc_alt
+                self.ctx.controller.click(Point(center_x, center_y), pc_alt=True)
+
+                # 点击后，使用 round_by_goto_screen 完成后续的Tab导航
+                return self.round_by_goto_screen(screen_name=f'快捷手册-{self.tab_name}')
+
+        # 如果轮廓数量不为1、分析失败、context 中没有 contours 属性或无法计算中心点，则执行 fallback 逻辑
         return self.round_by_goto_screen(screen_name=f'快捷手册-{self.tab_name}')
 
     @node_from(from_name='快捷手册')

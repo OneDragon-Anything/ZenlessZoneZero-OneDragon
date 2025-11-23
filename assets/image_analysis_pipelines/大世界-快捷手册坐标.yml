@@ -1,0 +1,43 @@
+- step: 按区域裁剪
+  params:
+    screen_name: 大世界-普通
+    area_name: 快捷按钮组
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 0
+    - 0
+    - 223
+    hsv_diff:
+    - 0
+    - 0
+    - 50
+- step: 腐蚀
+  params:
+    kernel_size: 3
+    iterations: 1
+- step: 膨胀
+  params:
+    kernel_size: 3
+    iterations: 1
+- step: 查找轮廓
+  params:
+    mode: EXTERNAL
+    method: SIMPLE
+    draw_contours: 0
+- step: 按面积过滤
+  params:
+    min_area: 900
+    max_area: 1600
+    draw_contours: 0
+- step: 按长宽比过滤
+  params:
+    min_ratio: 0.85
+    max_ratio: 0.95
+    draw_contours: true
+- step: 按周长过滤
+  params:
+    closed: true
+    min_length: 180
+    max_length: 250
+    draw_contours: 0
