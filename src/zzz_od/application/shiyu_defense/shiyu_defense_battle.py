@@ -237,12 +237,16 @@ class ShiyuDefenseBattle(ZOperation):
         :return: True表示有倒计时（战斗继续），False表示没有倒计时（战斗结束）
         """
         try:
-            result = self.ctx.cv_service.run_pipeline('防卫战倒计时', screen, timeout=1.0)
-
-            if result is None or not result.is_success:
-                return False
-
-            return len(result.contours) == 4
+            # 检测普通倒计时
+            result1 = self.ctx.cv_service.run_pipeline('防卫战倒计时', screen, timeout=1.0)
+            has_countdown1 = result1 is not None and result1.is_success and len(result1.contours) == 4
+            
+            # 检测精英倒计时
+            result2 = self.ctx.cv_service.run_pipeline('防卫战倒计时-精英', screen, timeout=1.0)
+            has_countdown2 = result2 is not None and result2.is_success and len(result2.contours) == 4
+            
+            # 只要有一个倒计时被检测到，就认为有倒计时
+            return has_countdown1 or has_countdown2
 
         except Exception:
             return False
