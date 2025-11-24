@@ -293,8 +293,7 @@ try:
             super().closeEvent(event)
 
 
-# 调用Windows错误弹窗
-except Exception as e:
+except Exception:
     import ctypes
     import traceback
     import webbrowser
@@ -302,16 +301,20 @@ except Exception as e:
     stack_trace = traceback.format_exc()
     _init_error = f"启动一条龙失败，报错信息如下:\n{stack_trace}"
 
-    # 自动打开浏览器访问错误排障文档
-    webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
-
 
 # 初始化应用程序，并启动主窗口
 if __name__ == "__main__":
     if _init_error is not None:
-        # 显示错误弹窗，并提示用户已自动打开排障文档
-        error_message = f"{_init_error}\n\n已自动为您打开排障文档，请查看解决方案。"
-        ctypes.windll.user32.MessageBoxW(0, error_message, "错误", 0x10)
+        # 显示错误弹窗，询问用户是否打开排障文档
+        error_message = f"启动一条龙失败,报错信息如下:\n{stack_trace}\n\n是否打开排障文档查看解决方案?"
+        # MB_ICONERROR | MB_OKCANCEL = 0x10 | 0x01 = 0x11
+        # 返回值: IDOK = 1, IDCANCEL = 2
+        result = ctypes.windll.user32.MessageBoxW(0, error_message, "错误", 0x11)
+
+        # 如果用户点击确定，则打开排障文档
+        if result == 1:  # IDOK
+            webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
+
         sys.exit(1)
 
     QApplication.setHighDpiScaleFactorRoundingPolicy(

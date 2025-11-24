@@ -571,6 +571,34 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+  - area_name: 式舆防卫战-倒计时
+    id_mark: false
+    pc_rect:
+    - 1628
+    - 79
+    - 1670
+    - 107
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 式舆防卫战-倒计时-精英
+    id_mark: false
+    pc_rect:
+    - 1628
+    - 159
+    - 1670
+    - 187
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: battle_menu
   screen_name: 战斗-菜单
   pc_alt: false
@@ -3934,7 +3962,7 @@
     - 24
     - 850
     - 72
-    text: ''
+    text: 藏品
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
@@ -5698,14 +5726,14 @@
   - area_name: 快捷手册
     id_mark: false
     pc_rect:
-    - 1530
-    - 44
-    - 1584
-    - 102
+    - 1513
+    - 28
+    - 1689
+    - 118
     text: ''
     lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
+    template_sub_dir: normal_world
+    template_id: compendium
     template_match_threshold: 0.7
     color_range: null
     goto_list:
@@ -5802,14 +5830,14 @@
   - area_name: 快捷手册
     id_mark: false
     pc_rect:
-    - 1530
-    - 44
-    - 1584
-    - 102
+    - 1518
+    - 29
+    - 1679
+    - 113
     text: ''
     lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
+    template_sub_dir: normal_world
+    template_id: compendium
     template_match_threshold: 0.7
     color_range: null
     goto_list:

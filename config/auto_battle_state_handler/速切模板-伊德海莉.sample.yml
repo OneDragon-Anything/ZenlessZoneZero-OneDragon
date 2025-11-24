@@ -1,84 +1,127 @@
 template_name: "速切模板-伊德海莉"
 handlers:
   - states: "[前台-伊德海莉]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-伊德海莉]"
     sub_handlers:
-      # 终结技：有就放（优先级最高）
-      - states: "[伊德海莉-终结技可用]"
-        debug_name: "伊德海莉-终结技触发"
+      - states: "[自定义-连携换人, 0, 0.5]"
         operations:
-          - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束"]
-            seconds: 5
-          - operation_template: "伊德海莉-终结技"
-          - op_name: "设置状态"
-            state_list: ["自定义-近身窗口"]
-            seconds: 2
+          - op_name: "清除状态"
+            state_list: ["自定义-伊德海莉-追碾状态" , "自定义-伊德海莉-旋转状态" , "自定义-伊德海莉-蓄力中"]
+          - operation_template: "伊德海莉-连携攻击"
 
-      # 受击频繁：优先用强化特殊技回血（需要特殊技可用）
-      - states: "[前台-血量扣减, 0, 1] & [伊德海莉-特殊技可用]"
-        debug_name: "伊德海莉-受击回血优先"
+      - states: "[自定义-黄光切人, 0, 1]"
         operations:
-          # 先通过一次就近蓄力下砸贴身再释放强化特殊技，避免远距离空放
-          - operation_template: "伊德海莉-蓄力提前下砸"
-          - op_name: "设置状态"
-            state_list: ["自定义-近身窗口"]
-            seconds: 2
-          - operation_template: "伊德海莉-强化特殊技-缠霜"
-          - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束"]
-            seconds: 2
+          - op_name: "清除状态"
+            state_list: ["自定义-伊德海莉-追碾状态" , "自定义-伊德海莉-旋转状态" , "自定义-伊德海莉-蓄力中"]
+          - operation_template: "伊德海莉-支援攻击"
 
-      # 敌人失衡时，使用追碾连招爆发，然后接极寒重碾连招
-      - states: "[自定义-连携换人, 0, 10] & [伊德海莉-特殊技可用]"
-        debug_name: "伊德海莉-失衡爆发连招"
+      - states: "[自定义-红光闪避, 0, 1]"
+        sub_handlers:
+          - states: "[自定义-伊德海莉-蓄力中,0,2] | [自定义-伊德海莉-旋转状态,0,2]"
+            debug_name: "红光蓄力中进入追碾状态"
+            operations:
+              - op_name: "按键-特殊攻击"
+              - op_name: "清除状态"
+                state_list:
+                  ["自定义-伊德海莉-蓄力中", "自定义-伊德海莉-旋转状态"]
+              - op_name: "设置状态"
+                state: "自定义-伊德海莉-追碾状态"
+              - op_name: "等待秒数"
+                seconds: 1
+
+          - states: ""
+            debug_name: "红光非蓄力中使用闪A"
+            operations:
+              - op_name: "按键-闪避"
+              - op_name: "等待秒数"
+                seconds: 0.1
+              - op_name: "按键-普通攻击"
+              - op_name: "等待秒数"
+                seconds: 1
+
+      # 防呆
+      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "切人后等待"
+        sub_handlers:
+          - states: "[按键可用-快速支援, 0, 0.5]"
+            operations:
+              - op_name: "清除状态"
+                state_list: ["自定义-伊德海莉-追碾状态" , "自定义-伊德海莉-旋转状态" , "自定义-伊德海莉-蓄力中"]
+              - op_name: "等待秒数"
+                seconds: 0.5
+          - states: ""
+            operations:
+              - op_name: "清除状态"
+                state_list: ["自定义-伊德海莉-追碾状态" , "自定义-伊德海莉-旋转状态" , "自定义-伊德海莉-蓄力中"]
+              - op_name: "等待秒数"
+                seconds: 0.3
+
+      - states: "[自定义-伊德海莉-追碾状态, 0, 2]"
+        interrupt_states: "[伊德海莉-蓄力段数]{0, 0}"
+        debug_name: "追碾状态连点普攻"
         operations:
-          - operation_template: "伊德海莉-追碾连招"
-          - operation_template: "伊德海莉-极寒重碾连招"
-          - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束", "自定义-近身窗口"]
-            seconds: 2
+          - op_name: "清除状态"
+            state_list: ["自定义-伊德海莉-追碾状态" , "自定义-伊德海莉-旋转状态"]
+          - op_name: "按键-普通攻击"
+            post_delay: 0.2
+            repeat: 50
 
-      # 非失衡期：蓄力中可用特殊技 → 溯寒 + 下砸
-      - states: "![自定义-连携换人, 0, 10] & [伊德海莉-蓄力段数]{10, 85} & [按键可用-特殊攻击]"
-        debug_name: "伊德海莉-溯寒下砸"
+      - states: "[自定义-连携换人, 0, 10]"
+        sub_handlers:
+          - states: "[伊德海莉-终结技可用]"
+            operations:
+              - operation_template: "伊德海莉-终结技"
+
+          - states: "[自定义-伊德海莉-蓄力中, 0, 2] & [伊德海莉-特殊技可用]"
+            debug_name: "失衡期间直接追碾"
+            operations:
+              - op_name: "按键-特殊攻击"
+              - op_name: "清除状态"
+                state_list: ["自定义-伊德海莉-蓄力中"]
+              - op_name: "设置状态"
+                state: "自定义-伊德海莉-追碾状态"
+
+      - states: "[自定义-伊德海莉-旋转状态, 2, 99]"
+        interrupt_states: ""
+        debug_name: "旋转状态结束"
         operations:
-          - operation_template: "伊德海莉-溯寒下砸"
+          - op_name: "清除状态"
+            state_list: ["自定义-伊德海莉-旋转状态"]
           - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束", "自定义-近身窗口"]
-            seconds: 2
+            state: "自定义-伊德海莉-追碾状态"
 
-      # 蓄力段数达到2段及以上：提前下砸提升收益与控血
-      - states: "[伊德海莉-蓄力段数]{35, 85}"
-        debug_name: "伊德海莉-段2以上提前下砸"
+      - states: "[自定义-伊德海莉-旋转状态, 0, 2]"
+        interrupt_states: "[伊德海莉-蓄力段数]{0, 0}"
+        debug_name: "旋转状态连按普攻"
         operations:
-          - operation_template: "伊德海莉-蓄力提前下砸"
-          - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束", "自定义-近身窗口"]
+          - op_name: "等待秒数"
             seconds: 2
 
-      # 近身窗口内（终结技后/下砸后）使用强化特殊技回血，避免远距离空放
-      - states: "[自定义-近身窗口, 0, 2] & [伊德海莉-特殊技可用]"
-        debug_name: "伊德海莉-近身窗口-强化特殊技"
+      - states: "[自定义-伊德海莉-蓄力中, 0, 2] & [伊德海莉-蓄力段数]{85, 100}"
+        debug_name: "蓄力满了松开"
         operations:
-          - operation_template: "伊德海莉-强化特殊技-缠霜"
+          - op_name: "清除状态"
+            state_list: ["自定义-伊德海莉-蓄力中"]
           - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束"]
-            seconds: 2
+            state: "自定义-伊德海莉-旋转状态"
 
-      # TODO: 暂时不做“生命值百分比”状态；先移除此逻辑避免初始化失败，观察一段时间这个生命C容不容易暴毙吧
-      # - states: "[前台-生命值-百分比, 0, 40]"
-      #   debug_name: "伊德海莉-低血量回血"
-      #   operations:
-      #     - operation_template: "伊德海莉-普通攻击"
-      #     - op_name: "设置状态"
-      #       state_list: ["自定义-动作不打断", "自定义-速切结束"]
-      #       seconds: 2
+      - states: "[伊德海莉-蓄力段数]{0, 0}"
+        interrupt_states: "[伊德海莉-蓄力段数]{85, 100}"
+        debug_name: "长按普攻蓄力"
+        operations:
+          - op_name: "清除状态"
+            state_list: ["自定义-伊德海莉-旋转状态"]
+          - op_name: "按键-普通攻击-按下"
+          - op_name: "按键-移动-前-按下"
+          - op_name: "按键-移动-右-按下"
+          - op_name: "设置状态"
+            state: "自定义-伊德海莉-蓄力中"
+          - op_name: "等待秒数"
+            seconds: 0.5
 
-      # 默认使用蓄力提前下砸进行输出和控血
       - states: ""
-        debug_name: "伊德海莉-常规蓄力输出"
+        interrupt_states: "[伊德海莉-蓄力段数]{0, 0}"
+        debug_name: "长按普攻蓄力"
         operations:
-          - operation_template: "伊德海莉-蓄力提前下砸"
-          - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束", "自定义-近身窗口"]
-            seconds: 2
+          - op_name: "等待秒数"
+            seconds: 1

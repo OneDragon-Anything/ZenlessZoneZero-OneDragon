@@ -14,6 +14,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 按键-特殊攻击
   id_mark: false
@@ -27,6 +28,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.9
+  color_range: null
   goto_list: []
 - area_name: 按键-终结技
   id_mark: false
@@ -40,6 +42,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 连携技-1
   id_mark: false
@@ -53,6 +56,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 连携技-2
   id_mark: false
@@ -66,6 +70,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 按键-切换角色
   id_mark: false
@@ -79,6 +84,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 按键-普通攻击
   id_mark: false
@@ -92,6 +98,7 @@ area_list:
   template_sub_dir: battle
   template_id: btn_normal_attack
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 战斗结果-完成
   id_mark: false
@@ -105,6 +112,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 战斗结果-再来一次
   id_mark: false
@@ -118,6 +126,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 距离显示区域
   id_mark: false
@@ -131,6 +140,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 菜单
   id_mark: false
@@ -144,6 +154,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 战斗结果-撤退
   id_mark: false
@@ -157,6 +168,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 战斗结果-倒带
   id_mark: false
@@ -170,6 +182,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 战斗结果-退出
   id_mark: false
@@ -183,6 +196,7 @@ area_list:
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 头像-3-2
   id_mark: false
@@ -196,6 +210,7 @@ area_list:
   template_sub_dir: battle
   template_id: avatar_2_anby
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 头像-3-3
   id_mark: false
@@ -209,6 +224,7 @@ area_list:
   template_sub_dir: battle
   template_id: avatar_2_anton
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 头像-2-2
   id_mark: false
@@ -222,6 +238,7 @@ area_list:
   template_sub_dir: battle
   template_id: avatar_2_piper
   template_match_threshold: 0.7
+  color_range: null
   goto_list: []
 - area_name: 按键-交互
   id_mark: false
@@ -235,4 +252,33 @@ area_list:
   template_sub_dir: battle
   template_id: btn_interact
   template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 式舆防卫战-倒计时
+  id_mark: false
+  pc_rect:
+  - 1628
+  - 79
+  - 1670
+  - 107
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 式舆防卫战-倒计时-精英
+  id_mark: false
+  pc_rect:
+  - 1628
+  - 159
+  - 1670
+  - 187
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
   goto_list: []

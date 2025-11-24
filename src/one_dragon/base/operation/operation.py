@@ -567,7 +567,7 @@ class Operation(OperationBase):
         Args:
             e: 事件参数（可选）。
         """
-        if not self.ctx.run_context.is_context_pause:
+        if self.ctx.run_context.is_context_running:
             return
         self.current_pause_time = 0
         self.pause_start_time = time.time()

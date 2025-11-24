@@ -602,7 +602,8 @@ class NotoriousHunt(ZOperation):
         self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self, e=None):
-        self.ctx.auto_battle_context.resume_auto_battle()
+        if self.current_node.node is not None and self.current_node.node.cn == '自动战斗':
+            self.ctx.auto_battle_context.resume_auto_battle()
 
 
 def __debug_charge():

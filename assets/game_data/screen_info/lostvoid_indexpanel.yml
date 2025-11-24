@@ -23,7 +23,7 @@ area_list:
   - 24
   - 850
   - 72
-  text: ''
+  text: 藏品
   lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''

@@ -12,10 +12,10 @@ from one_dragon.utils import cv2_utils, cal_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.agent_state import agent_state_checker
 from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
-from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum, AgentStateCheckWay, CommonAgentStateEnum, AgentStateDef
 
 if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
     from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 
 _battle_agent_context_executor = ThreadPoolExecutor(thread_name_prefix='od_battle_agent_context', max_workers=16)
@@ -327,17 +327,17 @@ class AutoBattleAgentContext:
         """
         获取用于匹配的候选角色列表
         """
-        all: bool = False
+        check_all: bool = False
         if self.team_info.should_check_all_agents:
-            all = True
+            check_all = True
         elif self.team_info.agent_list is None or len(self.team_info.agent_list) == 0:
-            all = True
+            check_all = True
         else:
             for i in self.team_info.agent_list:
                 if i.agent is None:
-                    all = True
+                    check_all = True
                     break
-        if all:
+        if check_all:
             return [(agent_enum.value, None) for agent_enum in AgentEnum]
         else:
             return [(i.agent, i.matched_template_id) for i in self.team_info.agent_list if i.agent is not None]
@@ -435,31 +435,55 @@ class AutoBattleAgentContext:
 
         return current_agent_list
 
-    def _match_agent_in(self, img: MatLike, is_front: bool,
-                        possible_agents: Optional[List[Tuple[Agent, Optional[str]]]] = None) -> Tuple[Optional[Agent], Optional[str]]:
+    def _match_agent_in(
+        self,
+        img: MatLike,
+        is_front: bool,
+        possible_agents: List[Tuple[Agent, Optional[str]]],
+    ) -> Tuple[Optional[Agent], Optional[str]]:
         """
-        在候选列表重匹配角色
-        :return:
+        在候选列表中匹配角色
+        Args:
+            img: 裁剪好的头像图片
+            is_front: 识别的是否前台角色
+            possible_agents: 需要识别的代理人列表
+
+        Returns:
+            匹配命中的代理人和对应的皮肤模板
         """
-        prefix = 'avatar_1_' if is_front else 'avatar_2_'
+        # 代理人和皮肤多了之后 容易有头像相似度高 因此需要匹配度最高的 见 issue #1695
+        best_agent: Agent | None = None
+        best_template_id: str | None = None
+        best_confidence: float = 0
+
+        prefix = "avatar_1_" if is_front else "avatar_2_"
+        # 构造待匹配的模板列表
+        # 1. 优先使用上次成功匹配的ID
+        # 2. 其他所有可用的模板
+        priority_list: list[list[tuple[Agent, str]]] = [[], []]
         for agent, specific_template_id in possible_agents:
-            # 构建一个带优先级的待检查模板列表
-            # 1. 优先使用上次成功匹配的ID
-            # 2. 然后使用该角色所有可用的模板
-            templates_to_check = []
-            if specific_template_id:
-                templates_to_check.append(specific_template_id)
-
             for t_id in agent.template_id_list:
-                if t_id not in templates_to_check:
-                    templates_to_check.append(t_id)
+                if specific_template_id is not None and t_id == specific_template_id:
+                    priority_list[0].append((agent, t_id))
+                else:
+                    priority_list[1].append((agent, t_id))
 
-            # 按优先级顺序进行匹配
-            for template_id in templates_to_check:
+        # 按优先级进行匹配
+        for agent_template_list in priority_list:
+            for agent, template_id in agent_template_list:
                 template_name = prefix + template_id
-                mrl = self.ctx.tm.match_template(img, 'battle', template_name, threshold=0.8)
-                if mrl.max is not None:
-                    return agent, template_id  # 匹配成功，返回实际命中的模板ID
+                mrl = self.ctx.tm.match_template(img, "battle", template_name, threshold=0.8)
+                if mrl.max is None:
+                    continue
+                if mrl.max.confidence < best_confidence:
+                    continue
+
+                best_agent = agent
+                best_template_id = template_id
+                best_confidence = mrl.max.confidence
+
+            if best_agent is not None:
+                return best_agent, best_template_id
 
         return None, None
 
@@ -845,3 +869,26 @@ class AutoBattleAgentContext:
         App关闭后进行的操作 关闭一切可能资源操作
         """
         _battle_agent_context_executor.shutdown(wait=False, cancel_futures=True)
+
+
+def _debug_check_agent_in_parallel():
+    from one_dragon.utils import debug_utils
+    screen = debug_utils.get_debug_image('517195536-d8b386c2-64bf-4261-8903-3a479af4661b')
+
+    from zzz_od.context.zzz_context import ZContext
+    ctx = ZContext()
+    ctx.init()
+    agent_context = AutoBattleAgentContext(ctx)
+    agent_context.init_screen_area()
+    agent_context.init_battle_agent_context()
+    result_list = agent_context._check_agent_in_parallel(screen)
+    print(result_list)
+    import time
+    agent_context.team_info.update_agent_list(result_list, [], [], [], time.time())
+    agent_context.team_info.should_check_all_agents = False
+    result_list = agent_context._check_agent_in_parallel(screen)
+    print(result_list)
+
+
+if __name__ == '__main__':
+    _debug_check_agent_in_parallel()

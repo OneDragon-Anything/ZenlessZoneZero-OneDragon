@@ -14,24 +14,22 @@ class UpdatePriorityOperation(ZOperation):
     def __init__(self, ctx: ZContext):
         super().__init__(ctx, op_name='更新动态优先级')
 
-    @operation_node(name='打开菜单', is_start_node=True)
-    def open_menu(self) -> OperationRoundResult:
-        """
-        点击TAB按钮打开菜单
-        """
-        return self.round_by_find_and_click_area(screen_name='迷失之地-大世界', area_name='迷失之地-TAB',
-                                                 success_wait=1, retry_wait=1)
+    @operation_node(name='进入藏品页面')
+    def enter_collections(self) -> OperationRoundResult:
+        # 1: 打开菜单
+        result = self.round_by_find_and_click_area(screen_name='迷失之地-大世界', area_name='迷失之地-TAB')
+        if result.is_success:
+            return self.round_wait(status=result.status, wait=1)
 
-    @node_from(from_name='打开菜单')
-    @operation_node(name='切换到藏品')
-    def switch_to_collections(self) -> OperationRoundResult:
-        """
-        点击藏品标签页
-        """
-        return self.round_by_find_and_click_area(screen_name='迷失之地-藏品面板', area_name='藏品',
-                                                 success_wait=1, retry_wait=1)
+        # 2: 切换到藏品页
+        result = self.round_by_find_and_click_area(screen_name='迷失之地-藏品面板', area_name='藏品')
+        if result.is_success:
+            return self.round_success(status=result.status, wait=1)
 
-    @node_from(from_name='切换到藏品')
+        # 失败了就让框架从打开菜单开始重试整个节点 因为有可能会出现菜单按钮点到了但实际没打开的情况
+        return self.round_retry(status=result.status, wait=1)
+
+    @node_from(from_name='进入藏品页面')
     @operation_node(name='识别并存储优先级')
     def recognize_and_store(self) -> OperationRoundResult:
         """
@@ -114,3 +112,16 @@ class UpdatePriorityOperation(ZOperation):
         return self.round_by_find_and_click_area(screen_name='迷失之地-藏品面板', area_name='返回按钮',
                                                  success_wait=1, retry_wait=1,
                                                  until_not_find_all=[('迷失之地-藏品面板', '返回按钮')])
+
+def __debug():
+    ctx = ZContext()
+    ctx.init()
+    ctx.lost_void.init_before_run()
+    ctx.run_context.start_running()
+    op = UpdatePriorityOperation(ctx)
+    op.execute()
+    ctx.run_context.stop_running()
+
+
+if __name__ == '__main__':
+    __debug()

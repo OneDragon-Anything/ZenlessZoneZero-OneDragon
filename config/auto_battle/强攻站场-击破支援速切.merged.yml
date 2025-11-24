@@ -6344,143 +6344,153 @@
         "seconds": 1.5
       - "op_name": "按键-特殊攻击-松开"
       "states": ""
-  - "states": "[前台-伊德海莉]"
+  - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-伊德海莉]"
+    "states": "[前台-伊德海莉]"
     "sub_handlers":
-    - "debug_name": "伊德海莉-终结技触发"
-      "operations":
-      - "op_name": "设置状态"
-        "seconds": 5
+    - "operations":
+      - "op_name": "清除状态"
         "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-      - "op_name": "按键-终结技"
-      - "op_name": "等待秒数"
-        "seconds": 4.1
+        - "自定义-伊德海莉-追碾状态"
+        - "自定义-伊德海莉-旋转状态"
+        - "自定义-伊德海莉-蓄力中"
       - "op_name": "设置状态"
-        "seconds": 2
-        "state_list":
-        - "自定义-近身窗口"
-      "states": "[伊德海莉-终结技可用]"
-    - "debug_name": "伊德海莉-受击回血优先"
-      "operations":
-      - "op_name": "按键-普通攻击"
-        "press": 2.2
-        "way": "按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-普通攻击"
-        "way": "松开"
-      - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-普通攻击"
-      - "op_name": "等待秒数"
-        "seconds": 1.5
+        "seconds_add": -1
+        "state": "自定义-连携换人"
       - "op_name": "设置状态"
         "seconds": 2
-        "state_list":
-        - "自定义-近身窗口"
-      - "op_name": "按键-特殊攻击"
+        "state": "自定义-动作不打断"
       - "op_name": "等待秒数"
-        "seconds": 2.6
-      - "op_name": "设置状态"
         "seconds": 2
+      "states": "[自定义-连携换人, 0, 0.5]"
+    - "operations":
+      - "op_name": "清除状态"
         "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-      "states": "[前台-血量扣减, 0, 1] & [伊德海莉-特殊技可用]"
-    - "debug_name": "伊德海莉-失衡爆发连招"
-      "operations":
-      - "op_name": "按键-普通攻击"
-        "press": 0.2
-        "way": "按下"
+        - "自定义-伊德海莉-追碾状态"
+        - "自定义-伊德海莉-旋转状态"
+        - "自定义-伊德海莉-蓄力中"
+      - "op_name": "按键-闪避"
       - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-特殊攻击"
+        "seconds": 1.6
+      "states": "[自定义-黄光切人, 0, 1]"
+    - "states": "[自定义-红光闪避, 0, 1]"
+      "sub_handlers":
+      - "debug_name": "红光蓄力中进入追碾状态"
+        "operations":
+        - "op_name": "按键-特殊攻击"
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-伊德海莉-蓄力中"
+          - "自定义-伊德海莉-旋转状态"
+        - "op_name": "设置状态"
+          "state": "自定义-伊德海莉-追碾状态"
+        - "op_name": "等待秒数"
+          "seconds": 1
+        "states": "[自定义-伊德海莉-蓄力中,0,2] | [自定义-伊德海莉-旋转状态,0,2]"
+      - "debug_name": "红光非蓄力中使用闪A"
+        "operations":
+        - "op_name": "按键-闪避"
+        - "op_name": "等待秒数"
+          "seconds": 0.1
+        - "op_name": "按键-普通攻击"
+        - "op_name": "等待秒数"
+          "seconds": 1
+        "states": ""
+    - "debug_name": "切人后等待"
+      "states": "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-伊德海莉-追碾状态"
+          - "自定义-伊德海莉-旋转状态"
+          - "自定义-伊德海莉-蓄力中"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        "states": "[按键可用-快速支援, 0, 0.5]"
+      - "operations":
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-伊德海莉-追碾状态"
+          - "自定义-伊德海莉-旋转状态"
+          - "自定义-伊德海莉-蓄力中"
+        - "op_name": "等待秒数"
+          "seconds": 0.3
+        "states": ""
+    - "debug_name": "追碾状态连点普攻"
+      "interrupt_states": "[伊德海莉-蓄力段数]{0, 0}"
+      "operations":
+      - "op_name": "清除状态"
+        "state_list":
+        - "自定义-伊德海莉-追碾状态"
+        - "自定义-伊德海莉-旋转状态"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+        "repeat": 50
+      "states": "[自定义-伊德海莉-追碾状态, 0, 2]"
+    - "states": "[自定义-连携换人, 0, 10]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -3
+          "state": "自定义-连携换人"
+        - "op_name": "设置状态"
+          "seconds": 4.1
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+        - "op_name": "等待秒数"
+          "seconds": 4.1
+        "states": "[伊德海莉-终结技可用]"
+      - "debug_name": "失衡期间直接追碾"
+        "operations":
+        - "op_name": "按键-特殊攻击"
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-伊德海莉-蓄力中"
+        - "op_name": "设置状态"
+          "state": "自定义-伊德海莉-追碾状态"
+        "states": "[自定义-伊德海莉-蓄力中, 0, 2] & [伊德海莉-特殊技可用]"
+    - "debug_name": "旋转状态结束"
+      "interrupt_states": ""
+      "operations":
+      - "op_name": "清除状态"
+        "state_list":
+        - "自定义-伊德海莉-旋转状态"
+      - "op_name": "设置状态"
+        "state": "自定义-伊德海莉-追碾状态"
+      "states": "[自定义-伊德海莉-旋转状态, 2, 99]"
+    - "debug_name": "旋转状态连按普攻"
+      "interrupt_states": "[伊德海莉-蓄力段数]{0, 0}"
+      "operations":
+      - "op_name": "等待秒数"
+        "seconds": 2
+      "states": "[自定义-伊德海莉-旋转状态, 0, 2]"
+    - "debug_name": "蓄力满了松开"
+      "operations":
+      - "op_name": "清除状态"
+        "state_list":
+        - "自定义-伊德海莉-蓄力中"
+      - "op_name": "设置状态"
+        "state": "自定义-伊德海莉-旋转状态"
+      "states": "[自定义-伊德海莉-蓄力中, 0, 2] & [伊德海莉-蓄力段数]{85, 100}"
+    - "debug_name": "长按普攻蓄力"
+      "interrupt_states": "[伊德海莉-蓄力段数]{85, 100}"
+      "operations":
+      - "op_name": "清除状态"
+        "state_list":
+        - "自定义-伊德海莉-旋转状态"
+      - "op_name": "按键-普通攻击-按下"
+      - "op_name": "按键-移动-前-按下"
+      - "op_name": "按键-移动-右-按下"
+      - "op_name": "设置状态"
+        "state": "自定义-伊德海莉-蓄力中"
       - "op_name": "等待秒数"
         "seconds": 0.5
-      - "op_name": "按键-普通攻击"
-      - "op_name": "等待秒数"
-        "seconds": 1.8
-      - "op_name": "按键-特殊攻击"
-      - "op_name": "等待秒数"
-        "seconds": 3.0
-      - "op_name": "按键-普通攻击"
-      - "op_name": "等待秒数"
-        "seconds": 2.0
-      - "op_name": "设置状态"
-        "seconds": 2
-        "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-        - "自定义-近身窗口"
-      "states": "[自定义-连携换人, 0, 10] & [伊德海莉-特殊技可用]"
-    - "debug_name": "伊德海莉-溯寒下砸"
+      "states": "[伊德海莉-蓄力段数]{0, 0}"
+    - "debug_name": "长按普攻蓄力"
+      "interrupt_states": "[伊德海莉-蓄力段数]{0, 0}"
       "operations":
-      - "op_name": "按键-特殊攻击"
       - "op_name": "等待秒数"
-        "seconds": 0.6
-      - "op_name": "按键-普通攻击"
-      - "op_name": "等待秒数"
-        "seconds": 1.8
-      - "op_name": "设置状态"
-        "seconds": 2
-        "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-        - "自定义-近身窗口"
-      "states": "![自定义-连携换人, 0, 10] & [伊德海莉-蓄力段数]{10, 85} & [按键可用-特殊攻击]"
-    - "debug_name": "伊德海莉-段2以上提前下砸"
-      "operations":
-      - "op_name": "按键-普通攻击"
-        "press": 2.2
-        "way": "按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-普通攻击"
-        "way": "松开"
-      - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-普通攻击"
-      - "op_name": "等待秒数"
-        "seconds": 1.5
-      - "op_name": "设置状态"
-        "seconds": 2
-        "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-        - "自定义-近身窗口"
-      "states": "[伊德海莉-蓄力段数]{35, 85}"
-    - "debug_name": "伊德海莉-近身窗口-强化特殊技"
-      "operations":
-      - "op_name": "按键-特殊攻击"
-      - "op_name": "等待秒数"
-        "seconds": 2.6
-      - "op_name": "设置状态"
-        "seconds": 2
-        "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-      "states": "[自定义-近身窗口, 0, 2] & [伊德海莉-特殊技可用]"
-    - "debug_name": "伊德海莉-常规蓄力输出"
-      "operations":
-      - "op_name": "按键-普通攻击"
-        "press": 2.2
-        "way": "按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-普通攻击"
-        "way": "松开"
-      - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-普通攻击"
-      - "op_name": "等待秒数"
-        "seconds": 1.5
-      - "op_name": "设置状态"
-        "seconds": 2
-        "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-        - "自定义-近身窗口"
+        "seconds": 1
       "states": ""
   - "debug_name": "未知角色"
     "states": "(![按键-切换角色-下一个, 0, 0.3]& ![按键-切换角色-上一个, 0, 0.3])"
@@ -12705,143 +12715,153 @@
         "seconds": 1.5
       - "op_name": "按键-特殊攻击-松开"
       "states": ""
-  - "states": "[前台-伊德海莉]"
+  - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-伊德海莉]"
+    "states": "[前台-伊德海莉]"
     "sub_handlers":
-    - "debug_name": "伊德海莉-终结技触发"
-      "operations":
-      - "op_name": "设置状态"
-        "seconds": 5
+    - "operations":
+      - "op_name": "清除状态"
         "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-      - "op_name": "按键-终结技"
-      - "op_name": "等待秒数"
-        "seconds": 4.1
+        - "自定义-伊德海莉-追碾状态"
+        - "自定义-伊德海莉-旋转状态"
+        - "自定义-伊德海莉-蓄力中"
       - "op_name": "设置状态"
-        "seconds": 2
-        "state_list":
-        - "自定义-近身窗口"
-      "states": "[伊德海莉-终结技可用]"
-    - "debug_name": "伊德海莉-受击回血优先"
-      "operations":
-      - "op_name": "按键-普通攻击"
-        "press": 2.2
-        "way": "按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-普通攻击"
-        "way": "松开"
-      - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-普通攻击"
-      - "op_name": "等待秒数"
-        "seconds": 1.5
+        "seconds_add": -1
+        "state": "自定义-连携换人"
       - "op_name": "设置状态"
         "seconds": 2
-        "state_list":
-        - "自定义-近身窗口"
-      - "op_name": "按键-特殊攻击"
+        "state": "自定义-动作不打断"
       - "op_name": "等待秒数"
-        "seconds": 2.6
-      - "op_name": "设置状态"
         "seconds": 2
+      "states": "[自定义-连携换人, 0, 0.5]"
+    - "operations":
+      - "op_name": "清除状态"
         "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-      "states": "[前台-血量扣减, 0, 1] & [伊德海莉-特殊技可用]"
-    - "debug_name": "伊德海莉-失衡爆发连招"
-      "operations":
-      - "op_name": "按键-普通攻击"
-        "press": 0.2
-        "way": "按下"
+        - "自定义-伊德海莉-追碾状态"
+        - "自定义-伊德海莉-旋转状态"
+        - "自定义-伊德海莉-蓄力中"
+      - "op_name": "按键-闪避"
       - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-特殊攻击"
+        "seconds": 1.6
+      "states": "[自定义-黄光切人, 0, 1]"
+    - "states": "[自定义-红光闪避, 0, 1]"
+      "sub_handlers":
+      - "debug_name": "红光蓄力中进入追碾状态"
+        "operations":
+        - "op_name": "按键-特殊攻击"
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-伊德海莉-蓄力中"
+          - "自定义-伊德海莉-旋转状态"
+        - "op_name": "设置状态"
+          "state": "自定义-伊德海莉-追碾状态"
+        - "op_name": "等待秒数"
+          "seconds": 1
+        "states": "[自定义-伊德海莉-蓄力中,0,2] | [自定义-伊德海莉-旋转状态,0,2]"
+      - "debug_name": "红光非蓄力中使用闪A"
+        "operations":
+        - "op_name": "按键-闪避"
+        - "op_name": "等待秒数"
+          "seconds": 0.1
+        - "op_name": "按键-普通攻击"
+        - "op_name": "等待秒数"
+          "seconds": 1
+        "states": ""
+    - "debug_name": "切人后等待"
+      "states": "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-伊德海莉-追碾状态"
+          - "自定义-伊德海莉-旋转状态"
+          - "自定义-伊德海莉-蓄力中"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        "states": "[按键可用-快速支援, 0, 0.5]"
+      - "operations":
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-伊德海莉-追碾状态"
+          - "自定义-伊德海莉-旋转状态"
+          - "自定义-伊德海莉-蓄力中"
+        - "op_name": "等待秒数"
+          "seconds": 0.3
+        "states": ""
+    - "debug_name": "追碾状态连点普攻"
+      "interrupt_states": "[伊德海莉-蓄力段数]{0, 0}"
+      "operations":
+      - "op_name": "清除状态"
+        "state_list":
+        - "自定义-伊德海莉-追碾状态"
+        - "自定义-伊德海莉-旋转状态"
+      - "op_name": "按键-普通攻击"
+        "post_delay": 0.2
+        "repeat": 50
+      "states": "[自定义-伊德海莉-追碾状态, 0, 2]"
+    - "states": "[自定义-连携换人, 0, 10]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -3
+          "state": "自定义-连携换人"
+        - "op_name": "设置状态"
+          "seconds": 4.1
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+        - "op_name": "等待秒数"
+          "seconds": 4.1
+        "states": "[伊德海莉-终结技可用]"
+      - "debug_name": "失衡期间直接追碾"
+        "operations":
+        - "op_name": "按键-特殊攻击"
+        - "op_name": "清除状态"
+          "state_list":
+          - "自定义-伊德海莉-蓄力中"
+        - "op_name": "设置状态"
+          "state": "自定义-伊德海莉-追碾状态"
+        "states": "[自定义-伊德海莉-蓄力中, 0, 2] & [伊德海莉-特殊技可用]"
+    - "debug_name": "旋转状态结束"
+      "interrupt_states": ""
+      "operations":
+      - "op_name": "清除状态"
+        "state_list":
+        - "自定义-伊德海莉-旋转状态"
+      - "op_name": "设置状态"
+        "state": "自定义-伊德海莉-追碾状态"
+      "states": "[自定义-伊德海莉-旋转状态, 2, 99]"
+    - "debug_name": "旋转状态连按普攻"
+      "interrupt_states": "[伊德海莉-蓄力段数]{0, 0}"
+      "operations":
+      - "op_name": "等待秒数"
+        "seconds": 2
+      "states": "[自定义-伊德海莉-旋转状态, 0, 2]"
+    - "debug_name": "蓄力满了松开"
+      "operations":
+      - "op_name": "清除状态"
+        "state_list":
+        - "自定义-伊德海莉-蓄力中"
+      - "op_name": "设置状态"
+        "state": "自定义-伊德海莉-旋转状态"
+      "states": "[自定义-伊德海莉-蓄力中, 0, 2] & [伊德海莉-蓄力段数]{85, 100}"
+    - "debug_name": "长按普攻蓄力"
+      "interrupt_states": "[伊德海莉-蓄力段数]{85, 100}"
+      "operations":
+      - "op_name": "清除状态"
+        "state_list":
+        - "自定义-伊德海莉-旋转状态"
+      - "op_name": "按键-普通攻击-按下"
+      - "op_name": "按键-移动-前-按下"
+      - "op_name": "按键-移动-右-按下"
+      - "op_name": "设置状态"
+        "state": "自定义-伊德海莉-蓄力中"
       - "op_name": "等待秒数"
         "seconds": 0.5
-      - "op_name": "按键-普通攻击"
-      - "op_name": "等待秒数"
-        "seconds": 1.8
-      - "op_name": "按键-特殊攻击"
-      - "op_name": "等待秒数"
-        "seconds": 3.0
-      - "op_name": "按键-普通攻击"
-      - "op_name": "等待秒数"
-        "seconds": 2.0
-      - "op_name": "设置状态"
-        "seconds": 2
-        "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-        - "自定义-近身窗口"
-      "states": "[自定义-连携换人, 0, 10] & [伊德海莉-特殊技可用]"
-    - "debug_name": "伊德海莉-溯寒下砸"
+      "states": "[伊德海莉-蓄力段数]{0, 0}"
+    - "debug_name": "长按普攻蓄力"
+      "interrupt_states": "[伊德海莉-蓄力段数]{0, 0}"
       "operations":
-      - "op_name": "按键-特殊攻击"
       - "op_name": "等待秒数"
-        "seconds": 0.6
-      - "op_name": "按键-普通攻击"
-      - "op_name": "等待秒数"
-        "seconds": 1.8
-      - "op_name": "设置状态"
-        "seconds": 2
-        "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-        - "自定义-近身窗口"
-      "states": "![自定义-连携换人, 0, 10] & [伊德海莉-蓄力段数]{10, 85} & [按键可用-特殊攻击]"
-    - "debug_name": "伊德海莉-段2以上提前下砸"
-      "operations":
-      - "op_name": "按键-普通攻击"
-        "press": 2.2
-        "way": "按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-普通攻击"
-        "way": "松开"
-      - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-普通攻击"
-      - "op_name": "等待秒数"
-        "seconds": 1.5
-      - "op_name": "设置状态"
-        "seconds": 2
-        "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-        - "自定义-近身窗口"
-      "states": "[伊德海莉-蓄力段数]{35, 85}"
-    - "debug_name": "伊德海莉-近身窗口-强化特殊技"
-      "operations":
-      - "op_name": "按键-特殊攻击"
-      - "op_name": "等待秒数"
-        "seconds": 2.6
-      - "op_name": "设置状态"
-        "seconds": 2
-        "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-      "states": "[自定义-近身窗口, 0, 2] & [伊德海莉-特殊技可用]"
-    - "debug_name": "伊德海莉-常规蓄力输出"
-      "operations":
-      - "op_name": "按键-普通攻击"
-        "press": 2.2
-        "way": "按下"
-      - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-普通攻击"
-        "way": "松开"
-      - "op_name": "等待秒数"
-        "seconds": 0.1
-      - "op_name": "按键-普通攻击"
-      - "op_name": "等待秒数"
-        "seconds": 1.5
-      - "op_name": "设置状态"
-        "seconds": 2
-        "state_list":
-        - "自定义-动作不打断"
-        - "自定义-速切结束"
-        - "自定义-近身窗口"
+        "seconds": 1
       "states": ""
   - "debug_name": "未知角色"
     "states": "(![按键-切换角色-下一个, 0, 0.3]& ![按键-切换角色-上一个, 0, 0.3])"
