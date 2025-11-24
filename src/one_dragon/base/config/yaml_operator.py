@@ -167,6 +167,11 @@ class YamlOperator:
         with open(self.file_path, 'w', encoding='utf-8') as file:
             yaml.dump(self.data, file, allow_unicode=True, sort_keys=False)
 
+        # 更新文件后清除缓存，确保下次读取是最新的
+        with _cache_lock:
+            if self.file_path in cached_yaml_data:
+                del cached_yaml_data[self.file_path]
+
     def save_diy(self, text: str):
         """
         按自定义的文本格式
@@ -178,6 +183,11 @@ class YamlOperator:
 
         with open(self.file_path, "w", encoding="utf-8") as file:
             file.write(text)
+
+        # 更新文件后清除缓存
+        with _cache_lock:
+            if self.file_path in cached_yaml_data:
+                del cached_yaml_data[self.file_path]
 
     def get(self, prop: str, value=None):
         return self.data.get(prop, value)
@@ -198,6 +208,11 @@ class YamlOperator:
         """
         if self.file_path and os.path.exists(self.file_path):
             os.remove(self.file_path)
+
+        # 删除文件后清除缓存
+        with _cache_lock:
+            if self.file_path in cached_yaml_data:
+                del cached_yaml_data[self.file_path]
 
     @property
     def is_file_exists(self) -> bool:
