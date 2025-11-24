@@ -154,7 +154,7 @@ class WorldPatrolRunRoute(ZOperation):
         self.current_pos = res
 
         # 回溯态维护与目标点选择
-        if self.backtrack_active and self._backtrack_step(self.current_pos) == 'reached':
+        if self.backtrack_active and self._backtrack_step(self.current_pos, emit_log=True) == 'reached':
             return self.round_wait(status='回溯成功，已到达回溯点')
 
         # 2. 执行转向和移动
@@ -354,7 +354,8 @@ class WorldPatrolRunRoute(ZOperation):
             same_as_last = (
                 prev_pos is not None
                 and last_target is not None
-                and cal_utils.distance_between(prev_pos, last_target) < self.REACH_DISTANCE
+                and prev_pos.x == last_target.x
+                and prev_pos.y == last_target.y
             )
             if prev_pos is None or same_as_last:
                 if emit_log and same_as_last:
@@ -365,14 +366,17 @@ class WorldPatrolRunRoute(ZOperation):
                 log.info(f'尝试回溯到上一个目标点 {prev_pos}')
             self.backtrack_active = True
             self.backtrack_target = prev_pos
-            self.backtrack_deadline = now + 6.0
+            self.backtrack_deadline = now + 15.0
             self.ctx.controller.start_moving_forward()
             return 'started'
 
         # 维护进行中的回溯：先返回 ongoing，再处理 reached / expired
-        reached = cal_utils.distance_between(next_pos, self.backtrack_target) < self.REACH_DISTANCE
+        distance = cal_utils.distance_between(next_pos, self.backtrack_target)
+        reached = distance < self.REACH_DISTANCE
         expired = now >= self.backtrack_deadline
         if not reached and not expired:
+            if emit_log:
+                log.debug(f'回溯进行中，当前距离目标 {distance:.2f}，剩余时间 {self.backtrack_deadline - now:.1f}秒')
             return 'ongoing'
         target = self.backtrack_target
         if reached:
