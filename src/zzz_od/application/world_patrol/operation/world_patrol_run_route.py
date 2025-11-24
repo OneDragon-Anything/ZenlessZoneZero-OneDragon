@@ -399,7 +399,10 @@ class WorldPatrolRunRoute(ZOperation):
         """
         # 脱困前，切换到下一位（利用不同角色体型/站位尝试摆脱卡点）
         self.ctx.auto_battle_context.switch_next()
-        log.info(f'[{tag}] 本次脱困方向 {self.stuck_move_direction}')
+        if tag == 'with-pos':
+            log.info(f'[{tag}] 脱困尝试 {self.pos_stuck_attempts + 1}/6，方向 {self.stuck_move_direction}')
+        else:
+            log.info(f'[{tag}] 本次脱困方向 {self.stuck_move_direction}')
         if self.stuck_move_direction == 0:  # 向左走
             self.ctx.controller.move_a(press=True, press_time=1, release=True)
         elif self.stuck_move_direction == 1:  # 向右走
