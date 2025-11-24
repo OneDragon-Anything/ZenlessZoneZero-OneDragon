@@ -11,6 +11,7 @@ from one_dragon.base.controller.pc_screenshot.print_window_screencapper import (
 )
 from one_dragon.base.controller.pc_screenshot.screencapper_base import ScreencapperBase
 from one_dragon.base.geometry.rectangle import Rect
+from one_dragon.envs.env_config import ScreenshotMethodEnum
 from one_dragon.utils.log_utils import log
 
 
@@ -28,10 +29,10 @@ class PcScreenshotController:
         self.standard_height: int = standard_height
 
         self.strategies: dict[str, ScreencapperBase] = {
-            "print_window": PrintWindowScreencapper(game_win, standard_width, standard_height),
-            "bitblt": BitBltScreencapper(game_win, standard_width, standard_height),
-            "mss": MssScreencapper(game_win, standard_width, standard_height),
-            "pil": PilScreencapper(game_win, standard_width, standard_height),
+            ScreenshotMethodEnum.PRINT_WINDOW.value: PrintWindowScreencapper(game_win, standard_width, standard_height),
+            ScreenshotMethodEnum.BITBLT.value: BitBltScreencapper(game_win, standard_width, standard_height),
+            ScreenshotMethodEnum.MSS.value: MssScreencapper(game_win, standard_width, standard_height),
+            ScreenshotMethodEnum.PIL.value: PilScreencapper(game_win, standard_width, standard_height),
         }
         self.active_strategy_name: str | None = None
 
@@ -54,7 +55,7 @@ class PcScreenshotController:
 
         if independent:
             # 独立模式，按默认优先级尝试，不依赖已初始化的实例
-            methods_to_try_names = self._get_method_priority_list("auto")
+            methods_to_try_names = self._get_method_priority_list(ScreenshotMethodEnum.AUTO.value)
         else:
             # 从已激活的策略开始尝试
             methods_to_try_names = self._get_method_priority_list(self.active_strategy_name)
@@ -119,13 +120,13 @@ class PcScreenshotController:
             方法名称列表，按优先级排序
         """
         default_priority = [
-            "print_window",
-            "bitblt",
-            "mss",
-            "pil",
+            ScreenshotMethodEnum.PRINT_WINDOW.value,
+            ScreenshotMethodEnum.BITBLT.value,
+            ScreenshotMethodEnum.MSS.value,
+            ScreenshotMethodEnum.PIL.value,
         ]
 
-        if method == "auto" or method not in self.strategies:
+        if method == ScreenshotMethodEnum.AUTO.value or method not in self.strategies:
             return default_priority.copy()
 
         priority_list = [method]
