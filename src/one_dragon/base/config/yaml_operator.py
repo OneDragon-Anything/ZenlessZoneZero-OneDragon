@@ -45,6 +45,14 @@ def read_cache_or_load(file_path: str):
     # 统一走 MEI 路径映射，兼容预加载等直接传入相对路径的场景
     file_path = get_temp_config_path(file_path)
 
+    # 特殊文件不走缓存
+    if file_path.endswith('redemption_codes.yml'):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                return yaml.safe_load(file)
+        except Exception:
+            return {}
+
     with _cache_lock:
         # 0. 快速路径：检查是否已有完全匹配的缓存
         cached = cached_yaml_data.get(file_path)
