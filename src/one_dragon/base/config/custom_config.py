@@ -97,7 +97,7 @@ class CustomConfig(YamlConfig):
         """
         主页背景类型（官方静态/版本海报/官方动态/无）
         """
-        return self.get('background_type', BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value)
+        return self.get('background_type', BackgroundTypeEnum.OFFICIAL_STATIC.value.value)
 
     @background_type.setter
     def background_type(self, new_value: str) -> None:
