@@ -831,13 +831,11 @@ class NoticeCardContainer(QWidget):
         shadow.setColor(get_notice_theme_palette()['shadow'])
         self.setGraphicsEffect(shadow)
 
-        # 控制状态
-        self._notice_enabled = False
-
         # 设置固定宽度
         self.setFixedWidth(351)
 
-        # 初始状态为隐藏
+        # 设置初始状态为显示
+        self._notice_enabled = True
         self._apply_visibility_state()
 
     def set_notice_enabled(self, enabled: bool):

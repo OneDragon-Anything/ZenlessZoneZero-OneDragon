@@ -700,9 +700,6 @@ class HomeInterface(VerticalScrollInterface):
             if not self._banner_downloader.isRunning():
                 self._banner_downloader.start()
 
-        # 检查公告卡片配置是否变化
-        self._check_notice_config_change()
-
         # 检查背景是否需要刷新
         self._check_banner_reload_signal()
 
@@ -812,14 +809,6 @@ class HomeInterface(VerticalScrollInterface):
             return str(remote_banner_path)
         else:
             return str(index_banner_path)
-
-    def _check_notice_config_change(self):
-        """检查公告卡片配置是否发生变化"""
-        if self.ctx.signal.notice_card_config_changed:
-            current_config = self.ctx.custom_config.notice_card
-            self.notice_container.set_notice_enabled(current_config)
-            # 重置信号状态
-            self.ctx.signal.notice_card_config_changed = False
 
     def _check_banner_reload_signal(self):
         """检查背景重新加载信号"""
