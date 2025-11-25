@@ -25,9 +25,9 @@ class ThemeColorModeEnum(Enum):
 
 class BackgroundTypeEnum(Enum):
 
-    OFFICIAL_STATIC = ConfigItem('官方静态背景', 'official_static')
     VERSION_POSTER = ConfigItem('版本海报', 'version_poster')
-    OFFICIAL_DYNAMIC = ConfigItem('官方动态背景', 'official_dynamic')
+    OFFICIAL_STATIC = ConfigItem('静态背景', 'official_static')
+    OFFICIAL_DYNAMIC = ConfigItem('动态背景', 'official_dynamic')
     NONE = ConfigItem('无', 'none')
 
 
@@ -95,7 +95,7 @@ class CustomConfig(YamlConfig):
     @property
     def background_type(self) -> str:
         """
-        主页背景类型（官方静态/版本海报/官方动态/无）
+        主页背景类型（版本海报/静态背景/动态背景/无）
         """
         return self.get('background_type', BackgroundTypeEnum.OFFICIAL_STATIC.value.value)
 
