@@ -74,15 +74,7 @@ class CustomConfig(YamlConfig):
         是否启用公告（强制启用）
         :return:
         """
-        # return self.get('notice_card', True)
         return True
-    # @notice_card.setter
-    # def notice_card(self, new_value: bool) -> None:
-    #     """
-    #     是否启用公告
-    #     :return:
-    #     """
-    #     self.update('notice_card', new_value)
 
     @property
     def custom_banner(self) -> bool:

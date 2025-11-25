@@ -112,11 +112,6 @@ class SettingCustomInterface(VerticalScrollInterface):
 
         basic_group.addSettingCard(self.theme_color_mode_opt)
 
-        # 主页公告开关已禁用，强制显示公告
-        # self.notice_card_opt = SwitchSettingCard(icon=FluentIcon.PIN, title='主页公告', content='在主页显示游戏公告')
-        # self.notice_card_opt.value_changed.connect(lambda: setattr(self.ctx.signal, 'notice_card_config_changed', True))
-        # basic_group.addSettingCard(self.notice_card_opt)
-
         self.background_type_opt = ComboBoxSettingCard(
             icon=FluentIcon.BACKGROUND_FILL,
             title='主页背景类型',
@@ -148,7 +143,6 @@ class SettingCustomInterface(VerticalScrollInterface):
         self.ui_language_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('ui_language'))
         self.theme_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('theme'))
         self.theme_color_mode_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('theme_color_mode'))
-        # self.notice_card_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('notice_card'))
         self.custom_banner_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('custom_banner'))
         self.background_type_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('background_type'))
 
