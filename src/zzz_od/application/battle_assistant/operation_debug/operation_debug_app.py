@@ -80,7 +80,12 @@ class OperationDebugApp(ZApplication):
             self.ops = []
             for operation_data in operations:
                 operation_def = OperationDef(operation_data)
-                self.ops.append(op.get_atomic_op(operation_def))
+                # 使用 load_template_for_operation 来递归展开所有模板引用
+                expanded_operations = ConditionalOperatorLoader.load_template_for_operation(
+                    operation_def, set()
+                )
+                for expanded_op in expanded_operations:
+                    self.ops.append(op.get_atomic_op(expanded_op))
 
             self.op_idx = 0
             return self.round_success()
