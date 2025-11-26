@@ -145,6 +145,7 @@ class AutoBattleContext:
         if self.auto_op is not None:
             self.auto_op.stop_running()
         self.stop_context()
+
         # 重新创建状态记录服务实例，彻底清空所有状态
         self.state_record_service = AutoBattleStateRecordService()
 
