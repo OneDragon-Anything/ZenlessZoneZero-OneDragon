@@ -602,6 +602,8 @@ class AutoBattleAgentContext:
 
         # 格挡破碎
         to_check_list.append(CheckAgentState(CommonAgentStateEnum.GUARD_BREAK.value))
+        # 切人-冷却
+        to_check_list.append(CheckAgentState(CommonAgentStateEnum.SWITCH_BAN.value))
 
         # 血量扣减
         if len(screen_agent_list) == 3:
