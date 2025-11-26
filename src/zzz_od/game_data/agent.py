@@ -406,7 +406,7 @@ class AgentEnum(Enum):
                                     connect_cnt=6),
                        AgentStateDef('琉音-好评', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                      template_id='dialyn_pr',
-                                     hsv_color=(95, 100, 245), hsv_color_diff=(5, 125, 20),
+                                     hsv_color=(0,0,255), hsv_color_diff=(90,255,200),
                                      max_length=120)
                    ])
 

@@ -4,5 +4,5 @@ template_name: 角色状态-琉音-好评-32
 template_shape: rectangle
 auto_mask: true
 point_list:
-- 575, 99
-- 623, 100
+- 576, 99
+- 622, 100
