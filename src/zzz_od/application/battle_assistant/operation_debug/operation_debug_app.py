@@ -1,6 +1,8 @@
 from typing import List, Optional
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
+from one_dragon.base.conditional_operation.loader import ConditionalOperatorLoader
+from one_dragon.base.conditional_operation.operation_def import OperationDef
 from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -57,19 +59,29 @@ class OperationDebugApp(ZApplication):
         加载战斗指令
         :return:
         """
-        op = AutoBattleOperator(self.ctx, '', '', is_mock=True)
         template_name = self.ctx.battle_assistant_config.debug_operation_config
-        operation_template = AutoBattleOperator.get_operation_template(template_name)
-        if operation_template is None:
-            return self.round_fail('无效的自动战斗指令 请重新选择')
 
         try:
-            self.ops = get_ops_by_template(
-                template_name,
-                op.get_atomic_op,
-                AutoBattleOperator.get_operation_template,
-                set()
+            # 直接加载操作模板文件
+            template_data = ConditionalOperatorLoader.load_yaml_config(
+                sub_dir=['auto_battle_operation'],
+                template_name=template_name,
+                read_from_merged=False
             )
+
+            # 创建一个临时的 AutoBattleOperator 实例来获取 atomic_op
+            op = AutoBattleOperator(self.ctx.auto_battle_context, 'auto_battle', '全配队通用')
+
+            # 从模板数据中提取操作
+            operations = template_data.get('operations', [])
+            if len(operations) == 0:
+                return self.round_fail('操作模板中没有找到可执行的操作')
+
+            self.ops = []
+            for operation_data in operations:
+                operation_def = OperationDef(operation_data)
+                self.ops.append(op.get_atomic_op(operation_def))
+
             self.op_idx = 0
             return self.round_success()
         except Exception:
