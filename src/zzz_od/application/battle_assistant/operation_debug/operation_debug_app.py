@@ -77,11 +77,20 @@ class OperationDebugApp(ZApplication):
             if len(operations) == 0:
                 return self.round_fail('操作模板中没有找到可执行的操作')
 
+            # 创建一个 ConditionalOperatorLoader 实例来处理模板展开
+            loader = ConditionalOperatorLoader(
+                sub_dir=['auto_battle_operation'],
+                template_name=template_name,
+                operation_template_sub_dir=['auto_battle_operation'],
+                state_handler_template_sub_dir=['auto_battle_state_handler'],
+                read_from_merged=False
+            )
+
             self.ops = []
             for operation_data in operations:
                 operation_def = OperationDef(operation_data)
                 # 使用 load_template_for_operation 来递归展开所有模板引用
-                expanded_operations = ConditionalOperatorLoader.load_template_for_operation(
+                expanded_operations = loader.load_template_for_operation(
                     operation_def, set()
                 )
                 for expanded_op in expanded_operations:
