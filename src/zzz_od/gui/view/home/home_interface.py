@@ -300,16 +300,16 @@ class BackgroundImageDownloader(BaseThread):
             self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getGames?launcher_id=jGHBHlcOq1&language=zh-cn"
             self.config_key = f'last_{download_type}_fetch_time'
             self.error_msg = "版本海报异步获取失败"
-        elif download_type == "remote_banner":
-            self.save_path = ui_dir / 'remote_banner.webp'
+        elif download_type == "static_background":
+            self.save_path = ui_dir / 'static_background.webp'
             self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getAllGameBasicInfo?launcher_id=jGHBHlcOq1&language=zh-cn"
             self.config_key = f'last_{download_type}_fetch_time'
-            self.error_msg = "当前版本主页背景异步获取失败"
-        elif download_type == "official_dynamic":
-            self.save_path = ui_dir / 'official_dynamic.webm'
+            self.error_msg = "静态背景异步获取失败"
+        elif download_type == "dynamic_background":
+            self.save_path = ui_dir / 'dynamic_background.webm'
             self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getAllGameBasicInfo?launcher_id=jGHBHlcOq1&language=zh-cn"
             self.config_key = f'last_{download_type}_fetch_time'
-            self.error_msg = "官方动态背景异步获取失败"
+            self.error_msg = "动态背景异步获取失败"
 
     def _run_impl(self):
         if not self.save_path.exists():
@@ -339,9 +339,9 @@ class BackgroundImageDownloader(BaseThread):
             if not result:
                 return
 
-            # 官方动态使用流式下载避免内存溢出
-            if self.download_type == "official_dynamic":
-                success = self._download_official_dynamic_video(result)
+            # 动态背景使用流式下载避免内存溢出
+            if self.download_type == "dynamic_background":
+                success = self._download_dynamic_background_video(result)
             else:
                 # 普通图片下载
                 with requests.get(result, timeout=5) as img_resp:
@@ -368,7 +368,7 @@ class BackgroundImageDownloader(BaseThread):
                 background = display.get("background", {})
                 if background:
                     return background.get("url")
-        elif self.download_type == "remote_banner":
+        elif self.download_type == "static_background":
             for game in data.get("data", {}).get("game_info_list", []):
                 if game.get("game", {}).get("biz") != "nap_cn":
                     continue
@@ -376,7 +376,7 @@ class BackgroundImageDownloader(BaseThread):
                 backgrounds = game.get("backgrounds", [])
                 if backgrounds:
                     return backgrounds[0]["background"]["url"]
-        elif self.download_type == "official_dynamic":
+        elif self.download_type == "dynamic_background":
             for game in data.get("data", {}).get("game_info_list", []):
                 if game.get("game", {}).get("biz") != "nap_cn":
                     continue
@@ -405,8 +405,8 @@ class BackgroundImageDownloader(BaseThread):
                     log.warning(f"清理临时文件失败: {cleanup_err}")
             raise
 
-    def _download_official_dynamic_video(self, video_url: str) -> bool:
-        """下载官方动态背景视频，确保取消时清理临时文件"""
+    def _download_dynamic_background_video(self, video_url: str) -> bool:
+        """下载动态背景视频，确保取消时清理临时文件"""
         self.download_starting.emit()
 
         temp_path: Path = self.save_path.with_suffix(self.save_path.suffix + '.tmp')
@@ -632,34 +632,34 @@ class HomeInterface(VerticalScrollInterface):
         )
 
         # 初始化背景下载器
-        self._banner_downloader = BackgroundImageDownloader(self.ctx, "remote_banner", self)
-        self._banner_downloader.image_downloaded.connect(
-            self.reload_banner,
-            Qt.ConnectionType.QueuedConnection
-        )
-
         self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster", self)
         self._version_poster_downloader.image_downloaded.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
 
-        self._official_dynamic_downloader = BackgroundImageDownloader(self.ctx, "official_dynamic", self)
-        self._official_dynamic_downloader.image_downloaded.connect(
+        self._static_background_downloader = BackgroundImageDownloader(self.ctx, "static_background", self)
+        self._static_background_downloader.image_downloaded.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
-        self._official_dynamic_downloader.download_starting.connect(
-            self._on_official_dynamic_download_start,
+
+        self._dynamic_background_downloader = BackgroundImageDownloader(self.ctx, "dynamic_background", self)
+        self._dynamic_background_downloader.image_downloaded.connect(
+            self.reload_banner,
+            Qt.ConnectionType.QueuedConnection
+        )
+        self._dynamic_background_downloader.download_starting.connect(
+            self._on_dynamic_background_download_start,
             Qt.ConnectionType.BlockingQueuedConnection
         )
 
-    def _on_official_dynamic_download_start(self) -> None:
+    def _on_dynamic_background_download_start(self) -> None:
         """在后台下载新的视频前释放当前播放器占用"""
         if not self._banner_widget:
             return
 
-        if self.ctx.custom_config.background_type != BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value:
+        if self.ctx.custom_config.background_type != BackgroundTypeEnum.DYNAMIC.value.value:
             return
 
         if hasattr(self._banner_widget, "release_media"):
@@ -690,15 +690,15 @@ class HomeInterface(VerticalScrollInterface):
 
         # 根据配置启动相应的背景下载器
         background_type = self.ctx.custom_config.background_type
-        if background_type == BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value:
-            if not self._official_dynamic_downloader.isRunning():
-                self._official_dynamic_downloader.start()
-        elif background_type == BackgroundTypeEnum.VERSION_POSTER.value.value:
+        if background_type == BackgroundTypeEnum.VERSION_POSTER.value.value:
             if not self._version_poster_downloader.isRunning():
                 self._version_poster_downloader.start()
-        elif background_type == BackgroundTypeEnum.OFFICIAL_STATIC.value.value:
-            if not self._banner_downloader.isRunning():
-                self._banner_downloader.start()
+        elif background_type == BackgroundTypeEnum.STATIC.value.value:
+            if not self._static_background_downloader.isRunning():
+                self._static_background_downloader.start()
+        elif background_type == BackgroundTypeEnum.DYNAMIC.value.value:
+            if not self._dynamic_background_downloader.isRunning():
+                self._dynamic_background_downloader.start()
 
         # 检查背景是否需要刷新
         self._check_banner_reload_signal()
@@ -716,12 +716,12 @@ class HomeInterface(VerticalScrollInterface):
             self._banner_widget.pause_media()
 
         # 停止所有下载器，避免后台占用资源
-        if self._official_dynamic_downloader.isRunning():
-            self._official_dynamic_downloader.stop()
         if self._version_poster_downloader.isRunning():
             self._version_poster_downloader.stop()
-        if self._banner_downloader.isRunning():
-            self._banner_downloader.stop()
+        if self._static_background_downloader.isRunning():
+            self._static_background_downloader.stop()
+        if self._dynamic_background_downloader.isRunning():
+            self._dynamic_background_downloader.stop()
 
         # 立即停止并隐藏所有提示
         self.button_group.stop_tooltip_demo()
@@ -785,13 +785,13 @@ class HomeInterface(VerticalScrollInterface):
             log.error(f"刷新背景时出错: {e}")
 
     def choose_banner_media(self) -> str:
-
+        """选择主页背景媒体文件"""
         # 获取背景图片路径
         custom_banner_path = Path(os_utils.get_path_under_work_dir('custom', 'assets', 'ui')) / 'banner'
         ui_dir = Path(os_utils.get_path_under_work_dir('assets', 'ui'))
-        official_dynamic_path = ui_dir / 'official_dynamic.webm'
         version_poster_path = ui_dir / 'version_poster.webp'
-        remote_banner_path = ui_dir / 'remote_banner.webp'
+        static_background_path = ui_dir / 'static_background.webp'
+        dynamic_background_path = ui_dir / 'dynamic_background.webm'
         index_banner_path = ui_dir / 'index.png'
 
         # 主页背景优先级：自定义 > 枚举选项 > index.png
@@ -801,12 +801,12 @@ class HomeInterface(VerticalScrollInterface):
 
         # 根据枚举类型选择背景
         background_type = self.ctx.custom_config.background_type
-        if background_type == BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value and official_dynamic_path.exists():
-            return str(official_dynamic_path)
-        elif background_type == BackgroundTypeEnum.VERSION_POSTER.value.value and version_poster_path.exists():
+        if background_type == BackgroundTypeEnum.VERSION_POSTER.value.value and version_poster_path.exists():
             return str(version_poster_path)
-        elif background_type == BackgroundTypeEnum.OFFICIAL_STATIC.value.value and remote_banner_path.exists():
-            return str(remote_banner_path)
+        elif background_type == BackgroundTypeEnum.STATIC.value.value and static_background_path.exists():
+            return str(static_background_path)
+        elif background_type == BackgroundTypeEnum.DYNAMIC.value.value and dynamic_background_path.exists():
+            return str(dynamic_background_path)
         else:
             return str(index_banner_path)
 

@@ -206,14 +206,15 @@ msgstr "UI Theme"
 msgid "主页公告"
 msgstr "Homepage Announcement"
 
-msgid "官方静态背景"
-msgstr "Official Static Background"
 
 msgid "版本海报"
 msgstr "Version Poster"
 
-msgid "官方动态背景"
-msgstr "Official Dynamic Background"
+msgid "静态背景"
+msgstr "Static Background"
+
+msgid "动态背景"
+msgstr "Dynamic Background"
 
 msgid "自定义主页背景"
 msgstr "Custom Homepage Background"
