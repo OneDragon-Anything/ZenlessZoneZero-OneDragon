@@ -191,6 +191,7 @@ class CommonAgentStateEnum(Enum):
                               hsv_color=(60, 0, 62), hsv_color_diff=(50, 255, 30),
                               connect_cnt=6)
 
+
 class Agent:
 
     def __init__(self, agent_id: str, agent_name: str,
