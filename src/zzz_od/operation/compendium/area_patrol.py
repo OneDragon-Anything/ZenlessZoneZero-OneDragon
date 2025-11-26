@@ -258,7 +258,7 @@ def __debug():
         auto_battle_config='全配队通用',
         predefined_team_idx=0
     )
-    op = AreaPatrol(ctx, plan, 2, need_check_power=True)
+    op = AreaPatrol(ctx, plan)
     op.execute()
 
 
