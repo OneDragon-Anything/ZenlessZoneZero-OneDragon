@@ -1,7 +1,7 @@
 sub_dir: agent_state
 template_id: dialyn_cc_3_2
 template_name: 角色状态-琉音-客诉-32
-template_shape: multi_rect
+template_shape: rectangle
 auto_mask: true
 point_list:
 - 629, 98
