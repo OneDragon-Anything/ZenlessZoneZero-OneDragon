@@ -278,7 +278,7 @@ class ChargePlanConfig(ApplicationConfig):
                 and x.mission_name == y.mission_name)
 
     @property
-    def history_list(self) -> dict:
+    def history_list(self) -> list[dict]:
         return self.get('history_list', [])
 
     def get_history_by_uid(self, plan: ChargePlanItem) -> ChargePlanItem | None:
