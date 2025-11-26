@@ -78,23 +78,22 @@ class ChargePlanConfig(ApplicationConfig):
 
         self.plan_list: list[ChargePlanItem] = []
 
+        # 迁移旧名称 2025/12/31 移除
+        migration_list = []
+        migration_list.extend(self.data.get('plan_list', []))
+        migration_list.extend(self.data.get('history_list', []))
+
+        is_changed = False
+        for item in migration_list:
+            if item.get('category_name') == '定期清剿':
+                item['category_name'] = '区域巡防'
+                is_changed = True
+
+        if is_changed:
+            YamlConfig.save(self)
+
         for plan_item in self.data.get('plan_list', []):
             self.plan_list.append(ChargePlanItem(**plan_item))
-
-        # 迁移旧名称 2025/12/31 移除
-        mirgration_list = []
-        for plan_item in self.plan_list:
-            mirgration_list.append(plan_item)
-
-        if 'history_list' in self.data:
-            for history_item in self.data['history_list']:
-                mirgration_list.append(history_item)
-
-        if len(mirgration_list) != 0:
-            for item in mirgration_list:
-                if item.get('category_name') == '定期清剿':
-                    item['category_name'] = '区域巡防'
-            self.save()
 
     def save(self):
         plan_list = []
