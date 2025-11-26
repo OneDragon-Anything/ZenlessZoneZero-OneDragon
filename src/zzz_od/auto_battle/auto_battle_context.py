@@ -124,6 +124,8 @@ class AutoBattleContext:
         开始自动战斗
         """
         if self.auto_op is not None:
+            # 清空之前检测到的状态
+            self.clear_all_states()
             self.init_battle_context()
             self.auto_op.start_running_async()
             self.start_context_async()
@@ -133,8 +135,20 @@ class AutoBattleContext:
         恢复自动战斗
         """
         if self.auto_op is not None:
+            # 清空之前检测到的状态
+            self.clear_all_states()
             self.auto_op.start_running_async()
             self.start_context_async()
+
+    def clear_all_states(self) -> None:
+        """
+        清空所有之前检测到的状态
+        """
+        # 获取所有可能的状态ID
+        all_states = self.state_record_service.all_state_event_ids
+
+        # 使用custom_context的clear_state方法批量清空所有状态
+        self.custom_context.clear_state(all_states)
 
     def stop_auto_battle(self) -> None:
         """
