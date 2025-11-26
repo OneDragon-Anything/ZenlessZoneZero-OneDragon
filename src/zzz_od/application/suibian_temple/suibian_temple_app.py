@@ -7,6 +7,7 @@ from zzz_od.application.suibian_temple import suibian_temple_const
 from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_squad import (
     SuibianTempleAdventureSquad,
 )
+from zzz_od.application.suibian_temple.operations.suibian_temple_auto_manage import SuibianTempleAutoManage
 from zzz_od.application.suibian_temple.operations.suibian_temple_boo_box import (
     SuibianTempleBooBox,
 )
@@ -98,6 +99,19 @@ class SuibianTempleApp(ZApplication):
     @node_from(from_name='识别初始画面', status='随便观-入口')
     @node_from(from_name='前往随便观')
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
+    @operation_node(name='处理饮茶仙-只提交')
+    def handle_yum_cha_sin_submit_only(self) -> OperationRoundResult:
+        op = SuibianTempleYumChaSin(self.ctx, submit_only=True)
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='处理饮茶仙-只提交')
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
+    @operation_node(name='处理自动托管')
+    def handle_auto_manage(self) -> OperationRoundResult:
+        op = SuibianTempleAutoManage(self.ctx)
+        return self.round_by_op_result(op.execute())
+
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='处理游历')
     def handle_adventure_squad(self) -> OperationRoundResult:
         op = SuibianTempleAdventureSquad(
@@ -140,6 +154,7 @@ class SuibianTempleApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='处理售卖铺')
+    @node_from(from_name='处理自动托管')
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='处理好物铺')
     def handle_good_goods(self) -> OperationRoundResult:
@@ -179,7 +194,8 @@ class SuibianTempleApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
+    ctx.run_context.start_running()
     ctx.run_context.current_instance_idx = ctx.current_instance_idx
     ctx.run_context.current_app_id = 'suibian_temple'
     ctx.run_context.current_group_id = 'one_dragon'
