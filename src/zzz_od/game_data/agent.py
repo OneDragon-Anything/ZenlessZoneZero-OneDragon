@@ -410,27 +410,3 @@ class AgentEnum(Enum):
                                      hsv_color=(0,0,255), hsv_color_diff=(90,255,200),
                                      max_length=120)
                    ])
-
-    # BANYUE = Agent('banyue', '般岳', RareTypeEnum.S, AgentTypeEnum.RUPTURE, DmgTypeEnum.FIRE, ['banyue'],
-    #                state_list=[
-    #                    AgentStateDef('般岳-蓄力段数', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
-    #                                  template_id='banyue',
-    #                                  hsv_color=(95, 100, 245), hsv_color_diff=(5, 125, 20),
-    #                                  max_length=85)
-    #                ])
-
-    # XIAOZHAO = Agent('xiaozhao', '照', RareTypeEnum.S, AgentTypeEnum.DEFENSE, DmgTypeEnum.ICE, ['xiaozhao'],
-    #                  state_list=[
-    #                      AgentStateDef('照-蓄力段数', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
-    #                                    template_id='xiaozhao',
-    #                                    hsv_color=(95, 100, 245), hsv_color_diff=(5, 125, 20),
-    #                                    max_length=85)
-    #                  ])
-
-    # YESHUNGUANG = Agent('yeshunguang', '叶瞬光', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.PHYSICAL, ['yeshunguang'],
-    #                     state_list=[
-    #                         AgentStateDef('叶瞬光-蓄力段数', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
-    #                                       template_id='yeshunguang',
-    #                                       hsv_color=(95, 100, 245), hsv_color_diff=(5, 125, 20),
-    #                                       max_length=85)
-    #                     ])
