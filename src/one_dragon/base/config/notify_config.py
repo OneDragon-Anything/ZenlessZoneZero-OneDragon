@@ -48,12 +48,7 @@ class NotifyConfig(YamlConfig):
         if not app_id:
             return NotifyLevel.ALL
 
-        val = self.get(app_id, NotifyLevel.ALL)
-        if val is True:
-            return NotifyLevel.ALL
-        if val is False:
-            return NotifyLevel.OFF
-        return int(val)
+        return int(self.get(app_id, NotifyLevel.ALL))
 
     def _generate_dynamic_properties(self):
         # 为 app_map 中的每个 app_id 动态生成 property，便于通过属性访问和更新配置
