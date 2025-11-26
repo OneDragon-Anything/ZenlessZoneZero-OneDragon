@@ -506,9 +506,6 @@ class HomeInterface(VerticalScrollInterface):
         self._notice_wrap_layout.addWidget(self.notice_container)
         h2_layout.addWidget(notice_wrap)
 
-        # 根据配置设置启用状态
-        self.notice_container.set_notice_enabled(self.ctx.custom_config.notice_card)
-
         h2_layout.addStretch()
 
         # 启动游戏按钮布局

@@ -34,7 +34,7 @@ class BackgroundTypeEnum(Enum):
 class CustomConfig(YamlConfig):
 
     def __init__(self):
-        super().__init__(module_name='custom')
+        YamlConfig.__init__(self, module_name='custom')
 
     @property
     def ui_language(self) -> str:
@@ -67,14 +67,6 @@ class CustomConfig(YamlConfig):
         :return:
         """
         self.update('theme', new_value)
-
-    @property
-    def notice_card(self) -> bool:
-        """
-        是否启用公告（强制启用）
-        :return:
-        """
-        return True
 
     @property
     def custom_banner(self) -> bool:
