@@ -80,7 +80,17 @@ class ChargePlanConfig(ApplicationConfig):
         self.plan_list: List[ChargePlanItem] = []
 
         for plan_item in self.data.get('plan_list', []):
+            # todo remove at 2025/12/31
+            if plan_item.get('category_name') == '定期清剿':
+                plan_item['category_name'] = '区域巡防'
             self.plan_list.append(ChargePlanItem(**plan_item))
+
+        # todo remove at 2025/12/31
+        # 迁移历史记录
+        if 'history_list' in self.data:
+            for history_item in self.data['history_list']:
+                if history_item.get('category_name') == '定期清剿':
+                    history_item['category_name'] = '区域巡防'
 
     def save(self):
         plan_list = []

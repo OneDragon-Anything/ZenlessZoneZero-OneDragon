@@ -31,7 +31,7 @@ from zzz_od.game_data.compendium import Coffee
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
-from zzz_od.operation.compendium.routine_cleanup import RoutineCleanup
+from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.transport import Transport
 
 
@@ -369,10 +369,10 @@ class CoffeeApp(ZApplication):
         op = CombatSimulation(self.ctx, self.charge_plan)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='传送副本', status='定期清剿')
-    @operation_node(name='定期清剿')
-    def routine_cleanup(self) -> OperationRoundResult:
-        op = RoutineCleanup(self.ctx, self.charge_plan)
+    @node_from(from_name='传送副本', status='区域巡防')
+    @operation_node(name='区域巡防')
+    def area_patrol(self) -> OperationRoundResult:
+        op = AreaPatrol(self.ctx, self.charge_plan)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送副本', status='专业挑战室')
@@ -386,7 +386,7 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='选择前往', status='对话框确认')
     @node_from(from_name='选择前往', status='没有加成')
     @node_from(from_name='实战模拟室')
-    @node_from(from_name='定期清剿')
+    @node_from(from_name='区域巡防')
     @node_from(from_name='专业挑战室')
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:

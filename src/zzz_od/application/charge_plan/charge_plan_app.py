@@ -18,7 +18,7 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
 from zzz_od.operation.compendium.notorious_hunt import NotoriousHunt
-from zzz_od.operation.compendium.routine_cleanup import RoutineCleanup
+from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 from zzz_od.operation.goto.goto_menu import GotoMenu
 from zzz_od.operation.restore_charge import RestoreCharge
@@ -109,7 +109,7 @@ class ChargePlanApp(ZApplication):
                     need_charge_power = 0
                 else:
                     need_charge_power = int(candidate_plan.card_num) * 20
-            elif candidate_plan.category_name == '定期清剿':
+            elif candidate_plan.category_name == '区域巡防':
                 if self.config.use_coupon:
                     need_charge_power = 0
                 else:
@@ -164,10 +164,10 @@ class ChargePlanApp(ZApplication):
         op = CombatSimulation(self.ctx, self.next_plan)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='识别副本分类', status='定期清剿')
-    @operation_node(name='定期清剿')
-    def routine_cleanup(self) -> OperationRoundResult:
-        op = RoutineCleanup(self.ctx, self.next_plan)
+    @node_from(from_name='识别副本分类', status='区域巡防')
+    @operation_node(name='区域巡防')
+    def area_patrol(self) -> OperationRoundResult:
+        op = AreaPatrol(self.ctx, self.next_plan)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='专业挑战室')
@@ -183,11 +183,11 @@ class ChargePlanApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='实战模拟室', success=True)
-    @node_from(from_name='定期清剿', success=True)
+    @node_from(from_name='区域巡防', success=True)
     @node_from(from_name='专业挑战室', success=True)
     @node_from(from_name='恶名狩猎', success=True)
     @node_from(from_name='实战模拟室', success=False)
-    @node_from(from_name='定期清剿', success=False)
+    @node_from(from_name='区域巡防', success=False)
     @node_from(from_name='专业挑战室', success=False)
     @node_from(from_name='恶名狩猎', success=False)
     @operation_node(name='挑战完成')
@@ -198,7 +198,7 @@ class ChargePlanApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='实战模拟室', status=CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
-    @node_from(from_name='定期清剿', status=RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
+    @node_from(from_name='区域巡防', status=AreaPatrol.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='专业挑战室', status=ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
