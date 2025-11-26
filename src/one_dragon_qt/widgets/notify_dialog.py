@@ -1,6 +1,8 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGridLayout, QWidget
 from qfluentwidgets import CheckBox, MessageBoxBase, SubtitleLabel, SwitchButton
 
+from one_dragon.base.config.notify_config import NotifyLevel
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 
@@ -44,8 +46,15 @@ class NotifyDialog(MessageBoxBase):
 
             # 使用 app_name 作为 CheckBox 的文本
             checkbox = CheckBox(gt(app_name), self)
-            initial_checked = getattr(self.ctx.notify_config, app_id, False)
-            checkbox.setChecked(initial_checked)
+            checkbox.setTristate(True)
+
+            level = self.ctx.notify_config.get_app_notify_level(app_id)
+            if level == NotifyLevel.OFF:
+                checkbox.setCheckState(Qt.CheckState.Unchecked)
+            elif level == NotifyLevel.APP:
+                checkbox.setCheckState(Qt.CheckState.PartiallyChecked)
+            else:
+                checkbox.setCheckState(Qt.CheckState.Checked)
 
             # 保存复选框引用，使用 app_id 作为键
             self.app_checkboxes[app_id] = checkbox
@@ -58,5 +67,12 @@ class NotifyDialog(MessageBoxBase):
         """点击确定时，更新配置"""
         self.ctx.notify_config.enable_before_notify = self.before_notify_switch.isChecked()
         for app_id, checkbox in self.app_checkboxes.items():
-            setattr(self.ctx.notify_config, app_id, checkbox.isChecked())
+            state = checkbox.checkState()
+            if state == Qt.CheckState.Unchecked:
+                level = NotifyLevel.OFF
+            elif state == Qt.CheckState.PartiallyChecked:
+                level = NotifyLevel.APP
+            else:
+                level = NotifyLevel.ALL
+            setattr(self.ctx.notify_config, app_id, level)
         super().accept()

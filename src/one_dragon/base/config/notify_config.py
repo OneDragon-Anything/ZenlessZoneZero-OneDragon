@@ -1,6 +1,12 @@
 from one_dragon.base.config.yaml_config import YamlConfig
 
 
+class NotifyLevel:
+    OFF = 0
+    APP = 1
+    ALL = 2
+
+
 class NotifyConfig(YamlConfig):
 
     def __init__(self, instance_idx: int, app_map: dict[str, str]):
@@ -32,25 +38,33 @@ class NotifyConfig(YamlConfig):
     def enable_before_notify(self, new_value: bool) -> None:
         self.update('enable_before_notify', new_value)
 
-    def is_app_notify_enabled(self, app_id: str) -> bool:
+    def get_app_notify_level(self, app_id: str) -> int:
         """
-        获取指定 app_id 是否开启了通知
-        如果 app_id 为空或在配置中未找到，默认返回 True
+        获取指定 app_id 的通知等级
+        0: 关闭
+        1: 仅应用
+        2: 全部（应用和节点）
         """
         if not app_id:
-            return True
-        return self.get(app_id, True)
+            return NotifyLevel.ALL
+
+        val = self.get(app_id, NotifyLevel.ALL)
+        if val is True:
+            return NotifyLevel.ALL
+        if val is False:
+            return NotifyLevel.OFF
+        return int(val)
 
     def _generate_dynamic_properties(self):
         # 为 app_map 中的每个 app_id 动态生成 property，便于通过属性访问和更新配置
         for app_id in self.app_map:
             def create_getter(name: str):
-                def getter(self) -> bool:
-                    return self.get(name, True)
+                def getter(self) -> int:
+                    return self.get_app_notify_level(name)
                 return getter
 
             def create_setter(name: str):
-                def setter(self, new_value: bool) -> None:
+                def setter(self, new_value: int) -> None:
                     self.update(name, new_value)
                 return setter
 

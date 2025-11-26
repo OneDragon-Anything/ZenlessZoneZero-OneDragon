@@ -4,6 +4,7 @@ from collections.abc import Callable
 from enum import Enum
 from typing import TYPE_CHECKING
 
+from one_dragon.base.config.notify_config import NotifyLevel
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 
@@ -44,23 +45,23 @@ def _get_app_info(operation: Operation) -> tuple[str | None, str | None]:
         return app_id, None
 
 
-def _should_notify(operation: Operation) -> bool:
+def _get_notify_level(operation: Operation) -> int:
     """
-    检查是否应该发送通知
+    获取通知等级
 
     Args:
         operation: Operation 实例
 
     Returns:
-        bool: 是否应该发送通知
+        int: 通知等级
     """
     # 检查全局通知开关
     if not operation.ctx.notify_config.enable_notify:
-        return False
+        return NotifyLevel.OFF
 
     # 检查应用级别的通知开关
     app_id, _ = _get_app_info(operation)
-    return operation.ctx.notify_config.is_app_notify_enabled(app_id)
+    return operation.ctx.notify_config.get_app_notify_level(app_id)
 
 
 def send_application_notify(app: Application, status: bool | None) -> None:
@@ -71,7 +72,7 @@ def send_application_notify(app: Application, status: bool | None) -> None:
         status: True=成功, False=失败, None=开始
     """
     # 验证配置
-    if not _should_notify(app):
+    if _get_notify_level(app) < NotifyLevel.APP:
         return
 
     # 检查全局的开始前通知开关
@@ -181,7 +182,7 @@ def send_node_notify(
         current_node: 当前正在执行的节点
         next_node: 下一个要执行的节点
     """
-    if not _should_notify(operation) or current_node is None:
+    if _get_notify_level(operation) < NotifyLevel.ALL or current_node is None:
         return
 
     # 初始化通知列表
