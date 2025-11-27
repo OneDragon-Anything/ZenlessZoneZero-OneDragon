@@ -1,0 +1,102 @@
+template_name: "速切模板-琉音"
+handlers:
+  - states: "[前台-琉音]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-琉音]"
+    sub_handlers:
+      - states: "[自定义-黄光切人, 0, 1] & [自定义-琉音-测试]"
+        operations:
+          - operation_template: "琉音-支援攻击"
+
+      - states: "[自定义-红光闪避, 0, 1]"
+        operations:
+          - operation_template: "琉音-闪A"
+
+      - states: "[自定义-连携换人, 0, 0.5]"
+        sub_handlers:
+          # 好评值在90以上设置连携转终结技状态
+          - states: "[琉音-好评]{90, 120}"
+            operations:
+              - op_name: "设置状态"
+                state: "自定义-琉音-连携转终结技"
+              - operation_template: "琉音-连携攻击"
+          - states: ""
+            operations:
+              - operation_template: "琉音-连携攻击"
+
+      # 防呆
+      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "切人后等待"
+        sub_handlers:
+          - states: "[按键可用-快速支援, 0, 0.5]"
+            sub_handlers:
+              # 好评值在90以上设置连携转终结技状态
+              - states: "[琉音-好评]{90, 120}"
+                operations:
+                  - op_name: "设置状态"
+                    state: "自定义-琉音-连携转终结技"
+                  - op_name: "等待秒数"
+                    seconds: 0.5
+              - states: ""
+                operations:
+                  - op_name: "等待秒数"
+                    seconds: 0.5
+          - states: ""
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
+
+      - states: "[琉音-终结技可用]"
+        operations:
+          - operation_template: "琉音-终结技"
+
+      # 失衡时刻
+      - states: "[自定义-连携换人, 0, 10]"
+        sub_handlers:
+          # 客诉状态使用送客
+          - states: "[琉音-客诉,0,99]{1, 1}"
+            sub_handlers:
+              - states: "[琉音-好评,0,99]{90, 120}"
+                operations:
+                  - op_name: "设置状态"
+                    state: "自定义-琉音-连携转终结技"
+                  - operation_template: "琉音-送客(长按强化特殊技)"
+              - states: ""
+                operations:
+                  - operation_template: "琉音-送客(长按强化特殊技)"
+
+          # 其他时候马上切人
+          - states: ""
+            operations:
+              - op_name: "设置状态"
+                data: ["自定义-速切结束"]
+              - op_name: "按键-普通攻击"
+                post_delay: 0.1
+                repeat: 25
+
+      # 客诉状态使用送客
+      - states: "[琉音-客诉,0,99]{1, 1}"
+        sub_handlers:
+          - states: "[琉音-好评,0,99]{90, 120}"
+            operations:
+              - op_name: "设置状态"
+                state: "自定义-琉音-连携转终结技"
+              - operation_template: "琉音-送客(长按强化特殊技)"
+          - states: ""
+            operations:
+              - operation_template: "琉音-送客(长按强化特殊技)"
+
+      # 非失衡期不使用大招
+      - states: "[琉音-特殊技可用]"
+        interrupt_states: "![琉音-特殊技可用] | [琉音-好评,0,99]{90, 120}"
+        operations:
+          - operation_template: "琉音-石头剪刀布(连点特殊技)"
+          - operation_template: "琉音-石头剪刀布(连点特殊技)"
+          - operation_template: "琉音-石头剪刀布(连点特殊技)"
+
+      - states: ""
+        operations:
+          - op_name: "设置状态"
+            state_list: ["自定义-速切结束"]
+          - op_name: "按键-普通攻击"
+            post_delay: 0.1
+            repeat: 50

@@ -36,7 +36,7 @@ class CommissionAssistantApp(ZApplication):
             self,
             ctx=ctx,
             app_id=commission_assistant_const.APP_ID,
-            op_name=gt(commission_assistant_const.APP_NAME),
+            op_name=commission_assistant_const.APP_NAME,
         )
         self.config: CommissionAssistantConfig = self.ctx.run_context.get_config(
             app_id=commission_assistant_const.APP_ID,

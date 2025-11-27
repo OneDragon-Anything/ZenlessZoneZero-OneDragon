@@ -1,5 +1,13 @@
 template_name: "特殊情况-紧急切人"
 handlers:
+  - states: "[自定义-琉音-连携转终结技,0,99] & [切人-冷却]"
+    interrupt_states: "![切人-冷却]"
+    operations:
+      - op_name: "清除状态"
+        state: "自定义-琉音-连携转终结技"
+      - op_name: "等待秒数"
+        seconds: 5
+
   #清理假音连携
   - states: "[自定义-连携换人, 1.5, 99] & [自定义-非失衡连携, 0, 99]{0, 0} & ![按键可用-连携技, 0, 12]"
     debug_name: "清理非失衡连携"
@@ -8,6 +16,12 @@ handlers:
         state: "自定义-非失衡连携"
       - op_name: "清除状态"
         state: "自定义-连携换人"
+
+  #清理跳过
+  - states: "[自定义-连携跳过, 3, 999]"
+    operations:
+      - op_name: "清除状态"
+        state: "自定义-连携跳过"
 
   # 嘉音放大招和补唱歌, 至少3分钟一次
   - states: "![前台-耀嘉音]"
@@ -44,7 +58,29 @@ handlers:
         state: "自定义-耀嘉音-尝试释放终结技"
       - op_name: "清除状态"
         state: "自定义-非失衡连携"
-        add: 2
+
+  - states: "([前台-强攻] | [前台-命破])"
+    sub_handlers:
+      - states: "([琉音-客诉]{1, 1} & [琉音-好评]{90, 120})"
+        operations:
+          - op_name: "按键-切换角色"
+            agent_name: "琉音"
+          - op_name: "设置状态"
+            state: "自定义-琉音-连携转终结技"
+          - operation_template: "琉音-送客(长按强化特殊技)"
+      - states: "([琉音-终结技可用] & ![自定义-连携换人, 0, 12])"
+        operations:
+          - op_name: "按键-切换角色"
+            agent_name: "琉音"
+          - operation_template: "琉音-终结技"
+      - states: "[琉音-好评,0,99]{0, 90} & [琉音-能量]{75, 120}"
+        interrupt_states: "![琉音-特殊技可用] | [琉音-好评,0,99]{90, 120}"
+        operations:
+          - op_name: "按键-切换角色"
+            agent_name: "琉音"
+          - operation_template: "琉音-石头剪刀布(连点特殊技)"
+          - operation_template: "琉音-石头剪刀布(连点特殊技)"
+          - operation_template: "琉音-石头剪刀布(连点特殊技)"
 
   # 卢西娅进场需要先放一次技能
   - states: "![自定义-卢西娅-暗破, 0, 999] & [后台-卢西娅]"
@@ -93,11 +129,11 @@ handlers:
   #零号安比的追击白银点
   - states: "[零号安比-能量] & ![自定义-零号安比-追击回能, 0, 5] & ([后台-扳机] | [后台-奥菲丝] | [后台-波可娜])"
     operations:
-    - op_name: "设置状态"
-      state: "自定义-零号安比-白雷"
-      add: 200
-    - op_name: "设置状态"
-      state: "自定义-零号安比-追击回能"
+      - op_name: "设置状态"
+        state: "自定义-零号安比-白雷"
+        add: 200
+      - op_name: "设置状态"
+        state: "自定义-零号安比-追击回能"
 
   # 特殊处理，注意这里要等一秒，这样每次切人之后优先至少做一次角色模板里的动作，防止循环切人
   # 没有比掉血更特殊的，掉血了就不要进来切人了
@@ -219,12 +255,12 @@ handlers:
                   - op_name: "按键-特殊攻击"
                     post_delay: 0.2
                     repeat: 1
-      - states: ""  # 可以打断动作的
+      - states: "" # 可以打断动作的
         sub_handlers:
           - states: "([妮可-特殊技可用] | [妮可-终结技可用])  & ![自定义-妮可-能量场, -15, 3.5] & ![前台-妮可]"
             debug_name: "妮可能量场准备"
             sub_handlers:
-              - states: "[前台-零号安比] & [自定义-零号安比-白雷, 0, 99]{300, 999}"  # 零号安比爆发前补状态
+              - states: "[前台-零号安比] & [自定义-零号安比-白雷, 0, 99]{300, 999}" # 零号安比爆发前补状态
                 operations:
                   - op_name: "按键-切换角色"
                     agent_name: "妮可"

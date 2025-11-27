@@ -114,6 +114,11 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         from one_dragon.base.config.game_account_config import GameAccountConfig
         return GameAccountConfig(self.current_instance_idx)
 
+    @cached_property
+    def notify_config(self):
+        from one_dragon.base.config.notify_config import NotifyConfig
+        return NotifyConfig(self.current_instance_idx, self.run_context.notify_app_map)
+
     def init(self) -> None:
         if not self._init_lock.acquire(blocking=False):
             return
@@ -261,6 +266,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         to_clear_props = [
             'game_account_config',
+            'notify_config',
         ]
         for prop in to_clear_props:
             if hasattr(self, prop):

@@ -1,25 +1,30 @@
 # 闪避普攻 普攻后摇等待时间各角色不同 由后续动作控制
 handlers:
-  - states: "![自定义-连携跳过, 0, 2.5]"
+  - states: "![自定义-连携跳过, 0, 3]"
     sub_handlers:
-    - states: "([连携技-1-邦布] & ([连携技-2-苍角] | [连携技-2-潘引壶]))"
+    - states: "[自定义-琉音-连携转终结技,0,99]"
       sub_handlers:
-        - state_template: "连携模板-跳过"
+        - state_template: "连携模板-命破"
+        - state_template: "连携模板-强攻"
+        - state_template: "连携模板-支援"
+        - state_template: "连携模板-异常"
+        - state_template: "连携模板-击破"
+        - state_template: "连携模板-防护"
+
+    - state_template: "连携模板-前置角色"
 
     - states: "([前台-仪玄] & ([仪玄-特殊技可用] & [仪玄-术法值]{81, 120}))"
       sub_handlers:
         - state_template: "连携模板-跳过"
 
-
-    - states: " [前台-苍角] & [自定义-连携换人, 0, 3] "
+    - states: "[前台-苍角] & [自定义-连携换人, 0, 3]"
       sub_handlers:
         - state_template: "连携模板-强攻"
         - state_template: "连携模板-异常"
         - state_template: "连携模板-跳过"
 
-    - states: " [前台-强攻] & [前台-命破] & [自定义-连携换人, 0, 3] "
+    - states: "[前台-强攻] & [前台-命破] & [自定义-连携换人, 0, 3]"
       sub_handlers:
-        - state_template: "连携模板-前置角色"
         - state_template: "连携模板-命破"
         - state_template: "连携模板-强攻"
         - state_template: "连携模板-支援"
@@ -27,7 +32,6 @@ handlers:
 
     - states: ""
       sub_handlers:
-        - state_template: "连携模板-前置角色"
         - state_template: "连携模板-命破"
         - state_template: "连携模板-支援"
         - state_template: "连携模板-异常"

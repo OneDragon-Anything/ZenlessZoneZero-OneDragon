@@ -186,6 +186,10 @@ class CommonAgentStateEnum(Enum):
                               template_id='guard_break', min_value_trigger_state=1,  # 只在检测到时触发
                               lower_color=0, upper_color=255, connect_cnt=10000)  # 需要足够多的面积保证不会误判
 
+    SWITCH_BAN = AgentStateDef('切人-冷却', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                              template_id='switch_ban', min_value_trigger_state=1,  # 只在检测到时触发
+                              hsv_color=(60, 0, 62), hsv_color_diff=(50, 255, 30),
+                              connect_cnt=6)
 
 
 class Agent:
@@ -394,3 +398,15 @@ class AgentEnum(Enum):
                                     hsv_color=(95, 100, 245), hsv_color_diff=(5, 125, 20),
                                     max_length=85)
                         ])
+
+    DIALYN = Agent('dialyn', '琉音', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.PHYSICAL, ['dialyn'],
+                   state_list=[
+                       AgentStateDef('琉音-客诉', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                     template_id='dialyn_cc',
+                                    hsv_color=(0, 0, 255), hsv_color_diff=(90, 255, 0),
+                                    connect_cnt=6),
+                       AgentStateDef('琉音-好评', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                     template_id='dialyn_pr',
+                                     hsv_color=(0,0,255), hsv_color_diff=(90,255,200),
+                                     max_length=120)
+                   ])

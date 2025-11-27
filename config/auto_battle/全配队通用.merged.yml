@@ -53,13 +53,10 @@
                 - "op_name": "设置状态"
                   "seconds": 1
                   "state": "自定义-动作不打断"
-                - "op_name": "按键-移动-左"
-                  "post_delay": 0.1
-                  "way": "按下"
+                - "op_name": "按键-移动-左-按下"
                 - "op_name": "按键-闪避"
                   "post_delay": 0.2
-                - "op_name": "按键-移动-左"
-                  "way": "松开"
+                - "op_name": "按键-移动-左-松开"
                 - "op_name": "按键-普通攻击"
                   "post_delay": 0.1
                   "repeat": 10
@@ -70,13 +67,10 @@
                 "state": "自定义-动作不打断"
               - "op_name": "等待秒数"
                 "seconds": 0.05
-              - "op_name": "按键-移动-左"
-                "post_delay": 0.1
-                "way": "按下"
+              - "op_name": "按键-移动-左-按下"
               - "op_name": "按键-闪避"
                 "post_delay": 0.2
-              - "op_name": "按键-移动-左"
-                "way": "松开"
+              - "op_name": "按键-移动-左-松开"
               - "op_name": "按键-普通攻击"
                 "post_delay": 0.1
                 "repeat": 10
@@ -191,211 +185,255 @@
         - "op_name": "设置状态"
           "state": "自定义-红光闪避"
         "states": ""
+  "interval": 0.1
   "priority": 99
   "triggers":
   - "闪避识别-黄光"
   - "闪避识别-红光"
   - "闪避识别-声音"
 - "handlers":
-  - "states": "[按键可用-连携技]"
+  - "states": "![自定义-连携跳过, 0, 3]"
     "sub_handlers":
-    - "states": "![自定义-连携跳过, 0, 2.5]"
+    - "states": "[自定义-琉音-连携转终结技,0,99]"
       "sub_handlers":
-      - "states": "([连携技-1-邦布] & ([连携技-2-苍角] | [连携技-2-潘引壶]))"
-        "sub_handlers":
-        - "operations":
-          - "op_name": "等待秒数"
-            "seconds": 0.1
-          - "op_name": "设置状态"
-            "state": "自定义-连携跳过"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          - "op_name": "按键-连携技-取消-按下"
-          - "op_name": "等待秒数"
-            "seconds": 1
-          - "op_name": "清除状态"
-            "state": "按键可用-连携技"
-          "states": ""
-      - "states": "([前台-仪玄] & ([仪玄-特殊技可用] & [仪玄-术法值]{81, 120}))"
-        "sub_handlers":
-        - "operations":
-          - "op_name": "等待秒数"
-            "seconds": 0.1
-          - "op_name": "设置状态"
-            "state": "自定义-连携跳过"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          - "op_name": "按键-连携技-取消-按下"
-          - "op_name": "等待秒数"
-            "seconds": 1
-          - "op_name": "清除状态"
-            "state": "按键可用-连携技"
-          "states": ""
-      - "states": " [前台-苍角] & [自定义-连携换人, 0, 3] "
-        "sub_handlers":
-        - "operations":
-          - "op_name": "按键-连携技-左"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-1-强攻]"
-        - "operations":
-          - "op_name": "按键-连携技-右"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-2-强攻]"
-        - "operations":
-          - "op_name": "按键-连携技-左"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-1-异常]"
-        - "operations":
-          - "op_name": "按键-连携技-右"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-2-异常]"
-        - "operations":
-          - "op_name": "等待秒数"
-            "seconds": 0.1
-          - "op_name": "设置状态"
-            "state": "自定义-连携跳过"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          - "op_name": "按键-连携技-取消-按下"
-          - "op_name": "等待秒数"
-            "seconds": 1
-          - "op_name": "清除状态"
-            "state": "按键可用-连携技"
-          "states": ""
-      - "states": " [前台-强攻] & [前台-命破] & [自定义-连携换人, 0, 3] "
-        "sub_handlers":
-        - "operations":
-          - "op_name": "按键-连携技-左"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-1-妮可] | [连携技-1-扳机] | [连携技-1-橘福福] | [连携技-1-真斗]"
-        - "operations":
-          - "op_name": "按键-连携技-右"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-2-妮可] | [连携技-2-扳机] | [连携技-2-橘福福] | [连携技-2-真斗]"
-        - "operations":
-          - "op_name": "按键-连携技-左"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-1-命破]"
-        - "operations":
-          - "op_name": "按键-连携技-右"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-2-命破]"
-        - "operations":
-          - "op_name": "按键-连携技-左"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-1-强攻]"
-        - "operations":
-          - "op_name": "按键-连携技-右"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-2-强攻]"
-        - "operations":
-          - "op_name": "按键-连携技-左"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-1-支援] & ![连携技-1-苍角] & ![连携技-1-耀嘉音]"
-        - "operations":
-          - "op_name": "按键-连携技-右"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-2-支援] & ![连携技-2-苍角] & ![连携技-2-耀嘉音]"
-        - "operations":
-          - "op_name": "等待秒数"
-            "seconds": 0.1
-          - "op_name": "设置状态"
-            "state": "自定义-连携跳过"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          - "op_name": "按键-连携技-取消-按下"
-          - "op_name": "等待秒数"
-            "seconds": 1
-          - "op_name": "清除状态"
-            "state": "按键可用-连携技"
-          "states": ""
-      - "states": ""
-        "sub_handlers":
-        - "operations":
-          - "op_name": "按键-连携技-左"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-1-妮可] | [连携技-1-扳机] | [连携技-1-橘福福] | [连携技-1-真斗]"
-        - "operations":
-          - "op_name": "按键-连携技-右"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-2-妮可] | [连携技-2-扳机] | [连携技-2-橘福福] | [连携技-2-真斗]"
-        - "operations":
-          - "op_name": "按键-连携技-左"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-1-命破]"
-        - "operations":
-          - "op_name": "按键-连携技-右"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-2-命破]"
-        - "operations":
-          - "op_name": "按键-连携技-左"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-1-支援] & ![连携技-1-苍角] & ![连携技-1-耀嘉音]"
-        - "operations":
-          - "op_name": "按键-连携技-右"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-2-支援] & ![连携技-2-苍角] & ![连携技-2-耀嘉音]"
-        - "operations":
-          - "op_name": "按键-连携技-左"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-1-异常]"
-        - "operations":
-          - "op_name": "按键-连携技-右"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-2-异常]"
-        - "operations":
-          - "op_name": "按键-连携技-左"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-1-强攻]"
-        - "operations":
-          - "op_name": "按键-连携技-右"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-2-强攻]"
-        - "operations":
-          - "op_name": "按键-连携技-左"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-1-耀嘉音]"
-        - "operations":
-          - "op_name": "按键-连携技-右"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          "states": "[连携技-2-耀嘉音]"
-        - "operations":
-          - "op_name": "等待秒数"
-            "seconds": 0.1
-          - "op_name": "设置状态"
-            "state": "自定义-连携跳过"
-          - "op_name": "设置状态"
-            "state": "自定义-连携换人"
-          - "op_name": "按键-连携技-取消-按下"
-          - "op_name": "等待秒数"
-            "seconds": 1
-          - "op_name": "清除状态"
-            "state": "按键可用-连携技"
-          "states": ""
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-命破]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-命破]"
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-强攻]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-强攻]"
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-支援] & ![连携技-1-苍角] & ![连携技-1-耀嘉音]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-支援] & ![连携技-2-苍角] & ![连携技-2-耀嘉音]"
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-异常]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-异常]"
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-击破]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-击破]"
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-防护] & ![连携技-1-潘引壶]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-防护] & ![连携技-1-潘引壶]"
+    - "operations":
+      - "op_name": "按键-连携技-左"
+      - "op_name": "设置状态"
+        "state": "自定义-连携换人"
+      "states": "[连携技-1-妮可] | [连携技-1-扳机] | [连携技-1-橘福福] | [连携技-1-真斗] | ([连携技-1-琉音]\
+        \ & [琉音-好评]{90,120})"
+    - "operations":
+      - "op_name": "按键-连携技-右"
+      - "op_name": "设置状态"
+        "state": "自定义-连携换人"
+      "states": "[连携技-2-妮可] | [连携技-2-扳机] | [连携技-2-橘福福] | [连携技-2-真斗] | ([连携技-2-琉音]\
+        \ & [琉音-好评]{90,120})"
+    - "states": "([前台-仪玄] & ([仪玄-特殊技可用] & [仪玄-术法值]{81, 120}))"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "等待秒数"
+          "seconds": 0.1
+        - "op_name": "设置状态"
+          "state": "自定义-连携跳过"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        - "op_name": "按键-连携技-取消-按下"
+        - "op_name": "等待秒数"
+          "seconds": 1
+        - "op_name": "清除状态"
+          "state": "按键可用-连携技"
+        "states": ""
+    - "states": "[前台-苍角] & [自定义-连携换人, 0, 3]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-强攻]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-强攻]"
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-异常]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-异常]"
+      - "operations":
+        - "op_name": "等待秒数"
+          "seconds": 0.1
+        - "op_name": "设置状态"
+          "state": "自定义-连携跳过"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        - "op_name": "按键-连携技-取消-按下"
+        - "op_name": "等待秒数"
+          "seconds": 1
+        - "op_name": "清除状态"
+          "state": "按键可用-连携技"
+        "states": ""
+    - "states": "[前台-强攻] & [前台-命破] & [自定义-连携换人, 0, 3]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-命破]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-命破]"
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-强攻]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-强攻]"
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-支援] & ![连携技-1-苍角] & ![连携技-1-耀嘉音]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-支援] & ![连携技-2-苍角] & ![连携技-2-耀嘉音]"
+      - "operations":
+        - "op_name": "等待秒数"
+          "seconds": 0.1
+        - "op_name": "设置状态"
+          "state": "自定义-连携跳过"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        - "op_name": "按键-连携技-取消-按下"
+        - "op_name": "等待秒数"
+          "seconds": 1
+        - "op_name": "清除状态"
+          "state": "按键可用-连携技"
+        "states": ""
+    - "states": ""
+      "sub_handlers":
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-命破]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-命破]"
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-支援] & ![连携技-1-苍角] & ![连携技-1-耀嘉音]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-支援] & ![连携技-2-苍角] & ![连携技-2-耀嘉音]"
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-异常]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-异常]"
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-强攻]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-强攻]"
+      - "operations":
+        - "op_name": "按键-连携技-左"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-1-耀嘉音]"
+      - "operations":
+        - "op_name": "按键-连携技-右"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        "states": "[连携技-2-耀嘉音]"
+      - "operations":
+        - "op_name": "等待秒数"
+          "seconds": 0.1
+        - "op_name": "设置状态"
+          "state": "自定义-连携跳过"
+        - "op_name": "设置状态"
+          "state": "自定义-连携换人"
+        - "op_name": "按键-连携技-取消-按下"
+        - "op_name": "等待秒数"
+          "seconds": 1
+        - "op_name": "清除状态"
+          "state": "按键可用-连携技"
+        "states": ""
+  - "debug_name": "怎么会匹配不到？"
+    "operations":
+    - "op_name": "等待秒数"
+      "seconds": 0.1
+    "states": ""
+  "interval": 0.1
   "priority": 98
   "triggers":
   - "按键可用-连携技"
@@ -481,13 +519,10 @@
     "sub_handlers":
     - "debug_name": "凯撒紧急补盾"
       "operations":
-      - "op_name": "按键-移动-左"
-        "post_delay": 0.1
-        "way": "按下"
+      - "op_name": "按键-移动-左-按下"
       - "op_name": "按键-闪避"
         "post_delay": 0.2
-      - "op_name": "按键-移动-左"
-        "way": "松开"
+      - "op_name": "按键-移动-左-松开"
       - "agent_name": "凯撒"
         "op_name": "按键-切换角色"
       - "op_name": "清除状态"
@@ -1004,6 +1039,13 @@
         - "op_name": "设置状态"
           "state": "自定义-锁定丢失"
         "states": "![目标-近距离锁定, 0, 1] & ![自定义-锁定冷却, 0, 1] & ![自定义-锁定丢失, 0, 3]"
+    - "interrupt_states": "![切人-冷却]"
+      "operations":
+      - "op_name": "清除状态"
+        "state": "自定义-琉音-连携转终结技"
+      - "op_name": "等待秒数"
+        "seconds": 5
+      "states": "[自定义-琉音-连携转终结技,0,99] & [切人-冷却]"
     - "debug_name": "清理非失衡连携"
       "operations":
       - "op_name": "清除状态"
@@ -1011,6 +1053,10 @@
       - "op_name": "清除状态"
         "state": "自定义-连携换人"
       "states": "[自定义-连携换人, 1.5, 99] & [自定义-非失衡连携, 0, 99]{0, 0} & ![按键可用-连携技, 0, 12]"
+    - "operations":
+      - "op_name": "清除状态"
+        "state": "自定义-连携跳过"
+      "states": "[自定义-连携跳过, 3, 999]"
     - "states": "![前台-耀嘉音]"
       "sub_handlers":
       - "debug_name": "切耀嘉音放大招"
@@ -1039,10 +1085,70 @@
       "operations":
       - "op_name": "清除状态"
         "state": "自定义-耀嘉音-尝试释放终结技"
-      - "add": 2
-        "op_name": "清除状态"
+      - "op_name": "清除状态"
         "state": "自定义-非失衡连携"
       "states": "[自定义-耀嘉音-尝试释放终结技, 2, 99] & [耀嘉音-终结技可用]"
+    - "states": "([前台-强攻] | [前台-命破])"
+      "sub_handlers":
+      - "operations":
+        - "agent_name": "琉音"
+          "op_name": "按键-切换角色"
+        - "op_name": "设置状态"
+          "state": "自定义-琉音-连携转终结技"
+        - "op_name": "设置状态"
+          "seconds": 2
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-普通攻击-松开"
+        - "op_name": "等待秒数"
+          "seconds": 0.2
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 2
+        "states": "([琉音-客诉]{1, 1} & [琉音-好评]{90, 120})"
+      - "operations":
+        - "agent_name": "琉音"
+          "op_name": "按键-切换角色"
+        - "op_name": "设置状态"
+          "seconds_add": -3
+          "state": "自定义-连携换人"
+        - "op_name": "设置状态"
+          "seconds": 5
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 20
+        - "op_name": "等待秒数"
+          "seconds": 3.0
+        "states": "([琉音-终结技可用] & ![自定义-连携换人, 0, 12])"
+      - "interrupt_states": "![琉音-特殊技可用] | [琉音-好评,0,99]{90, 120}"
+        "operations":
+        - "agent_name": "琉音"
+          "op_name": "按键-切换角色"
+        - "op_name": "设置状态"
+          "seconds": 2.4
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+          "repeat": 10
+        - "op_name": "等待秒数"
+          "seconds": 0.4
+        - "op_name": "设置状态"
+          "seconds": 2.4
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+          "repeat": 10
+        - "op_name": "等待秒数"
+          "seconds": 0.4
+        - "op_name": "设置状态"
+          "seconds": 2.4
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+          "repeat": 10
+        - "op_name": "等待秒数"
+          "seconds": 0.4
+        "states": "[琉音-好评,0,99]{0, 90} & [琉音-能量]{75, 120}"
     - "debug_name": "卢西娅进场先开暗破"
       "operations":
       - "agent_name": "卢西娅"
@@ -1158,13 +1264,10 @@
           - "op_name": "等待秒数"
             "seconds": 2
           - "op_name": "按键-特殊攻击-松开"
-          - "op_name": "按键-移动-左"
-            "post_delay": 0.1
-            "way": "按下"
+          - "op_name": "按键-移动-左-按下"
           - "op_name": "按键-闪避"
             "post_delay": 0.2
-          - "op_name": "按键-移动-左"
-            "way": "松开"
+          - "op_name": "按键-移动-左-松开"
           - "op_name": "设置状态"
             "seconds": 1.2
             "state": "自定义-动作不打断"
@@ -1310,13 +1413,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 8
@@ -1419,13 +1519,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -1469,13 +1566,10 @@
             - "op_name": "等待秒数"
               "seconds": 1.2
             - "op_name": "按键-特殊攻击-松开"
-            - "op_name": "按键-移动-左"
-              "post_delay": 0.1
-              "way": "按下"
+            - "op_name": "按键-移动-左-按下"
             - "op_name": "按键-闪避"
               "post_delay": 0.2
-            - "op_name": "按键-移动-左"
-              "way": "松开"
+            - "op_name": "按键-移动-左-松开"
             - "op_name": "设置状态"
               "seconds": 1.2
               "state": "自定义-动作不打断"
@@ -1520,13 +1614,10 @@
         - "op_name": "等待秒数"
           "seconds": 1.2
         - "op_name": "按键-特殊攻击-松开"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "设置状态"
           "seconds": 1.2
           "state": "自定义-动作不打断"
@@ -1541,13 +1632,10 @@
       - "debug_name": "触发快速支援或者没特殊技可用"
         "operations":
         - "op_name": "按键-特殊攻击-松开"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "设置状态"
           "seconds": 1.2
           "state": "自定义-动作不打断"
@@ -1606,13 +1694,10 @@
         - "op_name": "等待秒数"
           "seconds": 2
         - "op_name": "按键-特殊攻击-松开"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "设置状态"
           "seconds": 1.2
           "state": "自定义-动作不打断"
@@ -1866,13 +1951,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -1981,13 +2063,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -2093,13 +2172,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 15
@@ -2253,13 +2329,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 1
         - "op_name": "设置状态"
@@ -2665,13 +2738,10 @@
         - "op_name": "设置状态"
           "seconds": 2.7
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 22
@@ -2818,13 +2888,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 33
@@ -2943,13 +3010,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -3035,13 +3099,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -3211,13 +3272,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -3319,13 +3377,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -3579,13 +3634,10 @@
                 "repeat": 16
               - "op_name": "等待秒数"
                 "seconds": 2
-              - "op_name": "按键-移动-左"
-                "post_delay": 0.1
-                "way": "按下"
+              - "op_name": "按键-移动-左-按下"
               - "op_name": "按键-闪避"
                 "post_delay": 0.2
-              - "op_name": "按键-移动-左"
-                "way": "松开"
+              - "op_name": "按键-移动-左-松开"
               - "op_name": "按键-普通攻击"
                 "post_delay": 0.1
                 "repeat": 18
@@ -3616,13 +3668,10 @@
               "seconds": 1.8
             - "op_name": "按键-特殊攻击"
               "way": "松开"
-            - "op_name": "按键-移动-左"
-              "post_delay": 0.1
-              "way": "按下"
+            - "op_name": "按键-移动-左-按下"
             - "op_name": "按键-闪避"
               "post_delay": 0.2
-            - "op_name": "按键-移动-左"
-              "way": "松开"
+            - "op_name": "按键-移动-左-松开"
             - "op_name": "按键-普通攻击"
               "post_delay": 0.1
               "repeat": 18
@@ -3672,13 +3721,10 @@
               "seconds": 1.8
             - "op_name": "按键-特殊攻击"
               "way": "松开"
-            - "op_name": "按键-移动-左"
-              "post_delay": 0.1
-              "way": "按下"
+            - "op_name": "按键-移动-左-按下"
             - "op_name": "按键-闪避"
               "post_delay": 0.2
-            - "op_name": "按键-移动-左"
-              "way": "松开"
+            - "op_name": "按键-移动-左-松开"
             - "op_name": "按键-普通攻击"
               "post_delay": 0.1
               "repeat": 10
@@ -3718,13 +3764,10 @@
             "seconds": 1.8
           - "op_name": "按键-特殊攻击"
             "way": "松开"
-          - "op_name": "按键-移动-左"
-            "post_delay": 0.1
-            "way": "按下"
+          - "op_name": "按键-移动-左-按下"
           - "op_name": "按键-闪避"
             "post_delay": 0.2
-          - "op_name": "按键-移动-左"
-            "way": "松开"
+          - "op_name": "按键-移动-左-松开"
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
             "repeat": 18
@@ -3765,13 +3808,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -3922,13 +3962,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -4052,13 +4089,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -4187,13 +4221,10 @@
         "states": "[自定义-黄光切人, 0, 1]"
       - "debug_name": "红光闪避"
         "operations":
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "设置状态"
           "seconds": 0.5
           "state": "自定义-动作不打断"
@@ -4382,13 +4413,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -4533,13 +4561,10 @@
           "repeat": 20
         "states": "[自定义-黄光切人, 0, 1]"
       - "operations":
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 35
@@ -4676,13 +4701,10 @@
       - "operations":
         - "op_name": "设置状态"
           "state": "[自定义-艾莲-快速蓄力]"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
@@ -4858,13 +4880,10 @@
             - "op_name": "设置状态"
               "seconds": 1
               "state": "自定义-动作不打断"
-            - "op_name": "按键-移动-左"
-              "post_delay": 0.1
-              "way": "按下"
+            - "op_name": "按键-移动-左-按下"
             - "op_name": "按键-闪避"
               "post_delay": 0.2
-            - "op_name": "按键-移动-左"
-              "way": "松开"
+            - "op_name": "按键-移动-左-松开"
             - "op_name": "按键-普通攻击"
               "post_delay": 0.1
               "repeat": 10
@@ -4953,13 +4972,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -5041,13 +5057,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -5136,13 +5149,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -5255,13 +5265,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -5393,13 +5400,10 @@
         - "op_name": "设置状态"
           "seconds": 1.3
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 40
@@ -5534,13 +5538,10 @@
           "state": "自定义-零号安比-白雷"
         "states": "[自定义-黄光切人, 0, 0.5]"
       - "operations":
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
@@ -6015,13 +6016,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -6127,13 +6125,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -6364,13 +6359,10 @@
           "repeat": 20
         "states": "[自定义-黄光切人, 0, 1]"
       - "operations":
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -6499,13 +6491,10 @@
             "seconds": 1
           "states": "[仪玄-术法值]{0, 119} & [仪玄-特殊技可用]"
         - "operations":
-          - "op_name": "按键-移动-左"
-            "post_delay": 0.1
-            "way": "按下"
+          - "op_name": "按键-移动-左-按下"
           - "op_name": "按键-闪避"
             "post_delay": 0.2
-          - "op_name": "按键-移动-左"
-            "way": "松开"
+          - "op_name": "按键-移动-左-松开"
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
             "repeat": 10
@@ -6698,13 +6687,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -6798,13 +6784,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -6878,13 +6861,10 @@
           "seconds": 0.5
         "states": "[自定义-黄光切人, 0, 1]"
       - "operations":
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 15
@@ -6964,13 +6944,10 @@
           "seconds": 1.0
         "states": "[自定义-黄光切人, 0, 1]"
       - "operations":
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "设置状态"
           "seconds": 1.5
           "state": "自定义-动作不打断"
@@ -7065,13 +7042,10 @@
           - "op_name": "设置状态"
             "seconds": 1
             "state": "自定义-动作不打断"
-          - "op_name": "按键-移动-左"
-            "post_delay": 0.1
-            "way": "按下"
+          - "op_name": "按键-移动-左-按下"
           - "op_name": "按键-闪避"
             "post_delay": 0.2
-          - "op_name": "按键-移动-左"
-            "way": "松开"
+          - "op_name": "按键-移动-左-松开"
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
             "repeat": 10
@@ -7185,13 +7159,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -7277,13 +7248,10 @@
         - "op_name": "设置状态"
           "seconds": 1
           "state": "自定义-动作不打断"
-        - "op_name": "按键-移动-左"
-          "post_delay": 0.1
-          "way": "按下"
+        - "op_name": "按键-移动-左-按下"
         - "op_name": "按键-闪避"
           "post_delay": 0.2
-        - "op_name": "按键-移动-左"
-          "way": "松开"
+        - "op_name": "按键-移动-左-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
           "repeat": 10
@@ -7427,13 +7395,10 @@
             - "op_name": "按键-普通攻击"
               "post_delay": 0.2
               "repeat": 24
-            - "op_name": "按键-移动-左"
-              "post_delay": 0.1
-              "way": "按下"
+            - "op_name": "按键-移动-左-按下"
             - "op_name": "按键-闪避"
               "post_delay": 0.2
-            - "op_name": "按键-移动-左"
-              "way": "松开"
+            - "op_name": "按键-移动-左-松开"
             "states": ""
         - "debug_name": "常态输出"
           "interrupt_states": "[真斗-炽心]{0, 0}"
@@ -7441,13 +7406,10 @@
           - "op_name": "按键-普通攻击"
             "post_delay": 0.2
             "repeat": 24
-          - "op_name": "按键-移动-左"
-            "post_delay": 0.1
-            "way": "按下"
+          - "op_name": "按键-移动-左-按下"
           - "op_name": "按键-闪避"
             "post_delay": 0.2
-          - "op_name": "按键-移动-左"
-            "way": "松开"
+          - "op_name": "按键-移动-左-松开"
           "states": ""
       - "debug_name": "队友速切支援"
         "operations":
@@ -7610,6 +7572,184 @@
         "operations":
         - "op_name": "等待秒数"
           "seconds": 1
+        "states": ""
+    - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-琉音]"
+      "states": "[前台-琉音]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds": 2
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 10
+        - "op_name": "等待秒数"
+          "seconds": 1
+        "states": "[自定义-黄光切人, 0, 1] & [自定义-琉音-测试]"
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds": 1
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-移动-左-按下"
+        - "op_name": "按键-闪避"
+          "post_delay": 0.2
+        - "op_name": "按键-移动-左-松开"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 8
+        "states": "[自定义-红光闪避, 0, 1]"
+      - "states": "[自定义-连携换人, 0, 0.5]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-琉音-连携转终结技"
+          - "op_name": "设置状态"
+            "seconds_add": -1
+            "state": "自定义-连携换人"
+          - "op_name": "设置状态"
+            "seconds": 2
+            "state": "自定义-动作不打断"
+          - "op_name": "等待秒数"
+            "seconds": 2
+          "states": "[琉音-好评]{90, 120}"
+        - "operations":
+          - "op_name": "设置状态"
+            "seconds_add": -1
+            "state": "自定义-连携换人"
+          - "op_name": "设置状态"
+            "seconds": 2
+            "state": "自定义-动作不打断"
+          - "op_name": "等待秒数"
+            "seconds": 2
+          "states": ""
+      - "debug_name": "切人后等待"
+        "states": "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        "sub_handlers":
+        - "states": "[按键可用-快速支援, 0, 0.5]"
+          "sub_handlers":
+          - "operations":
+            - "op_name": "设置状态"
+              "state": "自定义-琉音-连携转终结技"
+            - "op_name": "等待秒数"
+              "seconds": 0.5
+            "states": "[琉音-好评]{90, 120}"
+          - "operations":
+            - "op_name": "等待秒数"
+              "seconds": 0.5
+            "states": ""
+        - "operations":
+          - "op_name": "等待秒数"
+            "seconds": 0.3
+          "states": ""
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -3
+          "state": "自定义-连携换人"
+        - "op_name": "设置状态"
+          "seconds": 5
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 20
+        - "op_name": "等待秒数"
+          "seconds": 3.0
+        "states": "[琉音-终结技可用]"
+      - "states": "[自定义-连携换人, 0, 10]"
+        "sub_handlers":
+        - "states": "[琉音-客诉,0,99]{1, 1}"
+          "sub_handlers":
+          - "operations":
+            - "op_name": "设置状态"
+              "state": "自定义-琉音-连携转终结技"
+            - "op_name": "设置状态"
+              "seconds": 2
+              "state": "自定义-动作不打断"
+            - "op_name": "按键-普通攻击-松开"
+            - "op_name": "等待秒数"
+              "seconds": 0.2
+            - "op_name": "按键-普通攻击-按下"
+            - "op_name": "等待秒数"
+              "seconds": 2
+            "states": "[琉音-好评,0,99]{90, 120}"
+          - "operations":
+            - "op_name": "设置状态"
+              "seconds": 2
+              "state": "自定义-动作不打断"
+            - "op_name": "按键-普通攻击-松开"
+            - "op_name": "等待秒数"
+              "seconds": 0.2
+            - "op_name": "按键-普通攻击-按下"
+            - "op_name": "等待秒数"
+              "seconds": 2
+            "states": ""
+        - "operations":
+          - "data":
+            - "自定义-速切结束"
+            "op_name": "设置状态"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 25
+          "states": ""
+      - "states": "[琉音-客诉,0,99]{1, 1}"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-琉音-连携转终结技"
+          - "op_name": "设置状态"
+            "seconds": 2
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-普通攻击-松开"
+          - "op_name": "等待秒数"
+            "seconds": 0.2
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 2
+          "states": "[琉音-好评,0,99]{90, 120}"
+        - "operations":
+          - "op_name": "设置状态"
+            "seconds": 2
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-普通攻击-松开"
+          - "op_name": "等待秒数"
+            "seconds": 0.2
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 2
+          "states": ""
+      - "interrupt_states": "![琉音-特殊技可用] | [琉音-好评,0,99]{90, 120}"
+        "operations":
+        - "op_name": "设置状态"
+          "seconds": 2.4
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+          "repeat": 10
+        - "op_name": "等待秒数"
+          "seconds": 0.4
+        - "op_name": "设置状态"
+          "seconds": 2.4
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+          "repeat": 10
+        - "op_name": "等待秒数"
+          "seconds": 0.4
+        - "op_name": "设置状态"
+          "seconds": 2.4
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.2
+          "repeat": 10
+        - "op_name": "等待秒数"
+          "seconds": 0.4
+        "states": "[琉音-特殊技可用]"
+      - "operations":
+        - "op_name": "设置状态"
+          "state_list":
+          - "自定义-速切结束"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 50
         "states": ""
     - "debug_name": "未知角色"
       "states": "(![按键-切换角色-下一个, 0, 0.3]& ![按键-切换角色-上一个, 0, 0.3])"

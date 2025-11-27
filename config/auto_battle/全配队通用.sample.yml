@@ -63,6 +63,7 @@ scenes:
   # 这部分是用来识别闪光闪避的，这里不需要更改，哪怕角色更新也不需要动
   - triggers: ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
     priority: 99
+    interval: 0.1
     handlers:
       - states: "![自定义-无视闪光, -10, 0]"
         sub_handlers:
@@ -84,11 +85,14 @@ scenes:
 
   - triggers: ["按键可用-连携技"]
     priority: 98
+    interval: 0.1
     handlers:
-      - states: "[按键可用-连携技]"
-        sub_handlers:
-          # 详情可以打开状态模板
-          - state_template: "连携模板-通用"
+      - state_template: "连携模板-通用"
+      - states: ""
+        debug_name: "怎么会匹配不到？"
+        operations:
+          - op_name: "等待秒数"
+            seconds: 0.1
 
   - triggers: ["按键可用-快速支援"]
     priority: 97

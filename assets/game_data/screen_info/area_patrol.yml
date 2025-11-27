@@ -1,5 +1,5 @@
-screen_id: routine_cleanup
-screen_name: 定期清剿
+screen_id: area_patrol
+screen_name: 区域巡防
 pc_alt: false
 area_list:
 - area_name: 副本名称列表
