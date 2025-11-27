@@ -7,7 +7,7 @@ handlers:
         debug_name: "伊德海莉-终结技触发"
         operations:
           - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束"]
+            state_list: ["自定义-动作不打断", "自定义-合轴时间"]
             seconds: 5
           - operation_template: "伊德海莉-终结技"
           - op_name: "设置状态"
@@ -25,26 +25,26 @@ handlers:
             seconds: 2
           - operation_template: "伊德海莉-强化特殊技-缠霜"
           - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束"]
+            state_list: ["自定义-动作不打断", "自定义-合轴时间"]
             seconds: 2
 
       # 敌人失衡时，使用追碾连招爆发，然后接极寒重碾连招
-      - states: "[自定义-连携换人, 0, 10] & [伊德海莉-特殊技可用]"
+      - states: "[自定义-失衡时间, 0, 10] & [伊德海莉-特殊技可用]"
         debug_name: "伊德海莉-失衡爆发连招"
         operations:
           - operation_template: "伊德海莉-追碾连招"
           - operation_template: "伊德海莉-极寒重碾连招"
           - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束", "自定义-近身窗口"]
+            state_list: ["自定义-动作不打断", "自定义-合轴时间", "自定义-近身窗口"]
             seconds: 2
 
       # 非失衡期：蓄力中可用特殊技 → 溯寒 + 下砸
-      - states: "![自定义-连携换人, 0, 10] & [伊德海莉-蓄力段数]{10, 85} & [按键可用-特殊攻击]"
+      - states: "![自定义-失衡时间, -10, 10] & [伊德海莉-蓄力段数]{10, 85} & [按键可用-特殊攻击]"
         debug_name: "伊德海莉-溯寒下砸"
         operations:
           - operation_template: "伊德海莉-溯寒下砸"
           - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束", "自定义-近身窗口"]
+            state_list: ["自定义-动作不打断", "自定义-合轴时间", "自定义-近身窗口"]
             seconds: 2
 
       # 蓄力段数达到2段及以上：提前下砸提升收益与控血
@@ -53,7 +53,7 @@ handlers:
         operations:
           - operation_template: "伊德海莉-蓄力提前下砸"
           - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束", "自定义-近身窗口"]
+            state_list: ["自定义-动作不打断", "自定义-合轴时间", "自定义-近身窗口"]
             seconds: 2
 
       # 近身窗口内（终结技后/下砸后）使用强化特殊技回血，避免远距离空放
@@ -62,7 +62,7 @@ handlers:
         operations:
           - operation_template: "伊德海莉-强化特殊技-缠霜"
           - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束"]
+            state_list: ["自定义-动作不打断", "自定义-合轴时间"]
             seconds: 2
 
       # TODO: 暂时不做“生命值百分比”状态；先移除此逻辑避免初始化失败，观察一段时间这个生命C容不容易暴毙吧
@@ -71,7 +71,7 @@ handlers:
       #   operations:
       #     - operation_template: "伊德海莉-普通攻击"
       #     - op_name: "设置状态"
-      #       state_list: ["自定义-动作不打断", "自定义-速切结束"]
+      #       state_list: ["自定义-动作不打断", "自定义-合轴时间"]
       #       seconds: 2
 
       # 默认使用蓄力提前下砸进行输出和控血
@@ -80,5 +80,5 @@ handlers:
         operations:
           - operation_template: "伊德海莉-蓄力提前下砸"
           - op_name: "设置状态"
-            state_list: ["自定义-动作不打断", "自定义-速切结束", "自定义-近身窗口"]
+            state_list: ["自定义-动作不打断", "自定义-合轴时间", "自定义-近身窗口"]
             seconds: 2

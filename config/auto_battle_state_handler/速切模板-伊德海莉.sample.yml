@@ -66,7 +66,7 @@ handlers:
             post_delay: 0.2
             repeat: 50
 
-      - states: "[自定义-连携换人, 0, 10]"
+      - states: "[自定义-失衡时间, 0, 10]"
         sub_handlers:
           - states: "[伊德海莉-终结技可用]"
             operations:

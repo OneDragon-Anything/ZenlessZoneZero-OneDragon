@@ -44,7 +44,7 @@ handlers:
         operations:
           - operation_template: "柳-终结技"
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]
 
       - states: "[自定义-柳-下弦, 0, 999]"
         sub_handlers:

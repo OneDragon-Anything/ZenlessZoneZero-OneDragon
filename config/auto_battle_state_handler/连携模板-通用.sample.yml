@@ -23,17 +23,17 @@ handlers:
 
     - state_template: "连携模板-前置角色"
 
-    - states: "([前台-仪玄] & ([仪玄-特殊技可用] & [仪玄-术法值]{81, 120}))"
+    - states: "[前台-仪玄]"
       sub_handlers:
         - state_template: "连携模板-跳过"
 
-    - states: "[前台-苍角] & [自定义-连携换人, 0, 3]"
+    - states: "[前台-苍角] & [自定义-失衡时间, 0, 3]"
       sub_handlers:
         - state_template: "连携模板-强攻"
         - state_template: "连携模板-异常"
         - state_template: "连携模板-跳过"
 
-    - states: "[前台-强攻] & [前台-命破] & [自定义-连携换人, 0, 3]"
+    - states: "[前台-强攻] & [前台-命破] & [自定义-失衡时间, 0, 3]"
       sub_handlers:
         - state_template: "连携模板-命破"
         - state_template: "连携模板-强攻"

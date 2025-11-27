@@ -27,7 +27,7 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[安比-终结技可用] & ![自定义-连携换人, 0, 10]"
+      - states: "[安比-终结技可用] & ![自定义-失衡时间, -10, 10]"
         operations:
           - operation_template: "通用-终结技"
 
@@ -44,7 +44,7 @@ handlers:
                 post_delay: 0.2
                 repeat: 4
               - op_name: "设置状态"
-                state: "自定义-速切结束"
+                state: "自定义-合轴时间"
 
           - states: ""
             operations:
@@ -59,7 +59,7 @@ handlers:
               - op_name: "按键-普通攻击-按下"
                 post_delay: 0.8
               - op_name: "设置状态"
-                state: "自定义-速切结束"
+                state: "自定义-合轴时间"
 
       - states: "[安比-特殊技可用]"
         operations:
@@ -74,7 +74,7 @@ handlers:
           - op_name: "等待秒数"
             seconds: 0.5
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]
           - op_name: "等待秒数"
             seconds: 0.5
 
@@ -93,6 +93,6 @@ handlers:
           - op_name: "等待秒数"
             seconds: 0.5
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]
           - op_name: "等待秒数"
             seconds: 0.5

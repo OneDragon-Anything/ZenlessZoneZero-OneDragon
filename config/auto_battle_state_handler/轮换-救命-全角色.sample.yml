@@ -7,7 +7,7 @@ handlers:
       - op_name: "按键-切换角色"
         agent_name: "凯撒"
       - op_name: "清除状态"
-        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
       - op_name: "设置状态"
         state: "自定义-血量扣减"
 
