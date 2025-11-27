@@ -91,6 +91,7 @@ class AgentStateDef:
                  max_length: int = 100,
                  min_value_trigger_state: Optional[int] = None,
                  template_threshold: Optional[float] = None,
+                 clear_on_zero: bool = False,  # 新增属性，当检测值为0时，是否清除状态
                  ):
         self.state_name: str = state_name
         self.template_id: str = template_id
@@ -182,14 +183,14 @@ class CommonAgentStateEnum(Enum):
                                    lower_color=(140, 30, 30), upper_color=(160, 50, 50), template_id='life_deduction_2_1',
                                    min_value_trigger_state=1)
 
-    GUARD_BREAK = AgentStateDef('格挡破碎', AgentStateCheckWay.COLOR_CHANNEL_EQUAL_RANGE_CONNECT,
-                              template_id='guard_break', min_value_trigger_state=1,  # 只在检测到时触发
+    GUARD_BREAK = AgentStateDef('格挡-破碎', AgentStateCheckWay.COLOR_CHANNEL_EQUAL_RANGE_CONNECT,
+                              template_id='guard_break', min_value_trigger_state=0,
                               lower_color=0, upper_color=255, connect_cnt=10000)  # 需要足够多的面积保证不会误判
 
-    SWITCH_BAN = AgentStateDef('切人-冷却', AgentStateCheckWay.COLOR_RANGE_CONNECT,
-                              template_id='switch_ban', min_value_trigger_state=1,  # 只在检测到时触发
-                              hsv_color=(60, 0, 62), hsv_color_diff=(50, 255, 30),
-                              connect_cnt=6)
+    SWITCH_BAN = AgentStateDef('切人-冷却', AgentStateCheckWay.COLOR_RANGE_EXIST,
+                              template_id='switch_ban', min_value_trigger_state=0,
+                              hsv_color=(45, 35, 85), hsv_color_diff=(45, 50, 93),
+                              connect_cnt=2000)
 
 
 class Agent:

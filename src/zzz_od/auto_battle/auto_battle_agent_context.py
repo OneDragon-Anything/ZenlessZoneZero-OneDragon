@@ -524,7 +524,14 @@ class AutoBattleAgentContext:
         value = check_method(ctx=self.ctx, screen=screen, state_def=state, total=to_check.total, pos=to_check.pos)
 
         if value > -1 and value >= state.min_value_trigger_state:
-            return StateRecord(state.state_name, screenshot_time, value)
+            # 对于切人-冷却和格挡破碎，值为0时视为清除信号
+            should_clear = False
+            if state.state_name in [CommonAgentStateEnum.SWITCH_BAN.value.state_name,
+                                    CommonAgentStateEnum.GUARD_BREAK.value.state_name]:
+                if value == 0:
+                    should_clear = True
+
+            return StateRecord(state.state_name, screenshot_time, value, is_clear=should_clear)
 
     def _check_all_agent_state(self, screen: MatLike, screenshot_time: float,
                                screen_agent_list: List[Tuple[Agent, Optional[str]]]
