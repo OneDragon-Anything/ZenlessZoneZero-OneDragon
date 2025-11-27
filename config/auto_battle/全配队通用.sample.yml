@@ -105,7 +105,7 @@ scenes:
       - states: "[前台-血量扣减]{1, 100} & ![自定义-动作不打断, 0, 30]"
         sub_handlers:
           # 有些角色会留着终结技来打断BOSS的攻击，因为有些攻击是没有闪光的，但是终结技可以打断敌人避免受伤
-          - state_template: "血量扣减模板-切人终结技"
+          - state_template: "轮换-救命-全角色"
           # 挨打了可以打断主线程操作马上进行闪避躲避接下来的攻击
           - state_template: "闪A模板-全角色"
 
@@ -117,17 +117,18 @@ scenes:
       # 具体合轴情况打开状态模板看条件
       - states: "![切人-冷却]"
         sub_handlers:
-          - state_template: "速切补增益模板-全角色"
+          - state_template: "轮换-合轴-全角色"
 
   - triggers: []
     priority: 9
+    interval: 0.1
     handlers:
       # 刚开始未识别到角色时候不要乱切
       - state_template: "站场模板-未识别角色"
       - states: "![自定义-动作不打断, -10, -0.1]"
         sub_handlers:
           - state_template: "自动锁定模板"
-          - state_template: "特殊情况-紧急切人"
+          - state_template: "轮换-紧急-全角色"
           # 切人之后先松开按键，否则容易出问题，因为闪避可能打断长按，导致原有动作的长按按键没有被松开，而0.2秒内松开不会有动作
           - states: "([按键-切换角色-下一个, 0, 0.1] | [按键-切换角色-上一个, 0, 0.1]) | [自定义-连携跳过, 0, 0.1]"
             debug_name: "切人后松开按键"
