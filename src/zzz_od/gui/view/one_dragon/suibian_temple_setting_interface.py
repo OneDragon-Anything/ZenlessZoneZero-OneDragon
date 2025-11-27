@@ -45,6 +45,14 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
+        # 自动托管开关
+        self.auto_manage_switch = SwitchSettingCard(
+            icon=FluentIcon.GAME,
+            title='自动托管',
+            content='启用后选择游戏内自动托管经营随便观相关任务，随便观35级后可用'
+        )
+        content_widget.add_widget(self.auto_manage_switch)
+
         self.yum_cha_sin_switch = SwitchSettingCard(icon=FluentIcon.GAME, title='饮茶仙')
         content_widget.add_widget(self.yum_cha_sin_switch)
 
@@ -207,6 +215,9 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
         content_widget.add_widget(self.pawnshop_crest_unlimited_denny_switch)
 
         content_widget.add_stretch(1)
+
+        self.auto_manage_switch.value_changed.connect(self._on_auto_manage_toggled)
+
         return content_widget
 
     def on_interface_shown(self) -> None:
@@ -217,6 +228,9 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
+
+        # 自动托管开关
+        self.auto_manage_switch.init_with_adapter(get_prop_adapter(self.config, 'auto_manage_enabled'))
 
         self.yum_cha_sin_switch.init_with_adapter(get_prop_adapter(self.config, 'yum_cha_sin'))
         self.yum_cha_sin_refresh_switch.init_with_adapter(get_prop_adapter(self.config, 'yum_cha_sin_period_refresh'))
@@ -254,6 +268,18 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
         self.pawnshop_crest_priority_1.setValue(priority_list[0], emit_signal=False)
         self.pawnshop_crest_priority_2.setValue(priority_list[1], emit_signal=False)
         self.pawnshop_crest_unlimited_denny_switch.init_with_adapter(get_prop_adapter(self.config, 'pawnshop_crest_unlimited_denny_enabled'))
+
+        # 初始化时根据当前配置设置可见性
+        self._on_auto_manage_toggled(self.config.auto_manage_enabled)
+
+    def _on_auto_manage_toggled(self, checked: bool) -> None:
+        # 如果开启自动托管 隐藏相关控件 否则显示
+        visible = not checked
+        self.yum_cha_sin_switch.setVisible(visible)
+        self.yum_cha_sin_refresh_switch.setVisible(visible)
+        self.adventure_duration_opt.setVisible(visible)
+        self.adventure_mission_opt.setVisible(visible)
+        self.craft_drag_times.setVisible(visible)
 
     def _on_pawnshop_omnicoin_priority_changed(self, _) -> None:
         priority_list = [

@@ -3,6 +3,9 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
+from zzz_od.application.suibian_temple.operations.suibian_temple_auto_manage import (
+    SuibianTempleAutoManage,
+)
 from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_squad import (
     SuibianTempleAdventureSquad,
 )
@@ -96,6 +99,15 @@ class SuibianTempleApp(ZApplication):
 
     @node_from(from_name='识别初始画面', status='随便观-入口')
     @node_from(from_name='前往随便观')
+    @operation_node(name='处理自动托管')
+    def handle_auto_manage(self) -> OperationRoundResult:
+        if self.config.auto_manage_enabled:
+            op = SuibianTempleAutoManage(self.ctx)
+            return self.round_by_op_result(op.execute())
+        else:
+            return self.round_success(status='未开启')
+
+    @node_from(from_name='处理自动托管', status='未开启')  # 只有未开启自动托管 才会执行游历等任务
     @operation_node(name='处理游历')
     def handle_adventure_squad(self) -> OperationRoundResult:
         op = SuibianTempleAdventureSquad(
@@ -134,6 +146,7 @@ class SuibianTempleApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='处理售卖铺')
+    @node_from(from_name='处理自动托管')  # 跳过游历等操作
     @operation_node(name='处理好物铺')
     def handle_good_goods(self) -> OperationRoundResult:
         if self.config.good_goods_purchase_enabled:
@@ -171,7 +184,8 @@ class SuibianTempleApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
+    ctx.run_context.start_running()
     ctx.run_context.current_instance_idx = ctx.current_instance_idx
     ctx.run_context.current_app_id = 'suibian_temple'
     ctx.run_context.current_group_id = 'one_dragon'

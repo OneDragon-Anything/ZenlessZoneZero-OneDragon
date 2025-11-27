@@ -1,0 +1,8 @@
+sub_dir: suibian_temple
+template_id: btn_auto_manage
+template_name: 随便观-托管入口按钮
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 103, 868
+- 237, 954

@@ -11,6 +11,15 @@ class SuibianTempleConfig(ApplicationConfig):
         ApplicationConfig.__init__(self, 'suibian_temple', instance_idx, group_id)
 
     @property
+    def auto_manage_enabled(self) -> bool:
+        """自动托管-开关"""
+        return self.get('auto_manage_enabled', False)
+
+    @auto_manage_enabled.setter
+    def auto_manage_enabled(self, value: bool):
+        self.update('auto_manage_enabled', value)
+
+    @property
     def yum_cha_sin(self) -> bool:
         """饮茶仙-开关"""
         return self.get('yum_cha_sin', True)
