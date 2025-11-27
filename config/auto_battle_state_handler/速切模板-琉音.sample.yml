@@ -90,8 +90,6 @@ handlers:
         interrupt_states: "![琉音-特殊技可用] | [琉音-好评]{90, 120}"
         operations:
           - operation_template: "琉音-石头剪刀布(连点特殊技)"
-          - operation_template: "琉音-石头剪刀布(连点特殊技)"
-          - operation_template: "琉音-石头剪刀布(连点特殊技)"
 
       - states: ""
         operations:
