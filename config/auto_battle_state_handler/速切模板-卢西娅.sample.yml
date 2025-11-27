@@ -38,7 +38,7 @@ handlers:
       - states: "[自定义-连携换人, 0, 10]"
         operations:
           - op_name: "设置状态"
-            data: ["自定义-速切结束"]
+            state: "自定义-速切结束"
           - operation_template: "卢西娅-强化特殊技合轴"
 
       - states: "[卢西娅-特殊技可用]"

@@ -7,13 +7,10 @@ operations:
     post_delay: 0.1
     repeat: 16
 
-  - op_name: "按键-普通攻击"
-    way: "松开"
+  - op_name: "按键-普通攻击-松开"
   - op_name: "等待秒数"
     seconds: 0.1
 
-  - op_name: "按键-普通攻击"
-    way: "按下"
-    press: 1.6
-  - op_name: "按键-普通攻击"
-    way: "松开"
+  - op_name: "按键-普通攻击-按下"
+    post_delay: 1.6
+  - op_name: "按键-普通攻击-松开"

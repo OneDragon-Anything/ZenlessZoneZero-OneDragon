@@ -65,11 +65,11 @@ handlers:
                 post_delay: 0.3
                 repeat: 2
               - op_name: "设置状态"
-                data: ["自定义-速切结束"]
+                state: "自定义-速切结束"
           - states: ""
             operations:
               - op_name: "按键-普通攻击"
                 post_delay: 0.1
                 repeat: 25
               - op_name: "设置状态"
-                data: ["自定义-速切结束"]
+                state: "自定义-速切结束"

@@ -53,7 +53,7 @@ handlers:
           - states: "![仪玄-特殊技可用]"
             operations:
               - op_name: "设置状态"
-                data: ["自定义-仪玄-太极"]
+                state: "自定义-仪玄-太极"
               - operation_template: "仪玄-太极合轴"
 
       - states: "[自定义-仪玄-太极,0,2]"
@@ -70,14 +70,14 @@ handlers:
         debug_name: "有力量了，上来打击破吧"
         operations:
           - op_name: "设置状态"
-            data: ["自定义-仪玄-太极"]
+            state: "自定义-仪玄-太极"
           - operation_template: "仪玄-太极合轴"
 
       - states: "[后台-1-特殊技可用] & ![后台-1-琉音] | [后台-2-特殊技可用] & ![后台-2-琉音]"
         debug_name: "队友可以动一下好像"
         operations:
           - op_name: "设置状态"
-            data: ["自定义-仪玄-太极"]
+            state: "自定义-仪玄-太极"
           - operation_template: "仪玄-太极合轴"
 
       - states: "[仪玄-终结技可用] & [仪玄-术法值全满] & [仪玄-术法值]{120, 120} & [仪玄-能量]{60, 120}"

@@ -1,21 +1,18 @@
 # 根据动画实测
 operations:
-  - op_name: "按键-普通攻击"
-    way: "松开"
+  - op_name: "按键-普通攻击-松开"
   - op_name: "等待秒数"
     seconds: 0.1
 
-  - op_name: "按键-普通攻击"
-    way: "按下"
-    press: 2
-  - op_name: "按键-普通攻击"
-    way: "松开"
+  - op_name: "按键-普通攻击-按下"
+    post_delay: 2
+  - op_name: "按键-普通攻击-松开"
   - op_name: "等待秒数"
     seconds: 0.1
   - op_name: "设置状态"
     state: "自定义-异常-物理"
     add: 84
   - op_name: "设置状态"
-    data: ["自定义-速切结束"]
+    state: "自定义-速切结束"
   - op_name: "等待秒数"
     seconds: 1

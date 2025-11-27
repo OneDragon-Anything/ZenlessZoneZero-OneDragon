@@ -3,11 +3,9 @@ operations:
   - op_name: "设置状态"
     state: "自定义-动作不打断"
     seconds: 2
-  - op_name: "按键-特殊攻击"
-    way: "按下"
-    press: 1
-  - op_name: "按键-特殊攻击"
-    way: "松开"
+  - op_name: "按键-特殊攻击-按下"
+    post_delay: 1
+  - op_name: "按键-特殊攻击-松开"
   - op_name: "设置状态"
     state: "自定义-柳-森罗万象"
   - op_name: "设置状态"

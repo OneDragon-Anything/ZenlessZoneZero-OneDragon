@@ -22,7 +22,7 @@ handlers:
           - states: "[按键可用-快速支援, 0, 0.5]"
             operations:
               - op_name: "设置状态"
-                data: ["伊芙琳-缠绕禁制"]
+                state: "伊芙琳-缠绕禁制"
               - op_name: "等待秒数"
                 seconds: 1.0
           - states: ""

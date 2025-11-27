@@ -52,7 +52,7 @@ handlers:
               post_delay: 0.1
               repeat: 6
             - op_name: "设置状态"
-              data: ["自定义-速切结束"]
+              state: "自定义-速切结束"
 
       - states: "[11号-终结技可用] & ![自定义-11号-火力压制, 0, 6] & ![自定义-连携换人, 0, 6]"
         operations:

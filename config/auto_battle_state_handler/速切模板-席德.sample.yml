@@ -33,7 +33,7 @@ handlers:
         debug_name: "席德合轴"
         operations:
           - op_name: "清除状态"
-            data: ["自定义-席德-准备合轴"]
+            state: "自定义-席德-准备合轴"
           - op_name: "设置状态"
             state_list: ["自定义-速切结束" , "自定义-席德-铁拳冲击"]
 
@@ -42,7 +42,7 @@ handlers:
         debug_name: "席德铁拳合轴"
         operations:
           - op_name: "设置状态"
-            data: ["自定义-席德-准备合轴"]
+            state: "自定义-席德-准备合轴"
           - op_name: "按键-普通攻击"
             post_delay: 0.1
             repeat: 5
