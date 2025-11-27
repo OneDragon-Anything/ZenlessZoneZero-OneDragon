@@ -8,4 +8,4 @@ operations:
     seconds: 0.2
   - op_name: "按键-普通攻击-按下"
   - op_name: "等待秒数"
-    seconds: 2
+    seconds: 3

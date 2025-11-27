@@ -45,7 +45,7 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[琉音-终结技可用]"
+      - states: "[琉音-终结技可用] & [琉音-客诉]{0, 0}"
         operations:
           - operation_template: "琉音-终结技"
 
@@ -53,9 +53,9 @@ handlers:
       - states: "[自定义-连携换人, 0, 10]"
         sub_handlers:
           # 客诉状态使用送客
-          - states: "[琉音-客诉,0,99]{1, 1}"
+          - states: "[琉音-客诉]{1, 1}"
             sub_handlers:
-              - states: "[琉音-好评,0,99]{90, 120}"
+              - states: "[琉音-好评]{90, 120}"
                 operations:
                   - op_name: "设置状态"
                     state: "自定义-琉音-连携转终结技"
@@ -74,9 +74,9 @@ handlers:
                 repeat: 25
 
       # 客诉状态使用送客
-      - states: "[琉音-客诉,0,99]{1, 1}"
+      - states: "[琉音-客诉]{1, 1}"
         sub_handlers:
-          - states: "[琉音-好评,0,99]{90, 120}"
+          - states: "[琉音-好评]{90, 120}"
             operations:
               - op_name: "设置状态"
                 state: "自定义-琉音-连携转终结技"
@@ -87,7 +87,7 @@ handlers:
 
       # 非失衡期不使用大招
       - states: "[琉音-特殊技可用]"
-        interrupt_states: "![琉音-特殊技可用] | [琉音-好评,0,99]{90, 120}"
+        interrupt_states: "![琉音-特殊技可用] | [琉音-好评]{90, 120}"
         operations:
           - operation_template: "琉音-石头剪刀布(连点特殊技)"
           - operation_template: "琉音-石头剪刀布(连点特殊技)"
@@ -96,7 +96,7 @@ handlers:
       - states: ""
         operations:
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            data: ["自定义-速切结束"]
           - op_name: "按键-普通攻击"
             post_delay: 0.1
             repeat: 50

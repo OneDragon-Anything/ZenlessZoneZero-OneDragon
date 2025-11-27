@@ -1,0 +1,6 @@
+operations:
+  - op_name: "等待秒数"
+    seconds: 0.3
+  - op_name: "按键-连携技-取消-按下"
+  - op_name: "等待秒数"
+    seconds: 1
