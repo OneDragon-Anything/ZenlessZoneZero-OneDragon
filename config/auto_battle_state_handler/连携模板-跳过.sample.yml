@@ -1,5 +1,6 @@
 handlers:
   - states: ""
+    debug_name: "跳过连携"
     operations:
     - op_name: "设置状态"
       state: "自定义-连携跳过"

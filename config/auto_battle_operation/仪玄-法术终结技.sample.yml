@@ -11,6 +11,6 @@ operations:
     seconds: 0.10
   - op_name: "按键-终结技"
     post_delay: 0.1
-    repeat: 15
+    repeat: 5
   - op_name: "等待秒数"
-    seconds: 2.1
+    seconds: 3

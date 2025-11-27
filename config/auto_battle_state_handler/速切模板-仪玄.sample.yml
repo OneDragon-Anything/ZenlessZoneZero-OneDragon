@@ -33,7 +33,7 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[自定义-失衡时间, 0, 10]"
+      - states: "[自定义-失衡时间, 0, 15]"
         sub_handlers:
           - states: "[仪玄-终结技可用] & [仪玄-术法值全满] & [仪玄-术法值]{120, 120}"
             debug_name: "法术终结技"
