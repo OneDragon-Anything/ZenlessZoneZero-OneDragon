@@ -12,6 +12,5 @@ operations:
     post_delay: 0.1
     repeat: 10
 
-  - op_name: "按键-普通攻击"
-    way: "按下"
+  - op_name: "按键-普通攻击-按下"
     press: 1

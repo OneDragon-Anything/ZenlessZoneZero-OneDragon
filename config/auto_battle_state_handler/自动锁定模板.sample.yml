@@ -9,7 +9,8 @@ handlers:
       debug_name: "锁定丢失超过三秒，重新锁定"
       operations:
         - op_name: "按键-锁定敌人-按下"
-          post_delay: 0.02
+        - op_name: "等待秒数"
+          seconds: 0.02
         - op_name: "清除状态"
           state: "自定义-锁定丢失"
         - op_name: "设置状态"

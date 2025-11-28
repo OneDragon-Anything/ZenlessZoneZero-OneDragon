@@ -57,7 +57,8 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.1
               - op_name: "按键-普通攻击-按下"
-                post_delay: 0.8
+              - op_name: "等待秒数"
+                seconds: 0.8
               - op_name: "设置状态"
                 state: "自定义-合轴时间"
 
@@ -89,7 +90,8 @@ handlers:
           - op_name: "等待秒数"
             seconds: 0.1
           - op_name: "按键-普通攻击-按下"
-            post_delay: 0.8
+          - op_name: "等待秒数"
+            seconds: 0.8
           - op_name: "等待秒数"
             seconds: 0.5
           - op_name: "设置状态"
