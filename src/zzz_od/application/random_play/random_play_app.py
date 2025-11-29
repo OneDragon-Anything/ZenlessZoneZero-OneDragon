@@ -9,10 +9,12 @@ from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from zzz_od.application.random_play import random_play_const
 from zzz_od.application.random_play.random_play_config import (
     RANDOM_AGENT_NAME,
     RandomPlayConfig,
@@ -32,9 +34,9 @@ class RandomPlayApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='random_play',
-            op_name=gt('录像店营业'),
-            need_notify=True,
+            ctx=ctx,
+            app_id=random_play_const.APP_ID,
+            op_name=random_play_const.APP_NAME,
         )
 
         self.config: RandomPlayConfig = self.ctx.run_context.get_config(
@@ -350,9 +352,9 @@ class RandomPlayApp(ZApplication):
 
     @node_from(from_name='开始营业确认')
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

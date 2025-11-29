@@ -31,7 +31,7 @@ handlers:
         operations:
           - operation_template: "零号安比-特殊技突进"
 
-      - states: "[自定义-连携换人, 1, 12]"
+      - states: "[自定义-失衡时间, 1, 12]"
         debug_name: "失衡期"
         sub_handlers:
           - states: "[自定义-零号安比-白雷, 0, 999]{660, 9990}"

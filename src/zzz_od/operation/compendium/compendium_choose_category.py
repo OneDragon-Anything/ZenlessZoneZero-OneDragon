@@ -54,7 +54,7 @@ def __debug():
     ctx.init_by_config()
     ctx.init_ocr()
     ctx.run_context.start_running()
-    op = CompendiumChooseCategory(ctx, '定期清剿')
+    op = CompendiumChooseCategory(ctx, '区域巡防')
     op.execute()
 
 

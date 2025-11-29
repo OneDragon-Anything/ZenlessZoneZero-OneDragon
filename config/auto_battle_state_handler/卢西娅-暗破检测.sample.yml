@@ -1,0 +1,8 @@
+template_name: "琉音-刷好评"
+handlers:
+  - states: "![自定义-卢西娅-暗破, 0, 999] & [后台-卢西娅]"
+    debug_name: "卢西娅进场先开暗破"
+    operations:
+      - op_name: "按键-切换角色"
+        agent_name: "卢西娅"
+      - operation_template: "卢西娅-普通攻击合轴"

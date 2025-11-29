@@ -28,7 +28,7 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
       # 失衡时刻
-      - states: "[自定义-连携换人, 0, 10]"
+      - states: "[自定义-失衡时间, 0, 10]"
         sub_handlers:
           # 失衡的时候就不用考虑这么多了，射吧
           - states: "[猫又-终结技可用]"
@@ -69,7 +69,7 @@ handlers:
             post_delay: 0.1
             repeat: 4
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]
           - op_name: "按键-特殊攻击"
             post_delay: 0.1
             repeat: 6
@@ -81,4 +81,4 @@ handlers:
             post_delay: 0.1
             repeat: 50
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]

@@ -23,7 +23,7 @@ handlers:
       # 默认执行基础连段
       - states: "[真斗-炽心]{1,100}"
         sub_handlers:
-          - states: "[自定义-连携换人, 0, 10]"
+          - states: "[自定义-失衡时间, 0, 10]"
             debug_name: "失衡期间"
             sub_handlers:
               # 有终结技时优先释放终结技爆发
@@ -57,7 +57,7 @@ handlers:
         debug_name: "队友速切支援"
         operations:
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束" , “自定义-真斗-观测队友”]
+            state_list: ["自定义-合轴时间" , “自定义-真斗-观测队友”]
 
       # 特殊技不可用时通过擦火刀蓄能（仅队友强化特殊技都不可用时）
       - states: ""

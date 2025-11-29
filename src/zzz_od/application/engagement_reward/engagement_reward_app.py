@@ -2,9 +2,9 @@ from typing import ClassVar
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.engagement_reward import engagement_reward_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -17,14 +17,13 @@ class EngagementRewardApp(ZApplication):
 
     def __init__(self, ctx: ZContext):
         """
-        每天自动接收邮件奖励
+        领取活跃度奖励
         """
         ZApplication.__init__(
             self,
             ctx=ctx,
             app_id=engagement_reward_const.APP_ID,
-            op_name=gt(engagement_reward_const.APP_NAME),
-            need_notify=True,
+            op_name=engagement_reward_const.APP_NAME,
         )
 
     def handle_init(self) -> None:
@@ -60,6 +59,7 @@ class EngagementRewardApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='识别活跃度')
+    @node_notify(when=NotifyTiming.CURRENT_DONE)
     @operation_node(name='点击奖励')
     def click_reward(self) -> OperationRoundResult:
         if self.idx > 1:
@@ -71,7 +71,6 @@ class EngagementRewardApp(ZApplication):
     @node_from(from_name='点击奖励')
     @operation_node(name='查看奖励结果')
     def check_reward(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         return self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '活跃度奖励-确认', success_wait=1, retry_wait=1)
 
     @node_from(from_name='查看奖励结果', success=False)

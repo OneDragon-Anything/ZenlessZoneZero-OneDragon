@@ -1,6 +1,7 @@
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
@@ -39,6 +40,7 @@ class OpenAndEnterGame(Operation):
             return self.round_retry(wait=1)
 
     @node_from(from_name='等待游戏打开')
+    @node_notify(when=NotifyTiming.CURRENT_FAIL, detail=True)
     @operation_node(name='进入游戏')
     def enter_game(self) -> OperationRoundResult:
         from zzz_od.operation.enter_game.enter_game import EnterGame

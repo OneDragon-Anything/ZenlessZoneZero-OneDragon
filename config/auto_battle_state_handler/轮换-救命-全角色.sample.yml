@@ -7,9 +7,9 @@ handlers:
       - op_name: "按键-切换角色"
         agent_name: "凯撒"
       - op_name: "清除状态"
-        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
       - op_name: "设置状态"
-        data: ["自定义-血量扣减"]
+        state: "自定义-血量扣减"
 
   # 后台角色终结技处理
   - states: "[后台-1-终结技可用]"
@@ -20,28 +20,28 @@ handlers:
         operations:
           - operation_template: "双反-下一个"
           - op_name: "设置状态"
-            data: ["自定义-血量扣减"]
+            state: "自定义-血量扣减"
 
       - states: "[后台-1-击破]"
         debug_name: "下位击破终结技"
         operations:
           - operation_template: "双反-下一个"
           - op_name: "设置状态"
-            data: ["自定义-血量扣减"]
+            state: "自定义-血量扣减"
 
       - states: "[后台-1-支援]"
         debug_name: "下位支援终结技"
         operations:
           - operation_template: "双反-下一个"
           - op_name: "设置状态"
-            data: ["自定义-血量扣减"]
+            state: "自定义-血量扣减"
 
       - states: "[后台-1-异常]"
         debug_name: "下位异常终结技"
         operations:
           - operation_template: "双反-下一个"
           - op_name: "设置状态"
-            data: ["自定义-血量扣减"]
+            state: "自定义-血量扣减"
 
   - states: "[后台-2-终结技可用]"
     debug_name: "上位终结技检查"
@@ -51,25 +51,25 @@ handlers:
         operations:
           - operation_template: "双反-上一个"
           - op_name: "设置状态"
-            data: ["自定义-血量扣减"]
+            state: "自定义-血量扣减"
 
       - states: "[后台-2-击破]"
         debug_name: "上位击破终结技"
         operations:
           - operation_template: "双反-上一个"
           - op_name: "设置状态"
-            data: ["自定义-血量扣减"]
+            state: "自定义-血量扣减"
 
       - states: "[后台-2-支援]"
         debug_name: "上位支援终结技"
         operations:
           - operation_template: "双反-上一个"
           - op_name: "设置状态"
-            data: ["自定义-血量扣减"]
+            state: "自定义-血量扣减"
 
       - states: "[后台-2-异常]"
         debug_name: "上位异常终结技"
         operations:
           - operation_template: "双反-上一个"
           - op_name: "设置状态"
-            data: ["自定义-血量扣减"]
+            state: "自定义-血量扣减"

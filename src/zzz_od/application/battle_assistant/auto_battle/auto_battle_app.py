@@ -6,7 +6,6 @@ from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.battle_assistant.auto_battle import auto_battle_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.config.game_config import GamepadTypeEnum
@@ -27,7 +26,7 @@ class AutoBattleApp(ZApplication):
             self,
             ctx=ctx,
             app_id=auto_battle_const.APP_ID,
-            op_name=gt(auto_battle_const.APP_NAME),
+            op_name=auto_battle_const.APP_NAME,
         )
 
     def handle_init(self) -> None:

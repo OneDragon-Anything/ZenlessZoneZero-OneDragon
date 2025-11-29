@@ -285,7 +285,7 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启时 自动跳过体力不足的计划')
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt], spacing=6))
 
-        self.coupon_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='使用家政券', content='运行定期清剿时使用家政券')
+        self.coupon_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='使用家政券', content='运行区域巡防时使用家政券')
         self.restore_charge_opt = ComboBoxSettingCard(icon=FluentIcon.ADD_TO, title='恢复电量', options_enum=RestoreChargeEnum)
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.coupon_opt, self.restore_charge_opt], spacing=6))
 

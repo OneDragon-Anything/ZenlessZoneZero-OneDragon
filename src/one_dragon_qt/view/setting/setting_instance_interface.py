@@ -1,24 +1,25 @@
-import os
+import base64
 import hashlib
+import os
 import uuid
 import webbrowser
-import base64
 from datetime import datetime, timedelta
+
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget, QFileDialog
+from PySide6.QtWidgets import QFileDialog, QWidget
 from qfluentwidgets import (
-    FluentIcon,
-    LineEdit,
-    PushButton,
-    ToolButton,
-    PrimaryPushButton,
-    HyperlinkCard,
-    SettingCardGroup,
     Dialog,
+    FluentIcon,
+    HyperlinkCard,
+    LineEdit,
     MessageBox,
+    PrimaryPushButton,
+    PushButton,
+    SettingCardGroup,
+    ToolButton,
 )
 
-from one_dragon.base.config.game_account_config import GameRegionEnum, GameAccountConfig
+from one_dragon.base.config.game_account_config import GameAccountConfig, GameRegionEnum
 from one_dragon.base.config.one_dragon_config import (
     OneDragonInstance,
     RunInOneDragonApp,
@@ -26,6 +27,8 @@ from one_dragon.base.config.one_dragon_config import (
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
@@ -38,8 +41,7 @@ from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.combo_box import ComboBox
+
 
 class InstanceSettingCard(MultiPushSettingCard):
 
@@ -325,6 +327,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
             password_hash=base64.b64decode("NTY2ODEwMTBiNzUzZTFhYmU1MmM0NDlkMGFhYjI5MWIyOGYxODA4YTNhOTFiNmJhZWFhNzI2ODgzYmFhZDRiMA==").decode('utf-8'),
         )
         self.custom_win_title_opt.value_changed.connect(self._update_custom_win_title)
+        self.custom_win_title_input.editingFinished.connect(self._update_custom_win_title)
         instance_settings_group.addSettingCard(self.custom_win_title_opt)
 
         self.game_region_opt = ComboBoxSettingCard(

@@ -29,7 +29,7 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[珂蕾妲-终结技可用] & ![自定义-连携换人, 0, 10]"
+      - states: "[珂蕾妲-终结技可用] & ![自定义-失衡时间, -10, 10]"
         operations:
           - op_name: "设置状态"
             state: "自定义-珂蕾妲-升温"

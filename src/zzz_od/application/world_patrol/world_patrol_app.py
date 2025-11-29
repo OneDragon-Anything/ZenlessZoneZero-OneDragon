@@ -1,6 +1,7 @@
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.application.world_patrol import world_patrol_const
 from zzz_od.application.world_patrol.operation.world_patrol_run_route import (
@@ -24,8 +25,8 @@ class WorldPatrolApp(ZApplication):
             ctx=ctx,
             app_id=world_patrol_const.APP_ID,
             op_name=world_patrol_const.APP_NAME,
-            need_notify=False,
         )
+
         self.config: WorldPatrolConfig = self.ctx.run_context.get_config(
             app_id=world_patrol_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
@@ -102,6 +103,7 @@ class WorldPatrolApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='停止追踪后返回大世界')
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='执行路线')
     def run_route(self) -> OperationRoundResult:
         if self.route_idx >= len(self.route_list):

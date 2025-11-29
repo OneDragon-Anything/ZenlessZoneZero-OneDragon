@@ -45,7 +45,7 @@ handlers:
           - op_name: "清除状态"
             data: ["自定义-红光闪避"]
 
-      - states: "[自定义-连携换人]"
+      - states: "[自定义-失衡时间]"
         operations:
           - op_name: "等待秒数"
             data: ["2"]

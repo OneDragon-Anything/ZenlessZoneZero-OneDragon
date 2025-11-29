@@ -1,7 +1,7 @@
-# 根据情况切人，防止过度切人 <-![自定义-连携换人, 0, 10] & ![前台-青衣] & [青衣-能量]{0, 120} & ![自定义-黄光切人, 0, 3]<-[自定义-速切结束, 0, 12]
+# 根据情况切人，防止过度切人 <-![自定义-失衡时间, -10, 10] & ![前台-青衣] & [青衣-能量]{0, 120} & ![自定义-黄光切人, 0, 3]<-[自定义-合轴时间, 0, 12]
 handlers:
   # 耀嘉音在不走这里
-  - states: "[自定义-速切结束, 0, 12]"
+  - states: "[自定义-合轴时间, 0, 12]"
     debug_name: "速切结束"
     sub_handlers:
       # 确定是速切结束，并且不是快速支援才会进行速切，这边的速切是会进行合轴打断动作的。
@@ -9,13 +9,16 @@ handlers:
         debug_name: "非耀嘉音快速支援"
         sub_handlers:
           # 大哥青衣在你们也有脸站场吗？
-          - states: "![自定义-连携换人, 0, 10] & ![前台-青衣] & [青衣-能量]{0, 120} & ![自定义-黄光切人, 0, 3]" # 给队友时间稍微E一下
+          - states: "![自定义-失衡时间, -10, 10] & ![前台-青衣] & [青衣-能量]{0, 120} & ![自定义-黄光切人, 0, 3]" # 给队友时间稍微E一下
             debug_name: "非失衡期青衣换入前场"
             operations:
               - op_name: "按键-切换角色"
                 agent_name: "青衣"
               - op_name: "清除状态"
-                state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                state_list: ["自定义-合轴时间", "自定义-动作不打断"]
+
+          - state_template: "卢西娅-暗破检测"
+          - state_template: "琉音-刷好评"
 
           # 星见雅 有6豆就切过去
           - states: "[雅-落霜]{6, 6} & ![前台-雅]"
@@ -24,16 +27,16 @@ handlers:
               - op_name: "按键-切换角色"
                 agent_name: "雅"
               - op_name: "清除状态"
-                state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
           # 失衡期间，妮可要补BUFF
-          - states: "([妮可-特殊技可用] | [妮可-终结技可用])  & ![自定义-妮可-能量场, -5, 3.5] & [自定义-连携换人, 6, 10] & ![前台-妮可]"
+          - states: "([妮可-特殊技可用] | [妮可-终结技可用])  & ![自定义-妮可-能量场, -5, 3.5] & [自定义-失衡时间, 6, 10] & ![前台-妮可]"
             debug_name: "失衡期间妮可补能量场"
             operations:
               - op_name: "按键-切换角色"
                 agent_name: "妮可"
               - op_name: "清除状态"
-                state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
           # 没有上面的几位高贵，就藏这里好了
           - states: ""
@@ -45,9 +48,9 @@ handlers:
                       - op_name: "按键-切换角色"
                         agent_name: "赛斯"
                       - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
-              - states: "![自定义-连携换人, 0, 12]"
+              - states: "![自定义-失衡时间, -10, 12]"
                 debug_name: "非失衡期间才有你们"
                 sub_handlers:
                   - states: "![前台-扳机]" # 扳机补强化
@@ -57,7 +60,7 @@ handlers:
                           - op_name: "按键-切换角色"
                             agent_name: "扳机"
                           - op_name: "清除状态"
-                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                            state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
                   - states: "![前台-本]" # 本要补护盾
                     sub_handlers:
@@ -66,7 +69,7 @@ handlers:
                           - op_name: "按键-切换角色"
                             agent_name: "本"
                           - op_name: "清除状态"
-                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                            state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
                   - states: "![前台-凯撒]" # 凯撒要补护盾
                     sub_handlers:
@@ -78,11 +81,11 @@ handlers:
                             state_list:
                               [
                                 "自定义-血量扣减",
-                                "自定义-速切结束",
+                                "自定义-合轴时间",
                                 "自定义-动作不打断",
                               ]
 
-                      - states: "[凯撒-终结技可用] & ![自定义-连携换人, 0, 10]"
+                      - states: "[凯撒-终结技可用] & ![自定义-失衡时间, -10, 10]"
                         operations:
                           - op_name: "按键-切换角色"
                             agent_name: "凯撒"
@@ -90,7 +93,7 @@ handlers:
                             state_list:
                               [
                                 "自定义-血量扣减",
-                                "自定义-速切结束",
+                                "自定义-合轴时间",
                                 "自定义-动作不打断",
                               ]
 
@@ -101,7 +104,7 @@ handlers:
                           - op_name: "按键-切换角色"
                             agent_name: "莱特"
                           - op_name: "清除状态"
-                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                            state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
                   - states: "![前台-波可娜] & [波可娜-猎步]{0, 0}"
                     sub_handlers:
@@ -110,7 +113,7 @@ handlers:
                           - op_name: "按键-切换角色"
                             agent_name: "波可娜"
                           - op_name: "清除状态"
-                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                            state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
                   - states: "![前台-潘引壶] & ![自定义-潘引壶-通窍, 0, 10]"
                     sub_handlers:
@@ -119,7 +122,7 @@ handlers:
                           - op_name: "按键-切换角色"
                             agent_name: "潘引壶"
                           - op_name: "清除状态"
-                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                            state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
                   - states: "![前台-莱卡恩]"
                     sub_handlers:
@@ -128,7 +131,7 @@ handlers:
                           - op_name: "按键-切换角色"
                             agent_name: "莱卡恩"
                           - op_name: "清除状态"
-                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                            state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
                   - states: "![前台-橘福福]"
                     sub_handlers:
@@ -137,7 +140,7 @@ handlers:
                           - op_name: "按键-切换角色"
                             agent_name: "橘福福"
                           - op_name: "清除状态"
-                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                            state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
                   - states: "![前台-珂蕾妲]"
                     sub_handlers:
@@ -146,7 +149,7 @@ handlers:
                           - op_name: "按键-切换角色"
                             agent_name: "珂蕾妲"
                           - op_name: "清除状态"
-                            state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                            state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "![前台-卢西娅]"
                 sub_handlers:
@@ -155,7 +158,7 @@ handlers:
                       - op_name: "按键-切换角色"
                         agent_name: "卢西娅"
                       - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "![前台-浮波柚叶] & [后台-1-浮波柚叶]"
                 sub_handlers:
@@ -164,7 +167,7 @@ handlers:
                       - op_name: "按键-切换角色"
                         agent_name: "浮波柚叶"
                       - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "![前台-苍角]"
                 sub_handlers:
@@ -173,7 +176,7 @@ handlers:
                       - op_name: "按键-切换角色"
                         agent_name: "苍角"
                       - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "![前台-丽娜]" # 丽娜努力保持人偶
                 sub_handlers:
@@ -182,7 +185,7 @@ handlers:
                       - op_name: "按键-切换角色"
                         agent_name: "丽娜"
                       - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "![前台-露西]"
                 sub_handlers:
@@ -191,7 +194,7 @@ handlers:
                       - op_name: "按键-切换角色"
                         agent_name: "露西"
                       - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "![前台-妮可]" # 妮可能量场过期了，有EQ之一就切
                 sub_handlers:
@@ -200,7 +203,7 @@ handlers:
                       - op_name: "按键-切换角色"
                         agent_name: "妮可"
                       - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "![前台-奥菲丝]"
                 sub_handlers:
@@ -209,7 +212,7 @@ handlers:
                       - op_name: "按键-切换角色"
                         agent_name: "奥菲丝"
                       - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "![前台-柏妮思]" # 柏妮思补燃点
                 sub_handlers:
@@ -219,7 +222,7 @@ handlers:
                       - op_name: "按键-切换角色"
                         agent_name: "柏妮思"
                       - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "![前台-柳]" # 柳有能量可以上了
                 sub_handlers:
@@ -228,7 +231,7 @@ handlers:
                       - op_name: "按键-切换角色"
                         agent_name: "柳"
                       - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "![前台-薇薇安]" # 柳有能量可以上了
                 sub_handlers:
@@ -237,7 +240,7 @@ handlers:
                       - op_name: "按键-切换角色"
                         agent_name: "薇薇安"
                       - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               # 辅助能量要溢出了兄弟
               - states: "![后台-1-异常] & ![后台-1-强攻] & [后台-1-能量]{110, 120}"
@@ -245,14 +248,14 @@ handlers:
                   - op_name: "按键-切换角色-下一个"
                     post_delay: 0.1
                   - op_name: "清除状态"
-                    state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                    state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "![后台-2-异常] & ![后台-2-强攻] & [后台-2-能量]{110, 120}"
                 operations:
                   - op_name: "按键-切换角色-上一个"
                     post_delay: 0.1
                   - op_name: "清除状态"
-                    state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                    state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               # 优先切有特殊技可以用的输出，优先顺切
               - states: "[后台-1-异常] & [后台-1-特殊技可用]"
@@ -260,28 +263,28 @@ handlers:
                   - op_name: "按键-切换角色-下一个"
                     post_delay: 0.1
                   - op_name: "清除状态"
-                    state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                    state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "[后台-1-强攻]& [后台-1-特殊技可用]"
                 operations:
                   - op_name: "按键-切换角色-下一个"
                     post_delay: 0.1
                   - op_name: "清除状态"
-                    state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                    state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "[后台-2-异常]& [后台-2-特殊技可用]"
                 operations:
                   - op_name: "按键-切换角色-上一个"
                     post_delay: 0.1
                   - op_name: "清除状态"
-                    state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                    state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "[后台-2-强攻]& [后台-2-特殊技可用]"
                 operations:
                   - op_name: "按键-切换角色-上一个"
                     post_delay: 0.1
                   - op_name: "清除状态"
-                    state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                    state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               # 不是输出没必要切出来
               - states: "[后台-1-异常] | [后台-1-强攻] | [后台-1-命破]"
@@ -289,14 +292,14 @@ handlers:
                   - op_name: "按键-切换角色-下一个"
                     post_delay: 0.1
                   - op_name: "清除状态"
-                    state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                    state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "[后台-2-异常] | [后台-2-强攻] | [后台-2-命破]"
                 operations:
                   - op_name: "按键-切换角色-上一个"
                     post_delay: 0.1
                   - op_name: "清除状态"
-                    state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                    state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "![前台-苍角]"
                 sub_handlers:
@@ -305,7 +308,7 @@ handlers:
                       - op_name: "按键-切换角色"
                         agent_name: "苍角"
                       - op_name: "清除状态"
-                        state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               # 丽娜连普攻都不会
               - states: "[前台-丽娜]"
@@ -313,4 +316,4 @@ handlers:
                   - op_name: "按键-切换角色-下一个"
                     post_delay: 0.1
                   - op_name: "清除状态"
-                    state_list: ["自定义-速切结束", "自定义-动作不打断"]
+                    state_list: ["自定义-合轴时间", "自定义-动作不打断"]

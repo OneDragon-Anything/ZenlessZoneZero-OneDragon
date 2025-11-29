@@ -34,10 +34,10 @@ introduction: "支持全角色 任意三人/单人/双人作战，通杀所有�
 # 一般情况下，闪避＞连携＞快速支援＞扣血＞合轴＞主线程
 # 因为同一个触发器内不管触发多少次都不会打断本触发器，所以所有角色的默认动作都放在同一个触发器内，就不用怕打断动作导致错位了
 
-check_dodge_interval: 0.02  # 闪避识别间隔
-check_agent_interval: 0.1  # 代理人识别间隔
-check_chain_interval: 0.1  # 连携识别间隔
-check_quick_interval: 0.2  # 快速支援识别间隔
+check_dodge_interval: 0.02 # 闪避识别间隔
+check_agent_interval: 0.1 # 代理人识别间隔
+check_chain_interval: 0.1 # 连携识别间隔
+check_quick_interval: 0.2 # 快速支援识别间隔
 auto_lock_interval: -1 # 锁定间隔，不锁定
 auto_turn_interval: 2 # 镜头转向间隔
 
@@ -49,7 +49,7 @@ scenes:
   # 新增得格挡破碎检测
   - triggers: ["格挡-破碎"]
     priority: 99
-    interval: 0.1
+    interval: 0.3
     handlers:
       # 破碎了就别支援突击了
       - states: "[闪避识别-黄光, 0, 2]"
@@ -58,36 +58,37 @@ scenes:
           - op_name: "清除状态"
             state_list: ["自定义-动作不打断", "自定义-黄光切人"]
           - op_name: "等待秒数"
-            seconds: 1
+            seconds: 0.1
 
   # 这部分是用来识别闪光闪避的，这里不需要更改，哪怕角色更新也不需要动
   - triggers: ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
     priority: 99
+    interval: 0.3
     handlers:
       - states: "![自定义-无视闪光, -10, 0]"
         sub_handlers:
-        # 这里的动作不打断，代表了动作的无敌时间，一般无敌动作期间，动作是无法打断的，0.3是因为闪光会比伤害先出现0.3秒
-        # 正常情况下，黄光进入的判定，一般情况下，按顺序触发
-        - states: "[闪避识别-黄光]"
-          sub_handlers:
-            - state_template: "支援攻击模板-特殊情况"  # 特殊情况
-            - state_template: "支援攻击模板-击破"  # 格挡攻击优先击破可以快速打进失衡
-            - state_template: "支援攻击模板-命破"  # 修复了命破不能弹刀的神秘特性
-            - state_template: "支援攻击模板-防护"  # 防护一般格挡性能优越
-            - state_template: "支援攻击模板-异常"  # 异常一般格挡上异常效率也不错
-            - state_template: "支援攻击模板-下一个"  # 剩下的都不优秀了
-        # 除了看到黄色闪光都进入闪A模式
-        - states: "![自定义-动作不打断, -10, -0.1]"
-          sub_handlers:
-            # 一般情况下里面都是直接设置红光闪避状态，不要在里面写闪A动作，因为同一个触发器无法打断本触发器，可能导致闪A中无法闪A
-            - state_template: "闪A模板-全角色"
+          # 这里的动作不打断，代表了动作的无敌时间，一般无敌动作期间，动作是无法打断的，0.3是因为闪光会比伤害先出现0.3秒
+          # 正常情况下，黄光进入的判定，一般情况下，按顺序触发
+          - states: "[闪避识别-黄光, 0, 0.3]"
+            sub_handlers:
+              - state_template: "支援攻击模板-特殊情况" # 特殊情况
+              - state_template: "支援攻击模板-击破" # 格挡攻击优先击破可以快速打进失衡
+              - state_template: "支援攻击模板-命破" # 修复了命破不能弹刀的神秘特性
+              - state_template: "支援攻击模板-防护" # 防护一般格挡性能优越
+              - state_template: "支援攻击模板-异常" # 异常一般格挡上异常效率也不错
+              - state_template: "支援攻击模板-下一个" # 剩下的都不优秀了
+          # 除了看到黄色闪光都进入闪A模式
+          - states: "![自定义-动作不打断, -10, -0.1] & ([闪避识别-红光, 0, 0.3] | [闪避识别-声音, 0, 0.3])"
+            sub_handlers:
+              # 一般情况下里面都是直接设置红光闪避状态，不要在里面写闪A动作，因为同一个触发器无法打断本触发器，可能导致闪A中无法闪A
+              - state_template: "闪A模板-全角色"
 
   - triggers: ["按键可用-连携技"]
     priority: 98
+    interval: 2
     handlers:
-      - states: "[按键可用-连携技]"
+      - states: ""
         sub_handlers:
-          # 详情可以打开状态模板
           - state_template: "连携模板-通用"
 
   - triggers: ["按键可用-快速支援"]
@@ -104,50 +105,48 @@ scenes:
       - states: "[前台-血量扣减]{1, 100} & ![自定义-动作不打断, 0, 30]"
         sub_handlers:
           # 有些角色会留着终结技来打断BOSS的攻击，因为有些攻击是没有闪光的，但是终结技可以打断敌人避免受伤
-          - state_template: "血量扣减模板-切人终结技"
+          - state_template: "轮换-救命-全角色"
           # 挨打了可以打断主线程操作马上进行闪避躲避接下来的攻击
           - state_template: "闪A模板-全角色"
 
-  - triggers: ["自定义-速切结束"]
+  - triggers: ["自定义-合轴时间"]
     priority: 80
     interval: 0.2
     handlers:
       # 这边是主线程的动作流程中，设置了状态速切结束，代表可以尝试进行合轴，如果有角色满足出场条件，就会进行合轴。
       # 具体合轴情况打开状态模板看条件
-      - state_template: "速切补增益模板-全角色"
+      - states: "![切人-冷却]"
+        sub_handlers:
+          - state_template: "轮换-合轴-全角色"
 
   - triggers: []
     priority: 9
-    interval: 0.02
+    interval: 0.1
     handlers:
       # 刚开始未识别到角色时候不要乱切
       - state_template: "站场模板-未识别角色"
       - states: "![自定义-动作不打断, -10, -0.1]"
         sub_handlers:
-        - state_template: "自动锁定模板"
-        - state_template: "特殊情况-紧急切人"
-        # 切人之后先松开按键，否则容易出问题，因为闪避可能打断长按，导致原有动作的长按按键没有被松开，而0.2秒内松开不会有动作
-        - states: "([按键-切换角色-下一个, 0, 0.1] | [按键-切换角色-上一个, 0, 0.1]) | [自定义-连携跳过, 0, 0.1]"
-          debug_name: "切人后松开按键"
-          operations:
-            - op_name: "清除状态"
-              state_list: ["自定义-速切结束", "自定义-动作不打断"]
-            - op_name: "按键-普通攻击"
-              way: "松开"
-            - op_name: "按键-特殊攻击"
-              way: "松开"
-            - op_name: "按键-移动-前"
-              way: "松开"
-            - op_name: "按键-移动-后"
-              way: "松开"
-            - op_name: "按键-移动-左"
-              way: "松开"
-            - op_name: "按键-移动-右"
-              way: "松开"
-            - op_name: "按键-闪避"
-              way: "松开"
-            - op_name: "等待秒数"
-              seconds: 0.05
+          - state_template: "自动锁定模板"
+          - states: "[自定义-连携换人, 0, 0.5] | [闪避识别-黄光, 0, 0.5] | [闪避识别-红光, 0, 0.5] | [闪避识别-声音, 0, 0.5]"
+            sub_handlers:
+              - state_template: "速切模板-全角色"
+          - state_template: "轮换-紧急-全角色"
+          # 切人之后先松开按键，否则容易出问题，因为闪避可能打断长按，导致原有动作的长按按键没有被松开，而0.2秒内松开不会有动作
+          - states: "([按键-切换角色-下一个, 0, 0.1] | [按键-切换角色-上一个, 0, 0.1]) | [自定义-连携跳过, 0, 0.1]"
+            debug_name: "切人后松开按键"
+            operations:
+              - op_name: "清除状态"
+                state_list: ["自定义-合轴时间", "自定义-动作不打断"]
+              - op_name: "按键-普通攻击-松开"
+              - op_name: "按键-特殊攻击-松开"
+              - op_name: "按键-移动-前-松开"
+              - op_name: "按键-移动-后-松开"
+              - op_name: "按键-移动-左-松开"
+              - op_name: "按键-移动-右-松开"
+              - op_name: "按键-闪避-松开"
+              - op_name: "等待秒数"
+                seconds: 0.05
 
       # 主线程默认情况会走到这里
       - states: ""

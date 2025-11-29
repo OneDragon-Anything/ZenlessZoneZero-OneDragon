@@ -1,7 +1,8 @@
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
+from zzz_od.application.email_app import email_app_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 
@@ -14,9 +15,9 @@ class EmailApp(ZApplication):
         """
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='email',
-            op_name=gt('邮件'),
-            need_notify=True,
+            ctx=ctx,
+            app_id=email_app_const.APP_ID,
+            op_name=email_app_const.APP_NAME,
         )
 
     def handle_init(self) -> None:
@@ -31,6 +32,7 @@ class EmailApp(ZApplication):
         return self.round_by_goto_screen(screen_name='邮件')
 
     @node_from(from_name='打开邮件')
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='全部领取')
     def click_get_all(self) -> OperationRoundResult:
         """
@@ -67,5 +69,4 @@ class EmailApp(ZApplication):
         领取后的确认按钮可以不按 直接点击外层也可以返回
         :return:
         """
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         return self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回', success_wait=1, retry_wait=1)
