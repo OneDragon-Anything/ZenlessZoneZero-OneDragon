@@ -12,7 +12,7 @@ class SuibianTempleAutoManage(ZOperation):
         """
         随便观 - 自动托管
 
-        需要在随便观主界面时候调用，完成后返回随便观主界面
+        需要在随便观主界面 或者 打开了自动托管界面时候调用，完成后返回随便观主界面
 
         Args:
             ctx: 上下文
@@ -20,27 +20,30 @@ class SuibianTempleAutoManage(ZOperation):
         ZOperation.__init__(self, ctx,
                             op_name=f'{gt("随便观", "game")} {gt("自动托管", "game")}')
 
-
-    @operation_node(name='点击经营方针', is_start_node=True)
-    def click_business_policy(self) -> OperationRoundResult:
-        result1 = self.round_by_ocr_and_click(self.last_screenshot, '经营方针')
-        if result1.is_success:
-            return self.round_success(status=result1.status, wait=1)
-
-        result = self.round_by_ocr(self.last_screenshot, '自动托管中')
-        if result.is_success:
-            return self.round_success(status=result.status, wait=1)
-
-        return self.round_retry(status=result1.status, wait=1)
-
-    @node_from(from_name='点击经营方针')
-    @operation_node(name='点击开始')
+    @operation_node(name='点击开始托管', is_start_node=True)
     def click_start(self) -> OperationRoundResult:
-        return self.round_by_ocr_and_click(self.last_screenshot, '开始托管',
-                                           success_wait=1, retry_wait=1)
+        target_cn_list = [
+            '自动托管中',
+            '经营方针',
+            '开始托管',
+            '领取收益',
+            '经营',
+            '自动托管'
+        ]
+        ignore_cn_list = [
+            '经营',
+            '自动托管'
+        ]
+        result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=ignore_cn_list)
+        if result.is_success:
+            if result.status in ['经营方针', '领取收益']:
+                return self.round_wait(status=result.status, wait=1)
+            else:
+                return self.round_success(status=result.status, wait=1)
 
-    @node_from(from_name='点击经营方针', status='自动托管中')
-    @node_from(from_name='点击开始')
+        return self.round_retry(status=result.status, wait=1)
+
+    @node_from(from_name='点击开始托管')
     @operation_node(name='返回随便观')
     def back_to_entry(self) -> OperationRoundResult:
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-入口'])
