@@ -1,3 +1,5 @@
+import time
+
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -72,10 +74,9 @@ class EnterHddMission(ZOperation):
         area = self.ctx.screen_loader.get_area('HDD', '副本区域')
         result = self.round_by_ocr_and_click(self.last_screenshot, self.mission_name, area=area)
         if result.is_success:
-            # 使用首次点击返回的坐标再次点击，确保在同一位置完成双击保障
-            to_click = result.data
-            if to_click is not None:
-                self.ctx.controller.click(pos=to_click)
+            # 有时候点击会失败 这里多点击一次确保成功
+            time.sleep(1)
+            self.round_by_ocr_and_click(self.last_screenshot, self.mission_name, area=area)
             return self.round_success(wait=1)
 
         # 找不到时候 往下滑

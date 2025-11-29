@@ -1,6 +1,5 @@
 import time
-
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
@@ -200,6 +199,7 @@ class LifeOnLineApp(ZApplication):
 def __debug():
     ctx = ZContext()
     ctx.init()
+    ctx.run_context.start_running()
     app = LifeOnLineApp(ctx)
     app.execute()
 
