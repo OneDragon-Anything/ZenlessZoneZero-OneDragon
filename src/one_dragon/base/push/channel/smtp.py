@@ -112,7 +112,7 @@ class Smtp(PushChannel):
             name = config.get('NAME', 'OneDragon')
 
             # 创建邮件消息
-            message = MIMEMultipart('related')
+            message = MIMEMultipart('related') if image is not None else MIMEText(content, "plain", "utf-8")
             message["From"] = formataddr(
                 (Header(name, "utf-8").encode(),
                  email)
@@ -123,11 +123,11 @@ class Smtp(PushChannel):
             )
             message["Subject"] = Header(title, "utf-8")
 
-            # 转换为HTML
-            html_content = '<p>{}</p>'.format(content.replace("\n", "<br>\n"))
-
-            # 图片内嵌
             if image is not None:
+                # 转换为HTML
+                html_content = '<p>{}</p>'.format(content.replace("\n", "<br>\n"))
+
+                # 图片内嵌
                 img_data = self.image_to_bytes(image)
                 if img_data is not None:
                     img_part = MIMEImage(img_data.getvalue())
@@ -136,9 +136,9 @@ class Smtp(PushChannel):
                     message.attach(img_part)
                     html_content += '<br><img src="cid:screenshot">'
 
-            # 附加HTML部分
-            text_part = MIMEText(html_content, "html", "utf-8")
-            message.attach(text_part)
+                # 附加HTML部分
+                text_part = MIMEText(html_content, "html", "utf-8")
+                message.attach(text_part)
 
             # 解析服务器地址和端口
             host, port = server.split(":")
