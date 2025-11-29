@@ -1,4 +1,5 @@
 import smtplib
+import html
 from email.header import Header
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -125,14 +126,14 @@ class Smtp(PushChannel):
 
             if image is not None:
                 # 转换为HTML
-                html_content = '<p>{}</p>'.format(content.replace("\n", "<br>\n"))
+                html_content = '<p>{}</p>'.format(html.escape(content).replace("\n", "<br>\n"))
 
                 # 图片内嵌
                 img_data = self.image_to_bytes(image)
                 if img_data is not None:
                     img_part = MIMEImage(img_data.getvalue())
                     img_part.add_header('Content-ID', '<screenshot>')
-                    img_part.add_header('Content-Disposition', 'inline', filename='screenshot.png')
+                    img_part.add_header('Content-Disposition', 'inline', filename='screenshot.jpg')
                     message.attach(img_part)
                     html_content += '<br><img src="cid:screenshot">'
 
