@@ -27,7 +27,7 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[自定义-连携换人, 0, 10]"
+      - states: "[自定义-失衡时间, 0, 10]"
         sub_handlers:
           - states: "[雨果-终结技可用]"
             operations:
@@ -41,7 +41,7 @@ handlers:
         debug_name: "无能量普攻"
         operations:
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]
           - operation_template: "雨果-普通攻击"
 
       - states: ""
@@ -49,4 +49,4 @@ handlers:
         operations:
           - operation_template: "雨果-普通攻击"
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]

@@ -1,6 +1,9 @@
 import smtplib
+import html
 from email.header import Header
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 from email.utils import formataddr
 
 from cv2.typing import MatLike
@@ -90,7 +93,7 @@ class Smtp(PushChannel):
             config: 配置字典，包含 SERVER、SSL、STARTTLS、EMAIL、PASSWORD 和 NAME
             title: 消息标题
             content: 消息内容
-            image: 图片数据（SMTP邮件暂不支持图片推送）
+            image: 图片数据
             proxy_url: 代理地址
 
         Returns:
@@ -110,7 +113,26 @@ class Smtp(PushChannel):
             name = config.get('NAME', 'OneDragon')
 
             # 创建邮件消息
-            message = MIMEText(content, "plain", "utf-8")
+            if image is not None:
+                message = MIMEMultipart('related')
+                # 转换为HTML
+                html_content = '<p>{}</p>'.format(html.escape(content).replace("\n", "<br>\n"))
+
+                # 图片内嵌
+                img_data = self.image_to_bytes(image)
+                if img_data is not None:
+                    img_part = MIMEImage(img_data.getvalue())
+                    img_part.add_header('Content-ID', '<screenshot>')
+                    img_part.add_header('Content-Disposition', 'inline', filename='screenshot.jpg')
+                    message.attach(img_part)
+                    html_content += '<br><img src="cid:screenshot">'
+
+                # 附加HTML部分
+                text_part = MIMEText(html_content, "html", "utf-8")
+                message.attach(text_part)
+            else:
+                message = MIMEText(content, "plain", "utf-8")
+
             message["From"] = formataddr(
                 (Header(name, "utf-8").encode(),
                  email)
@@ -120,6 +142,7 @@ class Smtp(PushChannel):
                  email)
             )
             message["Subject"] = Header(title, "utf-8")
+
             # 解析服务器地址和端口
             host, port = server.split(":")
             port_int = int(port) if port else None

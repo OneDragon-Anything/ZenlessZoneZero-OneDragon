@@ -27,7 +27,7 @@ handlers:
             operations:
               - operation_template: "通用-快速支援"
 
-      - states: "![自定义-连携换人, -10, 10]"
+      - states: "![自定义-失衡时间, -10, 10]"
         sub_handlers:
           - states: "[潘引壶-终结技可用]"
             operations:
@@ -45,4 +45,4 @@ handlers:
             post_delay: 0.1
             repeat: 10
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]

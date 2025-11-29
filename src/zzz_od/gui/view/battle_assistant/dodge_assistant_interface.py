@@ -121,7 +121,7 @@ class DodgeAssistantInterface(AppRunInterface):
 
         # # 调试用
         # from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
-        # auto_op = AutoBattleOperator(self.ctx, 'auto_battle', '专属配队-简')
+        # auto_op = AutoBattleOperator(self.ctx.auto_battle_context, 'auto_battle', '专属配队-简')
         # auto_op.init_before_running()
         # auto_op.start_running_async()
         # self._on_auto_op_loaded_event(ContextEventItem('', auto_op))

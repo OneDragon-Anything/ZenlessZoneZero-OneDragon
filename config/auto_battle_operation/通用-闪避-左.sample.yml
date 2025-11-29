@@ -1,9 +1,6 @@
 # 向左闪避 通常用于规避线条怪
 operations:
-  - op_name: "按键-移动-左"
-    way: "按下"
-    post_delay: 0.1
+  - op_name: "按键-移动-左-按下"
   - op_name: "按键-闪避"
     post_delay: 0.2
-  - op_name: "按键-移动-左"
-    way: "松开"
+  - op_name: "按键-移动-左-松开"

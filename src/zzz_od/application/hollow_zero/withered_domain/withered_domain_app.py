@@ -4,8 +4,8 @@ from typing import ClassVar
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
 from zzz_od.application.hollow_zero.withered_domain.withered_domain_config import WitheredDomainConfig
@@ -33,8 +33,7 @@ class WitheredDomainApp(ZApplication):
             self,
             ctx=ctx,
             app_id=withered_domain_const.APP_ID,
-            op_name=gt(withered_domain_const.APP_NAME),
-            need_notify=True,
+            op_name=withered_domain_const.APP_NAME,
         )
         self.config: WitheredDomainConfig = self.ctx.run_context.get_config(
             app_id=withered_domain_const.APP_ID,
@@ -169,9 +168,9 @@ class WitheredDomainApp(ZApplication):
         return self.round_by_find_area(self.last_screenshot, '零号空洞-入口', '街区', retry_wait=1)
 
     @node_from(from_name='完成后等待加载')
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='完成')
     def finish(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

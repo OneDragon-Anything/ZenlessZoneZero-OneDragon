@@ -1776,3 +1776,52 @@
 - category: "无详情"
   name: "回答错误"
   level: "S"
+
+  # 琉音
+- category: "琉音"
+  name: "余响跹环"
+  level: "S"
+  is_gear: true
+  template_id: "gear_dialyn_2"
+
+- category: "琉音"
+  name: "余响跹环-a"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "余响跹环-b"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "亡语惊铃"
+  level: "S"
+  is_gear: true
+  template_id: "gear_dialyn_1"
+
+- category: "琉音"
+  name: "亡语惊铃-a"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "亡语惊铃-b"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "殁相坠裁"
+  level: "S"
+  is_gear: true
+  template_id: "gear_dialyn_3"
+
+- category: "琉音"
+  name: "殁相坠裁-a"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "殁相坠裁-b"
+  level: "S"
+  is_gear: true

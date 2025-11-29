@@ -1,0 +1,35 @@
+template_name: "琉音-好评套路"
+handlers:
+  - states: ""
+    interrupt_states: "![琉音-特殊技可用] | [自定义-琉音-石头剪刀布]{3,99}"
+    sub_handlers:
+      - states: "[自定义-琉音-好评如潮, -99, -36]"
+        debug_name: "好评有上限"
+        operations:
+          - op_name: "设置状态"
+            state: "自定义-琉音-好评如潮"
+            seconds: 35
+
+      - states: "![自定义-琉音-好评如潮, -35, 0] & [琉音-能量]{25, 120}"
+        debug_name: "先刷个好评再说"
+        operations:
+          - op_name: "设置状态"
+            state: "自定义-琉音-好评如潮"
+            seconds: 5
+          - operation_template: "琉音-找投诉"
+
+      - states: "[琉音-能量]{75, 120}"
+        debug_name: "能量太多了拼命打吧"
+        operations:
+          - operation_template: "琉音-找投诉"
+
+      - states: "[自定义-琉音-石头剪刀布]{1,1} & [琉音-能量]{50, 120}"
+        debug_name: "恶意投诉差2个"
+
+        operations:
+          - operation_template: "琉音-找投诉"
+
+      - states: "[自定义-琉音-石头剪刀布]{2,2} & [琉音-能量]{25, 120}"
+        debug_name: "恶意投诉差1个"
+        operations:
+          - operation_template: "琉音-找投诉"

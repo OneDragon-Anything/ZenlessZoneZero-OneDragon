@@ -27,10 +27,10 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[凯撒-终结技可用] & ![自定义-连携换人, 0, 10]"
+      - states: "[凯撒-终结技可用] & ![自定义-失衡时间, -10, 10]"
         operations:
           - op_name: "设置状态"
-            data: ["自定义-凯撒-护盾"]
+            state: "自定义-凯撒-护盾"
           - operation_template: "凯撒-终结技"
           - op_name: "清除状态"
             state_list: ["自定义-血量扣减"]
@@ -38,10 +38,10 @@ handlers:
       - states: "[凯撒-特殊技可用]"
         operations:
           - op_name: "设置状态"
-            data: ["自定义-凯撒-护盾"]
+            state: "自定义-凯撒-护盾"
           - operation_template: "凯撒-特殊技合轴"
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]
 
       - states: ""
         operations:

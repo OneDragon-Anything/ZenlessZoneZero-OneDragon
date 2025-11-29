@@ -167,7 +167,7 @@ def __debug():
     ctx.init_by_config()
     ctx.init_ocr()
     ctx.run_context.start_running()
-    target = ctx.compendium_service.get_mission_type_data('训练', '定期清剿', '高塔与巨炮')
+    target = ctx.compendium_service.get_mission_type_data('训练', '区域巡防', '高塔与巨炮')
     op = CompendiumChooseMissionType(ctx, target)
     op.execute()
 

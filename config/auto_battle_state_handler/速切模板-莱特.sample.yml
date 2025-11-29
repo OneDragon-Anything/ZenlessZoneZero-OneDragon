@@ -53,7 +53,7 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 3
               - op_name: "设置状态"
-                data: ["自定义-速切结束"]
+                state: "自定义-合轴时间"
 
       - states: "[自定义-闪避]"
         sub_handlers:
@@ -69,7 +69,7 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.5
               - op_name: "设置状态"
-                data: ["自定义-速切结束"]
+                state: "自定义-合轴时间"
 
       - states: "[自定义-快速支援换人]"
         sub_handlers:
@@ -86,7 +86,7 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.5
               - op_name: "设置状态"
-                data: ["自定义-速切结束"]
+                state: "自定义-合轴时间"
 
       - states: "[自定义-招架支援]"
         sub_handlers:
@@ -103,7 +103,7 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.5
               - op_name: "设置状态"
-                data: ["自定义-速切结束"]
+                state: "自定义-合轴时间"
 
       # 士气够了、BUFF快结束了，才进入到放BUFF的状态
       - states: "![自定义-莱特-BUFF, 0, 16] & [莱特-士气]{80, 100}"
@@ -123,7 +123,7 @@ handlers:
           - op_name: "清除状态"
             state: "自定义-动作不打断"
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]
       # E技能
       - states: "[莱特-能量]{80, 120} & [莱特-特殊技可用]"
         operations:
@@ -136,7 +136,7 @@ handlers:
           - op_name: "清除状态"
             state: "自定义-动作不打断"
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]
 
       # 加不了BUFF也没有技能，不普通攻击，直接下场
       - states: ""

@@ -124,17 +124,40 @@ class AutoBattleContext:
         开始自动战斗
         """
         if self.auto_op is not None:
+            # 清空之前检测到的状态
+
             self.init_battle_context()
             self.auto_op.start_running_async()
             self.start_context_async()
+            self.clear_all_states()
 
     def resume_auto_battle(self) -> None:
         """
         恢复自动战斗
         """
         if self.auto_op is not None:
+            # 清空之前检测到的状态
+
             self.auto_op.start_running_async()
             self.start_context_async()
+            self.clear_all_states()
+
+    def clear_all_states(self) -> None:
+        """
+        清空所有之前检测到的状态
+        """
+        # 获取当前策略实际使用的状态ID，而不是所有可能的状态
+        if self.auto_op is None:
+            return
+        usage_states = self.auto_op.usage_states
+
+        # 遍历所有当前策略使用的状态，并将其重置为初始状态
+        log.info(f"正在清空 {len(usage_states)} 个状态...")
+        for state_id in usage_states:
+            recorder = self.state_record_service.get_state_recorder(state_id)
+            if recorder is not None:
+                recorder.reset_to_initial()
+        log.info("所有状态已重置为初始值。")
 
     def stop_auto_battle(self) -> None:
         """

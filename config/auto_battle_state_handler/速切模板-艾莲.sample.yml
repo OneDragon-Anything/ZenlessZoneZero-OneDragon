@@ -34,7 +34,7 @@ handlers:
                 seconds: 0.3
 
       # 失衡时刻
-      - states: "[自定义-连携换人, 0, 10]"
+      - states: "[自定义-失衡时间, 0, 10]"
         debug_name: "失衡期间"
         sub_handlers:
           # 失衡阶段：Q

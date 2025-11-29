@@ -1,6 +1,7 @@
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.application.world_patrol import world_patrol_const
 from zzz_od.application.world_patrol.operation.world_patrol_run_route import (
@@ -24,8 +25,8 @@ class WorldPatrolApp(ZApplication):
             ctx=ctx,
             app_id=world_patrol_const.APP_ID,
             op_name=world_patrol_const.APP_NAME,
-            need_notify=False,
         )
+
         self.config: WorldPatrolConfig = self.ctx.run_context.get_config(
             app_id=world_patrol_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
@@ -102,10 +103,11 @@ class WorldPatrolApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='停止追踪后返回大世界')
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='执行路线')
     def run_route(self) -> OperationRoundResult:
         if self.route_idx >= len(self.route_list):
-            return self.round_success(status=f'路线已全部完成')
+            return self.round_success(status='路线已全部完成')
 
         route: WorldPatrolRoute = self.route_list[self.route_idx]
         if route.full_id in self.run_record.finished:
@@ -115,31 +117,40 @@ class WorldPatrolApp(ZApplication):
         op = WorldPatrolRunRoute(self.ctx, route)
         result = op.execute()
 
-        # 特殊处理：卡住脱困超过上限时，等待3秒并从当前路线起点重启一次
-        if not result.success and isinstance(result.status, str) and '卡住超限，重启当前路线' in result.status:
-            # 二次尝试（从头）
-            retry_op = WorldPatrolRunRoute(self.ctx, route)
-            retry_result = retry_op.execute()
-            if retry_result.success:
-                self.run_record.add_record(route.full_id)
-                self.route_idx += 1
-                return self.round_wait(status=f'完成路线 {route.full_id}')
-            else:
-                self.route_idx += 1
-                return self.round_wait(status=f'路线失败 {retry_result.status} {route.full_id}')
+        def _is_stuck_over_limit_status(status: object) -> bool:
+            return isinstance(status, str) and '重启当前路线' in status
+
+        route_finished = False
+        fail_status = None
 
         if result.success:
+            route_finished = True
+        elif _is_stuck_over_limit_status(result.status):
+            # 二次尝试（从头）
+            retry_op = WorldPatrolRunRoute(self.ctx, route, is_restarted=True)
+            retry_result = retry_op.execute()
+            if retry_result.success:
+                route_finished = True
+            elif _is_stuck_over_limit_status(retry_result.status):
+                route_finished = False
+                fail_status = '重启后再次卡住'
+            else:
+                fail_status = retry_result.status
+        else:
+            fail_status = result.status
+
+        if route_finished:
             self.run_record.add_record(route.full_id)
             self.route_idx += 1
             return self.round_wait(status=f'完成路线 {route.full_id}')
         else:
             self.route_idx += 1
-            return self.round_wait(status=f'路线失败 {result.status} {route.full_id}')
+            return self.round_wait(status=f'路线失败 {fail_status} {route.full_id}')
 
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
 
     app = WorldPatrolApp(ctx)
     app.execute()

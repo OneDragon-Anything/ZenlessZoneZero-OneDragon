@@ -68,7 +68,7 @@
           mission_list:
             - mission_name: "代理人方案培养"
 
-    - category_name: "定期清剿"
+    - category_name: "区域巡防"
       mission_type_list:
         - mission_type_name: "怪兽与怪客"
           mission_type_name_display: "摇摆爵士 混沌重金属"

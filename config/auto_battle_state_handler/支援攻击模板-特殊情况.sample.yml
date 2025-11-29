@@ -16,7 +16,7 @@ handlers:
       - states: "[前台-青衣]"
         operations:
           - op_name: "设置状态"
-            data: ["自定义-红光闪避"]
+            state: "自定义-红光闪避"
       - states: "[前台-零号安比]"
         sub_handlers:
           - state_template: "双反模板-下一个"
@@ -26,15 +26,15 @@ handlers:
       - states: "([按键-切换角色-下一个, 0, 3]|[按键-切换角色-上一个, 0, 3])" # 异常角色至少输出3秒
         operations:
           - op_name: "设置状态"
-            data: ["自定义-红光闪避"]
+            state: "自定义-红光闪避"
 
   - states: "[前台-凯撒]"
     operations:
       - op_name: "设置状态"
-        data: ["自定义-凯撒-护盾"]
+        state: "自定义-凯撒-护盾"
       - operation_template: "凯撒-特殊技格挡"
       - op_name: "设置状态"
-        data: ["自定义-速切结束"] # 强者不需要切人直接格挡就行
+        state: "自定义-合轴时间" # 强者不需要切人直接格挡就行
 
   - states: "[前台-本]"
     operations:
@@ -44,10 +44,10 @@ handlers:
         post_delay: 0.1
         repeat: 5
       - op_name: "设置状态"
-        data: ["自定义-速切结束"]
+        state: "自定义-合轴时间"
 
   - states: "[前台-仪玄] & [仪玄-术法值]{0, 119} & [仪玄-特殊技可用] & ![自定义-动作不打断, -9, 0]"
     debug_name: "仪玄情不自禁格挡"
     operations:
       - op_name: "设置状态"
-        data: ["自定义-红光闪避"]
+        state: "自定义-红光闪避"

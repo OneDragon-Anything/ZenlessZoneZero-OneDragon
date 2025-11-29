@@ -1,5 +1,14 @@
-from PySide6.QtWidgets import QWidget, QGridLayout
-from qfluentwidgets import MessageBoxBase, SubtitleLabel, SwitchButton, CheckBox
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QGridLayout, QWidget
+from qfluentwidgets import (
+    BodyLabel,
+    CheckBox,
+    MessageBoxBase,
+    SubtitleLabel,
+    SwitchButton,
+)
+
+from one_dragon.base.config.notify_config import NotifyLevel
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 
@@ -25,6 +34,8 @@ class NotifyDialog(MessageBoxBase):
         self.before_notify_switch.label.setText(gt('开始前通知'))
         self.viewLayout.addWidget(self.before_notify_switch)
 
+        self.viewLayout.addWidget(BodyLabel(gt('未选 = 关闭；半选 = 应用级通知；全选 = 应用+节点级通知')))
+
         # 存储所有应用的复选框
         self.app_checkboxes = {}
 
@@ -34,19 +45,24 @@ class NotifyDialog(MessageBoxBase):
         grid_layout.setContentsMargins(0, 10, 0, 10)
         grid_layout.setSpacing(10)
 
-        app_list = self.ctx.notify_config.app_list
-
         # 每行放置3个复选框
         column_count = 3
         # 使用 enumerate 和 items() 遍历字典获取索引、键和值
-        for i, (app_id, app_name) in enumerate(app_list.items()):
+        for i, (app_id, app_name) in enumerate(self.ctx.notify_config.app_map.items()):
             row = i // column_count
             col = i % column_count
 
             # 使用 app_name 作为 CheckBox 的文本
             checkbox = CheckBox(gt(app_name), self)
-            initial_checked = getattr(self.ctx.notify_config, app_id, False)
-            checkbox.setChecked(initial_checked)
+            checkbox.setTristate(True)
+
+            level = self.ctx.notify_config.get_app_notify_level(app_id)
+            if level == NotifyLevel.OFF:
+                checkbox.setCheckState(Qt.CheckState.Unchecked)
+            elif level == NotifyLevel.APP:
+                checkbox.setCheckState(Qt.CheckState.PartiallyChecked)
+            else:
+                checkbox.setCheckState(Qt.CheckState.Checked)
 
             # 保存复选框引用，使用 app_id 作为键
             self.app_checkboxes[app_id] = checkbox
@@ -57,7 +73,14 @@ class NotifyDialog(MessageBoxBase):
 
     def accept(self):
         """点击确定时，更新配置"""
-        setattr(self.ctx.notify_config, 'enable_before_notify', self.before_notify_switch.isChecked())
+        self.ctx.notify_config.enable_before_notify = self.before_notify_switch.isChecked()
         for app_id, checkbox in self.app_checkboxes.items():
-            setattr(self.ctx.notify_config, app_id, checkbox.isChecked())
+            state = checkbox.checkState()
+            if state == Qt.CheckState.Unchecked:
+                level = NotifyLevel.OFF
+            elif state == Qt.CheckState.PartiallyChecked:
+                level = NotifyLevel.APP
+            else:
+                level = NotifyLevel.ALL
+            setattr(self.ctx.notify_config, app_id, level)
         super().accept()

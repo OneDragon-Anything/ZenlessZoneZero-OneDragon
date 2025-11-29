@@ -32,7 +32,7 @@ handlers:
                 seconds: 0.3
 
       # 失衡时刻
-      - states: "[自定义-连携换人, 0, 10] | [自定义-感电, 0, 12]"  # 感电暂时不可用
+      - states: "[自定义-失衡时间, 0, 10] | [自定义-感电, 0, 12]"  # 感电暂时不可用
         sub_handlers:
           # 失衡的时候就不用考虑这么多了，射吧
           - states: "[安东-特殊技可用] & (![自定义-安东-爆发状态, 0, 12] | ([按键-切换角色-下一个, 0, 1]|[按键-切换角色-上一个, 0, 1]))"
@@ -57,7 +57,7 @@ handlers:
                 post_delay: 0.1
                 repeat: 25
 
-      - states: "![自定义-连携换人, 0, 10]"
+      - states: "![自定义-失衡时间, -10, 10]"
         sub_handlers:
           - states: "[安东-能量]{110, 120}"
             operations:
@@ -65,11 +65,11 @@ handlers:
                 post_delay: 0.3
                 repeat: 2
               - op_name: "设置状态"
-                data: ["自定义-速切结束"]
+                state: "自定义-合轴时间"
           - states: ""
             operations:
               - op_name: "按键-普通攻击"
                 post_delay: 0.1
                 repeat: 25
               - op_name: "设置状态"
-                data: ["自定义-速切结束"]
+                state: "自定义-合轴时间"

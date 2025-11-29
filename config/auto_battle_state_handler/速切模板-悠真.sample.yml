@@ -29,18 +29,18 @@ handlers:
                 seconds: 0.3
 
       # 失衡时刻
-      - states: "[自定义-连携换人, 0, 10]"
+      - states: "[自定义-失衡时间, 0, 10]"
         sub_handlers:
           # 离场
-          - states: "[自定义-连携换人, 9, 10]"
+          - states: "[自定义-失衡时间, 9, 10]"
             debug_name: "失衡快结束"
             operations:
               - operation_template: "悠真-连携普攻产电壶"  # 连携奖励电壶别浪费了
               - op_name: "设置状态"
-                data: ["自定义-速切结束"]
+                state: "自定义-合轴时间"
 
           # 连邂后第一套技能
-          - states: "[自定义-连携换人, 0, 3] | [自定义-连携跳过, 0, 2]"  # 清空掉异常打出的电壶
+          - states: "[自定义-失衡时间, 0, 3] | [自定义-连携跳过, 0, 2]"  # 清空掉异常打出的电壶
             debug_name: "失衡期操作"
             sub_handlers:
               - states: "[悠真-终结技可用]"
@@ -56,7 +56,7 @@ handlers:
                   - operation_template: "悠真-连携普攻产电壶"  # 连携奖励电壶别浪费了
                   - operation_template: "悠真-射箭四刀"  # 清空连携电壶
 
-          - states: "[自定义-连携换人, 3, 10]"
+          - states: "[自定义-失衡时间, 3, 10]"
             debug_name: "失衡期"
             sub_handlers:
               # 妮可来一发谢谢
@@ -92,7 +92,7 @@ handlers:
                 operations:
                   - operation_template: "悠真-连携普攻产电壶"  # 连携奖励电壶别浪费了
                   - op_name: "设置状态"
-                    data: ["自定义-速切结束"]
+                    state: "自定义-合轴时间"
 
       # 非失衡时刻
 
@@ -124,7 +124,7 @@ handlers:
                 operations:
                   - operation_template: "悠真-射箭四刀"  # 清空电壶再下场
                   - op_name: "设置状态"
-                    data: ["自定义-速切结束"]
+                    state: "自定义-合轴时间"
 
             # 非异常队
           - states: ""
@@ -142,7 +142,7 @@ handlers:
                 operations:
                   - operation_template: "悠真-射箭三刀"  # 清空电壶再下场
                   - op_name: "设置状态"
-                    data: ["自定义-速切结束"]
+                    state: "自定义-合轴时间"
                   - operation_template: "悠真-普通攻击"
 
       - states: "![后台-1-击破] & ![后台-2-击破]"
@@ -159,5 +159,5 @@ handlers:
             operations:
               - operation_template: "悠真-射箭三刀"  # 清空电壶再下场
               - op_name: "设置状态"
-                data: ["自定义-速切结束"]
+                state: "自定义-合轴时间"
               - operation_template: "悠真-普通攻击"

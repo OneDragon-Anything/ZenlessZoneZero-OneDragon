@@ -60,7 +60,7 @@ class AppRunCard(MultiPushSettingCard):
         更新显示的状态
         :return:
         """
-        self.setTitle(self.app.app_name)
+        self.setTitle(gt(self.app.app_name))
         if self.run_record is None:
             self.setContent('')
         else:
