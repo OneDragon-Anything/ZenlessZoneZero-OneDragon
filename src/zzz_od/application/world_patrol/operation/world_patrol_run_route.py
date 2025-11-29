@@ -208,14 +208,9 @@ class WorldPatrolRunRoute(ZOperation):
         处理移动指令的核心逻辑
         """
         # 1. 更新当前位置，并处理无法计算坐标/卡住超限的情况
-        res = self._update_current_pos(mini_map)
-        if isinstance(res, OperationRoundResult):
-            return res
-        if res is None:
-            return self.round_fail(status='坐标计算失败，重启当前路线')
-        if self._process_stuck_with_pos(res):
-            return self.round_fail(status='有坐标但卡住，重启当前路线')
-        self.current_pos = res
+        result = self._update_current_pos(mini_map)
+        if result is not None:
+            return result
 
         # 回溯态维护与目标点选择
         if self.backtrack_active and self._backtrack_step(self.current_pos, emit_log=True) == 'reached':
@@ -278,6 +273,9 @@ class WorldPatrolRunRoute(ZOperation):
             mini_map,
             possible_rect,
         )
+        if not self._is_next_pos_valid(next_pos):
+            log.info(f'计算坐标偏移较大 舍弃 {next_pos}')
+            next_pos = None
 
         if next_pos is None:
             # 处理无法计算坐标的情况
@@ -287,14 +285,12 @@ class WorldPatrolRunRoute(ZOperation):
                 self.no_pos_start_time = self.last_screenshot_time
             # 达到重启阈值：请求重启
             elif no_pos_seconds > 20.0:
-                log.error('[no-pos]卡住，重启当前路线')
-                return None
+                return self.round_fail(status='坐标计算失败，重启当前路线')
             # 达到脱困阈值：执行脱困（不计数）
             elif no_pos_seconds > 4.0:
                 # 如果是重启后的路线，再次卡住时直接跳过，不再尝试脱困
                 if self.is_restarted:
-                    log.error('[no-pos]再次卡住，跳过当前路线')
-                    return None
+                    return self.round_fail(status='坐标计算失败，重启当前路线')
                 self._do_unstuck_move('no-pos')
             # 达到停止阈值：停止前进，避免盲走
             elif no_pos_seconds > 2.0:
@@ -305,7 +301,67 @@ class WorldPatrolRunRoute(ZOperation):
             return self.round_wait(status=f'坐标计算失败 持续 {no_pos_seconds:.2f} 秒')
         else:
             self.no_pos_start_time = 0  # 成功获取坐标，重置计时器
-            return next_pos
+
+            if self._process_stuck_with_pos(next_pos):
+                return self.round_fail(status='有坐标但卡住，重启当前路线')
+
+            self.current_pos = next_pos
+            return None
+
+    def _is_next_pos_valid(self, next_pos: Point) -> bool:
+        """
+        判断匹配的下一个坐标是否合法
+        1. 根据上一坐标、朝向、转向等 判断当前坐标计算结果是否偏离方向
+        Args:
+            next_pos: 匹配的坐标
+        Returns:
+            bool: True 表示坐标合法，False 表示坐标非法
+        """
+        return self._is_next_pos_in_angle_range(next_pos)
+
+    def _is_next_pos_in_angle_range(self, next_pos: Point) -> bool:
+        """
+        根据上一坐标、朝向、转向等 判断当前坐标计算结果是否偏离方向
+        Args:
+            next_pos: 匹配的坐标
+        Returns:
+            bool: True 表示坐标合法，False 表示坐标非法
+        """
+        if self.last_angle is None or self.last_angle_diff_command is None:
+            return True
+
+        # 只有和上一个距离较远时进行判断 距离较近的计算移动朝向误差大 不进行判断
+        if cal_utils.distance_between(self.current_pos, next_pos) < 20:
+            return True
+
+        # 从上一个坐标 到当前坐标的方向 正右为0 逆时针为正
+        move_angle = cal_utils.calculate_direction_angle(self.current_pos, next_pos)
+
+        if self.last_angle_diff_command < 0:
+            # 上一次选择了顺时针旋转 要计算角度减少了多少
+            if move_angle <= self.last_angle:
+                # 假设上一次朝向=45度 转向=-90度 当前移动朝向=5度 则移动转向=5-45
+                move_angle_diff = move_angle - self.last_angle
+            else:
+                # 假设上一次朝向=45度 转向=-90度 当前移动朝向=355度 则移动转向=355-360-45
+                move_angle_diff = move_angle - 360 - self.last_angle
+        else:
+            # 上一次选择了逆时针旋转 要计算角度增加了多少
+            if move_angle >= self.last_angle:
+                # 假设上一次朝向=300度 转向=90度 当前朝向=350度 则移动转向=350-300
+                move_angle_diff = move_angle - self.last_angle
+            else:
+                # 假设上一次朝向=300度 转向=90度 当前朝向=40度 则移动转向=40+360-300
+                move_angle_diff = move_angle + 360 - self.last_angle
+
+        # 当前移动朝向 应该在上一次的朝向和转向的限定范围内
+        # 允许一定范围的转向转过了
+        allow_angle_diff = 10
+
+        if self.last_angle_diff_command < 0:
+            return allow_angle_diff >= move_angle_diff >= self.last_angle_diff_command - allow_angle_diff
+        else:
+            return -allow_angle_diff <= move_angle_diff <= self.last_angle_diff_command + allow_angle_diff
 
     def _process_stuck_with_pos(self, next_pos: Point) -> bool:
         """
@@ -504,7 +560,7 @@ class WorldPatrolRunRoute(ZOperation):
         return self.round_success()
 
     @node_from(from_name='初始化自动战斗')
-    @operation_node(name='自动战斗')
+    @operation_node(name='自动战斗', mute=True)
     def auto_battle(self) -> OperationRoundResult:
         if self.ctx.auto_battle_context.last_check_end_result is not None:
             self.ctx.auto_battle_context.stop_auto_battle()
@@ -514,12 +570,18 @@ class WorldPatrolRunRoute(ZOperation):
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True)
 
-        if self.ctx.auto_battle_context.last_check_in_battle and self.last_screenshot_time - self.last_check_battle_time > 1:
-            mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
-            # 更新节流时间戳，避免每轮重复切小地图
+        # 每秒检测1次是否退出了战斗
+        if self.last_screenshot_time - self.last_check_battle_time > 1:
             self.last_check_battle_time = self.last_screenshot_time
-            if mini_map.play_mask_found:
-                return self.round_success(status='发现地图')
+            if not self.ctx.auto_battle_context.last_check_in_battle:
+                # 当前不在战斗画面(没有攻击按钮) 但有可能是战斗结束靠近了可交互物 变成了交互按键
+                result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
+                if result.is_success:
+                    return self.round_success(status=result.status)
+            else:
+                mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
+                if mini_map.play_mask_found:
+                    return self.round_success(status='发现地图')
 
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
@@ -533,6 +595,11 @@ class WorldPatrolRunRoute(ZOperation):
         if self.ctx.auto_battle_context.auto_op is not None:
             auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
         self.ctx.controller.turn_vertical_by_distance(300)
+
+        # 重置上次朝向的记录
+        self.last_angle = None
+        self.last_angle_diff_command = None
+
         return self.round_success()
 
     def handle_pause(self) -> None:
@@ -552,8 +619,7 @@ class WorldPatrolRunRoute(ZOperation):
 
 def __debug(area_full_id: str, route_idx: int):
     ctx = ZContext()
-    ctx.init_ocr()
-    ctx.init_for_application()
+    ctx.init()
     ctx.world_patrol_service.load_data()
 
     target_route: WorldPatrolRoute | None = None
