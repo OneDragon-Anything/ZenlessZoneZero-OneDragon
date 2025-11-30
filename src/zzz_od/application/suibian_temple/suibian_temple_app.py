@@ -80,16 +80,21 @@ class SuibianTempleApp(ZApplication):
             '确认',
             '领取收益',
         ]
+        ignore_cn_list: list[str] = []
 
-        result = self.round_by_ocr_and_click_by_priority(target_cn_list)
+        result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=ignore_cn_list)
         if result.is_success:
-            if result.status == '领取收益':
-                return self.round_success(status=result.status, wait=1)
             return self.round_wait(status=result.status, wait=1)
 
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-入口'])
         if current_screen_name is not None:
-            return self.round_success()
+            return self.round_success(status=current_screen_name)
+
+        # 领取收益 -> 确认 -> 开始托管
+        if self.config.auto_manage_enabled:
+            result = self.round_by_ocr(self.last_screenshot, target_cn='开始托管')
+            if result.is_success:
+                return self.round_success(status=result.status)
 
         result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回')
         if result.is_success:

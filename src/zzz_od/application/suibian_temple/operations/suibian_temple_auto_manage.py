@@ -28,7 +28,8 @@ class SuibianTempleAutoManage(ZOperation):
             '开始托管',
             '领取收益',
             '经营',
-            '自动托管'
+            '自动托管',
+            '确认'
         ]
         ignore_cn_list = [
             '经营',
