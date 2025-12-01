@@ -1,7 +1,8 @@
 from typing import List, Optional
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt, Signal, QEvent, QPoint, QTimer, QPropertyAnimation
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QVBoxLayout, QWidget, QLabel, QFrame, QGraphicsOpacityEffect, QGraphicsDropShadowEffect
+from PySide6.QtGui import QPixmap, QCursor
 from qfluentwidgets import (
     FluentIcon,
     PrimaryPushButton,
@@ -19,28 +20,25 @@ from one_dragon.base.operation.application.application_group_config import (
 )
 from one_dragon.base.operation.application_base import ApplicationEventId
 from one_dragon.base.operation.context_event_bus import ContextEventItem
-from one_dragon.base.operation.one_dragon_context import (
-    ContextInstanceEventEnum,
-    ContextKeyboardEventEnum,
-    OneDragonContext,
-)
+from one_dragon.base.operation.one_dragon_app import OneDragonApp
+from one_dragon.base.operation.one_dragon_context import OneDragonContext, ContextKeyboardEventEnum, \
+    ContextInstanceEventEnum
 from one_dragon.utils import cmd_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.view.app_run_interface import AppRunner
+from one_dragon_qt.widgets.mixins.container_reorder_mixin import ContainerReorderMixin, ReorderDragOptions
 from one_dragon_qt.view.context_event_signal import ContextEventSignal
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
-from one_dragon_qt.widgets.notify_dialog import NotifyDialog
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
-    ComboBoxSettingCard,
-)
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from one_dragon_qt.widgets.notify_dialog import NotifyDialog
 
 
-class OneDragonRunInterface(VerticalScrollInterface):
+class OneDragonRunInterface(ContainerReorderMixin, VerticalScrollInterface):
 
     run_all_apps_signal = Signal()
 
@@ -66,6 +64,8 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self.help_url: str = help_url  # 使用说明的链接
         self.need_multiple_instance: bool = need_multiple_instance  # 是否需要多实例
         self.need_after_done_opt: bool = need_after_done_opt  # 结束后
+
+        self.init_reorder_drag()
 
     def get_content_widget(self) -> QWidget:
         """
@@ -103,6 +103,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
         layout = QVBoxLayout()
 
         scroll_area = SingleDirectionScrollArea()
+        self._scroll_area = scroll_area
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_layout.setContentsMargins(0, 0, 16, 0)
@@ -115,6 +116,18 @@ class OneDragonRunInterface(VerticalScrollInterface):
         scroll_area.setWidgetResizable(True)
 
         layout.addWidget(scroll_area)
+
+        # 延后 attach 到 on_interface_shown，确保卡片已创建
+        self._reorder_attach_args = dict(
+            container=self.app_card_group,
+            scroll_area=scroll_area,
+            get_items=lambda: self._app_run_cards,
+            get_item_id=lambda w: getattr(getattr(w, 'app', None), 'app_id', ''),
+            on_reorder=self._on_reorder_commit,
+            get_drag_handle=None,
+            get_drop_parent=lambda: self._app_run_cards[0].parentWidget() if self._app_run_cards else self.app_card_group,
+            options=ReorderDragOptions(preview_enabled=True, preview_scale=1.0, preview_opacity=0.6, handle_left_width=None, hide_original_on_drag=True, highlight_duration_ms=600, preview_anchor_mode="left", anchor_left_padding=8)
+        )
 
         return layout
 
@@ -206,9 +219,12 @@ class OneDragonRunInterface(VerticalScrollInterface):
                 self.app_card_group.addSettingCard(app_run_card)
                 app_run_card.update_display()
 
-                app_run_card.move_up.connect(self.on_app_card_move_up)
+                # app_run_card.move_up.connect(self.on_app_card_move_up)
+                # app_run_card.move_down.connect(self.on_app_card_move_down)
                 app_run_card.run.connect(self._on_app_card_run)
                 app_run_card.switched.connect(self.on_app_switch_run)
+
+        # 卡片级拖拽信号不再使用，交由容器 mixin 统一处理
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
@@ -216,6 +232,9 @@ class OneDragonRunInterface(VerticalScrollInterface):
             instance_idx=self.ctx.current_instance_idx,
         )
         self._init_app_list()
+        # attach mixin（此时 _app_run_cards 已构建）
+        if hasattr(self, '_reorder_attach_args'):
+            self.attach(**self._reorder_attach_args)
         self.notify_switch.init_with_adapter(self.ctx.notify_config.get_prop_adapter('enable_notify'))
 
         self.ctx.listen_event(ContextKeyboardEventEnum.PRESS.value, self._on_key_press)
@@ -317,15 +336,6 @@ class OneDragonRunInterface(VerticalScrollInterface):
         for app_card in self._app_run_cards:
             app_card.update_display()
 
-    def on_app_card_move_up(self, app_id: str) -> None:
-        """
-        将该应用往上调整一位
-        :param app_id:
-        :return:
-        """
-        self.config.move_up_app(app_id)
-        self._init_app_list()
-
     def _on_app_card_run(self, app_id: str) -> None:
         """
         运行某个特殊的应用
@@ -374,3 +384,33 @@ class OneDragonRunInterface(VerticalScrollInterface):
         """
         dialog = NotifyDialog(self, self.ctx)
         dialog.exec()
+
+    def _on_reorder_commit(self, app_id: str, target_index: int) -> None:
+        """容器级拖拽完成时提交顺序变更，由 mixin 回调。"""
+        try:
+            # 获取当前顺序
+            current_order = [app.app_id for app in self.config.app_list]
+
+            # 找到要移动的应用的当前位置
+            current_idx = -1
+            for i, aid in enumerate(current_order):
+                if aid == app_id:
+                    current_idx = i
+                    break
+
+            if current_idx == -1 or current_idx == target_index:
+                return
+
+            # 重新排序
+            current_order.pop(current_idx)
+            current_order.insert(target_index, app_id)
+
+            # 保存新顺序
+            self.config.set_app_order(current_order)
+        finally:
+            self._refresh_app_cards_order_display()
+
+    def _refresh_app_cards_order_display(self) -> None:
+        """根据配置中的顺序刷新卡片的显示（不变更控件实例顺序，仅更新内容）"""
+        # 重新初始化应用列表以获取最新顺序
+        self._init_app_list()
