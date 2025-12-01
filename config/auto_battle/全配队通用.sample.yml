@@ -93,14 +93,12 @@ scenes:
 
   - triggers: ["按键可用-快速支援"]
     priority: 97
-    interval: 0.1
     handlers:
       # 详情可以打开状态模板
       - state_template: "快速支援模板-全角色"
 
   - triggers: ["前台-血量扣减"]
     priority: 90
-    interval: 0.2
     handlers:
       - states: "[前台-血量扣减]{1, 100} & ![自定义-动作不打断, 0, 30]"
         sub_handlers:
@@ -111,17 +109,15 @@ scenes:
 
   - triggers: ["自定义-合轴时间"]
     priority: 80
-    interval: 0.2
     handlers:
       # 这边是主线程的动作流程中，设置了状态速切结束，代表可以尝试进行合轴，如果有角色满足出场条件，就会进行合轴。
       # 具体合轴情况打开状态模板看条件
-      - states: "![切人-冷却]"
+      - states: ""
         sub_handlers:
           - state_template: "轮换-合轴-全角色"
 
   - triggers: []
     priority: 9
-    interval: 0.1
     handlers:
       # 刚开始未识别到角色时候不要乱切
       - states: "![自定义-动作不打断, -10, -0.1]"
@@ -129,6 +125,7 @@ scenes:
         sub_handlers:
           - state_template: "自动锁定模板"
           - states: "[自定义-连携换人, 0, 0.5] | [闪避识别-黄光, 0, 0.5] | [闪避识别-红光, 0, 0.5] | [闪避识别-声音, 0, 0.5]"
+            debug_name: "连携-支援"
             sub_handlers:
               - state_template: "速切模板-全角色"
           - state_template: "轮换-紧急-全角色"
