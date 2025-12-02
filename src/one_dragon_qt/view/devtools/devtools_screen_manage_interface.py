@@ -181,14 +181,15 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         self.area_table = TableWidget()
         self.area_table.cellChanged.connect(self._on_area_table_cell_changed)
-        self.area_table.setMinimumWidth(990)
+        self.area_table.setMinimumWidth(980)
         self.area_table.setBorderVisible(True)
         self.area_table.setBorderRadius(8)
         self.area_table.setWordWrap(True)
-        self.area_table.setColumnCount(10)
+        self.area_table.setColumnCount(11)
         self.area_table.verticalHeader().hide()
         self.area_table.setHorizontalHeaderLabels([
             gt('操作'),
+            gt('标识'),
             gt('区域名称'),
             gt('位置'),
             gt('文本'),
@@ -196,13 +197,15 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             gt('模板'),
             gt('阈值'),
             gt('颜色范围'),
-            gt('唯一标识'),
-            gt('前往画面')
+            gt('裁剪'),
+            gt('前往画面'),
         ])
         self.area_table.setColumnWidth(0, 40)  # 操作
-        self.area_table.setColumnWidth(2, 200)  # 位置
-        self.area_table.setColumnWidth(4, 70)  # 文本阈值
-        self.area_table.setColumnWidth(6, 70)  # 模板阈值
+        self.area_table.setColumnWidth(1, 40)  # 标识
+        self.area_table.setColumnWidth(3, 200)  # 位置
+        self.area_table.setColumnWidth(5, 70)  # 文本阈值
+        self.area_table.setColumnWidth(7, 70)  # 模板阈值
+        self.area_table.setColumnWidth(9, 40)  # 裁剪
         # table的行被选中时 触发
         self.area_table_row_selected: int = -1  # 选中的行
         self.area_table.cellClicked.connect(self.on_area_table_cell_clicked)
@@ -252,7 +255,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         layout.addWidget(self.image_label, 1)
 
         return widget
-
 
 
     def on_interface_shown(self) -> None:
@@ -316,18 +318,25 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             id_check.setProperty('area_name', area_item.area_name)
             id_check.stateChanged.connect(self.on_area_id_check_changed)
 
+            crop_first_check = CheckBox()
+            crop_first_check.setChecked(area_item.crop_first)
+            crop_first_check.setProperty('area_name', area_item.area_name)
+            crop_first_check.stateChanged.connect(self.on_area_crop_first_check_changed)
+
             self.area_table.setCellWidget(idx, 0, del_btn)
-            self.area_table.setItem(idx, 1, QTableWidgetItem(area_item.area_name))
-            self.area_table.setItem(idx, 2, QTableWidgetItem(str(area_item.pc_rect)))
-            self.area_table.setItem(idx, 3, QTableWidgetItem(area_item.text))
-            self.area_table.setItem(idx, 4, QTableWidgetItem(str(area_item.lcs_percent)))
-            self.area_table.setItem(idx, 5, QTableWidgetItem(area_item.template_id_display_text))
-            self.area_table.setItem(idx, 6, QTableWidgetItem(str(area_item.template_match_threshold)))
-            self.area_table.setItem(idx, 7, QTableWidgetItem(str(area_item.color_range_display_text)))
-            self.area_table.setCellWidget(idx, 8, id_check)
-            self.area_table.setItem(idx, 9, QTableWidgetItem(area_item.goto_list_display_text))
+            self.area_table.setCellWidget(idx, 1, id_check)
+            self.area_table.setItem(idx, 2, QTableWidgetItem(area_item.area_name))
+            self.area_table.setItem(idx, 3, QTableWidgetItem(str(area_item.pc_rect)))
+            self.area_table.setItem(idx, 4, QTableWidgetItem(area_item.text))
+            self.area_table.setItem(idx, 5, QTableWidgetItem(str(area_item.lcs_percent)))
+            self.area_table.setItem(idx, 6, QTableWidgetItem(area_item.template_id_display_text))
+            self.area_table.setItem(idx, 7, QTableWidgetItem(str(area_item.template_match_threshold)))
+            self.area_table.setItem(idx, 8, QTableWidgetItem(str(area_item.color_range_display_text)))
+            self.area_table.setCellWidget(idx, 9, crop_first_check)
+            self.area_table.setItem(idx, 10, QTableWidgetItem(area_item.goto_list_display_text))
 
 
+        # 最后一行 只保留一个新增按钮
         add_btn = ToolButton(FluentIcon.ADD, parent=None)
         add_btn.setFixedSize(32, 32)
         add_btn.clicked.connect(self._on_area_add_clicked)
@@ -341,6 +350,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.area_table.setItem(area_cnt, 7, QTableWidgetItem(''))
         self.area_table.setItem(area_cnt, 8, QTableWidgetItem(''))
         self.area_table.setItem(area_cnt, 9, QTableWidgetItem(''))
+        self.area_table.setItem(area_cnt, 10, QTableWidgetItem(''))
 
         self.area_table.blockSignals(False)
 
@@ -710,6 +720,16 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             if row_idx < 0 or row_idx >= len(self.chosen_screen.area_list):
                 return
             self.chosen_screen.area_list[row_idx].id_mark = btn.isChecked()
+
+    def on_area_crop_first_check_changed(self) -> None:
+        if self.chosen_screen is None:
+            return
+        btn: CheckBox = self.sender()
+        if btn is not None:
+            row_idx = self.area_table.indexAt(btn.pos()).row()
+            if row_idx < 0 or row_idx >= len(self.chosen_screen.area_list):
+                return
+            self.chosen_screen.area_list[row_idx].crop_first = btn.isChecked()
 
     def on_area_table_cell_clicked(self, row: int, column: int):
         if self.area_table_row_selected == row:

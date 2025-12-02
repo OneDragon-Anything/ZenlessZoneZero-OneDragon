@@ -9,8 +9,7 @@ from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.matcher.ocr.ocr_match_result import OcrMatchResult
 from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
-from one_dragon.utils import cal_utils
-from one_dragon.utils import str_utils
+from one_dragon.utils import cal_utils, cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
@@ -23,6 +22,8 @@ class OcrCacheEntry:
     ocr_result_list: list[OcrMatchResult]  # OCR识别结果
     create_time: float  # 创建时间
     color_range: list[list[int]] | None  # 颜色范围
+    rect: Rect | None = None  # 识别区域
+    crop_first: bool = False  # 先裁剪再识别 用于从连续文本中只提取特定区域的文本
 
 
 class OcrService:
@@ -74,7 +75,7 @@ class OcrService:
 
     def _apply_color_filter(self, image: MatLike, color_range: list[list[int]]) -> MatLike:
         """
-        应用颜色过滤，最后返回黑白图。
+        应用颜色过滤，最后返回RGB格式的黑白图，用于OCR。
         不返回原图颜色是因为，如果使用黑色过滤，最后得到会是一个全黑的图片，无法进行识别。
         
         Args:
@@ -89,18 +90,22 @@ class OcrService:
         
         # 应用颜色范围过滤
         mask = cv2.inRange(image, np.array(color_range[0]), np.array(color_range[1]))
-        return cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+        return cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
 
     def _get_ocr_result_list_from_cache(
-            self,
-            image: MatLike,
-            color_range: list[list[int]] | None = None,
+        self,
+        image: MatLike,
+        color_range: list[list[int]] | None = None,
+        rect: Rect | None = None,
+        crop_first: bool = False,
     ) -> OcrCacheEntry | None:
         """
         从缓存中获取OCR结果
         Args:
             image: 输入图片
             color_range: 颜色范围过滤 [[lower], [upper]]
+            rect: 识别特定的区域
+            crop_first: 先裁剪再识别 用于从连续文本中只提取特定区域的文本
 
         Returns:
             缓存条目
@@ -112,18 +117,24 @@ class OcrService:
 
         for cache_entry in cache_list:
             # Python 的列表 == 操作符会自动处理嵌套结构和值的比较 包括None
-            if cache_entry.color_range == color_range:
-                return cache_entry
+            if cache_entry.color_range != color_range:
+                continue
+            if cache_entry.rect != rect:
+                continue
+            if cache_entry.crop_first != crop_first:
+                continue
+            return cache_entry
 
         return None
 
     def get_ocr_result_list(
-            self,
-            image: MatLike,
-            color_range: list[list[int]] | None = None,
-            rect: Rect | None = None,
-            threshold: float = 0,
-            merge_line_distance: float = -1,
+        self,
+        image: MatLike,
+        color_range: list[list[int]] | None = None,
+        rect: Rect | None = None,
+        crop_first: bool = False,
+        threshold: float = 0,
+        merge_line_distance: float = -1,
     ) -> list[OcrMatchResult]:
         """
         获取全图OCR结果，优先从缓存获取
@@ -132,6 +143,7 @@ class OcrService:
             image: 输入图片
             color_range: 颜色范围过滤 [[lower], [upper]]
             rect: 识别特定的区域
+            crop_first: 先裁剪再识别 用于从连续文本中只提取特定区域的文本
             threshold: OCR阈值
             merge_line_distance: 行合并距离
 
@@ -144,6 +156,8 @@ class OcrService:
         cache_entity = self._get_ocr_result_list_from_cache(
             image=image,
             color_range=color_range,
+            rect=rect,
+            crop_first=crop_first,
         )
 
         # 检查缓存
@@ -154,7 +168,13 @@ class OcrService:
             processed_image = self._apply_color_filter(image, color_range)
 
             # 执行OCR
-            ocr_result_list = self.ocr_matcher.ocr(processed_image, threshold, merge_line_distance)
+            if crop_first and rect is not None:
+                crop_image, crop_rect = cv2_utils.crop_image(processed_image, rect)
+                ocr_result_list = self.ocr_matcher.ocr(crop_image, threshold, merge_line_distance)
+                for ocr_result in ocr_result_list:
+                    ocr_result.add_offset(crop_rect.left_top)
+            else:
+                ocr_result_list = self.ocr_matcher.ocr(processed_image, threshold, merge_line_distance)
 
             # 存储到缓存
             cache_entry = OcrCacheEntry(
@@ -163,6 +183,8 @@ class OcrService:
                 color_range=color_range,
                 image_id=image_id,
                 image=image,
+                rect=rect,
+                crop_first=crop_first,
             )
             if image_id not in self._cache:
                 self._cache[image_id] = []
@@ -184,12 +206,13 @@ class OcrService:
             return ocr_result_list
 
     def get_ocr_result_map(
-            self,
-            image: MatLike,
-            color_range: list[list[int]] | None = None,
-            rect: Rect | None = None,
-            threshold: float = 0,
-            merge_line_distance: float = -1
+        self,
+        image: MatLike,
+        color_range: list[list[int]] | None = None,
+        rect: Rect | None = None,
+        crop_first: bool = False,
+        threshold: float = 0,
+        merge_line_distance: float = -1,
     ) -> dict[str, MatchResultList]:
         """"
         获取全图OCR结果，优先从缓存获取
@@ -198,6 +221,7 @@ class OcrService:
             image: 输入图片
             color_range: 颜色范围过滤 [[lower], [upper]]
             rect: 识别特定的区域
+            crop_first: 先裁剪再识别 用于从连续文本中只提取特定区域的文本
             threshold: OCR阈值
             merge_line_distance: 行合并距离
 
@@ -208,6 +232,7 @@ class OcrService:
             image=image,
             color_range=color_range,
             rect=rect,
+            crop_first=crop_first,
             threshold=threshold,
             merge_line_distance=merge_line_distance
         )
@@ -231,12 +256,13 @@ class OcrService:
         return result_map
 
     def find_text_in_area(
-            self,
-            image: MatLike,
-            rect: Rect,
-            target_text: str,
-            color_range: list[list[int]] = None,
-            threshold: float = 0.6
+        self,
+        image: MatLike,
+        rect: Rect,
+        crop_first: bool,
+        target_text: str,
+        color_range: list[list[int]] = None,
+        threshold: float = 0.6
     ) -> bool:
         """
         在指定区域内查找目标文本
@@ -244,6 +270,7 @@ class OcrService:
         Args:
             image: 输入图片
             rect: 目标区域
+            crop_first: 先裁剪再识别 用于从连续文本中只提取特定区域的文本
             target_text: 要查找的文本
             color_range: 颜色范围过滤
             threshold: 文本匹配阈值
@@ -254,6 +281,7 @@ class OcrService:
         ocr_result_list: list[OcrMatchResult] = self.get_ocr_result_list(
             image=image,
             rect=rect,
+            crop_first=crop_first,
             color_range=color_range,
         )
         ocr_word_list: list[str] = [i.data for i in ocr_result_list]

@@ -154,6 +154,7 @@ class SuibianTempleCraftDispatch(ZOperation):
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
             rect=area.rect,
+            crop_first=area.crop_first,
             color_range=[[230, 230, 230], [255, 255, 255]],
         )
         goods_ocr_result_list: list[OcrMatchResult] = []  # 商品列表
@@ -169,6 +170,7 @@ class SuibianTempleCraftDispatch(ZOperation):
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
             rect=area.rect,
+            crop_first=area.crop_first,
         )
         can_make_pos_list: list[Rect] = []  # 可制造的位置
 

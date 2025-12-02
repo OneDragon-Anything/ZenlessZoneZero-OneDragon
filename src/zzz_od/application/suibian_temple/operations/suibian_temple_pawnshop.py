@@ -185,9 +185,11 @@ class SuibianTemplePawnshop(ZOperation):
         return self.after_buy()
 
     def get_goods_pos_list(self, screen: MatLike, goods: type[StrEnum]) -> list[GoodsPos]:
+        list_area = self.ctx.screen_loader.get_area('随便观-德丰大押', '区域-商品列表')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             screen,
-            rect=self.ctx.screen_loader.get_area('随便观-德丰大押', '区域-商品列表').rect,
+            rect=list_area.rect,
+            crop_first=list_area.crop_first,
         )
 
         goods_list: list[GoodsPos] = []
@@ -270,11 +272,11 @@ class SuibianTemplePawnshop(ZOperation):
             return self.round_success(status=screen_name)
 
         # 判断是否有货币不足的情况
+        buy_area = self.ctx.screen_loader.get_area("随便观-德丰大押", "区域-购买货币")
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
-            rect=self.ctx.screen_loader.get_area(
-                "随便观-德丰大押", "区域-购买货币"
-            ).rect,
+            rect=buy_area.rect,
+            crop_first=buy_area.crop_first,
             color_range=[[170, 50, 40], [200, 65, 50]],
         )
         for ocr_result in ocr_result_list:

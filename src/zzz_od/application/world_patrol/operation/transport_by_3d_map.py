@@ -63,7 +63,7 @@ class TransportBy3dMap(ZOperation):
             target_area_name = self.target_area.parent_area.area_name
 
         area = self.ctx.screen_loader.get_area('3D地图', '区域-区域列表')
-        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot, rect=area.rect)
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot, rect=area.rect, crop_first=area.crop_first)
 
         ocr_word_list = list(ocr_result_map.keys())
         target_word_idx = str_utils.find_best_match_by_difflib(gt(target_area_name, 'game'), ocr_word_list)
@@ -235,9 +235,11 @@ class TransportBy3dMap(ZOperation):
                 continue  # 尝试下一个图标
 
             # OCR识别传送点名称
+            transport_area = self.ctx.screen_loader.get_area('3D地图', '标题-当前选择传送点')
             ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
                 self.last_screenshot,
-                rect=self.ctx.screen_loader.get_area('3D地图', '标题-当前选择传送点').rect,
+                rect=transport_area.rect,
+                crop_first=transport_area.crop_first,
             )
 
             if len(ocr_result_list) == 0:

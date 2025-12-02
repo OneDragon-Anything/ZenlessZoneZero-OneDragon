@@ -19,6 +19,7 @@ class ScreenArea:
                  id_mark: bool = False,
                  goto_list: Optional[list[str]] = None,
                  color_range: Optional[list[list[int]]] = None,
+                 crop_first: bool = False
                  ):
         self.area_name: str = area_name
         self.pc_rect: Rect = pc_rect
@@ -31,6 +32,7 @@ class ScreenArea:
         self.id_mark: bool = id_mark  # 是否用于画面的唯一标识
         self.goto_list: list[str] = [] if goto_list is None else goto_list  # 交互后 可能会跳转的画面名称列表
         self.color_range: Optional[list[list[int]]] = color_range  # 识别时候的筛选的颜色范围 文本时候有效
+        self.crop_first: bool = crop_first  # 是否先裁剪再进行识别 只在文本时生效 适用于连续文本中只想识别特定区域的内容
 
     @property
     def rect(self) -> Rect:
@@ -134,6 +136,7 @@ class ScreenArea:
         order_dict['template_id'] = self.template_id
         order_dict['template_match_threshold'] = self.template_match_threshold
         order_dict['color_range'] = self.color_range
+        order_dict['crop_first'] = self.crop_first
         order_dict['goto_list'] = self.goto_list
 
         return order_dict

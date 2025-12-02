@@ -192,7 +192,7 @@ class SuibianTempleYumChaSin(ZOperation):
             for i in ['[随便观货品]', '精粹货品', '[随便观货品]精粹货品']
         ]
 
-        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(screen, rect=area.rect)
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(screen, rect=area.rect, crop_first=area.crop_first)
         for ocr_result, mrl in ocr_result_map.items():
             ignore_idx = str_utils.find_best_match_by_difflib(
                 ocr_result, ignore_word_list
@@ -211,10 +211,12 @@ class SuibianTempleYumChaSin(ZOperation):
         """
         点击缺少的素材 (找红色的数字)
         """
+        cnt_area = self.ctx.screen_loader.get_area('随便观-饮茶仙', '区域-材料数量')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
             color_range=[[220, 70, 30], [230, 140, 110]],
-            rect=self.ctx.screen_loader.get_area('随便观-饮茶仙', '区域-材料数量').rect,
+            rect=cnt_area.rect,
+            crop_first=cnt_area.crop_first,
         )
         for ocr_result in ocr_result_list:
             digit = str_utils.get_positive_digits(ocr_result.data, err=None)
@@ -248,9 +250,11 @@ class SuibianTempleYumChaSin(ZOperation):
     @operation_node(name='前往制作')
     def goto_craft(self) -> OperationRoundResult:
         self.done_craft = False
+        name_area = self.ctx.screen_loader.get_area('随便观-饮茶仙', '区域-材料名称')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
-            rect=self.ctx.screen_loader.get_area('随便观-饮茶仙', '区域-材料名称').rect,
+            rect=name_area.rect,
+            crop_first=name_area.crop_first,
         )
 
         # 记录已经处理的材料名称 后续可以减少相同材料的处理

@@ -96,10 +96,12 @@ class SuibianTempleBooBox(ZOperation):
         if not in_boobox_interface:
             return self.round_retry(status='不在邦巢界面，等待加载', wait=2)
 
+        list_area = self.ctx.screen_loader.get_area('随便观-邦巢', '区域-邦布列表')
         # 检查是否有S级邦布 - 通过识别高价格，选中所有符合条件的邦布
         bangboo_ocr_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
-            rect=self.ctx.screen_loader.get_area('随便观-邦巢', '区域-邦布列表').rect,
+            rect=list_area.rect,
+            crop_first=list_area.crop_first,
         )
 
         s_bangboo_list: list[tuple[str, Rect]] = []
@@ -182,9 +184,11 @@ class SuibianTempleBooBox(ZOperation):
         ]
         current_type: str | None = None
 
+        name_area = self.ctx.screen_loader.get_area('随便观-邦巢', '标题-邦布名称')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
-            rect=self.ctx.screen_loader.get_area('随便观-邦巢', '标题-邦布名称').rect,
+            rect=name_area.rect,
+            crop_first=name_area.crop_first,
         )
         for ocr_result in ocr_result_list:
             for t in type_list:

@@ -62,7 +62,8 @@ def find_area_in_screen(ctx: OneDragonContext, screen: MatLike, area: ScreenArea
             ocr_result_map = ctx.ocr_service.get_ocr_result_map(
                 image=screen,
                 color_range=area.color_range,
-                rect=area.rect
+                rect=area.rect,
+                crop_first=area.crop_first,
             )
         else:
             rect = area.rect
@@ -107,19 +108,29 @@ def find_and_click_area(ctx: OneDragonContext, screen: MatLike, screen_name: str
     if area is None:
         return OcrClickResultEnum.AREA_NO_CONFIG
     if area.is_text_area:
-        rect = area.rect
-        to_ocr_part = cv2_utils.crop_image_only(screen, rect)
-        if area.color_range is not None:
-            mask = cv2.inRange(to_ocr_part, area.color_range_lower, area.color_range_upper)
-            mask = cv2_utils.dilate(mask, 5)
-            to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
-        # cv2_utils.show_image(to_ocr_part, win_name='debug', wait=1)
+        if ctx.env_config.ocr_cache:
+            ocr_result_list = ctx.ocr_service.get_ocr_result_list(
+                image=screen,
+                color_range=area.color_range,
+                rect=area.rect,
+                crop_first=area.crop_first,
+            )
+        else:
+            rect = area.rect
+            to_ocr_part = cv2_utils.crop_image_only(screen, rect)
+            if area.color_range is not None:
+                mask = cv2.inRange(to_ocr_part, area.color_range_lower, area.color_range_upper)
+                mask = cv2_utils.dilate(mask, 5)
+                to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
+            # cv2_utils.show_image(to_ocr_part, win_name='debug', wait=1)
 
-        ocr_result_map = ctx.ocr.run_ocr(to_ocr_part)
-        for ocr_result, mrl in ocr_result_map.items():
-            if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result, percent=area.lcs_percent):
-                to_click = mrl.max.center + area.left_top
-                if ctx.controller.click(to_click, pc_alt=area.pc_alt):
+            ocr_result_list = ctx.ocr.ocr(to_ocr_part)
+            for i in ocr_result_list:
+                i.add_offset(area.left_top)
+
+        for i in ocr_result_list:
+            if str_utils.find_by_lcs(gt(area.text, 'game'), i.data, percent=area.lcs_percent):
+                if ctx.controller.click(i.center, pc_alt=area.pc_alt):
                     return OcrClickResultEnum.OCR_CLICK_SUCCESS
                 else:
                     return OcrClickResultEnum.OCR_CLICK_FAIL
@@ -262,7 +273,8 @@ def find_by_ocr(ctx: OneDragonContext, screen: MatLike, target_cn: str,
     if ctx.env_config.ocr_cache:
         return ctx.ocr_service.find_text_in_area(
             image=screen,
-            rect=area.rect,
+            rect=area.rect if area is not None else None,
+            crop_first=area.crop_first if area is not None else False,
             color_range=color_range,
             target_text=target_cn,
             threshold=lcs_percent,
