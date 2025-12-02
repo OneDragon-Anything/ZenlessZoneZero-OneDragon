@@ -1,4 +1,5 @@
 import os
+from contextlib import suppress
 from typing import Optional, Any
 
 from PySide6.QtCore import QObject, Signal, Qt
@@ -30,6 +31,21 @@ from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
 class ScreenInfoWorker(QObject):
 
     signal = Signal()
+
+
+AREA_FIELD_2_COLUMN: dict[str, int] = {
+    '操作': 0,
+    '标识': 1,
+    '区域名称': 2,
+    '位置': 3,
+    '文本': 4,
+    '阈值1': 5,
+    '模板': 6,
+    '阈值2': 7,
+    '颜色范围': 8,
+    '裁剪': 9,
+    '前往画面': 10,
+}
 
 
 class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
@@ -188,24 +204,15 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.area_table.setColumnCount(11)
         self.area_table.verticalHeader().hide()
         self.area_table.setHorizontalHeaderLabels([
-            gt('操作'),
-            gt('标识'),
-            gt('区域名称'),
-            gt('位置'),
-            gt('文本'),
-            gt('阈值'),
-            gt('模板'),
-            gt('阈值'),
-            gt('颜色范围'),
-            gt('裁剪'),
-            gt('前往画面'),
+            gt(key)
+            for key in AREA_FIELD_2_COLUMN.keys()
         ])
-        self.area_table.setColumnWidth(0, 40)  # 操作
-        self.area_table.setColumnWidth(1, 40)  # 标识
-        self.area_table.setColumnWidth(3, 200)  # 位置
-        self.area_table.setColumnWidth(5, 70)  # 文本阈值
-        self.area_table.setColumnWidth(7, 70)  # 模板阈值
-        self.area_table.setColumnWidth(9, 40)  # 裁剪
+        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['操作'], 40)
+        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['标识'], 40)
+        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['位置'], 200)
+        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['阈值1'], 70)
+        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['阈值2'], 70)
+        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['裁剪'], 40)
         # table的行被选中时 触发
         self.area_table_row_selected: int = -1  # 选中的行
         self.area_table.cellClicked.connect(self.on_area_table_cell_clicked)
@@ -376,7 +383,12 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         :param screen_name:
         :return:
         """
-        self.chosen_screen = self.ctx.screen_loader.get_screen(screen_name, copy=True)
+        self.chosen_screen = None
+        # 搜索时 输入了一半时候会找到对应的画面
+        with suppress(Exception):
+            self.chosen_screen = self.ctx.screen_loader.get_screen(screen_name, copy=True)
+        if self.chosen_screen is None:
+            return
         # 清除撤回记录
         self._clear_history()
         self._update_history_buttons()
@@ -585,16 +597,12 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         # 列映射：列索引 -> (属性名, 处理函数)
         column_handlers = {
-            1: ('area_name', lambda x: x),
-            2: ('pc_rect', self._parse_rect_from_text),
-            3: ('text', lambda x: x),
-            4: ('lcs_percent', lambda x: float(x) if len(x) > 0 else 0.5),
-            5: ('template', lambda x: x),
-            6: ('template_match_threshold', lambda x: float(x) if len(x) > 0 else 0.7),
-            7: ('color_range', self._parse_color_range_from_text),
-            9: ('goto_list', lambda x: x.split(','))
+            AREA_FIELD_2_COLUMN['位置']: ('pc_rect', self._parse_rect_from_text),
+            AREA_FIELD_2_COLUMN['阈值1']: ('lcs_percent', lambda x: float(x) if len(x) > 0 else 0.5),
+            AREA_FIELD_2_COLUMN['阈值2']: ('template_match_threshold', lambda x: float(x) if len(x) > 0 else 0.7),
+            AREA_FIELD_2_COLUMN['颜色范围']: ('color_range', self._parse_color_range_from_text),
+            AREA_FIELD_2_COLUMN['前往画面']: ('goto_list', lambda x: x.split(','))
         }
-
         if column not in column_handlers:
             return
 
@@ -702,7 +710,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._add_history_record(rect_change)
 
         self.area_table.blockSignals(True)
-        self.area_table.item(self.area_table_row_selected, 2).setText(f'({x1}, {y1}, {x2}, {y2})')
+        self.area_table.item(self.area_table_row_selected, AREA_FIELD_2_COLUMN['位置']).setText(f'({x1}, {y1}, {x2}, {y2})')
         self.area_table.blockSignals(False)
 
         area_item.pc_rect = Rect(x1, y1, x2, y2)
@@ -814,7 +822,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
             # 更新表格显示
             self.area_table.blockSignals(True)
-            self.area_table.item(row_index, 2).setText(f'({old_rect.x1}, {old_rect.y1}, {old_rect.x2}, {old_rect.y2})')
+            self.area_table.item(row_index, AREA_FIELD_2_COLUMN['位置']).setText(f'({old_rect.x1}, {old_rect.y1}, {old_rect.x2}, {old_rect.y2})')
             self.area_table.blockSignals(False)
 
             # 更新图像显示
@@ -882,7 +890,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
             # 更新表格显示
             self.area_table.blockSignals(True)
-            self.area_table.item(row_index, 2).setText(f'({new_rect.x1}, {new_rect.y1}, {new_rect.x2}, {new_rect.y2})')
+            self.area_table.item(row_index, AREA_FIELD_2_COLUMN['位置']).setText(f'({new_rect.x1}, {new_rect.y1}, {new_rect.x2}, {new_rect.y2})')
             self.area_table.blockSignals(False)
 
             # 更新图像显示

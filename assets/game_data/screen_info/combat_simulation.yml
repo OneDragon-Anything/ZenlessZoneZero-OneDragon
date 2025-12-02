@@ -15,6 +15,7 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 副本名称列表
   id_mark: false
@@ -29,6 +30,7 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 剩余电量
   id_mark: false
@@ -43,6 +45,7 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 需要电量
   id_mark: false
@@ -57,6 +60,7 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 下一步
   id_mark: false
@@ -71,6 +75,7 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 出战
   id_mark: false
@@ -85,6 +90,7 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 挑战等级
   id_mark: false
@@ -99,6 +105,7 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 副本类型列表
   id_mark: false
@@ -113,6 +120,7 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 外层-卡片1
   id_mark: false
@@ -127,6 +135,7 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 内层-已选择卡片1
   id_mark: false
@@ -141,6 +150,7 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 内层-卡片1
   id_mark: false
@@ -155,6 +165,7 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 保存方案
   id_mark: false
@@ -169,6 +180,7 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 确定并出战
   id_mark: false
@@ -183,20 +195,22 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 预备编队
   id_mark: false
   pc_rect:
-  - 470
-  - 985
-  - 700
-  - 1052
+  - 368
+  - 1002
+  - 563
+  - 1057
   text: 预备编队
   lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 预备出战
   id_mark: false
@@ -211,6 +225,7 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []
 - area_name: 副本名称列表顶部
   id_mark: false
@@ -225,4 +240,5 @@ area_list:
   template_id: ''
   template_match_threshold: 0.7
   color_range: null
+  crop_first: false
   goto_list: []

@@ -104,7 +104,7 @@ class OcrService:
         Args:
             image: 输入图片
             color_range: 颜色范围过滤 [[lower], [upper]]
-            rect: 识别特定的区域
+            rect: 指定区域。识别结果后，筛选在指定区域中出现的结果，即文本所在的矩形有70%以上在指定区域内
             crop_first: 先裁剪再识别 用于从连续文本中只提取特定区域的文本
 
         Returns:
@@ -119,9 +119,9 @@ class OcrService:
             # Python 的列表 == 操作符会自动处理嵌套结构和值的比较 包括None
             if cache_entry.color_range != color_range:
                 continue
-            if cache_entry.rect != rect:
-                continue
             if cache_entry.crop_first != crop_first:
+                continue
+            if crop_first and cache_entry.rect != rect:
                 continue
             return cache_entry
 
@@ -142,8 +142,8 @@ class OcrService:
         Args:
             image: 输入图片
             color_range: 颜色范围过滤 [[lower], [upper]]
-            rect: 识别特定的区域
-            crop_first: 先裁剪再识别 用于从连续文本中只提取特定区域的文本
+            rect: 指定区域。识别结果后，筛选在指定区域中出现的结果，即文本所在的矩形有70%以上在指定区域内
+            crop_first: 先裁剪再识别 用于从连续文本中只提取指定区域的文本
             threshold: OCR阈值
             merge_line_distance: 行合并距离
 
@@ -220,7 +220,7 @@ class OcrService:
         Args:
             image: 输入图片
             color_range: 颜色范围过滤 [[lower], [upper]]
-            rect: 识别特定的区域
+            rect: 指定区域。识别结果后，筛选在指定区域中出现的结果，即文本所在的矩形有70%以上在指定区域内
             crop_first: 先裁剪再识别 用于从连续文本中只提取特定区域的文本
             threshold: OCR阈值
             merge_line_distance: 行合并距离

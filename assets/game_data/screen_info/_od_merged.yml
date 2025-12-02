@@ -15,6 +15,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 菜单-返回
     id_mark: true
@@ -29,6 +30,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 大世界-普通
   - area_name: 区域-区域列表
@@ -44,6 +46,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-筛选
     id_mark: false
@@ -58,6 +61,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-筛选选项
     id_mark: false
@@ -72,6 +76,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标题-标识点筛选
     id_mark: false
@@ -86,6 +91,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-关闭筛选
     id_mark: false
@@ -100,6 +106,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-当前子区域
     id_mark: false
@@ -114,6 +121,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-子区域列表
     id_mark: false
@@ -128,6 +136,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-缩小
     id_mark: false
@@ -142,6 +151,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-地图
     id_mark: false
@@ -156,6 +166,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标题-当前选择传送点
     id_mark: false
@@ -170,6 +181,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-前往
     id_mark: false
@@ -184,6 +196,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-最小缩放
     id_mark: false
@@ -198,6 +211,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: arcade
   screen_name: 电玩店
@@ -216,6 +230,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 玩家数量
     id_mark: false
@@ -230,6 +245,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 下一个游戏
     id_mark: false
@@ -244,6 +260,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 选择
     id_mark: false
@@ -258,6 +275,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 模式列表
     id_mark: false
@@ -272,6 +290,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 开始游戏
     id_mark: false
@@ -286,6 +305,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 蛇对蛇-点击空白处继续
     id_mark: false
@@ -300,6 +320,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 蛇对蛇-加载完成
     id_mark: false
@@ -314,6 +335,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: battle
   screen_name: 战斗画面
@@ -332,6 +354,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按键-特殊攻击
     id_mark: false
@@ -346,6 +369,7 @@
     template_id: ''
     template_match_threshold: 0.9
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按键-终结技
     id_mark: false
@@ -360,6 +384,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 连携技-1
     id_mark: false
@@ -374,6 +399,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 连携技-2
     id_mark: false
@@ -388,6 +414,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按键-切换角色
     id_mark: false
@@ -402,6 +429,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按键-普通攻击
     id_mark: false
@@ -416,6 +444,7 @@
     template_id: btn_normal_attack
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 战斗结果-完成
     id_mark: false
@@ -430,6 +459,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 战斗结果-再来一次
     id_mark: false
@@ -444,6 +474,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 距离显示区域
     id_mark: false
@@ -458,6 +489,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 菜单
     id_mark: false
@@ -472,6 +504,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 战斗结果-撤退
     id_mark: false
@@ -486,6 +519,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 战斗结果-倒带
     id_mark: false
@@ -500,6 +534,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 战斗结果-退出
     id_mark: false
@@ -514,6 +549,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 头像-3-2
     id_mark: false
@@ -528,6 +564,7 @@
     template_id: avatar_2_anby
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 头像-3-3
     id_mark: false
@@ -542,6 +579,7 @@
     template_id: avatar_2_anton
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 头像-2-2
     id_mark: false
@@ -556,6 +594,7 @@
     template_id: avatar_2_piper
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按键-交互
     id_mark: false
@@ -570,6 +609,7 @@
     template_id: btn_interact
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 式舆防卫战-倒计时
     id_mark: false
@@ -584,6 +624,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 式舆防卫战-倒计时-精英
     id_mark: false
@@ -598,6 +639,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: battle_menu
   screen_name: 战斗-菜单
@@ -616,6 +658,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-设置
     id_mark: true
@@ -630,6 +673,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 菜单-返回
     id_mark: true
@@ -644,6 +688,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-退出战斗-确认
     id_mark: false
@@ -658,6 +703,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-重新开始
     id_mark: false
@@ -672,6 +718,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: battle_result_fail
   screen_name: 战斗-挑战结果-失败
@@ -690,6 +737,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-退出
     id_mark: false
@@ -704,6 +752,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: city_fund
   screen_name: 丽都城募
@@ -722,6 +771,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 等级回馈
     id_mark: false
@@ -736,6 +786,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 等级-全部领取
     id_mark: false
@@ -750,6 +801,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 任务-全部领取
     id_mark: false
@@ -764,6 +816,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 开启丽都城募
     id_mark: false
@@ -778,6 +831,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-已关闭-确认
     id_mark: false
@@ -792,6 +846,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: coffee_shop
   screen_name: 咖啡店
@@ -810,6 +865,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 咖啡列表
     id_mark: false
@@ -824,6 +880,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 对话框前往
     id_mark: false
@@ -838,6 +895,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 对话框确认
     id_mark: false
@@ -852,6 +910,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 点单后跳过
     id_mark: false
@@ -866,6 +925,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 电量确认
     id_mark: false
@@ -880,6 +940,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 不可贪杯确认
     id_mark: false
@@ -894,6 +955,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: combat_simulation
   screen_name: 实战模拟室
@@ -912,6 +974,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 副本名称列表
     id_mark: false
@@ -926,6 +989,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 剩余电量
     id_mark: false
@@ -940,6 +1004,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 需要电量
     id_mark: false
@@ -954,6 +1019,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 下一步
     id_mark: false
@@ -968,6 +1034,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 出战
     id_mark: false
@@ -982,6 +1049,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 挑战等级
     id_mark: false
@@ -996,6 +1064,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 副本类型列表
     id_mark: false
@@ -1010,6 +1079,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 外层-卡片1
     id_mark: false
@@ -1024,6 +1094,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 内层-已选择卡片1
     id_mark: false
@@ -1038,6 +1109,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 内层-卡片1
     id_mark: false
@@ -1052,6 +1124,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 保存方案
     id_mark: false
@@ -1066,6 +1139,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 确定并出战
     id_mark: false
@@ -1080,20 +1154,22 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 预备编队
     id_mark: false
     pc_rect:
-    - 470
-    - 985
-    - 700
-    - 1052
+    - 368
+    - 1002
+    - 563
+    - 1057
     text: 预备编队
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 预备出战
     id_mark: false
@@ -1108,6 +1184,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 副本名称列表顶部
     id_mark: false
@@ -1122,6 +1199,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: commission_assistant
   screen_name: 委托助手
@@ -1140,6 +1218,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 右侧选项区域
     id_mark: false
@@ -1154,6 +1233,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 中间选项区域
     id_mark: false
@@ -1168,6 +1248,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 左上角街区
     id_mark: false
@@ -1182,6 +1263,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 对话框确认
     id_mark: false
@@ -1196,6 +1278,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 左上角返回
     id_mark: false
@@ -1210,6 +1293,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 文本-剧情右上角
     id_mark: false
@@ -1224,6 +1308,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标题-短信
     id_mark: false
@@ -1238,6 +1323,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-短信-关闭
     id_mark: false
@@ -1252,6 +1338,7 @@
     template_id: btn_close
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-短信-文本框
     id_mark: false
@@ -1266,6 +1353,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-自动
     id_mark: false
@@ -1280,6 +1368,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: common_deploy
   screen_name: 通用-出战
@@ -1298,6 +1387,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-出战
     id_mark: false
@@ -1312,6 +1402,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-队员数量少-确认
     id_mark: false
@@ -1326,6 +1417,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-等级低-确定并出战
     id_mark: false
@@ -1340,6 +1432,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: common_screen
   screen_name: 画面-通用
@@ -1358,6 +1451,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: compendium
   screen_name: 快捷手册
@@ -1376,6 +1470,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 分类列表
     id_mark: false
@@ -1390,6 +1485,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 副本列表
     id_mark: false
@@ -1404,6 +1500,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 传送确认
     id_mark: false
@@ -1418,6 +1515,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 活跃度奖励-4
     id_mark: false
@@ -1432,6 +1530,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 活跃度奖励-确认
     id_mark: false
@@ -1446,6 +1545,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 今日最大活跃度
     id_mark: false
@@ -1460,6 +1560,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-退出
     id_mark: false
@@ -1474,6 +1575,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 前往列表
     id_mark: false
@@ -1488,6 +1590,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 目标列表-训练
     id_mark: false
@@ -1502,6 +1605,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 目标列表-作战
     id_mark: false
@@ -1516,6 +1620,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: compendium_combat
   screen_name: 快捷手册-作战
@@ -1534,6 +1639,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-训练
   - area_name: TAB-目标
@@ -1549,6 +1655,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-目标
   - area_name: TAB-日常
@@ -1564,6 +1671,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-日常
   - area_name: TAB-作战
@@ -1585,6 +1693,7 @@
     - - 255
       - 210
       - 60
+    crop_first: false
     goto_list:
     - 快捷手册-作战
   - area_name: TAB-战术
@@ -1600,6 +1709,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-战术
   - area_name: 按钮-关闭
@@ -1615,6 +1725,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 菜单
     - 大世界-普通
@@ -1635,6 +1746,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-训练
   - area_name: TAB-目标
@@ -1650,6 +1762,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-目标
   - area_name: TAB-日常
@@ -1671,6 +1784,7 @@
     - - 255
       - 210
       - 60
+    crop_first: false
     goto_list:
     - 快捷手册-日常
   - area_name: TAB-作战
@@ -1686,6 +1800,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-作战
   - area_name: TAB-战术
@@ -1701,6 +1816,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-战术
   - area_name: 按钮-关闭
@@ -1716,6 +1832,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 菜单
     - 大世界-普通
@@ -1736,6 +1853,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-训练
   - area_name: TAB-目标
@@ -1757,6 +1875,7 @@
     - - 255
       - 210
       - 60
+    crop_first: false
     goto_list:
     - 快捷手册-目标
   - area_name: TAB-日常
@@ -1772,6 +1891,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-日常
   - area_name: TAB-作战
@@ -1787,6 +1907,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-作战
   - area_name: TAB-战术
@@ -1802,6 +1923,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-战术
   - area_name: 按钮-关闭
@@ -1817,6 +1939,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 菜单
     - 大世界-普通
@@ -1837,6 +1960,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-训练
   - area_name: TAB-目标
@@ -1852,6 +1976,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-目标
   - area_name: TAB-日常
@@ -1867,6 +1992,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-日常
   - area_name: TAB-作战
@@ -1882,6 +2008,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-作战
   - area_name: TAB-战术
@@ -1903,6 +2030,7 @@
     - - 255
       - 210
       - 60
+    crop_first: false
     goto_list:
     - 快捷手册-战术
   - area_name: 按钮-关闭
@@ -1918,6 +2046,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 菜单
     - 大世界-普通
@@ -1944,6 +2073,7 @@
     - - 255
       - 210
       - 60
+    crop_first: false
     goto_list:
     - 快捷手册-训练
   - area_name: TAB-目标
@@ -1959,6 +2089,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-目标
   - area_name: TAB-日常
@@ -1974,6 +2105,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-日常
   - area_name: TAB-作战
@@ -1989,6 +2121,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-作战
   - area_name: TAB-战术
@@ -2004,6 +2137,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-战术
   - area_name: 按钮-关闭
@@ -2019,6 +2153,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 菜单
     - 大世界-普通
@@ -2035,6 +2170,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-奖励
     id_mark: false
@@ -2049,6 +2185,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 文本-电量2
     id_mark: false
@@ -2063,6 +2200,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: coupon
   screen_name: 家政券
@@ -2081,6 +2219,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 绳网信用
     id_mark: false
@@ -2095,6 +2234,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 使用
     id_mark: false
@@ -2109,6 +2249,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 数量
     id_mark: false
@@ -2123,6 +2264,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: drive_disc_dismantle
   screen_name: 仓库-驱动仓库-驱动盘拆解
@@ -2141,6 +2283,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-快速选择
     id_mark: true
@@ -2155,6 +2298,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-全选已弃置
     id_mark: false
@@ -2169,6 +2313,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-A及以下
     id_mark: false
@@ -2183,6 +2328,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-S及以下
     id_mark: false
@@ -2197,6 +2343,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-快速选择-确认
     id_mark: false
@@ -2211,6 +2358,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-拆解
     id_mark: false
@@ -2225,6 +2373,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-拆解-确认
     id_mark: false
@@ -2239,6 +2388,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-B
     id_mark: false
@@ -2253,6 +2403,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: email
   screen_name: 邮件
@@ -2271,6 +2422,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 确认
     id_mark: false
@@ -2285,6 +2437,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标题-邮件
     id_mark: true
@@ -2299,6 +2452,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-返回
     id_mark: false
@@ -2313,6 +2467,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 菜单
 - screen_id: enter_game
@@ -2332,6 +2487,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国服-账号密码
     id_mark: false
@@ -2346,6 +2502,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国服-账号输入区域
     id_mark: false
@@ -2360,6 +2517,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国服-密码输入区域
     id_mark: false
@@ -2374,6 +2532,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国服-同意按钮
     id_mark: false
@@ -2388,6 +2547,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国服-账号密码进入游戏
     id_mark: false
@@ -2402,6 +2562,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 切换账号确定
     id_mark: false
@@ -2416,6 +2577,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 切换账号
     id_mark: false
@@ -2430,6 +2592,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: B服-登陆
     id_mark: false
@@ -2444,6 +2607,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: B服-账号输入区域
     id_mark: false
@@ -2458,6 +2622,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: B服-密码输入区域
     id_mark: false
@@ -2472,6 +2637,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: B服-同意按钮
     id_mark: false
@@ -2486,6 +2652,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: B服-账号删除区域
     id_mark: false
@@ -2500,6 +2667,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标题-退出登录
     id_mark: false
@@ -2514,6 +2682,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-退出登录-确定
     id_mark: false
@@ -2528,6 +2697,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国服-账号密码-新
     id_mark: false
@@ -2542,6 +2712,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国服-账号输入区域-新
     id_mark: false
@@ -2556,6 +2727,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国服-密码输入区域-新
     id_mark: false
@@ -2570,6 +2742,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国服-同意按钮-新
     id_mark: false
@@ -2584,6 +2757,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国服-账号密码进入游戏-新
     id_mark: false
@@ -2598,6 +2772,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-登陆其他账号
     id_mark: false
@@ -2612,6 +2787,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国际服-点击登录
     id_mark: false
@@ -2626,6 +2802,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国际服-账号输入区域
     id_mark: false
@@ -2640,6 +2817,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国际服-密码输入区域
     id_mark: false
@@ -2654,6 +2832,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国际服-账号密码进入游戏
     id_mark: false
@@ -2668,6 +2847,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国际服-换服
     id_mark: false
@@ -2682,6 +2862,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国际服-换服-欧洲
     id_mark: false
@@ -2696,6 +2877,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国际服-换服-美国
     id_mark: false
@@ -2710,6 +2892,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国际服-换服-亚洲
     id_mark: false
@@ -2724,6 +2907,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 国际服-换服-港澳台
     id_mark: false
@@ -2738,6 +2922,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 重试
     id_mark: false
@@ -2752,6 +2937,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 一周年自选奖励
     id_mark: false
@@ -2766,6 +2952,7 @@
     template_id: annual_reward
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: expert_challenge
   screen_name: 专业挑战室
@@ -2784,6 +2971,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 需要电量
     id_mark: false
@@ -2798,6 +2986,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: fishing
   screen_name: 钓鱼
@@ -2816,6 +3005,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按键-时机上鱼
     id_mark: false
@@ -2830,6 +3020,7 @@
     template_id: interact_timing
     template_match_threshold: 0.9
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按键-左
     id_mark: false
@@ -2844,6 +3035,7 @@
     template_id: btn_left
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按键-右
     id_mark: false
@@ -2858,6 +3050,7 @@
     template_id: btn_right
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按键-返回
     id_mark: false
@@ -2872,6 +3065,7 @@
     template_id: btn_back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-点击空白处关闭
     id_mark: false
@@ -2886,6 +3080,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标题-挑战结果
     id_mark: false
@@ -2900,6 +3095,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-确定
     id_mark: false
@@ -2914,6 +3110,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按键-强力-左
     id_mark: false
@@ -2928,6 +3125,7 @@
     template_id: btn_power
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按键-强力-右
     id_mark: false
@@ -2942,6 +3140,7 @@
     template_id: btn_power
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: hdd
   screen_name: HDD
@@ -2960,6 +3159,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 章节列表
     id_mark: false
@@ -2974,6 +3174,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 委托区域
     id_mark: false
@@ -2988,6 +3189,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 下一步
     id_mark: false
@@ -3002,6 +3204,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 副本区域
     id_mark: false
@@ -3016,6 +3219,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 出战
     id_mark: false
@@ -3030,6 +3234,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 街区
     id_mark: false
@@ -3044,6 +3249,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 空白
     id_mark: false
@@ -3058,6 +3264,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 确定并出战
     id_mark: false
@@ -3072,6 +3279,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: hollow_zero_battle
   screen_name: 零号空洞-战斗
@@ -3090,6 +3298,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 战斗结果-确定
     id_mark: false
@@ -3104,6 +3313,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 挑战结果
     id_mark: false
@@ -3118,6 +3328,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 退出战斗
     id_mark: false
@@ -3132,6 +3343,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 退出战斗-确认
     id_mark: false
@@ -3146,6 +3358,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 结算周期上限-确认
     id_mark: false
@@ -3160,6 +3373,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 通关-丁尼奖励
     id_mark: false
@@ -3174,6 +3388,7 @@
     template_id: critical_reward_money
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: hollow_zero_entry
   screen_name: 零号空洞-入口
@@ -3192,6 +3407,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 副本列表
     id_mark: false
@@ -3206,6 +3422,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 下一步
     id_mark: false
@@ -3220,6 +3437,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 出战
     id_mark: false
@@ -3234,6 +3452,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 继续-确认
     id_mark: false
@@ -3248,6 +3467,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 行动中-确认
     id_mark: false
@@ -3262,6 +3482,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 奖励入口
     id_mark: false
@@ -3276,6 +3497,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 悬赏委托
     id_mark: false
@@ -3290,6 +3512,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 全部领取
     id_mark: false
@@ -3304,6 +3527,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: hollow_zero_event
   screen_name: 零号空洞-事件
@@ -3322,6 +3546,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 角色-1
     id_mark: false
@@ -3336,6 +3561,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 角色-2
     id_mark: false
@@ -3350,6 +3576,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 角色-3
     id_mark: false
@@ -3364,6 +3591,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 呼叫增援-角色行
     id_mark: false
@@ -3378,6 +3606,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 消息-确认
     id_mark: false
@@ -3392,6 +3621,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 空白
     id_mark: false
@@ -3406,6 +3636,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 底部-清除列表
     id_mark: false
@@ -3420,6 +3651,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 底部-选择列表
     id_mark: false
@@ -3434,6 +3666,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 背包
     id_mark: false
@@ -3448,6 +3681,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 通关-完成
     id_mark: false
@@ -3462,6 +3696,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 鸣徽名称-1
     id_mark: false
@@ -3476,6 +3711,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 鸣徽名称-2
     id_mark: false
@@ -3490,6 +3726,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 鸣徽名称-3
     id_mark: false
@@ -3504,6 +3741,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 鸣徽选择-1
     id_mark: false
@@ -3518,6 +3756,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 鸣徽选择-2
     id_mark: false
@@ -3532,6 +3771,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 鸣徽选择-3
     id_mark: false
@@ -3546,6 +3786,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 快进
     id_mark: false
@@ -3560,6 +3801,7 @@
     template_id: speed_up
     template_match_threshold: 0.9
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 当前层数
     id_mark: false
@@ -3574,6 +3816,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 放弃
     id_mark: false
@@ -3588,6 +3831,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 放弃-确认
     id_mark: false
@@ -3602,6 +3846,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 菜单
     id_mark: false
@@ -3616,6 +3861,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 背包已满
     id_mark: false
@@ -3630,6 +3876,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 旧都失物-返回
     id_mark: false
@@ -3644,6 +3891,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 格子入口选项
     id_mark: false
@@ -3658,6 +3906,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 交互可再次触发事件
     id_mark: false
@@ -3672,6 +3921,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: hollow_zero_merchant
   screen_name: 零号空洞-商店
@@ -3690,6 +3940,7 @@
     template_id: right_top_back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 购买后确定
     id_mark: false
@@ -3704,6 +3955,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 二级标题
     id_mark: false
@@ -3718,6 +3970,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 商品价格区域
     id_mark: false
@@ -3732,6 +3985,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 商品描述区域
     id_mark: false
@@ -3746,6 +4000,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 商品购买区域
     id_mark: false
@@ -3760,6 +4015,7 @@
     template_id: merchant_add
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 商品价格-3-1
     id_mark: false
@@ -3774,6 +4030,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 商品价格-3-2
     id_mark: false
@@ -3788,6 +4045,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 商品价格-3-3
     id_mark: false
@@ -3802,6 +4060,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 商品价格-2-1
     id_mark: false
@@ -3816,6 +4075,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 商品价格-2-2
     id_mark: false
@@ -3830,6 +4090,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: inter_knot
   screen_name: 绳网
@@ -3848,6 +4109,7 @@
     template_id: btn_go
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-返回
     id_mark: true
@@ -3862,6 +4124,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-停止追踪
     id_mark: false
@@ -3876,6 +4139,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: life_on_line
   screen_name: 真拿命验收
@@ -3894,6 +4158,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 对话选项
     id_mark: false
@@ -3908,6 +4173,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 对话人
     id_mark: false
@@ -3922,6 +4188,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 确定并出战
     id_mark: false
@@ -3936,6 +4203,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: lostvoid_indexpanel
   screen_name: 迷失之地-藏品面板
@@ -3954,6 +4222,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 藏品
     id_mark: false
@@ -3968,6 +4237,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 过滤按钮
     id_mark: false
@@ -3982,6 +4252,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 类型列表
     id_mark: false
@@ -3996,6 +4267,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 关闭过滤
     id_mark: false
@@ -4010,6 +4282,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 藏品清单
     id_mark: false
@@ -4024,6 +4297,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: lostvoid_investigativeStrategy
   screen_name: 迷失之地-调查战略选择
@@ -4042,6 +4316,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: lost_void_bangboo_store
   screen_name: 迷失之地-邦布商店
@@ -4060,6 +4335,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-刷新
     id_mark: true
@@ -4074,6 +4350,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-藏品名称
     id_mark: false
@@ -4088,6 +4365,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-价格
     id_mark: false
@@ -4102,6 +4380,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-购买按钮
     id_mark: false
@@ -4116,6 +4395,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-购买-确认
     id_mark: false
@@ -4130,6 +4410,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-返回
     id_mark: true
@@ -4144,6 +4425,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-刷新-可用
     id_mark: false
@@ -4164,6 +4446,7 @@
     - - 255
       - 255
       - 255
+    crop_first: false
     goto_list: []
   - area_name: 按钮-刷新-确认
     id_mark: false
@@ -4178,6 +4461,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标识-血量
     id_mark: false
@@ -4192,6 +4476,7 @@
     template_id: blood_drop
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标识-金币
     id_mark: false
@@ -4206,6 +4491,7 @@
     template_id: gold
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-角色头像
     id_mark: false
@@ -4220,6 +4506,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: lost_void_battle_fail
   screen_name: 迷失之地-战斗失败
@@ -4238,6 +4525,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-重播
     id_mark: true
@@ -4252,6 +4540,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-分析
     id_mark: true
@@ -4266,6 +4555,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: lost_void_battle_result
   screen_name: 迷失之地-挑战结果
@@ -4284,6 +4574,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-确定
     id_mark: false
@@ -4298,6 +4589,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-完成
     id_mark: false
@@ -4312,6 +4604,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 奖励-零号业绩
     id_mark: false
@@ -4326,6 +4619,7 @@
     template_id: challenge_reward_eval
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 奖励-丁尼
     id_mark: false
@@ -4340,6 +4634,7 @@
     template_id: critical_reward_money
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: lost_void_choose_common
   screen_name: 迷失之地-通用选择
@@ -4358,6 +4653,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-确定
     id_mark: true
@@ -4378,6 +4674,7 @@
     - - 255
       - 255
       - 255
+    crop_first: false
     goto_list: []
   - area_name: 区域-藏品名称
     id_mark: false
@@ -4392,6 +4689,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-武备名称
     id_mark: false
@@ -4406,6 +4704,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-标题
     id_mark: false
@@ -4420,6 +4719,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 迷失之地-TAB
     id_mark: true
@@ -4434,6 +4734,7 @@
     template_id: normal_world_tab
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-刷新
     id_mark: false
@@ -4454,6 +4755,7 @@
     - - 255
       - 255
       - 255
+    crop_first: false
     goto_list: []
   - area_name: 区域-藏品已选择
     id_mark: false
@@ -4468,6 +4770,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-武备标识
     id_mark: false
@@ -4482,6 +4785,7 @@
     template_id: common_choose_gear
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: lost_void_entry
   screen_name: 迷失之地-入口
@@ -4500,6 +4804,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 大世界-普通
   - area_name: 按钮-悬赏委托
@@ -4515,6 +4820,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-战线肃清
     id_mark: true
@@ -4529,6 +4835,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 迷失之地-战线肃清
   - area_name: 按钮-悬赏委托-全部领取
@@ -4544,6 +4851,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-悬赏委托-关闭
     id_mark: false
@@ -4558,6 +4866,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按键-特遣调查
     id_mark: true
@@ -4572,6 +4881,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 迷失之地-特遣调查
   - area_name: 区域-悬赏委托-进度
@@ -4587,6 +4897,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: lost_void_entry_task_force
   screen_name: 迷失之地-特遣调查
@@ -4605,6 +4916,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 大世界
   - area_name: 菜单-返回
@@ -4620,6 +4932,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 迷失之地-入口
   - area_name: 按钮-特遣任务
@@ -4635,6 +4948,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-下一步
     id_mark: false
@@ -4649,6 +4963,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-代理人头像
     id_mark: false
@@ -4663,6 +4978,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-调查战略
     id_mark: false
@@ -4677,6 +4993,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: lost_void_gear
   screen_name: 迷失之地-武备选择
@@ -4695,6 +5012,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 文本-详情
     id_mark: true
@@ -4709,6 +5027,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-返回
     id_mark: false
@@ -4723,6 +5042,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 武备列表
     id_mark: false
@@ -4737,6 +5057,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 等级列表
     id_mark: false
@@ -4751,6 +5072,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: lost_void_lottery
   screen_name: 迷失之地-抽奖机
@@ -4769,6 +5091,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-奖励预览
     id_mark: true
@@ -4783,6 +5106,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-开始
     id_mark: false
@@ -4797,6 +5121,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 文本-剩余次数
     id_mark: false
@@ -4811,6 +5136,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-获取确定
     id_mark: false
@@ -4825,6 +5151,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: lost_void_normal_world
   screen_name: 迷失之地-大世界
@@ -4843,6 +5170,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-挑战-确认
     id_mark: false
@@ -4857,6 +5185,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-对话角色名称
     id_mark: false
@@ -4871,6 +5200,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按键-交互-不可用
     id_mark: false
@@ -4885,6 +5215,7 @@
     template_id: btn_interact_disabled
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 迷失之地-TAB
     id_mark: true
@@ -4899,6 +5230,7 @@
     template_id: normal_world_tab
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 战斗-菜单
     id_mark: true
@@ -4913,6 +5245,7 @@
     template_id: btn_menu
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-对话内容
     id_mark: false
@@ -4927,6 +5260,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-右侧对话选项
     id_mark: false
@@ -4941,6 +5275,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-右侧对话图标
     id_mark: false
@@ -4955,6 +5290,7 @@
     template_id: talk_option_icon
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-交互文本
     id_mark: false
@@ -4969,6 +5305,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-黑屏文本-确认
     id_mark: false
@@ -4983,6 +5320,7 @@
     template_id: btn_black
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: lost_void_purge
   screen_name: 迷失之地-战线肃清
@@ -5001,6 +5339,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-街区
     id_mark: true
@@ -5015,6 +5354,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 大世界-普通
   - area_name: 周期增益-第一个
@@ -5030,6 +5370,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 周期增益-第二个
     id_mark: false
@@ -5044,6 +5385,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 周期增益-第三个
     id_mark: false
@@ -5058,6 +5400,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-难度
     id_mark: false
@@ -5072,6 +5415,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-难度列表
     id_mark: false
@@ -5086,6 +5430,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-调查战略
     id_mark: false
@@ -5100,6 +5445,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: lost_void_route_change
   screen_name: 迷失之地-路径迭换
@@ -5118,6 +5464,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-图例详情
     id_mark: true
@@ -5132,6 +5479,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: map
   screen_name: 地图
@@ -5150,6 +5498,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 确认
     id_mark: false
@@ -5164,6 +5513,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 左上角返回
     id_mark: false
@@ -5178,6 +5528,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: menu
   screen_name: 菜单
@@ -5196,6 +5547,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 邮件
     id_mark: false
@@ -5210,6 +5562,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 底部列表
     id_mark: false
@@ -5224,6 +5577,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 更多登出确认
     id_mark: false
@@ -5238,6 +5592,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 更多功能区域
     id_mark: false
@@ -5252,6 +5607,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 兑换码输入框
     id_mark: false
@@ -5266,6 +5622,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 兑换码兑换
     id_mark: false
@@ -5280,6 +5637,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-返回
     id_mark: true
@@ -5294,6 +5652,7 @@
     template_id: back
     template_match_threshold: 0.9
     color_range: null
+    crop_first: false
     goto_list:
     - 大世界-普通
   - area_name: 按钮-朋友
@@ -5309,6 +5668,7 @@
     template_id: friends
     template_match_threshold: 0.9
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 底部-仓库
     id_mark: false
@@ -5323,6 +5683,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 仓库-音擎仓库
   - area_name: 底部-邮件
@@ -5338,6 +5699,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 邮件
   - area_name: 底部-更多
@@ -5353,6 +5715,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 菜单-更多功能
   - area_name: 文本-电量
@@ -5368,6 +5731,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 恢复电量
   - area_name: 底部-绳网
@@ -5383,6 +5747,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 绳网
 - screen_id: menu_more
@@ -5402,6 +5767,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-关闭
     id_mark: true
@@ -5416,6 +5782,7 @@
     template_id: btn_close
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-预备编队
     id_mark: false
@@ -5430,6 +5797,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-兑换码
     id_mark: false
@@ -5444,6 +5812,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: news_stand
   screen_name: 报刊亭
@@ -5462,6 +5831,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 每日可刮取一次
     id_mark: false
@@ -5476,6 +5846,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 刮层-1
     id_mark: false
@@ -5490,6 +5861,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 刮层-2
     id_mark: false
@@ -5504,6 +5876,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 刮层-3
     id_mark: false
@@ -5518,6 +5891,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 叫醒他
     id_mark: false
@@ -5532,6 +5906,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 嗷呜被你叫醒了
     id_mark: false
@@ -5546,6 +5921,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 嗷呜对话
     id_mark: false
@@ -5560,6 +5936,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 嗷呜标题
     id_mark: false
@@ -5574,6 +5951,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 叫醒嗷呜
     id_mark: false
@@ -5588,6 +5966,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 对话选项
     id_mark: false
@@ -5602,6 +5981,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-同类型确认
     id_mark: false
@@ -5616,6 +5996,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: noodle_shop
   screen_name: 拉面店
@@ -5634,6 +6015,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 拉面列表
     id_mark: false
@@ -5648,6 +6030,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 点单确认
     id_mark: false
@@ -5662,6 +6045,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 效果确认
     id_mark: false
@@ -5676,6 +6060,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: normal_world
   screen_name: 大世界
@@ -5694,6 +6079,7 @@
     template_id: message
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 菜单
     id_mark: false
@@ -5708,6 +6094,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 地图
     id_mark: false
@@ -5722,6 +6109,7 @@
     template_id: map
     template_match_threshold: 0.5
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 快捷手册
     id_mark: false
@@ -5736,6 +6124,7 @@
     template_id: compendium
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-训练
   - area_name: 好感度标题
@@ -5751,6 +6140,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 好感度选项
     id_mark: false
@@ -5765,6 +6155,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 对话框取消
     id_mark: false
@@ -5779,6 +6170,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 小地图
     id_mark: false
@@ -5793,6 +6185,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: normal_world_basic
   screen_name: 大世界-普通
@@ -5811,6 +6204,7 @@
     template_id: message
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-菜单
     id_mark: false
@@ -5825,6 +6219,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 菜单
   - area_name: 快捷手册
@@ -5840,6 +6235,7 @@
     template_id: compendium
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-训练
 - screen_id: normal_world_investigation
@@ -5859,6 +6255,7 @@
     template_id: tab
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-菜单
     id_mark: true
@@ -5873,6 +6270,7 @@
     template_id: menu
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 菜单
   - area_name: 快捷手册
@@ -5888,6 +6286,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 快捷手册-训练
 - screen_id: notorious_hunt
@@ -5907,6 +6306,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 剩余次数
     id_mark: false
@@ -5921,6 +6321,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 当期剩余奖励次数
     id_mark: false
@@ -5935,6 +6336,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 选择
     id_mark: false
@@ -5949,6 +6351,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 重新开始
     id_mark: false
@@ -5963,6 +6366,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 重新开始-确认
     id_mark: false
@@ -5977,6 +6381,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 奖励入口
     id_mark: false
@@ -5991,6 +6396,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 全部领取
     id_mark: false
@@ -6005,6 +6411,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 难度选择入口
     id_mark: false
@@ -6019,6 +6426,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 难度选择区域
     id_mark: false
@@ -6033,6 +6441,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 鸣徽交互区域
     id_mark: false
@@ -6047,6 +6456,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 剩余奖励次数
     id_mark: false
@@ -6061,6 +6471,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 退出战斗
     id_mark: false
@@ -6075,6 +6486,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 退出战斗-确认
     id_mark: false
@@ -6089,6 +6501,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 挑战结果-退出
     id_mark: false
@@ -6103,6 +6516,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-鸣徽选择列表
     id_mark: false
@@ -6117,6 +6531,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-深度追猎-ON
     id_mark: false
@@ -6137,6 +6552,7 @@
     - - 255
       - 255
       - 255
+    crop_first: false
     goto_list: []
   - area_name: 按钮-深度追猎-确认
     id_mark: false
@@ -6151,6 +6567,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 文本-剩余电量
     id_mark: false
@@ -6165,6 +6582,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 文本-需要电量
     id_mark: false
@@ -6179,6 +6597,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-无报酬模式
     id_mark: false
@@ -6193,6 +6612,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-街区
     id_mark: false
@@ -6207,6 +6627,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标题-副本名称
     id_mark: false
@@ -6221,6 +6642,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标识-BOSS血条
     id_mark: false
@@ -6235,6 +6657,7 @@
     template_id: boss_life
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: random_play
   screen_name: 影像店营业
@@ -6253,6 +6676,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 返回
     id_mark: false
@@ -6267,6 +6691,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 宣传员入口
     id_mark: false
@@ -6281,6 +6706,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 录像带入口
     id_mark: false
@@ -6295,6 +6721,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 经营状况
     id_mark: false
@@ -6309,6 +6736,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 录像带主题-1
     id_mark: false
@@ -6323,6 +6751,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 录像带主题-2
     id_mark: false
@@ -6337,6 +6766,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 录像带主题-3
     id_mark: false
@@ -6351,6 +6781,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 宣传员-1
     id_mark: false
@@ -6365,6 +6796,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 宣传员-2
     id_mark: false
@@ -6379,6 +6811,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 确认
     id_mark: false
@@ -6393,6 +6826,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 上架筛选
     id_mark: false
@@ -6407,6 +6841,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 主题筛选
     id_mark: false
@@ -6421,6 +6856,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 上架
     id_mark: false
@@ -6435,6 +6871,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 下架
     id_mark: false
@@ -6449,6 +6886,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 选择宣传员
     id_mark: false
@@ -6463,6 +6901,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 开始营业
     id_mark: false
@@ -6477,6 +6916,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 开始营业-确认
     id_mark: false
@@ -6491,6 +6931,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 正在营业
     id_mark: false
@@ -6505,6 +6946,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 推荐上架
     id_mark: false
@@ -6519,6 +6961,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 宣传员列表
     id_mark: false
@@ -6533,6 +6976,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: restore_charge
   screen_name: 恢复电量
@@ -6551,6 +6995,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 类型
     id_mark: false
@@ -6565,6 +7010,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 确认
     id_mark: false
@@ -6579,6 +7025,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 兑换数量-数字输入框
     id_mark: false
@@ -6593,6 +7040,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 兑换数量-加
     id_mark: false
@@ -6607,6 +7055,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 当前数量
     id_mark: false
@@ -6621,6 +7070,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: ridu_weekly
   screen_name: 丽都周纪
@@ -6639,6 +7089,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 代办列表
     id_mark: false
@@ -6653,6 +7104,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 确认代办
     id_mark: false
@@ -6667,6 +7119,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 领取
     id_mark: false
@@ -6681,6 +7134,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 未完成
     id_mark: false
@@ -6695,6 +7149,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 任务区域
     id_mark: false
@@ -6709,6 +7164,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 领取奖励
     id_mark: false
@@ -6723,6 +7179,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 积分行-1
     id_mark: false
@@ -6737,6 +7194,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 积分行-2
     id_mark: false
@@ -6751,6 +7209,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 积分行-3
     id_mark: false
@@ -6765,6 +7224,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: area_patrol
   screen_name: 区域巡防
@@ -6783,6 +7243,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 电量
     id_mark: false
@@ -6797,6 +7258,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: shiyu_defense
   screen_name: 式舆防卫战
@@ -6815,6 +7277,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 节点-01
     id_mark: false
@@ -6829,6 +7292,7 @@
     template_id: node_01
     template_match_threshold: 0.9
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 节点-02
     id_mark: false
@@ -6843,6 +7307,7 @@
     template_id: node_02
     template_match_threshold: 0.9
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 街区
     id_mark: false
@@ -6857,6 +7322,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 前哨档案
     id_mark: false
@@ -6871,6 +7337,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 弱点-1-1
     id_mark: false
@@ -6885,6 +7352,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 弱点-1-2
     id_mark: false
@@ -6899,6 +7367,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 弱点-2-1
     id_mark: false
@@ -6913,6 +7382,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 弱点-2-2
     id_mark: false
@@ -6927,6 +7397,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 抗性-1-1
     id_mark: false
@@ -6941,6 +7412,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 抗性-1-2
     id_mark: false
@@ -6955,6 +7427,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 抗性-2-1
     id_mark: false
@@ -6969,6 +7442,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 抗性-2-2
     id_mark: false
@@ -6983,6 +7457,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 角色头像
     id_mark: false
@@ -6997,6 +7472,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 下一步
     id_mark: false
@@ -7011,6 +7487,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 退出战斗
     id_mark: false
@@ -7025,6 +7502,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 退出战斗-确认
     id_mark: false
@@ -7039,6 +7517,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 战斗结束-下一防线
     id_mark: false
@@ -7053,6 +7532,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 战斗结束-退出
     id_mark: false
@@ -7067,6 +7547,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 战斗结束-撤退
     id_mark: false
@@ -7081,6 +7562,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 节点-03
     id_mark: false
@@ -7095,6 +7577,7 @@
     template_id: node_03
     template_match_threshold: 0.9
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 节点-04
     id_mark: false
@@ -7109,6 +7592,7 @@
     template_id: node_04
     template_match_threshold: 0.9
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 节点-05
     id_mark: false
@@ -7123,6 +7607,7 @@
     template_id: node_05
     template_match_threshold: 0.9
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 节点-06
     id_mark: false
@@ -7137,6 +7622,7 @@
     template_id: node_06
     template_match_threshold: 0.9
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 节点-07
     id_mark: false
@@ -7151,6 +7637,7 @@
     template_id: node_07
     template_match_threshold: 0.9
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 奖励入口
     id_mark: false
@@ -7165,6 +7652,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 全部领取
     id_mark: false
@@ -7179,6 +7667,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 领取奖励-确认
     id_mark: false
@@ -7193,6 +7682,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 领取奖励-关闭
     id_mark: false
@@ -7207,6 +7697,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 前次行动最佳记录
     id_mark: false
@@ -7221,6 +7712,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 前次-关闭
     id_mark: false
@@ -7235,6 +7727,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: storage_drive_disc
   screen_name: 仓库-驱动仓库
@@ -7253,6 +7746,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-拆解
     id_mark: true
@@ -7267,6 +7761,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 仓库-驱动仓库-驱动盘拆解
   - area_name: 左上角-街区
@@ -7282,6 +7777,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 大世界-普通
 - screen_id: storage_wengine
@@ -7301,6 +7797,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-回收
     id_mark: true
@@ -7315,6 +7812,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 左上角-街区
     id_mark: false
@@ -7329,6 +7827,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 大世界-普通
   - area_name: TAB-驱动盘
@@ -7344,6 +7843,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 仓库-驱动仓库
 - screen_id: suibian_temple_adventure
@@ -7363,6 +7863,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 菜单-返回
     id_mark: true
@@ -7377,6 +7878,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-街区
     id_mark: true
@@ -7391,6 +7893,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-自动选择邦布
     id_mark: false
@@ -7405,6 +7908,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-选择时间
     id_mark: false
@@ -7419,6 +7923,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 弹窗-游历时间选择
     id_mark: false
@@ -7433,6 +7938,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标题-子副本-1
     id_mark: false
@@ -7447,6 +7953,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标题-子副本-2
     id_mark: false
@@ -7461,6 +7968,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标题-子副本-3
     id_mark: false
@@ -7475,6 +7983,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标题-子副本-4
     id_mark: false
@@ -7489,6 +7998,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: suibian_temple_boobox
   screen_name: 随便观-邦巢
@@ -7507,6 +8017,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-聘用
     id_mark: true
@@ -7521,6 +8032,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 次数用尽
     id_mark: false
@@ -7535,6 +8047,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-刷新
     id_mark: false
@@ -7549,6 +8062,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 确认
     id_mark: false
@@ -7563,6 +8077,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-邦布类型
     id_mark: false
@@ -7577,6 +8092,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标题-邦布名称
     id_mark: false
@@ -7591,6 +8107,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-邦布列表
     id_mark: false
@@ -7605,6 +8122,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: suibian_temple_craft
   screen_name: 随便观-制造坊
@@ -7623,6 +8141,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 菜单-返回
     id_mark: true
@@ -7637,6 +8156,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-商品列表
     id_mark: false
@@ -7651,6 +8171,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-街区
     id_mark: true
@@ -7665,6 +8186,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 大世界-普通
   - area_name: 按钮-制造后确认
@@ -7680,6 +8202,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-邦布-1
     id_mark: false
@@ -7694,6 +8217,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-邦布-2
     id_mark: false
@@ -7708,6 +8232,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-邦布-3
     id_mark: false
@@ -7722,6 +8247,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-邦布-4
     id_mark: false
@@ -7736,6 +8262,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-邦布-5
     id_mark: false
@@ -7750,6 +8277,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-邦布-6
     id_mark: false
@@ -7764,6 +8292,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-邦布-7
     id_mark: false
@@ -7778,6 +8307,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-邦布-8
     id_mark: false
@@ -7792,6 +8322,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-选择邦布
     id_mark: false
@@ -7806,6 +8337,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: suibian_temple_entry
   screen_name: 随便观-入口
@@ -7824,6 +8356,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-派驻邦布
     id_mark: true
@@ -7838,6 +8371,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-返回
     id_mark: true
@@ -7852,6 +8386,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-游历
     id_mark: false
@@ -7866,6 +8401,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-经营
     id_mark: false
@@ -7880,6 +8416,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 标题-制造坊
     id_mark: false
@@ -7894,6 +8431,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-制造坊商品列表
     id_mark: false
@@ -7908,6 +8446,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: suibian_temple_pawnshop
   screen_name: 随便观-德丰大押
@@ -7926,6 +8465,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 随便观-入口
   - area_name: 按钮-百通宝-周期
@@ -7941,6 +8481,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-云纹徽-周期
     id_mark: true
@@ -7955,6 +8496,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-商品列表
     id_mark: false
@@ -7969,6 +8511,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-购买件数-最小
     id_mark: false
@@ -7983,6 +8526,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-购买件数-最大
     id_mark: false
@@ -7997,6 +8541,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-确认
     id_mark: false
@@ -8011,6 +8556,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-兑换关闭
     id_mark: false
@@ -8025,6 +8571,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-购买货币
     id_mark: false
@@ -8039,6 +8586,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: suibian_temple_sales_stall
   screen_name: 随便观-售卖铺
@@ -8057,6 +8605,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-返回
     id_mark: true
@@ -8071,6 +8620,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-商品列表
     id_mark: false
@@ -8085,6 +8635,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-街区
     id_mark: true
@@ -8099,6 +8650,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list:
     - 大世界-普通
   - area_name: 区域-选择邦布
@@ -8114,6 +8666,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-第二只邦布
     id_mark: false
@@ -8128,6 +8681,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-确认派驻
     id_mark: false
@@ -8142,6 +8696,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: suibian_temple_yumchaxian
   screen_name: 随便观-饮茶仙
@@ -8160,6 +8715,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-邻里心愿
     id_mark: true
@@ -8174,6 +8730,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-任务列表
     id_mark: false
@@ -8188,6 +8745,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-定期采办-刷新
     id_mark: false
@@ -8202,6 +8760,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-定期采办-提交
     id_mark: false
@@ -8216,6 +8775,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-材料-1
     id_mark: false
@@ -8230,6 +8790,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-材料-2
     id_mark: false
@@ -8244,6 +8805,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-材料-3
     id_mark: false
@@ -8258,6 +8820,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-材料数量
     id_mark: false
@@ -8272,6 +8835,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-制造
     id_mark: false
@@ -8286,6 +8850,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-游历
     id_mark: false
@@ -8300,6 +8865,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 按钮-返回
     id_mark: false
@@ -8314,6 +8880,7 @@
     template_id: back
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 区域-材料名称
     id_mark: false
@@ -8328,6 +8895,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
   - area_name: 文本-已达上限
     id_mark: false
@@ -8342,6 +8910,7 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []
 - screen_id: trigrams_collection
   screen_name: 卦象集录
@@ -8360,4 +8929,5 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
+    crop_first: false
     goto_list: []

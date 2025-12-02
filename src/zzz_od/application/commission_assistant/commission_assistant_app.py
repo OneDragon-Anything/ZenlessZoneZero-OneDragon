@@ -4,6 +4,7 @@ from typing import Optional
 from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_context import ContextKeyboardEventEnum
@@ -23,8 +24,6 @@ from zzz_od.application.commission_assistant.commission_assistant_config import 
     StoryMode,
 )
 from zzz_od.application.zzz_application import ZApplication
-from zzz_od.auto_battle import auto_battle_utils
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.hollow_zero.event import hollow_event_utils
 
@@ -164,31 +163,33 @@ class CommissionAssistantApp(ZApplication):
         点击对话选项
         """
         area = self.ctx.screen_loader.get_area('委托助手', area_name)
-        part = cv2_utils.crop_image_only(screen, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
-        if len(ocr_result_map) == 0:
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=screen,
+            rect=area.rect,
+        )
+        if len(ocr_result_list) == 0:
             return False
 
         to_click: Optional[Point] = None
         to_choose_opt: Optional[str] = None
 
-        is_same_opts: bool = self.check_same_opts(set(ocr_result_map.keys()))
+        is_same_opts: bool = self.check_same_opts(set([i.data for i in ocr_result_list]))
 
-        for ocr_result, mrl in ocr_result_map.items():
-            opt_point = mrl.max.center + area.left_top
+        for mr in ocr_result_list:
+            opt_point = mr.center
 
-            if is_same_opts and ocr_result == self.last_chosen_opt:
+            if is_same_opts and mr.data == self.last_chosen_opt:
                 # 忽略上一次一样的选项 这大概率是背景污染
                 continue
 
             if self.config.dialog_option == DialogOptionEnum.LAST.value.value:
                 if to_click is None or opt_point.y > to_click.y:  # 最后一个选项 找y轴最大的
                     to_click = opt_point
-                    to_choose_opt = ocr_result
+                    to_choose_opt = mr.data
             else:
                 if to_click is None or opt_point.y < to_click.y:  # 第一个选项 找y轴最小的
                     to_click = opt_point
-                    to_choose_opt = ocr_result
+                    to_choose_opt = mr.data
 
         self.ctx.controller.click(to_click)
         self.last_chosen_opt = to_choose_opt
@@ -236,28 +237,27 @@ class CommissionAssistantApp(ZApplication):
     def check_knock_knock(self) -> OperationRoundResult:
         """
         判断是否在短信中
-        :param screen: 游戏画面
-        :return:
         """
         result = self.round_by_find_area(self.last_screenshot, '委托助手', '标题-短信')
         if not result.is_success:
             return result
 
         area = self.ctx.screen_loader.get_area('委托助手', '区域-短信-文本框')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
-        bottom_text = None  # 最下方的文本
-        bottom_mr = None  # 找到最下方的文本进行点击
-        for ocr_result, mrl in ocr_result_map.items():
-            if bottom_mr is None or mrl.max.center.y > bottom_mr.center.y:
-                bottom_mr = mrl.max
-                bottom_text = ocr_result
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=self.last_screenshot,
+            rect=area.rect,
+        )
+        bottom_text: str | None = None  # 最下方的文本
+        bottom_mr: MatchResult | None = None  # 找到最下方的文本进行点击
+        for mr in ocr_result_list:
+            if bottom_mr is None or mr.center.y > bottom_mr.center.y:
+                bottom_mr = mr
+                bottom_text = mr.data
 
         if bottom_mr is None:
             result.result = OperationRoundResultEnum.FAIL
             return result
 
-        bottom_mr.add_offset(area.left_top)
         self.ctx.controller.click(bottom_mr.center)
 
         result.status = bottom_text
@@ -314,8 +314,10 @@ class CommissionAssistantApp(ZApplication):
         @return:
         """
         area = self.ctx.screen_loader.get_area('委托助手', '文本-剧情右上角')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=self.last_screenshot,
+            rect=area.rect,
+        )
 
         target_word_list = [
             gt(i, 'game')
@@ -323,8 +325,8 @@ class CommissionAssistantApp(ZApplication):
         ]
 
         idx = -1
-        for ocr_result in ocr_result_map.keys():
-            idx = str_utils.find_best_match_by_difflib(ocr_result, target_word_list, cutoff=1)
+        for ocr_result in ocr_result_list:
+            idx = str_utils.find_best_match_by_difflib(ocr_result.data, target_word_list, cutoff=1)
             if idx is not None:
                 break
 
@@ -468,6 +470,7 @@ class CommissionAssistantApp(ZApplication):
 def __debug():
     ctx = ZContext()
     ctx.init()
+    ctx.run_context.start_running()
     app = CommissionAssistantApp(ctx)
     app.execute()
 
