@@ -92,7 +92,7 @@ class WorldPatrolSettingInterface(VerticalScrollInterface):
         self.config = self.ctx.run_context.get_config(
             app_id=world_patrol_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
+            group_id=self.group_id,
         )
         self.run_record = self.ctx.run_context.get_run_record(
             app_id=world_patrol_const.APP_ID,

@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QWidget
 from qfluentwidgets import SingleDirectionScrollArea
 
 from one_dragon.base.operation.application import application_const
+from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
@@ -14,8 +15,9 @@ if TYPE_CHECKING:
 
 class AppSettingDialog(QDialog):
 
-    def __init__(self, ctx: ZContext, parent: QWidget | None = None):
+    def __init__(self, ctx: ZContext, title: str, parent: QWidget | None = None):
         super().__init__(parent=parent)
+        self.setWindowTitle(title)
         self.ctx: ZContext = ctx
         self.group_id: str = application_const.DEFAULT_GROUP_ID
 
@@ -34,6 +36,13 @@ class AppSettingDialog(QDialog):
         """
         if self._layout_inited:
             return
+
+        # 启用最大化按钮
+        flags = self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint
+        self.setWindowFlags(flags)
+
+        self.setMinimumSize(1095, 730)
+        OdQtStyleSheet.DIALOG.apply(self)
 
         # 创建一个垂直布局
         main_layout = QVBoxLayout(self)
@@ -55,7 +64,7 @@ class AppSettingDialog(QDialog):
         Returns:
             QWidget: 内容组件
         """
-        pass
+        raise NotImplementedError("子类未实现 get_content_widget 方法")
 
     def on_dialog_shown(self) -> None:
         """

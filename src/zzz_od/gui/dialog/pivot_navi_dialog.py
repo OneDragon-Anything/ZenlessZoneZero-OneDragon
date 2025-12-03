@@ -70,7 +70,7 @@ class PivotNavigatorDialog(QDialog):
         self.v_box_layout.setContentsMargins(20, 20, 20, 20)
 
         # 设置对话框大小
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(1095, 730)
 
         # 样式
         OdQtStyleSheet.STACKED_WIDGET.apply(self.stacked_widget)
@@ -124,10 +124,12 @@ class PivotNavigatorDialog(QDialog):
 
     def on_dialog_shown(self) -> None:
         """对话框显示时进行初始化"""
-        if self.stacked_widget.currentWidget():
-            self.stacked_widget.currentWidget().on_interface_shown()
+        current_widget = self.stacked_widget.currentWidget()
+        if current_widget is not None and isinstance(current_widget, BaseInterface):
+            current_widget.on_interface_shown()
 
     def on_dialog_hidden(self) -> None:
         """对话框隐藏时的回调"""
-        if self.stacked_widget.currentWidget():
+        current_widget = self.stacked_widget.currentWidget()
+        if current_widget is not None and isinstance(current_widget, BaseInterface):
             self.stacked_widget.currentWidget().on_interface_hidden()
