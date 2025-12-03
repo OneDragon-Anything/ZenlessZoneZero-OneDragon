@@ -1,3 +1,4 @@
+from time import sleep
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -18,6 +19,7 @@ class Deploy(ZOperation):
 
     @operation_node(name='出战', is_start_node=True)
     def deploy(self) -> OperationRoundResult:
+        sleep(5) # 角色加载卡顿，出战按钮无效，需要加个延时
         return self.round_by_find_and_click_area(
             self.last_screenshot, '通用-出战', '按钮-出战',
             success_wait=1, retry_wait=1,
