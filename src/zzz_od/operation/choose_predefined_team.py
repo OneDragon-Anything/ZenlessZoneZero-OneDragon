@@ -37,6 +37,7 @@ class ChoosePredefinedTeam(ZOperation):
     @node_from(from_name='画面识别', status='预备编队')
     @operation_node(name='点击预备编队')
     def click_team(self) -> OperationRoundResult:
+        time.sleep(5)
         return self.round_by_find_and_click_area(self.last_screenshot, '实战模拟室', '预备编队',
                                                  success_wait=1, retry_wait=1)
 
