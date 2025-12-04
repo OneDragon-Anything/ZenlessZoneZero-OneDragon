@@ -24,6 +24,7 @@ class AppRunCard(MultiPushSettingCard):
     move_up = Signal(str)
     run = Signal(str)
     switched = Signal(str, bool)
+    setting_clicked = Signal(str)
 
     def __init__(
         self,
@@ -34,6 +35,9 @@ class AppRunCard(MultiPushSettingCard):
     ):
         self.app: ApplicationGroupConfigItem = app
         self.run_record: Optional[AppRunRecord] = run_record
+        
+        self.setting_btn = TransparentToolButton(FluentIcon.SETTING, None)
+        self.setting_btn.clicked.connect(self._on_setting_clicked)
 
         self.move_up_btn = TransparentToolButton(FluentIcon.UP, None)
         self.move_up_btn.clicked.connect(self._on_move_up_clicked)
@@ -49,7 +53,7 @@ class AppRunCard(MultiPushSettingCard):
 
         MultiPushSettingCard.__init__(
             self,
-            btn_list=[self.move_up_btn, self.run_btn, self.switch_btn],
+            btn_list=[self.setting_btn, self.move_up_btn, self.run_btn, self.switch_btn],
             icon=FluentIcon.GAME,
             title=self.app.app_name,
             parent=parent,
@@ -125,3 +129,9 @@ class AppRunCard(MultiPushSettingCard):
 
     def set_switch_on(self, on: bool) -> None:
         self.switch_btn.setChecked(on)
+
+    def _on_setting_clicked(self) -> None:
+        """
+        点击设置按钮
+        """
+        self.setting_clicked.emit(self.app.app_id)

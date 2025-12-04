@@ -247,3 +247,14 @@ class ZContext(OneDragonContext):
             ],
             default_group=True,
         )
+
+    @cached_property
+    def shared_dialog_manager(self):
+        """
+        获取共享的Dialog管理器
+
+        Returns:
+            SharedDialogManager: 共享的Dialog管理器
+        """
+        from zzz_od.gui.dialog.shared_dialog_manager import SharedDialogManager
+        return SharedDialogManager(self)

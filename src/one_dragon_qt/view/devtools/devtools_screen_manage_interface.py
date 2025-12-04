@@ -259,6 +259,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.image_label = ZoomableClickImageLabel()
         self.image_label.left_clicked_with_pos.connect(self._on_image_left_clicked)
         self.image_label.rect_selected.connect(self._on_image_rect_selected)
+        self.image_label.image_pasted.connect(self._on_image_pasted)
         layout.addWidget(self.image_label, 1)
 
         return widget
@@ -481,6 +482,23 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             return
 
         self.chosen_screen.screen_image = cv2_utils.read_image(image_file_path)
+        self._image_update.signal.emit()
+
+    def _on_image_pasted(self, image_data) -> None:
+        """
+        通过拖放或粘贴加载图片后的回调，等同于"选择图片"
+        :param image_data: 文件路径 (str) 或 numpy 数组 (RGB 格式)
+        :return:
+        """
+        if self.chosen_screen is None:
+            return
+
+        if isinstance(image_data, str):
+            # 文件路径，使用 read_image 读取
+            self.chosen_screen.screen_image = cv2_utils.read_image(image_data)
+        else:
+            # numpy 数组，直接使用
+            self.chosen_screen.screen_image = image_data
         self._image_update.signal.emit()
 
     def choose_existed_template(self) -> None:

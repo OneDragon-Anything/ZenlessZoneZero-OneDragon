@@ -743,12 +743,13 @@ class Operation(OperationBase):
             if to_wait > 0:
                 time.sleep(to_wait)
 
-    def round_by_op_result(self, op_result: OperationResult, retry_on_fail: bool = False,
+    def round_by_op_result(self, op_result: OperationResult, status: Optional[str] = None, retry_on_fail: bool = False,
                            wait: Optional[float] = None, wait_round_time: Optional[float] = None) -> OperationRoundResult:
         """根据操作结果获取当前轮次结果。
 
         Args:
             op_result: 要转换的操作结果。
+            status: 可选的状态覆盖值。如果提供，则优先使用此值代替 op_result.status。默认为None。
             retry_on_fail: 失败时是否重试。默认为False。
             wait: 等待时间（秒）。默认为None。
             wait_round_time: 等待直到轮次时间达到此值，如果设置了wait则忽略。默认为None。
@@ -756,14 +757,17 @@ class Operation(OperationBase):
         Returns:
             OperationRoundResult: 转换后的轮次结果。
         """
+        # 使用提供的 status 覆盖 op_result.status
+        status = status if status is not None else op_result.status
+
         if op_result.success:
-            return self.round_success(status=op_result.status, data=op_result.data, wait=wait,
+            return self.round_success(status=status, data=op_result.data, wait=wait,
                                       wait_round_time=wait_round_time)
         elif retry_on_fail:
-            return self.round_retry(status=op_result.status, data=op_result.data, wait=wait,
+            return self.round_retry(status=status, data=op_result.data, wait=wait,
                                     wait_round_time=wait_round_time)
         else:
-            return self.round_fail(status=op_result.status, data=op_result.data, wait=wait,
+            return self.round_fail(status=status, data=op_result.data, wait=wait,
                                    wait_round_time=wait_round_time)
 
     def round_by_find_and_click_area(

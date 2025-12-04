@@ -99,7 +99,7 @@ class ImageAnalysisLogic:
             return "无"
         return self.view_options[self.current_view_index]
 
-    def load_image(self, file_path: str) -> bool:
+    def load_image_from_path(self, file_path: str) -> bool:
         """
         从文件路径加载图片，并初始化相关状态
         """
@@ -108,15 +108,35 @@ class ImageAnalysisLogic:
             if source_image is None:
                 return False
 
-            self.context = CvPipelineContext(source_image, service=self.cv_service, debug_mode=True)
-
-            height, width, _ = source_image.shape
-            self.context.mask_image = np.full((height, width), 255, dtype=np.uint8)
-
-            self.current_view_index = 0
-            return True
+            return self._init_context_with_image(source_image)
         except Exception:
             return False
+
+    def load_image_from_array(self, image_array: np.ndarray) -> bool:
+        """
+        从 numpy 数组加载图片，并初始化相关状态
+        :param image_array: RGB 格式的 numpy 数组
+        """
+        try:
+            if image_array is None:
+                return False
+
+            return self._init_context_with_image(image_array)
+        except Exception:
+            return False
+
+    def _init_context_with_image(self, source_image: np.ndarray) -> bool:
+        """
+        使用图片初始化 context
+        :param source_image: RGB 格式的图片
+        """
+        self.context = CvPipelineContext(source_image, service=self.cv_service, debug_mode=True)
+
+        height, width = source_image.shape[:2]
+        self.context.mask_image = np.full((height, width), 255, dtype=np.uint8)
+
+        self.current_view_index = 0
+        return True
 
     def get_display_image(self) -> np.ndarray:
         """

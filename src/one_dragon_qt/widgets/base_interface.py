@@ -62,6 +62,19 @@ class BaseInterface(QWidget, TelemetryInterfaceMixin):
             position: InfoBarPosition = InfoBarPosition.TOP_RIGHT,
             parent=None,
     ):
+        """
+        通用的提示
+
+        Args:
+            title: 标题
+            content: 内容
+            icon: 图标
+            orient: 提示显示的方向
+            is_closable: 是否可关闭
+            duration: 持续时间 ms
+            position: 提示显示的位置
+            parent: 父控件
+        """
         return InfoBar.new(
             icon=icon,
             title=title,
