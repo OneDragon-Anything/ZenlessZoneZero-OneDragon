@@ -10,18 +10,6 @@ from zzz_od.gui.dialog.pivot_navi_dialog import PivotNavigatorDialog
 from zzz_od.gui.view.hollow_zero.withered_domain_challenge_config_interface import \
     WitheredDomainChallengeConfigInterface
 from zzz_od.gui.view.hollow_zero.withered_domain_setting_interface import WitheredDomainSettingInterface
-from zzz_od.gui.view.world_patrol.world_patrol_large_map_recorder_interface import (
-    LargeMapRecorderInterface,
-)
-from zzz_od.gui.view.world_patrol.world_patrol_route_list_interface import (
-    WorldPatrolRouteListInterface,
-)
-from zzz_od.gui.view.world_patrol.world_patrol_route_recorder_interface import (
-    WorldPatrolRouteRecorderInterface,
-)
-from zzz_od.gui.view.world_patrol.world_patrol_setting_interface import (
-    WorldPatrolSettingInterface,
-)
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext

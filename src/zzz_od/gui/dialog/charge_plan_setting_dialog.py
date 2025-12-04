@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
     FluentIcon,
     PrimaryPushButton,
-    PushButton,
+    PushButton, Dialog,
 )
 
 from one_dragon.base.operation.application import application_const

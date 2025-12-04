@@ -114,6 +114,9 @@ class WorldPatrolSettingInterface(VerticalScrollInterface):
         self.auto_battle_opt.init_with_adapter(get_prop_adapter(self.config, 'auto_battle'))
 
     def _on_reset_record_clicked(self) -> None:
+        if self.run_record is None:
+            log.warning('运行记录未初始化')
+            return
         self.run_record.reset_record()
         log.info('已重置记录')
 

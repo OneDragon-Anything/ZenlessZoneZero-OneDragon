@@ -3,7 +3,6 @@ from one_dragon_qt.view.one_dragon.one_dragon_run_interface import OneDragonRunI
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.coffee import coffee_app_const
 from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
-from zzz_od.application.hollow_zero import withered_domain
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
 from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
 from zzz_od.application.notorious_hunt import notorious_hunt_const
