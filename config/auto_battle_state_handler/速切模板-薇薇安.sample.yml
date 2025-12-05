@@ -69,7 +69,20 @@ handlers:
             state: "自定义-不使用快速支援"
           - operation_template: "薇薇安-强化特殊技合轴"
 
-      - states: ""
+      - states: "[薇薇安-护羽]{4,5}"
+        debug_name: "羽毛很多了快走吧"
+        operations:
+          - op_name: "设置状态"
+            state: "自定义-合轴时间"
+          - operation_template: "薇薇安-3A"
+          - op_name: "设置状态"
+            state: "自定义-合轴时间"
+          - operation_template: "薇薇安-4A突刺"
+          - op_name: "设置状态"
+            state: "自定义-合轴时间"
+          - operation_template: "薇薇安-5A悬落"
+
+      - states: "[薇薇安-护羽]{4,5}"
         debug_name: "无能量普攻"
         operations:
           - operation_template: "薇薇安-3A"

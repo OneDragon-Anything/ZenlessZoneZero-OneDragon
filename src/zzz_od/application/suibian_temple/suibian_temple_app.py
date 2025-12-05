@@ -78,17 +78,23 @@ class SuibianTempleApp(ZApplication):
         target_cn_list: list[str] = [
             '前往随便观',
             '确认',
+            '领取收益',
         ]
+        ignore_cn_list: list[str] = []
 
-        result = self.round_by_ocr_and_click_by_priority(target_cn_list)
+        result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=ignore_cn_list)
         if result.is_success:
-            if result.status == '累计获得称愿':
-                self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回')
             return self.round_wait(status=result.status, wait=1)
 
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-入口'])
         if current_screen_name is not None:
-            return self.round_success()
+            return self.round_success(status=current_screen_name)
+
+        # 领取收益 -> 确认 -> 开始托管
+        if self.config.auto_manage_enabled:
+            result = self.round_by_ocr(self.last_screenshot, target_cn='开始托管')
+            if result.is_success:
+                return self.round_success(status=result.status)
 
         result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回')
         if result.is_success:
@@ -99,18 +105,15 @@ class SuibianTempleApp(ZApplication):
     @node_from(from_name='识别初始画面', status='随便观-入口')
     @node_from(from_name='前往随便观')
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
-    @operation_node(name='处理饮茶仙-只提交')
-    def handle_yum_cha_sin_submit_only(self) -> OperationRoundResult:
-        op = SuibianTempleYumChaSin(self.ctx, submit_only=True)
-        return self.round_by_op_result(op.execute())
-
-    @node_from(from_name='处理饮茶仙-只提交')
-    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='处理自动托管')
     def handle_auto_manage(self) -> OperationRoundResult:
-        op = SuibianTempleAutoManage(self.ctx)
-        return self.round_by_op_result(op.execute())
+        if self.config.auto_manage_enabled:
+            op = SuibianTempleAutoManage(self.ctx)
+            return self.round_by_op_result(op.execute())
+        else:
+            return self.round_success(status='未开启自动托管')
 
+    @node_from(from_name='处理自动托管', status='未开启自动托管')
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='处理游历')
     def handle_adventure_squad(self) -> OperationRoundResult:

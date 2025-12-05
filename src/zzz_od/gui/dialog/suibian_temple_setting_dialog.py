@@ -1,46 +1,42 @@
-from typing import Optional
+from __future__ import annotations
 
-from PySide6.QtWidgets import QWidget, QLabel
+from typing import TYPE_CHECKING
+
+from PySide6.QtWidgets import QLabel, QWidget
 from qfluentwidgets import FluentIcon
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.operation.application import application_const
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiPushSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_dispatch import (
     SuibianTempleAdventureDispatchDuration,
 )
 from zzz_od.application.suibian_temple.suibian_temple_config import (
-    SuibianTempleConfig,
-    SuibianTempleAdventureMission,
     BangbooPrice,
-    PawnshopOmnicoinGoods,
     PawnshopCrestGoods,
+    PawnshopOmnicoinGoods,
+    SuibianTempleAdventureMission,
+    SuibianTempleConfig,
 )
-from zzz_od.context.zzz_context import ZContext
+from zzz_od.gui.dialog.app_setting_dialog import AppSettingDialog
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
 
-class SuibianTempleSettingInterface(VerticalScrollInterface):
-
-    def __init__(self, ctx: ZContext, parent=None):
-        self.ctx: ZContext = ctx
-
-        VerticalScrollInterface.__init__(
-            self,
-            object_name='zzz_suibian_temple_setting_interface',
-            content_widget=None, parent=parent,
-            nav_text_cn='随便观'
-        )
-
-        self.config: Optional[SuibianTempleConfig] = None
+class SuibianTempleSettingDialog(AppSettingDialog):
+    
+    def __init__(self, ctx: ZContext, parent: QWidget | None = None):
+        super().__init__(ctx=ctx, title="随便观配置", parent=parent)
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
@@ -218,13 +214,13 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
         content_widget.add_stretch(1)
         return content_widget
 
-    def on_interface_shown(self) -> None:
-        VerticalScrollInterface.on_interface_shown(self)
+    def on_dialog_shown(self) -> None:
+        super().on_dialog_shown()
 
         self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
             app_id='suibian_temple',
             instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
+            group_id=self.group_id,
         )
 
         self.auto_manage_switch.init_with_adapter(get_prop_adapter(self.config, 'auto_manage_enabled'))

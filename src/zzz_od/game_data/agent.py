@@ -327,7 +327,7 @@ class AgentEnum(Enum):
                                      connect_cnt=10, min_value_trigger_state=0),
                        AgentStateDef('仪玄-术法值全满', AgentStateCheckWay.COLOR_RANGE_EXIST,
                                      template_id='yixuan_technique',
-                                     hsv_color=(30, 140, 255), hsv_color_diff=(20, 100, 50),
+                                     hsv_color=(20, 0, 245), hsv_color_diff=(7, 240, 17),
                                      connect_cnt=10, min_value_trigger_state=0),
                        AgentStateDef('仪玄-术法值', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                      template_id='yixuan_technique',

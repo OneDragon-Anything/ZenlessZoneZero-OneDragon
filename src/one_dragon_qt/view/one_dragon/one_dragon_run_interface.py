@@ -209,6 +209,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
                 app_run_card.move_up.connect(self.on_app_card_move_up)
                 app_run_card.run.connect(self._on_app_card_run)
                 app_run_card.switched.connect(self.on_app_switch_run)
+                app_run_card.setting_clicked.connect(self.on_app_setting_clicked)
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
@@ -374,3 +375,12 @@ class OneDragonRunInterface(VerticalScrollInterface):
         """
         dialog = NotifyDialog(self, self.ctx)
         dialog.exec()
+
+    def on_app_setting_clicked(self, app_id) -> None:
+        """
+        处理应用设置按钮被点击 由子类实现 自行决定是弹窗还是跳转
+
+        Args:
+            app_id: 应用id
+        """
+        pass

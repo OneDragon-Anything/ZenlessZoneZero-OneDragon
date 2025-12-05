@@ -17,6 +17,18 @@ try:
     _init_error = None
 
 
+    class CtxInitRunner(QThread):
+        finished = Signal()
+
+        def __init__(self, ctx: ZContext, parent=None):
+            super().__init__(parent)
+            self.ctx = ctx
+
+        def run(self):
+            self.ctx.init()
+            self.finished.emit()
+
+
     class CheckVersionRunner(QThread):
 
         get = Signal(tuple)
@@ -93,7 +105,6 @@ try:
             self.navigationInterface.setContentsMargins(0, 0, 0, 0)
 
             # 配置样式
-            OdQtStyleSheet.APP_WINDOW.apply(self)
             OdQtStyleSheet.NAVIGATION_INTERFACE.apply(self.navigationInterface)
             OdQtStyleSheet.STACKED_WIDGET.apply(self.stackedWidget)
             OdQtStyleSheet.AREA_WIDGET.apply(self.areaWidget)
@@ -335,7 +346,8 @@ if __name__ == "__main__":
     w.activateWindow()
 
     # 加载配置
-    _ctx.init_async()
+    init_runner = CtxInitRunner(_ctx)
+    init_runner.start()
 
     # 启动应用程序事件循环
     app.exec()
