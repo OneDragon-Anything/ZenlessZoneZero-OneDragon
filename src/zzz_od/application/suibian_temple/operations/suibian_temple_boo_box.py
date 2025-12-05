@@ -48,7 +48,7 @@ class SuibianTempleBooBox(ZOperation):
         self.bought_bangboo: bool = False  # 是否已购买邦布
         self.bought_count: int = 0  # 已购买邦布数量
         self.refresh_count: int = 0  # 刷新次数计数
-        self.max_refresh_count: int = 30  # 最大刷新次数限制
+        self.max_refresh_count: int = 50  # 最大刷新次数限制
 
         self.done_bangboo_pos: list[Rect] = []  # 已经选择过的邦布位置 点击刷新后重置/购买后需要删除
         self.current_bangboo_pos: Optional[Rect] = None  # 当前选择的邦布位置
