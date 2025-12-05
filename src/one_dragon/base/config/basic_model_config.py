@@ -26,6 +26,25 @@ class BasicModelConfig(YamlConfig):
     def ocr_gpu(self, new_value: bool) -> None:
         self.update('ocr_gpu', new_value)
 
+    @property
+    def ocr_worker_count(self) -> int:
+        """OCR 并行处理的 worker 线程数量"""
+        default = 4 if self.ocr_gpu else 2
+        return self.get('ocr_worker_count', default)
+
+    @ocr_worker_count.setter
+    def ocr_worker_count(self, new_value: int) -> None:
+        self.update('ocr_worker_count', new_value)
+
+    @property
+    def ocr_batch_size(self) -> int:
+        """OCR 批量推理的批次大小，数值越大GPU利用率越高，但延迟也会增加"""
+        return self.get('ocr_batch_size', 32)
+
+    @ocr_batch_size.setter
+    def ocr_batch_size(self, new_value: int) -> None:
+        self.update('ocr_batch_size', new_value)
+
     def using_old_model(self) -> bool:
         """
         是否在使用旧模型
