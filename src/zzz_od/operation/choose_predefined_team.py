@@ -74,7 +74,6 @@ class ChoosePredefinedTeam(ZOperation):
 
             # 点击之前的队伍选择个数
             selected_count_before_click = self.find_selected_num(self.last_screenshot)
-            self.round_by_find_area(self.last_screenshot, '实战模拟室', '预备编队选择成功1')
             self.ctx.controller.click(to_click)
 
             time.sleep(1)
