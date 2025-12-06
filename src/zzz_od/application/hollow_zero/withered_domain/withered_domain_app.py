@@ -64,7 +64,6 @@ class WitheredDomainApp(ZApplication):
     @operation_node(name='初始画面识别', is_start_node=True)
     def check_first_screen(self) -> OperationRoundResult:
         event_name = hollow_event_utils.check_screen(self.ctx, self.last_screenshot, set())
-
         # 特殊兼容：已在副本内，接力运行（层信息忽略）
         if (event_name is not None
                 and event_name not in [
@@ -80,10 +79,11 @@ class WitheredDomainApp(ZApplication):
             return self.round_success('零号空洞-入口')
 
         # 未识别到画面；走快捷手册传送流程
-        if self.check_current_can_go('快捷手册-作战'):
+        can_go = self.check_current_can_go('快捷手册-作战')
+        if can_go:
             return self.round_success('可前往快捷手册')
 
-        return self.round_success('未识别初始画面')
+        return self.round_success('未识别初始画面', wait=1)
 
     @node_from(from_name='初始画面识别', status='可前往快捷手册')
     @node_from(from_name='初始画面识别', status='未识别初始画面')

@@ -85,28 +85,26 @@ class LostVoidApp(ZApplication):
 
         mission_name = self.config.mission_name
         screen_name, can_go = self.check_screen_with_can_go(self.last_screenshot, f'迷失之地-{mission_name}')
-        # 特殊兼容：在入口区域开始，接力运行
-        if screen_name == '迷失之地-入口':
-            return self.round_success('迷失之地-入口')
-
-        # 未识别到画面；走快捷手册传送流程
-        if screen_name is None:
-            can_go = self.check_current_can_go('快捷手册-作战')
-            if can_go:
-                return self.round_success('可前往快捷手册')
-            return self.round_success(Operation.STATUS_SCREEN_UNKNOWN)
-
         if screen_name == '迷失之地-大世界':
             return self.round_success('迷失之地-大世界')
 
         if can_go or screen_name == f'迷失之地-{mission_name}':
             return self.round_success('可前往副本画面')
 
-        return self.round_retry('无法前往目标画面', wait=0.5)
+        # 特殊兼容：在入口区域开始，接力运行
+        if screen_name == '迷失之地-入口':
+            return self.round_success('迷失之地-入口')
+
+        # 未识别到画面；走快捷手册传送流程
+        can_go = self.check_current_can_go('快捷手册-作战')
+        if can_go:
+            return self.round_success('可前往快捷手册')
+
+        return self.round_success('未识别初始画面', wait=1)
 
     @node_from(from_name='识别初始画面', status='可前往快捷手册')
     @node_from(from_name='识别初始画面', status=Operation.STATUS_SCREEN_UNKNOWN)
-    @node_from(from_name='识别初始画面', status='无法前往目标画面')
+    @node_from(from_name='识别初始画面', status='未识别初始画面')
     @operation_node(name='前往迷失之地-入口')
     def tp_to_lost_void(self) -> OperationRoundResult:
         op = TransportByCompendium(self.ctx,

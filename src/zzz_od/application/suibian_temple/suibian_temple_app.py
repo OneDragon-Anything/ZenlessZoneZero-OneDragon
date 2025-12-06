@@ -61,7 +61,7 @@ class SuibianTempleApp(ZApplication):
         if can_go:
             return self.round_success(status='可前往快捷手册')
 
-        return self.round_success(status='未识别初始画面')
+        return self.round_success(status='未识别初始画面', wait=1)
 
     @node_from(from_name='识别初始画面', status='可前往快捷手册')
     @node_from(from_name='识别初始画面', status='未识别初始画面')

@@ -62,15 +62,14 @@ class TransportByCompendium(ZOperation):
     @operation_node(name='选择副本分类')
     def choose_mission_type(self) -> OperationRoundResult:
         mission_type = self.ctx.compendium_service.get_mission_type_data(
-            self.tab_name, self.category_name, self.mission_type_name
+            self.tab_name, self.category_name, self.mission_type_name or ''
         )
 
-        if mission_type is None:
-            return self.round_success(status='无需选择副本')
+        if mission_type:
+            op = CompendiumChooseMissionType(self.ctx, mission_type)
+            return self.round_by_op_result(op.execute())
 
-        op = CompendiumChooseMissionType(self.ctx, mission_type)
-        return self.round_by_op_result(op.execute())
-
+        return self.round_success(status='无需选择副本')
 
 def __debug():
     ctx = ZContext()
