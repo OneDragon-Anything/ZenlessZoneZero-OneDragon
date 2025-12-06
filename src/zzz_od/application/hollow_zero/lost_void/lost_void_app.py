@@ -28,15 +28,9 @@ from zzz_od.application.hollow_zero.lost_void.operation.lost_void_run_level impo
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum
-from zzz_od.game_data.compendium import CompendiumMissionType
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
-from zzz_od.operation.compendium.compendium_choose_category import (
-    CompendiumChooseCategory,
-)
-from zzz_od.operation.compendium.compendium_choose_mission_type import (
-    CompendiumChooseMissionType,
-)
 from zzz_od.operation.deploy import Deploy
 
 
@@ -83,57 +77,45 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='初始化加载', status=STATUS_AGAIN)
     @operation_node(name='识别初始画面')
     def check_initial_screen(self) -> OperationRoundResult:
-        # 特殊兼容 在挑战区域开始
         result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-大世界', '按钮-挑战-确认')
+        # 特殊兼容：在挑战区域开始，接力运行
         if result.is_success:
             self.next_region_type = LostVoidRegionType.CHANLLENGE_TIME_TRAIL
             return self.round_wait(result.status, wait=1)
 
         mission_name = self.config.mission_name
         screen_name, can_go = self.check_screen_with_can_go(self.last_screenshot, f'迷失之地-{mission_name}')
-        if screen_name is None:
-            return self.round_retry(Operation.STATUS_SCREEN_UNKNOWN, wait=0.5)
-
         if screen_name == '迷失之地-大世界':
             return self.round_success('迷失之地-大世界')
 
         if can_go or screen_name == f'迷失之地-{mission_name}':
             return self.round_success('可前往副本画面')
 
+        # 特殊兼容：在入口区域开始，接力运行
+        if screen_name == '迷失之地-入口':
+            return self.round_success('迷失之地-入口')
+
+        # 未识别到画面；走快捷手册传送流程
         can_go = self.check_current_can_go('快捷手册-作战')
         if can_go:
             return self.round_success('可前往快捷手册')
 
-        return self.round_retry('无法前往目标画面', wait=0.5)
-
-    @node_from(from_name='识别初始画面', status=Operation.STATUS_SCREEN_UNKNOWN)
-    @node_from(from_name='识别初始画面', status='无法前往目标画面')
-    @operation_node(name='开始前返回大世界')
-    def back_at_first(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
+        return self.round_success('未识别初始画面', wait=1)
 
     @node_from(from_name='识别初始画面', status='可前往快捷手册')
-    @node_from(from_name='开始前返回大世界')
-    @operation_node(name='前往快捷手册')
-    def goto_compendium(self) -> OperationRoundResult:
-        return self.round_by_goto_screen(screen_name='快捷手册-作战')
-
-    @node_from(from_name='前往快捷手册')
-    @operation_node(name='选择零号空洞')
-    def choose_hollow_zero(self) -> OperationRoundResult:
-        op = CompendiumChooseCategory(self.ctx, '零号空洞')
-        return self.round_by_op_result(op.execute())
-
-    @node_from(from_name='选择零号空洞')
-    @operation_node(name='选择迷失之地')
-    def choose_lost_void(self) -> OperationRoundResult:
-        mission_type: CompendiumMissionType = self.ctx.compendium_service.get_mission_type_data('作战', '零号空洞', '迷失之地')
-        op = CompendiumChooseMissionType(self.ctx, mission_type)
+    @node_from(from_name='识别初始画面', status=Operation.STATUS_SCREEN_UNKNOWN)
+    @node_from(from_name='识别初始画面', status='未识别初始画面')
+    @operation_node(name='前往迷失之地-入口')
+    def tp_to_lost_void(self) -> OperationRoundResult:
+        op = TransportByCompendium(self.ctx,
+                                   '作战',
+                                   '零号空洞',
+                                   '迷失之地')
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别初始画面', status='可前往副本画面')
-    @node_from(from_name='选择迷失之地')
+    @node_from(from_name='识别初始画面', status='迷失之地-入口')
+    @node_from(from_name='前往迷失之地-入口')
     @operation_node(name='开始前等待入口加载')
     def wait_lost_void_entry(self) -> OperationRoundResult:
         screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])

@@ -30,6 +30,7 @@ from zzz_od.application.suibian_temple.suibian_temple_config import SuibianTempl
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 
 
 class SuibianTempleApp(ZApplication):
@@ -49,28 +50,25 @@ class SuibianTempleApp(ZApplication):
 
     @operation_node(name='识别初始画面', is_start_node=True)
     def check_initial_screen(self) -> OperationRoundResult:
-        current_screen_name, can_go = self.check_screen_with_can_go(self.last_screenshot, '快捷手册-目标')
-        if can_go is not None and can_go == True:
-            return self.round_by_goto_screen(self.last_screenshot, '快捷手册-目标',
-                                             success_wait=1, retry_wait=1)
+        # 特殊兼容 在入口区域开始
+        screen_name, _ = self.check_screen_with_can_go(self.last_screenshot, '随便观-入口')
 
-        current_screen_name, can_go = self.check_screen_with_can_go(self.last_screenshot, '随便观-入口')
-        if can_go is not None and can_go == True:
+        if screen_name == '随便观-入口':
             return self.round_success(status='随便观-入口')
 
-        return self.round_retry(status='未识别初始画面', wait=1)
+        # 未识别到画面，走快捷手册传送流程
+        can_go = self.check_current_can_go('快捷手册-目标')
+        if can_go:
+            return self.round_success(status='可前往快捷手册')
 
-    @node_from(from_name='识别初始画面', status='未识别初始画面', success=False)
-    @operation_node(name='开始前返回大世界')
-    def back_at_first(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
+        return self.round_success(status='未识别初始画面', wait=1)
 
-    @node_from(from_name='识别初始画面', status='快捷手册-目标')
-    @node_from(from_name='开始前返回大世界')
+    @node_from(from_name='识别初始画面', status='可前往快捷手册')
+    @node_from(from_name='识别初始画面', status='未识别初始画面')
     @operation_node(name='前往快捷手册-目标')
     def goto_category(self) -> OperationRoundResult:
-        return self.round_by_goto_screen(self.last_screenshot, '快捷手册-目标')
+        op = TransportByCompendium(self.ctx, '目标', '修者纪行')
+        return self.round_by_op_result(op.execute())
 
     @node_from(from_name='前往快捷手册-目标')
     @operation_node(name='前往随便观', node_max_retry_times=10)
@@ -80,13 +78,14 @@ class SuibianTempleApp(ZApplication):
             '确认',
             '领取收益',
         ]
-        ignore_cn_list: list[str] = []
-
-        result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=ignore_cn_list)
+        result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=[])
         if result.is_success:
             return self.round_wait(status=result.status, wait=1)
 
-        current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-入口'])
+        # 再检查是否已进入入口
+        current_screen_name = self.check_and_update_current_screen(
+            self.last_screenshot, screen_name_list=['随便观-入口']
+        )
         if current_screen_name is not None:
             return self.round_success(status=current_screen_name)
 

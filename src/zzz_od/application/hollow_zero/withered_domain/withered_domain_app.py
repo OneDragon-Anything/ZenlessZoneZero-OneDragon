@@ -64,7 +64,7 @@ class WitheredDomainApp(ZApplication):
     @operation_node(name='初始画面识别', is_start_node=True)
     def check_first_screen(self) -> OperationRoundResult:
         event_name = hollow_event_utils.check_screen(self.ctx, self.last_screenshot, set())
-
+        # 特殊兼容：已在副本内，接力运行（层信息忽略）
         if (event_name is not None
                 and event_name not in [
                     HollowZeroSpecialEvent.OLD_CAPITAL.value.event_name,  # 旧都失物是左上角的返回符合 有较多地方存在 不适合这里判断
@@ -73,16 +73,21 @@ class WitheredDomainApp(ZApplication):
             self.phase = -1
             return self.round_success(WitheredDomainApp.STATUS_IN_HOLLOW)
 
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
+        screen_name, _ = self.check_screen_with_can_go(self.last_screenshot, '零号空洞-入口')
+        # 特殊兼容：在入口区域开始，接力运行
+        if screen_name == '零号空洞-入口':
+            return self.round_success('零号空洞-入口')
 
-        if result.is_success:
-            return self.round_success(result.status)
-        else:
-            return self.round_retry(result.status, wait=1)
+        # 未识别到画面；走快捷手册传送流程
+        can_go = self.check_current_can_go('快捷手册-作战')
+        if can_go:
+            return self.round_success('可前往快捷手册')
 
-    @node_from(from_name='初始画面识别', success=False)
-    @node_from(from_name='初始画面识别', status='信息')
-    @operation_node(name='传送')
+        return self.round_success('未识别初始画面', wait=1)
+
+    @node_from(from_name='初始画面识别', status='可前往快捷手册')
+    @node_from(from_name='初始画面识别', status='未识别初始画面')
+    @operation_node(name='前往零号空洞-入口')
     def tp(self) -> OperationRoundResult:
         op = TransportByCompendium(self.ctx,
                                    '作战',
@@ -90,7 +95,8 @@ class WitheredDomainApp(ZApplication):
                                    '枯萎之都')
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='传送')
+    @node_from(from_name='前往零号空洞-入口')
+    @node_from(from_name='初始画面识别', status='零号空洞-入口')
     @node_from(from_name='自动运行')
     @operation_node(name='等待入口加载', node_max_retry_times=20)
     def wait_entry_loading(self) -> OperationRoundResult:
@@ -177,7 +183,7 @@ class WitheredDomainApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     op = WitheredDomainApp(ctx)
     op.execute()
 
