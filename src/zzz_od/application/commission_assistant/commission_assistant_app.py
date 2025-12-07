@@ -90,16 +90,24 @@ class CommissionAssistantApp(ZApplication):
 
         config = self.config
 
-        current_screen = self.check_and_update_current_screen()
-        if current_screen in ['大世界-普通', '大世界-勘域']:
+        # 邀约同行移动时 下面的current_screen会识别不到
+        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
+        if result.is_success:
+            return self.round_wait(status=result.status, wait=1)
+
+        current_screen = self.check_and_update_current_screen(
+            screen_name_list=['大世界-普通', '大世界-勘域'],
+            crop_first=False,
+        )
+        if current_screen is not None:
             return self.round_wait(status=current_screen, wait=1)
 
-        result = self.round_by_find_area(self.last_screenshot, '委托助手', '左上角返回')
+        result = self.round_by_find_area(self.last_screenshot, '委托助手', '左上角返回', crop_first=False)
         # 很多二级菜单都有这个按钮
         if result.is_success:
             return self.round_wait(result.status, wait=1)
 
-        result = self.round_by_find_area(self.last_screenshot, '委托助手', '对话框确认')
+        result = self.round_by_find_area(self.last_screenshot, '委托助手', '对话框确认', crop_first=False)
         # 一些对话时出现确认
         if result.is_success:
             return self.round_wait(result.status, wait=1)
@@ -110,7 +118,7 @@ class CommissionAssistantApp(ZApplication):
             return self._handle_hollow(self.last_screenshot_time)
 
         # 判断是否空洞内完成
-        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '通关-完成')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '通关-完成', crop_first=False)
         if result.is_success:
             return self.round_wait(result.status, wait=1)
 
@@ -151,10 +159,13 @@ class CommissionAssistantApp(ZApplication):
         识别当前是否有对话
         """
         area = self.ctx.screen_loader.get_area('委托助手', '对话框标题')
-        part = cv2_utils.crop_image_only(screen, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
-        for ocr_result in ocr_result_map.keys():
-            if str_utils.with_chinese(ocr_result):
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=screen,
+            rect=area.rect,
+            crop_first=False,
+        )
+        for ocr_result in ocr_result_list:
+            if str_utils.with_chinese(ocr_result.data):
                 return True
         return False
 
@@ -166,6 +177,7 @@ class CommissionAssistantApp(ZApplication):
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=screen,
             rect=area.rect,
+            crop_first=False,
         )
         if len(ocr_result_list) == 0:
             return False
@@ -238,7 +250,7 @@ class CommissionAssistantApp(ZApplication):
         """
         判断是否在短信中
         """
-        result = self.round_by_find_area(self.last_screenshot, '委托助手', '标题-短信')
+        result = self.round_by_find_area(self.last_screenshot, '委托助手', '标题-短信', crop_first=False)
         if not result.is_success:
             return result
 
@@ -246,6 +258,7 @@ class CommissionAssistantApp(ZApplication):
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=self.last_screenshot,
             rect=area.rect,
+            crop_first=False,
         )
         bottom_text: str | None = None  # 最下方的文本
         bottom_mr: MatchResult | None = None  # 找到最下方的文本进行点击
@@ -284,39 +297,39 @@ class CommissionAssistantApp(ZApplication):
         )
         self.ctx.auto_battle_context.start_auto_battle()
 
-    def check_fishing(self) -> Optional[OperationRoundResult]:
+    def check_fishing(self) -> OperationRoundResult | None:
         """
         判断是否进入钓鱼画面
         - 左上角有返回
         - 出现了抛竿文本
-        @param screen: 游戏画面
-        @return:
         """
         result = self.round_by_find_area(self.last_screenshot, '钓鱼', '按键-返回')
         if not result.is_success:
             return None
 
         area = self.ctx.screen_loader.get_area('钓鱼', '指令文本区域')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
-        ocr_result_list = list(ocr_result_map.keys())
-        if str_utils.find_best_match_by_difflib(gt('点击按键抛竿', 'game'), ocr_result_list) is None:
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=self.last_screenshot,
+            rect=area.rect,
+            crop_first=False,
+        )
+        ocr_word_list = [i.data for i in ocr_result_list]
+        if str_utils.find_best_match_by_difflib(gt('点击按键抛竿', 'game'), ocr_word_list) is None:
             return None
 
         self.fishing_done = False
         self.ctx.controller.mouse_move(area.left_top)  # 移开鼠标 防止遮挡指令
-        return self.round_success('钓鱼')
+        return self.round_success('钓鱼', wait=0.1)
 
-    def check_story_mode(self) -> Optional[OperationRoundResult]:
+    def check_story_mode(self) -> OperationRoundResult | None:
         """
         判断是否进入了剧情模式 右上角有 等待/自动/跳过
-        @param screen:
-        @return:
         """
         area = self.ctx.screen_loader.get_area('委托助手', '文本-剧情右上角')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=self.last_screenshot,
             rect=area.rect,
+            crop_first=False,
         )
 
         target_word_list = [
@@ -350,7 +363,7 @@ class CommissionAssistantApp(ZApplication):
             self.round_by_click_area('委托助手', '文本-剧情右上角', success_wait=1)  # 点击菜单
             self.round_by_click_area('委托助手', '文本-剧情右上角', success_wait=1)  # 点击跳过
             screen2 = self.screenshot()
-            result = self.round_by_find_and_click_area(screen2, '委托助手', '对话框确认')
+            result = self.round_by_find_and_click_area(screen2, '委托助手', '对话框确认', crop_first=False)
             if result.is_success:
                 return self.round_wait('跳过剧情')
 

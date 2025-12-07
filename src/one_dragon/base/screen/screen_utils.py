@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
-import cv2
-import numpy as np
 from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
@@ -78,22 +76,15 @@ def find_area_in_screen(
 
     find: bool = False
     if area.is_text_area:
-        rect = area.rect
-        part = cv2_utils.crop_image_only(screen, rect)
+        ocr_result_list = ctx.ocr_service.get_ocr_result_list(
+            image=screen,
+            rect=area.rect,
+            color_range=area.color_range,
+            crop_first=crop_first,
+        )
 
-        if area.color_range is None:
-            to_ocr = part
-        else:
-            mask = cv2.inRange(part,
-                               np.array(area.color_range[0], dtype=np.uint8),
-                               np.array(area.color_range[1], dtype=np.uint8))
-            mask = cv2_utils.dilate(mask, 2)
-            to_ocr = cv2.bitwise_and(part, part, mask=mask)
-
-        ocr_result_map = ctx.ocr.run_ocr(to_ocr)
-
-        for ocr_result, mrl in ocr_result_map.items():
-            if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result, percent=area.lcs_percent):
+        for ocr_result in ocr_result_list:
+            if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result.data, percent=area.lcs_percent):
                 find = True
                 break
     elif area.is_template_area:
@@ -131,21 +122,16 @@ def find_and_click_area(
     if area is None:
         return OcrClickResultEnum.AREA_NO_CONFIG
     if area.is_text_area:
-        rect = area.rect
-        to_ocr_part = cv2_utils.crop_image_only(screen, rect)
-        if area.color_range is not None:
-            mask = cv2.inRange(to_ocr_part, area.color_range_lower, area.color_range_upper)
-            mask = cv2_utils.dilate(mask, 5)
-            to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
-        # cv2_utils.show_image(to_ocr_part, win_name='debug', wait=1)
+        ocr_result_list = ctx.ocr_service.get_ocr_result_list(
+            image=screen,
+            rect=area.rect,
+            color_range=area.color_range,
+            crop_first=crop_first,
+        )
 
-        ocr_result_list = ctx.ocr.ocr(to_ocr_part)
-        for i in ocr_result_list:
-            i.add_offset(area.left_top)
-
-        for i in ocr_result_list:
-            if str_utils.find_by_lcs(gt(area.text, 'game'), i.data, percent=area.lcs_percent):
-                if ctx.controller.click(i.center, pc_alt=area.pc_alt):
+        for ocr_result in ocr_result_list:
+            if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result.data, percent=area.lcs_percent):
+                if ctx.controller.click(ocr_result.center, pc_alt=area.pc_alt):
                     return OcrClickResultEnum.OCR_CLICK_SUCCESS
                 else:
                     return OcrClickResultEnum.OCR_CLICK_FAIL
@@ -168,36 +154,54 @@ def find_and_click_area(
         return OcrClickResultEnum.OCR_CLICK_SUCCESS
 
 
-def get_match_screen_name(ctx: OneDragonContext, screen: MatLike, screen_name_list: Optional[List[str]] = None) -> Optional[str]:
+def get_match_screen_name(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    screen_name_list: list[str] | None = None,
+    crop_first: bool = True,
+) -> str | None:
     """
     根据游戏截图 匹配一个最合适的画面
-    :param ctx: 上下文
-    :param screen: 游戏截图
-    :param screen_name_list: 传入时 只判断这里的画面
-    :return: 画面名字
+
+    Args:
+        ctx: 上下文
+        screen: 游戏截图
+        screen_name_list: 画面列表 传入时 只判断这里的画面
+        crop_first: 在传入区域时 是否先裁剪再进行文本识别
+
+    Returns:
+        str | None: 画面名称
     """
     if screen_name_list is not None:
         for screen_info in ctx.screen_loader.screen_info_list:
             if screen_info.screen_name not in screen_name_list:
                 continue
-            if is_target_screen(ctx, screen, screen_info=screen_info):
+            if is_target_screen(ctx, screen, screen_info=screen_info, crop_first=crop_first):
                 return screen_info.screen_name
     elif ctx.screen_loader.current_screen_name is not None or ctx.screen_loader.last_screen_name is not None:
-        return get_match_screen_name_from_last(ctx, screen)
+        return get_match_screen_name_from_last(ctx, screen, crop_first=crop_first)
     else:
         for screen_info in ctx.screen_loader.screen_info_list:
-            if is_target_screen(ctx, screen, screen_info=screen_info):
+            if is_target_screen(ctx, screen, screen_info=screen_info, crop_first=crop_first):
                 return screen_info.screen_name
 
     return None
 
 
-def get_match_screen_name_from_last(ctx: OneDragonContext, screen: MatLike) -> str | None:
+def get_match_screen_name_from_last(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    crop_first: bool = True,
+) -> str | None:
     """
     根据游戏截图 从上次记录的画面开始 匹配一个最合适的画面
-    :param ctx: 上下文
-    :param screen: 游戏截图
-    :return: 画面名字
+    Args:
+        ctx: 上下文
+        screen: 游戏截图
+        crop_first: 在传入区域时 是否先裁剪再进行文本识别
+
+    Returns:
+        str | None: 画面名称
     """
     bfs_list = []
 
@@ -214,7 +218,7 @@ def get_match_screen_name_from_last(ctx: OneDragonContext, screen: MatLike) -> s
         current_screen_name = bfs_list[bfs_idx]
         bfs_idx += 1
 
-        if is_target_screen(ctx, screen, screen_name=current_screen_name):
+        if is_target_screen(ctx, screen, screen_name=current_screen_name, crop_first=crop_first):
             return current_screen_name
 
         screen_info = ctx.screen_loader.get_screen(current_screen_name)
@@ -231,7 +235,7 @@ def get_match_screen_name_from_last(ctx: OneDragonContext, screen: MatLike) -> s
     for screen_info in ctx.screen_loader.screen_info_list:
         if screen_info.screen_name in bfs_list:
             continue
-        if is_target_screen(ctx, screen, screen_info=screen_info):
+        if is_target_screen(ctx, screen, screen_info=screen_info, crop_first=crop_first):
             return screen_info.screen_name
 
     return None
@@ -304,25 +308,19 @@ def find_by_ocr(
     if lcs_percent is None:
         lcs_percent = area.lcs_percent
 
-    # 回退到原有方法
-    to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
-    if color_range is None:
+    if color_range is None and area is not None:
         color_range = area.color_range
-    if color_range is not None:
-        mask = cv2.inRange(
-            to_ocr_part,
-            np.array(color_range[0], dtype=np.uint8),
-            np.array(color_range[1], dtype=np.uint8),
-        )
-        to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
-    ocr_result_map = ctx.ocr.run_ocr(to_ocr_part)
+    ocr_result_list = ctx.ocr_service.get_ocr_result_list(
+        image=screen,
+        rect=area.rect if area is not None else None,
+        color_range=color_range,
+        crop_first=crop_first,
+    )
 
-    to_click: Optional[Point] = None
-    for ocr_result, mrl in ocr_result_map.items():
-        if mrl.max is None:
-            continue
-        if str_utils.find_by_lcs(gt(target_cn, 'game'), ocr_result, percent=lcs_percent):
-            to_click = mrl.max.center
+    to_click: Point | None = None
+    for ocr_result in ocr_result_list:
+        if str_utils.find_by_lcs(gt(target_cn, 'game'), ocr_result.data, percent=lcs_percent):
+            to_click = ocr_result.center
             break
 
     return to_click is not None
