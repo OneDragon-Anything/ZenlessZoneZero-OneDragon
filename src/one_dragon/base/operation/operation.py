@@ -1062,14 +1062,14 @@ class Operation(OperationBase):
         return self.round_retry(status='未匹配到目标文本', wait=retry_wait, wait_round_time=retry_wait_round)
 
     def round_by_ocr(
-            self,
-            screen: np.ndarray,
-            target_cn: str,
-            area: Optional[ScreenArea] = None,
-            lcs_percent: float = 0.5,
-            success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,
-            retry_wait: Optional[float] = None, retry_wait_round: Optional[float] = None,
-            color_range: Optional[list] = None,
+        self,
+        screen: np.ndarray,
+        target_cn: str,
+        area: Optional[ScreenArea] = None,
+        lcs_percent: float = 0.5,
+        success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,
+        retry_wait: Optional[float] = None, retry_wait_round: Optional[float] = None,
+        color_range: list[list[int]] | None = None,
     ) -> OperationRoundResult:
         """使用OCR在区域内查找目标文本。
 

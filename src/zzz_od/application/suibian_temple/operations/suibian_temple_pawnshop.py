@@ -189,7 +189,6 @@ class SuibianTemplePawnshop(ZOperation):
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             screen,
             rect=list_area.rect,
-            crop_first=list_area.crop_first,
         )
 
         goods_list: list[GoodsPos] = []
@@ -276,7 +275,6 @@ class SuibianTemplePawnshop(ZOperation):
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
             rect=buy_area.rect,
-            crop_first=buy_area.crop_first,
             color_range=[[170, 50, 40], [200, 65, 50]],
         )
         for ocr_result in ocr_result_list:

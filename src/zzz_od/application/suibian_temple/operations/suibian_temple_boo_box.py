@@ -101,7 +101,7 @@ class SuibianTempleBooBox(ZOperation):
         bangboo_ocr_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
             rect=list_area.rect,
-            crop_first=list_area.crop_first,
+            crop_first=False,
         )
 
         s_bangboo_list: list[tuple[str, Rect]] = []
@@ -188,7 +188,6 @@ class SuibianTempleBooBox(ZOperation):
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
             rect=name_area.rect,
-            crop_first=name_area.crop_first,
         )
         for ocr_result in ocr_result_list:
             for t in type_list:

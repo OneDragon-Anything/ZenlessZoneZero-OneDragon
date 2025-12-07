@@ -59,7 +59,7 @@ def find_area_in_screen(
     ctx: OneDragonContext,
     screen: MatLike,
     area: ScreenArea,
-    crop_first: bool = True
+    crop_first: bool = True,
 ) -> FindAreaResultEnum:
     """
     游戏截图中 是否能找到对应的区域
@@ -115,14 +115,25 @@ def find_area_in_screen(
     return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
 
 
-def find_and_click_area(ctx: OneDragonContext, screen: MatLike, screen_name: str, area_name: str) -> OcrClickResultEnum:
+def find_and_click_area(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    screen_name: str,
+    area_name: str,
+    crop_first: bool = True,
+) -> OcrClickResultEnum:
     """
     在一个区域匹配成功后进行点击
-    :param ctx: 运行上下文
-    :param screen: 屏幕截图
-    :param screen_name: 画面名称
-    :param area_name: 区域名称
-    :return:
+
+    Args:
+        ctx: 运行上下文
+        screen: 游戏截图
+        screen_name: 画面名称
+        area_name: 区域名称
+        crop_first: 在传入区域时 是否先裁剪再进行文本识别
+
+    Returns:
+        OcrClickResultEnum: 点击结果
     """
     area: ScreenArea = ctx.screen_loader.get_area(screen_name, area_name)
     if area is None:
@@ -133,7 +144,7 @@ def find_and_click_area(ctx: OneDragonContext, screen: MatLike, screen_name: str
                 image=screen,
                 color_range=area.color_range,
                 rect=area.rect,
-                crop_first=area.crop_first,
+                crop_first=crop_first,
             )
         else:
             rect = area.rect
@@ -256,18 +267,10 @@ def is_target_screen(
         screen: 游戏截图
         screen_name: 目标画面名称
         screen_info: 目标画面信息 传入时优先使用
+        crop_first: 在传入区域时 是否先裁剪再进行文本识别
 
     Returns:
-
-    """
-
-    """
-    根据游戏截图 判断是否目标画面
-    :param ctx: 上下文
-    :param screen: 游戏截图
-    :param screen_name: 目标画面名称
-    :param screen_info: 目标画面信息 传入时优先使用
-    :return: 结果
+        bool: 是否目标画面
     """
     if screen_info is None:
         if screen_name is None:
@@ -283,25 +286,36 @@ def is_target_screen(
             continue
         existed_id_mark = True
 
-        if find_area_in_screen(ctx, screen, screen_area) != FindAreaResultEnum.TRUE:
+        if find_area_in_screen(ctx, screen, screen_area, crop_first) != FindAreaResultEnum.TRUE:
             fit_id_mark = False
             break
 
     return existed_id_mark and fit_id_mark
 
 
-def find_by_ocr(ctx: OneDragonContext, screen: MatLike, target_cn: str,
-                area: Optional[ScreenArea] = None, lcs_percent: float = 0.5,
-                color_range: Optional[List] = None) -> bool:
+def find_by_ocr(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    target_cn: str,
+    area: ScreenArea | None = None,
+    lcs_percent: float = 0.5,
+    color_range: list[list[int]] | None = None,
+    crop_first: bool = True,
+) -> bool:
     """
+    判断画面中是否有目标文本
 
-    @param ctx:
-    @param screen:
-    @param target_cn:
-    @param area:
-    @param lcs_percent:
-    @param color_range:
-    @return:
+    Args:
+        ctx: 上下文
+        screen: 游戏截图
+        target_cn: 目标中文文本
+        area: 指定区域
+        lcs_percent: 文本匹配阈值
+        color_range: 区域筛选的颜色范围
+        crop_first: 在传入区域时 是否先裁剪再进行文本识别
+
+    Returns:
+        bool: 是否有目标文本
     """
     if lcs_percent is None:
         lcs_percent = area.lcs_percent
@@ -311,7 +325,7 @@ def find_by_ocr(ctx: OneDragonContext, screen: MatLike, target_cn: str,
         return ctx.ocr_service.find_text_in_area(
             image=screen,
             rect=area.rect if area is not None else None,
-            crop_first=area.crop_first if area is not None else False,
+            crop_first=crop_first,
             color_range=color_range,
             target_text=target_cn,
             threshold=lcs_percent,
@@ -320,7 +334,11 @@ def find_by_ocr(ctx: OneDragonContext, screen: MatLike, target_cn: str,
     # 回退到原有方法
     to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
     if color_range is not None:
-        mask = cv2.inRange(to_ocr_part, color_range[0], color_range[1])
+        mask = cv2.inRange(
+            to_ocr_part,
+            np.array(area.color_range[0], dtype=np.uint8),
+            np.array(area.color_range[1], dtype=np.uint8),
+        )
         to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
     ocr_result_map = ctx.ocr.run_ocr(to_ocr_part)
 

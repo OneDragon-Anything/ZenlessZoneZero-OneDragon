@@ -63,3 +63,6 @@ class Rect:
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __hash__(self) -> int:
+        return hash((self.x1, self.y1, self.x2, self.y2))

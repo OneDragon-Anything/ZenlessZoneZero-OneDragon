@@ -23,7 +23,7 @@ class OcrCacheEntry:
     create_time: float  # 创建时间
     color_range: list[list[int]] | None  # 颜色范围
     rect: Rect | None = None  # 识别区域
-    crop_first: bool = False  # 先裁剪再识别 用于从连续文本中只提取特定区域的文本
+    crop_first: bool = True  # 先裁剪再识别 用于从连续文本中只提取特定区域的文本
 
 
 class OcrService:
@@ -97,7 +97,7 @@ class OcrService:
         image: MatLike,
         color_range: list[list[int]] | None = None,
         rect: Rect | None = None,
-        crop_first: bool = False,
+        crop_first: bool = True,
     ) -> OcrCacheEntry | None:
         """
         从缓存中获取OCR结果
@@ -132,7 +132,7 @@ class OcrService:
         image: MatLike,
         color_range: list[list[int]] | None = None,
         rect: Rect | None = None,
-        crop_first: bool = False,
+        crop_first: bool = True,
         threshold: float = 0,
         merge_line_distance: float = -1,
     ) -> list[OcrMatchResult]:
@@ -210,7 +210,7 @@ class OcrService:
         image: MatLike,
         color_range: list[list[int]] | None = None,
         rect: Rect | None = None,
-        crop_first: bool = False,
+        crop_first: bool = True,
         threshold: float = 0,
         merge_line_distance: float = -1,
     ) -> dict[str, MatchResultList]:

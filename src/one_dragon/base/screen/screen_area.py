@@ -1,5 +1,6 @@
+from typing import Optional
+
 import numpy as np
-from typing import Optional, List
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -10,7 +11,7 @@ class ScreenArea:
     def __init__(
         self,
         area_name: str = '',
-        pc_rect: Rect = Rect(0, 0, 0, 0),
+        pc_rect: Rect | None = None,
         text: Optional[str] = '',
         lcs_percent: float = 0.5,
         template_id: Optional[str] = '',

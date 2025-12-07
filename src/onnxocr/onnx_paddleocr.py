@@ -62,7 +62,7 @@ class ONNXPaddleOcr(TextSystem):
         except Exception as e:
             print(e)
             from one_dragon.utils import debug_utils
-            debug_utils.save_debug_image(image=img, prefix='ocr_error')
+            debug_utils.save_debug_image(image=img[0], prefix='ocr_error')
             return []
 
 
