@@ -90,9 +90,9 @@ class CommissionAssistantApp(ZApplication):
 
         config = self.config
 
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
-        if result.is_success:
-            return self.round_wait(status='大世界', wait=1)
+        current_screen = self.check_and_update_current_screen()
+        if current_screen in ['大世界-普通', '大世界-勘域']:
+            return self.round_wait(status=current_screen, wait=1)
 
         result = self.round_by_find_area(self.last_screenshot, '委托助手', '左上角返回')
         # 很多二级菜单都有这个按钮

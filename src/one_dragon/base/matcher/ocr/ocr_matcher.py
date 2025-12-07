@@ -10,6 +10,14 @@ class OcrMatcher:
     def __init__(self):
         pass
 
+    def update_use_gpu(self, use_gpu: bool) -> None:
+        """
+        更新是否使用gpu
+        Args:
+            use_gpu: 是否使用gpu
+        """
+        pass
+
     def init_model(
             self,
             download_by_github: bool = True,

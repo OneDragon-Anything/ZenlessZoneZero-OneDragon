@@ -32,26 +32,46 @@ class FindAreaResultEnum(Enum):
     AREA_NO_CONFIG = -2  # 区域配置找不到
 
 
-def find_area(ctx: OneDragonContext, screen: MatLike, screen_name: str, area_name: str) -> FindAreaResultEnum:
+def find_area(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    screen_name: str,
+    area_name: str,
+    crop_first: bool = True,
+) -> FindAreaResultEnum:
     """
     游戏截图中 是否能找到对应的区域
-    :param ctx: 上下文
-    :param screen: 游戏截图
-    :param screen_name: 画面名称
-    :param area_name: 区域名称
-    :return: 结果
+    Args:
+        ctx: 上下文
+        screen: 游戏截图
+        screen_name: 画面名称
+        area_name: 区域名称
+        crop_first: 在传入区域时 是否先裁剪再进行文本识别
+
+    Returns:
+        bool: 是否可以匹配到指定区域
     """
     area: ScreenArea = ctx.screen_loader.get_area(screen_name, area_name)
-    return find_area_in_screen(ctx, screen, area)
+    return find_area_in_screen(ctx, screen, area, crop_first)
 
 
-def find_area_in_screen(ctx: OneDragonContext, screen: MatLike, area: ScreenArea) -> FindAreaResultEnum:
+def find_area_in_screen(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    area: ScreenArea,
+    crop_first: bool = True
+) -> FindAreaResultEnum:
     """
     游戏截图中 是否能找到对应的区域
-    :param ctx: 上下文
-    :param screen: 游戏截图
-    :param area: 区域
-    :return: 结果
+
+    Args:
+        ctx: 上下文
+        screen: 游戏截图
+        area: 区域
+        crop_first: 在传入区域时 是否先裁剪再进行文本识别
+
+    Returns:
+        bool: 是否可以匹配到指定区域
     """
     if area is None:
         return FindAreaResultEnum.AREA_NO_CONFIG
@@ -63,7 +83,7 @@ def find_area_in_screen(ctx: OneDragonContext, screen: MatLike, area: ScreenArea
                 image=screen,
                 color_range=area.color_range,
                 rect=area.rect,
-                crop_first=area.crop_first,
+                crop_first=crop_first,
             )
         else:
             rect = area.rect
@@ -221,9 +241,26 @@ def get_match_screen_name_from_last(ctx: OneDragonContext, screen: MatLike) -> s
 
     return None
 
-def is_target_screen(ctx: OneDragonContext, screen: MatLike,
-                     screen_name: Optional[str] = None,
-                     screen_info: Optional[ScreenInfo] = None) -> bool:
+def is_target_screen(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    screen_name: str | None = None,
+    screen_info: ScreenInfo | None = None,
+    crop_first: bool = True,
+) -> bool:
+    """
+    根据游戏截图 判断是否目标画面
+
+    Args:
+        ctx: 上下文
+        screen: 游戏截图
+        screen_name: 目标画面名称
+        screen_info: 目标画面信息 传入时优先使用
+
+    Returns:
+
+    """
+
     """
     根据游戏截图 判断是否目标画面
     :param ctx: 上下文

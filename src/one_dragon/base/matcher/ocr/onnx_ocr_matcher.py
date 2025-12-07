@@ -190,6 +190,20 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         self._loading = False
         return True
 
+    def update_use_gpu(self, use_gpu: bool) -> None:
+        """
+        更新是否使用GPU
+
+        Args:
+            use_gpu: 是否使用GPU
+        """
+        if self._ocr_param.use_gpu == use_gpu:
+            return
+
+        self._ocr_param.use_gpu = use_gpu
+        del self._model
+        self._model = None
+
     def run_ocr_single_line(self, image: MatLike, threshold: float = 0, strict_one_line: bool = True) -> str:
         """
         单行文本识别 手动合成一行 按匹配结果从左到右 从上到下

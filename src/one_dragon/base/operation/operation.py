@@ -901,13 +901,18 @@ class Operation(OperationBase):
             return self.round_retry(status=f'点击失败 {area_name}', wait=retry_wait, wait_round_time=retry_wait_round)
 
     def round_by_ocr_and_click(
-            self,
-            screen: np.ndarray, target_cn: str,
-            area: Optional[ScreenArea] = None, lcs_percent: float = 0.5,
-            success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,
-            retry_wait: Optional[float] = None, retry_wait_round: Optional[float] = None,
-            color_range: Optional[list] = None,
-            offset: Optional[Point] = None,
+        self,
+        screen: np.ndarray,
+        target_cn: str,
+        area: Optional[ScreenArea] = None,
+        lcs_percent: float = 0.5,
+        success_wait: Optional[float] = None,
+        success_wait_round: Optional[float] = None,
+        retry_wait: Optional[float] = None,
+        retry_wait_round: Optional[float] = None,
+        color_range: Optional[list] = None,
+        offset: Optional[Point] = None,
+        crop_first: bool = True,
     ) -> OperationRoundResult:
         """使用OCR在区域内查找目标文本并点击。
 
@@ -915,6 +920,7 @@ class Operation(OperationBase):
             screen: 游戏截图。
             target_cn: 要查找的目标文本。
             area: 要搜索的目标区域。默认为None（搜索整个屏幕）。
+            crop_first: 在传入区域时 是否先裁剪再进行文本识别
             lcs_percent: 文本匹配阈值。默认为0.5。
             success_wait: 成功后等待时间（秒）。默认为None。
             success_wait_round: 成功后等待直到轮次时间达到此值，如果设置了success_wait则忽略。默认为None。
@@ -932,7 +938,7 @@ class Operation(OperationBase):
                 image=screen,
                 color_range=color_range,
                 rect=area.rect if area is not None else None,
-                crop_first=area.crop_first if area is not None else False,
+                crop_first=crop_first,
             )
         else:
             # 回退到原有方法
@@ -983,15 +989,18 @@ class Operation(OperationBase):
             return self.round_retry(f'点击 {target_cn} 失败', wait=retry_wait, wait_round_time=retry_wait_round)
 
     def round_by_ocr_and_click_by_priority(
-            self,
-            target_cn_list: list[str],
-            screen: MatLike | None = None,
-            ignore_cn_list: list[str] = None,
-            area: Optional[ScreenArea] = None,
-            success_wait: Optional[float] = None, success_wait_round: Optional[float] = None,
-            retry_wait: Optional[float] = None, retry_wait_round: Optional[float] = None,
-            color_range: Optional[list[list[int]]] = None,
-            offset: Optional[Point] = None,
+        self,
+        target_cn_list: list[str],
+        screen: MatLike | None = None,
+        ignore_cn_list: list[str] = None,
+        area: Optional[ScreenArea] = None,
+        success_wait: Optional[float] = None,
+        success_wait_round: Optional[float] = None,
+        retry_wait: Optional[float] = None,
+        retry_wait_round: Optional[float] = None,
+        color_range: Optional[list[list[int]]] = None,
+        offset: Optional[Point] = None,
+        crop_first: bool = True,
     ) -> OperationRoundResult:
         """使用OCR按优先级在区域内查找文本并点击。
 
@@ -1000,6 +1009,7 @@ class Operation(OperationBase):
             target_cn_list: 按优先级排序的目标文本列表。
             ignore_cn_list: 要忽略的文本列表。目标列表中的某些元素仅用于防止匹配错误，例如["领取", "已领取"]可以防止"已领取*1"匹配到"领取"，而"已领取"不需要实际匹配。默认为None。
             area: 要搜索的目标区域。默认为None。
+            crop_first: 在传入区域时 是否先裁剪再进行文本识别
             success_wait: 成功后等待时间（秒）。默认为None。
             success_wait_round: 成功后等待直到轮次时间达到此值，如果设置了success_wait则忽略。默认为None。
             retry_wait: 失败后等待时间（秒）。默认为None。
@@ -1019,7 +1029,7 @@ class Operation(OperationBase):
                 image=screen,
                 color_range=color_range,
                 rect=area.rect if area is not None else None,
-                crop_first=area.crop_first if area is not None else False,
+                crop_first=crop_first,
             )
         else:
             # 回退到原有方法
