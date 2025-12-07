@@ -78,27 +78,19 @@ def find_area_in_screen(
 
     find: bool = False
     if area.is_text_area:
-        if ctx.env_config.ocr_cache:
-            ocr_result_map = ctx.ocr_service.get_ocr_result_map(
-                image=screen,
-                color_range=area.color_range,
-                rect=area.rect,
-                crop_first=crop_first,
-            )
+        rect = area.rect
+        part = cv2_utils.crop_image_only(screen, rect)
+
+        if area.color_range is None:
+            to_ocr = part
         else:
-            rect = area.rect
-            part = cv2_utils.crop_image_only(screen, rect)
+            mask = cv2.inRange(part,
+                               np.array(area.color_range[0], dtype=np.uint8),
+                               np.array(area.color_range[1], dtype=np.uint8))
+            mask = cv2_utils.dilate(mask, 2)
+            to_ocr = cv2.bitwise_and(part, part, mask=mask)
 
-            if area.color_range is None:
-                to_ocr = part
-            else:
-                mask = cv2.inRange(part,
-                                   np.array(area.color_range[0], dtype=np.uint8),
-                                   np.array(area.color_range[1], dtype=np.uint8))
-                mask = cv2_utils.dilate(mask, 2)
-                to_ocr = cv2.bitwise_and(part, part, mask=mask)
-
-            ocr_result_map = ctx.ocr.run_ocr(to_ocr)
+        ocr_result_map = ctx.ocr.run_ocr(to_ocr)
 
         for ocr_result, mrl in ocr_result_map.items():
             if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result, percent=area.lcs_percent):
@@ -139,25 +131,17 @@ def find_and_click_area(
     if area is None:
         return OcrClickResultEnum.AREA_NO_CONFIG
     if area.is_text_area:
-        if ctx.env_config.ocr_cache:
-            ocr_result_list = ctx.ocr_service.get_ocr_result_list(
-                image=screen,
-                color_range=area.color_range,
-                rect=area.rect,
-                crop_first=crop_first,
-            )
-        else:
-            rect = area.rect
-            to_ocr_part = cv2_utils.crop_image_only(screen, rect)
-            if area.color_range is not None:
-                mask = cv2.inRange(to_ocr_part, area.color_range_lower, area.color_range_upper)
-                mask = cv2_utils.dilate(mask, 5)
-                to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
-            # cv2_utils.show_image(to_ocr_part, win_name='debug', wait=1)
+        rect = area.rect
+        to_ocr_part = cv2_utils.crop_image_only(screen, rect)
+        if area.color_range is not None:
+            mask = cv2.inRange(to_ocr_part, area.color_range_lower, area.color_range_upper)
+            mask = cv2_utils.dilate(mask, 5)
+            to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
+        # cv2_utils.show_image(to_ocr_part, win_name='debug', wait=1)
 
-            ocr_result_list = ctx.ocr.ocr(to_ocr_part)
-            for i in ocr_result_list:
-                i.add_offset(area.left_top)
+        ocr_result_list = ctx.ocr.ocr(to_ocr_part)
+        for i in ocr_result_list:
+            i.add_offset(area.left_top)
 
         for i in ocr_result_list:
             if str_utils.find_by_lcs(gt(area.text, 'game'), i.data, percent=area.lcs_percent):
@@ -320,24 +304,15 @@ def find_by_ocr(
     if lcs_percent is None:
         lcs_percent = area.lcs_percent
 
-    # 优先使用OCR缓存服务
-    if ctx.env_config.ocr_cache:
-        return ctx.ocr_service.find_text_in_area(
-            image=screen,
-            rect=area.rect if area is not None else None,
-            crop_first=crop_first,
-            color_range=color_range,
-            target_text=target_cn,
-            threshold=lcs_percent,
-        )
-
     # 回退到原有方法
     to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
+    if color_range is None:
+        color_range = area.color_range
     if color_range is not None:
         mask = cv2.inRange(
             to_ocr_part,
-            np.array(area.color_range[0], dtype=np.uint8),
-            np.array(area.color_range[1], dtype=np.uint8),
+            np.array(color_range[0], dtype=np.uint8),
+            np.array(color_range[1], dtype=np.uint8),
         )
         to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
     ocr_result_map = ctx.ocr.run_ocr(to_ocr_part)

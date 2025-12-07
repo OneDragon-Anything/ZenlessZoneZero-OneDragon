@@ -932,24 +932,14 @@ class Operation(OperationBase):
         Returns:
             OperationRoundResult: 点击结果。
         """
-        # 优先使用OCR缓存服务
-        if self.ctx.env_config.ocr_cache:
-            ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
-                image=screen,
-                color_range=color_range,
-                rect=area.rect if area is not None else None,
-                crop_first=crop_first,
-            )
-        else:
-            # 回退到原有方法
-            to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
-            if color_range is not None:
-                mask = cv2.inRange(to_ocr_part, color_range[0], color_range[1])
-                mask = cv2_utils.dilate(mask, 5)
-                to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
-                # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
+        to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
+        if color_range is not None:
+            mask = cv2.inRange(to_ocr_part, color_range[0], color_range[1])
+            mask = cv2_utils.dilate(mask, 5)
+            to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
+            # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
 
-            ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
+        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
 
         to_click: Optional[Point] = None
         ocr_result_list: list[str] = []
@@ -1023,27 +1013,17 @@ class Operation(OperationBase):
         if screen is None:
             screen = self.last_screenshot
 
-        # 优先使用OCR缓存服务
-        if self.ctx.env_config.ocr_cache:
-            ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
-                image=screen,
-                color_range=color_range,
-                rect=area.rect if area is not None else None,
-                crop_first=crop_first,
-            )
-        else:
-            # 回退到原有方法
-            to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
-            if color_range is not None:
-                mask = cv2.inRange(to_ocr_part, np.array(color_range[0]), np.array(color_range[1]))
-                mask = cv2_utils.dilate(mask, 5)
-                to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
-                # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
+        to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
+        if color_range is not None:
+            mask = cv2.inRange(to_ocr_part, np.array(color_range[0]), np.array(color_range[1]))
+            mask = cv2_utils.dilate(mask, 5)
+            to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
+            # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
 
-            ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
-            if area is not None:
-                for _, mrl in ocr_result_map.items():
-                    mrl.add_offset(area.left_top)
+        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
+        if area is not None:
+            for _, mrl in ocr_result_map.items():
+                mrl.add_offset(area.left_top)
 
         match_word, match_word_mrl = ocr_utils.match_word_list_by_priority(
             ocr_result_map,
