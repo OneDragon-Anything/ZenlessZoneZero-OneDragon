@@ -60,7 +60,7 @@ class LostVoidConfig(ApplicationConfig):
 
     @property
     def challenge_config(self) -> str:
-        return self.get('challenge_config', '默认-终结')
+        return self.get('challenge_config', '默认-成就模式')
 
     @challenge_config.setter
     def challenge_config(self, new_value: str):
