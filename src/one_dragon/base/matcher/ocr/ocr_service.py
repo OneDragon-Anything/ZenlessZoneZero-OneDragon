@@ -37,7 +37,11 @@ class OcrService:
       - 例如 [图标]真实文本，会将图标错误识别成某些文本拼在一起，无法通过选择区域精准识别真实文本部分.
     """
     
-    def __init__(self, ocr_matcher: OcrMatcher, max_cache_size: int = 5):
+    def __init__(
+        self,
+        ocr_matcher: OcrMatcher,
+        max_cache_size: int = 5,
+    ):
         """
         初始化OCR服务
         
@@ -47,7 +51,7 @@ class OcrService:
         """
         self.ocr_matcher = ocr_matcher
         self.max_cache_size = max_cache_size
-        
+
         # 缓存存储：key=图片ID，value为缓存条目
         self._cache: dict[int, list[OcrCacheEntry]] = {}
         self._cache_list: list[OcrCacheEntry] = []

@@ -18,6 +18,14 @@ class OcrMatcher:
         """
         pass
 
+    def is_use_gpu(self) -> bool:
+        """
+        是否使用gpu
+        Returns:
+            是否使用gpu
+        """
+        return False
+
     def init_model(
             self,
             download_by_github: bool = True,

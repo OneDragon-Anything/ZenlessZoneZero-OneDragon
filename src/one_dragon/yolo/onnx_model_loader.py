@@ -1,10 +1,10 @@
-import time
-
-import onnxruntime as ort
 import os
+import time
 import urllib.request
 import zipfile
 from typing import Optional, List
+
+import onnxruntime as ort
 
 from one_dragon.yolo.log_utils import log
 
@@ -127,16 +127,24 @@ class OnnxModelLoader:
         :return:
         """
         availables = ort.get_available_providers()
-        providers = ['DmlExecutionProvider' if self.gpu else 'CPUExecutionProvider']
-        if self.gpu and 'DmlExecutionProvider' not in availables:
-            log.error('机器未支持DirectML 使用CPU')
+
+        if self.gpu:
+            if 'CUDAExecutionProvider' in availables:
+                providers = ['CUDAExecutionProvider']
+            elif 'DmlExecutionProvider' in availables:
+                providers = ['DmlExecutionProvider']
+            else:
+                providers = ['CPUExecutionProvider']
+                log.warning('未找到GPU执行提供程序，回退到CPU')
+        else:
             providers = ['CPUExecutionProvider']
 
         onnx_path = os.path.join(self.model_dir_path, 'model.onnx')
         log.info('加载模型 %s', onnx_path)
+
         self.session = ort.InferenceSession(
             onnx_path,
-            providers=providers
+            providers=providers,
         )
         self.get_input_details()
         self.get_output_details()

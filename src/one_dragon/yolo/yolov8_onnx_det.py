@@ -54,15 +54,28 @@ class Yolov8Detector(OnnxModelLoader):
         self.category_2_idx: dict[str, List[int]] = {}
         self._load_detect_classes(self.model_dir_path)
 
-    def run(self, image: MatLike, conf: float = 0.6, iou: float = 0.5, run_time: Optional[float] = None,
-            label_list: Optional[List[str]] = None,
-            category_list: Optional[List[str]] = None) -> DetectFrameResult:
+    def run(
+        self,
+        image: MatLike,
+        conf: float = 0.6,
+        iou: float = 0.5,
+        run_time: Optional[float] = None,
+        label_list: Optional[List[str]] = None,
+        category_list: Optional[List[str]] = None,
+    ) -> DetectFrameResult:
         """
         对图片进行识别
-        :param image: 使用 opencv 读取的图片 RGB通道
-        :param conf: 置信度阈值
-        :param iou: iou阈值
-        :return: 识别结果
+
+        Args:
+            image: 图片 [h, w, c] rgb通道
+            conf: 置信度阈值
+            iou: iou阈值
+            run_time: 识别时间
+            label_list: 限定识别的标签
+            category_list: 限定识别的标签分类
+
+        Returns:
+            DetectFrameResult: 识别结果
         """
         t1 = time.time()
         context = DetectContext(image, run_time)

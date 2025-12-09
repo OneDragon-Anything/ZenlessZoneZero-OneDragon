@@ -7,6 +7,11 @@ from onnxocr.utils import infer_args as init_args
 
 
 class ONNXPaddleOcr(TextSystem):
+    """
+    onnxruntime支持的opset
+    https://onnxruntime.ai/docs/reference/compatibility.html
+    """
+
     def __init__(self, **kwargs):
         # 默认参数
         parser = init_args()

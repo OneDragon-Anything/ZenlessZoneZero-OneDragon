@@ -16,6 +16,10 @@ uv sync --group dev
 
 参考 [agent_guidelines.md](spec/agent_guidelines.md)
 
+#### 1.2.1.多线程
+
+当前使用 onnxruntime-dml 在多线程下同时访问多个session是会出现各种意想不到的异常的，因此需要异步使用onnx session时，需统一使用 `gpu_executor.submit` 来提交，保证只有一个session被访问。
+
 ### 1.3.测试
 
 由于部分测试代码需要游戏截图，防止仓库过大，测试相关代码存放在另一个仓库中，见 [zzz-od-test](https://github.com/OneDragon-Anything/zzz-od-test)

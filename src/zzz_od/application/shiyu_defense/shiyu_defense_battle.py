@@ -110,7 +110,7 @@ class ShiyuDefenseBattle(ZOperation):
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True,
             check_battle_end_defense_result=True,
-            check_distance=False)
+        )
 
         if in_battle:
             # 在战斗中检测倒计时状态
@@ -190,7 +190,6 @@ class ShiyuDefenseBattle(ZOperation):
         self.check_distance(self.last_screenshot)
         if self.distance_pos is not None:
             target_pos = self.distance_pos.center
-            target_type = "距离显示"
             move_distance = self.ctx.auto_battle_context.last_check_distance
 
         # 第2层：检测传送点
@@ -198,7 +197,6 @@ class ShiyuDefenseBattle(ZOperation):
             teleport_rect = self.check_teleport_point(self.last_screenshot)
             if teleport_rect is not None:
                 target_pos = teleport_rect.center
-                target_type = "传送点"
                 move_distance = 5.0  # 传送点固定移动5米
 
         # 第3层：盲动转向
@@ -226,11 +224,11 @@ class ShiyuDefenseBattle(ZOperation):
                 self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
                 self.move_times += 1
 
-        return self.round_wait(wait=0.5)
-
         if self.move_times >= 60:
             self.battle_fail = ShiyuDefenseBattle.STATUS_FAIL_TO_MOVE
             return self.round_fail(ShiyuDefenseBattle.STATUS_FAIL_TO_MOVE)
+
+        return self.round_wait(wait=0.5)
 
     def check_distance(self, screen: MatLike) -> None:
         mr = self.ctx.auto_battle_context.check_battle_distance(screen)
