@@ -49,8 +49,7 @@ class ResourceDownloadInterface(VerticalScrollInterface):
         self.launcher_opt = LauncherDownloadCard(self.ctx)
         group.addSettingCard(self.launcher_opt)
 
-        self.ocr_opt = OnnxModelDownloadCard(ctx=self.ctx, icon=FluentIcon.GLOBE, title='OCR识别',
-                                             content='GPU仅在调试模式下生效')
+        self.ocr_opt = OnnxModelDownloadCard(ctx=self.ctx, icon=FluentIcon.GLOBE, title='OCR识别')
         self.ocr_opt.set_options_by_list(get_ocr_opts())
         self.ocr_opt.set_value_by_save_file_name(f'{self.ctx.model_config.ocr}.zip')
         self.ocr_opt.value_changed.connect(self.on_ocr_changed)

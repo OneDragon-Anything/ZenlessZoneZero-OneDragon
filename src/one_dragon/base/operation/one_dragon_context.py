@@ -276,9 +276,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
-        final_use_gpu = self.model_config.ocr_gpu and self.env_config.is_debug
-
-        self.ocr.update_use_gpu(final_use_gpu)
+        self.ocr.update_use_gpu(self.model_config.ocr_gpu)
         self.ocr.init_model(
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,

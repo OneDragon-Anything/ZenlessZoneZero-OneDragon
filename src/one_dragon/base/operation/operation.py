@@ -948,8 +948,8 @@ class Operation(OperationBase):
         success_wait_round: float | None = None,
         retry_wait: float | None = None,
         retry_wait_round: float | None = None,
-        color_range: Optional[list] = None,
-        offset: Optional[Point] = None,
+        color_range: list[list[int]] | None = None,
+        offset: Point | None = None,
         crop_first: bool = True,
     ) -> OperationRoundResult:
         """使用OCR在区域内查找目标文本并点击。
@@ -970,16 +970,16 @@ class Operation(OperationBase):
         Returns:
             OperationRoundResult: 点击结果。
         """
-        to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
-        if color_range is not None:
-            mask = cv2.inRange(to_ocr_part, color_range[0], color_range[1])
-            mask = cv2_utils.dilate(mask, 5)
-            to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
-            # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
+        if color_range is None and area is not None:
+            color_range = area.color_range
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
+            image=screen,
+            rect=area.rect if area is not None else None,
+            color_range=color_range,
+            crop_first=crop_first,
+        )
 
-        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
-
-        to_click: Optional[Point] = None
+        to_click: Point | None = None
         ocr_result_list: list[str] = []
         mrl_list: list[MatchResultList] = []
 
@@ -1004,9 +1004,6 @@ class Operation(OperationBase):
         if to_click is None:
             return self.round_retry(f'找不到 {target_cn}', wait=retry_wait, wait_round_time=retry_wait_round)
 
-        if area is not None:
-            to_click = to_click + area.left_top
-
         if offset is not None:
             to_click = to_click + offset
 
@@ -1026,8 +1023,8 @@ class Operation(OperationBase):
         success_wait_round: float | None = None,
         retry_wait: float | None = None,
         retry_wait_round: float | None = None,
-        color_range: Optional[list[list[int]]] = None,
-        offset: Optional[Point] = None,
+        color_range: list[list[int]] | None = None,
+        offset: Point | None = None,
         crop_first: bool = True,
     ) -> OperationRoundResult:
         """使用OCR按优先级在区域内查找文本并点击。
@@ -1051,17 +1048,14 @@ class Operation(OperationBase):
         if screen is None:
             screen = self.last_screenshot
 
-        to_ocr_part = screen if area is None else cv2_utils.crop_image_only(screen, area.rect)
-        if color_range is not None:
-            mask = cv2.inRange(to_ocr_part, np.array(color_range[0]), np.array(color_range[1]))
-            mask = cv2_utils.dilate(mask, 5)
-            to_ocr_part = cv2.bitwise_and(to_ocr_part, to_ocr_part, mask=mask)
-            # cv2_utils.show_image(to_ocr_part, win_name='round_by_ocr_and_click', wait=0)
-
-        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr_part)
-        if area is not None:
-            for _, mrl in ocr_result_map.items():
-                mrl.add_offset(area.left_top)
+        if color_range is None and area is not None:
+            color_range = area.color_range
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
+            image=screen,
+            rect=area.rect if area is not None else None,
+            color_range=color_range,
+            crop_first=crop_first,
+        )
 
         match_word, match_word_mrl = ocr_utils.match_word_list_by_priority(
             ocr_result_map,
