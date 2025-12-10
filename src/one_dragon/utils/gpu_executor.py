@@ -11,3 +11,7 @@ def submit(fn, /, *args, **kwargs) -> Future:
     f.add_done_callback(thread_utils.handle_future_result)
 
     return f
+
+
+def shutdown(wait: bool = True):
+    _executor.shutdown(wait=wait)

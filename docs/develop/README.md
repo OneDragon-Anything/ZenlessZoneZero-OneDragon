@@ -34,6 +34,12 @@ uv sync --group dev
 
 Github Action 有完整的环境变量配置，会运行所有的测试用例。
 
+#### 1.3.2.运行测试
+
+```shell
+uv run --env-file .env pytest zzz-od-test/
+```
+
 ## 1.4.代码提交
 
 提交PR后

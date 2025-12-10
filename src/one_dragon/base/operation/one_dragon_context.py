@@ -65,12 +65,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
-        self.cv_ocr: OcrMatcher = OnnxOcrMatcher(
-            OnnxOcrParam(
-                use_gpu=False,  # 目前OCR使用GPU会闪退
-                det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
-            )
-        )
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
         self.controller: Optional[ControllerBase] = None
 
@@ -290,12 +284,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
         )
 
-        self.cv_ocr.update_use_gpu(final_use_gpu)
-        self.cv_ocr.init_model(
-            ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
-            proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
-        )
-
     def after_app_shutdown(self) -> None:
         """
         App关闭后进行的操作 关闭一切可能资源操作
@@ -311,6 +299,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         OperationExecutor.after_app_shutdown()
         from one_dragon.base.conditional_operation.state_record_service import StateRecordService
         StateRecordService.after_app_shutdown()
+        from one_dragon.utils import gpu_executor
+        gpu_executor.shutdown(wait=False)
 
     def register_application_factory(self) -> None:
         """
