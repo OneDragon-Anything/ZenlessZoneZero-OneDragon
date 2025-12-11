@@ -149,6 +149,9 @@ def check_event_text_and_run(op: ZOperation, screen: MatLike, handlers: List[Eve
     mrl_list: List[MatchResultList] = []
     bottom_opt_pos: Optional[MatchResult] = None  # 最下面的文本 用于兜底时候选择
     for ocr_result, mrl in ocr_result_map.items():
+        if len(ocr_result.strip()) <= 1:
+            continue  # 过滤单字符识别结果
+
         mrl.add_offset(area.left_top)
         ocr_result_list.append(ocr_result)
         mrl_list.append(mrl)
