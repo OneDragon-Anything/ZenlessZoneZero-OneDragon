@@ -772,9 +772,9 @@ class Operation(OperationBase):
 
     def round_by_find_and_click_area(
         self,
-        screen: MatLike = None,
-        screen_name: str = None,
-        area_name: str = None,
+        screen: MatLike | None = None,
+        screen_name: str | None = None,
+        area_name: str | None = None,
         success_wait: float | None = None,
         success_wait_round: float | None = None,
         retry_wait: float | None = None,
@@ -1017,7 +1017,7 @@ class Operation(OperationBase):
         self,
         target_cn_list: list[str],
         screen: MatLike | None = None,
-        ignore_cn_list: list[str] = None,
+        ignore_cn_list: list[str] | None = None,
         area: Optional[ScreenArea] = None,
         success_wait: float | None = None,
         success_wait_round: float | None = None,
