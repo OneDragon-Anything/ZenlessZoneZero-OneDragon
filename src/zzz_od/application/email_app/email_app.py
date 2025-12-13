@@ -1,3 +1,5 @@
+from typing import Optional
+
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
@@ -70,3 +72,9 @@ class EmailApp(ZApplication):
         :return:
         """
         return self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回', success_wait=1, retry_wait=1)
+
+    @node_from(from_name='返回菜单')
+    @node_from(from_name='返回菜单', success=False)
+    @operation_node(name='返回大世界')
+    def back_to_world(self, custom_status: Optional[str] = None) -> OperationRoundResult:
+        return super().back_to_world(custom_status)

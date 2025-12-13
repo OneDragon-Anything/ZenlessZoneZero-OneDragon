@@ -14,7 +14,7 @@ from zzz_od.application.charge_plan.charge_plan_config import (
 )
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+
 from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
@@ -225,6 +225,4 @@ class ChargePlanApp(ZApplication):
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
-        op_result = op.execute()
-        return self.round_by_op_result(op_result, status=f'剩余电量 {self.charge_power}')
+        return super().back_to_world(custom_status=f'剩余电量 {self.charge_power}')

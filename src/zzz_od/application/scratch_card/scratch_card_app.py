@@ -1,4 +1,5 @@
 import time
+from typing import Optional
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -7,7 +8,6 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from zzz_od.application.scratch_card import scratch_card_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.transport import Transport
 
 
@@ -116,9 +116,8 @@ class ScratchCardApp(ZApplication):
     @node_from(from_name='刮刮')
     @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='返回大世界')
-    def back_to_world(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
+    def back_to_world(self, custom_status: Optional[str] = None) -> OperationRoundResult:
+        return super().back_to_world(custom_status)
 
 
 def __debug():

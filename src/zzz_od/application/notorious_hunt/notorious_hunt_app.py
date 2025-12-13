@@ -11,7 +11,7 @@ from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHun
 from zzz_od.application.notorious_hunt.notorious_hunt_run_record import NotoriousHuntRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+
 from zzz_od.operation.compendium.notorious_hunt import NotoriousHunt
 from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 
@@ -100,6 +100,5 @@ class NotoriousHuntApp(ZApplication):
     @node_from(from_name='全部领取')
     @node_from(from_name='全部领取', success=False)
     @operation_node(name='返回大世界')
-    def back_to_world(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
+    def back_to_world(self, custom_status: Optional[str] = None) -> OperationRoundResult:
+        return super().back_to_world(custom_status)

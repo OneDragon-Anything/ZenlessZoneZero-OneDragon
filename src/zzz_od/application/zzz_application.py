@@ -5,7 +5,9 @@ from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
+from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.enter_game.open_and_enter_game import OpenAndEnterGame
 from zzz_od.telemetry.auto_telemetry import (
     TelemetryApplicationMixin,
@@ -94,3 +96,22 @@ class ZApplication(Application, TelemetryApplicationMixin):
     @auto_telemetry_method("application_stop")
     def stop(self) -> None:
         super().stop()
+
+    def back_to_world(self, custom_status: Optional[str] = None) -> OperationRoundResult:
+        """
+        返回大世界的默认实现
+
+        大部分应用可以直接使用此默认实现。仅在以下情况需要覆盖：
+        1. 需要在返回大世界前/后执行额外操作
+        2. 返回路径需要特殊处理（如 TransportByCompendium 的勘域场景）
+        3. 完全不同的返回逻辑（如 LostVoid 相关操作）
+
+        :param custom_status: 自定义状态消息，用于在操作结果中添加额外信息
+        :return: 操作结果
+        """
+        op = BackToNormalWorld(self.ctx)
+        op_result = op.execute()
+
+        if custom_status is not None:
+            return self.round_by_op_result(op_result, status=custom_status)
+        return self.round_by_op_result(op_result)

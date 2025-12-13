@@ -28,7 +28,6 @@ from zzz_od.application.coffee.coffee_config import (
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.compendium import Coffee
-from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
 from zzz_od.operation.compendium.area_patrol import AreaPatrol
@@ -389,9 +388,8 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='区域巡防')
     @node_from(from_name='专业挑战室')
     @operation_node(name='返回大世界')
-    def back_to_world(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
+    def back_to_world(self, custom_status: Optional[str] = None) -> OperationRoundResult:
+        return super().back_to_world(custom_status)
 
     @node_from(from_name='返回大世界')
     @operation_node(name='结束后运行体力计划')

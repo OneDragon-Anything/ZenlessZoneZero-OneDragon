@@ -1,5 +1,5 @@
 import time
-from typing import ClassVar
+from typing import ClassVar, Optional
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
@@ -12,7 +12,6 @@ from zzz_od.application.life_on_line.life_on_line_config import LifeOnLineConfig
 from zzz_od.application.life_on_line.life_on_line_run_record import LifeOnLineRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.hdd.enter_hdd_mission import EnterHddMission
 from zzz_od.operation.key_sim_runner import KeySimRunner
 from zzz_od.operation.transport import Transport
@@ -163,12 +162,6 @@ class LifeOnLineApp(ZApplication):
             else:
                 return self.round_success(LifeOnLineApp.STATUS_CONTINUE)
 
-    @node_from(from_name='检查运行次数', status=STATUS_TIMES_FINISHED)
-    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
-    @operation_node(name='返回大世界')
-    def back_to_world(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
 
     @node_from(from_name='通关交互', success=False)
     @operation_node(name='交互失败')
@@ -194,6 +187,11 @@ class LifeOnLineApp(ZApplication):
     def click_exit_battle_confirm(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '恶名狩猎', '退出战斗-确认',
                                                  success_wait=5, retry_wait=1)
+
+    @node_from(from_name='检查运行次数', status=STATUS_TIMES_FINISHED)
+    @operation_node(name='返回大世界')
+    def back_to_world(self, custom_status: Optional[str] = None) -> OperationRoundResult:
+        return super().back_to_world(custom_status)
 
 
 def __debug():

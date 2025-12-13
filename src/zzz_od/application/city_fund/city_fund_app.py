@@ -1,3 +1,5 @@
+from typing import Optional
+
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
@@ -5,7 +7,6 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from zzz_od.application.city_fund import city_fund_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.goto.goto_menu import GotoMenu
 
 
@@ -67,18 +68,15 @@ class CityFundApp(ZApplication):
         return self.round_by_find_and_click_area(self.last_screenshot, '丽都城募', '等级-全部领取',
                                                  success_wait=1, retry_wait=1)
 
-    @node_from(from_name='点击成长任务', status='按钮-已关闭-确认')
     @node_from(from_name='等级全部领取')
-    @node_from(from_name='等级全部领取', success=False)
     @operation_node(name='返回大世界')
-    def back_to_world(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
+    def back_to_world(self, custom_status: Optional[str] = None) -> OperationRoundResult:
+        return super().back_to_world(custom_status)
 
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     app = CityFundApp(ctx)
     app.execute()
 

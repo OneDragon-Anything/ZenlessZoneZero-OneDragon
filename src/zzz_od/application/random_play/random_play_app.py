@@ -22,7 +22,7 @@ from zzz_od.application.random_play.random_play_config import (
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum
-from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+
 from zzz_od.operation.transport import Transport
 
 
@@ -354,9 +354,8 @@ class RandomPlayApp(ZApplication):
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
     @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='返回大世界')
-    def back_to_world(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
+    def back_to_world(self, custom_status: Optional[str] = None) -> OperationRoundResult:
+        return super().back_to_world(custom_status)
 
 
 def __debug():
