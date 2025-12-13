@@ -43,12 +43,12 @@ handlers:
       - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
         debug_name: "切人后等待"
         sub_handlers:
-          - states: "[按键可用-快速支援, 0, 0.5]"
+          - states: "[按键可用-快速支援, 0, 0.3]"
             operations:
               - op_name: "清除状态"
                 state_list: ["自定义-伊德海莉-追碾状态" , "自定义-伊德海莉-旋转状态" , "自定义-伊德海莉-蓄力中"]
               - op_name: "等待秒数"
-                seconds: 0.5
+                seconds: 0.3
           - states: ""
             operations:
               - op_name: "清除状态"
@@ -94,8 +94,9 @@ handlers:
         interrupt_states: "[伊德海莉-蓄力段数]{0, 0}"
         debug_name: "旋转状态连按普攻"
         operations:
-          - op_name: "等待秒数"
-            seconds: 2
+          - op_name: "按键-普通攻击"
+            post_delay: 0.2
+            repeat: 50
 
       - states: "[自定义-伊德海莉-蓄力中, 0, 2] & [伊德海莉-蓄力段数]{85, 100}"
         debug_name: "蓄力满了松开"
@@ -113,15 +114,10 @@ handlers:
             state_list: ["自定义-伊德海莉-旋转状态"]
           - op_name: "按键-普通攻击-按下"
           - op_name: "按键-移动-前-按下"
-          - op_name: "按键-移动-右-按下"
           - op_name: "设置状态"
             state: "自定义-伊德海莉-蓄力中"
           - op_name: "等待秒数"
             seconds: 0.5
-
-      - states: ""
-        interrupt_states: "[伊德海莉-蓄力段数]{0, 0}"
-        debug_name: "长按普攻蓄力"
-        operations:
+          - op_name: "按键-移动-前-松开"
           - op_name: "等待秒数"
-            seconds: 1
+            seconds: 1.5

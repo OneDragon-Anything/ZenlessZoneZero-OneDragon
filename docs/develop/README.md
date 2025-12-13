@@ -16,6 +16,10 @@ uv sync --group dev
 
 参考 [agent_guidelines.md](spec/agent_guidelines.md)
 
+#### 1.2.1.多线程
+
+当前使用 onnxruntime-dml 在多线程下同时访问多个session是会出现各种意想不到的异常的，因此需要异步使用onnx session时，需统一使用 `gpu_executor.submit` 来提交，保证只有一个session被访问。
+
 ### 1.3.测试
 
 由于部分测试代码需要游戏截图，防止仓库过大，测试相关代码存放在另一个仓库中，见 [zzz-od-test](https://github.com/OneDragon-Anything/zzz-od-test)
@@ -29,6 +33,12 @@ uv sync --group dev
 如果你不想弄这么多环境变量，本地上可以只保证自己修改部分的测试用例通过。
 
 Github Action 有完整的环境变量配置，会运行所有的测试用例。
+
+#### 1.3.2.运行测试
+
+```shell
+uv run --env-file .env pytest zzz-od-test/
+```
 
 ## 1.4.代码提交
 

@@ -68,11 +68,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         )
         basic_group.addSettingCard(self.copy_screenshot_opt)
 
-        self.ocr_cache_opt = SwitchSettingCard(
-            icon=FluentIcon.SEARCH, title='OCR缓存模式', content='降低CPU占用(测试中)'
-        )
-        basic_group.addSettingCard(self.ocr_cache_opt)
-
         return basic_group
 
     def _init_code_group(self) -> SettingCardGroup:
@@ -188,7 +183,6 @@ class SettingEnvInterface(VerticalScrollInterface):
 
         self.debug_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('is_debug'))
         self.copy_screenshot_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('copy_screenshot'))
-        self.ocr_cache_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('ocr_cache'))
 
         self.key_start_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_start_running'))
         self.key_stop_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_stop_running'))

@@ -171,6 +171,10 @@
   level: "N"
 
 - category: "契合"
+  name: "亡者拨盘"
+  level: "N"
+
+- category: "契合"
   name: "强攻战术交流"
   level: "N"
 
@@ -1269,4 +1273,3 @@
 - category: "顽强"
   name: "防寒睡袋"
   level: "B"
-

@@ -6,6 +6,7 @@ from typing import Optional
 
 from pynput import keyboard
 
+from one_dragon.base.config.basic_model_config import BasicModelConfig
 from one_dragon.base.config.custom_config import UILanguageEnum
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
@@ -64,12 +65,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
-        self.cv_ocr: OcrMatcher = OnnxOcrMatcher(
-            OnnxOcrParam(
-                use_gpu=False,  # 目前OCR使用GPU会闪退
-                det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
-            )
-        )
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
         self.controller: Optional[ControllerBase] = None
 
@@ -106,6 +101,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     def cv_service(self):
         from one_dragon.base.cv_process.cv_service import CvService
         return CvService(self)
+
+    @cached_property
+    def model_config(self) -> BasicModelConfig:
+        return BasicModelConfig()
 
     #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
 
@@ -277,11 +276,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
+        self.ocr.update_use_gpu(self.model_config.ocr_gpu)
         self.ocr.init_model(
-            ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
-            proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
-        )
-        self.cv_ocr.init_model(
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
         )
@@ -301,7 +297,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         OperationExecutor.after_app_shutdown()
         from one_dragon.base.conditional_operation.state_record_service import StateRecordService
         StateRecordService.after_app_shutdown()
-
+        from one_dragon.utils import gpu_executor
+        gpu_executor.shutdown(wait=False)
 
     def register_application_factory(self) -> None:
         """

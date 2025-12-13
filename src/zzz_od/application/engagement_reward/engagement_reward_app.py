@@ -2,7 +2,7 @@ from typing import ClassVar
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from zzz_od.application.engagement_reward import engagement_reward_const
@@ -59,11 +59,10 @@ class EngagementRewardApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='识别活跃度')
-    @node_notify(when=NotifyTiming.CURRENT_DONE)
     @operation_node(name='点击奖励')
     def click_reward(self) -> OperationRoundResult:
         if self.idx > 1:
-            area_name = ('活跃度奖励-%d' % self.idx)
+            area_name = f'活跃度奖励-{self.idx}'
             return self.round_by_click_area('快捷手册', area_name, success_wait=1, retry_wait=1)
         else:
             return self.round_fail(EngagementRewardApp.STATUS_NO_REWARD)
@@ -76,6 +75,7 @@ class EngagementRewardApp(ZApplication):
     @node_from(from_name='查看奖励结果', success=False)
     @node_from(from_name='查看奖励结果')
     @node_from(from_name='识别活跃度', status=STATUS_NO_REWARD)
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='完成后返回大世界')
     def back_afterwards(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx)

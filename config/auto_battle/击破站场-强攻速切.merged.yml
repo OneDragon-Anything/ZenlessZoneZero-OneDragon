@@ -6923,9 +6923,12 @@
             - "自定义-伊德海莉-追碾状态"
             - "自定义-伊德海莉-旋转状态"
             - "自定义-伊德海莉-蓄力中"
-          - "op_name": "按键-闪避"
-          - "op_name": "等待秒数"
+          - "op_name": "设置状态"
             "seconds": 1.6
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 16
           "states": "[自定义-黄光切人, 0, 1]"
         - "states": "[自定义-红光闪避, 0, 1]"
           "sub_handlers":
@@ -6960,8 +6963,8 @@
               - "自定义-伊德海莉-旋转状态"
               - "自定义-伊德海莉-蓄力中"
             - "op_name": "等待秒数"
-              "seconds": 0.5
-            "states": "[按键可用-快速支援, 0, 0.5]"
+              "seconds": 0.3
+            "states": "[按键可用-快速支援, 0, 0.3]"
           - "operations":
             - "op_name": "清除状态"
               "state_list":
@@ -7016,8 +7019,9 @@
         - "debug_name": "旋转状态连按普攻"
           "interrupt_states": "[伊德海莉-蓄力段数]{0, 0}"
           "operations":
-          - "op_name": "等待秒数"
-            "seconds": 2
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.2
+            "repeat": 50
           "states": "[自定义-伊德海莉-旋转状态, 0, 2]"
         - "debug_name": "蓄力满了松开"
           "operations":
@@ -7035,18 +7039,14 @@
             - "自定义-伊德海莉-旋转状态"
           - "op_name": "按键-普通攻击-按下"
           - "op_name": "按键-移动-前-按下"
-          - "op_name": "按键-移动-右-按下"
           - "op_name": "设置状态"
             "state": "自定义-伊德海莉-蓄力中"
           - "op_name": "等待秒数"
             "seconds": 0.5
-          "states": "[伊德海莉-蓄力段数]{0, 0}"
-        - "debug_name": "长按普攻蓄力"
-          "interrupt_states": "[伊德海莉-蓄力段数]{0, 0}"
-          "operations":
+          - "op_name": "按键-移动-前-松开"
           - "op_name": "等待秒数"
-            "seconds": 1
-          "states": ""
+            "seconds": 1.5
+          "states": "[伊德海莉-蓄力段数]{0, 0}"
       - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-琉音]"
         "states": "[前台-琉音]"
         "sub_handlers":
