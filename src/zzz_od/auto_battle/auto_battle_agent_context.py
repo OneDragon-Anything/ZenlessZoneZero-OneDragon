@@ -524,7 +524,14 @@ class AutoBattleAgentContext:
         value = check_method(ctx=self.ctx, screen=screen, state_def=state, total=to_check.total, pos=to_check.pos)
 
         if value > -1 and value >= state.min_value_trigger_state:
-            return StateRecord(state.state_name, screenshot_time, value)
+            # 对于切人-冷却和格挡破碎，值为0时视为清除信号
+            should_clear = False
+            if state.state_name in [CommonAgentStateEnum.SWITCH_BAN.value.state_name,
+                                    CommonAgentStateEnum.GUARD_BREAK.value.state_name]:
+                if value == 0:
+                    should_clear = True
+
+            return StateRecord(state.state_name, screenshot_time, value, is_clear=should_clear)
 
     def _check_all_agent_state(self, screen: MatLike, screenshot_time: float,
                                screen_agent_list: List[Tuple[Agent, Optional[str]]]
@@ -602,6 +609,8 @@ class AutoBattleAgentContext:
 
         # 格挡破碎
         to_check_list.append(CheckAgentState(CommonAgentStateEnum.GUARD_BREAK.value))
+        # 切人-冷却
+        to_check_list.append(CheckAgentState(CommonAgentStateEnum.SWITCH_BAN.value))
 
         # 血量扣减
         if len(screen_agent_list) == 3:
@@ -847,11 +856,11 @@ class AutoBattleAgentContext:
                     self._last_switch_agent_time = update_time
 
                 state_records.append(StateRecord(f'{agent.agent_name}-能量', update_time, agent_info.energy))
-                state_records.append(StateRecord(f'{agent.agent_name}-特殊技可用', update_time, is_clear=not agent_info.special_ready))
 
-                # 只有距离上次切换超过0.1秒才更新终结技状态
+                # 只有距离上次切换超过0.3秒才更新终结技和特殊技状态，防止丢失
                 if update_time - self._last_switch_agent_time >= 0.1:
                     state_records.append(StateRecord(f'{agent.agent_name}-终结技可用', update_time, is_clear=not agent_info.ultimate_ready))
+                    state_records.append(StateRecord(f'{agent.agent_name}-特殊技可用', update_time, is_clear=not agent_info.special_ready))
 
             # 特殊技和终结技的按钮
             if i == 0:

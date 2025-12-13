@@ -4,29 +4,45 @@ auto_lock_interval: 0  # 关闭自动锁定
 auto_turn_interval: 0  # 关闭自动转向
 
 scenes:
-  - triggers: ["闪避识别-黄光"]
+  - triggers: ["格挡-破碎"]
     priority: 99
-    interval: 0.02
+    interval: 0.3
     handlers:
-      - states: ""
-        sub_handlers:
-        - state_template: "支援攻击模板-特殊情况"  # 特殊情况
-        - state_template: "支援攻击模板-击破"  # 格挡攻击优先击破可以快速打进失衡
-        - state_template: "支援攻击模板-命破"  # 命破好像也不错
-        - state_template: "支援攻击模板-防护"  # 防护一般格挡性能优越
-        - state_template: "支援攻击模板-异常"  # 异常一般格挡上异常效率也不错
-        - state_template: "支援攻击模板-下一个"  # 剩下的都不优秀了
-  - triggers: ["闪避识别-红光", "闪避识别-声音"]
-    priority: 98
-    interval: 0.02
+      # 破碎了就别支援突击了
+      - states: "[闪避识别-黄光, 0, 2]"
+        debug_name: "画面黑白无法支援"
+        operations:
+          - op_name: "清除状态"
+            state_list: ["自定义-动作不打断", "自定义-黄光切人"]
+          - op_name: "等待秒数"
+            seconds: 0.1
+
+  # 这部分是用来识别闪光闪避的，这里不需要更改，哪怕角色更新也不需要动
+  - triggers: ["闪避识别-黄光", "闪避识别-红光", "闪避识别-声音"]
+    priority: 99
+    interval: 0.3
     handlers:
-      - states: ""
+      - states: "![自定义-无视闪光, -10, 0]"
         sub_handlers:
-          # 一般情况下里面都是直接设置红光闪避状态，不要在里面写闪A动作，因为同一个触发器无法打断本触发器，可能导致闪A中无法闪A
-          - state_template: "闪A模板-全角色"
+          # 这里的动作不打断，代表了动作的无敌时间，一般无敌动作期间，动作是无法打断的，0.3是因为闪光会比伤害先出现0.3秒
+          # 正常情况下，黄光进入的判定，一般情况下，按顺序触发
+          - states: "[闪避识别-黄光, 0, 0.3]"
+            sub_handlers:
+              - state_template: "支援攻击模板-特殊情况" # 特殊情况
+              - state_template: "支援攻击模板-击破" # 格挡攻击优先击破可以快速打进失衡
+              - state_template: "支援攻击模板-命破" # 修复了命破不能弹刀的神秘特性
+              - state_template: "支援攻击模板-防护" # 防护一般格挡性能优越
+              - state_template: "支援攻击模板-异常" # 异常一般格挡上异常效率也不错
+              - state_template: "支援攻击模板-下一个" # 剩下的都不优秀了
+          # 除了看到黄色闪光都进入闪A模式
+          - states: "![自定义-动作不打断, -10, -0.1] & ([闪避识别-红光, 0, 0.3] | [闪避识别-声音, 0, 0.3])"
+            sub_handlers:
+              # 一般情况下里面都是直接设置红光闪避状态，不要在里面写闪A动作，因为同一个触发器无法打断本触发器，可能导致闪A中无法闪A
+              - state_template: "闪A模板-全角色"
+
   - triggers: []
     priority: 9
-    interval: 0.02
+    interval: 1
     handlers:
       # 主线程默认情况会走到这里
       - states: "[自定义-黄光切人, 0, 0.5] | [自定义-红光闪避, 0, 0.5]"

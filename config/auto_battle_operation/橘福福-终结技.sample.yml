@@ -1,7 +1,7 @@
 # 根据动画实测，动画持续5秒
 operations:
   - op_name: "设置状态"
-    state: "自定义-连携换人"
+    state: "自定义-失衡时间"
     seconds_add: -2.5
   - op_name: "设置状态"
     state: "自定义-动作不打断"

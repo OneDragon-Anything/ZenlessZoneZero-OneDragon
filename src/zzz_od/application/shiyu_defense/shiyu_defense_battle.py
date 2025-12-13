@@ -99,6 +99,7 @@ class ShiyuDefenseBattle(ZOperation):
             return self.round_wait(wait=0.5)
 
     @node_from(from_name='向前移动准备战斗')
+    @node_from(from_name='战斗后移动', status='返回战斗')
     @operation_node(name='自动战斗', timeout_seconds=600, mute=True)
     def auto_battle(self) -> OperationRoundResult:
         if self.ctx.auto_battle_context.last_check_end_result is not None:
@@ -109,7 +110,7 @@ class ShiyuDefenseBattle(ZOperation):
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True,
             check_battle_end_defense_result=True,
-            check_distance=False)
+        )
 
         if in_battle:
             # 在战斗中检测倒计时状态
@@ -160,6 +161,15 @@ class ShiyuDefenseBattle(ZOperation):
     @node_from(from_name='自动战斗', status=STATUS_NEED_SPECIAL_MOVE)
     @operation_node(name='战斗后移动', node_max_retry_times=5)
     def move_after_battle(self) -> OperationRoundResult:
+        # 在战斗后移动阶段也检测倒计时，如果检测到倒计时则返回战斗中
+        if self.check_shiyu_countdown(self.last_screenshot):
+            # 重新启动自动战斗
+            self.ctx.auto_battle_context.start_auto_battle()
+            # 重置移动次数和连续无倒计时记录
+            self.move_times = 0
+            self.no_countdown_start_time = None
+            return self.round_success(status='返回战斗')
+
         result1 = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
         if result1.is_success:
             self.ctx.controller.interact(press=True, press_time=0.2, release=True)
@@ -180,7 +190,6 @@ class ShiyuDefenseBattle(ZOperation):
         self.check_distance(self.last_screenshot)
         if self.distance_pos is not None:
             target_pos = self.distance_pos.center
-            target_type = "距离显示"
             move_distance = self.ctx.auto_battle_context.last_check_distance
 
         # 第2层：检测传送点
@@ -188,7 +197,6 @@ class ShiyuDefenseBattle(ZOperation):
             teleport_rect = self.check_teleport_point(self.last_screenshot)
             if teleport_rect is not None:
                 target_pos = teleport_rect.center
-                target_type = "传送点"
                 move_distance = 5.0  # 传送点固定移动5米
 
         # 第3层：盲动转向
@@ -216,11 +224,11 @@ class ShiyuDefenseBattle(ZOperation):
                 self.ctx.controller.move_w(press=True, press_time=press_time, release=True)
                 self.move_times += 1
 
-        return self.round_wait(wait=0.5)
-
         if self.move_times >= 60:
             self.battle_fail = ShiyuDefenseBattle.STATUS_FAIL_TO_MOVE
             return self.round_fail(ShiyuDefenseBattle.STATUS_FAIL_TO_MOVE)
+
+        return self.round_wait(wait=0.5)
 
     def check_distance(self, screen: MatLike) -> None:
         mr = self.ctx.auto_battle_context.check_battle_distance(screen)
@@ -237,12 +245,16 @@ class ShiyuDefenseBattle(ZOperation):
         :return: True表示有倒计时（战斗继续），False表示没有倒计时（战斗结束）
         """
         try:
-            result = self.ctx.cv_service.run_pipeline('防卫战倒计时', screen, timeout=1.0)
-
-            if result is None or not result.is_success:
-                return False
-
-            return len(result.contours) == 4
+            # 检测普通倒计时
+            result1 = self.ctx.cv_service.run_pipeline('防卫战倒计时', screen, timeout=1.0)
+            has_countdown1 = result1 is not None and result1.is_success and len(result1.contours) == 4
+            
+            # 检测精英倒计时
+            result2 = self.ctx.cv_service.run_pipeline('防卫战倒计时-精英', screen, timeout=1.0)
+            has_countdown2 = result2 is not None and result2.is_success and len(result2.contours) == 4
+            
+            # 只要有一个倒计时被检测到，就认为有倒计时
+            return has_countdown1 or has_countdown2
 
         except Exception:
             return False

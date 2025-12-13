@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: dialyn_cc_3_1
+template_name: 角色状态-琉音-客诉-31
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 217, 122
+- 223, 128

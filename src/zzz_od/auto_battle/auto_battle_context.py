@@ -13,7 +13,7 @@ from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_utils import FindAreaResultEnum
-from one_dragon.utils import cv2_utils, thread_utils, cal_utils, str_utils
+from one_dragon.utils import cv2_utils, thread_utils, cal_utils, str_utils, gpu_executor
 from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.atomic_op.atomic_op_factory import AtomicOpFactory
 from zzz_od.auto_battle.auto_battle_agent_context import AutoBattleAgentContext
@@ -124,17 +124,40 @@ class AutoBattleContext:
         开始自动战斗
         """
         if self.auto_op is not None:
+            # 清空之前检测到的状态
+
             self.init_battle_context()
             self.auto_op.start_running_async()
             self.start_context_async()
+            self.clear_all_states()
 
     def resume_auto_battle(self) -> None:
         """
         恢复自动战斗
         """
         if self.auto_op is not None:
+            # 清空之前检测到的状态
+
             self.auto_op.start_running_async()
             self.start_context_async()
+            self.clear_all_states()
+
+    def clear_all_states(self) -> None:
+        """
+        清空所有之前检测到的状态
+        """
+        # 获取当前策略实际使用的状态ID，而不是所有可能的状态
+        if self.auto_op is None:
+            return
+        usage_states = self.auto_op.usage_states
+
+        # 遍历所有当前策略使用的状态，并将其重置为初始状态
+        log.info(f"正在清空 {len(usage_states)} 个状态...")
+        for state_id in usage_states:
+            recorder = self.state_record_service.get_state_recorder(state_id)
+            if recorder is not None:
+                recorder.reset_to_initial()
+        log.info("所有状态已重置为初始值。")
 
     def stop_auto_battle(self) -> None:
         """
@@ -450,12 +473,14 @@ class AutoBattleContext:
         self.state_record_service.batch_update_states(state_records)
 
     def check_battle_state(
-            self, screen: MatLike, screenshot_time: float,
-            check_battle_end_normal_result: bool = False,
-            check_battle_end_hollow_result: bool = False,
-            check_battle_end_defense_result: bool = False,
-            check_distance: bool = False,
-            sync: bool = False
+        self,
+        screen: MatLike,
+        screenshot_time: float,
+        check_battle_end_normal_result: bool = False,
+        check_battle_end_hollow_result: bool = False,
+        check_battle_end_defense_result: bool = False,
+        check_distance: bool = False,
+        sync: bool = False
     ) -> bool:
         """
         识别战斗状态的总入口
@@ -471,7 +496,10 @@ class AutoBattleContext:
             # 闪避相关
             audio_future = _battle_state_check_executor.submit(self.dodge_context.check_dodge_audio, screenshot_time)
             future_list.append(audio_future)
-            future_list.append(_battle_state_check_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future))
+            if self.ctx.model_config.flash_classifier_gpu:
+                future_list.append(gpu_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future))
+            else:
+                future_list.append(_battle_state_check_executor.submit(self.dodge_context.check_dodge_flash, screen, screenshot_time, audio_future))
 
             # 角色状态
             future_list.append(_battle_state_check_executor.submit(self.agent_context.check_agent_related, screen, screenshot_time))
@@ -484,7 +512,10 @@ class AutoBattleContext:
 
             # 距离
             if check_distance:
-                future_list.append(_battle_state_check_executor.submit(self._check_distance_with_lock, screen, screenshot_time))
+                if self.ctx.model_config.ocr_gpu:
+                    future_list.append(gpu_executor.submit(self._check_distance_with_lock, screen, screenshot_time))
+                else:
+                    future_list.append(_battle_state_check_executor.submit(self._check_distance_with_lock, screen, screenshot_time))
         else:
             # 连携
             future_list.append(_battle_state_check_executor.submit(self.check_chain_attack, screen, screenshot_time))
@@ -492,8 +523,13 @@ class AutoBattleContext:
             # 战斗结束
             check_battle_end = check_battle_end_normal_result or check_battle_end_hollow_result or check_battle_end_defense_result
             if check_battle_end:
-                future_list.append(_battle_state_check_executor.submit(
-                    self._check_battle_end, screen, screenshot_time,
+                if self.ctx.model_config.ocr_gpu:
+                    executor = gpu_executor
+                else:
+                    executor = _battle_state_check_executor
+                future_list.append(executor.submit(
+                    self._check_battle_end,
+                    screen, screenshot_time,
                     check_battle_end_normal_result, check_battle_end_hollow_result, check_battle_end_defense_result
                 ))
 
@@ -737,22 +773,31 @@ class AutoBattleContext:
         :return:
         """
         area = self._check_distance_area
-        part = cv2_utils.crop_image_only(screen, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=screen,
+            rect=area.rect,
+        )
 
         distance: Optional[float] = None
         mr: Optional[MatchResult] = None
-        for ocr_result, mrl in ocr_result_map.items():
-            last_idx = ocr_result.rfind('m')
+        for ocr_result in ocr_result_list:
+            ocr_word = ocr_result.data
+            last_idx = ocr_word.rfind('m')
             if last_idx == -1:
                 continue
-            pre_str = ocr_result[:last_idx]
+            pre_str = ocr_word[:last_idx]
             distance = str_utils.get_positive_float(pre_str, None)
             if distance is None:
                 continue
 
-            tmp_mr = mrl.max
-            tmp_mr.data = distance
+            tmp_mr = MatchResult(
+                ocr_result.confidence,
+                ocr_result.x,
+                ocr_result.y,
+                ocr_result.w,
+                ocr_result.h,
+                data=distance
+            )
             tmp_mr.add_offset(area.left_top)
             # 极少数情况下会出现多个距离
             mid_x = self.ctx.project_config.screen_standard_width // 2

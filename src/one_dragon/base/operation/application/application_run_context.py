@@ -11,7 +11,6 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
-    from one_dragon.base.operation.one_dragon_context import OneDragonContext
     from one_dragon.base.operation.application.application_config import (
         ApplicationConfig,
     )
@@ -20,6 +19,7 @@ if TYPE_CHECKING:
     )
     from one_dragon.base.operation.application_base import Application
     from one_dragon.base.operation.application_run_record import AppRunRecord
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 
 class ApplicationRunContextStateEnum(StrEnum):
@@ -106,6 +106,25 @@ class ApplicationRunContext:
             if default_group:
                 self.default_group_apps.append(factory.app_id)
 
+    @property
+    def notify_app_map(self) -> dict[str, str]:
+        """返回需要通知的应用字典: {app_id: app_name}。
+
+        说明:
+            1. 通过工厂的 need_notify 标记判断是否需要通知。
+            2. 若应用没有设置 app_name，则使用 app_id 作为值兜底。
+
+        Returns:
+            dict[str,str]: need_notify 为 True 的应用映射，按 app_id 排序。
+        """
+        tmp: list[tuple[str, str]] = []
+        for app_id, factory in self._application_factory_map.items():
+            if factory.need_notify:
+                app_name = factory.app_name or app_id
+                tmp.append((app_id, app_name))
+
+        return dict(sorted(tmp, key=lambda x: x[0]))
+
     def is_app_registered(self, app_id: str) -> bool:
         """
         检查应用是否已注册。
@@ -117,6 +136,19 @@ class ApplicationRunContext:
             bool: 应用是否已注册
         """
         return app_id in self._application_factory_map
+
+    def is_app_need_notify(self, app_id: str) -> bool:
+        """
+        检查应用是否需要通知。
+
+        Args:
+            app_id: 应用ID
+
+        Returns:
+            bool: 应用是否需要通知，如果应用未注册则返回False
+        """
+        factory = self._application_factory_map.get(app_id)
+        return factory.need_notify if factory else False
 
     def get_application(
         self, app_id: str, instance_idx: int, group_id: str

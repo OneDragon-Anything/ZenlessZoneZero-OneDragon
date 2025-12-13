@@ -49,16 +49,13 @@ handlers:
         debug_name: "合轴"
         operations:
           - op_name: "设置状态"
-            state: "自定义-速切结束"
+            state: "自定义-合轴时间"
 
       - states: "[雅-落霜]{6, 6}"
         interrupt_states: "[雅-落霜]{0, 0}"
         debug_name: "拔刀"
         operations:
           - operation_template: "雅-拔刀斩"
-          - op_name: "等待秒数"
-            seconds: 4.2
-          - op_name: "按键-普通攻击-松开"
 
       - states: "[雅-落霜]{0, 5}"
         interrupt_states: "[雅-落霜]{6, 6}"

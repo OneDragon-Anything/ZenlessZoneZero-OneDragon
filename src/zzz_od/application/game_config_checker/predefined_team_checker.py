@@ -10,7 +10,6 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils, cal_utils
-from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.game_config_checker import predefined_team_checker_const
 from zzz_od.application.zzz_application import ZApplication
@@ -34,7 +33,7 @@ class PredefinedTeamChecker(ZApplication):
             self,
             ctx=ctx,
             app_id=predefined_team_checker_const.APP_ID,
-            op_name=gt(predefined_team_checker_const.APP_NAME),
+            op_name=predefined_team_checker_const.APP_NAME,
         )
 
         self.scroll_times: int = 0  # 下滑次数
@@ -80,15 +79,21 @@ class PredefinedTeamChecker(ZApplication):
             target_team_name_list.append(ocr_result)
             mr_list.append(mrl.max)
 
-        for team in self.ctx.team_config.team_list:
-            team_name = team.name
+        # 获取配置中的所有队伍名称，用于匹配
+        config_team_names = [team.name for team in self.ctx.team_config.team_list]
 
-            # 需要先识别到队伍名称
-            ocr_idx = str_utils.find_best_match_by_difflib(team_name, target_team_name_list)
-            if ocr_idx is None or ocr_idx < 0:
+        # 遍历OCR识别到的队伍名称，而不是配置中的队伍名称
+        for i, ocr_team_name in enumerate(target_team_name_list):
+            # 用OCR识别到的队伍名称去配置中查找匹配
+            config_idx = str_utils.find_best_match_by_difflib(ocr_team_name, config_team_names)
+            if config_idx is None or config_idx < 0:
                 continue
 
-            name_lt = mr_list[ocr_idx].left_top
+            # 找到匹配的配置队伍
+            matched_team = self.ctx.team_config.team_list[config_idx]
+            team_name = matched_team.name
+
+            name_lt = mr_list[i].left_top
             avatar_rect = Rect(
                 name_lt.x - 10, name_lt.y,
                 name_lt.x + 800, name_lt.y + 250

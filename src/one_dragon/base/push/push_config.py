@@ -1,6 +1,6 @@
 import os
 import shutil
-from enum import Enum, StrEnum
+from enum import Enum
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -77,14 +77,6 @@ class PushConfig(YamlConfig):
             # 迁移完成，删除旧key并保存
             del self.data[old_am_key]
             self.save()
-
-    @property
-    def custom_push_title(self) -> str:
-        return self.get('custom_push_title', '一条龙运行通知')
-
-    @custom_push_title.setter
-    def custom_push_title(self, new_value: str) -> None:
-        self.update('custom_push_title', new_value)
 
     @property
     def send_image(self) -> bool:

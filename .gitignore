@@ -15,10 +15,6 @@ CLAUDE.md
 .qwen/
 .claude/
 
-# 子模块
-test/
-zzz-od-test/
-
 # 用户独有的配置文件
 env.bat
 config/custom.yml
@@ -46,8 +42,8 @@ config/yolo.yml
 config/model.yml
 custom/assets/ui/banner
 assets/ui/version_poster.webp
-assets/ui/remote_banner.webp
-assets/ui/official_dynamic.webm
+assets/ui/static_background.webp
+assets/ui/dynamic_background.webm
 config/world_patrol_route_list/*
 !config/world_patrol_route_list/*.sample.yml
 

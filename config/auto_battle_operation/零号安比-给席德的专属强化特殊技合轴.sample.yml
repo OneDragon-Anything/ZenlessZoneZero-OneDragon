@@ -18,4 +18,4 @@ operations:
   #三突刺
   - operation_template: "零号安比-特殊技突进"
   - op_name: "设置状态"
-    data: ["自定义-速切结束"]
+    state: "自定义-合轴时间"

@@ -26,7 +26,7 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[可琳-终结技可用] & [自定义-连携换人, 0, 10]"
+      - states: "[可琳-终结技可用] & [自定义-失衡时间, 0, 10]"
         operations:
           - op_name: "按键-终结技"
             post_delay: 0.1
@@ -38,7 +38,7 @@ handlers:
       # 可以用特殊技就持续按
       - states: "[可琳-特殊技可用]"
         sub_handlers:
-          - states: "[自定义-连携换人, 0, 10] & ![自定义-可琳-这次不打特殊技, 0, 12]"
+          - states: "[自定义-失衡时间, 0, 10] & ![自定义-可琳-这次不打特殊技, 0, 12]"
             debug_name: "本次失衡已经打过特殊技"
             operations:
               - op_name: "设置状态"
@@ -51,7 +51,7 @@ handlers:
       - states: ""
         operations:
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]
           - op_name: "按键-普通攻击"
             post_delay: 0.1
             repeat: 35

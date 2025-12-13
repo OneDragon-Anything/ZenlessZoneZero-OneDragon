@@ -24,6 +24,7 @@ class NotoriousHuntAppFactory(ApplicationFactory):
             self,
             app_id=notorious_hunt_const.APP_ID,
             app_name=notorious_hunt_const.APP_NAME,
+            need_notify=notorious_hunt_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

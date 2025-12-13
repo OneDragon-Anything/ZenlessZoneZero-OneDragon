@@ -30,7 +30,7 @@ handlers:
       - states: "[本-终结技可用] & [自定义-血量扣减, 0, 2] "
         operations:
           - op_name: "设置状态"
-            data: ["自定义-本-守卫"]
+            state: "自定义-本-守卫"
           - operation_template: "通用-终结技"
           - op_name: "清除状态"
             state_list: ["自定义-血量扣减"]
@@ -45,7 +45,7 @@ handlers:
             post_delay: 0.1
             repeat: 5
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]
 
       - states: ""
         operations:

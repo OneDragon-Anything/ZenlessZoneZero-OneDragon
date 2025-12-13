@@ -55,7 +55,7 @@ handlers:
         debug_name: "满燃点上灼烧"
         operations:
           - operation_template: "柏妮思-长按普通攻击"
-            data: ["自定义-速切结束"]
+            data: ["自定义-合轴时间"]
 
       - states: "[柏妮思-燃点]{60, 100}"
         debug_name: "正常打站场"
@@ -72,11 +72,11 @@ handlers:
         operations:
           - operation_template: "柏妮思-普通攻击"
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]
 
       - states: ""
         debug_name: "单异常，马上离开"
         operations:
           - op_name: "设置状态"
-            state_list: ["自定义-速切结束"]
+            state_list: ["自定义-合轴时间"]
           - operation_template: "柏妮思-普通攻击"

@@ -1,6 +1,5 @@
 import uuid
 from enum import Enum
-from typing import List, Optional
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -41,7 +40,7 @@ class ChargePlanItem:
             card_num: str = CardNumEnum.DEFAULT.value.value,
             predefined_team_idx: int = -1,
             notorious_hunt_buff_num: int = 1,
-            plan_id: Optional[str] = None,
+            plan_id: str | None = None,
     ):
         self.tab_name: str = tab_name
         self.category_name: str = category_name
@@ -77,7 +76,21 @@ class ChargePlanConfig(ApplicationConfig):
             app_id=charge_plan_const.APP_ID,
         )
 
-        self.plan_list: List[ChargePlanItem] = []
+        self.plan_list: list[ChargePlanItem] = []
+
+        # 迁移旧名称 2025/12/31 移除
+        migration_list = []
+        migration_list.extend(self.data.get('plan_list', []))
+        migration_list.extend(self.data.get('history_list', []))
+
+        is_changed = False
+        for item in migration_list:
+            if item.get('category_name') == '定期清剿':
+                item['category_name'] = '区域巡防'
+                is_changed = True
+
+        if is_changed:
+            YamlConfig.save(self)
 
         for plan_item in self.data.get('plan_list', []):
             self.plan_list.append(ChargePlanItem(**plan_item))
@@ -180,7 +193,7 @@ class ChargePlanConfig(ApplicationConfig):
 
             self.save()
 
-    def get_next_plan(self, last_tried_plan: Optional[ChargePlanItem] = None) -> Optional[ChargePlanItem]:
+    def get_next_plan(self, last_tried_plan: ChargePlanItem | None = None) -> ChargePlanItem | None:
         """
         获取下一个未完成的计划任务。
         如果提供了 last_tried_plan，则从该任务之后开始查找。
@@ -225,11 +238,7 @@ class ChargePlanConfig(ApplicationConfig):
         if self.plan_list is None:
             return True
 
-        for plan in self.plan_list:
-            if plan.run_times < plan.plan_times:
-                return False
-
-        return True
+        return all(plan.run_times >= plan.plan_times for plan in self.plan_list)
 
 
     def add_plan_run_times(self, to_add: ChargePlanItem) -> None:
@@ -269,10 +278,10 @@ class ChargePlanConfig(ApplicationConfig):
                 and x.mission_name == y.mission_name)
 
     @property
-    def history_list(self) -> dict:
+    def history_list(self) -> list[dict]:
         return self.get('history_list', [])
 
-    def get_history_by_uid(self, plan: ChargePlanItem) -> Optional[ChargePlanItem]:
+    def get_history_by_uid(self, plan: ChargePlanItem) -> ChargePlanItem | None:
         history_list = self.history_list
         for history_data in history_list:
             history = ChargePlanItem(**history_data)

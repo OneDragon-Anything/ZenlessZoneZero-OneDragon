@@ -10,7 +10,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.base.screen import screen_utils
-from one_dragon.utils import cv2_utils, str_utils
+from one_dragon.utils import cv2_utils, str_utils, gpu_executor
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon.yolo.detect_utils import DetectFrameResult
@@ -672,14 +672,26 @@ class LostVoidRunLevel(ZOperation):
                 or (self.no_in_battle_times > 0 and self.last_screenshot_time - self.last_check_finish_time >= 0.1)  # 之前也识别到脱离战斗 0.1秒识别一次
             ):
                 no_in_battle = False
-                screen2 = self.screenshot()  # 因为跟自动战斗是异步同时识别 这里重新截图避免两边冲突
 
                 # 尝试识别下层入口 (道中危机 和 终结之役 不需要识别)
                 if self.region_type not in [LostVoidRegionType.ELITE, LostVoidRegionType.BOSS]:
                     self.last_det_time = self.last_screenshot_time
                     try:
                         # 为了不随意打断战斗 这里的识别阈值要高一点
-                        frame_result: DetectFrameResult = self.detector.run(screen2, run_time=self.last_screenshot_time, conf=0.9)
+                        if self.ctx.model_config.lost_void_det_gpu:
+                            f = gpu_executor.submit(
+                                self.detector.run,
+                                image=self.last_screenshot,
+                                conf=0.9,
+                                run_time=self.last_screenshot_time,
+                            )
+                            frame_result: DetectFrameResult = f.result()
+                        else:
+                            frame_result = self.detector.run(
+                                image=self.last_screenshot,
+                                conf=0.9,
+                                run_time=self.last_screenshot_time,
+                            )
                         with_interact, with_distance, with_entry = self.detector.is_frame_with_all(frame_result)
                         if with_interact or with_distance or with_entry:
                             no_in_battle = True
@@ -690,7 +702,19 @@ class LostVoidRunLevel(ZOperation):
 
                 if not no_in_battle:
                     area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-文本提示')
-                    if screen_utils.find_by_ocr(self.ctx, screen2, target_cn='前往下一个区域', area=area):
+                    if self.ctx.model_config.ocr_gpu:
+                        f = gpu_executor.submit(
+                            screen_utils.find_by_ocr,
+                            ctx=self.ctx,
+                            screen=self.last_screenshot,
+                            target_cn='前往下一个区域',
+                            area=area,
+                        )
+                        found = f.result()
+                    else:
+                        found = screen_utils.find_by_ocr(self.ctx, self.last_screenshot, target_cn='前往下一个区域', area=area)
+
+                    if found:
                         no_in_battle = True
 
                 if no_in_battle:
@@ -717,15 +741,32 @@ class LostVoidRunLevel(ZOperation):
                     '迷失之地-挑战结果',
                     '迷失之地-战斗失败'
                 ]
-                screen_name = self.check_and_update_current_screen(self.last_screenshot, no_in_battle_screen_name_list)
+                if self.ctx.model_config.ocr_gpu:
+                    f = gpu_executor.submit(
+                        self.check_and_update_current_screen,
+                        screen=self.last_screenshot,
+                        screen_name_list=no_in_battle_screen_name_list
+                    )
+                    screen_name = f.result()
+                else:
+                    screen_name = self.check_and_update_current_screen(self.last_screenshot, no_in_battle_screen_name_list)
 
-                # 以下情况会出现对话框
+                # 以下情况会出现确认对话框
                 # 1. 所有战术棱镜均已升级
-                confirm_result = self.round_by_find_and_click_area(
-                    screen=self.last_screenshot,
-                    screen_name='迷失之地-大世界',
-                    area_name='按钮-挑战-确认'
-                )
+                if self.ctx.model_config.ocr_gpu:
+                    f = gpu_executor.submit(
+                        self.round_by_find_and_click_area,
+                        screen=self.last_screenshot,
+                        screen_name='迷失之地-大世界',
+                        area_name='按钮-挑战-确认',
+                    )
+                    confirm_result = f.result()
+                else:
+                    confirm_result = self.round_by_find_and_click_area(
+                        screen=self.last_screenshot,
+                        screen_name='迷失之地-大世界',
+                        area_name='按钮-挑战-确认'
+                    )
 
                 if screen_name in no_in_battle_screen_name_list or interact_result.is_success or confirm_result.is_success:
                     self.no_in_battle_times += 1

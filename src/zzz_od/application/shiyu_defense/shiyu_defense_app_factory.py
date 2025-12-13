@@ -25,6 +25,7 @@ class ShiyuDefenseAppFactory(ApplicationFactory):
             self,
             app_id=shiyu_defense_const.APP_ID,
             app_name=shiyu_defense_const.APP_NAME,
+            need_notify=shiyu_defense_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

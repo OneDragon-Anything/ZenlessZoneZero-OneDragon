@@ -235,9 +235,10 @@ class TransportBy3dMap(ZOperation):
                 continue  # 尝试下一个图标
 
             # OCR识别传送点名称
+            transport_area = self.ctx.screen_loader.get_area('3D地图', '标题-当前选择传送点')
             ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
                 self.last_screenshot,
-                rect=self.ctx.screen_loader.get_area('3D地图', '标题-当前选择传送点').rect,
+                rect=transport_area.rect,
             )
 
             if len(ocr_result_list) == 0:
