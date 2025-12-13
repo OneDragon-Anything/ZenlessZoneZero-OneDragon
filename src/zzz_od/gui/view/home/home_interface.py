@@ -15,15 +15,12 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-import colorsys
-import math
 from qfluentwidgets import (
     FluentIcon,
     InfoBar,
     InfoBarPosition,
     PrimaryPushButton,
     SimpleCardWidget,
-    isDarkTheme,
 )
 
 from one_dragon.base.config.custom_config import BackgroundTypeEnum
@@ -870,78 +867,12 @@ class HomeInterface(VerticalScrollInterface):
         if image is None or image.isNull():
             log.debug("使用默认蓝色主题")
             return 64, 158, 255  # 默认蓝色
-        # 新逻辑：基于整张图片的色相(hue)来决定主题色
-        # 为性能考虑，按一定步长采样像素（例如将最小边长压缩为 ~100 步样本）
-        w, h = image.width(), image.height()
-        if w <= 0 or h <= 0:
-            return 64, 158, 255
 
-        # 计算采样步长，使得样本点约为 100x100 或更少
-        samples_per_axis = 100  # 每个方向的采样数
-        step_x = max(1, w // samples_per_axis)
-        step_y = max(1, h // samples_per_axis)
-
-        weight_acc = 0.0
-        sum_cos = 0.0
-        sum_sin = 0.0
-
-        # 遍历采样点，累积以 saturation*value 作为权重，偏重鲜艳明亮的颜色
-        for yy in range(0, h, step_y):
-            for xx in range(0, w, step_x):
-                # 如果 image 没有 pixel 方法，跳过（兼容不同类型）
-                if not hasattr(image, 'pixel'):
-                    continue
-                try:
-                    px = image.pixel(xx, yy)
-                    qc = QColor(px)
-                    r = qc.red() / 255.0
-                    g = qc.green() / 255.0
-                    b = qc.blue() / 255.0
-                except Exception as e:
-                    # 读取像素失败，记录调试信息并跳过
-                    log.debug(f"跳过像素 ({xx},{yy}) 读取失败: {e}")
-                    continue
-
-                # 忽略纯透明或接近黑白灰的无色像素，降低噪声
-                # 使用 colorsys 转换到 HSV
-                h_f, s_f, v_f = colorsys.rgb_to_hsv(r, g, b)
-                # 过滤过暗或饱和度非常低的像素
-                if v_f < 0.1 or s_f < 0.05:
-                    continue
-
-                weight = s_f * v_f
-                angle = h_f * (2 * math.pi)
-                sum_cos += math.cos(angle) * weight
-                sum_sin += math.sin(angle) * weight
-                weight_acc += weight
-
-        if weight_acc == 0.0:
-            log.warning("取色失败，回退默认蓝色")
-            return 64, 158, 255
-
-        # 计算加权平均色相 (0..1) 并转为度数
-        hue_vector = math.hypot(sum_cos, sum_sin)
-        if hue_vector < 1e-6:
-            log.warning("取色失败，回退默认蓝色")
-            return 64, 158, 255
-        hue_mean = math.degrees(math.atan2(sum_sin, sum_cos)) % 360.0
-
-        # 根据当前主题（亮/暗）选择饱和度与亮度（HSL 空间），然后转换为 RGB
-        is_dark = isDarkTheme()
-        # Qt QColor.fromHsl: h in [0..359], s,l in [0..255]
-        h_int = int(hue_mean) % 360
-        if is_dark:
-            s_val = 220
-            l_val = 160
-        else:
-            s_val = 200
-            l_val = 140
-
-        q = QColor.fromHsl(h_int, s_val, l_val)
-        lr, lg, lb = q.red(), q.green(), q.blue()
-
+        # 使用新的色相采样算法提取主题色
+        theme_color = ColorUtils.extract_theme_color_from_image_hue(image)
+        
         # 处理提取的颜色（增强/限制强度）
-        return self._process_extracted_color(lr, lg, lb)
+        return self._process_extracted_color(*theme_color)
 
     def _process_extracted_color(self, r: int, g: int, b: int) -> tuple[int, int, int]:
         """处理从图片提取的颜色，增强鲜艳度和亮度，并限制在舒适的范围内"""
