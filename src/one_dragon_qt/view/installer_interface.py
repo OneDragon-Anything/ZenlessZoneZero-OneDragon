@@ -53,19 +53,21 @@ class UnpackResourceRunner(QThread):
         self.work_dir = work_dir
 
     @staticmethod
-    def _sha256(file_path: Path) -> str:
+    def _copy_and_hash(src: Path, dst: Path) -> tuple[int, str]:
+        """流式复制并计算哈希，返回 (大小, sha256)"""
         hasher = hashlib.sha256()
-        with file_path.open('rb') as f:
-            for chunk in iter(lambda: f.read(1024 * 1024), b''):
-                hasher.update(chunk)
-        return hasher.hexdigest().upper()
-
-    @staticmethod
-    def _is_same_dir(a: Path, b: Path) -> bool:
-        try:
-            return a.resolve() == b.resolve()
-        except Exception:
-            return str(a).lower().rstrip('\\/') == str(b).lower().rstrip('\\/')
+        size = 0
+        with src.open('rb') as fsrc, dst.open('wb') as fdst:
+            while True:
+                buf = fsrc.read(1024 * 1024)  # 1MB chunk
+                if not buf:
+                    break
+                fdst.write(buf)
+                hasher.update(buf)
+                size += len(buf)
+        # 复制元数据（如修改时间），保持与 copy2 行为一致
+        shutil.copystat(src, dst)
+        return size, hasher.hexdigest().upper()
 
     def _copy_by_manifest_then_cleanup(self, src_root: Path, dst_root: Path) -> bool:
         manifest_path = src_root / 'install_manifest.json'
@@ -105,11 +107,9 @@ class UnpackResourceRunner(QThread):
             dst_path = (dst_root / rel_norm)
 
             # 安全：只允许搬运 src_root 下的内容
-            try:
+            with contextlib.suppress(Exception):
                 if src_root.resolve() not in src_path.resolve().parents and src_path.resolve() != src_root.resolve():
                     continue
-            except Exception:
-                pass
 
             if src_path.is_dir():
                 dst_path.mkdir(parents=True, exist_ok=True)
@@ -120,19 +120,22 @@ class UnpackResourceRunner(QThread):
                 continue
 
             dst_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src_path, dst_path)
+
+            try:
+                actual_size, actual_sha = self._copy_and_hash(src_path, dst_path)
+            except Exception as e:
+                log.error(f"复制文件失败: {rel} err={e}")
+                return False
 
             expected_size = item.get('size')
             if isinstance(expected_size, int) and expected_size >= 0:
-                actual_size = dst_path.stat().st_size
                 if actual_size != expected_size:
                     log.error(f"文件大小校验失败: {rel} expected={expected_size} actual={actual_size}")
                     return False
 
             expected_sha = item.get('sha256')
             if isinstance(expected_sha, str) and expected_sha:
-                actual_sha = self._sha256(dst_path)
-                if actual_sha.upper() != expected_sha.upper():
+                if actual_sha != expected_sha.upper():
                     log.error(f"文件哈希校验失败: {rel}")
                     return False
 
@@ -178,6 +181,18 @@ class UnpackResourceRunner(QThread):
             with contextlib.suppress(Exception):
                 p.rmdir()
 
+        # 清单文件本身不在清单列表中（避免自引用 sha 问题），这里单独搬运
+        manifest_src = src_root / 'install_manifest.json'
+        manifest_dst = dst_root / 'install_manifest.json'
+        if manifest_src.exists():
+            try:
+                manifest_dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(manifest_src, manifest_dst)
+                with contextlib.suppress(Exception):
+                    manifest_src.unlink(missing_ok=True)
+            except Exception as e:
+                log.warning(f"搬运清单文件失败: {manifest_src} -> {manifest_dst} err={e}")
+
         return True
 
     def run(self):
@@ -193,8 +208,8 @@ class UnpackResourceRunner(QThread):
 
         # 逐文件复制+校验，成功后删除源文件
         try:
-            if self._copy_by_manifest_then_cleanup(src_root, dst_root):
-                self.finished.emit(True)
+            ok = self._copy_by_manifest_then_cleanup(src_root, dst_root)
+            self.finished.emit(ok)
         except Exception as e:
             log.error(f"解包资源失败: {e}")
             self.finished.emit(False)
