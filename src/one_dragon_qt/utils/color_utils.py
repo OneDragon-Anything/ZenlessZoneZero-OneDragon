@@ -193,39 +193,41 @@ class ColorUtils:
         if image is None or image.isNull():
             return 64, 158, 255  # 默认蓝色
             
-        w, h = image.width(), image.height()
-        if w <= 0 or h <= 0:
+        width, height = image.width(), image.height()
+        if width <= 0 or height <= 0:
             return 64, 158, 255
 
-        # 计算采样步长
-        step_x = max(1, w // samples_per_axis)
-        step_y = max(1, h // samples_per_axis)
+        if samples_per_axis <= 0:
+            return 64, 158, 255
+
+        if not hasattr(image, "pixelColor"):
+            return 64, 158, 255
+
+        step_x = max(1, width // samples_per_axis)
+        step_y = max(1, height // samples_per_axis)
 
         weight_acc = 0.0
         sum_cos = 0.0
         sum_sin = 0.0
 
         # 遍历采样点，累积以饱和度×明度作为权重
-        for yy in range(0, h, step_y):
-            for xx in range(0, w, step_x):
-                if not hasattr(image, 'pixelColor'):
-                    continue
-                    
+        for yy in range(0, height, step_y):
+            for xx in range(0, width, step_x):
                 try:
                     c = image.pixelColor(xx, yy)
                     if not c.isValid():
                         continue
                         
                     # 转换为HSV
-                    h, s, v, a = c.getHsvF()
+                    hue, s, v, _a = c.getHsvF()
                     
                     # 跳过灰阶或无效颜色
-                    if h < 0 or s < 0.05 or v < 0.1:
+                    if hue < 0 or s < 0.05 or v < 0.1:
                         continue
                     
                     # 权重：饱和度×明度
                     weight = s * v
-                    angle = h * (2 * 3.14159265359)  # 2π
+                    angle = hue * math.tau  # 2π
                     sum_cos += math.cos(angle) * weight
                     sum_sin += math.sin(angle) * weight
                     weight_acc += weight
