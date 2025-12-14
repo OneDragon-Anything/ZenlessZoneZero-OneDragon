@@ -439,19 +439,19 @@ jobs:
           )
           $root = (Get-Location).Path
           $files = Get-ChildItem -Force -File -Recurse
-          $entries = @()
-          foreach ($f in $files) {
+          $entries = foreach ($f in $files) {
             $rel = $f.FullName.Substring($root.Length).TrimStart('\\')
             $rel = $rel -replace '\\', '/'
             # 跳过 dist 目录（应不存在于根目录，但防御一下）
             if ($rel -like 'dist/*') { continue }
             $hash = (Get-FileHash -Algorithm SHA256 -Path $f.FullName).Hash
-            $entries += [pscustomobject]@{
+            [pscustomobject]@{
               path = $rel
               size = [int64]$f.Length
               sha256 = $hash
             }
           }
+          $entries = $entries | Sort-Object path
           $manifest = [pscustomobject]@{
             version = $version
             generated_at = (Get-Date).ToUniversalTime().ToString('o')
