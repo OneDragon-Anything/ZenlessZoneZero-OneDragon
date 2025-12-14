@@ -433,6 +433,33 @@ jobs:
         # 获取版本号
         $version = $env:RELEASE_VERSION
 
+        function Write-InstallManifest {
+          param (
+            [string]$outputPath
+          )
+          $root = (Get-Location).Path
+          $files = Get-ChildItem -Force -File -Recurse
+          $entries = @()
+          foreach ($f in $files) {
+            $rel = $f.FullName.Substring($root.Length).TrimStart('\\')
+            $rel = $rel -replace '\\', '/'
+            # 跳过 dist 目录（应不存在于根目录，但防御一下）
+            if ($rel -like 'dist/*') { continue }
+            $hash = (Get-FileHash -Algorithm SHA256 -Path $f.FullName).Hash
+            $entries += [pscustomobject]@{
+              path = $rel
+              size = [int64]$f.Length
+              sha256 = $hash
+            }
+          }
+          $manifest = [pscustomobject]@{
+            version = $version
+            generated_at = (Get-Date).ToUniversalTime().ToString('o')
+            files = $entries
+          }
+          $manifest | ConvertTo-Json -Depth 5 | Out-File -FilePath $outputPath -Encoding utf8
+        }
+
         # 打包前删除不需要的目录
         Remove-Item -Path "deploy/build" -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -Path ".venv" -Recurse -Force -ErrorAction SilentlyContinue
@@ -440,12 +467,19 @@ jobs:
         git reset --hard HEAD
         git clean -fd | Out-Null
 
+        # 为 Full 包生成清单（用于安装器按清单搬运并在成功后清理源目录）
+        Write-InstallManifest -outputPath "install_manifest.json"
+
         # 第一次打包（Full）枚举根目录全部项目
         $items = Get-ChildItem -Force | ForEach-Object { $_.FullName }
         Compress-Archive -Path $items -DestinationPath "$distDir/ZenlessZoneZero-OneDragon-$version-Full.zip" -Force
 
         # 将环境依赖包放入 .install 后进行第二次打包（Full-Environment）
         Copy-Item "$distDir/ZenlessZoneZero-OneDragon-Environment.zip" -Destination "$envDir/ZenlessZoneZero-OneDragon-Environment.zip" -Force
+
+        # 为 Full-Environment 包重新生成清单（包含新增的环境包）
+        Write-InstallManifest -outputPath "install_manifest.json"
+
         $items = Get-ChildItem -Force | ForEach-Object { $_.FullName }
         Compress-Archive -Path $items -DestinationPath "$distDir/ZenlessZoneZero-OneDragon-$version-Full-Environment.zip" -Force
 

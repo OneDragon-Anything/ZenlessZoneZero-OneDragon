@@ -1,13 +1,33 @@
+import contextlib
+import hashlib
+import json
 import shutil
+import sys
 import webbrowser
-
 from pathlib import Path
-from PySide6.QtCore import Qt, QThread, QTimer, QSize, Signal
+
+from PySide6.QtCore import QSize, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QStackedWidget, QFrame
-from qfluentwidgets import (FluentIcon, ProgressRing, ProgressBar, IndeterminateProgressBar,
-                            PushButton, PrimaryPushButton, HyperlinkButton,
-                            TitleLabel, SubtitleLabel, BodyLabel)
+from PySide6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
+from qfluentwidgets import (
+    BodyLabel,
+    FluentIcon,
+    HyperlinkButton,
+    IndeterminateProgressBar,
+    PrimaryPushButton,
+    ProgressBar,
+    ProgressRing,
+    PushButton,
+    SubtitleLabel,
+    TitleLabel,
+)
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.utils import app_utils, os_utils
@@ -32,21 +52,152 @@ class UnpackResourceRunner(QThread):
         self.installer_dir = installer_dir
         self.work_dir = work_dir
 
+    @staticmethod
+    def _sha256(file_path: Path) -> str:
+        hasher = hashlib.sha256()
+        with file_path.open('rb') as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b''):
+                hasher.update(chunk)
+        return hasher.hexdigest().upper()
+
+    @staticmethod
+    def _is_same_dir(a: Path, b: Path) -> bool:
+        try:
+            return a.resolve() == b.resolve()
+        except Exception:
+            return str(a).lower().rstrip('\\/') == str(b).lower().rstrip('\\/')
+
+    def _copy_by_manifest_then_cleanup(self, src_root: Path, dst_root: Path) -> bool:
+        manifest_path = src_root / 'install_manifest.json'
+        if not manifest_path.exists():
+            return False
+
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        except Exception as e:
+            log.error(f"读取安装清单失败: {e}")
+            return False
+
+        files: list[dict] = []
+        if isinstance(manifest, dict) and isinstance(manifest.get('files'), list):
+            files = manifest['files']
+        elif isinstance(manifest, list):
+            files = manifest
+        else:
+            log.error("安装清单格式不正确")
+            return False
+
+        running_exe: Path | None = None
+        try:
+            running_exe = Path(sys.executable).resolve()
+        except Exception:
+            running_exe = None
+
+        copied_files: list[tuple[Path, Path, dict]] = []
+        for item in files:
+            if not isinstance(item, dict):
+                continue
+            rel = item.get('path')
+            if not rel or not isinstance(rel, str):
+                continue
+            rel_norm = rel.replace('\\', '/')
+            src_path = (src_root / rel_norm)
+            dst_path = (dst_root / rel_norm)
+
+            # 安全：只允许搬运 src_root 下的内容
+            try:
+                if src_root.resolve() not in src_path.resolve().parents and src_path.resolve() != src_root.resolve():
+                    continue
+            except Exception:
+                pass
+
+            if src_path.is_dir():
+                dst_path.mkdir(parents=True, exist_ok=True)
+                continue
+
+            if not src_path.exists():
+                # 允许清单中包含不存在项（例如不同包型差异），跳过即可
+                continue
+
+            dst_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src_path, dst_path)
+
+            expected_size = item.get('size')
+            if isinstance(expected_size, int) and expected_size >= 0:
+                actual_size = dst_path.stat().st_size
+                if actual_size != expected_size:
+                    log.error(f"文件大小校验失败: {rel} expected={expected_size} actual={actual_size}")
+                    return False
+
+            expected_sha = item.get('sha256')
+            if isinstance(expected_sha, str) and expected_sha:
+                actual_sha = self._sha256(dst_path)
+                if actual_sha.upper() != expected_sha.upper():
+                    log.error(f"文件哈希校验失败: {rel}")
+                    return False
+
+            copied_files.append((src_path, dst_path, item))
+
+        # 复制成功后删除源文件（跳过正在运行的安装器 exe）
+        for src_path, _, _ in copied_files:
+            try:
+                if running_exe is not None:
+                    try:
+                        if src_path.resolve() == running_exe:
+                            continue
+                    except Exception:
+                        if str(src_path).lower() == str(running_exe).lower():
+                            continue
+                src_path.unlink(missing_ok=True)
+            except Exception as e:
+                # 删除失败不算致命（可能在只读目录/权限不足），但会导致源目录残留
+                log.warning(f"删除源文件失败: {src_path} err={e}")
+
+        # 尝试清理空目录：仅清理本次搬运涉及到的路径链，避免误删用户原本存在但为空的目录
+        dirs_to_try: set[Path] = set()
+        for src_path, _, _ in copied_files:
+            parent = src_path.parent
+            while True:
+                if parent == src_root:
+                    break
+                # 只处理 src_root 下的目录
+                try:
+                    if src_root.resolve() not in parent.resolve().parents and parent.resolve() != src_root.resolve():
+                        break
+                except Exception:
+                    # resolve 失败时，退化为字符串前缀判断
+                    if not str(parent).lower().startswith(str(src_root).lower()):
+                        break
+
+                dirs_to_try.add(parent)
+                if parent.parent == parent:
+                    break
+                parent = parent.parent
+
+        for p in sorted(dirs_to_try, key=lambda x: len(str(x)), reverse=True):
+            with contextlib.suppress(Exception):
+                p.rmdir()
+
+        return True
+
     def run(self):
         if self.installer_dir is None:
             self.finished.emit(False)
             return
 
-        uv_zip_dir = Path(self.installer_dir) / '.install' / 'uv-x86_64-pc-windows-msvc.zip'
-        if Path(self.installer_dir) != Path(self.work_dir) and uv_zip_dir.exists():
-            try:
-                shutil.copytree(self.installer_dir, self.work_dir, dirs_exist_ok=True)
-                self.finished.emit(True)
-            except Exception as e:
-                log.error(f"解包资源失败: {e}")
-                self.finished.emit(False)
-        else:
+        src_root = Path(self.installer_dir)
+        dst_root = Path(self.work_dir)
+        if self._is_same_dir(src_root, dst_root):
             self.finished.emit(True)
+            return
+
+        # 逐文件复制+校验，成功后删除源文件
+        try:
+            if self._copy_by_manifest_then_cleanup(src_root, dst_root):
+                self.finished.emit(True)
+        except Exception as e:
+            log.error(f"解包资源失败: {e}")
+            self.finished.emit(False)
 
 
 class ClickableStepCircle(QLabel):
@@ -712,16 +863,7 @@ class InstallerInterface(VerticalScrollInterface):
             self.is_all_completed = False
 
         # 根据当前步骤状态更新按钮
-        if current_step_widget.is_completed:
-            self.install_step_btn.setVisible(False)
-            self.skip_current_btn.setVisible(False)
-            self.next_btn.setVisible(True)
-            self.next_btn.setEnabled(True)
-            if self.current_step == len(self.install_steps) - 1:
-                self.next_btn.setText(gt('完成'))
-            else:
-                self.next_btn.setText(gt('下一步'))
-        elif current_step_widget.is_skipped:
+        if current_step_widget.is_completed or current_step_widget.is_skipped:
             self.install_step_btn.setVisible(False)
             self.skip_current_btn.setVisible(False)
             self.next_btn.setVisible(True)
