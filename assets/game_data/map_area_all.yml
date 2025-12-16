@@ -38,6 +38,12 @@ full_list:
       - area_name: "[空洞]航天科学站"
         area_id: "aerospace_station"
         is_hollow: true
+      - area_name: "[空洞]社区储运站"
+        area_id: "community_shipping_depot"
+        is_hollow: true
+      - area_name: "[空洞]昔丘"
+        area_id: "timesworn_hills"
+        is_hollow: true
   - entry_name: "雅努斯区"
     entry_id: "janus_quarter"
     area_list:
@@ -69,6 +75,8 @@ full_list:
         area_id: "parking_lot"
       - area_name: "治安局办事处"
         area_id: "public_security_office"
+      - area_name: "失落的机动要塞"
+        area_id: "fallen_mecha_stronghold"
   - entry_name: "索恩区"
     entry_id: "throne_quarter"
     area_list:
