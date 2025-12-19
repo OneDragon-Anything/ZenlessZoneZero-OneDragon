@@ -33,4 +33,5 @@ class RedemptionCodeFactory(ApplicationFactory):
         return RedemptionCodeRunRecord(
             instance_idx=instance_idx,
             game_refresh_hour_offset=self.ctx.game_account_config.game_refresh_hour_offset,
+            ctx=self.ctx,
         )

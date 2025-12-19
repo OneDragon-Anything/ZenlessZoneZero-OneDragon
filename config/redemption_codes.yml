@@ -1,11 +1,20 @@
 # 兑换码列表
-# 格式:
-# codes:
-#  - code: '兑换码'
-#    end_dt: 过期时间
-# 过期时间格式: YYYYMMDD 长期有效就填 20990101
-codes:
-  - code: 'YESHUNGUANG1230'  # 2.5前瞻
-    end_dt: 20251221
-  - code: 'ZZZ888'
-    end_dt: 20990101
+# 配置说明:
+# - code: 兑换码内容
+# - end_dt: 过期日期(YYYYMMDD格式)，兑换码在这一天的23:59:59失效，长期有效填20990101
+# - server: 服务器类型，cn=国服/B服，global=国际服(美服/欧服/亚服/港澳台服)，不填默认cn
+#
+# 系统会根据用户在"账户管理"中设置的游戏区服自动选择对应的兑换码
+
+# 国服/B服兑换码
+- code: 'LIUYIN1126'  # 2.4前瞻
+  end_dt: 20251117
+  server: 'cn'
+- code: 'ZZZ888'
+  end_dt: 20990101
+  server: 'cn'
+
+# 国际服兑换码（美服/欧服/亚服/港澳台服通用）
+- code: 'KRAMPUS'  # 2.4前瞻
+  end_dt: 20251117
+  server: 'global'
