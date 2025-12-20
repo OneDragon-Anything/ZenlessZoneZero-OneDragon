@@ -107,9 +107,11 @@ class UnpackResourceRunner(QThread):
             dst_path = (dst_root / rel_norm)
 
             # 安全：只允许搬运 src_root 下的内容
-            with contextlib.suppress(Exception):
-                if src_root.resolve() not in src_path.resolve().parents and src_path.resolve() != src_root.resolve():
+            try:
+                if src_root.resolve() not in [src_path.resolve(), *src_path.resolve().parents]:
                     continue
+            except Exception:
+                continue
 
             if src_path.is_dir():
                 dst_path.mkdir(parents=True, exist_ok=True)

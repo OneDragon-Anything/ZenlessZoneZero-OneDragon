@@ -1,7 +1,7 @@
 import os
 import re
 import subprocess
-from datetime import UTC, timedelta
+from datetime import UTC, datetime, timedelta
 
 
 def run_command(cmd: str) -> str | None:
@@ -26,7 +26,7 @@ def main():
         tag = version
     elif not create_release:
         # 非 release 构建，使用日期作为版本号 (UTC+8)
-        now_plus_8 = UTC + timedelta(hours=8)
+        now_plus_8 = datetime.now(UTC) + timedelta(hours=8)
         version = now_plus_8.strftime('v%Y.%m%d.%H%M')
         tag = version
     else:
