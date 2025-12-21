@@ -4,13 +4,6 @@ import subprocess
 from datetime import UTC, datetime, timedelta
 
 
-def run_command(cmd: str) -> str | None:
-    """运行命令并返回输出"""
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    if result.returncode != 0:
-        return None
-    return result.stdout.strip()
-
 def main():
     github_ref = os.environ.get('GITHUB_REF', '')
     create_release = os.environ.get('CREATE_RELEASE', 'false').lower() == 'true'
@@ -32,7 +25,9 @@ def main():
     else:
         # 手动触发且要求创建 release：生成新的 beta 版本
         # 获取远程 tag 列表并按版本排序
-        output = run_command("git ls-remote --refs --tags --sort=-version:refname origin 'v*'")
+        cmd = ['git', 'ls-remote', '--refs', '--tags', '--sort=-version:refname', 'origin', 'v*']
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        output = result.stdout.strip() if result.returncode == 0 else None
 
         latest_tag = None
         if output:
@@ -77,10 +72,8 @@ def main():
 
     if should_push_tag:
         print(f"Creating and pushing new tag: {tag}")
-        subprocess.run('git config --global user.email "actions@github.com"', shell=True)
-        subprocess.run('git config --global user.name "GitHub Actions"', shell=True)
-        subprocess.run(f'git tag {tag}', shell=True)
-        subprocess.run(f'git push origin {tag}', shell=True)
+        subprocess.run(['git', '-c', 'user.name=GitHub Actions', '-c', 'user.email=actions@github.com', 'tag', tag])
+        subprocess.run(['git', 'push', 'origin', tag])
 
 if __name__ == "__main__":
     main()
