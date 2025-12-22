@@ -3,21 +3,19 @@ import yaml
 from typing import Optional, List
 
 from one_dragon.base.operation.application_run_record import AppRunRecord
-from one_dragon.base.config.game_account_config import GameRegionEnum
 from one_dragon.utils import os_utils
 
 
 class RedemptionCode:
 
-    def __init__(self, code: str, end_dt: str, server: str = 'cn'):
+    def __init__(self, code: str, end_dt: str):
         self.code: str = code  # 兑换码
         self.end_dt = end_dt  # 失效日期
-        self.server: str = server  # 服务器类型
 
 
 class RedemptionCodeRunRecord(AppRunRecord):
 
-    def __init__(self, instance_idx: Optional[int] = None, game_refresh_hour_offset: int = 0, ctx=None):
+    def __init__(self, instance_idx: Optional[int] = None, game_refresh_hour_offset: int = 0):
         AppRunRecord.__init__(
             self,
             'redemption_code',
@@ -25,7 +23,6 @@ class RedemptionCodeRunRecord(AppRunRecord):
             game_refresh_hour_offset=game_refresh_hour_offset
         )
 
-        self.ctx = ctx
         self.valid_code_list: List[RedemptionCode] = self._load_redemption_codes_from_file()
 
     def _load_redemption_codes_from_file(self) -> List[RedemptionCode]:
@@ -41,29 +38,14 @@ class RedemptionCodeRunRecord(AppRunRecord):
             config_data = yaml.safe_load(f)
 
         codes = []
-        if config_data and isinstance(config_data, list):
-            for item in config_data:
+        if config_data and 'codes' in config_data:
+            for item in config_data['codes']:
                 code = item.get('code')
                 end_dt = item.get('end_dt')
-                server = item.get('server', 'cn')  # 默认为国服
                 if code and end_dt:
-                    codes.append(RedemptionCode(code, str(end_dt), server))  # 确保end_dt是字符串
+                    codes.append(RedemptionCode(code, str(end_dt))) # 确保end_dt是字符串
 
         return codes
-
-    def _get_user_server_type(self) -> str:
-        """
-        获取用户设置的服务器类型
-        :return: 'cn' 表示国服/B服, 'global' 表示国际服
-        """
-        if self.ctx is None:
-            return 'cn'  # 默认国服/B服
-
-        game_region = self.ctx.game_account_config.game_region
-        if game_region == GameRegionEnum.CN.value.value:
-            return 'cn'
-        else:
-            return 'global'
 
     @property
     def run_status_under_now(self):
@@ -102,19 +84,13 @@ class RedemptionCodeRunRecord(AppRunRecord):
 
     def get_unused_code_list(self, dt: str) -> List[str]:
         """
-        按日期和服务器类型获取未使用的兑换码
-        :param dt: 当前日期字符串，格式为 YYYYMMDD
-        :return: 未使用的有效兑换码列表
-
-        注意：兑换码在 end_dt 这一天的 23:59:59 失效
-        例如 end_dt=20241225，则在 2024-12-25 23:59:59 之前都有效
+        按日期获取未使用的兑换码
+        :return:
         """
-        user_server = self._get_user_server_type()
-
         valid_code_strings = [
             i.code
             for i in self.valid_code_list
-            if i.end_dt >= dt and i.server == user_server
+            if i.end_dt >= dt
         ]
 
         for used in self.used_code_list:
