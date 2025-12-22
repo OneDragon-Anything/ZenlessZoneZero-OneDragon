@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import threading
 import time
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import List, Optional, Tuple, Any, TYPE_CHECKING
@@ -76,6 +77,9 @@ class AutoBattleOperator(ConditionalOperator):
         # 自动周期
         self.last_lock_time: float = 0  # 上一次锁定的时间
         self.last_turn_time: float = 0  # 上一次转动视角的时间
+        
+        # 停止事件
+        self._stop_event = threading.Event()
 
     def load_other_info(self, data: dict[str, Any]) -> None:
         """
@@ -151,27 +155,41 @@ class AutoBattleOperator(ConditionalOperator):
         """
         if self.auto_lock_interval <= 0 and self.auto_turn_interval <= 0:  # 不开启自动锁定 和 自动转向
             return
+        self._stop_event.clear()
         lock_op = AtomicBtnLock(self.ctx)
         turn_op = AtomicTurn(self.ctx, 100)
         while self.is_running:
             now = time.time()
 
             if not self.ctx.last_check_in_battle:  # 当前画面不是战斗画面 就不运行了
-                time.sleep(0.2)
+                if self._stop_event.wait(timeout=0.2):
+                    break
                 continue
 
             any_done: bool = False
+            if not self.is_running:
+                break
             if self.auto_lock_interval > 0 and now - self.last_lock_time > self.auto_lock_interval:
                 lock_op.execute()
                 self.last_lock_time = now
                 any_done = True
+            if not self.is_running:
+                break
             if self.auto_turn_interval > 0 and now - self.last_turn_time > self.auto_turn_interval:
                 turn_op.execute()
                 self.last_turn_time = now
                 any_done = True
 
             if not any_done:
-                time.sleep(0.2)
+                if self._stop_event.wait(timeout=0.2):
+                    break
+    
+    def stop_running(self) -> None:
+        """
+        停止执行
+        """
+        self._stop_event.set()
+        super().stop_running()
 
     @staticmethod
     def after_app_shutdown() -> None:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError
 from threading import Lock
 from typing import List, Optional
 
@@ -56,10 +56,17 @@ class OperationExecutor:
                 future: Future = _od_op_task_executor.submit(self._current_op.execute)
                 future.add_done_callback(thread_utils.handle_future_result)
 
-            try:
-                future.result()
-            except Exception:
-                log.error('指令执行出错', exc_info=True)
+            # 使用短超时循环等待，以便能响应 stop()
+            while not future.done():
+                if not self.running:
+                    break
+                try:
+                    future.result(timeout=0.05)
+                except TimeoutError:
+                    continue
+                except Exception:
+                    log.error('指令执行出错', exc_info=True)
+                    break
 
             with self._op_lock:
                 if not self.running:
