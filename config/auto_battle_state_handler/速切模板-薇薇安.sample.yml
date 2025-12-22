@@ -17,16 +17,8 @@ handlers:
               ]
 
       - states: "[自定义-黄光切人, 0, 1]"
-        sub_handlers:
-          - states: "[薇薇安-特殊技可用]"
-            operations:
-              - op_name: "设置状态"
-                state: "自定义-不使用快速支援"
-                seconds: 5
-              - operation_template: "薇薇安-支援攻击不合轴"
-          - states: "![薇薇安-特殊技可用]"
-            operations:
-              - operation_template: "薇薇安-支援攻击"
+        operations:
+        - operation_template: "薇薇安-支援攻击"
 
       - states: "[自定义-红光闪避, 0, 1]"
         operations:
@@ -47,10 +39,7 @@ handlers:
                   - operation_template: "薇薇安-终结技"
               - states: "[薇薇安-特殊技可用]"
                 operations:
-                  - op_name: "设置状态"
-                    state: "自定义-不使用快速支援"
-                    seconds: 5
-                  - operation_template: "薇薇安-快速支援不合轴"
+                  - operation_template: "薇薇安-快速支援强化特殊技"
               - states: "![薇薇安-特殊技可用]"
                 operations:
                   - operation_template: "薇薇安-快速支援"
@@ -58,16 +47,6 @@ handlers:
             operations:
               - op_name: "等待秒数"
                 seconds: 0.3
-
-      - states: "[薇薇安-终结技可用]"
-        operations:
-          - operation_template: "薇薇安-终结技"
-
-      - states: "[薇薇安-特殊技可用]"
-        operations:
-          - op_name: "清除状态"
-            state: "自定义-不使用快速支援"
-          - operation_template: "薇薇安-强化特殊技合轴"
 
       - states: "[薇薇安-护羽]{4,5}"
         debug_name: "羽毛很多了快走吧"
@@ -78,9 +57,6 @@ handlers:
           - op_name: "设置状态"
             state: "自定义-合轴时间"
           - operation_template: "薇薇安-4A突刺"
-          - op_name: "设置状态"
-            state: "自定义-合轴时间"
-          - operation_template: "薇薇安-5A悬落"
 
       - states: "[薇薇安-护羽]{4,5}"
         debug_name: "无能量普攻"

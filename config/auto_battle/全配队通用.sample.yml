@@ -93,6 +93,7 @@ scenes:
 
   - triggers: ["按键可用-快速支援"]
     priority: 97
+    interval: 1
     handlers:
       # 详情可以打开状态模板
       - state_template: "快速支援模板-全角色"
@@ -143,7 +144,7 @@ scenes:
               - op_name: "按键-移动-右-松开"
               - op_name: "按键-闪避-松开"
               - op_name: "等待秒数"
-                seconds: 0.05
+                seconds: 0.1
 
       # 主线程默认情况会走到这里
       - states: ""
