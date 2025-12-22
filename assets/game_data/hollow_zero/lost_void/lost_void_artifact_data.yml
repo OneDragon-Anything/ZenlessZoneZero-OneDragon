@@ -1015,6 +1015,103 @@
   level: "S"
   is_gear: true
 
+  # 琉音
+- category: "琉音"
+  name: "余响跹环"
+  level: "S"
+  is_gear: true
+  template_id: "gear_dialyn_2"
+
+- category: "琉音"
+  name: "余响跹环-a"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "余响跹环-b"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "亡语惊铃"
+  level: "S"
+  is_gear: true
+  template_id: "gear_dialyn_1"
+
+- category: "琉音"
+  name: "亡语惊铃-a"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "亡语惊铃-b"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "殁相坠裁"
+  level: "S"
+  is_gear: true
+  template_id: "gear_dialyn_3"
+
+- category: "琉音"
+  name: "殁相坠裁-a"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "殁相坠裁-b"
+  level: "S"
+  is_gear: true
+
+  # 般岳
+- category: "般岳"
+  name: "断我执"
+  level: "S"
+  is_gear: true
+  template_id: "gear_banyue_1"
+
+- category: "般岳"
+  name: "断我执-a"
+  level: "S"
+  is_gear: true
+
+- category: "般岳"
+  name: "断我执-b"
+  level: "S"
+  is_gear: true
+
+- category: "般岳"
+  name: "修罗道"
+  level: "S"
+  is_gear: true
+  template_id: "gear_banyue_2"
+
+- category: "般岳"
+  name: "修罗道-a"
+  level: "S"
+  is_gear: true
+
+- category: "般岳"
+  name: "修罗道-b"
+  level: "S"
+  is_gear: true
+
+- category: "般岳"
+  name: "灼业身"
+  level: "S"
+  template_id: "gear_banyue_3"
+
+- category: "般岳"
+  name: "灼业身-a"
+  level: "S"
+  is_gear: true
+
+- category: "般岳"
+  name: "灼业身-b"
+  level: "S"
+  is_gear: true
+
   # 异影
 - category: "杰佩托"
   name: "处决指令"
@@ -1270,208 +1367,6 @@
   name: "洒金墨锭"
   level: "A"
 
-  # 契合
-
-- category: "契合"
-  name: "充盈电鸣"
-  level: "S"
-
-- category: "契合"
-  name: "巅峰猎手"
-  level: "S"
-
-- category: "契合"
-  name: "火力全开"
-  level: "S"
-
-- category: "契合"
-  name: "在我的BGM里"
-  level: "S"
-
-- category: "契合"
-  name: "肌肉狂欢"
-  level: "S"
-
-- category: "契合"
-  name: "熊熊怒火"
-  level: "S"
-
-- category: "契合"
-  name: "邦布赐予我力量"
-  level: "S"
-
-- category: "契合"
-  name: "烈锤火花"
-  level: "S"
-
-- category: "契合"
-  name: "冰冷逐客令"
-  level: "S"
-
-- category: "契合"
-  name: "对敌型起床气"
-  level: "S"
-
-- category: "契合"
-  name: "游刃有余"
-  level: "S"
-
-- category: "契合"
-  name: "热情大扫除"
-  level: "S"
-
-- category: "契合"
-  name: "天衣无缝"
-  level: "S"
-
-- category: "契合"
-  name: "银心的鸣破"
-  level: "S"
-
-- category: "契合"
-  name: "与你的旋律"
-  level: "S"
-
-- category: "契合"
-  name: "废墟上的花"
-  level: "S"
-
-- category: "契合"
-  name: "三个火枪手"
-  level: "S"
-
-- category: "契合"
-  name: "砥砺同行"
-  level: "S"
-
-- category: "契合"
-  name: "如鱼得水"
-  level: "S"
-
-- category: "契合"
-  name: "「共犯」的默契"
-  level: "S"
-
-- category: "契合"
-  name: "荣耀同路"
-  level: "S"
-
-- category: "契合"
-  name: "大小姐冲锋"
-  level: "S"
-
-- category: "契合"
-  name: "希望的力量"
-  level: "S"
-
-- category: "契合"
-  name: "霸主同行"
-  level: "S"
-
-- category: "契合"
-  name: "燃油饮欢宴"
-  level: "S"
-
-- category: "契合"
-  name: "拳法：综合果味"
-  level: "S"
-
-- category: "契合"
-  name: "干票大的"
-  level: "S"
-
-- category: "契合"
-  name: "十七项检查"
-  level: "S"
-
-- category: "契合"
-  name: "俳句剑法"
-  level: "S"
-
-- category: "契合"
-  name: "高效时刻"
-  level: "S"
-
-- category: "契合"
-  name: "饭前运动"
-  level: "S"
-
-- category: "契合"
-  name: "返场时刻"
-  level: "S"
-
-- category: "契合"
-  name: "往日手感"
-  level: "S"
-
-- category: "契合"
-  name: "少女的阳伞"
-  level: "S"
-
-- category: "契合"
-  name: "怪盗的魔法"
-  level: "S"
-
-- category: "契合"
-  name: "守花照寂"
-  level: "S"
-
-- category: "契合"
-  name: "煲汤为盟"
-  level: "S"
-
-- category: "契合"
-  name: "好大威风"
-  level: "S"
-
-- category: "契合"
-  name: "福来梅饼"
-  level: "S"
-
-- category: "契合"
-  name: "最佳对称拍档"
-  level: "S"
-
-- category: "契合"
-  name: "月夜大冒险"
-  level: "S"
-
-- category: "契合"
-  name: "百炼重刃"
-  level: "S"
-
-- category: "契合"
-  name: "倾听潮汐"
-  level: "S"
-
-- category: "契合"
-  name: "亡者拨盘"
-  level: "S"
-
-- category: "契合"
-  name: "强攻战术交流"
-  level: "A"
-
-- category: "契合"
-  name: "击破战术交流"
-  level: "A"
-
-- category: "契合"
-  name: "异常战术交流"
-  level: "A"
-
-- category: "契合"
-  name: "支援战术交流"
-  level: "A"
-
-- category: "契合"
-  name: "防护战术交流"
-  level: "A"
-
-- category: "契合"
-  name: "命破战术交流"
-  level: "A"
-
   # 卡牌
 
 - category: "卡牌"
@@ -1686,6 +1581,212 @@
   name: "「符号学原理」马拉松"
   level: "S"
 
+
+  # 契合
+- category: "契合"
+  name: "充盈电鸣"
+  level: "S"
+
+- category: "契合"
+  name: "巅峰猎手"
+  level: "S"
+
+- category: "契合"
+  name: "火力全开"
+  level: "S"
+
+- category: "契合"
+  name: "在我的BGM里"
+  level: "S"
+
+- category: "契合"
+  name: "肌肉狂欢"
+  level: "S"
+
+- category: "契合"
+  name: "熊熊怒火"
+  level: "S"
+
+- category: "契合"
+  name: "邦布赐予我力量"
+  level: "S"
+
+- category: "契合"
+  name: "烈锤火花"
+  level: "S"
+
+- category: "契合"
+  name: "冰冷逐客令"
+  level: "S"
+
+- category: "契合"
+  name: "对敌型起床气"
+  level: "S"
+
+- category: "契合"
+  name: "游刃有余"
+  level: "S"
+
+- category: "契合"
+  name: "热情大扫除"
+  level: "S"
+
+- category: "契合"
+  name: "天衣无缝"
+  level: "S"
+
+- category: "契合"
+  name: "银心的鸣破"
+  level: "S"
+
+- category: "契合"
+  name: "与你的旋律"
+  level: "S"
+
+- category: "契合"
+  name: "废墟上的花"
+  level: "S"
+
+- category: "契合"
+  name: "三个火枪手"
+  level: "S"
+
+- category: "契合"
+  name: "砥砺同行"
+  level: "S"
+
+- category: "契合"
+  name: "如鱼得水"
+  level: "S"
+
+- category: "契合"
+  name: "「共犯」的默契"
+  level: "S"
+
+- category: "契合"
+  name: "荣耀同路"
+  level: "S"
+
+- category: "契合"
+  name: "大小姐冲锋"
+  level: "S"
+
+- category: "契合"
+  name: "希望的力量"
+  level: "S"
+
+- category: "契合"
+  name: "霸主同行"
+  level: "S"
+
+- category: "契合"
+  name: "燃油饮欢宴"
+  level: "S"
+
+- category: "契合"
+  name: "拳法：综合果味"
+  level: "S"
+
+- category: "契合"
+  name: "干票大的"
+  level: "S"
+
+- category: "契合"
+  name: "十七项检查"
+  level: "S"
+
+- category: "契合"
+  name: "俳句剑法"
+  level: "S"
+
+- category: "契合"
+  name: "高效时刻"
+  level: "S"
+
+- category: "契合"
+  name: "饭前运动"
+  level: "S"
+
+- category: "契合"
+  name: "返场时刻"
+  level: "S"
+
+- category: "契合"
+  name: "往日手感"
+  level: "S"
+
+- category: "契合"
+  name: "少女的阳伞"
+  level: "S"
+
+- category: "契合"
+  name: "怪盗的魔法"
+  level: "S"
+
+- category: "契合"
+  name: "守花照寂"
+  level: "S"
+
+- category: "契合"
+  name: "煲汤为盟"
+  level: "S"
+
+- category: "契合"
+  name: "好大威风"
+  level: "S"
+
+- category: "契合"
+  name: "福来梅饼"
+  level: "S"
+
+- category: "契合"
+  name: "最佳对称拍档"
+  level: "S"
+
+- category: "契合"
+  name: "月夜大冒险"
+  level: "S"
+
+- category: "契合"
+  name: "百炼重刃"
+  level: "S"
+
+- category: "契合"
+  name: "倾听潮汐"
+  level: "S"
+
+- category: "契合"
+  name: "亡者拨盘"
+  level: "S"
+
+- category: "契合"
+  name: "未凌绝顶"
+  level: "S"
+
+- category: "契合"
+  name: "强攻战术交流"
+  level: "A"
+
+- category: "契合"
+  name: "击破战术交流"
+  level: "A"
+
+- category: "契合"
+  name: "异常战术交流"
+  level: "A"
+
+- category: "契合"
+  name: "支援战术交流"
+  level: "A"
+
+- category: "契合"
+  name: "防护战术交流"
+  level: "A"
+
+- category: "契合"
+  name: "命破战术交流"
+  level: "A"
+
   # 无详情的特殊品
 - category: "无详情"
   name: "零号业绩"
@@ -1780,52 +1881,3 @@
 - category: "无详情"
   name: "回答错误"
   level: "S"
-
-  # 琉音
-- category: "琉音"
-  name: "余响跹环"
-  level: "S"
-  is_gear: true
-  template_id: "gear_dialyn_2"
-
-- category: "琉音"
-  name: "余响跹环-a"
-  level: "S"
-  is_gear: true
-
-- category: "琉音"
-  name: "余响跹环-b"
-  level: "S"
-  is_gear: true
-
-- category: "琉音"
-  name: "亡语惊铃"
-  level: "S"
-  is_gear: true
-  template_id: "gear_dialyn_1"
-
-- category: "琉音"
-  name: "亡语惊铃-a"
-  level: "S"
-  is_gear: true
-
-- category: "琉音"
-  name: "亡语惊铃-b"
-  level: "S"
-  is_gear: true
-
-- category: "琉音"
-  name: "殁相坠裁"
-  level: "S"
-  is_gear: true
-  template_id: "gear_dialyn_3"
-
-- category: "琉音"
-  name: "殁相坠裁-a"
-  level: "S"
-  is_gear: true
-
-- category: "琉音"
-  name: "殁相坠裁-b"
-  level: "S"
-  is_gear: true
