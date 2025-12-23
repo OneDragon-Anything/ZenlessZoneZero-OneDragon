@@ -798,7 +798,9 @@ class AutoBattleContext:
                 ocr_result.h,
                 data=distance
             )
-            tmp_mr.add_offset(area.left_top)
+            # ocr缓存的坐标是错误的
+            # tmp_mr.add_offset(area.left_top)
+            
             # 极少数情况下会出现多个距离
             mid_x = self.ctx.project_config.screen_standard_width // 2
             if mr is None:
