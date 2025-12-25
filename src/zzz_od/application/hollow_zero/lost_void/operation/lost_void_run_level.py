@@ -113,6 +113,7 @@ class LostVoidRunLevel(ZOperation):
         self.detector: LostVoidDetector = self.ctx.lost_void.detector
         self.nothing_times: int = 0  # 识别不到内容的次数
         self.find_target_fail_count: int = 0  # 寻路失败次数
+        self.timeout_retry_count: int = 0  # 超时重试次数
         self.interact_target: Optional[LostVoidInteractTarget] = None  # 最终识别的交互目标 后续改动应该都是用这个判断
         self.interact_attempted: bool = False  # 是否尝试过交互
 
@@ -131,6 +132,7 @@ class LostVoidRunLevel(ZOperation):
     @node_from(from_name='非战斗画面识别', status='未在大世界')  # 有小概率交互入口后 没处理好结束本次RunLevel 重新从等待加载 开始
     @node_from(from_name='非战斗画面识别', status='按钮-挑战-确认')  # 挑战类型的对话框确认后 第一次点击可能无效 跳回来这里点击到最后生效为止
     @node_from(from_name='处理寻路失败', status='准备重试')  # 寻路失败后重试
+    @node_from(from_name='处理超时', status='准备重试')  # 超时重试
     @operation_node(name='等待加载', node_max_retry_times=60, is_start_node=True)
     def wait_loading(self) -> OperationRoundResult:
         if self.ctx.lost_void.in_normal_world(self.last_screenshot):
@@ -849,6 +851,23 @@ class LostVoidRunLevel(ZOperation):
 
     @node_from(from_name='非战斗画面识别', success=False, status=Operation.STATUS_TIMEOUT)
     @node_from(from_name='战斗中', success=False, status=Operation.STATUS_TIMEOUT)
+    @operation_node(name='处理超时')
+    def handle_timeout(self) -> OperationRoundResult:
+        if self.timeout_retry_count < 3:
+            self.timeout_retry_count += 1
+            log.info(f'超时，开始第 {self.timeout_retry_count} 次重试')
+            op = RestartInBattle(self.ctx)
+            op_result = op.execute()
+            if op_result.success:
+                # 重试时 按进入下一层的逻辑处理
+                return self.round_success(status='准备重试')
+            else:
+                return self.round_fail(op_result.status)
+        else:
+            log.info('超时重试次数已达上限，准备退出挑战')
+            return self.round_success('准备最终退出')
+
+    @node_from(from_name='处理超时', status='准备最终退出')
     @node_from(from_name='处理寻路失败', status='准备最终退出')
     @operation_node(name='失败退出空洞')
     def fail_exit_lost_void(self) -> OperationRoundResult:
