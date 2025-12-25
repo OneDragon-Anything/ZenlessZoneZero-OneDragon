@@ -63,6 +63,8 @@ class LostVoidRunLevel(ZOperation):
 
     IT_BATTLE: ClassVar[str] = 'xxxx-战斗'
 
+    MAX_RETRY_TIMES: ClassVar[int] = 3  # 最大重试次数
+
     def __init__(self, ctx: ZContext, region_type: LostVoidRegionType):
         """
         迷失之地层间移动操作初始化
@@ -835,7 +837,7 @@ class LostVoidRunLevel(ZOperation):
     @node_from(from_name='非战斗画面识别', success=False, status='处理寻路失败')
     @operation_node(name='处理寻路失败')
     def handle_find_target_fail(self) -> OperationRoundResult:
-        if self.find_target_fail_count < 3:
+        if self.find_target_fail_count < LostVoidRunLevel.MAX_RETRY_TIMES:
             self.find_target_fail_count += 1
             log.info(f'寻路失败，开始第 {self.find_target_fail_count} 次重试')
             op = RestartInBattle(self.ctx)
@@ -853,7 +855,7 @@ class LostVoidRunLevel(ZOperation):
     @node_from(from_name='战斗中', success=False, status=Operation.STATUS_TIMEOUT)
     @operation_node(name='处理超时')
     def handle_timeout(self) -> OperationRoundResult:
-        if self.timeout_retry_count < 3:
+        if self.timeout_retry_count < LostVoidRunLevel.MAX_RETRY_TIMES:
             self.timeout_retry_count += 1
             log.info(f'超时，开始第 {self.timeout_retry_count} 次重试')
             op = RestartInBattle(self.ctx)
