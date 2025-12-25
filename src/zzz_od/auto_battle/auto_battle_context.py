@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, Future
-from typing import Optional, Union, Tuple
+from concurrent.futures import Future, ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
 from cv2.typing import MatLike
@@ -13,7 +12,7 @@ from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_utils import FindAreaResultEnum
-from one_dragon.utils import cv2_utils, thread_utils, cal_utils, str_utils, gpu_executor
+from one_dragon.utils import cal_utils, cv2_utils, gpu_executor, str_utils, thread_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.atomic_op.atomic_op_factory import AtomicOpFactory
 from zzz_od.auto_battle.auto_battle_agent_context import AutoBattleAgentContext
@@ -21,7 +20,9 @@ from zzz_od.auto_battle.auto_battle_custom_context import AutoBattleCustomContex
 from zzz_od.auto_battle.auto_battle_dodge_context import AutoBattleDodgeContext
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
-from zzz_od.auto_battle.auto_battle_state_record_service import AutoBattleStateRecordService
+from zzz_od.auto_battle.auto_battle_state_record_service import (
+    AutoBattleStateRecordService,
+)
 from zzz_od.auto_battle.auto_battle_target_context import AutoBattleTargetContext
 from zzz_od.game_data.agent import Agent
 
@@ -47,7 +48,7 @@ class AutoBattleContext:
         self._op_cache: dict[str, AutoBattleOperator] = {}  # 缓存自动战斗配置
 
         # 识别区域
-        self._check_distance_area: Optional[ScreenArea] = None
+        self._check_distance_area: ScreenArea | None = None
 
         # 识别锁 保证每种类型只有1实例在进行识别
         self._check_chain_lock = threading.Lock()
@@ -56,10 +57,10 @@ class AutoBattleContext:
         self._check_distance_lock = threading.Lock()
 
         # 识别间隔
-        self._check_chain_interval: Union[float, list[float]] = 0
-        self._check_quick_interval: Union[float, list[float]] = 0
-        self._check_end_interval: Union[float, list[float]] = 5
-        self._check_distance_interval: Union[float, list[float]] = 5
+        self._check_chain_interval: float | list[float] = 0
+        self._check_quick_interval: float | list[float] = 0
+        self._check_end_interval: float | list[float] = 5
+        self._check_distance_interval: float | list[float] = 5
 
         # 上一次识别的时间
         self._last_check_chain_time: float = 0
@@ -69,7 +70,7 @@ class AutoBattleContext:
 
         # 识别结果
         self.last_check_in_battle: bool = False  # 是否在战斗画面
-        self.last_check_end_result: Optional[str] = None  # 最后一次识别的结束结果
+        self.last_check_end_result: str | None = None  # 最后一次识别的结束结果
         self.last_check_distance: float = -1  # 最后一次识别的距离
         self.without_distance_times: int = 0  # 没有显示距离的次数
         self.with_distance_times: int = 0  # 有显示距离的次数
@@ -185,7 +186,7 @@ class AutoBattleContext:
         self._last_check_distance_time: float = 0
 
         # 识别结果
-        self.last_check_end_result: Optional[str] = None  # 识别战斗结束的结果
+        self.last_check_end_result: str | None = None  # 识别战斗结束的结果
         self.without_distance_times: int = 0  # 没有显示距离的次数
         self.with_distance_times: int = 0  # 有显示距离的次数
         self.last_check_distance = -1
@@ -217,7 +218,7 @@ class AutoBattleContext:
         self.dodge_context.after_app_shutdown()
         self.target_context.after_app_shutdown()
 
-    def dodge(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def dodge(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_DODGE.value + '-按下'
         elif release:
@@ -229,7 +230,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def switch_next(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def switch_next(self, press: bool = False, press_time: float | None = None, release: bool = False):
         update_agent = False
         if press:
             e = BattleStateEnum.BTN_SWITCH_NEXT.value + '-按下'
@@ -252,7 +253,7 @@ class AutoBattleContext:
                 state_records.append(i)
         self.state_record_service.batch_update_states(state_records)
 
-    def switch_prev(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def switch_prev(self, press: bool = False, press_time: float | None = None, release: bool = False):
         update_agent = False
         if press:
             e = BattleStateEnum.BTN_SWITCH_PREV.value + '-按下'
@@ -275,7 +276,7 @@ class AutoBattleContext:
                 state_records.append(i)
         self.state_record_service.batch_update_states(state_records)
 
-    def normal_attack(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def normal_attack(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_SWITCH_NORMAL_ATTACK.value + '-按下'
         elif release:
@@ -287,7 +288,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def special_attack(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def special_attack(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_SWITCH_SPECIAL_ATTACK.value + '-按下'
         elif release:
@@ -299,7 +300,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def ultimate(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def ultimate(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_ULTIMATE.value + '-按下'
         elif release:
@@ -311,7 +312,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def chain_left(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def chain_left(self, press: bool = False, press_time: float | None = None, release: bool = False):
         update_agent = False
         if press:
             e = BattleStateEnum.BTN_CHAIN_LEFT.value + '-按下'
@@ -335,7 +336,7 @@ class AutoBattleContext:
                 state_records.append(i)
         self.state_record_service.batch_update_states(state_records)
 
-    def chain_right(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def chain_right(self, press: bool = False, press_time: float | None = None, release: bool = False):
         update_agent = False
         if press:
             e = BattleStateEnum.BTN_CHAIN_RIGHT.value + '-按下'
@@ -359,7 +360,7 @@ class AutoBattleContext:
                 state_records.append(i)
         self.state_record_service.batch_update_states(state_records)
 
-    def move_w(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def move_w(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_MOVE_W.value + '-按下'
         elif release:
@@ -371,7 +372,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def move_s(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def move_s(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_MOVE_S.value + '-按下'
         elif release:
@@ -383,7 +384,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def move_a(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def move_a(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_MOVE_A.value + '-按下'
         elif release:
@@ -395,7 +396,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def move_d(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def move_d(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_MOVE_D.value + '-按下'
         elif release:
@@ -407,7 +408,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def lock(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def lock(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_LOCK.value + '-按下'
         elif release:
@@ -419,7 +420,7 @@ class AutoBattleContext:
         finish_time = time.time()
         self.state_record_service.update_state(StateRecord(e, finish_time))
 
-    def chain_cancel(self, press: bool = False, press_time: Optional[float] = None, release: bool = False):
+    def chain_cancel(self, press: bool = False, press_time: float | None = None, release: bool = False):
         if press:
             e = BattleStateEnum.BTN_CHAIN_CANCEL.value + '-按下'
         elif release:
@@ -571,7 +572,7 @@ class AutoBattleContext:
 
         possible_agents = self.agent_context.get_possible_agent_list()
 
-        result_agent_list: list[Optional[Agent]] = []
+        result_agent_list: list[Agent | None] = []
         future_list: list[Future] = []
         future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c1, possible_agents))
         future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c2, possible_agents))
@@ -602,7 +603,7 @@ class AutoBattleContext:
             state_records.append(StateRecord(BattleStateEnum.STATUS_CHAIN_READY.value, screenshot_time))
             self.state_record_service.batch_update_states(state_records)
 
-    def _match_chain_agent_in(self, img: MatLike, possible_agents: Optional[list[Tuple[Agent, Optional[str]]]]) -> Optional[Agent]:
+    def _match_chain_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
         """
         在候选列表重匹配角色
         :return:
@@ -656,7 +657,7 @@ class AutoBattleContext:
         finally:
             self._check_quick_lock.release()
 
-    def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: Optional[list[Tuple[Agent, Optional[str]]]]) -> Optional[Agent]:
+    def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
         """
         在候选列表重匹配角色
         :return:
@@ -765,7 +766,7 @@ class AutoBattleContext:
         finally:
             self._check_distance_lock.release()
 
-    def check_battle_distance(self, screen: MatLike, last_distance: Optional[float] = None) -> MatchResult:
+    def check_battle_distance(self, screen: MatLike, last_distance: float | None = None) -> MatchResult:
         """
         识别画面上显示的距离
         :param screen:
@@ -778,8 +779,8 @@ class AutoBattleContext:
             rect=area.rect,
         )
 
-        distance: Optional[float] = None
-        mr: Optional[MatchResult] = None
+        distance: float | None = None
+        mr: MatchResult | None = None
         for ocr_result in ocr_result_list:
             ocr_word = ocr_result.data
             last_idx = ocr_word.rfind('m')
@@ -798,7 +799,7 @@ class AutoBattleContext:
                 ocr_result.h,
                 data=distance
             )
-            tmp_mr.add_offset(area.left_top)
+
             # 极少数情况下会出现多个距离
             mid_x = self.ctx.project_config.screen_standard_width // 2
             if mr is None:
