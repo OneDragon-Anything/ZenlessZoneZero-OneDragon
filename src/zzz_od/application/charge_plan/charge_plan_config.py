@@ -264,7 +264,8 @@ class ChargePlanConfig(ApplicationConfig):
             return
 
         # 如果在plan_list中找不到匹配的计划（例如临时的数据悬赏计划），直接更新传入计划的run_times
-        to_add.run_times += 1
+        if to_add is not None:
+            to_add.run_times += 1
 
     def _is_same_plan(self, x: ChargePlanItem, y: ChargePlanItem) -> bool:
         if x is None or y is None:

@@ -89,10 +89,8 @@ class ChargePlanApp(ZApplication):
 
         if result.success and result.status == DataBounty.STATUS_DATA_BOUNTY_AVAILABLE:
             # 创建数据悬赏临时计划
-            data_bounty_count = op.data_bounty_count if op.data_bounty_count else 1
-
-            # 数据悬赏次数即为总运行次数
-            plan_times = data_bounty_count
+            # 当返回STATUS_DATA_BOUNTY_AVAILABLE时，data_bounty_count已被DataBounty设置为有效值
+            plan_times = op.data_bounty_count
 
             self.data_bounty_plan = ChargePlanItem(
                 tab_name='训练',

@@ -54,24 +54,26 @@ class DataBounty(ZOperation):
         # 检测类似5/5的数量格式
         count_found = False
         for ocr_text in ocr_result_map:
-            # 尝试匹配类似 "5/5" 的格式
-            digits = str_utils.get_positive_digits(ocr_text, None)
-            if digits is not None:
-                # 尝试解析 x/y 格式
-                if '/' in ocr_text:
-                    parts = ocr_text.split('/')
-                    if len(parts) == 2:
-                        try:
-                            current = int(''.join(filter(str.isdigit, parts[0])))
-                            total = int(''.join(filter(str.isdigit, parts[1])))
+            # 尝试解析 x/y 格式
+            if '/' in ocr_text:
+                parts = ocr_text.split('/')
+                if len(parts) == 2:
+                    try:
+                        # 提取数字部分
+                        current_digits = ''.join(filter(str.isdigit, parts[0]))
+                        total_digits = ''.join(filter(str.isdigit, parts[1]))
+                        # 确保有数字可以解析
+                        if current_digits and total_digits:
+                            current = int(current_digits)
+                            total = int(total_digits)
                             if current > 0 and total > 0:
                                 self.data_bounty_count = current
                                 self.data_bounty_max = total
                                 count_found = True
                                 log.info(f'数据悬赏剩余次数: {current}/{total}')
                                 break
-                        except (ValueError, TypeError):
-                            continue
+                    except (ValueError, TypeError):
+                        continue
 
         if not count_found:
             # 如果没有找到具体数量，但有关键词，默认设置为1次
