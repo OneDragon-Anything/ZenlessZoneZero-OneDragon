@@ -263,6 +263,9 @@ class ChargePlanConfig(ApplicationConfig):
             self.save()
             return
 
+        # 如果在plan_list中找不到匹配的计划（例如临时的数据悬赏计划），直接更新传入计划的run_times
+        to_add.run_times += 1
+
     def _is_same_plan(self, x: ChargePlanItem, y: ChargePlanItem) -> bool:
         if x is None or y is None:
             return False
@@ -323,3 +326,48 @@ class ChargePlanConfig(ApplicationConfig):
     @property
     def is_restore_charge_enabled(self) -> bool:
         return self.restore_charge != RestoreChargeEnum.NONE.value.value
+
+    @property
+    def priority_data_bounty(self) -> bool:
+        """是否优先刷取数据悬赏"""
+        return self.get('priority_data_bounty', False)
+
+    @priority_data_bounty.setter
+    def priority_data_bounty(self, new_value: bool) -> None:
+        self.update('priority_data_bounty', new_value)
+
+    @property
+    def data_bounty_mission_type(self) -> str:
+        """数据悬赏对应的副本类型（实战模拟室的类型）"""
+        return self.get('data_bounty_mission_type', '基础材料')
+
+    @data_bounty_mission_type.setter
+    def data_bounty_mission_type(self, new_value: str) -> None:
+        self.update('data_bounty_mission_type', new_value)
+
+    @property
+    def data_bounty_mission_name(self) -> str:
+        """数据悬赏对应的副本名称"""
+        return self.get('data_bounty_mission_name', '调查专项')
+
+    @data_bounty_mission_name.setter
+    def data_bounty_mission_name(self, new_value: str) -> None:
+        self.update('data_bounty_mission_name', new_value)
+
+    @property
+    def data_bounty_card_num(self) -> str:
+        """数据悬赏使用的卡片数量"""
+        return self.get('data_bounty_card_num', CardNumEnum.DEFAULT.value.value)
+
+    @data_bounty_card_num.setter
+    def data_bounty_card_num(self, new_value: str) -> None:
+        self.update('data_bounty_card_num', new_value)
+
+    @property
+    def data_bounty_auto_battle_config(self) -> str:
+        """数据悬赏使用的自动战斗配置"""
+        return self.get('data_bounty_auto_battle_config', '全配队通用')
+
+    @data_bounty_auto_battle_config.setter
+    def data_bounty_auto_battle_config(self, new_value: str) -> None:
+        self.update('data_bounty_auto_battle_config', new_value)

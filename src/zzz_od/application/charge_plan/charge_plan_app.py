@@ -6,6 +6,7 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
+from one_dragon.utils.log_utils import log
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import (
     CardNumEnum,
@@ -17,6 +18,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
+from zzz_od.operation.compendium.data_bounty import DataBounty
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
 from zzz_od.operation.compendium.notorious_hunt import NotoriousHunt
 from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
@@ -29,6 +31,7 @@ class ChargePlanApp(ZApplication):
     STATUS_NO_PLAN: ClassVar[str] = '没有可运行的计划'
     STATUS_ROUND_FINISHED: ClassVar[str] = '已完成一轮计划'
     STATUS_TRY_RESTORE_CHARGE: ClassVar[str] = '尝试恢复电量'
+    STATUS_DATA_BOUNTY_AVAILABLE: ClassVar[str] = '数据悬赏可用'
 
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
@@ -47,14 +50,67 @@ class ChargePlanApp(ZApplication):
         self.required_charge: int = 0  # 需要的电量
         self.last_tried_plan: ChargePlanItem | None = None
         self.next_plan: ChargePlanItem | None = None
+        self.data_bounty_plan: ChargePlanItem | None = None  # 数据悬赏临时计划
+        self.data_bounty_checked: bool = False  # 是否已检测过数据悬赏
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
         self.last_tried_plan = None
+        self.data_bounty_plan = None
+        self.data_bounty_checked = False
         return self.round_success()
 
-    @node_from(from_name='挑战完成')
     @node_from(from_name='开始体力计划')
+    @operation_node(name='打开快捷手册检测数据悬赏')
+    def open_compendium_for_data_bounty(self) -> OperationRoundResult:
+        """
+        打开快捷手册-训练页面，为检测数据悬赏做准备
+        只有在开启了优先数据悬赏且尚未检测时才执行
+        """
+        if not self.config.priority_data_bounty or self.data_bounty_checked:
+            return self.round_success('跳过数据悬赏检测')
+
+        # 通过goto_screen导航到快捷手册-训练
+        return self.round_by_goto_screen(screen_name='快捷手册-训练')
+
+    @node_from(from_name='打开快捷手册检测数据悬赏')
+    @operation_node(name='检测数据悬赏')
+    def check_data_bounty(self) -> OperationRoundResult:
+        """
+        在快捷手册-训练界面检测数据悬赏
+        """
+        if not self.config.priority_data_bounty or self.data_bounty_checked:
+            return self.round_success('跳过数据悬赏检测')
+
+        self.data_bounty_checked = True
+
+        op = DataBounty(self.ctx)
+        result = op.execute()
+
+        if result.success and result.status == DataBounty.STATUS_DATA_BOUNTY_AVAILABLE:
+            # 创建数据悬赏临时计划
+            data_bounty_count = op.data_bounty_count if op.data_bounty_count else 1
+
+            # 数据悬赏次数即为总运行次数
+            plan_times = data_bounty_count
+
+            self.data_bounty_plan = ChargePlanItem(
+                tab_name='训练',
+                category_name='实战模拟室',
+                mission_type_name=self.config.data_bounty_mission_type,
+                mission_name=self.config.data_bounty_mission_name,
+                auto_battle_config=self.config.data_bounty_auto_battle_config,
+                run_times=0,
+                plan_times=plan_times,
+                card_num=self.config.data_bounty_card_num,
+            )
+            log.info(f'检测到数据悬赏，创建临时计划: {self.config.data_bounty_mission_type} - {self.config.data_bounty_mission_name}，次数: {plan_times}')
+            return self.round_success(ChargePlanApp.STATUS_DATA_BOUNTY_AVAILABLE)
+
+        return self.round_success('无数据悬赏')
+
+    @node_from(from_name='挑战完成')
+    @node_from(from_name='检测数据悬赏')
     @node_from(from_name='电量不足')
     @node_from(from_name='恢复电量', success=True)
     @node_from(from_name='恢复电量', success=False)
@@ -84,7 +140,19 @@ class ChargePlanApp(ZApplication):
         查找计划列表中的下一个可执行任务（未完成且体力足够）。
         如果找到，更新 self.next_plan 并返回成功状态。
         如果找不到，返回计划完成状态。
+        优先处理数据悬赏临时计划（如果存在且未完成）。
         """
+        # 首先检查是否有数据悬赏临时计划需要执行
+        if self.data_bounty_plan is not None and self.data_bounty_plan.run_times < self.data_bounty_plan.plan_times:
+            log.info(f'优先执行数据悬赏计划: {self.data_bounty_plan.mission_type_name} - {self.data_bounty_plan.mission_name}')
+            self.next_plan = self.data_bounty_plan
+            return self.round_success()
+
+        # 数据悬赏计划已完成，清空
+        if self.data_bounty_plan is not None and self.data_bounty_plan.run_times >= self.data_bounty_plan.plan_times:
+            log.info('数据悬赏计划已完成')
+            self.data_bounty_plan = None
+
         # 检查是否所有计划都已完成
         if self.config.all_plan_finished():
             # 如果开启了循环模式且所有计划已完成，重置计划并继续
