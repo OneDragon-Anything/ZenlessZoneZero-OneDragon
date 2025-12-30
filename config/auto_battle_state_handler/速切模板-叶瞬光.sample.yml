@@ -1,0 +1,58 @@
+template_name: "速切模板-叶瞬光"
+handlers:
+  - states: "[前台-叶瞬光]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-叶瞬光]"
+    sub_handlers:
+      - states: "[自定义-黄光切人, 0, 1]"
+        operations:
+          - operation_template: "叶瞬光-支援攻击"
+
+      - states: "[自定义-红光闪避, 0, 1] & [叶瞬光-常态]{1,1}"
+        operations:
+          - operation_template: "叶瞬光-格挡"
+
+      - states: "[自定义-连携换人, 0, 0.5]"
+        operations:
+          - operation_template: "叶瞬光-连携攻击"
+
+      # 防呆
+      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "切人后等待"
+        sub_handlers:
+          - states: "[按键可用-快速支援, 0, 0.3]"
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
+          - states: ""
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
+
+      - states: "[叶瞬光-常态]{1,1}"
+        debug_name: "常态-技能优先"
+        sub_handlers:
+          - states: "[叶瞬光-终结技可用]"
+            operations:
+              - operation_template: "叶瞬光-终结技-起"
+          - states: "[叶瞬光-特殊技可用]"
+            operations:
+              - operation_template: "叶瞬光-强化特殊攻击"
+          - states: "[叶瞬光-青溟剑势-红]{6,6}"
+            operations:
+              - operation_template: "叶瞬光-变身"
+          - states: ""
+            interrupt_states: "[叶瞬光-终结技可用] | [叶瞬光-特殊技可用] | ![叶瞬光-常态]"
+            operations:
+              - operation_template: "叶瞬光-普通攻击"
+
+      - states: "![叶瞬光-常态]{1,1}"
+        debug_name: "非常态-强化特殊攻击"
+        sub_handlers:
+          - states: "[叶瞬光-青溟剑势-白]{1,6}"
+            interrupt_states: "[叶瞬光-青溟剑势-白]{0,0}"
+            operations:
+              - operation_template: "叶瞬光-飞天连段"
+          - states: ""
+            interrupt_states: "[叶瞬光-青溟剑势-白]{1,6}"
+            operations:
+              - operation_template: "叶瞬光-乱砍"

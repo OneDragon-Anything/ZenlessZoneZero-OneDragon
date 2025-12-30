@@ -842,8 +842,8 @@
         - "debug_name": "并非连携时间"
           "states": "![前台-琉音] & [后台-琉音] & ![自定义-失衡时间, -10, 12]"
           "sub_handlers":
-          - "interrupt_states": "![琉音-特殊技可用]"
-            "states": "[琉音-特殊技可用] & ![琉音-好评]{90, 120}"
+          - "interrupt_states": "![琉音-特殊技可用] | [自定义-琉音-投诉]{6,99}"
+            "states": ""
             "sub_handlers":
             - "debug_name": "能量都要溢出了"
               "operations":
@@ -889,131 +889,9 @@
               - "op_name": "按键-特殊攻击"
                 "post_delay": 0.2
                 "repeat": 5
-              - "agent_name": "琉音"
-                "op_name": "按键-切换角色"
-              - "op_name": "等待秒数"
-                "seconds": 0.5
-              - "op_name": "设置状态"
-                "seconds": 1
-                "state": "自定义-动作不打断"
-              - "add": 1
-                "op_name": "设置状态"
-                "state": "自定义-琉音-投诉"
-              - "op_name": "设置状态"
-                "seconds_add": -10
-                "state": "自定义-琉音-好评如潮"
-              - "op_name": "按键-特殊攻击"
-                "post_delay": 0.2
-                "repeat": 5
-              - "op_name": "设置状态"
-                "seconds": 1
-                "state": "自定义-动作不打断"
-              - "add": 1
-                "op_name": "设置状态"
-                "state": "自定义-琉音-投诉"
-              - "op_name": "设置状态"
-                "seconds_add": -10
-                "state": "自定义-琉音-好评如潮"
-              - "op_name": "按键-特殊攻击"
-                "post_delay": 0.2
-                "repeat": 5
-              - "op_name": "设置状态"
-                "seconds": 1
-                "state": "自定义-动作不打断"
-              - "add": 1
-                "op_name": "设置状态"
-                "state": "自定义-琉音-投诉"
-              - "op_name": "设置状态"
-                "seconds_add": -10
-                "state": "自定义-琉音-好评如潮"
-              - "op_name": "按键-特殊攻击"
-                "post_delay": 0.2
-                "repeat": 5
-              - "agent_name": "琉音"
-                "op_name": "按键-切换角色"
-              - "op_name": "等待秒数"
-                "seconds": 0.5
-              - "op_name": "设置状态"
-                "seconds": 1
-                "state": "自定义-动作不打断"
-              - "add": 1
-                "op_name": "设置状态"
-                "state": "自定义-琉音-投诉"
-              - "op_name": "设置状态"
-                "seconds_add": -10
-                "state": "自定义-琉音-好评如潮"
-              - "op_name": "按键-特殊攻击"
-                "post_delay": 0.2
-                "repeat": 5
-              - "op_name": "设置状态"
-                "seconds": 1
-                "state": "自定义-动作不打断"
-              - "add": 1
-                "op_name": "设置状态"
-                "state": "自定义-琉音-投诉"
-              - "op_name": "设置状态"
-                "seconds_add": -10
-                "state": "自定义-琉音-好评如潮"
-              - "op_name": "按键-特殊攻击"
-                "post_delay": 0.2
-                "repeat": 5
-              - "op_name": "设置状态"
-                "seconds": 1
-                "state": "自定义-动作不打断"
-              - "add": 1
-                "op_name": "设置状态"
-                "state": "自定义-琉音-投诉"
-              - "op_name": "设置状态"
-                "seconds_add": -10
-                "state": "自定义-琉音-好评如潮"
-              - "op_name": "按键-特殊攻击"
-                "post_delay": 0.2
-                "repeat": 5
-              "states": "[琉音-能量]{75, 120}"
+              "states": "[琉音-能量]{75, 120} & ![自定义-琉音-投诉]{3,999}"
             - "debug_name": "恶意投诉差2个"
               "operations":
-              - "agent_name": "琉音"
-                "op_name": "按键-切换角色"
-              - "agent_name": "琉音"
-                "op_name": "按键-切换角色"
-              - "op_name": "等待秒数"
-                "seconds": 0.5
-              - "op_name": "设置状态"
-                "seconds": 1
-                "state": "自定义-动作不打断"
-              - "add": 1
-                "op_name": "设置状态"
-                "state": "自定义-琉音-投诉"
-              - "op_name": "设置状态"
-                "seconds_add": -10
-                "state": "自定义-琉音-好评如潮"
-              - "op_name": "按键-特殊攻击"
-                "post_delay": 0.2
-                "repeat": 5
-              - "op_name": "设置状态"
-                "seconds": 1
-                "state": "自定义-动作不打断"
-              - "add": 1
-                "op_name": "设置状态"
-                "state": "自定义-琉音-投诉"
-              - "op_name": "设置状态"
-                "seconds_add": -10
-                "state": "自定义-琉音-好评如潮"
-              - "op_name": "按键-特殊攻击"
-                "post_delay": 0.2
-                "repeat": 5
-              - "op_name": "设置状态"
-                "seconds": 1
-                "state": "自定义-动作不打断"
-              - "add": 1
-                "op_name": "设置状态"
-                "state": "自定义-琉音-投诉"
-              - "op_name": "设置状态"
-                "seconds_add": -10
-                "state": "自定义-琉音-好评如潮"
-              - "op_name": "按键-特殊攻击"
-                "post_delay": 0.2
-                "repeat": 5
               - "agent_name": "琉音"
                 "op_name": "按键-切换角色"
               - "op_name": "等待秒数"
@@ -1057,8 +935,6 @@
               "states": "[自定义-琉音-投诉]{1,1} & [琉音-能量]{50, 120}"
             - "debug_name": "恶意投诉差1个"
               "operations":
-              - "agent_name": "琉音"
-                "op_name": "按键-切换角色"
               - "agent_name": "琉音"
                 "op_name": "按键-切换角色"
               - "op_name": "等待秒数"
@@ -6348,7 +6224,7 @@
               "repeat": 5
             - "op_name": "等待秒数"
               "seconds": 3
-            "states": "[仪玄-终结技可用] & [仪玄-术法值全满]{1,1} & [仪玄-术法值]{119, 120}"
+            "states": "[仪玄-终结技可用] & [仪玄-术法值全满] & [仪玄-术法值]{120, 120}"
           - "debug_name": "喧嚣终结技"
             "operations":
             - "op_name": "设置状态"
@@ -6364,7 +6240,7 @@
               "repeat": 30
             - "op_name": "等待秒数"
               "seconds": 4.2
-            "states": "[仪玄-终结技可用] & ![仪玄-术法值全满]{1,1} & ![仪玄-术法值]{119, 120}"
+            "states": "[仪玄-终结技可用]"
           - "interrupt_states": "[仪玄-术法值]{120, 120} & [仪玄-术法值全满] & [仪玄-终结技可用]"
             "operations":
             - "op_name": "设置状态"
@@ -6437,8 +6313,7 @@
           - "op_name": "等待秒数"
             "seconds": 2
           - "op_name": "按键-闪避-松开"
-          "states": "([后台-1-特殊技可用] & ![后台-1-琉音] | [后台-2-特殊技可用] & ![后台-2-琉音]) & ![自定义-仪玄-太极,\
-            \ 0, 9]"
+          "states": "[后台-1-特殊技可用] & ![后台-1-琉音] | [后台-2-特殊技可用] & ![后台-2-琉音]"
         - "debug_name": "法术终结技"
           "operations":
           - "op_name": "设置状态"
@@ -7467,7 +7342,7 @@
             "repeat": 20
           - "op_name": "等待秒数"
             "seconds": 3.0
-          "states": "[琉音-终结技可用] & [琉音-好评]{90, 120} & ![自定义-失衡时间, -5, 15]"
+          "states": "[琉音-终结技可用] & [琉音-客诉]{0, 0}"
         - "states": "[自定义-失衡时间, 0, 10]"
           "sub_handlers":
           - "states": "[琉音-客诉]{1, 1}"
@@ -7484,7 +7359,18 @@
               - "op_name": "按键-普通攻击-按下"
               - "op_name": "等待秒数"
                 "seconds": 3
-              "states": "[琉音-好评]{90, 120}"
+              "states": "[琉音-好评]{89, 120}"
+            - "operations":
+              - "op_name": "设置状态"
+                "seconds": 2
+                "state": "自定义-动作不打断"
+              - "op_name": "按键-普通攻击-松开"
+              - "op_name": "等待秒数"
+                "seconds": 0.2
+              - "op_name": "按键-普通攻击-按下"
+              - "op_name": "等待秒数"
+                "seconds": 3
+              "states": ""
           - "operations":
             - "op_name": "设置状态"
               "state": "自定义-合轴时间"
@@ -7507,8 +7393,8 @@
             - "op_name": "等待秒数"
               "seconds": 3
             "states": "[琉音-好评]{90, 120} & [自定义-失衡时间, 0, 10]"
-        - "interrupt_states": "![琉音-特殊技可用]"
-          "states": "[琉音-特殊技可用] & ![琉音-好评]{90, 120}"
+        - "interrupt_states": "![琉音-特殊技可用] | [自定义-琉音-投诉]{6,99}"
+          "states": ""
           "sub_handlers":
           - "debug_name": "能量都要溢出了"
             "operations":
@@ -7554,131 +7440,9 @@
             - "op_name": "按键-特殊攻击"
               "post_delay": 0.2
               "repeat": 5
-            - "agent_name": "琉音"
-              "op_name": "按键-切换角色"
-            - "op_name": "等待秒数"
-              "seconds": 0.5
-            - "op_name": "设置状态"
-              "seconds": 1
-              "state": "自定义-动作不打断"
-            - "add": 1
-              "op_name": "设置状态"
-              "state": "自定义-琉音-投诉"
-            - "op_name": "设置状态"
-              "seconds_add": -10
-              "state": "自定义-琉音-好评如潮"
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.2
-              "repeat": 5
-            - "op_name": "设置状态"
-              "seconds": 1
-              "state": "自定义-动作不打断"
-            - "add": 1
-              "op_name": "设置状态"
-              "state": "自定义-琉音-投诉"
-            - "op_name": "设置状态"
-              "seconds_add": -10
-              "state": "自定义-琉音-好评如潮"
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.2
-              "repeat": 5
-            - "op_name": "设置状态"
-              "seconds": 1
-              "state": "自定义-动作不打断"
-            - "add": 1
-              "op_name": "设置状态"
-              "state": "自定义-琉音-投诉"
-            - "op_name": "设置状态"
-              "seconds_add": -10
-              "state": "自定义-琉音-好评如潮"
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.2
-              "repeat": 5
-            - "agent_name": "琉音"
-              "op_name": "按键-切换角色"
-            - "op_name": "等待秒数"
-              "seconds": 0.5
-            - "op_name": "设置状态"
-              "seconds": 1
-              "state": "自定义-动作不打断"
-            - "add": 1
-              "op_name": "设置状态"
-              "state": "自定义-琉音-投诉"
-            - "op_name": "设置状态"
-              "seconds_add": -10
-              "state": "自定义-琉音-好评如潮"
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.2
-              "repeat": 5
-            - "op_name": "设置状态"
-              "seconds": 1
-              "state": "自定义-动作不打断"
-            - "add": 1
-              "op_name": "设置状态"
-              "state": "自定义-琉音-投诉"
-            - "op_name": "设置状态"
-              "seconds_add": -10
-              "state": "自定义-琉音-好评如潮"
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.2
-              "repeat": 5
-            - "op_name": "设置状态"
-              "seconds": 1
-              "state": "自定义-动作不打断"
-            - "add": 1
-              "op_name": "设置状态"
-              "state": "自定义-琉音-投诉"
-            - "op_name": "设置状态"
-              "seconds_add": -10
-              "state": "自定义-琉音-好评如潮"
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.2
-              "repeat": 5
-            "states": "[琉音-能量]{75, 120}"
+            "states": "[琉音-能量]{75, 120} & ![自定义-琉音-投诉]{3,999}"
           - "debug_name": "恶意投诉差2个"
             "operations":
-            - "agent_name": "琉音"
-              "op_name": "按键-切换角色"
-            - "agent_name": "琉音"
-              "op_name": "按键-切换角色"
-            - "op_name": "等待秒数"
-              "seconds": 0.5
-            - "op_name": "设置状态"
-              "seconds": 1
-              "state": "自定义-动作不打断"
-            - "add": 1
-              "op_name": "设置状态"
-              "state": "自定义-琉音-投诉"
-            - "op_name": "设置状态"
-              "seconds_add": -10
-              "state": "自定义-琉音-好评如潮"
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.2
-              "repeat": 5
-            - "op_name": "设置状态"
-              "seconds": 1
-              "state": "自定义-动作不打断"
-            - "add": 1
-              "op_name": "设置状态"
-              "state": "自定义-琉音-投诉"
-            - "op_name": "设置状态"
-              "seconds_add": -10
-              "state": "自定义-琉音-好评如潮"
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.2
-              "repeat": 5
-            - "op_name": "设置状态"
-              "seconds": 1
-              "state": "自定义-动作不打断"
-            - "add": 1
-              "op_name": "设置状态"
-              "state": "自定义-琉音-投诉"
-            - "op_name": "设置状态"
-              "seconds_add": -10
-              "state": "自定义-琉音-好评如潮"
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.2
-              "repeat": 5
             - "agent_name": "琉音"
               "op_name": "按键-切换角色"
             - "op_name": "等待秒数"
@@ -7722,8 +7486,6 @@
             "states": "[自定义-琉音-投诉]{1,1} & [琉音-能量]{50, 120}"
           - "debug_name": "恶意投诉差1个"
             "operations":
-            - "agent_name": "琉音"
-              "op_name": "按键-切换角色"
             - "agent_name": "琉音"
               "op_name": "按键-切换角色"
             - "op_name": "等待秒数"
@@ -7907,8 +7669,6 @@
           "seconds": 0.5
         - "op_name": "设置状态"
           "state": "自定义-琉音-连携转终结技"
-        - "op_name": "清除状态"
-          "state": "自定义-琉音-投诉"
         - "op_name": "设置状态"
           "seconds": 2
           "state": "自定义-动作不打断"
@@ -8031,8 +7791,8 @@
           - "debug_name": "并非连携时间"
             "states": "![前台-琉音] & [后台-琉音] & ![自定义-失衡时间, -10, 12]"
             "sub_handlers":
-            - "interrupt_states": "![琉音-特殊技可用]"
-              "states": "[琉音-特殊技可用] & ![琉音-好评]{90, 120}"
+            - "interrupt_states": "![琉音-特殊技可用] | [自定义-琉音-投诉]{6,99}"
+              "states": ""
               "sub_handlers":
               - "debug_name": "能量都要溢出了"
                 "operations":
@@ -8078,131 +7838,9 @@
                 - "op_name": "按键-特殊攻击"
                   "post_delay": 0.2
                   "repeat": 5
-                - "agent_name": "琉音"
-                  "op_name": "按键-切换角色"
-                - "op_name": "等待秒数"
-                  "seconds": 0.5
-                - "op_name": "设置状态"
-                  "seconds": 1
-                  "state": "自定义-动作不打断"
-                - "add": 1
-                  "op_name": "设置状态"
-                  "state": "自定义-琉音-投诉"
-                - "op_name": "设置状态"
-                  "seconds_add": -10
-                  "state": "自定义-琉音-好评如潮"
-                - "op_name": "按键-特殊攻击"
-                  "post_delay": 0.2
-                  "repeat": 5
-                - "op_name": "设置状态"
-                  "seconds": 1
-                  "state": "自定义-动作不打断"
-                - "add": 1
-                  "op_name": "设置状态"
-                  "state": "自定义-琉音-投诉"
-                - "op_name": "设置状态"
-                  "seconds_add": -10
-                  "state": "自定义-琉音-好评如潮"
-                - "op_name": "按键-特殊攻击"
-                  "post_delay": 0.2
-                  "repeat": 5
-                - "op_name": "设置状态"
-                  "seconds": 1
-                  "state": "自定义-动作不打断"
-                - "add": 1
-                  "op_name": "设置状态"
-                  "state": "自定义-琉音-投诉"
-                - "op_name": "设置状态"
-                  "seconds_add": -10
-                  "state": "自定义-琉音-好评如潮"
-                - "op_name": "按键-特殊攻击"
-                  "post_delay": 0.2
-                  "repeat": 5
-                - "agent_name": "琉音"
-                  "op_name": "按键-切换角色"
-                - "op_name": "等待秒数"
-                  "seconds": 0.5
-                - "op_name": "设置状态"
-                  "seconds": 1
-                  "state": "自定义-动作不打断"
-                - "add": 1
-                  "op_name": "设置状态"
-                  "state": "自定义-琉音-投诉"
-                - "op_name": "设置状态"
-                  "seconds_add": -10
-                  "state": "自定义-琉音-好评如潮"
-                - "op_name": "按键-特殊攻击"
-                  "post_delay": 0.2
-                  "repeat": 5
-                - "op_name": "设置状态"
-                  "seconds": 1
-                  "state": "自定义-动作不打断"
-                - "add": 1
-                  "op_name": "设置状态"
-                  "state": "自定义-琉音-投诉"
-                - "op_name": "设置状态"
-                  "seconds_add": -10
-                  "state": "自定义-琉音-好评如潮"
-                - "op_name": "按键-特殊攻击"
-                  "post_delay": 0.2
-                  "repeat": 5
-                - "op_name": "设置状态"
-                  "seconds": 1
-                  "state": "自定义-动作不打断"
-                - "add": 1
-                  "op_name": "设置状态"
-                  "state": "自定义-琉音-投诉"
-                - "op_name": "设置状态"
-                  "seconds_add": -10
-                  "state": "自定义-琉音-好评如潮"
-                - "op_name": "按键-特殊攻击"
-                  "post_delay": 0.2
-                  "repeat": 5
-                "states": "[琉音-能量]{75, 120}"
+                "states": "[琉音-能量]{75, 120} & ![自定义-琉音-投诉]{3,999}"
               - "debug_name": "恶意投诉差2个"
                 "operations":
-                - "agent_name": "琉音"
-                  "op_name": "按键-切换角色"
-                - "agent_name": "琉音"
-                  "op_name": "按键-切换角色"
-                - "op_name": "等待秒数"
-                  "seconds": 0.5
-                - "op_name": "设置状态"
-                  "seconds": 1
-                  "state": "自定义-动作不打断"
-                - "add": 1
-                  "op_name": "设置状态"
-                  "state": "自定义-琉音-投诉"
-                - "op_name": "设置状态"
-                  "seconds_add": -10
-                  "state": "自定义-琉音-好评如潮"
-                - "op_name": "按键-特殊攻击"
-                  "post_delay": 0.2
-                  "repeat": 5
-                - "op_name": "设置状态"
-                  "seconds": 1
-                  "state": "自定义-动作不打断"
-                - "add": 1
-                  "op_name": "设置状态"
-                  "state": "自定义-琉音-投诉"
-                - "op_name": "设置状态"
-                  "seconds_add": -10
-                  "state": "自定义-琉音-好评如潮"
-                - "op_name": "按键-特殊攻击"
-                  "post_delay": 0.2
-                  "repeat": 5
-                - "op_name": "设置状态"
-                  "seconds": 1
-                  "state": "自定义-动作不打断"
-                - "add": 1
-                  "op_name": "设置状态"
-                  "state": "自定义-琉音-投诉"
-                - "op_name": "设置状态"
-                  "seconds_add": -10
-                  "state": "自定义-琉音-好评如潮"
-                - "op_name": "按键-特殊攻击"
-                  "post_delay": 0.2
-                  "repeat": 5
                 - "agent_name": "琉音"
                   "op_name": "按键-切换角色"
                 - "op_name": "等待秒数"
@@ -8246,8 +7884,6 @@
                 "states": "[自定义-琉音-投诉]{1,1} & [琉音-能量]{50, 120}"
               - "debug_name": "恶意投诉差1个"
                 "operations":
-                - "agent_name": "琉音"
-                  "op_name": "按键-切换角色"
                 - "agent_name": "琉音"
                   "op_name": "按键-切换角色"
                 - "op_name": "等待秒数"
@@ -13345,7 +12981,7 @@
             "repeat": 5
           - "op_name": "等待秒数"
             "seconds": 3
-          "states": "[仪玄-终结技可用] & [仪玄-术法值全满]{1,1} & [仪玄-术法值]{119, 120}"
+          "states": "[仪玄-终结技可用] & [仪玄-术法值全满] & [仪玄-术法值]{120, 120}"
         - "debug_name": "喧嚣终结技"
           "operations":
           - "op_name": "设置状态"
@@ -13361,7 +12997,7 @@
             "repeat": 30
           - "op_name": "等待秒数"
             "seconds": 4.2
-          "states": "[仪玄-终结技可用] & ![仪玄-术法值全满]{1,1} & ![仪玄-术法值]{119, 120}"
+          "states": "[仪玄-终结技可用]"
         - "interrupt_states": "[仪玄-术法值]{120, 120} & [仪玄-术法值全满] & [仪玄-终结技可用]"
           "operations":
           - "op_name": "设置状态"
@@ -13434,8 +13070,7 @@
         - "op_name": "等待秒数"
           "seconds": 2
         - "op_name": "按键-闪避-松开"
-        "states": "([后台-1-特殊技可用] & ![后台-1-琉音] | [后台-2-特殊技可用] & ![后台-2-琉音]) & ![自定义-仪玄-太极,\
-          \ 0, 9]"
+        "states": "[后台-1-特殊技可用] & ![后台-1-琉音] | [后台-2-特殊技可用] & ![后台-2-琉音]"
       - "debug_name": "法术终结技"
         "operations":
         - "op_name": "设置状态"
@@ -14464,7 +14099,7 @@
           "repeat": 20
         - "op_name": "等待秒数"
           "seconds": 3.0
-        "states": "[琉音-终结技可用] & [琉音-好评]{90, 120} & ![自定义-失衡时间, -5, 15]"
+        "states": "[琉音-终结技可用] & [琉音-客诉]{0, 0}"
       - "states": "[自定义-失衡时间, 0, 10]"
         "sub_handlers":
         - "states": "[琉音-客诉]{1, 1}"
@@ -14481,7 +14116,18 @@
             - "op_name": "按键-普通攻击-按下"
             - "op_name": "等待秒数"
               "seconds": 3
-            "states": "[琉音-好评]{90, 120}"
+            "states": "[琉音-好评]{89, 120}"
+          - "operations":
+            - "op_name": "设置状态"
+              "seconds": 2
+              "state": "自定义-动作不打断"
+            - "op_name": "按键-普通攻击-松开"
+            - "op_name": "等待秒数"
+              "seconds": 0.2
+            - "op_name": "按键-普通攻击-按下"
+            - "op_name": "等待秒数"
+              "seconds": 3
+            "states": ""
         - "operations":
           - "op_name": "设置状态"
             "state": "自定义-合轴时间"
@@ -14504,8 +14150,8 @@
           - "op_name": "等待秒数"
             "seconds": 3
           "states": "[琉音-好评]{90, 120} & [自定义-失衡时间, 0, 10]"
-      - "interrupt_states": "![琉音-特殊技可用]"
-        "states": "[琉音-特殊技可用] & ![琉音-好评]{90, 120}"
+      - "interrupt_states": "![琉音-特殊技可用] | [自定义-琉音-投诉]{6,99}"
+        "states": ""
         "sub_handlers":
         - "debug_name": "能量都要溢出了"
           "operations":
@@ -14551,131 +14197,9 @@
           - "op_name": "按键-特殊攻击"
             "post_delay": 0.2
             "repeat": 5
-          - "agent_name": "琉音"
-            "op_name": "按键-切换角色"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "设置状态"
-            "seconds": 1
-            "state": "自定义-动作不打断"
-          - "add": 1
-            "op_name": "设置状态"
-            "state": "自定义-琉音-投诉"
-          - "op_name": "设置状态"
-            "seconds_add": -10
-            "state": "自定义-琉音-好评如潮"
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.2
-            "repeat": 5
-          - "op_name": "设置状态"
-            "seconds": 1
-            "state": "自定义-动作不打断"
-          - "add": 1
-            "op_name": "设置状态"
-            "state": "自定义-琉音-投诉"
-          - "op_name": "设置状态"
-            "seconds_add": -10
-            "state": "自定义-琉音-好评如潮"
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.2
-            "repeat": 5
-          - "op_name": "设置状态"
-            "seconds": 1
-            "state": "自定义-动作不打断"
-          - "add": 1
-            "op_name": "设置状态"
-            "state": "自定义-琉音-投诉"
-          - "op_name": "设置状态"
-            "seconds_add": -10
-            "state": "自定义-琉音-好评如潮"
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.2
-            "repeat": 5
-          - "agent_name": "琉音"
-            "op_name": "按键-切换角色"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "设置状态"
-            "seconds": 1
-            "state": "自定义-动作不打断"
-          - "add": 1
-            "op_name": "设置状态"
-            "state": "自定义-琉音-投诉"
-          - "op_name": "设置状态"
-            "seconds_add": -10
-            "state": "自定义-琉音-好评如潮"
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.2
-            "repeat": 5
-          - "op_name": "设置状态"
-            "seconds": 1
-            "state": "自定义-动作不打断"
-          - "add": 1
-            "op_name": "设置状态"
-            "state": "自定义-琉音-投诉"
-          - "op_name": "设置状态"
-            "seconds_add": -10
-            "state": "自定义-琉音-好评如潮"
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.2
-            "repeat": 5
-          - "op_name": "设置状态"
-            "seconds": 1
-            "state": "自定义-动作不打断"
-          - "add": 1
-            "op_name": "设置状态"
-            "state": "自定义-琉音-投诉"
-          - "op_name": "设置状态"
-            "seconds_add": -10
-            "state": "自定义-琉音-好评如潮"
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.2
-            "repeat": 5
-          "states": "[琉音-能量]{75, 120}"
+          "states": "[琉音-能量]{75, 120} & ![自定义-琉音-投诉]{3,999}"
         - "debug_name": "恶意投诉差2个"
           "operations":
-          - "agent_name": "琉音"
-            "op_name": "按键-切换角色"
-          - "agent_name": "琉音"
-            "op_name": "按键-切换角色"
-          - "op_name": "等待秒数"
-            "seconds": 0.5
-          - "op_name": "设置状态"
-            "seconds": 1
-            "state": "自定义-动作不打断"
-          - "add": 1
-            "op_name": "设置状态"
-            "state": "自定义-琉音-投诉"
-          - "op_name": "设置状态"
-            "seconds_add": -10
-            "state": "自定义-琉音-好评如潮"
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.2
-            "repeat": 5
-          - "op_name": "设置状态"
-            "seconds": 1
-            "state": "自定义-动作不打断"
-          - "add": 1
-            "op_name": "设置状态"
-            "state": "自定义-琉音-投诉"
-          - "op_name": "设置状态"
-            "seconds_add": -10
-            "state": "自定义-琉音-好评如潮"
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.2
-            "repeat": 5
-          - "op_name": "设置状态"
-            "seconds": 1
-            "state": "自定义-动作不打断"
-          - "add": 1
-            "op_name": "设置状态"
-            "state": "自定义-琉音-投诉"
-          - "op_name": "设置状态"
-            "seconds_add": -10
-            "state": "自定义-琉音-好评如潮"
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.2
-            "repeat": 5
           - "agent_name": "琉音"
             "op_name": "按键-切换角色"
           - "op_name": "等待秒数"
@@ -14719,8 +14243,6 @@
           "states": "[自定义-琉音-投诉]{1,1} & [琉音-能量]{50, 120}"
         - "debug_name": "恶意投诉差1个"
           "operations":
-          - "agent_name": "琉音"
-            "op_name": "按键-切换角色"
           - "agent_name": "琉音"
             "op_name": "按键-切换角色"
           - "op_name": "等待秒数"

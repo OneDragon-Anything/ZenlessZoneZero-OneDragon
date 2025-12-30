@@ -196,6 +196,30 @@ handlers:
                 - op_name: "清除状态"
                   state_list: ["自定义-血量扣减"]
 
+            - states: "![前台-照] & ![叶瞬光-常态]{0,0} & [照-霜寒值]{80, 100}"
+              debug_name: "照紧急切入"
+              sub_handlers:
+                - states: "[照-霜寒值]{100, 100}"
+                  debug_name: "照满霜寒值-登场技"
+                  operations:
+                    - op_name: "按键-切换角色"
+                      agent_name: "照"
+                    - operation_template: "照-登场技"
+
+                - states: "[照-特殊技可用]"
+                  debug_name: "照有强化特殊技"
+                  operations:
+                    - op_name: "按键-切换角色"
+                      agent_name: "照"
+                    - operation_template: "照-强化特殊攻击"
+
+                - states: "[照-终结技可用]"
+                  debug_name: "照有终结技"
+                  operations:
+                    - op_name: "按键-切换角色"
+                      agent_name: "照"
+                    - operation_template: "照-终结技"
+
             # 星见雅 有6豆就切过去
             - states: "[雅-落霜]{6, 6} & ![前台-雅] & ![前台-支援]"
               debug_name: "雅满豆切入"

@@ -1015,103 +1015,6 @@
   level: "S"
   is_gear: true
 
-  # 琉音
-- category: "琉音"
-  name: "余响跹环"
-  level: "S"
-  is_gear: true
-  template_id: "gear_dialyn_2"
-
-- category: "琉音"
-  name: "余响跹环-a"
-  level: "S"
-  is_gear: true
-
-- category: "琉音"
-  name: "余响跹环-b"
-  level: "S"
-  is_gear: true
-
-- category: "琉音"
-  name: "亡语惊铃"
-  level: "S"
-  is_gear: true
-  template_id: "gear_dialyn_1"
-
-- category: "琉音"
-  name: "亡语惊铃-a"
-  level: "S"
-  is_gear: true
-
-- category: "琉音"
-  name: "亡语惊铃-b"
-  level: "S"
-  is_gear: true
-
-- category: "琉音"
-  name: "殁相坠裁"
-  level: "S"
-  is_gear: true
-  template_id: "gear_dialyn_3"
-
-- category: "琉音"
-  name: "殁相坠裁-a"
-  level: "S"
-  is_gear: true
-
-- category: "琉音"
-  name: "殁相坠裁-b"
-  level: "S"
-  is_gear: true
-
-  # 般岳
-- category: "般岳"
-  name: "断我执"
-  level: "S"
-  is_gear: true
-  template_id: "gear_banyue_1"
-
-- category: "般岳"
-  name: "断我执-a"
-  level: "S"
-  is_gear: true
-
-- category: "般岳"
-  name: "断我执-b"
-  level: "S"
-  is_gear: true
-
-- category: "般岳"
-  name: "修罗道"
-  level: "S"
-  is_gear: true
-  template_id: "gear_banyue_2"
-
-- category: "般岳"
-  name: "修罗道-a"
-  level: "S"
-  is_gear: true
-
-- category: "般岳"
-  name: "修罗道-b"
-  level: "S"
-  is_gear: true
-
-- category: "般岳"
-  name: "灼业身"
-  level: "S"
-  template_id: "gear_banyue_3"
-
-- category: "般岳"
-  name: "灼业身-a"
-  level: "S"
-  is_gear: true
-
-- category: "般岳"
-  name: "灼业身-b"
-  level: "S"
-  is_gear: true
-
   # 异影
 - category: "杰佩托"
   name: "处决指令"
@@ -1368,6 +1271,7 @@
   level: "A"
 
   # 契合
+
 - category: "契合"
   name: "充盈电鸣"
   level: "S"
@@ -1542,10 +1446,6 @@
 
 - category: "契合"
   name: "亡者拨盘"
-  level: "S"
-
-- category: "契合"
-  name: "未凌绝顶"
   level: "S"
 
 - category: "契合"
@@ -1880,3 +1780,52 @@
 - category: "无详情"
   name: "回答错误"
   level: "S"
+
+  # 琉音
+- category: "琉音"
+  name: "余响跹环"
+  level: "S"
+  is_gear: true
+  template_id: "gear_dialyn_2"
+
+- category: "琉音"
+  name: "余响跹环-a"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "余响跹环-b"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "亡语惊铃"
+  level: "S"
+  is_gear: true
+  template_id: "gear_dialyn_1"
+
+- category: "琉音"
+  name: "亡语惊铃-a"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "亡语惊铃-b"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "殁相坠裁"
+  level: "S"
+  is_gear: true
+  template_id: "gear_dialyn_3"
+
+- category: "琉音"
+  name: "殁相坠裁-a"
+  level: "S"
+  is_gear: true
+
+- category: "琉音"
+  name: "殁相坠裁-b"
+  level: "S"
+  is_gear: true

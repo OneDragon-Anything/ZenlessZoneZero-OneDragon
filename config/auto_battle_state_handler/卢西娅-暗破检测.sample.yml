@@ -1,4 +1,4 @@
-template_name: "卢西娅-暗破检测"
+template_name: "琉音-刷好评"
 handlers:
   - states: "[卢西娅-特殊技可用] & [卢西娅-梦境值]{0,0} & [后台-卢西娅]"
     debug_name: "卢西娅进场先开暗破"
