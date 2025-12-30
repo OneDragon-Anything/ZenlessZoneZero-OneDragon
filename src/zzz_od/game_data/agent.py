@@ -411,3 +411,26 @@ class AgentEnum(Enum):
                                      hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                      max_length=120)
                    ])
+
+    ZHAO = Agent('zhao', '照', RareTypeEnum.S, AgentTypeEnum.DEFENSE, DmgTypeEnum.ICE, ['zhao'],
+                 state_list=[
+                     AgentStateDef('照-霜寒值', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                   template_id='zhao',
+                                   hsv_color=(60,255,255), hsv_color_diff=(50, 255, 255),
+                                   max_length=100)
+                 ])
+
+    YESHUNGUANG = Agent('yeshunguang', '叶瞬光', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.PHYSICAL, ['yeshunguang'],
+                       state_list=[
+                           AgentStateDef('叶瞬光-常态', AgentStateCheckWay.TEMPLATE_FOUND,
+                                         template_id='yeshunguang_normal', min_value_trigger_state=0,
+                                         template_threshold=0.8),
+                           AgentStateDef('叶瞬光-青溟剑势-红', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                         template_id='yeshunguang_qingming',
+                                         hsv_color=(0, 0, 255), hsv_color_diff=(10, 10, 10),
+                                         connect_cnt=10),
+                           AgentStateDef('叶瞬光-青溟剑势-白', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                         template_id='yeshunguang_qingming_ex',
+                                         hsv_color=(0, 0, 255), hsv_color_diff=(10, 10, 10),
+                                         connect_cnt=10)
+                       ])

@@ -65,7 +65,7 @@ scenes:
     priority: 99
     interval: 0.3
     handlers:
-      - states: "![自定义-无视闪光, -10, 0]"
+      - states: "![自定义-无视闪光, -15, 0]"
         sub_handlers:
           # 这里的动作不打断，代表了动作的无敌时间，一般无敌动作期间，动作是无法打断的，0.3是因为闪光会比伤害先出现0.3秒
           # 正常情况下，黄光进入的判定，一般情况下，按顺序触发
@@ -120,6 +120,12 @@ scenes:
   - triggers: []
     priority: 9
     handlers:
+      # # 调试状态用
+      # - states: ""
+      #   operations:
+      #     - op_name: "等待秒数"
+      #       seconds: 1
+
       # 刚开始未识别到角色时候不要乱切
       - states: "![自定义-动作不打断, -10, -0.1]"
         interrupt_states: "![前台-击破] & ![前台-强攻] & ![前台-支援] & ![前台-防护] & ![前台-异常]& ![前台-命破]"
