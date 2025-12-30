@@ -125,6 +125,8 @@
         - mission_type_name: "秽息司祭"
         - mission_type_name: "彷徨猎手"
         - mission_type_name: "魇缚者·叶释渊"
+          alias_list:
+            - "魇缚者·???"
         - mission_type_name: "代理人方案培养"
     - category_name: "零号空洞"
       mission_type_list:

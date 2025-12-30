@@ -39,12 +39,13 @@ class CompendiumCategory:
 class CompendiumMissionType:
 
     def __init__(self, mission_type_name: str, mission_type_name_display: Optional[str] = None,
-                 mission_list: List = None):
+                 mission_list: List = None, alias_list: List[str] = None):
         self.category: Optional[CompendiumCategory] = None
         self.mission_type_name: str = mission_type_name
         self.mission_type_name_display: str = mission_type_name
         if mission_type_name_display is not None:
             self.mission_type_name_display = mission_type_name_display
+        self.alias_list: List[str] = alias_list if alias_list is not None else []
         self.mission_list: List[CompendiumMission] = []
         if mission_list is not None:
             for mission_item in mission_list:
