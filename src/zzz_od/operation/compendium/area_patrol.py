@@ -21,7 +21,7 @@ from zzz_od.operation.challenge_mission.check_next_after_battle import (
 )
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
-from zzz_od.operation.compendium.coupon import Coupon
+# from zzz_od.operation.compendium.coupon import Coupon  # 2.5版本已移除家政券功能，暂时移除导入
 from zzz_od.operation.deploy import Deploy
 from zzz_od.operation.restore_charge import RestoreCharge
 from zzz_od.operation.zzz_operation import ZOperation
@@ -87,16 +87,16 @@ class AreaPatrol(ZOperation):
         return self.round_success(wait=1)
 
     @node_from(from_name='等待入口加载')
-    @operation_node(name='处理家政券')
-    def handle_coupon(self) -> OperationRoundResult:
-        op = Coupon(self.ctx, self.plan)
-        if self.config.use_coupon:
-            return self.round_by_op_result(op.execute())
-        else:
-            return self.round_success(Coupon.STATUS_CONTINUE_RUN_WITH_CHARGE)
-
-    @node_from(from_name='处理家政券', success=False)
-    @node_from(from_name='处理家政券', status=Coupon.STATUS_CONTINUE_RUN_WITH_CHARGE)
+    # 2.5版本已移除家政券功能，暂时跳过该操作节点
+    # @operation_node(name='处理家政券')
+    # def handle_coupon(self) -> OperationRoundResult:
+    #     op = Coupon(self.ctx, self.plan)
+    #     if self.config.use_coupon:
+    #         return self.round_by_op_result(op.execute())
+    #     else:
+    #         return self.round_success(Coupon.STATUS_CONTINUE_RUN_WITH_CHARGE)
+    # @node_from(from_name='处理家政券', success=False)
+    # @node_from(from_name='处理家政券', status=Coupon.STATUS_CONTINUE_RUN_WITH_CHARGE)
     @node_from(from_name='恢复电量', status='恢复电量成功')
     @operation_node(name='下一步', node_max_retry_times=10)  # 部分机器加载较慢 延长出战的识别时间
     def click_next(self) -> OperationRoundResult:
