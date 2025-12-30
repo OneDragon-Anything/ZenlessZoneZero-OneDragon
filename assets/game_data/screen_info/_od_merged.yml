@@ -805,7 +805,7 @@
     - 1848
     - 1056
     text: 开启丽都城募
-    lcs_percent: 0.5
+    lcs_percent: 0.7
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -817,7 +817,7 @@
     - 874
     - 600
     - 1074
-    - 650
+    - 860
     text: 确认
     lcs_percent: 0.5
     template_sub_dir: ''
