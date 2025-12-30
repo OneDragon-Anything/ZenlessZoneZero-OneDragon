@@ -296,48 +296,6 @@ area_list:
   template_match_threshold: 0.9
   color_range: null
   goto_list: []
-- area_name: 节点-05
-  id_mark: false
-  pc_rect:
-  - 100
-  - 174
-  - 1806
-  - 720
-  text: ''
-  lcs_percent: 0.5
-  template_sub_dir: shiyu_defense
-  template_id: node_05
-  template_match_threshold: 0.9
-  color_range: null
-  goto_list: []
-- area_name: 节点-06
-  id_mark: false
-  pc_rect:
-  - 100
-  - 174
-  - 1806
-  - 720
-  text: ''
-  lcs_percent: 0.5
-  template_sub_dir: shiyu_defense
-  template_id: node_06
-  template_match_threshold: 0.9
-  color_range: null
-  goto_list: []
-- area_name: 节点-07
-  id_mark: false
-  pc_rect:
-  - 100
-  - 174
-  - 1806
-  - 720
-  text: ''
-  lcs_percent: 0.5
-  template_sub_dir: shiyu_defense
-  template_id: node_07
-  template_match_threshold: 0.9
-  color_range: null
-  goto_list: []
 - area_name: 奖励入口
   id_mark: false
   pc_rect:
