@@ -210,7 +210,7 @@ class CompendiumService:
                 value=category_item.category_name
             ))
 
-        category_list = self.get_category_list_data('作战')
+        category_list = self.get_category_list_data('训练')
         for category_item in category_list:
             if category_item.category_name == '恶名狩猎':
                 category_config_list.append(ConfigItem(
@@ -223,8 +223,7 @@ class CompendiumService:
     def get_charge_plan_mission_type_list(self, category_name: str) -> List[ConfigItem]:
         config_list: List[ConfigItem] = []
 
-        tab_name = '作战' if category_name == '恶名狩猎' else '训练'
-        mission_type_list = self.get_mission_type_list_data(tab_name, category_name)
+        mission_type_list = self.get_mission_type_list_data('训练', category_name)
         for mission_type_item in mission_type_list:
             config_list.append(ConfigItem(
                 label=mission_type_item.mission_type_name_display,
@@ -236,8 +235,7 @@ class CompendiumService:
     def get_charge_plan_mission_list(self, category_name: str, mission_type: str) -> List[ConfigItem]:
         config_list: List[ConfigItem] = []
 
-        tab_name = '作战' if category_name == '恶名狩猎' else '训练'
-        mission_list = self.get_mission_list_data(tab_name, category_name, mission_type)
+        mission_list = self.get_mission_list_data('训练', category_name, mission_type)
         for mission_item in mission_list:
             config_list.append(ConfigItem(
                 label=mission_item.mission_name_display,
@@ -261,7 +259,7 @@ class CompendiumService:
     def get_notorious_hunt_plan_mission_type_list(self, category_name: str) -> List[ConfigItem]:
         config_list: List[ConfigItem] = []
 
-        mission_type_list = self.get_mission_type_list_data('作战', category_name)
+        mission_type_list = self.get_mission_type_list_data('训练', category_name)
         for mission_type_item in mission_type_list:
             config_list.append(ConfigItem(
                 label=mission_type_item.mission_type_name_display,

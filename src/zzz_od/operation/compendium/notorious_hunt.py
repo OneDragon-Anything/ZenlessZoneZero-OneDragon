@@ -93,7 +93,7 @@ class NotoriousHunt(ZOperation):
         匹配任务类型名称（支持别名）
         """
         names = [target_name]
-        hunt_category = self.ctx.compendium_service.get_category_data('作战', '恶名狩猎')
+        hunt_category = self.ctx.compendium_service.get_category_data('训练', '恶名狩猎')
         if hunt_category:
             for mt in hunt_category.mission_type_list:
                 if mt.mission_type_name == target_name:
@@ -150,7 +150,7 @@ class NotoriousHunt(ZOperation):
                     return self.round_success(wait=2)
 
         # 未匹配时 判断该往哪边滑动
-        hunt_category = self.ctx.compendium_service.get_category_data('作战', '恶名狩猎')
+        hunt_category = self.ctx.compendium_service.get_category_data('训练', '恶名狩猎')
         with_left: bool = False  # 当前识别有在目标左边的副本
         for mission_type in reversed(hunt_category.mission_type_list):
             if self._match_mission_type(self.plan.mission_type_name, mission_type.mission_type_name):

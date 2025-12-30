@@ -177,7 +177,7 @@ class ChargePlanCard(MultiLineSettingCard):
     def _on_category_changed(self, idx: int) -> None:
         category_name = self.category_combo_box.itemData(idx)
         self.plan.category_name = category_name
-        self.plan.tab_name = '作战' if category_name == '恶名狩猎' else '训练'
+        self.plan.tab_name = '训练'
 
         self.init_mission_type_combo_box()
         self.init_mission_combo_box()

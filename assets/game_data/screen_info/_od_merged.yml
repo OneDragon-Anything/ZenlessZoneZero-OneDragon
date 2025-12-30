@@ -1412,10 +1412,10 @@
   - area_name: 分类列表
     id_mark: false
     pc_rect:
-    - 166
-    - 292
-    - 422
-    - 622
+    - 164
+    - 287
+    - 429
+    - 870
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''

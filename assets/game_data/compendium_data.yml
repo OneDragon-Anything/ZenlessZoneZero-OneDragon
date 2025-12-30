@@ -113,8 +113,6 @@
         - mission_type_name: "秽息行者·蝎骸"
         - mission_type_name: "代理人方案培养"
 
-- tab_name: "作战"
-  category_list:
     - category_name: "恶名狩猎"
       mission_type_list:
         - mission_type_name: "初生死路屠夫"
@@ -128,6 +126,9 @@
           alias_list:
             - "魇缚者·???"
         - mission_type_name: "代理人方案培养"
+
+- tab_name: "作战"
+  category_list:
     - category_name: "零号空洞"
       mission_type_list:
         - mission_type_name: "迷失之地"
