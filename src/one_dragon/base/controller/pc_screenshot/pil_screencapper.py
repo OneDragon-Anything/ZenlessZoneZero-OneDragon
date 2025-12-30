@@ -1,5 +1,3 @@
-from typing import Optional
-
 import cv2
 import numpy as np
 from cv2.typing import MatLike
@@ -22,7 +20,7 @@ class PilScreencapper(ScreencapperBase):
         """
         return True
 
-    def capture(self, rect: Rect, independent: bool = False) -> Optional[MatLike]:
+    def capture(self, rect: Rect, independent: bool = False) -> MatLike | None:
         """使用 PIL 截图
 
         Args:
