@@ -1,0 +1,7 @@
+# 般岳-闪避-越岭
+# 普通闪避动作
+operations:
+  - op_name: "按键-闪避"
+    post_delay: 0.1
+  - op_name: "等待秒数"
+    seconds: 0.5

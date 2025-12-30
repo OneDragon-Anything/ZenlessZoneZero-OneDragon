@@ -411,3 +411,16 @@ class AgentEnum(Enum):
                                      hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                      max_length=120)
                    ])
+
+
+    BANYUE = Agent('banyue', '般岳', RareTypeEnum.S, AgentTypeEnum.RUPTURE, DmgTypeEnum.FIRE, ['banyue'],
+                   state_list=[
+                       AgentStateDef('般岳-嗔火', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                     template_id='banyue_1',
+                                     hsv_color=(23, 136, 177), hsv_color_diff=(7, 153, 156),
+                                     max_length=120),
+                       AgentStateDef('般岳-山威', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                     template_id='banyue_2',
+                                     hsv_color=(10, 102, 130), hsv_color_diff=(10, 205, 244),
+                                     connect_cnt=5)
+                   ])
