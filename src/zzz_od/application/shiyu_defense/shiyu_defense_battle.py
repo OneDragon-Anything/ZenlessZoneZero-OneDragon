@@ -248,11 +248,11 @@ class ShiyuDefenseBattle(ZOperation):
             # 检测普通倒计时
             result1 = self.ctx.cv_service.run_pipeline('防卫战倒计时', screen, timeout=1.0)
             has_countdown1 = result1 is not None and result1.is_success and len(result1.contours) == 4
-            
+
             # 检测精英倒计时
             result2 = self.ctx.cv_service.run_pipeline('防卫战倒计时-精英', screen, timeout=1.0)
             has_countdown2 = result2 is not None and result2.is_success and len(result2.contours) == 4
-            
+
             # 只要有一个倒计时被检测到，就认为有倒计时
             return has_countdown1 or has_countdown2
 
@@ -325,7 +325,7 @@ class ShiyuDefenseBattle(ZOperation):
     @node_from(from_name='战斗失败撤退')
     @operation_node(name='等待退出', node_max_retry_times=60)
     def wait_exit(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '街区')
+        result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '前哨档案')
 
         if result.is_success:
             if self.battle_fail is None:
