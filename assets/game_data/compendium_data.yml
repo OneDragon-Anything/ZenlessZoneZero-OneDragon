@@ -92,6 +92,8 @@
           mission_type_name_display: "云岿如我 山大王"
         - mission_type_name: "铁律与狂徒"
           mission_type_name_display: "拂晓生花 月光骑士颂"
+        - mission_type_name: "诡步与重壁"
+          mission_type_name_display: "沧浪行歌 流光咏叹"
         - mission_type_name: "代理人方案培养"
 
     - category_name: "专业挑战室"
@@ -108,6 +110,7 @@
         - mission_type_name: "秽息蚀者·阿瓦鲁斯"
         - mission_type_name: "牲鬼·凶魁愚者"
         - mission_type_name: "秽蚀·狛野真斗"
+        - mission_type_name: "秽息行者·蝎骸"
         - mission_type_name: "代理人方案培养"
 
 - tab_name: "作战"
@@ -121,6 +124,7 @@
         - mission_type_name: "牲鬼·布林格"
         - mission_type_name: "秽息司祭"
         - mission_type_name: "彷徨猎手"
+        - mission_type_name: "魇缚者·叶释渊"
         - mission_type_name: "代理人方案培养"
     - category_name: "零号空洞"
       mission_type_list:
