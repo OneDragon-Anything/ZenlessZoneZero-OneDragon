@@ -63,8 +63,8 @@ area_list:
   pc_rect:
   - 1402
   - 936
-  - 1760
-  - 1000
+  - 1848
+  - 1056
   text: 开启丽都城募
   lcs_percent: 0.5
   template_sub_dir: ''
