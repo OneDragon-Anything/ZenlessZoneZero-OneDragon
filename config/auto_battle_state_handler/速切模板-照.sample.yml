@@ -28,17 +28,17 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[照-霜寒值]{80, 100}"
-        sub_handlers:
-          - states: "[照-特殊技可用]"
-            debug_name: "照有强化特殊技"
-            operations:
-              - operation_template: "照-强化特殊攻击"
+      - states: "[照-特殊技可用]"
+        interrupt_states: "![照-特殊技可用]"
+        debug_name: "照有强化特殊技"
+        operations:
+          - operation_template: "照-强化特殊攻击"
 
-          - states: "[照-终结技可用]"
-            debug_name: "照有终结技"
-            operations:
-              - operation_template: "照-终结技"
+      - states: "[照-终结技可用]"
+        interrupt_states: "![照-终结技可用]"
+        debug_name: "照有终结技"
+        operations:
+          - operation_template: "照-终结技"
 
       - states: ""
         debug_name: "打不了"
