@@ -90,14 +90,16 @@ class NotoriousHunt(ZOperation):
 
     def _match_mission_type(self, target_name: str, ocr_result: str) -> bool:
         """
-        匹配任务类型名称（支持别名）
+        匹配任务类型名称（支持别名双向查找）
         """
         names = [target_name]
         hunt_category = self.ctx.compendium_service.get_category_data('训练', '恶名狩猎')
         if hunt_category:
             for mt in hunt_category.mission_type_list:
-                if mt.mission_type_name == target_name:
+                if mt.mission_type_name == target_name or target_name in mt.alias_list:
+                    names.append(mt.mission_type_name)
                     names.extend(mt.alias_list)
+                    names = list(set(names))
                     break
         return any(str_utils.find_by_lcs(gt(n, 'game'), ocr_result, percent=0.5) for n in names)
 

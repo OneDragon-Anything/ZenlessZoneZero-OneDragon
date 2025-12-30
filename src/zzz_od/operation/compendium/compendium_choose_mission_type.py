@@ -56,10 +56,18 @@ class CompendiumChooseMissionType(ZOperation):
         before_target_cnt: int = 0  # 在目标副本前面的数量
         target_idx: int = -1
         target_list = []
+        name_to_idx = {}  # 名称到索引的映射，包含别名
         for idx, mission_type in enumerate(mission_type_list):
             if mission_type.mission_type_name == self.mission_type.mission_type_name:
                 target_idx = idx
-            target_list.append(gt(mission_type.mission_type_name, 'game'))
+            name = gt(mission_type.mission_type_name, 'game')
+            target_list.append(name)
+            name_to_idx[name] = idx
+            # 添加别名到映射
+            for alias in mission_type.alias_list:
+                alias_name = gt(alias, 'game')
+                target_list.append(alias_name)
+                name_to_idx[alias_name] = idx
 
         if target_idx == -1:
             return self.round_fail('非法的副本分类 %s' % self.mission_type.mission_type_name)
@@ -75,7 +83,7 @@ class CompendiumChooseMissionType(ZOperation):
             if results is None or len(results) == 0:
                 continue
 
-            idx = target_list.index(results[0])
+            idx = name_to_idx.get(results[0], -1)
             if idx == target_idx:
                 target_point = area.left_top + mrl.max
                 break
