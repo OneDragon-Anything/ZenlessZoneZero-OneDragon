@@ -1,0 +1,18 @@
+# 根据动画实测，待补充
+operations:
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 35
+  - op_name: "按键-特殊攻击"
+    post_delay: 0.1
+    repeat: 15
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 35
+  - op_name: "按键-特殊攻击"
+    post_delay: 0.1
+    repeat: 15
+  - op_name: "按键-特殊攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 2.5
+  - op_name: "按键-特殊攻击-松开"

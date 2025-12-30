@@ -120,6 +120,12 @@ scenes:
   - triggers: []
     priority: 9
     handlers:
+      # # 调试状态用
+      # - states: ""
+      #   operations:
+      #     - op_name: "等待秒数"
+      #       seconds: 1
+
       # 刚开始未识别到角色时候不要乱切
       - states: "![自定义-动作不打断, -10, -0.1]"
         interrupt_states: "![前台-击破] & ![前台-强攻] & ![前台-支援] & ![前台-防护] & ![前台-异常]& ![前台-命破]"
