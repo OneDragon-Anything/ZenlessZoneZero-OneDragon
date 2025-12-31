@@ -316,10 +316,14 @@ class ShiyuDefenseApp(ZApplication):
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='领取奖励')
     def claim_reward(self) -> OperationRoundResult:
-        result = self.round_by_find_and_click_area(self.last_screenshot, '式舆防卫战', '全部领取')
+        # 检测是否在奖励界面（通过模板匹配）
+        result = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '领取奖励-界面')
         if result.is_success:
-            return self.round_success(result.status, wait=1)
+            # 已在奖励界面，直接点击全部领取区域（无论是否能识别到）
+            self.round_by_click_area('式舆防卫战', '全部领取')
+            return self.round_success('全部领取', wait=1)
 
+        # 不在奖励界面，点击奖励入口
         result = self.round_by_click_area('式舆防卫战', '奖励入口')
         if result.is_success:
             return self.round_wait(result.status, wait=0.5)
