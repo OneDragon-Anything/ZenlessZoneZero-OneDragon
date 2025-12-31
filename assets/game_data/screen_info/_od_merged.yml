@@ -6753,10 +6753,10 @@
   - area_name: 积分行-1
     id_mark: false
     pc_rect:
-    - 170
-    - 440
+    - 120
+    - 410
     - 1050
-    - 490
+    - 470
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -7171,6 +7171,20 @@
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 剧变节点5/5
+    id_mark: false
+    pc_rect:
+    - 529
+    - 846
+    - 641
+    - 945
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: shiyu_defense
+    template_id: critical_node
     template_match_threshold: 0.7
     color_range: null
     goto_list: []

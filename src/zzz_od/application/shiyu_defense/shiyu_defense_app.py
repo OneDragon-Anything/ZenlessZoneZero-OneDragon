@@ -124,8 +124,13 @@ class ShiyuDefenseApp(ZApplication):
             if i > idx:
                 for j in range(1, i):
                     self.run_record.add_node_finished(j)
-                return self.round_wait(result2.status, wait=1)
-            break
+            return self.round_wait(result2.status, wait=1)
+
+        # 如果没有找到任何可挑战节点，检查是否已全部完成（剧变节点5/5）
+        result3 = self.round_by_find_area(self.last_screenshot, '式舆防卫战', '剧变节点5/5')
+        if result3.is_success:
+            log.info('检测到式舆防卫战已完成')
+            return self.round_success(ShiyuDefenseApp.STATUS_ALL_FINISHED)
 
         area = self.ctx.screen_loader.get_area('式舆防卫战', '节点区域')
         start_point = area.rect.center
