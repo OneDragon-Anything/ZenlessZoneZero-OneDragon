@@ -6767,10 +6767,10 @@
   - area_name: 积分行-2
     id_mark: false
     pc_rect:
-    - 170
-    - 670
+    - 120
+    - 640
     - 1050
-    - 720
+    - 690
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -6781,10 +6781,10 @@
   - area_name: 积分行-3
     id_mark: false
     pc_rect:
-    - 170
-    - 900
-    - 1050
-    - 950
+    - 120
+    - 870
+    - 1055
+    - 925
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
