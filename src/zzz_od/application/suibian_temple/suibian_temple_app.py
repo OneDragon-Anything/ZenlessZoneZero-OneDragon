@@ -181,11 +181,13 @@ class SuibianTempleApp(ZApplication):
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='处理德丰大押')
     def handle_pawnshop(self) -> OperationRoundResult:
-        if self.config.pawnshop_crest_enabled or self.config.pawnshop_omnicoin_enabled:
-            op = SuibianTemplePawnshop(self.ctx)
-            return self.round_by_op_result(op.execute())
-        else:
-            return self.round_success(status='未开启')
+        # TODO: 需要于02/15删掉
+        # if self.config.pawnshop_crest_enabled or self.config.pawnshop_omnicoin_enabled:
+        #     op = SuibianTemplePawnshop(self.ctx)
+        #     return self.round_by_op_result(op.execute())
+        # else:
+        #     return self.round_success(status='未开启')
+        return self.round_success(status='未开启')
 
     @node_from(from_name='处理德丰大押')
     @operation_node(name='完成后返回')
