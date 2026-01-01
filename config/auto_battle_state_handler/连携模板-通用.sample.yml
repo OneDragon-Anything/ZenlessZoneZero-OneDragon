@@ -2,27 +2,10 @@
 handlers:
   - states: "![自定义-连携跳过, 0, 3]"
     sub_handlers:
-    - states: "[自定义-琉音-连携转终结技,0,99] & [前台-琉音]"
-      debug_name: "是送客时间呢"
-      sub_handlers:
-        - states: "[连携技-1-命破] | [连携技-1-强攻]"
-          operations:
-          - operation_template: "连携-左"
-        - states: "[连携技-2-命破] | [连携技-2-强攻]"
-          operations:
-          - operation_template: "连携-右"
-        - states: "[连携技-1-支援] | [连携技-1-异常]"
-          operations:
-          - operation_template: "连携-左"
-        - states: "[连携技-2-支援] | [连携技-2-异常]"
-          operations:
-          - operation_template: "连携-右"
-        - states: ""
-          operations:
-          - operation_template: "连携-左"
+    - state_template: "琉音-送客连携"
+    - state_template: "叶瞬光-失衡决策"
 
     - state_template: "连携模板-前置角色"
-
     - states: "[前台-仪玄]"
       sub_handlers:
         - state_template: "连携模板-跳过"

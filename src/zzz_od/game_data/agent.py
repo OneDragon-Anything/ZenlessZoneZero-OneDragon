@@ -428,9 +428,9 @@ class AgentEnum(Enum):
                            AgentStateDef('叶瞬光-青溟剑势-红', AgentStateCheckWay.COLOR_RANGE_CONNECT,
                                          template_id='yeshunguang_qingming',
                                          hsv_color=(0, 0, 255), hsv_color_diff=(10, 10, 10),
-                                         connect_cnt=10),
+                                         connect_cnt=2),
                            AgentStateDef('叶瞬光-青溟剑势-白', AgentStateCheckWay.COLOR_RANGE_CONNECT,
                                          template_id='yeshunguang_qingming_ex',
                                          hsv_color=(0, 0, 255), hsv_color_diff=(10, 10, 10),
-                                         connect_cnt=10)
+                                         connect_cnt=2)
                        ])
