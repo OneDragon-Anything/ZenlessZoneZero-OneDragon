@@ -591,11 +591,13 @@ class AutoBattleContext:
                 result_agent_list.append(None)
 
         state_records: list[StateRecord] = []
+        chain_agent_names: set[str] = set()  # 连携技上的角色名称列表
         for i in range(len(result_agent_list)):
             if result_agent_list[i] is None:
                 continue
             state_records.append(StateRecord(f'连携技-{i + 1}-{result_agent_list[i].agent_name}', screenshot_time))
             state_records.append(StateRecord(f'连携技-{i + 1}-{result_agent_list[i].agent_type.value}', screenshot_time))
+            chain_agent_names.add(result_agent_list[i].agent_name)
 
         if len(state_records) > 0:
             # 有其中一个能识别时 另一个不能识别的就是邦布
@@ -606,6 +608,20 @@ class AutoBattleContext:
 
             state_records.append(StateRecord(BattleStateEnum.STATUS_CHAIN_READY.value, screenshot_time))
             self.state_record_service.batch_update_states(state_records)
+
+            # 检查前台角色是否在连携技列表中，如果是则切换到第一个不在连携技列表中的后台角色
+            team_info = self.agent_context.team_info
+            if team_info.agent_list and len(team_info.agent_list) > 0:
+                front_agent = team_info.agent_list[0].agent
+                if front_agent and front_agent.agent_name in chain_agent_names:
+                    # 前台角色在连携技列表中，找到第一个不在连携技列表中的后台角色
+                    for i in range(1, len(team_info.agent_list)):
+                        back_agent = team_info.agent_list[i].agent
+                        if back_agent and back_agent.agent_name not in chain_agent_names:
+                            # 切换到这个后台角色
+                            log.info(f'前台角色 {front_agent.agent_name} 在连携技中，切换到 {back_agent.agent_name}')
+                            self.switch_by_name(back_agent.agent_name)
+                            break
 
     def _match_chain_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
         """
