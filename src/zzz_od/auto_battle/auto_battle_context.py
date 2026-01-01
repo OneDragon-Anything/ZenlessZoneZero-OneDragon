@@ -572,10 +572,14 @@ class AutoBattleContext:
 
         possible_agents = self.agent_context.get_possible_agent_list()
 
+        # 连携技角色识别
         result_agent_list: list[Agent | None] = []
         future_list: list[Future] = []
         future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c1, possible_agents))
         future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c2, possible_agents))
+
+        # 连携条检测（独立运行，结果在方法内部处理）
+        _battle_state_check_executor.submit(self._check_chain_bar, screen, screenshot_time)
 
         for future in future_list:
             try:
@@ -625,6 +629,35 @@ class AutoBattleContext:
                         return agent
 
         return None
+
+    def _check_chain_bar(self, screen: MatLike, screenshot_time: float) -> bool:
+        """
+        检测连携条的轮廓
+        :return: 是否检测到轮廓
+        """
+        try:
+            # 运行连携条的CV流水线
+            cv_result = self.ctx.cv_service.run_pipeline(
+                '战斗-连携条',
+                screen,
+                debug_mode=False,
+                start_time=screenshot_time,
+                timeout=1.0
+            )
+
+            # 检查是否有轮廓
+            if cv_result is not None and cv_result.is_success and len(cv_result.contours) > 0:
+                # 更新状态"连携技-准备"
+                self.state_record_service.update_state(
+                    StateRecord('连携技-准备', screenshot_time)
+                )
+                return True
+            else:
+                # 没有检测到轮廓，不更新状态
+                return False
+        except Exception:
+            log.error('检测连携条轮廓失败', exc_info=True)
+            return False
 
     def check_quick_assist(self, screen: MatLike, screenshot_time: float) -> None:
         """

@@ -91,6 +91,16 @@ scenes:
         sub_handlers:
           - state_template: "连携模板-通用"
 
+  - triggers: ["连携技-准备"]
+    priority: 97
+    interval: 1
+    handlers:
+      - states: "[连携技-准备]"
+        debug_name: "连携技马上要来了"
+        operations:
+          - op_name: "等待秒数"
+            seconds: 0.1
+
   - triggers: ["按键可用-快速支援"]
     priority: 97
     interval: 1

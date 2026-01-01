@@ -110,6 +110,9 @@ class AutoBattleStateRecordService(StateRecordService):
         for i in range(1, 3):
             event_ids.append(f'连携技-{i}-邦布')
 
+        # 添加连携条状态
+        event_ids.append('连携技-准备')
+
         # 添加目标状态 (V10: 从数据定义中动态获取)
         for task in DETECTION_TASKS:
             if not task.enabled:
