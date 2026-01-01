@@ -1,5 +1,3 @@
-from typing import Optional
-
 import cv2
 import numpy as np
 from cv2.typing import MatLike
@@ -15,7 +13,7 @@ class MssScreencapper(ScreencapperBase):
 
     def __init__(self, game_win: PcGameWindow, standard_width: int, standard_height: int):
         ScreencapperBase.__init__(self, game_win, standard_width, standard_height)
-        self.mss_instance: Optional[MSSBase] = None
+        self.mss_instance: MSSBase | None = None
 
     def init(self) -> bool:
         """初始化 MSS 截图方法
@@ -31,7 +29,7 @@ class MssScreencapper(ScreencapperBase):
         except Exception:
             return False
 
-    def capture(self, rect: Rect, independent: bool = False) -> Optional[MatLike]:
+    def capture(self, rect: Rect, independent: bool = False) -> MatLike | None:
         """截图 如果分辨率和默认不一样则进行缩放
 
         Args:

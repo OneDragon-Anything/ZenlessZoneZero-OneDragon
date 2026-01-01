@@ -11,6 +11,7 @@ from one_dragon.base.geometry.rectangle import Rect
 # WinAPI / GDI constants
 SRCCOPY = 0x00CC0020
 
+
 class BitBltScreencapper(GdiScreencapperBase):
     """使用 BitBlt API 直接截取窗口区域的策略"""
 

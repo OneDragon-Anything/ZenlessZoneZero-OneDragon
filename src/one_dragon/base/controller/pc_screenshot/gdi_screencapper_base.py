@@ -182,7 +182,6 @@ class GdiScreencapperBase(ScreencapperBase):
         Args:
             width: 位图宽度
             height: 位图高度
-            hwndDC: 窗口设备上下文
 
         Returns:
             是否创建成功

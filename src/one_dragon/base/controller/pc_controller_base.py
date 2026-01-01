@@ -132,7 +132,7 @@ class PcControllerBase(ControllerBase):
             self.keyboard_controller.keyboard.release(keyboard.Key.alt)
         return True
 
-    def get_screenshot(self, independent: bool = False) -> MatLike:
+    def get_screenshot(self, independent: bool = False) -> MatLike | None:
         if self.is_game_window_ready:
             return self.screenshot_controller.get_screenshot(independent)
         else:

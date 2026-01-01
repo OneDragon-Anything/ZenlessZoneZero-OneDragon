@@ -87,6 +87,14 @@ class PcScreenshotController:
         Returns:
             成功初始化的方法名称，全部失败返回 None
         """
+        # 如果请求的方法与当前活动策略相同，跳过重新初始化
+        if (
+            self.active_strategy_name is not None
+            and method != ScreenshotMethodEnum.AUTO.value
+            and method == self.active_strategy_name
+        ):
+            return self.active_strategy_name
+
         self.cleanup_resources()
 
         methods_to_try = self._get_method_priority_list(method)
