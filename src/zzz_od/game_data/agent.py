@@ -254,7 +254,7 @@ class AgentEnum(Enum):
                      state_list=[AgentStateDef('青衣-电压', AgentStateCheckWay.BACKGROUND_GRAY_RANGE_LENGTH,
                                                template_id='qingyi', lower_color=0, upper_color=70)])
 
-    JANE_DOE = Agent('jane_doe', '简', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['jane_doe', 'jane_doe_rippling_light_nocturne'],
+    JANE_DOE = Agent('jane_doe', '简', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['jane_doe', 'jane_doe_nocturne_of_light'],
                      state_list=[AgentStateDef('简-萨霍夫跳', AgentStateCheckWay.COLOR_RANGE_EXIST,
                                                template_id='jane_attack', lower_color=(100, 20, 20), upper_color=(255, 255, 255), connect_cnt=20),
                                  AgentStateDef('简-狂热心流', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
@@ -420,7 +420,7 @@ class AgentEnum(Enum):
                                    max_length=100)
                  ])
 
-    YESHUNGUANG = Agent('yeshunguang', '叶瞬光', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.PHYSICAL, ['yeshunguang', 'yeshunguang_warm_sunset_glow'],
+    YESHUNGUANG = Agent('yeshunguang', '叶瞬光', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.PHYSICAL, ['yeshunguang', 'yeshunguang_touch_of_dawnlight'],
                        state_list=[
                            AgentStateDef('叶瞬光-常态', AgentStateCheckWay.TEMPLATE_FOUND,
                                          template_id='yeshunguang_normal', min_value_trigger_state=0,
