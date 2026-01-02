@@ -2,7 +2,6 @@ import logging
 import threading
 from enum import Enum
 from functools import cached_property
-from typing import Optional
 
 from pynput import keyboard
 
@@ -66,7 +65,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             )
         )
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
-        self.controller: Optional[ControllerBase] = None
+        self.controller: ControllerBase | None = None
 
         self.keyboard_controller = keyboard.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
@@ -288,6 +287,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         @return:
         """
         self.btn_listener.stop()
+        if self.controller is not None:
+            self.controller.cleanup_after_app_shutdown()
         self.one_dragon_config.clear_temp_instance_indices()
         ContextEventBus.after_app_shutdown(self)
         OneDragonEnvContext.after_app_shutdown(self)

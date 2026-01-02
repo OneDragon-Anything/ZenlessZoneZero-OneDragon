@@ -1,21 +1,28 @@
 template_name: "琉音-好评套路"
 handlers:
-  - states: ""
-    interrupt_states: "![琉音-特殊技可用] | [自定义-琉音-投诉]{6,99}"
+  - states: "[琉音-特殊技可用] & ![琉音-好评]{90, 120}"
+    interrupt_states: "![琉音-特殊技可用] | ![前台-琉音]"
     sub_handlers:
-      - states: "[琉音-能量]{75, 120} & ![自定义-琉音-投诉]{3,999}"
+      - states: "[琉音-能量]{75, 120}"
         debug_name: "能量都要溢出了"
         operations:
           - op_name: "按键-切换角色"
             agent_name: "琉音"
           - operation_template: "琉音-找投诉"
+          - operation_template: "琉音-找投诉"
+          - operation_template: "琉音-找投诉"
 
       - states: "[自定义-琉音-投诉]{1,1} & [琉音-能量]{50, 120}"
         debug_name: "恶意投诉差2个"
         operations:
+          - op_name: "按键-切换角色"
+            agent_name: "琉音"
+          - operation_template: "琉音-找投诉"
           - operation_template: "琉音-找投诉"
 
       - states: "[自定义-琉音-投诉]{2,2} & [琉音-能量]{25, 120}"
         debug_name: "恶意投诉差1个"
         operations:
+          - op_name: "按键-切换角色"
+            agent_name: "琉音"
           - operation_template: "琉音-找投诉"

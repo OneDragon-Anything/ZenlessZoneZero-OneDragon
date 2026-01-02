@@ -41,7 +41,7 @@ class CityFundApp(ZApplication):
         if result.is_success:
             return self.round_wait(status=result.status, wait=1)
 
-        result = self.round_by_find_and_click_area(self.last_screenshot, '丽都城募', '按钮-已关闭-确认')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '丽都城募', '按钮-确认')
         if result.is_success:
             return self.round_success(status=result.status, wait=1)
 
@@ -67,7 +67,7 @@ class CityFundApp(ZApplication):
         return self.round_by_find_and_click_area(self.last_screenshot, '丽都城募', '等级-全部领取',
                                                  success_wait=1, retry_wait=1)
 
-    @node_from(from_name='点击成长任务', status='按钮-已关闭-确认')
+    @node_from(from_name='点击成长任务', status='按钮-确认')
     @node_from(from_name='等级全部领取')
     @node_from(from_name='等级全部领取', success=False)
     @operation_node(name='返回大世界')

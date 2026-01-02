@@ -22,12 +22,10 @@ handlers:
       - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
         debug_name: "切人后等待"
         sub_handlers:
-          - states: "[按键可用-快速支援, 0, 0.5]"
+          - states: "[按键可用-快速支援, 0, 0.3]"
             operations:
-              - op_name: "设置状态"
-                state: "[自定义-艾莲-快速蓄力]"
               - op_name: "等待秒数"
-                seconds: 1.0
+                seconds: 0.3
           - states: ""
             operations:
               - op_name: "等待秒数"
@@ -43,29 +41,34 @@ handlers:
               - operation_template: "艾莲-终结技"
 
           # 失衡阶段 EE2连
-          - states: "[艾莲-能量]{80, 120}"
+          - states: "[艾莲-特殊技可用]"
             operations:
-              - operation_template: "艾莲-新双E连招"
+              - operation_template: "艾莲-EA连击"
 
       # 非失衡时刻，就是鲨鱼妹的站场时间
       - states: ""
         debug_name: "非失衡期间"
         sub_handlers:
-          # 失衡阶段 EE2连
-          - states: "[艾莲-能量]{120, 120}"
-            operations:
-              - operation_template: "艾莲-新双E连招"
+          - states: "[艾莲-急冻充能]{0,2}"
+            interrupt_states: "[艾莲-急冻充能]{3,6}"
+            sub_handlers:
+              - states: "[自定义-艾莲-正在打普攻,0,10]"
+                debug_name: "普攻收个尾"
+                operations:
+                  - op_name: "清除状态"
+                    state: "自定义-艾莲-正在打普攻"
+                  - op_name: "按键-普通攻击"
+                    post_delay: 0.1
+                    repeat: 20
 
-          # 快速
-          - states: "[自定义-艾莲-快速蓄力,0,12]"
-            operations:
-              - operation_template: "艾莲-新冲刺剪刀一套快速"
-              # 清除状态
-              - op_name: "清除状态"
-                state: "[自定义-艾莲-快速蓄力]"
+              - states: "![自定义-艾莲-正在打普攻]"
+                operations:
+                  - operation_template: "艾莲-冲刺蓄力攻击-慢"
 
-          # 慢速
-          - states: ""
-            debug_name: "没有快速蓄力"
+          - states: "[艾莲-急冻充能]{3,6}"
+            interrupt_states: "[艾莲-急冻充能]{0,0}"
+            debug_name: "打普通攻击啦"
             operations:
-              - operation_template: "艾莲-新冲刺剪刀一套慢速"
+              - op_name: "设置状态"
+                state: "自定义-艾莲-正在打普攻"
+              - operation_template: "艾莲-普通攻击"

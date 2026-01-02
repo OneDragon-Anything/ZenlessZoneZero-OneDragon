@@ -47,9 +47,11 @@ class ChargePlanSettingDialog(AppSettingDialog):
         self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启时 自动跳过体力不足的计划')
         self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt], spacing=6))
 
-        self.coupon_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='使用家政券', content='运行区域巡防时使用家政券')
+        # 2.5版本已移除家政券功能，暂时关闭UI
+        # self.coupon_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='使用家政券', content='运行区域巡防时使用家政券')
         self.restore_charge_opt = ComboBoxSettingCard(icon=FluentIcon.ADD_TO, title='恢复电量', options_enum=RestoreChargeEnum)
-        self.content_widget.add_widget(HorizontalSettingCardGroup([self.coupon_opt, self.restore_charge_opt], spacing=6))
+        # self.content_widget.add_widget(HorizontalSettingCardGroup([self.coupon_opt, self.restore_charge_opt], spacing=6))
+        self.content_widget.add_widget(self.restore_charge_opt)
 
         self.cancel_btn = PushButton(icon=FluentIcon.CANCEL, text=gt('撤销'))
         self.cancel_btn.setEnabled(False)
@@ -93,7 +95,7 @@ class ChargePlanSettingDialog(AppSettingDialog):
 
         self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
         self.skip_plan_opt.init_with_adapter(get_prop_adapter(self.config, 'skip_plan'))
-        self.coupon_opt.init_with_adapter(get_prop_adapter(self.config, 'use_coupon'))
+        # self.coupon_opt.init_with_adapter(get_prop_adapter(self.config, 'use_coupon'))  # 2.4版本已移除家政券功能
         self.restore_charge_opt.init_with_adapter(get_prop_adapter(self.config, 'restore_charge'))
 
     def update_plan_list_display(self):

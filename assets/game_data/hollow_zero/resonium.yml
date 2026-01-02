@@ -175,6 +175,10 @@
   level: "N"
 
 - category: "契合"
+  name: "未凌绝顶"
+  level: "N"
+
+- category: "契合"
   name: "强攻战术交流"
   level: "N"
 
@@ -197,6 +201,62 @@
 - category: "契合"
   name: "命破战术交流"
   level: "N"
+
+- category: "顽强"
+  name: "指南针"
+  level: "SS"
+
+- category: "顽强"
+  name: "求救对讲机"
+  level: "SS"
+
+- category: "顽强"
+  name: "引路明灯"
+  level: "S"
+
+- category: "顽强"
+  name: "求救箱"
+  level: "S"
+
+- category: "顽强"
+  name: "求生之火"
+  level: "S"
+
+- category: "顽强"
+  name: "防切割手套"
+  level: "A"
+
+- category: "顽强"
+  name: "军用水壶"
+  level: "A"
+
+- category: "顽强"
+  name: "塞牙罐头"
+  level: "A"
+
+- category: "顽强"
+  name: "高压绝缘靴"
+  level: "A"
+
+- category: "顽强"
+  name: "聚合徽标"
+  level: "A"
+
+- category: "顽强"
+  name: "荒野地图"
+  level: "B"
+
+- category: "顽强"
+  name: "求生工具箱"
+  level: "B"
+
+- category: "顽强"
+  name: "应急手电"
+  level: "B"
+
+- category: "顽强"
+  name: "防寒睡袋"
+  level: "B"
 
 - category: "邦布"
   name: "鲨牙布"
@@ -1216,60 +1276,4 @@
 
 - category: "以太"
   name: "停滞限时器"
-  level: "B"
-
-- category: "顽强"
-  name: "指南针"
-  level: "SS"
-
-- category: "顽强"
-  name: "求救对讲机"
-  level: "SS"
-
-- category: "顽强"
-  name: "引路明灯"
-  level: "S"
-
-- category: "顽强"
-  name: "求救箱"
-  level: "S"
-
-- category: "顽强"
-  name: "求生之火"
-  level: "S"
-
-- category: "顽强"
-  name: "防切割手套"
-  level: "A"
-
-- category: "顽强"
-  name: "军用水壶"
-  level: "A"
-
-- category: "顽强"
-  name: "塞牙罐头"
-  level: "A"
-
-- category: "顽强"
-  name: "高压绝缘靴"
-  level: "A"
-
-- category: "顽强"
-  name: "聚合徽标"
-  level: "A"
-
-- category: "顽强"
-  name: "荒野地图"
-  level: "B"
-
-- category: "顽强"
-  name: "求生工具箱"
-  level: "B"
-
-- category: "顽强"
-  name: "应急手电"
-  level: "B"
-
-- category: "顽强"
-  name: "防寒睡袋"
   level: "B"
