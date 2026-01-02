@@ -157,6 +157,9 @@ class PcControllerBase(ControllerBase):
         if pos is None:
             pos = get_current_mouse_pos()
         win_pos = self.game_win.game2win_pos(pos)
+        if win_pos is None:
+            log.error('滚动位置不在游戏窗口区域 (%s)', pos)
+            return
         win_scroll(down, win_pos)
 
     def drag_to(self, end: Point, start: Point = None, duration: float = 0.5):
@@ -172,8 +175,14 @@ class PcControllerBase(ControllerBase):
             from_pos = get_current_mouse_pos()
         else:
             from_pos = self.game_win.game2win_pos(start)
+            if from_pos is None:
+                log.error('拖拽起点不在游戏窗口区域 (%s)', start)
+                return
 
         to_pos = self.game_win.game2win_pos(end)
+        if to_pos is None:
+            log.error('拖拽终点不在游戏窗口区域 (%s)', end)
+            return
         drag_mouse(from_pos, to_pos, duration=duration)
 
     def close_game(self):
@@ -181,8 +190,11 @@ class PcControllerBase(ControllerBase):
         关闭游戏
         :return:
         """
+        win = self.game_win.get_win()
+        if win is None:
+            return
         try:
-            self.game_win.get_win().close()
+            win.close()
             log.info('关闭游戏成功')
         except Exception:
             log.error('关闭游戏失败', exc_info=True)

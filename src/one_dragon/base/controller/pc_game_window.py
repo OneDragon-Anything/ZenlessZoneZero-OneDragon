@@ -153,9 +153,9 @@ class PcGameWindow:
         :return: 当前分辨率下的游戏窗口里坐标
         """
         win = self.get_win()
-        if win is None:
-            return None
         rect = self.win_rect
+        if win is None or rect is None:
+            return None
         xs = 1 if rect.width == self.standard_width else rect.width * 1.0 / self.standard_width
         ys = 1 if rect.height == self.standard_height else rect.height * 1.0 / self.standard_height
         s_pos = Point(game_pos.x * xs, game_pos.y * ys)
@@ -181,6 +181,6 @@ class PcGameWindow:
         rect = self.win_rect
         if rect is None:
             return None
-        gp: Point = self.get_scaled_game_pos(game_pos)
+        gp: Point | None = self.get_scaled_game_pos(game_pos)
         # 缺少一个屏幕边界判断 游戏窗口拖动后可能会超出整个屏幕
         return rect.left_top + gp if gp is not None else None
