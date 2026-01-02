@@ -1,6 +1,7 @@
 import ctypes
-from cv2.typing import MatLike
 from typing import Optional
+
+from cv2.typing import MatLike
 
 from one_dragon.base.controller.pc_controller_base import PcControllerBase
 from one_dragon.utils import cv2_utils
@@ -14,13 +15,11 @@ class ZPcController(PcControllerBase):
     def __init__(
             self,
             game_config: GameConfig,
-            win_title: str,
             screenshot_method: str,
             standard_width: int = 1920,
             standard_height: int = 1080
     ):
         PcControllerBase.__init__(self,
-                                  win_title=win_title,
                                   screenshot_method=screenshot_method,
                                   standard_width=standard_width,
                                   standard_height=standard_height)

@@ -32,15 +32,14 @@ class PcControllerBase(ControllerBase):
     MOUSEEVENTF_LEFTDOWN = 0x0002
     MOUSEEVENTF_LEFTUP = 0x0004
 
-    def __init__(self, win_title: str,
+    def __init__(self,
                  screenshot_method: str,
                  standard_width: int = 1920,
                  standard_height: int = 1080):
         ControllerBase.__init__(self)
         self.standard_width: int = standard_width
         self.standard_height: int = standard_height
-        self.game_win: PcGameWindow = PcGameWindow(win_title,
-                                                   standard_width=standard_width, standard_height=standard_height)
+        self.game_win: PcGameWindow = PcGameWindow(standard_width, standard_height)
 
         self.keyboard_controller: KeyboardMouseController = KeyboardMouseController()
         self.xbox_controller: XboxButtonController | None = None
@@ -81,6 +80,13 @@ class PcControllerBase(ControllerBase):
         """
         self.game_win.init_win()
         self.game_win.active()
+
+    def set_window_title(self, new_title: str) -> None:
+        """
+        设置窗口标题
+        :param new_title: 新的窗口标题
+        """
+        self.game_win.update_win_title(new_title)
 
     def enable_xbox(self):
         if pc_button_utils.is_vgamepad_installed():
@@ -134,6 +140,9 @@ class PcControllerBase(ControllerBase):
 
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
         if self.is_game_window_ready:
+            # 确保截图器已初始化
+            if not independent and self.screenshot_controller.active_strategy_name is None:
+                self.screenshot_controller.init_screenshot(self.screenshot_method)
             return self.screenshot_controller.get_screenshot(independent)
         else:
             raise RuntimeError('游戏窗口未就绪')
