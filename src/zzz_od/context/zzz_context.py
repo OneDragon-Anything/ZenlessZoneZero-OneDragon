@@ -158,6 +158,9 @@ class ZContext(OneDragonContext):
         from zzz_od.application.commission_assistant.commission_assistant_app_factory import (
             CommissionAssistantAppFactory,
         )
+        from zzz_od.application.commission_processing.commission_processing_app_factory import (
+            CommissionProcessingAppFactory,
+        )
         from zzz_od.application.devtools.screenshot_helper.screenshot_helper_app_factory import (
             ScreenshotHelperAppFactory,
         )
@@ -256,6 +259,7 @@ class ZContext(OneDragonContext):
                 WorldPatrolAppFactory(self),
                 LifeOneLineAppFactory(self),
                 ShiyuDefenseAppFactory(self),
+                CommissionProcessingAppFactory(self),
             ],
             default_group=True,
         )
