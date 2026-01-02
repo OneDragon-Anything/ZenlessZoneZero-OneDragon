@@ -120,6 +120,7 @@ scenes:
 
   - triggers: ["自定义-合轴时间"]
     priority: 80
+    interval: 0.2
     handlers:
       # 这边是主线程的动作流程中，设置了状态速切结束，代表可以尝试进行合轴，如果有角色满足出场条件，就会进行合轴。
       # 具体合轴情况打开状态模板看条件
@@ -129,6 +130,7 @@ scenes:
 
   - triggers: []
     priority: 9
+    interval: 0.02
     handlers:
       # # 调试状态用
       # - states: ""

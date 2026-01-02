@@ -160,6 +160,21 @@ handlers:
                   - op_name: "按键-切换角色"
                     agent_name: "扳机"
 
+              - states: "[后台-浮波柚叶] & ![自定义-浮波柚叶-狸之愿, 0, 40]"
+                debug_name: "柚叶补BUFF"
+                sub_handlers:
+                  - states: "[浮波柚叶-特殊技可用]"
+                    operations:
+                    - op_name: "按键-切换角色"
+                      agent_name: "浮波柚叶"
+                    - operation_template: "浮波柚叶-强化特殊技合轴"
+
+                  - states: "[浮波柚叶-终结技可用]"
+                    operations:
+                    - op_name: "按键-切换角色"
+                      agent_name: "浮波柚叶"
+                    - operation_template: "浮波柚叶-终结技"
+
               - states: "![前台-丽娜] & [丽娜-能量]{60, 120} & ![自定义-丽娜-人偶, -30, 0]"
                 debug_name: "丽娜召唤人偶"
                 operations:
