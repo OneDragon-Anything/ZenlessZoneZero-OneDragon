@@ -1,5 +1,3 @@
-from typing import Optional
-
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -14,7 +12,7 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 class TransportByCompendium(ZOperation):
 
-    def __init__(self, ctx: ZContext, tab_name: str, category_name: str, mission_type_name: Optional[str] = None):
+    def __init__(self, ctx: ZContext, tab_name: str, category_name: str, mission_type_name: str | None = None):
         """
         使用快捷手册传送 最后不会等待加载完毕
         :param ctx:
@@ -30,7 +28,7 @@ class TransportByCompendium(ZOperation):
 
         self.tab_name: str = tab_name
         self.category_name: str = category_name
-        self.mission_type_name: Optional[str] = mission_type_name
+        self.mission_type_name: str | None = mission_type_name
 
         if self.mission_type_name == '自定义模板':  # 没法直接传送到自定义
             self.mission_type_name = '基础材料'
