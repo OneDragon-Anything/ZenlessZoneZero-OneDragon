@@ -24,7 +24,7 @@ from zzz_od.auto_battle.auto_battle_state_record_service import (
     AutoBattleStateRecordService,
 )
 from zzz_od.auto_battle.auto_battle_target_context import AutoBattleTargetContext
-from zzz_od.game_data.agent import Agent
+from zzz_od.game_data.agent import Agent, AgentEnum
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
@@ -67,6 +67,7 @@ class AutoBattleContext:
         self._last_check_quick_time: float = 0
         self._last_check_end_time: float = 0
         self._last_check_distance_time: float = 0
+        self._last_chain_front_correction_time: float = 0  # 上一次连携前台角色修正的时间
 
         # 识别结果
         self.last_check_in_battle: bool = False  # 是否在战斗画面
@@ -184,6 +185,7 @@ class AutoBattleContext:
         self._last_check_quick_time: float = 0
         self._last_check_end_time: float = 0
         self._last_check_distance_time: float = 0
+        self._last_chain_front_correction_time: float = 0  # 上一次连携前台角色修正的时间
 
         # 识别结果
         self.last_check_end_result: str | None = None  # 识别战斗结束的结果
@@ -609,17 +611,33 @@ class AutoBattleContext:
             state_records.append(StateRecord(BattleStateEnum.STATUS_CHAIN_READY.value, screenshot_time))
             self.state_record_service.batch_update_states(state_records)
 
-            # 检查前台角色是否在连携技列表中，如果是则切换到第一个不在连携技列表中的后台角色
-            team_info = self.agent_context.team_info
-            if team_info.agent_list and len(team_info.agent_list) > 0:
-                front_agent = team_info.agent_list[0].agent
-                if front_agent and front_agent.agent_name in chain_agent_names:
-                    # 前台角色在连携技列表中，找到第一个不在连携技列表中的后台角色
+            # 检查连携前台角色修正冷却（避免切人过程中重复检测导致误判）
+            if screenshot_time - self._last_chain_front_correction_time < 1.0:
+                return
+            
+            # 记录本次检测时间，无论是否需要切换都进入冷却
+            self._last_chain_front_correction_time = screenshot_time
+            
+            # 从状态记录系统获取当前前台角色（与UI显示保持一致）
+            front_agent_name = None
+            for agent_enum in AgentEnum:
+                agent_name = agent_enum.value.agent_name
+                state_name = f'前台-{agent_name}'
+                recorder = self.state_record_service.get_state_recorder(state_name)
+                if recorder is not None and recorder.last_record_time > 0:
+                    front_agent_name = agent_name
+                    break
+            
+            # 检查前台角色是否在连携技列表中
+            if front_agent_name and front_agent_name in chain_agent_names:
+                # 前台角色在连携技列表中，找到第一个不在连携技列表中的后台角色
+                team_info = self.agent_context.team_info
+                if team_info.agent_list and len(team_info.agent_list) > 0:
                     for i in range(1, len(team_info.agent_list)):
                         back_agent = team_info.agent_list[i].agent
                         if back_agent and back_agent.agent_name not in chain_agent_names:
                             # 切换到这个后台角色
-                            log.info(f'前台角色 {front_agent.agent_name} 在连携技中，切换到 {back_agent.agent_name}')
+                            log.info(f'前台角色 {front_agent_name} 在连携技中，切换到 {back_agent.agent_name}')
                             self.switch_by_name(back_agent.agent_name)
                             break
 

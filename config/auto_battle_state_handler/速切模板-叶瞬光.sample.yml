@@ -33,16 +33,16 @@ handlers:
         debug_name: "切人后等待"
         sub_handlers:
           - states: "[叶瞬光-常态]{1,1} & [叶瞬光-青溟剑势-红]{6,6}"
-            interrupt_states: "[叶瞬光-常态]{0,0}"
+            interrupt_states: "[叶瞬光-青溟剑势-白]{6,6}"
             debug_name: "自动变身"
             operations:
               - op_name: "设置状态"
                 state: "自定义-无视闪光"
                 seconds: 15
-              - op_name: "等待秒数"
-                seconds: 2
               - op_name: "设置状态"
                 state: "自定义-叶瞬光-在天"
+              - op_name: "等待秒数"
+                seconds: 2
 
           - states: "[叶瞬光-常态]{0,0}"
             interrupt_states: "[叶瞬光-常态]{1,1}"
@@ -111,8 +111,8 @@ handlers:
                 state: "自定义-叶瞬光-在地"
               - operation_template: "叶瞬光-飞天连段"
 
-          - states: "[叶瞬光-青溟剑势-白]{6,6} | [自定义-叶瞬光-在天]"
-            interrupt_states: "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-能量]{0,20}"
+          - states: "[叶瞬光-青溟剑势-白]{6,6} & [叶瞬光-能量]{100,120} | [自定义-叶瞬光-在天]"
+            interrupt_states: "[叶瞬光-能量]{0,20} | [叶瞬光-能量]{115,120}"
             operations:
               - op_name: "清除状态"
                 state: "自定义-叶瞬光-在天"
