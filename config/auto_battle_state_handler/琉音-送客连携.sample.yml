@@ -1,0 +1,39 @@
+template_name: "琉音-好评套路"
+handlers:
+    # 琉音在后台，客诉为0且好评90-120时，优先点琉音连携
+    - states: "[后台-琉音] & [琉音-客诉]{0, 0} & [琉音-好评]{90, 120}"
+      debug_name: "后台琉音送客"
+      sub_handlers:
+        - states: "[连携技-1-琉音]"
+          debug_name: "点琉音-左"
+          operations:
+            - operation_template: "连携-左"
+            - op_name: "设置状态"
+              state: "自定义-失衡时间"
+
+        - states: "[连携技-2-琉音]"
+          debug_name: "点琉音-右"
+          operations:
+            - operation_template: "连携-右"
+            - op_name: "设置状态"
+              state: "自定义-失衡时间"
+
+    - states: "[自定义-琉音-连携转终结技,0,99] & [前台-琉音]"
+      debug_name: "是送客时间呢"
+      interrupt_states: "![前台-琉音]"
+      sub_handlers:
+        - states: "[连携技-1-命破] | [连携技-1-强攻]"
+          operations:
+          - operation_template: "连携-左"
+        - states: "[连携技-2-命破] | [连携技-2-强攻]"
+          operations:
+          - operation_template: "连携-右"
+        - states: "[连携技-1-支援] | [连携技-1-异常]"
+          operations:
+          - operation_template: "连携-左"
+        - states: "[连携技-2-支援] | [连携技-2-异常]"
+          operations:
+          - operation_template: "连携-右"
+        - states: ""
+          operations:
+          - operation_template: "连携-左"

@@ -1,7 +1,6 @@
 import time
 
 from cv2.typing import MatLike
-from typing import List
 
 from one_dragon.base.geometry.point import Point
 
@@ -21,7 +20,7 @@ class ControllerBase:
         """
         基础控制器的定义
         """
-        self.screenshot_history: List[ScreenshotWithTime] = []
+        self.screenshot_history: list[ScreenshotWithTime] = []
         self.screenshot_alive_seconds: float = screenshot_alive_seconds  # 截图在内存的存活时间
         self.max_screenshot_cnt: int = max_screenshot_cnt  # 内存中最多保持的截图数量
 
@@ -31,6 +30,12 @@ class ControllerBase:
         :return:
         """
         return False
+
+    def cleanup_after_app_shutdown(self) -> None:
+        """
+        清理资源
+        """
+        pass
 
     @property
     def is_game_window_ready(self) -> bool:

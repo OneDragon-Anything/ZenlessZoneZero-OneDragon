@@ -1,7 +1,7 @@
 template_name: "琉音-好评套路"
 handlers:
   - states: "[琉音-特殊技可用] & ![琉音-好评]{90, 120}"
-    interrupt_states: "![琉音-特殊技可用]"
+    interrupt_states: "![琉音-特殊技可用] | ![前台-琉音]"
     sub_handlers:
       - states: "[琉音-能量]{75, 120}"
         debug_name: "能量都要溢出了"

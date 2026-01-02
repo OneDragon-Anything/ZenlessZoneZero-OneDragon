@@ -67,6 +67,15 @@ class EnvSourceEnum(Enum):
     GITEE = ConfigItem('Gitee', 'https://gitee.com/OneDragon-Anything/OneDragon-Env/releases/download')
 
 
+class ScreenshotMethodEnum(Enum):
+
+    AUTO = ConfigItem('自动', 'auto')
+    PRINT_WINDOW = ConfigItem('Print Window', 'print_window')
+    BITBLT = ConfigItem('BitBlt', 'bitblt')
+    MSS = ConfigItem('MSS', 'mss')
+    PIL = ConfigItem('PIL', 'pil')
+
+
 class EnvConfig(YamlConfig):
 
     def __init__(self):
@@ -367,6 +376,17 @@ class EnvConfig(YamlConfig):
         :return:
         """
         self.update('copy_screenshot', new_value)
+
+    @property
+    def screenshot_method(self) -> str:
+        """
+        截图方法
+        """
+        return self.get('screenshot_method', ScreenshotMethodEnum.AUTO.value.value)
+
+    @screenshot_method.setter
+    def screenshot_method(self, new_value: str) -> None:
+        self.update('screenshot_method', new_value)
 
     @property
     def key_start_running(self) -> str:

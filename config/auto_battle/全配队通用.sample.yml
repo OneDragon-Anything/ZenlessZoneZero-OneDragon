@@ -65,7 +65,7 @@ scenes:
     priority: 99
     interval: 0.3
     handlers:
-      - states: "![自定义-无视闪光, -10, 0]"
+      - states: "![自定义-无视闪光, -15, 0]"
         sub_handlers:
           # 这里的动作不打断，代表了动作的无敌时间，一般无敌动作期间，动作是无法打断的，0.3是因为闪光会比伤害先出现0.3秒
           # 正常情况下，黄光进入的判定，一般情况下，按顺序触发
@@ -91,6 +91,16 @@ scenes:
         sub_handlers:
           - state_template: "连携模板-通用"
 
+  - triggers: ["连携技-准备"]
+    priority: 97
+    interval: 1
+    handlers:
+      - states: "[连携技-准备]"
+        debug_name: "连携技马上要来了"
+        operations:
+          - op_name: "等待秒数"
+            seconds: 0.1
+
   - triggers: ["按键可用-快速支援"]
     priority: 97
     interval: 1
@@ -110,6 +120,7 @@ scenes:
 
   - triggers: ["自定义-合轴时间"]
     priority: 80
+    interval: 0.2
     handlers:
       # 这边是主线程的动作流程中，设置了状态速切结束，代表可以尝试进行合轴，如果有角色满足出场条件，就会进行合轴。
       # 具体合轴情况打开状态模板看条件
@@ -119,9 +130,16 @@ scenes:
 
   - triggers: []
     priority: 9
+    interval: 0.02
     handlers:
+      # # 调试状态用
+      # - states: ""
+      #   operations:
+      #     - op_name: "等待秒数"
+      #       seconds: 1
+
       # 刚开始未识别到角色时候不要乱切
-      - states: "![自定义-动作不打断, -10, -0.1]"
+      - states: "![自定义-动作不打断, -10, -0.1] & ![自定义-无视闪光, -15, 0]"
         interrupt_states: "![前台-击破] & ![前台-强攻] & ![前台-支援] & ![前台-防护] & ![前台-异常]& ![前台-命破]"
         sub_handlers:
           - state_template: "自动锁定模板"

@@ -1,0 +1,18 @@
+sub_dir: agent_state
+template_id: yeshunguang_qingming_ex_2_1
+template_name: 角色状态-叶瞬光-青溟剑势白-21
+template_shape: multi_rect
+auto_mask: true
+point_list:
+- 107, 127
+- 110, 131
+- 133, 127
+- 138, 132
+- 160, 127
+- 166, 132
+- 188, 127
+- 193, 131
+- 215, 127
+- 221, 131
+- 243, 127
+- 246, 132

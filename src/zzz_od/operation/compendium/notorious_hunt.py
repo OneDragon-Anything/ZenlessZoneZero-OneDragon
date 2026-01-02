@@ -88,6 +88,21 @@ class NotoriousHunt(ZOperation):
         self.no_dis_times: int = 0  # 识别不到距离的次数
         self.restart_times: int = 0  # 重新开始战斗次数
 
+    def _match_mission_type(self, target_name: str, ocr_result: str) -> bool:
+        """
+        匹配任务类型名称（支持别名双向查找）
+        """
+        names = [target_name]
+        hunt_category = self.ctx.compendium_service.get_category_data('训练', '恶名狩猎')
+        if hunt_category:
+            for mt in hunt_category.mission_type_list:
+                if mt.mission_type_name == target_name or target_name in mt.alias_list:
+                    names.append(mt.mission_type_name)
+                    names.extend(mt.alias_list)
+                    names = list(set(names))
+                    break
+        return any(str_utils.find_by_lcs(gt(n, 'game'), ocr_result, percent=0.5) for n in names)
+
     @operation_node(name='等待入口加载', node_max_retry_times=60)
     def wait_entry_load(self) -> OperationRoundResult:
         r1 = self.round_by_find_area(self.last_screenshot, '恶名狩猎', '当期剩余奖励次数')
@@ -110,8 +125,9 @@ class NotoriousHunt(ZOperation):
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
         ocr_result_map = self.ctx.ocr.run_ocr(part)
         is_target_mission: bool = False  # 当前是否目标副本
+
         for ocr_result in ocr_result_map.keys():
-            if str_utils.find_by_lcs(gt(self.plan.mission_type_name, 'game'), ocr_result, percent=0.5):
+            if self._match_mission_type(self.plan.mission_type_name, ocr_result):
                 is_target_mission = True
                 break
 
@@ -128,17 +144,18 @@ class NotoriousHunt(ZOperation):
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
         ocr_result_map = self.ctx.ocr.run_ocr(part)
+
         for ocr_result, mrl in ocr_result_map.items():
-            if str_utils.find_by_lcs(gt(self.plan.mission_type_name, 'game'), ocr_result, percent=0.5):
+            if self._match_mission_type(self.plan.mission_type_name, ocr_result):
                 to_click = mrl.max.center + area.left_top + Point(0, 100)
                 if self.ctx.controller.click(to_click):
                     return self.round_success(wait=2)
 
         # 未匹配时 判断该往哪边滑动
-        hunt_category = self.ctx.compendium_service.get_category_data('作战', '恶名狩猎')
+        hunt_category = self.ctx.compendium_service.get_category_data('训练', '恶名狩猎')
         with_left: bool = False  # 当前识别有在目标左边的副本
         for mission_type in reversed(hunt_category.mission_type_list):
-            if mission_type.mission_type_name == self.plan.mission_type_name:
+            if self._match_mission_type(self.plan.mission_type_name, mission_type.mission_type_name):
                 break
 
             find: bool = False  # 当前画面有没有识别到 mission_type

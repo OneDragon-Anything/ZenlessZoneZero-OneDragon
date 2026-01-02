@@ -81,18 +81,7 @@ handlers:
     interrupt_states: "[前台-能量, 0, 0.1] & ![前台-琉音] & ([按键-切换角色-下一个, 0.3, 1] | [按键-切换角色-上一个, 0.3, 1])"
     debug_name: "琉音状态检查"
     sub_handlers:
-      - states: "([琉音-客诉]{1, 1} & [琉音-好评]{90, 120} & [自定义-失衡时间, 1, 15])"
-        debug_name: "琉音送客"
-        operations:
-          - op_name: "按键-切换角色"
-            agent_name: "琉音"
-          - op_name: "等待秒数"
-            seconds: 0.5
-          - op_name: "设置状态"
-            state: "自定义-琉音-连携转终结技"
-          - op_name: "清除状态"
-            state: "自定义-琉音-投诉"
-          - operation_template: "琉音-送客(长按强化特殊技)"
+      - state_template: "琉音-送客决策"
       - states: "([琉音-终结技可用] & ![自定义-失衡时间, -10, 12])"
         debug_name: "琉音终结技"
         operations:
@@ -171,6 +160,21 @@ handlers:
                   - op_name: "按键-切换角色"
                     agent_name: "扳机"
 
+              - states: "[后台-浮波柚叶] & ![自定义-浮波柚叶-狸之愿, 0, 40]"
+                debug_name: "柚叶补BUFF"
+                sub_handlers:
+                  - states: "[浮波柚叶-特殊技可用]"
+                    operations:
+                    - op_name: "按键-切换角色"
+                      agent_name: "浮波柚叶"
+                    - operation_template: "浮波柚叶-强化特殊技合轴"
+
+                  - states: "[浮波柚叶-终结技可用]"
+                    operations:
+                    - op_name: "按键-切换角色"
+                      agent_name: "浮波柚叶"
+                    - operation_template: "浮波柚叶-终结技"
+
               - states: "![前台-丽娜] & [丽娜-能量]{60, 120} & ![自定义-丽娜-人偶, -30, 0]"
                 debug_name: "丽娜召唤人偶"
                 operations:
@@ -187,38 +191,62 @@ handlers:
           - states: ""
             debug_name: "紧急补buff"
             sub_handlers:
-            # 挨打了或者没盾了补盾
-            - states: "![前台-凯撒] & [凯撒-特殊技可用] & ([自定义-血量扣减, 0, 3] | ![自定义-凯撒-护盾, 0, 30])"
-              debug_name: "凯撒补盾"
-              operations:
-                - op_name: "按键-切换角色"
-                  agent_name: "凯撒"
-                - op_name: "清除状态"
-                  state_list: ["自定义-血量扣减"]
+              # 挨打了或者没盾了补盾
+              - states: "![前台-凯撒] & [凯撒-特殊技可用] & ([自定义-血量扣减, 0, 3] | ![自定义-凯撒-护盾, 0, 30])"
+                debug_name: "凯撒补盾"
+                operations:
+                  - op_name: "按键-切换角色"
+                    agent_name: "凯撒"
+                  - op_name: "清除状态"
+                    state_list: ["自定义-血量扣减"]
 
-            # 星见雅 有6豆就切过去
-            - states: "[雅-落霜]{6, 6} & ![前台-雅] & ![前台-支援]"
-              debug_name: "雅满豆切入"
-              operations:
-                - op_name: "按键-切换角色"
-                  agent_name: "雅"
+              - states: "![前台-照] & ![叶瞬光-常态]{0,0} & [照-霜寒值]{80, 100}"
+                debug_name: "照紧急切入"
+                sub_handlers:
+                  - states: "[照-霜寒值]{100, 100}"
+                    debug_name: "照满霜寒值-登场技"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "照"
+                      - operation_template: "照-登场技"
 
-            # 队伍里有青衣，切过去打击破
-            - states: "[青衣-能量]{0, 120} & ![自定义-失衡时间, -10, 12] & ![自定义-黄光切人, 0, 2.5] & ![前台-青衣] & ![前台-仪玄]"
-              debug_name: "青衣击破准备"
-              operations:
-                - op_name: "按键-切换角色"
-                  agent_name: "青衣"
+                  - states: "[照-特殊技可用]"
+                    debug_name: "照有强化特殊技"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "照"
+                      - operation_template: "照-强化特殊攻击"
 
-            - states: "([妮可-特殊技可用] | [妮可-终结技可用])  & ![自定义-妮可-能量场, -15, 3.5] & ![前台-妮可]"
-              debug_name: "失衡期补能量场"
-              sub_handlers:
-                # 妮可失衡期间切到妮可，这里的-15，3.5意思是妮可BUFF是倒数制
-                - states: "[自定义-失衡时间, 5, 10]"
-                  debug_name: "失衡期补能量场"
-                  operations:
-                    - op_name: "按键-切换角色"
-                      agent_name: "妮可"
+                  - states: "[照-终结技可用]"
+                    debug_name: "照有终结技"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "照"
+                      - operation_template: "照-终结技"
+
+              # 星见雅 有6豆就切过去
+              - states: "[雅-落霜]{6, 6} & ![前台-雅] & ![前台-支援]"
+                debug_name: "雅满豆切入"
+                operations:
+                  - op_name: "按键-切换角色"
+                    agent_name: "雅"
+
+              # 队伍里有青衣，切过去打击破
+              - states: "[青衣-能量]{0, 120} & ![自定义-失衡时间, -10, 12] & ![自定义-黄光切人, 0, 2.5] & ![前台-青衣] & ![前台-仪玄]"
+                debug_name: "青衣击破准备"
+                operations:
+                  - op_name: "按键-切换角色"
+                    agent_name: "青衣"
+
+              - states: "([妮可-特殊技可用] | [妮可-终结技可用])  & ![自定义-妮可-能量场, -15, 3.5] & ![前台-妮可]"
+                debug_name: "失衡期补能量场"
+                sub_handlers:
+                  # 妮可失衡期间切到妮可，这里的-15，3.5意思是妮可BUFF是倒数制
+                  - states: "[自定义-失衡时间, 5, 10]"
+                    debug_name: "失衡期补能量场"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "妮可"
 
           - states: "[前台-击破] & ![自定义-合轴时间, 0, 30] & [自定义-失衡时间, 0, 10]"
             debug_name: "击破连携检查"
