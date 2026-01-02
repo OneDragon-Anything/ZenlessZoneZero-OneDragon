@@ -105,7 +105,7 @@ class ChargePlanApp(ZApplication):
             need_charge_power = 0  # 未知类型,在副本内检查
             if candidate_plan.category_name == '实战模拟室':
                 if candidate_plan.card_num == CardNumEnum.DEFAULT.value.value:
-                    need_charge_power = 20  # 最低需要20体力
+                    need_charge_power = 20  # 至少需要20体力
                 else:
                     need_charge_power = int(candidate_plan.card_num) * 20
             elif candidate_plan.category_name == '区域巡防':

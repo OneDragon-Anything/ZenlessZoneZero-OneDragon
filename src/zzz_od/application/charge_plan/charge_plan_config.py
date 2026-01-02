@@ -304,13 +304,13 @@ class ChargePlanConfig(ApplicationConfig):
     def skip_plan(self, new_value: bool) -> None:
         self.update('skip_plan', new_value)
 
-    @property
-    def use_coupon(self) -> bool:
-        return self.get('use_coupon', False)
-
-    @use_coupon.setter
-    def use_coupon(self, new_value: bool) -> None:
-        self.update('use_coupon', new_value)
+    # @property
+    # def use_coupon(self) -> bool:
+    #     return self.get('use_coupon', False)
+    #
+    # @use_coupon.setter
+    # def use_coupon(self, new_value: bool) -> None:
+    #     self.update('use_coupon', new_value)
 
     @property
     def restore_charge(self) -> str:
