@@ -160,10 +160,23 @@ class CommissionProcessing(ZOperation):
     @node_from(from_name='开始自动战斗')
     @operation_node(name='战斗中')
     def in_battle(self) -> OperationRoundResult:
-        # 简单的战斗循环，或者调用 AutoBattle
-        # 这里假设使用 AutoBattleContext
         
         screen = self.screenshot()
+
+        # 1. 先同步检查战斗状态，避免 OCR 竞态
+        self.ctx.auto_battle_context.check_battle_state(
+            screen, self.last_screenshot_time,
+            check_battle_end_normal_result=True,
+            sync=True
+        )
+
+        # 2. 检查是否结束
+        if self.ctx.auto_battle_context.last_check_end_result is not None:
+            self.ctx.auto_battle_context.stop_auto_battle()
+            return self.round_success('战斗结束')
+
+        # 3. 额外的 OCR 检查 (委托代行中)
+        # 此时 check_battle_state 已完成，可以安全调用 OCR
         ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
         ocr_texts = [i.data for i in ocr_results]
 
@@ -173,18 +186,8 @@ class CommissionProcessing(ZOperation):
             if idx_confirm is not None:
                 self.ctx.controller.click(ocr_results[idx_confirm].center)
                 return self.round_wait(wait=1)
-
-        # 检查是否结束
-        if self.ctx.auto_battle_context.last_check_end_result is not None:
-            self.ctx.auto_battle_context.stop_auto_battle()
-            return self.round_success('战斗结束')
-
-        self.ctx.auto_battle_context.check_battle_state(
-            screen, self.last_screenshot_time,
-            check_battle_end_normal_result=True,
-        )
         
-        return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
+        return self.round_wait(status='自动战斗中', wait=self.ctx.battle_assistant_config.screenshot_interval)
 
     @node_from(from_name='战斗中')
     @operation_node(name='战斗结算')
