@@ -48,7 +48,6 @@ class CommissionProcessing(ZOperation):
         
         return self.round_retry('未找到情报板')
 
-    @node_from(from_name='点击情报板')
     @node_from(from_name='检查进度', success=False)
     @operation_node(name='刷新委托')
     def refresh_commission(self) -> OperationRoundResult:
@@ -219,6 +218,7 @@ class CommissionProcessing(ZOperation):
         return self.round_wait(wait=1)
 
     @node_from(from_name='战斗结算')
+    @node_from(from_name='点击情报板')
     @operation_node(name='检查进度')
     def check_progress(self) -> OperationRoundResult:
         # 8. ocr 645, 2039和1026, 2123之间
@@ -227,7 +227,10 @@ class CommissionProcessing(ZOperation):
         screen = self.screenshot()
         part = cv2_utils.crop_image_only(screen, rect)
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-        
+
+        if '1000/1000' in ocr_result:
+            return self.round_success('完成')
+
         # 解析数字 xx/1000
         try:
             # 移除可能的非数字字符（除了 /）
@@ -238,6 +241,9 @@ class CommissionProcessing(ZOperation):
                     current = int(parts[0])
                     total = int(parts[1])
                     if total > 0 and current >= total:
+                        return self.round_success('完成')
+                    # 只要第一个数字是1000也算完成
+                    if current >= 1000:
                         return self.round_success('完成')
         except Exception:
             pass
