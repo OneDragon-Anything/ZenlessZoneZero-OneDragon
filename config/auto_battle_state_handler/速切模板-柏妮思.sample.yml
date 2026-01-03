@@ -65,7 +65,7 @@ handlers:
       - states: "[柏妮思-燃点]{60, 100}"
         debug_name: "正常打站场"
         operations:
-          - operation_template: "柏妮思-长长按普通攻击"
+          - operation_template: "柏妮思-长按普通攻击"
 
       - states: "[柏妮思-特殊技可用]"
         debug_name: "低燃点单喷接双喷"
@@ -73,7 +73,7 @@ handlers:
           - operation_template: "柏妮思-短按单双喷"
 
       - states: ""
-        debug_name: "单异常，马上离开"
+        debug_name: "没电了走吧"
         operations:
           - op_name: "设置状态"
             state_list: ["自定义-合轴时间"]
