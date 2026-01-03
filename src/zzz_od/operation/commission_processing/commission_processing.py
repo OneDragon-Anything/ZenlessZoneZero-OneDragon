@@ -255,9 +255,12 @@ class CommissionProcessing(ZOperation):
     @operation_node(name='结束处理')
     def finish_processing(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
-        
-        if '1000/1000' in ocr_result:
-            return self.round_success('完成')
-        
-        return self.round_fail('继续')
+        result = op.execute()
+        if not result.success:
+            return self.round_by_op_result(result)
+
+        # 打开暂停菜单
+        if isinstance(self.ctx.controller, PcControllerBase):
+            self.ctx.controller.keyboard_controller.press('esc', press_time=0.2)
+
+        return self.round_success('暂停菜单')
