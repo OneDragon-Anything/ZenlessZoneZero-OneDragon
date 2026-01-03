@@ -10,6 +10,7 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.base.controller.pc_controller_base import PcControllerBase
 from one_dragon.utils import str_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
+from zzz_od.application.commission_processing.commission_processing_run_record import CommissionProcessingRunRecord
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -72,6 +73,13 @@ class CommissionProcessing(ZOperation):
             for target in targets:
                 if target in res.data:
                     self.ctx.controller.click(res.center)
+
+                    if isinstance(self.ctx.run_record, CommissionProcessingRunRecord):
+                        if gt('专业挑战室', 'game') in res.data:
+                            self.ctx.run_record.expert_challenge_count += 1
+                        elif gt('恶名狩猎', 'game') in res.data:
+                            self.ctx.run_record.notorious_hunt_count += 1
+
                     return self.round_success(res.data)
         
         # 翻页
@@ -263,4 +271,8 @@ class CommissionProcessing(ZOperation):
         if isinstance(self.ctx.controller, PcControllerBase):
             self.ctx.controller.keyboard_controller.press('esc', press_time=0.2)
 
-        return self.round_success('暂停菜单')
+        status = '完成'
+        if isinstance(self.ctx.run_record, CommissionProcessingRunRecord):
+            status = f'完成 恶名狩猎: {self.ctx.run_record.notorious_hunt_count}, 专业挑战室: {self.ctx.run_record.expert_challenge_count}'
+
+        return self.round_success(status)
