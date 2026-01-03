@@ -5,5 +5,5 @@ operations:
     seconds: 0.1
   - op_name: "按键-普通攻击-按下"
   - op_name: "等待秒数"
-    seconds: 4.4
+    seconds: 1.0
   - op_name: "按键-普通攻击-松开"
