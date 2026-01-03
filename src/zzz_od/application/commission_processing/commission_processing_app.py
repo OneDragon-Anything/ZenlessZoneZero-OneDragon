@@ -1,4 +1,5 @@
 from zzz_od.application.commission_processing import commission_processing_const
+from zzz_od.application.commission_processing.commission_processing_run_record import CommissionProcessingRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.commission_processing.commission_processing import CommissionProcessing
@@ -12,6 +13,7 @@ class CommissionProcessingApp(ZApplication):
             ctx=ctx,
             app_id=commission_processing_const.APP_ID,
             op_name=commission_processing_const.APP_NAME,
+            run_record=CommissionProcessingRunRecord()
         )
 
     @operation_node(name='委托处理', is_start_node=True)

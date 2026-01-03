@@ -13,3 +13,6 @@ class CommissionProcessingRunRecord(AppRunRecord):
             instance_idx=instance_idx,
             game_refresh_hour_offset=game_refresh_hour_offset
         )
+        self.expert_challenge_count: int = 0
+        self.notorious_hunt_count: int = 0
+
