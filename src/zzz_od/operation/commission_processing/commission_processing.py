@@ -22,6 +22,7 @@ class CommissionProcessing(ZOperation):
         ZOperation.__init__(self, ctx, op_name=gt('委托处理', 'ui'))
         self.scroll_times: int = 0
         self.current_commission_type: Optional[str] = None
+        self.battle_result_retry_times: int = 0
 
 
     @operation_node(name='返回大世界', is_start_node=True)
@@ -183,6 +184,7 @@ class CommissionProcessing(ZOperation):
         # 2. 检查是否结束
         if self.ctx.auto_battle_context.last_check_end_result is not None:
             self.ctx.auto_battle_context.stop_auto_battle()
+            self.battle_result_retry_times = 0
             return self.round_success('战斗结束')
 
         # 3. 额外的 OCR 检查 (委托代行中)
@@ -223,6 +225,7 @@ class CommissionProcessing(ZOperation):
             idx = str_utils.find_best_match_by_difflib(gt('确认', 'game'), ocr_texts)
             if idx is not None:
                 self.ctx.controller.click(ocr_results[idx].center)
+            self.battle_result_retry_times = 0
             return self.round_wait(wait=1)
 
         # 3. 点击结算按钮 (完成/下一步)
@@ -231,8 +234,13 @@ class CommissionProcessing(ZOperation):
             idx = str_utils.find_best_match_by_difflib(target, ocr_texts)
             if idx is not None:
                 self.ctx.controller.click(ocr_results[idx].center)
+                self.battle_result_retry_times = 0
                 return self.round_wait(wait=1)
         
+        self.battle_result_retry_times += 1
+        if self.battle_result_retry_times > 60:
+            return self.round_fail('战斗结算卡死')
+
         return self.round_wait(wait=1)
 
     @node_from(from_name='战斗结算')
