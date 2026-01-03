@@ -13,7 +13,10 @@ class CommissionProcessingApp(ZApplication):
             ctx=ctx,
             app_id=commission_processing_const.APP_ID,
             op_name=commission_processing_const.APP_NAME,
-            run_record=CommissionProcessingRunRecord()
+            run_record=CommissionProcessingRunRecord(
+                instance_idx=ctx.instance_idx,
+                game_refresh_hour_offset=ctx.game_refresh_hour_offset
+            )
         )
 
     @operation_node(name='委托处理', is_start_node=True)
