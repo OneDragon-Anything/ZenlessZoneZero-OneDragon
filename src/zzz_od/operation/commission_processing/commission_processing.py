@@ -18,8 +18,9 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 class CommissionProcessing(ZOperation):
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext, run_record: Optional[CommissionProcessingRunRecord] = None):
         ZOperation.__init__(self, ctx, op_name=gt('委托处理', 'ui'))
+        self.run_record: Optional[CommissionProcessingRunRecord] = run_record
         self.scroll_times: int = 0
         self.current_commission_type: Optional[str] = None
         self.battle_result_retry_times: int = 0
@@ -210,11 +211,11 @@ class CommissionProcessing(ZOperation):
         
         # 1. 检查是否回到委托列表界面 (通过关键词 周期内可获取)
         if str_utils.find_best_match_by_difflib(gt('周期内可获取', 'game'), ocr_texts) is not None:
-            if isinstance(self.ctx.run_record, CommissionProcessingRunRecord) and self.current_commission_type is not None:
+            if self.run_record is not None and self.current_commission_type is not None:
                 if self.current_commission_type == 'expert_challenge':
-                    self.ctx.run_record.expert_challenge_count += 1
+                    self.run_record.expert_challenge_count += 1
                 elif self.current_commission_type == 'notorious_hunt':
-                    self.ctx.run_record.notorious_hunt_count += 1
+                    self.run_record.notorious_hunt_count += 1
                 self.current_commission_type = None  # 重置
 
             return self.round_success('结算完成')
@@ -290,7 +291,7 @@ class CommissionProcessing(ZOperation):
             self.ctx.controller.keyboard_controller.press('esc', press_time=0.2)
 
         status = '完成'
-        if isinstance(self.ctx.run_record, CommissionProcessingRunRecord):
-            status = f'完成 恶名狩猎: {self.ctx.run_record.notorious_hunt_count}, 专业挑战室: {self.ctx.run_record.expert_challenge_count}'
+        if self.run_record is not None:
+            status = f'完成 恶名狩猎: {self.run_record.notorious_hunt_count}, 专业挑战室: {self.run_record.expert_challenge_count}'
 
         return self.round_success(status)

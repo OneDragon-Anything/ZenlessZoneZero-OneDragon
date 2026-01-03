@@ -7,21 +7,21 @@ from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 
 class CommissionProcessingApp(ZApplication):
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext, instance_idx: int = 0, game_refresh_hour_offset: int = 0):
         ZApplication.__init__(
             self,
             ctx=ctx,
             app_id=commission_processing_const.APP_ID,
             op_name=commission_processing_const.APP_NAME,
             run_record=CommissionProcessingRunRecord(
-                instance_idx=ctx.instance_idx,
-                game_refresh_hour_offset=ctx.game_refresh_hour_offset
+                instance_idx=instance_idx,
+                game_refresh_hour_offset=game_refresh_hour_offset
             )
         )
 
     @operation_node(name='委托处理', is_start_node=True)
     def commission_processing(self) -> OperationRoundResult:
-        op = CommissionProcessing(self.ctx)
+        op = CommissionProcessing(self.ctx, self.run_record)
         return self.round_by_op_result(op.execute())
 
 def __debug():
