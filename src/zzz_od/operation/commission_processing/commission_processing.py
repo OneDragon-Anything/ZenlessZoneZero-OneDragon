@@ -128,17 +128,25 @@ class CommissionProcessing(ZOperation):
         # 7. 点击下一步然后进入战斗
         screen = self.screenshot()
         ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
-        idx = str_utils.find_best_match_by_difflib(gt('下一步', 'game'), [i.data for i in ocr_results])
+        ocr_texts = [i.data for i in ocr_results]
+        
+        idx = str_utils.find_best_match_by_difflib(gt('下一步', 'game'), ocr_texts)
         
         if idx is not None:
             self.ctx.controller.click(ocr_results[idx].center)
             return self.round_wait(wait=1)
         
         # 检查是否已经进入战斗准备（出战）
-        idx_battle = str_utils.find_best_match_by_difflib(gt('出战', 'game'), [i.data for i in ocr_results])
+        idx_battle = str_utils.find_best_match_by_difflib(gt('出战', 'game'), ocr_texts)
         if idx_battle is not None:
             self.ctx.controller.click(ocr_results[idx_battle].center)
             return self.round_success('进入战斗')
+
+        # 检查无报酬模式 (恶名狩猎)
+        idx_no_reward = str_utils.find_best_match_by_difflib(gt('无报酬模式', 'game'), ocr_texts)
+        if idx_no_reward is not None:
+            self.ctx.controller.click(ocr_results[idx_no_reward].center)
+            return self.round_wait(wait=1)
 
         return self.round_retry('未找到下一步或出战')
 
