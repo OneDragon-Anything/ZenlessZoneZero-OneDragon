@@ -39,12 +39,12 @@ class HallowZeroDataService:
                 continue
             file_path = os.path.join(dir_path, file_name)
             try:
-                with open(file_path, 'r', encoding='utf-8') as file:
-                    event_list: List[dict] = yaml.safe_load(file)
-                    events = [HallowZeroEvent(**i) for i in event_list]
-                    for e in events:
-                        e.on_the_right = True
-                    self.normal_events = self.normal_events + events
+                from one_dragon.base.config.yaml_operator import read_cache_or_load
+                event_list: List[dict] = read_cache_or_load(file_path)
+                events = [HallowZeroEvent(**i) for i in event_list]
+                for e in events:
+                    e.on_the_right = True
+                self.normal_events = self.normal_events + events
             except Exception:
                 log.error(f'文件读取失败 {file_path}', exc_info=True)
 
@@ -65,12 +65,12 @@ class HallowZeroDataService:
             return
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as file:
-                entry_list: List[dict] = yaml.safe_load(file)
-                for i in entry_list:
-                    entry = HollowZeroEntry(**i)
-                    self.entry_list.append(entry)
-                    self.name_2_entry[entry.entry_name] = entry
+            from one_dragon.base.config.yaml_operator import read_cache_or_load
+            entry_list: List[dict] = read_cache_or_load(file_path)
+            for i in entry_list:
+                entry = HollowZeroEntry(**i)
+                self.entry_list.append(entry)
+                self.name_2_entry[entry.entry_name] = entry
         except Exception:
             log.error(f'文件读取失败 {file_path}', exc_info=True)
 
@@ -87,16 +87,16 @@ class HallowZeroDataService:
             return
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as file:
-                entry_list: List[dict] = yaml.safe_load(file)
-                for i in entry_list:
-                    item = Resonium(**i)
-                    self.resonium_list.append(item)
-                    if item.category not in self.cate_2_resonium:
-                        self.resonium_cate_list.append(item.category)
-                        self.cate_2_resonium[item.category] = [item]
-                    else:
-                        self.cate_2_resonium[item.category].append(item)
+            from one_dragon.base.config.yaml_operator import read_cache_or_load
+            entry_list: List[dict] = read_cache_or_load(file_path)
+            for i in entry_list:
+                item = Resonium(**i)
+                self.resonium_list.append(item)
+                if item.category not in self.cate_2_resonium:
+                    self.resonium_cate_list.append(item.category)
+                    self.cate_2_resonium[item.category] = [item]
+                else:
+                    self.cate_2_resonium[item.category].append(item)
         except Exception:
             log.error(f'文件读取失败 {file_path}', exc_info=True)
 

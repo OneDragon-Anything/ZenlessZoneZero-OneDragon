@@ -40,14 +40,14 @@ class MapAreaService:
             'map_area.yml'
         )
         try:
-            with open(file_path, 'r', encoding='utf-8') as file:
-                area_list: List[dict] = yaml.safe_load(file)
-                self.area_list = []
-                self.area_name_map = {}
-                for area_data in area_list:
-                    area = MapArea(area_data.get('area_name', ''), area_data.get('tp_list', []))
-                    self.area_list.append(area)
-                    self.area_name_map[area.area_name] = area
+            from one_dragon.base.config.yaml_operator import read_cache_or_load
+            area_list: List[dict] = read_cache_or_load(file_path)
+            self.area_list = []
+            self.area_name_map = {}
+            for area_data in area_list:
+                area = MapArea(area_data.get('area_name', ''), area_data.get('tp_list', []))
+                self.area_list.append(area)
+                self.area_name_map[area.area_name] = area
         except Exception:
             log.error(f'文件读取失败 {file_path}', exc_info=True)
 
