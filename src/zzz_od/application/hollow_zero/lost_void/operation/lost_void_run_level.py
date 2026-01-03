@@ -390,6 +390,8 @@ class LostVoidRunLevel(ZOperation):
         time.sleep(0.2)
         self.ctx.controller.move_s(press=True, press_time=0.2, release=True)
         time.sleep(0.2)
+        self.ctx.controller.move_s(press=True, press_time=0.2, release=True)
+        time.sleep(0.2)
         self.ctx.controller.move_w(press=True, press_time=0.2, release=True)
         time.sleep(1)
 

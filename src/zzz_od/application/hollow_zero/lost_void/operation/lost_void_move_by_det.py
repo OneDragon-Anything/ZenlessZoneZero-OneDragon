@@ -323,7 +323,7 @@ class LostVoidMoveByDet(ZOperation):
             target_y = -300
             # 设置一个死区，避免在目标附近频繁微调
             dead_zone = 100
-            
+
             if diff_y > target_y + dead_zone:
                 # 目标在预定位置下方，需要向上转
                 turn_distance_y = 20  # 您可以根据需要调整这个值
@@ -485,9 +485,8 @@ class LostVoidMoveByDet(ZOperation):
     def check_interact_stop(self, screen: MatLike, frame_result: DetectFrameResult) -> bool:
         """
         判断是否应该为交互停下来
-        1. 要求出现交互时停下
-        2. 出现交互按钮
-        3. 有较大的可以交互的图标
+        1. 普攻按钮丢失 → 停下 → 等0.5秒 → 交互按钮是最终裁决
+        2. 普攻按钮没丢失 → 检测图标是否变大
         @param screen: 游戏画面
         @param frame_result: 识别结果
         @return:
@@ -495,24 +494,35 @@ class LostVoidMoveByDet(ZOperation):
         if not self.stop_when_interact:
             return False
 
-        result = self.round_by_find_area(screen, '战斗画面', '按键-交互')
-        if not result.is_success:
+        # 检测普攻按钮
+        result = self.round_by_find_area(screen, '战斗画面', '按键-普通攻击')
+        if result.is_success:
+            # 普攻按钮存在，检测图标是否变大
+            for result in frame_result.results:
+                if result.detect_class.class_name == LostVoidDetector.CLASS_DISTANCE:
+                    continue
+
+                if result.detect_class.class_name == LostVoidDetector.CLASS_INTERACT:
+                    min_width = 70
+                else:
+                    min_width = 50
+
+                if result.width > min_width and result.height > min_width:
+                    return True
+
             return False
+        else:
+            # 普攻按钮丢失，先停下
+            self.ctx.controller.stop_moving_forward()
+            time.sleep(0.5)
+            self.screenshot()  # 重新截图
 
-        for result in frame_result.results:
-            if result.detect_class.class_name == LostVoidDetector.CLASS_DISTANCE:
-                # 不考虑 [距离]白点
-                continue
-
-            if result.detect_class.class_name == LostVoidDetector.CLASS_INTERACT:
-                min_width = 70  # 感叹号的图标会大一点
-            else:
-                min_width = 50  # 普通入口的图标
-
-            if result.width > min_width and result.height > min_width:
+            # 交互按钮是最终裁决
+            result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
+            if result.is_success:
                 return True
 
-        return False
+            return False
 
     @node_from(from_name='移动前转向', status=STATUS_NO_FOUND)
     @node_from(from_name='移动', status=STATUS_NO_FOUND)
