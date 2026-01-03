@@ -38,6 +38,9 @@ handlers:
               - op_name: "清除状态"
                 state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
+          - state_template: "琉音-送客决策"
+          - state_template: "琉音-刷好评"
+
           # 没有上面的几位高贵，就藏这里好了
           - states: ""
             sub_handlers:
