@@ -21,6 +21,8 @@ class CommissionProcessing(ZOperation):
     def __init__(self, ctx: ZContext):
         ZOperation.__init__(self, ctx, op_name=gt('委托处理', 'ui'))
         self.scroll_times: int = 0
+        self.current_commission_type: Optional[str] = None
+
 
     @operation_node(name='返回大世界', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
@@ -74,11 +76,12 @@ class CommissionProcessing(ZOperation):
                 if target in res.data:
                     self.ctx.controller.click(res.center)
 
-                    if isinstance(self.ctx.run_record, CommissionProcessingRunRecord):
-                        if gt('专业挑战室', 'game') in res.data:
-                            self.ctx.run_record.expert_challenge_count += 1
-                        elif gt('恶名狩猎', 'game') in res.data:
-                            self.ctx.run_record.notorious_hunt_count += 1
+                    if gt('专业挑战室', 'game') in res.data:
+                        self.current_commission_type = 'expert_challenge'
+                    elif gt('恶名狩猎', 'game') in res.data:
+                        self.current_commission_type = 'notorious_hunt'
+                    else:
+                        self.current_commission_type = None
 
                     return self.round_success(res.data)
         
@@ -205,7 +208,14 @@ class CommissionProcessing(ZOperation):
         
         # 1. 检查是否回到委托列表界面 (通过关键词 周期内可获取)
         if str_utils.find_best_match_by_difflib(gt('周期内可获取', 'game'), ocr_texts) is not None:
-             return self.round_success('结算完成')
+            if isinstance(self.ctx.run_record, CommissionProcessingRunRecord) and self.current_commission_type is not None:
+                if self.current_commission_type == 'expert_challenge':
+                    self.ctx.run_record.expert_challenge_count += 1
+                elif self.current_commission_type == 'notorious_hunt':
+                    self.ctx.run_record.notorious_hunt_count += 1
+                self.current_commission_type = None  # 重置
+
+            return self.round_success('结算完成')
 
         # 2. 检查 "代行委托完成"
         if str_utils.find_best_match_by_difflib(gt('代行委托完成', 'game'), ocr_texts) is not None:
