@@ -9,6 +9,7 @@ from one_dragon.base.config.yaml_operator import YamlOperator
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResult
+from one_dragon.base.screen.screen_utils import find_template_coord_in_area
 from one_dragon.utils import os_utils, cv2_utils, cal_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.application.world_patrol.mini_map_wrapper import MiniMapWrapper
@@ -30,6 +31,10 @@ def route_list_dir():
 
 class WorldPatrolService:
 
+    # 小地图相对于"地图"按钮的偏移量（通过观察得出）
+    # 小地图坐标 = "地图"坐标 - DELTA
+    MINI_MAP_DELTA = (169, 151)
+
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
 
@@ -38,19 +43,56 @@ class WorldPatrolService:
         self.large_map_list: list[WorldPatrolLargeMap] = []
         self.route_list: list[WorldPatrolRoute] = []
 
+        # 缓存小地图区域
+        self._mini_map_rect: Rect | None = None
+
     def cut_mini_map(self, screen: MatLike) -> MiniMapWrapper:
         """
-        截取小地图
+        截取小地图 - 动态计算裁剪区域
+
+        通过模板匹配"地图"按钮 - delta 值生成准确的裁剪区域
 
         Args:
             screen: 游戏画面
 
         Returns:
-            MatLike: 小地图图片
+            MiniMapWrapper: 小地图图片
         """
-        area = self.ctx.screen_loader.get_area('大世界', '小地图')
-        rgb = cv2_utils.crop_image_only(screen, area.rect)
-        return MiniMapWrapper(rgb)
+        # 如果缓存存在，直接使用
+        if self._mini_map_rect is not None:
+            rgb = cv2_utils.crop_image_only(screen, self._mini_map_rect)
+            return MiniMapWrapper(rgb)
+
+        # 获取小地图的默认宽高（从配置中获取）
+        default_area = self.ctx.screen_loader.get_area('大世界', '小地图')
+        mini_map_width = default_area.rect.width
+        mini_map_height = default_area.rect.height
+
+        # 使用模板匹配定位"地图"
+        map_result = find_template_coord_in_area(self.ctx, screen, '大世界', '地图')
+
+        if map_result is not None:
+            # 通过匹配坐标 - delta 值计算小地图区域（注意是减法！）
+            mini_map_x = map_result.x - self.MINI_MAP_DELTA[0]
+            mini_map_y = map_result.y - self.MINI_MAP_DELTA[1]
+
+            # 生成裁剪区域
+            self._mini_map_rect = Rect(
+                mini_map_x,
+                mini_map_y,
+                mini_map_x + mini_map_width,
+                mini_map_y + mini_map_height
+            )
+
+            log.info(f'[小地图] 刷新小地图坐标缓存: ({self._mini_map_rect.x1}, {self._mini_map_rect.y1}) - ({self._mini_map_rect.x2}, {self._mini_map_rect.y2})')
+
+            # 使用计算出的区域裁剪
+            rgb = cv2_utils.crop_image_only(screen, self._mini_map_rect)
+            return MiniMapWrapper(rgb)
+        else:
+            # 模板匹配失败，降级使用固定区域（不缓存）
+            rgb = cv2_utils.crop_image_only(screen, default_area.rect)
+            return MiniMapWrapper(rgb)
 
     def load_data(self):
         self.load_area()

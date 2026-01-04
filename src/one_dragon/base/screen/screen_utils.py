@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_info import ScreenInfo
 from one_dragon.utils import cv2_utils, str_utils
@@ -96,6 +97,55 @@ def find_area_in_screen(
         find = mrl.max is not None
 
     return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
+
+
+def find_template_coord_in_area(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    screen_name: str,
+    area_name: str,
+) -> MatchResult | None:
+    """
+    在指定区域内进行模板匹配，返回匹配到的绝对坐标
+
+    Args:
+        ctx: 上下文
+        screen: 游戏截图
+        screen_name: 画面名称
+        area_name: 区域名称
+
+    Returns:
+        MatchResult | None: 匹配结果（包含绝对坐标），如果未匹配到则返回 None
+    """
+    area: ScreenArea = ctx.screen_loader.get_area(screen_name, area_name)
+    if area is None or not area.is_template_area:
+        return None
+
+    # 裁剪出指定区域
+    part = cv2_utils.crop_image_only(screen, area.rect)
+
+    # 在裁剪区域内进行模板匹配
+    mrl = ctx.tm.match_template(
+        part,
+        area.template_sub_dir,
+        area.template_id,
+        threshold=area.template_match_threshold,
+        only_best=True
+    )
+
+    if mrl.max is None:
+        return None
+
+    # 将相对坐标转换为绝对坐标
+    result = MatchResult(
+        mrl.max.confidence,
+        mrl.max.x + area.rect.x1,
+        mrl.max.y + area.rect.y1,
+        mrl.max.w,
+        mrl.max.h
+    )
+
+    return result
 
 
 def find_and_click_area(
