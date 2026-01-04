@@ -499,32 +499,32 @@ class LostVoidMoveByDet(ZOperation):
 
         # 1. 先检查交互按钮
         result = self.round_by_find_area(screen, '战斗画面', '按键-交互')
-        if result.is_success:
-            return True
+        if not result.is_success:
+            # 没有交互按钮，检查普攻按钮是否丢失
+            result = self.round_by_find_area(screen, '战斗画面', '按键-普通攻击')
+            if not result.is_success:
+                # 普攻按钮丢失，检查距离上次停下是否超过5秒
+                current_time = time.time()
+                if current_time - self._last_attack_btn_check_time >= 5:
+                    # 执行停下动作，并记录时间
+                    self._last_attack_btn_check_time = current_time
+                    self.ctx.controller.stop_moving_forward()
+                    time.sleep(0.5)
+            return False
 
         # 2. 检测图标是否变大
         for result in frame_result.results:
             if result.detect_class.class_name == LostVoidDetector.CLASS_DISTANCE:
+                # 不考虑 [距离]白点
                 continue
 
             if result.detect_class.class_name == LostVoidDetector.CLASS_INTERACT:
-                min_width = 70
+                min_width = 70  # 感叹号的图标会大一点
             else:
-                min_width = 50
+                min_width = 50  # 普通入口的图标
 
             if result.width > min_width and result.height > min_width:
                 return True
-
-        # 3. 检查普攻按钮是否丢失
-        result = self.round_by_find_area(screen, '战斗画面', '按键-普通攻击')
-        if not result.is_success:
-            # 普攻按钮丢失，检查距离上次停下是否超过5秒
-            current_time = time.time()
-            if current_time - self._last_attack_btn_check_time >= 5:
-                # 执行停下动作，并记录时间
-                self._last_attack_btn_check_time = current_time
-                self.ctx.controller.stop_moving_forward()
-                time.sleep(0.5)
 
         return False
 
