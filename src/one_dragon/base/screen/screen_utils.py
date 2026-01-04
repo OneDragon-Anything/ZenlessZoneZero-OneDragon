@@ -53,6 +53,87 @@ def find_area(
     return find_area_in_screen(ctx, screen, area, crop_first)
 
 
+def find_area_binary(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    screen_name: str,
+    area_name: str,
+    binary_threshold: int = 127,
+    crop_first: bool = True,
+) -> FindAreaResultEnum:
+    """
+    使用二值化图像在游戏截图中查找区域
+    Args:
+        ctx: 上下文
+        screen: 游戏截图
+        screen_name: 画面名称
+        area_name: 区域名称
+        binary_threshold: 二值化阈值，默认为127
+        crop_first: 在传入区域时 是否先裁剪再进行识别
+
+    Returns:
+        FindAreaResultEnum: 是否可以匹配到指定区域
+    """
+    area: ScreenArea = ctx.screen_loader.get_area(screen_name, area_name)
+    return find_area_in_screen_binary(ctx, screen, area, binary_threshold, crop_first)
+
+
+def find_area_in_screen_binary(
+    ctx: OneDragonContext,
+    screen: MatLike,
+    area: ScreenArea,
+    binary_threshold: int = 127,
+    crop_first: bool = True,
+) -> FindAreaResultEnum:
+    """
+    使用二值化图像在截图中查找区域
+    Args:
+        ctx: 上下文
+        screen: 游戏截图
+        area: 区域
+        binary_threshold: 二值化阈值，默认为127
+        crop_first: 在传入区域时 是否先裁剪再进行识别
+
+    Returns:
+        FindAreaResultEnum: 是否可以匹配到指定区域
+    """
+    if area is None:
+        return FindAreaResultEnum.AREA_NO_CONFIG
+
+    # 对屏幕进行二值化处理
+    binary_screen = cv2_utils.to_binary(screen, threshold=binary_threshold)
+
+    find: bool = False
+    if area.is_text_area:
+        ocr_result_list = ctx.ocr_service.get_ocr_result_list(
+            image=binary_screen,
+            rect=area.rect,
+            color_range=area.color_range,
+            crop_first=crop_first,
+        )
+
+        for ocr_result in ocr_result_list:
+            if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result.data, percent=area.lcs_percent):
+                find = True
+                break
+    elif area.is_template_area:
+        # 裁剪区域
+        rect = area.rect
+        part = cv2_utils.crop_image_only(binary_screen, rect)
+
+        # 使用二值化模板匹配
+        mrl = ctx.tm.match_template_binary(
+            part,
+            area.template_sub_dir,
+            area.template_id,
+            threshold=area.template_match_threshold,
+            binary_threshold=binary_threshold
+        )
+        find = mrl.max is not None
+
+    return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
+
+
 def find_area_in_screen(
     ctx: OneDragonContext,
     screen: MatLike,

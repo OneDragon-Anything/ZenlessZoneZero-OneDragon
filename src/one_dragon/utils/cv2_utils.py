@@ -1174,3 +1174,20 @@ def get_hsv_range_in_contour(image: MatLike, contour: np.ndarray) -> dict:
         'center_hsv': (int(h_center), int(s_center), int(v_center)),
         'diff_hsv': (int(h_diff), int(s_diff), int(v_diff))
     }
+
+
+def to_binary(img: MatLike, threshold: int = 127) -> MatLike:
+    """
+    将图像转换为二值化图像
+    Args:
+        img: 输入图像（可以是彩色或灰度图像）
+        threshold: 二值化阈值，默认为127
+    Returns:
+        二值化图像（单通道，只有0和255两个值）
+    """
+    if len(img.shape) == 3:  # 彩色图像
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = img
+    _, binary = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
+    return binary

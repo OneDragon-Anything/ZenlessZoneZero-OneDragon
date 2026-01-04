@@ -42,7 +42,7 @@ class BackToNormalWorld(ZOperation):
                 and self.ctx.screen_loader.current_screen_name is not None):
             return self.round_wait(result.status, wait=1)
 
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
+        result = self.round_by_find_area_binary(self.last_screenshot, '大世界', '信息')
         if result.is_success:
             return self.round_success(result.status)
 
