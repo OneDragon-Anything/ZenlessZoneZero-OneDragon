@@ -518,21 +518,13 @@ class LostVoidMoveByDet(ZOperation):
         # 3. 检查普攻按钮是否丢失
         result = self.round_by_find_area(screen, '战斗画面', '按键-普通攻击')
         if not result.is_success:
-            # 普攻按钮丢失，检查是否可以执行停下动作（每5秒最多一次）
+            # 普攻按钮丢失，检查距离上次停下是否超过5秒
             current_time = time.time()
             if current_time - self._last_attack_btn_check_time >= 5:
-                # 更新检查时间
+                # 执行停下动作，并记录时间
                 self._last_attack_btn_check_time = current_time
-
-                # 普攻按钮丢失，先停下
                 self.ctx.controller.stop_moving_forward()
                 time.sleep(0.5)
-                self.screenshot()  # 重新截图
-
-                # 再次检查交互按钮（最终裁决）
-                result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
-                if result.is_success:
-                    return True
 
         return False
 
