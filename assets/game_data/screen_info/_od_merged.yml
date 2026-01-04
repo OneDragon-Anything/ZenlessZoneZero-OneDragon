@@ -5752,7 +5752,7 @@
   - area_name: 地图
     id_mark: false
     pc_rect:
-    - 1730
+    - 1700
     - 318
     - 1860
     - 400
