@@ -489,7 +489,7 @@ class LostVoidMoveByDet(ZOperation):
         判断是否应该为交互停下来
         1. 先检查交互按钮，如果有则返回True
         2. 检测图标是否变大，如果变大则返回True
-        3. 检查普攻按钮是否丢失，如果丢失则停下（每5秒最多触发一次）
+        3. 检查普攻按钮是否丢失，如果丢失则停下（停下动作每5秒最多触发一次）
         @param screen: 游戏画面
         @param frame_result: 识别结果
         @return:
@@ -518,7 +518,7 @@ class LostVoidMoveByDet(ZOperation):
         # 3. 检查普攻按钮是否丢失
         result = self.round_by_find_area(screen, '战斗画面', '按键-普通攻击')
         if not result.is_success:
-            # 普攻按钮丢失，检查是否已经超过5秒
+            # 普攻按钮丢失，检查是否可以执行停下动作（每5秒最多一次）
             current_time = time.time()
             if current_time - self._last_attack_btn_check_time >= 5:
                 # 更新检查时间
