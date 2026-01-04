@@ -58,13 +58,11 @@ class CommissionProcessing(ZOperation):
     @node_from(from_name='检查接取结果', status='接取失败')
     @operation_node(name='刷新委托')
     def refresh_commission(self) -> OperationRoundResult:
-        # 3. 点击下面的刷新（1705, 2101）和（1617, 2006）的矩形区域
-        # 转换为 1080p: (808, 1003) - (852, 1050)
-        rect = Rect(808, 1003, 852, 1050)
-        self.ctx.controller.click(rect.center)
+        # 3. 点击下面的刷新
+        self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '刷新按钮').rect.center)
 
         time.sleep(1)
-        self.ctx.controller.click(Point(905, 1020))
+        self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '刷新点击1').center)
         time.sleep(0.5)
 
         # OCR 找 重置
@@ -74,12 +72,11 @@ class CommissionProcessing(ZOperation):
         if idx is not None:
             self.ctx.controller.click(ocr_results[idx].center)
         else:
-            self.ctx.controller.click(Point(1600, 1030))
+            self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '刷新点击2').center)
         time.sleep(0.5)
 
         # OCR 找 恶名狩猎 和 专业挑战室
-        # 区域 1250, 10 到 1920, 1080
-        search_rect = Rect(1250, 10, 1920, 1080)
+        search_rect = self.ctx.screen_loader.get_area('委托情报板', '搜索区域').rect
         screen = self.screenshot()
         part = cv2_utils.crop_image_only(screen, search_rect)
         ocr_results = self.ctx.ocr_service.get_ocr_result_list(part)
@@ -91,7 +88,7 @@ class CommissionProcessing(ZOperation):
             center = ocr_results[idx].center + search_rect.top_left
             self.ctx.controller.click(center)
         else:
-            self.ctx.controller.click(Point(1430, 598))
+            self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '恶名狩猎兜底').center)
         time.sleep(0.5)
 
         # 专业挑战室
@@ -100,10 +97,10 @@ class CommissionProcessing(ZOperation):
             center = ocr_results[idx].center + search_rect.top_left
             self.ctx.controller.click(center)
         else:
-            self.ctx.controller.click(Point(1700, 600))
+            self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '专业挑战室兜底').center)
         time.sleep(0.5)
 
-        self.ctx.controller.click(Point(1800, 40))
+        self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '刷新点击5').center)
         time.sleep(0.5)
 
         self.scroll_times = 0  # 重置翻页次数
@@ -304,8 +301,7 @@ class CommissionProcessing(ZOperation):
     @operation_node(name='检查进度')
     def check_progress(self) -> OperationRoundResult:
         # 8. ocr 645, 2039和1026, 2123之间
-        # 转换为 1080p: (322, 1019) - (513, 1061)
-        rect = Rect(322, 1019, 513, 1061)
+        rect = self.ctx.screen_loader.get_area('委托情报板', '进度文本').rect
         screen = self.last_screenshot
         part = cv2_utils.crop_image_only(screen, rect)
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
