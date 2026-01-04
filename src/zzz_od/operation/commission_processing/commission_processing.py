@@ -71,20 +71,17 @@ class CommissionProcessing(ZOperation):
         screen = self.screenshot()
         ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
         
-        targets = [gt('专业挑战室', 'game'), gt('恶名狩猎', 'game')]
-        
+        # 使用字典映射委托名称到类型，方便扩展
+        commission_map = {
+            gt('专业挑战室', 'game'): 'expert_challenge',
+            gt('恶名狩猎', 'game'): 'notorious_hunt',
+        }
+
         for res in ocr_results:
-            for target in targets:
-                if target in res.data:
+            for target_text, commission_type in commission_map.items():
+                if target_text in res.data:
                     self.ctx.controller.click(res.center)
-
-                    if gt('专业挑战室', 'game') in res.data:
-                        self.current_commission_type = 'expert_challenge'
-                    elif gt('恶名狩猎', 'game') in res.data:
-                        self.current_commission_type = 'notorious_hunt'
-                    else:
-                        self.current_commission_type = None
-
+                    self.current_commission_type = commission_type
                     return self.round_success(res.data)
         
         # 翻页
