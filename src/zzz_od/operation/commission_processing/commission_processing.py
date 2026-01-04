@@ -251,7 +251,7 @@ class CommissionProcessing(ZOperation):
         # 8. ocr 645, 2039和1026, 2123之间
         # 转换为 1080p: (322, 1019) - (513, 1061)
         rect = Rect(322, 1019, 513, 1061)
-        screen = self.screenshot()
+        screen = self.last_screenshot
         part = cv2_utils.crop_image_only(screen, rect)
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
 
