@@ -485,8 +485,9 @@ class LostVoidMoveByDet(ZOperation):
     def check_interact_stop(self, screen: MatLike, frame_result: DetectFrameResult) -> bool:
         """
         判断是否应该为交互停下来
-        1. 普攻按钮丢失 → 停下 → 等0.5秒 → 交互按钮是最终裁决
-        2. 普攻按钮没丢失 → 检测图标是否变大
+        1. 先检查交互按钮，如果有则返回True
+        2. 检测图标是否变大，如果变大则返回True
+        3. 检查普攻按钮是否丢失，如果丢失则停下（每5秒最多触发一次）
         @param screen: 游戏画面
         @param frame_result: 识别结果
         @return:
@@ -494,35 +495,47 @@ class LostVoidMoveByDet(ZOperation):
         if not self.stop_when_interact:
             return False
 
-        # 检测普攻按钮
-        result = self.round_by_find_area(screen, '战斗画面', '按键-普通攻击')
+        # 1. 先检查交互按钮
+        result = self.round_by_find_area(screen, '战斗画面', '按键-交互')
         if result.is_success:
-            # 普攻按钮存在，检测图标是否变大
-            for result in frame_result.results:
-                if result.detect_class.class_name == LostVoidDetector.CLASS_DISTANCE:
-                    continue
+            return True
 
-                if result.detect_class.class_name == LostVoidDetector.CLASS_INTERACT:
-                    min_width = 70
-                else:
-                    min_width = 50
+        # 2. 检测图标是否变大
+        for result in frame_result.results:
+            if result.detect_class.class_name == LostVoidDetector.CLASS_DISTANCE:
+                continue
 
-                if result.width > min_width and result.height > min_width:
-                    return True
+            if result.detect_class.class_name == LostVoidDetector.CLASS_INTERACT:
+                min_width = 70
+            else:
+                min_width = 50
 
-            return False
-        else:
-            # 普攻按钮丢失，先停下
-            self.ctx.controller.stop_moving_forward()
-            time.sleep(0.5)
-            self.screenshot()  # 重新截图
-
-            # 交互按钮是最终裁决
-            result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
-            if result.is_success:
+            if result.width > min_width and result.height > min_width:
                 return True
 
-            return False
+        # 3. 检查普攻按钮是否丢失
+        result = self.round_by_find_area(screen, '战斗画面', '按键-普通攻击')
+        if not result.is_success:
+            # 普攻按钮丢失，检查是否已经超过5秒
+            current_time = time.time()
+            if not hasattr(self, '_last_attack_btn_check_time'):
+                self._last_attack_btn_check_time = 0
+
+            if current_time - self._last_attack_btn_check_time >= 5:
+                # 更新检查时间
+                self._last_attack_btn_check_time = current_time
+
+                # 普攻按钮丢失，先停下
+                self.ctx.controller.stop_moving_forward()
+                time.sleep(0.5)
+                self.screenshot()  # 重新截图
+
+                # 再次检查交互按钮（最终裁决）
+                result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
+                if result.is_success:
+                    return True
+
+        return False
 
     @node_from(from_name='移动前转向', status=STATUS_NO_FOUND)
     @node_from(from_name='移动', status=STATUS_NO_FOUND)
