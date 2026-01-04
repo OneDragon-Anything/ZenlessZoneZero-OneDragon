@@ -55,6 +55,7 @@ class CommissionProcessing(ZOperation):
         return self.round_retry('未找到情报板')
 
     @node_from(from_name='检查进度', success=False)
+    @node_from(from_name='检查接取结果', status='接取失败')
     @operation_node(name='刷新委托')
     def refresh_commission(self) -> OperationRoundResult:
         # 3. 点击下面的刷新（1705, 2101）和（1617, 2006）的矩形区域
@@ -132,6 +133,18 @@ class CommissionProcessing(ZOperation):
         return self.round_retry('未找到接取委托')
 
     @node_from(from_name='接取委托')
+    @operation_node(name='检查接取结果')
+    def check_accept_result(self) -> OperationRoundResult:
+        screen = self.screenshot()
+        ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
+        ocr_texts = [i.data for i in ocr_results]
+
+        if str_utils.find_best_match_by_difflib(gt('接取失败', 'game'), ocr_texts) is not None:
+            return self.round_success(status='接取失败')
+
+        return self.round_success(status='接取成功')
+
+    @node_from(from_name='检查接取结果', status='接取成功')
     @operation_node(name='前往')
     def go_to_commission(self) -> OperationRoundResult:
         # 6. ocr 前往并点击
