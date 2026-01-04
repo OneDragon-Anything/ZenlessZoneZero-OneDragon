@@ -283,15 +283,6 @@ handlers:
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
-              - states: "![前台-苍角]"
-                sub_handlers:
-                  - states: ""
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "苍角"
-                      - op_name: "清除状态"
-                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
-
               # 丽娜连普攻都不会
               - states: "[前台-丽娜]"
                 operations:
