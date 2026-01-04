@@ -1186,7 +1186,7 @@ def to_binary(img: MatLike, threshold: int = 127) -> MatLike:
         二值化图像（单通道，只有0和255两个值）
     """
     if len(img.shape) == 3:  # 彩色图像
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
     else:
         gray = img
     _, binary = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
