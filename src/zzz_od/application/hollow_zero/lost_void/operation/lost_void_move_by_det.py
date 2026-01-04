@@ -148,6 +148,8 @@ class LostVoidMoveByDet(ZOperation):
         self.estimated_turn_ratio: float = 0.2  # 估算的转向比例
         self.turn_calibration_count: int = 1  # 转向校准次数
 
+        self._last_attack_btn_check_time: float = 0  # 上一次检查普攻按钮的时间
+
         self._reset_turn_calibration_status()
 
     def _reset_turn_calibration_status(self):
@@ -518,9 +520,6 @@ class LostVoidMoveByDet(ZOperation):
         if not result.is_success:
             # 普攻按钮丢失，检查是否已经超过5秒
             current_time = time.time()
-            if not hasattr(self, '_last_attack_btn_check_time'):
-                self._last_attack_btn_check_time = 0
-
             if current_time - self._last_attack_btn_check_time >= 5:
                 # 更新检查时间
                 self._last_attack_btn_check_time = current_time
