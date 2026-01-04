@@ -1,5 +1,6 @@
 from typing import ClassVar, Optional
 
+import time
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.operation import Operation
@@ -60,6 +61,19 @@ class CommissionProcessing(ZOperation):
         # 转换为 1080p: (808, 1003) - (852, 1050)
         rect = Rect(808, 1003, 852, 1050)
         self.ctx.controller.click(rect.center)
+
+        time.sleep(1)
+        self.ctx.controller.click(Point(905, 1020))
+        time.sleep(0.3)
+        self.ctx.controller.click(Point(1600, 1030))
+        time.sleep(0.3)
+        self.ctx.controller.click(Point(1430, 598))
+        time.sleep(0.3)
+        self.ctx.controller.click(Point(1700, 600))
+        time.sleep(0.3)
+        self.ctx.controller.click(Point(1800, 40))
+        time.sleep(0.3)
+
         self.scroll_times = 0  # 重置翻页次数
         return self.round_success(wait=1)
 
