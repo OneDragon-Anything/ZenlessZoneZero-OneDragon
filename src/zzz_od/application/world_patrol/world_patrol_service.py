@@ -1,5 +1,7 @@
 import os
 
+import time
+
 import cv2
 import numpy as np
 import yaml
@@ -35,6 +37,9 @@ class WorldPatrolService:
     # 小地图坐标 = "地图"坐标 - DELTA
     MINI_MAP_DELTA = (169, 151)
 
+    # 小地图缓存过期时间（秒）
+    MINI_MAP_CACHE_EXPIRE = 60
+
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
 
@@ -45,6 +50,8 @@ class WorldPatrolService:
 
         # 缓存小地图区域
         self._mini_map_rect: Rect | None = None
+        # 缓存时间戳
+        self._mini_map_cache_time: float = 0
 
     def cut_mini_map(self, screen: MatLike) -> MiniMapWrapper:
         """
@@ -58,10 +65,16 @@ class WorldPatrolService:
         Returns:
             MiniMapWrapper: 小地图图片
         """
-        # 如果缓存存在，直接使用
+        # 如果缓存存在且未过期，直接使用
         if self._mini_map_rect is not None:
-            rgb = cv2_utils.crop_image_only(screen, self._mini_map_rect)
-            return MiniMapWrapper(rgb)
+            current_time = time.time()
+            if current_time - self._mini_map_cache_time < self.MINI_MAP_CACHE_EXPIRE:
+                rgb = cv2_utils.crop_image_only(screen, self._mini_map_rect)
+                return MiniMapWrapper(rgb)
+            else:
+                # 缓存过期，清除缓存
+                log.info(f'[小地图] 缓存已过期（{current_time - self._mini_map_cache_time:.1f}秒），重新匹配')
+                self._mini_map_rect = None
 
         # 获取小地图的默认宽高（从配置中获取）
         default_area = self.ctx.screen_loader.get_area('大世界', '小地图')
@@ -83,6 +96,9 @@ class WorldPatrolService:
                 mini_map_x + mini_map_width,
                 mini_map_y + mini_map_height
             )
+
+            # 记录缓存时间
+            self._mini_map_cache_time = time.time()
 
             log.info(f'[小地图] 刷新小地图坐标缓存: ({self._mini_map_rect.x1}, {self._mini_map_rect.y1}) - ({self._mini_map_rect.x2}, {self._mini_map_rect.y2})')
 
