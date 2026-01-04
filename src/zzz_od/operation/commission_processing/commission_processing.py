@@ -44,7 +44,7 @@ class CommissionProcessing(ZOperation):
     @operation_node(name='点击情报板')
     def click_board(self) -> OperationRoundResult:
         # 2. OCR 点击情报板
-        screen = self.screenshot()
+        screen = self.last_screenshot
         ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
         idx = str_utils.find_best_match_by_difflib(gt('情报板', 'game'), [i.data for i in ocr_results])
         
@@ -65,15 +65,46 @@ class CommissionProcessing(ZOperation):
 
         time.sleep(1)
         self.ctx.controller.click(Point(905, 1020))
-        time.sleep(0.3)
-        self.ctx.controller.click(Point(1600, 1030))
-        time.sleep(0.3)
-        self.ctx.controller.click(Point(1430, 598))
-        time.sleep(0.3)
-        self.ctx.controller.click(Point(1700, 600))
-        time.sleep(0.3)
+        time.sleep(0.5)
+
+        # OCR 找 重置
+        screen = self.screenshot()
+        ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
+        idx = str_utils.find_best_match_by_difflib(gt('重置', 'game'), [i.data for i in ocr_results])
+        if idx is not None:
+            self.ctx.controller.click(ocr_results[idx].center)
+        else:
+            self.ctx.controller.click(Point(1600, 1030))
+        time.sleep(0.5)
+
+        # OCR 找 恶名狩猎 和 专业挑战室
+        # 区域 1250, 10 到 1920, 1080
+        search_rect = Rect(1250, 10, 1920, 1080)
+        screen = self.screenshot()
+        part = cv2_utils.crop_image_only(screen, search_rect)
+        ocr_results = self.ctx.ocr_service.get_ocr_result_list(part)
+        ocr_texts = [i.data for i in ocr_results]
+
+        # 恶名狩猎
+        idx = str_utils.find_best_match_by_difflib(gt('恶名狩猎', 'game'), ocr_texts)
+        if idx is not None:
+            center = ocr_results[idx].center + search_rect.top_left
+            self.ctx.controller.click(center)
+        else:
+            self.ctx.controller.click(Point(1430, 598))
+        time.sleep(0.5)
+
+        # 专业挑战室
+        idx = str_utils.find_best_match_by_difflib(gt('专业挑战室', 'game'), ocr_texts)
+        if idx is not None:
+            center = ocr_results[idx].center + search_rect.top_left
+            self.ctx.controller.click(center)
+        else:
+            self.ctx.controller.click(Point(1700, 600))
+        time.sleep(0.5)
+
         self.ctx.controller.click(Point(1800, 40))
-        time.sleep(0.3)
+        time.sleep(0.5)
 
         self.scroll_times = 0  # 重置翻页次数
         return self.round_success(wait=1)
@@ -296,8 +327,8 @@ class CommissionProcessing(ZOperation):
                     # 只要第一个数字是1000也算完成
                     if current >= 1000:
                         return self.round_success('完成')
-        except Exception:
-            pass
+        except Exception as e:
+            return self.round_fail(f'解析进度文本失败: {ocr_result}, 错误: {e}')
         
         return self.round_fail('继续')
 
