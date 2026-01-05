@@ -240,6 +240,7 @@ class DriverDiscReadApp(ZApplication):
 
         part = cv2_utils.crop_image_only(screen, area.rect)
         ocr_result_map = self.ctx.ocr.run_ocr(part)
+        log.debug(f'驱动盘总数OCR结果: {ocr_result_map}')
 
         for ocr_text in ocr_result_map.keys():
             match = re.search(r'\[?(\d+)', ocr_text)
@@ -497,7 +498,7 @@ class DriverDiscReadApp(ZApplication):
                         self.disc_data_dict[global_index] = parsed_data
                         log.info(f'识别完成 [{len(self.disc_data_dict)}/{self.total_disc_count}]: {parsed_data["name"]}')
                     else:
-                        log.warning(f'未识别到驱动盘 [{global_index}]')
+                        log.warning(f'未识别到驱动盘 [{global_index}] 原始名称: "{parsed_data["name"]}" 全量数据: {disc_data}')
                 else:
                     log.warning(f'驱动盘识别失败 [{global_index}]')
 

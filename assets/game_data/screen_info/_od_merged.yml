@@ -2170,6 +2170,304 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+- screen_id: disc-driver-warehouse-1
+  screen_name: 仓库-驱动盘
+  pc_alt: false
+  area_list:
+  - area_name: '1'
+    id_mark: false
+    pc_rect:
+    - 160
+    - 260
+    - 160
+    - 260
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: '2'
+    id_mark: false
+    pc_rect:
+    - 300
+    - 260
+    - 300
+    - 260
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: '3'
+    id_mark: false
+    pc_rect:
+    - 440
+    - 260
+    - 440
+    - 260
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: '10'
+    id_mark: false
+    pc_rect:
+    - 160
+    - 435
+    - 160
+    - 435
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: '19'
+    id_mark: false
+    pc_rect:
+    - 160
+    - 610
+    - 160
+    - 610
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: '28'
+    id_mark: false
+    pc_rect:
+    - 1413
+    - 264
+    - 1608
+    - 316
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动盘名称
+    id_mark: false
+    pc_rect:
+    - 1411
+    - 262
+    - 1608
+    - 317
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动板等级
+    id_mark: false
+    pc_rect:
+    - 1469
+    - 396
+    - 1612
+    - 441
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动盘评级
+    id_mark: false
+    pc_rect:
+    - 1415
+    - 394
+    - 1462
+    - 443
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动盘主属性
+    id_mark: false
+    pc_rect:
+    - 1423
+    - 488
+    - 1539
+    - 527
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动盘主属性值
+    id_mark: false
+    pc_rect:
+    - 1732
+    - 483
+    - 1835
+    - 534
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动盘副属性1
+    id_mark: false
+    pc_rect:
+    - 1419
+    - 563
+    - 1583
+    - 610
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动盘副属性1值
+    id_mark: false
+    pc_rect:
+    - 1734
+    - 563
+    - 1840
+    - 611
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动盘副属性2
+    id_mark: false
+    pc_rect:
+    - 1417
+    - 616
+    - 1586
+    - 661
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动盘副属性2值
+    id_mark: false
+    pc_rect:
+    - 1734
+    - 614
+    - 1841
+    - 664
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动盘副属性3
+    id_mark: false
+    pc_rect:
+    - 1418
+    - 666
+    - 1587
+    - 712
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动盘副属性3值
+    id_mark: false
+    pc_rect:
+    - 1732
+    - 666
+    - 1842
+    - 712
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动盘副属性4
+    id_mark: false
+    pc_rect:
+    - 1417
+    - 715
+    - 1588
+    - 762
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动盘副属性4值
+    id_mark: false
+    pc_rect:
+    - 1731
+    - 716
+    - 1842
+    - 767
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 拖动下一页区域
+    id_mark: false
+    pc_rect:
+    - 1318
+    - 225
+    - 1318
+    - 844
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 驱动盘个数
+    id_mark: false
+    pc_rect:
+    - 54
+    - 102
+    - 368
+    - 188
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: drive_disc_dismantle
   screen_name: 仓库-驱动仓库-驱动盘拆解
   pc_alt: false
@@ -7533,6 +7831,20 @@
     color_range: null
     goto_list:
     - 仓库-驱动仓库-驱动盘拆解
+  - area_name: 驱动仓库总数
+    id_mark: false
+    pc_rect:
+    - 154
+    - 115
+    - 318
+    - 164
+    text: 驱动仓库
+    lcs_percent: 0.3
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
   - area_name: 左上角-街区
     id_mark: false
     pc_rect:
