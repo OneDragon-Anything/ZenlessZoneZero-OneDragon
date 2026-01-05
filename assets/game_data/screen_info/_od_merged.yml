@@ -4528,7 +4528,7 @@
     color_range: null
     goto_list:
     - 大世界-普通
-  - area_name: 迷失之地-更新弹窗
+  - area_name: 按钮-更新弹窗-关闭
     id_mark: false
     pc_rect:
     - 1234

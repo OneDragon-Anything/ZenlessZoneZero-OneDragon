@@ -136,7 +136,7 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='选择迷失之地')
     @operation_node(name='开始前等待入口加载')
     def wait_lost_void_entry(self) -> OperationRoundResult:
-        result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-入口', '迷失之地-更新弹窗')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-入口', '按钮-更新弹窗-关闭')
         if result.is_success:
             return self.round_retry(result.status, wait=0.5)
 
