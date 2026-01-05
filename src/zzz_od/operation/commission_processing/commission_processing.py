@@ -85,7 +85,7 @@ class CommissionProcessing(ZOperation):
         # 恶名狩猎
         idx = str_utils.find_best_match_by_difflib(gt('恶名狩猎', 'game'), ocr_texts)
         if idx is not None:
-            center = ocr_results[idx].center + search_rect.top_left
+            center = ocr_results[idx].center + search_rect.left_top
             self.ctx.controller.click(center)
         else:
             self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '恶名狩猎兜底').center)
@@ -94,7 +94,7 @@ class CommissionProcessing(ZOperation):
         # 专业挑战室
         idx = str_utils.find_best_match_by_difflib(gt('专业挑战室', 'game'), ocr_texts)
         if idx is not None:
-            center = ocr_results[idx].center + search_rect.top_left
+            center = ocr_results[idx].center + search_rect.left_top
             self.ctx.controller.click(center)
         else:
             self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '专业挑战室兜底').center)
