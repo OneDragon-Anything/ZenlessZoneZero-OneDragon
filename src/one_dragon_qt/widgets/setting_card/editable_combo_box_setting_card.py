@@ -13,12 +13,13 @@ from typing import Union
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.utils.layout_utils import Margins, IconSize
+from one_dragon_qt.widgets.adapter_init_mixin import AdapterInitMixin
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
 
 
-class EditableComboBoxSettingCard(SettingCardBase):
+class EditableComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
     """包含下拉框的可输入自定义设置卡片类。"""
 
 
@@ -32,9 +33,9 @@ class EditableComboBoxSettingCard(SettingCardBase):
                  options_list: Optional[List[ConfigItem]] = None,
                  input_placeholder: Optional[str] = None,
                  tooltip: Optional[str] = None,
-                 adapter: Optional[YamlConfigAdapter] = None,
                  parent=None
                  ):
+
         SettingCardBase.__init__(
             self,
             icon=icon,
@@ -44,14 +45,13 @@ class EditableComboBoxSettingCard(SettingCardBase):
             margins=margins,
             parent=parent
         )
+        AdapterInitMixin.__init__(self)
 
         # 初始化下拉框
         self.combo_box = EditableComboBox(self)
         self.combo_box.setPlaceholderText(input_placeholder)
         self.hBoxLayout.addWidget(self.combo_box, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
-
-        self.adapter: YamlConfigAdapter = adapter
 
         # 处理工具提示
         self.tooltip_text: str = tooltip
@@ -138,11 +138,6 @@ class EditableComboBoxSettingCard(SettingCardBase):
         self.set_completer_options(options)
 
         self.combo_box.blockSignals(False)
-
-    def init_with_adapter(self, adapter: Optional[YamlConfigAdapter]) -> None:
-        """初始化配置适配器。"""
-        self.adapter = adapter
-        self.setValue(None if adapter is None else adapter.get_value(), emit_signal=False)
 
     def set_completer_options(self, options_list: List[ConfigItem]) -> None:
         """初始化自动补全器。"""

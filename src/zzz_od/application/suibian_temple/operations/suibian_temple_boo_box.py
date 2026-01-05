@@ -4,6 +4,7 @@ from typing import Optional
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.ocr import ocr_utils
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -38,12 +39,16 @@ class SuibianTempleBooBox(ZOperation):
         ZOperation.__init__(self, ctx,
                             op_name=f'{gt("随便观", "game")} {gt("邦巢", "game")}')
 
-        self.config: Optional[SuibianTempleConfig] = self.ctx.run_context.get_config(app_id='suibian_temple')
+        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
+            app_id='suibian_temple',
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
 
         self.bought_bangboo: bool = False  # 是否已购买邦布
         self.bought_count: int = 0  # 已购买邦布数量
         self.refresh_count: int = 0  # 刷新次数计数
-        self.max_refresh_count: int = 30  # 最大刷新次数限制
+        self.max_refresh_count: int = 50  # 最大刷新次数限制
 
         self.done_bangboo_pos: list[Rect] = []  # 已经选择过的邦布位置 点击刷新后重置/购买后需要删除
         self.current_bangboo_pos: Optional[Rect] = None  # 当前选择的邦布位置
@@ -91,10 +96,12 @@ class SuibianTempleBooBox(ZOperation):
         if not in_boobox_interface:
             return self.round_retry(status='不在邦巢界面，等待加载', wait=2)
 
+        list_area = self.ctx.screen_loader.get_area('随便观-邦巢', '区域-邦布列表')
         # 检查是否有S级邦布 - 通过识别高价格，选中所有符合条件的邦布
         bangboo_ocr_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
-            rect=self.ctx.screen_loader.get_area('随便观-邦巢', '区域-邦布列表').rect,
+            rect=list_area.rect,
+            crop_first=False,
         )
 
         s_bangboo_list: list[tuple[str, Rect]] = []
@@ -177,9 +184,10 @@ class SuibianTempleBooBox(ZOperation):
         ]
         current_type: str | None = None
 
+        name_area = self.ctx.screen_loader.get_area('随便观-邦巢', '标题-邦布名称')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
-            rect=self.ctx.screen_loader.get_area('随便观-邦巢', '标题-邦布名称').rect,
+            rect=name_area.rect,
         )
         for ocr_result in ocr_result_list:
             for t in type_list:

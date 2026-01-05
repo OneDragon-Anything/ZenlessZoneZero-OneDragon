@@ -1,9 +1,12 @@
 import os
-from typing import Callable, Optional
+from collections.abc import Callable
 
-from one_dragon.utils import file_utils, http_utils
+from one_dragon.base.web.common_downloader import (
+    CommonDownloader,
+    CommonDownloaderParam,
+)
+from one_dragon.utils import file_utils
 from one_dragon.utils.log_utils import log
-from one_dragon.base.web.common_downloader import CommonDownloader, CommonDownloaderParam
 
 
 class ZipDownloader(CommonDownloader):
@@ -28,10 +31,11 @@ class ZipDownloader(CommonDownloader):
             download_by_github: bool = True,
             download_by_gitee: bool = False,
             download_by_mirror_chan: bool = False,
-            proxy_url: Optional[str] = None,
-            ghproxy_url: Optional[str] = None,
+            proxy_url: str | None = None,
+            ghproxy_url: str | None = None,
             skip_if_existed: bool = True,
-            progress_callback: Optional[Callable[[float, str], None]] = None
+            progress_signal: dict[str, str | None] | None = None,
+            progress_callback: Callable[[float, str], None] | None = None
             ) -> bool:
         for i in range(2):
             download_result = CommonDownloader.download(
@@ -42,6 +46,7 @@ class ZipDownloader(CommonDownloader):
                 proxy_url=proxy_url,
                 ghproxy_url=ghproxy_url,
                 skip_if_existed=skip_if_existed if i == 0 else False,  # 第2次重试时必定重新下载
+                progress_signal=progress_signal,
                 progress_callback=progress_callback,
             )
 
@@ -71,8 +76,11 @@ class ZipDownloader(CommonDownloader):
         if not os.path.exists(zip_file_path):
             return False
 
-        file_utils.unzip_file(zip_file_path=zip_file_path, unzip_dir_path=self.param.save_file_path)
-        log.info(f"解压完成 {zip_file_path}")
+        # 使用指定的解压路径，如果没有指定则使用save_file_path
+        unzip_dir = self.param.unzip_dir_path or self.param.save_file_path
+        os.makedirs(unzip_dir, exist_ok=True)
+        file_utils.unzip_file(zip_file_path=zip_file_path, unzip_dir_path=unzip_dir)
+        log.info(f"解压完成 {zip_file_path} 到 {unzip_dir}")
 
         # 最后判断压缩包以外的文件是否完整了 完整了才说明解压成功
         return CommonDownloader.is_file_existed(self)
@@ -87,7 +95,4 @@ class ZipDownloader(CommonDownloader):
             return True
 
         zip_file_path = os.path.join(self.param.save_file_path, self.param.save_file_name)
-        if os.path.exists(zip_file_path):
-            return True
-
-        return False
+        return os.path.exists(zip_file_path)

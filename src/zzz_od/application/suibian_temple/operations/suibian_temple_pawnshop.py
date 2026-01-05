@@ -5,6 +5,7 @@ from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -53,7 +54,11 @@ class SuibianTemplePawnshop(ZOperation):
             op_name=f'{gt("随便观", "game")} {gt("德丰大押", "game")}'
         )
 
-        self.config: Optional[SuibianTempleConfig] = self.ctx.run_context.get_config(app_id='suibian_temple')
+        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
+            app_id='suibian_temple',
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
 
         self.chosen_goods_list: list[str] = []  # 已经选择过的商品
         self.chosen_unlimited_goods_list: list[str] = []  # 已经选择过的不限购商品
@@ -180,9 +185,10 @@ class SuibianTemplePawnshop(ZOperation):
         return self.after_buy()
 
     def get_goods_pos_list(self, screen: MatLike, goods: type[StrEnum]) -> list[GoodsPos]:
+        list_area = self.ctx.screen_loader.get_area('随便观-德丰大押', '区域-商品列表')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             screen,
-            rect=self.ctx.screen_loader.get_area('随便观-德丰大押', '区域-商品列表').rect,
+            rect=list_area.rect,
         )
 
         goods_list: list[GoodsPos] = []
@@ -265,11 +271,10 @@ class SuibianTemplePawnshop(ZOperation):
             return self.round_success(status=screen_name)
 
         # 判断是否有货币不足的情况
+        buy_area = self.ctx.screen_loader.get_area("随便观-德丰大押", "区域-购买货币")
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             self.last_screenshot,
-            rect=self.ctx.screen_loader.get_area(
-                "随便观-德丰大押", "区域-购买货币"
-            ).rect,
+            rect=buy_area.rect,
             color_range=[[170, 50, 40], [200, 65, 50]],
         )
         for ocr_result in ocr_result_list:

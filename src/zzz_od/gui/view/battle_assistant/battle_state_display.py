@@ -1,14 +1,18 @@
+from __future__ import annotations
+
 import time
+from typing import List, Dict, TYPE_CHECKING
 
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QBrush, QColor
-from PySide6.QtWidgets import QTableWidgetItem
-from qfluentwidgets import TableWidget, FluentThemeColor, isDarkTheme
-from typing import Optional, List, Dict
+from PySide6.QtWidgets import QTableWidgetItem, QWidget, QVBoxLayout
+from qfluentwidgets import TableWidget, isDarkTheme, LineEdit
 
 from one_dragon.base.conditional_operation.state_recorder import StateRecord, StateRecorder
 from one_dragon.utils.i18_utils import gt
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
 
 # 自定义颜色定义
@@ -36,32 +40,44 @@ class StateIndicatorColors:
             }
 
 
-class BattleStateDisplay(TableWidget):
+class BattleStateDisplay(QWidget):
 
-    def __init__(self, parent=None):
-        TableWidget.__init__(self, parent=parent)
+    def __init__(self, ctx: ZContext, parent=None):
+        super().__init__(parent=parent)
 
-        self.auto_op: Optional[AutoBattleOperator] = None
+        self.ctx: ZContext = ctx
         self.last_states: List[StateRecord] = []
-
-        # 跟踪每个状态的最近触发时间，用于次序区分（支持最后5次）
         self.state_trigger_history: Dict[str, List[float]] = {}
+        self._filter_text = ""  # 新增：用于存储过滤文本
 
-        self.setBorderVisible(True)
-        self.setBorderRadius(8)
+        # 1. 创建控件
+        self.filter_input = LineEdit(self)
+        self.filter_input.setPlaceholderText(gt("输入状态关键词过滤..."))  # 提示文字
+        self.table = TableWidget(self)  # 创建表格实例
 
-        self.setWordWrap(True)
-        self.setColumnCount(3)
-        self.setColumnWidth(0, 150)
-        self.setColumnWidth(1, 100)
-        self.setColumnWidth(2, 60)
-        self.verticalHeader().hide()
-        self.setHorizontalHeaderLabels([
+        # 2. 设置布局
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)  # 边距设置为0
+        layout.addWidget(self.filter_input)
+        layout.addWidget(self.table)
+        self.setLayout(layout)
+
+        # 3. 将原有的表格设置转移到 self.table 上
+        self.table.setBorderVisible(True)
+        self.table.setBorderRadius(8)
+        self.table.setWordWrap(True)
+        self.table.setColumnCount(3)
+        self.table.setColumnWidth(0, 150)
+        self.table.setColumnWidth(1, 100)
+        self.table.setColumnWidth(2, 60)
+        self.table.verticalHeader().hide()
+        self.table.setHorizontalHeaderLabels([
             gt("状态"),
             gt("触发秒数"),
             gt("状态值"),
         ])
 
+        # 4. 初始化定时器
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self._update_display)
 
@@ -99,16 +115,18 @@ class BattleStateDisplay(TableWidget):
             self.update_timer.stop()
 
     def _update_display(self) -> None:
-        if self.auto_op is None or not self.auto_op.is_running:
-            self.setRowCount(0)
+        auto_op = self.ctx.auto_battle_context.auto_op
+        if auto_op is None or not auto_op.is_running:
+            self.table.setRowCount(0)
             return
 
-        states = self.auto_op.get_usage_states()
-        states = sorted(states)
-
-        state_recorders: List[StateRecorder] = sorted([i for i in self.auto_op.state_recorders.values()
-                                                       if i.state_name in states],
-                                                      key=lambda x: x.state_name)
+        states = auto_op.usage_states
+        state_recorders: list[StateRecorder] = []
+        for state in states:
+            recorder = self.ctx.auto_battle_context.state_record_service.get_state_recorder(state)
+            if recorder is None:
+                continue
+            state_recorders.append(recorder)
 
         now = time.time()
         new_states = []
@@ -123,8 +141,23 @@ class BattleStateDisplay(TableWidget):
                 continue
             new_states.append(StateRecord(recorder.state_name, recorder.last_record_time, recorder.last_value))
 
+        # 核心修改：排序逻辑
+        filter_text = self.filter_input.text().strip()
+        if filter_text:
+            keywords = filter_text.split()
+            def sort_key(record: StateRecord):
+                # 检查状态名是否包含任意一个关键词
+                matches = any(keyword in record.state_name for keyword in keywords)
+                # 匹配的排在前面 (返回 False 即 0), 不匹配的排在后面 (返回 True 即 1)
+                # 之后再按字母顺序排序
+                return (not matches, record.state_name)
+            new_states.sort(key=sort_key)
+        else:
+            # 无过滤时，按默认名称排序
+            new_states.sort(key=lambda x: x.state_name)
+
         total = len(new_states)
-        self.setRowCount(total)
+        self.table.setRowCount(total)
         theme_colors = StateIndicatorColors.get_theme_colors(isDarkTheme())
         for i in range(total):
             state_item = QTableWidgetItem(new_states[i].state_name)
@@ -136,7 +169,7 @@ class BattleStateDisplay(TableWidget):
             if time_diff > 999:
                 time_diff = 999
             time_item = QTableWidgetItem("%.4f" % time_diff)
-            
+
             # 检查是否需要设置颜色
             trigger_color = None
             if i >= len(self.last_states) or new_states[i].trigger_time != self.last_states[i].trigger_time:
@@ -151,19 +184,19 @@ class BattleStateDisplay(TableWidget):
                     trigger_color = self.get_state_trigger_color(new_states[i].state_name, new_states[i].trigger_time)
                 value_item.setBackground(QBrush(trigger_color))
 
-            self.setItem(i, 0, state_item)
-            self.setItem(i, 1, time_item)
-            self.setItem(i, 2, value_item)
+            self.table.setItem(i, 0, state_item)
+            self.table.setItem(i, 1, time_item)
+            self.table.setItem(i, 2, value_item)
 
         self.last_states = new_states
 
 
 class TaskDisplay(TableWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, ctx: ZContext, parent=None):
         TableWidget.__init__(self, parent=parent)
 
-        self.auto_op: Optional[AutoBattleOperator] = None
+        self.ctx: ZContext = ctx
 
         self.setBorderVisible(True)
         self.setBorderRadius(8)
@@ -206,7 +239,8 @@ class TaskDisplay(TableWidget):
             self.update_timer.stop()
 
     def _update_display(self) -> None:
-        if self.auto_op is None or not self.auto_op.is_running:
+        auto_op = self.ctx.auto_battle_context.auto_op
+        if auto_op is None or not auto_op.is_running:
             data = [
                 ["[触发器]", "/"],
                 ["[条件集]", "/"],
@@ -219,18 +253,20 @@ class TaskDisplay(TableWidget):
 
             return
 
-        task = self.auto_op.running_task
+        info = auto_op.current_execution_info
+        executor = auto_op.running_executor
         now = time.time()
 
-        if task is None:
+        if info is None or executor is None:
             return
 
         # 计算持续时间
-        past_time = str(round(now - self.auto_op.last_trigger_time.get(task.trigger_display, 0), 4))
-        states = task.expr_display
+        trigger_time = executor.trigger_time
+        past_time = str(round(now - trigger_time, 4))
+        states = info.expr_display
 
         data = [
-            ["[触发器]", task.trigger_display],
+            ["[触发器]", info.trigger_display],
             ["[条件集]", states],
             ["[持续时间]", past_time]
         ]

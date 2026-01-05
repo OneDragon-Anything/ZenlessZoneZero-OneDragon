@@ -1,20 +1,18 @@
+from __future__ import annotations
+
 import time
+from typing import List, TYPE_CHECKING
 
-from typing import List
-
-from one_dragon.base.conditional_operation.conditional_operator import ConditionalOperator
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
-from zzz_od.context.zzz_context import ZContext
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
 
 class AutoBattleCustomContext:
 
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx
-        self.auto_op: ConditionalOperator = ConditionalOperator('', '', is_mock=True)
-
-    def init_battle_custom_context(self, auto_op: ConditionalOperator):
-        self.auto_op = auto_op
 
     def set_state(self, state_name_list: List[str], time_diff: float, time_diff_add: float, value: int, value_add: int) -> None:
         """
@@ -26,7 +24,7 @@ class AutoBattleCustomContext:
         :return:
         """
         now = time.time()
-        self.auto_op.batch_update_states([
+        self.ctx.auto_battle_context.state_record_service.batch_update_states([
             StateRecord(state_name, trigger_time=now + time_diff, value=value, value_to_add=value_add , trigger_time_add = time_diff_add)
             for state_name in state_name_list
         ])
@@ -37,7 +35,7 @@ class AutoBattleCustomContext:
         :param state_name_list: 状态名称列表
         :return:
         """
-        self.auto_op.batch_update_states([
+        self.ctx.auto_battle_context.state_record_service.batch_update_states([
                 StateRecord(state_name, is_clear=True)
                 for state_name in state_name_list
         ])

@@ -1,11 +1,10 @@
-import time
-
-import cv2
 import difflib
-from cv2.typing import MatLike
+import time
 from typing import Optional, List
 
-from one_dragon.base.geometry.point import Point
+import cv2
+from cv2.typing import MatLike
+
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -21,7 +20,7 @@ from zzz_od.hollow_zero.game_data.hollow_zero_event import HollowZeroSpecialEven
 from zzz_od.operation.zzz_operation import ZOperation
 
 
-def check_event_at_right(ctx: ZContext, screen: MatLike, ignore_events: set[str]) -> Optional[str]:
+def check_event_at_right(ctx: ZContext, screen: MatLike, ignore_events: set[str]) -> str | None:
     """
     识别右边区域 当前是什么事件
     """
@@ -68,7 +67,7 @@ def check_event_at_right(ctx: ZContext, screen: MatLike, ignore_events: set[str]
         return event_name_list[event_idx]
 
 
-def check_entry_opt_at_right(ctx: ZContext, screen: MatLike, ignore_events: set[str]) -> Optional[str]:
+def check_entry_opt_at_right(ctx: ZContext, screen: MatLike, ignore_events: set[str]) -> str | None:
     """
     识别右边区域 当前是否有事件的入口
     """
@@ -149,6 +148,9 @@ def check_event_text_and_run(op: ZOperation, screen: MatLike, handlers: List[Eve
     mrl_list: List[MatchResultList] = []
     bottom_opt_pos: Optional[MatchResult] = None  # 最下面的文本 用于兜底时候选择
     for ocr_result, mrl in ocr_result_map.items():
+        if len(ocr_result.strip()) <= 1:
+            continue  # 过滤单字符识别结果
+
         mrl.add_offset(area.left_top)
         ocr_result_list.append(ocr_result)
         mrl_list.append(mrl)
@@ -236,7 +238,7 @@ def run_event_handler(op: ZOperation, handler: EventOcrResultHandler, mr: MatchR
     return op.round_retry(f'未配置应对方法 {handler.status}', wait=1)
 
 
-def check_dialog_confirm(op: ZOperation, screen: MatLike) -> Optional[str]:
+def check_dialog_confirm(op: ZOperation, screen: MatLike) -> str | None:
     """
     是有有对话框的确认
     """
@@ -247,7 +249,7 @@ def check_dialog_confirm(op: ZOperation, screen: MatLike) -> Optional[str]:
         return None
 
 
-def check_bottom_choose(ctx: ZContext, screen: MatLike) -> Optional[str]:
+def check_bottom_choose(ctx: ZContext, screen: MatLike) -> str | None:
     """
     底部是否有 选择、确认、催化、丢弃、交换、抵押欠款
     - 鸣徽选择、催化
@@ -277,7 +279,7 @@ def check_bottom_choose(ctx: ZContext, screen: MatLike) -> Optional[str]:
                 return event.event_name
 
 
-def check_bottom_remove(ctx: ZContext, screen: MatLike) -> Optional[str]:
+def check_bottom_remove(ctx: ZContext, screen: MatLike) -> str | None:
     """
     底部是否有 清除
     - 侵蚀症状
@@ -292,7 +294,7 @@ def check_bottom_remove(ctx: ZContext, screen: MatLike) -> Optional[str]:
             return event.event_name
 
 
-def check_full_in_bag(ctx: ZContext, screen: MatLike) -> Optional[str]:
+def check_full_in_bag(ctx: ZContext, screen: MatLike) -> str | None:
     """
     中间是否有背包已满
     """
@@ -301,7 +303,7 @@ def check_full_in_bag(ctx: ZContext, screen: MatLike) -> Optional[str]:
         return HollowZeroSpecialEvent.FULL_IN_BAG.value.event_name
 
 
-def check_screen(ctx: ZContext, screen: MatLike, ignore_events: set[str]) -> Optional[str]:
+def check_screen(ctx: ZContext, screen: MatLike, ignore_events: set[str]) -> str | None:
     """
     识别当前画面的状态
     :param ignore_events: 忽略的事件 当前只有格子的入口选项需要忽略
@@ -352,29 +354,36 @@ def check_screen(ctx: ZContext, screen: MatLike, ignore_events: set[str]) -> Opt
     if old_capital is not None:
         return old_capital
 
-def check_battle_screen(ctx: ZContext, screen: MatLike) -> Optional[str]:
+def check_battle_screen(ctx: ZContext, screen: MatLike) -> str | None:
     result = screen_utils.find_area(ctx, screen, '战斗画面', '按键-普通攻击')
 
     if result == FindAreaResultEnum.TRUE:
         return HollowZeroSpecialEvent.IN_BATTLE.value.event_name
 
 
-def check_mission_complete(ctx: ZContext, screen: MatLike) -> Optional[str]:
+def check_mission_complete(ctx: ZContext, screen: MatLike) -> str | None:
     result = screen_utils.find_area(ctx, screen, '零号空洞-事件', '通关-完成')
 
     if result == FindAreaResultEnum.TRUE:
         return HollowZeroSpecialEvent.MISSION_COMPLETE.value.event_name
 
 
-def check_in_hollow(ctx: ZContext, screen: MatLike) -> Optional[str]:
-    result = screen_utils.find_area(ctx=ctx, screen=screen,
-                                    screen_name='零号空洞-事件', area_name='背包')
+def check_in_hollow(ctx: ZContext, screen: MatLike) -> str | None:
+    result = screen_utils.find_area(
+        ctx=ctx,
+        screen=screen,
+        screen_name='零号空洞-事件',
+        area_name='背包',
+        crop_first=False,
+    )
 
     if result == FindAreaResultEnum.TRUE:
         return HollowZeroSpecialEvent.HOLLOW_INSIDE.value.event_name
+    else:
+        return None
 
 
-def check_old_capital(ctx: ZContext, screen: MatLike) -> Optional[str]:
+def check_old_capital(ctx: ZContext, screen: MatLike) -> str | None:
     """
     旧都失物 左上角的返回
     """
@@ -394,7 +403,7 @@ def get_special_event_by_name(event_name: str) -> Optional[HallowZeroEvent]:
         if event.event_name == event_name:
             return event
 
-def check_interact(ctx: ZContext, screen: MatLike) -> Optional[str]:
+def check_interact(ctx: ZContext, screen: MatLike) -> str | None:
     """
     识别下方是否有提示交互的文本
     @param ctx: 上下文

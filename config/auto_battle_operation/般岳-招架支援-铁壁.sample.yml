@@ -1,0 +1,13 @@
+# 般岳-招架支援-铁壁
+# 黄光时切入进行招架支援，格挡敌人攻击
+operations:
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 2.5
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 10
+  - op_name: "等待秒数"
+    seconds: 1.5
+  - op_name: "清除状态"
+    state_list: ["自定义-动作不打断"]

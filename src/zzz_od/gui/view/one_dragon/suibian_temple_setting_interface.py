@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QWidget, QLabel
 from qfluentwidgets import FluentIcon
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.base.operation.application import application_const
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
@@ -43,6 +44,15 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
+
+        # 自动托管开关
+        self.auto_manage_switch = SwitchSettingCard(
+            icon=FluentIcon.GAME,
+            title='自动托管',
+            content='启用后选择游戏内自动托管经营随便观相关任务，随便观35级后可用'
+        )
+        self.auto_manage_switch.value_changed.connect(self._on_auto_manage_toggled)
+        content_widget.add_widget(self.auto_manage_switch)
 
         self.yum_cha_sin_switch = SwitchSettingCard(icon=FluentIcon.GAME, title='饮茶仙')
         content_widget.add_widget(self.yum_cha_sin_switch)
@@ -128,94 +138,19 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
         )
         content_widget.add_widget(self.boo_box_price)
 
-        # 德丰大押配置
-        self.pawnshop_omnicoin_switch = SwitchSettingCard(
-            icon=FluentIcon.GAME,
-            title="德丰大押-百宝通-开关",
-            content="自动兑换百宝通奖励",
-        )
-        content_widget.add_widget(self.pawnshop_omnicoin_switch)
-
-        pawnshop_omnicoin_options = [
-            ConfigItem(label=i, value=i.name) for i in PawnshopOmnicoinGoods
-        ]
-        self.pawnshop_omnicoin_priority_1 = ComboBox()
-        self.pawnshop_omnicoin_priority_1.set_items(pawnshop_omnicoin_options)
-        self.pawnshop_omnicoin_priority_1.currentIndexChanged.connect(self._on_pawnshop_omnicoin_priority_changed)
-
-        self.pawnshop_omnicoin_priority_2 = ComboBox()
-        self.pawnshop_omnicoin_priority_2.set_items(pawnshop_omnicoin_options)
-        self.pawnshop_omnicoin_priority_2.currentIndexChanged.connect(self._on_pawnshop_omnicoin_priority_changed)
-
-        self.pawnshop_omnicoin_priority_3 = ComboBox()
-        self.pawnshop_omnicoin_priority_3.set_items(pawnshop_omnicoin_options)
-        self.pawnshop_omnicoin_priority_3.currentIndexChanged.connect(self._on_pawnshop_omnicoin_priority_changed)
-
-        self.pawnshop_omnicoin_priority_4 = ComboBox()
-        self.pawnshop_omnicoin_priority_4.set_items(pawnshop_omnicoin_options)
-        self.pawnshop_omnicoin_priority_4.currentIndexChanged.connect(self._on_pawnshop_omnicoin_priority_changed)
-
-        self.pawnshop_omnicoin_priority_5 = ComboBox()
-        self.pawnshop_omnicoin_priority_5.set_items(pawnshop_omnicoin_options)
-        self.pawnshop_omnicoin_priority_5.currentIndexChanged.connect(self._on_pawnshop_omnicoin_priority_changed)
-
-        self.pawnshop_omnicoin_priority = MultiPushSettingCard(
-            icon=FluentIcon.GAME, title='德丰大押-百宝通-兑换优先级',
-            btn_list=[
-                self.pawnshop_omnicoin_priority_1,
-                self.pawnshop_omnicoin_priority_2,
-                self.pawnshop_omnicoin_priority_3,
-                self.pawnshop_omnicoin_priority_4,
-                self.pawnshop_omnicoin_priority_5,
-            ]
-        )
-        content_widget.add_widget(self.pawnshop_omnicoin_priority)
-
-        self.pawnshop_crest_switch = SwitchSettingCard(
-            icon=FluentIcon.GAME,
-            title="德丰大押-云纹徽-开关",
-            content="自动兑换云纹徽奖励",
-        )
-        content_widget.add_widget(self.pawnshop_crest_switch)
-
-        pawnshop_crest_options = [
-            ConfigItem(label=i, value=i.name) for i in PawnshopCrestGoods
-        ]
-        self.pawnshop_crest_priority_1 = ComboBox()
-        self.pawnshop_crest_priority_1.set_items(pawnshop_crest_options)
-        self.pawnshop_crest_priority_1.currentIndexChanged.connect(self._on_pawnshop_crest_priority_changed)
-
-        self.pawnshop_crest_priority_2 = ComboBox()
-        self.pawnshop_crest_priority_2.set_items(pawnshop_crest_options)
-        self.pawnshop_crest_priority_2.currentIndexChanged.connect(self._on_pawnshop_crest_priority_changed)
-
-        self.pawnshop_crest_priority = MultiPushSettingCard(
-            icon=FluentIcon.GAME, title='德丰大押-云纹徽-兑换优先级',
-            btn_list=[
-                self.pawnshop_crest_priority_1,
-                self.pawnshop_crest_priority_2,
-            ]
-        )
-        content_widget.add_widget(self.pawnshop_crest_priority)
-
-        self.pawnshop_crest_unlimited_denny_switch = SwitchSettingCard(
-            icon=FluentIcon.GAME,
-            title="德丰大押-云纹徽-不限购丁尼-开关",
-            content="限购商品兑换完后，再兑换不限购的",
-        )
-        content_widget.add_widget(self.pawnshop_crest_unlimited_denny_switch)
-
         content_widget.add_stretch(1)
         return content_widget
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
-        self.config: Optional[SuibianTempleConfig] = self.ctx.run_context.get_config(
+        self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
             app_id='suibian_temple',
             instance_idx=self.ctx.current_instance_idx,
-            group_id='one_dragon'
+            group_id=application_const.DEFAULT_GROUP_ID,
         )
+
+        self.auto_manage_switch.init_with_adapter(get_prop_adapter(self.config, 'auto_manage_enabled'))
 
         self.yum_cha_sin_switch.init_with_adapter(get_prop_adapter(self.config, 'yum_cha_sin'))
         self.yum_cha_sin_refresh_switch.init_with_adapter(get_prop_adapter(self.config, 'yum_cha_sin_period_refresh'))
@@ -239,34 +174,31 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
             get_prop_adapter(self.config, "boo_box_sell_price")
         )
 
-        # 德丰大押相关设置
-        self.pawnshop_omnicoin_switch.init_with_adapter(get_prop_adapter(self.config, 'pawnshop_omnicoin_enabled'))
-        priority_list = self.config.pawnshop_omnicoin_priority
-        self.pawnshop_omnicoin_priority_1.set_value(priority_list[0], emit_signal=False)
-        self.pawnshop_omnicoin_priority_2.set_value(priority_list[1], emit_signal=False)
-        self.pawnshop_omnicoin_priority_3.set_value(priority_list[2], emit_signal=False)
-        self.pawnshop_omnicoin_priority_4.set_value(priority_list[3], emit_signal=False)
-        self.pawnshop_omnicoin_priority_5.set_value(priority_list[4], emit_signal=False)
+        # 初始化时根据当前配置设置可见性
+        self._on_auto_manage_toggled(self.config.auto_manage_enabled)
 
-        self.pawnshop_crest_switch.init_with_adapter(get_prop_adapter(self.config, 'pawnshop_crest_enabled'))
-        priority_list = self.config.pawnshop_crest_priority
-        self.pawnshop_crest_priority_1.set_value(priority_list[0], emit_signal=False)
-        self.pawnshop_crest_priority_2.set_value(priority_list[1], emit_signal=False)
-        self.pawnshop_crest_unlimited_denny_switch.init_with_adapter(get_prop_adapter(self.config, 'pawnshop_crest_unlimited_denny_enabled'))
+    def _on_auto_manage_toggled(self, checked: bool) -> None:
+        # 如果开启自动托管 隐藏相关控件 否则显示
+        visible = not checked
+        self.yum_cha_sin_switch.setVisible(visible)
+        self.yum_cha_sin_refresh_switch.setVisible(visible)
+        self.adventure_duration_opt.setVisible(visible)
+        self.adventure_mission_opt.setVisible(visible)
+        self.craft_drag_times.setVisible(visible)
 
     def _on_pawnshop_omnicoin_priority_changed(self, _) -> None:
         priority_list = [
-            self.pawnshop_omnicoin_priority_1.get_value(),
-            self.pawnshop_omnicoin_priority_2.get_value(),
-            self.pawnshop_omnicoin_priority_3.get_value(),
-            self.pawnshop_omnicoin_priority_4.get_value(),
-            self.pawnshop_omnicoin_priority_5.get_value(),
+            self.pawnshop_omnicoin_priority_1.getValue(),
+            self.pawnshop_omnicoin_priority_2.getValue(),
+            self.pawnshop_omnicoin_priority_3.getValue(),
+            self.pawnshop_omnicoin_priority_4.getValue(),
+            self.pawnshop_omnicoin_priority_5.getValue(),
         ]
         self.config.pawnshop_omnicoin_priority = priority_list
 
     def _on_pawnshop_crest_priority_changed(self, _) -> None:
         priority_list = [
-            self.pawnshop_crest_priority_1.get_value(),
-            self.pawnshop_crest_priority_2.get_value(),
+            self.pawnshop_crest_priority_1.getValue(),
+            self.pawnshop_crest_priority_2.getValue(),
         ]
         self.config.pawnshop_crest_priority = priority_list

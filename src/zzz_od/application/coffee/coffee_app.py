@@ -10,6 +10,7 @@ from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, os_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -30,7 +31,7 @@ from zzz_od.game_data.compendium import Coffee
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
-from zzz_od.operation.compendium.routine_cleanup import RoutineCleanup
+from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.transport import Transport
 
 
@@ -41,21 +42,21 @@ class CoffeeApp(ZApplication):
 
     def __init__(self, ctx: ZContext):
         """
-        每天自动接收邮件奖励
+        喝咖啡
         """
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='coffee',
-            op_name=gt('咖啡店'),
-            need_notify=True,
+            ctx=ctx,
+            app_id=coffee_app_const.APP_ID,
+            op_name=coffee_app_const.APP_NAME,
         )
 
-        self.config: Optional[CoffeeConfig] = self.ctx.run_context.get_config(
+        self.config: CoffeeConfig = self.ctx.run_context.get_config(
             app_id=coffee_app_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
-            group_id=self.ctx.run_context.current_group_id,
+            group_id=application_const.DEFAULT_GROUP_ID,
         )
-        self.charge_plan_config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.charge_plan_config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
@@ -285,6 +286,7 @@ class CoffeeApp(ZApplication):
         return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='点单后跳过')
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='电量确认')
     def charge_confirm(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '电量确认')
@@ -367,10 +369,10 @@ class CoffeeApp(ZApplication):
         op = CombatSimulation(self.ctx, self.charge_plan)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='传送副本', status='定期清剿')
-    @operation_node(name='定期清剿')
-    def routine_cleanup(self) -> OperationRoundResult:
-        op = RoutineCleanup(self.ctx, self.charge_plan)
+    @node_from(from_name='传送副本', status='区域巡防')
+    @operation_node(name='区域巡防')
+    def area_patrol(self) -> OperationRoundResult:
+        op = AreaPatrol(self.ctx, self.charge_plan)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送副本', status='专业挑战室')
@@ -384,11 +386,10 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='选择前往', status='对话框确认')
     @node_from(from_name='选择前往', status='没有加成')
     @node_from(from_name='实战模拟室')
-    @node_from(from_name='定期清剿')
+    @node_from(from_name='区域巡防')
     @node_from(from_name='专业挑战室')
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
@@ -399,7 +400,7 @@ class CoffeeApp(ZApplication):
             op = self.ctx.run_context.get_application(
                 app_id=charge_plan_const.APP_ID,
                 instance_idx=self.ctx.current_instance_idx,
-                group_id=self.ctx.run_context.current_group_id,
+                group_id=application_const.DEFAULT_GROUP_ID,
             )
             return self.round_by_op_result(op.execute())
         else:
@@ -408,17 +409,15 @@ class CoffeeApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
+    ctx.run_context.start_running()
     app = CoffeeApp(ctx)
     app.chosen_coffee = ctx.compendium_service.name_2_coffee['汀曼特调']
-    app._init_before_execute()
     # app.tp_mission()
     # app.had_coffee_list.add('沙罗特调（浓）')
-    app.choose_coffee()
-    # app.execute()
+    # app.choose_coffee()
+    app.execute()
 
 
 if __name__ == '__main__':
     __debug()
-
-

@@ -2,13 +2,12 @@ from cv2.typing import MatLike
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.ridu_weekly import ridu_weekly_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
-from zzz_od.operation.compendium.open_compendium import OpenCompendium
 
 
 class RiduWeeklyApp(ZApplication):
@@ -18,19 +17,18 @@ class RiduWeeklyApp(ZApplication):
             self,
             ctx=ctx,
             app_id=ridu_weekly_const.APP_ID,
-            op_name=gt(ridu_weekly_const.APP_NAME),
-            need_notify=True,
+            op_name=ridu_weekly_const.APP_NAME,
         )
 
-    @operation_node(name='快捷手册', is_start_node=True)
-    def open_compendium(self) -> OperationRoundResult:
-        op = OpenCompendium(self.ctx)
+    @operation_node(name='返回大世界', is_start_node=True)
+    def back_at_first(self) -> OperationRoundResult:
+        op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='快捷手册')
+    @node_from(from_name='返回大世界')
     @operation_node(name='日常')
-    def choose_train(self) -> OperationRoundResult:
-        return self.round_by_goto_screen(screen_name=f'快捷手册-日常')
+    def choose_daily(self) -> OperationRoundResult:
+        return self.round_by_goto_screen(screen_name='快捷手册-日常')
 
     @node_from(from_name='日常')
     @operation_node(name='丽都周纪')
@@ -57,6 +55,7 @@ class RiduWeeklyApp(ZApplication):
         return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='领取积分', success=False)  # 没有100积分之后
+    @node_notify(when=NotifyTiming.CURRENT_DONE)
     @operation_node(name='领取奖励')
     def confirm_schedule(self) -> OperationRoundResult:
         return self.round_by_click_area('丽都周纪', '领取奖励',
@@ -65,7 +64,6 @@ class RiduWeeklyApp(ZApplication):
     @node_from(from_name='领取奖励')
     @operation_node(name='完成后返回')
     def finish(self) -> OperationRoundResult:
-        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

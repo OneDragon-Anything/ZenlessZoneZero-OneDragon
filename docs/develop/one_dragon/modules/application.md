@@ -20,7 +20,23 @@
 
 应用配置的维度是 `app_id` + `instance_idx` + `group_id`，即应用(app_id)在不同的账号(instance_idx)和不同的应用组(group_id)中，可以有不同的配置。
 
-(待补充更多说明)
+```
+config/
+├── 01/                             # 实例01
+│   ├── one_dragon/                 # 默认应用组 (group_id=one_dragon)
+│   │   ├── _group.yml               # 应用组配置
+│   │   ├── coffee.yml              # 咖啡应用配置 (如果在use_group_config中)
+│   │   └── email.yml               # 邮件应用配置 (如果在use_group_config中)
+│   ├── daily_tasks/                # 日常应用组
+│   │   ├── _group.yml               # 应用组配置
+│   │   ├── coffee.yml              # 咖啡应用在日常应用组中的配置
+│   │   └── email.yml               # 邮件应用在日常应用组中的配置
+│   └── farming/                    # 体力消耗应用组
+│       ├── group.yml               # 应用组配置
+│       └── coffee.yml              # 咖啡应用在体力消耗组中的配置
+└── 02/                             # 实例02
+    └── ...
+```
 
 ## 运行记录
 
@@ -48,13 +64,22 @@
 
 ### 应用组配置
 
-使用 `ApplicationGroupConfig`，主要包含 一个应用列表，说明了应用的运行顺序和是否启用。
+使用 `ApplicationGroupConfig`，存放位置 `config/{instance_idx}/{group_id}/_group.yml`。
 
-存放位置 `config/{instance_idx}/{group_id}/_group.yml`。
+主要包含：
+
+- 一个应用列表，说明了应用的运行顺序和是否启用。
+- 完成后是否推送消息。
 
 ### 应用组管理
 
 使用 `ApplicationGroupManager` 获取具体的应用组配置。
 
-## 应用服务 - ApplicationService
+默认应用组(one_dragon)会在初始化的注册应用后，添加到应用组管理器中。
 
+### 应用组运行
+
+通过 `GroupApplication` 执行一个应用组，该类提供：
+
+- 按顺序执行应用
+- 完成后推送消息

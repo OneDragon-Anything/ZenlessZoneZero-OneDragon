@@ -1,16 +1,20 @@
 # coding: utf-8
-from typing import Dict, Any, List
+from typing import Dict, Any, List, TYPE_CHECKING
 import cv2
 import numpy as np
+import time
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.utils import cv2_utils
+
+if TYPE_CHECKING:
+    from one_dragon.base.cv_process.cv_service import CvService
 
 
 class CvPipelineContext:
     """
     一个图像处理流水线的上下文
     """
-    def __init__(self, source_image: np.ndarray, service: 'CvService' = None, debug_mode: bool = True):
+    def __init__(self, source_image: np.ndarray, service: 'CvService | None' = None, debug_mode: bool = True, start_time: float | None = None, timeout: float | None = None):
         self.source_image: np.ndarray = source_image  # 原始输入图像 (只读)
         self.service: 'CvService' = service
         self.debug_mode: bool = debug_mode  # 是否为调试模式
@@ -25,6 +29,10 @@ class CvPipelineContext:
         self.total_execution_time: float = 0.0
         self.error_str: str = None  # 致命错误信息
         self.success: bool = True  # 流水线逻辑是否成功
+
+        # 超时控制相关
+        self.start_time: float = start_time if start_time is not None else time.time()
+        self.timeout: float = timeout  # 允许的执行时间（秒），None表示无限制
 
     @property
     def is_success(self) -> bool:
@@ -49,6 +57,15 @@ class CvPipelineContext:
     @property
     def ocr(self):
         return self.service.ocr if self.service else None
+
+    def check_timeout(self) -> bool:
+        """
+        检查是否已经超时
+        :return: True表示已超时，False表示未超时
+        """
+        if self.timeout is None:
+            return False
+        return time.time() - self.start_time > self.timeout
 
     def get_absolute_rects(self) -> List[tuple[int, int, int, int]]:
         """
@@ -215,4 +232,3 @@ class CvStep:
         context.crop_offset = (context.crop_offset[0] + rect.x1, context.crop_offset[1] + rect.y1)
 
         context.analysis_results.append(f"已执行 {operation_name}，区域: {rect}，当前总偏移: {context.crop_offset}")
-

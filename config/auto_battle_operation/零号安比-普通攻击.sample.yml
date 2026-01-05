@@ -2,30 +2,33 @@
 operations:  # 普攻1段
   - op_name: "设置状态"
     state: "自定义-零号安比-白雷"
-    add: 15
+    add: 47
   - op_name: "按键-普通攻击"
     post_delay: 0.1
     repeat: 3  # 普攻2段
   - op_name: "设置状态"
     state: "自定义-零号安比-白雷"
-    add: 25
+    add: 75
   - op_name: "按键-普通攻击"
     post_delay: 0.1
     repeat: 6  # 普攻3段
   - op_name: "设置状态"
     state: "自定义-零号安比-白雷"
-    add: 60
+    add: 81
   - op_name: "按键-普通攻击"
     post_delay: 0.1
     repeat: 9  # 普攻4段
   - op_name: "设置状态"
     state: "自定义-零号安比-白雷"
-    add: 60
+    add: 163
   - op_name: "按键-普通攻击"
     post_delay: 0.1
     repeat: 10
+  - op_name: "设置状态"
+    state: "自定义-零号安比-白雷"
+    add: 172
   - op_name: "按键-普通攻击"
     post_delay: 0.1
     repeat: 6
   - op_name: "等待秒数"
-    seconds: 0.2
+    seconds: 0.5

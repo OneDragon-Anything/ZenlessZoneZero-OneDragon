@@ -39,12 +39,13 @@ class CompendiumCategory:
 class CompendiumMissionType:
 
     def __init__(self, mission_type_name: str, mission_type_name_display: Optional[str] = None,
-                 mission_list: List = None):
+                 mission_list: List = None, alias_list: List[str] = None):
         self.category: Optional[CompendiumCategory] = None
         self.mission_type_name: str = mission_type_name
         self.mission_type_name_display: str = mission_type_name
         if mission_type_name_display is not None:
             self.mission_type_name_display = mission_type_name_display
+        self.alias_list: List[str] = alias_list if alias_list is not None else []
         self.mission_list: List[CompendiumMission] = []
         if mission_list is not None:
             for mission_item in mission_list:
@@ -209,7 +210,7 @@ class CompendiumService:
                 value=category_item.category_name
             ))
 
-        category_list = self.get_category_list_data('作战')
+        category_list = self.get_category_list_data('训练')
         for category_item in category_list:
             if category_item.category_name == '恶名狩猎':
                 category_config_list.append(ConfigItem(
@@ -222,8 +223,7 @@ class CompendiumService:
     def get_charge_plan_mission_type_list(self, category_name: str) -> List[ConfigItem]:
         config_list: List[ConfigItem] = []
 
-        tab_name = '作战' if category_name == '恶名狩猎' else '训练'
-        mission_type_list = self.get_mission_type_list_data(tab_name, category_name)
+        mission_type_list = self.get_mission_type_list_data('训练', category_name)
         for mission_type_item in mission_type_list:
             config_list.append(ConfigItem(
                 label=mission_type_item.mission_type_name_display,
@@ -235,8 +235,7 @@ class CompendiumService:
     def get_charge_plan_mission_list(self, category_name: str, mission_type: str) -> List[ConfigItem]:
         config_list: List[ConfigItem] = []
 
-        tab_name = '作战' if category_name == '恶名狩猎' else '训练'
-        mission_list = self.get_mission_list_data(tab_name, category_name, mission_type)
+        mission_list = self.get_mission_list_data('训练', category_name, mission_type)
         for mission_item in mission_list:
             config_list.append(ConfigItem(
                 label=mission_item.mission_name_display,
@@ -260,7 +259,7 @@ class CompendiumService:
     def get_notorious_hunt_plan_mission_type_list(self, category_name: str) -> List[ConfigItem]:
         config_list: List[ConfigItem] = []
 
-        mission_type_list = self.get_mission_type_list_data('作战', category_name)
+        mission_type_list = self.get_mission_type_list_data('训练', category_name)
         for mission_type_item in mission_type_list:
             config_list.append(ConfigItem(
                 label=mission_type_item.mission_type_name_display,
@@ -270,12 +269,13 @@ class CompendiumService:
         return config_list
 
     def get_hollow_zero_mission_name_list(self) -> List[str]:
-        mission_name_list: List[str] = []
         mission_type_list = self.get_mission_type_list_data('作战', '零号空洞')
-        for mission_type in mission_type_list:
-            for mission in mission_type.mission_list:
-                mission_name_list.append(mission.mission_name)
-        return mission_name_list
+        return [
+            mission.mission_name
+            for mission_type in mission_type_list
+            if mission_type.mission_type_name != '迷失之地'
+            for mission in mission_type.mission_list
+        ]
 
     def _load_coffee(self) -> None:
         """

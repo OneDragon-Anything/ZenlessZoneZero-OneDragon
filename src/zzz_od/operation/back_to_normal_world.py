@@ -42,7 +42,7 @@ class BackToNormalWorld(ZOperation):
                 and self.ctx.screen_loader.current_screen_name is not None):
             return self.round_wait(result.status, wait=1)
 
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
+        result = self.round_by_find_area_binary(self.last_screenshot, '大世界', '信息')
         if result.is_success:
             return self.round_success(result.status)
 
@@ -119,14 +119,17 @@ class BackToNormalWorld(ZOperation):
         识别是否有代理人好感度对话
         """
         area = self.ctx.screen_loader.get_area('大世界', '好感度标题')
-        part = cv2_utils.crop_image_only(screen, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
-        ocr_result_list = [i for i in ocr_result_map.keys()]
-        agent_name_list = [gt(i.value.agent_name, 'game') for i in AgentEnum]
-        idx1, idx2 = str_utils.find_most_similar(ocr_result_list, agent_name_list)
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=screen,
+            rect=area.rect,
+        )
+        ocr_word_list: list[str] = [i.data for i in ocr_result_list]
+        agent_name_list = [i.value.agent_name for i in AgentEnum] + ['小黑']
+        agent_name_list = [gt(i, 'game') for i in agent_name_list]
+        idx1, idx2 = str_utils.find_most_similar(ocr_word_list, agent_name_list)
         return idx1 is not None and idx2 is not None
 
-    def _handle_agent_dialog(self, screen: MatLike) -> OperationRoundResult:
+    def _handle_agent_dialog(self, screen: MatLike) -> OperationRoundResult | None:
         """
         处理代理人好感度对话
         """
@@ -148,48 +151,43 @@ class BackToNormalWorld(ZOperation):
             self.round_by_click_area('菜单', '返回')
             return self.round_wait('对话无选项', wait=1)
 
-    def check_compendium(self, screen: MatLike) -> OperationRoundResult:
+        return None
+
+    def check_compendium(self, screen: MatLike) -> OperationRoundResult | None:
         """
         判断是否在快捷手册
         """
         area = self.ctx.screen_loader.get_area('快捷手册', 'TAB列表')
-        part = cv2_utils.crop_image_only(screen, area.rect)
 
         tab_list = self.ctx.compendium_service.data.tab_list
         target_word_list = [gt(i.tab_name, 'game') for i in tab_list]
         tab_num: int = 0
-        ocr_results = self.ctx.ocr.run_ocr(part)
-        for ocr_result, mrl in ocr_results.items():
-            if mrl.max is None:
-                continue
 
-            idx = str_utils.find_best_match_by_difflib(ocr_result, target_word_list)
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=screen,
+            rect=area.rect,
+        )
+        for mr in ocr_result_list:
+            idx = str_utils.find_best_match_by_difflib(mr.data, target_word_list)
             if idx is not None and idx >= 0:
                 tab_num += 1
 
         if tab_num >= 2:  # 找到了多个tab
             return self.round_by_click_area('快捷手册', '按钮-退出')
 
-def __debug_op():
-    ctx = ZContext()
-    ctx.init_by_config()
-    ctx.init_ocr()
-    op = BackToNormalWorld(ctx)
-    ctx.run_context.start_running()
-    op.execute()
+        return None
 
 
 def _debug():
     ctx = ZContext()
-    ctx.init_by_config()
-    ctx.init_ocr()
+    ctx.init()
     op = BackToNormalWorld(ctx)
     from one_dragon.utils import debug_utils
-    screen = debug_utils.get_debug_image('111')
+    screen = debug_utils.get_debug_image('508500962-c6b83e60-fc00-49ce-83d0-17e0e49a5aa1')
     import cv2
     op.last_screenshot = cv2.resize(screen, (1920, 1080))
-    print(op.check_screen_and_run(screen).status)
+    print(op.check_screen_and_run().status)
 
 
 if __name__ == '__main__':
-    __debug_op()
+    _debug()

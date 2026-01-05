@@ -1,12 +1,14 @@
 import difflib
-from cv2.typing import MatLike
 from typing import List, Optional
+
+from cv2.typing import MatLike
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.shiyu_defense import shiyu_defense_const
+from zzz_od.application.shiyu_defense.shiyu_defense_const import MultiRoomNodeConfig
 from zzz_od.application.shiyu_defense.shiyu_defense_config import (
     ShiyuDefenseTeamConfig,
     ShiyuDefenseConfig,
@@ -66,7 +68,7 @@ class DefenseTeamSearcher:
         """
         self.ctx: ZContext = ctx
 
-        self.config: Optional[ShiyuDefenseConfig] = self.ctx.run_context.get_config(
+        self.config: ShiyuDefenseConfig = self.ctx.run_context.get_config(
             app_id=shiyu_defense_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
@@ -218,13 +220,20 @@ class DefenseTeamSearcher:
         return len(team_1_id_set & team_2_id_set) > 0
 
 
-def calc_teams(ctx: ZContext, screen: MatLike, phase_cnt: int = 2, type_cnt: int = 2) -> List[DefensePhaseTeamInfo]:
+def calc_teams(
+    ctx: ZContext,
+    screen: MatLike,
+    phase_cnt: int = 2,
+    type_cnt: int = 2,
+    screen_name: str = '式舆防卫战'
+) -> List[DefensePhaseTeamInfo]:
     """
     计算配队
     @param ctx: 上下文
     @param screen: 游戏画面
     @param phase_cnt: 阶段数量
     @param type_cnt: 属性数量
+    @param screen_name: 屏幕模板名称
     @return:
     """
     # 先识别弱点和数量
@@ -234,10 +243,10 @@ def calc_teams(ctx: ZContext, screen: MatLike, phase_cnt: int = 2, type_cnt: int
         weakness_list = []
         resistance_list = []
         for type_idx in range(type_cnt):
-            area = ctx.screen_loader.get_area('式舆防卫战', ('弱点-%d-%d' % (phase_idx + 1, type_idx + 1)))
+            area = ctx.screen_loader.get_area(screen_name, f'弱点-{phase_idx + 1}-{type_idx + 1}')
             weakness_list.append(check_type_by_area(ctx, screen, area))
 
-            area = ctx.screen_loader.get_area('式舆防卫战', ('抗性-%d-%d' % (phase_idx + 1, type_idx + 1)))
+            area = ctx.screen_loader.get_area(screen_name, f'抗性-{phase_idx + 1}-{type_idx + 1}')
             resistance_list.append(check_type_by_area(ctx, screen, area))
 
         team = DefensePhaseTeamInfo(weakness_list, resistance_list)
@@ -247,13 +256,33 @@ def calc_teams(ctx: ZContext, screen: MatLike, phase_cnt: int = 2, type_cnt: int
     return searcher.search()
 
 
+def calc_teams_for_multi_room(
+    ctx: ZContext,
+    screen: MatLike,
+    config: MultiRoomNodeConfig
+) -> List[DefensePhaseTeamInfo]:
+    """
+    计算多间模式节点的最佳编队
+    @param ctx: 上下文
+    @param screen: 弹窗截图
+    @param config: 节点配置
+    @return: 各房间的编队方案列表
+    """
+    return calc_teams(
+        ctx, screen,
+        phase_cnt=config.room_count,
+        type_cnt=2,
+        screen_name=config.screen_template
+    )
+
+
 def check_type_by_area(ctx: ZContext, screen: MatLike, area: ScreenArea) -> DmgTypeEnum:
     """
     识别一个属性
-    @param ctx: 上下文 
+    @param ctx: 上下文
     @param screen: 游戏画面
     @param area: 识别区域
-    @return: 
+    @return:
     """
     part = cv2_utils.crop_image_only(screen, area.rect)
     ocr_map = ctx.ocr.run_ocr(part)

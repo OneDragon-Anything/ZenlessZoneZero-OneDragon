@@ -16,12 +16,11 @@ env:
   CREATE_RELEASE: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
-  build:
+  version:
     runs-on: windows-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
       tag: ${{ steps.get_version.outputs.tag }}
-      unsigned_artifact_id: ${{ steps.upload-unsigned-artifact.outputs.artifact-id }}
 
     steps:
     - name: Checkout code
@@ -36,6 +35,10 @@ jobs:
         if ($env:GITHUB_REF -like 'refs/tags/*') {
           # 已由 tag 推送触发，直接使用该 tag 作为版本
           $version = $env:GITHUB_REF.Substring(10)
+          $tag = $version
+        } elseif ($env:CREATE_RELEASE -eq 'false') {
+          # 非 release 构建，使用日期作为版本号
+          $version = (Get-Date).ToUniversalTime().AddHours(8).ToString('vyyyy.MMdd.HHmm')
           $tag = $version
         } else {
           # 手动 workflow_dispatch 触发：使用 git 的语义化版本排序，选出最新 tag，然后生成 / 递增 beta 版本
@@ -82,7 +85,18 @@ jobs:
 
         echo "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
         echo "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-        echo "__version__ = '$version'" | Out-File -FilePath src/one_dragon/version.py -Encoding utf8
+
+  build:
+    runs-on: windows-latest
+    needs: version
+    outputs:
+      unsigned_artifact_id: ${{ steps.upload-unsigned-artifact.outputs.artifact-id }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -122,7 +136,10 @@ jobs:
 
     - name: Build executables
       shell: pwsh
+      env:
+        RELEASE_VERSION: ${{ needs.version.outputs.version }}
       run: |
+        echo "__version__ = '$env:RELEASE_VERSION'" | Out-File -FilePath src/one_dragon/version.py -Encoding utf8
         .\.venv\Scripts\Activate.ps1
         cd deploy
         pyinstaller "OneDragon-Installer.spec"
@@ -185,7 +202,9 @@ jobs:
 
   sign:
     runs-on: windows-latest
-    needs: build
+    needs:
+      - version
+      - build
     if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
     env:
       SIGNED_DIR: 'signed'
@@ -214,6 +233,7 @@ jobs:
   release:
     runs-on: windows-latest
     needs:
+      - version
       - build
       - sign
     if: ${{ ((github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/')) && needs.sign.result == 'success' }}
@@ -246,7 +266,7 @@ jobs:
     - name: Prepare release directory and models
       shell: pwsh
       env:
-        RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        RELEASE_VERSION: ${{ needs.version.outputs.version }}
       run: |
         # 将 dist 移动到当前目录的父目录下
         $distDir = "deploy/dist"
@@ -260,7 +280,6 @@ jobs:
 
         # 准备离线运行所需的 .install 资源
         Invoke-WebRequest -Uri "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ZenlessZoneZero-OneDragon/uv-x86_64-pc-windows-msvc.zip" -OutFile "$envDir/uv-x86_64-pc-windows-msvc.zip"
-        Invoke-WebRequest -Uri "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ZenlessZoneZero-OneDragon/MinGit.zip" -OutFile "$envDir/MinGit.zip"
         Invoke-WebRequest -Uri "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ZenlessZoneZero-OneDragon/cpython-3.11.zip" -OutFile "$envDir/cpython-3.11.zip"
 
         # 将安装器复制到仓库根目录
@@ -439,14 +458,14 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ needs.build.outputs.tag }}
-        name: "Release ${{ needs.build.outputs.version }}"
+        tag_name: ${{ needs.version.outputs.tag }}
+        name: "Release ${{ needs.version.outputs.version }}"
         body: |
-          # 安装方式
+          ## 安装方式
 
-          - `ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Full-Environment.zip` 为带环境的完整包，不需要额外下载资源。
-          - `ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Full.zip` 为完整包，解压后选择解压目录为安装目录，只需要下载环境依赖。
-          - `ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Installer.exe` 为精简安装程序，运行后会自动下载所需的资源。
+          - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full-Environment.zip` 为带环境的完整包，不需要额外下载资源。
+          - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full.zip` 为完整包，解压后选择解压目录为安装目录，只需要下载环境依赖。
+          - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Installer.exe` 为精简安装程序，运行后会自动下载所需的资源。
           - 如果你想更新启动器，前往主程序【设置】-【资源下载】页面更新，或者下载 `ZenlessZoneZero-OneDragon-Launcher.zip`，解压后替换。
           - __不要下载Source Code__
 
@@ -455,13 +474,29 @@ jobs:
 
           已有 Mirror酱 CDK？前往 [Mirror酱](https://mirrorchyan.com/zh/projects?rid=ZZZ-OneDragon&source=zzzgh-release) 高速下载
 
+          ## 签名策略 (Code Signing Policy)
+
+          免费代码签名由 [SignPath.io](https://signpath.io/) 提供，证书由 [SignPath Foundation](https://signpath.org/) 颁发
+
+          审批人：[DoctorReid](https://github.com/DoctorReid) [ShadowLemoon](https://github.com/ShadowLemoon)
+
+          Free code signing provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/)
+
+          Approvers: [DoctorReid](https://github.com/DoctorReid) [ShadowLemoon](https://github.com/ShadowLemoon)
+
+          ## 隐私政策 (Privacy Policy)
+
+          本程序的隐私政策详见：[隐私政策](.github/PRIVACY.md)。
+
+          See the [Privacy Policy](.github/PRIVACY.md).
+
         files: |
-          ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Full-Environment.zip
-          ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Full.zip
-          ZenlessZoneZero-OneDragon-${{ needs.build.outputs.version }}-Installer.exe
+          ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full-Environment.zip
+          ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full.zip
+          ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Installer.exe
           ZenlessZoneZero-OneDragon-Environment.zip
           ZenlessZoneZero-OneDragon-Launcher.zip
         generate_release_notes: false
-        prerelease: ${{ contains(needs.build.outputs.version, '-beta.') }}
+        prerelease: ${{ contains(needs.version.outputs.version, '-beta.') }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

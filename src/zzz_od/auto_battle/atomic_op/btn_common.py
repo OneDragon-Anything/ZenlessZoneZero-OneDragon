@@ -1,16 +1,19 @@
-import time
+from __future__ import annotations
 
 import threading
-from enum import Enum
-from typing import Callable
+import time
+from enum import StrEnum, IntEnum
+from typing import TYPE_CHECKING, Callable
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from one_dragon.base.conditional_operation.operation_def import OperationDef
-from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
 from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
 
+if TYPE_CHECKING:
+    from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
 
-class BtnWayEnum(Enum):
+
+class BtnWayEnum(StrEnum):
 
     PRESS = '按下'
     RELEASE = '松开'
@@ -26,7 +29,7 @@ class BtnWayEnum(Enum):
         return None
 
 
-class BtnRunStatus(Enum):
+class BtnRunStatus(IntEnum):
 
     WAIT = 0
     RUNNING = 1
@@ -69,6 +72,8 @@ class AtomicBtnCommon(AtomicOp):
             self._method = self.ctx.chain_left
         elif op_name == BattleStateEnum.BTN_CHAIN_RIGHT.value:
             self._method = self.ctx.chain_right
+        elif op_name == BattleStateEnum.BTN_CHAIN_CANCEL.value:
+            self._method = self.ctx.chain_cancel
         elif op_name == BattleStateEnum.BTN_MOVE_W.value:
             self._method = self.ctx.move_w
         elif op_name == BattleStateEnum.BTN_MOVE_S.value:
@@ -79,8 +84,6 @@ class AtomicBtnCommon(AtomicOp):
             self._method = self.ctx.move_d
         elif op_name == BattleStateEnum.BTN_LOCK.value:
             self._method = self.ctx.lock
-        elif op_name == BattleStateEnum.BTN_CHAIN_CANCEL.value:
-            self._method = self.ctx.chain_cancel
         else:
             raise ValueError(f'非法按键 {self.btn_name}')
 

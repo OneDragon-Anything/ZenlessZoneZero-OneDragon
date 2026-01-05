@@ -2,10 +2,10 @@ import logging
 import threading
 from enum import Enum
 from functools import cached_property
-from typing import Optional
 
-from pynput import keyboard, mouse
+from pynput import keyboard
 
+from one_dragon.base.config.basic_model_config import BasicModelConfig
 from one_dragon.base.config.custom_config import UILanguageEnum
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
@@ -25,6 +25,7 @@ from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
     OneDragonEnvContext,
 )
+from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
 from one_dragon.utils import debug_utils, i18_utils, log_utils, thread_utils
@@ -33,12 +34,12 @@ from one_dragon.utils.log_utils import log
 
 class ContextKeyboardEventEnum(Enum):
 
-    PRESS: str = 'context_keyboard_press'
+    PRESS = 'context_keyboard_press'
 
 
 class ContextInstanceEventEnum(Enum):
 
-    instance_active: str = 'instance_active'
+    instance_active = 'instance_active'
 
 
 class OneDragonContext(ContextEventBus, OneDragonEnvContext):
@@ -56,18 +57,15 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.screen_loader: ScreenContext = ScreenContext()
         self.template_loader: TemplateLoader = TemplateLoader()
         self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
+
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
-                det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
-            )
-        )
-        self.cv_ocr: OcrMatcher = OnnxOcrMatcher(
-            OnnxOcrParam(
+                use_gpu=False,  # 目前OCR使用GPU会闪退
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
-        self.controller: Optional[ControllerBase] = None
+        self.controller: ControllerBase | None = None
 
         self.keyboard_controller = keyboard.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
@@ -76,6 +74,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext(self)
         self.app_group_manager: ApplicationGroupManager = ApplicationGroupManager(self)
+
+        self.push_service: PushService = PushService(self)
 
         # 初始化相关
         self._init_lock = threading.Lock()
@@ -96,6 +96,15 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         from one_dragon.base.config.custom_config import CustomConfig
         return CustomConfig()
 
+    @cached_property
+    def cv_service(self):
+        from one_dragon.base.cv_process.cv_service import CvService
+        return CvService(self)
+
+    @cached_property
+    def model_config(self) -> BasicModelConfig:
+        return BasicModelConfig()
+
     #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
 
     @cached_property
@@ -104,9 +113,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         return GameAccountConfig(self.current_instance_idx)
 
     @cached_property
-    def push_config(self):
-        from one_dragon.base.config.push_config import PushConfig
-        return PushConfig(self.current_instance_idx)
+    def notify_config(self):
+        from one_dragon.base.config.notify_config import NotifyConfig
+        return NotifyConfig(self.current_instance_idx, self.run_context.notify_app_map)
 
     def init(self) -> None:
         if not self._init_lock.acquire(blocking=False):
@@ -129,7 +138,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.init_ocr()
 
-            self.screen_loader.load_all()
+            self.screen_loader.reload()
 
             # 账号实例层级的配置 不是应用特有的配置
             self.reload_instance_config()
@@ -142,6 +151,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             self.ready_for_application = True
 
             self.run_context.check_and_update_all_run_record(self.current_instance_idx)
+
+            self.push_service.init_push_channels()
 
             self.gh_proxy_service.update_proxy_url()
 
@@ -240,8 +251,15 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.one_dragon_config.active_instance(instance_idx)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
         self.reload_instance_config()
-        self.init_controller()
+        self.on_switch_instance()
         self.dispatch_event(ContextInstanceEventEnum.instance_active.value, instance_idx)
+
+    def on_switch_instance(self) -> None:
+        """
+        切换实例后的回调，用于更新 controller 配置
+        由子类实现具体逻辑
+        """
+        pass
 
     def reload_instance_config(self):
         """
@@ -253,7 +271,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         to_clear_props = [
             'game_account_config',
-            'push_config',
+            'notify_config',
         ]
         for prop in to_clear_props:
             if hasattr(self, prop):
@@ -264,11 +282,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         初始化OCR
         :return:
         """
+        self.ocr.update_use_gpu(self.model_config.ocr_gpu)
         self.ocr.init_model(
-            ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
-            proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
-        )
-        self.cv_ocr.init_model(
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
         )
@@ -279,9 +294,19 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         @return:
         """
         self.btn_listener.stop()
+        if self.controller is not None:
+            self.controller.cleanup_after_app_shutdown()
         self.one_dragon_config.clear_temp_instance_indices()
         ContextEventBus.after_app_shutdown(self)
         OneDragonEnvContext.after_app_shutdown(self)
+        from one_dragon.base.conditional_operation.operator import ConditionalOperator
+        ConditionalOperator.after_app_shutdown()
+        from one_dragon.base.conditional_operation.operation_executor import OperationExecutor
+        OperationExecutor.after_app_shutdown()
+        from one_dragon.base.conditional_operation.state_record_service import StateRecordService
+        StateRecordService.after_app_shutdown()
+        from one_dragon.utils import gpu_executor
+        gpu_executor.shutdown(wait=False)
 
     def register_application_factory(self) -> None:
         """

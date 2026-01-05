@@ -5,7 +5,7 @@ from one_dragon.base.cv_process.cv_step import CvStep, CvPipelineContext
 
 
 class CvFindContoursStep(CvStep):
-    
+
     def __init__(self):
         self.mode_map = {
             'EXTERNAL': cv2.RETR_EXTERNAL,
@@ -29,10 +29,18 @@ class CvFindContoursStep(CvStep):
             'draw_contours': {'type': 'bool', 'default': True, 'label': '绘制轮廓', 'tooltip': '是否在调试图像上用绿色线条画出找到的轮廓。'},
         }
 
-    def _execute(self, context: CvPipelineContext, mode: str = 'EXTERNAL', method: str = 'SIMPLE', draw_contours: bool = True, **kwargs):
+    def _execute(self, context: CvPipelineContext, mode: str = 'EXTERNAL', method: str = 'SIMPLE', draw_contours: bool = True, **_kwargs):
         if context.mask_image is None:
             return
-        
+
+        # 【防卡死措施】：检查输入图像的噪点比例
+        height, width = context.mask_image.shape
+        total_pixels = height * width
+        if total_pixels == 0:
+            context.error_str = "错误：输入图像尺寸为0"
+            context.success = False
+            return
+
         cv2_mode = self.mode_map.get(mode)
         cv2_method = self.method_map.get(method)
         if cv2_mode is None or cv2_method is None:
@@ -43,7 +51,7 @@ class CvFindContoursStep(CvStep):
 
         if not contours:
             context.success = False
-        
+
         context.analysis_results.append(f"找到 {len(contours)} 个轮廓")
 
         if context.debug_mode and draw_contours:

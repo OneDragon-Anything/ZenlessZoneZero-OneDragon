@@ -1,3 +1,5 @@
+import time
+
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -44,7 +46,7 @@ class EnterHddMission(ZOperation):
         # 完成一次退出后 可能在副本列表画面
         result = self.round_by_find_area(self.last_screenshot, 'HDD', '下一步')
         if result.is_success:
-            return self.round_success(status=result.status)
+            return self.round_success(status=result.status, wait=2)
 
         # 不符合时 点击弹出选项
         result = self.round_by_click_area('HDD', '章节显示')
@@ -60,8 +62,8 @@ class EnterHddMission(ZOperation):
 
         # 点击直到看到下一步
         result = self.round_by_find_area(self.last_screenshot, 'HDD', '下一步')
-        if result.is_success:  # 稍微等待
-            return self.round_success(wait=1)
+        if result.is_success:  # 稍微等待，确保界面稳定
+            return self.round_success(wait=2)
 
         return self.round_retry(wait=1)
 
@@ -72,6 +74,9 @@ class EnterHddMission(ZOperation):
         area = self.ctx.screen_loader.get_area('HDD', '副本区域')
         result = self.round_by_ocr_and_click(self.last_screenshot, self.mission_name, area=area)
         if result.is_success:
+            # 有时候点击会失败 这里多点击一次确保成功
+            time.sleep(1)
+            self.round_by_ocr_and_click(self.last_screenshot, self.mission_name, area=area)
             return self.round_success(wait=1)
 
         # 找不到时候 往下滑

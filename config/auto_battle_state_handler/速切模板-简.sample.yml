@@ -1,6 +1,7 @@
 template_name: "速切模板-简"
 handlers:
   - states: "[前台-简]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-简]"
     sub_handlers:
       - states: "[自定义-异常-火, 0, 99] | [自定义-异常-冰, 0, 99] | [自定义-异常-烈霜, 0, 99] | [自定义-异常-电, 0, 99]"
         debug_name: "清除其他异常积蓄"
@@ -24,7 +25,7 @@ handlers:
           - operation_template: "简-闪A"
 
       # 连携
-      - states: "[按键可用-连携技, 0, 0.5]"
+      - states: "[自定义-连携换人, 0, 0.5]"
         operations:
           - operation_template: "简-连携攻击"
 

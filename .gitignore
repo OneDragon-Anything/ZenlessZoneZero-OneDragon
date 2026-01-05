@@ -15,10 +15,6 @@ CLAUDE.md
 .qwen/
 .claude/
 
-# 子模块
-test/
-zzz-od-test/
-
 # 用户独有的配置文件
 env.bat
 config/custom.yml
@@ -27,11 +23,13 @@ config/game.yml
 config/dodge_assistant.yml
 config/zzz_one_dragon.yml
 config/one_dragon.yml
+config/push.yml
 config/[0-9]*/
 config/dodge/*
 !config/dodge/*.sample.yml
 config/auto_battle/*
 !config/auto_battle/*.sample.yml
+!config/auto_battle/*.merged.yml
 config/auto_battle_state_handler/*
 !config/auto_battle_state_handler/*.sample.yml
 config/auto_battle_operation/*
@@ -44,7 +42,8 @@ config/yolo.yml
 config/model.yml
 custom/assets/ui/banner
 assets/ui/version_poster.webp
-assets/ui/remote_banner.webp
+assets/ui/static_background.webp
+assets/ui/dynamic_background.webm
 config/world_patrol_route_list/*
 !config/world_patrol_route_list/*.sample.yml
 
@@ -60,6 +59,7 @@ config/world_patrol_route_list/*
 .conda/
 .venv/
 notice_cache/
+*.bak
 
 # 需自行下载的模型文件
 models/

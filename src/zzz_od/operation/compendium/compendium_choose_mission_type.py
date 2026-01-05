@@ -56,10 +56,18 @@ class CompendiumChooseMissionType(ZOperation):
         before_target_cnt: int = 0  # 在目标副本前面的数量
         target_idx: int = -1
         target_list = []
+        name_to_idx = {}  # 名称到索引的映射，包含别名
         for idx, mission_type in enumerate(mission_type_list):
             if mission_type.mission_type_name == self.mission_type.mission_type_name:
                 target_idx = idx
-            target_list.append(gt(mission_type.mission_type_name, 'game'))
+            name = gt(mission_type.mission_type_name, 'game')
+            target_list.append(name)
+            name_to_idx[name] = idx
+            # 添加别名到映射
+            for alias in mission_type.alias_list:
+                alias_name = gt(alias, 'game')
+                target_list.append(alias_name)
+                name_to_idx[alias_name] = idx
 
         if target_idx == -1:
             return self.round_fail('非法的副本分类 %s' % self.mission_type.mission_type_name)
@@ -75,7 +83,7 @@ class CompendiumChooseMissionType(ZOperation):
             if results is None or len(results) == 0:
                 continue
 
-            idx = target_list.index(results[0])
+            idx = name_to_idx.get(results[0], -1)
             if idx == target_idx:
                 target_point = area.left_top + mrl.max
                 break
@@ -88,7 +96,7 @@ class CompendiumChooseMissionType(ZOperation):
         return self.handle_go_button(self.last_screenshot, target_point)
 
     @node_from(from_name='选择副本', status=AGENT_PLAN)
-    @operation_node(name='选择代理人方案', node_max_retry_times=5)
+    @operation_node(name='选择代理人方案', node_max_retry_times=10)
     def choose_mission_type_by_agent(self) -> OperationRoundResult:
         """
         专门处理"代理人方案培养"的方法
@@ -117,7 +125,7 @@ class CompendiumChooseMissionType(ZOperation):
         目前看只需要往下滚动即可
         """
         # 滑动
-        start = area.center
+        start = area.center + Point(-100, 0)
         end = start + Point(0, 300 * -1)
         self.ctx.controller.drag_to(start=start, end=end)
         return self.round_retry(status='找不到 %s' % self.mission_type.mission_type_name, wait=1)
@@ -167,7 +175,7 @@ def __debug():
     ctx.init_by_config()
     ctx.init_ocr()
     ctx.run_context.start_running()
-    target = ctx.compendium_service.get_mission_type_data('训练', '定期清剿', '高塔与巨炮')
+    target = ctx.compendium_service.get_mission_type_data('训练', '区域巡防', '高塔与巨炮')
     op = CompendiumChooseMissionType(ctx, target)
     op.execute()
 

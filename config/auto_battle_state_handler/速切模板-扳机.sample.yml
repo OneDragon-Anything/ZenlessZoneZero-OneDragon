@@ -1,28 +1,38 @@
 template_name: "速切模板-扳机"
 handlers:
   - states: "[前台-扳机]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-扳机]"
     sub_handlers:
       - states: "[自定义-黄光切人, 0, 0.5]"
         operations:
           - operation_template: "扳机-支援攻击"
 
-      - states: "[按键可用-连携技, 0, 0.5]"
+      - states: "[自定义-连携换人, 0, 0.5]"
         operations:
           - operation_template: "扳机-连携攻击"
 
       - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
         debug_name: "切人后等待"
         sub_handlers:
+          - states: "![扳机-绝意]{25,999}"
+            operations:
+              - operation_template: "扳机-狙击四连"
+
+          - states: "[扳机-终结技可用]"
+            operations:
+              - operation_template: "扳机-终结技"
+
           - states: "[按键可用-快速支援, 0, 0.5]"
             operations:
               - op_name: "等待秒数"
-                seconds: 1.0
+                seconds: 0.5
+
           - states: ""
             operations:
               - op_name: "等待秒数"
                 seconds: 0.5
 
-      - states: "[扳机-绝意]{0,25}"
+      - states: "![扳机-绝意]{25,999}"
         operations:
           - operation_template: "扳机-狙击四连"
 

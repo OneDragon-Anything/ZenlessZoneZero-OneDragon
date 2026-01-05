@@ -240,9 +240,9 @@ t-switch-ellen: &t-switch-ellen
     state_list: ["自定义-动作不打断","自定义-艾莲-冰渊潜袭"]
   - op_name: "按键-锁定敌人"
     post_delay: 0.01
-  - op_name: "按键-移动-前"
-    way: "按下"
-    post_delay: 0.01
+  - op_name: "按键-移动-前-按下"
+  - op_name: "等待秒数"
+    seconds: 0.01
   - op_name: "按键-闪避"
     press: 0.01
     post_delay: 0.15
@@ -252,11 +252,10 @@ t-switch-ellen: &t-switch-ellen
   - op_name: "按键-闪避"
     press: 0.01
     post_delay: 0.05
-  - op_name: "按键-普通攻击"
-    way: "按下"
-    post_delay: 1.2
-  - op_name: "按键-普通攻击"
-    way: "松开"
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 1.2
+  - op_name: "按键-普通攻击-松开"
   - op_name: "按键-锁定敌人"
     post_delay: 0.1
   - op_name: "清除状态"
@@ -274,8 +273,7 @@ scenes:
             sub_handlers:
               - states: "[前台-艾莲] & [自定义-艾莲-冰渊潜袭,1.5,2]"
                 operations:
-                  - op_name: "按键-移动-右"
-                    way: "按下"
+                  - op_name: "按键-移动-右-按下"
                   - op_name: "设置状态"
                     state: "自定义-闪避"
                   - op_name: "按键-闪避"
@@ -284,8 +282,7 @@ scenes:
                   - op_name: "按键-普通攻击"
                     post_delay: 0.05
                     repeat: 2
-                  - op_name: "按键-移动-右"
-                    way: "松开"
+                  - op_name: "按键-移动-右-松开"
 
               # 优先切凯撒进行上盾 核心持续时间30s
               - states: "[后台-凯撒] & ![自定义-凯撒-战意激昂, 0, 25]"
@@ -322,8 +319,7 @@ scenes:
               # 其余情况 闪避
               - states: ""
                 operations:
-                  - op_name: "按键-移动-右"
-                    way: "按下"
+                  - op_name: "按键-移动-右-按下"
                   - op_name: "设置状态"
                     state: "自定义-闪避"
                   - op_name: "按键-闪避"
@@ -332,14 +328,12 @@ scenes:
                   - op_name: "按键-普通攻击"
                     post_delay: 0.05
                     repeat: 2
-                  - op_name: "按键-移动-右"
-                    way: "松开"
+                  - op_name: "按键-移动-右-松开"
 
           # 闪避
           - states: ""
             operations:
-              - op_name: "按键-移动-右"
-                way: "按下"
+              - op_name: "按键-移动-右-按下"
               - op_name: "设置状态"
                 state: "自定义-闪避"
               - op_name: "按键-闪避"
@@ -348,8 +342,7 @@ scenes:
               - op_name: "按键-普通攻击"
                 post_delay: 0.05
                 repeat: 2
-              - op_name: "按键-移动-右"
-                way: "松开"
+              - op_name: "按键-移动-右-松开"
 
 
   - triggers: ["前台-血量扣减"]
@@ -363,8 +356,7 @@ scenes:
 
           - states: ""
             operations:
-              - op_name: "按键-移动-右"
-                way: "按下"
+              - op_name: "按键-移动-右-按下"
               - op_name: "设置状态"
                 state: "自定义-闪避"
               - op_name: "按键-闪避"
@@ -373,8 +365,7 @@ scenes:
               - op_name: "按键-普通攻击"
                 post_delay: 0.05
                 repeat: 2
-              - op_name: "按键-移动-右"
-                way: "松开"
+              - op_name: "按键-移动-右-松开"
 
   - triggers: ["按键可用-快速支援"]
     interval: 0.5
@@ -387,10 +378,8 @@ scenes:
               - op_name: "设置状态"
                 state: "自定义-苍角-展旗"
               - op_name: "按键-快速支援"
-              - op_name: "按键-普通攻击"
-                way: "松开"
-              - op_name: "按键-特殊攻击"
-                way: "松开"
+              - op_name: "按键-普通攻击-松开"
+              - op_name: "按键-特殊攻击-松开"
               - op_name: "设置状态"
                 state: "自定义-快速支援换人"
               - op_name: "清除状态"
@@ -589,7 +578,7 @@ scenes:
 
       # 耀嘉音
       - states: "[前台-耀嘉音]"
-        interrupt_states: ["后台-耀嘉音"]
+        interrupt_states: "[后台-耀嘉音]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -650,9 +639,9 @@ scenes:
             operations:
               - op_name: "设置状态"
                 state: "自定义-动作不打断"
-              - op_name: "按键-移动-前"
-                way: "松开"
-                post_delay: 0.01
+              - op_name: "按键-移动-前-松开"
+              - op_name: "等待秒数"
+                seconds: 0.01
               - op_name: "按键-闪避"
                 post_delay: 0.01
               - op_name: "按键-特殊攻击"
@@ -669,7 +658,7 @@ scenes:
 
       # 妮可
       - states: "[前台-妮可]"
-        interrupt_states: ["后台-妮可"]
+        interrupt_states: "[后台-妮可]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -743,7 +732,7 @@ scenes:
 
       # 露西
       - states: "[前台-露西]"
-        interrupt_states: ["后台-露西"]
+        interrupt_states: "[后台-露西]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -822,22 +811,20 @@ scenes:
 
       # 苍角
       - states: "[前台-苍角]"
-        interrupt_states: ["后台-苍角"]
+        interrupt_states: "[后台-苍角]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
-              - op_name: "按键-移动-前"
-                way: "松开"
+              - op_name: "按键-移动-前-松开"
               - op_name: "按键-闪避"
                 pre_delay: 0.05
                 post_delay: 0.05
               - op_name: "按键-特殊攻击"
                 post_delay: 0.2
-              - op_name: "按键-特殊攻击"
-                way: "按下"
-                post_delay: 2
-              - op_name: "按键-特殊攻击"
-                way: "松开"
+              - op_name: "按键-特殊攻击-按下"
+              - op_name: "等待秒数"
+                seconds: 2
+              - op_name: "按键-特殊攻击-松开"
               - op_name: "设置状态"
                 state_list: [ "自定义-苍角-展旗" ]
 
@@ -862,18 +849,16 @@ scenes:
                 operations:
                   - op_name: "设置状态"
                     state: "自定义-动作不打断"
-                  - op_name: "按键-移动-前"
-                    way: "松开"
+                  - op_name: "按键-移动-前-松开"
                   - op_name: "按键-闪避"
                     pre_delay: 0.05
                     post_delay: 0.05
                   - op_name: "按键-特殊攻击"
                     post_delay: 0.2
-                  - op_name: "按键-特殊攻击"
-                    way: "按下"
-                    post_delay: 2
-                  - op_name: "按键-特殊攻击"
-                    way: "松开"
+                  - op_name: "按键-特殊攻击-按下"
+                  - op_name: "等待秒数"
+                    seconds: 2
+                  - op_name: "按键-特殊攻击-松开"
                   - op_name: "设置状态"
                     state_list: [ "自定义-下场","自定义-苍角-展旗" ]
                   - op_name: "清除状态"
@@ -903,16 +888,15 @@ scenes:
                 operations:
                   - op_name: "设置状态"
                     state: "自定义-动作不打断"
-                  - op_name: "按键-移动-前"
-                    way: "松开"
+                  - op_name: "按键-移动-前-松开"
                   - op_name: "按键-闪避"
                     pre_delay: 0.05
                     post_delay: 0.05
                   - op_name: "按键-特殊攻击"
                     post_delay: 0.2
-                  - op_name: "按键-特殊攻击"
-                    way: "按下"
-                    post_delay: 2
+                  - op_name: "按键-特殊攻击-按下"
+                  - op_name: "等待秒数"
+                    seconds: 2
                   - op_name: "设置状态"
                     state_list: [ "自定义-下场","自定义-苍角-展旗" ]
                   - op_name: "清除状态"
@@ -954,7 +938,7 @@ scenes:
 
       # 凯撒
       - states: "[前台-凯撒]"
-        interrupt_states: ["后台-凯撒"]
+        interrupt_states: "[后台-凯撒]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -1042,7 +1026,7 @@ scenes:
 
       # 莱卡恩
       - states: "[前台-莱卡恩]"
-        interrupt_states: ["后台-莱卡恩"]
+        interrupt_states: "[后台-莱卡恩]"
         sub_handlers:
 
           - states: "[按键可用-终结技]"
@@ -1091,10 +1075,10 @@ scenes:
             operations:
               - op_name: "设置状态"
                 state: "自定义-动作不打断"
-              - op_name: "按键-特殊攻击"
-                way: "按下"
+              - op_name: "按键-特殊攻击-按下"
                 press: 0.15
-                post_delay: 0.1
+              - op_name: "等待秒数"
+                seconds: 0.1
                 repeat: 6
               - op_name: "设置状态"
                 state: "自定义-下场"
@@ -1103,17 +1087,17 @@ scenes:
 
           - states: ""
             operations:
-              - op_name: "按键-普通攻击"
-                way: "按下"
+              - op_name: "按键-普通攻击-按下"
                 press: 0.15
-                post_delay: 0.1
+              - op_name: "等待秒数"
+                seconds: 0.1
                 repeat: 12
               - op_name: "设置状态"
                 state: "自定义-下场"
 
       # 柳
       - states: "[前台-柳]"
-        interrupt_states: ["后台-柳"]
+        interrupt_states: "[后台-柳]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -1162,9 +1146,9 @@ scenes:
             operations:
               - op_name: "设置状态"
                 state_list: ["自定义-动作不打断", "自定义-柳-月蚀"]
-              - op_name: "按键-特殊攻击"
-                way: "按下"
-                post_delay: 1.5
+              - op_name: "按键-特殊攻击-按下"
+              - op_name: "等待秒数"
+                seconds: 1.5
               - op_name: "等待秒数"
                 seconds: 0.5
               - op_name: "清除状态"
@@ -1186,7 +1170,7 @@ scenes:
 
       # 柏妮思
       - states: "[前台-柏妮思]"
-        interrupt_states: ["后台-柏妮思"]
+        interrupt_states: "[后台-柏妮思]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -1242,9 +1226,9 @@ scenes:
               - op_name: "按键-特殊攻击"
                 post_delay: 0.1
                 repeat: 2
-              - op_name: "按键-特殊攻击"
-                way: "按下"
-                post_delay: 1.5
+              - op_name: "按键-特殊攻击-按下"
+              - op_name: "等待秒数"
+                seconds: 1.5
               - op_name: "等待秒数"
                 seconds: 0.5
               - op_name: "清除状态"
@@ -1258,17 +1242,17 @@ scenes:
                 state_list: ["自定义-动作不打断"]
               - op_name: "按键-普通攻击"
                 post_delay: 0.2
-              - op_name: "按键-普通攻击"
-                way: "按下"
-                post_delay: 0.5
+              - op_name: "按键-普通攻击-按下"
+              - op_name: "等待秒数"
+                seconds: 0.5
               - op_name: "等待秒数"
                 seconds: 1
               - op_name: "按键-特殊攻击"
                 post_delay: 0.1
                 repeat: 2
-              - op_name: "按键-特殊攻击"
-                way: "按下"
-                post_delay: 1.5
+              - op_name: "按键-特殊攻击-按下"
+              - op_name: "等待秒数"
+                seconds: 1.5
               - op_name: "等待秒数"
                 seconds: 0.5
               - op_name: "清除状态"
@@ -1285,7 +1269,7 @@ scenes:
 
       # 薇薇安
       - states: "[前台-薇薇安]"
-        interrupt_states: ["后台-薇薇安"]
+        interrupt_states: "[后台-薇薇安]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -1364,7 +1348,7 @@ scenes:
 
       # 艾莲
       - states: "[前台-艾莲]"
-        interrupt_states: ["后台-艾莲"]
+        interrupt_states: "[后台-艾莲]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -1372,19 +1356,19 @@ scenes:
                 state: "自定义-闪避"
               - op_name: "设置状态"
                 state: "自定义-动作不打断"
-              - op_name: "按键-移动-前"
-                way: "按下"
-                post_delay: 0.01
-              - op_name: "按键-闪避"
-                way: "按下"
+              - op_name: "按键-移动-前-按下"
+              - op_name: "等待秒数"
+                seconds: 0.01
+              - op_name: "按键-闪避-按下"
                 press: 0.01
-                post_delay: 0.1
+              - op_name: "等待秒数"
+                seconds: 0.1
               - op_name: "按键-普通攻击"
                 post_delay: 0.05
                 repeat: 2
-              - op_name: "按键-移动-前"
-                way: "松开"
-                post_delay: 0.15
+              - op_name: "按键-移动-前-松开"
+              - op_name: "等待秒数"
+                seconds: 0.15
               - op_name: "清除状态"
                 state: "自定义-动作不打断"
 
@@ -1480,19 +1464,19 @@ scenes:
                     operations:
                       - op_name: "设置状态"
                         state_list: ["自定义-动作不打断","自定义-艾莲-急冻修剪法"]
-                      - op_name: "按键-移动-前"
-                        way: "松开"
-                        post_delay: 0.05
-                      - op_name: "按键-移动-前"
-                        way: "按下"
-                        post_delay: 0.05
+                      - op_name: "按键-移动-前-松开"
+                      - op_name: "等待秒数"
+                        seconds: 0.05
+                      - op_name: "按键-移动-前-按下"
+                      - op_name: "等待秒数"
+                        seconds: 0.05
                       - op_name: "按键-普通攻击"
                         press: 0.01
                         post_delay: 0.1
                         repeat: 26
-                      - op_name: "按键-移动-前"
-                        way: "松开"
-                        post_delay: 0.25
+                      - op_name: "按键-移动-前-松开"
+                      - op_name: "等待秒数"
+                        seconds: 0.25
                       - op_name: "清除状态"
                         state_list: ["自定义-动作不打断","自定义-艾莲-急冻修剪法","自定义-艾莲-鲨卷风","自定义-艾莲-冰渊潜袭"]
               # 艾莲-冰渊潜袭
@@ -1502,9 +1486,9 @@ scenes:
                     state_list: ["自定义-动作不打断","自定义-艾莲-冰渊潜袭"]
                   - op_name: "按键-锁定敌人"
                     post_delay: 0.01
-                  - op_name: "按键-移动-前"
-                    way: "按下"
-                    post_delay: 0.01
+                  - op_name: "按键-移动-前-按下"
+                  - op_name: "等待秒数"
+                    seconds: 0.01
                   - op_name: "按键-闪避"
                     press: 0.01
                     post_delay: 0.15
@@ -1514,11 +1498,10 @@ scenes:
                   - op_name: "按键-闪避"
                     press: 0.01
                     post_delay: 0.05
-                  - op_name: "按键-普通攻击"
-                    way: "按下"
-                    post_delay: 1.2
-                  - op_name: "按键-普通攻击"
-                    way: "松开"
+                  - op_name: "按键-普通攻击-按下"
+                  - op_name: "等待秒数"
+                    seconds: 1.2
+                  - op_name: "按键-普通攻击-松开"
                   - op_name: "按键-锁定敌人"
                     post_delay: 0.1
                   - op_name: "清除状态"

@@ -1,23 +1,38 @@
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import QThread, Signal
-from qfluentwidgets import FluentIcon, SettingCardGroup, VBoxLayout, PushButton, HyperlinkButton, InfoBar, InfoBarPosition
+from qfluentwidgets import (
+    FluentIcon,
+    HyperlinkButton,
+    InfoBar,
+    InfoBarPosition,
+    PushButton,
+    SettingCardGroup,
+    VBoxLayout,
+)
 
-from one_dragon.base.config.config_item import get_config_item_from_enum
-from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
-from one_dragon.envs.env_config import RepositoryTypeEnum, GitMethodEnum, ProxyTypeEnum, PipSourceEnum, CpythonSourceEnum
+from one_dragon.base.operation.one_dragon_context import OneDragonContext
+from one_dragon.envs.env_config import (
+    CpythonSourceEnum,
+    PipSourceEnum,
+    ProxyTypeEnum,
+    RepositoryTypeEnum,
+    ScreenshotMethodEnum,
+)
+from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
-from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
-from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
 class SettingEnvInterface(VerticalScrollInterface):
 
-    def __init__(self, ctx: OneDragonEnvContext, parent=None):
-        self.ctx: OneDragonEnvContext = ctx
+    def __init__(self, ctx: OneDragonContext, parent=None):
+        self.ctx: OneDragonContext = ctx
 
         VerticalScrollInterface.__init__(
             self,
@@ -42,10 +57,17 @@ class SettingEnvInterface(VerticalScrollInterface):
     def _init_basic_group(self) -> SettingCardGroup:
         basic_group = SettingCardGroup(gt('基础'))
 
+        self.screenshot_method_opt = ComboBoxSettingCard(
+            icon=FluentIcon.CAMERA, title='截图方法',
+            options_enum=ScreenshotMethodEnum
+        )
+        self.screenshot_method_opt.value_changed.connect(lambda: self.ctx.init_controller())
+        basic_group.addSettingCard(self.screenshot_method_opt)
+
         self.debug_opt = SwitchSettingCard(
             icon=FluentIcon.SEARCH, title='调试模式', content='正常无需开启'
         )
-        self.debug_opt.value_changed.connect(lambda: self.ctx.init_by_config())
+        self.debug_opt.value_changed.connect(lambda: self.ctx.init_async())
         basic_group.addSettingCard(self.debug_opt)
 
         self.copy_screenshot_opt = SwitchSettingCard(
@@ -53,11 +75,6 @@ class SettingEnvInterface(VerticalScrollInterface):
             content='按下截图按键时，自动将截图复制到剪贴板'
         )
         basic_group.addSettingCard(self.copy_screenshot_opt)
-
-        self.ocr_cache_opt = SwitchSettingCard(
-            icon=FluentIcon.SEARCH, title='OCR缓存模式', content='降低CPU占用(测试中)'
-        )
-        basic_group.addSettingCard(self.ocr_cache_opt)
 
         return basic_group
 
@@ -68,25 +85,18 @@ class SettingEnvInterface(VerticalScrollInterface):
             icon=FluentIcon.APPLICATION, title='代码源', content='国内无法访问GitHub则选择Gitee',
             options_enum=RepositoryTypeEnum
         )
-        self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_git_remote())
+        self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
         code_group.addSettingCard(self.repository_type_opt)
-
-        self.git_method_opt = ComboBoxSettingCard(
-            icon=FluentIcon.SYNC, title='拉取方式', content='不懂什么是ssh就选https',
-            options_enum=GitMethodEnum
-        )
-        self.git_method_opt.value_changed.connect(lambda: self.ctx.git_service.update_git_remote())
-        code_group.addSettingCard(self.git_method_opt)
-
-        self.force_update_opt = SwitchSettingCard(
-            icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
-        )
-        code_group.addSettingCard(self.force_update_opt)
 
         self.auto_update_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
         )
         code_group.addSettingCard(self.auto_update_opt)
+
+        self.force_update_opt = SwitchSettingCard(
+            icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
+        )
+        code_group.addSettingCard(self.force_update_opt)
 
         return code_group
 
@@ -179,9 +189,9 @@ class SettingEnvInterface(VerticalScrollInterface):
         """
         VerticalScrollInterface.on_interface_shown(self)
 
+        self.screenshot_method_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('screenshot_method'))
         self.debug_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('is_debug'))
         self.copy_screenshot_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('copy_screenshot'))
-        self.ocr_cache_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('ocr_cache'))
 
         self.key_start_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_start_running'))
         self.key_stop_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_stop_running'))
@@ -189,7 +199,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.key_debug_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_debug'))
 
         self.repository_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_type'))
-        self.git_method_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('git_method'))
 
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
         self.auto_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update'))
@@ -212,8 +221,6 @@ class SettingEnvInterface(VerticalScrollInterface):
         :return:
         """
         self.ctx.env_config.init_system_proxy()
-        self.ctx.git_service.is_proxy_set = False
-        self.ctx.git_service.init_git_proxy()
 
     def on_fetch_gh_proxy_url_clicked(self) -> None:
         self.ctx.gh_proxy_service.update_proxy_url()
@@ -292,8 +299,8 @@ class SpeedTestRunnerBase(QThread):
     log_signal = Signal(str, int)
     result_signal = Signal(str, int, str)
 
-    def __init__(self, ctx: OneDragonEnvContext, parent=None):
-        self.ctx: OneDragonEnvContext = ctx
+    def __init__(self, ctx: OneDragonContext, parent=None):
+        self.ctx: OneDragonContext = ctx
         super().__init__(parent)
 
 

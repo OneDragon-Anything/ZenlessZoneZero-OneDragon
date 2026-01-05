@@ -17,6 +17,7 @@ dependencies = [
     "soundcard==0.4.3",
     "librosa==0.10.2.post1",
     "gensim==4.3.3",
+    "pygit2==1.19.0",
 ]
 
 [dependency-groups]
@@ -27,7 +28,8 @@ dev = [
     "pyinstaller==6.7.0",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
-    "ruff==0.12.10",
+    "ruff>=0.12.10",
+    "pyuac==0.0.3",
 ]
 
 gamepad = [
@@ -62,8 +64,11 @@ select = [
     "SIM",    # simplify
     "TID",    # tidy imports
 ]
+ignore = ["RUF001", "RUF003"]
 extend-ignore = [
     "E501",   # line too long - already handled by black style
+    "C901",   # method too complex - need refactor
+    "SIM102", # nested if statements - maybe more clear to seperate conditions
 ]
 
 [tool.ruff.format]

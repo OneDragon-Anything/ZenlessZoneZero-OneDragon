@@ -95,7 +95,7 @@ class DodgeAssistantInterface(AppRunInterface):
         left_layout.addWidget(AppRunInterface.get_content_widget(self))
 
         right_layout = QVBoxLayout()
-        self.battle_state_display = BattleStateDisplay()
+        self.battle_state_display = BattleStateDisplay(self.ctx)
         right_layout.addWidget(self.battle_state_display)
 
         horizontal_layout.addLayout(left_layout, stretch=1)
@@ -121,7 +121,7 @@ class DodgeAssistantInterface(AppRunInterface):
 
         # # 调试用
         # from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
-        # auto_op = AutoBattleOperator(self.ctx, 'auto_battle', '专属配队-简')
+        # auto_op = AutoBattleOperator(self.ctx.auto_battle_context, 'auto_battle', '专属配队-简')
         # auto_op.init_before_running()
         # auto_op.start_running_async()
         # self._on_auto_op_loaded_event(ContextEventItem('', auto_op))
@@ -174,7 +174,6 @@ class DodgeAssistantInterface(AppRunInterface):
         """
         if self.battle_state_display is None:
             return
-        self.battle_state_display.auto_op = event.data
         self.auto_op_loaded_signal.emit()
 
     def _on_auto_op_loaded_signal(self) -> None:

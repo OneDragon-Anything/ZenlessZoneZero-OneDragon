@@ -1,0 +1,8 @@
+sub_dir: agent_state
+template_id: lucia_2_1
+template_name: 角色状态-卢西娅-21
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 614, 98
+- 667, 99

@@ -1,6 +1,5 @@
 import ctypes
 from ctypes.wintypes import RECT
-from typing import Optional
 
 import pyautogui
 import win32ui
@@ -13,24 +12,25 @@ from one_dragon.utils.log_utils import log
 
 class PcGameWindow:
 
-    def __init__(self, win_title: str,
+    def __init__(self,
                  standard_width: int = 1920,
                  standard_height: int = 1080):
-        self.win_title: str = win_title
+        self.win_title: str | None = None
         self.standard_width: int = standard_width
         self.standard_height: int = standard_height
         self.standard_game_rect: Rect = Rect(0, 0, standard_width, standard_height)
 
-        self._win: Optional[Win32Window] = None
+        self._win: Win32Window | None = None
         self._hWnd = None
-
-        self.init_win()
 
     def init_win(self) -> None:
         """
         初始化窗口
         :return:
         """
+        if self.win_title is None:
+            return
+
         windows = pyautogui.getWindowsWithTitle(self.win_title)
         if len(windows) > 0:
             for win in windows:
@@ -41,7 +41,17 @@ class PcGameWindow:
             self._win = None
             self._hWnd = None
 
-    def get_win(self) -> Optional[Win32Window]:
+    def update_win_title(self, new_title: str) -> None:
+        """
+        更新窗口标题并清除缓存的窗口句柄
+        :param new_title: 新的窗口标题
+        """
+        if self.win_title != new_title:
+            self.win_title = new_title
+            self._win = None
+            self._hWnd = None
+
+    def get_win(self) -> Win32Window | None:
         if self._win is None:
             self.init_win()
         return self._win
@@ -121,7 +131,7 @@ class PcGameWindow:
             return False
 
     @property
-    def win_rect(self) -> Optional[Rect]:
+    def win_rect(self) -> Rect | None:
         """
         获取游戏窗口在桌面上面的位置
         Win32Window 里是整个window的信息 参考源码获取里面client部分的
@@ -136,16 +146,16 @@ class PcGameWindow:
         ctypes.windll.user32.ClientToScreen(hwnd, ctypes.byref(left_top_pos))
         return Rect(left_top_pos.x, left_top_pos.y, left_top_pos.x + client_rect.right, left_top_pos.y + client_rect.bottom)
 
-    def get_scaled_game_pos(self, game_pos: Point) -> Optional[Point]:
+    def get_scaled_game_pos(self, game_pos: Point) -> Point | None:
         """
         获取当前分辨率下游戏窗口里的坐标
         :param game_pos: 默认分辨率下的游戏窗口里的坐标
         :return: 当前分辨率下的游戏窗口里坐标
         """
         win = self.get_win()
-        if win is None:
-            return None
         rect = self.win_rect
+        if win is None or rect is None:
+            return None
         xs = 1 if rect.width == self.standard_width else rect.width * 1.0 / self.standard_width
         ys = 1 if rect.height == self.standard_height else rect.height * 1.0 / self.standard_height
         s_pos = Point(game_pos.x * xs, game_pos.y * ys)
@@ -162,7 +172,7 @@ class PcGameWindow:
             rect = self.standard_game_rect
         return 0 <= s_pos.x < rect.width and 0 <= s_pos.y < rect.height
 
-    def game2win_pos(self, game_pos: Point) -> Optional[Point]:
+    def game2win_pos(self, game_pos: Point) -> Point | None:
         """
         获取在屏幕中的坐标
         :param game_pos: 默认分辨率下的游戏窗口里的坐标
@@ -171,6 +181,6 @@ class PcGameWindow:
         rect = self.win_rect
         if rect is None:
             return None
-        gp: Point = self.get_scaled_game_pos(game_pos)
+        gp: Point | None = self.get_scaled_game_pos(game_pos)
         # 缺少一个屏幕边界判断 游戏窗口拖动后可能会超出整个屏幕
         return rect.left_top + gp if gp is not None else None

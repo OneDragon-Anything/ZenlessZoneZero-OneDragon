@@ -5,6 +5,7 @@
 import re
 import hashlib
 import logging
+from datetime import datetime
 from typing import Dict, Any, List, Set, Optional
 from pathlib import Path
 
@@ -51,7 +52,7 @@ class PrivacyController:
         """加载隐私设置"""
         try:
             self.settings = self.settings_manager.load_privacy_settings()
-            logger.info("Privacy settings loaded successfully")
+            logger.debug("Privacy settings loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load privacy settings: {e}")
             self.settings = PrivacySettings()  # 使用默认设置
@@ -222,7 +223,7 @@ class PrivacyController:
             success = self.settings_manager.save_privacy_settings(self.settings)
 
             if success:
-                logger.info("Privacy settings updated successfully")
+                logger.debug("Privacy settings updated successfully")
             else:
                 logger.error("Failed to save privacy settings")
 
@@ -288,7 +289,7 @@ class PrivacyController:
         try:
             # 这里可以添加清除本地缓存数据的逻辑
             # 例如删除队列文件、临时数据等
-            logger.info("Local telemetry data cleared")
+            logger.debug("Local telemetry data cleared")
             return True
 
         except Exception as e:
@@ -303,10 +304,10 @@ class PrivacyController:
                 'privacy_settings': self.get_privacy_settings(),
                 'data_collection_consent': self.is_telemetry_enabled(),
                 'anonymization_enabled': self.should_anonymize_data(),
-                'export_timestamp': logger.info("User data exported")
+                'export_timestamp': datetime.now().isoformat()
             }
 
-            logger.info("User data exported")
+            logger.debug("User data exported")
             return export_data
 
         except Exception as e:

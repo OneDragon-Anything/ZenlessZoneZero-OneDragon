@@ -57,6 +57,9 @@ class LostVoidBangbooStore(ZOperation):
 
             if not self.check_min_blood_valid(self.last_screenshot):
                 return self.round_fail('血量低于设定最小值')
+        elif self.store_type == '标识-金币':
+            if not self.ctx.lost_void.challenge_config.store_gold:
+                return self.round_fail('不使用金币购买')
 
         # 按刷新之后的确认
         result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-邦布商店', '按钮-刷新-确认')
@@ -67,6 +70,14 @@ class LostVoidBangbooStore(ZOperation):
         screen_name = self.check_and_update_current_screen()
         if screen_name != '迷失之地-邦布商店':
             # 进入本指令之前 有可能识别错画面
+            # 处理小概率可能会漏掉的武备升级环节
+            if screen_name == '迷失之地-通用选择':
+                op = LostVoidChooseCommon(self.ctx)
+                op_result = op.execute()
+                if op_result.success:
+                    return self.round_wait(status='武备升级', wait=1)
+                else:
+                    return self.round_retry(status='武备升级失败', wait=1)
             return self.round_retry(status=f'当前画面 {screen_name}', wait=1)
 
         art_list: List[LostVoidArtifactPos] = self.get_artifact_pos(self.last_screenshot)
@@ -216,7 +227,7 @@ class LostVoidBangbooStore(ZOperation):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.init_ocr()
     ctx.lost_void.init_before_run()
     ctx.run_context.start_running()

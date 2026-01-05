@@ -4,5 +4,5 @@ template_name: 角色状态-简-狂热心流-33
 template_shape: rectangle
 auto_mask: true
 point_list:
-- 763, 96
-- 800, 97
+- 763, 98
+- 800, 99

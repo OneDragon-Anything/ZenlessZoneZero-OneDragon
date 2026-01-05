@@ -206,11 +206,15 @@ msgstr "UI Theme"
 msgid "主页公告"
 msgstr "Homepage Announcement"
 
-msgid "启用版本海报"
-msgstr "Enable Version Poster"
 
-msgid "启用官方启动器主页背景"
-msgstr "Enable Official Launcher Homepage Background"
+msgid "版本海报"
+msgstr "Version Poster"
+
+msgid "静态背景"
+msgstr "Static Background"
+
+msgid "动态背景"
+msgstr "Dynamic Background"
 
 msgid "自定义主页背景"
 msgstr "Custom Homepage Background"

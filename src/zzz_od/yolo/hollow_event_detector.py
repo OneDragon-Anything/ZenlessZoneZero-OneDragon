@@ -8,8 +8,8 @@ from one_dragon.yolo.yolov8_onnx_det import Yolov8Detector
 class HollowEventDetector(Yolov8Detector):
 
     def __init__(self,
-                 model_name: str = 'yolov8s-736-hollow-zero-event-1130',
-                 backup_model_name: str = 'yolov8s-736-hollow-zero-event-1130',
+                 model_name: str = 'yolov8s-736-hollow-zero-event-0126',
+                 backup_model_name: str = 'yolov8s-736-hollow-zero-event-0126',
                  gh_proxy: bool = True,
                  gh_proxy_url: Optional[str] = None,
                  personal_proxy: Optional[str] = None,

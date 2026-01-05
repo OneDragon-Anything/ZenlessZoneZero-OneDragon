@@ -9,7 +9,6 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.password_switch_setting_card import PasswordSwitchSettingCard
 from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
-from one_dragon_qt.widgets.install_card.git_install_card import GitInstallCard
 from one_dragon.utils.app_utils import start_one_dragon
 from one_dragon.utils.i18_utils import gt
 
@@ -49,15 +48,15 @@ class CodeInterface(VerticalScrollInterface):
         v_layout = VBoxLayout(content_widget)
         v_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
+        self.auto_update_opt = SwitchSettingCard(
+            icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
+        )
+        v_layout.addWidget(self.auto_update_opt)
+
         self.force_update_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
         )
         v_layout.addWidget(self.force_update_opt)
-
-        self.git_card = GitInstallCard(ctx)
-        self.git_card.install_btn.setDisabled(True)
-        self.git_card.finished.connect(self._on_git_updated)
-        v_layout.addWidget(self.git_card)
 
         self.code_card = CodeInstallCard(ctx)
         self.code_card.finished.connect(self.on_code_updated)
@@ -129,11 +128,11 @@ class CodeInterface(VerticalScrollInterface):
         :return:
         """
         VerticalScrollInterface.on_interface_shown(self)
+        self.auto_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_update'))
         self.force_update_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('force_update'))
         self.custom_git_branch_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('custom_git_branch'))
         self.custom_git_branch_lineedit.setText(self.ctx.env_config.git_branch)
         self.start_fetch_total()
-        self.git_card.check_and_update_display()
         self.code_card.check_and_update_display()
 
     def start_fetch_total(self) -> None:
@@ -151,7 +150,7 @@ class CodeInterface(VerticalScrollInterface):
         :param total:
         :return:
         """
-        self.pager.setPageNumber(total // self.page_size + 1)
+        self.pager.setPageNumber((total + self.page_size - 1) // self.page_size)
         if self.page_num == -1:  # 还没有加载过任何分页
             self.page_num = 0
             self.start_fetch_page()
@@ -212,17 +211,6 @@ class CodeInterface(VerticalScrollInterface):
             return
         self.page_num = page
         self.start_fetch_page()
-
-    def _on_git_updated(self, success: bool) -> None:
-        """
-        Git选择后更新显示
-        :param success: 是否成功
-        :return:
-        """
-        if not success:
-            return
-        self.git_card.check_and_update_display()
-        self.code_card.check_and_update_display()
 
     def on_code_updated(self, success: bool) -> None:
         """

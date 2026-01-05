@@ -1,0 +1,14 @@
+# 根据动画实测，待补充
+operations:
+  - op_name: "设置状态"
+    state: "自定义-失衡时间"
+    seconds_add: -3.2
+  # 终结技动画期间, 失衡不会动
+  - op_name: "设置状态"
+    state: "自定义-动作不打断"
+    seconds: 4  # 待补充具体时间
+  - op_name: "按键-终结技"
+    post_delay: 0.1
+    repeat: 10  # 待补充具体次数
+  - op_name: "等待秒数"
+    seconds: 5  # 待补充具体时间

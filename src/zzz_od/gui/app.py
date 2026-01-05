@@ -17,6 +17,18 @@ try:
     _init_error = None
 
 
+    class CtxInitRunner(QThread):
+        finished = Signal()
+
+        def __init__(self, ctx: ZContext, parent=None):
+            super().__init__(parent)
+            self.ctx = ctx
+
+        def run(self):
+            self.ctx.init()
+            self.finished.emit()
+
+
     class CheckVersionRunner(QThread):
 
         get = Signal(tuple)
@@ -93,7 +105,6 @@ try:
             self.navigationInterface.setContentsMargins(0, 0, 0, 0)
 
             # 配置样式
-            OdQtStyleSheet.APP_WINDOW.apply(self)
             OdQtStyleSheet.NAVIGATION_INTERFACE.apply(self.navigationInterface)
             OdQtStyleSheet.STACKED_WIDGET.apply(self.stackedWidget)
             OdQtStyleSheet.AREA_WIDGET.apply(self.areaWidget)
@@ -245,30 +256,30 @@ try:
 
         def _track_app_launch(self):
             """跟踪应用启动"""
+            from one_dragon.utils.log_utils import log
+
             if not hasattr(self.ctx, 'telemetry') or not self.ctx.telemetry:
-                from one_dragon.utils.log_utils import log
-                log.info("遥测系统未初始化，跳过app_launched事件")
+                log.debug("Telemetry manager not available, skip app_launched event")
                 return
 
-            if not self.ctx.telemetry.is_enabled():
-                from one_dragon.utils.log_utils import log
-                log.info("遥测系统已禁用，跳过app_launched事件")
-                return
+            telemetry = self.ctx.telemetry
+            if not telemetry.is_enabled():
+                log.debug("Telemetry not enabled, attempting re-initialization before sending app_launched")
+                telemetry.initialize()
 
             import time
             launch_time = time.time() - self._app_start_time
 
-            from one_dragon.utils.log_utils import log
             log.debug(f"发送app_launched事件，启动时间: {launch_time:.2f}秒")
 
             # 跟踪应用启动
-            self.ctx.telemetry.track_app_launch(launch_time)
+            telemetry.track_app_launch(launch_time)
 
             # 跟踪启动时间性能
-            self.ctx.telemetry.track_startup_time(launch_time)
+            telemetry.track_startup_time(launch_time)
 
             # 跟踪UI交互
-            self.ctx.telemetry.track_ui_interaction('main_window', 'show', {
+            telemetry.track_ui_interaction('main_window', 'show', {
                 'window_title': self.windowTitle(),
                 'first_run': self.ctx.env_config.is_first_run
             })
@@ -293,8 +304,7 @@ try:
             super().closeEvent(event)
 
 
-# 调用Windows错误弹窗
-except Exception as e:
+except Exception:
     import ctypes
     import traceback
     import webbrowser
@@ -302,16 +312,20 @@ except Exception as e:
     stack_trace = traceback.format_exc()
     _init_error = f"启动一条龙失败，报错信息如下:\n{stack_trace}"
 
-    # 自动打开浏览器访问错误排障文档
-    webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
-
 
 # 初始化应用程序，并启动主窗口
 if __name__ == "__main__":
     if _init_error is not None:
-        # 显示错误弹窗，并提示用户已自动打开排障文档
-        error_message = f"{_init_error}\n\n已自动为您打开排障文档，请查看解决方案。"
-        ctypes.windll.user32.MessageBoxW(0, error_message, "错误", 0x10)
+        # 显示错误弹窗，询问用户是否打开排障文档
+        error_message = f"启动一条龙失败,报错信息如下:\n{stack_trace}\n\n是否打开排障文档查看解决方案?"
+        # MB_ICONERROR | MB_OKCANCEL = 0x10 | 0x01 = 0x11
+        # 返回值: IDOK = 1, IDCANCEL = 2
+        result = ctypes.windll.user32.MessageBoxW(0, error_message, "错误", 0x11)
+
+        # 如果用户点击确定，则打开排障文档
+        if result == 1:  # IDOK
+            webbrowser.open("https://docs.qq.com/doc/p/7add96a4600d363b75d2df83bb2635a7c6a969b5")
+
         sys.exit(1)
 
     QApplication.setHighDpiScaleFactorRoundingPolicy(
@@ -332,7 +346,8 @@ if __name__ == "__main__":
     w.activateWindow()
 
     # 加载配置
-    _ctx.init_async()
+    init_runner = CtxInitRunner(_ctx)
+    init_runner.start()
 
     # 启动应用程序事件循环
     app.exec()

@@ -84,7 +84,7 @@ class SourceConfigInterface(VerticalScrollInterface):
             title='代码仓库',
             options_enum=RepositoryTypeEnum
         )
-        self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_git_remote())
+        self.repository_type_opt.value_changed.connect(lambda: self.ctx.git_service.update_remote())
 
         self.env_source_opt = ComboBoxSettingCard(
             icon=FluentIcon.CLOUD_DOWNLOAD,
@@ -170,14 +170,12 @@ class SourceConfigInterface(VerticalScrollInterface):
             self.ctx.env_config.cpython_source = CpythonSourceEnum.GITEE.value.value
             self.ctx.env_config.pip_source = PipSourceEnum.ALIBABA.value.value
             self.ctx.env_config.proxy_type = ProxyTypeEnum.GHPROXY.value.value
-            self.ctx.async_update_gh_proxy()
         elif index == 1:  # 中国 - GitHub 代理
             self.ctx.env_config.repository_type = RepositoryTypeEnum.GITHUB.value.value
             self.ctx.env_config.env_source = EnvSourceEnum.GITHUB.value.value
             self.ctx.env_config.cpython_source = CpythonSourceEnum.GITHUB.value.value
             self.ctx.env_config.pip_source = PipSourceEnum.ALIBABA.value.value
             self.ctx.env_config.proxy_type = ProxyTypeEnum.GHPROXY.value.value
-            self.ctx.async_update_gh_proxy()
         elif index == 2:  # 海外
             self.ctx.env_config.repository_type = RepositoryTypeEnum.GITHUB.value.value
             self.ctx.env_config.env_source = EnvSourceEnum.GITHUB.value.value
@@ -215,8 +213,6 @@ class SourceConfigInterface(VerticalScrollInterface):
     def _init_proxy(self):
         """初始化代理设置"""
         self.ctx.env_config.init_system_proxy()
-        self.ctx.git_service.is_proxy_set = False
-        self.ctx.git_service.init_git_proxy()
 
     def on_interface_shown(self):
         VerticalScrollInterface.on_interface_shown(self)

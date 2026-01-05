@@ -7,7 +7,7 @@ operations:
     post_delay: 0.1
     repeat: 6
   - op_name: "设置状态"
-    state_list: ["自定义-速切结束", "自定义-扳机-强化追击"]
+    state_list: ["自定义-合轴时间", "自定义-扳机-强化追击"]
   - op_name: "按键-特殊攻击"
     post_delay: 0.1
     repeat: 10

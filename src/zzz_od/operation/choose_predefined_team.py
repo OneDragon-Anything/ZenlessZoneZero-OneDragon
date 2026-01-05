@@ -46,7 +46,7 @@ class ChoosePredefinedTeam(ZOperation):
     def choose_team(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('实战模拟室', '预备出战')
         result = self.round_by_ocr(self.last_screenshot, '预备出战', area=area,
-                                   color_range=[(240, 240, 240), (255, 255, 255)])
+                                   color_range=[[240, 240, 240], [255, 255, 255]])
         if result.is_success:
             return self.round_success(result.status)
 

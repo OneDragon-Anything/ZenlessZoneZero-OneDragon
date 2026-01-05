@@ -55,3 +55,14 @@ class Rect:
             area: 面积
         """
         return self.height * self.width
+
+    def __eq__(self, other):
+        if not isinstance(other, Rect):
+            return False
+        return self.x1 == other.x1 and self.y1 == other.y1 and self.x2 == other.x2 and self.y2 == other.y2
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self) -> int:
+        return hash((self.x1, self.y1, self.x2, self.y2))

@@ -167,10 +167,8 @@ scenes:
               - op_name: "设置状态"
                 state: "自定义-苍角-展旗"
               - op_name: "按键-快速支援"
-              - op_name: "按键-普通攻击"
-                way: "松开"
-              - op_name: "按键-特殊攻击"
-                way: "松开"
+              - op_name: "按键-普通攻击-松开"
+              - op_name: "按键-特殊攻击-松开"
               - op_name: "设置状态"
                 state: "自定义-快速支援换人"
               - op_name: "清除状态"
@@ -267,7 +265,7 @@ scenes:
 
       # 凯撒
       - states: "[前台-凯撒]"
-        interrupt_states: ["后台-凯撒"]
+        interrupt_states: "[后台-凯撒]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -326,7 +324,7 @@ scenes:
 
       # 苍角
       - states: "[前台-苍角]"
-        interrupt_states: ["后台-苍角"]
+        interrupt_states: "[后台-苍角]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -358,9 +356,9 @@ scenes:
                     pre_delay: 0.1
                     post_delay: 0.1
                     repeat: 3
-                  - op_name: "按键-普通攻击"
-                    way: "按下"
-                    post_delay: 5
+                  - op_name: "按键-普通攻击-按下"
+                  - op_name: "等待秒数"
+                    seconds: 5
                   - op_name: "设置状态"
                     state: "自定义-下场"
                   - op_name: "清除状态"
@@ -386,9 +384,9 @@ scenes:
                 operations:
                   - op_name: "设置状态"
                     state: "自定义-动作不打断"
-                  - op_name: "按键-特殊攻击"
-                    way: "按下"
-                    post_delay: 5
+                  - op_name: "按键-特殊攻击-按下"
+                  - op_name: "等待秒数"
+                    seconds: 5
                   - op_name: "设置状态"
                     state: "自定义-下场"
                   - op_name: "清除状态"
@@ -402,9 +400,9 @@ scenes:
                   - op_name: "按键-特殊攻击"
                     post_delay: 0.2
                     repeat: 2
-                  - op_name: "按键-特殊攻击"
-                    way: "按下"
-                    post_delay: 5
+                  - op_name: "按键-特殊攻击-按下"
+                  - op_name: "等待秒数"
+                    seconds: 5
                   - op_name: "设置状态"
                     state: "自定义-下场"
                   - op_name: "清除状态"
@@ -417,9 +415,9 @@ scenes:
                   - op_name: "按键-特殊攻击"
                     post_delay: 0.2
                     repeat: 5
-                  - op_name: "按键-特殊攻击"
-                    way: "按下"
-                    post_delay: 5
+                  - op_name: "按键-特殊攻击-按下"
+                  - op_name: "等待秒数"
+                    seconds: 5
                   - op_name: "设置状态"
                     state: "自定义-下场"
                   - op_name: "清除状态"
@@ -432,9 +430,9 @@ scenes:
                   - op_name: "按键-特殊攻击"
                     post_delay: 0.2
                     repeat: 10
-                  - op_name: "按键-特殊攻击"
-                    way: "按下"
-                    post_delay: 5
+                  - op_name: "按键-特殊攻击-按下"
+                  - op_name: "等待秒数"
+                    seconds: 5
                   - op_name: "设置状态"
                     state: "自定义-下场"
                   - op_name: "清除状态"
@@ -476,7 +474,7 @@ scenes:
 
       # 莱卡恩
       - states: "[前台-莱卡恩]"
-        interrupt_states: ["后台-莱卡恩"]
+        interrupt_states: "[后台-莱卡恩]"
         sub_handlers:
           - states: "[自定义-闪避]"
             operations:
@@ -546,30 +544,30 @@ scenes:
             operations:
               - op_name: "设置状态"
                 state: "自定义-动作不打断"
-              - op_name: "按键-特殊攻击"
-                way: "按下"
+              - op_name: "按键-特殊攻击-按下"
                 press: 0.3
-                post_delay: 0.2
-              - op_name: "按键-特殊攻击"
-                way: "按下"
+              - op_name: "等待秒数"
+                seconds: 0.2
+              - op_name: "按键-特殊攻击-按下"
                 press: 0.3
-                post_delay: 1.6
+              - op_name: "等待秒数"
+                seconds: 1.6
               - op_name: "清除状态"
                 state: "自定义-动作不打断"
 
           - states: ""
             operations:
-              - op_name: "按键-普通攻击"
-                way: "按下"
+              - op_name: "按键-普通攻击-按下"
                 press: 0.3
-                post_delay: 0.8
-              - op_name: "按键-普通攻击"
-                way: "按下"
+              - op_name: "等待秒数"
+                seconds: 0.8
+              - op_name: "按键-普通攻击-按下"
                 press: 0.3
-                post_delay: 0.8
-              - op_name: "按键-普通攻击"
-                way: "按下"
+              - op_name: "等待秒数"
+                seconds: 0.8
+              - op_name: "按键-普通攻击-按下"
                 press: 0.6
-                post_delay: 1.3
+              - op_name: "等待秒数"
+                seconds: 1.3
               - op_name: "设置状态"
                 state: "自定义-莱卡恩-普攻后摇"

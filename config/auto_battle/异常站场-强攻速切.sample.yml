@@ -49,7 +49,7 @@ scenes:
       - states: "[自定义-黄光切人, 0, 2] | [自定义-红光闪避, 0, 2] | [自定义-临时站场]"
         sub_handlers:
           - state_template: "站场模板-全角色"
-      - states: "[自定义-连携换人, 0, 12] | [自定义-连携换人, 0, 12]"
+      - states: "[自定义-失衡时间, 0, 12] | [自定义-失衡时间, 0, 12]"
         sub_handlers:
           - state_template: "站场模板-强攻站场"
       - state_template: "站场模板-异常站场"

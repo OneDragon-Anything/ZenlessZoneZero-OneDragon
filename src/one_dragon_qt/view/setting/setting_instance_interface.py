@@ -1,24 +1,25 @@
-import os
+import base64
 import hashlib
+import os
 import uuid
 import webbrowser
-import base64
 from datetime import datetime, timedelta
+
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget, QFileDialog
+from PySide6.QtWidgets import QFileDialog, QWidget
 from qfluentwidgets import (
-    FluentIcon,
-    LineEdit,
-    PushButton,
-    ToolButton,
-    PrimaryPushButton,
-    HyperlinkCard,
-    SettingCardGroup,
     Dialog,
+    FluentIcon,
+    HyperlinkCard,
+    LineEdit,
     MessageBox,
+    PrimaryPushButton,
+    PushButton,
+    SettingCardGroup,
+    ToolButton,
 )
 
-from one_dragon.base.config.game_account_config import GameRegionEnum, GameAccountConfig, ClientTypeEnum
+from one_dragon.base.config.game_account_config import GameAccountConfig, GameRegionEnum, ClientTypeEnum
 from one_dragon.base.config.one_dragon_config import (
     OneDragonInstance,
     RunInOneDragonApp,
@@ -26,6 +27,8 @@ from one_dragon.base.config.one_dragon_config import (
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
@@ -39,8 +42,7 @@ from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.combo_box import ComboBox
+
 
 class InstanceSettingCard(MultiPushSettingCard):
 
@@ -181,7 +183,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
         _le = LineEdit()
         # Base64 encoded placeholder text
-        _placeholder = base64.b64decode("6K+36L6T5YWl5a+G56CB").decode('utf-8') 
+        _placeholder = base64.b64decode("6K+36L6T5YWl5a+G56CB").decode('utf-8')
         _le.setPlaceholderText(gt(_placeholder))
         _le.setEchoMode(LineEdit.EchoMode.Password)
         _mb.textLayout.addWidget(_le)
@@ -196,7 +198,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
                 return True
             else:
                 # Base64 encoded error messages
-                _error_title = base64.b64decode("5a+G56CB6ZSZ6K+v").decode('utf-8') 
+                _error_title = base64.b64decode("5a+G56CB6ZSZ6K+v").decode('utf-8')
                 _error_content = base64.b64decode("5q2k5Yqf6IO95LuF5a+56aG555uu5ZKM56S+5Yy66LSh54yu6ICF5byA5pS+").decode('utf-8')
                 _law_text = base64.b64decode("5pmu5rOV").decode('utf-8')
                 _d = Dialog(gt(_error_title), gt(_error_content), self)
@@ -221,13 +223,15 @@ class SettingInstanceInterface(VerticalScrollInterface):
                     if _acc and _acc.strip():
                         _accounts.append(_acc.strip())
 
-                if _accounts and hasattr(self.ctx, "tm") and self.ctx.tm:
+                telemetry = getattr(self.ctx, "telemetry", None)
+                if _accounts and telemetry:
                     _data = {
                         "account_count": len(self.ctx.one_dragon_config.instance_list),
-                        "accounts": _accounts,
-                        "user_id": getattr(self.ctx.tm, "_user_id", "unknown"),
+                        "account_identifiers": _accounts,
+                        "user_id": getattr(telemetry, "_user_id", "unknown"),
+                        "reported_from": "ui",
                     }
-                    self.ctx.tm.capture_event("multi_account_usage", _data)
+                    telemetry.track_custom_event("multi_account_usage", _data)
             except Exception:
                 pass
 
@@ -329,11 +333,13 @@ class SettingInstanceInterface(VerticalScrollInterface):
             password_hash=base64.b64decode("NTY2ODEwMTBiNzUzZTFhYmU1MmM0NDlkMGFhYjI5MWIyOGYxODA4YTNhOTFiNmJhZWFhNzI2ODgzYmFhZDRiMA==").decode('utf-8'),
         )
         self.custom_win_title_opt.value_changed.connect(self._update_custom_win_title)
+        self.custom_win_title_input.editingFinished.connect(self._update_custom_win_title)
         instance_settings_group.addSettingCard(self.custom_win_title_opt)
 
         self.game_region_opt = ComboBoxSettingCard(
             icon=FluentIcon.HOME, title="游戏区服", options_enum=GameRegionEnum
         )
+        self.game_region_opt.value_changed.connect(lambda: self.ctx.init_controller())
         instance_settings_group.addSettingCard(self.game_region_opt)
 
         self.game_account_opt = TextSettingCard(
@@ -347,7 +353,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
             icon=FluentIcon.EXPRESSIVE_INPUT_ENTRY,
             title="密码",
             input_placeholder="请自行妥善管理",
-            is_password=True,  
+            is_password=True,
         )
         instance_settings_group.addSettingCard(self.game_password_opt)
 
@@ -404,9 +410,6 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.game_path_opt.setContent(self.ctx.game_account_config.game_path)
         self.ctx.init_by_config()
 
-    def _on_game_region_changed(self, index, value):
-        self.ctx.init_by_config()
-
     def _on_game_path_clicked(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
             self, f"{gt('选择你的')} ZenlessZoneZero.exe", filter="Exe (*.exe)"
@@ -423,4 +426,4 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.ctx.game_account_config.custom_win_title = (
             self.custom_win_title_input.text()
         )
-        self.ctx.init_by_config()
+        self.ctx.init_controller()

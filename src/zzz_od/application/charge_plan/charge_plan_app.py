@@ -1,11 +1,11 @@
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import (
     CardNumEnum,
@@ -15,10 +15,10 @@ from zzz_od.application.charge_plan.charge_plan_config import (
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
 from zzz_od.operation.compendium.notorious_hunt import NotoriousHunt
-from zzz_od.operation.compendium.routine_cleanup import RoutineCleanup
 from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 from zzz_od.operation.goto.goto_menu import GotoMenu
 from zzz_od.operation.restore_charge import RestoreCharge
@@ -33,11 +33,11 @@ class ChargePlanApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id=charge_plan_const.APP_ID,
-            op_name=gt(charge_plan_const.APP_NAME),
-            need_notify=True,
+            ctx=ctx,
+            app_id=charge_plan_const.APP_ID,
+            op_name=charge_plan_const.APP_NAME,
         )
-        self.config: Optional[ChargePlanConfig] = self.ctx.run_context.get_config(
+        self.config: ChargePlanConfig = self.ctx.run_context.get_config(
             app_id=charge_plan_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
@@ -45,10 +45,8 @@ class ChargePlanApp(ZApplication):
 
         self.charge_power: int = 0  # 剩余电量
         self.required_charge: int = 0  # 需要的电量
-        self.need_to_check_power_in_mission: bool = False
-        self.next_can_run_times: int = 0
-        self.last_tried_plan: Optional[ChargePlanItem] = None
-        self.next_plan: Optional[ChargePlanItem] = None
+        self.last_tried_plan: ChargePlanItem | None = None
+        self.next_plan: ChargePlanItem | None = None
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
@@ -104,27 +102,21 @@ class ChargePlanApp(ZApplication):
                 return self.round_fail(ChargePlanApp.STATUS_NO_PLAN)
 
             # 计算所需电量
-            need_charge_power = 1000  # 默认值，确保在未知情况下会检查
-            self.need_to_check_power_in_mission = False
-
-            if candidate_plan.category_name == '实战模拟室' and candidate_plan.card_num == CardNumEnum.DEFAULT.value.value:
-                self.need_to_check_power_in_mission = True
-            elif candidate_plan.category_name == '定期清剿' and self.config.use_coupon:
-                self.need_to_check_power_in_mission = True
-            else:
-                if candidate_plan.category_name == '实战模拟室':
-                    need_charge_power = int(candidate_plan.card_num) * 20
-                elif candidate_plan.category_name == '定期清剿':
-                    need_charge_power = 60
-                elif candidate_plan.category_name == '专业挑战室':
-                    need_charge_power = 40
-                elif candidate_plan.category_name == '恶名狩猎':
-                    need_charge_power = 60
+            need_charge_power = 0  # 未知类型,在副本内检查
+            if candidate_plan.category_name == '实战模拟室':
+                if candidate_plan.card_num == CardNumEnum.DEFAULT.value.value:
+                    need_charge_power = 20  # 至少需要20体力
                 else:
-                    self.need_to_check_power_in_mission = True
+                    need_charge_power = int(candidate_plan.card_num) * 20
+            elif candidate_plan.category_name == '区域巡防':
+                need_charge_power = 60
+            elif candidate_plan.category_name == '专业挑战室':
+                need_charge_power = 40
+            elif candidate_plan.category_name == '恶名狩猎':
+                need_charge_power = 60
 
             # 检查电量是否足够
-            if not self.need_to_check_power_in_mission and self.charge_power < need_charge_power:
+            if need_charge_power > 0 and self.charge_power < need_charge_power:
                 if (
                     not self.config.is_restore_charge_enabled
                     or (self.node_status.get('恢复电量') and self.node_status.get('恢复电量').is_fail)
@@ -141,19 +133,9 @@ class ChargePlanApp(ZApplication):
                     self.required_charge = need_charge_power - self.charge_power
                     return self.round_success(ChargePlanApp.STATUS_TRY_RESTORE_CHARGE)
 
-            # 计算可运行次数
-            self.next_can_run_times = 0
-            if not self.need_to_check_power_in_mission:
-                self.next_can_run_times = self.charge_power // need_charge_power
-                max_need_run_times = candidate_plan.plan_times - candidate_plan.run_times
-                if self.next_can_run_times > max_need_run_times:
-                    self.next_can_run_times = max_need_run_times
-
             # 设置下一个计划并返回成功
             self.next_plan = candidate_plan
             return self.round_success()
-
-        return self.round_fail(ChargePlanApp.STATUS_NO_PLAN)
 
     @node_from(from_name='查找并选择下一个可执行任务')
     @operation_node(name='传送')
@@ -173,43 +155,34 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='识别副本分类', status='实战模拟室')
     @operation_node(name='实战模拟室')
     def combat_simulation(self) -> OperationRoundResult:
-        op = CombatSimulation(self.ctx, self.next_plan,
-                              need_check_power=self.need_to_check_power_in_mission,
-                              can_run_times=None if self.need_to_check_power_in_mission else self.next_can_run_times)
+        op = CombatSimulation(self.ctx, self.next_plan)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='识别副本分类', status='定期清剿')
-    @operation_node(name='定期清剿')
-    def routine_cleanup(self) -> OperationRoundResult:
-        op = RoutineCleanup(self.ctx, self.next_plan,
-                            need_check_power=self.need_to_check_power_in_mission,
-                            can_run_times=None if self.need_to_check_power_in_mission else self.next_can_run_times)
+    @node_from(from_name='识别副本分类', status='区域巡防')
+    @operation_node(name='区域巡防')
+    def area_patrol(self) -> OperationRoundResult:
+        op = AreaPatrol(self.ctx, self.next_plan)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='专业挑战室')
     @operation_node(name='专业挑战室')
     def expert_challenge(self) -> OperationRoundResult:
-        op = ExpertChallenge(self.ctx, self.next_plan,
-                             need_check_power=self.need_to_check_power_in_mission,
-                             can_run_times=None if self.need_to_check_power_in_mission else self.next_can_run_times)
+        op = ExpertChallenge(self.ctx, self.next_plan)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='恶名狩猎')
     @operation_node(name='恶名狩猎')
     def notorious_hunt(self) -> OperationRoundResult:
-        op = NotoriousHunt(self.ctx, self.next_plan,
-                           use_charge_power=True,
-                           need_check_power=self.need_to_check_power_in_mission,
-                           can_run_times=None if self.need_to_check_power_in_mission else self.next_can_run_times)
+        op = NotoriousHunt(self.ctx, self.next_plan, use_charge_power=True)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='实战模拟室', success=True)
-    @node_from(from_name='定期清剿', success=True)
-    @node_from(from_name='专业挑战室', success=True)
-    @node_from(from_name='恶名狩猎', success=True)
     @node_from(from_name='实战模拟室', success=False)
-    @node_from(from_name='定期清剿', success=False)
+    @node_from(from_name='区域巡防', success=True)
+    @node_from(from_name='区域巡防', success=False)
+    @node_from(from_name='专业挑战室', success=True)
     @node_from(from_name='专业挑战室', success=False)
+    @node_from(from_name='恶名狩猎', success=True)
     @node_from(from_name='恶名狩猎', success=False)
     @operation_node(name='挑战完成')
     def challenge_complete(self) -> OperationRoundResult:
@@ -219,7 +192,7 @@ class ChargePlanApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='实战模拟室', status=CombatSimulation.STATUS_CHARGE_NOT_ENOUGH)
-    @node_from(from_name='定期清剿', status=RoutineCleanup.STATUS_CHARGE_NOT_ENOUGH)
+    @node_from(from_name='区域巡防', status=AreaPatrol.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='专业挑战室', status=ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
@@ -247,8 +220,9 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='电量不足', status=STATUS_ROUND_FINISHED)
     @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_ROUND_FINISHED)
     @node_from(from_name='查找并选择下一个可执行任务', success=False)
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.save_screenshot_bytes()  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
-        return self.round_by_op_result(op.execute())
+        op_result = op.execute()
+        return self.round_by_op_result(op_result, status=f'剩余电量 {self.charge_power}')

@@ -9,7 +9,7 @@ from qfluentwidgets import (
     PushButton,
     SubtitleLabel,
     TitleLabel,
-    ToolButton,
+    ToolButton, MessageBox,
 )
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -85,7 +85,7 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
         self.delete_btn.clicked.connect(self._on_delete_clicked)
         btn_row.add_widget(self.delete_btn)
 
-        self.cancel_btn = PushButton(text=gt('取消'))
+        self.cancel_btn = PushButton(text=gt('关闭'))
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
         btn_row.add_widget(self.cancel_btn)
 
@@ -330,6 +330,14 @@ class WitheredDomainChallengeConfigInterface(VerticalScrollInterface):
         删除
         :return:
         """
+        _title = '删除确认'
+        _content = '即将删除该配置'
+        _mb = MessageBox(gt(_title), gt(_content), self)
+        _mb.yesButton.setText(gt("确定"))
+        _mb.cancelButton.setText(gt("取消"))
+
+        if not _mb.exec():
+            return
         if self.chosen_config is None:
             return
         self.chosen_config.delete()

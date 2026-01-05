@@ -68,7 +68,7 @@
           mission_list:
             - mission_name: "代理人方案培养"
 
-    - category_name: "定期清剿"
+    - category_name: "区域巡防"
       mission_type_list:
         - mission_type_name: "怪兽与怪客"
           mission_type_name_display: "摇摆爵士 混沌重金属"
@@ -92,6 +92,8 @@
           mission_type_name_display: "云岿如我 山大王"
         - mission_type_name: "铁律与狂徒"
           mission_type_name_display: "拂晓生花 月光骑士颂"
+        - mission_type_name: "诡步与重壁"
+          mission_type_name_display: "沧浪行歌 流光咏叹"
         - mission_type_name: "代理人方案培养"
 
     - category_name: "专业挑战室"
@@ -107,10 +109,10 @@
         - mission_type_name: "伐木机"
         - mission_type_name: "秽息蚀者·阿瓦鲁斯"
         - mission_type_name: "牲鬼·凶魁愚者"
+        - mission_type_name: "秽蚀·狛野真斗"
+        - mission_type_name: "秽息行者·蝎骸"
         - mission_type_name: "代理人方案培养"
 
-- tab_name: "作战"
-  category_list:
     - category_name: "恶名狩猎"
       mission_type_list:
         - mission_type_name: "初生死路屠夫"
@@ -119,7 +121,14 @@
         - mission_type_name: "「霸主侵蚀体·庞培」"
         - mission_type_name: "牲鬼·布林格"
         - mission_type_name: "秽息司祭"
+        - mission_type_name: "彷徨猎手"
+        - mission_type_name: "魇缚者·叶释渊"
+          alias_list:
+            - "魇缚者·???"
         - mission_type_name: "代理人方案培养"
+
+- tab_name: "作战"
+  category_list:
     - category_name: "零号空洞"
       mission_type_list:
         - mission_type_name: "迷失之地"
