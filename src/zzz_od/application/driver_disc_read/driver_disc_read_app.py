@@ -1,4 +1,5 @@
 import csv
+import json
 import re
 import threading
 import time
@@ -189,7 +190,6 @@ class DriverDiscReadApp(ZApplication):
             ctx=ctx,
             app_id=driver_disc_read_const.APP_ID,
             op_name=gt(driver_disc_read_const.APP_NAME),
-            need_notify=True,
         )
 
         self.disc_data_dict = {}  # 使用 global_index 作为 key
@@ -581,66 +581,19 @@ class DriverDiscReadApp(ZApplication):
         # 将字典转换为列表（按 global_index 排序）
         disc_data_list = [self.disc_data_dict[i] for i in sorted(self.disc_data_dict.keys())]
 
-        # 从配置读取导出路径
-        export_path = self.ctx.one_dragon_config.get('disc_export_path', '')
-        
-        # 生成带时间戳的文件名
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        # 保存到缓存
+        cache_dir = Path(os_utils.get_path_under_work_dir('driver_disc'))
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_file = cache_dir / 'cache.json'
 
-        # 解析导出路径，支持相对/绝对路径以及文件/目录两种写法
-        if export_path:
-            user_path = Path(export_path)
-            if not user_path.is_absolute():
-                user_path = Path(os_utils.get_work_dir()) / user_path
-
-            if user_path.suffix:  # 指定了文件名
-                base_dir = user_path.parent
-                file_stem = user_path.stem
-                file_suffix = user_path.suffix
-            else:  # 指定的是目录
-                base_dir = user_path
-                file_stem = 'driver_disc_data'
-                file_suffix = '.csv'
-        else:
-            base_dir = Path(os_utils.get_path_under_work_dir('driver_disc'))
-            file_stem = 'driver_disc_data'
-            file_suffix = '.csv'
-
-        csv_file = base_dir / f'{file_stem}_{timestamp}{file_suffix}'
-
-        # 确保目录存在
-        base_dir.mkdir(parents=True, exist_ok=True)
-
-        # 重试写入（防止文件被占用）
-        max_retries = 5
-        for attempt in range(max_retries):
-            try:
-                with open(csv_file, 'w', newline='', encoding='utf-8-sig') as f:
-                    fieldnames = ['name', 'level', 'rating', 'main_stat', 'main_stat_value',
-                                  'sub_stat1', 'sub_stat1_value', 'sub_stat2', 'sub_stat2_value',
-                                  'sub_stat3', 'sub_stat3_value', 'sub_stat4', 'sub_stat4_value']
-                    writer = csv.DictWriter(f, fieldnames=fieldnames)
-                    writer.writerow({'name': '驱动盘名称', 'level': '等级', 'rating': '评级',
-                                     'main_stat': '主属性', 'main_stat_value': '主属性值',
-                                     'sub_stat1': '副属性1', 'sub_stat1_value': '副属性1值',
-                                     'sub_stat2': '副属性2', 'sub_stat2_value': '副属性2值',
-                                     'sub_stat3': '副属性3', 'sub_stat3_value': '副属性3值',
-                                     'sub_stat4': '副属性4', 'sub_stat4_value': '副属性4值'})
-                    writer.writerows(disc_data_list)
-                
-                log.info(f'数据已保存到: {csv_file}')
-                return self.round_success(f'已保存 {len(disc_data_list)} 条数据到 {csv_file}')
-                
-            except PermissionError as e:
-                if attempt < max_retries - 1:
-                    # 尝试生成新的文件名
-                    timestamp_new = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]  # 添加毫秒
-                    csv_file = base_dir / f'{file_stem}_{timestamp_new}{file_suffix}'
-                    log.warning(f'文件被占用，尝试新文件名: {csv_file}')
-                    time.sleep(0.1)
-                else:
-                    log.error(f'无法保存文件（已尝试 {max_retries} 次），请关闭可能占用文件的程序（如 Excel）')
-                    return self.round_fail(f'保存失败: 文件被占用，请关闭 {csv_file.name} 后重试')
+        try:
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(disc_data_list, f, ensure_ascii=False, indent=4)
+            log.info(f'数据已缓存到: {cache_file}')
+            return self.round_success(f'已缓存 {len(disc_data_list)} 条数据，请在界面预览或导出')
+        except Exception as e:
+            log.error(f'缓存数据失败: {e}')
+            return self.round_fail(f'缓存数据失败: {e}')
 
     @node_from(from_name='保存数据')
     @operation_node(name='完成后返回')
