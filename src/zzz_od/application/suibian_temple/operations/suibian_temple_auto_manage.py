@@ -35,7 +35,7 @@ class SuibianTempleAutoManage(ZOperation):
             elif result.status == '确认':
                 return self.round_wait(status='点击确认', wait=1)
             elif result.status == '托管中':
-                return self.round_wait(status='点击进入托管详情', wait=1)
+                return self.round_success(status='已在托管中')
 
         return self.round_retry(status='未识别有效按钮', wait=1)
 
