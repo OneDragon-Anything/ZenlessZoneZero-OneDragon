@@ -209,26 +209,51 @@ class DriverDiscReadApp(ZApplication):
             disc_data['level'] = ''
             disc_data['rating'] = ''
 
+        # 初步清洗：解析名称和位置
+        raw_name = disc_data.get('驱动盘名称', '')
+        name = raw_name
+        slot = ''
+        # 尝试匹配 [1] 或 【1】 格式
+        match = re.search(r'(.+?)[\[【](\d)[\]】]?', raw_name)
+        if match:
+            name = match.group(1).strip()
+            slot = match.group(2)
+        else:
+            # 兜底：如果最后一位是数字，且前面是中文
+            match = re.search(r'(.+?)(\d)$', raw_name)
+            if match:
+                name = match.group(1).strip()
+                slot = match.group(2)
+
+        # 初步清洗：副属性去除 "套装效果"
+        substats_data = {}
+        for i in range(1, 5):
+            k_name = f'驱动盘副属性{i}'
+            k_val = f'驱动盘副属性{i}值'
+            s_name = disc_data.get(k_name, '')
+            s_val = disc_data.get(k_val, '')
+            
+            if '套装' in s_name:
+                s_name = ''
+                s_val = ''
+            
+            substats_data[f'sub_stat{i}'] = s_name
+            substats_data[f'sub_stat{i}_value'] = s_val
+
         # 解析区域名称到字段映射
         parsed_data = {
-            'name': disc_data.get('驱动盘名称', ''),
+            'name': name,
+            'slot': slot,
             'level': disc_data.get('level', ''),
             'rating': disc_data.get('rating', ''),
             'main_stat': disc_data.get('驱动盘主属性', ''),
             'main_stat_value': disc_data.get('驱动盘主属性值', ''),
-            'sub_stat1': disc_data.get('驱动盘副属性1', ''),
-            'sub_stat1_value': disc_data.get('驱动盘副属性1值', ''),
-            'sub_stat2': disc_data.get('驱动盘副属性2', ''),
-            'sub_stat2_value': disc_data.get('驱动盘副属性2值', ''),
-            'sub_stat3': disc_data.get('驱动盘副属性3', ''),
-            'sub_stat3_value': disc_data.get('驱动盘副属性3值', ''),
-            'sub_stat4': disc_data.get('驱动盘副属性4', ''),
-            'sub_stat4_value': disc_data.get('驱动盘副属性4值', ''),
+            **substats_data
         }
 
         if parsed_data['name'].strip():
             self.disc_data_dict[global_index] = parsed_data
-            log.info(f'识别完成 [{len(self.disc_data_dict)}/{self.total_disc_count}]: {parsed_data["name"]}')
+            log.info(f'识别完成 [{len(self.disc_data_dict)}/{self.total_disc_count}]: {parsed_data["name"]} {parsed_data["slot"]}')
         else:
             log.warning(f'未识别到驱动盘 [{global_index}] 原始名称: "{parsed_data["name"]}" 全量数据: {disc_data}')
 
