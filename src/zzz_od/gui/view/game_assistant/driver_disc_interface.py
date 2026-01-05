@@ -8,6 +8,7 @@ from typing import Optional, List, Dict
 from PySide6.QtWidgets import QWidget, QFileDialog, QHBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QVBoxLayout
 from qfluentwidgets import FluentIcon, PushButton, Dialog
 
+from one_dragon.base.operation.application import application_const
 from one_dragon.utils import os_utils
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.view.app_run_interface import AppRunInterface
@@ -16,6 +17,8 @@ from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from zzz_od.application.driver_disc_read import driver_disc_read_const
+from zzz_od.application.driver_disc_read.drive_disk_exporter import DriveDiskExporter
+from zzz_od.application.driver_disc_read.driver_disc_parser import DriverDiscParser
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -23,6 +26,8 @@ class DriverDiscInterface(AppRunInterface):
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
+        self.parser = DriverDiscParser()
+        self.exporter = DriveDiskExporter()
 
         AppRunInterface.__init__(
             self,
@@ -39,22 +44,9 @@ class DriverDiscInterface(AppRunInterface):
         # 帮助卡片
         self.help_opt = HelpCard(
             title='驱动盘识别',
-            content='自动识别驱动盘属性并导出到指定路径。支持 GPU 多进程并行处理，修改配置后需重启程序生效。'
+            content='自动识别驱动盘属性并导出到指定路径。'
         )
         content.add_widget(self.help_opt)
-
-        # OCR worker 进程数配置
-        self.ocr_worker_card = SpinBoxSettingCard(
-            icon=FluentIcon.IOT,
-            title='OCR Worker 进程数',
-            content='并行处理 OCR 识别的进程数量。GPU 模式推荐 4-6，CPU 模式推荐 2-4。每个进程独立占用约 500MB 内存。',
-            minimum=1,
-            maximum=8,
-            step=1
-        )
-        # 初始化时加载配置值
-        self.ocr_worker_card.init_with_adapter(get_prop_adapter(self.ctx.model_config, 'ocr_worker_count'))
-        content.add_widget(self.ocr_worker_card)
 
         # OCR 批量大小配置
         self.ocr_batch_card = SpinBoxSettingCard(
@@ -85,17 +77,157 @@ class DriverDiscInterface(AppRunInterface):
         button_container = QWidget()
         button_layout = QHBoxLayout(button_container)
         
+        self.history_btn = PushButton(text='加载历史', icon=FluentIcon.HISTORY)
+        self.history_btn.clicked.connect(self._on_history_clicked)
+        button_layout.addWidget(self.history_btn)
+
+        self.clean_btn = PushButton(text='数据清洗', icon=FluentIcon.BROOM)
+        self.clean_btn.clicked.connect(self._on_clean_clicked)
+        button_layout.addWidget(self.clean_btn)
+
         self.preview_btn = PushButton(text='预览缓存', icon=FluentIcon.VIEW)
         self.preview_btn.clicked.connect(self._on_preview_clicked)
         button_layout.addWidget(self.preview_btn)
 
-        self.export_btn = PushButton(text='导出缓存', icon=FluentIcon.SAVE)
-        self.export_btn.clicked.connect(self._on_export_clicked)
-        button_layout.addWidget(self.export_btn)
+        self.export_csv_btn = PushButton(text='导出CSV', icon=FluentIcon.SAVE)
+        self.export_csv_btn.clicked.connect(self._on_export_csv_clicked)
+        button_layout.addWidget(self.export_csv_btn)
+
+        self.export_zod_btn = PushButton(text='导出ZOD', icon=FluentIcon.SHARE)
+        self.export_zod_btn.clicked.connect(self._on_export_zod_clicked)
+        button_layout.addWidget(self.export_zod_btn)
         
         content.add_widget(button_container)
 
         return content
+
+    def _on_history_clicked(self):
+        self.ctx.shared_dialog_manager.show_driver_disc_read_setting_dialog(
+            parent=self,
+            group_id=application_const.DEFAULT_GROUP_ID
+        )
+
+    def _on_clean_clicked(self):
+        """
+        执行数据清洗逻辑
+        """
+        cache_dir = Path(os_utils.get_path_under_work_dir('driver_disc'))
+        cache_file = cache_dir / 'cache.json'
+
+        if not cache_file.exists():
+            self.show_message_box('错误', '未找到缓存文件，请先运行识别或导入')
+            return
+
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                raw_data_list = json.load(f)
+            
+            # 备份原始数据
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            history_dir = cache_dir / 'history'
+            history_dir.mkdir(parents=True, exist_ok=True)
+            backup_file = history_dir / f'pre_clean_{timestamp}.json'
+            with open(backup_file, 'w', encoding='utf-8') as f:
+                json.dump(raw_data_list, f, ensure_ascii=False, indent=4)
+
+            cleaned_data = []
+            for raw_item in raw_data_list:
+                # 使用 parse_flat 保持扁平结构
+                parsed = self.parser.parse_flat(raw_item)
+                cleaned_data.append(parsed)
+
+            # 保存回缓存
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cleaned_data, f, ensure_ascii=False, indent=4)
+
+            self.show_message_box('成功', f'清洗完成，已更新 {len(cleaned_data)} 条数据')
+        except Exception as e:
+            self.show_message_box('错误', f'数据清洗失败: {e}')
+
+    def _get_export_dir(self) -> Path:
+        """获取导出目录，优先使用配置的路径"""
+        configured_path = self.export_path_adapter.get_value()
+        if configured_path:
+            export_dir = Path(configured_path)
+        else:
+            export_dir = Path(os_utils.get_path_under_work_dir('export'))
+        
+        export_dir.mkdir(parents=True, exist_ok=True)
+        return export_dir
+
+    def _on_export_csv_clicked(self):
+        """
+        执行导出 CSV 逻辑
+        """
+        cache_dir = Path(os_utils.get_path_under_work_dir('driver_disc'))
+        cache_file = cache_dir / 'cache.json'
+
+        if not cache_file.exists():
+            self.show_message_box('错误', '未找到缓存文件')
+            return
+
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                data_list = json.load(f)
+            
+            if not data_list:
+                self.show_message_box('提示', '缓存数据为空')
+                return
+
+            export_dir = self._get_export_dir()
+            
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            export_file = export_dir / f'driver_disc_{timestamp}.csv'
+
+            # 获取所有可能的字段名作为表头
+            fieldnames = set()
+            for item in data_list:
+                fieldnames.update(item.keys())
+            
+            # 排序字段：name, slot, level, rating, main_stat...
+            sorted_fields = ['name', 'slot', 'level', 'rating', 'main_stat', 'main_stat_value']
+            other_fields = sorted(list(fieldnames - set(sorted_fields)))
+            fieldnames = sorted_fields + other_fields
+
+            with open(export_file, 'w', encoding='utf-8-sig', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(data_list)
+
+            self.show_message_box('成功', f'CSV已导出至: {export_file}')
+        except Exception as e:
+            self.show_message_box('错误', f'导出CSV失败: {e}')
+
+    def _on_export_zod_clicked(self):
+        """
+        执行导出 ZOD 逻辑
+        """
+        cache_dir = Path(os_utils.get_path_under_work_dir('driver_disc'))
+        cache_file = cache_dir / 'cache.json'
+
+        if not cache_file.exists():
+            self.show_message_box('错误', '未找到缓存数据')
+            return
+
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                flat_data_list = json.load(f)
+            
+            # 先转换为嵌套结构，再导出
+            nested_data_list = [self.parser.parse(item) for item in flat_data_list]
+            zod_data = self.exporter.convert_to_zod_json(nested_data_list)
+            
+            export_dir = self._get_export_dir()
+            
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            export_file = export_dir / f'driver_disc_zod_{timestamp}.json'
+            
+            with open(export_file, 'w', encoding='utf-8') as f:
+                json.dump(zod_data, f, ensure_ascii=False, indent=4)
+                
+            self.show_message_box('成功', f'ZOD格式数据已导出至: {export_file}')
+        except Exception as e:
+            self.show_message_box('错误', f'导出失败: {e}')
 
     def on_interface_shown(self) -> None:
         AppRunInterface.on_interface_shown(self)
@@ -159,10 +291,10 @@ class DriverDiscInterface(AppRunInterface):
         layout = QVBoxLayout(self.preview_window)
         
         table = QTableWidget()
-        fieldnames = ['name', 'level', 'rating', 'main_stat', 'main_stat_value',
+        fieldnames = ['name', 'slot', 'level', 'rating', 'main_stat', 'main_stat_value',
                       'sub_stat1', 'sub_stat1_value', 'sub_stat2', 'sub_stat2_value',
                       'sub_stat3', 'sub_stat3_value', 'sub_stat4', 'sub_stat4_value']
-        headers = ['名称', '等级', '评级', '主属性', '主属性值', 
+        headers = ['名称', '位置', '等级', '评级', '主属性', '主属性值', 
                    '副属性1', '副属性1值', '副属性2', '副属性2值', 
                    '副属性3', '副属性3值', '副属性4', '副属性4值']
         
@@ -179,74 +311,6 @@ class DriverDiscInterface(AppRunInterface):
         layout.addWidget(table)
         
         self.preview_window.show()
-
-    def _on_export_clicked(self):
-        cache_file = Path(os_utils.get_path_under_work_dir('driver_disc')) / 'cache.json'
-        if not cache_file.exists():
-            self.show_message_box('提示', '暂无缓存数据，请先运行识别')
-            return
-
-        try:
-            with open(cache_file, 'r', encoding='utf-8') as f:
-                disc_data_list = json.load(f)
-            
-            if not disc_data_list:
-                self.show_message_box('提示', '缓存数据为空')
-                return
-
-            # Export logic
-            export_path = self.ctx.one_dragon_config.get('disc_export_path', '')
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-
-            if export_path:
-                user_path = Path(export_path)
-                if not user_path.is_absolute():
-                    user_path = Path(os_utils.get_work_dir()) / user_path
-
-                if user_path.suffix:
-                    base_dir = user_path.parent
-                    file_stem = user_path.stem
-                    file_suffix = user_path.suffix
-                else:
-                    base_dir = user_path
-                    file_stem = 'driver_disc_data'
-                    file_suffix = '.csv'
-            else:
-                base_dir = Path(os_utils.get_path_under_work_dir('driver_disc'))
-                file_stem = 'driver_disc_data'
-                file_suffix = '.csv'
-
-            csv_file = base_dir / f'{file_stem}_{timestamp}{file_suffix}'
-            base_dir.mkdir(parents=True, exist_ok=True)
-
-            max_retries = 5
-            for attempt in range(max_retries):
-                try:
-                    with open(csv_file, 'w', newline='', encoding='utf-8-sig') as f:
-                        fieldnames = ['name', 'level', 'rating', 'main_stat', 'main_stat_value',
-                                      'sub_stat1', 'sub_stat1_value', 'sub_stat2', 'sub_stat2_value',
-                                      'sub_stat3', 'sub_stat3_value', 'sub_stat4', 'sub_stat4_value']
-                        writer = csv.DictWriter(f, fieldnames=fieldnames)
-                        writer.writerow({'name': '驱动盘名称', 'level': '等级', 'rating': '评级',
-                                         'main_stat': '主属性', 'main_stat_value': '主属性值',
-                                         'sub_stat1': '副属性1', 'sub_stat1_value': '副属性1值',
-                                         'sub_stat2': '副属性2', 'sub_stat2_value': '副属性2值',
-                                         'sub_stat3': '副属性3', 'sub_stat3_value': '副属性3值',
-                                         'sub_stat4': '副属性4', 'sub_stat4_value': '副属性4值'})
-                        writer.writerows(disc_data_list)
-                    
-                    self.show_message_box('成功', f'已保存 {len(disc_data_list)} 条数据到:\n{csv_file}')
-                    break
-                except PermissionError:
-                    if attempt < max_retries - 1:
-                        timestamp_new = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-                        csv_file = base_dir / f'{file_stem}_{timestamp_new}{file_suffix}'
-                        time.sleep(0.1)
-                    else:
-                        self.show_message_box('失败', f'保存失败: 文件被占用，请关闭 {csv_file.name} 后重试')
-
-        except Exception as e:
-            self.show_message_box('错误', f'导出失败: {e}')
 
     def show_message_box(self, title, content):
         w = Dialog(title, content, self)

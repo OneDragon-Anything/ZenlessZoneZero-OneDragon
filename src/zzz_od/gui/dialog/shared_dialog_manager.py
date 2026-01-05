@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QWidget
 from zzz_od.gui.dialog.charge_plan_setting_dialog import ChargePlanSettingDialog
 from zzz_od.gui.dialog.coffee_setting_dialog import CoffeeSettingDialog
 from zzz_od.gui.dialog.drive_disc_dismantle_setting_dialog import DriveDiscDismantleSettingDialog
+from zzz_od.gui.dialog.driver_disc_read_setting_dialog import DriverDiscReadSettingDialog
 from zzz_od.gui.dialog.lost_void_setting_dialog import LostVoidSettingDialog
 from zzz_od.gui.dialog.notorious_hunt_setting_dialog import NotoriousHuntSettingDialog
 from zzz_od.gui.dialog.random_play_setting_dialog import RandomPlaySettingDialog
@@ -28,6 +29,7 @@ class SharedDialogManager:
         self._coffee_setting_dialog: CoffeeSettingDialog | None = None
         self._random_play_setting_dialog: RandomPlaySettingDialog | None = None
         self._drive_disc_dismantle_setting_dialog: DriveDiscDismantleSettingDialog | None = None
+        self._driver_disc_read_setting_dialog: DriverDiscReadSettingDialog | None = None
         self._withered_domain_setting_dialog: WitheredDomainSettingDialog | None = None
         self._lost_void_setting_dialog: LostVoidSettingDialog | None = None
 
@@ -118,6 +120,19 @@ class SharedDialogManager:
             self._drive_disc_dismantle_setting_dialog = DriveDiscDismantleSettingDialog(ctx=self.ctx, parent=parent)
 
         self._drive_disc_dismantle_setting_dialog.show_by_group(
+            group_id=group_id,
+            parent=parent,
+        )
+
+    def show_driver_disc_read_setting_dialog(
+        self,
+        parent: QWidget,
+        group_id: str,
+    ):
+        if self._driver_disc_read_setting_dialog is None:
+            self._driver_disc_read_setting_dialog = DriverDiscReadSettingDialog(ctx=self.ctx, parent=parent)
+
+        self._driver_disc_read_setting_dialog.show_by_group(
             group_id=group_id,
             parent=parent,
         )
