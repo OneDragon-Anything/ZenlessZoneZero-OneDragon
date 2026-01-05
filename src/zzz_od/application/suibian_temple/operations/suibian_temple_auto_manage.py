@@ -22,7 +22,7 @@ class SuibianTempleAutoManage(ZOperation):
 
     @operation_node(name='检查并停止托管', is_start_node=True)
     def check_and_stop_hosting(self) -> OperationRoundResult:
-        target_cn_list = ['停止托管', '开始托管', '领取收益', '确认', '托管中']
+        target_cn_list = ['停止托管', '开始托管', '领取收益', '确认', '托管中', '自动托管中', '可关闭自动托管进行手动操作']
         ignore_cn_list = ['自动托管中', '可关闭自动托管进行手动操作']
         result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=ignore_cn_list)
         if result.is_success:
@@ -42,17 +42,17 @@ class SuibianTempleAutoManage(ZOperation):
     @node_from(from_name='检查并停止托管', status='点击停止')
     @operation_node(name='确认停止托管')
     def confirm_stop_1(self) -> OperationRoundResult:
-        return self.round_by_ocr_and_click_by_priority(['确认'])
+        return self.round_by_ocr_and_click_by_priority(['确认'], success_wait=1, retry_wait=1)
 
     @node_from(from_name='确认停止托管')
     @operation_node(name='确认结算')
     def confirm_stop_2(self) -> OperationRoundResult:
-        return self.round_by_ocr_and_click_by_priority(['确认'])
+        return self.round_by_ocr_and_click_by_priority(['确认'], success_wait=1, retry_wait=1)
 
     @node_from(from_name='确认结算')
     @operation_node(name='重新开始托管')
     def start_hosting_after_stop(self) -> OperationRoundResult:
-        return self.round_by_ocr_and_click_by_priority(['开始托管'])
+        return self.round_by_ocr_and_click_by_priority(['开始托管'], success_wait=1, retry_wait=1)
 
     @node_from(from_name='检查并停止托管', status='点击开始')
     @node_from(from_name='重新开始托管')
