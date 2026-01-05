@@ -119,7 +119,7 @@ class CommissionProcessing(ZOperation):
     @operation_node(name='寻找委托')
     def find_commission(self) -> OperationRoundResult:
         # 4. Ocr 专业挑战室/恶名狩猎，找不到就往下翻到找到为止
-        screen = self.screenshot()
+        screen = self.last_screenshot
         ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
         
         # 使用字典映射委托名称到类型，方便扩展
@@ -147,7 +147,7 @@ class CommissionProcessing(ZOperation):
     @operation_node(name='接取委托')
     def accept_commission(self) -> OperationRoundResult:
         # 5. 点击（ocr）接取委托
-        screen = self.screenshot()
+        screen = self.last_screenshot
         ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
         ocr_texts = [i.data for i in ocr_results]
         
@@ -171,7 +171,7 @@ class CommissionProcessing(ZOperation):
     @node_from(from_name='接取委托')
     @operation_node(name='检查接取结果')
     def check_accept_result(self) -> OperationRoundResult:
-        screen = self.screenshot()
+        screen = self.last_screenshot
         ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
         ocr_texts = [i.data for i in ocr_results]
 
@@ -184,7 +184,7 @@ class CommissionProcessing(ZOperation):
     @operation_node(name='前往')
     def go_to_commission(self) -> OperationRoundResult:
         # 6. ocr 前往并点击
-        screen = self.screenshot()
+        screen = self.last_screenshot
         ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
         idx = str_utils.find_best_match_by_difflib(gt('前往', 'game'), [i.data for i in ocr_results])
         
@@ -198,7 +198,7 @@ class CommissionProcessing(ZOperation):
     @operation_node(name='下一步')
     def next_step(self) -> OperationRoundResult:
         # 7. 点击下一步然后进入战斗
-        screen = self.screenshot()
+        screen = self.last_screenshot
         ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
         ocr_texts = [i.data for i in ocr_results]
         
@@ -233,7 +233,7 @@ class CommissionProcessing(ZOperation):
     @operation_node(name='战斗中')
     def in_battle(self) -> OperationRoundResult:
         
-        screen = self.screenshot()
+        screen = self.last_screenshot
 
         # 1. 先同步检查战斗状态，避免 OCR 竞态
         self.ctx.auto_battle_context.check_battle_state(
@@ -265,7 +265,7 @@ class CommissionProcessing(ZOperation):
     @node_from(from_name='战斗中')
     @operation_node(name='战斗结算')
     def battle_result(self) -> OperationRoundResult:
-        screen = self.screenshot()
+        screen = self.last_screenshot
         ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
         ocr_texts = [i.data for i in ocr_results]
         
