@@ -101,7 +101,7 @@ class DriveDiskExporter:
             sub_key = self._get_stat_key(sub_name_cn, is_main=False, value_str=sub_value_str)
             substats.append({
                 "key": sub_key,
-                "upgrades": upgrades
+                "upgrades": upgrades + 1
             })
 
         return {
