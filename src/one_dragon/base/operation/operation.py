@@ -904,6 +904,50 @@ class Operation(OperationBase):
         else:
             return self.round_retry(status=f'未找到 {area_name}', wait=retry_wait, wait_round_time=retry_wait_round)
 
+    def round_by_find_area_binary(
+        self,
+        screen: MatLike,
+        screen_name: str,
+        area_name: str,
+        binary_threshold: int = 127,
+        success_wait: float | None = None,
+        success_wait_round: float | None = None,
+        retry_wait: float | None = None,
+        retry_wait_round: float | None = None,
+        crop_first: bool = True,
+    ) -> OperationRoundResult:
+        """
+        使用二值化图像检查是否能在屏幕上找到目标区域。
+
+        Args:
+            screen: 截图图像。
+            screen_name: 屏幕名称。
+            area_name: 区域名称。
+            binary_threshold: 二值化阈值，默认为127。
+            success_wait: 成功后等待时间（秒）。默认为None。
+            success_wait_round: 成功后等待直到轮次时间达到此值，如果设置了success_wait则忽略。默认为None。
+            retry_wait: 失败后等待时间（秒）。默认为None。
+            retry_wait_round: 失败后等待直到轮次时间达到此值，如果设置了retry_wait则忽略。默认为None。
+            crop_first: 在传入区域时 是否先裁剪再进行识别
+
+        Returns:
+            OperationRoundResult: 匹配结果。
+        """
+        result = screen_utils.find_area_binary(
+            ctx=self.ctx,
+            screen=screen,
+            screen_name=screen_name,
+            area_name=area_name,
+            binary_threshold=binary_threshold,
+            crop_first=crop_first,
+        )
+        if result == FindAreaResultEnum.AREA_NO_CONFIG:
+            return self.round_fail(status=f'区域未配置 {area_name}')
+        elif result == FindAreaResultEnum.TRUE:
+            return self.round_success(status=area_name, wait=success_wait, wait_round_time=success_wait_round)
+        else:
+            return self.round_retry(status=f'未找到 {area_name}', wait=retry_wait, wait_round_time=retry_wait_round)
+
     def round_by_click_area(
             self, screen_name: str, area_name: str, click_left_top: bool = False,
             success_wait: float | None = None, success_wait_round: float | None = None,

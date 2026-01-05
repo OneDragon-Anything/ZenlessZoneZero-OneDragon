@@ -45,6 +45,7 @@ handlers:
   - state_template: "速切模板-真斗"
   - state_template: "速切模板-伊德海莉"
   - state_template: "速切模板-琉音"
+  - state_template: "速切模板-般岳"
   - state_template: "速切模板-叶瞬光"
   - state_template: "速切模板-照"
 

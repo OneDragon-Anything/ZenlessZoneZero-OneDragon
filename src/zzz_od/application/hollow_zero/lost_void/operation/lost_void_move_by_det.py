@@ -148,6 +148,8 @@ class LostVoidMoveByDet(ZOperation):
         self.estimated_turn_ratio: float = 0.2  # 估算的转向比例
         self.turn_calibration_count: int = 1  # 转向校准次数
 
+        self._last_attack_btn_check_time: float = 0  # 上一次检查普攻按钮的时间
+
         self._reset_turn_calibration_status()
 
     def _reset_turn_calibration_status(self):
@@ -323,7 +325,7 @@ class LostVoidMoveByDet(ZOperation):
             target_y = -300
             # 设置一个死区，避免在目标附近频繁微调
             dead_zone = 100
-            
+
             if diff_y > target_y + dead_zone:
                 # 目标在预定位置下方，需要向上转
                 turn_distance_y = 20  # 您可以根据需要调整这个值
@@ -485,9 +487,9 @@ class LostVoidMoveByDet(ZOperation):
     def check_interact_stop(self, screen: MatLike, frame_result: DetectFrameResult) -> bool:
         """
         判断是否应该为交互停下来
-        1. 要求出现交互时停下
-        2. 出现交互按钮
-        3. 有较大的可以交互的图标
+        1. 先检查交互按钮，如果有则返回True
+        2. 检测图标是否变大，如果变大则返回True
+        3. 检查普攻按钮是否丢失，如果丢失则停下（停下动作每5秒最多触发一次）
         @param screen: 游戏画面
         @param frame_result: 识别结果
         @return:
@@ -495,10 +497,22 @@ class LostVoidMoveByDet(ZOperation):
         if not self.stop_when_interact:
             return False
 
+        # 1. 先检查交互按钮
         result = self.round_by_find_area(screen, '战斗画面', '按键-交互')
         if not result.is_success:
+            # 没有交互按钮，检查普攻按钮是否丢失
+            result = self.round_by_find_area(screen, '战斗画面', '按键-普通攻击')
+            if not result.is_success:
+                # 普攻按钮丢失，检查距离上次停下是否超过5秒
+                current_time = time.time()
+                if current_time - self._last_attack_btn_check_time >= 5:
+                    # 执行停下动作，并记录时间
+                    self._last_attack_btn_check_time = current_time
+                    self.ctx.controller.stop_moving_forward()
+                    time.sleep(0.5)
             return False
 
+        # 2. 检测图标是否变大
         for result in frame_result.results:
             if result.detect_class.class_name == LostVoidDetector.CLASS_DISTANCE:
                 # 不考虑 [距离]白点

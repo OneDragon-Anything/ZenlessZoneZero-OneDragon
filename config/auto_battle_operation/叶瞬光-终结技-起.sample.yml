@@ -11,4 +11,4 @@ operations:
     post_delay: 0.1
     repeat: 10  # 待补充具体次数
   - op_name: "等待秒数"
-    seconds: 3  # 待补充具体时间
+    seconds: 5  # 待补充具体时间
