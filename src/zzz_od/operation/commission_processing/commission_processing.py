@@ -25,6 +25,8 @@ class CommissionProcessing(ZOperation):
         self.scroll_times: int = 0
         self.current_commission_type: Optional[str] = None
         self.battle_result_retry_times: int = 0
+        self.has_filtered: bool = False
+
 
 
     @operation_node(name='返回大世界', is_start_node=True)
@@ -61,8 +63,13 @@ class CommissionProcessing(ZOperation):
         # 3. 点击下面的刷新
         self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '刷新按钮').rect.center)
 
+        if self.has_filtered:
+            self.scroll_times = 0
+            return self.round_success(wait=1)
+
         time.sleep(1)
-        self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '刷新点击1').center)
+        self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '筛选按钮').center)
+
         time.sleep(0.5)
 
         # OCR 找 重置
@@ -72,7 +79,7 @@ class CommissionProcessing(ZOperation):
         if idx is not None:
             self.ctx.controller.click(ocr_results[idx].center)
         else:
-            self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '刷新点击2').center)
+            self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '重置按钮').center)
         time.sleep(0.5)
 
         # OCR 找 恶名狩猎 和 专业挑战室
@@ -100,9 +107,10 @@ class CommissionProcessing(ZOperation):
             self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '专业挑战室兜底').center)
         time.sleep(0.5)
 
-        self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '刷新点击5').center)
+        self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '关闭筛选').center)
         time.sleep(0.5)
 
+        self.has_filtered = True
         self.scroll_times = 0  # 重置翻页次数
         return self.round_success(wait=1)
 
