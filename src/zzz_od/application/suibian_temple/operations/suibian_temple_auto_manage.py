@@ -24,7 +24,8 @@ class SuibianTempleAutoManage(ZOperation):
     def check_and_stop_hosting(self) -> OperationRoundResult:
         target_cn_list = ['停止托管', '开始托管', '领取收益', '确认', '托管中']
         ignore_cn_list = ['自动托管中', '可关闭自动托管进行手动操作']
-        result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=ignore_cn_list)
+        area = self.ctx.screen_loader.get_area('随便观-入口', '区域-左半屏')
+        result = self.round_by_ocr_and_click_by_priority(target_cn_list, ignore_cn_list=ignore_cn_list, area=area)
         if result.is_success:
             if result.status == '停止托管':
                 return self.round_success(status='点击停止')
