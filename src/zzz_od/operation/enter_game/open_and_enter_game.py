@@ -30,7 +30,7 @@ class OpenAndEnterGame(Operation):
     @node_from(from_name='打开游戏')
     @operation_node(name='等待游戏打开', node_max_retry_times=60, screenshot_before_round=False)
     def wait_game(self) -> OperationRoundResult:
-        self.ctx.controller.game_win.init_win()
+        self.ctx.controller.init_game_win()
         if self.ctx.controller.is_game_window_ready:
             self.ctx.controller.active_window()
             hdr_op = EnableAutoHDR(self.ctx)

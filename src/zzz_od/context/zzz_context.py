@@ -89,21 +89,33 @@ class ZContext(OneDragonContext):
             if hasattr(self, prop):
                 delattr(self, prop)
 
+    def _get_win_title(self) -> str:
+        """获取当前配置对应的窗口标题"""
+        if self.game_account_config.use_custom_win_title:
+            return self.game_account_config.custom_win_title
+        from one_dragon.base.config.game_account_config import GameRegionEnum
+        return '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
+
+    def on_switch_instance(self) -> None:
+        """
+        切换实例后更新 controller 的窗口标题
+        """
+        if self.controller is not None:
+            new_win_title = self._get_win_title()
+            self.controller.set_window_title(new_win_title)
+
     def init_controller(self) -> None:
         from one_dragon.base.config.game_account_config import GamePlatformEnum
         from zzz_od.controller.zzz_pc_controller import ZPcController
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
-            if self.game_account_config.use_custom_win_title:
-                win_title = self.game_account_config.custom_win_title
-            else:
-                from one_dragon.base.config.game_account_config import GameRegionEnum
-                win_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
             self.controller: ZPcController = ZPcController(
                 game_config=self.game_config,
-                win_title=win_title,
+                screenshot_method=self.env_config.screenshot_method,
                 standard_width=self.project_config.screen_standard_width,
                 standard_height=self.project_config.screen_standard_height
             )
+            # 初始化窗口标题
+            self.controller.set_window_title(self._get_win_title())
 
     def init_for_application(self) -> None:
         self.map_service.reload()  # 传送需要用的数据

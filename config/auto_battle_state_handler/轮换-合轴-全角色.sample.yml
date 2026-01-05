@@ -38,6 +38,9 @@ handlers:
               - op_name: "清除状态"
                 state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
+          - state_template: "琉音-送客决策"
+          - state_template: "琉音-刷好评"
+
           # 没有上面的几位高贵，就藏这里好了
           - states: ""
             sub_handlers:
@@ -246,28 +249,24 @@ handlers:
               - states: "[后台-1-异常] & [后台-1-特殊技可用]"
                 operations:
                   - op_name: "按键-切换角色-下一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "[后台-1-强攻]& [后台-1-特殊技可用]"
                 operations:
                   - op_name: "按键-切换角色-下一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "[后台-2-异常]& [后台-2-特殊技可用]"
                 operations:
                   - op_name: "按键-切换角色-上一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "[后台-2-强攻]& [后台-2-特殊技可用]"
                 operations:
                   - op_name: "按键-切换角色-上一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
@@ -275,30 +274,18 @@ handlers:
               - states: "[后台-1-异常] | [后台-1-强攻] | [后台-1-命破]"
                 operations:
                   - op_name: "按键-切换角色-下一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "[后台-2-异常] | [后台-2-强攻] | [后台-2-命破]"
                 operations:
                   - op_name: "按键-切换角色-上一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
-
-              - states: "![前台-苍角]"
-                sub_handlers:
-                  - states: ""
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "苍角"
-                      - op_name: "清除状态"
-                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               # 丽娜连普攻都不会
               - states: "[前台-丽娜]"
                 operations:
                   - op_name: "按键-切换角色-下一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]

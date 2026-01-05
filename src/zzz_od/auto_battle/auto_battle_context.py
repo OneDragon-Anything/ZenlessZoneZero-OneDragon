@@ -24,7 +24,7 @@ from zzz_od.auto_battle.auto_battle_state_record_service import (
     AutoBattleStateRecordService,
 )
 from zzz_od.auto_battle.auto_battle_target_context import AutoBattleTargetContext
-from zzz_od.game_data.agent import Agent
+from zzz_od.game_data.agent import Agent, AgentEnum
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
@@ -67,6 +67,7 @@ class AutoBattleContext:
         self._last_check_quick_time: float = 0
         self._last_check_end_time: float = 0
         self._last_check_distance_time: float = 0
+        self._last_chain_front_correction_time: float = 0  # 上一次连携前台角色修正的时间
 
         # 识别结果
         self.last_check_in_battle: bool = False  # 是否在战斗画面
@@ -184,6 +185,7 @@ class AutoBattleContext:
         self._last_check_quick_time: float = 0
         self._last_check_end_time: float = 0
         self._last_check_distance_time: float = 0
+        self._last_chain_front_correction_time: float = 0  # 上一次连携前台角色修正的时间
 
         # 识别结果
         self.last_check_end_result: str | None = None  # 识别战斗结束的结果
@@ -572,10 +574,14 @@ class AutoBattleContext:
 
         possible_agents = self.agent_context.get_possible_agent_list()
 
+        # 连携技角色识别
         result_agent_list: list[Agent | None] = []
         future_list: list[Future] = []
         future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c1, possible_agents))
         future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c2, possible_agents))
+
+        # 连携条检测（独立运行，结果在方法内部处理）
+        _battle_state_check_executor.submit(self._check_chain_bar, screen, screenshot_time)
 
         for future in future_list:
             try:
@@ -587,11 +593,13 @@ class AutoBattleContext:
                 result_agent_list.append(None)
 
         state_records: list[StateRecord] = []
+        chain_agent_names: set[str] = set()  # 连携技上的角色名称列表
         for i in range(len(result_agent_list)):
             if result_agent_list[i] is None:
                 continue
             state_records.append(StateRecord(f'连携技-{i + 1}-{result_agent_list[i].agent_name}', screenshot_time))
             state_records.append(StateRecord(f'连携技-{i + 1}-{result_agent_list[i].agent_type.value}', screenshot_time))
+            chain_agent_names.add(result_agent_list[i].agent_name)
 
         if len(state_records) > 0:
             # 有其中一个能识别时 另一个不能识别的就是邦布
@@ -602,6 +610,36 @@ class AutoBattleContext:
 
             state_records.append(StateRecord(BattleStateEnum.STATUS_CHAIN_READY.value, screenshot_time))
             self.state_record_service.batch_update_states(state_records)
+
+            # 检查连携前台角色修正冷却（避免切人过程中重复检测导致误判）
+            if screenshot_time - self._last_chain_front_correction_time < 1.0:
+                return
+            
+            # 记录本次检测时间，无论是否需要切换都进入冷却
+            self._last_chain_front_correction_time = screenshot_time
+            
+            # 从状态记录系统获取当前前台角色（与UI显示保持一致）
+            front_agent_name = None
+            for agent_enum in AgentEnum:
+                agent_name = agent_enum.value.agent_name
+                state_name = f'前台-{agent_name}'
+                recorder = self.state_record_service.get_state_recorder(state_name)
+                if recorder is not None and recorder.last_record_time > 0:
+                    front_agent_name = agent_name
+                    break
+            
+            # 检查前台角色是否在连携技列表中
+            if front_agent_name and front_agent_name in chain_agent_names:
+                # 前台角色在连携技列表中，找到第一个不在连携技列表中的后台角色
+                team_info = self.agent_context.team_info
+                if team_info.agent_list and len(team_info.agent_list) > 0:
+                    for i in range(1, len(team_info.agent_list)):
+                        back_agent = team_info.agent_list[i].agent
+                        if back_agent and back_agent.agent_name not in chain_agent_names:
+                            # 切换到这个后台角色
+                            log.info(f'前台角色 {front_agent_name} 在连携技中，切换到 {back_agent.agent_name}')
+                            self.switch_by_name(back_agent.agent_name)
+                            break
 
     def _match_chain_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
         """
@@ -625,6 +663,35 @@ class AutoBattleContext:
                         return agent
 
         return None
+
+    def _check_chain_bar(self, screen: MatLike, screenshot_time: float) -> bool:
+        """
+        检测连携条的轮廓
+        :return: 是否检测到轮廓
+        """
+        try:
+            # 运行连携条的CV流水线
+            cv_result = self.ctx.cv_service.run_pipeline(
+                '战斗-连携条',
+                screen,
+                debug_mode=False,
+                start_time=screenshot_time,
+                timeout=1.0
+            )
+
+            # 检查是否有轮廓
+            if cv_result is not None and cv_result.is_success and len(cv_result.contours) > 0:
+                # 更新状态"连携技-准备"
+                self.state_record_service.update_state(
+                    StateRecord('连携技-准备', screenshot_time)
+                )
+                return True
+            else:
+                # 没有检测到轮廓，不更新状态
+                return False
+        except Exception:
+            log.error('检测连携条轮廓失败', exc_info=True)
+            return False
 
     def check_quick_assist(self, screen: MatLike, screenshot_time: float) -> None:
         """

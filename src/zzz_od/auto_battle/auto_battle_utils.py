@@ -5,12 +5,69 @@ from typing import TYPE_CHECKING
 
 from cv2.typing import MatLike
 
-from zzz_od.application.shiyu_defense.agent_selector import get_best_agent_for_moving
 from zzz_od.auto_battle.auto_battle_dodge_context import YoloStateEventEnum
-from zzz_od.game_data.agent import CommonAgentStateEnum
+from zzz_od.game_data.agent import AgentTypeEnum, CommonAgentStateEnum
 
 if TYPE_CHECKING:
+    from zzz_od.auto_battle.auto_battle_agent_context import AgentInfo, TeamInfo
     from zzz_od.context.zzz_context import ZContext
+    from zzz_od.game_data.agent import Agent
+
+
+def _get_best_agent_for_moving(team_info: TeamInfo) -> AgentInfo | None:
+    """
+    从队伍中获取最适合移动的角色
+    :param team_info:
+    :return:
+    """
+    if team_info is None or len(team_info.agent_list) == 0:
+        return None
+
+    best_agent: AgentInfo | None = None
+    best_priority = 99
+
+    for team_agent_info in team_info.agent_list:
+        agent = team_agent_info.agent
+        if agent is None:
+            continue
+
+        priority = _get_agent_priority(agent)
+
+        if priority < best_priority:
+            best_priority = priority
+            best_agent = team_agent_info
+
+    return best_agent
+
+
+def _get_agent_priority(agent: Agent) -> int:
+    """
+    获取角色的优先级
+    身高不会挡住传送点的同时，速度越慢越好
+    :param agent:
+    :return:
+    """
+    # -- 特殊角色判断 --
+    # 耀嘉音
+    if agent.agent_id == 'astra_yao':
+        return 5
+    # 安比, 猫又, 可琳, 珂蕾妲, 苍角, 露西, 青衣, 派派, 橘福福, 琉音
+    if agent.agent_id in ['anby', 'nekomata', 'corin', 'koleda', 'soukaku', 'lucy', 'qingyi', 'piper', 'ju_fufu', 'dialyn']:
+        return 0
+    # 雅, 仪玄, 比利, 熊, 照
+    if agent.agent_id in ['hoshimi_miyabi', 'yixuan', 'billy', 'ben', 'panyinhu', 'zhao']:
+        return 4
+
+    # -- 类型判断 --
+    # 支援
+    if agent.agent_type == AgentTypeEnum.SUPPORT:
+        return 1
+    # 防护
+    if agent.agent_type == AgentTypeEnum.DEFENSE:
+        return 2
+
+    # -- 其他 --
+    return 3
 
 
 def switch_to_best_agent_for_moving(ctx: ZContext, timeout_seconds: float = 5) -> None:
@@ -34,7 +91,7 @@ def switch_to_best_agent_for_moving(ctx: ZContext, timeout_seconds: float = 5) -
             time.sleep(0.2)
             continue
 
-        best_agent = get_best_agent_for_moving(team_info)
+        best_agent = _get_best_agent_for_moving(team_info)
         if best_agent is None:
             time.sleep(0.2)
             continue
@@ -49,6 +106,7 @@ def switch_to_best_agent_for_moving(ctx: ZContext, timeout_seconds: float = 5) -
 
         ctx.auto_battle_context.switch_by_name(best_agent.agent.agent_name)
         time.sleep(0.2)
+
 
 def check_battle_encounter(ctx: ZContext, screen: MatLike, screenshot_time: float) -> bool:
     """

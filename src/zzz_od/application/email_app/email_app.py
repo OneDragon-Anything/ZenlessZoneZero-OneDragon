@@ -5,6 +5,7 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from zzz_od.application.email_app import email_app_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 
 class EmailApp(ZApplication):
@@ -70,3 +71,10 @@ class EmailApp(ZApplication):
         :return:
         """
         return self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回', success_wait=1, retry_wait=1)
+
+    @node_from(from_name='返回菜单')
+    @node_from(from_name='返回菜单', success=False)
+    @operation_node(name='返回大世界')
+    def back_to_world(self) -> OperationRoundResult:
+        op = BackToNormalWorld(self.ctx)
+        return self.round_by_op_result(op.execute())

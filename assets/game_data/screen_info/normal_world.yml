@@ -47,7 +47,7 @@ area_list:
 - area_name: 快捷手册
   id_mark: false
   pc_rect:
-  - 1513
+  - 1440
   - 28
   - 1689
   - 118
@@ -104,9 +104,9 @@ area_list:
 - area_name: 小地图
   id_mark: false
   pc_rect:
-  - 1630
+  - 1574
   - 183
-  - 1840
+  - 1784
   - 393
   text: ''
   lcs_percent: 0.5

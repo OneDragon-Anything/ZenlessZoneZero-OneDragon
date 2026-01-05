@@ -919,18 +919,18 @@
 
   # 卢西娅
 - category: "卢西娅"
-  name: "溯梦潮流"
+  name: "溯梦涌流"
   level: "S"
   is_gear: true
   template_id: "gear_lucia_1"
 
 - category: "卢西娅"
-  name: "溯梦潮流-a"
+  name: "溯梦涌流-a"
   level: "S"
   is_gear: true
 
 - category: "卢西娅"
-  name: "溯梦潮流-b"
+  name: "溯梦涌流-b"
   level: "S"
   is_gear: true
 
@@ -1880,3 +1880,101 @@
 - category: "无详情"
   name: "回答错误"
   level: "S"
+
+  # 照
+- category: "照"
+  name: "月魄凛光"
+  level: "S"
+  is_gear: true
+  template_id: "gear_zhao_1"
+
+- category: "照"
+  name: "月魄凛光-a"
+  level: "S"
+  is_gear: true
+
+- category: "照"
+  name: "月魄凛光-b"
+  level: "S"
+  is_gear: true
+
+- category: "照"
+  name: "岚霜扑朔"
+  level: "S"
+  is_gear: true
+  template_id: "gear_zhao_2"
+
+- category: "照"
+  name: "岚霜扑朔-a"
+  level: "S"
+  is_gear: true
+
+- category: "照"
+  name: "岚霜扑朔-b"
+  level: "S"
+  is_gear: true
+
+- category: "照"
+  name: "玉轮轧露"
+  level: "S"
+  is_gear: true
+  template_id: "gear_zhao_3"
+
+- category: "照"
+  name: "玉轮轧露-a"
+  level: "S"
+  is_gear: true
+
+- category: "照"
+  name: "玉轮轧露-b"
+  level: "S"
+  is_gear: true
+
+  # 叶瞬光
+- category: "叶瞬光"
+  name: "剑引青霜"
+  level: "S"
+  is_gear: true
+  template_id: "gear_yeshunguang_1"
+
+- category: "叶瞬光"
+  name: "剑引青霜-a"
+  level: "S"
+  is_gear: true
+
+- category: "叶瞬光"
+  name: "剑引青霜-b"
+  level: "S"
+  is_gear: true
+
+- category: "叶瞬光"
+  name: "锵鸣琳琅"
+  level: "S"
+  is_gear: true
+  template_id: "gear_yeshunguang_2"
+
+- category: "叶瞬光"
+  name: "锵鸣琳琅-a"
+  level: "S"
+  is_gear: true
+
+- category: "叶瞬光"
+  name: "锵鸣琳琅-b"
+  level: "S"
+  is_gear: true
+
+- category: "叶瞬光"
+  name: "匣珥瞬光"
+  level: "S"
+  is_gear: true
+  template_id: "gear_yeshunguang_3"
+
+- category: "叶瞬光"
+  name: "匣珥瞬光-a"
+  level: "S"
+  is_gear: true
+
+- category: "叶瞬光"
+  name: "匣珥瞬光-b"
+  level: "S"
+  is_gear: true
