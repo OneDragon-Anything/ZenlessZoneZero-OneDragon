@@ -37,9 +37,6 @@ class SuibianTempleAutoManage(ZOperation):
                 return self.round_wait(status='点击确认', wait=1)
             elif result.status == '托管中':
                 return self.round_wait(status='点击进入托管详情', wait=1)
-            # elif result.status == '经营方针':
-            #     return self.round_wait(status='开始新的托管', wait=1)
-
         return self.round_retry(status='未识别有效按钮', wait=1)
 
     @node_from(from_name='检查并停止托管', status='点击停止')
@@ -50,9 +47,10 @@ class SuibianTempleAutoManage(ZOperation):
     @node_from(from_name='确认结算')
     @operation_node(name='重新开始托管')
     def start_hosting_after_stop(self) -> OperationRoundResult:
-        ocr_result = self.ctx.ocr.run_ocr(self.last_screenshot)
-        if '获得奖励' in ocr_result:
-            self.round_by_ocr_and_click_by_priority(['确认'], success_wait=1, retry_wait=1)
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot)
+        if '获得奖励' in ocr_result_map:
+            return self.round_by_ocr_and_click_by_priority(['确认'], success_wait=1, retry_wait=1)
+
         return self.round_by_ocr_and_click_by_priority(['开始托管'], success_wait=1, retry_wait=1)
 
     @node_from(from_name='检查并停止托管', status='点击开始托管')
@@ -60,12 +58,8 @@ class SuibianTempleAutoManage(ZOperation):
     def start_hosting(self) -> OperationRoundResult:
         return self.round_by_ocr_and_click_by_priority(['开始托管'], success_wait=1, retry_wait=1)
 
-    # @node_from(from_name='开始托管',status='开始新的托管')
-    # @operation_node(name="开始新的托管")
-    # def start_new_hosting(self) -> OperationRoundResult:
-    #     return self.round_by_ocr_and_click_by_priority(['开始托管'], success_wait=1, retry_wait=1)
-
     @node_from(from_name='重新开始托管')
+    @node_from(from_name='开始托管')
     @operation_node(name='返回随便观')
     def back_to_entry(self) -> OperationRoundResult:
         current_screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['随便观-入口'])
