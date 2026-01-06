@@ -30,7 +30,7 @@ class SuibianTempleAutoManage(ZOperation):
             if result.status == '停止托管':
                 return self.round_success(status='点击停止')
             elif result.status == '开始托管':
-                return self.round_success(status='点击开始')
+                return self.round_success(status='点击开始托管')
             elif result.status == '领取收益':
                 return self.round_wait(status='点击领奖', wait=1)
             elif result.status == '确认':
@@ -41,13 +41,8 @@ class SuibianTempleAutoManage(ZOperation):
         return self.round_retry(status='未识别有效按钮', wait=1)
 
     @node_from(from_name='检查并停止托管', status='点击停止')
-    @operation_node(name='确认停止托管')
-    def confirm_stop_1(self) -> OperationRoundResult:
-        return self.round_by_ocr_and_click_by_priority(['确认'], success_wait=1, retry_wait=1)
-
-    @node_from(from_name='确认停止托管')
     @operation_node(name='确认结算')
-    def confirm_stop_2(self) -> OperationRoundResult:
+    def confirm_stop_1(self) -> OperationRoundResult:
         return self.round_by_ocr_and_click_by_priority(['确认'], success_wait=1, retry_wait=1)
 
     @node_from(from_name='确认结算')
@@ -55,7 +50,11 @@ class SuibianTempleAutoManage(ZOperation):
     def start_hosting_after_stop(self) -> OperationRoundResult:
         return self.round_by_ocr_and_click_by_priority(['开始托管'], success_wait=1, retry_wait=1)
 
-    @node_from(from_name='检查并停止托管', status='点击开始')
+    @node_from(from_name='检查并停止托管', status='点击开始托管')
+    @operation_node(name='开始托管')
+    def start_hosting(self) -> OperationRoundResult:
+        return self.round_by_ocr_and_click_by_priority(['开始托管'], success_wait=1, retry_wait=1)
+
     @node_from(from_name='重新开始托管')
     @operation_node(name='返回随便观')
     def back_to_entry(self) -> OperationRoundResult:
