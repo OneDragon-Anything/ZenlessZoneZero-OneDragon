@@ -91,7 +91,8 @@ class SuibianTempleApp(ZApplication):
 
         # 领取收益 -> 确认 -> 开始托管
         if self.config.auto_manage_enabled:
-            result = self.round_by_ocr(self.last_screenshot, target_cn='开始托管')
+            # 注意需要和 "经营日志" 下的 "自动托管" 区分
+            result = self.round_by_ocr(self.last_screenshot, target_cn='开始托管', lcs_percent=0.75)
             if result.is_success:
                 return self.round_success(status=result.status)
 

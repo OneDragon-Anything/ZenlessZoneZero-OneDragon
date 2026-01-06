@@ -12,7 +12,7 @@ handlers:
                 "自定义-异常-冰",
                 "自定义-异常-物理",
                 "自定义-异常-烈霜",
-                "自定义-异常-电"
+                "自定义-异常-电",
               ]
 
       - states: "[自定义-黄光切人, 0, 1]"
@@ -38,8 +38,7 @@ handlers:
           - states: "[按键可用-快速支援, 0, 0.5]"
             debug_name: "快速支援等待"
             operations:
-              - op_name: "等待秒数"
-                seconds: 1.0
+              - operation_template: "柏妮思-短按单双喷"
           - states: ""
             debug_name: "短暂等待"
             operations:
@@ -55,7 +54,6 @@ handlers:
         debug_name: "满燃点上灼烧"
         operations:
           - operation_template: "柏妮思-长按普通攻击"
-            data: ["自定义-合轴时间"]
 
       - states: "[柏妮思-能量]{100,120}"
         debug_name: "能量溢出"

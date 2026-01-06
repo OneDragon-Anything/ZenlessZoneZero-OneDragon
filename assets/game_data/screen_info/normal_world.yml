@@ -33,9 +33,9 @@ area_list:
 - area_name: 地图
   id_mark: false
   pc_rect:
-  - 1730
-  - 318
-  - 1860
+  - 1706
+  - 319
+  - 1858
   - 400
   text: ''
   lcs_percent: 0.1

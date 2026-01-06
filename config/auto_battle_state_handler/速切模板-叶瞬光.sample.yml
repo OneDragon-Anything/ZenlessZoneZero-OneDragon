@@ -44,6 +44,10 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 2
 
+          - states: "[叶瞬光-终结技可用] & [叶瞬光-青溟剑势-红]{0,3}"
+            operations:
+              - operation_template: "叶瞬光-终结技-起"
+
           - states: "[叶瞬光-常态]{0,0}"
             interrupt_states: "[叶瞬光-常态]{1,1}"
             operations:
@@ -94,12 +98,22 @@ handlers:
           - states: "[叶瞬光-青溟剑势-红]{6,6} | [叶瞬光-能量, 1, 99]"
             operations:
               - op_name: "设置状态"
+                state: "自定义-合轴时间"
+              - op_name: "等待秒数"
+                seconds: 0.1
+              - op_name: "设置状态"
                 state: "自定义-无视闪光"
                 seconds: 15
               - operation_template: "叶瞬光-变身"
+
           - states: "[叶瞬光-终结技可用] & [叶瞬光-青溟剑势-红]{0,3}"
             operations:
+              - op_name: "设置状态"
+                state: "自定义-合轴时间"
+              - op_name: "等待秒数"
+                seconds: 0.1
               - operation_template: "叶瞬光-终结技-起"
+
           - states: "[叶瞬光-特殊技可用] & ([叶瞬光-青溟剑势-红]{4,6} | [叶瞬光-能量]{115,120})"
             operations:
               - operation_template: "叶瞬光-强化特殊攻击"
