@@ -48,6 +48,9 @@ class SuibianTempleAutoManage(ZOperation):
     @node_from(from_name='确认结算')
     @operation_node(name='重新开始托管')
     def start_hosting_after_stop(self) -> OperationRoundResult:
+        ocr_result = self.ctx.ocr.run_ocr(self.last_screenshot)
+        if '获得奖励' in ocr_result:
+            self.round_by_ocr_and_click_by_priority(['确认'], success_wait=1, retry_wait=1)
         return self.round_by_ocr_and_click_by_priority(['开始托管'], success_wait=1, retry_wait=1)
 
     @node_from(from_name='检查并停止托管', status='点击开始托管')
