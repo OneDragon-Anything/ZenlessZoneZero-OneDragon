@@ -158,8 +158,8 @@ class ZContext(OneDragonContext):
         from zzz_od.application.commission_assistant.commission_assistant_app_factory import (
             CommissionAssistantAppFactory,
         )
-        from zzz_od.application.commission_processing.commission_processing_app_factory import (
-            CommissionProcessingAppFactory,
+        from zzz_od.application.intel_board.intel_board_app_factory import (
+            IntelBoardAppFactory,
         )
         from zzz_od.application.devtools.screenshot_helper.screenshot_helper_app_factory import (
             ScreenshotHelperAppFactory,
@@ -247,8 +247,9 @@ class ZContext(OneDragonContext):
                 SuibianTempleFactory(self),
                 ScratchCardFactory(self),
                 CoffeeAppFactory(self),
-                ChargePlanAppFactory(self),
+                IntelBoardAppFactory(self),
                 NotoriousHuntAppFactory(self),
+                ChargePlanAppFactory(self),
                 EngagementRewardAppFactory(self),
                 CityFundAppFactory(self),
                 WitheredDomainAppFactory(self),
@@ -259,7 +260,6 @@ class ZContext(OneDragonContext):
                 WorldPatrolAppFactory(self),
                 LifeOneLineAppFactory(self),
                 ShiyuDefenseAppFactory(self),
-                CommissionProcessingAppFactory(self),
             ],
             default_group=True,
         )

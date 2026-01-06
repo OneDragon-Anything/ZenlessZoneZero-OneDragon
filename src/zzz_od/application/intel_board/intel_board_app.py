@@ -8,26 +8,26 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.base.controller.pc_controller_base import PcControllerBase
 from one_dragon.utils import str_utils, cv2_utils
 from one_dragon.utils.i18_utils import gt
-from zzz_od.application.commission_processing import commission_processing_const
-from zzz_od.application.commission_processing.commission_processing_run_record import CommissionProcessingRunRecord
+from zzz_od.application.intel_board import intel_board_const
+from zzz_od.application.intel_board.intel_board_run_record import IntelBoardRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 
-class CommissionProcessingApp(ZApplication):
+class IntelBoardApp(ZApplication):
     def __init__(self, ctx: ZContext, instance_idx: int = 0, game_refresh_hour_offset: int = 0):
         ZApplication.__init__(
             self,
             ctx=ctx,
-            app_id=commission_processing_const.APP_ID,
-            op_name=commission_processing_const.APP_NAME,
-            run_record=CommissionProcessingRunRecord(
+            app_id=intel_board_const.APP_ID,
+            op_name=intel_board_const.APP_NAME,
+            run_record=IntelBoardRunRecord(
                 instance_idx=instance_idx,
                 game_refresh_hour_offset=game_refresh_hour_offset
             )
         )
-        self.run_record: CommissionProcessingRunRecord = self.run_record
+        self.run_record: IntelBoardRunRecord = self.run_record
         self.scroll_times: int = 0
         self.current_commission_type: Optional[str] = None
         self.battle_result_retry_times: int = 0
@@ -363,7 +363,7 @@ def __debug():
     ctx = ZContext()
     ctx.init()
     ctx.run_context.start_running()
-    app = CommissionProcessingApp(ctx)
+    app = IntelBoardApp(ctx)
     app.execute()
 
 if __name__ == '__main__':
