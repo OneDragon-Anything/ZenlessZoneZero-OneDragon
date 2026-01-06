@@ -1,4 +1,5 @@
 import difflib
+import time
 from typing import Optional, ClassVar, List
 
 from one_dragon.base.geometry.point import Point
@@ -164,6 +165,15 @@ class CompendiumChooseMissionType(ZOperation):
 
     @node_from(from_name='选择副本')
     @node_from(from_name='选择代理人方案')
+    @operation_node(name='不再提示')
+    def no_more_confirm(self) -> OperationRoundResult:
+        result = self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '不再提示')
+        if result.is_success:
+            time.sleep(1)
+            return self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '传送确认')
+        return self.round_success()
+
+    @node_from(from_name='不再提示')
     @operation_node(name='确认')
     def confirm(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '传送确认',
