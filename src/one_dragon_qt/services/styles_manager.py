@@ -23,6 +23,7 @@ class OdQtStyleSheet(StyleSheetBase, Enum):
     SHARED_BATTLE_DIALOG = "shared_battle_dialog"
     NOTICE_CARD = "notice_card"
     PIVOT = "pivot"
+    MULTI_SELECTION_COMBO_BOX = "multi_selection_combo_box"
 
     # 窗口配置样式
     STACKED_WIDGET = "stacked_widget"

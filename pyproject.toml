@@ -5,7 +5,7 @@ description = "绝区零 一条龙 | 全自动 | 自动闪避 | 自动每日 | �
 requires-python = ">=3.11.9,<3.12"
 dependencies = [
     "pyside6==6.8.0.2",
-    "pyside6-fluent-widgets==1.7.0",
+    "pyside6-fluent-widgets==1.10.5",
     "pyyaml==6.0.1",
     "opencv-python==4.10.0.84",
     "pyautogui==0.9.54",

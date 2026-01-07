@@ -1,0 +1,76 @@
+/* 限定：只对 MultiSelectionComboBox 内的组件生效 */
+
+/* FluentTagLabel - 标签样式 */
+MultiSelectionComboBox FluentTagLabel {
+    background-color: #323130;
+    border: none;
+    border-radius: 4px;
+}
+
+MultiSelectionComboBox FluentTagLabel:hover {
+    background-color: #3E3E3E;
+}
+
+/* FluentTagLabel 内部的 QLabel 和 QPushButton */
+MultiSelectionComboBox FluentTagLabel QLabel#tagTextLabel {
+    color: #FFFFFF;
+    font-size: 12px;
+    font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    background: transparent;
+}
+
+MultiSelectionComboBox FluentTagLabel QPushButton#tagCloseButton {
+    color: #FFFFFF;
+    font-size: 12px;
+    font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    padding: 0px;
+}
+
+MultiSelectionComboBox FluentTagLabel QPushButton#tagCloseButton:hover {
+    color: #FFFFFF;
+    background-color: #505050;
+}
+
+MultiSelectionComboBox FluentTagLabel QPushButton#tagCloseButton:pressed {
+    background-color: #505050;
+}
+
+/* FluentDropdownButton - 下拉按钮样式 */
+MultiSelectionComboBox FluentDropdownButton {
+    background-color: #2D2D2D;
+    border: 1px solid #505050;
+    border-radius: 4px;
+}
+
+MultiSelectionComboBox FluentDropdownButton:hover {
+    border: 1px solid #0078D4;
+    background-color: #2D2D2D;
+}
+
+MultiSelectionComboBox FluentDropdownButton:focus {
+    border: 2px solid #0078D4;
+    background-color: #2D2D2D;
+}
+
+/* FluentDropdownButton 内部的 QLabel */
+MultiSelectionComboBox FluentDropdownButton QLabel#placeholderLabel {
+    color: #A0A0A0;
+    font-size: 13px;
+    font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    background: transparent;
+}
+
+MultiSelectionComboBox FluentDropdownButton QLabel#arrowLabel {
+    color: #FFFFFF;
+    font-size: 10px;
+    font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+    background: transparent;
+}
+
+/* FluentDropdownButton 内部的 QWidget */
+MultiSelectionComboBox FluentDropdownButton QWidget#flowWidget {
+    background: transparent;
+}
