@@ -142,6 +142,7 @@ handlers:
                     seconds: 0.3
                   - operation_template: "苍角-1E展旗合轴"
 
+              - state_template: "奥菲斯-强特决策"
               - state_template: "琉音-刷好评"
               - state_template: "卢西娅-暗破检测"
 

@@ -1,0 +1,20 @@
+template_name: "奥菲斯-强特决策"
+handlers:
+  - states: "![前台-奥菲丝]"
+    sub_handlers:
+      - states: "[奥菲丝-终结技可用] & ![自定义-奥菲丝-喷火中, 0 ,5.5]"
+        operations:
+          - op_name: "按键-切换角色"
+            agent_name: "奥菲丝"
+          - op_name: "清除状态"
+            state_list: ["自定义-合轴时间", "自定义-动作不打断"]
+          - operation_template: "奥菲丝-终结技"
+
+      - states: "[奥菲丝-蓄炎]{100, 125}"
+        interrupt_states: "[奥菲丝-蓄炎]{0, 100}"
+        operations:
+          - op_name: "按键-切换角色"
+            agent_name: "奥菲丝"
+          - op_name: "清除状态"
+            state_list: ["自定义-合轴时间", "自定义-动作不打断"]
+          - operation_template: "奥菲丝-特殊攻击合轴"

@@ -35,6 +35,7 @@ handlers:
       - states: "[自定义-奥菲丝-喷火中, 0 ,5.5]"
         interrupt_states: "[奥菲丝-蓄炎]{0, 60}"
         operations:
+          - op_name: "按键-特殊攻击-松开"
           - op_name: "设置状态"
             state_list: ["自定义-合轴时间"]
           - op_name: "等待秒数"
