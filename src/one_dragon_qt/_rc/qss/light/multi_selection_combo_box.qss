@@ -1,47 +1,24 @@
 /* 限定：只对 MultiSelectionComboBox 内的组件生效 */
 
-/* FluentTagLabel - 标签样式 */
+/* FluentTagLabel - 标签容器样式 */
+/* 颜色参考：Microsoft Fluent Design System 标签组件标准 */
+/* 注意：内部的 BodyLabel 和 TransparentToolButton 自动继承主题样式，无需额外配置 */
 MultiSelectionComboBox FluentTagLabel {
-    background-color: #F3F3F3;
-    border: none;
+    background-color: #F0F0F0;  /* 使用浅灰色，符合 Fluent 亮色主题标准 */
+    border: 1px solid #E0E0E0;  /* 添加细微边框 */
     border-radius: 4px;
 }
 
 MultiSelectionComboBox FluentTagLabel:hover {
-    background-color: #E8E8E8;
+    background-color: #E5E5E5;  /* 悬停时稍微加深 */
+    border: 1px solid #D5D5D5;
 }
 
-/* FluentTagLabel 内部的 QLabel 和 QPushButton */
-MultiSelectionComboBox FluentTagLabel QLabel#tagTextLabel {
-    color: #201F1E;
-    font-size: 12px;
-    font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
-    background: transparent;
-}
-
-MultiSelectionComboBox FluentTagLabel QPushButton#tagCloseButton {
-    color: #201F1E;
-    font-size: 12px;
-    font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
-    background: transparent;
-    border: none;
-    border-radius: 3px;
-    padding: 0px;
-}
-
-MultiSelectionComboBox FluentTagLabel QPushButton#tagCloseButton:hover {
-    color: #201F1E;
-    background-color: #D0D0D0;
-}
-
-MultiSelectionComboBox FluentTagLabel QPushButton#tagCloseButton:pressed {
-    background-color: #D0D0D0;
-}
-
-/* FluentDropdownButton - 下拉按钮样式 */
+/* FluentDropdownButton - 下拉按钮容器样式 */
+/* 注意：内部的 CaptionLabel 和 BodyLabel 自动继承主题样式，无需额外配置 */
 MultiSelectionComboBox FluentDropdownButton {
-    background-color: #FFFFFF;
-    border: 1px solid #D1D1D1;
+    background-color: #FFFFFF;  /* 纯白背景 */
+    border: 1px solid #D0D0D0;  /* 柔和的边框色 */
     border-radius: 4px;
 }
 
@@ -55,22 +32,15 @@ MultiSelectionComboBox FluentDropdownButton:focus {
     background-color: #FFFFFF;
 }
 
-/* FluentDropdownButton 内部的 QLabel */
-MultiSelectionComboBox FluentDropdownButton QLabel#placeholderLabel {
-    color: #6E6E6E;
-    font-size: 13px;
-    font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
-    background: transparent;
-}
-
-MultiSelectionComboBox FluentDropdownButton QLabel#arrowLabel {
-    color: #201F1E;
-    font-size: 10px;
-    font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
-    background: transparent;
-}
-
 /* FluentDropdownButton 内部的 QWidget */
 MultiSelectionComboBox FluentDropdownButton QWidget#flowWidget {
+    background: transparent;
+}
+
+/* 下拉箭头 - 根据 Fluent Design 标准调整 */
+MultiSelectionComboBox FluentDropdownButton QLabel#arrowLabel {
+    color: rgba(0, 0, 0, 0.6);  /* 略微淡化 */
+    font-size: 10px;  /* 更小的字体 */
+    font-weight: normal;  /* 正常字重 */
     background: transparent;
 }

@@ -5,14 +5,20 @@ from PySide6.QtGui import QFontMetrics, QFont
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
-    QLabel,
-    QMenu,
-    QPushButton,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
-from qfluentwidgets import isDarkTheme, qconfig, FlowLayout
+from qfluentwidgets import (
+    Action,
+    BodyLabel,
+    CaptionLabel,
+    CheckableMenu,
+    FluentIcon,
+    FlowLayout,
+    MenuAnimationType,
+    TransparentToolButton,
+)
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
@@ -50,23 +56,23 @@ class FluentTagLabel(QFrame):
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 0, 4, 0)
+        layout.setContentsMargins(8, 2, 6, 2)  # 调整边距，上下增加2px让按钮更居中
         layout.setSpacing(6)
 
-        # 文本标签
-        text_label = QLabel(self._text)
+        # 文本标签 - 使用 BodyLabel 自动继承主题样式
+        text_label = BodyLabel(text=self._text)
         text_label.setObjectName("tagTextLabel")
 
-        # 关闭按钮
-        close_btn = QPushButton("✕")
-        close_btn.setFixedSize(18, 18)
-        close_btn.setFlat(True)
+        # 关闭按钮 - 使用 TransparentToolButton 自动继承主题样式
+        close_btn = TransparentToolButton(FluentIcon.CLOSE, None)
+        close_btn.setFixedSize(14, 14)  # 从 18x18 缩小到 14x14
+        close_btn.setIconSize(close_btn.iconSize().scaled(10, 10, Qt.AspectRatioMode.KeepAspectRatio))  # 图标也缩小
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         close_btn.setObjectName("tagCloseButton")
         close_btn.clicked.connect(lambda: self.close_clicked.emit(self._value))
 
-        layout.addWidget(text_label)
-        layout.addWidget(close_btn)
+        layout.addWidget(text_label, 0, Qt.AlignmentFlag.AlignVCenter)  # 文本垂直居中
+        layout.addWidget(close_btn, 0, Qt.AlignmentFlag.AlignVCenter)  # 关闭按钮垂直居中
 
     def _apply_theme(self) -> None:
         """应用主题样式"""
@@ -92,8 +98,8 @@ class FluentTagLabel(QFrame):
         font_metrics = QFontMetrics(font)
         text_width = font_metrics.horizontalAdvance(self._text)
 
-        # 计算标签总宽度 = 左边距(8) + 文本宽度 + 文本与按钮间距(6) + 关闭按钮(18) + 右边距(4)
-        total_width = 8 + text_width + 6 + 18 + 4
+        # 计算标签总宽度 = 左边距(8) + 文本宽度 + 文本与按钮间距(6) + 关闭按钮(14) + 右边距(4)
+        total_width = 8 + text_width + 6 + 14 + 4
 
         return total_width
 
@@ -136,8 +142,8 @@ class FluentDropdownButton(QFrame):
         content_layout.setContentsMargins(0, 4, 0, 4)
         content_layout.setSpacing(2)
 
-        # 占位符标签
-        self._placeholder_label = QLabel(self._placeholder_text)
+        # 占位符标签 - 使用 CaptionLabel 自动继承主题样式
+        self._placeholder_label = CaptionLabel(text=self._placeholder_text)
         self._placeholder_label.setObjectName("placeholderLabel")
         content_layout.addWidget(self._placeholder_label)
 
@@ -155,8 +161,9 @@ class FluentDropdownButton(QFrame):
         content_layout.addWidget(self._flow_widget, 1)
         self._flow_widget.hide()
 
-        # 下拉箭头
-        self._arrow_label = QLabel("▼")
+        # 下拉箭头 - 使用 BodyLabel 自动继承主题样式
+        # 使用更细长的 V 形箭头，符合 Fluent Design 标准
+        self._arrow_label = BodyLabel(text="▾")
         self._arrow_label.setObjectName("arrowLabel")
 
         # 添加到主布局
@@ -167,13 +174,6 @@ class FluentDropdownButton(QFrame):
         """应用主题样式"""
         # 从 qss 文件加载样式，而不是使用内联样式表
         OdQtStyleSheet.MULTI_SELECTION_COMBO_BOX.apply(self)
-
-    def refresh_theme(self) -> None:
-        """刷新主题"""
-        self._apply_theme()
-        # 刷新所有标签的主题
-        for tag in self._tags:
-            tag._apply_theme()
 
     def _update_grid_layout(self):
         """使用 FlowLayout 更新标签布局，并动态调整父组件宽度
@@ -310,18 +310,12 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
         self._max_width = max_width
         self._fixed_width = fixed_width
         self._min_width = min_width if min_width is not None else (200 if fixed_width is None else None)
+        self._menu = None  # 下拉菜单实例
 
         self._setup_ui()
 
-        # 监听主题变化
-        qconfig.themeChanged.connect(self._on_theme_changed)
-
-        # 加载样式
+        # 加载样式（StyleSheetBase 会自动监听主题变化并重新应用样式）
         self._apply_theme()
-
-    def _on_theme_changed(self, theme) -> None:
-        """主题变化时刷新样式"""
-        self.refresh_theme()
 
     def _setup_ui(self) -> None:
         """设置UI"""
@@ -329,7 +323,7 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
         layout.setContentsMargins(0, 0, 0, 0)
 
         self._dropdown_btn = FluentDropdownButton(self._placeholder_text, self._max_width)
-        self._dropdown_btn.clicked.connect(self._show_dropdown_menu)
+        self._dropdown_btn.clicked.connect(self._toggle_dropdown_menu)
 
         layout.addWidget(self._dropdown_btn)
 
@@ -353,10 +347,6 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
         """应用主题样式"""
         # 从 qss 文件加载样式
         OdQtStyleSheet.MULTI_SELECTION_COMBO_BOX.apply(self)
-
-    def refresh_theme(self) -> None:
-        """刷新主题（当主题变化时调用）"""
-        self._dropdown_btn.refresh_theme()
 
     def add_item(self, item: ConfigItem) -> None:
         """添加一个选项
@@ -468,76 +458,48 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
         self._dropdown_btn.setFixedWidth(width)
         self._dropdown_btn._update_grid_layout()
 
+    def _toggle_dropdown_menu(self) -> None:
+        """切换下拉菜单显示/隐藏"""
+        # 如果菜单已显示，则隐藏它
+        if self._menu is not None and self._menu.isVisible():
+            self._menu.close()
+            self._menu = None
+        else:
+            self._show_dropdown_menu()
+
     def _show_dropdown_menu(self) -> None:
         """显示下拉菜单"""
-        is_dark = isDarkTheme()
+        # 使用 CheckableMenu，自动继承主题样式，支持多选
+        self._menu = CheckableMenu(parent=self)
 
-        if is_dark:
-            menu_bg = "#2D2D2D"
-            menu_border = "#505050"
-            item_text = "#FFFFFF"
-            item_selected_bg = "#3E3E3E"
-            item_checked_bg = "#0A559E"
-            item_checked_text = "#FFFFFF"
-        else:
-            menu_bg = "#FFFFFF"
-            menu_border = "#E0E0E0"
-            item_text = "#201F1E"
-            item_selected_bg = "#F3F3F3"
-            item_checked_bg = "#E5F1FB"
-            item_checked_text = "#0078D4"
-
-        menu = QMenu(self)
-        menu.setStyleSheet(f"""
-            QMenu {{
-                background-color: {menu_bg};
-                border: 1px solid {menu_border};
-                border-radius: 4px;
-                padding: 4px;
-                spacing: 2px;
-            }}
-            QMenu::item {{
-                padding: 6px 24px 6px 12px;
-                border-radius: 4px;
-                color: {item_text};
-                font-size: 13px;
-                font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
-            }}
-            QMenu::item:selected {{
-                background-color: {item_selected_bg};
-                color: {item_text};
-            }}
-            QMenu::item:checked {{
-                background-color: {item_checked_bg};
-                color: {item_checked_text};
-            }}
-            QMenu::indicator {{
-                width: 0;
-                height: 0;
-                left: 0;
-            }}
-        """)
-
+        # 为每个选项创建 Action
         for item in self._items:
-            action = menu.addAction(item.ui_text)
-            action.setCheckable(True)
+            action = Action(text=item.ui_text, checkable=True)
             action.setChecked(item in self._selected_items)
-            action.triggered.connect(lambda checked, item=item: self._on_item_toggled(item))
+            # 使用 lambda 捕获 item，避免闭包问题
+            action.triggered.connect(lambda checked, i=item: self._on_item_triggered(i, checked))
+            self._menu.addAction(action)
 
+        # 显示菜单，使用 DROP_DOWN 动画
         button_rect = self._dropdown_btn.geometry()
-        menu.exec(self._dropdown_btn.mapToGlobal(button_rect.bottomLeft()))
+        self._menu.exec(
+            self._dropdown_btn.mapToGlobal(button_rect.bottomLeft()),
+            aniType=MenuAnimationType.DROP_DOWN
+        )
 
-    def _on_item_toggled(self, item: ConfigItem) -> None:
-        """当菜单项被点击时切换选中状态
+    def _on_item_triggered(self, item: ConfigItem, checked: bool) -> None:
+        """当菜单项被点击时处理选中状态
 
         Args:
             item: 被点击的 ConfigItem 对象
+            checked: 是否选中
         """
-        # 切换选中状态
-        if item in self._selected_items:
-            self._selected_items.remove(item)
+        if checked:
+            if item not in self._selected_items:
+                self._selected_items.append(item)
         else:
-            self._selected_items.append(item)
+            if item in self._selected_items:
+                self._selected_items.remove(item)
 
         # 更新标签显示
         self._update_tags()
