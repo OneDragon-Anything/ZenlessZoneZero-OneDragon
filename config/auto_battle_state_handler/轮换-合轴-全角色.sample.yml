@@ -40,7 +40,7 @@ handlers:
 
           - state_template: "琉音-送客决策"
           - state_template: "琉音-刷好评"
-          - state_template: "奥菲斯-强特决策"
+          - state_template: "奥菲丝-强特决策"
 
           # 没有上面的几位高贵，就藏这里好了
           - states: ""

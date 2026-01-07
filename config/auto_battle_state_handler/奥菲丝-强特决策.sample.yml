@@ -1,4 +1,4 @@
-template_name: "奥菲斯-强特决策"
+template_name: "奥菲丝-强特决策"
 handlers:
   - states: "![前台-奥菲丝]"
     sub_handlers:
