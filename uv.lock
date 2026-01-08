@@ -637,16 +637,16 @@ wheels = [
 
 [[package]]
 name = "pyside6-fluent-widgets"
-version = "1.10.5"
+version = "1.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "darkdetect", marker = "sys_platform == 'win32'" },
     { name = "pyside6", marker = "sys_platform == 'win32'" },
     { name = "pysidesix-frameless-window", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/43/9f/a82dfb44dad71619a39f2e9923ac8c1511d9b9fc0a2c37f3050e35cefa8c/pyside6_fluent_widgets-1.10.5.tar.gz", hash = "sha256:b46a560daf74a1d96f9ac208a08546d3a0e68ea02d8e5fca9a70cc620326b6fa", size = 1453771, upload-time = "2025-12-21T08:06:49.098Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8f/a0/64e753ca2453eb55a9bcc374f09a684c2c8aee96d09e82697bbb0a11710e/pyside6_fluent_widgets-1.7.0.tar.gz", hash = "sha256:decada3f2cae1bc7314fccd9db98be2e65b67a322813267602dde15722c5e253", size = 1429816, upload-time = "2024-10-20T05:49:25.427Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/16/cd/7b58089e5674e03c78c37632ddf807ae8b533a8763e01f649acb139312e9/pyside6_fluent_widgets-1.10.5-py3-none-any.whl", hash = "sha256:9187fec4a5280d60dba050bf0a1905b7981f1251f9e4976c1fd98b85d0bd9acf", size = 1547094, upload-time = "2025-12-21T08:06:45.807Z" },
+    { url = "https://files.pythonhosted.org/packages/41/81/0e134b913466a66724823fff66cca11b8f0905c78824a927a2e8d36c7d45/PySide6_Fluent_Widgets-1.7.0-py3-none-any.whl", hash = "sha256:caa2f7fdaf9213c3a42a4d6308114839614560b31683bf557c0809f8c3b3fa7b", size = 1521504, upload-time = "2024-10-20T05:49:21.185Z" },
 ]
 
 [[package]]
@@ -1014,7 +1014,7 @@ requires-dist = [
     { name = "pygit2", specifier = "==1.19.0" },
     { name = "pynput", specifier = "==1.7.7" },
     { name = "pyside6", specifier = "==6.8.0.2" },
-    { name = "pyside6-fluent-widgets", specifier = "==1.10.5" },
+    { name = "pyside6-fluent-widgets", specifier = "==1.7.0" },
     { name = "pyyaml", specifier = "==6.0.1" },
     { name = "shapely", specifier = "==2.0.4" },
     { name = "soundcard", specifier = "==0.4.3" },
