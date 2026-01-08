@@ -459,8 +459,7 @@ class CommissionAssistantApp(ZApplication):
                 return self.round_success('钓鱼结束')
 
             op = WaitNormalWorld(self.ctx)
-            op.last_screenshot = self.last_screenshot
-            result = op.check_screen()
+            result = self.round_by_op_result(op.execute())
             if result.is_success:
                 return self.round_success('钓鱼结束')
 
