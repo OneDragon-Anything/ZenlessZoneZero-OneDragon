@@ -91,7 +91,7 @@ class FluentTagLabel(QFrame):
         """
         # 创建与样式表一致的字体（12px, Segoe UI / Microsoft YaHei UI）
         font = QFont()
-        font.setFamily("Segoe UI, Microsoft YaHei UI, sans-serif")
+        font.setFamilies("Segoe UI, Microsoft YaHei UI, sans-serif")
         font.setPointSize(12)
 
         # 使用 QFontMetrics 计算文本的实际渲染宽度
@@ -222,7 +222,7 @@ class FluentDropdownButton(QFrame):
 
         # 步骤4：清除 FlowLayout 中的所有现有元素
         while self._flow_layout.count():
-            item = self._flow_layout.takeAt(0)
+            item: FluentTagLabel = self._flow_layout.takeAt(0) # type: ignore
             if item is not None:
                 item.setParent(None)
 
