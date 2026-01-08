@@ -1,0 +1,700 @@
+from typing import Any
+
+from PySide6.QtCore import (
+    QEasingCurve,
+    QMimeData,
+    QPoint,
+    QPropertyAnimation,
+    Qt,
+    Signal,
+)
+from PySide6.QtGui import QColor, QDrag, QPainter, QPainterPath, QPixmap
+from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QVBoxLayout, QWidget
+from qfluentwidgets import Theme, qconfig
+
+
+# Fluent Design 常量
+class FluentDesignConst:
+    """Fluent Design 相关常量"""
+    ACCENT_COLOR = "#0078d4"
+    INDICATOR_HEIGHT = 3
+    INDICATOR_OFFSET = 1  # 指示器偏移量
+    DRAG_OPACITY = 0.3
+    NORMAL_OPACITY = 1.0
+    DRAG_PREVIEW_OPACITY = 0.9
+    ANIMATION_DURATION = 150  # ms
+    DRAG_THRESHOLD = 10  # pixels
+    SHADOW_RADIUS = 8
+    SHADOW_OFFSET = 2  # 阴影偏移
+    LAYOUT_SPACING = 4
+    ITEM_MARGIN = 8
+
+    # 根据主题选择阴影颜色
+    @staticmethod
+    def get_shadow_color() -> QColor:
+        """
+        根据当前主题获取阴影颜色
+
+        Fluent Design 规范：
+        - 浅色主题：使用深色阴影（黑色）
+        - 暗色主题：使用浅色阴影（白色）
+
+        Returns:
+            适合当前主题的阴影颜色
+        """
+        if qconfig.theme == Theme.DARK:
+            # 暗色主题：白色阴影
+            return QColor(255, 255, 255, 50)
+        else:
+            # 浅色主题：黑色阴影
+            return QColor(0, 0, 0, 30)
+
+
+class FluentDropIndicator(QFrame):
+    """
+    Fluent Design 风格的放置指示器
+
+    显示为一条带有圆角的蓝色指示线，符合 Fluent Design 规范。
+    """
+
+    def __init__(self, parent=None):
+        """
+        初始化 Fluent Design 放置指示器
+
+        Args:
+            parent: 父组件
+        """
+        super().__init__(parent=parent)
+
+        # Fluent Design 强调色
+        self._accent_color = QColor(FluentDesignConst.ACCENT_COLOR)
+
+        # 设置固定高度和样式
+        self.setFixedHeight(FluentDesignConst.INDICATOR_HEIGHT)
+        self.setAutoFillBackground(True)
+
+        # 设置样式表
+        self._update_stylesheet()
+
+        # 初始隐藏
+        self.hide()
+
+    def _update_stylesheet(self):
+        """更新 Fluent Design 样式"""
+        self.setStyleSheet(f"""
+            QFrame {{
+                background-color: {self._accent_color.name()};
+                border: none;
+                border-radius: 1px;
+            }}
+        """)
+
+
+class DraggableListItem(QFrame):
+    """
+    可拖动的列表项
+
+    每个列表项都是一个可拖动的组件，显示自定义内容。
+    符合 Fluent Design 设计规范，具有平滑的动画和视觉反馈。
+    """
+
+    def __init__(self, data: Any, index: int, content_widget: QWidget, parent=None):
+        """
+        初始化可拖动列表项
+
+        Args:
+            data: 列表项关联的数据
+            index: 列表项的索引
+            content_widget: 显示内容的组件
+            parent: 父组件
+        """
+        QFrame.__init__(self, parent=parent)
+        self.data = data
+        self.index = index
+        self.content_widget = content_widget
+        self._is_hidden_for_drag = False  # 标记是否因为拖拽而隐藏
+
+        # 创建透明度效果，用于动画
+        self._opacity_effect = QGraphicsOpacityEffect(self)
+        self._opacity_effect.setOpacity(FluentDesignConst.NORMAL_OPACITY)
+        self.setGraphicsEffect(self._opacity_effect)
+
+        # 创建动画对象
+        self._opacity_animation = QPropertyAnimation(self._opacity_effect, b"opacity")
+        self._opacity_animation.setDuration(FluentDesignConst.ANIMATION_DURATION)
+        self._opacity_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+
+        # 设置组件样式
+        self.setFrameStyle(QFrame.Shape.StyledPanel)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+
+        # 创建布局
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(
+            FluentDesignConst.ITEM_MARGIN,
+            FluentDesignConst.ITEM_MARGIN,
+            FluentDesignConst.ITEM_MARGIN,
+            FluentDesignConst.ITEM_MARGIN
+        )
+        layout.addWidget(self.content_widget)
+
+    def fade_out(self):
+        """淡出动画 - Fluent Design 透明度变化"""
+        self._opacity_animation.stop()
+        current_opacity = self._opacity_effect.opacity()
+        self._opacity_animation.setStartValue(current_opacity)
+        self._opacity_animation.setEndValue(FluentDesignConst.DRAG_OPACITY)
+        self._opacity_animation.start()
+
+    def fade_in(self):
+        """淡入动画 - Fluent Design 透明度变化"""
+        self._opacity_animation.stop()
+        current_opacity = self._opacity_effect.opacity()
+        self._opacity_animation.setStartValue(current_opacity)
+        self._opacity_animation.setEndValue(FluentDesignConst.NORMAL_OPACITY)
+        self._opacity_animation.start()
+
+    def set_opacity(self, value: float):
+        """
+        直接设置透明度（不使用动画）
+
+        Args:
+            value: 透明度值 (0.0 - 1.0)
+        """
+        self._opacity_animation.stop()
+        self._opacity_effect.setOpacity(value)
+
+    def create_drag_pixmap(self) -> QPixmap:
+        """
+        创建符合 Fluent Design 的拖拽预览图
+
+        Returns:
+            带有阴影和半透明效果的拖拽预览图
+        """
+        # 获取当前快照
+        pixmap = self.grab()
+
+        # 创建带阴影和透明度的版本
+        result = QPixmap(pixmap.size())
+        result.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(result)
+        painter.setOpacity(FluentDesignConst.DRAG_PREVIEW_OPACITY)
+
+        # 绘制阴影（根据主题自动选择颜色）
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(FluentDesignConst.get_shadow_color())
+
+        # 绘制圆角矩形阴影
+        shadow_path = QPainterPath()
+        shadow_path.addRoundedRect(
+            FluentDesignConst.SHADOW_OFFSET,
+            FluentDesignConst.SHADOW_OFFSET,
+            pixmap.width(),
+            pixmap.height(),
+            FluentDesignConst.SHADOW_RADIUS,
+            FluentDesignConst.SHADOW_RADIUS
+        )
+        painter.drawPath(shadow_path)
+
+        # 绘制原始内容
+        painter.drawPixmap(0, 0, pixmap)
+        painter.end()
+
+        return result
+
+    def mousePressEvent(self, event):
+        """鼠标按下事件"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_start_position = event.pos()
+
+    def mouseMoveEvent(self, event):
+        """鼠标移动事件 - 开始拖拽"""
+        if not (event.buttons() & Qt.MouseButton.LeftButton):
+            return
+
+        if not hasattr(self, '_drag_start_position'):
+            return
+
+        # Fluent Design 规范：拖拽阈值
+        if (event.pos() - self._drag_start_position).manhattanLength() < FluentDesignConst.DRAG_THRESHOLD:
+            return
+
+        # 创建拖拽对象
+        drag = QDrag(self)
+        mime_data = QMimeData()
+
+        # 存储索引信息
+        mime_data.setText(str(self.index))
+        drag.setMimeData(mime_data)
+
+        # 设置 Fluent Design 风格的拖拽预览
+        drag.setPixmap(self.create_drag_pixmap())
+        drag.setHotSpot(self._drag_start_position)
+
+        # 执行拖拽
+        drag.exec(Qt.DropAction.MoveAction)
+
+    def enterEvent(self, event):
+        """鼠标进入事件"""
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        """鼠标离开事件"""
+        self.setCursor(Qt.CursorShape.ArrowCursor)
+        super().leaveEvent(event)
+
+
+class DraggableList(QWidget):
+    """
+    可拖动元素的列表
+
+    支持通过拖拽来交换列表中元素的位置。
+    列表行的具体内容可以由使用者自行传入。
+    符合 Microsoft Fluent Design 设计规范。
+
+    Usage:
+        # 创建列表
+        drag_list = DraggableList()
+
+        # 添加项目（传入数据和自定义内容组件）
+        for i, item in enumerate(items):
+            content_widget = QLabel(f"Item {item}")
+            drag_list.add_item(item, content_widget)
+
+        # 监听顺序变化
+        drag_list.order_changed.connect(on_order_changed)
+
+        # 获取当前顺序的数据列表
+        current_data = drag_list.get_data_list()
+    """
+
+    # 顺序变化信号，参数为新的数据列表
+    order_changed = Signal(list)
+
+    def __init__(self, parent=None):
+        """
+        初始化可拖动列表
+
+        Args:
+            parent: 父组件
+        """
+        QWidget.__init__(self, parent=parent)
+
+        # 存储所有列表项
+        self._items: list[DraggableListItem | None] = []
+
+        # 创建主布局
+        self._layout = QVBoxLayout(self)
+        self._layout.setSpacing(FluentDesignConst.LAYOUT_SPACING)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+
+        # 创建 Fluent Design 风格的位置指示器
+        self._drop_indicator = FluentDropIndicator(self)
+
+        # 拖拽相关状态
+        self._dragging_item: DraggableListItem | None = None
+        self._drag_snapshot: list[Any] | None = None
+
+        # 设置接受拖拽
+        self.setAcceptDrops(True)
+
+    def add_item(self, data: Any, content_widget: QWidget) -> None:
+        """
+        添加一个列表项
+
+        Args:
+            data: 列表项关联的数据
+            content_widget: 显示内容的组件
+        """
+        index = len(self._items)
+        item = DraggableListItem(data, index, content_widget, parent=self)
+        self._items.append(item)
+        self._layout.addWidget(item)
+
+    def add_list_item(self, item: DraggableListItem) -> None:
+        """
+        直接添加一个已存在的 DraggableListItem
+
+        Args:
+            item: 已存在的 DraggableListItem 实例
+        """
+        index = len(self._items)
+        item.index = index
+        item.setParent(self)
+        self._items.append(item)
+        self._layout.addWidget(item)
+
+    def insert_item(self, position: int, data: Any, content_widget: QWidget) -> None:
+        """
+        在指定位置插入一个列表项
+
+        Args:
+            position: 插入位置（索引）
+            data: 列表项关联的数据
+            content_widget: 显示内容的组件
+
+        Raises:
+            IndexError: 当位置超出范围时抛出
+        """
+        if position < 0 or position > len(self._items):
+            raise IndexError(f"位置 {position} 超出范围")
+
+        item = DraggableListItem(data, position, content_widget, parent=self)
+        self._items.insert(position, item)
+        self._layout.insertWidget(position, item)
+
+        # 更新后续项的索引
+        self._update_indices()
+
+    def remove_item(self, position: int) -> None:
+        """
+        移除指定位置的列表项
+
+        Args:
+            position: 要移除的位置（索引）
+
+        Raises:
+            IndexError: 当位置超出范围时抛出
+        """
+        if position < 0 or position >= len(self._items):
+            raise IndexError(f"位置 {position} 超出范围")
+
+        item = self._items.pop(position)
+        self._layout.removeWidget(item)
+        item.deleteLater()
+
+        # 更新后续项的索引
+        self._update_indices()
+
+    def clear(self) -> None:
+        """清空所有列表项"""
+        for item in self._items:
+            self._layout.removeWidget(item)
+            item.deleteLater()
+        self._items.clear()
+
+    def get_data_list(self) -> list[Any]:
+        """
+        获取当前顺序的数据列表
+
+        Returns:
+            按当前顺序排列的数据列表
+        """
+        return [item.data for item in self._items]
+
+    def get_item_count(self) -> int:
+        """
+        获取列表项的数量
+
+        Returns:
+            列表项的数量
+        """
+        return len(self._items)
+
+    def _update_indices(self) -> None:
+        """更新所有列表项的索引"""
+        for index, item in enumerate(self._items):
+            item.index = index
+
+    def _accept_drag_event(self, event) -> bool:
+        """
+        检查并接受拖拽事件
+
+        Args:
+            event: 拖拽事件
+
+        Returns:
+            是否接受该拖拽事件
+        """
+        return event.mimeData().hasText()
+
+    def _handle_drag_failure(self, event) -> None:
+        """
+        处理拖拽失败的情况
+
+        Args:
+            event: 拖拽事件
+        """
+        self._drop_indicator.hide()
+        self._restore_from_drag_snapshot()
+        event.accept()
+
+    def dragEnterEvent(self, event):
+        """
+        拖拽进入事件
+
+        创建拖拽快照并显示位置指示器
+        """
+        if not self._accept_drag_event(event):
+            return
+
+        try:
+            from_index = int(event.mimeData().text())
+        except (ValueError, IndexError):
+            return
+
+        # 保存拖拽前的状态
+        self._drag_snapshot = self.get_data_list().copy()
+
+        # 保存被拖拽项的引用（用于后续恢复）
+        if 0 <= from_index < len(self._items):
+            self._dragging_item = self._items[from_index]
+            self._dragging_item.fade_out()
+            self._dragging_item._is_hidden_for_drag = True
+        else:
+            self._dragging_item = None
+
+        event.acceptProposedAction()
+
+    def dragMoveEvent(self, event):
+        """
+        拖拽移动事件
+
+        更新位置指示器
+        """
+        if not self._accept_drag_event(event):
+            return
+
+        # 找到放置位置
+        to_index = self._find_drop_position(event.pos())
+
+        # 更新位置指示器
+        self._update_drop_indicator(to_index)
+
+        event.acceptProposedAction()
+
+    def dragLeaveEvent(self, event):
+        """
+        拖拽离开事件
+
+        恢复原始状态
+        """
+        self._handle_drag_failure(event)
+
+    def dropEvent(self, event):
+        """
+        拖拽放下事件 - 执行位置交换
+        """
+        if not self._accept_drag_event(event):
+            self._restore_from_drag_snapshot()
+            return
+
+        # 隐藏指示器
+        self._drop_indicator.hide()
+
+        # 使用保存的拖拽项引用来查找当前索引
+        if self._dragging_item is None:
+            self._restore_from_drag_snapshot()
+            event.acceptProposedAction()
+            return
+
+        # 在当前 _items 中找到被拖拽项的实际索引
+        try:
+            from_index = self._items.index(self._dragging_item)
+        except ValueError:
+            # 找不到项，恢复快照
+            self._restore_from_drag_snapshot()
+            event.acceptProposedAction()
+            return
+
+        # 找到放置位置
+        to_index = self._find_drop_position(event.pos())
+
+        if to_index == -1 or from_index == to_index:
+            # 如果位置没有变化，只需要恢复显示
+            self._restore_from_drag_snapshot()
+            event.acceptProposedAction()
+            return
+
+        # 执行真正的交换
+        self._swap_items(from_index, to_index)
+
+        # Fluent Design: 立即恢复被拖拽项的透明度
+        self._dragging_item.set_opacity(FluentDesignConst.NORMAL_OPACITY)
+        self._dragging_item._is_hidden_for_drag = False
+
+        # 清理拖拽状态
+        self._dragging_item = None
+        self._drag_snapshot = None
+
+        event.acceptProposedAction()
+
+    def _find_drop_position(self, pos: QPoint) -> int:
+        """
+        根据鼠标位置找到放置的索引位置
+
+        Args:
+            pos: 鼠标位置
+
+        Returns:
+            放置位置的索引，如果找不到返回 -1
+        """
+        # 空列表处理
+        if not self._items:
+            return 0
+
+        for i, item in enumerate(self._items):
+            if item.geometry().contains(pos):
+                # 判断是在上半部分还是下半部分
+                if pos.y() < item.geometry().center().y():
+                    return i
+                else:
+                    return i + 1
+        return -1
+
+    def _get_indicator_y_position(self, index: int) -> int:
+        """
+        计算指示器的 Y 坐标
+
+        Args:
+            index: 目标索引
+
+        Returns:
+            指示器的 Y 坐标
+        """
+        if not self._items:
+            return 0
+
+        if index >= len(self._items):
+            # 插入到末尾
+            return self._items[-1].geometry().bottom()
+        elif index == 0:
+            # 插入到开头
+            return self._items[0].geometry().top()
+        else:
+            # 插入到中间位置
+            return self._items[index].geometry().top()
+
+    def _swap_items(self, from_index: int, to_index: int) -> None:
+        """
+        交换两个列表项的位置
+
+        Args:
+            from_index: 源索引
+            to_index: 目标索引
+        """
+        # 边界检查
+        if not (0 <= from_index < len(self._items)):
+            return
+        if not (0 <= to_index <= len(self._items)):
+            return
+
+        # 从列表中移除项
+        item = self._items.pop(from_index)
+
+        # 插入到新位置
+        # 注意：如果 to_index > from_index，由于已经移除了一个元素，需要调整索引
+        # to_index 可以等于 len(self._items)，表示插入到末尾
+        adjusted_to_index = to_index - 1 if to_index > from_index else to_index
+        self._items.insert(adjusted_to_index, item)
+
+        # 重新构建布局
+        self._rebuild_layout()
+
+        # 更新索引
+        self._update_indices()
+
+        # 发出顺序变化信号
+        self.order_changed.emit(self.get_data_list())
+
+    def _rebuild_layout(self) -> None:
+        """重新构建布局"""
+        # 移除所有组件
+        while self._layout.count():
+            child = self._layout.takeAt(0)
+            if child.widget():
+                # 不删除，只是从布局中移除
+                pass
+
+        # 按新顺序添加组件
+        for item in self._items:
+            self._layout.addWidget(item)
+
+    def _update_drop_indicator(self, index: int) -> None:
+        """
+        更新位置指示器的显示位置
+
+        Args:
+            index: 目标插入位置的索引
+        """
+        if index == -1:
+            self._drop_indicator.hide()
+            return
+
+        # 显示指示器
+        self._drop_indicator.show()
+        self._drop_indicator.raise_()  # 确保在最上层
+
+        # 计算指示器位置
+        y = self._get_indicator_y_position(index)
+
+        # 更新指示器位置和大小
+        self._drop_indicator.setGeometry(
+            0,
+            y - FluentDesignConst.INDICATOR_OFFSET,
+            self.width(),
+            FluentDesignConst.INDICATOR_HEIGHT
+        )
+
+    def _restore_opacity_all(self) -> None:
+        """恢复所有项的透明度"""
+        for item in self._items:
+            if item._is_hidden_for_drag:
+                item.set_opacity(FluentDesignConst.NORMAL_OPACITY)
+                item._is_hidden_for_drag = False
+
+    def _restore_from_drag_snapshot(self) -> None:
+        """
+        从拖拽快照恢复状态
+
+        当拖拽取消或离开时恢复原始顺序
+        """
+        if self._drag_snapshot is None:
+            return
+
+        # 立即恢复所有项的透明度
+        self._restore_opacity_all()
+
+        # 恢复原始顺序
+        current_data = self.get_data_list()
+        if current_data != self._drag_snapshot:
+            # 需要恢复顺序
+            self._restore_order(self._drag_snapshot)
+
+        # 重置状态
+        self._dragging_item = None
+        self._drag_snapshot = None
+
+    def _restore_order(self, original_data: list[Any]) -> None:
+        """
+        恢复到指定的数据顺序
+
+        Args:
+            original_data: 原始数据列表
+        """
+        # 重新排序 self._items
+        new_items: list[DraggableListItem | None] = [None] * len(original_data)
+
+        # 根据原始数据重新排列
+        for data_idx, data in enumerate(original_data):
+            for item_idx, item in enumerate(self._items):
+                if item.data == data and item in self._items:
+                    new_items[data_idx] = item
+                    # 从原列表中移除已匹配的项
+                    self._items[item_idx] = None
+                    break
+
+        # 移除 None 并添加剩余项（不应该发生）
+        new_items = [item for item in new_items if item is not None]
+        remaining_items = [item for item in self._items if item is not None]
+        new_items.extend(remaining_items)
+
+        self._items = new_items
+
+        # 重新构建布局
+        self._rebuild_layout()
+
+        # 更新索引
+        self._update_indices()
