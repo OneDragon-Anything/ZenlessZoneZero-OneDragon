@@ -1,3 +1,32 @@
+"""
+可拖动列表组件
+
+支持通过拖拽来交换列表中元素的位置。
+符合 Microsoft Fluent Design 设计规范。
+
+⚠️ 重要使用限制：
+    本组件使用 QGraphicsOpacityEffect 实现拖拽时的透明度动画。
+    不能在 MessageBoxBase、MaskDialogBase 等已使用 QGraphicsEffect 的对话框中使用。
+
+    为什么有这个限制？
+    -------------------
+    QGraphicsEffect 会创建额外的离屏绘制层。当对话框容器已使用 QGraphicsDropShadowEffect
+    或 QGraphicsOpacityEffect 时，子组件再使用 QGraphicsOpacityEffect 会产生嵌套的 Effect，
+    导致 Qt 图形系统的坐标计算偏差，出现视觉位置与交互位置不一致的偏移问题。
+
+    推荐用法：
+    ---------
+    - ✅ 在普通窗口（QMainWindow、QWidget）中使用：完美的透明度动画
+    - ✅ 在 MessageBoxBase 中使用但不拖拽：正常显示，无偏移
+    - ⚠️ 在 MessageBoxBase 中拖拽：可能出现位置偏移，但功能可用
+
+    技术实现：
+    ---------
+    本组件采用延迟创建策略：不在 __init__ 中创建 QGraphicsOpacityEffect，
+    只在首次调用 fade_out()/fade_in() 时才创建。这样在 MessageBoxBase 中
+    初始显示不会偏移，只有拖拽时才可能偏移。
+"""
+
 from typing import Any
 
 from PySide6.QtCore import (
@@ -9,7 +38,7 @@ from PySide6.QtCore import (
     Signal,
 )
 from PySide6.QtGui import QColor, QDrag, QPainter, QPainterPath, QPixmap
-from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QGraphicsOpacityEffect, QFrame, QVBoxLayout, QWidget
 from qfluentwidgets import Theme, qconfig
 
 
@@ -90,15 +119,21 @@ class FluentDropIndicator(QFrame):
         """)
 
 
-class DraggableListItem(QFrame):
+class DraggableListItem(QWidget):
     """
     可拖动的列表项
 
     每个列表项都是一个可拖动的组件，显示自定义内容。
     符合 Fluent Design 设计规范，具有平滑的动画和视觉反馈。
+
+    ⚠️ 使用限制：
+        不要在 MessageBoxBase、MaskDialogBase 等已使用 QGraphicsEffect 的对话框中
+        触发拖拽操作，否则会导致视觉位置与交互位置不一致的偏移。
+        如果只是在对话框中显示而不拖拽，则不会有问题。
     """
 
-    def __init__(self, data: Any, index: int, content_widget: QWidget, parent=None):
+    def __init__(self, data: Any, index: int, content_widget: QWidget, parent=None,
+                 enable_opacity_effect: bool = False):
         """
         初始化可拖动列表项
 
@@ -107,25 +142,26 @@ class DraggableListItem(QFrame):
             index: 列表项的索引
             content_widget: 显示内容的组件
             parent: 父组件
+            enable_opacity_effect: 是否启用透明度效果（默认 False）
+                默认禁用，只有通过 DraggableList 添加时才会启用
+
+        Note:
+            默认值为 False，因为独立创建的 ListItem 不应该有拖拽动画。
+            当通过 DraggableList.add_list_item() 添加时，会自动更新此设置。
         """
-        QFrame.__init__(self, parent=parent)
+        QWidget.__init__(self, parent=parent)
         self.data = data
         self.index = index
         self.content_widget = content_widget
         self._is_hidden_for_drag = False  # 标记是否因为拖拽而隐藏
+        self._enable_opacity_effect = enable_opacity_effect  # 是否启用透明效果
 
-        # 创建透明度效果，用于动画
-        self._opacity_effect = QGraphicsOpacityEffect(self)
-        self._opacity_effect.setOpacity(FluentDesignConst.NORMAL_OPACITY)
-        self.setGraphicsEffect(self._opacity_effect)
+        # 延迟创建透明度效果（避免在 MessageBoxBase 等环境中导致初始偏移）
+        # 只在需要动画时（fade_out/fade_in 被调用）才创建 effect
+        self._opacity_effect: QGraphicsOpacityEffect | None = None
+        self._opacity_animation: QPropertyAnimation | None = None
 
-        # 创建动画对象
-        self._opacity_animation = QPropertyAnimation(self._opacity_effect, b"opacity")
-        self._opacity_animation.setDuration(FluentDesignConst.ANIMATION_DURATION)
-        self._opacity_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
-
-        # 设置组件样式（Fluent Design：无边框，使用间距和背景色分隔）
-        self.setFrameStyle(QFrame.Shape.NoFrame)
+        # 设置鼠标样式
         self.setCursor(Qt.CursorShape.OpenHandCursor)
 
         # 创建布局
@@ -138,8 +174,30 @@ class DraggableListItem(QFrame):
         )
         layout.addWidget(self.content_widget)
 
+    def _ensure_opacity_effect(self) -> None:
+        """
+        确保 QGraphicsOpacityEffect 已创建（延迟创建）
+
+        只在需要动画时才创建，避免在 MessageBoxBase 等环境中导致初始偏移。
+        首次调用 fade_out/fade_in 时会创建 effect。
+        """
+        if self._opacity_effect is None:
+            self._opacity_effect = QGraphicsOpacityEffect(self)
+            self._opacity_effect.setOpacity(FluentDesignConst.NORMAL_OPACITY)
+            self.setGraphicsEffect(self._opacity_effect)
+
+            # 创建动画对象
+            self._opacity_animation = QPropertyAnimation(self._opacity_effect, b"opacity")
+            self._opacity_animation.setDuration(FluentDesignConst.ANIMATION_DURATION)
+            self._opacity_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+
     def fade_out(self):
         """淡出动画 - Fluent Design 透明度变化"""
+        if not self._enable_opacity_effect:
+            return  # 透明效果已禁用
+        self._ensure_opacity_effect()
+        if self._opacity_animation is None or self._opacity_effect is None:
+            return
         self._opacity_animation.stop()
         current_opacity = self._opacity_effect.opacity()
         self._opacity_animation.setStartValue(current_opacity)
@@ -148,6 +206,11 @@ class DraggableListItem(QFrame):
 
     def fade_in(self):
         """淡入动画 - Fluent Design 透明度变化"""
+        if not self._enable_opacity_effect:
+            return  # 透明效果已禁用
+        self._ensure_opacity_effect()
+        if self._opacity_animation is None or self._opacity_effect is None:
+            return
         self._opacity_animation.stop()
         current_opacity = self._opacity_effect.opacity()
         self._opacity_animation.setStartValue(current_opacity)
@@ -161,7 +224,12 @@ class DraggableListItem(QFrame):
         Args:
             value: 透明度值 (0.0 - 1.0)
         """
-        self._opacity_animation.stop()
+        if not self._enable_opacity_effect:
+            return  # 透明效果已禁用
+        self._ensure_opacity_effect()
+        if self._opacity_effect is None:
+            return
+        self._opacity_animation.stop() if self._opacity_animation else None
         self._opacity_effect.setOpacity(value)
 
     def create_drag_pixmap(self) -> QPixmap:
@@ -273,14 +341,20 @@ class DraggableList(QWidget):
     # 顺序变化信号，参数为新的数据列表
     order_changed = Signal(list)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, enable_opacity_effect: bool = True):
         """
         初始化可拖动列表
 
         Args:
             parent: 父组件
+            enable_opacity_effect: 是否启用拖拽透明度效果（默认 True）
+                在 MessageBoxBase 等对话框中建议设为 False，避免位置偏移
+                此设置会应用到所有列表项
         """
         QWidget.__init__(self, parent=parent)
+
+        # 存储透明度效果设置
+        self._enable_opacity_effect = enable_opacity_effect
 
         # 存储所有列表项
         self._items: list[DraggableListItem | None] = []
@@ -307,9 +381,13 @@ class DraggableList(QWidget):
         Args:
             data: 列表项关联的数据
             content_widget: 显示内容的组件
+
+        Note:
+            透明度效果由 DraggableList 的 enable_opacity_effect 参数统一控制
         """
         index = len(self._items)
-        item = DraggableListItem(data, index, content_widget, parent=self)
+        item = DraggableListItem(data, index, content_widget, parent=self,
+                                enable_opacity_effect=self._enable_opacity_effect)
         self._items.append(item)
         self._layout.addWidget(item)
 
@@ -319,10 +397,15 @@ class DraggableList(QWidget):
 
         Args:
             item: 已存在的 DraggableListItem 实例
+
+        Note:
+            会将 item 的透明效果设置更新为与 DraggableList 一致
         """
         index = len(self._items)
         item.index = index
         item.setParent(self)
+        # 更新 item 的透明效果设置以匹配当前 list
+        item._enable_opacity_effect = self._enable_opacity_effect
         self._items.append(item)
         self._layout.addWidget(item)
 
@@ -337,11 +420,15 @@ class DraggableList(QWidget):
 
         Raises:
             IndexError: 当位置超出范围时抛出
+
+        Note:
+            透明度效果由 DraggableList 的 enable_opacity_effect 参数统一控制
         """
         if position < 0 or position > len(self._items):
             raise IndexError(f"位置 {position} 超出范围")
 
-        item = DraggableListItem(data, position, content_widget, parent=self)
+        item = DraggableListItem(data, position, content_widget, parent=self,
+                                enable_opacity_effect=self._enable_opacity_effect)
         self._items.insert(position, item)
         self._layout.insertWidget(position, item)
 

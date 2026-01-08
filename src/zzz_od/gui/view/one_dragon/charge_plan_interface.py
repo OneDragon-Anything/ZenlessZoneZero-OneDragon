@@ -1,4 +1,3 @@
-
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
@@ -391,7 +390,6 @@ class ChargePlanInterface(VerticalScrollInterface):
             while len(self.card_list) > len(plan_list):
                 card = self.card_list[-1]
                 self.drag_list.remove_item(len(self.card_list) - 1)
-                card.deleteLater()
                 self.card_list.pop(-1)
 
         # 更新所有卡片的显示

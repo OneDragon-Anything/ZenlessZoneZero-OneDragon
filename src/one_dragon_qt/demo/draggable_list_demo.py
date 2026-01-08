@@ -19,6 +19,7 @@ from qfluentwidgets import (
     FluentWindow,
     InfoBar,
     InfoBarPosition,
+    MessageBoxBase,
     PushButton,
     StrongBodyLabel,
     SubtitleLabel,
@@ -100,6 +101,58 @@ class TaskItemWidget(CardWidget):
         self._set_priority_style(task.priority)
 
 
+class TestDialog(MessageBoxBase):
+    """测试对话框 - 验证 DraggableList 在对话框中的表现"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.yesButton.setText("确定")
+        self.cancelButton.setText("取消")
+
+        self.titleLabel = SubtitleLabel(text="DraggableList 对话框测试")
+        self.viewLayout.addWidget(self.titleLabel)
+
+        # 说明标签
+        info_label = BodyLabel(
+            "此对话框用于测试 DraggableList 在 MessageBoxBase 中的表现。\n\n"
+            "ℹ️ 技术说明：\n"
+            "为避免在 MessageBoxBase 对话框中出现位置偏移，\n"
+            "此列表在创建时设置了 enable_opacity_effect=False。\n\n"
+            "✅ 主界面列表：启用透明度效果（默认），拖拽时会有淡入淡出动画\n"
+            "✅ 对话框列表：禁用透明度效果，避免位置偏移问题"
+        )
+        info_label.setWordWrap(True)
+        self.viewLayout.addWidget(info_label)
+
+        # 创建可拖动列表（禁用透明度效果）
+        self.test_drag_list = DraggableList(enable_opacity_effect=False)
+        self.test_drag_list.order_changed.connect(self._on_order_changed)
+        self.viewLayout.addWidget(self.test_drag_list)
+
+        # 添加测试任务
+        self._add_test_tasks()
+
+        self.viewLayout.addStretch(1)
+
+    def _add_test_tasks(self):
+        """添加测试任务"""
+        test_tasks = [
+            TaskItem("1", "对话框任务A", "高"),
+            TaskItem("2", "对话框任务B", "中"),
+            TaskItem("3", "对话框任务C", "低"),
+        ]
+
+        for task in test_tasks:
+            widget = TaskItemWidget(task)
+            # 透明度效果由 DraggableList 的 enable_opacity_effect 参数统一控制
+            self.test_drag_list.add_item(task, widget)
+
+    def _on_order_changed(self, data_list: list):
+        """顺序改变时的回调"""
+        print(f"对话框列表顺序已更新: {data_list}")
+
+
 class DraggableListDemo(FluentWindow):
     """可拖动列表演示窗口"""
 
@@ -149,9 +202,18 @@ class DraggableListDemo(FluentWindow):
             "  • 支持拖拽交换列表项位置\n"
             "  • 支持自定义列表行内容\n"
             "  • 实时显示当前顺序\n"
-            "  • 提供顺序变化信号\n\n"
+            "  • 提供顺序变化信号\n"
+            "  • 拖拽时透明度动画效果（可配置）\n\n"
+            "⚙️ 配置选项：\n"
+            "  enable_opacity_effect 参数（在创建 DraggableList 时设置）：\n"
+            "  • True（默认）：启用透明度效果，拖拽时列表项会变半透明\n"
+            "  • False：禁用透明度效果，避免在对话框中出现位置偏移\n\n"
+            "⚠️ 使用建议：\n"
+            "  • 主界面窗口：使用默认值（True），获得最佳视觉效果\n"
+            "  • 对话框环境：设置为 False，避免 QGraphicsEffect 嵌套导致的偏移\n\n"
             "📝 使用方法：\n"
-            "  鼠标左键按住列表项，拖动到目标位置松开即可交换位置。"
+            "  鼠标左键按住列表项，拖动到目标位置松开即可交换位置。\n"
+            "  点击「打开对话框测试」按钮查看禁用透明效果的表现。"
         )
         info_label.setWordWrap(True)
         layout.addWidget(info_label)
@@ -184,6 +246,10 @@ class DraggableListDemo(FluentWindow):
         self.reset_btn = PushButton("🔄 重置列表")
         self.reset_btn.clicked.connect(self._reset_list)
         btn_layout.addWidget(self.reset_btn)
+
+        self.test_dialog_btn = PushButton("🔍 打开对话框测试")
+        self.test_dialog_btn.clicked.connect(self._open_test_dialog)
+        btn_layout.addWidget(self.test_dialog_btn)
 
         layout.addLayout(btn_layout)
 
@@ -266,6 +332,22 @@ class DraggableListDemo(FluentWindow):
             self.theme_btn.setText("🌙 切换到暗色主题")
         else:
             self.theme_btn.setText("☀️ 切换到亮色主题")
+
+    def _open_test_dialog(self) -> None:
+        """打开测试对话框"""
+        dialog = TestDialog(parent=self)
+        result = dialog.exec()
+
+        if result:
+            InfoBar.success(
+                title="测试完成",
+                content="对话框测试已完成",
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=2000,
+                parent=self
+            )
 
 
 def main() -> None:

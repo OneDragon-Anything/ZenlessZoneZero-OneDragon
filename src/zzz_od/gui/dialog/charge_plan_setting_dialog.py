@@ -13,6 +13,7 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.draggable_list import DraggableList
 from one_dragon_qt.widgets.horizontal_setting_card_group import (
     HorizontalSettingCardGroup,
 )
@@ -74,6 +75,11 @@ class ChargePlanSettingDialog(AppSettingDialog):
         ], icon=FluentIcon.DELETE, title='删除体力计划')
         self.content_widget.add_widget(self.remove_setting_card)
 
+        # 创建可拖动的列表容器
+        self.drag_list = DraggableList()
+        self.drag_list.order_changed.connect(self._on_order_changed)
+        self.content_widget.add_widget(self.drag_list)
+
         self.card_list: List[ChargePlanCard] = []
 
         self.plus_btn = PrimaryPushButton(text=gt('新增'))
@@ -110,11 +116,11 @@ class ChargePlanSettingDialog(AppSettingDialog):
                                       config=self.config)
                 card.changed.connect(self._on_plan_item_changed)
                 card.delete.connect(self._on_plan_item_deleted)
-                card.move_up.connect(self._on_plan_item_move_up)
                 card.move_top.connect(self._on_plan_item_move_top)
 
                 self.card_list.append(card)
-                self.content_widget.add_widget(card)
+                # 使用 DraggableList 的 add_list_item 方法添加 ChargePlanCard
+                self.drag_list.add_list_item(card)
 
             self.content_widget.add_widget(self.plus_btn, stretch=1)
 
@@ -123,9 +129,7 @@ class ChargePlanSettingDialog(AppSettingDialog):
             card.init_with_plan(plan, self.config)
 
         while len(self.card_list) > len(plan_list):
-            card = self.card_list[-1]
-            self.content_widget.remove_widget(card)
-            card.deleteLater()
+            self.drag_list.remove_item(len(self.card_list) - 1)
             self.card_list.pop(-1)
 
     def _on_add_clicked(self) -> None:
@@ -141,10 +145,6 @@ class ChargePlanSettingDialog(AppSettingDialog):
 
     def _on_plan_item_deleted(self, idx: int) -> None:
         self.config.delete_plan(idx)
-        self.update_plan_list_display()
-
-    def _on_plan_item_move_up(self, idx: int) -> None:
-        self.config.move_up(idx)
         self.update_plan_list_display()
 
     def _on_plan_item_move_top(self, idx: int) -> None:
@@ -181,3 +181,29 @@ class ChargePlanSettingDialog(AppSettingDialog):
         self.config.plan_list = self.plan_list_backup.copy()
         self.cancel_btn.setEnabled(False)
         self.update_plan_list_display()
+
+    def _on_order_changed(self, new_data_list: list) -> None:
+        """
+        拖拽改变顺序后的回调
+
+        Args:
+            new_data_list: 新顺序的数据列表
+        """
+        # 更新配置中的 plan_list 顺序
+        self.config.plan_list = new_data_list
+        self.config.save()
+
+        # 重新构建 card_list 的顺序
+        new_card_list: List[ChargePlanCard] = []
+        for data in new_data_list:
+            # 找到对应数据的 card
+            for card in self.card_list:
+                if card.data == data:
+                    new_card_list.append(card)
+                    break
+        self.card_list = new_card_list
+
+        # 更新所有卡片的索引
+        for idx, card in enumerate(self.card_list):
+            card.idx = idx
+            card.index = idx
