@@ -46,7 +46,7 @@ class BackToNormalWorld(ZOperation):
         if result.is_success:
             return self.round_success(result.status)
 
-        result = self.round_by_find_area(self.last_screenshot, '大世界-普通', '星期')
+        result = self.round_by_find_area(self.last_screenshot, '大世界', '星期')
         if result.is_success:
             return self.round_success(result.status)
 

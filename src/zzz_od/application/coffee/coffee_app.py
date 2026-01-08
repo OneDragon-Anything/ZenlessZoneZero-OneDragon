@@ -31,6 +31,7 @@ from zzz_od.game_data.compendium import Coffee
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
+from zzz_od.operation.wait_normal_world import WaitNormalWorld
 from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.transport import Transport
 
@@ -85,7 +86,9 @@ class CoffeeApp(ZApplication):
         if result.is_success:
             return self.round_success(result.status)
 
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
+        op = WaitNormalWorld(self.ctx)
+        op.last_screenshot = self.last_screenshot
+        result = op.check_screen()
         if result.is_success:
             return self.round_success(result.status)
 

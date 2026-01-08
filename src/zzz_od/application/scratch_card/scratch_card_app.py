@@ -9,6 +9,7 @@ from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.transport import Transport
+from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 
 class ScratchCardApp(ZApplication):
@@ -33,7 +34,9 @@ class ScratchCardApp(ZApplication):
         if result.is_success:
             return self.round_success(result.status)
 
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
+        op = WaitNormalWorld(self.ctx)
+        op.last_screenshot = self.last_screenshot
+        result = op.check_screen()
         if result.is_success:
             return self.round_success(result.status)
 
