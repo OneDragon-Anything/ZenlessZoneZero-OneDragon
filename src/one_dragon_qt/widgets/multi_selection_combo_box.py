@@ -91,7 +91,7 @@ class FluentTagLabel(QFrame):
         """
         # 创建与样式表一致的字体（12px, Segoe UI / Microsoft YaHei UI）
         font = QFont()
-        font.setFamilies("Segoe UI, Microsoft YaHei UI, sans-serif")
+        font.setFamilies(["Segoe UI", "Microsoft YaHei UI", "sans-serif"])
         font.setPointSize(12)
 
         # 使用 QFontMetrics 计算文本的实际渲染宽度
