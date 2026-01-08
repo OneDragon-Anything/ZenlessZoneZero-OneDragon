@@ -53,7 +53,7 @@ area_list:
   - 38
   - 270
   - 86
-  text: ''
+  text: 星期
   lcs_percent: 0.5
   template_sub_dir: ''
   template_id: ''
