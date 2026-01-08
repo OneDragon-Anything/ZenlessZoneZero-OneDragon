@@ -1,7 +1,15 @@
+
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget, QHBoxLayout
-from qfluentwidgets import PrimaryPushButton, FluentIcon, CaptionLabel, LineEdit, ToolButton, PushButton, Dialog
-from typing import Optional, List
+from PySide6.QtWidgets import QWidget
+from qfluentwidgets import (
+    CaptionLabel,
+    Dialog,
+    FluentIcon,
+    LineEdit,
+    PrimaryPushButton,
+    PushButton,
+    ToolButton,
+)
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.application import application_const
@@ -9,25 +17,39 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
-from one_dragon_qt.widgets.horizontal_setting_card_group import HorizontalSettingCardGroup
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiLineSettingCard
+from one_dragon_qt.widgets.draggable_list import DraggableList, DraggableListItem
+from one_dragon_qt.widgets.horizontal_setting_card_group import (
+    HorizontalSettingCardGroup,
+)
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiLineSettingCard,
+    MultiPushSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
+from zzz_od.application.battle_assistant.auto_battle_config import (
+    get_auto_battle_op_config_list,
+)
 from zzz_od.application.charge_plan import charge_plan_const
-from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem, CardNumEnum, RestoreChargeEnum, \
-    ChargePlanConfig
-from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntBuffEnum
+from zzz_od.application.charge_plan.charge_plan_config import (
+    CardNumEnum,
+    ChargePlanConfig,
+    ChargePlanItem,
+    RestoreChargeEnum,
+)
+from zzz_od.application.notorious_hunt.notorious_hunt_config import (
+    NotoriousHuntBuffEnum,
+)
 from zzz_od.context.zzz_context import ZContext
 
 
-class ChargePlanCard(MultiLineSettingCard):
+class ChargePlanCard(DraggableListItem):
 
     changed = Signal(int, ChargePlanItem)
     delete = Signal(int)
-    move_up = Signal(int)
     move_top = Signal(int)
 
     def __init__(self, ctx: ZContext,
@@ -38,6 +60,7 @@ class ChargePlanCard(MultiLineSettingCard):
         self.plan: ChargePlanItem = plan
         self.config: ChargePlanConfig = config
 
+        # 创建所有控件
         self.category_combo_box = ComboBox()
         self.category_combo_box.currentIndexChanged.connect(self._on_category_changed)
 
@@ -67,15 +90,13 @@ class ChargePlanCard(MultiLineSettingCard):
         self.plan_times_input = LineEdit()
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
 
-        self.move_up_btn = ToolButton(FluentIcon.UP, None)
-        self.move_up_btn.clicked.connect(self._on_move_up_clicked)
         self.move_top_btn = ToolButton(FluentIcon.PIN, None)
         self.move_top_btn.clicked.connect(self._on_move_top_clicked)
         self.del_btn = ToolButton(FluentIcon.DELETE, None)
         self.del_btn.clicked.connect(self._on_del_clicked)
 
-        MultiLineSettingCard.__init__(
-            self,
+        # 创建 MultiLineSettingCard 作为 content_widget
+        content_widget = MultiLineSettingCard(
             icon=FluentIcon.CALENDAR,
             title='',
             line_list=[
@@ -93,11 +114,18 @@ class ChargePlanCard(MultiLineSettingCard):
                     self.run_times_input,
                     plan_times_label,
                     self.plan_times_input,
-                    self.move_up_btn,
                     self.move_top_btn,
                     self.del_btn,
                 ]
             ]
+        )
+
+        # 调用 DraggableListItem 的 __init__
+        DraggableListItem.__init__(
+            self,
+            data=plan,
+            index=idx,
+            content_widget=content_widget
         )
 
         self.init_with_plan(plan, config)
@@ -234,9 +262,6 @@ class ChargePlanCard(MultiLineSettingCard):
     def _emit_value(self) -> None:
         self.changed.emit(self.idx, self.plan)
 
-    def _on_move_up_clicked(self) -> None:
-        self.move_up.emit(self.idx)
-
     def _on_move_top_clicked(self) -> None:
         self.move_top.emit(self.idx)
 
@@ -276,7 +301,7 @@ class ChargePlanInterface(VerticalScrollInterface):
             nav_text_cn='体力计划'
         )
 
-        self.config: Optional[ChargePlanConfig] = None
+        self.config: ChargePlanConfig | None = None
 
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
@@ -312,7 +337,12 @@ class ChargePlanInterface(VerticalScrollInterface):
         ], icon=FluentIcon.DELETE, title='删除体力计划')
         self.content_widget.add_widget(self.remove_setting_card)
 
-        self.card_list: List[ChargePlanCard] = []
+        # 创建可拖动的列表容器
+        self.drag_list = DraggableList()
+        self.drag_list.order_changed.connect(self._on_order_changed)
+        self.content_widget.add_widget(self.drag_list)
+
+        self.card_list: list[ChargePlanCard] = []
 
         self.plus_btn = PrimaryPushButton(text=gt('新增'))
         self.plus_btn.clicked.connect(self._on_add_clicked)
@@ -343,31 +373,33 @@ class ChargePlanInterface(VerticalScrollInterface):
         plan_list = self.config.plan_list
 
         if len(plan_list) > len(self.card_list):
-            self.content_widget.remove_widget(self.plus_btn)
-
+            # 需要添加新的卡片
             while len(self.card_list) < len(plan_list):
                 idx = len(self.card_list)
                 card = ChargePlanCard(self.ctx, idx, self.config.plan_list[idx],
                                       config=self.config)
                 card.changed.connect(self._on_plan_item_changed)
                 card.delete.connect(self._on_plan_item_deleted)
-                card.move_up.connect(self._on_plan_item_move_up)
                 card.move_top.connect(self._on_plan_item_move_top)
 
                 self.card_list.append(card)
-                self.content_widget.add_widget(card)
+                # 使用 DraggableList 的 add_list_item 方法直接添加 ChargePlanCard
+                self.drag_list.add_list_item(card)
 
-            self.content_widget.add_widget(self.plus_btn, stretch=1)
+        elif len(plan_list) < len(self.card_list):
+            # 需要移除多余的卡片
+            while len(self.card_list) > len(plan_list):
+                card = self.card_list[-1]
+                self.drag_list.remove_item(len(self.card_list) - 1)
+                card.deleteLater()
+                self.card_list.pop(-1)
 
+        # 更新所有卡片的显示
         for idx, plan in enumerate(plan_list):
             card = self.card_list[idx]
+            card.idx = idx
+            card.index = idx  # 更新 DraggableListItem 的索引
             card.init_with_plan(plan, self.config)
-
-        while len(self.card_list) > len(plan_list):
-            card = self.card_list[-1]
-            self.content_widget.remove_widget(card)
-            card.deleteLater()
-            self.card_list.pop(-1)
 
     def _on_add_clicked(self) -> None:
         from zzz_od.gui.view.one_dragon.charge_plan_dialog import ChargePlanDialog
@@ -382,10 +414,6 @@ class ChargePlanInterface(VerticalScrollInterface):
 
     def _on_plan_item_deleted(self, idx: int) -> None:
         self.config.delete_plan(idx)
-        self.update_plan_list_display()
-
-    def _on_plan_item_move_up(self, idx: int) -> None:
-        self.config.move_up(idx)
         self.update_plan_list_display()
 
     def _on_plan_item_move_top(self, idx: int) -> None:
@@ -422,3 +450,29 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.config.plan_list = self.plan_list_backup.copy()
         self.cancel_btn.setEnabled(False)
         self.update_plan_list_display()
+
+    def _on_order_changed(self, new_data_list: list) -> None:
+        """
+        拖拽改变顺序后的回调
+
+        Args:
+            new_data_list: 新顺序的数据列表
+        """
+        # 更新配置中的 plan_list 顺序
+        self.config.plan_list = new_data_list
+        self.config.save()
+
+        # 重新构建 card_list 的顺序
+        new_card_list: list[ChargePlanCard] = []
+        for data in new_data_list:
+            # 找到对应数据的 card
+            for card in self.card_list:
+                if card.data == data:
+                    new_card_list.append(card)
+                    break
+        self.card_list = new_card_list
+
+        # 更新所有卡片的索引
+        for idx, card in enumerate(self.card_list):
+            card.idx = idx
+            card.index = idx

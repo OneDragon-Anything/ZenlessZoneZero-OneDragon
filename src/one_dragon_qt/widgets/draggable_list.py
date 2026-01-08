@@ -124,8 +124,8 @@ class DraggableListItem(QFrame):
         self._opacity_animation.setDuration(FluentDesignConst.ANIMATION_DURATION)
         self._opacity_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
 
-        # 设置组件样式
-        self.setFrameStyle(QFrame.Shape.StyledPanel)
+        # 设置组件样式（Fluent Design：无边框，使用间距和背景色分隔）
+        self.setFrameStyle(QFrame.Shape.NoFrame)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
 
         # 创建布局
