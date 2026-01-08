@@ -58,4 +58,4 @@ handlers:
       - states: "![妮可-特殊技可用]"
         debug_name: "上弹普攻"
         operations:
-              - operation_template: "妮可-闪A普攻"
+              - operation_template: "妮可-闪A普攻二连"

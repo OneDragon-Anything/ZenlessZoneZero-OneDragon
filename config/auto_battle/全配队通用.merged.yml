@@ -2358,7 +2358,12 @@
           - "op_name": "按键-闪避-松开"
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
-            "repeat": 8
+            "repeat": 10
+          - "op_name": "设置状态"
+            "state": "自定义-合轴时间"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 16
           - "op_name": "等待秒数"
             "seconds": 0.2
           - "op_name": "按键-移动-前-松开"
@@ -8453,7 +8458,8 @@
             - "op_name": "等待秒数"
               "seconds": 2
             "states": "[叶瞬光-常态]{1,1} & [叶瞬光-青溟剑势-红]{6,6}"
-          - "operations":
+          - "interrupt_states": "[叶瞬光-常态]{0,0}"
+            "operations":
             - "op_name": "设置状态"
               "seconds_add": -3.2
               "state": "自定义-失衡时间"
@@ -8463,6 +8469,11 @@
             - "op_name": "按键-终结技"
               "post_delay": 0.1
               "repeat": 10
+            - "op_name": "设置状态"
+              "state": "自定义-叶瞬光-在天"
+            - "op_name": "设置状态"
+              "seconds": 15
+              "state": "自定义-无视闪光"
             - "op_name": "等待秒数"
               "seconds": 5
             "states": "[叶瞬光-终结技可用] & [叶瞬光-青溟剑势-红]{0,3}"
@@ -8494,6 +8505,9 @@
             "states": "[叶瞬光-常态]{1,1} | [叶瞬光-能量]{0,5}"
           - "debug_name": "误判"
             "operations":
+            - "op_name": "设置状态"
+              "seconds": 15
+              "state": "自定义-无视闪光"
             - "op_name": "清除状态"
               "state": "自定义-叶瞬光-收刀"
             "states": "[叶瞬光-能量]{100,120}"
@@ -8537,6 +8551,11 @@
             - "op_name": "按键-终结技"
               "post_delay": 0.1
               "repeat": 10
+            - "op_name": "设置状态"
+              "state": "自定义-叶瞬光-在天"
+            - "op_name": "设置状态"
+              "seconds": 15
+              "state": "自定义-无视闪光"
             - "op_name": "等待秒数"
               "seconds": 5
             "states": "[叶瞬光-终结技可用] & [叶瞬光-青溟剑势-红]{0,3}"
@@ -8589,27 +8608,6 @@
               "seconds": 4.4
             - "op_name": "按键-特殊攻击-松开"
             "states": "[叶瞬光-青溟剑势-白]{0,0} & [叶瞬光-能量]{0,100}  | [叶瞬光-能量]{0,20}"
-          - "interrupt_states": "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-青溟剑势-白]{6,6} | [叶瞬光-能量]{0,20}"
-            "operations":
-            - "op_name": "清除状态"
-              "state": "自定义-叶瞬光-在地"
-            - "op_name": "按键-普通攻击"
-              "post_delay": 0.1
-              "repeat": 35
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.1
-              "repeat": 15
-            - "op_name": "按键-普通攻击"
-              "post_delay": 0.1
-              "repeat": 35
-            - "op_name": "按键-特殊攻击"
-              "post_delay": 0.1
-              "repeat": 15
-            - "op_name": "按键-特殊攻击-按下"
-            - "op_name": "等待秒数"
-              "seconds": 2.5
-            - "op_name": "按键-特殊攻击-松开"
-            "states": "[叶瞬光-青溟剑势-白]{1,5} | [自定义-叶瞬光-在地]"
           - "interrupt_states": "[叶瞬光-能量]{0,20} | [叶瞬光-能量]{115,120}"
             "operations":
             - "op_name": "清除状态"
@@ -8633,6 +8631,27 @@
             - "op_name": "等待秒数"
               "seconds": 3.0
             "states": "[叶瞬光-青溟剑势-白]{6,6} & [叶瞬光-能量]{100,120} | [自定义-叶瞬光-在天]"
+          - "interrupt_states": "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-青溟剑势-白]{6,6} | [叶瞬光-能量]{0,20}"
+            "operations":
+            - "op_name": "清除状态"
+              "state": "自定义-叶瞬光-在地"
+            - "op_name": "按键-普通攻击"
+              "post_delay": 0.1
+              "repeat": 35
+            - "op_name": "按键-特殊攻击"
+              "post_delay": 0.1
+              "repeat": 15
+            - "op_name": "按键-普通攻击"
+              "post_delay": 0.1
+              "repeat": 35
+            - "op_name": "按键-特殊攻击"
+              "post_delay": 0.1
+              "repeat": 15
+            - "op_name": "按键-特殊攻击-按下"
+            - "op_name": "等待秒数"
+              "seconds": 2.5
+            - "op_name": "按键-特殊攻击-松开"
+            "states": "[叶瞬光-青溟剑势-白]{1,6} | [自定义-叶瞬光-在地]"
       - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-照]"
         "states": "[前台-照]"
         "sub_handlers":
@@ -9368,20 +9387,20 @@
             "states": "![前台-凯撒] & [凯撒-特殊技可用] & ([自定义-血量扣减, 0, 3] | ![自定义-凯撒-护盾, 0,\
               \ 30])"
           - "debug_name": "照紧急切入"
-            "states": "![前台-照] & ![叶瞬光-常态]{0,0} & [照-霜寒值]{80, 100}"
+            "states": "![前台-照]"
             "sub_handlers":
             - "debug_name": "照满霜寒值-登场技"
               "operations":
               - "agent_name": "照"
                 "op_name": "按键-切换角色"
-              - "op_name": "设置状态"
-                "seconds_add": -1
-                "state": "自定义-失衡时间"
-              - "op_name": "设置状态"
-                "seconds": 2
-                "state": "自定义-动作不打断"
+              - "op_name": "按键-普通攻击-松开"
               - "op_name": "等待秒数"
-                "seconds": 2
+                "seconds": 0.1
+              - "op_name": "按键-普通攻击-按下"
+              - "op_name": "等待秒数"
+                "seconds": 1
+              - "op_name": "设置状态"
+                "state": "自定义-合轴时间"
               "states": "[照-霜寒值]{100, 100}"
             - "debug_name": "照有强化特殊技"
               "operations":
@@ -9393,7 +9412,7 @@
               - "op_name": "按键-特殊攻击"
                 "post_delay": 0.1
                 "repeat": 25
-              "states": "[照-特殊技可用]"
+              "states": "[照-特殊技可用] & [照-霜寒值]{0, 80} & ![自定义-失衡时间, 0, 10]"
             - "debug_name": "照有终结技"
               "operations":
               - "agent_name": "照"
@@ -9407,7 +9426,7 @@
               - "op_name": "按键-终结技"
                 "post_delay": 0.1
                 "repeat": 60
-              "states": "[照-终结技可用]"
+              "states": "[照-终结技可用] & [照-霜寒值]{0, 80} & ![自定义-失衡时间, 0, 10]"
           - "debug_name": "雅满豆切入"
             "operations":
             - "agent_name": "雅"
@@ -9992,7 +10011,12 @@
         - "op_name": "按键-闪避-松开"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 8
+          "repeat": 10
+        - "op_name": "设置状态"
+          "state": "自定义-合轴时间"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 16
         - "op_name": "等待秒数"
           "seconds": 0.2
         - "op_name": "按键-移动-前-松开"
@@ -16087,7 +16111,8 @@
           - "op_name": "等待秒数"
             "seconds": 2
           "states": "[叶瞬光-常态]{1,1} & [叶瞬光-青溟剑势-红]{6,6}"
-        - "operations":
+        - "interrupt_states": "[叶瞬光-常态]{0,0}"
+          "operations":
           - "op_name": "设置状态"
             "seconds_add": -3.2
             "state": "自定义-失衡时间"
@@ -16097,6 +16122,11 @@
           - "op_name": "按键-终结技"
             "post_delay": 0.1
             "repeat": 10
+          - "op_name": "设置状态"
+            "state": "自定义-叶瞬光-在天"
+          - "op_name": "设置状态"
+            "seconds": 15
+            "state": "自定义-无视闪光"
           - "op_name": "等待秒数"
             "seconds": 5
           "states": "[叶瞬光-终结技可用] & [叶瞬光-青溟剑势-红]{0,3}"
@@ -16128,6 +16158,9 @@
           "states": "[叶瞬光-常态]{1,1} | [叶瞬光-能量]{0,5}"
         - "debug_name": "误判"
           "operations":
+          - "op_name": "设置状态"
+            "seconds": 15
+            "state": "自定义-无视闪光"
           - "op_name": "清除状态"
             "state": "自定义-叶瞬光-收刀"
           "states": "[叶瞬光-能量]{100,120}"
@@ -16171,6 +16204,11 @@
           - "op_name": "按键-终结技"
             "post_delay": 0.1
             "repeat": 10
+          - "op_name": "设置状态"
+            "state": "自定义-叶瞬光-在天"
+          - "op_name": "设置状态"
+            "seconds": 15
+            "state": "自定义-无视闪光"
           - "op_name": "等待秒数"
             "seconds": 5
           "states": "[叶瞬光-终结技可用] & [叶瞬光-青溟剑势-红]{0,3}"
@@ -16223,27 +16261,6 @@
             "seconds": 4.4
           - "op_name": "按键-特殊攻击-松开"
           "states": "[叶瞬光-青溟剑势-白]{0,0} & [叶瞬光-能量]{0,100}  | [叶瞬光-能量]{0,20}"
-        - "interrupt_states": "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-青溟剑势-白]{6,6} | [叶瞬光-能量]{0,20}"
-          "operations":
-          - "op_name": "清除状态"
-            "state": "自定义-叶瞬光-在地"
-          - "op_name": "按键-普通攻击"
-            "post_delay": 0.1
-            "repeat": 35
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.1
-            "repeat": 15
-          - "op_name": "按键-普通攻击"
-            "post_delay": 0.1
-            "repeat": 35
-          - "op_name": "按键-特殊攻击"
-            "post_delay": 0.1
-            "repeat": 15
-          - "op_name": "按键-特殊攻击-按下"
-          - "op_name": "等待秒数"
-            "seconds": 2.5
-          - "op_name": "按键-特殊攻击-松开"
-          "states": "[叶瞬光-青溟剑势-白]{1,5} | [自定义-叶瞬光-在地]"
         - "interrupt_states": "[叶瞬光-能量]{0,20} | [叶瞬光-能量]{115,120}"
           "operations":
           - "op_name": "清除状态"
@@ -16267,6 +16284,27 @@
           - "op_name": "等待秒数"
             "seconds": 3.0
           "states": "[叶瞬光-青溟剑势-白]{6,6} & [叶瞬光-能量]{100,120} | [自定义-叶瞬光-在天]"
+        - "interrupt_states": "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-青溟剑势-白]{6,6} | [叶瞬光-能量]{0,20}"
+          "operations":
+          - "op_name": "清除状态"
+            "state": "自定义-叶瞬光-在地"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 35
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.1
+            "repeat": 15
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 35
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.1
+            "repeat": 15
+          - "op_name": "按键-特殊攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 2.5
+          - "op_name": "按键-特殊攻击-松开"
+          "states": "[叶瞬光-青溟剑势-白]{1,6} | [自定义-叶瞬光-在地]"
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-照]"
       "states": "[前台-照]"
       "sub_handlers":
