@@ -4,7 +4,7 @@ template_name: 菜单-动态壁纸
 template_shape: quadrilateral
 auto_mask: true
 point_list:
-- 98, 783
-- 166, 783
-- 166, 833
-- 98, 833
+- 90, 792
+- 173, 792
+- 173, 826
+- 90, 826
