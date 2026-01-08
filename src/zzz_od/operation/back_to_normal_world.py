@@ -46,6 +46,10 @@ class BackToNormalWorld(ZOperation):
         if result.is_success:
             return self.round_success(result.status)
 
+        result = self.round_by_find_area(self.last_screenshot, '大世界-普通', '星期')
+        if result.is_success:
+            return self.round_success(result.status)
+
         mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
         if mini_map.play_mask_found:
             return self.round_success(status='发现地图')
