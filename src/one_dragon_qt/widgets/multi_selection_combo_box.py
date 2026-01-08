@@ -1,7 +1,7 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFontMetrics, QFont
+from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -14,8 +14,8 @@ from qfluentwidgets import (
     BodyLabel,
     CaptionLabel,
     CheckableMenu,
-    FluentIcon,
     FlowLayout,
+    FluentIcon,
     MenuAnimationType,
     TransparentToolButton,
 )
@@ -33,7 +33,7 @@ class FluentTagLabel(QFrame):
 
     close_clicked = Signal(object)  # 当关闭按钮被点击时发出信号，传递 value
 
-    def __init__(self, text: str, value: object, parent=None) -> None:
+    def __init__(self, text: str, value: object, parent: QWidget | None = None) -> None:
         """初始化标签
 
         Args:
@@ -44,6 +44,7 @@ class FluentTagLabel(QFrame):
         super().__init__(parent)
         self._text = text
         self._value = value
+        self._text_label = None  # 保存文本标签引用，用于获取实际字体
         self._setup_ui()
         self._apply_theme()
 
@@ -60,19 +61,25 @@ class FluentTagLabel(QFrame):
         layout.setSpacing(6)
 
         # 文本标签 - 使用 BodyLabel 自动继承主题样式
-        text_label = BodyLabel(text=self._text)
-        text_label.setObjectName("tagTextLabel")
+        self._text_label = BodyLabel(text=self._text)
+        self._text_label.setObjectName("tagTextLabel")
 
         # 关闭按钮 - 使用 TransparentToolButton 自动继承主题样式
         close_btn = TransparentToolButton(FluentIcon.CLOSE, None)
         close_btn.setFixedSize(14, 14)  # 从 18x18 缩小到 14x14
-        close_btn.setIconSize(close_btn.iconSize().scaled(10, 10, Qt.AspectRatioMode.KeepAspectRatio))  # 图标也缩小
+        close_btn.setIconSize(
+            close_btn.iconSize().scaled(10, 10, Qt.AspectRatioMode.KeepAspectRatio)
+        )  # 图标也缩小
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         close_btn.setObjectName("tagCloseButton")
         close_btn.clicked.connect(lambda: self.close_clicked.emit(self._value))
 
-        layout.addWidget(text_label, 0, Qt.AlignmentFlag.AlignVCenter)  # 文本垂直居中
-        layout.addWidget(close_btn, 0, Qt.AlignmentFlag.AlignVCenter)  # 关闭按钮垂直居中
+        layout.addWidget(
+            self._text_label, 0, Qt.AlignmentFlag.AlignVCenter
+        )  # 文本垂直居中
+        layout.addWidget(
+            close_btn, 0, Qt.AlignmentFlag.AlignVCenter
+        )  # 关闭按钮垂直居中
 
     def _apply_theme(self) -> None:
         """应用主题样式"""
@@ -82,20 +89,21 @@ class FluentTagLabel(QFrame):
     def get_text_width(self) -> int:
         """获取标签文本的实际宽度（使用 QFontMetrics 精确计算）
 
-        注意：不使用 sizeHint() 的原因是，标签刚创建时样式表可能未完全应用，
-        sizeHint() 会基于默认字体计算，导致宽度不准确。使用 QFontMetrics 直接计算
-        可以确保在标签创建时立即获得准确的宽度。
+        注意：
+        1. 不使用 sizeHint() 的原因是，标签刚创建时样式表可能未完全应用，
+           sizeHint() 会基于默认字体计算，导致宽度不准确。
+        2. 使用实际的 BodyLabel 控件的字体进行计算，确保与渲染使用相同的字体，
+           避免硬编码字体导致的宽度偏差。
 
         Returns:
             标签的总宽度（像素），包括边距、文本、间距和关闭按钮
         """
-        # 创建与样式表一致的字体（12px, Segoe UI / Microsoft YaHei UI）
-        font = QFont()
-        font.setFamilies(["Segoe UI", "Microsoft YaHei UI", "sans-serif"])
-        font.setPointSize(12)
+        # 从实际的文本标签控件获取字体（已应用样式表）
+        # 这样可以确保计算使用与渲染相同的字体，避免硬编码字体导致的偏差
+        actual_font = self._text_label.font()
 
         # 使用 QFontMetrics 计算文本的实际渲染宽度
-        font_metrics = QFontMetrics(font)
+        font_metrics = QFontMetrics(actual_font)
         text_width = font_metrics.horizontalAdvance(self._text)
 
         # 计算标签总宽度 = 左边距(8) + 文本宽度 + 文本与按钮间距(6) + 关闭按钮(14) + 右边距(4)
@@ -109,7 +117,9 @@ class FluentDropdownButton(QFrame):
 
     clicked = Signal()  # 当按钮被点击时发出信号
 
-    def __init__(self, placeholder_text: str = "请选择...", max_width: int = None, parent=None) -> None:
+    def __init__(
+        self, placeholder_text: str = "请选择...", max_width: int = None, parent=None
+    ) -> None:
         """初始化下拉按钮
 
         Args:
@@ -151,8 +161,7 @@ class FluentDropdownButton(QFrame):
         self._flow_widget = QWidget()
         self._flow_widget.setObjectName("flowWidget")
         self._flow_widget.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Preferred
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
         )
         self._flow_layout = FlowLayout(self._flow_widget)
         self._flow_layout.setContentsMargins(0, 0, 0, 0)
@@ -179,54 +188,27 @@ class FluentDropdownButton(QFrame):
         """使用 FlowLayout 更新标签布局，并动态调整父组件宽度
 
         核心逻辑：
-        1. 在添加标签到 FlowLayout 之前，先计算所有标签需要的总宽度
-        2. 使用 get_text_width() 精确计算每个标签的宽度（不依赖 sizeHint()）
-        3. 根据计算的宽度设置父组件的 minimumWidth
-        4. 将标签添加到 FlowLayout，此时 FlowLayout 会按照正确的宽度进行布局
+        1. 通过父组件的公共接口计算并设置合适的宽度
+        2. 清除 FlowLayout 中的所有现有元素
+        3. 将所有标签添加到 FlowLayout
 
-        这样可以避免标签提前换行的问题。
+        这样可以避免标签提前换行的问题，同时遵循封装原则。
         """
         if not self._tags:
             return
 
         parent = self.parent()
-        # 仅在动态宽度模式下调整宽度（非 fixed_width 模式）
-        if parent and hasattr(parent, '_fixed_width') and parent._fixed_width is None:
-            # 步骤1：计算所有标签需要的总宽度
-            tag_spacing = 4  # FlowLayout 的水平间距
-            total_width = 0
+        # 通过父组件的公共接口设置宽度，避免直接访问私有属性
+        if parent and hasattr(parent, "calculate_and_set_width_for_tags"):
+            parent.calculate_and_set_width_for_tags(self._tags)
 
-            for tag in self._tags:
-                # 使用 get_text_width() 获取准确的标签宽度
-                # 该方法使用 QFontMetrics 直接计算，不依赖 sizeHint()，避免样式表未应用导致的宽度偏差
-                tag_width = tag.get_text_width()
-                total_width += tag_width + tag_spacing
-
-            # 减去最后一个标签的间距（不需要）
-            if self._tags:
-                total_width -= tag_spacing
-
-            # 添加左右边距（10px + 10px）
-            total_width += 20
-
-            # 步骤2：确定宽度范围（在 min_width 到 max_width 之间）
-            min_w = parent._min_width if parent._min_width is not None else 200
-            max_w = parent._max_width if parent._max_width is not None else float('inf')
-
-            # 计算需要的宽度：确保在 [min_w, max_w] 范围内
-            needed_width = max(min_w, min(total_width, max_w))
-
-            # 步骤3：在添加标签之前设置正确的宽度（关键步骤）
-            # 这样 FlowLayout 会按照正确的宽度进行布局，避免提前换行
-            parent.setMinimumWidth(int(needed_width))
-
-        # 步骤4：清除 FlowLayout 中的所有现有元素
+        # 步骤2：清除 FlowLayout 中的所有现有元素
         while self._flow_layout.count():
-            item: FluentTagLabel = self._flow_layout.takeAt(0) # type: ignore
+            item: FluentTagLabel = self._flow_layout.takeAt(0)  # type: ignore
             if item is not None:
                 item.setParent(None)
 
-        # 步骤5：将所有标签添加到 FlowLayout
+        # 步骤3：将所有标签添加到 FlowLayout
         # 此时组件已经有了正确的宽度，FlowLayout 会正确布局，不会提前换行
         for tag in self._tags:
             # 设置固定尺寸策略，防止标签被压缩
@@ -292,7 +274,13 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
 
     selection_changed = Signal(list)  # 当选项改变时发出信号，传递选中的值列表
 
-    def __init__(self, parent=None, max_width: int = None, fixed_width: int = None, min_width: int = None) -> None:
+    def __init__(
+        self,
+        parent=None,
+        max_width: int | None = None,
+        fixed_width: int | None = None,
+        min_width: int | None = None,
+    ) -> None:
         """初始化多选下拉框
 
         Args:
@@ -309,7 +297,11 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
         self._placeholder_text: str = "请选择..."
         self._max_width = max_width
         self._fixed_width = fixed_width
-        self._min_width = min_width if min_width is not None else (200 if fixed_width is None else None)
+        self._min_width = (
+            min_width
+            if min_width is not None
+            else (200 if fixed_width is None else None)
+        )
         self._menu = None  # 下拉菜单实例
 
         self._setup_ui()
@@ -322,7 +314,9 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self._dropdown_btn = FluentDropdownButton(self._placeholder_text, self._max_width)
+        self._dropdown_btn = FluentDropdownButton(
+            self._placeholder_text, self._max_width
+        )
         self._dropdown_btn.clicked.connect(self._toggle_dropdown_menu)
 
         layout.addWidget(self._dropdown_btn)
@@ -339,8 +333,7 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
                 self.setMinimumWidth(200)
 
             self.setSizePolicy(
-                QSizePolicy.Policy.Preferred,
-                QSizePolicy.Policy.Preferred
+                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred
             )
 
     def _apply_theme(self) -> None:
@@ -422,7 +415,7 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
         """
         return [item.value for item in self._selected_items]
 
-    def init_with_value(self, target_value: list = None) -> None:
+    def init_with_value(self, target_value: list[Any] | None = None) -> None:
         """根据目标值初始化，不抛出事件
 
         Args:
@@ -458,6 +451,49 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
         self._dropdown_btn.setFixedWidth(width)
         self._dropdown_btn._update_grid_layout()
 
+    def calculate_and_set_width_for_tags(self, tags: list) -> None:
+        """根据标签列表计算并设置合适的宽度
+
+        该方法封装了宽度计算逻辑，避免子组件直接访问父组件的私有属性。
+        仅在动态宽度模式下（非 fixed_width 模式）调整宽度。
+
+        Args:
+            tags: FluentTagLabel 对象列表
+        """
+        # 如果是固定宽度模式，不调整宽度
+        if self._fixed_width is not None:
+            return
+
+        if not tags:
+            return
+
+        # 计算所有标签需要的总宽度
+        tag_spacing = 4  # FlowLayout 的水平间距
+        total_width = 0
+
+        for tag in tags:
+            # 使用 get_text_width() 获取准确的标签宽度
+            # 该方法使用 QFontMetrics 直接计算，不依赖 sizeHint()，避免样式表未应用导致的宽度偏差
+            tag_width = tag.get_text_width()
+            total_width += tag_width + tag_spacing
+
+        # 减去最后一个标签的间距（不需要）
+        if tags:
+            total_width -= tag_spacing
+
+        # 添加左右边距（10px + 10px）
+        total_width += 20
+
+        # 确定宽度范围（在 min_width 到 max_width 之间）
+        min_w = self._min_width if self._min_width is not None else 200
+        max_w = self._max_width if self._max_width is not None else float("inf")
+
+        # 计算需要的宽度：确保在 [min_w, max_w] 范围内
+        needed_width = max(min_w, min(total_width, max_w))
+
+        # 设置正确的宽度
+        self.setMinimumWidth(int(needed_width))
+
     def _toggle_dropdown_menu(self) -> None:
         """切换下拉菜单显示/隐藏"""
         # 如果菜单已显示，则隐藏它
@@ -477,14 +513,16 @@ class MultiSelectionComboBox(QWidget, AdapterInitMixin):
             action = Action(text=item.ui_text, checkable=True)
             action.setChecked(item in self._selected_items)
             # 使用 lambda 捕获 item，避免闭包问题
-            action.triggered.connect(lambda checked, i=item: self._on_item_triggered(i, checked))
+            action.triggered.connect(
+                lambda checked, i=item: self._on_item_triggered(i, checked)
+            )
             self._menu.addAction(action)
 
         # 显示菜单，使用 DROP_DOWN 动画
         button_rect = self._dropdown_btn.geometry()
         self._menu.exec(
             self._dropdown_btn.mapToGlobal(button_rect.bottomLeft()),
-            aniType=MenuAnimationType.DROP_DOWN
+            aniType=MenuAnimationType.DROP_DOWN,
         )
 
     def _on_item_triggered(self, item: ConfigItem, checked: bool) -> None:
