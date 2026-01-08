@@ -34,4 +34,12 @@ class WaitNormalWorld(ZOperation):
         if current in world_screens:
             return self.round_success(status=current)
 
+        result = self.round_by_find_area_binary(self.last_screenshot, '大世界', '信息')
+        if result.is_success:
+            return self.round_success(result.status)
+
+        result = self.round_by_find_area(self.last_screenshot, '大世界', '星期')
+        if result.is_success:
+            return self.round_success(result.status)
+
         return self.round_retry('未到达大世界', wait=1)

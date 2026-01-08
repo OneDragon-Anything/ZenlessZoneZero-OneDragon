@@ -4,7 +4,7 @@ from typing import ClassVar
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils
 from zzz_od.application.life_on_line import life_on_line_const
@@ -140,7 +140,8 @@ class LifeOnLineApp(ZApplication):
             return self.round_wait(result.status, wait=0.5)
 
         # 过夜提醒的对话比较多 不进行识别 不断点击空白直到返回大世界
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
+        op = WaitNormalWorld(self.ctx)
+        result = self.round_by_op_result(op.execute())
         if result.is_success:
             self.is_over_night = True
             self.run_record.add_times()

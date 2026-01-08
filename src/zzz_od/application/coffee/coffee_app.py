@@ -10,7 +10,7 @@ from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, os_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -29,10 +29,11 @@ from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.compendium import Coffee
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
-from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.transport import Transport
+from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 
 class CoffeeApp(ZApplication):
@@ -85,7 +86,8 @@ class CoffeeApp(ZApplication):
         if result.is_success:
             return self.round_success(result.status)
 
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
+        op = WaitNormalWorld(self.ctx)
+        result = self.round_by_op_result(op.execute())
         if result.is_success:
             return self.round_success(result.status)
 

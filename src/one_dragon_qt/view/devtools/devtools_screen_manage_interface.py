@@ -1,28 +1,51 @@
 import os
 from contextlib import suppress
-from typing import Optional, Any
+from typing import Any
 
-from PySide6.QtCore import QObject, Signal, Qt
+from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtGui import QKeyEvent
-from PySide6.QtWidgets import QWidget, QFileDialog, QTableWidgetItem, QVBoxLayout, QHBoxLayout
-from qfluentwidgets import (FluentIcon, PushButton, ToolButton, CheckBox, LineEdit, BodyLabel,
-                            TableWidget, SimpleCardWidget, SingleDirectionScrollArea, ScrollArea)
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QHBoxLayout,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+from qfluentwidgets import (
+    BodyLabel,
+    CheckBox,
+    FluentIcon,
+    LineEdit,
+    PushButton,
+    ScrollArea,
+    SimpleCardWidget,
+    SingleDirectionScrollArea,
+    TableWidget,
+    ToolButton,
+)
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_info import ScreenInfo
-from one_dragon.base.screen.template_info import get_template_root_dir_path, get_template_sub_dir_path, TemplateInfo, \
-    TemplateShapeEnum
-from one_dragon.utils import os_utils, cv2_utils
+from one_dragon.base.screen.template_info import (
+    TemplateInfo,
+    TemplateShapeEnum,
+    get_template_root_dir_path,
+    get_template_sub_dir_path,
+)
+from one_dragon.utils import cv2_utils, os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.mixins.history_mixin import HistoryMixin
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.row import Row
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard, MultiLineSettingCard
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiLineSettingCard,
+    MultiPushSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from one_dragon_qt.widgets.zoomable_image_label import ZoomableClickImageLabel
@@ -61,8 +84,8 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         self.ctx: OneDragonContext = ctx
 
-        self.chosen_screen: Optional[ScreenInfo] = None
-        self.last_screen_dir: Optional[str] = None  # 上一次选择的图片路径
+        self.chosen_screen: ScreenInfo | None = None
+        self.last_screen_dir: str | None = None  # 上一次选择的图片路径
 
         self._whole_update = ScreenInfoWorker()
         self._whole_update.signal.connect(self._update_display_by_screen)
@@ -204,7 +227,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.area_table.verticalHeader().hide()
         self.area_table.setHorizontalHeaderLabels([
             gt(key)
-            for key in AREA_FIELD_2_COLUMN.keys()
+            for key in AREA_FIELD_2_COLUMN
         ])
         self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['操作'], 40)
         self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['标识'], 40)
@@ -607,11 +630,14 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         # 列映射：列索引 -> (属性名, 处理函数)
         column_handlers = {
+            AREA_FIELD_2_COLUMN['区域名称']: ('area_name', lambda x: x),
             AREA_FIELD_2_COLUMN['位置']: ('pc_rect', self._parse_rect_from_text),
+            AREA_FIELD_2_COLUMN['文本']: ('text', lambda x: x),
             AREA_FIELD_2_COLUMN['阈值1']: ('lcs_percent', lambda x: float(x) if len(x) > 0 else 0.5),
+            AREA_FIELD_2_COLUMN['模板']: ('template', self._parse_template_from_text),
             AREA_FIELD_2_COLUMN['阈值2']: ('template_match_threshold', lambda x: float(x) if len(x) > 0 else 0.7),
             AREA_FIELD_2_COLUMN['颜色范围']: ('color_range', self._parse_color_range_from_text),
-            AREA_FIELD_2_COLUMN['前往画面']: ('goto_list', lambda x: x.split(','))
+            AREA_FIELD_2_COLUMN['前往画面']: ('goto_list', lambda x: [i.strip() for i in x.split(',') if i.strip()])
         }
         if column not in column_handlers:
             return
@@ -632,23 +658,13 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         try:
             new_value = handler(text)
             if attr_name == 'template':
-                if len(text) == 0:
-                    area_item.template_sub_dir = ''
-                    area_item.template_id = ''
-                else:
-                    template_list = text.split('.')
-                    if len(template_list) > 1:
-                        area_item.template_sub_dir = template_list[0]
-                        area_item.template_id = template_list[1]
-                    else:
-                        area_item.template_sub_dir = ''
-                        area_item.template_id = template_list[0]
+                area_item.template_sub_dir, area_item.template_id = new_value
             elif attr_name == 'pc_rect':
                 area_item.pc_rect = new_value
                 self._image_update.signal.emit()
             else:
                 setattr(area_item, attr_name, new_value)
-        except:
+        except Exception:
             # 如果解析失败，不进行修改
             return
 
@@ -668,6 +684,16 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         while len(num_list) < 4:
             num_list.append(0)
         return Rect(num_list[0], num_list[1], num_list[2], num_list[3])
+
+    def _parse_template_from_text(self, text: str) -> tuple[str, str]:
+        """解析模板文本为 (sub_dir, template_id)"""
+        if len(text) == 0:
+            return '', ''
+        template_list = text.split('.')
+        if len(template_list) > 1:
+            return template_list[0], template_list[1]
+        else:
+            return '', template_list[0]
 
     def _parse_color_range_from_text(self, text: str):
         """解析颜色范围文本"""

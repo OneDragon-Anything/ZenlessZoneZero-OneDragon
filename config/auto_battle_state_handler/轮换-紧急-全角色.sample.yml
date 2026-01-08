@@ -142,6 +142,7 @@ handlers:
                     seconds: 0.3
                   - operation_template: "苍角-1E展旗合轴"
 
+              - state_template: "奥菲丝-强特决策"
               - state_template: "琉音-刷好评"
               - state_template: "卢西娅-暗破检测"
 
@@ -198,7 +199,7 @@ handlers:
                   - op_name: "清除状态"
                     state_list: ["自定义-血量扣减"]
 
-              - states: "![前台-照] & ![叶瞬光-常态]{0,0} & [照-霜寒值]{80, 100}"
+              - states: "![前台-照]"
                 debug_name: "照紧急切入"
                 sub_handlers:
                   - states: "[照-霜寒值]{100, 100}"
@@ -208,14 +209,14 @@ handlers:
                         agent_name: "照"
                       - operation_template: "照-登场技"
 
-                  - states: "[照-特殊技可用]"
+                  - states: "[照-特殊技可用] & [照-霜寒值]{0, 80} & ![自定义-失衡时间, 0, 10]"
                     debug_name: "照有强化特殊技"
                     operations:
                       - op_name: "按键-切换角色"
                         agent_name: "照"
                       - operation_template: "照-强化特殊攻击"
 
-                  - states: "[照-终结技可用]"
+                  - states: "[照-终结技可用] & [照-霜寒值]{0, 80} & ![自定义-失衡时间, 0, 10]"
                     debug_name: "照有终结技"
                     operations:
                       - op_name: "按键-切换角色"

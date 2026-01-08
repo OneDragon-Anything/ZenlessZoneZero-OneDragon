@@ -1,5 +1,4 @@
 from cv2.typing import MatLike
-from typing import Optional
 
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -43,6 +42,10 @@ class BackToNormalWorld(ZOperation):
             return self.round_wait(result.status, wait=1)
 
         result = self.round_by_find_area_binary(self.last_screenshot, '大世界', '信息')
+        if result.is_success:
+            return self.round_success(result.status)
+
+        result = self.round_by_find_area(self.last_screenshot, '大世界', '星期')
         if result.is_success:
             return self.round_success(result.status)
 

@@ -12,6 +12,7 @@
         <file>qss/dark/stacked_widget.qss</file>
         <file>qss/dark/title_bar.qss</file>
         <file>qss/dark/dialog.qss</file>
+        <file>qss/dark/multi_selection_combo_box.qss</file>
 
         <file>qss/light/area_widget.qss</file>
         <file>qss/light/game_dialog.qss</file>
@@ -24,5 +25,6 @@
         <file>qss/light/stacked_widget.qss</file>
         <file>qss/light/title_bar.qss</file>
         <file>qss/light/dialog.qss</file>
+        <file>qss/light/multi_selection_combo_box.qss</file>
     </qresource>
 </RCC>

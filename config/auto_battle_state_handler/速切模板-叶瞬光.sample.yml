@@ -45,6 +45,7 @@ handlers:
                 seconds: 2
 
           - states: "[叶瞬光-终结技可用] & [叶瞬光-青溟剑势-红]{0,3}"
+            interrupt_states: "[叶瞬光-常态]{0,0}"
             operations:
               - operation_template: "叶瞬光-终结技-起"
 
@@ -81,6 +82,9 @@ handlers:
           - states: "[叶瞬光-能量]{100,120}"
             debug_name: "误判"
             operations:
+              - op_name: "设置状态"
+                state: "自定义-无视闪光"
+                seconds: 15
               - op_name: "清除状态"
                 state: "自定义-叶瞬光-收刀"
 
@@ -145,13 +149,6 @@ handlers:
                 state: "自定义-叶瞬光-收刀"
               - operation_template: "叶瞬光-乱砍"
 
-          - states: "[叶瞬光-青溟剑势-白]{1,5} | [自定义-叶瞬光-在地]"
-            interrupt_states: "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-青溟剑势-白]{6,6} | [叶瞬光-能量]{0,20}"
-            operations:
-              - op_name: "清除状态"
-                state: "自定义-叶瞬光-在地"
-              - operation_template: "叶瞬光-飞天连段"
-
           - states: "[叶瞬光-青溟剑势-白]{6,6} & [叶瞬光-能量]{100,120} | [自定义-叶瞬光-在天]"
             interrupt_states: "[叶瞬光-能量]{0,20} | [叶瞬光-能量]{115,120}"
             operations:
@@ -161,3 +158,10 @@ handlers:
                 state: "自定义-无视闪光"
                 seconds: 15
               - operation_template: "叶瞬光-eaeeeaE"
+
+          - states: "[叶瞬光-青溟剑势-白]{1,6} | [自定义-叶瞬光-在地]"
+            interrupt_states: "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-青溟剑势-白]{6,6} | [叶瞬光-能量]{0,20}"
+            operations:
+              - op_name: "清除状态"
+                state: "自定义-叶瞬光-在地"
+              - operation_template: "叶瞬光-飞天连段"
