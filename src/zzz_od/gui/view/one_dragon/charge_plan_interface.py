@@ -291,6 +291,32 @@ class ChargePlanInterface(VerticalScrollInterface):
         # self.content_widget.add_widget(HorizontalSettingCardGroup([self.coupon_opt, self.restore_charge_opt], spacing=6))
         self.content_widget.add_widget(self.restore_charge_opt)
 
+        # 数据悬赏设置
+        self.data_bounty_opt = SwitchSettingCard(icon=FluentIcon.SEARCH, title='优先数据悬赏', content='开启时 优先刷取数据悬赏任务')
+        self.data_bounty_mission_type_opt = ComboBox()
+        self.data_bounty_mission_type_opt.currentIndexChanged.connect(self._on_data_bounty_mission_type_changed)
+        self.data_bounty_mission_opt = ComboBox()
+        self.data_bounty_mission_opt.currentIndexChanged.connect(self._on_data_bounty_mission_changed)
+        self.data_bounty_card_num_opt = ComboBox()
+        self.data_bounty_card_num_opt.currentIndexChanged.connect(self._on_data_bounty_card_num_changed)
+
+        self.data_bounty_setting_card = MultiLineSettingCard(
+            icon=FluentIcon.SEARCH,
+            title='数据悬赏设置',
+            line_list=[
+                [self.data_bounty_opt],
+                [
+                    CaptionLabel(text=gt('副本类型')),
+                    self.data_bounty_mission_type_opt,
+                    CaptionLabel(text=gt('副本')),
+                    self.data_bounty_mission_opt,
+                    CaptionLabel(text=gt('卡片数量')),
+                    self.data_bounty_card_num_opt,
+                ]
+            ]
+        )
+        self.content_widget.add_widget(self.data_bounty_setting_card)
+
         self.cancel_btn = PushButton(icon=FluentIcon.CANCEL, text=gt('撤销'))
         self.cancel_btn.setEnabled(False)
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
@@ -335,6 +361,12 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.skip_plan_opt.init_with_adapter(get_prop_adapter(self.config, 'skip_plan'))
         # self.coupon_opt.init_with_adapter(get_prop_adapter(self.config, 'use_coupon'))
         self.restore_charge_opt.init_with_adapter(get_prop_adapter(self.config, 'restore_charge'))
+
+        # 初始化数据悬赏设置
+        self.data_bounty_opt.init_with_adapter(get_prop_adapter(self.config, 'priority_data_bounty'))
+        self._init_data_bounty_mission_type_opt()
+        self._init_data_bounty_mission_opt()
+        self._init_data_bounty_card_num_opt()
 
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
@@ -422,3 +454,36 @@ class ChargePlanInterface(VerticalScrollInterface):
         self.config.plan_list = self.plan_list_backup.copy()
         self.cancel_btn.setEnabled(False)
         self.update_plan_list_display()
+
+    def _init_data_bounty_mission_type_opt(self) -> None:
+        """初始化数据悬赏副本类型下拉框"""
+        config_list = self.ctx.compendium_service.get_charge_plan_mission_type_list('实战模拟室')
+        self.data_bounty_mission_type_opt.set_items(config_list, self.config.data_bounty_mission_type)
+
+    def _init_data_bounty_mission_opt(self) -> None:
+        """初始化数据悬赏副本下拉框"""
+        config_list = self.ctx.compendium_service.get_charge_plan_mission_list(
+            '实战模拟室', self.config.data_bounty_mission_type
+        )
+        self.data_bounty_mission_opt.set_items(config_list, self.config.data_bounty_mission_name)
+
+    def _init_data_bounty_card_num_opt(self) -> None:
+        """初始化数据悬赏卡片数量下拉框"""
+        config_list = [config_enum.value for config_enum in CardNumEnum]
+        self.data_bounty_card_num_opt.set_items(config_list, self.config.data_bounty_card_num)
+
+    def _on_data_bounty_mission_type_changed(self, idx: int) -> None:
+        """数据悬赏副本类型变更"""
+        mission_type_name = self.data_bounty_mission_type_opt.itemData(idx)
+        self.config.data_bounty_mission_type = mission_type_name
+        self._init_data_bounty_mission_opt()
+
+    def _on_data_bounty_mission_changed(self, idx: int) -> None:
+        """数据悬赏副本变更"""
+        mission_name = self.data_bounty_mission_opt.itemData(idx)
+        self.config.data_bounty_mission_name = mission_name
+
+    def _on_data_bounty_card_num_changed(self, idx: int) -> None:
+        """数据悬赏卡片数量变更"""
+        card_num = self.data_bounty_card_num_opt.itemData(idx)
+        self.config.data_bounty_card_num = card_num
