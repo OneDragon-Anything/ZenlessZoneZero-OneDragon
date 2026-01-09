@@ -873,6 +873,7 @@ class Operation(OperationBase):
         retry_wait: float | None = None,
         retry_wait_round: float | None = None,
         crop_first: bool = True,
+        use_feature_match: bool = False,
     ) -> OperationRoundResult:
         """
         检查是否能在屏幕上找到目标区域。
@@ -886,6 +887,7 @@ class Operation(OperationBase):
             retry_wait: 失败后等待时间（秒）。默认为None。
             retry_wait_round: 失败后等待直到轮次时间达到此值，如果设置了retry_wait则忽略。默认为None。
             crop_first: 在传入区域时 是否先裁剪再进行文本识别
+            use_feature_match: 是否使用特征匹配（支持不同尺寸）
 
         Returns:
             OperationRoundResult: 匹配结果。
@@ -896,6 +898,7 @@ class Operation(OperationBase):
             screen_name=screen_name,
             area_name=area_name,
             crop_first=crop_first,
+            use_feature_match=use_feature_match,
         )
         if result == FindAreaResultEnum.AREA_NO_CONFIG:
             return self.round_fail(status=f'区域未配置 {area_name}')
@@ -915,6 +918,7 @@ class Operation(OperationBase):
         retry_wait: float | None = None,
         retry_wait_round: float | None = None,
         crop_first: bool = True,
+        use_feature_match: bool = False,
     ) -> OperationRoundResult:
         """
         使用二值化图像检查是否能在屏幕上找到目标区域。
@@ -929,6 +933,7 @@ class Operation(OperationBase):
             retry_wait: 失败后等待时间（秒）。默认为None。
             retry_wait_round: 失败后等待直到轮次时间达到此值，如果设置了retry_wait则忽略。默认为None。
             crop_first: 在传入区域时 是否先裁剪再进行识别
+            use_feature_match: 是否使用特征匹配（支持不同尺寸）
 
         Returns:
             OperationRoundResult: 匹配结果。
@@ -940,6 +945,7 @@ class Operation(OperationBase):
             area_name=area_name,
             binary_threshold=binary_threshold,
             crop_first=crop_first,
+            use_feature_match=use_feature_match,
         )
         if result == FindAreaResultEnum.AREA_NO_CONFIG:
             return self.round_fail(status=f'区域未配置 {area_name}')
