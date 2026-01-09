@@ -37,8 +37,8 @@ from PySide6.QtCore import (
     Qt,
     Signal,
 )
-from PySide6.QtGui import QColor, QDrag, QPainter, QPainterPath, QPixmap
-from PySide6.QtWidgets import QGraphicsOpacityEffect, QFrame, QVBoxLayout, QWidget
+from PySide6.QtGui import QColor, QDrag, QPainter, QPixmap
+from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QVBoxLayout, QWidget
 from qfluentwidgets import Theme, qconfig
 
 
@@ -237,7 +237,7 @@ class DraggableListItem(QWidget):
         创建符合 Fluent Design 的拖拽预览图
 
         Returns:
-            带有阴影和半透明效果的拖拽预览图
+            带有半透明效果的拖拽预览图
         """
         # 获取当前快照
         pixmap = self.grab()
@@ -248,25 +248,9 @@ class DraggableListItem(QWidget):
         result.fill(Qt.GlobalColor.transparent)
 
         painter = QPainter(result)
+
+        # 直接绘制原始内容，应用半透明效果
         painter.setOpacity(FluentDesignConst.DRAG_PREVIEW_OPACITY)
-
-        # 绘制阴影（根据主题自动选择颜色）
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(FluentDesignConst.get_shadow_color())
-
-        # 绘制圆角矩形阴影
-        shadow_path = QPainterPath()
-        shadow_path.addRoundedRect(
-            FluentDesignConst.SHADOW_OFFSET,
-            FluentDesignConst.SHADOW_OFFSET,
-            pixmap.width(),
-            pixmap.height(),
-            FluentDesignConst.SHADOW_RADIUS,
-            FluentDesignConst.SHADOW_RADIUS
-        )
-        painter.drawPath(shadow_path)
-
-        # 绘制原始内容
         painter.drawPixmap(0, 0, pixmap)
         painter.end()
 
