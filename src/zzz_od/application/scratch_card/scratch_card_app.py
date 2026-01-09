@@ -125,7 +125,7 @@ class ScratchCardApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init()
+    ctx.init_by_config()
     app = ScratchCardApp(ctx)
     app.execute()
 

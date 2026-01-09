@@ -19,7 +19,7 @@ class WaitNormalWorld(ZOperation):
     def handle_init(self):
         pass
 
-    @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=3)
+    @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=60)
     def check_screen(self) -> OperationRoundResult:
         """
         识别游戏画面
