@@ -1,0 +1,19 @@
+screen_id: commission_board
+screen_name: 委托情报板
+area_list:
+- area_name: 刷新按钮
+  pc_rect: [808, 1003, 852, 1050]
+- area_name: 筛选按钮
+  pc_rect: [905, 1020, 905, 1020]
+- area_name: 重置按钮
+  pc_rect: [1600, 1030, 1600, 1030]
+- area_name: 搜索区域
+  pc_rect: [1250, 10, 1920, 1080]
+- area_name: 恶名狩猎兜底
+  pc_rect: [1430, 598, 1430, 598]
+- area_name: 专业挑战室兜底
+  pc_rect: [1700, 600, 1700, 600]
+- area_name: 关闭筛选
+  pc_rect: [1800, 40, 1800, 40]
+- area_name: 进度文本
+  pc_rect: [322, 1019, 513, 1061]
