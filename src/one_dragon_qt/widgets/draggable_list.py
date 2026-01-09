@@ -242,8 +242,9 @@ class DraggableListItem(QWidget):
         # 获取当前快照
         pixmap = self.grab()
 
-        # 创建带阴影和透明度的版本
+        # 创建结果 pixmap，继承原始 pixmap 的 devicePixelRatio 确保高 DPI 下不模糊
         result = QPixmap(pixmap.size())
+        result.setDevicePixelRatio(pixmap.devicePixelRatio())
         result.fill(Qt.GlobalColor.transparent)
 
         painter = QPainter(result)
