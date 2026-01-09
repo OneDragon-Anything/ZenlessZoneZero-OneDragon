@@ -303,6 +303,13 @@ class DraggableListItem(QWidget):
         # 执行拖拽
         drag.exec(Qt.DropAction.MoveAction)
 
+        # 拖拽结束后恢复透明度（无论是否成功放置）
+        # 如果成功放置在 DraggableList 中，dropEvent 会处理；
+        # 如果在列表外松开（取消拖拽），这里负责恢复
+        if self._is_hidden_for_drag:
+            self.set_opacity(FluentDesignConst.NORMAL_OPACITY)
+            self._is_hidden_for_drag = False
+
     def enterEvent(self, event):
         """鼠标进入事件"""
         self.setCursor(Qt.CursorShape.OpenHandCursor)
@@ -556,9 +563,11 @@ class DraggableList(QWidget):
         """
         拖拽离开事件
 
-        恢复原始状态
+        只隐藏指示器，不恢复透明度（用户可能还在拖拽，只是暂时移出列表区域）
+        透明度恢复在 dropEvent 或拖拽取消时处理
         """
-        self._handle_drag_failure(event)
+        self._drop_indicator.hide()
+        event.accept()
 
     def dropEvent(self, event):
         """
