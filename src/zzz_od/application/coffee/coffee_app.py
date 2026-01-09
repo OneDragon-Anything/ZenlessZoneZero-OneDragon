@@ -87,6 +87,11 @@ class CoffeeApp(ZApplication):
             return self.round_success(result.status)
 
         op = WaitNormalWorld(self.ctx)
+        # 动态修改节点的重试次数，避免嵌套重试
+        for node in op._node_map.values():
+            if node.cn == '画面识别':
+                node.node_max_retry_times = 1
+                break
         result = self.round_by_op_result(op.execute())
         if result.is_success:
             return self.round_success(result.status)
