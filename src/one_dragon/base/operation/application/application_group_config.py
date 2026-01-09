@@ -155,3 +155,25 @@ class ApplicationGroupConfig(YamlOperator):
         self.app_list[idx] = temp
 
         self.save_app_list()
+
+    def move_top_app(self, app_id: str) -> None:
+        """
+        将一个app的执行顺序置顶（移到最前面）
+        Args:
+            app_id: 应用ID
+        """
+        idx = -1
+
+        for i in range(len(self.app_list)):
+            if self.app_list[i].app_id == app_id:
+                idx = i
+                break
+
+        if idx <= 0:  # 已经在第一位
+            return
+
+        # 移除并插入到开头
+        app = self.app_list.pop(idx)
+        self.app_list.insert(0, app)
+
+        self.save_app_list()

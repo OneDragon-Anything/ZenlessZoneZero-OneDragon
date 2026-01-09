@@ -10,7 +10,7 @@
 import sys
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel,
     CaptionLabel,
@@ -101,7 +101,7 @@ class TaskItemWidget(CardWidget):
         self._set_priority_style(task.priority)
 
 
-class TestDialog(MessageBoxBase):
+class NoEffectDialog(MessageBoxBase):
     """测试对话框 - 验证 DraggableList 在对话框中的表现"""
 
     def __init__(self, parent=None):
@@ -160,7 +160,7 @@ class DraggableListDemo(FluentWindow):
         """初始化演示窗口"""
         super().__init__()
         self.setWindowTitle("DraggableList - 可拖动列表演示")
-        self.resize(700, 600)
+        self.resize(700, 500)  # 缩小高度以显示滚动条
 
         # 创建子界面
         self.demo_interface = QWidget()
@@ -203,7 +203,8 @@ class DraggableListDemo(FluentWindow):
             "  • 支持自定义列表行内容\n"
             "  • 实时显示当前顺序\n"
             "  • 提供顺序变化信号\n"
-            "  • 拖拽时透明度动画效果（可配置）\n\n"
+            "  • 拖拽时透明度动画效果（可配置）\n"
+            "  • 🆕 支持滚动区域自动滚动\n\n"
             "⚙️ 配置选项：\n"
             "  enable_opacity_effect 参数（在创建 DraggableList 时设置）：\n"
             "  • True（默认）：启用透明度效果，拖拽时列表项会变半透明\n"
@@ -213,25 +214,41 @@ class DraggableListDemo(FluentWindow):
             "  • 对话框环境：设置为 False，避免 QGraphicsEffect 嵌套导致的偏移\n\n"
             "📝 使用方法：\n"
             "  鼠标左键按住列表项，拖动到目标位置松开即可交换位置。\n"
+            "  当拖动到滚动区域边缘时，列表会自动滚动。\n"
             "  点击「打开对话框测试」按钮查看禁用透明效果的表现。"
         )
         info_label.setWordWrap(True)
         layout.addWidget(info_label)
 
         # 创建可拖动列表
-        list_title = StrongBodyLabel("任务列表（可拖拽调整顺序）")
+        list_title = StrongBodyLabel("任务列表（可拖拽调整顺序，带滚动区域）")
         layout.addWidget(list_title)
 
-        # 创建列表组件
+        # 创建滚动区域
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFixedHeight(250)  # 限制高度以显示滚动条
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        # 创建列表容器和列表组件
+        list_container = QWidget()
+        list_layout = QVBoxLayout(list_container)
+        list_layout.setContentsMargins(0, 0, 0, 0)
+        list_layout.setSpacing(0)
+
         self.drag_list = DraggableList()
         self.drag_list.order_changed.connect(self._on_order_changed)
-        layout.addWidget(self.drag_list)
+        list_layout.addWidget(self.drag_list)
+        list_layout.addStretch()
 
-        # 添加示例任务
+        scroll_area.setWidget(list_container)
+        layout.addWidget(scroll_area)
+
+        # 添加示例任务（增加到10个）
         self._add_sample_tasks()
 
         # 显示当前顺序的标签
-        self.result_label = CaptionLabel("当前顺序: 已加载 5 个任务")
+        self.result_label = CaptionLabel("当前顺序: 已加载 10 个任务")
         self.result_label.setWordWrap(True)
         layout.addWidget(self.result_label)
 
@@ -261,6 +278,11 @@ class DraggableListDemo(FluentWindow):
             TaskItem("3", "实现核心功能模块", "中"),
             TaskItem("4", "编写单元测试", "中"),
             TaskItem("5", "准备用户手册", "低"),
+            TaskItem("6", "代码审查和重构", "高"),
+            TaskItem("7", "性能优化", "中"),
+            TaskItem("8", "集成测试", "高"),
+            TaskItem("9", "部署上线", "高"),
+            TaskItem("10", "用户培训", "低"),
         ]
 
         for task in sample_tasks:
@@ -335,7 +357,7 @@ class DraggableListDemo(FluentWindow):
 
     def _open_test_dialog(self) -> None:
         """打开测试对话框"""
-        dialog = TestDialog(parent=self)
+        dialog = NoEffectDialog(parent=self)
         result = dialog.exec()
 
         if result:

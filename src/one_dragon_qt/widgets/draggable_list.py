@@ -27,7 +27,7 @@
     初始显示不会偏移，只有拖拽时才可能偏移。
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from PySide6.QtCore import (
     QEasingCurve,
@@ -35,10 +35,17 @@ from PySide6.QtCore import (
     QPoint,
     QPropertyAnimation,
     Qt,
+    QTimer,
     Signal,
 )
 from PySide6.QtGui import QColor, QDrag, QPainter, QPixmap
-from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QFrame,
+    QGraphicsOpacityEffect,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
 from qfluentwidgets import Theme, qconfig
 
 
@@ -57,6 +64,11 @@ class FluentDesignConst:
     SHADOW_OFFSET = 2  # 阴影偏移
     LAYOUT_SPACING = 4
     ITEM_MARGIN = 8
+
+    # 自动滚动相关常量
+    SCROLL_MARGIN = 40  # 触发自动滚动的边缘距离（像素）
+    SCROLL_STEP = 15  # 每次滚动的像素数
+    SCROLL_INTERVAL = 30  # 自动滚动的时间间隔（毫秒）
 
     # 根据主题选择阴影颜色
     @staticmethod
@@ -161,6 +173,9 @@ class DraggableListItem(QWidget):
         self._opacity_effect: QGraphicsOpacityEffect | None = None
         self._opacity_animation: QPropertyAnimation | None = None
 
+        # 初始化拖拽起始位置
+        self._drag_start_position = QPoint()
+
         # 设置鼠标样式
         self.setCursor(Qt.CursorShape.OpenHandCursor)
 
@@ -186,8 +201,9 @@ class DraggableListItem(QWidget):
             self._opacity_effect.setOpacity(FluentDesignConst.NORMAL_OPACITY)
             self.setGraphicsEffect(self._opacity_effect)
 
-            # 创建动画对象
+            # 创建动画对象并设置父对象（避免内存泄漏）
             self._opacity_animation = QPropertyAnimation(self._opacity_effect, b"opacity")
+            self._opacity_animation.setParent(self)
             self._opacity_animation.setDuration(FluentDesignConst.ANIMATION_DURATION)
             self._opacity_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
 
@@ -229,7 +245,9 @@ class DraggableListItem(QWidget):
         self._ensure_opacity_effect()
         if self._opacity_effect is None:
             return
-        self._opacity_animation.stop() if self._opacity_animation else None
+        # 停止动画（如果有）
+        if self._opacity_animation is not None:
+            self._opacity_animation.stop()
         self._opacity_effect.setOpacity(value)
 
     def create_drag_pixmap(self) -> QPixmap:
@@ -264,21 +282,20 @@ class DraggableListItem(QWidget):
     def mouseMoveEvent(self, event):
         """鼠标移动事件 - 开始拖拽"""
         if not (event.buttons() & Qt.MouseButton.LeftButton):
-            return
-
-        if not hasattr(self, '_drag_start_position'):
+            super().mouseMoveEvent(event)
             return
 
         # Fluent Design 规范：拖拽阈值
         if (event.pos() - self._drag_start_position).manhattanLength() < FluentDesignConst.DRAG_THRESHOLD:
+            super().mouseMoveEvent(event)
             return
 
         # 创建拖拽对象
         drag = QDrag(self)
         mime_data = QMimeData()
 
-        # 存储索引信息
-        mime_data.setText(str(self.index))
+        # 使用自定义 MIME 类型存储索引（更安全）
+        mime_data.setData("application/x-draggablelist-index", str(self.index).encode())
         drag.setMimeData(mime_data)
 
         # 设置 Fluent Design 风格的拖拽预览
@@ -288,12 +305,8 @@ class DraggableListItem(QWidget):
         # 执行拖拽
         drag.exec(Qt.DropAction.MoveAction)
 
-        # 拖拽结束后恢复透明度（无论是否成功放置）
-        # 如果成功放置在 DraggableList 中，dropEvent 会处理；
-        # 如果在列表外松开（取消拖拽），这里负责恢复
-        if self._is_hidden_for_drag:
-            self.set_opacity(FluentDesignConst.NORMAL_OPACITY)
-            self._is_hidden_for_drag = False
+        # 调用父类方法
+        super().mouseMoveEvent(event)
 
     def enterEvent(self, event):
         """鼠标进入事件"""
@@ -349,7 +362,7 @@ class DraggableList(QWidget):
         self._enable_opacity_effect = enable_opacity_effect
 
         # 存储所有列表项
-        self._items: list[DraggableListItem | None] = []
+        self._items: list[DraggableListItem] = []
 
         # 创建主布局
         self._layout = QVBoxLayout(self)
@@ -361,7 +374,11 @@ class DraggableList(QWidget):
 
         # 拖拽相关状态
         self._dragging_item: DraggableListItem | None = None
-        self._drag_snapshot: list[Any] | None = None
+
+        # 自动滚动相关
+        self._scroll_timer = QTimer(self)
+        self._scroll_timer.timeout.connect(self._on_auto_scroll)
+        self._scroll_direction = 0  # -1: 向上, 0: 不滚动, 1: 向下
 
         # 设置接受拖拽
         self.setAcceptDrops(True)
@@ -448,11 +465,25 @@ class DraggableList(QWidget):
         self._update_indices()
 
     def clear(self) -> None:
-        """清空所有列表项"""
+        """
+        清空所有列表项
+
+        同时重置拖拽状态和停止自动滚动。
+        """
+        # 停止自动滚动（如果有）
+        self._scroll_direction = 0
+        if self._scroll_timer.isActive():
+            self._scroll_timer.stop()
+
+        # 清空列表项
         for item in self._items:
             self._layout.removeWidget(item)
             item.deleteLater()
         self._items.clear()
+
+        # 重置拖拽状态
+        self._drop_indicator.hide()
+        self._dragging_item = None
 
     def get_data_list(self) -> list[Any]:
         """
@@ -477,6 +508,90 @@ class DraggableList(QWidget):
         for index, item in enumerate(self._items):
             item.index = index
 
+    def _find_scroll_area_parent(self) -> Optional[QScrollArea]:
+        """
+        查找父级滚动区域
+
+        Returns:
+            找到的 QScrollArea 对象，如果找不到返回 None
+        """
+        parent = self.parent()
+        while parent:
+            # 检查是否有 viewport 属性（QScrollArea 的特征）
+            if hasattr(parent, 'viewport') and hasattr(parent, 'verticalScrollBar'):
+                return parent
+            parent = parent.parent()
+        return None
+
+    def _handle_auto_scroll(self, pos: QPoint, scroll_area: QScrollArea) -> None:
+        """
+        处理自动滚动逻辑
+
+        Args:
+            pos: 鼠标在列表中的位置
+            scroll_area: 滚动区域对象
+        """
+        # 获取滚动区域的视口高度
+        viewport = scroll_area.viewport()
+        viewport_height = viewport.height()
+
+        # 将列表坐标映射到滚动区域视口坐标
+        global_pos = self.mapToGlobal(pos)
+        viewport_pos = viewport.mapFromGlobal(global_pos)
+
+        # 判断是否接近边缘
+        margin = FluentDesignConst.SCROLL_MARGIN
+
+        if viewport_pos.y() < margin:
+            # 接近顶部，向上滚动
+            self._scroll_direction = -1
+            if not self._scroll_timer.isActive():
+                self._scroll_timer.start(FluentDesignConst.SCROLL_INTERVAL)
+        elif viewport_pos.y() > viewport_height - margin:
+            # 接近底部，向下滚动
+            self._scroll_direction = 1
+            if not self._scroll_timer.isActive():
+                self._scroll_timer.start(FluentDesignConst.SCROLL_INTERVAL)
+        else:
+            # 不在边缘，停止滚动
+            self._scroll_direction = 0
+            if self._scroll_timer.isActive():
+                self._scroll_timer.stop()
+
+    def _on_auto_scroll(self) -> None:
+        """
+        自动滚动定时器回调
+
+        执行实际的滚动操作
+        """
+        if self._scroll_direction == 0:
+            return
+
+        scroll_area = self._find_scroll_area_parent()
+        if not scroll_area:
+            self._scroll_timer.stop()
+            return
+
+        scroll_bar = scroll_area.verticalScrollBar()
+        step = FluentDesignConst.SCROLL_STEP
+
+        if self._scroll_direction == -1:
+            # 向上滚动（检查边界）
+            if scroll_bar.value() > 0:
+                new_value = scroll_bar.value() - step
+                scroll_bar.setValue(max(0, new_value))
+            else:
+                # 已经到顶部，停止滚动
+                self._scroll_timer.stop()
+        else:
+            # 向下滚动（检查边界）
+            if scroll_bar.value() < scroll_bar.maximum():
+                new_value = scroll_bar.value() + step
+                scroll_bar.setValue(min(scroll_bar.maximum(), new_value))
+            else:
+                # 已经到底部，停止滚动
+                self._scroll_timer.stop()
+
     def _accept_drag_event(self, event) -> bool:
         """
         检查并接受拖拽事件
@@ -487,37 +602,29 @@ class DraggableList(QWidget):
         Returns:
             是否接受该拖拽事件
         """
-        return event.mimeData().hasText()
-
-    def _handle_drag_failure(self, event) -> None:
-        """
-        处理拖拽失败的情况
-
-        Args:
-            event: 拖拽事件
-        """
-        self._drop_indicator.hide()
-        self._restore_from_drag_snapshot()
-        event.accept()
+        # 检查是否包含我们自定义的 MIME 类型
+        return event.mimeData().hasFormat("application/x-draggablelist-index")
 
     def dragEnterEvent(self, event):
         """
         拖拽进入事件
 
-        创建拖拽快照并显示位置指示器
+        保存被拖拽项的引用并淡出显示
         """
         if not self._accept_drag_event(event):
             return
 
-        try:
-            from_index = int(event.mimeData().text())
-        except (ValueError, IndexError):
+        # 从自定义 MIME 类型读取索引
+        data = event.mimeData().data("application/x-draggablelist-index")
+        if data.isEmpty():
             return
 
-        # 保存拖拽前的状态
-        self._drag_snapshot = self.get_data_list().copy()
+        try:
+            from_index = int(data.data().decode())
+        except (ValueError, UnicodeDecodeError):
+            return
 
-        # 保存被拖拽项的引用（用于后续恢复）
+        # 保存被拖拽项的引用（仅用于透明度恢复）
         if 0 <= from_index < len(self._items):
             self._dragging_item = self._items[from_index]
             self._dragging_item.fade_out()
@@ -531,10 +638,15 @@ class DraggableList(QWidget):
         """
         拖拽移动事件
 
-        更新位置指示器
+        更新位置指示器并处理自动滚动
         """
         if not self._accept_drag_event(event):
             return
+
+        # 尝试查找并处理滚动区域
+        scroll_area = self._find_scroll_area_parent()
+        if scroll_area:
+            self._handle_auto_scroll(event.pos(), scroll_area)
 
         # 找到放置位置
         to_index = self._find_drop_position(event.pos())
@@ -548,18 +660,34 @@ class DraggableList(QWidget):
         """
         拖拽离开事件
 
-        只隐藏指示器，不恢复透明度（用户可能还在拖拽，只是暂时移出列表区域）
-        透明度恢复在 dropEvent 或拖拽取消时处理
+        停止自动滚动并恢复状态
+
+        Note:
+            Qt 的 dragLeaveEvent 本身就意味着鼠标离开了组件区域。
+            不需要额外检查位置（Qt6 的 event.position() 在此事件中是未定义行为）。
         """
+        # 停止自动滚动
+        self._scroll_direction = 0
+        if self._scroll_timer.isActive():
+            self._scroll_timer.stop()
+
+        # 直接恢复状态（Qt 的 dragLeaveEvent 表示真正离开了）
         self._drop_indicator.hide()
+        self._cleanup_drag_state()
+
         event.accept()
 
     def dropEvent(self, event):
         """
         拖拽放下事件 - 执行位置交换
         """
+        # 停止自动滚动
+        self._scroll_direction = 0
+        if self._scroll_timer.isActive():
+            self._scroll_timer.stop()
+
         if not self._accept_drag_event(event):
-            self._restore_from_drag_snapshot()
+            self._cleanup_drag_state()
             return
 
         # 隐藏指示器
@@ -567,7 +695,6 @@ class DraggableList(QWidget):
 
         # 使用保存的拖拽项引用来查找当前索引
         if self._dragging_item is None:
-            self._restore_from_drag_snapshot()
             event.acceptProposedAction()
             return
 
@@ -575,8 +702,8 @@ class DraggableList(QWidget):
         try:
             from_index = self._items.index(self._dragging_item)
         except ValueError:
-            # 找不到项，恢复快照
-            self._restore_from_drag_snapshot()
+            # 找不到项，清理状态
+            self._cleanup_drag_state()
             event.acceptProposedAction()
             return
 
@@ -585,7 +712,7 @@ class DraggableList(QWidget):
 
         if to_index == -1 or from_index == to_index:
             # 如果位置没有变化，只需要恢复显示
-            self._restore_from_drag_snapshot()
+            self._cleanup_drag_state()
             event.acceptProposedAction()
             return
 
@@ -593,12 +720,11 @@ class DraggableList(QWidget):
         self._swap_items(from_index, to_index)
 
         # Fluent Design: 立即恢复被拖拽项的透明度
-        self._dragging_item.set_opacity(FluentDesignConst.NORMAL_OPACITY)
-        self._dragging_item._is_hidden_for_drag = False
+        if self._dragging_item:
+            self._dragging_item.set_opacity(FluentDesignConst.NORMAL_OPACITY)
 
         # 清理拖拽状态
-        self._dragging_item = None
-        self._drag_snapshot = None
+        self._cleanup_drag_state()
 
         event.acceptProposedAction()
 
@@ -610,9 +736,11 @@ class DraggableList(QWidget):
             pos: 鼠标位置
 
         Returns:
-            放置位置的索引，如果找不到返回 -1
+            放置位置的索引
+            - 空列表时返回 0（插入到开头/末尾）
+            - 找不到合适位置时返回 -1
         """
-        # 空列表处理
+        # 空列表：插入到开头（也是末尾）
         if not self._items:
             return 0
 
@@ -653,8 +781,9 @@ class DraggableList(QWidget):
         交换两个列表项的位置
 
         Args:
-            from_index: 源索引
-            to_index: 目标索引
+            from_index: 源索引，必须是有效索引 [0, len(self._items)-1]
+            to_index: 目标插入位置 [0, len(self._items)]
+                      可以等于 len(self._items)，表示插入到末尾
         """
         # 边界检查
         if not (0 <= from_index < len(self._items)):
@@ -726,56 +855,13 @@ class DraggableList(QWidget):
                 item.set_opacity(FluentDesignConst.NORMAL_OPACITY)
                 item._is_hidden_for_drag = False
 
-    def _restore_from_drag_snapshot(self) -> None:
+    def _cleanup_drag_state(self) -> None:
         """
-        从拖拽快照恢复状态
+        清理拖拽状态
 
-        当拖拽取消或离开时恢复原始顺序
+        统一的状态清理逻辑，用于拖拽取消、失败或完成时。
         """
-        if self._drag_snapshot is None:
-            return
-
-        # 立即恢复所有项的透明度
         self._restore_opacity_all()
-
-        # 恢复原始顺序
-        current_data = self.get_data_list()
-        if current_data != self._drag_snapshot:
-            # 需要恢复顺序
-            self._restore_order(self._drag_snapshot)
-
-        # 重置状态
-        self._dragging_item = None
-        self._drag_snapshot = None
-
-    def _restore_order(self, original_data: list[Any]) -> None:
-        """
-        恢复到指定的数据顺序
-
-        Args:
-            original_data: 原始数据列表
-        """
-        # 重新排序 self._items
-        new_items: list[DraggableListItem | None] = [None] * len(original_data)
-
-        # 根据原始数据重新排列
-        for data_idx, data in enumerate(original_data):
-            for item_idx, item in enumerate(self._items):
-                if item.data == data and item in self._items:
-                    new_items[data_idx] = item
-                    # 从原列表中移除已匹配的项
-                    self._items[item_idx] = None
-                    break
-
-        # 移除 None 并添加剩余项（不应该发生）
-        new_items = [item for item in new_items if item is not None]
-        remaining_items = [item for item in self._items if item is not None]
-        new_items.extend(remaining_items)
-
-        self._items = new_items
-
-        # 重新构建布局
-        self._rebuild_layout()
-
-        # 更新索引
-        self._update_indices()
+        if self._dragging_item:
+            self._dragging_item._is_hidden_for_drag = False
+            self._dragging_item = None
