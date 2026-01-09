@@ -140,7 +140,7 @@ class LifeOnLineApp(ZApplication):
             return self.round_wait(result.status, wait=0.5)
 
         # 过夜提醒的对话比较多 不进行识别 不断点击空白直到返回大世界
-        op = WaitNormalWorld(self.ctx)
+        op = WaitNormalWorld(self.ctx, check_once=True)
         result = self.round_by_op_result(op.execute())
         if result.is_success:
             self.is_over_night = True

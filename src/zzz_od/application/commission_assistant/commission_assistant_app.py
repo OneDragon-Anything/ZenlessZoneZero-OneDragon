@@ -458,7 +458,7 @@ class CommissionAssistantApp(ZApplication):
             if self.fishing_done:
                 return self.round_success('钓鱼结束')
 
-            op = WaitNormalWorld(self.ctx)
+            op = WaitNormalWorld(self.ctx, check_once=True)
             result = self.round_by_op_result(op.execute())
             if result.is_success:
                 return self.round_success('钓鱼结束')
