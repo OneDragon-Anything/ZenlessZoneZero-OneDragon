@@ -307,7 +307,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
         """
         # 更新配置中的 app_list 顺序
         self.config.app_list = new_app_list
-        self.config.save()
+        self.config.save_app_list()
 
     def _on_app_card_run(self, app_id: str) -> None:
         """

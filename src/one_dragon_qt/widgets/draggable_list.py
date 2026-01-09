@@ -176,9 +176,6 @@ class DraggableListItem(QWidget):
         # 初始化拖拽起始位置
         self._drag_start_position = QPoint()
 
-        # 设置鼠标样式
-        self.setCursor(Qt.CursorShape.OpenHandCursor)
-
         # 创建布局
         layout = QVBoxLayout(self)
         layout.setContentsMargins(
@@ -278,6 +275,8 @@ class DraggableListItem(QWidget):
         """鼠标按下事件"""
         if event.button() == Qt.MouseButton.LeftButton:
             self._drag_start_position = event.pos()
+            # 按下时显示手掌光标，表示可以拖拽
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
 
     def mouseMoveEvent(self, event):
         """鼠标移动事件 - 开始拖拽"""
@@ -305,16 +304,27 @@ class DraggableListItem(QWidget):
         # 执行拖拽
         drag.exec(Qt.DropAction.MoveAction)
 
+        # 拖拽完成后恢复箭头光标
+        self.setCursor(Qt.CursorShape.ArrowCursor)
+
         # 调用父类方法
         super().mouseMoveEvent(event)
 
+    def mouseReleaseEvent(self, event):
+        """鼠标释放事件"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            # 释放时恢复箭头光标
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+        super().mouseReleaseEvent(event)
+
     def enterEvent(self, event):
         """鼠标进入事件"""
-        self.setCursor(Qt.CursorShape.OpenHandCursor)
+        # 不改变光标，保持箭头
         super().enterEvent(event)
 
     def leaveEvent(self, event):
         """鼠标离开事件"""
+        # 离开时恢复箭头光标
         self.setCursor(Qt.CursorShape.ArrowCursor)
         super().leaveEvent(event)
 

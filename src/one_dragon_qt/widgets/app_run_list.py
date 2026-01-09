@@ -80,10 +80,11 @@ class AppRunList(DraggableList):
             app_list: 应用配置列表
             instance_idx: 实例索引
         """
-        # 如果已有卡片，更新现有卡片
-        if len(self._app_cards) > 0:
+        # 如果已有卡片且数量一致，更新现有卡片（更高效）
+        if len(self._app_cards) > 0 and len(self._app_cards) == len(app_list):
             self._update_existing_cards(app_list, instance_idx)
         else:
+            # 数量不一致或首次创建，重建整个列表
             self._create_new_cards(app_list, instance_idx)
 
     def _update_existing_cards(
