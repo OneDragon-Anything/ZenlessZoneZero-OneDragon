@@ -1,21 +1,17 @@
-"""
-一条龙应用列表组件
+from __future__ import annotations
 
-继承自 DraggableList，专门用于管理一条龙应用列表。
-支持拖拽排序、应用开关状态切换、单独运行等功能。
-"""
-
-from typing import List, Optional
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget
 
 from one_dragon.base.operation.application.application_group_config import (
     ApplicationGroupConfigItem,
 )
-from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon_qt.widgets.draggable_list import DraggableList
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
+
+if TYPE_CHECKING:
+    from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
 
 class AppRunList(DraggableList):
@@ -43,7 +39,7 @@ class AppRunList(DraggableList):
     # 点击应用设置按钮
     app_setting_clicked = Signal(str)
 
-    def __init__(self, ctx, parent=None, enable_opacity_effect: bool = True):
+    def __init__(self, ctx: OneDragonContext, parent=None, enable_opacity_effect: bool = True):
         """
         初始化一条龙应用列表
 
@@ -53,8 +49,8 @@ class AppRunList(DraggableList):
             enable_opacity_effect: 是否启用拖拽透明度效果（默认 True）
                 在 MessageBoxBase 等对话框中建议设为 False，避免位置偏移
         """
-        self.ctx = ctx
-        self._enable_opacity_effect = enable_opacity_effect
+        self.ctx: OneDragonContext = ctx
+        self._enable_opacity_effect: bool = enable_opacity_effect
 
         # 调用父类初始化，传递透明度效果设置
         super().__init__(parent=parent, enable_opacity_effect=enable_opacity_effect)
@@ -63,14 +59,14 @@ class AppRunList(DraggableList):
         self._layout.setSpacing(0)
 
         # 存储应用卡片
-        self._app_cards: List[AppRunCard] = []
+        self._app_cards: list[AppRunCard] = []
 
         # 连接父类的拖拽排序信号
         self.order_changed.connect(self._handle_order_changed)
 
     def set_app_list(
         self,
-        app_list: List[ApplicationGroupConfigItem],
+        app_list: list[ApplicationGroupConfigItem],
         instance_idx: int
     ) -> None:
         """
@@ -89,7 +85,7 @@ class AppRunList(DraggableList):
 
     def _update_existing_cards(
         self,
-        app_list: List[ApplicationGroupConfigItem],
+        app_list: list[ApplicationGroupConfigItem],
         instance_idx: int
     ) -> None:
         """
@@ -112,7 +108,7 @@ class AppRunList(DraggableList):
 
     def _create_new_cards(
         self,
-        app_list: List[ApplicationGroupConfigItem],
+        app_list: list[ApplicationGroupConfigItem],
         instance_idx: int
     ) -> None:
         """
@@ -197,7 +193,7 @@ class AppRunList(DraggableList):
             new_data_list: 新顺序的数据列表
         """
         # 重新构建 _app_cards 的顺序
-        new_card_list: List[AppRunCard] = []
+        new_card_list: list[AppRunCard] = []
         for data in new_data_list:
             for card in self._app_cards:
                 if card.data == data:

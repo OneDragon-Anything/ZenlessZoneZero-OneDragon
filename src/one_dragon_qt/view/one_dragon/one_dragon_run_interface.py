@@ -298,7 +298,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
     def _on_app_state_changed(self, event) -> None:
         self.app_run_list.update_cards_display()
 
-    def _on_app_list_changed(self, new_app_list: list) -> None:
+    def _on_app_list_changed(self, new_app_list: list[ApplicationGroupConfigItem]) -> None:
         """
         应用列表改变后的回调（拖拽排序或置顶）
 
