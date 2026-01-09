@@ -140,9 +140,9 @@ class CompendiumService:
             return
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as file:
-                tab_list: List[dict] = yaml.safe_load(file)
-                self.data = CompendiumData(tab_list)
+            from one_dragon.base.config.yaml_operator import read_cache_or_load
+            tab_list: List[dict] = read_cache_or_load(file_path)
+            self.data = CompendiumData(tab_list)
         except Exception:
             log.error(f'文件读取失败 {file_path}', exc_info=True)
 
@@ -291,21 +291,21 @@ class CompendiumService:
             return
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as file:
-                data = yaml.safe_load(file)
-                self.coffee_list = []
-                self.name_2_coffee = {}
+            from one_dragon.base.config.yaml_operator import read_cache_or_load
+            data = read_cache_or_load(file_path)
+            self.coffee_list = []
+            self.name_2_coffee = {}
 
-                for i in data.get('coffee_list', []):
-                    coffee = self._construct_coffee(**i)
-                    self.coffee_list.append(coffee)
-                    self.name_2_coffee[coffee.coffee_name] = coffee
+            for i in data.get('coffee_list', []):
+                coffee = self._construct_coffee(**i)
+                self.coffee_list.append(coffee)
+                self.name_2_coffee[coffee.coffee_name] = coffee
 
-                self.coffee_schedule = {}
-                for schedule in data.get('schedule', []):
-                    coffee_list = [self.name_2_coffee[coffee_name] for coffee_name in schedule.get('coffee_list', [])]
-                    for day in schedule.get('days', []):
-                        self.coffee_schedule[day] = coffee_list
+            self.coffee_schedule = {}
+            for schedule in data.get('schedule', []):
+                coffee_list = [self.name_2_coffee[coffee_name] for coffee_name in schedule.get('coffee_list', [])]
+                for day in schedule.get('days', []):
+                    self.coffee_schedule[day] = coffee_list
 
 
         except Exception:
