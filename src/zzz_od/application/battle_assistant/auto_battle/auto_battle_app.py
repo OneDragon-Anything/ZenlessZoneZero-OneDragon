@@ -65,10 +65,14 @@ class AutoBattleApp(ZApplication):
         加载战斗指令
         :return:
         """
-        self.ctx.auto_battle_context.init_auto_op(
-            sub_dir='auto_battle',
-            op_name=self.ctx.battle_assistant_config.auto_battle_config,
-        )
+        try:
+            self.ctx.auto_battle_context.init_auto_op(
+                sub_dir='auto_battle',
+                op_name=self.ctx.battle_assistant_config.auto_battle_config,
+            )
+        except Exception:
+            # 捕获异常，显式返回 Fail，防止框架自动重试
+            return self.round_fail(status='加载指令失败')
 
         self.ctx.dispatch_event(
             AutoBattleApp.EVENT_OP_LOADED,
