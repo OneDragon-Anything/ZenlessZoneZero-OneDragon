@@ -3,6 +3,10 @@ handlers:
   - states: "[前台-莱卡恩]"
     interrupt_states: "[前台-能量, 0, 0.1] & ![前台-莱卡恩]"
     sub_handlers:
+      - states: "[自定义-终结技被强制释放, 0, 1]"
+        operations:
+          - operation_template: "莱卡恩-终结技"
+
       # 支援
       - states: "[自定义-黄光切人, 0, 1]"
         operations:

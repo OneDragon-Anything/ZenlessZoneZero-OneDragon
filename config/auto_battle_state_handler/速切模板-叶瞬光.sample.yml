@@ -3,6 +3,11 @@ handlers:
   - states: "[前台-叶瞬光]"
     interrupt_states: "[前台-能量, 0, 0.1] & ![前台-叶瞬光]"
     sub_handlers:
+      - states: "[自定义-终结技被强制释放, 0, 1]"
+        interrupt_states: "[叶瞬光-常态]{0,0}"
+        operations:
+          - operation_template: "叶瞬光-终结技-起"
+
       - states: "[自定义-黄光切人, 0, 1]"
         operations:
           - operation_template: "叶瞬光-支援攻击"
@@ -120,10 +125,14 @@ handlers:
 
           - states: "[叶瞬光-特殊技可用] & ([叶瞬光-青溟剑势-红]{4,6} | [叶瞬光-能量]{115,120})"
             operations:
+              - op_name: "清除状态"
+                state: "自定义-无视闪光"
               - operation_template: "叶瞬光-强化特殊攻击"
           - states: ""
             interrupt_states: "[叶瞬光-终结技可用] | [叶瞬光-特殊技可用] | ![叶瞬光-常态] | [叶瞬光-青溟剑势-红]{6,6}"
             operations:
+              - op_name: "清除状态"
+                state: "自定义-无视闪光"
               - operation_template: "叶瞬光-普通攻击"
 
       - states: "[叶瞬光-常态]{0,0}"
@@ -164,4 +173,4 @@ handlers:
             operations:
               - op_name: "清除状态"
                 state: "自定义-叶瞬光-在地"
-              - operation_template: "叶瞬光-飞天连段"
+              - operation_template: "叶瞬光-普通攻击"

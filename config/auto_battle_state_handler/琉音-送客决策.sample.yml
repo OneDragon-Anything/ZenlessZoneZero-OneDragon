@@ -8,7 +8,7 @@ handlers:
       - op_name: "等待秒数"
         seconds: 0.5
       - op_name: "设置状态"
-        state: "自定义-琉音-连携转终结技"
+        state: "自定义-琉音-送客"
       - op_name: "清除状态"
         state: "自定义-琉音-投诉"
       - operation_template: "琉音-送客(长按强化特殊技)"

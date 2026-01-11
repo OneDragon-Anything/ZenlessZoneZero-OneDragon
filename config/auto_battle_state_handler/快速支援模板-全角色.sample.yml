@@ -21,8 +21,6 @@ handlers:
             state: "自定义-耀嘉音-唱歌"
           - op_name: "设置状态"
             state: "自定义-快速支援换人"
-          - op_name: "等待秒数"
-            seconds: 0.1
           - op_name: "按键-快速支援"
           - op_name: "清除状态"
             state_list: ["自定义-合轴时间", "自定义-动作不打断"]

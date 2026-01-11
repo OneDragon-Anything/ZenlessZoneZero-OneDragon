@@ -16,4 +16,4 @@ operations:
     state: "自定义-无视闪光"
     seconds: 15
   - op_name: "等待秒数"
-    seconds: 5  # 待补充具体时间
+    seconds: 3  # 待补充具体时间

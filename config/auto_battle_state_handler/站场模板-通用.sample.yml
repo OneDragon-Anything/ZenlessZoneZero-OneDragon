@@ -1,19 +1,24 @@
+# 仅在未识别到角色时使用通用操作，一旦识别到角色立即退出
 handlers:
-  - states: "[按键可用-终结技]"
-    operations:
-      - op_name: "按键-终结技"
-        data: []
-      - op_name: "等待秒数"
-        data: ["3"]
-  - states: "[按键可用-特殊攻击]"
-    operations:
-      - op_name: "按键-特殊攻击"
-        data: []
-      - op_name: "等待秒数"
-        data: ["0.3"]
-  - states: ""
-    operations:
-      - op_name: "按键-普通攻击"
-        data: []
-      - op_name: "等待秒数"
-        data: ["0.3"]
+  - states: "![前台-击破] & ![前台-强攻] & ![前台-支援] & ![前台-防护] & ![前台-异常]& ![前台-命破]"
+    debug_name: "角色未识别"
+    interrupt_states: "[前台-击破] | [前台-强攻] | [前台-支援] | [前台-防护] | [前台-异常] | [前台-命破]"
+    sub_handlers:
+      - states: "[按键可用-终结技]"
+        debug_name: "终结技"
+        operations:
+          - op_name: "按键-终结技"
+          - op_name: "等待秒数"
+            seconds: 3
+      - states: "[按键可用-特殊攻击]"
+        debug_name: "特殊攻击"
+        operations:
+          - op_name: "按键-特殊攻击"
+          - op_name: "等待秒数"
+            seconds: 0.3
+      - states: ""
+        debug_name: "普通攻击"
+        operations:
+          - op_name: "按键-普通攻击"
+          - op_name: "等待秒数"
+            seconds: 0.3
