@@ -1,4 +1,5 @@
 import os.path
+from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Qt, QUrl, Signal
@@ -19,6 +20,7 @@ from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
     DoubleSpinBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon.utils import os_utils
 from zzz_od.application.battle_assistant.auto_battle import auto_battle_const
 from zzz_od.application.battle_assistant.auto_battle.auto_battle_app import (
     AutoBattleApp,
@@ -196,10 +198,9 @@ class AutoBattleInterface(AppRunInterface):
     def _on_desc_clicked(self) -> None:
         content = "这是一条消息通知"
         try:
-            file_path = os.path.join('docs', 'battle_assistant_notice.md')
-            if os.path.exists(file_path):
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
+            file_path = Path(os_utils.get_path_under_work_dir('docs', 'battle_assistant_notice.md'))
+            if file_path.exists():
+                content = file_path.read_text(encoding='utf-8')
         except Exception:
             pass
 
