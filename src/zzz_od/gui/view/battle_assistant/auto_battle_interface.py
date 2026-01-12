@@ -102,7 +102,8 @@ class AutoBattleInterface(AppRunInterface):
 
         self.screenshot_interval_opt = DoubleSpinBoxSettingCard(
             icon=FluentIcon.GAME, title='截图间隔(秒)',
-            content='建议范围 0.02~0.1秒。游戏内帧数建议限制在30帧，禁止开无限帧。留给AI的性能越多，AI表现会越好'
+            content='一般默认0.02，除非电脑很卡。优先通过设置游戏30帧和低画质给AI留算力',
+            minimum=0.02, maximum=0.1
         )
         top_widget.add_widget(self.screenshot_interval_opt)
 
