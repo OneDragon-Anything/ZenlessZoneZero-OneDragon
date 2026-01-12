@@ -2,7 +2,7 @@ import os.path
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtCore import Qt, QUrl, Signal, QTimer
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, PushButton, ToolButton, MessageBox, SettingCard
@@ -206,6 +206,26 @@ class AutoBattleInterface(AppRunInterface):
             pass
 
         w = MessageBox(gt("使用说明"), content, self.window())
+
+        # 禁用关闭按钮10秒
+        w.setWindowFlags(w.windowFlags() & ~Qt.WindowType.WindowCloseButtonHint)
+        w.yesButton.setEnabled(False)
+
+        # 倒计时变量
+        countdown = [10]  # 使用列表以便在闭包中修改
+
+        def update_countdown():
+            if countdown[0] > 0:
+                w.yesButton.setText(f'{countdown[0]} 秒后可关闭')
+                countdown[0] -= 1
+                QTimer.singleShot(1000, update_countdown)
+            else:
+                w.yesButton.setText("确定")
+                w.yesButton.setEnabled(True)
+
+        # 开始倒计时
+        QTimer.singleShot(0, update_countdown)
+
         w.exec()
 
     def _on_del_clicked(self) -> None:
