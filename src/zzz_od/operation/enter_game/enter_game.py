@@ -63,6 +63,19 @@ class EnterGame(ZOperation):
         if current_screen in world_screens:
             return self.round_success('大世界', wait=1)
 
+        # 集成与其他操作一致的大世界检测逻辑，大幅度放宽进入游戏的大世界判定
+        result = self.round_by_find_area_binary(self.last_screenshot, '大世界', '信息')
+        if result.is_success:
+            return self.round_success('大世界', wait=1)
+
+        result = self.round_by_find_area(self.last_screenshot, '大世界', '星期')
+        if result.is_success:
+            return self.round_success('大世界', wait=1)
+
+        mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
+        if mini_map.play_mask_found:
+            return self.round_success(status='发现地图', wait=1)
+
         return self.round_retry(status='未知画面', wait=1)
 
     def check_login_related(self, screen: MatLike) -> Optional[OperationRoundResult]:
