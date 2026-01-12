@@ -44,6 +44,13 @@ handlers:
         operations:
           - operation_template: "照-终结技"
 
+      - states: "[照-霜寒值]{100, 100}"
+        debug_name: "照满霜寒值-登场技"
+        operations:
+          - op_name: "设置状态"
+            state: "自定义-照-蓄力中"
+          - operation_template: "照-登场技"
+
       - states: ""
         debug_name: "打不了"
         operations:
