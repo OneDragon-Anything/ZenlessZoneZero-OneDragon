@@ -38,12 +38,13 @@ class RedemptionCodeRunRecord(AppRunRecord):
             config_data = yaml.safe_load(f)
 
         codes = []
-        if config_data and 'codes' in config_data:
-            for item in config_data['codes']:
-                code = item.get('code')
-                end_dt = item.get('end_dt')
-                if code and end_dt:
-                    codes.append(RedemptionCode(code, str(end_dt))) # 确保end_dt是字符串
+        if isinstance(config_data, list):
+            for item in config_data:
+                if isinstance(item, dict):
+                    code = item.get('code')
+                    end_dt = item.get('end_dt')
+                    if code and end_dt:
+                        codes.append(RedemptionCode(code, str(end_dt))) # 确保end_dt是字符串
 
         return codes
 
