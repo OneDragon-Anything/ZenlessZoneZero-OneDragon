@@ -205,8 +205,7 @@ class AutoBattleInterface(AppRunInterface):
             pass
 
         w = MessageBox(gt("使用说明"), content, self.window())
-        if w.exec():
-            pass
+        w.exec()
 
     def _on_del_clicked(self) -> None:
         """
