@@ -1,9 +1,33 @@
 # 根据动画实测，待补充
 operations:
-  - op_name: "按键-特殊攻击-松开"
-  - op_name: "等待秒数"
-    seconds: 0.1
   - op_name: "按键-特殊攻击-按下"
   - op_name: "等待秒数"
-    seconds: 4.4
+    seconds: 0.5
+  - op_name: "按键-特殊攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-特殊攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-特殊攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-特殊攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-特殊攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-特殊攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-特殊攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-特殊攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-特殊攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
   - op_name: "按键-特殊攻击-松开"
