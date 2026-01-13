@@ -10,3 +10,32 @@ operations:
     state: "自定义-动作不打断"
     seconds: 4.5
   - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1

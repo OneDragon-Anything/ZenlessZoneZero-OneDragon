@@ -1,7 +1,18 @@
 operations:
   # 短暂蓄力
   - op_name: "按键-普通攻击-按下"
-    press: 0.2
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
   - op_name: "等待秒数"
     seconds: 0.1
   # 按特殊技触发追碾，并立即提升蓄力等级
