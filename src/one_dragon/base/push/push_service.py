@@ -254,3 +254,9 @@ class PushService:
             return self.ctx.env_config.personal_proxy
 
         return None
+
+    def shutdown(self) -> None:
+        """
+        关闭
+        """
+        self._executor.shutdown(wait=False, cancel_futures=True)
