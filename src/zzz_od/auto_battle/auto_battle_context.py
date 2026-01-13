@@ -243,6 +243,10 @@ class AutoBattleContext:
             e = BattleStateEnum.BTN_SWITCH_NEXT.value
             update_agent = True
 
+        # 切换角色前先松开所有按键，避免按键冲突（系统只能同时按下3个按键）
+        if update_agent and not release:
+            self._release_keys()
+
         start_time = time.time()
         self.ctx.controller.switch_next(press=press, press_time=press_time, release=release)
 
@@ -265,6 +269,10 @@ class AutoBattleContext:
         else:
             e = BattleStateEnum.BTN_SWITCH_PREV.value
             update_agent = True
+
+        # 切换角色前先松开所有按键，避免按键冲突（系统只能同时按下3个按键）
+        if update_agent and not release:
+            self._release_keys()
 
         start_time = time.time()
         self.ctx.controller.switch_prev(press=press, press_time=press_time, release=release)
@@ -614,10 +622,10 @@ class AutoBattleContext:
             # 检查连携前台角色修正冷却（避免切人过程中重复检测导致误判）
             if screenshot_time - self._last_chain_front_correction_time < 1.0:
                 return
-            
+
             # 记录本次检测时间，无论是否需要切换都进入冷却
             self._last_chain_front_correction_time = screenshot_time
-            
+
             # 从状态记录系统获取当前前台角色（与UI显示保持一致）
             front_agent_name = None
             for agent_enum in AgentEnum:
@@ -627,7 +635,7 @@ class AutoBattleContext:
                 if recorder is not None and recorder.last_record_time > 0:
                     front_agent_name = agent_name
                     break
-            
+
             # 检查前台角色是否在连携技列表中
             if front_agent_name and front_agent_name in chain_agent_names:
                 # 前台角色在连携技列表中，找到第一个不在连携技列表中的后台角色
@@ -918,17 +926,24 @@ class AutoBattleContext:
         self.dodge_context.stop_context()
 
         log.info('松开所有按键')
-        self.dodge(release=True)
+        self._release_keys()
         self.switch_next(release=True)
         self.switch_prev(release=True)
-        self.normal_attack(release=True)
-        self.special_attack(release=True)
+        self.lock(release=True)
         self.ultimate(release=True)
+        self.chain_cancel(release=True)
         self.chain_left(release=True)
         self.chain_right(release=True)
+
+    def _release_keys(self) -> None:
+        """
+        松开可能影响下一个角色的按键，避免按键冲突（系统只能同时按下3个按键）
+        :return:
+        """
+        self.dodge(release=True)
+        self.normal_attack(release=True)
+        self.special_attack(release=True)
         self.move_w(release=True)
         self.move_s(release=True)
         self.move_a(release=True)
         self.move_d(release=True)
-        self.lock(release=True)
-        self.chain_cancel(release=True)
