@@ -63,8 +63,6 @@ handlers:
       - states: "[自定义-仪玄-太极,0,1]"
         debug_name: "太极中，等待一下"
         operations:
-          - op_name: "清除状态"
-            state: "自定义-仪玄-太极"
           - op_name: "等待秒数"
             seconds: 1
 
