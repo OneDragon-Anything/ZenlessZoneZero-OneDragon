@@ -20,7 +20,7 @@ from one_dragon.utils import thread_utils
 from one_dragon.utils.log_utils import log
 
 # 当前运行的场景一个 打断的新场景一个 处理事件更新状态一个
-_od_conditional_op_executor = ThreadPoolExecutor(thread_name_prefix='od_conditional_op', max_workers=4)
+_od_conditional_op_executor = ThreadPoolExecutor(thread_name_prefix='od_conditional_op', max_workers=8)
 
 
 class ConditionalOperator(ConditionalOperatorLoader):
@@ -52,7 +52,7 @@ class ConditionalOperator(ConditionalOperatorLoader):
         self.current_execution_info: ExecutionInfo | None = None  # 当前的执行信息
         self.running_executor: OperationExecutor | None = None  # 正在运行的任务
         self.running_executor_cnt: AtomicInt = AtomicInt()  # 统计有
-        
+
         self._inited: bool = False
         self._task_lock: Lock = Lock()
 
