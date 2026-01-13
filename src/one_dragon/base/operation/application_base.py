@@ -116,3 +116,10 @@ class Application(Operation):
     @staticmethod
     def get_preheat_executor() -> ThreadPoolExecutor:
         return _app_preheat_executor
+
+    @staticmethod
+    def after_app_shutdown() -> None:
+        """
+        整个脚本运行结束后的清理
+        """
+        _app_preheat_executor.shutdown(wait=False, cancel_futures=True)

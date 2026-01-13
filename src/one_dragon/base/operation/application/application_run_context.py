@@ -464,3 +464,9 @@ class ApplicationRunContext:
             except Exception:
                 # 部分应用没有运行记录 跳过即可
                 pass
+
+    def shutdown(self) -> None:
+        """
+        关闭
+        """
+        self._executor.shutdown(wait=False, cancel_futures=True)
