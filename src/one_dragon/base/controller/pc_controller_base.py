@@ -49,6 +49,27 @@ class PcControllerBase(ControllerBase):
         self.screenshot_controller: PcScreenshotController = PcScreenshotController(self.game_win, standard_width, standard_height)
         self.screenshot_method: str = screenshot_method
 
+        self._input_enabled: bool = True  # 输入是否启用
+        self._last_check_input_time: float = 0  # 上次检查输入状态的时间
+
+    def update_input_state(self) -> None:
+        """
+        更新输入状态
+        """
+        now = time.time()
+        if now - self._last_check_input_time < 0.5:  # 限制检查频率，避免影响性能
+            return
+        self._last_check_input_time = now
+
+        if self.game_win.is_win_active:
+            if not self._input_enabled:
+                self._input_enabled = True
+                self.btn_controller.enable_input()
+        else:
+            if self._input_enabled:
+                self._input_enabled = False
+                self.btn_controller.disable_input()
+
     def init_game_win(self) -> bool:
         """
         初始化游戏窗口相关内容
@@ -139,6 +160,7 @@ class PcControllerBase(ControllerBase):
         return True
 
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
+        self.update_input_state()
         if self.is_game_window_ready:
             # 确保截图器已初始化
             if not independent and self.screenshot_controller.active_strategy_name is None:
