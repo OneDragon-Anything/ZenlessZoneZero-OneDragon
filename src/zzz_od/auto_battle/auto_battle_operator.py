@@ -174,7 +174,7 @@ class AutoBattleOperator(ConditionalOperator):
                 ult_recorder = self.ctx.state_record_service.get_state_recorder(BattleStateEnum.STATUS_ULTIMATE_READY.value)
                 if ult_recorder and ult_recorder.last_record_time > 0:
                     log.info('大招就绪且开启了立即释放，尝试释放大招')
-                    self.ctx.ultimate(press=True, press_time=0.1, release=True)
+                    self.ctx.ultimate(press=True, press_time=0.1)
                     any_done = True
                     last_ultimate_time = now
                     if self._stop_event.wait(0.5):
