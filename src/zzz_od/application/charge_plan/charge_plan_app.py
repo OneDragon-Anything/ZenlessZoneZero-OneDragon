@@ -51,6 +51,7 @@ class ChargePlanApp(ZApplication):
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
         self.last_tried_plan = None
+        self.ctx.auto_battle_context.use_ultimate_immediately = self.config.use_ultimate_immediately
         return self.round_success()
 
     @node_from(from_name='挑战完成')

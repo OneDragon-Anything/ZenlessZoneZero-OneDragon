@@ -76,6 +76,9 @@ class AutoBattleContext:
         self.without_distance_times: int = 0  # 没有显示距离的次数
         self.with_distance_times: int = 0  # 有显示距离的次数
 
+        # 特殊开关
+        self.use_ultimate_immediately: bool = False  # 是否在终结技就绪时立即释放
+
     def init_auto_op(
         self,
         op_name: str,

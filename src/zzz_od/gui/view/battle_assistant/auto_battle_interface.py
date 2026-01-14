@@ -86,6 +86,9 @@ class AutoBattleInterface(AppRunInterface):
         self.gpu_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='GPU运算', content='游戏画面掉帧的话 可以不启用')
         top_widget.add_widget(self.gpu_opt)
 
+        self.use_ultimate_immediately_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='亮了就点', content='自动战斗中大招就绪时立即释放')
+        top_widget.add_widget(self.use_ultimate_immediately_opt)
+
         self.merged_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='使用合并配置文件',
                                             content='关闭用于调试模板文件 正常开启即可')
         top_widget.add_widget(self.merged_opt)
@@ -142,6 +145,7 @@ class AutoBattleInterface(AppRunInterface):
         self._update_auto_battle_config_opts()
         self.config_opt.setValue(self.ctx.battle_assistant_config.auto_battle_config)
         self.gpu_opt.init_with_adapter(get_prop_adapter(self.ctx.model_config, 'flash_classifier_gpu'))
+        self.use_ultimate_immediately_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'use_ultimate_immediately'))
         self.merged_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'use_merged_file'))
         self.screenshot_interval_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'screenshot_interval'))
         self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.gamepad_type)

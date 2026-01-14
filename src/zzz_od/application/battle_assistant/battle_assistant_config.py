@@ -48,6 +48,14 @@ class BattleAssistantConfig(YamlConfig):
         self.update('auto_battle_config', new_value)
 
     @property
+    def use_ultimate_immediately(self) -> bool:
+        return self.get('use_ultimate_immediately', False)
+
+    @use_ultimate_immediately.setter
+    def use_ultimate_immediately(self, new_value: bool) -> None:
+        self.update('use_ultimate_immediately', new_value)
+
+    @property
     def debug_operation_config(self) -> str:
         return self.get('debug_operation_config', '安比-3A特殊攻击')
 

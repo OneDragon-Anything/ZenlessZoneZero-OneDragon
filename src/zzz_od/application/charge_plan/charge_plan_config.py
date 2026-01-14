@@ -323,3 +323,11 @@ class ChargePlanConfig(ApplicationConfig):
     @property
     def is_restore_charge_enabled(self) -> bool:
         return self.restore_charge != RestoreChargeEnum.NONE.value.value
+
+    @property
+    def use_ultimate_immediately(self) -> bool:
+        return self.get('use_ultimate_immediately', False)
+
+    @use_ultimate_immediately.setter
+    def use_ultimate_immediately(self, new_value: bool) -> None:
+        self.update('use_ultimate_immediately', new_value)

@@ -70,6 +70,7 @@ class AutoBattleApp(ZApplication):
                 sub_dir='auto_battle',
                 op_name=self.ctx.battle_assistant_config.auto_battle_config,
             )
+            self.ctx.auto_battle_context.use_ultimate_immediately = self.ctx.battle_assistant_config.use_ultimate_immediately
         except Exception:
             # 捕获异常，显式返回 Fail，防止框架自动重试
             return self.round_fail(status='加载指令失败')

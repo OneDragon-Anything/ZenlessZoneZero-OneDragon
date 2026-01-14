@@ -307,7 +307,8 @@ class ChargePlanInterface(VerticalScrollInterface):
 
         self.loop_opt = SwitchSettingCard(icon=FluentIcon.SYNC, title='循环执行', content='开启时 会循环执行到体力用尽')
         self.skip_plan_opt = SwitchSettingCard(icon=FluentIcon.FLAG, title='跳过计划', content='开启时 自动跳过体力不足的计划')
-        self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt], spacing=6))
+        self.use_ultimate_immediately_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='亮了就点', content='自动战斗中大招就绪时立即释放')
+        self.content_widget.add_widget(HorizontalSettingCardGroup([self.loop_opt, self.skip_plan_opt, self.use_ultimate_immediately_opt], spacing=6))
 
         # 2.5版本已移除家政券功能，暂时关闭UI
         # self.coupon_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='使用家政券', content='运行区域巡防时使用家政券')
@@ -362,6 +363,7 @@ class ChargePlanInterface(VerticalScrollInterface):
 
         self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
         self.skip_plan_opt.init_with_adapter(get_prop_adapter(self.config, 'skip_plan'))
+        self.use_ultimate_immediately_opt.init_with_adapter(get_prop_adapter(self.config, 'use_ultimate_immediately'))
         # self.coupon_opt.init_with_adapter(get_prop_adapter(self.config, 'use_coupon'))
         self.restore_charge_opt.init_with_adapter(get_prop_adapter(self.config, 'restore_charge'))
 

@@ -14,6 +14,7 @@ from one_dragon.utils import thread_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.atomic_op.btn_lock import AtomicBtnLock
 from zzz_od.auto_battle.atomic_op.turn import AtomicTurn
+from zzz_od.auto_battle.auto_battle_state import BattleStateEnum
 from zzz_od.context.zzz_context import ZContext
 
 if TYPE_CHECKING:
@@ -168,6 +169,15 @@ class AutoBattleOperator(ConditionalOperator):
             any_done: bool = False
             if not self.is_running:
                 break
+            if self.ctx.use_ultimate_immediately:
+                ult_recorder = self.ctx.state_record_service.get_state_recorder(BattleStateEnum.STATUS_ULTIMATE_READY.value)
+                if ult_recorder and ult_recorder.last_record_time > 0:
+                    log.info('大招就绪且开启了立即释放，尝试释放大招')
+                    self.ctx.ultimate(press=True, press_time=0.1, release=True)
+                    any_done = True
+                    if self._stop_event.wait(0.5):
+                        break
+
             if self.auto_lock_interval > 0 and now - self.last_lock_time > self.auto_lock_interval:
                 lock_op.execute()
                 self.last_lock_time = now
