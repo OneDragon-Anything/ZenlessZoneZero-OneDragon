@@ -153,9 +153,10 @@ class AutoBattleOperator(ConditionalOperator):
         2. 转向 - 有机会找到后方太远的敌人；迷失之地可以转动下层入口
         :return:
         """
-        if self.auto_lock_interval <= 0 and self.auto_turn_interval <= 0:  # 不开启自动锁定 和 自动转向
+        if self.auto_lock_interval <= 0 and self.auto_turn_interval <= 0 and not self.ctx.use_ultimate_immediately:
             return
         self._stop_event.clear()
+        last_ultimate_time = 0
         lock_op = AtomicBtnLock(self.ctx)
         turn_op = AtomicTurn(self.ctx, 100)
         while self.is_running:
@@ -169,12 +170,13 @@ class AutoBattleOperator(ConditionalOperator):
             any_done: bool = False
             if not self.is_running:
                 break
-            if self.ctx.use_ultimate_immediately:
+            if self.ctx.use_ultimate_immediately and now - last_ultimate_time > 1:
                 ult_recorder = self.ctx.state_record_service.get_state_recorder(BattleStateEnum.STATUS_ULTIMATE_READY.value)
                 if ult_recorder and ult_recorder.last_record_time > 0:
                     log.info('大招就绪且开启了立即释放，尝试释放大招')
                     self.ctx.ultimate(press=True, press_time=0.1, release=True)
                     any_done = True
+                    last_ultimate_time = now
                     if self._stop_event.wait(0.5):
                         break
 
