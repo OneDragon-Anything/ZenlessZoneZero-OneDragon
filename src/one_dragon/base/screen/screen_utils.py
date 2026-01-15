@@ -37,6 +37,7 @@ def find_area(
     screen_name: str,
     area_name: str,
     crop_first: bool = True,
+    use_feature_match: bool = False,
 ) -> FindAreaResultEnum:
     """
     游戏截图中 是否能找到对应的区域
@@ -46,12 +47,13 @@ def find_area(
         screen_name: 画面名称
         area_name: 区域名称
         crop_first: 在传入区域时 是否先裁剪再进行文本识别
+        use_feature_match: 是否使用特征匹配（支持不同尺寸）
 
     Returns:
         bool: 是否可以匹配到指定区域
     """
     area: ScreenArea = ctx.screen_loader.get_area(screen_name, area_name)
-    return find_area_in_screen(ctx, screen, area, crop_first)
+    return find_area_in_screen(ctx, screen, area, crop_first, use_feature_match)
 
 
 def find_area_binary(
@@ -61,6 +63,7 @@ def find_area_binary(
     area_name: str,
     binary_threshold: int = 127,
     crop_first: bool = True,
+    use_feature_match: bool = False,
 ) -> FindAreaResultEnum:
     """
     使用二值化图像在游戏截图中查找区域
@@ -71,12 +74,13 @@ def find_area_binary(
         area_name: 区域名称
         binary_threshold: 二值化阈值，默认为127
         crop_first: 在传入区域时 是否先裁剪再进行识别
+        use_feature_match: 是否使用特征匹配（支持不同尺寸）
 
     Returns:
         FindAreaResultEnum: 是否可以匹配到指定区域
     """
     area: ScreenArea = ctx.screen_loader.get_area(screen_name, area_name)
-    return find_area_in_screen_binary(ctx, screen, area, binary_threshold, crop_first)
+    return find_area_in_screen_binary(ctx, screen, area, binary_threshold, crop_first, use_feature_match)
 
 
 def find_area_in_screen_binary(
@@ -85,6 +89,7 @@ def find_area_in_screen_binary(
     area: ScreenArea,
     binary_threshold: int = 127,
     crop_first: bool = True,
+    use_feature_match: bool = False,
 ) -> FindAreaResultEnum:
     """
     使用二值化图像在截图中查找区域
@@ -94,6 +99,7 @@ def find_area_in_screen_binary(
         area: 区域
         binary_threshold: 二值化阈值，默认为127
         crop_first: 在传入区域时 是否先裁剪再进行识别
+        use_feature_match: 是否使用特征匹配（支持不同尺寸）
 
     Returns:
         FindAreaResultEnum: 是否可以匹配到指定区域
@@ -122,15 +128,25 @@ def find_area_in_screen_binary(
         rect = area.rect
         part = cv2_utils.crop_image_only(binary_screen, rect)
 
-        # 使用二值化模板匹配
-        mrl = ctx.tm.match_template_binary(
-            part,
-            area.template_sub_dir,
-            area.template_id,
-            threshold=area.template_match_threshold,
-            binary_threshold=binary_threshold
-        )
-        find = mrl.max is not None
+        if use_feature_match:
+            # 使用二值化特征匹配
+            mr = ctx.tm.match_one_by_feature_binary(
+                part,
+                area.template_sub_dir,
+                area.template_id,
+                binary_threshold=binary_threshold
+            )
+            find = mr is not None
+        else:
+            # 使用二值化模板匹配
+            mrl = ctx.tm.match_template_binary(
+                part,
+                area.template_sub_dir,
+                area.template_id,
+                threshold=area.template_match_threshold,
+                binary_threshold=binary_threshold
+            )
+            find = mrl.max is not None
 
     return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
 
@@ -140,6 +156,7 @@ def find_area_in_screen(
     screen: MatLike,
     area: ScreenArea,
     crop_first: bool = True,
+    use_feature_match: bool = False,
 ) -> FindAreaResultEnum:
     """
     游戏截图中 是否能找到对应的区域
@@ -149,6 +166,7 @@ def find_area_in_screen(
         screen: 游戏截图
         area: 区域
         crop_first: 在传入区域时 是否先裁剪再进行文本识别
+        use_feature_match: 是否使用特征匹配（支持不同尺寸）
 
     Returns:
         bool: 是否可以匹配到指定区域
@@ -173,9 +191,15 @@ def find_area_in_screen(
         rect = area.rect
         part = cv2_utils.crop_image_only(screen, rect)
 
-        mrl = ctx.tm.match_template(part, area.template_sub_dir, area.template_id,
-                                    threshold=area.template_match_threshold)
-        find = mrl.max is not None
+        if use_feature_match:
+            # 使用特征匹配
+            mr = ctx.tm.match_one_by_feature(part, area.template_sub_dir, area.template_id)
+            find = mr is not None
+        else:
+            # 使用模板匹配
+            mrl = ctx.tm.match_template(part, area.template_sub_dir, area.template_id,
+                                        threshold=area.template_match_threshold)
+            find = mrl.max is not None
 
     return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
 

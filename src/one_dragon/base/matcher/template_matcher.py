@@ -125,3 +125,41 @@ class TemplateMatcher:
             only_best=only_best,
             ignore_inf=ignore_inf
         )
+
+    def match_one_by_feature_binary(self, source: MatLike,
+                                    template_sub_dir: str,
+                                    template_id: str,
+                                    binary_threshold: int = 127,
+                                    source_mask: MatLike = None,
+                                    knn_distance_percent: float = 0.7
+                                    ) -> Optional[MatchResult]:
+        """
+        使用二值化图像进行特征匹配找到模板的位置
+        :param source: 原图
+        :param template_sub_dir: 模板的子文件夹
+        :param template_id: 模板id
+        :param binary_threshold: 二值化阈值，默认为127
+        :param source_mask: 源图掩码
+        :param knn_distance_percent: 越小要求匹配程度越高
+        :return: 匹配结果，如果未找到则返回None
+        """
+        template: TemplateInfo = self.template_loader.get_template(template_sub_dir, template_id)
+        if template is None:
+            log.error('未加载模板 %s' % template_id)
+            return None
+
+        # 对原图和模板都进行二值化处理
+        source_binary = cv2_utils.to_binary(source, threshold=binary_threshold)
+        template_binary = cv2_utils.to_binary(template.raw, threshold=binary_threshold)
+
+        # 对二值化图像进行特征检测
+        source_kps, source_desc = cv2_utils.feature_detect_and_compute(source_binary, source_mask)
+        template_kps, template_desc = cv2_utils.feature_detect_and_compute(template_binary)
+
+        return cv2_utils.feature_match_for_one(
+            source_kps, source_desc,
+            template_kps, template_desc,
+            template_width=template.raw.shape[1], template_height=template.raw.shape[0],
+            source_mask=source_mask,
+            knn_distance_percent=knn_distance_percent
+        )
