@@ -7,6 +7,7 @@ from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from zzz_od.application.redemption_code import redemption_code_const
 from zzz_od.application.redemption_code.redemption_code_app import RedemptionCodeApp
+from zzz_od.application.redemption_code.redemption_code_config import RedemptionCodeConfig
 from zzz_od.application.redemption_code.redemption_code_run_record import (
     RedemptionCodeRunRecord,
 )
@@ -34,3 +35,7 @@ class RedemptionCodeFactory(ApplicationFactory):
             instance_idx=instance_idx,
             game_refresh_hour_offset=self.ctx.game_account_config.game_refresh_hour_offset,
         )
+
+    def create_config(self, instance_idx: int, group_id: str):
+        """创建兑换码配置"""
+        return RedemptionCodeConfig(instance_idx=instance_idx, group_id=group_id)
