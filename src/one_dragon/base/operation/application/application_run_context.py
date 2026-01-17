@@ -468,5 +468,22 @@ class ApplicationRunContext:
     def shutdown(self) -> None:
         """
         关闭
+
+        关闭应用运行上下文，包括停止当前运行任务、清除运行状态和重建执行器。
+        确保后续调用 run_application_async() 时能够正确重新初始化。
         """
+        # 首先停止当前运行的应用，清除运行状态
+        self.stop_running()
+
+        # 清除当前运行的应用相关信息
+        self.current_app_id = None
+        self.current_instance_idx = None
+        self.current_group_id = None
+
+        # 关闭旧的执行器
         self._executor.shutdown(wait=False, cancel_futures=True)
+
+        # 重建执行器，以便后续能继续使用
+        self._executor = ThreadPoolExecutor(
+            thread_name_prefix="one_dragon_app_run_context", max_workers=1
+        )

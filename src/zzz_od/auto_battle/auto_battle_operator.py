@@ -140,10 +140,15 @@ class AutoBattleOperator(ConditionalOperator):
     def start_running_async(self) -> bool:
         # 等待旧线程退出
         end_time = time.time() + 2
+        timed_out = False
         while self._periodic_thread_running:
             if time.time() > end_time:
+                timed_out = True
                 break
             time.sleep(0.1)
+
+        if timed_out:
+            log.warning(f'周期性线程未在规定时间内停止，可能仍在运行')
 
         success = ConditionalOperator.start_running_async(self)
         if success:
@@ -205,10 +210,15 @@ class AutoBattleOperator(ConditionalOperator):
 
         # 等待线程退出
         end_time = time.time() + 2
+        timed_out = False
         while self._periodic_thread_running:
             if time.time() > end_time:
+                timed_out = True
                 break
             time.sleep(0.05)
+
+        if timed_out:
+            log.warning(f'周期性线程未在规定时间内停止，可能仍在运行')
 
     @staticmethod
     def after_app_shutdown() -> None:

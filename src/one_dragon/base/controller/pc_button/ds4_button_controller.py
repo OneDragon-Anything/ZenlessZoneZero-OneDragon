@@ -237,9 +237,6 @@ class Ds4ButtonController(PcButtonController):
         self._tap_handler[int(key.split('_')[-1])](True, press_time)
 
     def release(self, key: str) -> None:
-        if not self.input_enabled:
-            return
-
         if key is None:  # 部分按键不支持
             return
         self.release_handler[int(key.split('_')[-1])]()
