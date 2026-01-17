@@ -5,9 +5,10 @@ from typing import Optional
 from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import FluentIcon, PushButton, ToolButton, MessageBox, SettingCard
+from qfluentwidgets import FluentIcon, MessageBox, PushButton, SettingCard, ToolButton
 
 from one_dragon.base.operation.context_event_bus import ContextEventItem
+from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.view.app_run_interface import AppRunInterface
@@ -15,12 +16,10 @@ from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
-from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
     DoubleSpinBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from one_dragon.utils import os_utils
 from zzz_od.application.battle_assistant.auto_battle import auto_battle_const
 from zzz_od.application.battle_assistant.auto_battle.auto_battle_app import (
     AutoBattleApp,
@@ -67,6 +66,7 @@ class AutoBattleInterface(AppRunInterface):
         top_widget = Column()
 
         self.help_opt = SettingCard(FluentIcon.HELP, gt('使用说明'), gt('先看说明 再使用与提问'))
+        self.help_opt.setFixedHeight(50)
         self.desc_btn = PushButton(gt('如何让AI打得更好？'))
         self.desc_btn.clicked.connect(self._on_desc_clicked)
         self.help_opt.hBoxLayout.addWidget(self.desc_btn, alignment=Qt.AlignmentFlag.AlignRight)
@@ -85,7 +85,6 @@ class AutoBattleInterface(AppRunInterface):
             icon=FluentIcon.GAME, title='战斗配置',
             content='全配队通用会自动为您的队伍匹配专属配队，遇到问题请反馈。'
         )
-        self.config_opt.hBoxLayout.addSpacing(16)
         self.del_btn = ToolButton(FluentIcon.DELETE)
         self.del_btn.clicked.connect(self._on_del_clicked)
         self.config_opt.hBoxLayout.addWidget(self.del_btn, alignment=Qt.AlignmentFlag.AlignRight)
@@ -101,7 +100,7 @@ class AutoBattleInterface(AppRunInterface):
         top_widget.add_widget(self.merged_opt)
 
         self.screenshot_interval_opt = DoubleSpinBoxSettingCard(
-            icon=FluentIcon.GAME, title='截图间隔(秒)',
+            icon=FluentIcon.GAME, title='截图间隔 (秒)',
             content='一般默认0.02，除非电脑很卡。优先通过设置游戏30帧和低画质给AI留算力',
             minimum=0.02, maximum=0.1
         )
@@ -206,6 +205,8 @@ class AutoBattleInterface(AppRunInterface):
             pass
 
         w = MessageBox(gt("使用说明"), content, self.window())
+        w.cancelButton.hide()
+        w.yesButton.setText(gt("确认"))
         w.exec()
 
     def _on_del_clicked(self) -> None:
