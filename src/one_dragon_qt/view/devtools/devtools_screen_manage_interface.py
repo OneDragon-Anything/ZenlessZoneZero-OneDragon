@@ -219,6 +219,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         self.area_table = TableWidget()
         self.area_table.cellChanged.connect(self._on_area_table_cell_changed)
+        self.area_table.itemChanged.connect(self._on_area_table_item_changed)
         self.area_table.setMinimumWidth(980)
         self.area_table.setBorderVisible(True)
         self.area_table.setBorderRadius(8)
@@ -230,7 +231,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             for key in AREA_FIELD_2_COLUMN
         ])
         self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['操作'], 40)
-        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['标识'], 40)
+        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['标识'], 50)
         self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['位置'], 200)
         self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['阈值1'], 70)
         self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['阈值2'], 70)
@@ -342,13 +343,11 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             del_btn.setFixedSize(32, 32)
             del_btn.clicked.connect(self._on_row_delete_clicked)
 
-            id_check = CheckBox()
-            id_check.setChecked(area_item.id_mark)
-            id_check.setProperty('area_name', area_item.area_name)
-            id_check.stateChanged.connect(self.on_area_id_check_changed)
+            id_check_item = QTableWidgetItem()
+            id_check_item.setCheckState(Qt.CheckState.Checked if area_item.id_mark else Qt.CheckState.Unchecked)
 
             self.area_table.setCellWidget(idx, 0, del_btn)
-            self.area_table.setCellWidget(idx, 1, id_check)
+            self.area_table.setItem(idx, 1, id_check_item)
             self.area_table.setItem(idx, 2, QTableWidgetItem(area_item.area_name))
             self.area_table.setItem(idx, 3, QTableWidgetItem(str(area_item.pc_rect)))
             self.area_table.setItem(idx, 4, QTableWidgetItem(area_item.text))
@@ -755,15 +754,16 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         # 更新撤回按钮
         self._update_history_buttons()
 
-    def on_area_id_check_changed(self):
+    def _on_area_table_item_changed(self, item: QTableWidgetItem) -> None:
+        """处理标识列 checkbox 状态变化"""
+        if item.column() != AREA_FIELD_2_COLUMN['标识']:
+            return
         if self.chosen_screen is None:
             return
-        btn: CheckBox = self.sender()
-        if btn is not None:
-            row_idx = self.area_table.indexAt(btn.pos()).row()
-            if row_idx < 0 or row_idx >= len(self.chosen_screen.area_list):
-                return
-            self.chosen_screen.area_list[row_idx].id_mark = btn.isChecked()
+        row = item.row()
+        if row < 0 or row >= len(self.chosen_screen.area_list):
+            return
+        self.chosen_screen.area_list[row].id_mark = item.checkState() == Qt.CheckState.Checked
 
     def on_area_table_cell_clicked(self, row: int, column: int):
         if self.area_table_row_selected == row:
