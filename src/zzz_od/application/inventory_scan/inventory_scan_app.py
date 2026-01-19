@@ -34,7 +34,7 @@ class InventoryScanApp(ZApplication):
 
         # 截图目录和缓存
         self.screenshots_dir = os_utils.get_path_under_work_dir('.debug', 'inventory_screenshots')
-        self.screenshot_cache = ScreenshotCache(save_dir=self.screenshots_dir, debug_mode=True)
+        self.screenshot_cache = ScreenshotCache(save_dir=self.screenshots_dir, debug_mode=False)
 
         # 实例化三个子扫描应用，传入共享的截图缓存
         self.drive_disk_scanner = DriveDiskScanApp(ctx, screenshot_cache=self.screenshot_cache)
@@ -54,8 +54,8 @@ class InventoryScanApp(ZApplication):
         import shutil
         if os.path.exists(self.screenshots_dir):
             shutil.rmtree(self.screenshots_dir)
-        os.makedirs(self.screenshots_dir, exist_ok=True)
-        log.info(f"截图文件夹已准备: {self.screenshots_dir}")
+        # os.makedirs(self.screenshots_dir, exist_ok=True)
+        # log.info(f"截图文件夹已准备: {self.screenshots_dir}")
 
         # 清空所有缓存并重置索引，确保从0开始
         self.screenshot_cache.reset_all()

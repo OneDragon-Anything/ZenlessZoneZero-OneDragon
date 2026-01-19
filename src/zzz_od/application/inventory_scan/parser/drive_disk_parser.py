@@ -24,6 +24,7 @@ class DriveDiskParser:
         'Energy Regen': 'energyRegen_',
         'Energy': 'energyRegen_',
         'Regen': 'energyRegen_',
+        'Anomaly Mastery': 'anomMas_',
         # 中文
         '生命值': 'hp_',
         '攻击力': 'atk_',
@@ -34,9 +35,11 @@ class DriveDiskParser:
         '穿透率': 'pen_',
         '冲击力': 'impact',
         '能量自动回复': 'energyRegen_',
+        '异常掌控': 'anomMas_',
+        'Anomaly Mastery': 'anomMas_',
         # OCR常见错误识别
         '昇常精通': 'anomProf',  # "异常精通"的OCR错误
-        '昇常': 'anomProf',      # 部分识别
+        '昇常掌控': 'anomMas_',
         # 属性伤害加成（新增）
         '火': 'fire_dmg_',
         '冰': 'ice_dmg_',
@@ -70,8 +73,6 @@ class DriveDiskParser:
         '冲击力': 'impact',
         # OCR常见错误识别
         '昇常精通': 'anomProf',  # "异常精通"的OCR错误
-        '昇常': 'anomProf',      # 部分识别
-        '异常': 'anomProf',      # 部分识别
         # 属性伤害加成（新增）
         '火': 'fire_dmg_',
         '冰': 'ice_dmg_',
@@ -121,7 +122,7 @@ class DriveDiskParser:
             for item in ocr_items:
                 original_text = item.get('text', '')
                 corrected_text = self.translation_service.correct_text(original_text)
-                
+
                 # 更新 OCR 结果中的文本
                 item['text'] = corrected_text
                 texts.append(corrected_text)
