@@ -3,7 +3,7 @@ handlers:
   - states: "[前台-叶瞬光]"
     interrupt_states: "[前台-能量, 0, 0.1] & ![前台-叶瞬光]"
     sub_handlers:
-      - states: "[自定义-终结技被强制释放, 0, 1]"
+      - states: "[自定义-终结技被强制释放, 0, 1] & [叶瞬光-常态]{1,1}"
         interrupt_states: "[叶瞬光-常态]{0,0}"
         operations:
           - operation_template: "叶瞬光-终结技-起"

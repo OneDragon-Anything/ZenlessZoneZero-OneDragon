@@ -70,6 +70,7 @@ class AutoBattleApp(ZApplication):
                 sub_dir='auto_battle',
                 op_name=self.ctx.battle_assistant_config.auto_battle_config,
             )
+            self.ctx.auto_battle_context.auto_ultimate_enabled = self.ctx.battle_assistant_config.auto_ultimate_enabled
         except Exception:
             # 捕获异常，显式返回 Fail，防止框架自动重试
             return self.round_fail(status='加载指令失败')
@@ -79,6 +80,9 @@ class AutoBattleApp(ZApplication):
             self.ctx.auto_battle_context.auto_op,
         )
         self.ctx.auto_battle_context.start_auto_battle()
+        # 只有在手动使用自动战斗指令时，才使用配置中的开关
+        # 其他指令调用 start_auto_battle 时，会使用默认值 True
+        self.ctx.auto_battle_context.auto_ultimate_enabled = self.ctx.battle_assistant_config.auto_ultimate_enabled
 
         return self.round_success()
 
