@@ -436,17 +436,37 @@ class AgentEnum(Enum):
                                    max_length=100)
                  ])
 
-    YESHUNGUANG = Agent('yeshunguang', '叶瞬光', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.PHYSICAL, ['yeshunguang', 'yeshunguang_touch_of_dawnlight'],
-                       state_list=[
-                           AgentStateDef('叶瞬光-常态', AgentStateCheckWay.TEMPLATE_FOUND,
-                                         template_id='yeshunguang_normal', min_value_trigger_state=0,
-                                         template_threshold=0.8),
-                           AgentStateDef('叶瞬光-青溟剑势-红', AgentStateCheckWay.COLOR_RANGE_CONNECT,
-                                         template_id='yeshunguang_qingming',
-                                         hsv_color=(0, 0, 255), hsv_color_diff=(10, 10, 10),
-                                         connect_cnt=2),
-                           AgentStateDef('叶瞬光-青溟剑势-白', AgentStateCheckWay.COLOR_RANGE_CONNECT,
-                                         template_id='yeshunguang_qingming_ex',
-                                         hsv_color=(0, 0, 255), hsv_color_diff=(10, 10, 10),
-                                         connect_cnt=2)
-                       ])
+    YESHUNGUANG = Agent(
+        "yeshunguang",
+        "叶瞬光",
+        RareTypeEnum.S,
+        AgentTypeEnum.ATTACK,
+        DmgTypeEnum.PHYSICAL,
+        ["yeshunguang", "yeshunguang_touch_of_dawnlight"],
+        state_list=[
+            AgentStateDef(
+                "叶瞬光-明心境",
+                AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                template_id="energy",
+                hsv_color=(113, 75, 255),
+                hsv_color_diff=(10, 50, 50),
+                max_length=120,
+            ),
+            AgentStateDef(
+                "叶瞬光-青溟剑势-红",
+                AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                template_id="yeshunguang_qingming",
+                hsv_color=(0, 0, 255),
+                hsv_color_diff=(10, 10, 10),
+                connect_cnt=2,
+            ),
+            AgentStateDef(
+                "叶瞬光-青溟剑势-白",
+                AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                template_id="yeshunguang_qingming_ex",
+                hsv_color=(0, 0, 255),
+                hsv_color_diff=(10, 10, 10),
+                connect_cnt=2,
+            ),
+        ],
+    )
