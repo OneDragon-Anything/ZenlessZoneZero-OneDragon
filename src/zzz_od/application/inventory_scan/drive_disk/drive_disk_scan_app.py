@@ -158,8 +158,8 @@ class DriveDiskScanApp(ZApplication):
                         'position': (match.x, match.y, match.x + match.w, match.y + match.h) if hasattr(match, 'x') else None
                     })
 
-            # 解析并保存
-            disc_data = self.parser.parse_ocr_result(ocr_items)
+            # 解析并保存（传入screenshot和index用于异常保存）
+            disc_data = self.parser.parse_ocr_result(ocr_items, screenshot=screenshot, index=index)
             if disc_data:
                 self.scanned_discs.append(disc_data)
                 log.info(f"识别成功(drive_disk-{index}): {disc_data.get('setKey', 'Unknown')} [{disc_data.get('slotKey', '?')}] Lv.{disc_data.get('level', 0)}")

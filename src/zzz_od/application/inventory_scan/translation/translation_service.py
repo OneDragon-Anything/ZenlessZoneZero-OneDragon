@@ -14,6 +14,18 @@ class TranslationService:
             'translation_dict.json'
         )
         self.translation_dict: Optional[Dict] = None
+
+        # 特殊名称映射（繁简转换等）
+        self.special_name_mapping = {
+            '賽斯': '赛斯',  # 繁体 -> 简体
+            '賽斯・洛威尔': '赛斯',  # 繁体 -> 简体
+            '赛斯・洛威尔': '赛斯',  # 简体 -> 简体
+            '搖摆': '摇摆',  # 错别字修复
+            '昇常': '异常',  # 错别字修复
+            '昇常精通': '异常精通',  # 错别字修复
+            '昇常掌控': '异常掌控',  # 错别字修复
+        }
+
         self._load_dict()
 
     def _load_dict(self):
@@ -50,10 +62,31 @@ class TranslationService:
         """翻译驱动盘名称"""
         return self._translate('equipment', name, target_lang)
 
+    def correct_text(self, text: str) -> str:
+        """
+        修正OCR文本中的常见错误
+        该方法会对文本进行遍历替换，适用于包含错别字的长文本
+        """
+        if not text:
+            return text
+            
+        result = text
+        for wrong, right in self.special_name_mapping.items():
+            if wrong in result:
+                result = result.replace(wrong, right)
+                
+        return result
+
     def _translate(self, category: str, name: str, target_lang: str) -> str:
         """通用翻译方法，支持模糊匹配"""
         if not self.translation_dict:
             return name
+
+        # 0. 检查特殊名称映射（优先级最高）
+        if name in self.special_name_mapping:
+            mapped_name = self.special_name_mapping[name]
+            log.info(f"特殊名称映射: {name} -> {mapped_name}")
+            name = mapped_name
 
         category_dict = self.translation_dict.get(category, {})
 

@@ -1,6 +1,10 @@
 import json
 import re
+import os
+import cv2
 from typing import Optional, Dict, List, Any
+from one_dragon.utils.log_utils import log
+from one_dragon.utils import os_utils
 
 
 class DriveDiskParser:
@@ -30,6 +34,15 @@ class DriveDiskParser:
         '穿透率': 'pen_',
         '冲击力': 'impact',
         '能量自动回复': 'energyRegen_',
+        # OCR常见错误识别
+        '昇常精通': 'anomProf',  # "异常精通"的OCR错误
+        '昇常': 'anomProf',      # 部分识别
+        # 属性伤害加成（新增）
+        '火': 'fire_dmg_',
+        '冰': 'ice_dmg_',
+        '电': 'electric_dmg_',
+        '以太': 'ether_dmg_',
+        '物理': 'physical_dmg_',
     }
 
     # 副属性映射
@@ -55,6 +68,16 @@ class DriveDiskParser:
         '穿透值': 'pen',
         '异常精通': 'anomProf',
         '冲击力': 'impact',
+        # OCR常见错误识别
+        '昇常精通': 'anomProf',  # "异常精通"的OCR错误
+        '昇常': 'anomProf',      # 部分识别
+        '异常': 'anomProf',      # 部分识别
+        # 属性伤害加成（新增）
+        '火': 'fire_dmg_',
+        '冰': 'ice_dmg_',
+        '电': 'electric_dmg_',
+        '以太': 'ether_dmg_',
+        '物理': 'physical_dmg_',
     }
 
     def __init__(self):
@@ -63,13 +86,19 @@ class DriveDiskParser:
         from zzz_od.application.inventory_scan.translation import TranslationService
         self.translation_service = TranslationService()
 
-    def parse_ocr_result(self, ocr_texts: List[Dict[str, Any]]) -> Optional[Dict]:
+        # 异常数据保存目录
+        self.error_dir = os_utils.get_path_under_work_dir('.debug', 'inventory_errors')
+        os.makedirs(self.error_dir, exist_ok=True)
+
+    def parse_ocr_result(self, ocr_texts: List[Dict[str, Any]], screenshot=None, index: int = 0) -> Optional[Dict]:
         """
         解析OCR结果生成驱动盘JSON数据
 
         Args:
             ocr_texts: OCR识别结果列表，每项包含 text, confidence, position 等信息
                       position格式: (x1, y1, x2, y2)
+            screenshot: 原始截图（用于异常保存）
+            index: 截图索引（用于异常保存）
 
         Returns:
             驱动盘JSON数据字典，解析失败返回None
@@ -77,15 +106,25 @@ class DriveDiskParser:
         try:
             # 保留完整的OCR项（包含位置信息）
             ocr_items = []
-            texts = []
             for item in ocr_texts:
                 if isinstance(item, dict):
-                    text = item.get('text', '')
                     ocr_items.append(item)
                 else:
-                    text = str(item)
-                    ocr_items.append({'text': text})
-                texts.append(text)
+                    ocr_items.append({'text': str(item)})
+
+            # 1. 预处理：按阅读顺序排序 OCR 结果 (从上到下，从左到右)
+            # OCR结果可能是乱序的，需要重新排序以确保 texts 列表符合阅读习惯
+            ocr_items = self._sort_ocr_items(ocr_items)
+
+            # 2. 生成有序的文本列表，并进行错别字修正
+            texts = []
+            for item in ocr_items:
+                original_text = item.get('text', '')
+                corrected_text = self.translation_service.correct_text(original_text)
+                
+                # 更新 OCR 结果中的文本
+                item['text'] = corrected_text
+                texts.append(corrected_text)
 
             # 解析套装名称（通常在前两个文本中）
             set_key = self._parse_set_name(texts)
@@ -101,6 +140,18 @@ class DriveDiskParser:
 
             # 解析副属性（需要位置信息来匹配升级标记，且需要排除主属性）
             substats = self._parse_substats(ocr_items, main_stat_key)
+
+            # **异常检测：15级驱动盘应该有4个不同种类的副属性**
+            if level == 15:
+                # 检查副属性种类数量
+                unique_keys = set(sub['key'] for sub in substats)
+                if len(unique_keys) < 4:
+                    error_msg = f"异常检测：15级驱动盘只有{len(unique_keys)}种副属性（应该有4种不同的副属性）"
+                    log.error(error_msg)
+                    log.error(f"副属性列表: {substats}")
+                    self._save_error_data(screenshot, ocr_texts, texts, level, substats, index, error_msg)
+                    # 仍然返回数据，但已记录异常
+                    # return None  # 如果要阻止这个驱动盘被添加，取消注释这行
 
             # 生成驱动盘数据
             self.disc_counter += 1
@@ -120,7 +171,9 @@ class DriveDiskParser:
             return disc_data
 
         except Exception as e:
-            print(f"解析OCR结果失败: {e}")
+            log.error(f"解析OCR结果失败: {e}")
+            if screenshot is not None:
+                self._save_error_data(screenshot, ocr_texts, texts if 'texts' in locals() else [], 0, [], index, str(e))
             return None
 
     def _parse_set_name(self, texts: List[str]) -> str:
@@ -224,7 +277,141 @@ class DriveDiskParser:
         """
         解析副属性
         副属性不能和主属性重复！需要过滤掉主属性
-        
+
+        使用位置信息将文本分组到行，然后解析每一行
+        """
+        # 找到 "Sub-Stats" 或 "副属性" 关键字
+        sub_stat_item = None
+        for item in ocr_items:
+            text = item.get('text', '')
+            if 'Sub-Stats' in text or 'Sub' in text or '副属性' in text:
+                sub_stat_item = item
+                break
+
+        if sub_stat_item is None:
+            return []
+
+        # 获取"副属性"标签的Y坐标
+        sub_stat_position = sub_stat_item.get('position')
+        if sub_stat_position is None:
+            # 如果没有位置信息，回退到原来的索引方式
+            return self._parse_substats_by_index(ocr_items, main_stat_key)
+
+        sub_stat_y = sub_stat_position[1]  # Y坐标（top）
+
+        # 筛选出Y坐标大于"副属性"标签的所有文本（即在"副属性"下方的文本）
+        sub_items = []
+        for item in ocr_items:
+            position = item.get('position')
+            if position and position[1] > sub_stat_y:  # Y坐标大于"副属性"
+                sub_items.append(item)
+
+        if not sub_items:
+            return []
+
+        # 按Y坐标分组（Y坐标差异小于30的认为是同一行）
+        rows = []
+        current_row = [sub_items[0]]
+
+        for i in range(1, len(sub_items)):
+            item = sub_items[i]
+            prev_item = sub_items[i-1]
+
+            # 获取Y坐标
+            curr_y = item.get('position', [0, 0])[1]
+            prev_y = prev_item.get('position', [0, 0])[1]
+
+            # 如果Y坐标差异小于30，认为是同一行
+            if abs(curr_y - prev_y) < 30:
+                current_row.append(item)
+            else:
+                # 新的一行
+                rows.append(current_row)
+                current_row = [item]
+
+        # 添加最后一行
+        if current_row:
+            rows.append(current_row)
+
+        # 解析每一行
+        substats = []
+        for row in rows:
+            # 按X坐标排序（从左到右）
+            row.sort(key=lambda x: x.get('position', [0, 0])[0])
+
+            # 提取文本
+            row_texts = [item.get('text', '') for item in row]
+
+            # 第一个文本通常是属性名
+            if not row_texts:
+                continue
+
+            first_text = row_texts[0].strip()
+            stat_key = None
+            base_text = first_text
+            upgrades = 0
+
+            # 尝试从第一个文本中提取升级标记
+            match = re.search(r'(.+?)\s*\+(\d+)', first_text)
+            if match:
+                base_text = match.group(1).strip()
+                upgrades = int(match.group(2))
+
+            # 匹配属性名
+            # 1. 先尝试完全匹配（去除空格后）
+            base_text_normalized = base_text.replace(' ', '').replace('\t', '')
+            for key, value in self.SUB_STAT_MAP.items():
+                key_normalized = key.replace(' ', '').replace('\t', '')
+                if base_text_normalized == key_normalized:
+                    stat_key = value
+                    break
+
+            # 2. 如果完全匹配失败，尝试子串匹配
+            if not stat_key:
+                for key, value in self.SUB_STAT_MAP.items():
+                    if key in base_text:
+                        stat_key = value
+                        break
+
+            if not stat_key:
+                continue
+
+            # 如果第一个文本中没有升级标记，检查第二个文本是否是升级标记
+            if upgrades == 0 and len(row_texts) > 1:
+                second_text = row_texts[1].strip()
+                upgrade_match = re.match(r'^\+(\d+)$', second_text)
+                if upgrade_match:
+                    upgrades = int(upgrade_match.group(1))
+
+            # 副属性默认有1次升级，加上额外升级次数
+            upgrades += 1
+
+            # 判断HP/ATK/DEF是否是百分比
+            # 查找行中的数值（最后一个文本通常是数值）
+            if stat_key in ['hp', 'atk', 'def']:
+                is_percent = False
+                for text in row_texts:
+                    if re.match(r'^\d+(?:\.\d+)?%$', text.strip()):
+                        is_percent = True
+                        break
+
+                if is_percent:
+                    stat_key += '_'
+
+            # **关键过滤：副属性不能和主属性重复！**
+            if stat_key != main_stat_key:
+                substats.append({
+                    'key': stat_key,
+                    'upgrades': upgrades
+                })
+
+        return substats
+
+    def _parse_substats_by_index(self, ocr_items: List[Dict], main_stat_key: str) -> List[Dict]:
+        """
+        解析副属性
+        副属性不能和主属性重复！需要过滤掉主属性
+
         OCR结果按Y坐标排序，相邻的文本属于同一行，通过顺序合并判断百分比
         """
         # 找到 "Sub-Stats" 或 "副属性" 关键字的索引
@@ -258,11 +445,21 @@ class DriveDiskParser:
                 base_text = match.group(1).strip()
                 upgrades = int(match.group(2))
 
-            # 匹配属性名
+            # 匹配属性名 - 改进匹配逻辑
+            # 1. 先尝试完全匹配（去除空格后）
+            base_text_normalized = base_text.replace(' ', '').replace('\t', '')
             for key, value in self.SUB_STAT_MAP.items():
-                if key in base_text:
+                key_normalized = key.replace(' ', '').replace('\t', '')
+                if base_text_normalized == key_normalized:
                     stat_key = value
                     break
+
+            # 2. 如果完全匹配失败，尝试子串匹配
+            if not stat_key:
+                for key, value in self.SUB_STAT_MAP.items():
+                    if key in base_text:
+                        stat_key = value
+                        break
 
             if stat_key:
                 # 如果文本中没有升级标记，向后查找直到找到升级标记或数值
@@ -270,21 +467,21 @@ class DriveDiskParser:
                     j = i + 1
                     while j < len(sub_texts):
                         next_text = sub_texts[j].strip()
-                        
+
                         # 检查是否是独立的升级标记
                         upgrade_match = re.match(r'^\+(\d+)$', next_text)
                         if upgrade_match:
                             upgrades = int(upgrade_match.group(1))
                             i = j  # 更新索引，跳过已处理的文本
                             break
-                        
+
                         # 检查是否是纯数字或百分比数字（表示已到数值）
                         if re.match(r'^\d+(?:\.\d+)?%?$', next_text):
                             # 到达数值了，不再是升级标记
                             break
-                        
+
                         j += 1
-                
+
                 # 副属性默认有1次升级，加上额外升级次数
                 # 例如：+0表示1次，+1表示2次，+4表示5次
                 upgrades += 1
@@ -296,16 +493,16 @@ class DriveDiskParser:
                     j = i + 1
                     while j < len(sub_texts):
                         next_text = sub_texts[j].strip()
-                        
+
                         # 检查是否是纯数字或百分比数字
                         if re.match(r'^\d+(?:\.\d+)?%?$', next_text):
                             # 找到数值，判断是否包含%
                             if '%' in next_text:
                                 is_percent = True
                             break
-                        
+
                         j += 1
-                    
+
                     if is_percent:
                         stat_key += '_'
 
@@ -319,6 +516,99 @@ class DriveDiskParser:
             i += 1
 
         return substats
+
+    def _save_error_data(self, screenshot, ocr_texts: List[Dict], texts: List[str],
+                         level: int, substats: List[Dict], index: int, error_msg: str):
+        """
+        保存异常数据到文件
+
+        Args:
+            screenshot: 原始截图
+            ocr_texts: OCR识别结果
+            texts: 提取的文本列表
+            level: 驱动盘等级
+            substats: 解析出的副属性
+            index: 截图索引
+            error_msg: 错误信息
+        """
+        try:
+            import time
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            error_id = f"{timestamp}_index{index}"
+
+            # 保存截图
+            if screenshot is not None:
+                img_path = os.path.join(self.error_dir, f"{error_id}.jpg")
+                cv2.imwrite(img_path, screenshot)
+                log.info(f"异常截图已保存: {img_path}")
+
+            # 保存OCR结果和错误信息
+            error_data = {
+                'error_id': error_id,
+                'index': index,
+                'error_msg': error_msg,
+                'level': level,
+                'substats': substats,
+                'unique_substat_count': len(set(sub['key'] for sub in substats)),
+                'texts': texts,
+                'ocr_texts': ocr_texts
+            }
+
+            json_path = os.path.join(self.error_dir, f"{error_id}.json")
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(error_data, f, indent=2, ensure_ascii=False)
+            log.info(f"异常数据已保存: {json_path}")
+
+        except Exception as e:
+            log.error(f"保存异常数据失败: {e}")
+
+    def _sort_ocr_items(self, ocr_items: List[Dict]) -> List[Dict]:
+        """
+        对OCR结果进行排序：从上到下，同一行从左到右
+        """
+        if not ocr_items:
+            return []
+
+        # 辅助函数：获取Y坐标
+        def get_y(item):
+            pos = item.get('position')
+            return pos[1] if pos else 99999
+
+        def get_x(item):
+            pos = item.get('position')
+            return pos[0] if pos else 0
+
+        # 1. 初步按Y坐标排序
+        # 这一步是为了让相邻行的元素大体在一起
+        ocr_items.sort(key=get_y)
+
+        # 2. 分行并按X坐标排序
+        sorted_items = []
+        current_row = [ocr_items[0]]
+
+        # 行高阈值，参考原代码中的30，这里设为20更严格一点，避免跨行
+        ROW_THRESHOLD = 20
+
+        for i in range(1, len(ocr_items)):
+            item = ocr_items[i]
+            # 与当前行第一个元素比较Y坐标
+            # 注意：这里假设行首元素代表了该行的"标准"高度
+            if abs(get_y(item) - get_y(current_row[0])) < ROW_THRESHOLD:
+                current_row.append(item)
+            else:
+                # 结束当前行
+                # 行内按X坐标排序
+                current_row.sort(key=get_x)
+                sorted_items.extend(current_row)
+                # 新起一行
+                current_row = [item]
+
+        # 处理最后一行
+        if current_row:
+            current_row.sort(key=get_x)
+            sorted_items.extend(current_row)
+
+        return sorted_items
 
     def generate_export_json(self, discs: List[Dict]) -> str:
         """
