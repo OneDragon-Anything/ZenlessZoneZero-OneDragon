@@ -1,17 +1,27 @@
 import json
 import os
 from typing import Optional, Dict, Tuple
+
+from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 import difflib
+
+from .translation_updater import TranslationUpdater
 
 
 class TranslationService:
     """翻译服务"""
 
     def __init__(self):
-        self.dict_path = os.path.join(
+        # 默认字典（随代码发布，只读）
+        self.default_dict_path = os.path.join(
             os.path.dirname(__file__),
             'translation_dict.json'
+        )
+        # 用户字典（运行时更新，可读写）
+        self.user_dict_path = os.path.join(
+            os_utils.get_path_under_work_dir('config'),
+            'zzz_translation.json'
         )
         self.translation_dict: Optional[Dict] = None
 
@@ -26,29 +36,46 @@ class TranslationService:
             '昇常掌控': '异常掌控',  # 错别字修复
         }
 
+        self._check_update()
         self._load_dict()
+
+    def _check_update(self):
+        """检查并更新翻译字典"""
+        try:
+            updater = TranslationUpdater()
+            updater.update_if_needed()
+        except Exception as e:
+            log.error(f"检查翻译更新失败: {e}")
 
     def _load_dict(self):
         """加载翻译字典"""
+        # 1. 尝试加载用户字典
+        if self._try_load_dict(self.user_dict_path, "用户"):
+            return
+
+        # 2. 尝试加载默认字典
+        if self._try_load_dict(self.default_dict_path, "默认"):
+            return
+
+        # 3. 加载失败，使用空字典
+        log.warning("未找到任何翻译字典，使用空字典")
+        self.translation_dict = {
+            'character': {},
+            'weapon': {},
+            'equipment': {}
+        }
+
+    def _try_load_dict(self, path: str, type_name: str) -> bool:
+        """尝试加载字典"""
         try:
-            if os.path.exists(self.dict_path):
-                with open(self.dict_path, 'r', encoding='utf-8') as f:
+            if os.path.exists(path):
+                with open(path, 'r', encoding='utf-8') as f:
                     self.translation_dict = json.load(f)
-                log.info(f"翻译字典加载成功")
-            else:
-                log.warning(f"翻译字典不存在: {self.dict_path}")
-                self.translation_dict = {
-                    'character': {},
-                    'weapon': {},
-                    'equipment': {}
-                }
+                log.info(f"加载{type_name}翻译字典成功: {path}")
+                return True
         except Exception as e:
-            log.error(f"加载翻译字典失败: {e}")
-            self.translation_dict = {
-                'character': {},
-                'weapon': {},
-                'equipment': {}
-            }
+            log.error(f"加载{type_name}翻译字典失败: {e}")
+        return False
 
     def translate_character(self, name: str, target_lang: str = 'CHS') -> str:
         """翻译角色名称"""

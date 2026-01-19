@@ -1,4 +1,5 @@
 {
+  "last_updated": "2026-01-19",
   "character": {
     "Corin": {
       "EN": "Corin",
@@ -222,7 +223,7 @@
     },
     "Aria": {
       "EN": "Aria",
-      "CHS": "(Test1)爱芮",
+      "CHS": "爱芮",
       "JA": "アリア"
     },
     "Seth": {
@@ -387,10 +388,10 @@
       "CHS": "残心青囊",
       "JA": "残心の青籠"
     },
-    "Sunna Test W-Engine": {
-      "EN": "Sunna Test W-Engine",
-      "CHS": "(Test1)千夏测试音擎",
-      "JA": "千夏テスト用音動機"
+    "Song of Thoughts": {
+      "EN": "Song of Thoughts",
+      "CHS": "思络成歌",
+      "JA": "この思いを歌へ"
     },
     "[Cinder] Cobalt": {
       "EN": "[Cinder] Cobalt",
@@ -487,10 +488,10 @@
       "CHS": "灼心摇壶",
       "JA": "バーニング・シェイカー"
     },
-    "Aria Test W-Engine": {
-      "EN": "Aria Test W-Engine",
-      "CHS": "(Test1)爱芮测试音擎",
-      "JA": "アリアテスト用音動機"
+    "Angel in the Shell": {
+      "EN": "Angel in the Shell",
+      "CHS": "壳中之灵",
+      "JA": "殻の中の魂"
     },
     "Riot Suppressor Mark VI": {
       "EN": "Riot Suppressor Mark VI",

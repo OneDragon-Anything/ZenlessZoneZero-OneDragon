@@ -1,7 +1,11 @@
 import json
 import os
 import urllib.request
-from typing import Dict
+from datetime import datetime
+from typing import Dict, Optional
+
+from one_dragon.utils import os_utils
+from one_dragon.utils.log_utils import log
 
 
 class TranslationUpdater:
@@ -14,58 +18,87 @@ class TranslationUpdater:
     }
 
     def __init__(self):
+        # 更新时只写入用户字典路径
         self.dict_path = os.path.join(
-            os.path.dirname(__file__),
-            'translation_dict.json'
+            os_utils.get_path_under_work_dir('config'),
+            'zzz_translation.json'
         )
+
+    def update_if_needed(self) -> bool:
+        """如果需要则更新（每天一次）"""
+        if not self._should_update():
+            return False
+        return self.update_all()
+
+    def _should_update(self) -> bool:
+        if not os.path.exists(self.dict_path):
+            return True
+
+        try:
+            with open(self.dict_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            last_updated = data.get('last_updated', '')
+            today = datetime.now().strftime('%Y-%m-%d')
+
+            return last_updated != today
+        except Exception:
+            return True
 
     def update_all(self) -> bool:
         """更新所有翻译数据"""
         try:
             translation_dict = {
+                'last_updated': datetime.now().strftime('%Y-%m-%d'),
                 'character': {},
                 'weapon': {},
                 'equipment': {}
             }
 
             # 更新角色
-            print("正在下载角色数据...")
+            log.info("正在下载角色数据...")
             char_data = self._download_json(self.API_URLS['character'])
-            if char_data:
-                translation_dict['character'] = self._extract_character_names(char_data)
-                print(f"角色数据更新完成，共{len(translation_dict['character'])}个")
+            if char_data is None:
+                log.error("角色数据下载失败，取消更新")
+                return False
+            translation_dict['character'] = self._extract_character_names(char_data)
+            log.info(f"角色数据更新完成，共{len(translation_dict['character'])}个")
 
             # 更新音擎
-            print("正在下载音擎数据...")
+            log.info("正在下载音擎数据...")
             weapon_data = self._download_json(self.API_URLS['weapon'])
-            if weapon_data:
-                translation_dict['weapon'] = self._extract_weapon_names(weapon_data)
-                print(f"音擎数据更新完成，共{len(translation_dict['weapon'])}个")
+            if weapon_data is None:
+                log.error("音擎数据下载失败，取消更新")
+                return False
+            translation_dict['weapon'] = self._extract_weapon_names(weapon_data)
+            log.info(f"音擎数据更新完成，共{len(translation_dict['weapon'])}个")
 
             # 更新驱动盘
-            print("正在下载驱动盘数据...")
+            log.info("正在下载驱动盘数据...")
             equipment_data = self._download_json(self.API_URLS['equipment'])
-            if equipment_data:
-                translation_dict['equipment'] = self._extract_equipment_names(equipment_data)
-                print(f"驱动盘数据更新完成，共{len(translation_dict['equipment'])}个")
+            if equipment_data is None:
+                log.error("驱动盘数据下载失败，取消更新")
+                return False
+            translation_dict['equipment'] = self._extract_equipment_names(equipment_data)
+            log.info(f"驱动盘数据更新完成，共{len(translation_dict['equipment'])}个")
 
             # 保存字典
             self._save_dict(translation_dict)
-            print(f"翻译字典已保存到: {self.dict_path}")
+            log.info(f"翻译字典已保存到: {self.dict_path}")
             return True
 
         except Exception as e:
-            print(f"更新翻译字典失败: {e}")
+            log.error(f"更新翻译字典失败: {e}")
             return False
 
-    def _download_json(self, url: str) -> Dict:
+    def _download_json(self, url: str) -> Optional[Dict]:
         """下载JSON数据"""
         try:
             with urllib.request.urlopen(url, timeout=30) as response:
                 return json.loads(response.read().decode('utf-8'))
         except Exception as e:
-            print(f"下载失败 {url}: {e}")
-            return {}
+            log.error(f"下载失败 {url}: {e}")
+            return None
 
     def _extract_character_names(self, data: Dict) -> Dict:
         """提取角色名称"""
