@@ -68,32 +68,50 @@ class InventoryScannerWindow(QWidget):
         """初始化UI"""
         # 主布局
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        # 按钮布局
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(10)
+        # 1. 标题栏区域 (可选，如果以后想加自定义标题栏)
+        
+        # 2. 内容区域
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(24, 24, 24, 24)
+        content_layout.setSpacing(16)
+        
+        # 3. 顶部操作栏 (按钮 + 说明)
+        action_bar = QWidget()
+        action_layout = QHBoxLayout(action_bar)
+        action_layout.setContentsMargins(0, 0, 0, 0)
+        action_layout.setSpacing(12)
 
         # 开始扫描按钮
         self.start_btn = PushButton("开始扫描", self)
         self.start_btn.setIcon(FluentIcon.PLAY)
         self.start_btn.setFixedHeight(40)
-        button_layout.addWidget(self.start_btn)
+        self.start_btn.setMinimumWidth(120)
+        action_layout.addWidget(self.start_btn)
 
         # 停止扫描按钮
         self.stop_btn = PushButton("停止扫描", self)
         self.stop_btn.setIcon(FluentIcon.PAUSE)
         self.stop_btn.setFixedHeight(40)
+        self.stop_btn.setMinimumWidth(120)
         self.stop_btn.setEnabled(False)
-        button_layout.addWidget(self.stop_btn)
+        action_layout.addWidget(self.stop_btn)
 
-        button_layout.addStretch()
-        main_layout.addLayout(button_layout)
+        action_layout.addStretch()
+        content_layout.addWidget(action_bar)
 
-        # 日志显示区域 - 使用 LogDisplayCard
+        # 4. 日志显示区域 - 使用 LogDisplayCard
+        # 给日志卡片加个标题或容器效果会更好，但 LogDisplayCard 本身已经封装好了
         self.log_card = LogDisplayCard(self)
-        main_layout.addWidget(self.log_card)
+        content_layout.addWidget(self.log_card)
+
+        main_layout.addWidget(content_widget)
+
+        # 设置背景色（可选，匹配 Fluent 主题）
+        self.setStyleSheet("InventoryScannerWindow { background-color: rgb(243, 243, 243); }")
 
     def _connect_signals(self):
         """连接信号"""
