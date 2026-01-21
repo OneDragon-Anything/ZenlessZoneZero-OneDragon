@@ -4,8 +4,16 @@ handlers:
     interrupt_states: "[前台-能量, 0, 0.1] & ![前台-仪玄]"
     sub_handlers:
       - states: "[自定义-终结技被强制释放, 0, 1]"
-        operations:
-          - operation_template: "仪玄-喧嚣终结技"
+        sub_handlers:
+          - states: "[仪玄-术法值全满]{1,1} & [仪玄-术法值]{119, 120}"
+            debug_name: "法术终结技"
+            operations:
+              - operation_template: "仪玄-法术终结技"
+
+          - states: "![仪玄-术法值全满]{1,1} & ![仪玄-术法值]{119, 120}"
+            debug_name: "喧嚣终结技"
+            operations:
+              - operation_template: "仪玄-喧嚣终结技"
 
       - states: "[自定义-黄光切人, 0, 1]"
         operations:
@@ -89,6 +97,19 @@ handlers:
         debug_name: "法术终结技"
         operations:
           - operation_template: "仪玄-法术终结技"
+
+      - states: "![后台-1-击破] & ![后台-2-击破]"
+        debug_name: "仪玄很疑惑为什么没有击破队友并且释放了大招"
+        sub_handlers:
+          - states: "[仪玄-终结技可用] & [仪玄-术法值全满]{1,1} & [仪玄-术法值]{119, 120}"
+            debug_name: "法术终结技"
+            operations:
+              - operation_template: "仪玄-法术终结技"
+
+          - states: "[仪玄-终结技可用] & ![仪玄-术法值全满]{1,1} & ![仪玄-术法值]{119, 120}"
+            debug_name: "喧嚣终结技"
+            operations:
+              - operation_template: "仪玄-喧嚣终结技"
 
       - states: "[仪玄-终结技可用] & [仪玄-玄墨值]{1, 1}"
         debug_name: "喧嚣终结技"

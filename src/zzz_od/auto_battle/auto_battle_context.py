@@ -76,6 +76,9 @@ class AutoBattleContext:
         self.without_distance_times: int = 0  # 没有显示距离的次数
         self.with_distance_times: int = 0  # 有显示距离的次数
 
+        # 自动释放终结技开关
+        self.auto_ultimate_enabled: bool = True  # 是否在终结技可用时自动释放
+
     def init_auto_op(
         self,
         op_name: str,
@@ -127,6 +130,7 @@ class AutoBattleContext:
         """
         if self.auto_op is not None:
             # 清空之前检测到的状态
+            self.auto_ultimate_enabled = True  # 默认每次开启自动战斗时 开启自动终结技
 
             self.init_battle_context()
             self.auto_op.start_running_async()
