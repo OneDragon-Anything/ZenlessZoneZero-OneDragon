@@ -1,11 +1,13 @@
 import cv2
 import numpy as np
 import math
+import os
+from datetime import datetime
 from PIL import Image
-
 
 from onnxocr.rec_postprocess import CTCLabelDecode
 from onnxocr.predict_base import PredictBase
+from one_dragon.utils.log_utils import log
 
 class TextRecognizer(PredictBase):
     def __init__(self, args):
@@ -318,7 +320,27 @@ class TextRecognizer(PredictBase):
 
             preds = outputs[0]
 
-            rec_result = self.postprocess_op(preds)
+            try:
+                rec_result = self.postprocess_op(preds)
+            except Exception as e:
+                # 出现异常时保存图片以便调试
+                error_dir = os.path.join(os.getcwd(), "ocr_error_images")
+                os.makedirs(error_dir, exist_ok=True)
+                
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                
+                # 保存当前批次的所有图片
+                for idx, ino in enumerate(range(beg_img_no, end_img_no)):
+                    img_to_save = img_list[indices[ino]]
+                    error_img_path = os.path.join(
+                        error_dir, 
+                        f"error_{timestamp}_batch{beg_img_no}_img{idx}.png"
+                    )
+                    cv2.imwrite(error_img_path, img_to_save)
+                
+                log.error(f"OCR后处理失败，已保存图片到 {error_dir}，错误: {e}", exc_info=True)
+                raise
+            
             for rno in range(len(rec_result)):
                 rec_res[indices[beg_img_no + rno]] = rec_result[rno]
 
