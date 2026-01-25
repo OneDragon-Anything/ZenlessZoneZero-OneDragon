@@ -60,15 +60,7 @@ class IntelBoardApp(ZApplication):
     @operation_node(name='点击情报板')
     def click_board(self) -> OperationRoundResult:
         # 2. OCR 点击情报板
-        screen = self.last_screenshot
-        ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
-        idx = str_utils.find_best_match_by_difflib(gt('情报板', 'game'), [i.data for i in ocr_results])
-        
-        if idx is not None:
-            self.ctx.controller.click(ocr_results[idx].center)
-            return self.round_success(wait=1)
-        
-        return self.round_retry('未找到情报板')
+        return self.round_by_ocr_and_click(self.last_screenshot, '情报板', success_wait=1, retry_wait=1)
 
     @node_from(from_name='检查进度', success=False)
     @node_from(from_name='检查接取结果', status='接取失败')
@@ -160,27 +152,16 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='寻找委托')
     @operation_node(name='接取委托')
     def accept_commission(self) -> OperationRoundResult:
-        # 5. 点击（ocr）接取委托
-        screen = self.last_screenshot
-        ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
-        ocr_texts = [i.data for i in ocr_results]
-        
-        idx = str_utils.find_best_match_by_difflib(gt('接取委托', 'game'), ocr_texts)
-        
-        if idx is not None:
-            self.ctx.controller.click(ocr_results[idx].center)
-            return self.round_success(wait=1)
-        
-        # 兜底：如果已经是进行中，或者有前往按钮
-        if str_utils.find_best_match_by_difflib(gt('前往', 'game'), ocr_texts) is not None:
-             return self.round_success(wait=1)
-        
-        # 模糊匹配 委托进行中
-        for text in ocr_texts:
-            if gt('委托进行中', 'game') in text:
-                return self.round_success(wait=1)
-        
-        return self.round_retry('未找到接取委托')
+        # 5. 点击（ocr）接取委托，或者已经有前往按钮/委托进行中则直接成功
+        return self.round_by_ocr_and_click_with_action(
+            target_action_list=[
+                ('接取委托', OperationRoundResultEnum.SUCCESS),
+                ('前往', OperationRoundResultEnum.SUCCESS),       # 兜底：已经接取过
+                ('委托进行中', OperationRoundResultEnum.SUCCESS),  # 兜底：委托进行中
+            ],
+            success_wait=1,
+            retry_wait=1
+        )
 
     @node_from(from_name='接取委托')
     @operation_node(name='检查接取结果')
@@ -198,43 +179,22 @@ class IntelBoardApp(ZApplication):
     @operation_node(name='前往')
     def go_to_commission(self) -> OperationRoundResult:
         # 6. ocr 前往并点击
-        screen = self.last_screenshot
-        ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
-        idx = str_utils.find_best_match_by_difflib(gt('前往', 'game'), [i.data for i in ocr_results])
-        
-        if idx is not None:
-            self.ctx.controller.click(ocr_results[idx].center)
-            return self.round_success(wait=2) # 等待加载
-        
-        return self.round_retry('未找到前往')
+        return self.round_by_ocr_and_click(self.last_screenshot, '前往', success_wait=2, retry_wait=1)
 
     @node_from(from_name='前往')
     @operation_node(name='下一步')
     def next_step(self) -> OperationRoundResult:
-        # 7. 点击下一步然后进入战斗
-        screen = self.last_screenshot
-        ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
-        ocr_texts = [i.data for i in ocr_results]
-        
-        idx = str_utils.find_best_match_by_difflib(gt('下一步', 'game'), ocr_texts)
-        
-        if idx is not None:
-            self.ctx.controller.click(ocr_results[idx].center)
-            return self.round_wait(wait=1)
-        
-        # 检查是否已经进入战斗准备（出战）
-        idx_battle = str_utils.find_best_match_by_difflib(gt('出战', 'game'), ocr_texts)
-        if idx_battle is not None:
-            self.ctx.controller.click(ocr_results[idx_battle].center)
-            return self.round_success('进入战斗')
-
-        # 检查无报酬模式 (恶名狩猎)
-        idx_no_reward = str_utils.find_best_match_by_difflib(gt('无报酬模式', 'game'), ocr_texts)
-        if idx_no_reward is not None:
-            self.ctx.controller.click(ocr_results[idx_no_reward].center)
-            return self.round_wait(wait=1)
-
-        return self.round_retry('未找到下一步或出战')
+        # 7. 点击下一步然后进入战斗，出战优先级最高
+        return self.round_by_ocr_and_click_with_action(
+            target_action_list=[
+                ('出战', OperationRoundResultEnum.SUCCESS),        # 点到出战 → 进入下一节点
+                ('下一步', OperationRoundResultEnum.WAIT),         # 点到下一步 → 继续循环
+                ('无报酬模式', OperationRoundResultEnum.WAIT),     # 点到无报酬模式 → 继续循环
+            ],
+            success_wait=1,
+            wait_wait=1,
+            retry_wait=1
+        )
 
     @node_from(from_name='下一步')
     @operation_node(name='选择预备编队')
