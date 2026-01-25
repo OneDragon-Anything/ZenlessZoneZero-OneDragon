@@ -34,8 +34,8 @@ class RedemptionCodeRunRecord(AppRunRecord):
             print(f"错误：未找到兑换码配置文件：{codes_file_path}")
             return []
 
-        with open(codes_file_path, 'r', encoding='utf-8') as f:
-            config_data = yaml.safe_load(f)
+        from one_dragon.base.config.yaml_operator import read_cache_or_load
+        config_data = read_cache_or_load(codes_file_path)
 
         codes = []
         if config_data and 'codes' in config_data:
