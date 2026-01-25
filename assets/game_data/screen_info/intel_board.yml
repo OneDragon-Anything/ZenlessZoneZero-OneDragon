@@ -1,4 +1,4 @@
-screen_id: commission_board
+screen_id: intel_board
 screen_name: 委托情报板
 area_list:
 - area_name: 刷新按钮

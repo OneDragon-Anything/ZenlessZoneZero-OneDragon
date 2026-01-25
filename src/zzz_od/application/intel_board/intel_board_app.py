@@ -1,6 +1,5 @@
 import time
 
-from one_dragon.base.controller.pc_controller_base import PcControllerBase
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
@@ -51,10 +50,13 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='返回大世界')
     @operation_node(name='打开情报板')
     def open_board(self) -> OperationRoundResult:
-        # 1. 在大世界按 ~
-        if isinstance(self.ctx.controller, PcControllerBase):
-            self.ctx.controller.keyboard_controller.press('`', press_time=0.2)
-        return self.round_success(wait=1)
+        # 1. 识别并点击大世界-功能导览按钮
+        return self.round_by_find_and_click_area(
+            screen_name='大世界',
+            area_name='功能导览',
+            success_wait=1,
+            retry_wait=1
+        )
 
     @node_from(from_name='打开情报板')
     @operation_node(name='点击情报板')
@@ -331,10 +333,6 @@ class IntelBoardApp(ZApplication):
         result = op.execute()
         if not result.success:
             return self.round_by_op_result(result)
-
-        # 打开暂停菜单
-        if isinstance(self.ctx.controller, PcControllerBase):
-            self.ctx.controller.keyboard_controller.press('esc', press_time=0.2)
 
         status = '完成'
         if self.run_record is not None:
