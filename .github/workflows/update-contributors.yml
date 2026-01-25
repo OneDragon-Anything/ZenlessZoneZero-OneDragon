@@ -30,12 +30,12 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        python src/one_dragon_qt/demo/update_contributors.py
+        python tools/ci/update_contributors.py
 
     - name: Check for changes
       id: changes
       run: |
-        if git diff --quiet contributer.yaml contributors.yaml; then
+        if git diff --quiet contributors.yaml; then
           echo "changed=false" >> $GITHUB_OUTPUT
         else
           echo "changed=true" >> $GITHUB_OUTPUT
@@ -46,6 +46,6 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add contributer.yaml contributors.yaml
+        git add contributors.yaml
         git commit -m "Update contributors list [skip ci]" || exit 0
         git push

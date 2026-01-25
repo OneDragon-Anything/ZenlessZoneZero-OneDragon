@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 更新贡献者信息脚本
-从各个来源抓取贡献者信息，并更新contributer.yaml文件
+从各个来源抓取贡献者信息，并更新contributors.yaml文件
 """
 
 import urllib.request
@@ -271,7 +271,7 @@ def fetch_recent_commits(url: str) -> List[Dict[str, Any]]:
 
 def update_contributors_file():
     """
-    更新contributer.yaml文件
+    更新contributors.yaml文件
     """
     # 定义各个来源的URL
     github_repo_url = "https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon"
@@ -291,7 +291,7 @@ def update_contributors_file():
     community_maintainers = fetch_qq_channel_authors(qq_channel_url)
 
     # 读取现有文件内容
-    contributors_file = "contributer.yaml"
+    contributors_file = "contributors.yaml"
     existing_data = {}
 
     if os.path.exists(contributors_file):

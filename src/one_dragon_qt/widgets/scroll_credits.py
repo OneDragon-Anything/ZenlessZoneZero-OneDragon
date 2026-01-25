@@ -129,7 +129,7 @@ class ScrollCreditsWidget(QWidget):
 
     def _load_commit_data(self):
         """
-        从本地contributer.yaml文件加载贡献者信息
+        从本地contributors.yaml文件加载贡献者信息
         """
         try:
             # 清空现有内容
@@ -138,12 +138,12 @@ class ScrollCreditsWidget(QWidget):
                 if widget:
                     widget.deleteLater()
 
-            # 读取本地contributer.yaml文件
-            contributors_file = os.path.join(os_utils.get_work_dir(), 'contributer.yaml')
+            # 读取本地contributors.yaml文件
+            contributors_file = os.path.join(os_utils.get_work_dir(), 'contributors.yaml')
 
             if not os.path.exists(contributors_file):
                 # 如果文件不存在，显示提示
-                no_file_label = QLabel("contributer.yaml文件不存在")
+                no_file_label = QLabel("contributors.yaml文件不存在")
                 no_file_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 no_file_label.setStyleSheet("""
                     QLabel {
@@ -426,6 +426,7 @@ class ScrollCreditsWidget(QWidget):
         # 重启滚动动画以适应新的尺寸
         if hasattr(self, 'scroll_timer'):
             self.scroll_timer.stop()
+            self.scroll_timer.deleteLater()
         self._start_scroll()
 
 
