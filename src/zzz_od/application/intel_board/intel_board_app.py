@@ -1,18 +1,23 @@
-from typing import Optional
-
 import time
+
+from one_dragon.base.controller.pc_controller_base import PcControllerBase
 from one_dragon.base.geometry.point import Point
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.base.controller.pc_controller_base import PcControllerBase
-from one_dragon.utils import str_utils, cv2_utils
+from one_dragon.base.operation.operation_round_result import (
+    OperationRoundResult,
+    OperationRoundResultEnum,
+)
+from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.application.intel_board import intel_board_const
+from zzz_od.application.intel_board.intel_board_config import IntelBoardConfig
 from zzz_od.application.intel_board.intel_board_run_record import IntelBoardRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
 
 
 class IntelBoardApp(ZApplication):
@@ -27,9 +32,14 @@ class IntelBoardApp(ZApplication):
                 game_refresh_hour_offset=game_refresh_hour_offset
             )
         )
+        self.config: IntelBoardConfig = self.ctx.run_context.get_config(
+            app_id=intel_board_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
         self.run_record: IntelBoardRunRecord = self.run_record
         self.scroll_times: int = 0
-        self.current_commission_type: Optional[str] = None
+        self.current_commission_type: str | None = None
         self.battle_result_retry_times: int = 0
         self.has_filtered: bool = False
 
@@ -125,7 +135,7 @@ class IntelBoardApp(ZApplication):
         # 4. Ocr 专业挑战室/恶名狩猎，找不到就往下翻到找到为止
         screen = self.last_screenshot
         ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
-        
+
         # 使用字典映射委托名称到类型，方便扩展
         commission_map = {
             gt('专业挑战室', 'game'): 'expert_challenge',
@@ -138,7 +148,7 @@ class IntelBoardApp(ZApplication):
                     self.ctx.controller.click(res.center)
                     self.current_commission_type = commission_type
                     return self.round_success(res.data)
-        
+
         # 翻页
         if self.scroll_times >= 5:
             return self.round_success(status='无委托')
@@ -227,16 +237,29 @@ class IntelBoardApp(ZApplication):
         return self.round_retry('未找到下一步或出战')
 
     @node_from(from_name='下一步')
+    @operation_node(name='选择预备编队')
+    def choose_predefined_team(self) -> OperationRoundResult:
+        if self.config.predefined_team_idx == -1:
+            return self.round_success('无需选择预备编队')
+        op = ChoosePredefinedTeam(self.ctx, [self.config.predefined_team_idx])
+        return self.round_by_op_result(op.execute())
+
+    @node_from(from_name='选择预备编队')
     @operation_node(name='开始自动战斗')
     def start_auto_battle(self) -> OperationRoundResult:
-        self.ctx.auto_battle_context.init_auto_op(op_name='全配队通用')
+        if self.config.predefined_team_idx == -1:
+            auto_battle = self.config.auto_battle_config
+        else:
+            team_list = self.ctx.team_config.team_list
+            auto_battle = team_list[self.config.predefined_team_idx].auto_battle
+        self.ctx.auto_battle_context.init_auto_op(op_name=auto_battle)
         self.ctx.auto_battle_context.start_auto_battle()
         return self.round_success()
 
     @node_from(from_name='开始自动战斗')
     @operation_node(name='战斗中')
     def in_battle(self) -> OperationRoundResult:
-        
+
         screen = self.last_screenshot
 
         # 1. 先同步检查战斗状态，避免 OCR 竞态
@@ -263,7 +286,7 @@ class IntelBoardApp(ZApplication):
             if idx_confirm is not None:
                 self.ctx.controller.click(ocr_results[idx_confirm].center)
                 return self.round_wait(wait=1)
-        
+
         return self.round_wait(status='自动战斗中', wait=self.ctx.battle_assistant_config.screenshot_interval)
 
     @node_from(from_name='战斗中')
@@ -272,7 +295,7 @@ class IntelBoardApp(ZApplication):
         screen = self.last_screenshot
         ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
         ocr_texts = [i.data for i in ocr_results]
-        
+
         # 1. 检查是否回到委托列表界面 (通过关键词 周期内可获取)
         if str_utils.find_best_match_by_difflib(gt('周期内可获取', 'game'), ocr_texts) is not None:
             if self.run_record is not None and self.current_commission_type is not None:
@@ -301,7 +324,7 @@ class IntelBoardApp(ZApplication):
                 self.ctx.controller.click(ocr_results[idx].center)
                 self.battle_result_retry_times = 0
                 return self.round_wait(wait=1)
-        
+
         self.battle_result_retry_times += 1
         if self.battle_result_retry_times > 60:
             return self.round_fail('战斗结算卡死')
@@ -337,7 +360,7 @@ class IntelBoardApp(ZApplication):
                         return self.round_success('完成')
         except Exception as e:
             return self.round_fail(f'解析进度文本失败: {ocr_result}, 错误: {e}')
-        
+
         return self.round_fail('继续')
 
     @node_from(from_name='检查进度')
