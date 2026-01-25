@@ -1,5 +1,6 @@
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QPoint, Property, QEasingCurve
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame
+from qfluentwidgets import qconfig, Theme, isDarkTheme
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.utils.log_utils import log
 from one_dragon.utils import os_utils
@@ -34,11 +35,16 @@ class ScrollCreditsWidget(QWidget):
         初始化UI布局，保持电影字幕风格
         """
         self.setMinimumHeight(400)
-        self.setStyleSheet("""
-            ScrollCreditsWidget {
-                background-color: black;
+        
+        # 根据主题设置背景色
+        bg_color = "#000000" if isDarkTheme() else "#ffffff"  # 黑色(暗色主题) 或 白色(亮色主题)
+        text_color = "#ffffff" if isDarkTheme() else "#000000"  # 白色(暗色主题) 或 黑色(亮色主题)
+        
+        self.setStyleSheet(f"""
+            ScrollCreditsWidget {{
+                background-color: {bg_color};
                 border-radius: 8px;
-            }
+            }}
         """)
 
         # 主布局
@@ -72,28 +78,28 @@ class ScrollCreditsWidget(QWidget):
         # 标题
         self.title_label = QLabel("ONE DRAGON PROJECT")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.title_label.setStyleSheet(f"""
+            QLabel {{
+                color: {text_color};
                 font-size: 32px;
                 font-weight: bold;
                 margin-bottom: 30px;
                 font-family: Arial, sans-serif;
-            }
+            }}
         """)
         self.content_layout.addWidget(self.title_label)
 
         # 子标题
         self.subtitle_label = QLabel("特别鸣谢")
         self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.subtitle_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.subtitle_label.setStyleSheet(f"""
+            QLabel {{
+                color: {text_color};
                 font-size: 24px;
                 font-weight: bold;
                 margin-bottom: 20px;
                 font-family: Arial, sans-serif;
-            }
+            }}
         """)
         self.content_layout.addWidget(self.subtitle_label)
 
@@ -108,15 +114,15 @@ class ScrollCreditsWidget(QWidget):
         # 结尾标语
         self.end_label = QLabel("感谢您的支持与陪伴")
         self.end_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.end_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;
+        self.end_label.setStyleSheet(f"""
+            QLabel {{
+                color: {text_color};
                 font-size: 20px;
                 font-weight: bold;
                 margin-top: 80px;
                 margin-bottom: 40px;
                 font-family: Arial, sans-serif;
-            }
+            }}
         """)
         self.content_layout.addWidget(self.end_label)
 
@@ -290,38 +296,47 @@ class ScrollCreditsWidget(QWidget):
 
         # 检查是否是类别标题
         if contributor.get('is_category_header', False):
+            # 获取主题颜色
+            text_color = "#ffffff" if isDarkTheme() else "#000000"
+            border_color = "#444444" if isDarkTheme() else "#bbbbbb"
+            
             # 类别标题样式
             title_text = contributor.get('name', '')
             name_label = QLabel(f"【{title_text}】")
             name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            name_label.setStyleSheet("""
-                QLabel {
-                    color: #ffffff;  /* 白色文字 */
+            name_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {text_color};  /* 根据主题设置文字颜色 */
                     font-size: 20px;
                     font-weight: bold;
                     padding: 10px;
                     font-family: Arial, sans-serif;
-                    border-bottom: 1px solid #444444;
+                    border-bottom: 1px solid {border_color};
                     margin-bottom: 10px;
-                }
+                }}
             """)
             layout.addWidget(name_label)
             return widget
 
+        # 获取主题颜色
+        main_text_color = "#ffffff" if isDarkTheme() else "#000000"  # 主要文字颜色
+        secondary_text_color = "#cccccc" if isDarkTheme() else "#333333"  # 次要文字颜色
+        light_text_color = "#aaaaaa" if isDarkTheme() else "#666666"  # 更浅的文字颜色
+        
         # 名称/标题
         title_text = contributor.get('name', '')
         name_label = QLabel(f"{title_text}")
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        # 统一使用白色样式，不分颜色
-        name_label.setStyleSheet("""
-            QLabel {
-                color: #ffffff;  /* 白色文字 */
+        # 使用主题适配的颜色
+        name_label.setStyleSheet(f"""
+            QLabel {{
+                color: {main_text_color};  /* 根据主题设置文字颜色 */
                 font-size: 18px;
                 font-weight: bold;
                 padding: 5px;
                 font-family: Arial, sans-serif;
-            }
+            }}
         """)
         
         layout.addWidget(name_label)
@@ -335,13 +350,13 @@ class ScrollCreditsWidget(QWidget):
             members_label.setWordWrap(True)
             members_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
-            members_label.setStyleSheet("""
-                QLabel {
-                    color: #cccccc;  /* 灰色文字 */
+            members_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {secondary_text_color};  /* 根据主题设置文字颜色 */
                     font-size: 16px;
                     padding: 10px 20px;  /* 增加内边距以适应多行文本 */
                     font-family: Arial, sans-serif;
-                }
+                }}
             """)
             layout.addWidget(members_label)
             return widget
@@ -350,14 +365,14 @@ class ScrollCreditsWidget(QWidget):
         if 'role' in contributor:
             role_label = QLabel(f"{contributor['role']}")
             role_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            role_label.setStyleSheet("""
-                QLabel {
-                    color: #cccccc;  /* 灰色文字 */
+            role_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {secondary_text_color};  /* 根据主题设置文字颜色 */
                     font-size: 16px;
                     padding: 5px;
                     font-style: italic;
                     font-family: Arial, sans-serif;
-                }
+                }}
             """)
             layout.addWidget(role_label)
 
@@ -366,13 +381,13 @@ class ScrollCreditsWidget(QWidget):
             contributions_label = QLabel(f"{contributor.get('contributions')}")
             contributions_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             
-            contributions_label.setStyleSheet("""
-                QLabel {
-                    color: #aaaaaa;  /* 深灰色文字 */
+            contributions_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {light_text_color};  /* 根据主题设置文字颜色 */
                     font-size: 14px;
                     padding: 5px;
                     font-family: Arial, sans-serif;
-                }
+                }}
             """)
             layout.addWidget(contributions_label)
 
@@ -428,5 +443,3 @@ class ScrollCreditsWidget(QWidget):
             self.scroll_timer.stop()
             self.scroll_timer.deleteLater()
         self._start_scroll()
-
-
