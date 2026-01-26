@@ -2,15 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QSize
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import (
     CaptionLabel,
-    FluentIcon,
     FlyoutViewBase,
-    TeachingTip,
+    PopupTeachingTip,
     TeachingTipTailPosition,
-    TransparentToolButton,
 )
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -29,7 +26,7 @@ if TYPE_CHECKING:
 class IntelBoardSettingFlyout(FlyoutViewBase):
     """情报板配置弹出框"""
 
-    _current_tip: TeachingTip | None = None
+    _current_tip: PopupTeachingTip | None = None
 
     def __init__(self, ctx: ZContext, group_id: str, parent: QWidget | None = None):
         super().__init__(parent)
@@ -41,17 +38,8 @@ class IntelBoardSettingFlyout(FlyoutViewBase):
     def _setup_ui(self):
         """设置UI布局"""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 8, 16, 12)
+        layout.setContentsMargins(16, 12, 16, 12)
         layout.setSpacing(8)
-
-        # 关闭按钮行（顶部）
-        close_row = QHBoxLayout()
-        close_row.addStretch(1)
-        self.closeButton = TransparentToolButton(FluentIcon.CLOSE)
-        self.closeButton.setFixedSize(24, 24)
-        self.closeButton.setIconSize(QSize(10, 10))
-        close_row.addWidget(self.closeButton)
-        layout.addLayout(close_row)
 
         # 预备编队行
         team_row = QHBoxLayout()
@@ -116,26 +104,32 @@ class IntelBoardSettingFlyout(FlyoutViewBase):
             self.intel_board_config.auto_battle_config = self.auto_battle_opt.currentData()
 
     @classmethod
-    def show_flyout(cls, ctx: ZContext, group_id: str, target: QWidget, parent: QWidget | None = None) -> TeachingTip:
+    def show_flyout(cls, ctx: ZContext, group_id: str, target: QWidget, parent: QWidget | None = None) -> PopupTeachingTip:
         """显示配置弹出框"""
-        # 关闭现有的弹出框
+        # 如果已经有弹出框显示，直接返回（防止重复点击）
         if cls._current_tip is not None:
-            cls._current_tip.close()
+            try:
+                # 检查对象是否有效
+                cls._current_tip.isVisible()
+                return cls._current_tip  # 已有有效的 tip，不重复创建
+            except RuntimeError:
+                cls._current_tip = None  # C++ 对象已销毁，清理引用
 
         # 创建弹出框视图
         content_view = IntelBoardSettingFlyout(ctx, group_id, parent)
         content_view.init_config()
 
-        # 创建并显示 TeachingTip
-        tip = TeachingTip.make(
+        # 创建并显示 PopupTeachingTip（点击空白区域自动关闭）
+        tip = PopupTeachingTip.make(
             view=content_view,
             target=target,
             duration=-1,
             tailPosition=TeachingTipTailPosition.RIGHT,
-            parent=parent
+            parent=parent,
         )
 
         cls._current_tip = tip
-        content_view.closeButton.clicked.connect(tip.close)
+        # 当 tip 关闭时清理引用
+        tip.destroyed.connect(lambda: setattr(cls, '_current_tip', None))
 
         return tip
