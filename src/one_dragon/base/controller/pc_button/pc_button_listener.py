@@ -80,3 +80,10 @@ class PcButtonListener:
     def stop(self):
         self.keyboard_listener.stop()
         self.mouse_listener.stop()
+
+    @staticmethod
+    def after_app_shutdown() -> None:
+        """
+        整个脚本运行结束后的清理
+        """
+        _key_mouse_btn_listener_executor.shutdown(wait=False, cancel_futures=True)

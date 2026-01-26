@@ -5,6 +5,13 @@ class PcButtonController:
 
     def __init__(self):
         self.key_press_time: float = 0.02
+        self.input_enabled: bool = True
+
+    def disable_input(self) -> None:
+        self.input_enabled = False
+
+    def enable_input(self) -> None:
+        self.input_enabled = True
 
     def tap(self, key: str) -> None:
         """
