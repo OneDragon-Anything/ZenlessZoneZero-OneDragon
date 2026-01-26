@@ -90,7 +90,7 @@ class ZOneDragonRunInterface(OneDragonRunInterface):
 
     def _find_app_card_setting_btn(self, app_id: str):
         """找到对应 app_id 的卡片的设置按钮"""
-        for card in self._app_run_cards:
+        for card in self.app_run_list._app_cards:
             if card.app.app_id == app_id:
                 return card.setting_btn
         return None
