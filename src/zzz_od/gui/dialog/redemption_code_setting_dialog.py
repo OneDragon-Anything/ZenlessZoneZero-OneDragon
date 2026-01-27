@@ -42,12 +42,9 @@ class RedemptionCodeSettingDialog(AppSettingDialog):
     def on_dialog_shown(self) -> None:
         super().on_dialog_shown()
 
-        # 使用 instance_idx=None 标识全局配置，对所有账号实例生效
-        self.config: RedemptionCodeConfig = self.ctx.run_context.get_config(
-            app_id=redemption_code_const.APP_ID,
-            instance_idx=None,
-            group_id=self.group_id,
-        )
+        # 兑换码配置是全局配置，直接创建实例
+        # 不使用 ctx.run_context.get_config，因为它要求instance_idx不能为None
+        self.config: RedemptionCodeConfig = RedemptionCodeConfig()
 
         # 创建自定义适配器来处理兑换码文本的读写
         class CodesTextAdapter:

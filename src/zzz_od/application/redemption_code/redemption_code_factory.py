@@ -37,5 +37,9 @@ class RedemptionCodeFactory(ApplicationFactory):
         )
 
     def create_config(self, instance_idx: int, group_id: str) -> RedemptionCodeConfig:
-        """创建兑换码配置"""
-        return RedemptionCodeConfig(instance_idx=instance_idx, group_id=group_id)
+        """创建兑换码配置
+
+        注意：兑换码配置是全局配置，不依赖于instance_idx和group_id
+        这里的参数只是为了符合ApplicationFactory的接口要求
+        """
+        return RedemptionCodeConfig()

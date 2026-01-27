@@ -2,20 +2,17 @@ from pathlib import Path
 
 import yaml
 
-from one_dragon.base.operation.application.application_config import ApplicationConfig
 from one_dragon.utils import os_utils
-from zzz_od.application.redemption_code import redemption_code_const
 
 
-class RedemptionCodeConfig(ApplicationConfig):
-    """兑换码配置类，管理全局兑换码数据的存储和操作"""
+class RedemptionCodeConfig:
+    """兑换码配置类，管理全局兑换码数据的存储和操作
 
-    def __init__(self, instance_idx: int | None, group_id: str):
-        super().__init__(
-            app_id=redemption_code_const.APP_ID,
-            instance_idx=instance_idx,
-            group_id=group_id
-        )
+    注意：此类不继承ApplicationConfig，因为兑换码配置是全局配置，
+    不应该依赖于instance_idx，配置文件直接保存在config/目录下
+    """
+
+    def __init__(self):
         # 示例配置文件路径（Git追踪，开发者维护）
         self.sample_config_file_path = Path(os_utils.get_path_under_work_dir('config')) / 'redemption_codes.sample.yml'
 

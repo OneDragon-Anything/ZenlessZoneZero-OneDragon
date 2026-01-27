@@ -63,7 +63,7 @@ class RedemptionCodeRunRecord(AppRunRecord):
             兑换码列表
         """
         # 使用 RedemptionCodeConfig 的路径定义
-        config = RedemptionCodeConfig(instance_idx=None, group_id='')
+        config = RedemptionCodeConfig()
 
         # 读取配置文件路径
         user_path = config.user_config_file_path
