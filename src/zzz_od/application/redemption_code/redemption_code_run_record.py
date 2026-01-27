@@ -1,9 +1,9 @@
-import os
+from pathlib import Path
+
 import yaml
-from typing import Optional, List
 
 from one_dragon.base.operation.application_run_record import AppRunRecord
-from one_dragon.utils import os_utils
+from zzz_od.application.redemption_code.redemption_code_config import RedemptionCodeConfig
 
 
 class RedemptionCode:
@@ -15,7 +15,7 @@ class RedemptionCode:
 
 class RedemptionCodeRunRecord(AppRunRecord):
 
-    def __init__(self, instance_idx: Optional[int] = None, game_refresh_hour_offset: int = 0):
+    def __init__(self, instance_idx: int | None = None, game_refresh_hour_offset: int = 0):
         AppRunRecord.__init__(
             self,
             'redemption_code',
@@ -23,28 +23,59 @@ class RedemptionCodeRunRecord(AppRunRecord):
             game_refresh_hour_offset=game_refresh_hour_offset
         )
 
-        self.valid_code_list: List[RedemptionCode] = self._load_redemption_codes_from_file()
+        self.valid_code_list: list[RedemptionCode] = self._load_redemption_codes_from_file()
 
-    def _load_redemption_codes_from_file(self) -> List[RedemptionCode]:
+    def _parse_config_file(self, file_path: Path) -> list[RedemptionCode]:
+        """解析单个配置文件
+
+        Args:
+            file_path: 配置文件路径
+
+        Returns:
+            兑换码列表
         """
-        从配置文件加载兑换码
-        """
-        codes_file_path = os.path.join(os_utils.get_path_under_work_dir('config'), 'redemption_codes.yml')
-        if not os.path.exists(codes_file_path):
-            print(f"错误：未找到兑换码配置文件：{codes_file_path}")
+        if not file_path.exists():
             return []
 
-        with open(codes_file_path, 'r', encoding='utf-8') as f:
-            config_data = yaml.safe_load(f)
+        try:
+            with open(file_path, encoding='utf-8') as f:
+                config_data = yaml.safe_load(f)
+
+            codes = []
+            if isinstance(config_data, list):
+                for item in config_data:
+                    if isinstance(item, dict):
+                        code = item.get('code')
+                        end_dt = item.get('end_dt')
+                        if code and end_dt:
+                            codes.append(RedemptionCode(code, str(end_dt)))
+
+            return codes
+        except yaml.YAMLError:
+            return []
+
+    def _load_redemption_codes_from_file(self) -> list[RedemptionCode]:
+        """从配置文件加载兑换码
+
+        合并用户配置文件 (redemption_codes.yml) 和示例配置文件 (redemption_codes.sample.yml)
+
+        Returns:
+            兑换码列表
+        """
+        # 使用 RedemptionCodeConfig 的路径定义
+        config = RedemptionCodeConfig(instance_idx=None, group_id='')
+
+        # 读取配置文件路径
+        user_path = config.user_config_file_path
+        sample_path = config.sample_config_file_path
 
         codes = []
-        if isinstance(config_data, list):
-            for item in config_data:
-                if isinstance(item, dict):
-                    code = item.get('code')
-                    end_dt = item.get('end_dt')
-                    if code and end_dt:
-                        codes.append(RedemptionCode(code, str(end_dt))) # 确保end_dt是字符串
+
+        # 读取用户配置
+        codes.extend(self._parse_config_file(user_path))
+
+        # 读取示例配置
+        codes.extend(self._parse_config_file(sample_path))
 
         return codes
 
@@ -68,7 +99,7 @@ class RedemptionCodeRunRecord(AppRunRecord):
             AppRunRecord.check_and_update_status(self)
 
     @property
-    def used_code_list(self) -> List[str]:
+    def used_code_list(self) -> list[str]:
         """
         已使用的兑换码
         :return:
@@ -76,14 +107,14 @@ class RedemptionCodeRunRecord(AppRunRecord):
         return self.get('used_code_list', [])
 
     @used_code_list.setter
-    def used_code_list(self, new_value: List[str]) -> None:
+    def used_code_list(self, new_value: list[str]) -> None:
         """
         已使用的兑换码
         :return:
         """
         self.update('used_code_list', new_value)
 
-    def get_unused_code_list(self, dt: str) -> List[str]:
+    def get_unused_code_list(self, dt: str) -> list[str]:
         """
         按日期获取未使用的兑换码
         :return:
