@@ -12,7 +12,7 @@ class RedemptionCodeConfig:
     不应该依赖于instance_idx，配置文件直接保存在config/目录下
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # 示例配置文件路径（Git追踪，开发者维护）
         self.sample_config_file_path = Path(os_utils.get_path_under_work_dir('config')) / 'redemption_codes.sample.yml'
 

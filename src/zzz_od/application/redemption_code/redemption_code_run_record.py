@@ -8,14 +8,14 @@ from zzz_od.application.redemption_code.redemption_code_config import Redemption
 
 class RedemptionCode:
 
-    def __init__(self, code: str, end_dt: str):
+    def __init__(self, code: str, end_dt: str) -> None:
         self.code: str = code  # 兑换码
         self.end_dt = end_dt  # 失效日期
 
 
 class RedemptionCodeRunRecord(AppRunRecord):
 
-    def __init__(self, instance_idx: int | None = None, game_refresh_hour_offset: int = 0):
+    def __init__(self, instance_idx: int | None = None, game_refresh_hour_offset: int = 0) -> None:
         AppRunRecord.__init__(
             self,
             'redemption_code',
@@ -58,6 +58,7 @@ class RedemptionCodeRunRecord(AppRunRecord):
         """从配置文件加载兑换码
 
         合并用户配置文件 (redemption_codes.yml) 和示例配置文件 (redemption_codes.sample.yml)
+        如果有重复的兑换码，优先使用用户配置中的
 
         Returns:
             兑换码列表
@@ -69,13 +70,22 @@ class RedemptionCodeRunRecord(AppRunRecord):
         user_path = config.user_config_file_path
         sample_path = config.sample_config_file_path
 
-        codes = []
+        codes: list[RedemptionCode] = []
+        seen: set[str] = set()
 
-        # 读取用户配置
-        codes.extend(self._parse_config_file(user_path))
+        # 读取用户配置（优先级高）
+        for item in self._parse_config_file(user_path):
+            if item.code in seen:
+                continue
+            seen.add(item.code)
+            codes.append(item)
 
-        # 读取示例配置
-        codes.extend(self._parse_config_file(sample_path))
+        # 读取示例配置（优先级低，跳过重复）
+        for item in self._parse_config_file(sample_path):
+            if item.code in seen:
+                continue
+            seen.add(item.code)
+            codes.append(item)
 
         return codes
 
