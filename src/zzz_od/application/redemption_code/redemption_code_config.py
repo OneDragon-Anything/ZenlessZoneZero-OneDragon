@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import yaml
 
@@ -17,11 +17,11 @@ class RedemptionCodeConfig(ApplicationConfig):
             group_id=group_id
         )
         # 全局配置文件路径
-        self.global_config_file_path = os.path.join(os_utils.get_path_under_work_dir('config'), 'redemption_codes.yml')
+        self.global_config_file_path = Path(os_utils.get_path_under_work_dir('config')) / 'redemption_codes.yml'
 
-    def _load_global_config(self) -> list:
+    def _load_global_config(self) -> list[str]:
         """加载全局配置文件，直接返回兑换码列表"""
-        if not os.path.exists(self.global_config_file_path):
+        if not self.global_config_file_path.exists():
             return []
 
         try:
@@ -46,7 +46,7 @@ class RedemptionCodeConfig(ApplicationConfig):
     def _save_global_config(self, codes_list: list[str]) -> None:
         """保存全局配置文件，保存兑换码列表"""
         try:
-            os.makedirs(os.path.dirname(self.global_config_file_path), exist_ok=True)
+            self.global_config_file_path.parent.mkdir(parents=True, exist_ok=True)
 
             config_data = [
                 {'code': code, 'end_dt': 20990101}

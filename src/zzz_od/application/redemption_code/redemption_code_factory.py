@@ -36,6 +36,6 @@ class RedemptionCodeFactory(ApplicationFactory):
             game_refresh_hour_offset=self.ctx.game_account_config.game_refresh_hour_offset,
         )
 
-    def create_config(self, instance_idx: int, group_id: str):
+    def create_config(self, instance_idx: int, group_id: str) -> RedemptionCodeConfig:
         """创建兑换码配置"""
         return RedemptionCodeConfig(instance_idx=instance_idx, group_id=group_id)

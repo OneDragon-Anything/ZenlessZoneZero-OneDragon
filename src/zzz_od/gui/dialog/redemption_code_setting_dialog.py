@@ -50,7 +50,7 @@ class RedemptionCodeSettingDialog(AppSettingDialog):
 
         # 创建自定义适配器来处理兑换码文本的读写
         class CodesTextAdapter:
-            def __init__(self, config: RedemptionCodeConfig):
+            def __init__(self, config: RedemptionCodeConfig) -> None:
                 self.config = config
 
             def get_value(self) -> str:
