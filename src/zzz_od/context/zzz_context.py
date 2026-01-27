@@ -1,6 +1,12 @@
+from __future__ import annotations
+
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
+
+if TYPE_CHECKING:
+    from zzz_od.gui.dialog.shared_dialog_manager import SharedDialogManager
 
 
 class ZContext(OneDragonContext):
@@ -12,6 +18,7 @@ class ZContext(OneDragonContext):
         # 后续所有用到自动战斗的 都统一设置到这个里面
         from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
         self.auto_battle_context: AutoBattleContext = AutoBattleContext(self)
+        self._shared_dialog_manager: SharedDialogManager | None = None
 
     #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
@@ -260,13 +267,10 @@ class ZContext(OneDragonContext):
             default_group=True,
         )
 
-    @cached_property
+    @property
     def shared_dialog_manager(self):
-        """
-        获取共享的Dialog管理器
-
-        Returns:
-            SharedDialogManager: 共享的Dialog管理器
-        """
-        from zzz_od.gui.dialog.shared_dialog_manager import SharedDialogManager
-        return SharedDialogManager(self)
+        """获取共享的Dialog管理器"""
+        if self._shared_dialog_manager is None:
+            from zzz_od.gui.dialog.shared_dialog_manager import SharedDialogManager
+            self._shared_dialog_manager = SharedDialogManager(self)
+        return self._shared_dialog_manager

@@ -39,7 +39,8 @@ class RedemptionCodeConfig(ApplicationConfig):
                 return codes
             else:
                 return []
-        except Exception:
+        except yaml.YAMLError:
+            # YAML 解析错误时返回空列表，可考虑添加日志记录
             return []
 
     def _save_global_config(self, codes_list: list[str]) -> None:
