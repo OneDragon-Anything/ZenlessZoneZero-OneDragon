@@ -28,11 +28,11 @@ class RedemptionCodeSettingDialog(AppSettingDialog):
             icon=FluentIcon.GAME,
             title='兑换码填写处',
             content='不同的兑换码请用空格分开',
-            input_max_width=1000
+            input_max_width=1200
         )
 
         # 设置占位符文本
-        self.codes_text_card.line_edit.setPlaceholderText("ABC123 DEF456 GHI789")
+        self.codes_text_card.line_edit.setPlaceholderText("ABC123 DEF456 GHI789 (用空格分隔多个兑换码)")
 
         content_widget.add_widget(self.codes_text_card)
         content_widget.add_stretch(1)
@@ -42,9 +42,10 @@ class RedemptionCodeSettingDialog(AppSettingDialog):
     def on_dialog_shown(self) -> None:
         super().on_dialog_shown()
 
+        # 使用 instance_idx=None 标识全局配置，对所有账号实例生效
         self.config: RedemptionCodeConfig = self.ctx.run_context.get_config(
             app_id=redemption_code_const.APP_ID,
-            instance_idx=self.ctx.current_instance_idx,
+            instance_idx=None,
             group_id=self.group_id,
         )
 
