@@ -14,6 +14,7 @@ from zzz_od.application.charge_plan.charge_plan_config import (
 )
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.game_data.compendium import MISSION_TYPE_AGENT_PLAN
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
@@ -47,10 +48,12 @@ class ChargePlanApp(ZApplication):
         self.required_charge: int = 0  # 需要的电量
         self.last_tried_plan: ChargePlanItem | None = None
         self.next_plan: ChargePlanItem | None = None
+        self.skip_agent_plan_check: bool = False
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
         self.last_tried_plan = None
+        self.skip_agent_plan_check = False
         return self.round_success()
 
     @node_from(from_name='挑战完成')
@@ -86,7 +89,7 @@ class ChargePlanApp(ZApplication):
         如果找不到，返回计划完成状态。
         """
         # 检查是否所有计划都已完成
-        if self.config.all_plan_finished():
+        if self.config.all_plan_finished(self.skip_agent_plan_check):
             # 如果开启了循环模式且所有计划已完成，重置计划并继续
             if self.config.loop:
                 self.last_tried_plan = None
@@ -195,12 +198,16 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='区域巡防', status=AreaPatrol.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='专业挑战室', status=ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
-    @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
+    @node_from(from_name='传送', success=False, status=f'找不到 {MISSION_TYPE_AGENT_PLAN}')
     @operation_node(name='电量不足')
     def charge_not_enough(self) -> OperationRoundResult:
-        if self.config.skip_plan or self.next_plan.mission_type_name == '代理人方案培养':
+        is_agent_plan = self.next_plan.mission_type_name == MISSION_TYPE_AGENT_PLAN
+        if self.config.skip_plan or is_agent_plan:
             # 跳过当前计划，继续尝试下一个
             self.last_tried_plan = self.next_plan
+            if is_agent_plan and self.previous_node.is_fail:
+                # 因未找到头像而跳过，不参与循环检测
+                self.skip_agent_plan_check = True
             return self.round_success()
         else:
             # 不跳过，直接结束本轮计划

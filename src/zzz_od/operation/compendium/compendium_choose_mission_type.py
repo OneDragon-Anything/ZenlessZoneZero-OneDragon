@@ -1,5 +1,5 @@
 import difflib
-from typing import Optional, ClassVar, List
+from typing import ClassVar
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -10,7 +10,7 @@ from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.game_data.compendium import CompendiumMissionType
+from zzz_od.game_data.compendium import MISSION_TYPE_AGENT_PLAN, CompendiumMissionType
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -21,8 +21,6 @@ class MissionTypeTargetWrapper:
 
 
 class CompendiumChooseMissionType(ZOperation):
-
-    AGENT_PLAN: ClassVar[str] = '代理人方案培养'
 
     def __init__(self, ctx: ZContext, mission_type: CompendiumMissionType):
         """
@@ -43,13 +41,13 @@ class CompendiumChooseMissionType(ZOperation):
 
     @operation_node(name='选择副本', is_start_node=True, node_max_retry_times=20)
     def choose_mission_type(self) -> OperationRoundResult:
-        if self.mission_type.mission_type_name == CompendiumChooseMissionType.AGENT_PLAN:
-            return self.round_success(status=CompendiumChooseMissionType.AGENT_PLAN)
+        if self.mission_type.mission_type_name == MISSION_TYPE_AGENT_PLAN:
+            return self.round_success(status=MISSION_TYPE_AGENT_PLAN)
 
         area = self.ctx.screen_loader.get_area('快捷手册', '副本列表')
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
-        mission_type_list: List[CompendiumMissionType] = self.ctx.compendium_service.get_same_category_mission_type_list(self.mission_type.mission_type_name)
+        mission_type_list: list[CompendiumMissionType] = self.ctx.compendium_service.get_same_category_mission_type_list(self.mission_type.mission_type_name)
         if mission_type_list is None:
             return self.round_fail('非法的副本分类 %s' % self.mission_type.mission_type_name)
 
@@ -72,7 +70,7 @@ class CompendiumChooseMissionType(ZOperation):
         if target_idx == -1:
             return self.round_fail('非法的副本分类 %s' % self.mission_type.mission_type_name)
 
-        target_point: Optional[Point] = None
+        target_point: Point | None = None
         ocr_results = self.ctx.ocr.run_ocr(part)
         for ocr_result, mrl in ocr_results.items():
             if mrl.max is None:
@@ -95,7 +93,7 @@ class CompendiumChooseMissionType(ZOperation):
 
         return self.handle_go_button(self.last_screenshot, target_point)
 
-    @node_from(from_name='选择副本', status=AGENT_PLAN)
+    @node_from(from_name='选择副本', status=MISSION_TYPE_AGENT_PLAN)
     @operation_node(name='选择代理人方案', node_max_retry_times=10)
     def choose_mission_type_by_agent(self) -> OperationRoundResult:
         """
@@ -139,7 +137,7 @@ class CompendiumChooseMissionType(ZOperation):
         part = cv2_utils.crop_image_only(screen, go_rect)
         ocr_results = self.ctx.ocr.run_ocr(part)
 
-        target_go_point: Optional[Point] = None
+        target_go_point: Point | None = None
         for ocr_result, mrl in ocr_results.items():
             if mrl.max is None:
                 continue
