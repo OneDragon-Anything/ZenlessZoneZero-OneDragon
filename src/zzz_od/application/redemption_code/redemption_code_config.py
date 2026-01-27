@@ -10,22 +10,32 @@ from zzz_od.application.redemption_code import redemption_code_const
 class RedemptionCodeConfig(ApplicationConfig):
     """兑换码配置类，管理全局兑换码数据的存储和操作"""
 
-    def __init__(self, instance_idx: int, group_id: str):
+    def __init__(self, instance_idx: int | None, group_id: str):
         super().__init__(
             app_id=redemption_code_const.APP_ID,
             instance_idx=instance_idx,
             group_id=group_id
         )
-        # 全局配置文件路径
-        self.global_config_file_path = Path(os_utils.get_path_under_work_dir('config')) / 'redemption_codes.yml'
+        # 示例配置文件路径（Git追踪，开发者维护）
+        self.sample_config_file_path = Path(os_utils.get_path_under_work_dir('config')) / 'redemption_codes.sample.yml'
 
-    def _load_global_config(self) -> list[str]:
-        """加载全局配置文件，直接返回兑换码列表"""
-        if not self.global_config_file_path.exists():
+        # 用户配置文件路径（不被Git追踪，用户自定义）
+        self.user_config_file_path = Path(os_utils.get_path_under_work_dir('config')) / 'redemption_codes.yml'
+
+    def _load_config_from_file(self, file_path: Path) -> list[str]:
+        """从指定文件路径加载配置
+
+        Args:
+            file_path: 配置文件路径
+
+        Returns:
+            兑换码列表
+        """
+        if not file_path.exists():
             return []
 
         try:
-            with open(self.global_config_file_path, encoding='utf-8') as f:
+            with open(file_path, encoding='utf-8') as f:
                 config_data = yaml.safe_load(f)
 
             # 只支持新格式：直接是兑换码列表
@@ -43,19 +53,41 @@ class RedemptionCodeConfig(ApplicationConfig):
             # YAML 解析错误时返回空列表，可考虑添加日志记录
             return []
 
+    def _load_global_config(self) -> list[str]:
+        """加载全局配置文件（仅用于GUI显示）
+
+        只读取用户配置文件，不读取示例配置
+        用户配置不存在返回空列表
+
+        Returns:
+            兑换码列表
+        """
+        # 只读取用户配置
+        return self._load_config_from_file(self.user_config_file_path)
+
     def _save_global_config(self, codes_list: list[str]) -> None:
-        """保存全局配置文件，保存兑换码列表"""
+        """保存全局配置文件到用户配置路径
+
+        始终保存到 user_config_file_path (redemption_codes.yml)
+        确保 config/ 目录存在
+        添加用户配置文件注释说明
+
+        Args:
+            codes_list: 兑换码列表
+        """
         try:
-            self.global_config_file_path.parent.mkdir(parents=True, exist_ok=True)
+            # 确保 config/ 目录存在
+            self.user_config_file_path.parent.mkdir(parents=True, exist_ok=True)
 
             config_data = [
                 {'code': code, 'end_dt': 20990101}
                 for code in codes_list if code.strip()
             ]
 
-            with open(self.global_config_file_path, 'w', encoding='utf-8') as f:
+            with open(self.user_config_file_path, 'w', encoding='utf-8') as f:
                 # 写入注释说明
-                f.write("# 兑换码列表\n")
+                f.write("# 用户自定义兑换码列表\n")
+                f.write("# 此文件不会被Git追踪，不会被自动更新覆盖\n")
                 f.write("# 格式:\n")
                 f.write("# - code: '兑换码'\n")
                 f.write("#   end_dt: 过期时间\n")
