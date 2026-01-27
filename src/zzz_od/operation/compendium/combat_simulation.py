@@ -6,7 +6,7 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -18,6 +18,7 @@ from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanItem,
 )
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.game_data.compendium import MISSION_TYPE_AGENT_PLAN
 from zzz_od.operation.challenge_mission.check_next_after_battle import (
     ChooseNextOrFinishAfterBattle,
 )
@@ -118,7 +119,7 @@ class CombatSimulation(ZOperation):
             self.scroll_count = 0
             return self.round_success(status=CombatSimulation.STATUS_CHOOSE_FAIL)
 
-        if self.plan.mission_name == '代理人方案培养':
+        if self.plan.mission_name == MISSION_TYPE_AGENT_PLAN:
             target_point: Point | None = None
 
             area = self.ctx.screen_loader.get_area('实战模拟室', '副本名称列表顶部')
