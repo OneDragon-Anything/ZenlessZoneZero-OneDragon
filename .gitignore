@@ -24,6 +24,7 @@ config/dodge_assistant.yml
 config/zzz_one_dragon.yml
 config/one_dragon.yml
 config/push.yml
+config/redemption_codes.yml
 config/[0-9]*/
 config/dodge/*
 !config/dodge/*.sample.yml
