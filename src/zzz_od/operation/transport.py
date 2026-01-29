@@ -115,7 +115,7 @@ class Transport(ZOperation):
         return self.round_retry(wait=0.5)
 
     @node_from(from_name='选择区域')
-    @operation_node(name='选择传送点', node_max_retry_times=6)
+    @operation_node(name='选择传送点', node_max_retry_times=10)
     def choose_tp(self) -> OperationRoundResult:
         """
         在地图画面 已经选择好区域了 选择传送点
