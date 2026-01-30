@@ -39,7 +39,8 @@ class PluginManageInterface(VerticalScrollInterface):
         )
 
         self.ctx: ZContext = ctx
-        self._plugin_cards: list[QWidget] = []
+        self._plugin_cards: list[PluginCard | HelpCard] = []
+        self.installed_group: SettingCardGroup | None = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
@@ -54,9 +55,9 @@ class PluginManageInterface(VerticalScrollInterface):
         # 刷新按钮
         self.refresh_card = PushSettingCard(
             icon=FluentIcon.SYNC,
-            title="刷新插件",
-            text="刷新",
-            content="重新扫描插件目录并刷新应用注册",
+            title=gt("刷新插件"),
+            text=gt("刷新"),
+            content=gt("重新扫描插件目录并刷新应用注册"),
         )
         self.refresh_card.clicked.connect(self._on_refresh_clicked)
         self.installed_group.addSettingCard(self.refresh_card)
@@ -86,13 +87,10 @@ class PluginManageInterface(VerticalScrollInterface):
 
     def _get_plugins_dir(self) -> Path | None:
         """获取插件目录路径"""
-        # 从 ctx 获取插件目录
         try:
             plugin_dirs = self.ctx.get_application_plugin_dirs()
-            log.debug(f"插件目录列表: {plugin_dirs}")
             for d in plugin_dirs:
                 p = Path(d)
-                log.debug(f"检查目录: {p}, name={p.name}, exists={p.exists()}")
                 if p.name == "plugins" and p.exists():
                     return p
         except Exception as e:
@@ -162,17 +160,32 @@ class PluginManageInterface(VerticalScrollInterface):
 
     def _refresh_plugin_list(self) -> None:
         """刷新插件列表显示"""
-        # 清除旧的插件卡片（保留刷新按钮）
+        # 检查 installed_group 是否存在
+        if self.installed_group is None:
+            return
+
+        # 扫描已安装插件
+        plugins = self._scan_installed_plugins()
+
+        # 获取当前显示的插件 ID
+        current_plugin_ids: set[str] = set()
+        for card in self._plugin_cards:
+            if isinstance(card, PluginCard):
+                current_plugin_ids.add(card.plugin_info.plugin_id)
+        new_plugin_ids = {p.plugin_id for p in plugins}
+
+        # 如果插件列表没有变化且已有卡片，不刷新 UI
+        if current_plugin_ids == new_plugin_ids and self._plugin_cards:
+            return
+
+        # 清除旧的插件卡片
         for card in self._plugin_cards:
             try:
-                self.installed_group.cardLayout.removeWidget(card)
+                card.setParent(None)
                 card.deleteLater()
             except Exception:
                 pass
         self._plugin_cards.clear()
-
-        # 扫描并显示已安装插件
-        plugins = self._scan_installed_plugins()
 
         if not plugins:
             # 显示无插件提示
@@ -181,6 +194,7 @@ class PluginManageInterface(VerticalScrollInterface):
                 content="plugins 目录下没有找到任何插件",
             )
             self.installed_group.addSettingCard(empty_card)
+            empty_card.show()
             self._plugin_cards.append(empty_card)
         else:
             for plugin_info in plugins:
@@ -188,7 +202,12 @@ class PluginManageInterface(VerticalScrollInterface):
                 card.operation_finished.connect(self._on_plugin_operation_finished)
                 card.state_changed.connect(self._on_plugin_state_changed)
                 self.installed_group.addSettingCard(card)
+                card.show()
                 self._plugin_cards.append(card)
+
+        # 强制更新布局
+        self.installed_group.adjustSize()
+        self.installed_group.updateGeometry()
 
     def _on_refresh_clicked(self) -> None:
         """刷新按钮点击"""
@@ -217,7 +236,9 @@ class PluginManageInterface(VerticalScrollInterface):
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
-        self._refresh_plugin_list()
+        # 只在第一次显示时刷新，后续不自动刷新
+        if not self._plugin_cards:
+            self._refresh_plugin_list()
 
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
