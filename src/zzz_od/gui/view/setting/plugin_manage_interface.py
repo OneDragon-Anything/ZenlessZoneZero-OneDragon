@@ -215,7 +215,7 @@ class PluginManageInterface(VerticalScrollInterface):
 
         # 刷新应用注册
         try:
-            self.ctx.application_plugin_manager.refresh_applications()
+            self.ctx.plugin_manager.refresh_applications()
             log.info("应用注册刷新完成")
         except Exception as e:
             log.error(f"刷新应用注册失败: {e}")

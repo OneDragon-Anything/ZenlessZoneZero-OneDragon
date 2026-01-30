@@ -14,7 +14,7 @@ class ZContext(OneDragonContext):
         from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
         self.auto_battle_context: AutoBattleContext = AutoBattleContext(self)
 
-    def get_application_plugin_dirs(self) -> list:
+    def get_application_plugin_dirs(self) -> list[Path]:
         """
         获取应用插件目录列表
 
@@ -23,11 +23,12 @@ class ZContext(OneDragonContext):
         Returns:
             list[Path]: 应用插件目录列表
         """
-        dirs = OneDragonContext.get_application_plugin_dirs(self)
+        dirs = list(OneDragonContext.get_application_plugin_dirs(self))
 
         # 添加自定义插件目录: 项目根目录/plugins
         plugins_dir = Path(__file__).parent.parent.parent.parent / 'plugins'
-        plugins_dir.mkdir(parents=True, exist_ok=True)
+        if not plugins_dir.exists():
+            plugins_dir.mkdir(parents=True, exist_ok=True)
         dirs.append(plugins_dir)
 
         return dirs
