@@ -1,4 +1,5 @@
 from functools import cached_property
+from pathlib import Path
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
@@ -12,6 +13,24 @@ class ZContext(OneDragonContext):
         # 后续所有用到自动战斗的 都统一设置到这个里面
         from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
         self.auto_battle_context: AutoBattleContext = AutoBattleContext(self)
+
+    def get_application_plugin_dirs(self) -> list:
+        """
+        获取应用插件目录列表
+
+        包含默认的 application 目录和自定义插件目录 plugins/
+
+        Returns:
+            list[Path]: 应用插件目录列表
+        """
+        dirs = OneDragonContext.get_application_plugin_dirs(self)
+
+        # 添加自定义插件目录: 项目根目录/plugins
+        plugins_dir = Path(__file__).parent.parent.parent.parent / 'plugins'
+        plugins_dir.mkdir(parents=True, exist_ok=True)
+        dirs.append(plugins_dir)
+
+        return dirs
 
     #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
