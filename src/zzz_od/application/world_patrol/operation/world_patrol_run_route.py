@@ -308,7 +308,9 @@ class WorldPatrolRunRoute(ZOperation):
             self.current_pos = next_pos
             return None
 
-    def _is_next_pos_valid(self, next_pos: Point) -> bool:
+    def _is_next_pos_valid(self, next_pos: Point | None) -> bool:
+        if next_pos is None:
+            return False
         """
         判断匹配的下一个坐标是否合法
         1. 距离检查：防止基准点错误导致的大幅跳跃
