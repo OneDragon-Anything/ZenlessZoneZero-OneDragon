@@ -25,6 +25,7 @@ class EngagementRewardAppFactory(ApplicationFactory):
             app_id=engagement_reward_const.APP_ID,
             app_name=engagement_reward_const.APP_NAME,
             need_notify=engagement_reward_const.NEED_NOTIFY,
+            default_group=engagement_reward_const.DEFAULT_GROUP,
         )
         self.ctx: ZContext = ctx
 

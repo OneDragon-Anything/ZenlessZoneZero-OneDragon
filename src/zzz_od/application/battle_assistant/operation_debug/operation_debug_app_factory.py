@@ -20,6 +20,7 @@ class OperationDebugAppFactory(ApplicationFactory):
             self,
             app_id=operation_debug_const.APP_ID,
             app_name=operation_debug_const.APP_NAME,
+            default_group=operation_debug_const.DEFAULT_GROUP,
         )
         self.ctx: ZContext = ctx
 

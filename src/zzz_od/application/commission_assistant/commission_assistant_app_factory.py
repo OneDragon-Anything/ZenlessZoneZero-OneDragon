@@ -24,6 +24,7 @@ class CommissionAssistantAppFactory(ApplicationFactory):
             self,
             app_id=commission_assistant_const.APP_ID,
             app_name=commission_assistant_const.APP_NAME,
+            default_group=commission_assistant_const.DEFAULT_GROUP,
         )
         self.ctx: ZContext = ctx
 

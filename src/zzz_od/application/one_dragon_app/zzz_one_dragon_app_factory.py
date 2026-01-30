@@ -18,6 +18,7 @@ class ZzzOneDragonAppFactory(ApplicationFactory):
             self,
             app_id=application_const.ONE_DRAGON_APP_ID,
             app_name=application_const.ONE_DRAGON_APP_NAME,
+            default_group=application_const.ONE_DRAGON_DEFAULT_GROUP,
         )
         self.ctx: ZContext = ctx
 

@@ -20,6 +20,7 @@ class MouseSensitivityCheckerFactory(ApplicationFactory):
             self,
             app_id=mouse_sensitivity_checker_const.APP_ID,
             app_name=mouse_sensitivity_checker_const.APP_NAME,
+            default_group=mouse_sensitivity_checker_const.DEFAULT_GROUP,
         )
         self.ctx: ZContext = ctx
 

@@ -26,6 +26,7 @@ class LostVoidAppFactory(ApplicationFactory):
             app_id=lost_void_const.APP_ID,
             app_name=lost_void_const.APP_NAME,
             need_notify=lost_void_const.NEED_NOTIFY,
+            default_group=lost_void_const.DEFAULT_GROUP,
         )
         self.ctx: ZContext = ctx
 

@@ -16,6 +16,9 @@ from one_dragon.base.matcher.template_matcher import TemplateMatcher
 from one_dragon.base.operation.application.application_group_manager import (
     ApplicationGroupManager,
 )
+from one_dragon.base.operation.application.application_plugin_manager import (
+    ApplicationPluginManager,
+)
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
 )
@@ -74,6 +77,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         # 注册应用
         self.run_context: ApplicationRunContext = ApplicationRunContext(self)
         self.app_group_manager: ApplicationGroupManager = ApplicationGroupManager(self)
+        self.plugin_manager: ApplicationPluginManager = ApplicationPluginManager(self)
 
         self.push_service: PushService = PushService(self)
 
@@ -190,6 +194,17 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """
         f = ONE_DRAGON_CONTEXT_EXECUTOR.submit(self.init)
         f.add_done_callback(thread_utils.handle_future_result)
+
+    def refresh_application_registration(self) -> None:
+        """刷新应用注册
+
+        重新扫描插件目录，刷新所有应用的注册。
+        可在运行时调用以加载新的应用或更新已有应用。
+        """
+        self.plugin_manager.refresh_applications()
+        # 刷新通知配置中的应用映射
+        if hasattr(self, 'notify_config'):
+            delattr(self, 'notify_config')
 
     def _on_key_press(self, key: str):
         """
@@ -308,9 +323,49 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         from one_dragon.utils import gpu_executor
         gpu_executor.shutdown(wait=False)
 
+    def get_application_plugin_dirs(self) -> list:
+        """
+        获取应用插件目录列表
+
+        默认返回子类所在目录的同级 'application' 目录。
+        例如：如果子类在 zzz_od/context/zzz_context.py，则返回 zzz_od/application。
+
+        子类可以覆盖此方法来自定义插件目录。
+
+        Returns:
+            list[Path]: 应用插件目录列表
+        """
+        import inspect
+        from pathlib import Path
+
+        # 获取实际子类的定义文件
+        cls_file = inspect.getfile(self.__class__)
+        # 计算 application 目录：子类文件所在目录的上级目录下的 application 目录
+        # 例如：zzz_od/context/zzz_context.py -> zzz_od/application
+        application_dir = Path(cls_file).parent.parent / 'application'
+        if application_dir.is_dir():
+            return [application_dir]
+        return []
+
     def register_application_factory(self) -> None:
         """
         注册应用
-        由子类实现
+
+        使用插件管理器自动扫描和注册应用工厂。
+        子类应该覆盖 get_application_plugin_dirs() 来指定插件目录。
         """
-        pass
+        from pathlib import Path
+
+        # 添加应用插件目录
+        for plugin_dir in self.get_application_plugin_dirs():
+            if isinstance(plugin_dir, (str, Path)):
+                self.plugin_manager.add_plugin_dir(plugin_dir)
+
+        # 发现并注册应用
+        non_default_factories, default_factories = self.plugin_manager.discover_factories()
+
+        if non_default_factories:
+            self.run_context.registry_application(non_default_factories, default_group=False)
+
+        if default_factories:
+            self.run_context.registry_application(default_factories, default_group=True)

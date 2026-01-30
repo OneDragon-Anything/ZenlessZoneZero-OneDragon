@@ -11,6 +11,11 @@ class ApplicationFactory(ABC):
 
     负责创建应用实例、应用配置和运行记录的工厂类，提供缓存机制以避免重复创建。
     每个具体应用都需要继承此类并实现其抽象方法来定义应用的创建逻辑。
+
+    应用分组:
+        - 通过构造函数的 `default_group` 参数声明是否属于默认应用组
+        - 默认为 True，表示应用会出现在一条龙运行列表中
+        - const 文件中可定义 `DEFAULT_GROUP = False` 表示不属于默认组
     """
 
     def __init__(
@@ -18,6 +23,7 @@ class ApplicationFactory(ABC):
         app_id: str,
         app_name: str,
         need_notify: bool = False,
+        default_group: bool = True,
     ):
         """
         初始化应用工厂。
@@ -26,10 +32,12 @@ class ApplicationFactory(ABC):
             app_id: 应用唯一标识符，用于区分不同的应用类型
             app_name: 显示用的应用名称
             need_notify: 应用是否需要通知
+            default_group: 是否属于默认应用组，默认为 True
         """
         self.app_id: str = app_id
         self.app_name: str = app_name
         self.need_notify: bool = need_notify
+        self.default_group: bool = default_group
         self._config_cache: dict[str, ApplicationConfig] = {}
         self._run_record_cache: dict[str, AppRunRecord] = {}
 
