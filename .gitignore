@@ -61,6 +61,11 @@ config/world_patrol_route_list/*
 notice_cache/
 *.bak
 
+# 第三方插件目录
+src/zzz_od/plugins/*
+!src/zzz_od/plugins/__init__.py
+!src/zzz_od/plugins/README.md
+
 # 需自行下载的模型文件
 models/
 
