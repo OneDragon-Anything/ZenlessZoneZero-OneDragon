@@ -7221,8 +7221,8 @@
     pc_rect:
     - 500
     - 234
-    - 754
-    - 286
+    - 800
+    - 340
     text: 前次行动最佳记录
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -7233,10 +7233,10 @@
   - area_name: 前次-关闭
     id_mark: false
     pc_rect:
-    - 1374
+    - 1310
     - 228
     - 1418
-    - 276
+    - 295
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
