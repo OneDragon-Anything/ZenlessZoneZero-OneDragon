@@ -4,7 +4,7 @@ template_name: 勘域-菜单
 template_shape: quadrilateral
 auto_mask: true
 point_list:
-- 92, 50
+- 92, 57
 - 72, 100
 - 109, 100
-- 129, 50
+- 129, 57

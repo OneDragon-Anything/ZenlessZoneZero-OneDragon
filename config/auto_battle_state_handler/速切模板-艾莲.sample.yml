@@ -3,6 +3,10 @@ handlers:
   - states: "[前台-艾莲]"
     interrupt_states: "[前台-能量, 0, 0.1] & ![前台-艾莲]"
     sub_handlers:
+      - states: "[自定义-终结技被强制释放, 0, 1]"
+        operations:
+          - operation_template: "艾莲-终结技"
+
       # 黄光操作
       - states: "[自定义-黄光切人, 0, 1]"
         operations:
@@ -50,7 +54,6 @@ handlers:
         debug_name: "非失衡期间"
         sub_handlers:
           - states: "[艾莲-急冻充能]{0,2}"
-            interrupt_states: "[艾莲-急冻充能]{3,6}"
             sub_handlers:
               - states: "[自定义-艾莲-正在打普攻,0,10]"
                 debug_name: "普攻收个尾"
@@ -59,7 +62,7 @@ handlers:
                     state: "自定义-艾莲-正在打普攻"
                   - op_name: "按键-普通攻击"
                     post_delay: 0.1
-                    repeat: 20
+                    repeat: 5
 
               - states: "![自定义-艾莲-正在打普攻]"
                 operations:

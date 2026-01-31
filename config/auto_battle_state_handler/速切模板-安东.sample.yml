@@ -3,6 +3,10 @@ handlers:
   - states: "[前台-安东]"
     interrupt_states: "[前台-能量, 0, 0.1] & ![前台-安东]"
     sub_handlers:
+      - states: "[自定义-终结技被强制释放, 0, 1]"
+        operations:
+          - operation_template: "通用-终结技"
+
       - states: "[自定义-黄光切人, 0, 1]"
         operations:
           - operation_template: "安东-支援攻击"

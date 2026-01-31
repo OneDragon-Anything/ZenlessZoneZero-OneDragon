@@ -8,7 +8,7 @@ operations:
     seconds: 5
   - op_name: "按键-终结技"
     post_delay: 0.1
-    repeat: 5
+    repeat: 30
   - op_name: "等待秒数"
-    seconds: 4.5
+    seconds: 2.0
   - operation_template: "薇薇安-5A悬落"

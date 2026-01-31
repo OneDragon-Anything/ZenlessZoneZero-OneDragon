@@ -3,17 +3,9 @@ handlers:
   - states: "[前台-格莉丝]"
     interrupt_states: "[前台-能量, 0, 0.1] & ![前台-格莉丝]"
     sub_handlers:
-      - states: "[自定义-异常-冰]{0, 99} | [自定义-异常-物理]{0, 99} | [自定义-异常-烈霜]{0, 99} | [自定义-异常-火]{0, 99}"
-        debug_name: "清除其他异常积蓄"
+      - states: "[自定义-终结技被强制释放, 0, 1]"
         operations:
-          - op_name: "清除状态"
-            state_list:
-              [
-                "自定义-异常-火",
-                "自定义-异常-冰",
-                "自定义-异常-烈霜",
-                "自定义-异常-物理",
-              ]
+          - operation_template: "格莉丝-终结技"
 
       - states: "[自定义-黄光切人, 0, 1]"
         operations:

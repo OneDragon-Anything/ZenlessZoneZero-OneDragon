@@ -3,17 +3,9 @@ handlers:
   - states: "[前台-柏妮思]"
     interrupt_states: "[前台-能量, 0, 0.1] & ![前台-柏妮思]"
     sub_handlers:
-      - states: "[自定义-异常-物理, 0, 99] | [自定义-异常-冰, 0, 99] | [自定义-异常-烈霜, 0, 99] | [自定义-异常-电, 0, 99]"
-        debug_name: "清除其他异常积蓄"
+      - states: "[自定义-终结技被强制释放, 0, 1]"
         operations:
-          - op_name: "清除状态"
-            state_list:
-              [
-                "自定义-异常-冰",
-                "自定义-异常-物理",
-                "自定义-异常-烈霜",
-                "自定义-异常-电",
-              ]
+          - operation_template: "柏妮思-终结技"
 
       - states: "[自定义-黄光切人, 0, 1]"
         debug_name: "黄光切人"
@@ -50,17 +42,13 @@ handlers:
         operations:
           - operation_template: "柏妮思-终结技"
 
+
       - states: "[柏妮思-燃点]{100, 100}"
-        debug_name: "满燃点上灼烧"
+        debug_name: "满了"
         operations:
           - operation_template: "柏妮思-长按普通攻击"
 
-      - states: "[柏妮思-能量]{100,120}"
-        debug_name: "能量溢出"
-        operations:
-          - operation_template: "柏妮思-短按单双喷"
-
-      - states: "[柏妮思-燃点]{60, 100}"
+      - states: "[柏妮思-燃点]{80, 100} & [柏妮思-特殊技可用]"
         debug_name: "正常打站场"
         operations:
           - operation_template: "柏妮思-长按普通攻击"

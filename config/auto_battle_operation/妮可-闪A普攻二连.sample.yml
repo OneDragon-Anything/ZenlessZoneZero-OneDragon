@@ -14,7 +14,12 @@ operations:
   # 输出
   - op_name: "按键-普通攻击"
     post_delay: 0.1
-    repeat: 26
+    repeat: 10
+  - op_name: "设置状态"
+    state: "自定义-合轴时间"
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 16
   - op_name: "等待秒数"
     seconds: 0.2
   - op_name: "按键-移动-前-松开"

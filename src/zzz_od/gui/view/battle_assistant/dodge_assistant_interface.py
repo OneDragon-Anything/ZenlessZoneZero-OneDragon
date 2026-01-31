@@ -67,8 +67,9 @@ class DodgeAssistantInterface(AppRunInterface):
         top_widget.add_widget(self.gpu_opt)
 
         self.screenshot_interval_opt = DoubleSpinBoxSettingCard(
-            icon=FluentIcon.GAME, title='截图间隔(秒)',
-            content='游戏画面掉帧的话 可以适当加大截图间隔'
+            icon=FluentIcon.GAME, title='截图间隔 (秒)',
+            content='一般默认0.02，除非电脑很卡。优先通过设置游戏30帧和低画质给AI留算力',
+            minimum=0.02, maximum=0.1
         )
         top_widget.add_widget(self.screenshot_interval_opt)
 

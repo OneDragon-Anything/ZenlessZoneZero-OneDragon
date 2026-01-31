@@ -1,12 +1,14 @@
 import os.path
+from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import FluentIcon, PushButton, ToolButton
+from qfluentwidgets import FluentIcon, MessageBox, PushButton, SettingCard, ToolButton
 
 from one_dragon.base.operation.context_event_bus import ContextEventItem
+from one_dragon.utils import os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.view.app_run_interface import AppRunInterface
@@ -14,7 +16,6 @@ from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
-from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
     DoubleSpinBoxSettingCard,
 )
@@ -64,18 +65,26 @@ class AutoBattleInterface(AppRunInterface):
     def get_widget_at_top(self) -> QWidget:
         top_widget = Column()
 
-        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_battle_assistant.html')
+        self.help_opt = SettingCard(FluentIcon.HELP, gt('使用说明'), gt('先看说明 再使用与提问'))
+        self.help_opt.setFixedHeight(50)
+        self.desc_btn = PushButton(gt('如何让AI打得更好？'))
+        self.desc_btn.clicked.connect(self._on_desc_clicked)
+        self.help_opt.hBoxLayout.addWidget(self.desc_btn, alignment=Qt.AlignmentFlag.AlignRight)
+        self.help_opt.hBoxLayout.addSpacing(16)
+        self.guide_btn = PushButton(gt('查看指南'))
+        self.guide_btn.clicked.connect(self._on_help_clicked)
+        self.help_opt.hBoxLayout.addWidget(self.guide_btn, alignment=Qt.AlignmentFlag.AlignRight)
+        self.help_opt.hBoxLayout.addSpacing(16)
+        self.shared_btn = PushButton(gt('前往社区'))
+        self.shared_btn.clicked.connect(self._on_shared_clicked)
+        self.help_opt.hBoxLayout.addWidget(self.shared_btn, alignment=Qt.AlignmentFlag.AlignRight)
+        self.help_opt.hBoxLayout.addSpacing(16)
         top_widget.add_widget(self.help_opt)
 
         self.config_opt = ComboBoxSettingCard(
             icon=FluentIcon.GAME, title='战斗配置',
-            content='调试为以当前画面做一次判断执行。配置文件在 config/auto_battle 文件夹，删除会恢复默认配置'
+            content='全配队通用会自动为您的队伍匹配专属配队，遇到问题请反馈。'
         )
-        self.config_opt.hBoxLayout.addSpacing(16)
-        self.shared_btn = PushButton(gt('前往社区'))
-        self.shared_btn.clicked.connect(self._on_shared_clicked)
-        self.config_opt.hBoxLayout.addWidget(self.shared_btn, alignment=Qt.AlignmentFlag.AlignRight)
-        self.config_opt.hBoxLayout.addSpacing(16)
         self.del_btn = ToolButton(FluentIcon.DELETE)
         self.del_btn.clicked.connect(self._on_del_clicked)
         self.config_opt.hBoxLayout.addWidget(self.del_btn, alignment=Qt.AlignmentFlag.AlignRight)
@@ -86,13 +95,17 @@ class AutoBattleInterface(AppRunInterface):
         self.gpu_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='GPU运算', content='游戏画面掉帧的话 可以不启用')
         top_widget.add_widget(self.gpu_opt)
 
+        self.auto_ultimate_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='终结技一好就放', content='终结技无视时机立刻释放')
+        top_widget.add_widget(self.auto_ultimate_opt)
+
         self.merged_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='使用合并配置文件',
                                             content='关闭用于调试模板文件 正常开启即可')
         top_widget.add_widget(self.merged_opt)
 
         self.screenshot_interval_opt = DoubleSpinBoxSettingCard(
-            icon=FluentIcon.GAME, title='截图间隔(秒)',
-            content='游戏画面掉帧的话 可以适当加大截图间隔(小心,太久会关不掉软件的)',
+            icon=FluentIcon.GAME, title='截图间隔 (秒)',
+            content='一般默认0.02，除非电脑很卡。优先通过设置游戏30帧和低画质给AI留算力',
+            minimum=0.02, maximum=0.1
         )
         top_widget.add_widget(self.screenshot_interval_opt)
 
@@ -142,6 +155,7 @@ class AutoBattleInterface(AppRunInterface):
         self._update_auto_battle_config_opts()
         self.config_opt.setValue(self.ctx.battle_assistant_config.auto_battle_config)
         self.gpu_opt.init_with_adapter(get_prop_adapter(self.ctx.model_config, 'flash_classifier_gpu'))
+        self.auto_ultimate_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'auto_ultimate_enabled'))
         self.merged_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'use_merged_file'))
         self.screenshot_interval_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'screenshot_interval'))
         self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.gamepad_type)
@@ -163,6 +177,12 @@ class AutoBattleInterface(AppRunInterface):
     def _on_auto_battle_config_changed(self, index, value):
         self.ctx.battle_assistant_config.auto_battle_config = value
 
+    def _on_help_clicked(self) -> None:
+        """
+        打开使用指南
+        """
+        QDesktopServices.openUrl(QUrl("https://one-dragon.com/zzz/zh/docs/feat_battle_assistant.html"))
+
     def _on_shared_clicked(self) -> None:
         """
         打开配置共享频道
@@ -178,6 +198,20 @@ class AutoBattleInterface(AppRunInterface):
         # else:
         #     self._refresh_interface()
 
+
+    def _on_desc_clicked(self) -> None:
+        content = "这是一条消息通知"
+        try:
+            file_path = Path(os_utils.get_path_under_work_dir('docs', 'battle_assistant_notice.md'))
+            if file_path.exists():
+                content = file_path.read_text(encoding='utf-8')
+        except Exception:
+            pass
+
+        w = MessageBox(gt("使用说明"), content, self.window())
+        w.cancelButton.hide()
+        w.yesButton.setText(gt("确认"))
+        w.exec()
 
     def _on_del_clicked(self) -> None:
         """

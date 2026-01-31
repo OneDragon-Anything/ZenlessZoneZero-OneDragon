@@ -26,6 +26,7 @@ from zzz_od.application.commission_assistant.commission_assistant_config import 
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.hollow_zero.event import hollow_event_utils
+from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 
 class CommissionAssistantApp(ZApplication):
@@ -457,7 +458,8 @@ class CommissionAssistantApp(ZApplication):
             if self.fishing_done:
                 return self.round_success('钓鱼结束')
 
-            result = self.round_by_find_area(self.last_screenshot, '大世界-普通', '按钮-信息')
+            op = WaitNormalWorld(self.ctx, check_once=True)
+            result = self.round_by_op_result(op.execute())
             if result.is_success:
                 return self.round_success('钓鱼结束')
 

@@ -71,3 +71,12 @@ class BattleAssistantConfig(YamlConfig):
     @use_merged_file.setter
     def use_merged_file(self, new_value: bool) -> None:
         self.update('use_merged_file', new_value)
+
+    @property
+    def auto_ultimate_enabled(self) -> bool:
+        """自动释放终结技开关"""
+        return self.get('auto_ultimate_enabled', False)
+
+    @auto_ultimate_enabled.setter
+    def auto_ultimate_enabled(self, new_value: bool) -> None:
+        self.update('auto_ultimate_enabled', new_value)

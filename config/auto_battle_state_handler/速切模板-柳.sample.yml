@@ -3,17 +3,9 @@ handlers:
   - states: "[前台-柳]"
     interrupt_states: "[前台-能量, 0, 0.1] & ![前台-柳]"
     sub_handlers:
-      - states: "[自定义-异常-物理, 0, 99] | [自定义-异常-冰, 0, 99] | [自定义-异常-烈霜, 0, 99] | [自定义-异常-火, 0, 99]"
-        debug_name: "清除其他异常积蓄"
+      - states: "[自定义-终结技被强制释放, 0, 1]"
         operations:
-          - op_name: "清除状态"
-            state_list:
-              [
-                "自定义-异常-火",
-                "自定义-异常-冰",
-                "自定义-异常-物理",
-                "自定义-异常-烈霜"
-              ]
+          - operation_template: "柳-终结技"
 
       - states: "[自定义-黄光切人, 0, 1]"
         operations:
@@ -40,80 +32,28 @@ handlers:
               - op_name: "等待秒数"
                 seconds: 0.3
 
-      - states: "[柳-终结技可用]"
+      - states: "[柳-终结技可用] & ![自定义-柳-强化特殊技释放中]"
         operations:
           - operation_template: "柳-终结技"
           - op_name: "设置状态"
             state_list: ["自定义-合轴时间"]
 
-      - states: "[自定义-柳-下弦, 0, 999]"
-        sub_handlers:
-          - states: "[柳-特殊技可用]"
-            operations:
-              - op_name: "设置状态"
-                state_list: ["自定义-柳-本次出场已使用强化特殊技"]
-              - operation_template: "柳-强化特殊攻击-下弦"
+      - states: "[柳-特殊技可用]"
+        interrupt_states: "![柳-特殊技可用]"
+        operations:
+          - op_name: "设置状态"
+            state_list: ["自定义-柳-强化特殊技释放中"]
+          - operation_template: "柳-强化特殊攻击"
 
-          - states: "[自定义-柳-本次出场已使用强化特殊技, 0, 30]"
-            operations:
-              - op_name: "清除状态"
-                state_list: ["自定义-柳-本次出场已使用强化特殊技"]
-              - operation_template: "柳-流转攻击-下弦合轴"
-
-          - states: "[自定义-柳-森罗万象, 0, 15]"
-            operations:
-              - operation_template: "柳-流转攻击-下弦"
-
-          - states: "[自定义-柳-流转, 0, 2]"
-            operations:
-              - operation_template: "柳-普通攻击-下弦"
-          - states: ""
-            operations:
-              - operation_template: "柳-普通攻击-下弦"
-
-      # 说明是上弦
-      - states: "[自定义-柳-上弦, 0, 999]"
-        sub_handlers:
-          - states: "[柳-特殊技可用]"
-            operations:
-              - op_name: "设置状态"
-                state_list: ["自定义-柳-本次出场已使用强化特殊技"]
-              - operation_template: "柳-强化特殊攻击-上弦"
-
-          - states: "[自定义-柳-本次出场已使用强化特殊技, 0, 30]"
-            operations:
-              - op_name: "清除状态"
-                state_list: ["自定义-柳-本次出场已使用强化特殊技"]
-              - operation_template: "柳-流转攻击-上弦合轴"
-
-          - states: "[自定义-柳-森罗万象, 0, 15]"
-            operations:
-              - operation_template: "柳-流转攻击-上弦"
-
-          - states: "[自定义-柳-流转, 0, 2]"
-            operations:
-              - operation_template: "柳-流转攻击-上弦"
-
-          - states: ""
-            operations:
-              - operation_template: "柳-普通攻击-上弦"
+      - states: "[自定义-柳-强化特殊技释放中]"
+        operations:
+          - op_name: "清除状态"
+            state_list: ["自定义-柳-强化特殊技释放中"]
+          - operation_template: "柳-流转攻击-下弦合轴"
 
       - states: ""
-        sub_handlers:
-          - states: "[柳-特殊技可用]"
-            operations:
-              - op_name: "设置状态"
-                state_list: ["自定义-柳-本次出场已使用强化特殊技"]
-              - operation_template: "柳-强化特殊攻击-上弦"
-
-          - states: "[自定义-柳-森罗万象, 0, 15]"
-            operations:
-              - operation_template: "柳-流转攻击-上弦"
-
-          - states: "[自定义-柳-流转, 0, 2]"
-            operations:
-              - operation_template: "柳-流转攻击-上弦"
-
-          - states: ""
-            operations:
-              - operation_template: "柳-普通攻击-上弦"
+        interrupt_states: "[柳-特殊技可用]"
+        operations:
+          - op_name: "清除状态"
+            state_list: ["自定义-柳-强化特殊技释放中"]
+          - operation_template: "柳-普通攻击合轴"

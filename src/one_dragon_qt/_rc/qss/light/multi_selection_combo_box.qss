@@ -1,0 +1,46 @@
+/* 限定：只对 MultiSelectionComboBox 内的组件生效 */
+
+/* FluentTagLabel - 标签容器样式 */
+/* 颜色参考：Microsoft Fluent Design System 标签组件标准 */
+/* 注意：内部的 BodyLabel 和 TransparentToolButton 自动继承主题样式，无需额外配置 */
+MultiSelectionComboBox FluentTagLabel {
+    background-color: #F0F0F0;  /* 使用浅灰色，符合 Fluent 亮色主题标准 */
+    border: 1px solid #E0E0E0;  /* 添加细微边框 */
+    border-radius: 4px;
+}
+
+MultiSelectionComboBox FluentTagLabel:hover {
+    background-color: #E5E5E5;  /* 悬停时稍微加深 */
+    border: 1px solid #D5D5D5;
+}
+
+/* FluentDropdownButton - 下拉按钮容器样式 */
+/* 注意：内部的 CaptionLabel 和 BodyLabel 自动继承主题样式，无需额外配置 */
+MultiSelectionComboBox FluentDropdownButton {
+    background-color: #FFFFFF;  /* 纯白背景 */
+    border: 1px solid #D0D0D0;  /* 柔和的边框色 */
+    border-radius: 4px;
+}
+
+MultiSelectionComboBox FluentDropdownButton:hover {
+    border: 1px solid #0078D4;
+    background-color: #FFFFFF;
+}
+
+MultiSelectionComboBox FluentDropdownButton:focus {
+    border: 2px solid #0078D4;
+    background-color: #FFFFFF;
+}
+
+/* FluentDropdownButton 内部的 QWidget */
+MultiSelectionComboBox FluentDropdownButton QWidget#flowWidget {
+    background: transparent;
+}
+
+/* 下拉箭头 - 根据 Fluent Design 标准调整 */
+MultiSelectionComboBox FluentDropdownButton QLabel#arrowLabel {
+    color: rgba(0, 0, 0, 0.6);  /* 略微淡化 */
+    font-size: 10px;  /* 更小的字体 */
+    font-weight: normal;  /* 正常字重 */
+    background: transparent;
+}

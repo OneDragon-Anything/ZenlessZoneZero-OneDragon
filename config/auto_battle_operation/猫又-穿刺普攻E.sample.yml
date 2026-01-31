@@ -3,9 +3,17 @@ operations:
   # 重击 接三段普攻, 不打满尽量背身E
 
   - op_name: "按键-普通攻击-按下"
-    press: 0.6
   - op_name: "等待秒数"
-    seconds: 0.4
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.1
   - op_name: "按键-普通攻击-松开"
   - op_name: "按键-普通攻击"
     post_delay: 0.2
