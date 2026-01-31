@@ -14,8 +14,13 @@ class RedemptionCodeConfig:
     """
 
     def __init__(self) -> None:
-        # 用户配置文件路径（不被Git追踪，用户自定义）
-        self.file_path = os_utils.get_path_under_work_dir('config', 'redemption_codes.yml')
+        # 配置文件路径
+        config_dir = os_utils.get_path_under_work_dir('config')
+        self.user_config_file_path = os.path.join(config_dir, 'redemption_codes.yml')
+        self.sample_config_file_path = os.path.join(config_dir, 'redemption_codes.sample.yml')
+
+        # 使用用户配置文件路径
+        self.file_path = self.user_config_file_path
         self.data: list[dict[str, str | int]] = []
         self._read_from_file()
 
