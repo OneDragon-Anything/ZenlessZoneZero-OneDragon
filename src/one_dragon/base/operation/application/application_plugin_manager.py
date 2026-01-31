@@ -65,7 +65,13 @@ class ApplicationPluginManager:
         path = Path(plugin_dir) if isinstance(plugin_dir, str) else plugin_dir
         if path.is_dir() and path not in self._plugin_dirs:
             self._plugin_dirs.append(path)
-            log.debug(f"添加插件目录: {path}")
+            # 将插件目录添加到 sys.path 以支持相对导入
+            # 使用 resolve() 规范化路径，避免符号链接/尾部斜杠导致的不匹配
+            resolved_path_str = str(path.resolve())
+            if resolved_path_str not in sys.path:
+                # 使用 append 而非 insert(0, ...) 避免遮蔽标准库包
+                sys.path.append(resolved_path_str)
+            log.debug(f"添加插件目录: {resolved_path_str}")
 
     def discover_factories(
         self,

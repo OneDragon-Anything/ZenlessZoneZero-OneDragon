@@ -62,7 +62,8 @@ class ApplicationGroupManager:
 
     def set_default_apps(self, app_id_list: list[str]) -> None:
         """
-        -
+        设置默认应用组的应用ID列表
+
         Args:
             app_id_list: 包含的应用ID列表
         """
@@ -79,7 +80,7 @@ class ApplicationGroupManager:
 
     def _init_one_dragon_group_config(self, instance_idx: int) -> ApplicationGroupConfig:
         """
-        获取默认应用组的配置
+        初始化默认应用组的配置
 
         Args:
             instance_idx: 账号实例下标
