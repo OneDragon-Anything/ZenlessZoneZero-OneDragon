@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import yaml
 
@@ -15,9 +15,9 @@ class RedemptionCodeConfig:
 
     def __init__(self) -> None:
         # 配置文件路径
-        config_dir = os_utils.get_path_under_work_dir('config')
-        self.user_config_file_path = os.path.join(config_dir, 'redemption_codes.yml')
-        self.sample_config_file_path = os.path.join(config_dir, 'redemption_codes.sample.yml')
+        config_dir = Path(os_utils.get_path_under_work_dir('config'))
+        self.user_config_file_path = config_dir / 'redemption_codes.yml'
+        self.sample_config_file_path = config_dir / 'redemption_codes.sample.yml'
 
         # 使用用户配置文件路径
         self.file_path = self.user_config_file_path
@@ -26,12 +26,16 @@ class RedemptionCodeConfig:
 
     def _read_from_file(self) -> None:
         """从 YAML 文件读取数据"""
-        if not os.path.exists(self.file_path):
+        if not self.file_path.exists():
             return
         with open(self.file_path, encoding='utf-8') as f:
             loaded = yaml.safe_load(f)
-            if isinstance(loaded, list):
-                self.data = loaded
+            if not isinstance(loaded, list):
+                return
+            # 过滤非字典条目，防止用户手工编辑错误导致运行时异常
+            for item in loaded:
+                if isinstance(item, dict):
+                    self.data.append(item)
 
     def _extract_codes(self) -> list[str]:
         """从 data 中提取兑换码列表"""
@@ -44,7 +48,7 @@ class RedemptionCodeConfig:
 
     def save(self) -> None:
         """保存数据到文件，带注释"""
-        os.makedirs(os.path.dirname(self.file_path), exist_ok=True)
+        self.file_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(self.file_path, 'w', encoding='utf-8') as f:
             # 写入注释说明
