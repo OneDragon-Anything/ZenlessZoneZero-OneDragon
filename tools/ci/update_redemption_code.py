@@ -145,13 +145,13 @@ class GameRedeemCode:
         return codes
 
     def update_redemption_codes_yml(self, config_path: str | Path | None = None) -> bool:
-        """更新 config/redemption_codes.yml 文件"""
+        """更新 config/redemption_codes.sample.yml 文件（一条龙维护的兑换码）"""
         codes = self.fetch_redeem_codes()
         if not codes:
             return False
 
         if config_path is None:
-            config_path = Path(__file__).parent.parent.parent / "config" / "redemption_codes.yml"
+            config_path = Path(__file__).parent.parent.parent / "config" / "redemption_codes.sample.yml"
         else:
             config_path = Path(config_path)
 
@@ -162,20 +162,21 @@ class GameRedeemCode:
             # 默认7天后过期
             end_dt = int((datetime.now() + timedelta(days=7)).strftime("%Y%m%d"))
 
-        # 读取现有配置
+        # 读取现有配置（列表格式）
         if config_path.exists():
             with open(config_path, encoding="utf-8") as f:
-                data = yaml.safe_load(f) or {}
+                data = yaml.safe_load(f)
         else:
-            data = {}
+            data = None
 
-        existing_codes: list[dict] = data.get("codes", [])
+        existing_codes: list[dict] = data if isinstance(data, list) else []
         existing_code_set = {item["code"] for item in existing_codes}
 
         # 删除过期兑换码（end_dt < 今天）
         today = int(datetime.now().strftime("%Y%m%d"))
+        original_count = len(existing_codes)
         existing_codes = [item for item in existing_codes if item.get("end_dt", 0) >= today]
-        expired_count = len(data.get("codes", [])) - len(existing_codes)
+        expired_count = original_count - len(existing_codes)
         if expired_count > 0:
             print(f"已删除 {expired_count} 个过期兑换码")
 
@@ -189,17 +190,17 @@ class GameRedeemCode:
                 existing_codes.insert(0, {"code": code, "end_dt": end_dt})
                 new_count += 1
 
-        data["codes"] = existing_codes
-
-        # 写入文件
+        # 写入文件（列表格式）
         with open(config_path, "w", encoding="utf-8") as f:
-            f.write("# 兑换码列表\n")
+            f.write("# 示例配置兑换码列表\n")
+            f.write("# 此文件会被Git追踪，可由开发者维护\n")
+            f.write("# 用户自定义的兑换码请保存到 redemption_codes.yml（不会被Git追踪）\n")
+            f.write("#\n")
             f.write("# 格式:\n")
-            f.write("# codes:\n")
-            f.write("#  - code: '兑换码'\n")
-            f.write("#    end_dt: 过期时间\n")
+            f.write("# - code: '兑换码'\n")
+            f.write("#   end_dt: 过期时间\n")
             f.write("# 过期时间格式: YYYYMMDD 长期有效就填 20990101\n")
-            yaml.dump(data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+            yaml.dump(existing_codes, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
         print(f"成功添加 {new_count} 个新兑换码，共 {len(existing_codes)} 个兑换码")
         return True
