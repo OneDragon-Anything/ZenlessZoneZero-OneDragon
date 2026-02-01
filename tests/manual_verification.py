@@ -20,11 +20,11 @@ def test_config_paths():
 
     config = RedemptionCodeConfig()
 
-    print(f"示例配置路径: {config.sample_config_file_path}")
-    print(f"用户配置路径: {config.user_config_file_path}")
+    print(f"示例配置路径: {config.sample_config.file_path}")
+    print(f"用户配置路径: {config.user_config.file_path}")
 
-    assert config.sample_config_file_path.name == 'redemption_codes.sample.yml'
-    assert config.user_config_file_path.name == 'redemption_codes.yml'
+    assert config.sample_config.file_path.endswith('redemption_codes.sample.yml')
+    assert config.user_config.file_path.endswith('redemption_codes.yml')
 
     print("✓ 路径设置正确\n")
 
@@ -32,7 +32,7 @@ def test_config_paths():
 def test_load_user_config():
     """测试加载用户配置"""
     print("=" * 60)
-    print("测试 2: 加载用户配置（GUI显示）")
+    print("测试 2: 加载用户配置")
     print("=" * 60)
 
     config = RedemptionCodeConfig()
@@ -41,61 +41,49 @@ def test_load_user_config():
     print(f"加载的兑换码: {codes}")
     print(f"兑换码数量: {len(codes)}")
 
-    # 用户配置应该只包含用户自定义的兑换码
-    if config.user_config_file_path.exists():
+    import os
+    if os.path.exists(config.user_config.file_path):
         print("✓ 用户配置文件存在")
-        print(f"✓ GUI显示兑换码: {codes}")
     else:
-        print("✓ 用户配置文件不存在，返回空列表")
+        print("✓ 用户配置文件不存在，使用 sample 配置")
 
     print()
 
 
-def test_save_and_load():
-    """测试保存和加载配置"""
+def test_add_update_delete():
+    """测试添加、更新、删除兑换码"""
     print("=" * 60)
-    print("测试 3: 保存-加载往返一致性")
-    print("=" * 60)
-
-    config = RedemptionCodeConfig()
-
-    # 保存测试数据
-    test_codes = ['TEST001', 'TEST002', 'TEST003']
-    print(f"保存兑换码: {test_codes}")
-    config.codes_list = test_codes
-
-    # 重新加载
-    loaded_codes = config.codes_list
-    print(f"加载兑换码: {loaded_codes}")
-
-    assert loaded_codes == test_codes, f"期望 {test_codes}，实际 {loaded_codes}"
-    print("✓ 保存-加载一致性验证通过\n")
-
-
-def test_text_format():
-    """测试文本格式转换"""
-    print("=" * 60)
-    print("测试 4: 文本格式转换")
+    print("测试 3: 添加、更新、删除兑换码")
     print("=" * 60)
 
     config = RedemptionCodeConfig()
 
-    # 测试空格分隔
-    text = "CODE1 CODE2 CODE3"
-    print(f"输入文本: '{text}'")
-    config.update_codes_from_text(text)
+    # 测试添加
+    config.add_code('TEST001', 20250101)
+    config.add_code('TEST002', 20250201)
+    print(f"添加后: {config.codes_dict}")
+    assert 'TEST001' in config.codes_dict
+    assert 'TEST002' in config.codes_dict
+    print("✓ 添加兑换码成功")
 
-    result_text = config.get_codes_text()
-    print(f"输出文本: '{result_text}'")
+    # 测试更新
+    config.update_code('TEST001', 'TEST001_UPDATED', 20260101)
+    print(f"更新后: {config.codes_dict}")
+    assert 'TEST001_UPDATED' in config.codes_dict
+    assert 'TEST001' not in config.codes_dict
+    print("✓ 更新兑换码成功")
 
-    assert result_text == text, f"期望 '{text}'，实际 '{result_text}'"
-    print("✓ 文本格式转换正确\n")
+    # 测试删除
+    config.delete_code('TEST002')
+    print(f"删除后: {config.codes_dict}")
+    assert 'TEST002' not in config.codes_dict
+    print("✓ 删除兑换码成功\n")
 
 
 def test_merge_configs():
-    """测试运行功能合并配置"""
+    """测试合并配置"""
     print("=" * 60)
-    print("测试 5: 运行功能合并配置")
+    print("测试 4: 合并配置")
     print("=" * 60)
 
     run_record = RedemptionCodeRunRecord()
@@ -105,31 +93,12 @@ def test_merge_configs():
     for code in codes:
         print(f"  - {code.code} (过期时间: {code.end_dt})")
 
-    # 应该包含用户配置和示例配置的兑换码
+    import os
     config = RedemptionCodeConfig()
-    if config.user_config_file_path.exists() and config.sample_config_file_path.exists():
-        print("✓ 运行功能成功合并用户配置和示例配置")
+    if os.path.exists(config.sample_config.file_path):
+        print("✓ 成功合并 sample 配置")
 
     print()
-
-
-def test_empty_input():
-    """测试空输入处理"""
-    print("=" * 60)
-    print("测试 6: 空输入处理")
-    print("=" * 60)
-
-    config = RedemptionCodeConfig()
-
-    # 测试空字符串
-    config.update_codes_from_text("")
-    assert config.codes_list == [], "空字符串应该返回空列表"
-    print("✓ 空字符串处理正确")
-
-    # 测试纯空格
-    config.update_codes_from_text("   ")
-    assert config.codes_list == [], "纯空格应该返回空列表"
-    print("✓ 纯空格处理正确\n")
 
 
 def main():
@@ -141,10 +110,8 @@ def main():
     try:
         test_config_paths()
         test_load_user_config()
-        test_save_and_load()
-        test_text_format()
+        test_add_update_delete()
         test_merge_configs()
-        test_empty_input()
 
         print("=" * 60)
         print("✓ 所有测试通过！")
