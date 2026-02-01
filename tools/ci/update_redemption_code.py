@@ -1,13 +1,12 @@
 import json
 import re
 import ssl
+import sys
 import time
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
-
-import yaml
 
 TZ_OFFSET_HOURS = 8
 
@@ -144,16 +143,11 @@ class GameRedeemCode:
         print(f"获取到 {len(codes)} 个兑换码: {codes}")
         return codes
 
-    def update_redemption_codes_yml(self, config_path: str | Path | None = None) -> bool:
+    def update_redemption_codes_yml(self) -> bool:
         """更新 config/redemption_codes.sample.yml 文件（一条龙维护的兑换码）"""
         codes = self.fetch_redeem_codes()
         if not codes:
             return False
-
-        if config_path is None:
-            config_path = Path(__file__).parent.parent.parent / "config" / "redemption_codes.sample.yml"
-        else:
-            config_path = Path(config_path)
 
         # 计算过期时间 YYYYMMDD 格式
         if self.deadline:
@@ -162,47 +156,33 @@ class GameRedeemCode:
             # 默认7天后过期
             end_dt = int((datetime.now() + timedelta(days=7)).strftime("%Y%m%d"))
 
-        # 读取现有配置（列表格式）
-        if config_path.exists():
-            with open(config_path, encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-        else:
-            data = None
+        # 添加项目路径到 sys.path 以便导入模块
+        _PROJECT_ROOT = Path(__file__).parent.parent.parent
+        _SRC_PATH = _PROJECT_ROOT / "src"
+        if str(_SRC_PATH) not in sys.path:
+            sys.path.insert(0, str(_SRC_PATH))
 
-        existing_codes: list[dict] = data if isinstance(data, list) else []
-        existing_code_set = {item["code"] for item in existing_codes}
+        from zzz_od.application.redemption_code.redemption_code_config import (
+            RedemptionCodeConfig,
+        )
 
-        # 删除过期兑换码（end_dt < 今天）
+        config = RedemptionCodeConfig()
+
+        # 清理过期兑换码
         today = int(datetime.now().strftime("%Y%m%d"))
-        original_count = len(existing_codes)
-        existing_codes = [item for item in existing_codes if item.get("end_dt", 0) >= today]
-        expired_count = original_count - len(existing_codes)
+        expired_count = config.clean_expired_sample_codes(today)
         if expired_count > 0:
             print(f"已删除 {expired_count} 个过期兑换码")
 
-        # 更新已过滤后的 code set
-        existing_code_set = {item["code"] for item in existing_codes}
-
         # 添加新兑换码
+        existing_codes = config.sample_codes_dict
         new_count = 0
         for code in codes:
-            if code not in existing_code_set:
-                existing_codes.insert(0, {"code": code, "end_dt": end_dt})
+            if code not in existing_codes:
+                config.add_sample_code(code, end_dt)
                 new_count += 1
 
-        # 写入文件（列表格式）
-        with open(config_path, "w", encoding="utf-8") as f:
-            f.write("# 示例配置兑换码列表\n")
-            f.write("# 此文件会被Git追踪，可由开发者维护\n")
-            f.write("# 用户自定义的兑换码请保存到 redemption_codes.yml（不会被Git追踪）\n")
-            f.write("#\n")
-            f.write("# 格式:\n")
-            f.write("# - code: '兑换码'\n")
-            f.write("#   end_dt: 过期时间\n")
-            f.write("# 过期时间格式: YYYYMMDD 长期有效就填 20990101\n")
-            yaml.dump(existing_codes, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
-
-        print(f"成功添加 {new_count} 个新兑换码，共 {len(existing_codes)} 个兑换码")
+        print(f"成功添加 {new_count} 个新兑换码，共 {len(config.sample_codes_dict)} 个兑换码")
         return True
 
 

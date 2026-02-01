@@ -23,10 +23,11 @@ class RedemptionCodeConfig:
         self.sample_config = YamlConfig('redemption_codes', read_sample_only=True)
 
     def _get_codes_from_config(self, config: YamlConfig) -> dict[str, int]:
-        """从配置中获取兑换码字典 {code: end_dt}"""
+        """从配置中获取兑换码字典 {code: end_dt}，返回副本"""
         codes = config.get('codes', {})
         if isinstance(codes, dict):
-            return codes
+            # 返回副本，避免直接修改原数据
+            return dict(codes)
         return {}
 
     @property
@@ -104,3 +105,48 @@ class RedemptionCodeConfig:
         if code in user_codes:
             del user_codes[code]
             self.user_config.update('codes', user_codes)
+
+    def add_sample_code(self, code: str, end_dt: int = 20990101) -> None:
+        """添加兑换码到 sample 配置（供 CI 脚本使用）
+
+        Args:
+            code: 兑换码
+            end_dt: 过期日期 (YYYYMMDD 格式)
+        """
+        code = code.strip()
+        if not code:
+            return
+
+        sample_codes = self._get_codes_from_config(self.sample_config)
+        sample_codes[code] = end_dt
+        self.sample_config.update('codes', sample_codes)
+
+    def delete_sample_code(self, code: str) -> None:
+        """从 sample 配置删除兑换码（供 CI 脚本使用）
+
+        Args:
+            code: 要删除的兑换码
+        """
+        sample_codes = self._get_codes_from_config(self.sample_config)
+        if code in sample_codes:
+            del sample_codes[code]
+            self.sample_config.update('codes', sample_codes)
+
+    def clean_expired_sample_codes(self, today: int) -> int:
+        """清理 sample 中过期的兑换码（供 CI 脚本使用）
+
+        Args:
+            today: 今天的日期 (YYYYMMDD 格式)
+
+        Returns:
+            删除的兑换码数量
+        """
+        sample_codes = self._get_codes_from_config(self.sample_config)
+        original_count = len(sample_codes)
+        sample_codes = {code: dt for code, dt in sample_codes.items() if dt >= today}
+        expired_count = original_count - len(sample_codes)
+
+        if expired_count > 0:
+            self.sample_config.update('codes', sample_codes)
+
+        return expired_count
