@@ -59,9 +59,6 @@ class BackToNormalWorld(ZOperation):
         if result.is_success:
             return self.round_retry(result.status, wait=1)
 
-        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '返回')
-        if result.is_success:
-            return self.round_retry(result.status, wait=1)
 
         # 部分画面有关闭按钮 置前，插件场景"关闭"和"合成（完成）"可能同时存在
         result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '关闭')
@@ -87,7 +84,7 @@ class BackToNormalWorld(ZOperation):
         if self.click_escape_stuck:  # 必须置前，因为会被通用的"取消"误判
             result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死-确认')
             if result.is_success:
-                return self.round_retry(result.status, wait=1)
+                return self._transport_to_video_store()
         self.click_escape_stuck = False
 
         # 通用完成按钮 置后，避免插件场景"合成"被误匹配为"完成"
@@ -123,7 +120,7 @@ class BackToNormalWorld(ZOperation):
             self.round_by_click_area('战斗画面', '菜单')
             return self.round_retry(result.status, wait=1)
 
-        click_back = self.round_by_click_area('菜单', '返回')
+        click_back = self.round_by_click_area('画面-通用', '返回')  # 兜底的无条件返回
         if click_back.is_success:
             # 由于上方识别可能耗时较长
             # 这样就可能 当前截图是没加载的 耗时识别后加载好 但点击了返回
@@ -196,6 +193,12 @@ class BackToNormalWorld(ZOperation):
             return self.round_by_click_area('快捷手册', '按钮-退出')
 
         return None
+
+    def _transport_to_video_store(self) -> OperationRoundResult:
+        """脱离卡死后传送到录像店房间"""
+        from zzz_od.operation.transport import Transport
+        tp = Transport(self.ctx, '录像店', '房间')
+        return self.round_by_op_result(tp.execute())
 
 
 def _debug():
