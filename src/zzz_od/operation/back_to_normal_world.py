@@ -59,8 +59,7 @@ class BackToNormalWorld(ZOperation):
         if result.is_success:
             return self.round_retry(result.status, wait=1)
 
-
-        # 部分画面有关闭按钮 置前，插件场景"关闭"和"合成（完成）"可能同时存在
+        # 部分画面有关闭按钮（置前，插件场景"关闭"和"合成（完成）"可能同时存在）
         result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '关闭')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
@@ -87,7 +86,7 @@ class BackToNormalWorld(ZOperation):
                 return self._transport_to_video_store()
         self.click_escape_stuck = False
 
-        # 通用完成按钮 置后，避免插件场景"合成"被误匹配为"完成"
+        # 通用完成按钮（置后，避免插件场景"合成"被误匹配为"完成"）
         result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '完成')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
@@ -99,8 +98,8 @@ class BackToNormalWorld(ZOperation):
             op.execute()
             return self.round_retry(result, wait=1)
 
-        # 通用的“取消” 例如进入游戏时 空洞继弹出来的继续对话框
-        # 必须置后，因为会对后面的情况提前“取消”而误判
+        # 通用的取消按钮（例如进入游戏时，空洞继弹出来的继续对话框）
+        # 必须在“确认”后面，因为“确认”和“取消”一般是成对出现
         result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', '对话框取消')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
@@ -120,7 +119,8 @@ class BackToNormalWorld(ZOperation):
             self.round_by_click_area('战斗画面', '菜单')
             return self.round_retry(result.status, wait=1)
 
-        click_back = self.round_by_click_area('画面-通用', '返回')  # 兜底的无条件返回
+        # 兜底的无条件返回（左上角的红色返回按钮，很多画面共有，故不能提前使用）
+        click_back = self.round_by_click_area('画面-通用', '返回')
         if click_back.is_success:
             # 由于上方识别可能耗时较长
             # 这样就可能 当前截图是没加载的 耗时识别后加载好 但点击了返回
