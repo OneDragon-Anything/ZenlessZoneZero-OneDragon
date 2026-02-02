@@ -58,8 +58,12 @@ class BackToNormalWorld(ZOperation):
         if result.is_success:
             return self.round_retry(result.status, wait=1)
 
-        # 大部分画面左上角都有返回按钮
-        result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '返回')
+        if result.is_success:
+            return self.round_retry(result.status, wait=1)
+
+        # 部分画面有关闭按钮 置前，插件场景"关闭"和"合成（完成）"可能同时存在
+        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '关闭')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
 
