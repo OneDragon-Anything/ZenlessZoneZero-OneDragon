@@ -9,7 +9,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentEnum
 from zzz_od.hollow_zero.event import hollow_event_utils
 from zzz_od.hollow_zero.hollow_exit_by_menu import HollowExitByMenu
-from zzz_od.operation.open_map_and_tp import MapTransport
+from zzz_od.operation.map_transport import MapTransport
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -26,6 +26,7 @@ class BackToNormalWorld(ZOperation):
         self.click_exit_battle: bool = False  # 是否点击了退出战斗
         self.click_escape_stuck: bool = False  # 是否点击了脱离卡死
 
+    @node_from(from_name='打开地图', success=False)
     @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=60)
     def check_screen_and_run(self) -> OperationRoundResult:
         """
@@ -137,7 +138,7 @@ class BackToNormalWorld(ZOperation):
             return self.round_fail()
 
     @node_from(from_name='画面识别', status='脱离卡死-传送')
-    @operation_node(name='打开地图')
+    @operation_node(name='打开地图', node_max_retry_times=60)
     def open_map(self) -> OperationRoundResult:
         """脱离卡死后，识别到大世界立即点击地图按钮"""
         result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', '地图')

@@ -9,6 +9,7 @@ from one_dragon.utils import str_utils
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.map_transport import MapTransport
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -77,7 +78,6 @@ class Transport(ZOperation):
         已在地图画面，调用 MapTransport 执行传送
         :return:
         """
-        from zzz_od.operation.open_map_and_tp import MapTransport
         op = MapTransport(self.ctx, self.area_name, self.tp_name)
         return self.round_by_op_result(op.execute())
 
