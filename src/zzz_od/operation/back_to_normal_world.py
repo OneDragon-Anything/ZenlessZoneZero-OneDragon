@@ -1,5 +1,6 @@
 from cv2.typing import MatLike
 
+from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
@@ -8,7 +9,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentEnum
 from zzz_od.hollow_zero.event import hollow_event_utils
 from zzz_od.hollow_zero.hollow_exit_by_menu import HollowExitByMenu
-from zzz_od.operation.transport import Transport
+from zzz_od.operation.open_map_and_tp import MapTransport
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -84,8 +85,7 @@ class BackToNormalWorld(ZOperation):
         if self.click_escape_stuck:  # 必须置前，因为会被通用的"取消"误判
             result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死-确认')
             if result.is_success:
-                tp = Transport(self.ctx, '录像店', '房间')
-                return self.round_by_op_result(tp.execute())
+                return self.round_success('脱离卡死-传送', data={'tp_area': '录像店', 'tp_name': '房间'})
         self.click_escape_stuck = False
 
         # 通用完成按钮（置后，避免插件场景"合成"被误匹配为"完成"）
@@ -132,6 +132,20 @@ class BackToNormalWorld(ZOperation):
             return self.round_retry(click_back.status, wait=1)
         else:
             return self.round_fail()
+
+    @node_from(from_name='画面识别', status='脱离卡死-传送')
+    @operation_node(name='打开地图', node_max_retry_times=20)
+    def open_map(self) -> OperationRoundResult:
+        result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', '地图')
+        if result.is_success:
+            return self.round_wait(status=result.status, wait=2)
+        return self.round_retry(status=result.status, wait=1)
+
+    @node_from(from_name='打开地图')
+    @operation_node(name='执行传送')
+    def do_transport(self) -> OperationRoundResult:
+        op = MapTransport(self.ctx, '录像店', '房间')
+        return self.round_by_op_result(op.execute())
 
     def _check_agent_dialog(self, screen: MatLike) -> bool:
         """
