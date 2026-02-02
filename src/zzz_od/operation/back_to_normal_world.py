@@ -58,25 +58,38 @@ class BackToNormalWorld(ZOperation):
         if result.is_success:
             return self.round_retry(result.status, wait=1)
 
-        # 这可以是通用的退出战斗 退出战斗的画面也有返回按钮 需要在返回前面
+        # 大部分画面左上角都有返回按钮
+        result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回')
+        if result.is_success:
+            return self.round_retry(result.status, wait=1)
+
+        # 这可以是通用的退出战斗（退出战斗的画面也有）
         result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-战斗', '退出战斗')
         if result.is_success:
             self.click_exit_battle = True
             return self.round_retry(result.status, wait=1)
 
+        # 必须置前，因为会被通用的"取消"误判
         if self.click_exit_battle:
             result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-战斗', '退出战斗-确认')
             if result.is_success:
                 return self.round_retry(result.status, wait=1)
         self.click_exit_battle = False
 
-        # 大部分画面左上角都有返回按钮
-        result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回')
+        # 空洞内撤退后的完成
+        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '通关-完成')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
 
-        # 进入游戏时 弹出来的继续对话框
-        # 例如 空洞继续
+        # 在空洞内
+        result = hollow_event_utils.check_in_hollow(self.ctx, self.last_screenshot)
+        if result is not None:
+            op = HollowExitByMenu(self.ctx)
+            op.execute()
+            return self.round_retry(result, wait=1)
+
+        # 通用的“取消” 例如进入游戏时 空洞继弹出来的继续对话框
+        # 必须置后，因为会对后面的情况提前“取消”而误判
         result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', '对话框取消')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
@@ -95,16 +108,6 @@ class BackToNormalWorld(ZOperation):
         if result.is_success:
             self.round_by_click_area('战斗画面', '菜单')
             return self.round_retry(result.status, wait=1)
-        # 空洞内撤退后的完成
-        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '通关-完成')
-        if result.is_success:
-            return self.round_retry(result.status, wait=1)
-        # 在空洞内
-        result = hollow_event_utils.check_in_hollow(self.ctx, self.last_screenshot)
-        if result is not None:
-            op = HollowExitByMenu(self.ctx)
-            op.execute()
-            return self.round_retry(result, wait=1)
 
         click_back = self.round_by_click_area('菜单', '返回')
         if click_back.is_success:
