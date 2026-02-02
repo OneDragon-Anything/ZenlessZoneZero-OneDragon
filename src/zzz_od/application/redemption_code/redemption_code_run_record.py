@@ -1,16 +1,16 @@
-from pathlib import Path
+from dataclasses import dataclass
 
-import yaml
-
+from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.base.operation.application_run_record import AppRunRecord
-from zzz_od.application.redemption_code.redemption_code_config import RedemptionCodeConfig
+from zzz_od.application.redemption_code.redemption_code_config import (
+    RedemptionCodeConfig,
+)
 
 
+@dataclass
 class RedemptionCode:
-
-    def __init__(self, code: str, end_dt: str) -> None:
-        self.code: str = code  # 兑换码
-        self.end_dt = end_dt  # 失效日期
+    code: str  # 兑换码
+    end_dt: str  # 失效日期
 
 
 class RedemptionCodeRunRecord(AppRunRecord):
@@ -23,79 +23,42 @@ class RedemptionCodeRunRecord(AppRunRecord):
             game_refresh_hour_offset=game_refresh_hour_offset
         )
 
-        self.valid_code_list: list[RedemptionCode] = self._load_redemption_codes_from_file()
+        self.valid_code_list: list[RedemptionCode] = self._load_redemption_codes()
 
-    def _parse_config_file(self, file_path: Path) -> list[RedemptionCode]:
-        """解析单个配置文件
-
-        Args:
-            file_path: 配置文件路径
-
-        Returns:
-            兑换码列表
-        """
-        if not file_path.exists():
-            return []
-
-        try:
-            with open(file_path, encoding='utf-8') as f:
-                config_data = yaml.safe_load(f)
-
-            codes = []
-            if isinstance(config_data, list):
-                for item in config_data:
-                    if isinstance(item, dict):
-                        code = item.get('code')
-                        end_dt = item.get('end_dt')
-                        if code and end_dt:
-                            codes.append(RedemptionCode(code, str(end_dt)))
-
+    def _get_codes_from_config(self, config: YamlConfig) -> dict[str, int]:
+        """从配置中获取兑换码字典 {code: end_dt}"""
+        codes = config.get('codes', {})
+        if isinstance(codes, dict):
             return codes
-        except yaml.YAMLError:
-            return []
+        return {}
 
-    def _load_redemption_codes_from_file(self) -> list[RedemptionCode]:
+    def _load_redemption_codes(self) -> list[RedemptionCode]:
         """从配置文件加载兑换码
 
-        合并用户配置文件 (redemption_codes.yml) 和示例配置文件 (redemption_codes.sample.yml)
-        如果有重复的兑换码，优先使用用户配置中的
+        合并用户配置和示例配置，用户配置优先
 
         Returns:
             兑换码列表
         """
-        # 使用 RedemptionCodeConfig 的路径定义
         config = RedemptionCodeConfig()
+        merged: dict[str, int] = {}
 
-        # 读取配置文件路径
-        user_path = config.user_config_file_path
-        sample_path = config.sample_config_file_path
+        # 先从 sample 配置读取
+        merged.update(self._get_codes_from_config(config.sample_config))
 
-        codes: list[RedemptionCode] = []
-        seen: set[str] = set()
+        # 再用用户配置覆盖（用户配置优先）
+        merged.update(self._get_codes_from_config(config.user_config))
 
-        # 读取用户配置（优先级高）
-        for item in self._parse_config_file(user_path):
-            if item.code in seen:
-                continue
-            seen.add(item.code)
-            codes.append(item)
-
-        # 读取示例配置（优先级低，跳过重复）
-        for item in self._parse_config_file(sample_path):
-            if item.code in seen:
-                continue
-            seen.add(item.code)
-            codes.append(item)
-
-        return codes
+        return [
+            RedemptionCode(code, str(end_dt))
+            for code, end_dt in merged.items()
+        ]
 
     @property
     def run_status_under_now(self):
         current_dt = self.get_current_dt()
         unused_code_list = self.get_unused_code_list(current_dt)
-        if len(unused_code_list) > 0:
-            return AppRunRecord.STATUS_WAIT
-        elif self._should_reset_by_dt():
+        if len(unused_code_list) > 0 or self._should_reset_by_dt():
             return AppRunRecord.STATUS_WAIT
         else:
             return self.run_status
