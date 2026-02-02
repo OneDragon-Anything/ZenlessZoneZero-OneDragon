@@ -16,9 +16,9 @@ from pathlib import Path
 class PluginSource(str, Enum):
     """插件来源枚举
 
-    用于区分插件的来源，由 ApplicationPluginManager 在扫描时自动设置。
+    用于区分插件的来源，由 ApplicationFactoryManager 在扫描时自动设置。
     - BUILTIN: 内置插件，位于 application 目录下，由项目维护
-    - THIRD_PARTY: 第三方插件，位于 plugins 目录下，由用户安装
+    - THIRD_PARTY: 第三方插件，位于 plugins 目录下，由用户安装，支持相对导入
     """
     BUILTIN = 'builtin'
     THIRD_PARTY = 'third_party'
