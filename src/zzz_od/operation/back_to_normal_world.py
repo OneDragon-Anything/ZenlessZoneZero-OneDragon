@@ -8,6 +8,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentEnum
 from zzz_od.hollow_zero.event import hollow_event_utils
 from zzz_od.hollow_zero.hollow_exit_by_menu import HollowExitByMenu
+from zzz_od.operation.transport import Transport
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -83,7 +84,8 @@ class BackToNormalWorld(ZOperation):
         if self.click_escape_stuck:  # 必须置前，因为会被通用的"取消"误判
             result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死-确认')
             if result.is_success:
-                return self._transport_to_video_store()
+                tp = Transport(self.ctx, '录像店', '房间')
+                return self.round_by_op_result(tp.execute())
         self.click_escape_stuck = False
 
         # 通用完成按钮（置后，避免插件场景"合成"被误匹配为"完成"）
@@ -193,12 +195,6 @@ class BackToNormalWorld(ZOperation):
             return self.round_by_click_area('快捷手册', '按钮-退出')
 
         return None
-
-    def _transport_to_video_store(self) -> OperationRoundResult:
-        """脱离卡死后传送到录像店房间"""
-        from zzz_od.operation.transport import Transport
-        tp = Transport(self.ctx, '录像店', '房间')
-        return self.round_by_op_result(tp.execute())
 
 
 def _debug():
