@@ -49,7 +49,10 @@ class GameRedeemCode:
                     return json.loads(response.read().decode("utf-8"))
             except Exception as e:
                 last_error = e
-        raise last_error  # type: ignore
+
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError(f"请求失败: {url}")
 
     def get_act_id(self) -> str | None:
         """从活动列表获取活动ID"""
@@ -78,8 +81,6 @@ class GameRedeemCode:
                 return None
 
             live_raw = data.get("data", {}).get("live", {})
-            template_str = data.get("data", {}).get("template", "{}")
-            live_temp = json.loads(template_str)
 
             live_data = {
                 "code_ver": live_raw.get("code_ver"),
@@ -143,18 +144,25 @@ class GameRedeemCode:
         print(f"获取到 {len(codes)} 个兑换码: {codes}")
         return codes
 
+    def _get_beijing_now(self) -> datetime:
+        """获取北京时间的当前时间"""
+        beijing_tz = timezone(timedelta(hours=TZ_OFFSET_HOURS))
+        return datetime.now(beijing_tz)
+
     def update_redemption_codes_yml(self) -> bool:
         """更新 config/redemption_codes.sample.yml 文件（一条龙维护的兑换码）"""
         codes = self.fetch_redeem_codes()
         if not codes:
             return False
 
+        beijing_now = self._get_beijing_now()
+
         # 计算过期时间 YYYYMMDD 格式
         if self.deadline:
             end_dt = int(self.deadline.strftime("%Y%m%d"))
         else:
-            # 默认7天后过期
-            end_dt = int((datetime.now() + timedelta(days=7)).strftime("%Y%m%d"))
+            # 默认7天后过期（北京时间）
+            end_dt = int((beijing_now + timedelta(days=7)).strftime("%Y%m%d"))
 
         # 添加项目路径到 sys.path 以便导入模块
         _PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -168,8 +176,8 @@ class GameRedeemCode:
 
         config = RedemptionCodeConfig()
 
-        # 清理过期兑换码
-        today = int(datetime.now().strftime("%Y%m%d"))
+        # 清理过期兑换码（使用北京时间）
+        today = int(beijing_now.strftime("%Y%m%d"))
         expired_count = config.clean_expired_sample_codes(today)
         if expired_count > 0:
             print(f"已删除 {expired_count} 个过期兑换码")

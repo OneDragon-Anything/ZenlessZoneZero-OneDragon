@@ -3,11 +3,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
     CaptionLabel,
     FluentIcon,
+    InfoBar,
+    InfoBarPosition,
     LineEdit,
     PrimaryPushButton,
     ToolButton,
@@ -104,9 +106,15 @@ class RedemptionCodeSettingDialog(AppSettingDialog):
     def __init__(self, ctx: ZContext, parent: QWidget | None = None):
         super().__init__(ctx=ctx, title="兑换码配置", parent=parent)
         self.code_cards: list[CodeCard] = []
+        self.add_btn: PrimaryPushButton | None = None
 
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
+
+        # 添加按钮
+        self.add_btn = PrimaryPushButton(text=gt('新增'))
+        self.add_btn.clicked.connect(self._on_add_clicked)
+
         return self.content_widget
 
     def on_dialog_shown(self) -> None:
@@ -118,19 +126,8 @@ class RedemptionCodeSettingDialog(AppSettingDialog):
         # 加载现有兑换码卡片
         self._refresh_code_cards()
 
-        # 添加按钮（放在最后）
-        self.add_btn = PrimaryPushButton(text=gt('新增'))
-        self.add_btn.clicked.connect(self._on_add_clicked)
-        self.content_widget.add_widget(self.add_btn, stretch=1)
-
     def _on_add_clicked(self) -> None:
         """点击新增按钮，添加一个空的新卡片"""
-        # 检查是否已有空的新卡片（未保存），避免重复创建
-        for card in self.code_cards:
-            if card.is_new and not card.code_input.text().strip():
-                card.code_input.setFocus()
-                return
-
         default_end_dt = int(datetime.now().replace(year=datetime.now().year + 1).strftime('%Y%m%d'))
 
         # 移除添加按钮
@@ -157,23 +154,54 @@ class RedemptionCodeSettingDialog(AppSettingDialog):
         # 检查是否重复（包括 sample 和 user 配置）
         existing_codes = self.config.codes_dict
         if new_code in existing_codes:
-            # 重复的兑换码，清空输入并提示
-            for card in self.code_cards:
-                if card.is_new:
-                    card.code_input.clear()
-                    card.code_input.setPlaceholderText(gt('兑换码已存在'))
-                    card.code_input.setFocus()
+            # 重复的兑换码，清空输入并提示（只清空发送信号的卡片）
+            sender_card = self.sender()
+            if sender_card and isinstance(sender_card, CodeCard):
+                sender_card.code_input.clear()
+                sender_card.code_input.setFocus()
+            self._show_warning_toast(gt('兑换码已存在'))
             return
 
+        # 保存到配置
         self.config.add_code(new_code, end_dt)
-        self._refresh_code_cards()
+
+        # 将发送信号的卡片从"新卡片"转换为"已保存卡片"
+        sender_card = self.sender()
+        if sender_card and isinstance(sender_card, CodeCard):
+            sender_card.is_new = False
+            sender_card.original_code = new_code
+            # 断开旧的信号连接，连接新的处理器
+            sender_card.changed.disconnect(self._on_new_code_entered)
+            sender_card.deleted.disconnect(self._on_new_card_deleted)
+            sender_card.changed.connect(self._on_code_changed)
+            sender_card.deleted.connect(self._on_code_deleted)
 
     def _on_new_card_deleted(self, code: str) -> None:
         """删除新创建的空卡片"""
-        self._refresh_code_cards()
+        # 找到发送信号的卡片并删除
+        sender_card = self.sender()
+        if sender_card and sender_card in self.code_cards:
+            self.code_cards.remove(sender_card)
+            self.content_widget.layout().removeWidget(sender_card)
+            sender_card.deleteLater()
 
     def _on_code_changed(self, old_code: str, new_code: str, end_dt: int) -> None:
         """兑换码或过期日期被修改"""
+        # 如果只是修改了过期日期（code 没变），直接更新
+        if old_code == new_code:
+            self.config.update_code(old_code, new_code, end_dt)
+            return
+
+        # 检查新 code 是否与已有的冲突（排除自身）
+        existing_codes = self.config.codes_dict
+        if new_code in existing_codes:
+            # 冲突，恢复原值并提示
+            for card in self.code_cards:
+                if card.original_code == old_code or (card.is_new and not card.original_code):
+                    card.code_input.setText(old_code)
+            self._show_warning_toast(gt('兑换码已存在'))
+            return
+
         self.config.update_code(old_code, new_code, end_dt)
 
     def _on_code_deleted(self, code: str) -> None:
@@ -190,7 +218,7 @@ class RedemptionCodeSettingDialog(AppSettingDialog):
         self.code_cards.clear()
 
         # 移除添加按钮（如果存在）
-        if hasattr(self, 'add_btn'):
+        if self.add_btn is not None:
             self.content_widget.layout().removeWidget(self.add_btn)
 
         # 添加 sample 配置的兑换码（只读）
@@ -212,5 +240,17 @@ class RedemptionCodeSettingDialog(AppSettingDialog):
             self.content_widget.add_widget(card)
 
         # 重新添加按钮
-        if hasattr(self, 'add_btn'):
+        if self.add_btn is not None:
             self.content_widget.add_widget(self.add_btn, stretch=1)
+
+    def _show_warning_toast(self, message: str) -> None:
+        """显示警告提示"""
+        InfoBar.warning(
+            title='',
+            content=message,
+            orient=Qt.Orientation.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP,
+            duration=3000,
+            parent=self,
+        )
