@@ -51,6 +51,7 @@ try:
             """初始化主窗口类，设置窗口标题和图标"""
             self.ctx: ZContext = ctx
 
+
             # 记录应用启动时间
             import time
             self._app_start_time = time.time()
