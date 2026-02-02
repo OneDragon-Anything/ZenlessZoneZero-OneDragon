@@ -196,4 +196,6 @@ class GameRedeemCode:
 
 if __name__ == "__main__":
     fetcher = GameRedeemCode()
-    fetcher.update_redemption_codes_yml()
+    success = fetcher.update_redemption_codes_yml()
+    if not success:
+        sys.exit(1)
