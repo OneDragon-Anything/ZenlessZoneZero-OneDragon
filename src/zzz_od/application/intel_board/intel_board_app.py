@@ -207,19 +207,36 @@ class IntelBoardApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='选择预备编队')
-    @operation_node(name='开始自动战斗')
-    def start_auto_battle(self) -> OperationRoundResult:
+    @operation_node(name='加载自动战斗指令')
+    def init_auto_battle(self) -> OperationRoundResult:
         if self.config.predefined_team_idx == -1:
             auto_battle = self.config.auto_battle_config
         else:
             team_list = self.ctx.team_config.team_list
             auto_battle = team_list[self.config.predefined_team_idx].auto_battle
         self.ctx.auto_battle_context.init_auto_op(op_name=auto_battle)
+        return self.round_success()
+
+    @node_from(from_name='加载自动战斗指令')
+    @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
+    def wait_battle_screen(self) -> OperationRoundResult:
+        return self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击', retry_wait_round=1)
+
+    @node_from(from_name='等待战斗画面加载')
+    @operation_node(name='向前移动准备战斗')
+    def move_to_battle(self) -> OperationRoundResult:
+        # 向前走一段距离，确保能开怪
+        self.ctx.controller.move_w(press=True, press_time=1.5, release=True)
+        return self.round_success()
+
+    @node_from(from_name='向前移动准备战斗')
+    @operation_node(name='开始自动战斗')
+    def start_auto_battle(self) -> OperationRoundResult:
         self.ctx.auto_battle_context.start_auto_battle()
         return self.round_success()
 
     @node_from(from_name='开始自动战斗')
-    @operation_node(name='战斗中')
+    @operation_node(name='战斗中', mute=True, timeout_seconds=600)
     def in_battle(self) -> OperationRoundResult:
 
         screen = self.last_screenshot
@@ -249,7 +266,7 @@ class IntelBoardApp(ZApplication):
                 self.ctx.controller.click(ocr_results[idx_confirm].center)
                 return self.round_wait(wait=1)
 
-        return self.round_wait(status='自动战斗中', wait=self.ctx.battle_assistant_config.screenshot_interval)
+        return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
     @node_from(from_name='战斗中')
     @operation_node(name='战斗结算')
