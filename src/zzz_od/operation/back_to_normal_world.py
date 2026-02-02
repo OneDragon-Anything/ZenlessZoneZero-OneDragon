@@ -22,6 +22,7 @@ class BackToNormalWorld(ZOperation):
 
         self.last_dialog_idx: int = -1  # 上次选择的对话选项下标
         self.click_exit_battle: bool = False  # 是否点击了退出战斗
+        self.click_escape_stuck: bool = False  # 是否点击了脱离卡死
 
     @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=60)
     def check_screen_and_run(self) -> OperationRoundResult:
@@ -77,6 +78,17 @@ class BackToNormalWorld(ZOperation):
             if result.is_success:
                 return self.round_retry(result.status, wait=1)
         self.click_exit_battle = False
+
+        # 战斗菜单-脱离卡死（大世界-勘域不慎进入战斗状态时使用）
+        result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死')
+        if result.is_success:
+            self.click_escape_stuck = True
+            return self.round_retry(result.status, wait=1)
+        if self.click_escape_stuck:  # 必须置前，因为会被通用的"取消"误判
+            result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死-确认')
+            if result.is_success:
+                return self.round_retry(result.status, wait=1)
+        self.click_escape_stuck = False
 
         # 通用完成按钮 置后，避免插件场景"合成"被误匹配为"完成"
         result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '完成')
