@@ -18,7 +18,7 @@ URLS = {
 
 
 class GameRedeemCode:
-    def __init__(self, proxy: str | None = None):
+    def __init__(self, proxy: str | None = None) -> None:
         self.act_id: str | None = None
         self.code_ver: str | None = None
         self.deadline: datetime | None = None
