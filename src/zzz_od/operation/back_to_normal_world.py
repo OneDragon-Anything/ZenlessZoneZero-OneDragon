@@ -34,6 +34,9 @@ class BackToNormalWorld(ZOperation):
         """
         current_screen = self.check_and_update_current_screen()
         if current_screen in ['大世界-普通', '大世界-勘域']:
+            if self.click_escape_stuck:  # 脱离卡死后到达大世界，立即打开地图传送到录像店
+                self.click_escape_stuck = False
+                return self.round_success('脱离卡死-传送')
             return self.round_success(status=current_screen)
 
         result = self.round_by_goto_screen(screen=self.last_screenshot, screen_name='大世界-普通', retry_wait=None)
@@ -85,7 +88,7 @@ class BackToNormalWorld(ZOperation):
         if self.click_escape_stuck:  # 必须置前，因为会被通用的"取消"误判
             result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死-确认')
             if result.is_success:
-                return self.round_success('脱离卡死-传送', data={'tp_area': '录像店', 'tp_name': '房间'})
+                return self.round_retry(result.status, wait=1)  # 等待游戏传送回大世界
         self.click_escape_stuck = False
 
         # 通用完成按钮（置后，避免插件场景"合成"被误匹配为"完成"）
@@ -134,16 +137,18 @@ class BackToNormalWorld(ZOperation):
             return self.round_fail()
 
     @node_from(from_name='画面识别', status='脱离卡死-传送')
-    @operation_node(name='打开地图', node_max_retry_times=20)
+    @operation_node(name='打开地图')
     def open_map(self) -> OperationRoundResult:
+        """脱离卡死后，识别到大世界立即点击地图按钮"""
         result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', '地图')
         if result.is_success:
-            return self.round_wait(status=result.status, wait=2)
-        return self.round_retry(status=result.status, wait=1)
+            return self.round_success(result.status, wait=1)
+        return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='打开地图')
     @operation_node(name='执行传送')
     def do_transport(self) -> OperationRoundResult:
+        """打开地图后，传送到录像店房间"""
         op = MapTransport(self.ctx, '录像店', '房间')
         return self.round_by_op_result(op.execute())
 
