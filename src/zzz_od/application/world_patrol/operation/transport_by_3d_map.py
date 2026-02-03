@@ -55,7 +55,7 @@ class TransportBy3dMap(ZOperation):
 
     @node_from(from_name='初始回到大世界', status='3D地图')
     @node_from(from_name='打开地图')
-    @operation_node(name='选择区域')
+    @operation_node(name='选择区域', node_max_retry_times=60)  # 区域列表可能很长，需要多次滚动
     def choose_area(self) -> OperationRoundResult:
         if self.target_area.parent_area is None:
             target_area_name = self.target_area.area_name
@@ -66,18 +66,23 @@ class TransportBy3dMap(ZOperation):
         ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot, rect=area.rect)
 
         ocr_word_list = list(ocr_result_map.keys())
-        target_word_idx = str_utils.find_best_match_by_difflib(gt(target_area_name, 'game'), ocr_word_list)
-        if target_word_idx is not None and target_word_idx >= 0:
+        target_cn = gt(target_area_name, 'game')
+
+        # 精确匹配优先 + 兜底模糊匹配（cutoff=0.8 避免相似名称误匹配，如"科研院旧址"与"港口工厂旧址"）
+        target_word_idx = str_utils.find_in_list_with_fuzzy(target_cn, ocr_word_list, cutoff=0.8)
+        if target_word_idx is not None:
             mrl = ocr_result_map.get(ocr_word_list[target_word_idx])
             if mrl.max is not None:
                 self.ctx.controller.click(mrl.max.center)
                 return self.round_success(wait=1)
 
+        # 精确匹配优先 + 兜底模糊匹配（目标不在屏幕内，判断滚动方向，不一致会导致列表反复上下滑动）
         order_cn_list = [i.area_name for i in self.ctx.world_patrol_service.area_list]
         is_target_after: bool = str_utils.is_target_after_ocr_list(
             target_cn=target_area_name,
             order_cn_list=order_cn_list,
             ocr_result_list=ocr_word_list,
+            cutoff=0.8,
         )
 
         start_point = area.center

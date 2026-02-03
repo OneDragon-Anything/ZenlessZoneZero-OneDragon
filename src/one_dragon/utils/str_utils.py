@@ -144,6 +144,17 @@ def find_best_match_by_difflib(word: str, target_word_list: List[str], cutoff=0.
         return None
 
 
+def find_in_list_with_fuzzy(target: str, word_list: list[str], cutoff: float = 0.6) -> int | None:
+    """
+    精确匹配优先 + 兜底模糊匹配，返回目标在列表中的索引
+    """
+    # 精确匹配
+    if target in word_list:
+        return word_list.index(target)
+    # 模糊匹配
+    return find_best_match_by_difflib(target, word_list, cutoff=cutoff)
+
+
 def find_most_similar(str_list1: List[str], str_list2: List[str]) -> Tuple[Optional[int], Optional[int]]:
     """
     多个字符串之间的匹配 找出最匹配的一组下标
@@ -265,11 +276,7 @@ def is_target_after_ocr_list(
             found_target = True
             break
 
-        target_idx = find_best_match_by_difflib(gt(order_cn, gt_mode), ocr_result_list, cutoff=cutoff)
-        if target_idx is None or target_idx < 0:
-            continue
-
-        if not found_target:
+        if find_in_list_with_fuzzy(gt(order_cn, gt_mode), ocr_result_list, cutoff=cutoff) is not None:
             found_before_target = True
 
     return found_target and found_before_target
