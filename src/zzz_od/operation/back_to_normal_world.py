@@ -123,7 +123,7 @@ class BackToNormalWorld(ZOperation):
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
         if result.is_success:
             self.round_by_click_area('战斗画面', '菜单')
-            return self.round_retry(result.status, wait=1)
+            return self.round_retry(result.status, wait=0.5)
 
         # 兜底的无条件返回（左上角的红色返回按钮，很多画面共有，故不能提前使用）
         click_back = self.round_by_click_area('画面-通用', '返回')
@@ -133,7 +133,7 @@ class BackToNormalWorld(ZOperation):
             # 那如果使用wait_round_time=1的话 可能导致点击后基本不等待
             # 进入下一轮截图就会识别到在大世界 但因为点击了返回又到了菜单
             # 相关 issue #1357
-            return self.round_retry(click_back.status, wait=1)
+            return self.round_retry(click_back.status, wait=0.5)
         else:
             return self.round_fail()
 
@@ -143,8 +143,8 @@ class BackToNormalWorld(ZOperation):
         """脱离卡死后，识别到大世界立即点击地图按钮"""
         result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', '地图')
         if result.is_success:
-            return self.round_success(result.status, wait=1)
-        return self.round_retry(result.status, wait=1)
+            return self.round_success(result.status)
+        return self.round_retry(result.status, wait=0.5)
 
     @node_from(from_name='打开地图')
     @operation_node(name='执行传送')
