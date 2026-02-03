@@ -90,7 +90,6 @@ class BackToNormalWorld(ZOperation):
             result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死-确认')
             if result.is_success:
                 return self.round_retry(result.status, wait=1)  # 等待游戏传送回大世界
-        self.click_escape_stuck = False
 
         # 通用完成按钮（置后，避免插件场景"合成"被误匹配为"完成"）
         result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '完成')
