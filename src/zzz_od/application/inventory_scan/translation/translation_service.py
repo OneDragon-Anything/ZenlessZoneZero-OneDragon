@@ -126,6 +126,8 @@ class TranslationService:
         if best_match and confidence > 0.2:
             log.info(f"模糊匹配: {name} -> {best_match} (置信度: {confidence:.4f})")
             return category_dict[best_match].get(target_lang, name)
+        else:
+            log.warning(f"模糊匹配失败: {name} (最佳匹配: {best_match}, 置信度: {confidence:.4f})")
 
         # 4. 未匹配到，返回原名
         log.warning(f"未找到匹配: {name}")
@@ -149,8 +151,13 @@ class TranslationService:
         candidates = []
         for key, translations in category_dict.items():
             candidates.append((key, key))  # 英文key
+            # 检查 translations 是否是字典类型
+            if not isinstance(translations, dict):
+                continue
             for lang, trans_name in translations.items():
-                candidates.append((key, trans_name))  # 各语言翻译
+                # 确保 trans_name 是字符串
+                if isinstance(trans_name, str):
+                    candidates.append((key, trans_name))  # 各语言翻译
 
         # 计算相似度
         for key, candidate in candidates:

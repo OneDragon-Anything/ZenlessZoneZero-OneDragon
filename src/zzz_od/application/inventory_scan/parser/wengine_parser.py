@@ -1,7 +1,13 @@
 import re
+import json
+import os
+import time
 from typing import Optional, Dict, List, Any
 import cv2
 from cv2.typing import MatLike
+
+from one_dragon.utils.log_utils import log
+from one_dragon.utils import os_utils
 
 
 class WengineParser:
@@ -11,6 +17,9 @@ class WengineParser:
         self.wengine_counter = 0
         from zzz_od.application.inventory_scan.translation import TranslationService
         self.translation_service = TranslationService()
+        # 异常数据保存目录
+        self.error_dir = os_utils.get_path_under_work_dir('.debug', 'inventory_errors')
+        os.makedirs(self.error_dir, exist_ok=True)
 
     def parse_ocr_result(self, ocr_items: List[Dict[str, Any]], screenshot: MatLike) -> Optional[Dict]:
         """
@@ -50,8 +59,45 @@ class WengineParser:
             return wengine_data
 
         except Exception as e:
-            print(f"解析OCR结果失败: {e}")
+            log.error(f"解析OCR结果失败: {e}", exc_info=True)
+            # 保存错误截图
+            if screenshot is not None:
+                self._save_error(screenshot, f"解析异常: {e}", ocr_items)
             return None
+
+    def _save_error(self, screenshot: MatLike, error_msg: str, ocr_results: List[Dict]) -> None:
+        """
+        保存错误截图和相关信息
+
+        Args:
+            screenshot: 截图
+            error_msg: 错误信息
+            ocr_results: OCR识别结果
+        """
+        try:
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            error_id = f"wengine_{timestamp}_{self.wengine_counter}"
+
+            # 保存截图
+            if screenshot is not None:
+                img_path = os.path.join(self.error_dir, f"{error_id}.jpg")
+                cv2.imwrite(img_path, screenshot, [cv2.IMWRITE_JPEG_QUALITY, 85])
+                log.info(f"错误截图已保存: {img_path}")
+
+            # 保存OCR结果和错误信息
+            error_data = {
+                'error_id': error_id,
+                'error_msg': error_msg,
+                'ocr_texts': ocr_results
+            }
+
+            json_path = os.path.join(self.error_dir, f"{error_id}.json")
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(error_data, f, indent=2, ensure_ascii=False)
+            log.info(f"错误信息已保存: {json_path}")
+
+        except Exception as e:
+            log.error(f"保存错误信息失败: {e}", exc_info=True)
 
     def _parse_wengine_name(self, texts: List[str]) -> str:
         """解析音擎名称"""
