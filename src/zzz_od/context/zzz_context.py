@@ -201,6 +201,9 @@ class ZContext(OneDragonContext):
         from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_app_factory import (
             DriveDiscDismantleAppFactory,
         )
+        from zzz_od.application.inventory_scan.inventory_scan_app_factory import (
+            InventoryScanAppFactory,
+        )
         from zzz_od.application.email_app.email_app_factory import EmailAppFactory
         from zzz_od.application.engagement_reward.engagement_reward_app_factory import (
             EngagementRewardAppFactory,
@@ -258,6 +261,7 @@ class ZContext(OneDragonContext):
                 WitheredDomainAppFactory(self),
                 RiduWeeklyAppFactory(self),
                 DriveDiscDismantleAppFactory(self),
+                InventoryScanAppFactory(self),
                 LostVoidAppFactory(self),
                 NotifyAppFactory(self),
                 WorldPatrolAppFactory(self),
