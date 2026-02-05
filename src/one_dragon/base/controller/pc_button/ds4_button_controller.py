@@ -76,6 +76,9 @@ class Ds4ButtonController(PcButtonController):
         :param key:
         :return:
         """
+        if not self.input_enabled:
+            return
+
         if key is None:  # 部分按键不支持
             return
         self._tap_handler[int(key.split('_')[-1])](False, None)
@@ -226,6 +229,9 @@ class Ds4ButtonController(PcButtonController):
         :param press_time: 持续按键时间
         :return:
         """
+        if not self.input_enabled:
+            return
+
         if key is None:  # 部分按键不支持
             return
         self._tap_handler[int(key.split('_')[-1])](True, press_time)
