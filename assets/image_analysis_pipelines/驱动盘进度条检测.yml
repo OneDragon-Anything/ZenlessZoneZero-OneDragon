@@ -1,0 +1,19 @@
+- step: 按区域裁剪
+  params:
+    screen_name: 仓库-驱动仓库
+    area_name: 驱动盘进度条
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 0
+    - 0
+    - 128
+    hsv_diff:
+    - 10
+    - 10
+    - 10
+- step: 查找轮廓
+  params:
+    mode: EXTERNAL
+    method: SIMPLE
+    draw_contours: true
