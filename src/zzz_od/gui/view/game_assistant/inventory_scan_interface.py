@@ -9,6 +9,7 @@ from qfluentwidgets import FluentIcon, PushButton, CheckBox
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.utils import os_utils
+from one_dragon.utils.log_utils import log
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.row import Row
@@ -125,6 +126,9 @@ class InventoryScanInterface(AppRunInterface):
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
+
+    def _on_start_clicked(self) -> None:
+        """在启动应用前保存扫描目标配置"""
         # 保存扫描目标选择到 context
         if hasattr(self, 'scan_drive_disk_check') and self.scan_drive_disk_check:
             targets = {
@@ -133,6 +137,10 @@ class InventoryScanInterface(AppRunInterface):
                 'agent': self.scan_agent_check.isChecked(),
             }
             setattr(self.ctx, '_inventory_scan_targets', targets)
+            log.info(f"扫描目标: {targets}")
+        
+        # 调用父类方法启动应用
+        AppRunInterface._on_start_clicked(self)
 
     def on_interface_hidden(self) -> None:
         AppRunInterface.on_interface_hidden(self)

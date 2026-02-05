@@ -45,8 +45,8 @@ class AgentScanApp(ZApplication):
         self._last_click_time: float = 0
 
         # 从翻译字典读取角色总数，但最大限制为100
-        # 只读取 config/zzz_translation.json（本项目只有这一份字典，预置内容也在这里）
-        user_translation_path = os_utils.get_path_under_work_dir('config', 'zzz_translation.json')
+        # 读取 assets/wiki_data/zzz_translation.json
+        user_translation_path = os_utils.get_path_under_work_dir('assets', 'wiki_data', 'zzz_translation.json')
         try:
             with open(user_translation_path, 'r', encoding='utf-8') as f:
                 translation_data = json.load(f)

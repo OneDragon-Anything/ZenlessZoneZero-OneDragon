@@ -13,9 +13,9 @@ class TranslationService:
     """翻译服务"""
 
     def __init__(self):
-        # 用户字典（运行时更新，可读写）
+        # 从 assets/wiki_data 读取字典
         self.user_dict_path = os.path.join(
-            os_utils.get_path_under_work_dir('config'),
+            os_utils.get_path_under_work_dir('assets', 'wiki_data'),
             'zzz_translation.json'
         )
         # 本项目只有一份字典：config/zzz_translation.json
