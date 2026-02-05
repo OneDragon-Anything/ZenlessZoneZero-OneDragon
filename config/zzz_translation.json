@@ -1,0 +1,794 @@
+{
+  "last_updated": "2026-01-26",
+  "character": {
+    "Corin": {
+      "EN": "Corin",
+      "CHS": "可琳",
+      "JA": "カリン"
+    },
+    "Qingyi": {
+      "EN": "Qingyi",
+      "CHS": "青衣",
+      "JA": "青衣"
+    },
+    "Jane": {
+      "EN": "Jane",
+      "CHS": "简",
+      "JA": "ジェーン"
+    },
+    "Soukaku": {
+      "EN": "Soukaku",
+      "CHS": "苍角",
+      "JA": "蒼角"
+    },
+    "Banyue": {
+      "EN": "Banyue",
+      "CHS": "般岳",
+      "JA": "盤岳"
+    },
+    "Sunna": {
+      "EN": "Sunna",
+      "CHS": "千夏",
+      "JA": "千夏"
+    },
+    "Harumasa": {
+      "EN": "Harumasa",
+      "CHS": "悠真",
+      "JA": "浅羽悠真"
+    },
+    "Pan Yinhu": {
+      "EN": "Pan Yinhu",
+      "CHS": "潘引壶",
+      "JA": "潘引壺"
+    },
+    "Vivian": {
+      "EN": "Vivian",
+      "CHS": "薇薇安",
+      "JA": "ビビアン"
+    },
+    "Billy": {
+      "EN": "Billy",
+      "CHS": "比利",
+      "JA": "ビリー"
+    },
+    "Grace": {
+      "EN": "Grace",
+      "CHS": "格莉丝",
+      "JA": "グレース"
+    },
+    "Yixuan": {
+      "EN": "Yixuan",
+      "CHS": "仪玄",
+      "JA": "儀玄"
+    },
+    "Evelyn": {
+      "EN": "Evelyn",
+      "CHS": "伊芙琳",
+      "JA": "イヴリン"
+    },
+    "Alice": {
+      "EN": "Alice",
+      "CHS": "爱丽丝",
+      "JA": "アリス"
+    },
+    "Anby": {
+      "EN": "Anby",
+      "CHS": "安比",
+      "JA": "アンビー"
+    },
+    "Caesar": {
+      "EN": "Caesar",
+      "CHS": "凯撒",
+      "JA": "シーザー"
+    },
+    "Ju Fufu": {
+      "EN": "Ju Fufu",
+      "CHS": "橘福福",
+      "JA": "橘福福"
+    },
+    "Nicole": {
+      "EN": "Nicole",
+      "CHS": "妮可",
+      "JA": "ニコ"
+    },
+    "Piper": {
+      "EN": "Piper",
+      "CHS": "派派",
+      "JA": "パイパー"
+    },
+    "Nekomata": {
+      "EN": "Nekomata",
+      "CHS": "猫又",
+      "JA": "猫又"
+    },
+    "Zhu Yuan": {
+      "EN": "Zhu Yuan",
+      "CHS": "朱鸢",
+      "JA": "朱鳶"
+    },
+    "Lycaon": {
+      "EN": "Lycaon",
+      "CHS": "莱卡恩",
+      "JA": "ライカン"
+    },
+    "Lighter": {
+      "EN": "Lighter",
+      "CHS": "莱特",
+      "JA": "ライト"
+    },
+    "Seed": {
+      "EN": "Seed",
+      "CHS": "「席德」",
+      "JA": "「シード」"
+    },
+    "Anton": {
+      "EN": "Anton",
+      "CHS": "安东",
+      "JA": "アンドー"
+    },
+    "Soldier 11": {
+      "EN": "Soldier 11",
+      "CHS": "「11号」",
+      "JA": "「11号」"
+    },
+    "Lucia": {
+      "EN": "Lucia",
+      "CHS": "卢西娅",
+      "JA": "リュシア"
+    },
+    "Miyabi": {
+      "EN": "Miyabi",
+      "CHS": "雅",
+      "JA": "星見雅"
+    },
+    "Trigger": {
+      "EN": "Trigger",
+      "CHS": "「扳机」",
+      "JA": "「トリガー」"
+    },
+    "Ye Shunguang": {
+      "EN": "Ye Shunguang",
+      "CHS": "叶瞬光",
+      "JA": "葉瞬光"
+    },
+    "Ben": {
+      "EN": "Ben",
+      "CHS": "本",
+      "JA": "ベン"
+    },
+    "Rina": {
+      "EN": "Rina",
+      "CHS": "丽娜",
+      "JA": "リナ"
+    },
+    "Yidhari": {
+      "EN": "Yidhari",
+      "CHS": "伊德海莉",
+      "JA": "イドリー"
+    },
+    "Yuzuha": {
+      "EN": "Yuzuha",
+      "CHS": "柚叶",
+      "JA": "浮波柚葉"
+    },
+    "Zhao": {
+      "EN": "Zhao",
+      "CHS": "照",
+      "JA": "照"
+    },
+    "Dialyn": {
+      "EN": "Dialyn",
+      "CHS": "琉音",
+      "JA": "ダイアリン"
+    },
+    "Hugo": {
+      "EN": "Hugo",
+      "CHS": "雨果",
+      "JA": "ヒューゴ"
+    },
+    "Pulchra": {
+      "EN": "Pulchra",
+      "CHS": "波可娜",
+      "JA": "プルクラ"
+    },
+    "Astra Yao": {
+      "EN": "Astra Yao",
+      "CHS": "耀嘉音",
+      "JA": "アストラ"
+    },
+    "Orphie & Magus": {
+      "EN": "Orphie & Magus",
+      "CHS": "奥菲丝&「鬼火」",
+      "JA": "オルペウス＆「鬼火」"
+    },
+    "Manato": {
+      "EN": "Manato",
+      "CHS": "真斗",
+      "JA": "狛野真斗"
+    },
+    "Lucy": {
+      "EN": "Lucy",
+      "CHS": "露西",
+      "JA": "ルーシー"
+    },
+    "Koleda": {
+      "EN": "Koleda",
+      "CHS": "珂蕾妲",
+      "JA": "クレタ"
+    },
+    "Yanagi": {
+      "EN": "Yanagi",
+      "CHS": "柳",
+      "JA": "月城柳"
+    },
+    "Aria": {
+      "EN": "Aria",
+      "CHS": "爱芮",
+      "JA": "アリア"
+    },
+    "Seth": {
+      "EN": "Seth",
+      "CHS": "赛斯",
+      "JA": "セス"
+    },
+    "Burnice": {
+      "EN": "Burnice",
+      "CHS": "柏妮思",
+      "JA": "バーニス"
+    },
+    "Soldier 0 - Anby": {
+      "EN": "Soldier 0 - Anby",
+      "CHS": "零号·安比",
+      "JA": "0号・アンビー"
+    },
+    "Ellen": {
+      "EN": "Ellen",
+      "CHS": "艾莲",
+      "JA": "エレン"
+    }
+  },
+  "weapon": {
+    "Starlight Engine Replica": {
+      "EN": "Starlight Engine Replica",
+      "CHS": "仿制星徽引擎",
+      "JA": "なんちゃってスターライトエンジン"
+    },
+    "The Brimstone": {
+      "EN": "The Brimstone",
+      "CHS": "硫磺石",
+      "JA": "ブリムストーン"
+    },
+    "Cloudcleave Radiance": {
+      "EN": "Cloudcleave Radiance",
+      "CHS": "云霓孤光",
+      "JA": "孤光彩雲"
+    },
+    "[Vortex] Hatchet": {
+      "EN": "[Vortex] Hatchet",
+      "CHS": "「湍流」-斧型",
+      "JA": "「激流」-斧型"
+    },
+    "Tusks of Fury": {
+      "EN": "Tusks of Fury",
+      "CHS": "奔袭獠牙",
+      "JA": "猛進するキバ"
+    },
+    "The Vault": {
+      "EN": "The Vault",
+      "CHS": "聚宝箱",
+      "JA": "ザ・ボールト"
+    },
+    "Qingming Birdcage": {
+      "EN": "Qingming Birdcage",
+      "CHS": "青溟笼舍",
+      "JA": "青溟の鳥籠"
+    },
+    "Slice of Time": {
+      "EN": "Slice of Time",
+      "CHS": "时光切片",
+      "JA": "歳月の薄片"
+    },
+    "Bashful Demon": {
+      "EN": "Bashful Demon",
+      "CHS": "含羞恶面",
+      "JA": "恥じらう悪面"
+    },
+    "Tremor Trigram Vessel": {
+      "EN": "Tremor Trigram Vessel",
+      "CHS": "震元奇枢",
+      "JA": "雷鳴が如き八卦"
+    },
+    "[Lunar] Noviluna": {
+      "EN": "[Lunar] Noviluna",
+      "CHS": "「月相」-朔",
+      "JA": "「月相」-朔"
+    },
+    "[Lunar] Decrescent": {
+      "EN": "[Lunar] Decrescent",
+      "CHS": "「月相」-晦",
+      "JA": "「月相」-晦"
+    },
+    "Box Cutter": {
+      "EN": "Box Cutter",
+      "CHS": "裁纸刀",
+      "JA": "ペーパーカッター"
+    },
+    "Flight of Fancy": {
+      "EN": "Flight of Fancy",
+      "CHS": "飞鸟星梦",
+      "JA": "鳥は夢へと羽ばたいて"
+    },
+    "Radiowave Journey": {
+      "EN": "Radiowave Journey",
+      "CHS": "电波漫步",
+      "JA": "エレクトロウォーク"
+    },
+    "Weeping Gemini": {
+      "EN": "Weeping Gemini",
+      "CHS": "双生泣星",
+      "JA": "双生の涙"
+    },
+    "Cannon Rotor": {
+      "EN": "Cannon Rotor",
+      "CHS": "加农转子",
+      "JA": "キャノンローラー"
+    },
+    "Rainforest Gourmet": {
+      "EN": "Rainforest Gourmet",
+      "CHS": "雨林饕客",
+      "JA": "密林の食いしん坊"
+    },
+    "Puzzle Sphere": {
+      "EN": "Puzzle Sphere",
+      "CHS": "幻变魔方",
+      "JA": "魔法の立体パズル"
+    },
+    "Bellicose Blaze": {
+      "EN": "Bellicose Blaze",
+      "CHS": "嚣枪喧焰",
+      "JA": "憤怒の銃騒"
+    },
+    "Kraken's Cradle": {
+      "EN": "Kraken's Cradle",
+      "CHS": "海妖摇篮",
+      "JA": "セイレーンクレードル"
+    },
+    "Bunny Band": {
+      "EN": "Bunny Band",
+      "CHS": "兔能环",
+      "JA": "ラビットチャージャー"
+    },
+    "Blazing Laurel": {
+      "EN": "Blazing Laurel",
+      "CHS": "焰心桂冠",
+      "JA": "炎心の桂冠"
+    },
+    "Spring Embrace": {
+      "EN": "Spring Embrace",
+      "CHS": "春日融融",
+      "JA": "ホットスプリング"
+    },
+    "Steel Cushion": {
+      "EN": "Steel Cushion",
+      "CHS": "钢铁肉垫",
+      "JA": "鋼の肉球"
+    },
+    "Marcato Desire": {
+      "EN": "Marcato Desire",
+      "CHS": "强音热望",
+      "JA": "強音デザイア"
+    },
+    "Timeweaver": {
+      "EN": "Timeweaver",
+      "CHS": "时流贤者",
+      "JA": "刻流の賢者"
+    },
+    "Zanshin Herb Case": {
+      "EN": "Zanshin Herb Case",
+      "CHS": "残心青囊",
+      "JA": "残心の青籠"
+    },
+    "Thoughtbop": {
+      "EN": "Thoughtbop",
+      "CHS": "思络成歌",
+      "JA": "想いが織りなす歌"
+    },
+    "[Cinder] Cobalt": {
+      "EN": "[Cinder] Cobalt",
+      "CHS": "「灰烬」-钴蓝",
+      "JA": "「灰燼」-蒼藍"
+    },
+    "The Restrained": {
+      "EN": "The Restrained",
+      "CHS": "拘缚者",
+      "JA": "拘縛されし者"
+    },
+    "Fusion Compiler": {
+      "EN": "Fusion Compiler",
+      "CHS": "嵌合编译器",
+      "JA": "複合コンパイラ"
+    },
+    "[Magnetic Storm] Bravo": {
+      "EN": "[Magnetic Storm] Bravo",
+      "CHS": "「电磁暴」-贰式",
+      "JA": "「磁気嵐」-弐式"
+    },
+    "Myriad Eclipse": {
+      "EN": "Myriad Eclipse",
+      "CHS": "千面日陨",
+      "JA": "千面の落日"
+    },
+    "Half-Sugar Bunny": {
+      "EN": "Half-Sugar Bunny",
+      "CHS": "半糖雪兔",
+      "JA": "甘さ控えめ雪うさぎ"
+    },
+    "Dreamlit Hearth": {
+      "EN": "Dreamlit Hearth",
+      "CHS": "铸梦炉歌",
+      "JA": "炉で歌い上げられる夢"
+    },
+    "Severed Innocence": {
+      "EN": "Severed Innocence",
+      "CHS": "牺牲洁纯",
+      "JA": "純然たる犠牲"
+    },
+    "Cordis Germina": {
+      "EN": "Cordis Germina",
+      "CHS": "机巧心种",
+      "JA": "駆動する種"
+    },
+    "Spectral Gaze": {
+      "EN": "Spectral Gaze",
+      "CHS": "索魂影眸",
+      "JA": "奪魂の瞑目"
+    },
+    "Original Transmorpher": {
+      "EN": "Original Transmorpher",
+      "CHS": "正版变身器",
+      "JA": "正規版変身装置"
+    },
+    "[Reverb] Mark II": {
+      "EN": "[Reverb] Mark II",
+      "CHS": "「残响」-Ⅱ型",
+      "JA": "「残響」-Ⅱ型"
+    },
+    "Big Cylinder": {
+      "EN": "Big Cylinder",
+      "CHS": "比格气缸",
+      "JA": "ビガー・シリンダー"
+    },
+    "Wrathful Vajra": {
+      "EN": "Wrathful Vajra",
+      "CHS": "怒目金刚",
+      "JA": "金剛不壊怒髪衝冠"
+    },
+    "[Vortex] Revolver": {
+      "EN": "[Vortex] Revolver",
+      "CHS": "「湍流」-铳型",
+      "JA": "「激流」-銃型"
+    },
+    "Deep Sea Visitor": {
+      "EN": "Deep Sea Visitor",
+      "CHS": "深海访客",
+      "JA": "ディープシー・ビジター"
+    },
+    "Roaring Fur-nace": {
+      "EN": "Roaring Fur-nace",
+      "CHS": "福虓炉炉",
+      "JA": "招福の虎炉"
+    },
+    "Heartstring Nocturne": {
+      "EN": "Heartstring Nocturne",
+      "CHS": "心弦夜响",
+      "JA": "心弦のノクターン"
+    },
+    "Flamemaker Shaker": {
+      "EN": "Flamemaker Shaker",
+      "CHS": "灼心摇壶",
+      "JA": "バーニング・シェイカー"
+    },
+    "Angel in the Shell": {
+      "EN": "Angel in the Shell",
+      "CHS": "壳中之灵",
+      "JA": "殻の中の魂"
+    },
+    "Riot Suppressor Mark VI": {
+      "EN": "Riot Suppressor Mark VI",
+      "CHS": "防暴者Ⅵ型",
+      "JA": "サプレッサーⅥ型"
+    },
+    "Metanukimorphosis": {
+      "EN": "Metanukimorphosis",
+      "CHS": "狸法七变化",
+      "JA": "狸の七変化"
+    },
+    "Demara Battery Mark II": {
+      "EN": "Demara Battery Mark II",
+      "CHS": "德玛拉电池Ⅱ型",
+      "JA": "デマラ式電池Ⅱ型"
+    },
+    "Hellfire Gears": {
+      "EN": "Hellfire Gears",
+      "CHS": "燃狱齿轮",
+      "JA": "燃獄ギア"
+    },
+    "[Identity] Base": {
+      "EN": "[Identity] Base",
+      "CHS": "「恒等式」-本格",
+      "JA": "「恒等式」-本格"
+    },
+    "[Reverb] Mark III": {
+      "EN": "[Reverb] Mark III",
+      "CHS": "「残响」-Ⅲ型",
+      "JA": "「残響」-Ⅲ型"
+    },
+    "Hailstorm Shrine": {
+      "EN": "Hailstorm Shrine",
+      "CHS": "霰落星殿",
+      "JA": "あられ落つ星殿"
+    },
+    "Starlight Engine": {
+      "EN": "Starlight Engine",
+      "CHS": "星徽引擎",
+      "JA": "スターライトエンジン"
+    },
+    "Reel Projector": {
+      "EN": "Reel Projector",
+      "CHS": "光影刻刀",
+      "JA": "光と影のカット"
+    },
+    "[Identity] Inflection": {
+      "EN": "[Identity] Inflection",
+      "CHS": "「恒等式」-变格",
+      "JA": "「恒等式」-変格"
+    },
+    "Steam Oven": {
+      "EN": "Steam Oven",
+      "CHS": "人为刀俎",
+      "JA": "まな板の鯉"
+    },
+    "Elegant Vanity": {
+      "EN": "Elegant Vanity",
+      "CHS": "玲珑妆匣",
+      "JA": "優美のヴァニティ"
+    },
+    "Peacekeeper - Specialized": {
+      "EN": "Peacekeeper - Specialized",
+      "CHS": "维序者-特化型",
+      "JA": "秩序の守り手・特化型"
+    },
+    "Drill Rig - Red Axis": {
+      "EN": "Drill Rig - Red Axis",
+      "CHS": "旋钻机-赤轴",
+      "JA": "ドリルリグ-レッドシャフト"
+    },
+    "Cauldron of Clarity": {
+      "EN": "Cauldron of Clarity",
+      "CHS": "青漪灵鼎",
+      "JA": "蒼き波の霊器"
+    },
+    "Weeping Cradle": {
+      "EN": "Weeping Cradle",
+      "CHS": "啜泣摇篮",
+      "JA": "啜り泣くゆりかご"
+    },
+    "[Magnetic Storm] Alpha": {
+      "EN": "[Magnetic Storm] Alpha",
+      "CHS": "「电磁暴」-壹式",
+      "JA": "「磁気嵐」-壱式"
+    },
+    "Kaboom the Cannon": {
+      "EN": "Kaboom the Cannon",
+      "CHS": "好斗的阿炮",
+      "JA": "喧嘩腰のボンバルダム"
+    },
+    "Electro-Lip Gloss": {
+      "EN": "Electro-Lip Gloss",
+      "CHS": "触电唇彩",
+      "JA": "電撃リップグロス"
+    },
+    "Practiced Perfection": {
+      "EN": "Practiced Perfection",
+      "CHS": "十方锻星",
+      "JA": "十面百錬の星"
+    },
+    "Gilded Blossom": {
+      "EN": "Gilded Blossom",
+      "CHS": "鎏金花信",
+      "JA": "金メッキの花信"
+    },
+    "Yesterday Calls": {
+      "EN": "Yesterday Calls",
+      "CHS": "昨夜来电",
+      "JA": "昨夜からの着信"
+    },
+    "[Reverb] Mark I": {
+      "EN": "[Reverb] Mark I",
+      "CHS": "「残响」-Ⅰ型",
+      "JA": "「残響」-Ⅰ型"
+    },
+    "Sharpened Stinger": {
+      "EN": "Sharpened Stinger",
+      "CHS": "淬锋钳刺",
+      "JA": "磨き抜かれた切っ先"
+    },
+    "[Vortex] Arrow": {
+      "EN": "[Vortex] Arrow",
+      "CHS": "「湍流」-矢型",
+      "JA": "「激流」-矢型"
+    },
+    "[Lunar] Pleniluna": {
+      "EN": "[Lunar] Pleniluna",
+      "CHS": "「月相」-望",
+      "JA": "「月相」-望"
+    },
+    "Housekeeper": {
+      "EN": "Housekeeper",
+      "CHS": "家政员",
+      "JA": "ハウスキーパー"
+    },
+    "Unfettered Game Ball": {
+      "EN": "Unfettered Game Ball",
+      "CHS": "逍遥游球",
+      "JA": "ゲームボール"
+    },
+    "Ice-Jade Teapot": {
+      "EN": "Ice-Jade Teapot",
+      "CHS": "玉壶青冰",
+      "JA": "玉壺青氷"
+    },
+    "Street Superstar": {
+      "EN": "Street Superstar",
+      "CHS": "街头巨星",
+      "JA": "ストリートスター"
+    },
+    "Precious Fossilized Core": {
+      "EN": "Precious Fossilized Core",
+      "CHS": "贵重骨核",
+      "JA": "貴重な石化コア"
+    },
+    "[Magnetic Storm] Charlie": {
+      "EN": "[Magnetic Storm] Charlie",
+      "CHS": "「电磁暴」-叁式",
+      "JA": "「磁気嵐」-参式"
+    },
+    "Six Shooter": {
+      "EN": "Six Shooter",
+      "CHS": "左轮转子",
+      "JA": "シックスシューター"
+    },
+    "Grill O'Wisp": {
+      "EN": "Grill O'Wisp",
+      "CHS": "燔火胧夜",
+      "JA": "燔火の朧夜"
+    },
+    "Roaring Ride": {
+      "EN": "Roaring Ride",
+      "CHS": "轰鸣座驾",
+      "JA": "グロウル・マイ・カー"
+    }
+  },
+  "equipment": {
+    "White Water Ballad": {
+      "EN": "White Water Ballad",
+      "CHS": "沧浪行歌",
+      "JA": "純白の行歌"
+    },
+    "Proto Punk": {
+      "EN": "Proto Punk",
+      "CHS": "原始朋克",
+      "JA": "プロト・パンク"
+    },
+    "Shining Aria": {
+      "EN": "Shining Aria",
+      "CHS": "流光咏叹",
+      "JA": "流光のアリア"
+    },
+    "Freedom Blues": {
+      "EN": "Freedom Blues",
+      "CHS": "自由蓝调",
+      "JA": "フリーダム・ブルース"
+    },
+    "Swing Jazz": {
+      "EN": "Swing Jazz",
+      "CHS": "摇摆爵士",
+      "JA": "スイング・ジャズ"
+    },
+    "Branch & Blade Song": {
+      "EN": "Branch & Blade Song",
+      "CHS": "折枝剑歌",
+      "JA": "折枝の刀歌"
+    },
+    "Puffer Electro": {
+      "EN": "Puffer Electro",
+      "CHS": "河豚电音",
+      "JA": "パファー・エレクトロ"
+    },
+    "King of the Summit": {
+      "EN": "King of the Summit",
+      "CHS": "山大王",
+      "JA": "大山を統べる者"
+    },
+    "Moonlight Lullaby": {
+      "EN": "Moonlight Lullaby",
+      "CHS": "月光骑士颂",
+      "JA": "月光騎士の讃歌"
+    },
+    "Shockstar Disco": {
+      "EN": "Shockstar Disco",
+      "CHS": "震星迪斯科",
+      "JA": "ショックスター・ディスコ"
+    },
+    "Astral Voice": {
+      "EN": "Astral Voice",
+      "CHS": "静听嘉音",
+      "JA": "静寂のアストラ"
+    },
+    "Yunkui Tales": {
+      "EN": "Yunkui Tales",
+      "CHS": "云岿如我",
+      "JA": "雲嶽は我に似たり"
+    },
+    "Thunder Metal": {
+      "EN": "Thunder Metal",
+      "CHS": "雷暴重金属",
+      "JA": "霹靂のヘヴィメタル"
+    },
+    "Shadow Harmony": {
+      "EN": "Shadow Harmony",
+      "CHS": "如影相随",
+      "JA": "シャドウハーモニー"
+    },
+    "Dawn's Bloom": {
+      "EN": "Dawn's Bloom",
+      "CHS": "拂晓生花",
+      "JA": "暁に咲く花"
+    },
+    "Soul Rock": {
+      "EN": "Soul Rock",
+      "CHS": "灵魂摇滚",
+      "JA": "ソウル・ロック"
+    },
+    "Polar Metal": {
+      "EN": "Polar Metal",
+      "CHS": "极地重金属",
+      "JA": "極地のヘヴィメタル"
+    },
+    "Fanged Metal": {
+      "EN": "Fanged Metal",
+      "CHS": "獠牙重金属",
+      "JA": "獣牙のヘヴィメタル"
+    },
+    "Chaos Jazz": {
+      "EN": "Chaos Jazz",
+      "CHS": "混沌爵士",
+      "JA": "ケイオス・ジャズ"
+    },
+    "Phaethon's Melody": {
+      "EN": "Phaethon's Melody",
+      "CHS": "法厄同之歌",
+      "JA": "「パエトーン」の歌"
+    },
+    "Hormone Punk": {
+      "EN": "Hormone Punk",
+      "CHS": "激素朋克",
+      "JA": "ホルモン・パンク"
+    },
+    "Inferno Metal": {
+      "EN": "Inferno Metal",
+      "CHS": "炎狱重金属",
+      "JA": "炎獄のヘヴィメタル"
+    },
+    "Woodpecker Electro": {
+      "EN": "Woodpecker Electro",
+      "CHS": "啄木鸟电音",
+      "JA": "ウッドペッカー・エレクトロ"
+    },
+    "Chaotic Metal": {
+      "EN": "Chaotic Metal",
+      "CHS": "混沌重金属",
+      "JA": "混沌のヘヴィメタル"
+    }
+  }
+}
