@@ -86,6 +86,9 @@ class DriveDiskParser:
         # 初始化翻译服务
         from zzz_od.application.inventory_scan.translation import TranslationService
         self.translation_service = TranslationService()
+        # 初始化头像匹配器
+        from zzz_od.application.inventory_scan.utils.agent_icon_matcher import AgentIconMatcher
+        self.icon_matcher = AgentIconMatcher()
 
         # 异常数据保存目录
         self.error_dir = os_utils.get_path_under_work_dir('.debug', 'inventory_errors')
@@ -154,6 +157,13 @@ class DriveDiskParser:
                     # 仍然返回数据，但已记录异常
                     # return None  # 如果要阻止这个驱动盘被添加，取消注释这行
 
+            # 匹配头像
+            agent_key = ""
+            if screenshot is not None:
+                # 头像区域 (52, 52) - (86, 86)
+                if self.icon_matcher.is_region_colorful(screenshot, 52, 52, 86, 86):
+                    agent_key = self.icon_matcher.match_agent_icon(screenshot, 52, 52, 86, 86)
+
             # 生成驱动盘数据
             self.disc_counter += 1
             disc_data = {
@@ -163,7 +173,7 @@ class DriveDiskParser:
                 'slotKey': slot_key,
                 'mainStatKey': main_stat_key,
                 'substats': substats,
-                'location': '',
+                'location': agent_key,
                 'lock': False,
                 'trash': False,
                 'id': f'zzz_disc_{self.disc_counter}'
@@ -540,7 +550,9 @@ class DriveDiskParser:
             # 保存截图
             if screenshot is not None:
                 img_path = os.path.join(self.error_dir, f"{error_id}.jpg")
-                cv2.imwrite(img_path, screenshot)
+                # 将 RGB 转换为 BGR 格式（OpenCV 默认格式）
+                bgr_image = cv2.cvtColor(screenshot, cv2.COLOR_RGB2BGR)
+                cv2.imwrite(img_path, bgr_image)
                 log.info(f"异常截图已保存: {img_path}")
 
             # 保存OCR结果和错误信息

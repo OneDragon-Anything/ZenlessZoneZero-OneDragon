@@ -111,21 +111,36 @@ class TranslationService:
 
         category_dict = self.translation_dict.get(category, {})
 
+        # 辅助函数：从新格式中提取翻译结果
+        def extract_translation(trans_obj: dict, lang: str, default: str) -> str:
+            """从翻译对象中提取文本（新格式：{"EN": {"name": "...", ...}}）"""
+            result = trans_obj.get(lang, default)
+            if isinstance(result, dict):
+                result = result.get('name', default)
+            return result
+
         # 1. 尝试直接匹配（完全匹配）
         if name in category_dict:
-            return category_dict[name].get(target_lang, name)
+            return extract_translation(category_dict[name], target_lang, name)
 
         # 2. 尝试从其他语言反向查找（完全匹配）
         for key, translations in category_dict.items():
+            if not isinstance(translations, dict):
+                continue
+
             for lang, trans_name in translations.items():
+                # 新格式：trans_name 是字典 {"name": "...", ...}
+                if isinstance(trans_name, dict):
+                    trans_name = trans_name.get('name', '')
+                
                 if trans_name == name:
-                    return translations.get(target_lang, name)
+                    return extract_translation(translations, target_lang, name)
 
         # 3. 模糊匹配（相似度>0.2，取最接近的）
         best_match, confidence = self._fuzzy_match(name, category_dict)
         if best_match and confidence > 0.2:
             log.info(f"模糊匹配: {name} -> {best_match} (置信度: {confidence:.4f})")
-            return category_dict[best_match].get(target_lang, name)
+            return extract_translation(category_dict[best_match], target_lang, name)
         else:
             log.warning(f"模糊匹配失败: {name} (最佳匹配: {best_match}, 置信度: {confidence:.4f})")
 
@@ -158,6 +173,11 @@ class TranslationService:
                 # 确保 trans_name 是字符串
                 if isinstance(trans_name, str):
                     candidates.append((key, trans_name))  # 各语言翻译
+                elif isinstance(trans_name, dict):
+                    # 新格式：trans_name 是字典 {"name": "..."}
+                    name_text = trans_name.get('name', '')
+                    if name_text:
+                        candidates.append((key, name_text))
 
         # 计算相似度
         for key, candidate in candidates:

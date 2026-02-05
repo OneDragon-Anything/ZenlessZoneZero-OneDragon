@@ -317,7 +317,9 @@ class AgentParser:
             # 保存截图
             if screenshot is not None:
                 img_path = os.path.join(self.error_dir, f"{error_id}.jpg")
-                cv2.imwrite(img_path, screenshot, [cv2.IMWRITE_JPEG_QUALITY, 85])
+                # 将 RGB 转换为 BGR 格式（OpenCV 默认格式）
+                bgr_image = cv2.cvtColor(screenshot, cv2.COLOR_RGB2BGR)
+                cv2.imwrite(img_path, bgr_image, [cv2.IMWRITE_JPEG_QUALITY, 85])
                 log.info(f"错误截图已保存: {img_path}")
 
             # 保存OCR结果和错误信息
