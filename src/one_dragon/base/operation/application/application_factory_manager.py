@@ -34,16 +34,16 @@ class ApplicationFactoryManager:
     负责扫描、加载和刷新应用工厂，提供插件式的应用注册机制。
     """
 
-    def __init__(self, ctx: OneDragonContext, plugin_dirs: list[Path | str]):
+    def __init__(self, ctx: OneDragonContext, plugin_dirs: list[tuple[Path | str, PluginSource]]):
         """初始化应用工厂管理器
 
         Args:
             ctx: OneDragon 上下文
-            plugin_dirs: 插件目录列表
+            plugin_dirs: 插件目录列表，每项为 (path, source) 元组
         """
         self.ctx: OneDragonContext = ctx
-        self._plugin_dirs: list[Path] = [
-            Path(d) if isinstance(d, str) else d for d in plugin_dirs
+        self._plugin_dirs: list[tuple[Path, PluginSource]] = [
+            (Path(d) if isinstance(d, str) else d, s) for d, s in plugin_dirs
         ]
         self._factory_module_suffix: str = "_factory"
         self._const_module_suffix: str = "_const"
@@ -53,7 +53,7 @@ class ApplicationFactoryManager:
         self._added_sys_paths: set[str] = set()  # 跟踪已添加到 sys.path 的路径
 
     @property
-    def plugin_dirs(self) -> list[Path]:
+    def plugin_dirs(self) -> list[tuple[Path, PluginSource]]:
         """获取插件目录列表"""
         return self._plugin_dirs
 
@@ -98,11 +98,9 @@ class ApplicationFactoryManager:
         # 清空旧的插件信息
         self._plugin_infos.clear()
 
-        for plugin_dir in self._plugin_dirs:
+        for plugin_dir, source in self._plugin_dirs:
             if not plugin_dir.is_dir():
                 continue
-            # 根据目录位置和名称判断来源
-            source = self._determine_plugin_source(plugin_dir)
             nd, d, infos, failures = self._scan_directory(plugin_dir, reload_modules, source)
             non_default_factories.extend(nd)
             default_factories.extend(d)
@@ -118,24 +116,6 @@ class ApplicationFactoryManager:
             f"{len(scan_result.failed_plugins)} 个失败"
         )
         return non_default_factories, default_factories
-
-    def _determine_plugin_source(self, plugin_dir: Path) -> PluginSource:
-        """判断插件目录的来源类型
-
-        Args:
-            plugin_dir: 插件目录路径
-
-        Returns:
-            PluginSource: 插件来源类型
-        """
-        # 检查是否在 src 目录下
-        try:
-            plugin_dir.parts.index('src')
-            # 在 src 目录下，是内置应用
-            return PluginSource.BUILTIN
-        except ValueError:
-            # 不在 src 目录下，是第三方插件
-            return PluginSource.THIRD_PARTY
 
     def _scan_directory(
         self,

@@ -322,10 +322,11 @@ class MyContext(OneDragonContext):
     @cached_property
     def application_plugin_dirs(self):
         from pathlib import Path
+        from one_dragon.base.operation.application.plugin_info import PluginSource
         return [
-            Path(__file__).parent.parent / 'application',
-            Path(__file__).parent.parent / 'plugins',
-            Path(__file__).parent.parent / 'custom_apps',  # 额外的插件目录
+            (Path(__file__).parent.parent / 'application', PluginSource.BUILTIN),
+            (Path(__file__).parent.parent / 'plugins', PluginSource.THIRD_PARTY),
+            (Path(__file__).parent.parent / 'custom_apps', PluginSource.THIRD_PARTY),  # 额外的插件目录
         ]
 ```
 

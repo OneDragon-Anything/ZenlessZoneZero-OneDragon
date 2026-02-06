@@ -18,6 +18,7 @@ from one_dragon.base.matcher.template_matcher import TemplateMatcher
 from one_dragon.base.operation.application.application_factory_manager import (
     ApplicationFactoryManager,
 )
+from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.application.application_group_manager import (
     ApplicationGroupManager,
 )
@@ -92,7 +93,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     #------------------- 以下是 应用工厂相关 -------------------#
 
     @cached_property
-    def application_plugin_dirs(self) -> list[Path]:
+    def application_plugin_dirs(self) -> list[tuple[Path, PluginSource]]:
         """
         应用插件目录列表
 
@@ -101,13 +102,13 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         2. 项目根目录下的 'plugins' 目录（外部插件，支持相对导入）
 
         例如：如果子类在 zzz_od/context/zzz_context.py，则返回：
-        - zzz_od/application
-        - {project_root}/plugins
+        - (zzz_od/application, BUILTIN)
+        - ({project_root}/plugins, THIRD_PARTY)
 
         Returns:
-            list[Path]: 应用插件目录列表
+            list[tuple[Path, PluginSource]]: 应用插件目录列表
         """
-        dirs: list[Path] = []
+        dirs: list[tuple[Path, PluginSource]] = []
 
         # 获取实际子类的定义文件
         cls_file = inspect.getfile(self.__class__)
@@ -117,7 +118,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         # 例如：zzz_od/context/zzz_context.py -> zzz_od/application
         application_dir = parent_dir / 'application'
         if application_dir.is_dir():
-            dirs.append(application_dir)
+            dirs.append((application_dir, PluginSource.BUILTIN))
 
         # 计算项目根目录下的 plugins 目录（外部插件）
         # 从 src 目录往上一级就是项目根目录
@@ -126,7 +127,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             project_root = Path(*Path(cls_file).parts[:src_index])
             plugins_dir = project_root / 'plugins'
             if plugins_dir.is_dir():
-                dirs.append(plugins_dir)
+                dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
         except (ValueError, IndexError):
             # 如果找不到 src 目录，忽略
             pass
