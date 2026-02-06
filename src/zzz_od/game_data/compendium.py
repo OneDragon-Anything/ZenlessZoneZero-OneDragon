@@ -340,4 +340,6 @@ class CompendiumService:
         mission_list = self.get_mission_list_data('作战', '零号空洞', '迷失之地')
         for mission in mission_list:
             mission_name_list.append(mission.mission_name_display)
+        if '矩阵行动' not in mission_name_list:
+            mission_name_list.append('矩阵行动')
         return mission_name_list

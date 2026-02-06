@@ -262,13 +262,18 @@ class ZContext(OneDragonContext):
                 RiduWeeklyAppFactory(self),
                 DriveDiscDismantleAppFactory(self),
                 LostVoidAppFactory(self),
-                MatrixActionAppFactory(self),
                 NotifyAppFactory(self),
                 WorldPatrolAppFactory(self),
                 LifeOneLineAppFactory(self),
                 ShiyuDefenseAppFactory(self),
             ],
             default_group=True,
+        )
+
+        # 仅用于迷失之地内部分流调用，不加入默认一条龙任务组
+        self.run_context.registry_application(
+            MatrixActionAppFactory(self),
+            default_group=False,
         )
 
     @property

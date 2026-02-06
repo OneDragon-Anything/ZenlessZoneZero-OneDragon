@@ -36,8 +36,11 @@ class MatrixActionApp(ZApplication):
 
     STATUS_TIMES_FINISHED: ClassVar[str] = "已完成进入次数"
     STATUS_AGAIN: ClassVar[str] = "继续挑战"
+    STATUS_RELAY: ClassVar[str] = "接力运行"
+    STATUS_ON_MATRIX_PAGE: ClassVar[str] = "矩阵行动页面"
+    STATUS_NEED_BACK_WORLD: ClassVar[str] = "需返回大世界"
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext, use_internal_run_record: bool = True):
         ZApplication.__init__(
             self,
             ctx=ctx,
@@ -53,6 +56,7 @@ class MatrixActionApp(ZApplication):
             instance_idx=self.ctx.current_instance_idx,
             app_id=matrix_action_const.APP_ID,
         )
+        self.use_internal_run_record: bool = use_internal_run_record
 
         self._support_agent_opened: bool = False
         self._support_up_clicked_once: bool = False
@@ -80,7 +84,7 @@ class MatrixActionApp(ZApplication):
 
     @operation_node(name="初始化加载", is_start_node=True)
     def init_for_matrix_action(self) -> OperationRoundResult:
-        if self.run_record.is_finished_by_day():
+        if self.use_internal_run_record and self.run_record.is_finished_by_day():
             return self._round_success_with_click_reset(MatrixActionApp.STATUS_TIMES_FINISHED)
         try:
             # 复用迷失之地战斗流程所需的运行上下文（检测器/数据/策略）
@@ -92,6 +96,44 @@ class MatrixActionApp(ZApplication):
         return self._round_success_with_click_reset(MatrixActionApp.STATUS_AGAIN)
 
     @node_from(from_name="初始化加载", status=STATUS_AGAIN)
+    @operation_node(name="开始前接力检查")
+    def check_initial_screen(self) -> OperationRoundResult:
+        # 特殊兼容：在挑战确认弹窗处开始，先确认进入挑战
+        result = self.round_by_find_and_click_area(
+            self.last_screenshot,
+            "迷失之地-大世界",
+            "按钮-挑战-确认",
+        )
+        if result.is_success:
+            self.next_region_type = LostVoidRegionType.CHANLLENGE_TIME_TRAIL
+            return self.round_wait(result.status, wait=0.3)
+
+        # 已在战斗画面，直接接力
+        if self._check_in_battle():
+            return self._round_success_with_click_reset(MatrixActionApp.STATUS_RELAY)
+
+        # 已在矩阵行动页面，直接进入挑战流程
+        if self._check_ocr_text("矩阵行动"):
+            return self._round_success_with_click_reset(MatrixActionApp.STATUS_ON_MATRIX_PAGE)
+
+        # 已在迷失之地流程画面，直接接力到层间移动
+        screen_name = self.check_and_update_current_screen(
+            self.last_screenshot,
+            screen_name_list=[
+                "迷失之地-大世界",
+                "迷失之地-通用选择",
+                "迷失之地-武备选择",
+                "迷失之地-邦布商店",
+                "迷失之地-路径迭换",
+                "迷失之地-抽奖机",
+            ],
+        )
+        if screen_name is not None:
+            return self._round_success_with_click_reset(MatrixActionApp.STATUS_RELAY)
+
+        return self._round_success_with_click_reset(MatrixActionApp.STATUS_NEED_BACK_WORLD)
+
+    @node_from(from_name="开始前接力检查", status=STATUS_NEED_BACK_WORLD)
     @operation_node(name="返回大世界")
     def back_at_first(self) -> OperationRoundResult:
         """返回大世界"""
@@ -162,6 +204,7 @@ class MatrixActionApp(ZApplication):
         return self.round_retry("未找到矩阵行动入口", wait=0.3)
 
     @node_from(from_name="前往矩阵行动")
+    @node_from(from_name="开始前接力检查", status=STATUS_ON_MATRIX_PAGE)
     @operation_node(name="前往挑战", node_max_retry_times=300)
     def goto_challenge(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
@@ -383,7 +426,8 @@ class MatrixActionApp(ZApplication):
         start = self._find_first_text("开始挑战", ocr_result_map=ocr_result_map)
         if start is None:
             if self._start_challenge_seen or self._check_in_battle():
-                self.run_record.add_times()
+                if self.use_internal_run_record:
+                    self.run_record.add_times()
                 return self._round_success_with_click_reset("已进入空洞战斗")
             return self.round_retry("等待开始挑战按钮", wait=0.3)
 
@@ -395,9 +439,9 @@ class MatrixActionApp(ZApplication):
         return self.round_retry("点击开始挑战失败", wait=0.3)
 
     @node_from(from_name="开始挑战", status="已进入空洞战斗")
+    @node_from(from_name="开始前接力检查", status=STATUS_RELAY)
     @operation_node(name="加载自动战斗配置")
     def load_auto_op(self) -> OperationRoundResult:
-        self.next_region_type = LostVoidRegionType.ENTRY
         self.ctx.auto_battle_context.init_auto_op(
             sub_dir="auto_battle",
             op_name=self.config.challenge_config_instance.auto_battle,
@@ -421,13 +465,10 @@ class MatrixActionApp(ZApplication):
     @node_from(from_name="层间移动", status=LostVoidRunLevel.STATUS_COMPLETE)
     @operation_node(name="通关后处理")
     def after_complete(self) -> OperationRoundResult:
-        screen_name = self.check_and_update_current_screen(
-            self.last_screenshot,
-            screen_name_list=["迷失之地-入口"],
-        )
-        if screen_name != "迷失之地-入口":
-            return self.round_wait("等待画面加载", wait=1)
-        return self._round_success_with_click_reset("通关完成")
+        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        if self._check_ocr_text("矩阵行动", ocr_result_map=ocr_result_map):
+            return self._round_success_with_click_reset("通关完成")
+        return self.round_wait("等待矩阵行动文本", wait=0.3)
 
     def _round_success_with_click_reset(self, status: Optional[str] = None) -> OperationRoundResult:
         self._reset_click_cooldown()

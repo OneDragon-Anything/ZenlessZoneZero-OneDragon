@@ -25,6 +25,7 @@ from zzz_od.application.hollow_zero.lost_void.lost_void_run_record import (
 from zzz_od.application.hollow_zero.lost_void.operation.lost_void_run_level import (
     LostVoidRunLevel,
 )
+from zzz_od.application.matrix_action.matrix_action_app import MatrixActionApp
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum
@@ -38,6 +39,7 @@ class LostVoidApp(ZApplication):
 
     STATUS_ENOUGH_TIMES: ClassVar[str] = '完成通关次数'
     STATUS_AGAIN: ClassVar[str] = '继续挑战'
+    STATUS_AGAIN_MATRIX: ClassVar[str] = '继续挑战-矩阵行动'
 
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
@@ -116,11 +118,24 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='识别初始画面', status='可前往副本画面')
     @node_from(from_name='识别初始画面', status='迷失之地-入口')
     @node_from(from_name='前往迷失之地-入口')
+    @node_from(from_name='执行矩阵行动', status='矩阵行动完成')
     @operation_node(name='开始前等待入口加载')
     def wait_lost_void_entry(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-入口', '按钮-更新弹窗-关闭')
         if result.is_success:
             return self.round_retry(result.status, wait=0.5)
+
+        # 矩阵行动没有独立screen_info时，允许通过OCR文本放行，避免卡死在入口识别
+        if self.config.mission_name == '矩阵行动':
+            ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+            ocr_word_list = list(ocr_result_map.keys())
+            target = gt('矩阵行动', 'game')
+            idx = str_utils.find_best_match_by_difflib(target, ocr_word_list, cutoff=0.5)
+            if idx is not None and idx >= 0:
+                return self.round_success(status='矩阵行动页面')
+            for ocr_word in ocr_word_list:
+                if str_utils.find_by_lcs(target, ocr_word, percent=0.6):
+                    return self.round_success(status='矩阵行动页面')
 
         screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
         if screen_name != '迷失之地-入口':
@@ -143,7 +158,7 @@ class LostVoidApp(ZApplication):
         if not self.config.is_bounty_commission_mode:
             if self.run_record.is_finished_by_day:
                 return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
-            return self.round_success(LostVoidApp.STATUS_AGAIN)
+            return self.round_success(self._get_status_again_by_mission())
 
         TARGET_SCORE = '8000'  # 目标分数文本
 
@@ -160,7 +175,7 @@ class LostVoidApp(ZApplication):
         # 根据次数判断完成状态
         if target_count == 1:
             # 只有一个 8000,表示 xxxx/8000 (未完成)
-            return self.round_success(LostVoidApp.STATUS_AGAIN)
+            return self.round_success(self._get_status_again_by_mission())
         elif target_count == 2:
             # 两个 8000,表示 8000/8000 (已完成)
             if not self.run_record.bounty_commission_complete:
@@ -169,6 +184,24 @@ class LostVoidApp(ZApplication):
         else:
             # 未识别到预期的结果(0次或3次以上),返回重试
             return self.round_retry(wait=0.5)
+
+    def _get_status_again_by_mission(self) -> str:
+        if self.config.mission_name == '矩阵行动':
+            return LostVoidApp.STATUS_AGAIN_MATRIX
+        return LostVoidApp.STATUS_AGAIN
+
+    @node_from(from_name='识别悬赏委托完成进度', status=STATUS_AGAIN_MATRIX)
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
+    @operation_node(name='执行矩阵行动')
+    def run_matrix_action(self) -> OperationRoundResult:
+        op = MatrixActionApp(self.ctx, use_internal_run_record=False)
+        op_result = op.execute()
+        if not op_result.success:
+            return self.round_by_op_result(op_result)
+
+        # 矩阵行动并入迷失之地共用次数
+        self.run_record.add_complete_times()
+        return self.round_success('矩阵行动完成')
 
     @node_from(from_name='识别悬赏委托完成进度', status=STATUS_AGAIN)
     @operation_node(name='前往副本画面', node_max_retry_times=60)

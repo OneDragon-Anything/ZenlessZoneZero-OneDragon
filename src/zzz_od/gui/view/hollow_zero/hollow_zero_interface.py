@@ -6,7 +6,6 @@ from zzz_od.gui.view.hollow_zero.withered_domain_challenge_config_interface impo
 from zzz_od.gui.view.hollow_zero.withered_domain_run_interface import WitheredDomainRunInterface
 from zzz_od.gui.view.hollow_zero.lost_void_challenge_config_interface import LostVoidChallengeConfigInterface
 from zzz_od.gui.view.hollow_zero.lost_void_run_interface import LostVoidRunInterface
-from zzz_od.gui.view.matrix_action.matrix_action_run_interface import MatrixActionRunInterface
 
 
 class HollowZeroInterface(PivotNavigatorInterface):
@@ -26,5 +25,4 @@ class HollowZeroInterface(PivotNavigatorInterface):
         self.add_sub_interface(WitheredDomainRunInterface(self.ctx))
         self.add_sub_interface(WitheredDomainChallengeConfigInterface(self.ctx))
         self.add_sub_interface(LostVoidRunInterface(self.ctx))
-        self.add_sub_interface(MatrixActionRunInterface(self.ctx))
         self.add_sub_interface(LostVoidChallengeConfigInterface(self.ctx))
