@@ -66,7 +66,7 @@ class EngagementRewardApp(ZApplication):
         if num is None:
             return self.round_retry('识别活跃度失败', wait_round_time=1)
 
-        return self.round_success('活跃度已满') if num == 400 else self.round_fail('活跃度未满')
+        return self.round_success('活跃度已满') if '4' in str(num) else self.round_fail('活跃度未满')
 
     @node_from(from_name='识别活跃度')
     @node_notify(when=NotifyTiming.PREVIOUS_DONE)
