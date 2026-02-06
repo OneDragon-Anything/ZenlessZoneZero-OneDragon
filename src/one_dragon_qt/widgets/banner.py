@@ -9,10 +9,44 @@ from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QWidget
 from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 
 
+class GradientOverlay(QWidget):
+    """Banner 顶部 + 右侧固定黑色阴影遮罩"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+    def set_background_mode(self, is_dark: bool):
+        """兼容旧调用，固定黑色阴影时无需根据明暗切换。"""
+        _ = is_dark
+
+    def paintEvent(self, event):
+        """绘制顶部和右侧固定黑色渐变遮罩"""
+        from PySide6.QtGui import QLinearGradient, QColor
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        clip_path = QPainterPath()
+        clip_path.addRect(self.rect())
+        painter.setClipPath(clip_path)
+
+        top_h = max(48, min(96, int(self.height() * 0.14)))
+        right_w = max(76, min(120, int(self.width() * 0.1)))
+
+        top_gradient = QLinearGradient(0, 0, 0, top_h)
+        top_gradient.setColorAt(0.0, QColor(0, 0, 0, 170))
+        top_gradient.setColorAt(1.0, QColor(0, 0, 0, 0))
+        painter.fillRect(0, 0, self.width(), top_h, top_gradient)
+
+        right_gradient = QLinearGradient(self.width() - right_w, 0, self.width(), 0)
+        right_gradient.setColorAt(0.0, QColor(0, 0, 0, 0))
+        right_gradient.setColorAt(1.0, QColor(0, 0, 0, 170))
+        painter.fillRect(self.width() - right_w, 0, right_w, self.height(), right_gradient)
+
+
 class Banner(QWidget):
     """展示带有圆角的固定大小横幅小部件，支持图片和视频"""
 
-    def __init__(self, media_path: str, parent=None):
+    def __init__(self, media_path: str, theme_color: tuple[int, int, int] = None, parent=None):
         QWidget.__init__(self, parent)
         self.media_path = media_path
         self.is_video = False
@@ -25,6 +59,14 @@ class Banner(QWidget):
         self.scene = None
         self.video_item = None
         self._was_playing = False
+
+        # 创建顶部渐变遮罩 widget
+        self._overlay = GradientOverlay(self)
+        self._overlay.setGeometry(self.rect())
+        self._overlay.show()
+
+        # 当前使用固定黑色边缘阴影，theme_color 参数暂不参与计算
+        _ = theme_color
 
         self.set_media(media_path)
 
@@ -274,6 +316,10 @@ class Banner(QWidget):
         )
         self.update()
 
+    def _update_overlay_color(self, theme_color: tuple[int, int, int]) -> None:
+        """固定阴影模式下保留旧接口，避免调用处报错。"""
+        _ = theme_color
+
     def paintEvent(self, event):
         """重载 paintEvent 以绘制缩放后的图片"""
         if self.is_video:
@@ -285,9 +331,9 @@ class Banner(QWidget):
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
-            # 创建圆角路径
+            # 直角裁切路径
             path = QPainterPath()
-            path.addRoundedRect(self.rect(), 4, 4)
+            path.addRect(self.rect())
             painter.setClipPath(path)
 
             # 计算绘制位置，使图片居中
@@ -309,6 +355,10 @@ class Banner(QWidget):
                 self.graphics_view.lower()
         else:
             self._update_scaled_image()
+
+        if self._overlay:
+            self._overlay.setGeometry(self.rect())
+            self._overlay.show()
         QWidget.resizeEvent(self, event)
 
     def set_percentage_size(self, width_percentage, height_percentage):

@@ -3,7 +3,6 @@ import time
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
-
 import requests
 from PySide6.QtCore import QSize, Qt, QThread, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QFont, QFontMetrics
@@ -19,43 +18,34 @@ from qfluentwidgets import (
     FluentIcon,
     InfoBar,
     InfoBarPosition,
-    PrimaryPushButton,
-    SimpleCardWidget,
+    PillPushButton,
 )
 
 from one_dragon.base.config.custom_config import BackgroundTypeEnum
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 from one_dragon_qt.services.theme_manager import ThemeManager
 from one_dragon_qt.utils.color_utils import ColorUtils
 from one_dragon_qt.widgets.banner import Banner
 from one_dragon_qt.widgets.icon_button import IconButton
-from one_dragon_qt.widgets.notice_card import NoticeCardContainer
+from one_dragon_qt.widgets.notice_card import NoticeCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.context.zzz_context import ZContext
 
 
-class ButtonGroup(SimpleCardWidget):
+class ButtonGroup(QWidget):
     """显示主页和 GitHub 按钮的竖直按钮组"""
 
     def __init__(self, ctx: ZContext, parent=None):
-        super().__init__(parent=parent)
+        QWidget.__init__(self, parent=parent)
         self.ctx = ctx
 
-        self.setBorderRadius(12)
-
-        self.setFixedSize(70, 190)
-
-        # 添加阴影效果
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(30)
-        shadow.setOffset(0, 8)
-        shadow.setColor(QColor(0, 0, 0, 160))
-        self.setGraphicsEffect(shadow)
+        self.setFixedSize(70, 250)
 
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.setSpacing(8)  # 增加按钮间距
+        layout.setSpacing(24)
         layout.setContentsMargins(8, 8, 8, 8)  # 增加内边距
 
         # 存储按钮列表，用于自动提示演示
@@ -68,7 +58,7 @@ class ButtonGroup(SimpleCardWidget):
             tip_content="🏠一条龙软件说明书>>",
             isTooltip=True,
         )
-        home_button.setIconSize(QSize(42, 42))
+        home_button.setIconSize(QSize(30, 30))
         home_button.clicked.connect(self.open_home)
         layout.addWidget(home_button)
         self.buttons.append(home_button)
@@ -80,7 +70,7 @@ class ButtonGroup(SimpleCardWidget):
             tip_content="⭐点击收藏关注项目动态",
             isTooltip=True,
         )
-        github_button.setIconSize(QSize(42, 42))
+        github_button.setIconSize(QSize(30, 30))
         github_button.clicked.connect(self.open_github)
         layout.addWidget(github_button)
         self.buttons.append(github_button)
@@ -92,7 +82,7 @@ class ButtonGroup(SimpleCardWidget):
             tip_content="📕遇到问题? 查看更详细文档教程",
             isTooltip=True,
         )
-        doc_button.setIconSize(QSize(42, 42))
+        doc_button.setIconSize(QSize(30, 30))
         doc_button.clicked.connect(self.open_doc)
         layout.addWidget(doc_button)
         self.buttons.append(doc_button)
@@ -104,7 +94,7 @@ class ButtonGroup(SimpleCardWidget):
             tip_content="🔥立刻点击加入火辣官方社区>>>>",
             isTooltip=True,
         )
-        chat_button.setIconSize(QSize(42, 42))
+        chat_button.setIconSize(QSize(30, 30))
         chat_button.clicked.connect(self.open_chat)
         layout.addWidget(chat_button)
         self.buttons.append(chat_button)
@@ -116,7 +106,7 @@ class ButtonGroup(SimpleCardWidget):
             tip_content="💵限时劲爆特惠仅需0元点击马上加入会员>>",
             isTooltip=True,
         )
-        shop_button.setIconSize(QSize(42, 42))
+        shop_button.setIconSize(QSize(30, 30))
         shop_button.clicked.connect(self.open_sales)
         layout.addWidget(shop_button)
         self.buttons.append(shop_button)
@@ -213,10 +203,6 @@ class ButtonGroup(SimpleCardWidget):
     def _show_next_tooltip(self):
         """显示下一个按钮的提示 - 不再使用，保留以兼容"""
         pass
-
-    def _normalBackgroundColor(self):
-        # 使用更鲜艳的渐变背景，增强视觉效果
-        return QColor(0, 0, 0, 140)  # 增加透明度使其更显眼
 
     def open_home(self):
         """打开主页链接"""
@@ -462,12 +448,13 @@ class HomeInterface(VerticalScrollInterface):
         self._banner_widget.set_percentage_size(0.8, 0.5)
 
         v_layout = QVBoxLayout(self._banner_widget)
-        v_layout.setContentsMargins(20, 20, 20, 0)
+        # 边缘距离由子布局控制，避免与子布局叠加导致超过 16px
+        v_layout.setContentsMargins(0, 0, 0, 0)
         v_layout.setSpacing(5)
         v_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignJustify)
 
-        # 空白占位符
-        v_layout.addItem(QSpacerItem(10, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
+        # 顶部留白 64px
+        v_layout.addItem(QSpacerItem(10, 64, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
 
         # 顶部部分 (按钮组)
         h1_layout = QHBoxLayout()
@@ -482,7 +469,7 @@ class HomeInterface(VerticalScrollInterface):
         h1_layout.addWidget(self.button_group)
 
         # 空白占位符
-        h1_layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
+        h1_layout.addItem(QSpacerItem(0, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
 
         # 将顶部水平布局添加到垂直布局
         v_layout.addLayout(h1_layout)
@@ -496,10 +483,10 @@ class HomeInterface(VerticalScrollInterface):
         h2_layout = QHBoxLayout(bottom_bar)
         h2_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
 
-        h2_layout.setContentsMargins(20, 20, 20, 20)  # 整体底部边距20px，包含阴影
+        h2_layout.setContentsMargins(32, 32, 72, 32)
 
         # 公告卡片
-        self.notice_container = NoticeCardContainer(self.ctx.project_config.notice_url)
+        self.notice_container = NoticeCard(self.ctx.project_config.notice_url)
         notice_wrap = QWidget()
         self._notice_wrap_layout = QVBoxLayout(notice_wrap)
         self._notice_wrap_layout.setContentsMargins(0, 0, 0, 0)
@@ -509,47 +496,25 @@ class HomeInterface(VerticalScrollInterface):
         h2_layout.addStretch()
 
         # 启动游戏按钮布局
-        self.start_button = PrimaryPushButton(text="启动一条龙🚀")
+        self.start_button = PillPushButton(FluentIcon.PLAY_SOLID, '启动一条龙')
         self.start_button.setObjectName("start_button")
         self.start_button.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
-        # 动态计算宽度：文本宽度 + 左右内边距（约 48px）
-        fm = QFontMetrics(self.start_button.font())
-        text_width = fm.horizontalAdvance(self.start_button.text())
-        self.start_button.setFixedSize(max(180, text_width + 48), 48)
+        self.start_button.setFixedSize(192, 48)
         self.start_button.clicked.connect(self._on_start_game)
 
-        # 按钮阴影
-        shadow = QGraphicsDropShadowEffect(self.start_button)
-        shadow.setBlurRadius(24)
-        shadow.setOffset(0, 8)
-        shadow.setColor(QColor(0, 0, 0, 120))
-        self.start_button.setGraphicsEffect(shadow)
+        # 保存黑色和黄色图标
+        self._black_icon = FluentIcon.PLAY_SOLID.icon(color=QColor("#000000"))
+        self._yellow_icon = FluentIcon.PLAY_SOLID.icon(color=QColor("#FFDB29"))
 
-        # @A-nony-mous 2025-08-15T03:50:00+01:00
-        # noticecard的高度和启动一条龙按钮的高度 谁能修谁自己tm修吧我是修不明白了
-        # 核心是阴影+到底部margin的高度=20px
+        # 连接悬停事件
+        self.start_button.enterEvent = self._on_button_enter
+        self.start_button.leaveEvent = self._on_button_leave
 
-        # 计算阴影向下扩展：min(20, max(0, offsetY + blurRadius/2))
-        shadow_down_extent = max(0, int(8 + 24 / 2))  # 8 偏移 + 12 模糊半径的一半 ≈ 20
-        shadow_down_extent = min(20, shadow_down_extent)
-        # 20px = 阴影高度 + 阴影到底部的高度 ⇒ 按钮容器底边距 = 阴影高度
+        # 直接添加到 h2_layout，底部对齐
+        h2_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
-        # 与按钮对齐：提升公告卡片相同的底边距
-
-        if hasattr(self, '_notice_wrap_layout'):
-            self._notice_wrap_layout.setContentsMargins(0, 0, 0, shadow_down_extent)
-
-        # 按钮容器，整体距离底部20px（包含阴影）
-        button_container = QWidget()
-        button_v_layout = QVBoxLayout(button_container)
-        button_v_layout.setContentsMargins(0, 0, 0, shadow_down_extent)
-        button_v_layout.addStretch()
-        button_v_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
-
-        h2_layout.addWidget(button_container)
-
-        # 将底部容器添加到主垂直布局
-        v_layout.addWidget(bottom_bar)
+        # 将底部容器添加到主垂直布局，底部对齐
+        v_layout.addWidget(bottom_bar, alignment=Qt.AlignmentFlag.AlignBottom)
 
         # 初始化父类
         super().__init__(
@@ -571,6 +536,10 @@ class HomeInterface(VerticalScrollInterface):
         # 记录上次自动检查更新的时间
         self._last_auto_check_time = 0
         self._auto_check_interval = 300  # 5分钟冷却时间
+
+        # 启动阶段有可能被全局样式再次覆盖，做一次延迟兜底
+        QTimer.singleShot(0, self._ensure_home_title_bar_style)
+        QTimer.singleShot(200, self._ensure_home_title_bar_style)
 
     def _init_check_runners(self):
         """初始化检查更新的线程"""
@@ -651,6 +620,11 @@ class HomeInterface(VerticalScrollInterface):
             Qt.ConnectionType.BlockingQueuedConnection
         )
 
+    def showEvent(self, event) -> None:
+        """首次显示首页时立即应用标题栏样式，避免需要切页后才生效。"""
+        QWidget.showEvent(self, event)
+        self._ensure_home_title_bar_style()
+
     def _on_dynamic_background_download_start(self) -> None:
         """在后台下载新的视频前释放当前播放器占用"""
         if not self._banner_widget:
@@ -665,8 +639,20 @@ class HomeInterface(VerticalScrollInterface):
     def on_interface_shown(self) -> None:
         """界面显示时启动检查更新的线程"""
         super().on_interface_shown()
+
+        # 仅首页去除 VerticalScrollInterface 根布局默认边距，避免背景四周留白
+        layout = self.layout()
+        if layout is not None:
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(0)
+
         if self._banner_widget:
             self._banner_widget.resume_media()
+
+        # 设置顶部边距为0，让海报覆盖标题栏
+        if self.main_window:
+            self.main_window.areaLayout.setContentsMargins(0, 0, 0, 0)
+        self._ensure_home_title_bar_style()
 
         # 检查是否满足自动检查的冷却时间
         current_time = time.time()
@@ -712,6 +698,11 @@ class HomeInterface(VerticalScrollInterface):
         if self._banner_widget:
             self._banner_widget.pause_media()
 
+        # 恢复顶部边距为32px，其他页面正常显示
+        if self.main_window:
+            self.main_window.areaLayout.setContentsMargins(0, 32, 0, 0)
+        self._restore_title_bar_style()
+
         # 停止所有下载器，避免后台占用资源
         if self._version_poster_downloader.isRunning():
             self._version_poster_downloader.stop()
@@ -756,6 +747,18 @@ class HomeInterface(VerticalScrollInterface):
         self.ctx.signal.start_onedragon = True
         one_dragon_interface = self.main_window.stackedWidget.widget(2)
         self.main_window.switchTo(one_dragon_interface)
+
+    def _on_button_enter(self, event):
+        """按钮悬停事件"""
+        self.start_button.setIcon(self._yellow_icon)
+        # 调用父类的 enterEvent
+        PillPushButton.enterEvent(self.start_button, event)
+
+    def _on_button_leave(self, event):
+        """按钮离开悬停事件"""
+        self.start_button.setIcon(self._black_icon)
+        # 调用父类的 leaveEvent
+        PillPushButton.leaveEvent(self.start_button, event)
 
     def reload_banner(self, show_notification: bool = False) -> None:
         """
@@ -837,6 +840,85 @@ class HomeInterface(VerticalScrollInterface):
         # 应用按钮样式
         self._apply_button_style(theme_color)
 
+    def _apply_home_title_bar_style(self) -> None:
+        """主页显示时：标题栏文字使用白色粗体。"""
+        if not self.main_window or not hasattr(self.main_window, "titleBar"):
+            return
+
+        title_bar = self.main_window.titleBar
+        title_bar.setStyleSheet(
+            """
+            #TitleBar {
+                background-color: transparent;
+            }
+
+            #TitleBar>QLabel#titleLabel {
+                color: rgba(236, 240, 245, 0.9);
+                background: transparent;
+                font: 13px 'Segoe UI', 'Microsoft YaHei', 'PingFang SC';
+                font-weight: 700;
+                padding: 0 4px;
+            }
+
+            #TitleBar>QPushButton {
+                color: rgba(236, 240, 245, 0.9);
+                background: transparent;
+                font: 13px 'Segoe UI', 'Microsoft YaHei', 'PingFang SC';
+                font-weight: 700;
+                padding: 0 4px;
+                border: none;
+            }
+
+            #TitleBar > QPushButton:hover {
+                background: rgba(255, 255, 255, 0.12);
+            }
+
+            #TitleBar > QPushButton:pressed {
+                background: rgba(255, 255, 255, 0.2);
+            }
+
+            MinimizeButton {
+                qproperty-normalColor: white;
+                qproperty-normalBackgroundColor: transparent;
+                qproperty-hoverColor: white;
+                qproperty-hoverBackgroundColor: rgba(255, 255, 255, 26);
+                qproperty-pressedColor: white;
+                qproperty-pressedBackgroundColor: rgba(255, 255, 255, 51);
+            }
+
+            MaximizeButton {
+                qproperty-normalColor: white;
+                qproperty-normalBackgroundColor: transparent;
+                qproperty-hoverColor: white;
+                qproperty-hoverBackgroundColor: rgba(255, 255, 255, 26);
+                qproperty-pressedColor: white;
+                qproperty-pressedBackgroundColor: rgba(255, 255, 255, 51);
+            }
+
+            CloseButton {
+                qproperty-normalColor: white;
+                qproperty-normalBackgroundColor: transparent;
+            }
+            """
+        )
+        title_bar.update()
+
+    def _ensure_home_title_bar_style(self) -> None:
+        """仅当当前页是首页时应用标题栏样式，避免误伤其他页面。"""
+        if not self.main_window or not hasattr(self.main_window, "stackedWidget"):
+            return
+        current = self.main_window.stackedWidget.currentWidget()
+        if current is self:
+            self._apply_home_title_bar_style()
+
+    def _restore_title_bar_style(self) -> None:
+        """离开主页时恢复默认标题栏样式。"""
+        if not self.main_window or not hasattr(self.main_window, "titleBar"):
+            return
+
+        OdQtStyleSheet.TITLE_BAR.apply(self.main_window.titleBar)
+        self.main_window.titleBar.update()
+
     def _get_theme_color(self) -> tuple[int, int, int]:
         """获取主题色，优先使用缓存，否则从图片提取"""
         # 如果是自定义模式，直接返回自定义颜色
@@ -899,22 +981,26 @@ class HomeInterface(VerticalScrollInterface):
 
     def _apply_button_style(self, theme_color: tuple[int, int, int]) -> None:
         """应用样式到启动按钮"""
-        lr, lg, lb = theme_color
-        text_color = ColorUtils.get_text_color_for_background(lr, lg, lb)
+        from qfluentwidgets import setCustomStyleSheet
 
-        # 本按钮局部样式：圆角与主页按钮组统一为12px，背景从图取色
-        radius = 12  # 与ButtonGroup保持一致的圆角
-
-        style_sheet = f"""
-        background-color: rgb({lr}, {lg}, {lb});
-        color: {text_color};
-        border-radius: {radius}px;
-        border: none;
-        font-weight: bold;
-        margin: 0px;
-        padding: 0px;
+        # 使用 setCustomStyleSheet 而不是 setStyleSheet，避免破坏按钮的内部布局
+        light_qss = """
+        PillPushButton#start_button {
+            background-color: #FFDB29;
+            color: #000000;
+            border-radius: 28px;
+            height: 48px;
+            min-height: 48px;
+            font-size: 18px;
+        }
+        PillPushButton#start_button:hover {
+            background-color: #000000;
+            color: #FFDB29;
+        }
         """
-        self.start_button.setStyleSheet(style_sheet)
+        dark_qss = light_qss  # 暂时使用相同样式
+
+        setCustomStyleSheet(self.start_button, light_qss, dark_qss)
 
     def _clear_theme_color_cache(self) -> None:
         """清空主题色缓存"""
