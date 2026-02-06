@@ -123,7 +123,7 @@ class GameRedeemCode:
         act_id = self.get_act_id()
         if not act_id:
             print("暂无前瞻直播资讯")
-            return None
+            return []
 
         self.act_id = act_id
         live_data = self.get_live_data(act_id)
@@ -152,8 +152,11 @@ class GameRedeemCode:
     def update_redemption_codes_yml(self) -> bool:
         """更新 config/redemption_codes.sample.yml 文件（一条龙维护的兑换码）"""
         codes = self.fetch_redeem_codes()
-        if not codes:
+        if codes is None:
             return False
+        if not codes:
+            print("无可更新内容，跳过后续步骤")
+            return True
 
         beijing_now = self._get_beijing_now()
 
