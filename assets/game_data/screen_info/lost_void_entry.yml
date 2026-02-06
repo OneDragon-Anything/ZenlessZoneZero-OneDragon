@@ -106,10 +106,10 @@ area_list:
 - area_name: 区域-悬赏委托-进度
   id_mark: false
   pc_rect:
-  - 1170
-  - 50
-  - 1520
-  - 100
+  - 736
+  - 12
+  - 1138
+  - 92
   text: 8000/8000
   lcs_percent: 1.0
   template_sub_dir: ''
