@@ -5,6 +5,7 @@ from zzz_od.application.coffee import coffee_app_const
 from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
 from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
+from zzz_od.application.matrix_action import matrix_action_const
 from zzz_od.application.notorious_hunt import notorious_hunt_const
 from zzz_od.application.random_play import random_play_const
 from zzz_od.application.redemption_code import redemption_code_const
@@ -69,6 +70,11 @@ class ZOneDragonRunInterface(OneDragonRunInterface):
             )
         elif app_id == lost_void_const.APP_ID:
             self.ctx.shared_dialog_manager.show_lost_void_setting_dialog(
+                parent=self,
+                group_id=group_id
+            )
+        elif app_id == matrix_action_const.APP_ID:
+            self.ctx.shared_dialog_manager.show_matrix_action_setting_dialog(
                 parent=self,
                 group_id=group_id
             )

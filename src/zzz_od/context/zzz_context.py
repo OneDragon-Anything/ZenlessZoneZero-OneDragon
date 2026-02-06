@@ -211,6 +211,9 @@ class ZContext(OneDragonContext):
         from zzz_od.application.hollow_zero.withered_domain.withered_domain_app_factory import (
             WitheredDomainAppFactory,
         )
+        from zzz_od.application.matrix_action.matrix_action_app_factory import (
+            MatrixActionAppFactory,
+        )
         from zzz_od.application.life_on_line.life_on_line_app_factory import (
             LifeOneLineAppFactory,
         )
@@ -259,6 +262,7 @@ class ZContext(OneDragonContext):
                 RiduWeeklyAppFactory(self),
                 DriveDiscDismantleAppFactory(self),
                 LostVoidAppFactory(self),
+                MatrixActionAppFactory(self),
                 NotifyAppFactory(self),
                 WorldPatrolAppFactory(self),
                 LifeOneLineAppFactory(self),
