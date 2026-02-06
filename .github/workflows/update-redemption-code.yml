@@ -1,15 +1,16 @@
-name: Update Contributors
+name: Update Redemption Codes
 
 on:
   schedule:
-    # 每年运行一次，比如每年1月1日凌晨3点
-    - cron: '0 3 1 1 *'
+    # 每天晚上9点运行（北京时间 UTC+8，即 UTC 13:00）
+    - cron: '0 13 * * *'
   workflow_dispatch: # 允许手动触发
 
 jobs:
-  update-contributors:
+  update-redemption-codes:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -19,23 +20,21 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.11'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pyyaml
 
-    - name: Run update contributors script
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Run update redemption codes script
       run: |
-        python tools/ci/update_contributors.py
+        python tools/ci/update_redemption_code.py
 
     - name: Check for changes
       id: changes
       run: |
-        if git diff --quiet contributors.yaml; then
+        if git diff --quiet config/redemption_codes.sample.yml; then
           echo "changed=false" >> $GITHUB_OUTPUT
         else
           echo "changed=true" >> $GITHUB_OUTPUT
@@ -46,6 +45,6 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add contributors.yaml
-        git commit -m "自动更新贡献者列表 [skip ci]" || exit 0
+        git add config/redemption_codes.sample.yml
+        git commit -m "自动更新兑换码 [skip ci]" || exit 0
         git push

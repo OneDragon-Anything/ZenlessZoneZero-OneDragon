@@ -1992,11 +1992,18 @@
           - "op_name": "设置状态"
             "seconds": 1.8
             "state": "自定义-动作不打断"
-          - "op_name": "按键-普通攻击"
-            "post_delay": 0.1
-            "repeat": 10
+          - "op_name": "按键-普通攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 0.8
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
           "states": "[自定义-黄光切人, 0, 1]"
         - "operations":
           - "op_name": "设置状态"
@@ -9441,6 +9448,85 @@
             "post_delay": 0.1
             "repeat": 25
           "states": ""
+      - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-千夏]"
+        "states": "[前台-千夏]"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "设置状态"
+            "seconds_add": -1
+            "state": "自定义-失衡时间"
+          - "op_name": "设置状态"
+            "seconds": 4.5
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-终结技"
+            "post_delay": 0.1
+            "repeat": 10
+          - "op_name": "等待秒数"
+            "seconds": 3.5
+          "states": "[自定义-终结技被强制释放, 0, 1]"
+        - "operations":
+          - "op_name": "设置状态"
+            "seconds": 2
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 15
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          "states": "[自定义-黄光切人, 0, 1]"
+        - "operations":
+          - "op_name": "设置状态"
+            "seconds": 1
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-移动-左-按下"
+          - "op_name": "按键-闪避"
+            "post_delay": 0.2
+          - "op_name": "按键-移动-左-松开"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 10
+          "states": "[自定义-红光闪避, 0, 1]"
+        - "operations":
+          - "op_name": "设置状态"
+            "seconds_add": -1
+            "state": "自定义-失衡时间"
+          - "op_name": "设置状态"
+            "seconds": 2
+            "state": "自定义-动作不打断"
+          - "op_name": "等待秒数"
+            "seconds": 2
+          "states": "[自定义-连携换人, 0, 0.5]"
+        - "debug_name": "切人后等待"
+          "states": "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+          "sub_handlers":
+          - "operations":
+            - "op_name": "等待秒数"
+              "seconds": 0.3
+            "states": "[按键可用-快速支援, 0, 0.3]"
+          - "operations":
+            - "op_name": "等待秒数"
+              "seconds": 0.3
+            "states": ""
+        - "debug_name": "千夏-执行特殊攻击"
+          "interrupt_states": "![千夏-特殊技可用]"
+          "operations":
+          - "op_name": "设置状态"
+            "seconds": 3.0
+            "state": "自定义-动作不打断"
+          - "op_name": "按键-特殊攻击"
+            "post_delay": 0.1
+            "repeat": 30
+          - "op_name": "设置状态"
+            "state": "自定义-合轴时间"
+          "states": "[千夏-特殊技可用]"
+        - "debug_name": "千夏-打不了"
+          "operations":
+          - "op_name": "设置状态"
+            "state": "自定义-合轴时间"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 25
+          "states": ""
       - "debug_name": "未知角色"
         "interrupt_states": "[前台-击破] | [前台-强攻] | [前台-支援] | [前台-防护] | [前台-异常] | [前台-命破]"
         "states": "![前台-击破] & ![前台-强攻] & ![前台-支援] & ![前台-防护] & ![前台-异常] & ![前台-命破]\
@@ -10152,6 +10238,38 @@
                 "post_delay": 0.1
                 "repeat": 60
               "states": "[照-终结技可用] & [照-霜寒值]{0, 80} & ![自定义-失衡时间, 0, 10]"
+          - "debug_name": "千夏紧急切入"
+            "states": "![前台-千夏]"
+            "sub_handlers":
+            - "debug_name": "千夏有特殊技"
+              "operations":
+              - "agent_name": "千夏"
+                "op_name": "按键-切换角色"
+              - "op_name": "设置状态"
+                "seconds": 3.0
+                "state": "自定义-动作不打断"
+              - "op_name": "按键-特殊攻击"
+                "post_delay": 0.1
+                "repeat": 30
+              - "op_name": "设置状态"
+                "state": "自定义-合轴时间"
+              "states": "[千夏-特殊技可用] & ![自定义-失衡时间, 0, 10]"
+            - "debug_name": "千夏有终结技"
+              "operations":
+              - "agent_name": "千夏"
+                "op_name": "按键-切换角色"
+              - "op_name": "设置状态"
+                "seconds_add": -1
+                "state": "自定义-失衡时间"
+              - "op_name": "设置状态"
+                "seconds": 4.5
+                "state": "自定义-动作不打断"
+              - "op_name": "按键-终结技"
+                "post_delay": 0.1
+                "repeat": 10
+              - "op_name": "等待秒数"
+                "seconds": 3.5
+              "states": "[千夏-终结技可用] & ![自定义-失衡时间, 0, 10]"
           - "debug_name": "雅满豆切入"
             "operations":
             - "agent_name": "雅"
@@ -10235,11 +10353,18 @@
         - "op_name": "设置状态"
           "seconds": 1.8
           "state": "自定义-动作不打断"
-        - "op_name": "按键-普通攻击"
-          "post_delay": 0.1
-          "repeat": 10
+        - "op_name": "按键-普通攻击-按下"
         - "op_name": "等待秒数"
-          "seconds": 0.8
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
         "states": "[自定义-黄光切人, 0, 1]"
       - "operations":
         - "op_name": "设置状态"
@@ -17677,6 +17802,85 @@
           "state": "自定义-合轴时间"
         "states": "[照-霜寒值]{100, 100}"
       - "debug_name": "打不了"
+        "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-合轴时间"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 25
+        "states": ""
+    - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-千夏]"
+      "states": "[前台-千夏]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -1
+          "state": "自定义-失衡时间"
+        - "op_name": "设置状态"
+          "seconds": 4.5
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 10
+        - "op_name": "等待秒数"
+          "seconds": 3.5
+        "states": "[自定义-终结技被强制释放, 0, 1]"
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds": 2
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 15
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        "states": "[自定义-黄光切人, 0, 1]"
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds": 1
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-移动-左-按下"
+        - "op_name": "按键-闪避"
+          "post_delay": 0.2
+        - "op_name": "按键-移动-左-松开"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 10
+        "states": "[自定义-红光闪避, 0, 1]"
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -1
+          "state": "自定义-失衡时间"
+        - "op_name": "设置状态"
+          "seconds": 2
+          "state": "自定义-动作不打断"
+        - "op_name": "等待秒数"
+          "seconds": 2
+        "states": "[自定义-连携换人, 0, 0.5]"
+      - "debug_name": "切人后等待"
+        "states": "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "等待秒数"
+            "seconds": 0.3
+          "states": "[按键可用-快速支援, 0, 0.3]"
+        - "operations":
+          - "op_name": "等待秒数"
+            "seconds": 0.3
+          "states": ""
+      - "debug_name": "千夏-执行特殊攻击"
+        "interrupt_states": "![千夏-特殊技可用]"
+        "operations":
+        - "op_name": "设置状态"
+          "seconds": 3.0
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.1
+          "repeat": 30
+        - "op_name": "设置状态"
+          "state": "自定义-合轴时间"
+        "states": "[千夏-特殊技可用]"
+      - "debug_name": "千夏-打不了"
         "operations":
         - "op_name": "设置状态"
           "state": "自定义-合轴时间"

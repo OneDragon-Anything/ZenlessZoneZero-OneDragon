@@ -1,6 +1,12 @@
+from __future__ import annotations
+
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
+
+if TYPE_CHECKING:
+    from zzz_od.gui.dialog.shared_dialog_manager import SharedDialogManager
 
 
 class ZContext(OneDragonContext):

@@ -1,5 +1,6 @@
 from cv2.typing import MatLike
 
+from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
@@ -8,6 +9,7 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentEnum
 from zzz_od.hollow_zero.event import hollow_event_utils
 from zzz_od.hollow_zero.hollow_exit_by_menu import HollowExitByMenu
+from zzz_od.operation.map_transport import MapTransport
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -21,8 +23,10 @@ class BackToNormalWorld(ZOperation):
         ZOperation.__init__(self, ctx, op_name=gt('返回大世界'))
 
         self.last_dialog_idx: int = -1  # 上次选择的对话选项下标
-        self.click_exit_battle: bool = False
+        self.click_exit_battle: bool = False  # 是否点击了退出战斗
+        self.click_escape_stuck: bool = False  # 是否点击了脱离卡死
 
+    @node_from(from_name='打开地图', success=False)
     @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=60)
     def check_screen_and_run(self) -> OperationRoundResult:
         """
@@ -31,6 +35,9 @@ class BackToNormalWorld(ZOperation):
         """
         current_screen = self.check_and_update_current_screen()
         if current_screen in ['大世界-普通', '大世界-勘域']:
+            if self.click_escape_stuck:  # 脱离卡死后到达大世界，立即打开地图传送到录像店
+                self.click_escape_stuck = False
+                return self.round_success('脱离卡死-传送')
             return self.round_success(status=current_screen)
 
         result = self.round_by_goto_screen(screen=self.last_screenshot, screen_name='大世界-普通', retry_wait=None)
@@ -58,25 +65,47 @@ class BackToNormalWorld(ZOperation):
         if result.is_success:
             return self.round_retry(result.status, wait=1)
 
-        # 这可以是通用的退出战斗 退出战斗的画面也有返回按钮 需要在返回前面
-        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-战斗', '退出战斗')
+        # 部分画面有关闭按钮（置前，插件场景"关闭"和"合成（完成）"可能同时存在）
+        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '关闭')
+        if result.is_success:
+            return self.round_retry(result.status, wait=1)
+
+        # 战斗菜单-退出战斗（完全通用，包括但不限于危局强袭战！）
+        result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-退出战斗')
         if result.is_success:
             self.click_exit_battle = True
             return self.round_retry(result.status, wait=1)
-
-        if self.click_exit_battle:
-            result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-战斗', '退出战斗-确认')
+        if self.click_exit_battle:  # 必须置前，因为会被通用的"取消"误判
+            result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-退出战斗-确认')
             if result.is_success:
                 return self.round_retry(result.status, wait=1)
         self.click_exit_battle = False
 
-        # 大部分画面左上角都有返回按钮
-        result = self.round_by_find_and_click_area(self.last_screenshot, '菜单', '返回')
+        # 战斗菜单-脱离卡死（大世界-勘域不慎进入战斗状态时使用）
+        result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死')
+        if result.is_success:
+            self.click_escape_stuck = True
+            return self.round_retry(result.status, wait=1)
+        if self.click_escape_stuck:  # 必须置前，因为会被通用的"取消"误判
+            result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死-确认')
+            if result.is_success:
+                return self.round_retry(result.status, wait=1)  # 等待游戏传送回大世界
+        self.click_escape_stuck = False
+
+        # 通用完成按钮（置后，避免插件场景"合成"被误匹配为"完成"）
+        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '完成')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
 
-        # 进入游戏时 弹出来的继续对话框
-        # 例如 空洞继续
+        # 在空洞内
+        result = hollow_event_utils.check_in_hollow(self.ctx, self.last_screenshot)
+        if result is not None:
+            op = HollowExitByMenu(self.ctx)
+            op.execute()
+            return self.round_retry(result, wait=1)
+
+        # 通用的取消按钮（例如进入游戏时，空洞继弹出来的继续对话框）
+        # 必须在“确认”后面，因为“确认”和“取消”一般是成对出现
         result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', '对话框取消')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
@@ -94,28 +123,35 @@ class BackToNormalWorld(ZOperation):
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
         if result.is_success:
             self.round_by_click_area('战斗画面', '菜单')
-            return self.round_retry(result.status, wait=1)
-        # 空洞内撤退后的完成
-        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '通关-完成')
-        if result.is_success:
-            return self.round_retry(result.status, wait=1)
-        # 在空洞内
-        result = hollow_event_utils.check_in_hollow(self.ctx, self.last_screenshot)
-        if result is not None:
-            op = HollowExitByMenu(self.ctx)
-            op.execute()
-            return self.round_retry(result, wait=1)
+            return self.round_retry(result.status, wait=0.5)
 
-        click_back = self.round_by_click_area('菜单', '返回')
+        # 兜底的无条件返回（左上角的红色返回按钮，很多画面共有，故不能提前使用）
+        click_back = self.round_by_click_area('画面-通用', '返回')
         if click_back.is_success:
             # 由于上方识别可能耗时较长
             # 这样就可能 当前截图是没加载的 耗时识别后加载好 但点击了返回
             # 那如果使用wait_round_time=1的话 可能导致点击后基本不等待
             # 进入下一轮截图就会识别到在大世界 但因为点击了返回又到了菜单
             # 相关 issue #1357
-            return self.round_retry(click_back.status, wait=1)
+            return self.round_retry(click_back.status, wait=0.5)
         else:
             return self.round_fail()
+
+    @node_from(from_name='画面识别', status='脱离卡死-传送')
+    @operation_node(name='打开地图', node_max_retry_times=60)
+    def open_map(self) -> OperationRoundResult:
+        """脱离卡死后，识别到大世界立即点击地图按钮"""
+        result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', '地图')
+        if result.is_success:
+            return self.round_success(result.status)
+        return self.round_retry(result.status, wait=0.5)
+
+    @node_from(from_name='打开地图')
+    @operation_node(name='执行传送')
+    def do_transport(self) -> OperationRoundResult:
+        """打开地图后，传送到录像店房间"""
+        op = MapTransport(self.ctx, '录像店', '房间')
+        return self.round_by_op_result(op.execute())
 
     def _check_agent_dialog(self, screen: MatLike) -> bool:
         """
