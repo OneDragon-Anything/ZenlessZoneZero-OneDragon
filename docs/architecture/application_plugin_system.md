@@ -10,7 +10,7 @@
 
 | 来源 | 目录位置 | 加载方式 | 相对导入 | 导入主程序 |
 |------|----------|----------|----------|------------|
-| **BUILTIN** | `src/zzz_od/application/` | `import_module` | 需完整路径 | ✅ |
+| **BUILTIN** | `src/zzz_od/application/` | `spec_from_file_location` | 需完整路径 | ✅ |
 | **THIRD_PARTY** | `plugins/` (项目根目录) | `spec_from_file_location` | ✅ 支持 | ✅ |
 
 ### 第三方插件特性
@@ -41,6 +41,11 @@ from zzz_od.context.zzz_context import ZContext  # ✅ 可以导入主程序模�
 - `refresh_applications()`: 刷新应用注册
 - `plugin_infos`: 获取所有已加载的插件信息
 - `third_party_plugins`: 获取第三方插件列表
+
+**内部方法**:
+- `_resolve_module_root()`: 解析模块根目录（BUILTIN → `src/`，THIRD_PARTY → 扫描根目录）
+- `_import_module_from_file()`: 统一的模块导入，自动加载所有中间包
+- `_get_unload_prefix()`: 确定热更新时需要卸载的模块前缀
 
 ### PluginInfo
 
@@ -87,17 +92,23 @@ project_root/
 │           ├── my_app/
 │           │   ├── my_app_const.py
 │           │   └── my_app_factory.py
-│           └── another_app/
-│               └── ...
+│           └── battle_assistant/   # 支持嵌套子目录
+│               ├── auto_battle/
+│               │   └── auto_battle_app_factory.py
+│               └── dodge_assistant/
+│                   └── dodge_assistant_factory.py
 └── plugins/                   # 第三方插件（THIRD_PARTY，gitignore）
     └── my_plugin/
-        ├── __init__.py        # 推荐添加
+        ├── __init__.py        # 推荐添加（无 __init__.py 时自动创建命名空间包）
         ├── my_plugin_const.py
         ├── my_plugin_factory.py
         ├── my_plugin.py
-        └── utils/             # 可以有子目录
+        └── sub/               # 支持嵌套子目录
             ├── __init__.py
-            └── helper.py      # 可使用 from .utils.helper import xxx
+            ├── sub_feature_const.py
+            ├── sub_feature_factory.py
+            └── helpers/
+                └── utils.py
 ```
 
 ### 第三方插件目录
@@ -332,6 +343,14 @@ class MyContext(OneDragonContext):
 ## 插件加载机制
 
 所有插件统一使用 `importlib.util.spec_from_file_location()` 加载。
+模块名通过 `factory_file.relative_to(module_root)` 统一计算，BUILTIN 和 THIRD_PARTY 使用相同的逻辑。
+
+### 模块根目录 (module_root)
+
+`_resolve_module_root()` 负责确定模块名的起算目录：
+
+- **BUILTIN**: 查找路径中的 `src` 目录作为 module_root
+- **THIRD_PARTY**: 使用扫描根目录（如 `plugins/`）作为 module_root
 
 ### 内置插件 (BUILTIN)
 
@@ -339,27 +358,56 @@ class MyContext(OneDragonContext):
 
 ```
 src/zzz_od/application/my_app/my_app_factory.py
+→ module_root: src/
 → 模块名: zzz_od.application.my_app.my_app_factory
+
+src/zzz_od/application/battle_assistant/auto_battle/auto_battle_app_factory.py
+→ module_root: src/
+→ 模块名: zzz_od.application.battle_assistant.auto_battle.auto_battle_app_factory
 ```
 
 ### 第三方插件 (THIRD_PARTY)
 
-将 `plugins/` 目录加入 `sys.path`，模块名为 `插件包名.文件名`：
+将 `plugins/` 目录加入 `sys.path`，模块名从 plugins 目录开始计算。
+**支持嵌套子目录**，中间包会自动加载或创建为命名空间包：
 
 ```
 plugins/my_plugin/my_plugin_factory.py
+→ module_root: plugins/
 → 模块名: my_plugin.my_plugin_factory
+
+plugins/my_plugin/sub/sub_feature_factory.py
+→ module_root: plugins/
+→ 模块名: my_plugin.sub.sub_feature_factory
+→ 中间包: my_plugin（加载 __init__.py）、my_plugin.sub（加载 __init__.py 或创建命名空间包）
 ```
+
+### 中间包加载
+
+`_import_module_from_file()` 在加载工厂模块前，会确保所有中间包都已注册到 `sys.modules`：
+
+1. 如果中间目录有 `__init__.py`，使用 `spec_from_file_location` 加载
+2. 如果没有 `__init__.py`，创建命名空间包（设置 `__path__` 和 `__package__`）
+3. 已在 `sys.modules` 中的包会被跳过
+
+### 热更新卸载策略
+
+`_get_unload_prefix()` 确定模块卸载范围：
+
+- **THIRD_PARTY**: 卸载整个插件包（如 `my_plugin` 及其所有子模块）
+- **BUILTIN**: 仅卸载 factory 所在的父包（如 `zzz_od.application.my_app` 下的模块）
 
 ```python
 # 加载过程
-# 1. 将 plugins 目录加入 sys.path（仅首次）
-sys.path.insert(0, "project_root/plugins")
+# 1. 解析 module_root（仅执行一次路径查找）
+module_root = _resolve_module_root(factory_file, source, base_dir)
 
-# 2. 使用 spec_from_file_location 加载模块
-spec = spec_from_file_location(module_name, file_path, ...)
-module = module_from_spec(spec)
-spec.loader.exec_module(module)
+# 2. 统一计算模块名
+relative_path = factory_file.relative_to(module_root)
+module_name = '.'.join(relative_path.parts[:-1] + [factory_file.stem])
+
+# 3. 加载所有中间包 + 工厂模块
+module = _import_module_from_file(factory_file, module_name, module_root)
 ```
 
 **导入主程序模块**:
