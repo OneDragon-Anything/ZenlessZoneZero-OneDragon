@@ -670,7 +670,7 @@ class LostVoidRunLevel(ZOperation):
 
         if self.current_frame_in_battle:  # 当前回到可战斗画面
             if (not self.last_frame_in_battle  # 之前在非战斗画面
-                or self.last_screenshot_time - self.last_det_time >= 1  # 1秒识别一次
+                or self.last_screenshot_time - self.last_det_time >= 0.8  # 0.8秒识别一次
                 or (self.no_in_battle_times > 0 and self.last_screenshot_time - self.last_check_finish_time >= 0.1)  # 之前也识别到脱离战斗 0.1秒识别一次
             ):
                 no_in_battle = False
