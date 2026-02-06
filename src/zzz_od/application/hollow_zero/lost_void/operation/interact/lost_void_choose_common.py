@@ -1,12 +1,13 @@
 import time
 
 from cv2.typing import MatLike
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.base.screen import screen_utils
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -40,10 +41,11 @@ class LostVoidChooseCommon(ZOperation):
         can_refresh = result.is_success
 
         art_list, chosen_list = self.get_artifact_pos(self.last_screenshot)
-        art: Optional[LostVoidArtifactPos] = None
         if self.to_choose_num > 0:
             if len(art_list) == 0 and len(chosen_list) == 0:  # 已选和可选都没有才算没有
-                # 如果初始可选=0 已选=1 即自动战斗结束不及时导致误点屏幕中心选到了卡牌 且正好为单选 会一直无法识别而卡住 而不是去直接点确认 这种小概率情况会出现在秘宝猎人战略
+                # 兜底：逐个点击“区域-藏品名称”识别到的文本块，直到出现“有同流派武备”或识别到已选择
+                if self.try_choose_by_click_name_text():
+                    return self.click_confirm()
                 return self.round_retry(status='无法识别藏品', wait=1)
 
             priority_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(
@@ -79,15 +81,112 @@ class LostVoidChooseCommon(ZOperation):
                 else:
                     return self.round_retry(result.status, wait=1)
 
-        result = self.round_by_find_and_click_area(screen=self.last_screenshot, screen_name='迷失之地-通用选择', area_name='按钮-确定',
-                                                   success_wait=1, retry_wait=1)
+        return self.click_confirm()
+
+    def click_confirm(self) -> OperationRoundResult:
+        _, latest_screen = self.ctx.controller.screenshot()
+        result = self.round_by_find_and_click_area(
+            screen=latest_screen,
+            screen_name='迷失之地-通用选择',
+            area_name='按钮-确定',
+            success_wait=1,
+            retry_wait=1
+        )
         if result.is_success:
             self.ctx.lost_void.priority_updated = False
             log.info("藏品选择成功，已设置优先级更新标志")
-            status = result.status if art is None else f'选择 {art.artifact.name}'
-            return self.round_success(status)
+            return self.round_success(result.status)
         else:
             return self.round_retry(result.status, wait=1)
+
+    def try_choose_by_click_name_text(self) -> bool:
+        """
+        兜底选择：
+        1. 获取“区域-藏品名称”的OCR文本块
+        2. 第一轮逐个点击，每次点击后检查“有同流派武备”
+        3. 若第一轮未命中，第二轮逐个点击，每次点击后检查“已选择”
+        """
+        _, current_screen = self.ctx.controller.screenshot()
+        click_target_list = self.get_name_text_click_target_list(current_screen)
+        if len(click_target_list) == 0:
+            log.info('无法识别藏品 兜底点击未识别到藏品名称文本块')
+            return False
+
+        log.info(f'无法识别藏品 兜底第一轮 文本块数量={len(click_target_list)}')
+        for target_idx, target in enumerate(click_target_list):
+            self.ctx.controller.click(target.center)
+            time.sleep(0.3)
+
+            _, clicked_screen = self.ctx.controller.screenshot()
+            if self.has_same_style_selected(clicked_screen):
+                log.info(f'兜底点击藏品成功 第一轮命中同流派武备 第{target_idx + 1}/{len(click_target_list)}个')
+                return True
+
+        log.info(f'无法识别藏品 兜底第二轮 文本块数量={len(click_target_list)}')
+        for target_idx, target in enumerate(click_target_list):
+            self.ctx.controller.click(target.center)
+            time.sleep(0.3)
+
+            _, clicked_screen = self.ctx.controller.screenshot()
+            if self.has_selected(clicked_screen):
+                log.info(f'兜底点击藏品成功 第二轮命中已选择 第{target_idx + 1}/{len(click_target_list)}个')
+                return True
+
+        _, final_screen = self.ctx.controller.screenshot()
+        if self.has_selected(final_screen):
+            log.info('兜底点击藏品成功 第二轮结束后检测到已选择')
+            return True
+
+        log.info('无法识别藏品 兜底两轮结束仍未检测到目标标志 强制继续')
+        return True
+
+    def get_name_text_click_target_list(self, screen: MatLike) -> List[MatchResult]:
+        area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '区域-藏品名称')
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
+            image=screen,
+            rect=area.rect,
+            crop_first=True
+        )
+
+        all_result_list: list[MatchResult] = []
+        for text, mrl in ocr_result_map.items():
+            if len(text.strip()) == 0:
+                continue
+            for mr in mrl:
+                all_result_list.append(mr)
+
+        all_result_list.sort(key=lambda i: (i.center.x, i.center.y))
+
+        # 同一卡片名称可能被OCR拆成多个文本块，按X坐标做一次聚合，避免重复点同一张
+        result_list: list[MatchResult] = []
+        for mr in all_result_list:
+            duplicated = False
+            for existed in result_list:
+                if abs(existed.center.x - mr.center.x) < 90:
+                    duplicated = True
+                    break
+            if not duplicated:
+                result_list.append(mr)
+
+        return result_list
+
+    def has_same_style_selected(self, screen: MatLike) -> bool:
+        selected_area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '区域-藏品已选择')
+        return screen_utils.find_by_ocr(
+            self.ctx,
+            screen,
+            target_cn='有同流派武备',
+            area=selected_area
+        )
+
+    def has_selected(self, screen: MatLike) -> bool:
+        selected_area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '区域-藏品已选择')
+        return screen_utils.find_by_ocr(
+            self.ctx,
+            screen,
+            target_cn='已选择',
+            area=selected_area
+        )
 
     def get_artifact_pos(self, screen: MatLike) -> Tuple[List[LostVoidArtifactPos], List[LostVoidArtifactPos]]:
         """
