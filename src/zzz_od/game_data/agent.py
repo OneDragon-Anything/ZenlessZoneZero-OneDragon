@@ -436,6 +436,15 @@ class AgentEnum(Enum):
                                    max_length=100)
                  ])
 
+    SUNNA = Agent(
+        "sunna",
+        "千夏",
+        RareTypeEnum.S,
+        AgentTypeEnum.SUPPORT,
+        DmgTypeEnum.PHYSICAL,
+        ["sunna"],
+    )
+
     YESHUNGUANG = Agent(
         "yeshunguang",
         "叶瞬光",

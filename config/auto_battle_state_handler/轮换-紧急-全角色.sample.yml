@@ -215,6 +215,24 @@ handlers:
                         state: "自定义-照-蓄力中"
                       - operation_template: "照-终结技"
 
+              # 千夏紧急切入
+              - states: "![前台-千夏]"
+                debug_name: "千夏紧急切入"
+                sub_handlers:
+                  - states: "[千夏-特殊技可用] & ![自定义-失衡时间, 0, 10]"
+                    debug_name: "千夏有特殊技"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "千夏"
+                      - operation_template: "千夏-特殊攻击"
+
+                  - states: "[千夏-终结技可用] & ![自定义-失衡时间, 0, 10]"
+                    debug_name: "千夏有终结技"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "千夏"
+                      - operation_template: "通用-终结技"
+
               # 星见雅 有6豆就切过去
               - states: "[雅-落霜]{6, 6} & ![前台-雅] & ![前台-支援]"
                 debug_name: "雅满豆切入"

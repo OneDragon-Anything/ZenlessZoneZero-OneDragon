@@ -1,0 +1,46 @@
+template_name: "速切模板-千夏"
+handlers:
+  - states: "[前台-千夏]"
+    interrupt_states: "[前台-能量, 0, 0.1] & ![前台-千夏]"
+    sub_handlers:
+      - states: "[自定义-终结技被强制释放, 0, 1]"
+        operations:
+          - operation_template: "通用-终结技"
+
+      - states: "[自定义-黄光切人, 0, 1]"
+        operations:
+          - operation_template: "通用-支援攻击"
+
+      - states: "[自定义-红光闪避, 0, 1]"
+        operations:
+          - operation_template: "通用-闪A"
+
+      - states: "[自定义-连携换人, 0, 0.5]"
+        operations:
+          - operation_template: "通用-连携攻击"
+
+      # 防呆
+      - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        debug_name: "切人后等待"
+        sub_handlers:
+          - states: "[按键可用-快速支援, 0, 0.3]"
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
+          - states: ""
+            operations:
+              - op_name: "等待秒数"
+                seconds: 0.3
+
+      # 千夏核心逻辑：特殊技可用时执行特殊攻击
+      - states: "[千夏-特殊技可用]"
+        interrupt_states: "![千夏-特殊技可用]"
+        debug_name: "千夏-执行特殊攻击"
+        operations:
+          - operation_template: "千夏-特殊攻击"
+
+      # 默认情况：打不了就切人
+      - states: ""
+        debug_name: "千夏-打不了"
+        operations:
+          - operation_template: "通用-切人普通攻击"
