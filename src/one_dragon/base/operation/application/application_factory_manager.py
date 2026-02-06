@@ -13,6 +13,7 @@ import importlib
 import importlib.util
 import sys
 from pathlib import Path
+from types import ModuleType
 from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
@@ -111,7 +112,11 @@ class ApplicationFactoryManager:
             scan_result.failed_plugins.extend(failures)
 
         self._last_scan_result = scan_result
-        log.info(f"发现 {len(non_default_factories)} 个非默认组应用, {len(default_factories)} 个默认组应用")
+        log.info(
+            f"发现 {len(non_default_factories)} 个非默认组应用, "
+            f"{len(default_factories)} 个默认组应用, "
+            f"{len(scan_result.failed_plugins)} 个失败"
+        )
         return non_default_factories, default_factories
 
     def _determine_plugin_source(self, plugin_dir: Path) -> PluginSource:
@@ -155,17 +160,23 @@ class ApplicationFactoryManager:
 
         # 递归查找所有 *_factory.py 文件
         for factory_file in directory.rglob(f"*{self._factory_module_suffix}.py"):
-            result = self._load_factory_from_file(factory_file, reload_modules, source)
-            if result is None:
-                continue
+            try:
+                result = self._load_factory_from_file(factory_file, reload_modules, source)
+                if result is None:
+                    failures.append((factory_file, "No factories found"))
+                    continue
 
-            for factory, is_default, plugin_info in result:
-                if is_default:
-                    default_factories.append(factory)
-                else:
-                    non_default_factories.append(factory)
-                if plugin_info:
-                    plugin_infos.append(plugin_info)
+                for factory, is_default, plugin_info in result:
+                    if is_default:
+                        default_factories.append(factory)
+                    else:
+                        non_default_factories.append(factory)
+                    if plugin_info:
+                        plugin_infos.append(plugin_info)
+            except Exception as e:
+                error_msg = f"{type(e).__name__}: {str(e)}"
+                failures.append((factory_file, error_msg))
+                log.warning(f"加载工厂文件 {factory_file} 失败: {error_msg}")
 
         return non_default_factories, default_factories, plugin_infos, failures
 
@@ -188,6 +199,11 @@ class ApplicationFactoryManager:
         Returns:
             list[tuple[ApplicationFactory, bool, PluginInfo | None]]:
                 [(工厂实例, 是否默认组, 插件信息), ...]
+                如果没有找到工厂类则返回 None（但仍可能通过异常表示加载失败）
+
+        Raises:
+            ImportError: 模块导入失败
+            Other exceptions: 工厂加载或实例化时的其他错误
         """
         results: list[tuple[ApplicationFactory, bool, PluginInfo | None]] = []
 
@@ -212,37 +228,33 @@ class ApplicationFactoryManager:
                 self._added_sys_paths.add(plugins_dir_str)
                 log.debug(f"添加到 sys.path: {plugins_dir}")
 
-        try:
-            # 检查是否需要重新加载
-            if module_name in sys.modules:
-                if reload_modules:
-                    # 卸载相关模块以便重新加载
-                    if source == PluginSource.THIRD_PARTY:
-                        self._unload_plugin_modules(plugin_pkg_dir.name)
-                    module = self._import_module_from_file(factory_file, module_name, plugin_pkg_dir)
-                else:
-                    module = sys.modules[module_name]
-            else:
+        # 检查是否需要重新加载
+        if module_name in sys.modules:
+            if reload_modules:
+                # 卸载相关模块以便重新加载
+                if source == PluginSource.THIRD_PARTY:
+                    self._unload_plugin_modules(plugin_pkg_dir.name)
                 module = self._import_module_from_file(factory_file, module_name, plugin_pkg_dir)
+            else:
+                module = sys.modules[module_name]
+        else:
+            module = self._import_module_from_file(factory_file, module_name, plugin_pkg_dir)
 
-            self._loaded_modules.add(module_name)
+        self._loaded_modules.add(module_name)
 
-            # 查找工厂类
-            results = self._find_factories_in_module(
-                module, module_name, factory_file, source
-            )
+        # 查找工厂类
+        results = self._find_factories_in_module(
+            module, module_name, factory_file, source
+        )
 
-        except Exception as e:
-            log.warning(f"加载工厂文件 {factory_file} 失败: {e}")
-
-        return results
+        return results if results else None
 
     def _import_module_from_file(
         self,
         factory_file: Path,
         module_name: str,
         plugin_pkg_dir: Path
-    ):
+    ) -> ModuleType:
         """使用 spec_from_file_location 导入模块
 
         统一的模块导入方法，支持相对导入。
@@ -437,7 +449,6 @@ class ApplicationFactoryManager:
 
         # 清空现有注册
         self.ctx.run_context.clear_applications()
-        self.ctx.run_context.default_group_apps.clear()
 
         # 重新发现并注册
         non_default_factories, default_factories = self.discover_factories(reload_modules=True)

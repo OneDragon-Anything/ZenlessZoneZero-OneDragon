@@ -112,6 +112,7 @@ class ApplicationRunContext:
         在刷新应用注册前调用，清空现有的注册信息。
         """
         self._application_factory_map.clear()
+        self.default_group_apps.clear()
 
     @property
     def notify_app_map(self) -> dict[str, str]:

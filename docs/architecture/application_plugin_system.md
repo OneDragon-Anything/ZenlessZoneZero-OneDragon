@@ -37,7 +37,6 @@ from zzz_od.context.zzz_context import ZContext  # ✅ 可以导入主程序模�
 **文件位置**: `src/one_dragon/base/operation/application/application_factory_manager.py`
 
 **主要功能**:
-- `add_plugin_dir(plugin_dir)`: 添加插件目录
 - `discover_factories()`: 扫描所有插件目录，发现并加载应用工厂
 - `refresh_applications()`: 刷新应用注册
 - `plugin_infos`: 获取所有已加载的插件信息
