@@ -15,6 +15,13 @@ from one_dragon.base.screen.screen_utils import FindAreaResultEnum
 from one_dragon.base.screen import screen_utils
 from one_dragon.utils import cal_utils, cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
+from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
+    LostVoidRegionType,
+)
+from zzz_od.application.hollow_zero.lost_void.operation.lost_void_run_level import (
+    LostVoidRunLevel,
+)
 from zzz_od.application.matrix_action import matrix_action_const
 from zzz_od.application.matrix_action.matrix_action_config import MatrixActionConfig
 from zzz_od.application.matrix_action.matrix_action_run_record import (
@@ -57,6 +64,7 @@ class MatrixActionApp(ZApplication):
         self._click_cooldown_sec: float = 1.0
         self._next_step_last_click_at: float = 0.0
         self._next_step_click_cooldown_sec: float = 5.0
+        self.next_region_type: LostVoidRegionType = LostVoidRegionType.ENTRY
 
     def handle_init(self) -> None:
         ZApplication.handle_init(self)
@@ -67,12 +75,20 @@ class MatrixActionApp(ZApplication):
         self._team_scroll_times = 0
         self._start_challenge_seen = False
         self._next_step_last_click_at = 0.0
+        self.next_region_type = LostVoidRegionType.ENTRY
         self._reset_click_cooldown()
 
     @operation_node(name="初始化加载", is_start_node=True)
     def init_for_matrix_action(self) -> OperationRoundResult:
         if self.run_record.is_finished_by_day():
             return self._round_success_with_click_reset(MatrixActionApp.STATUS_TIMES_FINISHED)
+        try:
+            # 复用迷失之地战斗流程所需的运行上下文（检测器/数据/策略）
+            self.ctx.lost_void.init_before_run()
+            # 覆盖为矩阵行动当前选择的挑战配置
+            self.ctx.lost_void.challenge_config = self.config.challenge_config_instance
+        except Exception:
+            return self.round_fail("初始化失败")
         return self._round_success_with_click_reset(MatrixActionApp.STATUS_AGAIN)
 
     @node_from(from_name="初始化加载", status=STATUS_AGAIN)
@@ -377,6 +393,41 @@ class MatrixActionApp(ZApplication):
         if self._click_with_cooldown(start.center):
             return self.round_retry("点击开始挑战", wait=0.3)
         return self.round_retry("点击开始挑战失败", wait=0.3)
+
+    @node_from(from_name="开始挑战", status="已进入空洞战斗")
+    @operation_node(name="加载自动战斗配置")
+    def load_auto_op(self) -> OperationRoundResult:
+        self.next_region_type = LostVoidRegionType.ENTRY
+        self.ctx.auto_battle_context.init_auto_op(
+            sub_dir="auto_battle",
+            op_name=self.config.challenge_config_instance.auto_battle,
+        )
+        return self._round_success_with_click_reset()
+
+    @node_from(from_name="加载自动战斗配置")
+    @node_from(from_name="层间移动")
+    @operation_node(name="层间移动")
+    def run_level(self) -> OperationRoundResult:
+        log.info(f"推测楼层类型 {self.next_region_type.value.value}")
+        op = LostVoidRunLevel(self.ctx, self.next_region_type)
+        op_result = op.execute()
+        if op_result.success and op_result.status == LostVoidRunLevel.STATUS_NEXT_LEVEL:
+            if op_result.data is not None:
+                self.next_region_type = LostVoidRegionType.from_value(op_result.data)
+            else:
+                self.next_region_type = LostVoidRegionType.ENTRY
+        return self.round_by_op_result(op_result)
+
+    @node_from(from_name="层间移动", status=LostVoidRunLevel.STATUS_COMPLETE)
+    @operation_node(name="通关后处理")
+    def after_complete(self) -> OperationRoundResult:
+        screen_name = self.check_and_update_current_screen(
+            self.last_screenshot,
+            screen_name_list=["迷失之地-入口"],
+        )
+        if screen_name != "迷失之地-入口":
+            return self.round_wait("等待画面加载", wait=1)
+        return self._round_success_with_click_reset("通关完成")
 
     def _round_success_with_click_reset(self, status: Optional[str] = None) -> OperationRoundResult:
         self._reset_click_cooldown()
