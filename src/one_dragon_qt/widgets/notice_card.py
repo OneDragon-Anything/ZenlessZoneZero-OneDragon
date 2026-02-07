@@ -67,59 +67,6 @@ def get_notice_theme_palette():
         'shadow': QColor(0, 0, 0, 150),
     }
 
-class SkeletonBanner(QFrame):
-    """骨架屏Banner组件 - 简化版"""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setObjectName("SkeletonBanner")
-        self.setFixedSize(345, 160)
-        # 设置基础样式
-        self.setStyleSheet("""
-            SkeletonBanner {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 rgba(240, 240, 240, 200),
-                    stop:0.5 rgba(255, 255, 255, 230),
-                    stop:1 rgba(240, 240, 240, 200));
-                border-radius: 4px;
-                border: 2px solid rgba(200, 200, 200, 100);
-            }
-        """)
-
-
-class SkeletonContent(QWidget):
-    """骨架屏内容组件 - 简化版"""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setObjectName("SkeletonContent")
-        self.setFixedHeight(110)
-        self.setupUI()
-
-    def setupUI(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 5, 10, 5)
-        layout.setSpacing(8)
-
-        # 创建骨架条
-        widths = [280, 220]
-        for width in widths:
-            skeleton_item = QFrame()
-            skeleton_item.setObjectName("SkeletonItem")
-            skeleton_item.setFixedSize(width, 20)
-            skeleton_item.setStyleSheet("""
-                QFrame#SkeletonItem {
-                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                        stop:0 rgba(224, 224, 224, 150),
-                        stop:0.5 rgba(240, 240, 240, 200),
-                        stop:1 rgba(224, 224, 224, 150));
-                    border-radius: 4px;
-                    border: 1px solid rgba(200, 200, 200, 80);
-                }
-            """)
-            layout.addWidget(skeleton_item)
-
-
 class BannerImageLoader(QThread):
     """异步banner图片加载器"""
     image_loaded = Signal(QImage, str)  # image, url
@@ -217,7 +164,7 @@ class RoundedBannerView(HorizontalFlipView):
     def __init__(self, radius: int = 4, parent=None):
         super().__init__(parent)
         self._radius = radius
-        self.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)
+        self.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatioByExpanding)
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
         # 使用官方的 setBorderRadius 方法设置圆角
         self.setBorderRadius(radius)
@@ -348,11 +295,11 @@ class AcrylicBackground(QWidget):
 class NoticeCard(SimpleCardWidget):
     def __init__(self, notice_url):
         SimpleCardWidget.__init__(self)
-        self.setBorderRadius(12)
-        self.setFixedWidth(345)
+        self.setBorderRadius(8)
+        self.setFixedSize(345, 374)  # 230 + 36 + 108 = 374
         self.mainLayout = QVBoxLayout(self)
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
-        self.mainLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.mainLayout.setSpacing(0)
 
         self.notice_url = notice_url
         self.banners, self.banner_urls, self.posts = [], [], {"announcements": [], "software_research": [], "game_guides": []}
@@ -365,8 +312,6 @@ class NoticeCard(SimpleCardWidget):
         self.auto_scroll_interval = 5000  # 5秒滚动一次
         self.auto_scroll_enabled = True
 
-
-
         # 显示/隐藏状态
         self._notice_enabled = True
 
@@ -376,7 +321,6 @@ class NoticeCard(SimpleCardWidget):
         # 初始化和显示
         self._create_components()
         self.setup_ui()
-        self.show_skeleton()
         self.fetch_data()
 
         # 主题设置
@@ -403,48 +347,11 @@ class NoticeCard(SimpleCardWidget):
         """创建组件"""
         # 亚克力背景层
         palette = get_notice_theme_palette()
-        self._acrylic = AcrylicBackground(self, radius=12, tint=palette['tint'])
+        self._acrylic = AcrylicBackground(self, radius=8, tint=palette['tint'])
         self._acrylic.stackUnder(self)
-
-        # 骨架屏组件
-        self.skeleton_banner = SkeletonBanner(self)
-        self.skeleton_content = SkeletonContent(self)
-        self.mainLayout.insertWidget(0, self.skeleton_banner)
-        self.mainLayout.insertWidget(1, self.skeleton_content)
-
-        self.error_label = QLabel("无法获取数据")
-        self.error_label.setWordWrap(True)
-        self.error_label.setObjectName("error")
-        self.error_label.hide()
-        self.mainLayout.addWidget(self.error_label)
 
     def _normalBackgroundColor(self):
         return QColor(0, 0, 0, 24)
-
-    def show_skeleton(self):
-        """显示骨架屏"""
-        self.skeleton_banner.show()
-        self.skeleton_content.show()
-        # 确保骨架屏在最前面
-        self.skeleton_banner.raise_()
-        self.skeleton_content.raise_()
-        # 隐藏实际内容容器
-        if hasattr(self, 'banner_wrapper'):
-            self.banner_wrapper.hide()
-        for widget_name in ['flipView', 'pivot', 'stackedWidget']:
-            if hasattr(self, widget_name):
-                getattr(self, widget_name).hide()
-
-    def hide_skeleton(self):
-        """隐藏骨架屏"""
-        self.skeleton_banner.hide()
-        self.skeleton_content.hide()
-        # 显示实际内容容器
-        if hasattr(self, 'banner_wrapper'):
-            self.banner_wrapper.show()
-        for widget_name in ['flipView', 'pivot', 'stackedWidget']:
-            if hasattr(self, widget_name):
-                getattr(self, widget_name).show()
 
     def fetch_data(self):
         # 如果已有fetcher在运行，先停止它
@@ -464,19 +371,10 @@ class NoticeCard(SimpleCardWidget):
 
     def handle_data(self, content):
         if "error" in content:
-            self.hide_skeleton()  # 隐藏骨架屏
-            self.error_label.setText(f"无法获取数据: {content['error']}")
-            self.error_label.setFixedSize(345, 160)
-            self.error_label.show()
-            if hasattr(self, 'flipView'):
-                self.flipView.hide()
-            if hasattr(self, 'banner_wrapper'):
-                self.banner_wrapper.hide()
             self.update_ui()
             return
         self.load_banners_async(content["data"]["content"]["banners"])
         self.load_posts(content["data"]["content"]["posts"])
-        self.error_label.hide()
         self.update_ui()
 
     def load_banners_async(self, banners):
@@ -511,10 +409,6 @@ class NoticeCard(SimpleCardWidget):
         self.banners.append(pixmap)
         self.banner_urls.append(url)
 
-        # 如果这是第一个加载完成的banner，隐藏骨架屏并显示内容
-        if len(self.banners) == 1:
-            self.hide_skeleton()
-
         # 实时更新UI显示新加载的图片
         if hasattr(self, 'flipView'):
             self.flipView.addImages([pixmap])
@@ -545,9 +439,9 @@ class NoticeCard(SimpleCardWidget):
                 })
 
     def setup_ui(self):
-        # Banner 视图容器
+        # Banner 视图容器 - 固定高度 230px
         self.banner_wrapper = QWidget()
-        self.banner_wrapper.setFixedSize(QSize(345, 160))
+        self.banner_wrapper.setFixedSize(QSize(345, 230))
         # 使其可追踪鼠标进入离开事件
         self.banner_wrapper.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
         self.banner_wrapper.installEventFilter(self)
@@ -556,10 +450,10 @@ class NoticeCard(SimpleCardWidget):
         banner_layout.setSpacing(0)
 
         # Banner 视图
-        self.flipView = RoundedBannerView(radius=12)
+        self.flipView = RoundedBannerView(radius=8)
         self.flipView.addImages(self.banners)
-        self.flipView.setItemSize(QSize(345, 160))
-        self.flipView.setFixedSize(QSize(345, 160))
+        self.flipView.setItemSize(QSize(345, 230))
+        self.flipView.setFixedSize(QSize(345, 230))
         self.flipView.itemClicked.connect(self.open_banner_link)
         banner_layout.addWidget(self.flipView)
 
@@ -603,10 +497,15 @@ class NoticeCard(SimpleCardWidget):
         if len(self.banners) > 1:
             QTimer.singleShot(5000, self._start_auto_scroll)
 
+        # Pivot 标签页 - 固定高度 36px
         self.pivot = PhosPivot()
+        self.pivot.setFixedHeight(36)
+        self.mainLayout.addWidget(self.pivot, 0, Qt.AlignmentFlag.AlignCenter)
+
+        # StackedWidget 内容堆栈 - 固定高度 90px
         self.stackedWidget = QStackedWidget(self)
         self.stackedWidget.setContentsMargins(0, 0, 5, 0)
-        self.stackedWidget.setFixedHeight(78)
+        self.stackedWidget.setFixedHeight(90)
 
         # 创建三个列表组件
         widgets = [ListWidget() for _ in range(3)]
@@ -617,6 +516,7 @@ class NoticeCard(SimpleCardWidget):
 
         for widget, post_type, name in zip(widgets, types, type_names):
             widget.setSpacing(0)
+            widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             self.add_posts_to_widget(widget, post_type)
             widget.itemClicked.connect(
                 lambda _, w=widget, t=post_type: self.open_post_link(w, t)
@@ -626,9 +526,7 @@ class NoticeCard(SimpleCardWidget):
         self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
         self.stackedWidget.setCurrentWidget(self.announcementsWidget)
         self.pivot.setCurrentItem(self.announcementsWidget.objectName())
-        self.mainLayout.addWidget(self.pivot, 0, Qt.AlignmentFlag.AlignCenter)
         self.mainLayout.addWidget(self.stackedWidget)
-        self.mainLayout.addSpacing(12)
 
     def eventFilter(self, obj, event):
         # 悬停控制 pips 显示/隐藏
@@ -751,7 +649,7 @@ class NoticeCard(SimpleCardWidget):
         # 尺寸自适应
         self.pipsHolder.adjustSize()
         bw = 345  # banner_wrapper 的固定宽度
-        bh = 160  # banner_wrapper 的固定高度
+        bh = 230  # banner_wrapper 的固定高度
         hw = self.pipsHolder.width()
         hh = self.pipsHolder.height()
         # 底部偏移量（可根据视觉微调）
@@ -841,18 +739,16 @@ class NoticePostDelegate(QStyledItemDelegate):
 
         # 计算布局
         rect = option.rect
-        title_width = 280
+        title_width = 220
         title_rect = QRect(rect.left() + 12, rect.top() + 2, title_width, rect.height() - 4)
         date_rect = QRect(title_rect.right(), rect.top() + 2, rect.width() - title_rect.right() - 12, rect.height() - 4)
 
-        # 绘制标题
+        # 绘制标题（不使用省略号，让标题自然延伸）
         painter.setFont(self.title_font)
         painter.setPen(QColor("#ffffff"))
-        fm = painter.fontMetrics()
-        title = fm.elidedText(title, Qt.TextElideMode.ElideRight, title_width)
         painter.drawText(title_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, title)
 
-        # 绘制日期
+        # 绘制日期（后绘制，会覆盖延伸过来的标题文本）
         painter.setFont(self.date_font)
         painter.setPen(QColor("#dddddd"))
         painter.drawText(date_rect, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, date)

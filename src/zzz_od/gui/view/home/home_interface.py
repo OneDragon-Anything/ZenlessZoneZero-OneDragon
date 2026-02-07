@@ -456,51 +456,29 @@ class HomeInterface(VerticalScrollInterface):
         # 顶部留白 64px
         v_layout.addItem(QSpacerItem(10, 64, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
 
-        # 顶部部分 (按钮组)
-        h1_layout = QHBoxLayout()
-        h1_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        # 左边留白区域
-        h1_layout.addStretch()
-
-        # 按钮组
-        self.button_group = ButtonGroup(self.ctx)
-        self.button_group.setMaximumHeight(320)
-        h1_layout.addWidget(self.button_group)
-
-        # 空白占位符
-        h1_layout.addItem(QSpacerItem(0, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
-
-        # 将顶部水平布局添加到垂直布局
-        v_layout.addLayout(h1_layout)
-
-        # 中间留白区域
-        v_layout.addItem(QSpacerItem(10, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum))
-        v_layout.addStretch()
-
-        # 底部部分 (公告卡片 + 启动按钮)
+        # 底部区域 (公告卡片 + 启动按钮 + 按钮组)
         bottom_bar = QWidget()
+        bottom_bar.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         h2_layout = QHBoxLayout(bottom_bar)
-        h2_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
 
-        h2_layout.setContentsMargins(32, 32, 72, 32)
+        h2_layout.setContentsMargins(32, 32, 0, 32)
 
         # 公告卡片
         self.notice_container = NoticeCard(self.ctx.project_config.notice_url)
-        notice_wrap = QWidget()
-        self._notice_wrap_layout = QVBoxLayout(notice_wrap)
-        self._notice_wrap_layout.setContentsMargins(0, 0, 0, 0)
-        self._notice_wrap_layout.addWidget(self.notice_container)
-        h2_layout.addWidget(notice_wrap)
+        h2_layout.addWidget(self.notice_container, alignment=Qt.AlignmentFlag.AlignBottom)
 
         h2_layout.addStretch()
 
         # 启动游戏按钮布局
-        self.start_button = PillPushButton(FluentIcon.PLAY_SOLID, '启动一条龙')
+        self.start_button = PillPushButton(FluentIcon.PLAY_SOLID, f'启动一条龙 ({self.ctx.key_start_running.upper()})')
         self.start_button.setObjectName("start_button")
         self.start_button.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
-        self.start_button.setFixedSize(192, 48)
+        self.start_button.setFixedHeight(48)
         self.start_button.clicked.connect(self._on_start_game)
+
+        # 设置图标和文本之间的间距
+        if self.start_button.layout():
+            self.start_button.layout().setSpacing(12)
 
         # 保存黑色和黄色图标
         self._black_icon = FluentIcon.PLAY_SOLID.icon(color=QColor("#000000"))
@@ -510,11 +488,16 @@ class HomeInterface(VerticalScrollInterface):
         self.start_button.enterEvent = self._on_button_enter
         self.start_button.leaveEvent = self._on_button_leave
 
-        # 直接添加到 h2_layout，底部对齐
+        # 添加启动按钮到布局
         h2_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom)
 
-        # 将底部容器添加到主垂直布局，底部对齐
-        v_layout.addWidget(bottom_bar, alignment=Qt.AlignmentFlag.AlignBottom)
+        # 按钮组
+        self.button_group = ButtonGroup(self.ctx)
+        self.button_group.setMaximumHeight(320)
+        h2_layout.addWidget(self.button_group, alignment=Qt.AlignmentFlag.AlignVCenter)
+
+        # 将底部容器添加到主垂直布局
+        v_layout.addWidget(bottom_bar)
 
         # 初始化父类
         super().__init__(
@@ -640,6 +623,9 @@ class HomeInterface(VerticalScrollInterface):
         """界面显示时启动检查更新的线程"""
         super().on_interface_shown()
 
+        # 更新按钮文本（显示快捷键）
+        self._update_button_text()
+
         # 仅首页去除 VerticalScrollInterface 根布局默认边距，避免背景四周留白
         layout = self.layout()
         if layout is not None:
@@ -759,6 +745,11 @@ class HomeInterface(VerticalScrollInterface):
         self.start_button.setIcon(self._black_icon)
         # 调用父类的 leaveEvent
         PillPushButton.leaveEvent(self.start_button, event)
+
+    def _update_button_text(self) -> None:
+        """更新启动按钮文本（显示快捷键）"""
+        if hasattr(self, 'start_button'):
+            self.start_button.setText(f'启动一条龙 ({self.ctx.key_start_running.upper()})')
 
     def reload_banner(self, show_notification: bool = False) -> None:
         """
@@ -988,10 +979,9 @@ class HomeInterface(VerticalScrollInterface):
         PillPushButton#start_button {
             background-color: #FFDB29;
             color: #000000;
-            border-radius: 28px;
+            border-radius: 8px;
             height: 48px;
             min-height: 48px;
-            font-size: 18px;
         }
         PillPushButton#start_button:hover {
             background-color: #000000;
