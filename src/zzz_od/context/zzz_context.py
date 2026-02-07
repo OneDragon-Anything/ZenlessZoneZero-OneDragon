@@ -1,12 +1,8 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
-
-if TYPE_CHECKING:
-    from zzz_od.gui.dialog.shared_dialog_manager import SharedDialogManager
 
 
 class ZContext(OneDragonContext):
@@ -92,8 +88,8 @@ class ZContext(OneDragonContext):
             'battle_assistant_config',
         ]
         for prop in to_clear_props:
-            if hasattr(self, prop):
-                delattr(self, prop)
+            if prop in self.__dict__:
+                del self.__dict__[prop]
 
     def _get_win_title(self) -> str:
         """获取当前配置对应的窗口标题"""

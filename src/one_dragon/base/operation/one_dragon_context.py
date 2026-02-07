@@ -123,8 +123,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         # 计算项目根目录下的 plugins 目录（外部插件）
         # 从 src 目录往上一级就是项目根目录
         try:
-            src_index = Path(cls_file).parts.index('src')
-            project_root = Path(*Path(cls_file).parts[:src_index])
+            parts = Path(cls_file).parts
+            src_index = len(parts) - parts[::-1].index('src') - 1
+            project_root = Path(*parts[:src_index]) if src_index > 0 else Path('.')
             plugins_dir = project_root / 'plugins'
             if plugins_dir.is_dir():
                 dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
@@ -196,8 +197,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         """
         self.factory_manager.refresh_applications()
         # 刷新通知配置中的应用映射
-        if hasattr(self, 'notify_config'):
-            delattr(self, 'notify_config')
+        if 'notify_config' in self.__dict__:
+            del self.__dict__['notify_config']
 
     #------------------- 以下是 初始化相关 -------------------#
 
@@ -358,8 +359,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             'notify_config',
         ]
         for prop in to_clear_props:
-            if hasattr(self, prop):
-                delattr(self, prop)
+            if prop in self.__dict__:
+                del self.__dict__[prop]
 
     def init_ocr(self) -> None:
         """

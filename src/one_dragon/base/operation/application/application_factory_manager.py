@@ -325,7 +325,11 @@ class ApplicationFactoryManager:
 
         module = importlib.util.module_from_spec(spec)
         sys.modules[module_name] = module
-        spec.loader.exec_module(module)
+        try:
+            spec.loader.exec_module(module)
+        except Exception:
+            sys.modules.pop(module_name, None)
+            raise
 
         return module
 
@@ -460,25 +464,18 @@ class ApplicationFactoryManager:
                 last_part = last_part[:-len(self._factory_module_suffix)] + self._const_module_suffix
             const_module_name = last_part
 
-        try:
-            if const_module_name in sys.modules:
-                const_module = sys.modules[const_module_name]
-            else:
-                const_module = importlib.import_module(const_module_name)
+        if const_module_name in sys.modules:
+            const_module = sys.modules[const_module_name]
+        else:
+            const_module = importlib.import_module(const_module_name)
 
-            plugin_info.const_module = const_module_name
+        plugin_info.const_module = const_module_name
 
-            # 读取可选的插件元数据
-            plugin_info.author = getattr(const_module, 'PLUGIN_AUTHOR', '')
-            plugin_info.homepage = getattr(const_module, 'PLUGIN_HOMEPAGE', '')
-            plugin_info.version = getattr(const_module, 'PLUGIN_VERSION', '')
-            plugin_info.description = getattr(const_module, 'PLUGIN_DESCRIPTION', '')
-
-        except ImportError:
-            # const 模块不存在，使用默认值
-            log.debug(f"未找到 const 模块: {const_module_name}")
-        except Exception as e:
-            log.warning(f"读取 const 模块 {const_module_name} 失败: {e}")
+        # 读取可选的插件元数据
+        plugin_info.author = getattr(const_module, 'PLUGIN_AUTHOR', '')
+        plugin_info.homepage = getattr(const_module, 'PLUGIN_HOMEPAGE', '')
+        plugin_info.version = getattr(const_module, 'PLUGIN_VERSION', '')
+        plugin_info.description = getattr(const_module, 'PLUGIN_DESCRIPTION', '')
 
         return plugin_info
 
