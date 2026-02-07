@@ -33,10 +33,10 @@ area_list:
 - area_name: 区域-藏品名称
   id_mark: false
   pc_rect:
-  - 90
-  - 508
-  - 1906
-  - 570
+  - 80
+  - 411
+  - 1911
+  - 593
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
