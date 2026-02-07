@@ -92,8 +92,18 @@ class WorldPatrolApp(ZApplication):
     @node_from(from_name='前往绳网')
     @operation_node(name='停止追踪')
     def stop_tracking(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(screen_name='绳网', area_name='按钮-停止追踪',
-                                                 success_wait=1, retry_wait=1)
+        screen = self.screenshot()
+        # 找到"停止追踪" → 点击 → 成功 → 返回大世界
+        click_result = self.round_by_find_and_click_area(screen=screen, screen_name='绳网', area_name='按钮-停止追踪',
+                                                         success_wait=1)
+        if click_result.is_success:
+            return click_result
+        # 没找到"停止追踪"但找到"追踪" → 直接成功跳过 → 返回大世界
+        find_result = self.round_by_find_area(screen, screen_name='绳网', area_name='按钮-追踪')
+        if find_result.is_success:
+            return self.round_success(status='无需停止追踪')
+        # 都没找到（不可能） → retry 几次 → 失败 → 仍然返回大世界
+        return self.round_retry(status='未找到追踪按钮', wait=1)
 
     @node_from(from_name='停止追踪')
     @node_from(from_name='停止追踪', success=False)
