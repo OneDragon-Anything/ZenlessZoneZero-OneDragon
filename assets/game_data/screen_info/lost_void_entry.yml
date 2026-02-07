@@ -34,10 +34,10 @@ area_list:
 - area_name: 按钮-悬赏委托
   id_mark: true
   pc_rect:
-  - 1550
-  - 24
-  - 1762
-  - 74
+  - 1181
+  - 19
+  - 1346
+  - 70
   text: 悬赏委托
   lcs_percent: 0.5
   template_sub_dir: ''

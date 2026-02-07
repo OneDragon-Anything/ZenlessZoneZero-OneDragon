@@ -406,7 +406,9 @@ class LostVoidContext:
                     closest_artifact_pos = artifact_pos
 
             if closest_artifact_pos is not None:
-                if title_idx == 1:  # 已选择
+                if title_idx == 0:  # 有同流派武备
+                    closest_artifact_pos.has_same_style = True
+                elif title_idx == 1:  # 已选择
                     closest_artifact_pos.chosen = True
                     closest_artifact_pos.can_choose = False
                 elif title_idx == 2:  # 齿轮硬币不足

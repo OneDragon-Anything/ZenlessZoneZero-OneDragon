@@ -126,16 +126,8 @@ class LostVoidApp(ZApplication):
             return self.round_retry(result.status, wait=0.5)
 
         # 矩阵行动没有独立screen_info时，允许通过OCR文本放行，避免卡死在入口识别
-        if self.config.mission_name == '矩阵行动':
-            ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-            ocr_word_list = list(ocr_result_map.keys())
-            target = gt('矩阵行动', 'game')
-            idx = str_utils.find_best_match_by_difflib(target, ocr_word_list, cutoff=0.5)
-            if idx is not None and idx >= 0:
-                return self.round_success(status='矩阵行动页面')
-            for ocr_word in ocr_word_list:
-                if str_utils.find_by_lcs(target, ocr_word, percent=0.6):
-                    return self.round_success(status='矩阵行动页面')
+        if self.config.mission_name == '矩阵行动' and self._is_matrix_action_text_visible():
+            return self.round_success(status='矩阵行动页面')
 
         screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
         if screen_name != '迷失之地-入口':
@@ -539,6 +531,13 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='层间移动', status=LostVoidRunLevel.STATUS_COMPLETE)
     @operation_node(name='通关后处理')
     def after_complete(self) -> OperationRoundResult:
+        # 与开始前等待入口加载保持一致：识别到矩阵行动文本即可放行，避免入口模板偶发漏检
+        if self._is_matrix_action_text_visible():
+            self.run_record.add_complete_times()
+            if self.use_priority_agent:
+                self.run_record.complete_task_force_with_up = True
+            return self.round_success('矩阵行动页面')
+
         screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
         if screen_name != '迷失之地-入口':
             return self.round_wait('等待画面加载', wait=1)
@@ -547,6 +546,21 @@ class LostVoidApp(ZApplication):
             self.run_record.complete_task_force_with_up = True
 
         return self.round_success()
+
+    def _is_matrix_action_text_visible(self) -> bool:
+        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        ocr_word_list = list(ocr_result_map.keys())
+        target = gt('矩阵行动', 'game')
+
+        idx = str_utils.find_best_match_by_difflib(target, ocr_word_list, cutoff=0.5)
+        if idx is not None and idx >= 0:
+            return True
+
+        for ocr_word in ocr_word_list:
+            if str_utils.find_by_lcs(target, ocr_word, percent=0.6):
+                return True
+
+        return False
 
     @node_from(from_name='识别悬赏委托完成进度', status=STATUS_ENOUGH_TIMES)
     @operation_node(name='打开悬赏委托')
