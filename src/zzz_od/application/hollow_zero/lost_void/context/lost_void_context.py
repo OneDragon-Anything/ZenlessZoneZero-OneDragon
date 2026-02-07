@@ -438,7 +438,8 @@ class LostVoidContext:
         """
         try:
             area = self.ctx.screen_loader.get_area(screen_name, '区域-藏品名称')
-        except Exception:
+        except Exception as e:
+            log.warning(f'获取区域失败 screen={screen_name} area=区域-藏品名称 err={e}')
             return []
 
         ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(

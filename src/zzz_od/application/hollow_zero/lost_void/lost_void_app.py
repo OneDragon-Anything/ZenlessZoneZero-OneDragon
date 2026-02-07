@@ -4,7 +4,7 @@ from typing import ClassVar
 import cv2
 
 from one_dragon.base.geometry.point import Point
-from one_dragon.base.matcher.match_result import MatchResult
+from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
@@ -434,7 +434,7 @@ class LostVoidApp(ZApplication):
 
         return self.round_fail("追新模式失败：未找到任何可选择的调查战略")
 
-    def _swipe_strategy_list(self):
+    def _swipe_strategy_list(self) -> None:
         """
         滑动调查战略列表
         """
@@ -625,7 +625,7 @@ class LostVoidApp(ZApplication):
 
         return False
 
-    def _find_ocr_text_mr(self, ocr_result_map, target_text: str) -> MatchResult | None:
+    def _find_ocr_text_mr(self, ocr_result_map: dict[str, MatchResultList], target_text: str) -> MatchResult | None:
         target = gt(target_text, 'game')
         ocr_word_list = list(ocr_result_map.keys())
 

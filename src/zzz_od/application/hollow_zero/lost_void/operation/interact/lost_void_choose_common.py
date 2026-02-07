@@ -1,7 +1,7 @@
 import time
 
 from cv2.typing import MatLike
-from typing import List, Tuple
+from typing import Optional
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
@@ -132,7 +132,7 @@ class LostVoidChooseCommon(ZOperation):
             return True
         return False
 
-    def sort_candidates(self, candidate_list: List[LostVoidArtifactPos]) -> List[LostVoidArtifactPos]:
+    def sort_candidates(self, candidate_list: list[LostVoidArtifactPos]) -> list[LostVoidArtifactPos]:
         if len(candidate_list) <= 1:
             return candidate_list
 
@@ -188,12 +188,6 @@ class LostVoidChooseCommon(ZOperation):
             time.sleep(0.3)
 
             _, clicked_screen = self.ctx.controller.screenshot()
-            if target_num is not None:
-                _, chosen_after = self.get_artifact_pos(clicked_screen)
-                if len(chosen_after) >= target_num:
-                    log.info(f'兜底点击藏品成功 第一轮达到目标数量 第{target_idx + 1}/{len(click_target_list)}个')
-                    return True
-                continue
             if self.has_same_style_selected(clicked_screen):
                 log.info(f'兜底点击藏品成功 第一轮命中同流派武备 第{target_idx + 1}/{len(click_target_list)}个')
                 return True
@@ -205,24 +199,9 @@ class LostVoidChooseCommon(ZOperation):
             time.sleep(0.3)
 
             _, clicked_screen = self.ctx.controller.screenshot()
-            if target_num is not None:
-                _, chosen_after = self.get_artifact_pos(clicked_screen)
-                if len(chosen_after) >= target_num:
-                    log.info(f'兜底点击藏品成功 第二轮达到目标数量 第{target_idx + 1}/{len(click_target_list)}个')
-                    return True
-                continue
             if self.has_selected(clicked_screen):
                 log.info(f'兜底点击藏品成功 第二轮命中已选择 第{target_idx + 1}/{len(click_target_list)}个')
                 return True
-
-        if target_num is not None:
-            _, final_screen = self.ctx.controller.screenshot()
-            _, chosen_after = self.get_artifact_pos(final_screen)
-            if len(chosen_after) >= target_num:
-                log.info('兜底点击藏品成功 第二轮结束后达到目标数量')
-                return True
-            log.info('兜底点击藏品结束 仍未达到目标数量')
-            return clicked_any
 
         _, final_screen = self.ctx.controller.screenshot()
         if self.has_selected(final_screen):
@@ -275,7 +254,7 @@ class LostVoidChooseCommon(ZOperation):
         log.info('兜底点击藏品结束 can_choose候选耗尽仍未达到目标数量')
         return len(tried_center_list) > 0
 
-    def get_name_text_click_target_list(self, screen: MatLike) -> List[MatchResult]:
+    def get_name_text_click_target_list(self, screen: MatLike) -> list[MatchResult]:
         area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '区域-藏品名称')
         ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
             image=screen,
@@ -323,11 +302,11 @@ class LostVoidChooseCommon(ZOperation):
             area=selected_area
         )
 
-    def get_artifact_pos(self, screen: MatLike) -> Tuple[List[LostVoidArtifactPos], List[LostVoidArtifactPos]]:
+    def get_artifact_pos(self, screen: MatLike) -> tuple[list[LostVoidArtifactPos], list[LostVoidArtifactPos]]:
         """
         获取藏品的位置
         @param screen: 游戏画面
-        @return: Tuple[识别到的武备的位置, 已经选择的位置]
+        @return: tuple[识别到的武备的位置, 已经选择的位置]
         """
         self.check_choose_title(screen)
         if self.to_choose_num == 0:  # 不需要选择的

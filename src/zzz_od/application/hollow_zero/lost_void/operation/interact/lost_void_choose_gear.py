@@ -3,7 +3,7 @@ import re
 
 import cv2
 from cv2.typing import MatLike
-from typing import List, Tuple
+from typing import Any
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -70,14 +70,14 @@ class LostVoidChooseGear(ZOperation):
                 log.info('【武备追新】所有武备都已获取，回退至优先级')
 
         if not choose_new:
-            priority_list: List[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(gear_list, 1)
+            priority_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(gear_list, 1)
             target = priority_list[0] if len(priority_list) > 0 else gear_list[0]
             self.ctx.controller.click(target.rect.center)
             time.sleep(0.5)
 
         return self.round_success(wait=0.5)
 
-    def _find_gears_with_status(self) -> Tuple[List[tuple[any, bool]], any]:
+    def _find_gears_with_status(self) -> tuple[list[tuple[Any, bool]], Any]:
         """
         使用CV流水线查找武备及其状态
         :return: (武备轮廓, 是否有等级)
@@ -140,9 +140,9 @@ class LostVoidChooseGear(ZOperation):
 
     def get_gear_pos_by_click_ocr(
         self,
-        gear_with_status: List[Tuple[any, bool]],
-        gear_context: any,
-    ) -> Tuple[List[LostVoidArtifactPos], List[bool]]:
+        gear_with_status: list[tuple[Any, bool]],
+        gear_context: Any,
+    ) -> tuple[list[LostVoidArtifactPos], list[bool]]:
         """
         逐个点击武备，等待1秒截图，裁剪“武备名称”区域，9张纵向拼图后统一OCR。
         按从上到下的OCR结果回填到从左到右的武备槽位。
@@ -184,7 +184,7 @@ class LostVoidChooseGear(ZOperation):
         )
         name_list = self._extract_names_from_stitched_ocr(ocr_map, len(slice_list), slice_list[0].shape[0])
 
-        result_list: List[LostVoidArtifactPos] = []
+        result_list: list[LostVoidArtifactPos] = []
         total_cnt = min(len(click_rect_list), len(name_list))
         for i in range(total_cnt):
             ocr_text = name_list[i]
@@ -213,7 +213,7 @@ class LostVoidChooseGear(ZOperation):
         ocr_map: dict[str, MatchResultList],
         slot_cnt: int,
         slot_height: int,
-    ) -> List[str]:
+    ) -> list[str]:
         slot_tokens: list[list[tuple[int, str]]] = [[] for _ in range(slot_cnt)]
         for text, mrl in ocr_map.items():
             token = text.strip()
@@ -232,7 +232,7 @@ class LostVoidChooseGear(ZOperation):
             name_list.append(text)
         return name_list
 
-    def _build_artifact_from_ocr_name(self, ocr_text: str) -> Tuple[LostVoidArtifact | None, bool]:
+    def _build_artifact_from_ocr_name(self, ocr_text: str) -> tuple[LostVoidArtifact | None, bool]:
         normalized = ocr_text.strip().replace('【', '[').replace('】', ']')
         if len(normalized) == 0:
             return None, False
