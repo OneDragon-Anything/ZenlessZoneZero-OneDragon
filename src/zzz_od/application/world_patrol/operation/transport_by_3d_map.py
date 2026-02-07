@@ -55,7 +55,7 @@ class TransportBy3dMap(ZOperation):
 
     @node_from(from_name='初始回到大世界', status='3D地图')
     @node_from(from_name='打开地图')
-    @operation_node(name='选择区域', node_max_retry_times=60)  # 区域列表可能很长，需要多次滚动
+    @operation_node(name='选择区域', node_max_retry_times=20)
     def choose_area(self) -> OperationRoundResult:
         if self.target_area.parent_area is None:
             target_area_name = self.target_area.area_name
@@ -88,7 +88,7 @@ class TransportBy3dMap(ZOperation):
         start_point = area.center
         end_point = start_point + Point(0, 400 * (-1 if is_target_after else 1))
         self.ctx.controller.drag_to(start=start_point, end=end_point)
-        return self.round_retry(wait=1)
+        return self.round_retry()
 
     @node_from(from_name='选择区域')
     @operation_node(name='选择子区域', node_max_retry_times=6)
@@ -353,8 +353,7 @@ class TransportBy3dMap(ZOperation):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_ocr()
-    ctx.init_by_config()
+    ctx.init()
     ctx.world_patrol_service.load_data()
 
     area = None
