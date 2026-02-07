@@ -4,8 +4,10 @@ from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
-from zzz_od.application.game_config_checker import mouse_sensitivity_checker_const
 from zzz_od.application.game_config_checker.mouse_sensitivity_checker import (
+    mouse_sensitivity_checker_const,
+)
+from zzz_od.application.game_config_checker.mouse_sensitivity_checker.mouse_sensitivity_checker import (
     MouseSensitivityChecker,
 )
 
