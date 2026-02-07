@@ -970,7 +970,7 @@ class HomeInterface(VerticalScrollInterface):
         PillPushButton#start_button {
             background-color: #FFDB29;
             color: #000000;
-            border-radius: 8px;
+            border-radius: 28px;
             height: 48px;
             min-height: 48px;
         }
