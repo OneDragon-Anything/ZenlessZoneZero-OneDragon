@@ -191,6 +191,9 @@ class ZContext(OneDragonContext):
             default_group=False,
         )
 
+        from zzz_od.application.activity_time_check.activity_time_check_app_factory import (
+            ActivityTimeCheckAppFactory,
+        )
         from zzz_od.application.charge_plan.charge_plan_app_factory import (
             ChargePlanAppFactory,
         )
@@ -244,6 +247,7 @@ class ZContext(OneDragonContext):
         )
         self.run_context.registry_application(
             [
+                ActivityTimeCheckAppFactory(self),
                 RedemptionCodeFactory(self),
                 EmailAppFactory(self),
                 RandomPlayFactory(self),
