@@ -108,8 +108,6 @@ class ApplicationFactoryManager:
             nd, d, infos, failures = self._scan_directory(plugin_dir, reload_modules, source)
             non_default_factories.extend(nd)
             default_factories.extend(d)
-            for info in infos:
-                self._plugin_infos[info.app_id] = info
             scan_result.plugins.extend(infos)
             scan_result.failed_plugins.extend(failures)
 
@@ -479,10 +477,22 @@ class ApplicationFactoryManager:
                 f"缺少必需字段: {', '.join(missing)}"
             )
 
+        # 检测重复 APP_ID
+        if factory.app_id in self._plugin_infos:
+            existing = self._plugin_infos[factory.app_id]
+            raise ImportError(
+                f"重复的 APP_ID '{factory.app_id}'，"
+                f"当前模块 {const_module_name}，"
+                f"首次注册于 {existing.const_module}"
+            )
+
         # 读取可选的插件元数据
         plugin_info.author = getattr(const_module, 'PLUGIN_AUTHOR', '')
         plugin_info.homepage = getattr(const_module, 'PLUGIN_HOMEPAGE', '')
         plugin_info.version = getattr(const_module, 'PLUGIN_VERSION', '')
         plugin_info.description = getattr(const_module, 'PLUGIN_DESCRIPTION', '')
+
+        # 注册到插件信息表（同时作为后续重复检测的依据）
+        self._plugin_infos[plugin_info.app_id] = plugin_info
 
         return plugin_info
