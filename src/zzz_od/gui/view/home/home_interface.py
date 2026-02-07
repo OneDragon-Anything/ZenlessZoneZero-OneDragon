@@ -465,6 +465,7 @@ class HomeInterface(VerticalScrollInterface):
 
         # 公告卡片
         self.notice_container = NoticeCard(self.ctx.project_config.notice_url)
+        self._apply_shadow(self.notice_container, blur=28, offset_y=8, alpha=150)
         h2_layout.addWidget(self.notice_container, alignment=Qt.AlignmentFlag.AlignBottom)
 
         h2_layout.addStretch()
@@ -476,6 +477,7 @@ class HomeInterface(VerticalScrollInterface):
         self.start_button.setFixedHeight(48)
         self.start_button.setMinimumWidth(int(self.start_button.sizeHint().width() * 1.1))  # 加宽10%
         self.start_button.clicked.connect(self._on_start_game)
+        self._apply_shadow(self.start_button, blur=24, offset_y=6, alpha=140)
 
         # 设置图标和文本之间的间距
         if self.start_button.layout():
@@ -524,6 +526,14 @@ class HomeInterface(VerticalScrollInterface):
         # 启动阶段有可能被全局样式再次覆盖，做一次延迟兜底
         QTimer.singleShot(0, self._ensure_home_title_bar_style)
         QTimer.singleShot(200, self._ensure_home_title_bar_style)
+
+    def _apply_shadow(self, widget: QWidget, blur: int, offset_y: int, alpha: int) -> None:
+        """为首页关键控件添加阴影，不影响其他页面样式。"""
+        shadow = QGraphicsDropShadowEffect(widget)
+        shadow.setBlurRadius(blur)
+        shadow.setOffset(0, offset_y)
+        shadow.setColor(QColor(0, 0, 0, alpha))
+        widget.setGraphicsEffect(shadow)
 
     def _init_check_runners(self):
         """初始化检查更新的线程"""
@@ -862,29 +872,29 @@ class HomeInterface(VerticalScrollInterface):
             }
 
             #TitleBar > QPushButton:hover {
-                background: rgba(255, 255, 255, 0.12);
+                background: rgba(255, 255, 255, 0.06);
             }
 
             #TitleBar > QPushButton:pressed {
-                background: rgba(255, 255, 255, 0.2);
+                background: rgba(255, 255, 255, 0.1);
             }
 
             MinimizeButton {
                 qproperty-normalColor: white;
                 qproperty-normalBackgroundColor: transparent;
                 qproperty-hoverColor: white;
-                qproperty-hoverBackgroundColor: rgba(255, 255, 255, 26);
+                qproperty-hoverBackgroundColor: rgba(255, 255, 255, 13);
                 qproperty-pressedColor: white;
-                qproperty-pressedBackgroundColor: rgba(255, 255, 255, 51);
+                qproperty-pressedBackgroundColor: rgba(255, 255, 255, 26);
             }
 
             MaximizeButton {
                 qproperty-normalColor: white;
                 qproperty-normalBackgroundColor: transparent;
                 qproperty-hoverColor: white;
-                qproperty-hoverBackgroundColor: rgba(255, 255, 255, 26);
+                qproperty-hoverBackgroundColor: rgba(255, 255, 255, 13);
                 qproperty-pressedColor: white;
-                qproperty-pressedBackgroundColor: rgba(255, 255, 255, 51);
+                qproperty-pressedBackgroundColor: rgba(255, 255, 255, 26);
             }
 
             CloseButton {
