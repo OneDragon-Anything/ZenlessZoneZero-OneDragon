@@ -62,9 +62,12 @@ class LostVoidApp(ZApplication):
         self.priority_agent_list: list[Agent] = []  # 优先选择的代理人列表
 
         self.use_priority_agent: bool = False  # 本次挑战是否使用了UP代理人
+        self._entry_nav_click_cooldown_sec: float = 1.0
+        self._entry_nav_last_click_at: float = 0.0
 
     @operation_node(name='初始化加载', is_start_node=True)
     def init_for_lost_void(self) -> OperationRoundResult:
+        self._reset_entry_nav_click_cooldown()
         # 检查分配给今天的任务是否完成
         if self.run_record.is_finished_by_day:
             return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
@@ -128,6 +131,13 @@ class LostVoidApp(ZApplication):
         # 矩阵行动没有独立screen_info时，允许通过OCR文本放行，避免卡死在入口识别
         if self.config.mission_name == '矩阵行动' and self._is_matrix_action_text_visible():
             return self.round_success(status='矩阵行动页面')
+
+        # 新入口UI：战线肃清/特遣调查需要先在“矩阵探索”页点击“常规”再点目标副本
+        # 到达入口的判定只认“常规”，后续分流由OCR导航节点按副本目标处理
+        if self.config.mission_name in ['战线肃清', '特遣调查']:
+            ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+            if self._find_ocr_text_mr(ocr_result_map, '常规') is not None:
+                return self.round_success(status='迷失之地-入口')
 
         screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
         if screen_name != '迷失之地-入口':
@@ -199,9 +209,62 @@ class LostVoidApp(ZApplication):
     @operation_node(name='前往副本画面', node_max_retry_times=60)
     def goto_mission_screen(self) -> OperationRoundResult:
         mission_name = self.config.mission_name
+        if mission_name in ['战线肃清', '特遣调查']:
+            return self.round_success('需OCR入口导航')
         return self.round_by_goto_screen(screen_name=f'迷失之地-{mission_name}')
 
+    @node_from(from_name='前往副本画面', status='需OCR入口导航')
+    @operation_node(name='入口OCR-点击常规', node_max_retry_times=300)
+    def click_regular_in_matrix_explore(self) -> OperationRoundResult:
+        mission_name = self.config.mission_name
+        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+
+        # 条件通过：检测到下一步按钮文字（战线肃清/特遣调查）
+        if self._find_ocr_text_mr(ocr_result_map, mission_name) is not None:
+            self._reset_entry_nav_click_cooldown()
+            return self.round_success('已显示目标副本入口')
+
+        regular_mr = self._find_ocr_text_mr(ocr_result_map, '常规')
+        if regular_mr is None:
+            return self.round_retry('未识别到常规', wait=0.1)
+
+        if self._is_entry_nav_click_on_cooldown():
+            return self.round_retry('点击常规冷却', wait=0.1)
+
+        if self.ctx.controller.click(regular_mr.center):
+            self._record_entry_nav_click()
+            return self.round_wait('点击常规', wait=0.3)
+        return self.round_retry('点击常规失败', wait=0.1)
+
+    @node_from(from_name='入口OCR-点击常规', status='已显示目标副本入口')
+    @operation_node(name='入口OCR-点击目标副本', node_max_retry_times=300)
+    def click_target_mission_in_matrix_explore(self) -> OperationRoundResult:
+        mission_name = self.config.mission_name
+        target_screen_name = f'迷失之地-{mission_name}'
+
+        screen_name = self.check_and_update_current_screen(
+            self.last_screenshot,
+            screen_name_list=[target_screen_name],
+        )
+        if screen_name == target_screen_name:
+            self._reset_entry_nav_click_cooldown()
+            return self.round_success('已进入目标副本')
+
+        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        mission_mr = self._find_ocr_text_mr(ocr_result_map, mission_name)
+        if mission_mr is None:
+            return self.round_retry('未识别到目标副本入口', wait=0.1)
+
+        if self._is_entry_nav_click_on_cooldown():
+            return self.round_retry('点击目标副本冷却', wait=0.1)
+
+        if self.ctx.controller.click(mission_mr.center):
+            self._record_entry_nav_click()
+            return self.round_wait('点击目标副本', wait=0.5)
+        return self.round_retry('点击目标副本失败', wait=0.1)
+
     @node_from(from_name='前往副本画面')
+    @node_from(from_name='入口OCR-点击目标副本', status='已进入目标副本')
     @operation_node(name='副本画面识别')
     def check_for_mission(self) -> OperationRoundResult:
         """
@@ -561,6 +624,31 @@ class LostVoidApp(ZApplication):
                 return True
 
         return False
+
+    def _find_ocr_text_mr(self, ocr_result_map, target_text: str) -> MatchResult | None:
+        target = gt(target_text, 'game')
+        ocr_word_list = list(ocr_result_map.keys())
+
+        idx = str_utils.find_best_match_by_difflib(target, ocr_word_list, cutoff=0.5)
+        if idx is not None and idx >= 0:
+            mrl = ocr_result_map[ocr_word_list[idx]]
+            if mrl.max is not None:
+                return mrl.max
+
+        for ocr_word, mrl in ocr_result_map.items():
+            if str_utils.find_by_lcs(target, ocr_word, percent=0.6) and mrl.max is not None:
+                return mrl.max
+
+        return None
+
+    def _reset_entry_nav_click_cooldown(self) -> None:
+        self._entry_nav_last_click_at = 0.0
+
+    def _is_entry_nav_click_on_cooldown(self) -> bool:
+        return time.monotonic() - self._entry_nav_last_click_at < self._entry_nav_click_cooldown_sec
+
+    def _record_entry_nav_click(self) -> None:
+        self._entry_nav_last_click_at = time.monotonic()
 
     @node_from(from_name='识别悬赏委托完成进度', status=STATUS_ENOUGH_TIMES)
     @operation_node(name='打开悬赏委托')
