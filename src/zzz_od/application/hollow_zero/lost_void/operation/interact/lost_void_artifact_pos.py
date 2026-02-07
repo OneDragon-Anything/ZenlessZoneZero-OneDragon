@@ -20,6 +20,7 @@ class LostVoidArtifactPos:
 
         self.can_choose: bool = True
         self.chosen: bool = False  # 已经被选择了
+        self.has_same_style: bool = False  # 有同流派武备
         self.store_price: Optional[int] = None
         self.store_buy_rect: Optional[Rect] = None
         self.is_new: bool = False

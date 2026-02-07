@@ -37,64 +37,96 @@ class LostVoidChooseCommon(ZOperation):
         self.ctx.controller.mouse_move(area.center + Point(0, 100))
         time.sleep(0.1)
 
-        result = self.round_by_find_area(self.last_screenshot, '迷失之地-通用选择', '按钮-刷新')
-        can_refresh = result.is_success
-
         art_list, chosen_list = self.get_artifact_pos(self.last_screenshot)
         if self.to_choose_num > 0:
-            if len(art_list) == 0 and len(chosen_list) == 0:  # 已选和可选都没有才算没有
-                # 兜底：逐个点击“区域-藏品名称”识别到的文本块，直到出现“有同流派武备”或识别到已选择
-                if self.try_choose_by_click_name_text():
-                    _, current_screen = self.ctx.controller.screenshot()
-                    _, chosen_after = self.get_artifact_pos(current_screen)
-                    if len(chosen_after) < self.to_choose_num:
-                        return self.round_retry(status='兜底后选择数量不足', wait=1)
-                    return self.click_confirm()
-                return self.round_retry(status='无法识别藏品', wait=1)
+            if len(chosen_list) >= self.to_choose_num:
+                return self.click_confirm()
 
-            priority_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_by_priority(
-                art_list, self.to_choose_num,
-                consider_priority_1=True, consider_priority_2=not can_refresh,
-                consider_not_in_priority=not can_refresh,
-                consider_priority_new=self.ctx.lost_void.challenge_config.artifact_priority_new
-            )
+            # 四层流程：NEW -> 同流派 -> 优先级 -> 兜底
+            # 每层都按“剩余数量”补齐，补满即确认。
+            if len(art_list) > 0 and self.select_by_layers(self.to_choose_num):
+                return self.click_confirm()
 
-            # 如果需要选择多个 则有任意一个符合优先级即可 剩下的用优先级以外的补上
-            if 0 < len(priority_list) < self.to_choose_num:
-                priority_list = self.ctx.lost_void.get_artifact_by_priority(
-                    art_list, self.to_choose_num,
-                    consider_priority_1=True, consider_priority_2=True,
-                    consider_not_in_priority=True,
-                    consider_priority_new=self.ctx.lost_void.challenge_config.artifact_priority_new
-                )
-
-            # 注意最后筛选优先级的长度一定要符合需求的选择数量
-            # 不然在选择2个情况下会一直选择1个 导致无法继续
-            if len(priority_list) == self.to_choose_num:
-                for chosen in chosen_list:
-                    self.ctx.controller.click(chosen.rect.center + Point(0, 100))
-                    time.sleep(0.5)
-
-                for art in priority_list:
-                    self.ctx.controller.click(art.rect.center)
-                    time.sleep(0.5)
-            elif can_refresh:
-                result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-通用选择', '按钮-刷新')
-                if result.is_success:
-                    return self.round_wait(result.status, wait=1)
-                else:
-                    return self.round_retry(result.status, wait=1)
-            else:
-                # 无刷新时，不允许“数量不足仍直接确定”导致死循环
-                if self.try_choose_by_click_name_text():
-                    _, current_screen = self.ctx.controller.screenshot()
-                    _, chosen_after = self.get_artifact_pos(current_screen)
-                    if len(chosen_after) < self.to_choose_num:
-                        return self.round_retry(status='兜底后选择数量不足', wait=1)
-                    return self.click_confirm()
-                return self.round_retry(status='藏品数量不足', wait=1)
+            # 兜底：无条件点击可见文本块后直接确认，避免卡死。
+            self.try_choose_by_click_name_text(target_num=self.to_choose_num)
 
         return self.click_confirm()
+
+    def select_by_layers(self, target_num: int) -> bool:
+        layer_order = ['NEW', '同流派', '优先级']
+
+        for layer in layer_order:
+            _, current_screen = self.ctx.controller.screenshot()
+            can_choose_list, chosen_list = self.get_artifact_pos(current_screen)
+            chosen_cnt = len(chosen_list)
+            if chosen_cnt >= target_num:
+                return True
+
+            remain = target_num - chosen_cnt
+            candidate_list: list[LostVoidArtifactPos] = []
+            available_list = [i for i in can_choose_list if i.can_choose]
+
+            if len(available_list) == 0:
+                continue
+
+            if layer == 'NEW':
+                if self.ctx.lost_void.challenge_config.artifact_priority_new:
+                    candidate_list = self.sort_candidates([
+                        i for i in available_list if i.is_new
+                    ])[:remain]
+            elif layer == '同流派':
+                candidate_list = self.sort_candidates([
+                    i for i in available_list if i.has_same_style
+                ])[:remain]
+            elif layer == '优先级':
+                if self.has_priority_rule():
+                    candidate_list = self.ctx.lost_void.get_artifact_by_priority(
+                        available_list, remain,
+                        consider_priority_1=True,
+                        consider_priority_2=True,
+                        consider_not_in_priority=False,
+                        consider_priority_new=False,
+                    )
+
+            if len(candidate_list) == 0:
+                continue
+
+            display_text = ', '.join([i.artifact.display_name for i in candidate_list])
+            log.info(f'分层选择 [{layer}] 选中={len(candidate_list)} 剩余目标={remain} {display_text}')
+            for artifact_pos in candidate_list:
+                self.ctx.controller.click(artifact_pos.rect.center)
+                time.sleep(0.3)
+
+        _, final_screen = self.ctx.controller.screenshot()
+        _, final_chosen_list = self.get_artifact_pos(final_screen)
+        return len(final_chosen_list) >= target_num
+
+    def has_priority_rule(self) -> bool:
+        cfg = self.ctx.lost_void.challenge_config
+        if cfg is None:
+            return False
+        if len(self.ctx.lost_void.dynamic_priority_list) > 0:
+            return True
+        if len(cfg.artifact_priority) > 0:
+            return True
+        if len(cfg.artifact_priority_2) > 0:
+            return True
+        return False
+
+    def sort_candidates(self, candidate_list: List[LostVoidArtifactPos]) -> List[LostVoidArtifactPos]:
+        if len(candidate_list) <= 1:
+            return candidate_list
+
+        level_rank = {'S': 0, 'A': 1, 'B': 2}
+        return sorted(
+            candidate_list,
+            key=lambda i: (
+                0 if i.is_primary_name else 1,
+                level_rank.get(i.artifact.level, 9),
+                i.rect.center.x,
+                i.rect.center.y,
+            )
+        )
 
     def click_confirm(self) -> OperationRoundResult:
         _, latest_screen = self.ctx.controller.screenshot()
@@ -112,7 +144,7 @@ class LostVoidChooseCommon(ZOperation):
         else:
             return self.round_retry(result.status, wait=1)
 
-    def try_choose_by_click_name_text(self) -> bool:
+    def try_choose_by_click_name_text(self, target_num: int | None = None) -> bool:
         """
         兜底选择：
         1. 获取“区域-藏品名称”的OCR文本块
@@ -125,12 +157,21 @@ class LostVoidChooseCommon(ZOperation):
             log.info('无法识别藏品 兜底点击未识别到藏品名称文本块')
             return False
 
+        clicked_any = False
+
         log.info(f'无法识别藏品 兜底第一轮 文本块数量={len(click_target_list)}')
         for target_idx, target in enumerate(click_target_list):
             self.ctx.controller.click(target.center)
+            clicked_any = True
             time.sleep(0.3)
 
             _, clicked_screen = self.ctx.controller.screenshot()
+            if target_num is not None:
+                _, chosen_after = self.get_artifact_pos(clicked_screen)
+                if len(chosen_after) >= target_num:
+                    log.info(f'兜底点击藏品成功 第一轮达到目标数量 第{target_idx + 1}/{len(click_target_list)}个')
+                    return True
+                continue
             if self.has_same_style_selected(clicked_screen):
                 log.info(f'兜底点击藏品成功 第一轮命中同流派武备 第{target_idx + 1}/{len(click_target_list)}个')
                 return True
@@ -138,12 +179,28 @@ class LostVoidChooseCommon(ZOperation):
         log.info(f'无法识别藏品 兜底第二轮 文本块数量={len(click_target_list)}')
         for target_idx, target in enumerate(click_target_list):
             self.ctx.controller.click(target.center)
+            clicked_any = True
             time.sleep(0.3)
 
             _, clicked_screen = self.ctx.controller.screenshot()
+            if target_num is not None:
+                _, chosen_after = self.get_artifact_pos(clicked_screen)
+                if len(chosen_after) >= target_num:
+                    log.info(f'兜底点击藏品成功 第二轮达到目标数量 第{target_idx + 1}/{len(click_target_list)}个')
+                    return True
+                continue
             if self.has_selected(clicked_screen):
                 log.info(f'兜底点击藏品成功 第二轮命中已选择 第{target_idx + 1}/{len(click_target_list)}个')
                 return True
+
+        if target_num is not None:
+            _, final_screen = self.ctx.controller.screenshot()
+            _, chosen_after = self.get_artifact_pos(final_screen)
+            if len(chosen_after) >= target_num:
+                log.info('兜底点击藏品成功 第二轮结束后达到目标数量')
+                return True
+            log.info('兜底点击藏品结束 仍未达到目标数量')
+            return clicked_any
 
         _, final_screen = self.ctx.controller.screenshot()
         if self.has_selected(final_screen):
