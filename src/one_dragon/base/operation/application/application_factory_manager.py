@@ -142,8 +142,30 @@ class ApplicationFactoryManager:
         plugin_infos: list[PluginInfo] = []
         failures: list[tuple[Path, str]] = []
 
-        # 递归查找所有 *_factory.py 文件
-        for factory_file in directory.rglob(f"*{self._factory_module_suffix}.py"):
+        # 递归查找所有 *_factory.py 文件，按父目录分组检测冲突
+        factory_files = list(directory.rglob(f"*{self._factory_module_suffix}.py"))
+
+        # 检测同一目录下多个 factory 或 const 文件
+        conflict_dirs: set[Path] = set()
+        for suffix, label in [
+            (self._factory_module_suffix, '工厂'),
+            (self._const_module_suffix, '常量'),
+        ]:
+            dir_to_files: dict[Path, list[Path]] = {}
+            for f in directory.rglob(f"*{suffix}.py"):
+                dir_to_files.setdefault(f.parent, []).append(f)
+            for parent_dir, files in dir_to_files.items():
+                if len(files) > 1:
+                    conflict_dirs.add(parent_dir)
+                    names = ', '.join(f.name for f in files)
+                    error_msg = f"同一目录下存在多个{label}文件: {names}"
+                    for f in files:
+                        failures.append((f, error_msg))
+                    log.warning(f"目录 {parent_dir} 中发现多个{label}文件，已跳过: {names}")
+
+        for factory_file in factory_files:
+            if factory_file.parent in conflict_dirs:
+                continue
             try:
                 result = self._load_factory_from_file(factory_file, reload_modules, source, directory)
                 if result is None:
