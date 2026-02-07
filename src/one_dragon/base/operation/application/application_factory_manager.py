@@ -274,7 +274,11 @@ class ApplicationFactoryManager:
                 if init_spec and init_spec.loader:
                     init_module = importlib.util.module_from_spec(init_spec)
                     sys.modules[pkg_module_name] = init_module
-                    init_spec.loader.exec_module(init_module)
+                    try:
+                        init_spec.loader.exec_module(init_module)
+                    except Exception:
+                        sys.modules.pop(pkg_module_name, None)
+                        raise
             else:
                 # 无 __init__.py 时创建命名空间包，确保 dotted import 正常工作
                 ns_pkg = ModuleType(pkg_module_name)
