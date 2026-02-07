@@ -45,7 +45,6 @@ from zzz_od.context.zzz_context import ZContext  # ✅ 可以导入主程序模�
 > `ApplicationFactoryManager` 仅负责工厂的发现和加载。
 
 **内部方法**:
-- `_resolve_module_root()`: 解析模块根目录（BUILTIN → `src/`，THIRD_PARTY → 扫描根目录）
 - `_import_module_from_file()`: 统一的模块导入，自动加载所有中间包
 - `_find_factory_in_module()`: 在模块中查找并实例化工厂类（每个模块最多一个）
 - `_get_unload_prefix()`: 确定热更新时需要卸载的模块前缀
@@ -141,13 +140,16 @@ plugins/
 
 APP_ID = "my_app"
 APP_NAME = "我的应用"
-NEED_NOTIFY = False  # 可选，是否需要通知
 DEFAULT_GROUP = True  # 是否属于默认应用组（一条龙列表）
+NEED_NOTIFY = True    # 是否需要通知
 ```
+
+> 字段顺序和必须字段请参考 `app_const_schema.py`。
 
 **说明**:
 - `DEFAULT_GROUP = True`: 应用会出现在一条龙运行列表中
 - `DEFAULT_GROUP = False`: 应用不会出现在一条龙列表中（如工具类应用）
+- `NEED_NOTIFY = True`: 应用支持发送通知
 
 #### 步骤 2: 创建工厂类
 
@@ -167,7 +169,8 @@ class MyAppFactory(ApplicationFactory):
             self,
             app_id=my_app_const.APP_ID,
             app_name=my_app_const.APP_NAME,
-            default_group=my_app_const.DEFAULT_GROUP,  # 从 const 读取
+            default_group=my_app_const.DEFAULT_GROUP,
+            need_notify=my_app_const.NEED_NOTIFY,
         )
         self.ctx = ctx
 
@@ -177,7 +180,7 @@ class MyAppFactory(ApplicationFactory):
 
 **重要**:
 - 文件名必须以 `_factory.py` 结尾
-- 必须在构造函数中传递 `default_group` 参数
+- 必须在构造函数中传递 `default_group` 和 `need_notify` 参数（从 const 模块读取）
 
 ### 2. 创建第三方插件
 
@@ -201,6 +204,7 @@ plugins/
 APP_ID = "my_plugin"
 APP_NAME = "我的插件"
 DEFAULT_GROUP = True
+NEED_NOTIFY = True
 
 # 插件元数据（可选，用于 GUI 显示）
 PLUGIN_AUTHOR = "作者名"
@@ -225,6 +229,7 @@ class MyPluginFactory(ApplicationFactory):
             app_id=my_plugin_const.APP_ID,
             app_name=my_plugin_const.APP_NAME,
             default_group=my_plugin_const.DEFAULT_GROUP,
+            need_notify=my_plugin_const.NEED_NOTIFY,
         )
         self.ctx = ctx
 
@@ -299,7 +304,7 @@ ctx.refresh_application_registration()
 my_plugin.zip
 └── my_plugin/
     ├── __init__.py        # 可选
-    ├── my_plugin_const.py # 必须包含 APP_ID, APP_NAME, DEFAULT_GROUP
+    ├── my_plugin_const.py # 必须包含 APP_ID, APP_NAME, DEFAULT_GROUP, NEED_NOTIFY
     ├── my_plugin_factory.py # 必须，工厂类
     └── my_plugin.py       # 应用实现
 ```
@@ -337,13 +342,14 @@ class MyContext(OneDragonContext):
 
 1. **文件命名**: 工厂文件必须以 `_factory.py` 结尾
 2. **一模块一工厂**: 每个 `_factory.py` 文件中应只定义一个 `ApplicationFactory` 子类
-3. **const 文件**: 必须定义 `DEFAULT_GROUP` 常量
-4. **模块缓存**: 刷新应用时会重新加载模块，支持代码热更新
-5. **错误处理**: 工厂实例化失败时异常会被记录到 `failures` 并跳过，不会影响其他插件
-6. **第三方插件**: 第三方插件目录被 gitignore，用户需要自行备份
-7. **插件元数据**: 建议填写 `PLUGIN_AUTHOR`、`PLUGIN_VERSION` 等元数据以便用户识别
-8. **相对导入**: 第三方插件完整支持相对导入，建议添加 `__init__.py` 文件
-9. **导入主程序**: 第三方插件可以直接 `from one_dragon.xxx` 或 `from zzz_od.xxx` 导入主程序模块
+3. **const 必须字段**: 必须定义 `APP_ID`, `APP_NAME`, `DEFAULT_GROUP`, `NEED_NOTIFY`（见 `app_const_schema.py`）
+4. **字段顺序**: const 文件字段顺序统一为 `APP_ID → APP_NAME → DEFAULT_GROUP → NEED_NOTIFY`
+5. **模块缓存**: 刷新应用时会重新加载模块，支持代码热更新
+6. **错误处理**: 工厂实例化失败时异常会被记录到 `failures` 并跳过，不会影响其他插件
+7. **第三方插件**: 第三方插件目录被 gitignore，用户需要自行备份
+8. **插件元数据**: 建议填写 `PLUGIN_AUTHOR`、`PLUGIN_VERSION` 等元数据以便用户识别
+9. **相对导入**: 第三方插件完整支持相对导入，建议添加 `__init__.py` 文件
+10. **导入主程序**: 第三方插件可以直接 `from one_dragon.xxx` 或 `from zzz_od.xxx` 导入主程序模块
 
 ## 插件加载机制
 
@@ -352,9 +358,9 @@ class MyContext(OneDragonContext):
 
 ### 模块根目录 (module_root)
 
-`_resolve_module_root()` 负责确定模块名的起算目录：
+`_load_factory_from_file()` 在加载前确定模块名的起算目录，使用共享的 `find_src_dir()` 工具函数：
 
-- **BUILTIN**: 查找路径中的 `src` 目录作为 module_root
+- **BUILTIN**: 调用 `find_src_dir()` 反向查找路径中最后一个 `src` 目录作为 module_root
 - **THIRD_PARTY**: 使用扫描根目录（如 `plugins/`）作为 module_root
 
 ### 内置插件 (BUILTIN)
@@ -404,8 +410,8 @@ plugins/my_plugin/sub/sub_feature_factory.py
 
 ```python
 # 加载过程
-# 1. 解析 module_root（仅执行一次路径查找）
-module_root = _resolve_module_root(factory_file, source, base_dir)
+# 1. 解析 module_root
+module_root = find_src_dir(factory_file) if source == BUILTIN else base_dir
 
 # 2. 统一计算模块名
 relative_path = factory_file.relative_to(module_root)

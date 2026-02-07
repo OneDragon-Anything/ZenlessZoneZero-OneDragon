@@ -25,6 +25,7 @@ from one_dragon.base.operation.application.plugin_info import (
     PluginScanResult,
     PluginSource,
 )
+from one_dragon.utils.file_utils import find_src_dir
 from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
@@ -191,21 +192,19 @@ class ApplicationFactoryManager:
             Other exceptions: 工厂加载或实例化时的其他错误
         """
         # 1. 统一解析 module_root（模块名的起算目录）
-        module_root = self._resolve_module_root(factory_file, source, base_dir)
+        module_root = find_src_dir(factory_file) if source == PluginSource.BUILTIN else base_dir
         if module_root is None:
-            return None
+            raise ImportError(f"无法确定模块根目录: {factory_file}")
 
         # 2. 统一计算 module_name：相对路径 → dotted name
         try:
             relative_path = factory_file.relative_to(module_root)
-        except ValueError:
-            log.warning(f"无法计算相对路径: {factory_file} relative to {module_root}")
-            return None
+        except ValueError as e:
+            raise ImportError(f"无法计算相对路径: {factory_file} relative to {module_root}") from e
 
         rel_parts = relative_path.parts
         if len(rel_parts) < 1:
-            log.warning(f"无效的插件路径: {relative_path}")
-            return None
+            raise ImportError(f"无效的插件路径: {relative_path}")
 
         module_name = '.'.join(list(rel_parts[:-1]) + [factory_file.stem])
 
@@ -237,40 +236,6 @@ class ApplicationFactoryManager:
         )
 
         return factory_result
-
-    def _resolve_module_root(
-        self,
-        factory_file: Path,
-        source: PluginSource,
-        base_dir: Path | None
-    ) -> Path | None:
-        """解析模块根目录
-
-        模块根目录是计算 dotted module name 的起算点。
-        - BUILTIN: src/ 目录
-        - THIRD_PARTY: 扫描根目录（如 plugins/）
-
-        Args:
-            factory_file: 工厂文件路径
-            source: 插件来源
-            base_dir: 扫描根目录
-
-        Returns:
-            Path | None: 模块根目录，无法确定时返回 None
-        """
-        if source == PluginSource.BUILTIN:
-            try:
-                parts = factory_file.parts
-                src_index = parts.index('src')
-                return Path(*parts[:src_index + 1])
-            except ValueError:
-                log.warning(f"无法确定 src 目录: {factory_file}")
-                return None
-        else:
-            if base_dir is None:
-                log.warning(f"第三方插件未提供 base_dir: {factory_file}")
-                return None
-            return base_dir
 
     def _import_module_from_file(
         self,

@@ -29,7 +29,7 @@ plugins/                          # ← 添加到 sys.path
 ├── README.md
 ├── plugin_a/                     # 插件 A
 │   ├── __init__.py               # 推荐添加
-│   ├── plugin_a_const.py         # 定义 APP_ID, APP_NAME, DEFAULT_GROUP
+│   ├── plugin_a_const.py         # 定义 APP_ID, APP_NAME, DEFAULT_GROUP, NEED_NOTIFY
 │   ├── plugin_a_factory.py       # 工厂类（必须以 _factory.py 结尾）
 │   ├── plugin_a.py               # 应用实现
 │   └── utils/                    # 子包
@@ -65,6 +65,7 @@ plugins/                          # ← 添加到 sys.path
 APP_ID = "my_plugin"
 APP_NAME = "我的插件"
 DEFAULT_GROUP = True  # True: 显示在一条龙列表，False: 独立工具
+NEED_NOTIFY = True    # 是否需要通知
 
 # 插件元数据（可选，用于 GUI 显示）
 PLUGIN_AUTHOR = "作者名"
@@ -93,6 +94,7 @@ class MyPluginFactory(ApplicationFactory):
             app_id=my_plugin_const.APP_ID,
             app_name=my_plugin_const.APP_NAME,
             default_group=my_plugin_const.DEFAULT_GROUP,
+            need_notify=my_plugin_const.NEED_NOTIFY,
         )
         self.ctx = ctx
 
@@ -123,8 +125,9 @@ class MyPlugin(Application):
 ## 注意事项
 
 1. **文件命名**：工厂文件必须以 `_factory.py` 结尾
-2. **`__init__.py`**：建议添加以支持相对导入，无 `__init__.py` 时会自动创建命名空间包
-3. **模块名唯一性**：插件包名（目录名）应该唯一，避免与其他插件或主程序模块冲突
-4. **备份**：此目录被 `.gitignore` 忽略，请自行备份
-5. **热重载**：刷新应用时会卸载整个插件包并重新加载
-6. **嵌套目录**：支持在插件包内任意深度放置 `_factory.py` 文件
+2. **必需字段**：const 文件必须定义 `APP_ID`, `APP_NAME`, `DEFAULT_GROUP`, `NEED_NOTIFY`（顺序一致）
+3. **`__init__.py`**：建议添加以支持相对导入，无 `__init__.py` 时会自动创建命名空间包
+4. **模块名唯一性**：插件包名（目录名）应该唯一，避免与其他插件或主程序模块冲突
+5. **备份**：此目录被 `.gitignore` 忽略，请自行备份
+6. **热重载**：刷新应用时会卸载整个插件包并重新加载
+7. **嵌套目录**：支持在插件包内任意深度放置 `_factory.py` 文件

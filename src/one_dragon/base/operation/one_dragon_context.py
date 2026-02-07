@@ -34,7 +34,7 @@ from one_dragon.base.operation.one_dragon_env_context import (
 from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
-from one_dragon.utils import debug_utils, i18_utils, log_utils, thread_utils
+from one_dragon.utils import debug_utils, file_utils, i18_utils, log_utils, thread_utils
 from one_dragon.utils.log_utils import log
 
 
@@ -122,16 +122,12 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         # 计算项目根目录下的 plugins 目录（外部插件）
         # 从 src 目录往上一级就是项目根目录
-        try:
-            parts = Path(cls_file).parts
-            src_index = len(parts) - parts[::-1].index('src') - 1
-            project_root = Path(*parts[:src_index]) if src_index > 0 else Path('.')
+        src_dir = file_utils.find_src_dir(cls_file)
+        if src_dir is not None:
+            project_root = src_dir.parent
             plugins_dir = project_root / 'plugins'
             if plugins_dir.is_dir():
                 dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
-        except (ValueError, IndexError):
-            # 如果找不到 src 目录，忽略
-            pass
 
         return dirs
 
