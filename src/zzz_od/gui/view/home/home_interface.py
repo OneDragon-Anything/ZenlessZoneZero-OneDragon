@@ -474,6 +474,7 @@ class HomeInterface(VerticalScrollInterface):
         self.start_button.setObjectName("start_button")
         self.start_button.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
         self.start_button.setFixedHeight(48)
+        self.start_button.setMinimumWidth(int(self.start_button.sizeHint().width() * 1.1))  # 加宽10%
         self.start_button.clicked.connect(self._on_start_game)
 
         # 设置图标和文本之间的间距
