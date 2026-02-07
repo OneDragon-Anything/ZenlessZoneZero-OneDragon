@@ -28,7 +28,7 @@ class LostVoidChooseCommon(ZOperation):
         self.to_choose_artifact: bool = False  # 需要选择普通藏品
         self.to_choose_gear: bool = False  # 需要选择武备
         self.to_choose_gear_branch: bool = False  # 需要选择武备分支
-        self.to_choose_num: int = 1  # 需要选择的数量
+        self.to_choose_num: int = 1  # 需选数量（本轮总目标）
         self.chosen_idx_list: list[int] = []  # 已经选择过的下标
 
     @operation_node(name='选择', is_start_node=True)
@@ -39,11 +39,14 @@ class LostVoidChooseCommon(ZOperation):
 
         art_list, chosen_list = self.get_artifact_pos(self.last_screenshot)
         if self.to_choose_num > 0:
+            log.info(
+                f'选择概览 需选数量={self.to_choose_num} 已选数量={len(chosen_list)} 可选数量={len(art_list)}'
+            )
             if len(chosen_list) >= self.to_choose_num:
                 return self.click_confirm()
 
             # 四层流程：NEW -> 同流派 -> 优先级 -> 兜底
-            # 每层都按“剩余数量”补齐，补满即确认。
+            # 每层都按“还需选择数量”补齐，补满即确认。
             if len(art_list) > 0 and self.select_by_layers(self.to_choose_num):
                 return self.click_confirm()
 
@@ -62,7 +65,8 @@ class LostVoidChooseCommon(ZOperation):
             if chosen_cnt >= target_num:
                 return True
 
-            remain = target_num - chosen_cnt
+            need_cnt = target_num
+            remain_cnt = target_num - chosen_cnt
             candidate_list: list[LostVoidArtifactPos] = []
             available_list = [i for i in can_choose_list if i.can_choose]
 
@@ -73,15 +77,15 @@ class LostVoidChooseCommon(ZOperation):
                 if self.ctx.lost_void.challenge_config.artifact_priority_new:
                     candidate_list = self.sort_candidates([
                         i for i in available_list if i.is_new
-                    ])[:remain]
+                    ])[:remain_cnt]
             elif layer == '同流派':
                 candidate_list = self.sort_candidates([
                     i for i in available_list if i.has_same_style
-                ])[:remain]
+                ])[:remain_cnt]
             elif layer == '优先级':
                 if self.has_priority_rule():
                     candidate_list = self.ctx.lost_void.get_artifact_by_priority(
-                        available_list, remain,
+                        available_list, remain_cnt,
                         consider_priority_1=True,
                         consider_priority_2=True,
                         consider_not_in_priority=False,
@@ -92,14 +96,29 @@ class LostVoidChooseCommon(ZOperation):
                 continue
 
             display_text = ', '.join([i.artifact.display_name for i in candidate_list])
-            log.info(f'分层选择 [{layer}] 选中={len(candidate_list)} 剩余目标={remain} {display_text}')
+            log.info(
+                f'分层选择 [{layer}] 需选数量={need_cnt} 已选数量={chosen_cnt} 可选数量={len(available_list)} '
+                f'还需选择={remain_cnt} 本层待点={len(candidate_list)} {display_text}'
+            )
             for artifact_pos in candidate_list:
                 self.ctx.controller.click(artifact_pos.rect.center)
                 time.sleep(0.3)
+                # 每次点击后立即复核，达标就立刻退出，避免“已满足仍继续点下一层”
+                if self._reached_target_choose_num(target_num):
+                    return True
 
         _, final_screen = self.ctx.controller.screenshot()
         _, final_chosen_list = self.get_artifact_pos(final_screen)
         return len(final_chosen_list) >= target_num
+
+    def _reached_target_choose_num(self, target_num: int) -> bool:
+        for _ in range(3):
+            _, latest_screen = self.ctx.controller.screenshot()
+            _, chosen_list = self.get_artifact_pos(latest_screen)
+            if len(chosen_list) >= target_num:
+                return True
+            time.sleep(0.2)
+        return False
 
     def has_priority_rule(self) -> bool:
         cfg = self.ctx.lost_void.challenge_config
@@ -151,6 +170,9 @@ class LostVoidChooseCommon(ZOperation):
         2. 第一轮逐个点击，每次点击后检查“有同流派武备”
         3. 若第一轮未命中，第二轮逐个点击，每次点击后检查“已选择”
         """
+        if target_num is not None:
+            return self.try_fill_by_can_choose(target_num)
+
         _, current_screen = self.ctx.controller.screenshot()
         click_target_list = self.get_name_text_click_target_list(current_screen)
         if len(click_target_list) == 0:
@@ -209,6 +231,49 @@ class LostVoidChooseCommon(ZOperation):
 
         log.info('无法识别藏品 兜底两轮结束仍未检测到目标标志')
         return False
+
+    def try_fill_by_can_choose(self, target_num: int) -> bool:
+        """
+        选择数量场景下的兜底：
+        仅点击当前可选(can_choose)候选，避免点到已选导致覆盖。
+        每次点击后都重新截图和重算，直到达到需选数量或候选耗尽。
+        """
+        tried_center_list: list[Point] = []
+
+        for _ in range(12):
+            _, current_screen = self.ctx.controller.screenshot()
+            can_choose_list, chosen_list = self.get_artifact_pos(current_screen)
+            if len(chosen_list) >= target_num:
+                log.info('兜底点击藏品成功 通过can_choose达到目标数量')
+                return True
+
+            candidate_list = self.sort_candidates([i for i in can_choose_list if i.can_choose])
+            target = None
+            for candidate in candidate_list:
+                duplicated = False
+                for tried_center in tried_center_list:
+                    if abs(candidate.rect.center.x - tried_center.x) < 40 and abs(candidate.rect.center.y - tried_center.y) < 40:
+                        duplicated = True
+                        break
+                if not duplicated:
+                    target = candidate
+                    break
+
+            if target is None:
+                break
+
+            self.ctx.controller.click(target.rect.center)
+            tried_center_list.append(target.rect.center)
+            time.sleep(0.3)
+
+        _, final_screen = self.ctx.controller.screenshot()
+        _, chosen_after = self.get_artifact_pos(final_screen)
+        if len(chosen_after) >= target_num:
+            log.info('兜底点击藏品成功 can_choose结束后达到目标数量')
+            return True
+
+        log.info('兜底点击藏品结束 can_choose候选耗尽仍未达到目标数量')
+        return len(tried_center_list) > 0
 
     def get_name_text_click_target_list(self, screen: MatLike) -> List[MatchResult]:
         area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '区域-藏品名称')
@@ -275,12 +340,12 @@ class LostVoidChooseCommon(ZOperation):
         )
 
         can_choose_list = [i for i in artifact_pos_list if i.can_choose]
-        display_text = ', '.join([i.artifact.display_name for i in can_choose_list]) if len(can_choose_list) > 0 else '无'
-        log.info(f'当前可选择藏品 {display_text}')
+        can_choose_text = ', '.join([i.artifact.display_name for i in can_choose_list]) if len(can_choose_list) > 0 else '无'
+        log.info(f'当前可选藏品 数量={len(can_choose_list)} {can_choose_text}')
 
         chosen_list = [i for i in artifact_pos_list if i.chosen]
-        display_text = ', '.join([i.artifact.display_name for i in chosen_list]) if len(chosen_list) > 0 else '无'
-        log.info(f'当前已选择藏品 {display_text}')
+        chosen_text = ', '.join([i.artifact.display_name for i in chosen_list]) if len(chosen_list) > 0 else '无'
+        log.info(f'当前已选藏品 数量={len(chosen_list)} {chosen_text}')
 
         return can_choose_list, chosen_list
 
@@ -297,53 +362,120 @@ class LostVoidChooseCommon(ZOperation):
         part = cv2_utils.crop_image_only(screen, area.rect)
         ocr_result = self.ctx.ocr.run_ocr(part)
 
-        target_result_list = [
-            gt('请选择1项', 'game'),
-            gt('请选择2项', 'game'),
-            gt('请选择2枚鸣徽', 'game'),
-            gt('请选择两枚鸣徽', 'game'),
-            gt('请选择1个武备', 'game'),
-            gt('获得武备', 'game'),
-            gt('武备已升级', 'game'),
-            gt('获得战利品', 'game'),
-            gt('请选择1张卡牌', 'game'),
-            gt('请选择战术棱镜方案强化的方向', 'game'),
-        ]
+        title_words = [w.strip() for w in ocr_result.keys() if len(w.strip()) > 0]
+        title_text = ''.join(title_words)
+        normalized_text = (
+            title_text.replace('（', '(').replace('）', ')')
+            .replace(' ', '').replace('　', '')
+        )
 
-        result = self.round_by_find_area(screen, '迷失之地-通用选择', '区域-武备标识')  # 下方的GEAR
-        if result.is_success:
-            self.to_choose_gear = True
-            self.to_choose_num = 1
-
-        for ocr_word in ocr_result.keys():
-            idx = str_utils.find_best_match_by_difflib(ocr_word, target_result_list)
-            if idx is None:
-                continue
-            elif idx == 0:  # 请选择1项
-                # 1.5 更新后 武备和普通鸣徽都是这个标题
-                self.to_choose_num = 1
-            elif idx in [1, 2, 3]:  # 请选择2项 / 请选择2枚鸣徽 / 请选择两枚鸣徽
-                self.to_choose_artifact = True
-                self.to_choose_num = 2
-            elif idx == 4:  # 请选择1个武备
-                self.to_choose_gear = True
-                self.to_choose_num = 1
-            elif idx == 5:  # 获得武备
+        def apply_rule(rule_id: str) -> None:
+            if rule_id == 'GEAR_GAIN':
                 self.to_choose_gear = True
                 self.to_choose_num = 0
-            elif idx == 6:  # 武备已升级
+            elif rule_id == 'GEAR_UPGRADE':
                 self.to_choose_gear = True
                 self.to_choose_num = 0
-            elif idx == 7:  # 获得战利品
+            elif rule_id == 'ARTIFACT_GAIN':
                 self.to_choose_artifact = True
                 self.to_choose_num = 0
-            elif idx == 8:  # 请选择1张卡牌
-                self.to_choose_artifact = True
-                self.to_choose_num = 1
-            elif idx == 9:  # 请选择战术棱镜方案强化的方向
+            elif rule_id == 'GEAR_BRANCH':
                 self.to_choose_gear = True
                 self.to_choose_gear_branch = True
                 self.to_choose_num = 1
+            elif rule_id == 'CHOOSE_2':
+                self.to_choose_artifact = True
+                self.to_choose_num = 2
+            elif rule_id == 'CHOOSE_1_GEAR':
+                self.to_choose_gear = True
+                self.to_choose_num = 1
+            elif rule_id == 'CHOOSE_1_CARD':
+                self.to_choose_artifact = True
+                self.to_choose_num = 1
+            elif rule_id == 'CHOOSE_1':
+                # 1.5 更新后 武备和普通鸣徽都可能是这个标题
+                self.to_choose_num = 1
+
+        # 第一轮：精准匹配（避免“1项”被模糊吸附到“2项”）
+        exact_rule_list: list[tuple[str, list[str]]] = [
+            ('GEAR_GAIN', ['获得武备']),
+            ('GEAR_UPGRADE', ['武备已升级']),
+            ('ARTIFACT_GAIN', ['获得战利品']),
+            ('GEAR_BRANCH', ['请选择战术棱镜方案强化的方向']),
+            # 兼容 2枚/两枚 变体
+            ('CHOOSE_2', ['请选择2项', '请选择2枚鸣徽', '请选择两枚鸣徽']),
+            ('CHOOSE_1_GEAR', ['请选择1个武备']),
+            ('CHOOSE_1_CARD', ['请选择1张卡牌']),
+            # 你指出的文案修正：1枚鸣徽
+            ('CHOOSE_1', ['请选择1项', '请选择1枚鸣徽', '请选择一枚鸣徽']),
+        ]
+
+        matched_rule = None
+        for rule_id, phrase_list in exact_rule_list:
+            if any(phrase in normalized_text for phrase in phrase_list):
+                apply_rule(rule_id)
+                matched_rule = f'exact:{rule_id}'
+                break
+
+        # 第二轮：模糊匹配兜底（只有第一轮没命中才使用）
+        if matched_rule is None and len(title_words) > 0:
+            fuzzy_target_list = [
+                '获得武备',
+                '武备已升级',
+                '获得战利品',
+                '请选择战术棱镜方案强化的方向',
+                '请选择2项',
+                '请选择2枚鸣徽',
+                '请选择两枚鸣徽',
+                '请选择1个武备',
+                '请选择1张卡牌',
+                '请选择1项',
+                '请选择1枚鸣徽',
+                '请选择一枚鸣徽',
+            ]
+            target_2_rule = {
+                '获得武备': 'GEAR_GAIN',
+                '武备已升级': 'GEAR_UPGRADE',
+                '获得战利品': 'ARTIFACT_GAIN',
+                '请选择战术棱镜方案强化的方向': 'GEAR_BRANCH',
+                '请选择2项': 'CHOOSE_2',
+                '请选择2枚鸣徽': 'CHOOSE_2',
+                '请选择两枚鸣徽': 'CHOOSE_2',
+                '请选择1个武备': 'CHOOSE_1_GEAR',
+                '请选择1张卡牌': 'CHOOSE_1_CARD',
+                '请选择1项': 'CHOOSE_1',
+                '请选择1枚鸣徽': 'CHOOSE_1',
+                '请选择一枚鸣徽': 'CHOOSE_1',
+            }
+            for ocr_word in title_words:
+                idx = str_utils.find_best_match_by_difflib(
+                    ocr_word,
+                    fuzzy_target_list,
+                    cutoff=0.9,
+                )
+                if idx is None:
+                    continue
+                target_phrase = fuzzy_target_list[idx]
+                apply_rule(target_2_rule[target_phrase])
+                matched_rule = f'fuzzy:{target_2_rule[target_phrase]}:{ocr_word}->{target_phrase}'
+                break
+
+        # 兜底：标题仍未命中时，仍可用下方GEAR标识判断为武备单选
+        if matched_rule is None:
+            result = self.round_by_find_area(screen, '迷失之地-通用选择', '区域-武备标识')
+            if result.is_success:
+                self.to_choose_gear = True
+                self.to_choose_num = 1
+                matched_rule = 'fallback:gear_marker'
+            else:
+                matched_rule = 'fallback:none'
+
+        log.info(
+            f'标题判定 OCR={title_words if len(title_words) > 0 else ["无"]} '
+            f'规则={matched_rule} '
+            f'需选数量={self.to_choose_num} 选择藏品={self.to_choose_artifact} '
+            f'选择武备={self.to_choose_gear} 武备分支={self.to_choose_gear_branch}'
+        )
 
 def __debug():
     ctx = ZContext()
