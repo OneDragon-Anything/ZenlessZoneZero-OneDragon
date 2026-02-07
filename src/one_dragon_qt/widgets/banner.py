@@ -29,11 +29,12 @@ class GradientOverlay(QWidget):
         clip_path.addRect(self.rect())
         painter.setClipPath(clip_path)
 
-        top_h = max(48, min(96, int(self.height() * 0.14)))
+        # 顶部阴影高度压低，避免首页顶部发暗区域过厚
+        top_h = max(22, min(44, int(self.height() * 0.07)))
         right_w = max(76, min(120, int(self.width() * 0.1)))
 
         top_gradient = QLinearGradient(0, 0, 0, top_h)
-        top_gradient.setColorAt(0.0, QColor(0, 0, 0, 170))
+        top_gradient.setColorAt(0.0, QColor(0, 0, 0, 110))
         top_gradient.setColorAt(1.0, QColor(0, 0, 0, 0))
         painter.fillRect(0, 0, self.width(), top_h, top_gradient)
 
