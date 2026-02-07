@@ -958,17 +958,8 @@ class HomeInterface(VerticalScrollInterface):
         return self._process_extracted_color(r, g, b)
 
     def _process_extracted_color(self, r: int, g: int, b: int) -> tuple[int, int, int]:
-        """处理从图片提取的颜色，增强鲜艳度和亮度，并限制在舒适的范围内"""
-        # 增强颜色鲜艳度
-        lr, lg, lb = ColorUtils.enhance_color_vibrancy(r, g, b)
-
-        # 如果太暗则适当提亮
-        lr, lg, lb = ColorUtils.brighten_if_too_dark(lr, lg, lb)
-
-        # 限制颜色强度，避免过于鲜艳，保持人眼舒适度
-        lr, lg, lb = ColorUtils.limit_color_intensity(lr, lg, lb)
-
-        return lr, lg, lb
+        """使用主题色 #CB3D32"""
+        return 203, 61, 50
 
     def _apply_button_style(self, theme_color: tuple[int, int, int]) -> None:
         """应用样式到启动按钮"""
