@@ -8,13 +8,14 @@ import webbrowser
 
 import requests
 from PySide6.QtCore import QEvent, QModelIndex, QRect, QRectF, QSize, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPainterPath, QPixmap
+from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPainterPath, QPixmap, QRegion
 from PySide6.QtWidgets import (
     QFrame,
     QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
     QListWidgetItem,
+    QSizePolicy,
     QStackedWidget,
     QStyledItemDelegate,
     QStyle,
@@ -54,14 +55,14 @@ def get_notice_theme_palette():
     """
     if qconfig.theme == Theme.DARK:
         return {
-            'tint': QColor(18, 20, 30, 168),
+            'tint': QColor(18, 20, 30, 198),
             'title': '#f7f9ff',
             'date': '#d8e0f0',
             'shadow': QColor(0, 0, 0, 170),
         }
     # 主页公告卡统一使用深色玻璃风，避免亮底在浅色主题下影响可读性
     return {
-        'tint': QColor(22, 24, 35, 160),
+        'tint': QColor(22, 24, 35, 190),
         'title': '#f2f6ff',
         'date': '#d2daea',
         'shadow': QColor(0, 0, 0, 150),
@@ -159,15 +160,38 @@ class BannerImageLoader(QThread):
 
 
 class RoundedBannerView(HorizontalFlipView):
-    """抗锯齿圆角 Banner 视图，避免 QRegion 掩膜造成的锯齿边缘"""
+    """只保留左侧圆角的 Banner 视图"""
 
     def __init__(self, radius: int = 4, parent=None):
         super().__init__(parent)
         self._radius = radius
+        self._left_only = True
         self.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatioByExpanding)
-        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
-        # 使用官方的 setBorderRadius 方法设置圆角
-        self.setBorderRadius(radius)
+        self._update_left_rounded_mask()
+
+    def _update_left_rounded_mask(self):
+        """使用 mask 裁剪左侧圆角，避免在 paintEvent 中二次开 painter 触发 paintEngine 报错。"""
+        rect = self.rect()
+        if rect.isNull():
+            self.clearMask()
+            return
+
+        radius = max(0, min(self._radius, rect.width() // 2, rect.height() // 2))
+        path = QPainterPath()
+        path.moveTo(rect.left(), rect.bottom() - radius)
+        path.quadTo(rect.left(), rect.bottom(), rect.left() + radius, rect.bottom())
+        path.lineTo(rect.right(), rect.bottom())
+        path.lineTo(rect.right(), rect.top())
+        path.lineTo(rect.left() + radius, rect.top())
+        path.quadTo(rect.left(), rect.top(), rect.left(), rect.top() + radius)
+        path.closeSubpath()
+
+        region = QRegion(path.toFillPolygon().toPolygon())
+        self.setMask(region)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_left_rounded_mask()
 
 
 # 增加了缓存机制, 有效期为3天, 避免每次都请求数据
@@ -296,8 +320,8 @@ class NoticeCard(SimpleCardWidget):
     def __init__(self, notice_url):
         SimpleCardWidget.__init__(self)
         self.setBorderRadius(8)
-        self.setFixedSize(345, 374)  # 230 + 36 + 108 = 374
-        self.mainLayout = QVBoxLayout(self)
+        self.setFixedSize(589, 150)  # 左右布局：Banner 225x150 (3:2) + 新闻区 364x150
+        self.mainLayout = QHBoxLayout(self)  # 改为水平布局
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.mainLayout.setSpacing(0)
 
@@ -439,9 +463,15 @@ class NoticeCard(SimpleCardWidget):
                 })
 
     def setup_ui(self):
-        # Banner 视图容器 - 固定高度 230px
+        # 创建左右布局容器
+        content_widget = QWidget()
+        h_layout = QHBoxLayout(content_widget)
+        h_layout.setContentsMargins(0, 0, 0, 0)
+        h_layout.setSpacing(0)
+
+        # 左侧 Banner - 宽度 225px，高度 150px (3:2)
         self.banner_wrapper = QWidget()
-        self.banner_wrapper.setFixedSize(QSize(345, 230))
+        self.banner_wrapper.setFixedSize(QSize(225, 150))
         # 使其可追踪鼠标进入离开事件
         self.banner_wrapper.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
         self.banner_wrapper.installEventFilter(self)
@@ -452,8 +482,8 @@ class NoticeCard(SimpleCardWidget):
         # Banner 视图
         self.flipView = RoundedBannerView(radius=8)
         self.flipView.addImages(self.banners)
-        self.flipView.setItemSize(QSize(345, 230))
-        self.flipView.setFixedSize(QSize(345, 230))
+        self.flipView.setItemSize(QSize(225, 150))
+        self.flipView.setFixedSize(QSize(225, 150))
         self.flipView.itemClicked.connect(self.open_banner_link)
         banner_layout.addWidget(self.flipView)
 
@@ -489,23 +519,33 @@ class NoticeCard(SimpleCardWidget):
         # 初始默认隐藏 pips
         self.pipsHolder.hide()
 
-        # 添加 banner 容器到主布局
-        self.mainLayout.addWidget(self.banner_wrapper)
+        # 将左侧 Banner 添加到水平布局
+        h_layout.addWidget(self.banner_wrapper)
         self._update_pips_position()  # 初始定位
 
         # 启动自动滚动（延迟5秒开始）
         if len(self.banners) > 1:
             QTimer.singleShot(5000, self._start_auto_scroll)
 
-        # Pivot 标签页 - 固定高度 36px
+        # 右侧新闻区域
+        right_area = QWidget()
+        right_layout = QVBoxLayout(right_area)
+        right_layout.setContentsMargins(8, 8, 8, 8)
+        right_layout.setSpacing(0)
+
+        # 上方标题 - Pivot 标签页
         self.pivot = PhosPivot()
         self.pivot.setFixedHeight(36)
-        self.mainLayout.addWidget(self.pivot, 0, Qt.AlignmentFlag.AlignCenter)
+        # 与下方列表项左侧文本起点对齐：右侧区域左边距 8 + 列表文本内边距 12 = 20
+        self.pivot.hBoxLayout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.pivot.hBoxLayout.setContentsMargins(12, 0, 0, 0)
+        right_layout.addWidget(self.pivot)
 
-        # StackedWidget 内容堆栈 - 固定高度 90px
+        # 下方链接列表
         self.stackedWidget = QStackedWidget(self)
-        self.stackedWidget.setContentsMargins(0, 0, 5, 0)
-        self.stackedWidget.setFixedHeight(90)
+        self.stackedWidget.setContentsMargins(0, 0, 0, 0)
+        # 占据剩余空间
+        self.stackedWidget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         # 创建三个列表组件
         widgets = [ListWidget() for _ in range(3)]
@@ -526,7 +566,13 @@ class NoticeCard(SimpleCardWidget):
         self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
         self.stackedWidget.setCurrentWidget(self.announcementsWidget)
         self.pivot.setCurrentItem(self.announcementsWidget.objectName())
-        self.mainLayout.addWidget(self.stackedWidget)
+        right_layout.addWidget(self.stackedWidget)
+
+        # 将右侧区域添加到水平布局，占据剩余宽度
+        h_layout.addWidget(right_area, stretch=1)
+
+        # 将整个内容区域添加到主布局
+        self.mainLayout.addWidget(content_widget)
 
     def eventFilter(self, obj, event):
         # 悬停控制 pips 显示/隐藏
@@ -648,8 +694,8 @@ class NoticeCard(SimpleCardWidget):
             return
         # 尺寸自适应
         self.pipsHolder.adjustSize()
-        bw = 345  # banner_wrapper 的固定宽度
-        bh = 230  # banner_wrapper 的固定高度
+        bw = 225  # banner_wrapper 的固定宽度
+        bh = 150  # banner_wrapper 的固定高度
         hw = self.pipsHolder.width()
         hh = self.pipsHolder.height()
         # 底部偏移量（可根据视觉微调）
@@ -739,9 +785,20 @@ class NoticePostDelegate(QStyledItemDelegate):
 
         # 计算布局
         rect = option.rect
-        title_width = 220
-        title_rect = QRect(rect.left() + 12, rect.top() + 2, title_width, rect.height() - 4)
-        date_rect = QRect(title_rect.right(), rect.top() + 2, rect.width() - title_rect.right() - 12, rect.height() - 4)
+        left_padding = 12
+        right_padding = 12
+        gap = 8
+        top = rect.top() + 2
+        height = rect.height() - 4
+
+        title_left = rect.left() + left_padding
+        date_text_width = painter.fontMetrics().horizontalAdvance(str(date))
+        date_width = max(64, date_text_width + 4)
+        date_left = rect.right() - right_padding - date_width + 1
+        title_width = max(0, date_left - gap - title_left)
+
+        title_rect = QRect(title_left, top, title_width, height)
+        date_rect = QRect(date_left, top, date_width, height)
 
         # 绘制标题（不使用省略号，让标题自然延伸）
         painter.setFont(self.title_font)
