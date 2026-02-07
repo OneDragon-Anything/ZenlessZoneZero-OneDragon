@@ -16,6 +16,9 @@ from pathlib import Path
 from types import ModuleType
 from typing import TYPE_CHECKING
 
+from one_dragon.base.operation.application.app_const_schema import (
+    REQUIRED_CONST_FIELDS,
+)
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application.plugin_info import (
     PluginInfo,
@@ -467,9 +470,17 @@ class ApplicationFactoryManager:
             try:
                 const_module = importlib.import_module(const_module_name)
             except (ImportError, ModuleNotFoundError) as e:
-                raise ImportError(f"插件 {factory.app_id} 缺少必需的元数据模块") from e
+                raise ImportError(f"插件 {factory.app_id} 缺少必需的元数据模块 {const_module_name}") from e
 
         plugin_info.const_module = const_module_name
+
+        # 验证必需字段
+        missing = [f for f in REQUIRED_CONST_FIELDS if not hasattr(const_module, f)]
+        if missing:
+            raise ImportError(
+                f"插件 {factory.app_id} 的元数据模块 {const_module_name} "
+                f"缺少必需字段: {', '.join(missing)}"
+            )
 
         # 读取可选的插件元数据
         plugin_info.author = getattr(const_module, 'PLUGIN_AUTHOR', '')
