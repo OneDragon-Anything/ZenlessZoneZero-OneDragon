@@ -29,7 +29,7 @@ class MatrixActionRunRecord(AppRunRecord):
         self.config: MatrixActionConfig = config
 
     @property
-    def run_status_under_now(self):
+    def run_status_under_now(self) -> str:
         current_dt = self.get_current_dt()
         if os_utils.get_sunday_dt(self.dt) != os_utils.get_sunday_dt(current_dt):
             return AppRunRecord.STATUS_WAIT
@@ -86,4 +86,3 @@ class MatrixActionRunRecord(AppRunRecord):
 
     def is_finished_by_week(self) -> bool:
         return self.weekly_run_times >= self.config.weekly_plan_times
-

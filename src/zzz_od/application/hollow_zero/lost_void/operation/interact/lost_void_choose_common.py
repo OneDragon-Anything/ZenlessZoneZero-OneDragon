@@ -45,6 +45,10 @@ class LostVoidChooseCommon(ZOperation):
             if len(art_list) == 0 and len(chosen_list) == 0:  # 已选和可选都没有才算没有
                 # 兜底：逐个点击“区域-藏品名称”识别到的文本块，直到出现“有同流派武备”或识别到已选择
                 if self.try_choose_by_click_name_text():
+                    _, current_screen = self.ctx.controller.screenshot()
+                    _, chosen_after = self.get_artifact_pos(current_screen)
+                    if len(chosen_after) < self.to_choose_num:
+                        return self.round_retry(status='兜底后选择数量不足', wait=1)
                     return self.click_confirm()
                 return self.round_retry(status='无法识别藏品', wait=1)
 
@@ -80,6 +84,15 @@ class LostVoidChooseCommon(ZOperation):
                     return self.round_wait(result.status, wait=1)
                 else:
                     return self.round_retry(result.status, wait=1)
+            else:
+                # 无刷新时，不允许“数量不足仍直接确定”导致死循环
+                if self.try_choose_by_click_name_text():
+                    _, current_screen = self.ctx.controller.screenshot()
+                    _, chosen_after = self.get_artifact_pos(current_screen)
+                    if len(chosen_after) < self.to_choose_num:
+                        return self.round_retry(status='兜底后选择数量不足', wait=1)
+                    return self.click_confirm()
+                return self.round_retry(status='藏品数量不足', wait=1)
 
         return self.click_confirm()
 
@@ -137,8 +150,8 @@ class LostVoidChooseCommon(ZOperation):
             log.info('兜底点击藏品成功 第二轮结束后检测到已选择')
             return True
 
-        log.info('无法识别藏品 兜底两轮结束仍未检测到目标标志 强制继续')
-        return True
+        log.info('无法识别藏品 兜底两轮结束仍未检测到目标标志')
+        return False
 
     def get_name_text_click_target_list(self, screen: MatLike) -> List[MatchResult]:
         area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '区域-藏品名称')
@@ -198,13 +211,10 @@ class LostVoidChooseCommon(ZOperation):
         if self.to_choose_num == 0:  # 不需要选择的
             return [], []
 
-        artifact_name_list: list[str] = []
-        for art in self.ctx.lost_void.all_artifact_list:
-            artifact_name_list.append(gt(art.display_name, 'game'))
-
         artifact_pos_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_pos(
             screen,
-            to_choose_gear_branch=self.to_choose_gear_branch
+            to_choose_gear_branch=self.to_choose_gear_branch,
+            screen_name='迷失之地-通用选择'
         )
 
         can_choose_list = [i for i in artifact_pos_list if i.can_choose]
@@ -233,6 +243,8 @@ class LostVoidChooseCommon(ZOperation):
         target_result_list = [
             gt('请选择1项', 'game'),
             gt('请选择2项', 'game'),
+            gt('请选择2枚鸣徽', 'game'),
+            gt('请选择两枚鸣徽', 'game'),
             gt('请选择1个武备', 'game'),
             gt('获得武备', 'game'),
             gt('武备已升级', 'game'),
@@ -249,29 +261,29 @@ class LostVoidChooseCommon(ZOperation):
         for ocr_word in ocr_result.keys():
             idx = str_utils.find_best_match_by_difflib(ocr_word, target_result_list)
             if idx is None:
-                self.to_choose_num = 0
+                continue
             elif idx == 0:  # 请选择1项
                 # 1.5 更新后 武备和普通鸣徽都是这个标题
                 self.to_choose_num = 1
-            elif idx == 1:  # 请选择2项
+            elif idx in [1, 2, 3]:  # 请选择2项 / 请选择2枚鸣徽 / 请选择两枚鸣徽
                 self.to_choose_artifact = True
                 self.to_choose_num = 2
-            elif idx == 2:  # 请选择1个武备
+            elif idx == 4:  # 请选择1个武备
                 self.to_choose_gear = True
                 self.to_choose_num = 1
-            elif idx == 3:  # 获得武备
+            elif idx == 5:  # 获得武备
                 self.to_choose_gear = True
                 self.to_choose_num = 0
-            elif idx == 4:  # 武备已升级
+            elif idx == 6:  # 武备已升级
                 self.to_choose_gear = True
                 self.to_choose_num = 0
-            elif idx == 5:  # 获得战利品
+            elif idx == 7:  # 获得战利品
                 self.to_choose_artifact = True
                 self.to_choose_num = 0
-            elif idx == 6:  # 请选择1张卡牌
+            elif idx == 8:  # 请选择1张卡牌
                 self.to_choose_artifact = True
                 self.to_choose_num = 1
-            elif idx == 7:  # 请选择战术棱镜方案强化的方向
+            elif idx == 9:  # 请选择战术棱镜方案强化的方向
                 self.to_choose_gear = True
                 self.to_choose_gear_branch = True
                 self.to_choose_num = 1
