@@ -18,13 +18,13 @@ from one_dragon.base.matcher.template_matcher import TemplateMatcher
 from one_dragon.base.operation.application.application_factory_manager import (
     ApplicationFactoryManager,
 )
-from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.application.application_group_manager import (
     ApplicationGroupManager,
 )
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
 )
+from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
 from one_dragon.base.operation.one_dragon_env_context import (
@@ -195,10 +195,31 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         重新扫描插件目录，刷新所有应用的注册。
         可在运行时调用以加载新的应用或更新已有应用。
         """
-        self.factory_manager.refresh_applications()
+        log.info("开始刷新应用注册...")
+
+        # 清空现有注册
+        self.run_context.clear_applications()
+
+        # 重新发现并注册
+        non_default_factories, default_factories = self.factory_manager.discover_factories(reload_modules=True)
+
+        if non_default_factories:
+            self.run_context.registry_application(non_default_factories, default_group=False)
+
+        if default_factories:
+            self.run_context.registry_application(default_factories, default_group=True)
+
+        # 更新默认应用组
+        self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
+
+        # 清除应用组配置缓存，使其重新加载
+        self.app_group_manager.clear_config_cache()
+
         # 刷新通知配置中的应用映射
         if 'notify_config' in self.__dict__:
             del self.__dict__['notify_config']
+
+        log.info("应用注册刷新完成")
 
     #------------------- 以下是 初始化相关 -------------------#
 

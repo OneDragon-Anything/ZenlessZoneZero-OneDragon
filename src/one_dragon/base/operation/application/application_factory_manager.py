@@ -143,16 +143,16 @@ class ApplicationFactoryManager:
             try:
                 result = self._load_factory_from_file(factory_file, reload_modules, source, directory)
                 if result is None:
-                    failures.append((factory_file, "No factories found"))
+                    failures.append((factory_file, "No ApplicationFactory subclass found"))
                     continue
 
-                for factory, is_default, plugin_info in result:
-                    if is_default:
-                        default_factories.append(factory)
-                    else:
-                        non_default_factories.append(factory)
-                    if plugin_info:
-                        plugin_infos.append(plugin_info)
+                factory, is_default, plugin_info = result
+                if is_default:
+                    default_factories.append(factory)
+                else:
+                    non_default_factories.append(factory)
+                if plugin_info:
+                    plugin_infos.append(plugin_info)
             except Exception as e:
                 error_msg = f"{type(e).__name__}: {str(e)}"
                 failures.append((factory_file, error_msg))
@@ -166,9 +166,10 @@ class ApplicationFactoryManager:
         reload_modules: bool = False,
         source: PluginSource = PluginSource.BUILTIN,
         base_dir: Path | None = None
-    ) -> list[tuple[ApplicationFactory, bool, PluginInfo | None]] | None:
+    ) -> tuple[ApplicationFactory, bool, PluginInfo | None] | None:
         """从文件加载工厂类
 
+        每个工厂模块应只包含一个 ApplicationFactory 子类。
         统一使用 spec_from_file_location 加载所有类型的插件。
         对于 THIRD_PARTY 插件，会将 plugins 目录加入 sys.path 以支持相对导入。
 
@@ -179,9 +180,8 @@ class ApplicationFactoryManager:
             base_dir: 扫描根目录（由 _scan_directory 传入）
 
         Returns:
-            list[tuple[ApplicationFactory, bool, PluginInfo | None]]:
-                [(工厂实例, 是否默认组, 插件信息), ...]
-                如果没有找到工厂类则返回 None
+            tuple[ApplicationFactory, bool, PluginInfo | None] | None:
+                (工厂实例, 是否默认组, 插件信息)，未找到工厂类则返回 None
 
         Raises:
             ImportError: 模块导入失败
@@ -228,12 +228,12 @@ class ApplicationFactoryManager:
 
         self._loaded_modules.add(module_name)
 
-        # 5. 查找工厂类
-        results = self._find_factories_in_module(
+        # 5. 查找并实例化工厂类（每个模块最多一个）
+        factory_result = self._find_factory_in_module(
             module, module_name, factory_file, source
         )
 
-        return results if results else None
+        return factory_result
 
     def _resolve_module_root(
         self,
@@ -259,7 +259,7 @@ class ApplicationFactoryManager:
             try:
                 parts = factory_file.parts
                 src_index = parts.index('src')
-                return Path(parts[0]) / Path(*parts[1:src_index + 1])
+                return Path(*parts[:src_index + 1])
             except ValueError:
                 log.warning(f"无法确定 src 目录: {factory_file}")
                 return None
@@ -318,7 +318,6 @@ class ApplicationFactoryManager:
         spec = importlib.util.spec_from_file_location(
             module_name,
             factory_file,
-            submodule_search_locations=[str(factory_file.parent)]
         )
         if spec is None or spec.loader is None:
             raise ImportError(f"无法创建模块 spec: {factory_file}")
@@ -376,14 +375,17 @@ class ApplicationFactoryManager:
             self._loaded_modules.discard(name)
         log.debug(f"卸载插件模块: {modules_to_remove}")
 
-    def _find_factories_in_module(
+    def _find_factory_in_module(
         self,
         module: ModuleType,
         module_name: str,
         factory_file: Path,
         source: PluginSource
-    ) -> list[tuple[ApplicationFactory, bool, PluginInfo | None]]:
+    ) -> tuple[ApplicationFactory, bool, PluginInfo | None] | None:
         """在模块中查找工厂类
+
+        每个工厂模块应只包含一个 ApplicationFactory 子类。
+        实例化失败时异常会向上传播，由调用方记录到 failures。
 
         Args:
             module: 已加载的模块
@@ -392,10 +394,11 @@ class ApplicationFactoryManager:
             source: 插件来源
 
         Returns:
-            list[tuple[ApplicationFactory, bool, PluginInfo | None]]
-        """
-        results: list[tuple[ApplicationFactory, bool, PluginInfo | None]] = []
+            tuple | None: (工厂实例, 是否默认组, 插件信息)，未找到工厂类则返回 None
 
+        Raises:
+            Exception: 工厂实例化或元数据读取失败
+        """
         for attr_name in dir(module):
             attr = getattr(module, attr_name)
             if (
@@ -405,21 +408,15 @@ class ApplicationFactoryManager:
                 and hasattr(attr, '__module__')
                 and attr.__module__ == module_name
             ):
-                try:
-                    factory = attr(self.ctx)
-                    # 从工厂实例读取 default_group 属性
-                    is_default = factory.default_group
+                factory = attr(self.ctx)
+                is_default = factory.default_group
+                plugin_info = self._read_plugin_metadata(
+                    factory, factory_file, module_name, source
+                )
+                log.debug(f"加载工厂: {attr_name} (default_group={is_default})")
+                return factory, is_default, plugin_info
 
-                    # 读取插件元数据
-                    plugin_info = self._read_plugin_metadata(
-                        factory, factory_file, module_name, source
-                    )
-                    results.append((factory, is_default, plugin_info))
-                    log.debug(f"加载工厂: {attr_name} (default_group={is_default})")
-                except Exception as e:
-                    log.warning(f"实例化工厂 {attr_name} 失败: {e}")
-
-        return results
+        return None
 
     def _read_plugin_metadata(
         self,
@@ -481,30 +478,3 @@ class ApplicationFactoryManager:
         plugin_info.description = getattr(const_module, 'PLUGIN_DESCRIPTION', '')
 
         return plugin_info
-
-    def refresh_applications(self) -> None:
-        """刷新应用注册
-
-        重新扫描所有插件目录，刷新应用注册。
-        """
-        log.info("开始刷新应用注册...")
-
-        # 清空现有注册
-        self.ctx.run_context.clear_applications()
-
-        # 重新发现并注册
-        non_default_factories, default_factories = self.discover_factories(reload_modules=True)
-
-        if non_default_factories:
-            self.ctx.run_context.registry_application(non_default_factories, default_group=False)
-
-        if default_factories:
-            self.ctx.run_context.registry_application(default_factories, default_group=True)
-
-        # 更新默认应用组
-        self.ctx.app_group_manager.set_default_apps(self.ctx.run_context.default_group_apps)
-
-        # 清除应用组配置缓存，使其重新加载
-        self.ctx.app_group_manager.clear_config_cache()
-
-        log.info("应用注册刷新完成")

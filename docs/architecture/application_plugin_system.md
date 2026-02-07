@@ -32,19 +32,22 @@ from zzz_od.context.zzz_context import ZContext  # ✅ 可以导入主程序模�
 
 ### ApplicationFactoryManager
 
-应用工厂管理器，负责扫描、加载和刷新应用工厂。
+应用工厂管理器，负责扫描和加载应用工厂。
 
 **文件位置**: `src/one_dragon/base/operation/application/application_factory_manager.py`
 
 **主要功能**:
 - `discover_factories()`: 扫描所有插件目录，发现并加载应用工厂
-- `refresh_applications()`: 刷新应用注册
 - `plugin_infos`: 获取所有已加载的插件信息
 - `third_party_plugins`: 获取第三方插件列表
+
+> 注意：刷新/注册应用的完整流程由 `OneDragonContext.refresh_application_registration()` 编排，
+> `ApplicationFactoryManager` 仅负责工厂的发现和加载。
 
 **内部方法**:
 - `_resolve_module_root()`: 解析模块根目录（BUILTIN → `src/`，THIRD_PARTY → 扫描根目录）
 - `_import_module_from_file()`: 统一的模块导入，自动加载所有中间包
+- `_find_factory_in_module()`: 在模块中查找并实例化工厂类（每个模块最多一个）
 - `_get_unload_prefix()`: 确定热更新时需要卸载的模块前缀
 
 ### PluginInfo
@@ -333,13 +336,14 @@ class MyContext(OneDragonContext):
 ## 注意事项
 
 1. **文件命名**: 工厂文件必须以 `_factory.py` 结尾
-2. **const 文件**: 必须定义 `DEFAULT_GROUP` 常量
-3. **模块缓存**: 刷新应用时会重新加载模块，支持代码热更新
-4. **错误处理**: 加载失败的工厂会被跳过并记录警告日志
-5. **第三方插件**: 第三方插件目录被 gitignore，用户需要自行备份
-6. **插件元数据**: 建议填写 `PLUGIN_AUTHOR`、`PLUGIN_VERSION` 等元数据以便用户识别
-7. **相对导入**: 第三方插件完整支持相对导入，建议添加 `__init__.py` 文件
-8. **导入主程序**: 第三方插件可以直接 `from one_dragon.xxx` 或 `from zzz_od.xxx` 导入主程序模块
+2. **一模块一工厂**: 每个 `_factory.py` 文件中应只定义一个 `ApplicationFactory` 子类
+3. **const 文件**: 必须定义 `DEFAULT_GROUP` 常量
+4. **模块缓存**: 刷新应用时会重新加载模块，支持代码热更新
+5. **错误处理**: 工厂实例化失败时异常会被记录到 `failures` 并跳过，不会影响其他插件
+6. **第三方插件**: 第三方插件目录被 gitignore，用户需要自行备份
+7. **插件元数据**: 建议填写 `PLUGIN_AUTHOR`、`PLUGIN_VERSION` 等元数据以便用户识别
+8. **相对导入**: 第三方插件完整支持相对导入，建议添加 `__init__.py` 文件
+9. **导入主程序**: 第三方插件可以直接 `from one_dragon.xxx` 或 `from zzz_od.xxx` 导入主程序模块
 
 ## 插件加载机制
 
