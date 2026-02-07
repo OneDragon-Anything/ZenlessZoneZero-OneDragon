@@ -21,6 +21,7 @@ class AutoBattleAppFactory(ApplicationFactory):
             app_id=auto_battle_const.APP_ID,
             app_name=auto_battle_const.APP_NAME,
             default_group=auto_battle_const.DEFAULT_GROUP,
+            need_notify=auto_battle_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

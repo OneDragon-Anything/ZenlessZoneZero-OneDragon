@@ -21,6 +21,7 @@ class MouseSensitivityCheckerFactory(ApplicationFactory):
             app_id=mouse_sensitivity_checker_const.APP_ID,
             app_name=mouse_sensitivity_checker_const.APP_NAME,
             default_group=mouse_sensitivity_checker_const.DEFAULT_GROUP,
+            need_notify=mouse_sensitivity_checker_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

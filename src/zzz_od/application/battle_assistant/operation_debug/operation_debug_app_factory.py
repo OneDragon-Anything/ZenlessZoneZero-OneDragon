@@ -21,6 +21,7 @@ class OperationDebugAppFactory(ApplicationFactory):
             app_id=operation_debug_const.APP_ID,
             app_name=operation_debug_const.APP_NAME,
             default_group=operation_debug_const.DEFAULT_GROUP,
+            need_notify=operation_debug_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

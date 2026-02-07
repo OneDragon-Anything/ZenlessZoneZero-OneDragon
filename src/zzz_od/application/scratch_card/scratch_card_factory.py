@@ -20,8 +20,8 @@ class ScratchCardFactory(ApplicationFactory):
             self,
             app_id=scratch_card_const.APP_ID,
             app_name=scratch_card_const.APP_NAME,
-            need_notify=scratch_card_const.NEED_NOTIFY,
             default_group=scratch_card_const.DEFAULT_GROUP,
+            need_notify=scratch_card_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

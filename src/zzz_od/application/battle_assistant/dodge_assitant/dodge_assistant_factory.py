@@ -36,6 +36,7 @@ class DodgeAssistantFactory(ApplicationFactory):
             app_id=dodge_assistant_const.APP_ID,
             app_name=dodge_assistant_const.APP_NAME,
             default_group=dodge_assistant_const.DEFAULT_GROUP,
+            need_notify=dodge_assistant_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

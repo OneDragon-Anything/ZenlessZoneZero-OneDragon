@@ -21,6 +21,7 @@ class PredefinedTeamCheckerFactory(ApplicationFactory):
             app_id=predefined_team_checker_const.APP_ID,
             app_name=predefined_team_checker_const.APP_NAME,
             default_group=predefined_team_checker_const.DEFAULT_GROUP,
+            need_notify=predefined_team_checker_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

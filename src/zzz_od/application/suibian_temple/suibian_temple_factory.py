@@ -24,8 +24,8 @@ class SuibianTempleFactory(ApplicationFactory):
             self,
             app_id=suibian_temple_const.APP_ID,
             app_name=suibian_temple_const.APP_NAME,
-            need_notify=suibian_temple_const.NEED_NOTIFY,
             default_group=suibian_temple_const.DEFAULT_GROUP,
+            need_notify=suibian_temple_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

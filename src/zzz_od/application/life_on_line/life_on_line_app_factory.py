@@ -23,8 +23,8 @@ class LifeOneLineAppFactory(ApplicationFactory):
             self,
             app_id=life_on_line_const.APP_ID,
             app_name=life_on_line_const.APP_NAME,
-            need_notify=life_on_line_const.NEED_NOTIFY,
             default_group=life_on_line_const.DEFAULT_GROUP,
+            need_notify=life_on_line_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

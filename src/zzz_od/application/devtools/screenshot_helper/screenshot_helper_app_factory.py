@@ -25,6 +25,7 @@ class ScreenshotHelperAppFactory(ApplicationFactory):
             app_id=screenshot_helper_const.APP_ID,
             app_name=screenshot_helper_const.APP_NAME,
             default_group=screenshot_helper_const.DEFAULT_GROUP,
+            need_notify=screenshot_helper_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

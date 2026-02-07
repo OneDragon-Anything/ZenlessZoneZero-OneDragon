@@ -20,8 +20,8 @@ class EmailAppFactory(ApplicationFactory):
             self,
             app_id=email_app_const.APP_ID,
             app_name=email_app_const.APP_NAME,
-            need_notify=email_app_const.NEED_NOTIFY,
             default_group=email_app_const.DEFAULT_GROUP,
+            need_notify=email_app_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 
