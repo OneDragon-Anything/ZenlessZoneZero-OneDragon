@@ -8,6 +8,7 @@ from zzz_od.gui.dialog.charge_plan_setting_dialog import ChargePlanSettingDialog
 from zzz_od.gui.dialog.coffee_setting_dialog import CoffeeSettingDialog
 from zzz_od.gui.dialog.drive_disc_dismantle_setting_dialog import DriveDiscDismantleSettingDialog
 from zzz_od.gui.dialog.lost_void_setting_dialog import LostVoidSettingDialog
+from zzz_od.gui.dialog.matrix_action_setting_dialog import MatrixActionSettingDialog
 from zzz_od.gui.dialog.notorious_hunt_setting_dialog import NotoriousHuntSettingDialog
 from zzz_od.gui.dialog.random_play_setting_dialog import RandomPlaySettingDialog
 from zzz_od.gui.dialog.redemption_code_setting_dialog import RedemptionCodeSettingDialog
@@ -31,6 +32,7 @@ class SharedDialogManager:
         self._drive_disc_dismantle_setting_dialog: DriveDiscDismantleSettingDialog | None = None
         self._withered_domain_setting_dialog: WitheredDomainSettingDialog | None = None
         self._lost_void_setting_dialog: LostVoidSettingDialog | None = None
+        self._matrix_action_setting_dialog: MatrixActionSettingDialog | None = None
         self._redemption_code_setting_dialog: RedemptionCodeSettingDialog | None = None
 
     def show_world_patrol_setting_dialog(
@@ -146,6 +148,19 @@ class SharedDialogManager:
             self._lost_void_setting_dialog = LostVoidSettingDialog(ctx=self.ctx, parent=parent)
 
         self._lost_void_setting_dialog.show_by_group(
+            group_id=group_id,
+            parent=parent,
+        )
+
+    def show_matrix_action_setting_dialog(
+        self,
+        parent: QWidget,
+        group_id: str,
+    ) -> None:
+        if self._matrix_action_setting_dialog is None:
+            self._matrix_action_setting_dialog = MatrixActionSettingDialog(ctx=self.ctx, parent=parent)
+
+        self._matrix_action_setting_dialog.show_by_group(
             group_id=group_id,
             parent=parent,
         )

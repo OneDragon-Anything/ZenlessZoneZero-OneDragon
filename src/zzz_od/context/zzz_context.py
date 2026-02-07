@@ -211,6 +211,9 @@ class ZContext(OneDragonContext):
         from zzz_od.application.hollow_zero.withered_domain.withered_domain_app_factory import (
             WitheredDomainAppFactory,
         )
+        from zzz_od.application.matrix_action.matrix_action_app_factory import (
+            MatrixActionAppFactory,
+        )
         from zzz_od.application.life_on_line.life_on_line_app_factory import (
             LifeOneLineAppFactory,
         )
@@ -265,6 +268,12 @@ class ZContext(OneDragonContext):
                 ShiyuDefenseAppFactory(self),
             ],
             default_group=True,
+        )
+
+        # 仅用于迷失之地内部分流调用，不加入默认一条龙任务组
+        self.run_context.registry_application(
+            MatrixActionAppFactory(self),
+            default_group=False,
         )
 
     @property

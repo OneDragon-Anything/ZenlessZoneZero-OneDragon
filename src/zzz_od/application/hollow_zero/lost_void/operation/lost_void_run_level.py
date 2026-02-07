@@ -670,10 +670,11 @@ class LostVoidRunLevel(ZOperation):
 
         if self.current_frame_in_battle:  # 当前回到可战斗画面
             if (not self.last_frame_in_battle  # 之前在非战斗画面
-                or self.last_screenshot_time - self.last_det_time >= 1  # 1秒识别一次
+                or self.last_screenshot_time - self.last_det_time >= 0.8  # 0.8秒识别一次
                 or (self.no_in_battle_times > 0 and self.last_screenshot_time - self.last_check_finish_time >= 0.1)  # 之前也识别到脱离战斗 0.1秒识别一次
             ):
                 no_in_battle = False
+                found_next_region_hint = False
 
                 # 尝试识别下层入口 (道中危机 和 终结之役 不需要识别)
                 if self.region_type not in [LostVoidRegionType.ELITE, LostVoidRegionType.BOSS]:
@@ -717,7 +718,14 @@ class LostVoidRunLevel(ZOperation):
                         found = screen_utils.find_by_ocr(self.ctx, self.last_screenshot, target_cn='前往下一个区域', area=area)
 
                     if found:
+                        found_next_region_hint = True
                         no_in_battle = True
+
+                # "前往下一个区域" 单次命中即判脱战
+                if found_next_region_hint:
+                    self.ctx.auto_battle_context.stop_auto_battle()
+                    self.no_in_battle_times = 0
+                    return self.round_success('识别需移动交互')
 
                 if no_in_battle:
                     self.no_in_battle_times += 1
