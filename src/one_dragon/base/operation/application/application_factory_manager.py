@@ -467,7 +467,10 @@ class ApplicationFactoryManager:
         if const_module_name in sys.modules:
             const_module = sys.modules[const_module_name]
         else:
-            const_module = importlib.import_module(const_module_name)
+            try:
+                const_module = importlib.import_module(const_module_name)
+            except (ImportError, ModuleNotFoundError) as e:
+                raise ImportError(f"插件 {factory.app_id} 缺少必需的元数据模块") from e
 
         plugin_info.const_module = const_module_name
 
