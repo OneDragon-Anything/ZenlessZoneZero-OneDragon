@@ -1,0 +1,8 @@
+sub_dir: normal_world
+template_id: function_menu_investigation
+template_name: 功能导览-勘域
+template_shape: circle
+auto_mask: true
+point_list:
+- 1832, 73
+- 1855, 73

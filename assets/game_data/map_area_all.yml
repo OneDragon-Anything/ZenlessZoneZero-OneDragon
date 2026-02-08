@@ -44,6 +44,30 @@ full_list:
       - area_name: "[空洞]昔丘"
         area_id: "timesworn_hills"
         is_hollow: true
+      - area_name: "[空洞]港口工厂旧址"
+        area_id: "old_port_factory"
+        is_hollow: true
+      - area_name: "[空洞]辉瓷加工基地"
+        area_id: "porcelume_processing_base"
+        is_hollow: true
+        sub_area_list:
+        - area_name: "矿石集运区"
+          area_id: "ore_shipping_center"
+        - area_name: "基地内部"
+          area_id: "base_interior"
+        - area_name: "基地外围"
+          area_id: "base_outskirts"
+      - area_name: "[空洞]辉岭石矿场"
+        area_id: "lumite_mine"
+        is_hollow: true
+        sub_area_list:
+        - area_name: "矿脉旧墟"
+          area_id: "ore_vein_ruins"
+        - area_name: "采矿作业区"
+          area_id: "mining_operation_area"
+      - area_name: "[空洞]青溟秘境"
+        area_id: "qingming_realm"
+        is_hollow: true
   - entry_name: "雅努斯区"
     entry_id: "janus_quarter"
     area_list:

@@ -22,6 +22,7 @@ class WorldPatrolAppFactory(ApplicationFactory):
             self,
             app_id=world_patrol_const.APP_ID,
             app_name=world_patrol_const.APP_NAME,
+            default_group=world_patrol_const.DEFAULT_GROUP,
             need_notify=world_patrol_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx

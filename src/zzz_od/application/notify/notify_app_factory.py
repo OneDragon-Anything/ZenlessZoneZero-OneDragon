@@ -20,6 +20,8 @@ class NotifyAppFactory(ApplicationFactory):
             self,
             app_id=notify_const.APP_ID,
             app_name=notify_const.APP_NAME,
+            default_group=notify_const.DEFAULT_GROUP,
+            need_notify=notify_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

@@ -9,7 +9,7 @@ on:
 jobs:
   update-contributors:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -47,5 +47,5 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add contributors.yaml
-        git commit -m "Update contributors list [skip ci]" || exit 0
+        git commit -m "自动更新贡献者列表 [skip ci]" || exit 0
         git push

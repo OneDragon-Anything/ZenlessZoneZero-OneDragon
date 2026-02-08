@@ -24,6 +24,7 @@ class TrigramsCollectionFactory(ApplicationFactory):
             self,
             app_id=trigrams_collection_const.APP_ID,
             app_name=trigrams_collection_const.APP_NAME,
+            default_group=trigrams_collection_const.DEFAULT_GROUP,
             need_notify=trigrams_collection_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx

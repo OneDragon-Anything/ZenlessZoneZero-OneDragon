@@ -6,7 +6,9 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.log_utils import log
-from zzz_od.application.game_config_checker import mouse_sensitivity_checker_const
+from zzz_od.application.game_config_checker.mouse_sensitivity_checker import (
+    mouse_sensitivity_checker_const,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld

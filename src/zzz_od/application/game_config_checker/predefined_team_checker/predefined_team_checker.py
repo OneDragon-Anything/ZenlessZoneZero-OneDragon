@@ -1,6 +1,3 @@
-from typing import List
-
-import cv2
 from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
@@ -9,9 +6,11 @@ from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils import cv2_utils, str_utils, cal_utils
+from one_dragon.utils import cal_utils, cv2_utils, str_utils
 from one_dragon.utils.log_utils import log
-from zzz_od.application.game_config_checker import predefined_team_checker_const
+from zzz_od.application.game_config_checker.predefined_team_checker import (
+    predefined_team_checker_const,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum
@@ -21,9 +20,9 @@ from zzz_od.operation.goto.goto_menu import GotoMenu
 
 class TeamWrapper:
 
-    def __init__(self, team_name: str, agent_list: List[Agent]):
+    def __init__(self, team_name: str, agent_list: list[Agent]):
         self.team_name: str = team_name
-        self.agent_list: List[Agent] = agent_list
+        self.agent_list: list[Agent] = agent_list
 
 
 class PredefinedTeamChecker(ZApplication):
@@ -70,11 +69,11 @@ class PredefinedTeamChecker(ZApplication):
             return self.round_success()
 
     def update_team_members(self, screen: MatLike) -> None:
-        result_team_list: List[TeamWrapper]
+        result_team_list: list[TeamWrapper]
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
 
-        target_team_name_list: List[str] = []
-        mr_list: List[MatchResult] = []
+        target_team_name_list: list[str] = []
+        mr_list: list[MatchResult] = []
         for ocr_result, mrl in ocr_result_map.items():
             target_team_name_list.append(ocr_result)
             mr_list.append(mrl.max)
@@ -102,7 +101,7 @@ class PredefinedTeamChecker(ZApplication):
             part = cv2_utils.crop_image_only(screen, avatar_rect)
             source_kp, source_desc = cv2_utils.feature_detect_and_compute(part)
 
-            agent_mr_list: List[MatchResult] = []
+            agent_mr_list: list[MatchResult] = []
 
             for agent_enum in AgentEnum:
                 agent: Agent = agent_enum.value
