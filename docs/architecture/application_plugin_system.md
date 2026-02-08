@@ -316,15 +316,6 @@ my_plugin.zip
     └── my_plugin.py       # 应用实现
 ```
 
-或者直接在根目录：
-
-```
-my_plugin.zip
-├── my_plugin_const.py
-├── my_plugin_factory.py
-└── my_plugin.py
-```
-
 ## 自定义插件目录
 
 默认的插件目录通过 `application_plugin_dirs` 属性（`@cached_property`）自动计算。如果需要自定义，可以在子类中覆盖：
