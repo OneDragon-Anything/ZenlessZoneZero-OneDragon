@@ -50,7 +50,6 @@ class ApplicationFactoryManager:
         ]
         self._factory_module_suffix: str = "_factory"
         self._const_module_suffix: str = "_const"
-        self._loaded_modules: set[str] = set()
         self._plugin_infos: dict[str, PluginInfo] = {}  # {app_id: PluginInfo}
         self._scan_failures: list[tuple[Path, str]] = []  # 最近一次扫描的失败记录
         self._added_sys_paths: set[str] = set()  # 跟踪已添加到 sys.path 的路径
@@ -246,8 +245,6 @@ class ApplicationFactoryManager:
         else:
             module = self._import_module_from_file(factory_file, module_name, module_root)
 
-        self._loaded_modules.add(module_name)
-
         # 5. 查找并实例化工厂类（每个模块最多一个）
         factory_result = self._find_factory_in_module(
             module, module_name, factory_file, source
@@ -362,7 +359,6 @@ class ApplicationFactoryManager:
         ]
         for name in modules_to_remove:
             del sys.modules[name]
-            self._loaded_modules.discard(name)
         log.debug(f"卸载插件模块: {modules_to_remove}")
 
     def _find_factory_in_module(
