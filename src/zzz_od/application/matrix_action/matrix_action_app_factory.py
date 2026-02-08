@@ -25,6 +25,7 @@ class MatrixActionAppFactory(ApplicationFactory):
             self,
             app_id=matrix_action_const.APP_ID,
             app_name=matrix_action_const.APP_NAME,
+            default_group=matrix_action_const.DEFAULT_GROUP,
             need_notify=matrix_action_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
@@ -54,4 +55,3 @@ class MatrixActionAppFactory(ApplicationFactory):
             instance_idx=instance_idx,
             game_refresh_hour_offset=self.ctx.game_account_config.game_refresh_hour_offset,
         )
-
