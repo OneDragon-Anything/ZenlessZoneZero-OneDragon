@@ -57,6 +57,7 @@ class EngagementRewardApp(ZApplication):
         return self.round_success('未找到奖励确认或奖励预览按钮')
 
     @node_from(from_name='查看奖励结果')
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='识别活跃度')
     def check_engagement(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('快捷手册', '今日最大活跃度')
@@ -67,15 +68,14 @@ class EngagementRewardApp(ZApplication):
         if num is None:
             return self.round_retry('识别活跃度失败', wait_round_time=1)
 
-        return self.round_success('活跃度已满') if '4' in str(num) else self.round_fail('活跃度未满')
+        return self.round_success('活跃度已满') if '4' in str(num) else self.round_fail(f'活跃度未满，当前{num}')
 
     @node_from(from_name='识别活跃度')
-    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='完成后返回大世界')
     def back_afterwards(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx)
         op.execute()
-        return self.round_success() if self.previous_node.is_success else self.round_fail('活跃度未满')
+        return self.round_success() if self.previous_node.is_success else self.round_fail()
 
 
 def __debug():
