@@ -66,17 +66,6 @@ from zzz_od.context.zzz_context import ZContext  # ✅ 可以导入主程序模�
 - `source`: 插件来源（BUILTIN/THIRD_PARTY）
 - `is_third_party`: 是否为第三方插件
 
-### PluginImportService
-
-插件导入服务，处理 zip 文件的导入、解压和验证。
-
-**文件位置**: `src/one_dragon/base/operation/application/plugin_import_service.py`
-
-**主要功能**:
-- `import_plugin(zip_path)`: 导入单个插件
-- `import_plugins(zip_paths)`: 批量导入插件
-- `delete_plugin(plugin_dir)`: 删除插件
-
 ### ApplicationFactory
 
 应用工厂基类。
