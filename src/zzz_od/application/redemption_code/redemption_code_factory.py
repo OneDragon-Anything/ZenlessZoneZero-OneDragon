@@ -23,6 +23,7 @@ class RedemptionCodeFactory(ApplicationFactory):
             self,
             app_id=redemption_code_const.APP_ID,
             app_name=redemption_code_const.APP_NAME,
+            default_group=redemption_code_const.DEFAULT_GROUP,
             need_notify=redemption_code_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx

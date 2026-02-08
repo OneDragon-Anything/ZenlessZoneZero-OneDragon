@@ -38,27 +38,35 @@ class ApplicationGroupConfig(YamlOperator):
         YamlOperator.__init__(self, file_path=file_path)
 
         self.group_id: str = group_id
-        self.app_list: list[ApplicationGroupConfigItem] = []
+        self._all_apps: list[ApplicationGroupConfigItem] = []  # 完整有序列表（含未注册的）
+        self.app_list: list[ApplicationGroupConfigItem] = []   # 已注册的应用（过滤视图）
 
         self._init_app_list()
 
     def _init_app_list(self) -> None:
         dict_list = self.get("app_list", [])
         for item in dict_list:
-            self.app_list.append(
+            self._all_apps.append(
                 ApplicationGroupConfigItem(
                     app_id=item.get("app_id", ""),
                     enabled=item.get("enabled", False),
                 )
             )
 
-    def save_app_list(self):
+    def save_app_list(self) -> None:
+        """保存应用列表，同步 app_list 排序到 _all_apps 后写入文件"""
+        # 将 app_list 的排序同步回 _all_apps，未注册的应用保持原位
+        active_set = {item.app_id for item in self.app_list}
+        active_indices = [i for i, item in enumerate(self._all_apps) if item.app_id in active_set]
+        for idx, item in zip(active_indices, self.app_list, strict=True):
+            self._all_apps[idx] = item
+
         self.update("app_list", [
             {
                 "app_id": item.app_id,
                 "enabled": item.enabled
             }
-            for item in self.app_list
+            for item in self._all_apps
         ])
 
     def update_full_app_list(self, app_id_list: list[str]) -> None:
@@ -66,28 +74,27 @@ class ApplicationGroupConfig(YamlOperator):
         更新完整的应用ID列表
         只应该被默认组使用 用于填充一条龙默认应用
 
+        在 _all_apps 中保留所有配置项（含未注册的），保持原有顺序。
+        新注册的应用追加到末尾。app_list 只包含已注册的应用。
+
         Args:
-            app_id_list: 应用ID列表
+            app_id_list: 当前已注册的应用ID列表
         """
-        changed: bool = False
+        registered_set = set(app_id_list)
+        seen: set[str] = {item.app_id for item in self._all_apps}
 
-        old_app_list = self.app_list
-        new_app_list = [
-            app
-            for app in old_app_list
-            if app.app_id in app_id_list
-        ]
-        if len(old_app_list) != len(new_app_list):
-            changed = True
-
-        existed_app_id_list = [app.app_id for app in new_app_list]
+        # 追加新注册但不在配置中的应用
+        changed = False
         for app_id in app_id_list:
-            if app_id not in existed_app_id_list:
-                new_app_list.append(ApplicationGroupConfigItem(app_id=app_id, enabled=False))
+            if app_id not in seen:
+                seen.add(app_id)
+                self._all_apps.append(ApplicationGroupConfigItem(app_id=app_id, enabled=False))
                 changed = True
 
+        # 从 _all_apps 中过滤出已注册的应用
+        self.app_list = [item for item in self._all_apps if item.app_id in registered_set]
+
         if changed:
-            self.app_list = new_app_list
             self.save_app_list()
 
     def set_app_enable(self, app_id: str, enabled: bool) -> None:

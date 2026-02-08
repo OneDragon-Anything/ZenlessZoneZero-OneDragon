@@ -106,6 +106,14 @@ class ApplicationRunContext:
             if default_group:
                 self.default_group_apps.append(factory.app_id)
 
+    def clear_applications(self) -> None:
+        """清空所有已注册的应用工厂
+
+        在刷新应用注册前调用，清空现有的注册信息。
+        """
+        self._application_factory_map.clear()
+        self.default_group_apps.clear()
+
     @property
     def notify_app_map(self) -> dict[str, str]:
         """返回需要通知的应用字典: {app_id: app_name}。

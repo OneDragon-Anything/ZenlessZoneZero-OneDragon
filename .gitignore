@@ -62,6 +62,10 @@ config/world_patrol_route_list/*
 notice_cache/
 *.bak
 
+# 第三方插件目录
+plugins/*
+!plugins/README.md
+
 # 需自行下载的模型文件
 models/
 

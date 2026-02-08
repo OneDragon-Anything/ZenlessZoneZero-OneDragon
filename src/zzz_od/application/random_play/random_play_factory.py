@@ -24,6 +24,7 @@ class RandomPlayFactory(ApplicationFactory):
             self,
             app_id=random_play_const.APP_ID,
             app_name=random_play_const.APP_NAME,
+            default_group=random_play_const.DEFAULT_GROUP,
             need_notify=random_play_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx

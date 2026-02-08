@@ -4,7 +4,7 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.log_utils import log
 from zzz_od.application.shiyu_defense import (
@@ -12,9 +12,14 @@ from zzz_od.application.shiyu_defense import (
     shiyu_defense_team_utils,
 )
 from zzz_od.application.shiyu_defense.shiyu_defense_battle import ShiyuDefenseBattle
-from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
-from zzz_od.application.shiyu_defense.shiyu_defense_const import MultiRoomNodeConfig
-from zzz_od.application.shiyu_defense.shiyu_defense_run_record import ShiyuDefenseRunRecord
+from zzz_od.application.shiyu_defense.shiyu_defense_config import (
+    MultiRoomNodeConfig,
+    ShiyuDefenseConfig,
+    get_multi_room_config,
+)
+from zzz_od.application.shiyu_defense.shiyu_defense_run_record import (
+    ShiyuDefenseRunRecord,
+)
 from zzz_od.application.shiyu_defense.shiyu_defense_team_utils import (
     DefensePhaseTeamInfo,
 )
@@ -88,7 +93,7 @@ class ShiyuDefenseApp(ZApplication):
 
         self.current_node_idx = idx
 
-        self.multi_room_config = shiyu_defense_const.get_multi_room_config(idx)
+        self.multi_room_config = get_multi_room_config(idx)
 
         # 多间模式节点
         if self.multi_room_config is not None:
