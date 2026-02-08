@@ -96,10 +96,14 @@ class InventoryScanApp(ZApplication):
     @operation_node(name='导航到音擎界面')
     def goto_wengine_screen(self) -> OperationRoundResult:
         """导航到音擎界面"""
-        self.ocr_worker.wait_complete()
+        self.ocr_worker.pause()
         if not self._scan_wengine:
+            self.ocr_worker.resume()
             return self.round_success('跳过音擎')
-        return self.round_by_goto_screen(screen_name='仓库-音擎仓库')
+        result = self.round_by_goto_screen(screen_name='仓库-音擎仓库')
+        if result.is_success or result.is_fail:
+            self.ocr_worker.resume()
+        return result
 
     @node_from(from_name='导航到音擎界面')
     @operation_node(name='扫描音擎')
@@ -121,16 +125,20 @@ class InventoryScanApp(ZApplication):
     @operation_node(name='导航到代理人界面', node_max_retry_times=30)
     def goto_agent_screen(self) -> OperationRoundResult:
         """导航到代理人界面"""
-        self.ocr_worker.wait_complete()
+        self.ocr_worker.pause()
         if not self._scan_agent:
+            self.ocr_worker.resume()
             return self.round_success('跳过角色')
 
         nav_result = self.round_by_goto_screen(screen_name='代理人-信息')
+        if nav_result.is_fail:
+            self.ocr_worker.resume()
         if not nav_result.is_success:
             return nav_result
 
         screen = self.screenshot()
         if self._is_button_colorful(screen, '代理人-信息', '按钮-代理人基础'):
+            self.ocr_worker.resume()
             return self.round_success('已到达代理人界面')
 
         return self.round_retry(wait=0.1)

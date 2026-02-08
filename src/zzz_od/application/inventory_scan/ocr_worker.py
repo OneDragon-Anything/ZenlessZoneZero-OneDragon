@@ -22,6 +22,7 @@ class OcrWorker:
         self._queue: queue.Queue = queue.Queue()
         self._thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
+        self._pause_event = threading.Event()
 
         # 结果收集
         self.scanned_discs: list[dict] = []
@@ -54,15 +55,29 @@ class OcrWorker:
 
     def wait_complete(self):
         """等待所有任务完成"""
+        self.resume()
         self._queue.join()
         log.debug(f"OCR处理完成: 成功{self._processed_count}个, 失败{self._error_count}个")
 
     def stop(self):
         """停止工作线程"""
+        self.resume()
         self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=5)
         log.debug("OCR工作线程已停止")
+
+    def pause(self):
+        """暂停处理新任务（队列保留）"""
+        self._pause_event.set()
+
+    def resume(self):
+        """恢复处理任务"""
+        self._pause_event.clear()
+
+    @property
+    def is_paused(self) -> bool:
+        return self._pause_event.is_set()
 
     def reset(self):
         """重置结果收集"""
@@ -76,6 +91,10 @@ class OcrWorker:
         """工作线程主循环"""
         while not self._stop_event.is_set():
             try:
+                if self._pause_event.is_set():
+                    self._stop_event.wait(0.05)
+                    continue
+
                 task = self._queue.get(timeout=0.1)
                 task_type, screenshot, parser = task
 
