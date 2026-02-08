@@ -57,7 +57,10 @@ class MatrixActionApp(ZApplication):
             app_id=matrix_action_const.APP_ID,
         )
         self.use_internal_run_record: bool = use_internal_run_record
+        self._init_runtime_state()
 
+    def _init_runtime_state(self) -> None:
+        """初始化运行时状态"""
         self._support_agent_opened: bool = False
         self._support_up_clicked_once: bool = False
         self._preset_team_clicked_once: bool = False
@@ -72,14 +75,7 @@ class MatrixActionApp(ZApplication):
 
     def handle_init(self) -> None:
         ZApplication.handle_init(self)
-        self._support_agent_opened = False
-        self._support_up_clicked_once = False
-        self._preset_team_clicked_once = False
-        self._team_clicked_once = False
-        self._team_scroll_times = 0
-        self._start_challenge_seen = False
-        self._next_step_last_click_at = 0.0
-        self.next_region_type = LostVoidRegionType.ENTRY
+        self._init_runtime_state()
         self._reset_click_cooldown()
 
     @operation_node(name="初始化加载", is_start_node=True)
