@@ -87,6 +87,7 @@ class ApplicationGroupConfig(YamlOperator):
         changed = False
         for app_id in app_id_list:
             if app_id not in seen:
+                seen.add(app_id)
                 self._all_apps.append(ApplicationGroupConfigItem(app_id=app_id, enabled=False))
                 changed = True
 
