@@ -34,25 +34,19 @@ class AgentScanApp(ZApplication):
         self.screenshot_index: int = 0
         self.parser = AgentParser()
 
-        # 临时存储当前角色的截图片段
-        self._img_portrait: Optional[MatLike] = None  # 影画
-        self._img_name: Optional[MatLike] = None      # 名称
-        self._img_level: Optional[MatLike] = None     # 等级
-        self._img_skill: Optional[MatLike] = None     # 技能等级
-        self._img_core: Optional[MatLike] = None      # 核心等级
+        self._img_portrait: Optional[MatLike] = None
+        self._img_name: Optional[MatLike] = None
+        self._img_level: Optional[MatLike] = None
+        self._img_skill: Optional[MatLike] = None
+        self._img_core: Optional[MatLike] = None
 
-        # 点击限流：记录上次点击时间
         self._last_click_time: float = 0
 
-        # 从翻译字典读取角色总数，但最大限制为100
-        # 读取 assets/wiki_data/zzz_translation.json
         user_translation_path = os_utils.get_path_under_work_dir('assets', 'wiki_data', 'zzz_translation.json')
         try:
             with open(user_translation_path, 'r', encoding='utf-8') as f:
                 translation_data = json.load(f)
-                character_count = len(translation_data.get('character', {}))
-                self.max_agents = min(character_count, 100)  # 最大不超过100
-                log.info(f"角色总数: {character_count}, 最大扫描次数: {self.max_agents}")
+                self.max_agents = min(len(translation_data.get('character', {})), 100)
         except Exception as e:
             log.error(f"读取角色总数失败: {e}，使用默认值100")
             self.max_agents = 100
@@ -72,17 +66,14 @@ class AgentScanApp(ZApplication):
         time.sleep(0.3)
         _, screen = self.ctx.controller.screenshot()
 
-        # 检测是否达到最大扫描次数
         if self.screenshot_index >= self.max_agents:
-            log.info(f"已扫描{self.screenshot_index}个角色，达到最大数量{self.max_agents}")
+            log.debug(f"已扫描{self.screenshot_index}个角色，达到最大数量{self.max_agents}")
             return self.round_success('扫描完成')
 
-        # 检测是否到达列表末尾（标志点全黑 = 没有角色）
         if self._is_end_of_list(screen):
-            log.info(f"已到达列表末尾，扫描完成。共扫描{self.screenshot_index}个角色")
+            log.debug(f"已到达列表末尾，扫描完成。共扫描{self.screenshot_index}个角色")
             return self.round_success('扫描完成')
 
-        # 检测按钮是否变为彩色（加载完成）
         if self._is_button_colorful(screen, '代理人-信息', '按钮-代理人基础'):
             return self.round_success('继续扫描')
 
@@ -94,7 +85,6 @@ class AgentScanApp(ZApplication):
         """
         裁剪影画、名称、等级区域
         """
-        # 重置临时截图变量
         self._reset_temp_images()
 
         _, screen = self.ctx.controller.screenshot()
@@ -338,13 +328,7 @@ class AgentScanApp(ZApplication):
             pixel_hsv = cv2.cvtColor(pixel_bgr, cv2.COLOR_RGB2HSV)
             v_value = int(pixel_hsv[0, 0, 2])
 
-            # 输出调试信息
-            log.info(f"检测标志点位置({x},{y}): RGB={pixel}, V={v_value}")
-
-            # 检测V通道是否小于10
             is_black = v_value < 10
-
-            log.info(f"是否黑色: {is_black} (V<10)")
 
             return is_black
         except Exception as e:

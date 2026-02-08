@@ -160,9 +160,9 @@ class DriveDiskParser:
             # 匹配头像
             agent_key = ""
             if screenshot is not None:
-                # 头像区域 (52, 52) - (86, 86)
-                if self.icon_matcher.is_region_colorful(screenshot, 52, 52, 86, 86):
-                    agent_key = self.icon_matcher.match_agent_icon(screenshot, 52, 52, 86, 86)
+                # 头像区域（修正后）(54, 54) - (85, 85)
+                if self.icon_matcher.is_region_colorful(screenshot, 54, 54, 85, 85):
+                    agent_key = self.icon_matcher.match_agent_icon(screenshot, 54, 54, 85, 85)
 
             # 生成驱动盘数据
             self.disc_counter += 1

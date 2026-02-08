@@ -4,8 +4,10 @@
 """
 import os
 import re
+import json
 from pathlib import Path
-from typing import Optional, Dict, List, Tuple
+from datetime import datetime
+from typing import Optional, Dict, List, Any
 
 import cv2
 import numpy as np
@@ -19,10 +21,17 @@ from one_dragon.utils import cv2_utils
 class AgentIconMatcher:
     """代理人头像匹配器"""
 
-    def __init__(self):
+    def __init__(self, save_debug_images: bool = True):
         self.icon_dir = os_utils.get_path_under_work_dir('assets', 'wiki_data', 'icons')
         self.icon_cache: Dict[str, MatLike] = {}
         self.translation_dict: Dict = {}
+        self.save_debug_images = save_debug_images
+        self.debug_dir = os_utils.get_path_under_work_dir('.debug', 'icon_crops')
+        self._unique_crops: Dict[str, Dict[str, Any]] = {}
+        self._unique_crop_seq: int = 0
+        self._hash_distance_threshold = 2
+        if save_debug_images:
+            os.makedirs(self.debug_dir, exist_ok=True)
         self._load_icons()
         self._load_translation_dict()
 
@@ -33,7 +42,7 @@ class AgentIconMatcher:
             return
 
         icon_files = list(Path(self.icon_dir).glob("IconRoleCircle*.webp"))
-        log.info(f"加载 {len(icon_files)} 个代理人头像")
+        log.debug(f"加载 {len(icon_files)} 个代理人头像")
 
         for icon_file in icon_files:
             icon = cv2_utils.read_image(str(icon_file))
@@ -47,7 +56,7 @@ class AgentIconMatcher:
                 import json
                 with open(dict_path, 'r', encoding='utf-8') as f:
                     self.translation_dict = json.load(f)
-                log.info(f"加载翻译字典成功: {dict_path}")
+                log.debug(f"加载翻译字典成功: {dict_path}")
         except Exception as e:
             log.error(f"加载翻译字典失败: {e}")
 
@@ -63,22 +72,13 @@ class AgentIconMatcher:
             True 如果区域有彩色（S通道均值>20），False 否则
         """
         try:
-            # 裁剪区域
             region = screenshot[y1:y2, x1:x2]
-
-            # 左右各裁剪30%，只检测中间40%（避免边缘影响）
             width = region.shape[1]
             crop_left = int(width * 0.3)
             crop_right = int(width * 0.7)
             region = region[:, crop_left:crop_right]
-
-            # 转换为HSV
             region_hsv = cv2.cvtColor(region, cv2.COLOR_RGB2HSV)
-
-            # 计算S通道（饱和度）的平均值
             avg_s = float(region_hsv[:, :, 1].mean())
-
-            # 检测平均S通道是否大于20（有彩色）
             is_colorful = avg_s > 20
 
             return is_colorful
@@ -98,37 +98,35 @@ class AgentIconMatcher:
             代理人key（如 "Billy"），未匹配到返回空字符串
         """
         try:
-            # 裁剪头像区域
             small_icon = screenshot[y1:y2, x1:x2]
 
             if small_icon is None or small_icon.size == 0:
                 return ""
 
-            # 计算所有头像的匹配分数
+            match_size = (31, 31)
+            small_icon_rs = cv2.resize(small_icon, match_size, interpolation=cv2.INTER_AREA)
+            small_icon_rs = self._apply_circle_mask(small_icon_rs)
+            small_icon_gray = cv2.cvtColor(small_icon_rs, cv2.COLOR_RGB2GRAY)
+            small_icon_edge = cv2.Canny(small_icon_gray, 50, 150)
             scores = []
-            h, w = small_icon.shape[:2]
 
             for icon_name, full_icon in self.icon_cache.items():
-                # 将全尺寸头像缩小到小图标尺寸
-                scaled_full = cv2.resize(full_icon, (w, h), interpolation=cv2.INTER_AREA)
-
-                # 模板匹配（TM_CCOEFF_NORMED）
-                result = cv2.matchTemplate(small_icon, scaled_full, cv2.TM_CCOEFF_NORMED)
+                scaled_full = cv2.resize(full_icon, match_size, interpolation=cv2.INTER_AREA)
+                scaled_full = self._apply_circle_mask(scaled_full)
+                scaled_full_gray = cv2.cvtColor(scaled_full, cv2.COLOR_RGB2GRAY)
+                scaled_full_edge = cv2.Canny(scaled_full_gray, 50, 150)
+                result = cv2.matchTemplate(small_icon_edge, scaled_full_edge, cv2.TM_CCOEFF_NORMED)
                 score = result[0][0]
 
                 scores.append((icon_name, score))
 
-            # 按分数排序
             scores.sort(key=lambda x: x[1], reverse=True)
 
             if not scores:
                 return ""
 
-            # 获取最佳匹配的头像文件名
             best_icon_name = scores[0][0]
-
-            # 从文件名提取图标名称
-            # IconRoleCircle10.webp -> IconRole10
+            best_score = float(scores[0][1])
             icon_name_match = re.search(r'IconRoleCircle(\d+)', best_icon_name)
             if not icon_name_match:
                 return ""
@@ -136,7 +134,6 @@ class AgentIconMatcher:
             icon_number = icon_name_match.group(1)
             icon_name = f"IconRole{icon_number}"
 
-            # 在翻译字典中查找对应的代理人key
             agent_key = self._find_agent_key_by_icon(icon_name)
 
             if agent_key:
@@ -144,11 +141,125 @@ class AgentIconMatcher:
             else:
                 log.warning(f"未找到对应的代理人: {icon_name}")
 
+            self._cache_unique_crop_debug(
+                small_icon=small_icon,
+                best_icon_name=best_icon_name,
+                best_score=best_score,
+                agent_key=agent_key or "",
+                top_scores=scores[:5]
+            )
+
             return agent_key or ""
 
         except Exception as e:
             log.error(f"匹配代理人头像失败: {e}", exc_info=True)
             return ""
+
+    def _apply_circle_mask(self, image: MatLike) -> MatLike:
+        """对头像应用内圆mask。"""
+        h, w = image.shape[:2]
+        center = (w // 2, h // 2)
+        radius = max(1, min(w, h) // 2 - 3)
+
+        mask = np.zeros((h, w), dtype=np.uint8)
+        cv2.circle(mask, center, radius, 255, -1)
+
+        return cv2.bitwise_and(image, image, mask=mask)
+
+    def _cache_unique_crop_debug(
+            self,
+            small_icon: MatLike,
+            best_icon_name: str,
+            best_score: float,
+            agent_key: str,
+            top_scores: List[tuple[str, float]]
+    ) -> None:
+        """缓存并保存唯一裁剪块的调试信息。"""
+        if not self.save_debug_images:
+            return
+
+        try:
+            ahash = self._compute_ahash(small_icon)
+            record_key = self._find_existing_crop_key(ahash)
+
+            now_iso = datetime.now().isoformat(timespec='seconds')
+
+            if record_key is None:
+                self._unique_crop_seq += 1
+                record_key = f"icon_crop_{self._unique_crop_seq:04d}"
+                img_file = f"{record_key}.jpg"
+                img_path = os.path.join(self.debug_dir, img_file)
+                json_path = os.path.join(self.debug_dir, f"{record_key}.json")
+
+                bgr_icon = cv2.cvtColor(small_icon, cv2.COLOR_RGB2BGR)
+                cv2.imwrite(img_path, bgr_icon)
+
+                self._unique_crops[record_key] = {
+                    'ahash': ahash,
+                    'image': img_file,
+                    'json_path': json_path,
+                    'count': 1,
+                    'firstSeen': now_iso,
+                    'lastSeen': now_iso,
+                    'bestMatch': best_icon_name,
+                    'bestScore': round(best_score, 6),
+                    'agentKey': agent_key,
+                    'topMatches': [{'icon': name, 'score': round(float(score), 6)} for name, score in top_scores]
+                }
+            else:
+                record = self._unique_crops[record_key]
+                record['count'] += 1
+                record['lastSeen'] = now_iso
+
+                if best_score > record.get('bestScore', -1):
+                    record['bestMatch'] = best_icon_name
+                    record['bestScore'] = round(best_score, 6)
+                    record['agentKey'] = agent_key
+                    record['topMatches'] = [{'icon': name, 'score': round(float(score), 6)} for name, score in top_scores]
+
+            self._write_crop_record_json(record_key)
+        except Exception as e:
+            log.error(f"保存唯一裁剪块调试信息失败: {e}")
+
+    def _compute_ahash(self, image: MatLike) -> np.ndarray:
+        """计算图片aHash，用于近似去重。"""
+        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        small = cv2.resize(gray, (8, 8), interpolation=cv2.INTER_AREA)
+        avg = float(small.mean())
+        return (small >= avg).astype(np.uint8)
+
+    def _find_existing_crop_key(self, ahash: np.ndarray) -> Optional[str]:
+        """查找是否存在近似相同的已缓存裁剪块。"""
+        for key, record in self._unique_crops.items():
+            old_hash = record.get('ahash')
+            if old_hash is None:
+                continue
+            distance = int(np.count_nonzero(old_hash != ahash))
+            if distance <= self._hash_distance_threshold:
+                return key
+        return None
+
+    def _write_crop_record_json(self, record_key: str) -> None:
+        """将唯一裁剪块记录写入json。"""
+        record = self._unique_crops[record_key]
+        json_path = record.get('json_path')
+        if not json_path:
+            return
+
+        payload = {
+            'recordKey': record_key,
+            'image': record.get('image'),
+            'count': record.get('count', 0),
+            'firstSeen': record.get('firstSeen'),
+            'lastSeen': record.get('lastSeen'),
+            'bestMatch': record.get('bestMatch', ''),
+            'bestScore': record.get('bestScore', 0),
+            'agentKey': record.get('agentKey', ''),
+            'topMatches': record.get('topMatches', [])
+        }
+
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
 
     def _find_agent_key_by_icon(self, icon_name: str) -> Optional[str]:
         """

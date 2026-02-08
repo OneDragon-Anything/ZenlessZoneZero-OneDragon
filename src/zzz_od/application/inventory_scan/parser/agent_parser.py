@@ -68,9 +68,8 @@ class AgentParser:
                 log.error("无法解析代理人名称")
                 return None
 
-            # 检查是否在翻译表中（通过翻译服务验证）
-            translated_name = self.translation_service.translate_character(agent_name, 'EN')
-            if translated_name == agent_name and agent_name not in self.translation_service.translation_dict.get('character', {}):
+            # 检查是否在翻译表中（返回的是角色 code）
+            if self._match_translation(agent_name, screenshot) is None:
                 log.warning(f"角色 {agent_name} 不在翻译表中，跳过")
                 self._save_error(screenshot, f"角色不在翻译表: {agent_name}", all_results)
                 return None
@@ -164,7 +163,7 @@ class AgentParser:
             ocr_name = candidate['name']
             matched_key = self._match_translation(ocr_name, screenshot)
             if matched_key:
-                log.info(f"OCR识别: {candidate['original']} -> 修正后: {ocr_name} (置信度: {candidate['confidence']:.4f}) -> 匹配到: {matched_key}")
+                log.debug(f"OCR识别: {candidate['original']} -> 修正后: {ocr_name} (置信度: {candidate['confidence']:.4f}) -> 匹配到: {matched_key}")
                 return matched_key
 
         # 如果没有匹配到，返回置信度最高的OCR结果并保存错误
@@ -188,12 +187,19 @@ class AgentParser:
         translated = self.translation_service.translate_character(ocr_name, 'EN')
         character_dict = self.translation_service.translation_dict.get('character', {})
 
-        # 如果翻译后的名称不在字典中，返回None
-        if translated not in character_dict:
-            log.warning(f"未找到匹配: {ocr_name}")
-            return None
+        # 新结构：key 是数字ID，需要在 value 中找 code/EN
+        for _, char_data in character_dict.items():
+            if not isinstance(char_data, dict):
+                continue
 
-        return translated
+            code = char_data.get('code')
+            en_name = char_data.get('EN')
+
+            if translated == code or translated == en_name:
+                return code
+
+        log.warning(f"未找到匹配: {ocr_name}")
+        return None
 
     def _parse_agent_level(self, results: List[Dict]):
         """解析代理人等级"""

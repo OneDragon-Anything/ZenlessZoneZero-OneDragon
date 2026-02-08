@@ -48,9 +48,9 @@ class WengineParser:
 
             # 匹配头像
             agent_key = ""
-            # 头像区域 (52, 52) - (86, 86)
-            if self.icon_matcher.is_region_colorful(screenshot, 52, 52, 86, 86):
-                agent_key = self.icon_matcher.match_agent_icon(screenshot, 52, 52, 86, 86)
+            # 头像区域（修正后）(54, 54) - (85, 85)
+            if self.icon_matcher.is_region_colorful(screenshot, 54, 54, 85, 85):
+                agent_key = self.icon_matcher.match_agent_icon(screenshot, 54, 54, 85, 85)
 
             # 生成音擎数据
             self.wengine_counter += 1

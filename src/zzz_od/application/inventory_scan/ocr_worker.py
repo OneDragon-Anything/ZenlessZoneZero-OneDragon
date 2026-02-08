@@ -39,7 +39,7 @@ class OcrWorker:
         self._error_count = 0
         self._thread = threading.Thread(target=self._worker, daemon=True)
         self._thread.start()
-        log.info("OCR工作线程已启动")
+        log.debug("OCR工作线程已启动")
 
     def submit(self, task_type: str, screenshot: MatLike, parser: Any):
         """
@@ -55,14 +55,14 @@ class OcrWorker:
     def wait_complete(self):
         """等待所有任务完成"""
         self._queue.join()
-        log.info(f"OCR处理完成: 成功{self._processed_count}个, 失败{self._error_count}个")
+        log.debug(f"OCR处理完成: 成功{self._processed_count}个, 失败{self._error_count}个")
 
     def stop(self):
         """停止工作线程"""
         self._stop_event.set()
         if self._thread:
             self._thread.join(timeout=5)
-        log.info("OCR工作线程已停止")
+        log.debug("OCR工作线程已停止")
 
     def reset(self):
         """重置结果收集"""
@@ -103,20 +103,20 @@ class OcrWorker:
                     if data:
                         if task_type == 'disc':
                             self.scanned_discs.append(data)
-                            log.info(f"[OCR] 驱动盘解析成功: {data.get('setKey', 'unknown')}")
+                            log.debug(f"[OCR] 驱动盘解析成功: {data.get('setKey', 'unknown')}")
                         elif task_type == 'wengine':
                             self.scanned_wengines.append(data)
-                            log.info(f"[OCR] 音擎解析成功: {data.get('key', 'unknown')}")
+                            log.debug(f"[OCR] 音擎解析成功: {data.get('key', 'unknown')}")
                         elif task_type == 'agent':
                             self.scanned_agents.append(data)
-                            log.info(f"[OCR] 角色解析成功: {data.get('key', 'unknown')}")
+                            log.debug(f"[OCR] 角色解析成功: {data.get('key', 'unknown')}")
                         self._processed_count += 1
                     else:
                         log.error(f"[OCR] 解析失败 ({task_type})")
                         self._error_count += 1
 
                 except Exception as e:
-                    log.error(f"[OCR] 处理任务失败 ({task_type}): {e}")
+                    log.error(f"[OCR] 处理任务失败 ({task_type}): {e}", exc_info=True)
                     self._error_count += 1
 
                 self._queue.task_done()
@@ -124,4 +124,4 @@ class OcrWorker:
             except queue.Empty:
                 continue
             except Exception as e:
-                log.error(f"[OCR] 工作线程异常: {e}")
+                log.error(f"[OCR] 工作线程异常: {e}", exc_info=True)

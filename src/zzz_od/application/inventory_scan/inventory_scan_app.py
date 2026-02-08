@@ -38,14 +38,11 @@ class InventoryScanApp(ZApplication):
             group_id=application_const.DEFAULT_GROUP_ID,
         )
 
-        # 截图目录和缓存
         self.screenshots_dir = os_utils.get_path_under_work_dir('.debug', 'inventory_screenshots')
         self.screenshot_cache = ScreenshotCache(save_dir=self.screenshots_dir, debug_mode=False)
 
-        # OCR工作者（异步处理OCR任务）
         self.ocr_worker = OcrWorker(ctx)
 
-        # 实例化三个子扫描应用，传入共享的截图缓存和OCR工作者
         self.drive_disk_scanner = DriveDiskScanApp(ctx, screenshot_cache=self.screenshot_cache, ocr_worker=self.ocr_worker)
         self.wengine_scanner = WengineScanApp(ctx, screenshot_cache=self.screenshot_cache, ocr_worker=self.ocr_worker)
         self.agent_scanner = AgentScanApp(ctx, screenshot_cache=self.screenshot_cache, ocr_worker=self.ocr_worker)
@@ -63,17 +60,9 @@ class InventoryScanApp(ZApplication):
         import shutil
         if os.path.exists(self.screenshots_dir):
             shutil.rmtree(self.screenshots_dir)
-        # os.makedirs(self.screenshots_dir, exist_ok=True)
-        # log.info(f"截图文件夹已准备: {self.screenshots_dir}")
-
-        # 清空所有缓存并重置索引，确保从0开始
         self.screenshot_cache.reset_all()
-
-        # 重置OCR工作者并启动
         self.ocr_worker.reset()
         self.ocr_worker.start()
-
-        # 设置子扫描器的截图目录
         self.drive_disk_scanner.screenshots_dir = self.screenshots_dir
         self.wengine_scanner.screenshots_dir = self.screenshots_dir
         self.agent_scanner.screenshots_dir = self.screenshots_dir
@@ -92,12 +81,12 @@ class InventoryScanApp(ZApplication):
     def scan_drive_disks(self) -> OperationRoundResult:
         """扫描驱动盘"""
         if not self._scan_drive_disk:
-            log.info("已跳过驱动盘扫描")
+            log.debug("已跳过驱动盘扫描")
             return self.round_success('驱动盘已跳过')
-        log.info("开始扫描驱动盘...")
+        log.debug("开始扫描驱动盘...")
         result = self.drive_disk_scanner.execute()
         if result.success:
-            log.info("驱动盘扫描完成")
+            log.debug("驱动盘扫描完成")
             return self.round_success('驱动盘扫描完成')
         else:
             log.error(f"驱动盘扫描失败: {result.status}")
@@ -107,6 +96,7 @@ class InventoryScanApp(ZApplication):
     @operation_node(name='导航到音擎界面')
     def goto_wengine_screen(self) -> OperationRoundResult:
         """导航到音擎界面"""
+        self.ocr_worker.wait_complete()
         if not self._scan_wengine:
             return self.round_success('跳过音擎')
         return self.round_by_goto_screen(screen_name='仓库-音擎仓库')
@@ -116,12 +106,12 @@ class InventoryScanApp(ZApplication):
     def scan_wengines(self) -> OperationRoundResult:
         """扫描音擎"""
         if not self._scan_wengine:
-            log.info("已跳过音擎扫描")
+            log.debug("已跳过音擎扫描")
             return self.round_success('音擎已跳过')
-        log.info("开始扫描音擎...")
+        log.debug("开始扫描音擎...")
         result = self.wengine_scanner.execute()
         if result.success:
-            log.info("音擎扫描完成")
+            log.debug("音擎扫描完成")
             return self.round_success('音擎扫描完成')
         else:
             log.error(f"音擎扫描失败: {result.status}")
@@ -131,6 +121,7 @@ class InventoryScanApp(ZApplication):
     @operation_node(name='导航到代理人界面', node_max_retry_times=30)
     def goto_agent_screen(self) -> OperationRoundResult:
         """导航到代理人界面"""
+        self.ocr_worker.wait_complete()
         if not self._scan_agent:
             return self.round_success('跳过角色')
 
@@ -138,7 +129,6 @@ class InventoryScanApp(ZApplication):
         if not nav_result.is_success:
             return nav_result
 
-        # 检测基础按钮是否彩色（加载完成）
         screen = self.screenshot()
         if self._is_button_colorful(screen, '代理人-信息', '按钮-代理人基础'):
             return self.round_success('已到达代理人界面')
@@ -175,12 +165,12 @@ class InventoryScanApp(ZApplication):
     def scan_agents(self) -> OperationRoundResult:
         """扫描角色"""
         if not self._scan_agent:
-            log.info("已跳过角色扫描")
+            log.debug("已跳过角色扫描")
             return self.round_success('角色已跳过')
-        log.info("开始扫描角色...")
+        log.debug("开始扫描角色...")
         result = self.agent_scanner.execute()
         if result.success:
-            log.info("角色扫描完成")
+            log.debug("角色扫描完成")
             return self.round_success('角色扫描完成')
         else:
             log.error(f"角色扫描失败: {result.status}")
@@ -190,17 +180,11 @@ class InventoryScanApp(ZApplication):
     @operation_node(name='等待OCR完成')
     def wait_ocr_complete(self) -> OperationRoundResult:
         """等待OCR工作线程完成所有任务"""
-        log.info("等待OCR处理完成...")
-
-        # 等待所有OCR任务完成
+        log.debug("等待OCR处理完成...")
         self.ocr_worker.wait_complete()
-
-        # 停止工作线程
         self.ocr_worker.stop()
-
-        # OCR完成后清空内存缓存，释放内存
         self.screenshot_cache.reset_all()
-        log.info("OCR处理完成，已清空内存缓存")
+        log.debug("OCR处理完成，已清空内存缓存")
 
         return self.round_success('OCR处理完成')
 
@@ -218,7 +202,6 @@ class InventoryScanApp(ZApplication):
             timestamp = int(time.time())
             export_path = os.path.join(export_dir, f'inventory_{timestamp}.json')
 
-            # 从OCR工作者收集所有数据
             export_data = {
                 'format': 'ZOD',
                 'dbVersion': 2,
@@ -242,15 +225,3 @@ class InventoryScanApp(ZApplication):
         except Exception as e:
             log.error(f'导出完整数据失败: {e}')
             return self.round_fail(f'导出失败: {e}')
-
-
-def __debug():
-    ctx = ZContext()
-    ctx.init()
-    ctx.run_context.start_running()
-    app = InventoryScanApp(ctx)
-    app.execute()
-
-
-if __name__ == '__main__':
-    __debug()

@@ -79,7 +79,7 @@ class DriveDiskScanApp(ZApplication):
 
         os.makedirs(base_dir, exist_ok=True)
         self.screenshots_dir = base_dir
-        log.info(f"截图文件夹已准备: {self.screenshots_dir}")
+        log.debug(f"截图文件夹已准备: {self.screenshots_dir}")
 
     def _save_screenshot(self, row: int, col: int, screenshot: MatLike):
         """保存截图到缓存并提交OCR任务"""
@@ -175,12 +175,12 @@ class DriveDiskScanApp(ZApplication):
 
         # 检查是否超出范围
         if self.current_row_idx >= len(self.grid_rows):
-            log.info("驱动盘扫描完成")
+            log.debug("驱动盘扫描完成")
             return self.round_success('扫描完成')
 
         current_row = self.grid_rows[self.current_row_idx]
         if self.current_col_idx >= len(current_row):
-            log.info("驱动盘扫描完成")
+            log.debug("驱动盘扫描完成")
             return self.round_success('扫描完成')
 
         # 同行内循环点击，不经过状态机
@@ -200,7 +200,7 @@ class DriveDiskScanApp(ZApplication):
 
             # 同行点击下一个
             target = current_row[next_col]
-            log.info(f"[点击] 同行，点击({self.current_row_idx},{next_col})")
+            log.debug(f"[点击] 同行，点击({self.current_row_idx},{next_col})")
             self.ctx.controller.click(target)
             self.current_col_idx = next_col
 
@@ -220,38 +220,38 @@ class DriveDiskScanApp(ZApplication):
                 # 有进度条：第4行是最后一行
                 if len(self.grid_rows) > 3 and len(self.grid_rows[3]) > 0:
                     target = self.grid_rows[3][0]
-                    log.info(f"[点击] 检测到进度条，点击(3,0)进入最后一行")
+                    log.debug(f"[点击] 检测到进度条，点击(3,0)进入最后一行")
                     self.ctx.controller.click(target)
                     self.current_row_idx = 3
                     self.current_col_idx = 0
                     return self.round_success('最后一行')
                 else:
-                    log.info("点击完成，扫描结束")
+                    log.debug("点击完成，扫描结束")
                     return self.round_success('扫描完成')
             else:
                 # 无进度条：点击(4,1)触发滚动
                 if len(self.grid_rows) > 3 and len(self.grid_rows[3]) > 0:
                     target = self.grid_rows[3][0]
-                    log.info(f"[点击] 无进度条，点击(3,0)触发滚动")
+                    log.debug(f"[点击] 无进度条，点击(3,0)触发滚动")
                     self.ctx.controller.click(target)
                     self.current_row_idx = 2
                     self.current_col_idx = 0
                     return self.round_success('滚动', wait=0.4)
                 else:
-                    log.info("点击完成，扫描结束")
+                    log.debug("点击完成，扫描结束")
                     return self.round_success('扫描完成')
 
         # 普通换行
         if next_row < len(self.grid_rows):
             if len(self.grid_rows[next_row]) > 0:
                 target = self.grid_rows[next_row][0]
-                log.info(f"[点击] 换行，点击({next_row},{next_col})")
+                log.debug(f"[点击] 换行，点击({next_row},{next_col})")
                 self.ctx.controller.click(target)
                 self.current_row_idx = next_row
                 self.current_col_idx = next_col
                 return self.round_success('换行')
 
-        log.info("驱动盘扫描完成")
+        log.debug("驱动盘扫描完成")
         return self.round_success('扫描完成')
 
     def _sort_grids(self, all_disks: list[Point]) -> list[list[Point]]:

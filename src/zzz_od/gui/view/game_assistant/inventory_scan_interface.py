@@ -50,7 +50,7 @@ class InventoryScanInterface(AppRunInterface):
         # 使用说明卡片
         self.help_opt = HelpCard(
             title='使用说明',
-            content='从大世界开始，自动扫描驱动盘、音擎、角色，并导出数据。扫描结果可导入绝区零伤害优化计算网站进行配装分析。\n\n注意：请确保游戏分辨率为 1920x1080，否则无法正常扫描。'
+            content='从大世界开始，自动扫描驱动盘、音擎、角色，并导出数据。扫描结果可导入绝区零伤害优化计算网站进行配装分析。\n注意：请确保游戏分辨率为 1920x1080，否则无法正常扫描。'
         )
         left_layout.addWidget(self.help_opt)
 
@@ -138,7 +138,7 @@ class InventoryScanInterface(AppRunInterface):
             }
             setattr(self.ctx, '_inventory_scan_targets', targets)
             log.info(f"扫描目标: {targets}")
-        
+
         # 调用父类方法启动应用
         AppRunInterface._on_start_clicked(self)
 
