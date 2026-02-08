@@ -4,6 +4,7 @@ import time
 from typing import ClassVar, Optional
 
 import cv2
+
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
@@ -11,8 +12,8 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.base.screen.screen_utils import FindAreaResultEnum
 from one_dragon.base.screen import screen_utils
+from one_dragon.base.screen.screen_utils import FindAreaResultEnum
 from one_dragon.utils import cal_utils, cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -151,7 +152,7 @@ class MatrixActionApp(ZApplication):
         )
 
     @node_from(from_name="前往快捷手册-作战")
-    @operation_node(name="点击零号空洞", node_max_retry_times=300)
+    @operation_node(name="点击零号空洞")
     def click_hollow_zero(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
         if self._check_ocr_text(["迷失之地", "前往"], ocr_result_map=ocr_result_map):
@@ -160,7 +161,7 @@ class MatrixActionApp(ZApplication):
         target = self._find_first_text("零号空洞", ocr_result_map=ocr_result_map)
         if target is not None:
             if self._is_click_on_cooldown():
-                return self.round_retry("点击零号空洞", wait=0.1)
+                return self.round_wait("点击零号空洞", wait=0.1)
             if self._click_with_cooldown(target.center):
                 return self.round_wait("点击零号空洞", wait=0.3)
             return self.round_retry("点击零号空洞失败", wait=0.1)
@@ -168,7 +169,7 @@ class MatrixActionApp(ZApplication):
         return self.round_retry("未找到零号空洞", wait=0.3)
 
     @node_from(from_name="点击零号空洞")
-    @operation_node(name="前往矩阵行动", node_max_retry_times=300)
+    @operation_node(name="前往矩阵行动")
     def go_to_matrix_action(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
         if self._check_ocr_text("矩阵行动", ocr_result_map=ocr_result_map):
@@ -177,9 +178,9 @@ class MatrixActionApp(ZApplication):
         confirm = self._find_first_text("确认", ocr_result_map=ocr_result_map)
         if confirm is not None:
             if self._is_click_on_cooldown():
-                return self.round_retry("点击确认", wait=0.1)
+                return self.round_wait("点击确认", wait=0.1)
             if self._click_with_cooldown(confirm.center):
-                return self.round_retry("点击确认", wait=0.3)
+                return self.round_wait("点击确认", wait=0.3)
             return self.round_retry("点击确认失败", wait=0.1)
 
         lost_void_pos = self._find_first_text("迷失之地", ocr_result_map=ocr_result_map)
@@ -192,7 +193,7 @@ class MatrixActionApp(ZApplication):
                     key=lambda x: cal_utils.distance_between(x.center, lost_void_pos.center),
                 )
                 if self._is_click_on_cooldown():
-                    return self.round_retry("点击前往", wait=0.1)
+                    return self.round_wait("点击前往", wait=0.1)
                 if self._click_with_cooldown(nearest_goto.center):
                     return self.round_wait("点击前往", wait=0.3)
                 return self.round_retry("点击前往失败", wait=0.1)
@@ -201,7 +202,7 @@ class MatrixActionApp(ZApplication):
 
     @node_from(from_name="前往矩阵行动")
     @node_from(from_name="开始前接力检查", status=STATUS_ON_MATRIX_PAGE)
-    @operation_node(name="前往挑战", node_max_retry_times=300)
+    @operation_node(name="前往挑战")
     def goto_challenge(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
         has_matrix_action = self._check_ocr_text("矩阵行动", ocr_result_map=ocr_result_map)
@@ -215,7 +216,7 @@ class MatrixActionApp(ZApplication):
         target = self._find_first_text("前往挑战", ocr_result_map=ocr_result_map)
         if target is not None:
             if self._is_click_on_cooldown():
-                return self.round_retry("点击前往挑战", wait=0.1)
+                return self.round_wait("点击前往挑战", wait=0.1)
             if self._click_with_cooldown(target.center):
                 return self.round_wait("点击前往挑战", wait=0.3)
             return self.round_retry("点击前往挑战失败", wait=0.1)
@@ -223,7 +224,7 @@ class MatrixActionApp(ZApplication):
         return self.round_retry("未找到前往挑战", wait=0.3)
 
     @node_from(from_name="前往挑战")
-    @operation_node(name="点击下一步", node_max_retry_times=300)
+    @operation_node(name="点击下一步")
     def click_next_step(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
         if self._check_ocr_text("主战编队", ocr_result_map=ocr_result_map):
@@ -232,9 +233,9 @@ class MatrixActionApp(ZApplication):
         target = self._find_first_text("下一步", ocr_result_map=ocr_result_map)
         if target is not None:
             if time.monotonic() - self._next_step_last_click_at < self._next_step_click_cooldown_sec:
-                return self.round_retry("点击下一步", wait=0.1)
+                return self.round_wait("点击下一步", wait=0.1)
             if self._is_click_on_cooldown():
-                return self.round_retry("点击下一步", wait=0.1)
+                return self.round_wait("点击下一步", wait=0.1)
             if self._click_with_cooldown(target.center):
                 self._next_step_last_click_at = time.monotonic()
                 return self.round_wait("点击下一步", wait=0.1)
@@ -243,7 +244,7 @@ class MatrixActionApp(ZApplication):
         return self.round_retry("未找到下一步", wait=0.1)
 
     @node_from(from_name="点击下一步")
-    @operation_node(name="点击主战编队", node_max_retry_times=300)
+    @operation_node(name="点击主战编队")
     def click_main_team(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
         if self._check_ocr_text("预备编队", ocr_result_map=ocr_result_map):
@@ -252,7 +253,7 @@ class MatrixActionApp(ZApplication):
         target = self._find_first_text("主战编队", ocr_result_map=ocr_result_map)
         if target is not None:
             if self._is_click_on_cooldown():
-                return self.round_retry("点击主战编队", wait=0.1)
+                return self.round_wait("点击主战编队", wait=0.1)
             if self._click_with_cooldown(target.center):
                 return self.round_wait("点击主战编队", wait=0.3)
             return self.round_retry("点击主战编队失败", wait=0.1)
@@ -260,7 +261,7 @@ class MatrixActionApp(ZApplication):
         return self.round_retry("未找到主战编队", wait=0.3)
 
     @node_from(from_name="点击主战编队")
-    @operation_node(name="点击预备编队", node_max_retry_times=300)
+    @operation_node(name="点击预备编队")
     def click_preset_team(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
         target = self._find_first_text("预备编队", ocr_result_map=ocr_result_map, exact=True)
@@ -279,16 +280,16 @@ class MatrixActionApp(ZApplication):
 
         if target is not None:
             if self._is_click_on_cooldown():
-                return self.round_retry("点击预备编队", wait=0.1)
+                return self.round_wait("点击预备编队", wait=0.1)
             if self._click_with_cooldown(target.center):
                 self._preset_team_clicked_once = True
-                return self.round_retry("点击预备编队", wait=0.3)
+                return self.round_wait("点击预备编队", wait=0.3)
             return self.round_retry("点击预备编队失败", wait=0.1)
 
         return self.round_retry("未找到预备编队", wait=0.1)
 
     @node_from(from_name="点击预备编队")
-    @operation_node(name="选择配队", node_max_retry_times=300)
+    @operation_node(name="选择配队")
     def select_team(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
         left_center = self._get_left_screen_center()
@@ -307,11 +308,11 @@ class MatrixActionApp(ZApplication):
         if not self._team_clicked_once:
             if target is not None:
                 if self._is_click_on_cooldown():
-                    return self.round_retry(f"点击{self.config.team_name}", wait=0.1)
+                    return self.round_wait(f"点击{self.config.team_name}", wait=0.1)
                 if self._click_with_cooldown(target.center):
                     self._team_clicked_once = True
                     self._team_scroll_times = 0
-                    return self.round_retry(f"点击{self.config.team_name}", wait=0.3)
+                    return self.round_wait(f"点击{self.config.team_name}", wait=0.3)
                 return self.round_retry(f"点击{self.config.team_name}失败", wait=0.1)
 
             if self._team_scroll_times < 5:
@@ -319,17 +320,17 @@ class MatrixActionApp(ZApplication):
                 end = start + Point(0, -300)
                 self.ctx.controller.drag_to(start=start, end=end)
                 self._team_scroll_times += 1
-                return self.round_retry(
+                return self.round_wait(
                     f"未找到{self.config.team_name} 左侧上划{self._team_scroll_times}/5",
                     wait=0.3,
                 )
 
             if self._is_click_on_cooldown():
-                return self.round_retry("左侧中点兜底选队", wait=0.1)
+                return self.round_wait("左侧中点兜底选队", wait=0.1)
             if self._click_with_cooldown(left_center):
                 self._team_clicked_once = True
                 self._team_scroll_times = 0
-                return self.round_retry("未找到目标队伍 左侧中点兜底选队", wait=0.3)
+                return self.round_wait("未找到目标队伍 左侧中点兜底选队", wait=0.3)
             return self.round_retry("左侧中点兜底选队失败", wait=0.1)
 
         main_markers = self._find_all_text(
@@ -354,15 +355,15 @@ class MatrixActionApp(ZApplication):
 
         if target is not None:
             if self._is_click_on_cooldown():
-                return self.round_retry(f"点击{self.config.team_name}", wait=0.1)
+                return self.round_wait(f"点击{self.config.team_name}", wait=0.1)
             if self._click_with_cooldown(target.center):
-                return self.round_retry(f"点击{self.config.team_name}", wait=0.3)
+                return self.round_wait(f"点击{self.config.team_name}", wait=0.3)
             return self.round_retry(f"点击{self.config.team_name}失败", wait=0.1)
 
         return self.round_retry(f"未找到{self.config.team_name}", wait=0.3)
 
     @node_from(from_name="选择配队")
-    @operation_node(name="点击一次协助代理人", node_max_retry_times=300)
+    @operation_node(name="点击一次协助代理人")
     def click_support_agent_once(self) -> OperationRoundResult:
         if self._support_agent_opened:
             return self._round_success_with_click_reset("已点击协助代理人")
@@ -371,10 +372,10 @@ class MatrixActionApp(ZApplication):
         support = self._find_first_text("协助代理人", ocr_result_map=ocr_result_map)
         if support is not None:
             if self._is_click_on_cooldown():
-                return self.round_retry("点击协助代理人", wait=0.1)
+                return self.round_wait("点击协助代理人", wait=0.1)
             if self._click_with_cooldown(support.center):
                 self._support_agent_opened = True
-                return self.round_retry("点击协助代理人", wait=0.1)
+                return self.round_wait("点击协助代理人", wait=0.1)
             return self.round_retry("点击协助代理人失败", wait=0.1)
 
         return self.round_retry("未找到协助代理人", wait=0.1)
@@ -388,7 +389,7 @@ class MatrixActionApp(ZApplication):
         return self.round_retry("等待代理人列表", wait=0.1)
 
     @node_from(from_name="等待代理人列表")
-    @operation_node(name="选择协助代理人", node_max_retry_times=300)
+    @operation_node(name="选择协助代理人")
     def select_support_agent(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
         if (
@@ -408,15 +409,15 @@ class MatrixActionApp(ZApplication):
 
         left_up_markers.sort(key=lambda x: (x.y, x.x))
         if self._is_click_on_cooldown():
-            return self.round_retry("点击左侧UP", wait=0.1)
+            return self.round_wait("点击左侧UP", wait=0.1)
         if self._click_with_cooldown(left_up_markers[0].center):
             self._support_up_clicked_once = True
-            return self.round_retry("点击左侧UP", wait=0.1)
+            return self.round_wait("点击左侧UP", wait=0.1)
 
         return self.round_retry("点击左侧UP失败", wait=0.1)
 
     @node_from(from_name="选择协助代理人")
-    @operation_node(name="开始挑战", node_max_retry_times=300)
+    @operation_node(name="开始挑战")
     def start_challenge(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
         start = self._find_first_text("开始挑战", ocr_result_map=ocr_result_map)
@@ -429,9 +430,9 @@ class MatrixActionApp(ZApplication):
 
         self._start_challenge_seen = True
         if self._is_click_on_cooldown():
-            return self.round_retry("点击开始挑战", wait=0.1)
+            return self.round_wait("点击开始挑战", wait=0.1)
         if self._click_with_cooldown(start.center):
-            return self.round_retry("点击开始挑战", wait=0.3)
+            return self.round_wait("点击开始挑战", wait=0.3)
         return self.round_retry("点击开始挑战失败", wait=0.3)
 
     @node_from(from_name="开始挑战", status="已进入空洞战斗")
