@@ -40,13 +40,17 @@ from zzz_od.context.zzz_context import ZContext  # ✅ 可以导入主程序模�
 - `discover_factories()`: 扫描所有插件目录，发现并加载应用工厂
 - `plugin_infos`: 获取所有已加载的插件信息
 - `third_party_plugins`: 获取第三方插件列表
+- `scan_failures`: 获取最近一次扫描的失败记录
 
 > 注意：刷新/注册应用的完整流程由 `OneDragonContext.refresh_application_registration()` 编排，
 > `ApplicationFactoryManager` 仅负责工厂的发现和加载。
 
 **内部方法**:
+- `_scan_directory()`: 扫描单个目录，检测冲突，加载工厂
+- `_load_factory_from_file()`: 从文件加载工厂类，解析模块路径
 - `_import_module_from_file()`: 统一的模块导入，自动加载所有中间包
 - `_find_factory_in_module()`: 在模块中查找并实例化工厂类（每个模块最多一个）
+- `_register_plugin_metadata()`: 验证 const 字段、检测重复 APP_ID、注册到 `_plugin_infos`
 - `_get_unload_prefix()`: 确定热更新时需要卸载的模块前缀
 
 ### PluginInfo
@@ -75,12 +79,15 @@ from zzz_od.context.zzz_context import ZContext  # ✅ 可以导入主程序模�
 
 ### ApplicationFactory
 
-应用工厂基类，新增 `default_group` 参数。
+应用工厂基类。
 
 **文件位置**: `src/one_dragon/base/operation/application/application_factory.py`
 
-**新增参数**:
+**构造参数**:
+- `app_id`: 应用唯一标识符
+- `app_name`: 显示名称
 - `default_group`: 是否属于默认应用组（一条龙运行列表），默认为 `True`
+- `need_notify`: 是否需要通知，默认为 `False`
 
 ## 目录结构
 
@@ -345,11 +352,13 @@ class MyContext(OneDragonContext):
 3. **const 必须字段**: 必须定义 `APP_ID`, `APP_NAME`, `DEFAULT_GROUP`, `NEED_NOTIFY`（见 `app_const_schema.py`）
 4. **字段顺序**: const 文件字段顺序统一为 `APP_ID → APP_NAME → DEFAULT_GROUP → NEED_NOTIFY`
 5. **模块缓存**: 刷新应用时会重新加载模块，支持代码热更新
-6. **错误处理**: 工厂实例化失败时异常会被记录到 `failures` 并跳过，不会影响其他插件
-7. **第三方插件**: 第三方插件目录被 gitignore，用户需要自行备份
-8. **插件元数据**: 建议填写 `PLUGIN_AUTHOR`、`PLUGIN_VERSION` 等元数据以便用户识别
-9. **相对导入**: 第三方插件完整支持相对导入，建议添加 `__init__.py` 文件
-10. **导入主程序**: 第三方插件可以直接 `from one_dragon.xxx` 或 `from zzz_od.xxx` 导入主程序模块
+6. **错误处理**: 工厂实例化失败时异常会被记录到 `scan_failures` 并跳过，不会影响其他插件
+7. **APP_ID 唯一性**: 重复的 APP_ID 会被 `_register_plugin_metadata` 检测并拒绝，后来者不加载
+8. **第三方插件**: 第三方插件目录被 gitignore，用户需要自行备份
+9. **插件元数据**: 建议填写 `PLUGIN_AUTHOR`、`PLUGIN_VERSION` 等元数据以便用户识别
+10. **相对导入**: 第三方插件完整支持相对导入，建议添加 `__init__.py` 文件
+11. **导入主程序**: 第三方插件可以直接 `from one_dragon.xxx` 或 `from zzz_od.xxx` 导入主程序模块
+12. **同目录冲突**: 同一目录下不允许多个 `_factory.py` 或 `_const.py` 文件，发现时整个目录被跳过
 
 ## 插件加载机制
 

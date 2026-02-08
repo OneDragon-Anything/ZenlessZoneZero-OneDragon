@@ -22,8 +22,8 @@ class ApplicationFactory(ABC):
         self,
         app_id: str,
         app_name: str,
-        need_notify: bool = False,
         default_group: bool = True,
+        need_notify: bool = False,
     ):
         """
         初始化应用工厂。
@@ -31,8 +31,8 @@ class ApplicationFactory(ABC):
         Args:
             app_id: 应用唯一标识符，用于区分不同的应用类型
             app_name: 显示用的应用名称
-            need_notify: 应用是否需要通知
             default_group: 是否属于默认应用组，默认为 True
+            need_notify: 应用是否需要通知
         """
         self.app_id: str = app_id
         self.app_name: str = app_name
