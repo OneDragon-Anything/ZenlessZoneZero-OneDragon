@@ -1,0 +1,30 @@
+language: "zh-CN"
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  auto_review:
+    enabled: true
+  tools:
+    ast-grep:
+      enabled: true
+      essential_rules: true
+    ruff:
+      enabled: true
+  path_instructions:
+    - path: "**"
+      instructions: |
+        请严格遵守以下审查规则：
+
+        1. **变更范围限制**：
+           - 请重点审查本次 PR 中实际修改的代码行（Diff）。
+           - 发现未修改的现有代码（Context）中的问题时：
+             - 除非该问题会导致本次变更产生严重 Bug 或即时崩溃，否则**不要**将其作为需要修复的主要问题提出。
+             - 如果觉得有必要提及，请务必将其严重程度标记为**低（Low）**，或者仅作为**提示（Note/Nit）**，不要将其分级为 Major 或 Critical。
+             - 避免对无关的旧代码进行“为了改而改”的重构建议。
+
+        2. **注释与文档**：
+           - 本项目接受中文注释，也可以接受中英文混用。
+           - **不要**仅仅因为注释是中文就建议改为英文，也不要建议将英文改为中文。
+           - **不要**对注释的语法、拼写或风格（如中英文之间是否加空格，标点符号的问题）进行过多的纠正，除非它严重影响阅读。
+           - 只有当注释内容由于过时或错误导致严重误导时才进行指出。
