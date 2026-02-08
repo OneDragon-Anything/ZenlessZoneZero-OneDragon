@@ -5,10 +5,9 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
-from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import (
     OperationRoundResult,
     OperationRoundResultEnum,
@@ -30,10 +29,11 @@ from zzz_od.application.notorious_hunt.notorious_hunt_config import (
 from zzz_od.application.notorious_hunt.notorious_hunt_run_record import (
     NotoriousHuntRunRecord,
 )
-from zzz_od.auto_battle import auto_battle_utils
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.operation.challenge_mission.check_next_after_battle import ChooseNextOrFinishAfterBattle
+from zzz_od.game_data.compendium import MISSION_TYPE_AGENT_PLAN
+from zzz_od.operation.challenge_mission.check_next_after_battle import (
+    ChooseNextOrFinishAfterBattle,
+)
 from zzz_od.operation.challenge_mission.exit_in_battle import ExitInBattle
 from zzz_od.operation.challenge_mission.restart_in_battle import RestartInBattle
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
@@ -118,7 +118,7 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='等待入口加载', status='按钮-街区')
     @operation_node(name='判断副本名称')
     def check_mission(self) -> OperationRoundResult:
-        if self.plan.mission_type_name == '代理人方案培养':
+        if self.plan.mission_type_name == MISSION_TYPE_AGENT_PLAN:
         # 通过代理人进入则跳过重新选择副本
             return self.round_success()
         area = self.ctx.screen_loader.get_area('恶名狩猎', '标题-副本名称')
