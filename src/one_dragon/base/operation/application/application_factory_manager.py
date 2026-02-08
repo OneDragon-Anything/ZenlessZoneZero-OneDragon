@@ -223,6 +223,13 @@ class ApplicationFactoryManager:
         if len(rel_parts) < 1:
             raise ImportError(f"无效的插件路径: {relative_path}")
 
+        # 第三方插件必须放在子目录中（如 plugins/my_plugin/xxx_factory.py）
+        if source == PluginSource.THIRD_PARTY and len(rel_parts) < 2:
+            raise ImportError(
+                f"第三方插件不能直接放在 plugins 根目录: {factory_file.name}，"
+                f"请放在子目录中（如 plugins/my_plugin/{factory_file.name}）"
+            )
+
         module_name = '.'.join(list(rel_parts[:-1]) + [factory_file.stem])
 
         # 3. THIRD_PARTY 特殊处理：将 plugins 目录加入 sys.path
