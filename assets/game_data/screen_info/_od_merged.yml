@@ -1558,8 +1558,8 @@
     - 308
     text: ''
     lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
+    template_sub_dir: engagement_reward
+    template_id: unfinished
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
@@ -1602,6 +1602,20 @@
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 活跃度未完成导航-关闭按钮
+    id_mark: false
+    pc_rect:
+    - 1365
+    - 212
+    - 1472
+    - 285
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: menu
+    template_id: btn_close
     template_match_threshold: 0.7
     color_range: null
     goto_list: []

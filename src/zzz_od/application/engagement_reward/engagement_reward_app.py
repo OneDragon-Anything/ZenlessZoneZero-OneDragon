@@ -12,7 +12,6 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 
 
 class EngagementRewardApp(ZApplication):
-
     STATUS_NO_REWARD: ClassVar[str] = '无奖励可领取'
 
     def __init__(self, ctx: ZContext):
@@ -25,6 +24,7 @@ class EngagementRewardApp(ZApplication):
             app_id=engagement_reward_const.APP_ID,
             op_name=engagement_reward_const.APP_NAME,
         )
+        self.reward_unfinished: bool = False
 
     def handle_init(self) -> None:
         """
@@ -70,22 +70,51 @@ class EngagementRewardApp(ZApplication):
     @node_from(from_name='点击奖励')
     @operation_node(name='查看奖励结果')
     def check_reward(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '活跃度奖励-确认', success_wait=1, retry_wait=1)
+        # 点击已领奖励弹窗
+        result = self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '活跃度奖励-确认',
+                                                   success_wait=1, retry_wait=1)
+        if result.is_success:
+            return result
+
+        # 如果上一节点点击奖励后弹出了'活跃度未完成导航', 说明今日活跃度未达到要求, 此app需要返回失败
+        result = self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '活跃度未完成导航-关闭按钮',
+                                                   success_wait=1, retry_wait=1)
+        if result.is_success:
+            self.reward_unfinished = True
+            return self.round_success()
+        return result
 
     @node_from(from_name='查看奖励结果', success=False)
     @node_from(from_name='查看奖励结果')
     @node_from(from_name='识别活跃度', status=STATUS_NO_REWARD)
     @node_notify(when=NotifyTiming.PREVIOUS_DONE)
+    @operation_node(name='检查每日是否完成')
+    def check_completed(self) -> OperationRoundResult:
+        if self.reward_unfinished:
+            return self.round_success()
+        # 如果上一节点未识别到失败, 检查活跃度奖励是否已全部完成. 如果未全部完成, 此app仍然需要返回失败
+        result = self.round_by_find_area(self.last_screenshot, '快捷手册', f'活跃度奖励-{self.idx}')
+        if result.is_success:
+            self.reward_unfinished = True
+        return self.round_success()
+
+    @node_from(from_name='检查每日是否完成')
     @operation_node(name='完成后返回大世界')
     def back_afterwards(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
+    @node_from(from_name='完成后返回大世界')
+    @operation_node(name='记录活跃度奖励结果')
+    def record_returns(self) -> OperationRoundResult:
+        if self.reward_unfinished:
+            return self.round_fail()
+        return self.round_success()
+
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
-    ctx.init_ocr()
+    ctx.init()
     ctx.run_context.start_running()
     op = EngagementRewardApp(ctx)
     op.execute()
