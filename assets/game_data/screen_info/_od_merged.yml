@@ -4611,21 +4611,6 @@
   screen_name: 迷失之地-入口
   pc_alt: false
   area_list:
-  - area_name: 按钮-街区
-    id_mark: true
-    pc_rect:
-    - 234
-    - 26
-    - 394
-    - 78
-    text: 街区
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list:
-    - 大世界-普通
   - area_name: 按钮-更新弹窗-关闭
     id_mark: false
     pc_rect:
@@ -4641,7 +4626,7 @@
     color_range: null
     goto_list: []
   - area_name: 按钮-悬赏委托
-    id_mark: true
+    id_mark: false
     pc_rect:
     - 1181
     - 19
@@ -4654,21 +4639,6 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
-  - area_name: 按钮-战线肃清
-    id_mark: true
-    pc_rect:
-    - 850
-    - 206
-    - 1738
-    - 290
-    text: 战线肃清
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list:
-    - 迷失之地-战线肃清
   - area_name: 按钮-悬赏委托-全部领取
     id_mark: false
     pc_rect:
@@ -4697,21 +4667,6 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
-  - area_name: 按键-特遣调查
-    id_mark: true
-    pc_rect:
-    - 196
-    - 212
-    - 794
-    - 310
-    text: 特遣调查
-    lcs_percent: 0.5
-    template_sub_dir: ''
-    template_id: ''
-    template_match_threshold: 0.7
-    color_range: null
-    goto_list:
-    - 迷失之地-特遣调查
   - area_name: 区域-悬赏委托-进度
     id_mark: false
     pc_rect:
@@ -4721,6 +4676,48 @@
     - 92
     text: 8000/8000
     lcs_percent: 1.0
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 区域-矩阵行动
+    id_mark: true
+    pc_rect:
+    - 745
+    - 233
+    - 907
+    - 288
+    text: 矩阵行动
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 按钮-前往挑战
+    id_mark: false
+    pc_rect:
+    - 1142
+    - 746
+    - 1384
+    - 809
+    text: 前往挑战
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 按钮-下一步
+    id_mark: false
+    pc_rect:
+    - 1633
+    - 1001
+    - 1802
+    - 1052
+    text: 下一步
+    lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
     template_match_threshold: 0.7
@@ -5328,6 +5325,94 @@
     lcs_percent: 0.5
     template_sub_dir: menu
     template_id: back
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+- screen_id: matrix_action
+  screen_name: 迷失之地-矩阵行动
+  pc_alt: false
+  area_list:
+  - area_name: 预备编队
+    id_mark: false
+    pc_rect:
+    - 679
+    - 24
+    - 825
+    - 71
+    text: 预备编队
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 主战编队
+    id_mark: false
+    pc_rect:
+    - 1024
+    - 116
+    - 1129
+    - 150
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 协战代理人
+    id_mark: false
+    pc_rect:
+    - 1026
+    - 312
+    - 1151
+    - 350
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 编队列表
+    id_mark: false
+    pc_rect:
+    - 185
+    - 156
+    - 966
+    - 1059
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 按钮-开始挑战
+    id_mark: true
+    pc_rect:
+    - 1633
+    - 998
+    - 1811
+    - 1052
+    text: 开始挑战
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 代理人列表
+    id_mark: false
+    pc_rect:
+    - 188
+    - 96
+    - 966
+    - 1059
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
