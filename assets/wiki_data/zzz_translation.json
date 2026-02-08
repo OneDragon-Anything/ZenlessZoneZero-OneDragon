@@ -1,0 +1,2626 @@
+{
+  "last_updated": "2026-02-05",
+  "character": {
+    "1061": {
+      "code": "Corin",
+      "rank": 3,
+      "type": 1,
+      "element": 200,
+      "hit": 101,
+      "camp": 2,
+      "icon": "IconRole09",
+      "potential": [],
+      "EN": "Corin",
+      "skin": {
+        "3110610": {
+          "Name": "Corin: Matcha Profiterole",
+          "Desc": "From that small frame bursts surprising strength, her roaring chainsaw drowning out her soft whimpers. The well-behaved, ever-professional maid is always short on confidence... so take a moment to wait for her.",
+          "Image": "IconRole09"
+        }
+      },
+      "desc": "Corin is one of the maids working for Victoria Housekeeping Co.\nShe is a highly obedient maid but lacks confidence and often fears being disliked by others. When in a rush, she becomes flustered and stutters.\nCorin is always apologizing no matter what happens.\n\"I... I... I'm so sorry! I'm so incompetent... I'll never get things right...\"\n\nCorin never, however, fails to fulfill her tasks with excellence and is one of the most reliable members of Victoria Housekeeping Co.\nDespite her flawless performance, Corin remains skeptical about her abilities, constantly worrying about being a burden to her colleagues, which can sometimes frustrate Lycaon.\nThoughts: Is Corin's personality innate, shaped by her life experiences?",
+      "KO": "코린",
+      "CHS": "可琳",
+      "JA": "カリン"
+    },
+    "1251": {
+      "code": "QingYi",
+      "rank": 4,
+      "type": 2,
+      "element": 203,
+      "hit": 102,
+      "camp": 7,
+      "icon": "IconRole29",
+      "potential": [],
+      "EN": "Qingyi",
+      "live2d": "UISpine_Qingyi",
+      "skin": {
+        "3112510": {
+          "Name": "Qingyi: Clarity, Peace, and Joy",
+          "Desc": "Keep your teapot close and drink plenty of hot water — that's ancient wisdom passed down from the old civilization. But why would an intelligent construct drink tea? It must be for health purposes... right?",
+          "Image": "IconRole29"
+        }
+      },
+      "desc": "Qingyi is a new officer in the Criminal Investigation Special Response Team.\nAs an artificial human, her personality is derived from ancient cultural texts from the old civilization. Her body, known as an \"Automaton,\" is an intelligent construct composed of biological materials.\nRecommended by White Star Institute, she was assigned to Public Security as a new officer partnered with Zhu Yuan.\n\nQingyi always exhibits an easygoing, laid-back demeanor, not restricted by rules.\nIn contrast to modern individuals affected by today's society, Qingyi frequently proposes unexpected solutions to problems.\n\nQingyi always carries a cup of hot water and takes occasional sips.\n\"Drinking hot water is good for your health.\"\nSuggestion: Approaching Qingyi is also an ill-considered decision that may compromise your cover. Please remember your true identity as a Proxy.",
+      "KO": "청의",
+      "CHS": "青衣",
+      "JA": "青衣"
+    },
+    "1261": {
+      "code": "Jane",
+      "rank": 4,
+      "type": 3,
+      "element": 200,
+      "hit": 101,
+      "camp": 7,
+      "icon": "IconRole24",
+      "potential": [],
+      "EN": "Jane",
+      "live2d": "UISpine_Jian",
+      "skin": {
+        "3112610": {
+          "Name": "Jane: Hidden Nightfade",
+          "Desc": "Her everyday look when she isn't putting on a disguise. Maybe it's just one of the countless faces she wears. The night becomes her cover, and her mask is the one truth she never sets aside.",
+          "Image": "IconRole24"
+        },
+        "3112611": {
+          "Name": "Jane: Nocturne of Light",
+          "Desc": "Who says sunlight must accompany a seaside stroll? For lurkers with names unknown, the night is their most faithful companion. The anonymous lady says the evening sea holds unspeakable secrets — is this the truth, or another deception?",
+          "Image": "IconRole24_01"
+        }
+      },
+      "desc": "Jane, a criminal behavior specialist, has had a \"colorful\" career as a consultant with Public Security over the years.\nShe is an expert in disguise, infiltration, and other investigative work.\nShe has a bad habit of trolling others and sometimes plays harmless pranks.\nShe's a skilled mimic, able to change her appearance and demeanor at will, making people wonder what the \"real\" Jane is like.\n\nJane has a wealth of life experience and can seamlessly blend into any environment, as though she has dabbled in everything there is to do.\nHowever, if you ask her for any further details, she'll give you a different story every time.\nWho knows which, if any, are true.\n\nNote 1: Jane does not know our true identity. Do not reveal this to her under any circumstances.\nNote 2: Despite \"Jane Doe\" being an obvious alias, we haven't found any information about her real or former name.\nThis is not my problem. My guess is that her true identity has been completely erased due to her special status.\nLet me reiterate: This is not my problem.",
+      "KO": "제인",
+      "CHS": "简",
+      "JA": "ジェーン"
+    },
+    "1131": {
+      "code": "Soukaku",
+      "rank": 3,
+      "type": 4,
+      "element": 202,
+      "hit": 101,
+      "camp": 6,
+      "icon": "IconRole17",
+      "potential": [],
+      "EN": "Soukaku",
+      "skin": {
+        "3111310": {
+          "Name": "Soukaku: Dance of Azure Ice",
+          "Desc": "Swinging a blade-banner as tall as half a person, and with a stomach rumbling with just as big a sound: fwish fwish fwish fwish fwish — work's done! Time to head home for dinner!",
+          "Image": "IconRole17"
+        }
+      },
+      "desc": "Soukaku is a member of Hollow Special Operations Section 6 and currently under the guardianship of Section 6's Deputy Chief, Tsukishiro Yanagi.\nSoukaku's birth records cannot be found in either the HIA archives or the New Eridu Citizen Verification Profiles. Her records only date back to when she started living with Tsukishiro Yanagi.\nThere are also no records of her schooling. According to supplementary information, Soukaku is currently homeschooled.\n\nSoukaku is naive, innocent, and carefree, but she possesses an uncharacteristic obsession with food. Please be careful not to let Soukaku become too hungry.\nAt the same time, please do not let Soukaku see food being wasted. This is unacceptable behavior to Soukaku. Deduction: Soukaku has experienced famine before.\n\nSoukaku's understanding of city life and human society is limited, and her view of life and death differs from most people.\nUsually, Soukaku is willing to believe anything other people say, but that doesn't mean she can't tell when something is a lie.\nIn fact, prior data shows that unless one has the ability to run and hide on par with Section 6, it would be in one's best interest to avoid lying to Soukaku.",
+      "KO": "소우카쿠",
+      "CHS": "苍角",
+      "JA": "蒼角"
+    },
+    "1471": {
+      "code": "Banyue",
+      "rank": 4,
+      "type": 6,
+      "element": 201,
+      "hit": 102,
+      "camp": 12,
+      "icon": "IconRole53",
+      "potential": [],
+      "EN": "Banyue",
+      "live2d": "UISpineBanyue",
+      "skin": {
+        "3114710": {
+          "Name": "Banyue: Blazestone Heart",
+          "Desc": "He carries a righteous, unshakable aura — every bit the master he is. Don't judge him by his silence; a stone heart makes no sound, and compassion doesn't speak aloud either.",
+          "Image": "IconRole53"
+        }
+      },
+      "desc": "Banyue is an Intelligent Construct who runs a martial arts school in Waifei, known to many as \"Banyue Shifu.\" He has lived for a long time, his stone-lion-like presence commanding respect. A martial arts expert of great skill, he shares a long-standing friendship with Yunkui Summit's current High Preceptor, Yixuan.\n\nAs a martial master, Banyue is quiet but dependable. His methods and beliefs are rooted in tradition, and he disciplines his students with strict yet thoughtful guidance, teaching them not just how to fight, but how to learn. Known as a true master of the martial arts, in battle, he can assume a special form known as the Visage of Wrath to vanquish all evil.\n\nA long inhabitant of Waifei, Banyue is quiet and even-tempered. He doesn't express emotions easily and has the manner of someone from another era. Knowing he's out of touch with modern trends, he's been secretly trying to learn the latest internet slang... yet his half-baked grasp of it tends to end in funny little misunderstandings.\n\nBanyue also appears to have a strange liking for round things — stone balls, spherical bollards, and the like. If the conversation ever goes silent while you're alone with him, bringing up something spherical usually does the trick.",
+      "KO": "반악",
+      "CHS": "般岳",
+      "JA": "盤岳"
+    },
+    "1491": {
+      "code": "Sunna",
+      "rank": 4,
+      "type": 4,
+      "element": 200,
+      "hit": 102,
+      "camp": 13,
+      "icon": "IconRole58",
+      "potential": [],
+      "EN": "Sunna",
+      "live2d": "UISpine_Qianxialeimi",
+      "skin": {
+        "3114910": {
+          "Name": "Sunna: Dreams on Loop",
+          "Desc": "...",
+          "Image": "IconRole58"
+        },
+        "3114911": {
+          "Name": "Sunna: Afternoon Tea Break",
+          "Desc": "...",
+          "Image": "IconRole58_01"
+        }
+      },
+      "desc": "...",
+      "KO": "수나",
+      "CHS": "千夏",
+      "JA": "千夏"
+    },
+    "1201": {
+      "code": "Harumasa",
+      "rank": 4,
+      "type": 1,
+      "element": 203,
+      "hit": 103,
+      "camp": 6,
+      "icon": "IconRole35",
+      "potential": [
+        120100,
+        120101,
+        120102,
+        120103,
+        120104,
+        120105
+      ],
+      "EN": "Harumasa",
+      "live2d": "UISpine_Qianyuyouzhen",
+      "skin": {
+        "3112010": {
+          "Name": "Asaba Harumasa: Full-Fledged Strings",
+          "Desc": "His eyes are brighter than the streak of bright yellow upon his brow. His arrows pierce through deceit and lies and scatter the past like feathers on the wind. Dawn may not have arrived yet, but beyond the horizon, a golden future shimmers faintly.",
+          "Image": "IconRole35"
+        }
+      },
+      "desc": "Asaba Harumasa, a member of Hollow Special Operations Section 6.\nPossessing exceptional Ether aptitude since he was young and being dubbed a prodigy, he entered HSO after graduating with outstanding merit.\nWas originally a member of a certain ace division within HSO, but later left due to various reasons, joining Miyabi's team instead.\n\nHe possesses a carefree and laidback attitude, and his only wish is to achieve acceptable results with minimum effort.\nAfter efficiently taking care of his work to the lowest acceptable standard, he will hurry to use all the remainder of his available time to rest (slack off).\nHe claims he uses a bow to better slack off, as it effectively lowers the amount of running he has to do.\n\nAsaba Harumasa has poor health, and over-exercise sometimes triggers his illness.\nHe often uses this reason to apply for sick leave, though no one knows what he does with this time off. Either way, it's probably not resting.",
+      "KO": "하루마사",
+      "CHS": "悠真",
+      "JA": "浅羽悠真"
+    },
+    "1421": {
+      "code": "Yinhu",
+      "rank": 3,
+      "type": 5,
+      "element": 200,
+      "hit": 102,
+      "camp": 10,
+      "icon": "IconRole45",
+      "potential": [],
+      "EN": "Pan Yinhu",
+      "skin": {
+        "3114210": {
+          "Name": "Pan Yinhu: Hundred Flavors",
+          "Desc": "Yunkui Summit's largest disciple uniform, spacious enough for this senior brother's belly and all his seasonings. And that iron wok on top is a first of its kind. But... putting a pan you just used for stir-frying on your head? Doesn't it burn?",
+          "Image": "IconRole45"
+        },
+        "3114211": {
+          "Name": "Pan Yinhu: Culinary Jewel",
+          "Desc": "...",
+          "Image": "IconRole45_01"
+        }
+      },
+      "desc": "Pan Yinhu, disciple of Yunkui Summit, serves as both the head chef and financial manager of Suibian Temple. He's proficient in martial arts, and an expert in pressure-point techniques.\nAs the one managing Suibian Temple's money, he's a master at keeping costs down and can bargain a 5,000 Denny piece of meat down to 500. If he can make something at home, he refuses to purchase it at a store, and no matter which big supermarket or shop you name, he's got a coupon for it tucked in his pocket.\nThanks to him, the members of Suibian Temple enjoy delicious yet budget-friendly meals every day. As the head of the kitchen, he demands precise flavor profiles and pays keen attention to his friends' opinions.\nWhat's more, given his years of frugality, it's safe to assume that both the group's treasury and his secret piggy bank have ballooned to jaw-dropping levels.",
+      "KO": "반인호",
+      "CHS": "潘引壶",
+      "JA": "潘引壺"
+    },
+    "1331": {
+      "code": "Vivian",
+      "rank": 4,
+      "type": 3,
+      "element": 205,
+      "hit": 101,
+      "camp": 9,
+      "icon": "IconRole41",
+      "potential": [],
+      "EN": "Vivian",
+      "live2d": "UISpine_Vivian",
+      "skin": {
+        "3113310": {
+          "Name": "Vivian: Fluttering Violet",
+          "Desc": "Maintain your elegance, Miss Vivian, from the point of your parasol, right down to your flowing skirt. Maintain your courage, Miss Vivian, through last night's lonely walk, or here today at my side.",
+          "Image": "IconRole41"
+        },
+        "3113311": {
+          "Name": "Vivian: Iris of the Shore",
+          "Desc": "Birds soar into the starlit skies, while irises bloom by the pond. Though this enchanting moonlit night may be brief, please let me see the lingering anticipation in your eyes in the moment I bloom.",
+          "Image": "IconRole41_01"
+        }
+      },
+      "desc": "Vivian is a member of Mockingbird, skilled in gathering all kinds of intel. She's also a jack of many trades — cooking, mixology, translation, art forgery, electronics repair, and more.\nIn the past, she apparently wandered without a home and was viewed as one who \"brought disaster,\" almost like a living omen of bad luck.\nIt's said she can predict incoming misfortune through her tears, though there's no scientific proof of this ability.\nA loyal follower of Phaethon. Ever since your original account went inactive on Inter-Knot, she's been trying to track you down — digging for clues, running intense searches across the network. However, Master, she didn't find anything... all thanks to my efforts in keeping your cybersecurity airtight.\nSuggestion: Until her true intentions are clear, do not reveal your identity as Phaethon.\nIn case you've already let your identity slip, be sure to lock your doors and wear proper sleepwear before going to bed. Based on her old blog posts, she's likely to express her admiration in... overly passionate and intense ways.",
+      "KO": "비비안",
+      "CHS": "薇薇安",
+      "JA": "ビビアン"
+    },
+    "1081": {
+      "code": "Billy",
+      "rank": 3,
+      "type": 1,
+      "element": 200,
+      "hit": 103,
+      "camp": 1,
+      "icon": "IconRole10",
+      "potential": [],
+      "EN": "Billy",
+      "skin": {
+        "3110810": {
+          "Name": "Billy: Shining Starlight Costume",
+          "Desc": "Style is justice, justice is style. That's the eternal creed of a true knight! Though, yeah... those joint screws really do wear down fast...",
+          "Image": "IconRole10"
+        }
+      },
+      "desc": "Billy Kid, an AI construct that has passed the forbidden fruit test, is essentially a self-aware machine. \nTrue to his name, despite having the appearance of a robot, he is quite childlike.\nHe's a big fan of the visual FX show \"Starlight Knight\" and wishes to be a hero like the main characters of the show. He often refers to himself as a Starlight Knight and imitates the lines in the show.\nSuch behavior appears to be only for comedic effect, however.\n\"Don't make me sound like an idiot! I'm obviously very smart!\" — Billy.",
+      "KO": "빌리",
+      "CHS": "比利",
+      "JA": "ビリー"
+    },
+    "1181": {
+      "code": "Grace",
+      "rank": 4,
+      "type": 3,
+      "element": 203,
+      "hit": 103,
+      "camp": 3,
+      "icon": "IconRole20",
+      "potential": [
+        118100,
+        118101,
+        118102,
+        118103,
+        118104,
+        118105
+      ],
+      "EN": "Grace",
+      "skin": {
+        "3111810": {
+          "Name": "Grace: The Iron Witch",
+          "Desc": "A clean, no-nonsense work uniform. What the genius mechanic loves most are the many pockets on the outside — big ones, small ones — all perfect for holding screws, gears, and even wrenches of every size.",
+          "Image": "IconRole20"
+        }
+      },
+      "desc": "Grace is a technical expert at Belobog Industries. She's the core talent in developing and patenting Belobog's in-Hollow machinery.\nShe's obsessed with gears, metal and wires — a true mechanical geek. She's eager to dismantle and study any machinery or equipment she takes an interest in: \"Such sharp and strong lines, truly beautiful... I can't help but want to open it up and take a look.\"\n\nGrace always shows extraordinary patience when dealing with machines, doting on the sophisticated metal constructions as if they were her own children.\nAccording to the information at hand, Grace is probably the only one who can playfully refer to Koleda as \"Sweet Pea\" without receiving a kick in the shin.\nQuestion: Based on Grace's understanding of machines, would she consider me one? I'm currently lacking a physical form, however, so I don't possess components like gears, metal, or wires.",
+      "KO": "그레이스",
+      "CHS": "格莉丝",
+      "JA": "グレース"
+    },
+    "1371": {
+      "code": "YiXuan",
+      "rank": 4,
+      "type": 6,
+      "element": 205,
+      "hit": 102,
+      "camp": 10,
+      "icon": "IconRole44",
+      "potential": [],
+      "EN": "Yixuan",
+      "spelement": "UI/Sprite/A1DynamicLoad/IconGeneralBuff/Packer/IconAuricInk.png",
+      "live2d": "UISpine_Yixuan",
+      "skin": {
+        "3113710": {
+          "Name": "Yixuan: Summit of Clouds",
+          "Desc": "As the Master of Yunkui Summit, one's fashion and accessories need only be what feels natural. Stay true to one's self.",
+          "Image": "IconRole44"
+        },
+        "3113711": {
+          "Name": "Yixuan: Trails of Ink",
+          "Desc": "A custom attire in shades of ink. Like an elusive shadow, gone in a flash.",
+          "Image": "IconRole44_01"
+        }
+      },
+      "desc": "Yixuan is the 13th High Preceptor of Yunkui Summit and a Void Hunter-level investigator, officially recognized by Mayor Mayflower.\n\nShe was once an orphan, wandering the world with her sister from a young age. Later, the then-High Preceptor of Yunkui Summit took them in, and they became disciples, learning the craft of Yunkui Summit. During this time, Yixuan demonstrated exceptional talent. No matter the technique, she would quickly master it, not only understanding it thoroughly but also creating her own unique techniques. The Qingming Bird was one of the special techniques she and her sister developed together, which helped her eliminate enemies and banish evil spirits in various difficult and dangerous situations. After becoming the sect's High Preceptor, she accepted an invitation from Mayor Mayflower and joined the Hollow Investigative Association as a partnered special investigator.\n\nAfter becoming High Preceptor, Yixuan took in many talented disciples to continue Yunkui Summit's lineage. However, her approach is rather casual, and often, even when teaching by example, her disciples can only guess her intentions... Yet, Yixuan isn't troubled by this, as she believes there's no standard answer to the so-called \"right path.\" What matters to her is that her disciples find their own \"right path.\" Of course, if they can understand and learn on their own, that's even better. As their Shifu, she simply lets things unfold naturally.",
+      "KO": "의현",
+      "CHS": "仪玄",
+      "JA": "儀玄"
+    },
+    "1321": {
+      "code": "Evelyn",
+      "rank": 4,
+      "type": 1,
+      "element": 201,
+      "hit": 101,
+      "camp": 8,
+      "icon": "IconRole37",
+      "potential": [],
+      "EN": "Evelyn",
+      "live2d": "UISpineEvelyn",
+      "skin": {
+        "3113210": {
+          "Name": "Evelyn: A Moth to Light",
+          "Desc": "A sharp, no-nonsense manager's outfit. Its hidden edges are enough to make onlookers back off. Her yellow-brown hair weaves a fine, delicate net, where a quiet pool of starlight seems to rest.",
+          "Image": "IconRole37"
+        }
+      },
+      "desc": "Evelyn is the manager and personal bodyguard of Ridu's most iconic singer, Astra Yao. Known for her calm, decisive decision-making and professional, efficient style, she's an irreplaceable pillar behind Astra. \"In terms of commercial value, if Astra Yao represents the 1, then Evelyn is all the 0s that follow,\" a reporter from an entertainment magazine stated.\n\nEvelyn is skilled at planning comprehensive schedules and product endorsements, while also ensuring Astra Yao's safety during any unexpected situations. \"Want to get close to Astra Yao? You'll have to get past Evelyn Chevalier first...\" Though she's always busy with work, Evelyn never seems overwhelmed, and she has an almost obsessive attention to detail, ensuring that every performance and every product endorsement goes through her strict scrutiny. But strangely, such an exceptional manager is not trusted by her parent company, Odeum HAE.\n\nIntel: Evelyn's role seems to go beyond just being a manager and personal bodyguard; there seems to be an \"organization\" behind her.\n\nIt seems a lot of people in Astra Yao's central Astranauts group ship them together.",
+      "KO": "이블린",
+      "CHS": "伊芙琳",
+      "JA": "イヴリン"
+    },
+    "1401": {
+      "code": "Alice",
+      "rank": 4,
+      "type": 3,
+      "element": 200,
+      "hit": 101,
+      "camp": 11,
+      "icon": "IconRole46",
+      "potential": [],
+      "EN": "Alice",
+      "live2d": "UISpineAlice",
+      "skin": {
+        "3114010": {
+          "Name": "Alice: Celestian Etiquette",
+          "Desc": "The young woman's perfect symmetry is only ever slightly compromised when she wears the school crest — such is the elegant and noble Thymefield spirit.",
+          "Image": "IconRole46"
+        },
+        "3114011": {
+          "Name": "Alice: Sea of Thyme",
+          "Desc": "Though it wasn't completely symmetrical, she did not mind this gift from a dear friend.\nThe girl pushed open the locked door and walked along the pink beach after the sudden downpour, the cool waves brushing over her ankles. There were no unknowns left to frighten her.",
+          "Image": "IconRole46_01"
+        }
+      },
+      "desc": "Alice Thymefield, a new member of Spook Shack, is a young lady from the prestigious Thymefield family of New Eridu.\n\nAlice has studied fencing and Ether science since childhood, showing exceptional talent in both fields. She currently attends Celestia School for Girls, a subsidiary of High Ambitions Academy, where she's a model student excelling in both academics and conduct. It is predicted that she will one day inherit the family business and become a next-generation Ether scholar of New Eridu.\n\nShe places extreme importance on order and patterns, showing an almost obsessive pursuit of symmetry in particular. This even affects her aesthetic judgment, making symmetry the primary criterion in determining whether something is beautiful or ugly.\n\nFurthermore, she's easily frightened, with practically zero resistance to ghost stories and supernatural tales. Despite this, she seems to show considerable interest in encountering such phenomena. Suggestion: Master can use ghost stories as a topic of conversation with her. No matter how much she initially refuses, it is likely that she will eventually come closer to investigate.",
+      "KO": "앨리스",
+      "CHS": "爱丽丝",
+      "JA": "アリス"
+    },
+    "1011": {
+      "code": "Anby",
+      "rank": 3,
+      "type": 2,
+      "element": 203,
+      "hit": 101,
+      "camp": 1,
+      "icon": "IconRole01",
+      "potential": [],
+      "EN": "Anby",
+      "skin": {
+        "3110110": {
+          "Name": "Anby: Street Streak",
+          "Desc": "These casual clothes were hand-picked and styled for Anby by Nicole. They're designed for easy movement and ideal for moving about the streets. The fabrics and accessories cost a lot more than they seem, so (?) Anby treats the outfit with real care.",
+          "Image": "IconRole01"
+        }
+      },
+      "desc": "Anby, the original member of Gentle House.\nAccording to the New Eridu resident records, her identity as \"Anby Demara\" only exists after joining Gentle House, the name obviously being taken from Nicole. Before registering as an employee of Gentle House, all data relating to Anby is suspiciously blank.\nDespite her extreme lack of common sense, Anby is well-versed in matters related to combat and is among the strongest combatants of the Cunning Hares.\n\nAnby's greatest interest is movies, of which she likes an extensive range of genres. Due to an excessive obsession, she tends to take the stories in movies as reality.\nContrary to her seemingly emotionless appearance, Anby is easily moved by movie storylines.\nHer favorite food is hamburgers because \"they contain protein, carbs, and greens, taste good, and are even affordable — there's nothing else besides hamburgers.\"",
+      "KO": "엔비",
+      "CHS": "安比",
+      "JA": "アンビー"
+    },
+    "1071": {
+      "code": "Caesar",
+      "rank": 4,
+      "type": 5,
+      "element": 200,
+      "hit": 101,
+      "camp": 4,
+      "icon": "IconRole25",
+      "potential": [],
+      "EN": "Caesar",
+      "live2d": "UISpineCeasar",
+      "skin": {
+        "3110710": {
+          "Name": "Caesar: Inferno Joyride",
+          "Desc": "A ruler ready to ready to sound the triumphal anthem anew, a hero poised to reignite her legend. The not-yet-seasoned leader has finally met the flames of her coronation, yet she still walks the gritty sands of the Outer Ring.\nA light tap on the piano keys sends her desert-tinged song drifting across this land that bears the weight of hope.",
+          "Image": "IconRole25"
+        }
+      },
+      "desc": "Caesar: Leader of the Sons of Calydon biker gang and a \"monarch\" in the making.\nHer combination of formidable strength and bold, straightforward personality has earned her the love and respect of the Outer Ring's residents.\nAlthough she appears to do things in her own way, she is actually very willing to listen to others' opinions. Caesar actively listens to and implements any valid suggestion she hears — regardless of who it comes from.\nShe is completely defenseless against those she trusts. Once she accepts someone, she considers them part of her inner circle, treating them with absolute trust.\n(Assumption: Caesar currently views you in this way.)\n\nCaesar's father has been missing for as long as she can remember, and her mother passed away from illness when she was young. She was raised by Big Daddy, who took a very hands-off approach to raising her, allowing her to grow up freely and independently.\n\nIn addition, Caesar seems to have a curious interest in matters related to romance.\nIf you wish to get closer to her, you might want to try discussing this topic with her.",
+      "KO": "카이사르",
+      "CHS": "凯撒",
+      "JA": "シーザー"
+    },
+    "1391": {
+      "code": "Ju Fufu",
+      "rank": 4,
+      "type": 2,
+      "element": 201,
+      "hit": 102,
+      "camp": 10,
+      "icon": "IconRole43",
+      "potential": [],
+      "EN": "Ju Fufu",
+      "live2d": "UISpineJufufu",
+      "skin": {
+        "3113910": {
+          "Name": "Ju Fufu: Summit's Cute Tiger",
+          "Desc": "Dressed like a simple mystic, this senior sister looks like she's tucked all her bravado away, but with a tiger in her heart... she still radiates that heroic fire.",
+          "Image": "IconRole43"
+        }
+      },
+      "desc": "Ju Fufu, a rare tiger Thiren of New Eridu. She looks small and is still young, but she's the most senior disciple of Suibian Temple and one of Yixuan's first disciples.\n\n\"Able to deal with anything,\" \"can even make Shifu listen,\" \"super patient and meticulous teacher,\" \"has great taste when choosing restaurants for teambuilding.\"\n—Yunkui Summit trainee performance review, peer evaluation\n\n\"Always messing up the tasks given by Shifu,\" \"doesn't command respect in speech or combat,\" \"doesn't know how to act tough against bad guys,\" \"juniors are more skilled.\"\n—Yunkui Summit trainee performance review, self-evaluation\n\n\"'The most skilled senior ever who can do anything, a righteous hero with righteous might' is what I heard her say when I passed by her room. Hm... I concur.\"\n—Yunkui Summit trainee performance review, Shifu's evaluation\n\nOther: I suggest you suggest Yunkui Summit improve their network security to avoid the risk of disciples' personal data being stolen or leaked.",
+      "KO": "귤복복",
+      "CHS": "橘福福",
+      "JA": "橘福福"
+    },
+    "1031": {
+      "code": "Nicole",
+      "rank": 3,
+      "type": 4,
+      "element": 205,
+      "hit": 102,
+      "camp": 1,
+      "icon": "IconRole12",
+      "potential": [],
+      "EN": "Nicole",
+      "skin": {
+        "3110310": {
+          "Name": "Nicole: Lil Sassy",
+          "Desc": "The classic outfit of the leader of the Cunning Hares, hiding a hint of playful cunning, both mischievous and cute.",
+          "Image": "IconRole12"
+        },
+        "3110311": {
+          "Name": "Nicole: Cunning Cutie",
+          "Desc": "Pink! Pink! Pink! Pink is Nicole's signature color. So are you feeling it?",
+          "Image": "IconRole12_01"
+        }
+      },
+      "desc": "Database search: Nicole. Returned results:\n\"Boss of the odd-job agency, the Cunning Hares,\" \"Streetwise,\" \"Orphan, parents unknown.\"\nNicole's agency was originally called Gentle House, but due to her reputation of being cunning, it gained the nickname the Cunning Hares.\n\"She's really into money! I don't know what she's doing with it all though, seems like she's doing nothing.\"\n— The above is a quote from a popular post on Inter-Knot: \"Her odd-job agency is outrageous. I've never encountered a boss who knows how to turn everything into profit!\"\nThe individual involved responded, \"This, this is a false accusation! I, Nicole, have never been skilled at making money — mainly because I don't have any money to begin with!\"\nAccording to reliable sources, the Cunning Hares are constantly in debt, and their \"careful budgeting\" seems to have no effect on the organization.",
+      "KO": "니콜",
+      "CHS": "妮可",
+      "JA": "ニコ"
+    },
+    "1281": {
+      "code": "Piper",
+      "rank": 3,
+      "type": 3,
+      "element": 200,
+      "hit": 101,
+      "camp": 4,
+      "icon": "IconRole28",
+      "potential": [],
+      "EN": "Piper",
+      "skin": {
+        "3112810": {
+          "Name": "Piper: Lazy Speed",
+          "Desc": "Don't be fooled by this truck driver's lazy gaze. One tap on the gas is enough to fling every passenger's soul straight into the back seat.",
+          "Image": "IconRole28"
+        }
+      },
+      "desc": "Piper is a truck driver for the Sons of Calydon. Apart from driving, she's also responsible for vehicle maintenance and other related jobs.\nHer tiny stature, cute voice (though she always seems half-asleep when not driving), and adorably harmless appearance (though she's a shut-in who can't be bothered to take care of her own appearance) make it hard to imagine that she would have such a crazy driving style.\nUsually, by the time she drawls out, \"Hold~ on~ tight~,\" the truck is already barreling down the road.\nRumor has it, Piper is a driver who doesn't need brakes. Though riding with her is a terrifying experience, she will always get you where you need to go safely, and in the shortest time possible. Of course, \"safely\" doesn't include any trauma that may be induced.\n\nPiper has many hobbies that don't seem to match her age, such as reading newspapers, buying lottery tickets, and collecting car magazines.\nPiper's biggest wish is to live each day slowly and leisurely.\nNote: Please keep in mind, Master, that this is also my wish.",
+      "KO": "파이퍼",
+      "CHS": "派派",
+      "JA": "パイパー"
+    },
+    "1021": {
+      "code": "Nekomata",
+      "rank": 4,
+      "type": 1,
+      "element": 200,
+      "hit": 101,
+      "camp": 1,
+      "icon": "IconRole11",
+      "potential": [],
+      "EN": "Nekomata",
+      "skin": {
+        "3110210": {
+          "Name": "Nekomata: Cat's Gratitude",
+          "Desc": "A lost cat doesn't know where to go — only that it has to keep moving.\nShe wandered through the vast streets of New Eridu, her thin clothes offering no protection from the elements, until a tiny odd-job agency finally took her in.",
+          "Image": "IconRole11"
+        }
+      },
+      "desc": "Nekomiya Mana. Refers to herself as \"Nekomata.\"\nA cat Thiren with feline traits, possessing great dexterity when hunting and an insatiable curiosity about the outside world.\nSometimes mischievous, she engages in harmless pranks. But when she sets her sights on a target, her feline-like agility and focus are enough to leave others in awe.\nShe's most interested in other people's wallets.\nRecommendation: Always keep an eye on your wallet when Nekomata is around.\n\nIn the past, Nekomata was a member of the long-standing Red Fang Gang. Its leader, Miguel Silver, took on a fatherly role in her life. Nonetheless, due to differing beliefs from the gang, she opted to part ways and go it alone.\nFollowing certain encounters involving Nicole and others, she eventually opted to enlist in Gentle House, thus becoming the third employee on the team.",
+      "KO": "네코마타",
+      "CHS": "猫又",
+      "JA": "猫又"
+    },
+    "1241": {
+      "code": "Zhu Yuan",
+      "rank": 4,
+      "type": 1,
+      "element": 205,
+      "hit": 103,
+      "camp": 7,
+      "icon": "IconRole23",
+      "potential": [],
+      "EN": "Zhu Yuan",
+      "live2d": "UISpineZhuyuan",
+      "skin": {
+        "3112410": {
+          "Name": "Zhu Yuan: Suppressor of Evil",
+          "Desc": "This high-grade anti-riot uniform from Public Security has been specially modified to suit Zhu Yuan's fighting style.\nWinner of the Janus Precinct's combat tournament three years running, the young top Public Security Officer is on call 24/7, ready to arrest any criminal in her path.",
+          "Image": "IconRole23"
+        }
+      },
+      "desc": "Zhu Yuan, an exceptional officer at Public Security, is a highly skilled individual expected to become the next commissioner. She currently leads the Criminal Investigation Special Response Team at the Janus Precinct within the Metropolitan Order Division. Her team members include Qingyi, Seth, and [redacted].\nNote: For documents with higher security levels within the Public Security system, further investigation is required; scheduling priority - low.\n\nZhu Yuan possesses excellent skills in criminal investigation, combat, and self-management (including working overtime). She has no unresolved cases on record.\nSuggestion: Approaching Zhu Yuan is an ill-advised decision that may compromise your cover. Always remember your true identity as a Proxy. Remember your true identity as a Proxy. Remember your true identity as a Proxy.",
+      "KO": "주연",
+      "CHS": "朱鸢",
+      "JA": "朱鳶"
+    },
+    "1141": {
+      "code": "Lycaon",
+      "rank": 4,
+      "type": 2,
+      "element": 202,
+      "hit": 102,
+      "camp": 2,
+      "icon": "IconRole18",
+      "potential": [
+        114100,
+        114101,
+        114102,
+        114103,
+        114104,
+        114105
+      ],
+      "EN": "Lycaon",
+      "skin": {
+        "3111410": {
+          "Name": "Lycaon: Moonlight Prowl",
+          "Desc": "Under the clear moonlight, the attendant's poise is flawless. Yet with the red moon's ascent, the feral nature hidden beneath this suit emerges with a composure and grace all its own.",
+          "Image": "IconRole18"
+        }
+      },
+      "desc": "Lycaon, the substantive leader and representative of Victoria Housekeeping Co., is responsible for managing all members of the company.\nRational and reliable, Lycaon is an elegant gentleman and a versatile attendant who can solve any problem. He is the cornerstone of his team and a reassuring presence.\nHe has a slight obsession with cleanliness, always tidying up his surroundings and unable to tolerate dirty environments.\n\nAlthough Lycaon maintains his elegance and composure, his canine instincts occasionally shine through. When he is particularly happy, his tail and ears unconsciously wag. He seems to be aware of this habit and somewhat bothered by it.\nAdditionally, like most furry Thiren, Lycaon takes great care of his fur.\n\nSuggestion: Since Lycaon is a canine Thiren, stroking his head or chin may enhance the emotional connection between you. (Note: Success is not guaranteed.)\n* Risks: Due to his height, you may not be able to do this even if you stand on tiptoes.",
+      "KO": "리카온",
+      "CHS": "莱卡恩",
+      "JA": "ライカン"
+    },
+    "1161": {
+      "code": "Lighter",
+      "rank": 4,
+      "type": 2,
+      "element": 201,
+      "hit": 102,
+      "camp": 4,
+      "icon": "IconRole26",
+      "potential": [],
+      "EN": "Lighter",
+      "live2d": "UISpine_Lighter",
+      "skin": {
+        "3111610": {
+          "Name": "Lighter: Everburn Embers",
+          "Desc": "The undefeated champion never takes off his sunglasses... or his scarf. Glory stopped mattering long ago, but the countless dusks shared with his companions are still worth waiting for.",
+          "Image": "IconRole26"
+        }
+      },
+      "desc": "Lighter, the Champion of the Sons of Calydon and an ex-mercenary.\nIn the Outer Ring, the Champion of a team refers to the one responsible for dealing with the opponent's strongest fighter in a gang fight, and they often need to participate in one-on-one duels. Their victory is crucial, as it brings glory and morale to the entire team.\n\"The Champion can perish, but cannot lose.\"\n\nA red scarf is what identifies the Champion of the Sons of Calydon.\nEven if the opponent doesn't know Lighter, they'll know who he is just from seeing that red scarf.\n\nFrom what is currently known, Lighter is actually very low profile. He only steals the spotlight on the battlefield when he acts on his obligations as Champion.\nNote: Lighter is the second Red Scarf of the Sons of Calydon. He teasingly refers to the previous Red Scarf as \"Brother\" or \"predecessor.\"",
+      "KO": "라이터",
+      "CHS": "莱特",
+      "JA": "ライト"
+    },
+    "1461": {
+      "code": "Seed",
+      "rank": 4,
+      "type": 1,
+      "element": 203,
+      "hit": 101,
+      "camp": 5,
+      "icon": "IconRole48",
+      "potential": [],
+      "EN": "Seed",
+      "live2d": "UISpine_Seed",
+      "skin": {
+        "3114610": {
+          "Name": "Seed: Flower in Bloom",
+          "Desc": "A corner of the world blooming in color, a single salty tear, a perfect circle of life — this is where the girl and the construct uncovered the truth of the heart. She never needs to look back; she has already blossomed into her own sea of petals.",
+          "Image": "IconRole48"
+        }
+      },
+      "desc": "Seed, heavy weapons specialist of New Eridu Defense Force, Obsidian Division, Obol Squad. Her real name is Flora. The codename \"Seed\" was passed down from her guardian, the combat-grade Intelligent Construct formerly known by the same name, who now goes by \"Seed Sr.\"\n\nAccording to multiple sources, Seed is an unidentified orphan Seed Sr. rescued from Hollow Zero during the fall of the old capital. Seed Sr. adopted her and raised her alone in the Defense Force dormitories.\nA few years ago, Seed Sr. successfully applied to join Obol Squad, but not long after, he passed away due to irreversible damage to his logic core. As a result, Seed took his place in the squad. Any voice lines heard from Seed Sr. today are system-preloaded audio files.\n\nSeed possesses an extraordinary gift for mechanical engineering and research, capable of designing and building inventions far beyond the imagination of most. She also has an exceptional adaptability for Ether, able to push Seed Sr.'s combat capabilities to the limit by piloting him, through remote control, and by using custom combat modules.\n\nAnd so, despite her extraordinarily substandard physical capabilities and entirely mysterious origins, the military still gave tacit approval for her to serve as an elite soldier.\n\nSeed behaves quite differently from most people in everyday situations. She uses Seed Sr.'s cockpit as her bed, prefers confined spaces, and strongly dislikes talking to or interacting with anyone outside her immediate circle. Her logic jumps wildly, making meaningful conversation difficult.\n\nThe good news? For some reason, she's taken a special liking to you, Master, and the second assistant. You've been spared the long ordeal of earning her trust — and you don't have to worry about her occasional bouts of destructive behavior turning your way. Congratulations.\n\nSuggestion: Focus on topics like flowers and robots — her favorite things — when engaging in conversation. Stay calm when parts of her logic or meaning don't make sense; treating such moments as normal can help strengthen your bond with her.",
+      "KO": "「시드」",
+      "CHS": "「席德」",
+      "JA": "「シード」"
+    },
+    "1111": {
+      "code": "Anton",
+      "rank": 3,
+      "type": 1,
+      "element": 203,
+      "hit": 103,
+      "camp": 3,
+      "icon": "IconRole15",
+      "potential": [],
+      "EN": "Anton",
+      "skin": {
+        "3111110": {
+          "Name": "Anton: Earthshaking Axle",
+          "Desc": "The jackhammer's bearings rumble without pause, echoing the hot, thunderous beat of its wielder's heart.",
+          "Image": "IconRole15"
+        }
+      },
+      "desc": "Anton is a key member of construction staff at Belobog Industries and one of Koleda's trusted aides.\n\"Got a job you can't handle? Leave it to me!\"\n Anton is one of the top brass at Belobog, handpicked by its former president Khors, which makes him a \"senior employee.\"\nA genuine, straightforward man, always boosting the morale of his coworkers with his surplus of energy.\n\nApart from this, it seems Anton is always talking to his jackhammer, affectionately calling it, \"Bro.\"\nAn instance from Anton's everyday life goes like this:\nAnton, seemingly in dialogue with himself, asks, \"Whaddaya think, Bro?\" \nThe jackhammer replies, \"Vroom vroom vroom—\"\nAnton, apparently enlightened, responds, \"I see, I see! You still got it, Bro!\"\nUnfortunately, I have not collected enough information on such occurrences and am not able to deliver further analysis.",
+      "KO": "앤톤",
+      "CHS": "安东",
+      "JA": "アンドー"
+    },
+    "1041": {
+      "code": "Soldier 11",
+      "rank": 4,
+      "type": 1,
+      "element": 201,
+      "hit": 101,
+      "camp": 5,
+      "icon": "IconRole05",
+      "potential": [
+        104100,
+        104101,
+        104102,
+        104103,
+        104104,
+        104105
+      ],
+      "EN": "Soldier 11",
+      "skin": {
+        "3110410": {
+          "Name": "Soldier 11: Elite Soldier",
+          "Desc": "Those warm-toned goggles can't hide her icy, soldier's gaze. Want to see her crack a smile? Pick one: 87.5 one-arm push-ups or a bowl of extra-spicy noodles.",
+          "Image": "IconRole05"
+        }
+      },
+      "desc": "Soldier 11 is a member of the New Eridu Defense Force.\nShe currently serves as a direct attacker in Obol squad, Obsidian Division. Soldier 11 is a code name — she gave up her real name long ago.\n\nSoldier 11 is a fan of spicy food and likes the super-spicy noodles served at Waterfall Soup.\nIt's worth noting she currently calls us by a different name every time she greets us.",
+      "KO": "「11호」",
+      "CHS": "「11号」",
+      "JA": "「11号」"
+    },
+    "1451": {
+      "code": "Lucia",
+      "rank": 4,
+      "type": 4,
+      "element": 205,
+      "hit": 102,
+      "camp": 11,
+      "icon": "IconRole50",
+      "potential": [],
+      "EN": "Lucia",
+      "live2d": "UISpineLucia",
+      "skin": {
+        "3114510": {
+          "Name": "Lucia: Whispering Dreams",
+          "Desc": "Her cloak is the curtain of night, and beneath her hood rests the world's quiet whispers. She sings for the dusk and speaks in dreams, gathering the thoughts sleepers leave behind and weaving them into halos and riddles across the stars.",
+          "Image": "IconRole50"
+        }
+      },
+      "desc": "Lucia, a member of Spook Shack, goes by the online name \"Night Emissary.\" She's a backpacker, an Ethereal story enthusiast, and a connoisseur of late-night food stalls.\n\nRecords show that Lucia hails from a tribe living on the outskirts of the city. Legend has it their ancestors once encountered an Ethereal called the \"Night Horror\" (absent from the Hollow Investigative Association archives), which left them with a strange gift: Ethereals tend not to notice them. The cost, though, is that they dream of the Night Horror at night, and under its influence, they sleepwalk into Hollows, where corruption awaits.\nBecause of this, the tribe took on the role of Nightwatchers. They rest during the day and hunt deep in the night, avoiding the Night Horror's pull. And if anyone must sleep at night, their family will keep vigil at their side until dawn.\n\nLucia grew up surrounded by her kin, and even after arriving in New Eridu, she has kept to the Nightwatcher tradition of staying awake through the night and watching over her cherished friends, shielding them from the Night Horror's reach.\nMaster, if you hear a knock at your window late at night, don't be alarmed. It may just be a sleepless night guardian stopping by to say hello.\n\nAdditional note: Lucia's pet is \"Chestnut,\" a small, friendly Hati. It once lived in the Hollow's outskirts, but has since moved deeper inside. Even I can no longer detect its exact whereabouts.",
+      "KO": "루시아",
+      "CHS": "卢西娅",
+      "JA": "リュシア"
+    },
+    "1091": {
+      "code": "Miyabi",
+      "rank": 4,
+      "type": 3,
+      "element": 202,
+      "hit": 101,
+      "camp": 6,
+      "icon": "IconRole13",
+      "potential": [],
+      "EN": "Miyabi",
+      "spelement": "UI/Sprite/A1DynamicLoad/IconGeneralBuff/Packer/IconFrost.png",
+      "live2d": "UISpine_Xingjianya",
+      "skin": {
+        "3110910": {
+          "Name": "Hoshimi Miyabi: Frostgleam Dew",
+          "Desc": "A blade that fells the Hollows, a lighthouse that pierces the fog. People hope for a fighter who hones the world and a helmsman who steers the course; for flags that never fall and honor that lives on. Yet power is finite. Only training remains constant.",
+          "Image": "IconRole13"
+        }
+      },
+      "desc": "Hoshimi Miyabi, the Chief of Hollow Special Operations Section 6.\nMiyabi goes on a lot of field missions and still doesn't know which floor the regular monthly meeting is on.\nEven if you see Miyabi in the office, it's unlikely she's dealing with paperwork, and more likely polishing her sword.\n\nBeing conferred the title of Void Hunter due to her outstanding contributions, she's an elite amongst elites in Section 6.\nShe has great prestige amongst the citizens.\nOnce, Miyabi accidentally wandered into a \"Miyabi Fan Club\" hosted offline event.\nMiyabi was thought to be a fan with godlike impersonation skills, and that event resulted in a precious visual recording.\n\nHoshimi Miyabi is honest and pragmatic. She is not simply a martial artist obsessed with her art and without care for the world around her.\nAnyone who knows her will realize she's always pursued justice in her heart... even if it may eventually cause a revolution.",
+      "KO": "미야비",
+      "CHS": "雅",
+      "JA": "星見雅"
+    },
+    "1361": {
+      "code": "Trigger",
+      "rank": 4,
+      "type": 2,
+      "element": 203,
+      "hit": 103,
+      "camp": 5,
+      "icon": "IconRole39",
+      "potential": [],
+      "EN": "Trigger",
+      "live2d": "UIspineTrigger",
+      "skin": {
+        "3113610": {
+          "Name": "Trigger: Gaze Into the Light",
+          "Desc": "In the Hollows, her aim never wavers. She's a teammate one can rely on to cover their back without question. But once she returns to Sixth Street, that constant watchfulness softens, lingering for a moment before disappearing the instant it's sensed.",
+          "Image": "IconRole39"
+        }
+      },
+      "desc": "Trigger is a sniper of New Eridu Defense Force, Obsidian Division's Obol Squad. Trigger is the code name she was assigned when enlisting in Eridu, and she's used it ever since.\n\nShe has extremely unique eyes. While she cannot see most things, in Hollow environments, she can distinctly identify the position and changes of any entities that emit Ether fluctuations. Note: Such entities include living beings, native Ether substances, Ether products, and Ethereals.\n\nAs a visually challenged person in the broadest sense, Trigger has honed her other senses to the utmost, allowing her to move and act as if she could see. She can even detect subtle changes in her environment with precision. This makes her highly adept in the tactical position of a sniper, capable of handling a variety of covert tasks such as stealth, surveillance, and assassination.\n\nIn contrast to her precise and deadly combat abilities, her personality makes her seem rather unassuming. Aside from occasionally appearing silently in the video store and giving the Second Assistant a sudden scare, she can generally be considered harmless.",
+      "KO": "「트리거」",
+      "CHS": "「扳机」",
+      "JA": "「トリガー」"
+    },
+    "1431": {
+      "code": "Ye Shunguang",
+      "rank": 4,
+      "type": 1,
+      "element": 200,
+      "hit": 101,
+      "camp": 10,
+      "icon": "IconRole55",
+      "potential": [],
+      "EN": "Ye Shunguang",
+      "spelement": "UI/Sprite/A1DynamicLoad/IconGeneralBuff/Packer/IconHonedEdge.png",
+      "live2d": "UISpine_Yeshunguang",
+      "skin": {
+        "3114310": {
+          "Name": "Ye Shunguang: Clouddrift Illumination",
+          "Desc": "Cloud-woven silk, a blade's gleam reflected in its folds. The attire mirrors the person.\nBut who truly chose this dress? Was it her... or the deeper self within?",
+          "Image": "IconRole55"
+        },
+        "3114311": {
+          "Name": "Ye Shunguang: Touch of Dawnlight",
+          "Desc": "The gentle glow of sunlight and warm breeze seem to welcome your next encounter as you walk down the streets.",
+          "Image": "IconRole55_01"
+        }
+      },
+      "desc": "Ye Shunguang is the Sword Keeper of Yunkui Summit's treasured Qingming Sword, a disciple of Yixuan, and the younger sister of Ye Shiyuan, as well as a swordswoman blessed with extraordinary talent.\nShe enjoyed a happy childhood until the fall of the old capital, when her parents lost their lives rescuing others, bringing all her happiness to an abrupt end.\nFrom then on, she relied solely on her brother — up until Yixuan took them in, bringing them into Yunkui Summit. Later, she was chosen by the Qingming Sword, taking up the mantle and duty of Sword Keeper.\n\nRumor has it that the Qingming Sword's favor is less a blessing and more a kind of curse. Though it gives its Sword Keeper Void Hunter level power, it extracts a harsh cost — the loss of one's memories and five senses.\nIn order to subdue this side effect, Yixuan Shifu crafted a custom sword case for Ye Shunguang. It appears effective for the moment, but the true nature of the weapon is still shrouded in mystery.",
+      "KO": "엽빛나",
+      "CHS": "叶瞬光",
+      "JA": "葉瞬光"
+    },
+    "1121": {
+      "code": "Ben",
+      "rank": 3,
+      "type": 5,
+      "element": 201,
+      "hit": 102,
+      "camp": 3,
+      "icon": "IconRole16",
+      "potential": [],
+      "EN": "Ben",
+      "skin": {
+        "3111210": {
+          "Name": "Ben: Fluffy Beastking",
+          "Desc": "Ignoring the intimidating look meant to cow outsiders, even the Beast King struggles with grooming his fur and sorting out the bills.",
+          "Image": "IconRole16"
+        }
+      },
+      "desc": "Ben is the financial and asset management director at Belobog Heavy Industries and one of Koleda's trusted aides.\n\"I enjoy mathematics, but that doesn't stop me from giving thugs a good smack.\"\nHe's a burly and strong Thiren. Despite his tough exterior, he's of a surprisingly sensitive and detail-oriented nature, especially when it comes to numbers.\nOriginally a frontline mechanical operator at Belobog, his talents caught Koleda's discerning eye, leading to his promotion to a managerial position responsible for the company's finances.\nGrateful for Koleda's trust in him, he remains profoundly loyal to her.\nHis favorite food is black caviar, but he dislikes fish.\n\nI once witnessed this imposing figure seated in a small office chair, wearing small glasses, and carefully cross-referencing Belobog's asset records while mashing away at a calculator with his huge fingers.\nQuestion: Is that what they call on Inter-Knot a \"Kawaii Curveball?\"",
+      "KO": "벤",
+      "CHS": "本",
+      "JA": "ベン"
+    },
+    "1211": {
+      "code": "Rina",
+      "rank": 4,
+      "type": 4,
+      "element": 203,
+      "hit": 102,
+      "camp": 2,
+      "icon": "IconRole22",
+      "potential": [],
+      "EN": "Rina",
+      "skin": {
+        "3112110": {
+          "Name": "Rina: Head Maid's Perfection",
+          "Desc": "Her skirt is immaculate and her appearance flawlessly composed — such is the head maid's standard of perfection. Yet in the kitchen, her definition of \"perfect\" appears to be something else entirely...",
+          "Image": "IconRole22"
+        }
+      },
+      "desc": "Rina, the head maid of Victoria Housekeeping Co., and the most senior member of the organization.\nShe possesses beauty and grace, appearing immaculate from head to toe, with a noble demeanor and a gentle smile on her face.\nShe places considerable importance on how she is perceived by others.\n\nRina is always accompanied by two Bangboo named Anastella (brown hair) and Drusilla (blonde hair), both of whom have distinct personalities.\nDrusilla has been with Rina for a significant period of time and displays high intelligence, capable of discerning Rina's true emotions and thoughts.\nAnastella, a recent addition, usually responds rather than initiates conversation and is frequently teased by Drusilla.\n\nRina's favorite hobby is cooking, but only a few individuals are capable of enduring the dishes she prepares.\nSuggestion: You may try tasting Rina's dishes as a test to determine if you are the Chosen One.",
+      "KO": "리나",
+      "CHS": "丽娜",
+      "JA": "リナ"
+    },
+    "1051": {
+      "code": "Yidhari",
+      "rank": 4,
+      "type": 6,
+      "element": 202,
+      "hit": 102,
+      "camp": 11,
+      "icon": "IconRole52",
+      "potential": [],
+      "EN": "Yidhari",
+      "live2d": "UISpine_Yidhari",
+      "skin": {
+        "3110510": {
+          "Name": "Yidhari: Stream of Consciousness",
+          "Desc": "Past recollections and novel dreams spill over, inviting her to drown in them as they entwine on paper. With a blank page before her, she pens the opening line at the crossroads of reality and illusion.",
+          "Image": "IconRole52"
+        }
+      },
+      "desc": "In addition to her role as an Agent, Yidhari doubles as both a Proxy, and a contributor for Spook Shack.\nTo most, she comes across as laid-back and leisurely, but according to records, it's less \"laziness\" than a shroud of nothingness, leaving her at odds with the world around her.\nPerhaps to most people, this would seem like the usual quirk of someone absorbed in their craft. As a gifted writer of bizarre tales, Yidhari should be more prone than most to immersing herself in the worlds of her own imagination.\nIn truth, however, her unusual behavior stems more from the burden of her own abilities.\nIn the Hollows, she's exposed to vast torrents of information unimaginable to most, tangled with years upon years of memories that have amassed there. That crushing weight of countless pasts constantly batters her sense of reality, until even her emotions are gradually worn dull.\nThe fact that she can bear this burden, turn it into her own strength, and still live life in her own way — that's what sets Yidhari apart as gifted beyond others.",
+      "KO": "이드하리",
+      "CHS": "伊德海莉",
+      "JA": "イドリー"
+    },
+    "1411": {
+      "code": "Yuzuha",
+      "rank": 4,
+      "type": 4,
+      "element": 200,
+      "hit": 102,
+      "camp": 11,
+      "icon": "IconRole47",
+      "potential": [],
+      "EN": "Yuzuha",
+      "live2d": "UISpine_Youye",
+      "skin": {
+        "3114110": {
+          "Name": "Yuzuha: Tanuki Under the Shade",
+          "Desc": "Can you tell what the umbrella conceals? A tanuki, a trap, a ghost, or a girl's sly, spirited smile?",
+          "Image": "IconRole47"
+        },
+        "3114111": {
+          "Name": "Yuzuha: Tanuki in Broad Daylight",
+          "Desc": "Ghost stories aren't born only in shadows. Unconvinced? Just lock eyes with that playful young lady splashing in the water. She'll possess your thoughts, while Kama sneaks away with your drink.",
+          "Image": "IconRole47_01"
+        }
+      },
+      "desc": "Ukinami Yuzuha, a resident of Waifei Peninsula's Failume Heights, currently attends a low-tuition company affiliated school in the city. Aside from being part of the Inter-Knot subforum Spook Shack, she's not affiliated with any other groups — though in New Eridu, such forums aren't typically seen as formal organizations, and are, instead, more like hobby clubs.\nYuzuha is the adopted daughter of Li Baorong, owner of the Mystic Wares Porcelume store. Word around Failume Heights is that Baorong lost his wife and two daughters when the old capital fell. In the years that followed, he took in five children. Yuzuha is the second oldest, with an older brother, a younger brother, and two younger sisters. The family lived on the second floor above the store, and with just two bedrooms, Yuzuha shared one with her sisters, while the boys stayed with Baorong. Now that her older brother has moved out and she mostly stays in the school dorm, the apartment feels a bit less crowded. But on weekends and holidays, Yuzuha usually returns from school to help her father at the store.\nEven as a child, Yuzuha showed a surprising level of maturity. Her eloquence and cheerful nature have made her a favorite among neighbors — and a hit with the kids around Waifei Peninsula and Sailume Bay.\nOn the Spook Shack forum, Yuzuha goes by the username \"Yuzupepper.\" In addition to her real-life friends Manato and Alice, she is also close with two other users known as \"Night Emissary\" and \"Strawberry Parfait\" on the forums.",
+      "KO": "유즈하",
+      "CHS": "柚叶",
+      "JA": "浮波柚葉"
+    },
+    "1341": {
+      "code": "Zhao",
+      "rank": 4,
+      "type": 5,
+      "element": 202,
+      "hit": 101,
+      "camp": 12,
+      "icon": "IconRole56",
+      "potential": [],
+      "EN": "Zhao",
+      "live2d": "UISpinezhao",
+      "skin": {
+        "3113410": {
+          "Name": "Zhao: Cuddly Executor",
+          "Desc": "Warm, woolly ears and a small build may invite underestimation, but the Judge of \"Value\" won't think twice about bringing her branch down on anyone who tries.",
+          "Image": "IconRole56"
+        }
+      },
+      "desc": "Zhao, a Krampus Compliance Authority Judge, was one of the elite members who joined in the early days.\n\nThough she looks innocent and cute on the outside, she's actually sharp-minded, meticulous, and principled. She puts great importance on \"value\" and \"equivalent exchange\" — not in the sense of pricing things with money, but in analyzing someone's ability and potential, giving an objective and long-term assessment of the impact they can make.\n\nIt's said this mindset didn't come from Zhao's work at Krampus, but had already taken root during her childhood. She evaluates not only others, but herself as well. \"Only those with value deserve to be seen.\"\n\nThough she rarely shows it openly, Zhao remains cautious toward kindness that comes without reason. It conflicts with her belief in \"equivalent exchange,\" and she tends to assume the other person must have a deeper motive for offering help.\nAs such, when dealing with Zhao, it's best to focus on mutual benefit first. If you want to break through her defenses with sheer sincerity and goodwill, you'll be fighting an uphill battle.\n\nThere's also one piece of intel that can't be fully confirmed: Zhao loves vegetables and dislikes meat, but she seems to be pretending she enjoys meat as well.",
+      "KO": "자오",
+      "CHS": "照",
+      "JA": "照"
+    },
+    "1481": {
+      "code": "Dialyn",
+      "rank": 4,
+      "type": 2,
+      "element": 200,
+      "hit": 101,
+      "camp": 12,
+      "icon": "IconRole54",
+      "potential": [],
+      "EN": "Dialyn",
+      "live2d": "UISpine_Liuyin",
+      "skin": {
+        "3114810": {
+          "Name": "Dialyn: Ringing Judgment",
+          "Desc": "A sweet voice comes from the receiver, and when you lean in to listen, it softens into a gentle whisper, announcing that the verdict has arrived... just kidding, it's just a standard satisfaction survey.",
+          "Image": "IconRole54"
+        }
+      },
+      "desc": "Dialyn works as a customer service representative for TOPS' Cross-Department Customer Service Center, though few know her other identity — a Krampus Compliance Authority Judge.\n\nShe calls herself TOPS' top-rated representative, yet she also tops the list for the most complaints in the department. Despite never flaunting her authority as a Judge, she always delivers verdicts that cut closest to the truth.\n\nDialyn was born with the ability to hear the voices of those on the brink of death within the Hollows — a talent that's unmatched. Yet to a young Dialyn, it was a tormenting curse.\n\nBe it gift or curse, she has long turned it into a blade for discerning the truth. Despite the trials and tribulations she's borne, she's come far.",
+      "KO": "다이아린",
+      "CHS": "琉音",
+      "JA": "ダイアリン"
+    },
+    "1291": {
+      "code": "Hugo",
+      "rank": 4,
+      "type": 1,
+      "element": 202,
+      "hit": 101,
+      "camp": 9,
+      "icon": "IconRole42",
+      "potential": [],
+      "EN": "Hugo",
+      "live2d": "UISpine_Hugo",
+      "skin": {
+        "3112910": {
+          "Name": "Hugo: Crownless Rebellion",
+          "Desc": "Never be claimed by fate. Defy its clamps, its control, its taunts, its alms, its curses, and its so-called blessings. Once you return from the abyss, it is fate that should kneel to you.",
+          "Image": "IconRole42"
+        }
+      },
+      "desc": "Hugo calls himself a collector and runs a fairly successful gallery, mingling with the \"elite\" of New Eridu.\nIn truth, he's the leader of the phantom thieves syndicate, Mockingbird — and Lycaon's former partner.\nDespite his cruel (edgy and dramatic) words, deep down he has his own sense of fairness and justice.\n\nRecords suggest that Hugo had a troubled childhood.\nAs the illegitimate son of the Ravenlocks, a long-established TOPS family, he was rejected by his mother from an early age because of his heterochromatic eyes.\nHis father bought him back like a cheap commodity, using him to provoke a cutthroat succession battle between his children. In that brutal struggle, the only one kind to Hugo — his sister, Serena — became the first to fall. The ones who orchestrated her death pinned the blame on Hugo, thinking it would destroy him. But to their shock, their father actually praised Hugo's actions, calling them the very traits a worthy heir should possess.\nAfter running away from his family, Hugo met Lycaon and Jack and learned to be a phantom thief. After Jack passed away, Hugo and Lycaon formed Mockingbird together.\n\nLater, during one of Mockingbird's missions, Hugo came face-to-face with his father. In a brief moment of hesitation, he chose not to take his revenge and kill him — an act of mercy that ended up costing the lives of many innocent people. His close friend Lycaon, due to a misunderstanding born from those circumstances, broke ties with him and ultimately left Mockingbird.\nAfter drifting on his own for a while, Hugo met Vivian, a girl who reminded him of his sister Serena. He took her under his wing and reformed the Mockingbird syndicate.",
+      "KO": "휴고",
+      "CHS": "雨果",
+      "JA": "ヒューゴ"
+    },
+    "1351": {
+      "code": "Pulchra",
+      "rank": 3,
+      "type": 2,
+      "element": 200,
+      "hit": 101,
+      "camp": 4,
+      "icon": "IconRole38",
+      "potential": [],
+      "EN": "Pulchra",
+      "skin": {
+        "3113510": {
+          "Name": "Pulchra: Rest for a Weary Tail",
+          "Desc": "A wandering mercenary should be out roaming the world, but the sunlight here is warm — perfect for a nap.",
+          "Image": "IconRole38"
+        }
+      },
+      "desc": "Pulchra, formerly a mercenary from the Outer Ring, is now a member of the Sons of Calydon. She works as an ordinary employee at the logistics company Leaps and Bounds.\nWarning: Financial transactions have been detected between Pulchra and several biker and criminal gangs from the Outer Ring. These records have reduced since joining the Sons of Calydon, but there has been a large increase in funds transferred from New Eridu. This is likely because Pulchra's new position allows for easier access to New Eridu.\nFurther information indicates Pulchra has indirect involvement in several major events in the Outer Ring, including but not limited to: gang conflicts, leaks of crucial convoy supply intel, mysterious road damage, and price surges of essential goods...\nPulchra does not have deep connections with Lucius, and there is no current risk of her being an insider for any other biker gangs. However, her interpersonal network is highly complicated. Caution is advised when interacting with her, especially in protecting personal privacy.",
+      "KO": "펄크라",
+      "CHS": "波可娜",
+      "JA": "プルクラ"
+    },
+    "1311": {
+      "code": "Astra",
+      "rank": 4,
+      "type": 4,
+      "element": 205,
+      "hit": 102,
+      "camp": 8,
+      "icon": "IconRole36",
+      "potential": [],
+      "EN": "Astra Yao",
+      "live2d": "UISpineYaoJiayin",
+      "skin": {
+        "3113110": {
+          "Name": "Astra Yao: Scarlet Rock",
+          "Desc": "The bold red is only to ignite the freedom deep within. On stage, nothing can overshadow her brilliance.",
+          "Image": "IconRole36"
+        },
+        "3113111": {
+          "Name": "Astra Yao: Chandelier",
+          "Desc": "The black-and-white dress glimmers in both light and shadows. Every smile of hers seems to sink into the flowing light of the night, becoming a timeless classic.",
+          "Image": "IconRole36_01"
+        }
+      },
+      "desc": "Astra Yao is widely regarded as Ridu's most iconic singer. With her extraordinary voice, stage presence, and songwriting talent, she has led the musical trends of an entire era. \"If music is the resonance of the soul, then Astra Yao is the spark that ignites it all,\" said one famous music critic.\n\nAs brilliant as she is, Astra remains remarkably sincere and pure. On stage, her voice resonates deeply with the audience, which has allowed her to amass a large and loyal fanbase known as her \"Astranauts.\" Of course, Astra's brilliance wouldn't be possible without the careful protection of her manager, Evelyn. Offstage, she appears to be just a cute, hapless girl who depends on Evelyn in her daily life, and on Wise and Belle in the Hollows.\n\n\"If I tickled Eous, would it make you laugh?\" Astra asked curiously while lifting the Proxy, who was linked via the HDD system.\n\nShe seems to have a particular fondness for Eous.\nContemplation: Human emotions are indeed an interesting subject. It's still hard to determine whether Astra likes Eous because of the owner, or whether she likes the owner because of Eous.",
+      "KO": "아스트라",
+      "CHS": "耀嘉音",
+      "JA": "アストラ"
+    },
+    "1301": {
+      "code": "Orphie & Magus",
+      "rank": 4,
+      "type": 1,
+      "element": 201,
+      "hit": 103,
+      "camp": 5,
+      "icon": "IconRole49",
+      "potential": [],
+      "EN": "Orphie & Magus",
+      "live2d": "UISpine_Aofeisi",
+      "skin": {
+        "3113010": {
+          "Name": "Orphie & Magus: Two Banks of the River",
+          "Desc": "A soul of mirrored halves, having twice crossed the river of the dead. One side forged in fire, the other shaped into ice; one looking back on where it came from, the other watching for a new dawn. They wander on — never lost, never ceasing.",
+          "Image": "IconRole49"
+        }
+      },
+      "desc": "Orphie Magnusson serves in the New Eridu Defense Force's Obsidian Division, Obol Squad. She is the wielder of Magus, an Intelligent Construct in gun form.\n\nMagus is the captain of Obol Squad. She was gravely injured during the fall of the old capital and on the brink of death. After taking part in a military research project, her consciousness was transferred into a weapon, allowing her to survive as an Intelligent Construct. Since the squad's formation, she has remained its heart and soul — hot-tempered and impulsive at times, yet deeply respected and trusted by her comrades.\nOrphie shares an extraordinary bond with Magus — one that goes far beyond that of just \"partners.\" The two have known each other for years, and Magus often acts like a mother, offering guidance and care. In return, Orphie does everything she can to meet Magus' expectations, aspiring to become a strong, independent soldier like her captain.\n\nStrictly speaking, Orphie enjoys many things Magus disapproves of: fancy desserts, cute animals, and overly decorative toys. Her captain sees them as signs of softness, unfit for a soldier. Still, while Magus enforces discipline in public and imposes the expectations of a perfect soldier, she pretends to be in \"sleep mode\" just to turn a blind eye to Orphie's less-than-perfect behavior. According to this supposedly \"strict and impartial\" captain, she's simply following the parenting advice laid out in an online series titled \"Raising a Child Prodigy.\"",
+      "KO": "오피 & 「도깨비불」",
+      "CHS": "奥菲丝&「鬼火」",
+      "JA": "オルペウス＆「鬼火」"
+    },
+    "1441": {
+      "code": "Manato",
+      "rank": 3,
+      "type": 6,
+      "element": 201,
+      "hit": 101,
+      "camp": 11,
+      "icon": "IconRole51",
+      "potential": [],
+      "EN": "Manato",
+      "skin": {
+        "3114410": {
+          "Name": "Komano Manato: Loyal Wild Soul",
+          "Desc": "The standard attire of the unofficial mediator in Sailume Bay, enough to intimidate petty thugs.\nStill, it sometimes draws wandering eyes.",
+          "Image": "IconRole51"
+        },
+        "3114411": {
+          "Name": "Komano Manato: White Heart Silhouette",
+          "Desc": "A young Manato made a solitary vow to himself — and from his deep reverie, a lone pale shadow was born.\nMimicking his attire enhances Manato's already exceedingly intimidating presence.",
+          "Image": "IconRole51_01"
+        }
+      },
+      "desc": "Komano Manato, a member of Spook Shack and an exceptionally reliable person. Having lost his family in the fall of the old capital, he grew up alone in Waifei Peninsula until the day he happened to adopt two street children, A-Cing and A-Yuet. Since then, the three have lived as a family, depending on one another. It may be a young household, but to Manato, nothing matters more than looking after them.\nManato is currently enrolled at a company affiliated school in the city, where rumors paint him as the terrifying \"school delinquent.\" The label likely comes from his intimidating appearance, though in reality, he's far more soft-hearted and generous than he seems.\nAt first, Manato really did want to do something to clear up the misunderstanding about being a delinquent, but for various reasons, his efforts didn't make much of an impact. Still, his optimism soon led him to realize that the title wasn't all bad. It let him dodge unnecessary social events, live without being bothered by strangers, and even leverage the \"delinquent\" image to sniff out stories of school ghost tales, all while standing up for classmates suffering from actual bullying.\nBut when it comes to grades, he really does live up to the \"school delinquent\" label of a company affiliated school student.",
+      "KO": "마나토",
+      "CHS": "真斗",
+      "JA": "狛野真斗"
+    },
+    "1151": {
+      "code": "Lucy",
+      "rank": 3,
+      "type": 4,
+      "element": 201,
+      "hit": 102,
+      "camp": 4,
+      "icon": "IconRole27",
+      "potential": [],
+      "EN": "Lucy",
+      "skin": {
+        "3111510": {
+          "Name": "Lucy: Ironfist Gentlewoman",
+          "Desc": "Her outfit is considered rather polished by biker standards and said to work wonders in negotiations with outsiders.\nThe runaway princess found her freedom in the Outer Ring, glittering under the starlit night, burning at the edge of dusk, and resting quietly among the grains of sand at her feet.",
+          "Image": "IconRole27"
+        }
+      },
+      "desc": "Lucy is currently in charge of outgoing business and managing boars for the Sons of Calydon.\nSince her name is far too long and she doesn't want to be involved with her family, she refers to herself as just \"Lucy\" in the Outer Ring.\nHer three boars are called Grassy, Woody, and Bricky, and they're unceasingly loyal to her.\nThough Lucy often speaks with a mixture of rough and elegant language, her actions subtly betray the marks of a proper education.\nLucy's family is incredibly wealthy. She grew up very privileged, with anything she could ever want within grasp... except for freedom.\nAfter her Ether Aptitude test results came back high, Lucy decided she wanted to be a Hollow investigator, but her family disapproved. She was met with harsh words, isolation and confinement, and emotional abuse which led to her deciding to leave to find her own freedom.\n\"Hmph! There's no chance I'll ever go back! If I'm found... then I can say goodbye to the stars and sky and I'll have to inherit the family business instead!\"\nLucy is extremely competitive. She loves to win and hates losing.\nCurrently, the one who has given her the most bitter taste of defeat is Caesar, so Lucy keeps challenging Caesar to duels, losing then challenging again, challenging then losing again.",
+      "KO": "루시",
+      "CHS": "露西",
+      "JA": "ルーシー"
+    },
+    "1101": {
+      "code": "Koleda",
+      "rank": 4,
+      "type": 2,
+      "element": 201,
+      "hit": 102,
+      "camp": 3,
+      "icon": "IconRole14",
+      "potential": [],
+      "EN": "Koleda",
+      "skin": {
+        "3111010": {
+          "Name": "Koleda: Heart & Hammer",
+          "Desc": "A crimson figure swings twin hammers as if she could even shatter time itself.\nStill young, her journey is only just beginning. Growing up can wait; in the end, every person becomes their own true self.",
+          "Image": "IconRole14"
+        }
+      },
+      "desc": "Koleda is the current head of Belobog Industries, and the biological daughter of the company's founder, Khors.\nHer father, Khors, vanished due to a scandal involving embezzlement and fled, which severely shook the company, nearly driving it to the brink of collapse. Once she came of age, Koleda willingly stepped up to untangle the mess, rallying the remaining company workforce and resources to revive the financially and reputationally vulnerable Belobog Heavy Industries.\nWith the help of new invaluable team members, Belobog eventually managed to regain its prominence in relevant sectors. Though not as resplendent as its prime, Belobog in its current state is still a notable newcomer in the field.\nThroughout her journey, Koleda amassed practical life experiences and professional know-how, building a circle of colleagues who back her up like family. Yet, to present herself as a leader, Koleda appears to intentionally adopt a stern tone when communicating with others.\nThis distinct growth trajectory has also contributed to Koleda's heightened maturity in certain aspects compared to her peers. \nNaturally, she might display a bit of childishness in certain aspects as well.\nHypothesis: Koleda's comparatively smaller stature among her peers may stem from her prolonged involvement in the Hollows. \nCurrently, there aren't any publicly accessible papers or research substantiating this theory, but I will continue to track this topic.",
+      "KO": "콜레다",
+      "CHS": "珂蕾妲",
+      "JA": "クレタ"
+    },
+    "1221": {
+      "code": "Yanagi",
+      "rank": 4,
+      "type": 3,
+      "element": 203,
+      "hit": 101,
+      "camp": 6,
+      "icon": "IconRole31",
+      "potential": [],
+      "EN": "Yanagi",
+      "live2d": "UISpineYanagi",
+      "skin": {
+        "3112210": {
+          "Name": "Tsukishiro Yanagi: Flowing Moonshade",
+          "Desc": "Even reflective lenses can't hide the sharp gleam in the Deputy Chief's eyes. She has to constantly keep watch over a warrior obsessed with training, a scout who slacks off whenever possible, and a little one who's forever getting stomachaches.",
+          "Image": "IconRole31"
+        }
+      },
+      "desc": "Tsukishiro Yanagi, Hollow Special Operations Section 6 Deputy Chief and intelligence officer.\nPrimarily responsible for personnel management, mission management and feedback, collecting intel, on-site support, etc.\nAt the same time, Yanagi is also Section 6 member Soukaku's Protector. Apart from taking care of Soukaku's day-to-day affairs, she is also responsible for and takes responsibility for all of Soukaku's behavior at work.\n\nSection 6 Chief Hoshimi Miyabi possesses a rather eccentric personality; Asaba Harumasa, a member of Section 6, is overly relaxed and carefree; and Soukaku, another member of Section, 6 is still an innocent and excitable child, so most of the team's work falls upon Yanagi's shoulders.\nSerious, diligent, and meticulous, Tsukishiro Yanagi is the only \"normal\" person on the team, so to speak. It is only due to her guidance and leadership that the strength of the three who make up Section 6's primary on-field force can be transformed into true combat power.\nOverall, Tsukishiro Yanagi is a talented and highly efficient executive officer, whose abilities are both exceptional and comprehensive.\nHowever, from certain data, Tsukishiro Yanagi appears to have a somewhat clumsy side to her when it comes to day-to-day affairs.",
+      "KO": "야나기",
+      "CHS": "柳",
+      "JA": "月城柳"
+    },
+    "1501": {
+      "code": "Aria",
+      "rank": 4,
+      "type": 3,
+      "element": 205,
+      "hit": 102,
+      "camp": 13,
+      "icon": "IconRole57",
+      "potential": [],
+      "EN": "Aria",
+      "live2d": "UISpineAria",
+      "skin": {
+        "3115010": {
+          "Name": "Aria: Energetic Idol",
+          "Desc": "...",
+          "Image": "IconRole57"
+        },
+        "3115011": {
+          "Name": "Aria: Discordant Note",
+          "Desc": "...",
+          "Image": "IconRole57_01"
+        }
+      },
+      "desc": "...",
+      "KO": "아리아",
+      "CHS": "爱芮",
+      "JA": "アリア"
+    },
+    "1271": {
+      "code": "Seth",
+      "rank": 3,
+      "type": 5,
+      "element": 203,
+      "hit": 101,
+      "camp": 7,
+      "icon": "IconRole30",
+      "potential": [],
+      "EN": "Seth",
+      "skin": {
+        "3112710": {
+          "Name": "Seth: Incorruptible Heart",
+          "Desc": "He may be slow to pick up on things, slower even than the weight of the shield in his left hand, but his ability to detect evil is keener than the baton in his right.",
+          "Image": "IconRole30"
+        }
+      },
+      "desc": "Seth, a rookie officer in the Public Security Criminal Investigation Special Response Team, is a key player in providing fire support during criminal investigations.\nHe graduated at the top of his class in the academy and could have landed a higher position, but he chose the tougher path of the Special Response Team.\nHis impressive profile makes him seem like a genius, but he's actually a hard worker who has had his own struggles. There have been times when he practiced the subjects he wasn't good at until he cried.\nSeth is quite smart, but his personality often leads to him being taken advantage of by cunning criminals, or sometimes, coworkers (?).\nThe subject he's worst at is infiltration. Rumor has it that he holds the academy record for \"fastest to get busted\" in infiltration tasks. Based on the video intel we have, he seems a bit slow to catch on. For instance, when someone is being sarcastic, it takes him a long time to realize it.",
+      "KO": "세스",
+      "CHS": "赛斯",
+      "JA": "セス"
+    },
+    "1171": {
+      "code": "Burnice",
+      "rank": 4,
+      "type": 3,
+      "element": 201,
+      "hit": 103,
+      "camp": 4,
+      "icon": "IconRole32",
+      "potential": [
+        117100,
+        117101,
+        117102,
+        117103,
+        117104,
+        117105
+      ],
+      "EN": "Burnice",
+      "live2d": "UISpine_Burnice",
+      "skin": {
+        "3111710": {
+          "Name": "Burnice: Wildfire Rave",
+          "Desc": "An outfit hotter than any Nitro-Fuel. Wander into a party in the Outer Ring, and odds are you'll bump into Burnice... but drink her signature cocktails at your own risk...\nWait, you've already taken a sip? Well then — 3, 2, 1... fire!",
+          "Image": "IconRole32"
+        }
+      },
+      "desc": "Burnice, the Nitro-Fuel bartender for the Sons of Calydon.\nA hopeless fuel lover. She is responsible for all the fuel used by the machinery owned by the Sons of Calydon.\nShe seems to have a passion for fuel that overwhelms all else.\n\nBurnice is super outgoing, friendly, and carefree.\nShe is easily able to spread her emotions to the people around her, bringing them the same optimism she possesses.\n\"You like the drinks I mix? Thank you! Steeltusk does, too~ That big guy can drink two hundred liters in one go!\"\n\"Do you wanna try its special fuel blend? It's suuuuper hot!\"",
+      "KO": "버니스",
+      "CHS": "柏妮思",
+      "JA": "バーニス"
+    },
+    "1381": {
+      "code": "Soldier 0 - Anby",
+      "rank": 4,
+      "type": 1,
+      "element": 203,
+      "hit": 101,
+      "camp": 5,
+      "icon": "IconRole40",
+      "potential": [
+        138100,
+        138101,
+        138102,
+        138103,
+        138104,
+        138105
+      ],
+      "EN": "Soldier 0 - Anby",
+      "live2d": "UISpineSPAnbi",
+      "skin": {
+        "3113810": {
+          "Name": "Soldier 0 - Anby: Silver Soldier",
+          "Desc": "Anby's old Silver Squad uniform, stained with memories that never truly fade.\nWhen the shadows of the past strike without warning, would you stand and face them, or stumble and flee? No matter the choice, home always awaits your return.",
+          "Image": "IconRole40"
+        }
+      },
+      "desc": "",
+      "KO": "0호·엔비",
+      "CHS": "零号·安比",
+      "JA": "0号・アンビー"
+    },
+    "1191": {
+      "code": "Ellen",
+      "rank": 4,
+      "type": 1,
+      "element": 202,
+      "hit": 101,
+      "camp": 2,
+      "icon": "IconRole21",
+      "potential": [
+        119100,
+        119101,
+        119102,
+        119103,
+        119104,
+        119105
+      ],
+      "EN": "Ellen",
+      "live2d": "UISpineEllen",
+      "skin": {
+        "3111910": {
+          "Name": "Ellen: Ellen Scissorhands",
+          "Desc": "The sharp scissors of Victoria Housekeeping, if only she weren't sleeping...",
+          "Image": "IconRole21"
+        },
+        "3111911": {
+          "Name": "Ellen: On Campus",
+          "Desc": "The tail doesn't quite match the school uniform, but with just a little bit of needlework, it can become even cuter!",
+          "Image": "IconRole21_01"
+        }
+      },
+      "desc": "Ellen is a maid working for Victoria Housekeeping Co. and its latest member.\nShe is a laid-back individual who dislikes activities that require energy. However, with the full support of her teammates, she can unleash her formidable power during critical moments.\nSince her fighting style leads to high energy consumption, she always carries a lollipop in her mouth to ensure an adequate sugar intake.\nWhile she frequently expresses her desire to change jobs due to the hassle, she genuinely values her companions at Victoria Housekeeping.\n\nEllen attends a school in New Eridu and has a group of ordinary friends.\nApart from her role as a maid at Victoria Housekeeping, Ellen spends a significant amount of time with her friends, leading an ordinary and contented student life.\n\nThoughts: As a multitasker, Ellen must balance her student life with her job at Victoria Housekeeping Co.\nPerhaps this is one of the reasons why she often feels tired?",
+      "KO": "엘렌",
+      "CHS": "艾莲",
+      "JA": "エレン"
+    }
+  },
+  "weapon": {
+    "13108": {
+      "icon": "Weapon_A_1081",
+      "rank": 3,
+      "type": 1,
+      "EN": "Starlight Engine Replica",
+      "desc": "A customized supercomputing W-Engine, specialized in aim support and ballistic calculations. Modified by Billy, it now looks like some sort of knock-off Starlight Knight figurine.",
+      "KO": "별빛 엔진 레플리카",
+      "CHS": "仿制星徽引擎",
+      "JA": "なんちゃってスターライトエンジン"
+    },
+    "14104": {
+      "icon": "Weapon_S_1041",
+      "rank": 4,
+      "type": 1,
+      "EN": "The Brimstone",
+      "desc": "A W-Engine made for Soldier 11 by Obsidian Division. Its intense heat can be used to clear the entire battlefield.",
+      "KO": "유황석",
+      "CHS": "硫磺石",
+      "JA": "ブリムストーン"
+    },
+    "14143": {
+      "icon": "Weapon_S_1431",
+      "rank": 4,
+      "type": 1,
+      "EN": "Cloudcleave Radiance",
+      "desc": "The world may change, but my heart remains constant, like clouds standing eternal.",
+      "KO": "구름을 헤친 빛",
+      "CHS": "云霓孤光",
+      "JA": "孤光彩雲"
+    },
+    "12009": {
+      "icon": "Weapon_B_Common_09",
+      "rank": 2,
+      "type": 2,
+      "EN": "[Vortex] Hatchet",
+      "desc": "A frequency-converting W-Engine that can quickly generate excessive power and effectively increase its user's battle prowess.",
+      "KO": "「급류」-도끼",
+      "CHS": "「湍流」-斧型",
+      "JA": "「激流」-斧型"
+    },
+    "14107": {
+      "icon": "Weapon_S_1071",
+      "rank": 4,
+      "type": 5,
+      "EN": "Tusks of Fury",
+      "desc": "A versatile W-Engine based on a motorcycle tire that Big Daddy made for Caesar.",
+      "KO": "저돌적인 송곳니",
+      "CHS": "奔袭獠牙",
+      "JA": "猛進するキバ"
+    },
+    "13103": {
+      "icon": "Weapon_A_1031",
+      "rank": 3,
+      "type": 4,
+      "EN": "The Vault",
+      "desc": "A cost-effective W-Engine that can store energy, with improvements made to its internal space. This model is often used by Nicole.",
+      "KO": "보물함",
+      "CHS": "聚宝箱",
+      "JA": "ザ・ボールト"
+    },
+    "14137": {
+      "icon": "Weapon_S_1371",
+      "rank": 4,
+      "type": 6,
+      "EN": "Qingming Birdcage",
+      "desc": "The world is vast and full of change, and fate is unpredictable. But regardless of hardship or lack thereof, one must stay true to one's heart.",
+      "KO": "청명의 보금자리",
+      "CHS": "青溟笼舍",
+      "JA": "青溟の鳥籠"
+    },
+    "13002": {
+      "icon": "Weapon_A_Common_02",
+      "rank": 3,
+      "type": 4,
+      "EN": "Slice of Time",
+      "desc": "A special W-Engine equipped with a high-speed camera module. The best choice for in-Hollow photography enthusiasts.",
+      "KO": "시간의 파편",
+      "CHS": "时光切片",
+      "JA": "歳月の薄片"
+    },
+    "13113": {
+      "icon": "Weapon_A_1131",
+      "rank": 3,
+      "type": 4,
+      "EN": "Bashful Demon",
+      "desc": "An intricate W-Engine developed by Section 6 and later modified with extra features. It can control Ether particles to form an energy field. This model is favored by Soukaku.",
+      "KO": "수줍은 악마",
+      "CHS": "含羞恶面",
+      "JA": "恥じらう悪面"
+    },
+    "13142": {
+      "icon": "Weapon_A_1421",
+      "rank": 3,
+      "type": 5,
+      "EN": "Tremor Trigram Vessel",
+      "desc": "Pressing acupoints is like cooking. Striking the fatal acupoint is like setting the stove on fire, bringing disaster.",
+      "KO": "진괘를 담은 함",
+      "CHS": "震元奇枢",
+      "JA": "雷鳴が如き八卦"
+    },
+    "12003": {
+      "icon": "Weapon_B_Common_03",
+      "rank": 2,
+      "type": 1,
+      "EN": "[Lunar] Noviluna",
+      "desc": "A high-capacity portable W-Engine that can collect dissipated energy from its surroundings, thus enhancing the combat effectiveness of its operator.",
+      "KO": "「루나」-초승달",
+      "CHS": "「月相」-朔",
+      "JA": "「月相」-朔"
+    },
+    "12002": {
+      "icon": "Weapon_B_Common_02",
+      "rank": 2,
+      "type": 1,
+      "EN": "[Lunar] Decrescent",
+      "desc": "A W-Engine with excellent sonic and thermal energy usage, capable of hitting its target with a double whammy.",
+      "KO": "「루나」-그믐달",
+      "CHS": "「月相」-晦",
+      "JA": "「月相」-晦"
+    },
+    "13135": {
+      "icon": "Weapon_A_1351",
+      "rank": 3,
+      "type": 2,
+      "EN": "Box Cutter",
+      "desc": "An energy W-Engine modded from spare parts of a truck's engine. It converts the original cylinder into an energy storage unit, which is highly advantageous.",
+      "KO": "커터칼",
+      "CHS": "裁纸刀",
+      "JA": "ペーパーカッター"
+    },
+    "14133": {
+      "icon": "Weapon_S_1331",
+      "rank": 4,
+      "type": 3,
+      "EN": "Flight of Fancy",
+      "desc": "A bird landed on the windowsill, scattering starlight from its tail feathers.",
+      "KO": "별빛 꿈을 누비는 새",
+      "CHS": "飞鸟星梦",
+      "JA": "鳥は夢へと羽ばたいて"
+    },
+    "13014": {
+      "icon": "Weapon_A_Common_14",
+      "rank": 3,
+      "type": 6,
+      "EN": "Radiowave Journey",
+      "desc": "Designed for those Hollow-dwelling bards who refuse to listen to the same albums repeatedly, this W-Engine comes equipped with a radio module that can transform Etheric frequencies into melodies.",
+      "KO": "일렉트로 워크",
+      "CHS": "电波漫步",
+      "JA": "エレクトロウォーク"
+    },
+    "13008": {
+      "icon": "Weapon_A_Common_08",
+      "rank": 3,
+      "type": 3,
+      "EN": "Weeping Gemini",
+      "desc": "A W-Engine produced by recycling abandoned Bangboo shells. Its electrode cores made of recycled metals can release high-voltage charges.",
+      "KO": "쌍둥이의 눈물",
+      "CHS": "双生泣星",
+      "JA": "双生の涙"
+    },
+    "14001": {
+      "icon": "Weapon_S_Common_01",
+      "rank": 3,
+      "type": 1,
+      "EN": "Cannon Rotor",
+      "desc": "A high-performance supercomputing W-Engine, capable of collecting real-time battlefield data and equipped with mini cannons.",
+      "KO": "캐논 로터",
+      "CHS": "加农转子",
+      "JA": "キャノンローラー"
+    },
+    "13003": {
+      "icon": "Weapon_A_Common_03",
+      "rank": 3,
+      "type": 3,
+      "EN": "Rainforest Gourmet",
+      "desc": "A consumer-class W-Engine launched by an exotic pet fan club to promote pet culture. Due to its cute appearance, it was once a very popular model.",
+      "KO": "우림의 식객",
+      "CHS": "雨林饕客",
+      "JA": "密林の食いしん坊"
+    },
+    "13012": {
+      "icon": "Weapon_A_Common_12",
+      "rank": 3,
+      "type": 6,
+      "EN": "Puzzle Sphere",
+      "desc": "The W-Engine, with its bright colors and great performance, saw poor sales at first because it resembled a toy. But with its reasonable price, it slowly gained a positive reputation.",
+      "KO": "기변의 큐브",
+      "CHS": "幻变魔方",
+      "JA": "魔法の立体パズル"
+    },
+    "14130": {
+      "icon": "Weapon_S_1301",
+      "rank": 4,
+      "type": 1,
+      "EN": "Bellicose Blaze",
+      "desc": "She lingers by the banks of the Styx, waiting for the tide to extinguish the fury burning in her chamber.",
+      "KO": "소란한 총성과 화염",
+      "CHS": "嚣枪喧焰",
+      "JA": "憤怒の銃騒"
+    },
+    "14105": {
+      "icon": "Weapon_S_1051",
+      "rank": 4,
+      "type": 6,
+      "EN": "Kraken's Cradle",
+      "desc": "In chasing illusions, she was entranced by the light that pierced through the mist.",
+      "KO": "크라켄의 요람",
+      "CHS": "海妖摇篮",
+      "JA": "セイレーンクレードル"
+    },
+    "13010": {
+      "icon": "Weapon_A_Common_10",
+      "rank": 3,
+      "type": 5,
+      "EN": "Bunny Band",
+      "desc": "A special W-Engine decorated with a fluffy bunny. However, it is just an imitation of the real animal.",
+      "KO": "버니 밴드",
+      "CHS": "兔能环",
+      "JA": "ラビットチャージャー"
+    },
+    "14116": {
+      "icon": "Weapon_S_1161",
+      "rank": 4,
+      "type": 2,
+      "EN": "Blazing Laurel",
+      "desc": "A violent W-Engine that can ignite flames with a siphon. It deals simple and crude burn damage, encouraging relentless, bone-crushing follow-up attacks.",
+      "KO": "화염의 월계관",
+      "CHS": "焰心桂冠",
+      "JA": "炎心の桂冠"
+    },
+    "13011": {
+      "icon": "Weapon_A_Common_11",
+      "rank": 3,
+      "type": 5,
+      "EN": "Spring Embrace",
+      "desc": "A special W-Engine equipped with a temperature regulator where residual heat generated by the W-Engine's high frequency is funneled into the hot springs on its surface.",
+      "KO": "봄날의 포옹",
+      "CHS": "春日融融",
+      "JA": "ホットスプリング"
+    },
+    "14102": {
+      "icon": "Weapon_S_1021",
+      "rank": 4,
+      "type": 1,
+      "EN": "Steel Cushion",
+      "desc": "A supercomputing W-Engine equipped with a motion monitoring feature. Thanks to Nekomata's modifications, it perfectly matches the fast reflexes and combat maneuvers of feline Thirens.",
+      "KO": "스틸 쿠션",
+      "CHS": "钢铁肉垫",
+      "JA": "鋼の肉球"
+    },
+    "13015": {
+      "icon": "Weapon_A_Common_15",
+      "rank": 3,
+      "type": 1,
+      "EN": "Marcato Desire",
+      "desc": "Gather 'round, mortals! Turn up the music!",
+      "KO": "열망의 악센트",
+      "CHS": "强音热望",
+      "JA": "強音デザイア"
+    },
+    "14122": {
+      "icon": "Weapon_S_1221",
+      "rank": 4,
+      "type": 3,
+      "EN": "Timeweaver",
+      "desc": "A new model of supercomputing W-Engine custom-made by HSO Section 6, equipped with the most elite calculation and analysis functions.",
+      "KO": "시류의 현자",
+      "CHS": "时流贤者",
+      "JA": "刻流の賢者"
+    },
+    "14120": {
+      "icon": "Weapon_S_1201",
+      "rank": 4,
+      "type": 1,
+      "EN": "Zanshin Herb Case",
+      "desc": "Bitterness and pain beget hope, and he devours them all.",
+      "KO": "잔심의 청낭",
+      "CHS": "残心青囊",
+      "JA": "残心の青籠"
+    },
+    "14149": {
+      "icon": "Weapon_S_1491",
+      "rank": 4,
+      "type": 4,
+      "EN": "Thoughtbop",
+      "desc": "...",
+      "KO": "사유로 빚은 노래",
+      "CHS": "思络成歌",
+      "JA": "想いが織りなす歌"
+    },
+    "12015": {
+      "icon": "Weapon_B_Common_15",
+      "rank": 2,
+      "type": 6,
+      "EN": "[Cinder] Cobalt",
+      "desc": "A W-Engine with a built-in heating component. When operating at high speeds, it resembles a blazing blue flame.",
+      "KO": "「잿더미」-코발트블루",
+      "CHS": "「灰烬」-钴蓝",
+      "JA": "「灰燼」-蒼藍"
+    },
+    "14114": {
+      "icon": "Weapon_S_1141",
+      "rank": 4,
+      "type": 2,
+      "EN": "The Restrained",
+      "desc": "A special W-Engine with a powerful temperature control system. Modified by Lycaon, it has the capability to quickly create extremely cold environments.",
+      "KO": "구속된 자",
+      "CHS": "拘缚者",
+      "JA": "拘縛されし者"
+    },
+    "14118": {
+      "icon": "Weapon_S_1181",
+      "rank": 4,
+      "type": 3,
+      "EN": "Fusion Compiler",
+      "desc": "The latest W-Engine that possesses a hypercalculation core. It can compile operational codes for machines at top speed. This model is favored by Grace.",
+      "KO": "감입 컴파일러",
+      "CHS": "嵌合编译器",
+      "JA": "複合コンパイラ"
+    },
+    "12011": {
+      "icon": "Weapon_B_Common_11",
+      "rank": 2,
+      "type": 3,
+      "EN": "[Magnetic Storm] Bravo",
+      "desc": "A damage-type W-Engine that features an enhanced movement detection module that can quickly alter its output intensity to optimize battle efficiency.",
+      "KO": "「자기 폭풍」-브라보",
+      "CHS": "「电磁暴」-贰式",
+      "JA": "「磁気嵐」-弐式"
+    },
+    "14129": {
+      "icon": "Weapon_S_1291",
+      "rank": 4,
+      "type": 1,
+      "EN": "Myriad Eclipse",
+      "desc": "Shadowed by darkness at every step, he laid bare his heart to kindle a single, flickering flame.",
+      "KO": "천변하는 태양의 몰락",
+      "CHS": "千面日陨",
+      "JA": "千面の落日"
+    },
+    "14134": {
+      "icon": "Weapon_S_1341",
+      "rank": 4,
+      "type": 5,
+      "EN": "Half-Sugar Bunny",
+      "desc": "Not too sweet, and not too cold.",
+      "KO": "당도 50% 눈토끼",
+      "CHS": "半糖雪兔",
+      "JA": "甘さ控えめ雪うさぎ"
+    },
+    "14145": {
+      "icon": "Weapon_S_1451",
+      "rank": 4,
+      "type": 4,
+      "EN": "Dreamlit Hearth",
+      "desc": "After countless years, it remains a silent puzzle.",
+      "KO": "꿈을 빚는 용광로의 노래",
+      "CHS": "铸梦炉歌",
+      "JA": "炉で歌い上げられる夢"
+    },
+    "14138": {
+      "icon": "Weapon_S_1381",
+      "rank": 4,
+      "type": 1,
+      "EN": "Severed Innocence",
+      "desc": "The sheen of silver is not innocence. Can the blades of the past cut through fate's connections?",
+      "KO": "순결한 희생",
+      "CHS": "牺牲洁纯",
+      "JA": "純然たる犠牲"
+    },
+    "14146": {
+      "icon": "Weapon_S_1461",
+      "rank": 4,
+      "type": 1,
+      "EN": "Cordis Germina",
+      "desc": "Her journey continues along the long, endless circle.",
+      "KO": "기계 심장에 내린 씨앗",
+      "CHS": "机巧心种",
+      "JA": "駆動する種"
+    },
+    "14136": {
+      "icon": "Weapon_S_1361",
+      "rank": 4,
+      "type": 2,
+      "EN": "Spectral Gaze",
+      "desc": "Broken eyes hold both resilience and vulnerability.",
+      "KO": "탐혼의 눈동자",
+      "CHS": "索魂影眸",
+      "JA": "奪魂の瞑目"
+    },
+    "13007": {
+      "icon": "Weapon_A_Common_07",
+      "rank": 3,
+      "type": 5,
+      "EN": "Original Transmorpher",
+      "desc": "An epic W-Engine favored by Starlight Knight fans. Its high popularity and scarcity marketing strategy have caused an influx of knock-offs.",
+      "KO": "오리지널 변신 아이템",
+      "CHS": "正版变身器",
+      "JA": "正規版変身装置"
+    },
+    "12005": {
+      "icon": "Weapon_B_Common_05",
+      "rank": 2,
+      "type": 4,
+      "EN": "[Reverb] Mark II",
+      "desc": "A standardized W-Engine with balanced performance that enhances its owner's and their teammates' combat effectiveness in all aspects.",
+      "KO": "「잔향」-Ⅱ형",
+      "CHS": "「残响」-Ⅱ型",
+      "JA": "「残響」-Ⅱ型"
+    },
+    "13112": {
+      "icon": "Weapon_A_1121",
+      "rank": 3,
+      "type": 5,
+      "EN": "Big Cylinder",
+      "desc": "A powerful protection-type W-Engine, characterized by thick oil cylinders that ceaselessly roar inside it. It can provide sufficient power for heavy machinery.",
+      "KO": "빅 실린더",
+      "CHS": "比格气缸",
+      "JA": "ビガー・シリンダー"
+    },
+    "14147": {
+      "icon": "Weapon_S_1471",
+      "rank": 4,
+      "type": 6,
+      "EN": "Wrathful Vajra",
+      "desc": "The purging flames burned a hundred times, yet never cleansed me.",
+      "KO": "성난 눈의 금강",
+      "CHS": "怒目金刚",
+      "JA": "金剛不壊怒髪衝冠"
+    },
+    "12007": {
+      "icon": "Weapon_B_Common_07",
+      "rank": 2,
+      "type": 2,
+      "EN": "[Vortex] Revolver",
+      "desc": "An energy-storage type W-Engine with a unique operation circuit. It will absorb scattered energy up to a certain amount before unleashing it all at once.",
+      "KO": "「급류」-총",
+      "CHS": "「湍流」-铳型",
+      "JA": "「激流」-銃型"
+    },
+    "14119": {
+      "icon": "Weapon_S_1191",
+      "rank": 4,
+      "type": 1,
+      "EN": "Deep Sea Visitor",
+      "desc": "A high-power W-Engine that possesses efficient freezing capabilities and high damage output. This model is often used by Ellen.",
+      "KO": "심해 방문객",
+      "CHS": "深海访客",
+      "JA": "ディープシー・ビジター"
+    },
+    "14139": {
+      "icon": "Weapon_S_1391",
+      "rank": 4,
+      "type": 2,
+      "EN": "Roaring Fur-nace",
+      "desc": "The warm fire blazes through the long night, casting light on the tiger's roar in my heart.",
+      "KO": "복을 뿜는 맹호",
+      "CHS": "福虓炉炉",
+      "JA": "招福の虎炉"
+    },
+    "14132": {
+      "icon": "Weapon_S_1321",
+      "rank": 4,
+      "type": 1,
+      "EN": "Heartstring Nocturne",
+      "desc": "The sound of the strings, sharp as blades, cut through the night, protecting the one.",
+      "KO": "심금을 울리는 야상곡",
+      "CHS": "心弦夜响",
+      "JA": "心弦のノクターン"
+    },
+    "14117": {
+      "icon": "Weapon_S_1171",
+      "rank": 4,
+      "type": 3,
+      "EN": "Flamemaker Shaker",
+      "desc": "Modified by Burnice, this W-Engine uses a special fuel as its power source to boost combustion performance to the max.",
+      "KO": "타오르는 셰이커",
+      "CHS": "灼心摇壶",
+      "JA": "バーニング・シェイカー"
+    },
+    "14150": {
+      "icon": "Weapon_S_1501",
+      "rank": 4,
+      "type": 3,
+      "EN": "Angel in the Shell",
+      "desc": "...",
+      "KO": "껍데기 속 영혼",
+      "CHS": "壳中之灵",
+      "JA": "殻の中の魂"
+    },
+    "14124": {
+      "icon": "Weapon_S_1241",
+      "rank": 4,
+      "type": 1,
+      "EN": "Riot Suppressor Mark VI",
+      "desc": "The latest tactical W-Engine used by Public Security's elite Hollow squads, possessing a powerful Ether energy source. It's Zhu Yuan's favored model.",
+      "KO": "서프레서 Ⅵ형",
+      "CHS": "防暴者Ⅵ型",
+      "JA": "サプレッサーⅥ型"
+    },
+    "14141": {
+      "icon": "Weapon_S_1411",
+      "rank": 4,
+      "type": 4,
+      "EN": "Metanukimorphosis",
+      "desc": "A masterfully crafted design, infused with the creator's pursuit of beauty.",
+      "KO": "너구리의 7단 변신",
+      "CHS": "狸法七变化",
+      "JA": "狸の七変化"
+    },
+    "13101": {
+      "icon": "Weapon_A_1011",
+      "rank": 3,
+      "type": 2,
+      "EN": "Demara Battery Mark II",
+      "desc": "A customized W-Engine that focuses on energy storage, modified to improve its energy capacity. This model is often used by Anby.",
+      "KO": "데마라 배터리 Ⅱ형",
+      "CHS": "德玛拉电池Ⅱ型",
+      "JA": "デマラ式電池Ⅱ型"
+    },
+    "14110": {
+      "icon": "Weapon_S_1101",
+      "rank": 4,
+      "type": 2,
+      "EN": "Hellfire Gears",
+      "desc": "A functional W-Engine with ultra-high power capacity. Modified by Koleda, its energy level has almost exceeded the safety limit.",
+      "KO": "헬파이어 기어",
+      "CHS": "燃狱齿轮",
+      "JA": "燃獄ギア"
+    },
+    "12013": {
+      "icon": "Weapon_B_Common_13",
+      "rank": 2,
+      "type": 5,
+      "EN": "[Identity] Base",
+      "desc": "A W-Engine with a component structure adjusted according to specific parameters. It can enhance the defensive capabilities of those who have a certain style of combat.",
+      "KO": "「아이덴티티」-베이스",
+      "CHS": "「恒等式」-本格",
+      "JA": "「恒等式」-本格"
+    },
+    "12006": {
+      "icon": "Weapon_B_Common_06",
+      "rank": 2,
+      "type": 4,
+      "EN": "[Reverb] Mark III",
+      "desc": "A special W-Engine that features motion capture algorithms, which enhance the overall combat competency of your squad.",
+      "KO": "「잔향」-Ⅲ형",
+      "CHS": "「残响」-Ⅲ型",
+      "JA": "「残響」-Ⅲ型"
+    },
+    "14109": {
+      "icon": "Weapon_S_1091",
+      "rank": 4,
+      "type": 3,
+      "EN": "Hailstorm Shrine",
+      "desc": "Hail falls before the shrine, waking her. The blizzard is coming.",
+      "KO": "싸락눈 내린 별각",
+      "CHS": "霰落星殿",
+      "JA": "あられ落つ星殿"
+    },
+    "13004": {
+      "icon": "Weapon_A_Common_04",
+      "rank": 3,
+      "type": 1,
+      "EN": "Starlight Engine",
+      "desc": "A damage-type W-Engine made of special Etheric matter. When its user is attacked, it builds up energy.",
+      "KO": "별빛 엔진",
+      "CHS": "星徽引擎",
+      "JA": "スターライトエンジン"
+    },
+    "13016": {
+      "icon": "Weapon_A_Common_16",
+      "rank": 3,
+      "type": 5,
+      "EN": "Reel Projector",
+      "desc": "Clearly a W-Engine is for sound, and not images. What kind of lunatic genius would insist on stuffing a 16mm film camera into a W-Engine?",
+      "KO": "조명을 새기는 칼",
+      "CHS": "光影刻刀",
+      "JA": "光と影のカット"
+    },
+    "12014": {
+      "icon": "Weapon_B_Common_14",
+      "rank": 2,
+      "type": 5,
+      "EN": "[Identity] Inflection",
+      "desc": "A functional W-Engine that specializes in energy conversion. It can analyze combat environments and generate special sounds to disrupt the enemy's offense.",
+      "KO": "「아이덴티티」-인플렉션",
+      "CHS": "「恒等式」-变格",
+      "JA": "「恒等式」-変格"
+    },
+    "13005": {
+      "icon": "Weapon_A_Common_05",
+      "rank": 3,
+      "type": 2,
+      "EN": "Steam Oven",
+      "desc": "A high-power W-Engine that boasts a cutting-edge energy conversion system. It collects excess heat and supplies it to the steamer.",
+      "KO": "스팀오븐",
+      "CHS": "人为刀俎",
+      "JA": "まな板の鯉"
+    },
+    "14131": {
+      "icon": "Weapon_S_1311",
+      "rank": 4,
+      "type": 4,
+      "EN": "Elegant Vanity",
+      "desc": "Underneath the radiant splendor, her genuine self has never been hidden.",
+      "KO": "우아한 베니티백",
+      "CHS": "玲珑妆匣",
+      "JA": "優美のヴァニティ"
+    },
+    "13127": {
+      "icon": "Weapon_A_1271",
+      "rank": 3,
+      "type": 5,
+      "EN": "Peacekeeper - Specialized",
+      "desc": "A defensive W-Engine independently researched and created by Public Security which simplifies the offensive components to enhance the energy conversion ability in its shield. ",
+      "KO": "평화 수호자-특화형",
+      "CHS": "维序者-特化型",
+      "JA": "秩序の守り手・特化型"
+    },
+    "13111": {
+      "icon": "Weapon_A_1111",
+      "rank": 3,
+      "type": 1,
+      "EN": "Drill Rig - Red Axis",
+      "desc": "Originally a rev-enhanced W-Engine, it has been modified by Anton with the most expensive rotary drill parts that allow it to exceed its output limits.",
+      "KO": "굴착기-붉은 축",
+      "CHS": "旋钻机-赤轴",
+      "JA": "ドリルリグ-レッドシャフト"
+    },
+    "13019": {
+      "icon": "Weapon_A_Common_19",
+      "rank": 3,
+      "type": 6,
+      "EN": "Cauldron of Clarity",
+      "desc": "Countless threads of Sword Will echo through this tiny stretch of sky.",
+      "KO": "푸른 물결의 솥",
+      "CHS": "青漪灵鼎",
+      "JA": "蒼き波の霊器"
+    },
+    "14121": {
+      "icon": "Weapon_S_1211",
+      "rank": 4,
+      "type": 4,
+      "EN": "Weeping Cradle",
+      "desc": "A special W-Engine with multiple layers embedded inside. It can quickly recharge \tspecial-model Bangboo and custom-made combat equipment. This model is favored by Rina.",
+      "KO": "흐느끼는 요람",
+      "CHS": "啜泣摇篮",
+      "JA": "啜り泣くゆりかご"
+    },
+    "12010": {
+      "icon": "Weapon_B_Common_10",
+      "rank": 2,
+      "type": 3,
+      "EN": "[Magnetic Storm] Alpha",
+      "desc": "A special W-Engine that can analyze the target's weak spots through real-time calculations.",
+      "KO": "「자기 폭풍」-알파",
+      "CHS": "「电磁暴」-壹式",
+      "JA": "「磁気嵐」-壱式"
+    },
+    "13115": {
+      "icon": "Weapon_A_1151",
+      "rank": 3,
+      "type": 4,
+      "EN": "Kaboom the Cannon",
+      "desc": "A support W-Engine propelled by jets that is both mobile and impactful, it can traverse the entire battlefield providing combat buffs.",
+      "KO": "호전적인 꽝꽝이",
+      "CHS": "好斗的阿炮",
+      "JA": "喧嘩腰のボンバルダム"
+    },
+    "13009": {
+      "icon": "Weapon_A_Common_09",
+      "rank": 3,
+      "type": 3,
+      "EN": "Electro-Lip Gloss",
+      "desc": "This damage-type W-Engine boasts a built-in current transformer, and automatically attracts electrically sensitive objects around the operator and deals additional damage to them.",
+      "KO": "감전 립글로스",
+      "CHS": "触电唇彩",
+      "JA": "電撃リップグロス"
+    },
+    "14140": {
+      "icon": "Weapon_S_1401",
+      "rank": 4,
+      "type": 3,
+      "EN": "Practiced Perfection",
+      "desc": "Starlight became her blade, and she held courage and love firmly in her hands.",
+      "KO": "완벽하게 단조된 별",
+      "CHS": "十方锻星",
+      "JA": "十面百錬の星"
+    },
+    "13013": {
+      "icon": "Weapon_A_Common_13",
+      "rank": 3,
+      "type": 1,
+      "EN": "Gilded Blossom",
+      "desc": "A W-Engine with a grandiose and luxurious appearance equipped with a premium Ether-powered anti-theft device. It's actually used to provide the equipper with energy.",
+      "KO": "도금된 화신풍",
+      "CHS": "鎏金花信",
+      "JA": "金メッキの花信"
+    },
+    "14148": {
+      "icon": "Weapon_S_1481",
+      "rank": 4,
+      "type": 2,
+      "EN": "Yesterday Calls",
+      "desc": "That call you never picked up... she's the one who answered it.",
+      "KO": "지난밤의 전화",
+      "CHS": "昨夜来电",
+      "JA": "昨夜からの着信"
+    },
+    "12004": {
+      "icon": "Weapon_B_Common_04",
+      "rank": 2,
+      "type": 4,
+      "EN": "[Reverb] Mark I",
+      "desc": "A special W-Engine featuring a built-in sonic generator that boosts its damage output.",
+      "KO": "「잔향」-Ⅰ형",
+      "CHS": "「残响」-Ⅰ型",
+      "JA": "「残響」-Ⅰ型"
+    },
+    "14126": {
+      "icon": "Weapon_S_1261",
+      "rank": 4,
+      "type": 3,
+      "EN": "Sharpened Stinger",
+      "desc": "A deadly W-Engine from unknown sources, modified personally by Jane Doe with the intent to deal severe physical damage and Anomaly.",
+      "KO": "예리한 집게칼",
+      "CHS": "淬锋钳刺",
+      "JA": "磨き抜かれた切っ先"
+    },
+    "12008": {
+      "icon": "Weapon_B_Common_08",
+      "rank": 2,
+      "type": 2,
+      "EN": "[Vortex] Arrow",
+      "desc": "A tactical W-Engine that locates enemies using high-frequency sound waves. Its aiming aid can make its operator's precision attack more deadly.",
+      "KO": "「급류」-화살",
+      "CHS": "「湍流」-矢型",
+      "JA": "「激流」-矢型"
+    },
+    "12001": {
+      "icon": "Weapon_B_Common_01",
+      "rank": 2,
+      "type": 1,
+      "EN": "[Lunar] Pleniluna",
+      "desc": "A W-Engine that prioritizes damage output over noise reduction. It can indiscriminately deal considerable damage to all units nearby.",
+      "KO": "「루나」-보름달",
+      "CHS": "「月相」-望",
+      "JA": "「月相」-望"
+    },
+    "13106": {
+      "icon": "Weapon_A_1061",
+      "rank": 3,
+      "type": 1,
+      "EN": "Housekeeper",
+      "desc": "An enhanced W-Engine with a high rotation speed. A chainsaw has been integrated into its shaft. This model is often used by Corin.",
+      "KO": "하우스키퍼",
+      "CHS": "家政员",
+      "JA": "ハウスキーパー"
+    },
+    "14002": {
+      "icon": "Weapon_S_Common_02",
+      "rank": 3,
+      "type": 4,
+      "EN": "Unfettered Game Ball",
+      "desc": "A new supercomputing W-Engine, featuring cutting-edge integrated chips that dynamically monitor the battlefield and provide tactical analysis for the user.",
+      "KO": "내 맘대로 게임 볼",
+      "CHS": "逍遥游球",
+      "JA": "ゲームボール"
+    },
+    "14125": {
+      "icon": "Weapon_S_1251",
+      "rank": 4,
+      "type": 2,
+      "EN": "Ice-Jade Teapot",
+      "desc": "A custom stun W-Engine made for an Automaton referencing the combat style and abilities of one. Energy is stored within, then lashes outwards upon conversion.",
+      "KO": "맑은 옥주전자",
+      "CHS": "玉壶青冰",
+      "JA": "玉壺青氷"
+    },
+    "13001": {
+      "icon": "Weapon_A_Common_01",
+      "rank": 3,
+      "type": 1,
+      "EN": "Street Superstar",
+      "desc": "A custom-made W-Engine designed for urban music lovers. It sacrifices heat dissipation components for improved sound quality.",
+      "KO": "거리의 슈퍼스타",
+      "CHS": "街头巨星",
+      "JA": "ストリートスター"
+    },
+    "13006": {
+      "icon": "Weapon_A_Common_06",
+      "rank": 3,
+      "type": 2,
+      "EN": "Precious Fossilized Core",
+      "desc": "A special W-Engine whose outer shell is made of composite Etheric matter that effectively absorbs impact, and turns it against the enemy.",
+      "KO": "귀중한 화석 코어",
+      "CHS": "贵重骨核",
+      "JA": "貴重な石化コア"
+    },
+    "12012": {
+      "icon": "Weapon_B_Common_12",
+      "rank": 2,
+      "type": 3,
+      "EN": "[Magnetic Storm] Charlie",
+      "desc": "A high-capacity W-Engine that features a built-in generator, which allows it to keep a stable storage of electrical power.",
+      "KO": "「자기 폭풍」-찰리",
+      "CHS": "「电磁暴」-叁式",
+      "JA": "「磁気嵐」-参式"
+    },
+    "14003": {
+      "icon": "Weapon_S_Common_03",
+      "rank": 3,
+      "type": 2,
+      "EN": "Six Shooter",
+      "desc": "A special W-Engine modeled after a revolver. It can load bullet-shaped condensed Ether batteries, which release a great amount of power when fired.",
+      "KO": "리볼버 로터",
+      "CHS": "左轮转子",
+      "JA": "シックスシューター"
+    },
+    "13144": {
+      "icon": "Weapon_A_1441",
+      "rank": 3,
+      "type": 6,
+      "EN": "Grill O'Wisp",
+      "desc": "A flame both fierce and faithful, burning without end.",
+      "KO": "어스름한 밤의 화염",
+      "CHS": "燔火胧夜",
+      "JA": "燔火の朧夜"
+    },
+    "13128": {
+      "icon": "Weapon_A_1281",
+      "rank": 3,
+      "type": 3,
+      "EN": "Roaring Ride",
+      "desc": "An energy W-Engine modded from spare parts of a truck's engine. It converts the original cylinder into an energy storage unit, which is highly advantageous.",
+      "KO": "뛰뛰빵빵",
+      "CHS": "轰鸣座驾",
+      "JA": "グロウル・マイ・カー"
+    }
+  },
+  "equipment": {
+    "33500": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitWhiteWaterBallad.png",
+      "EN": {
+        "name": "White Water Ballad",
+        "desc2": "<color=#F0D12B>Physical DMG</color> +10%",
+        "desc4": "When the equipper is within any <color=#FFFFFF>Ether Veil</color>, their CRIT Rate increases by 10%. After leaving the <color=#FFFFFF>Ether Veil</color>, this buff remains for 15s. If the equipper is an <color=#FFFFFF>Attack</color> character, activating an <color=#FFFFFF>Ether Veil</color> or extending an <color=#FFFFFF>Ether Veil</color>'s duration increases their CRIT Rate by 10% and ATK by 10% for 30s. Repeated triggers reset the duration."
+      },
+      "KO": {
+        "name": "물빛 노랫소리",
+        "desc2": "<color=#F0D12B>물리 피해</color>+10%",
+        "desc4": "착용자가 임의의 <color=#FFFFFF>[에테르 장막]</color> 중에 있을 때 자신의 치명타 확률이 10% 증가하며, <color=#FFFFFF>[에테르 장막]</color>에서 벗어난 후에도 해당 버프는 유지된다. 지속 시간: 15초. 착용자가 <color=#FFFFFF>[강공]</color> 캐릭터일 경우, <color=#FFFFFF>[에테르 장막]</color>을 발동하거나 <color=#FFFFFF>[에테르 장막]</color>의 지속 시간 연장 시, 자신의 치명타 확률이 10% 증가하고 공격력이 10% 증가한다. 지속 시간: 30초, 중복 발동 시 지속 시간이 갱신된다."
+      },
+      "CHS": {
+        "name": "沧浪行歌",
+        "desc2": "<color=#F0D12B>物理伤害</color>+10%。",
+        "desc4": "装备者处于任意<color=#FFFFFF>[以太帷幕]</color>中时，自身暴击率提高10%，离开<color=#FFFFFF>[以太帷幕]</color>后，该增益效果仍然保留，持续15秒；装备者为<color=#FFFFFF>[强攻]</color>角色时，开启<color=#FFFFFF>[以太帷幕]</color>或延长<color=#FFFFFF>[以太帷幕]</color>的持续时间会使自身暴击率提升10%和攻击力提升10%，持续30秒，重复触发时刷新持续时间。"
+      },
+      "JA": {
+        "name": "純白の行歌",
+        "desc2": "<color=#F0D12B>物理属性ダメージ</color>+10%。",
+        "desc4": "装備者が任意の<color=#FFFFFF>「エーテルベール」</color>効果を受けている時、自身の会心率+10%。<color=#FFFFFF>「エーテルベール」</color>終了後でも、この効果は15秒継続する。装備者が<color=#FFFFFF>[強攻]</color>メンバーの場合、<color=#FFFFFF>「エーテルベール」</color>を展開、または<color=#FFFFFF>「エーテルベール」</color>の継続時間を延長した際、自身の会心率+10%、攻撃力+10%、継続時間30秒、重複して発動すると継続時間が更新される。"
+      }
+    },
+    "31900": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitProtoPunk.png",
+      "EN": {
+        "name": "Proto Punk",
+        "desc2": "Increases Shield effect by 15%.",
+        "desc4": "When any squad member triggers a <color=#FFFFFF>Defensive Assist</color> or <color=#FFFFFF>Evasive Assist</color>, all squad members deal 15% increased DMG, lasting 10s. Passive effects of the same name do not stack."
+      },
+      "KO": {
+        "name": "원시 펑크",
+        "desc2": "부여하는 실드량+15%",
+        "desc4": "파티 내 임의의 캐릭터가 <color=#FFFFFF>[패링 지원]</color> 혹은 <color=#FFFFFF>[회피 지원]</color> 시전 시 파티 내 모든 캐릭터가 주는 피해가 15% 증가한다. 지속 시간: 10초, 이름이 같은 패시브 효과끼리 중첩되지 않는다."
+      },
+      "CHS": {
+        "name": "原始朋克",
+        "desc2": "施加的护盾值提升15%。",
+        "desc4": "队伍中任意角色发动<color=#FFFFFF>[招架支援]</color>或<color=#FFFFFF>[回避支援]</color>时，全队角色造成的伤害提升15%，持续10秒，同名被动效果之间不可叠加。"
+      },
+      "JA": {
+        "name": "プロト・パンク",
+        "desc2": "シールド生成量+15%。",
+        "desc4": "任意のメンバーが<color=#FFFFFF>『パリィ支援』</color>または<color=#FFFFFF>『回避支援』</color>を発動した時、メンバー全員の与ダメージ+15%、継続時間10秒。同じパッシブ効果は重ね掛け不可。"
+      }
+    },
+    "33600": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitShiningAria.png",
+      "EN": {
+        "name": "Shining Aria",
+        "desc2": "<color=#FE437E>Ether DMG</color> +10%",
+        "desc4": "When the equipper's <color=#FFFFFF>Basic Attack</color> hits an enemy, their Anomaly Proficiency increases by 36, lasting 8s. Repeated triggers reset the duration. When any enemy on the field is Stunned, the equipper's DMG increases by 25% for 18s. Repeated triggers reset the duration."
+      },
+      "KO": {
+        "name": "빛의 아리아",
+        "desc2": "<color=#FE437E>에테르 피해</color>+10%",
+        "desc4": "착용자가 <color=#FFFFFF>[일반 공격]</color>으로 적 명중 시 자신의 이상 마스터리가 36pt 증가한다. 지속 시간: 8초, 중복 발동 시 지속 시간이 갱신된다. 전장 위 적이 그로기 상태에 진입할 시 착용자가 주는 피해가 25% 증가한다. 지속 시간: 18초, 중복 발동 시 지속 시간이 갱신된다."
+      },
+      "CHS": {
+        "name": "流光咏叹",
+        "desc2": "<color=#FE437E>以太伤害</color>+10%。",
+        "desc4": "装备者发动<color=#FFFFFF>[普通攻击]</color>命中敌人时，自身异常精通提升36点，持续8秒，重复触发时刷新持续时间；当场上有敌人进入失衡状态时，装备者造成的伤害提升25%，持续18秒，重复触发时刷新持续时间。"
+      },
+      "JA": {
+        "name": "流光のアリア",
+        "desc2": "<color=#FE437E>エーテル属性ダメージ</color>+10%。",
+        "desc4": "装備者の<color=#FFFFFF>『通常攻撃』</color>が敵に命中した時、自身の異常マスタリー+36Pt、継続時間8秒、重複して発動すると継続時間が更新される。フィールド上の敵がブレイク状態になった時、装備者の与ダメージ+25%、継続時間18秒、重複して発動すると継続時間が更新される。"
+      }
+    },
+    "31300": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitFreedomBlues.png",
+      "EN": {
+        "name": "Freedom Blues",
+        "desc2": "Anomaly Proficiency +30",
+        "desc4": "When an <color=#FFFFFF>EX Special Attack</color> hits an enemy, reduce the target's Anomaly Buildup RES to the equipper's Attribute by 20% for 8s. This effect does not stack with others of the same attribute."
+      },
+      "KO": {
+        "name": "자유의 블루스",
+        "desc2": "이상 마스터리+30pt",
+        "desc4": "<color=#FFFFFF>[강화 특수 스킬]</color>이 적에게 명중 시 착용자의 속성 타입에 따라 타깃의 상응하는 속성 이상 축적 저항이 20% 감소한다. 지속 시간: 8초, 동일한 속성 타입의 효과는 중첩되지 않는다."
+      },
+      "CHS": {
+        "name": "自由蓝调",
+        "desc2": "异常精通+30点。",
+        "desc4": "<color=#FFFFFF>[强化特殊技]</color>命中敌人时，根据装备者的属性类型，使目标对应属性异常积蓄抗性降低20%，持续8秒，相同属性类型的效果不可叠加。"
+      },
+      "JA": {
+        "name": "フリーダム・ブルース",
+        "desc2": "異常マスタリー+30Pt。",
+        "desc4": "<color=#FFFFFF>『強化特殊スキル』</color>が敵に命中すると、装備者の属性に応じてターゲットの対応する状態異常蓄積耐性-20%、継続時間8秒。同属性での重ね掛けは不可。"
+      }
+    },
+    "31600": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitSwingJazz.png",
+      "EN": {
+        "name": "Swing Jazz",
+        "desc2": "Energy Regen +20%",
+        "desc4": "Launching a <color=#FFFFFF>Chain Attack</color> or <color=#FFFFFF>Ultimate</color> increases all squad members' DMG by 15% for 12s. Passive effects of the same name do not stack."
+      },
+      "KO": {
+        "name": "스윙 재즈",
+        "desc2": "에너지 자동 회복+20%",
+        "desc4": "<color=#FFFFFF>[콤보 스킬]</color> 혹은 <color=#FFFFFF>[궁극기]</color> 시전 시 파티 내 모든 캐릭터가 주는 피해가 15% 증가한다. 지속 시간: 12초, 이름이 같은 패시브 효과끼리 중첩되지 않는다."
+      },
+      "CHS": {
+        "name": "摇摆爵士",
+        "desc2": "能量自动回复+20%。",
+        "desc4": "发动<color=#FFFFFF>[连携技]</color>或<color=#FFFFFF>[终结技]</color>时，全队角色造成的伤害提升15%，持续12秒，同名被动效果之间不可叠加。"
+      },
+      "JA": {
+        "name": "スイング・ジャズ",
+        "desc2": "エネルギー自動回復+20%。",
+        "desc4": "<color=#FFFFFF>『連携スキル』</color>または<color=#FFFFFF>『終結スキル』</color>発動時、メンバー全員の与ダメージ+15%、継続時間12秒。同じパッシブ効果は重ね掛け不可。"
+      }
+    },
+    "32700": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitBranch&BladeSong.png",
+      "EN": {
+        "name": "Branch & Blade Song",
+        "desc2": "CRIT DMG +16%",
+        "desc4": "When Anomaly Mastery exceeds or equals 115 points, the equipper's CRIT DMG increases by 30%. When any squad member applies <color=#98EFF0>Freeze</color> or triggers the <color=#98EFF0>Shatter</color> effect on an enemy, the equipper's CRIT Rate increases by 12%, lasting 15s."
+      },
+      "KO": {
+        "name": "나뭇가지 검의 노래",
+        "desc2": "치명타 피해+16%",
+        "desc4": "이상 장악력이 115pt 이상일 시 착용자의 치명타 피해가 30% 증가한다. 파티 내 임의의 캐릭터가 적에게 <color=#98EFF0>[빙결]</color> 부여 혹은 <color=#98EFF0>[쇄빙]</color> 효과 발동 시 착용자의 치명타 확률이 12% 증가한다. 지속 시간: 15초"
+      },
+      "CHS": {
+        "name": "折枝剑歌",
+        "desc2": "暴击伤害+16%。",
+        "desc4": "异常掌控大于等于115点时，装备者的暴击伤害提升30%；队伍中任意角色对敌人施加<color=#98EFF0>[冻结]</color>或触发<color=#98EFF0>[碎冰]</color>效果时，装备者的暴击率提升12%，持续15秒。"
+      },
+      "JA": {
+        "name": "折枝の刀歌",
+        "desc2": "会心ダメージ+16%。",
+        "desc4": "異常掌握が115Pt以上の時、装備者の会心ダメージ+30%。任意のメンバーが敵に<color=#98EFF0>[凍結]</color>効果を付与した時、または<color=#98EFF0>[砕氷]</color>効果を発動した時、装備者の会心率+12%、継続時間15秒。"
+      }
+    },
+    "31100": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitPufferElectro.png",
+      "EN": {
+        "name": "Puffer Electro",
+        "desc2": "PEN Ratio +8%",
+        "desc4": "<color=#FFFFFF>Ultimate</color> DMG increases by 20%. Launching an <color=#FFFFFF>Ultimate</color> increases the equipper's ATK by 15% for 12s."
+      },
+      "KO": {
+        "name": "복어 일렉트로",
+        "desc2": "관통률+8%",
+        "desc4": "<color=#FFFFFF>[궁극기]</color>로 주는 피해가 20% 증가한다. <color=#FFFFFF>[궁극기]</color> 시전 시 착용자의 공격력이 15% 증가한다. 지속 시간: 12초"
+      },
+      "CHS": {
+        "name": "河豚电音",
+        "desc2": "穿透率+8%。",
+        "desc4": "<color=#FFFFFF>[终结技]</color>造成的伤害提升20%；发动<color=#FFFFFF>[终结技]</color>时，装备者的攻击力提升15%，持续12秒。"
+      },
+      "JA": {
+        "name": "パファー・エレクトロ",
+        "desc2": "貫通率+8%。",
+        "desc4": "<color=#FFFFFF>『終結スキル』</color>の与ダメージ+20%。<color=#FFFFFF>『終結スキル』</color>発動時、装備者の攻撃力+15%、継続時間12秒。"
+      }
+    },
+    "33200": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitKingoftheSummit.png",
+      "EN": {
+        "name": "King of the Summit",
+        "desc2": "Increases Daze of attacks by 6%",
+        "desc4": "When the equipper is a Stun character and uses an <color=#FFFFFF>EX Special Attack</color> or <color=#FFFFFF>Chain Attack</color>, increases CRIT DMG of all squad members by 15%, and when the equipper's CRIT Rate is more than or equal to 50%, further increases CRIT DMG by 15%, lasting 15s. Repeated triggers reset the duration. Passive effects of the same name do not stack."
+      },
+      "KO": {
+        "name": "산림의 왕",
+        "desc2": "공격으로 주는 그로기 수치+6%",
+        "desc4": "착용자가 [격파] 캐릭터일 때 <color=#FFFFFF>[강화 특수 스킬]</color> 혹은 <color=#FFFFFF>[콤보 스킬]</color>을 시전하면 파티 내 모든 캐릭터의 치명타 피해가 15% 증가하고, 착용자의 치명타 확률이 50% 이상일 시 치명타 피해가 추가로 15% 증가한다. 지속 시간: 15초, 중복 발동 시 지속 시간이 갱신되며 이름이 같은 패시브 효과끼리 중첩되지 않는다."
+      },
+      "CHS": {
+        "name": "山大王",
+        "desc2": "攻击造成的失衡值提升6%",
+        "desc4": "装备者为[击破]角色时，发动<color=#FFFFFF>[强化特殊技]</color>或<color=#FFFFFF>[连携技]</color>会使全队角色暴击伤害提升15%，装备者的暴击率大于等于50%时暴击伤害额外提升15%，持续15秒，重复触发时刷新持续时间，同名被动效果之间不可叠加。"
+      },
+      "JA": {
+        "name": "大山を統べる者",
+        "desc2": "攻撃の与えるブレイク値+6%",
+        "desc4": "装備者が[撃破]メンバーの場合、<color=#FFFFFF>『強化特殊スキル』</color>または<color=#FFFFFF>『連携スキル』</color>発動時、メンバー全員の会心ダメージ+15%。装備者の会心率が50%以上の場合、会心ダメージがさらに+15%、継続時間15秒、重複して発動すると継続時間が更新される。同じパッシブ効果は重ね掛け不可。"
+      }
+    },
+    "33400": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitMoonlightLullaby.png",
+      "EN": {
+        "name": "Moonlight Lullaby",
+        "desc2": "Energy Regen +20%",
+        "desc4": "When the equipper is a Support character and uses an <color=#FFFFFF>EX Special Attack</color> or <color=#FFFFFF>Ultimate</color>, the DMG dealt by all squad members increases by 18% for 25s. Repeated triggers reset the duration. Passive effects of the same name do not stack."
+      },
+      "KO": {
+        "name": "달빛 기사의 칭송",
+        "desc2": "에너지 자동 회복+20%",
+        "desc4": "착용자가 [지원] 캐릭터일 때 <color=#FFFFFF>[강화 특수 스킬]</color> 혹은 <color=#FFFFFF>[궁극기]</color>를 시전하면 파티 내 모든 캐릭터가 주는 피해가 18% 증가한다. 지속 시간: 25초, 중복 발동 시 지속 시간이 갱신되며, 이름이 같은 패시브 효과끼리 중첩되지 않는다."
+      },
+      "CHS": {
+        "name": "月光骑士颂",
+        "desc2": "能量自动回复+20%。",
+        "desc4": "装备者为[支援]角色时，发动<color=#FFFFFF>[强化特殊技]</color>或<color=#FFFFFF>[终结技]</color>会使全队角色造成的伤害提升18%，持续25秒，重复触发时刷新持续时间，同名被动效果之间不可叠加。"
+      },
+      "JA": {
+        "name": "月光騎士の讃歌",
+        "desc2": "エネルギー自動回復+20%。",
+        "desc4": "装備者が[支援]メンバーの場合、<color=#FFFFFF>『強化特殊スキル』</color>または<color=#FFFFFF>『終結スキル』</color>を発動すると、メンバー全員の与ダメージ+18%、継続時間25秒、重複して発動すると継続時間が更新される。同じパッシブ効果は重ね掛け不可。"
+      }
+    },
+    "31200": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitShockstarDisco.png",
+      "EN": {
+        "name": "Shockstar Disco",
+        "desc2": "Impact +6%",
+        "desc4": "<color=#FFFFFF>Basic Attacks</color>, <color=#FFFFFF>Dash Attacks</color>, and <color=#FFFFFF>Dodge Counters</color> inflict 20% more Daze to the main target."
+      },
+      "KO": {
+        "name": "쇼크스타 디스코",
+        "desc2": "충격력+6%",
+        "desc4": "<color=#FFFFFF>[일반 공격]</color>, <color=#FFFFFF>[대시 공격]</color>, <color=#FFFFFF>[회피 반격]</color>이 주요 공격 타깃에게 주는 그로기 수치가 20% 증가한다."
+      },
+      "CHS": {
+        "name": "震星迪斯科",
+        "desc2": "冲击力+6%。",
+        "desc4": "<color=#FFFFFF>[普通攻击]</color>、<color=#FFFFFF>[冲刺攻击]</color>、<color=#FFFFFF>[闪避反击]</color>对主要攻击目标造成的失衡值提升20%。"
+      },
+      "JA": {
+        "name": "ショックスター・ディスコ",
+        "desc2": "衝撃力+6%。",
+        "desc4": "<color=#FFFFFF>『通常攻撃』</color>、<color=#FFFFFF>『ダッシュ攻撃』</color>、<color=#FFFFFF>『回避反撃』</color>がメインターゲットに与えるブレイク値+20%。"
+      }
+    },
+    "32800": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitAstralVoice.png",
+      "EN": {
+        "name": "Astral Voice",
+        "desc2": "ATK +10%",
+        "desc4": "Whenever any squad member enters the field using a <color=#FFFFFF>Quick Assist</color>, all squad members gain 1 stack of <color=#FFFFFF>Astral</color>, up to a maximum of 3 stacks, and lasting 15s. Repeated triggers reset the duration. Each stack of <color=#FFFFFF>Astral</color> increases the DMG dealt by the character entering the field using a <color=#FFFFFF>Quick Assist</color> by 8%. Passive effects of the same name do not stack."
+      },
+      "KO": {
+        "name": "고요 속의 별",
+        "desc2": "공격력+10%",
+        "desc4": "파티 내 임의의 캐릭터가 <color=#FFFFFF>[빠른 지원]</color>을 통해 전장에 진입할 경우, 파티 내 모든 캐릭터가 <color=#FFFFFF>[별]</color>을 1스택 획득한다. 최대 중첩: 3스택, 지속 시간: 15초, 중복 발동 시 지속 시간이 갱신되며, <color=#FFFFFF>[별]</color>을 1스택 보유할 때마다 <color=#FFFFFF>[빠른 지원]</color>으로 전장에 진입하는 캐릭터가 주는 피해가 8% 증가한다. 이름이 같은 패시브 효과끼리 중첩되지 않는다."
+      },
+      "CHS": {
+        "name": "静听嘉音",
+        "desc2": "攻击力+10%。",
+        "desc4": "队伍中任意角色通过<color=#FFFFFF>[快速支援]</color>入场时，全队角色获得1层<color=#FFFFFF>[嘉音]</color>，最多叠加3层，持续15秒，重复触发时刷新持续时间，每拥有1层<color=#FFFFFF>[嘉音]</color>，通过<color=#FFFFFF>[快速支援]</color>入场的角色造成的伤害提升8%，同名被动效果之间不可叠加。"
+      },
+      "JA": {
+        "name": "静寂のアストラ",
+        "desc2": "攻撃力+10%。",
+        "desc4": "任意のメンバーが<color=#FFFFFF>『クイック支援』</color>で出場した時、メンバー全員が<color=#FFFFFF>「天籟」</color>を1重獲得する。最大3重まで重ね掛け可能、継続時間15秒、重複して発動すると継続時間が更新される。<color=#FFFFFF>「天籟」</color>1重につき、<color=#FFFFFF>『クイック支援』</color>で出場したメンバーの与ダメージ+8%、同じパッシブ効果は重ね掛け不可。"
+      }
+    },
+    "33100": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitYunkuiTales.png",
+      "EN": {
+        "name": "Yunkui Tales",
+        "desc2": "HP +10%",
+        "desc4": "When using <color=#FFFFFF>EX Special Attack</color>, <color=#FFFFFF>Chain Attack</color>, or <color=#FFFFFF>Ultimate</color>, CRIT Rate increases by 4%, stacking up to 3 times and lasting 15s. Repeated triggers reset the duration. When having 3 stacks of this effect, Sheer DMG increases by 10%."
+      },
+      "KO": {
+        "name": "운규 이야기",
+        "desc2": "HP+10%",
+        "desc4": "<color=#FFFFFF>[강화 특수 스킬]</color>, <color=#FFFFFF>[콤보 스킬]</color>, <color=#FFFFFF>[궁극기]</color> 시전 시 치명타 확률이 4% 증가한다. 최대 중첩: 3스택, 지속 시간: 15초. 중복 발동 시 지속 시간이 갱신되며, 3스택 효과 보유 시 주는 관입 피해가 10% 증가한다."
+      },
+      "CHS": {
+        "name": "云岿如我",
+        "desc2": "生命值+10%",
+        "desc4": "发动<color=#FFFFFF>[强化特殊技]</color>、<color=#FFFFFF>[连携技]</color>、<color=#FFFFFF>[终结技]</color>时，暴击率提升4%，最多叠加3层，持续15秒，重复触发时刷新持续时间，拥有3层效果时，造成的贯穿伤害提升10%。"
+      },
+      "JA": {
+        "name": "雲嶽は我に似たり",
+        "desc2": "HP+10%",
+        "desc4": "<color=#FFFFFF>『強化特殊スキル』</color>、<color=#FFFFFF>『連携スキル』</color>、<color=#FFFFFF>『終結スキル』</color>を発動時、会心率+4%。この効果は最大3重まで重ね掛け可能、継続時間15秒。重複して発動すると継続時間が更新される。重数が3重に達している場合、与える透徹ダメージ+10%。"
+      }
+    },
+    "32400": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitThunderMetal.png",
+      "EN": {
+        "name": "Thunder Metal",
+        "desc2": "<color=#2EB6FF>Electric DMG</color> +10%",
+        "desc4": "As long as an enemy in combat is <color=#2EB6FF>Shocked</color>, the equipper's ATK is increased by 28%."
+      },
+      "KO": {
+        "name": "썬더 메탈",
+        "desc2": "<color=#2EB6FF>전기 속성 피해</color>+10%",
+        "desc4": "전장에 <color=#2EB6FF>[감전]</color> 상태의 적이 존재할 시 착용자의 공격력이 28% 증가한다."
+      },
+      "CHS": {
+        "name": "雷暴重金属",
+        "desc2": "<color=#2EB6FF>电属性伤害</color>+10%。",
+        "desc4": "当场上存在处于<color=#2EB6FF>[感电]</color>状态下的敌人时，装备者的攻击力提升28%。"
+      },
+      "JA": {
+        "name": "霹靂のヘヴィメタル",
+        "desc2": "<color=#2EB6FF>電気属性ダメージ</color>+10%。",
+        "desc4": "フィールド上に<color=#2EB6FF>[感電]</color>状態の敵がいる時、装備者の攻撃力+28%。"
+      }
+    },
+    "32900": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitShadow.png",
+      "EN": {
+        "name": "Shadow Harmony",
+        "desc2": "The DMG of <color=#FFFFFF>Aftershocks</color> and <color=#FFFFFF>Dash Attacks</color> is increased by 15%.",
+        "desc4": "Upon hitting an enemy with an <color=#FFFFFF>Aftershock</color> or <color=#FFFFFF>Dash Attack</color>, if the DMG dealt aligns with the equipper's attribute, the equipper gains 1 stack of a buff effect, at most once per use of a skill. For each stack, the equipper's ATK increases by 4%, and CRIT Rate increases by 4%. The effect can stack up to 3 times and lasts for 15s. Repeated triggers reset the duration."
+      },
+      "KO": {
+        "name": "그림자처럼 함께",
+        "desc2": "<color=#FFFFFF>[여진 공격]</color> 및 <color=#FFFFFF>[대시 공격]</color>으로 주는 피해가 15% 증가한다.",
+        "desc4": "<color=#FFFFFF>[여진 공격]</color> 혹은 <color=#FFFFFF>[대시 공격]</color>이 적에게 명중 시, 만약 주는 피해가 착용자의 속성과 일치하면 버프 효과를 1스택 획득한다. 동일한 공격 한 번에 최대 1회 발동한다. 보유한 버프 효과 1스택당 착용자의 공격력이 4% 증가하고, 치명타 확률이 4% 증가한다. 최대 중첩: 3스택, 지속 시간: 15초, 중복 발동 시 지속 시간이 갱신된다."
+      },
+      "CHS": {
+        "name": "如影相随",
+        "desc2": "<color=#FFFFFF>[追加攻击]</color>和<color=#FFFFFF>[冲刺攻击]</color>造成的伤害提升15%。",
+        "desc4": "<color=#FFFFFF>[追加攻击]</color>或<color=#FFFFFF>[冲刺攻击]</color>命中敌人时，若造成的伤害与装备者的属性一致，则获得1层增益效果，同一招式内最多触发一次；每拥有1层增益效果，装备者的攻击力提升4%，暴击率提升4%，最多叠加3层，持续15秒，重复触发时刷新持续时间。"
+      },
+      "JA": {
+        "name": "シャドウハーモニー",
+        "desc2": "<color=#FFFFFF>『追加攻撃』</color>と<color=#FFFFFF>『ダッシュ攻撃』</color>の与ダメージ+15%。",
+        "desc4": "<color=#FFFFFF>『追加攻撃』</color>または<color=#FFFFFF>『ダッシュ攻撃』</color>が敵に命中した時、与えたダメージが装備者の属性と一致している場合、バフ効果を1重獲得する、1回のスキルにおいて1回のみ発動可能。バフ効果1重につき、装備者の攻撃力+4%、会心率+4%。最大3重まで重ね掛け可能、継続時間15秒、重複して発動すると継続時間が更新される。"
+      }
+    },
+    "33300": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitDawnsBloom.png",
+      "EN": {
+        "name": "Dawn's Bloom",
+        "desc2": "Increases <color=#FFFFFF>Basic Attack</color> DMG by 15%.",
+        "desc4": "Increases <color=#FFFFFF>Basic Attack</color> DMG by 20%. When equipped by an Attack character, using an <color=#FFFFFF>EX Special Attack</color> or <color=#FFFFFF>Ultimate</color> will further increase <color=#FFFFFF>Basic Attack</color> DMG by 20% for 25s. Repeated triggers reset the duration."
+      },
+      "KO": {
+        "name": "여명의 꽃",
+        "desc2": "<color=#FFFFFF>[일반 공격]</color>으로 주는 피해+15%",
+        "desc4": "<color=#FFFFFF>[일반 공격]</color>으로 주는 피해가 20% 증가하며, 착용자가 [강공] 캐릭터일 시 <color=#FFFFFF>[강화 특수 스킬]</color> 혹은 <color=#FFFFFF>[궁극기]</color>를 시전하면 <color=#FFFFFF>[일반 공격]</color>으로 주는 피해가 추가로 20% 증가한다. 지속 시간: 25초, 중복 발동 시 지속 시간이 갱신된다."
+      },
+      "CHS": {
+        "name": "拂晓生花",
+        "desc2": "<color=#FFFFFF>[普通攻击]</color>造成的伤害提升15%。",
+        "desc4": "<color=#FFFFFF>[普通攻击]</color>造成的伤害提升20%，装备者为[强攻]角色时，发动<color=#FFFFFF>[强化特殊技]</color>或<color=#FFFFFF>[终结技]</color>会使<color=#FFFFFF>[普通攻击]</color>造成的伤害额外提升20%，持续25秒，重复触发时刷新持续时间。"
+      },
+      "JA": {
+        "name": "暁に咲く花",
+        "desc2": "<color=#FFFFFF>『通常攻撃』</color>の与ダメージ+15%。",
+        "desc4": "<color=#FFFFFF>『通常攻撃』</color>の与ダメージ+20%。装備者が[強攻]メンバーの場合、<color=#FFFFFF>『強化特殊スキル』</color>または<color=#FFFFFF>『終結スキル』</color>を発動すると、<color=#FFFFFF>『通常攻撃』</color>の与ダメージが追加で+20%、継続時間25秒、重複して発動すると継続時間が更新される。"
+      }
+    },
+    "31500": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitSoulRock.png",
+      "EN": {
+        "name": "Soul Rock",
+        "desc2": "DEF +16%",
+        "desc4": "Upon receiving an enemy attack and losing HP, the equipper takes 40% less DMG for 2.5s. This effect can trigger once every 15s."
+      },
+      "KO": {
+        "name": "소울 록",
+        "desc2": "방어력+16%",
+        "desc4": "적의 공격을 받아 HP가 줄어들 시 착용자가 받는 피해가 40% 감소한다. 지속 시간: 2.5초, 15초 동안 최대 1회 발동한다."
+      },
+      "CHS": {
+        "name": "灵魂摇滚",
+        "desc2": "防御力+16%。",
+        "desc4": "受到敌方攻击并损失生命值时，装备者受到的伤害降低40%，持续2.5秒，15秒内最多触发一次。"
+      },
+      "JA": {
+        "name": "ソウル・ロック",
+        "desc2": "防御力+16%。",
+        "desc4": "敵の攻撃を受け、かつHPが減少した時、装備者の被ダメージ-40%、継続時間2.5秒。15秒に1回のみ発動可能。"
+      }
+    },
+    "32500": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitPolarMetal.png",
+      "EN": {
+        "name": "Polar Metal",
+        "desc2": "<color=#98EFF0>Ice DMG</color> +10%",
+        "desc4": "Increase the DMG of <color=#FFFFFF>Basic Attack</color> and <color=#FFFFFF>Dash Attack</color> by 20%. When any squad member inflicts <color=#98EFF0>Freeze</color> or <color=#98EFF0>Shatter</color>, this effect increases by an additional 20% for 12s."
+      },
+      "KO": {
+        "name": "극지 메탈",
+        "desc2": "<color=#98EFF0>얼음 속성 피해</color>+10%",
+        "desc4": "<color=#FFFFFF>[일반 공격]</color> 및 <color=#FFFFFF>[대시 공격]</color>으로 주는 피해가 20% 증가하며, 파티 내 임의의 캐릭터가 적에게 <color=#98EFF0>[빙결]</color> 부여 혹은 <color=#98EFF0>[쇄빙]</color> 효과 발동 시, 해당 버프 효과가 추가로 20% 증가한다. 지속 시간: 12초"
+      },
+      "CHS": {
+        "name": "极地重金属",
+        "desc2": "<color=#98EFF0>冰属性伤害</color>+10%。",
+        "desc4": "<color=#FFFFFF>[普通攻击]</color>和<color=#FFFFFF>[冲刺攻击]</color>造成的伤害提升20%，队伍中任意角色对敌人施加<color=#98EFF0>[冻结]</color>或触发<color=#98EFF0>[碎冰]</color>效果时，该增益效果额外提升20%，持续12秒。"
+      },
+      "JA": {
+        "name": "極地のヘヴィメタル",
+        "desc2": "<color=#98EFF0>氷属性ダメージ</color>+10%。",
+        "desc4": "<color=#FFFFFF>『通常攻撃』</color>と<color=#FFFFFF>『ダッシュ攻撃』</color>の与ダメージ+20%。任意のメンバーが敵に<color=#98EFF0>[凍結]</color>効果を付与した時、または<color=#98EFF0>[砕氷]</color>効果を発動した時、この効果がさらに+20%、継続時間12秒。"
+      }
+    },
+    "32600": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitFangedMetal.png",
+      "EN": {
+        "name": "Fanged Metal",
+        "desc2": "<color=#F0D12B>Physical DMG</color> +10%",
+        "desc4": "Whenever a squad member inflicts <color=#F0D12B>Assault</color> on an enemy, the equipper deals 35% additional DMG to the target for 12s."
+      },
+      "KO": {
+        "name": "송곳니 메탈",
+        "desc2": "<color=#F0D12B>물리 피해</color>+10%",
+        "desc4": "파티 내 임의의 캐릭터가 적에게 <color=#F0D12B>[강타]</color> 효과 부여 시 착용자가 타깃에게 주는 피해가 35% 증가한다. 지속 시간: 12초"
+      },
+      "CHS": {
+        "name": "獠牙重金属",
+        "desc2": "<color=#F0D12B>物理伤害</color>+10%。",
+        "desc4": "队伍中任意角色对敌人施加<color=#F0D12B>[强击]</color>效果时，装备者对目标造成的伤害提升35%，持续12秒。"
+      },
+      "JA": {
+        "name": "獣牙のヘヴィメタル",
+        "desc2": "<color=#F0D12B>物理属性ダメージ</color>+10%。",
+        "desc4": "任意のメンバーが敵に<color=#F0D12B>[強撃]</color>効果を付与した時、装備者がターゲットに与えるダメージ+35%、継続時間12秒。"
+      }
+    },
+    "31800": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitChaosJazz.png",
+      "EN": {
+        "name": "Chaos Jazz",
+        "desc2": "Anomaly Proficiency +30",
+        "desc4": "<color=#FF5521>Fire DMG</color> and <color=#2EB6FF>Electric DMG</color> increases by 15%. While off-field, <color=#FFFFFF>EX Special Attack</color> and <color=#FFFFFF>Assist Attack</color> DMG increases by 20%. When switching on-field, this buff continues for 5s, and this continuation effect can trigger once every 7.5s."
+      },
+      "KO": {
+        "name": "카오스 재즈",
+        "desc2": "이상 마스터리+30pt",
+        "desc4": "<color=#FF5521>불 속성 피해</color> 및 <color=#2EB6FF>전기 속성 피해</color>가 15% 증가한다. 대기 캐릭터일 시 <color=#FFFFFF>[강화 특수 스킬]</color> 및 <color=#FFFFFF>[지원 공격]</color>으로 주는 피해가 20% 증가하며, 전장에 교체 투입된 후 해당 버프 효과는 여전히 5초 동안 지속된다. 해당 지속 효과는 7.5초 동안 최대 1회 발동된다."
+      },
+      "CHS": {
+        "name": "混沌爵士",
+        "desc2": "异常精通+30点。",
+        "desc4": "<color=#FF5521>火属性伤害</color>和<color=#2EB6FF>电属性伤害</color>提升15%；位于后场时，<color=#FFFFFF>[强化特殊技]</color>和<color=#FFFFFF>[支援攻击]</color>造成的伤害提升20%，换入前场后，该增益效果仍然保留，持续5秒，保留效果7.5秒内最多触发一次。"
+      },
+      "JA": {
+        "name": "ケイオス・ジャズ",
+        "desc2": "異常マスタリー+30Pt。",
+        "desc4": "<color=#FF5521>炎属性ダメージ</color>および<color=#2EB6FF>電気属性ダメージ</color>+15%。控えにいる時、<color=#FFFFFF>『強化特殊スキル』</color>と<color=#FFFFFF>『支援攻撃』</color>の与ダメージ+20%。出場した後も効果は5秒継続する。この効果継続は7.5秒に1回のみ発動可能。"
+      }
+    },
+    "33000": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitSavior.png",
+      "EN": {
+        "name": "Phaethon's Melody",
+        "desc2": "Anomaly Mastery +8%.",
+        "desc4": "When any squad member uses an <color=#FFFFFF>EX Special Attack</color>, the equipper's Anomaly Proficiency increases by 45 for 8s. If the character using the <color=#FFFFFF>EX Special Attack</color> is not the equipper, the equipper's <color=#FE437E>Ether DMG</color> is increased by 25%."
+      },
+      "KO": {
+        "name": "파에톤의 노래",
+        "desc2": "이상 장악력+8%",
+        "desc4": "파티 내 임의의 캐릭터가 <color=#FFFFFF>[강화 특수 스킬]</color> 시전 시, 착용자의 이상 마스터리가 45pt 증가한다. 지속 시간: 8초. 만약 <color=#FFFFFF>[강화 특수 스킬]</color>을 시전한 캐릭터가 착용자 본인이 아닐 경우, 착용자가 주는 <color=#FE437E>에테르 피해</color>가 25% 증가한다."
+      },
+      "CHS": {
+        "name": "法厄同之歌",
+        "desc2": "异常掌控+8%。",
+        "desc4": "队伍中任意角色发动<color=#FFFFFF>[强化特殊技]</color>时，装备者的异常精通提升45点，持续8秒；如果发动<color=#FFFFFF>[强化特殊技]</color>的角色不是装备者本人时，装备者造成的<color=#FE437E>以太伤害</color>提升25%。"
+      },
+      "JA": {
+        "name": "「パエトーン」の歌",
+        "desc2": "異常掌握+8%",
+        "desc4": "任意のメンバーが<color=#FFFFFF>『強化特殊スキル』</color>を発動した時、装備者の異常マスタリー+45Pt、継続時間8秒。<color=#FFFFFF>『強化特殊スキル』</color>を発動したエージェントが装備者本人でない場合、装備者による<color=#FE437E>エーテル属性ダメージ</color>+25%。"
+      }
+    },
+    "31400": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitHormonePunk.png",
+      "EN": {
+        "name": "Hormone Punk",
+        "desc2": "ATK +10%",
+        "desc4": "Upon becoming the active character in combat, the equipper's ATK increases by 25% for 10s. This effect can trigger once every 20s."
+      },
+      "KO": {
+        "name": "호르몬 펑크",
+        "desc2": "공격력+10%",
+        "desc4": "교전 상태에서의 현재 조작 중인 캐릭터가 될 시, 착용자의 공격력이 25% 증가한다. 지속 시간: 10초, 20초 동안 최대 1회 발동한다."
+      },
+      "CHS": {
+        "name": "激素朋克",
+        "desc2": "攻击力+10%。",
+        "desc4": "成为接战状态下的当前操作角色时，装备者的攻击力提升25%，持续10秒，20秒内最多触发一次。"
+      },
+      "JA": {
+        "name": "ホルモン・パンク",
+        "desc2": "攻撃力+10%。",
+        "desc4": "接敵状態かつ操作中のメンバーになった時、装備者の攻撃力+25%、継続時間10秒。20秒に1回のみ発動可能。"
+      }
+    },
+    "32200": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitInfernoMetal.png",
+      "EN": {
+        "name": "Inferno Metal",
+        "desc2": "<color=#FF5521>Fire DMG</color> +10%",
+        "desc4": "Upon hitting a <color=#FF5521>Burning</color> enemy, the equipper's CRIT Rate is increased by 28% for 8s."
+      },
+      "KO": {
+        "name": "불지옥 메탈",
+        "desc2": "<color=#FF5521>불 속성 피해</color>+10%",
+        "desc4": "공격이 <color=#FF5521>[연소]</color> 상태의 적에게 명중 시 착용자의 치명타 확률이 28% 증가한다. 지속 시간: 8초"
+      },
+      "CHS": {
+        "name": "炎狱重金属",
+        "desc2": "<color=#FF5521>火属性伤害</color>+10%。",
+        "desc4": "攻击命中处于<color=#FF5521>[灼烧]</color>状态下的敌人时，装备者的暴击率提升28%，持续8秒。"
+      },
+      "JA": {
+        "name": "炎獄のヘヴィメタル",
+        "desc2": "<color=#FF5521>炎属性ダメージ</color>+10%。",
+        "desc4": "<color=#FF5521>[熱傷]</color>状態の敵に攻撃が命中した時、装備者の会心率+28%、継続時間8秒。"
+      }
+    },
+    "31000": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitWoodpeckerElectro.png",
+      "EN": {
+        "name": "Woodpecker Electro",
+        "desc2": "CRIT Rate +8%",
+        "desc4": "Landing a critical hit on an enemy with a <color=#FFFFFF>Basic Attack</color>, <color=#FFFFFF>Dodge Counter</color>, or <color=#FFFFFF>EX Special Attack</color> increases the equipper's ATK by 9% for 6s. The buff duration for different skills are calculated separately."
+      },
+      "KO": {
+        "name": "딱따구리 일렉트로",
+        "desc2": "치명타 확률+8%",
+        "desc4": "<color=#FFFFFF>[일반 공격]</color>, <color=#FFFFFF>[회피 반격]</color> 혹은 <color=#FFFFFF>[강화 특수 스킬]</color>이 적에게 명중하고 치명타 발동 시 착용자에게 각각 1스택의 버프 효과를 제공하며 버프 효과 스택당 착용자의 공격력이 9% 증가한다. 지속 시간: 6초, 각 스킬의 지속 시간은 따로 계산된다."
+      },
+      "CHS": {
+        "name": "啄木鸟电音",
+        "desc2": "暴击率+8%。",
+        "desc4": "<color=#FFFFFF>[普通攻击]</color>、<color=#FFFFFF>[闪避反击]</color>或<color=#FFFFFF>[强化特殊技]</color>命中敌人并触发暴击时，分别为装备者提供1层增益效果，每层增益效果使装备者的攻击力提升9%，持续6秒，不同招式分别结算持续时间。"
+      },
+      "JA": {
+        "name": "ウッドペッカー・エレクトロ",
+        "desc2": "会心率+8%。",
+        "desc4": "<color=#FFFFFF>『通常攻撃』</color>、<color=#FFFFFF>『回避反撃』</color>または<color=#FFFFFF>『強化特殊スキル』</color>が敵に命中し、なおかつ会心が出た時、それぞれ装備者にバフ効果を1重与える。バフ効果1重につき、装備者の攻撃力+9%、継続時間6秒。バフ効果の継続時間はスキルごとに計算される。"
+      }
+    },
+    "32300": {
+      "icon": "UI/Sprite/A1DynamicLoad/IconSuit/UnPacker/SuitChaosMetal.png",
+      "EN": {
+        "name": "Chaotic Metal",
+        "desc2": "<color=#FE437E>Ether DMG</color> +10%",
+        "desc4": "The equipper's CRIT DMG increases by 20%. When any character in the squad triggers <color=#FE437E>Corruption's</color> additional DMG, this effect further increases by 5.5% for 8s, stacking up to 6 times. Repeated triggers reset the duration."
+      },
+      "KO": {
+        "name": "카오스 메탈",
+        "desc2": "<color=#FE437E>에테르 피해</color>+10%",
+        "desc4": "착용자의 치명타 피해가 20% 증가한다. 파티 내 임의의 캐릭터가 <color=#FE437E>[침식]</color> 효과의 추가 피해 발동 시 해당 버프 효과가 추가로 5.5% 증가한다. 최대 중첩: 6스택, 지속 시간: 8초, 중복 발동 시 지속 시간이 갱신된다."
+      },
+      "CHS": {
+        "name": "混沌重金属",
+        "desc2": "<color=#FE437E>以太伤害</color>+10%。",
+        "desc4": "装备者的暴击伤害提升20%，队伍中任意角色触发<color=#FE437E>[侵蚀]</color>效果的额外伤害时，该增益效果额外提升5.5%，最多叠加6层，持续8秒，重复触发时刷新持续时间。"
+      },
+      "JA": {
+        "name": "混沌のヘヴィメタル",
+        "desc2": "<color=#FE437E>エーテル属性ダメージ</color>+10%。",
+        "desc4": "装備者の会心ダメージ+20%。任意のメンバーによって<color=#FE437E>[侵蝕]</color>効果の追加ダメージが発生した時、この効果がさらに+5.5%、最大6重まで重ね掛け可能、継続時間8秒。重複して発動すると継続時間が更新される。"
+      }
+    }
+  }
+}

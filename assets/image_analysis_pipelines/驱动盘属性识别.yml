@@ -1,0 +1,7 @@
+- step: 按区域裁剪
+  params:
+    screen_name: 仓库-驱动仓库
+    area_name: 驱动盘属性
+- step: OCR识别
+  params:
+    draw_text_box: true
