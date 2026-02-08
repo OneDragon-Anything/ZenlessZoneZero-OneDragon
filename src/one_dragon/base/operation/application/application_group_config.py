@@ -52,8 +52,6 @@ class ApplicationGroupConfig(YamlOperator):
                     enabled=item.get("enabled", False),
                 )
             )
-        # 初始化时 app_list 包含全部，update_full_app_list 调用后才过滤
-        self.app_list = list(self._all_apps)
 
     def save_app_list(self) -> None:
         """保存应用列表，同步 app_list 排序到 _all_apps 后写入文件"""
