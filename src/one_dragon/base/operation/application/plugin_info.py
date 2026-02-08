@@ -3,12 +3,11 @@
 提供插件元数据的数据结构定义，包括：
 - PluginSource: 插件来源枚举（内置/第三方）
 - PluginInfo: 单个插件的元数据
-- PluginScanResult: 插件扫描结果
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
@@ -69,38 +68,3 @@ class PluginInfo:
     def is_third_party(self) -> bool:
         """是否为第三方插件"""
         return self.source == PluginSource.THIRD_PARTY
-
-
-@dataclass
-class PluginScanResult:
-    """插件扫描结果
-
-    存储插件目录扫描的完整结果，包括成功加载的插件和失败记录。
-
-    Attributes:
-        plugins: 成功加载的插件信息列表
-        failed_plugins: 加载失败的记录列表，每项为 (文件路径, 错误信息)
-    """
-
-    plugins: list[PluginInfo] = field(default_factory=list)
-    failed_plugins: list[tuple[Path, str]] = field(default_factory=list)
-
-    @property
-    def non_default_plugins(self) -> list[PluginInfo]:
-        """获取非默认组插件"""
-        return [p for p in self.plugins if not p.default_group]
-
-    @property
-    def default_plugins(self) -> list[PluginInfo]:
-        """获取默认组插件"""
-        return [p for p in self.plugins if p.default_group]
-
-    @property
-    def third_party_plugins(self) -> list[PluginInfo]:
-        """获取第三方插件"""
-        return [p for p in self.plugins if p.is_third_party]
-
-    @property
-    def builtin_plugins(self) -> list[PluginInfo]:
-        """获取内置插件"""
-        return [p for p in self.plugins if not p.is_third_party]

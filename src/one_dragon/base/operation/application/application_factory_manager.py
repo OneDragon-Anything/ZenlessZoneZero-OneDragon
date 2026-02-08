@@ -22,7 +22,6 @@ from one_dragon.base.operation.application.app_const_schema import (
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application.plugin_info import (
     PluginInfo,
-    PluginScanResult,
     PluginSource,
 )
 from one_dragon.utils.file_utils import find_src_dir
@@ -53,7 +52,7 @@ class ApplicationFactoryManager:
         self._const_module_suffix: str = "_const"
         self._loaded_modules: set[str] = set()
         self._plugin_infos: dict[str, PluginInfo] = {}  # {app_id: PluginInfo}
-        self._last_scan_result: PluginScanResult | None = None
+        self._scan_failures: list[tuple[Path, str]] = []  # 最近一次扫描的失败记录
         self._added_sys_paths: set[str] = set()  # 跟踪已添加到 sys.path 的路径
 
     @property
@@ -76,9 +75,9 @@ class ApplicationFactoryManager:
         return self._plugin_infos.get(app_id)
 
     @property
-    def last_scan_result(self) -> PluginScanResult | None:
-        """获取上次扫描结果"""
-        return self._last_scan_result
+    def scan_failures(self) -> list[tuple[Path, str]]:
+        """获取最近一次扫描的失败记录"""
+        return self._scan_failures
 
     def discover_factories(
         self,
@@ -97,25 +96,22 @@ class ApplicationFactoryManager:
         """
         non_default_factories: list[ApplicationFactory] = []
         default_factories: list[ApplicationFactory] = []
-        scan_result = PluginScanResult()
 
         # 清空旧的插件信息
         self._plugin_infos.clear()
+        self._scan_failures.clear()
 
         for plugin_dir, source in self._plugin_dirs:
             if not plugin_dir.is_dir():
                 continue
-            nd, d, infos, failures = self._scan_directory(plugin_dir, reload_modules, source)
-            non_default_factories.extend(nd)
-            default_factories.extend(d)
-            scan_result.plugins.extend(infos)
-            scan_result.failed_plugins.extend(failures)
+            non_default, default = self._scan_directory(plugin_dir, reload_modules, source)
+            non_default_factories.extend(non_default)
+            default_factories.extend(default)
 
-        self._last_scan_result = scan_result
         log.info(
             f"发现 {len(non_default_factories)} 个非默认组应用, "
             f"{len(default_factories)} 个默认组应用, "
-            f"{len(scan_result.failed_plugins)} 个失败"
+            f"{len(self._scan_failures)} 个失败"
         )
         return non_default_factories, default_factories
 
@@ -124,7 +120,7 @@ class ApplicationFactoryManager:
         directory: Path,
         reload_modules: bool = False,
         source: PluginSource = PluginSource.BUILTIN
-    ) -> tuple[list[ApplicationFactory], list[ApplicationFactory], list[PluginInfo], list[tuple[Path, str]]]:
+    ) -> tuple[list[ApplicationFactory], list[ApplicationFactory]]:
         """扫描目录中的工厂模块
 
         Args:
@@ -133,12 +129,10 @@ class ApplicationFactoryManager:
             source: 插件来源
 
         Returns:
-            tuple: (非默认组工厂列表, 默认组工厂列表, 插件信息列表, 失败记录列表)
+            tuple: (非默认组工厂列表, 默认组工厂列表)
         """
         non_default_factories: list[ApplicationFactory] = []
         default_factories: list[ApplicationFactory] = []
-        plugin_infos: list[PluginInfo] = []
-        failures: list[tuple[Path, str]] = []
 
         # 一次性扫描所有 .py 文件，按后缀分组
         factory_files: list[Path] = []
@@ -164,7 +158,7 @@ class ApplicationFactoryManager:
                     names = ', '.join(f.name for f in grouped)
                     error_msg = f"同一目录下存在多个{label}文件: {names}"
                     for f in grouped:
-                        failures.append((f, error_msg))
+                        self._scan_failures.append((f, error_msg))
                     log.warning(f"目录 {parent_dir} 中发现多个{label}文件，已跳过: {names}")
 
         for factory_file in factory_files:
@@ -173,22 +167,20 @@ class ApplicationFactoryManager:
             try:
                 result = self._load_factory_from_file(factory_file, reload_modules, source, directory)
                 if result is None:
-                    failures.append((factory_file, "No ApplicationFactory subclass found"))
+                    self._scan_failures.append((factory_file, "No ApplicationFactory subclass found"))
                     continue
 
-                factory, is_default, plugin_info = result
+                factory, is_default = result
                 if is_default:
                     default_factories.append(factory)
                 else:
                     non_default_factories.append(factory)
-                if plugin_info:
-                    plugin_infos.append(plugin_info)
             except Exception as e:
                 error_msg = f"{type(e).__name__}: {str(e)}"
-                failures.append((factory_file, error_msg))
+                self._scan_failures.append((factory_file, error_msg))
                 log.warning(f"加载工厂文件 {factory_file} 失败: {error_msg}")
 
-        return non_default_factories, default_factories, plugin_infos, failures
+        return non_default_factories, default_factories
 
     def _load_factory_from_file(
         self,
@@ -196,7 +188,7 @@ class ApplicationFactoryManager:
         reload_modules: bool = False,
         source: PluginSource = PluginSource.BUILTIN,
         base_dir: Path | None = None
-    ) -> tuple[ApplicationFactory, bool, PluginInfo | None] | None:
+    ) -> tuple[ApplicationFactory, bool] | None:
         """从文件加载工厂类
 
         每个工厂模块应只包含一个 ApplicationFactory 子类。
@@ -210,8 +202,8 @@ class ApplicationFactoryManager:
             base_dir: 扫描根目录（由 _scan_directory 传入）
 
         Returns:
-            tuple[ApplicationFactory, bool, PluginInfo | None] | None:
-                (工厂实例, 是否默认组, 插件信息)，未找到工厂类则返回 None
+            tuple[ApplicationFactory, bool] | None:
+                (工厂实例, 是否默认组)，未找到工厂类则返回 None
 
         Raises:
             ImportError: 模块导入失败
@@ -379,7 +371,7 @@ class ApplicationFactoryManager:
         module_name: str,
         factory_file: Path,
         source: PluginSource
-    ) -> tuple[ApplicationFactory, bool, PluginInfo | None] | None:
+    ) -> tuple[ApplicationFactory, bool] | None:
         """在模块中查找工厂类
 
         每个工厂模块应只包含一个 ApplicationFactory 子类。
@@ -392,7 +384,7 @@ class ApplicationFactoryManager:
             source: 插件来源
 
         Returns:
-            tuple | None: (工厂实例, 是否默认组, 插件信息)，未找到工厂类则返回 None
+            tuple | None: (工厂实例, 是否默认组)，未找到工厂类则返回 None
 
         Raises:
             Exception: 工厂实例化或元数据读取失败
@@ -408,24 +400,25 @@ class ApplicationFactoryManager:
             ):
                 factory = attr(self.ctx)
                 is_default = factory.default_group
-                plugin_info = self._read_plugin_metadata(
+                self._register_plugin_metadata(
                     factory, factory_file, module_name, source
                 )
                 log.debug(f"加载工厂: {attr_name} (default_group={is_default})")
-                return factory, is_default, plugin_info
+                return factory, is_default
 
         return None
 
-    def _read_plugin_metadata(
+    def _register_plugin_metadata(
         self,
         factory: ApplicationFactory,
         factory_file: Path,
         factory_module_name: str,
         source: PluginSource
     ) -> PluginInfo:
-        """读取插件元数据
+        """验证并注册插件元数据
 
-        从 factory 对象和对应的 const 模块中读取插件元数据。
+        从 factory 对象和对应的 const 模块中读取插件元数据，
+        验证必需字段和 APP_ID 唯一性，然后注册到 _plugin_infos。
 
         Args:
             factory: 工厂实例
@@ -447,17 +440,10 @@ class ApplicationFactoryManager:
         )
 
         # 尝试加载对应的 const 模块
-        parts = factory_module_name.rsplit('.', 1)
-        if len(parts) == 2:
-            last_part = parts[1]
-            if last_part.endswith(self._factory_module_suffix):
-                last_part = last_part[:-len(self._factory_module_suffix)] + self._const_module_suffix
-            const_module_name = f"{parts[0]}.{last_part}"
-        else:
-            last_part = parts[0]
-            if last_part.endswith(self._factory_module_suffix):
-                last_part = last_part[:-len(self._factory_module_suffix)] + self._const_module_suffix
-            const_module_name = last_part
+        *prefix_parts, last_part = factory_module_name.rsplit('.', 1)
+        if last_part.endswith(self._factory_module_suffix):
+            last_part = last_part[:-len(self._factory_module_suffix)] + self._const_module_suffix
+        const_module_name = f"{prefix_parts[0]}.{last_part}" if prefix_parts else last_part
 
         if const_module_name in sys.modules:
             const_module = sys.modules[const_module_name]
