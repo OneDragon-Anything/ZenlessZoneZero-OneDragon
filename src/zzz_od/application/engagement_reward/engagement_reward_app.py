@@ -61,17 +61,11 @@ class EngagementRewardApp(ZApplication):
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='识别活跃度')
     def check_engagement(self) -> OperationRoundResult:
-        area = self.ctx.screen_loader.get_area('快捷手册', '今日最大活跃度')
-        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-
-        ocr_result = self.ctx.ocr.run_ocr_single_line(part)
-        num = str_utils.get_positive_digits(ocr_result, None)
-        if num is None:
-            return self.round_retry('识别活跃度失败', wait_round_time=1)
-
-        return self.round_success('活跃度已满') if '4' in str(num) else self.round_fail(f'活跃度未满，当前{num}')
+        result = self.round_by_find_area(self.last_screenshot, '快捷手册', '活跃度奖励-4')
+        return self.round_success('活跃度已满') if result.is_success else self.round_fail('活跃度未满')
 
     @node_from(from_name='识别活跃度')
+    @node_from(from_name='识别活跃度', success=False)
     @operation_node(name='完成后返回大世界')
     def back_afterwards(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx)
