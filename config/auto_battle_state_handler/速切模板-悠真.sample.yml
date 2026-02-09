@@ -98,70 +98,11 @@ handlers:
                   - op_name: "设置状态"
                     state: "自定义-合轴时间"
 
-      # 非失衡时刻
+      - states: "[悠真-特殊技可用]"
+        operations:
+          - operation_template: "悠真-强化特殊技速接普攻"
 
-      # 后台如果没有击破
-      - states: "![后台-1-击破] & ![后台-2-击破]"
-        debug_name: "非击破队"
-        sub_handlers:
-          # 异常队，无脑输出
-          - states: "[后台-1-异常] | [后台-2-异常]"
-            debug_name: "异常队"
-            sub_handlers:
-              - states: "[悠真-终结技可用]"
-                sub_handlers:
-                  - states: "[悠真-特殊技可用]"
-                    operations:
-                      - operation_template: "悠真-强化特殊技"
-                      - operation_template: "悠真-终结技"
-                      - operation_template: "悠真-闪A四刀"
-                  - states: ""
-                    operations:
-                      - operation_template: "悠真-终结技"
-              - states: "[悠真-特殊技可用]"
-                operations:
-                  - operation_template: "悠真-强化特殊技"
-                  - operation_template: "悠真-闪A四刀"
-              # 没能量了再打打
-              - states: ""
-                debug_name: "清空电壶离场"
-                operations:
-                  - operation_template: "悠真-射箭四刀"  # 清空电壶再下场
-                  - op_name: "设置状态"
-                    state: "自定义-合轴时间"
-
-            # 非异常队
-          - states: ""
-            debug_name: "非异常队"
-            sub_handlers:
-              - states: "[悠真-终结技可用]"
-                operations:
-                  - operation_template: "悠真-终结技"
-              - states: "[悠真-特殊技可用]"
-                operations:
-                  - operation_template: "悠真-强化特殊技"
-                  - operation_template: "悠真-闪A三刀"
-              - states: ""
-                debug_name: "清空电壶离场"
-                operations:
-                  - operation_template: "悠真-射箭三刀"  # 清空电壶再下场
-                  - op_name: "设置状态"
-                    state: "自定义-合轴时间"
-                  - operation_template: "悠真-普通攻击"
-
-      - states: "![后台-1-击破] & ![后台-2-击破]"
-        debug_name: "击破队"
-        sub_handlers:
-          # 后台如果有击破，不管什么队友都留能量
-          - states: "[悠真-能量]{110, 120}"
-            operations:
-              - operation_template: "悠真-强化特殊技"
-              - operation_template: "悠真-闪A四刀"
-
-          - states: ""
-            debug_name: "清空电壶离场"
-            operations:
-              - operation_template: "悠真-射箭三刀"  # 清空电壶再下场
-              - op_name: "设置状态"
-                state: "自定义-合轴时间"
-              - operation_template: "悠真-普通攻击"
+      - states: ""
+        debug_name: "无脑EA"
+        operations:
+          - operation_template: "悠真-自动EA"
