@@ -258,14 +258,13 @@ class LostVoidApp(ZApplication):
         # 检测是否出现"主战"
         for ocr_text in ocr_result_list:
             if '主战' in ocr_text.data:
-                return self.round_success('已选择配队')
+                return self.round_success('已选择配队', wait=1)
 
         return self.round_retry('未找到主战', wait=0.5)
 
     @node_from(from_name='矩阵行动-选择配队')
     @operation_node(name='矩阵行动-点击协助代理人')
     def matrix_click_support_agent(self) -> OperationRoundResult:
-        time.sleep(1)
         return self.round_by_find_and_click_area(
             self.last_screenshot,
             '迷失之地-矩阵行动',
