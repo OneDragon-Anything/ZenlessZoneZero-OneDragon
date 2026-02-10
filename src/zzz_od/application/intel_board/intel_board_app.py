@@ -74,16 +74,13 @@ class IntelBoardApp(ZApplication):
     @operation_node(name='刷新委托')
     def refresh_commission(self) -> OperationRoundResult:
         # 3. 点击下面的刷新
-        self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '刷新按钮').rect.center)
+        self.round_by_click_area('委托情报板', '刷新按钮', success_wait=1)
 
         if self.has_filtered:
             self.scroll_times = 0
             return self.round_success(wait=1)
 
-        time.sleep(1)
-        self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '筛选按钮').center)
-
-        time.sleep(0.5)
+        self.round_by_click_area('委托情报板', '筛选按钮', success_wait=0.5)
 
         # OCR 找 重置
         screen = self.screenshot()
@@ -92,8 +89,7 @@ class IntelBoardApp(ZApplication):
         if idx is not None:
             self.ctx.controller.click(ocr_results[idx].center)
         else:
-            self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '重置按钮').center)
-        time.sleep(0.5)
+            self.round_by_click_area('委托情报板', '重置按钮', success_wait=0.5)
 
         # OCR 找 恶名狩猎 和 专业挑战室
         search_rect = self.ctx.screen_loader.get_area('委托情报板', '搜索区域').rect
@@ -108,8 +104,7 @@ class IntelBoardApp(ZApplication):
             center = ocr_results[idx].center + search_rect.left_top
             self.ctx.controller.click(center)
         else:
-            self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '恶名狩猎兜底').center)
-        time.sleep(0.5)
+            self.round_by_click_area('委托情报板', '恶名狩猎兜底', success_wait=0.5)
 
         # 专业挑战室
         idx = str_utils.find_best_match_by_difflib(gt('专业挑战室', 'game'), ocr_texts)
@@ -117,11 +112,9 @@ class IntelBoardApp(ZApplication):
             center = ocr_results[idx].center + search_rect.left_top
             self.ctx.controller.click(center)
         else:
-            self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '专业挑战室兜底').center)
-        time.sleep(0.5)
+            self.round_by_click_area('委托情报板', '专业挑战室兜底', success_wait=0.5)
 
-        self.ctx.controller.click(self.ctx.screen_loader.get_area('委托情报板', '关闭筛选').center)
-        time.sleep(0.5)
+        self.round_by_click_area('委托情报板', '关闭筛选', success_wait=0.5)
 
         self.has_filtered = True
         self.scroll_times = 0  # 重置翻页次数
