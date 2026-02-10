@@ -184,7 +184,10 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='检查接取结果', status='接取成功')
     @operation_node(name='前往')
     def go_to_commission(self) -> OperationRoundResult:
-        # 6. ocr 前往并点击
+        # 6. ocr 前往并点击 如果已经在挑战详情页(有下一步)则说明接取委托时点击前往已跳转
+        result = self.round_by_ocr(self.last_screenshot, '下一步')
+        if result.is_success:
+            return self.round_success(status='下一步')
         return self.round_by_ocr_and_click(self.last_screenshot, '前往', success_wait=2, retry_wait=1)
 
     @node_from(from_name='前往')
