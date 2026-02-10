@@ -28,3 +28,11 @@ class IntelBoardRunRecord(AppRunRecord):
     def reset_record(self):
         AppRunRecord.reset_record(self)
         self.progress_complete = False
+
+    @property
+    def run_status_under_now(self) -> int:
+        if self._should_reset_by_dt():
+            return AppRunRecord.STATUS_WAIT
+        if self.progress_complete:
+            return AppRunRecord.STATUS_SUCCESS
+        return self.run_status
