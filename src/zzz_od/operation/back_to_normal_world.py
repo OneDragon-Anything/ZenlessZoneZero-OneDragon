@@ -25,6 +25,7 @@ class BackToNormalWorld(ZOperation):
         self.last_dialog_idx: int = -1  # 上次选择的对话选项下标
         self.click_exit_battle: bool = False  # 是否点击了退出战斗
         self.click_escape_stuck: bool = False  # 是否点击了脱离卡死
+        self.prefer_dialog_confirm: bool = False  # 第一次优先取消，后续确认/取消轮流点击
 
     @node_from(from_name='打开地图', success=False)
     @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=60)
@@ -103,10 +104,16 @@ class BackToNormalWorld(ZOperation):
             op.execute()
             return self.round_retry(result, wait=1)
 
-        # 通用的取消按钮（例如进入游戏时，空洞继弹出来的继续对话框）
-        # 必须在“确认”后面，因为“确认”和“取消”一般是成对出现
-        result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', '对话框取消')
+        # 通用对话框：确认/取消轮流优先点击，避免卡在只点一种按钮
+        first_area = '对话框确认' if self.prefer_dialog_confirm else '对话框取消'
+        second_area = '对话框取消' if self.prefer_dialog_confirm else '对话框确认'
+        result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', first_area)
         if result.is_success:
+            self.prefer_dialog_confirm = not self.prefer_dialog_confirm
+            return self.round_retry(result.status, wait=1)
+        result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', second_area)
+        if result.is_success:
+            self.prefer_dialog_confirm = not self.prefer_dialog_confirm
             return self.round_retry(result.status, wait=1)
 
         # 这是领取完活跃度奖励的情况

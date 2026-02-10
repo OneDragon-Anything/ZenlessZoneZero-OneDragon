@@ -135,6 +135,7 @@
           mission_list:
             - mission_name: "战线肃清"
             - mission_name: "特遣调查"
+            - mission_name: "矩阵行动"
         - mission_type_name: "断层之谜"
         - mission_type_name: "枯萎之都"
         - mission_type_name: "旧都列车"

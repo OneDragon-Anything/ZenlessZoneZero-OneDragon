@@ -1,56 +1,28 @@
-screen_id: lost_void_gear
-screen_name: 迷失之地-武备选择
+screen_id: matrix_action
+screen_name: 迷失之地-矩阵行动
 pc_alt: false
 area_list:
-- area_name: 按钮-携带
-  id_mark: true
-  pc_rect:
-  - 1732
-  - 846
-  - 1912
-  - 896
-  text: 携带
-  lcs_percent: 0.5
-  template_sub_dir: ''
-  template_id: ''
-  template_match_threshold: 0.7
-  color_range: null
-  goto_list: []
-- area_name: 文本-详情
-  id_mark: true
-  pc_rect:
-  - 186
-  - 28
-  - 254
-  - 74
-  text: 详情
-  lcs_percent: 0.5
-  template_sub_dir: ''
-  template_id: ''
-  template_match_threshold: 0.7
-  color_range: null
-  goto_list: []
-- area_name: 按钮-返回
+- area_name: 预备编队
   id_mark: false
   pc_rect:
-  - 82
-  - 13
+  - 679
+  - 24
+  - 825
+  - 71
+  text: 预备编队
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 主战编队
+  id_mark: false
+  pc_rect:
+  - 1024
+  - 116
+  - 1129
   - 150
-  - 90
-  text: ''
-  lcs_percent: 0.5
-  template_sub_dir: menu
-  template_id: back
-  template_match_threshold: 0.7
-  color_range: null
-  goto_list: []
-- area_name: 武备列表
-  id_mark: false
-  pc_rect:
-  - 190
-  - 892
-  - 1740
-  - 1072
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -58,13 +30,13 @@ area_list:
   template_match_threshold: 0.7
   color_range: null
   goto_list: []
-- area_name: 等级列表
+- area_name: 协战代理人
   id_mark: false
   pc_rect:
-  - 216
-  - 922
-  - 1642
-  - 960
+  - 1026
+  - 312
+  - 1151
+  - 350
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
@@ -72,13 +44,41 @@ area_list:
   template_match_threshold: 0.7
   color_range: null
   goto_list: []
-- area_name: 武备名称
+- area_name: 编队列表
   id_mark: false
   pc_rect:
-  - 452
-  - 459
-  - 1504
-  - 567
+  - 185
+  - 156
+  - 966
+  - 1059
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按钮-开始挑战
+  id_mark: true
+  pc_rect:
+  - 1633
+  - 998
+  - 1811
+  - 1052
+  text: 开始挑战
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 代理人列表
+  id_mark: false
+  pc_rect:
+  - 188
+  - 96
+  - 966
+  - 1059
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''

@@ -5,10 +5,10 @@ area_list:
 - area_name: 区域-文本提示
   id_mark: false
   pc_rect:
-  - 1564
-  - 50
-  - 1778
-  - 268
+  - 1454
+  - 30
+  - 1814
+  - 368
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''
