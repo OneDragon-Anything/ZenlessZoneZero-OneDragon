@@ -193,8 +193,7 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='前往')
     @operation_node(name='下一步')
     def next_step(self) -> OperationRoundResult:
-        # 7. 持续点击下一步直到到达战斗设置页面(出现预备编队)
-        # 不点击出战 需要先选编队再出战
+        # 7. 持续点击下一步直到出现预备编队页面 需要先选编队再出战
         result = self.round_by_ocr(self.last_screenshot, '预备编队')
         if result.is_success:
             return self.round_success()
@@ -210,6 +209,7 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='下一步')
     @operation_node(name='选择预备编队')
     def choose_predefined_team(self) -> OperationRoundResult:
+        # 8. 选择预备编队 无需选择时直接跳过
         if self.config.predefined_team_idx == -1:
             return self.round_success('无需选择预备编队')
         op = ChoosePredefinedTeam(self.ctx, [self.config.predefined_team_idx])
@@ -218,6 +218,7 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='选择预备编队')
     @operation_node(name='加载自动战斗指令')
     def init_auto_battle(self) -> OperationRoundResult:
+        # 9. 加载自动战斗指令 根据编队配置或默认配置
         if self.config.predefined_team_idx == -1:
             auto_battle = self.config.auto_battle_config
         else:
@@ -229,23 +230,26 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='加载自动战斗指令')
     @operation_node(name='点击出战')
     def click_deploy(self) -> OperationRoundResult:
+        # 10. 编队选择完成后点击出战进入战斗
         return self.round_by_ocr_and_click(self.last_screenshot, '出战', success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击出战')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
     def wait_battle_screen(self) -> OperationRoundResult:
+        # 11. 等待战斗画面加载完成
         return self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击', retry_wait_round=1)
 
     @node_from(from_name='等待战斗画面加载')
     @operation_node(name='向前移动准备战斗')
     def move_to_battle(self) -> OperationRoundResult:
-        # 向前走一段距离，确保能开怪
+        # 12. 向前走一段距离 确保能开怪
         self.ctx.controller.move_w(press=True, press_time=1.5, release=True)
         return self.round_success()
 
     @node_from(from_name='向前移动准备战斗')
     @operation_node(name='开始自动战斗')
     def start_auto_battle(self) -> OperationRoundResult:
+        # 13. 启动自动战斗
         self.ctx.auto_battle_context.start_auto_battle()
         return self.round_success()
 
