@@ -41,6 +41,8 @@ class IntelBoardApp(ZApplication):
         self.current_commission_type: str | None = None
         self.battle_result_retry_times: int = 0
         self.has_filtered: bool = False
+        self.expert_challenge_count: int = 0
+        self.notorious_hunt_count: int = 0
 
     @operation_node(name='返回大世界', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
@@ -277,11 +279,11 @@ class IntelBoardApp(ZApplication):
 
         # 1. 检查是否回到委托列表界面 (通过关键词 周期内可获取)
         if str_utils.find_best_match_by_difflib(gt('周期内可获取', 'game'), ocr_texts) is not None:
-            if self.run_record is not None and self.current_commission_type is not None:
+            if self.current_commission_type is not None:
                 if self.current_commission_type == 'expert_challenge':
-                    self.run_record.expert_challenge_count += 1
+                    self.expert_challenge_count += 1
                 elif self.current_commission_type == 'notorious_hunt':
-                    self.run_record.notorious_hunt_count += 1
+                    self.notorious_hunt_count += 1
                 self.current_commission_type = None  # 重置
 
             return self.round_success('结算完成')
@@ -351,9 +353,7 @@ class IntelBoardApp(ZApplication):
         if not result.success:
             return self.round_by_op_result(result)
 
-        status = '完成'
-        if self.run_record is not None:
-            status = f'完成 恶名狩猎: {self.run_record.notorious_hunt_count}, 专业挑战室: {self.run_record.expert_challenge_count}'
+        status = f'完成 恶名狩猎: {self.notorious_hunt_count}, 专业挑战室: {self.expert_challenge_count}'
 
         return self.round_success(status)
 

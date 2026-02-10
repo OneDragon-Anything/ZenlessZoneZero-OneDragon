@@ -15,8 +15,3 @@ class IntelBoardRunRecord(AppRunRecord):
             game_refresh_hour_offset=game_refresh_hour_offset,
             record_period=AppRunRecordPeriod.WEEKLY
         )
-
-    def reset_record(self):
-        AppRunRecord.reset_record(self)
-        self.expert_challenge_count: int = 0
-        self.notorious_hunt_count: int = 0
