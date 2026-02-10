@@ -47,14 +47,14 @@ class IntelBoardApp(ZApplication):
 
     @operation_node(name='返回大世界', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
-        if self.run_record.progress_complete:
-            return self.round_success('本周期已完成')
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='返回大世界')
     @operation_node(name='打开情报板')
     def open_board(self) -> OperationRoundResult:
+        if self.run_record.progress_complete:
+            return self.round_success('本周期已完成')
         # 1. 识别并点击大世界-功能导览按钮
         return self.round_by_find_and_click_area(
             screen_name='大世界',
@@ -362,6 +362,7 @@ class IntelBoardApp(ZApplication):
 
         return self.round_fail('继续')
 
+    @node_from(from_name='打开情报板', status='本周期已完成')
     @node_from(from_name='检查进度')
     @node_from(from_name='寻找委托', status='无委托')
     @operation_node(name='结束处理')
