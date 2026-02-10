@@ -17,6 +17,7 @@ from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
+from zzz_od.operation.compendium.notorious_hunt_move import NotoriousHuntMove
 
 
 class IntelBoardApp(ZApplication):
@@ -240,13 +241,18 @@ class IntelBoardApp(ZApplication):
         return self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击', retry_wait_round=1)
 
     @node_from(from_name='等待战斗画面加载')
-    @operation_node(name='向前移动准备战斗')
-    def move_to_battle(self) -> OperationRoundResult:
-        # 12. 向前走一段距离 确保能开怪
-        self.ctx.controller.move_w(press=True, press_time=1.5, release=True)
-        return self.round_success()
+    @operation_node(name='战斗前移动')
+    def pre_battle_move(self) -> OperationRoundResult:
+        # 12. 根据委托类型选择移动方式
+        if self.current_commission_type == 'notorious_hunt':
+            op = NotoriousHuntMove(self.ctx, 3)
+            return self.round_by_op_result(op.execute())
+        else:
+            # expert_challenge: 向前走一段距离 确保能开怪
+            self.ctx.controller.move_w(press=True, press_time=1.5, release=True)
+            return self.round_success()
 
-    @node_from(from_name='向前移动准备战斗')
+    @node_from(from_name='战斗前移动')
     @operation_node(name='开始自动战斗')
     def start_auto_battle(self) -> OperationRoundResult:
         # 13. 启动自动战斗
@@ -375,6 +381,14 @@ class IntelBoardApp(ZApplication):
         status = f'完成 恶名狩猎: {self.notorious_hunt_count}, 专业挑战室: {self.expert_challenge_count}'
 
         return self.round_success(status)
+
+    def handle_pause(self, e=None):
+        self.ctx.auto_battle_context.stop_auto_battle()
+
+    def handle_resume(self, e=None):
+        if self.current_node.node is not None and self.current_node.node.cn == '战斗中':
+            self.ctx.auto_battle_context.resume_auto_battle()
+
 
 def __debug():
     ctx = ZContext()
