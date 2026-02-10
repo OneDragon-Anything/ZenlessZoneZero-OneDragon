@@ -9,7 +9,7 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -29,8 +29,8 @@ from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
-from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
+from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 from zzz_od.operation.deploy import Deploy
 
 
@@ -154,7 +154,9 @@ class LostVoidApp(ZApplication):
         if not self.config.is_bounty_commission_mode:
             if self.run_record.is_finished_by_day:
                 return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
-            return self.round_success(self._get_status_again_by_mission())
+            if self.config.mission_name == '矩阵行动':
+                return self.round_success(LostVoidApp.STATUS_AGAIN_MATRIX)
+            return self.round_success(LostVoidApp.STATUS_AGAIN)
 
         TARGET_SCORE = '8000'  # 目标分数文本
 
@@ -171,7 +173,9 @@ class LostVoidApp(ZApplication):
         # 根据次数判断完成状态
         if target_count == 1:
             # 只有一个 8000,表示 xxxx/8000 (未完成)
-            return self.round_success(self._get_status_again_by_mission())
+            if self.config.mission_name == '矩阵行动':
+                return self.round_success(LostVoidApp.STATUS_AGAIN_MATRIX)
+            return self.round_success(LostVoidApp.STATUS_AGAIN)
         elif target_count == 2:
             # 两个 8000,表示 8000/8000 (已完成)
             if not self.run_record.bounty_commission_complete:
@@ -180,11 +184,6 @@ class LostVoidApp(ZApplication):
         else:
             # 未识别到预期的结果(0次或3次以上),返回重试
             return self.round_retry(wait=0.5)
-
-    def _get_status_again_by_mission(self) -> str:
-        if self.config.mission_name == '矩阵行动':
-            return LostVoidApp.STATUS_AGAIN_MATRIX
-        return LostVoidApp.STATUS_AGAIN
 
     # ========== 矩阵行动入口流程节点 ==========
 
