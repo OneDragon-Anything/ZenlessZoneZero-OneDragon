@@ -193,14 +193,16 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='前往')
     @operation_node(name='下一步')
     def next_step(self) -> OperationRoundResult:
-        # 7. 点击下一步然后进入战斗，出战优先级最高
+        # 7. 持续点击下一步直到到达战斗设置页面(出现预备编队)
+        # 不点击出战 需要先选编队再出战
+        result = self.round_by_ocr(self.last_screenshot, '预备编队')
+        if result.is_success:
+            return self.round_success()
         return self.round_by_ocr_and_click_with_action(
             target_action_list=[
-                ('出战', OperationRoundResultEnum.SUCCESS),        # 点到出战 → 进入下一节点
-                ('下一步', OperationRoundResultEnum.WAIT),         # 点到下一步 → 继续循环
-                ('无报酬模式', OperationRoundResultEnum.WAIT),     # 点到无报酬模式 → 继续循环
+                ('下一步', OperationRoundResultEnum.WAIT),
+                ('无报酬模式', OperationRoundResultEnum.WAIT),
             ],
-            success_wait=1,
             wait_wait=1,
             retry_wait=1
         )
@@ -225,6 +227,11 @@ class IntelBoardApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
+    @operation_node(name='点击出战')
+    def click_deploy(self) -> OperationRoundResult:
+        return self.round_by_ocr_and_click(self.last_screenshot, '出战', success_wait=1, retry_wait=1)
+
+    @node_from(from_name='点击出战')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
     def wait_battle_screen(self) -> OperationRoundResult:
         return self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击', retry_wait_round=1)
