@@ -46,6 +46,8 @@ class IntelBoardApp(ZApplication):
 
     @operation_node(name='返回大世界', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
+        if self.run_record.progress_complete:
+            return self.round_success('本周期已完成')
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
@@ -323,6 +325,7 @@ class IntelBoardApp(ZApplication):
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
 
         if '1000/1000' in ocr_result:
+            self.run_record.progress_complete = True
             return self.round_success('完成')
 
         # 解析数字 xx/1000
@@ -335,9 +338,11 @@ class IntelBoardApp(ZApplication):
                     current = int(parts[0])
                     total = int(parts[1])
                     if total > 0 and current >= total:
+                        self.run_record.progress_complete = True
                         return self.round_success('完成')
                     # 只要第一个数字是1000也算完成
                     if current >= 1000:
+                        self.run_record.progress_complete = True
                         return self.round_success('完成')
         except Exception as e:
             return self.round_fail(f'解析进度文本失败: {ocr_result}, 错误: {e}')

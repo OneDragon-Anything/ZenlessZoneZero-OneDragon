@@ -7,6 +7,7 @@ from qfluentwidgets import (
     CaptionLabel,
     FlyoutViewBase,
     PopupTeachingTip,
+    PushButton,
     TeachingTipTailPosition,
 )
 
@@ -18,6 +19,7 @@ from zzz_od.application.battle_assistant.auto_battle_config import (
 )
 from zzz_od.application.intel_board import intel_board_const
 from zzz_od.application.intel_board.intel_board_config import IntelBoardConfig
+from zzz_od.application.intel_board.intel_board_run_record import IntelBoardRunRecord
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
@@ -67,6 +69,16 @@ class IntelBoardSettingFlyout(FlyoutViewBase):
         self.auto_battle_row.addStretch(1)
         layout.addLayout(self.auto_battle_row)
 
+        # 重置进度按钮行
+        reset_row = QHBoxLayout()
+        reset_row.setSpacing(8)
+        self.reset_btn = PushButton(gt('重置进度'))
+        self.reset_btn.setFixedWidth(120)
+        self.reset_btn.clicked.connect(self._on_reset_progress)
+        reset_row.addWidget(self.reset_btn)
+        reset_row.addStretch(1)
+        layout.addLayout(reset_row)
+
     def init_config(self):
         """初始化配置"""
         self.intel_board_config = self.ctx.run_context.get_config(
@@ -102,6 +114,15 @@ class IntelBoardSettingFlyout(FlyoutViewBase):
     def _on_auto_battle_changed(self, idx: int) -> None:
         if self.intel_board_config:
             self.intel_board_config.auto_battle_config = self.auto_battle_opt.currentData()
+
+    def _on_reset_progress(self) -> None:
+        """重置情报板进度完成标记"""
+        run_record = IntelBoardRunRecord(
+            instance_idx=self.ctx.current_instance_idx,
+        )
+        run_record.progress_complete = False
+        self.reset_btn.setText(gt('已重置'))
+        self.reset_btn.setEnabled(False)
 
     @classmethod
     def show_flyout(cls, ctx: ZContext, group_id: str, target: QWidget, parent: QWidget | None = None) -> PopupTeachingTip:

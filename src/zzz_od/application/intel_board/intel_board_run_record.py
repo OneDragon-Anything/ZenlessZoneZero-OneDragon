@@ -15,3 +15,16 @@ class IntelBoardRunRecord(AppRunRecord):
             game_refresh_hour_offset=game_refresh_hour_offset,
             record_period=AppRunRecordPeriod.WEEKLY
         )
+
+    @property
+    def progress_complete(self) -> bool:
+        """本周期进度是否已满 (1000/1000)"""
+        return self.get('progress_complete', False)
+
+    @progress_complete.setter
+    def progress_complete(self, value: bool) -> None:
+        self.update('progress_complete', value)
+
+    def reset_record(self):
+        AppRunRecord.reset_record(self)
+        self.progress_complete = False
