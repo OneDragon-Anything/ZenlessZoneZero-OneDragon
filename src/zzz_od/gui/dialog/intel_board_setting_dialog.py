@@ -73,10 +73,8 @@ class IntelBoardSettingFlyout(FlyoutViewBase):
         reset_row = QHBoxLayout()
         reset_row.setSpacing(8)
         self.reset_btn = PushButton(gt('重置进度'))
-        self.reset_btn.setFixedWidth(120)
         self.reset_btn.clicked.connect(self._on_reset_progress)
         reset_row.addWidget(self.reset_btn)
-        reset_row.addStretch(1)
         layout.addLayout(reset_row)
 
     def init_config(self):
