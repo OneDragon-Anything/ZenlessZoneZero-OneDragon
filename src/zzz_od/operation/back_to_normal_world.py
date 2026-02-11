@@ -29,7 +29,6 @@ class BackToNormalWorld(ZOperation):
         self.handle_init()
 
     def handle_init(self):
-        self.already_transport: bool = False  # 是否已经传送过了
         self.last_dialog_idx: int = -1  # 上次选择的对话选项下标
         self.click_exit_battle: bool = False  # 是否点击了退出战斗
         self.prefer_dialog_confirm: bool = False  # 第一次优先取消，后续确认/取消轮流点击
@@ -48,8 +47,8 @@ class BackToNormalWorld(ZOperation):
         if current_screen in ['大世界-普通', '大世界-勘域']:
             if current_screen == '大世界-勘域':
                 # 脱离卡死后到达大世界，立即打开地图传送到录像店
-                should_transport = self.ensure_normal_world or self.previous_node.status == '按钮-脱离卡死-确认'
-                if should_transport and not self.already_transport:
+                should_transport = self.ensure_normal_world or self.previous_node.name == '确认脱离卡死'
+                if should_transport and self.previous_node.name != '执行传送':
                     return self.round_success('传送到录像店')
 
             return self.round_success(status=current_screen)
@@ -167,7 +166,6 @@ class BackToNormalWorld(ZOperation):
     @operation_node(name='执行传送')
     def do_transport(self) -> OperationRoundResult:
         """打开地图后，传送到录像店房间"""
-        self.already_transport = True
         op = MapTransport(self.ctx, '录像店', '房间')
         return self.round_by_op_result(op.execute())
 
