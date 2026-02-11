@@ -1,9 +1,8 @@
-import time
-
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import (
     OperationRoundResult,
     OperationRoundResultEnum,
@@ -42,8 +41,6 @@ class IntelBoardApp(ZApplication):
         self.current_commission_type: str | None = None
         self.battle_result_retry_times: int = 0
         self.has_filtered: bool = False
-        self.expert_challenge_count: int = 0
-        self.notorious_hunt_count: int = 0
 
     @operation_node(name='返回大世界', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
@@ -53,11 +50,15 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='返回大世界')
     @operation_node(name='打开情报板')
     def open_board(self) -> OperationRoundResult:
-        if self.run_record.progress_complete:
+        if self.config.exp_grind_mode:
+            if self.run_record.exp_complete:
+                return self.round_success('本周期已完成')
+        elif self.run_record.progress_complete:
             return self.round_success('本周期已完成')
+
         # 1. 识别并点击大世界-功能导览按钮
         return self.round_by_find_and_click_area(
-            screen_name='大世界',
+            screen_name='大世界-普通',
             area_name='功能导览',
             success_wait=1,
             retry_wait=1
@@ -296,9 +297,9 @@ class IntelBoardApp(ZApplication):
         if str_utils.find_best_match_by_difflib(gt('周期内可获取', 'game'), ocr_texts) is not None:
             if self.current_commission_type is not None:
                 if self.current_commission_type == 'expert_challenge':
-                    self.expert_challenge_count += 1
+                    self.run_record.expert_challenge_count += 1
                 elif self.current_commission_type == 'notorious_hunt':
-                    self.notorious_hunt_count += 1
+                    self.run_record.notorious_hunt_count += 1
                 self.current_commission_type = None  # 重置
 
             return self.round_success('结算完成')
@@ -331,48 +332,53 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='点击情报板')
     @operation_node(name='检查进度')
     def check_progress(self) -> OperationRoundResult:
-        # 8. ocr 645, 2039和1026, 2123之间
+        # 刷经验模式：先检查已有经验是否够了
+        if self.config.exp_grind_mode and self.run_record.exp_complete:
+            return self.round_success('完成')
+
+        # OCR 读取进度代币值
         rect = self.ctx.screen_loader.get_area('委托情报板', '进度文本').rect
         screen = self.last_screenshot
         part = cv2_utils.crop_image_only(screen, rect)
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
 
-        if '1000/1000' in ocr_result:
-            self.run_record.progress_complete = True
-            return self.round_success('完成')
-
-        # 解析数字 xx/1000
+        current = 0
         try:
-            # 移除可能的非数字字符（除了 /）
-            clean_text = ''.join([c for c in ocr_result if c.isdigit() or c == '/'])
+            normalized = ocr_result.replace('／', '/')
+            clean_text = ''.join([c for c in normalized if c.isdigit() or c == '/'])
             if '/' in clean_text:
-                parts = clean_text.split('/')
-                if len(parts) >= 2:
-                    current = int(parts[0])
-                    total = int(parts[1])
-                    if total > 0 and current >= total:
-                        self.run_record.progress_complete = True
-                        return self.round_success('完成')
-                    # 只要第一个数字是1000也算完成
+                current = int(clean_text.split('/')[0])
+
+                if not self.config.exp_grind_mode:
+                    # 普通模式：代币值满即完成
                     if current >= 1000:
                         self.run_record.progress_complete = True
                         return self.round_success('完成')
-        except Exception as e:
+        except (ValueError, IndexError) as e:
             return self.round_fail(f'解析进度文本失败: {ocr_result}, 错误: {e}')
+
+        # 刷经验模式：计数都为0时，根据代币值估算最低经验
+        if self.config.exp_grind_mode:
+            if (self.run_record.notorious_hunt_count == 0
+                    and self.run_record.expert_challenge_count == 0
+                    and self.run_record.base_exp == 0
+                    and current > 0):
+                # 专业挑战一次70代币=250经验，按此比例估算最低经验
+                self.run_record.base_exp = ((current + 69) // 70) * 250
+                if self.run_record.exp_complete:
+                    return self.round_success('完成')
 
         return self.round_fail('继续')
 
     @node_from(from_name='打开情报板', status='本周期已完成')
     @node_from(from_name='检查进度')
     @node_from(from_name='寻找委托', status='无委托')
+    @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='结束处理')
     def finish_processing(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
-        result = op.execute()
-        if not result.success:
-            return self.round_by_op_result(result)
-
-        status = f'完成 恶名狩猎: {self.notorious_hunt_count}, 专业挑战室: {self.expert_challenge_count}'
+        status = (f'完成 恶名狩猎: {self.run_record.notorious_hunt_count}, '
+                 f'专业挑战室: {self.run_record.expert_challenge_count}, '
+                 f'累计经验: {self.run_record.total_exp}')
 
         return self.round_success(status)
 

@@ -8,6 +8,7 @@ from qfluentwidgets import (
     FlyoutViewBase,
     PopupTeachingTip,
     PushButton,
+    SwitchButton,
     TeachingTipTailPosition,
 )
 
@@ -69,6 +70,20 @@ class IntelBoardSettingFlyout(FlyoutViewBase):
         self.auto_battle_row.addStretch(1)
         layout.addLayout(self.auto_battle_row)
 
+        # 刷满经验模式行
+        exp_grind_row = QHBoxLayout()
+        exp_grind_row.setSpacing(8)
+        exp_grind_label = CaptionLabel(gt('刷满经验'))
+        exp_grind_label.setFixedWidth(60)
+        self.exp_grind_switch = SwitchButton()
+        self.exp_grind_switch.setOnText('')
+        self.exp_grind_switch.setOffText('')
+        self.exp_grind_switch.checkedChanged.connect(self._on_exp_grind_changed)
+        exp_grind_row.addWidget(exp_grind_label)
+        exp_grind_row.addWidget(self.exp_grind_switch)
+        exp_grind_row.addStretch(1)
+        layout.addLayout(exp_grind_row)
+
         # 重置进度按钮行
         reset_row = QHBoxLayout()
         reset_row.setSpacing(8)
@@ -94,6 +109,9 @@ class IntelBoardSettingFlyout(FlyoutViewBase):
         auto_battle_list = get_auto_battle_op_config_list(sub_dir='auto_battle')
         self.auto_battle_opt.set_items(auto_battle_list, self.intel_board_config.auto_battle_config)
 
+        # 初始化刷满经验模式开关
+        self.exp_grind_switch.setChecked(self.intel_board_config.exp_grind_mode)
+
         # 根据当前配队设置自动战斗选项的可见性
         self._update_auto_battle_visibility()
 
@@ -113,12 +131,19 @@ class IntelBoardSettingFlyout(FlyoutViewBase):
         if self.intel_board_config:
             self.intel_board_config.auto_battle_config = self.auto_battle_opt.currentData()
 
+    def _on_exp_grind_changed(self, checked: bool) -> None:
+        if self.intel_board_config:
+            self.intel_board_config.exp_grind_mode = checked
+
     def _on_reset_progress(self) -> None:
         """重置情报板进度完成标记"""
         run_record = IntelBoardRunRecord(
             instance_idx=self.ctx.current_instance_idx,
         )
         run_record.progress_complete = False
+        run_record.notorious_hunt_count = 0
+        run_record.expert_challenge_count = 0
+        run_record.base_exp = 0
         self.reset_btn.setText(gt('已重置'))
         self.reset_btn.setEnabled(False)
 

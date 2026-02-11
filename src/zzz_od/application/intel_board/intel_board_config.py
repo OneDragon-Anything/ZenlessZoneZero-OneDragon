@@ -29,3 +29,12 @@ class IntelBoardConfig(ApplicationConfig):
     @auto_battle_config.setter
     def auto_battle_config(self, new_value: str) -> None:
         self.update('auto_battle_config', new_value)
+
+    @property
+    def exp_grind_mode(self) -> bool:
+        """是否开启刷满经验模式，开启后按经验值判断完成而非情报板进度"""
+        return self.get('exp_grind_mode', False)
+
+    @exp_grind_mode.setter
+    def exp_grind_mode(self, new_value: bool) -> None:
+        self.update('exp_grind_mode', new_value)
