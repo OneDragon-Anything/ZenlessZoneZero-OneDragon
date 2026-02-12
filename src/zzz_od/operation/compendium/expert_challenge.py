@@ -229,12 +229,11 @@ def __debug_charge():
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
-    ctx.init_ocr()
+    ctx.init()
     ctx.run_context.start_running()
     op = ExpertChallenge(ctx, ChargePlanItem(
         category_name='专业挑战室',
-        mission_type_name='恶名·杜拉罕',
+        mission_type_name='牲鬼·卫律使者',
         auto_battle_config='全配队通用',
         predefined_team_idx=-1
     ))
@@ -242,4 +241,4 @@ def __debug():
 
 
 if __name__ == '__main__':
-    __debug_charge()
+    __debug()
