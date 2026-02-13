@@ -63,14 +63,17 @@ class CityFundApp(ZApplication):
     @node_from(from_name='点击等级回馈')
     @operation_node(name='等级全部领取')
     def click_level_claim(self) -> OperationRoundResult:
-        # 2.6版本更新，等级回馈领取，已领取过全部领取按钮是会消失的（点一下该区域就好）
-        if not self.node_clicked:
-            self.node_clicked = True
-            self.round_by_click_area('丽都城募', '等级-全部领取')
-            return self.round_wait(wait=1)
-        # 点击后可能出现确认弹窗，有就点一下
-        self.round_by_find_and_click_area(self.last_screenshot, '丽都城募', '按钮-确认')
-        return self.round_success(wait=1)
+        # 2.6版本更新，等级回馈领取，已领取过全部领取按钮是会消失的
+        screen = self.screenshot()
+        for screen_name, area_name in [
+            ('丽都城募', '等级-全部领取'),
+            ('丽都城募', '按钮-确认'),
+        ]:
+            result = self.round_by_find_and_click_area(screen, screen_name, area_name, success_wait=1)
+            if result.is_success:
+                return self.round_retry(status=result.status, wait=1)
+
+        return self.round_success(status=result.status)
 
     @node_from(from_name='点击成长任务', status='按钮-确认')
     @node_from(from_name='等级全部领取')
