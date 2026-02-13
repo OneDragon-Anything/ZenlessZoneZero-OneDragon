@@ -61,7 +61,6 @@ class CityFundApp(ZApplication):
                                                  success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击等级回馈')
-    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='等级全部领取')
     def click_level_claim(self) -> OperationRoundResult:
         # 2.6版本更新，等级回馈领取，已领取过全部领取按钮是会消失的（点一下该区域就好）
@@ -76,7 +75,8 @@ class CityFundApp(ZApplication):
     @node_from(from_name='点击成长任务', status='按钮-确认')
     @node_from(from_name='等级全部领取')
     @node_from(from_name='等级全部领取', success=False)
-    @operation_node(name='返回大世界')
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
+    @operation_node(name='完成后返回')
     def back_to_world(self) -> OperationRoundResult:
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
