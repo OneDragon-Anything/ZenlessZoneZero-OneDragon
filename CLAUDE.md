@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **开发流程**: [@docs/develop/standards/workflow-standard.md](docs/develop/standards/workflow-standard.md)
 - **编码规范**: [@docs/develop/standards/coding-standards.md](docs/develop/standards/coding-standards.md)
 - **测试规范**: [@docs/develop/standards/testing-standards.md](docs/develop/standards/testing-standards.md)
+- **文档规范**: [@docs/develop/standards/documentation-standards.md](docs/develop/standards/documentation-standards.md)
 
 ## 工具使用规范
 
