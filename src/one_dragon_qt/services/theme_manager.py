@@ -29,6 +29,10 @@ class ThemeManager:
         if not all(0 <= c <= 255 for c in (r, g, b)):
             raise ValueError("颜色值必须在0-255范围内")
 
+        # 如果颜色没有变化，直接返回，避免不必要的样式刷新
+        if cls._current_color == (r, g, b):
+            return
+
         cls._current_color = (r, g, b)
 
         # 转换为QColor并设置全局主题色

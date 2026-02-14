@@ -12,7 +12,7 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 class TransportByCompendium(ZOperation):
 
-    def __init__(self, ctx: ZContext, tab_name: str, category_name: str, mission_type_name: str):
+    def __init__(self, ctx: ZContext, tab_name: str, category_name: str, mission_type_name: str | None = None):
         """
         使用快捷手册传送 最后不会等待加载完毕
         :param ctx:
@@ -22,16 +22,16 @@ class TransportByCompendium(ZOperation):
             op_name='%s %s %s-%s-%s' % (
                 gt('传送'),
                 gt('快捷手册', 'game'),
-                gt(tab_name, 'game'), gt(category_name, 'game'), gt(mission_type_name, 'game')
+                gt(tab_name, 'game'), gt(category_name, 'game'), gt(mission_type_name or '', 'game')
             )
         )
 
         self.tab_name: str = tab_name
         self.category_name: str = category_name
-        self.mission_type_name: str = mission_type_name
+        self.mission_type_name: str | None = mission_type_name
 
         if self.mission_type_name == '自定义模板':  # 没法直接传送到自定义
-            self.mission_type_name: str = '基础材料'
+            self.mission_type_name = '基础材料'
 
     @operation_node(name='返回大世界', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
@@ -60,18 +60,21 @@ class TransportByCompendium(ZOperation):
     @operation_node(name='选择副本分类')
     def choose_mission_type(self) -> OperationRoundResult:
         mission_type = self.ctx.compendium_service.get_mission_type_data(
-            self.tab_name, self.category_name, self.mission_type_name
+            self.tab_name, self.category_name, self.mission_type_name or ''
         )
-        op = CompendiumChooseMissionType(self.ctx, mission_type)
-        return self.round_by_op_result(op.execute())
 
+        if mission_type:
+            op = CompendiumChooseMissionType(self.ctx, mission_type)
+            return self.round_by_op_result(op.execute())
+
+        return self.round_success(status='无需选择副本')
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.init_ocr()
     ctx.run_context.start_running()
-    op = TransportByCompendium(ctx, '训练', '定期清剿', '疯子与追随者')
+    op = TransportByCompendium(ctx, '训练', '区域巡防', '疯子与追随者')
     op.execute()
 
 

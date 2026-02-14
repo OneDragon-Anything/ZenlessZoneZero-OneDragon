@@ -1,0 +1,25 @@
+- step: 按区域裁剪
+  params:
+    screen_name: 战斗画面
+    area_name: 连携条
+- step: HSV 范围过滤
+  params:
+    hsv_color:
+    - 15
+    - 183
+    - 237
+    hsv_diff:
+    - 10
+    - 10
+    - 10
+- step: 查找轮廓
+  params:
+    mode: EXTERNAL
+    method: SIMPLE
+    draw_contours: true
+- step: 按周长过滤
+  params:
+    closed: true
+    min_length: 500
+    max_length: 10000
+    draw_contours: true

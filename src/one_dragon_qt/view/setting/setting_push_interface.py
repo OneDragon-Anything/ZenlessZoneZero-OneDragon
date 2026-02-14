@@ -40,12 +40,12 @@ class SettingPushInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
-        self.custom_push_title = TextSettingCard(
+        self.title_opt = TextSettingCard(
             icon=FluentIcon.MESSAGE,
             title='自定义通知标题',
             input_placeholder='一条龙运行通知'
         )
-        content_widget.add_widget(self.custom_push_title)
+        content_widget.add_widget(self.title_opt)
 
         self.send_image_opt = SwitchSettingCard(icon=FluentIcon.PHOTO, title='通知中附带图片')
         content_widget.add_widget(self.send_image_opt)
@@ -100,7 +100,7 @@ class SettingPushInterface(VerticalScrollInterface):
         content_widget.add_widget(self.curl_btn)
 
         email_services = PushEmailServices.load_services()
-        service_options = [ConfigItem(label=name, value=name, desc="") for name in email_services.keys()]
+        service_options = [ConfigItem(label=name, value=name, desc="") for name in email_services]
         self.email_service_opt = EditableComboBoxSettingCard(
             icon=FluentIcon.MESSAGE,
             title='邮箱服务选择',
@@ -213,8 +213,9 @@ class SettingPushInterface(VerticalScrollInterface):
 
         try:
             ok, msg = self.ctx.push_service.push(
-                channel_id=test_method,
+                title=gt('测试推送通知'),
                 content=gt('这是一条测试消息'),
+                channel_id=test_method,
             )
             if not ok:
                 self._show_error_message(msg)
@@ -230,6 +231,7 @@ class SettingPushInterface(VerticalScrollInterface):
         try:
             self._show_success_message("正在向所有已配置的通知方式发送测试消息...")
             ok, msg = self.ctx.push_service.push(
+                title=gt('测试推送通知'),
                 content=gt('这是一条测试消息'),
             )
             if not ok:
@@ -286,7 +288,7 @@ class SettingPushInterface(VerticalScrollInterface):
 
         config = self.ctx.push_service.push_config
 
-        self.custom_push_title.init_with_adapter(get_prop_adapter(config, 'custom_push_title'))
+        self.title_opt.init_with_adapter(get_prop_adapter(self.ctx.notify_config, 'title'))
         self.send_image_opt.init_with_adapter(get_prop_adapter(config, 'send_image'))
         self.proxy_opt.init_with_adapter(get_prop_adapter(config, 'proxy'))
         self.proxy_input_opt.init_with_adapter(get_prop_adapter(self.ctx.env_config, 'personal_proxy'))
@@ -349,15 +351,11 @@ class SettingPushInterface(VerticalScrollInterface):
             raise ValueError("URL、请求头或者请求体中必须包含 $content 变量")
 
         # 如果是JSON格式，验证JSON的合法性
-        if content_type == "application/json":
-            # 检查body模板是否为合法JSON
-            if not self._validate_json_format(body):
-                raise ValueError("请求体不是合法的JSON格式")
+        if content_type == "application/json" and not self._validate_json_format(body):
+            raise ValueError("请求体不是合法的JSON格式")
 
-        # 检查请求头是否为合法JSON
-        if headers and headers != "{}":
-            if not self._validate_json_format(headers):
-                raise ValueError("请求头不是合法的JSON格式")
+        if headers and headers != "{}" and not self._validate_json_format(headers):
+            raise ValueError("请求头不是合法的JSON格式")
 
     def _validate_json_format(self, json_str: str) -> bool:
         """验证JSON格式的合法性"""

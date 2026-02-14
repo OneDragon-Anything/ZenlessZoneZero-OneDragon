@@ -82,3 +82,4 @@ class ResourceDownloadInterface(VerticalScrollInterface):
 
     def on_ocr_gpu_changed(self, value: bool) -> None:
         self.ctx.model_config.ocr_gpu = value
+        self.ctx.init_ocr()

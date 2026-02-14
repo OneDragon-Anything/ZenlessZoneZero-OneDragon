@@ -28,7 +28,7 @@ def compile_po_files():
     :return:
     """
     for model in ['game', 'ui']:
-        for lang in ['cn', 'en']:
+        for lang in ['zh', 'en']:
             compile_lang(model, lang)
 
 

@@ -150,7 +150,7 @@ class TestCvTimeoutControl(unittest.TestCase):
         """测试CvService运行流水线时的超时控制"""
         # 创建模拟的od_ctx
         mock_od_ctx = MagicMock()
-        mock_od_ctx.cv_ocr = MagicMock()
+        mock_od_ctx.ocr = MagicMock()
         mock_od_ctx.template_loader = MagicMock()
         service = CvService(od_ctx=mock_od_ctx)
         start_time = time.time() - 2.0  # 2秒前开始

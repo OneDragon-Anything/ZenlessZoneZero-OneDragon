@@ -1,32 +1,31 @@
+import contextlib
+import time
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
-from PySide6.QtCore import Qt, QThread, Signal, QSize, QUrl, QTimer
-from PySide6.QtWidgets import QGraphicsDropShadowEffect
-from PySide6.QtGui import (
-    QFont,
-    QFontMetrics,
-    QDesktopServices, QColor
-)
+from PySide6.QtCore import QSize, Qt, QThread, QTimer, QUrl, Signal
+from PySide6.QtGui import QColor, QDesktopServices, QFont, QFontMetrics
 from PySide6.QtWidgets import (
-    QVBoxLayout,
+    QGraphicsDropShadowEffect,
     QHBoxLayout,
-    QSpacerItem,
     QSizePolicy,
+    QSpacerItem,
+    QVBoxLayout,
     QWidget,
 )
 from qfluentwidgets import (
     FluentIcon,
     InfoBar,
     InfoBarPosition,
-    SimpleCardWidget,
     PrimaryPushButton,
+    SimpleCardWidget,
 )
 
-from one_dragon.utils import os_utils
-from one_dragon.utils.log_utils import log
 from one_dragon.base.config.custom_config import BackgroundTypeEnum
+from one_dragon.utils import app_utils, os_utils
+from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.theme_manager import ThemeManager
 from one_dragon_qt.utils.color_utils import ColorUtils
 from one_dragon_qt.widgets.banner import Banner
@@ -268,31 +267,21 @@ class BaseThread(QThread):
                 self.wait()
 
 
-class CheckRunnerBase(BaseThread):
-    """检查更新的基础线程类"""
+class CheckRunner(BaseThread):
+    """通用的检查更新线程"""
 
     need_update = Signal(bool)
 
-    def __init__(self, ctx: ZContext):
-        super().__init__()
+    def __init__(self, ctx: ZContext, check_func: Callable[[ZContext], bool], parent=None):
+        super().__init__(parent)
         self.ctx = ctx
+        self.check_func = check_func
 
-class CheckCodeRunner(CheckRunnerBase):
     def _run_impl(self):
-        is_latest, msg = self.ctx.git_service.is_current_branch_latest()
-        if msg == "与远程分支不一致":
-            self.need_update.emit(True)
-        elif msg != "获取远程代码失败":
-            self.need_update.emit(not is_latest)
-
-class CheckModelRunner(CheckRunnerBase):
-    def _run_impl(self):
-        self.need_update.emit(self.ctx.model_config.using_old_model())
-
-class CheckBannerRunner(CheckRunnerBase):
-    def _run_impl(self):
-        if self.ctx.signal.reload_banner:
-            self.need_update.emit(True)
+        try:
+            self.need_update.emit(self.check_func(self.ctx))
+        except Exception as e:
+            log.error(f"Check runner failed: {e}")
 
 class BackgroundImageDownloader(BaseThread):
     """背景图片下载器"""
@@ -311,16 +300,16 @@ class BackgroundImageDownloader(BaseThread):
             self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getGames?launcher_id=jGHBHlcOq1&language=zh-cn"
             self.config_key = f'last_{download_type}_fetch_time'
             self.error_msg = "版本海报异步获取失败"
-        elif download_type == "remote_banner":
-            self.save_path = ui_dir / 'remote_banner.webp'
+        elif download_type == "static_background":
+            self.save_path = ui_dir / 'static_background.webp'
             self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getAllGameBasicInfo?launcher_id=jGHBHlcOq1&language=zh-cn"
             self.config_key = f'last_{download_type}_fetch_time'
-            self.error_msg = "当前版本主页背景异步获取失败"
-        elif download_type == "official_dynamic":
-            self.save_path = ui_dir / 'official_dynamic.webm'
+            self.error_msg = "静态背景异步获取失败"
+        elif download_type == "dynamic_background":
+            self.save_path = ui_dir / 'dynamic_background.webm'
             self.url = "https://hyp-api.mihoyo.com/hyp/hyp-connect/api/getAllGameBasicInfo?launcher_id=jGHBHlcOq1&language=zh-cn"
             self.config_key = f'last_{download_type}_fetch_time'
-            self.error_msg = "官方动态背景异步获取失败"
+            self.error_msg = "动态背景异步获取失败"
 
     def _run_impl(self):
         if not self.save_path.exists():
@@ -350,9 +339,9 @@ class BackgroundImageDownloader(BaseThread):
             if not result:
                 return
 
-            # 官方动态使用流式下载避免内存溢出
-            if self.download_type == "official_dynamic":
-                success = self._download_official_dynamic_video(result)
+            # 动态背景使用流式下载避免内存溢出
+            if self.download_type == "dynamic_background":
+                success = self._download_dynamic_background_video(result)
             else:
                 # 普通图片下载
                 with requests.get(result, timeout=5) as img_resp:
@@ -379,7 +368,7 @@ class BackgroundImageDownloader(BaseThread):
                 background = display.get("background", {})
                 if background:
                     return background.get("url")
-        elif self.download_type == "remote_banner":
+        elif self.download_type == "static_background":
             for game in data.get("data", {}).get("game_info_list", []):
                 if game.get("game", {}).get("biz") != "nap_cn":
                     continue
@@ -387,7 +376,7 @@ class BackgroundImageDownloader(BaseThread):
                 backgrounds = game.get("backgrounds", [])
                 if backgrounds:
                     return backgrounds[0]["background"]["url"]
-        elif self.download_type == "official_dynamic":
+        elif self.download_type == "dynamic_background":
             for game in data.get("data", {}).get("game_info_list", []):
                 if game.get("game", {}).get("biz") != "nap_cn":
                     continue
@@ -416,8 +405,8 @@ class BackgroundImageDownloader(BaseThread):
                     log.warning(f"清理临时文件失败: {cleanup_err}")
             raise
 
-    def _download_official_dynamic_video(self, video_url: str) -> bool:
-        """下载官方动态背景视频，确保取消时清理临时文件"""
+    def _download_dynamic_background_video(self, video_url: str) -> bool:
+        """下载动态背景视频，确保取消时清理临时文件"""
         self.download_starting.emit()
 
         temp_path: Path = self.save_path.with_suffix(self.save_path.suffix + '.tmp')
@@ -446,10 +435,8 @@ class BackgroundImageDownloader(BaseThread):
                             download_success = True
         finally:
             if temp_path.exists() and not download_success:
-                try:
+                with contextlib.suppress(Exception):
                     temp_path.unlink()
-                except Exception:
-                    pass
 
         if not status_ok or cancelled or not download_success:
             return False
@@ -458,10 +445,8 @@ class BackgroundImageDownloader(BaseThread):
             temp_path.replace(self.save_path)
         except Exception:
             if temp_path.exists():
-                try:
+                with contextlib.suppress(Exception):
                     temp_path.unlink()
-                except Exception:
-                    pass
             raise
 
         return True
@@ -521,9 +506,6 @@ class HomeInterface(VerticalScrollInterface):
         self._notice_wrap_layout.addWidget(self.notice_container)
         h2_layout.addWidget(notice_wrap)
 
-        # 根据配置设置启用状态
-        self.notice_container.set_notice_enabled(self.ctx.custom_config.notice_card)
-
         h2_layout.addStretch()
 
         # 启动游戏按钮布局
@@ -547,8 +529,6 @@ class HomeInterface(VerticalScrollInterface):
         # noticecard的高度和启动一条龙按钮的高度 谁能修谁自己tm修吧我是修不明白了
         # 核心是阴影+到底部margin的高度=20px
 
-
-
         # 计算阴影向下扩展：min(20, max(0, offsetY + blurRadius/2))
         shadow_down_extent = max(0, int(8 + 24 / 2))  # 8 偏移 + 12 模糊半径的一半 ≈ 20
         shadow_down_extent = min(20, shadow_down_extent)
@@ -567,8 +547,6 @@ class HomeInterface(VerticalScrollInterface):
         button_v_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
 
         h2_layout.addWidget(button_container)
-
-
 
         # 将底部容器添加到主垂直布局
         v_layout.addWidget(bottom_bar)
@@ -590,90 +568,134 @@ class HomeInterface(VerticalScrollInterface):
         # 监听背景刷新信号，确保主题色在背景变化时更新
         self._last_reload_banner_signal = False
 
+        # 记录上次自动检查更新的时间
+        self._last_auto_check_time = 0
+        self._auto_check_interval = 300  # 5分钟冷却时间
+
     def _init_check_runners(self):
         """初始化检查更新的线程"""
-        self._check_code_runner = CheckCodeRunner(self.ctx)
+        self._check_code_runner = CheckRunner(
+            self.ctx,
+            lambda ctx: not ctx.git_service.is_current_branch_latest()[0],
+            self
+        )
         self._check_code_runner.need_update.connect(
             self._need_to_update_code,
             Qt.ConnectionType.QueuedConnection
         )
-        self._check_model_runner = CheckModelRunner(self.ctx)
+
+        self._check_model_runner = CheckRunner(
+            self.ctx,
+            lambda ctx: ctx.model_config.using_old_model(),
+            self
+        )
         self._check_model_runner.need_update.connect(
             self._need_to_update_model,
             Qt.ConnectionType.QueuedConnection
         )
-        self._check_banner_runner = CheckBannerRunner(self.ctx)
+
+        def check_launcher_update(ctx: ZContext) -> bool:
+            current_version = app_utils.get_launcher_version()
+            latest_stable, latest_beta = ctx.git_service.get_latest_tag()
+
+            # 根据当前版本是否包含 -beta 来确定比较通道
+            if current_version and '-beta' in current_version:
+                # 测试通道：与最新测试版比较；若不存在测试版，则和稳定版比较
+                target_latest = latest_beta or latest_stable
+            else:
+                # 稳定通道：与最新稳定版比较；若不存在稳定版，则视为已最新
+                target_latest = latest_stable or current_version
+
+            return current_version != target_latest
+
+        self._check_launcher_runner = CheckRunner(
+            self.ctx,
+            check_launcher_update,
+            self
+        )
+        self._check_launcher_runner.need_update.connect(
+            self._need_to_update_launcher,
+            Qt.ConnectionType.QueuedConnection
+        )
+
+        self._check_banner_runner = CheckRunner(
+            self.ctx,
+            lambda ctx: ctx.signal.reload_banner,
+            self
+        )
         self._check_banner_runner.need_update.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
-        self._banner_downloader = BackgroundImageDownloader(self.ctx, "remote_banner")
-        # 使用队列连接确保线程安全
-        self._banner_downloader.image_downloaded.connect(
-            self.reload_banner,
-            Qt.ConnectionType.QueuedConnection
-        )
-        self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster")
-        # 使用队列连接确保线程安全
+
+        # 初始化背景下载器
+        self._version_poster_downloader = BackgroundImageDownloader(self.ctx, "version_poster", self)
         self._version_poster_downloader.image_downloaded.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
-        self._official_dynamic_downloader = BackgroundImageDownloader(self.ctx, "official_dynamic")
-        # 使用队列连接确保线程安全
-        self._official_dynamic_downloader.image_downloaded.connect(
+
+        self._static_background_downloader = BackgroundImageDownloader(self.ctx, "static_background", self)
+        self._static_background_downloader.image_downloaded.connect(
             self.reload_banner,
             Qt.ConnectionType.QueuedConnection
         )
-        self._official_dynamic_downloader.download_starting.connect(
-            self._on_official_dynamic_download_start,
+
+        self._dynamic_background_downloader = BackgroundImageDownloader(self.ctx, "dynamic_background", self)
+        self._dynamic_background_downloader.image_downloaded.connect(
+            self.reload_banner,
+            Qt.ConnectionType.QueuedConnection
+        )
+        self._dynamic_background_downloader.download_starting.connect(
+            self._on_dynamic_background_download_start,
             Qt.ConnectionType.BlockingQueuedConnection
         )
 
-    def closeEvent(self, event):
-        """界面关闭事件处理"""
-        self._cleanup_threads()
-        super().closeEvent(event)
-
-    def _on_official_dynamic_download_start(self) -> None:
+    def _on_dynamic_background_download_start(self) -> None:
         """在后台下载新的视频前释放当前播放器占用"""
         if not self._banner_widget:
             return
 
-        if self.ctx.custom_config.background_type != BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value:
+        if self.ctx.custom_config.background_type != BackgroundTypeEnum.DYNAMIC.value.value:
             return
 
         if hasattr(self._banner_widget, "release_media"):
             self._banner_widget.release_media()
-
-    def _cleanup_threads(self):
-        """清理所有线程"""
-        for thread_name in ['_banner_downloader', '_version_poster_downloader', '_official_dynamic_downloader',
-                            '_check_code_runner', '_check_model_runner', '_check_banner_runner']:
-            if hasattr(self, thread_name):
-                thread = getattr(self, thread_name)
-                if thread and thread.isRunning():
-                    thread.stop()
 
     def on_interface_shown(self) -> None:
         """界面显示时启动检查更新的线程"""
         super().on_interface_shown()
         if self._banner_widget:
             self._banner_widget.resume_media()
-        self._check_code_runner.start()
-        self._check_model_runner.start()
-        self._check_banner_runner.start()
+
+        # 检查是否满足自动检查的冷却时间
+        current_time = time.time()
+        should_check = (current_time - self._last_auto_check_time) > self._auto_check_interval
+
+        if should_check:
+            if not self._check_code_runner.isRunning():
+                self._check_code_runner.start()
+            if not self._check_model_runner.isRunning():
+                self._check_model_runner.start()
+            if not self._check_launcher_runner.isRunning():
+                self._check_launcher_runner.start()
+            self._last_auto_check_time = current_time
+
+        # Banner 刷新检查不需要冷却，因为它依赖信号
+        if not self._check_banner_runner.isRunning():
+            self._check_banner_runner.start()
+
         # 根据配置启动相应的背景下载器
         background_type = self.ctx.custom_config.background_type
-        if background_type == BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value:
-            self._official_dynamic_downloader.start()
-        elif background_type == BackgroundTypeEnum.VERSION_POSTER.value.value:
-            self._version_poster_downloader.start()
-        elif background_type == BackgroundTypeEnum.OFFICIAL_STATIC.value.value:
-            self._banner_downloader.start()
-
-        # 检查公告卡片配置是否变化
-        self._check_notice_config_change()
+        if background_type == BackgroundTypeEnum.VERSION_POSTER.value.value:
+            if not self._version_poster_downloader.isRunning():
+                self._version_poster_downloader.start()
+        elif background_type == BackgroundTypeEnum.STATIC.value.value:
+            if not self._static_background_downloader.isRunning():
+                self._static_background_downloader.start()
+        elif background_type == BackgroundTypeEnum.DYNAMIC.value.value:
+            if not self._dynamic_background_downloader.isRunning():
+                self._dynamic_background_downloader.start()
 
         # 检查背景是否需要刷新
         self._check_banner_reload_signal()
@@ -682,8 +704,7 @@ class HomeInterface(VerticalScrollInterface):
         self._update_start_button_style_from_banner()
 
         # 启动导航栏按钮自动提示演示
-        if hasattr(self, 'button_group'):
-            self.button_group.start_tooltip_demo()
+        self.button_group.start_tooltip_demo()
 
     def on_interface_hidden(self) -> None:
         """界面隐藏时的处理"""
@@ -691,9 +712,16 @@ class HomeInterface(VerticalScrollInterface):
         if self._banner_widget:
             self._banner_widget.pause_media()
 
+        # 停止所有下载器，避免后台占用资源
+        if self._version_poster_downloader.isRunning():
+            self._version_poster_downloader.stop()
+        if self._static_background_downloader.isRunning():
+            self._static_background_downloader.stop()
+        if self._dynamic_background_downloader.isRunning():
+            self._dynamic_background_downloader.stop()
+
         # 立即停止并隐藏所有提示
-        if hasattr(self, 'button_group'):
-            self.button_group.stop_tooltip_demo()
+        self.button_group.stop_tooltip_demo()
 
     def _need_to_update_code(self, with_new: bool):
         if not with_new:
@@ -704,7 +732,11 @@ class HomeInterface(VerticalScrollInterface):
 
     def _need_to_update_model(self, with_new: bool):
         if with_new:
-            self._show_info_bar("有新模型啦", "到[设置-模型选择]更新吧~", 5000)
+            self._show_info_bar("有新模型啦", "到[设置-资源下载]更新吧~", 5000)
+
+    def _need_to_update_launcher(self, with_new: bool):
+        if with_new:
+            self._show_info_bar("有新启动器啦", "到[设置-资源下载]更新吧~", 5000)
 
     def _show_info_bar(self, title: str, content: str, duration: int = 20000):
         """显示信息条"""
@@ -750,39 +782,30 @@ class HomeInterface(VerticalScrollInterface):
             log.error(f"刷新背景时出错: {e}")
 
     def choose_banner_media(self) -> str:
-
+        """选择主页背景媒体文件"""
         # 获取背景图片路径
         custom_banner_path = Path(os_utils.get_path_under_work_dir('custom', 'assets', 'ui')) / 'banner'
         ui_dir = Path(os_utils.get_path_under_work_dir('assets', 'ui'))
-        official_dynamic_path = ui_dir / 'official_dynamic.webm'
         version_poster_path = ui_dir / 'version_poster.webp'
-        remote_banner_path = ui_dir / 'remote_banner.webp'
+        static_background_path = ui_dir / 'static_background.webp'
+        dynamic_background_path = ui_dir / 'dynamic_background.webm'
         index_banner_path = ui_dir / 'index.png'
 
         # 主页背景优先级：自定义 > 枚举选项 > index.png
-        if self.ctx.custom_config.custom_banner:
-            # 检测自定义背景文件（支持图片和视频）
-            if custom_banner_path.exists() and custom_banner_path.is_file():
-                return str(custom_banner_path)
+        # 检测自定义背景文件（支持图片和视频）
+        if self.ctx.custom_config.custom_banner and custom_banner_path.exists() and custom_banner_path.is_file():
+            return str(custom_banner_path)
 
         # 根据枚举类型选择背景
         background_type = self.ctx.custom_config.background_type
-        if background_type == BackgroundTypeEnum.OFFICIAL_DYNAMIC.value.value and official_dynamic_path.exists():
-            return str(official_dynamic_path)
-        elif background_type == BackgroundTypeEnum.VERSION_POSTER.value.value and version_poster_path.exists():
+        if background_type == BackgroundTypeEnum.VERSION_POSTER.value.value and version_poster_path.exists():
             return str(version_poster_path)
-        elif background_type == BackgroundTypeEnum.OFFICIAL_STATIC.value.value and remote_banner_path.exists():
-            return str(remote_banner_path)
+        elif background_type == BackgroundTypeEnum.STATIC.value.value and static_background_path.exists():
+            return str(static_background_path)
+        elif background_type == BackgroundTypeEnum.DYNAMIC.value.value and dynamic_background_path.exists():
+            return str(dynamic_background_path)
         else:
             return str(index_banner_path)
-
-    def _check_notice_config_change(self):
-        """检查公告卡片配置是否发生变化"""
-        if self.ctx.signal.notice_card_config_changed:
-            current_config = self.ctx.custom_config.notice_card
-            self.notice_container.set_notice_enabled(current_config)
-            # 重置信号状态
-            self.ctx.signal.notice_card_config_changed = False
 
     def _check_banner_reload_signal(self):
         """检查背景重新加载信号"""

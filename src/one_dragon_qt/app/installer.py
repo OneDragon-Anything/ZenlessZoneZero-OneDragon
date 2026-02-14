@@ -91,7 +91,6 @@ class InstallerWindowBase(AppWindowBase):
         self.navigationInterface.setContentsMargins(0, 28, 0, 0)
 
         # 配置样式
-        OdQtStyleSheet.APP_WINDOW.apply(self)
         OdQtStyleSheet.NAVIGATION_INTERFACE.apply(self.navigationInterface)
         OdQtStyleSheet.STACKED_WIDGET.apply(self.stackedWidget)
         OdQtStyleSheet.TITLE_BAR.apply(self.titleBar)

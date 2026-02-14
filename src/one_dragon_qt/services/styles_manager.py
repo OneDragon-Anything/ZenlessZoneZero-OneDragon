@@ -1,22 +1,31 @@
 from enum import Enum
 from qfluentwidgets import StyleSheetBase, Theme, qconfig
-from .._rc import resource  # 注意这行不能删除 是用于加载样式的
+from .._rc import resource
+
+
+def fake_init() -> bool:
+    """
+    一段不会被调用的代码
+    用于避免 resource 的引入被自动格式化删除掉
+    必须引入 resource 才能正确加载样式
+    """
+    return resource is not None
 
 
 class OdQtStyleSheet(StyleSheetBase, Enum):
     """样式表类型枚举"""
 
     NONE = "none"
+    DIALOG = "dialog"
     SAMPLE_CARD = "sample_card"
     LINK_CARD = "link_card"
-    GAME_BUTTON = "game_button"
     GAME_DIALOG = "game_dialog"
     SHARED_BATTLE_DIALOG = "shared_battle_dialog"
     NOTICE_CARD = "notice_card"
     PIVOT = "pivot"
+    MULTI_SELECTION_COMBO_BOX = "multi_selection_combo_box"
 
     # 窗口配置样式
-    APP_WINDOW = "app_window"
     STACKED_WIDGET = "stacked_widget"
     TITLE_BAR = "title_bar"
     NAVIGATION_INTERFACE = "navigation_interface"

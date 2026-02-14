@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
@@ -29,6 +29,7 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.view.app_run_interface import AppRunner
 from one_dragon_qt.view.context_event_signal import ContextEventSignal
+from one_dragon_qt.widgets.app_run_list import AppRunList
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
 from one_dragon_qt.widgets.notify_dialog import NotifyDialog
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
@@ -61,7 +62,6 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self.ctx: OneDragonContext = ctx
 
         self.config: Optional[ApplicationGroupConfig] = None
-        self._app_run_cards: List[AppRunCard] = []
         self._context_event_signal = ContextEventSignal()
         self.help_url: str = help_url  # 使用说明的链接
         self.need_multiple_instance: bool = need_multiple_instance  # 是否需要多实例
@@ -107,8 +107,13 @@ class OneDragonRunInterface(VerticalScrollInterface):
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_layout.setContentsMargins(0, 0, 16, 0)
 
-        self.app_card_group = SettingCardGroup(gt('任务列表'))
-        scroll_layout.addWidget(self.app_card_group)
+        # 使用 AppRunList 管理应用列表
+        self.app_run_list = AppRunList(self.ctx)
+        self.app_run_list.app_list_changed.connect(self._on_app_list_changed)
+        self.app_run_list.app_run_clicked.connect(self._on_app_card_run)
+        self.app_run_list.app_switch_changed.connect(self.on_app_switch_run)
+        self.app_run_list.app_setting_clicked.connect(self.on_app_setting_clicked)
+        scroll_layout.addWidget(self.app_run_list)
         scroll_layout.addStretch(1)
 
         scroll_area.setWidget(scroll_content)
@@ -183,32 +188,10 @@ class OneDragonRunInterface(VerticalScrollInterface):
         初始化应用列表
         :return:
         """
-        if len(self._app_run_cards) > 0:  # 之前已经添加了组件了 这次只是调整顺序
-            for idx, app in enumerate(self.config.app_list):
-                run_record = self.ctx.run_context.get_run_record(
-                    app_id=app.app_id,
-                    instance_idx=self.ctx.current_instance_idx
-                )
-                self._app_run_cards[idx].set_app(app, run_record)
-                self._app_run_cards[idx].set_switch_on(app.enabled)
-        else:
-            for app in self.config.app_list:
-                run_record = self.ctx.run_context.get_run_record(
-                    app_id=app.app_id,
-                    instance_idx=self.ctx.current_instance_idx
-                )
-                app_run_card = AppRunCard(
-                    app,
-                    run_record=run_record,
-                    switch_on=app.enabled,
-                )
-                self._app_run_cards.append(app_run_card)
-                self.app_card_group.addSettingCard(app_run_card)
-                app_run_card.update_display()
-
-                app_run_card.move_up.connect(self.on_app_card_move_up)
-                app_run_card.run.connect(self._on_app_card_run)
-                app_run_card.switched.connect(self.on_app_switch_run)
+        self.app_run_list.set_app_list(
+            app_list=self.config.app_list,
+            instance_idx=self.ctx.current_instance_idx
+        )
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
@@ -304,8 +287,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
         self.start_btn.setIcon(icon)
         self.state_text.setText('%s %s' % (gt('当前状态'), self.ctx.run_context.run_status_text))
 
-        for app_card in self._app_run_cards:
-            app_card.update_display()
+        self.app_run_list.update_cards_display()
 
         if self.ctx.run_context.is_context_stop and self.need_after_done_opt:
             if self.ctx.one_dragon_config.after_done == AfterDoneOpEnum.SHUTDOWN.value.value:
@@ -314,17 +296,18 @@ class OneDragonRunInterface(VerticalScrollInterface):
                 self.ctx.controller.close_game()
 
     def _on_app_state_changed(self, event) -> None:
-        for app_card in self._app_run_cards:
-            app_card.update_display()
+        self.app_run_list.update_cards_display()
 
-    def on_app_card_move_up(self, app_id: str) -> None:
+    def _on_app_list_changed(self, new_app_list: list[ApplicationGroupConfigItem]) -> None:
         """
-        将该应用往上调整一位
-        :param app_id:
-        :return:
+        应用列表改变后的回调（拖拽排序或置顶）
+
+        Args:
+            new_app_list: 新顺序的应用列表
         """
-        self.config.move_up_app(app_id)
-        self._init_app_list()
+        # 更新配置中的 app_list 顺序
+        self.config.app_list = new_app_list
+        self.config.save_app_list()
 
     def _on_app_card_run(self, app_id: str) -> None:
         """
@@ -374,3 +357,12 @@ class OneDragonRunInterface(VerticalScrollInterface):
         """
         dialog = NotifyDialog(self, self.ctx)
         dialog.exec()
+
+    def on_app_setting_clicked(self, app_id) -> None:
+        """
+        处理应用设置按钮被点击 由子类实现 自行决定是弹窗还是跳转
+
+        Args:
+            app_id: 应用id
+        """
+        pass

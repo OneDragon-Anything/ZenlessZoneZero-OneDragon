@@ -259,6 +259,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         self.image_label.left_clicked_with_pos.connect(self._on_image_left_clicked)
         self.image_label.right_clicked_with_pos.connect(self._on_image_right_clicked)
         self.image_label.rect_selected.connect(self._on_image_rect_selected)
+        self.image_label.image_pasted.connect(self._on_image_pasted)
         layout.addWidget(self.image_label, stretch=1)
 
         return widget
@@ -623,6 +624,22 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
             return
 
         self.chosen_template.screen_image = cv2_utils.read_image(image_file_path)
+        self.chosen_template.point_updated = True
+        self._update_all_image_display()
+
+    def _on_image_pasted(self, image_data) -> None:
+        """
+        通过拖放或粘贴加载图片后的回调
+        :param image_data: 文件路径 (str) 或 numpy 数组 (RGB 格式)
+        :return:
+        """
+        if self.chosen_template is None:
+            return
+
+        if isinstance(image_data, str):
+            self.chosen_template.screen_image = cv2_utils.read_image(image_data)
+        else:
+            self.chosen_template.screen_image = image_data
         self.chosen_template.point_updated = True
         self._update_all_image_display()
 

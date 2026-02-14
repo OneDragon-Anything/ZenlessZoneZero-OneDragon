@@ -197,7 +197,7 @@ class AutoBattleEditorInterface(VerticalScrollInterface):
 
     def on_config_chosen(self, idx: int) -> None:
         module_name = self.existed_yml_btn.currentData()
-        self.chosen_config = AutoBattleOperator(self.ctx, 'auto_battle', module_name)
+        self.chosen_config = AutoBattleOperator(self.ctx.auto_battle_context, 'auto_battle', module_name)
         self.update_display_by_config()
 
     def on_cancel_clicked(self) -> None:

@@ -6,7 +6,6 @@ from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.battle_assistant.auto_battle import auto_battle_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.config.game_config import GamepadTypeEnum
@@ -27,7 +26,7 @@ class AutoBattleApp(ZApplication):
             self,
             ctx=ctx,
             app_id=auto_battle_const.APP_ID,
-            op_name=gt(auto_battle_const.APP_NAME),
+            op_name=auto_battle_const.APP_NAME,
         )
 
     def handle_init(self) -> None:
@@ -66,16 +65,24 @@ class AutoBattleApp(ZApplication):
         加载战斗指令
         :return:
         """
-        self.ctx.auto_battle_context.init_auto_op(
-            sub_dir='auto_battle',
-            op_name=self.ctx.battle_assistant_config.auto_battle_config,
-        )
+        try:
+            self.ctx.auto_battle_context.init_auto_op(
+                sub_dir='auto_battle',
+                op_name=self.ctx.battle_assistant_config.auto_battle_config,
+            )
+            self.ctx.auto_battle_context.auto_ultimate_enabled = self.ctx.battle_assistant_config.auto_ultimate_enabled
+        except Exception:
+            # 捕获异常，显式返回 Fail，防止框架自动重试
+            return self.round_fail(status='加载指令失败')
 
         self.ctx.dispatch_event(
             AutoBattleApp.EVENT_OP_LOADED,
             self.ctx.auto_battle_context.auto_op,
         )
         self.ctx.auto_battle_context.start_auto_battle()
+        # 只有在手动使用自动战斗指令时，才使用配置中的开关
+        # 其他指令调用 start_auto_battle 时，会使用默认值 True
+        self.ctx.auto_battle_context.auto_ultimate_enabled = self.ctx.battle_assistant_config.auto_ultimate_enabled
 
         return self.round_success()
 
@@ -93,4 +100,5 @@ class AutoBattleApp(ZApplication):
         self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self, e=None):
-        self.ctx.auto_battle_context.resume_auto_battle()
+        if self.current_node.node is not None and self.current_node.node.cn == '画面识别':
+            self.ctx.auto_battle_context.resume_auto_battle()

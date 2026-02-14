@@ -71,6 +71,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         self.open_btn.clicked.connect(self._on_open_image)
         self.image_label.right_clicked_with_pos.connect(self._on_image_right_clicked)
         self.image_label.rect_selected.connect(self._on_image_rect_selected)
+        self.image_label.image_pasted.connect(self._on_image_pasted)
         self.del_btn.clicked.connect(self._on_delete_step)
         self.copy_btn.clicked.connect(self._on_copy_code_clicked)
         self.up_btn.clicked.connect(self._on_move_step_up)
@@ -656,9 +657,26 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
         if not file_path:
             return
 
-        if self.logic.load_image(file_path):
+        if self.logic.load_image_from_path(file_path):
             self._display_image(self.logic.get_display_image())
             self._update_toggle_button_text()
+
+    def _on_image_pasted(self, image_data) -> None:
+        """
+        通过拖放或粘贴加载图片后的回调
+        :param image_data: 文件路径 (str) 或 numpy 数组 (RGB 格式)
+        :return:
+        """
+        if isinstance(image_data, str):
+            # 文件路径，使用 logic 的加载方法
+            if self.logic.load_image_from_path(image_data):
+                self._display_image(self.logic.get_display_image())
+                self._update_toggle_button_text()
+        else:
+            # numpy 数组，直接设置到 context
+            if self.logic.load_image_from_array(image_data):
+                self._display_image(self.logic.get_display_image())
+                self._update_toggle_button_text()
 
     def _display_image(self, image_np: np.ndarray):
         """

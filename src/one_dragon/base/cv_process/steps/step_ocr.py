@@ -2,6 +2,7 @@
 from typing import Dict, Any
 import cv2
 from one_dragon.base.cv_process.cv_step import CvStep, CvPipelineContext
+from one_dragon.utils import gpu_executor
 
 
 class CvStepOcr(CvStep):
@@ -67,7 +68,11 @@ class CvStepOcr(CvStep):
         #     context.ocr.update_options(new_options)
 
         # 执行OCR
-        ocr_results = context.ocr.run_ocr(context.display_image)
+        if context.ocr.is_use_gpu():
+            f = gpu_executor.submit(context.ocr.run_ocr, image=context.display_image)
+            ocr_results = f.result()
+        else:
+            ocr_results = context.ocr.run_ocr(context.display_image)
         context.ocr_result = ocr_results
         if not ocr_results:
             context.success = False

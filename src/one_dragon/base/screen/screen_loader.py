@@ -1,9 +1,11 @@
 import os
-from cv2.typing import MatLike
 from typing import Optional
+
+import yaml
 
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_info import ScreenInfo
+from one_dragon.utils import os_utils
 from one_dragon.utils.log_utils import log
 
 
@@ -47,41 +49,97 @@ class ScreenContext:
         self.screen_info_list: list[ScreenInfo] = []
         self.screen_info_map: dict[str, ScreenInfo] = {}
         self._screen_area_map: dict[str, ScreenArea] = {}
+        self._id_2_screen: dict[str, ScreenInfo] = {}
         self.screen_route_map: dict[str, dict[str, ScreenRoute]] = {}
 
         self.last_screen_name: Optional[str] = None  # 上一个画面名字
         self.current_screen_name: Optional[str] = None  # 当前的画面名字
 
-    def load_all(self) -> None:
+    @property
+    def yml_file_dir(self) -> str:
+        return os_utils.get_path_under_work_dir('assets', 'game_data', 'screen_info')
+
+    @property
+    def merge_yml_file_path(self) -> str:
+        return os.path.join(self.yml_file_dir, '_od_merged.yml')
+
+    def get_yml_file_path(self, screen_id: str) -> str:
+        return os.path.join(self.yml_file_dir, f'{screen_id}.yml')
+
+    def reload(self, from_memory: bool = False, from_separated_files: bool = False) -> None:
         """
-        加载当前全部的画面
-        :return:
+        重新加载配置文件
+
+        Args:
+            from_memory: 是否从内存中加载 管理画面修改的是 self._id_2_screen 修改后从这里更新其它内存值
+            from_separated_files: 是否从单独文件加载
         """
         self.screen_info_list.clear()
         self.screen_info_map.clear()
         self._screen_area_map.clear()
 
-        dir_path = ScreenInfo.get_dir_path()
-        for file_name in os.listdir(dir_path):
-            file_path = os.path.join(dir_path, file_name)
-            if file_name.endswith('.yml') and os.path.isfile(file_path):
-                screen_info = ScreenInfo(screen_id=file_name[:-4])
+        if from_memory:
+            for screen_info in self._id_2_screen.values():
                 self.screen_info_list.append(screen_info)
                 self.screen_info_map[screen_info.screen_name] = screen_info
+
+                for screen_area in screen_info.area_list:
+                    self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
+        elif from_separated_files:
+            self._id_2_screen.clear()
+            for file_name in os.listdir(self.yml_file_dir):
+                if not file_name.endswith('.yml'):
+                    continue
+                if file_name == '_od_merged.yml':
+                    continue
+                file_path = os.path.join(self.yml_file_dir, file_name)
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    log.debug(f"加载yaml: {file_path}")
+                    data = yaml.safe_load(file)
+
+                screen_info = ScreenInfo(data)
+                self.screen_info_list.append(screen_info)
+                self.screen_info_map[screen_info.screen_name] = screen_info
+                self._id_2_screen[screen_info.screen_id] = screen_info
+
+                for screen_area in screen_info.area_list:
+                    self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
+        else:
+            self._id_2_screen.clear()
+            file_path = self.merge_yml_file_path
+            with open(file_path, 'r', encoding='utf-8') as file:
+                log.debug(f"加载yaml: {file_path}")
+                yaml_data = yaml.safe_load(file)
+            for data in yaml_data:
+                screen_info = ScreenInfo(data)
+                self.screen_info_list.append(screen_info)
+                self.screen_info_map[screen_info.screen_name] = screen_info
+                self._id_2_screen[screen_info.screen_id] = screen_info
 
                 for screen_area in screen_info.area_list:
                     self._screen_area_map[f'{screen_info.screen_name}.{screen_area.area_name}'] = screen_area
 
         self.init_screen_route()
 
-    def get_screen(self, screen_name: str) -> ScreenInfo:
+    def get_screen(self, screen_name: str, copy: bool = False) -> ScreenInfo:
         """
         获取某个画面
-        :param screen_name:
-        :return:
+
+        Args:
+            screen_name: 画面名称
+            copy: 是否复制 用于管理界面临时修改使用
+
+        Returns:
+            ScreenInfo 画面信息
         """
         key = screen_name
-        return self.screen_info_map.get(key, None)
+        screen = self.screen_info_map.get(key, None)
+        if screen is None:
+            raise Exception(f"未找到画面: {screen_name}")
+        if copy:
+            return ScreenInfo(screen.to_dict())
+        else:
+            return screen
 
     def get_area(self, screen_name: str, area_name: str) -> ScreenArea:
         """
@@ -90,6 +148,63 @@ class ScreenContext:
         """
         key = f'{screen_name}.{area_name}'
         return self._screen_area_map.get(key, None)
+
+    def save_screen(self, screen_info: ScreenInfo) -> None:
+        """
+        保存画面
+
+        Args:
+            screen_info: 画面信息
+        """
+        if screen_info.old_screen_id != screen_info.screen_id:
+            self.delete_screen(screen_info.old_screen_id, save=False)
+        self._id_2_screen[screen_info.screen_id] = screen_info
+        self.save(screen_id=screen_info.screen_id)
+
+    def delete_screen(self, screen_id: str, save: bool = True) -> None:
+        """
+        删除一个画面
+        Args:
+            screen_id: 画面ID
+            save: 是否触发保存
+        """
+        if screen_id in self._id_2_screen:
+            del self._id_2_screen[screen_id]
+
+            file_path = self.get_yml_file_path(screen_id)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+        if save:
+            self.save(screen_id=screen_id)
+        else:
+            self.reload(from_memory=True)
+
+    def save(self, screen_id: str | None = None, reload_after_save: bool = True) -> None:
+        """
+        保存到文件
+
+        Args:
+            screen_id: 画面ID
+            reload_after_save: 保存后是否重新加载
+        """
+        all_data = []
+
+        # 保存到单个文件
+        for screen_info in self._id_2_screen.values():
+            data = screen_info.to_dict()
+            all_data.append(data)
+
+            if screen_id is not None and screen_id == screen_info.screen_id:
+                with open(self.get_yml_file_path(screen_id), 'w', encoding='utf-8') as file:
+                    yaml.safe_dump(data, file, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+        # 保存到合并文件
+        with open(self.merge_yml_file_path, 'w', encoding='utf-8') as file:
+            yaml.safe_dump(all_data, file, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+        if reload_after_save:
+            self.reload(from_memory=True)
 
     def init_screen_route(self) -> None:
         """

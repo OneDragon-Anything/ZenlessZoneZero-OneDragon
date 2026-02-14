@@ -178,6 +178,15 @@ class SuibianTempleConfig(ApplicationConfig):
     def pawnshop_crest_unlimited_denny_enabled(self, value: bool):
         self.update('pawnshop_crest_unlimited_denny_enabled', value)
 
+    @property
+    def auto_manage_enabled(self) -> bool:
+        """自动托管-开关"""
+        return self.get('auto_manage_enabled', True)
+
+    @auto_manage_enabled.setter
+    def auto_manage_enabled(self, value: bool):
+        self.update('auto_manage_enabled', value)
+
 
 class SuibianTempleAdventureMission(StrEnum):
 

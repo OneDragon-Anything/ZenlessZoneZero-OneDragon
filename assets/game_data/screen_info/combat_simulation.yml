@@ -187,10 +187,10 @@ area_list:
 - area_name: 预备编队
   id_mark: false
   pc_rect:
-  - 470
-  - 985
-  - 700
-  - 1052
+  - 368
+  - 1002
+  - 563
+  - 1057
   text: 预备编队
   lcs_percent: 0.5
   template_sub_dir: ''

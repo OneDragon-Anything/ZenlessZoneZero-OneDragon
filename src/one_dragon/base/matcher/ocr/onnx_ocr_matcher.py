@@ -190,6 +190,23 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         self._loading = False
         return True
 
+    def update_use_gpu(self, use_gpu: bool) -> None:
+        """
+        更新是否使用GPU
+
+        Args:
+            use_gpu: 是否使用GPU
+        """
+        if self._ocr_param.use_gpu == use_gpu:
+            return
+
+        self._ocr_param.use_gpu = use_gpu
+        del self._model
+        self._model = None
+
+    def is_use_gpu(self) -> bool:
+        return self._ocr_param.use_gpu
+
     def run_ocr_single_line(self, image: MatLike, threshold: float = 0, strict_one_line: bool = True) -> str:
         """
         单行文本识别 手动合成一行 按匹配结果从左到右 从上到下
@@ -229,7 +246,8 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             cls=self._ocr_param.use_angle_cls
         )
         if len(scan_result_list) == 0:
-            log.debug('OCR结果 %s 耗时 %.2f', result_map.keys(), time.time() - start_time)
+            if log.isEnabledFor(DEBUG):
+                log.debug('OCR结果 %s 耗时 %.2f', result_map.keys(), time.time() - start_time)
             return result_map
 
         scan_result = scan_result_list[0]
@@ -251,7 +269,9 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         if merge_line_distance != -1:
             result_map = ocr_utils.merge_ocr_result_to_multiple_line(result_map, join_space=True,
                                                                      merge_line_distance=merge_line_distance)
-        log.debug('OCR结果 %s 耗时 %.2f', result_map.keys(), time.time() - start_time)
+
+        if log.isEnabledFor(DEBUG):
+            log.debug('OCR结果 %s 耗时 %.2f', result_map.keys(), time.time() - start_time)
         return result_map
 
     def _run_ocr_without_det(self, image: MatLike, threshold: float = 0) -> str:
@@ -278,7 +298,8 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         if img_result[0][1] < threshold:
             log.debug("OCR模型返回的识别结果置信度低于阈值")
             return ""
-        log.debug('OCR结果 %s 耗时 %.2f', scan_result, time.time() - start_time)
+        if log.isEnabledFor(DEBUG):
+            log.debug('OCR结果 %s 耗时 %.2f', scan_result, time.time() - start_time)
         return img_result[0][0]
 
     def match_words(
@@ -342,7 +363,8 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
 
         scan_result_list: list = self._model.ocr(image, cls=False)
         if len(scan_result_list) == 0:
-            log.debug('OCR结果 [] 耗时 %.2f', time.time() - start_time)
+            if log.isEnabledFor(DEBUG):
+                log.debug('OCR结果 [] 耗时 %.2f', time.time() - start_time)
             return ocr_result_list
 
         scan_result = scan_result_list[0]  # 只取第一张图片

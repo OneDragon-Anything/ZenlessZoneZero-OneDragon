@@ -27,9 +27,9 @@ class BattleAssistantInterface(PivotNavigatorInterface):
 
     def create_sub_interface(self):
         """
-        创建并添加战斗助手的各个子界面，包括躲避助手、自动战斗和操作调试界面。
+        创建并添加战斗助手的各个子界面，包括自动战斗、躲避助手和操作调试界面。
         """
-        self.add_sub_interface(DodgeAssistantInterface(self.ctx))
         self.add_sub_interface(AutoBattleInterface(self.ctx))
+        self.add_sub_interface(DodgeAssistantInterface(self.ctx))
         self.add_sub_interface(OperationDebugInterface(self.ctx))
         self.add_sub_interface(AutoBattleEditorInterface(self.ctx))

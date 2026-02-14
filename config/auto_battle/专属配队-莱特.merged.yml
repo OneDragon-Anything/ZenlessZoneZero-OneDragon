@@ -67,21 +67,22 @@
           "op_name": "设置状态"
           "state": "自定义-闪避"
         - &id008
-          "op_name": "按键-移动-前"
-          "post_delay": 0.1
-          "way": "按下"
+          "op_name": "按键-移动-前-按下"
         - &id009
+          "op_name": "等待秒数"
+          "seconds": 0.1
+        - &id010
           "op_name": "按键-闪避"
           "post_delay": 0.1
-        - &id010
-          "op_name": "按键-移动-前"
-          "way": "松开"
+        - &id011
+          "op_name": "按键-移动-前-松开"
         "states": ""
     - "operations":
       - *id007
       - *id008
       - *id009
       - *id010
+      - *id011
       "states": ""
   "interval": 1
   "triggers":
@@ -127,12 +128,12 @@
     - "states": "([连携技-1-凯撒] | [连携技-2-凯撒]) & ![自定义-凯撒-战意激昂, 0, 25]"
       "sub_handlers":
       - "operations":
-        - &id011
-          "op_name": "按键-连携技-左"
         - &id012
+          "op_name": "按键-连携技-左"
+        - &id013
           "op_name": "设置状态"
           "state": "自定义-连携技换人"
-        - &id013
+        - &id014
           "op_name": "清除状态"
           "state_list":
           - "自定义-招架支援"
@@ -141,12 +142,12 @@
           - "自定义-动作不打断"
         "states": "[连携技-1-凯撒]"
       - "operations":
-        - &id014
-          "op_name": "按键-连携技-右"
         - &id015
+          "op_name": "按键-连携技-右"
+        - &id016
           "op_name": "设置状态"
           "state": "自定义-连携技换人"
-        - &id016
+        - &id017
           "op_name": "清除状态"
           "state_list":
           - "自定义-招架支援"
@@ -155,51 +156,48 @@
           - "自定义-动作不打断"
         "states": "[连携技-2-凯撒]"
     - "operations":
-      - *id011
       - *id012
       - *id013
+      - *id014
       "states": "[连携技-1-露西]"
     - "operations":
-      - *id014
       - *id015
       - *id016
+      - *id017
       "states": "[连携技-2-露西]"
     - "operations":
-      - *id011
       - *id012
       - *id013
+      - *id014
       "states": "[连携技-1-凯撒]"
     - "operations":
-      - *id014
       - *id015
       - *id016
+      - *id017
       "states": "[连携技-2-凯撒]"
     - "operations":
-      - *id011
       - *id012
       - *id013
+      - *id014
       "states": "[连携技-1-莱特]"
     - "operations":
-      - *id014
       - *id015
       - *id016
+      - *id017
       "states": "[连携技-2-莱特]"
   "interval": 1
   "triggers":
   - "按键可用-连携技"
 - "handlers":
-  - "debug_name": "角色识别中，检查皮肤设置"
+  - "debug_name": "角色识别中"
     "operations":
-    - "op_name": "按键-特殊攻击"
-      "way": "松开"
-    - "op_name": "按键-移动-前"
-      "way": "松开"
-    - "op_name": "按键-移动-左"
-      "way": "松开"
-    - "op_name": "按键-移动-后"
-      "way": "松开"
-    - "op_name": "按键-移动-右"
-      "way": "松开"
+    - "op_name": "设置状态"
+      "state": "自定义-角色未识别"
+    - "op_name": "按键-特殊攻击-松开"
+    - "op_name": "按键-移动-前-松开"
+    - "op_name": "按键-移动-左-松开"
+    - "op_name": "按键-移动-后-松开"
+    - "op_name": "按键-移动-右-松开"
     - "op_name": "等待秒数"
       "seconds": 0.1
     "states": "![前台-击破] & ![前台-强攻] & ![前台-支援] & ![前台-防护] & ![前台-异常]& ![前台-命破]"
@@ -342,9 +340,8 @@
     - "operations":
       - "op_name": "设置状态"
         "state": "自定义-动作不打断"
-      - "op_name": "按键-特殊攻击"
+      - "op_name": "按键-特殊攻击-按下"
         "press": 1
-        "way": "按下"
       - "op_name": "设置状态"
         "state": "自定义-下场"
       - "op_name": "设置状态"
@@ -459,8 +456,7 @@
     - "operations":
       - "op_name": "设置状态"
         "state": "自定义-动作不打断"
-      - "op_name": "按键-移动-前"
-        "way": "按下"
+      - "op_name": "按键-移动-前-按下"
       - "op_name": "按键-普通攻击"
         "post_delay": 0.2
       - "op_name": "按键-闪避"
@@ -470,8 +466,7 @@
       - "op_name": "按键-普通攻击"
         "post_delay": 0.2
         "repeat": 8
-      - "op_name": "按键-移动-前"
-        "way": "松开"
+      - "op_name": "按键-移动-前-松开"
       - "op_name": "等待秒数"
         "seconds": 0.5
       - "op_name": "设置状态"
