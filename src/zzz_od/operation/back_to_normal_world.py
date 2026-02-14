@@ -44,8 +44,9 @@ class BackToNormalWorld(ZOperation):
         识别游戏画面
         :return:
         """
-        current_screen = self.check_and_update_current_screen()
-        if current_screen in ['大世界-普通', '大世界-勘域']:
+        screen_name_list = ['大世界-普通', '大世界-勘域']
+        current_screen = self.check_and_update_current_screen(screen_name_list=screen_name_list)
+        if current_screen in screen_name_list:
             if current_screen == '大世界-勘域':
                 # 脱离卡死后到达大世界，立即打开地图传送到录像店
                 should_transport = self.ensure_normal_world or self.previous_node.name == '确认脱离卡死'
