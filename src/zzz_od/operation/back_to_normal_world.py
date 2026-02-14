@@ -28,7 +28,7 @@ class BackToNormalWorld(ZOperation):
         self.ensure_normal_world: bool = ensure_normal_world  # 是否回到普通大世界
         self.handle_init()
 
-    def handle_init(self):
+    def handle_init(self) -> None:
         self.last_dialog_idx: int = -1  # 上次选择的对话选项下标
         self.click_exit_battle: bool = False  # 是否点击了退出战斗
         self.prefer_dialog_confirm: bool = False  # 第一次优先取消，后续确认/取消轮流点击
