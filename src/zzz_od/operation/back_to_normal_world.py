@@ -49,7 +49,8 @@ class BackToNormalWorld(ZOperation):
             if current_screen == '大世界-勘域':
                 # 脱离卡死后到达大世界，立即打开地图传送到录像店
                 should_transport = self.ensure_normal_world or self.previous_node.name == '确认脱离卡死'
-                if should_transport and self.previous_node.name != '执行传送' and self.previous_node.is_success:
+                already_transport = self.previous_node.name == '执行传送' and self.previous_node.is_success
+                if should_transport and not already_transport:
                     return self.round_success('传送到录像店')
 
             return self.round_success(status=current_screen)
