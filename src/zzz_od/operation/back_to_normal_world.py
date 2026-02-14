@@ -157,7 +157,7 @@ class BackToNormalWorld(ZOperation):
     @operation_node(name='确认脱离卡死')
     def confirm_escape_stuck(self) -> OperationRoundResult:
         """确认脱离卡死"""
-        return self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死-确认')
+        return self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死-确认', retry_wait=0.5)
 
     @node_from(from_name='画面识别', status='传送到录像店')
     @operation_node(name='打开地图', node_max_retry_times=60)
