@@ -37,6 +37,7 @@ class BackToNormalWorld(ZOperation):
     @node_from(from_name='执行传送')
     @node_from(from_name='执行传送', success=False)
     @node_from(from_name='确认脱离卡死')
+    @node_from(from_name='确认脱离卡死', success=False)
     @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=60)
     def check_screen_and_run(self) -> OperationRoundResult:
         """
@@ -48,7 +49,7 @@ class BackToNormalWorld(ZOperation):
             if current_screen == '大世界-勘域':
                 # 脱离卡死后到达大世界，立即打开地图传送到录像店
                 should_transport = self.ensure_normal_world or self.previous_node.name == '确认脱离卡死'
-                if should_transport and self.previous_node.name != '执行传送':
+                if should_transport and self.previous_node.name != '执行传送' and self.previous_node.is_success:
                     return self.round_success('传送到录像店')
 
             return self.round_success(status=current_screen)
