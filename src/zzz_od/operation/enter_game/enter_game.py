@@ -367,14 +367,14 @@ class EnterGame(ZOperation):
             ocr_result_map,
             target_word_list
         )
-        if match_word is not None:
+        if match_word is not None and match_word_mrl is not None and match_word_mrl.max is not None:
             time.sleep(0.5) # 等待画面稳定
             self.ctx.controller.click(match_word_mrl.max.center)
             return self.round_wait(status=match_word, wait=1)
 
         return None
 
-    def is_in_big_world(self, screen: MatLike):
+    def is_in_big_world(self, screen: MatLike) -> Optional[OperationRoundResult]:
         # 判定是否进入大世界
         world_screens = ['大世界-普通', '大世界-勘域']
         current_screen = self.check_and_update_current_screen(
