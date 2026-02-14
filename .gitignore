@@ -10,10 +10,11 @@ deploy/dist/
 recording.jsonl
 QWEN.md
 GEMINI.md
-CLAUDE.md
 .lingma/
 .qwen/
 .claude/
+!.claude/settings.json
+nul
 
 # 用户独有的配置文件
 env.bat
