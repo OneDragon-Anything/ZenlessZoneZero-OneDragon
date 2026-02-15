@@ -44,7 +44,7 @@ class IntelBoardApp(ZApplication):
 
     @operation_node(name='返回大世界', is_start_node=True)
     def back_to_world(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
+        op = BackToNormalWorld(self.ctx, ensure_normal_world=True)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='返回大世界')
