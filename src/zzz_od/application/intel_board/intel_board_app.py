@@ -158,7 +158,7 @@ class IntelBoardApp(ZApplication):
         if result.is_success:
             return self.round_success('委托已接取')
 
-        return self.round_by_ocr_and_click('接取委托', success_wait=1, retry_wait=1)
+        return self.round_by_ocr_and_click(self.last_screenshot, '接取委托', success_wait=1, retry_wait=1)
 
     @node_from(from_name='接取委托')
     @operation_node(name='检查接取结果')
