@@ -66,10 +66,6 @@ class BackToNormalWorld(ZOperation):
         if result.is_success:
             return self.round_retry(result.status, wait=1)
 
-        # 部分画面有关闭按钮（置前，插件场景"关闭"和"合成（完成）"可能同时存在）
-        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '关闭')
-        if result.is_success:
-            return self.round_retry(result.status, wait=1)
 
         # 战斗菜单-退出战斗（完全通用，包括但不限于危局强袭战！）
         result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-退出战斗')
@@ -92,7 +88,20 @@ class BackToNormalWorld(ZOperation):
             if result.is_success:
                 return self.round_retry(result.status, wait=1)  # 等待游戏传送回大世界
 
-        # 通用完成按钮（置后，避免插件场景"合成"被误匹配为"完成"）
+        # 通用返回按钮（识别点击型）
+        # 需要在"完成"前面，某些插件场景可能会识别到'返回'和"完成"同时存在
+        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '返回')
+        if result.is_success:
+            return self.round_retry(result.status, wait=1)
+
+        # 部分画面有关闭按钮
+        result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '关闭')
+        if result.is_success:
+            return self.round_retry(result.status, wait=1)
+
+        # 通用完成按钮
+        # 某些插件场景"合成"可能会被误匹配为"完成"
+        # 需要在'返回'后面，购买大月卡后返回大世界一直点击“已完成购买” issue #2005
         result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '完成')
         if result.is_success:
             return self.round_retry(result.status, wait=1)
@@ -131,7 +140,8 @@ class BackToNormalWorld(ZOperation):
             self.round_by_click_area('战斗画面', '菜单')
             return self.round_retry(result.status, wait=0.5)
 
-        # 兜底的无条件返回（左上角的红色返回按钮，很多画面共有，故不能提前使用）
+        # 通用返回按钮（兜底点击型）
+        # 区域位于左上角的红色返回按钮，不进行识别，相当于点击空白区域，故不能提前使用
         click_back = self.round_by_click_area('画面-通用', '返回')
         if click_back.is_success:
             # 由于上方识别可能耗时较长

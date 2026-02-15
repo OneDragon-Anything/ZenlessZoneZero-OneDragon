@@ -35,6 +35,7 @@ class CityFundApp(ZApplication):
                                            success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击丽都城募')
+    @node_from(from_name='点击成长任务', status='按钮-确认')
     @operation_node(name='点击成长任务')
     def click_task(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '丽都城募', '开启丽都城募')
@@ -64,10 +65,17 @@ class CityFundApp(ZApplication):
     @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='等级全部领取')
     def click_level_claim(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(self.last_screenshot, '丽都城募', '等级-全部领取',
-                                                 success_wait=1, retry_wait=1)
+        # 2.6版本更新，等级回馈领取，已领取过全部领取按钮是会消失的
+        for screen_name, area_name in [
+            ('丽都城募', '等级-全部领取'),
+            ('丽都城募', '按钮-确认'),
+        ]:
+            result = self.round_by_find_and_click_area(self.last_screenshot, screen_name, area_name, success_wait=1)
+            if result.is_success:
+                return self.round_retry(status=result.status, wait=1)
 
-    @node_from(from_name='点击成长任务', status='按钮-确认')
+        return self.round_success()  # 两个按钮都未找到，说明已领取完毕
+
     @node_from(from_name='等级全部领取')
     @node_from(from_name='等级全部领取', success=False)
     @operation_node(name='返回大世界')
@@ -78,7 +86,7 @@ class CityFundApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     app = CityFundApp(ctx)
     app.execute()
 
