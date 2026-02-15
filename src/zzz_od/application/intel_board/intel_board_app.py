@@ -217,9 +217,15 @@ class IntelBoardApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='选择预备编队')
+    @operation_node(name='点击出战')
+    def click_deploy(self) -> OperationRoundResult:
+        # 9. 编队选择完成后点击出战进入战斗
+        return self.round_by_ocr_and_click(self.last_screenshot, '出战', success_wait=1, retry_wait=1)
+
+    @node_from(from_name='点击出战')
     @operation_node(name='加载自动战斗指令')
     def init_auto_battle(self) -> OperationRoundResult:
-        # 9. 加载自动战斗指令 根据编队配置或默认配置
+        # 10. 加载自动战斗指令 根据编队配置或默认配置
         if self.config.predefined_team_idx == -1:
             auto_battle = self.config.auto_battle_config
         else:
@@ -229,12 +235,6 @@ class IntelBoardApp(ZApplication):
         return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
-    @operation_node(name='点击出战')
-    def click_deploy(self) -> OperationRoundResult:
-        # 10. 编队选择完成后点击出战进入战斗
-        return self.round_by_ocr_and_click(self.last_screenshot, '出战', success_wait=1, retry_wait=1)
-
-    @node_from(from_name='点击出战')
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
     def wait_battle_screen(self) -> OperationRoundResult:
         # 11. 等待战斗画面加载完成
