@@ -15,30 +15,42 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 class BackToNormalWorld(ZOperation):
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext, ensure_normal_world: bool = False):
         """
         需要保证在任何情况下调用，都能返回大世界，让后续的应用可执行
-        :param ctx:
+
+        Args:
+            ctx (ZContext): 上下文
+            ensure_normal_world (bool): 是否回到普通大世界
         """
         ZOperation.__init__(self, ctx, op_name=gt('返回大世界'))
 
+        self.ensure_normal_world: bool = ensure_normal_world  # 是否回到普通大世界
+        self.handle_init()
+
+    def handle_init(self) -> None:
         self.last_dialog_idx: int = -1  # 上次选择的对话选项下标
         self.click_exit_battle: bool = False  # 是否点击了退出战斗
-        self.click_escape_stuck: bool = False  # 是否点击了脱离卡死
         self.prefer_dialog_confirm: bool = False  # 第一次优先取消，后续确认/取消轮流点击
 
     @node_from(from_name='打开地图', success=False)
+    @node_from(from_name='执行传送')
+    @node_from(from_name='执行传送', success=False)
+    @node_from(from_name='确认脱离卡死', success=False)
     @operation_node(name='画面识别', is_start_node=True, node_max_retry_times=60)
     def check_screen_and_run(self) -> OperationRoundResult:
         """
         识别游戏画面
         :return:
         """
+        screen_name_list = ['大世界-普通', '大世界-勘域']
         current_screen = self.check_and_update_current_screen()
-        if current_screen in ['大世界-普通', '大世界-勘域']:
-            if self.click_escape_stuck:  # 脱离卡死后到达大世界，立即打开地图传送到录像店
-                self.click_escape_stuck = False
-                return self.round_success('脱离卡死-传送')
+        if current_screen in screen_name_list:
+            if current_screen == '大世界-勘域':
+                already_transport = self.previous_node.name == '执行传送' and self.previous_node.is_success
+                if self.ensure_normal_world and not already_transport:
+                    return self.round_success('传送到录像店')
+
             return self.round_success(status=current_screen)
 
         result = self.round_by_goto_screen(screen=self.last_screenshot, screen_name='大世界-普通', retry_wait=None)
@@ -81,12 +93,7 @@ class BackToNormalWorld(ZOperation):
         # 战斗菜单-脱离卡死（大世界-勘域不慎进入战斗状态时使用）
         result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死')
         if result.is_success:
-            self.click_escape_stuck = True
-            return self.round_retry(result.status, wait=1)
-        if self.click_escape_stuck:  # 必须置前，因为会被通用的"取消"误判
-            result = self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死-确认')
-            if result.is_success:
-                return self.round_retry(result.status, wait=1)  # 等待游戏传送回大世界
+            return self.round_success('脱离卡死', wait=1)
 
         # 通用返回按钮（识别点击型）
         # 需要在"完成"前面，某些插件场景可能会识别到'返回'和"完成"同时存在
@@ -153,14 +160,18 @@ class BackToNormalWorld(ZOperation):
         else:
             return self.round_fail()
 
-    @node_from(from_name='画面识别', status='脱离卡死-传送')
+    @node_from(from_name='画面识别', status='脱离卡死')
+    @operation_node(name='确认脱离卡死')
+    def confirm_escape_stuck(self) -> OperationRoundResult:
+        """确认脱离卡死"""
+        return self.round_by_find_and_click_area(self.last_screenshot, '战斗-菜单', '按钮-脱离卡死-确认', retry_wait=0.5)
+
+    @node_from(from_name='画面识别', status='传送到录像店')
+    @node_from(from_name='确认脱离卡死')
     @operation_node(name='打开地图', node_max_retry_times=60)
     def open_map(self) -> OperationRoundResult:
         """脱离卡死后，识别到大世界立即点击地图按钮"""
-        result = self.round_by_find_and_click_area(self.last_screenshot, '大世界', '地图')
-        if result.is_success:
-            return self.round_success(result.status)
-        return self.round_retry(result.status, wait=0.5)
+        return self.round_by_find_and_click_area(self.last_screenshot, '大世界', '地图', retry_wait=0.5)
 
     @node_from(from_name='打开地图')
     @operation_node(name='执行传送')
