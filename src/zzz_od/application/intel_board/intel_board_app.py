@@ -71,7 +71,7 @@ class IntelBoardApp(ZApplication):
         return self.round_by_ocr_and_click(self.last_screenshot, '情报板', success_wait=1, retry_wait=1)
 
     @node_from(from_name='检查进度', success=False)
-    @node_from(from_name='检查接取结果', status='接取失败')
+    @node_from(from_name='接取委托', success=False)
     @operation_node(name='刷新委托')
     def refresh_commission(self) -> OperationRoundResult:
         # 3. 点击下面的刷新
@@ -153,32 +153,18 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='寻找委托')
     @operation_node(name='接取委托')
     def accept_commission(self) -> OperationRoundResult:
-        # 5. 点击（ocr）接取委托，或者已经有前往按钮/委托进行中则直接成功
-        result = self.round_by_ocr(self.last_screenshot, target_cn='前往')
-        if result.is_success:
-            return self.round_success('委托已接取')
 
-        return self.round_by_ocr_and_click(self.last_screenshot, '接取委托', success_wait=1, retry_wait=1)
+        return self.round_by_ocr_and_click_with_action(
+            target_action_list=[
+                ('接取委托', OperationRoundResultEnum.WAIT),
+                ('前往', OperationRoundResultEnum.SUCCESS),
+            ],
+            success_wait=0.5,
+            wait_wait=0.5,
+            retry_wait=0.5,
+        )
 
     @node_from(from_name='接取委托')
-    @operation_node(name='检查接取结果')
-    def check_accept_result(self) -> OperationRoundResult:
-        screen = self.last_screenshot
-        ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
-        ocr_texts = [i.data for i in ocr_results]
-
-        if str_utils.find_best_match_by_difflib(gt('接取失败', 'game'), ocr_texts) is not None:
-            return self.round_success(status='接取失败')
-
-        return self.round_success(status='接取成功')
-
-    @node_from(from_name='检查接取结果', status='接取成功')
-    @node_from(from_name='接取委托', status='委托已接取')
-    @operation_node(name='前往')
-    def go_to_commission(self) -> OperationRoundResult:
-        return self.round_by_ocr_and_click(self.last_screenshot, '前往', success_wait=2, retry_wait=1)
-
-    @node_from(from_name='前往')
     @operation_node(name='下一步')
     def next_step(self) -> OperationRoundResult:
         # 7. 持续点击下一步直到出现预备编队页面 需要先选编队再出战
