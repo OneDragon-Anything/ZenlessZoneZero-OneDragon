@@ -154,11 +154,20 @@ class IntelBoardApp(ZApplication):
     @operation_node(name='接取委托')
     def accept_commission(self) -> OperationRoundResult:
         # 5. 点击（ocr）接取委托，或者已经有前往按钮/委托进行中则直接成功
+        result = self.round_by_ocr_and_click_with_action(
+            target_action_list=[
+                ('前往', OperationRoundResultEnum.SUCCESS),       # 兜底：已经接取过
+                ('委托进行中', OperationRoundResultEnum.SUCCESS),  # 兜底：委托进行中
+            ],
+            success_wait=1,
+            retry_wait=1
+        )
+        if result.is_success:
+            return self.round_success('委托已接取')
+
         return self.round_by_ocr_and_click_with_action(
             target_action_list=[
                 ('接取委托', OperationRoundResultEnum.SUCCESS),
-                ('前往', OperationRoundResultEnum.SUCCESS),       # 兜底：已经接取过
-                ('委托进行中', OperationRoundResultEnum.SUCCESS),  # 兜底：委托进行中
             ],
             success_wait=1,
             retry_wait=1
@@ -179,13 +188,10 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='检查接取结果', status='接取成功')
     @operation_node(name='前往')
     def go_to_commission(self) -> OperationRoundResult:
-        # 6. ocr 前往并点击 如果已经在挑战详情页(有下一步)则说明接取委托时点击前往已跳转
-        result = self.round_by_ocr(self.last_screenshot, '下一步')
-        if result.is_success:
-            return self.round_success(status='下一步')
         return self.round_by_ocr_and_click(self.last_screenshot, '前往', success_wait=2, retry_wait=1)
 
     @node_from(from_name='前往')
+    @node_from(from_name='接取委托', status='委托已接取')
     @operation_node(name='下一步')
     def next_step(self) -> OperationRoundResult:
         # 7. 持续点击下一步直到出现预备编队页面 需要先选编队再出战
