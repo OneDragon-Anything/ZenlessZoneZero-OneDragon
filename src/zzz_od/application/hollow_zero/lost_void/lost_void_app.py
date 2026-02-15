@@ -4,12 +4,12 @@ from typing import ClassVar
 import cv2
 
 from one_dragon.base.geometry.point import Point
-from one_dragon.base.matcher.match_result import MatchResult
+from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -29,8 +29,8 @@ from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import Agent, AgentEnum
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
-from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 from zzz_od.operation.choose_predefined_team import ChoosePredefinedTeam
+from zzz_od.operation.compendium.tp_by_compendium import TransportByCompendium
 from zzz_od.operation.deploy import Deploy
 
 
@@ -38,6 +38,7 @@ class LostVoidApp(ZApplication):
 
     STATUS_ENOUGH_TIMES: ClassVar[str] = '完成通关次数'
     STATUS_AGAIN: ClassVar[str] = '继续挑战'
+    STATUS_AGAIN_MATRIX: ClassVar[str] = '继续挑战-矩阵行动'
 
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
@@ -60,9 +61,12 @@ class LostVoidApp(ZApplication):
         self.priority_agent_list: list[Agent] = []  # 优先选择的代理人列表
 
         self.use_priority_agent: bool = False  # 本次挑战是否使用了UP代理人
+        self._entry_nav_click_cooldown_sec: float = 1.0
+        self._entry_nav_last_click_at: float = 0.0
 
     @operation_node(name='初始化加载', is_start_node=True)
     def init_for_lost_void(self) -> OperationRoundResult:
+        self._reset_entry_nav_click_cooldown()
         # 检查分配给今天的任务是否完成
         if self.run_record.is_finished_by_day:
             return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
@@ -122,6 +126,13 @@ class LostVoidApp(ZApplication):
         if result.is_success:
             return self.round_retry(result.status, wait=0.5)
 
+        # 新入口UI：战线肃清/特遣调查需要先在“矩阵探索”页点击“常规”再点目标副本
+        # 到达入口的判定只认“常规”，后续分流由OCR导航节点按副本目标处理
+        if self.config.mission_name in ['战线肃清', '特遣调查']:
+            ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+            if self._find_ocr_text_mr(ocr_result_map, '常规') is not None:
+                return self.round_success(status='迷失之地-入口')
+
         screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
         if screen_name != '迷失之地-入口':
             return self.round_wait(status='等待画面加载', wait=1)
@@ -143,6 +154,8 @@ class LostVoidApp(ZApplication):
         if not self.config.is_bounty_commission_mode:
             if self.run_record.is_finished_by_day:
                 return self.round_success(LostVoidApp.STATUS_ENOUGH_TIMES)
+            if self.config.mission_name == '矩阵行动':
+                return self.round_success(LostVoidApp.STATUS_AGAIN_MATRIX)
             return self.round_success(LostVoidApp.STATUS_AGAIN)
 
         TARGET_SCORE = '8000'  # 目标分数文本
@@ -160,6 +173,8 @@ class LostVoidApp(ZApplication):
         # 根据次数判断完成状态
         if target_count == 1:
             # 只有一个 8000,表示 xxxx/8000 (未完成)
+            if self.config.mission_name == '矩阵行动':
+                return self.round_success(LostVoidApp.STATUS_AGAIN_MATRIX)
             return self.round_success(LostVoidApp.STATUS_AGAIN)
         elif target_count == 2:
             # 两个 8000,表示 8000/8000 (已完成)
@@ -170,13 +185,211 @@ class LostVoidApp(ZApplication):
             # 未识别到预期的结果(0次或3次以上),返回重试
             return self.round_retry(wait=0.5)
 
+    # ========== 矩阵行动入口流程节点 ==========
+
+    @node_from(from_name='识别悬赏委托完成进度', status=STATUS_AGAIN_MATRIX)
+    @operation_node(name='矩阵行动-前往入口')
+    def matrix_goto_entry(self) -> OperationRoundResult:
+        return self.round_by_goto_screen(screen_name='迷失之地-入口')
+
+    @node_from(from_name='矩阵行动-前往入口')
+    @operation_node(name='矩阵行动-前往挑战')
+    def matrix_goto_challenge(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(
+            self.last_screenshot,
+            '迷失之地-入口',
+            '按钮-前往挑战',
+            success_wait=1,
+        )
+
+    @node_from(from_name='矩阵行动-前往挑战')
+    @operation_node(name='矩阵行动-点击下一步')
+    def matrix_click_next_step(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(
+            self.last_screenshot,
+            '迷失之地-入口',
+            '按钮-下一步',
+            success_wait=1,
+        )
+
+    @node_from(from_name='矩阵行动-点击下一步')
+    @operation_node(name='矩阵行动-点击预备编队')
+    def matrix_click_preset_team(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(
+            self.last_screenshot,
+            '迷失之地-矩阵行动',
+            '预备编队',
+            success_wait=1,
+        )
+
+    @node_from(from_name='矩阵行动-点击预备编队')
+    @operation_node(name='矩阵行动-选择配队')
+    def matrix_select_team(self) -> OperationRoundResult:
+        area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '编队列表')
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=self.last_screenshot,
+            rect=area.rect,
+        )
+
+        # 获取目标编队名称
+        predefined_idx = self.ctx.lost_void.challenge_config.predefined_team_idx
+        if predefined_idx == -1:
+            predefined_idx = 0
+        self.ctx.lost_void.predefined_team_idx = predefined_idx
+        team_name = self.ctx.team_config.team_list[predefined_idx].name
+
+        # 先点击目标编队
+        for ocr_text in ocr_result_list:
+            if team_name in ocr_text.data:
+                self.ctx.controller.click(ocr_text.center)
+                break
+        else:
+            return self.round_retry(f'未找到{team_name}', wait=0.1)
+
+        # 等待画面更新，重新截图OCR
+        time.sleep(0.5)
+        self.screenshot()
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=self.last_screenshot,
+            rect=area.rect,
+        )
+
+        # 检测是否出现"主战"
+        for ocr_text in ocr_result_list:
+            if '主战' in ocr_text.data:
+                return self.round_success('已选择配队', wait=1)
+
+        return self.round_retry('未找到主战', wait=0.5)
+
+    @node_from(from_name='矩阵行动-选择配队')
+    @operation_node(name='矩阵行动-点击协助代理人')
+    def matrix_click_support_agent(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(
+            self.last_screenshot,
+            '迷失之地-矩阵行动',
+            '协战代理人',
+            success_wait=1,
+        )
+
+    @node_from(from_name='矩阵行动-点击协助代理人')
+    @operation_node(name='矩阵行动-等待代理人列表', node_max_retry_times=300)
+    def matrix_wait_support_panel(self) -> OperationRoundResult:
+        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        if self._find_ocr_text_mr(ocr_result_map, '代理人') is not None:
+            return self.round_success('已出现代理人列表')
+        return self.round_retry('等待代理人列表', wait=0.1)
+
+    @node_from(from_name='矩阵行动-等待代理人列表')
+    @operation_node(name='矩阵行动-选择协助代理人')
+    def matrix_select_support_agent(self) -> OperationRoundResult:
+        area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '代理人列表')
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=self.last_screenshot,
+            rect=area.rect,
+        )
+
+        # 先点击UP代理人
+        clicked = False
+        for ocr_text in ocr_result_list:
+            if 'up' in ocr_text.data.lower() and ocr_text.center.x < self.ctx.controller.standard_width // 2:
+                self.ctx.controller.click(ocr_text.center)
+                clicked = True
+                break
+
+        # 找不到UP，点击第一个
+        if not clicked:
+            if len(ocr_result_list) > 0:
+                self.ctx.controller.click(ocr_result_list[0].center)
+            else:
+                return self.round_retry('未找到代理人', wait=0.1)
+
+        # 等待画面更新，重新截图OCR
+        time.sleep(0.5)
+        self.screenshot()
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=self.last_screenshot,
+            rect=area.rect,
+        )
+
+        # 检测是否出现"协战"
+        for ocr_text in ocr_result_list:
+            if '协战' in ocr_text.data:
+                return self.round_success('已选择协助代理人')
+
+        return self.round_retry('未找到协战', wait=0.5)
+
+    @node_from(from_name='矩阵行动-选择协助代理人')
+    @operation_node(name='矩阵行动-开始挑战')
+    def matrix_start_challenge(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(
+            self.last_screenshot,
+            '迷失之地-矩阵行动',
+            '按钮-开始挑战',
+            success_wait=1,
+        )
+
+    # ========== 常规副本入口流程节点 ==========
+
     @node_from(from_name='识别悬赏委托完成进度', status=STATUS_AGAIN)
     @operation_node(name='前往副本画面', node_max_retry_times=60)
     def goto_mission_screen(self) -> OperationRoundResult:
         mission_name = self.config.mission_name
+        if mission_name in ['战线肃清', '特遣调查']:
+            return self.round_success('需OCR入口导航')
         return self.round_by_goto_screen(screen_name=f'迷失之地-{mission_name}')
 
+    @node_from(from_name='前往副本画面', status='需OCR入口导航')
+    @operation_node(name='入口OCR-点击常规', node_max_retry_times=300)
+    def click_regular_in_matrix_explore(self) -> OperationRoundResult:
+        mission_name = self.config.mission_name
+        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+
+        # 条件通过：检测到下一步按钮文字（战线肃清/特遣调查）
+        if self._find_ocr_text_mr(ocr_result_map, mission_name) is not None:
+            self._reset_entry_nav_click_cooldown()
+            return self.round_success('已显示目标副本入口')
+
+        regular_mr = self._find_ocr_text_mr(ocr_result_map, '常规')
+        if regular_mr is None:
+            return self.round_retry('未识别到常规', wait=0.1)
+
+        if self._is_entry_nav_click_on_cooldown():
+            return self.round_retry('点击常规冷却', wait=0.1)
+
+        if self.ctx.controller.click(regular_mr.center):
+            self._record_entry_nav_click()
+            return self.round_wait('点击常规', wait=0.3)
+        return self.round_retry('点击常规失败', wait=0.1)
+
+    @node_from(from_name='入口OCR-点击常规', status='已显示目标副本入口')
+    @operation_node(name='入口OCR-点击目标副本', node_max_retry_times=300)
+    def click_target_mission_in_matrix_explore(self) -> OperationRoundResult:
+        mission_name = self.config.mission_name
+        target_screen_name = f'迷失之地-{mission_name}'
+
+        screen_name = self.check_and_update_current_screen(
+            self.last_screenshot,
+            screen_name_list=[target_screen_name],
+        )
+        if screen_name == target_screen_name:
+            self._reset_entry_nav_click_cooldown()
+            return self.round_success('已进入目标副本')
+
+        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        mission_mr = self._find_ocr_text_mr(ocr_result_map, mission_name)
+        if mission_mr is None:
+            return self.round_retry('未识别到目标副本入口', wait=0.1)
+
+        if self._is_entry_nav_click_on_cooldown():
+            return self.round_retry('点击目标副本冷却', wait=0.1)
+
+        if self.ctx.controller.click(mission_mr.center):
+            self._record_entry_nav_click()
+            return self.round_wait('点击目标副本', wait=0.5)
+        return self.round_retry('点击目标副本失败', wait=0.1)
+
     @node_from(from_name='前往副本画面')
+    @node_from(from_name='入口OCR-点击目标副本', status='已进入目标副本')
     @operation_node(name='副本画面识别')
     def check_for_mission(self) -> OperationRoundResult:
         """
@@ -346,7 +559,7 @@ class LostVoidApp(ZApplication):
 
         return self.round_fail("追新模式失败：未找到任何可选择的调查战略")
 
-    def _swipe_strategy_list(self):
+    def _swipe_strategy_list(self) -> None:
         """
         滑动调查战略列表
         """
@@ -478,6 +691,7 @@ class LostVoidApp(ZApplication):
 
     @node_from(from_name='识别初始画面', status='迷失之地-大世界')
     @node_from(from_name='出战')
+    @node_from(from_name='矩阵行动-开始挑战')
     @operation_node(name='加载自动战斗配置')
     def load_auto_op(self) -> OperationRoundResult:
         self.ctx.auto_battle_context.init_auto_op(
@@ -514,6 +728,31 @@ class LostVoidApp(ZApplication):
             self.run_record.complete_task_force_with_up = True
 
         return self.round_success()
+
+    def _find_ocr_text_mr(self, ocr_result_map: dict[str, MatchResultList], target_text: str) -> MatchResult | None:
+        target = gt(target_text, 'game')
+        ocr_word_list = list(ocr_result_map.keys())
+
+        idx = str_utils.find_best_match_by_difflib(target, ocr_word_list, cutoff=0.5)
+        if idx is not None and idx >= 0:
+            mrl = ocr_result_map[ocr_word_list[idx]]
+            if mrl.max is not None:
+                return mrl.max
+
+        for ocr_word, mrl in ocr_result_map.items():
+            if str_utils.find_by_lcs(target, ocr_word, percent=0.6) and mrl.max is not None:
+                return mrl.max
+
+        return None
+
+    def _reset_entry_nav_click_cooldown(self) -> None:
+        self._entry_nav_last_click_at = 0.0
+
+    def _is_entry_nav_click_on_cooldown(self) -> bool:
+        return time.monotonic() - self._entry_nav_last_click_at < self._entry_nav_click_cooldown_sec
+
+    def _record_entry_nav_click(self) -> None:
+        self._entry_nav_last_click_at = time.monotonic()
 
     @node_from(from_name='识别悬赏委托完成进度', status=STATUS_ENOUGH_TIMES)
     @operation_node(name='打开悬赏委托')
