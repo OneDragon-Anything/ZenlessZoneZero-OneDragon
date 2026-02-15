@@ -74,73 +74,62 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='接取委托', success=False)
     @operation_node(name='刷新委托')
     def refresh_commission(self) -> OperationRoundResult:
-        # 3. 点击下面的刷新
-        self.round_by_click_area('委托情报板', '刷新按钮', success_wait=1)
+        self.scroll_times = 0
 
         if self.has_filtered:
-            self.scroll_times = 0
-            return self.round_success(wait=1)
+            return self.round_by_find_and_click_area(
+                screen_name='委托情报板', area_name='刷新按钮',
+                success_wait=1, retry_wait=1
+            )
+        return self.round_success('未筛选')
 
-        self.round_by_click_area('委托情报板', '筛选按钮', success_wait=0.5)
+    @node_from(from_name='刷新委托', status='未筛选')
+    @operation_node(name='打开筛选')
+    def open_filter(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(
+            screen_name='委托情报板', area_name='筛选按钮',
+            success_wait=0.5, retry_wait=0.5
+        )
 
-        # OCR 找 重置
-        screen = self.screenshot()
-        ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
-        idx = str_utils.find_best_match_by_difflib(gt('重置', 'game'), [i.data for i in ocr_results])
-        if idx is not None:
-            self.ctx.controller.click(ocr_results[idx].center)
-        else:
-            self.round_by_click_area('委托情报板', '重置按钮', success_wait=0.5)
+    @node_from(from_name='打开筛选')
+    @operation_node(name='重置筛选')
+    def reset_filter(self) -> OperationRoundResult:
+        return self.round_by_ocr_and_click(self.last_screenshot, '重置', success_wait=0.5, retry_wait=0.5)
 
-        # OCR 找 恶名狩猎 和 专业挑战室
-        search_rect = self.ctx.screen_loader.get_area('委托情报板', '搜索区域').rect
-        screen = self.screenshot()
-        part = cv2_utils.crop_image_only(screen, search_rect)
-        ocr_results = self.ctx.ocr_service.get_ocr_result_list(part)
-        ocr_texts = [i.data for i in ocr_results]
+    @node_from(from_name='重置筛选')
+    @operation_node(name='选择恶名狩猎')
+    def select_notorious_hunt(self) -> OperationRoundResult:
+        search_area = self.ctx.screen_loader.get_area('委托情报板', '搜索区域')
+        return self.round_by_ocr_and_click(self.last_screenshot, '恶名狩猎', area=search_area,
+                                           success_wait=0.5, retry_wait=0.5)
 
-        # 恶名狩猎
-        idx = str_utils.find_best_match_by_difflib(gt('恶名狩猎', 'game'), ocr_texts)
-        if idx is not None:
-            center = ocr_results[idx].center + search_rect.left_top
-            self.ctx.controller.click(center)
-        else:
-            self.round_by_click_area('委托情报板', '恶名狩猎兜底', success_wait=0.5)
+    @node_from(from_name='选择恶名狩猎')
+    @operation_node(name='选择专业挑战室')
+    def select_expert_challenge(self) -> OperationRoundResult:
+        search_area = self.ctx.screen_loader.get_area('委托情报板', '搜索区域')
+        return self.round_by_ocr_and_click(self.last_screenshot, '专业挑战室', area=search_area,
+                                           success_wait=0.5, retry_wait=0.5)
 
-        # 专业挑战室
-        idx = str_utils.find_best_match_by_difflib(gt('专业挑战室', 'game'), ocr_texts)
-        if idx is not None:
-            center = ocr_results[idx].center + search_rect.left_top
-            self.ctx.controller.click(center)
-        else:
-            self.round_by_click_area('委托情报板', '专业挑战室兜底', success_wait=0.5)
-
-        self.round_by_click_area('委托情报板', '关闭筛选', success_wait=0.5)
-
+    @node_from(from_name='选择专业挑战室')
+    @operation_node(name='关闭筛选')
+    def close_filter(self) -> OperationRoundResult:
         self.has_filtered = True
-        self.scroll_times = 0  # 重置翻页次数
-        return self.round_success(wait=1)
+        return self.round_by_click_area('委托情报板', '关闭筛选', success_wait=1)
 
     @node_from(from_name='刷新委托')
+    @node_from(from_name='关闭筛选')
     @node_from(from_name='寻找委托', status='翻页')
     @operation_node(name='寻找委托')
     def find_commission(self) -> OperationRoundResult:
         # 4. Ocr 专业挑战室/恶名狩猎，找不到就往下翻到找到为止
-        screen = self.last_screenshot
-        ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
-
-        # 使用字典映射委托名称到类型，方便扩展
-        commission_map = {
-            gt('专业挑战室', 'game'): 'expert_challenge',
-            gt('恶名狩猎', 'game'): 'notorious_hunt',
-        }
-
-        for res in ocr_results:
-            for target_text, commission_type in commission_map.items():
-                if target_text in res.data:
-                    self.ctx.controller.click(res.center)
-                    self.current_commission_type = commission_type
-                    return self.round_success(res.data)
+        result = self.round_by_ocr_and_click_by_priority(
+            target_cn_list=['专业挑战室', '恶名狩猎'],
+            success_wait=0.5,
+        )
+        if result.is_success:
+            commission_map = {'专业挑战室': 'expert_challenge', '恶名狩猎': 'notorious_hunt'}
+            self.current_commission_type = commission_map.get(result.status)
+            return result
 
         # 翻页
         if self.scroll_times >= 5:
