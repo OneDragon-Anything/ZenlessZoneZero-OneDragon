@@ -66,12 +66,11 @@ class CityFundApp(ZApplication):
     @operation_node(name='等级全部领取')
     def click_level_claim(self) -> OperationRoundResult:
         # 2.6版本更新，等级回馈领取，已领取过全部领取按钮是会消失的
-        screen = self.screenshot()
         for screen_name, area_name in [
             ('丽都城募', '等级-全部领取'),
             ('丽都城募', '按钮-确认'),
         ]:
-            result = self.round_by_find_and_click_area(screen, screen_name, area_name, success_wait=1)
+            result = self.round_by_find_and_click_area(self.last_screenshot, screen_name, area_name, success_wait=1)
             if result.is_success:
                 return self.round_retry(status=result.status, wait=1)
 
