@@ -232,7 +232,15 @@ class IntelBoardApp(ZApplication):
     @operation_node(name='等待战斗画面加载', node_max_retry_times=60)
     def wait_battle_screen(self) -> OperationRoundResult:
         # 11. 等待战斗画面加载完成
-        return self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击', retry_wait_round=1)
+        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
+        if result.is_success:
+            return self.round_success()
+
+        result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
+        if result.is_success:
+            return self.round_success()
+
+        return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='等待战斗画面加载')
     @operation_node(name='战斗前移动')
