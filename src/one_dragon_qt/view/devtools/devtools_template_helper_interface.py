@@ -292,7 +292,6 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         self.cancel_btn.setDisabled(not chosen)
 
         self.choose_image_btn.setDisabled(not chosen)
-        self.screenshot_btn.setDisabled(not chosen)
         self.save_config_btn.setDisabled(not chosen)
         self.save_raw_btn.setDisabled(not chosen)
         self.save_mask_btn.setDisabled(not chosen)
@@ -637,14 +636,18 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         截图按钮点击
         :return:
         """
-        if self.chosen_template is None:
+        _, screen = self.ctx.controller.screenshot()
+        if screen is None:
             return
 
-        _, screen = self.ctx.controller.screenshot()
-        if screen is not None:
-            self.chosen_template.screen_image = screen
-            self.chosen_template.point_updated = True
-            self._update_all_image_display()
+        if self.chosen_template is None:
+            # 没有选中模板时，自动创建一个新的
+            self.chosen_template = TemplateInfo('', '')
+            self._update_whole_display()
+
+        self.chosen_template.screen_image = screen
+        self.chosen_template.point_updated = True
+        self._update_all_image_display()
 
     def _on_image_pasted(self, image_data) -> None:
         """

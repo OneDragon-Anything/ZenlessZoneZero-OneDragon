@@ -314,7 +314,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.cancel_btn.setDisabled(not chosen)
 
         self.choose_image_btn.setDisabled(not chosen)
-        self.screenshot_btn.setDisabled(not chosen)
         self.screen_id_edit.setDisabled(not chosen)
         self.screen_name_edit.setDisabled(not chosen)
         self.pc_alt_opt.setDisabled(not chosen)
@@ -509,13 +508,17 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         截图按钮点击
         :return:
         """
-        if self.chosen_screen is None:
+        _, screen = self.ctx.controller.screenshot()
+        if screen is None:
             return
 
-        _, screen = self.ctx.controller.screenshot()
-        if screen is not None:
-            self.chosen_screen.screen_image = screen
-            self._image_update.signal.emit()
+        if self.chosen_screen is None:
+            # 没有选中画面时，自动创建一个新的
+            self.chosen_screen = ScreenInfo({})
+            self._whole_update.signal.emit()
+
+        self.chosen_screen.screen_image = screen
+        self._image_update.signal.emit()
 
     def _on_image_pasted(self, image_data) -> None:
         """
