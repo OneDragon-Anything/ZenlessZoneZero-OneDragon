@@ -7,8 +7,7 @@ from one_dragon.base.operation.operation_round_result import (
     OperationRoundResult,
     OperationRoundResultEnum,
 )
-from one_dragon.utils import cv2_utils, str_utils
-from one_dragon.utils.i18_utils import gt
+from one_dragon.utils import cv2_utils
 from zzz_od.application.intel_board import intel_board_const
 from zzz_od.application.intel_board.intel_board_config import IntelBoardConfig
 from zzz_od.application.intel_board.intel_board_run_record import IntelBoardRunRecord
@@ -232,12 +231,9 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='开始自动战斗')
     @operation_node(name='战斗中', mute=True, timeout_seconds=600)
     def in_battle(self) -> OperationRoundResult:
-
-        screen = self.last_screenshot
-
         # 1. 先同步检查战斗状态，避免 OCR 竞态
         self.ctx.auto_battle_context.check_battle_state(
-            screen, self.last_screenshot_time,
+            self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True,
             sync=True
         )
@@ -250,61 +246,49 @@ class IntelBoardApp(ZApplication):
 
         # 3. 额外的 OCR 检查 (委托代行中)
         # 此时 check_battle_state 已完成，可以安全调用 OCR
-        ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
-        ocr_texts = [i.data for i in ocr_results]
-
-        # 特殊处理：委托代行中 提示
-        if str_utils.find_best_match_by_difflib(gt('委托代行中', 'game'), ocr_texts) is not None:
-            idx_confirm = str_utils.find_best_match_by_difflib(gt('确认', 'game'), ocr_texts)
-            if idx_confirm is not None:
-                self.ctx.controller.click(ocr_results[idx_confirm].center)
-                return self.round_wait(wait=1)
+        result = self.round_by_ocr(self.last_screenshot, '委托代行中')
+        if result.is_success:
+            self.round_by_ocr_and_click(self.last_screenshot, '确认')
+            return self.round_wait(wait=1)
 
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
     @node_from(from_name='战斗中')
-    @operation_node(name='战斗结算')
-    def battle_result(self) -> OperationRoundResult:
-        screen = self.last_screenshot
-        ocr_results = self.ctx.ocr_service.get_ocr_result_list(screen)
-        ocr_texts = [i.data for i in ocr_results]
-
-        # 1. 检查是否回到委托列表界面 (通过关键词 周期内可获取)
-        if str_utils.find_best_match_by_difflib(gt('周期内可获取', 'game'), ocr_texts) is not None:
-            if self.current_commission_type is not None:
-                if self.current_commission_type == 'expert_challenge':
-                    self.run_record.expert_challenge_count += 1
-                elif self.current_commission_type == 'notorious_hunt':
-                    self.run_record.notorious_hunt_count += 1
-                self.current_commission_type = None  # 重置
-
+    @node_from(from_name='点击结算按钮')
+    @operation_node(name='检查回到委托列表')
+    def check_back_to_list(self) -> OperationRoundResult:
+        result = self.round_by_ocr(self.last_screenshot, '周期内可获取')
+        if result.is_success:
+            if self.current_commission_type == 'expert_challenge':
+                self.run_record.expert_challenge_count += 1
+            elif self.current_commission_type == 'notorious_hunt':
+                self.run_record.notorious_hunt_count += 1
+            self.current_commission_type = None
             return self.round_success('结算完成')
+        return self.round_fail('未回到列表')
 
-        # 2. 检查 "代行委托完成"
-        if str_utils.find_best_match_by_difflib(gt('代行委托完成', 'game'), ocr_texts) is not None:
-            # 点击确认 (中间右边)
-            idx = str_utils.find_best_match_by_difflib(gt('确认', 'game'), ocr_texts)
-            if idx is not None:
-                self.ctx.controller.click(ocr_results[idx].center)
+    @node_from(from_name='检查回到委托列表', success=False)
+    @operation_node(name='点击结算按钮')
+    def click_settlement_button(self) -> OperationRoundResult:
+        result = self.round_by_ocr_and_click_with_action(
+            target_action_list=[
+                ('完成', OperationRoundResultEnum.WAIT),
+                ('下一步', OperationRoundResultEnum.WAIT),
+                ('确认', OperationRoundResultEnum.WAIT),
+            ],
+            wait_wait=1,
+            retry_wait=1,
+        )
+        if result.result != OperationRoundResultEnum.RETRY:
             self.battle_result_retry_times = 0
-            return self.round_wait(wait=1)
-
-        # 3. 点击结算按钮 (完成/下一步)
-        targets = [gt('完成', 'game'), gt('下一步', 'game'), gt('确认', 'game')]
-        for target in targets:
-            idx = str_utils.find_best_match_by_difflib(target, ocr_texts)
-            if idx is not None:
-                self.ctx.controller.click(ocr_results[idx].center)
-                self.battle_result_retry_times = 0
-                return self.round_wait(wait=1)
+            return self.round_success(result.status, wait=1)
 
         self.battle_result_retry_times += 1
         if self.battle_result_retry_times > 60:
             return self.round_fail('战斗结算卡死')
-
         return self.round_wait(wait=1)
 
-    @node_from(from_name='战斗结算')
+    @node_from(from_name='检查回到委托列表')
     @node_from(from_name='点击情报板')
     @operation_node(name='检查进度')
     def check_progress(self) -> OperationRoundResult:
