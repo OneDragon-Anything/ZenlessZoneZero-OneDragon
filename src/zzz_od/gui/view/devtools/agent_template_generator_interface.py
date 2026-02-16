@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import os
 import re
+from pathlib import Path
 from typing import Optional
 
 from cv2.typing import MatLike
@@ -266,8 +266,8 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
             filter="PNG (*.png)",
         )
         if file_path:
-            fix_file_path = os.path.normpath(file_path)
-            self.last_screen_dir = os.path.dirname(fix_file_path)
+            fix_file_path = str(Path(file_path).resolve())
+            self.last_screen_dir = str(Path(fix_file_path).parent)
             return fix_file_path
         return None
 
