@@ -14,7 +14,6 @@ from zzz_od.application.world_patrol.world_patrol_run_record import WorldPatrolR
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
-from zzz_od.operation.goto.goto_menu import GotoMenu
 
 
 class WorldPatrolApp(ZApplication):
@@ -79,14 +78,14 @@ class WorldPatrolApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='开始前返回大世界')
-    @operation_node(name='打开菜单')
-    def open_menu(self) -> OperationRoundResult:
-        op = GotoMenu(self.ctx)
-        return self.round_by_op_result(op.execute())
-
-    @node_from(from_name='打开菜单')
     @operation_node(name='前往绳网')
     def goto_inter_knot(self) -> OperationRoundResult:
+        # 大世界-普通：尝试直接模板匹配到按钮-绳网
+        result = self.round_by_find_and_click_area(self.last_screenshot, '大世界-普通', '按钮-绳网')
+        if result.is_success:
+            return self.round_wait(wait=1)
+
+        # 屏幕路由：先前往菜单，然后OCR到底部-绳网
         return self.round_by_goto_screen(screen_name='绳网', success_wait=1, retry_wait=1)
 
     @node_from(from_name='前往绳网')
