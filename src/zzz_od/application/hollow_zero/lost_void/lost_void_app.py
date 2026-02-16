@@ -35,7 +35,6 @@ from zzz_od.operation.deploy import Deploy
 
 
 class LostVoidApp(ZApplication):
-
     STATUS_ENOUGH_TIMES: ClassVar[str] = '完成通关次数'
     STATUS_AGAIN: ClassVar[str] = '继续挑战'
     STATUS_AGAIN_MATRIX: ClassVar[str] = '继续挑战-矩阵行动'
@@ -215,6 +214,8 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='矩阵行动-点击下一步')
     @operation_node(name='矩阵行动-点击预备编队')
     def matrix_click_preset_team(self) -> OperationRoundResult:
+        if self.ctx.lost_void.challenge_config.predefined_team_idx == -1:
+            return self.round_success('使用游戏内配队')
         return self.round_by_find_and_click_area(
             self.last_screenshot,
             '迷失之地-矩阵行动',
@@ -261,6 +262,7 @@ class LostVoidApp(ZApplication):
 
         return self.round_retry('未找到主战', wait=0.5)
 
+    @node_from(from_name='矩阵行动-点击预备编队', status='使用游戏内配队')
     @node_from(from_name='矩阵行动-选择配队')
     @operation_node(name='矩阵行动-点击协助代理人')
     def matrix_click_support_agent(self) -> OperationRoundResult:
@@ -441,7 +443,6 @@ class LostVoidApp(ZApplication):
     def open_strategy_list(self) -> OperationRoundResult:
         return self.round_by_click_area('迷失之地-战线肃清', '按钮-调查战略',
                                         success_wait=1, retry_wait=1)
-
 
     @node_from(from_name='打开调查战略列表')
     @operation_node(name='选择调查战略')
