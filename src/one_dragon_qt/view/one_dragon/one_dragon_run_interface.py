@@ -103,20 +103,14 @@ class OneDragonRunInterface(VerticalScrollInterface):
         layout = QVBoxLayout()
 
         scroll_area = SingleDirectionScrollArea()
-        scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setContentsMargins(0, 0, 16, 0)
 
-        # 使用 AppRunList 管理应用列表
+        # 使用 AppRunList 管理应用列表，直接作为滚动内容
         self.app_run_list = AppRunList(self.ctx)
         self.app_run_list.app_list_changed.connect(self._on_app_list_changed)
         self.app_run_list.app_run_clicked.connect(self._on_app_card_run)
         self.app_run_list.app_switch_changed.connect(self.on_app_switch_run)
         self.app_run_list.app_setting_clicked.connect(self.on_app_setting_clicked)
-        scroll_layout.addWidget(self.app_run_list)
-        scroll_layout.addStretch(1)
-
-        scroll_area.setWidget(scroll_content)
+        scroll_area.setWidget(self.app_run_list)
         scroll_area.setWidgetResizable(True)
 
         layout.addWidget(scroll_area)
