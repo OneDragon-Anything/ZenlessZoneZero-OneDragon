@@ -83,7 +83,7 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         self.agent_id: Optional[str] = None
         self.last_screen_dir: Optional[str] = None
         self._template_ref_cache: dict[str, TemplateInfo] = {}
-        self._agent_id_pattern = re.compile(r'^[a-z]+$')
+        self._agent_id_pattern = re.compile(r'^[a-z][a-z0-9_]*$')
 
     def get_content_widget(self) -> QWidget:
         # 创建居中容器
