@@ -1,8 +1,0 @@
-sub_dir: intel_screen
-template_id: filter
-template_name: 情报板-筛选
-template_shape: circle
-auto_mask: true
-point_list:
-- 908, 1029
-- 931, 1029

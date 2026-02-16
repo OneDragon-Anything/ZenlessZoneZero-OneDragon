@@ -74,21 +74,25 @@ class IntelBoardApp(ZApplication):
     @operation_node(name='刷新委托')
     def refresh_commission(self) -> OperationRoundResult:
         self.scroll_times = 0
-
         if self.has_filtered:
             return self.round_by_find_and_click_area(
                 screen_name='委托情报板', area_name='刷新按钮',
                 success_wait=1, retry_wait=1
             )
+
         return self.round_success('未筛选')
 
     @node_from(from_name='刷新委托', status='未筛选')
-    @operation_node(name='打开筛选')
+    @operation_node(name='打开筛选', node_max_retry_times=60)
     def open_filter(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(
-            screen_name='委托情报板', area_name='筛选按钮',
-            success_wait=0.5, retry_wait=0.5
-        )
+        result = self.round_by_find_area(self.last_screenshot, '委托情报板', '点数兑换')
+        if result.is_success:
+            return self.round_by_click_area(
+                screen_name='委托情报板', area_name='筛选按钮',
+                success_wait=0.5, retry_wait=0.5
+            )
+
+        return self.round_retry('未找到筛选按钮', wait=1)
 
     @node_from(from_name='打开筛选')
     @operation_node(name='重置筛选')
