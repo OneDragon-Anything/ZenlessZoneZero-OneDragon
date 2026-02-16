@@ -38,7 +38,6 @@ class IntelBoardApp(ZApplication):
         self.run_record: IntelBoardRunRecord = self.run_record
         self.scroll_times: int = 0
         self.current_commission_type: str | None = None
-        self.battle_result_retry_times: int = 0
         self.has_filtered: bool = False
 
     @operation_node(name='返回大世界', is_start_node=True)
@@ -245,7 +244,6 @@ class IntelBoardApp(ZApplication):
         # 2. 检查是否结束
         if self.ctx.auto_battle_context.last_check_end_result is not None:
             self.ctx.auto_battle_context.stop_auto_battle()
-            self.battle_result_retry_times = 0
             return self.round_success('战斗结束')
 
         # 3. 额外的 OCR 检查 (委托代行中)
@@ -272,7 +270,7 @@ class IntelBoardApp(ZApplication):
         return self.round_fail('未回到列表')
 
     @node_from(from_name='检查回到委托列表', success=False)
-    @operation_node(name='点击结算按钮')
+    @operation_node(name='点击结算按钮', node_max_retry_times=60)
     def click_settlement_button(self) -> OperationRoundResult:
         result = self.round_by_ocr_and_click_with_action(
             target_action_list=[
@@ -284,13 +282,8 @@ class IntelBoardApp(ZApplication):
             retry_wait=1,
         )
         if result.result != OperationRoundResultEnum.RETRY:
-            self.battle_result_retry_times = 0
             return self.round_success(result.status, wait=1)
-
-        self.battle_result_retry_times += 1
-        if self.battle_result_retry_times > 60:
-            return self.round_fail('战斗结算卡死')
-        return self.round_wait(wait=1)
+        return result
 
     @node_from(from_name='检查回到委托列表')
     @node_from(from_name='点击情报板')
