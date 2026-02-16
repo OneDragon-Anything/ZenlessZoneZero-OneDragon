@@ -51,7 +51,7 @@ class EngagementRewardApp(ZApplication):
 
         result = self.round_by_find_area(self.last_screenshot, '快捷手册', '活跃度奖励-奖励预览')
         if result.is_success:
-            result = self.round_by_click_area('快捷手册', '活跃度奖励-4', success_wait=1, retry_wait=1)
+            result = self.round_by_find_and_click_area(self.last_screenshot, '画面-通用', '关闭', success_wait=1, retry_wait=1)
             if result.is_success:
                 return self.round_success('日常奖励已领取或活跃度未满')
 
