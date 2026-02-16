@@ -40,7 +40,7 @@ class EngagementRewardApp(ZApplication):
     @node_from(from_name='快捷手册-日常')
     @operation_node(name='点击奖励')
     def click_reward(self) -> OperationRoundResult:
-        return self.round_by_click_area('快捷手册', '活跃度奖励-4', success_wait=1, retry_wait=1)
+        return self.round_by_find_and_click_area(self.last_screenshot, '快捷手册', '今日最大活跃度', success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击奖励')
     @operation_node(name='查看奖励结果')

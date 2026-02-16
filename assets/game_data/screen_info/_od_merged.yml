@@ -1594,11 +1594,11 @@
   - area_name: 今日最大活跃度
     id_mark: false
     pc_rect:
-    - 502
-    - 270
-    - 580
-    - 310
-    text: ''
+    - 417
+    - 221
+    - 646
+    - 274
+    text: 今日最大活跃度
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''
