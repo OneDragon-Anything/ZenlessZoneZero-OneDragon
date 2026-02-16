@@ -53,6 +53,8 @@ class TransportBy3dMap(ZOperation):
         else:
             return self.round_retry(status='未发现地图', wait=1)
 
+    @node_from(from_name='选择子区域', success=False)  # 区域有子区域但找不到 说明选择区域错误
+    @node_from(from_name='搜索传送点循环', success=False)  # 区域搜索不到传送点时 说明选择区域错误
     @node_from(from_name='初始回到大世界', status='3D地图')
     @node_from(from_name='打开地图')
     @operation_node(name='选择区域', node_max_retry_times=20)
@@ -88,7 +90,8 @@ class TransportBy3dMap(ZOperation):
         start_point = area.center
         end_point = start_point + Point(0, 400 * (-1 if is_target_after else 1))
         self.ctx.controller.drag_to(start=start_point, end=end_point)
-        return self.round_retry()
+        # 等待滚动动画稳定 避免动画中OCR识别到目标但点击位置偏移
+        return self.round_retry(wait=1)
 
     @node_from(from_name='选择区域')
     @operation_node(name='选择子区域', node_max_retry_times=6)
