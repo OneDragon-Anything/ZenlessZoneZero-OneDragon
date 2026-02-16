@@ -2,6 +2,7 @@ import time
 from typing import ClassVar
 
 import cv2
+from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
@@ -35,7 +36,6 @@ from zzz_od.operation.deploy import Deploy
 
 
 class LostVoidApp(ZApplication):
-
     STATUS_ENOUGH_TIMES: ClassVar[str] = '完成通关次数'
     STATUS_AGAIN: ClassVar[str] = '继续挑战'
     STATUS_AGAIN_MATRIX: ClassVar[str] = '继续挑战-矩阵行动'
@@ -215,6 +215,8 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='矩阵行动-点击下一步')
     @operation_node(name='矩阵行动-点击预备编队')
     def matrix_click_preset_team(self) -> OperationRoundResult:
+        if self.ctx.lost_void.challenge_config.predefined_team_idx == -1:
+            return self.round_success('使用xx配队')
         return self.round_by_find_and_click_area(
             self.last_screenshot,
             '迷失之地-矩阵行动',
@@ -223,7 +225,7 @@ class LostVoidApp(ZApplication):
         )
 
     @node_from(from_name='矩阵行动-点击预备编队')
-    @operation_node(name='矩阵行动-选择配队')
+    @operation_node(name='矩阵行动-选择预备编队')
     def matrix_select_team(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '编队列表')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
@@ -261,7 +263,37 @@ class LostVoidApp(ZApplication):
 
         return self.round_retry('未找到主战', wait=0.5)
 
-    @node_from(from_name='矩阵行动-选择配队')
+    @node_from(from_name='矩阵行动-点击预备编队', status='使用xx配队')
+    @operation_node(name='矩阵行动-选择代理人')
+    def matrix_select_agent(self) -> OperationRoundResult:
+        # todo 我先用这个队伍跑一周先, 自定义队伍过完年再看吧
+        agent_list_str = ['yeshunguang', 'sunna', 'astra_yao']
+
+        # 1. 从屏幕右半边去掉人
+        area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '主战编队')
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+            image=self.last_screenshot,
+            rect=area.rect,
+        )
+        # 检测是否出现"主战"
+        for ocr_text in ocr_result_list:
+            if '主战' in ocr_text.data:
+                self.ctx.controller.click(ocr_text.center)
+                time.sleep(0.5)
+
+        # 2. 从取屏幕左半边选人
+        left_half_screen = self.last_screenshot[:, :self.last_screenshot.shape[1] // 2, :]
+        agent_mr_list = self._match_quick_assist_agent_in(left_half_screen, agent_list_str)
+
+        # todo 如果找不齐配队 (在下一页等情况) 怎么办
+        for agent_loc in agent_mr_list:
+            self.ctx.controller.click(agent_loc.center)
+            time.sleep(0.5)
+
+        return self.round_success()
+
+    @node_from(from_name='矩阵行动-选择预备编队')
+    @node_from(from_name='矩阵行动-选择代理人')
     @operation_node(name='矩阵行动-点击协助代理人')
     def matrix_click_support_agent(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
@@ -442,7 +474,6 @@ class LostVoidApp(ZApplication):
         return self.round_by_click_area('迷失之地-战线肃清', '按钮-调查战略',
                                         success_wait=1, retry_wait=1)
 
-
     @node_from(from_name='打开调查战略列表')
     @operation_node(name='选择调查战略')
     def choose_strategy(self) -> OperationRoundResult:
@@ -464,6 +495,40 @@ class LostVoidApp(ZApplication):
         # 原有逻辑
         else:
             return self._choose_strategy_by_ocr()
+
+    def _match_quick_assist_agent_in(self, img: MatLike, agent_list_str: list[str]) -> list[MatchResult]:
+        """
+        匹配左边代理人头像, 选择队伍
+        todo 代理人在第二页时需要往上滑, 目前未做适配 (叶千耀够了(如够, 最终boss目押太逆天了差点寄了), 自定义队伍过完年再看吧)
+        """
+        source_kp, source_desc = cv2_utils.feature_detect_and_compute(img)
+        agent_mr_list = []
+
+        for agent_enum in AgentEnum:
+            agent: Agent = agent_enum.value
+            if agent.agent_id not in agent_list_str:
+                continue
+            # region todo 代码和 PredefinedTeamChecker 重复, 合并至主分支前可以提取函数
+            for template_id in agent.template_id_list:
+                template = self.ctx.template_loader.get_template('predefined_team', f'avatar_{template_id}')
+                if template is None:
+                    continue
+                template_kp, template_desc = template.features
+                mr = cv2_utils.feature_match_for_one(
+                    source_kp, source_desc, template_kp, template_desc,
+                    template_width=template.raw.shape[1], template_height=template.raw.shape[0],
+                    knn_distance_percent=0.5
+                )
+
+                if mr is None:
+                    continue
+
+                agent_mr = mr
+                agent_mr.data = agent
+                agent_mr_list.append(agent_mr)
+            # endregion
+
+        return agent_mr_list
 
     def _choose_strategy_by_chase_new_mode(self) -> OperationRoundResult:
         """
