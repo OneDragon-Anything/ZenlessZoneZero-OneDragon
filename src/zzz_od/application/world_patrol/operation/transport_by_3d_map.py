@@ -341,7 +341,7 @@ class TransportBy3dMap(ZOperation):
     @operation_node(name='关闭区域信息弹窗')
     def close_area_info_popup(self) -> OperationRoundResult:
         """搜索失败后关闭残留的传送点信息弹窗"""
-        self.round_by_find_and_click_area(self.last_screenshot, '3D地图', '按钮-关闭区域信息',
+        self.round_by_find_and_click_area(self.last_screenshot, '3D地图', '按钮-区域信息-关闭',
                                           success_wait=1)
         return self.round_success()
 
