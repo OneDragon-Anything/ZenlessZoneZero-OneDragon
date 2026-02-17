@@ -34,7 +34,7 @@ class NotoriousHuntSettingDialog(AppSettingDialog):
 
         return self.content_widget
 
-    def update_plan_list_display(self):
+    def update_plan_list_display(self) -> None:
         plan_list = self.config.plan_list
 
         if len(plan_list) > len(self.card_list):

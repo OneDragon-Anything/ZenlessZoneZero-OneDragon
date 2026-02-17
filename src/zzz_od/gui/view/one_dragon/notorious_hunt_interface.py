@@ -211,7 +211,7 @@ class NotoriousHuntPlanInterface(VerticalScrollInterface):
 
         return self.content_widget
 
-    def update_plan_list_display(self):
+    def update_plan_list_display(self) -> None:
         plan_list = self.config.plan_list
 
         if len(plan_list) > len(self.card_list):
@@ -285,7 +285,3 @@ class NotoriousHuntPlanInterface(VerticalScrollInterface):
         for idx, card in enumerate(self.card_list):
             card.idx = idx
             card.index = idx
-
-
-# 为向后兼容保留别名
-ChargePlanCard = NotoriousHuntCard
