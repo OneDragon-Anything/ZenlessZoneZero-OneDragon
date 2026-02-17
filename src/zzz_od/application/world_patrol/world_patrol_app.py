@@ -78,16 +78,14 @@ class WorldPatrolApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='开始前返回大世界')
-    @operation_node(name='检查任务追踪状态')
-    def check_tracking(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '任务追踪')
-        if result.is_success:
-            return self.round_success(status='无追踪')
-        return self.round_fail(status='有追踪')
-
-    @node_from(from_name='检查任务追踪状态', success=False)
     @operation_node(name='前往绳网')
     def goto_inter_knot(self) -> OperationRoundResult:
+        # 无任务追踪 → 跳过
+        result = self.round_by_find_area(self.last_screenshot, '大世界', '任务追踪')
+        if result.is_success:
+            return self.round_success(status='无任务追踪')
+
+        # 有任务追踪
         # 大世界-普通：尝试直接模板匹配到按钮-绳网
         result = self.round_by_find_and_click_area(self.last_screenshot, '大世界-普通', '按钮-绳网')
         if result.is_success:
@@ -118,7 +116,7 @@ class WorldPatrolApp(ZApplication):
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='检查任务追踪状态')
+    @node_from(from_name='前往绳网', status='无任务追踪')
     @node_from(from_name='停止追踪后返回大世界')
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='执行路线')
