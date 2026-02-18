@@ -515,6 +515,8 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         if self.chosen_screen is None:
             # 没有选中画面时，自动创建一个新的
             self.chosen_screen = ScreenInfo({})
+            # 清除撤回记录
+            self._clear_history()
             self._whole_update.signal.emit()
 
         self.chosen_screen.screen_image = screen
