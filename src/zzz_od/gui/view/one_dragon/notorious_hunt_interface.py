@@ -93,6 +93,10 @@ class NotoriousHuntCard(DraggableListItem):
 
         self.init_with_plan(plan)
 
+    def after_update_item(self) -> None:
+        self.idx = self.index
+        self.init_with_plan(self.data)
+
     def _on_move_top_clicked(self) -> None:
         self.move_top.emit(self.idx)
 
@@ -233,11 +237,7 @@ class NotoriousHuntPlanInterface(VerticalScrollInterface):
 
         # 更新所有卡片的显示
         for idx, plan in enumerate(plan_list):
-            card = self.card_list[idx]
-            card.idx = idx
-            card.index = idx  # 更新 DraggableListItem 的索引
-            card.data = plan  # 同步 DraggableListItem 的数据引用
-            card.init_with_plan(plan)
+            self.card_list[idx].update_item(plan, idx)
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
@@ -283,5 +283,4 @@ class NotoriousHuntPlanInterface(VerticalScrollInterface):
 
         # 更新所有卡片的索引
         for idx, card in enumerate(self.card_list):
-            card.idx = idx
-            card.index = idx
+            card.update_item(card.data, idx)
