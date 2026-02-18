@@ -101,6 +101,10 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         self.choose_image_btn.clicked.connect(self.choose_existed_image)
         save_row.add_widget(self.choose_image_btn)
 
+        self.screenshot_btn = PushButton(text=gt('截图'))
+        self.screenshot_btn.clicked.connect(self._on_screenshot_clicked)
+        save_row.add_widget(self.screenshot_btn)
+
         self.save_config_btn = PushButton(text=gt('保存配置'))
         self.save_config_btn.clicked.connect(self._on_save_config_clicked)
         save_row.add_widget(self.save_config_btn)
@@ -624,6 +628,24 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
             return
 
         self.chosen_template.screen_image = cv2_utils.read_image(image_file_path)
+        self.chosen_template.point_updated = True
+        self._update_all_image_display()
+
+    def _on_screenshot_clicked(self) -> None:
+        """
+        截图按钮点击
+        :return:
+        """
+        _, screen = self.ctx.controller.screenshot()
+        if screen is None:
+            return
+
+        if self.chosen_template is None:
+            # 没有选中模板时，自动创建一个新的
+            self.chosen_template = TemplateInfo('', '')
+            self._update_whole_display()
+
+        self.chosen_template.screen_image = screen
         self.chosen_template.point_updated = True
         self._update_all_image_display()
 

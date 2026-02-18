@@ -170,6 +170,10 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.choose_image_btn.clicked.connect(self.choose_existed_image)
         img_btn_row.add_widget(self.choose_image_btn)
 
+        self.screenshot_btn = PushButton(text=gt('截图'))
+        self.screenshot_btn.clicked.connect(self._on_screenshot_clicked)
+        img_btn_row.add_widget(self.screenshot_btn)
+
         self.choose_template_btn = PushButton(text=gt('导入模板区域'))
         self.choose_template_btn.clicked.connect(self.choose_existed_template)
         img_btn_row.add_widget(self.choose_template_btn)
@@ -497,6 +501,25 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             return
 
         self.chosen_screen.screen_image = cv2_utils.read_image(image_file_path)
+        self._image_update.signal.emit()
+
+    def _on_screenshot_clicked(self) -> None:
+        """
+        截图按钮点击
+        :return:
+        """
+        _, screen = self.ctx.controller.screenshot()
+        if screen is None:
+            return
+
+        if self.chosen_screen is None:
+            # 没有选中画面时，自动创建一个新的
+            self.chosen_screen = ScreenInfo({})
+            # 清除撤回记录
+            self._clear_history()
+            self._whole_update.signal.emit()
+
+        self.chosen_screen.screen_image = screen
         self._image_update.signal.emit()
 
     def _on_image_pasted(self, image_data) -> None:
