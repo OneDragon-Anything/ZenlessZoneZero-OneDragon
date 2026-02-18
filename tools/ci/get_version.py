@@ -4,7 +4,7 @@ import subprocess
 from datetime import UTC, datetime, timedelta
 
 
-def main():
+def main() -> int:
     github_ref = os.environ.get('GITHUB_REF', '')
     create_release = os.environ.get('CREATE_RELEASE', 'false').lower() == 'true'
     github_output = os.environ.get('GITHUB_OUTPUT')
@@ -72,8 +72,11 @@ def main():
 
     if should_push_tag:
         print(f"Creating and pushing new tag: {tag}")
-        subprocess.run(['git', '-c', 'user.name=GitHub Actions', '-c', 'user.email=actions@github.com', 'tag', tag])
-        subprocess.run(['git', 'push', 'origin', tag])
+        subprocess.run(['git', '-c', 'user.name=GitHub Actions', '-c', 'user.email=actions@github.com', 'tag', tag], check=True)
+        subprocess.run(['git', 'push', 'origin', tag], check=True)
+
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

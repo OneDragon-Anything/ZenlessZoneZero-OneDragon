@@ -29,7 +29,6 @@ def _download(url: str, dest: Path, *, token: str | None = None, retries: int = 
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
-    last_err: Exception | None = None
     for attempt in range(1, retries + 1):
         try:
             req = urllib.request.Request(url, headers=headers)
@@ -37,14 +36,10 @@ def _download(url: str, dest: Path, *, token: str | None = None, retries: int = 
                 shutil.copyfileobj(resp, f)
             return
         except Exception as e:
-            last_err = e
             if attempt < retries:
                 time.sleep(2 * attempt)
             else:
                 raise
-
-    if last_err:
-        raise last_err
 
 
 def _fetch_json(url: str, *, token: str | None = None, timeout: int = 60) -> object:
@@ -292,7 +287,7 @@ def main() -> int:
     # 清理临时模型目录（避免打包进 Full/Full-Environment）
     shutil.rmtree(temp_dir, ignore_errors=True)
 
-    # 6. Full 包清单 + 打包（在 repo_root 下打包全部内容；zip 输出在 dist_dir 以避免自包含）
+    # 7. Full 包清单 + 打包（在 repo_root 下打包全部内容；zip 输出在 dist_dir 以避免自包含）
     _log("Generate install manifest (Full)")
     _run([sys.executable, "tools/ci/generate_install_manifest.py", "--output", "install_manifest.json"], cwd=repo_root)
 
@@ -300,7 +295,7 @@ def main() -> int:
     _log(f"Create Full zip: {full_zip}")
     _zip_dir_contents(repo_root, full_zip, root_prefix=f"ZenlessZoneZero-OneDragon-{release_version}-Full")
 
-    # 7. Full-Environment：把环境包放入 .install 后重新生成清单并打包
+    # 8. Full-Environment：把环境包放入 .install 后重新生成清单并打包
     env_zip = dist_dir / "ZenlessZoneZero-OneDragon-Environment.zip"
     if not env_zip.exists():
         raise SystemExit(f"Missing {env_zip}")
@@ -314,10 +309,10 @@ def main() -> int:
     _log(f"Create Full-Environment zip: {full_env_zip}")
     _zip_dir_contents(repo_root, full_env_zip, root_prefix=f"ZenlessZoneZero-OneDragon-{release_version}-Full-Environment")
 
-    # 8. 复制安装器到版本化文件名
+    # 9. 复制安装器到版本化文件名
     shutil.copy2(repo_root / "OneDragon-Installer.exe", repo_root / f"ZenlessZoneZero-OneDragon-{release_version}-Installer.exe")
 
-    # 9. 把 dist_dir 下所有 zip 移到 repo_root，供 release step 上传
+    # 10. 把 dist_dir 下所有 zip 移到 repo_root，供 release step 上传
     for z in dist_dir.glob("*.zip"):
         _log(f"Move zip to repo root: {z.name}")
         shutil.move(str(z), str(repo_root / z.name))

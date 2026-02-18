@@ -108,7 +108,7 @@ class UnpackResourceRunner(QThread):
 
             # 安全：只允许搬运 src_root 下的内容
             try:
-                if src_root.resolve() not in [src_path.resolve(), *src_path.resolve().parents]:
+                if not src_path.resolve().is_relative_to(src_root.resolve()):
                     continue
             except Exception:
                 continue
@@ -167,7 +167,7 @@ class UnpackResourceRunner(QThread):
                     break
                 # 只处理 src_root 下的目录
                 try:
-                    if src_root.resolve() not in parent.resolve().parents and parent.resolve() != src_root.resolve():
+                    if not parent.resolve().is_relative_to(src_root.resolve()):
                         break
                 except Exception:
                     # resolve 失败时，退化为字符串前缀判断
