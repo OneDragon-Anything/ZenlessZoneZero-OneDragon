@@ -245,14 +245,14 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         template.point_list = [Point(p.x, p.y) for p in template_ref_info.point_list]
         template.auto_mask = template_ref_info.auto_mask
 
-        template.save_raw()
-        template.save_mask()
-        return True
+        try:
+            template.save_raw()
+            template.save_mask()
+            return True
+        except Exception:
+            return False
 
-    def _get_template_id(self, template_config: dict) -> Optional[str]:
-        if not self.agent_id:
-            return None
-        return template_config['template_id'].format(agent_id=self.agent_id)
+
 
     def _choose_screenshot(self) -> Optional[str]:
         default_dir = os_utils.get_path_under_work_dir('.debug', 'images')
