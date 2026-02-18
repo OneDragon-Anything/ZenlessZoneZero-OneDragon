@@ -1,5 +1,6 @@
 import re
-import urllib.request
+
+import requests
 
 from one_dragon.envs.env_config import EnvConfig
 from one_dragon.utils.log_utils import log
@@ -16,9 +17,14 @@ class GhProxyService:
         :return:
         """
         url = 'https://ghproxy.link/js/src_views_home_HomeView_vue.js'  # 打开 https://ghproxy.link/ 后找到的js文件
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://ghproxy.link/'
+        }
         try:
-            with urllib.request.urlopen(url, timeout=10) as response:
-                js_content: str = response.read().decode('utf-8')
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            js_content = response.text
         except Exception:
             log.error('自动获取免费代理地址失败', exc_info=True)
             return
