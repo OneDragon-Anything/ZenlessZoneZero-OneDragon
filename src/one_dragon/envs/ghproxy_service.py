@@ -15,6 +15,12 @@ class GhProxyService:
         更新免费代理的url
         :return:
         """
+        # 如果 proxy_type 不是 'ghproxy'，则直接返回，不执行后续操作
+
+        if self.env_config.proxy_type != 'ghproxy':
+            log.info(f'当前代理类型为: {self.env_config.proxy_type}，跳过免费代理地址的自动获取')
+            return
+        
         url = 'https://ghproxy.link/js/src_views_home_HomeView_vue.js'  # 打开 https://ghproxy.link/ 后找到的js文件
         try:
             with urllib.request.urlopen(url, timeout=10) as response:
