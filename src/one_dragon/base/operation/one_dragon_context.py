@@ -262,7 +262,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.init_others()
         except Exception:
-            log.error('识别连携技出错', exc_info=True)
+            log.error('初始化出错', exc_info=True)
         finally:
             self._init_lock.release()
 
