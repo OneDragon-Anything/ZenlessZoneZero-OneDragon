@@ -267,7 +267,10 @@ class LostVoidApp(ZApplication):
     @operation_node(name='矩阵行动-选择代理人')
     def matrix_select_agent(self) -> OperationRoundResult:
         # todo 我先用这个队伍跑一周先, 自定义队伍过完年再看吧
-        agent_list_str = ['yeshunguang', 'sunna', 'astra_yao']
+        # agent_list_str = ['yeshunguang', 'sunna', 'astra_yao']
+        agent_list_str = [self.ctx.lost_void.challenge_config.agent_1,
+                          self.ctx.lost_void.challenge_config.agent_2,
+                          self.ctx.lost_void.challenge_config.agent_3]
 
         # 1. 从屏幕右半边去掉人
         area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '主战编队')
