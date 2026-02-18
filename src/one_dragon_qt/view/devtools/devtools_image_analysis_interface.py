@@ -664,7 +664,7 @@ class DevtoolsImageAnalysisInterface(VerticalScrollInterface):
             self._display_image(self.logic.get_display_image())
             self._update_toggle_button_text()
 
-    def _on_screenshot_clicked(self):
+    def _on_screenshot_clicked(self) -> None:
         """
         响应截图按钮
         """
