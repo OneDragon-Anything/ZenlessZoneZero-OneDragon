@@ -86,12 +86,6 @@ class WorldPatrolApp(ZApplication):
             return self.round_success(status='无任务追踪')
 
         # 有任务追踪
-        # 大世界-普通：尝试直接模板匹配到按钮-绳网
-        result = self.round_by_find_and_click_area(self.last_screenshot, '大世界-普通', '按钮-绳网')
-        if result.is_success:
-            return self.round_wait(wait=1)
-
-        # 屏幕路由：先前往菜单，然后OCR到底部-绳网
         return self.round_by_goto_screen(screen_name='绳网', success_wait=1, retry_wait=1)
 
     @node_from(from_name='前往绳网')
