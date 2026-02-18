@@ -7,6 +7,7 @@ from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from zzz_od.application.redemption_code import redemption_code_const
 from zzz_od.application.redemption_code.redemption_code_app import RedemptionCodeApp
+from zzz_od.application.redemption_code.redemption_code_config import RedemptionCodeConfig
 from zzz_od.application.redemption_code.redemption_code_run_record import (
     RedemptionCodeRunRecord,
 )
@@ -22,6 +23,7 @@ class RedemptionCodeFactory(ApplicationFactory):
             self,
             app_id=redemption_code_const.APP_ID,
             app_name=redemption_code_const.APP_NAME,
+            default_group=redemption_code_const.DEFAULT_GROUP,
             need_notify=redemption_code_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
@@ -34,3 +36,11 @@ class RedemptionCodeFactory(ApplicationFactory):
             instance_idx=instance_idx,
             game_refresh_hour_offset=self.ctx.game_account_config.game_refresh_hour_offset,
         )
+
+    def create_config(self, instance_idx: int, group_id: str) -> RedemptionCodeConfig:
+        """创建兑换码配置
+
+        注意：兑换码配置是全局配置，不依赖于instance_idx和group_id
+        这里的参数只是为了符合ApplicationFactory的接口要求
+        """
+        return RedemptionCodeConfig()

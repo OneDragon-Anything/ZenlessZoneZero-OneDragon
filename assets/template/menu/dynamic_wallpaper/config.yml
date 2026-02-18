@@ -1,0 +1,10 @@
+sub_dir: menu
+template_id: dynamic_wallpaper
+template_name: 菜单-动态壁纸
+template_shape: quadrilateral
+auto_mask: true
+point_list:
+- 90, 792
+- 173, 792
+- 173, 826
+- 90, 826

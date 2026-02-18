@@ -6,4 +6,7 @@ operations:
     seconds_add: -0.5
   - op_name: "按键-连携技-左"
   - op_name: "设置状态"
+    state: "自定义-无视闪光"
+    seconds: 1
+  - op_name: "设置状态"
     state: "自定义-连携换人"

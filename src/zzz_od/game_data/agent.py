@@ -233,7 +233,11 @@ class AgentEnum(Enum):
     ELLEN = Agent('ellen', '艾莲', RareTypeEnum.S, AgentTypeEnum.ATTACK, DmgTypeEnum.ICE, ['ellen', 'ellen_on_campus'],
                   state_list=[AgentStateDef('艾莲-急冻充能', AgentStateCheckWay.COLOR_RANGE_CONNECT,
                                             template_id='ellen', lower_color=(200, 245, 250), upper_color=(255, 255, 255), connect_cnt=2)])
-    GRACE = Agent('grace', '格莉丝', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ELECTRIC, ['grace'])
+    GRACE = Agent('grace', '格莉丝', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.ELECTRIC, ['grace'],
+                      state_list=[AgentStateDef('格莉丝-电能', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                                template_id='grace',
+                                                hsv_color=(0, 255, 255), hsv_color_diff=(20, 255, 50),
+                                                connect_cnt=2)])
     KOLEDA = Agent('koleda', '珂蕾妲', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.FIRE, ['koleda'])
     LUCY = Agent('lucy', '露西', RareTypeEnum.A, AgentTypeEnum.SUPPORT, DmgTypeEnum.FIRE, ['lucy'])
     LYCAON = Agent('lycaon', '莱卡恩', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.ICE, ['lycaon'])
@@ -254,7 +258,7 @@ class AgentEnum(Enum):
                      state_list=[AgentStateDef('青衣-电压', AgentStateCheckWay.BACKGROUND_GRAY_RANGE_LENGTH,
                                                template_id='qingyi', lower_color=0, upper_color=70)])
 
-    JANE_DOE = Agent('jane_doe', '简', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['jane_doe'],
+    JANE_DOE = Agent('jane_doe', '简', RareTypeEnum.S, AgentTypeEnum.ANOMALY, DmgTypeEnum.PHYSICAL, ['jane_doe', 'jane_doe_nocturne_of_light'],
                      state_list=[AgentStateDef('简-萨霍夫跳', AgentStateCheckWay.COLOR_RANGE_EXIST,
                                                template_id='jane_attack', lower_color=(100, 20, 20), upper_color=(255, 255, 255), connect_cnt=20),
                                  AgentStateDef('简-狂热心流', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
@@ -380,7 +384,7 @@ class AgentEnum(Enum):
                     state_list=[
                         AgentStateDef('卢西娅-梦境值', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
                                       template_id='lucia',
-                                      hsv_color=(90,255,255), hsv_color_diff=(89,255,55),
+                                      hsv_color=(133, 69, 255), hsv_color_diff=(17,97,0),
                                       max_length=100)
                     ])
 
@@ -411,3 +415,67 @@ class AgentEnum(Enum):
                                      hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
                                      max_length=120)
                    ])
+
+    BANYUE = Agent('banyue', '般岳', RareTypeEnum.S, AgentTypeEnum.RUPTURE, DmgTypeEnum.FIRE, ['banyue'],
+                   state_list=[
+                       AgentStateDef('般岳-嗔火', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                     template_id='banyue_1',
+                                     hsv_color=(23, 136, 177), hsv_color_diff=(7, 153, 156),
+                                     max_length=120),
+                       AgentStateDef('般岳-山威', AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                                     template_id='banyue_2',
+                                     hsv_color=(10, 102, 130), hsv_color_diff=(10, 205, 244),
+                                     connect_cnt=5)
+                   ])
+
+    ZHAO = Agent('zhao', '照', RareTypeEnum.S, AgentTypeEnum.DEFENSE, DmgTypeEnum.ICE, ['zhao'],
+                 state_list=[
+                     AgentStateDef('照-霜寒值', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                   template_id='zhao',
+                                   hsv_color=(60,255,255), hsv_color_diff=(50, 255, 255),
+                                   max_length=100)
+                 ])
+
+    SUNNA = Agent(
+        "sunna",
+        "千夏",
+        RareTypeEnum.S,
+        AgentTypeEnum.SUPPORT,
+        DmgTypeEnum.PHYSICAL,
+        ["sunna", "sunna_afternoon_tea_break"],
+    )
+
+    YESHUNGUANG = Agent(
+        "yeshunguang",
+        "叶瞬光",
+        RareTypeEnum.S,
+        AgentTypeEnum.ATTACK,
+        DmgTypeEnum.PHYSICAL,
+        ["yeshunguang", "yeshunguang_touch_of_dawnlight"],
+        state_list=[
+            AgentStateDef(
+                "叶瞬光-明心境",
+                AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                template_id="energy",
+                hsv_color=(113, 75, 255),
+                hsv_color_diff=(10, 50, 50),
+                max_length=120,
+            ),
+            AgentStateDef(
+                "叶瞬光-青溟剑势-红",
+                AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                template_id="yeshunguang_qingming",
+                hsv_color=(0, 0, 255),
+                hsv_color_diff=(10, 10, 10),
+                connect_cnt=2,
+            ),
+            AgentStateDef(
+                "叶瞬光-青溟剑势-白",
+                AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                template_id="yeshunguang_qingming_ex",
+                hsv_color=(0, 0, 255),
+                hsv_color_diff=(10, 10, 10),
+                connect_cnt=2,
+            ),
+        ],
+    )

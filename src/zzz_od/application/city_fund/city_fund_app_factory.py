@@ -20,6 +20,7 @@ class CityFundAppFactory(ApplicationFactory):
             self,
             app_id=city_fund_const.APP_ID,
             app_name=city_fund_const.APP_NAME,
+            default_group=city_fund_const.DEFAULT_GROUP,
             need_notify=city_fund_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx

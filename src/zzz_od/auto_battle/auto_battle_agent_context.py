@@ -295,6 +295,7 @@ class AutoBattleAgentContext:
         # 上一次识别的时间
         self._last_check_agent_time: float = 0
         self._last_switch_agent_time: float = 0
+        self._last_ultimate_time: float = 0  # 上次释放终结技的时间
 
     def init_screen_area(self) -> None:
         # 识别区域 先读取出来 不要每次用的时候再读取
@@ -866,6 +867,17 @@ class AutoBattleAgentContext:
             if i == 0:
                 state_records.append(StateRecord(BattleStateEnum.STATUS_SPECIAL_READY.value, update_time, is_clear=not agent_info.special_ready))
                 state_records.append(StateRecord(BattleStateEnum.STATUS_ULTIMATE_READY.value, update_time, is_clear=not agent_info.ultimate_ready))
+
+                # 自动释放终结技逻辑
+                if (agent_info.ultimate_ready and
+                    self.ctx.auto_battle_context.auto_ultimate_enabled and
+                    self.ctx.auto_battle_context.auto_op is not None and
+                    self.ctx.auto_battle_context.auto_op.is_running):
+                    # 前台角色终结技可用，且配置已开启，且自动战斗正在运行
+                    if update_time - self._last_ultimate_time > 2.0:  # 冷却时间2秒，防止重复释放
+                        log.info(f'检测到前台角色 {agent.agent_name} 终结技可用，增加状态[自定义-终结技被强制释放]')
+                        state_records.append(StateRecord('自定义-终结技被强制释放', update_time, is_clear=False))
+                        self._last_ultimate_time = update_time
 
             state_records.append(StateRecord(f'{prefix}能量', update_time, agent_info.energy))
             state_records.append(StateRecord(f'{prefix}特殊技可用', update_time, is_clear=not agent_info.special_ready))

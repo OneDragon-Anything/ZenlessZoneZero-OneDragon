@@ -1,0 +1,50 @@
+template_name: "叶瞬光-失衡决策"
+handlers:
+  # 后台有叶瞬光，优先点叶瞬光
+  - states: "[后台-叶瞬光]"
+    debug_name: "点叶瞬光"
+    sub_handlers:
+      - states: "[连携技-1-叶瞬光]"
+        debug_name: "点叶瞬光-左"
+        operations:
+          - operation_template: "连携-左"
+          - op_name: "设置状态"
+            state: "自定义-失衡时间"
+      - states: "[连携技-2-叶瞬光]"
+        debug_name: "点叶瞬光-右"
+        operations:
+          - operation_template: "连携-右"
+          - op_name: "设置状态"
+            state: "自定义-失衡时间"
+
+  # 前台是叶瞬光
+  - states: "[前台-叶瞬光]"
+    debug_name: "叶瞬光连携决策"
+    sub_handlers:
+      # 优先点照
+      - states: "[连携技-1-照]"
+        debug_name: "叶瞬光点照-左"
+        operations:
+          - operation_template: "连携-左"
+          - op_name: "设置状态"
+            state: "自定义-失衡时间"
+      - states: "[连携技-2-照]"
+        debug_name: "叶瞬光点照-右"
+        operations:
+          - operation_template: "连携-右"
+          - op_name: "设置状态"
+            state: "自定义-失衡时间"
+
+      # 其次点支援
+      - states: "[连携技-1-支援]"
+        debug_name: "叶瞬光点支援-左"
+        operations:
+          - operation_template: "连携-左"
+          - op_name: "设置状态"
+            state: "自定义-失衡时间"
+      - states: "[连携技-2-支援]"
+        debug_name: "叶瞬光点支援-右"
+        operations:
+          - operation_template: "连携-右"
+          - op_name: "设置状态"
+            state: "自定义-失衡时间"

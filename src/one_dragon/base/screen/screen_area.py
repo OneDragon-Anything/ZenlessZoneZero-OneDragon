@@ -23,7 +23,7 @@ class ScreenArea:
         color_range: Optional[list[list[int]]] = None,
     ):
         self.area_name: str = area_name
-        self.pc_rect: Rect = pc_rect
+        self.pc_rect: Rect = pc_rect if pc_rect is not None else Rect(0, 0, 0, 0)
         self.text: Optional[str] = text
         self.lcs_percent: float = lcs_percent
         self.template_id: Optional[str] = template_id

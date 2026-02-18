@@ -38,6 +38,10 @@ handlers:
               - op_name: "清除状态"
                 state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
+          - state_template: "琉音-送客决策"
+          - state_template: "琉音-刷好评"
+          - state_template: "奥菲丝-强特决策"
+
           # 没有上面的几位高贵，就藏这里好了
           - states: ""
             sub_handlers:
@@ -205,15 +209,6 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
-              - states: "![前台-奥菲丝]"
-                sub_handlers:
-                  - states: "[奥菲丝-终结技可用] | [奥菲丝-蓄炎]{100, 120}"
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "奥菲丝"
-                      - op_name: "清除状态"
-                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
-
               - states: "![前台-柏妮思]" # 柏妮思补燃点
                 sub_handlers:
                   - states: "([柏妮思-特殊技可用] & [柏妮思-燃点]{0, 40}) | (![自定义-柏妮思-灼烧, 0, 12] & [柏妮思-燃点]{60, 100})"
@@ -242,47 +237,28 @@ handlers:
                       - op_name: "清除状态"
                         state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
-              # 辅助能量要溢出了兄弟
-              - states: "![后台-1-异常] & ![后台-1-强攻] & [后台-1-能量]{110, 120}"
-                operations:
-                  - op_name: "按键-切换角色-下一个"
-                    post_delay: 0.1
-                  - op_name: "清除状态"
-                    state_list: ["自定义-合轴时间", "自定义-动作不打断"]
-
-              - states: "![后台-2-异常] & ![后台-2-强攻] & [后台-2-能量]{110, 120}"
-                operations:
-                  - op_name: "按键-切换角色-上一个"
-                    post_delay: 0.1
-                  - op_name: "清除状态"
-                    state_list: ["自定义-合轴时间", "自定义-动作不打断"]
-
               # 优先切有特殊技可以用的输出，优先顺切
               - states: "[后台-1-异常] & [后台-1-特殊技可用]"
                 operations:
                   - op_name: "按键-切换角色-下一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "[后台-1-强攻]& [后台-1-特殊技可用]"
                 operations:
                   - op_name: "按键-切换角色-下一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "[后台-2-异常]& [后台-2-特殊技可用]"
                 operations:
                   - op_name: "按键-切换角色-上一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "[后台-2-强攻]& [后台-2-特殊技可用]"
                 operations:
                   - op_name: "按键-切换角色-上一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
@@ -290,30 +266,18 @@ handlers:
               - states: "[后台-1-异常] | [后台-1-强攻] | [后台-1-命破]"
                 operations:
                   - op_name: "按键-切换角色-下一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               - states: "[后台-2-异常] | [后台-2-强攻] | [后台-2-命破]"
                 operations:
                   - op_name: "按键-切换角色-上一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]
-
-              - states: "![前台-苍角]"
-                sub_handlers:
-                  - states: ""
-                    operations:
-                      - op_name: "按键-切换角色"
-                        agent_name: "苍角"
-                      - op_name: "清除状态"
-                        state_list: ["自定义-合轴时间", "自定义-动作不打断"]
 
               # 丽娜连普攻都不会
               - states: "[前台-丽娜]"
                 operations:
                   - op_name: "按键-切换角色-下一个"
-                    post_delay: 0.1
                   - op_name: "清除状态"
                     state_list: ["自定义-合轴时间", "自定义-动作不打断"]

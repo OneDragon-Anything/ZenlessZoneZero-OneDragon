@@ -15,6 +15,7 @@ class YamlConfig(YamlOperator):
             instance_idx: Optional[int] = None,
             sub_dir: Optional[List[str]] = None,
             sample: bool = False, copy_from_sample: bool = False,
+            read_sample_only: bool = False,
             is_mock: bool = False
     ):
         self.instance_idx: Optional[int] = instance_idx
@@ -38,6 +39,9 @@ class YamlConfig(YamlOperator):
         self._copy_from_sample: bool = copy_from_sample
         """配置文件不存在时 是否从sample文件中读取"""
 
+        self._read_sample_only: bool = read_sample_only
+        """是否只读取sample文件（即使.yml文件存在也只读sample）"""
+
         YamlOperator.__init__(self, self._get_yaml_file_path())
 
     def _get_yaml_file_path(self) -> Optional[str]:
@@ -56,8 +60,14 @@ class YamlConfig(YamlOperator):
 
         dir_path = os_utils.get_path_under_work_dir(*sub_dir)
 
-        # 指定文件存在时 直接使用
         yml_path = os.path.join(dir_path, f'{self.module_name}.yml')
+        sample_yml_path = os.path.join(dir_path, f'{self.module_name}.sample.yml')
+
+        # 只读sample文件模式
+        if self._read_sample_only and os.path.exists(sample_yml_path):
+            return sample_yml_path
+
+        # 指定文件存在时 直接使用
         if os.path.exists(yml_path):
             return yml_path
 
@@ -68,7 +78,6 @@ class YamlConfig(YamlOperator):
             return yml_path
 
         # 最后看是否有示例文件
-        sample_yml_path = os.path.join(dir_path, f'{self.module_name}.sample.yml')
         if self._sample and os.path.exists(sample_yml_path):
             if self._copy_from_sample:
                 shutil.copyfile(sample_yml_path, yml_path)

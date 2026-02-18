@@ -1,0 +1,9 @@
+# 般岳-普通攻击-引火（消耗HP回复嗔火）
+# 非怒相状态下，长按普攻消耗HP回复嗔火
+operations:
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 2.0
+  - op_name: "按键-普通攻击-松开"
+  - op_name: "等待秒数"
+    seconds: 0.3
