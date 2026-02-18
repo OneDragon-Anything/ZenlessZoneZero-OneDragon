@@ -1,10 +1,11 @@
 PivotItem{
-    padding: 5px 0px 5px 0px;
+    padding: 0px;
     color: #a1a1a1;
     background-color:transparent;
     border: none;
     outline: none;
     margin:0;
+    min-width: 20px;
 }
 
 PivotItem[isSelected=true]{
