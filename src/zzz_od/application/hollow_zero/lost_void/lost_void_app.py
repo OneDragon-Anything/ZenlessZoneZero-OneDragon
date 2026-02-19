@@ -266,11 +266,13 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='矩阵行动-点击预备编队', status='使用xx配队')
     @operation_node(name='矩阵行动-选择代理人')
     def matrix_select_agent(self) -> OperationRoundResult:
-        # todo 我先用这个队伍跑一周先, 自定义队伍过完年再看吧
-        # agent_list_str = ['yeshunguang', 'sunna', 'astra_yao']
+        # 代理人列表
         agent_list_str = [self.ctx.lost_void.challenge_config.agent_1,
                           self.ctx.lost_void.challenge_config.agent_2,
                           self.ctx.lost_void.challenge_config.agent_3]
+        # agent_list_str = ['anby', 'yeshunguang', 'ellen']
+        # 记录角色在第几页的哪个位置
+        agent_page_match_list: Union[int, list[Point]] = [None] * len(agent_list_str)
 
         # 1. 从屏幕右半边去掉人
         area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '主战编队')
@@ -284,16 +286,50 @@ class LostVoidApp(ZApplication):
                 self.ctx.controller.click(ocr_text.center)
                 time.sleep(0.5)
 
-        # 2. 从取屏幕左半边选人
-        left_half_screen = self.last_screenshot[:, :self.last_screenshot.shape[1] // 2, :]
-        agent_mr_list = self._match_quick_assist_agent_in(left_half_screen, agent_list_str)
+        # 2. 找人
+        found = 0
+        # 滑动翻页点位
+        page_start = Point(self.ctx.controller.standard_width // 4, self.ctx.controller.standard_height // 4 * 3)
+        page_end = Point(self.ctx.controller.standard_width // 4, self.ctx.controller.standard_height // 4)
+        max_swipe_times = 3
+        for page in range(max_swipe_times):
+            # 从取屏幕左半边选人
+            left_half_screen = self.last_screenshot[:, :self.ctx.controller.standard_width // 2, :]
+            agent_mr_list = self._match_quick_assist_agent_in(left_half_screen, agent_list_str)
+            # 匹配人
+            for agent_idx in range(len(agent_list_str)):
+                if agent_page_match_list[agent_idx] is not None:
+                    continue
+                for match_idx in range(len(agent_mr_list)):
+                    if agent_list_str[agent_idx] == agent_mr_list[match_idx].data.agent_id:
+                        agent_page_match_list[agent_idx] = [page, agent_mr_list[match_idx].center]
+                        found += 1
+            if found == len(agent_list_str):
+                # 角色定位齐了, 可以选角色了
+                break
+            # 后面一页继续找
+            self.swipe_multiple_times(1, 1, page_start, page_end)
+            self.screenshot()
 
-        # todo 如果找不齐配队 (在下一页等情况) 怎么办
-        for agent_loc in agent_mr_list:
-            self.ctx.controller.click(agent_loc.center)
+        # 未找齐代理人
+        if found < len(agent_list_str):
+            self.swipe_multiple_times(max_swipe_times, 0.2, page_end, page_start)
+            return self.round_retry('未找齐代理人')
+
+        # 3. 选人
+        for agent_loc in range(len(agent_page_match_list)):
+            self.swipe_multiple_times(max_swipe_times, 0.2, page_end, page_start)
+            self.swipe_multiple_times(agent_page_match_list[agent_loc][0], 0.2, page_start, page_end)
+            self.ctx.controller.click(agent_page_match_list[agent_loc][1])
             time.sleep(0.5)
 
         return self.round_success()
+
+    # 滑动x次
+    def swipe_multiple_times(self, swipe_num, wait, start, end):
+        for page in range(swipe_num):
+            self.ctx.controller.drag_to(start=start, end=end)
+            time.sleep(wait)
 
     @node_from(from_name='矩阵行动-选择预备编队')
     @node_from(from_name='矩阵行动-选择代理人')
@@ -711,7 +747,7 @@ class LostVoidApp(ZApplication):
         if mission_name == '特遣调查':
             # 本周第一次挑战 且开启了优先级配队
             if (self.ctx.lost_void.challenge_config.choose_team_by_priority
-                and self.run_record.complete_task_force_with_up == False):
+                    and self.run_record.complete_task_force_with_up == False):
                 self.ctx.lost_void.predefined_team_idx = self.get_target_team_idx_by_priority()
                 if self.ctx.lost_void.predefined_team_idx != -1:
                     self.use_priority_agent = True
