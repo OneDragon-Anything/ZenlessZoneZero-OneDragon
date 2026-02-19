@@ -45,9 +45,16 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 
 
 class UnpackResourceRunner(QThread):
-    """资源解包线程"""
-    finished = Signal(bool)
+    """资源解包线程：读取安装清单，将安装器目录中的文件逐一校验后搬运至工作目录。"""
+
+    finished = Signal(bool)  # 搬运完成信号，参数为是否成功
+
     def __init__(self, installer_dir: str | None, work_dir: str, parent=None):
+        """
+        Args:
+            installer_dir: 安装器所在目录（含 install_manifest.json），为 None 时直接跳过
+            work_dir: 目标工作目录
+        """
         super().__init__(parent)
         self.installer_dir = installer_dir
         self.work_dir = work_dir
@@ -70,6 +77,17 @@ class UnpackResourceRunner(QThread):
         return size, hasher.hexdigest().upper()
 
     def _copy_by_manifest_then_cleanup(self, src_root: Path, dst_root: Path) -> bool:
+        """
+        按照安装清单将 src_root 下的文件复制到 dst_root，校验通过后删除源文件。
+
+        流程：
+        1. 读取并解析 install_manifest.json
+        2. 预检磁盘空间（留20%余量）
+        3. 逐文件流式复制，校验 size / sha256
+        4. 删除已复制的源文件（跳过正在运行的安装器 exe）
+        5. 清理因搬运变空的目录
+        6. 单独搬运清单文件本身
+        """
         manifest_path = src_root / 'install_manifest.json'
         if not manifest_path.exists():
             return False
@@ -80,20 +98,27 @@ class UnpackResourceRunner(QThread):
             log.error(f"读取安装清单失败: {e}")
             return False
 
-        files: list[dict] = []
-        if isinstance(manifest, dict) and isinstance(manifest.get('files'), list):
-            files = manifest['files']
-        elif isinstance(manifest, list):
-            files = manifest
-        else:
+        # 清单格式: {"version": "...", "generated_at": "...", "files": [...]}
+        # 其中 files 为文件条目列表，每项包含 path / size / sha256
+        if not isinstance(manifest, dict) or not isinstance(manifest.get('files'), list):
             log.error("安装清单格式不正确")
             return False
 
+        files: list[dict] = manifest['files']
+
+        # 尝试获取正在运行的安装器 exe 路径，避免搬运过程中删除自己
         running_exe: Path | None = None
         try:
             running_exe = Path(sys.executable).resolve()
         except Exception:
             running_exe = None
+
+        # 预计算总大小并检查磁盘空间（留20%余量），避免搬运过程中途失败导致残留
+        total_size = sum(item.get('size', 0) for item in files if isinstance(item, dict))
+        free_space = shutil.disk_usage(dst_root).free
+        if free_space < total_size * 1.2:  # 留20%余量
+            log.error(f"磁盘空间不足: 需要 {total_size/(1024**3):.2f}GB, 可用 {free_space/(1024**3):.2f}GB")
+            return False
 
         copied_files: list[tuple[Path, Path, dict]] = []
         for item in files:
@@ -198,17 +223,25 @@ class UnpackResourceRunner(QThread):
         return True
 
     def run(self):
+        """线程入口：若安装器目录与工作目录相同则视为已就位，否则执行清单搬运。"""
         if self.installer_dir is None:
             self.finished.emit(False)
             return
 
         src_root = Path(self.installer_dir)
         dst_root = Path(self.work_dir)
+
+        # 安装器目录与工作目录相同，无需搬运，直接视为成功
         if self._is_same_dir(src_root, dst_root):
             self.finished.emit(True)
             return
 
-        # 逐文件复制+校验，成功后删除源文件
+        # 无清单说明安装目录不含待搬运资源（开发环境 / 在线安装等），视为无需解包
+        if not (src_root / 'install_manifest.json').exists():
+            self.finished.emit(True)
+            return
+
+        # 逐文件复制+校验，成功后删除源文件；异常视为失败
         try:
             ok = self._copy_by_manifest_then_cleanup(src_root, dst_root)
             self.finished.emit(ok)
@@ -216,9 +249,19 @@ class UnpackResourceRunner(QThread):
             log.error(f"解包资源失败: {e}")
             self.finished.emit(False)
 
+    @staticmethod
+    def _is_same_dir(a: Path, b: Path) -> bool:
+        """判断两个路径是否指向同一目录（通过 resolve 消除符号链接和相对路径差异）。"""
+        try:
+            return a.resolve() == b.resolve()
+        except Exception:
+            # 路径 resolve 失败时降级为字符串比较（不区分大小写）
+            return str(a).lower() == str(b).lower()
+
 
 class ClickableStepCircle(QLabel):
     """可点击的步骤圆圈"""
+
     clicked = Signal(int)
 
     def __init__(self, step_index: int, parent=None):

@@ -36,6 +36,7 @@ def _download(url: str, dest: Path, *, token: str | None = None, retries: int = 
                 shutil.copyfileobj(resp, f)
             return
         except Exception as e:
+            _log(f"[attempt {attempt}/{retries}] Download failed: {url} — {e}")
             if attempt < retries:
                 time.sleep(2 * attempt)
             else:
