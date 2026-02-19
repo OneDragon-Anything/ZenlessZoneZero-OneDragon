@@ -6,6 +6,7 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -298,6 +299,7 @@ class CombatSimulation(ZOperation):
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
     @node_from(from_name='自动战斗')
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS, detail=True)
     @operation_node(name='战斗结束')
     def after_battle(self) -> OperationRoundResult:
         self.config.add_plan_run_times(self.plan)
@@ -333,7 +335,8 @@ class CombatSimulation(ZOperation):
         self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self):
-        self.ctx.auto_battle_context.resume_auto_battle()
+        if self.current_node.node is not None and self.current_node.node.cn == '自动战斗':
+            self.ctx.auto_battle_context.resume_auto_battle()
 
 
 def __debug_coffee():

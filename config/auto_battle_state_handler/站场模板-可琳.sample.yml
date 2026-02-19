@@ -1,7 +1,7 @@
 handlers:
   - states: "[前台-可琳]"
     sub_handlers:
-      - states: "[自定义-连携换人, 0, 1]"
+      - states: "[自定义-失衡时间, 0, 1]"
         operations:
           - op_name: "清除状态"
             state: "自定义-可琳-这次不打特殊技"
@@ -9,7 +9,7 @@ handlers:
             post_delay: 0.1
             repeat: 20
 
-      - states: "[按键可用-终结技] & [自定义-连携换人, 0, 10]"
+      - states: "[按键可用-终结技] & [自定义-失衡时间, 0, 10]"
         operations:
           - op_name: "按键-终结技"
             post_delay: 0.1
@@ -19,7 +19,7 @@ handlers:
             repeat: 30
 
       # 可以用特殊技就持续按
-      - states: "[按键可用-特殊攻击] & [自定义-连携换人, 2, 10] & ![自定义-可琳-这次不打特殊技, 0, 12]"
+      - states: "[按键可用-特殊攻击] & [自定义-失衡时间, 2, 10] & ![自定义-可琳-这次不打特殊技, 0, 12]"
         operations:
           - op_name: "设置状态"
             state: "自定义-可琳-这次不打特殊技"
@@ -27,7 +27,7 @@ handlers:
             post_delay: 0.1
             repeat: 40
 
-      - states: "[自定义-连携换人, 10, 999] & [自定义-可琳-这次不打特殊技, 0, 12]"
+      - states: "[自定义-失衡时间, 10, 999] & [自定义-可琳-这次不打特殊技, 0, 12]"
         operations:
           - op_name: "清除状态"
             state: "自定义-可琳-这次不打特殊技"

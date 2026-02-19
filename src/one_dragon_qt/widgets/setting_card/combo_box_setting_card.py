@@ -44,6 +44,7 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
             parent=parent
         )
         AdapterInitMixin.__init__(self)
+        self.default_content = content
 
         # 初始化下拉框
         self.combo_box = ComboBox(self)
@@ -151,6 +152,8 @@ class ComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
         """更新描述显示。"""
         if self.combo_box.currentIndex() >= 0:
             desc = self._opts_list[self.combo_box.currentIndex()].desc
+            if desc is None or len(desc) == 0:
+                desc = self.default_content
             self.setContent(desc)
 
     def setValue(self, value: object, emit_signal: bool = True) -> None:

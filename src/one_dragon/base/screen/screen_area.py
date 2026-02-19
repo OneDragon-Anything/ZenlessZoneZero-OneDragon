@@ -1,5 +1,6 @@
+from typing import Optional
+
 import numpy as np
-from typing import Optional, List
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -7,21 +8,22 @@ from one_dragon.base.geometry.rectangle import Rect
 
 class ScreenArea:
 
-    def __init__(self,
-                 area_name: str = '',
-                 pc_rect: Rect = Rect(0, 0, 0, 0),
-                 text: Optional[str] = '',
-                 lcs_percent: float = 0.5,
-                 template_id: Optional[str] = '',
-                 template_sub_dir: Optional[str] = '',
-                 template_match_threshold: float = 0.7,
-                 pc_alt: bool = False,
-                 id_mark: bool = False,
-                 goto_list: Optional[list[str]] = None,
-                 color_range: Optional[list[list[int]]] = None,
-                 ):
+    def __init__(
+        self,
+        area_name: str = '',
+        pc_rect: Rect | None = None,
+        text: Optional[str] = '',
+        lcs_percent: float = 0.5,
+        template_id: Optional[str] = '',
+        template_sub_dir: Optional[str] = '',
+        template_match_threshold: float = 0.7,
+        pc_alt: bool = False,
+        id_mark: bool = False,
+        goto_list: Optional[list[str]] = None,
+        color_range: Optional[list[list[int]]] = None,
+    ):
         self.area_name: str = area_name
-        self.pc_rect: Rect = pc_rect
+        self.pc_rect: Rect = pc_rect if pc_rect is not None else Rect(0, 0, 0, 0)
         self.text: Optional[str] = text
         self.lcs_percent: float = lcs_percent
         self.template_id: Optional[str] = template_id

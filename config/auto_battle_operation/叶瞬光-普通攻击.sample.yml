@@ -1,0 +1,5 @@
+# 根据动画实测，待补充
+operations:
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 50  # 待补充具体次数

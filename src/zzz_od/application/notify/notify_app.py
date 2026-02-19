@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
 from zzz_od.application.notify import notify_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -16,7 +15,7 @@ class NotifyApp(ZApplication):
             self,
             ctx,
             notify_const.APP_ID,
-            op_name=gt(notify_const.APP_NAME),
+            op_name=notify_const.APP_NAME,
             need_check_game_win=True,
         )
 
@@ -31,6 +30,7 @@ class NotifyApp(ZApplication):
         message = self.format_message()
 
         self.ctx.push_service.push(
+            title=self.ctx.notify_config.title,
             content=message,
             image=self.last_screenshot
         )
@@ -47,7 +47,7 @@ class NotifyApp(ZApplication):
 
         group_config = self.ctx.app_group_manager.get_one_dragon_group_config(instance_idx=self.ctx.current_instance_idx)
         for app_config in group_config.app_list:
-            run_record = self.ctx.run_context.get_run_record(
+            run_record: AppRunRecord = self.ctx.run_context.get_run_record(
                 app_id=app_config.app_id,
                 instance_idx=self.ctx.current_instance_idx
             )

@@ -1,6 +1,7 @@
 # 开发过程产生的临时文件
 build/
 dist/
+zzz-od-test/
 .idea/
 .vscode/
 .conda/
@@ -16,10 +17,6 @@ CLAUDE.md
 .qwen/
 .claude/
 
-# 子模块
-test/
-zzz-od-test/
-
 # 用户独有的配置文件
 env.bat
 config/custom.yml
@@ -29,6 +26,7 @@ config/dodge_assistant.yml
 config/zzz_one_dragon.yml
 config/one_dragon.yml
 config/push.yml
+config/redemption_codes.yml
 config/[0-9]*/
 config/dodge/*
 !config/dodge/*.sample.yml
@@ -47,8 +45,8 @@ config/yolo.yml
 config/model.yml
 custom/assets/ui/banner
 assets/ui/version_poster.webp
-assets/ui/remote_banner.webp
-assets/ui/official_dynamic.webm
+assets/ui/static_background.webp
+assets/ui/dynamic_background.webm
 config/world_patrol_route_list/*
 !config/world_patrol_route_list/*.sample.yml
 
@@ -65,6 +63,10 @@ config/world_patrol_route_list/*
 .runtime/
 notice_cache/
 *.bak
+
+# 第三方插件目录
+plugins/*
+!plugins/README.md
 
 # 需自行下载的模型文件
 models/

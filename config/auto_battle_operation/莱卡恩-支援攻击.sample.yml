@@ -3,8 +3,15 @@ operations:
   - op_name: "设置状态"
     state: "自定义-动作不打断"
     seconds: 1.8
-  - op_name: "按键-普通攻击"
-    post_delay: 0.1
-    repeat: 10
+  - op_name: "按键-普通攻击-按下"
   - op_name: "等待秒数"
-    seconds: 0.8
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5
+  - op_name: "按键-普通攻击-按下"
+  - op_name: "等待秒数"
+    seconds: 0.5

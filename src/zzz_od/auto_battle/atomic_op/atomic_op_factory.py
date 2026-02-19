@@ -45,10 +45,12 @@ class AtomicOpFactory:
         # 有几个特殊参数 在这里统一提取
         press: bool = op_name.endswith('-按下')
         release: bool = op_name.endswith('-松开')
+        press_time = None
         if press:
-            press_time = float(op_data[0]) if (op_data is not None and len(op_data) > 0) else None
-        else:
-            press_time = None
+            if op_def.btn_press is not None:
+                press_time = op_def.btn_press
+            elif op_data is not None and len(op_data) > 0:
+                press_time = float(op_data[0])
 
         if op_name == AtomicBtnSwitchAgent.OP_NAME or op_name == '切换角色':
             # 切换角色 只是一个兼容 后续删掉

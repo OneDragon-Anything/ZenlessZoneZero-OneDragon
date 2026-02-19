@@ -5,7 +5,6 @@ from cv2.typing import MatLike
 
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.operation.operation import Operation
-from one_dragon.base.operation.operation_base import OperationResult
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
@@ -13,8 +12,6 @@ from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
 from zzz_od.application.hollow_zero.withered_domain.withered_domain_run_record import WitheredDomainRunRecord
-from zzz_od.auto_battle import auto_battle_utils
-from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.hollow_zero.game_data.hollow_zero_event import HollowZeroSpecialEvent
 from zzz_od.operation.zzz_operation import ZOperation
@@ -184,10 +181,10 @@ class HollowBattle(ZOperation):
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True,
             check_battle_end_hollow_result=True,
-            check_distance=True)
+            check_distance=True,
+        )
 
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
-
 
     @node_from(from_name='自动战斗', status='零号空洞-结算周期上限')
     @operation_node(name='结算周期上限')
@@ -293,14 +290,15 @@ class HollowBattle(ZOperation):
         self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self, e=None):
-        self.ctx.auto_battle_context.resume_auto_battle()
+        if self.current_node.node is not None and self.current_node.node.cn == '自动战斗':
+            self.ctx.auto_battle_context.resume_auto_battle()
 
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
+    ctx.withered_domain.init_before_run()
     ctx.run_context.start_running()
-    ctx.init_ocr()
     op = HollowBattle(ctx)
     op.execute()
 

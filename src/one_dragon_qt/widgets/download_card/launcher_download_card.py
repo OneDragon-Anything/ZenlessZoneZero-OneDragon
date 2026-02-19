@@ -1,8 +1,8 @@
 import os
 from contextlib import suppress
-from packaging import version
 from pathlib import Path
 
+from packaging import version
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtGui import QIcon
 from qfluentwidgets import FluentIcon, FluentThemeColor
@@ -18,8 +18,9 @@ from one_dragon_qt.widgets.setting_card.common_download_card import (
     ZipDownloaderSettingCard,
 )
 
-LAUNCHER_EXE_NAME = 'OneDragon-Launcher.exe'
-LAUNCHER_BACKUP_NAME = LAUNCHER_EXE_NAME + '.bak'
+LAUNCHER_NAME = 'OneDragon-Launcher'
+LAUNCHER_EXE_NAME = LAUNCHER_NAME + '.exe'
+LAUNCHER_BACKUP_NAME = LAUNCHER_NAME + '.bak' + '.exe'
 
 
 class LauncherVersionChecker(QThread):

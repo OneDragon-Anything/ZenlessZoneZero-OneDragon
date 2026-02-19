@@ -1,6 +1,24 @@
-from PySide6.QtCore import Qt, QPoint, QRect, QSize, Signal
-from PySide6.QtGui import QPixmap, QPainter, QPen, QMouseEvent, QPaintEvent, QResizeEvent, QWheelEvent
-from PySide6.QtWidgets import QSizePolicy, QLabel
+import contextlib
+
+import numpy as np
+from PySide6.QtCore import QPoint, QRect, QSize, Qt, Signal
+from PySide6.QtGui import (
+    QColor,
+    QDragEnterEvent,
+    QDragLeaveEvent,
+    QDragMoveEvent,
+    QDropEvent,
+    QImage,
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QPaintEvent,
+    QPen,
+    QPixmap,
+    QResizeEvent,
+    QWheelEvent,
+)
+from PySide6.QtWidgets import QApplication, QLabel, QSizePolicy
 
 from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 
@@ -10,6 +28,7 @@ class ZoomableClickImageLabel(QLabel):
     left_clicked_with_pos = Signal(int, int)
     right_clicked_with_pos = Signal(int, int)
     rect_selected = Signal(int, int, int, int)  # 左上角x,y 和 右下角x,y
+    image_pasted = Signal(object)  # 通过拖放或粘贴加载图片时发出，参数为 numpy 数组 (RGB 格式) 或文件路径 (str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -31,6 +50,13 @@ class ZoomableClickImageLabel(QLabel):
         self.image_offset = QPoint(0, 0)  # 图像偏移量
         self.drag_threshold = 5  # 最小拖拽距离阈值
 
+        # 启用拖放与粘贴支持
+        self.setAcceptDrops(True)
+        # 点击获得焦点（用于 Ctrl+V 粘贴）
+        self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        # 拖放视觉反馈状态
+        self.is_drag_over = False
+
         # 矩形选择相关变量
         self.is_selecting = False
         self.selection_start = QPoint()
@@ -38,7 +64,7 @@ class ZoomableClickImageLabel(QLabel):
 
     def mousePressEvent(self, event: QMouseEvent):
         """
-        鼠标按下事件，处理Ctrl+左键拖动、左键矩形选择和右键单击
+        鼠标按下事件，处理Ctrl+左键拖动、左键矩形选择、右键粘贴/单击
         """
         if event.button() == Qt.MouseButton.LeftButton:
             # 检查是否按下了Ctrl键
@@ -56,6 +82,7 @@ class ZoomableClickImageLabel(QLabel):
                 self.is_dragging = False
                 self.drag_started = False
         elif event.button() == Qt.MouseButton.RightButton:
+            # 右键发送坐标信号
             image_pos = self.map_display_to_image_coords(event.pos())
             if image_pos is not None:
                 self.right_clicked_with_pos.emit(image_pos.x(), image_pos.y())
@@ -141,6 +168,121 @@ class ZoomableClickImageLabel(QLabel):
                 self.drag_started = False
                 self.setCursor(Qt.CursorShape.ArrowCursor)
 
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        """拖拽进入事件，检查是否包含可接受的图片数据"""
+        mime = event.mimeData()
+        if mime is None:
+            event.ignore()
+            return
+
+        accept = False
+        if mime.hasImage():
+            accept = True
+        elif mime.hasUrls():
+            urls = mime.urls()
+            if urls:
+                local_file = urls[0].toLocalFile()
+                if local_file and self._is_supported_image_file(local_file):
+                    accept = True
+
+        if accept:
+            event.acceptProposedAction()
+            self.is_drag_over = True
+            self.update()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event: QDragMoveEvent):
+        """拖拽移动事件，持续接受"""
+        event.acceptProposedAction()
+
+    def dragLeaveEvent(self, event: QDragLeaveEvent):
+        """拖拽离开事件，移除视觉反馈"""
+        self.is_drag_over = False
+        self.update()
+        event.accept()
+
+    def dropEvent(self, event: QDropEvent):
+        """放置事件，加载图片"""
+        self.is_drag_over = False
+        mime = event.mimeData()
+
+        if self._try_emit_image_from_mime(mime):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def keyPressEvent(self, event: QKeyEvent):
+        """键盘事件处理，支持 Ctrl+V 粘贴"""
+        # Ctrl+V 粘贴
+        if event.key() == Qt.Key.Key_V and (event.modifiers() & Qt.KeyboardModifier.ControlModifier):
+            clipboard = QApplication.clipboard()
+            if self._try_emit_image_from_mime(clipboard.mimeData()):
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
+    def _try_emit_image_from_mime(self, mime) -> bool:
+        """
+        尝试从 MIME 数据中提取图片并发出信号
+        :param mime: QMimeData 对象
+        :return: 是否成功提取并发出信号
+        """
+        if mime is None:
+            return False
+
+        # 优先尝试从 URL 获取本地图片文件（直接发送文件路径，避免转换）
+        if mime.hasUrls():
+            urls = mime.urls()
+            if urls:
+                local_file = urls[0].toLocalFile()
+                if local_file and self._is_supported_image_file(local_file):
+                    self.image_pasted.emit(local_file)
+                    return True
+
+        # 尝试从 image 数据获取（剪贴板截图等）
+        if mime.hasImage():
+            arr = self._qimage_to_numpy(mime.imageData())
+            if arr is not None:
+                self.image_pasted.emit(arr)
+                return True
+
+        return False
+
+    def _qimage_to_numpy(self, image_data) -> np.ndarray | None:
+        """
+        将 QImage 转换为 numpy 数组 (RGB 格式)
+        :param image_data: QImage 或 QPixmap
+        :return: numpy 数组 (RGB) 或 None
+        """
+        if image_data is None:
+            return None
+
+        try:
+            # 如果是 QPixmap，先转换为 QImage
+            if isinstance(image_data, QPixmap):
+                if image_data.isNull():
+                    return None
+                image_data = image_data.toImage()
+
+            if not isinstance(image_data, QImage) or image_data.isNull():
+                return None
+
+            # 转换为 RGB888 格式
+            image = image_data.convertToFormat(QImage.Format.Format_RGB888)
+            width = image.width()
+            height = image.height()
+            bytes_per_line = image.bytesPerLine()
+
+            # 从 QImage 获取数据
+            ptr = image.bits()
+            arr = np.array(ptr).reshape(height, bytes_per_line)
+            # 裁剪到实际宽度（去除行填充）
+            arr = arr[:, :width * 3].reshape(height, width, 3)
+            return arr.copy()
+        except Exception:
+            return None
+
     def setPixmap(self, pixmap: QPixmap, preserve_state: bool = False):
         """
         保存原始图像并进行初次缩放
@@ -192,7 +334,7 @@ class ZoomableClickImageLabel(QLabel):
             # 尝试其他可能的转换
             try:
                 pixmap = QPixmap(image)
-            except:
+            except Exception:
                 return
 
         self.setPixmap(pixmap, preserve_state)
@@ -273,14 +415,21 @@ class ZoomableClickImageLabel(QLabel):
         """
         在控件上高效地绘制图像和选择矩形。
         """
-        # 如果没有可绘制的图像，调用父类的paintEvent
+        # 如果没有可绘制的图像，但存在原始图像，则尝试重新生成缩放后的 pixmap
+        if (self.current_scaled_pixmap.isNull()
+            and self.original_pixmap is not None
+            and not self.original_pixmap.isNull()
+        ):
+            # 尝试恢复 current_scaled_pixmap（防止在交互过程中被清空导致闪烁/消失）
+            with contextlib.suppress(Exception):
+                self.update_scaled_pixmap()
+
+        # 如果仍然没有可绘制的图像，调用父类的paintEvent
         if self.current_scaled_pixmap.isNull():
             super().paintEvent(event)
             return
 
-        # 创建一个painter
         painter = QPainter(self)
-
         # 清空背景
         painter.eraseRect(self.rect())
 
@@ -289,7 +438,6 @@ class ZoomableClickImageLabel(QLabel):
 
         # 如果正在进行矩形选择，绘制选择矩形
         if self.is_selecting:
-
             # 设置画笔样式
             pen = QPen(Qt.GlobalColor.red, 2, Qt.PenStyle.DashLine)
             painter.setPen(pen)
@@ -306,6 +454,17 @@ class ZoomableClickImageLabel(QLabel):
             # 绘制选择矩形
             rect = QRect(left, top, width, height)
             painter.drawRect(rect)
+
+        # 如果处于拖放悬停状态，绘制视觉反馈（半透明遮罩 + 虚线边框）
+        if getattr(self, 'is_drag_over', False):
+            highlight_color = QColor(30, 144, 255)  # DodgerBlue
+            # 半透明填充
+            painter.fillRect(self.rect(), QColor(highlight_color.red(), highlight_color.green(), highlight_color.blue(), 30))
+            # 虚线边框
+            pen = QPen(highlight_color, 3, Qt.PenStyle.DashLine)
+            painter.setPen(pen)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRect(self.rect().adjusted(1, 1, -2, -2))
 
     def map_display_to_image_coords(self, display_pos: QPoint) -> QPoint:
         """
@@ -324,6 +483,20 @@ class ZoomableClickImageLabel(QLabel):
         image_y = int(adjusted_pos.y() / self.scale_factor)
 
         return QPoint(image_x, image_y)
+
+    def _is_supported_image_file(self, file_path: str) -> bool:
+        """检查文件是否为支持的图片格式"""
+        if not file_path:
+            return False
+        supported_exts = {'.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp'}
+        try:
+            lower = file_path.lower()
+            for ext in supported_exts:
+                if lower.endswith(ext):
+                    return True
+        except Exception:
+            return False
+        return False
 
     def _limit_image_bounds(self, offset: QPoint) -> QPoint:
         """

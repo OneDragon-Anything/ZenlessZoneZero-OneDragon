@@ -1,11 +1,13 @@
+import inspect
 import logging
 import threading
 from enum import Enum
 from functools import cached_property
-from typing import Optional
+from pathlib import Path
 
 from pynput import keyboard
 
+from one_dragon.base.config.basic_model_config import BasicModelConfig
 from one_dragon.base.config.custom_config import UILanguageEnum
 from one_dragon.base.controller.controller_base import ControllerBase
 from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
@@ -13,12 +15,16 @@ from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.matcher.ocr.ocr_service import OcrService
 from one_dragon.base.matcher.ocr.onnx_ocr_matcher import OnnxOcrMatcher, OnnxOcrParam
 from one_dragon.base.matcher.template_matcher import TemplateMatcher
+from one_dragon.base.operation.application.application_factory_manager import (
+    ApplicationFactoryManager,
+)
 from one_dragon.base.operation.application.application_group_manager import (
     ApplicationGroupManager,
 )
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContext,
 )
+from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
 from one_dragon.base.operation.one_dragon_env_context import (
@@ -28,7 +34,7 @@ from one_dragon.base.operation.one_dragon_env_context import (
 from one_dragon.base.push.push_service import PushService
 from one_dragon.base.screen.screen_loader import ScreenContext
 from one_dragon.base.screen.template_loader import TemplateLoader
-from one_dragon.utils import debug_utils, i18_utils, log_utils, thread_utils
+from one_dragon.utils import debug_utils, file_utils, i18_utils, log_utils, thread_utils
 from one_dragon.utils.log_utils import log
 
 
@@ -64,14 +70,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
-        self.cv_ocr: OcrMatcher = OnnxOcrMatcher(
-            OnnxOcrParam(
-                use_gpu=False,  # 目前OCR使用GPU会闪退
-                det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
-            )
-        )
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
-        self.controller: Optional[ControllerBase] = None
+        self.controller: ControllerBase | None = None
 
         self.keyboard_controller = keyboard.Controller()
         self.btn_listener = PcButtonListener(on_button_tap=self._on_key_press, listen_keyboard=True, listen_mouse=True)
@@ -90,6 +90,52 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
     #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
+    #------------------- 以下是 应用工厂相关 -------------------#
+
+    @cached_property
+    def application_plugin_dirs(self) -> list[tuple[Path, PluginSource]]:
+        """
+        应用插件目录列表
+
+        默认返回：
+        1. 子类所在目录的同级 'application' 目录（内置应用）
+        2. 项目根目录下的 'plugins' 目录（外部插件，支持相对导入）
+
+        例如：如果子类在 zzz_od/context/zzz_context.py，则返回：
+        - (zzz_od/application, BUILTIN)
+        - ({project_root}/plugins, THIRD_PARTY)
+
+        Returns:
+            list[tuple[Path, PluginSource]]: 应用插件目录列表
+        """
+        dirs: list[tuple[Path, PluginSource]] = []
+
+        # 获取实际子类的定义文件
+        cls_file = inspect.getfile(self.__class__)
+        parent_dir = Path(cls_file).parent.parent
+
+        # 计算 application 目录：子类文件所在目录的上级目录下的 application 目录
+        # 例如：zzz_od/context/zzz_context.py -> zzz_od/application
+        application_dir = parent_dir / 'application'
+        if application_dir.is_dir():
+            dirs.append((application_dir, PluginSource.BUILTIN))
+
+        # 计算项目根目录下的 plugins 目录（外部插件）
+        # 从 src 目录往上一级就是项目根目录
+        src_dir = file_utils.find_src_dir(cls_file)
+        if src_dir is not None:
+            project_root = src_dir.parent
+            plugins_dir = project_root / 'plugins'
+            if plugins_dir.is_dir():
+                dirs.append((plugins_dir, PluginSource.THIRD_PARTY))
+
+        return dirs
+
+    @cached_property
+    def factory_manager(self) -> ApplicationFactoryManager:
+        """应用工厂管理器"""
+        return ApplicationFactoryManager(self, self.application_plugin_dirs)
+
     #------------------- 以下是 游戏/脚本级别的 -------------------#
 
     @cached_property
@@ -107,12 +153,71 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         from one_dragon.base.cv_process.cv_service import CvService
         return CvService(self)
 
+    @cached_property
+    def model_config(self) -> BasicModelConfig:
+        return BasicModelConfig()
+
     #------------------- 以下是 账号实例级别的 需要在 reload_instance_config 中刷新 -------------------#
 
     @cached_property
     def game_account_config(self):
         from one_dragon.base.config.game_account_config import GameAccountConfig
         return GameAccountConfig(self.current_instance_idx)
+
+    @cached_property
+    def notify_config(self):
+        from one_dragon.base.config.notify_config import NotifyConfig
+        return NotifyConfig(self.current_instance_idx, self.run_context.notify_app_map)
+
+    #------------------- 以下是 应用注册相关 -------------------#
+
+    def register_application_factory(self) -> None:
+        """注册应用
+
+        使用工厂管理器自动扫描和注册应用工厂。
+        """
+        # 发现并注册应用
+        non_default_factories, default_factories = self.factory_manager.discover_factories()
+
+        if non_default_factories:
+            self.run_context.registry_application(non_default_factories, default_group=False)
+
+        if default_factories:
+            self.run_context.registry_application(default_factories, default_group=True)
+
+    def refresh_application_registration(self) -> None:
+        """刷新应用注册
+
+        重新扫描插件目录，刷新所有应用的注册。
+        可在运行时调用以加载新的应用或更新已有应用。
+        """
+        log.info("开始刷新应用注册...")
+
+        # 清空现有注册
+        self.run_context.clear_applications()
+
+        # 重新发现并注册
+        non_default_factories, default_factories = self.factory_manager.discover_factories(reload_modules=True)
+
+        if non_default_factories:
+            self.run_context.registry_application(non_default_factories, default_group=False)
+
+        if default_factories:
+            self.run_context.registry_application(default_factories, default_group=True)
+
+        # 更新默认应用组
+        self.app_group_manager.set_default_apps(self.run_context.default_group_apps)
+
+        # 清除应用组配置缓存，使其重新加载
+        self.app_group_manager.clear_config_cache()
+
+        # 刷新通知配置中的应用映射
+        if 'notify_config' in self.__dict__:
+            del self.__dict__['notify_config']
+
+        log.info("应用注册刷新完成")
+
+    #------------------- 以下是 初始化相关 -------------------#
 
     def init(self) -> None:
         if not self._init_lock.acquire(blocking=False):
@@ -151,11 +256,13 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.push_service.init_push_channels()
 
-            self.gh_proxy_service.update_proxy_url()
+            # 只有在配置了 ghproxy 代理时才更新代理地址
+            if self.env_config.is_gh_proxy:
+                self.gh_proxy_service.update_proxy_url()
 
             self.init_others()
         except Exception:
-            log.error('识别连携技出错', exc_info=True)
+            log.error('初始化出错', exc_info=True)
         finally:
             self._init_lock.release()
 
@@ -248,8 +355,15 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.one_dragon_config.active_instance(instance_idx)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
         self.reload_instance_config()
-        self.init_controller()
+        self.on_switch_instance()
         self.dispatch_event(ContextInstanceEventEnum.instance_active.value, instance_idx)
+
+    def on_switch_instance(self) -> None:
+        """
+        切换实例后的回调，用于更新 controller 配置
+        由子类实现具体逻辑
+        """
+        pass
 
     def reload_instance_config(self):
         """
@@ -261,21 +375,19 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
         to_clear_props = [
             'game_account_config',
+            'notify_config',
         ]
         for prop in to_clear_props:
-            if hasattr(self, prop):
-                delattr(self, prop)
+            if prop in self.__dict__:
+                del self.__dict__[prop]
 
     def init_ocr(self) -> None:
         """
         初始化OCR
         :return:
         """
+        self.ocr.update_use_gpu(self.model_config.ocr_gpu)
         self.ocr.init_model(
-            ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
-            proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
-        )
-        self.cv_ocr.init_model(
             ghproxy_url=self.env_config.gh_proxy_url if self.env_config.is_gh_proxy else None,
             proxy_url=self.env_config.personal_proxy if self.env_config.is_personal_proxy else None,
         )
@@ -286,6 +398,8 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         @return:
         """
         self.btn_listener.stop()
+        if self.controller is not None:
+            self.controller.cleanup_after_app_shutdown()
         self.one_dragon_config.clear_temp_instance_indices()
         ContextEventBus.after_app_shutdown(self)
         OneDragonEnvContext.after_app_shutdown(self)
@@ -295,11 +409,5 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         OperationExecutor.after_app_shutdown()
         from one_dragon.base.conditional_operation.state_record_service import StateRecordService
         StateRecordService.after_app_shutdown()
-
-
-    def register_application_factory(self) -> None:
-        """
-        注册应用
-        由子类实现
-        """
-        pass
+        from one_dragon.utils import gpu_executor
+        gpu_executor.shutdown(wait=False)

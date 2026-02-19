@@ -110,6 +110,9 @@ class AutoBattleStateRecordService(StateRecordService):
         for i in range(1, 3):
             event_ids.append(f'连携技-{i}-邦布')
 
+        # 添加连携条状态
+        event_ids.append('连携技-准备')
+
         # 添加目标状态 (V10: 从数据定义中动态获取)
         for task in DETECTION_TASKS:
             if not task.enabled:
@@ -119,7 +122,9 @@ class AutoBattleStateRecordService(StateRecordService):
                     event_ids.append(state_def.state_name)
 
         # 这是一个旧的状态 等待后续删除或者恢复识别
+        # 完全不知道这个注册器有有什么作用，实测根本不影响状态运转
         event_ids.append('格挡-破碎')
+        event_ids.append('切人-冷却')
 
         return event_ids
 

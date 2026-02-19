@@ -2,12 +2,14 @@ import time
 
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from one_dragon.utils.i18_utils import gt
+from zzz_od.application.scratch_card import scratch_card_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.transport import Transport
+from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 
 class ScratchCardApp(ZApplication):
@@ -15,9 +17,9 @@ class ScratchCardApp(ZApplication):
     def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='scratch_card',
-            op_name=gt('刮刮卡'),
-            need_notify=True,
+            ctx=ctx,
+            app_id=scratch_card_const.APP_ID,
+            op_name=scratch_card_const.APP_NAME,
         )
 
     @operation_node(name='传送', is_start_node=True)
@@ -32,7 +34,8 @@ class ScratchCardApp(ZApplication):
         if result.is_success:
             return self.round_success(result.status)
 
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
+        op = WaitNormalWorld(self.ctx, check_once=True)
+        result = self.round_by_op_result(op.execute())
         if result.is_success:
             return self.round_success(result.status)
 
@@ -113,9 +116,9 @@ class ScratchCardApp(ZApplication):
 
     @node_from(from_name='点击刮刮卡', status='按钮-同类型确认')
     @node_from(from_name='刮刮')
+    @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 

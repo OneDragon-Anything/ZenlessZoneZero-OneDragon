@@ -17,7 +17,7 @@ class ChargePlanDialog(MessageBoxBase):
         self.yesButton.setText(gt('确定'))
         self.cancelButton.setText(gt('取消'))
 
-        self.titleLabel = SubtitleLabel(gt('新增体力计划'))
+        self.titleLabel = SubtitleLabel(text=gt('新增体力计划'))
         self.viewLayout.addWidget(self.titleLabel)
 
         self._setup_card()
@@ -37,9 +37,9 @@ class ChargePlanDialog(MessageBoxBase):
             predefined_team_idx=0,
             notorious_hunt_buff_num=1,
         )
-        card = ChargePlanCard(self.ctx, idx=-1, plan=self.plan, config=self.config)
-        card.move_up_btn.hide()
-        card.move_top_btn.hide()
-        card.del_btn.hide()
-        self.viewLayout.addWidget(card)
+        # 使用 DraggableList 包裹，与主界面保持一致
+        self.card = ChargePlanCard(self.ctx, idx=-1, plan=self.plan, config=self.config)
+        self.card.move_top_btn.hide()
+        self.card.del_btn.hide()
+        self.viewLayout.addWidget(self.card)
         self.viewLayout.addStretch(1)

@@ -6,12 +6,21 @@ from zzz_od.application.hollow_zero.lost_void.context.lost_void_artifact import 
 
 class LostVoidArtifactPos:
 
-    def __init__(self, art: LostVoidArtifact, rect: Rect):
+    def __init__(
+        self,
+        art: LostVoidArtifact,
+        rect: Rect,
+        ocr_text: str = '',
+        is_primary_name: bool = True,
+    ):
         self.artifact: LostVoidArtifact = art
         self.rect: Rect = rect
+        self.ocr_text: str = ocr_text  # OCR原始文本
+        self.is_primary_name: bool = is_primary_name  # 是否为 [] / 【】 结构的主选名称
 
         self.can_choose: bool = True
         self.chosen: bool = False  # 已经被选择了
+        self.has_same_style: bool = False  # 有同流派武备
         self.store_price: Optional[int] = None
         self.store_buy_rect: Optional[Rect] = None
         self.is_new: bool = False

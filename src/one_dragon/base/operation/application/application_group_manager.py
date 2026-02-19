@@ -98,3 +98,10 @@ class ApplicationGroupManager:
                 config.set_app_order(old_config.app_order)
 
         return config
+
+    def clear_config_cache(self) -> None:
+        """清除配置缓存
+
+        在刷新应用注册时调用，使配置重新加载。
+        """
+        self._config_cache.clear()

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import os
 import time
-from concurrent.futures import Future, ThreadPoolExecutor
-from typing import List, Optional, Tuple, Any, TYPE_CHECKING
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
+from typing import TYPE_CHECKING, Any
 
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from one_dragon.base.conditional_operation.loader import ConditionalOperatorLoader
 from one_dragon.base.conditional_operation.operation_def import OperationDef
 from one_dragon.base.conditional_operation.operator import ConditionalOperator
-from one_dragon.base.conditional_operation.state_recorder import StateRecorder
 from one_dragon.utils import thread_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.auto_battle.atomic_op.btn_lock import AtomicBtnLock
@@ -77,6 +77,9 @@ class AutoBattleOperator(ConditionalOperator):
         self.last_lock_time: float = 0  # 上一次锁定的时间
         self.last_turn_time: float = 0  # 上一次转动视角的时间
 
+        # 停止事件
+        self._stop_event = Event()
+
     def load_other_info(self, data: dict[str, Any]) -> None:
         """
         加载其他所需的信息
@@ -101,7 +104,7 @@ class AutoBattleOperator(ConditionalOperator):
         self.auto_lock_interval = data.get('auto_lock_interval', 1)
         self.auto_turn_interval = data.get('auto_turn_interval', 2)
 
-    def init_before_running(self) -> Tuple[bool, str]:
+    def init_before_running(self) -> tuple[bool, str]:
         """
         运行前进行初始化
         :return:
@@ -151,27 +154,41 @@ class AutoBattleOperator(ConditionalOperator):
         """
         if self.auto_lock_interval <= 0 and self.auto_turn_interval <= 0:  # 不开启自动锁定 和 自动转向
             return
+        self._stop_event.clear()
         lock_op = AtomicBtnLock(self.ctx)
         turn_op = AtomicTurn(self.ctx, 100)
         while self.is_running:
             now = time.time()
 
             if not self.ctx.last_check_in_battle:  # 当前画面不是战斗画面 就不运行了
-                time.sleep(0.2)
+                if self._stop_event.wait(timeout=0.2):
+                    break
                 continue
 
             any_done: bool = False
+            if not self.is_running:
+                break
             if self.auto_lock_interval > 0 and now - self.last_lock_time > self.auto_lock_interval:
                 lock_op.execute()
                 self.last_lock_time = now
                 any_done = True
+            if not self.is_running:
+                break
             if self.auto_turn_interval > 0 and now - self.last_turn_time > self.auto_turn_interval:
                 turn_op.execute()
                 self.last_turn_time = now
                 any_done = True
 
             if not any_done:
-                time.sleep(0.2)
+                if self._stop_event.wait(timeout=0.2):
+                    break
+
+    def stop_running(self) -> None:
+        """
+        停止执行
+        """
+        self._stop_event.set()
+        super().stop_running()
 
     @staticmethod
     def after_app_shutdown() -> None:

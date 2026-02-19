@@ -10,6 +10,7 @@ from one_dragon.base.matcher.match_result import MatchResultList
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, os_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -28,10 +29,11 @@ from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.compendium import Coffee
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
+from zzz_od.operation.compendium.area_patrol import AreaPatrol
 from zzz_od.operation.compendium.combat_simulation import CombatSimulation
 from zzz_od.operation.compendium.expert_challenge import ExpertChallenge
-from zzz_od.operation.compendium.routine_cleanup import RoutineCleanup
 from zzz_od.operation.transport import Transport
+from zzz_od.operation.wait_normal_world import WaitNormalWorld
 
 
 class CoffeeApp(ZApplication):
@@ -41,13 +43,13 @@ class CoffeeApp(ZApplication):
 
     def __init__(self, ctx: ZContext):
         """
-        每天自动接收邮件奖励
+        喝咖啡
         """
         ZApplication.__init__(
             self,
-            ctx=ctx, app_id='coffee',
-            op_name=gt('咖啡店'),
-            need_notify=True,
+            ctx=ctx,
+            app_id=coffee_app_const.APP_ID,
+            op_name=coffee_app_const.APP_NAME,
         )
 
         self.config: CoffeeConfig = self.ctx.run_context.get_config(
@@ -84,7 +86,8 @@ class CoffeeApp(ZApplication):
         if result.is_success:
             return self.round_success(result.status)
 
-        result = self.round_by_find_area(self.last_screenshot, '大世界', '信息')
+        op = WaitNormalWorld(self.ctx, check_once=True)
+        result = self.round_by_op_result(op.execute())
         if result.is_success:
             return self.round_success(result.status)
 
@@ -285,6 +288,7 @@ class CoffeeApp(ZApplication):
         return self.round_retry(result.status, wait=1)
 
     @node_from(from_name='点单后跳过')
+    @node_notify(when=NotifyTiming.CURRENT_SUCCESS)
     @operation_node(name='电量确认')
     def charge_confirm(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '咖啡店', '电量确认')
@@ -367,10 +371,10 @@ class CoffeeApp(ZApplication):
         op = CombatSimulation(self.ctx, self.charge_plan)
         return self.round_by_op_result(op.execute())
 
-    @node_from(from_name='传送副本', status='定期清剿')
-    @operation_node(name='定期清剿')
-    def routine_cleanup(self) -> OperationRoundResult:
-        op = RoutineCleanup(self.ctx, self.charge_plan)
+    @node_from(from_name='传送副本', status='区域巡防')
+    @operation_node(name='区域巡防')
+    def area_patrol(self) -> OperationRoundResult:
+        op = AreaPatrol(self.ctx, self.charge_plan)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送副本', status='专业挑战室')
@@ -384,11 +388,10 @@ class CoffeeApp(ZApplication):
     @node_from(from_name='选择前往', status='对话框确认')
     @node_from(from_name='选择前往', status='没有加成')
     @node_from(from_name='实战模拟室')
-    @node_from(from_name='定期清剿')
+    @node_from(from_name='区域巡防')
     @node_from(from_name='专业挑战室')
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
-        self.notify_screenshot = self.last_screenshot  # 结束后通知的截图
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
 
