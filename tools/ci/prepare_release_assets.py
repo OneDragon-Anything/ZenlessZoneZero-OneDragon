@@ -149,7 +149,7 @@ def main() -> int:
     args = parser.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
-    release_version = args.release_version or os.environ.get("RELEASE_VERSION") or os.environ.get("GITHUB_REF_NAME") or ""
+    release_version = args.release_version or os.environ.get("RELEASE_VERSION") or ""
     if not release_version:
         raise SystemExit("Missing release version (set RELEASE_VERSION or pass --release-version)")
 
