@@ -221,10 +221,10 @@ jobs:
         path: deploy/dist/signed
 
     - name: Prepare release directory and models
-      shell: cmd
+      shell: pwsh
       env:
         RELEASE_VERSION: ${{ needs.version.outputs.version }}
-      run: python tools/ci/prepare_release_assets.py --release-version "%RELEASE_VERSION%"
+      run: python tools/ci/prepare_release_assets.py --release-version "$env:RELEASE_VERSION"
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
