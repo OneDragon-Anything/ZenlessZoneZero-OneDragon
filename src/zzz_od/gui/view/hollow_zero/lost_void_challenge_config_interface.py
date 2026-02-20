@@ -453,12 +453,12 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
 
     def on_priority_team_changed(self, value: bool) -> None:
         self.predefined_team_opt.setDisabled(
-            self.priority_team_opt.isEnabled() and self.manually_choose_agent_opt.isEnabled())
+            self.chosen_config.choose_team_by_priority or self.chosen_config.choose_team_by_priority)
         self.manually_choose_agent_opt.setDisabled(value)
 
     def on_manually_choose_agent_changed(self, value: bool) -> None:
         self.predefined_team_opt.setDisabled(
-            self.priority_team_opt.isEnabled() and self.manually_choose_agent_opt.isEnabled())
+            self.chosen_config.choose_team_by_priority or self.chosen_config.choose_team_by_priority)
         self.priority_team_opt.setDisabled(value)
         self.agent_1_selector.setEnabled(value)
         self.agent_2_selector.setEnabled(value)

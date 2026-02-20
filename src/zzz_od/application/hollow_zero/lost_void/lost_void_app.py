@@ -1,6 +1,5 @@
 import time
-from typing import ClassVar, Union
-
+from typing import ClassVar
 import cv2
 from cv2.typing import MatLike
 
@@ -273,7 +272,7 @@ class LostVoidApp(ZApplication):
                           self.ctx.lost_void.challenge_config.agent_3]
         # agent_list_str = ['anby', 'yeshunguang', 'ellen']
         # 记录角色在第几页的哪个位置
-        agent_page_match_list: Union[int, list[Point]] = [None] * len(agent_list_str)
+        agent_page_match_list: list[[int, list[Point]] | None] = [None] * len(agent_list_str)
 
         # 1. 从屏幕右半边去掉人
         area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '主战编队')
@@ -305,6 +304,7 @@ class LostVoidApp(ZApplication):
                     if agent_list_str[agent_idx] == agent_mr_list[match_idx].data.agent_id:
                         agent_page_match_list[agent_idx] = [page, agent_mr_list[match_idx].center]
                         found += 1
+                        break
             if found == len(agent_list_str):
                 # 角色定位齐了, 可以选角色了
                 break
@@ -327,8 +327,8 @@ class LostVoidApp(ZApplication):
         return self.round_success()
 
     # 滑动x次
-    def swipe_multiple_times(self, swipe_num, wait, start, end):
-        for page in range(swipe_num):
+    def swipe_multiple_times(self, swipe_num, wait, start, end) -> None:
+        for _ in range(swipe_num):
             self.ctx.controller.drag_to(start=start, end=end)
             time.sleep(wait)
 
@@ -747,7 +747,7 @@ class LostVoidApp(ZApplication):
         if mission_name == '特遣调查':
             # 本周第一次挑战 且开启了优先级配队
             if (self.ctx.lost_void.challenge_config.choose_team_by_priority
-                    and self.run_record.complete_task_force_with_up == False):
+                    and not self.run_record.complete_task_force_with_up):
                 self.ctx.lost_void.predefined_team_idx = self.get_target_team_idx_by_priority()
                 if self.ctx.lost_void.predefined_team_idx != -1:
                     self.use_priority_agent = True

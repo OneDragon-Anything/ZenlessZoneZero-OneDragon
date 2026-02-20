@@ -136,39 +136,39 @@ class LostVoidChallengeConfig(YamlConfig):
         self.update('manually_choose_agent', new_value)
 
     @property
-    def agent_1(self) -> bool:
+    def agent_1(self) -> str:
         """
         自选代理人
         :return:
         """
-        return self.get('agent_1', False)
+        return self.get('agent_1', 'unknown')
 
     @agent_1.setter
-    def agent_1(self, new_value: bool):
+    def agent_1(self, new_value: str):
         self.update('agent_1', new_value)
 
     @property
-    def agent_2(self) -> bool:
+    def agent_2(self) -> str:
         """
         自选代理人
         :return:
         """
-        return self.get('agent_2', False)
+        return self.get('agent_2', 'unknown')
 
     @agent_2.setter
-    def agent_2(self, new_value: bool):
+    def agent_2(self, new_value: str):
         self.update('agent_2', new_value)
 
     @property
-    def agent_3(self) -> bool:
+    def agent_3(self) -> str:
         """
         自选代理人
         :return:
         """
-        return self.get('agent_3', False)
+        return self.get('agent_3', 'unknown')
 
     @agent_3.setter
-    def agent_3(self, new_value: bool):
+    def agent_3(self, new_value: str):
         self.update('agent_3', new_value)
 
     @property
