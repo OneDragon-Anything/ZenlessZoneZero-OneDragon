@@ -1,12 +1,10 @@
 import os
 import re
 import subprocess
-from datetime import UTC, datetime, timedelta
 
 
 def main() -> int:
     github_ref = os.environ.get('GITHUB_REF', '')
-    create_release = os.environ.get('CREATE_RELEASE', 'false').lower() == 'true'
     github_output = os.environ.get('GITHUB_OUTPUT')
 
     version = ""
@@ -16,11 +14,6 @@ def main() -> int:
     if github_ref.startswith('refs/tags/'):
         # 已由 tag 推送触发，直接使用该 tag 作为版本
         version = github_ref[10:]
-        tag = version
-    elif not create_release:
-        # 非 release 构建，使用日期作为版本号 (UTC+8)
-        now_plus_8 = datetime.now(UTC) + timedelta(hours=8)
-        version = now_plus_8.strftime('v%Y.%m%d.%H%M')
         tag = version
     else:
         # 手动触发且要求创建 release：生成新的 beta 版本
