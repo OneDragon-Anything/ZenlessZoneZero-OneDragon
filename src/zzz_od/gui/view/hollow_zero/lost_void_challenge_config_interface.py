@@ -1,12 +1,15 @@
+from typing import List, Optional
+
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, FluentThemeColor, PlainTextEdit, SubtitleLabel, BodyLabel, \
-    PushButton, ToolButton, MessageBox
-from typing import List, Optional
+    PushButton, ToolButton, MessageBox, SettingCard
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
+from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.row import Row
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
@@ -15,7 +18,9 @@ from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterf
 from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import LostVoidChallengeConfig, \
     get_lost_void_challenge_new_name, get_all_lost_void_challenge_config, LostVoidPeriodBuffNo
+from zzz_od.config.team_config import PredefinedTeamInfo
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.game_data.agent import AgentEnum
 
 
 class LostVoidChallengeConfigInterface(VerticalScrollInterface):
@@ -81,8 +86,46 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         widget.add_widget(self.predefined_team_opt)
 
         self.priority_team_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='当期UP代理人',
-                                                   content='每周第1次 优先选择包含当期UP的编队 覆盖预备编队选项')
+                                                   content='每周第1次 优先选择包含当期UP的编队')
+        self.priority_team_opt.value_changed.connect(self.on_priority_team_changed)
         widget.add_widget(self.priority_team_opt)
+
+        self.manually_choose_agent_opt = SwitchSettingCard(icon=FluentIcon.PEOPLE, title='矩阵行动 - 手动选择代理人',
+                                                           content='需要在下框配置代理人 可用试用角色(矩阵行动无法保存默认配队)')
+        self.manually_choose_agent_opt.value_changed.connect(self.on_manually_choose_agent_changed)
+        widget.add_widget(self.manually_choose_agent_opt)
+
+        self.manually_team_opt = SettingCard(FluentIcon.PEOPLE, gt(''), gt(''))
+        self.manually_team_opt.setFixedHeight(50)
+        widget.add_widget(self.manually_team_opt)
+
+        self.agent_1_selector = EditableComboBox()
+        self.agent_1_selector.currentIndexChanged.connect(self.on_agent_1_changed)
+        self.agent_1_selector.setFixedWidth(110)
+
+        self.agent_2_selector = EditableComboBox()
+        self.agent_2_selector.currentIndexChanged.connect(self.on_agent_2_changed)
+        self.agent_2_selector.setFixedWidth(110)
+
+        self.agent_3_selector = EditableComboBox()
+        self.agent_3_selector.currentIndexChanged.connect(self.on_agent_3_changed)
+        self.agent_3_selector.setFixedWidth(110)
+
+        self.manually_team_opt.hBoxLayout.addWidget(self.agent_1_selector, alignment=Qt.AlignmentFlag.AlignRight)
+        self.manually_team_opt.hBoxLayout.addSpacing(16)
+        self.manually_team_opt.hBoxLayout.addWidget(self.agent_2_selector, alignment=Qt.AlignmentFlag.AlignRight)
+        self.manually_team_opt.hBoxLayout.addSpacing(16)
+        self.manually_team_opt.hBoxLayout.addWidget(self.agent_3_selector, alignment=Qt.AlignmentFlag.AlignRight)
+        self.manually_team_opt.hBoxLayout.addSpacing(16)
+
+        self.agent_opts = ([ConfigItem(label='代理人', value='unknown')]
+                      + [ConfigItem(label=i.value.agent_name, value=i.value.agent_id) for i in AgentEnum])
+
+        self.agent_1_selector.set_items(self.agent_opts, None)
+        self.agent_2_selector.set_items(self.agent_opts, None)
+        self.agent_3_selector.set_items(self.agent_opts, None)
+
+        self.team_info: Optional[PredefinedTeamInfo] = None
 
         self.auto_battle_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='自动战斗',
                                                    content='预备编队使用游戏内配队时生效')
@@ -185,8 +228,14 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.cancel_btn.setDisabled(not chosen)
 
         self.name_opt.setDisabled(not chosen or is_sample)
-        self.predefined_team_opt.setDisabled(not chosen or is_sample)
-        self.priority_team_opt.setDisabled(not chosen or is_sample)
+        self.predefined_team_opt.setDisabled(not chosen or is_sample
+                                             or self.chosen_config.choose_team_by_priority
+                                             or self.chosen_config.manually_choose_agent)
+        self.priority_team_opt.setDisabled(not chosen or is_sample or self.chosen_config.manually_choose_agent)
+        self.manually_choose_agent_opt.setDisabled(not chosen or is_sample or self.chosen_config.choose_team_by_priority)
+        self.agent_1_selector.setDisabled(not chosen or is_sample or not self.chosen_config.manually_choose_agent)
+        self.agent_2_selector.setDisabled(not chosen or is_sample or not self.chosen_config.manually_choose_agent)
+        self.agent_3_selector.setDisabled(not chosen or is_sample or not self.chosen_config.manually_choose_agent)
         self.auto_battle_opt.setDisabled(not chosen or is_sample)
         self.chase_new_mode_opt.setDisabled(not chosen or is_sample)
         self.investigation_strategy_opt.setDisabled(not chosen or is_sample)
@@ -215,6 +264,10 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
             self.name_opt.setValue(self.chosen_config.module_name)
             self.predefined_team_opt.init_with_adapter(self.chosen_config.get_prop_adapter('predefined_team_idx'))
             self.priority_team_opt.init_with_adapter(self.chosen_config.get_prop_adapter('choose_team_by_priority'))
+            self.manually_choose_agent_opt.init_with_adapter(self.chosen_config.get_prop_adapter('manually_choose_agent'))
+            self.agent_1_selector.set_items(self.agent_opts, self.chosen_config.agent_1)
+            self.agent_2_selector.set_items(self.agent_opts, self.chosen_config.agent_2)
+            self.agent_3_selector.set_items(self.agent_opts, self.chosen_config.agent_3)
             self.auto_battle_opt.setValue(self.chosen_config.auto_battle)
             self.chase_new_mode_opt.init_with_adapter(self.chosen_config.get_prop_adapter('chase_new_mode'))
             self.investigation_strategy_opt.init_with_adapter(self.chosen_config.get_prop_adapter('investigation_strategy'))
@@ -397,3 +450,31 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
 
         is_sample = self.chosen_config.is_sample
         self.investigation_strategy_opt.setDisabled(is_sample or checked)
+
+    def on_priority_team_changed(self, value: bool) -> None:
+        self.predefined_team_opt.setDisabled(
+            self.chosen_config.choose_team_by_priority or self.chosen_config.choose_team_by_priority)
+        self.manually_choose_agent_opt.setDisabled(value)
+
+    def on_manually_choose_agent_changed(self, value: bool) -> None:
+        self.predefined_team_opt.setDisabled(
+            self.chosen_config.choose_team_by_priority or self.chosen_config.choose_team_by_priority)
+        self.priority_team_opt.setDisabled(value)
+        self.agent_1_selector.setEnabled(value)
+        self.agent_2_selector.setEnabled(value)
+        self.agent_3_selector.setEnabled(value)
+
+    def on_agent_1_changed(self) -> None:
+        if self.chosen_config is None:
+            return
+        self.chosen_config.agent_1 = self.agent_1_selector.currentData()
+
+    def on_agent_2_changed(self) -> None:
+        if self.chosen_config is None:
+            return
+        self.chosen_config.agent_2 = self.agent_2_selector.currentData()
+
+    def on_agent_3_changed(self) -> None:
+        if self.chosen_config is None:
+            return
+        self.chosen_config.agent_3 = self.agent_3_selector.currentData()
