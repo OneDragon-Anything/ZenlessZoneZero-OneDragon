@@ -47,10 +47,10 @@ area_list:
 - area_name: 重置按钮
   id_mark: false
   pc_rect:
-  - 1600
-  - 1030
-  - 1600
-  - 1030
+  - 1422
+  - 998
+  - 1704
+  - 1058
   text: ''
   lcs_percent: 0.5
   template_sub_dir: ''

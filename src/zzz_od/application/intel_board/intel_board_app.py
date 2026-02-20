@@ -96,7 +96,8 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='打开筛选')
     @operation_node(name='重置筛选')
     def reset_filter(self) -> OperationRoundResult:
-        return self.round_by_ocr_and_click(self.last_screenshot, '重置', success_wait=0.5, retry_wait=0.5)
+        area = self.ctx.screen_loader.get_area('委托情报板', '重置按钮')
+        return self.round_by_ocr_and_click(self.last_screenshot, '重置', area, success_wait=0.5, retry_wait=0.5)
 
     @node_from(from_name='重置筛选')
     @operation_node(name='选择恶名狩猎')
