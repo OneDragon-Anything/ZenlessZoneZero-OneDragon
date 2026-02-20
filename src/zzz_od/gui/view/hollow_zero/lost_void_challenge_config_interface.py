@@ -91,7 +91,7 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         widget.add_widget(self.priority_team_opt)
 
         self.manually_choose_agent_opt = SwitchSettingCard(icon=FluentIcon.PEOPLE, title='矩阵行动 - 手动选择代理人',
-                                                           content='需要在下框配置代理人 可用试用角色')
+                                                           content='需要在下框配置代理人 可用试用角色(矩阵行动无法保存默认配队)')
         self.manually_choose_agent_opt.value_changed.connect(self.on_manually_choose_agent_changed)
         widget.add_widget(self.manually_choose_agent_opt)
 

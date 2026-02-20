@@ -1,5 +1,5 @@
 import time
-from typing import ClassVar
+from typing import ClassVar, Union
 
 import cv2
 from cv2.typing import MatLike
@@ -215,8 +215,9 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='矩阵行动-点击下一步')
     @operation_node(name='矩阵行动-点击预备编队')
     def matrix_click_preset_team(self) -> OperationRoundResult:
-        if self.ctx.lost_void.challenge_config.predefined_team_idx == -1:
-            return self.round_success('使用xx配队')
+        if self.ctx.lost_void.challenge_config.manually_choose_agent \
+                and self.ctx.lost_void.challenge_config.predefined_team_idx == -1:
+            return self.round_success('手动选取角色')
         return self.round_by_find_and_click_area(
             self.last_screenshot,
             '迷失之地-矩阵行动',
@@ -263,7 +264,7 @@ class LostVoidApp(ZApplication):
 
         return self.round_retry('未找到主战', wait=0.5)
 
-    @node_from(from_name='矩阵行动-点击预备编队', status='使用xx配队')
+    @node_from(from_name='矩阵行动-点击预备编队', status='手动选取角色')
     @operation_node(name='矩阵行动-选择代理人')
     def matrix_select_agent(self) -> OperationRoundResult:
         # 代理人列表
@@ -538,7 +539,6 @@ class LostVoidApp(ZApplication):
     def _match_quick_assist_agent_in(self, img: MatLike, agent_list_str: list[str]) -> list[MatchResult]:
         """
         匹配左边代理人头像, 选择队伍
-        todo 代理人在第二页时需要往上滑, 目前未做适配 (叶千耀够了(如够, 最终boss目押太逆天了差点寄了), 自定义队伍过完年再看吧)
         """
         source_kp, source_desc = cv2_utils.feature_detect_and_compute(img)
         agent_mr_list = []
