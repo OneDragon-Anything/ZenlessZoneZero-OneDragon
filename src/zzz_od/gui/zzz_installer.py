@@ -18,7 +18,7 @@ if __name__ == '__main__':
         icon_path = Path.cwd() / 'assets/ui/logo.ico'
     installer_dir = Path(sys.argv[0]).resolve().parent
 
-    picker_window = DirectoryPickerWindow(icon_path=icon_path)
+    picker_window = DirectoryPickerWindow(icon_path=icon_path, installer_dir=str(installer_dir))
     picker_window.exec()
     work_dir = picker_window.selected_directory
     if not work_dir:

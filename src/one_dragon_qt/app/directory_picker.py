@@ -1,12 +1,31 @@
-import os
 import locale
-from PySide6.QtCore import Qt, QEventLoop, QSize
-from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog, QApplication, QWidget
+import os
+
+from PySide6.QtCore import QEventLoop, QSize, Qt
 from PySide6.QtGui import QPixmap
-from qfluentwidgets import (FluentIcon, PrimaryPushButton, ToolButton, LineEdit, MessageBox,
-                            SplitTitleBar, SubtitleLabel, PixmapLabel)
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QHBoxLayout,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
+from qfluentwidgets import (
+    CaptionLabel,
+    FluentIcon,
+    IndeterminateProgressBar,
+    LineEdit,
+    MessageBox,
+    PixmapLabel,
+    PrimaryPushButton,
+    SplitTitleBar,
+    SubtitleLabel,
+    ToolButton,
+)
 
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+from one_dragon_qt.services.unpack_runner import UnpackResourceRunner
 from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 from one_dragon_qt.windows.window import PhosWindow
 
@@ -29,7 +48,8 @@ class DirectoryPickerTranslator:
                 'directory_not_empty_warning': '所选目录不为空，里面的内容将被覆盖：\n{path}\n\n是否继续使用此目录？',
                 'i_know': '我知道了',
                 'continue_use': '继续使用',
-                'select_other': '选择其他目录'
+                'select_other': '选择其他目录',
+                'preparing': '正在准备安装文件...'
             },
             'en': {
                 'title': 'Please Select Installation Path',
@@ -43,7 +63,8 @@ class DirectoryPickerTranslator:
                 'directory_not_empty_warning': 'The selected directory is not empty, its contents will be overwritten:\n{path}\n\nDo you want to continue using this directory?',
                 'i_know': 'I Know',
                 'continue_use': 'Continue',
-                'select_other': 'Select Other'
+                'select_other': 'Select Other',
+                'preparing': 'Preparing installation files...'
             }
         }
 
@@ -70,11 +91,13 @@ class DirectoryPickerTranslator:
 class DirectoryPickerInterface(QWidget):
     """路径选择器界面"""
 
-    def __init__(self, parent=None, icon_path=None):
+    def __init__(self, parent=None, icon_path=None, installer_dir: str | None = None):
         QWidget.__init__(self, parent=parent)
         self.setObjectName("directory_picker_interface")
         self.selected_path = ""
         self.icon_path = icon_path
+        self.installer_dir = installer_dir
+        self._runner: UnpackResourceRunner | None = None
         self.translator = DirectoryPickerTranslator(DirectoryPickerTranslator.detect_language())
         self._init_ui()
 
@@ -124,20 +147,44 @@ class DirectoryPickerInterface(QWidget):
         self.browse_btn.clicked.connect(self._on_browse_clicked)
         path_layout.addWidget(self.browse_btn)
 
-        main_layout.addLayout(path_layout)
-
-        # 按钮区域
+        # 确认按钮
         button_layout = QHBoxLayout()
         button_layout.addStretch(1)
         self.confirm_btn = PrimaryPushButton(self.translator.get_text('confirm'))
         self.confirm_btn.setIcon(FluentIcon.ACCEPT)
-        self.confirm_btn.setMinimumSize(120, 36)  # 设置最小尺寸使按钮变大
+        self.confirm_btn.setMinimumSize(120, 36)
         self.confirm_btn.clicked.connect(self._on_confirm_clicked)
         self.confirm_btn.setEnabled(False)
         button_layout.addWidget(self.confirm_btn)
         button_layout.addStretch(1)
 
-        main_layout.addLayout(button_layout)
+        # 选路页（page 0）
+        pick_page = QWidget()
+        pick_layout = QVBoxLayout(pick_page)
+        pick_layout.setContentsMargins(0, 0, 0, 0)
+        pick_layout.setSpacing(20)
+        pick_layout.addLayout(path_layout)
+        pick_layout.addLayout(button_layout)
+        pick_layout.addStretch(1)
+
+        # 进度页（page 1）
+        progress_page = QWidget()
+        pg_layout = QVBoxLayout(progress_page)
+        pg_layout.setContentsMargins(0, 0, 0, 0)
+        pg_layout.setSpacing(8)
+        self.progress_bar = IndeterminateProgressBar()
+        self.status_label = CaptionLabel(self.translator.get_text('preparing'))
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        pg_layout.addStretch(1)
+        pg_layout.addWidget(self.progress_bar)
+        pg_layout.addWidget(self.status_label)
+        pg_layout.addStretch(1)
+
+        # 展示切换器
+        self.picker_stack = QStackedWidget()
+        self.picker_stack.addWidget(pick_page)
+        self.picker_stack.addWidget(progress_page)
+        main_layout.addWidget(self.picker_stack)
 
         # 添加弹性空间
         main_layout.addStretch(1)
@@ -205,12 +252,34 @@ class DirectoryPickerInterface(QWidget):
 
     def _on_confirm_clicked(self):
         """确认按钮点击事件"""
-        if self.selected_path:
-            # 获取顶层窗口
-            window = self.window()
-            if isinstance(window, DirectoryPickerWindow):
-                window.selected_directory = self.selected_path
-                window.close()
+        if not self.selected_path:
+            return
+
+        window = self.window()
+        if not isinstance(window, DirectoryPickerWindow):
+            return
+
+        window.selected_directory = self.selected_path
+
+        # 启动解包，切换到进度页
+        self.picker_stack.setCurrentIndex(1)
+        self.progress_bar.start()
+
+        self._runner = UnpackResourceRunner(self.installer_dir, self.selected_path)
+        self._runner.log_message.connect(self._on_unpack_log)
+        self._runner.finished.connect(self._on_unpack_finished)
+        self._runner.start()
+
+    def _on_unpack_log(self, message: str) -> None:
+        """更新单行状态标签"""
+        self.status_label.setText(message)
+
+    def _on_unpack_finished(self, success: bool) -> None:
+        """解包完毕：停止进度条，关闭对话框"""
+        self.progress_bar.stop()
+        window = self.window()
+        if isinstance(window, DirectoryPickerWindow):
+            window.close()
 
     def _on_language_switch(self):
         """语言切换按钮点击事件"""
@@ -231,7 +300,9 @@ class DirectoryPickerWindow(PhosWindow):
 
     def __init__(self,
                  parent=None,
-                 icon_path=None):
+                 icon_path=None,
+                 installer_dir: str | None = None):
+        self.installer_dir = installer_dir
         PhosWindow.__init__(self, parent=parent)
         self.setTitleBar(SplitTitleBar(self))
         self._last_stack_idx: int = 0
@@ -253,7 +324,7 @@ class DirectoryPickerWindow(PhosWindow):
         """模态执行窗口，等待窗口关闭"""
         self._event_loop = QEventLoop()
         self._event_loop.exec()
-        return True if self.selected_directory else False
+        return bool(self.selected_directory)
 
     def closeEvent(self, event):
         """窗口关闭事件处理"""
@@ -272,8 +343,8 @@ class DirectoryPickerWindow(PhosWindow):
         创建子页面
         :return:
         """
-        # 创建路径选择器界面，传入图标路径
-        self.picker_interface = DirectoryPickerInterface(self, self.icon_path)
+        # 创建路径选择器界面，传入图标路径和安装器目录
+        self.picker_interface = DirectoryPickerInterface(self, self.icon_path, self.installer_dir)
         self.addSubInterface(self.picker_interface, FluentIcon.FOLDER_ADD, "")
 
     def init_window(self):
