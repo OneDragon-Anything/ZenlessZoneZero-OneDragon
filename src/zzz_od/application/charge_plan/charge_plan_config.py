@@ -5,6 +5,7 @@ from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from zzz_od.application.charge_plan import charge_plan_const
+from zzz_od.game_data.compendium import MISSION_TYPE_AGENT_PLAN
 
 
 class CardNumEnum(Enum):
@@ -230,16 +231,21 @@ class ChargePlanConfig(ApplicationConfig):
         # 4. 检查完一轮都没找到合适的计划
         return None
 
-    def all_plan_finished(self) -> bool:
+    def all_plan_finished(self, skip_agent_plan: bool = False) -> bool:
         """
         是否全部计划已完成
+        :param skip_agent_plan: 是否跳过代理人方案培养的检测
         :return:
         """
         if self.plan_list is None:
             return True
 
-        return all(plan.run_times >= plan.plan_times for plan in self.plan_list)
-
+        for plan in self.plan_list:
+            if skip_agent_plan and plan.mission_type_name == MISSION_TYPE_AGENT_PLAN:
+                continue
+            if plan.run_times < plan.plan_times:
+                return False
+        return True
 
     def add_plan_run_times(self, to_add: ChargePlanItem) -> None:
         """
