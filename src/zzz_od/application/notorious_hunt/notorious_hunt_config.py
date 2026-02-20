@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import List, Optional
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -35,7 +34,7 @@ class NotoriousHuntConfig(ApplicationConfig):
             group_id=group_id,
         )
 
-        self.plan_list: List[ChargePlanItem] = []
+        self.plan_list: list[ChargePlanItem] = []
 
         if 'plan_list' in self.data:
             for plan_item in self.data.get('plan_list', []):
@@ -55,7 +54,7 @@ class NotoriousHuntConfig(ApplicationConfig):
                 if plan.mission_type_name not in existed_missions:
                     self.plan_list.append(plan)
 
-    def _get_default_plan(self) -> List[ChargePlanItem]:
+    def _get_default_plan(self) -> list[ChargePlanItem]:
         """
         默认的周本计划
         """
@@ -107,6 +106,15 @@ class NotoriousHuntConfig(ApplicationConfig):
 
         self.save()
 
+    def move_top(self, idx: int) -> None:
+        """移动到顶部"""
+        if idx <= 0 or idx >= len(self.plan_list):
+            return
+
+        plan = self.plan_list.pop(idx)
+        self.plan_list.insert(0, plan)
+        self.save()
+
     def reset_plans(self) -> None:
         if len(self.plan_list) == 0:
             return
@@ -125,7 +133,7 @@ class NotoriousHuntConfig(ApplicationConfig):
 
             self.save()
 
-    def get_next_plan(self) -> Optional[ChargePlanItem]:
+    def get_next_plan(self) -> ChargePlanItem | None:
         if len(self.plan_list) == 0:
             return None
 

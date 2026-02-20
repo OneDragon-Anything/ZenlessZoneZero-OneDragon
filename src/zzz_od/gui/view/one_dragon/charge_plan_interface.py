@@ -129,6 +129,10 @@ class ChargePlanCard(DraggableListItem):
 
         self.init_with_plan(plan, config)
 
+    def after_update_item(self) -> None:
+        self.idx = self.index
+        self.init_with_plan(self.data, self.config)
+
     def init_category_combo_box(self) -> None:
         config_list = self.ctx.compendium_service.get_charge_plan_category_list()
         self.category_combo_box.set_items(config_list, self.plan.category_name)
@@ -394,10 +398,7 @@ class ChargePlanInterface(VerticalScrollInterface):
 
         # 更新所有卡片的显示
         for idx, plan in enumerate(plan_list):
-            card = self.card_list[idx]
-            card.idx = idx
-            card.index = idx  # 更新 DraggableListItem 的索引
-            card.init_with_plan(plan, self.config)
+            self.card_list[idx].update_item(plan, idx)
 
     def _on_add_clicked(self) -> None:
         from zzz_od.gui.view.one_dragon.charge_plan_dialog import ChargePlanDialog
@@ -472,5 +473,4 @@ class ChargePlanInterface(VerticalScrollInterface):
 
         # 更新所有卡片的索引
         for idx, card in enumerate(self.card_list):
-            card.idx = idx
-            card.index = idx
+            card.update_item(card.data, idx)

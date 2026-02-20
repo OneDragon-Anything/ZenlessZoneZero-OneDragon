@@ -186,6 +186,22 @@ class DraggableListItem(QWidget):
         )
         layout.addWidget(self.content_widget)
 
+    def update_item(self, data: Any, index: int) -> None:
+        """
+        更新列表项关联的数据和索引
+        :param data: 关联的数据
+        :param index: 列表项的索引
+        """
+        self.data = data
+        self.index = index
+        self.after_update_item()
+
+    def after_update_item(self) -> None:
+        """
+        更新后的钩子函数，子类可以重写以实现特定逻辑
+        """
+        pass
+
     def _ensure_opacity_effect(self) -> None:
         """
         确保 QGraphicsOpacityEffect 已创建（延迟创建）

@@ -98,7 +98,7 @@ class AppRunList(DraggableList):
         for idx, app in enumerate(app_list):
             if idx < len(self._app_cards):
                 card = self._app_cards[idx]
-                card.index = idx
+                card.update_item(app, idx)
                 run_record = self.ctx.run_context.get_run_record(
                     app_id=app.app_id,
                     instance_idx=instance_idx
@@ -175,7 +175,7 @@ class AppRunList(DraggableList):
 
                     # 更新索引
                     for i, c in enumerate(self._app_cards):
-                        c.index = i
+                        c.update_item(c.data, i)
 
                     # 重新构建布局
                     self._rebuild_layout()
@@ -203,7 +203,7 @@ class AppRunList(DraggableList):
 
         # 更新所有卡片的索引
         for idx, card in enumerate(self._app_cards):
-            card.index = idx
+            card.update_item(card.data, idx)
 
         # 触发应用列表改变信号
         new_app_list = [card.app for card in self._app_cards]

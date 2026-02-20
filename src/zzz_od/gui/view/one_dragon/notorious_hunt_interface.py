@@ -1,26 +1,34 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, CaptionLabel, LineEdit
-from typing import List, Optional
+from qfluentwidgets import CaptionLabel, FluentIcon, LineEdit, ToolButton
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.application import application_const
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiLineSettingCard
+from one_dragon_qt.widgets.draggable_list import DraggableList, DraggableListItem
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiLineSettingCard,
+)
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
+from zzz_od.application.battle_assistant.auto_battle_config import (
+    get_auto_battle_op_config_list,
+)
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 from zzz_od.application.notorious_hunt import notorious_hunt_const
-from zzz_od.application.notorious_hunt.notorious_hunt_config import NotoriousHuntLevelEnum, NotoriousHuntBuffEnum, \
-    NotoriousHuntConfig
+from zzz_od.application.notorious_hunt.notorious_hunt_config import (
+    NotoriousHuntBuffEnum,
+    NotoriousHuntConfig,
+    NotoriousHuntLevelEnum,
+)
 from zzz_od.context.zzz_context import ZContext
 
 
-class ChargePlanCard(MultiLineSettingCard):
+class NotoriousHuntCard(DraggableListItem):
 
     changed = Signal(int, ChargePlanItem)
+    move_top = Signal(int)
 
     def __init__(self, ctx: ZContext,
                  idx: int, plan: ChargePlanItem):
@@ -52,8 +60,10 @@ class ChargePlanCard(MultiLineSettingCard):
         self.plan_times_input = LineEdit()
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
 
-        MultiLineSettingCard.__init__(
-            self,
+        self.move_top_btn = ToolButton(FluentIcon.PIN, None)
+        self.move_top_btn.clicked.connect(self._on_move_top_clicked)
+
+        content_widget = MultiLineSettingCard(
             icon=FluentIcon.CALENDAR,
             title='',
             line_list=[
@@ -69,9 +79,26 @@ class ChargePlanCard(MultiLineSettingCard):
                     self.run_times_input,
                     plan_times_label,
                     self.plan_times_input,
+                    self.move_top_btn,
                 ]
             ]
         )
+
+        DraggableListItem.__init__(
+            self,
+            data=plan,
+            index=idx,
+            content_widget=content_widget
+        )
+
+        self.init_with_plan(plan)
+
+    def after_update_item(self) -> None:
+        self.idx = self.index
+        self.init_with_plan(self.data)
+
+    def _on_move_top_clicked(self) -> None:
+        self.move_top.emit(self.idx)
 
     def init_with_plan(self, plan: ChargePlanItem) -> None:
         """
@@ -174,35 +201,43 @@ class NotoriousHuntPlanInterface(VerticalScrollInterface):
             nav_text_cn='恶名狩猎计划'
         )
 
-        self.config: Optional[NotoriousHuntConfig] = None
+        self.config: NotoriousHuntConfig | None = None
 
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
 
-        self.card_list: List[ChargePlanCard] = []
-        self.last_empty_widget: QWidget = QWidget()
+        # 创建可拖动的列表容器
+        self.drag_list = DraggableList()
+        self.drag_list.order_changed.connect(self._on_order_changed)
+        self.content_widget.add_widget(self.drag_list)
+
+        self.card_list: list[NotoriousHuntCard] = []
 
         return self.content_widget
 
-    def update_plan_list_display(self):
+    def update_plan_list_display(self) -> None:
         plan_list = self.config.plan_list
 
         if len(plan_list) > len(self.card_list):
-            self.content_widget.remove_widget(self.last_empty_widget)
-
+            # 需要添加新的卡片
             while len(self.card_list) < len(plan_list):
                 idx = len(self.card_list)
-                card = ChargePlanCard(self.ctx, idx, self.config.plan_list[idx])
+                card = NotoriousHuntCard(self.ctx, idx, self.config.plan_list[idx])
                 card.changed.connect(self._on_plan_item_changed)
+                card.move_top.connect(self._on_plan_item_move_top)
 
                 self.card_list.append(card)
-                self.content_widget.add_widget(card)
+                self.drag_list.add_list_item(card)
 
-            self.content_widget.add_widget(self.last_empty_widget, stretch=1)
+        elif len(plan_list) < len(self.card_list):
+            # 需要移除多余的卡片
+            while len(self.card_list) > len(plan_list):
+                self.drag_list.remove_item(len(self.card_list) - 1)
+                self.card_list.pop(-1)
 
+        # 更新所有卡片的显示
         for idx, plan in enumerate(plan_list):
-            card = self.card_list[idx]
-            card.init_with_plan(plan)
+            self.card_list[idx].update_item(plan, idx)
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
@@ -220,3 +255,32 @@ class NotoriousHuntPlanInterface(VerticalScrollInterface):
 
     def _on_plan_item_changed(self, idx: int, plan: ChargePlanItem) -> None:
         self.config.update_plan(idx, plan)
+
+    def _on_plan_item_move_top(self, idx: int) -> None:
+        self.config.move_top(idx)
+        self.update_plan_list_display()
+
+    def _on_order_changed(self, new_data_list: list[ChargePlanItem]) -> None:
+        """
+        拖拽改变顺序后的回调
+
+        Args:
+            new_data_list: 新顺序的数据列表
+        """
+        # 更新配置中的 plan_list 顺序
+        self.config.plan_list = new_data_list
+        self.config.save()
+
+        # 重新构建 card_list 的顺序
+        new_card_list: list[NotoriousHuntCard] = []
+        for data in new_data_list:
+            # 找到对应数据的 card
+            for card in self.card_list:
+                if card.data == data:
+                    new_card_list.append(card)
+                    break
+        self.card_list = new_card_list
+
+        # 更新所有卡片的索引
+        for idx, card in enumerate(self.card_list):
+            card.update_item(card.data, idx)
