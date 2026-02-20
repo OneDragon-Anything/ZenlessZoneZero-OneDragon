@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import TYPE_CHECKING
+import time
 
 from cv2.typing import MatLike
 
@@ -11,6 +12,7 @@ from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_info import ScreenInfo
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -235,6 +237,7 @@ def find_and_click_area(
     screen_name: str,
     area_name: str,
     crop_first: bool = True,
+    pre_delay: float = 0.3,
 ) -> OcrClickResultEnum:
     """
     在一个区域匹配成功后进行点击
@@ -245,6 +248,7 @@ def find_and_click_area(
         screen_name: 画面名称
         area_name: 区域名称
         crop_first: 在传入区域时 是否先裁剪再进行文本识别
+        pre_delay: 识别成功后，等待多少秒再点击。默认0.3秒。
 
     Returns:
         OcrClickResultEnum: 点击结果
@@ -262,6 +266,8 @@ def find_and_click_area(
 
         for ocr_result in ocr_result_list:
             if str_utils.find_by_lcs(gt(area.text, 'game'), ocr_result.data, percent=area.lcs_percent):
+                if pre_delay > 0:
+                    time.sleep(pre_delay)
                 if ctx.controller.click(ocr_result.center, pc_alt=area.pc_alt):
                     return OcrClickResultEnum.OCR_CLICK_SUCCESS
                 else:
@@ -276,13 +282,63 @@ def find_and_click_area(
                                     threshold=area.template_match_threshold)
         if mrl.max is None:
             return OcrClickResultEnum.OCR_CLICK_NOT_FOUND
-        elif ctx.controller.click(mrl.max.center + rect.left_top, pc_alt=area.pc_alt):
+        elif pre_delay > 0:
+            time.sleep(pre_delay)
+        if ctx.controller.click(mrl.max.center + rect.left_top, pc_alt=area.pc_alt):
             return OcrClickResultEnum.OCR_CLICK_SUCCESS
         else:
             return OcrClickResultEnum.OCR_CLICK_FAIL
     else:
+        if pre_delay > 0:
+            time.sleep(pre_delay)
         ctx.controller.click(area.center, pc_alt=area.pc_alt)
         return OcrClickResultEnum.OCR_CLICK_SUCCESS
+
+
+def scroll_area(
+    ctx: OneDragonContext,
+    area: ScreenArea,
+    direction: str = 'down',
+    start_ratio: float = 0.9,
+    end_ratio: float = 0.1,
+) -> None:
+    """
+    在指定区域内滚动屏幕
+
+    Args:
+        ctx: 运行上下文
+        area: 区域
+        direction: 滚动方向，'down' 表示往下滚（从下往上滑），'up' 表示往上滚（从上往下滑）
+        start_ratio: 起始位置比例，从底部算起。默认0.9（底部10%）
+        end_ratio: 结束位置比例，从顶部算起。默认0.1（顶部10%）
+    """
+    rect = area.rect
+    height = rect.height
+
+    # 统一按“距顶部比例”计算位置，避免 start/end 计算成同一点
+    start_ratio = max(0.0, min(1.0, start_ratio))
+    end_ratio = max(0.0, min(1.0, end_ratio))
+    y_start = rect.y1 + int(height * start_ratio)
+    y_end = rect.y1 + int(height * end_ratio)
+
+    if direction == 'up':
+        # 往上滚：手势从上往下划
+        start = Point(rect.center.x, y_end)
+        end = Point(rect.center.x, y_start)
+    else:
+        # 往下滚：手势从下往上划
+        start = Point(rect.center.x, y_start)
+        end = Point(rect.center.x, y_end)
+
+    # 防止极端情况下 start/end 重合导致“看起来没有滚动”
+    if start.y == end.y:
+        if start.y >= rect.center.y:
+            end = Point(end.x, max(rect.y1 + 1, end.y - 1))
+        else:
+            end = Point(end.x, min(rect.y2 - 1, end.y + 1))
+
+    log.info(f'滚动 {area.area_name} direction={direction} rect={rect} start={start} end={end}')
+    ctx.controller.drag_to(start=start, end=end)
 
 
 def get_match_screen_name(
