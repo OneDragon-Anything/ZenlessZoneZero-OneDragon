@@ -214,8 +214,7 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='矩阵行动-点击下一步')
     @operation_node(name='矩阵行动-点击预备编队')
     def matrix_click_preset_team(self) -> OperationRoundResult:
-        if self.ctx.lost_void.challenge_config.manually_choose_agent \
-                and self.ctx.lost_void.challenge_config.predefined_team_idx == -1:
+        if self.ctx.lost_void.challenge_config.manually_choose_agent:
             return self.round_success('手动选取角色')
         return self.round_by_find_and_click_area(
             self.last_screenshot,
@@ -272,7 +271,7 @@ class LostVoidApp(ZApplication):
                           self.ctx.lost_void.challenge_config.agent_3]
         # agent_list_str = ['anby', 'yeshunguang', 'ellen']
         # 记录角色在第几页的哪个位置
-        agent_page_match_list: list[[int, list[Point]] | None] = [None] * len(agent_list_str)
+        agent_page_match_list: list[[int, Point ] | None] = [None] * len(agent_list_str)
 
         # 1. 从屏幕右半边去掉人
         area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '主战编队')

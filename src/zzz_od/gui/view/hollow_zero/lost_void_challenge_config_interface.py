@@ -465,10 +465,16 @@ class LostVoidChallengeConfigInterface(VerticalScrollInterface):
         self.agent_3_selector.setEnabled(value)
 
     def on_agent_1_changed(self) -> None:
+        if self.chosen_config is None:
+            return
         self.chosen_config.agent_1 = self.agent_1_selector.currentData()
 
     def on_agent_2_changed(self) -> None:
+        if self.chosen_config is None:
+            return
         self.chosen_config.agent_2 = self.agent_2_selector.currentData()
 
     def on_agent_3_changed(self) -> None:
+        if self.chosen_config is None:
+            return
         self.chosen_config.agent_3 = self.agent_3_selector.currentData()
