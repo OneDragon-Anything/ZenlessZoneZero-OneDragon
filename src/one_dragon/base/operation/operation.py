@@ -782,6 +782,7 @@ class Operation(OperationBase):
         until_find_all: list[tuple[str, str]] = None,
         until_not_find_all: list[tuple[str, str]] = None,
         crop_first: bool = True,
+        pre_delay: float = 0.3,
     ) -> OperationRoundResult:
         """在屏幕上查找并点击目标区域。
 
@@ -796,6 +797,7 @@ class Operation(OperationBase):
             until_find_all: 点击直到找到所有目标 [(屏幕, 区域)]。默认为None。
             until_not_find_all: 点击直到未找到所有目标 [(屏幕, 区域)]。默认为None。
             crop_first: 在传入区域时 是否先裁剪再进行文本识别
+            pre_delay: 识别到目标后，等待多少秒再点击。默认0.3秒。
 
         Returns:
             OperationRoundResult: 点击结果。
@@ -846,6 +848,7 @@ class Operation(OperationBase):
             screen_name=screen_name,
             area_name=area_name,
             crop_first=crop_first,
+            pre_delay=pre_delay,
         )
         if click == OcrClickResultEnum.OCR_CLICK_SUCCESS:
             self.node_clicked = True
@@ -947,6 +950,32 @@ class Operation(OperationBase):
             return self.round_success(status=area_name, wait=success_wait, wait_round_time=success_wait_round)
         else:
             return self.round_retry(status=f'未找到 {area_name}', wait=retry_wait, wait_round_time=retry_wait_round)
+
+    def scroll_area(
+            self,
+            screen_name: str | None = None,
+            area_name: str | None = None,
+            direction: str = 'down',
+            start_ratio: float = 0.9,
+            end_ratio: float = 0.1,
+    ) -> None:
+        """在指定区域内滚动屏幕。
+
+        Args:
+            screen_name: 屏幕名称。默认为None。
+            area_name: 区域名称。默认为None。
+            direction: 滚动方向，'down' 表示往下滚（从下往上滑），'up' 表示往上滚（从上往下滑）
+            start_ratio: 起始位置比例。默认0.9（底部10%）
+            end_ratio: 结束位置比例。默认0.1（顶部10%）
+        """
+        if screen_name is None or area_name is None:
+            return
+
+        area = self.ctx.screen_loader.get_area(screen_name, area_name)
+        if area is None:
+            return
+
+        screen_utils.scroll_area(self.ctx, area, direction, start_ratio, end_ratio)
 
     def round_by_click_area(
             self, screen_name: str, area_name: str, click_left_top: bool = False,
