@@ -1,0 +1,8 @@
+sub_dir: normal_world_investigation
+template_id: btn_area_info_close
+template_name: 区域信息-关闭
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 1795, 130
+- 1835, 170
