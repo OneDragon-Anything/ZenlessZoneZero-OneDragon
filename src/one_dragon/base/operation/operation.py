@@ -953,7 +953,7 @@ class Operation(OperationBase):
 
     def round_by_click_area(
             self, screen_name: str, area_name: str, click_left_top: bool = False,
-            pre_delay: float = 0.3,
+            pre_delay: float = 0.0,
             success_wait: float | None = None, success_wait_round: float | None = None,
             retry_wait: float | None = None, retry_wait_round: float | None = None
     ) -> OperationRoundResult:
@@ -963,7 +963,7 @@ class Operation(OperationBase):
             screen_name: 屏幕名称。
             area_name: 区域名称。
             click_left_top: 是否点击左上角。默认为False。
-            pre_delay: 点击前等待时间（秒）。默认为0.3秒。
+            pre_delay: 点击前等待时间（秒）。默认为0.0秒。
             success_wait: 成功后等待时间（秒）。默认为None。
             success_wait_round: 成功后等待直到轮次时间达到此值，如果设置了success_wait则忽略。默认为None。
             retry_wait: 失败后等待时间（秒）。默认为None。
