@@ -775,6 +775,7 @@ class Operation(OperationBase):
         screen: MatLike | None = None,
         screen_name: str | None = None,
         area_name: str | None = None,
+        pre_delay: float = 0.3,
         success_wait: float | None = None,
         success_wait_round: float | None = None,
         retry_wait: float | None = None,
@@ -789,6 +790,7 @@ class Operation(OperationBase):
             screen: 截图图像。默认为None（将截取新截图）。
             screen_name: 屏幕名称。默认为None。
             area_name: 区域名称。默认为None。
+            pre_delay: 点击前等待时间（秒）。默认为0.3秒。
             success_wait: 成功后等待时间（秒）。默认为None。
             success_wait_round: 成功后等待直到轮次时间达到此值，如果设置了success_wait则忽略。默认为None。
             retry_wait: 失败后等待时间（秒）。默认为None。
@@ -840,6 +842,7 @@ class Operation(OperationBase):
             if not any_found:
                 return self.round_success(status=area_name, wait=success_wait, wait_round_time=success_wait_round)
 
+        time.sleep(pre_delay)
         click = screen_utils.find_and_click_area(
             ctx=self.ctx,
             screen=screen,
@@ -950,6 +953,7 @@ class Operation(OperationBase):
 
     def round_by_click_area(
             self, screen_name: str, area_name: str, click_left_top: bool = False,
+            pre_delay: float = 0.3,
             success_wait: float | None = None, success_wait_round: float | None = None,
             retry_wait: float | None = None, retry_wait_round: float | None = None
     ) -> OperationRoundResult:
@@ -959,6 +963,7 @@ class Operation(OperationBase):
             screen_name: 屏幕名称。
             area_name: 区域名称。
             click_left_top: 是否点击左上角。默认为False。
+            pre_delay: 点击前等待时间（秒）。默认为0.3秒。
             success_wait: 成功后等待时间（秒）。默认为None。
             success_wait_round: 成功后等待直到轮次时间达到此值，如果设置了success_wait则忽略。默认为None。
             retry_wait: 失败后等待时间（秒）。默认为None。
@@ -975,6 +980,7 @@ class Operation(OperationBase):
             to_click = area.left_top
         else:
             to_click = area.center
+        time.sleep(pre_delay)
         click = self.ctx.controller.click(pos=to_click, pc_alt=area.pc_alt)
         if click:
             self.update_screen_after_operation(screen_name, area_name)
@@ -988,6 +994,7 @@ class Operation(OperationBase):
         target_cn: str,
         area: Optional[ScreenArea] = None,
         lcs_percent: float = 0.5,
+        pre_delay: float = 0.3,
         success_wait: float | None = None,
         success_wait_round: float | None = None,
         retry_wait: float | None = None,
@@ -1004,6 +1011,7 @@ class Operation(OperationBase):
             area: 要搜索的目标区域。默认为None（搜索整个屏幕）。
             crop_first: 在传入区域时 是否先裁剪再进行文本识别
             lcs_percent: 文本匹配阈值。默认为0.5。
+            pre_delay: 点击前等待时间（秒）。默认为0.3秒。
             success_wait: 成功后等待时间（秒）。默认为None。
             success_wait_round: 成功后等待直到轮次时间达到此值，如果设置了success_wait则忽略。默认为None。
             retry_wait: 失败后等待时间（秒）。默认为None。
@@ -1051,6 +1059,7 @@ class Operation(OperationBase):
         if offset is not None:
             to_click = to_click + offset
 
+        time.sleep(pre_delay)
         click = self.ctx.controller.click(to_click)
         if click:
             return self.round_success(target_cn, wait=success_wait, wait_round_time=success_wait_round)
@@ -1063,6 +1072,7 @@ class Operation(OperationBase):
         screen: MatLike | None = None,
         ignore_cn_list: list[str] | None = None,
         area: Optional[ScreenArea] = None,
+        pre_delay: float = 0.3,
         success_wait: float | None = None,
         success_wait_round: float | None = None,
         retry_wait: float | None = None,
@@ -1079,6 +1089,7 @@ class Operation(OperationBase):
             ignore_cn_list: 要忽略的文本列表。目标列表中的某些元素仅用于防止匹配错误，例如["领取", "已领取"]可以防止"已领取*1"匹配到"领取"，而"已领取"不需要实际匹配。默认为None。
             area: 要搜索的目标区域。默认为None。
             crop_first: 在传入区域时 是否先裁剪再进行文本识别
+            pre_delay: 点击前等待时间（秒）。默认为0.3秒。
             success_wait: 成功后等待时间（秒）。默认为None。
             success_wait_round: 成功后等待直到轮次时间达到此值，如果设置了success_wait则忽略。默认为None。
             retry_wait: 失败后等待时间（秒）。默认为None。
@@ -1112,6 +1123,7 @@ class Operation(OperationBase):
             if offset is not None:
                 to_click = to_click + offset
 
+            time.sleep(pre_delay)
             self.ctx.controller.click(to_click)
             return self.round_success(status=match_word, wait=success_wait, wait_round_time=success_wait_round)
 
