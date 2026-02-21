@@ -50,18 +50,15 @@ class EnterGame(ZOperation):
         if login_result is not None:
             return login_result
 
-        interact_result = self.check_screen_to_interact(self.last_screenshot)
-        if interact_result is not None:
-            return interact_result
+        login_result = self.match_login_error(self.last_screenshot)
+        if login_result is not None:
+            return login_result
 
-        # 判定是否进入大世界
-        world_screens = ['大世界-普通', '大世界-勘域']
-        current_screen = self.check_and_update_current_screen(
-            self.last_screenshot,
-            screen_name_list=world_screens,
-        )
-        if current_screen in world_screens:
-            return self.round_success('大世界', wait=1)
+        # 处理国服登录时账号密码输入有误的情况 通过登录按钮文本判断可能没登录成功 尝试返回重试
+        result = self.round_by_find_area(self.last_screenshot, '打开游戏', '国服-账号密码进入游戏-新')
+        if result.is_success:
+            self.round_by_click_area('打开游戏', '国服-返回按钮')
+            return self.round_retry(status='返回重试', wait=1)
 
         return self.round_retry(status='未知画面', wait=1)
 
@@ -83,7 +80,7 @@ class EnterGame(ZOperation):
         else:
             result = self.round_by_find_and_click_area(screen, '打开游戏', '点击进入游戏')
             if result.is_success:
-                return self.round_wait(result.status, wait=5)
+                return self.round_success(result.status, wait=5)
 
         result = self.round_by_find_area(screen, '打开游戏', '标题-退出登录')
         if result.is_success:
@@ -313,10 +310,6 @@ class EnterGame(ZOperation):
             '领取',  # 每个版本出现的10连抽奖励 issue #893
             '已领取',  # 需要有这个词 防止画面出现"已领取"也匹配到"领取"
             '待领取',  # 需要有这个词 防止画面出现"待领取"也匹配到"领取"
-            '确定',  # 游戏更新时出现的确定按钮 issue #991
-            '重试',  # 登陆时可能出现登陆超时问题 merge request #886
-            '今日到账',  # 小月卡 issue #893
-            '惊喜补给',  # 免费月卡 issue #1996
         ]
         ignore_list: list[str] = [
             '已领取',  # 需要有这个词 防止画面出现"已领取"也匹配到"领取"
@@ -334,12 +327,6 @@ class EnterGame(ZOperation):
             '06', # 同上
             '07', # 同上
         ] + self.interact_ignore_word_list
-
-        target_word_idx_map: dict[str, int] = {}
-        to_match_list: list[str] = []
-        for idx, target_word in enumerate(target_word_list):
-            target_word_idx_map[target_word] = idx
-            to_match_list.append(gt(target_word, "game"))
 
         match_word, match_word_mrl = ocr_utils.match_word_list_by_priority(
             ocr_result_map,
@@ -363,6 +350,60 @@ class EnterGame(ZOperation):
 
         return None
 
+    def match_login_error(self, screen: MatLike) -> Optional[OperationRoundResult]:
+        """
+        识别登录可能出现的问题
+        :param screen: 游戏画面
+        :return: 是否有相关操作 有的话返回对应操作结果
+        """
+        ocr_result_map = self.ctx.ocr.run_ocr(screen)
+
+        target_word_list: list[str] = [
+            '确定',  # 游戏更新时出现的确定按钮 issue #991
+            '重试',  # 登陆时可能出现登陆超时问题 merge request #886
+        ]
+
+        match_word, match_word_mrl = ocr_utils.match_word_list_by_priority(
+            ocr_result_map,
+            target_word_list
+        )
+        if match_word is not None and match_word_mrl is not None and match_word_mrl.max is not None:
+            time.sleep(0.5) # 等待画面稳定
+            self.ctx.controller.click(match_word_mrl.max.center)
+            return self.round_wait(status=match_word, wait=1)
+
+        return None
+
+    def is_in_big_world(self, screen: MatLike) -> Optional[OperationRoundResult]:
+        # 判定是否进入大世界
+        world_screens = ['大世界-普通', '大世界-勘域']
+        current_screen = self.check_and_update_current_screen(
+            screen,
+            screen_name_list=world_screens,
+        )
+        if current_screen in world_screens:
+            return self.round_success('大世界', wait=1)
+        return None
+
+    @node_from(from_name='画面识别', status='点击进入游戏')
+    @operation_node(name='进入游戏后操作', node_max_retry_times=15)
+    def after_enter_game(self) -> OperationRoundResult:
+        # 识别并点击弹窗
+        interact_result = self.check_screen_to_interact(self.last_screenshot)
+        if interact_result is not None:
+            return interact_result
+
+        # 判定是否进入大世界
+        interact_result = self.is_in_big_world(self.last_screenshot)
+        if interact_result is not None:
+            return interact_result
+
+        # 如果既不在大世界也没有已知弹窗, 游戏界面可能是被其他未知弹窗覆盖了, 尝试点击左上角关闭弹窗
+        return_result = self.round_by_click_area('菜单', '返回')
+        if not return_result.is_success:
+            return return_result
+        return self.round_retry('未识别到大世界, 点击左上角', wait=2)
+
 
 def __debug():
     ctx = ZContext()
@@ -374,4 +415,8 @@ def __debug():
 
 
 if __name__ == '__main__':
+    # 因为检查是否否在大世界的逻辑被移到 '进入游戏后操作' 了, 故进入游戏后调用 EnterGame 会一直识别失败,
+    # 从而如果在游戏关闭的时候运行这个debug, 脚本会从 openAndEnterGame 调用一次 EnterGame,
+    # 导致进入游戏后再调用 EnterGame 时画面一直识别失败, 属于正常现象.
+    # 将游戏打开后再运行这个debug就不会产生上述现象.
     __debug()
