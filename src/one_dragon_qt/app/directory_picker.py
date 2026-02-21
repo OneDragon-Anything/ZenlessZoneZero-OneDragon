@@ -1,12 +1,13 @@
 import locale
 import os
 
-from PySide6.QtCore import QEventLoop, QSize, Qt
+from PySide6.QtCore import QEventLoop, QSize, Qt, QTimer
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
     QHBoxLayout,
+    QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -15,6 +16,7 @@ from qfluentwidgets import (
     BodyLabel,
     CaptionLabel,
     FluentIcon,
+    IndeterminateProgressBar,
     LineEdit,
     MessageBox,
     PixmapLabel,
@@ -106,9 +108,18 @@ class DirectoryPickerInterface(QWidget):
         self.selected_path = ""
         self.icon_path = icon_path
         self.installer_dir = installer_dir
+
+        self.translator = DirectoryPickerTranslator(DirectoryPickerTranslator.detect_language())
         self._runner: UnpackResourceRunner | None = None
         self._last_log: str = ""
-        self.translator = DirectoryPickerTranslator(DirectoryPickerTranslator.detect_language())
+        self._pending_log: str = ""
+
+        # 节流计时器：最多每 250 ms 刷新一次文件名，避免闪烁
+        self._log_timer = QTimer(self)
+        self._log_timer.setSingleShot(True)
+        self._log_timer.setInterval(250)
+        self._log_timer.timeout.connect(self._flush_log)
+
         self._init_ui()
 
     def _init_ui(self):
@@ -185,16 +196,25 @@ class DirectoryPickerInterface(QWidget):
         self.progress_bar = ProgressBar()
         self.progress_bar.setRange(0, 1)
         self.progress_bar.setValue(0)
+        self.indet_progress_bar = IndeterminateProgressBar()
+        # 用内层 stack 切换两种进度条，保证布局高度稳定
+        self.bar_stack = QStackedWidget()
+        self.bar_stack.addWidget(self.progress_bar)       # index 0: 复制阶段（确定进度）
+        self.bar_stack.addWidget(self.indet_progress_bar) # index 1: 清理阶段（不确定进度）
+        self.bar_stack.setCurrentIndex(0)
         # 第一行：正在复制 xx/xx（BodyLabel，字号稍大）
         self.count_label = BodyLabel(self.translator.get_text('preparing'))
         self.count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         # 第二行：具体文件路径（CaptionLabel，省略过长路径）
         self.status_label = CaptionLabel('')
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.status_label.setWordWrap(False)
+        # 禁止 status_label 撑宽窗口；文本过长时 _on_unpack_log 会做 ElideMiddle
+        self.status_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.status_label.setMinimumWidth(0)
         pg_layout.addWidget(self.count_label)
         pg_layout.addSpacing(12)
-        pg_layout.addWidget(self.progress_bar)
+        pg_layout.addWidget(self.bar_stack)
         pg_layout.addSpacing(8)
         pg_layout.addWidget(self.status_label)
         pg_layout.addStretch(1)
@@ -288,18 +308,34 @@ class DirectoryPickerInterface(QWidget):
         self._runner.start()
 
     def _on_unpack_log(self, message: str) -> None:
-        """更新具体文件行，并缓存最后一条日志"""
+        """缓存最后一条日志；由节流计时器决定何时真正刷新 status_label。"""
         self._last_log = message
-        self.status_label.setText(message)
+        self._pending_log = message
+        if not self._log_timer.isActive():
+            self._log_timer.start()
+
+    def _flush_log(self) -> None:
+        """节流计时器触发时，将最新日志写入 status_label（ElideMiddle截断）。"""
+        message = self._pending_log
+        avail = self.status_label.width()
+        if avail > 0:
+            elided = self.status_label.fontMetrics().elidedText(
+                message, Qt.TextElideMode.ElideMiddle, avail
+            )
+        else:
+            elided = message
+        self.status_label.setText(elided)
 
     def _on_unpack_progress(self, current: int, total: int) -> None:
         """更新进度条与计数行。current=-1 表示进入清理阶段。"""
         if current == -1:
-            # 清理阶段：条切为不确定模式，计数行提示清理，文件行置空
-            self.progress_bar.setRange(0, 0)
+            # 清理阶段：切换到动画进度条，计数行提示清理，文件行置空
+            self.bar_stack.setCurrentIndex(1)
+            self.indet_progress_bar.start()
             self.count_label.setText(self.translator.get_text('cleaning'))
             self.status_label.setText("")
         else:
+            self.bar_stack.setCurrentIndex(0)
             self.progress_bar.setRange(0, total)
             self.progress_bar.setValue(current)
             self.count_label.setText(self.translator.get_text('copying', current=current, total=total))
