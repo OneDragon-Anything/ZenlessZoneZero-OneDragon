@@ -1,5 +1,5 @@
 screen_id: intel_board
-screen_name: 委托情报板
+screen_name: 情报板
 pc_alt: false
 area_list:
 - area_name: 点数兑换

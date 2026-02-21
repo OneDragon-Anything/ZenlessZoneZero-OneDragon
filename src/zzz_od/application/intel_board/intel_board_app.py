@@ -75,7 +75,7 @@ class IntelBoardApp(ZApplication):
         self.scroll_times = 0
         if self.has_filtered:
             return self.round_by_find_and_click_area(
-                screen_name='委托情报板', area_name='刷新按钮',
+                screen_name='情报板', area_name='刷新按钮',
                 success_wait=1, retry_wait=1
             )
 
@@ -84,10 +84,10 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='刷新委托', status='未筛选')
     @operation_node(name='打开筛选', node_max_retry_times=60)
     def open_filter(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, '委托情报板', '点数兑换')
+        result = self.round_by_find_area(self.last_screenshot, '情报板', '点数兑换')
         if result.is_success:
             return self.round_by_click_area(
-                screen_name='委托情报板', area_name='筛选按钮',
+                screen_name='情报板', area_name='筛选按钮',
                 success_wait=0.5, retry_wait=0.5
             )
 
@@ -96,20 +96,20 @@ class IntelBoardApp(ZApplication):
     @node_from(from_name='打开筛选')
     @operation_node(name='重置筛选')
     def reset_filter(self) -> OperationRoundResult:
-        area = self.ctx.screen_loader.get_area('委托情报板', '重置按钮')
+        area = self.ctx.screen_loader.get_area('情报板', '重置按钮')
         return self.round_by_ocr_and_click(self.last_screenshot, '重置', area, success_wait=0.5, retry_wait=0.5)
 
     @node_from(from_name='重置筛选')
     @operation_node(name='选择恶名狩猎')
     def select_notorious_hunt(self) -> OperationRoundResult:
-        search_area = self.ctx.screen_loader.get_area('委托情报板', '搜索区域')
+        search_area = self.ctx.screen_loader.get_area('情报板', '搜索区域')
         return self.round_by_ocr_and_click(self.last_screenshot, '恶名狩猎', area=search_area,
                                            success_wait=0.5, retry_wait=0.5)
 
     @node_from(from_name='选择恶名狩猎')
     @operation_node(name='选择专业挑战室')
     def select_expert_challenge(self) -> OperationRoundResult:
-        search_area = self.ctx.screen_loader.get_area('委托情报板', '搜索区域')
+        search_area = self.ctx.screen_loader.get_area('情报板', '搜索区域')
         return self.round_by_ocr_and_click(self.last_screenshot, '专业挑战室', area=search_area,
                                            success_wait=0.5, retry_wait=0.5)
 
@@ -117,7 +117,7 @@ class IntelBoardApp(ZApplication):
     @operation_node(name='关闭筛选')
     def close_filter(self) -> OperationRoundResult:
         self.has_filtered = True
-        return self.round_by_click_area('委托情报板', '关闭筛选', success_wait=1)
+        return self.round_by_click_area('情报板', '关闭筛选', success_wait=1)
 
     @node_from(from_name='刷新委托')
     @node_from(from_name='关闭筛选')
@@ -295,7 +295,7 @@ class IntelBoardApp(ZApplication):
             return self.round_success('完成')
 
         # OCR 读取进度代币值
-        rect = self.ctx.screen_loader.get_area('委托情报板', '进度文本').rect
+        rect = self.ctx.screen_loader.get_area('情报板', '进度文本').rect
         screen = self.last_screenshot
         part = cv2_utils.crop_image_only(screen, rect)
         ocr_result = self.ctx.ocr.run_ocr_single_line(part)
