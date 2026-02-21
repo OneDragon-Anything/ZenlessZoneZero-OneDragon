@@ -54,6 +54,12 @@ class EnterGame(ZOperation):
         if interact_result is not None:
             return interact_result
 
+        # 处理国服登录时账号密码输入有误的情况 通过登录按钮文本判断可能没登录成功 尝试返回重试
+        result = self.round_by_find_area(self.last_screenshot, '打开游戏', '国服-账号密码进入游戏-新')
+        if result.is_success:
+            self.round_by_click_area('打开游戏', '国服-返回按钮')
+            return self.round_retry(status='返回重试', wait=1)
+
         # 判定是否进入大世界
         world_screens = ['大世界-普通', '大世界-勘域']
         current_screen = self.check_and_update_current_screen(
