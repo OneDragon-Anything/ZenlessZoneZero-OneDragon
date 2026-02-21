@@ -11,8 +11,9 @@ from PySide6.QtCore import QThread, Signal
 class UnpackResourceRunner(QThread):
     """资源解包线程：读取安装清单，将安装器目录中的文件逐一校验后搬运至工作目录。"""
 
-    finished = Signal(bool)       # 搬运完成信号，参数为是否成功
-    log_message = Signal(str)     # 当前状态的单行日志信号
+    finished = Signal(bool)          # 搬运完成信号，参数为是否成功
+    log_message = Signal(str)       # 当前文件名日志信号
+    progress_changed = Signal(int, int)  # (current, total) 复制进度信号
 
     def __init__(self, installer_dir: str | None, work_dir: str, parent=None):
         """
@@ -117,7 +118,8 @@ class UnpackResourceRunner(QThread):
 
             dst_path.parent.mkdir(parents=True, exist_ok=True)
 
-            self.log_message.emit(f"正在复制 ({idx}/{total}): {rel_norm}")
+            self.log_message.emit(rel_norm)
+            self.progress_changed.emit(idx, total)
 
             try:
                 actual_size, actual_sha = self._copy_and_hash(src_path, dst_path)
@@ -145,7 +147,8 @@ class UnpackResourceRunner(QThread):
 
             copied_files.append((src_path, dst_path, item))
 
-        self.log_message.emit("正在清理源目录...")
+        # 进入清理阶段：emit (-1, -1) 当清理阶段的双行状态标志
+        self.progress_changed.emit(-1, -1)
 
         # 复制成功后删除源文件（跳过正在运行的安装器 exe）
         for src_path, _, _ in copied_files:

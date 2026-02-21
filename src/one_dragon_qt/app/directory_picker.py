@@ -14,11 +14,11 @@ from PySide6.QtWidgets import (
 from qfluentwidgets import (
     CaptionLabel,
     FluentIcon,
-    IndeterminateProgressBar,
     LineEdit,
     MessageBox,
     PixmapLabel,
     PrimaryPushButton,
+    ProgressBar,
     SplitTitleBar,
     SubtitleLabel,
     ToolButton,
@@ -49,7 +49,9 @@ class DirectoryPickerTranslator:
                 'i_know': '我知道了',
                 'continue_use': '继续使用',
                 'select_other': '选择其他目录',
-                'preparing': '正在准备安装文件...'
+                'preparing': '正在准备安装文件...',
+                'copying': '正在复制 {current}/{total}',
+                'cleaning': '正在清理源目录...',
             },
             'en': {
                 'title': 'Please Select Installation Path',
@@ -64,7 +66,9 @@ class DirectoryPickerTranslator:
                 'i_know': 'I Know',
                 'continue_use': 'Continue',
                 'select_other': 'Select Other',
-                'preparing': 'Preparing installation files...'
+                'preparing': 'Preparing installation files...',
+                'copying': 'Copying {current}/{total}',
+                'cleaning': 'Cleaning source directory...',
             }
         }
 
@@ -172,11 +176,18 @@ class DirectoryPickerInterface(QWidget):
         pg_layout = QVBoxLayout(progress_page)
         pg_layout.setContentsMargins(0, 0, 0, 0)
         pg_layout.setSpacing(8)
-        self.progress_bar = IndeterminateProgressBar()
-        self.status_label = CaptionLabel(self.translator.get_text('preparing'))
+        self.progress_bar = ProgressBar()
+        self.progress_bar.setRange(0, 1)
+        self.progress_bar.setValue(0)
+        # 第一行：正在复制 xx/xx
+        self.count_label = CaptionLabel(self.translator.get_text('preparing'))
+        self.count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # 第二行：具体文件路径
+        self.status_label = CaptionLabel('')
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         pg_layout.addStretch(1)
         pg_layout.addWidget(self.progress_bar)
+        pg_layout.addWidget(self.count_label)
         pg_layout.addWidget(self.status_label)
         pg_layout.addStretch(1)
 
@@ -259,26 +270,37 @@ class DirectoryPickerInterface(QWidget):
         if not isinstance(window, DirectoryPickerWindow):
             return
 
-        window.selected_directory = self.selected_path
-
         # 启动解包，切换到进度页
         self.picker_stack.setCurrentIndex(1)
-        self.progress_bar.start()
 
         self._runner = UnpackResourceRunner(self.installer_dir, self.selected_path)
         self._runner.log_message.connect(self._on_unpack_log)
+        self._runner.progress_changed.connect(self._on_unpack_progress)
         self._runner.finished.connect(self._on_unpack_finished)
         self._runner.start()
 
     def _on_unpack_log(self, message: str) -> None:
-        """更新单行状态标签"""
+        """更新具体文件行"""
         self.status_label.setText(message)
 
+    def _on_unpack_progress(self, current: int, total: int) -> None:
+        """更新进度条与计数行。current=-1 表示进入清理阶段。"""
+        if current == -1:
+            # 清理阶段：条切为不确定模式，计数行提示清理，文件行置空
+            self.progress_bar.setRange(0, 0)
+            self.count_label.setText(self.translator.get_text('cleaning'))
+            self.status_label.setText("")
+        else:
+            self.progress_bar.setRange(0, total)
+            self.progress_bar.setValue(current)
+            self.count_label.setText(self.translator.get_text('copying', current=current, total=total))
+
     def _on_unpack_finished(self, success: bool) -> None:
-        """解包完毕：停止进度条，关闭对话框"""
-        self.progress_bar.stop()
+        """解包完毕：成功时才设置目标目录，然后关闭对话框"""
         window = self.window()
         if isinstance(window, DirectoryPickerWindow):
+            if success:
+                window.selected_directory = self.selected_path
             window.close()
 
     def _on_language_switch(self):
