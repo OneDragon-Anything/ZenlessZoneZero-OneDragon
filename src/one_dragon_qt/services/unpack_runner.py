@@ -122,20 +122,26 @@ class UnpackResourceRunner(QThread):
             try:
                 actual_size, actual_sha = self._copy_and_hash(src_path, dst_path)
             except Exception as e:
-                self.log_message.emit(f"复制文件失败: {rel} err={e}")
-                return False
+                self.log_message.emit(f"复制文件失败，跳过: {rel} err={e}")
+                with contextlib.suppress(Exception):
+                    dst_path.unlink(missing_ok=True)
+                continue
 
             expected_size = item.get('size')
             if isinstance(expected_size, int) and expected_size >= 0:
                 if actual_size != expected_size:
-                    self.log_message.emit(f"文件大小校验失败: {rel}")
-                    return False
+                    self.log_message.emit(f"文件大小校验失败，跳过: {rel}")
+                    with contextlib.suppress(Exception):
+                        dst_path.unlink(missing_ok=True)
+                    continue
 
             expected_sha = item.get('sha256')
             if isinstance(expected_sha, str) and expected_sha:
                 if actual_sha != expected_sha.upper():
-                    self.log_message.emit(f"文件哈希校验失败: {rel}")
-                    return False
+                    self.log_message.emit(f"文件哈希校验失败，跳过: {rel}")
+                    with contextlib.suppress(Exception):
+                        dst_path.unlink(missing_ok=True)
+                    continue
 
             copied_files.append((src_path, dst_path, item))
 
