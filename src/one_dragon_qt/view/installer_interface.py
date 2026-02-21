@@ -892,10 +892,6 @@ class InstallerInterface(VerticalScrollInterface):
                 formatted_latest_log = format_log_with_line_breaks(latest_log)
                 self.log_display_label.setText(formatted_latest_log)
 
-    def on_unpack_finished(self, success: bool):
-        """资源解压完成回调"""
-        self.show_install_options(success)
-
     def show_install_options(self):
         """显示安装选项"""
         self.install_btn.setVisible(True)

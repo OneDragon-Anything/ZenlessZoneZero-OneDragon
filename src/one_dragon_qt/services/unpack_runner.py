@@ -11,7 +11,7 @@ from PySide6.QtCore import QThread, Signal
 class UnpackResourceRunner(QThread):
     """资源解包线程：读取安装清单，将安装器目录中的文件逐一校验后搬运至工作目录。"""
 
-    finished = Signal(bool)          # 搬运完成信号，参数为是否成功
+    unpack_done = Signal(bool)        # 搬运完成信号，参数为是否成功
     log_message = Signal(str)       # 当前文件名日志信号
     progress_changed = Signal(int, int)  # (current, total) 复制进度信号
 
@@ -83,9 +83,16 @@ class UnpackResourceRunner(QThread):
             running_exe = None
 
         # 预计算总大小并检查磁盘空间（留20%余量），避免搬运过程中途失败导致残留
+        # 沿父路径向上查找第一个存在的目录（防御 dst_root 尚未创建的边缘情况）
         total_size = sum(item.get('size', 0) for item in files if isinstance(item, dict))
-        free_space = shutil.disk_usage(dst_root).free
-        if free_space < total_size * 1.2:  # 留20%余量
+        _check_path = dst_root
+        while not _check_path.exists() and _check_path != _check_path.parent:
+            _check_path = _check_path.parent
+        try:
+            free_space = shutil.disk_usage(_check_path).free
+        except Exception:
+            free_space = None
+        if free_space is not None and free_space < total_size * 1.2:  # 留20%余量
             msg = f"磁盘空间不足: 需要 {total_size/(1024**3):.2f}GB, 可用 {free_space/(1024**3):.2f}GB"
             self.log_message.emit(msg)
             return False
@@ -234,7 +241,7 @@ class UnpackResourceRunner(QThread):
         """记录结果并发射完成信号。"""
         self.is_done = True
         self.is_success = success
-        self.finished.emit(success)
+        self.unpack_done.emit(success)
 
     @staticmethod
     def _is_same_dir(a: Path, b: Path) -> bool:
