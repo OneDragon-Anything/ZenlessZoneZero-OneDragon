@@ -224,6 +224,7 @@ jobs:
       shell: pwsh
       env:
         RELEASE_VERSION: ${{ needs.version.outputs.version }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: python tools/ci/prepare_release_assets.py --release-version "$env:RELEASE_VERSION"
 
     - name: Create Release

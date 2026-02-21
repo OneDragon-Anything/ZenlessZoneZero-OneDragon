@@ -141,19 +141,17 @@ def _zip_single_file(file_path: Path, zip_path: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Prepare release assets and package Full/Full-Environment.")
     parser.add_argument("--repo-root", default=".", help="Repository root (default: .)")
-    parser.add_argument("--release-version", default="", help="Release version (default from env RELEASE_VERSION)")
+    parser.add_argument("--release-version", required=True, help="Release version")
     parser.add_argument("--dist-src", default="deploy/dist", help="Downloaded dist artifact directory")
     parser.add_argument("--dist-name", default="dist", help="Name of dist directory after moving to parent")
     parser.add_argument("--env-dir", default=".install", help="Offline env directory in repo root")
-    parser.add_argument("--github-token", default="", help="GitHub token (optional; helps with rate limits)")
     args = parser.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
-    release_version = args.release_version or os.environ.get("RELEASE_VERSION") or ""
-    if not release_version:
-        raise SystemExit("Missing release version (set RELEASE_VERSION or pass --release-version)")
+    release_version = args.release_version
 
-    token = args.github_token or os.environ.get("GITHUB_TOKEN") or ""
+    # token通过环境变量注入
+    token = os.environ.get("GITHUB_TOKEN", "")
 
     dist_src = (repo_root / args.dist_src).resolve()
     if not dist_src.exists():
@@ -290,7 +288,7 @@ def main() -> int:
 
     # 7. Full 包清单 + 打包（在 repo_root 下打包全部内容；zip 输出在 dist_dir 以避免自包含）
     _log("Generate install manifest (Full)")
-    _run([sys.executable, "tools/ci/generate_install_manifest.py", "--output", "install_manifest.json"], cwd=repo_root)
+    _run([sys.executable, "tools/ci/generate_install_manifest.py"], cwd=repo_root)
 
     full_zip = dist_dir / f"ZenlessZoneZero-OneDragon-{release_version}-Full.zip"
     _log(f"Create Full zip: {full_zip}")
@@ -304,7 +302,7 @@ def main() -> int:
     shutil.copy2(env_zip, env_dir / "ZenlessZoneZero-OneDragon-Environment.zip")
 
     _log("Generate install manifest (Full-Environment)")
-    _run([sys.executable, "tools/ci/generate_install_manifest.py", "--output", "install_manifest.json"], cwd=repo_root)
+    _run([sys.executable, "tools/ci/generate_install_manifest.py"], cwd=repo_root)
 
     full_env_zip = dist_dir / f"ZenlessZoneZero-OneDragon-{release_version}-Full-Environment.zip"
     _log(f"Create Full-Environment zip: {full_env_zip}")

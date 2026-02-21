@@ -14,6 +14,9 @@ def sha256(path: Path) -> str:
     return h.hexdigest().upper()
 
 
+_DEFAULT_EXCLUDE_PREFIXES: list[str] = ["dist/", "deploy/build/", ".venv/", ".install/uv_cache/"]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate install manifest for offline installer move/verify.")
     parser.add_argument("--root", default=".", help="Root directory to scan (default: .)")
@@ -21,8 +24,13 @@ def main() -> int:
     parser.add_argument(
         "--exclude-prefix",
         action="append",
-        default=["dist/", "deploy/build/", ".venv/", ".install/uv_cache/"],
-        help="Exclude path prefix (posix) relative to root",
+        default=None,
+        metavar="PREFIX",
+        help=(
+            "Exclude path prefix (posix) relative to root. "
+            "Can be specified multiple times. "
+            f"Defaults to: {', '.join(_DEFAULT_EXCLUDE_PREFIXES)}"
+        ),
     )
     parser.add_argument(
         "--ignore-read-errors",
@@ -35,8 +43,9 @@ def main() -> int:
     output_path = Path(args.output)
     output_abs = output_path.resolve() if output_path.is_absolute() else (root / output_path).resolve()
 
+    raw_prefixes: list[str] = args.exclude_prefix if args.exclude_prefix is not None else _DEFAULT_EXCLUDE_PREFIXES
     exclude_prefixes: list[str] = []
-    for p in (args.exclude_prefix or []):
+    for p in raw_prefixes:
         if not p:
             continue
         norm = p.replace("\\", "/")
