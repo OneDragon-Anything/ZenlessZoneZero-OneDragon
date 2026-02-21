@@ -1,0 +1,23 @@
+{
+  "name": "uv-pyright-lsp",
+  "version": "0.1.0",
+  "description": "Pyright LSP server launched via uv run for project-specific Python type checking",
+  "author": {
+    "name": "OneDragon",
+    "email": "one-dragon@example.com"
+  },
+  "lspServers": {
+    "uv-pyright": {
+      "command": "uv",
+      "args": [
+        "run",
+        "pyright-langserver",
+        "--stdio"
+      ],
+      "extensionToLanguage": {
+        ".py": "python",
+        ".pyi": "python"
+      }
+    }
+  }
+}

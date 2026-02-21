@@ -30,6 +30,9 @@ dev = [
     "pytest-asyncio>=1.1.0",
     "ruff>=0.12.10",
     "pyuac==0.0.3",
+    "mcp>=1.0.0",
+    "psutil>=7.2.2",
+    "pyright>=1.1.408",
 ]
 
 gamepad = [
