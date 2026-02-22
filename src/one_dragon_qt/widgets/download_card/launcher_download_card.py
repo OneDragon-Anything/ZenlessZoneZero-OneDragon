@@ -306,7 +306,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
         if src_dir.exists():
             try:
-                if backup and dst_dir.exists():
+                if dst_dir.exists():
                     shutil.rmtree(dst_dir)
                 src_dir.rename(dst_dir)
                 log.info(f'{action}目录: {src_dir.name} -> {dst_dir.name}')
