@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
     inputs:
       create_release:
@@ -12,11 +14,16 @@ on:
         default: false
         type: boolean
 
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   CREATE_RELEASE: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   version:
+    if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'build') }}
     runs-on: windows-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
@@ -40,6 +47,7 @@ jobs:
       run: python tools/ci/get_version.py
 
   build:
+    if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'build') }}
     runs-on: windows-latest
     needs: version
     outputs:
