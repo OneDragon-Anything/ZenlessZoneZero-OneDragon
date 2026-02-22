@@ -27,7 +27,6 @@ jobs:
     runs-on: windows-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
-      tag: ${{ steps.get_version.outputs.tag }}
 
     steps:
     - name: Checkout code
@@ -41,9 +40,10 @@ jobs:
         python-version: '3.11'
 
     - name: Get version
-      if: ${{ env.CREATE_RELEASE == 'true' }}
       id: get_version
       shell: pwsh
+      env:
+        CREATE_RELEASE: ${{ env.CREATE_RELEASE }}
       run: python tools/ci/get_version.py
 
   build:
@@ -238,7 +238,7 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ needs.version.outputs.tag }}
+        tag_name: ${{ needs.version.outputs.version }}
         name: "Release ${{ needs.version.outputs.version }}"
         body: |
           ## 安装方式
