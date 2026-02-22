@@ -188,6 +188,15 @@ class IntelBoardApp(ZApplication):
         return self.round_by_ocr_and_click(self.last_screenshot, '出战', success_wait=1, retry_wait=1)
 
     @node_from(from_name='点击出战')
+    @operation_node(name='委托代行中弹窗')
+    def click_commission_agent(self) -> OperationRoundResult:
+        # 点击委托代行中弹窗的确定按钮（如果有的话）
+        result = self.round_by_ocr(self.last_screenshot, '委托代行中')
+        if result.is_success:
+            return self.round_by_ocr_and_click(self.last_screenshot, '确认')
+        return self.round_success('无弹窗')
+
+    @node_from(from_name='委托代行中弹窗')
     @operation_node(name='加载自动战斗指令')
     def init_auto_battle(self) -> OperationRoundResult:
         # 10. 加载自动战斗指令 根据编队配置或默认配置
@@ -234,25 +243,15 @@ class IntelBoardApp(ZApplication):
 
     @node_from(from_name='开始自动战斗')
     @operation_node(name='战斗中', mute=True, timeout_seconds=600)
-    def in_battle(self) -> OperationRoundResult:
-        # 1. 先同步检查战斗状态，避免 OCR 竞态
+    def auto_battle(self) -> OperationRoundResult:
+        if self.ctx.auto_battle_context.last_check_end_result is not None:
+            self.ctx.auto_battle_context.stop_auto_battle()
+            return self.round_success(status=self.ctx.auto_battle_context.last_check_end_result)
+
         self.ctx.auto_battle_context.check_battle_state(
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True,
-            sync=True
         )
-
-        # 2. 检查是否结束
-        if self.ctx.auto_battle_context.last_check_end_result is not None:
-            self.ctx.auto_battle_context.stop_auto_battle()
-            return self.round_success('战斗结束')
-
-        # 3. 额外的 OCR 检查 (委托代行中)
-        # 此时 check_battle_state 已完成，可以安全调用 OCR
-        result = self.round_by_ocr(self.last_screenshot, '委托代行中')
-        if result.is_success:
-            self.round_by_ocr_and_click(self.last_screenshot, '确认')
-            return self.round_wait(wait=1)
 
         return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
