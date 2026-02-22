@@ -51,7 +51,7 @@ def main() -> int:
         short_hash = subprocess.run(
             ['git', 'rev-parse', '--short', 'HEAD'],
             capture_output=True, text=True,
-        ).stdout.strip()
+        ).stdout.strip() or 'unknown'
 
         pr_match = re.match(r'^refs/pull/(\d+)/', github_ref)
         if pr_match:

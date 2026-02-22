@@ -42,8 +42,6 @@ jobs:
     - name: Get version
       id: get_version
       shell: pwsh
-      env:
-        CREATE_RELEASE: ${{ env.CREATE_RELEASE }}
       run: python tools/ci/get_version.py
 
   build:
