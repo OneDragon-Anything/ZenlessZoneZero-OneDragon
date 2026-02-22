@@ -1,12 +1,34 @@
-import os
 import locale
-from PySide6.QtCore import Qt, QEventLoop, QSize
-from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog, QApplication, QWidget
+import os
+
+from PySide6.QtCore import QEventLoop, QSize, Qt, QTimer
 from PySide6.QtGui import QPixmap
-from qfluentwidgets import (FluentIcon, PrimaryPushButton, ToolButton, LineEdit, MessageBox,
-                            SplitTitleBar, SubtitleLabel, PixmapLabel)
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QHBoxLayout,
+    QSizePolicy,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
+from qfluentwidgets import (
+    BodyLabel,
+    CaptionLabel,
+    FluentIcon,
+    IndeterminateProgressBar,
+    LineEdit,
+    MessageBox,
+    PixmapLabel,
+    PrimaryPushButton,
+    ProgressBar,
+    SplitTitleBar,
+    SubtitleLabel,
+    ToolButton,
+)
 
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+from one_dragon_qt.services.unpack_runner import UnpackResourceRunner
 from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
 from one_dragon_qt.windows.window import PhosWindow
 
@@ -29,7 +51,12 @@ class DirectoryPickerTranslator:
                 'directory_not_empty_warning': '所选目录不为空，里面的内容将被覆盖：\n{path}\n\n是否继续使用此目录？',
                 'i_know': '我知道了',
                 'continue_use': '继续使用',
-                'select_other': '选择其他目录'
+                'select_other': '选择其他目录',
+                'preparing': '正在准备安装文件...',
+                'copying': '正在复制 {current}/{total}',
+                'cleaning': '正在清理源目录...',
+                'unpack_failed_title': '搬运失败',
+                'unpack_failed_body': '安装文件搬运失败，请重新运行安装器。\n\n{detail}',
             },
             'en': {
                 'title': 'Please Select Installation Path',
@@ -43,7 +70,12 @@ class DirectoryPickerTranslator:
                 'directory_not_empty_warning': 'The selected directory is not empty, its contents will be overwritten:\n{path}\n\nDo you want to continue using this directory?',
                 'i_know': 'I Know',
                 'continue_use': 'Continue',
-                'select_other': 'Select Other'
+                'select_other': 'Select Other',
+                'preparing': 'Preparing installation files...',
+                'copying': 'Copying {current}/{total}',
+                'cleaning': 'Cleaning source directory...',
+                'unpack_failed_title': 'Migration Failed',
+                'unpack_failed_body': 'Installation file migration failed. Please re-run the installer.\n\n{detail}',
             }
         }
 
@@ -63,19 +95,31 @@ class DirectoryPickerTranslator:
                 return 'zh'
             else:
                 return 'en'
-        except:
+        except Exception:
             return 'zh'
 
 
 class DirectoryPickerInterface(QWidget):
     """路径选择器界面"""
 
-    def __init__(self, parent=None, icon_path=None):
+    def __init__(self, parent=None, icon_path=None, installer_dir: str = ""):
         QWidget.__init__(self, parent=parent)
         self.setObjectName("directory_picker_interface")
         self.selected_path = ""
         self.icon_path = icon_path
+        self.installer_dir = installer_dir
+
         self.translator = DirectoryPickerTranslator(DirectoryPickerTranslator.detect_language())
+        self._runner: UnpackResourceRunner | None = None
+        self._last_log: str = ""
+        self._pending_log: str = ""
+
+        # 节流计时器：最多每 250 ms 刷新一次文件名，避免闪烁
+        self._log_timer = QTimer(self)
+        self._log_timer.setSingleShot(True)
+        self._log_timer.setInterval(250)
+        self._log_timer.timeout.connect(self._flush_log)
+
         self._init_ui()
 
     def _init_ui(self):
@@ -109,7 +153,6 @@ class DirectoryPickerInterface(QWidget):
         # 标题
         self.title_label = SubtitleLabel(self.translator.get_text('title'))
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(self.title_label)
 
         # 路径显示区域
         path_layout = QHBoxLayout()
@@ -124,20 +167,63 @@ class DirectoryPickerInterface(QWidget):
         self.browse_btn.clicked.connect(self._on_browse_clicked)
         path_layout.addWidget(self.browse_btn)
 
-        main_layout.addLayout(path_layout)
-
-        # 按钮区域
+        # 确认按钮
         button_layout = QHBoxLayout()
         button_layout.addStretch(1)
         self.confirm_btn = PrimaryPushButton(self.translator.get_text('confirm'))
         self.confirm_btn.setIcon(FluentIcon.ACCEPT)
-        self.confirm_btn.setMinimumSize(120, 36)  # 设置最小尺寸使按钮变大
+        self.confirm_btn.setMinimumSize(120, 36)
         self.confirm_btn.clicked.connect(self._on_confirm_clicked)
         self.confirm_btn.setEnabled(False)
         button_layout.addWidget(self.confirm_btn)
         button_layout.addStretch(1)
 
-        main_layout.addLayout(button_layout)
+        # 选路页（page 0）：标题 + 路径输入 + 确认
+        pick_page = QWidget()
+        pick_layout = QVBoxLayout(pick_page)
+        pick_layout.setContentsMargins(0, 0, 0, 0)
+        pick_layout.setSpacing(20)
+        pick_layout.addWidget(self.title_label)
+        pick_layout.addLayout(path_layout)
+        pick_layout.addLayout(button_layout)
+        pick_layout.addStretch(1)
+
+        # 进度页（page 1）：count → bar → status + stretch
+        progress_page = QWidget()
+        pg_layout = QVBoxLayout(progress_page)
+        pg_layout.setContentsMargins(0, 0, 0, 0)
+        pg_layout.setSpacing(0)
+        self.progress_bar = ProgressBar()
+        self.progress_bar.setRange(0, 1)
+        self.progress_bar.setValue(0)
+        self.indet_progress_bar = IndeterminateProgressBar()
+        # 用内层 stack 切换两种进度条，保证布局高度稳定
+        self.bar_stack = QStackedWidget()
+        self.bar_stack.addWidget(self.progress_bar)       # index 0: 复制阶段（确定进度）
+        self.bar_stack.addWidget(self.indet_progress_bar) # index 1: 清理阶段（不确定进度）
+        self.bar_stack.setCurrentIndex(0)
+        # 第一行：正在复制 xx/xx（BodyLabel，字号稍大）
+        self.count_label = BodyLabel(self.translator.get_text('preparing'))
+        self.count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # 第二行：具体文件路径（CaptionLabel，省略过长路径）
+        self.status_label = CaptionLabel('')
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.status_label.setWordWrap(False)
+        # 禁止 status_label 撑宽窗口；文本过长时 _on_unpack_log 会做 ElideMiddle
+        self.status_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.status_label.setMinimumWidth(0)
+        pg_layout.addWidget(self.count_label)
+        pg_layout.addSpacing(12)
+        pg_layout.addWidget(self.bar_stack)
+        pg_layout.addSpacing(8)
+        pg_layout.addWidget(self.status_label)
+        pg_layout.addStretch(1)
+
+        # 展示切换器
+        self.picker_stack = QStackedWidget()
+        self.picker_stack.addWidget(pick_page)
+        self.picker_stack.addWidget(progress_page)
+        main_layout.addWidget(self.picker_stack)
 
         # 添加弹性空间
         main_layout.addStretch(1)
@@ -205,12 +291,74 @@ class DirectoryPickerInterface(QWidget):
 
     def _on_confirm_clicked(self):
         """确认按钮点击事件"""
-        if self.selected_path:
-            # 获取顶层窗口
-            window = self.window()
-            if isinstance(window, DirectoryPickerWindow):
-                window.selected_directory = self.selected_path
-                window.close()
+        if not self.selected_path:
+            return
+
+        window = self.window()
+        if not isinstance(window, DirectoryPickerWindow):
+            return
+
+        # 启动解包，切换到进度页
+        self.picker_stack.setCurrentIndex(1)
+
+        self._runner = UnpackResourceRunner(self.installer_dir, self.selected_path)
+        self._runner.log_message.connect(self._on_unpack_log)
+        self._runner.progress_changed.connect(self._on_unpack_progress)
+        self._runner.unpack_done.connect(self._on_unpack_finished)
+        self._runner.start()
+
+    def _on_unpack_log(self, message: str) -> None:
+        """缓存最后一条日志；由节流计时器决定何时真正刷新 status_label。"""
+        self._last_log = message
+        self._pending_log = message
+        if not self._log_timer.isActive():
+            self._log_timer.start()
+
+    def _flush_log(self) -> None:
+        """节流计时器触发时，将最新日志写入 status_label（ElideMiddle截断）。"""
+        message = self._pending_log
+        avail = self.status_label.width()
+        if avail > 0:
+            elided = self.status_label.fontMetrics().elidedText(
+                message, Qt.TextElideMode.ElideMiddle, avail
+            )
+        else:
+            elided = message
+        self.status_label.setText(elided)
+
+    def _on_unpack_progress(self, current: int, total: int) -> None:
+        """更新进度条与计数行。current=-1 表示进入清理阶段。"""
+        if current == -1:
+            # 清理阶段：切换到动画进度条，计数行提示清理，文件行置空
+            self.bar_stack.setCurrentIndex(1)
+            self.indet_progress_bar.start()
+            self.count_label.setText(self.translator.get_text('cleaning'))
+            self.status_label.setText("")
+        else:
+            self.bar_stack.setCurrentIndex(0)
+            self.progress_bar.setRange(0, total)
+            self.progress_bar.setValue(current)
+            self.count_label.setText(self.translator.get_text('copying', current=current, total=total))
+
+    def _on_unpack_finished(self, success: bool) -> None:
+        """解包完毕：成功时设定目标目录并关窗；失败时弹错误提示。"""
+        window = self.window()
+        if not isinstance(window, DirectoryPickerWindow):
+            return
+        if success:
+            window.selected_directory = self.selected_path
+            window.close()
+        else:
+            detail = self._last_log or "-"
+            w = MessageBox(
+                self.translator.get_text('unpack_failed_title'),
+                self.translator.get_text('unpack_failed_body', detail=detail),
+                parent=window,
+            )
+            w.yesButton.setText(self.translator.get_text('i_know'))
+            w.cancelButton.setVisible(False)
+            w.exec()
+            window.close()
 
     def _on_language_switch(self):
         """语言切换按钮点击事件"""
@@ -231,7 +379,9 @@ class DirectoryPickerWindow(PhosWindow):
 
     def __init__(self,
                  parent=None,
-                 icon_path=None):
+                 icon_path=None,
+                 installer_dir: str = ""):
+        self.installer_dir = installer_dir
         PhosWindow.__init__(self, parent=parent)
         self.setTitleBar(SplitTitleBar(self))
         self._last_stack_idx: int = 0
@@ -253,7 +403,7 @@ class DirectoryPickerWindow(PhosWindow):
         """模态执行窗口，等待窗口关闭"""
         self._event_loop = QEventLoop()
         self._event_loop.exec()
-        return True if self.selected_directory else False
+        return bool(self.selected_directory)
 
     def closeEvent(self, event):
         """窗口关闭事件处理"""
@@ -272,8 +422,8 @@ class DirectoryPickerWindow(PhosWindow):
         创建子页面
         :return:
         """
-        # 创建路径选择器界面，传入图标路径
-        self.picker_interface = DirectoryPickerInterface(self, self.icon_path)
+        # 创建路径选择器界面，传入图标路径和安装器目录
+        self.picker_interface = DirectoryPickerInterface(self, self.icon_path, self.installer_dir)
         self.addSubInterface(self.picker_interface, FluentIcon.FOLDER_ADD, "")
 
     def init_window(self):
