@@ -52,7 +52,7 @@ class LostVoidConfig(ApplicationConfig):
 
     @property
     def mission_name(self) -> str:
-        return self.get('mission_name', '战线肃清')
+        return self.get('mission_name', '矩阵行动')
 
     @mission_name.setter
     def mission_name(self, new_value: str):
