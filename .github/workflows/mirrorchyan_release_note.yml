@@ -12,7 +12,7 @@ on:
 jobs:
   mirrorchyan_release_note:
     runs-on: macos-latest
-    if: ${{ github.repository_owner == 'OneDragon-Anything' && (github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' || github.event_name == 'release') }}
+    if: ${{ github.repository_owner == 'OneDragon-Anything' && github.event.workflow_run.event != 'pull_request' && (github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' || github.event_name == 'release') }}
     steps:
       - name: Upload Release Note
         if: ${{ github.repository_owner == 'OneDragon-Anything' }}
