@@ -82,7 +82,7 @@ def main() -> int:
                     "sha256": sha256(file_path),
                 }
             )
-        except PermissionError:
+        except OSError:
             if args.ignore_read_errors:
                 continue
             raise
@@ -95,6 +95,7 @@ def main() -> int:
         "files": entries,
     }
 
+    output_abs.parent.mkdir(parents=True, exist_ok=True)
     output_abs.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return 0
 

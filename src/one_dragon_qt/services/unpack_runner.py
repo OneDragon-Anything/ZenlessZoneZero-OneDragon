@@ -15,10 +15,10 @@ class UnpackResourceRunner(QThread):
     log_message = Signal(str)       # 当前文件名日志信号
     progress_changed = Signal(int, int)  # (current, total) 复制进度信号
 
-    def __init__(self, installer_dir: str | None, work_dir: str, parent=None):
+    def __init__(self, installer_dir: str, work_dir: str, parent=None):
         """
         Args:
-            installer_dir: 安装器所在目录（含 install_manifest.json），为 None 时直接跳过
+            installer_dir: 安装器所在目录（含 install_manifest.json）
             work_dir: 目标工作目录
         """
         super().__init__(parent)
@@ -210,10 +210,6 @@ class UnpackResourceRunner(QThread):
 
     def run(self):
         """线程入口：若安装器目录与工作目录相同则视为已就位，否则执行清单搬运。"""
-        if self.installer_dir is None:
-            self._finish(False)
-            return
-
         src_root = Path(self.installer_dir)
         dst_root = Path(self.work_dir)
 

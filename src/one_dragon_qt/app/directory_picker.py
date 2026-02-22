@@ -95,14 +95,14 @@ class DirectoryPickerTranslator:
                 return 'zh'
             else:
                 return 'en'
-        except:
+        except Exception:
             return 'zh'
 
 
 class DirectoryPickerInterface(QWidget):
     """路径选择器界面"""
 
-    def __init__(self, parent=None, icon_path=None, installer_dir: str | None = None):
+    def __init__(self, parent=None, icon_path=None, installer_dir: str = ""):
         QWidget.__init__(self, parent=parent)
         self.setObjectName("directory_picker_interface")
         self.selected_path = ""
@@ -380,7 +380,7 @@ class DirectoryPickerWindow(PhosWindow):
     def __init__(self,
                  parent=None,
                  icon_path=None,
-                 installer_dir: str | None = None):
+                 installer_dir: str = ""):
         self.installer_dir = installer_dir
         PhosWindow.__init__(self, parent=parent)
         self.setTitleBar(SplitTitleBar(self))

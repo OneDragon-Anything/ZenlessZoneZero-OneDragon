@@ -43,7 +43,7 @@ def _download(url: str, dest: Path, *, token: str | None = None, retries: int = 
                 raise
 
 
-def _fetch_json(url: str, *, token: str | None = None, timeout: int = 60) -> object:
+def _fetch_json(url: str, *, token: str | None = None, retries: int = 3, timeout: int = 60) -> object:
     headers = {
         "User-Agent": "ZenlessZoneZero-OneDragon CI",
         "Accept": "application/vnd.github+json",
@@ -51,9 +51,17 @@ def _fetch_json(url: str, *, token: str | None = None, timeout: int = 60) -> obj
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
-    req = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    for attempt in range(1, retries + 1):
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except Exception as e:
+            _log(f"[attempt {attempt}/{retries}] JSON fetch failed: {url} — {e}")
+            if attempt < retries:
+                time.sleep(2 * attempt)
+            else:
+                raise
 
 
 def _get_latest_model_asset(repo: str, pattern: str, *, token: str | None = None) -> dict | None:
