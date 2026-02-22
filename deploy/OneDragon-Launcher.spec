@@ -26,8 +26,9 @@ KEEP_TREES = [
 # 导入 generate_freeze_seed 模块以生成 freeze_seed.py 并获取源码包列表
 GEN_PATH = Path.cwd() / "generate_freeze_seed.py"
 spec = importlib.util.spec_from_file_location("generate_freeze_seed", str(GEN_PATH))
+if spec is None or spec.loader is None:
+    raise FileNotFoundError(f"无法加载模块: {GEN_PATH}")
 generate_freeze_seed = importlib.util.module_from_spec(spec)
-assert spec.loader is not None
 spec.loader.exec_module(generate_freeze_seed)
 
 # 这里顺便生成了 freeze_seed.py

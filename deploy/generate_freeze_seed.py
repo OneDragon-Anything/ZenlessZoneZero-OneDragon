@@ -177,13 +177,12 @@ def write_seed_script(seed_file: Path, mods: list[str], repo_root: Path) -> None
     print(f"Writing -> {seed_file.relative_to(repo_root)} ({len(mods)} imports)")
 
 
-def main():
-    """主函数"""
+def main() -> set[str]:
+    """主函数，返回本地包名集合。"""
     src_roots = get_src_roots(SRC_DIR)
 
     if not src_roots:
-        print("[ERROR] No source directories found")
-        return
+        raise RuntimeError(f"No source directories found under {SRC_DIR}")
 
     print(f"Found {len(src_roots)} source packages: {', '.join(r.name for r in src_roots)}")
 
