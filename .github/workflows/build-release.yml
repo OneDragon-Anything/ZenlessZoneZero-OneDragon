@@ -103,7 +103,7 @@ jobs:
         cd deploy
         uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
         uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
-        Copy-Item -Path "..\src" -Destination "dist\OneDragon-Launcher\src" -Force
+        Copy-Item -Path "..\src" -Destination "dist\OneDragon-Launcher\src" -Recurse -Force
 
     - name: Upload Installer
       if: ${{ env.CREATE_RELEASE == 'false' }}
