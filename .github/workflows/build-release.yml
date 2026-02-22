@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
     inputs:
       create_release:
@@ -12,15 +14,19 @@ on:
         default: false
         type: boolean
 
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   CREATE_RELEASE: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   version:
+    if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'build') }}
     runs-on: windows-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
-      tag: ${{ steps.get_version.outputs.tag }}
 
     steps:
     - name: Checkout code
@@ -34,12 +40,12 @@ jobs:
         python-version: '3.11'
 
     - name: Get version
-      if: ${{ env.CREATE_RELEASE == 'true' }}
       id: get_version
       shell: pwsh
       run: python tools/ci/get_version.py
 
   build:
+    if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'build') }}
     runs-on: windows-latest
     needs: version
     outputs:
@@ -230,7 +236,7 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ needs.version.outputs.tag }}
+        tag_name: ${{ needs.version.outputs.version }}
         name: "Release ${{ needs.version.outputs.version }}"
         body: |
           ## 安装方式

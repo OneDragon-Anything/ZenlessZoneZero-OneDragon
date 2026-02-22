@@ -27,8 +27,7 @@ def get_launcher_version() -> str:
     try:
         result = subprocess.run(f'"{launcher_path}" --version', capture_output=True, text=True)
         version_output = result.stdout.strip()
-        parts = version_output.split('v', 1)
-        return f"v{parts[1]}" if len(parts) > 1 else version_output
+        return version_output.rsplit(maxsplit=1)[-1] if version_output else ""
     except Exception:
         return ""
 
