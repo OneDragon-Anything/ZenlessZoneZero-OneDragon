@@ -10,7 +10,7 @@ on:
 jobs:
   mirrorchyan:
     runs-on: macos-latest
-    if: ${{ github.repository_owner == 'OneDragon-Anything' && (github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch') }}
+    if: ${{ github.repository_owner == 'OneDragon-Anything' && github.event.workflow_run.event != 'pull_request' && (github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch') }}
     steps:
       - uses: MirrorChyan/uploading-action@v1
         with:
