@@ -25,7 +25,11 @@ def get_launcher_version() -> str:
     """
     launcher_path = os.path.join(os_utils.get_work_dir(), 'OneDragon-Launcher.exe')
     try:
-        result = subprocess.run(f'"{launcher_path}" --version', capture_output=True, text=True)
+        result = subprocess.run(
+            f'"{launcher_path}" --version',
+            capture_output=True, text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
         version_output = result.stdout.strip()
         return version_output.rsplit(maxsplit=1)[-1] if version_output else ""
     except Exception:

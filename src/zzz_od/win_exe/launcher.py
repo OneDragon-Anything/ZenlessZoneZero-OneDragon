@@ -13,6 +13,12 @@ class ZLauncher(ExeLauncher):
         main(launch_args)
 
     def run_gui_mode(self) -> None:
+        import ctypes
+        # 隐藏控制台窗口，避免 GUI 模式下出现黑窗口
+        hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+        if hwnd:
+            ctypes.windll.user32.ShowWindow(hwnd, 0)  # SW_HIDE
+
         from zzz_od.gui.app import main
         main()
 
