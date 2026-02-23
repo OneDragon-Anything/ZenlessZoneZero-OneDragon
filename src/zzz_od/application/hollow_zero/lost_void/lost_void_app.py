@@ -238,9 +238,19 @@ class LostVoidApp(ZApplication):
         self.ctx.lost_void.predefined_team_idx = predefined_idx
         team_name = self.ctx.team_config.team_list[predefined_idx].name
 
+        def _clean_space(ocr_text: str) -> str:
+            """
+            清洗OCR识别结果中的干扰字符（空格、全角空格、制表符等）
+            """
+            if not ocr_text:
+                return ""
+            # 移除所有空格（半角/全角）、制表符、换行符
+            ocr_text = ocr_text.replace(' ', '').replace('　', '').replace('\t', '').replace('\n', '')
+            return ocr_text
+            
         # 先点击目标编队
         for ocr_text in ocr_result_list:
-            if team_name in ocr_text.data:
+            if team_name in _clean_space(ocr_text.data):
                 self.ctx.controller.click(ocr_text.center)
                 break
         else:
