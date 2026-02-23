@@ -198,32 +198,45 @@ def main() -> int:
     signed_dir = dist_dir / "signed"
     if signed_dir.exists():
         _log("Found signed executables, replacing...")
-        installer_signed = signed_dir / "OneDragon-Installer.exe"
-        if installer_signed.exists():
-            shutil.copy2(installer_signed, dist_dir / "OneDragon-Installer.exe")
-        launcher_signed = signed_dir / "OneDragon-Launcher.exe"
-        if launcher_signed.exists():
-            shutil.copy2(launcher_signed, dist_dir / "OneDragon-Launcher" / "OneDragon-Launcher.exe")
+        for exe_name, parent in [
+            ("OneDragon-Installer.exe", dist_dir),
+            ("OneDragon-Launcher.exe", dist_dir),
+            ("OneDragon-RuntimeLauncher.exe", dist_dir / "OneDragon-RuntimeLauncher"),
+        ]:
+            signed = signed_dir / exe_name
+            if signed.exists():
+                _log(f"  Replacing {exe_name}")
+                shutil.copy2(signed, parent / exe_name)
 
-    # 5. 把安装器复制到仓库根目录，并打包启动器目录为 zip
+    # 5. 打包启动器
     installer_exe = dist_dir / "OneDragon-Installer.exe"
-    launcher_dir = dist_dir / "OneDragon-Launcher"
+    launcher_exe = dist_dir / "OneDragon-Launcher.exe"
+    runtime_launcher_dir = dist_dir / "OneDragon-RuntimeLauncher"
+
     if not installer_exe.exists():
         raise SystemExit(f"Missing {installer_exe}")
-    if not launcher_dir.exists():
-        raise SystemExit(f"Missing {launcher_dir}")
+    if not launcher_exe.exists():
+        raise SystemExit(f"Missing {launcher_exe}")
+    if not runtime_launcher_dir.exists():
+        raise SystemExit(f"Missing {runtime_launcher_dir}")
 
     shutil.copy2(installer_exe, repo_root / "OneDragon-Installer.exe")
-    # 将启动器 exe 和 .runtime 目录复制到仓库根目录
-    launcher_exe = launcher_dir / "OneDragon-Launcher.exe"
-    if launcher_exe.exists():
-        shutil.copy2(launcher_exe, repo_root / "OneDragon-Launcher.exe")
-    runtime_dir = launcher_dir / ".runtime"
+    shutil.copy2(launcher_exe, repo_root / "OneDragon-Launcher.exe")
+
+    # 将 RuntimeLauncher exe 和 .runtime 目录复制到仓库根目录
+    runtime_exe = runtime_launcher_dir / "OneDragon-RuntimeLauncher.exe"
+    if runtime_exe.exists():
+        shutil.copy2(runtime_exe, repo_root / "OneDragon-RuntimeLauncher.exe")
+    runtime_dir = runtime_launcher_dir / ".runtime"
     if runtime_dir.exists():
         shutil.copytree(runtime_dir, repo_root / ".runtime", dirs_exist_ok=True)
 
+    # 打包两个启动器
     launcher_zip = dist_dir / "ZenlessZoneZero-OneDragon-Launcher.zip"
-    _zip_dir_contents(launcher_dir, launcher_zip, root_prefix="")
+    _zip_single_file(launcher_exe, launcher_zip)
+
+    runtime_launcher_zip = dist_dir / "ZenlessZoneZero-OneDragon-RuntimeLauncher.zip"
+    _zip_dir_contents(runtime_launcher_dir, runtime_launcher_zip, root_prefix="")
 
     # 6. 下载并解压模型到 assets/models
     model_base = repo_root / "assets/models"

@@ -103,7 +103,8 @@ jobs:
         cd deploy
         uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
         uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
-        Copy-Item -Path "..\src" -Destination "dist\OneDragon-Launcher\src" -Recurse -Force
+        uv run pyinstaller --noconfirm --clean "OneDragon-RuntimeLauncher.spec"
+        Copy-Item -Path "..\src" -Destination "dist\OneDragon-RuntimeLauncher\src" -Recurse -Force
 
     - name: Upload Installer
       if: ${{ env.CREATE_RELEASE == 'false' }}
@@ -117,8 +118,15 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Launcher
+        path: deploy/dist/OneDragon-Launcher.exe
+
+    - name: Upload RuntimeLauncher
+      if: ${{ env.CREATE_RELEASE == 'false' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: RuntimeLauncher
         include-hidden-files: true
-        path: deploy/dist/OneDragon-Launcher/
+        path: deploy/dist/OneDragon-RuntimeLauncher/
 
     - name: Upload Dist
       if: ${{ env.CREATE_RELEASE == 'true' }}
@@ -138,7 +146,8 @@ jobs:
         name: unsigned
         if-no-files-found: error
         path: |
-          .\deploy\dist\OneDragon-Launcher\OneDragon-Launcher.exe
+          .\deploy\dist\OneDragon-Launcher.exe
+          .\deploy\dist\OneDragon-RuntimeLauncher\OneDragon-RuntimeLauncher.exe
           .\deploy\dist\OneDragon-Installer.exe
 
   sign:
@@ -226,6 +235,7 @@ jobs:
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full.zip` 为完整包，不需要额外下载资源。
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Installer.exe` 为精简安装程序，运行后会自动下载所需的资源。
           - 如果你想更新启动器，前往主程序【设置】-【资源下载】页面更新，或者下载 `ZenlessZoneZero-OneDragon-Launcher.zip`，解压后替换。
+          - `ZenlessZoneZero-OneDragon-RuntimeLauncher.zip` 为内嵌运行时的启动器（无需安装 Python 环境），解压后替换。
           - __不要下载Source Code__
 
           安装前请查看 [安装指南](https://one-dragon.com/zzz/zh/quickstart.html)
@@ -253,6 +263,7 @@ jobs:
           ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Full.zip
           ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Installer.exe
           ZenlessZoneZero-OneDragon-Launcher.zip
+          ZenlessZoneZero-OneDragon-RuntimeLauncher.zip
         generate_release_notes: false
         prerelease: ${{ contains(needs.version.outputs.version, '-beta.') }}
       env:
