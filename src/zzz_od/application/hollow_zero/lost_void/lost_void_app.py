@@ -238,7 +238,7 @@ class LostVoidApp(ZApplication):
             predefined_idx = 0
         self.ctx.lost_void.predefined_team_idx = predefined_idx
         team_name = self.ctx.team_config.team_list[predefined_idx].name
-        
+
         # 先点击目标编队
         for ocr_text in ocr_result_list:
             if team_name in remove_whitespace(ocr_text.data):
