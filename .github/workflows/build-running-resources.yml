@@ -43,7 +43,7 @@ jobs:
           .\.venv\Scripts\Activate.ps1
           uv run python src/one_dragon/devtools/compile_po.py
           uv run python src/zzz_od/auto_battle/build_utils.py
-          uv run python deploy/generate_freeze_seed.py
+          uv run python deploy/generate_module_manifest.py
         env:
           PYTHONPATH: src
 
@@ -58,13 +58,13 @@ jobs:
           $modifiedFiles = @(
             $(git status --porcelain config/auto_battle/*.merged.yml)
             $(git status --porcelain assets/text/output/**/*.mo)
-            $(git status --porcelain deploy/freeze_seed.py)
+            $(git status --porcelain deploy/module_manifest.py)
           ) | Where-Object { $_ -ne "" }
 
           if ($modifiedFiles.Count -gt 0) {
             git add config/auto_battle/*.merged.yml
             git add assets/text/output/**/*.mo
-            git add deploy/freeze_seed.py
+            git add deploy/module_manifest.py
             $date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
             git commit -m "chore: 自动构建运行资源 $date"
             git push

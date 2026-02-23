@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-生成 PyInstaller 冻结种子脚本
+生成 PyInstaller 模块清单的脚本
 扫描源码目录中的所有导入，生成 module_manifest.py 用于 PyInstaller 依赖分析
 """
 
@@ -76,19 +76,16 @@ def collect_imports_from_file(py: Path, repo_root: Path) -> tuple[set[str], dict
         if isinstance(node, ast.Import):
             for alias in node.names:
                 if alias.name:
-                    name = alias.name.strip()
-                    if name:
-                        imports.add(name)
+                    imports.add(alias.name)
         elif isinstance(node, ast.ImportFrom):
             # 跳过相对导入
             if not node.level and node.module:
-                module = node.module.strip()
-                if module:
-                    if module not in from_imports:
-                        from_imports[module] = set()
-                    for alias in node.names:
-                        if alias.name:
-                            from_imports[module].add(alias.name.strip())
+                module = node.module
+                if module not in from_imports:
+                    from_imports[module] = set()
+                for alias in node.names:
+                    if alias.name:
+                        from_imports[module].add(alias.name)
 
     return imports, from_imports
 
@@ -97,9 +94,6 @@ def is_local_package(name: str, local_pkg_names: set[str]) -> bool:
     """判断 name 是否属于本地包（需要排除）"""
     if not name:
         return False
-    # 相对导入标记
-    if name.startswith("."):
-        return True
     # 检查顶级包名
     return get_top_package(name) in local_pkg_names
 

@@ -23,16 +23,16 @@ KEEP_TREES = [
     "one_dragon.version",
 ]
 
-# 导入 generate_freeze_seed 模块以生成 freeze_seed.py 并获取源码包列表
-GEN_PATH = Path.cwd() / "generate_freeze_seed.py"
-spec = importlib.util.spec_from_file_location("generate_freeze_seed", str(GEN_PATH))
+# 导入 generate_module_manifest 模块以生成 module_manifest.py 并获取源码包列表
+GEN_PATH = Path.cwd() / "generate_module_manifest.py"
+spec = importlib.util.spec_from_file_location("generate_module_manifest", str(GEN_PATH))
 if spec is None or spec.loader is None:
     raise FileNotFoundError(f"无法加载模块: {GEN_PATH}")
-generate_freeze_seed = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(generate_freeze_seed)
+generate_module_manifest = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(generate_module_manifest)
 
-# 这里顺便生成了 freeze_seed.py
-src_packages = generate_freeze_seed.main()
+# 这里顺便生成了 module_manifest.py
+src_packages = generate_module_manifest.main()
 
 # 收集所有源码包的所有子模块
 all_src_modules = set()
@@ -54,10 +54,10 @@ excludes = sorted(all_src_modules - keep_modules)
 
 
 a = Analysis(
-    ['..\\src\\zzz_od\\win_exe\\launcher.py', 'freeze_seed.py'],
+    ['..\\src\\zzz_od\\win_exe\\launcher.py', 'module_manifest.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('module_manifest.py', '.')],
     hiddenimports=['_cffi_backend'],
     hookspath=[],
     hooksconfig={},
