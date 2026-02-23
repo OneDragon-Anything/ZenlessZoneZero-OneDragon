@@ -256,11 +256,13 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
 
             self.push_service.init_push_channels()
 
-            self.gh_proxy_service.update_proxy_url()
+            # 只有在配置了 ghproxy 代理时才更新代理地址
+            if self.env_config.is_gh_proxy:
+                self.gh_proxy_service.update_proxy_url()
 
             self.init_others()
         except Exception:
-            log.error('识别连携技出错', exc_info=True)
+            log.error('初始化出错', exc_info=True)
         finally:
             self._init_lock.release()
 
