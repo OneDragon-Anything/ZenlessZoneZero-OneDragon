@@ -57,7 +57,10 @@ a = Analysis(
     ['..\\src\\zzz_od\\win_exe\\runtime_launcher.py', 'module_manifest.py'],
     pathex=[],
     binaries=[],
-    datas=[('module_manifest.py', '.')],
+    datas=[
+        ('module_manifest.py', '.'),
+        ('../config/project.yml', 'config'),
+    ],
     hiddenimports=['_cffi_backend'],
     hookspath=[],
     hooksconfig={},
