@@ -4,9 +4,9 @@ from contextlib import suppress
 from pathlib import Path
 
 from packaging import version
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QIcon
-from qfluentwidgets import FluentIcon, FluentThemeColor
+from qfluentwidgets import ComboBox, FluentIcon, FluentThemeColor
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
@@ -19,11 +19,17 @@ from one_dragon_qt.widgets.setting_card.common_download_card import (
     ZipDownloaderSettingCard,
 )
 
-LAUNCHER_NAME = 'OneDragon-Launcher'
-LAUNCHER_EXE_NAME = LAUNCHER_NAME + '.exe'
-LAUNCHER_BACKUP_NAME = LAUNCHER_NAME + '.bak' + '.exe'
-RUNTIME_DIR_NAME = '.runtime'
-RUNTIME_BACKUP_NAME = '.runtime.bak'
+# 原始启动器
+LAUNCHER_EXE = 'OneDragon-Launcher.exe'
+LAUNCHER_BACKUP = 'OneDragon-Launcher.bak.exe'
+LAUNCHER_ZIP_SUFFIX = 'Launcher.zip'
+
+# RuntimeLauncher
+RUNTIME_LAUNCHER_EXE = 'OneDragon-RuntimeLauncher.exe'
+RUNTIME_LAUNCHER_BACKUP = 'OneDragon-RuntimeLauncher.bak.exe'
+RUNTIME_LAUNCHER_ZIP_SUFFIX = 'RuntimeLauncher.zip'
+RUNTIME_DIR = '.runtime'
+RUNTIME_DIR_BACKUP = '.runtime.bak'
 
 
 class LauncherVersionChecker(QThread):
@@ -38,33 +44,24 @@ class LauncherVersionChecker(QThread):
     """
     check_finished = Signal(str, str, str)
 
-    def __init__(self, ctx: OneDragonEnvContext):
+    def __init__(self, ctx: OneDragonEnvContext, exe_name: str):
         super().__init__()
         self.ctx = ctx
+        self.exe_name = exe_name
 
-    def run(self):
-        # 检查当前版本
-        launcher_path = Path(os_utils.get_work_dir()) / LAUNCHER_EXE_NAME
-        if launcher_path.exists():
-            current_version = app_utils.get_launcher_version()
-        else:
-            current_version = ""
-
-        # 检查最新版本
+    def run(self) -> None:
+        exe_path = Path(os_utils.get_work_dir()) / self.exe_name
+        current_version = app_utils.get_exe_version(str(exe_path)) if exe_path.exists() else ""
         latest_stable, latest_beta = self.ctx.git_service.get_latest_tag()
-
-        self.check_finished.emit(
-            current_version,
-            latest_stable,
-            latest_beta,
-        )
+        self.check_finished.emit(current_version, latest_stable, latest_beta)
 
 
 class LauncherDownloadCard(ZipDownloaderSettingCard):
 
     def __init__(self, ctx: OneDragonEnvContext):
         self.ctx: OneDragonEnvContext = ctx
-        self.version_checker = LauncherVersionChecker(ctx)
+        self._launcher_type: str = 'launcher'  # 'launcher' | 'runtime'
+        self.version_checker = LauncherVersionChecker(ctx, LAUNCHER_EXE)
         self.version_checker.check_finished.connect(self._on_version_check_finished)
         self.target_version = "latest"
         self.current_version: str | None = None
@@ -79,19 +76,51 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             content=gt('检查中...'),
         )
 
-        # 设置下拉框选项：稳定版和测试版
+        # 启动器类型下拉框
+        self.type_combo = ComboBox()
+        self.type_combo.addItem(gt('原始启动器'), userData='launcher')
+        self.type_combo.addItem('RuntimeLauncher', userData='runtime')
+        self.type_combo.currentIndexChanged.connect(self._on_type_changed)
+        self.btn_layout.insertWidget(1, self.type_combo, alignment=Qt.AlignmentFlag.AlignRight)
+
+        # 通道选项：稳定版 / 测试版
         self.set_options_by_list([
             ConfigItem('稳定版', 'stable'),
             ConfigItem('测试版', 'beta')
         ])
 
+    # ---- 启动器类型 ----
+
+    @property
+    def _exe_name(self) -> str:
+        return RUNTIME_LAUNCHER_EXE if self._launcher_type == 'runtime' else LAUNCHER_EXE
+
+    @property
+    def _backup_name(self) -> str:
+        return RUNTIME_LAUNCHER_BACKUP if self._launcher_type == 'runtime' else LAUNCHER_BACKUP
+
+    @property
+    def _zip_suffix(self) -> str:
+        return RUNTIME_LAUNCHER_ZIP_SUFFIX if self._launcher_type == 'runtime' else LAUNCHER_ZIP_SUFFIX
+
+    @property
+    def _is_runtime(self) -> bool:
+        return self._launcher_type == 'runtime'
+
+    def _on_type_changed(self, _index: int) -> None:
+        self._launcher_type = self.type_combo.currentData()
+        # 重建版本检查器（指向不同 exe）
+        self.version_checker = LauncherVersionChecker(self.ctx, self._exe_name)
+        self.version_checker.check_finished.connect(self._on_version_check_finished)
+        # 重置版本状态，触发重新检查
+        self.current_version = None
+        self.latest_stable = None
+        self.latest_beta = None
+        self.check_and_update_display()
+
     def _get_downloader_param(self, _idx = None) -> CommonDownloaderParam:
-        """
-        动态生成下载器参数
-        :return: CommonDownloaderParam
-        """
-        zip_file_name = f'{self.ctx.project_config.project_name}-Launcher.zip'
-        launcher_path = os.path.join(os_utils.get_work_dir(), LAUNCHER_EXE_NAME)
+        zip_file_name = f'{self.ctx.project_config.project_name}-{self._zip_suffix}'
+        exe_path = os.path.join(os_utils.get_work_dir(), self._exe_name)
 
         base = (
             'latest/download'
@@ -104,7 +133,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             save_file_path=DEFAULT_ENV_PATH,
             save_file_name=zip_file_name,
             github_release_download_url=download_url,
-            check_existed_list=[launcher_path],
+            check_existed_list=[exe_path],
             unzip_dir_path=os_utils.get_work_dir()
         )
 
@@ -193,10 +222,12 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             self.download_btn.setText(gt('下载中'))
             self.download_btn.setDisabled(True)
             self.combo_box.setDisabled(True)
+            self.type_combo.setDisabled(True)
             return
 
         # 启用下拉框
         self.combo_box.setEnabled(True)
+        self.type_combo.setEnabled(True)
 
         # 检查版本检查线程状态
         is_checking = self.version_checker.isRunning()
@@ -264,32 +295,19 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             self.combo_box.setCurrentIndex(0)
 
     def _on_download_click(self) -> None:
-        """
-        下载前的准备工作：备份旧启动器文件并删除遗留文件
-        :return:
-        """
-        # 备份需要更新的启动器文件
-        self._swap_launcher_and_backup(backup=True)
-
-        # 删除旧版本遗留的文件
+        self._swap_backup(backup=True)
         self._delete_legacy_files()
-
-        # 调用父类方法执行下载
         ZipDownloaderSettingCard._on_download_click(self)
 
-    def _swap_launcher_and_backup(self, backup: bool) -> None:
-        """
-        在启动器文件和备份文件之间进行交换
-        :param backup: True=备份，False=回滚
-        """
+    def _swap_backup(self, backup: bool) -> None:
+        """备份或回滚启动器文件。"""
         work_dir = Path(os_utils.get_work_dir())
         action = '备份' if backup else '回滚'
 
-        # 处理 exe 文件
-        launcher_path = work_dir / LAUNCHER_EXE_NAME
-        backup_path = work_dir / LAUNCHER_BACKUP_NAME
-        src, dst = (launcher_path, backup_path) if backup else (backup_path, launcher_path)
-
+        # exe
+        exe_path = work_dir / self._exe_name
+        bak_path = work_dir / self._backup_name
+        src, dst = (exe_path, bak_path) if backup else (bak_path, exe_path)
         if src.exists():
             try:
                 if backup and dst.exists():
@@ -299,19 +317,19 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             except Exception as e:
                 log.error(f'{action}文件失败 {src.name}: {e}')
 
-        # 处理 .runtime 目录
-        runtime_path = work_dir / RUNTIME_DIR_NAME
-        runtime_backup = work_dir / RUNTIME_BACKUP_NAME
-        src_dir, dst_dir = (runtime_path, runtime_backup) if backup else (runtime_backup, runtime_path)
-
-        if src_dir.exists():
-            try:
-                if dst_dir.exists():
-                    shutil.rmtree(dst_dir)
-                src_dir.rename(dst_dir)
-                log.info(f'{action}目录: {src_dir.name} -> {dst_dir.name}')
-            except Exception as e:
-                log.error(f'{action}目录失败 {src_dir.name}: {e}')
+        # RuntimeLauncher 额外处理 .runtime 目录
+        if self._is_runtime:
+            rt_path = work_dir / RUNTIME_DIR
+            rt_bak = work_dir / RUNTIME_DIR_BACKUP
+            src_d, dst_d = (rt_path, rt_bak) if backup else (rt_bak, rt_path)
+            if src_d.exists():
+                try:
+                    if dst_d.exists():
+                        shutil.rmtree(dst_d)
+                    src_d.rename(dst_d)
+                    log.info(f'{action}目录: {src_d.name} -> {dst_d.name}')
+                except Exception as e:
+                    log.error(f'{action}目录失败 {src_d.name}: {e}')
 
     def _delete_legacy_files(self) -> None:
         """
@@ -334,45 +352,35 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
                 except Exception as e:
                     log.error(f'删除旧版本遗留文件失败 {legacy_file}: {e}')
 
-    def _cleanup_backup_launcher(self) -> None:
-        """
-        删除备份的启动器文件和 .runtime 目录
-        :return:
-        """
+    def _cleanup_backup(self) -> None:
+        """删除备份的启动器文件（以及 RuntimeLauncher 的 .runtime.bak 目录）。"""
         work_dir = Path(os_utils.get_work_dir())
 
-        backup_path = work_dir / LAUNCHER_BACKUP_NAME
-        if backup_path.exists():
+        bak_path = work_dir / self._backup_name
+        if bak_path.exists():
             try:
-                backup_path.unlink()
-                log.info(f'删除备份文件: {LAUNCHER_BACKUP_NAME}')
+                bak_path.unlink()
+                log.info(f'删除备份文件: {self._backup_name}')
             except Exception as e:
-                log.error(f'删除备份文件失败 {LAUNCHER_BACKUP_NAME}: {e}')
+                log.error(f'删除备份文件失败 {self._backup_name}: {e}')
 
-        runtime_backup = work_dir / RUNTIME_BACKUP_NAME
-        if runtime_backup.exists():
-            try:
-                shutil.rmtree(runtime_backup)
-                log.info(f'删除备份目录: {RUNTIME_BACKUP_NAME}')
-            except Exception as e:
-                log.error(f'删除备份目录失败 {RUNTIME_BACKUP_NAME}: {e}')
+        if self._is_runtime:
+            rt_bak = work_dir / RUNTIME_DIR_BACKUP
+            if rt_bak.exists():
+                try:
+                    shutil.rmtree(rt_bak)
+                    log.info(f'删除备份目录: {RUNTIME_DIR_BACKUP}')
+                except Exception as e:
+                    log.error(f'删除备份目录失败 {RUNTIME_DIR_BACKUP}: {e}')
 
     def _on_download_finish(self, success: bool, message: str) -> None:
-        """
-        下载完成后处理备份：成功则删除备份，失败则回滚
-        :param success: 是否成功
-        :param message: 消息
-        :return:
-        """
+        """下载完成后处理备份：成功则删除备份，失败则回滚。"""
         if success:
-            # 下载成功，删除备份文件
-            self._cleanup_backup_launcher()
+            self._cleanup_backup()
 
-            # 使用后台线程更新版本号
             if not self.version_checker.isRunning():
                 self.version_checker.start()
         else:
-            # 下载失败，回滚到备份文件
-            self._swap_launcher_and_backup(backup=False)
+            self._swap_backup(backup=False)
 
         ZipDownloaderSettingCard._on_download_finish(self, success, message)

@@ -1,7 +1,6 @@
-import sys
-
 import os
 import subprocess
+import sys
 
 from one_dragon.utils import os_utils
 
@@ -18,15 +17,17 @@ def start_one_dragon(restart: bool) -> None:
         sys.exit(0)
 
 
-def get_launcher_version() -> str:
+def get_exe_version(exe_path: str) -> str:
     """
-    检查启动器版本
-    :return: 版本号
+    获取指定 exe 的版本号（通过 --version 参数）
+    Args:
+        exe_path: exe 文件路径
+    Returns:
+        str: 版本号，失败返回空字符串
     """
-    launcher_path = os.path.join(os_utils.get_work_dir(), 'OneDragon-Launcher.exe')
     try:
         result = subprocess.run(
-            f'"{launcher_path}" --version',
+            f'"{exe_path}" --version',
             capture_output=True, text=True,
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
@@ -34,6 +35,16 @@ def get_launcher_version() -> str:
         return version_output.rsplit(maxsplit=1)[-1] if version_output else ""
     except Exception:
         return ""
+
+
+def get_launcher_version() -> str:
+    """
+    检查启动器版本
+    Returns:
+        str: 版本号
+    """
+    launcher_path = os.path.join(os_utils.get_work_dir(), 'OneDragon-Launcher.exe')
+    return get_exe_version(launcher_path)
 
 
 if __name__ == '__main__':
