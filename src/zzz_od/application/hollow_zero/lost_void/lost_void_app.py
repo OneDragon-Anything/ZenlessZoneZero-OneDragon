@@ -237,6 +237,7 @@ class LostVoidApp(ZApplication):
             predefined_idx = 0
         self.ctx.lost_void.predefined_team_idx = predefined_idx
         team_name = self.ctx.team_config.team_list[predefined_idx].name
+        # 移除配队名及ocr结果中的空白字符，提升文本匹配兼容性
         cleaned_team_name = str_utils.remove_whitespace(team_name)
 
         # 先点击目标编队
