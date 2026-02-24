@@ -281,7 +281,7 @@ def is_target_after_ocr_list(
 
     return found_target and found_before_target
 
-def remove_whitespace(v: Optional[str]) -> str:
+def remove_whitespace(v: str | None) -> str:
     """
     移除字符串中的所有空白字符
     :param v: 原始字符串
