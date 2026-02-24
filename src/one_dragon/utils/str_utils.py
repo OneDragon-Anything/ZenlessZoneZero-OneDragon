@@ -281,13 +281,14 @@ def is_target_after_ocr_list(
 
     return found_target and found_before_target
 
-def remove_whitespace(v: str) -> str:
+def remove_whitespace(v: Optional[str]) -> str:
     """
-    移除字符串中的所有空白字符（半角空格、全角空格、制表符、换行符等）
+    移除字符串中的所有空白字符
     :param v: 原始字符串
     :return: 清理空白字符后的字符串
     """
-    if v is None:
+    if v is None or not isinstance(v, str):
         return ""
-    # 移除半角空格、全角空格、制表符、换行符、回车符
-    return re.sub(r'[\s　\t\n\r]', '', v)
+
+    # 移除空格
+    return re.sub(r'[\s]', '', v)

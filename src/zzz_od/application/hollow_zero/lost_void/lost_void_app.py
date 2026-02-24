@@ -14,7 +14,6 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
-from one_dragon.utils.str_utils import remove_whitespace
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
 from zzz_od.application.hollow_zero.lost_void.lost_void_challenge_config import (
     LostVoidRegionType,
@@ -238,14 +237,16 @@ class LostVoidApp(ZApplication):
             predefined_idx = 0
         self.ctx.lost_void.predefined_team_idx = predefined_idx
         team_name = self.ctx.team_config.team_list[predefined_idx].name
+        cleaned_team_name = str_utils.remove_whitespace(team_name)
 
         # 先点击目标编队
         for ocr_text in ocr_result_list:
-            if team_name in remove_whitespace(ocr_text.data):
+            cleaned_ocr_text = str_utils.remove_whitespace(ocr_text.data)
+            if cleaned_team_name in cleaned_ocr_text:
                 self.ctx.controller.click(ocr_text.center)
                 break
         else:
-            return self.round_retry(f'未找到{team_name}', wait=0.1)
+            return self.round_retry(f'未找到{cleaned_team_name}', wait=0.1)
 
         # 等待画面更新，重新截图OCR
         time.sleep(0.5)
