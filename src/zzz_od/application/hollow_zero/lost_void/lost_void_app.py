@@ -237,11 +237,16 @@ class LostVoidApp(ZApplication):
             predefined_idx = 0
         self.ctx.lost_void.predefined_team_idx = predefined_idx
         team_name = self.ctx.team_config.team_list[predefined_idx].name
-        # 移除配队名及ocr结果中的空白字符，提升文本匹配兼容性
+        # 移除编队名称及ocr结果中的空白字符，提升文本匹配兼容性
         cleaned_team_name = str_utils.remove_whitespace(team_name)
+        # 校验配队名非空，避免误点击
+        # 空字符串在任意OCR文本中都会匹配成功（"" in str == True）
+        if cleaned_team_name == "":
+            return self.round_retry('编队名称为空', wait=0.1)
 
         # 先点击目标编队
         for ocr_text in ocr_result_list:
+            # 移除编队名称及ocr结果中的空白字符，提升文本匹配兼容性
             cleaned_ocr_text = str_utils.remove_whitespace(ocr_text.data)
             if cleaned_team_name in cleaned_ocr_text:
                 self.ctx.controller.click(ocr_text.center)
