@@ -31,6 +31,8 @@ class LostVoidChooseCommon(ZOperation):
         self.to_choose_gear_branch: bool = False  # 需要选择武备分支
         self.to_choose_num: int = 1  # 需选数量（本轮总目标）
         self.chosen_idx_list: list[int] = []  # 已经选择过的下标
+        self.fallback_click_count: int = 0  # 按钮计数缺失时，使用本轮点击次数作为兜底
+        self.last_choose_target_num: int = 0  # 记录上一轮目标数量，用于重置点击计数
 
     @operation_node(name='选择', is_start_node=True)
     def choose_artifact(self) -> OperationRoundResult:
@@ -39,10 +41,16 @@ class LostVoidChooseCommon(ZOperation):
         time.sleep(0.1)
 
         art_list, chosen_list = self.get_artifact_pos(self.last_screenshot)
+        if self.to_choose_num <= 0:
+            self.fallback_click_count = 0
+            self.last_choose_target_num = 0
         if self.to_choose_num > 0:
+            if self.last_choose_target_num != self.to_choose_num:
+                self.fallback_click_count = 0
+                self.last_choose_target_num = self.to_choose_num
             chosen_cnt = self.get_effective_chosen_count(self.last_screenshot, chosen_list, self.to_choose_num)
             log.info(
-                f'选择概览 需选数量={self.to_choose_num} 已选数量={chosen_cnt} 标签计数={len(chosen_list)} 可选数量={len(art_list)}'
+                f'选择概览 需选数量={self.to_choose_num} 已选数量={chosen_cnt} 可选数量={len(art_list)}'
             )
             if chosen_cnt >= self.to_choose_num:
                 return self.click_confirm()
@@ -122,6 +130,7 @@ class LostVoidChooseCommon(ZOperation):
             target = merged_list[0]
             log.info(f'组合选择 本轮点击 {target.artifact.display_name} @({target.rect.center.x},{target.rect.center.y})')
             self.ctx.controller.click(target.rect.center)
+            self.fallback_click_count += 1
             time.sleep(0.3)
             if self._reached_target_choose_num(target_num):
                 return True
@@ -265,6 +274,7 @@ class LostVoidChooseCommon(ZOperation):
 
             self.ctx.controller.click(target.rect.center)
             tried_center_list.append(target.rect.center)
+            self.fallback_click_count += 1
             time.sleep(0.3)
 
         _, final_screen = self.ctx.controller.screenshot()
@@ -284,16 +294,17 @@ class LostVoidChooseCommon(ZOperation):
         target_num: int | None = None,
     ) -> int:
         """
-        获取更稳健的已选数量：
-        1. 卡片上“已选择”标签计数
-        2. 按钮“确定(x/y)”中的x计数（仅当y与target_num一致或未提供target_num时采用）
+        获取已选数量：
+        1. 优先使用按钮“确定(x/y)”中的x计数
+        2. 按钮计数无法识别时，使用本轮点击次数兜底
         """
-        label_cnt = len(chosen_list)
         confirm_cnt = self._get_chosen_count_from_confirm_button(screen, target_num)
-        if confirm_cnt is None:
-            return label_cnt
-        # 两种来源取更大值，避免单路OCR漏识别导致少计数
-        return max(label_cnt, confirm_cnt)
+        if confirm_cnt is not None:
+            # 以按钮计数为准，同时同步兜底计数，避免后续切换来源时出现突变。
+            self.fallback_click_count = confirm_cnt
+            return confirm_cnt
+        log.debug(f'按钮计数未命中，使用点击次数兜底={self.fallback_click_count}')
+        return self.fallback_click_count
 
     def _get_chosen_count_from_confirm_button(self, screen: MatLike, target_num: int | None = None) -> int | None:
         area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '按钮-确定')

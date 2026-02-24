@@ -408,6 +408,9 @@ class LostVoidContext:
             if closest_artifact_pos is not None:
                 if title_idx == 0:  # 有同流派武备
                     closest_artifact_pos.has_same_style = True
+                    # “有同流派武备”在该场景可视作已选状态，避免重复点击同一项。
+                    closest_artifact_pos.chosen = True
+                    closest_artifact_pos.can_choose = False
                 elif title_idx == 1:  # 已选择
                     closest_artifact_pos.chosen = True
                     closest_artifact_pos.can_choose = False
