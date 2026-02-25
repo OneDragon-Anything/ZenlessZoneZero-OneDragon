@@ -13,7 +13,8 @@ T = TypeVar("T")
 
 class OCRTimeoutError(TimeoutError):
     """OCR executor timed out while waiting for result."""
-    pass
+    def __init__(self, timeout: float | None):
+        super().__init__(f"OCR task timed out after {timeout} seconds")
 
 
 def _mark_executor_thread() -> None:
@@ -58,8 +59,8 @@ def run_sync(fn: Callable[..., T], /, *args, timeout: float | None = _DEFAULT_RU
             f.done(),
             f,
         )
-        raise OCRTimeoutError(f"OCR task timed out after {timeout} seconds") from e
+        raise OCRTimeoutError(timeout) from e
 
 
-def shutdown(wait: bool = True):
+def shutdown(wait: bool = True) -> None:
     _executor.shutdown(wait=wait)

@@ -218,10 +218,19 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         :return:
         """
         if self.is_use_gpu():
-            return ocr_executor.run_sync(self._run_ocr_single_line_impl, image, threshold, strict_one_line)
+            return ocr_executor.run_sync(
+                self._run_ocr_single_line_impl,
+                image,
+                threshold,
+                strict_one_line,
+                timeout=None
+            )
         return self._run_ocr_single_line_impl(image, threshold, strict_one_line)
 
     def _run_ocr_single_line_impl(self, image: MatLike, threshold: float = 0, strict_one_line: bool = True) -> str:
+        if image is None or getattr(image, 'size', 0) == 0:
+            log.warning('OCR输入的图片为None或空图')
+            return ""
         if strict_one_line:
             return self._run_ocr_without_det(image, threshold)
         ocr_map: dict = self._run_ocr_impl(image, threshold)
@@ -231,7 +240,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
     def run_ocr(self, image: MatLike, threshold: float = 0,
                 merge_line_distance: float = -1) -> dict[str, MatchResultList]:
         if self.is_use_gpu():
-            return ocr_executor.run_sync(self._run_ocr_impl, image, threshold, merge_line_distance)
+            return ocr_executor.run_sync(self._run_ocr_impl, image, threshold, merge_line_distance, timeout=None)
         return self._run_ocr_impl(image, threshold, merge_line_distance)
 
     def _run_ocr_impl(self, image: MatLike, threshold: float = 0,
@@ -359,7 +368,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
     def ocr(self, image: MatLike, threshold: float = 0,
             merge_line_distance: float = -1) -> list[OcrMatchResult]:
         if self.is_use_gpu():
-            return ocr_executor.run_sync(self._ocr_impl, image, threshold, merge_line_distance)
+            return ocr_executor.run_sync(self._ocr_impl, image, threshold, merge_line_distance, timeout=None)
         return self._ocr_impl(image, threshold, merge_line_distance)
 
     def _ocr_impl(self, image: MatLike, threshold: float = 0,
