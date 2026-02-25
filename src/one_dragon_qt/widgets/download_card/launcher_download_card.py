@@ -1,4 +1,3 @@
-import os
 import shutil
 from contextlib import suppress
 from pathlib import Path
@@ -120,7 +119,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
     def _get_downloader_param(self, _idx = None) -> CommonDownloaderParam:
         zip_file_name = f'{self.ctx.project_config.project_name}-{self._zip_suffix}'
-        exe_path = os.path.join(os_utils.get_work_dir(), self._exe_name)
+        exe_path = str(Path(os_utils.get_work_dir()) / self._exe_name)
 
         base = (
             'latest/download'
@@ -312,7 +311,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             try:
                 if backup and dst.exists():
                     dst.unlink()
-                os.replace(str(src), str(dst))
+                src.replace(dst)
                 log.info(f'{action}文件: {src.name} -> {dst.name}')
             except Exception as e:
                 log.error(f'{action}文件失败 {src.name}: {e}')

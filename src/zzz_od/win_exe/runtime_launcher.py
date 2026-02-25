@@ -1,17 +1,17 @@
 import ctypes
 import importlib
-import os
 import sys
+from pathlib import Path
 
 from one_dragon.launcher.exe_launcher import ExeLauncher
 from one_dragon.version import __version__
 
 # src/ 目录检查
-_SRC_DIR = os.path.join(os.path.dirname(sys.executable), "src")
-if not os.path.isdir(_SRC_DIR):
+_SRC_DIR = Path(sys.executable).parent / "src"
+if not _SRC_DIR.is_dir():
     ctypes.windll.user32.MessageBoxW(
         None,
-        f"缺少 src 目录：\n{_SRC_DIR}\n\n请重新解压完整的 RuntimeLauncher 压缩包。",
+        f"缺少 src 目录：\n{_SRC_DIR}\n\n请重新解压完整的 WithRuntime 压缩包。",
         "OneDragon RuntimeLauncher",
         0x10,  # MB_ICONERROR
     )

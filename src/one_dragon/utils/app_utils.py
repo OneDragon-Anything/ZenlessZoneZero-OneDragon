@@ -1,6 +1,6 @@
-import os
 import subprocess
 import sys
+from pathlib import Path
 
 from one_dragon.utils import os_utils
 
@@ -11,7 +11,7 @@ def start_one_dragon(restart: bool) -> None:
     :param restart: 是否重启
     :return: 是否成功
     """
-    launcher_path = os.path.join(os_utils.get_work_dir(), 'OneDragon-Launcher.exe')
+    launcher_path = Path(os_utils.get_work_dir()) / 'OneDragon-Launcher.exe'
     subprocess.Popen(f'cmd /c "start "" "{launcher_path}""', shell=True)
     if restart:
         sys.exit(0)
@@ -43,8 +43,8 @@ def get_launcher_version() -> str:
     Returns:
         str: 版本号
     """
-    launcher_path = os.path.join(os_utils.get_work_dir(), 'OneDragon-Launcher.exe')
-    return get_exe_version(launcher_path)
+    launcher_path = Path(os_utils.get_work_dir()) / 'OneDragon-Launcher.exe'
+    return get_exe_version(str(launcher_path))
 
 
 if __name__ == '__main__':
