@@ -66,7 +66,7 @@ jobs:
             git add assets/text/output/**/*.mo
             git add deploy/module_manifest.py
             $date = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            git commit -m "chore: 自动构建运行资源 $date"
+            git commit -m "自动构建运行资源 $date"
             git push
           } else {
             Write-Host "No file modifications"

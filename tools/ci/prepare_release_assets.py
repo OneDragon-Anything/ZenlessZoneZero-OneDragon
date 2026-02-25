@@ -120,8 +120,14 @@ def _extract_zip(zip_path: Path, dest_dir: Path) -> None:
         zf.extractall(dest_dir)
 
 
-def _zip_dir_contents(root_dir: Path, zip_path: Path, *, root_prefix: str) -> None:
-    # 把 root_dir 下的所有内容打进 zip（路径相对 root_dir），可选单根目录 root_prefix/
+def _zip_dir_contents(
+    root_dir: Path,
+    zip_path: Path,
+    *,
+    root_prefix: str,
+    exclude_prefixes: set[str] | None = None,
+) -> None:
+    """把 root_dir 下的内容打进 zip，可选 root_prefix 和排除前缀。"""
     zip_path.parent.mkdir(parents=True, exist_ok=True)
     if zip_path.exists():
         zip_path.unlink()
@@ -132,6 +138,8 @@ def _zip_dir_contents(root_dir: Path, zip_path: Path, *, root_prefix: str) -> No
         for p in root_dir.rglob("*"):
             if p.is_file():
                 rel = p.relative_to(root_dir).as_posix()
+                if exclude_prefixes and any(rel.startswith(ep) for ep in exclude_prefixes):
+                    continue
                 arcname = f"{prefix}/{rel}" if prefix else rel
                 zf.write(p, arcname)
 
@@ -143,6 +151,68 @@ def _zip_single_file(file_path: Path, zip_path: Path) -> None:
 
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
         zf.write(file_path, file_path.name)
+
+
+# ---- 模型资源配置 ----
+
+_MODEL_CONFIGS: list[dict[str, str]] = [
+    {
+        "label": "ppocrv5",
+        "repo": "OneDragon-Anything/OneDragon-Env",
+        "pattern": r"ppocrv5\.zip$",
+        "dest_folder": "onnx_ocr",
+        "fallback_url": "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ppocrv5/ppocrv5.zip",
+        "fallback_name": "ppocrv5",
+    },
+    {
+        "label": "flash",
+        "repo": "OneDragon-Anything/OneDragon-YOLO",
+        "pattern": r"flash.*\.zip$",
+        "dest_folder": "flash_classifier",
+        "fallback_url": "https://github.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model/yolov8n-640-flash-0127.zip",
+        "fallback_name": "yolov8n-640-flash-0127",
+    },
+    {
+        "label": "hollow",
+        "repo": "OneDragon-Anything/OneDragon-YOLO",
+        "pattern": r"hollow.*\.zip$",
+        "dest_folder": "hollow_zero_event",
+        "fallback_url": "https://github.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model/yolov8s-736-hollow-zero-event-0126.zip",
+        "fallback_name": "yolov8s-736-hollow-zero-event-0126",
+    },
+    {
+        "label": "lost_void_det",
+        "repo": "OneDragon-Anything/OneDragon-YOLO",
+        "pattern": r"lost.*\.zip$",
+        "dest_folder": "lost_void_det",
+        "fallback_url": "https://github.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model/yolov8n-736-lost-void-det-20250612.zip",
+        "fallback_name": "yolov8n-736-lost-void-det-20250612",
+    },
+]
+
+
+def _download_models(model_base: Path, temp_dir: Path, *, token: str | None) -> None:
+    """根据 _MODEL_CONFIGS 下载并解压所有模型到 assets/models/。"""
+    for cfg in _MODEL_CONFIGS:
+        dest = model_base / cfg["dest_folder"]
+        dest.mkdir(parents=True, exist_ok=True)
+
+        _log(f"Resolve {cfg['label']} model")
+        asset = _get_latest_model_asset(cfg["repo"], cfg["pattern"], token=token)
+
+        tmp_zip = temp_dir / f"{cfg['label']}.zip"
+        if asset:
+            folder_name = asset["name"].removesuffix(".zip")
+            url = asset["url"]
+        else:
+            folder_name = cfg["fallback_name"]
+            url = cfg["fallback_url"]
+
+        _log(f"Download: {url}")
+        _download(url, tmp_zip, token=token)
+        target = dest / folder_name
+        target.mkdir(parents=True, exist_ok=True)
+        _extract_zip(tmp_zip, target)
 
 
 def main() -> int:
@@ -223,93 +293,25 @@ def main() -> int:
     shutil.copy2(installer_exe, repo_root / "OneDragon-Installer.exe")
     shutil.copy2(launcher_exe, repo_root / "OneDragon-Launcher.exe")
 
-    # 将 RuntimeLauncher exe 和 .runtime 目录复制到仓库根目录
-    runtime_exe = runtime_launcher_dir / "OneDragon-RuntimeLauncher.exe"
-    if runtime_exe.exists():
-        shutil.copy2(runtime_exe, repo_root / "OneDragon-RuntimeLauncher.exe")
-    runtime_dir = runtime_launcher_dir / ".runtime"
-    if runtime_dir.exists():
-        shutil.copytree(runtime_dir, repo_root / ".runtime", dirs_exist_ok=True)
-
-    # 打包两个启动器
+    # 打包两个启动器（RuntimeLauncher 不复制到 repo_root，避免混入 Full/Full-Environment）
     launcher_zip = dist_dir / "ZenlessZoneZero-OneDragon-Launcher.zip"
     _zip_single_file(launcher_exe, launcher_zip)
 
     runtime_launcher_zip = dist_dir / "ZenlessZoneZero-OneDragon-RuntimeLauncher.zip"
-    _zip_dir_contents(runtime_launcher_dir, runtime_launcher_zip, root_prefix="")
+    _zip_dir_contents(runtime_launcher_dir, runtime_launcher_zip, root_prefix="", exclude_prefixes={"src/"})
+
+    # WithRuntime: RuntimeLauncher + src（首次安装用，无需 git clone）
+    with_runtime_zip = dist_dir / f"ZenlessZoneZero-OneDragon-{release_version}-WithRuntime.zip"
+    _log(f"Create WithRuntime zip: {with_runtime_zip}")
+    _zip_dir_contents(runtime_launcher_dir, with_runtime_zip, root_prefix="")
 
     # 6. 下载并解压模型到 assets/models
-    model_base = repo_root / "assets/models"
-    (model_base / "onnx_ocr").mkdir(parents=True, exist_ok=True)
-    (model_base / "flash_classifier").mkdir(parents=True, exist_ok=True)
-    (model_base / "hollow_zero_event").mkdir(parents=True, exist_ok=True)
-    (model_base / "lost_void_det").mkdir(parents=True, exist_ok=True)
-
     temp_dir = repo_root / "temp_models"
     if temp_dir.exists():
         shutil.rmtree(temp_dir)
     temp_dir.mkdir(parents=True, exist_ok=True)
 
-    def expand_zip_into_named_folder(url: str, download_path: Path, dest_root: Path, folder_name: str) -> None:
-        _log(f"Download model: {url}")
-        _download(url, download_path, token=token or None)
-        target_path = dest_root / folder_name
-        target_path.mkdir(parents=True, exist_ok=True)
-        _extract_zip(download_path, target_path)
-
-    _log("Resolve ppocrv5 model")
-    ppocr = _get_latest_model_asset("OneDragon-Anything/OneDragon-Env", r"ppocrv5\.zip$", token=token or None)
-    if ppocr:
-        name_no_ext = ppocr["name"].removesuffix(".zip")
-        expand_zip_into_named_folder(ppocr["url"], temp_dir / "ppocrv5.zip", model_base / "onnx_ocr", name_no_ext)
-    else:
-        expand_zip_into_named_folder(
-            "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ppocrv5/ppocrv5.zip",
-            temp_dir / "ppocrv5.zip",
-            model_base / "onnx_ocr",
-            "ppocrv5",
-        )
-
-    _log("Resolve flash model")
-    flash = _get_latest_model_asset("OneDragon-Anything/OneDragon-YOLO", r"flash.*\.zip$", token=token or None)
-    if flash:
-        name_no_ext = flash["name"].removesuffix(".zip")
-        expand_zip_into_named_folder(flash["url"], temp_dir / "flash.zip", model_base / "flash_classifier", name_no_ext)
-    else:
-        expand_zip_into_named_folder(
-            "https://github.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model/yolov8n-640-flash-0127.zip",
-            temp_dir / "flash.zip",
-            model_base / "flash_classifier",
-            "yolov8n-640-flash-0127",
-        )
-
-    _log("Resolve hollow model")
-    hollow = _get_latest_model_asset("OneDragon-Anything/OneDragon-YOLO", r"hollow.*\.zip$", token=token or None)
-    if hollow:
-        name_no_ext = hollow["name"].removesuffix(".zip")
-        expand_zip_into_named_folder(
-            hollow["url"], temp_dir / "hollow.zip", model_base / "hollow_zero_event", name_no_ext
-        )
-    else:
-        expand_zip_into_named_folder(
-            "https://github.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model/yolov8s-736-hollow-zero-event-0126.zip",
-            temp_dir / "hollow.zip",
-            model_base / "hollow_zero_event",
-            "yolov8s-736-hollow-zero-event-0126",
-        )
-
-    _log("Resolve lost void det model")
-    lost = _get_latest_model_asset("OneDragon-Anything/OneDragon-YOLO", r"lost.*\.zip$", token=token or None)
-    if lost:
-        name_no_ext = lost["name"].removesuffix(".zip")
-        expand_zip_into_named_folder(lost["url"], temp_dir / "lost.zip", model_base / "lost_void_det", name_no_ext)
-    else:
-        expand_zip_into_named_folder(
-            "https://github.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model/yolov8n-736-lost-void-det-20250612.zip",
-            temp_dir / "lost.zip",
-            model_base / "lost_void_det",
-            "yolov8n-736-lost-void-det-20250612",
-        )
+    _download_models(repo_root / "assets/models", temp_dir, token=token or None)
 
     # 清理临时模型目录（避免打包进 Full/Full-Environment）
     shutil.rmtree(temp_dir, ignore_errors=True)
@@ -321,6 +323,20 @@ def main() -> int:
     full_zip = dist_dir / f"ZenlessZoneZero-OneDragon-{release_version}-Full.zip"
     _log(f"Create Full zip: {full_zip}")
     _zip_dir_contents(repo_root, full_zip, root_prefix=f"ZenlessZoneZero-OneDragon-{release_version}-Full")
+
+    # 8. Full-Environment：把环境包放入 .install 后重新生成清单并打包
+    env_zip = dist_dir / "ZenlessZoneZero-OneDragon-Environment.zip"
+    if not env_zip.exists():
+        raise SystemExit(f"Missing {env_zip}")
+
+    shutil.copy2(env_zip, env_dir / "ZenlessZoneZero-OneDragon-Environment.zip")
+
+    _log("Generate install manifest (Full-Environment)")
+    _run([sys.executable, "tools/ci/generate_install_manifest.py"], cwd=repo_root)
+
+    full_env_zip = dist_dir / f"ZenlessZoneZero-OneDragon-{release_version}-Full-Environment.zip"
+    _log(f"Create Full-Environment zip: {full_env_zip}")
+    _zip_dir_contents(repo_root, full_env_zip, root_prefix=f"ZenlessZoneZero-OneDragon-{release_version}-Full-Environment")
 
     # 9. 复制安装器到版本化文件名
     shutil.copy2(repo_root / "OneDragon-Installer.exe", repo_root / f"ZenlessZoneZero-OneDragon-{release_version}-Installer.exe")

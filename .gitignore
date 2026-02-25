@@ -4,7 +4,6 @@ dist/
 zzz-od-test/
 .idea/
 .vscode/
-.conda/
 __pycache__/
 deploy/build/
 deploy/dist/
@@ -59,6 +58,7 @@ config/world_patrol_route_list/*
 .temp_clone/
 .temp_clone**/
 .debug/
+.conda/
 .venv/
 .runtime/
 notice_cache/
