@@ -63,4 +63,58 @@ uv run --env-file .env pytest zzz-od-test/
 
 ### 推荐MCP
 
-- [context7](https://github.com/upstash/context7) - 查询各个库的文档。 
+- [context7](https://github.com/upstash/context7) - 查询各个库的文档。
+
+## 3.打包
+
+进入 deploy 文件夹，运行 `build_full.bat` 可一键打包所有组件。
+
+### 3.1.安装器
+
+生成spec文件并打包
+
+```shell
+uv run pyinstaller --onefile --windowed --uac-admin --icon="../assets/ui/installer_logo.ico" --add-data "../config/project.yml;config" ../src/zzz_od/gui/zzz_installer.py -n "OneDragon-Installer"
+```
+
+使用spec打包
+
+```shell
+uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
+```
+
+### 3.2.启动器（原始）
+
+使用spec打包，会自动生成种子文件
+
+```shell
+uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
+```
+
+### 3.3.RuntimeLauncher（运行时内嵌启动器）
+
+#### 架构概述
+
+RuntimeLauncher 将 Python 运行时直接嵌入发行包，无需用户单独安装 Python / uv。
+
+- **PyInstaller 目录模式**：`contents_directory='.runtime'`，运行时文件放在 `.runtime/` 子目录
+- **最小打包**：仅打包 `one_dragon.launcher`、`one_dragon.version` 模块和二进制依赖（pygit2 等）
+- **源码加载**：借助 `hook_path_inject.py` 运行时钩子，将 `<exe_dir>/src` 注入 `sys.path`，其余模块从 `src/` 目录加载
+- **自动更新**：首次运行时自动克隆代码仓库；后续运行时根据 `auto_update` 配置自动拉取最新代码
+- **Manifest 兼容性检查**：`module_manifest.py` 记录打包时的外部依赖清单，更新代码后如新增依赖不在清单中，提示用户更新启动器
+
+#### 打包命令
+
+```shell
+uv run pyinstaller --noconfirm --clean "OneDragon-RuntimeLauncher.spec"
+```
+
+#### 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `deploy/OneDragon-RuntimeLauncher.spec` | PyInstaller 打包配置 |
+| `deploy/hook_path_inject.py` | 运行时钩子，注入 `src/` 到 `sys.path` |
+| `deploy/generate_module_manifest.py` | 生成外部依赖清单 |
+| `deploy/module_manifest.py` | 自动生成的依赖清单（打包时生成） |
+| `src/zzz_od/win_exe/runtime_launcher.py` | RuntimeLauncher 入口 |
