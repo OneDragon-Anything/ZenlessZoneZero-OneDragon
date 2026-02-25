@@ -340,7 +340,7 @@ class ImageMattingInterface(VerticalScrollInterface):
                     return None
             
             return rgb
-        except:
+        except Exception:
             return None
 
     def _auto_crop_to_valid_area(self):

@@ -17,7 +17,7 @@ def detect_language():
             return 'zh'
         else:
             return 'en'
-    except:
+    except Exception:
         return 'zh'
 
 

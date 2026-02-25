@@ -68,7 +68,7 @@ async def save_battle(battle_name: str, file, creation_name: str, creation_date:
             )
             session.add(new_battle)
             session.commit()
-    except:
+    except Exception:
         session.rollback()
         raise  # 可以选择抛出异常，以便调用者可以捕捉到错误
     finally:

@@ -32,7 +32,7 @@ def get_db_session():
 def get_battle_info():
     try:
         return session.query(BattleInfo).order_by(BattleInfo.creation_date.desc()).all()
-    except:
+    except Exception:
         session.rollback()
     finally:
         session.close()
@@ -41,7 +41,7 @@ def get_battle_info():
 def get_battle_url(bid):
     try:
         return session.query(BattleInfo).filter_by(id=bid).first()
-    except:
+    except Exception:
         session.rollback()
     finally:
         session.close()
@@ -50,7 +50,7 @@ def get_battle_url(bid):
 def get_battle_by_name(battle_name):
     try:
         return session.query(BattleInfo).filter_by(battle_name=battle_name).first()
-    except:
+    except Exception:
         session.rollback()
     finally:
         session.close()

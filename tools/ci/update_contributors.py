@@ -54,7 +54,7 @@ def http_get(url: str, headers: Optional[dict] = None, retries: int = 5, backoff
                     error_content = e.read().decode()
                     if 'rate limit' in error_content.lower():
                         print("提示: 设置 GITHUB_TOKEN 环境变量可以提高速率限制")
-                except:
+                except Exception:
                     pass  # 忽略读取错误内容的异常
 
             # 对于5xx错误和403错误进行重试（403可能是速率限制）
