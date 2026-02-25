@@ -61,10 +61,8 @@ class ChoosePredefinedTeam(ZOperation):
 
             # 移除编队名称及ocr结果中的空白字符，提升文本匹配兼容性
             cleaned_target_team_name = remove_whitespace(target_team_name)
-            cleaned_ocr_map = dict()
-            for key in ocr_map:
-                cleaned_key = remove_whitespace(key)
-                cleaned_ocr_map[cleaned_key] = ocr_map[key]
+            # 若存在相同的编队名称则选择第一个被匹配上的
+            cleaned_ocr_map = {remove_whitespace(key): val for key, val in ocr_map.items()}
 
             cleaned_target_list = list(cleaned_ocr_map.keys())
             # 校验配队名非空，避免误点击
