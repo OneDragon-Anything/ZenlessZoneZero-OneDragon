@@ -108,6 +108,9 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
 
     def _on_type_changed(self, _index: int) -> None:
         self._launcher_type = self.type_combo.currentData()
+        # 断开旧检查器信号，避免竞态覆盖
+        old_checker = self.version_checker
+        old_checker.check_finished.disconnect(self._on_version_check_finished)
         # 重建版本检查器（指向不同 exe）
         self.version_checker = LauncherVersionChecker(self.ctx, self._exe_name)
         self.version_checker.check_finished.connect(self._on_version_check_finished)
