@@ -2,11 +2,11 @@
 遥测配置管理
 """
 import os
-import yaml
 import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+from one_dragon.utils import yaml_utils
 from .models import TelemetryConfig, PrivacySettings
 
 
@@ -47,7 +47,7 @@ class TelemetryConfigLoader:
         if env_yml_path.exists():
             try:
                 with open(env_yml_path, 'r', encoding='utf-8') as f:
-                    env_config = yaml.safe_load(f)
+                    env_config = yaml_utils.safe_load(f)
                     if env_config:
                         # 加载Loki认证信息
                         if 'loki_tenant_id' in env_config:
@@ -75,7 +75,7 @@ class TelemetryConfigLoader:
         """从配置文件加载配置"""
         try:
             with open(self.config_file, 'r', encoding='utf-8') as f:
-                yaml_data = yaml.safe_load(f)
+                yaml_data = yaml_utils.safe_load(f)
 
             if yaml_data and 'telemetry' in yaml_data:
                 telemetry_config = yaml_data['telemetry']
@@ -232,7 +232,7 @@ class PrivacySettingsManager:
         try:
             if self.privacy_file.exists():
                 with open(self.privacy_file, 'r', encoding='utf-8') as f:
-                    yaml_data = yaml.safe_load(f)
+                    yaml_data = yaml_utils.safe_load(f)
 
                 if yaml_data and 'privacy' in yaml_data:
                     privacy_data = yaml_data['privacy']

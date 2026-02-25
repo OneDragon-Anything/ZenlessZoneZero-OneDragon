@@ -4,7 +4,6 @@ import time
 
 import cv2
 import numpy as np
-import yaml
 from cv2.typing import MatLike
 
 from one_dragon.base.config.yaml_operator import YamlOperator
@@ -12,7 +11,7 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.screen.screen_utils import find_template_coord_in_area
-from one_dragon.utils import os_utils, cv2_utils, cal_utils
+from one_dragon.utils import os_utils, cv2_utils, cal_utils, yaml_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.application.world_patrol.mini_map_wrapper import MiniMapWrapper
 from zzz_od.application.world_patrol.world_patrol_area import WorldPatrolArea, WorldPatrolEntry, WorldPatrolLargeMap, \
@@ -258,7 +257,7 @@ class WorldPatrolService:
                 try:
                     file_path = os.path.join(route_dir, filename)
                     with open(file_path, 'r', encoding='utf-8') as f:
-                        data = yaml.safe_load(f)
+                        data = yaml_utils.safe_load(f)
                     route = WorldPatrolRoute.from_dict(data, area)
                     routes.append(route)
                 except Exception as e:
@@ -325,7 +324,7 @@ class WorldPatrolService:
                 try:
                     file_path = os.path.join(list_dir, filename)
                     with open(file_path, 'r', encoding='utf-8') as f:
-                        data = yaml.safe_load(f)
+                        data = yaml_utils.safe_load(f)
                     route_list = WorldPatrolRouteList.from_dict(data)
                     route_lists.append(route_list)
                 except Exception as e:
