@@ -12,6 +12,7 @@ from one_dragon.base.matcher.ocr.ocr_matcher import OcrMatcher
 from one_dragon.base.web.common_downloader import CommonDownloaderParam
 from one_dragon.base.web.zip_downloader import ZipDownloader
 from one_dragon.utils import os_utils
+from one_dragon.utils import ocr_executor
 from one_dragon.utils import str_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -216,15 +217,25 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         :param strict_one_line: True时认为当前只有单行文本 False时依赖程序合并成一行
         :return:
         """
+        if self.is_use_gpu():
+            return ocr_executor.run_sync(self._run_ocr_single_line_impl, image, threshold, strict_one_line)
+        return self._run_ocr_single_line_impl(image, threshold, strict_one_line)
+
+    def _run_ocr_single_line_impl(self, image: MatLike, threshold: float = 0, strict_one_line: bool = True) -> str:
         if strict_one_line:
             return self._run_ocr_without_det(image, threshold)
-        else:
-            ocr_map: dict = self.run_ocr(image, threshold)
-            tmp = ocr_utils.merge_ocr_result_to_single_line(ocr_map, join_space=False)
-            return tmp
+        ocr_map: dict = self._run_ocr_impl(image, threshold)
+        tmp = ocr_utils.merge_ocr_result_to_single_line(ocr_map, join_space=False)
+        return tmp
 
     def run_ocr(self, image: MatLike, threshold: float = 0,
                 merge_line_distance: float = -1) -> dict[str, MatchResultList]:
+        if self.is_use_gpu():
+            return ocr_executor.run_sync(self._run_ocr_impl, image, threshold, merge_line_distance)
+        return self._run_ocr_impl(image, threshold, merge_line_distance)
+
+    def _run_ocr_impl(self, image: MatLike, threshold: float = 0,
+                      merge_line_distance: float = -1) -> dict[str, MatchResultList]:
         """
         对图片进行OCR 返回所有匹配结果
         :param image: 图片
@@ -347,6 +358,12 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
 
     def ocr(self, image: MatLike, threshold: float = 0,
             merge_line_distance: float = -1) -> list[OcrMatchResult]:
+        if self.is_use_gpu():
+            return ocr_executor.run_sync(self._ocr_impl, image, threshold, merge_line_distance)
+        return self._ocr_impl(image, threshold, merge_line_distance)
+
+    def _ocr_impl(self, image: MatLike, threshold: float = 0,
+                  merge_line_distance: float = -1) -> list[OcrMatchResult]:
         """
         对图片进行OCR 返回所有识别结果
 

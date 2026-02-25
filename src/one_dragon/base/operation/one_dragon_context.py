@@ -411,3 +411,5 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         StateRecordService.after_app_shutdown()
         from one_dragon.utils import gpu_executor
         gpu_executor.shutdown(wait=False)
+        from one_dragon.utils import ocr_executor
+        ocr_executor.shutdown(wait=False)
