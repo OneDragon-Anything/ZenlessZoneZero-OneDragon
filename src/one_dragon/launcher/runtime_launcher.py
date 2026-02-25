@@ -66,17 +66,17 @@ class RuntimeLauncher(ExeLauncher):
         sys.exit(1)
 
     def run_onedragon_mode(self, launch_args: list[str]) -> None:
-        self._sync_code()
         try:
+            self._sync_code()
             self._do_run_onedragon(launch_args)
         except Exception:
             import traceback
             self._show_fatal_error(traceback.format_exc())
 
     def run_gui_mode(self) -> None:
-        self._sync_code()
-        self._hide_console()
         try:
+            self._sync_code()
+            self._hide_console()
             self._do_run_gui()
         except Exception:
             import traceback

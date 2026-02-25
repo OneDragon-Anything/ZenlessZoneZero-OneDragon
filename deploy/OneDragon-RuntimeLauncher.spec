@@ -18,6 +18,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 # 保留的模块树
+# NOTE: 修改此列表新增不同顶层包前缀时，需同步更新 hook_path_inject.py 中的 __path__ 扩展
 KEEP_TREES = [
     "one_dragon.launcher",
     "one_dragon.version",
