@@ -16,10 +16,10 @@ jobs:
       matrix:
         arch: [x86_64, aarch64]
         include:
-          - os: x86_64
-            type: Full-Environment
-          - os: aarch64
+          - arch: x86_64
             type: WithRuntime
+          - arch: aarch64
+            type: Full-Environment
     steps:
       - uses: MirrorChyan/uploading-action@v1
         with:
