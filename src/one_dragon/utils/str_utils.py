@@ -287,8 +287,8 @@ def remove_whitespace(v: str | None) -> str:
     :param v: 原始字符串
     :return: 清理空白字符后的字符串
     """
-    if v is None or not isinstance(v, str):
+    if v is None:
         return ""
 
     # 移除空格
-    return re.sub(r'[\s]', '', v)
+    return re.sub(r'\s', '', v)
