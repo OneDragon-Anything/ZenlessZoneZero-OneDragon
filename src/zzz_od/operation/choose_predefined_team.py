@@ -7,6 +7,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.str_utils import remove_whitespace
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.zzz_operation import ZOperation
 from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
@@ -57,13 +58,26 @@ class ChoosePredefinedTeam(ZOperation):
             target_team_name = team_list[target_team_idx].name
 
             ocr_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-            target_list = list(ocr_map.keys())
-            best_match = difflib.get_close_matches(target_team_name, target_list, n=1)
+
+            # 移除编队名称及ocr结果中的空白字符，提升文本匹配兼容性
+            cleaned_target_team_name = remove_whitespace(target_team_name)
+            cleaned_ocr_map = dict()
+            for key in ocr_map:
+                cleaned_key = remove_whitespace(key)
+                cleaned_ocr_map[cleaned_key] = ocr_map[key]
+
+            cleaned_target_list = list(cleaned_ocr_map.keys())
+            # 校验配队名非空，避免误点击
+            # 空字符串在任意OCR文本中都会匹配成功（"" in str == True）
+            if cleaned_target_team_name == "":
+                return self.round_retry('编队名称为空', wait=0.5)
+
+            best_match = difflib.get_close_matches(cleaned_target_team_name, cleaned_target_list, n=1)
 
             if best_match is None or len(best_match) == 0:
                 return self.round_retry(wait=0.5)
 
-            ocr_result: MatchResultList = ocr_map.get(best_match[0], None)
+            ocr_result: MatchResultList = cleaned_ocr_map.get(best_match[0], None)
             if ocr_result is None or ocr_result.max is None:
                 return self.round_retry(wait=0.5)
 
