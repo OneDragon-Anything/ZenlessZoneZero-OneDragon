@@ -39,12 +39,17 @@ all_src_modules = set()
 for package in src_packages:
     all_src_modules.update(collect_submodules(package))
 
-# 收集需要保留的模块：KEEP_TREES 及其所有父模块和子模块
+# 收集需要保留的模块：KEEP_TREES 及其所有父包和子模块
 keep_modules = set()
 
 for tree_path in KEEP_TREES:
     # 添加路径本身
     keep_modules.add(tree_path)
+
+    # 添加所有父包（one_dragon.launcher → one_dragon）
+    parts = tree_path.split(".")
+    for i in range(1, len(parts)):
+        keep_modules.add(".".join(parts[:i]))
 
     # 添加所有子模块
     keep_modules.update(m for m in all_src_modules if m.startswith(tree_path + "."))
