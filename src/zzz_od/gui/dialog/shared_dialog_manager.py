@@ -6,7 +6,10 @@ from PySide6.QtWidgets import QWidget
 
 from zzz_od.gui.dialog.charge_plan_setting_dialog import ChargePlanSettingDialog
 from zzz_od.gui.dialog.coffee_setting_dialog import CoffeeSettingDialog
-from zzz_od.gui.dialog.drive_disc_dismantle_setting_dialog import DriveDiscDismantleSettingDialog
+from zzz_od.gui.dialog.drive_disc_dismantle_setting_dialog import (
+    DriveDiscDismantleSettingDialog,
+)
+from zzz_od.gui.dialog.intel_board_setting_dialog import IntelBoardSettingFlyout
 from zzz_od.gui.dialog.lost_void_setting_dialog import LostVoidSettingDialog
 from zzz_od.gui.dialog.notorious_hunt_setting_dialog import NotoriousHuntSettingDialog
 from zzz_od.gui.dialog.random_play_setting_dialog import RandomPlaySettingDialog
@@ -160,5 +163,18 @@ class SharedDialogManager:
 
         self._redemption_code_setting_dialog.show_by_group(
             group_id=group_id,
+            parent=parent,
+        )
+
+    def show_intel_board_setting_flyout(
+        self,
+        target: QWidget,
+        parent: QWidget,
+        group_id: str,
+    ):
+        IntelBoardSettingFlyout.show_flyout(
+            ctx=self.ctx,
+            group_id=group_id,
+            target=target,
             parent=parent,
         )
