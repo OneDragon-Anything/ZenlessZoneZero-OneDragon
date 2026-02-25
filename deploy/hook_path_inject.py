@@ -9,15 +9,14 @@
    使其能找到未冻结的子模块（envs、utils 等）
 """
 
-import os
 import sys
+from pathlib import Path
 
-_base = os.path.dirname(sys.executable)
-_src = os.path.join(_base, "src")
+_src = Path(sys.executable).parent / "src"
 
-sys.path.insert(0, _src)
+sys.path.insert(0, str(_src))
 
 # NOTE: 此处的包名必须与 OneDragon-RuntimeLauncher.spec 中的 KEEP_TREES 顶层包一致。
 #       修改 KEEP_TREES 新增不同顶层包前缀时，需同步更新此处。
 import one_dragon
-one_dragon.__path__.append(os.path.join(_src, "one_dragon"))
+one_dragon.__path__.append(str(_src / "one_dragon"))
