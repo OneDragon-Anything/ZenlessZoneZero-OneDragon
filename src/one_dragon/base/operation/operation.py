@@ -966,8 +966,8 @@ class Operation(OperationBase):
             screen_name: 屏幕名称。默认为None。
             area_name: 区域名称。默认为None。
             direction: 滚动方向，'down' 表示往下滚（从下往上滑），'up' 表示往上滚（从上往下滑）
-            start_ratio: 起始位置比例。默认0.9（底部10%）
-            end_ratio: 结束位置比例。默认0.1（顶部10%）
+            start_ratio: 起始位置比例（距顶部的比例）。默认0.9，即区域底部10%处
+            end_ratio: 结束位置比例（距顶部的比例）。默认0.1，即区域顶部10%处
         """
         if screen_name is None or area_name is None:
             return

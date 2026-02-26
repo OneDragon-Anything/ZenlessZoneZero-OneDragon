@@ -299,8 +299,8 @@ def scroll_area(
         ctx: 运行上下文
         area: 区域
         direction: 滚动方向，'down' 表示往下滚（从下往上滑），'up' 表示往上滚（从上往下滑）
-        start_ratio: 起始位置比例，从底部算起。默认0.9（底部10%）
-        end_ratio: 结束位置比例，从顶部算起。默认0.1（顶部10%）
+        start_ratio: 起始位置比例（距顶部的比例）。默认0.9，即区域底部10%处
+        end_ratio: 结束位置比例（距顶部的比例）。默认0.1，即区域顶部10%处
     """
     rect = area.rect
     height = rect.height
