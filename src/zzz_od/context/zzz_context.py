@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import cached_property
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -86,8 +88,8 @@ class ZContext(OneDragonContext):
             'battle_assistant_config',
         ]
         for prop in to_clear_props:
-            if hasattr(self, prop):
-                delattr(self, prop)
+            if prop in self.__dict__:
+                del self.__dict__[prop]
 
     def _get_win_title(self) -> str:
         """获取当前配置对应的窗口标题"""
@@ -158,127 +160,6 @@ class ZContext(OneDragonContext):
 
         from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
         AutoBattleOperator.after_app_shutdown()
-
-    def register_application_factory(self) -> None:
-        """
-        注册应用
-
-        Returns:
-            None
-        """
-        from zzz_od.application.battle_assistant.auto_battle.auto_battle_app_factory import (
-            AutoBattleAppFactory,
-        )
-        from zzz_od.application.battle_assistant.dodge_assitant.dodge_assistant_factory import (
-            DodgeAssistantFactory,
-        )
-        from zzz_od.application.battle_assistant.operation_debug.operation_debug_app_factory import (
-            OperationDebugAppFactory,
-        )
-        from zzz_od.application.commission_assistant.commission_assistant_app_factory import (
-            CommissionAssistantAppFactory,
-        )
-        from zzz_od.application.devtools.screenshot_helper.screenshot_helper_app_factory import (
-            ScreenshotHelperAppFactory,
-        )
-        from zzz_od.application.game_config_checker.mouse_sensitivity_checker_factoru import (
-            MouseSensitivityCheckerFactory,
-        )
-        from zzz_od.application.game_config_checker.predefined_team_checker_factory import (
-            PredefinedTeamCheckerFactory,
-        )
-        from zzz_od.application.one_dragon_app.zzz_one_dragon_app_factory import (
-            ZzzOneDragonAppFactory,
-        )
-        self.run_context.registry_application(
-            [
-                ZzzOneDragonAppFactory(self),
-                AutoBattleAppFactory(self),
-                DodgeAssistantFactory(self),
-                OperationDebugAppFactory(self),
-                ScreenshotHelperAppFactory(self),
-                CommissionAssistantAppFactory(self),
-                PredefinedTeamCheckerFactory(self),
-                MouseSensitivityCheckerFactory(self),
-            ],
-            default_group=False,
-        )
-
-        from zzz_od.application.charge_plan.charge_plan_app_factory import (
-            ChargePlanAppFactory,
-        )
-        from zzz_od.application.city_fund.city_fund_app_factory import (
-            CityFundAppFactory,
-        )
-        from zzz_od.application.coffee.coffee_app_factory import CoffeeAppFactory
-        from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_app_factory import (
-            DriveDiscDismantleAppFactory,
-        )
-        from zzz_od.application.email_app.email_app_factory import EmailAppFactory
-        from zzz_od.application.engagement_reward.engagement_reward_app_factory import (
-            EngagementRewardAppFactory,
-        )
-        from zzz_od.application.hollow_zero.lost_void.lost_void_app_factory import (
-            LostVoidAppFactory,
-        )
-        from zzz_od.application.hollow_zero.withered_domain.withered_domain_app_factory import (
-            WitheredDomainAppFactory,
-        )
-        from zzz_od.application.life_on_line.life_on_line_app_factory import (
-            LifeOneLineAppFactory,
-        )
-        from zzz_od.application.notify.notify_app_factory import NotifyAppFactory
-        from zzz_od.application.notorious_hunt.notorious_hunt_factory import (
-            NotoriousHuntAppFactory,
-        )
-        from zzz_od.application.random_play.random_play_factory import (
-            RandomPlayFactory,
-        )
-        from zzz_od.application.redemption_code.redemption_code_factory import (
-            RedemptionCodeFactory,
-        )
-        from zzz_od.application.ridu_weekly.ridu_weekly_app_factory import (
-            RiduWeeklyAppFactory,
-        )
-        from zzz_od.application.scratch_card.scratch_card_factory import (
-            ScratchCardFactory,
-        )
-        from zzz_od.application.shiyu_defense.shiyu_defense_app_factory import (
-            ShiyuDefenseAppFactory,
-        )
-        from zzz_od.application.suibian_temple.suibian_temple_factory import (
-            SuibianTempleFactory,
-        )
-        from zzz_od.application.trigrams_collection.trigrams_collection_factory import (
-            TrigramsCollectionFactory,
-        )
-        from zzz_od.application.world_patrol.world_patrol_factory import (
-            WorldPatrolAppFactory,
-        )
-        self.run_context.registry_application(
-            [
-                RedemptionCodeFactory(self),
-                EmailAppFactory(self),
-                RandomPlayFactory(self),
-                TrigramsCollectionFactory(self),
-                SuibianTempleFactory(self),
-                ScratchCardFactory(self),
-                CoffeeAppFactory(self),
-                ChargePlanAppFactory(self),
-                NotoriousHuntAppFactory(self),
-                EngagementRewardAppFactory(self),
-                CityFundAppFactory(self),
-                WitheredDomainAppFactory(self),
-                RiduWeeklyAppFactory(self),
-                DriveDiscDismantleAppFactory(self),
-                LostVoidAppFactory(self),
-                NotifyAppFactory(self),
-                WorldPatrolAppFactory(self),
-                LifeOneLineAppFactory(self),
-                ShiyuDefenseAppFactory(self),
-            ],
-            default_group=True,
-        )
 
     @cached_property
     def shared_dialog_manager(self):

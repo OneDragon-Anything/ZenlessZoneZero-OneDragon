@@ -53,9 +53,11 @@ class TransportBy3dMap(ZOperation):
         else:
             return self.round_retry(status='未发现地图', wait=1)
 
+    @node_from(from_name='选择子区域', success=False)  # 区域有子区域但找不到 说明选择区域错误
+    @node_from(from_name='关闭区域信息弹窗')  # 搜索失败 → 关闭弹窗 → 重新选区域
     @node_from(from_name='初始回到大世界', status='3D地图')
     @node_from(from_name='打开地图')
-    @operation_node(name='选择区域')
+    @operation_node(name='选择区域', node_max_retry_times=20)
     def choose_area(self) -> OperationRoundResult:
         if self.target_area.parent_area is None:
             target_area_name = self.target_area.area_name
@@ -66,23 +68,29 @@ class TransportBy3dMap(ZOperation):
         ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(self.last_screenshot, rect=area.rect)
 
         ocr_word_list = list(ocr_result_map.keys())
-        target_word_idx = str_utils.find_best_match_by_difflib(gt(target_area_name, 'game'), ocr_word_list)
-        if target_word_idx is not None and target_word_idx >= 0:
+        target_cn = gt(target_area_name, 'game')
+
+        # 精确匹配优先 + 兜底模糊匹配（cutoff=0.8 避免相似名称误匹配，如"科研院旧址"与"港口工厂旧址"）
+        target_word_idx = str_utils.find_in_list_with_fuzzy(target_cn, ocr_word_list, cutoff=0.8)
+        if target_word_idx is not None:
             mrl = ocr_result_map.get(ocr_word_list[target_word_idx])
             if mrl.max is not None:
                 self.ctx.controller.click(mrl.max.center)
                 return self.round_success(wait=1)
 
+        # 精确匹配优先 + 兜底模糊匹配（目标不在屏幕内，判断滚动方向，不一致会导致列表反复上下滑动）
         order_cn_list = [i.area_name for i in self.ctx.world_patrol_service.area_list]
         is_target_after: bool = str_utils.is_target_after_ocr_list(
             target_cn=target_area_name,
             order_cn_list=order_cn_list,
             ocr_result_list=ocr_word_list,
+            cutoff=0.8,
         )
 
         start_point = area.center
         end_point = start_point + Point(0, 400 * (-1 if is_target_after else 1))
         self.ctx.controller.drag_to(start=start_point, end=end_point)
+        # 等待滚动动画稳定 避免动画中OCR识别到目标但点击位置偏移
         return self.round_retry(wait=1)
 
     @node_from(from_name='选择区域')
@@ -177,7 +185,7 @@ class TransportBy3dMap(ZOperation):
         return self.round_success()
 
     @node_from(from_name='初始化传送点搜索')
-    @operation_node(name='搜索传送点循环', node_max_retry_times=20)
+    @operation_node(name='搜索传送点循环', node_max_retry_times=8)
     def search_tp_icon_loop(self) -> OperationRoundResult:
         """
         传送点搜索主循环：
@@ -329,6 +337,14 @@ class TransportBy3dMap(ZOperation):
         log.debug(f'执行随机拖动：{direction}')
         self.ctx.controller.drag_to(start=start_point, end=end_point)
 
+    @node_from(from_name='搜索传送点循环', success=False)  # 搜索失败后关闭残留弹窗
+    @operation_node(name='关闭区域信息弹窗')
+    def close_area_info_popup(self) -> OperationRoundResult:
+        """搜索失败后关闭残留的传送点信息弹窗"""
+        self.round_by_find_and_click_area(self.last_screenshot, '3D地图', '按钮-区域信息-关闭',
+                                          success_wait=1)
+        return self.round_success()
+
     @node_from(from_name='搜索传送点循环')
     @operation_node(name='点击前往')
     def click_go(self) -> OperationRoundResult:
@@ -348,8 +364,7 @@ class TransportBy3dMap(ZOperation):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_ocr()
-    ctx.init_by_config()
+    ctx.init()
     ctx.world_patrol_service.load_data()
 
     area = None

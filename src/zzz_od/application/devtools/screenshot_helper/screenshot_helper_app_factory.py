@@ -9,7 +9,9 @@ from zzz_od.application.devtools.screenshot_helper import screenshot_helper_cons
 from zzz_od.application.devtools.screenshot_helper.screenshot_helper_app import (
     ScreenshotHelperApp,
 )
-from zzz_od.application.devtools.screenshot_helper.screenshot_helper_config import ScreenshotHelperConfig
+from zzz_od.application.devtools.screenshot_helper.screenshot_helper_config import (
+    ScreenshotHelperConfig,
+)
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
@@ -22,6 +24,8 @@ class ScreenshotHelperAppFactory(ApplicationFactory):
             self,
             app_id=screenshot_helper_const.APP_ID,
             app_name=screenshot_helper_const.APP_NAME,
+            default_group=screenshot_helper_const.DEFAULT_GROUP,
+            need_notify=screenshot_helper_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx
 

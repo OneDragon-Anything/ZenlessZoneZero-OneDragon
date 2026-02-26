@@ -284,16 +284,16 @@ class WorldPatrolRunRoute(ZOperation):
                 # 首次进入无坐标态，记录起始时间
                 self.no_pos_start_time = self.last_screenshot_time
             # 达到重启阈值：请求重启
-            elif no_pos_seconds > 20.0:
+            elif no_pos_seconds > 13.5:
                 return self.round_fail(status='坐标计算失败，重启当前路线')
             # 达到脱困阈值：执行脱困（不计数）
-            elif no_pos_seconds > 4.0:
+            elif no_pos_seconds > 4.5:
                 # 如果是重启后的路线，再次卡住时直接跳过，不再尝试脱困
                 if self.is_restarted:
                     return self.round_fail(status='坐标计算失败，重启当前路线')
                 self._do_unstuck_move('no-pos')
             # 达到停止阈值：停止前进，避免盲走
-            elif no_pos_seconds > 2.0:
+            elif no_pos_seconds > 1.5:
                 self.ctx.controller.stop_moving_forward()
 
             self.ctx.controller.turn_vertical_by_distance(300)
@@ -308,15 +308,25 @@ class WorldPatrolRunRoute(ZOperation):
             self.current_pos = next_pos
             return None
 
-    def _is_next_pos_valid(self, next_pos: Point) -> bool:
+    def _is_next_pos_valid(self, next_pos: Point | None) -> bool:
+        if next_pos is None:
+            return False
         """
         判断匹配的下一个坐标是否合法
-        1. 根据上一坐标、朝向、转向等 判断当前坐标计算结果是否偏离方向
+        1. 距离检查：防止基准点错误导致的大幅跳跃
+        2. 角度检查：根据上一坐标、朝向、转向等判断方向是否合理
         Args:
             next_pos: 匹配的坐标
         Returns:
             bool: True 表示坐标合法，False 表示坐标非法
         """
+        # 距离检查：如果距离过大（超过合理移动范围），直接拒绝
+        # 假设最大移动速度 50 单位/秒，0.3秒一轮，最大移动 15 单位
+        # 加上容错，设置为 100 单位（约 2 秒的移动距离）
+        distance = cal_utils.distance_between(self.current_pos, next_pos)
+        if distance > 100:
+            return False
+
         return self._is_next_pos_in_angle_range(next_pos)
 
     def _is_next_pos_in_angle_range(self, next_pos: Point) -> bool:
@@ -331,7 +341,8 @@ class WorldPatrolRunRoute(ZOperation):
             return True
 
         # 只有和上一个距离较远时进行判断 距离较近的计算移动朝向误差大 不进行判断
-        if cal_utils.distance_between(self.current_pos, next_pos) < 20:
+        # 阈值从20提升到50像素，避免短距离时OCR抖动导致角度计算误差过大
+        if cal_utils.distance_between(self.current_pos, next_pos) < 50:
             return True
 
         # 从上一个坐标 到当前坐标的方向 正右为0 逆时针为正
@@ -356,7 +367,8 @@ class WorldPatrolRunRoute(ZOperation):
 
         # 当前移动朝向 应该在上一次的朝向和转向的限定范围内
         # 允许一定范围的转向转过了
-        allow_angle_diff = 10
+        # 从10度提升到30度，大幅提升对OCR坐标抖动的容错能力
+        allow_angle_diff = 30
 
         if self.last_angle_diff_command < 0:
             return allow_angle_diff >= move_angle_diff >= self.last_angle_diff_command - allow_angle_diff
@@ -596,9 +608,10 @@ class WorldPatrolRunRoute(ZOperation):
             auto_battle_utils.switch_to_best_agent_for_moving(self.ctx)
         self.ctx.controller.turn_vertical_by_distance(300)
 
-        # 重置上次朝向的记录
+        # 重置自适应转向状态（战斗后切换角色，转向特性可能不同）
         self.last_angle = None
         self.last_angle_diff_command = None
+        self.sensitivity = 1.0
 
         return self.round_success()
 

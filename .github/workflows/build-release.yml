@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
     inputs:
       create_release:
@@ -12,15 +14,19 @@ on:
         default: false
         type: boolean
 
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   CREATE_RELEASE: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   version:
+    if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'build') }}
     runs-on: windows-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
-      tag: ${{ steps.get_version.outputs.tag }}
 
     steps:
     - name: Checkout code
@@ -28,65 +34,18 @@ jobs:
       with:
         fetch-depth: 1
 
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
     - name: Get version
       id: get_version
       shell: pwsh
-      run: |
-        if ($env:GITHUB_REF -like 'refs/tags/*') {
-          # 已由 tag 推送触发，直接使用该 tag 作为版本
-          $version = $env:GITHUB_REF.Substring(10)
-          $tag = $version
-        } elseif ($env:CREATE_RELEASE -eq 'false') {
-          # 非 release 构建，使用日期作为版本号
-          $version = (Get-Date).ToUniversalTime().AddHours(8).ToString('vyyyy.MMdd.HHmm')
-          $tag = $version
-        } else {
-          # 手动 workflow_dispatch 触发：使用 git 的语义化版本排序，选出最新 tag，然后生成 / 递增 beta 版本
-          # --refs 可避免出现带 ^{} 的 peeled 行，--sort=-version:refname 以版本名倒序排序，'v*' 仅匹配语义化版本前缀
-          $latestRef = git ls-remote --refs --tags --sort=-version:refname origin 'v*' |
-            Where-Object { $_ -match 'refs/tags/(v\d+\.\d+\.\d+(?:-beta\.\d+)?)$' } |
-            Select-Object -First 1
-
-          if (-not $latestRef) {
-            # 仓库还没有任何符合语义版本的 tag，初始化为 v0.1.0-beta.1
-            $baseVersion = 'v0.1.0'
-            $betaNumber = 1
-            $tag = "$baseVersion-beta.$betaNumber"
-          } else {
-            # 行格式: <hash>\trefs/tags/<tagname>
-            if ($latestRef -match 'refs/tags/(.+)$') {
-              $latestTag = $matches[1]
-            } else {
-              throw "无法从 ls-remote 输出中解析最新 tag：$latestRef"
-            }
-
-            if ($latestTag -match '^(v\d+\.\d+\.\d+)-beta\.(\d+)$') {
-              # 最新即为 beta，直接在 beta 编号上 +1
-              $baseVersion = $matches[1]
-              $betaNumber = [int]$matches[2] + 1
-              $tag = "$baseVersion-beta.$betaNumber"
-            } else {
-              # 最新为稳定版本，从该稳定版本开始新的 beta 序列
-              $latestTag -match '^(v\d+\.\d+\.)(\d+)$'
-              $baseVersion = $matches[1] + ([int]$matches[2] + 1)
-              $betaNumber = 1
-              $tag = "$baseVersion-beta.$betaNumber"
-            }
-          }
-
-          $version = $tag
-
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
-          # 创建并推送新 beta tag
-          git tag $tag
-          git push origin $tag
-        }
-
-        echo "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-        echo "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+      run: python tools/ci/get_version.py
 
   build:
+    if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'build') }}
     runs-on: windows-latest
     needs: version
     outputs:
@@ -101,7 +60,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11.9'
+        python-version: '3.11'
 
     - name: Install uv
       shell: pwsh
@@ -205,7 +164,9 @@ jobs:
     needs:
       - version
       - build
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/') }}
+    if: ${{ github.repository_owner == 'OneDragon-Anything' &&
+            ((github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/'))
+        }}
     env:
       SIGNED_DIR: 'signed'
       SIGNPATH_SIGNING_POLICY_SLUG: 'release-signing'
@@ -236,12 +197,21 @@ jobs:
       - version
       - build
       - sign
-    if: ${{ ((github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/')) && needs.sign.result == 'success' }}
+    if: ${{ always() &&
+            needs.build.result == 'success' &&
+            ((github.event_name == 'workflow_dispatch' && inputs.create_release == true) || startsWith(github.ref, 'refs/tags/')) &&
+            (needs.sign.result == 'success')
+        }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 1
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
 
     - name: Download dist
       uses: actions/download-artifact@v4
@@ -256,209 +226,17 @@ jobs:
         name: signed
         path: deploy/dist/signed
 
-    - name: Replace unsigned executables with signed ones
-      if: ${{ needs.sign.result == 'success' }}
-      shell: pwsh
-      run: |
-        Copy-Item "deploy/dist/signed/OneDragon-Installer.exe" -Destination "deploy/dist/OneDragon-Installer.exe" -Force
-        Copy-Item "deploy/dist/signed/OneDragon-Launcher.exe" -Destination "deploy/dist/OneDragon-Launcher.exe" -Force
-
     - name: Prepare release directory and models
       shell: pwsh
       env:
         RELEASE_VERSION: ${{ needs.version.outputs.version }}
-      run: |
-        # 将 dist 移动到当前目录的父目录下
-        $distDir = "deploy/dist"
-        $parentDir = Split-Path -Path (Get-Location) -Parent
-        $targetDist = Join-Path $parentDir "dist"
-
-        Move-Item -Path $distDir -Destination $targetDist -Force
-        $distDir = $targetDist
-        $envDir = ".install"
-        New-Item -ItemType Directory -Path $envDir -Force | Out-Null
-
-        # 准备离线运行所需的 .install 资源
-        Invoke-WebRequest -Uri "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ZenlessZoneZero-OneDragon/uv-x86_64-pc-windows-msvc.zip" -OutFile "$envDir/uv-x86_64-pc-windows-msvc.zip"
-        Invoke-WebRequest -Uri "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ZenlessZoneZero-OneDragon/cpython-3.11.zip" -OutFile "$envDir/cpython-3.11.zip"
-
-        # 将安装器复制到仓库根目录
-        Copy-Item "$distDir/OneDragon-Installer.exe" -Destination "OneDragon-Installer.exe" -Force
-
-        # 打包启动器
-        Compress-Archive -Path "$distDir/OneDragon-Launcher.exe" -DestinationPath "$distDir/ZenlessZoneZero-OneDragon-Launcher.zip" -Force
-        Copy-Item "$distDir/OneDragon-Launcher.exe" -Destination "OneDragon-Launcher.exe" -Force
-
-        # 模型目录（放在仓库根 assets/models 下）
-        $modelBase = "assets/models"
-        New-Item -ItemType Directory -Path "$modelBase/onnx_ocr" -Force | Out-Null
-        New-Item -ItemType Directory -Path "$modelBase/flash_classifier" -Force | Out-Null
-        New-Item -ItemType Directory -Path "$modelBase/hollow_zero_event" -Force | Out-Null
-        New-Item -ItemType Directory -Path "$modelBase/lost_void_det" -Force | Out-Null
-
-        # 临时模型目录
-        $tempDir = "temp_models"
-        New-Item -ItemType Directory -Path $tempDir -Force
-
-        # 通过文件末尾最高8位数字获取最新模型
-        function Get-LatestModelByNumber {
-          param (
-            [string]$repo,
-            [string]$pattern
-          )
-          $apiUrl = "https://api.github.com/repos/$repo/releases"
-          $releases = Invoke-RestMethod -Uri $apiUrl -Headers @{ "Accept" = "application/vnd.github.v3+json" }
-
-          $bestAsset = $null
-            $maxNumber = -1
-
-          foreach ($release in $releases) {
-            foreach ($asset in $release.assets) {
-              if ($asset.name -match $pattern) {
-                # 从文件名末尾提取8位数字（在.zip之前）
-                if ($asset.name -match '(\d{8})\.zip$') {
-                  $number = [int]$matches[1]
-                  if ($number -gt $maxNumber) {
-                    $maxNumber = $number
-                    $bestAsset = @{
-                      url = $asset.browser_download_url
-                      name = $asset.name
-                      version_number = $number
-                    }
-                  }
-                }
-                # 对于ppocrv5和其他没有8位数字后缀的模型，作为备用选项
-                elseif ($bestAsset -eq $null) {
-                  $bestAsset = @{
-                    url = $asset.browser_download_url
-                    name = $asset.name
-                    version_number = 0
-                  }
-                }
-              }
-            }
-          }
-          return $bestAsset
-        }
-
-        function Expand-ZipIntoNamedFolder {
-          param (
-            [string]$url,
-            [string]$downloadPath,
-            [string]$destRoot,
-            [string]$folderName
-          )
-          Invoke-WebRequest -Uri $url -OutFile $downloadPath
-          $targetPath = Join-Path $destRoot $folderName
-          New-Item -ItemType Directory -Path $targetPath -Force
-          Expand-Archive -Path $downloadPath -DestinationPath $targetPath -Force
-        }
-
-        # 获取 ppocrv5 模型 (onnx_ocr)
-        $ppocrModel = Get-LatestModelByNumber -repo "OneDragon-Anything/OneDragon-Env" -pattern "ppocrv5\.zip$"
-        if ($ppocrModel) {
-          $ppocrName = $ppocrModel.name -replace "\.zip$", ""
-          Write-Host "找到 ppocrv5 模型: $($ppocrModel.name) (版本: $($ppocrModel.version_number))"
-          Expand-ZipIntoNamedFolder `
-            -url $ppocrModel.url `
-            -downloadPath "$tempDir/ppocrv5.zip" `
-            -destRoot "$modelBase/onnx_ocr" `
-            -folderName $ppocrName
-        } else {
-          Write-Warning "无法找到 ppocrv5 模型，使用备用版本"
-          Expand-ZipIntoNamedFolder `
-            -url "https://github.com/OneDragon-Anything/OneDragon-Env/releases/download/ppocrv5/ppocrv5.zip" `
-            -downloadPath "$tempDir/ppocrv5.zip" `
-            -destRoot "$modelBase/onnx_ocr" `
-            -folderName "ppocrv5"
-        }
-
-        # 获取 flash classifier 模型
-        $flashModel = Get-LatestModelByNumber -repo "OneDragon-Anything/OneDragon-YOLO" -pattern "flash.*\.zip$"
-        if ($flashModel) {
-          $flashName = $flashModel.name -replace "\.zip$", ""
-          Write-Host "找到 flash 模型: $($flashModel.name) (版本: $($flashModel.version_number))"
-          Expand-ZipIntoNamedFolder `
-            -url $flashModel.url `
-            -downloadPath "$tempDir/flash.zip" `
-            -destRoot "$modelBase/flash_classifier" `
-            -folderName $flashName
-        } else {
-          Write-Warning "无法找到 flash 模型，使用备用版本"
-          Expand-ZipIntoNamedFolder `
-            -url "https://github.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model/yolov8n-640-flash-0127.zip" `
-            -downloadPath "$tempDir/flash.zip" `
-            -destRoot "$modelBase/flash_classifier" `
-            -folderName "yolov8n-640-flash-0127"
-        }
-
-        # 获取 hollow zero event 模型
-        $hollowModel = Get-LatestModelByNumber -repo "OneDragon-Anything/OneDragon-YOLO" -pattern "hollow.*\.zip$"
-        if ($hollowModel) {
-          $hollowName = $hollowModel.name -replace "\.zip$", ""
-          Write-Host "找到 hollow 模型: $($hollowModel.name) (版本: $($hollowModel.version_number))"
-          Expand-ZipIntoNamedFolder `
-            -url $hollowModel.url `
-            -downloadPath "$tempDir/hollow.zip" `
-            -destRoot "$modelBase/hollow_zero_event" `
-            -folderName $hollowName
-        } else {
-          Write-Warning "无法找到 hollow 模型，使用备用版本"
-          Expand-ZipIntoNamedFolder `
-            -url "https://github.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model/yolov8s-736-hollow-zero-event-0126.zip" `
-            -downloadPath "$tempDir/hollow.zip" `
-            -destRoot "$modelBase/hollow_zero_event" `
-            -folderName "yolov8s-736-hollow-zero-event-0126"
-        }
-
-        # 获取 lost void detection 模型
-        $lostModel = Get-LatestModelByNumber -repo "OneDragon-Anything/OneDragon-YOLO" -pattern "lost.*\.zip$"
-        if ($lostModel) {
-          $lostName = $lostModel.name -replace "\.zip$", ""
-          Write-Host "找到 lost void 模型: $($lostModel.name) (版本: $($lostModel.version_number))"
-          Expand-ZipIntoNamedFolder `
-            -url $lostModel.url `
-            -downloadPath "$tempDir/lost.zip" `
-            -destRoot "$modelBase/lost_void_det" `
-            -folderName $lostName
-        } else {
-          Write-Warning "无法找到 lost void 模型，使用备用版本"
-          Expand-ZipIntoNamedFolder `
-            -url "https://github.com/OneDragon-Anything/OneDragon-YOLO/releases/download/zzz_model/yolov8n-736-lost-void-det-20250612.zip" `
-            -downloadPath "$tempDir/lost.zip" `
-            -destRoot "$modelBase/lost_void_det" `
-            -folderName "yolov8n-736-lost-void-det-20250612"
-        }
-
-        # 获取版本号
-        $version = $env:RELEASE_VERSION
-
-        # 打包前删除不需要的目录
-        Remove-Item -Path "deploy/build" -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-Item -Path ".venv" -Recurse -Force -ErrorAction SilentlyContinue
-        Remove-Item -Path ".install/uv_cache" -Recurse -Force -ErrorAction SilentlyContinue
-        git reset --hard HEAD
-        git clean -fd | Out-Null
-
-        # 第一次打包（Full）枚举根目录全部项目
-        $items = Get-ChildItem -Force | ForEach-Object { $_.FullName }
-        Compress-Archive -Path $items -DestinationPath "$distDir/ZenlessZoneZero-OneDragon-$version-Full.zip" -Force
-
-        # 将环境依赖包放入 .install 后进行第二次打包（Full-Environment）
-        Copy-Item "$distDir/ZenlessZoneZero-OneDragon-Environment.zip" -Destination "$envDir/ZenlessZoneZero-OneDragon-Environment.zip" -Force
-        $items = Get-ChildItem -Force | ForEach-Object { $_.FullName }
-        Compress-Archive -Path $items -DestinationPath "$distDir/ZenlessZoneZero-OneDragon-$version-Full-Environment.zip" -Force
-
-        # 复制安装器
-        Copy-Item "OneDragon-Installer.exe" -Destination "ZenlessZoneZero-OneDragon-$version-Installer.exe" -Force
-
-        # 将所有待发布文件移到当前目录
-        Move-Item -Path "$distDir/*.zip" -Destination (Get-Location) -Force
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: python tools/ci/prepare_release_assets.py --release-version "$env:RELEASE_VERSION"
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ needs.version.outputs.tag }}
+        tag_name: ${{ needs.version.outputs.version }}
         name: "Release ${{ needs.version.outputs.version }}"
         body: |
           ## 安装方式

@@ -34,6 +34,7 @@ from one_dragon.utils.log_utils import log
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
+
 class NodeStateProxy:
     """
     一个代理类，用于安全、便捷地访问节点的静态信息和动态执行结果。
@@ -1114,6 +1115,82 @@ class Operation(OperationBase):
 
             self.ctx.controller.click(to_click)
             return self.round_success(status=match_word, wait=success_wait, wait_round_time=success_wait_round)
+
+        return self.round_retry(status='未匹配到目标文本', wait=retry_wait, wait_round_time=retry_wait_round)
+
+    def round_by_ocr_and_click_with_action(
+        self,
+        target_action_list: list[tuple[str, OperationRoundResultEnum]],
+        screen: MatLike | None = None,
+        area: ScreenArea | None = None,
+        success_wait: float | None = None,
+        success_wait_round: float | None = None,
+        wait_wait: float | None = None,
+        wait_wait_round: float | None = None,
+        retry_wait: float | None = None,
+        retry_wait_round: float | None = None,
+        color_range: list[list[int]] | None = None,
+        offset: Point | None = None,
+        crop_first: bool = True,
+    ) -> OperationRoundResult:
+        """使用OCR按优先级查找文本并点击，支持为不同目标指定不同的返回动作。
+
+        Args:
+            target_action_list: 目标文本和动作的元组列表。列表顺序决定优先级。
+                每个元组为 (目标文本, OperationRoundResultEnum)。
+                支持的动作: SUCCESS（进入下一节点）、WAIT（继续当前节点）、RETRY（重试）。
+                示例: [('出战', OperationRoundResultEnum.SUCCESS), ('下一步', OperationRoundResultEnum.WAIT)]
+            screen: 游戏截图。默认为None（使用 last_screenshot）。
+            area: 要搜索的目标区域。默认为None（搜索整个屏幕）。
+            crop_first: 在传入区域时 是否先裁剪再进行文本识别。默认为True。
+            success_wait: 匹配到 SUCCESS 动作后等待时间（秒）。默认为None。
+            success_wait_round: 匹配到 SUCCESS 动作后等待直到轮次时间达到此值。默认为None。
+            wait_wait: 匹配到 WAIT 动作后等待时间（秒）。默认为None。
+            wait_wait_round: 匹配到 WAIT 动作后等待直到轮次时间达到此值。默认为None。
+            retry_wait: 未匹配到任何目标时等待时间（秒）。默认为None。
+            retry_wait_round: 未匹配到任何目标时等待直到轮次时间达到此值。默认为None。
+            color_range: 文本匹配的颜色范围。默认为None。
+            offset: 点击位置的偏移量。默认为None。
+
+        Returns:
+            OperationRoundResult: 根据匹配目标返回对应的结果类型。
+        """
+        if screen is None:
+            screen = self.last_screenshot
+
+        if color_range is None and area is not None:
+            color_range = area.color_range
+
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
+            image=screen,
+            rect=area.rect if area is not None else None,
+            color_range=color_range,
+            crop_first=crop_first,
+        )
+
+        # 从元组列表构建目标列表和动作映射
+        target_cn_list = [target for target, _ in target_action_list]
+        action_map = dict(target_action_list)
+
+        match_word, match_word_mrl = ocr_utils.match_word_list_by_priority(
+            ocr_result_map,
+            target_cn_list,
+        )
+
+        if match_word is not None and match_word_mrl is not None and match_word_mrl.max is not None:
+            to_click = match_word_mrl.max.center
+            if offset is not None:
+                to_click = to_click + offset
+
+            self.ctx.controller.click(to_click)
+
+            action = action_map.get(match_word, OperationRoundResultEnum.SUCCESS)
+            if action == OperationRoundResultEnum.WAIT:
+                return self.round_wait(status=match_word, wait=wait_wait, wait_round_time=wait_wait_round)
+            elif action == OperationRoundResultEnum.RETRY:
+                return self.round_retry(status=match_word, wait=retry_wait, wait_round_time=retry_wait_round)
+            else:  # SUCCESS
+                return self.round_success(status=match_word, wait=success_wait, wait_round_time=success_wait_round)
 
         return self.round_retry(status='未匹配到目标文本', wait=retry_wait, wait_round_time=retry_wait_round)
 

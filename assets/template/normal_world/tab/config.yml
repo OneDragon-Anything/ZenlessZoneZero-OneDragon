@@ -1,8 +1,0 @@
-sub_dir: normal_world
-template_id: tab
-template_name: 大世界-TAB
-template_shape: circle
-auto_mask: true
-point_list:
-- 1823, 75
-- 1845, 75

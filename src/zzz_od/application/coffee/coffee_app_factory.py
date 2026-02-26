@@ -22,6 +22,7 @@ class CoffeeAppFactory(ApplicationFactory):
             self,
             app_id=coffee_app_const.APP_ID,
             app_name=coffee_app_const.APP_NAME,
+            default_group=coffee_app_const.DEFAULT_GROUP,
             need_notify=coffee_app_const.NEED_NOTIFY,
         )
         self.ctx: ZContext = ctx

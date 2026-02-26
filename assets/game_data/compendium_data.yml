@@ -111,6 +111,7 @@
         - mission_type_name: "牲鬼·凶魁愚者"
         - mission_type_name: "秽蚀·狛野真斗"
         - mission_type_name: "秽息行者·蝎骸"
+        - mission_type_name: "牲鬼·卫律使者"
         - mission_type_name: "代理人方案培养"
 
     - category_name: "恶名狩猎"
@@ -135,6 +136,7 @@
           mission_list:
             - mission_name: "战线肃清"
             - mission_name: "特遣调查"
+            - mission_name: "矩阵行动"
         - mission_type_name: "断层之谜"
         - mission_type_name: "枯萎之都"
         - mission_type_name: "旧都列车"

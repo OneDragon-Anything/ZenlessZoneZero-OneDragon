@@ -128,7 +128,10 @@ class LostVoidBangbooStore(ZOperation):
         @param screen: 游戏画面
         @return: 识别到的藏品
         """
-        artifact_pos_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_pos(screen)
+        artifact_pos_list: list[LostVoidArtifactPos] = self.ctx.lost_void.get_artifact_pos(
+            screen,
+            screen_name='迷失之地-邦布商店'
+        )
 
         # 识别价格
         area = self.ctx.screen_loader.get_area('迷失之地-邦布商店', '区域-价格')

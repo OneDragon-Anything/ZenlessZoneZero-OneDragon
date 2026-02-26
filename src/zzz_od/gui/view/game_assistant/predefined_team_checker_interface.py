@@ -4,7 +4,9 @@ from PySide6.QtWidgets import QWidget
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
-from zzz_od.application.game_config_checker import predefined_team_checker_const
+from zzz_od.application.game_config_checker.predefined_team_checker import (
+    predefined_team_checker_const,
+)
 from zzz_od.context.zzz_context import ZContext
 
 
