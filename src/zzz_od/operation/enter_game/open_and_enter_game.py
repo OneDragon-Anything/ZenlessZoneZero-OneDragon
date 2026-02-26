@@ -44,13 +44,5 @@ class OpenAndEnterGame(Operation):
     @operation_node(name='进入游戏')
     def enter_game(self) -> OperationRoundResult:
         from zzz_od.operation.enter_game.enter_game import EnterGame
-        # 如果是云游戏 那么先运行CloudGameQueue 再运行EnterGame 如果不是云游戏 直接EnterGame
-        if self.ctx.game_account_config.is_cloud_game:
-            from zzz_od.application.cloud_queue.cloud_queue import CloudGameQueue
-            cloud_queue_op = CloudGameQueue(self.ctx)
-            cloud_queue_result = cloud_queue_op.execute()
-            if not cloud_queue_result.success:
-                return self.round_by_op_result(cloud_queue_result)
-
         op = EnterGame(self.ctx)
         return self.round_by_op_result(op.execute())

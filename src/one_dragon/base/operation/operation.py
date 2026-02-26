@@ -363,10 +363,18 @@ class Operation(OperationBase):
         Returns:
             OperationRoundResult: 如果游戏窗口准备就绪则成功，否则失败。
         """
-        if self.ctx.is_game_window_ready:
-            return self.round_success()
-        else:
-            return self.round_fail('未打开游戏窗口 %s' % self.ctx.controller.game_win.win_title)
+        if self.ctx.controller is not None and self.ctx.controller.is_game_window_ready:
+            return self.check_game_initialized()
+
+        return self.round_fail(f'未打开游戏窗口 {self.ctx.controller.game_win.win_title}')
+
+    def check_game_initialized(self) -> OperationRoundResult:
+        """检查游戏是否完成初始化，子类可以重写此方法以实现更具体的检查逻辑。
+
+        Returns:
+            OperationRoundResult: 如果游戏完成初始化则成功，否则失败。
+        """
+        return self.round_success()
 
     def open_and_enter_game(self) -> OperationRoundResult:
         """打开并进入游戏。

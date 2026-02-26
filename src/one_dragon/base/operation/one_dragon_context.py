@@ -312,14 +312,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.dispatch_event(ContextKeyboardEventEnum.PRESS.value, key)
 
     @property
-    def is_game_window_ready(self) -> bool:
-        """
-        游戏窗口是否已经出现
-        :return:
-        """
-        return self.controller is not None and self.controller.is_game_window_ready
-
-    @property
     def key_start_running(self) -> str:
         return self.env_config.key_start_running
 
