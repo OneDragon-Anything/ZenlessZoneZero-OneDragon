@@ -11,7 +11,10 @@ def start_one_dragon(restart: bool) -> None:
     :param restart: 是否重启
     :return: 是否成功
     """
-    launcher_path = Path(os_utils.get_work_dir()) / 'OneDragon-Launcher.exe'
+    if getattr(sys, 'frozen', False):
+        launcher_path = Path(sys.executable)
+    else:
+        launcher_path = Path(os_utils.get_work_dir()) / 'OneDragon-Launcher.exe'
     subprocess.Popen(f'cmd /c "start "" "{launcher_path}""', shell=True)
     if restart:
         sys.exit(0)
@@ -39,11 +42,14 @@ def get_exe_version(exe_path: str) -> str:
 
 def get_launcher_version() -> str:
     """
-    检查启动器版本
+    检查当前启动器版本
     Returns:
         str: 版本号
     """
-    launcher_path = Path(os_utils.get_work_dir()) / 'OneDragon-Launcher.exe'
+    if getattr(sys, 'frozen', False):
+        launcher_path = Path(sys.executable)
+    else:
+        launcher_path = Path(os_utils.get_work_dir()) / 'OneDragon-Launcher.exe'
     return get_exe_version(str(launcher_path))
 
 
