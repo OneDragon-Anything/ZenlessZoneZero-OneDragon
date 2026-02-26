@@ -41,6 +41,16 @@ class OpenAndEnterGame(Operation):
 
     @node_from(from_name='等待游戏打开')
     @node_notify(when=NotifyTiming.CURRENT_FAIL, detail=True)
+    @operation_node(name='云游戏排队')
+    def cloud_queue(self) -> OperationRoundResult:
+        if self.ctx.game_account_config.is_cloud_game:
+            from zzz_od.application.cloud_queue.cloud_queue import CloudGameQueue
+            cloud_queue_op = CloudGameQueue(self.ctx)
+            return self.round_by_op_result(cloud_queue_op.execute())
+        return self.round_success()
+
+    @node_from(from_name='云游戏排队')
+    @node_notify(when=NotifyTiming.CURRENT_FAIL, detail=True)
     @operation_node(name='进入游戏')
     def enter_game(self) -> OperationRoundResult:
         from zzz_od.operation.enter_game.enter_game import EnterGame
