@@ -5,6 +5,7 @@ from zzz_od.application.coffee import coffee_app_const
 from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
 from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
+from zzz_od.application.intel_board import intel_board_const
 from zzz_od.application.notorious_hunt import notorious_hunt_const
 from zzz_od.application.random_play import random_play_const
 from zzz_od.application.redemption_code import redemption_code_const
@@ -77,9 +78,25 @@ class ZOneDragonRunInterface(OneDragonRunInterface):
                 parent=self,
                 group_id=group_id
             )
+        elif app_id == intel_board_const.APP_ID:
+            # 找到对应的卡片作为弹出框的锚点
+            target = self._find_app_card_setting_btn(app_id)
+            if target:
+                self.ctx.shared_dialog_manager.show_intel_board_setting_flyout(
+                    target=target,
+                    parent=self,
+                    group_id=group_id
+                )
         else:
             self.show_info_bar(
                 title=f'{app_name} 暂不支持设置',
                 content='',
                 duration=3000,
             )
+
+    def _find_app_card_setting_btn(self, app_id: str):
+        """找到对应 app_id 的卡片的设置按钮"""
+        for card in self.app_run_list._app_cards:
+            if card.app.app_id == app_id:
+                return card.setting_btn
+        return None

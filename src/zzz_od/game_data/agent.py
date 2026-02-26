@@ -339,7 +339,8 @@ class AgentEnum(Enum):
                                      max_length=120)
                    ])
 
-    PANYINHU = Agent('panyinhu', '潘引壶', RareTypeEnum.A, AgentTypeEnum.DEFENSE, DmgTypeEnum.PHYSICAL, ['panyinhu'])
+    PANYINHU = Agent('panyinhu', '潘引壶', RareTypeEnum.A, AgentTypeEnum.DEFENSE, DmgTypeEnum.PHYSICAL,
+                     ['panyinhu', 'panyinhu_culinary_jewel'])
 
     JU_FUFU = Agent('ju_fufu', '橘福福', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.FIRE, ['ju_fufu'],
                     state_list=[

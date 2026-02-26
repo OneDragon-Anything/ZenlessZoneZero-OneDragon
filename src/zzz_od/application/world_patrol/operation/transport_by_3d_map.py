@@ -53,6 +53,8 @@ class TransportBy3dMap(ZOperation):
         else:
             return self.round_retry(status='未发现地图', wait=1)
 
+    @node_from(from_name='选择子区域', success=False)  # 区域有子区域但找不到 说明选择区域错误
+    @node_from(from_name='关闭区域信息弹窗')  # 搜索失败 → 关闭弹窗 → 重新选区域
     @node_from(from_name='初始回到大世界', status='3D地图')
     @node_from(from_name='打开地图')
     @operation_node(name='选择区域', node_max_retry_times=20)
@@ -88,7 +90,8 @@ class TransportBy3dMap(ZOperation):
         start_point = area.center
         end_point = start_point + Point(0, 400 * (-1 if is_target_after else 1))
         self.ctx.controller.drag_to(start=start_point, end=end_point)
-        return self.round_retry()
+        # 等待滚动动画稳定 避免动画中OCR识别到目标但点击位置偏移
+        return self.round_retry(wait=1)
 
     @node_from(from_name='选择区域')
     @operation_node(name='选择子区域', node_max_retry_times=6)
@@ -182,7 +185,7 @@ class TransportBy3dMap(ZOperation):
         return self.round_success()
 
     @node_from(from_name='初始化传送点搜索')
-    @operation_node(name='搜索传送点循环', node_max_retry_times=20)
+    @operation_node(name='搜索传送点循环', node_max_retry_times=8)
     def search_tp_icon_loop(self) -> OperationRoundResult:
         """
         传送点搜索主循环：
@@ -333,6 +336,14 @@ class TransportBy3dMap(ZOperation):
 
         log.debug(f'执行随机拖动：{direction}')
         self.ctx.controller.drag_to(start=start_point, end=end_point)
+
+    @node_from(from_name='搜索传送点循环', success=False)  # 搜索失败后关闭残留弹窗
+    @operation_node(name='关闭区域信息弹窗')
+    def close_area_info_popup(self) -> OperationRoundResult:
+        """搜索失败后关闭残留的传送点信息弹窗"""
+        self.round_by_find_and_click_area(self.last_screenshot, '3D地图', '按钮-区域信息-关闭',
+                                          success_wait=1)
+        return self.round_success()
 
     @node_from(from_name='搜索传送点循环')
     @operation_node(name='点击前往')

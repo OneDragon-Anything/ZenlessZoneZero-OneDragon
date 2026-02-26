@@ -125,8 +125,7 @@ class ChargePlanSettingDialog(AppSettingDialog):
             self.content_widget.add_widget(self.plus_btn, stretch=1)
 
         for idx, plan in enumerate(plan_list):
-            card = self.card_list[idx]
-            card.init_with_plan(plan, self.config)
+            self.card_list[idx].update_item(plan, idx)
 
         while len(self.card_list) > len(plan_list):
             self.drag_list.remove_item(len(self.card_list) - 1)
@@ -205,5 +204,4 @@ class ChargePlanSettingDialog(AppSettingDialog):
 
         # 更新所有卡片的索引
         for idx, card in enumerate(self.card_list):
-            card.idx = idx
-            card.index = idx
+            card.update_item(card.data, idx)
