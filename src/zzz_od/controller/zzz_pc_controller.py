@@ -16,7 +16,6 @@ class ZPcController(PcControllerBase):
             self,
             game_config: GameConfig,
             win_title: str,
-            is_cloud_game: bool,
             screenshot_method: str,
             standard_width: int = 1920,
             standard_height: int = 1080
@@ -25,8 +24,6 @@ class ZPcController(PcControllerBase):
                                   screenshot_method=screenshot_method,
                                   standard_width=standard_width,
                                   standard_height=standard_height)
-        self.is_cloud_game: bool = is_cloud_game
-
         self.game_config: GameConfig = game_config
         self.key_dodge: str = self.game_config.key_dodge
         self.key_switch_next: str = self.game_config.key_switch_next
@@ -46,12 +43,6 @@ class ZPcController(PcControllerBase):
 
         self.is_moving: bool = False  # 是否正在移动
         self.turn_dx: float = game_config.turn_dx
-
-    @property
-    def is_game_window_ready(self) -> bool:
-        if self.is_cloud_game:
-            return False
-        return PcControllerBase.is_game_window_ready
 
     def fill_uid_black(self, screen: MatLike) -> MatLike:
         """
