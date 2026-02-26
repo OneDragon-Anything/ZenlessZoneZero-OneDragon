@@ -97,7 +97,7 @@ class ScreenContext:
                     log.debug(f"加载yaml: {file_path}")
                     data = yaml_utils.safe_load(file)
                 if not isinstance(data, dict):
-                    log.warning("画面配置格式错误，已跳过: %s", file_path)
+                    log.warning(f"画面配置格式错误，已跳过: {file_path}")
                     continue
 
                 screen_info = ScreenInfo(data)
@@ -115,11 +115,11 @@ class ScreenContext:
                 yaml_data = yaml_utils.safe_load(file)
             if not isinstance(yaml_data, list):
                 if yaml_data is not None:
-                    log.warning("合并画面配置格式错误，已忽略: %s", file_path)
+                    log.warning(f"合并画面配置格式错误，已忽略: {file_path}")
                 yaml_data = []
             for data in yaml_data:
                 if not isinstance(data, dict):
-                    log.warning("合并画面配置中存在非字典条目，已跳过: %s", file_path)
+                    log.warning(f"合并画面配置中存在非字典条目，已跳过: {file_path}")
                     continue
                 screen_info = ScreenInfo(data)
                 self.screen_info_list.append(screen_info)
