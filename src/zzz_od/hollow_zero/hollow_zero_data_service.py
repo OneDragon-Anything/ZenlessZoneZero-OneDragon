@@ -38,7 +38,7 @@ class HallowZeroDataService:
             file_path = os.path.join(dir_path, file_name)
             try:
                 with open(file_path, 'r', encoding='utf-8') as file:
-                    event_list: List[dict] = yaml_utils.safe_load(file)
+                    event_list: list[dict] = yaml_utils.safe_load(file)
                     events = [HallowZeroEvent(**i) for i in event_list]
                     for e in events:
                         e.on_the_right = True
@@ -64,7 +64,7 @@ class HallowZeroDataService:
 
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
-                entry_list: List[dict] = yaml_utils.safe_load(file)
+                entry_list: list[dict] = yaml_utils.safe_load(file)
                 for i in entry_list:
                     entry = HollowZeroEntry(**i)
                     self.entry_list.append(entry)
@@ -86,7 +86,7 @@ class HallowZeroDataService:
 
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
-                entry_list: List[dict] = yaml_utils.safe_load(file)
+                entry_list: list[dict] = yaml_utils.safe_load(file)
                 for i in entry_list:
                     item = Resonium(**i)
                     self.resonium_list.append(item)

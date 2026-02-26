@@ -4,6 +4,7 @@ import time
 
 import cv2
 import numpy as np
+import yaml
 from cv2.typing import MatLike
 
 from one_dragon.base.config.yaml_operator import YamlOperator

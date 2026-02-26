@@ -4,6 +4,7 @@ from typing import List, Dict, Type
 
 import cv2
 import numpy as np
+import yaml
 
 from one_dragon.base.cv_process.cv_pipeline import CvPipeline, CvPipelineContext
 from one_dragon.base.cv_process.cv_step import CvStep
