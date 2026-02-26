@@ -93,14 +93,14 @@ class ChargePlanApp(ZApplication):
             # 如果开启了循环模式且所有计划已完成，重置计划并继续
             if self.config.loop:
                 self.last_tried_plan = None
-                self.config.reset_plans()
+                self.config.reset_plans(self.skip_agent_plan_check)
             else:
                 return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
 
         # 使用循环查找下一个可执行的任务
         while True:
             # 查找下一个未完成的计划
-            candidate_plan = self.config.get_next_plan(self.last_tried_plan)
+            candidate_plan = self.config.get_next_plan(self.last_tried_plan, self.skip_agent_plan_check)
             if candidate_plan is None:
                 return self.round_fail(ChargePlanApp.STATUS_NO_PLAN)
 
