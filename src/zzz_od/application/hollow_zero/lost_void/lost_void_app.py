@@ -790,6 +790,10 @@ class LostVoidApp(ZApplication):
         screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
         if screen_name != '迷失之地-入口':
             return self.round_wait('等待画面加载', wait=1)
+
+        # 清空下一层类型，避免对下一轮造成影响
+        self.next_region_type: LostVoidRegionType = LostVoidRegionType.ENTRY
+
         self.run_record.add_complete_times()
         if self.use_priority_agent:
             self.run_record.complete_task_force_with_up = True
