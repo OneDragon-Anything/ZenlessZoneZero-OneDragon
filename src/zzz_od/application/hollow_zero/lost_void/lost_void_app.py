@@ -210,38 +210,29 @@ class LostVoidApp(ZApplication):
             '迷失之地-入口',
             '按钮-下一步',
             success_wait=1,
-            pre_delay=1,
         )
 
     @node_from(from_name='矩阵行动-点击下一步')
     @operation_node(name='矩阵行动-点击预备编队')
     def matrix_click_preset_team(self) -> OperationRoundResult:
-        # 先点击"预备编队"按钮
-        click_result = self.round_by_find_and_click_area(
-            self.last_screenshot,
-            '迷失之地-矩阵行动',
-            '预备编队',
-            success_wait=1,
-            pre_delay=1,
-        )
-
-        # 如果点击失败，返回失败结果
-        if click_result.status != '预备编队':
-            return click_result
-
-        # 截图并判断该区域是否是彩色的
-        self.screenshot()
         area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '预备编队')
         if area is not None:
             part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
             if cv2_utils.is_colorful(part):
                 # 按钮已变成彩色，说明加载完成
                 return self.round_success(status='预备编队已加载', wait=1)
-            else:
-                # 按钮还是灰度，需要继续点击等待加载
-                return self.round_wait(status='预备编队加载中', wait=0.5)
 
-        return click_result
+        # 按钮还是灰度，需要点击
+        result = self.round_by_find_and_click_area(
+            self.last_screenshot,
+            '迷失之地-矩阵行动',
+            '预备编队',
+            success_wait=1,
+        )
+        if result.is_success:
+            return self.round_wait(status='预备编队加载中', wait=0.5)
+
+        return self.round_retry(status='点击预备编队失败', wait=0.5)
 
     @node_from(from_name='矩阵行动-点击预备编队')
     @operation_node(name='矩阵行动-选择配队')
