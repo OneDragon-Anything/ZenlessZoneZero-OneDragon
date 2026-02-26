@@ -23,7 +23,7 @@ LAUNCHER_EXE = 'OneDragon-Launcher.exe'
 LAUNCHER_BACKUP = 'OneDragon-Launcher.bak.exe'
 LAUNCHER_ZIP_SUFFIX = 'Launcher.zip'
 
-# RuntimeLauncher
+# 集成启动器
 RUNTIME_LAUNCHER_EXE = 'OneDragon-RuntimeLauncher.exe'
 RUNTIME_LAUNCHER_BACKUP = 'OneDragon-RuntimeLauncher.bak.exe'
 RUNTIME_LAUNCHER_ZIP_SUFFIX = 'RuntimeLauncher.zip'
@@ -78,7 +78,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
         # 启动器类型下拉框
         self.type_combo = ComboBox()
         self.type_combo.addItem(gt('原始启动器'), userData='launcher')
-        self.type_combo.addItem('RuntimeLauncher', userData='runtime')
+        self.type_combo.addItem(gt('集成启动器'), userData='runtime')
         self.type_combo.currentIndexChanged.connect(self._on_type_changed)
         self.btn_layout.insertWidget(1, self.type_combo, alignment=Qt.AlignmentFlag.AlignRight)
 
@@ -319,7 +319,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
             except Exception as e:
                 log.error(f'{action}文件失败 {src.name}: {e}')
 
-        # RuntimeLauncher 额外处理 .runtime 目录
+        # 集成启动器额外处理 .runtime 目录
         if self._is_runtime:
             rt_path = work_dir / RUNTIME_DIR
             rt_bak = work_dir / RUNTIME_DIR_BACKUP
@@ -355,7 +355,7 @@ class LauncherDownloadCard(ZipDownloaderSettingCard):
                     log.error(f'删除旧版本遗留文件失败 {legacy_file}: {e}')
 
     def _cleanup_backup(self) -> None:
-        """删除备份的启动器文件（以及 RuntimeLauncher 的 .runtime.bak 目录）。"""
+        """删除备份的启动器文件（以及集成启动器的 .runtime.bak 目录）。"""
         work_dir = Path(os_utils.get_work_dir())
 
         bak_path = work_dir / self._backup_name

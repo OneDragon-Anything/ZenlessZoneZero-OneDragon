@@ -91,11 +91,13 @@ uv run pyinstaller --noconfirm --clean "OneDragon-Installer.spec"
 uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 ```
 
-### 3.3.RuntimeLauncher（运行时内嵌启动器）
+### 3.3.集成启动器（RuntimeLauncher）
+
+> 详细设计文档见 [runtime-launcher.md](runtime-launcher.md)
 
 #### 架构概述
 
-RuntimeLauncher 将 Python 运行时直接嵌入发行包，无需用户单独安装 Python / uv。
+集成启动器将 Python 运行时直接嵌入发行包，无需用户单独安装 Python / uv。
 
 - **PyInstaller 目录模式**：`contents_directory='.runtime'`，运行时文件放在 `.runtime/` 子目录
 - **最小打包**：仅打包 `one_dragon.launcher`、`one_dragon.version` 模块和二进制依赖（pygit2 等）
@@ -117,4 +119,4 @@ uv run pyinstaller --noconfirm --clean "OneDragon-RuntimeLauncher.spec"
 | `deploy/hook_path_inject.py` | 运行时钩子，注入 `src/` 到 `sys.path` |
 | `deploy/generate_module_manifest.py` | 生成外部依赖清单 |
 | `deploy/module_manifest.py` | 自动生成的依赖清单（打包时生成） |
-| `src/zzz_od/win_exe/runtime_launcher.py` | RuntimeLauncher 入口 |
+| `src/zzz_od/win_exe/runtime_launcher.py` | 集成启动器入口 |

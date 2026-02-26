@@ -293,14 +293,14 @@ def main() -> int:
     shutil.copy2(installer_exe, repo_root / "OneDragon-Installer.exe")
     shutil.copy2(launcher_exe, repo_root / "OneDragon-Launcher.exe")
 
-    # 打包两个启动器（RuntimeLauncher 不复制到 repo_root，避免混入 Full/Full-Environment）
+    # 打包两个启动器（集成启动器不复制到 repo_root，避免混入 Full/Full-Environment）
     launcher_zip = dist_dir / "ZenlessZoneZero-OneDragon-Launcher.zip"
     _zip_single_file(launcher_exe, launcher_zip)
 
     runtime_launcher_zip = dist_dir / "ZenlessZoneZero-OneDragon-RuntimeLauncher.zip"
     _zip_dir_contents(runtime_launcher_dir, runtime_launcher_zip, root_prefix="", exclude_prefixes={"src/"})
 
-    # WithRuntime: RuntimeLauncher + src（首次安装用，无需 git clone）
+    # WithRuntime: 集成启动器 + src（首次安装用，无需 git clone）
     with_runtime_zip = dist_dir / f"ZenlessZoneZero-OneDragon-{release_version}-WithRuntime.zip"
     _log(f"Create WithRuntime zip: {with_runtime_zip}")
     _zip_dir_contents(runtime_launcher_dir, with_runtime_zip, root_prefix="")

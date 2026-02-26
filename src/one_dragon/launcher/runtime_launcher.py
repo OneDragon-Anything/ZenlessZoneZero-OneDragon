@@ -6,9 +6,9 @@ from one_dragon.launcher.exe_launcher import ExeLauncher
 
 
 class RuntimeLauncher(ExeLauncher):
-    """Runtime模式启动器基类
+    """集成启动器基类
 
-    用于将 Python 运行时嵌入到应用目录中的启动器。
+    将 Python 运行时嵌入到应用目录中的启动器。
     提供代码同步、控制台隐藏等通用功能。
     """
 
@@ -22,6 +22,7 @@ class RuntimeLauncher(ExeLauncher):
         from one_dragon.envs.env_config import EnvConfig
         from one_dragon.envs.git_service import GitService
         from one_dragon.envs.project_config import ProjectConfig
+        from one_dragon.utils.i18_utils import gt
         from one_dragon.utils.log_utils import log
 
         env_config = EnvConfig()
@@ -29,23 +30,23 @@ class RuntimeLauncher(ExeLauncher):
         first_run = not git_service.check_repo_exists()
 
         if not first_run and not env_config.auto_update:
-            log.info("未开启代码自动更新，跳过")
+            log.info(gt('未开启代码自动更新，跳过'))
             return
 
-        log.info("首次运行，正在同步代码仓库..." if first_run else "正在检查代码更新...")
+        log.info(gt('首次运行，正在同步代码仓库...') if first_run else gt('正在检查代码更新...'))
         success, msg = git_service.fetch_latest_code()
 
         if success:
-            log.info("代码同步完成" if first_run else "代码已是最新")
+            log.info(gt('代码同步完成') if first_run else gt('代码已是最新'))
             # 清除同步过程中加载的模块，避免主程序使用旧版本
             for name in set(sys.modules) - pre_modules:
                 del sys.modules[name]
             importlib.invalidate_caches()
         elif first_run:
-            log.info(f"代码同步失败: {msg}")
+            log.info(f"{gt('代码同步失败')}: {msg}")
             sys.exit(1)
         else:
-            log.info(f"代码更新失败: {msg}")
+            log.info(f"{gt('代码更新失败')}: {msg}")
 
     @staticmethod
     def _hide_console() -> None:
@@ -60,7 +61,7 @@ class RuntimeLauncher(ExeLauncher):
         ctypes.windll.user32.MessageBoxW(
             None,
             f"启动失败，报错信息如下:\n{error_info}",
-            "OneDragon RuntimeLauncher",
+            "OneDragon 集成启动器",
             0x10,  # MB_ICONERROR
         )
         sys.exit(1)

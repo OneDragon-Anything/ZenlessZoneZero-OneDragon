@@ -17,7 +17,7 @@ if not exist "%TARGET_DIR%" (
 copy "%DIST_DIR%\OneDragon-Installer.exe" "%TARGET_DIR%"
 copy "%DIST_DIR%\OneDragon-Launcher.exe" "%TARGET_DIR%"
 
-rem RuntimeLauncher: exe + .runtime 目录
+rem 集成启动器: exe + .runtime 目录
 copy "%DIST_DIR%\OneDragon-RuntimeLauncher\OneDragon-RuntimeLauncher.exe" "%TARGET_DIR%"
 xcopy /E /I /Y "%DIST_DIR%\OneDragon-RuntimeLauncher\.runtime" "%TARGET_DIR%\.runtime\"
 

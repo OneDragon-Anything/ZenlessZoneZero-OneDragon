@@ -258,7 +258,7 @@ jobs:
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-Installer.exe` 为精简安装程序，运行后会自动下载所需的资源。
           - `ZenlessZoneZero-OneDragon-${{ needs.version.outputs.version }}-WithRuntime.zip` 为内嵌运行时 + 源码的独立包（无需安装 Python），解压即用。
           - 如果你想更新启动器，前往主程序【设置】-【资源下载】页面更新，或者下载 `ZenlessZoneZero-OneDragon-Launcher.zip`，解压后替换。
-          - `ZenlessZoneZero-OneDragon-RuntimeLauncher.zip` 为 RuntimeLauncher 更新包（exe + .runtime），用于已有环境的就地升级。
+          - `ZenlessZoneZero-OneDragon-RuntimeLauncher.zip` 为集成启动器更新包（exe + .runtime），用于已有环境的就地升级。
           - __不要下载Source Code__
 
           安装前请查看 [安装指南](https://one-dragon.com/zzz/zh/quickstart.html)
