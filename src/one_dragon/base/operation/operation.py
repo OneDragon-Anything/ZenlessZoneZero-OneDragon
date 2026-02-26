@@ -782,7 +782,6 @@ class Operation(OperationBase):
         until_find_all: list[tuple[str, str]] = None,
         until_not_find_all: list[tuple[str, str]] = None,
         crop_first: bool = True,
-        pre_delay: float = 0.3,
     ) -> OperationRoundResult:
         """在屏幕上查找并点击目标区域。
 
@@ -797,7 +796,6 @@ class Operation(OperationBase):
             until_find_all: 点击直到找到所有目标 [(屏幕, 区域)]。默认为None。
             until_not_find_all: 点击直到未找到所有目标 [(屏幕, 区域)]。默认为None。
             crop_first: 在传入区域时 是否先裁剪再进行文本识别
-            pre_delay: 识别到目标后，等待多少秒再点击。默认0.3秒。
 
         Returns:
             OperationRoundResult: 点击结果。
@@ -848,7 +846,6 @@ class Operation(OperationBase):
             screen_name=screen_name,
             area_name=area_name,
             crop_first=crop_first,
-            pre_delay=pre_delay,
         )
         if click == OcrClickResultEnum.OCR_CLICK_SUCCESS:
             self.node_clicked = True
