@@ -215,21 +215,30 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='矩阵行动-点击下一步')
     @operation_node(name='矩阵行动-点击预备编队')
     def matrix_click_preset_team(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(
+        area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '预备编队')
+        if area is not None:
+            part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
+            if cv2_utils.is_colorful(part):
+                # 按钮已变成彩色，说明加载完成
+                return self.round_success(status='预备编队已加载', wait=1)
+
+        # 按钮还是灰度，需要点击
+        result = self.round_by_find_and_click_area(
             self.last_screenshot,
             '迷失之地-矩阵行动',
             '预备编队',
             success_wait=1,
         )
+        if result.is_success:
+            return self.round_wait(status='预备编队加载中', wait=0.5)
+
+        return self.round_retry(status='点击预备编队失败', wait=0.5)
 
     @node_from(from_name='矩阵行动-点击预备编队')
     @operation_node(name='矩阵行动-选择配队')
     def matrix_select_team(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '编队列表')
-        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
-            image=self.last_screenshot,
-            rect=area.rect,
-        )
+        main_team_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '主战编队槽')
 
         # 获取目标编队名称
         predefined_idx = self.ctx.lost_void.challenge_config.predefined_team_idx
@@ -238,28 +247,85 @@ class LostVoidApp(ZApplication):
         self.ctx.lost_void.predefined_team_idx = predefined_idx
         team_name = self.ctx.team_config.team_list[predefined_idx].name
 
-        # 先点击目标编队
-        for ocr_text in ocr_result_list:
-            if team_name in ocr_text.data:
-                self.ctx.controller.click(ocr_text.center)
-                break
-        else:
-            return self.round_retry(f'未找到{team_name}', wait=0.1)
+        # 往下滚动查找目标配队，最多5次
+        for _ in range(5):
+            ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+                image=self.last_screenshot,
+                rect=area.rect,
+            )
 
-        # 等待画面更新，重新截图OCR
-        time.sleep(0.5)
-        self.screenshot()
+            # 查找目标配队
+            for ocr_text in ocr_result_list:
+                if team_name in ocr_text.data:
+                    self.ctx.controller.click(ocr_text.center)
+                    # 等待画面更新
+                    time.sleep(0.5)
+                    self.screenshot()
+                    # 在主战编队槽区域检测是否出现"主战"
+                    ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+                        image=self.last_screenshot,
+                        rect=main_team_area.rect,
+                    )
+                    for ocr_text in ocr_result_list:
+                        if '主战' in ocr_text.data:
+                            return self.round_success('已选择配队', wait=1)
+                    return self.round_retry('未找到主战', wait=0.5)
+
+            # 未找到，往下滚动
+            self.scroll_area(screen_name='迷失之地-矩阵行动', area_name='编队列表', direction='down')
+            time.sleep(0.3)
+            self.screenshot()
+
+        # 往上滚动查找目标配队，最多5次
+        for _ in range(5):
+            ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+                image=self.last_screenshot,
+                rect=area.rect,
+            )
+
+            # 查找目标配队
+            for ocr_text in ocr_result_list:
+                if team_name in ocr_text.data:
+                    self.ctx.controller.click(ocr_text.center)
+                    # 等待画面更新
+                    time.sleep(0.5)
+                    self.screenshot()
+                    # 在主战编队槽区域检测是否出现"主战"
+                    ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+                        image=self.last_screenshot,
+                        rect=main_team_area.rect,
+                    )
+                    for ocr_text in ocr_result_list:
+                        if '主战' in ocr_text.data:
+                            return self.round_success('已选择配队', wait=1)
+                    return self.round_retry('未找到主战', wait=0.5)
+
+            # 未找到，往上滚动
+            self.scroll_area(screen_name='迷失之地-矩阵行动', area_name='编队列表', direction='up')
+            time.sleep(0.3)
+            self.screenshot()
+
+        # 还是找不到，随机选择一个
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=self.last_screenshot,
             rect=area.rect,
         )
+        if ocr_result_list:
+            # 选择第一个配队
+            self.ctx.controller.click(ocr_result_list[0].center)
+            time.sleep(0.5)
+            self.screenshot()
+            # 在主战编队槽区域检测是否出现"主战"
+            ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+                image=self.last_screenshot,
+                rect=main_team_area.rect,
+            )
+            for ocr_text in ocr_result_list:
+                if '主战' in ocr_text.data:
+                    return self.round_success('已选择配队(随机)', wait=1)
+            return self.round_retry('未找到主战', wait=0.5)
 
-        # 检测是否出现"主战"
-        for ocr_text in ocr_result_list:
-            if '主战' in ocr_text.data:
-                return self.round_success('已选择配队', wait=1)
-
-        return self.round_retry('未找到主战', wait=0.5)
+        return self.round_retry(f'未找到{team_name}', wait=0.1)
 
     @node_from(from_name='矩阵行动-选择配队')
     @operation_node(name='矩阵行动-点击协助代理人')
@@ -283,6 +349,7 @@ class LostVoidApp(ZApplication):
     @operation_node(name='矩阵行动-选择协助代理人')
     def matrix_select_support_agent(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '代理人列表')
+        support_team_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '协战编队槽')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=self.last_screenshot,
             rect=area.rect,
@@ -306,12 +373,12 @@ class LostVoidApp(ZApplication):
         # 等待画面更新，重新截图OCR
         time.sleep(0.5)
         self.screenshot()
+        # 在协战编队槽区域检测是否出现"协战"
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=self.last_screenshot,
-            rect=area.rect,
+            rect=support_team_area.rect,
         )
 
-        # 检测是否出现"协战"
         for ocr_text in ocr_result_list:
             if '协战' in ocr_text.data:
                 return self.round_success('已选择协助代理人')
@@ -714,6 +781,8 @@ class LostVoidApp(ZApplication):
                     self.next_region_type = LostVoidRegionType.from_value(op_result.data)
                 else:
                     self.next_region_type = LostVoidRegionType.ENTRY
+            elif op_result.status == LostVoidRunLevel.STATUS_COMPLETE:
+                self.next_region_type = LostVoidRegionType.ENTRY
 
         return self.round_by_op_result(op_result)
 
@@ -723,6 +792,7 @@ class LostVoidApp(ZApplication):
         screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
         if screen_name != '迷失之地-入口':
             return self.round_wait('等待画面加载', wait=1)
+
         self.run_record.add_complete_times()
         if self.use_priority_agent:
             self.run_record.complete_task_force_with_up = True

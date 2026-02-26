@@ -1191,3 +1191,46 @@ def to_binary(img: MatLike, threshold: int = 127) -> MatLike:
         gray = img
     _, binary = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
     return binary
+
+
+def is_colorful(img: MatLike, saturation_threshold: int = 30, color_ratio_threshold: float = 0.1) -> bool:
+    """
+    判断图像是否为彩色（不是灰度）
+
+    彩色图像的判断依据：
+    1. 饱和度：HSV空间中的S通道平均值高于阈值
+    2. 颜色占比：具有明显饱和度的像素占比高于阈值
+
+    Args:
+        img: 输入图像（RGB格式）
+        saturation_threshold: 饱和度阈值，低于此值认为是不饱和的（灰度）。默认30
+        color_ratio_threshold: 彩色像素占比阈值。默认0.1（10%）
+
+    Returns:
+        bool: True 表示是彩色的，False 表示接近灰度
+    """
+    if img is None or img.size == 0:
+        return False
+
+    # 确保是彩色图像
+    if len(img.shape) != 3 or img.shape[2] != 3:
+        return False
+
+    # 转换为HSV颜色空间
+    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+
+    # 获取饱和度通道（S通道）
+    s_channel = hsv[:, :, 1]
+
+    # 方法1：计算饱和度均值
+    mean_saturation = np.mean(s_channel)
+
+    # 方法2：计算具有明显饱和度的像素比例
+    saturated_pixels = np.sum(s_channel > saturation_threshold)
+    total_pixels = s_channel.size
+    color_ratio = saturated_pixels / total_pixels
+
+    # 判断条件：饱和度均值高于阈值 且 彩色像素占比高于阈值
+    is_colorful = mean_saturation > saturation_threshold and color_ratio > color_ratio_threshold
+
+    return is_colorful

@@ -952,6 +952,32 @@ class Operation(OperationBase):
         else:
             return self.round_retry(status=f'未找到 {area_name}', wait=retry_wait, wait_round_time=retry_wait_round)
 
+    def scroll_area(
+            self,
+            screen_name: str | None = None,
+            area_name: str | None = None,
+            direction: str = 'down',
+            start_ratio: float = 0.9,
+            end_ratio: float = 0.1,
+    ) -> None:
+        """在指定区域内滚动屏幕。
+
+        Args:
+            screen_name: 屏幕名称。默认为None。
+            area_name: 区域名称。默认为None。
+            direction: 滚动方向，'down' 表示往下滚（从下往上滑），'up' 表示往上滚（从上往下滑）
+            start_ratio: 起始位置比例（距顶部的比例）。默认0.9，即区域底部10%处
+            end_ratio: 结束位置比例（距顶部的比例）。默认0.1，即区域顶部10%处
+        """
+        if screen_name is None or area_name is None:
+            return
+
+        area = self.ctx.screen_loader.get_area(screen_name, area_name)
+        if area is None:
+            return
+
+        screen_utils.scroll_area(self.ctx, area, direction, start_ratio, end_ratio)
+
     def round_by_click_area(
             self, screen_name: str, area_name: str, click_left_top: bool = False,
             pre_delay: float = 0.0,
