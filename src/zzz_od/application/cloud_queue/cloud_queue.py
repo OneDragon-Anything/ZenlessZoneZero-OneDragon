@@ -14,7 +14,7 @@ class CloudGameQueue(ZOperation):
     """
 
     def __init__(self, ctx: ZContext):
-        ZOperation.__init__(self, ctx, op_name=gt('云游戏排队'))
+        ZOperation.__init__(self, ctx, op_name=gt('云游戏排队'), need_check_game_win=False)
 
     @node_from(from_name='画面识别', status='国服PC云-点击空白区域关闭')
     @operation_node(name='画面识别', node_max_retry_times=60, is_start_node=True)

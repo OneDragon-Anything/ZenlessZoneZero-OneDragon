@@ -6,7 +6,7 @@ class CloudQueueConfig(ApplicationConfig):
     def __init__(self, instance_idx: int, group_id: str):
         ApplicationConfig.__init__(
             self,
-            module_name='cloud_queue',
+            app_id='cloud_queue',
             instance_idx=instance_idx,
             group_id=group_id,
         )

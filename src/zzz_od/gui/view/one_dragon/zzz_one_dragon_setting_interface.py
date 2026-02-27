@@ -105,12 +105,11 @@ class ZOneDragonSettingInterface(VerticalScrollInterface):
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
-        self.cloud_queue_config = self.ctx.run_context.get_config(
-            app_id='cloud_queue',
+        self.cloud_queue_config = CloudQueueConfig(
             instance_idx=self.ctx.current_instance_idx,
             group_id=self.group_id,
         )
-        self.bangbang_fast_queue_opt.init_with_adapter(self.cloud_queue_config.get_prop_adapter('prefer_bangbang_points'))
+        self.bangbang_fast_queue_opt.init_with_adapter(get_prop_adapter(self.cloud_queue_config, 'prefer_bangbang_points'))
 
         self.random_play_config = self.ctx.run_context.get_config(
             app_id='random_play',

@@ -39,9 +39,13 @@ class ZOperation(Operation, TelemetryOperationMixin):
         """
         # 如果是云游戏 那么先阻塞运行CloudGameQueue
         if self.ctx.game_account_config.is_cloud_game:
-            from zzz_od.application.cloud_queue.cloud_queue import CloudGameQueue
-            cloud_queue_op = CloudGameQueue(self.ctx)
-            return self.round_by_op_result(cloud_queue_op.execute())
+            screen = self.screenshot()
+            switch_window_result = self.round_by_find_area(screen, '云游戏', '国服PC云-切换窗口')
+            if switch_window_result.is_success:
+                from zzz_od.application.cloud_queue.cloud_queue import CloudGameQueue
+                cloud_queue_op = CloudGameQueue(self.ctx)
+                return self.round_by_op_result(cloud_queue_op.execute())
+            else: return self.round_success(status='无需排队')
 
         # 对于非云游戏模式，直接返回成功
         return self.round_success()
