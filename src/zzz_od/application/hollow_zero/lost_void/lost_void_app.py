@@ -337,18 +337,16 @@ class LostVoidApp(ZApplication):
                           self.ctx.lost_void.challenge_config.agent_3]
         # agent_list_str = ['anby', 'yeshunguang', 'ellen']
         # 记录角色在第几页的哪个位置
-        agent_page_match_list: list[[int, Point ] | None] = [None] * len(agent_list_str)
+        agent_page_match_list: list[[int, Point] | None] = [None] * len(agent_list_str)
 
-        # 1. 从屏幕右半边去掉人
-        area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '主战编队')
-        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
-            image=self.last_screenshot,
-            rect=area.rect,
-        )
+        # 1. 从屏幕右上半边去掉人
+        top_right_half_screen = self.last_screenshot[:self.ctx.controller.standard_width // 2,
+                                self.ctx.controller.standard_width // 2:, :]
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(top_right_half_screen)
         # 检测是否出现"主战"
         for ocr_text in ocr_result_list:
             if '主战' in ocr_text.data:
-                self.ctx.controller.click(ocr_text.center)
+                self.ctx.controller.click(ocr_text.center + Point(self.ctx.controller.standard_width // 2, 0))
                 time.sleep(0.5)
 
         # 2. 找人
