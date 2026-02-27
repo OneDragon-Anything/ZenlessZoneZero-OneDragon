@@ -354,7 +354,7 @@ class LostVoidApp(ZApplication):
         # 滑动翻页点位
         page_start = Point(self.ctx.controller.standard_width // 4, self.ctx.controller.standard_height // 4 * 3)
         page_end = Point(self.ctx.controller.standard_width // 4, self.ctx.controller.standard_height // 4)
-        max_swipe_times = 3
+        max_swipe_times = 5
         for page in range(max_swipe_times):
             # 从取屏幕左半边选人
             left_half_screen = self.last_screenshot[:, :self.ctx.controller.standard_width // 2, :]
@@ -381,11 +381,12 @@ class LostVoidApp(ZApplication):
             return self.round_retry('未找齐代理人')
 
         # 3. 选人
+        self.swipe_multiple_times(1 + page, 0.2, page_end, page_start)
         for agent_loc in range(len(agent_page_match_list)):
-            self.swipe_multiple_times(max_swipe_times, 0.2, page_end, page_start)
             self.swipe_multiple_times(agent_page_match_list[agent_loc][0], 0.2, page_start, page_end)
             self.ctx.controller.click(agent_page_match_list[agent_loc][1])
             time.sleep(0.5)
+            self.swipe_multiple_times(1 + agent_page_match_list[agent_loc][0], 0.2, page_end, page_start)
 
         return self.round_success()
 
