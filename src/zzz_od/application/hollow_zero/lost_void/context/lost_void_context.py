@@ -408,6 +408,9 @@ class LostVoidContext:
             if closest_artifact_pos is not None:
                 if title_idx == 0:  # 有同流派武备
                     closest_artifact_pos.has_same_style = True
+                    # “有同流派武备”在该场景可视作已选状态，避免重复点击同一项。
+                    closest_artifact_pos.chosen = True
+                    closest_artifact_pos.can_choose = False
                 elif title_idx == 1:  # 已选择
                     closest_artifact_pos.chosen = True
                     closest_artifact_pos.can_choose = False
@@ -633,38 +636,62 @@ class LostVoidContext:
         :param consider_priority_new: 是否优先选择NEW类型 最高优先级
         :return: 按优先级选择的结果
         """
+        def fmt_artifact(pos: LostVoidArtifactPos, idx: int | None = None) -> str:
+            prefix = f'#{idx} ' if idx is not None else ''
+            return (
+                f'{prefix}{pos.artifact.display_name}'
+                f' [分类={pos.artifact.category} 等级={pos.artifact.level} 主选={pos.is_primary_name} NEW={pos.is_new}]'
+                f' [坐标=({pos.rect.center.x},{pos.rect.center.y})]'
+            )
+
+        raw_artifact_list = list(artifact_list)
+        raw_text = '; '.join([fmt_artifact(pos, idx) for idx, pos in enumerate(raw_artifact_list)]) if len(raw_artifact_list) > 0 else '无'
+        log.debug(f'优先级输入候选(去重前) 共{len(raw_artifact_list)}个: {raw_text}')
+
         artifact_list = self.remove_overlapping_artifacts(artifact_list)
         artifact_list = sorted(artifact_list, key=lambda i: (i.rect.center.x, i.rect.center.y))
 
-        log.info(f'当前考虑优先级 数量={choose_num} NEW!={consider_priority_new} 第一优先级={consider_priority_1} 第二优先级={consider_priority_2} 其他={consider_not_in_priority}')
-        
+        log.debug(f'当前考虑优先级 数量={choose_num} NEW!={consider_priority_new} 第一优先级={consider_priority_1} 第二优先级={consider_priority_2} 其他={consider_not_in_priority}')
+        dedup_text = '; '.join([fmt_artifact(pos, idx) for idx, pos in enumerate(artifact_list)]) if len(artifact_list) > 0 else '无'
+        log.debug(f'优先级输入候选(去重后) 共{len(artifact_list)}个: {dedup_text}')
+
         # 合并动态优先级和静态优先级
         priority_list_to_consider = []
-        
+
         final_priority_list_1 = self.dynamic_priority_list.copy()
         if consider_priority_1 and self.challenge_config.artifact_priority:
             final_priority_list_1.extend(self.challenge_config.artifact_priority)
         priority_list_to_consider.append(final_priority_list_1)
-        
+
         if consider_priority_2 and self.challenge_config.artifact_priority_2:
             priority_list_to_consider.append(self.challenge_config.artifact_priority_2)
 
         if len(priority_list_to_consider) == 0:  # 两个优先级都是空的时候 强制考虑非优先级的
             consider_not_in_priority = True
 
+        p1_text = ', '.join(final_priority_list_1) if len(final_priority_list_1) > 0 else '空'
+        p2_text = ', '.join(self.challenge_config.artifact_priority_2) if consider_priority_2 and len(self.challenge_config.artifact_priority_2) > 0 else '空'
+        log.debug(f'优先级规则 第一优先级={p1_text}')
+        log.debug(f'优先级规则 第二优先级={p2_text}')
+
         priority_idx_list: List[int] = []  # 优先级排序的下标
+        choose_reason_map: dict[int, str] = {}
         ignored_idx_set = set(ignore_idx_list) if ignore_idx_list is not None else set()
         all_idx_list = [i for i in range(len(artifact_list)) if i not in ignored_idx_set]
         primary_idx_list = [i for i in all_idx_list if artifact_list[i].is_primary_name]
         secondary_idx_list = [i for i in all_idx_list if not artifact_list[i].is_primary_name]
+        ignored_text = ', '.join([str(i) for i in sorted(list(ignored_idx_set))]) if len(ignored_idx_set) > 0 else '无'
+        log.debug(f'优先级分组 忽略下标={ignored_text} 主选下标={primary_idx_list} 次选下标={secondary_idx_list}')
 
-        def add_idx_if_absent(target_idx: int) -> None:
+        def add_idx_if_absent(target_idx: int, reason: str) -> None:
             if target_idx in priority_idx_list:
                 return
             priority_idx_list.append(target_idx)
+            choose_reason_map[target_idx] = reason
+            log.debug(f'候选入队 {fmt_artifact(artifact_list[target_idx], target_idx)} 原因={reason}')
 
         # 规则：先主选，再次选
-        for group_idx_list in [primary_idx_list, secondary_idx_list]:
+        for group_name, group_idx_list in [('主选', primary_idx_list), ('次选', secondary_idx_list)]:
             # 1) 主次组内先考虑NEW
             if consider_priority_new:
                 for level in ['S', 'A', 'B', '?']:
@@ -678,23 +705,31 @@ class LostVoidContext:
                             continue
                         if level == '?' and pos.artifact.level in ['S', 'A', 'B']:
                             continue
-                        add_idx_if_absent(idx)
+                        add_idx_if_absent(idx, f'{group_name}-NEW优先 命中等级={level}')
 
             # 2) 按优先级文本匹配（坐标顺序作为同优先级稳定序）
-            for priority_list in priority_list_to_consider:
+            for list_idx, priority_list in enumerate(priority_list_to_consider):
+                list_name = '第一优先级' if list_idx == 0 else f'第二优先级{list_idx}'
                 for priority_rule in priority_list:
+                    matched_idx_list: list[int] = []
                     for idx in group_idx_list:
                         if idx in priority_idx_list:
                             continue
                         if self._is_priority_rule_match(artifact_list[idx], priority_rule):
-                            add_idx_if_absent(idx)
+                            matched_idx_list.append(idx)
+                            add_idx_if_absent(idx, f'{group_name}-{list_name} 命中规则="{priority_rule}"')
+                    if len(matched_idx_list) > 0:
+                        hit_text = ', '.join([fmt_artifact(artifact_list[idx], idx) for idx in matched_idx_list])
+                        log.debug(f'规则命中 {group_name}-{list_name} 规则="{priority_rule}" 命中={hit_text}')
+                    else:
+                        log.debug(f'规则未命中 {group_name}-{list_name} 规则="{priority_rule}"')
 
             # 3) 其余候选按坐标顺序补齐
             if consider_not_in_priority:
                 for idx in group_idx_list:
                     if idx in priority_idx_list:
                         continue
-                    add_idx_if_absent(idx)
+                    add_idx_if_absent(idx, f'{group_name}-非优先级补位')
 
         result_list: List[LostVoidArtifactPos] = []
         for i in range(choose_num):
@@ -703,7 +738,16 @@ class LostVoidContext:
             result_list.append(artifact_list[priority_idx_list[i]])
 
         display_text = ','.join([i.artifact.display_name for i in result_list]) if len(result_list) > 0 else '无'
-        log.info(f'当前符合优先级列表 {display_text}')
+        selected_detail = []
+        for i, pos in enumerate(result_list):
+            idx = priority_idx_list[i]
+            reason = choose_reason_map.get(idx, '未知原因')
+            selected_detail.append(f'{fmt_artifact(pos, idx)} 原因={reason}')
+        selected_text = '; '.join(selected_detail) if len(selected_detail) > 0 else '无'
+        queue_text = ', '.join([str(i) for i in priority_idx_list]) if len(priority_idx_list) > 0 else '空'
+        log.debug(f'优先级入队顺序 下标={queue_text}')
+        log.debug(f'当前符合优先级列表 {display_text}')
+        log.debug(f'最终选择明细 {selected_text}')
 
         return result_list
 
@@ -732,7 +776,7 @@ class LostVoidContext:
                 next_art = sorted_artifacts[j]
                 x_distance = abs(current_art.rect.center.x - next_art.rect.center.x)
 
-                if x_distance < 200:  # 横坐标太近
+                if x_distance < 100:  # 横坐标太近
                     overlapping_arts.append(next_art)
                     log.debug(f'发现重叠藏品: {current_art.artifact.display_name} 和 {next_art.artifact.display_name}, 距离: {x_distance}')
                     j += 1

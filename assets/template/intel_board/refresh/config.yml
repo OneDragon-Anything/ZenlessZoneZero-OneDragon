@@ -1,0 +1,8 @@
+sub_dir: intel_board
+template_id: refresh
+template_name: 情报板-刷新
+template_shape: circle
+auto_mask: true
+point_list:
+- 831, 1028
+- 856, 1028

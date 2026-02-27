@@ -285,6 +285,51 @@ def find_and_click_area(
         return OcrClickResultEnum.OCR_CLICK_SUCCESS
 
 
+def scroll_area(
+    ctx: OneDragonContext,
+    area: ScreenArea,
+    direction: str = 'down',
+    start_ratio: float = 0.9,
+    end_ratio: float = 0.1,
+) -> None:
+    """
+    在指定区域内滚动屏幕
+
+    Args:
+        ctx: 运行上下文
+        area: 区域
+        direction: 滚动方向，'down' 表示往下滚（从下往上滑），'up' 表示往上滚（从上往下滑）
+        start_ratio: 起始位置比例（距顶部的比例）。默认0.9，即区域底部10%处
+        end_ratio: 结束位置比例（距顶部的比例）。默认0.1，即区域顶部10%处
+    """
+    rect = area.rect
+    height = rect.height
+
+    # 统一按“距顶部比例”计算位置，避免 start/end 计算成同一点
+    start_ratio = max(0.0, min(1.0, start_ratio))
+    end_ratio = max(0.0, min(1.0, end_ratio))
+    y_start = rect.y1 + int(height * start_ratio)
+    y_end = rect.y1 + int(height * end_ratio)
+
+    if direction == 'up':
+        # 往上滚：手势从上往下划
+        start = Point(rect.center.x, y_end)
+        end = Point(rect.center.x, y_start)
+    else:
+        # 往下滚：手势从下往上划
+        start = Point(rect.center.x, y_start)
+        end = Point(rect.center.x, y_end)
+
+    # 防止极端情况下 start/end 重合导致“看起来没有滚动”
+    if start.y == end.y:
+        if start.y >= rect.center.y:
+            end = Point(end.x, max(rect.y1 + 1, end.y - 1))
+        else:
+            end = Point(end.x, min(rect.y2 - 1, end.y + 1))
+
+    ctx.controller.drag_to(start=start, end=end)
+
+
 def get_match_screen_name(
     ctx: OneDragonContext,
     screen: MatLike,

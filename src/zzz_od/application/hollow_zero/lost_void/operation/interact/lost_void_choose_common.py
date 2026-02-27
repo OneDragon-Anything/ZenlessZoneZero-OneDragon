@@ -1,4 +1,5 @@
 import time
+import re
 
 from cv2.typing import MatLike
 from typing import Optional
@@ -30,6 +31,8 @@ class LostVoidChooseCommon(ZOperation):
         self.to_choose_gear_branch: bool = False  # 需要选择武备分支
         self.to_choose_num: int = 1  # 需选数量（本轮总目标）
         self.chosen_idx_list: list[int] = []  # 已经选择过的下标
+        self.fallback_click_count: int = 0  # 按钮计数缺失时，使用本轮点击次数作为兜底
+        self.last_choose_target_num: int = 0  # 记录上一轮目标数量，用于重置点击计数
 
     @operation_node(name='选择', is_start_node=True)
     def choose_artifact(self) -> OperationRoundResult:
@@ -38,11 +41,18 @@ class LostVoidChooseCommon(ZOperation):
         time.sleep(0.1)
 
         art_list, chosen_list = self.get_artifact_pos(self.last_screenshot)
+        if self.to_choose_num <= 0:
+            self.fallback_click_count = 0
+            self.last_choose_target_num = 0
         if self.to_choose_num > 0:
+            if self.last_choose_target_num != self.to_choose_num:
+                self.fallback_click_count = 0
+                self.last_choose_target_num = self.to_choose_num
+            chosen_cnt = self.get_effective_chosen_count(self.last_screenshot, chosen_list, self.to_choose_num)
             log.info(
-                f'选择概览 需选数量={self.to_choose_num} 已选数量={len(chosen_list)} 可选数量={len(art_list)}'
+                f'选择概览 需选数量={self.to_choose_num} 已选数量={chosen_cnt} 可选数量={len(art_list)}'
             )
-            if len(chosen_list) >= self.to_choose_num:
+            if chosen_cnt >= self.to_choose_num:
                 return self.click_confirm()
 
             # 四层流程：NEW -> 同流派 -> 优先级 -> 兜底
@@ -53,69 +63,89 @@ class LostVoidChooseCommon(ZOperation):
             # 兜底：无条件点击可见文本块后直接确认，避免卡死。
             self.try_choose_by_click_name_text(target_num=self.to_choose_num)
 
+            # 关键修正：多选场景必须选满后才能确认，避免“1/2就点确定”导致卡死/退出。
+            _, latest_screen = self.ctx.controller.screenshot()
+            _, final_chosen_list = self.get_artifact_pos(latest_screen)
+            final_chosen_cnt = self.get_effective_chosen_count(latest_screen, final_chosen_list, self.to_choose_num)
+            if final_chosen_cnt < self.to_choose_num:
+                return self.round_retry(
+                    status=f'未选满 目标={self.to_choose_num} 当前={final_chosen_cnt}',
+                    wait=0.5
+                )
+
         return self.click_confirm()
 
     def select_by_layers(self, target_num: int) -> bool:
-        layer_order = ['NEW', '同流派', '优先级']
-
-        for layer in layer_order:
+        # 选择策略：
+        # 1) 先取NEW候选（无需试探点击）
+        # 2) 再取优先级候选
+        # 3) 合并去重后仅点击第一个，然后重算
+        for _ in range(12):
             _, current_screen = self.ctx.controller.screenshot()
             can_choose_list, chosen_list = self.get_artifact_pos(current_screen)
-            chosen_cnt = len(chosen_list)
+            chosen_cnt = self.get_effective_chosen_count(current_screen, chosen_list, target_num)
             if chosen_cnt >= target_num:
                 return True
 
-            need_cnt = target_num
             remain_cnt = target_num - chosen_cnt
-            candidate_list: list[LostVoidArtifactPos] = []
             available_list = [i for i in can_choose_list if i.can_choose]
-
             if len(available_list) == 0:
                 continue
 
-            if layer == 'NEW':
-                if self.ctx.lost_void.challenge_config.artifact_priority_new:
-                    candidate_list = self.sort_candidates([
-                        i for i in available_list if i.is_new
-                    ])[:remain_cnt]
-            elif layer == '同流派':
-                candidate_list = self.sort_candidates([
-                    i for i in available_list if i.has_same_style
-                ])[:remain_cnt]
-            elif layer == '优先级':
-                if self.has_priority_rule():
-                    candidate_list = self.ctx.lost_void.get_artifact_by_priority(
-                        available_list, remain_cnt,
-                        consider_priority_1=True,
-                        consider_priority_2=True,
-                        consider_not_in_priority=False,
-                        consider_priority_new=False,
-                    )
+            new_list: list[LostVoidArtifactPos] = []
+            if self.ctx.lost_void.challenge_config.artifact_priority_new:
+                new_list = self.sort_candidates([i for i in available_list if i.is_new])
 
-            if len(candidate_list) == 0:
+            priority_list: list[LostVoidArtifactPos] = []
+            if self.has_priority_rule():
+                # 用当前排序规则产出优先级候选顺序
+                priority_list = self.ctx.lost_void.get_artifact_by_priority(
+                    available_list, len(available_list),
+                    consider_priority_1=True,
+                    consider_priority_2=True,
+                    consider_not_in_priority=False,
+                    consider_priority_new=False,
+                )
+
+            merged_list: list[LostVoidArtifactPos] = []
+            used_center_set: set[tuple[int, int]] = set()
+            for item in new_list + priority_list:
+                key = (item.rect.center.x, item.rect.center.y)
+                if key in used_center_set:
+                    continue
+                used_center_set.add(key)
+                merged_list.append(item)
+
+            if len(merged_list) == 0:
                 continue
 
-            display_text = ', '.join([i.artifact.display_name for i in candidate_list])
+            new_text = ', '.join([i.artifact.display_name for i in new_list]) if len(new_list) > 0 else '无'
+            priority_text = ', '.join([i.artifact.display_name for i in priority_list]) if len(priority_list) > 0 else '无'
+            merged_text = ', '.join([i.artifact.display_name for i in merged_list]) if len(merged_list) > 0 else '无'
             log.info(
-                f'分层选择 [{layer}] 需选数量={need_cnt} 已选数量={chosen_cnt} 可选数量={len(available_list)} '
-                f'还需选择={remain_cnt} 本层待点={len(candidate_list)} {display_text}'
+                f'组合选择 需选={target_num} 已选={chosen_cnt} 还需={remain_cnt} 可选={len(available_list)} '
+                f'NEW={new_text} 优先级={priority_text} 合并后={merged_text}'
             )
-            for artifact_pos in candidate_list:
-                self.ctx.controller.click(artifact_pos.rect.center)
-                time.sleep(0.3)
-                # 每次点击后立即复核，达标就立刻退出，避免“已满足仍继续点下一层”
-                if self._reached_target_choose_num(target_num):
-                    return True
+
+            target = merged_list[0]
+            log.info(f'组合选择 本轮点击 {target.artifact.display_name} @({target.rect.center.x},{target.rect.center.y})')
+            self.ctx.controller.click(target.rect.center)
+            self.fallback_click_count += 1
+            time.sleep(0.3)
+            if self._reached_target_choose_num(target_num):
+                return True
 
         _, final_screen = self.ctx.controller.screenshot()
         _, final_chosen_list = self.get_artifact_pos(final_screen)
-        return len(final_chosen_list) >= target_num
+        final_chosen_cnt = self.get_effective_chosen_count(final_screen, final_chosen_list, target_num)
+        return final_chosen_cnt >= target_num
 
     def _reached_target_choose_num(self, target_num: int) -> bool:
         for _ in range(3):
             _, latest_screen = self.ctx.controller.screenshot()
             _, chosen_list = self.get_artifact_pos(latest_screen)
-            if len(chosen_list) >= target_num:
+            chosen_cnt = self.get_effective_chosen_count(latest_screen, chosen_list, target_num)
+            if chosen_cnt >= target_num:
                 return True
             time.sleep(0.2)
         return False
@@ -222,7 +252,8 @@ class LostVoidChooseCommon(ZOperation):
         for _ in range(12):
             _, current_screen = self.ctx.controller.screenshot()
             can_choose_list, chosen_list = self.get_artifact_pos(current_screen)
-            if len(chosen_list) >= target_num:
+            chosen_cnt = self.get_effective_chosen_count(current_screen, chosen_list, target_num)
+            if chosen_cnt >= target_num:
                 log.info('兜底点击藏品成功 通过can_choose达到目标数量')
                 return True
 
@@ -243,16 +274,63 @@ class LostVoidChooseCommon(ZOperation):
 
             self.ctx.controller.click(target.rect.center)
             tried_center_list.append(target.rect.center)
+            self.fallback_click_count += 1
             time.sleep(0.3)
 
         _, final_screen = self.ctx.controller.screenshot()
         _, chosen_after = self.get_artifact_pos(final_screen)
-        if len(chosen_after) >= target_num:
+        chosen_after_cnt = self.get_effective_chosen_count(final_screen, chosen_after, target_num)
+        if chosen_after_cnt >= target_num:
             log.info('兜底点击藏品成功 can_choose结束后达到目标数量')
             return True
 
         log.info('兜底点击藏品结束 can_choose候选耗尽仍未达到目标数量')
-        return len(tried_center_list) > 0
+        return False
+
+    def get_effective_chosen_count(
+        self,
+        screen: MatLike,
+        chosen_list: list[LostVoidArtifactPos],
+        target_num: int | None = None,
+    ) -> int:
+        """
+        获取已选数量：
+        1. 优先使用按钮“确定(x/y)”中的x计数
+        2. 按钮计数无法识别时，使用本轮点击次数兜底
+        """
+        confirm_cnt = self._get_chosen_count_from_confirm_button(screen, target_num)
+        if confirm_cnt is not None:
+            # 以按钮计数为准，同时同步兜底计数，避免后续切换来源时出现突变。
+            self.fallback_click_count = confirm_cnt
+            return confirm_cnt
+        log.debug(f'按钮计数未命中，使用点击次数兜底={self.fallback_click_count}')
+        return self.fallback_click_count
+
+    def _get_chosen_count_from_confirm_button(self, screen: MatLike, target_num: int | None = None) -> int | None:
+        area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '按钮-确定')
+        ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
+            image=screen,
+            rect=area.rect,
+            crop_first=True
+        )
+
+        chosen_cnt: int | None = None
+        for text in ocr_result_map.keys():
+            normalized = text.strip().replace('（', '(').replace('）', ')')
+            match = re.search(r'(\d+)\s*/\s*(\d+)', normalized)
+            if match is None:
+                continue
+            current_cnt = int(match.group(1))
+            total_cnt = int(match.group(2))
+            if target_num is not None and total_cnt != target_num:
+                log.debug(f'按钮计数忽略 文本={text} 解析={current_cnt}/{total_cnt} 目标={target_num}')
+                continue
+            if chosen_cnt is None or current_cnt > chosen_cnt:
+                chosen_cnt = current_cnt
+
+        if chosen_cnt is not None:
+            log.debug(f'按钮计数命中 已选={chosen_cnt} 目标={target_num}')
+        return chosen_cnt
 
     def get_name_text_click_target_list(self, screen: MatLike) -> list[MatchResult]:
         area = self.ctx.screen_loader.get_area('迷失之地-通用选择', '区域-藏品名称')

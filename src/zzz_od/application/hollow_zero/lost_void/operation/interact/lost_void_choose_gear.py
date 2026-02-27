@@ -144,7 +144,7 @@ class LostVoidChooseGear(ZOperation):
         gear_context: Any,
     ) -> tuple[list[LostVoidArtifactPos], list[bool]]:
         """
-        逐个点击武备，等待1秒截图，裁剪“武备名称”区域，9张纵向拼图后统一OCR。
+        逐个点击武备，等待1秒截图，裁剪“武备名称”区域，按实际数量纵向拼图后统一OCR。
         按从上到下的OCR结果回填到从左到右的武备槽位。
         """
         if len(gear_with_status) == 0:
@@ -153,9 +153,7 @@ class LostVoidChooseGear(ZOperation):
         name_area = self.ctx.screen_loader.get_area('迷失之地-武备选择', '武备名称')
         gear_abs_pairs = gear_context.get_absolute_rect_pairs()
         gear_abs_pairs.sort(key=lambda item: item[1][0])
-        gear_abs_pairs = gear_abs_pairs[:9]
         sorted_status_list = sorted(gear_with_status, key=lambda item: cv2.boundingRect(item[0])[0])
-        sorted_status_list = sorted_status_list[:9]
 
         slice_list: list[MatLike] = []
         click_rect_list: list[Rect] = []
@@ -237,7 +235,7 @@ class LostVoidChooseGear(ZOperation):
         if len(normalized) == 0:
             return None, False
 
-        match = re.match(r'^\[(.+?)\](.+)$', normalized)
+        match = re.search(r'\[(.+?)\](.+)$', normalized)
         if match is not None:
             raw_category = match.group(1).strip()
             raw_name = match.group(2).strip()
@@ -248,7 +246,8 @@ class LostVoidChooseGear(ZOperation):
                 category = raw_category
             return LostVoidArtifact(category=category, name=raw_name, level='?', is_gear=True), True
 
-        return LostVoidArtifact(category='无详情', name=normalized, level='?', is_gear=True), False
+        # 武备选择仅接受 [分类]名称 结构，其他OCR结果直接丢弃。
+        return None, False
 
     @node_from(from_name='选择武备')
     @operation_node(name='点击携带')
