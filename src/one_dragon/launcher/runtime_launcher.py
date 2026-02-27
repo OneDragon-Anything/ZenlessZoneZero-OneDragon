@@ -12,7 +12,7 @@ class RuntimeLauncher(ExeLauncher):
     提供代码同步、控制台隐藏等通用功能。
     """
 
-    def __init__(self, description: str, version: str):
+    def __init__(self, description: str, version: str) -> None:
         ExeLauncher.__init__(self, description, version)
 
     def _sync_code(self) -> None:

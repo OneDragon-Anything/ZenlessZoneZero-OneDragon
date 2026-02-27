@@ -282,6 +282,7 @@ def main() -> int:
     installer_exe = dist_dir / "OneDragon-Installer.exe"
     launcher_exe = dist_dir / "OneDragon-Launcher.exe"
     runtime_launcher_dir = dist_dir / "OneDragon-RuntimeLauncher"
+    runtime_launcher_exe = runtime_launcher_dir / "OneDragon-RuntimeLauncher.exe"
 
     if not installer_exe.exists():
         raise SystemExit(f"Missing {installer_exe}")
@@ -289,6 +290,8 @@ def main() -> int:
         raise SystemExit(f"Missing {launcher_exe}")
     if not runtime_launcher_dir.exists():
         raise SystemExit(f"Missing {runtime_launcher_dir}")
+    if not runtime_launcher_exe.exists():
+        raise SystemExit(f"Missing {runtime_launcher_exe}")
 
     shutil.copy2(installer_exe, repo_root / "OneDragon-Installer.exe")
     shutil.copy2(launcher_exe, repo_root / "OneDragon-Launcher.exe")

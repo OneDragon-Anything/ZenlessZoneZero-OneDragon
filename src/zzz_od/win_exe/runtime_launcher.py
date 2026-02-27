@@ -20,7 +20,7 @@ if not _SRC_DIR.is_dir():
 class ZLauncher(RuntimeLauncher):
     """绝区零启动器"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         RuntimeLauncher.__init__(self, "绝区零 一条龙 启动器", __version__)
 
     def _do_run_onedragon(self, launch_args: list[str]) -> None:
