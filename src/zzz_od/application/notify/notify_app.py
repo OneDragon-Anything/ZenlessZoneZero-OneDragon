@@ -66,7 +66,7 @@ class NotifyApp(ZApplication):
                 failure.append(app_config.app_name)
                 self.exist_failure = True
 
-        parts = [f"一条龙运行完成："]
+        parts = ["一条龙运行完成："]
         if charge_power_text is not None:
             parts.append(charge_power_text)
         has_failure = bool(failure)
