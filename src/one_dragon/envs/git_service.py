@@ -1,11 +1,14 @@
 import contextlib
+import sys
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+import yaml
 from packaging import version
 from pygit2 import (
+    Blob,
     Oid,
     Remote,
     Repository,
@@ -279,6 +282,110 @@ class GitService:
             log.error('获取commit遍历器失败', exc_info=True)
             return None
 
+    def _get_file_at_commit(self, commit_oid: Oid, file_path: str) -> bytes | None:
+        """获取指定 commit 中某文件的内容
+
+        Args:
+            commit_oid: 提交 OID
+            file_path: 相对于仓库根目录的文件路径（如 'deploy/module_manifest.py'）
+
+        Returns:
+            文件内容的字节，文件不存在时返回 None
+        """
+        try:
+            repo = self._open_repo()
+            obj = repo.revparse_single(f'{commit_oid}:{file_path}')
+            if isinstance(obj, Blob):
+                return obj.data
+            return None
+        except (KeyError, ValueError):
+            return None
+
+    # ================== 模块清单检查 ==================
+
+    def _check_manifest_compatible(self, target_oid: Oid) -> tuple[bool, str]:
+        """检查模块清单是否与当前运行环境兼容
+
+        本地清单从 .runtime/module_manifest.py 读取（打包时写入），
+        远程清单路径从目标 commit 的 project.yml 的 manifest_path 字段获取。
+        仅在 frozen 环境（PyInstaller 打包后）下执行检查。
+
+        Args:
+            target_oid: 目标提交 OID
+
+        Returns:
+            (是否兼容, 提示消息)
+        """
+        if not getattr(sys, 'frozen', False):
+            return True, ''
+
+        # 读取本地 manifest（打包进 .runtime/ 的文件）
+        runtime_dir = Path(getattr(sys, '_MEIPASS', ''))
+        local_manifest_path = runtime_dir / 'module_manifest.py'
+        if not local_manifest_path.is_file():
+            return True, ''
+
+        try:
+            local_manifest = local_manifest_path.read_bytes()
+        except Exception:
+            log.warning('读取本地模块清单失败，跳过检查', exc_info=True)
+            return True, ''
+
+        # 从目标 commit 的 project.yml 获取清单路径
+        manifest_git_path = self._get_manifest_path_from_commit(target_oid)
+        if not manifest_git_path:
+            return True, ''
+
+        # 读取目标 commit 中的 manifest
+        remote_manifest = self._get_file_at_commit(target_oid, manifest_git_path)
+        if remote_manifest is None:
+            return True, ''
+
+        if local_manifest == remote_manifest:
+            return True, ''
+
+        msg = gt('目标版本的运行环境与当前不兼容')
+        log.warning(f'模块清单已变更，阻止代码更新。目标: {str(target_oid)[:7]}')
+        return False, msg
+
+    def _get_manifest_path_from_commit(self, commit_oid: Oid) -> str | None:
+        """从指定 commit 的 project.yml 中读取 manifest_path
+
+        Args:
+            commit_oid: 目标提交 OID
+
+        Returns:
+            清单文件的仓库路径，读取失败时返回 None
+        """
+        raw = self._get_file_at_commit(commit_oid, 'config/project.yml')
+        if raw is None:
+            return None
+        try:
+            data = yaml.safe_load(raw)
+            path = data.get('manifest_path') if isinstance(data, dict) else None
+            return path if isinstance(path, str) and path else None
+        except Exception:
+            return None
+
+    def _check_remote_manifest_compatible(self) -> tuple[bool, str]:
+        """检查远程分支的模块清单是否与当前运行环境兼容
+
+        封装远程 OID 解析 + 清单比对，异常时跳过检查。
+
+        Returns:
+            (是否兼容, 提示消息)
+        """
+        remote_ref = f'refs/remotes/{self.env_config.git_remote}/{self.env_config.git_branch}'
+        try:
+            repo = self._open_repo()
+            if remote_ref not in repo.references:
+                return True, ''
+            remote_oid = repo.references[remote_ref].target
+            return self._check_manifest_compatible(remote_oid)
+        except Exception:
+            log.warning('检查模块清单时出错，跳过检查', exc_info=True)
+            return True, ''
+
     def _checkout_branch(self) -> bool:
         """切换到指定分支
 
@@ -440,14 +547,22 @@ class GitService:
 
         # 获取远程代码
         if progress_callback:
-            progress_callback(1/5, gt('获取远程代码'))
+            progress_callback(1/6, gt('获取远程代码'))
 
         if not self._fetch_remote():
             return False, gt('获取远程代码失败')
 
+        # 检查模块清单兼容性（仅 frozen 环境）
+        if progress_callback:
+            progress_callback(2/6, gt('检查运行环境兼容性'))
+
+        compatible, msg = self._check_remote_manifest_compatible()
+        if not compatible:
+            return False, msg
+
         # 检查工作区状态
         if progress_callback:
-            progress_callback(2/5, gt('检查工作区状态'))
+            progress_callback(3/6, gt('检查工作区状态'))
 
         success, message = self._validate_working_directory()
         if not success:
@@ -455,21 +570,21 @@ class GitService:
 
         # 切换到目标分支
         if progress_callback:
-            progress_callback(3/5, gt('切换到目标分支'))
+            progress_callback(4/6, gt('切换到目标分支'))
 
         if not self._checkout_branch():
             return False, gt('切换到目标分支失败')
 
         # 同步远程分支
         if progress_callback:
-            progress_callback(4/5, gt('同步远程分支'))
+            progress_callback(5/6, gt('同步远程分支'))
 
         success, message = self._sync_with_remote(self.env_config.force_update)
         if not success:
             return False, message
 
         if progress_callback:
-            progress_callback(5/5, message)
+            progress_callback(6/6, message)
 
         return True, message
 
@@ -575,11 +690,28 @@ class GitService:
         except Exception:
             log.error('更新远程仓库地址失败', exc_info=True)
 
-    def reset_to_commit(self, commit_id: str) -> bool:
+    def reset_to_commit(self, commit_id: str) -> tuple[bool, str]:
         """
-        回滚到特定commit
+        回滚到特定commit，会先检查模块清单兼容性
+
+        Returns:
+            (是否成功, 提示消息)
         """
-        return self._reset_hard(commit_id)
+        try:
+            repo = self._open_repo()
+            obj = repo.revparse_single(commit_id)
+            target_oid = obj.id
+        except Exception:
+            log.error(f'解析提交ID失败: {commit_id}', exc_info=True)
+            return False, gt('解析提交ID失败')
+
+        compatible, msg = self._check_manifest_compatible(target_oid)
+        if not compatible:
+            return False, msg
+
+        if self._reset_hard(target_oid):
+            return True, ''
+        return False, gt('回滚失败')
 
     def get_current_version(self) -> str | None:
         """
