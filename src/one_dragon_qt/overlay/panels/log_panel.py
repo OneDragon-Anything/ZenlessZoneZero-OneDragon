@@ -37,6 +37,14 @@ class LogPanel(ResizablePanel):
 
     def __init__(self, parent=None):
         super().__init__(title="Overlay Log", min_width=320, min_height=130, parent=parent)
+        # 无边框独立窗口, 在构造时设置避免系统标题栏
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.Tool
+            | Qt.WindowType.WindowStaysOnTopHint
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
         self.set_title_visible(False)
         self.set_drag_anywhere(True)
 
@@ -104,22 +112,35 @@ class LogPanel(ResizablePanel):
         if changed and not self._paused:
             self._render()
 
+    @staticmethod
+    def _apply_alpha(hex_color: str, alpha_fraction: float) -> str:
+        """将 #rrggbb 颜色转为 rgba(r,g,b,a) 字符串."""
+        hex_color = hex_color.lstrip("#")
+        r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+        a = max(0, min(255, int(255 * alpha_fraction)))
+        return f"rgba({r},{g},{b},{a})"
+
     def _render(self) -> None:
         if not self._lines:
             self._text_widget.setHtml("")
             return
 
+        alpha = self._text_opacity / 100.0
         rows: list[str] = []
         for line in self._lines:
             level_color = _LEVEL_COLOR.get(line.level_name, "#d0d0d0")
             time_text = time.strftime("%H:%M:%S", time.localtime(line.created))
             message = html.escape(line.message)
             source = html.escape(line.source)
+            c_time = self._apply_alpha("#a0a0a0", alpha)
+            c_level = self._apply_alpha(level_color, alpha)
+            c_src = self._apply_alpha("#c9c9c9", alpha)
+            c_msg = self._apply_alpha("#efefef", alpha)
             row = (
-                f"<span style='color:#a0a0a0'>[{time_text}]</span> "
-                f"<span style='color:{level_color};font-weight:600'>[{line.level_name}]</span> "
-                f"<span style='color:#c9c9c9'>[{source}]</span> "
-                f"<span style='color:#efefef'>{message}</span>"
+                f"<span style='color:{c_time}'>[{time_text}]</span> "
+                f"<span style='color:{c_level};font-weight:600'>[{line.level_name}]</span> "
+                f"<span style='color:{c_src}'>[{source}]</span> "
+                f"<span style='color:{c_msg}'>{message}</span>"
             )
             rows.append(row)
 
@@ -155,16 +176,25 @@ class LogPanel(ResizablePanel):
 
         layout.addStretch(1)
 
-        # Unicode icon buttons
+        # Unicode icon buttons — 创建并添加到 toolbar layout
         self._btn_font_dec = self._create_button("A\u2212", "减小字号 (Ctrl+滚轮下)", self._on_font_dec)
+        layout.addWidget(self._btn_font_dec)
         self._btn_font_inc = self._create_button("A\u207A", "增大字号 (Ctrl+滚轮上)", self._on_font_inc)
+        layout.addWidget(self._btn_font_inc)
         self._btn_text_dec = self._create_button("\u25D1\u2212", "降低文字不透明度", self._on_text_dec)
+        layout.addWidget(self._btn_text_dec)
         self._btn_text_inc = self._create_button("\u25D1\u207A", "提高文字不透明度", self._on_text_inc)
+        layout.addWidget(self._btn_text_inc)
         self._btn_panel_dec = self._create_button("\u25A3\u2212", "降低面板不透明度", self._on_panel_dec)
+        layout.addWidget(self._btn_panel_dec)
         self._btn_panel_inc = self._create_button("\u25A3\u207A", "提高面板不透明度", self._on_panel_inc)
+        layout.addWidget(self._btn_panel_inc)
         self._btn_pause = self._create_button("\u23F8", "暂停/恢复日志刷新", self._on_pause_toggle)
+        layout.addWidget(self._btn_pause)
         self._btn_autoscroll = self._create_button("\u21E9", "自动滚动开关", self._on_autoscroll_toggle)
+        layout.addWidget(self._btn_autoscroll)
         self._btn_clear = self._create_button("\u2715", "清空日志", self.clear)
+        layout.addWidget(self._btn_clear)
 
         self.body_layout.addWidget(toolbar, 0)
         self._sync_toolbar_state()

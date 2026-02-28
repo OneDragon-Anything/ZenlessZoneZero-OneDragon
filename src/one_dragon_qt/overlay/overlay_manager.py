@@ -41,8 +41,9 @@ class OverlayManager(QObject):
         self._warned_unsupported = False
         self._warned_waiting_game_window = False
         self._started = False
-
-        self._overlay_window: Optional[OverlayWindow] = None        self._log_panel: Optional["LogPanel"] = None        self._log_handler: Optional[OverlayLogHandler] = None
+        self._overlay_window: Optional[OverlayWindow] = None
+        self._log_panel: Optional["LogPanel"] = None
+        self._log_handler: Optional[OverlayLogHandler] = None
         self._ctrl_interaction = False
         self._toggle_combo_pressed = False
         self._last_toggle_hotkey_time = 0.0
@@ -178,16 +179,8 @@ class OverlayManager(QObject):
             )
         if self._log_panel is None:
             self._log_panel = LogPanel(parent=None)
-            # Independent top-level window flags
-            self._log_panel.setWindowFlags(
-                Qt.WindowType.FramelessWindowHint
-                | Qt.WindowType.Tool
-                | Qt.WindowType.WindowStaysOnTopHint
-            )
-            self._log_panel.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-            self._log_panel.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
+            # Window flags and attributes are set in LogPanel.__init__
             self._log_panel.set_interaction_enabled(True)
-            self._log_panel.set_drag_anywhere(True)
             self._log_panel.geometry_changed.connect(
                 lambda g: self._on_panel_geometry_changed("log_panel", g)
             )
