@@ -748,7 +748,7 @@ class AutoBattleContext:
 
             possible_agents = self.agent_context.get_possible_agent_list()
 
-            agent = self._match_quick_assist_agent_in(part, possible_agents, (self.area_quick_assist.rect.x1, self.area_quick_assist.rect.y1))
+            agent = self._match_quick_assist_agent_in(part, possible_agents, (self.area_btn_switch.rect.x1, self.area_btn_switch.rect.y1))
 
             if agent is not None:
                 state_records: list[StateRecord] = [
