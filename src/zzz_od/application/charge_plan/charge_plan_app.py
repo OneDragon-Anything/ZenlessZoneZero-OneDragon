@@ -77,7 +77,7 @@ class ChargePlanApp(ZApplication):
 
         self.charge_power = digit
         if isinstance(self.run_record, ChargePlanRunRecord):
-            self.run_record.current_charge_power = digit
+            self.run_record.record_current_charge_power(digit)
         return self.round_success(f'剩余电量 {digit}')
 
     @node_from(from_name='识别电量')

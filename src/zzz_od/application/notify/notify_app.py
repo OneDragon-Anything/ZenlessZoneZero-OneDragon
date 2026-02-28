@@ -89,11 +89,11 @@ class NotifyApp(ZApplication):
         if not isinstance(run_record, ChargePlanRunRecord):
             return None
 
-        charge_power = run_record.current_charge_power
+        charge_power = run_record.get_estimated_charge_power()
         if charge_power is None:
             return None
 
-        return f'当前体力：{charge_power}/240'
+        return f'当前体力：{charge_power}/{ChargePlanRunRecord.MAX_CHARGE_POWER}'
 
     def is_within_time(self, time_str) -> bool:
         end_time = datetime.now()
