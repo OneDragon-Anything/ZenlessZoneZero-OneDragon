@@ -33,7 +33,7 @@ class LogPanel(ResizablePanel):
     """Overlay log panel."""
 
     def __init__(self, parent=None):
-        super().__init__(title="Overlay Log", min_width=380, min_height=180, parent=parent)
+        super().__init__(title="Overlay Log", min_width=320, min_height=130, parent=parent)
         self.set_title_visible(False)
 
         self._max_lines = 120

@@ -21,7 +21,7 @@ class PerformancePanel(ResizablePanel):
     """Overlay performance panel."""
 
     def __init__(self, parent=None):
-        super().__init__(title="Performance", min_width=360, min_height=160, parent=parent)
+        super().__init__(title="Performance", min_width=220, min_height=90, parent=parent)
         self.set_title_visible(False)
         self._text_widget = OverlayTextWidget(self)
         self.body_layout.addWidget(self._text_widget, 1)
@@ -63,4 +63,3 @@ class PerformancePanel(ResizablePanel):
         core = [key for key in _CORE_METRIC_ORDER if key in metric_keys]
         rest = sorted([key for key in metric_keys if key not in _CORE_METRIC_ORDER])
         return core + rest
-

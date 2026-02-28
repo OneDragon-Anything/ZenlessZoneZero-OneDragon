@@ -12,7 +12,7 @@ class DecisionPanel(ResizablePanel):
     """Overlay decision trace panel."""
 
     def __init__(self, parent=None):
-        super().__init__(title="Decision Trace", min_width=420, min_height=180, parent=parent)
+        super().__init__(title="Decision Trace", min_width=220, min_height=100, parent=parent)
         self.set_title_visible(False)
         self._text_widget = OverlayTextWidget(self)
         self.body_layout.addWidget(self._text_widget, 1)
@@ -41,4 +41,3 @@ class DecisionPanel(ResizablePanel):
                 f"<span style='color:#8be28b'>[{status}]</span>"
             )
         self._text_widget.setHtml("<br>".join(rows))
-

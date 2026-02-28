@@ -59,6 +59,14 @@ class OverlayWindow(QWidget):
         self.decision_panel = DecisionPanel(self)
         self.timeline_panel = TimelinePanel(self)
         self.performance_panel = PerformancePanel(self)
+        self._side_panels_docked = True
+
+        # Keep log panel draggable; side panels are docked.
+        self.log_panel.set_interaction_enabled(True)
+        self.state_panel.set_interaction_enabled(False)
+        self.decision_panel.set_interaction_enabled(False)
+        self.timeline_panel.set_interaction_enabled(False)
+        self.performance_panel.set_interaction_enabled(False)
 
         self.log_panel.geometry_changed.connect(
             lambda g: self.panel_geometry_changed.emit("log_panel", g)
@@ -81,15 +89,33 @@ class OverlayWindow(QWidget):
 
     def set_state_panel_enabled(self, enabled: bool) -> None:
         self.state_panel.setVisible(enabled)
+        if self._side_panels_docked:
+            self.dock_side_panels()
 
     def set_decision_panel_enabled(self, enabled: bool) -> None:
         self.decision_panel.setVisible(enabled)
+        if self._side_panels_docked:
+            self.dock_side_panels()
 
     def set_timeline_panel_enabled(self, enabled: bool) -> None:
         self.timeline_panel.setVisible(enabled)
+        if self._side_panels_docked:
+            self.dock_side_panels()
 
     def set_performance_panel_enabled(self, enabled: bool) -> None:
         self.performance_panel.setVisible(enabled)
+        if self._side_panels_docked:
+            self.dock_side_panels()
+
+    def set_side_panels_docked(self, docked: bool) -> None:
+        self._side_panels_docked = bool(docked)
+        enabled = not self._side_panels_docked
+        self.state_panel.set_interaction_enabled(enabled)
+        self.decision_panel.set_interaction_enabled(enabled)
+        self.timeline_panel.set_interaction_enabled(enabled)
+        self.performance_panel.set_interaction_enabled(enabled)
+        if self._side_panels_docked:
+            self.dock_side_panels()
 
     def set_panel_appearance(self, font_size: int, text_opacity: int, panel_opacity: int) -> None:
         self.log_panel.set_appearance(font_size, text_opacity, panel_opacity)
@@ -198,11 +224,64 @@ class OverlayWindow(QWidget):
         if width <= 0 or height <= 0:
             return
         self.setGeometry(QRect(left, top, width, height))
+        if self._side_panels_docked:
+            self.dock_side_panels()
         self._clamp_all_panels()
 
     def resizeEvent(self, event: QResizeEvent) -> None:
+        if self._side_panels_docked:
+            self.dock_side_panels()
         self._clamp_all_panels()
         super().resizeEvent(event)
+
+    def dock_side_panels(self) -> None:
+        if self.width() <= 0 or self.height() <= 0:
+            return
+
+        ordered = [
+            ("state_panel", self.state_panel, 120),
+            ("decision_panel", self.decision_panel, 140),
+            ("timeline_panel", self.timeline_panel, 170),
+            ("performance_panel", self.performance_panel, 110),
+        ]
+        visible_items = [(name, panel, h) for name, panel, h in ordered if panel.isVisible()]
+        if not visible_items:
+            return
+
+        margin = 10
+        gap = 6
+        side_w = max(200, min(300, int(self.width() * 0.18)))
+        x = max(0, self.width() - margin - side_w)
+
+        base_height_sum = sum(base_h for _, _, base_h in visible_items)
+        available_h = max(80, self.height() - margin * 2 - gap * (len(visible_items) - 1))
+        if available_h >= base_height_sum:
+            heights = [base_h for _, _, base_h in visible_items]
+        else:
+            panel_count = len(visible_items)
+            min_h = max(8, min(24, available_h // max(1, panel_count)))
+            heights = [
+                max(min_h, int(available_h * (base_h / float(max(1, base_height_sum)))))
+                for _, _, base_h in visible_items
+            ]
+            total_h = sum(heights)
+            if total_h > available_h:
+                overflow = total_h - available_h
+                for idx in range(len(heights) - 1, -1, -1):
+                    reducible = heights[idx] - min_h
+                    if reducible <= 0:
+                        continue
+                    delta = min(reducible, overflow)
+                    heights[idx] -= delta
+                    overflow -= delta
+                    if overflow <= 0:
+                        break
+
+        y = margin
+        for idx, (_, panel, _) in enumerate(visible_items):
+            h = max(8, heights[idx])
+            panel.setGeometry(x, y, side_w, h)
+            y += h + gap
 
     def paintEvent(self, event: QPaintEvent) -> None:
         super().paintEvent(event)

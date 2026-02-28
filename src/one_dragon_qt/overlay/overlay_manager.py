@@ -227,9 +227,9 @@ class OverlayManager(QObject):
             return geometry
 
         defaults = {
-            "decision_panel": {"x": 620, "y": 20, "w": 620, "h": 220},
-            "timeline_panel": {"x": 620, "y": 260, "w": 620, "h": 220},
-            "performance_panel": {"x": 620, "y": 500, "w": 420, "h": 180},
+            "decision_panel": {"x": 0, "y": 0, "w": 300, "h": 140},
+            "timeline_panel": {"x": 0, "y": 0, "w": 300, "h": 170},
+            "performance_panel": {"x": 0, "y": 0, "w": 300, "h": 110},
         }
         return defaults.get(panel_name, geometry)
 
@@ -273,6 +273,7 @@ class OverlayManager(QObject):
         overlay.set_decision_panel_enabled(self.config.decision_panel_enabled)
         overlay.set_timeline_panel_enabled(self.config.timeline_panel_enabled)
         overlay.set_performance_panel_enabled(self.config.performance_panel_enabled)
+        overlay.set_side_panels_docked(True)
         overlay.set_vision_layer_enabled(self.config.vision_layer_enabled)
         overlay.set_performance_metric_enabled_map(self.config.performance_metric_enabled_map)
         overlay.set_panel_appearance(
