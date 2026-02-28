@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_run_record import ChargePlanRunRecord
 from zzz_od.application.notify import notify_const
 from zzz_od.application.zzz_application import ZApplication
@@ -58,8 +57,12 @@ class NotifyApp(ZApplication):
                 continue
             if not self.is_within_time(run_record.run_time):
                 continue
-            if app_config.app_id == charge_plan_const.APP_ID:
-                charge_power_text = self.get_charge_power_text(run_record)
+            if isinstance(run_record, ChargePlanRunRecord):
+                charge_power = run_record.get_estimated_charge_power()
+                if charge_power is not None:
+                    charge_power_text = (
+                        f'当前体力：{charge_power}/{ChargePlanRunRecord.MAX_CHARGE_POWER}'
+                    )
             if run_record.run_status_under_now == AppRunRecord.STATUS_SUCCESS:
                 success.append(app_config.app_name)
             if run_record.run_status_under_now == AppRunRecord.STATUS_FAIL:
@@ -84,18 +87,7 @@ class NotifyApp(ZApplication):
 
         return "\n".join(parts)
 
-    @staticmethod
-    def get_charge_power_text(run_record: AppRunRecord) -> str | None:
-        if not isinstance(run_record, ChargePlanRunRecord):
-            return None
-
-        charge_power = run_record.get_estimated_charge_power()
-        if charge_power is None:
-            return None
-
-        return f'当前体力：{charge_power}/{ChargePlanRunRecord.MAX_CHARGE_POWER}'
-
-    def is_within_time(self, time_str) -> bool:
+    def is_within_time(self, time_str: str) -> bool:
         end_time = datetime.now()
         try:
             # 解析输入的时间字符串，格式为月-日 时:分

@@ -1,4 +1,4 @@
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
@@ -76,8 +76,7 @@ class ChargePlanApp(ZApplication):
             return self.round_retry('未识别到电量', wait=1)
 
         self.charge_power = digit
-        if isinstance(self.run_record, ChargePlanRunRecord):
-            self.run_record.record_current_charge_power(digit)
+        cast(ChargePlanRunRecord, self.run_record).record_current_charge_power(digit)
         return self.round_success(f'剩余电量 {digit}')
 
     @node_from(from_name='识别电量')
