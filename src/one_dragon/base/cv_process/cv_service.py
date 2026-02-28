@@ -92,9 +92,32 @@ class CvService:
             return
 
         try:
-            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
+            from one_dragon.base.operation.overlay_debug_bus import (
+                PerfMetricSample,
+                TimelineItem,
+                VisionDrawItem,
+            )
         except Exception:
             return
+
+        bus.add_performance(
+            PerfMetricSample(
+                metric="cv_pipeline_ms",
+                value=float(context.total_execution_time),
+                unit="ms",
+                ttl_seconds=20.0,
+                meta={"pipeline": pipeline_name},
+            )
+        )
+        bus.add_timeline(
+            TimelineItem(
+                category="vision",
+                title=f"cv:{pipeline_name}",
+                detail=f"{context.total_execution_time:.1f}ms",
+                level="DEBUG",
+                ttl_seconds=15.0,
+            )
+        )
 
         # 1) contours
         contour_rects = context.get_absolute_rects()

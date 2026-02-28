@@ -98,6 +98,12 @@ class Yolov8Detector(OnnxModelLoader):
 
         frame_result = self.record_result(context, results)
         self._emit_overlay_vision(frame_result)
+        self._emit_overlay_perf_and_timeline(
+            preprocess_ms=(t2 - t1) * 1000.0,
+            infer_ms=(t3 - t2) * 1000.0,
+            postprocess_ms=(t4 - t3) * 1000.0,
+            result_count=len(results),
+        )
         return frame_result
 
     def prepare_input(self, context: DetectContext) -> np.ndarray:
@@ -223,6 +229,44 @@ class Yolov8Detector(OnnxModelLoader):
                     },
                 )
             )
+
+    def _emit_overlay_perf_and_timeline(
+        self,
+        preprocess_ms: float,
+        infer_ms: float,
+        postprocess_ms: float,
+        result_count: int,
+    ) -> None:
+        bus = getattr(self, "overlay_debug_bus", None)
+        if bus is None:
+            return
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import (
+                PerfMetricSample,
+                TimelineItem,
+            )
+        except Exception:
+            return
+
+        total_ms = preprocess_ms + infer_ms + postprocess_ms
+        bus.add_performance(
+            PerfMetricSample(
+                metric="yolo_ms",
+                value=total_ms,
+                unit="ms",
+                ttl_seconds=20.0,
+                meta={"result_count": result_count},
+            )
+        )
+        bus.add_timeline(
+            TimelineItem(
+                category="vision",
+                title="yolo",
+                detail=f"{result_count} objects / {total_ms:.1f}ms",
+                level="DEBUG",
+                ttl_seconds=15.0,
+            )
+        )
 
     @property
     def last_run_result(self) -> Optional[DetectFrameResult]:
