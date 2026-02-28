@@ -275,6 +275,12 @@ class OverlayManager(QObject):
         overlay.set_performance_panel_enabled(self.config.performance_panel_enabled)
         overlay.set_side_panels_docked(True)
         overlay.set_vision_layer_enabled(self.config.vision_layer_enabled)
+        overlay.set_vision_transform(
+            offset_x=self.config.vision_offset_x,
+            offset_y=self.config.vision_offset_y,
+            scale_x=self.config.vision_scale_x,
+            scale_y=self.config.vision_scale_y,
+        )
         overlay.set_performance_metric_enabled_map(self.config.performance_metric_enabled_map)
         overlay.set_panel_appearance(
             self.config.font_size, self.config.text_opacity, self.config.panel_opacity
@@ -536,6 +542,11 @@ class OverlayManager(QObject):
 
         screen = QGuiApplication.screenAt(QPoint(x, y))
         if screen is None:
+            return rect
+
+        # For DPI-unaware processes, Windows may already virtualize coordinates.
+        # In that case, dividing by DPR again causes severe offset.
+        if not win32_utils.is_process_dpi_aware():
             return rect
 
         dpr = float(screen.devicePixelRatio() or 1.0)

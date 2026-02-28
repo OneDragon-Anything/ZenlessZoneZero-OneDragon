@@ -32,6 +32,10 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "vision_ocr_enabled": True,
     "vision_template_enabled": True,
     "vision_cv_enabled": True,
+    "vision_offset_x": 0,
+    "vision_offset_y": 0,
+    "vision_scale_x": 1.0,
+    "vision_scale_y": 1.0,
     "patched_capture_enabled": False,
     "patched_capture_suffix": "_patched",
     "font_size": 12,
@@ -61,6 +65,10 @@ _OVERLAY_SCALAR_KEYS = {
     "vision_ocr_enabled",
     "vision_template_enabled",
     "vision_cv_enabled",
+    "vision_offset_x",
+    "vision_offset_y",
+    "vision_scale_x",
+    "vision_scale_y",
     "decision_panel_enabled",
     "timeline_panel_enabled",
     "performance_panel_enabled",
@@ -250,6 +258,38 @@ class OverlayConfig(YamlConfig):
     @vision_cv_enabled.setter
     def vision_cv_enabled(self, value: bool) -> None:
         self._update_overlay_data("vision_cv_enabled", bool(value))
+
+    @property
+    def vision_offset_x(self) -> int:
+        return int(self._overlay_data()["vision_offset_x"])
+
+    @vision_offset_x.setter
+    def vision_offset_x(self, value: int) -> None:
+        self._update_overlay_data("vision_offset_x", int(value))
+
+    @property
+    def vision_offset_y(self) -> int:
+        return int(self._overlay_data()["vision_offset_y"])
+
+    @vision_offset_y.setter
+    def vision_offset_y(self, value: int) -> None:
+        self._update_overlay_data("vision_offset_y", int(value))
+
+    @property
+    def vision_scale_x(self) -> float:
+        return max(0.5, min(1.5, float(self._overlay_data()["vision_scale_x"])))
+
+    @vision_scale_x.setter
+    def vision_scale_x(self, value: float) -> None:
+        self._update_overlay_data("vision_scale_x", max(0.5, min(1.5, float(value))))
+
+    @property
+    def vision_scale_y(self) -> float:
+        return max(0.5, min(1.5, float(self._overlay_data()["vision_scale_y"])))
+
+    @vision_scale_y.setter
+    def vision_scale_y(self, value: float) -> None:
+        self._update_overlay_data("vision_scale_y", max(0.5, min(1.5, float(value))))
 
     @property
     def font_size(self) -> int:

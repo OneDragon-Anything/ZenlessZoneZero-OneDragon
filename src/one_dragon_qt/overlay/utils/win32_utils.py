@@ -34,6 +34,20 @@ _user32.GetAsyncKeyState.restype = ctypes.c_short
 _user32.IsIconic.argtypes = [wintypes.HWND]
 _user32.IsIconic.restype = wintypes.BOOL
 
+_shcore = None
+try:
+    _shcore = ctypes.windll.shcore
+except Exception:
+    _shcore = None
+
+if _shcore is not None:
+    _shcore.GetProcessDpiAwareness.argtypes = [wintypes.HANDLE, ctypes.POINTER(ctypes.c_int)]
+    _shcore.GetProcessDpiAwareness.restype = ctypes.c_long
+
+_PROCESS_DPI_UNAWARE = 0
+_PROCESS_SYSTEM_DPI_AWARE = 1
+_PROCESS_PER_MONITOR_DPI_AWARE = 2
+
 
 def get_windows_build() -> int:
     if not hasattr(sys, "getwindowsversion"):
@@ -43,6 +57,23 @@ def get_windows_build() -> int:
 
 def is_windows_build_supported(min_build: int = 19041) -> bool:
     return get_windows_build() >= min_build
+
+
+def get_process_dpi_awareness() -> int:
+    if _shcore is None:
+        return _PROCESS_DPI_UNAWARE
+    awareness = ctypes.c_int(_PROCESS_DPI_UNAWARE)
+    hr = _shcore.GetProcessDpiAwareness(0, ctypes.byref(awareness))
+    if hr != 0:
+        return _PROCESS_DPI_UNAWARE
+    return int(awareness.value)
+
+
+def is_process_dpi_aware() -> bool:
+    return get_process_dpi_awareness() in (
+        _PROCESS_SYSTEM_DPI_AWARE,
+        _PROCESS_PER_MONITOR_DPI_AWARE,
+    )
 
 
 def is_key_pressed(vk: int) -> bool:
