@@ -165,6 +165,10 @@ class OverlayManager(QObject):
     def _ensure_overlay_window(self) -> OverlayWindow:
         if self._overlay_window is None:
             self._overlay_window = OverlayWindow()
+            self._overlay_window.set_standard_resolution(
+                int(self.ctx.project_config.screen_standard_width),
+                int(self.ctx.project_config.screen_standard_height),
+            )
             self._overlay_window.panel_geometry_changed.connect(self._on_panel_geometry_changed)
             self._overlay_window.apply_panel_geometry(
                 "log_panel", self.config.get_panel_geometry("log_panel")
@@ -223,6 +227,7 @@ class OverlayManager(QObject):
         self._ctrl_interaction = False
         self._toggle_combo_pressed = False
         if self._overlay_window is not None:
+            self._overlay_window.set_vision_items([])
             self._overlay_window.set_overlay_visible(False)
 
     def _safe_poll_input_mode(self) -> None:
@@ -257,10 +262,21 @@ class OverlayManager(QObject):
     def _refresh_state_panel(self) -> None:
         if self._overlay_window is None or not self._overlay_window.isVisible():
             return
+
+        self._refresh_vision_layer()
+
         if not self.config.state_panel_enabled:
             return
         items = self._collect_state_items()
         self._overlay_window.state_panel.update_snapshot(items)
+
+    def _refresh_vision_layer(self) -> None:
+        bus = getattr(self.ctx, "overlay_debug_bus", None)
+        if bus is None:
+            return
+
+        snapshot = bus.snapshot()
+        self._overlay_window.set_vision_items(snapshot.vision_items)
 
     def _collect_state_items(self) -> list[tuple[str, str]]:
         run_ctx = self.ctx.run_context

@@ -136,6 +136,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         self._ocr_param: OnnxOcrParam = ocr_param
         self._model = None
         self._loading: bool = False
+        self.overlay_debug_bus = None
 
     def init_model(
             self,
@@ -270,6 +271,8 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             result_map = ocr_utils.merge_ocr_result_to_multiple_line(result_map, join_space=True,
                                                                      merge_line_distance=merge_line_distance)
 
+        self._emit_overlay_vision(result_map)
+
         if log.isEnabledFor(DEBUG):
             log.debug('OCR结果 %s 耗时 %.2f', result_map.keys(), time.time() - start_time)
         return result_map
@@ -391,6 +394,42 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             log.debug('OCR结果 %s 耗时 %.2f', [i.data for i in ocr_result_list], time.time() - start_time)
 
         return ocr_result_list
+
+    def _emit_overlay_vision(self, result_map: dict[str, MatchResultList]) -> None:
+        bus = getattr(self, "overlay_debug_bus", None)
+        if bus is None or not result_map:
+            return
+
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
+        except Exception:
+            return
+
+        pushed = 0
+        max_items = 60
+        for text, match_list in result_map.items():
+            if match_list is None:
+                continue
+            for match in match_list.arr:
+                if pushed >= max_items:
+                    return
+                label = str(text or "").strip()
+                if len(label) > 32:
+                    label = label[:29] + "..."
+                bus.add_vision(
+                    VisionDrawItem(
+                        source="ocr",
+                        label=label,
+                        x1=match.x,
+                        y1=match.y,
+                        x2=match.x + match.w,
+                        y2=match.y + match.h,
+                        score=match.confidence,
+                        color="#ff6ac1",
+                        ttl_seconds=1.4,
+                    )
+                )
+                pushed += 1
 
 
 def __debug():

@@ -48,6 +48,7 @@ class Yolov8Detector(OnnxModelLoader):
 
         self.keep_result_seconds: float = keep_result_seconds  # 保留识别结果的秒数
         self.run_result_history: List[DetectFrameResult] = []  # 历史识别结果
+        self.overlay_debug_bus = None
 
         self.idx_2_class: dict[int, DetectClass] = {}  # 分类
         self.class_2_idx: dict[str, int] = {}
@@ -95,7 +96,9 @@ class Yolov8Detector(OnnxModelLoader):
 
         # log.info(f'识别完毕 得到结果 {len(results)}个。预处理耗时 {t2 - t1:.3f}s, 推理耗时 {t3 - t2:.3f}s, 后处理耗时 {t4 - t3:.3f}s')
 
-        return self.record_result(context, results)
+        frame_result = self.record_result(context, results)
+        self._emit_overlay_vision(frame_result)
+        return frame_result
 
     def prepare_input(self, context: DetectContext) -> np.ndarray:
         """
@@ -188,6 +191,38 @@ class Yolov8Detector(OnnxModelLoader):
                                    if context.run_time - i.run_time <= self.keep_result_seconds]
 
         return new_frame
+
+    def _emit_overlay_vision(self, frame_result: DetectFrameResult) -> None:
+        bus = getattr(self, "overlay_debug_bus", None)
+        if bus is None or frame_result is None:
+            return
+
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
+        except Exception:
+            return
+
+        for result in frame_result.results[:50]:
+            label = result.detect_class.class_name
+            if len(label) > 36:
+                label = label[:33] + "..."
+            bus.add_vision(
+                VisionDrawItem(
+                    source="yolo",
+                    label=label,
+                    x1=result.x1,
+                    y1=result.y1,
+                    x2=result.x2,
+                    y2=result.y2,
+                    score=result.score,
+                    color="#35d4ff",
+                    ttl_seconds=1.6,
+                    meta={
+                        "class_id": result.detect_class.class_id,
+                        "category": result.detect_class.class_category or "",
+                    },
+                )
+            )
 
     @property
     def last_run_result(self) -> Optional[DetectFrameResult]:

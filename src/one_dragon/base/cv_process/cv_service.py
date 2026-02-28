@@ -82,7 +82,81 @@ class CvService:
             ctx.error_str = f"流水线 {pipeline_name} 加载失败"
             return ctx
 
-        return pipeline.execute(image, service=self, debug_mode=debug_mode, start_time=start_time, timeout=timeout)
+        result = pipeline.execute(image, service=self, debug_mode=debug_mode, start_time=start_time, timeout=timeout)
+        self._emit_overlay_vision(pipeline_name, result)
+        return result
+
+    def _emit_overlay_vision(self, pipeline_name: str, context: CvPipelineContext) -> None:
+        bus = getattr(self.od_ctx, "overlay_debug_bus", None)
+        if bus is None or context is None:
+            return
+
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
+        except Exception:
+            return
+
+        # 1) contours
+        contour_rects = context.get_absolute_rects()
+        for x1, y1, x2, y2 in contour_rects[:20]:
+            bus.add_vision(
+                VisionDrawItem(
+                    source="cv",
+                    label=f"{pipeline_name}:contour",
+                    x1=x1,
+                    y1=y1,
+                    x2=x2,
+                    y2=y2,
+                    color="#62d96b",
+                    ttl_seconds=1.4,
+                )
+            )
+
+        # 2) template/crop match result
+        if context.match_result is not None and context.match_result.max is not None:
+            best = context.match_result.max
+            bus.add_vision(
+                VisionDrawItem(
+                    source="cv",
+                    label=f"{pipeline_name}:match",
+                    x1=best.x + context.crop_offset[0],
+                    y1=best.y + context.crop_offset[1],
+                    x2=best.x + best.w + context.crop_offset[0],
+                    y2=best.y + best.h + context.crop_offset[1],
+                    score=best.confidence,
+                    color="#50e3c2",
+                    ttl_seconds=1.6,
+                )
+            )
+
+        # 3) OCR from pipeline context
+        if context.ocr_result:
+            pushed = 0
+            for text, match_list in context.ocr_result.items():
+                if match_list is None:
+                    continue
+                for match in match_list.arr:
+                    if pushed >= 30:
+                        break
+                    label = str(text or "").strip()
+                    if len(label) > 28:
+                        label = label[:25] + "..."
+                    bus.add_vision(
+                        VisionDrawItem(
+                            source="cv",
+                            label=f"{pipeline_name}:{label}",
+                            x1=match.x + context.crop_offset[0],
+                            y1=match.y + context.crop_offset[1],
+                            x2=match.x + match.w + context.crop_offset[0],
+                            y2=match.y + match.h + context.crop_offset[1],
+                            score=match.confidence,
+                            color="#7fd6ff",
+                            ttl_seconds=1.4,
+                        )
+                    )
+                    pushed += 1
+                if pushed >= 30:
+                    break
 
     def get_pipeline_names(self) -> List[str]:
         """

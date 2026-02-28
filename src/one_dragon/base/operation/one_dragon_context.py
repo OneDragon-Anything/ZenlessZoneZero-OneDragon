@@ -60,10 +60,12 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if self.one_dragon_config.current_active_instance is None:
             self.one_dragon_config.create_new_instance(True)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
+        self.overlay_debug_bus: OverlayDebugBus = OverlayDebugBus()
 
         self.screen_loader: ScreenContext = ScreenContext()
         self.template_loader: TemplateLoader = TemplateLoader()
         self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
+        self.tm.overlay_debug_bus = self.overlay_debug_bus
 
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
@@ -71,6 +73,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
+        self.ocr.overlay_debug_bus = self.overlay_debug_bus
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
         self.controller: ControllerBase | None = None
 
@@ -83,7 +86,6 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.app_group_manager: ApplicationGroupManager = ApplicationGroupManager(self)
 
         self.push_service: PushService = PushService(self)
-        self.overlay_debug_bus: OverlayDebugBus = OverlayDebugBus()
 
         # 初始化相关
         self._init_lock = threading.Lock()
