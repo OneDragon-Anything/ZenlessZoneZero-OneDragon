@@ -106,7 +106,10 @@ def key_to_vk(key: str) -> int | None:
 
     vk_match = re.fullmatch(r"vk_(\d+)", key_name)
     if vk_match:
-        return int(vk_match.group(1))
+        vk = int(vk_match.group(1))
+        if 0 <= vk <= 254:
+            return vk
+        return None
 
     if len(key_name) == 1 and key_name.isalnum():
         return ord(key_name.upper())
@@ -170,13 +173,13 @@ def is_window_minimized(hwnd: int | None) -> bool:
 
 
 def is_window_visible(hwnd: int | None) -> bool:
-    """Check whether a window is visible (not hidden / not cloaked)."""
+    """Check whether a window has the WS_VISIBLE style set."""
     if hwnd is None or int(hwnd) == 0:
         return False
     return bool(_user32.IsWindowVisible(int(hwnd)))
 
 
-def set_window_click_through(hwnd: int, click_through: bool) -> bool:
+def set_window_click_through(hwnd: int | None, click_through: bool) -> bool:
     if hwnd is None or int(hwnd) == 0:
         return False
 
@@ -194,7 +197,7 @@ def set_window_click_through(hwnd: int, click_through: bool) -> bool:
     return True
 
 
-def set_window_display_affinity(hwnd: int, exclude_from_capture: bool) -> bool:
+def set_window_display_affinity(hwnd: int | None, exclude_from_capture: bool) -> bool:
     if hwnd is None or int(hwnd) == 0:
         return False
 

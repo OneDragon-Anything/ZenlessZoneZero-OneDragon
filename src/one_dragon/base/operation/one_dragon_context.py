@@ -395,9 +395,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
             )
 
         overlay_rgb = overlay_rgba[:, :, :3].astype("float32")
+        overlay_bgr = overlay_rgb[:, :, ::-1]  # RGBA -> BGR 通道顺序
         alpha = (overlay_rgba[:, :, 3:4].astype("float32") / 255.0).clip(0.0, 1.0)
         base_rgb = base_image.astype("float32")
-        patched = base_rgb * (1.0 - alpha) + overlay_rgb * alpha
+        patched = base_rgb * (1.0 - alpha) + overlay_bgr * alpha
         return patched.astype("uint8")
 
     @staticmethod

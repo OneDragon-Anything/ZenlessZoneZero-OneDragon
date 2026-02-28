@@ -410,11 +410,12 @@ class OverlayConfig(YamlConfig):
 
     def get_panel_geometry(self, panel_name: str) -> dict[str, int]:
         geometry = self._overlay_data()["panel_geometry"].get(panel_name, {})
+        defaults = _DEFAULT_PANEL_GEOMETRY.get(panel_name, {"x": 0, "y": 0, "w": 320, "h": 200})
         return {
-            "x": int(geometry.get("x", 0)),
-            "y": int(geometry.get("y", 0)),
-            "w": int(geometry.get("w", 320)),
-            "h": int(geometry.get("h", 200)),
+            "x": int(geometry.get("x", defaults["x"])),
+            "y": int(geometry.get("y", defaults["y"])),
+            "w": int(geometry.get("w", defaults["w"])),
+            "h": int(geometry.get("h", defaults["h"])),
         }
 
     def set_panel_geometry(self, panel_name: str, geometry: dict[str, int]) -> None:

@@ -250,9 +250,4 @@ class ResizablePanel(QFrame):
         elif geom.y() > max_y:
             geom.moveTop(max_y)
 
-        if geom.right() > parent.width():
-            geom.moveRight(parent.width())
-        if geom.bottom() > parent.height():
-            geom.moveBottom(parent.height())
-
         return geom

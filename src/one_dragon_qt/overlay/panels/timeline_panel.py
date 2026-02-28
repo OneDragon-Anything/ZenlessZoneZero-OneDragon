@@ -38,8 +38,8 @@ class TimelinePanel(ResizablePanel):
             rows.append(
                 f"<span style='color:#9d9d9d'>[{t}]</span> "
                 f"<span style='color:{level_color}'>[{html.escape(level)}]</span> "
-                f"<span style='color:#8ce6b0'>[{html.escape(item.category)}]</span> "
-                f"<span style='color:#f2f2f2'>{html.escape(item.title)}</span> "
-                f"<span style='color:#a6a6a6'>{html.escape(item.detail)}</span>"
+                f"<span style='color:#8ce6b0'>[{html.escape(item.category or '')}]</span> "
+                f"<span style='color:#f2f2f2'>{html.escape(item.title or '')}</span> "
+                f"<span style='color:#a6a6a6'>{html.escape(item.detail or '')}</span>"
             )
         self._text_widget.setHtml("<br>".join(rows))

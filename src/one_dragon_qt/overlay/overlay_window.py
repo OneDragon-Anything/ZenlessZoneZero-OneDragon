@@ -263,8 +263,6 @@ class OverlayWindow(QWidget):
 
         w = max(1, x2 - x1)
         h = max(1, y2 - y1)
-        if w <= 0 or h <= 0:
-            return None
         return QRect(x1, y1, w, h)
 
     def _panel_by_name(self, panel_name: str):
