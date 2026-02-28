@@ -50,12 +50,16 @@ class OcrMatcher:
         pass
 
     def run_ocr(self, image: MatLike, threshold: float = None,
-                merge_line_distance: float = -1) -> dict[str, MatchResultList]:
+                merge_line_distance: float = -1,
+                overlay_offset_x: int = 0,
+                overlay_offset_y: int = 0) -> dict[str, MatchResultList]:
         """
         对图片进行OCR 返回所有匹配结果
         :param image: 图片
         :param threshold: 匹配阈值
         :param merge_line_distance: 多少行距内合并结果 -1为不合并 理论中文情况不会出现过长分行的 这里只是为了兼容英语的情况
+        :param overlay_offset_x: 裁剪区域左上角在全帧中的 x 偏移，仅影响 Overlay 可视化坐标
+        :param overlay_offset_y: 裁剪区域左上角在全帧中的 y 偏移，仅影响 Overlay 可视化坐标
         :return: {key_word: []}
         """
         pass

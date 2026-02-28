@@ -225,12 +225,16 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             return tmp
 
     def run_ocr(self, image: MatLike, threshold: float = 0,
-                merge_line_distance: float = -1) -> dict[str, MatchResultList]:
+                merge_line_distance: float = -1,
+                overlay_offset_x: int = 0,
+                overlay_offset_y: int = 0) -> dict[str, MatchResultList]:
         """
         对图片进行OCR 返回所有匹配结果
         :param image: 图片
         :param threshold: 匹配阈值
         :param merge_line_distance: 多少行距内合并结果 -1为不合并 理论中文情况不会出现过长分行的 这里只是为了兼容英语的情况
+        :param overlay_offset_x: 裁剪区域左上角在全帧中的 x 偏移，仅影响 Overlay 可视化坐标
+        :param overlay_offset_y: 裁剪区域左上角在全帧中的 y 偏移，仅影响 Overlay 可视化坐标
         :return: {key_word: []}
         """
         if image is None:
@@ -273,6 +277,11 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
 
         elapsed_ms = (time.time() - start_time) * 1000.0
         self._emit_overlay_vision(result_map)
+        # 修正 Overlay 可视化坐标（仅影响 debug bus 中的 VisionDrawItem，不改 MatchResult）
+        if overlay_offset_x != 0 or overlay_offset_y != 0:
+            bus = getattr(self, "overlay_debug_bus", None)
+            if bus is not None:
+                bus.offset_recent_vision("ocr", overlay_offset_x, overlay_offset_y)
         self._emit_overlay_perf_and_timeline(elapsed_ms, len(result_map))
 
         if log.isEnabledFor(DEBUG):
@@ -314,7 +323,9 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             same_word: bool = False,
             ignore_case: bool = True,
             lcs_percent: float = -1,
-            merge_line_distance: float = -1
+            merge_line_distance: float = -1,
+            overlay_offset_x: int = 0,
+            overlay_offset_y: int = 0,
     ) -> dict[str, MatchResultList]:
         """
         在图片中查找关键词 返回所有词对应的位置
@@ -325,9 +336,13 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         :param ignore_case: 忽略大小写
         :param lcs_percent: 最长公共子序列长度百分比 -1代表不使用 same_word=True时不生效
         :param merge_line_distance: 多少行距内合并结果 -1为不合并
+        :param overlay_offset_x: 裁剪区域左上角在全帧中的 x 偏移，仅影响 Overlay 可视化坐标
+        :param overlay_offset_y: 裁剪区域左上角在全帧中的 y 偏移，仅影响 Overlay 可视化坐标
         :return: {key_word: []}
         """
-        all_match_result: dict = self.run_ocr(image, threshold, merge_line_distance=merge_line_distance)
+        all_match_result: dict = self.run_ocr(image, threshold, merge_line_distance=merge_line_distance,
+                                              overlay_offset_x=overlay_offset_x,
+                                              overlay_offset_y=overlay_offset_y)
         match_key = set()
         for k in all_match_result.keys():
             for w in words:

@@ -117,6 +117,27 @@ class OverlayDebugBus:
             self._timeline_items.clear()
             self._performance_items.clear()
 
+    def offset_recent_vision(self, source: str, dx: int, dy: int) -> None:
+        """Shift x/y of recent VisionDrawItems matching *source*.
+
+        Used by run_ocr_with_offset to correct crop-relative coords
+        that were already pushed by _emit_overlay_vision.
+        """
+        if dx == 0 and dy == 0:
+            return
+        now = time.time()
+        with self._lock:
+            for item in reversed(self._vision_items):
+                if item.source != source:
+                    continue
+                # Only patch items created very recently (within 2 sec)
+                if now - item.created > 2.0:
+                    break
+                item.x1 += dx
+                item.y1 += dy
+                item.x2 += dx
+                item.y2 += dy
+
     def snapshot(self) -> OverlayDebugSnapshot:
         now = time.time()
         with self._lock:
