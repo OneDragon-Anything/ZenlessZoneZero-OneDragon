@@ -76,7 +76,7 @@ class LogPanel(ResizablePanel):
     def set_limits(self, max_lines: int, fade_seconds: int) -> None:
         self._max_lines = max(20, int(max_lines))
         self._fade_seconds = max(3, int(fade_seconds))
-        self._drop_expired(force=True)
+        self._drop_expired()
 
     def append_log(self, event: OverlayLogEvent) -> None:
         source = f"{event.filename}:{event.lineno}"
@@ -98,11 +98,8 @@ class LogPanel(ResizablePanel):
         self._lines.clear()
         self._text_widget.clear()
 
-    def _drop_expired(self, force: bool = False) -> None:
-        if force:
-            now = time.time()
-        else:
-            now = time.time()
+    def _drop_expired(self) -> None:
+        now = time.time()
 
         changed = False
         while self._lines and now - self._lines[0].created > self._fade_seconds:
