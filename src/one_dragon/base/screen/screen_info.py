@@ -36,6 +36,7 @@ class ScreenInfo:
                 pc_alt=self.pc_alt,
                 id_mark=data_area.get('id_mark', False),
                 goto_list=data_area.get('goto_list', []),
+                gamepad_key=data_area.get('gamepad_key', []),
             )
             self.area_list.append(area)
 

@@ -3,6 +3,9 @@ import time
 from functools import lru_cache
 
 import pyautogui
+import win32api
+import win32con
+import win32gui
 from cv2.typing import MatLike
 from pynput import keyboard
 
@@ -48,6 +51,7 @@ class PcControllerBase(ControllerBase):
         self.btn_controller: PcButtonController = self.keyboard_controller
         self.screenshot_controller: PcScreenshotController = PcScreenshotController(self.game_win, standard_width, standard_height)
         self.screenshot_method: str = screenshot_method
+        self.background_mode: bool = False
 
     def init_game_win(self) -> bool:
         """
@@ -121,6 +125,10 @@ class PcControllerBase(ControllerBase):
         :param pc_alt: 只在PC端有用 使用ALT键进行点击
         :return: 不在窗口区域时不点击 返回False
         """
+        if self.background_mode:
+            return self.background_click(pos, press_time)
+
+        # 默认 pyautogui 前台点击
         click_pos: Point
         if pos is not None:
             click_pos: Point = self.game_win.game2win_pos(pos)
@@ -137,6 +145,113 @@ class PcControllerBase(ControllerBase):
         if pc_alt:
             self.keyboard_controller.keyboard.release(keyboard.Key.alt)
         return True
+
+    def gamepad_click(self, gamepad_key: list[str] | None) -> bool:
+        """后台模式下使用手柄按键替代 pc_alt 点击。
+
+        高层 click_area / find_and_click_area 在 pc_alt=True 时调用此方法。
+        仅在后台模式且 gamepad_key 不为空时执行手柄按键。
+
+        :param gamepad_key: 手柄按键列表，如 ['xbox_0'] 或 ['xbox_6', 'xbox_0']，为 None 时不执行
+        :return: True 表示已用手柄替代，False 表示未替代（应回退到普通 click）
+        """
+        if self.background_mode and gamepad_key:
+            if len(gamepad_key) == 1:
+                self.btn_controller.tap(gamepad_key[0])
+            else:
+                self.btn_controller.tap_combo(gamepad_key)
+            return True
+        return False
+
+    # ── 后台模式 API ──────────────────────────────────
+
+    def send_activate(self) -> bool:
+        """
+        发送 WM_ACTIVATE(WA_ACTIVE) 到游戏窗口。
+        让游戏认为自己被激活，但不实际改变前台窗口。
+        后台 PostMessage 点击前必须调用。
+        :return: 是否成功
+        """
+        hwnd = self.game_win.get_hwnd()
+        if hwnd is None:
+            log.error('游戏窗口未就绪，无法发送 WM_ACTIVATE')
+            return False
+        try:
+            win32gui.SendMessage(hwnd, win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
+            time.sleep(0.01)
+            return True
+        except Exception:
+            log.error('发送 WM_ACTIVATE 失败', exc_info=True)
+            return False
+
+    def background_click(self, pos: Point | None, press_time: float = 0) -> bool:
+        """
+        后台点击: WM_ACTIVATE + WM_MOUSEMOVE + PostMessage WM_LBUTTONDOWN/UP。
+        适用于 UI/菜单等非锁鼠标场景。
+        :param pos: 游戏中的位置 (x,y)，None 时 lParam=0
+        :param press_time: 大于0时长按
+        :return: 是否成功
+        """
+        hwnd = self.game_win.get_hwnd()
+        if hwnd is None:
+            log.error('游戏窗口未就绪，无法后台点击')
+            return False
+
+        # 计算客户区相对坐标
+        if pos is not None:
+            scaled_pos = self.game_win.get_scaled_game_pos(pos)
+            if scaled_pos is None:
+                log.error('点击非游戏窗口区域 (%s)', pos)
+                return False
+            cx, cy = int(scaled_pos.x), int(scaled_pos.y)
+            lparam = win32api.MAKELONG(cx, cy)
+        else:
+            lparam = 0
+
+        try:
+            # 1. WM_ACTIVATE — 欺骗游戏认为窗口被激活
+            win32gui.SendMessage(hwnd, win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
+            time.sleep(0.01)
+
+            # 2. WM_MOUSEMOVE — 先移动到目标位置
+            win32gui.PostMessage(hwnd, win32con.WM_MOUSEMOVE, 0, lparam)
+            time.sleep(0.01)
+
+            # 3. WM_LBUTTONDOWN
+            win32gui.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, lparam)
+            if press_time > 0:
+                time.sleep(press_time)
+            else:
+                time.sleep(0.02)
+
+            # 4. WM_LBUTTONUP
+            win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, lparam)
+            return True
+        except Exception:
+            log.error('后台点击失败', exc_info=True)
+            return False
+
+    def enable_background_mode(self) -> None:
+        """
+        启用纯后台模式:
+        - 鼠标点击 → PostMessage (WM_ACTIVATE + PostMessage)
+        - 按键操作 → Xbox 虚拟手柄 (vgamepad)
+        - pc_alt 场景 → 手柄按键替代
+        需要先安装 ViGEmBus 驱动和 vgamepad 包。
+        """
+        self.background_mode = True
+        self.enable_xbox()
+        log.info('已启用后台模式: PostMessage 点击 + Xbox 手柄')
+
+    def enable_foreground_mode(self) -> None:
+        """
+        启用前台模式 (默认):
+        - 鼠标点击 → pyautogui
+        - 按键操作 → 键盘 (pynput)
+        """
+        self.background_mode = False
+        self.enable_keyboard()
+        log.info('已启用前台模式: pyautogui 点击 + 键盘')
 
     def get_screenshot(self, independent: bool = False) -> MatLike | None:
         if self.is_game_window_ready:
