@@ -15,3 +15,15 @@ class ChargePlanRunRecord(AppRunRecord):
 
     def check_and_update_status(self):  # 每次都运行
         self.reset_record()
+
+    def reset_record(self):
+        AppRunRecord.reset_record(self)
+        self.current_charge_power = None
+
+    @property
+    def current_charge_power(self) -> Optional[int]:
+        return self.get('current_charge_power', None)
+
+    @current_charge_power.setter
+    def current_charge_power(self, new_value: Optional[int]) -> None:
+        self.update('current_charge_power', new_value)

@@ -12,6 +12,7 @@ from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanConfig,
     ChargePlanItem,
 )
+from zzz_od.application.charge_plan.charge_plan_run_record import ChargePlanRunRecord
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
@@ -75,6 +76,8 @@ class ChargePlanApp(ZApplication):
             return self.round_retry('未识别到电量', wait=1)
 
         self.charge_power = digit
+        if isinstance(self.run_record, ChargePlanRunRecord):
+            self.run_record.current_charge_power = digit
         return self.round_success(f'剩余电量 {digit}')
 
     @node_from(from_name='识别电量')

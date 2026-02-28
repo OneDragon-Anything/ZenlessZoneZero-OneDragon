@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from zzz_od.application.charge_plan import charge_plan_const
+from zzz_od.application.charge_plan.charge_plan_run_record import ChargePlanRunRecord
 from zzz_od.application.notify import notify_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
@@ -44,6 +46,7 @@ class NotifyApp(ZApplication):
     def format_message(self) -> str:
         success = []
         failure = []
+        charge_power_text = None
 
         group_config = self.ctx.app_group_manager.get_one_dragon_group_config(instance_idx=self.ctx.current_instance_idx)
         for app_config in group_config.app_list:
@@ -55,6 +58,8 @@ class NotifyApp(ZApplication):
                 continue
             if not self.is_within_time(run_record.run_time):
                 continue
+            if app_config.app_id == charge_plan_const.APP_ID:
+                charge_power_text = self.get_charge_power_text(run_record)
             if run_record.run_status_under_now == AppRunRecord.STATUS_SUCCESS:
                 success.append(app_config.app_name)
             if run_record.run_status_under_now == AppRunRecord.STATUS_FAIL:
@@ -62,6 +67,8 @@ class NotifyApp(ZApplication):
                 self.exist_failure = True
 
         parts = [f"一条龙运行完成："]
+        if charge_power_text is not None:
+            parts.append(charge_power_text)
         has_failure = bool(failure)
         has_success = bool(success)
 
@@ -76,6 +83,17 @@ class NotifyApp(ZApplication):
             parts.append(f"全部失败❌")
 
         return "\n".join(parts)
+
+    @staticmethod
+    def get_charge_power_text(run_record: AppRunRecord) -> str | None:
+        if not isinstance(run_record, ChargePlanRunRecord):
+            return None
+
+        charge_power = run_record.current_charge_power
+        if charge_power is None:
+            return None
+
+        return f'当前体力：{charge_power}/240'
 
     def is_within_time(self, time_str) -> bool:
         end_time = datetime.now()
