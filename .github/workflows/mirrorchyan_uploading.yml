@@ -27,7 +27,9 @@ jobs:
           filename: ${{ format('ZenlessZoneZero-OneDragon-*-{0}*', matrix.type) }}
           mirrorchyan_rid: ZZZ-OneDragon
 
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          arch: ${{ matrix.arch }}
+
           owner: OneDragon-Anything
           repo: ZenlessZoneZero-OneDragon
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           upload_token: ${{ secrets.MirrorChyanUploadToken }}
