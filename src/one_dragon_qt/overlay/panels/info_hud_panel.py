@@ -107,9 +107,6 @@ class InfoHudPanel(QWidget):
             }}
             """
         )
-        # Text shadow via QLabel is not well supported, so we rely on the
-        # semi-transparent overlay window background to provide contrast.
-        _ = shadow_alpha  # suppress unused
 
     def _render(self) -> None:
         rows: list[str] = []
