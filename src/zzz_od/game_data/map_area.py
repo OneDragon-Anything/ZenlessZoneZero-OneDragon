@@ -1,10 +1,9 @@
 import difflib
 
 import os
-import yaml
 from typing import List, Optional
 
-from one_dragon.utils import os_utils
+from one_dragon.utils import os_utils, yaml_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 
@@ -41,7 +40,7 @@ class MapAreaService:
         )
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
-                area_list: List[dict] = yaml.safe_load(file)
+                area_list: List[dict] = yaml_utils.safe_load(file)
                 self.area_list = []
                 self.area_name_map = {}
                 for area_data in area_list:

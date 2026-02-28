@@ -3,8 +3,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame
 from qfluentwidgets import qconfig, Theme, isDarkTheme
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.utils.log_utils import log
-from one_dragon.utils import os_utils
-import yaml
+from one_dragon.utils import os_utils, yaml_utils
 import os
 
 
@@ -163,7 +162,7 @@ class ScrollCreditsWidget(QWidget):
 
             # 读取并解析YAML文件
             with open(contributors_file, 'r', encoding='utf-8') as f:
-                contributors_data = yaml.safe_load(f)
+                contributors_data = yaml_utils.safe_load(f)
 
             # 整合所有贡献者信息 - 按类别显示，支持自定义分组
             all_contributors = []
