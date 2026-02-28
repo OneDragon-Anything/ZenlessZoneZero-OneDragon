@@ -92,6 +92,36 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.state_panel_opt.value_changed.connect(self._on_config_changed)
         group.addSettingCard(self.state_panel_opt)
 
+        self.font_size_opt = SpinBoxSettingCard(
+            icon=FluentIcon.SETTING,
+            title="字体大小",
+            minimum=10,
+            maximum=28,
+            step=1,
+        )
+        self.font_size_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.font_size_opt)
+
+        self.text_opacity_opt = SpinBoxSettingCard(
+            icon=FluentIcon.SETTING,
+            title="文字透明度(%)",
+            minimum=20,
+            maximum=100,
+            step=5,
+        )
+        self.text_opacity_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.text_opacity_opt)
+
+        self.panel_opacity_opt = SpinBoxSettingCard(
+            icon=FluentIcon.SETTING,
+            title="面板透明度(%)",
+            minimum=20,
+            maximum=100,
+            step=5,
+        )
+        self.panel_opacity_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.panel_opacity_opt)
+
         self.log_max_lines_opt = SpinBoxSettingCard(
             icon=FluentIcon.SETTING,
             title="日志最大行数",
@@ -153,6 +183,9 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.anti_capture_opt.init_with_adapter(self.config.get_prop_adapter("anti_capture"))
         self.log_panel_opt.init_with_adapter(self.config.get_prop_adapter("log_panel_enabled"))
         self.state_panel_opt.init_with_adapter(self.config.get_prop_adapter("state_panel_enabled"))
+        self.font_size_opt.init_with_adapter(self.config.get_prop_adapter("font_size"))
+        self.text_opacity_opt.init_with_adapter(self.config.get_prop_adapter("text_opacity"))
+        self.panel_opacity_opt.init_with_adapter(self.config.get_prop_adapter("panel_opacity"))
         self.log_max_lines_opt.init_with_adapter(self.config.get_prop_adapter("log_max_lines"))
         self.log_fade_seconds_opt.init_with_adapter(self.config.get_prop_adapter("log_fade_seconds"))
         self.follow_interval_opt.init_with_adapter(self.config.get_prop_adapter("follow_interval_ms"))
@@ -189,5 +222,15 @@ class SettingOverlayInterface(VerticalScrollInterface):
         )
 
     def _refresh_hotkey_content(self) -> None:
-        key = self.config.toggle_hotkey.upper()
+        key = self._format_hotkey_key(self.config.toggle_hotkey)
         self.enabled_opt.setContent(f"启用后可通过 Ctrl+Alt+{key} 切换显隐")
+
+    @staticmethod
+    def _format_hotkey_key(key: str) -> str:
+        raw = str(key or "").strip()
+        vk = win32_utils.key_to_vk(raw)
+        if vk is not None and 65 <= vk <= 90:
+            return chr(vk)
+        if vk is not None and 48 <= vk <= 57:
+            return chr(vk)
+        return raw.upper() if raw else "O"

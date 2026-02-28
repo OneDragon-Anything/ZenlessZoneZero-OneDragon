@@ -7,7 +7,6 @@ from typing import Optional
 from PySide6.QtCore import QObject, QTimer, Signal
 
 from one_dragon.base.operation.context_event_bus import ContextEventItem
-from one_dragon.base.operation.one_dragon_context import ContextKeyboardEventEnum
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.overlay.overlay_config import OverlayConfig
 from one_dragon_qt.overlay.overlay_events import OverlayEventEnum, OverlayLogEvent
@@ -22,7 +21,6 @@ except Exception:
 
 
 class _OverlaySignalBridge(QObject):
-    key_pressed = Signal(str)
     log_received = Signal(object)
 
 
@@ -44,10 +42,10 @@ class OverlayManager(QObject):
         self._overlay_window: Optional[OverlayWindow] = None
         self._log_handler: Optional[OverlayLogHandler] = None
         self._ctrl_interaction = False
+        self._toggle_combo_pressed = False
         self._last_toggle_hotkey_time = 0.0
 
         self._signal_bridge = _OverlaySignalBridge()
-        self._signal_bridge.key_pressed.connect(self._on_key_pressed_signal)
         self._signal_bridge.log_received.connect(self._on_log_received_signal)
 
         self._follow_timer = QTimer(self)
@@ -103,6 +101,7 @@ class OverlayManager(QObject):
 
     def reload_config(self) -> None:
         self.config = OverlayConfig()
+        self._toggle_combo_pressed = False
         self._apply_timer_intervals()
         if self._overlay_window is not None:
             self._overlay_window.apply_panel_geometry(
@@ -136,25 +135,15 @@ class OverlayManager(QObject):
         self._state_timer.setInterval(self.config.state_poll_interval_ms)
 
     def _bind_context_events(self) -> None:
-        self.ctx.listen_event(ContextKeyboardEventEnum.PRESS.value, self._on_context_key_event)
         self.ctx.listen_event(OverlayEventEnum.OVERLAY_LOG.value, self._on_context_log_event)
-
-    def _on_context_key_event(self, event: ContextEventItem) -> None:
-        if event is None:
-            return
-        key = str(event.data).lower() if event.data is not None else ""
-        if key:
-            self._signal_bridge.key_pressed.emit(key)
 
     def _on_context_log_event(self, event: ContextEventItem) -> None:
         if event is None or event.data is None:
             return
         self._signal_bridge.log_received.emit(event.data)
 
-    def _on_key_pressed_signal(self, key: str) -> None:
-        if key != self.config.toggle_hotkey:
-            return
-        if not win32_utils.is_ctrl_pressed() or not win32_utils.is_alt_pressed():
+    def _toggle_hotkey_if_allowed(self) -> None:
+        if not self.config.enabled:
             return
         if not self._is_game_window_active():
             return
@@ -222,6 +211,9 @@ class OverlayManager(QObject):
         overlay.log_panel.set_limits(self.config.log_max_lines, self.config.log_fade_seconds)
         overlay.set_log_panel_enabled(self.config.log_panel_enabled)
         overlay.set_state_panel_enabled(self.config.state_panel_enabled)
+        overlay.set_panel_appearance(
+            self.config.font_size, self.config.text_opacity, self.config.panel_opacity
+        )
         overlay.set_anti_capture(self.config.anti_capture)
         overlay.set_overlay_visible(self.config.visible)
         if self.config.visible:
@@ -229,6 +221,7 @@ class OverlayManager(QObject):
 
     def _hide_overlay(self) -> None:
         self._ctrl_interaction = False
+        self._toggle_combo_pressed = False
         if self._overlay_window is not None:
             self._overlay_window.set_overlay_visible(False)
 
@@ -239,6 +232,11 @@ class OverlayManager(QObject):
             log.error("更新 Overlay 交互模式失败", exc_info=True)
 
     def _poll_input_mode(self) -> None:
+        toggle_combo_now = win32_utils.is_hotkey_combo_pressed(self.config.toggle_hotkey)
+        if toggle_combo_now and not self._toggle_combo_pressed:
+            self._toggle_hotkey_if_allowed()
+        self._toggle_combo_pressed = toggle_combo_now
+
         if self._overlay_window is None or not self._overlay_window.isVisible():
             self._ctrl_interaction = False
             return
@@ -395,7 +393,16 @@ class OverlayManager(QObject):
             return None
         if not game_win.is_win_valid:
             return None
-        return game_win.win_rect
+        hwnd = game_win.get_hwnd() if hasattr(game_win, "get_hwnd") else None
+        if win32_utils.is_window_minimized(hwnd):
+            return None
+
+        rect = game_win.win_rect
+        if rect is None:
+            return None
+        if int(getattr(rect, "width", 0)) <= 0 or int(getattr(rect, "height", 0)) <= 0:
+            return None
+        return rect
 
     def _is_game_window_active(self) -> bool:
         if self.ctx.controller is None:

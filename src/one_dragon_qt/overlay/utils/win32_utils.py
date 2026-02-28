@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+import re
 import sys
 from ctypes import wintypes
 
@@ -30,6 +31,8 @@ _user32.SetWindowDisplayAffinity.argtypes = [wintypes.HWND, wintypes.DWORD]
 _user32.SetWindowDisplayAffinity.restype = wintypes.BOOL
 _user32.GetAsyncKeyState.argtypes = [ctypes.c_int]
 _user32.GetAsyncKeyState.restype = ctypes.c_short
+_user32.IsIconic.argtypes = [wintypes.HWND]
+_user32.IsIconic.restype = wintypes.BOOL
 
 
 def get_windows_build() -> int:
@@ -61,6 +64,76 @@ def is_alt_pressed() -> bool:
         or is_key_pressed(VK_LMENU)
         or is_key_pressed(VK_RMENU)
     )
+
+
+def key_to_vk(key: str) -> int | None:
+    key_name = str(key or "").strip().lower()
+    if not key_name:
+        return None
+
+    vk_match = re.fullmatch(r"vk_(\d+)", key_name)
+    if vk_match:
+        return int(vk_match.group(1))
+
+    if len(key_name) == 1 and key_name.isalnum():
+        return ord(key_name.upper())
+
+    if key_name.startswith("numpad_"):
+        suffix = key_name.replace("numpad_", "", 1)
+        if suffix.isdigit():
+            num = int(suffix)
+            if 0 <= num <= 9:
+                return 0x60 + num
+
+    fn_match = re.fullmatch(r"f(\d{1,2})", key_name)
+    if fn_match:
+        fn_num = int(fn_match.group(1))
+        if 1 <= fn_num <= 24:
+            return 0x70 + fn_num - 1
+
+    mapping = {
+        "space": 0x20,
+        "tab": 0x09,
+        "enter": 0x0D,
+        "esc": 0x1B,
+        "escape": 0x1B,
+        "backspace": 0x08,
+        "delete": 0x2E,
+        "insert": 0x2D,
+        "home": 0x24,
+        "end": 0x23,
+        "page_up": 0x21,
+        "page_down": 0x22,
+        "up": 0x26,
+        "down": 0x28,
+        "left": 0x25,
+        "right": 0x27,
+        "minus": 0xBD,
+        "equals": 0xBB,
+        "comma": 0xBC,
+        "period": 0xBE,
+        "slash": 0xBF,
+        "backslash": 0xDC,
+        "semicolon": 0xBA,
+        "apostrophe": 0xDE,
+        "grave": 0xC0,
+        "l_bracket": 0xDB,
+        "r_bracket": 0xDD,
+    }
+    return mapping.get(key_name)
+
+
+def is_hotkey_combo_pressed(main_key: str) -> bool:
+    main_vk = key_to_vk(main_key)
+    if main_vk is None:
+        return False
+    return is_ctrl_pressed() and is_alt_pressed() and is_key_pressed(main_vk)
+
+
+def is_window_minimized(hwnd: int | None) -> bool:
+    if hwnd is None or int(hwnd) == 0:
+        return False
+    return bool(_user32.IsIconic(int(hwnd)))
 
 
 def set_window_click_through(hwnd: int, click_through: bool) -> bool:

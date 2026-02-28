@@ -34,6 +34,7 @@ class LogPanel(ResizablePanel):
 
     def __init__(self, parent=None):
         super().__init__(title="Overlay Log", min_width=380, min_height=180, parent=parent)
+        self.set_title_visible(False)
 
         self._max_lines = 120
         self._fade_seconds = 12
@@ -45,6 +46,10 @@ class LogPanel(ResizablePanel):
         self._cleanup_timer = QTimer(self)
         self._cleanup_timer.timeout.connect(self._drop_expired)
         self._cleanup_timer.start(1000)
+
+    def set_appearance(self, font_size: int, text_opacity: int, panel_opacity: int) -> None:
+        self.set_panel_opacity(panel_opacity)
+        self._text_widget.set_appearance(font_size, text_opacity)
 
     def set_limits(self, max_lines: int, fade_seconds: int) -> None:
         self._max_lines = max(20, int(max_lines))

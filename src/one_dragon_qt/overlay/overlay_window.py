@@ -46,6 +46,10 @@ class OverlayWindow(QWidget):
     def set_state_panel_enabled(self, enabled: bool) -> None:
         self.state_panel.setVisible(enabled)
 
+    def set_panel_appearance(self, font_size: int, text_opacity: int, panel_opacity: int) -> None:
+        self.log_panel.set_appearance(font_size, text_opacity, panel_opacity)
+        self.state_panel.set_appearance(font_size, text_opacity, panel_opacity)
+
     def set_passthrough(self, enabled: bool) -> None:
         self._passthrough_enabled = enabled
         hwnd = int(self.winId())

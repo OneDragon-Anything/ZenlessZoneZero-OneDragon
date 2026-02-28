@@ -16,6 +16,9 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "visible": True,
     "anti_capture": True,
     "toggle_hotkey": "o",
+    "font_size": 12,
+    "text_opacity": 100,
+    "panel_opacity": 70,
     "log_panel_enabled": True,
     "state_panel_enabled": True,
     "log_max_lines": 120,
@@ -31,6 +34,9 @@ _OVERLAY_SCALAR_KEYS = {
     "visible",
     "anti_capture",
     "toggle_hotkey",
+    "font_size",
+    "text_opacity",
+    "panel_opacity",
     "log_panel_enabled",
     "state_panel_enabled",
     "log_max_lines",
@@ -94,6 +100,16 @@ class OverlayConfig(YamlConfig):
         key = str(value or "").strip().lower()
         if not key:
             return "o"
+        if key.startswith("vk_"):
+            num_text = key.replace("vk_", "", 1)
+            if num_text.isdigit():
+                vk = int(num_text)
+                if 65 <= vk <= 90 or 48 <= vk <= 57:
+                    return chr(vk).lower()
+        if key.startswith("numpad_"):
+            suffix = key.replace("numpad_", "", 1)
+            if suffix.isdigit():
+                return key
         return key
 
     @property
@@ -127,6 +143,30 @@ class OverlayConfig(YamlConfig):
     @toggle_hotkey.setter
     def toggle_hotkey(self, value: str) -> None:
         self._update_overlay_data("toggle_hotkey", self._normalize_hotkey_key(value))
+
+    @property
+    def font_size(self) -> int:
+        return max(10, min(28, int(self._overlay_data()["font_size"])))
+
+    @font_size.setter
+    def font_size(self, value: int) -> None:
+        self._update_overlay_data("font_size", max(10, min(28, int(value))))
+
+    @property
+    def text_opacity(self) -> int:
+        return max(20, min(100, int(self._overlay_data()["text_opacity"])))
+
+    @text_opacity.setter
+    def text_opacity(self, value: int) -> None:
+        self._update_overlay_data("text_opacity", max(20, min(100, int(value))))
+
+    @property
+    def panel_opacity(self) -> int:
+        return max(20, min(100, int(self._overlay_data()["panel_opacity"])))
+
+    @panel_opacity.setter
+    def panel_opacity(self, value: int) -> None:
+        self._update_overlay_data("panel_opacity", max(20, min(100, int(value))))
 
     @property
     def log_panel_enabled(self) -> bool:
