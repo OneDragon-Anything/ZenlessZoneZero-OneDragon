@@ -29,6 +29,9 @@ class ResizablePanel(QFrame):
         self._min_height = max(100, min_height)
         self._edge_margin = 6
         self._header_height = 28
+        self._drag_handle_height = self._header_height + 4
+        self._title_visible = True
+        self._panel_opacity = 70
 
         self._dragging = False
         self._resizing = False
@@ -42,21 +45,6 @@ class ResizablePanel(QFrame):
         self.setMouseTracking(True)
         self.setMinimumSize(self._min_width, self._min_height)
         self.setFrameShape(QFrame.Shape.StyledPanel)
-        self.setStyleSheet(
-            """
-            ResizablePanel {
-                background-color: rgba(15, 15, 18, 175);
-                border: 1px solid rgba(255, 255, 255, 52);
-                border-radius: 8px;
-            }
-            QLabel#overlayPanelTitle {
-                color: #f0f0f0;
-                font-size: 13px;
-                font-weight: 600;
-                padding-left: 6px;
-            }
-            """
-        )
 
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(8, 4, 8, 8)
@@ -66,10 +54,47 @@ class ResizablePanel(QFrame):
         self._title_label.setObjectName("overlayPanelTitle")
         self._title_label.setFixedHeight(self._header_height)
         self._layout.addWidget(self._title_label)
+        self._refresh_style()
 
     @property
     def body_layout(self) -> QVBoxLayout:
         return self._layout
+
+    def set_title_visible(self, visible: bool) -> None:
+        self._title_visible = bool(visible)
+        self._title_label.setVisible(self._title_visible)
+        self._title_label.setFixedHeight(self._header_height if self._title_visible else 0)
+        if self._title_visible:
+            self._layout.setContentsMargins(8, 4, 8, 8)
+            self._layout.setSpacing(6)
+            self._drag_handle_height = self._header_height + 4
+        else:
+            self._layout.setContentsMargins(8, 18, 8, 8)
+            self._layout.setSpacing(4)
+            self._drag_handle_height = 16
+
+    def set_panel_opacity(self, opacity_percent: int) -> None:
+        self._panel_opacity = max(20, min(100, int(opacity_percent)))
+        self._refresh_style()
+
+    def _refresh_style(self) -> None:
+        panel_alpha = int(255 * self._panel_opacity / 100.0)
+        border_alpha = max(25, min(120, int(panel_alpha * 0.35)))
+        self.setStyleSheet(
+            f"""
+            ResizablePanel {{
+                background-color: rgba(15, 15, 18, {panel_alpha});
+                border: 1px solid rgba(255, 255, 255, {border_alpha});
+                border-radius: 8px;
+            }}
+            QLabel#overlayPanelTitle {{
+                color: #f0f0f0;
+                font-size: 13px;
+                font-weight: 600;
+                padding-left: 6px;
+            }}
+            """
+        )
 
     def _hit_test_edge(self, pos: QPoint) -> int:
         edge = self._EDGE_NONE
@@ -86,7 +111,7 @@ class ResizablePanel(QFrame):
         return edge
 
     def _is_in_header(self, pos: QPoint) -> bool:
-        return 0 <= pos.y() <= self._header_height + 4
+        return 0 <= pos.y() <= self._drag_handle_height
 
     def _update_cursor(self, edge: int, pos: QPoint) -> None:
         if edge in (self._EDGE_LEFT, self._EDGE_RIGHT):
