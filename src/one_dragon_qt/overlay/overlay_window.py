@@ -43,6 +43,10 @@ class OverlayWindow(QWidget):
         self._standard_height = 1080
         self._vision_items: list[VisionDrawItem] = []
         self._vision_layer_enabled = True
+        self._vision_offset_x = 0
+        self._vision_offset_y = 0
+        self._vision_scale_x = 1.0
+        self._vision_scale_y = 1.0
 
         self.setWindowTitle("OneDragon Overlay")
         self.setWindowFlags(
@@ -130,6 +134,19 @@ class OverlayWindow(QWidget):
 
     def set_vision_layer_enabled(self, enabled: bool) -> None:
         self._vision_layer_enabled = bool(enabled)
+        self.update()
+
+    def set_vision_transform(
+        self,
+        offset_x: int = 0,
+        offset_y: int = 0,
+        scale_x: float = 1.0,
+        scale_y: float = 1.0,
+    ) -> None:
+        self._vision_offset_x = int(offset_x)
+        self._vision_offset_y = int(offset_y)
+        self._vision_scale_x = max(0.5, min(1.5, float(scale_x)))
+        self._vision_scale_y = max(0.5, min(1.5, float(scale_y)))
         self.update()
 
     def set_vision_items(self, items: Sequence[VisionDrawItem]) -> None:
@@ -248,38 +265,17 @@ class OverlayWindow(QWidget):
         if not visible_items:
             return
 
-        margin = 10
-        gap = 6
-        side_w = max(200, min(300, int(self.width() * 0.18)))
+        margin = 8
+        gap = 4
+        side_w = max(190, min(280, int(self.width() * 0.17)))
         x = max(0, self.width() - margin - side_w)
 
-        base_height_sum = sum(base_h for _, _, base_h in visible_items)
-        available_h = max(80, self.height() - margin * 2 - gap * (len(visible_items) - 1))
-        if available_h >= base_height_sum:
-            heights = [base_h for _, _, base_h in visible_items]
-        else:
-            panel_count = len(visible_items)
-            min_h = max(8, min(24, available_h // max(1, panel_count)))
-            heights = [
-                max(min_h, int(available_h * (base_h / float(max(1, base_height_sum)))))
-                for _, _, base_h in visible_items
-            ]
-            total_h = sum(heights)
-            if total_h > available_h:
-                overflow = total_h - available_h
-                for idx in range(len(heights) - 1, -1, -1):
-                    reducible = heights[idx] - min_h
-                    if reducible <= 0:
-                        continue
-                    delta = min(reducible, overflow)
-                    heights[idx] -= delta
-                    overflow -= delta
-                    if overflow <= 0:
-                        break
+        available_h = max(60, self.height() - margin * 2 - gap * (len(visible_items) - 1))
+        equal_h = max(56, available_h // len(visible_items))
 
         y = margin
-        for idx, (_, panel, _) in enumerate(visible_items):
-            h = max(8, heights[idx])
+        for _, panel, _ in visible_items:
+            h = max(56, min(140, equal_h))
             panel.setGeometry(x, y, side_w, h)
             y += h + gap
 
@@ -349,10 +345,12 @@ class OverlayWindow(QWidget):
         return nx1, ny1, nx2, ny2
 
     def _map_rect(self, item: VisionDrawItem, scale_x: float, scale_y: float) -> QRect | None:
-        x1 = int(item.x1 * scale_x)
-        y1 = int(item.y1 * scale_y)
-        x2 = int(item.x2 * scale_x)
-        y2 = int(item.y2 * scale_y)
+        map_scale_x = scale_x * self._vision_scale_x
+        map_scale_y = scale_y * self._vision_scale_y
+        x1 = int(item.x1 * map_scale_x) + self._vision_offset_x
+        y1 = int(item.y1 * map_scale_y) + self._vision_offset_y
+        x2 = int(item.x2 * map_scale_x) + self._vision_offset_x
+        y2 = int(item.y2 * map_scale_y) + self._vision_offset_y
         x1, y1, x2, y2 = self._normalize_coords(x1, y1, x2, y2)
 
         w = max(1, x2 - x1)

@@ -33,6 +33,7 @@ class ResizablePanel(QFrame):
         self._title_visible = True
         self._panel_opacity = 70
         self._interaction_enabled = True
+        self._drag_anywhere = False
 
         self._dragging = False
         self._resizing = False
@@ -81,6 +82,9 @@ class ResizablePanel(QFrame):
             self._resizing = False
             self._active_edge = self._EDGE_NONE
             self.setCursor(Qt.CursorShape.ArrowCursor)
+
+    def set_drag_anywhere(self, enabled: bool) -> None:
+        self._drag_anywhere = bool(enabled)
 
     def set_panel_opacity(self, opacity_percent: int) -> None:
         self._panel_opacity = max(20, min(100, int(opacity_percent)))
@@ -131,7 +135,7 @@ class ResizablePanel(QFrame):
             self.setCursor(Qt.CursorShape.SizeFDiagCursor)
         elif edge in (self._EDGE_RIGHT | self._EDGE_TOP, self._EDGE_LEFT | self._EDGE_BOTTOM):
             self.setCursor(Qt.CursorShape.SizeBDiagCursor)
-        elif self._is_in_header(pos):
+        elif self._drag_anywhere or self._is_in_header(pos):
             self.setCursor(Qt.CursorShape.SizeAllCursor)
         else:
             self.setCursor(Qt.CursorShape.ArrowCursor)
@@ -150,7 +154,7 @@ class ResizablePanel(QFrame):
 
         if self._active_edge != self._EDGE_NONE:
             self._resizing = True
-        elif self._is_in_header(event.position().toPoint()):
+        elif self._drag_anywhere or self._is_in_header(event.position().toPoint()):
             self._dragging = True
 
         super().mousePressEvent(event)

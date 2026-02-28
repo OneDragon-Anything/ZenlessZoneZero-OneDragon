@@ -10,7 +10,10 @@ from one_dragon_qt.overlay.utils import win32_utils
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
-from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
+    DoubleSpinBoxSettingCard,
+    SpinBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
@@ -125,6 +128,48 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.vision_cv_opt.value_changed.connect(self._on_config_changed)
         group.addSettingCard(self.vision_cv_opt)
 
+        self.vision_offset_x_opt = SpinBoxSettingCard(
+            icon=FluentIcon.MOVE,
+            title="视觉层 X 偏移",
+            content="用于校正识别框左右偏移（像素）",
+            minimum=-400,
+            maximum=400,
+            step=1,
+        )
+        self.vision_offset_x_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.vision_offset_x_opt)
+
+        self.vision_offset_y_opt = SpinBoxSettingCard(
+            icon=FluentIcon.MOVE,
+            title="视觉层 Y 偏移",
+            content="用于校正识别框上下偏移（像素）",
+            minimum=-400,
+            maximum=400,
+            step=1,
+        )
+        self.vision_offset_y_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.vision_offset_y_opt)
+
+        self.vision_scale_x_opt = DoubleSpinBoxSettingCard(
+            icon=FluentIcon.ZOOM,
+            title="视觉层 X 缩放",
+            minimum=0.50,
+            maximum=1.50,
+            step=0.01,
+        )
+        self.vision_scale_x_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.vision_scale_x_opt)
+
+        self.vision_scale_y_opt = DoubleSpinBoxSettingCard(
+            icon=FluentIcon.ZOOM,
+            title="视觉层 Y 缩放",
+            minimum=0.50,
+            maximum=1.50,
+            step=0.01,
+        )
+        self.vision_scale_y_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.vision_scale_y_opt)
+
         return group
 
     def _init_panel_group(self) -> SettingCardGroup:
@@ -205,6 +250,26 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.state_interval_opt.value_changed.connect(self._on_config_changed)
         group.addSettingCard(self.state_interval_opt)
 
+        self.text_opacity_opt = SpinBoxSettingCard(
+            icon=FluentIcon.EDIT,
+            title="文字透明度(%)",
+            minimum=20,
+            maximum=100,
+            step=1,
+        )
+        self.text_opacity_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.text_opacity_opt)
+
+        self.panel_opacity_opt = SpinBoxSettingCard(
+            icon=FluentIcon.SETTING,
+            title="面板透明度(%)",
+            minimum=20,
+            maximum=100,
+            step=1,
+        )
+        self.panel_opacity_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.panel_opacity_opt)
+
         self.reset_geometry_opt = PushSettingCard(
             icon=FluentIcon.SYNC,
             title="重置面板位置",
@@ -267,6 +332,10 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.vision_ocr_opt.init_with_adapter(self.config.get_prop_adapter("vision_ocr_enabled"))
         self.vision_template_opt.init_with_adapter(self.config.get_prop_adapter("vision_template_enabled"))
         self.vision_cv_opt.init_with_adapter(self.config.get_prop_adapter("vision_cv_enabled"))
+        self.vision_offset_x_opt.init_with_adapter(self.config.get_prop_adapter("vision_offset_x"))
+        self.vision_offset_y_opt.init_with_adapter(self.config.get_prop_adapter("vision_offset_y"))
+        self.vision_scale_x_opt.init_with_adapter(self.config.get_prop_adapter("vision_scale_x"))
+        self.vision_scale_y_opt.init_with_adapter(self.config.get_prop_adapter("vision_scale_y"))
         self.log_panel_opt.init_with_adapter(self.config.get_prop_adapter("log_panel_enabled"))
         self.state_panel_opt.init_with_adapter(self.config.get_prop_adapter("state_panel_enabled"))
         self.decision_panel_opt.init_with_adapter(self.config.get_prop_adapter("decision_panel_enabled"))
@@ -276,6 +345,8 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.log_fade_seconds_opt.init_with_adapter(self.config.get_prop_adapter("log_fade_seconds"))
         self.follow_interval_opt.init_with_adapter(self.config.get_prop_adapter("follow_interval_ms"))
         self.state_interval_opt.init_with_adapter(self.config.get_prop_adapter("state_poll_interval_ms"))
+        self.text_opacity_opt.init_with_adapter(self.config.get_prop_adapter("text_opacity"))
+        self.panel_opacity_opt.init_with_adapter(self.config.get_prop_adapter("panel_opacity"))
         self.patched_capture_opt.init_with_adapter(
             self.config.get_prop_adapter("patched_capture_enabled")
         )
