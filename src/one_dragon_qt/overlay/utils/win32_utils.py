@@ -183,7 +183,10 @@ def set_window_click_through(hwnd: int | None, click_through: bool) -> bool:
     if hwnd is None or int(hwnd) == 0:
         return False
 
+    ctypes.set_last_error(0)
     old_style = _user32.GetWindowLongW(int(hwnd), GWL_EXSTYLE)
+    if old_style == 0 and ctypes.get_last_error() != 0:
+        return False
     new_style = old_style | WS_EX_LAYERED
     if click_through:
         new_style |= WS_EX_TRANSPARENT
