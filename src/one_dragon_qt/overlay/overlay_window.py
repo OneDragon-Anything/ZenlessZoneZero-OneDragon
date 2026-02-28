@@ -13,11 +13,7 @@ from one_dragon.base.operation.overlay_debug_bus import (
     TimelineItem,
     VisionDrawItem,
 )
-from one_dragon_qt.overlay.panels.decision_panel import DecisionPanel
-from one_dragon_qt.overlay.panels.log_panel import LogPanel
-from one_dragon_qt.overlay.panels.performance_panel import PerformancePanel
-from one_dragon_qt.overlay.panels.state_panel import StatePanel
-from one_dragon_qt.overlay.panels.timeline_panel import TimelinePanel
+from one_dragon_qt.overlay.panels.info_hud_panel import InfoHudPanel
 from one_dragon_qt.overlay.utils import win32_utils
 
 
@@ -30,7 +26,12 @@ _VISION_SOURCE_COLOR = {
 
 
 class OverlayWindow(QWidget):
-    """Top-most transparent overlay window."""
+    """Top-most transparent overlay window.
+
+    Contains only the vision-draw paint layer and an InfoHudPanel
+    (Afterburner-style OSD).  The LogPanel is now managed externally as
+    an independent top-level window by OverlayManager.
+    """
 
     panel_geometry_changed = Signal(str, dict)
 
@@ -58,75 +59,14 @@ class OverlayWindow(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
-        self.log_panel = LogPanel(self)
-        self.state_panel = StatePanel(self)
-        self.decision_panel = DecisionPanel(self)
-        self.timeline_panel = TimelinePanel(self)
-        self.performance_panel = PerformancePanel(self)
-        self._side_panels_docked = True
+        # InfoHudPanel replaces the old state/decision/timeline/performance panels
+        self.info_hud_panel = InfoHudPanel(self)
 
-        # Keep log panel draggable; side panels are docked.
-        self.log_panel.set_interaction_enabled(True)
-        self.state_panel.set_interaction_enabled(False)
-        self.decision_panel.set_interaction_enabled(False)
-        self.timeline_panel.set_interaction_enabled(False)
-        self.performance_panel.set_interaction_enabled(False)
-
-        self.log_panel.geometry_changed.connect(
-            lambda g: self.panel_geometry_changed.emit("log_panel", g)
-        )
-        self.state_panel.geometry_changed.connect(
-            lambda g: self.panel_geometry_changed.emit("state_panel", g)
-        )
-        self.decision_panel.geometry_changed.connect(
-            lambda g: self.panel_geometry_changed.emit("decision_panel", g)
-        )
-        self.timeline_panel.geometry_changed.connect(
-            lambda g: self.panel_geometry_changed.emit("timeline_panel", g)
-        )
-        self.performance_panel.geometry_changed.connect(
-            lambda g: self.panel_geometry_changed.emit("performance_panel", g)
-        )
-
-    def set_log_panel_enabled(self, enabled: bool) -> None:
-        self.log_panel.setVisible(enabled)
-
-    def set_state_panel_enabled(self, enabled: bool) -> None:
-        self.state_panel.setVisible(enabled)
-        if self._side_panels_docked:
-            self.dock_side_panels()
-
-    def set_decision_panel_enabled(self, enabled: bool) -> None:
-        self.decision_panel.setVisible(enabled)
-        if self._side_panels_docked:
-            self.dock_side_panels()
-
-    def set_timeline_panel_enabled(self, enabled: bool) -> None:
-        self.timeline_panel.setVisible(enabled)
-        if self._side_panels_docked:
-            self.dock_side_panels()
-
-    def set_performance_panel_enabled(self, enabled: bool) -> None:
-        self.performance_panel.setVisible(enabled)
-        if self._side_panels_docked:
-            self.dock_side_panels()
-
-    def set_side_panels_docked(self, docked: bool) -> None:
-        self._side_panels_docked = bool(docked)
-        enabled = not self._side_panels_docked
-        self.state_panel.set_interaction_enabled(enabled)
-        self.decision_panel.set_interaction_enabled(enabled)
-        self.timeline_panel.set_interaction_enabled(enabled)
-        self.performance_panel.set_interaction_enabled(enabled)
-        if self._side_panels_docked:
-            self.dock_side_panels()
+    def set_info_hud_enabled(self, enabled: bool) -> None:
+        self.info_hud_panel.setVisible(enabled)
 
     def set_panel_appearance(self, font_size: int, text_opacity: int, panel_opacity: int) -> None:
-        self.log_panel.set_appearance(font_size, text_opacity, panel_opacity)
-        self.state_panel.set_appearance(font_size, text_opacity, panel_opacity)
-        self.decision_panel.set_appearance(font_size, text_opacity, panel_opacity)
-        self.timeline_panel.set_appearance(font_size, text_opacity, panel_opacity)
-        self.performance_panel.set_appearance(font_size, text_opacity, panel_opacity)
+        self.info_hud_panel.set_appearance(font_size, text_opacity, panel_opacity)
 
     def set_standard_resolution(self, width: int, height: int) -> None:
         self._standard_width = max(1, int(width))
@@ -159,16 +99,19 @@ class OverlayWindow(QWidget):
         self.update()
 
     def set_decision_items(self, items: Sequence[DecisionTraceItem]) -> None:
-        self.decision_panel.update_items(list(items))
+        self.info_hud_panel.update_decisions(list(items))
 
     def set_timeline_items(self, items: Sequence[TimelineItem]) -> None:
-        self.timeline_panel.update_items(list(items))
+        self.info_hud_panel.update_timeline(list(items))
 
     def set_performance_items(self, items: Sequence[PerfMetricSample]) -> None:
-        self.performance_panel.update_items(list(items))
+        self.info_hud_panel.update_performance(list(items))
 
     def set_performance_metric_enabled_map(self, metric_enabled: dict[str, bool] | None) -> None:
-        self.performance_panel.set_enabled_metric_map(metric_enabled)
+        self.info_hud_panel.set_enabled_metric_map(metric_enabled)
+
+    def update_state_snapshot(self, items: list[tuple[str, str]]) -> None:
+        self.info_hud_panel.update_state(items)
 
     def capture_overlay_rgba(self) -> np.ndarray | None:
         if not self.isVisible() or self.width() <= 0 or self.height() <= 0:
@@ -211,25 +154,11 @@ class OverlayWindow(QWidget):
                 self.hide()
 
     def apply_panel_geometry(self, panel_name: str, geometry: dict[str, int]) -> None:
-        panel = self._panel_by_name(panel_name)
-        if panel is None:
-            return
-        panel.setGeometry(
-            int(geometry.get("x", panel.x())),
-            int(geometry.get("y", panel.y())),
-            int(geometry.get("w", panel.width())),
-            int(geometry.get("h", panel.height())),
-        )
-        self._clamp_panel(panel)
+        """No-op: panels are now either InfoHudPanel (auto-docked) or independent LogPanel."""
+        pass
 
     def panel_geometries(self) -> dict[str, dict[str, int]]:
-        return {
-            "log_panel": self._panel_geometry(self.log_panel),
-            "state_panel": self._panel_geometry(self.state_panel),
-            "decision_panel": self._panel_geometry(self.decision_panel),
-            "timeline_panel": self._panel_geometry(self.timeline_panel),
-            "performance_panel": self._panel_geometry(self.performance_panel),
-        }
+        return {}
 
     def update_with_game_rect(self, rect) -> None:
         if rect is None:
@@ -241,43 +170,22 @@ class OverlayWindow(QWidget):
         if width <= 0 or height <= 0:
             return
         self.setGeometry(QRect(left, top, width, height))
-        if self._side_panels_docked:
-            self.dock_side_panels()
-        self._clamp_all_panels()
+        self._dock_info_hud()
 
     def resizeEvent(self, event: QResizeEvent) -> None:
-        if self._side_panels_docked:
-            self.dock_side_panels()
-        self._clamp_all_panels()
+        self._dock_info_hud()
         super().resizeEvent(event)
 
-    def dock_side_panels(self) -> None:
+    def _dock_info_hud(self) -> None:
+        """Position InfoHudPanel at the right edge of the overlay window."""
         if self.width() <= 0 or self.height() <= 0:
             return
-
-        ordered = [
-            ("state_panel", self.state_panel, 120),
-            ("decision_panel", self.decision_panel, 140),
-            ("timeline_panel", self.timeline_panel, 170),
-            ("performance_panel", self.performance_panel, 110),
-        ]
-        visible_items = [(name, panel, h) for name, panel, h in ordered if panel.isVisible()]
-        if not visible_items:
-            return
-
         margin = 8
-        gap = 4
-        side_w = max(190, min(280, int(self.width() * 0.17)))
-        x = max(0, self.width() - margin - side_w)
-
-        available_h = max(60, self.height() - margin * 2 - gap * (len(visible_items) - 1))
-        equal_h = max(56, available_h // len(visible_items))
-
+        hud_w = max(200, min(320, int(self.width() * 0.19)))
+        hud_h = max(120, min(self.height() - margin * 2, int(self.height() * 0.55)))
+        x = max(0, self.width() - margin - hud_w)
         y = margin
-        for _, panel, _ in visible_items:
-            h = max(56, min(140, equal_h))
-            panel.setGeometry(x, y, side_w, h)
-            y += h + gap
+        self.info_hud_panel.setGeometry(x, y, hud_w, hud_h)
 
     def paintEvent(self, event: QPaintEvent) -> None:
         super().paintEvent(event)
@@ -360,43 +268,9 @@ class OverlayWindow(QWidget):
         return QRect(x1, y1, w, h)
 
     def _panel_by_name(self, panel_name: str):
-        if panel_name == "log_panel":
-            return self.log_panel
-        if panel_name == "state_panel":
-            return self.state_panel
-        if panel_name == "decision_panel":
-            return self.decision_panel
-        if panel_name == "timeline_panel":
-            return self.timeline_panel
-        if panel_name == "performance_panel":
-            return self.performance_panel
         return None
 
     @staticmethod
     def _panel_geometry(panel) -> dict[str, int]:
         g = panel.geometry()
         return {"x": g.x(), "y": g.y(), "w": g.width(), "h": g.height()}
-
-    def _clamp_all_panels(self) -> None:
-        self._clamp_panel(self.log_panel)
-        self._clamp_panel(self.state_panel)
-        self._clamp_panel(self.decision_panel)
-        self._clamp_panel(self.timeline_panel)
-        self._clamp_panel(self.performance_panel)
-
-    def _clamp_panel(self, panel) -> None:
-        if self.width() <= 0 or self.height() <= 0:
-            return
-
-        g = panel.geometry()
-        w = min(max(g.width(), panel.minimumWidth()), self.width())
-        h = min(max(g.height(), panel.minimumHeight()), self.height())
-        x = g.x()
-        y = g.y()
-
-        max_x = max(0, self.width() - w)
-        max_y = max(0, self.height() - h)
-        x = max(0, min(x, max_x))
-        y = max(0, min(y, max_y))
-
-        panel.setGeometry(x, y, w, h)
