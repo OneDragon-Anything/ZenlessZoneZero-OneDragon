@@ -112,7 +112,7 @@ class NotoriousHunt(ZOperation):
             return self.round_success()
         area = self.ctx.screen_loader.get_area('恶名狩猎', '标题-副本名称')
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.run_ocr(part, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
         is_target_mission: bool = False  # 当前是否目标副本
 
         for ocr_result in ocr_result_map.keys():
@@ -132,7 +132,7 @@ class NotoriousHunt(ZOperation):
         area = self.ctx.screen_loader.get_area('恶名狩猎', '副本名称列表')
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.run_ocr(part, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
 
         for ocr_result, mrl in ocr_result_map.items():
             if self._match_mission_type(self.plan.mission_type_name, ocr_result):

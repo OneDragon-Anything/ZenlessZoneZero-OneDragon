@@ -131,7 +131,7 @@ class CoffeeApp(ZApplication):
                            np.array([255, 255, 255], dtype=np.uint8))
         to_ocr = cv2.bitwise_and(part, part, mask=cv2_utils.dilate(mask, 5))
 
-        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
+        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
         ocr_result_list: List[str] = []
         mrl_list: List[MatchResultList] = []
         for ocr_result, mrl in ocr_result_map.items():

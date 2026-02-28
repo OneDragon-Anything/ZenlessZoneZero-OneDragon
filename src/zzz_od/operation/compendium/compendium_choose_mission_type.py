@@ -73,7 +73,7 @@ class CompendiumChooseMissionType(ZOperation):
             return self.round_fail('非法的副本分类 %s' % self.mission_type.mission_type_name)
 
         target_point: Optional[Point] = None
-        ocr_results = self.ctx.ocr.run_ocr(part)
+        ocr_results = self.ctx.ocr.run_ocr(part, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
         for ocr_result, mrl in ocr_results.items():
             if mrl.max is None:
                 continue
@@ -137,7 +137,7 @@ class CompendiumChooseMissionType(ZOperation):
         area = self.ctx.screen_loader.get_area('快捷手册', '前往列表')
         go_rect = area.rect
         part = cv2_utils.crop_image_only(screen, go_rect)
-        ocr_results = self.ctx.ocr.run_ocr(part)
+        ocr_results = self.ctx.ocr.run_ocr(part, overlay_offset_x=go_rect.x1, overlay_offset_y=go_rect.y1)
 
         target_go_point: Optional[Point] = None
         for ocr_result, mrl in ocr_results.items():
