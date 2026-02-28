@@ -4,9 +4,11 @@ import logging
 import time
 from typing import Optional
 
-from PySide6.QtCore import QObject, QTimer, Signal
+from PySide6.QtCore import QObject, QPoint, QTimer, Signal
+from PySide6.QtGui import QGuiApplication
 
 from one_dragon.base.operation.context_event_bus import ContextEventItem
+from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.overlay.overlay_config import OverlayConfig
 from one_dragon_qt.overlay.overlay_events import OverlayEventEnum, OverlayLogEvent
@@ -264,7 +266,7 @@ class OverlayManager(QObject):
         self._warned_waiting_game_window = False
 
         overlay = self._ensure_overlay_window()
-        overlay.update_with_game_rect(game_rect)
+        overlay.update_with_game_rect(self._to_qt_rect(game_rect))
         overlay.log_panel.set_limits(self.config.log_max_lines, self.config.log_fade_seconds)
         overlay.set_log_panel_enabled(self.config.log_panel_enabled)
         overlay.set_state_panel_enabled(self.config.state_panel_enabled)
@@ -517,6 +519,34 @@ class OverlayManager(QObject):
         if int(getattr(rect, "width", 0)) <= 0 or int(getattr(rect, "height", 0)) <= 0:
             return None
         return rect
+
+    def _to_qt_rect(self, rect: Rect) -> Rect:
+        """
+        Convert native/physical window coordinates to Qt logical coordinates.
+        This prevents overlay misalignment on high-DPI scaling.
+        """
+        x = int(getattr(rect, "x1", 0))
+        y = int(getattr(rect, "y1", 0))
+        w = int(getattr(rect, "width", 0))
+        h = int(getattr(rect, "height", 0))
+
+        if w <= 0 or h <= 0:
+            return rect
+
+        screen = QGuiApplication.screenAt(QPoint(x, y))
+        if screen is None:
+            return rect
+
+        dpr = float(screen.devicePixelRatio() or 1.0)
+        if dpr <= 1.01:
+            return rect
+
+        return Rect(
+            round(x / dpr),
+            round(y / dpr),
+            round((x + w) / dpr),
+            round((y + h) / dpr),
+        )
 
     def _is_game_window_active(self) -> bool:
         if self.ctx.controller is None:
