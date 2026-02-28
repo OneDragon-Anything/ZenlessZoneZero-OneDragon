@@ -7,7 +7,7 @@ from one_dragon.base.config.yaml_config import YamlConfig
 
 
 _DEFAULT_PANEL_GEOMETRY: dict[str, dict[str, int]] = {
-    "log_panel": {"x": 16, "y": 16, "w": 460, "h": 170},
+    "log_panel": {"x": 100, "y": 100, "w": 480, "h": 200},
     "state_panel": {"x": 0, "y": 0, "w": 300, "h": 120},
     "decision_panel": {"x": 0, "y": 0, "w": 300, "h": 140},
     "timeline_panel": {"x": 0, "y": 0, "w": 300, "h": 170},

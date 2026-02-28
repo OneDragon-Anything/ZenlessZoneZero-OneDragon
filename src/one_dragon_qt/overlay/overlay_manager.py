@@ -4,7 +4,7 @@ import logging
 import time
 from typing import Optional
 
-from PySide6.QtCore import QObject, QPoint, QTimer, Signal
+from PySide6.QtCore import QObject, QPoint, QRect, QTimer, Signal
 from PySide6.QtGui import QGuiApplication
 
 from one_dragon.base.operation.context_event_bus import ContextEventItem
@@ -14,6 +14,7 @@ from one_dragon_qt.overlay.overlay_config import OverlayConfig
 from one_dragon_qt.overlay.overlay_events import OverlayEventEnum, OverlayLogEvent
 from one_dragon_qt.overlay.overlay_log_handler import OverlayLogHandler
 from one_dragon_qt.overlay.overlay_window import OverlayWindow
+from one_dragon_qt.overlay.panels.log_panel import LogPanel
 from one_dragon_qt.overlay.utils import win32_utils
 
 try:
@@ -41,8 +42,7 @@ class OverlayManager(QObject):
         self._warned_waiting_game_window = False
         self._started = False
 
-        self._overlay_window: Optional[OverlayWindow] = None
-        self._log_handler: Optional[OverlayLogHandler] = None
+        self._overlay_window: Optional[OverlayWindow] = None        self._log_panel: Optional["LogPanel"] = None        self._log_handler: Optional[OverlayLogHandler] = None
         self._ctrl_interaction = False
         self._toggle_combo_pressed = False
         self._last_toggle_hotkey_time = 0.0
@@ -99,28 +99,20 @@ class OverlayManager(QObject):
             self._overlay_window.deleteLater()
             self._overlay_window = None
 
+        if self._log_panel is not None:
+            self._log_panel.close()
+            self._log_panel.deleteLater()
+            self._log_panel = None
+
         OverlayManager._instance = None
 
     def reload_config(self) -> None:
         self.config = OverlayConfig()
         self._toggle_combo_pressed = False
         self._apply_timer_intervals()
-        if self._overlay_window is not None:
-            self._overlay_window.apply_panel_geometry(
-                "log_panel", self._panel_geometry_with_fallback("log_panel")
-            )
-            self._overlay_window.apply_panel_geometry(
-                "state_panel", self._panel_geometry_with_fallback("state_panel")
-            )
-            self._overlay_window.apply_panel_geometry(
-                "decision_panel", self._panel_geometry_with_fallback("decision_panel")
-            )
-            self._overlay_window.apply_panel_geometry(
-                "timeline_panel", self._panel_geometry_with_fallback("timeline_panel")
-            )
-            self._overlay_window.apply_panel_geometry(
-                "performance_panel", self._panel_geometry_with_fallback("performance_panel")
-            )
+        if self._log_panel is not None:
+            geo = self.config.get_panel_geometry("log_panel")
+            self._log_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
         self._safe_follow_window()
 
     def toggle_visibility(self) -> None:
@@ -131,23 +123,9 @@ class OverlayManager(QObject):
 
     def reset_panel_geometry(self) -> None:
         self.config.reset_panel_geometry()
-        if self._overlay_window is None:
-            return
-        self._overlay_window.apply_panel_geometry(
-            "log_panel", self._panel_geometry_with_fallback("log_panel")
-        )
-        self._overlay_window.apply_panel_geometry(
-            "state_panel", self._panel_geometry_with_fallback("state_panel")
-        )
-        self._overlay_window.apply_panel_geometry(
-            "decision_panel", self._panel_geometry_with_fallback("decision_panel")
-        )
-        self._overlay_window.apply_panel_geometry(
-            "timeline_panel", self._panel_geometry_with_fallback("timeline_panel")
-        )
-        self._overlay_window.apply_panel_geometry(
-            "performance_panel", self._panel_geometry_with_fallback("performance_panel")
-        )
+        if self._log_panel is not None:
+            geo = self.config.get_panel_geometry("log_panel")
+            self._log_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
 
     def capture_overlay_rgba(self):
         if self._overlay_window is None or not self._overlay_window.isVisible():
@@ -183,13 +161,13 @@ class OverlayManager(QObject):
         self.toggle_visibility()
 
     def _on_log_received_signal(self, payload: object) -> None:
-        if self._overlay_window is None:
+        if self._log_panel is None:
             return
         if not isinstance(payload, OverlayLogEvent):
             return
         if not self.config.log_panel_enabled:
             return
-        self._overlay_window.log_panel.append_log(payload)
+        self._log_panel.append_log(payload)
 
     def _ensure_overlay_window(self) -> OverlayWindow:
         if self._overlay_window is None:
@@ -198,25 +176,26 @@ class OverlayManager(QObject):
                 int(self.ctx.project_config.screen_standard_width),
                 int(self.ctx.project_config.screen_standard_height),
             )
-            self._overlay_window.panel_geometry_changed.connect(self._on_panel_geometry_changed)
-            self._overlay_window.log_panel.appearance_changed.connect(
+        if self._log_panel is None:
+            self._log_panel = LogPanel(parent=None)
+            # Independent top-level window flags
+            self._log_panel.setWindowFlags(
+                Qt.WindowType.FramelessWindowHint
+                | Qt.WindowType.Tool
+                | Qt.WindowType.WindowStaysOnTopHint
+            )
+            self._log_panel.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+            self._log_panel.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
+            self._log_panel.set_interaction_enabled(True)
+            self._log_panel.set_drag_anywhere(True)
+            self._log_panel.geometry_changed.connect(
+                lambda g: self._on_panel_geometry_changed("log_panel", g)
+            )
+            self._log_panel.appearance_changed.connect(
                 self._on_log_panel_appearance_changed
             )
-            self._overlay_window.apply_panel_geometry(
-                "log_panel", self._panel_geometry_with_fallback("log_panel")
-            )
-            self._overlay_window.apply_panel_geometry(
-                "state_panel", self._panel_geometry_with_fallback("state_panel")
-            )
-            self._overlay_window.apply_panel_geometry(
-                "decision_panel", self._panel_geometry_with_fallback("decision_panel")
-            )
-            self._overlay_window.apply_panel_geometry(
-                "timeline_panel", self._panel_geometry_with_fallback("timeline_panel")
-            )
-            self._overlay_window.apply_panel_geometry(
-                "performance_panel", self._panel_geometry_with_fallback("performance_panel")
-            )
+            geo = self._panel_geometry_with_fallback("log_panel")
+            self._log_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
         return self._overlay_window
 
     def _panel_geometry_with_fallback(self, panel_name: str) -> dict[str, int]:
@@ -280,13 +259,12 @@ class OverlayManager(QObject):
 
         overlay = self._ensure_overlay_window()
         overlay.update_with_game_rect(self._to_qt_rect(game_rect))
-        overlay.log_panel.set_limits(self.config.log_max_lines, self.config.log_fade_seconds)
-        overlay.set_log_panel_enabled(self.config.log_panel_enabled)
-        overlay.set_state_panel_enabled(self.config.state_panel_enabled)
-        overlay.set_decision_panel_enabled(self.config.decision_panel_enabled)
-        overlay.set_timeline_panel_enabled(self.config.timeline_panel_enabled)
-        overlay.set_performance_panel_enabled(self.config.performance_panel_enabled)
-        overlay.set_side_panels_docked(True)
+        overlay.set_info_hud_enabled(
+            self.config.state_panel_enabled
+            or self.config.decision_panel_enabled
+            or self.config.timeline_panel_enabled
+            or self.config.performance_panel_enabled
+        )
         overlay.set_vision_layer_enabled(self.config.vision_layer_enabled)
         overlay.set_vision_transform(
             offset_x=self.config.vision_offset_x,
@@ -303,12 +281,33 @@ class OverlayManager(QObject):
         if self.config.visible:
             overlay.set_passthrough(not self._ctrl_interaction)
 
+        # --- Independent LogPanel ---
+        if self._log_panel is not None:
+            self._log_panel.set_limits(self.config.log_max_lines, self.config.log_fade_seconds)
+            self._log_panel.set_appearance(
+                self.config.font_size, self.config.text_opacity, self.config.panel_opacity
+            )
+            log_visible = self.config.visible and self.config.log_panel_enabled
+            if log_visible:
+                if not self._log_panel.isVisible():
+                    self._log_panel.show()
+                    self._log_panel.raise_()
+                # Apply anti-capture to log panel window
+                log_hwnd = int(self._log_panel.winId())
+                win32_utils.set_window_display_affinity(log_hwnd, self.config.anti_capture)
+                # Log panel is always interactive (not click-through)
+            else:
+                if self._log_panel.isVisible():
+                    self._log_panel.hide()
+
     def _hide_overlay(self) -> None:
         self._ctrl_interaction = False
         self._toggle_combo_pressed = False
         if self._overlay_window is not None:
             self._overlay_window.set_vision_items([])
             self._overlay_window.set_overlay_visible(False)
+        if self._log_panel is not None and self._log_panel.isVisible():
+            self._log_panel.hide()
 
     def _safe_poll_input_mode(self) -> None:
         try:
@@ -351,7 +350,7 @@ class OverlayManager(QObject):
         if not self.config.state_panel_enabled:
             return
         items = self._collect_state_items()
-        self._overlay_window.state_panel.update_snapshot(items)
+        self._overlay_window.update_state_snapshot(items)
 
     def _refresh_debug_panels(self) -> None:
         bus = getattr(self.ctx, "overlay_debug_bus", None)
@@ -531,6 +530,8 @@ class OverlayManager(QObject):
             return None
         hwnd = game_win.get_hwnd() if hasattr(game_win, "get_hwnd") else None
         if win32_utils.is_window_minimized(hwnd):
+            return None
+        if not win32_utils.is_window_visible(hwnd):
             return None
 
         rect = game_win.win_rect
