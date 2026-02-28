@@ -14,22 +14,19 @@ class OverlayTextWidget(QTextEdit):
         self.setFrameShadow(QFrame.Shadow.Plain)
         self.document().setDocumentMargin(0.0)
         self._font_size = 12
-        self._text_opacity = 100
         self._refresh_style()
 
-    def set_appearance(self, font_size: int, text_opacity: int) -> None:
+    def set_appearance(self, font_size: int) -> None:
         self._font_size = max(10, min(28, int(font_size)))
-        self._text_opacity = max(20, min(100, int(text_opacity)))
         self._refresh_style()
 
     def _refresh_style(self) -> None:
-        text_alpha = int(255 * self._text_opacity / 100.0)
         self.setStyleSheet(
             f"""
             QTextEdit {{
                 background-color: transparent;
                 border: none;
-                color: rgba(234, 234, 234, {text_alpha});
+                color: #eaeaea;
                 font-family: Consolas, 'Courier New', monospace;
                 font-size: {self._font_size}px;
                 padding: 1px;

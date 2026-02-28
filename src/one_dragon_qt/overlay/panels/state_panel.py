@@ -15,9 +15,9 @@ class StatePanel(ResizablePanel):
         self._text_widget = OverlayTextWidget(self)
         self.body_layout.addWidget(self._text_widget, 1)
 
-    def set_appearance(self, font_size: int, text_opacity: int, panel_opacity: int) -> None:
+    def set_appearance(self, font_size: int, panel_opacity: int) -> None:
         self.set_panel_opacity(panel_opacity)
-        self._text_widget.set_appearance(font_size, text_opacity)
+        self._text_widget.set_appearance(font_size)
 
     def update_snapshot(self, items: list[tuple[str, str]]) -> None:
         rows: list[str] = []

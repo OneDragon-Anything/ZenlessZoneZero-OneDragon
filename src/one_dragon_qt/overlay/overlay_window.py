@@ -65,8 +65,8 @@ class OverlayWindow(QWidget):
     def set_info_hud_enabled(self, enabled: bool) -> None:
         self.info_hud_panel.setVisible(enabled)
 
-    def set_panel_appearance(self, font_size: int, text_opacity: int, panel_opacity: int) -> None:
-        self.info_hud_panel.set_appearance(font_size, text_opacity, panel_opacity)
+    def set_panel_appearance(self, font_size: int, panel_opacity: int) -> None:
+        self.info_hud_panel.set_appearance(font_size, panel_opacity)
 
     def set_standard_resolution(self, width: int, height: int) -> None:
         self._standard_width = max(1, int(width))

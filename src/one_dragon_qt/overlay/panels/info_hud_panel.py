@@ -4,7 +4,7 @@ import html
 import time
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QGraphicsOpacityEffect, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from one_dragon.base.operation.overlay_debug_bus import (
     DecisionTraceItem,
@@ -43,7 +43,6 @@ class InfoHudPanel(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self._font_size = 12
-        self._text_opacity = 100
         self._enabled_metric_map: dict[str, bool] = {}
 
         self._state_items: list[tuple[str, str]] = []
@@ -61,20 +60,14 @@ class InfoHudPanel(QWidget):
         layout.setSpacing(0)
         layout.addWidget(self._label, 1)
 
-        self._text_opacity_effect = QGraphicsOpacityEffect(self._label)
-        self._text_opacity_effect.setOpacity(self._text_opacity / 100.0)
-        self._label.setGraphicsEffect(self._text_opacity_effect)
-
         self._refresh_style()
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
-    def set_appearance(self, font_size: int, text_opacity: int, _panel_opacity: int = 0) -> None:
+    def set_appearance(self, font_size: int, _panel_opacity: int = 0) -> None:
         self._font_size = max(10, min(28, int(font_size)))
-        self._text_opacity = max(20, min(100, int(text_opacity)))
-        self._text_opacity_effect.setOpacity(self._text_opacity / 100.0)
         self._refresh_style()
         self._render()
 
@@ -103,14 +96,12 @@ class InfoHudPanel(QWidget):
     # ------------------------------------------------------------------
 
     def _refresh_style(self) -> None:
-        text_alpha = int(255 * self._text_opacity / 100.0)
-        shadow_alpha = max(100, int(text_alpha * 0.7))
         self.setStyleSheet(
             f"""
             QLabel {{
                 background-color: transparent;
                 border: none;
-                color: rgba(234, 234, 234, {text_alpha});
+                color: #eaeaea;
                 font-family: Consolas, 'Courier New', monospace;
                 font-size: {self._font_size}px;
             }}

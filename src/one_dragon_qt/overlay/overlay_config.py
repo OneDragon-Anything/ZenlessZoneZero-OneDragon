@@ -39,7 +39,6 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "patched_capture_enabled": False,
     "patched_capture_suffix": "_patched",
     "font_size": 12,
-    "text_opacity": 100,
     "panel_opacity": 70,
     "log_panel_enabled": True,
     "state_panel_enabled": True,
@@ -76,7 +75,6 @@ _OVERLAY_SCALAR_KEYS = {
     "patched_capture_enabled",
     "patched_capture_suffix",
     "font_size",
-    "text_opacity",
     "panel_opacity",
     "log_panel_enabled",
     "state_panel_enabled",
@@ -298,14 +296,6 @@ class OverlayConfig(YamlConfig):
     @font_size.setter
     def font_size(self, value: int) -> None:
         self._update_overlay_data("font_size", max(10, min(28, int(value))))
-
-    @property
-    def text_opacity(self) -> int:
-        return max(20, min(100, int(self._overlay_data()["text_opacity"])))
-
-    @text_opacity.setter
-    def text_opacity(self, value: int) -> None:
-        self._update_overlay_data("text_opacity", max(20, min(100, int(value))))
 
     @property
     def panel_opacity(self) -> int:
