@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QPoint, QRect, Qt, Signal
-from PySide6.QtGui import QMouseEvent
+from PySide6.QtGui import QGuiApplication, QMouseEvent
 from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout
 
 
@@ -221,6 +221,20 @@ class ResizablePanel(QFrame):
                 geom.setHeight(self._min_height)
 
         if parent is None:
+            # Top-level window: clamp to screen available geometry
+            screen = QGuiApplication.screenAt(geom.center())
+            if screen is None:
+                screen = QGuiApplication.primaryScreen()
+            if screen is not None:
+                avail = screen.availableGeometry()
+                if geom.left() < avail.left():
+                    geom.moveLeft(avail.left())
+                if geom.top() < avail.top():
+                    geom.moveTop(avail.top())
+                if geom.right() > avail.right():
+                    geom.moveLeft(max(avail.left(), avail.right() - geom.width()))
+                if geom.bottom() > avail.bottom():
+                    geom.moveTop(max(avail.top(), avail.bottom() - geom.height()))
             return geom
 
         max_x = max(0, parent.width() - geom.width())
