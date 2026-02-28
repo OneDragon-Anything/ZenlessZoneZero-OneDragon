@@ -109,6 +109,8 @@ class ResizablePanel(QFrame):
             }}
             """
         )
+        # WA_TranslucentBackground 窗口 setStyleSheet 不一定自动触发重绘
+        self.update()
 
     def _hit_test_edge(self, pos: QPoint) -> int:
         edge = self._EDGE_NONE
