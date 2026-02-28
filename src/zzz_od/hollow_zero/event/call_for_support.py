@@ -245,7 +245,7 @@ class CallForSupport(ZOperation):
         to_ocr = cv2.bitwise_and(part, part, mask=white)
 
         target_list = [gt(i.word, 'game') for i in opts]
-        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
+        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
         for ocr_result, mrl in ocr_result_map.items():
             results = difflib.get_close_matches(ocr_result, target_list, n=1)
             if results is None or len(results) == 0:
