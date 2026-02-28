@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtWidgets import QTextEdit
+from PySide6.QtWidgets import QFrame, QTextEdit
 
 
 class OverlayTextWidget(QTextEdit):
@@ -10,6 +10,9 @@ class OverlayTextWidget(QTextEdit):
         super().__init__(parent)
         self.setReadOnly(True)
         self.setAcceptRichText(True)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setFrameShadow(QFrame.Shadow.Plain)
+        self.document().setDocumentMargin(0.0)
         self._font_size = 12
         self._text_opacity = 100
         self._refresh_style()
@@ -24,13 +27,12 @@ class OverlayTextWidget(QTextEdit):
         self.setStyleSheet(
             f"""
             QTextEdit {{
-                background-color: rgba(0, 0, 0, 150);
-                border: 1px solid rgba(255, 255, 255, 45);
-                border-radius: 6px;
+                background-color: transparent;
+                border: none;
                 color: rgba(234, 234, 234, {text_alpha});
                 font-family: Consolas, 'Courier New', monospace;
                 font-size: {self._font_size}px;
-                padding: 4px;
+                padding: 1px;
             }}
             """
         )

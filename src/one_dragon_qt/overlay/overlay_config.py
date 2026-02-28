@@ -7,11 +7,11 @@ from one_dragon.base.config.yaml_config import YamlConfig
 
 
 _DEFAULT_PANEL_GEOMETRY: dict[str, dict[str, int]] = {
-    "log_panel": {"x": 20, "y": 20, "w": 560, "h": 220},
-    "state_panel": {"x": 20, "y": 260, "w": 360, "h": 320},
-    "decision_panel": {"x": 620, "y": 20, "w": 620, "h": 220},
-    "timeline_panel": {"x": 620, "y": 260, "w": 620, "h": 220},
-    "performance_panel": {"x": 620, "y": 500, "w": 420, "h": 180},
+    "log_panel": {"x": 16, "y": 16, "w": 460, "h": 170},
+    "state_panel": {"x": 0, "y": 0, "w": 300, "h": 120},
+    "decision_panel": {"x": 0, "y": 0, "w": 300, "h": 140},
+    "timeline_panel": {"x": 0, "y": 0, "w": 300, "h": 170},
+    "performance_panel": {"x": 0, "y": 0, "w": 300, "h": 110},
 }
 
 _DEFAULT_PERFORMANCE_METRIC_ENABLED: dict[str, bool] = {

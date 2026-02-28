@@ -32,6 +32,7 @@ class ResizablePanel(QFrame):
         self._drag_handle_height = self._header_height + 4
         self._title_visible = True
         self._panel_opacity = 70
+        self._interaction_enabled = True
 
         self._dragging = False
         self._resizing = False
@@ -47,8 +48,8 @@ class ResizablePanel(QFrame):
         self.setFrameShape(QFrame.Shape.StyledPanel)
 
         self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(8, 4, 8, 8)
-        self._layout.setSpacing(6)
+        self._layout.setContentsMargins(5, 4, 5, 5)
+        self._layout.setSpacing(3)
 
         self._title_label = QLabel(self._title, self)
         self._title_label.setObjectName("overlayPanelTitle")
@@ -65,13 +66,21 @@ class ResizablePanel(QFrame):
         self._title_label.setVisible(self._title_visible)
         self._title_label.setFixedHeight(self._header_height if self._title_visible else 0)
         if self._title_visible:
-            self._layout.setContentsMargins(8, 4, 8, 8)
-            self._layout.setSpacing(6)
+            self._layout.setContentsMargins(5, 4, 5, 5)
+            self._layout.setSpacing(3)
             self._drag_handle_height = self._header_height + 4
         else:
-            self._layout.setContentsMargins(8, 18, 8, 8)
-            self._layout.setSpacing(4)
-            self._drag_handle_height = 16
+            self._layout.setContentsMargins(4, 4, 4, 4)
+            self._layout.setSpacing(2)
+            self._drag_handle_height = 12
+
+    def set_interaction_enabled(self, enabled: bool) -> None:
+        self._interaction_enabled = bool(enabled)
+        if not self._interaction_enabled:
+            self._dragging = False
+            self._resizing = False
+            self._active_edge = self._EDGE_NONE
+            self.setCursor(Qt.CursorShape.ArrowCursor)
 
     def set_panel_opacity(self, opacity_percent: int) -> None:
         self._panel_opacity = max(20, min(100, int(opacity_percent)))
@@ -79,19 +88,19 @@ class ResizablePanel(QFrame):
 
     def _refresh_style(self) -> None:
         panel_alpha = int(255 * self._panel_opacity / 100.0)
-        border_alpha = max(25, min(120, int(panel_alpha * 0.35)))
+        border_alpha = max(18, min(90, int(panel_alpha * 0.22)))
         self.setStyleSheet(
             f"""
             ResizablePanel {{
-                background-color: rgba(15, 15, 18, {panel_alpha});
+                background-color: rgba(12, 12, 14, {panel_alpha});
                 border: 1px solid rgba(255, 255, 255, {border_alpha});
-                border-radius: 8px;
+                border-radius: 5px;
             }}
             QLabel#overlayPanelTitle {{
                 color: #f0f0f0;
-                font-size: 13px;
+                font-size: 12px;
                 font-weight: 600;
-                padding-left: 6px;
+                padding-left: 4px;
             }}
             """
         )
@@ -128,6 +137,9 @@ class ResizablePanel(QFrame):
             self.setCursor(Qt.CursorShape.ArrowCursor)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
+        if not self._interaction_enabled:
+            super().mousePressEvent(event)
+            return
         if event.button() != Qt.MouseButton.LeftButton:
             super().mousePressEvent(event)
             return
@@ -144,6 +156,10 @@ class ResizablePanel(QFrame):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if not self._interaction_enabled:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            super().mouseMoveEvent(event)
+            return
         pos = event.position().toPoint()
         if not self._dragging and not self._resizing:
             self._update_cursor(self._hit_test_edge(pos), pos)
@@ -170,6 +186,9 @@ class ResizablePanel(QFrame):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if not self._interaction_enabled:
+            super().mouseReleaseEvent(event)
+            return
         changed = self._dragging or self._resizing
         self._dragging = False
         self._resizing = False

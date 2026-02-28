@@ -10,7 +10,7 @@ class StatePanel(ResizablePanel):
     """Overlay run-state panel."""
 
     def __init__(self, parent=None):
-        super().__init__(title="Overlay State", min_width=280, min_height=180, parent=parent)
+        super().__init__(title="Overlay State", min_width=220, min_height=90, parent=parent)
         self.set_title_visible(False)
         self._text_widget = OverlayTextWidget(self)
         self.body_layout.addWidget(self._text_widget, 1)
