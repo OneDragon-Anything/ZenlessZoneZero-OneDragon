@@ -75,6 +75,7 @@ class InfoHudPanel(QWidget):
 
     def set_enabled_metric_map(self, metric_map: dict[str, bool] | None) -> None:
         self._enabled_metric_map = dict(metric_map or {})
+        self._render()
 
     def update_state(self, items: list[tuple[str, str]]) -> None:
         self._state_items = items

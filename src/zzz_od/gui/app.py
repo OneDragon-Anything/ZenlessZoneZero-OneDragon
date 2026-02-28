@@ -85,7 +85,8 @@ try:
             self._launch_timer.start(2000)  # 2秒后发送，确保UI完全渲染
 
             self.overlay_manager = OverlayManager.create(self.ctx, parent=self)
-            self.overlay_manager.start()
+            if self.overlay_manager is not None:
+                self.overlay_manager.start()
 
         # 继承初始化函数
         def init_window(self):

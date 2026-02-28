@@ -393,7 +393,7 @@ class OverlayManager(QObject):
     def _collect_state_items(self) -> list[tuple[str, str]]:
         run_ctx = self.ctx.run_context
         items: list[tuple[str, str]] = [
-            ("RunState", str(run_ctx._run_state.value)),
+            ("RunState", run_ctx.run_status_text),
             ("CurrentAppId", str(run_ctx.current_app_id or "-")),
         ]
 

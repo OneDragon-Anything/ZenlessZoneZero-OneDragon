@@ -117,8 +117,8 @@ class LogPanel(ResizablePanel):
         """将 #rrggbb 颜色转为 rgba(r,g,b,a) 字符串."""
         hex_color = hex_color.lstrip("#")
         r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
-        a = max(0, min(255, int(255 * alpha_fraction)))
-        return f"rgba({r},{g},{b},{a})"
+        a = max(0.0, min(1.0, alpha_fraction))
+        return f"rgba({r},{g},{b},{a:.2f})"
 
     def _render(self) -> None:
         if not self._lines:
