@@ -3,6 +3,8 @@ from __future__ import annotations
 import html
 import time
 
+from PySide6.QtWidgets import QGraphicsOpacityEffect
+
 from one_dragon.base.operation.overlay_debug_bus import TimelineItem
 from one_dragon_qt.widgets.overlay_text_widget import OverlayTextWidget
 from one_dragon_qt.widgets.resizable_panel import ResizablePanel
@@ -25,9 +27,14 @@ class TimelinePanel(ResizablePanel):
         self._text_widget = OverlayTextWidget(self)
         self.body_layout.addWidget(self._text_widget, 1)
 
+        self._text_opacity_effect = QGraphicsOpacityEffect(self._text_widget)
+        self._text_opacity_effect.setOpacity(1.0)
+        self._text_widget.setGraphicsEffect(self._text_opacity_effect)
+
     def set_appearance(self, font_size: int, text_opacity: int, panel_opacity: int) -> None:
         self.set_panel_opacity(panel_opacity)
         self._text_widget.set_appearance(font_size, text_opacity)
+        self._text_opacity_effect.setOpacity(max(20, min(100, int(text_opacity))) / 100.0)
 
     def update_items(self, items: list[TimelineItem]) -> None:
         rows: list[str] = []
