@@ -16,6 +16,8 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "visible": True,
     "anti_capture": True,
     "toggle_hotkey": "o",
+    "patched_capture_enabled": False,
+    "patched_capture_suffix": "_patched",
     "font_size": 12,
     "text_opacity": 100,
     "panel_opacity": 70,
@@ -34,6 +36,8 @@ _OVERLAY_SCALAR_KEYS = {
     "visible",
     "anti_capture",
     "toggle_hotkey",
+    "patched_capture_enabled",
+    "patched_capture_suffix",
     "font_size",
     "text_opacity",
     "panel_opacity",
@@ -143,6 +147,32 @@ class OverlayConfig(YamlConfig):
     @toggle_hotkey.setter
     def toggle_hotkey(self, value: str) -> None:
         self._update_overlay_data("toggle_hotkey", self._normalize_hotkey_key(value))
+
+    @property
+    def patched_capture_enabled(self) -> bool:
+        return bool(self._overlay_data()["patched_capture_enabled"])
+
+    @patched_capture_enabled.setter
+    def patched_capture_enabled(self, value: bool) -> None:
+        self._update_overlay_data("patched_capture_enabled", bool(value))
+
+    @property
+    def patched_capture_suffix(self) -> str:
+        suffix = str(self._overlay_data()["patched_capture_suffix"] or "").strip()
+        if not suffix:
+            suffix = "_patched"
+        if not suffix.startswith("_"):
+            suffix = "_" + suffix
+        return suffix
+
+    @patched_capture_suffix.setter
+    def patched_capture_suffix(self, value: str) -> None:
+        suffix = str(value or "").strip()
+        if not suffix:
+            suffix = "_patched"
+        if not suffix.startswith("_"):
+            suffix = "_" + suffix
+        self._update_overlay_data("patched_capture_suffix", suffix[:40])
 
     @property
     def font_size(self) -> int:

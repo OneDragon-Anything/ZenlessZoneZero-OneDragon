@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Sequence
 
+import numpy as np
 from PySide6.QtCore import QRect, Qt, Signal
-from PySide6.QtGui import QColor, QPaintEvent, QPainter, QPen, QResizeEvent
+from PySide6.QtGui import QColor, QImage, QPaintEvent, QPainter, QPen, QResizeEvent
 from PySide6.QtWidgets import QWidget
 
 from one_dragon.base.operation.overlay_debug_bus import (
@@ -125,6 +126,25 @@ class OverlayWindow(QWidget):
 
     def set_performance_metric_enabled_map(self, metric_enabled: dict[str, bool] | None) -> None:
         self.performance_panel.set_enabled_metric_map(metric_enabled)
+
+    def capture_overlay_rgba(self) -> np.ndarray | None:
+        if not self.isVisible() or self.width() <= 0 or self.height() <= 0:
+            return None
+
+        pixmap = self.grab()
+        image = pixmap.toImage().convertToFormat(QImage.Format.Format_RGBA8888)
+        width = image.width()
+        height = image.height()
+        if width <= 0 or height <= 0:
+            return None
+
+        buffer = image.bits()
+        arr = np.frombuffer(
+            buffer,
+            dtype=np.uint8,
+            count=image.bytesPerLine() * height,
+        ).reshape((height, image.bytesPerLine() // 4, 4))
+        return arr[:, :width, :].copy()
 
     def set_passthrough(self, enabled: bool) -> None:
         self._passthrough_enabled = enabled
