@@ -231,12 +231,17 @@ class CodeInterface(VerticalScrollInterface):
         """
         btn = self.sender()
         commit_id = btn.property('commit')
-        success = self.ctx.git_service.reset_to_commit(commit_id)
+        success, msg = self.ctx.git_service.reset_to_commit(commit_id)
         if success:
             self.code_card.updated = True
             self.code_card.check_and_update_display()
             self.page_num = -1
             self.start_fetch_total()
+        elif msg:
+            dialog = Dialog(gt('回滚失败'), msg, self)
+            dialog.setTitleBarVisible(False)
+            dialog.cancelButton.hide()
+            dialog.exec()
 
     def _on_custom_branch_edited(self) -> None:
         text = self.custom_git_branch_lineedit.text()

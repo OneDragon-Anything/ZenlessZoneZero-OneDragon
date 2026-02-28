@@ -60,6 +60,7 @@ config/world_patrol_route_list/*
 .debug/
 .conda/
 .venv/
+.runtime/
 notice_cache/
 *.bak
 
