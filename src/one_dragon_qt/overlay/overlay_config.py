@@ -9,6 +9,17 @@ from one_dragon.base.config.yaml_config import YamlConfig
 _DEFAULT_PANEL_GEOMETRY: dict[str, dict[str, int]] = {
     "log_panel": {"x": 20, "y": 20, "w": 560, "h": 220},
     "state_panel": {"x": 20, "y": 260, "w": 360, "h": 320},
+    "decision_panel": {"x": 620, "y": 20, "w": 620, "h": 220},
+    "timeline_panel": {"x": 620, "y": 260, "w": 620, "h": 220},
+    "performance_panel": {"x": 620, "y": 500, "w": 420, "h": 180},
+}
+
+_DEFAULT_PERFORMANCE_METRIC_ENABLED: dict[str, bool] = {
+    "ocr_ms": True,
+    "yolo_ms": True,
+    "cv_pipeline_ms": True,
+    "operation_round_ms": True,
+    "overlay_refresh_ms": True,
 }
 
 _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
@@ -16,6 +27,11 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "visible": True,
     "anti_capture": True,
     "toggle_hotkey": "o",
+    "vision_layer_enabled": True,
+    "vision_yolo_enabled": True,
+    "vision_ocr_enabled": True,
+    "vision_template_enabled": True,
+    "vision_cv_enabled": True,
     "patched_capture_enabled": False,
     "patched_capture_suffix": "_patched",
     "font_size": 12,
@@ -23,6 +39,10 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "panel_opacity": 70,
     "log_panel_enabled": True,
     "state_panel_enabled": True,
+    "decision_panel_enabled": True,
+    "timeline_panel_enabled": True,
+    "performance_panel_enabled": True,
+    "performance_metric_enabled_map": dict(_DEFAULT_PERFORMANCE_METRIC_ENABLED),
     "log_max_lines": 120,
     "log_fade_seconds": 12,
     "follow_interval_ms": 120,
@@ -36,6 +56,15 @@ _OVERLAY_SCALAR_KEYS = {
     "visible",
     "anti_capture",
     "toggle_hotkey",
+    "vision_layer_enabled",
+    "vision_yolo_enabled",
+    "vision_ocr_enabled",
+    "vision_template_enabled",
+    "vision_cv_enabled",
+    "decision_panel_enabled",
+    "timeline_panel_enabled",
+    "performance_panel_enabled",
+    "performance_metric_enabled_map",
     "patched_capture_enabled",
     "patched_capture_suffix",
     "font_size",
@@ -82,6 +111,14 @@ class OverlayConfig(YamlConfig):
                 }
             )
         merged["panel_geometry"] = default_geometry
+
+        metric_map = merged.get("performance_metric_enabled_map", {})
+        if not isinstance(metric_map, dict):
+            metric_map = {}
+        default_metric_map = dict(_DEFAULT_PERFORMANCE_METRIC_ENABLED)
+        for key, value in metric_map.items():
+            default_metric_map[str(key)] = bool(value)
+        merged["performance_metric_enabled_map"] = default_metric_map
         return merged
 
     def _update_overlay_data(self, key: str, value: Any) -> None:
@@ -175,6 +212,46 @@ class OverlayConfig(YamlConfig):
         self._update_overlay_data("patched_capture_suffix", suffix[:40])
 
     @property
+    def vision_layer_enabled(self) -> bool:
+        return bool(self._overlay_data()["vision_layer_enabled"])
+
+    @vision_layer_enabled.setter
+    def vision_layer_enabled(self, value: bool) -> None:
+        self._update_overlay_data("vision_layer_enabled", bool(value))
+
+    @property
+    def vision_yolo_enabled(self) -> bool:
+        return bool(self._overlay_data()["vision_yolo_enabled"])
+
+    @vision_yolo_enabled.setter
+    def vision_yolo_enabled(self, value: bool) -> None:
+        self._update_overlay_data("vision_yolo_enabled", bool(value))
+
+    @property
+    def vision_ocr_enabled(self) -> bool:
+        return bool(self._overlay_data()["vision_ocr_enabled"])
+
+    @vision_ocr_enabled.setter
+    def vision_ocr_enabled(self, value: bool) -> None:
+        self._update_overlay_data("vision_ocr_enabled", bool(value))
+
+    @property
+    def vision_template_enabled(self) -> bool:
+        return bool(self._overlay_data()["vision_template_enabled"])
+
+    @vision_template_enabled.setter
+    def vision_template_enabled(self, value: bool) -> None:
+        self._update_overlay_data("vision_template_enabled", bool(value))
+
+    @property
+    def vision_cv_enabled(self) -> bool:
+        return bool(self._overlay_data()["vision_cv_enabled"])
+
+    @vision_cv_enabled.setter
+    def vision_cv_enabled(self, value: bool) -> None:
+        self._update_overlay_data("vision_cv_enabled", bool(value))
+
+    @property
     def font_size(self) -> int:
         return max(10, min(28, int(self._overlay_data()["font_size"])))
 
@@ -213,6 +290,43 @@ class OverlayConfig(YamlConfig):
     @state_panel_enabled.setter
     def state_panel_enabled(self, value: bool) -> None:
         self._update_overlay_data("state_panel_enabled", bool(value))
+
+    @property
+    def decision_panel_enabled(self) -> bool:
+        return bool(self._overlay_data()["decision_panel_enabled"])
+
+    @decision_panel_enabled.setter
+    def decision_panel_enabled(self, value: bool) -> None:
+        self._update_overlay_data("decision_panel_enabled", bool(value))
+
+    @property
+    def timeline_panel_enabled(self) -> bool:
+        return bool(self._overlay_data()["timeline_panel_enabled"])
+
+    @timeline_panel_enabled.setter
+    def timeline_panel_enabled(self, value: bool) -> None:
+        self._update_overlay_data("timeline_panel_enabled", bool(value))
+
+    @property
+    def performance_panel_enabled(self) -> bool:
+        return bool(self._overlay_data()["performance_panel_enabled"])
+
+    @performance_panel_enabled.setter
+    def performance_panel_enabled(self, value: bool) -> None:
+        self._update_overlay_data("performance_panel_enabled", bool(value))
+
+    @property
+    def performance_metric_enabled_map(self) -> dict[str, bool]:
+        return dict(self._overlay_data()["performance_metric_enabled_map"])
+
+    def is_performance_metric_enabled(self, metric: str, default: bool = True) -> bool:
+        metrics = self.performance_metric_enabled_map
+        return bool(metrics.get(metric, default))
+
+    def set_performance_metric_enabled(self, metric: str, enabled: bool) -> None:
+        metrics = self.performance_metric_enabled_map
+        metrics[str(metric)] = bool(enabled)
+        self._update_overlay_data("performance_metric_enabled_map", metrics)
 
     @property
     def log_max_lines(self) -> int:

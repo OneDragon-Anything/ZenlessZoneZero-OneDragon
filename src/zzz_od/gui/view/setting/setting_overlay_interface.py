@@ -12,12 +12,20 @@ from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.context.zzz_context import ZContext
 
 
 class SettingOverlayInterface(VerticalScrollInterface):
     """Overlay settings page."""
+    _PERF_CORE_METRICS = (
+        ("OCR 耗时", "ocr_ms"),
+        ("YOLO 耗时", "yolo_ms"),
+        ("CV Pipeline 耗时", "cv_pipeline_ms"),
+        ("节点轮次耗时", "operation_round_ms"),
+        ("Overlay 刷新耗时", "overlay_refresh_ms"),
+    )
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx = ctx
@@ -34,7 +42,10 @@ class SettingOverlayInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
         content_widget.add_widget(self._init_basic_group())
+        content_widget.add_widget(self._init_visual_group())
         content_widget.add_widget(self._init_panel_group())
+        content_widget.add_widget(self._init_perf_group())
+        content_widget.add_widget(self._init_capture_group())
         content_widget.add_stretch(1)
         return content_widget
 
@@ -75,6 +86,47 @@ class SettingOverlayInterface(VerticalScrollInterface):
 
         return group
 
+    def _init_visual_group(self) -> SettingCardGroup:
+        group = SettingCardGroup(gt("视觉绘制"))
+
+        self.vision_layer_opt = SwitchSettingCard(
+            icon=FluentIcon.VIEW,
+            title="启用视觉层",
+            content="显示 YOLO/OCR/Template/CV 绘制结果",
+        )
+        self.vision_layer_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.vision_layer_opt)
+
+        self.vision_yolo_opt = SwitchSettingCard(
+            icon=FluentIcon.DOCUMENT,
+            title="显示 YOLO",
+        )
+        self.vision_yolo_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.vision_yolo_opt)
+
+        self.vision_ocr_opt = SwitchSettingCard(
+            icon=FluentIcon.EDIT,
+            title="显示 OCR",
+        )
+        self.vision_ocr_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.vision_ocr_opt)
+
+        self.vision_template_opt = SwitchSettingCard(
+            icon=FluentIcon.COPY,
+            title="显示 Template",
+        )
+        self.vision_template_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.vision_template_opt)
+
+        self.vision_cv_opt = SwitchSettingCard(
+            icon=FluentIcon.VIDEO,
+            title="显示 CV Pipeline",
+        )
+        self.vision_cv_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.vision_cv_opt)
+
+        return group
+
     def _init_panel_group(self) -> SettingCardGroup:
         group = SettingCardGroup(gt("面板与刷新"))
 
@@ -92,35 +144,26 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.state_panel_opt.value_changed.connect(self._on_config_changed)
         group.addSettingCard(self.state_panel_opt)
 
-        self.font_size_opt = SpinBoxSettingCard(
-            icon=FluentIcon.SETTING,
-            title="字体大小",
-            minimum=10,
-            maximum=28,
-            step=1,
+        self.decision_panel_opt = SwitchSettingCard(
+            icon=FluentIcon.DOCUMENT,
+            title="显示决策链路面板",
         )
-        self.font_size_opt.value_changed.connect(self._on_config_changed)
-        group.addSettingCard(self.font_size_opt)
+        self.decision_panel_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.decision_panel_opt)
 
-        self.text_opacity_opt = SpinBoxSettingCard(
-            icon=FluentIcon.SETTING,
-            title="文字透明度(%)",
-            minimum=20,
-            maximum=100,
-            step=5,
+        self.timeline_panel_opt = SwitchSettingCard(
+            icon=FluentIcon.HISTORY,
+            title="显示时间轴面板",
         )
-        self.text_opacity_opt.value_changed.connect(self._on_config_changed)
-        group.addSettingCard(self.text_opacity_opt)
+        self.timeline_panel_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.timeline_panel_opt)
 
-        self.panel_opacity_opt = SpinBoxSettingCard(
-            icon=FluentIcon.SETTING,
-            title="面板透明度(%)",
-            minimum=20,
-            maximum=100,
-            step=5,
+        self.performance_panel_opt = SwitchSettingCard(
+            icon=FluentIcon.ZOOM,
+            title="显示性能面板",
         )
-        self.panel_opacity_opt.value_changed.connect(self._on_config_changed)
-        group.addSettingCard(self.panel_opacity_opt)
+        self.performance_panel_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.performance_panel_opt)
 
         self.log_max_lines_opt = SpinBoxSettingCard(
             icon=FluentIcon.SETTING,
@@ -166,10 +209,48 @@ class SettingOverlayInterface(VerticalScrollInterface):
             icon=FluentIcon.SYNC,
             title="重置面板位置",
             text="重置",
-            content="重置日志/状态面板到默认位置与尺寸",
+            content="重置 Overlay 面板到默认位置与尺寸",
         )
         self.reset_geometry_opt.clicked.connect(self._on_reset_geometry_clicked)
         group.addSettingCard(self.reset_geometry_opt)
+
+        return group
+
+    def _init_perf_group(self) -> SettingCardGroup:
+        group = SettingCardGroup(gt("性能指标"))
+        self.perf_metric_cards: dict[str, SwitchSettingCard] = {}
+        for title, metric_key in self._PERF_CORE_METRICS:
+            card = SwitchSettingCard(
+                icon=FluentIcon.ZOOM,
+                title=f"显示 {title}",
+            )
+            card.value_changed.connect(
+                lambda enabled, metric=metric_key: self._on_perf_metric_changed(metric, enabled)
+            )
+            group.addSettingCard(card)
+            self.perf_metric_cards[metric_key] = card
+        return group
+
+    def _init_capture_group(self) -> SettingCardGroup:
+        group = SettingCardGroup(gt("截图"))
+
+        self.patched_capture_opt = SwitchSettingCard(
+            icon=FluentIcon.CAMERA,
+            title="保存 patched 合成图",
+            content="保留原截图与剪贴板行为，额外输出一张叠加 Overlay 的图片",
+        )
+        self.patched_capture_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.patched_capture_opt)
+
+        self.patched_suffix_opt = TextSettingCard(
+            icon=FluentIcon.TAG,
+            title="patched 文件后缀",
+            content="默认 _patched",
+            input_placeholder="_patched",
+            input_max_width=180,
+        )
+        self.patched_suffix_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.patched_suffix_opt)
 
         return group
 
@@ -181,15 +262,27 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.toggle_hotkey_opt.init_with_adapter(self.config.get_prop_adapter("toggle_hotkey"))
         self.visible_opt.init_with_adapter(self.config.get_prop_adapter("visible"))
         self.anti_capture_opt.init_with_adapter(self.config.get_prop_adapter("anti_capture"))
+        self.vision_layer_opt.init_with_adapter(self.config.get_prop_adapter("vision_layer_enabled"))
+        self.vision_yolo_opt.init_with_adapter(self.config.get_prop_adapter("vision_yolo_enabled"))
+        self.vision_ocr_opt.init_with_adapter(self.config.get_prop_adapter("vision_ocr_enabled"))
+        self.vision_template_opt.init_with_adapter(self.config.get_prop_adapter("vision_template_enabled"))
+        self.vision_cv_opt.init_with_adapter(self.config.get_prop_adapter("vision_cv_enabled"))
         self.log_panel_opt.init_with_adapter(self.config.get_prop_adapter("log_panel_enabled"))
         self.state_panel_opt.init_with_adapter(self.config.get_prop_adapter("state_panel_enabled"))
-        self.font_size_opt.init_with_adapter(self.config.get_prop_adapter("font_size"))
-        self.text_opacity_opt.init_with_adapter(self.config.get_prop_adapter("text_opacity"))
-        self.panel_opacity_opt.init_with_adapter(self.config.get_prop_adapter("panel_opacity"))
+        self.decision_panel_opt.init_with_adapter(self.config.get_prop_adapter("decision_panel_enabled"))
+        self.timeline_panel_opt.init_with_adapter(self.config.get_prop_adapter("timeline_panel_enabled"))
+        self.performance_panel_opt.init_with_adapter(self.config.get_prop_adapter("performance_panel_enabled"))
         self.log_max_lines_opt.init_with_adapter(self.config.get_prop_adapter("log_max_lines"))
         self.log_fade_seconds_opt.init_with_adapter(self.config.get_prop_adapter("log_fade_seconds"))
         self.follow_interval_opt.init_with_adapter(self.config.get_prop_adapter("follow_interval_ms"))
         self.state_interval_opt.init_with_adapter(self.config.get_prop_adapter("state_poll_interval_ms"))
+        self.patched_capture_opt.init_with_adapter(
+            self.config.get_prop_adapter("patched_capture_enabled")
+        )
+        self.patched_suffix_opt.init_with_adapter(
+            self.config.get_prop_adapter("patched_capture_suffix")
+        )
+        self._sync_perf_metric_cards()
 
         if not win32_utils.is_windows_build_supported(19041):
             self.anti_capture_opt.setDisabled(True)
@@ -210,6 +303,10 @@ class SettingOverlayInterface(VerticalScrollInterface):
         if manager is not None:
             manager.reload_config()
 
+    def _on_perf_metric_changed(self, metric: str, enabled: bool) -> None:
+        self.config.set_performance_metric_enabled(metric, enabled)
+        self._on_config_changed()
+
     def _on_reset_geometry_clicked(self) -> None:
         self.config.reset_panel_geometry()
         manager = OverlayManager.instance()
@@ -224,6 +321,16 @@ class SettingOverlayInterface(VerticalScrollInterface):
     def _refresh_hotkey_content(self) -> None:
         key = self._format_hotkey_key(self.config.toggle_hotkey)
         self.enabled_opt.setContent(f"启用后可通过 Ctrl+Alt+{key} 切换显隐")
+
+    def _sync_perf_metric_cards(self) -> None:
+        for _, metric_key in self._PERF_CORE_METRICS:
+            card = self.perf_metric_cards.get(metric_key)
+            if card is None:
+                continue
+            card.setValue(
+                self.config.is_performance_metric_enabled(metric_key, default=True),
+                emit_signal=False,
+            )
 
     @staticmethod
     def _format_hotkey_key(key: str) -> str:

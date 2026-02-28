@@ -268,21 +268,11 @@ class OverlayManager(QObject):
         overlay.log_panel.set_limits(self.config.log_max_lines, self.config.log_fade_seconds)
         overlay.set_log_panel_enabled(self.config.log_panel_enabled)
         overlay.set_state_panel_enabled(self.config.state_panel_enabled)
-        overlay.set_decision_panel_enabled(
-            bool(getattr(self.config, "decision_panel_enabled", True))
-        )
-        overlay.set_timeline_panel_enabled(
-            bool(getattr(self.config, "timeline_panel_enabled", True))
-        )
-        overlay.set_performance_panel_enabled(
-            bool(getattr(self.config, "performance_panel_enabled", True))
-        )
-        overlay.set_vision_layer_enabled(
-            bool(getattr(self.config, "vision_layer_enabled", True))
-        )
-        overlay.set_performance_metric_enabled_map(
-            getattr(self.config, "performance_metric_enabled_map", {})
-        )
+        overlay.set_decision_panel_enabled(self.config.decision_panel_enabled)
+        overlay.set_timeline_panel_enabled(self.config.timeline_panel_enabled)
+        overlay.set_performance_panel_enabled(self.config.performance_panel_enabled)
+        overlay.set_vision_layer_enabled(self.config.vision_layer_enabled)
+        overlay.set_performance_metric_enabled_map(self.config.performance_metric_enabled_map)
         overlay.set_panel_appearance(
             self.config.font_size, self.config.text_opacity, self.config.panel_opacity
         )
@@ -347,7 +337,7 @@ class OverlayManager(QObject):
             return
 
         snapshot = bus.snapshot()
-        self._overlay_window.set_vision_items(snapshot.vision_items)
+        self._overlay_window.set_vision_items(self._filter_vision_items(snapshot.vision_items))
         self._overlay_window.set_decision_items(snapshot.decision_items)
         self._overlay_window.set_timeline_items(snapshot.timeline_items)
         self._overlay_window.set_performance_items(snapshot.performance_items)
@@ -369,6 +359,22 @@ class OverlayManager(QObject):
                 ttl_seconds=20.0,
             )
         )
+
+    def _filter_vision_items(self, items):
+        if not self.config.vision_layer_enabled:
+            return []
+
+        source_enabled = {
+            "yolo": self.config.vision_yolo_enabled,
+            "ocr": self.config.vision_ocr_enabled,
+            "template": self.config.vision_template_enabled,
+            "cv": self.config.vision_cv_enabled,
+        }
+        return [
+            item
+            for item in items
+            if source_enabled.get(getattr(item, "source", ""), True)
+        ]
 
     def _collect_state_items(self) -> list[tuple[str, str]]:
         run_ctx = self.ctx.run_context
