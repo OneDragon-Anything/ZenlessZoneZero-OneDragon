@@ -868,21 +868,11 @@ class HomeInterface(VerticalScrollInterface):
             log.debug("使用默认蓝色主题")
             return 64, 158, 255  # 默认蓝色
 
-        # 取右下角区域的平均色，代表按钮附近背景
-        w, h = image.width(), image.height()
-        x0 = int(w * 0.65)
-        y0 = int(h * 0.65)
-        x1, y1 = w, h
-
-        # 提取区域平均颜色
-        r, g, b = ColorUtils.extract_average_color_from_region(image, x0, y0, x1, y1)
-
-        if r == 64 and g == 158 and b == 255:  # 如果返回默认色，说明提取失败
-            log.debug("无法从图片获取颜色，使用默认蓝色")
-            return r, g, b
-
-        # 处理提取的颜色
-        return self._process_extracted_color(r, g, b)
+        # 使用新的色相采样算法提取主题色
+        theme_color = ColorUtils.extract_theme_color_from_image_hue(image)
+        
+        # 处理提取的颜色（增强/限制强度）
+        return self._process_extracted_color(*theme_color)
 
     def _process_extracted_color(self, r: int, g: int, b: int) -> tuple[int, int, int]:
         """处理从图片提取的颜色，增强鲜艳度和亮度，并限制在舒适的范围内"""
