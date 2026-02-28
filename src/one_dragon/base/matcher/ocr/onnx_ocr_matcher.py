@@ -271,7 +271,9 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             result_map = ocr_utils.merge_ocr_result_to_multiple_line(result_map, join_space=True,
                                                                      merge_line_distance=merge_line_distance)
 
+        elapsed_ms = (time.time() - start_time) * 1000.0
         self._emit_overlay_vision(result_map)
+        self._emit_overlay_perf_and_timeline(elapsed_ms, len(result_map))
 
         if log.isEnabledFor(DEBUG):
             log.debug('OCR结果 %s 耗时 %.2f', result_map.keys(), time.time() - start_time)
@@ -430,6 +432,36 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                     )
                 )
                 pushed += 1
+
+    def _emit_overlay_perf_and_timeline(self, elapsed_ms: float, item_count: int) -> None:
+        bus = getattr(self, "overlay_debug_bus", None)
+        if bus is None:
+            return
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import (
+                PerfMetricSample,
+                TimelineItem,
+            )
+        except Exception:
+            return
+        bus.add_performance(
+            PerfMetricSample(
+                metric="ocr_ms",
+                value=float(elapsed_ms),
+                unit="ms",
+                ttl_seconds=20.0,
+                meta={"text_items": item_count},
+            )
+        )
+        bus.add_timeline(
+            TimelineItem(
+                category="vision",
+                title="ocr",
+                detail=f"{item_count} items / {elapsed_ms:.1f}ms",
+                level="DEBUG",
+                ttl_seconds=15.0,
+            )
+        )
 
 
 def __debug():

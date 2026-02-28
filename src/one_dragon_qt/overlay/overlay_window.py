@@ -6,9 +6,17 @@ from PySide6.QtCore import QRect, Qt, Signal
 from PySide6.QtGui import QColor, QPaintEvent, QPainter, QPen, QResizeEvent
 from PySide6.QtWidgets import QWidget
 
-from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
+from one_dragon.base.operation.overlay_debug_bus import (
+    DecisionTraceItem,
+    PerfMetricSample,
+    TimelineItem,
+    VisionDrawItem,
+)
+from one_dragon_qt.overlay.panels.decision_panel import DecisionPanel
 from one_dragon_qt.overlay.panels.log_panel import LogPanel
+from one_dragon_qt.overlay.panels.performance_panel import PerformancePanel
 from one_dragon_qt.overlay.panels.state_panel import StatePanel
+from one_dragon_qt.overlay.panels.timeline_panel import TimelinePanel
 from one_dragon_qt.overlay.utils import win32_utils
 
 
@@ -47,12 +55,24 @@ class OverlayWindow(QWidget):
 
         self.log_panel = LogPanel(self)
         self.state_panel = StatePanel(self)
+        self.decision_panel = DecisionPanel(self)
+        self.timeline_panel = TimelinePanel(self)
+        self.performance_panel = PerformancePanel(self)
 
         self.log_panel.geometry_changed.connect(
             lambda g: self.panel_geometry_changed.emit("log_panel", g)
         )
         self.state_panel.geometry_changed.connect(
             lambda g: self.panel_geometry_changed.emit("state_panel", g)
+        )
+        self.decision_panel.geometry_changed.connect(
+            lambda g: self.panel_geometry_changed.emit("decision_panel", g)
+        )
+        self.timeline_panel.geometry_changed.connect(
+            lambda g: self.panel_geometry_changed.emit("timeline_panel", g)
+        )
+        self.performance_panel.geometry_changed.connect(
+            lambda g: self.panel_geometry_changed.emit("performance_panel", g)
         )
 
     def set_log_panel_enabled(self, enabled: bool) -> None:
@@ -61,9 +81,21 @@ class OverlayWindow(QWidget):
     def set_state_panel_enabled(self, enabled: bool) -> None:
         self.state_panel.setVisible(enabled)
 
+    def set_decision_panel_enabled(self, enabled: bool) -> None:
+        self.decision_panel.setVisible(enabled)
+
+    def set_timeline_panel_enabled(self, enabled: bool) -> None:
+        self.timeline_panel.setVisible(enabled)
+
+    def set_performance_panel_enabled(self, enabled: bool) -> None:
+        self.performance_panel.setVisible(enabled)
+
     def set_panel_appearance(self, font_size: int, text_opacity: int, panel_opacity: int) -> None:
         self.log_panel.set_appearance(font_size, text_opacity, panel_opacity)
         self.state_panel.set_appearance(font_size, text_opacity, panel_opacity)
+        self.decision_panel.set_appearance(font_size, text_opacity, panel_opacity)
+        self.timeline_panel.set_appearance(font_size, text_opacity, panel_opacity)
+        self.performance_panel.set_appearance(font_size, text_opacity, panel_opacity)
 
     def set_standard_resolution(self, width: int, height: int) -> None:
         self._standard_width = max(1, int(width))
@@ -81,6 +113,18 @@ class OverlayWindow(QWidget):
             return
         self._vision_items = list(items)
         self.update()
+
+    def set_decision_items(self, items: Sequence[DecisionTraceItem]) -> None:
+        self.decision_panel.update_items(list(items))
+
+    def set_timeline_items(self, items: Sequence[TimelineItem]) -> None:
+        self.timeline_panel.update_items(list(items))
+
+    def set_performance_items(self, items: Sequence[PerfMetricSample]) -> None:
+        self.performance_panel.update_items(list(items))
+
+    def set_performance_metric_enabled_map(self, metric_enabled: dict[str, bool] | None) -> None:
+        self.performance_panel.set_enabled_metric_map(metric_enabled)
 
     def set_passthrough(self, enabled: bool) -> None:
         self._passthrough_enabled = enabled
@@ -119,6 +163,9 @@ class OverlayWindow(QWidget):
         return {
             "log_panel": self._panel_geometry(self.log_panel),
             "state_panel": self._panel_geometry(self.state_panel),
+            "decision_panel": self._panel_geometry(self.decision_panel),
+            "timeline_panel": self._panel_geometry(self.timeline_panel),
+            "performance_panel": self._panel_geometry(self.performance_panel),
         }
 
     def update_with_game_rect(self, rect) -> None:
@@ -220,6 +267,12 @@ class OverlayWindow(QWidget):
             return self.log_panel
         if panel_name == "state_panel":
             return self.state_panel
+        if panel_name == "decision_panel":
+            return self.decision_panel
+        if panel_name == "timeline_panel":
+            return self.timeline_panel
+        if panel_name == "performance_panel":
+            return self.performance_panel
         return None
 
     @staticmethod
@@ -230,6 +283,9 @@ class OverlayWindow(QWidget):
     def _clamp_all_panels(self) -> None:
         self._clamp_panel(self.log_panel)
         self._clamp_panel(self.state_panel)
+        self._clamp_panel(self.decision_panel)
+        self._clamp_panel(self.timeline_panel)
+        self._clamp_panel(self.performance_panel)
 
     def _clamp_panel(self, panel) -> None:
         if self.width() <= 0 or self.height() <= 0:

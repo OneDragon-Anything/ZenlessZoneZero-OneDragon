@@ -105,10 +105,19 @@ class OverlayManager(QObject):
         self._apply_timer_intervals()
         if self._overlay_window is not None:
             self._overlay_window.apply_panel_geometry(
-                "log_panel", self.config.get_panel_geometry("log_panel")
+                "log_panel", self._panel_geometry_with_fallback("log_panel")
             )
             self._overlay_window.apply_panel_geometry(
-                "state_panel", self.config.get_panel_geometry("state_panel")
+                "state_panel", self._panel_geometry_with_fallback("state_panel")
+            )
+            self._overlay_window.apply_panel_geometry(
+                "decision_panel", self._panel_geometry_with_fallback("decision_panel")
+            )
+            self._overlay_window.apply_panel_geometry(
+                "timeline_panel", self._panel_geometry_with_fallback("timeline_panel")
+            )
+            self._overlay_window.apply_panel_geometry(
+                "performance_panel", self._panel_geometry_with_fallback("performance_panel")
             )
         self._safe_follow_window()
 
@@ -123,10 +132,19 @@ class OverlayManager(QObject):
         if self._overlay_window is None:
             return
         self._overlay_window.apply_panel_geometry(
-            "log_panel", self.config.get_panel_geometry("log_panel")
+            "log_panel", self._panel_geometry_with_fallback("log_panel")
         )
         self._overlay_window.apply_panel_geometry(
-            "state_panel", self.config.get_panel_geometry("state_panel")
+            "state_panel", self._panel_geometry_with_fallback("state_panel")
+        )
+        self._overlay_window.apply_panel_geometry(
+            "decision_panel", self._panel_geometry_with_fallback("decision_panel")
+        )
+        self._overlay_window.apply_panel_geometry(
+            "timeline_panel", self._panel_geometry_with_fallback("timeline_panel")
+        )
+        self._overlay_window.apply_panel_geometry(
+            "performance_panel", self._panel_geometry_with_fallback("performance_panel")
         )
 
     def _apply_timer_intervals(self) -> None:
@@ -171,12 +189,38 @@ class OverlayManager(QObject):
             )
             self._overlay_window.panel_geometry_changed.connect(self._on_panel_geometry_changed)
             self._overlay_window.apply_panel_geometry(
-                "log_panel", self.config.get_panel_geometry("log_panel")
+                "log_panel", self._panel_geometry_with_fallback("log_panel")
             )
             self._overlay_window.apply_panel_geometry(
-                "state_panel", self.config.get_panel_geometry("state_panel")
+                "state_panel", self._panel_geometry_with_fallback("state_panel")
+            )
+            self._overlay_window.apply_panel_geometry(
+                "decision_panel", self._panel_geometry_with_fallback("decision_panel")
+            )
+            self._overlay_window.apply_panel_geometry(
+                "timeline_panel", self._panel_geometry_with_fallback("timeline_panel")
+            )
+            self._overlay_window.apply_panel_geometry(
+                "performance_panel", self._panel_geometry_with_fallback("performance_panel")
             )
         return self._overlay_window
+
+    def _panel_geometry_with_fallback(self, panel_name: str) -> dict[str, int]:
+        geometry = self.config.get_panel_geometry(panel_name)
+        if not (
+            geometry.get("x", 0) == 0
+            and geometry.get("y", 0) == 0
+            and geometry.get("w", 320) == 320
+            and geometry.get("h", 200) == 200
+        ):
+            return geometry
+
+        defaults = {
+            "decision_panel": {"x": 620, "y": 20, "w": 620, "h": 220},
+            "timeline_panel": {"x": 620, "y": 260, "w": 620, "h": 220},
+            "performance_panel": {"x": 620, "y": 500, "w": 420, "h": 180},
+        }
+        return defaults.get(panel_name, geometry)
 
     def _on_panel_geometry_changed(self, panel_name: str, geometry: dict[str, int]) -> None:
         try:
@@ -215,6 +259,21 @@ class OverlayManager(QObject):
         overlay.log_panel.set_limits(self.config.log_max_lines, self.config.log_fade_seconds)
         overlay.set_log_panel_enabled(self.config.log_panel_enabled)
         overlay.set_state_panel_enabled(self.config.state_panel_enabled)
+        overlay.set_decision_panel_enabled(
+            bool(getattr(self.config, "decision_panel_enabled", True))
+        )
+        overlay.set_timeline_panel_enabled(
+            bool(getattr(self.config, "timeline_panel_enabled", True))
+        )
+        overlay.set_performance_panel_enabled(
+            bool(getattr(self.config, "performance_panel_enabled", True))
+        )
+        overlay.set_vision_layer_enabled(
+            bool(getattr(self.config, "vision_layer_enabled", True))
+        )
+        overlay.set_performance_metric_enabled_map(
+            getattr(self.config, "performance_metric_enabled_map", {})
+        )
         overlay.set_panel_appearance(
             self.config.font_size, self.config.text_opacity, self.config.panel_opacity
         )
@@ -254,29 +313,53 @@ class OverlayManager(QObject):
         self._overlay_window.set_passthrough(not ctrl_now)
 
     def _safe_refresh_state(self) -> None:
+        start = time.time()
         try:
             self._refresh_state_panel()
         except Exception:
             log.error("刷新 Overlay 状态面板失败", exc_info=True)
+        finally:
+            self._emit_overlay_refresh_perf(start)
 
     def _refresh_state_panel(self) -> None:
         if self._overlay_window is None or not self._overlay_window.isVisible():
             return
 
-        self._refresh_vision_layer()
+        self._refresh_debug_panels()
 
         if not self.config.state_panel_enabled:
             return
         items = self._collect_state_items()
         self._overlay_window.state_panel.update_snapshot(items)
 
-    def _refresh_vision_layer(self) -> None:
+    def _refresh_debug_panels(self) -> None:
         bus = getattr(self.ctx, "overlay_debug_bus", None)
         if bus is None:
             return
 
         snapshot = bus.snapshot()
         self._overlay_window.set_vision_items(snapshot.vision_items)
+        self._overlay_window.set_decision_items(snapshot.decision_items)
+        self._overlay_window.set_timeline_items(snapshot.timeline_items)
+        self._overlay_window.set_performance_items(snapshot.performance_items)
+
+    def _emit_overlay_refresh_perf(self, start_time: float) -> None:
+        bus = getattr(self.ctx, "overlay_debug_bus", None)
+        if bus is None:
+            return
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import PerfMetricSample
+        except Exception:
+            return
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        bus.add_performance(
+            PerfMetricSample(
+                metric="overlay_refresh_ms",
+                value=elapsed_ms,
+                unit="ms",
+                ttl_seconds=20.0,
+            )
+        )
 
     def _collect_state_items(self) -> list[tuple[str, str]]:
         run_ctx = self.ctx.run_context
