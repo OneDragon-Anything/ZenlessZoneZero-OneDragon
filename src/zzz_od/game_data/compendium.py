@@ -1,10 +1,8 @@
 import os
 from typing import List, Optional
 
-import yaml
-
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.utils import os_utils
+from one_dragon.utils import os_utils, yaml_utils
 from one_dragon.utils.log_utils import log
 
 
@@ -141,7 +139,7 @@ class CompendiumService:
 
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
-                tab_list: List[dict] = yaml.safe_load(file)
+                tab_list: List[dict] = yaml_utils.safe_load(file)
                 self.data = CompendiumData(tab_list)
         except Exception:
             log.error(f'文件读取失败 {file_path}', exc_info=True)
@@ -292,7 +290,7 @@ class CompendiumService:
 
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
-                data = yaml.safe_load(file)
+                data = yaml_utils.safe_load(file)
                 self.coffee_list = []
                 self.name_2_coffee = {}
 

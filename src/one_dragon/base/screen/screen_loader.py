@@ -5,7 +5,7 @@ import yaml
 
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_info import ScreenInfo
-from one_dragon.utils import os_utils
+from one_dragon.utils import os_utils, yaml_utils
 from one_dragon.utils.log_utils import log
 
 
@@ -95,7 +95,10 @@ class ScreenContext:
                 file_path = os.path.join(self.yml_file_dir, file_name)
                 with open(file_path, 'r', encoding='utf-8') as file:
                     log.debug(f"加载yaml: {file_path}")
-                    data = yaml.safe_load(file)
+                    data = yaml_utils.safe_load(file)
+                if not isinstance(data, dict):
+                    log.warning(f"画面配置格式错误，已跳过: {file_path}")
+                    continue
 
                 screen_info = ScreenInfo(data)
                 self.screen_info_list.append(screen_info)
@@ -109,8 +112,15 @@ class ScreenContext:
             file_path = self.merge_yml_file_path
             with open(file_path, 'r', encoding='utf-8') as file:
                 log.debug(f"加载yaml: {file_path}")
-                yaml_data = yaml.safe_load(file)
+                yaml_data = yaml_utils.safe_load(file)
+            if not isinstance(yaml_data, list):
+                if yaml_data is not None:
+                    log.warning(f"合并画面配置格式错误，已忽略: {file_path}")
+                yaml_data = []
             for data in yaml_data:
+                if not isinstance(data, dict):
+                    log.warning(f"合并画面配置中存在非字典条目，已跳过: {file_path}")
+                    continue
                 screen_info = ScreenInfo(data)
                 self.screen_info_list.append(screen_info)
                 self.screen_info_map[screen_info.screen_name] = screen_info
