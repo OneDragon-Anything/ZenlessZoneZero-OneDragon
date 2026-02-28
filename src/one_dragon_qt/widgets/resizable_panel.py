@@ -44,6 +44,7 @@ class ResizablePanel(QFrame):
         self._setup_ui()
 
     def _setup_ui(self) -> None:
+        self.setObjectName("overlayPanel")
         self.setMouseTracking(True)
         self.setMinimumSize(self._min_width, self._min_height)
         self.setFrameShape(QFrame.Shape.StyledPanel)
@@ -95,7 +96,7 @@ class ResizablePanel(QFrame):
         border_alpha = max(18, min(90, int(panel_alpha * 0.22)))
         self.setStyleSheet(
             f"""
-            ResizablePanel {{
+            #overlayPanel {{
                 background-color: rgba(12, 12, 14, {panel_alpha});
                 border: 1px solid rgba(255, 255, 255, {border_alpha});
                 border-radius: 5px;

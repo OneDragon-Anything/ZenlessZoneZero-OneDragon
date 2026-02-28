@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QWheelEvent
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
+from PySide6.QtWidgets import QGraphicsOpacityEffect, QHBoxLayout, QLabel, QToolButton, QWidget
 
 from one_dragon_qt.overlay.overlay_events import OverlayLogEvent
 from one_dragon_qt.widgets.overlay_text_widget import OverlayTextWidget
@@ -59,6 +59,11 @@ class LogPanel(ResizablePanel):
 
         self._text_widget = OverlayTextWidget(self)
         self.body_layout.addWidget(self._text_widget, 1)
+
+        self._text_opacity_effect = QGraphicsOpacityEffect(self._text_widget)
+        self._text_opacity_effect.setOpacity(self._text_opacity / 100.0)
+        self._text_widget.setGraphicsEffect(self._text_opacity_effect)
+
         self._build_toolbar()
 
         self._cleanup_timer = QTimer(self)
@@ -71,6 +76,8 @@ class LogPanel(ResizablePanel):
         self._panel_opacity = max(20, min(100, int(panel_opacity)))
         self.set_panel_opacity(self._panel_opacity)
         self._text_widget.set_appearance(self._font_size, self._text_opacity)
+        self._text_opacity_effect.setOpacity(self._text_opacity / 100.0)
+        self._render()
         self._sync_toolbar_state()
 
     def set_limits(self, max_lines: int, fade_seconds: int) -> None:
@@ -112,35 +119,22 @@ class LogPanel(ResizablePanel):
         if changed and not self._paused:
             self._render()
 
-    @staticmethod
-    def _apply_alpha(hex_color: str, alpha_fraction: float) -> str:
-        """将 #rrggbb 颜色转为 rgba(r,g,b,a) 字符串."""
-        hex_color = hex_color.lstrip("#")
-        r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
-        a = max(0.0, min(1.0, alpha_fraction))
-        return f"rgba({r},{g},{b},{a:.2f})"
-
     def _render(self) -> None:
         if not self._lines:
             self._text_widget.setHtml("")
             return
 
-        alpha = self._text_opacity / 100.0
         rows: list[str] = []
         for line in self._lines:
             level_color = _LEVEL_COLOR.get(line.level_name, "#d0d0d0")
             time_text = time.strftime("%H:%M:%S", time.localtime(line.created))
             message = html.escape(line.message)
             source = html.escape(line.source)
-            c_time = self._apply_alpha("#a0a0a0", alpha)
-            c_level = self._apply_alpha(level_color, alpha)
-            c_src = self._apply_alpha("#c9c9c9", alpha)
-            c_msg = self._apply_alpha("#efefef", alpha)
             row = (
-                f"<span style='color:{c_time}'>[{time_text}]</span> "
-                f"<span style='color:{c_level};font-weight:600'>[{line.level_name}]</span> "
-                f"<span style='color:{c_src}'>[{source}]</span> "
-                f"<span style='color:{c_msg}'>{message}</span>"
+                f"<span style='color:#a0a0a0'>[{time_text}]</span> "
+                f"<span style='color:{level_color};font-weight:600'>[{line.level_name}]</span> "
+                f"<span style='color:#c9c9c9'>[{source}]</span> "
+                f"<span style='color:#efefef'>{message}</span>"
             )
             rows.append(row)
 
