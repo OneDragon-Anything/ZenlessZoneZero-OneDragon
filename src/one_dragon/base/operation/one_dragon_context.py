@@ -27,6 +27,7 @@ from one_dragon.base.operation.application.application_run_context import (
 from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
+from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
     OneDragonEnvContext,
@@ -82,6 +83,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         self.app_group_manager: ApplicationGroupManager = ApplicationGroupManager(self)
 
         self.push_service: PushService = PushService(self)
+        self.overlay_debug_bus: OverlayDebugBus = OverlayDebugBus()
 
         # 初始化相关
         self._init_lock = threading.Lock()
@@ -415,3 +417,4 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         Application.after_app_shutdown()
         self.run_context.after_app_shutdown()
         self.push_service.after_app_shutdown()
+        self.overlay_debug_bus.clear()
