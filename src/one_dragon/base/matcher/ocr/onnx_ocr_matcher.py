@@ -407,6 +407,10 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         if merge_line_distance != -1:
             pass  # TODO
 
+        elapsed_ms = (time.time() - start_time) * 1000.0
+        self._emit_overlay_vision_from_ocr_results(ocr_result_list)
+        self._emit_overlay_perf_and_timeline(elapsed_ms, len(ocr_result_list))
+
         if log.isEnabledFor(DEBUG):
             log.debug('OCR结果 %s 耗时 %.2f', [i.data for i in ocr_result_list], time.time() - start_time)
 
@@ -447,6 +451,34 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                     )
                 )
                 pushed += 1
+
+    def _emit_overlay_vision_from_ocr_results(self, ocr_results: list[OcrMatchResult]) -> None:
+        bus = getattr(self, "overlay_debug_bus", None)
+        if bus is None or not ocr_results:
+            return
+
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
+        except Exception:
+            return
+
+        for i, result in enumerate(ocr_results[:60]):
+            label = str(result.data or "").strip()
+            if len(label) > 32:
+                label = label[:29] + "..."
+            bus.add_vision(
+                VisionDrawItem(
+                    source="ocr",
+                    label=label,
+                    x1=result.x,
+                    y1=result.y,
+                    x2=result.x + result.w,
+                    y2=result.y + result.h,
+                    score=result.confidence,
+                    color="#ff6ac1",
+                    ttl_seconds=1.4,
+                )
+            )
 
     def _emit_overlay_perf_and_timeline(self, elapsed_ms: float, item_count: int) -> None:
         bus = getattr(self, "overlay_debug_bus", None)
