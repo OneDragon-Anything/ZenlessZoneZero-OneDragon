@@ -147,6 +147,15 @@ class OverlayManager(QObject):
             "performance_panel", self._panel_geometry_with_fallback("performance_panel")
         )
 
+    def capture_overlay_rgba(self):
+        if self._overlay_window is None or not self._overlay_window.isVisible():
+            return None
+        try:
+            return self._overlay_window.capture_overlay_rgba()
+        except Exception:
+            log.error("捕获 Overlay 图像失败", exc_info=True)
+            return None
+
     def _apply_timer_intervals(self) -> None:
         self._follow_timer.setInterval(self.config.follow_interval_ms)
         self._input_timer.setInterval(self.config.input_poll_interval_ms)
