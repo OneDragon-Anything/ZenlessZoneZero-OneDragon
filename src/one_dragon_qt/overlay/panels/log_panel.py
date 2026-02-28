@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QWheelEvent
-from PySide6.QtWidgets import QGraphicsOpacityEffect, QHBoxLayout, QLabel, QToolButton, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
 
 from one_dragon_qt.overlay.overlay_events import OverlayLogEvent
 from one_dragon_qt.widgets.overlay_text_widget import OverlayTextWidget
@@ -33,7 +33,7 @@ _LEVEL_COLOR = {
 
 class LogPanel(ResizablePanel):
     """Overlay log panel."""
-    appearance_changed = Signal(int, int, int)
+    appearance_changed = Signal(int, int)
 
     def __init__(self, parent=None):
         super().__init__(title="Overlay Log", min_width=320, min_height=130, parent=parent)
@@ -52,7 +52,6 @@ class LogPanel(ResizablePanel):
         self._fade_seconds = 12
         self._lines: deque[_LogLine] = deque()
         self._font_size = 12
-        self._text_opacity = 100
         self._panel_opacity = 70
         self._paused = False
         self._auto_scroll = True
@@ -60,23 +59,17 @@ class LogPanel(ResizablePanel):
         self._text_widget = OverlayTextWidget(self)
         self.body_layout.addWidget(self._text_widget, 1)
 
-        self._text_opacity_effect = QGraphicsOpacityEffect(self._text_widget)
-        self._text_opacity_effect.setOpacity(self._text_opacity / 100.0)
-        self._text_widget.setGraphicsEffect(self._text_opacity_effect)
-
         self._build_toolbar()
 
         self._cleanup_timer = QTimer(self)
         self._cleanup_timer.timeout.connect(self._drop_expired)
         self._cleanup_timer.start(1000)
 
-    def set_appearance(self, font_size: int, text_opacity: int, panel_opacity: int) -> None:
+    def set_appearance(self, font_size: int, panel_opacity: int) -> None:
         self._font_size = max(10, min(28, int(font_size)))
-        self._text_opacity = max(20, min(100, int(text_opacity)))
         self._panel_opacity = max(20, min(100, int(panel_opacity)))
         self.set_panel_opacity(self._panel_opacity)
-        self._text_widget.set_appearance(self._font_size, self._text_opacity)
-        self._text_opacity_effect.setOpacity(self._text_opacity / 100.0)
+        self._text_widget.set_appearance(self._font_size)
         self._render()
         self._sync_toolbar_state()
 
@@ -175,10 +168,6 @@ class LogPanel(ResizablePanel):
         layout.addWidget(self._btn_font_dec)
         self._btn_font_inc = self._create_button("A\u207A", "增大字号 (Ctrl+滚轮上)", self._on_font_inc)
         layout.addWidget(self._btn_font_inc)
-        self._btn_text_dec = self._create_button("\u25D1\u2212", "降低文字不透明度", self._on_text_dec)
-        layout.addWidget(self._btn_text_dec)
-        self._btn_text_inc = self._create_button("\u25D1\u207A", "提高文字不透明度", self._on_text_inc)
-        layout.addWidget(self._btn_text_inc)
         self._btn_panel_dec = self._create_button("\u25A3\u2212", "降低面板不透明度", self._on_panel_dec)
         layout.addWidget(self._btn_panel_dec)
         self._btn_panel_inc = self._create_button("\u25A3\u207A", "提高面板不透明度", self._on_panel_inc)
@@ -222,22 +211,16 @@ class LogPanel(ResizablePanel):
         return btn
 
     def _on_font_dec(self) -> None:
-        self._emit_appearance(max(10, self._font_size - 1), self._text_opacity, self._panel_opacity)
+        self._emit_appearance(max(10, self._font_size - 1), self._panel_opacity)
 
     def _on_font_inc(self) -> None:
-        self._emit_appearance(min(28, self._font_size + 1), self._text_opacity, self._panel_opacity)
-
-    def _on_text_dec(self) -> None:
-        self._emit_appearance(self._font_size, max(20, self._text_opacity - 5), self._panel_opacity)
-
-    def _on_text_inc(self) -> None:
-        self._emit_appearance(self._font_size, min(100, self._text_opacity + 5), self._panel_opacity)
+        self._emit_appearance(min(28, self._font_size + 1), self._panel_opacity)
 
     def _on_panel_dec(self) -> None:
-        self._emit_appearance(self._font_size, self._text_opacity, max(20, self._panel_opacity - 5))
+        self._emit_appearance(self._font_size, max(20, self._panel_opacity - 5))
 
     def _on_panel_inc(self) -> None:
-        self._emit_appearance(self._font_size, self._text_opacity, min(100, self._panel_opacity + 5))
+        self._emit_appearance(self._font_size, min(100, self._panel_opacity + 5))
 
     def _on_pause_toggle(self) -> None:
         self._paused = not self._paused
@@ -249,9 +232,9 @@ class LogPanel(ResizablePanel):
         self._auto_scroll = not self._auto_scroll
         self._sync_toolbar_state()
 
-    def _emit_appearance(self, font_size: int, text_opacity: int, panel_opacity: int) -> None:
-        self.set_appearance(font_size, text_opacity, panel_opacity)
-        self.appearance_changed.emit(self._font_size, self._text_opacity, self._panel_opacity)
+    def _emit_appearance(self, font_size: int, panel_opacity: int) -> None:
+        self.set_appearance(font_size, panel_opacity)
+        self.appearance_changed.emit(self._font_size, self._panel_opacity)
 
     def _sync_toolbar_state(self) -> None:
         if hasattr(self, "_btn_pause"):
@@ -261,7 +244,7 @@ class LogPanel(ResizablePanel):
         if hasattr(self, "_status_label"):
             pause_text = "PAUSED" if self._paused else ""
             scroll_text = "AUTO" if self._auto_scroll else "LOCK"
-            parts = [f"F{self._font_size}", f"T{self._text_opacity}", f"P{self._panel_opacity}"]
+            parts = [f"F{self._font_size}", f"P{self._panel_opacity}"]
             if pause_text:
                 parts.append(pause_text)
             parts.append(scroll_text)

@@ -27,9 +27,9 @@ class PerformancePanel(ResizablePanel):
         self.body_layout.addWidget(self._text_widget, 1)
         self._enabled_metric_map: dict[str, bool] = {}
 
-    def set_appearance(self, font_size: int, text_opacity: int, panel_opacity: int) -> None:
+    def set_appearance(self, font_size: int, panel_opacity: int) -> None:
         self.set_panel_opacity(panel_opacity)
-        self._text_widget.set_appearance(font_size, text_opacity)
+        self._text_widget.set_appearance(font_size)
 
     def set_enabled_metric_map(self, metric_map: dict[str, bool] | None) -> None:
         self._enabled_metric_map = dict(metric_map or {})

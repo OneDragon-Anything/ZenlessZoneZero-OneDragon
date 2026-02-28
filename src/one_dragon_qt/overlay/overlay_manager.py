@@ -215,11 +215,10 @@ class OverlayManager(QObject):
             log.error("保存 Overlay 面板位置失败", exc_info=True)
 
     def _on_log_panel_appearance_changed(
-        self, font_size: int, text_opacity: int, panel_opacity: int
+        self, font_size: int, panel_opacity: int
     ) -> None:
         try:
             self.config.font_size = int(font_size)
-            self.config.text_opacity = int(text_opacity)
             self.config.panel_opacity = int(panel_opacity)
         except Exception:
             log.error("保存 Overlay 日志面板样式失败", exc_info=True)
@@ -267,7 +266,7 @@ class OverlayManager(QObject):
         )
         overlay.set_performance_metric_enabled_map(self.config.performance_metric_enabled_map)
         overlay.set_panel_appearance(
-            self.config.font_size, self.config.text_opacity, self.config.panel_opacity
+            self.config.font_size, self.config.panel_opacity
         )
         overlay.set_anti_capture(self.config.anti_capture)
         overlay.set_overlay_visible(self.config.visible)
@@ -278,7 +277,7 @@ class OverlayManager(QObject):
         if self._log_panel is not None:
             self._log_panel.set_limits(self.config.log_max_lines, self.config.log_fade_seconds)
             self._log_panel.set_appearance(
-                self.config.font_size, self.config.text_opacity, self.config.panel_opacity
+                self.config.font_size, self.config.panel_opacity
             )
             log_visible = self.config.visible and self.config.log_panel_enabled
             if log_visible:

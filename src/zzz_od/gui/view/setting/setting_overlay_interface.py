@@ -250,16 +250,6 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.state_interval_opt.value_changed.connect(self._on_config_changed)
         group.addSettingCard(self.state_interval_opt)
 
-        self.text_opacity_opt = SpinBoxSettingCard(
-            icon=FluentIcon.EDIT,
-            title="文字透明度(%)",
-            minimum=20,
-            maximum=100,
-            step=1,
-        )
-        self.text_opacity_opt.value_changed.connect(self._on_config_changed)
-        group.addSettingCard(self.text_opacity_opt)
-
         self.panel_opacity_opt = SpinBoxSettingCard(
             icon=FluentIcon.SETTING,
             title="面板透明度(%)",
@@ -345,7 +335,6 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.log_fade_seconds_opt.init_with_adapter(self.config.get_prop_adapter("log_fade_seconds"))
         self.follow_interval_opt.init_with_adapter(self.config.get_prop_adapter("follow_interval_ms"))
         self.state_interval_opt.init_with_adapter(self.config.get_prop_adapter("state_poll_interval_ms"))
-        self.text_opacity_opt.init_with_adapter(self.config.get_prop_adapter("text_opacity"))
         self.panel_opacity_opt.init_with_adapter(self.config.get_prop_adapter("panel_opacity"))
         self.patched_capture_opt.init_with_adapter(
             self.config.get_prop_adapter("patched_capture_enabled")
