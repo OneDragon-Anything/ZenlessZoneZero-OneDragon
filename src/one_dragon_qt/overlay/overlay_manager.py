@@ -199,6 +199,9 @@ class OverlayManager(QObject):
                 int(self.ctx.project_config.screen_standard_height),
             )
             self._overlay_window.panel_geometry_changed.connect(self._on_panel_geometry_changed)
+            self._overlay_window.log_panel.appearance_changed.connect(
+                self._on_log_panel_appearance_changed
+            )
             self._overlay_window.apply_panel_geometry(
                 "log_panel", self._panel_geometry_with_fallback("log_panel")
             )
@@ -238,6 +241,16 @@ class OverlayManager(QObject):
             self.config.set_panel_geometry(panel_name, geometry)
         except Exception:
             log.error("保存 Overlay 面板位置失败", exc_info=True)
+
+    def _on_log_panel_appearance_changed(
+        self, font_size: int, text_opacity: int, panel_opacity: int
+    ) -> None:
+        try:
+            self.config.font_size = int(font_size)
+            self.config.text_opacity = int(text_opacity)
+            self.config.panel_opacity = int(panel_opacity)
+        except Exception:
+            log.error("保存 Overlay 日志面板样式失败", exc_info=True)
 
     def _safe_follow_window(self) -> None:
         try:
