@@ -13,6 +13,7 @@ class TemplateMatcher:
 
     def __init__(self, template_loader: TemplateLoader):
         self.template_loader: TemplateLoader = template_loader
+        self.overlay_debug_bus = None
 
     def match_template(self, source: MatLike,
                        template_sub_dir: str,
@@ -22,7 +23,8 @@ class TemplateMatcher:
                        mask: MatLike = None,
                        ignore_template_mask: bool = False,
                        only_best: bool = True,
-                       ignore_inf: bool = True) -> MatchResultList:
+                       ignore_inf: bool = True,
+                       debug_offset: tuple[int, int] | None = None) -> MatchResultList:
         """
         在原图中 匹配模板 如果模板图中有掩码图 会自动使用
         :param source: 原图
@@ -46,8 +48,10 @@ class TemplateMatcher:
             mask_usage = cv2.bitwise_or(mask_usage, template.mask) if mask_usage is not None else template.mask
         if mask is not None:
             mask_usage = cv2.bitwise_or(mask_usage, mask) if mask_usage is not None else mask
-        return cv2_utils.match_template(source, template.get_image(template_type), threshold, mask=mask_usage,
-                                        only_best=only_best, ignore_inf=ignore_inf)
+        result = cv2_utils.match_template(source, template.get_image(template_type), threshold, mask=mask_usage,
+                                          only_best=only_best, ignore_inf=ignore_inf)
+        self._emit_overlay_vision(template_sub_dir, template_id, result, debug_offset)
+        return result
 
     def match_one_by_feature(self, source: MatLike,
                              template_sub_dir: str,
@@ -86,7 +90,8 @@ class TemplateMatcher:
                               mask: MatLike = None,
                               ignore_template_mask: bool = False,
                               only_best: bool = True,
-                              ignore_inf: bool = True) -> MatchResultList:
+                              ignore_inf: bool = True,
+                              debug_offset: tuple[int, int] | None = None) -> MatchResultList:
         """
         使用二值化图像进行模板匹配
         :param source: 原图
@@ -117,7 +122,7 @@ class TemplateMatcher:
             mask_usage = cv2.bitwise_or(mask_usage, mask) if mask_usage is not None else mask
 
         # 使用二值化图像进行匹配
-        return cv2_utils.match_template(
+        result = cv2_utils.match_template(
             source_binary,
             template_binary,
             threshold,
@@ -125,3 +130,38 @@ class TemplateMatcher:
             only_best=only_best,
             ignore_inf=ignore_inf
         )
+        self._emit_overlay_vision(template_sub_dir, template_id, result, debug_offset)
+        return result
+
+    def _emit_overlay_vision(
+        self,
+        template_sub_dir: str,
+        template_id: str,
+        result: MatchResultList,
+        debug_offset: tuple[int, int] | None = None,
+    ) -> None:
+        bus = getattr(self, "overlay_debug_bus", None)
+        if bus is None or result is None or len(result.arr) == 0:
+            return
+
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import VisionDrawItem
+        except Exception:
+            return
+
+        offset_x = int(debug_offset[0]) if debug_offset is not None else 0
+        offset_y = int(debug_offset[1]) if debug_offset is not None else 0
+        for match in result.arr[:20]:
+            bus.add_vision(
+                VisionDrawItem(
+                    source="template",
+                    label=f"{template_sub_dir}/{template_id}",
+                    x1=match.x + offset_x,
+                    y1=match.y + offset_y,
+                    x2=match.x + match.w + offset_x,
+                    y2=match.y + match.h + offset_y,
+                    score=match.confidence,
+                    color="#ffc14f",
+                    ttl_seconds=1.8,
+                )
+            )

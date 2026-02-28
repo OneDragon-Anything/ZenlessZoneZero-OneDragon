@@ -128,7 +128,8 @@ def find_area_in_screen_binary(
             area.template_sub_dir,
             area.template_id,
             threshold=area.template_match_threshold,
-            binary_threshold=binary_threshold
+            binary_threshold=binary_threshold,
+            debug_offset=(rect.x1, rect.y1),
         )
         find = mrl.max is not None
 
@@ -174,7 +175,8 @@ def find_area_in_screen(
         part = cv2_utils.crop_image_only(screen, rect)
 
         mrl = ctx.tm.match_template(part, area.template_sub_dir, area.template_id,
-                                    threshold=area.template_match_threshold)
+                                    threshold=area.template_match_threshold,
+                                    debug_offset=(rect.x1, rect.y1))
         find = mrl.max is not None
 
     return FindAreaResultEnum.TRUE if find else FindAreaResultEnum.FALSE
@@ -211,7 +213,8 @@ def find_template_coord_in_area(
         area.template_sub_dir,
         area.template_id,
         threshold=area.template_match_threshold,
-        only_best=True
+        only_best=True,
+        debug_offset=(area.rect.x1, area.rect.y1),
     )
 
     if mrl.max is None:
@@ -273,7 +276,8 @@ def find_and_click_area(
         part = cv2_utils.crop_image_only(screen, rect)
 
         mrl = ctx.tm.match_template(part, area.template_sub_dir, area.template_id,
-                                    threshold=area.template_match_threshold)
+                                    threshold=area.template_match_threshold,
+                                    debug_offset=(rect.x1, rect.y1))
         if mrl.max is None:
             return OcrClickResultEnum.OCR_CLICK_NOT_FOUND
         elif ctx.controller.click(mrl.max.center + rect.left_top, pc_alt=area.pc_alt):
