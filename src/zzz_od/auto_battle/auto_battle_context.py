@@ -615,8 +615,8 @@ class AutoBattleContext:
         # 连携技角色识别
         result_agent_list: list[Agent | None] = []
         future_list: list[Future] = []
-        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c1, possible_agents))
-        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c2, possible_agents))
+        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c1, possible_agents, (self.area_chain_1.rect.x1, self.area_chain_1.rect.y1)))
+        future_list.append(_battle_state_check_executor.submit(self._match_chain_agent_in, c2, possible_agents, (self.area_chain_2.rect.x1, self.area_chain_2.rect.y1)))
 
         # 连携条检测（独立运行，结果在方法内部处理）
         _battle_state_check_executor.submit(self._check_chain_bar, screen, screenshot_time)
@@ -679,7 +679,7 @@ class AutoBattleContext:
                             self.switch_by_name(back_agent.agent_name)
                             break
 
-    def _match_chain_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
+    def _match_chain_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None, debug_offset: tuple[int, int] | None = None) -> Agent | None:
         """
         在候选列表重匹配角色
         :return:
@@ -689,14 +689,14 @@ class AutoBattleContext:
             # 上次识别过的模板 ID，接着用
             if specific_template_id:
                 template_to_check = prefix + specific_template_id
-                mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8, debug_offset=debug_offset)
                 if mrl.max is not None:
                     return agent
             # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
             else:
                 for template_id in agent.template_id_list:
                     template_to_check = prefix + template_id
-                    mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                    mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8, debug_offset=debug_offset)
                     if mrl.max is not None:
                         return agent
 
@@ -748,7 +748,7 @@ class AutoBattleContext:
 
             possible_agents = self.agent_context.get_possible_agent_list()
 
-            agent = self._match_quick_assist_agent_in(part, possible_agents)
+            agent = self._match_quick_assist_agent_in(part, possible_agents, (self.area_quick_assist.rect.x1, self.area_quick_assist.rect.y1))
 
             if agent is not None:
                 state_records: list[StateRecord] = [
@@ -762,7 +762,7 @@ class AutoBattleContext:
         finally:
             self._check_quick_lock.release()
 
-    def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None) -> Agent | None:
+    def _match_quick_assist_agent_in(self, img: MatLike, possible_agents: list[tuple[Agent, str | None]] | None, debug_offset: tuple[int, int] | None = None) -> Agent | None:
         """
         在候选列表重匹配角色
         :return:
@@ -772,14 +772,14 @@ class AutoBattleContext:
             # 上次识别过的模板 ID，接着用
             if specific_template_id:
                 template_to_check = prefix + specific_template_id
-                mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8, debug_offset=debug_offset)
                 if mrl.max is not None:
                     return agent
             # 没有上次识别过的模板 ID，匹配所有可能的模板 ID
             else:
                 for template_id in agent.template_id_list:
                     template_to_check = prefix + template_id
-                    mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8)
+                    mrl = self.ctx.tm.match_template(img, 'battle', template_to_check, threshold=0.8, debug_offset=debug_offset)
                     if mrl.max is not None:
                         return agent
 
@@ -938,7 +938,7 @@ class AutoBattleContext:
         """
         part = cv2_utils.crop_image_only(screen, self.area_btn_normal.rect)
         mrl = self.ctx.tm.match_template(part, 'battle', 'btn_normal_attack',
-                                         threshold=0.9)
+                                         threshold=0.9, debug_offset=(self.area_btn_normal.rect.x1, self.area_btn_normal.rect.y1))
         return mrl.max is not None
 
     def start_context_async(self) -> None:
