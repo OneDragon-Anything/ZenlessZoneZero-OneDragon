@@ -5,7 +5,8 @@ import time
 from collections import deque
 from dataclasses import dataclass
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtWidgets import QHBoxLayout, QToolButton, QWidget
 
 from one_dragon_qt.overlay.overlay_events import OverlayLogEvent
 from one_dragon_qt.widgets.overlay_text_widget import OverlayTextWidget
@@ -31,6 +32,7 @@ _LEVEL_COLOR = {
 
 class LogPanel(ResizablePanel):
     """Overlay log panel."""
+    appearance_changed = Signal(int, int, int)
 
     def __init__(self, parent=None):
         super().__init__(title="Overlay Log", min_width=320, min_height=130, parent=parent)
@@ -40,17 +42,27 @@ class LogPanel(ResizablePanel):
         self._max_lines = 120
         self._fade_seconds = 12
         self._lines: deque[_LogLine] = deque()
+        self._font_size = 12
+        self._text_opacity = 100
+        self._panel_opacity = 70
+        self._paused = False
+        self._auto_scroll = True
 
         self._text_widget = OverlayTextWidget(self)
         self.body_layout.addWidget(self._text_widget, 1)
+        self._build_toolbar()
 
         self._cleanup_timer = QTimer(self)
         self._cleanup_timer.timeout.connect(self._drop_expired)
         self._cleanup_timer.start(1000)
 
     def set_appearance(self, font_size: int, text_opacity: int, panel_opacity: int) -> None:
-        self.set_panel_opacity(panel_opacity)
-        self._text_widget.set_appearance(font_size, text_opacity)
+        self._font_size = max(10, min(28, int(font_size)))
+        self._text_opacity = max(20, min(100, int(text_opacity)))
+        self._panel_opacity = max(20, min(100, int(panel_opacity)))
+        self.set_panel_opacity(self._panel_opacity)
+        self._text_widget.set_appearance(self._font_size, self._text_opacity)
+        self._sync_toolbar_state()
 
     def set_limits(self, max_lines: int, fade_seconds: int) -> None:
         self._max_lines = max(20, int(max_lines))
@@ -69,6 +81,8 @@ class LogPanel(ResizablePanel):
         )
         while len(self._lines) > self._max_lines:
             self._lines.popleft()
+        if self._paused:
+            return
         self._render()
 
     def clear(self) -> None:
@@ -86,7 +100,7 @@ class LogPanel(ResizablePanel):
             self._lines.popleft()
             changed = True
 
-        if changed:
+        if changed and not self._paused:
             self._render()
 
     def _render(self) -> None:
@@ -109,7 +123,104 @@ class LogPanel(ResizablePanel):
             rows.append(row)
 
         self._text_widget.setHtml("<br>".join(rows))
-        self._text_widget.verticalScrollBar().setValue(
-            self._text_widget.verticalScrollBar().maximum()
+        if self._auto_scroll:
+            self._text_widget.verticalScrollBar().setValue(
+                self._text_widget.verticalScrollBar().maximum()
+            )
+
+    def _build_toolbar(self) -> None:
+        toolbar = QWidget(self)
+        toolbar.setObjectName("overlayLogToolbar")
+        toolbar.setFixedHeight(26)
+        toolbar.setStyleSheet(
+            """
+            QWidget#overlayLogToolbar {
+                background-color: rgba(120, 120, 120, 55);
+                border-top: 1px solid rgba(255, 255, 255, 45);
+            }
+            """
         )
+        layout = QHBoxLayout(toolbar)
+        layout.setContentsMargins(2, 1, 2, 1)
+        layout.setSpacing(4)
+        layout.addStretch(1)
+
+        self._btn_font_dec = self._create_button("A-", "减小字号", self._on_font_dec)
+        self._btn_font_inc = self._create_button("A+", "增大字号", self._on_font_inc)
+        self._btn_text_dec = self._create_button("T-", "降低文字不透明度", self._on_text_dec)
+        self._btn_text_inc = self._create_button("T+", "提高文字不透明度", self._on_text_inc)
+        self._btn_panel_dec = self._create_button("P-", "降低面板不透明度", self._on_panel_dec)
+        self._btn_panel_inc = self._create_button("P+", "提高面板不透明度", self._on_panel_inc)
+        self._btn_pause = self._create_button("||", "暂停/恢复日志刷新", self._on_pause_toggle)
+        self._btn_autoscroll = self._create_button("AUTO", "自动滚动开关", self._on_autoscroll_toggle)
+        self._btn_clear = self._create_button("CLR", "清空日志", self.clear)
+
+        self.body_layout.addWidget(toolbar, 0)
+        self._sync_toolbar_state()
+
+    def _create_button(self, text: str, tip: str, handler) -> QToolButton:
+        btn = QToolButton(self)
+        btn.setText(text)
+        btn.setToolTip(tip)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.setFixedSize(38, 22)
+        btn.clicked.connect(lambda _checked=False: handler())
+        btn.setStyleSheet(
+            """
+            QToolButton {
+                background-color: rgba(190, 190, 190, 160);
+                color: #1e1e1e;
+                border: 1px solid rgba(255, 255, 255, 110);
+                border-radius: 5px;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 0px;
+            }
+            QToolButton:hover {
+                background-color: rgba(210, 210, 210, 190);
+            }
+            QToolButton:pressed {
+                background-color: rgba(168, 168, 168, 200);
+            }
+            """
+        )
+        return btn
+
+    def _on_font_dec(self) -> None:
+        self._emit_appearance(max(10, self._font_size - 1), self._text_opacity, self._panel_opacity)
+
+    def _on_font_inc(self) -> None:
+        self._emit_appearance(min(28, self._font_size + 1), self._text_opacity, self._panel_opacity)
+
+    def _on_text_dec(self) -> None:
+        self._emit_appearance(self._font_size, max(20, self._text_opacity - 5), self._panel_opacity)
+
+    def _on_text_inc(self) -> None:
+        self._emit_appearance(self._font_size, min(100, self._text_opacity + 5), self._panel_opacity)
+
+    def _on_panel_dec(self) -> None:
+        self._emit_appearance(self._font_size, self._text_opacity, max(20, self._panel_opacity - 5))
+
+    def _on_panel_inc(self) -> None:
+        self._emit_appearance(self._font_size, self._text_opacity, min(100, self._panel_opacity + 5))
+
+    def _on_pause_toggle(self) -> None:
+        self._paused = not self._paused
+        self._sync_toolbar_state()
+        if not self._paused:
+            self._render()
+
+    def _on_autoscroll_toggle(self) -> None:
+        self._auto_scroll = not self._auto_scroll
+        self._sync_toolbar_state()
+
+    def _emit_appearance(self, font_size: int, text_opacity: int, panel_opacity: int) -> None:
+        self.set_appearance(font_size, text_opacity, panel_opacity)
+        self.appearance_changed.emit(self._font_size, self._text_opacity, self._panel_opacity)
+
+    def _sync_toolbar_state(self) -> None:
+        if hasattr(self, "_btn_pause"):
+            self._btn_pause.setText(">" if self._paused else "||")
+        if hasattr(self, "_btn_autoscroll"):
+            self._btn_autoscroll.setText("AUTO" if self._auto_scroll else "LOCK")
 
