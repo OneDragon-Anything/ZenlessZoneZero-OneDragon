@@ -13,7 +13,7 @@ class SourceEtherBatteryAutoSyntheticQuantity(Enum):
     FOUR = ConfigItem('四个')
 
 class AutoSyntheticConfig(ApplicationConfig):
-    def __init__(self, instance_idx: int, group_id: str):
+    def __init__(self, instance_idx: int, group_id: str) -> None:
         ApplicationConfig.__init__(self, 'auto_synthetic', instance_idx, group_id)
 
     @property
@@ -21,7 +21,7 @@ class AutoSyntheticConfig(ApplicationConfig):
         return self.get('hifi_master_copy', True)
 
     @hifi_master_copy.setter
-    def hifi_master_copy(self, value) -> None:
+    def hifi_master_copy(self, value: bool) -> None:
         self.update('hifi_master_copy', value)
 
     @property
@@ -29,7 +29,7 @@ class AutoSyntheticConfig(ApplicationConfig):
         return self.get('source_ether_battery', False)
 
     @source_ether_battery.setter
-    def source_ether_battery(self, value) -> None:
+    def source_ether_battery(self, value: bool) -> None:
         self.update('source_ether_battery', value)
 
     @property
@@ -37,5 +37,5 @@ class AutoSyntheticConfig(ApplicationConfig):
         return self.get('source_ether_battery_auto_synthetic_quantity', SourceEtherBatteryAutoSyntheticQuantity.ALL.value.value)
 
     @source_ether_battery_auto_synthetic_quantity.setter
-    def source_ether_battery_auto_synthetic_quantity(self, value) -> None:
+    def source_ether_battery_auto_synthetic_quantity(self, value: str) -> None:
         self.update('source_ether_battery_auto_synthetic_quantity', value)

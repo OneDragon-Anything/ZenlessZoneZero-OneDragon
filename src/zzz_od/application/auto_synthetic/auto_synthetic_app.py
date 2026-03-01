@@ -1,5 +1,4 @@
 import time
-from typing import List, Dict
 
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
@@ -35,9 +34,9 @@ class AutoSyntheticApp(ZApplication):
         )
 
         # 任务队列和状态
-        self._task_queue: List[str] = []
+        self._task_queue: list[str] = []
         self._current_task_index: int = 0
-        self._task_results: Dict[str, str] = {}
+        self._task_results: dict[str, str] = {}
         self._max_source_ether_battery_synthetic_quantity: int = 0
 
     @operation_node(name='检查配置', is_start_node=True)
@@ -46,7 +45,7 @@ class AutoSyntheticApp(ZApplication):
         检查配置，构建任务队列
         """
         # 清空并重新构建任务队列
-        self._task_queue: List[str] = []
+        self._task_queue: list[str] = []
 
         if self.config.hifi_master_copy:
             self._task_queue.append(self.TASK_HIFI_MASTER)
@@ -59,7 +58,7 @@ class AutoSyntheticApp(ZApplication):
 
         # 重置任务索引
         self._current_task_index: int = 0
-        self._task_results: Dict[str, str] = {}
+        self._task_results: dict[str, str] = {}
 
         # 开始执行第一个任务
         return self._execute_current_task()
