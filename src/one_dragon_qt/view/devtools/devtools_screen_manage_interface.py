@@ -9,6 +9,7 @@ from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
     QApplication,
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QTableWidgetItem,
@@ -217,7 +218,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.popup_table_btn.clicked.connect(self._on_popup_table)
         control_layout.addWidget(self.popup_table_btn)
 
-        self._popup_win: QWidget | None = None
+        self._popup_win: QDialog | None = None
 
         scroll_area.setWidget(control_widget)
         scroll_area.setWidgetResizable(True)
@@ -284,17 +285,14 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self._popup_win.activateWindow()
             return
 
-        self._popup_win = QWidget()
+        self._popup_win = QDialog(self)
         self._popup_win.setWindowTitle(gt('区域表格编辑'))
-        self._popup_win.setWindowFlags(Qt.WindowType.Window)
+        self._popup_win.setWindowFlags(
+            self._popup_win.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint
+        )
         self._popup_win.setMinimumSize(1200, 600)
         self._popup_win.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self._popup_win.destroyed.connect(self._on_popup_closed)
-
-        # 使用主窗口图标
-        app = QApplication.instance()
-        if app is not None:
-            self._popup_win.setWindowIcon(app.windowIcon())
 
         popup_layout = QVBoxLayout(self._popup_win)
         popup_layout.setContentsMargins(4, 4, 4, 4)
