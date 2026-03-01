@@ -732,21 +732,14 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         handler = col_meta.parser
 
         # 记录修改前的状态
-        if attr_name == 'pc_rect':
-            old_value = Rect(area_item.pc_rect.x1, area_item.pc_rect.y1, area_item.pc_rect.x2, area_item.pc_rect.y2)
-        elif attr_name == 'goto_list':
-            old_value = area_item.goto_list.copy() if area_item.goto_list else []
-        else:
-            old_value = getattr(area_item, attr_name)
+        old_value = getattr(area_item, attr_name)
 
         # 应用新值
         try:
             new_value = handler(text)
+            setattr(area_item, attr_name, new_value)
             if attr_name == 'pc_rect':
-                area_item.pc_rect = new_value
                 self._image_update.signal.emit()
-            else:
-                setattr(area_item, attr_name, new_value)
         except Exception as e:
             # 如果解析失败，不进行修改
             log.error('解析失败', exc_info=True)
