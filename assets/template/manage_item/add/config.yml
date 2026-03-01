@@ -1,0 +1,8 @@
+sub_dir: manage_item
+template_id: add
+template_name: 按钮-增加
+template_shape: circle
+auto_mask: true
+point_list:
+- 1806, 474
+- 1830, 474
