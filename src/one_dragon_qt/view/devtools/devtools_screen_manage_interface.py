@@ -745,7 +745,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
                 '解析失败',
                 f'{col_meta.display_name}: {e}',
                 icon=InfoBarIcon.ERROR,
-                duration=3000,
+                duration=5000,
             )
             return
 
