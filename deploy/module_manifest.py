@@ -2,6 +2,7 @@
 import sys
 if not getattr(sys, 'frozen', False):
     import argparse
+    import ast
     import atexit
     import base64
     import builtins
