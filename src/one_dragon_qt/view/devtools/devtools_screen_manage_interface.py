@@ -71,6 +71,15 @@ class ColumnMeta:
     formatter: Callable[[Any], str] | None = None  # 属性值 → 显示文本，None = str()
 
 
+def _parse_rect(text: str) -> Rect:
+    """解析矩形，校验为 (x1, y1, x2, y2) 结构。"""
+    stripped = text.strip().strip('()[]')
+    parts = [p.strip() for p in stripped.split(',')]
+    if len(parts) != 4:
+        raise ValueError(f'需要 4 个坐标值，实际: {len(parts)} 个')
+    return Rect(*(int(p) for p in parts))
+
+
 def _parse_color_range(text: str) -> list[list[int]] | None:
     """解析颜色范围，校验为 [[r,g,b],[r,g,b]] 结构。"""
     if not text.strip():
@@ -88,7 +97,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         ColumnMeta('操作', width=40),
         ColumnMeta('标识', width=40),
         ColumnMeta('区域名称', 'area_name', lambda x: x),
-        ColumnMeta('位置', 'pc_rect', lambda x: Rect(*([int(i) for i in x[1:-1].split(',')] + [0, 0, 0, 0])[:4]), 200),
+        ColumnMeta('位置', 'pc_rect', _parse_rect, 200),
         ColumnMeta('OCR文本', 'text', lambda x: x),
         ColumnMeta('OCR阈值', 'lcs_percent', lambda x: float(x) if x else 0.5, 70),
         ColumnMeta('模板目录', 'template_sub_dir', lambda x: x),
