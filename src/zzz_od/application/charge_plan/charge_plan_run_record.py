@@ -5,7 +5,6 @@ from one_dragon.base.operation.application_run_record import AppRunRecord
 
 class ChargePlanRunRecord(AppRunRecord):
     MAX_CHARGE_POWER = 240
-    NATURAL_RECOVERY_SECONDS = 360
 
     def __init__(self, instance_idx: int | None = None, game_refresh_hour_offset: int = 0):
         AppRunRecord.__init__(
@@ -41,7 +40,7 @@ class ChargePlanRunRecord(AppRunRecord):
 
         current_time = int(time.time())
         elapsed_seconds = max(0, current_time - record_time)
-        recovered = int(elapsed_seconds // ChargePlanRunRecord.NATURAL_RECOVERY_SECONDS)
+        recovered = int(elapsed_seconds // 360)  # 每6分钟恢复1点体力
 
         return min(
             charge_power + recovered,
