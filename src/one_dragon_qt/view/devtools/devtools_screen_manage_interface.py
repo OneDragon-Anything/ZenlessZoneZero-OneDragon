@@ -19,6 +19,7 @@ from qfluentwidgets import (
     BodyLabel,
     CheckBox,
     FluentIcon,
+    InfoBarIcon,
     LineEdit,
     PushButton,
     ScrollArea,
@@ -70,6 +71,17 @@ class ColumnMeta:
     formatter: Callable[[Any], str] | None = None  # 属性值 → 显示文本，None = str()
 
 
+def _parse_color_range(text: str) -> list[list[int]] | None:
+    """解析颜色范围，校验为 [[r,g,b],[r,g,b]] 结构。"""
+    if not text.strip():
+        return None
+    val = ast.literal_eval(text)
+    if (isinstance(val, list) and len(val) == 2
+            and all(isinstance(v, list) and len(v) == 3 for v in val)):
+        return val
+    raise ValueError(f'需要 [[r,g,b],[r,g,b]]，实际: {val}')
+
+
 class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
     AREA_COLUMNS: list[ColumnMeta] = [
@@ -82,7 +94,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         ColumnMeta('模板目录', 'template_sub_dir', lambda x: x),
         ColumnMeta('模板ID', 'template_id', lambda x: x),
         ColumnMeta('模板阈值', 'template_match_threshold', lambda x: float(x) if x else 0.7, 70),
-        ColumnMeta('颜色范围', 'color_range', lambda x: ast.literal_eval(x) if x.strip() else None,
+        ColumnMeta('颜色范围', 'color_range', _parse_color_range,
                    formatter=lambda v: '' if v is None else str(v)),
         ColumnMeta('前往画面', 'goto_list', lambda x: [i.strip() for i in x.split(',') if i.strip()],
                    formatter=lambda v: ','.join(v) if v else ''),
@@ -726,8 +738,15 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
                 self._image_update.signal.emit()
             else:
                 setattr(area_item, attr_name, new_value)
-        except Exception:
+        except Exception as e:
             # 如果解析失败，不进行修改
+            log.error('解析失败', exc_info=True)
+            self.show_info_bar(
+                '解析失败',
+                f'{col_meta.display_name}: {e}',
+                icon=InfoBarIcon.ERROR,
+                duration=3000,
+            )
             return
 
         # 添加到撤回历史记录
