@@ -46,6 +46,7 @@ class ResizablePanel(QFrame):
     def _setup_ui(self) -> None:
         self.setObjectName("overlayPanel")
         self.setMouseTracking(True)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setMinimumSize(self._min_width, self._min_height)
         self.setFrameShape(QFrame.Shape.StyledPanel)
 

@@ -16,6 +16,11 @@ VK_RMENU = 0xA5
 GWL_EXSTYLE = -20
 WS_EX_LAYERED = 0x00080000
 WS_EX_TRANSPARENT = 0x00000020
+GA_ROOT = 2
+GA_ROOTOWNER = 3
+SW_SHOWMINIMIZED = 2
+SW_MINIMIZE = 6
+SW_SHOWMINNOACTIVE = 7
 
 WDA_NONE = 0x0
 WDA_EXCLUDEFROMCAPTURE = 0x11
@@ -35,6 +40,23 @@ _user32.IsIconic.argtypes = [wintypes.HWND]
 _user32.IsIconic.restype = wintypes.BOOL
 _user32.IsWindowVisible.argtypes = [wintypes.HWND]
 _user32.IsWindowVisible.restype = wintypes.BOOL
+_user32.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
+_user32.GetAncestor.restype = wintypes.HWND
+
+
+class WINDOWPLACEMENT(ctypes.Structure):
+    _fields_ = [
+        ("length", wintypes.UINT),
+        ("flags", wintypes.UINT),
+        ("showCmd", wintypes.UINT),
+        ("ptMinPosition", wintypes.POINT),
+        ("ptMaxPosition", wintypes.POINT),
+        ("rcNormalPosition", wintypes.RECT),
+    ]
+
+
+_user32.GetWindowPlacement.argtypes = [wintypes.HWND, ctypes.POINTER(WINDOWPLACEMENT)]
+_user32.GetWindowPlacement.restype = wintypes.BOOL
 
 _shcore = None
 try:
@@ -166,17 +188,39 @@ def is_hotkey_combo_pressed(main_key: str) -> bool:
     return is_ctrl_pressed() and is_alt_pressed() and is_key_pressed(main_vk)
 
 
+def _root_hwnd(hwnd: int) -> int:
+    try:
+        root_owner = int(_user32.GetAncestor(int(hwnd), GA_ROOTOWNER) or 0)
+        if root_owner != 0:
+            return root_owner
+        root = int(_user32.GetAncestor(int(hwnd), GA_ROOT) or 0)
+        if root != 0:
+            return root
+    except Exception:
+        pass
+    return int(hwnd)
+
+
 def is_window_minimized(hwnd: int | None) -> bool:
     if hwnd is None or int(hwnd) == 0:
         return False
-    return bool(_user32.IsIconic(int(hwnd)))
+    root_hwnd = _root_hwnd(int(hwnd))
+    if bool(_user32.IsIconic(root_hwnd)):
+        return True
+
+    placement = WINDOWPLACEMENT()
+    placement.length = ctypes.sizeof(WINDOWPLACEMENT)
+    if not _user32.GetWindowPlacement(root_hwnd, ctypes.byref(placement)):
+        return False
+    return placement.showCmd in (SW_SHOWMINIMIZED, SW_MINIMIZE, SW_SHOWMINNOACTIVE)
 
 
 def is_window_visible(hwnd: int | None) -> bool:
     """Check whether a window has the WS_VISIBLE style set."""
     if hwnd is None or int(hwnd) == 0:
         return False
-    return bool(_user32.IsWindowVisible(int(hwnd)))
+    root_hwnd = _root_hwnd(int(hwnd))
+    return bool(_user32.IsWindowVisible(root_hwnd))
 
 
 def set_window_click_through(hwnd: int | None, click_through: bool) -> bool:

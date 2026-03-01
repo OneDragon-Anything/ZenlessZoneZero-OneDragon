@@ -521,13 +521,21 @@ class OverlayManager(QObject):
         if not game_win.is_win_valid:
             return None
         hwnd = game_win.get_hwnd() if hasattr(game_win, "get_hwnd") else None
+        if hwnd is None:
+            return None
         if win32_utils.is_window_minimized(hwnd):
+            return None
+        win = game_win.get_win() if hasattr(game_win, "get_win") else None
+        if win is not None and bool(getattr(win, "isMinimized", False)):
             return None
         if not win32_utils.is_window_visible(hwnd):
             return None
 
         rect = game_win.win_rect
         if rect is None:
+            return None
+        # Minimized windows can report parked coordinates such as (-32000, -32000).
+        if int(getattr(rect, "x1", 0)) <= -30000 and int(getattr(rect, "y1", 0)) <= -30000:
             return None
         if int(getattr(rect, "width", 0)) <= 0 or int(getattr(rect, "height", 0)) <= 0:
             return None
