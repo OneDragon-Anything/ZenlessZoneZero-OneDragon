@@ -204,15 +204,24 @@ def _root_hwnd(hwnd: int) -> int:
 def is_window_minimized(hwnd: int | None) -> bool:
     if hwnd is None or int(hwnd) == 0:
         return False
-    root_hwnd = _root_hwnd(int(hwnd))
-    if bool(_user32.IsIconic(root_hwnd)):
-        return True
+    original_hwnd = int(hwnd)
+    root_hwnd = _root_hwnd(original_hwnd)
+    targets = [original_hwnd]
+    if root_hwnd != original_hwnd:
+        targets.append(root_hwnd)
 
-    placement = WINDOWPLACEMENT()
-    placement.length = ctypes.sizeof(WINDOWPLACEMENT)
-    if not _user32.GetWindowPlacement(root_hwnd, ctypes.byref(placement)):
-        return False
-    return placement.showCmd in (SW_SHOWMINIMIZED, SW_MINIMIZE, SW_SHOWMINNOACTIVE)
+    for target in targets:
+        if bool(_user32.IsIconic(target)):
+            return True
+
+    for target in targets:
+        placement = WINDOWPLACEMENT()
+        placement.length = ctypes.sizeof(WINDOWPLACEMENT)
+        if not _user32.GetWindowPlacement(target, ctypes.byref(placement)):
+            continue
+        if placement.showCmd in (SW_SHOWMINIMIZED, SW_MINIMIZE, SW_SHOWMINNOACTIVE):
+            return True
+    return False
 
 
 def is_window_visible(hwnd: int | None) -> bool:
