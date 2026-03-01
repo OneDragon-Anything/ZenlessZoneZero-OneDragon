@@ -4,6 +4,10 @@ import numpy as np
 paddle = None
 # from paddle.nn import functional as F
 import re
+import os
+from datetime import datetime
+
+from one_dragon.utils.log_utils import log
 
 
 class BaseRecLabelDecode(object):
@@ -21,9 +25,44 @@ class BaseRecLabelDecode(object):
         else:
             with open(character_dict_path, "rb") as fin:
                 lines = fin.readlines()
+                line_num = 0
                 for line in lines:
-                    line = line.decode("utf-8").strip("\n").strip("\r\n")
-                    self.character_str.append(line)
+                    line_num += 1
+                    decoded_line = None
+                    
+                    # 尝试 UTF-8 解码
+                    try:
+                        decoded_line = line.decode("utf-8").strip("\n").strip("\r\n")
+                    except UnicodeDecodeError:
+                        # 尝试 GBK 解码
+                        try:
+                            decoded_line = line.decode("gbk").strip("\n").strip("\r\n")
+                        except UnicodeDecodeError:
+                            # 保存字典文件调试信息
+                            debug_dir = os.path.join(os.getcwd(), "ocr_dict_debug")
+                            os.makedirs(debug_dir, exist_ok=True)
+                            
+                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                            debug_file_path = os.path.join(
+                                debug_dir, 
+                                f"dict_decode_error_{timestamp}_{os.path.basename(character_dict_path)}.txt"
+                            )
+                            
+                            with open(debug_file_path, "wb") as debug_file:
+                                debug_file.write(line)
+                            
+                            log.error(f"字典文件解码失败，已保存调试信息到 {debug_file_path}，行内容(hex): {line[:50].hex()}...")
+                            
+                            # 最后使用 ignore 模式并记录日志
+                            try:
+                                decoded_line = line.decode("utf-8", errors="ignore").strip("\n").strip("\r\n")
+                                log.error(f"字典文件解码失败，使用 ignore 模式 [{character_dict_path}:{line_num}]，行内容(hex): {line[:50].hex()}...")
+                            except Exception as e:
+                                log.error(f"字典文件无法解码 [{character_dict_path}:{line_num}]: {e}")
+                                continue
+                    
+                    if decoded_line is not None:
+                        self.character_str.append(decoded_line)
             if use_space_char:
                 self.character_str.append(" ")
             dict_character = list(self.character_str)
