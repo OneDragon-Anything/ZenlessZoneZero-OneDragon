@@ -2,12 +2,10 @@ import time
 
 from one_dragon.base.operation.application_run_record import AppRunRecord
 
-ChargePowerSnapshot = tuple[int, float]
 
 class ChargePlanRunRecord(AppRunRecord):
     MAX_CHARGE_POWER = 240
-    NATURAL_RECOVERY_SECONDS = 6 * 60
-    SNAPSHOT_KEY = 'current_charge_power_snapshot'
+    NATURAL_RECOVERY_SECONDS = 360
 
     def __init__(self, instance_idx: int | None = None, game_refresh_hour_offset: int = 0):
         AppRunRecord.__init__(
@@ -22,52 +20,30 @@ class ChargePlanRunRecord(AppRunRecord):
 
     def reset_record(self) -> None:
         AppRunRecord.reset_record(self)
-        self.charge_power_snapshot = None
+        self.charge_power_snapshot = [0, -1]
 
     @property
-    def charge_power_snapshot(self) -> ChargePowerSnapshot | None:
-        snapshot = self.get(ChargePlanRunRecord.SNAPSHOT_KEY, None)
-        if not isinstance(snapshot, (list, tuple)) or len(snapshot) != 2:
-            return None
-
-        charge_power, record_time = snapshot
-        if not isinstance(charge_power, int) or not isinstance(record_time, (int, float)):
-            return None
-
-        return charge_power, float(record_time)
+    def charge_power_snapshot(self) -> list[int]:
+        return self.get('current_charge_power_snapshot', [0, -1])
 
     @charge_power_snapshot.setter
-    def charge_power_snapshot(self, new_value: ChargePowerSnapshot | None) -> None:
-        if new_value is None:
-            self.update(ChargePlanRunRecord.SNAPSHOT_KEY, None)
-            return
-        self.update(
-            ChargePlanRunRecord.SNAPSHOT_KEY,
-            [new_value[0], new_value[1]],
-        )
+    def charge_power_snapshot(self, new_value: list[int]) -> None:
+        charge_power, record_time = new_value
+        self.update('current_charge_power_snapshot', [charge_power, record_time])
 
-    def record_current_charge_power(
-        self,
-        charge_power: int,
-        record_time: float | None = None,
-    ) -> None:
-        if record_time is None:
-            record_time = time.time()
+    def record_current_charge_power(self, charge_power: int) -> None:
+        self.charge_power_snapshot = [charge_power, int(time.time())]
 
-        self.charge_power_snapshot = (charge_power, record_time)
+    def get_estimated_charge_power(self) -> int:
+        charge_power, record_time = self.charge_power_snapshot
+        if record_time == -1:
+            return -1
 
-    def get_estimated_charge_power(self, current_time: float | None = None) -> int | None:
-        snapshot = self.charge_power_snapshot
-        if snapshot is None:
-            return None
-
-        if current_time is None:
-            current_time = time.time()
-
-        elapsed_seconds = max(0.0, current_time - snapshot[1])
+        current_time = int(time.time())
+        elapsed_seconds = max(0, current_time - record_time)
         recovered = int(elapsed_seconds // ChargePlanRunRecord.NATURAL_RECOVERY_SECONDS)
 
         return min(
-            snapshot[0] + recovered,
+            charge_power + recovered,
             ChargePlanRunRecord.MAX_CHARGE_POWER,
         )

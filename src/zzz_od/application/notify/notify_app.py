@@ -59,7 +59,7 @@ class NotifyApp(ZApplication):
                 continue
             if isinstance(run_record, ChargePlanRunRecord):
                 charge_power = run_record.get_estimated_charge_power()
-                if charge_power is not None:
+                if charge_power >= 0:
                     charge_power_text = (
                         f'当前体力：{charge_power}/{ChargePlanRunRecord.MAX_CHARGE_POWER}'
                     )
