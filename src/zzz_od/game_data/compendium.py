@@ -5,6 +5,8 @@ from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils import os_utils, yaml_utils
 from one_dragon.utils.log_utils import log
 
+MISSION_TYPE_AGENT_PLAN = '代理人方案培养'
+
 
 class CompendiumTab:
 

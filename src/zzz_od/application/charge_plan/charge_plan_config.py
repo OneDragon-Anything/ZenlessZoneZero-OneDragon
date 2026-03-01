@@ -5,6 +5,7 @@ from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
 from one_dragon.base.operation.application.application_config import ApplicationConfig
 from zzz_od.application.charge_plan import charge_plan_const
+from zzz_od.game_data.compendium import MISSION_TYPE_AGENT_PLAN
 
 
 class CardNumEnum(Enum):
@@ -171,9 +172,10 @@ class ChargePlanConfig(ApplicationConfig):
 
         self.save()
 
-    def reset_plans(self) -> None:
+    def reset_plans(self, skip_agent_plan: bool = False) -> None:
         """
         根据运行次数 重置运行计划
+        :param skip_agent_plan: 是否跳过代理人方案培养的检测
         :return:
         """
         if len(self.plan_list) == 0:
@@ -182,6 +184,8 @@ class ChargePlanConfig(ApplicationConfig):
         while True:
             all_finish: bool = True
             for plan in self.plan_list:
+                if skip_agent_plan and plan.mission_type_name == MISSION_TYPE_AGENT_PLAN:
+                    continue
                 if plan.run_times < plan.plan_times:
                     all_finish = False
 
@@ -189,16 +193,20 @@ class ChargePlanConfig(ApplicationConfig):
                 break
 
             for plan in self.plan_list:
+                if skip_agent_plan and plan.mission_type_name == MISSION_TYPE_AGENT_PLAN:
+                    continue
                 plan.run_times -= plan.plan_times
 
             self.save()
 
-    def get_next_plan(self, last_tried_plan: ChargePlanItem | None = None) -> ChargePlanItem | None:
+    def get_next_plan(self, last_tried_plan: ChargePlanItem | None = None, skip_agent_plan: bool = False) -> ChargePlanItem | None:
         """
         获取下一个未完成的计划任务。
         如果提供了 last_tried_plan，则从该任务之后开始查找。
         如果未提供，则从列表的开头查找第一个未完成任务。
         不再在此方法内调用 reset_plans，重置逻辑由调用方（ChargePlanApp）管理。
+        :param last_tried_plan: 上次尝试的计划
+        :param skip_agent_plan: 是否跳过代理人方案培养
         """
         if len(self.plan_list) == 0:
             return None
@@ -224,22 +232,29 @@ class ChargePlanConfig(ApplicationConfig):
         # 3. 从指定位置开始遍历查找符合条件的计划
         for i in range(start_index, len(self.plan_list)):
             plan = self.plan_list[i]
+            if skip_agent_plan and plan.mission_type_name == MISSION_TYPE_AGENT_PLAN:
+                continue
             if plan.run_times < plan.plan_times:
                 return plan
 
         # 4. 检查完一轮都没找到合适的计划
         return None
 
-    def all_plan_finished(self) -> bool:
+    def all_plan_finished(self, skip_agent_plan: bool = False) -> bool:
         """
         是否全部计划已完成
+        :param skip_agent_plan: 是否跳过代理人方案培养的检测
         :return:
         """
         if self.plan_list is None:
             return True
 
-        return all(plan.run_times >= plan.plan_times for plan in self.plan_list)
-
+        for plan in self.plan_list:
+            if skip_agent_plan and plan.mission_type_name == MISSION_TYPE_AGENT_PLAN:
+                continue
+            if plan.run_times < plan.plan_times:
+                return False
+        return True
 
     def add_plan_run_times(self, to_add: ChargePlanItem) -> None:
         """
