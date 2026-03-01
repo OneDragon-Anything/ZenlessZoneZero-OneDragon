@@ -1,14 +1,8 @@
 import time
-from dataclasses import dataclass
 
 from one_dragon.base.operation.application_run_record import AppRunRecord
 
-
-@dataclass(frozen=True)
-class ChargePowerSnapshot:
-    charge_power: int
-    record_time: float
-
+ChargePowerSnapshot = tuple[int, float]
 
 class ChargePlanRunRecord(AppRunRecord):
     MAX_CHARGE_POWER = 240
@@ -33,18 +27,14 @@ class ChargePlanRunRecord(AppRunRecord):
     @property
     def charge_power_snapshot(self) -> ChargePowerSnapshot | None:
         snapshot = self.get(ChargePlanRunRecord.SNAPSHOT_KEY, None)
-        if not isinstance(snapshot, dict):
+        if not isinstance(snapshot, (list, tuple)) or len(snapshot) != 2:
             return None
 
-        charge_power = snapshot.get('charge_power')
-        record_time = snapshot.get('record_time')
+        charge_power, record_time = snapshot
         if not isinstance(charge_power, int) or not isinstance(record_time, (int, float)):
             return None
 
-        return ChargePowerSnapshot(
-            charge_power=charge_power,
-            record_time=float(record_time),
-        )
+        return charge_power, float(record_time)
 
     @charge_power_snapshot.setter
     def charge_power_snapshot(self, new_value: ChargePowerSnapshot | None) -> None:
@@ -53,10 +43,7 @@ class ChargePlanRunRecord(AppRunRecord):
             return
         self.update(
             ChargePlanRunRecord.SNAPSHOT_KEY,
-            {
-                'charge_power': new_value.charge_power,
-                'record_time': new_value.record_time,
-            },
+            [new_value[0], new_value[1]],
         )
 
     def record_current_charge_power(
@@ -67,10 +54,7 @@ class ChargePlanRunRecord(AppRunRecord):
         if record_time is None:
             record_time = time.time()
 
-        self.charge_power_snapshot = ChargePowerSnapshot(
-            charge_power=charge_power,
-            record_time=record_time,
-        )
+        self.charge_power_snapshot = (charge_power, record_time)
 
     def get_estimated_charge_power(self, current_time: float | None = None) -> int | None:
         snapshot = self.charge_power_snapshot
@@ -80,10 +64,10 @@ class ChargePlanRunRecord(AppRunRecord):
         if current_time is None:
             current_time = time.time()
 
-        elapsed_seconds = max(0.0, current_time - snapshot.record_time)
+        elapsed_seconds = max(0.0, current_time - snapshot[1])
         recovered = int(elapsed_seconds // ChargePlanRunRecord.NATURAL_RECOVERY_SECONDS)
 
         return min(
-            snapshot.charge_power + recovered,
+            snapshot[0] + recovered,
             ChargePlanRunRecord.MAX_CHARGE_POWER,
         )
