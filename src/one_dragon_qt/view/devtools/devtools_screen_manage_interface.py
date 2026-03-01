@@ -923,17 +923,20 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
             area_item = self.chosen_screen.area_list[row_index]
 
-            # 根据修改类型恢复新值
+            # 将文本恢复为正确类型
+            redo_parsers: dict[str, Any] = {
+                'pc_rect': self._parse_rect_from_text,
+                'lcs_percent': lambda x: float(x) if x else 0.5,
+                'template_match_threshold': lambda x: float(x) if x else 0.7,
+                'goto_list': lambda x: [i.strip() for i in x.split(',') if i.strip()],
+                'color_range': self._parse_color_range_from_text,
+            }
+            parser = redo_parsers.get(change_type)
+            parsed = parser(new_value) if parser else new_value
+            setattr(area_item, change_type, parsed)
+
             if change_type == 'pc_rect':
-                rect_value = self._parse_rect_from_text(new_value)
-                area_item.pc_rect = rect_value
                 self._image_update.signal.emit()
-            elif change_type == 'lcs_percent' or change_type == 'template_match_threshold':
-                setattr(area_item, change_type, float(new_value) if len(new_value) > 0 else (0.5 if change_type == 'lcs_percent' else 0.7))
-            elif change_type == 'goto_list':
-                setattr(area_item, change_type, [i.strip() for i in new_value.split(',') if i.strip()])
-            else:
-                setattr(area_item, change_type, new_value)
 
             # 更新表格显示
             self._area_table_update.signal.emit()
