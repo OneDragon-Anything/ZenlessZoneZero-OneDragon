@@ -2211,10 +2211,24 @@
   - area_name: 文本-电量2
     id_mark: false
     pc_rect:
-    - 1048
+    - 1035
     - 214
     - 1110
     - 268
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 备用电量
+    id_mark: false
+    pc_rect:
+    - 1226
+    - 211
+    - 1280
+    - 267
     text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
@@ -5496,6 +5510,94 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+- screen_id: manage_item
+  screen_name: 仓库-材料道具-道具处理
+  pc_alt: false
+  area_list:
+  - area_name: 标题-道具处理
+    id_mark: true
+    pc_rect:
+    - 164
+    - 21
+    - 324
+    - 88
+    text: 道具处理
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 文本-以太电池
+    id_mark: false
+    pc_rect:
+    - 1405
+    - 191
+    - 1574
+    - 253
+    text: 以太电池
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 按钮-合成
+    id_mark: true
+    pc_rect:
+    - 1655
+    - 1006
+    - 1740
+    - 1050
+    text: 合成
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 按钮-确认
+    id_mark: false
+    pc_rect:
+    - 1062
+    - 695
+    - 1190
+    - 768
+    text: 确认
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 图像-以太电池
+    id_mark: false
+    pc_rect:
+    - 804
+    - 640
+    - 895
+    - 740
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: manage_item
+    template_id: source_ether_battery_1
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 按钮-增加
+    id_mark: false
+    pc_rect:
+    - 1763
+    - 430
+    - 1843
+    - 513
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: manage_item
+    template_id: add
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: map
   screen_name: 地图
   pc_alt: false
@@ -8085,6 +8187,54 @@
     color_range: null
     goto_list:
     - 大世界-普通
+- screen_id: storage_materials_tools
+  screen_name: 仓库-材料道具
+  pc_alt: false
+  area_list:
+  - area_name: 标题-材料道具
+    id_mark: true
+    pc_rect:
+    - 63
+    - 114
+    - 190
+    - 169
+    text: 材料道具
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 按钮-道具处理
+    id_mark: true
+    pc_rect:
+    - 161
+    - 900
+    - 311
+    - 962
+    text: 道具处理
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list:
+    - 仓库-材料道具-道具处理
+  - area_name: 左上角-街区
+    id_mark: false
+    pc_rect:
+    - 190
+    - 7
+    - 410
+    - 101
+    text: 街区
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list:
+    - 大世界-普通
 - screen_id: storage_wengine
   screen_name: 仓库-音擎仓库
   pc_alt: false
@@ -8147,6 +8297,21 @@
     color_range: null
     goto_list:
     - 仓库-驱动仓库
+  - area_name: TAB-材料道具
+    id_mark: false
+    pc_rect:
+    - 1605
+    - 124
+    - 1676
+    - 212
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list:
+    - 仓库-材料道具
 - screen_id: suibian_temple_adventure
   screen_name: 随便观-游历
   pc_alt: false
@@ -9170,6 +9335,66 @@
     - 1650
     - 640
     text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+- screen_id: video_shop
+  screen_name: 音像店
+  pc_alt: false
+  area_list:
+  - area_name: 合成
+    id_mark: false
+    pc_rect:
+    - 71
+    - 802
+    - 171
+    - 925
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: video_shop
+    template_id: synthetic
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 母盘合成
+    id_mark: false
+    pc_rect:
+    - 1110
+    - 721
+    - 1421
+    - 828
+    text: 一键合成
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 确认
+    id_mark: false
+    pc_rect:
+    - 913
+    - 683
+    - 1038
+    - 770
+    text: 确认
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 文本-合成素材不足
+    id_mark: false
+    pc_rect:
+    - 1475
+    - 911
+    - 1601
+    - 935
+    text: 合成素材不足
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''

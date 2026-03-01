@@ -1,5 +1,6 @@
 from one_dragon.base.operation.application import application_const
 from one_dragon_qt.view.one_dragon.one_dragon_run_interface import OneDragonRunInterface
+from zzz_od.application.auto_synthetic import auto_synthetic_const
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.coffee import coffee_app_const
 from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
@@ -75,6 +76,11 @@ class ZOneDragonRunInterface(OneDragonRunInterface):
             )
         elif app_id == redemption_code_const.APP_ID:
             self.ctx.shared_dialog_manager.show_redemption_code_setting_dialog(
+                parent=self,
+                group_id=group_id
+            )
+        elif app_id == auto_synthetic_const.APP_ID:
+            self.ctx.shared_dialog_manager.show_auto_synthetic_setting_dialog(
                 parent=self,
                 group_id=group_id
             )

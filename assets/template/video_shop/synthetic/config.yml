@@ -1,0 +1,8 @@
+sub_dir: video_shop
+template_id: synthetic
+template_name: 音像店-合成
+template_shape: circle
+auto_mask: true
+point_list:
+- 121, 873
+- 167, 873
