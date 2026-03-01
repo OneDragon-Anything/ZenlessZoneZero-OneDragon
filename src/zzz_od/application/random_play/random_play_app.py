@@ -139,23 +139,60 @@ class RandomPlayApp(ZApplication):
 
         area = self.ctx.screen_loader.get_area('影像店营业', '宣传员列表')
         if idx == 1:
-            target_agent_name = target_agent_name_1
+            primary_agent = target_agent_name_1
+            backup_agent = target_agent_name_2
         else:
-            target_agent_name = target_agent_name_2
+            primary_agent = target_agent_name_2
+            backup_agent = target_agent_name_1
 
         # 使用名称匹配
-        result = self.round_by_ocr_and_click(self.last_screenshot, target_agent_name, area=area,
+        result = self.round_by_ocr_and_click(self.last_screenshot, primary_agent, area=area,
                                              color_range=[(230, 230, 230), (255, 255, 255)])
         if result.is_success:
             time.sleep(0.5)
             return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
 
         # 使用头像匹配
-        mr = self.get_pos_by_avatar(self.last_screenshot, target_agent_name)
+        mr = self.get_pos_by_avatar(self.last_screenshot, primary_agent)
         if mr is not None:
             self.ctx.controller.click(mr.center)
             time.sleep(0.5)
             return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
+
+        log.info(f'当前代理人匹配失败: {primary_agent}')
+
+        # 使用名称匹配
+        result = self.round_by_ocr_and_click(self.last_screenshot, backup_agent, area=area,
+                                             color_range=[(230, 230, 230), (255, 255, 255)])
+
+        if result.is_success:
+            time.sleep(0.5)
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
+
+        # 使用头像匹配
+        mr = self.get_pos_by_avatar(self.last_screenshot, backup_agent)
+        if mr is not None:
+            self.ctx.controller.click(mr.center)
+            time.sleep(0.5)
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
+
+        log.info(f'备用代理人匹配也失败: {backup_agent}')
+
+        # 识别区域中的第一个代理人
+        part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
+        ocr_results = self.ctx.ocr.run_ocr(part)
+
+        if ocr_results:
+            # 获取第一个识别结果的位置
+            _ocr_str, mrl = next(iter(ocr_results.items()))
+
+            if mrl.max is not None:
+                target_point = area.left_top + mrl.max.center
+                self.ctx.controller.click(target_point)
+                time.sleep(0.5)
+                return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
+
+        log.info('未识别到任何代理人, 向下滚动重试')
 
         # 找不到时 向下滚动
         start_point = area.center
