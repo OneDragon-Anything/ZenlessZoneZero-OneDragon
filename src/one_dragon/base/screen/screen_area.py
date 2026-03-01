@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 
 from one_dragon.base.geometry.point import Point
@@ -12,27 +10,27 @@ class ScreenArea:
         self,
         area_name: str = '',
         pc_rect: Rect | None = None,
-        text: Optional[str] = '',
+        text: str = '',
         lcs_percent: float = 0.5,
-        template_id: Optional[str] = '',
-        template_sub_dir: Optional[str] = '',
+        template_id: str = '',
+        template_sub_dir: str = '',
         template_match_threshold: float = 0.7,
         pc_alt: bool = False,
         id_mark: bool = False,
-        goto_list: Optional[list[str]] = None,
-        color_range: Optional[list[list[int]]] = None,
+        goto_list: list[str] | None = None,
+        color_range: list[list[int]] | None = None,
     ):
-        self.area_name: str = area_name
+        self.area_name: str = area_name or ''
         self.pc_rect: Rect = pc_rect if pc_rect is not None else Rect(0, 0, 0, 0)
-        self.text: Optional[str] = text
+        self.text: str = text or ''
         self.lcs_percent: float = lcs_percent
-        self.template_id: Optional[str] = template_id
-        self.template_sub_dir: Optional[str] = template_sub_dir
+        self.template_id: str = template_id or ''
+        self.template_sub_dir: str = template_sub_dir or ''
         self.template_match_threshold: float = template_match_threshold
         self.pc_alt: bool = pc_alt  # PC端需要使用ALT后才能点击
         self.id_mark: bool = id_mark  # 是否用于画面的唯一标识
         self.goto_list: list[str] = [] if goto_list is None else goto_list  # 交互后 可能会跳转的画面名称列表
-        self.color_range: Optional[list[list[int]]] = color_range  # 识别时候的筛选的颜色范围 文本时候有效
+        self.color_range: list[list[int]] | None = color_range  # 识别时候的筛选的颜色范围 文本时候有效
 
     @property
     def rect(self) -> Rect:
@@ -101,7 +99,7 @@ class ScreenArea:
         是否文本区域
         :return:
         """
-        return self.text is not None and len(self.text) > 0
+        return len(self.text) > 0
 
     @property
     def is_template_area(self) -> bool:
@@ -109,7 +107,7 @@ class ScreenArea:
         是否模板区域
         :return:
         """
-        return self.template_id is not None and len(self.template_id) > 0
+        return len(self.template_id) > 0
 
     @property
     def color_range_lower(self) -> np.ndarray:

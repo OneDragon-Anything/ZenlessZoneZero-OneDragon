@@ -423,12 +423,12 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self.area_table.setCellWidget(idx, 1, id_check)
             self.area_table.setItem(idx, 2, QTableWidgetItem(area_item.area_name))
             self.area_table.setItem(idx, 3, QTableWidgetItem(str(area_item.pc_rect)))
-            self.area_table.setItem(idx, 4, QTableWidgetItem(area_item.text or ''))
+            self.area_table.setItem(idx, 4, QTableWidgetItem(area_item.text))
             self.area_table.setItem(idx, 5, QTableWidgetItem(str(area_item.lcs_percent)))
-            self.area_table.setItem(idx, 6, QTableWidgetItem(area_item.template_sub_dir or ''))
-            self.area_table.setItem(idx, 7, QTableWidgetItem(area_item.template_id or ''))
+            self.area_table.setItem(idx, 6, QTableWidgetItem(area_item.template_sub_dir))
+            self.area_table.setItem(idx, 7, QTableWidgetItem(area_item.template_id))
             self.area_table.setItem(idx, 8, QTableWidgetItem(str(area_item.template_match_threshold)))
-            self.area_table.setItem(idx, 9, QTableWidgetItem(str(area_item.color_range_display_text)))
+            self.area_table.setItem(idx, 9, QTableWidgetItem(area_item.color_range_display_text))
             self.area_table.setItem(idx, 10, QTableWidgetItem(area_item.goto_list_display_text))
 
         # 最后一行 只保留一个新增按钮
