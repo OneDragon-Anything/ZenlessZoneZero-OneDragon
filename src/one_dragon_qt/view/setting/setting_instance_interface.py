@@ -19,7 +19,7 @@ from qfluentwidgets import (
     ToolButton,
 )
 
-from one_dragon.base.config.game_account_config import GameAccountConfig, GameRegionEnum
+from one_dragon.base.config.game_account_config import GameAccountConfig, GameRegionEnum, ClientTypeEnum
 from one_dragon.base.config.one_dragon_config import (
     OneDragonInstance,
     RunInOneDragonApp,
@@ -39,6 +39,7 @@ from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
     PasswordSwitchSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
+from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
@@ -270,6 +271,7 @@ class SettingInstanceInterface(VerticalScrollInterface):
 
     def init_game_account_config(self) -> None:
         # 初始化账号和密码
+        self.client_type_opt.init_with_adapter(self.ctx.game_account_config.get_prop_adapter('client_type'))
         self.game_path_opt.setContent(self.ctx.game_account_config.game_path)
         self.custom_win_title_opt.init_with_adapter(
             self.ctx.game_account_config.get_prop_adapter("use_custom_win_title")
@@ -307,7 +309,11 @@ class SettingInstanceInterface(VerticalScrollInterface):
         return instance_switch_group
 
     def _get_instanceSettings_group(self) -> QWidget:
-        instance_settings_group = SettingCardGroup(gt("当前账户设置"))
+        instance_settings_group = SettingCardGroup(gt('当前账户设置'))
+
+        self.client_type_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='游戏客户端', options_enum=ClientTypeEnum)
+        self.client_type_opt.value_changed.connect(self._on_client_type_changed)
+        instance_settings_group.addSettingCard(self.client_type_opt)
 
         self.game_path_opt = PushSettingCard(
             icon=FluentIcon.FOLDER, title="游戏路径", text="选择"
@@ -399,6 +405,10 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.ctx.one_dragon_config.delete_instance(idx)
         self._acc_repo()
         self._init_content_widget()
+
+    def _on_client_type_changed(self, index, value) -> None:
+        self.game_path_opt.setContent(self.ctx.game_account_config.game_path)
+        self.ctx.init_by_config()
 
     def _on_game_path_clicked(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(

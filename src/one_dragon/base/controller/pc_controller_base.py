@@ -31,6 +31,8 @@ class PcControllerBase(ControllerBase):
     MOUSEEVENTF_MOVE = 0x0001
     MOUSEEVENTF_LEFTDOWN = 0x0002
     MOUSEEVENTF_LEFTUP = 0x0004
+    MOUSEEVENTF_ABSOLUTE = 0x8000
+
 
     def __init__(self,
                  screenshot_method: str,
@@ -183,7 +185,9 @@ class PcControllerBase(ControllerBase):
         if to_pos is None:
             log.error('拖拽终点不在游戏窗口区域 (%s)', end)
             return
-        drag_mouse(from_pos, to_pos, duration=duration)
+        drag_mouse(from_pos, to_pos, duration=duration,
+                  screen_width=self.game_win.win_rect.width,
+                  screen_height=self.game_win.win_rect.height)
 
     def close_game(self):
         """
@@ -194,7 +198,9 @@ class PcControllerBase(ControllerBase):
         if win is None:
             return
         try:
-            win.close()
+            import subprocess
+            win_title = self.game_win.win_title
+            subprocess.run(["taskkill", "/f", "/fi", f"WINDOWTITLE eq {win_title}"], check=True, capture_output=True)
             log.info('关闭游戏成功')
         except Exception:
             log.error('关闭游戏失败', exc_info=True)
@@ -266,16 +272,53 @@ def get_mouse_sensitivity():
     return speed.value
 
 
-def drag_mouse(start: Point, end: Point, duration: float = 0.5):
+def drag_mouse(start: Point, end: Point, duration: float = 0.5, steps: int = 20, screen_width: int = None, screen_height: int = None):
     """
     按住鼠标左键进行画面拖动
     :param start: 原位置
     :param end: 拖动位置
     :param duration: 拖动鼠标到目标位置，持续秒数
+    :param steps: 拖拽步数，值越大拖拽越平滑
+    :param screen_width: 屏幕宽度，如果不提供则使用系统默认
+    :param screen_height: 屏幕高度，如果不提供则使用系统默认
     :return:
     """
-    pyautogui.moveTo(start.x, start.y)  # 将鼠标移动到起始位置
-    pyautogui.dragTo(end.x, end.y, duration=duration)
+    if screen_width is None:
+        screen_width = ctypes.windll.user32.GetSystemMetrics(0)
+    if screen_height is None:
+        screen_height = ctypes.windll.user32.GetSystemMetrics(1)
+    # 将鼠标移动到起始位置
+    pyautogui.moveTo(start.x, start.y)
+    time.sleep(0.05)  # 短暂延时确保移动完成
+
+    # 按下鼠标左键
+    ctypes.windll.user32.mouse_event(PcControllerBase.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
+    time.sleep(0.05)
+
+    # 计算每步的延迟时间和移动距离
+    step_delay = duration / steps
+    dx = (end.x - start.x) / steps
+    dy = (end.y - start.y) / steps
+
+    # 逐步移动鼠标
+    for i in range(steps):
+        current_x = start.x + dx * (i + 1)
+        current_y = start.y + dy * (i + 1)
+
+        # 转换为绝对坐标（0-65535）
+        abs_x = int(current_x * 65535 / screen_width)
+        abs_y = int(current_y * 65535 / screen_height)
+
+        # 移动鼠标
+        ctypes.windll.user32.mouse_event(
+            PcControllerBase.MOUSEEVENTF_MOVE | PcControllerBase.MOUSEEVENTF_ABSOLUTE,
+            abs_x, abs_y, 0, 0
+        )
+
+        time.sleep(step_delay)
+
+    # 松开鼠标左键
+    ctypes.windll.user32.mouse_event(PcControllerBase.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
 
 
 def get_current_mouse_pos() -> Point:

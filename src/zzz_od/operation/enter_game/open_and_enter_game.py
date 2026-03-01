@@ -16,12 +16,38 @@ class OpenAndEnterGame(Operation):
         Operation.__init__(self, ctx, op_name=gt('打开并登录游戏'),
                            need_check_game_win=False)
 
+    def _is_cloud_game_window_open(self) -> bool:
+        """
+        云游戏窗口是否已打开。
+        通过刷新窗口句柄并直接读取 game_win 状态，避免触发二次启动。
+        """
+        if not self.ctx.game_account_config.is_cloud_game:
+            return False
+
+        controller = self.ctx.controller
+        if controller is None:
+            return False
+
+        try:
+            controller.init_game_win()
+        except Exception:
+            return False
+
+        game_win = getattr(controller, 'game_win', None)
+        if game_win is None:
+            return False
+
+        return bool(getattr(game_win, 'is_win_valid', False))
+
     @operation_node(name='打开游戏', is_start_node=True, screenshot_before_round=False)
     def open_game(self) -> OperationRoundResult:
         """
         打开游戏
         :return:
         """
+        if self._is_cloud_game_window_open():
+            return self.round_success(status='云游戏窗口已打开')
+
         hdr_op = DisableAutoHDR(self.ctx)
         hdr_op.execute()
         op = OpenGame(self.ctx)
@@ -30,6 +56,12 @@ class OpenAndEnterGame(Operation):
     @node_from(from_name='打开游戏')
     @operation_node(name='等待游戏打开', node_max_retry_times=60, screenshot_before_round=False)
     def wait_game(self) -> OperationRoundResult:
+        if self._is_cloud_game_window_open():
+            self.ctx.controller.active_window()
+            hdr_op = EnableAutoHDR(self.ctx)
+            hdr_op.execute()
+            return self.round_success(status='云游戏窗口已打开')
+
         self.ctx.controller.init_game_win()
         if self.ctx.controller.is_game_window_ready:
             self.ctx.controller.active_window()
@@ -40,6 +72,16 @@ class OpenAndEnterGame(Operation):
             return self.round_retry(wait=1)
 
     @node_from(from_name='等待游戏打开')
+    @node_notify(when=NotifyTiming.CURRENT_FAIL, detail=True)
+    @operation_node(name='云游戏排队')
+    def cloud_queue(self) -> OperationRoundResult:
+        if self.ctx.game_account_config.is_cloud_game:
+            from zzz_od.application.cloud_queue.cloud_queue import CloudGameQueue
+            cloud_queue_op = CloudGameQueue(self.ctx)
+            return self.round_by_op_result(cloud_queue_op.execute())
+        return self.round_success()
+
+    @node_from(from_name='云游戏排队', status='点击进入游戏')
     @node_notify(when=NotifyTiming.CURRENT_FAIL, detail=True)
     @operation_node(name='进入游戏')
     def enter_game(self) -> OperationRoundResult:

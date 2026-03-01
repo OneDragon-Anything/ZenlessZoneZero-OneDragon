@@ -9,6 +9,11 @@ class GamePlatformEnum(Enum):
 
     PC = ConfigItem('PC')
 
+class ClientTypeEnum(Enum):
+
+    LOCAL = ConfigItem('本地游戏', 'local')
+    CLOUD = ConfigItem('云游戏', 'cloud')
+
 
 class GameLanguageEnum(Enum):
 
@@ -29,6 +34,13 @@ class GameAccountConfig(YamlConfig):
 
     def __init__(self, instance_idx: int):
         YamlConfig.__init__(self, 'game_account', instance_idx=instance_idx)
+
+        # 兼容旧配置：如果存在旧键 'game_path' 且新键为空，则进行一次性迁移
+        old_game_path = self.get('game_path', None)
+        if old_game_path:
+            local = self.get('local_game_path', '')
+            if not local:
+                self.update('local_game_path', old_game_path)
 
     @property
     def platform(self) -> str:
@@ -63,12 +75,45 @@ class GameAccountConfig(YamlConfig):
         self.update('custom_win_title', new_value)
 
     @property
+    def local_game_path(self) -> str:
+        return self.get('local_game_path', '')
+
+    @local_game_path.setter
+    def local_game_path(self, new_value: str) -> None:
+        self.update('local_game_path', new_value)
+
+    @property
+    def cloud_game_path(self) -> str:
+        return self.get('cloud_game_path', '')
+
+    @cloud_game_path.setter
+    def cloud_game_path(self, new_value: str) -> None:
+        self.update('cloud_game_path', new_value)
+
+    @property
     def game_path(self) -> str:
-        return self.get('game_path', '')
+        if self.is_cloud_game:
+            return self.cloud_game_path
+        return self.local_game_path
 
     @game_path.setter
     def game_path(self, new_value: str) -> None:
-        self.update('game_path', new_value)
+        if self.is_cloud_game:
+            self.cloud_game_path = new_value
+        else:
+            self.local_game_path = new_value
+
+    @property
+    def is_cloud_game(self) -> bool:
+        return self.client_type == ClientTypeEnum.CLOUD.value.value
+
+    @property
+    def client_type(self) -> str:
+        return self.get('client_type', ClientTypeEnum.LOCAL.value.value)
+
+    @client_type.setter
+    def client_type(self, new_value: str) -> None:
+        self.update('client_type', new_value)
 
     @property
     def game_language(self) -> str:
