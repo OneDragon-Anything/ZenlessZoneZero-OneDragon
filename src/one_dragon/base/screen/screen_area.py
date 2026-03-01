@@ -73,27 +73,6 @@ class ScreenArea:
         return self.rect.height
 
     @property
-    def template_id_display_text(self) -> str:
-        if len(self.template_sub_dir) == 0:
-            return self.template_id
-        else:
-            return f'{self.template_sub_dir}.{self.template_id}'
-
-    @property
-    def goto_list_display_text(self) -> str:
-        if self.goto_list is None:
-            return ''
-        else:
-            return ','.join(self.goto_list)
-
-    @property
-    def color_range_display_text(self) -> str:
-        if self.color_range is None:
-            return ''
-        else:
-            return str(self.color_range)
-
-    @property
     def is_text_area(self) -> bool:
         """
         是否文本区域

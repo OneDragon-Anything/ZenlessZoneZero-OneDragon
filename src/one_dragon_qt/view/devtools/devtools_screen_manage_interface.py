@@ -8,7 +8,6 @@ from typing import Any
 from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
-    QApplication,
     QDialog,
     QFileDialog,
     QHBoxLayout,
@@ -68,6 +67,7 @@ class ColumnMeta:
     attr_name: str | None = None
     parser: Callable[[str], Any] | None = None
     width: int | None = None  # None = 自动宽度
+    formatter: Callable[[Any], str] | None = None  # 属性值 → 显示文本，None = str()
 
 
 class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
@@ -82,8 +82,10 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         ColumnMeta('模板目录', 'template_sub_dir', lambda x: x),
         ColumnMeta('模板ID', 'template_id', lambda x: x),
         ColumnMeta('模板阈值', 'template_match_threshold', lambda x: float(x) if x else 0.7, 70),
-        ColumnMeta('颜色范围', 'color_range', lambda x: ast.literal_eval(x) if x.strip() else None),
-        ColumnMeta('前往画面', 'goto_list', lambda x: [i.strip() for i in x.split(',') if i.strip()]),
+        ColumnMeta('颜色范围', 'color_range', lambda x: ast.literal_eval(x) if x.strip() else None,
+                   formatter=lambda v: '' if v is None else str(v)),
+        ColumnMeta('前往画面', 'goto_list', lambda x: [i.strip() for i in x.split(',') if i.strip()],
+                   formatter=lambda v: ','.join(v) if v else ''),
     ]
 
     AREA_FIELD_2_COLUMN: dict[str, int] = {col.display_name: idx for idx, col in enumerate(AREA_COLUMNS)}
@@ -364,7 +366,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         return widget
 
-
     def on_interface_shown(self) -> None:
         """
         子界面显示时 进行初始化
@@ -431,31 +432,21 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
             self.area_table.setCellWidget(idx, 0, del_btn)
             self.area_table.setCellWidget(idx, 1, id_check)
-            self.area_table.setItem(idx, 2, QTableWidgetItem(area_item.area_name))
-            self.area_table.setItem(idx, 3, QTableWidgetItem(str(area_item.pc_rect)))
-            self.area_table.setItem(idx, 4, QTableWidgetItem(area_item.text))
-            self.area_table.setItem(idx, 5, QTableWidgetItem(str(area_item.lcs_percent)))
-            self.area_table.setItem(idx, 6, QTableWidgetItem(area_item.template_sub_dir))
-            self.area_table.setItem(idx, 7, QTableWidgetItem(area_item.template_id))
-            self.area_table.setItem(idx, 8, QTableWidgetItem(str(area_item.template_match_threshold)))
-            self.area_table.setItem(idx, 9, QTableWidgetItem(area_item.color_range_display_text))
-            self.area_table.setItem(idx, 10, QTableWidgetItem(area_item.goto_list_display_text))
+
+            for col_idx, col in enumerate(self.AREA_COLUMNS):
+                if col.attr_name is None:
+                    continue
+                val = getattr(area_item, col.attr_name)
+                text = col.formatter(val) if col.formatter else str(val)
+                self.area_table.setItem(idx, col_idx, QTableWidgetItem(text))
 
         # 最后一行 只保留一个新增按钮
         add_btn = ToolButton(FluentIcon.ADD, parent=None)
         add_btn.setFixedSize(32, 32)
         add_btn.clicked.connect(self._on_area_add_clicked)
         self.area_table.setCellWidget(area_cnt, 0, add_btn)
-        self.area_table.setItem(area_cnt, 1, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 2, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 3, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 4, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 5, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 6, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 7, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 8, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 9, QTableWidgetItem(''))
-        self.area_table.setItem(area_cnt, 10, QTableWidgetItem(''))
+        for col_idx in range(1, len(self.AREA_COLUMNS)):
+            self.area_table.setItem(area_cnt, col_idx, QTableWidgetItem(''))
 
         self.area_table.blockSignals(False)
 
