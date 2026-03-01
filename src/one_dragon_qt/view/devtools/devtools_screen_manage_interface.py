@@ -212,6 +212,11 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._control_layout = control_layout
         self.table_widget = self._init_area_table_widget()
         control_layout.addWidget(self.table_widget, stretch=1)
+
+        self.popup_table_btn = PushButton(text=gt('弹出表格'))
+        self.popup_table_btn.clicked.connect(self._on_popup_table)
+        control_layout.addWidget(self.popup_table_btn)
+
         self._popup_win: QWidget | None = None
 
         scroll_area.setWidget(control_widget)
@@ -258,11 +263,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         # 将表格放入滚动区域
         scroll_area.setWidget(self.area_table)
         layout.addWidget(scroll_area)
-
-        # 弹出按钮
-        self.popup_table_btn = PushButton(text=gt('弹出表格'))
-        self.popup_table_btn.clicked.connect(self._on_popup_table)
-        layout.addWidget(self.popup_table_btn)
 
         return widget
 
@@ -318,7 +318,9 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         if spacer is not None and spacer.widget() is None:
             self._control_layout.removeItem(spacer)
 
-        self._control_layout.addWidget(self.table_widget, stretch=1)
+        # 插到弹出按钮前面
+        btn_idx = self._control_layout.indexOf(self.popup_table_btn)
+        self._control_layout.insertWidget(btn_idx, self.table_widget, stretch=1)
         self.table_widget.show()
         self.popup_table_btn.show()
         self._popup_win = None
