@@ -14,12 +14,18 @@ class DecisionPanel(ResizablePanel):
     def __init__(self, parent=None):
         super().__init__(title="Decision Trace", min_width=220, min_height=100, parent=parent)
         self.set_title_visible(False)
+        self._text_color = "#f2f2f2"
         self._text_widget = OverlayTextWidget(self)
         self.body_layout.addWidget(self._text_widget, 1)
+        self._text_widget.set_text_color(self._text_color)
 
     def set_appearance(self, font_size: int, panel_opacity: int) -> None:
         self.set_panel_opacity(panel_opacity)
         self._text_widget.set_appearance(font_size)
+
+    def set_text_color(self, color: str) -> None:
+        self._text_color = str(color or "").strip() or "#f2f2f2"
+        self._text_widget.set_text_color(self._text_color)
 
     def update_items(self, items: list[DecisionTraceItem]) -> None:
         rows: list[str] = []
@@ -37,7 +43,7 @@ class DecisionPanel(ResizablePanel):
                 f"<span style='color:#a7a7a7'>=></span> "
                 f"<span style='color:#d8e27f'>{expr}</span> "
                 f"<span style='color:#a7a7a7'>/</span> "
-                f"<span style='color:#f0f0f0'>{action}</span> "
+                f"<span style='color:{self._text_color}'>{action}</span> "
                 f"<span style='color:#8be28b'>[{status}]</span>"
             )
         self._text_widget.setHtml("<br>".join(rows))

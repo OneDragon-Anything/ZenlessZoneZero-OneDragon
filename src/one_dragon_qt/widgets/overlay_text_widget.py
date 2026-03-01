@@ -17,10 +17,15 @@ class OverlayTextWidget(QTextEdit):
         self.viewport().setAutoFillBackground(False)
         self.document().setDocumentMargin(0.0)
         self._font_size = 12
+        self._text_color = "#eaeaea"
         self._refresh_style()
 
     def set_appearance(self, font_size: int) -> None:
         self._font_size = max(10, min(28, int(font_size)))
+        self._refresh_style()
+
+    def set_text_color(self, color: str) -> None:
+        self._text_color = str(color or "").strip() or "#eaeaea"
         self._refresh_style()
 
     def _refresh_style(self) -> None:
@@ -29,7 +34,7 @@ class OverlayTextWidget(QTextEdit):
             QTextEdit {{
                 background-color: transparent;
                 border: none;
-                color: #eaeaea;
+                color: {self._text_color};
                 font-family: Consolas, 'Courier New', monospace;
                 font-size: {self._font_size}px;
                 padding: 1px;

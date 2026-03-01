@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import re
 from typing import Any
 
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -40,11 +41,14 @@ _DEFAULT_OVERLAY_CONFIG: dict[str, Any] = {
     "patched_capture_suffix": "_patched",
     "font_size": 12,
     "panel_opacity": 70,
+    "panel_text_color": "#f2f2f2",
     "log_panel_enabled": True,
     "state_panel_enabled": True,
     "decision_panel_enabled": True,
     "timeline_panel_enabled": True,
     "performance_panel_enabled": True,
+    "panel_edit_mode": False,
+    "panel_lock_to_game_window": True,
     "performance_metric_enabled_map": dict(_DEFAULT_PERFORMANCE_METRIC_ENABLED),
     "log_max_lines": 120,
     "log_fade_seconds": 12,
@@ -76,8 +80,11 @@ _OVERLAY_SCALAR_KEYS = {
     "patched_capture_suffix",
     "font_size",
     "panel_opacity",
+    "panel_text_color",
     "log_panel_enabled",
     "state_panel_enabled",
+    "panel_edit_mode",
+    "panel_lock_to_game_window",
     "log_max_lines",
     "log_fade_seconds",
     "follow_interval_ms",
@@ -158,6 +165,18 @@ class OverlayConfig(YamlConfig):
             if suffix.isdigit():
                 return key
         return key
+
+    @staticmethod
+    def _normalize_color(value: str, default: str = "#f2f2f2") -> str:
+        color = str(value or "").strip()
+        if not color:
+            return default
+        if not color.startswith("#"):
+            color = f"#{color}"
+        color = color.lower()
+        if re.fullmatch(r"#[0-9a-f]{6}", color):
+            return color
+        return default
 
     @property
     def enabled(self) -> bool:
@@ -299,11 +318,19 @@ class OverlayConfig(YamlConfig):
 
     @property
     def panel_opacity(self) -> int:
-        return max(20, min(100, int(self._overlay_data()["panel_opacity"])))
+        return max(5, min(100, int(self._overlay_data()["panel_opacity"])))
 
     @panel_opacity.setter
     def panel_opacity(self, value: int) -> None:
-        self._update_overlay_data("panel_opacity", max(20, min(100, int(value))))
+        self._update_overlay_data("panel_opacity", max(5, min(100, int(value))))
+
+    @property
+    def panel_text_color(self) -> str:
+        return self._normalize_color(self._overlay_data()["panel_text_color"])
+
+    @panel_text_color.setter
+    def panel_text_color(self, value: str) -> None:
+        self._update_overlay_data("panel_text_color", self._normalize_color(value))
 
     @property
     def log_panel_enabled(self) -> bool:
@@ -344,6 +371,22 @@ class OverlayConfig(YamlConfig):
     @performance_panel_enabled.setter
     def performance_panel_enabled(self, value: bool) -> None:
         self._update_overlay_data("performance_panel_enabled", bool(value))
+
+    @property
+    def panel_edit_mode(self) -> bool:
+        return bool(self._overlay_data()["panel_edit_mode"])
+
+    @panel_edit_mode.setter
+    def panel_edit_mode(self, value: bool) -> None:
+        self._update_overlay_data("panel_edit_mode", bool(value))
+
+    @property
+    def panel_lock_to_game_window(self) -> bool:
+        return bool(self._overlay_data()["panel_lock_to_game_window"])
+
+    @panel_lock_to_game_window.setter
+    def panel_lock_to_game_window(self, value: bool) -> None:
+        self._update_overlay_data("panel_lock_to_game_window", bool(value))
 
     @property
     def performance_metric_enabled_map(self) -> dict[str, bool]:

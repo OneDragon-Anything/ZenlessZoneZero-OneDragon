@@ -1,8 +1,16 @@
 from __future__ import annotations
 
+import ctypes
+import sys
+from ctypes import wintypes
+
 from PySide6.QtCore import QPoint, QRect, Qt, Signal
 from PySide6.QtGui import QGuiApplication, QMouseEvent
 from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout
+
+
+WM_NCHITTEST = 0x0084
+HTTRANSPARENT = -1
 
 
 class ResizablePanel(QFrame):
@@ -34,6 +42,7 @@ class ResizablePanel(QFrame):
         self._panel_opacity = 70
         self._interaction_enabled = True
         self._drag_anywhere = False
+        self._passthrough_on_body = False
 
         self._dragging = False
         self._resizing = False
@@ -88,8 +97,15 @@ class ResizablePanel(QFrame):
     def set_drag_anywhere(self, enabled: bool) -> None:
         self._drag_anywhere = bool(enabled)
 
+    def set_passthrough_on_body(self, enabled: bool) -> None:
+        """
+        When enabled on Windows, normal clicks on the panel body pass through
+        to the game window. Resize edges and drag header remain interactive.
+        """
+        self._passthrough_on_body = bool(enabled)
+
     def set_panel_opacity(self, opacity_percent: int) -> None:
-        self._panel_opacity = max(20, min(100, int(opacity_percent)))
+        self._panel_opacity = max(5, min(100, int(opacity_percent)))
         self._refresh_style()
 
     def _refresh_style(self) -> None:
@@ -255,3 +271,35 @@ class ResizablePanel(QFrame):
             geom.moveTop(max_y)
 
         return geom
+
+    def nativeEvent(self, eventType, message):
+        if (
+            not self._passthrough_on_body
+            or not self._interaction_enabled
+            or not sys.platform.startswith("win")
+        ):
+            return super().nativeEvent(eventType, message)
+
+        try:
+            msg = wintypes.MSG.from_address(int(message))
+            if int(msg.message) != WM_NCHITTEST:
+                return super().nativeEvent(eventType, message)
+
+            lparam = int(msg.lParam)
+            gx = ctypes.c_short(lparam & 0xFFFF).value
+            gy = ctypes.c_short((lparam >> 16) & 0xFFFF).value
+            local = self.mapFromGlobal(QPoint(gx, gy))
+
+            if not QRect(0, 0, self.width(), self.height()).contains(local):
+                return super().nativeEvent(eventType, message)
+
+            edge = self._hit_test_edge(local)
+            if edge != self._EDGE_NONE:
+                return super().nativeEvent(eventType, message)
+            if self._drag_anywhere or self._is_in_header(local):
+                return super().nativeEvent(eventType, message)
+
+            # Let underlying game window receive direct clicks.
+            return True, HTTRANSPARENT
+        except Exception:
+            return super().nativeEvent(eventType, message)

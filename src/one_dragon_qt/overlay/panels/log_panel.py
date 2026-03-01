@@ -46,18 +46,21 @@ class LogPanel(ResizablePanel):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
         self.set_title_visible(False)
-        self.set_drag_anywhere(True)
+        self.set_drag_anywhere(False)
 
         self._max_lines = 120
         self._fade_seconds = 12
         self._lines: deque[_LogLine] = deque()
         self._font_size = 12
         self._panel_opacity = 70
+        self._text_color = "#efefef"
+        self._edit_mode = False
         self._paused = False
         self._auto_scroll = True
 
         self._text_widget = OverlayTextWidget(self)
         self.body_layout.addWidget(self._text_widget, 1)
+        self._text_widget.set_text_color(self._text_color)
 
         self._build_toolbar()
 
@@ -65,14 +68,26 @@ class LogPanel(ResizablePanel):
         self._cleanup_timer.timeout.connect(self._drop_expired)
         self._cleanup_timer.start(1000)
 
+    def set_edit_mode(self, enabled: bool) -> None:
+        self._edit_mode = bool(enabled)
+        self.set_interaction_enabled(self._edit_mode)
+        if hasattr(self, "_toolbar"):
+            self._toolbar.setVisible(self._edit_mode)
+        self._sync_toolbar_state()
+
     def set_appearance(self, font_size: int, panel_opacity: int) -> None:
         self._font_size = max(10, min(28, int(font_size)))
-        self._panel_opacity = max(20, min(100, int(panel_opacity)))
+        self._panel_opacity = max(5, min(100, int(panel_opacity)))
         self.set_panel_opacity(self._panel_opacity)
         self.setWindowOpacity(self._panel_opacity / 100.0)
         self._text_widget.set_appearance(self._font_size)
         self._render()
         self._sync_toolbar_state()
+
+    def set_text_color(self, color: str) -> None:
+        self._text_color = str(color or "").strip() or "#efefef"
+        self._text_widget.set_text_color(self._text_color)
+        self._render()
 
     def set_limits(self, max_lines: int, fade_seconds: int) -> None:
         self._max_lines = max(20, int(max_lines))
@@ -125,7 +140,7 @@ class LogPanel(ResizablePanel):
                 f"<span style='color:#a0a0a0'>[{time_text}]</span> "
                 f"<span style='color:{level_color};font-weight:600'>[{line.level_name}]</span> "
                 f"<span style='color:#c9c9c9'>[{source}]</span> "
-                f"<span style='color:#efefef'>{message}</span>"
+                f"<span style='color:{self._text_color}'>{message}</span>"
             )
             rows.append(row)
 
@@ -136,10 +151,10 @@ class LogPanel(ResizablePanel):
             )
 
     def _build_toolbar(self) -> None:
-        toolbar = QWidget(self)
-        toolbar.setObjectName("overlayLogToolbar")
-        toolbar.setFixedHeight(28)
-        toolbar.setStyleSheet(
+        self._toolbar = QWidget(self)
+        self._toolbar.setObjectName("overlayLogToolbar")
+        self._toolbar.setFixedHeight(28)
+        self._toolbar.setStyleSheet(
             """
             QWidget#overlayLogToolbar {
                 background-color: rgba(120, 120, 120, 55);
@@ -147,12 +162,12 @@ class LogPanel(ResizablePanel):
             }
             """
         )
-        layout = QHBoxLayout(toolbar)
+        layout = QHBoxLayout(self._toolbar)
         layout.setContentsMargins(4, 1, 4, 1)
         layout.setSpacing(3)
 
         # Status indicator label
-        self._status_label = QLabel("", toolbar)
+        self._status_label = QLabel("", self._toolbar)
         self._status_label.setStyleSheet(
             "QLabel { color: #c0c0c0; font-size: 10px; background: transparent; border: none; }"
         )
@@ -177,7 +192,7 @@ class LogPanel(ResizablePanel):
         self._btn_clear = self._create_button("\u2715", "清空日志", self.clear)
         layout.addWidget(self._btn_clear)
 
-        self.body_layout.addWidget(toolbar, 0)
+        self.body_layout.addWidget(self._toolbar, 0)
         self._sync_toolbar_state()
 
     def _create_button(self, text: str, tip: str, handler) -> QToolButton:
@@ -209,15 +224,23 @@ class LogPanel(ResizablePanel):
         return btn
 
     def _on_font_dec(self) -> None:
+        if not self._edit_mode:
+            return
         self._emit_appearance(max(10, self._font_size - 1), self._panel_opacity)
 
     def _on_font_inc(self) -> None:
+        if not self._edit_mode:
+            return
         self._emit_appearance(min(28, self._font_size + 1), self._panel_opacity)
 
     def _on_panel_dec(self) -> None:
-        self._emit_appearance(self._font_size, max(20, self._panel_opacity - 5))
+        if not self._edit_mode:
+            return
+        self._emit_appearance(self._font_size, max(5, self._panel_opacity - 5))
 
     def _on_panel_inc(self) -> None:
+        if not self._edit_mode:
+            return
         self._emit_appearance(self._font_size, min(100, self._panel_opacity + 5))
 
     def _on_pause_toggle(self) -> None:
@@ -231,10 +254,17 @@ class LogPanel(ResizablePanel):
         self._sync_toolbar_state()
 
     def _emit_appearance(self, font_size: int, panel_opacity: int) -> None:
+        if not self._edit_mode:
+            return
         self.set_appearance(font_size, panel_opacity)
         self.appearance_changed.emit(self._font_size, self._panel_opacity)
 
     def _sync_toolbar_state(self) -> None:
+        edit_enabled = bool(self._edit_mode)
+        for btn_name in ("_btn_font_dec", "_btn_font_inc", "_btn_panel_dec", "_btn_panel_inc"):
+            btn = getattr(self, btn_name, None)
+            if btn is not None:
+                btn.setEnabled(edit_enabled)
         if hasattr(self, "_btn_pause"):
             self._btn_pause.setText("\u25B6" if self._paused else "\u23F8")
         if hasattr(self, "_btn_autoscroll"):
@@ -242,7 +272,8 @@ class LogPanel(ResizablePanel):
         if hasattr(self, "_status_label"):
             pause_text = "PAUSED" if self._paused else ""
             scroll_text = "AUTO" if self._auto_scroll else "LOCK"
-            parts = [f"F{self._font_size}", f"P{self._panel_opacity}"]
+            mode_text = "EDIT" if self._edit_mode else "PASS"
+            parts = [mode_text, f"F{self._font_size}", f"P{self._panel_opacity}"]
             if pause_text:
                 parts.append(pause_text)
             parts.append(scroll_text)
@@ -250,7 +281,7 @@ class LogPanel(ResizablePanel):
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         """Ctrl+scroll-wheel adjusts font size."""
-        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+        if self._edit_mode and event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             delta = event.angleDelta().y()
             if delta > 0:
                 self._on_font_inc()

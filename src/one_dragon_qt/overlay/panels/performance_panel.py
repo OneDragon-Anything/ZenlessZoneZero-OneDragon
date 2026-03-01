@@ -23,13 +23,19 @@ class PerformancePanel(ResizablePanel):
     def __init__(self, parent=None):
         super().__init__(title="Performance", min_width=220, min_height=90, parent=parent)
         self.set_title_visible(False)
+        self._text_color = "#f2f2f2"
         self._text_widget = OverlayTextWidget(self)
         self.body_layout.addWidget(self._text_widget, 1)
         self._enabled_metric_map: dict[str, bool] = {}
+        self._text_widget.set_text_color(self._text_color)
 
     def set_appearance(self, font_size: int, panel_opacity: int) -> None:
         self.set_panel_opacity(panel_opacity)
         self._text_widget.set_appearance(font_size)
+
+    def set_text_color(self, color: str) -> None:
+        self._text_color = str(color or "").strip() or "#f2f2f2"
+        self._text_widget.set_text_color(self._text_color)
 
     def set_enabled_metric_map(self, metric_map: dict[str, bool] | None) -> None:
         self._enabled_metric_map = dict(metric_map or {})
@@ -53,8 +59,8 @@ class PerformancePanel(ResizablePanel):
             rows.append(
                 f"<span style='color:#9cc4ff'>{html.escape(key)}</span>"
                 f"<span style='color:#a6a6a6'>: </span>"
-                f"<span style='color:#f5f5f5'>{sample.value:.2f} {html.escape(sample.unit)}</span> "
-                f"<span style='color:#7f7f7f'>({age_ms}ms ago)</span>"
+                f"<span style='color:{self._text_color}'>{sample.value:.2f} {html.escape(sample.unit)}</span> "
+                f"<span style='color:{self._text_color}'>({age_ms}ms ago)</span>"
             )
         self._text_widget.setHtml("<br>".join(rows))
 

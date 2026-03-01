@@ -210,6 +210,42 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.performance_panel_opt.value_changed.connect(self._on_config_changed)
         group.addSettingCard(self.performance_panel_opt)
 
+        self.panel_edit_mode_opt = SwitchSettingCard(
+            icon=FluentIcon.EDIT,
+            title="面板编辑模式",
+            content="开启后可拖拽调整位置，并可在日志窗调整字体/透明度",
+        )
+        self.panel_edit_mode_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.panel_edit_mode_opt)
+
+        self.panel_lock_to_game_opt = SwitchSettingCard(
+            icon=FluentIcon.PIN,
+            title="锁定在游戏窗口内",
+            content="开启后面板会限制在游戏窗口区域内",
+        )
+        self.panel_lock_to_game_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.panel_lock_to_game_opt)
+
+        self.font_size_opt = SpinBoxSettingCard(
+            icon=FluentIcon.SETTING,
+            title="面板字体大小",
+            minimum=10,
+            maximum=28,
+            step=1,
+        )
+        self.font_size_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.font_size_opt)
+
+        self.panel_text_color_opt = TextSettingCard(
+            icon=FluentIcon.EDIT,
+            title="文字颜色",
+            content="Hex 颜色，例如 #f2f2f2",
+            input_placeholder="#f2f2f2",
+            input_max_width=180,
+        )
+        self.panel_text_color_opt.value_changed.connect(self._on_config_changed)
+        group.addSettingCard(self.panel_text_color_opt)
+
         self.log_max_lines_opt = SpinBoxSettingCard(
             icon=FluentIcon.SETTING,
             title="日志最大行数",
@@ -253,7 +289,7 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.panel_opacity_opt = SpinBoxSettingCard(
             icon=FluentIcon.SETTING,
             title="面板透明度(%)",
-            minimum=20,
+            minimum=5,
             maximum=100,
             step=1,
         )
@@ -331,6 +367,10 @@ class SettingOverlayInterface(VerticalScrollInterface):
         self.decision_panel_opt.init_with_adapter(self.config.get_prop_adapter("decision_panel_enabled"))
         self.timeline_panel_opt.init_with_adapter(self.config.get_prop_adapter("timeline_panel_enabled"))
         self.performance_panel_opt.init_with_adapter(self.config.get_prop_adapter("performance_panel_enabled"))
+        self.panel_edit_mode_opt.init_with_adapter(self.config.get_prop_adapter("panel_edit_mode"))
+        self.panel_lock_to_game_opt.init_with_adapter(self.config.get_prop_adapter("panel_lock_to_game_window"))
+        self.font_size_opt.init_with_adapter(self.config.get_prop_adapter("font_size"))
+        self.panel_text_color_opt.init_with_adapter(self.config.get_prop_adapter("panel_text_color"))
         self.log_max_lines_opt.init_with_adapter(self.config.get_prop_adapter("log_max_lines"))
         self.log_fade_seconds_opt.init_with_adapter(self.config.get_prop_adapter("log_fade_seconds"))
         self.follow_interval_opt.init_with_adapter(self.config.get_prop_adapter("follow_interval_ms"))
