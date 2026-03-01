@@ -124,6 +124,9 @@ class OverlayManager(QObject):
 
     def reset_panel_geometry(self) -> None:
         self.config.reset_panel_geometry()
+        log_geo = self._resolve_log_panel_geometry_for_game()
+        if log_geo is not None:
+            self.config.set_panel_geometry("log_panel", log_geo)
         if self._log_panel is not None:
             geo = self.config.get_panel_geometry("log_panel")
             self._log_panel.setGeometry(geo["x"], geo["y"], geo["w"], geo["h"])
@@ -193,6 +196,11 @@ class OverlayManager(QObject):
 
     def _panel_geometry_with_fallback(self, panel_name: str) -> dict[str, int]:
         geometry = self.config.get_panel_geometry(panel_name)
+        if panel_name == "log_panel" and self._is_log_panel_factory_geometry(geometry):
+            log_geo = self._resolve_log_panel_geometry_for_game()
+            if log_geo is not None:
+                return log_geo
+
         if not (
             geometry.get("x", 0) == 0
             and geometry.get("y", 0) == 0
@@ -207,6 +215,34 @@ class OverlayManager(QObject):
             "performance_panel": {"x": 0, "y": 0, "w": 300, "h": 110},
         }
         return defaults.get(panel_name, geometry)
+
+    @staticmethod
+    def _is_log_panel_factory_geometry(geometry: dict[str, int]) -> bool:
+        return (
+            int(geometry.get("x", 0)) == 100
+            and int(geometry.get("y", 0)) == 100
+            and int(geometry.get("w", 0)) == 480
+            and int(geometry.get("h", 0)) == 200
+        )
+
+    def _resolve_log_panel_geometry_for_game(self) -> dict[str, int] | None:
+        base_geo = self.config.get_panel_geometry("log_panel")
+        game_rect = self._get_game_rect()
+        if game_rect is None:
+            return base_geo
+
+        qt_rect = self._to_qt_rect(game_rect)
+        margin = 16
+        max_w = max(320, int(getattr(qt_rect, "width", 0)) - margin * 2)
+        max_h = max(130, int(getattr(qt_rect, "height", 0)) - margin * 2)
+        w = min(int(base_geo.get("w", 480)), max_w)
+        h = min(int(base_geo.get("h", 200)), max_h)
+        return {
+            "x": int(getattr(qt_rect, "x1", 0)) + margin,
+            "y": int(getattr(qt_rect, "y1", 0)) + margin,
+            "w": max(320, w),
+            "h": max(130, h),
+        }
 
     def _on_panel_geometry_changed(self, panel_name: str, geometry: dict[str, int]) -> None:
         try:
@@ -526,8 +562,22 @@ class OverlayManager(QObject):
         if win32_utils.is_window_minimized(hwnd):
             return None
         win = game_win.get_win() if hasattr(game_win, "get_win") else None
-        if win is not None and bool(getattr(win, "isMinimized", False)):
-            return None
+        if win is not None:
+            if bool(getattr(win, "isMinimized", False)):
+                return None
+            win_visible = getattr(win, "isVisible", None)
+            if isinstance(win_visible, bool) and not win_visible:
+                return None
+            # pygetwindow may still expose parked coords after minimize.
+            left = getattr(win, "left", None)
+            top = getattr(win, "top", None)
+            width = getattr(win, "width", None)
+            height = getattr(win, "height", None)
+            if left is not None and top is not None and int(left) <= -30000 and int(top) <= -30000:
+                return None
+            if width is not None and height is not None:
+                if int(width) <= 0 or int(height) <= 0:
+                    return None
         if not win32_utils.is_window_visible(hwnd):
             return None
 
