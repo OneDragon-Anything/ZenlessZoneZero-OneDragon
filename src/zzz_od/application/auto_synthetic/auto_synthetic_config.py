@@ -21,7 +21,7 @@ class AutoSyntheticConfig(ApplicationConfig):
         return self.get('hifi_master_copy', True)
 
     @hifi_master_copy.setter
-    def hifi_master_copy(self, value):
+    def hifi_master_copy(self, value) -> None:
         self.update('hifi_master_copy', value)
 
     @property
@@ -29,13 +29,13 @@ class AutoSyntheticConfig(ApplicationConfig):
         return self.get('source_ether_battery', False)
 
     @source_ether_battery.setter
-    def source_ether_battery(self, value):
+    def source_ether_battery(self, value) -> None:
         self.update('source_ether_battery', value)
 
     @property
     def source_ether_battery_auto_synthetic_quantity(self) -> str:
-        return self.get('source_ether_battery_auto_synthetic_quantity', SourceEtherBatteryAutoSyntheticQuantity.ALL.value)
+        return self.get('source_ether_battery_auto_synthetic_quantity', SourceEtherBatteryAutoSyntheticQuantity.ALL.value.value)
 
     @source_ether_battery_auto_synthetic_quantity.setter
-    def source_ether_battery_auto_synthetic_quantity(self, value):
+    def source_ether_battery_auto_synthetic_quantity(self, value) -> None:
         self.update('source_ether_battery_auto_synthetic_quantity', value)

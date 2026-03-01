@@ -1,5 +1,3 @@
-from typing import Optional
-
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, SettingCardGroup
 
@@ -43,9 +41,9 @@ class ZOneDragonSettingInterface(VerticalScrollInterface):
         self.ctx: ZContext = ctx
         self.group_id: str = 'one_dragon'  # 当前打开页面的group_id
 
-        self.random_play_config: Optional[RandomPlayConfig] = None
-        self.drive_disc_dismantle_config: Optional[DriveDiscDismantleConfig] = None
-        self.auto_synthetic_config: Optional[AutoSyntheticConfig] = None
+        self.random_play_config: RandomPlayConfig | None = None
+        self.drive_disc_dismantle_config: DriveDiscDismantleConfig | None = None
+        self.auto_synthetic_config: AutoSyntheticConfig | None = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()

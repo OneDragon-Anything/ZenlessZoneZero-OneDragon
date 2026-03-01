@@ -134,7 +134,7 @@ class AutoSyntheticApp(ZApplication):
         if result.is_success:
             return self.round_success(status='可合成')
 
-        result = self.round_by_find_area(self.last_screenshot, '音像店', '道具处理')
+        result = self.round_by_find_area(self.last_screenshot, '音像店', '文本-合成素材不足')
         if result.is_success:
             return self.round_success(status='素材不足')
 
@@ -149,12 +149,6 @@ class AutoSyntheticApp(ZApplication):
             return self.round_success(result.status, wait=1)
         return self.round_retry(wait=1)
 
-    @node_from(from_name='母盘-识别界面', status='素材不足')
-    @operation_node(name='母盘-素材不足')
-    def hifi_insufficient(self) -> OperationRoundResult:
-        """素材不足"""
-        return self.round_success(status='素材不足', wait=1)
-
     @node_from(from_name='母盘-执行合成')
     @operation_node(name='母盘-确认合成')
     def hifi_confirm(self) -> OperationRoundResult:
@@ -165,7 +159,7 @@ class AutoSyntheticApp(ZApplication):
         return self.round_retry(wait=1)
 
     @node_from(from_name='母盘-确认合成')
-    @node_from(from_name='母盘-素材不足')
+    @node_from(from_name='母盘-识别界面', status='素材不足')
     @operation_node(name='母盘-返回大世界')
     def hifi_return(self) -> OperationRoundResult:
         """返回大世界"""
@@ -192,7 +186,7 @@ class AutoSyntheticApp(ZApplication):
     @node_from(from_name='检查配置', status='执行电池合成')
     @node_from(from_name='母盘-完成', status='执行电池合成')
     @operation_node(name='打开菜单')
-    def goto_menu(self):
+    def goto_menu(self) -> OperationRoundResult:
         op = GotoMenu(self.ctx)
         return self.round_by_op_result(op.execute())
 
@@ -242,7 +236,7 @@ class AutoSyntheticApp(ZApplication):
 
         return self.round_retry(wait=1)
 
-    def battery_select_number(self, number):
+    def battery_select_number(self, number: int) -> None:
         # 先找到目标区域
         area = self.ctx.screen_loader.get_area('仓库-材料道具-道具处理', '按钮-增加')
         if not area:
@@ -303,7 +297,7 @@ class AutoSyntheticApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
 
-def __debug():
+def __debug() -> None:
     ctx = ZContext()
     ctx.init()
     ctx.run_context.start_running()
