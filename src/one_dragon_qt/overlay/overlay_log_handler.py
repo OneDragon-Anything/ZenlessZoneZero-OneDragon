@@ -20,7 +20,11 @@ class OverlayLogHandler(logging.Handler):
         try:
             message = record.getMessage()
             if record.exc_info:
-                message = f"{message}\n{self.formatException(record.exc_info)}"
+                if self.formatter:
+                    exception_text = self.formatter.formatException(record.exc_info)
+                else:
+                    exception_text = logging.Formatter().formatException(record.exc_info)
+                message = f"{message}\n{exception_text}"
 
             event = OverlayLogEvent(
                 created=record.created,
