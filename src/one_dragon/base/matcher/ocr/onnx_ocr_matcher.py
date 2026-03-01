@@ -138,6 +138,37 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
         self._loading: bool = False
         self.overlay_debug_bus = None
 
+    @staticmethod
+    def _rect_from_anchor(anchor_position) -> tuple[int, int, int, int] | None:
+        """
+        Convert OCR detector quadrilateral points to an axis-aligned rectangle.
+
+        Some models return rotated polygons; using only point[0]/point[1]/point[3]
+        can produce shifted overlay boxes. We normalize to min/max bounds.
+        """
+        if anchor_position is None:
+            return None
+
+        try:
+            xs: list[int] = []
+            ys: list[int] = []
+            for point in anchor_position:
+                if point is None or len(point) < 2:
+                    continue
+                xs.append(int(round(float(point[0]))))
+                ys.append(int(round(float(point[1]))))
+
+            if len(xs) == 0 or len(ys) == 0:
+                return None
+
+            x1 = min(xs)
+            y1 = min(ys)
+            x2 = max(xs)
+            y2 = max(ys)
+            return x1, y1, max(1, x2 - x1), max(1, y2 - y1)
+        except Exception:
+            return None
+
     def init_model(
             self,
             download_by_github: bool = True,
@@ -262,14 +293,21 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             anchor_score = anchor[1][1]
             if anchor_score < threshold:
                 continue
+            rect = self._rect_from_anchor(anchor_position)
+            if rect is None:
+                continue
             if anchor_text not in result_map:
                 result_map[anchor_text] = MatchResultList(only_best=False)
-            result_map[anchor_text].append(MatchResult(anchor_score,
-                                                       anchor_position[0][0],
-                                                       anchor_position[0][1],
-                                                       anchor_position[1][0] - anchor_position[0][0],
-                                                       anchor_position[3][1] - anchor_position[0][1],
-                                                       data=anchor_text))
+            result_map[anchor_text].append(
+                MatchResult(
+                    anchor_score,
+                    rect[0],
+                    rect[1],
+                    rect[2],
+                    rect[3],
+                    data=anchor_text,
+                )
+            )
 
         if merge_line_distance != -1:
             result_map = ocr_utils.merge_ocr_result_to_multiple_line(result_map, join_space=True,
@@ -360,8 +398,14 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
 
         return {key: all_match_result[key] for key in match_key if key in all_match_result}
 
-    def ocr(self, image: MatLike, threshold: float = 0,
-            merge_line_distance: float = -1) -> list[OcrMatchResult]:
+    def ocr(
+            self,
+            image: MatLike,
+            threshold: float = 0,
+            merge_line_distance: float = -1,
+            overlay_offset_x: int = 0,
+            overlay_offset_y: int = 0,
+    ) -> list[OcrMatchResult]:
         """
         对图片进行OCR 返回所有识别结果
 
@@ -369,6 +413,8 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             image: 图片
             threshold: 匹配阈值
             merge_line_distance: 多少行距内合并结果 -1为不合并 理论中文情况不会出现过长分行的 这里只是为了兼容英语的情况
+            overlay_offset_x: 裁剪区域左上角在全帧中的 x 偏移，仅影响 Overlay 可视化坐标
+            overlay_offset_y: 裁剪区域左上角在全帧中的 y 偏移，仅影响 Overlay 可视化坐标
 
         Returns:
             ocr_result_list: 识别结果列表
@@ -389,13 +435,16 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             anchor_score = anchor[1][1]
             if anchor_score < threshold:
                 continue
+            rect = self._rect_from_anchor(anchor_position)
+            if rect is None:
+                continue
 
             result = OcrMatchResult(
                 anchor_score,
-                anchor_position[0][0],
-                anchor_position[0][1],
-                anchor_position[1][0] - anchor_position[0][0],
-                anchor_position[3][1] - anchor_position[0][1],
+                rect[0],
+                rect[1],
+                rect[2],
+                rect[3],
                 data=anchor_text)
             ocr_result_list.append(result)
 
@@ -403,7 +452,11 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
             pass  # TODO
 
         elapsed_ms = (time.time() - start_time) * 1000.0
-        self._emit_overlay_vision_from_ocr_results(ocr_result_list)
+        self._emit_overlay_vision_from_ocr_results(
+            ocr_result_list,
+            overlay_offset_x=overlay_offset_x,
+            overlay_offset_y=overlay_offset_y,
+        )
         self._emit_overlay_perf_and_timeline(elapsed_ms, len(ocr_result_list))
 
         if log.isEnabledFor(DEBUG):
@@ -452,7 +505,12 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                 )
                 pushed += 1
 
-    def _emit_overlay_vision_from_ocr_results(self, ocr_results: list[OcrMatchResult]) -> None:
+    def _emit_overlay_vision_from_ocr_results(
+        self,
+        ocr_results: list[OcrMatchResult],
+        overlay_offset_x: int = 0,
+        overlay_offset_y: int = 0,
+    ) -> None:
         bus = getattr(self, "overlay_debug_bus", None)
         if bus is None or not ocr_results:
             return
@@ -470,10 +528,10 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                 VisionDrawItem(
                     source="ocr",
                     label=label,
-                    x1=result.x,
-                    y1=result.y,
-                    x2=result.x + result.w,
-                    y2=result.y + result.h,
+                    x1=result.x + overlay_offset_x,
+                    y1=result.y + overlay_offset_y,
+                    x2=result.x + result.w + overlay_offset_x,
+                    y2=result.y + result.h + overlay_offset_y,
                     score=result.confidence,
                     color="#ff6ac1",
                     ttl_seconds=1.4,
