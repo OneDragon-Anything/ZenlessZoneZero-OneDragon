@@ -426,6 +426,8 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             id_check.setChecked(area_item.id_mark)
             id_check.setProperty('area_name', area_item.area_name)
             id_check.stateChanged.connect(self.on_area_id_check_changed)
+            id_check.setFixedSize(32, 32)
+            id_check.setStyleSheet(id_check.styleSheet() + 'CheckBox { margin-left: 8px; }')
 
             self.area_table.setCellWidget(idx, 0, del_btn)
             self.area_table.setCellWidget(idx, 1, id_check)
