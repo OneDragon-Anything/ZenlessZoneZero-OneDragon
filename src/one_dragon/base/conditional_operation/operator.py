@@ -155,6 +155,12 @@ class ConditionalOperator(ConditionalOperatorLoader):
                     if new_execution_info is not None:
                         log.debug(f'当前场景 主循环 当前条件 {new_execution_info.expr_display}')
                         new_execution_info.priority = self.normal_scene.priority
+                        self._emit_overlay_decision(
+                            trigger="主循环",
+                            expression=new_execution_info.expr_display,
+                            status="MATCHED",
+                            execution_info=new_execution_info,
+                        )
 
                         self.current_execution_info = new_execution_info
                         self.running_executor = OperationExecutor(
@@ -220,6 +226,12 @@ class ConditionalOperator(ConditionalOperatorLoader):
             self._stop_running_task()
 
             log.debug(f'当前场景 {state_name} 当前条件 {new_execution_info.expr_display}')
+            self._emit_overlay_decision(
+                trigger=state_name,
+                expression=new_execution_info.expr_display,
+                status="TRIGGERED",
+                execution_info=new_execution_info,
+            )
 
             new_execution_info.trigger = state_name
             self.current_execution_info = new_execution_info
@@ -339,6 +351,95 @@ class ConditionalOperator(ConditionalOperatorLoader):
                         log.debug('复合中断条件满足，执行中断')
                 if interrupt:
                     self._stop_running_task()
+                    self._emit_overlay_timeline(
+                        category="decision",
+                        title="触发中断",
+                        detail="复合中断条件满足",
+                        level="WARNING",
+                        ttl_seconds=30.0,
+                    )
+
+    def _emit_overlay_decision(
+        self,
+        trigger: str,
+        expression: str,
+        status: str,
+        execution_info: ExecutionInfo,
+    ) -> None:
+        bus = self._get_overlay_debug_bus()
+        if bus is None:
+            return
+
+        op_name = self._op_list_summary(execution_info)
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import (
+                DecisionTraceItem,
+                TimelineItem,
+            )
+        except Exception:
+            return
+
+        bus.add_decision(
+            DecisionTraceItem(
+                source=self.__class__.__name__,
+                trigger=trigger,
+                expression=expression,
+                operation=op_name,
+                status=status,
+                ttl_seconds=40.0,
+            )
+        )
+        bus.add_timeline(
+            TimelineItem(
+                category="decision",
+                title=trigger,
+                detail=f"{expression} -> {op_name} [{status}]",
+                level="INFO",
+                ttl_seconds=40.0,
+            )
+        )
+
+    def _emit_overlay_timeline(
+        self,
+        category: str,
+        title: str,
+        detail: str,
+        level: str,
+        ttl_seconds: float,
+    ) -> None:
+        bus = self._get_overlay_debug_bus()
+        if bus is None:
+            return
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import TimelineItem
+        except Exception:
+            return
+        bus.add_timeline(
+            TimelineItem(
+                category=category,
+                title=title,
+                detail=detail,
+                level=level,
+                ttl_seconds=ttl_seconds,
+            )
+        )
+
+    @staticmethod
+    def _op_list_summary(execution_info: ExecutionInfo) -> str:
+        names = [getattr(op, "op_name", "-") for op in execution_info.op_list[:3]]
+        if len(execution_info.op_list) > 3:
+            names.append("...")
+        return " | ".join(str(i) for i in names) if names else "-"
+
+    def _get_overlay_debug_bus(self):
+        owner = getattr(self, "ctx", None)
+        if owner is not None:
+            if hasattr(owner, "overlay_debug_bus"):
+                return owner.overlay_debug_bus
+            nested = getattr(owner, "ctx", None)
+            if nested is not None and hasattr(nested, "overlay_debug_bus"):
+                return nested.overlay_debug_bus
+        return None
 
     @staticmethod
     def after_app_shutdown() -> None:

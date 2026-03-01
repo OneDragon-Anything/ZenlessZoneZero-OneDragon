@@ -5,6 +5,7 @@ from enum import Enum
 from functools import cached_property
 from pathlib import Path
 
+import cv2
 from pynput import keyboard
 
 from one_dragon.base.config.basic_model_config import BasicModelConfig
@@ -27,6 +28,7 @@ from one_dragon.base.operation.application.application_run_context import (
 from one_dragon.base.operation.application.plugin_info import PluginSource
 from one_dragon.base.operation.context_event_bus import ContextEventBus
 from one_dragon.base.operation.context_lazy_signal import ContextLazySignal
+from one_dragon.base.operation.overlay_debug_bus import OverlayDebugBus
 from one_dragon.base.operation.one_dragon_env_context import (
     ONE_DRAGON_CONTEXT_EXECUTOR,
     OneDragonEnvContext,
@@ -59,10 +61,12 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if self.one_dragon_config.current_active_instance is None:
             self.one_dragon_config.create_new_instance(True)
         self.current_instance_idx = self.one_dragon_config.current_active_instance.idx
+        self.overlay_debug_bus: OverlayDebugBus = OverlayDebugBus()
 
         self.screen_loader: ScreenContext = ScreenContext()
         self.template_loader: TemplateLoader = TemplateLoader()
         self.tm: TemplateMatcher = TemplateMatcher(self.template_loader)
+        self.tm.overlay_debug_bus = self.overlay_debug_bus
 
         self.ocr: OcrMatcher = OnnxOcrMatcher(
             OnnxOcrParam(
@@ -70,6 +74,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
                 det_limit_side_len=max(self.project_config.screen_standard_width, self.project_config.screen_standard_height),
             )
         )
+        self.ocr.overlay_debug_bus = self.overlay_debug_bus
         self.ocr_service: OcrService = OcrService(ocr_matcher=self.ocr)
         self.controller: ControllerBase | None = None
 
@@ -344,7 +349,68 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         if self.controller.game_win is not None:
             self.controller.game_win.active()
         _, img = self.controller.screenshot(independent=True)
-        debug_utils.save_debug_image(img, copy_screenshot=copy_screenshot)
+        base_file_name = debug_utils.save_debug_image(img, copy_screenshot=copy_screenshot)
+        self._save_overlay_patched_image(img, base_file_name)
+
+    def _save_overlay_patched_image(self, base_image, base_file_name: str) -> None:
+        try:
+            from one_dragon_qt.overlay.overlay_config import OverlayConfig
+        except Exception:
+            return
+
+        config = OverlayConfig()
+        if not config.patched_capture_enabled:
+            return
+
+        overlay_rgba = self._capture_overlay_rgba()
+        if overlay_rgba is None:
+            return
+
+        patched = self._compose_overlay_patched_image(base_image, overlay_rgba)
+        if patched is None:
+            return
+
+        debug_utils.save_debug_image(
+            patched,
+            file_name=f"{base_file_name}{config.patched_capture_suffix}",
+            copy_screenshot=False,
+        )
+
+    @staticmethod
+    def _compose_overlay_patched_image(base_image, overlay_rgba):
+        if base_image is None or overlay_rgba is None:
+            return None
+        if len(overlay_rgba.shape) != 3 or overlay_rgba.shape[2] < 4:
+            return None
+
+        target_h, target_w = base_image.shape[:2]
+        if target_h <= 0 or target_w <= 0:
+            return None
+
+        if overlay_rgba.shape[0] != target_h or overlay_rgba.shape[1] != target_w:
+            overlay_rgba = cv2.resize(
+                overlay_rgba,
+                (target_w, target_h),
+                interpolation=cv2.INTER_LINEAR,
+            )
+
+        overlay_rgb = overlay_rgba[:, :, :3].astype("float32")
+        overlay_bgr = overlay_rgb[:, :, ::-1]  # RGBA -> BGR 通道顺序
+        alpha = (overlay_rgba[:, :, 3:4].astype("float32") / 255.0).clip(0.0, 1.0)
+        base_rgb = base_image.astype("float32")
+        patched = base_rgb * (1.0 - alpha) + overlay_bgr * alpha
+        return patched.astype("uint8")
+
+    @staticmethod
+    def _capture_overlay_rgba():
+        try:
+            from one_dragon_qt.overlay.overlay_manager import OverlayManager
+        except Exception:
+            return None
+        manager = OverlayManager.instance()
+        if manager is None:
+            return None
+        return manager.capture_overlay_rgba()
 
     def switch_instance(self, instance_idx: int) -> None:
         """
@@ -411,3 +477,4 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         StateRecordService.after_app_shutdown()
         from one_dragon.utils import gpu_executor
         gpu_executor.shutdown(wait=False)
+        self.overlay_debug_bus.clear()

@@ -174,7 +174,13 @@ class OcrService:
             # 执行OCR
             if crop_first and rect is not None:
                 crop_image, crop_rect = cv2_utils.crop_image(processed_image, rect)
-                ocr_result_list = self.ocr_matcher.ocr(crop_image, threshold, merge_line_distance)
+                ocr_result_list = self.ocr_matcher.ocr(
+                    crop_image,
+                    threshold,
+                    merge_line_distance,
+                    overlay_offset_x=crop_rect.x1,
+                    overlay_offset_y=crop_rect.y1,
+                )
                 for ocr_result in ocr_result_list:
                     ocr_result.add_offset(crop_rect.left_top)
             else:

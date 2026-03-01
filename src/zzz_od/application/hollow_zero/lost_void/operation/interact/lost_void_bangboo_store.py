@@ -139,7 +139,7 @@ class LostVoidBangbooStore(ZOperation):
         mask = cv2.inRange(part, (200, 200, 200), (255, 255, 255))
         mask = cv2_utils.dilate(mask, 2)
         to_ocr = cv2.bitwise_and(part, part, mask=mask)
-        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
+        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
         for ocr_result, mrl in ocr_result_map.items():
             price = str_utils.get_positive_digits(ocr_result)
             if price is None:
@@ -156,7 +156,7 @@ class LostVoidBangbooStore(ZOperation):
         mask = cv2.inRange(part, (200, 200, 200), (255, 255, 255))
         mask = cv2_utils.dilate(mask, 2)
         to_ocr = cv2.bitwise_and(part, part, mask=mask)
-        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
+        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
         for ocr_result, mrl in ocr_result_map.items():
             if not str_utils.find_by_lcs(gt('购买', 'game'), ocr_result):
                 continue
@@ -182,7 +182,7 @@ class LostVoidBangbooStore(ZOperation):
 
         area = self.ctx.screen_loader.get_area('迷失之地-邦布商店', '区域-角色头像')
         part = cv2_utils.crop_image_only(screen, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.run_ocr(part, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
         for ocr_result, mrl in ocr_result_map.items():
             blood = str_utils.get_positive_digits(ocr_result)
             if blood is None:

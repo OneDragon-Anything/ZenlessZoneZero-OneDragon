@@ -274,7 +274,7 @@ class RandomPlayApp(ZApplication):
         """
         area = self.ctx.screen_loader.get_area('影像店营业', '主题筛选')
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_results = self.ctx.ocr.run_ocr(part)
+        ocr_results = self.ctx.ocr.run_ocr(part, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
 
         target_list = [gt(i, 'game') for i in self._all_video_themes]
         current_target = self._need_video_themes[self._current_idx - 1]
