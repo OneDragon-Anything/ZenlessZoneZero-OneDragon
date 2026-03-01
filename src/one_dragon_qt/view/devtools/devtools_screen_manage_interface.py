@@ -1,5 +1,8 @@
+import ast
 import os
+from collections.abc import Callable
 from contextlib import suppress
+from dataclasses import dataclass
 from typing import Any
 
 from PySide6.QtCore import QObject, Qt, Signal
@@ -57,22 +60,32 @@ class ScreenInfoWorker(QObject):
     signal = Signal()
 
 
-AREA_FIELD_2_COLUMN: dict[str, int] = {
-    '操作': 0,
-    '标识': 1,
-    '区域名称': 2,
-    '位置': 3,
-    '文本': 4,
-    '阈值1': 5,
-    '模板目录': 6,
-    '模板ID': 7,
-    '阈值2': 8,
-    '颜色范围': 9,
-    '前往画面': 10,
-}
+@dataclass
+class ColumnMeta:
+    """表格列元数据"""
+    display_name: str
+    attr_name: str | None = None
+    parser: Callable[[str], Any] | None = None
+    width: int | None = None  # None = 自动宽度
 
 
 class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
+
+    AREA_COLUMNS: list[ColumnMeta] = [
+        ColumnMeta('操作', width=40),
+        ColumnMeta('标识', width=40),
+        ColumnMeta('区域名称', 'area_name', lambda x: x),
+        ColumnMeta('位置', 'pc_rect', lambda x: Rect(*([int(i) for i in x[1:-1].split(',')] + [0, 0, 0, 0])[:4]), 200),
+        ColumnMeta('文本', 'text', lambda x: x),
+        ColumnMeta('阈值1', 'lcs_percent', lambda x: float(x) if x else 0.5, 70),
+        ColumnMeta('模板目录', 'template_sub_dir', lambda x: x),
+        ColumnMeta('模板ID', 'template_id', lambda x: x),
+        ColumnMeta('阈值2', 'template_match_threshold', lambda x: float(x) if x else 0.7, 70),
+        ColumnMeta('颜色范围', 'color_range', lambda x: ast.literal_eval(x) if x.strip() else None),
+        ColumnMeta('前往画面', 'goto_list', lambda x: [i.strip() for i in x.split(',') if i.strip()]),
+    ]
+
+    AREA_FIELD_2_COLUMN: dict[str, int] = {col.display_name: idx for idx, col in enumerate(AREA_COLUMNS)}
 
     def __init__(self, ctx: OneDragonContext, parent=None):
         VerticalScrollInterface.__init__(
@@ -227,17 +240,12 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.area_table.setBorderVisible(True)
         self.area_table.setBorderRadius(8)
         self.area_table.setWordWrap(True)
-        self.area_table.setColumnCount(len(AREA_FIELD_2_COLUMN))
+        self.area_table.setColumnCount(len(self.AREA_COLUMNS))
         self.area_table.verticalHeader().hide()
-        self.area_table.setHorizontalHeaderLabels([
-            gt(key)
-            for key in AREA_FIELD_2_COLUMN
-        ])
-        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['操作'], 40)
-        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['标识'], 40)
-        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['位置'], 200)
-        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['阈值1'], 70)
-        self.area_table.setColumnWidth(AREA_FIELD_2_COLUMN['阈值2'], 70)
+        self.area_table.setHorizontalHeaderLabels([gt(col.display_name) for col in self.AREA_COLUMNS])
+        for idx, col in enumerate(self.AREA_COLUMNS):
+            if col.width is not None:
+                self.area_table.setColumnWidth(idx, col.width)
 
         # 让表格宽度始终等于所有列宽之和
         self._sync_table_width()
@@ -700,22 +708,14 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         area_item = self.chosen_screen.area_list[row]
         text = self.area_table.item(row, column).text().strip()
 
-        # 列映射：列索引 -> (属性名, 处理函数)
-        column_handlers = {
-            AREA_FIELD_2_COLUMN['区域名称']: ('area_name', lambda x: x),
-            AREA_FIELD_2_COLUMN['位置']: ('pc_rect', self._parse_rect_from_text),
-            AREA_FIELD_2_COLUMN['文本']: ('text', lambda x: x),
-            AREA_FIELD_2_COLUMN['阈值1']: ('lcs_percent', lambda x: float(x) if len(x) > 0 else 0.5),
-            AREA_FIELD_2_COLUMN['模板目录']: ('template_sub_dir', lambda x: x),
-            AREA_FIELD_2_COLUMN['模板ID']: ('template_id', lambda x: x),
-            AREA_FIELD_2_COLUMN['阈值2']: ('template_match_threshold', lambda x: float(x) if len(x) > 0 else 0.7),
-            AREA_FIELD_2_COLUMN['颜色范围']: ('color_range', self._parse_color_range_from_text),
-            AREA_FIELD_2_COLUMN['前往画面']: ('goto_list', lambda x: [i.strip() for i in x.split(',') if i.strip()])
-        }
-        if column not in column_handlers:
+        # 直接从 AREA_COLUMNS 获取属性名和解析器
+        if column >= len(self.AREA_COLUMNS):
             return
-
-        attr_name, handler = column_handlers[column]
+        col_meta = self.AREA_COLUMNS[column]
+        if col_meta.attr_name is None:
+            return
+        attr_name = col_meta.attr_name
+        handler = col_meta.parser
 
         # 记录修改前的状态
         if attr_name == 'pc_rect':
@@ -746,24 +746,6 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             'new_value': text
         }
         self._add_history_record(table_change)
-
-    def _parse_rect_from_text(self, text: str) -> Rect:
-        """解析文本为矩形对象"""
-        num_list = [int(i) for i in text[1:-1].split(',')]
-        while len(num_list) < 4:
-            num_list.append(0)
-        return Rect(num_list[0], num_list[1], num_list[2], num_list[3])
-
-    def _parse_color_range_from_text(self, text: str):
-        """解析颜色范围文本"""
-        try:
-            import json
-            arr = json.loads(text)
-            if isinstance(arr, list):
-                return arr
-        except Exception:
-            pass
-        return None
 
     def _on_image_left_clicked(self, x: int, y: int) -> None:
         """
@@ -805,7 +787,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._add_history_record(rect_change)
 
         self.area_table.blockSignals(True)
-        self.area_table.item(self.area_table_row_selected, AREA_FIELD_2_COLUMN['位置']).setText(f'({x1}, {y1}, {x2}, {y2})')
+        self.area_table.item(self.area_table_row_selected, self.AREA_FIELD_2_COLUMN['位置']).setText(f'({x1}, {y1}, {x2}, {y2})')
         self.area_table.blockSignals(False)
 
         area_item.pc_rect = Rect(x1, y1, x2, y2)
@@ -898,7 +880,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
             # 更新表格显示
             self.area_table.blockSignals(True)
-            self.area_table.item(row_index, AREA_FIELD_2_COLUMN['位置']).setText(f'({old_rect.x1}, {old_rect.y1}, {old_rect.x2}, {old_rect.y2})')
+            self.area_table.item(row_index, self.AREA_FIELD_2_COLUMN['位置']).setText(f'({old_rect.x1}, {old_rect.y1}, {old_rect.x2}, {old_rect.y2})')
             self.area_table.blockSignals(False)
 
             # 更新图像显示
@@ -924,14 +906,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             area_item = self.chosen_screen.area_list[row_index]
 
             # 将文本恢复为正确类型
-            redo_parsers: dict[str, Any] = {
-                'pc_rect': self._parse_rect_from_text,
-                'lcs_percent': lambda x: float(x) if x else 0.5,
-                'template_match_threshold': lambda x: float(x) if x else 0.7,
-                'goto_list': lambda x: [i.strip() for i in x.split(',') if i.strip()],
-                'color_range': self._parse_color_range_from_text,
-            }
-            parser = redo_parsers.get(change_type)
+            parser = next((col.parser for col in self.AREA_COLUMNS if col.attr_name == change_type), None)
             parsed = parser(new_value) if parser else new_value
             setattr(area_item, change_type, parsed)
 
@@ -956,7 +931,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
             # 更新表格显示
             self.area_table.blockSignals(True)
-            self.area_table.item(row_index, AREA_FIELD_2_COLUMN['位置']).setText(f'({new_rect.x1}, {new_rect.y1}, {new_rect.x2}, {new_rect.y2})')
+            self.area_table.item(row_index, self.AREA_FIELD_2_COLUMN['位置']).setText(f'({new_rect.x1}, {new_rect.y1}, {new_rect.x2}, {new_rect.y2})')
             self.area_table.blockSignals(False)
 
             # 更新图像显示
