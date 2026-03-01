@@ -1,7 +1,7 @@
 import time
 from typing import ClassVar
-
 import cv2
+from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult, MatchResultList
@@ -35,7 +35,6 @@ from zzz_od.operation.deploy import Deploy
 
 
 class LostVoidApp(ZApplication):
-
     STATUS_ENOUGH_TIMES: ClassVar[str] = '完成通关次数'
     STATUS_AGAIN: ClassVar[str] = '继续挑战'
     STATUS_AGAIN_MATRIX: ClassVar[str] = '继续挑战-矩阵行动'
@@ -215,6 +214,8 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='矩阵行动-点击下一步')
     @operation_node(name='矩阵行动-点击预备编队')
     def matrix_click_preset_team(self) -> OperationRoundResult:
+        if self.ctx.lost_void.challenge_config.manually_choose_agent:
+            return self.round_success('手动选取角色')
         area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '预备编队')
         if area is not None:
             part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
@@ -235,7 +236,7 @@ class LostVoidApp(ZApplication):
         return self.round_retry(status='点击预备编队失败', wait=0.5)
 
     @node_from(from_name='矩阵行动-点击预备编队')
-    @operation_node(name='矩阵行动-选择配队')
+    @operation_node(name='矩阵行动-选择预备编队')
     def matrix_select_team(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '编队列表')
         main_team_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '主战编队槽')
@@ -327,7 +328,76 @@ class LostVoidApp(ZApplication):
 
         return self.round_retry(f'未找到{team_name}', wait=0.1)
 
-    @node_from(from_name='矩阵行动-选择配队')
+    @node_from(from_name='矩阵行动-点击预备编队', status='手动选取角色')
+    @operation_node(name='矩阵行动-选择代理人')
+    def matrix_select_agent(self) -> OperationRoundResult:
+        # 代理人列表
+        agent_list_str = [self.ctx.lost_void.challenge_config.agent_1,
+                          self.ctx.lost_void.challenge_config.agent_2,
+                          self.ctx.lost_void.challenge_config.agent_3]
+        # agent_list_str = ['anby', 'yeshunguang', 'ellen']
+        # 记录角色在第几页的哪个位置
+        agent_page_match_list: list[[int, Point] | None] = [None] * len(agent_list_str)
+
+        # 1. 从屏幕右上半边去掉人
+        top_right_half_screen = self.last_screenshot[:self.ctx.controller.standard_width // 2,
+                                self.ctx.controller.standard_width // 2:, :]
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(top_right_half_screen)
+        # 检测是否出现"主战"
+        for ocr_text in ocr_result_list:
+            if '主战' in ocr_text.data:
+                self.ctx.controller.click(ocr_text.center + Point(self.ctx.controller.standard_width // 2, 0))
+                time.sleep(0.5)
+
+        # 2. 找人
+        found = 0
+        # 滑动翻页点位
+        page_start = Point(self.ctx.controller.standard_width // 4, self.ctx.controller.standard_height // 4 * 3)
+        page_end = Point(self.ctx.controller.standard_width // 4, self.ctx.controller.standard_height // 4)
+        max_swipe_times = 5
+        for page in range(max_swipe_times):
+            # 从取屏幕左半边选人
+            left_half_screen = self.last_screenshot[:, :self.ctx.controller.standard_width // 2, :]
+            agent_mr_list = self._match_quick_assist_agent_in(left_half_screen, agent_list_str)
+            # 匹配人
+            for agent_idx in range(len(agent_list_str)):
+                if agent_page_match_list[agent_idx] is not None:
+                    continue
+                for match_idx in range(len(agent_mr_list)):
+                    if agent_list_str[agent_idx] == agent_mr_list[match_idx].data.agent_id:
+                        agent_page_match_list[agent_idx] = [page, agent_mr_list[match_idx].center]
+                        found += 1
+                        break
+            if found == len(agent_list_str):
+                # 角色定位齐了, 可以选角色了
+                break
+            # 后面一页继续找
+            self.swipe_multiple_times(1, 1, page_start, page_end)
+            self.screenshot()
+
+        # 未找齐代理人
+        if found < len(agent_list_str):
+            self.swipe_multiple_times(max_swipe_times, 0.2, page_end, page_start)
+            return self.round_retry('未找齐代理人')
+
+        # 3. 选人
+        self.swipe_multiple_times(1 + page, 0.2, page_end, page_start)
+        for agent_loc in range(len(agent_page_match_list)):
+            self.swipe_multiple_times(agent_page_match_list[agent_loc][0], 0.2, page_start, page_end)
+            self.ctx.controller.click(agent_page_match_list[agent_loc][1])
+            time.sleep(0.5)
+            self.swipe_multiple_times(1 + agent_page_match_list[agent_loc][0], 0.2, page_end, page_start)
+
+        return self.round_success()
+
+    # 滑动x次
+    def swipe_multiple_times(self, swipe_num, wait, start, end) -> None:
+        for _ in range(swipe_num):
+            self.ctx.controller.drag_to(start=start, end=end)
+            time.sleep(wait)
+
+    @node_from(from_name='矩阵行动-选择预备编队')
+    @node_from(from_name='矩阵行动-选择代理人')
     @operation_node(name='矩阵行动-点击协助代理人')
     def matrix_click_support_agent(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
@@ -509,7 +579,6 @@ class LostVoidApp(ZApplication):
         return self.round_by_click_area('迷失之地-战线肃清', '按钮-调查战略',
                                         success_wait=1, retry_wait=1)
 
-
     @node_from(from_name='打开调查战略列表')
     @operation_node(name='选择调查战略')
     def choose_strategy(self) -> OperationRoundResult:
@@ -531,6 +600,39 @@ class LostVoidApp(ZApplication):
         # 原有逻辑
         else:
             return self._choose_strategy_by_ocr()
+
+    def _match_quick_assist_agent_in(self, img: MatLike, agent_list_str: list[str]) -> list[MatchResult]:
+        """
+        匹配左边代理人头像, 选择队伍
+        """
+        source_kp, source_desc = cv2_utils.feature_detect_and_compute(img)
+        agent_mr_list = []
+
+        for agent_enum in AgentEnum:
+            agent: Agent = agent_enum.value
+            if agent.agent_id not in agent_list_str:
+                continue
+            # region todo 代码和 PredefinedTeamChecker 重复, 合并至主分支前可以提取函数
+            for template_id in agent.template_id_list:
+                template = self.ctx.template_loader.get_template('predefined_team', f'avatar_{template_id}')
+                if template is None:
+                    continue
+                template_kp, template_desc = template.features
+                mr = cv2_utils.feature_match_for_one(
+                    source_kp, source_desc, template_kp, template_desc,
+                    template_width=template.raw.shape[1], template_height=template.raw.shape[0],
+                    knn_distance_percent=0.5
+                )
+
+                if mr is None:
+                    continue
+
+                agent_mr = mr
+                agent_mr.data = agent
+                agent_mr_list.append(agent_mr)
+            # endregion
+
+        return agent_mr_list
 
     def _choose_strategy_by_chase_new_mode(self) -> OperationRoundResult:
         """
@@ -710,7 +812,7 @@ class LostVoidApp(ZApplication):
         if mission_name == '特遣调查':
             # 本周第一次挑战 且开启了优先级配队
             if (self.ctx.lost_void.challenge_config.choose_team_by_priority
-                and self.run_record.complete_task_force_with_up == False):
+                    and not self.run_record.complete_task_force_with_up):
                 self.ctx.lost_void.predefined_team_idx = self.get_target_team_idx_by_priority()
                 if self.ctx.lost_void.predefined_team_idx != -1:
                     self.use_priority_agent = True
