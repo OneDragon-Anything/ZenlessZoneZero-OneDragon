@@ -69,6 +69,7 @@ class LogPanel(ResizablePanel):
         self._font_size = max(10, min(28, int(font_size)))
         self._panel_opacity = max(20, min(100, int(panel_opacity)))
         self.set_panel_opacity(self._panel_opacity)
+        self.setWindowOpacity(self._panel_opacity / 100.0)
         self._text_widget.set_appearance(self._font_size)
         self._render()
         self._sync_toolbar_state()
