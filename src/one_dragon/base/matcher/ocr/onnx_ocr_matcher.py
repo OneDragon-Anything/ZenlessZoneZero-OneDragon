@@ -276,12 +276,7 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                                                                      merge_line_distance=merge_line_distance)
 
         elapsed_ms = (time.time() - start_time) * 1000.0
-        self._emit_overlay_vision(result_map)
-        # 修正 Overlay 可视化坐标（仅影响 debug bus 中的 VisionDrawItem，不改 MatchResult）
-        if overlay_offset_x != 0 or overlay_offset_y != 0:
-            bus = getattr(self, "overlay_debug_bus", None)
-            if bus is not None:
-                bus.offset_recent_vision("ocr", overlay_offset_x, overlay_offset_y)
+        self._emit_overlay_vision(result_map, overlay_offset_x, overlay_offset_y)
         self._emit_overlay_perf_and_timeline(elapsed_ms, len(result_map))
 
         if log.isEnabledFor(DEBUG):
@@ -416,7 +411,12 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
 
         return ocr_result_list
 
-    def _emit_overlay_vision(self, result_map: dict[str, MatchResultList]) -> None:
+    def _emit_overlay_vision(
+        self,
+        result_map: dict[str, MatchResultList],
+        overlay_offset_x: int = 0,
+        overlay_offset_y: int = 0,
+    ) -> None:
         bus = getattr(self, "overlay_debug_bus", None)
         if bus is None or not result_map:
             return
@@ -441,10 +441,10 @@ class OnnxOcrMatcher(OcrMatcher, ZipDownloader):
                     VisionDrawItem(
                         source="ocr",
                         label=label,
-                        x1=match.x,
-                        y1=match.y,
-                        x2=match.x + match.w,
-                        y2=match.y + match.h,
+                        x1=match.x + overlay_offset_x,
+                        y1=match.y + overlay_offset_y,
+                        x2=match.x + match.w + overlay_offset_x,
+                        y2=match.y + match.h + overlay_offset_y,
                         score=match.confidence,
                         color="#ff6ac1",
                         ttl_seconds=1.4,
