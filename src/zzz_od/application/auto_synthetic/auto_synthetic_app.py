@@ -20,7 +20,7 @@ class AutoSyntheticApp(ZApplication):
     TASK_HIFI_MASTER = '母盘合成'
     TASK_ETHER_BATTERY = '电池合成'
 
-    def __init__(self, ctx: ZContext):
+    def __init__(self, ctx: ZContext) -> None:
         ZApplication.__init__(
             self,
             ctx=ctx,
@@ -89,7 +89,7 @@ class AutoSyntheticApp(ZApplication):
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='母盘-传送')
-    @operation_node(name='母盘-等待加载')
+    @operation_node(name='母盘-等待加载', node_max_retry_times=60)
     def hifi_wait_loading(self) -> OperationRoundResult:
         """等待加载"""
         result = self.round_by_find_area(self.last_screenshot, '音像店', '合成')
@@ -126,8 +126,6 @@ class AutoSyntheticApp(ZApplication):
     @operation_node(name='母盘-识别界面')
     def hifi_check_ui(self) -> OperationRoundResult:
         """识别界面"""
-        time.sleep(1)
-        self.screenshot()
 
         result = self.round_by_find_area(self.last_screenshot, '音像店', '母盘合成')
         if result.is_success:
@@ -219,14 +217,21 @@ class AutoSyntheticApp(ZApplication):
         if result.is_success:
             time.sleep(0.5)
             max_clicks = self._max_source_ether_battery_synthetic_quantity - 1
+            clicks = 0
             if self.config.source_ether_battery_auto_synthetic_quantity == '两个':
                 self.battery_select_number(min(1, max_clicks))
+                clicks = min(1, max_clicks)
             elif self.config.source_ether_battery_auto_synthetic_quantity == '三个':
                 self.battery_select_number(min(2, max_clicks))
+                clicks = min(2, max_clicks)
             elif self.config.source_ether_battery_auto_synthetic_quantity == '四个':
                 self.battery_select_number(min(3, max_clicks))
+                clicks = min(3, max_clicks)
             elif self.config.source_ether_battery_auto_synthetic_quantity == '全部':
                 self.battery_select_number(max_clicks)
+                clicks = max_clicks
+            if clicks > 0 and not self.battery_select_number(clicks):
+                return self.round_retry(status='未找到数量增加按钮', wait=1)
             return self.round_success(status='可合成')
 
         result = self.round_by_find_area(self.last_screenshot, '仓库-材料道具-道具处理', '图像-以太电池')
@@ -236,16 +241,17 @@ class AutoSyntheticApp(ZApplication):
 
         return self.round_retry(wait=1)
 
-    def battery_select_number(self, number: int) -> None:
+    def battery_select_number(self, number: int) -> bool:
         # 先找到目标区域
         area = self.ctx.screen_loader.get_area('仓库-材料道具-道具处理', '按钮-增加')
         if not area:
-            return
+            return False
 
         # 多次点击
         for _ in range(number):
             self.ctx.controller.click(area.center)
             time.sleep(0.2)  # 每次点击间隔
+        return True
 
     @node_from(from_name='电池-选择电池', status='可合成')
     @operation_node(name='电池-执行合成')
