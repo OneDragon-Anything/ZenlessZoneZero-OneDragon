@@ -1,6 +1,6 @@
 import difflib
 import time
-from typing import ClassVar, List, Optional
+from typing import ClassVar
 
 from cv2.typing import MatLike
 
@@ -50,11 +50,11 @@ class RandomPlayApp(ZApplication):
         执行前的初始化 由子类实现
         注意初始化要全面 方便一个指令重复使用
         """
-        self._all_video_themes: List[str] = [
+        self._all_video_themes: list[str] = [
             '纪实', '怀旧', '冒险', '幻想', '喜剧', '动作', '惊悚', '悬疑',
             '访谈', '都市', '时尚', '灾难', '悲剧', '亲情', '广告', '爱情',
         ]
-        self._need_video_themes: List[str] = []
+        self._need_video_themes: list[str] = []
         self._current_idx: int = 0
 
     @operation_node(name='传送', is_start_node=True)
@@ -130,19 +130,15 @@ class RandomPlayApp(ZApplication):
         dt = self.run_record.get_current_dt()
         idx = (int(dt[-1]) % 2) + 1
 
-        if (RANDOM_AGENT_NAME == target_agent_name_1
-                or RANDOM_AGENT_NAME == target_agent_name_2):
+        if RANDOM_AGENT_NAME in (target_agent_name_1, target_agent_name_2):
             # 随机选择
-            self.round_by_click_area('影像店营业', '宣传员-%d' % idx)
+            self.round_by_click_area('影像店营业', f'宣传员-{idx}')
             time.sleep(0.5)
 
             return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
 
         area = self.ctx.screen_loader.get_area('影像店营业', '宣传员列表')
-        if idx == 1:
-            target_agent_name = target_agent_name_1
-        else:
-            target_agent_name = target_agent_name_2
+        target_agent_name = target_agent_name_1 if idx == 1 else target_agent_name_2
 
         # 使用名称匹配
         result = self.round_by_ocr_and_click(self.last_screenshot, target_agent_name, area=area,
@@ -164,14 +160,14 @@ class RandomPlayApp(ZApplication):
         self.ctx.controller.drag_to(start=start_point, end=end_point)
         return self.round_retry(result.status, wait=0.5)
 
-    def get_pos_by_avatar(self, screen: MatLike, target_agent_name: str) -> Optional[MatchResult]:
+    def get_pos_by_avatar(self, screen: MatLike, target_agent_name: str) -> MatchResult | None:
         """
         根据头像匹配
         @param screen: 游戏画面
         @param target_agent_name: 需要选择的代理人名称
         @return:
         """
-        agent: Optional[Agent] = None
+        agent: Agent | None = None
         for agent_enum in AgentEnum:
             if agent_enum.value.agent_name == target_agent_name:
                 agent = agent_enum.value
@@ -212,7 +208,7 @@ class RandomPlayApp(ZApplication):
 
             results = difflib.get_close_matches(ocr_result, target_list, n=1)
 
-            if results is not None and len(results) > 0:
+            if len(results) > 0:
                 idx = target_list.index(results[0])
                 self._need_video_themes.append(self._all_video_themes[idx])
 
@@ -224,7 +220,7 @@ class RandomPlayApp(ZApplication):
                 continue
             self._need_video_themes.append(theme)
 
-        log.info('所需主题 %s'  % self._need_video_themes)
+        log.info(f'所需主题 {self._need_video_themes}')
         return self.round_success()
 
     @node_from(from_name='识别录像带主题')
@@ -285,7 +281,7 @@ class RandomPlayApp(ZApplication):
 
             results = difflib.get_close_matches(ocr_str, target_list, n=1)
 
-            if results is None or len(results) == 0:
+            if not results:
                 continue
 
             idx = target_list.index(results[0])
@@ -303,7 +299,7 @@ class RandomPlayApp(ZApplication):
         start = area.center
         end = start + Point(0, -100)
         self.ctx.controller.drag_to(start=start, end=end)
-        return self.round_retry(status='未找到%s' % current_target, wait=1)
+        return self.round_retry(status=f'未找到{current_target}', wait=1)
 
     @node_from(from_name='选择主题')
     @operation_node(name='上架')
