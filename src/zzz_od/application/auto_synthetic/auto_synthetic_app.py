@@ -218,14 +218,15 @@ class AutoSyntheticApp(ZApplication):
         result = self.round_by_find_area(self.last_screenshot, '仓库-材料道具-道具处理', '文本-以太电池')
         if result.is_success:
             time.sleep(0.5)
+            max_clicks = self._max_source_ether_battery_synthetic_quantity - 1
             if self.config.source_ether_battery_auto_synthetic_quantity == '两个':
-                self.battery_select_number(1)
+                self.battery_select_number(min(1, max_clicks))
             elif self.config.source_ether_battery_auto_synthetic_quantity == '三个':
-                self.battery_select_number(2)
+                self.battery_select_number(min(2, max_clicks))
             elif self.config.source_ether_battery_auto_synthetic_quantity == '四个':
-                self.battery_select_number(3)
+                self.battery_select_number(min(3, max_clicks))
             elif self.config.source_ether_battery_auto_synthetic_quantity == '全部':
-                self.battery_select_number(self._max_source_ether_battery_synthetic_quantity - 1)
+                self.battery_select_number(max_clicks)
             return self.round_success(status='可合成')
 
         result = self.round_by_find_area(self.last_screenshot, '仓库-材料道具-道具处理', '图像-以太电池')
@@ -242,7 +243,7 @@ class AutoSyntheticApp(ZApplication):
             return
 
         # 多次点击
-        for i in range(number):
+        for _ in range(number):
             self.ctx.controller.click(area.center)
             time.sleep(0.2)  # 每次点击间隔
 
