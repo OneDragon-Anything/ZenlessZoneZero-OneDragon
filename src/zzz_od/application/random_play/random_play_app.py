@@ -83,11 +83,11 @@ class RandomPlayApp(ZApplication):
         result = self.round_by_find_area(self.last_screenshot, '影像店营业', '昨日账本')
         if result.is_success:
             return self.round_by_click_area('影像店营业', '返回',
-                                            success_wait=1, retry_wait=1)
+                                            retry_wait=1)
         # 看看经营状况，识别到就点击一下，保证在"经营状况"分支
         # 因为二次运行时，有极低概率"无人咨询"变成"咨询中"并被默认跳转
         return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '经营状况',
-                                                 success_wait=1, retry_wait=1)
+                                                 retry_wait=1)
 
     @node_from(from_name='等待经营画面加载')
     @operation_node(name='识别营业状态')
@@ -95,7 +95,7 @@ class RandomPlayApp(ZApplication):
         # 防止上一步跳过了昨日账本
         result = self.round_by_find_area(self.last_screenshot, '影像店营业', '昨日账本')
         if result.is_success:
-            self.round_by_click_area('影像店营业', '返回')
+            self.round_by_click_area('影像店营业', '返回', pre_delay=1)
             return self.round_retry(wait=1)
 
         result = self.round_by_find_area(self.last_screenshot, '影像店营业', '正在营业')
@@ -112,7 +112,7 @@ class RandomPlayApp(ZApplication):
         :return:
         """
         return self.round_by_click_area('影像店营业', '宣传员入口',
-                                        success_wait=1, retry_wait=1)
+                                        retry_wait=1)
 
     @node_from(from_name='点击宣传员入口')
     @operation_node(name='选择宣传员')
@@ -132,10 +132,9 @@ class RandomPlayApp(ZApplication):
 
         if RANDOM_AGENT_NAME in (target_agent_name_1, target_agent_name_2):
             # 随机选择
-            self.round_by_click_area('影像店营业', f'宣传员-{idx}')
-            time.sleep(0.5)
-
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
+            self.round_by_click_area('影像店营业', f'宣传员-{idx}', pre_delay=1)
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认',
+                                                     pre_delay=0.5, retry_wait=1)
 
         area = self.ctx.screen_loader.get_area('影像店营业', '宣传员列表')
         target_agent_name = target_agent_name_1 if idx == 1 else target_agent_name_2
@@ -144,15 +143,15 @@ class RandomPlayApp(ZApplication):
         result = self.round_by_ocr_and_click(self.last_screenshot, target_agent_name, area=area,
                                              color_range=[(230, 230, 230), (255, 255, 255)])
         if result.is_success:
-            time.sleep(0.5)
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认',
+                                                     pre_delay=0.5, retry_wait=1)
 
         # 使用头像匹配
         mr = self.get_pos_by_avatar(self.last_screenshot, target_agent_name)
         if mr is not None:
             self.ctx.controller.click(mr.center)
-            time.sleep(0.5)
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认',
+                                                     pre_delay=0.5, retry_wait=1)
 
         # 找不到时 向下滚动
         start_point = area.center
@@ -231,12 +230,13 @@ class RandomPlayApp(ZApplication):
         :return:
         """
         return self.round_by_click_area('影像店营业', '录像带入口',
-                                        success_wait=1, retry_wait=1)
+                                        retry_wait=1)
 
     @node_from(from_name='点击录像带入口')
     @operation_node(name='识别推荐上架')
     def check_recommended(self) -> OperationRoundResult:
-        result = self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '推荐上架')
+        result = self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '推荐上架',
+                                                     pre_delay=1)
 
         if result.is_success:
             return self.round_success(status=result.status, wait=1)
@@ -318,12 +318,10 @@ class RandomPlayApp(ZApplication):
 
         # 这个点击是为了关闭筛选
         click1 = self.round_by_click_area('影像店营业', '上架')
-        time.sleep(0.5)
-        click2 = self.round_by_click_area('影像店营业', '上架')
-        time.sleep(0.5)
+        click2 = self.round_by_click_area('影像店营业', '上架', pre_delay=0.5)
 
         if click1.is_success and click2.is_success:
-            return self.round_wait(wait=1)
+            return self.round_wait(wait=1.5)
         else:
             return self.round_retry(status=click1.status, wait_round_time=1)
 
@@ -335,17 +333,19 @@ class RandomPlayApp(ZApplication):
         if result.is_success:
             return self.round_success()
 
-        return self.round_by_click_area('影像店营业', '返回', success_wait=1, retry_wait=1)
+        return self.round_by_click_area('影像店营业', '返回', retry_wait=1)
 
     @node_from(from_name='返回')
     @operation_node(name='开始营业')
     def start(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '开始营业', success_wait=1, retry_wait=1)
+        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '开始营业',
+                                                     pre_delay=1, retry_wait=1)
 
     @node_from(from_name='开始营业')
     @operation_node(name='开始营业确认')
     def confirm(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '开始营业-确认', success_wait=1, retry_wait=1)
+        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '开始营业-确认',
+                                                     pre_delay=1, retry_wait=1)
 
     @node_from(from_name='开始营业确认')
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
