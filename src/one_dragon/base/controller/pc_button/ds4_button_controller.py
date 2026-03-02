@@ -29,6 +29,7 @@ class Ds4ButtonEnum(Enum):
     DPAD_RIGHT = ConfigItem('十字键-右', 'ds4_dpad_right')
     OPTIONS = ConfigItem('OPTIONS', 'ds4_options')
     SHARE = ConfigItem('SHARE', 'ds4_share')
+    TOUCHPAD = ConfigItem('触控板', 'ds4_touchpad')
     R_STICK_W = ConfigItem('右摇杆-上', 'ds4_rs_up')
     R_STICK_S = ConfigItem('右摇杆-下', 'ds4_rs_down')
     R_STICK_A = ConfigItem('右摇杆-左', 'ds4_rs_left')
@@ -74,6 +75,7 @@ class Ds4ButtonController(PcButtonController):
             'ds4_rs_left': self.tap_r_stick_a,
             'ds4_rs_right': self.tap_r_stick_d,
             'ds4_ps': self.tap_ps,
+            'ds4_touchpad': self.tap_touchpad,
         }
 
         self.release_handler: dict[str, Callable[[], None]] = {
@@ -102,6 +104,7 @@ class Ds4ButtonController(PcButtonController):
             'ds4_rs_left': self.release_r_stick,
             'ds4_rs_right': self.release_r_stick,
             'ds4_ps': self.release_ps,
+            'ds4_touchpad': self.release_touchpad,
         }
 
     def tap(self, key: str) -> None:
@@ -365,6 +368,21 @@ class Ds4ButtonController(PcButtonController):
         self.pad.release_special_button(special_button=self._special.DS4_SPECIAL_BUTTON_PS)
         self.pad.update()
 
+    def tap_touchpad(self, press: bool = False, press_time: float | None = None) -> None:
+        self.pad.press_special_button(special_button=self._special.DS4_SPECIAL_BUTTON_TOUCHPAD)
+        self.pad.update()
+
+        if press:
+            if press_time is None:
+                return
+        else:
+            if press_time is None:
+                press_time = self.key_press_time
+
+        time.sleep(max(self.key_press_time, press_time))
+        self.pad.release_special_button(special_button=self._special.DS4_SPECIAL_BUTTON_TOUCHPAD)
+        self.pad.update()
+
     def _press_button(self, btn: int, press: bool = False, press_time: float | None = None) -> None:
         """按键。
 
@@ -459,6 +477,10 @@ class Ds4ButtonController(PcButtonController):
 
     def release_ps(self) -> None:
         self.pad.release_special_button(special_button=self._special.DS4_SPECIAL_BUTTON_PS)
+        self.pad.update()
+
+    def release_touchpad(self) -> None:
+        self.pad.release_special_button(special_button=self._special.DS4_SPECIAL_BUTTON_TOUCHPAD)
         self.pad.update()
 
     def _release_btn(self, btn) -> None:

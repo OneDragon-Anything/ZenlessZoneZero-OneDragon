@@ -17,6 +17,7 @@ class GamepadActionEnum(Enum):
     INTERACT = ConfigItem('交互', 'interact')
     MENU = ConfigItem('菜单', 'menu')
     MAP = ConfigItem('地图', 'map')
+    MINIMAP = ConfigItem('小地图', 'minimap')
     COMPENDIUM = ConfigItem('快捷手册', 'compendium')
     GUIDE = ConfigItem('功能导览', 'function_menu')
 
@@ -514,7 +515,7 @@ class GameConfig(BasicGameConfig):
 
     @property
     def xbox_action_menu(self) -> str:
-        return self.get('xbox_action_menu', 'xbox_b')
+        return self.get('xbox_action_menu', 'xbox_start')
 
     @xbox_action_menu.setter
     def xbox_action_menu(self, new_value: str) -> None:
@@ -522,15 +523,23 @@ class GameConfig(BasicGameConfig):
 
     @property
     def xbox_action_map(self) -> str:
-        return self.get('xbox_action_map', 'xbox_b')
+        return self.get('xbox_action_map', 'xbox_dpad_right')
 
     @xbox_action_map.setter
     def xbox_action_map(self, new_value: str) -> None:
         self.update('xbox_action_map', new_value)
 
     @property
+    def xbox_action_minimap(self) -> str:
+        return self.get('xbox_action_minimap', 'xbox_back')
+
+    @xbox_action_minimap.setter
+    def xbox_action_minimap(self, new_value: str) -> None:
+        self.update('xbox_action_minimap', new_value)
+
+    @property
     def xbox_action_compendium(self) -> str:
-        return self.get('xbox_action_compendium', 'xbox_y')
+        return self.get('xbox_action_compendium', 'xbox_lb+xbox_a')
 
     @xbox_action_compendium.setter
     def xbox_action_compendium(self, new_value: str) -> None:
@@ -538,7 +547,7 @@ class GameConfig(BasicGameConfig):
 
     @property
     def xbox_action_function_menu(self) -> str:
-        return self.get('xbox_action_function_menu', 'xbox_x')
+        return self.get('xbox_action_function_menu', 'xbox_lb+xbox_start')
 
     @xbox_action_function_menu.setter
     def xbox_action_function_menu(self, new_value: str) -> None:
@@ -548,7 +557,7 @@ class GameConfig(BasicGameConfig):
 
     @property
     def ds4_action_interact(self) -> str:
-        return self.get('ds4_action_interact', 'ds4_cross')
+        return self.get('ds4_action_interact', 'ds4_square')
 
     @ds4_action_interact.setter
     def ds4_action_interact(self, new_value: str) -> None:
@@ -556,7 +565,7 @@ class GameConfig(BasicGameConfig):
 
     @property
     def ds4_action_menu(self) -> str:
-        return self.get('ds4_action_menu', 'ds4_circle')
+        return self.get('ds4_action_menu', 'ds4_options')
 
     @ds4_action_menu.setter
     def ds4_action_menu(self, new_value: str) -> None:
@@ -564,15 +573,23 @@ class GameConfig(BasicGameConfig):
 
     @property
     def ds4_action_map(self) -> str:
-        return self.get('ds4_action_map', 'ds4_circle')
+        return self.get('ds4_action_map', 'ds4_dpad_right')
 
     @ds4_action_map.setter
     def ds4_action_map(self, new_value: str) -> None:
         self.update('ds4_action_map', new_value)
 
     @property
+    def ds4_action_minimap(self) -> str:
+        return self.get('ds4_action_minimap', 'ds4_touchpad')
+
+    @ds4_action_minimap.setter
+    def ds4_action_minimap(self, new_value: str) -> None:
+        self.update('ds4_action_minimap', new_value)
+
+    @property
     def ds4_action_compendium(self) -> str:
-        return self.get('ds4_action_compendium', 'ds4_triangle')
+        return self.get('ds4_action_compendium', 'ds4_l1+ds4_cross')
 
     @ds4_action_compendium.setter
     def ds4_action_compendium(self, new_value: str) -> None:
@@ -580,7 +597,7 @@ class GameConfig(BasicGameConfig):
 
     @property
     def ds4_action_function_menu(self) -> str:
-        return self.get('ds4_action_function_menu', 'ds4_square')
+        return self.get('ds4_action_function_menu', 'ds4_l1+ds4_options')
 
     @ds4_action_function_menu.setter
     def ds4_action_function_menu(self, new_value: str) -> None:
