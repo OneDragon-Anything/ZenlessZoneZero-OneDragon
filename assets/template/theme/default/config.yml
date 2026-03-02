@@ -1,0 +1,8 @@
+sub_dir: theme
+template_id: default
+template_name: 图像-常规主题
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 76, 171
+- 201, 279
