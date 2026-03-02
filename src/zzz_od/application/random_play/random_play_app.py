@@ -358,7 +358,7 @@ class RandomPlayApp(ZApplication):
 
 def __debug():
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     app = RandomPlayApp(ctx)
     app.execute()
 
