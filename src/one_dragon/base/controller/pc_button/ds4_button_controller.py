@@ -38,7 +38,7 @@ class Ds4ButtonEnum(Enum):
 
 class Ds4ButtonController(PcButtonController):
 
-    def __init__(self):
+    def __init__(self) -> None:
         PcButtonController.__init__(self)
         self.pad = None
         if pc_button_utils.is_vgamepad_installed():
@@ -365,7 +365,7 @@ class Ds4ButtonController(PcButtonController):
         self.pad.release_special_button(special_button=self._special.DS4_SPECIAL_BUTTON_PS)
         self.pad.update()
 
-    def _press_button(self, btn, press: bool = False, press_time: float | None = None):
+    def _press_button(self, btn: int, press: bool = False, press_time: float | None = None) -> None:
         """按键。
 
         Args:
@@ -387,7 +387,7 @@ class Ds4ButtonController(PcButtonController):
         self.pad.release_button(btn)
         self.pad.update()
 
-    def reset(self):
+    def reset(self) -> None:
         self.pad.reset()
         self.pad.update()
 

@@ -47,9 +47,9 @@
 **数据模型：**
 ```python
 class ScreenArea:
-    gamepad_key: list[str] | None = None  # 后台模式下手柄按键替代
-    # 单键: ['xbox_a']  (A)
-    # 组合键: ['xbox_lb', 'xbox_a']  (LB+A)
+    gamepad_key: str | None = None  # 后台模式下手柄按键替代
+    # 单键: 'xbox_a'  (A)
+    # 组合键: 'xbox_lb+xbox_a'  (LB+A)
 ```
 
 **调用链：**

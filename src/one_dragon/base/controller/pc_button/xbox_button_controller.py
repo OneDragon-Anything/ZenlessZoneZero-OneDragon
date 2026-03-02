@@ -38,7 +38,7 @@ class XboxButtonEnum(Enum):
 
 class XboxButtonController(PcButtonController):
 
-    def __init__(self):
+    def __init__(self) -> None:
         PcButtonController.__init__(self)
         self.pad = None
         if pc_button_utils.is_vgamepad_installed():
@@ -307,7 +307,7 @@ class XboxButtonController(PcButtonController):
     def tap_guide(self, press: bool = False, press_time: float | None = None) -> None:
         self._press_button(self._btn.XUSB_GAMEPAD_GUIDE, press=press, press_time=press_time)
 
-    def _press_button(self, btn, press: bool = False, press_time: float | None = None):
+    def _press_button(self, btn: int, press: bool = False, press_time: float | None = None) -> None:
         """按下按钮。
 
         Args:
@@ -329,7 +329,7 @@ class XboxButtonController(PcButtonController):
         self.pad.release_button(btn)
         self.pad.update()
 
-    def reset(self):
+    def reset(self) -> None:
         self.pad.reset()
         self.pad.update()
 

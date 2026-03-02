@@ -1,9 +1,10 @@
+import contextlib
 import time
 
 
 class PcButtonController:
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.key_press_time: float = 0.02
         self.combo_press_time: float = 0.2
 
@@ -23,17 +24,19 @@ class PcButtonController:
         """
         if not keys:
             return
-        for i, key in enumerate(keys):
-            if key is not None:
-                self.press(key, press_time=None)  # 按住不放
-                if i < len(keys) - 1:
-                    time.sleep(self.combo_press_time)
-
-        time.sleep(self.key_press_time)
-
-        for key in reversed(keys):
-            if key is not None:
-                self.release(key)
+        pressed: list[str] = []
+        try:
+            for i, key in enumerate(keys):
+                if key is not None:
+                    self.press(key, press_time=None)  # 按住不放
+                    pressed.append(key)
+                    if i < len(keys) - 1:
+                        time.sleep(self.combo_press_time)
+            time.sleep(self.key_press_time)
+        finally:
+            for key in reversed(pressed):
+                with contextlib.suppress(Exception):
+                    self.release(key)
 
     def press(self, key: str, press_time: float | None = None) -> None:
         """
