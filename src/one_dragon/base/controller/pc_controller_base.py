@@ -340,6 +340,13 @@ class PcControllerBase(ControllerBase):
         Args:
             gamepad_type: 'xbox' 或 'ds4'
         """
+        if not pc_button_utils.is_vgamepad_installed():
+            log.error('启用后台模式失败: 未检测到 vgamepad/ViGEmBus')
+            self.background_mode = False
+            self._game_input_mode = 'keyboard_mouse'
+            self.enable_keyboard()
+            return
+
         self.background_mode = True
         self._game_input_mode = 'gamepad'  # 后台模式默认游戏处于手柄输入
         if gamepad_type == 'ds4':
@@ -369,7 +376,7 @@ class PcControllerBase(ControllerBase):
         else:
             raise RuntimeError('游戏窗口未就绪')
 
-    def scroll(self, down: int, pos: Point = None):
+    def scroll(self, down: int, pos: Point = None) -> None:
         """向下滚动。
 
         Args:
@@ -384,7 +391,7 @@ class PcControllerBase(ControllerBase):
             return
         win_scroll(down, win_pos)
 
-    def drag_to(self, end: Point, start: Point = None, duration: float = 0.5):
+    def drag_to(self, start: Point, end: Point, duration: float = 0.5) -> None:
         """按住拖拽。
 
         Args:
@@ -396,14 +403,10 @@ class PcControllerBase(ControllerBase):
             self.background_drag(start, end, duration)
             return
 
-        from_pos: Point
-        if start is None:
-            from_pos = get_current_mouse_pos()
-        else:
-            from_pos = self.game_win.game2win_pos(start)
-            if from_pos is None:
-                log.error('拖拽起点不在游戏窗口区域 (%s)', start)
-                return
+        from_pos = self.game_win.game2win_pos(start)
+        if from_pos is None:
+            log.error('拖拽起点不在游戏窗口区域 (%s)', start)
+            return
 
         to_pos = self.game_win.game2win_pos(end)
         if to_pos is None:
@@ -411,7 +414,7 @@ class PcControllerBase(ControllerBase):
             return
         drag_mouse(from_pos, to_pos, duration=duration)
 
-    def background_drag(self, start: Point | None, end: Point, duration: float = 0.5) -> bool:
+    def background_drag(self, start: Point, end: Point, duration: float = 0.5) -> bool:
         """后台拖拽：SetCursorPos 移动鼠标 + PostMessage 按住拖动。
 
         使用 SetCursorPos 物理移动鼠标，分步插值模拟拖拽轨迹。
@@ -432,16 +435,11 @@ class PcControllerBase(ControllerBase):
             return False
 
         # 转换起点坐标
-        if start is not None:
-            scaled_start = self.game_win.get_scaled_game_pos(start)
-            if scaled_start is None:
-                log.error('拖拽起点不在游戏窗口区域 (%s)', start)
-                return False
-            sx, sy = int(scaled_start.x), int(scaled_start.y)
-        else:
-            # 使用窗口中心作为默认起点
-            rect = win32gui.GetClientRect(hwnd)
-            sx, sy = rect[2] // 2, rect[3] // 2
+        scaled_start = self.game_win.get_scaled_game_pos(start)
+        if scaled_start is None:
+            log.error('拖拽起点不在游戏窗口区域 (%s)', start)
+            return False
+        sx, sy = int(scaled_start.x), int(scaled_start.y)
 
         # 转换终点坐标
         scaled_end = self.game_win.get_scaled_game_pos(end)
@@ -478,7 +476,7 @@ class PcControllerBase(ControllerBase):
             log.error('后台拖拽失败', exc_info=True)
             return False
 
-    def close_game(self):
+    def close_game(self) -> None:
         """关闭游戏。"""
         win = self.game_win.get_win()
         if win is None:
@@ -489,7 +487,7 @@ class PcControllerBase(ControllerBase):
         except Exception:
             log.error('关闭游戏失败', exc_info=True)
 
-    def input_str(self, to_input: str, interval: float = 0.1):
+    def input_str(self, to_input: str, interval: float = 0.1) -> None:
         """输入文本 需要自己先选择好输入框。
 
         Args:
@@ -497,7 +495,7 @@ class PcControllerBase(ControllerBase):
         """
         self.keyboard_controller.keyboard.type(to_input)
 
-    def mouse_move(self, game_pos: Point):
+    def mouse_move(self, game_pos: Point) -> None:
         """
         鼠标移动到指定的位置
         """
