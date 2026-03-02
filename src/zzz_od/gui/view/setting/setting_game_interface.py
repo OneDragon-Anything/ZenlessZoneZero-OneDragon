@@ -1,20 +1,38 @@
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, SettingCardGroup, PushButton
+from qfluentwidgets import FluentIcon, PushButton, SettingCardGroup
 
-from one_dragon.base.config.basic_game_config import TypeInputWay, ScreenSizeEnum, FullScreenEnum, MonitorEnum
+from one_dragon.base.config.basic_game_config import (
+    FullScreenEnum,
+    MonitorEnum,
+    ScreenSizeEnum,
+    TypeInputWay,
+)
 from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonEnum
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
 from one_dragon.utils import cmd_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.dual_combo_box_setting_card import (
+    DualComboBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
-from one_dragon_qt.widgets.setting_card.spin_box_setting_card import DoubleSpinBoxSettingCard
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiPushSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
+    DoubleSpinBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from zzz_od.config.game_config import GamepadTypeEnum
+from zzz_od.config.game_config import (
+    BackgroundGamepadTypeEnum,
+    GamepadActionEnum,
+    GamepadTypeEnum,
+)
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -38,6 +56,7 @@ class SettingGameInterface(VerticalScrollInterface):
         content_widget.add_widget(self._get_launch_argument_group())
         content_widget.add_widget(self._get_key_group())
         content_widget.add_widget(self._get_gamepad_group())
+        content_widget.add_widget(self._get_gamepad_action_group())
         content_widget.add_stretch(1)
 
         return content_widget
@@ -48,6 +67,13 @@ class SettingGameInterface(VerticalScrollInterface):
         self.input_way_opt = ComboBoxSettingCard(icon=FluentIcon.CLIPPING_TOOL, title='输入方式',
                                                  options_enum=TypeInputWay)
         basic_group.addSettingCard(self.input_way_opt)
+
+        self.background_mode_switch = SwitchSettingCard(
+            icon=FluentIcon.SPEED_OFF, title='后台模式',
+            content='启用后使用虚拟手柄操作，无需窗口置顶',
+        )
+        self.background_mode_switch.value_changed.connect(self._on_background_mode_changed)
+        basic_group.addSettingCard(self.background_mode_switch)
 
         self.hdr_btn_enable = PushButton(text=gt('启用 HDR'), icon=FluentIcon.SETTING, parent=self)
         self.hdr_btn_enable.clicked.connect(self._on_hdr_enable_clicked)
@@ -251,10 +277,55 @@ class SettingGameInterface(VerticalScrollInterface):
 
         return gamepad_group
 
+    def _get_gamepad_action_group(self) -> QWidget:
+        """后台模式手柄动作键配置组（Xbox 和 DS4 各一套）。"""
+        group = SettingCardGroup('后台模式手柄键')
+
+        self.background_gamepad_type_opt = ComboBoxSettingCard(
+            icon=FluentIcon.GAME,
+            title='后台手柄类型',
+            options_enum=BackgroundGamepadTypeEnum,
+        )
+        self.background_gamepad_type_opt.value_changed.connect(self._on_background_gamepad_type_changed)
+        group.addSettingCard(self.background_gamepad_type_opt)
+
+        # Xbox 动作键卡片
+        self._xbox_action_cards: dict[str, DualComboBoxSettingCard] = {}
+        for action in GamepadActionEnum:
+            action_name: str = action.value.value
+            if not action_name:
+                continue
+            card = DualComboBoxSettingCard(
+                icon=FluentIcon.GAME,
+                title=action.value.ui_text,
+                modifier_enum=XboxButtonEnum,
+                button_enum=XboxButtonEnum,
+            )
+            self._xbox_action_cards[action_name] = card
+            group.addSettingCard(card)
+
+        # DS4 动作键卡片
+        self._ds4_action_cards: dict[str, DualComboBoxSettingCard] = {}
+        for action in GamepadActionEnum:
+            action_name: str = action.value.value
+            if not action_name:
+                continue
+            card = DualComboBoxSettingCard(
+                icon=FluentIcon.GAME,
+                title=action.value.ui_text,
+                modifier_enum=Ds4ButtonEnum,
+                button_enum=Ds4ButtonEnum,
+            )
+            self._ds4_action_cards[action_name] = card
+            group.addSettingCard(card)
+
+        return group
+
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
         self.input_way_opt.init_with_adapter(self.ctx.game_config.type_input_way_adapter)
+        self.background_mode_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_mode'))
 
         self.launch_argument_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument'))
         self.screen_size_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('screen_size'))
@@ -282,11 +353,18 @@ class SettingGameInterface(VerticalScrollInterface):
 
         self._update_gamepad_part()
 
+        # 后台模式手柄动作键
+        self.background_gamepad_type_opt.init_with_adapter(
+            self.ctx.game_config.get_prop_adapter('background_gamepad_type'))
+        self._update_background_action_visibility()
+
+        for action_name, card in self._xbox_action_cards.items():
+            card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'xbox_action_{action_name}'))
+        for action_name, card in self._ds4_action_cards.items():
+            card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'ds4_action_{action_name}'))
+
     def _update_gamepad_part(self) -> None:
-        """
-        手柄部分更新显示
-        :return:
-        """
+        """手柄部分更新显示。"""
         self.gamepad_type_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('gamepad_type'))
 
         is_xbox = self.ctx.game_config.gamepad_type == GamepadTypeEnum.XBOX.value.value
@@ -364,6 +442,28 @@ class SettingGameInterface(VerticalScrollInterface):
     def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
         self._update_gamepad_part()
 
+    def _update_background_action_visibility(self) -> None:
+        """根据后台手柄类型显示/隐藏对应动作键卡片。"""
+        bg_type = self.ctx.game_config.background_gamepad_type
+        is_xbox = bg_type == BackgroundGamepadTypeEnum.XBOX.value.value
+        is_ds4 = bg_type == BackgroundGamepadTypeEnum.DS4.value.value
+        for card in self._xbox_action_cards.values():
+            card.setVisible(is_xbox)
+        for card in self._ds4_action_cards.values():
+            card.setVisible(is_ds4)
+
+    def _on_background_gamepad_type_changed(self, idx: int, value: str) -> None:
+        self._update_background_action_visibility()
+        if self.ctx.game_config.background_mode:
+            self.ctx.controller.enable_background_mode(value)
+
+    def _on_background_mode_changed(self) -> None:
+        """后台模式开关切换时同步控制器状态。"""
+        if self.ctx.game_config.background_mode:
+            self.ctx.controller.enable_background_mode(self.ctx.game_config.background_gamepad_type)
+        else:
+            self.ctx.controller.enable_foreground_mode()
+
     def _on_hdr_enable_clicked(self) -> None:
         self.hdr_btn_enable.setEnabled(False)
         self.hdr_btn_disable.setEnabled(True)
@@ -377,10 +477,7 @@ class SettingGameInterface(VerticalScrollInterface):
                                '/v', self.ctx.game_account_config.game_path, '/d', 'AutoHDREnable=2096;', '/f'])
 
     def _update_launch_argument_part(self) -> None:
-        """
-        启动参数部分更新显示
-        :return:
-        """
+        """启动参数部分更新显示。"""
         value = self.ctx.game_config.launch_argument
         self.screen_size_opt.setVisible(value)
         self.full_screen_opt.setVisible(value)
