@@ -219,16 +219,12 @@ class AutoSyntheticApp(ZApplication):
             max_clicks = self._max_source_ether_battery_synthetic_quantity - 1
             clicks = 0
             if self.config.source_ether_battery_auto_synthetic_quantity == '两个':
-                self.battery_select_number(min(1, max_clicks))
                 clicks = min(1, max_clicks)
             elif self.config.source_ether_battery_auto_synthetic_quantity == '三个':
-                self.battery_select_number(min(2, max_clicks))
                 clicks = min(2, max_clicks)
             elif self.config.source_ether_battery_auto_synthetic_quantity == '四个':
-                self.battery_select_number(min(3, max_clicks))
                 clicks = min(3, max_clicks)
             elif self.config.source_ether_battery_auto_synthetic_quantity == '全部':
-                self.battery_select_number(max_clicks)
                 clicks = max_clicks
             if clicks > 0 and not self.battery_select_number(clicks):
                 return self.round_retry(status='未找到数量增加按钮', wait=1)
