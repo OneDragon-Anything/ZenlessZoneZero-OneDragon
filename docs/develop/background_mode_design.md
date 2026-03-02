@@ -48,27 +48,27 @@
 ```python
 class ScreenArea:
     gamepad_key: list[str] | None = None  # 后台模式下手柄按键替代
-    # 单键: ['xbox_0']  (A)
-    # 组合键: ['xbox_6', 'xbox_0']  (LB+A)
+    # 单键: ['xbox_a']  (A)
+    # 组合键: ['xbox_lb', 'xbox_a']  (LB+A)
 ```
 
 **调用链：**
 ```
 find_and_click_area / round_by_click_area
   ├─ area.pc_alt? → gamepad_click(area.gamepad_key)
-  │     ├─ 单键 ['xbox_0'] → btn_controller.tap()
-  │     └─ 组合 ['xbox_6', 'xbox_0'] → btn_controller.tap_combo()
+  │     ├─ 单键 ['xbox_a'] → btn_controller.tap()
+  │     └─ 组合 ['xbox_lb', 'xbox_a'] → btn_controller.tap_combo()
   └─ else → click(pos, pc_alt=...)
 ```
 
 **YAML 格式 (可选字段，默认不写入)：**
 ```yaml
 - area_name: 战斗结果-完成
-  gamepad_key: [xbox_0]  # A 键
+  gamepad_key: [xbox_a]  # A 键
   pc_rect: [...]
 
 - area_name: 连携技-左
-  gamepad_key: [xbox_6, xbox_0]  # LB+A 组合键
+  gamepad_key: [xbox_lb, xbox_a]  # LB+A 组合键
   pc_rect: [...]
 ```
 

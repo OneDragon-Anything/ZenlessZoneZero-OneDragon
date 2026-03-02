@@ -6,6 +6,21 @@ from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4Button
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
 
 
+class GamepadActionEnum(Enum):
+    """后台模式下替代 pc_alt 点击的逻辑动作。
+
+    value 是 ConfigItem(显示名, 存储值)。
+    screen 区域的 gamepad_key 引用存储值。
+    """
+
+    NONE = ConfigItem('无', '')
+    INTERACT = ConfigItem('交互', 'interact')
+    MENU = ConfigItem('菜单', 'menu')
+    MAP = ConfigItem('地图', 'map')
+    COMPENDIUM = ConfigItem('快捷手册', 'compendium')
+    GUIDE = ConfigItem('功能导览', 'function_menu')
+
+
 class GamepadTypeEnum(Enum):
 
     NONE = ConfigItem('无', 'none')
@@ -13,7 +28,69 @@ class GamepadTypeEnum(Enum):
     DS4 = ConfigItem('DS4', 'ds4')
 
 
+class BackgroundGamepadTypeEnum(Enum):
+    """后台模式手柄类型（必须使用虚拟手柄，无 NONE 选项）。"""
+
+    XBOX = ConfigItem('Xbox', 'xbox')
+    DS4 = ConfigItem('DS4', 'ds4')
+
+
 class GameConfig(BasicGameConfig):
+
+    def __init__(self, instance_idx: int):
+        BasicGameConfig.__init__(self, instance_idx)
+        self._migrate_legacy_gamepad_keys()
+
+    # 旧数字索引 → 新描述性键名映射（兼容旧版配置）
+    _LEGACY_GAMEPAD_KEYS: dict[str, str] = {
+        **{f'xbox_{i}': k for i, k in enumerate([
+            'xbox_a', 'xbox_b', 'xbox_x', 'xbox_y',
+            'xbox_lt', 'xbox_rt', 'xbox_lb', 'xbox_rb',
+            'xbox_ls_up', 'xbox_ls_down', 'xbox_ls_left', 'xbox_ls_right',
+            'xbox_l_thumb', 'xbox_r_thumb',
+        ])},
+        **{f'ds4_{i}': k for i, k in enumerate([
+            'ds4_cross', 'ds4_circle', 'ds4_square', 'ds4_triangle',
+            'ds4_l2', 'ds4_r2', 'ds4_l1', 'ds4_r1',
+            'ds4_ls_up', 'ds4_ls_down', 'ds4_ls_left', 'ds4_ls_right',
+            'ds4_l_thumb', 'ds4_r_thumb',
+        ])},
+    }
+
+    def _migrate_gamepad_key(self, value: str) -> str:
+        """迁移旧数字格式手柄键到新描述性格式。
+
+        支持单键 ('xbox_0' → 'xbox_a') 和组合键 ('xbox_6+xbox_0' → 'xbox_lb+xbox_a')。
+        """
+        parts = value.split('+')
+        migrated = [self._LEGACY_GAMEPAD_KEYS.get(p, p) for p in parts]
+        return '+'.join(migrated)
+
+    def _migrate_legacy_gamepad_keys(self) -> None:
+        """初始化时一次性迁移所有旧数字格式的手柄按键配置。"""
+        key_props = [
+            # Xbox 战斗按键
+            'xbox_key_normal_attack', 'xbox_key_dodge',
+            'xbox_key_switch_next', 'xbox_key_switch_prev',
+            'xbox_key_special_attack', 'xbox_key_ultimate',
+            'xbox_key_interact', 'xbox_key_chain_left', 'xbox_key_chain_right',
+            'xbox_key_move_w', 'xbox_key_move_s', 'xbox_key_move_a', 'xbox_key_move_d',
+            'xbox_key_lock', 'xbox_key_chain_cancel',
+            # DS4 战斗按键
+            'ds4_key_normal_attack', 'ds4_key_dodge',
+            'ds4_key_switch_next', 'ds4_key_switch_prev',
+            'ds4_key_special_attack', 'ds4_key_ultimate',
+            'ds4_key_interact', 'ds4_key_chain_left', 'ds4_key_chain_right',
+            'ds4_key_move_w', 'ds4_key_move_s', 'ds4_key_move_a', 'ds4_key_move_d',
+            'ds4_key_lock', 'ds4_key_chain_cancel',
+        ]
+        for prop in key_props:
+            value = self.get(prop, '')
+            if not value:
+                continue
+            migrated = self._migrate_gamepad_key(value)
+            if migrated != value:
+                self.update(prop, migrated)
 
     @property
     def key_normal_attack(self) -> str:
@@ -22,6 +99,14 @@ class GameConfig(BasicGameConfig):
     @key_normal_attack.setter
     def key_normal_attack(self, new_value: str) -> None:
         self.update('key_normal_attack', new_value)
+
+    @property
+    def background_mode(self) -> bool:
+        return self.get('background_mode', False)
+
+    @background_mode.setter
+    def background_mode(self, new_value: bool) -> None:
+        self.update('background_mode', new_value)
 
     @property
     def key_dodge(self) -> str:
@@ -405,6 +490,125 @@ class GameConfig(BasicGameConfig):
     def ds4_key_chain_cancel(self, new_value: str) -> None:
         self.update('ds4_key_chain_cancel', new_value)
 
+    # ── 后台模式手柄动作键 ───────────────────────────────
+    # 每个 GamepadActionEnum 动作对应一个可配置的按键组合。
+    # Xbox 和 DS4 各有独立配置，存储值格式: 'xbox_a' / 'ds4_cross' (单键) 或 'xbox_lb+xbox_a' / 'ds4_l1+ds4_cross' (组合键)。
+
+    @property
+    def background_gamepad_type(self) -> str:
+        return self.get('background_gamepad_type', BackgroundGamepadTypeEnum.XBOX.value.value)
+
+    @background_gamepad_type.setter
+    def background_gamepad_type(self, new_value: str) -> None:
+        self.update('background_gamepad_type', new_value)
+
+    # ── Xbox 动作键 ──
+
+    @property
+    def xbox_action_interact(self) -> str:
+        return self.get('xbox_action_interact', 'xbox_x')
+
+    @xbox_action_interact.setter
+    def xbox_action_interact(self, new_value: str) -> None:
+        self.update('xbox_action_interact', new_value)
+
+    @property
+    def xbox_action_menu(self) -> str:
+        return self.get('xbox_action_menu', 'xbox_b')
+
+    @xbox_action_menu.setter
+    def xbox_action_menu(self, new_value: str) -> None:
+        self.update('xbox_action_menu', new_value)
+
+    @property
+    def xbox_action_map(self) -> str:
+        return self.get('xbox_action_map', 'xbox_b')
+
+    @xbox_action_map.setter
+    def xbox_action_map(self, new_value: str) -> None:
+        self.update('xbox_action_map', new_value)
+
+    @property
+    def xbox_action_compendium(self) -> str:
+        return self.get('xbox_action_compendium', 'xbox_y')
+
+    @xbox_action_compendium.setter
+    def xbox_action_compendium(self, new_value: str) -> None:
+        self.update('xbox_action_compendium', new_value)
+
+    @property
+    def xbox_action_function_menu(self) -> str:
+        return self.get('xbox_action_function_menu', 'xbox_x')
+
+    @xbox_action_function_menu.setter
+    def xbox_action_function_menu(self, new_value: str) -> None:
+        self.update('xbox_action_function_menu', new_value)
+
+    # ── DS4 动作键 ──
+
+    @property
+    def ds4_action_interact(self) -> str:
+        return self.get('ds4_action_interact', 'ds4_cross')
+
+    @ds4_action_interact.setter
+    def ds4_action_interact(self, new_value: str) -> None:
+        self.update('ds4_action_interact', new_value)
+
+    @property
+    def ds4_action_menu(self) -> str:
+        return self.get('ds4_action_menu', 'ds4_circle')
+
+    @ds4_action_menu.setter
+    def ds4_action_menu(self, new_value: str) -> None:
+        self.update('ds4_action_menu', new_value)
+
+    @property
+    def ds4_action_map(self) -> str:
+        return self.get('ds4_action_map', 'ds4_circle')
+
+    @ds4_action_map.setter
+    def ds4_action_map(self, new_value: str) -> None:
+        self.update('ds4_action_map', new_value)
+
+    @property
+    def ds4_action_compendium(self) -> str:
+        return self.get('ds4_action_compendium', 'ds4_triangle')
+
+    @ds4_action_compendium.setter
+    def ds4_action_compendium(self, new_value: str) -> None:
+        self.update('ds4_action_compendium', new_value)
+
+    @property
+    def ds4_action_function_menu(self) -> str:
+        return self.get('ds4_action_function_menu', 'ds4_square')
+
+    @ds4_action_function_menu.setter
+    def ds4_action_function_menu(self, new_value: str) -> None:
+        self.update('ds4_action_function_menu', new_value)
+
+    # ── 通用查询 ──
+
+    def get_gamepad_action_keys(self, gamepad_type: str) -> dict[str, str]:
+        """获取指定手柄类型的后台模式动作 → 实际按键映射。
+
+        Args:
+            gamepad_type: 'xbox' 或 'ds4'
+
+        Returns:
+            {action_name: key_combo_str}
+        """
+        prefix = gamepad_type  # 'xbox' 或 'ds4'
+        result: dict[str, str] = {}
+        for action in GamepadActionEnum:
+            action_name: str = action.value.value
+            if not action_name:
+                continue
+            prop_name = f'{prefix}_action_{action_name}'
+            value = getattr(self, prop_name, '')
+            if value:
+                result[action_name] = value
+        return result
+
     @property
     def original_hdr_value(self) -> str:
         return self.get('original_hdr_value', '')
@@ -415,10 +619,7 @@ class GameConfig(BasicGameConfig):
 
     @property
     def turn_dx(self) -> float:
-        """
-        转向时 每度所需要移动的像素距离
-        :return:
-        """
+        """转向时 每度所需要移动的像素距离。"""
         return self.get('turn_dx', 0)
 
     @turn_dx.setter
