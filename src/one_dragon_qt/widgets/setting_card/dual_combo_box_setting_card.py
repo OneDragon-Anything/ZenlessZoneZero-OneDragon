@@ -33,11 +33,11 @@ class DualComboBoxSettingCard(SettingCardBase, AdapterInitMixin):
         self,
         icon: str | QIcon | FluentIconBase,
         title: str,
+        modifier_enum: type[Enum],
+        button_enum: type[Enum],
         content: str | None = None,
         icon_size: IconSize | None = None,
         margins: Margins | None = None,
-        modifier_enum: type[Enum] | None = None,
-        button_enum: type[Enum] | None = None,
         parent=None,
     ):
         if icon_size is None:

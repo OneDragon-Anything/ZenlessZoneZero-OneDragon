@@ -107,7 +107,8 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
                    formatter=lambda v: '' if v is None else str(v)),
         ColumnMeta('前往画面', 'goto_list', lambda x: [i.strip() for i in x.split(',') if i.strip()],
                    formatter=lambda v: ','.join(v) if v else ''),
-        ColumnMeta('手柄键', 'gamepad_key', lambda x: x if x.strip() else None, 120),
+        ColumnMeta('手柄键', 'gamepad_key', lambda x: x.strip() or None, 120,
+                   formatter=lambda v: '' if v is None else str(v)),
     ]
 
     AREA_FIELD_2_COLUMN: dict[str, int] = {col.display_name: idx for idx, col in enumerate(AREA_COLUMNS)}
