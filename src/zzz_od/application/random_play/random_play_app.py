@@ -84,9 +84,10 @@ class RandomPlayApp(ZApplication):
         if result.is_success:
             return self.round_by_click_area('影像店营业', '返回',
                                             success_wait=1, retry_wait=1)
-        # 看看经营状况
-        return self.round_by_find_area(self.last_screenshot, '影像店营业', '经营状况',
-                                       success_wait=1, retry_wait=1)
+        # 看看经营状况，识别到就点击一下，保证在"经营状况"分支
+        # 因为二次运行时，有极低概率"无人咨询"变成"咨询中"并被默认跳转
+        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '经营状况',
+                                                 success_wait=1, retry_wait=1)
 
     @node_from(from_name='等待经营画面加载')
     @operation_node(name='识别营业状态')
