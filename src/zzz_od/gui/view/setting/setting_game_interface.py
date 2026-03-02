@@ -69,8 +69,8 @@ class SettingGameInterface(VerticalScrollInterface):
         basic_group.addSettingCard(self.input_way_opt)
 
         self.background_mode_switch = SwitchSettingCard(
-            icon=FluentIcon.SPEED_OFF, title='后台模式',
-            content='启用后使用虚拟手柄操作，无需窗口置顶',
+            icon=FluentIcon.SPEED_OFF, title='后台模式（测试版）',
+            content='需要安装虚拟手柄驱动。运行时会短暂抢占鼠标进行点击操作，无需游戏窗口置顶',
         )
         self.background_mode_switch.value_changed.connect(self._on_background_mode_changed)
         basic_group.addSettingCard(self.background_mode_switch)
