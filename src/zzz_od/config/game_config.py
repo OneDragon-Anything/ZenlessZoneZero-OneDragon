@@ -642,3 +642,12 @@ class GameConfig(BasicGameConfig):
     @turn_dx.setter
     def turn_dx(self, new_value: float):
         self.update('turn_dx', new_value)
+
+    @property
+    def gamepad_turn_speed(self) -> float:
+        """后台手柄模式下，右摇杆满偏转对应的 每秒等效鼠标像素距离。"""
+        return self.get('gamepad_turn_speed', 1000)
+
+    @gamepad_turn_speed.setter
+    def gamepad_turn_speed(self, new_value: float):
+        self.update('gamepad_turn_speed', new_value)

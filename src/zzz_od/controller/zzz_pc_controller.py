@@ -1,4 +1,5 @@
 import ctypes
+import time
 
 from cv2.typing import MatLike
 
@@ -45,6 +46,7 @@ class ZPcController(PcControllerBase):
 
         # 后台模式手柄动作键映射 — 默认使用 xbox，enable_ds4 时刷新
         self.gamepad_action_keys = self.game_config.get_gamepad_action_keys('xbox')
+        self.gamepad_turn_speed: float = game_config.gamepad_turn_speed
 
     def fill_uid_black(self, screen: MatLike) -> MatLike:
         """
@@ -259,7 +261,10 @@ class ZPcController(PcControllerBase):
         Args:
             d: 正数往右转 负数往左转
         """
-        ctypes.windll.user32.mouse_event(0x0001, int(d), 0)
+        if self.background_mode:
+            self._gamepad_turn(d, 0)
+        else:
+            ctypes.windll.user32.mouse_event(0x0001, int(d), 0)
 
     def turn_by_angle_diff(self, angle_diff: float) -> None:
         """
@@ -317,7 +322,10 @@ class ZPcController(PcControllerBase):
         Args:
             d: 正数往下转 负数往上转
         """
-        ctypes.windll.user32.mouse_event(0x0001, 0, int(d))
+        if self.background_mode:
+            self._gamepad_turn(0, d)
+        else:
+            ctypes.windll.user32.mouse_event(0x0001, 0, int(d))
 
     def move_mouse_relative(self, dx: float, dy: float):
         """相对移动鼠标。
@@ -328,4 +336,35 @@ class ZPcController(PcControllerBase):
         """
         if dx == 0 and dy == 0:
             return
-        ctypes.windll.user32.mouse_event(0x0001, int(dx), int(dy))
+        if self.background_mode:
+            self._gamepad_turn(dx, dy)
+        else:
+            ctypes.windll.user32.mouse_event(0x0001, int(dx), int(dy))
+
+    def _gamepad_turn(self, dx: float, dy: float) -> None:
+        """手柄右摇杆模拟鼠标转向。
+
+        将鼠标像素距离换算为右摇杆满偏转持续时间。
+        Y 轴取反：鼠标向下(+dy)对应摇杆向下(-y)。
+
+        Args:
+            dx: 水平像素距离，正数向右
+            dy: 垂直像素距离，正数向下
+        """
+        if dx == 0 and dy == 0:
+            return
+
+        max_d = max(abs(dx), abs(dy))
+        stick_x = dx / max_d
+        stick_y = -dy / max_d  # 鼠标下(+) → 摇杆下(-y)
+
+        duration = max_d / self.gamepad_turn_speed
+
+        pad = self.btn_controller.pad
+        pad.right_joystick_float(stick_x, stick_y)
+        pad.update()
+
+        time.sleep(duration)
+
+        pad.right_joystick_float(0, 0)
+        pad.update()
