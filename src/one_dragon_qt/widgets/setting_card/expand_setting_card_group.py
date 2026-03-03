@@ -1,11 +1,8 @@
 from PySide6.QtCore import QEvent, QObject
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets.common.icon import FluentIconBase
-from qfluentwidgets.components.settings.expand_setting_card import (
-    ExpandSettingCard,
-    GroupSeparator,
-)
+from qfluentwidgets import ExpandSettingCard, FluentIconBase
+from qfluentwidgets.components.settings.expand_setting_card import GroupSeparator
 
 from one_dragon.utils.i18_utils import gt
 
@@ -68,3 +65,4 @@ class ExpandSettingCardGroup(ExpandSettingCard):
                 sep.setVisible(card.isVisible() and has_visible_before)
             if card.isVisible():
                 has_visible_before = True
+        self._adjustViewSize()
