@@ -103,14 +103,12 @@ if not getattr(sys, 'frozen', False):
     from pygit2.enums import CheckoutStrategy, ConfigLevel, ResetMode, SortMode
     from pynput import keyboard, mouse
     from pynput.keyboard import Controller, Key
-    from qfluentwidgets import Action, BodyLabel, CaptionLabel, CardWidget, CheckBox, CheckableMenu, ColorDialog, ComboBox, Dialog, DisplayLabel, DoubleSpinBox, EditableComboBox, FlowLayout, FluentIcon, FluentIconBase, FluentStyleSheet, FluentThemeColor, FluentWindow, FlyoutViewBase, HorizontalFlipView, HyperlinkButton, HyperlinkCard, ImageLabel, IndeterminateProgressBar, IndicatorPosition, InfoBar, InfoBarIcon, InfoBarPosition, LargeTitleLabel, LineEdit, ListItemDelegate, ListWidget, MSFluentWindow, MaskDialogBase, MenuAnimationType, MessageBox, MessageBoxBase, NavigationBar, NavigationBarPushButton, NavigationItemPosition, PipsPager, PipsScrollButtonDisplayMode, Pivot, PixmapLabel, PlainTextEdit, PopupTeachingTip, PrimaryPushButton, ProgressBar, ProgressRing, PushButton, PushSettingCard, RoundMenu, ScrollArea, SettingCard, SettingCardGroup, SimpleCardWidget, SingleDirectionScrollArea, SpinBox, SplashScreen, SplitTitleBar, StrongBodyLabel, StyleSheetBase, SubtitleLabel, SwitchButton, TableWidget, TeachingTip, TeachingTipTailPosition, Theme, TitleLabel, ToolButton, ToolTip, ToolTipFilter, ToolTipPosition, TransparentPushButton, TransparentToolButton, VBoxLayout, isDarkTheme, qconfig, qrouter, setFont, setTheme, setThemeColor
+    from qfluentwidgets import Action, BodyLabel, CaptionLabel, CardWidget, CheckBox, CheckableMenu, ColorDialog, ComboBox, Dialog, DisplayLabel, DoubleSpinBox, EditableComboBox, ExpandSettingCard, FlowLayout, FluentIcon, FluentIconBase, FluentStyleSheet, FluentThemeColor, FluentWindow, FlyoutViewBase, HorizontalFlipView, HyperlinkButton, HyperlinkCard, ImageLabel, IndeterminateProgressBar, IndicatorPosition, InfoBar, InfoBarIcon, InfoBarPosition, LargeTitleLabel, LineEdit, ListItemDelegate, ListWidget, MSFluentWindow, MaskDialogBase, MenuAnimationType, MessageBox, MessageBoxBase, NavigationBar, NavigationBarPushButton, NavigationItemPosition, PipsPager, PipsScrollButtonDisplayMode, Pivot, PixmapLabel, PlainTextEdit, PopupTeachingTip, PrimaryPushButton, ProgressBar, ProgressRing, PushButton, PushSettingCard, RoundMenu, ScrollArea, SettingCard, SettingCardGroup, SimpleCardWidget, SingleDirectionScrollArea, SpinBox, SplashScreen, SplitTitleBar, StrongBodyLabel, StyleSheetBase, SubtitleLabel, SwitchButton, TableWidget, TeachingTip, TeachingTipTailPosition, Theme, TitleLabel, ToolButton, ToolTip, ToolTipFilter, ToolTipPosition, TransparentPushButton, TransparentToolButton, VBoxLayout, isDarkTheme, qconfig, qrouter, setFont, setTheme, setThemeColor
     from qfluentwidgets.common.animation import BackgroundAnimationWidget, FluentAnimation, FluentAnimationProperty, FluentAnimationType
-    from qfluentwidgets.common.config import qconfig
-    from qfluentwidgets.common.icon import FluentIconBase
     from qfluentwidgets.common.overload import singledispatchmethod
     from qfluentwidgets.components.navigation.pivot import PivotItem
-    from qfluentwidgets.components.settings.expand_setting_card import ExpandSettingCard, GroupSeparator
-    from qfluentwidgets.components.settings.setting_card import FluentStyleSheet, SettingIconWidget
+    from qfluentwidgets.components.settings.expand_setting_card import GroupSeparator
+    from qfluentwidgets.components.settings.setting_card import SettingIconWidget
     from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
     from qfluentwidgets.window.stacked_widget import StackedWidget
     from qframelesswindow import FramelessDialog
@@ -124,6 +122,6 @@ if not getattr(sys, 'frozen', False):
     from soundcard.mediafoundation import SoundcardRuntimeWarning
     from threading import Event, Lock
     from types import ModuleType
-    from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, Optional, Set, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
+    from typing import Any, Callable, ClassVar, Dict, IO, Iterable, List, NamedTuple, Optional, Set, TYPE_CHECKING, Tuple, Type, TypeVar, Union, cast
     from urllib.parse import urlencode
     from yaml import CSafeLoader, SafeLoader

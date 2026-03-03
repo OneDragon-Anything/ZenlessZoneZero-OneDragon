@@ -44,6 +44,7 @@ from one_dragon.utils import cv2_utils, os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.mixins.history_mixin import HistoryMixin
+from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.row import Row
@@ -169,7 +170,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.merge_opt.clicked.connect(self._on_merge_clicked)
         control_layout.addWidget(self.merge_opt)
 
-        btn_row = Row(spacing=6, margins=(0, 0, 0, 0))
+        btn_row = Row(spacing=6, margins=Margins(0, 0, 0, 0))
         control_layout.addWidget(btn_row)
 
         self.existed_yml_btn = EditableComboBox()
@@ -196,7 +197,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         btn_row.add_stretch(1)
 
-        img_btn_row = Row(spacing=6, margins=(0, 0, 0, 0))
+        img_btn_row = Row(spacing=6, margins=Margins(0, 0, 0, 0))
         control_layout.addWidget(img_btn_row)
 
         self.pc_alt_opt = CheckBox(text=gt('PC 点击需 Alt'))

@@ -1,26 +1,48 @@
 import os
+from typing import Any
+
 import cv2
-from PySide6.QtWidgets import QWidget, QSizePolicy, QFileDialog, QTableWidgetItem, QMessageBox, QVBoxLayout, QHBoxLayout
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent
-from qfluentwidgets import (FluentIcon, InfoBarIcon, PushButton, ToolButton, CaptionLabel, LineEdit,
-                            SingleDirectionScrollArea, TableWidget, TeachingTip, TeachingTipTailPosition)
-from typing import Optional, Any
+from PySide6.QtWidgets import (
+    QFileDialog,
+    QHBoxLayout,
+    QMessageBox,
+    QSizePolicy,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+from qfluentwidgets import (
+    CaptionLabel,
+    FluentIcon,
+    InfoBarIcon,
+    LineEdit,
+    PushButton,
+    SingleDirectionScrollArea,
+    TableWidget,
+    TeachingTip,
+    TeachingTipTailPosition,
+    ToolButton,
+)
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.screen.template_info import TemplateInfo, TemplateShapeEnum
-from one_dragon.utils import os_utils, cv2_utils
+from one_dragon.utils import cv2_utils, os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.mixins.history_mixin import HistoryMixin
+from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.fixed_size_image_label import FixedSizeImageLabel
 from one_dragon_qt.widgets.row import Row
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiPushSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
@@ -40,8 +62,8 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         self._init_history()  # 初始化历史记录功能
 
         self.ctx: OneDragonContext = ctx
-        self.chosen_template: Optional[TemplateInfo] = None
-        self.last_screen_dir: Optional[str] = None  # 上一次选择的图片路径
+        self.chosen_template: TemplateInfo | None = None
+        self.last_screen_dir: str | None = None  # 上一次选择的图片路径
 
 
     def get_content_widget(self) -> QWidget:
@@ -68,7 +90,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         control_layout.setContentsMargins(12, 0, 12, 0)
         control_layout.setSpacing(6)
 
-        btn_row = Row(spacing=6, margins=(0, 0, 0, 0))
+        btn_row = Row(spacing=6, margins=Margins(0, 0, 0, 0))
         control_layout.addWidget(btn_row)
 
         self.existed_yml_btn = EditableComboBox()
@@ -92,7 +114,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
         btn_row.add_widget(self.cancel_btn)
 
-        save_row = Row(spacing=6, margins=(0, 0, 0, 0))
+        save_row = Row(spacing=6, margins=Margins(0, 0, 0, 0))
         control_layout.addWidget(save_row)
 
         save_row.add_stretch(1)
@@ -359,7 +381,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
                 del_btn.clicked.connect(self._on_row_delete_clicked)
 
                 self.point_table.setCellWidget(idx, 0, del_btn)
-                self.point_table.setItem(idx, 1, QTableWidgetItem('%d, %d' % (point_item.x, point_item.y)))
+                self.point_table.setItem(idx, 1, QTableWidgetItem(f'{point_item.x}, {point_item.y}'))
 
             # 根据行数调整表格高度
             row_height = self.point_table.rowHeight(0) if self.point_table.rowCount() > 0 else 32
