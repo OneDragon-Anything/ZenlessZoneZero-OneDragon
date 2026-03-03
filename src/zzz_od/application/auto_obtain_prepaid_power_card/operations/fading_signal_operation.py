@@ -42,7 +42,7 @@ class FadingSignalOperation(ZOperation):
         if self._max_quantity < 1:
             return self.round_success(status="信号残响不足")
 
-        return self.round_success(f'在信号残响可以获取的储值电卡数量为：{self._max_quantity}个')
+        return self.round_success(f'在信号残响可以获取的储值电卡数量为: {self._max_quantity}个')
 
     @node_from(from_name='计算最大获取数量')
     @operation_node(name='选择储值电卡')
