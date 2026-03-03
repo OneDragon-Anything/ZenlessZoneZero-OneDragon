@@ -1,5 +1,5 @@
 import time
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from cv2.typing import MatLike
 
@@ -8,16 +8,20 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
+from zzz_od.application.auto_obtain_prepaid_power_card.auto_obtain_prepaid_power_card_config import \
+    AutoObtainPrepaidPowerCardConfig
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 from zzz_od.operation.zzz_operation import ZOperation
 
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
 class MonthlyRestockOperation(ZOperation):
     """情报板商店操作"""
 
-    def __init__(self, ctx, config):
+    def __init__(self, ctx: ZContext, config: AutoObtainPrepaidPowerCardConfig) -> None:
         ZOperation.__init__(self, ctx, op_name='情报板商店')
-        self.config = config
+        self.config: AutoObtainPrepaidPowerCardConfig = config
         self._max_quantity: int = 0
 
     # ==================== 主题相关节点 ====================
@@ -152,7 +156,7 @@ class MonthlyRestockOperation(ZOperation):
 
         return self.round_retry(wait=1)
 
-    # def _get_prepaid_card_position(self, screen: MatLike) -> Optional[MatchResult]:
+    # def _get_prepaid_card_position(self, screen: MatLike) -> MatchResult | None:
     #     """获取储值电卡位置"""
     #     area = self.ctx.screen_loader.get_area('情报板-点数兑换-情报板商店', '道具列表')
     #     part = cv2_utils.crop_image_only(screen, area.rect)
