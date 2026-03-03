@@ -2,20 +2,19 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Optional
 
 from cv2.typing import MatLike
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFileDialog, QWidget, QVBoxLayout, QHBoxLayout
+from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import (
+    BodyLabel,
     CaptionLabel,
-    SimpleCardWidget,
     FluentIcon,
     InfoBarIcon,
     LineEdit,
     PrimaryPushButton,
+    SimpleCardWidget,
     SubtitleLabel,
-    BodyLabel,
 )
 
 from one_dragon.base.geometry.point import Point
@@ -26,7 +25,6 @@ from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.devtools.template_card_widget import TemplateCardWidget
-
 
 TEMPLATE_CONFIGS = [
     {
@@ -80,8 +78,8 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
             parent=parent,
         )
         self.ctx: ZContext = ctx
-        self.agent_id: Optional[str] = None
-        self.last_screen_dir: Optional[str] = None
+        self.agent_id: str | None = None
+        self.last_screen_dir: str | None = None
         self._template_ref_cache: dict[str, TemplateInfo] = {}
         self._agent_id_pattern = re.compile(r'^[a-z][a-z0-9_]*$')
 
@@ -159,7 +157,7 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
 
         # 模板卡片
         self.template_cards: list[TemplateCardWidget] = []
-        for idx, config in enumerate(TEMPLATE_CONFIGS, start=1):
+        for _, config in enumerate(TEMPLATE_CONFIGS, start=1):
             title = config["name"]
             card = TemplateCardWidget(title=title, template_config=config)
             card.btn_choose_screenshot.clicked.connect(lambda _, c=card: self._on_choose_screenshot(c))
@@ -213,7 +211,7 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
             if not enabled:
                 card.reset_preview()
 
-    def _get_template_ref(self, template_ref: str) -> Optional[TemplateInfo]:
+    def _get_template_ref(self, template_ref: str) -> TemplateInfo | None:
         if template_ref in self._template_ref_cache:
             return self._template_ref_cache[template_ref]
 
@@ -223,7 +221,7 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         self._template_ref_cache[template_ref] = template
         return template
 
-    def _preview_template_crop(self, template_ref: str, screen_image: MatLike) -> Optional[MatLike]:
+    def _preview_template_crop(self, template_ref: str, screen_image: MatLike) -> MatLike | None:
         template = self._get_template_ref(template_ref)
         if template is None:
             return None
@@ -254,7 +252,7 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
 
 
 
-    def _choose_screenshot(self) -> Optional[str]:
+    def _choose_screenshot(self) -> str | None:
         default_dir = os_utils.get_path_under_work_dir('.debug', 'images')
         if self.last_screen_dir is not None:
             default_dir = self.last_screen_dir
