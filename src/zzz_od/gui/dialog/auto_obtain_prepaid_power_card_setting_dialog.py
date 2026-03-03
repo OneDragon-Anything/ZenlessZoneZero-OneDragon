@@ -8,13 +8,11 @@ from qfluentwidgets import FluentIcon
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import EditableComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from zzz_od.application.auto_obtain_prepaid_power_card import auto_obtain_prepaid_power_card_const
 from zzz_od.application.auto_obtain_prepaid_power_card.auto_obtain_prepaid_power_card_config import (
-    AutoObtainPrepaidPowerCardConfig, OutpostLogisticsObtainNumber, MonthlyRestockObtainNumber, FadingSignalObtainNumber,
-    UseTheme
+    AutoObtainPrepaidPowerCardConfig, OutpostLogisticsObtainNumber, MonthlyRestockObtainNumber, FadingSignalObtainNumber
 )
 from zzz_od.gui.dialog.app_setting_dialog import AppSettingDialog
 
@@ -23,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class AutoObtainPrepaidPowerCardDialog(AppSettingDialog):
-    def __init__(self, ctx: ZContext, parent: QWidget | None = None):
+    def __init__(self, ctx: ZContext, parent: QWidget | None = None) -> None:
         super().__init__(ctx=ctx, title="自动合成配置", parent=parent)
 
         self.auto_obtain_prepaid_power_card_config: AutoObtainPrepaidPowerCardConfig = self.ctx.run_context.get_config(
@@ -48,9 +46,6 @@ class AutoObtainPrepaidPowerCardDialog(AppSettingDialog):
         self.monthly_restock = SwitchSettingCard(icon=FluentIcon.SHOPPING_CART, title='情报板商店')
         self.monthly_restock.value_changed.connect(self._on_monthly_restock_toggled)
         content_widget.add_widget(self.monthly_restock)
-
-        self.use_theme = ComboBoxSettingCard(icon=FluentIcon.GAME, title='使用主题', options_enum=UseTheme)
-        content_widget.add_widget(self.use_theme)
 
         self.monthly_restock_obtain_number = EditableComboBoxSettingCard(
             icon=FluentIcon.GAME, title=gt('情报板商店获取数量'),
@@ -94,7 +89,6 @@ class AutoObtainPrepaidPowerCardDialog(AppSettingDialog):
     def _on_monthly_restock_toggled(self, checked: bool) -> None:
         # 如果开启情报板商店自动购买储值电卡 显示相关控件 否则隐藏
         self.monthly_restock_obtain_number.setVisible(checked)
-        self.use_theme.setVisible(checked)
 
     def _on_signal_shop_toggled(self, checked: bool) -> None:
         # 如果开启信号残响自动购买储值电卡 显示相关控件 否则隐藏

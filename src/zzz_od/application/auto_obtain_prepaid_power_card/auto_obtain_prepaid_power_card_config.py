@@ -48,7 +48,7 @@ class FadingSignalObtainNumber(Enum):
     SIXTEEN = ConfigItem('16个', 16)
     SEVENTEEN = ConfigItem('17个', 17)
     EIGHTEEN = ConfigItem('18个', 18)
-    Nineteen = ConfigItem('19个', 19)
+    NINETEEN = ConfigItem('19个', 19)
 
 
 class UseTheme(Enum):
@@ -118,11 +118,3 @@ class AutoObtainPrepaidPowerCardConfig(ApplicationConfig):
     @fading_signal_obtain_number.setter
     def fading_signal_obtain_number(self, value: int) -> None:
         self.update('fading_signal_obtain_number', value)
-
-    @property
-    def use_theme(self) -> str:
-        return self.get('use_theme', UseTheme.DEFAULT.value.value)
-
-    @use_theme.setter
-    def use_theme(self, value: str) -> None:
-        self.update('use_theme', value)
