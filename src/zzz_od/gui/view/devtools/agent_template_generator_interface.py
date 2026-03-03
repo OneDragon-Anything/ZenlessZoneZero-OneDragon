@@ -21,6 +21,7 @@ from one_dragon.base.geometry.point import Point
 from one_dragon.base.screen.template_info import TemplateInfo
 from one_dragon.utils import cv2_utils, os_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.context.zzz_context import ZContext
@@ -90,13 +91,13 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         center_layout.setContentsMargins(0, 0, 0, 0)
 
         # 左侧列：标题 + 输入
-        left_column = Column(spacing=16, margins=(0, 0, 0, 0))
+        left_column = Column(spacing=16, margins=Margins(0, 0, 0, 0))
         left_column.setFixedWidth(300)
         center_layout.addWidget(left_column, alignment=Qt.AlignmentFlag.AlignTop)
 
         # 标题区域
         title_card = SimpleCardWidget()
-        title_layout = Column(spacing=8, margins=(16, 16, 16, 16))
+        title_layout = Column(spacing=8, margins=Margins(16, 16, 16, 16))
         QVBoxLayout(title_card).addWidget(title_layout)
 
         title_label = SubtitleLabel(text=gt('代理人模板生成'))
@@ -110,7 +111,7 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
 
         # 输入区域
         input_card = SimpleCardWidget()
-        input_layout = Column(spacing=16, margins=(16, 16, 16, 16))
+        input_layout = Column(spacing=16, margins=Margins(16, 16, 16, 16))
         QVBoxLayout(input_card).addWidget(input_layout)
 
         # 输入框
@@ -128,7 +129,7 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
 
         # 截图说明卡片（紧贴输入卡片）
         hint_card = SimpleCardWidget()
-        hint_layout = Column(spacing=12, margins=(16, 16, 16, 16))
+        hint_layout = Column(spacing=12, margins=Margins(16, 16, 16, 16))
         QVBoxLayout(hint_card).addWidget(hint_layout)
 
         hint_title = BodyLabel(text=gt('截图方法'))
@@ -151,7 +152,7 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         left_column.add_stretch(1)
 
         # 右侧列：6个模板卡片 - 垂直排列
-        right_column = Column(spacing=16, margins=(8, 0, 8, 16))
+        right_column = Column(spacing=16, margins=Margins(8, 0, 8, 16))
         right_column.setFixedWidth(650)
         center_layout.addWidget(right_column, alignment=Qt.AlignmentFlag.AlignTop)
 
