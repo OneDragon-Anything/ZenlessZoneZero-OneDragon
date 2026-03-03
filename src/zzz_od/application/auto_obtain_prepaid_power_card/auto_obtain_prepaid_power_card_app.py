@@ -1,5 +1,3 @@
-from typing import List
-
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -39,7 +37,7 @@ class AutoObtainPrepaidPowerCardApp(ZApplication):
         )
 
         # 任务队列
-        self._task_queue: List[str] = []
+        self._task_queue: list[str] = []
         self._current_task_index: int = 0
 
     @operation_node(name='检查配置', is_start_node=True)

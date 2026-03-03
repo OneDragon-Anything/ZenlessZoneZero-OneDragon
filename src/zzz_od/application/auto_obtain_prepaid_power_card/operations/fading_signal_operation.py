@@ -89,7 +89,7 @@ class FadingSignalOperation(ZOperation):
     def select_quantity(self) -> OperationRoundResult:
         """选择获取数量"""
         result = self.round_by_find_area(
-            self.last_screenshot, '信号残响', '按钮-增加'
+            self.last_screenshot, '快捷手册-作战-后勤商店', '按钮-增加'
         )
         if result.is_success:
             time.sleep(0.5)
@@ -103,7 +103,7 @@ class FadingSignalOperation(ZOperation):
 
     def _click_increase_button(self, number: int) -> bool:
         """点击增加按钮"""
-        area = self.ctx.screen_loader.get_area('信号残响', '按钮-增加')
+        area = self.ctx.screen_loader.get_area('快捷手册-作战-后勤商店', '按钮-增加')
         if not area:
             return False
 
@@ -117,7 +117,7 @@ class FadingSignalOperation(ZOperation):
     def confirm_purchase(self) -> OperationRoundResult:
         """确认购买"""
         result = self.round_by_find_and_click_area(
-            self.last_screenshot, '信号残响', '按钮-确认'
+            self.last_screenshot, '快捷手册-作战-后勤商店', '按钮-确认'
         )
         if result.is_success:
             return self.round_success(result.status, wait=1)

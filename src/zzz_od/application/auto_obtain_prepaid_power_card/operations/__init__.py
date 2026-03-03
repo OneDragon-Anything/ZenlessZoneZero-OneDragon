@@ -3,7 +3,7 @@ from zzz_od.application.auto_obtain_prepaid_power_card.operations.monthly_restoc
 from zzz_od.application.auto_obtain_prepaid_power_card.operations.fading_signal_operation import FadingSignalOperation
 
 __all__ = [
-    'OutpostLogisticsOperation',
-    'MonthlyRestockOperation',
     'FadingSignalOperation',
+    'MonthlyRestockOperation',
+    'OutpostLogisticsOperation',
 ]
