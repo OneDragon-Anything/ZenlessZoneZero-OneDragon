@@ -1,4 +1,4 @@
-from PySide6.QtCore import QEvent
+from PySide6.QtCore import QEvent, QObject
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets.common.icon import FluentIconBase
@@ -55,7 +55,7 @@ class ExpandSettingCardGroup(ExpandSettingCard):
         for card in cards:
             self.addSettingCard(card)
 
-    def eventFilter(self, obj: QWidget, event: QEvent) -> bool:
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         if event.type() in (QEvent.Type.Show, QEvent.Type.Hide):
             self._update_separators()
         return super().eventFilter(obj, event)
