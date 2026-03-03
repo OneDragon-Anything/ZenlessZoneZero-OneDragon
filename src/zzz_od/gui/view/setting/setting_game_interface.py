@@ -8,6 +8,7 @@ from one_dragon.utils import cmd_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.setting_card.expand_setting_card_group import ExpandSettingCardGroup
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import DoubleSpinBoxSettingCard
@@ -35,9 +36,7 @@ class SettingGameInterface(VerticalScrollInterface):
         content_widget = Column()
 
         content_widget.add_widget(self._get_basic_group())
-        content_widget.add_widget(self._get_launch_argument_group())
-        content_widget.add_widget(self._get_key_group())
-        content_widget.add_widget(self._get_gamepad_group())
+        content_widget.add_widget(self._get_key_settings_group())
         content_widget.add_stretch(1)
 
         return content_widget
@@ -58,14 +57,15 @@ class SettingGameInterface(VerticalScrollInterface):
                                             btn_list=[self.hdr_btn_disable, self.hdr_btn_enable])
         basic_group.addSettingCard(self.hdr_btn)
 
+        basic_group.addSettingCard(self._get_launch_argument_group())
+
         return basic_group
 
     def _get_launch_argument_group(self) -> QWidget:
-        launch_argument_group = SettingCardGroup(gt('启动参数'))
+        launch_argument_group = ExpandSettingCardGroup(icon=FluentIcon.SETTING, title='启动参数')
 
-        self.launch_argument_switch = SwitchSettingCard(icon=FluentIcon.SETTING, title='启用')
-        self.launch_argument_switch.value_changed.connect(self._on_launch_argument_switch_changed)
-        launch_argument_group.addSettingCard(self.launch_argument_switch)
+        self.launch_argument_switch = SwitchSettingCard(icon=FluentIcon.SETTING, title='启动参数')
+        launch_argument_group.addHeaderWidget(self.launch_argument_switch.btn)
 
         self.screen_size_opt = ComboBoxSettingCard(icon=FluentIcon.FIT_PAGE, title='窗口尺寸', options_enum=ScreenSizeEnum)
         launch_argument_group.addSettingCard(self.screen_size_opt)
@@ -88,8 +88,14 @@ class SettingGameInterface(VerticalScrollInterface):
 
         return launch_argument_group
 
-    def _get_key_group(self) -> QWidget:
-        key_group = SettingCardGroup(gt('游戏按键'))
+    def _get_key_settings_group(self) -> QWidget:
+        key_settings_group = SettingCardGroup(gt('按键设置'))
+        key_settings_group.addSettingCard(self._get_keyboard_group())
+        key_settings_group.addSettingCard(self._get_gamepad_group())
+        return key_settings_group
+
+    def _get_keyboard_group(self) -> QWidget:
+        key_group = ExpandSettingCardGroup(icon=FluentIcon.GAME, title='键盘按键')
 
         self.key_normal_attack_opt = KeySettingCard(icon=FluentIcon.GAME, title='普通攻击')
         key_group.addSettingCard(self.key_normal_attack_opt)
@@ -139,15 +145,11 @@ class SettingGameInterface(VerticalScrollInterface):
         return key_group
 
     def _get_gamepad_group(self) -> QWidget:
-        gamepad_group = SettingCardGroup(gt('手柄按键'))
+        gamepad_group = ExpandSettingCardGroup(icon=FluentIcon.GAME, title='手柄按键', content='需先安装虚拟手柄依赖，参考文档或使用安装器。')
 
-        self.gamepad_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GAME, title='手柄类型',
-            content='需先安装虚拟手柄依赖，参考文档或使用安装器。仅在闪避助手生效。',
-            options_enum=GamepadTypeEnum
-        )
+        self.gamepad_type_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='手柄类型', options_enum=GamepadTypeEnum)
         self.gamepad_type_opt.value_changed.connect(self._on_gamepad_type_changed)
-        gamepad_group.addSettingCard(self.gamepad_type_opt)
+        gamepad_group.addHeaderWidget(self.gamepad_type_opt.combo_box)
 
         # xbox
         self.xbox_key_press_time_opt = DoubleSpinBoxSettingCard(icon=FluentIcon.GAME, title='单次按键持续时间(秒)',
@@ -262,7 +264,6 @@ class SettingGameInterface(VerticalScrollInterface):
         self.popup_window_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('popup_window'))
         self.monitor_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('monitor'))
         self.launch_argument_advance.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument_advance'))
-        self._update_launch_argument_part()
 
         self.key_normal_attack_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_normal_attack'))
         self.key_dodge_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_dodge'))
@@ -375,18 +376,3 @@ class SettingGameInterface(VerticalScrollInterface):
         self.hdr_btn_enable.setEnabled(True)
         cmd_utils.run_command(['reg', 'add', 'HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences',
                                '/v', self.ctx.game_account_config.game_path, '/d', 'AutoHDREnable=2096;', '/f'])
-
-    def _update_launch_argument_part(self) -> None:
-        """
-        启动参数部分更新显示
-        :return:
-        """
-        value = self.ctx.game_config.launch_argument
-        self.screen_size_opt.setVisible(value)
-        self.full_screen_opt.setVisible(value)
-        self.popup_window_switch.setVisible(value)
-        self.monitor_opt.setVisible(value)
-        self.launch_argument_advance.setVisible(value)
-
-    def _on_launch_argument_switch_changed(self) -> None:
-        self._update_launch_argument_part()
