@@ -13,8 +13,6 @@ class GamepadActionEnum(Enum):
     screen 区域的 gamepad_key 引用存储值。
     """
 
-    NONE = ConfigItem('无', '')
-    INTERACT = ConfigItem('交互', 'interact')
     MENU = ConfigItem('菜单', 'menu')
     MAP = ConfigItem('地图', 'map')
     MINIMAP = ConfigItem('小地图', 'minimap')
@@ -291,7 +289,7 @@ class GameConfig(BasicGameConfig):
     @property
     def xbox_key_interact(self) -> str:
         """交互"""
-        return self.get('xbox_key_interact', XboxButtonEnum.A.value.value)
+        return self.get('xbox_key_interact', XboxButtonEnum.X.value.value)
 
     @xbox_key_interact.setter
     def xbox_key_interact(self, new_value: str) -> None:
@@ -421,7 +419,7 @@ class GameConfig(BasicGameConfig):
     @property
     def ds4_key_interact(self) -> str:
         """交互"""
-        return self.get('ds4_key_interact', Ds4ButtonEnum.CROSS.value.value)
+        return self.get('ds4_key_interact', Ds4ButtonEnum.SQUARE.value.value)
 
     @ds4_key_interact.setter
     def ds4_key_interact(self, new_value: str) -> None:
@@ -506,14 +504,6 @@ class GameConfig(BasicGameConfig):
     # ── Xbox 动作键 ──
 
     @property
-    def xbox_action_interact(self) -> str:
-        return self.get('xbox_action_interact', 'xbox_x')
-
-    @xbox_action_interact.setter
-    def xbox_action_interact(self, new_value: str) -> None:
-        self.update('xbox_action_interact', new_value)
-
-    @property
     def xbox_action_menu(self) -> str:
         return self.get('xbox_action_menu', 'xbox_start')
 
@@ -554,14 +544,6 @@ class GameConfig(BasicGameConfig):
         self.update('xbox_action_function_menu', new_value)
 
     # ── DS4 动作键 ──
-
-    @property
-    def ds4_action_interact(self) -> str:
-        return self.get('ds4_action_interact', 'ds4_square')
-
-    @ds4_action_interact.setter
-    def ds4_action_interact(self, new_value: str) -> None:
-        self.update('ds4_action_interact', new_value)
 
     @property
     def ds4_action_menu(self) -> str:
