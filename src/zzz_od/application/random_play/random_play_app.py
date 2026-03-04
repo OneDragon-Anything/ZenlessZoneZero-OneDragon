@@ -348,7 +348,7 @@ class RandomPlayApp(ZApplication):
         if not result.is_success:
             return self.round_success()  # 按钮消失了，说明二次确认已完成
         self.round_by_click_area('影像店营业', '开始营业-确认')
-        return self.round_wait(wait=0.5)
+        return self.round_wait(wait=1)
 
     @node_from(from_name='开始营业确认')
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
