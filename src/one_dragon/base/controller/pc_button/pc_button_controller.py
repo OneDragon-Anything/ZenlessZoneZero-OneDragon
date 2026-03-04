@@ -6,7 +6,7 @@ class PcButtonController:
 
     def __init__(self) -> None:
         self.key_press_time: float = 0.02
-        self.combo_press_time: float = 0.2
+        self.combo_press_time: float = 0.5
 
     def tap(self, key: str) -> None:
         """

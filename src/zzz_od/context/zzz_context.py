@@ -119,10 +119,6 @@ class ZContext(OneDragonContext):
             # 初始化窗口标题
             self.controller.set_window_title(self._get_win_title())
 
-            # 后台模式联动
-            if self.game_config.background_mode:
-                self.controller.enable_background_mode(self.game_config.background_gamepad_type)
-
     def init_for_application(self) -> None:
         self.map_service.reload()  # 传送需要用的数据
         self.compendium_service.reload()  # 快捷手册

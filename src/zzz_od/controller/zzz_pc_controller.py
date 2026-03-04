@@ -48,6 +48,14 @@ class ZPcController(PcControllerBase):
         self.gamepad_action_keys = self.game_config.get_gamepad_action_keys('xbox')
         self.gamepad_turn_speed: float = game_config.gamepad_turn_speed
 
+    def init_before_context_run(self) -> bool:
+        """运行前根据配置启用后台/前台模式。"""
+        if self.game_config.background_mode:
+            self.enable_background_mode(self.game_config.background_gamepad_type)
+        else:
+            self.enable_foreground_mode()
+        return PcControllerBase.init_before_context_run(self)
+
     def fill_uid_black(self, screen: MatLike) -> MatLike:
         """
         遮挡UID 由子类实现
