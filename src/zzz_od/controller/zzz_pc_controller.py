@@ -44,8 +44,7 @@ class ZPcController(PcControllerBase):
         self.is_moving: bool = False  # 是否正在移动
         self.turn_dx: float = game_config.turn_dx
 
-        # 后台模式手柄动作键映射 — 默认使用 xbox，enable_ds4 时刷新
-        self.gamepad_action_keys = self.game_config.get_gamepad_action_keys('xbox')
+        self.gamepad_action_keys = self.game_config.get_gamepad_action_keys()
         self.gamepad_turn_speed: float = game_config.gamepad_turn_speed
 
     def init_before_context_run(self) -> bool:
@@ -106,7 +105,7 @@ class ZPcController(PcControllerBase):
         self.key_interact: str = self.game_config.xbox_key_interact
         self.key_lock: str = self.game_config.xbox_key_lock
         self.key_chain_cancel: str = self.game_config.xbox_key_chain_cancel
-        self.gamepad_action_keys = self.game_config.get_gamepad_action_keys('xbox')
+        self.gamepad_action_keys = self.game_config.get_gamepad_action_keys()
 
     def enable_ds4(self):
         PcControllerBase.enable_ds4(self)
@@ -126,7 +125,7 @@ class ZPcController(PcControllerBase):
         self.key_interact: str = self.game_config.ds4_key_interact
         self.key_lock: str = self.game_config.ds4_key_lock
         self.key_chain_cancel: str = self.game_config.ds4_key_chain_cancel
-        self.gamepad_action_keys = self.game_config.get_gamepad_action_keys('ds4')
+        self.gamepad_action_keys = self.game_config.get_gamepad_action_keys()
 
     def dodge(self, press: bool = False, press_time: float | None = None, release: bool = False) -> None:
         """闪避。"""
@@ -369,10 +368,10 @@ class ZPcController(PcControllerBase):
         duration = max_d / self.gamepad_turn_speed
 
         pad = self.btn_controller.pad
-        pad.right_joystick_float(stick_x, stick_y)
-        pad.update()
-
-        time.sleep(duration)
-
-        pad.right_joystick_float(0, 0)
-        pad.update()
+        try:
+            pad.right_joystick_float(stick_x, stick_y)
+            pad.update()
+            time.sleep(duration)
+        finally:
+            pad.right_joystick_float(0, 0)
+            pad.update()

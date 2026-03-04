@@ -111,7 +111,7 @@ class AutoBattleInterface(AppRunInterface):
 
         self.gamepad_type_opt = ComboBoxSettingCard(
             icon=FluentIcon.GAME, title='操作方式',
-            content='仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。。',
+            content='仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。',
             options_enum=ControlMethodEnum
         )
         self.gamepad_type_opt.value_changed.connect(self._on_gamepad_type_changed)

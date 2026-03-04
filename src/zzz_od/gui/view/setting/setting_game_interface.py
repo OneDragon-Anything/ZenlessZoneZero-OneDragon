@@ -195,8 +195,8 @@ class SettingGameInterface(VerticalScrollInterface):
 
         gamepad_display_combo = ComboBox()
         gamepad_display_combo.set_items([GamepadTypeEnum.XBOX.value, GamepadTypeEnum.DS4.value])
-        gamepad_display_combo.setCurrentIndex(0)
         gamepad_display_combo.currentIndexChanged.connect(self._toggle_gamepad_cards)
+        gamepad_display_combo.setCurrentIndex(0)
         gamepad_group.addHeaderWidget(gamepad_display_combo)
 
         # xbox

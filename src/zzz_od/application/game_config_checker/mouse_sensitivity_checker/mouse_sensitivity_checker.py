@@ -93,6 +93,9 @@ class MouseSensitivityChecker(ZApplication):
     def calculate(self) -> OperationRoundResult:
         mean_diff = float(np.mean(self.angle_diff_list))
 
+        if abs(mean_diff) < 1e-6:
+            return self.round_fail(status='平均角度差过小，检测结果不可靠')
+
         if self._is_gamepad_mode:
             # gamepad_turn_speed = |turn_dx| * |mean_angle_diff| / test_duration
             turn_dx = self.ctx.game_config.turn_dx

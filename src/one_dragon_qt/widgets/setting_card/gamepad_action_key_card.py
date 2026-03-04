@@ -2,6 +2,7 @@ from enum import Enum
 
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIconBase
 
 from one_dragon.base.config.config_item import ConfigItem
@@ -31,8 +32,8 @@ class GamepadActionKeyCard(MultiPushSettingCard, AdapterInitMixin):
         content: str | None = None,
         icon_size: IconSize = IconSize(16, 16),
         margins: Margins = Margins(16, 16, 0, 16),
-        parent=None,
-    ):
+        parent: QWidget = None,
+    ) -> None:
         self.modifier_combo = ComboBox()
         self.modifier_combo.addItem('无', userData='')
         for item in modifier_enum:
@@ -76,15 +77,11 @@ class GamepadActionKeyCard(MultiPushSettingCard, AdapterInitMixin):
         modifier_val = keys[0] if len(keys) >= 2 else ''
         button_val = keys[-1] if keys else ''
 
-        for i in range(self.modifier_combo.count()):
-            if self.modifier_combo.itemData(i) == modifier_val:
-                self.modifier_combo.setCurrentIndex(i)
-                break
+        idx = self.modifier_combo.findData(modifier_val)
+        self.modifier_combo.setCurrentIndex(idx if idx >= 0 else 0)
 
-        for i in range(self.button_combo.count()):
-            if self.button_combo.itemData(i) == button_val:
-                self.button_combo.setCurrentIndex(i)
-                break
+        idx = self.button_combo.findData(button_val)
+        self.button_combo.setCurrentIndex(idx if idx >= 0 else 0)
 
         self._updating = False
 

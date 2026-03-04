@@ -245,16 +245,13 @@ class GameConfig(BasicGameConfig):
     def background_gamepad_type(self, new_value: str) -> None:
         self.update('background_gamepad_type', new_value)
 
-    def get_gamepad_action_keys(self, gamepad_type: str) -> dict[str, list[str]]:
-        """获取指定手柄类型的后台模式动作 → 实际按键映射。
-
-        Args:
-            gamepad_type: 'xbox' 或 'ds4'
+    def get_gamepad_action_keys(self) -> dict[str, list[str]]:
+        """获取当前手柄类型的后台模式动作 → 实际按键映射。
 
         Returns:
             {action_name: [key, ...]}
         """
-        prefix = gamepad_type
+        prefix = self.background_gamepad_type
         result: dict[str, list[str]] = {}
         for action in GamepadActionEnum:
             action_name: str = action.value.value
