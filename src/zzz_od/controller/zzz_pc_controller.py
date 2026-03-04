@@ -193,7 +193,6 @@ class ZPcController(PcControllerBase):
         if dx == 0 and dy == 0:
             return
         if self.background_mode:
-            self._ensure_gamepad_mode()
             self._gamepad_turn(dx, dy)
         else:
             self._ensure_mouse_mode()
@@ -212,6 +211,10 @@ class ZPcController(PcControllerBase):
         """
         if dx == 0 and dy == 0:
             return
+        if self.gamepad_turn_speed <= 0:
+            return
+
+        self._ensure_gamepad_mode()
 
         max_d = max(abs(dx), abs(dy))
         stick_x = dx / max_d
