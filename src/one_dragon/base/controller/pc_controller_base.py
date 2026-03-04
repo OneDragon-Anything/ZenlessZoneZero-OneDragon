@@ -53,7 +53,7 @@ class PcControllerBase(ControllerBase):
         self.screenshot_controller: PcScreenshotController = PcScreenshotController(self.game_win, standard_width, standard_height)
         self.screenshot_method: str = screenshot_method
         self.background_mode: bool = False
-        self.gamepad_action_keys: dict[str, str] = {}
+        self.gamepad_action_keys: dict[str, list[str]] = {}
         self._game_input_mode: str = 'keyboard_mouse'  # 游戏当前识别的输入设备
 
     def init_game_win(self) -> bool:
@@ -176,7 +176,7 @@ class PcControllerBase(ControllerBase):
         高层 click_area / find_and_click_area 在 pc_alt=True 时调用此方法。
         仅在后台模式且 gamepad_key 不为空时执行手柄按键。
         gamepad_key 是 GamepadActionEnum 的动作名 (如 'compendium')，
-        通过 self.gamepad_action_keys 解析为实际按键组合 (如 'xbox_lb+xbox_a')。
+        通过 self.gamepad_action_keys 解析为实际按键列表 (如 ['xbox_lb', 'xbox_a'])。
 
         Args:
             gamepad_key: GamepadActionEnum 的存储值（动作名），由控制器解析为实际按键
@@ -187,7 +187,7 @@ class PcControllerBase(ControllerBase):
         if not self.background_mode or not gamepad_key:
             return False
 
-        raw_keys = self.gamepad_action_keys.get(gamepad_key, '')
+        raw_keys = self.gamepad_action_keys.get(gamepad_key, [])
         if not raw_keys:
             log.warning('后台模式: 未找到动作 %s 的手柄键映射', gamepad_key)
             return False
@@ -195,11 +195,10 @@ class PcControllerBase(ControllerBase):
         self._ensure_gamepad_mode()
         self.send_activate()
 
-        keys = raw_keys.split('+')
-        if len(keys) == 1:
-            self.btn_controller.tap(keys[0])
+        if len(raw_keys) == 1:
+            self.btn_controller.tap(raw_keys[0])
         else:
-            self.btn_controller.tap_combo(keys)
+            self.btn_controller.tap_combo(raw_keys)
         return True
 
     # ── 后台模式 API ──────────────────────────────────

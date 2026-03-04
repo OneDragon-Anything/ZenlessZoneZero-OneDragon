@@ -32,7 +32,7 @@ class ScreenArea:
         self.id_mark: bool = id_mark  # 是否用于画面的唯一标识
         self.goto_list: list[str] = [] if goto_list is None else goto_list  # 交互后 可能会跳转的画面名称列表
         self.color_range: list[list[int]] | None = color_range  # 识别时候的筛选的颜色范围 文本时候有效
-        self.gamepad_key: str | None = gamepad_key  # 后台模式手柄替代键 如 'xbox_a' 或 'xbox_lb+xbox_a'
+        self.gamepad_key: str | None = gamepad_key  # GamepadActionEnum 动作名 如 'menu', 'compendium'
 
     @property
     def rect(self) -> Rect:

@@ -1,18 +1,33 @@
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, SettingCardGroup, PushButton, ComboBox
+from qfluentwidgets import ComboBox, FluentIcon, PushButton, SettingCardGroup
 
-from one_dragon.base.config.basic_game_config import TypeInputWay, ScreenSizeEnum, FullScreenEnum, MonitorEnum
+from one_dragon.base.config.basic_game_config import (
+    FullScreenEnum,
+    MonitorEnum,
+    ScreenSizeEnum,
+    TypeInputWay,
+)
 from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonEnum
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
 from one_dragon.utils import cmd_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
-from one_dragon_qt.widgets.setting_card.dual_combo_box_setting_card import DualComboBoxSettingCard
-from one_dragon_qt.widgets.setting_card.expand_setting_card_group import ExpandSettingCardGroup
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.expand_setting_card_group import (
+    ExpandSettingCardGroup,
+)
+from one_dragon_qt.widgets.setting_card.gamepad_action_key_card import (
+    GamepadActionKeyCard,
+)
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
-from one_dragon_qt.widgets.setting_card.spin_box_setting_card import DoubleSpinBoxSettingCard
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiPushSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
+    DoubleSpinBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
@@ -176,12 +191,12 @@ class SettingGameInterface(VerticalScrollInterface):
         group.addSettingCard(self.background_gamepad_type_opt)
 
         # Xbox 动作键卡片
-        self._xbox_action_cards: dict[str, DualComboBoxSettingCard] = {}
+        self._xbox_action_cards: dict[str, GamepadActionKeyCard] = {}
         for action in GamepadActionEnum:
             action_name: str = action.value.value
             if not action_name:
                 continue
-            card = DualComboBoxSettingCard(
+            card = GamepadActionKeyCard(
                 icon=FluentIcon.GAME,
                 title=action.value.ui_text,
                 modifier_enum=XboxButtonEnum,
@@ -191,12 +206,12 @@ class SettingGameInterface(VerticalScrollInterface):
             group.addSettingCard(card)
 
         # DS4 动作键卡片
-        self._ds4_action_cards: dict[str, DualComboBoxSettingCard] = {}
+        self._ds4_action_cards: dict[str, GamepadActionKeyCard] = {}
         for action in GamepadActionEnum:
             action_name: str = action.value.value
             if not action_name:
                 continue
-            card = DualComboBoxSettingCard(
+            card = GamepadActionKeyCard(
                 icon=FluentIcon.GAME,
                 title=action.value.ui_text,
                 modifier_enum=Ds4ButtonEnum,
