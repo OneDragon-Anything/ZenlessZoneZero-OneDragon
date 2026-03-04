@@ -245,19 +245,42 @@ class GameConfig(BasicGameConfig):
     def background_gamepad_type(self, new_value: str) -> None:
         self.update('background_gamepad_type', new_value)
 
-    def get_gamepad_action_keys(self) -> dict[str, list[str]]:
-        """获取当前手柄类型的后台模式动作 → 实际按键映射。
+    def get_action_keys(self, control_method: str | None = None) -> dict[str, str]:
+        """获取指定控制方式的所有按键映射。
+
+        Args:
+            control_method: ControlMethodEnum 的值，如 'keyboard' / 'xbox' / 'ds4'。
+                            为 None 时使用当前配置的 control_method。
+
+        Returns:
+            {action_name: key_value}，如 {'dodge': 'shift', 'interact': 'f', ...}
+        """
+        if control_method is None:
+            control_method = self.control_method
+        prefix = 'key' if control_method == 'keyboard' else f'{control_method}_key'
+        return {
+            action.value.value: getattr(self, f'{prefix}_{action.value.value}')
+            for action in GameKeyAction
+        }
+
+    def get_gamepad_action_keys(self, gamepad_type: str | None = None) -> dict[str, list[str]]:
+        """获取指定手柄类型的后台模式动作 → 实际按键映射。
+
+        Args:
+            gamepad_type: GamepadTypeEnum 的值，如 'xbox' / 'ds4'。
+                          为 None 时使用当前配置的 background_gamepad_type。
 
         Returns:
             {action_name: [key, ...]}
         """
-        prefix = self.background_gamepad_type
+        if gamepad_type is None:
+            gamepad_type = self.background_gamepad_type
         result: dict[str, list[str]] = {}
         for action in GamepadActionEnum:
             action_name: str = action.value.value
             if not action_name:
                 continue
-            prop_name = f'{prefix}_action_{action_name}'
+            prop_name = f'{gamepad_type}_action_{action_name}'
             value = getattr(self, prop_name, [])
             if value:
                 result[action_name] = value
