@@ -82,8 +82,8 @@ class RandomPlayApp(ZApplication):
     def wait_run(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '影像店营业', '昨日账本')
         if result.is_success:
-            return self.round_by_click_area('影像店营业', '返回',
-                                            retry_wait=1)
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '按钮-关闭',
+                                                     retry_wait=1)
         # 看看经营状况，识别到就点击一下，保证在"经营状况"分支
         # 因为二次运行时，有极低概率"无人咨询"变成"咨询中"并被默认跳转
         return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '经营状况',
@@ -95,7 +95,7 @@ class RandomPlayApp(ZApplication):
         # 防止上一步跳过了昨日账本
         result = self.round_by_find_area(self.last_screenshot, '影像店营业', '昨日账本')
         if result.is_success:
-            self.round_by_click_area('影像店营业', '返回', pre_delay=1)
+            self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '按钮-关闭')
             return self.round_retry(wait=1)
 
         result = self.round_by_find_area(self.last_screenshot, '影像店营业', '正在营业')
@@ -332,7 +332,8 @@ class RandomPlayApp(ZApplication):
         if result.is_success:
             return self.round_success()
 
-        return self.round_by_click_area('影像店营业', '返回', retry_wait=1)
+        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '返回',
+                                                     retry_wait=1)
 
     @node_from(from_name='返回')
     @operation_node(name='开始营业')
