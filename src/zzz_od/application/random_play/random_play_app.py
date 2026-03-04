@@ -207,7 +207,7 @@ class RandomPlayApp(ZApplication):
 
             results = difflib.get_close_matches(ocr_result, target_list, n=1)
 
-            if len(results) > 0:
+            if results:
                 idx = target_list.index(results[0])
                 self._need_video_themes.append(self._all_video_themes[idx])
 
