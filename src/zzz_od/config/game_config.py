@@ -6,6 +6,19 @@ from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4Button
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
 
 
+class ControlMethodEnum(Enum):
+
+    KEYBOARD = ConfigItem('键鼠', 'keyboard')
+    XBOX = ConfigItem('Xbox', 'xbox')
+    DS4 = ConfigItem('DS4', 'ds4')
+
+
+class GamepadTypeEnum(Enum):
+
+    XBOX = ConfigItem('Xbox', 'xbox')
+    DS4 = ConfigItem('DS4', 'ds4')
+
+
 class GamepadActionEnum(Enum):
     """后台模式下替代 pc_alt 点击的逻辑动作。
 
@@ -18,20 +31,6 @@ class GamepadActionEnum(Enum):
     MINIMAP = ConfigItem('小地图', 'minimap')
     COMPENDIUM = ConfigItem('快捷手册', 'compendium')
     GUIDE = ConfigItem('功能导览', 'function_menu')
-
-
-class GamepadTypeEnum(Enum):
-
-    NONE = ConfigItem('键鼠', 'none')
-    XBOX = ConfigItem('Xbox', 'xbox')
-    DS4 = ConfigItem('DS4', 'ds4')
-
-
-class BackgroundGamepadTypeEnum(Enum):
-    """后台模式手柄类型（必须使用虚拟手柄，无 NONE 选项）。"""
-
-    XBOX = ConfigItem('Xbox', 'xbox')
-    DS4 = ConfigItem('DS4', 'ds4')
 
 
 class GameKeyAction(Enum):
@@ -179,7 +178,18 @@ class GameConfig(BasicGameConfig):
 
     def __init__(self, instance_idx: int):
         BasicGameConfig.__init__(self, instance_idx)
+        # TODO 迁移旧配置 2026-9 删除
+        self._migrate_legacy_keys()
         self._migrate_legacy_gamepad_keys()
+
+    def _migrate_legacy_keys(self) -> None:
+        """迁移旧键名到新键名。"""
+        _RENAMES = {'gamepad_type': 'control_method'}
+        for old_key, new_key in _RENAMES.items():
+            old_val = self.get(old_key)
+            if old_val is not None and self.get(new_key) is None:
+                self.update(new_key, old_val)
+                self.update(old_key, None)
 
     def _migrate_legacy_gamepad_keys(self) -> None:
         """初始化时一次性迁移所有旧数字格式的手柄按键配置。"""
@@ -196,12 +206,12 @@ class GameConfig(BasicGameConfig):
                     self.update(prop, migrated)
 
     @property
-    def gamepad_type(self) -> str:
-        return self.get('gamepad_type', GamepadTypeEnum.NONE.value.value)
+    def control_method(self) -> str:
+        return self.get('control_method', ControlMethodEnum.KEYBOARD.value.value)
 
-    @gamepad_type.setter
-    def gamepad_type(self, new_value: str) -> None:
-        self.update('gamepad_type', new_value)
+    @control_method.setter
+    def control_method(self, new_value: str) -> None:
+        self.update('control_method', new_value)
 
     @property
     def xbox_key_press_time(self) -> float:
@@ -219,8 +229,6 @@ class GameConfig(BasicGameConfig):
     def ds4_key_press_time(self, new_value: float) -> None:
         self.update('ds4_key_press_time', new_value)
 
-    # ── 后台模式 ───────────────────────────────
-
     @property
     def background_mode(self) -> bool:
         return self.get('background_mode', False)
@@ -231,7 +239,7 @@ class GameConfig(BasicGameConfig):
 
     @property
     def background_gamepad_type(self) -> str:
-        return self.get('background_gamepad_type', BackgroundGamepadTypeEnum.XBOX.value.value)
+        return self.get('background_gamepad_type', GamepadTypeEnum.XBOX.value.value)
 
     @background_gamepad_type.setter
     def background_gamepad_type(self, new_value: str) -> None:

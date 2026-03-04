@@ -33,7 +33,7 @@ from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSetting
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.config.game_config import (
-    BackgroundGamepadTypeEnum,
+    ControlMethodEnum,
     GameKeyAction,
     GamepadActionEnum,
     GamepadTypeEnum,
@@ -100,7 +100,7 @@ class SettingGameInterface(VerticalScrollInterface):
 
         self.background_gamepad_type_opt = ComboBoxSettingCard(
             icon=FluentIcon.GAME, title='后台手柄类型',
-            options_enum=BackgroundGamepadTypeEnum,
+            options_enum=GamepadTypeEnum,
         )
         self.background_gamepad_type_opt.value_changed.connect(self._toggle_action_cards)
         background_group.addHeaderWidget(self.background_gamepad_type_opt.combo_box)
@@ -169,7 +169,7 @@ class SettingGameInterface(VerticalScrollInterface):
 
         self.control_method_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='操控方式',
                                                       content='仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。',
-                                                      options_enum=GamepadTypeEnum)
+                                                      options_enum=ControlMethodEnum)
         key_settings_group.addSettingCard(self.control_method_opt)
 
         self._keyboard_group = self._get_keyboard_group()
@@ -243,7 +243,7 @@ class SettingGameInterface(VerticalScrollInterface):
         self.monitor_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('monitor'))
         self.launch_argument_advance.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument_advance'))
 
-        self.control_method_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('gamepad_type'))
+        self.control_method_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('control_method'))
 
         for action, card in self._key_cards.items():
             card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'key_{action.value.value}'))
@@ -256,9 +256,9 @@ class SettingGameInterface(VerticalScrollInterface):
         for action, card in self._ds4_cards.items():
             card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'ds4_key_{action.value.value}'))
 
-    def _toggle_gamepad_cards(self) -> None:
+    def _toggle_gamepad_cards(self, index: int) -> None:
         """根据头部下拉框切换 Xbox/DS4 卡片可见性"""
-        is_xbox = self.gamepad_display_combo.currentData() == GamepadTypeEnum.XBOX.value.value
+        is_xbox = index == 0
 
         self.xbox_key_press_time_opt.setVisible(is_xbox)
         for card in self._xbox_cards.values():
@@ -270,7 +270,7 @@ class SettingGameInterface(VerticalScrollInterface):
 
     def _toggle_action_cards(self) -> None:
         """根据配置切换 Xbox/DS4 动作键卡片可见性。"""
-        is_xbox = self.ctx.game_config.background_gamepad_type == BackgroundGamepadTypeEnum.XBOX.value.value
+        is_xbox = self.ctx.game_config.background_gamepad_type == GamepadTypeEnum.XBOX.value.value
         for card in self._xbox_action_cards.values():
             card.setVisible(is_xbox)
         for card in self._ds4_action_cards.values():
