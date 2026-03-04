@@ -359,7 +359,8 @@ class TransportBy3dMap(ZOperation):
     @node_from(from_name='点击前往')
     @operation_node(name='等待画面加载')
     def back_at_last(self) -> OperationRoundResult:
-        op = BackToNormalWorld(self.ctx)
+        # allow_combat=True: 传送落地即进入战斗时直接返回，由调用方(如锄大地)处理战斗
+        op = BackToNormalWorld(self.ctx, allow_combat=True)
         return self.round_by_op_result(op.execute())
 
 def __debug():
