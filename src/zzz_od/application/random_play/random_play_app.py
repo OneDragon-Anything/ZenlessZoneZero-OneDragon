@@ -344,8 +344,11 @@ class RandomPlayApp(ZApplication):
     @node_from(from_name='开始营业')
     @operation_node(name='开始营业确认')
     def confirm(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '开始营业-确认',
-                                                     retry_wait=1)
+        result = self.round_by_find_area(self.last_screenshot, '影像店营业', '开始营业-确认')
+        if not result.is_success:
+            return self.round_success()  # 按钮消失了，说明二次确认已完成
+        self.round_by_click_area('影像店营业', '开始营业-确认')
+        return self.round_wait(wait=0.5)
 
     @node_from(from_name='开始营业确认')
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
