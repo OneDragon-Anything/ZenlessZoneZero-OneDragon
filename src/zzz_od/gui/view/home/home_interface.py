@@ -840,7 +840,7 @@ class HomeInterface(VerticalScrollInterface):
     def _get_theme_color(self) -> tuple[int, int, int]:
         """获取主题色，优先使用缓存，否则从图片提取"""
         # 如果是自定义模式，直接返回自定义颜色
-        if self.ctx.custom_config.is_custom_theme_color:
+        if self.ctx.custom_config.custom_theme_color:
             return self.ctx.custom_config.theme_color
 
         current_banner_path = self.choose_banner_media()

@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from cv2.typing import MatLike
-from PySide6.QtWidgets import QHBoxLayout, QFrame
+from PySide6.QtWidgets import QFrame, QHBoxLayout
 from qfluentwidgets import (
     BodyLabel,
-    PushButton,
-    SimpleCardWidget,
     FluentIcon,
     PrimaryPushButton,
+    PushButton,
+    SimpleCardWidget,
 )
 
+from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.fixed_size_image_label import FixedSizeImageLabel
 from one_dragon_qt.widgets.row import Row
@@ -24,8 +23,8 @@ class TemplateCardWidget(SimpleCardWidget):
         SimpleCardWidget.__init__(self, parent=parent)
 
         self.template_config = template_config
-        self.screen_image: Optional[MatLike] = None
-        self.preview_image: Optional[MatLike] = None
+        self.screen_image: MatLike | None = None
+        self.preview_image: MatLike | None = None
         self.is_saved: bool = False
 
         # 单行布局：标题 | 三个按钮 | 预览框
@@ -44,7 +43,7 @@ class TemplateCardWidget(SimpleCardWidget):
         layout.addWidget(line)
 
         # 三个按钮
-        btn_row = Row(spacing=10, margins=(0, 0, 0, 0))
+        btn_row = Row(spacing=10, margins=Margins(0, 0, 0, 0))
         layout.addWidget(btn_row)
 
         self.btn_choose_screenshot = PushButton(text='选择截图', icon=FluentIcon.FOLDER)
@@ -67,7 +66,7 @@ class TemplateCardWidget(SimpleCardWidget):
         self.preview_label = FixedSizeImageLabel(120)
         layout.addWidget(self.preview_label)
 
-    def set_preview_image(self, image: Optional[MatLike]) -> None:
+    def set_preview_image(self, image: MatLike | None) -> None:
         self.preview_image = image
         if image is None:
             self.preview_label.setImage(None)

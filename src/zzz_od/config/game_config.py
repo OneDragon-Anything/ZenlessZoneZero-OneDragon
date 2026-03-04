@@ -8,134 +8,111 @@ from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButt
 
 class GamepadTypeEnum(Enum):
 
-    NONE = ConfigItem('无', 'none')
+    NONE = ConfigItem('键鼠', 'none')
     XBOX = ConfigItem('Xbox', 'xbox')
     DS4 = ConfigItem('DS4', 'ds4')
 
 
+class GameKeyAction(Enum):
+    """游戏按键动作"""
+
+    INTERACT = ConfigItem('交互', 'interact')
+    NORMAL_ATTACK = ConfigItem('普通攻击', 'normal_attack')
+    DODGE = ConfigItem('闪避', 'dodge')
+    SWITCH_NEXT = ConfigItem('角色切换-下一个', 'switch_next')
+    SWITCH_PREV = ConfigItem('角色切换-上一个', 'switch_prev')
+    SPECIAL_ATTACK = ConfigItem('特殊攻击', 'special_attack')
+    ULTIMATE = ConfigItem('终结技', 'ultimate')
+    CHAIN_LEFT = ConfigItem('连携技-左', 'chain_left')
+    CHAIN_RIGHT = ConfigItem('连携技-右', 'chain_right')
+    MOVE_W = ConfigItem('移动-前', 'move_w')
+    MOVE_S = ConfigItem('移动-后', 'move_s')
+    MOVE_A = ConfigItem('移动-左', 'move_a')
+    MOVE_D = ConfigItem('移动-右', 'move_d')
+    LOCK = ConfigItem('锁定敌人', 'lock')
+    CHAIN_CANCEL = ConfigItem('连携技-取消', 'chain_cancel')
+
+
+# 按键默认值：{prefix: {action_value: default}}
+_KEY_DEFAULTS: dict[str, dict[str, str]] = {
+    'key': {
+        'interact': 'f',
+        'normal_attack': 'mouse_left',
+        'dodge': 'shift',
+        'switch_next': 'space',
+        'switch_prev': 'c',
+        'special_attack': 'e',
+        'ultimate': 'q',
+        'chain_left': 'q',
+        'chain_right': 'e',
+        'move_w': 'w',
+        'move_s': 's',
+        'move_a': 'a',
+        'move_d': 'd',
+        'lock': 'mouse_middle',
+        'chain_cancel': 'mouse_middle',
+    },
+    'xbox_key': {
+        'interact': XboxButtonEnum.A.value.value,
+        'normal_attack': XboxButtonEnum.X.value.value,
+        'dodge': XboxButtonEnum.A.value.value,
+        'switch_next': XboxButtonEnum.RB.value.value,
+        'switch_prev': XboxButtonEnum.LB.value.value,
+        'special_attack': XboxButtonEnum.Y.value.value,
+        'ultimate': XboxButtonEnum.RT.value.value,
+        'chain_left': XboxButtonEnum.LB.value.value,
+        'chain_right': XboxButtonEnum.RB.value.value,
+        'move_w': XboxButtonEnum.L_STICK_W.value.value,
+        'move_s': XboxButtonEnum.L_STICK_S.value.value,
+        'move_a': XboxButtonEnum.L_STICK_A.value.value,
+        'move_d': XboxButtonEnum.L_STICK_D.value.value,
+        'lock': XboxButtonEnum.R_THUMB.value.value,
+        'chain_cancel': XboxButtonEnum.A.value.value,
+    },
+    'ds4_key': {
+        'interact': Ds4ButtonEnum.CROSS.value.value,
+        'normal_attack': Ds4ButtonEnum.SQUARE.value.value,
+        'dodge': Ds4ButtonEnum.CROSS.value.value,
+        'switch_next': Ds4ButtonEnum.R1.value.value,
+        'switch_prev': Ds4ButtonEnum.L1.value.value,
+        'special_attack': Ds4ButtonEnum.TRIANGLE.value.value,
+        'ultimate': Ds4ButtonEnum.R2.value.value,
+        'chain_left': Ds4ButtonEnum.L1.value.value,
+        'chain_right': Ds4ButtonEnum.R1.value.value,
+        'move_w': Ds4ButtonEnum.L_STICK_W.value.value,
+        'move_s': Ds4ButtonEnum.L_STICK_S.value.value,
+        'move_a': Ds4ButtonEnum.L_STICK_A.value.value,
+        'move_d': Ds4ButtonEnum.L_STICK_D.value.value,
+        'lock': Ds4ButtonEnum.R_THUMB.value.value,
+        'chain_cancel': Ds4ButtonEnum.CROSS.value.value,
+    },
+}
+
+
+def _with_key_properties(cls):
+    """根据 GameKeyAction 和 _KEY_DEFAULTS 动态生成按键 property"""
+
+    def _create_getter(name: str, default_value: str):
+        def getter(self) -> str:
+            return self.get(name, default_value)
+        return getter
+
+    def _create_setter(name: str):
+        def setter(self, new_value: str) -> None:
+            self.update(name, new_value)
+        return setter
+
+    for prefix, defaults in _KEY_DEFAULTS.items():
+        for action in GameKeyAction:
+            prop_name = f'{prefix}_{action.value.value}'
+            default = defaults[action.value.value]
+            prop = property(_create_getter(prop_name, default), _create_setter(prop_name))
+            setattr(cls, prop_name, prop)
+    return cls
+
+
+@_with_key_properties
 class GameConfig(BasicGameConfig):
-
-    @property
-    def key_normal_attack(self) -> str:
-        return self.get('key_normal_attack', 'mouse_left')
-
-    @key_normal_attack.setter
-    def key_normal_attack(self, new_value: str) -> None:
-        self.update('key_normal_attack', new_value)
-
-    @property
-    def key_dodge(self) -> str:
-        return self.get('key_dodge', 'shift')
-
-    @key_dodge.setter
-    def key_dodge(self, new_value: str) -> None:
-        self.update('key_dodge', new_value)
-
-    @property
-    def key_switch_next(self) -> str:
-        return self.get('key_switch_next', 'space')
-
-    @key_switch_next.setter
-    def key_switch_next(self, new_value: str) -> None:
-        self.update('key_switch_next', new_value)
-
-    @property
-    def key_switch_prev(self) -> str:
-        return self.get('key_switch_prev', 'c')
-
-    @key_switch_prev.setter
-    def key_switch_prev(self, new_value: str) -> None:
-        self.update('key_switch_prev', new_value)
-
-    @property
-    def key_special_attack(self) -> str:
-        return self.get('key_special_attack', 'e')
-
-    @key_special_attack.setter
-    def key_special_attack(self, new_value: str) -> None:
-        self.update('key_special_attack', new_value)
-
-    @property
-    def key_ultimate(self) -> str:
-        """爆发技"""
-        return self.get('key_ultimate', 'q')
-
-    @key_ultimate.setter
-    def key_ultimate(self, new_value: str) -> None:
-        self.update('key_ultimate', new_value)
-
-    @property
-    def key_interact(self) -> str:
-        """交互"""
-        return self.get('key_interact', 'f')
-
-    @key_interact.setter
-    def key_interact(self, new_value: str) -> None:
-        self.update('key_interact', new_value)
-
-    @property
-    def key_chain_left(self) -> str:
-        return self.get('key_chain_left', 'q')
-
-    @key_chain_left.setter
-    def key_chain_left(self, new_value: str) -> None:
-        self.update('key_chain_left', new_value)
-
-    @property
-    def key_chain_right(self) -> str:
-        return self.get('key_chain_right', 'e')
-
-    @key_chain_right.setter
-    def key_chain_right(self, new_value: str) -> None:
-        self.update('key_chain_right', new_value)
-
-    @property
-    def key_move_w(self) -> str:
-        return self.get('key_move_w', 'w')
-
-    @key_move_w.setter
-    def key_move_w(self, new_value: str) -> None:
-        self.update('key_move_w', new_value)
-
-    @property
-    def key_move_s(self) -> str:
-        return self.get('key_move_s', 's')
-
-    @key_move_s.setter
-    def key_move_s(self, new_value: str) -> None:
-        self.update('key_move_s', new_value)
-
-    @property
-    def key_move_a(self) -> str:
-        return self.get('key_move_a', 'a')
-
-    @key_move_a.setter
-    def key_move_a(self, new_value: str) -> None:
-        self.update('key_move_a', new_value)
-
-    @property
-    def key_move_d(self) -> str:
-        return self.get('key_move_d', 'd')
-
-    @key_move_d.setter
-    def key_move_d(self, new_value: str) -> None:
-        self.update('key_move_d', new_value)
-
-    @property
-    def key_lock(self) -> str:
-        return self.get('key_lock', 'mouse_middle')
-
-    @key_lock.setter
-    def key_lock(self, new_value: str) -> None:
-        self.update('key_lock', new_value)
-
-    @property
-    def key_chain_cancel(self) -> str:
-        return self.get('key_chain_cancel', 'mouse_middle')
-
-    @key_chain_cancel.setter
-    def key_chain_cancel(self, new_value: str) -> None:
-        self.update('key_chain_cancel', new_value)
 
     @property
     def gamepad_type(self) -> str:
@@ -154,256 +131,12 @@ class GameConfig(BasicGameConfig):
         self.update('xbox_key_press_time', new_value)
 
     @property
-    def xbox_key_normal_attack(self) -> str:
-        return self.get('xbox_key_normal_attack', XboxButtonEnum.X.value.value)
-
-    @xbox_key_normal_attack.setter
-    def xbox_key_normal_attack(self, new_value: str) -> None:
-        self.update('xbox_key_normal_attack', new_value)
-
-    @property
-    def xbox_key_dodge(self) -> str:
-        return self.get('xbox_key_dodge', XboxButtonEnum.A.value.value)
-
-    @xbox_key_dodge.setter
-    def xbox_key_dodge(self, new_value: str) -> None:
-        self.update('xbox_key_dodge', new_value)
-
-    @property
-    def xbox_key_switch_next(self) -> str:
-        return self.get('xbox_key_switch_next', XboxButtonEnum.RB.value.value)
-
-    @xbox_key_switch_next.setter
-    def xbox_key_switch_next(self, new_value: str) -> None:
-        self.update('xbox_key_switch_next', new_value)
-
-    @property
-    def xbox_key_switch_prev(self) -> str:
-        return self.get('xbox_key_switch_prev', XboxButtonEnum.LB.value.value)
-
-    @xbox_key_switch_prev.setter
-    def xbox_key_switch_prev(self, new_value: str) -> None:
-        self.update('xbox_key_switch_prev', new_value)
-
-    @property
-    def xbox_key_special_attack(self) -> str:
-        return self.get('xbox_key_special_attack', XboxButtonEnum.Y.value.value)
-
-    @xbox_key_special_attack.setter
-    def xbox_key_special_attack(self, new_value: str) -> None:
-        self.update('xbox_key_special_attack', new_value)
-
-    @property
-    def xbox_key_ultimate(self) -> str:
-        """爆发技"""
-        return self.get('xbox_key_ultimate', XboxButtonEnum.RT.value.value)
-
-    @xbox_key_ultimate.setter
-    def xbox_key_ultimate(self, new_value: str) -> None:
-        self.update('xbox_key_ultimate', new_value)
-
-    @property
-    def xbox_key_interact(self) -> str:
-        """交互"""
-        return self.get('xbox_key_interact', XboxButtonEnum.A.value.value)
-
-    @xbox_key_interact.setter
-    def xbox_key_interact(self, new_value: str) -> None:
-        self.update('xbox_key_interact', new_value)
-
-    @property
-    def xbox_key_chain_left(self) -> str:
-        return self.get('xbox_key_chain_left', XboxButtonEnum.LB.value.value)
-
-    @xbox_key_chain_left.setter
-    def xbox_key_chain_left(self, new_value: str) -> None:
-        self.update('xbox_key_chain_left', new_value)
-
-    @property
-    def xbox_key_chain_right(self) -> str:
-        return self.get('xbox_key_chain_right', XboxButtonEnum.RB.value.value)
-
-    @xbox_key_chain_right.setter
-    def xbox_key_chain_right(self, new_value: str) -> None:
-        self.update('xbox_key_chain_right', new_value)
-
-    @property
-    def xbox_key_move_w(self) -> str:
-        return self.get('xbox_key_move_w', XboxButtonEnum.L_STICK_W.value.value)
-
-    @xbox_key_move_w.setter
-    def xbox_key_move_w(self, new_value: str) -> None:
-        self.update('xbox_key_move_w', new_value)
-
-    @property
-    def xbox_key_move_s(self) -> str:
-        return self.get('xbox_key_move_s', XboxButtonEnum.L_STICK_S.value.value)
-
-    @xbox_key_move_s.setter
-    def xbox_key_move_s(self, new_value: str) -> None:
-        self.update('xbox_key_move_s', new_value)
-
-    @property
-    def xbox_key_move_a(self) -> str:
-        return self.get('xbox_key_move_a', XboxButtonEnum.L_STICK_A.value.value)
-
-    @xbox_key_move_a.setter
-    def xbox_key_move_a(self, new_value: str) -> None:
-        self.update('xbox_key_move_a', new_value)
-
-    @property
-    def xbox_key_move_d(self) -> str:
-        return self.get('xbox_key_move_d', XboxButtonEnum.L_STICK_D.value.value)
-
-    @xbox_key_move_d.setter
-    def xbox_key_move_d(self, new_value: str) -> None:
-        self.update('xbox_key_move_d', new_value)
-
-    @property
-    def xbox_key_lock(self) -> str:
-        return self.get('xbox_key_lock', XboxButtonEnum.R_THUMB.value.value)
-
-    @xbox_key_lock.setter
-    def xbox_key_lock(self, new_value: str) -> None:
-        self.update('xbox_key_lock', new_value)
-
-    @property
-    def xbox_key_chain_cancel(self) -> str:
-        return self.get('xbox_key_chain_cancel', XboxButtonEnum.A.value.value)
-
-    @xbox_key_chain_cancel.setter
-    def xbox_key_chain_cancel(self, new_value: str) -> None:
-        self.update('xbox_key_chain_cancel', new_value)
-
-    @property
     def ds4_key_press_time(self) -> float:
         return self.get('ds4_key_press_time', 0.02)
 
     @ds4_key_press_time.setter
     def ds4_key_press_time(self, new_value: float) -> None:
         self.update('ds4_key_press_time', new_value)
-
-    @property
-    def ds4_key_normal_attack(self) -> str:
-        return self.get('ds4_key_normal_attack', Ds4ButtonEnum.SQUARE.value.value)
-
-    @ds4_key_normal_attack.setter
-    def ds4_key_normal_attack(self, new_value: str) -> None:
-        self.update('ds4_key_normal_attack', new_value)
-
-    @property
-    def ds4_key_dodge(self) -> str:
-        return self.get('ds4_key_dodge', Ds4ButtonEnum.CROSS.value.value)
-
-    @ds4_key_dodge.setter
-    def ds4_key_dodge(self, new_value: str) -> None:
-        self.update('ds4_key_dodge', new_value)
-
-    @property
-    def ds4_key_switch_next(self) -> str:
-        return self.get('ds4_key_switch_next', Ds4ButtonEnum.R1.value.value)
-
-    @ds4_key_switch_next.setter
-    def ds4_key_switch_next(self, new_value: str) -> None:
-        self.update('ds4_key_switch_next', new_value)
-
-    @property
-    def ds4_key_switch_prev(self) -> str:
-        return self.get('ds4_key_switch_prev', Ds4ButtonEnum.L1.value.value)
-
-    @ds4_key_switch_prev.setter
-    def ds4_key_switch_prev(self, new_value: str) -> None:
-        self.update('ds4_key_switch_prev', new_value)
-
-    @property
-    def ds4_key_special_attack(self) -> str:
-        return self.get('ds4_key_special_attack', Ds4ButtonEnum.TRIANGLE.value.value)
-
-    @ds4_key_special_attack.setter
-    def ds4_key_special_attack(self, new_value: str) -> None:
-        self.update('ds4_key_special_attack', new_value)
-
-    @property
-    def ds4_key_ultimate(self) -> str:
-        """爆发技"""
-        return self.get('ds4_key_ultimate', Ds4ButtonEnum.R2.value.value)
-
-    @ds4_key_ultimate.setter
-    def ds4_key_ultimate(self, new_value: str) -> None:
-        self.update('ds4_key_ultimate', new_value)
-
-    @property
-    def ds4_key_interact(self) -> str:
-        """交互"""
-        return self.get('ds4_key_interact', Ds4ButtonEnum.CROSS.value.value)
-
-    @ds4_key_interact.setter
-    def ds4_key_interact(self, new_value: str) -> None:
-        self.update('ds4_key_interact', new_value)
-
-    @property
-    def ds4_key_chain_left(self) -> str:
-        return self.get('ds4_key_chain_left', Ds4ButtonEnum.L1.value.value)
-
-    @ds4_key_chain_left.setter
-    def ds4_key_chain_left(self, new_value: str) -> None:
-        self.update('ds4_key_chain_left', new_value)
-
-    @property
-    def ds4_key_chain_right(self) -> str:
-        return self.get('ds4_key_chain_right', Ds4ButtonEnum.R1.value.value)
-
-    @ds4_key_chain_right.setter
-    def ds4_key_chain_right(self, new_value: str) -> None:
-        self.update('ds4_key_chain_right', new_value)
-
-    @property
-    def ds4_key_move_w(self) -> str:
-        return self.get('ds4_key_move_w', Ds4ButtonEnum.L_STICK_W.value.value)
-
-    @ds4_key_move_w.setter
-    def ds4_key_move_w(self, new_value: str) -> None:
-        self.update('ds4_key_move_w', new_value)
-
-    @property
-    def ds4_key_move_s(self) -> str:
-        return self.get('ds4_key_move_s', Ds4ButtonEnum.L_STICK_S.value.value)
-
-    @ds4_key_move_s.setter
-    def ds4_key_move_s(self, new_value: str) -> None:
-        self.update('ds4_key_move_s', new_value)
-
-    @property
-    def ds4_key_move_a(self) -> str:
-        return self.get('ds4_key_move_a', Ds4ButtonEnum.L_STICK_A.value.value)
-
-    @ds4_key_move_a.setter
-    def ds4_key_move_a(self, new_value: str) -> None:
-        self.update('ds4_key_move_a', new_value)
-
-    @property
-    def ds4_key_move_d(self) -> str:
-        return self.get('ds4_key_move_d', Ds4ButtonEnum.L_STICK_D.value.value)
-
-    @ds4_key_move_d.setter
-    def ds4_key_move_d(self, new_value: str) -> None:
-        self.update('ds4_key_move_d', new_value)
-
-    @property
-    def ds4_key_lock(self) -> str:
-        return self.get('ds4_key_lock', Ds4ButtonEnum.R_THUMB.value.value)
-
-    @ds4_key_lock.setter
-    def ds4_key_lock(self, new_value: str) -> None:
-        self.update('ds4_key_lock', new_value)
-
-    @property
-    def ds4_key_chain_cancel(self) -> str:
-        return self.get('ds4_key_chain_cancel', Ds4ButtonEnum.CROSS.value.value)
-
-    @ds4_key_chain_cancel.setter
-    def ds4_key_chain_cancel(self, new_value: str) -> None:
-        self.update('ds4_key_chain_cancel', new_value)
 
     @property
     def original_hdr_value(self) -> str:
