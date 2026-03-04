@@ -245,7 +245,7 @@ class GameConfig(BasicGameConfig):
     def background_gamepad_type(self, new_value: str) -> None:
         self.update('background_gamepad_type', new_value)
 
-    def get_action_keys(self, control_method: str | None = None) -> dict[str, str]:
+    def get_action_keys(self, control_method: str) -> dict[str, str]:
         """获取指定控制方式的所有按键映射。
 
         Args:
@@ -255,8 +255,6 @@ class GameConfig(BasicGameConfig):
         Returns:
             {action_name: key_value}，如 {'dodge': 'shift', 'interact': 'f', ...}
         """
-        if control_method is None:
-            control_method = self.control_method
         prefix = 'key' if control_method == 'keyboard' else f'{control_method}_key'
         return {
             action.value.value: getattr(self, f'{prefix}_{action.value.value}')
