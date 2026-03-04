@@ -201,8 +201,6 @@ class PcControllerBase(ControllerBase):
             self.btn_controller.tap_combo(raw_keys)
         return True
 
-    # ── 后台模式 API ──────────────────────────────────
-
     def _ensure_mouse_mode(self) -> None:
         """确保游戏处于键鼠输入模式。
 
@@ -272,14 +270,16 @@ class PcControllerBase(ControllerBase):
             log.error('发送 WM_ACTIVATE 失败', exc_info=True)
             return False
 
-    def background_click(self, pos: Point | None, press_time: float = 0) -> bool:
-        """后台点击：物理移动鼠标到目标位置 + PostMessage WM_LBUTTONDOWN/UP。
+    def _set_cursor_to(self, hwnd: int, cx: int, cy: int) -> None:
+        """将物理光标移动到窗口客户区坐标 (cx, cy) 对应的屏幕位置。"""
+        screen_x, screen_y = win32gui.ClientToScreen(hwnd, (cx, cy))
+        win32api.SetCursorPos((screen_x, screen_y))
 
-        游戏不接受 lparam 中的坐标，需要用 SetCursorPos 把鼠标移过去。
-        自动切换游戏到键鼠模式。
+    def background_click(self, pos: Point | None, press_time: float = 0) -> bool:
+        """后台点击：用 SetCursorPos 移动光标，再 PostMessage WM_LBUTTONDOWN/UP。
 
         Args:
-            pos: 游戏中的位置 (x,y)，None 时不移动鼠标
+            pos: 游戏中的位置 (x,y)，None 时不移动光标
             press_time: 大于0时长按
 
         Returns:
@@ -297,20 +297,8 @@ class PcControllerBase(ControllerBase):
             if scaled_pos is None:
                 log.error('点击非游戏窗口区域 (%s)', pos)
                 return False
-            cx, cy = int(scaled_pos.x), int(scaled_pos.y)
-            # 客户端坐标 → 屏幕坐标，然后物理移动鼠标
-            screen_x, screen_y = win32gui.ClientToScreen(hwnd, (cx, cy))
-            win32api.SetCursorPos((screen_x, screen_y))
+            self._set_cursor_to(hwnd, int(scaled_pos.x), int(scaled_pos.y))
             time.sleep(0.01)
-
-        return self._raw_background_click(press_time)
-
-    def _raw_background_click(self, press_time: float = 0) -> bool:
-        """底层后台点击，不做模式切换和鼠标移动。仅发 PostMessage 点击。"""
-        hwnd = self.game_win.get_hwnd()
-        if hwnd is None:
-            log.error('游戏窗口未就绪，无法后台点击')
-            return False
 
         try:
             win32gui.SendMessage(hwnd, win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
@@ -414,12 +402,10 @@ class PcControllerBase(ControllerBase):
         drag_mouse(from_pos, to_pos, duration=duration)
 
     def background_drag(self, start: Point, end: Point, duration: float = 0.5) -> bool:
-        """后台拖拽：SetCursorPos 移动鼠标 + PostMessage 按住拖动。
-
-        使用 SetCursorPos 物理移动鼠标，分步插值模拟拖拽轨迹。
+        """后台拖拽：用 SetCursorPos 移动光标，配合 PostMessage WM_LBUTTONDOWN/UP。
 
         Args:
-            start: 拖拽起点（游戏坐标），None 时使用当前鼠标位置
+            start: 拖拽起点（游戏坐标）
             end: 拖拽终点（游戏坐标）
             duration: 拖拽持续时间
 
@@ -452,8 +438,7 @@ class PcControllerBase(ControllerBase):
             time.sleep(0.01)
 
             # 移动到起点并按下
-            screen_sx, screen_sy = win32gui.ClientToScreen(hwnd, (sx, sy))
-            win32api.SetCursorPos((screen_sx, screen_sy))
+            self._set_cursor_to(hwnd, sx, sy)
             time.sleep(0.01)
             win32gui.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, 0)
             time.sleep(0.02)
@@ -464,8 +449,7 @@ class PcControllerBase(ControllerBase):
                 t = i / steps
                 cx = int(sx + (ex - sx) * t)
                 cy = int(sy + (ey - sy) * t)
-                screen_cx, screen_cy = win32gui.ClientToScreen(hwnd, (cx, cy))
-                win32api.SetCursorPos((screen_cx, screen_cy))
+                self._set_cursor_to(hwnd, cx, cy)
                 time.sleep(duration / steps)
 
             # 松开
