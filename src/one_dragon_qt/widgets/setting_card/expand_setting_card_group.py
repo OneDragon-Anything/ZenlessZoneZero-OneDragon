@@ -33,14 +33,13 @@ class ExpandSettingCardGroup(ExpandSettingCard):
         self.card.addWidget(widget)
 
     def addSettingCard(self, card: QWidget) -> None:
-        """添加设置卡片（自动插入分隔线，去除子卡自身边框，高度与头部对齐）"""
+        """添加设置卡片（自动插入分隔线，去除子卡自身边框）"""
         sep: GroupSeparator | None = None
         if self._card_sep_pairs:
             sep = GroupSeparator(self.view)
             self.viewLayout.addWidget(sep)
 
         card.paintEvent = lambda _e: None
-        card.setFixedHeight(self.card.height())
         card.setParent(self.view)
         self.viewLayout.addWidget(card)
         self._card_sep_pairs.append((card, sep))

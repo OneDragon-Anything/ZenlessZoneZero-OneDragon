@@ -1,8 +1,13 @@
+import re
+
 import requests
 from cv2.typing import MatLike
 
 from one_dragon.base.push.push_channel import PushChannel
-from one_dragon.base.push.push_channel_config import PushChannelConfigField, FieldTypeEnum
+from one_dragon.base.push.push_channel_config import (
+    FieldTypeEnum,
+    PushChannelConfigField,
+)
 
 
 class ServerChan(PushChannel):
@@ -48,14 +53,22 @@ class ServerChan(PushChannel):
             tuple[bool, str]: 是否成功、错误信息
         """
         try:
-            push_key = config.get('PUSH_KEY', '')
+            sendkey = config.get('PUSH_KEY', '')
 
             ok, msg = self.validate_config(config)
             if not ok:
                 return False, msg
 
-            # Server酱 API 地址
-            api_url = f"https://sctapi.ftqq.com/{push_key}.send"
+            # 判断 sendkey 是否以 'sctp' 开头，并提取数字构造 URL
+            if sendkey.startswith('sctp'):
+                match = re.match(r'sctp(\d+)t', sendkey)
+                if match:
+                    num = match.group(1)
+                    url = f'https://{num}.push.ft07.com/send/{sendkey}.send'
+                else:
+                    raise ValueError('无效的 sendkey 格式')
+            else:
+                url = f'https://sctapi.ftqq.com/{sendkey}.send'
 
             # 构建请求数据
             message_data = {
@@ -64,8 +77,8 @@ class ServerChan(PushChannel):
             }
 
             # 发送请求
-            headers = {'Content-Type': 'application/json'}
-            response = requests.post(api_url, json=message_data, headers=headers, timeout=10)
+            headers = {'Content-Type': 'application/json;charset=utf-8'}
+            response = requests.post(url, json=message_data, headers=headers, timeout=10)
 
             if response.status_code == 200:
                 result = response.json()

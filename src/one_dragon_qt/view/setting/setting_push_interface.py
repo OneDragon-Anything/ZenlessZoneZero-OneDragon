@@ -1,23 +1,39 @@
 import json
 
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, PushButton, InfoBar, InfoBarPosition, SettingCard
+from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, PushButton, SettingCard
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.controller.pc_clipboard import PcClipboard
+from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.base.push.curl_generator import CurlGenerator
+from one_dragon.base.push.push_channel_config import (
+    FieldTypeEnum,
+    PushChannelConfigField,
+)
 from one_dragon.base.push.push_config import PushProxy
 from one_dragon.base.push.push_email_services import PushEmailServices
-from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from one_dragon.base.push.push_channel_config import PushChannelConfigField, FieldTypeEnum
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.setting_card.code_editor_setting_card import CodeEditorSettingCard
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
-from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import EditableComboBoxSettingCard
-from one_dragon_qt.widgets.setting_card.key_value_setting_card import KeyValueSettingCard
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
+from one_dragon_qt.widgets.setting_card.code_editor_setting_card import (
+    CodeEditorSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import (
+    EditableComboBoxSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.expand_setting_card_group import (
+    ExpandSettingCardGroup,
+)
+from one_dragon_qt.widgets.setting_card.key_value_setting_card import (
+    KeyValueSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiPushSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.setting_card.yaml_config_adapter import YamlConfigAdapter
@@ -77,7 +93,7 @@ class SettingPushInterface(VerticalScrollInterface):
         )
         content_widget.add_widget(self.test_notification_card)
 
-        # 通知方式选择
+        # 通知方式 — 手风琴组：下拉框作为头部，渠道配置项作为子卡片
         self.notification_method_opt = ComboBoxSettingCard(
             icon=FluentIcon.MESSAGE,
             title='通知方式',
@@ -87,17 +103,18 @@ class SettingPushInterface(VerticalScrollInterface):
             ]
         )
         self.notification_method_opt.value_changed.connect(self._update_notification_ui)
-        content_widget.add_widget(self.notification_method_opt)
 
+        channel_group = ExpandSettingCardGroup(icon=FluentIcon.MESSAGE, title='通知方式')
+        channel_group.addHeaderWidget(self.notification_method_opt.combo_box)
+        content_widget.add_widget(channel_group)
+
+        # 预创建特殊卡片（稍后按渠道分配）
         self.pwsh_curl_btn = PushButton(text='PowerShell 风格')
         self.pwsh_curl_btn.clicked.connect(lambda: self._generate_curl('pwsh'))
-
         self.unix_curl_btn = PushButton(text='Unix 风格')
         self.unix_curl_btn.clicked.connect(lambda: self._generate_curl('unix'))
-
         self.curl_btn = MultiPushSettingCard(icon=FluentIcon.CODE, title='生成 cURL 命令', btn_list=[self.pwsh_curl_btn, self.unix_curl_btn])
         self.curl_btn.setVisible(False)
-        content_widget.add_widget(self.curl_btn)
 
         email_services = PushEmailServices.load_services()
         service_options = [ConfigItem(label=name, value=name, desc="") for name in email_services]
@@ -109,23 +126,28 @@ class SettingPushInterface(VerticalScrollInterface):
         )
         self.email_service_opt.value_changed.connect(lambda idx, val: self._on_email_service_selected(val))
         self.email_service_opt.combo_box.setFixedWidth(320)
-        self.email_service_opt.combo_box.setCurrentIndex(-1)  # 设置为无选中状态
-        self.email_service_opt.setVisible(False)  # 默认隐藏，SMTP方式时显示
-        content_widget.add_widget(self.email_service_opt)
+        self.email_service_opt.combo_box.setCurrentIndex(-1)
+        self.email_service_opt.setVisible(False)
 
+        # 按渠道组织卡片
         self.push_channel_cards: dict[str, list] = {}
-        all_cards_widget = Column()
         for channel in self.ctx.push_service.channels:
-            channel_cards = []
+            channel_cards: list[QWidget] = []
+
+            if channel.channel_id == 'SMTP':
+                channel_cards.append(self.email_service_opt)
+                channel_group.addSettingCard(self.email_service_opt)
+            elif channel.channel_id == 'WEBHOOK':
+                channel_cards.append(self.curl_btn)
+                channel_group.addSettingCard(self.curl_btn)
 
             for field in channel.config_schema:
                 card = self._create_card(channel.channel_id, field)
                 channel_cards.append(card)
-                all_cards_widget.add_widget(card)
+                channel_group.addSettingCard(card)
 
             self.push_channel_cards[channel.channel_id] = channel_cards
 
-        content_widget.add_widget(all_cards_widget)
         content_widget.add_stretch(1)
 
         return content_widget
@@ -269,15 +291,10 @@ class SettingPushInterface(VerticalScrollInterface):
         """根据选择的通知方式更新界面"""
         selected_method = self.notification_method_opt.getValue()
 
-        # 隐藏所有卡片
         for method_name, method_cards in self.push_channel_cards.items():
             is_selected = (method_name == selected_method)
             for card in method_cards:
                 card.setVisible(is_selected)
-
-        # 特殊按钮
-        self.email_service_opt.setVisible(selected_method == "SMTP")
-        self.curl_btn.setVisible(selected_method == "WEBHOOK")
 
     def _set_proxy_input_visibility(self):
         """设置代理输入框的可见性"""
