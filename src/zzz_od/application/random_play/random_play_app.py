@@ -350,8 +350,15 @@ class RandomPlayApp(ZApplication):
         self.round_by_click_area('影像店营业', '开始营业-确认')
         return self.round_wait(wait=1)
 
-    @node_from(from_name='开始营业确认')
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
+    @operation_node(name='关闭经营页面')
+    def close_business_page(self) -> OperationRoundResult:
+        """已在营业状态 直接关闭经营页面 比BackToNormalWorld通用识别更快"""
+        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '返回',
+                                                 retry_wait=1)
+
+    @node_from(from_name='开始营业确认')
+    @node_from(from_name='关闭经营页面')
     @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='返回大世界')
     def back_to_world(self) -> OperationRoundResult:
