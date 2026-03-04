@@ -64,11 +64,13 @@ class ScreenArea:
 **调用链：**
 ```
 find_and_click_area / round_by_click_area
-  ├─ area.pc_alt? → gamepad_click(area.gamepad_key)   # gamepad_key = 'menu' 等动作名
-  │     ├─ gamepad_action_keys['menu'] → ['xbox_start']
-  │     ├─ 单键 → btn_controller.tap()
-  │     └─ 组合 → btn_controller.tap_combo()
-  └─ else → click(pos, pc_alt=...)
+  └─ click(pos, pc_alt=..., gamepad_key=area.gamepad_key)
+       ├─ 后台 + pc_alt + gamepad_key → _gamepad_click(gamepad_key)
+       │     ├─ gamepad_action_keys['menu'] → ['xbox_start']
+       │     ├─ 单键 → btn_controller.tap()
+       │     └─ 组合 → btn_controller.tap_combo()
+       ├─ 后台 → _background_click(pos, press_time)
+       └─ 前台 → pyautogui + ALT
 ```
 
 **YAML 格式 (screen_info，可选字段)：**
@@ -176,10 +178,15 @@ for prefix, defaults in _ACTION_KEY_DEFAULTS.items():
 ```
 PcControllerBase
 ├── background_mode: bool        → 全局后台模式开关
-├── click()                      → 后台: background_click() / 前台: pyautogui
-├── gamepad_click(gamepad_key)   → 后台 + pc_alt 时手柄按键替代 (高层调用)
+├── click(gamepad_key=...)       → 分发到下列私有方法
+│   ├── _gamepad_click()         → 后台 + pc_alt 时手柄按键替代
+│   ├── _background_click()      → 后台 SetCursorPos + PostMessage 点击
+│   └── _foreground_click()      → 前台 pyautogui + ALT 点击
+├── drag_to()                    → 分发到下列私有方法
+│   ├── _background_drag()       → 后台 SetCursorPos + PostMessage 拖拽
+│   └── _foreground_drag()       → 前台 pyautogui 拖拽
 ├── btn_controller               → keyboard_controller / xbox_controller
-├── send_activate()              → 发送 WM_ACTIVATE 激活消息
+├── _send_activate()             → 发送 WM_ACTIVATE 激活消息
 └── 模式切换
     ├── enable_background_mode()   → PostMessage 点击 + Xbox 手柄
     └── enable_foreground_mode()   → pyautogui 点击 + 键盘
@@ -200,10 +207,14 @@ PcControllerBase
 
 **`PcControllerBase` 核心方法：**
 - `background_mode: bool` — 全局后台模式标志
-- `click(pos, press_time, pc_alt)` — 后台 → `background_click()` / 前台 → `pyautogui`
-- `gamepad_click(gamepad_key: str | None)` — 后台 + pc_alt 手柄替代，通过 `gamepad_action_keys` 解析动作名为实际按键
-- `send_activate()` — 发送 `WM_ACTIVATE(WA_ACTIVE)` 到游戏窗口
-- `background_click(pos, press_time)` — WM_ACTIVATE + PostMessage 点击
+- `click(pos, press_time, pc_alt, gamepad_key)` — 统一入口，根据模式分发
+- `drag_to(start, end, duration)` — 统一拖拽入口，根据模式分发
+- `_foreground_click(pos, press_time, pc_alt)` — 前台 pyautogui 点击，可选 ALT 解锁光标
+- `_foreground_drag(start, end, duration)` — 前台 pyautogui 拖拽
+- `_gamepad_click(gamepad_key)` — 后台 + pc_alt 手柄替代，通过 `gamepad_action_keys` 解析动作名为实际按键
+- `_background_click(pos, press_time)` — 后台 SetCursorPos + PostMessage 点击
+- `_background_drag(start, end, duration)` — 后台 SetCursorPos + PostMessage 拖拽
+- `_send_activate()` — 发送 `WM_ACTIVATE(WA_ACTIVE)` 到游戏窗口
 - `enable_background_mode()` — 开启后台模式（PostMessage + Xbox）
 - `enable_foreground_mode()` — 开启前台模式（pyautogui + 键盘）
 
@@ -217,7 +228,7 @@ PcControllerBase
 - `gamepad_key: str | None` — `GamepadActionEnum` 动作名（如 `'menu'`、`'compendium'`），默认不写入 YAML
 
 **`GameConfig` 核心方法：**
-- `get_gamepad_action_keys(gamepad_type: str) -> dict[str, list[str]]` — 返回 `{action_name: [key, ...]}`
+- `get_gamepad_action_keys() -> dict[str, list[str]]` — 返回 `{action_name: [key, ...]}`
 - 例如 `get_gamepad_action_keys('xbox')` → `{'menu': ['xbox_start'], 'compendium': ['xbox_lb', 'xbox_a'], ...}`
 
 ## 前置条件
