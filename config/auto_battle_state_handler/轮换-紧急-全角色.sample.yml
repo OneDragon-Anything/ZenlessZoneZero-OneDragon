@@ -233,9 +233,9 @@ handlers:
                         agent_name: "千夏"
                       - operation_template: "通用-终结技"
 
-              # 星见雅 有6豆就切过去
-              - states: "[雅-落霜]{6, 6} & ![前台-雅] & ![前台-支援]"
-                debug_name: "雅满豆切入"
+              # 星见雅 能量和落霜判断
+              - states: "([雅-能量]{80, 999} | ([雅-能量]{40, 999} & [雅-落霜]{2, 6})) & ![前台-雅] & ![前台-支援]"
+                debug_name: "雅能量豆数切入"
                 operations:
                   - op_name: "按键-切换角色"
                     agent_name: "雅"

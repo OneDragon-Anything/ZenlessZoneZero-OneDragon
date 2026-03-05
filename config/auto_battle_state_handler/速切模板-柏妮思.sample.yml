@@ -11,7 +11,7 @@ handlers:
         debug_name: "黄光切人"
         operations:
           - operation_template: "柏妮思-格挡攻击"
-          - operation_template: "柏妮思-短按单双喷"
+          - operation_template: "柏妮思-直接长按特殊攻击"
 
       - states: "[自定义-红光闪避, 0, 1]"
         debug_name: "红光闪避"
@@ -22,7 +22,7 @@ handlers:
         debug_name: "连携攻击"
         operations:
           - operation_template: "柏妮思-连携攻击"
-          - operation_template: "柏妮思-短按单双喷"
+          - operation_template: "柏妮思-直接长按特殊攻击"
 
       - states: "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
         debug_name: "切人后等待"
@@ -30,7 +30,7 @@ handlers:
           - states: "[按键可用-快速支援, 0, 0.5]"
             debug_name: "快速支援等待"
             operations:
-              - operation_template: "柏妮思-短按单双喷"
+              - operation_template: "柏妮思-直接长按特殊攻击"
           - states: ""
             debug_name: "短暂等待"
             operations:
