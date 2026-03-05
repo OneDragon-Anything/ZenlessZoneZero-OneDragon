@@ -15,6 +15,7 @@ from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from zzz_od.application.cloud_queue.cloud_queue_config import CloudQueueConfig
 from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
 from zzz_od.application.drive_disc_dismantle.drive_disc_dismantle_config import (
     DismantleLevelEnum,
@@ -40,17 +41,31 @@ class ZOneDragonSettingInterface(VerticalScrollInterface):
         self.ctx: ZContext = ctx
         self.group_id: str = 'one_dragon'  # 当前打开页面的group_id
 
+        self.cloud_queue_config: Optional[CloudQueueConfig] = None
         self.random_play_config: Optional[RandomPlayConfig] = None
         self.drive_disc_dismantle_config: Optional[DriveDiscDismantleConfig] = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
+        content_widget.add_widget(self.get_cloud_game_group())
         content_widget.add_widget(self.get_random_play_group())
         content_widget.add_widget(self.get_drive_disc_dismantle_group())
         content_widget.add_stretch(1)
 
         return content_widget
+
+    def get_cloud_game_group(self) -> QWidget:
+        group = SettingCardGroup(gt('云游戏'))
+
+        self.bangbang_fast_queue_opt = SwitchSettingCard(
+            icon=FluentIcon.FLAG,
+            title='邦邦点快速队列（测试功能）',
+            content='请在一条龙-一条龙运行-运行设置-结束后 设置为 关闭游戏 以减少不必要的邦邦点消耗'
+        )
+        group.addSettingCard(self.bangbang_fast_queue_opt)
+
+        return group
 
     def get_random_play_group(self) -> QWidget:
         group = SettingCardGroup(gt('影像店'))
@@ -89,6 +104,12 @@ class ZOneDragonSettingInterface(VerticalScrollInterface):
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
+
+        self.cloud_queue_config = CloudQueueConfig(
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=self.group_id,
+        )
+        self.bangbang_fast_queue_opt.init_with_adapter(get_prop_adapter(self.cloud_queue_config, 'prefer_bangbang_points'))
 
         self.random_play_config = self.ctx.run_context.get_config(
             app_id='random_play',

@@ -14,6 +14,7 @@ class ZContext(OneDragonContext):
         # 后续所有用到自动战斗的 都统一设置到这个里面
         from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
         self.auto_battle_context: AutoBattleContext = AutoBattleContext(self)
+        self._cloud_queue_config_cache: dict[str, "CloudQueueConfig"] = {}
 
     #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
@@ -79,6 +80,25 @@ class ZContext(OneDragonContext):
         )
         return BattleAssistantConfig(self.current_instance_idx)
 
+    @property
+    def cloud_queue_config(self):
+        """
+        云排队配置按运行分组区分；当上下文未进入应用运行时，回退到默认分组。
+        """
+        from one_dragon.base.operation.application import application_const
+        from zzz_od.application.cloud_queue.cloud_queue_config import CloudQueueConfig
+
+        group_id = self.run_context.current_group_id or application_const.DEFAULT_GROUP_ID
+        cache_key = f'{self.current_instance_idx}_{group_id}'
+        config = self._cloud_queue_config_cache.get(cache_key)
+        if config is None:
+            config = CloudQueueConfig(
+                instance_idx=self.current_instance_idx,
+                group_id=group_id,
+            )
+            self._cloud_queue_config_cache[cache_key] = config
+        return config
+
     def reload_instance_config(self) -> None:
         OneDragonContext.reload_instance_config(self)
 
@@ -90,13 +110,21 @@ class ZContext(OneDragonContext):
         for prop in to_clear_props:
             if prop in self.__dict__:
                 del self.__dict__[prop]
+        self._cloud_queue_config_cache.clear()
 
     def _get_win_title(self) -> str:
         """获取当前配置对应的窗口标题"""
-        if self.game_account_config.use_custom_win_title:
+        if self.game_account_config.use_custom_win_title and self.game_account_config.custom_win_title.strip() != '':
             return self.game_account_config.custom_win_title
         from one_dragon.base.config.game_account_config import GameRegionEnum
-        return '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
+        base_title = '绝区零' if self.game_account_config.game_region == GameRegionEnum.CN.value.value else 'ZenlessZoneZero'
+
+        if self.game_account_config.is_cloud_game:
+            if self.game_account_config.game_region == GameRegionEnum.CN.value.value:
+                return f'云·{base_title}'
+            return f'{base_title} · Cloud'
+
+        return base_title
 
     def on_switch_instance(self) -> None:
         """
@@ -107,11 +135,14 @@ class ZContext(OneDragonContext):
             self.controller.set_window_title(new_win_title)
 
     def init_controller(self) -> None:
+        win_title = self._get_win_title()
+
         from one_dragon.base.config.game_account_config import GamePlatformEnum
         from zzz_od.controller.zzz_pc_controller import ZPcController
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
             self.controller: ZPcController = ZPcController(
                 game_config=self.game_config,
+                win_title=win_title,
                 screenshot_method=self.env_config.screenshot_method,
                 standard_width=self.project_config.screen_standard_width,
                 standard_height=self.project_config.screen_standard_height

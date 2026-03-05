@@ -5,6 +5,7 @@ from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.application_run_record import AppRunRecord
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_base import OperationResult
+from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.enter_game.open_and_enter_game import OpenAndEnterGame
 from zzz_od.telemetry.auto_telemetry import (
@@ -42,6 +43,19 @@ class ZApplication(Application, TelemetryApplicationMixin):
 
         self._telemetry_start_time = None
         self._telemetry_end_time = None
+
+    def check_game_initialized(self) -> OperationRoundResult:
+        """检查游戏是否完成初始化，若为云游戏模式则执行排队逻辑。"""
+        if self.ctx.game_account_config.is_cloud_game:
+
+            screen = self.screenshot()
+            switch_window_result = self.round_by_find_area(screen, '云游戏', '国服PC云-切换窗口')
+            if switch_window_result.is_success:
+                from zzz_od.application.cloud_queue.cloud_queue import CloudGameQueue
+                cloud_queue_op = CloudGameQueue(self.ctx)
+                return self.round_by_op_result(cloud_queue_op.execute())
+
+        return self.round_success()
 
     @auto_telemetry_method("application_resume")
     def handle_resume(self) -> None:

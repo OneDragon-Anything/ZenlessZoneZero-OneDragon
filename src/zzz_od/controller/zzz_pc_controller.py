@@ -15,6 +15,7 @@ class ZPcController(PcControllerBase):
     def __init__(
             self,
             game_config: GameConfig,
+            win_title: str,
             screenshot_method: str,
             standard_width: int = 1920,
             standard_height: int = 1080
@@ -23,7 +24,6 @@ class ZPcController(PcControllerBase):
                                   screenshot_method=screenshot_method,
                                   standard_width=standard_width,
                                   standard_height=standard_height)
-
         self.game_config: GameConfig = game_config
         self.key_dodge: str = self.game_config.key_dodge
         self.key_switch_next: str = self.game_config.key_switch_next
