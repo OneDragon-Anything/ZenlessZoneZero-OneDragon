@@ -56,6 +56,8 @@ class ChargePlanApp(ZApplication):
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
         self.last_tried_plan = None
+        for plan in self.config.plan_list:
+            plan.skipped = False
         return self.round_success()
 
     @node_from(from_name='挑战完成')
@@ -204,9 +206,13 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
     @operation_node(name='电量不足')
     def charge_not_enough(self) -> OperationRoundResult:
-        if self.config.skip_plan or self.next_plan.mission_type_name == '代理人方案培养':
+        is_agent_plan = self.next_plan.is_agent_plan
+        if self.config.skip_plan or is_agent_plan:
             # 跳过当前计划，继续尝试下一个
             self.last_tried_plan = self.next_plan
+            if is_agent_plan and self.previous_node.is_fail:
+                # 因未找到头像而暂时跳过该计划
+                self.next_plan.skipped = True
             return self.round_success()
         else:
             # 不跳过，直接结束本轮计划

@@ -1,5 +1,4 @@
 import os
-from typing import List, Optional
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils import os_utils, yaml_utils
@@ -8,9 +7,9 @@ from one_dragon.utils.log_utils import log
 
 class CompendiumTab:
 
-    def __init__(self, tab_name: str, category_list: List = None):
+    def __init__(self, tab_name: str, category_list: list = None):
         self.tab_name: str = tab_name
-        self.category_list: List[CompendiumCategory] = []
+        self.category_list: list[CompendiumCategory] = []
         if category_list is not None:
             for category_list_item in category_list:
                 category_item = CompendiumCategory(**category_list_item)
@@ -20,10 +19,10 @@ class CompendiumTab:
 
 class CompendiumCategory:
 
-    def __init__(self, category_name: str, mission_type_list: List = None):
-        self.tab: Optional[CompendiumTab] = None
+    def __init__(self, category_name: str, mission_type_list: list = None):
+        self.tab: CompendiumTab | None = None
         self.category_name: str = category_name
-        self.mission_type_list: List[CompendiumMissionType] = []
+        self.mission_type_list: list[CompendiumMissionType] = []
         if mission_type_list is not None:
             for mission_type_item in mission_type_list:
                 mission_type = CompendiumMissionType(**mission_type_item)
@@ -36,15 +35,15 @@ class CompendiumCategory:
 
 class CompendiumMissionType:
 
-    def __init__(self, mission_type_name: str, mission_type_name_display: Optional[str] = None,
-                 mission_list: List = None, alias_list: List[str] = None):
-        self.category: Optional[CompendiumCategory] = None
+    def __init__(self, mission_type_name: str, mission_type_name_display: str | None = None,
+                 mission_list: list = None, alias_list: list[str] = None):
+        self.category: CompendiumCategory | None = None
         self.mission_type_name: str = mission_type_name
         self.mission_type_name_display: str = mission_type_name
         if mission_type_name_display is not None:
             self.mission_type_name_display = mission_type_name_display
-        self.alias_list: List[str] = alias_list if alias_list is not None else []
-        self.mission_list: List[CompendiumMission] = []
+        self.alias_list: list[str] = alias_list if alias_list is not None else []
+        self.mission_list: list[CompendiumMission] = []
         if mission_list is not None:
             for mission_item in mission_list:
                 mission = CompendiumMission(**mission_item)
@@ -54,11 +53,15 @@ class CompendiumMissionType:
     def set_category(self, category: CompendiumCategory):
         self.category = category
 
+    @property
+    def is_agent_plan(self) -> bool:
+        return self.mission_type_name == '代理人方案培养'
+
 
 class CompendiumMission:
 
-    def __init__(self, mission_name: str, mission_name_display: Optional[str] = None):
-        self.mission_type: Optional[CompendiumMissionType] = None
+    def __init__(self, mission_name: str, mission_name_display: str | None = None):
+        self.mission_type: CompendiumMissionType | None = None
         self.mission_name: str = mission_name
         self.mission_name_display: str = mission_name if mission_name_display is None else mission_name_display
 
@@ -68,8 +71,8 @@ class CompendiumMission:
 
 class CompendiumData:
 
-    def __init__(self, tab_list: List = None):
-        self.tab_list: List[CompendiumTab] = []
+    def __init__(self, tab_list: list = None):
+        self.tab_list: list[CompendiumTab] = []
         if tab_list is not None:
             for tab_item in tab_list:
                 self.tab_list.append(CompendiumTab(**tab_item))
@@ -78,10 +81,10 @@ class CompendiumData:
 class Coffee:
 
     def __init__(self, coffee_name: str,
-                 tab: Optional[CompendiumTab],
-                 category: Optional[CompendiumCategory],
-                 mission_type: Optional[CompendiumMissionType],
-                 mission: Optional[CompendiumMission],
+                 tab: CompendiumTab | None,
+                 category: CompendiumCategory | None,
+                 mission_type: CompendiumMissionType | None,
+                 mission: CompendiumMission | None,
                  extra: bool = False):
         self.coffee_name: str = coffee_name
         self.tab: CompendiumTab = tab
@@ -112,9 +115,9 @@ class CompendiumService:
 
     def __init__(self):
         self.data: CompendiumData = CompendiumData()
-        self.coffee_list: List[Coffee] = []
+        self.coffee_list: list[Coffee] = []
         self.name_2_coffee: dict[str, Coffee] = {}
-        self.coffee_schedule: dict[int, List[Coffee]] = {}
+        self.coffee_schedule: dict[int, list[Coffee]] = {}
 
     def reload(self) -> None:
         """
@@ -138,19 +141,19 @@ class CompendiumService:
             return
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as file:
-                tab_list: List[dict] = yaml_utils.safe_load(file)
+            with open(file_path, encoding='utf-8') as file:
+                tab_list: list[dict] = yaml_utils.safe_load(file)
                 self.data = CompendiumData(tab_list)
         except Exception:
             log.error(f'文件读取失败 {file_path}', exc_info=True)
 
-    def get_tab_data(self, tab_name: str) -> Optional[CompendiumTab]:
+    def get_tab_data(self, tab_name: str) -> CompendiumTab | None:
         for tab_item in self.data.tab_list:
             if tab_item.tab_name == tab_name:
                 return tab_item
         return None
 
-    def get_category_list_data(self, tab_name: str) -> List[CompendiumCategory]:
+    def get_category_list_data(self, tab_name: str) -> list[CompendiumCategory]:
         tab = self.get_tab_data(tab_name)
 
         if tab is None:
@@ -158,7 +161,7 @@ class CompendiumService:
 
         return tab.category_list
 
-    def get_category_data(self, tab_name: str, category_name: str) -> Optional[CompendiumCategory]:
+    def get_category_data(self, tab_name: str, category_name: str) -> CompendiumCategory | None:
         category_list = self.get_category_list_data(tab_name)
 
         for category_item in category_list:
@@ -167,14 +170,14 @@ class CompendiumService:
 
         return None
 
-    def get_mission_type_list_data(self, tab_name: str, category_name: str) -> List[CompendiumMissionType]:
+    def get_mission_type_list_data(self, tab_name: str, category_name: str) -> list[CompendiumMissionType]:
         category: CompendiumCategory = self.get_category_data(tab_name, category_name)
         if category is not None:
             return category.mission_type_list
         else:
             return []
 
-    def get_mission_type_data(self, tab_name: str, category_name: str, mission_type_name: str) -> Optional[CompendiumMissionType]:
+    def get_mission_type_data(self, tab_name: str, category_name: str, mission_type_name: str) -> CompendiumMissionType | None:
         mission_type_list = self.get_mission_type_list_data(tab_name, category_name)
 
         for mission_type in mission_type_list:
@@ -183,14 +186,14 @@ class CompendiumService:
 
         return None
 
-    def get_mission_list_data(self, tab_name: str, category_name: str, mission_type_name: str) -> List[CompendiumMission]:
+    def get_mission_list_data(self, tab_name: str, category_name: str, mission_type_name: str) -> list[CompendiumMission]:
         mission_type = self.get_mission_type_data(tab_name, category_name, mission_type_name)
         if mission_type is not None:
             return mission_type.mission_list
         else:
             return []
 
-    def get_mission_data(self, tab_name: str, category_name: str, mission_type_name: str, mission_name: str) -> Optional[CompendiumMission]:
+    def get_mission_data(self, tab_name: str, category_name: str, mission_type_name: str, mission_name: str) -> CompendiumMission | None:
         mission_list = self.get_mission_list_data(tab_name, category_name, mission_type_name)
         for mission in mission_list:
             if mission.mission_name == mission_name:
@@ -198,8 +201,8 @@ class CompendiumService:
 
         return None
 
-    def get_charge_plan_category_list(self) -> List[ConfigItem]:
-        category_config_list: List[ConfigItem] = []
+    def get_charge_plan_category_list(self) -> list[ConfigItem]:
+        category_config_list: list[ConfigItem] = []
 
         category_list = self.get_category_list_data('训练')
         for category_item in category_list:
@@ -218,8 +221,8 @@ class CompendiumService:
 
         return category_config_list
 
-    def get_charge_plan_mission_type_list(self, category_name: str) -> List[ConfigItem]:
-        config_list: List[ConfigItem] = []
+    def get_charge_plan_mission_type_list(self, category_name: str) -> list[ConfigItem]:
+        config_list: list[ConfigItem] = []
 
         mission_type_list = self.get_mission_type_list_data('训练', category_name)
         for mission_type_item in mission_type_list:
@@ -230,8 +233,8 @@ class CompendiumService:
 
         return config_list
 
-    def get_charge_plan_mission_list(self, category_name: str, mission_type: str) -> List[ConfigItem]:
-        config_list: List[ConfigItem] = []
+    def get_charge_plan_mission_list(self, category_name: str, mission_type: str) -> list[ConfigItem]:
+        config_list: list[ConfigItem] = []
 
         mission_list = self.get_mission_list_data('训练', category_name, mission_type)
         for mission_item in mission_list:
@@ -242,7 +245,7 @@ class CompendiumService:
 
         return config_list
 
-    def get_same_category_mission_type_list(self, mission_type_name: str) -> Optional[List[CompendiumMissionType]]:
+    def get_same_category_mission_type_list(self, mission_type_name: str) -> list[CompendiumMissionType] | None:
         """
         获取与副本相同分类的全部列表
         """
@@ -254,8 +257,8 @@ class CompendiumService:
 
         return None
 
-    def get_notorious_hunt_plan_mission_type_list(self, category_name: str) -> List[ConfigItem]:
-        config_list: List[ConfigItem] = []
+    def get_notorious_hunt_plan_mission_type_list(self, category_name: str) -> list[ConfigItem]:
+        config_list: list[ConfigItem] = []
 
         mission_type_list = self.get_mission_type_list_data('训练', category_name)
         for mission_type_item in mission_type_list:
@@ -266,7 +269,7 @@ class CompendiumService:
 
         return config_list
 
-    def get_hollow_zero_mission_name_list(self) -> List[str]:
+    def get_hollow_zero_mission_name_list(self) -> list[str]:
         mission_type_list = self.get_mission_type_list_data('作战', '零号空洞')
         return [
             mission.mission_name
@@ -289,7 +292,7 @@ class CompendiumService:
             return
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as file:
+            with open(file_path, encoding='utf-8') as file:
                 data = yaml_utils.safe_load(file)
                 self.coffee_list = []
                 self.name_2_coffee = {}
@@ -310,10 +313,10 @@ class CompendiumService:
             log.error(f'文件读取失败 {file_path}', exc_info=True)
 
     def _construct_coffee(self, coffee_name: str,
-                          tab_name: Optional[str] = None,
-                          category_name: Optional[str] = None,
-                          mission_type_name: Optional[str] = None,
-                          mission_name: Optional[str] = None,
+                          tab_name: str | None = None,
+                          category_name: str | None = None,
+                          mission_type_name: str | None = None,
+                          mission_name: str | None = None,
                           extra: bool = False
                           ) -> Coffee:
         tab = self.get_tab_data(tab_name)
@@ -323,18 +326,18 @@ class CompendiumService:
 
         return Coffee(coffee_name, tab, category, mission_type, mission, extra=extra)
 
-    def get_coffee_config_list_by_day(self, day: int) -> List[ConfigItem]:
+    def get_coffee_config_list_by_day(self, day: int) -> list[ConfigItem]:
         return [ConfigItem(i.display_name, i.coffee_name) for i in self.coffee_schedule.get(day, [])]
 
-    def get_extra_coffee_list(self) -> List[Coffee]:
+    def get_extra_coffee_list(self) -> list[Coffee]:
         return [i for i in self.coffee_list if i.extra]
 
-    def get_lost_void_mission_name_list(self) -> List[str]:
+    def get_lost_void_mission_name_list(self) -> list[str]:
         """
         迷失之地的关卡名称列表
         :return:
         """
-        mission_name_list: List[str] = []
+        mission_name_list: list[str] = []
         mission_list = self.get_mission_list_data('作战', '零号空洞', '迷失之地')
         for mission in mission_list:
             mission_name_list.append(mission.mission_name_display)
