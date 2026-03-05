@@ -227,7 +227,7 @@ class PcControllerBase(ControllerBase):
         if prev_hwnd and prev_hwnd != hwnd:
             with contextlib.suppress(Exception):
                 win32gui.SetForegroundWindow(prev_hwnd)
-
+        time.sleep(0.05)
         self._game_input_mode = 'keyboard_mouse'
 
     def _ensure_gamepad_mode(self) -> None:
@@ -235,8 +235,8 @@ class PcControllerBase(ControllerBase):
         if self._game_input_mode == 'gamepad':
             return
         self.btn_controller.tap(self._get_switch_gamepad_key())
-        self._game_input_mode = 'gamepad'
         time.sleep(0.05)
+        self._game_input_mode = 'gamepad'
 
     def _get_switch_gamepad_key(self) -> str:
         """获取用于切换到手柄模式的按键（使用右摇杆上推，最不易产生副作用）。"""
