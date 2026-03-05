@@ -107,6 +107,13 @@ class SettingGameInterface(VerticalScrollInterface):
         self.background_gamepad_type_opt.value_changed.connect(self._toggle_action_cards)
         background_group.addHeaderWidget(self.background_gamepad_type_opt.combo_box)
 
+        self.mouse_flash_duration_opt = DoubleSpinBoxSettingCard(
+            icon=FluentIcon.SPEED_HIGH, title='闪切时长（秒）',
+            content='后台模式切换键鼠输入时的前台停留时长，过小可能切换失败',
+            minimum=0.01, maximum=0.2, step=0.01,
+        )
+        background_group.addSettingCard(self.mouse_flash_duration_opt)
+
         # Xbox 动作键卡片
         self._xbox_action_cards: dict[str, GamepadActionKeyCard] = {}
         for action in GamepadActionEnum:
@@ -239,6 +246,8 @@ class SettingGameInterface(VerticalScrollInterface):
         for action_name, card in self._ds4_action_cards.items():
             card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'ds4_action_{action_name}'))
         self._toggle_action_cards()
+
+        self.mouse_flash_duration_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('mouse_flash_duration'))
 
         self.launch_argument_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument'))
         self.screen_size_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('screen_size'))

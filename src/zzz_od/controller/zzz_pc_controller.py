@@ -27,6 +27,7 @@ class ZPcController(PcControllerBase):
         self.game_config: GameConfig = game_config
         self.action_keys = self.game_config.get_action_keys('keyboard')
         self.gamepad_action_keys = self.game_config.get_gamepad_action_keys()
+        self.mouse_flash_duration: float = game_config.mouse_flash_duration
 
         self.is_moving: bool = False  # 是否正在移动
         self.turn_dx: float = game_config.turn_dx

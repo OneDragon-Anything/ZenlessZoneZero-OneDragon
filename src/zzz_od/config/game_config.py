@@ -245,6 +245,15 @@ class GameConfig(BasicGameConfig):
     def background_gamepad_type(self, new_value: str) -> None:
         self.update('background_gamepad_type', new_value)
 
+    @property
+    def mouse_flash_duration(self) -> float:
+        """后台模式闪切键鼠模式时每步等待时长（秒）"""
+        return self.get('mouse_flash_duration', 0.05)
+
+    @mouse_flash_duration.setter
+    def mouse_flash_duration(self, new_value: float) -> None:
+        self.update('mouse_flash_duration', new_value)
+
     def get_action_keys(self, control_method: str) -> dict[str, str]:
         """获取指定控制方式的所有按键映射。
 

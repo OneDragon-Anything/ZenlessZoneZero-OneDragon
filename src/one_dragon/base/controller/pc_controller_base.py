@@ -53,6 +53,7 @@ class PcControllerBase(ControllerBase):
         self.screenshot_controller: PcScreenshotController = PcScreenshotController(self.game_win, standard_width, standard_height)
         self.screenshot_method: str = screenshot_method
         self.background_mode: bool = False
+        self.mouse_flash_duration: float = 0.05  # 闪切键鼠模式时每步等待时长
         self.gamepad_action_keys: dict[str, list[str]] = {}
         self._game_input_mode: str = 'keyboard_mouse'  # 游戏当前识别的输入设备
 
@@ -216,11 +217,11 @@ class PcControllerBase(ControllerBase):
         except Exception:
             log.warning('切换前台失败，无法切回键鼠模式')
             return
-        time.sleep(0.05)
+        time.sleep(self.mouse_flash_duration)
 
         # mouse_event 鼠标移动，触发 Raw Input 让游戏切回键鼠
         user32.mouse_event(self.MOUSEEVENTF_MOVE, 2, 0, 0, 0)
-        time.sleep(0.05)
+        time.sleep(self.mouse_flash_duration)
 
         # 切回原来的前台窗口
         if prev_hwnd and prev_hwnd != hwnd:
