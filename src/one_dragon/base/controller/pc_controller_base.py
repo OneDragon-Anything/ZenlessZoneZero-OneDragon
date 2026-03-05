@@ -174,7 +174,7 @@ class PcControllerBase(ControllerBase):
 
         - 鼠标点击 → PostMessage (WM_ACTIVATE + PostMessage)
         - 按键操作 → 虚拟手柄 (vgamepad)
-        - pc_alt 场景 → 手柄按键替代
+        - gamepad_key 场景 → 手柄按键替代
         需要先安装 ViGEmBus 驱动和 vgamepad 包。
 
         Args:
@@ -277,13 +277,13 @@ class PcControllerBase(ControllerBase):
             pos: 游戏中的位置 (x,y)
             press_time: 大于0时长按若干秒
             pc_alt: 只在PC端有用 使用ALT键进行点击
-            gamepad_key: 后台模式 + pc_alt 时，用手柄按键替代点击的动作名
+            gamepad_key: 后台模式下用手柄按键替代点击的动作名
 
         Returns:
             不在窗口区域时不点击 返回False
         """
         if self.background_mode:
-            if pc_alt and gamepad_key:
+            if gamepad_key:
                 return self._gamepad_click(gamepad_key)
             return self._background_click(pos, press_time)
 
@@ -319,7 +319,7 @@ class PcControllerBase(ControllerBase):
         return True
 
     def _gamepad_click(self, gamepad_key: str | None) -> bool:
-        """后台模式下使用手柄按键替代 pc_alt 点击。
+        """后台模式下使用手柄按键替代点击。
 
         仅在后台模式且 gamepad_key 不为空时执行手柄按键。
         gamepad_key 是 GamepadActionEnum 的动作名 (如 'compendium')，

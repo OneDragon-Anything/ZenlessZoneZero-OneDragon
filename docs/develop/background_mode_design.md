@@ -7,7 +7,7 @@
 | 场景 | 输入方式 | 技术方案 | 验证结果 |
 |------|---------|---------|---------|
 | UI/菜单 (非锁鼠标) | 鼠标点击 | `WM_ACTIVATE` + `PostMessage` | ✅ 后台可用 |
-| 锁鼠标场景 (pc_alt=true) | 手柄按键替代 | `vgamepad` 手柄按键映射 | ✅ 后台可用 |
+| gamepad_key 场景 | 手柄按键替代 | `vgamepad` 手柄按键映射 | ✅ 后台可用 |
 | 大世界/战斗 (锁视角) | 手柄按键 | `vgamepad` (ViGEm 虚拟手柄) | ✅ 后台可用 |
 | 键盘输入 | — | 标准 API 均不可行 | ❌ |
 
@@ -35,13 +35,13 @@
 - ✅ 非锁鼠标的交互
 - ❌ 战斗中的视角控制
 
-### 1.1 锁鼠标场景 (pc_alt=true) — 手柄按键替代
+### 1.1 gamepad_key 场景 — 手柄按键替代
 
 在大世界、战斗画面等锁鼠标场景，前台模式需要 ALT 键解锁光标才能点击 UI。
 后台模式下 ALT 无法可靠传递（`keybd_event` 方案已验证失败），改用手柄按键替代：
 
 **方案：** 为 `ScreenArea` 添加可选 `gamepad_key` 字段，存储 `GamepadActionEnum` 动作名。
-当后台模式 `gamepad_click()` 遇到 `pc_alt=True` 且 `gamepad_key` 不为空时，
+当后台模式 `click()` 检测到 `gamepad_key` 不为空时，
 通过 `gamepad_action_keys` 字典解析为实际按键列表，调用 `tap()` 或 `tap_combo()` 替代鼠标点击。
 
 **数据模型：**
@@ -64,8 +64,8 @@ class ScreenArea:
 **调用链：**
 ```
 find_and_click_area / round_by_click_area
-  └─ click(pos, pc_alt=..., gamepad_key=area.gamepad_key)
-       ├─ 后台 + pc_alt + gamepad_key → _gamepad_click(gamepad_key)
+  └─ click(pos, gamepad_key=area.gamepad_key)
+       ├─ 后台 + gamepad_key → _gamepad_click(gamepad_key)
        │     ├─ gamepad_action_keys['menu'] → ['xbox_start']
        │     ├─ 单键 → btn_controller.tap()
        │     └─ 组合 → btn_controller.tap_combo()
@@ -86,7 +86,7 @@ find_and_click_area / round_by_click_area
   pc_rect: [...]
 ```
 
-**涉及的 screen_info (pc_alt: true)：**
+**涉及的 screen_info：**
 - `battle.yml` — 战斗画面（结算界面 menu）
 - `normal_world.yml` — 大世界（menu / map / compendium / minimap / function_menu）
 - `normal_world_basic.yml` / `normal_world_investigation.yml` — 大世界变体
@@ -179,7 +179,7 @@ for prefix, defaults in _ACTION_KEY_DEFAULTS.items():
 PcControllerBase
 ├── background_mode: bool        → 全局后台模式开关
 ├── click(gamepad_key=...)       → 分发到下列私有方法
-│   ├── _gamepad_click()         → 后台 + pc_alt 时手柄按键替代
+│   ├── _gamepad_click()         → 后台 + gamepad_key 时手柄按键替代
 │   ├── _background_click()      → 后台 SetCursorPos + PostMessage 点击
 │   └── _foreground_click()      → 前台 pyautogui + ALT 点击
 ├── drag_to()                    → 分发到下列私有方法

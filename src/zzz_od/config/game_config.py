@@ -20,7 +20,7 @@ class GamepadTypeEnum(Enum):
 
 
 class GamepadActionEnum(Enum):
-    """后台模式下替代 pc_alt 点击的逻辑动作。
+    """后台模式下用手柄按键替代点击的逻辑动作。
 
     value 是 ConfigItem(显示名, 存储值)。
     screen 区域的 gamepad_key 引用存储值。
