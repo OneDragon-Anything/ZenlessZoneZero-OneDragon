@@ -1,8 +1,8 @@
-# 纯后台模式设计文档
+# 后台模式设计文档
 
 ## 概述
 
-纯后台模式允许在游戏窗口不在前台时进行自动化操作。根据验证测试，确定了以下可行方案：
+后台模式允许在游戏窗口不在前台时进行自动化操作。根据验证测试，确定了以下可行方案：
 
 | 场景 | 输入方式 | 技术方案 | 验证结果 |
 |------|---------|---------|---------|
@@ -193,7 +193,18 @@ PcControllerBase
     ├── enable_background_mode()   → PostMessage 点击 + Xbox 手柄
     └── enable_foreground_mode()   → pyautogui 点击 + 键盘
 ```
+### ZPcController.init_before_context_run — 配置刷新
 
+每次 `start_running()` 时自动刷新所有快照配置，保证设置界面的修改在下次运行生效：
+```python
+def init_before_context_run(self) -> bool:
+    # 根据配置启用后台/前台模式，内部调用 enable_*() 刷新 action_keys
+    enable_background_mode() / enable_foreground_mode()
+    # 刷新其他快照值
+    self.turn_dx = game_config.turn_dx
+    self.gamepad_turn_speed = game_config.gamepad_turn_speed
+    self.mouse_flash_duration = game_config.mouse_flash_duration
+```
 ### ZPcController — 按键映射与动作方法
 
 **按键映射：** `ZPcController` 使用 `action_keys: dict[str, str]` 存储当前控制方式的
@@ -220,6 +231,17 @@ move_mouse_relative(dx, dy)
 └── 前台 → _ensure_mouse_mode() + mouse_event
 ```
 
+### _ensure_mouse_mode — 闪切键鼠模式
+
+后台模式下，前台转向需要短暂切换到键鼠模式，流程：
+1. `SetForegroundWindow(hwnd)` 切到前台（失败时用 ALT 技巧重试）
+2. `sleep(mouse_flash_duration)` — 可配置，默认 0.05s
+3. `mouse_event(MOVE)` 触发 Raw Input 切换键鼠
+4. `sleep(mouse_flash_duration)`
+5. `SetForegroundWindow(prev_hwnd)` 切回原窗口
+
+`mouse_flash_duration` 在设置界面可调整（后台模式风琴组内），过小可能导致切换失败。
+
 ### 场景切换策略
 
 | 操作类型 | 后台模式 | 前台模式 |
@@ -239,7 +261,7 @@ move_mouse_relative(dx, dy)
 - `drag_to(start, end, duration)` — 统一拖拽入口，根据模式分发
 - `_foreground_click(pos, press_time, pc_alt)` — 前台 pyautogui 点击，可选 ALT 解锁光标
 - `_foreground_drag(start, end, duration)` — 前台 pyautogui 拖拽
-- `_gamepad_click(gamepad_key)` — 后台 + pc_alt 手柄替代，通过 `gamepad_action_keys` 解析动作名为实际按键
+- `_gamepad_click(gamepad_key)` — 后台 + gamepad_key 手柄替代，通过 `gamepad_action_keys` 解析动作名为实际按键
 - `_background_click(pos, press_time)` — 后台 SetCursorPos + PostMessage 点击
 - `_background_drag(start, end, duration)` — 后台 SetCursorPos + PostMessage 拖拽
 - `_send_activate()` — 发送 `WM_ACTIVATE(WA_ACTIVE)` 到游戏窗口

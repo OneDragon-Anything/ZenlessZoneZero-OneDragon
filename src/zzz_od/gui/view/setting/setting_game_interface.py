@@ -91,7 +91,7 @@ class SettingGameInterface(VerticalScrollInterface):
         background_group = ExpandSettingCardGroup(
             icon=FluentIcon.ROBOT,
             title='后台模式（测试版）',
-            content='需要安装虚拟手柄驱动。运行时会短暂抢占鼠标进行点击操作，无需游戏窗口置顶。请勿在前台玩支持手柄的游戏。',
+            content='需要虚拟手柄驱动和 PrintWindow 截图方式。运行时会短暂抢占鼠标进行点击操作，无需游戏窗口置顶。请勿在前台玩支持手柄的游戏。',
         )
 
         self.background_mode_switch = SwitchSettingCard(

@@ -170,8 +170,8 @@ class PcControllerBase(ControllerBase):
         log.info('已启用前台模式: pyautogui 点击 + 键盘')
 
     def enable_background_mode(self, gamepad_type: str = 'xbox') -> None:
-        """启用纯后台模式。
-
+        """
+        启用后台模式:
         - 鼠标点击 → PostMessage (WM_ACTIVATE + PostMessage)
         - 按键操作 → 虚拟手柄 (vgamepad)
         - gamepad_key 场景 → 手柄按键替代
