@@ -19,6 +19,7 @@ class ScreenArea:
         id_mark: bool = False,
         goto_list: list[str] | None = None,
         color_range: list[list[int]] | None = None,
+        gamepad_key: str | None = None,
     ):
         self.area_name: str = area_name or ''
         self.pc_rect: Rect = pc_rect if pc_rect is not None else Rect(0, 0, 0, 0)
@@ -31,6 +32,7 @@ class ScreenArea:
         self.id_mark: bool = id_mark  # 是否用于画面的唯一标识
         self.goto_list: list[str] = [] if goto_list is None else goto_list  # 交互后 可能会跳转的画面名称列表
         self.color_range: list[list[int]] | None = color_range  # 识别时候的筛选的颜色范围 文本时候有效
+        self.gamepad_key: str | None = gamepad_key  # GamepadActionEnum 动作名 如 'menu', 'compendium'
 
     @property
     def rect(self) -> Rect:
@@ -103,7 +105,7 @@ class ScreenArea:
             return np.array(self.color_range[1], dtype=np.uint8)
 
     def to_dict(self) -> dict:
-        order_dict = dict()
+        order_dict = {}
         order_dict['area_name'] = self.area_name
         order_dict['id_mark'] = self.id_mark
         order_dict['pc_rect'] = [self.pc_rect.x1, self.pc_rect.y1, self.pc_rect.x2, self.pc_rect.y2]
@@ -114,5 +116,7 @@ class ScreenArea:
         order_dict['template_match_threshold'] = self.template_match_threshold
         order_dict['color_range'] = self.color_range
         order_dict['goto_list'] = self.goto_list
+        if self.gamepad_key:
+            order_dict['gamepad_key'] = self.gamepad_key
 
         return order_dict

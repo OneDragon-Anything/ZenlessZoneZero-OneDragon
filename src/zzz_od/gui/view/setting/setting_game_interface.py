@@ -1,21 +1,44 @@
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, SettingCardGroup, PushButton, ComboBox
+from qfluentwidgets import FluentIcon, InfoBar, PushButton, SettingCardGroup
 
-from one_dragon.base.config.basic_game_config import TypeInputWay, ScreenSizeEnum, FullScreenEnum, MonitorEnum
+from one_dragon.base.config.basic_game_config import (
+    FullScreenEnum,
+    MonitorEnum,
+    ScreenSizeEnum,
+    TypeInputWay,
+)
+from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonEnum
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
 from one_dragon.utils import cmd_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
-from one_dragon_qt.widgets.setting_card.expand_setting_card_group import ExpandSettingCardGroup
+from one_dragon_qt.widgets.combo_box import ComboBox
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.expand_setting_card_group import (
+    ExpandSettingCardGroup,
+)
+from one_dragon_qt.widgets.setting_card.gamepad_action_key_card import (
+    GamepadActionKeyCard,
+)
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
-from one_dragon_qt.widgets.setting_card.spin_box_setting_card import DoubleSpinBoxSettingCard
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiPushSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
+    DoubleSpinBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from zzz_od.config.game_config import GamepadTypeEnum, GameKeyAction
+from zzz_od.config.game_config import (
+    ControlMethodEnum,
+    GameKeyAction,
+    GamepadActionEnum,
+    GamepadTypeEnum,
+)
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -48,6 +71,8 @@ class SettingGameInterface(VerticalScrollInterface):
                                                  options_enum=TypeInputWay)
         basic_group.addSettingCard(self.input_way_opt)
 
+        basic_group.addSettingCard(self._get_background_mode_group())
+
         self.hdr_btn_enable = PushButton(text=gt('启用 HDR'), icon=FluentIcon.SETTING, parent=self)
         self.hdr_btn_enable.clicked.connect(self._on_hdr_enable_clicked)
         self.hdr_btn_disable = PushButton(text=gt('禁用 HDR'), icon=FluentIcon.SETTING, parent=self)
@@ -60,6 +85,66 @@ class SettingGameInterface(VerticalScrollInterface):
         basic_group.addSettingCard(self._get_launch_argument_group())
 
         return basic_group
+
+    def _get_background_mode_group(self) -> ExpandSettingCardGroup:
+        """后台模式开关 + 手柄动作键配置组（Xbox 和 DS4 各一套）。"""
+        background_group = ExpandSettingCardGroup(
+            icon=FluentIcon.ROBOT,
+            title='后台模式（测试版）',
+            content='需要虚拟手柄驱动和 PrintWindow 截图方式。运行时会短暂抢占鼠标进行点击操作，无需游戏窗口置顶。请勿在前台玩支持手柄的游戏。',
+        )
+
+        self.background_mode_switch = SwitchSettingCard(
+            icon=FluentIcon.ROBOT, title='后台模式（测试版）',
+        )
+        self.background_mode_switch.value_changed.connect(self._on_background_mode_changed)
+        background_group.addHeaderWidget(self.background_mode_switch.btn)
+
+        self.background_gamepad_type_opt = ComboBoxSettingCard(
+            icon=FluentIcon.GAME, title='后台手柄类型',
+            options_enum=GamepadTypeEnum,
+        )
+        self.background_gamepad_type_opt.value_changed.connect(self._toggle_action_cards)
+        background_group.addHeaderWidget(self.background_gamepad_type_opt.combo_box)
+
+        self.mouse_flash_duration_opt = DoubleSpinBoxSettingCard(
+            icon=FluentIcon.SPEED_HIGH, title='闪切时长（秒）',
+            content='后台模式切换键鼠输入时的前台停留时长，过小可能切换失败',
+            minimum=0.01, maximum=0.2, step=0.01,
+        )
+        background_group.addSettingCard(self.mouse_flash_duration_opt)
+
+        # Xbox 动作键卡片
+        self._xbox_action_cards: dict[str, GamepadActionKeyCard] = {}
+        for action in GamepadActionEnum:
+            action_name: str = action.value.value
+            if not action_name:
+                continue
+            card = GamepadActionKeyCard(
+                icon=FluentIcon.GAME,
+                title=action.value.ui_text,
+                modifier_enum=XboxButtonEnum,
+                button_enum=XboxButtonEnum,
+            )
+            self._xbox_action_cards[action_name] = card
+            background_group.addSettingCard(card)
+
+        # DS4 动作键卡片
+        self._ds4_action_cards: dict[str, GamepadActionKeyCard] = {}
+        for action in GamepadActionEnum:
+            action_name: str = action.value.value
+            if not action_name:
+                continue
+            card = GamepadActionKeyCard(
+                icon=FluentIcon.GAME,
+                title=action.value.ui_text,
+                modifier_enum=Ds4ButtonEnum,
+                button_enum=Ds4ButtonEnum,
+            )
+            self._ds4_action_cards[action_name] = card
+            background_group.addSettingCard(card)
+
+        return background_group
 
     def _get_launch_argument_group(self) -> QWidget:
         launch_argument_group = ExpandSettingCardGroup(icon=FluentIcon.SETTING, title='启动参数')
@@ -92,16 +177,15 @@ class SettingGameInterface(VerticalScrollInterface):
         key_settings_group = SettingCardGroup(gt('按键设置'))
 
         self.control_method_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='操控方式',
-                                                      content='需使用手柄时，需先安装虚拟手柄依赖。',
-                                                      options_enum=GamepadTypeEnum)
+                                                      content='仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。',
+                                                      options_enum=ControlMethodEnum)
+        self.control_method_opt.value_changed.connect(self._on_control_method_changed)
         key_settings_group.addSettingCard(self.control_method_opt)
 
         self._keyboard_group = self._get_keyboard_group()
         self._gamepad_group = self._get_gamepad_group()
         key_settings_group.addSettingCard(self._keyboard_group)
         key_settings_group.addSettingCard(self._gamepad_group)
-
-        self.control_method_opt.value_changed.connect(self._on_control_method_changed)
 
         return key_settings_group
 
@@ -119,11 +203,10 @@ class SettingGameInterface(VerticalScrollInterface):
     def _get_gamepad_group(self) -> ExpandSettingCardGroup:
         gamepad_group = ExpandSettingCardGroup(icon=FluentIcon.GAME, title='手柄按键')
 
-        self.gamepad_display_combo = ComboBox()
-        self.gamepad_display_combo.addItem('Xbox', userData=GamepadTypeEnum.XBOX.value.value)
-        self.gamepad_display_combo.addItem('DS4', userData=GamepadTypeEnum.DS4.value.value)
-        self.gamepad_display_combo.currentIndexChanged.connect(self._toggle_gamepad_cards)
-        gamepad_group.addHeaderWidget(self.gamepad_display_combo)
+        gamepad_display_combo = ComboBox()
+        gamepad_display_combo.set_items([GamepadTypeEnum.XBOX.value, GamepadTypeEnum.DS4.value])
+        gamepad_display_combo.currentIndexChanged.connect(self._toggle_gamepad_cards)
+        gamepad_group.addHeaderWidget(gamepad_display_combo)
 
         # xbox
         self.xbox_key_press_time_opt = DoubleSpinBoxSettingCard(icon=FluentIcon.GAME, title='单次按键持续时间(秒)',
@@ -147,12 +230,23 @@ class SettingGameInterface(VerticalScrollInterface):
             gamepad_group.addSettingCard(card)
             self._ds4_cards[action] = card
 
+        gamepad_display_combo.setCurrentIndex(0)
+
         return gamepad_group
 
     def on_interface_shown(self) -> None:
         VerticalScrollInterface.on_interface_shown(self)
 
         self.input_way_opt.init_with_adapter(self.ctx.game_config.type_input_way_adapter)
+
+        self.background_mode_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_mode'))
+        self.background_gamepad_type_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_gamepad_type'))
+        self.mouse_flash_duration_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('mouse_flash_duration'))
+        for action_name, card in self._xbox_action_cards.items():
+            card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'xbox_action_{action_name}'))
+        for action_name, card in self._ds4_action_cards.items():
+            card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'ds4_action_{action_name}'))
+        self._toggle_action_cards()
 
         self.launch_argument_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument'))
         self.screen_size_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('screen_size'))
@@ -161,7 +255,7 @@ class SettingGameInterface(VerticalScrollInterface):
         self.monitor_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('monitor'))
         self.launch_argument_advance.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument_advance'))
 
-        self.control_method_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('gamepad_type'))
+        self.control_method_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('control_method'))
 
         for action, card in self._key_cards.items():
             card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'key_{action.value.value}'))
@@ -174,31 +268,9 @@ class SettingGameInterface(VerticalScrollInterface):
         for action, card in self._ds4_cards.items():
             card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'ds4_key_{action.value.value}'))
 
-        self._on_control_method_changed(-1, self.ctx.game_config.gamepad_type)
-
-    def _on_control_method_changed(self, _index: int, value: object) -> None:
-        """根据操控方式自动展开/收起键盘和手柄组，并同步手柄显示"""
-        is_keyboard = value == GamepadTypeEnum.NONE.value.value
-        if is_keyboard:
-            self._keyboard_group.setExpand(True)
-            self._gamepad_group.setExpand(False)
-        else:
-            self._keyboard_group.setExpand(False)
-            self._gamepad_group.setExpand(True)
-
-        # 同步头部下拉框（blockSignals 避免触发 _toggle_gamepad_cards 重复刷新）
-        self.gamepad_display_combo.blockSignals(True)
-        if value == GamepadTypeEnum.DS4.value.value:
-            self.gamepad_display_combo.setCurrentIndex(1)
-        else:
-            self.gamepad_display_combo.setCurrentIndex(0)
-        self.gamepad_display_combo.blockSignals(False)
-
-        self._toggle_gamepad_cards()
-
-    def _toggle_gamepad_cards(self) -> None:
+    def _toggle_gamepad_cards(self, index: int) -> None:
         """根据头部下拉框切换 Xbox/DS4 卡片可见性"""
-        is_xbox = self.gamepad_display_combo.currentData() == GamepadTypeEnum.XBOX.value.value
+        is_xbox = index == 0
 
         self.xbox_key_press_time_opt.setVisible(is_xbox)
         for card in self._xbox_cards.values():
@@ -207,6 +279,36 @@ class SettingGameInterface(VerticalScrollInterface):
         self.ds4_key_press_time_opt.setVisible(not is_xbox)
         for card in self._ds4_cards.values():
             card.setVisible(not is_xbox)
+
+    def _toggle_action_cards(self) -> None:
+        """根据配置切换 Xbox/DS4 动作键卡片可见性。"""
+        is_xbox = self.ctx.game_config.background_gamepad_type == GamepadTypeEnum.XBOX.value.value
+        for card in self._xbox_action_cards.values():
+            card.setVisible(is_xbox)
+        for card in self._ds4_action_cards.values():
+            card.setVisible(not is_xbox)
+
+    def _on_background_mode_changed(self, value: bool) -> None:
+        """后台模式开关变更时检查 vgamepad 是否可用。"""
+        if value and not pc_button_utils.is_vgamepad_installed():
+            self.background_mode_switch.setValue(False, emit_signal=False)
+            self.ctx.game_config.background_mode = False
+            InfoBar.warning(
+                title='后台模式不可用',
+                content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
+                parent=self, duration=5000,
+            )
+
+    def _on_control_method_changed(self, _index: int, value: str) -> None:
+        """操控方式变更时检查 vgamepad 是否可用。"""
+        if value != ControlMethodEnum.KEYBOARD.value.value and not pc_button_utils.is_vgamepad_installed():
+            self.control_method_opt.setValue(ControlMethodEnum.KEYBOARD.value.value, emit_signal=False)
+            self.ctx.game_config.control_method = ControlMethodEnum.KEYBOARD.value.value
+            InfoBar.warning(
+                title='手柄操控不可用',
+                content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
+                parent=self, duration=5000,
+            )
 
     def _on_hdr_enable_clicked(self) -> None:
         self.hdr_btn_enable.setEnabled(False)

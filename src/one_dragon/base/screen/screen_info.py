@@ -1,12 +1,10 @@
-import cv2
-import os
-from cv2.typing import MatLike
-from typing import List, Optional, Any
+from typing import Any
 
-from one_dragon.base.config.yaml_operator import YamlOperator
+import cv2
+from cv2.typing import MatLike
+
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.screen.screen_area import ScreenArea
-from one_dragon.utils import os_utils, cv2_utils
 
 
 class ScreenInfo:
@@ -19,7 +17,7 @@ class ScreenInfo:
         self.screen_image: MatLike | None = None
 
         self.pc_alt: bool = data.get('pc_alt', False)  # PC端点击是否需要使用ALT键
-        self.area_list: List[ScreenArea] = []  # 画面中包含的区域
+        self.area_list: list[ScreenArea] = []  # 画面中包含的区域
 
         data_area_list = data.get('area_list', [])
         for data_area in data_area_list:
@@ -36,10 +34,11 @@ class ScreenInfo:
                 pc_alt=self.pc_alt,
                 id_mark=data_area.get('id_mark', False),
                 goto_list=data_area.get('goto_list', []),
+                gamepad_key=data_area.get('gamepad_key', ''),
             )
             self.area_list.append(area)
 
-    def get_image_to_show(self, highlight_area_idx: Optional[int] = None) -> MatLike:
+    def get_image_to_show(self, highlight_area_idx: int | None = None) -> MatLike:
         """
         用于显示的图片
         :param highlight_area_idx: 高亮区域索引

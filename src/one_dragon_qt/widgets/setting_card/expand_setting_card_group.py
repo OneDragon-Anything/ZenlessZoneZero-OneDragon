@@ -25,7 +25,6 @@ class ExpandSettingCardGroup(ExpandSettingCard):
             self.card.setContent(gt(content))
         self.viewLayout.setContentsMargins(0, 0, 0, 0)
         self.viewLayout.setSpacing(0)
-        self.setExpand(True)
         self._card_sep_pairs: list[tuple[QWidget, GroupSeparator | None]] = []
 
     def addHeaderWidget(self, widget: QWidget) -> None:
