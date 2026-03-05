@@ -1,6 +1,6 @@
 screen_id: coffee_shop
 screen_name: 咖啡店
-pc_alt: true
+pc_alt: false
 area_list:
 - area_name: 点单
   pc_rect:

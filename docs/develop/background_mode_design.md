@@ -37,7 +37,7 @@
 
 ### 1.1 锁鼠标场景 (pc_alt=true) — 手柄按键替代
 
-在大世界、战斗画面、咖啡店等锁鼠标场景，前台模式需要 ALT 键解锁光标才能点击 UI。
+在大世界、战斗画面等锁鼠标场景，前台模式需要 ALT 键解锁光标才能点击 UI。
 后台模式下 ALT 无法可靠传递（`keybd_event` 方案已验证失败），改用手柄按键替代：
 
 **方案：** 为 `ScreenArea` 添加可选 `gamepad_key` 字段，存储 `GamepadActionEnum` 动作名。
@@ -186,10 +186,38 @@ PcControllerBase
 │   ├── _background_drag()       → 后台 SetCursorPos + PostMessage 拖拽
 │   └── _foreground_drag()       → 前台 pyautogui 拖拽
 ├── btn_controller               → keyboard_controller / xbox_controller
+├── btn_tap / btn_press          → 按键前 _ensure_gamepad_mode()
+├── btn_release                  → 释放前 _ensure_gamepad_mode()（防御性）
 ├── _send_activate()             → 发送 WM_ACTIVATE 激活消息
 └── 模式切换
     ├── enable_background_mode()   → PostMessage 点击 + Xbox 手柄
     └── enable_foreground_mode()   → pyautogui 点击 + 键盘
+```
+
+### ZPcController — 按键映射与动作方法
+
+**按键映射：** `ZPcController` 使用 `action_keys: dict[str, str]` 存储当前控制方式的
+所有按键映射（如 `{'dodge': 'shift', 'interact': 'f', ...}`），由 `GameConfig.get_action_keys()`
+根据控制方式返回。初始化时始终加载键盘键名，`enable_xbox()`/`enable_ds4()` 切换时同步更新。
+
+**动作方法：** 15 个动作方法（`dodge()`、`normal_attack()` 等）均为一行委托：
+```python
+def dodge(self, press=False, press_time=None, release=False):
+    self._action_btn(self.action_keys['dodge'], press, press_time, release)
+```
+
+**`_action_btn(key, press, press_time, release)`：** 通用按键动作分发——按下/释放/点按。
+
+### 转向 — _gamepad_turn
+
+`turn_by_distance()` 和 `turn_vertical_by_distance()` 统一委托给 `move_mouse_relative()`：
+```
+move_mouse_relative(dx, dy)
+├── 后台 → _gamepad_turn(dx, dy)
+│     ├── gamepad_turn_speed <= 0 时跳过（速度下限保护）
+│     ├── _ensure_gamepad_mode()（自包含，不依赖调用方）
+│     └── 右摇杆满偏转 duration = max_d / gamepad_turn_speed
+└── 前台 → _ensure_mouse_mode() + mouse_event
 ```
 
 ### 场景切换策略
@@ -228,8 +256,13 @@ PcControllerBase
 - `gamepad_key: str | None` — `GamepadActionEnum` 动作名（如 `'menu'`、`'compendium'`），默认不写入 YAML
 
 **`GameConfig` 核心方法：**
-- `get_gamepad_action_keys() -> dict[str, list[str]]` — 返回 `{action_name: [key, ...]}`
-- 例如 `get_gamepad_action_keys('xbox')` → `{'menu': ['xbox_start'], 'compendium': ['xbox_lb', 'xbox_a'], ...}`
+- `get_action_keys(control_method) -> dict[str, str]` — 返回 `{action_name: key_value}`
+  - `control_method`: `'keyboard'` / `'xbox'` / `'ds4'`（默认读 `config.control_method`）
+  - 前缀推导：`'key' if control_method == 'keyboard' else f'{control_method}_key'`
+  - 例如 `get_action_keys('keyboard')` → `{'dodge': 'shift', 'interact': 'f', ...}`
+- `get_gamepad_action_keys(gamepad_type) -> dict[str, list[str]]` — 返回 `{action_name: [key, ...]}`
+  - `gamepad_type`: `'xbox'` / `'ds4'`（默认读 `config.background_gamepad_type`）
+  - 例如 `get_gamepad_action_keys('xbox')` → `{'menu': ['xbox_start'], 'compendium': ['xbox_lb', 'xbox_a'], ...}`
 
 ## 前置条件
 
