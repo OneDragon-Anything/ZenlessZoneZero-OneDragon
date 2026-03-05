@@ -112,6 +112,7 @@ class SettingGameInterface(VerticalScrollInterface):
             content='后台模式切换键鼠输入时的前台停留时长，过小可能切换失败',
             minimum=0.01, maximum=0.2, step=0.01,
         )
+        self.mouse_flash_duration_opt.value_changed.connect(lambda value: setattr(self.ctx.controller, 'mouse_flash_duration', value))
         background_group.addSettingCard(self.mouse_flash_duration_opt)
 
         # Xbox 动作键卡片
