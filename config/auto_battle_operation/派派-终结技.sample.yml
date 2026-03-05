@@ -8,9 +8,14 @@ operations:
     seconds: 6
   - op_name: "按键-终结技"
     post_delay: 0.1
+    repeat: 20
+  - op_name: "按键-切换角色"
+    agent_name: "派派"
+  - op_name: "按键-终结技"
+    post_delay: 0.1
     repeat: 30
   - op_name: "等待秒数"
-    seconds: 3
+    seconds: 1
   - op_name: "设置状态"
     state: "自定义-异常-物理"
     add: 288

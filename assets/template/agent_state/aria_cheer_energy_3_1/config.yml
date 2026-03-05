@@ -1,0 +1,22 @@
+sub_dir: agent_state
+template_id: aria_cheer_energy_3_1
+template_name: 角色状态-爱芮-31
+template_shape: multi_rect
+auto_mask: true
+point_list:
+- 111, 114
+- 114, 117
+- 131, 114
+- 135, 117
+- 150, 114
+- 154, 117
+- 170, 114
+- 173, 117
+- 188, 114
+- 192, 118
+- 207, 114
+- 211, 117
+- 226, 114
+- 231, 118
+- 245, 114
+- 250, 118
