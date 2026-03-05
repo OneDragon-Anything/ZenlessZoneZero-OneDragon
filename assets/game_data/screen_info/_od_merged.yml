@@ -898,13 +898,13 @@
     goto_list: []
 - screen_id: coffee_shop
   screen_name: 咖啡店
-  pc_alt: true
+  pc_alt: false
   area_list:
   - area_name: 点单
     id_mark: false
     pc_rect:
     - 1702
-    - 966
+    - 880
     - 1914
     - 1020
     text: 点单
