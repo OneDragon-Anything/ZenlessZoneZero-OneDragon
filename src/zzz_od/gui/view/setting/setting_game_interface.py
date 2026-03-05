@@ -241,13 +241,12 @@ class SettingGameInterface(VerticalScrollInterface):
 
         self.background_mode_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_mode'))
         self.background_gamepad_type_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_gamepad_type'))
+        self.mouse_flash_duration_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('mouse_flash_duration'))
         for action_name, card in self._xbox_action_cards.items():
             card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'xbox_action_{action_name}'))
         for action_name, card in self._ds4_action_cards.items():
             card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'ds4_action_{action_name}'))
         self._toggle_action_cards()
-
-        self.mouse_flash_duration_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('mouse_flash_duration'))
 
         self.launch_argument_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument'))
         self.screen_size_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('screen_size'))
