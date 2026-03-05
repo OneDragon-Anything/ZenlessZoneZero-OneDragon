@@ -227,7 +227,7 @@ class PcControllerBase(ControllerBase):
         if prev_hwnd and prev_hwnd != hwnd:
             with contextlib.suppress(Exception):
                 win32gui.SetForegroundWindow(prev_hwnd)
-        time.sleep(0.05)
+        time.sleep(0.1)
         self._game_input_mode = 'keyboard_mouse'
 
     def _ensure_gamepad_mode(self) -> None:
@@ -235,7 +235,7 @@ class PcControllerBase(ControllerBase):
         if self._game_input_mode == 'gamepad':
             return
         self.btn_controller.tap(self._get_switch_gamepad_key())
-        time.sleep(0.05)
+        time.sleep(0.1)
         self._game_input_mode = 'gamepad'
 
     def _get_switch_gamepad_key(self) -> str:
