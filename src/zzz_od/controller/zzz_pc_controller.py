@@ -34,11 +34,14 @@ class ZPcController(PcControllerBase):
         self.gamepad_turn_speed: float = game_config.gamepad_turn_speed
 
     def init_before_context_run(self) -> bool:
-        """运行前根据配置启用后台/前台模式"""
+        """运行前根据配置启用后台/前台模式，刷新快照配置"""
         if self.game_config.background_mode:
             self.enable_background_mode(self.game_config.background_gamepad_type)
         else:
             self.enable_foreground_mode()
+        self.turn_dx = self.game_config.turn_dx
+        self.gamepad_turn_speed = self.game_config.gamepad_turn_speed
+        self.mouse_flash_duration = self.game_config.mouse_flash_duration
         return PcControllerBase.init_before_context_run(self)
 
     def fill_uid_black(self, screen: MatLike) -> MatLike:
