@@ -188,7 +188,6 @@ class PcControllerBase(ControllerBase):
             return
 
         self.background_mode = True
-        self._game_input_mode = 'gamepad'  # 后台模式默认游戏处于手柄输入
         if gamepad_type == 'ds4':
             self.enable_ds4()
             log.info('已启用后台模式: PostMessage 点击 + DS4 手柄')
