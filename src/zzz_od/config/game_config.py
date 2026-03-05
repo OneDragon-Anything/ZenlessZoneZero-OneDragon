@@ -259,7 +259,6 @@ class GameConfig(BasicGameConfig):
 
         Args:
             control_method: ControlMethodEnum 的值，如 'keyboard' / 'xbox' / 'ds4'。
-                            为 None 时使用当前配置的 control_method。
 
         Returns:
             {action_name: key_value}，如 {'dodge': 'shift', 'interact': 'f', ...}

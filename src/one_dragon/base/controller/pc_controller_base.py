@@ -341,17 +341,21 @@ class PcControllerBase(ControllerBase):
 
         raw_keys = self.gamepad_action_keys.get(gamepad_key, [])
         if not raw_keys:
-            log.warning('后台模式: 未找到动作 %s 的手柄键映射', gamepad_key)
+            log.error(f'后台模式: 未找到动作 {gamepad_key} 的手柄键映射')
             return False
 
         self._ensure_gamepad_mode()
         self._send_activate()
 
-        if len(raw_keys) == 1:
-            self.btn_controller.tap(raw_keys[0])
-        else:
-            self.btn_controller.tap_combo(raw_keys)
-        return True
+        try:
+            if len(raw_keys) == 1:
+                self.btn_controller.tap(raw_keys[0])
+            else:
+                self.btn_controller.tap_combo(raw_keys)
+            return True
+        except KeyError:
+            log.error(f'后台模式: 动作 {gamepad_key} 包含未注册手柄键 {raw_keys}', exc_info=True)
+            return False
 
     def _background_click(self, pos: Point | None, press_time: float = 0) -> bool:
         """后台点击：用 SetCursorPos 移动光标，再 PostMessage WM_LBUTTONDOWN/UP。
