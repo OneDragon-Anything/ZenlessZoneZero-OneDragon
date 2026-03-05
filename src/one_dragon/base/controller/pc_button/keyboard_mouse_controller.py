@@ -20,6 +20,9 @@ class KeyboardMouseController(PcButtonController):
         :param key: 按键
         :return:
         """
+        if not self.input_enabled:
+            return
+
         if pc_button_utils.is_mouse_button(key):
             self.mouse.click(pc_button_utils.get_mouse_button(key))
         else:
@@ -31,6 +34,9 @@ class KeyboardMouseController(PcButtonController):
         :param press_time: 持续按键时间
         :return:
         """
+        if not self.input_enabled:
+            return
+
         is_mouse = pc_button_utils.is_mouse_button(key)
         real_key = pc_button_utils.get_mouse_button(key) if is_mouse else pc_button_utils.get_keyboard_button(key)
         if is_mouse:

@@ -449,6 +449,20 @@ class EnvConfig(YamlConfig):
         self.update('key_debug', new_value)
 
     @property
+    def auto_pause_on_background(self) -> bool:
+        """
+        游戏窗口非前台时，是否自动暂停脚本
+        """
+        return self.get('auto_pause_on_background', True)
+
+    @auto_pause_on_background.setter
+    def auto_pause_on_background(self, new_value: bool) -> None:
+        """
+        游戏窗口非前台时，是否自动暂停脚本
+        """
+        self.update('auto_pause_on_background', new_value)
+
+    @property
     def is_first_run(self) -> bool:
         """
         是否第一次运行

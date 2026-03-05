@@ -76,6 +76,9 @@ class XboxButtonController(PcButtonController):
         :param key:
         :return:
         """
+        if not self.input_enabled:
+            return
+
         if key is None:  # 部分按键不支持
             return
         self._tap_handler[int(key.split('_')[-1])](False, None)
@@ -220,6 +223,9 @@ class XboxButtonController(PcButtonController):
         self.pad.update()
 
     def press(self, key: str, press_time: Optional[float] = None) -> None:
+        if not self.input_enabled:
+            return
+
         if key is None:  # 部分按键不支持
             return
         self._tap_handler[int(key.split('_')[-1])](True, press_time)

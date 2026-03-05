@@ -180,6 +180,13 @@ class SettingEnvInterface(VerticalScrollInterface):
         )
         key_group.addSettingCard(self.key_debug_input)
 
+        self.auto_pause_on_background_opt = SwitchSettingCard(
+            icon=FluentIcon.PLAY,
+            title='非前台自动暂停',
+            content='游戏窗口失焦时自动暂停，恢复前台后自动继续运行'
+        )
+        key_group.addSettingCard(self.auto_pause_on_background_opt)
+
         return key_group
 
     def on_interface_shown(self) -> None:
@@ -197,6 +204,7 @@ class SettingEnvInterface(VerticalScrollInterface):
         self.key_stop_running_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_stop_running'))
         self.key_screenshot_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_screenshot'))
         self.key_debug_input.init_with_adapter(self.ctx.env_config.get_prop_adapter('key_debug'))
+        self.auto_pause_on_background_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('auto_pause_on_background'))
 
         self.repository_type_opt.init_with_adapter(self.ctx.env_config.get_prop_adapter('repository_type'))
 
