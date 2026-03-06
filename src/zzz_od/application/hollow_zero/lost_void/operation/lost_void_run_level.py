@@ -363,7 +363,7 @@ class LostVoidRunLevel(ZOperation):
             self.screenshot()  # 重新截图
             area = self.ctx.screen_loader.get_area('迷失之地-大世界', '区域-交互文本')
             part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-            ocr_result_map = self.ctx.ocr.run_ocr(part)
+            ocr_result_map = self.ctx.ocr.run_ocr(part, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
             current_interact_target = None
             for ocr_result in ocr_result_map.keys():
                 target = match_interact_target(self.ctx, ocr_result)
@@ -495,7 +495,7 @@ class LostVoidRunLevel(ZOperation):
         mask = cv2.inRange(part, (200, 200, 200), (255, 255, 255))
         mask = cv2_utils.dilate(mask, 2)
         to_ocr = cv2.bitwise_and(part, part, mask=mask)
-        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
+        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
 
         if len(ocr_result_map) > 0:  # 有可能在交互
             # 判断是否有选项
@@ -513,7 +513,7 @@ class LostVoidRunLevel(ZOperation):
         mask = cv2.inRange(part, (200, 200, 200), (255, 255, 255))
         mask = cv2_utils.dilate(mask, 2)
         to_ocr = cv2.bitwise_and(part, part, mask=mask)
-        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
+        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
 
         special_talk_list = [
             '似乎购买了充值卡就会得到齿轮硬币奖励，但是在离开之后身上的齿轮硬币都',  # 奸商布
@@ -546,7 +546,7 @@ class LostVoidRunLevel(ZOperation):
         mask = cv2_utils.dilate(mask, 2)
         to_ocr = cv2.bitwise_and(part, part, mask=mask)
         # cv2_utils.show_image(to_ocr, wait=0)
-        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
+        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
 
         ocr_result_list = []
         mr_list = []

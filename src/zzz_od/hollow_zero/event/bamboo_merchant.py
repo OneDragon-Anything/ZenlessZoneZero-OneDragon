@@ -146,7 +146,7 @@ class BambooMerchant(ZOperation):
         # cv2_utils.show_image(to_ocr, wait=0)
 
         result_result_map = {}
-        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr)
+        ocr_result_map = self.ctx.ocr.run_ocr(to_ocr, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
         for ocr_result, mrl in ocr_result_map.items():
             digit = str_utils.get_positive_digits(ocr_result, None)
             if digit is None:  # 忽略没有数字的
@@ -185,7 +185,7 @@ class BambooMerchant(ZOperation):
     def _ocr_desc_area(self, screen: MatLike) -> dict[str, MatchResultList]:
         area = self.ctx.screen_loader.get_area('零号空洞-商店', '商品描述区域')
         part = cv2_utils.crop_image_only(screen, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.run_ocr(part, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
         for mrl in ocr_result_map.values():
             mrl.add_offset(area.left_top)
 

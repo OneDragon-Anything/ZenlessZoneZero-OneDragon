@@ -427,6 +427,11 @@ class Operation(OperationBase):
                     else:
                         arrow = f"{from_node_name} -> {node_name}" if self._previous_node is not None else node_name
                         log.info('%s 节点 %s 返回状态 %s', self.display_name, arrow, round_result_status)
+                    self._emit_overlay_round_trace(
+                        from_node_name=from_node_name,
+                        node_name=node_name,
+                        status_text=round_result_status,
+                    )
                 if self.ctx.run_context.is_context_pause:  # 有可能触发暂停的时候仍在执行指令 执行完成后 再次触发暂停回调 保证操作的暂停回调真正生效
                     self._on_pause()
             except Exception as e:
@@ -436,6 +441,14 @@ class Operation(OperationBase):
                     log.error('%s 执行出错 相关截图保存至 %s', self.display_name, file_name, exc_info=True)
                 else:
                     log.error('%s 执行出错', self.display_name, exc_info=True)
+                self._emit_overlay_timeline(
+                    category="node",
+                    title=self.display_name,
+                    detail=f"异常: {type(e).__name__}",
+                    level="ERROR",
+                    ttl_seconds=60.0,
+                )
+            self._emit_overlay_round_perf((time.time() - self.round_start_time) * 1000.0)
 
             # 重试或者等待的
             if round_result.result == OperationRoundResultEnum.RETRY:
@@ -662,9 +675,104 @@ class Operation(OperationBase):
             log.info('%s 执行成功 返回状态 %s', self.display_name, coalesce_gt(result.status, '成功', model='ui'))
         else:
             log.error('%s 执行失败 返回状态 %s', self.display_name, coalesce_gt(result.status, '失败', model='ui'))
+        self._emit_overlay_timeline(
+            category="operation",
+            title=self.display_name,
+            detail=f"完成: {coalesce_gt(result.status, '成功' if result.success else '失败', model='ui')}",
+            level="INFO" if result.success else "ERROR",
+            ttl_seconds=90.0,
+        )
 
         if self.op_callback is not None:
             self.op_callback(result)
+
+    def _emit_overlay_round_trace(self, from_node_name: str, node_name: str, status_text: str) -> None:
+        arrow = f"{from_node_name} -> {node_name}" if from_node_name != "none" else node_name
+        self._emit_overlay_timeline(
+            category="node",
+            title=self.display_name,
+            detail=f"{arrow} => {status_text}",
+            level="INFO",
+            ttl_seconds=45.0,
+        )
+        self._emit_overlay_decision(
+            source="operation",
+            trigger=from_node_name,
+            expression=node_name,
+            operation=self.op_name,
+            status=status_text,
+            ttl_seconds=45.0,
+        )
+
+    def _emit_overlay_decision(
+        self,
+        source: str,
+        trigger: str,
+        expression: str,
+        operation: str,
+        status: str,
+        ttl_seconds: float,
+    ) -> None:
+        bus = getattr(self.ctx, "overlay_debug_bus", None)
+        if bus is None:
+            return
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import DecisionTraceItem
+        except Exception:
+            return
+        bus.add_decision(
+            DecisionTraceItem(
+                source=source,
+                trigger=str(trigger or "-"),
+                expression=str(expression or "-"),
+                operation=str(operation or "-"),
+                status=str(status or "-"),
+                ttl_seconds=ttl_seconds,
+            )
+        )
+
+    def _emit_overlay_timeline(
+        self,
+        category: str,
+        title: str,
+        detail: str,
+        level: str,
+        ttl_seconds: float,
+    ) -> None:
+        bus = getattr(self.ctx, "overlay_debug_bus", None)
+        if bus is None:
+            return
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import TimelineItem
+        except Exception:
+            return
+        bus.add_timeline(
+            TimelineItem(
+                category=category,
+                title=str(title or "-"),
+                detail=str(detail or "-"),
+                level=level,
+                ttl_seconds=ttl_seconds,
+            )
+        )
+
+    def _emit_overlay_round_perf(self, elapsed_ms: float) -> None:
+        bus = getattr(self.ctx, "overlay_debug_bus", None)
+        if bus is None:
+            return
+        try:
+            from one_dragon.base.operation.overlay_debug_bus import PerfMetricSample
+        except Exception:
+            return
+        bus.add_performance(
+            PerfMetricSample(
+                metric="operation_round_ms",
+                value=float(elapsed_ms),
+                unit="ms",
+                ttl_seconds=20.0,
+                meta={"operation": self.op_name},
+            )
+        )
 
     def round_success(self, status: str = None, data: Any = None,
                       wait: float | None = None, wait_round_time: float | None = None) -> OperationRoundResult:

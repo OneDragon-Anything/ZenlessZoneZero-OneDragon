@@ -284,7 +284,7 @@ def check_type_by_area(ctx: ZContext, screen: MatLike, area: ScreenArea) -> DmgT
     @return:
     """
     part = cv2_utils.crop_image_only(screen, area.rect)
-    ocr_map = ctx.ocr.run_ocr(part)
+    ocr_map = ctx.ocr.run_ocr(part, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
 
     type_list = [i for i in DmgTypeEnum if i != DmgTypeEnum.UNKNOWN]
     target_list = [gt(i.value, 'game') for i in DmgTypeEnum if i != DmgTypeEnum.UNKNOWN]

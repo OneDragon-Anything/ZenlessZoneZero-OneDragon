@@ -1,0 +1,257 @@
+from __future__ import annotations
+
+from PySide6.QtCore import QPoint, QRect, Qt, Signal
+from PySide6.QtGui import QGuiApplication, QMouseEvent
+from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout
+
+
+class ResizablePanel(QFrame):
+    """Draggable and resizable overlay panel."""
+
+    geometry_changed = Signal(dict)
+
+    _EDGE_NONE = 0
+    _EDGE_LEFT = 1
+    _EDGE_RIGHT = 2
+    _EDGE_TOP = 4
+    _EDGE_BOTTOM = 8
+
+    def __init__(
+        self,
+        title: str,
+        min_width: int = 260,
+        min_height: int = 140,
+        parent=None,
+    ):
+        super().__init__(parent)
+        self._title = title
+        self._min_width = max(160, min_width)
+        self._min_height = max(100, min_height)
+        self._edge_margin = 6
+        self._header_height = 28
+        self._drag_handle_height = self._header_height + 4
+        self._title_visible = True
+        self._panel_opacity = 70
+        self._interaction_enabled = True
+        self._drag_anywhere = False
+
+        self._dragging = False
+        self._resizing = False
+        self._active_edge = self._EDGE_NONE
+        self._press_global = QPoint()
+        self._press_geometry = QRect()
+
+        self._setup_ui()
+
+    def _setup_ui(self) -> None:
+        self.setObjectName("overlayPanel")
+        self.setMouseTracking(True)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setMinimumSize(self._min_width, self._min_height)
+        self.setFrameShape(QFrame.Shape.StyledPanel)
+
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(5, 4, 5, 5)
+        self._layout.setSpacing(3)
+
+        self._title_label = QLabel(self._title, self)
+        self._title_label.setObjectName("overlayPanelTitle")
+        self._title_label.setFixedHeight(self._header_height)
+        self._layout.addWidget(self._title_label)
+        self._refresh_style()
+
+    @property
+    def body_layout(self) -> QVBoxLayout:
+        return self._layout
+
+    def set_title_visible(self, visible: bool) -> None:
+        self._title_visible = bool(visible)
+        self._title_label.setVisible(self._title_visible)
+        self._title_label.setFixedHeight(self._header_height if self._title_visible else 0)
+        if self._title_visible:
+            self._layout.setContentsMargins(5, 4, 5, 5)
+            self._layout.setSpacing(3)
+            self._drag_handle_height = self._header_height + 4
+        else:
+            self._layout.setContentsMargins(4, 4, 4, 4)
+            self._layout.setSpacing(2)
+            self._drag_handle_height = 12
+
+    def set_interaction_enabled(self, enabled: bool) -> None:
+        self._interaction_enabled = bool(enabled)
+        if not self._interaction_enabled:
+            self._dragging = False
+            self._resizing = False
+            self._active_edge = self._EDGE_NONE
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+
+    def set_drag_anywhere(self, enabled: bool) -> None:
+        self._drag_anywhere = bool(enabled)
+
+    def set_panel_opacity(self, opacity_percent: int) -> None:
+        self._panel_opacity = max(20, min(100, int(opacity_percent)))
+        self._refresh_style()
+
+    def _refresh_style(self) -> None:
+        panel_alpha = int(255 * self._panel_opacity / 100.0)
+        border_alpha = max(18, min(90, int(panel_alpha * 0.22)))
+        self.setStyleSheet(
+            f"""
+            #overlayPanel {{
+                background-color: rgba(12, 12, 14, {panel_alpha});
+                border: 1px solid rgba(255, 255, 255, {border_alpha});
+                border-radius: 5px;
+            }}
+            QLabel#overlayPanelTitle {{
+                color: #f0f0f0;
+                font-size: 12px;
+                font-weight: 600;
+                padding-left: 4px;
+            }}
+            """
+        )
+        # WA_TranslucentBackground 窗口 setStyleSheet 不一定自动触发重绘
+        self.update()
+
+    def _hit_test_edge(self, pos: QPoint) -> int:
+        edge = self._EDGE_NONE
+        if pos.x() <= self._edge_margin:
+            edge |= self._EDGE_LEFT
+        elif pos.x() >= self.width() - self._edge_margin:
+            edge |= self._EDGE_RIGHT
+
+        if pos.y() <= self._edge_margin:
+            edge |= self._EDGE_TOP
+        elif pos.y() >= self.height() - self._edge_margin:
+            edge |= self._EDGE_BOTTOM
+
+        return edge
+
+    def _is_in_header(self, pos: QPoint) -> bool:
+        return 0 <= pos.y() <= self._drag_handle_height
+
+    def _update_cursor(self, edge: int, pos: QPoint) -> None:
+        if edge in (self._EDGE_LEFT, self._EDGE_RIGHT):
+            self.setCursor(Qt.CursorShape.SizeHorCursor)
+        elif edge in (self._EDGE_TOP, self._EDGE_BOTTOM):
+            self.setCursor(Qt.CursorShape.SizeVerCursor)
+        elif edge in (self._EDGE_LEFT | self._EDGE_TOP, self._EDGE_RIGHT | self._EDGE_BOTTOM):
+            self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+        elif edge in (self._EDGE_RIGHT | self._EDGE_TOP, self._EDGE_LEFT | self._EDGE_BOTTOM):
+            self.setCursor(Qt.CursorShape.SizeBDiagCursor)
+        elif self._drag_anywhere or self._is_in_header(pos):
+            self.setCursor(Qt.CursorShape.SizeAllCursor)
+        else:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if not self._interaction_enabled:
+            super().mousePressEvent(event)
+            return
+        if event.button() != Qt.MouseButton.LeftButton:
+            super().mousePressEvent(event)
+            return
+
+        self._press_global = event.globalPosition().toPoint()
+        self._press_geometry = self.geometry()
+        self._active_edge = self._hit_test_edge(event.position().toPoint())
+
+        if self._active_edge != self._EDGE_NONE:
+            self._resizing = True
+        elif self._drag_anywhere or self._is_in_header(event.position().toPoint()):
+            self._dragging = True
+
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if not self._interaction_enabled:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+            super().mouseMoveEvent(event)
+            return
+        pos = event.position().toPoint()
+        if not self._dragging and not self._resizing:
+            self._update_cursor(self._hit_test_edge(pos), pos)
+            super().mouseMoveEvent(event)
+            return
+
+        delta = event.globalPosition().toPoint() - self._press_global
+        geom = QRect(self._press_geometry)
+
+        if self._dragging:
+            geom.moveTopLeft(self._press_geometry.topLeft() + delta)
+        elif self._resizing:
+            if self._active_edge & self._EDGE_LEFT:
+                geom.setLeft(self._press_geometry.left() + delta.x())
+            if self._active_edge & self._EDGE_RIGHT:
+                geom.setRight(self._press_geometry.right() + delta.x())
+            if self._active_edge & self._EDGE_TOP:
+                geom.setTop(self._press_geometry.top() + delta.y())
+            if self._active_edge & self._EDGE_BOTTOM:
+                geom.setBottom(self._press_geometry.bottom() + delta.y())
+
+        geom = self._normalize_geometry(geom)
+        self.setGeometry(geom)
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if not self._interaction_enabled:
+            super().mouseReleaseEvent(event)
+            return
+        changed = self._dragging or self._resizing
+        self._dragging = False
+        self._resizing = False
+        self._active_edge = self._EDGE_NONE
+        self.setCursor(Qt.CursorShape.ArrowCursor)
+
+        if changed:
+            g = self.geometry()
+            self.geometry_changed.emit(
+                {"x": g.x(), "y": g.y(), "w": g.width(), "h": g.height()}
+            )
+
+        super().mouseReleaseEvent(event)
+
+    def _normalize_geometry(self, geom: QRect) -> QRect:
+        parent = self.parentWidget()
+        if geom.width() < self._min_width:
+            if self._active_edge & self._EDGE_LEFT:
+                geom.setLeft(geom.right() - self._min_width + 1)
+            else:
+                geom.setWidth(self._min_width)
+        if geom.height() < self._min_height:
+            if self._active_edge & self._EDGE_TOP:
+                geom.setTop(geom.bottom() - self._min_height + 1)
+            else:
+                geom.setHeight(self._min_height)
+
+        if parent is None:
+            # Top-level window: clamp to screen available geometry
+            screen = QGuiApplication.screenAt(geom.center())
+            if screen is None:
+                screen = QGuiApplication.primaryScreen()
+            if screen is not None:
+                avail = screen.availableGeometry()
+                if geom.left() < avail.left():
+                    geom.moveLeft(avail.left())
+                if geom.top() < avail.top():
+                    geom.moveTop(avail.top())
+                if geom.right() > avail.right():
+                    geom.moveLeft(max(avail.left(), avail.right() - geom.width()))
+                if geom.bottom() > avail.bottom():
+                    geom.moveTop(max(avail.top(), avail.bottom() - geom.height()))
+            return geom
+
+        max_x = max(0, parent.width() - geom.width())
+        max_y = max(0, parent.height() - geom.height())
+
+        if geom.x() < 0:
+            geom.moveLeft(0)
+        elif geom.x() > max_x:
+            geom.moveLeft(max_x)
+
+        if geom.y() < 0:
+            geom.moveTop(0)
+        elif geom.y() > max_y:
+            geom.moveTop(max_y)
+
+        return geom

@@ -24,7 +24,7 @@ class LostVoidLottery(ZOperation):
         area = self.ctx.screen_loader.get_area('迷失之地-抽奖机', '文本-剩余次数')
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.run_ocr(part, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
         if len(ocr_result_map) == 0:
             return self.round_success(LostVoidLottery.STATUS_NO_TIMES_LEFT)
 

@@ -387,12 +387,13 @@ class AutoBattleAgentContext:
         并发识别角色
         :return:
         """
-        area_img = [
-            cv2_utils.crop_image_only(screen, self.area_agent_3_1.rect),
-            cv2_utils.crop_image_only(screen, self.area_agent_3_2.rect),
-            cv2_utils.crop_image_only(screen, self.area_agent_3_3.rect),
-            cv2_utils.crop_image_only(screen, self.area_agent_2_2.rect)
+        area_rect = [
+            self.area_agent_3_1.rect,
+            self.area_agent_3_2.rect,
+            self.area_agent_3_3.rect,
+            self.area_agent_2_2.rect
         ]
+        area_img = [cv2_utils.crop_image_only(screen, rect) for rect in area_rect]
 
         possible_agents = self.get_possible_agent_list()
 
@@ -412,7 +413,7 @@ class AutoBattleAgentContext:
 
         for i in range(4):
             if should_check[i]:
-                future_list.append(_battle_agent_context_executor.submit(self._match_agent_in, area_img[i], i == 0, possible_agents))
+                future_list.append(_battle_agent_context_executor.submit(self._match_agent_in, area_img[i], i == 0, possible_agents, (area_rect[i].x1, area_rect[i].y1)))
             else:
                 future_list.append(None)
 
@@ -441,6 +442,7 @@ class AutoBattleAgentContext:
         img: MatLike,
         is_front: bool,
         possible_agents: List[Tuple[Agent, Optional[str]]],
+        debug_offset: Tuple[int, int] | None = None
     ) -> Tuple[Optional[Agent], Optional[str]]:
         """
         在候选列表中匹配角色
@@ -473,7 +475,7 @@ class AutoBattleAgentContext:
         for agent_template_list in priority_list:
             for agent, template_id in agent_template_list:
                 template_name = prefix + template_id
-                mrl = self.ctx.tm.match_template(img, "battle", template_name, threshold=0.8)
+                mrl = self.ctx.tm.match_template(img, "battle", template_name, threshold=0.8, debug_offset=debug_offset)
                 if mrl.max is None:
                     continue
                 if mrl.max.confidence < best_confidence:
