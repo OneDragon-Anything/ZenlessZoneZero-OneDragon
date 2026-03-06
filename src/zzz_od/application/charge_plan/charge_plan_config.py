@@ -55,7 +55,7 @@ class ChargePlanItem:
         self.predefined_team_idx: int = predefined_team_idx  # 预备配队下标 -1为使用当前配队
         self.notorious_hunt_buff_num: int = notorious_hunt_buff_num  # 恶名狩猎 选择的buff
         self.plan_id: str = plan_id if plan_id else str(uuid.uuid4())  # 计划的唯一标识符
-        self.skipped: bool = False  # 瞬态标记：本次运行中是否跳过（不持久化）
+        self.skipped: bool = False  # 单次运行中是否跳过（不持久化）
 
     @property
     def is_agent_plan(self) -> bool:
@@ -63,12 +63,12 @@ class ChargePlanItem:
 
     @property
     def uid(self) -> str:
-        return '{}_{}_{}_{}'.format(
-            self.tab_name if self.tab_name is not None else '',
-            self.category_name if self.category_name is not None else '',
-            self.mission_type_name if self.mission_type_name is not None else '',
-            self.mission_name if self.mission_name is not None else '',
-        )
+
+        tab_name = self.tab_name or ''
+        category_name = self.category_name or ''
+        mission_type_name = self.mission_type_name or ''
+        mission_name = self.mission_name or ''
+        return f'{tab_name}_{category_name}_{mission_type_name}_{mission_name}'
 
 
 class ChargePlanConfig(ApplicationConfig):
