@@ -51,7 +51,7 @@ class NotoriousHunt(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name='%s %s' % (
+            op_name='{} {}'.format(
                 gt('恶名狩猎', 'game'),
                 gt(plan.mission_type_name, 'game')
             )
@@ -107,7 +107,7 @@ class NotoriousHunt(ZOperation):
     @node_from(from_name='等待入口加载', status='按钮-街区')
     @operation_node(name='判断副本名称')
     def check_mission(self) -> OperationRoundResult:
-        if self.plan.mission_type_name == '代理人方案培养':
+        if self.plan.is_agent_plan:
         # 通过代理人进入则跳过重新选择副本
             return self.round_success()
         area = self.ctx.screen_loader.get_area('恶名狩猎', '标题-副本名称')
@@ -115,7 +115,7 @@ class NotoriousHunt(ZOperation):
         ocr_result_map = self.ctx.ocr.run_ocr(part)
         is_target_mission: bool = False  # 当前是否目标副本
 
-        for ocr_result in ocr_result_map.keys():
+        for ocr_result in ocr_result_map:
             if self._match_mission_type(self.plan.mission_type_name, ocr_result):
                 is_target_mission = True
                 break
@@ -148,7 +148,7 @@ class NotoriousHunt(ZOperation):
                 break
 
             find: bool = False  # 当前画面有没有识别到 mission_type
-            for ocr_result, mrl in ocr_result_map.items():
+            for ocr_result, _ in ocr_result_map.items():
                 if str_utils.find_by_lcs(gt(mission_type.mission_type_name, 'game'), ocr_result, percent=0.5):
                     find = True
                     break

@@ -10,5 +10,10 @@ operations:
   - op_name: "按键-终结技"
     post_delay: 0.1
     repeat: 20
+  - op_name: "按键-切换角色"
+    agent_name: "伊芙琳"
+  - op_name: "按键-终结技"
+    post_delay: 0.1
+    repeat: 15
   - op_name: "等待秒数"
-    seconds: 2.5
+    seconds: 1

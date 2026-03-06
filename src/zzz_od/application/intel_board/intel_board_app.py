@@ -139,7 +139,7 @@ class IntelBoardApp(ZApplication):
             return self.round_success(status='无委托')
 
         self.scroll_times += 1
-        self.ctx.controller.scroll(200, Point(960, 540)) # 简单的滚动尝试
+        self.scroll_area('情报板', '搜索区域')
         return self.round_wait(status='翻页', wait=1)
 
     @node_from(from_name='寻找委托')

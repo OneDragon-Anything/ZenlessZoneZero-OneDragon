@@ -20,7 +20,7 @@ from zzz_od.application.battle_assistant.operation_debug import operation_debug_
 from zzz_od.application.battle_assistant.operation_template_config import (
     get_operation_template_config_list,
 )
-from zzz_od.config.game_config import GamepadTypeEnum
+from zzz_od.config.game_config import ControlMethodEnum
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -63,9 +63,9 @@ class OperationDebugInterface(AppRunInterface):
         top_widget.add_widget(self.repeat_opt)
 
         self.gamepad_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GAME, title='手柄类型',
-            content='需先安装虚拟手柄依赖，参考文档或使用安装器。仅在战斗助手生效。',
-            options_enum=GamepadTypeEnum
+            icon=FluentIcon.GAME, title='操作方式',
+            content='仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。',
+            options_enum=ControlMethodEnum
         )
         self.gamepad_type_opt.value_changed.connect(self._on_gamepad_type_changed)
         top_widget.add_widget(self.gamepad_type_opt)
@@ -80,7 +80,7 @@ class OperationDebugInterface(AppRunInterface):
         AppRunInterface.on_interface_shown(self)
         self._update_auto_battle_config_opts()
         self.config_opt.setValue(self.ctx.battle_assistant_config.debug_operation_config)
-        self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.gamepad_type)
+        self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.control_method)
         self.repeat_opt.setValue(self.ctx.battle_assistant_config.debug_operation_repeat)
 
     def _update_auto_battle_config_opts(self) -> None:
@@ -119,4 +119,4 @@ class OperationDebugInterface(AppRunInterface):
         self._update_auto_battle_config_opts()
 
     def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
-        self.ctx.battle_assistant_config.gamepad_type = value
+        self.ctx.battle_assistant_config.control_method = value

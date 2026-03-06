@@ -23,7 +23,7 @@ from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
 )
 from zzz_od.application.battle_assistant.dodge_assitant import dodge_assistant_const
-from zzz_od.config.game_config import GamepadTypeEnum
+from zzz_od.config.game_config import ControlMethodEnum
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.battle_assistant.battle_state_display import BattleStateDisplay
 
@@ -74,9 +74,9 @@ class DodgeAssistantInterface(AppRunInterface):
         top_widget.add_widget(self.screenshot_interval_opt)
 
         self.gamepad_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GAME, title='手柄类型',
-            content='需先安装虚拟手柄依赖，参考文档或使用安装器。仅在战斗助手生效。',
-            options_enum=GamepadTypeEnum
+            icon=FluentIcon.GAME, title='操作方式',
+            content='仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。',
+            options_enum=ControlMethodEnum
         )
         self.gamepad_type_opt.value_changed.connect(self._on_gamepad_type_changed)
         top_widget.add_widget(self.gamepad_type_opt)
@@ -117,7 +117,7 @@ class DodgeAssistantInterface(AppRunInterface):
         self.dodge_opt.init_with_adapter(self.ctx.battle_assistant_config.get_prop_adapter('dodge_assistant_config'))
         self.gpu_opt.init_with_adapter(self.ctx.model_config.get_prop_adapter('flash_classifier_gpu'))
         self.screenshot_interval_opt.init_with_adapter(self.ctx.battle_assistant_config.get_prop_adapter('screenshot_interval'))
-        self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.gamepad_type)
+        self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.control_method)
         self.ctx.listen_event(AutoBattleApp.EVENT_OP_LOADED, self._on_auto_op_loaded_event)
 
         # # 调试用
@@ -155,7 +155,7 @@ class DodgeAssistantInterface(AppRunInterface):
         self._update_dodge_way_opts()
 
     def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
-        self.ctx.battle_assistant_config.gamepad_type = value
+        self.ctx.battle_assistant_config.control_method = value
 
     def on_context_state_changed(self) -> None:
         """
