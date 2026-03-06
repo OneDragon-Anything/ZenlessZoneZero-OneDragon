@@ -254,22 +254,27 @@ class LostVoidApp(ZApplication):
                 rect=area.rect,
             )
 
-            # 查找目标配队
-            for ocr_text in ocr_result_list:
-                if team_name in ocr_text.data:
-                    self.ctx.controller.click(ocr_text.center)
-                    # 等待画面更新
-                    time.sleep(0.5)
-                    self.screenshot()
-                    # 在主战编队槽区域检测是否出现"主战"
-                    ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
-                        image=self.last_screenshot,
-                        rect=main_team_area.rect,
-                    )
-                    for ocr_text in ocr_result_list:
-                        if '主战' in ocr_text.data:
-                            return self.round_success('已选择配队', wait=1)
-                    return self.round_retry('未找到主战', wait=0.5)
+            # 查找并点击目标配队
+            team_match_result = self.round_by_ocr_and_click(
+                screen=self.last_screenshot,
+                target_cn=team_name,
+                lcs_percent=0.7,
+                remove_whitespace=True,
+            )
+
+            if team_match_result.is_success:
+                # 等待画面更新
+                time.sleep(0.5)
+                self.screenshot()
+                # 在主战编队槽区域检测是否出现"主战"
+                ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+                    image=self.last_screenshot,
+                    rect=main_team_area.rect,
+                )
+                for ocr_text in ocr_result_list:
+                    if '主战' in ocr_text.data:
+                        return self.round_success('已选择配队', wait=1)
+                return self.round_retry('未找到主战', wait=0.5)
 
             # 未找到，往下滚动
             self.scroll_area(screen_name='迷失之地-矩阵行动', area_name='编队列表', direction='down')
@@ -283,36 +288,42 @@ class LostVoidApp(ZApplication):
                 rect=area.rect,
             )
 
-            # 查找目标配队
-            for ocr_text in ocr_result_list:
-                if team_name in ocr_text.data:
-                    self.ctx.controller.click(ocr_text.center)
-                    # 等待画面更新
-                    time.sleep(0.5)
-                    self.screenshot()
-                    # 在主战编队槽区域检测是否出现"主战"
-                    ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
-                        image=self.last_screenshot,
-                        rect=main_team_area.rect,
-                    )
-                    for ocr_text in ocr_result_list:
-                        if '主战' in ocr_text.data:
-                            return self.round_success('已选择配队', wait=1)
-                    return self.round_retry('未找到主战', wait=0.5)
+            # 查找并点击目标配队
+            self.round_by_ocr_and_click(
+                screen=self.last_screenshot,
+                target_cn=team_name,
+                lcs_percent=0.7,
+                remove_whitespace=True,
+            )
+
+            if team_match_result.is_success:
+                # 等待画面更新
+                time.sleep(0.5)
+                self.screenshot()
+                # 在主战编队槽区域检测是否出现"主战"
+                ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
+                    image=self.last_screenshot,
+                    rect=main_team_area.rect,
+                )
+                for ocr_text in ocr_result_list:
+                    if '主战' in ocr_text.data:
+                        return self.round_success('已选择配队', wait=1)
+                return self.round_retry('未找到主战', wait=0.5)
 
             # 未找到，往上滚动
             self.scroll_area(screen_name='迷失之地-矩阵行动', area_name='编队列表', direction='up')
             time.sleep(0.3)
             self.screenshot()
 
-        # 还是找不到，随机选择一个
-        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
-            image=self.last_screenshot,
-            rect=area.rect,
-        )
+        # 还是找不到，降低文本匹配阈值
         if ocr_result_list:
-            # 选择第一个配队
-            self.ctx.controller.click(ocr_result_list[0].center)
+            # 匹配阈值降为0.5
+            self.round_by_ocr_and_click(
+                screen=self.last_screenshot,
+                target_cn=team_name,
+                lcs_percent=0.5,
+                remove_whitespace=True,
+            )
             time.sleep(0.5)
             self.screenshot()
             # 在主战编队槽区域检测是否出现"主战"
