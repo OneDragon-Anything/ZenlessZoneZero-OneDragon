@@ -637,28 +637,28 @@ wheels = [
 
 [[package]]
 name = "pyside6-fluent-widgets"
-version = "1.7.0"
+version = "1.11.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "darkdetect", marker = "sys_platform == 'win32'" },
     { name = "pyside6", marker = "sys_platform == 'win32'" },
     { name = "pysidesix-frameless-window", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8f/a0/64e753ca2453eb55a9bcc374f09a684c2c8aee96d09e82697bbb0a11710e/pyside6_fluent_widgets-1.7.0.tar.gz", hash = "sha256:decada3f2cae1bc7314fccd9db98be2e65b67a322813267602dde15722c5e253", size = 1429816, upload-time = "2024-10-20T05:49:25.427Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9e/5f/da3f4f4b89cde08fa8f945d96b5f8b16203bcdab41b583538e24c30804ed/pyside6_fluent_widgets-1.11.1.tar.gz", hash = "sha256:8da3b1bb1a888e760c33d1b964653f8308ba512da8243d4abbe6e93623eac269", size = 1456786, upload-time = "2026-02-07T08:41:29.075Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/41/81/0e134b913466a66724823fff66cca11b8f0905c78824a927a2e8d36c7d45/PySide6_Fluent_Widgets-1.7.0-py3-none-any.whl", hash = "sha256:caa2f7fdaf9213c3a42a4d6308114839614560b31683bf557c0809f8c3b3fa7b", size = 1521504, upload-time = "2024-10-20T05:49:21.185Z" },
+    { url = "https://files.pythonhosted.org/packages/b0/94/528a7e7d2fbb6c464a4f31d16c234e6799ca5d95400a0ef7a1a9548362fa/pyside6_fluent_widgets-1.11.1-py3-none-any.whl", hash = "sha256:72655744b41cea212a6ea32d1457e9acfc17d50d41d3780dc67ad4fa36ba7ac4", size = 1550257, upload-time = "2026-02-07T08:41:26.425Z" },
 ]
 
 [[package]]
 name = "pysidesix-frameless-window"
-version = "0.4.3"
+version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pywin32", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2c/9f/fb8cb3ee2bc75677258d34736aef42dd246012fdb091ab028aff92194834/PySideSix-Frameless-Window-0.4.3.tar.gz", hash = "sha256:ae8650f854558ec678305fc98b8f79556372bf0dc9e3a4f29ee7c7e12bb68df5", size = 21490, upload-time = "2024-08-21T03:39:41.282Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/96/cf1ce5673b6239d79251a458d9acd8a789f7f1be496f0b8880dd66cc41cf/pysidesix_frameless_window-0.8.0.tar.gz", hash = "sha256:e200e4b68edb1b2e03aa00d76d0e8b8d1daf6f289a5b91fba974578b6700ad94", size = 23286, upload-time = "2026-02-07T07:44:37.677Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/fb/cde0fa7888e3f2a90927df1ef56651173b1a07f0398abe6b456750b7f109/PySideSix_Frameless_Window-0.4.3-py3-none-any.whl", hash = "sha256:4c3cf2b9706aa98ecff41e95d3db293b4593a81c0b13fb1540910e560496ab96", size = 28335, upload-time = "2024-08-21T03:39:39.13Z" },
+    { url = "https://files.pythonhosted.org/packages/51/ea/a7c4890cbc441a6fb543579e092eaaaed72843419cfd80ce8664508e940f/pysidesix_frameless_window-0.8.0-py3-none-any.whl", hash = "sha256:7bf011cf3e3c6edaa23b3578daaaa6e0e361a3fbf9a5317e0e037aaf4c8fe107", size = 31186, upload-time = "2026-02-07T07:44:36.731Z" },
 ]
 
 [[package]]
@@ -1014,7 +1014,7 @@ requires-dist = [
     { name = "pygit2", specifier = "==1.19.0" },
     { name = "pynput", specifier = "==1.7.7" },
     { name = "pyside6", specifier = "==6.8.0.2" },
-    { name = "pyside6-fluent-widgets", specifier = "==1.7.0" },
+    { name = "pyside6-fluent-widgets", specifier = "==1.11.1" },
     { name = "pyyaml", specifier = "==6.0.1" },
     { name = "shapely", specifier = "==2.0.4" },
     { name = "soundcard", specifier = "==0.4.3" },

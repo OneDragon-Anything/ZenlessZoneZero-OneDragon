@@ -74,9 +74,6 @@ try:
             self._check_version_runner = CheckVersionRunner(self.ctx)
             self._check_version_runner.get.connect(self._update_version)
 
-            # 立即检查并应用已有的主题色，避免navbar颜色闪烁
-            self._apply_initial_theme_color()
-
             # 延迟发送应用启动事件，等待窗口完全显示
             self._launch_timer = QTimer()
             self._launch_timer.setSingleShot(True)
@@ -240,13 +237,6 @@ try:
                 dialog = WelcomeDialog(self, gt('欢迎使用绝区零一条龙'))
                 if dialog.exec():
                     self.ctx.env_config.is_first_run = False
-
-        def _apply_initial_theme_color(self):
-            """立即应用已有的主题色，避免navbar颜色闪烁"""
-            # 从配置文件加载主题色到theme_manager
-            from one_dragon_qt.services.theme_manager import ThemeManager
-            ThemeManager.load_from_config(self.ctx)
-            self.navigationInterface.update_all_buttons_theme_color(ThemeManager.get_current_color())
 
         def _after_app_launch(self):
             """异步处理应用启动后需要处理的事情"""
