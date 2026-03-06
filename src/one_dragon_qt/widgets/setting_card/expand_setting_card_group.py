@@ -1,11 +1,8 @@
 from PySide6.QtCore import QEvent, QObject
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets.common.icon import FluentIconBase
-from qfluentwidgets.components.settings.expand_setting_card import (
-    ExpandSettingCard,
-    GroupSeparator,
-)
+from qfluentwidgets import ExpandSettingCard, FluentIconBase
+from qfluentwidgets.components.settings.expand_setting_card import GroupSeparator
 
 from one_dragon.utils.i18_utils import gt
 
@@ -28,7 +25,6 @@ class ExpandSettingCardGroup(ExpandSettingCard):
             self.card.setContent(gt(content))
         self.viewLayout.setContentsMargins(0, 0, 0, 0)
         self.viewLayout.setSpacing(0)
-        self.setExpand(True)
         self._card_sep_pairs: list[tuple[QWidget, GroupSeparator | None]] = []
 
     def addHeaderWidget(self, widget: QWidget) -> None:
@@ -36,14 +32,13 @@ class ExpandSettingCardGroup(ExpandSettingCard):
         self.card.addWidget(widget)
 
     def addSettingCard(self, card: QWidget) -> None:
-        """添加设置卡片（自动插入分隔线，去除子卡自身边框，高度与头部对齐）"""
+        """添加设置卡片（自动插入分隔线，去除子卡自身边框）"""
         sep: GroupSeparator | None = None
         if self._card_sep_pairs:
             sep = GroupSeparator(self.view)
             self.viewLayout.addWidget(sep)
 
         card.paintEvent = lambda _e: None
-        card.setFixedHeight(self.card.height())
         card.setParent(self.view)
         self.viewLayout.addWidget(card)
         self._card_sep_pairs.append((card, sep))
@@ -68,3 +63,4 @@ class ExpandSettingCardGroup(ExpandSettingCard):
                 sep.setVisible(card.isVisible() and has_visible_before)
             if card.isVisible():
                 has_visible_before = True
+        self._adjustViewSize()

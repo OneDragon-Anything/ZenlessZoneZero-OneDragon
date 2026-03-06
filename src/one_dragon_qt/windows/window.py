@@ -1,36 +1,35 @@
-from PySide6.QtCore import Qt, Signal, QRect, QRectF, QUrl
-from PySide6.QtGui import QIcon, QPainter, QColor, QFont, QDesktopServices
+from PySide6.QtCore import QRect, QRectF, Qt, QUrl, Signal
+from PySide6.QtGui import QColor, QDesktopServices, QIcon, QPainter
 from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QLabel,
-    QSpacerItem,
-    QSizePolicy,
-    QHBoxLayout,
-    QPushButton,
-    QApplication,
     QAbstractScrollArea,
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QSpacerItem,
+    QVBoxLayout,
+    QWidget,
 )
 from qfluentwidgets import (
-    FluentStyleSheet,
-    isDarkTheme,
-    setFont,
-    SplitTitleBar,
-    NavigationBarPushButton,
-    MSFluentWindow,
-    SingleDirectionScrollArea,
-    NavigationBar,
-    qrouter,
     FluentIconBase,
-    NavigationItemPosition,
+    FluentStyleSheet,
     InfoBar,
     InfoBarPosition,
+    MSFluentWindow,
+    NavigationBar,
+    NavigationBarPushButton,
+    NavigationItemPosition,
+    SingleDirectionScrollArea,
+    SplitTitleBar,
+    isDarkTheme,
+    qconfig,
+    qrouter,
+    setFont,
 )
 from qfluentwidgets.common.animation import BackgroundAnimationWidget
-from qfluentwidgets.common.config import qconfig
 from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
 from qfluentwidgets.window.stacked_widget import StackedWidget
-from typing import Union
 
 
 # 伪装父类 (替换 FluentWindowBase 初始化)
@@ -171,7 +170,7 @@ class PhosNavigationBar(NavigationBar):
         self,
         index: int,
         routeKey: str,
-        icon: Union[str, QIcon, FluentIconBase],
+        icon: str | QIcon | FluentIconBase,
         text: str,
         onClick=None,
         selectable=True,

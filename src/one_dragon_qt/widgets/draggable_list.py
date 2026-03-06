@@ -393,7 +393,7 @@ class DraggableList(QWidget):
         # 创建主布局
         self._layout = QVBoxLayout(self)
         self._layout.setSpacing(FluentDesignConst.LAYOUT_SPACING)
-        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setContentsMargins(0, 0, 16, 16)  # 右边距16适配滚动条，底部边距16留出空间
 
         # 创建 Fluent Design 风格的位置指示器
         self._drop_indicator = FluentDropIndicator(self)

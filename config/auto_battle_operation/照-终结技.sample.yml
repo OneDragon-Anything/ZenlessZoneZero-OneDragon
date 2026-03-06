@@ -8,4 +8,11 @@ operations:
     seconds: 6
   - op_name: "按键-终结技"
     post_delay: 0.1
-    repeat: 60
+    repeat: 20
+  - op_name: "按键-切换角色"
+    agent_name: "照"
+  - op_name: "按键-终结技"
+    post_delay: 0.1
+    repeat: 30
+  - op_name: "等待秒数"
+    seconds: 1
