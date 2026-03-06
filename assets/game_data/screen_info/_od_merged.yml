@@ -7043,7 +7043,7 @@
   - area_name: 开始营业-确认
     id_mark: false
     pc_rect:
-    - 1032
+    - 800
     - 600
     - 1232
     - 656
