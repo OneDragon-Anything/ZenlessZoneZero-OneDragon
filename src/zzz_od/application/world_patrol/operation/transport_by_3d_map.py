@@ -99,8 +99,7 @@ class TransportBy3dMap(ZOperation):
         if self.target_area.parent_area is None:
             return self.round_success(status='无需选择')
 
-        self.round_by_click_area('3D地图', '按钮-当前子区域')
-        return self.round_success()
+        return self.round_by_click_area('3D地图', '按钮-当前子区域')
 
     @node_from(from_name='展开子区域列表')
     @operation_node(name='选择子区域', node_max_retry_times=6)
@@ -356,8 +355,8 @@ class TransportBy3dMap(ZOperation):
     @node_from(from_name='点击前往')
     @operation_node(name='等待画面加载')
     def back_at_last(self) -> OperationRoundResult:
-        # allow_combat=True: 传送落地即进入战斗时直接返回，由调用方(如锄大地)处理战斗
-        op = BackToNormalWorld(self.ctx, allow_combat=True)
+        # allow_battle=True: 传送落地即进入战斗时直接返回，由调用方(如锄大地)处理战斗
+        op = BackToNormalWorld(self.ctx, allow_battle=True)
         return self.round_by_op_result(op.execute())
 
 def __debug():

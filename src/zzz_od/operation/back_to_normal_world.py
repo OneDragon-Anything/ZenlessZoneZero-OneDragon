@@ -15,19 +15,20 @@ from zzz_od.operation.zzz_operation import ZOperation
 
 class BackToNormalWorld(ZOperation):
 
-    def __init__(self, ctx: ZContext, ensure_normal_world: bool = False, allow_combat: bool = False):
+    def __init__(self, ctx: ZContext, ensure_normal_world: bool = False, allow_battle: bool = False):
         """
         需要保证在任何情况下调用，都能返回大世界，让后续的应用可执行
 
         Args:
             ctx (ZContext): 上下文
             ensure_normal_world (bool): 是否回到普通大世界
-            allow_combat (bool): 是否允许在战斗状态直接返回成功（锄大地传送后用，让调用方处理战斗）
+            allow_battle (bool): 是否允许在战斗状态直接返回成功（锄大地传送后用，让调用方处理战斗）。
+                启用时调用方必须处理返回的 status='大世界-战斗'，否则角色将卡在战斗画面。
         """
         ZOperation.__init__(self, ctx, op_name=gt('返回大世界'))
 
         self.ensure_normal_world: bool = ensure_normal_world  # 是否回到普通大世界
-        self.allow_combat: bool = allow_combat  # 是否允许战斗状态直接返回
+        self.allow_battle: bool = allow_battle  # 是否允许战斗状态直接返回
         self.handle_init()
 
     def handle_init(self) -> None:
@@ -138,7 +139,7 @@ class BackToNormalWorld(ZOperation):
         # 判断在战斗画面
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-普通攻击')
         if result.is_success:
-            if self.allow_combat:
+            if self.allow_battle:
                 # 锄大地传送后落地即进入战斗，直接返回成功让调用方处理战斗
                 return self.round_success(status='大世界-战斗')
             self.round_by_click_area('战斗画面', '菜单')
