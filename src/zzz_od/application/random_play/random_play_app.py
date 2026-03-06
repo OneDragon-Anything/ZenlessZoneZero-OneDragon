@@ -149,15 +149,13 @@ class RandomPlayApp(ZApplication):
         result = self.round_by_ocr_and_click(self.last_screenshot, primary_agent, area=area,
                                              color_range=[(230, 230, 230), (255, 255, 255)])
         if result.is_success:
-            time.sleep(0.5)
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', retry_wait=1)
 
         # 使用头像匹配
         mr = self.get_pos_by_avatar(self.last_screenshot, primary_agent)
         if mr is not None:
             self.ctx.controller.click(mr.center)
-            time.sleep(0.5)
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', retry_wait=1)
 
         log.info(f'当前代理人匹配失败: {primary_agent}')
 
@@ -166,15 +164,13 @@ class RandomPlayApp(ZApplication):
                                              color_range=[(230, 230, 230), (255, 255, 255)])
 
         if result.is_success:
-            time.sleep(0.5)
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', retry_wait=1)
 
         # 使用头像匹配
         mr = self.get_pos_by_avatar(self.last_screenshot, backup_agent)
         if mr is not None:
             self.ctx.controller.click(mr.center)
-            time.sleep(0.5)
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', retry_wait=1)
 
         log.info(f'备用代理人匹配也失败: {backup_agent}')
 
@@ -189,8 +185,7 @@ class RandomPlayApp(ZApplication):
             if mrl.max is not None:
                 target_point = area.left_top + mrl.max.center
                 self.ctx.controller.click(target_point)
-                time.sleep(0.5)
-                return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', success_wait=1, retry_wait=1)
+                return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', retry_wait=1)
 
         log.info('未识别到任何代理人, 向下滚动重试')
 
