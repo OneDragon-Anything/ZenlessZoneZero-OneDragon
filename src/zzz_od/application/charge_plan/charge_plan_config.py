@@ -55,15 +55,20 @@ class ChargePlanItem:
         self.predefined_team_idx: int = predefined_team_idx  # 预备配队下标 -1为使用当前配队
         self.notorious_hunt_buff_num: int = notorious_hunt_buff_num  # 恶名狩猎 选择的buff
         self.plan_id: str = plan_id if plan_id else str(uuid.uuid4())  # 计划的唯一标识符
+        self.skipped: bool = False  # 单次运行中是否跳过（不持久化）
+
+    @property
+    def is_agent_plan(self) -> bool:
+        return self.mission_type_name == '代理人方案培养'
 
     @property
     def uid(self) -> str:
-        return '%s_%s_%s_%s' % (
-            self.tab_name if self.tab_name is not None else '',
-            self.category_name if self.category_name is not None else '',
-            self.mission_type_name if self.mission_type_name is not None else '',
-            self.mission_name if self.mission_name is not None else '',
-        )
+
+        tab_name = self.tab_name or ''
+        category_name = self.category_name or ''
+        mission_type_name = self.mission_type_name or ''
+        mission_name = self.mission_name or ''
+        return f'{tab_name}_{category_name}_{mission_type_name}_{mission_name}'
 
 
 class ChargePlanConfig(ApplicationConfig):
@@ -173,32 +178,31 @@ class ChargePlanConfig(ApplicationConfig):
 
     def reset_plans(self) -> None:
         """
-        根据运行次数 重置运行计划
-        :return:
+        根据运行次数 重置运行计划（跳过 skipped 的计划）
         """
         if len(self.plan_list) == 0:
             return
 
-        while True:
-            all_finish: bool = True
-            for plan in self.plan_list:
-                if plan.run_times < plan.plan_times:
-                    all_finish = False
+        eligible = [p for p in self.plan_list if not p.skipped]
+        if not eligible:
+            return
 
-            if not all_finish:
+        while True:
+            if any(p.run_times < p.plan_times for p in eligible):
                 break
 
-            for plan in self.plan_list:
+            for plan in eligible:
                 plan.run_times -= plan.plan_times
 
             self.save()
 
     def get_next_plan(self, last_tried_plan: ChargePlanItem | None = None) -> ChargePlanItem | None:
         """
-        获取下一个未完成的计划任务。
+        获取下一个未完成的计划任务（跳过 skipped 的计划）。
         如果提供了 last_tried_plan，则从该任务之后开始查找。
         如果未提供，则从列表的开头查找第一个未完成任务。
-        不再在此方法内调用 reset_plans，重置逻辑由调用方（ChargePlanApp）管理。
+        Args:
+            last_tried_plan: 上次尝试的计划
         """
         if len(self.plan_list) == 0:
             return None
@@ -224,6 +228,8 @@ class ChargePlanConfig(ApplicationConfig):
         # 3. 从指定位置开始遍历查找符合条件的计划
         for i in range(start_index, len(self.plan_list)):
             plan = self.plan_list[i]
+            if plan.skipped:
+                continue
             if plan.run_times < plan.plan_times:
                 return plan
 
@@ -232,14 +238,17 @@ class ChargePlanConfig(ApplicationConfig):
 
     def all_plan_finished(self) -> bool:
         """
-        是否全部计划已完成
-        :return:
+        是否全部计划已完成（跳过 skipped 的计划）
         """
         if self.plan_list is None:
             return True
 
-        return all(plan.run_times >= plan.plan_times for plan in self.plan_list)
-
+        for plan in self.plan_list:
+            if plan.skipped:
+                continue
+            if plan.run_times < plan.plan_times:
+                return False
+        return True
 
     def add_plan_run_times(self, to_add: ChargePlanItem) -> None:
         """

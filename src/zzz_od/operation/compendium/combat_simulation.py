@@ -6,7 +6,7 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation import Operation
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -45,7 +45,7 @@ class CombatSimulation(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name='%s %s' % (
+            op_name='{} {}'.format(
                 gt('实战模拟室', 'game'),
                 gt(plan.mission_name, 'game')
             )
@@ -94,7 +94,7 @@ class CombatSimulation(ZOperation):
             return False
         target_word_list: list[str] = [gt(i.mission_type_name, 'game') for i in category.mission_type_list]
         match_type_cnt: int = 0
-        for ocr_result in ocr_result_map.keys():
+        for ocr_result in ocr_result_map:
             match_idx: int = str_utils.find_best_match_by_difflib(ocr_result, target_word_list)
             if match_idx is not None and match_idx >= 0:
                 match_type_cnt += 1
@@ -118,7 +118,7 @@ class CombatSimulation(ZOperation):
             self.scroll_count = 0
             return self.round_success(status=CombatSimulation.STATUS_CHOOSE_FAIL)
 
-        if self.plan.mission_name == '代理人方案培养':
+        if self.plan.is_agent_plan:
             target_point: Point | None = None
 
             area = self.ctx.screen_loader.get_area('实战模拟室', '副本名称列表顶部')
