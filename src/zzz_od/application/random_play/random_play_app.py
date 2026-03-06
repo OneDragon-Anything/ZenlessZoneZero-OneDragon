@@ -56,6 +56,7 @@ class RandomPlayApp(ZApplication):
         ]
         self._need_video_themes: list[str] = []
         self._current_idx: int = 0
+        self._confirm_count: int = 0
 
     @operation_node(name='传送', is_start_node=True)
     def transport(self) -> OperationRoundResult:
@@ -137,34 +138,26 @@ class RandomPlayApp(ZApplication):
                                                      retry_wait=1)
 
         area = self.ctx.screen_loader.get_area('影像店营业', '宣传员列表')
-<<<<<<< main
         if idx == 1:
             primary_agent = target_agent_name_1
             backup_agent = target_agent_name_2
         else:
             primary_agent = target_agent_name_2
             backup_agent = target_agent_name_1
-=======
-        target_agent_name = target_agent_name_1 if idx == 1 else target_agent_name_2
->>>>>>> main
 
         # 使用名称匹配
         result = self.round_by_ocr_and_click(self.last_screenshot, primary_agent, area=area,
                                              color_range=[(230, 230, 230), (255, 255, 255)])
         if result.is_success:
-<<<<<<< main
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', retry_wait=1)
-=======
             return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认',
                                                      retry_wait=1)
->>>>>>> main
 
         # 使用头像匹配
         mr = self.get_pos_by_avatar(self.last_screenshot, primary_agent)
         if mr is not None:
             self.ctx.controller.click(mr.center)
-<<<<<<< main
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', retry_wait=1)
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认',
+                                                     retry_wait=1)
 
         log.info(f'当前代理人匹配失败: {primary_agent}')
 
@@ -173,13 +166,15 @@ class RandomPlayApp(ZApplication):
                                              color_range=[(230, 230, 230), (255, 255, 255)])
 
         if result.is_success:
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', retry_wait=1)
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认',
+                                                     retry_wait=1)
 
         # 使用头像匹配
         mr = self.get_pos_by_avatar(self.last_screenshot, backup_agent)
         if mr is not None:
             self.ctx.controller.click(mr.center)
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', retry_wait=1)
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认',
+                                                     retry_wait=1)
 
         log.info(f'备用代理人匹配也失败: {backup_agent}')
 
@@ -194,13 +189,10 @@ class RandomPlayApp(ZApplication):
             if mrl.max is not None:
                 target_point = area.left_top + mrl.max.center
                 self.ctx.controller.click(target_point)
-                return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认', retry_wait=1)
+                return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认',
+                                                         retry_wait=1)
 
         log.info('未识别到任何代理人, 向下滚动重试')
-=======
-            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认',
-                                                     retry_wait=1)
->>>>>>> main
 
         # 找不到时 向下滚动
         start_point = area.center
@@ -391,13 +383,15 @@ class RandomPlayApp(ZApplication):
                                                      retry_wait=1)
 
     @node_from(from_name='开始营业')
-    @operation_node(name='开始营业确认')
+    @operation_node(name='开始营业确认', node_max_retry_times=10)
     def confirm(self) -> OperationRoundResult:
         result = self.round_by_find_area(self.last_screenshot, '影像店营业', '开始营业-确认')
-        if not result.is_success:
-            return self.round_success()  # 按钮消失了，说明二次确认已完成
-        self.round_by_click_area('影像店营业', '开始营业-确认')
-        return self.round_wait(wait=1)
+        if result.is_success:
+            self.round_by_click_area('影像店营业', '开始营业-确认')
+            self._confirm_count += 1
+            if self._confirm_count >= 2:  # 按钮消失了，说明二次确认已完成
+                return self.round_success(wait=1)
+        return self.round_retry(wait=1)
 
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
     @operation_node(name='关闭经营页面')
