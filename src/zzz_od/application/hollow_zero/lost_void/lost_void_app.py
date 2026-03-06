@@ -289,7 +289,7 @@ class LostVoidApp(ZApplication):
             )
 
             # 查找并点击目标配队
-            self.round_by_ocr_and_click(
+            team_match_result = self.round_by_ocr_and_click(
                 screen=self.last_screenshot,
                 target_cn=team_name,
                 lcs_percent=0.7,
