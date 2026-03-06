@@ -94,23 +94,24 @@ class TransportBy3dMap(ZOperation):
         return self.round_retry(wait=1)
 
     @node_from(from_name='选择区域')
-    @operation_node(name='选择子区域', node_max_retry_times=6)
-    def choose_sub_area(self) -> OperationRoundResult:
+    @operation_node(name='展开子区域列表')
+    def expand_sub_area(self) -> OperationRoundResult:
         if self.target_area.parent_area is None:
             return self.round_success(status='无需选择')
 
-        self.round_by_click_area('3D地图', '按钮-当前子区域',
-                                 success_wait=1)
+        self.round_by_click_area('3D地图', '按钮-当前子区域')
+        return self.round_success()
 
-        self.screenshot()
+    @node_from(from_name='展开子区域列表')
+    @operation_node(name='选择子区域', node_max_retry_times=6)
+    def choose_sub_area(self) -> OperationRoundResult:
         return self.round_by_ocr_and_click(
-            screen=self.last_screenshot,
-            target_cn=self.target_area.area_name,
-            area=self.ctx.screen_loader.get_area('3D地图', '区域-子区域列表'),
-            success_wait=1,
+            self.last_screenshot, self.target_area.area_name,
+            self.ctx.screen_loader.get_area('3D地图', '区域-子区域列表'),
             retry_wait=1,
         )
 
+    @node_from(from_name='展开子区域列表', status='无需选择')
     @node_from(from_name='选择子区域')
     @operation_node(name='打开筛选')
     def open_filter(self) -> OperationRoundResult:
@@ -130,10 +131,8 @@ class TransportBy3dMap(ZOperation):
             target_word = '传送'
 
         return self.round_by_ocr_and_click(
-            screen=self.last_screenshot,
-            target_cn=target_word,
-            area=self.ctx.screen_loader.get_area('3D地图', '区域-筛选选项'),
-            success_wait=1,
+            self.last_screenshot, target_word,
+            self.ctx.screen_loader.get_area('3D地图', '区域-筛选选项'),
             retry_wait=1,
         )
 
@@ -341,8 +340,7 @@ class TransportBy3dMap(ZOperation):
     @operation_node(name='关闭区域信息弹窗')
     def close_area_info_popup(self) -> OperationRoundResult:
         """搜索失败后关闭残留的传送点信息弹窗"""
-        self.round_by_find_and_click_area(self.last_screenshot, '3D地图', '按钮-区域信息-关闭',
-                                          success_wait=1)
+        self.round_by_find_and_click_area(self.last_screenshot, '3D地图', '按钮-区域信息-关闭')
         return self.round_success()
 
     @node_from(from_name='搜索传送点循环')
@@ -352,7 +350,6 @@ class TransportBy3dMap(ZOperation):
             self.last_screenshot,
             '3D地图', '按钮-前往',
             until_not_find_all=[('3D地图', '按钮-前往')],
-            success_wait=1,
             retry_wait=1,
         )
 
