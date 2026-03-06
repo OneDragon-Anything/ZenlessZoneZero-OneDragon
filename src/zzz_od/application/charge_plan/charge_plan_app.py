@@ -148,7 +148,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='查找并选择下一个可执行任务')
     @operation_node(name='传送')
     def transport(self) -> OperationRoundResult:
-        # 使用已经在查找并选择下一个可执行任务节点中设置好的self.next_plan
+        # 使用已经在查找并选择下一个可执行任务节点中设置好的self.current_plan
         op = TransportByCompendium(self.ctx,
                                    self.current_plan.tab_name,
                                    self.current_plan.category_name,
