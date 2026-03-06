@@ -1,5 +1,4 @@
 import difflib
-from typing import Optional, ClassVar, List
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.geometry.rectangle import Rect
@@ -22,8 +21,6 @@ class MissionTypeTargetWrapper:
 
 class CompendiumChooseMissionType(ZOperation):
 
-    AGENT_PLAN: ClassVar[str] = '代理人方案培养'
-
     def __init__(self, ctx: ZContext, mission_type: CompendiumMissionType):
         """
         已经打开了快捷手册了 选择了 Tab 和 分类
@@ -32,7 +29,7 @@ class CompendiumChooseMissionType(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name='%s %s %s' % (
+            op_name='{} {} {}'.format(
                 gt('快捷手册', 'game'),
                 gt('选择副本类型', 'game'),
                 gt(mission_type.mission_type_name, 'game')
@@ -43,15 +40,15 @@ class CompendiumChooseMissionType(ZOperation):
 
     @operation_node(name='选择副本', is_start_node=True, node_max_retry_times=20)
     def choose_mission_type(self) -> OperationRoundResult:
-        if self.mission_type.mission_type_name == CompendiumChooseMissionType.AGENT_PLAN:
-            return self.round_success(status=CompendiumChooseMissionType.AGENT_PLAN)
+        if self.mission_type.is_agent_plan:
+            return self.round_success(status='代理人方案培养')
 
         area = self.ctx.screen_loader.get_area('快捷手册', '副本列表')
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
-        mission_type_list: List[CompendiumMissionType] = self.ctx.compendium_service.get_same_category_mission_type_list(self.mission_type.mission_type_name)
+        mission_type_list: list[CompendiumMissionType] = self.ctx.compendium_service.get_same_category_mission_type_list(self.mission_type.mission_type_name)
         if mission_type_list is None:
-            return self.round_fail('非法的副本分类 %s' % self.mission_type.mission_type_name)
+            return self.round_fail(f'非法的副本分类 {self.mission_type.mission_type_name}')
 
         before_target_cnt: int = 0  # 在目标副本前面的数量
         target_idx: int = -1
@@ -70,9 +67,9 @@ class CompendiumChooseMissionType(ZOperation):
                 name_to_idx[alias_name] = idx
 
         if target_idx == -1:
-            return self.round_fail('非法的副本分类 %s' % self.mission_type.mission_type_name)
+            return self.round_fail(f'非法的副本分类 {self.mission_type.mission_type_name}')
 
-        target_point: Optional[Point] = None
+        target_point: Point | None = None
         ocr_results = self.ctx.ocr.run_ocr(part)
         for ocr_result, mrl in ocr_results.items():
             if mrl.max is None:
@@ -95,7 +92,7 @@ class CompendiumChooseMissionType(ZOperation):
 
         return self.handle_go_button(self.last_screenshot, target_point)
 
-    @node_from(from_name='选择副本', status=AGENT_PLAN)
+    @node_from(from_name='选择副本', status='代理人方案培养')
     @operation_node(name='选择代理人方案', node_max_retry_times=10)
     def choose_mission_type_by_agent(self) -> OperationRoundResult:
         """
@@ -128,7 +125,7 @@ class CompendiumChooseMissionType(ZOperation):
         start = area.center + Point(-100, 0)
         end = start + Point(0, 300 * -1)
         self.ctx.controller.drag_to(start=start, end=end)
-        return self.round_retry(status='找不到 %s' % self.mission_type.mission_type_name, wait=1)
+        return self.round_retry(status=f'找不到 {self.mission_type.mission_type_name}', wait=1)
 
     def handle_go_button(self, screen, target_point: Point) -> OperationRoundResult:
         """
@@ -139,7 +136,7 @@ class CompendiumChooseMissionType(ZOperation):
         part = cv2_utils.crop_image_only(screen, go_rect)
         ocr_results = self.ctx.ocr.run_ocr(part)
 
-        target_go_point: Optional[Point] = None
+        target_go_point: Point | None = None
         for ocr_result, mrl in ocr_results.items():
             if mrl.max is None:
                 continue
@@ -157,9 +154,9 @@ class CompendiumChooseMissionType(ZOperation):
             start = area.center
             end = start + Point(0, -200)
             self.ctx.controller.drag_to(start=start, end=end)
-            return self.round_retry(status='找不到 %s' % '前往', wait=1)
+            return self.round_retry(status='找不到 前往', wait=1)
 
-        click = self.ctx.controller.click(target_go_point)
+        self.ctx.controller.click(target_go_point)
         return self.round_success(wait=1)
 
     @node_from(from_name='选择副本')

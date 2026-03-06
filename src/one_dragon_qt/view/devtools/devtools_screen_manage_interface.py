@@ -44,6 +44,7 @@ from one_dragon.utils import cv2_utils, os_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.mixins.history_mixin import HistoryMixin
+from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.cv2_image import Cv2Image
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.row import Row
@@ -107,6 +108,8 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
                    formatter=lambda v: '' if v is None else str(v)),
         ColumnMeta('前往画面', 'goto_list', lambda x: [i.strip() for i in x.split(',') if i.strip()],
                    formatter=lambda v: ','.join(v) if v else ''),
+        ColumnMeta('手柄键', 'gamepad_key', lambda x: x.strip() or None, 120,
+                   formatter=lambda v: '' if v is None else str(v)),
     ]
 
     AREA_FIELD_2_COLUMN: dict[str, int] = {col.display_name: idx for idx, col in enumerate(AREA_COLUMNS)}
@@ -169,7 +172,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.merge_opt.clicked.connect(self._on_merge_clicked)
         control_layout.addWidget(self.merge_opt)
 
-        btn_row = Row(spacing=6, margins=(0, 0, 0, 0))
+        btn_row = Row(spacing=6, margins=Margins(0, 0, 0, 0))
         control_layout.addWidget(btn_row)
 
         self.existed_yml_btn = EditableComboBox()
@@ -196,7 +199,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
 
         btn_row.add_stretch(1)
 
-        img_btn_row = Row(spacing=6, margins=(0, 0, 0, 0))
+        img_btn_row = Row(spacing=6, margins=Margins(0, 0, 0, 0))
         control_layout.addWidget(img_btn_row)
 
         self.pc_alt_opt = CheckBox(text=gt('PC 点击需 Alt'))
@@ -208,6 +211,10 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.choose_image_btn = PushButton(text=gt('选择图片'))
         self.choose_image_btn.clicked.connect(self.choose_existed_image)
         img_btn_row.add_widget(self.choose_image_btn)
+
+        self.screenshot_btn = PushButton(text=gt('截图'))
+        self.screenshot_btn.clicked.connect(self._on_screenshot_clicked)
+        img_btn_row.add_widget(self.screenshot_btn)
 
         self.choose_template_btn = PushButton(text=gt('导入模板区域'))
         self.choose_template_btn.clicked.connect(self.choose_existed_template)
@@ -347,10 +354,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._popup_win = None
 
     def _update_existed_yml_options(self) -> None:
-        """
-        更新已有的yml选项
-        :return:
-        """
+        """更新已有的yml选项。"""
         self.existed_yml_btn.set_items([
             ConfigItem(i.screen_name)
             for i in self.ctx.screen_loader.screen_info_list
@@ -388,18 +392,12 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         return widget
 
     def on_interface_shown(self) -> None:
-        """
-        子界面显示时 进行初始化
-        :return:
-        """
+        """子界面显示时 进行初始化。"""
         VerticalScrollInterface.on_interface_shown(self)
         self._update_display_by_screen()
 
     def _update_display_by_screen(self) -> None:
-        """
-        根据画面图片，统一更新界面的显示
-        :return:
-        """
+        """根据画面图片，统一更新界面的显示。"""
         chosen = self.chosen_screen is not None
 
         self.merge_opt.setDisabled(chosen)
@@ -428,10 +426,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._update_area_table_display()
 
     def _update_area_table_display(self):
-        """
-        更新区域表格的显示
-        :return:
-        """
+        """更新区域表格的显示。"""
         self.area_table.blockSignals(True)
         area_list = [] if self.chosen_screen is None else self.chosen_screen.area_list
         area_cnt = len(area_list)
@@ -472,10 +467,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.area_table.blockSignals(False)
 
     def _update_image_display(self):
-        """
-        更新图片显示
-        :return:
-        """
+        """更新图片显示。"""
         image_to_show = None if self.chosen_screen is None else self.chosen_screen.get_image_to_show(self.area_table_row_selected)
         if image_to_show is not None:
             image = Cv2Image(image_to_show)
@@ -488,11 +480,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self.image_label.setImage(None)
 
     def _on_choose_existed_yml(self, screen_name: str):
-        """
-        选择了已有的yml
-        :param screen_name:
-        :return:
-        """
+        """选择了已有的yml。"""
         self.chosen_screen = None
         # 搜索时 输入了一半时候会找到对应的画面
         with suppress(Exception):
@@ -505,10 +493,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._whole_update.signal.emit()
 
     def _on_create_clicked(self):
-        """
-        创建一个新的
-        :return:
-        """
+        """创建一个新的。"""
         if self.chosen_screen is not None:
             return
 
@@ -518,10 +503,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._whole_update.signal.emit()
 
     def _on_save_clicked(self) -> None:
-        """
-        保存
-        :return:
-        """
+        """保存。"""
         if self.chosen_screen is None:
             return
 
@@ -529,10 +511,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._existed_yml_update.signal.emit()
 
     def _on_delete_clicked(self) -> None:
-        """
-        删除
-        :return:
-        """
+        """删除。"""
         if self.chosen_screen is None:
             return
         self.ctx.screen_loader.delete_screen(self.chosen_screen.screen_id)
@@ -541,10 +520,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._existed_yml_update.signal.emit()
 
     def _on_cancel_clicked(self) -> None:
-        """
-        取消编辑
-        :return:
-        """
+        """取消编辑。"""
         self.chosen_screen = None
         self.existed_yml_btn.blockSignals(True)
         self.existed_yml_btn.setCurrentIndex(-1)
@@ -557,10 +533,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._whole_update.signal.emit()
 
     def choose_existed_image(self) -> None:
-        """
-        选择已有的环图片
-        :return:
-        """
+        """选择已有的环图片。"""
         default_dir = os_utils.get_path_under_work_dir('.debug', 'images')
         if self.last_screen_dir is not None:
             default_dir = self.last_screen_dir
@@ -582,22 +555,37 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self._on_image_chosen(fix_file_path)
 
     def _on_image_chosen(self, image_file_path: str) -> None:
-        """
-        选择图片之后的回调
-        :param image_file_path:
-        :return:
-        """
+        """选择图片之后的回调。"""
         if self.chosen_screen is None:
             return
 
         self.chosen_screen.screen_image = cv2_utils.read_image(image_file_path)
         self._image_update.signal.emit()
 
-    def _on_image_pasted(self, image_data) -> None:
+    def _on_screenshot_clicked(self) -> None:
         """
-        通过拖放或粘贴加载图片后的回调，等同于"选择图片"
-        :param image_data: 文件路径 (str) 或 numpy 数组 (RGB 格式)
+        截图按钮点击
         :return:
+        """
+        _, screen = self.ctx.controller.screenshot()
+        if screen is None:
+            return
+
+        if self.chosen_screen is None:
+            # 没有选中画面时，自动创建一个新的
+            self.chosen_screen = ScreenInfo({})
+            # 清除撤回记录
+            self._clear_history()
+            self._whole_update.signal.emit()
+
+        self.chosen_screen.screen_image = screen
+        self._image_update.signal.emit()
+
+    def _on_image_pasted(self, image_data) -> None:
+        """通过拖放或粘贴加载图片后的回调，等同于“选择图片”。
+
+        Args:
+            image_data: 文件路径 (str) 或 numpy 数组 (RGB 格式)
         """
         if self.chosen_screen is None:
             return
@@ -634,10 +622,10 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self._on_template_chosen(fix_file_path)
 
     def _on_template_chosen(self, template_file_path: str) -> None:
-        """
-        选择模板后 导入模板对应的区域
-        :param template_file_path: 模板文件路径
-        :return:
+        """选择模板后 导入模板对应的区域。
+
+        Args:
+            template_file_path: 模板文件路径
         """
         if self.chosen_screen is None:
             return
@@ -683,10 +671,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.chosen_screen.pc_alt = self.pc_alt_opt.isChecked()
 
     def _on_area_add_clicked(self) -> None:
-        """
-        新增一个区域
-        :return:
-        """
+        """新增一个区域。"""
         if self.chosen_screen is None:
             return
 
@@ -694,10 +679,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._area_table_update.signal.emit()
 
     def _on_row_delete_clicked(self):
-        """
-        删除一行
-        :return:
-        """
+        """删除一行。"""
         if self.chosen_screen is None:
             return
 
@@ -709,12 +691,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
             self._image_update.signal.emit()
 
     def _on_area_table_cell_changed(self, row: int, column: int) -> None:
-        """
-        表格内容改变
-        :param row:
-        :param column:
-        :return:
-        """
+        """表格内容改变。"""
         if self.chosen_screen is None:
             return
         if row < 0 or row >= len(self.chosen_screen.area_list):
@@ -762,11 +739,11 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self._add_history_record(table_change)
 
     def _on_image_left_clicked(self, x: int, y: int) -> None:
-        """
-        图片上左键单击后显示坐标
-        :param x: 点击的x坐标
-        :param y: 点击的y坐标
-        :return:
+        """图片上左键单击后显示坐标。
+
+        Args:
+            x: 点击的x坐标
+            y: 点击的y坐标
         """
         if self.chosen_screen is None or self.chosen_screen.screen_image is None:
             return
@@ -775,14 +752,7 @@ class DevtoolsScreenManageInterface(VerticalScrollInterface, HistoryMixin):
         self.y_pos_label.setText(str(y))
 
     def _on_image_rect_selected(self, x1: int, y1: int, x2: int, y2: int) -> None:
-        """
-        在图片上选择一个区域后的回调
-        :param x1:
-        :param y1:
-        :param x2:
-        :param y2:
-        :return:
-        """
+        """在图片上选择一个区域后的回调。"""
         if self.chosen_screen is None or self.area_table_row_selected is None:
             return
         if self.area_table_row_selected < 0 or self.area_table_row_selected >= len(self.chosen_screen.area_list):

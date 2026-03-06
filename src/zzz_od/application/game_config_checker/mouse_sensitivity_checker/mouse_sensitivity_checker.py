@@ -25,10 +25,15 @@ class MouseSensitivityChecker(ZApplication):
             op_name=mouse_sensitivity_checker_const.APP_NAME,
         )
 
-        self.turn_distance: int = 500  # 转向时鼠标移动的距离
+        self.turn_distance: int = 500  # 鼠标模式：转向时鼠标移动的距离
+        self.gamepad_test_duration: float = 0.3  # 手柄模式：右摇杆推动时长（秒）
         self.angle_check_times: int = 0
         self.last_angle: float = 0
         self.angle_diff_list: list[float] = []
+
+    @property
+    def _is_gamepad_mode(self) -> bool:
+        return self.ctx.controller.background_mode
 
     @operation_node(name='返回大世界')
     def back_at_first(self) -> OperationRoundResult:
@@ -44,6 +49,9 @@ class MouseSensitivityChecker(ZApplication):
     @node_from(from_name='传送')
     @operation_node(name='转向检测', is_start_node=False)
     def check(self) -> OperationRoundResult:
+        if self._is_gamepad_mode and self.ctx.game_config.turn_dx == 0:
+            return self.round_fail(status='手柄灵敏度检测需先完成鼠标灵敏度检测 (turn_dx)')
+
         mini_map = self.ctx.world_patrol_service.cut_mini_map(self.last_screenshot)
         angle = mini_map.view_angle
 
@@ -63,16 +71,45 @@ class MouseSensitivityChecker(ZApplication):
             return self.round_success()
 
         self.last_angle = angle
-        self.ctx.controller.turn_by_distance(self.turn_distance)
+
+        if self._is_gamepad_mode:
+            self._gamepad_turn_test()
+        else:
+            self.ctx.controller.turn_by_distance(self.turn_distance)
+
         return self.round_wait(status='转向继续下一轮识别', wait=2)
+
+    def _gamepad_turn_test(self) -> None:
+        """直接推右摇杆固定时长，用于校准 gamepad_turn_speed。"""
+        pad = self.ctx.controller.btn_controller.pad
+        pad.right_joystick_float(1.0, 0)  # 满偏转向右
+        pad.update()
+        time.sleep(self.gamepad_test_duration)
+        pad.right_joystick_float(0, 0)
+        pad.update()
 
     @node_from(from_name='转向检测')
     @operation_node(name='结果统计')
     def calculate(self) -> OperationRoundResult:
-        dx = self.turn_distance / float(np.mean(self.angle_diff_list))
-        self.ctx.game_config.turn_dx = dx
-        self.ctx.controller.turn_dx = self.ctx.game_config.turn_dx
-        log.info(f'转向系数={dx:0.6f}')
+        mean_diff = float(np.mean(self.angle_diff_list))
+
+        if abs(mean_diff) < 1e-6:
+            return self.round_fail(status='平均角度差过小，检测结果不可靠')
+
+        if self._is_gamepad_mode:
+            # gamepad_turn_speed = |turn_dx| * |mean_angle_diff| / test_duration
+            turn_dx = self.ctx.game_config.turn_dx
+            speed = abs(turn_dx * mean_diff) / self.gamepad_test_duration
+            self.ctx.game_config.gamepad_turn_speed = speed
+            self.ctx.controller.gamepad_turn_speed = speed
+            log.info(f'手柄转速 gamepad_turn_speed={speed:.2f} (turn_dx={turn_dx:.4f}, '
+                     f'平均角度差={mean_diff:.2f}°, 测试时长={self.gamepad_test_duration}s)')
+        else:
+            dx = self.turn_distance / mean_diff
+            self.ctx.game_config.turn_dx = dx
+            self.ctx.controller.turn_dx = dx
+            log.info(f'转向系数 turn_dx={dx:.6f}')
+
         return self.round_success('完成检测')
 
 

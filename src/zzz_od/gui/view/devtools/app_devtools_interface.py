@@ -5,6 +5,9 @@ from one_dragon_qt.view.devtools.devtools_screen_manage_interface import Devtool
 from one_dragon_qt.view.devtools.devtools_template_helper_interface import DevtoolsTemplateHelperInterface
 from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.gui.view.devtools.agent_template_generator_interface import (
+    AgentTemplateGeneratorInterface,
+)
 from zzz_od.gui.view.devtools.devtools_screenshot_helper_interface import DevtoolsScreenshotHelperInterface
 
 
@@ -24,5 +27,6 @@ class AppDevtoolsInterface(PivotNavigatorInterface):
         """
         self.add_sub_interface(DevtoolsImageAnalysisInterface(self.ctx))
         self.add_sub_interface(DevtoolsTemplateHelperInterface(self.ctx))
+        self.add_sub_interface(AgentTemplateGeneratorInterface(self.ctx))
         self.add_sub_interface(DevtoolsScreenManageInterface(self.ctx))
         self.add_sub_interface(DevtoolsScreenshotHelperInterface(self.ctx))

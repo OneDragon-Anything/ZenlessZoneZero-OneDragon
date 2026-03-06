@@ -18,9 +18,15 @@ class MapTransport(ZOperation):
 
         self.area_name: str = area_name
         self.tp_name: str = tp_name
+        self._reselect_area_times: int = 0
 
+    @node_from(from_name='选择传送点', success=False)
     @operation_node(name='选择区域', is_start_node=True)
     def choose_area(self) -> OperationRoundResult:
+        self._reselect_area_times += 1
+        if self._reselect_area_times > 3:
+            return self.round_fail(self.previous_node.result.status)
+
         area_name_list: list[str] = []
         for area in self.ctx.map_service.area_list:
             area_name_list.append(gt(area.area_name, 'game'))
