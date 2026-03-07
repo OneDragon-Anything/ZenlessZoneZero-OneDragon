@@ -211,7 +211,8 @@ class LostVoidRunLevel(ZOperation):
         if self.region_type == LostVoidRegionType.ELITE:
             return self.round_success('战斗区域')
         if self.region_type == LostVoidRegionType.BOSS:
-            return self.round_success('战斗区域')
+            # BOSS关可能有对话 走非战斗流程先处理对话再进入战斗
+            return self.round_success('非战斗区域')
 
         return self.round_success('非战斗区域')
 
