@@ -354,7 +354,7 @@ class RandomPlayApp(ZApplication):
             return self.round_success()
 
         return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '返回',
-                                                     retry_wait=1)
+                                                 retry_wait=1)
 
     @node_from(from_name='返回')
     @operation_node(name='开始营业')
@@ -365,15 +365,14 @@ class RandomPlayApp(ZApplication):
                 ('确认', OperationRoundResultEnum.SUCCESS),
             ],
             area=self.ctx.screen_loader.get_area('影像店营业', '开始营业-确认'),
-            success_wait=1,  # 等一下防止画面残留
-            wait_wait=0.5,
+            wait_wait=0.5,  # 等一下防止画面残留
             retry_wait=1,
         )
 
     @node_from(from_name='开始营业')
-    @operation_node(name='开始营业确认')
+    @operation_node(name='营业后确认')
     def confirm(self) -> OperationRoundResult:
-        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '开始营业-确认',
+        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '营业后确认',
                                                  retry_wait=1)
 
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
@@ -383,7 +382,7 @@ class RandomPlayApp(ZApplication):
         return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '返回',
                                                  retry_wait=1)
 
-    @node_from(from_name='开始营业确认')
+    @node_from(from_name='营业后确认')
     @node_from(from_name='关闭经营页面')
     @node_notify(when=NotifyTiming.PREVIOUS_DONE)
     @operation_node(name='返回大世界')
