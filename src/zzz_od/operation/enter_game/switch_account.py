@@ -40,8 +40,14 @@ class SwitchAccount(ZOperation):
     @node_from(from_name='更多登出确认')
     @operation_node(name='等待切换账号可按', node_max_retry_times=20)
     def wait_switch_can_click(self) -> OperationRoundResult:
-        return self.round_by_find_area(self.last_screenshot, '打开游戏', '点击进入游戏',
-                                       retry_wait=1)
+        # 国服
+        result = self.round_by_find_area(self.last_screenshot, '打开游戏', '点击进入游戏',
+                                         retry_wait=1)
+        # B服
+        if not result.is_success:
+            result = self.round_by_find_area(self.last_screenshot, '打开游戏', 'B服新-登录记录',
+                                             retry_wait=1)
+        return result
 
     @node_from(from_name='等待切换账号可按')
     @operation_node(name='进入游戏')
