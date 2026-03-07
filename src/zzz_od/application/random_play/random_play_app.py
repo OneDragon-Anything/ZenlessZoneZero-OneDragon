@@ -353,12 +353,17 @@ class RandomPlayApp(ZApplication):
         return self.round_by_ocr_and_click_with_action(
             target_action_list=[
                 ('开始营业', OperationRoundResultEnum.WAIT),
-                ('确认', OperationRoundResultEnum.WAIT),
-                ('正在营业', OperationRoundResultEnum.SUCCESS),
+                ('确认', OperationRoundResultEnum.SUCCESS),
             ],
             area=self.ctx.screen_loader.get_area('影像店营业', '开始营业-确认'),
             retry_wait=1,
         )
+
+    @node_from(from_name='开始营业')
+    @operation_node(name='开始营业确认')
+    def confirm(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '开始营业-确认',
+                                                 retry_wait=1)
 
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
     @operation_node(name='关闭经营页面')
