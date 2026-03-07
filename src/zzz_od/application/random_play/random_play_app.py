@@ -152,11 +152,16 @@ class RandomPlayApp(ZApplication):
                                                          retry_wait=1)
             log.info(f'代理人匹配失败: {agent_name}')
 
-        # 兜底：点击第一个代理人位置
-        log.info('所有候选代理人匹配失败, 选择默认位置')
-        self.round_by_click_area('影像店营业', '宣传员-1')
-        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认',
-                                                 retry_wait=1)
+        if self.node_retry_times >= 2:
+            # 滚动多次仍未找到, 兜底选第一个位置
+            log.info('滚动多次仍未找到, 选择默认位置')
+            self.round_by_click_area('影像店营业', '宣传员-1')
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '确认',
+                                                     retry_wait=1)
+        # 向下滚动并重试
+        log.info('所有候选代理人匹配失败, 向下滚动重试')
+        self.scroll_area('影像店营业', '宣传员列表')
+        return self.round_retry(wait=0.5)
 
     def _try_select_agent(self, agent_name: str, area) -> bool:
         """尝试通过名称 OCR 或头像匹配选择代理人"""
