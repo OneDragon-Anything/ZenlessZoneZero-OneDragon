@@ -106,6 +106,12 @@ class RandomPlayApp(ZApplication):
         else:
             return self.round_success()
 
+    @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
+    @operation_node(name='关闭经营页面')
+    def close_business_page(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '返回',
+                                                 retry_wait=1)
+
     @node_from(from_name='识别营业状态')
     @operation_node(name='点击宣传员入口')
     def click_promoter_entry(self) -> OperationRoundResult:
@@ -359,27 +365,19 @@ class RandomPlayApp(ZApplication):
     @node_from(from_name='返回')
     @operation_node(name='开始营业')
     def start(self) -> OperationRoundResult:
-        return self.round_by_ocr_and_click_with_action(
-            target_action_list=[
-                ('开始营业', OperationRoundResultEnum.WAIT),
-                ('确认', OperationRoundResultEnum.SUCCESS),
-            ],
-            area=self.ctx.screen_loader.get_area('影像店营业', '开始营业-确认'),
-            wait_wait=0.5,  # 等一下防止画面残留
-            retry_wait=1,
-        )
+        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '开始营业',
+                                                 retry_wait=1)
 
     @node_from(from_name='开始营业')
+    @operation_node(name='确认营业')
+    def confirm_business(self) -> OperationRoundResult:
+        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '开始营业-确认',
+                                                 retry_wait=1)
+
+    @node_from(from_name='确认营业')
     @operation_node(name='营业后确认')
     def confirm(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '营业后确认',
-                                                 retry_wait=1)
-
-    @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
-    @operation_node(name='关闭经营页面')
-    def close_business_page(self) -> OperationRoundResult:
-        """已在营业状态 直接关闭经营页面 比BackToNormalWorld通用识别更快"""
-        return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '返回',
                                                  retry_wait=1)
 
     @node_from(from_name='营业后确认')
