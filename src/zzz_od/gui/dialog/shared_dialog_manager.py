@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QWidget
 
+from zzz_od.gui.dialog.auto_synthetic_setting_dialog import AutoSyntheticSettingDialog
 from zzz_od.gui.dialog.charge_plan_setting_dialog import ChargePlanSettingDialog
 from zzz_od.gui.dialog.coffee_setting_dialog import CoffeeSettingDialog
 from zzz_od.gui.dialog.drive_disc_dismantle_setting_dialog import (
@@ -35,6 +36,7 @@ class SharedDialogManager:
         self._withered_domain_setting_dialog: WitheredDomainSettingDialog | None = None
         self._lost_void_setting_dialog: LostVoidSettingDialog | None = None
         self._redemption_code_setting_dialog: RedemptionCodeSettingDialog | None = None
+        self._auto_synthetic_setting_dialog: AutoSyntheticSettingDialog | None = None
 
     def show_world_patrol_setting_dialog(
         self,
@@ -162,6 +164,19 @@ class SharedDialogManager:
             self._redemption_code_setting_dialog = RedemptionCodeSettingDialog(ctx=self.ctx, parent=parent)
 
         self._redemption_code_setting_dialog.show_by_group(
+            group_id=group_id,
+            parent=parent,
+        )
+
+    def show_auto_synthetic_setting_dialog(
+            self,
+            parent: QWidget,
+            group_id: str,
+    ) -> None:
+        if self._auto_synthetic_setting_dialog is None:
+            self._auto_synthetic_setting_dialog = AutoSyntheticSettingDialog(ctx=self.ctx, parent=parent)
+
+        self._auto_synthetic_setting_dialog.show_by_group(
             group_id=group_id,
             parent=parent,
         )
