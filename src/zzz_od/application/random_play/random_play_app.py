@@ -128,6 +128,11 @@ class RandomPlayApp(ZApplication):
         if not result.is_success:
             return self.round_retry(status=result.status, wait_round_time=1)
 
+        # 已经选择过了 直接返回
+        result = self.round_by_find_area(self.last_screenshot, '影像店营业', '换下')
+        if result.is_success:
+            return self.round_by_find_and_click_area(self.last_screenshot, '影像店营业', '返回')
+
         target_agent_name_1 = self.config.agent_name_1
         target_agent_name_2 = self.config.agent_name_2
         dt = self.run_record.get_current_dt()
