@@ -76,7 +76,6 @@ class RandomPlayApp(ZApplication):
         time.sleep(1)
 
         self.ctx.controller.interact(press=True, press_time=0.2, release=True)
-        time.sleep(5)
 
         return self.round_success()
 
@@ -367,6 +366,7 @@ class RandomPlayApp(ZApplication):
             ],
             area=self.ctx.screen_loader.get_area('影像店营业', '开始营业-确认'),
             success_wait=1,  # 等一下防止画面残留
+            wait_wait=0.5,
             retry_wait=1,
         )
 
