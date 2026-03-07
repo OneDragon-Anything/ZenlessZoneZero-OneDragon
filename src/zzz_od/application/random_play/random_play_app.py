@@ -356,6 +356,7 @@ class RandomPlayApp(ZApplication):
                 ('确认', OperationRoundResultEnum.SUCCESS),
             ],
             area=self.ctx.screen_loader.get_area('影像店营业', '开始营业-确认'),
+            success_wait=1,  # 等一下防止画面残留
             retry_wait=1,
         )
 
