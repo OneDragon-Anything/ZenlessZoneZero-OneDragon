@@ -1,14 +1,13 @@
 import os
+
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QIcon
 from qfluentwidgets import NavigationItemPosition, SplashScreen
-from typing import Optional
-
-from one_dragon_qt.windows.window import PhosWindow
 
 from one_dragon.envs.project_config import ProjectConfig
-from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon.utils import os_utils
+from one_dragon_qt.widgets.base_interface import BaseInterface
+from one_dragon_qt.windows.window import PhosWindow
 
 
 class AppWindowBase(PhosWindow):
@@ -16,7 +15,7 @@ class AppWindowBase(PhosWindow):
     def __init__(self,
                  win_title: str,
                  project_config: ProjectConfig,
-                 app_icon: Optional[str] = None,
+                 app_icon: str | None = None,
                  parent=None):
         PhosWindow.__init__(self, parent=parent)
         self.project_config: ProjectConfig = project_config
