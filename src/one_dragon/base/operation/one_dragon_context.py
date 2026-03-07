@@ -411,3 +411,9 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         StateRecordService.after_app_shutdown()
         from one_dragon.utils import gpu_executor
         gpu_executor.shutdown(wait=False)
+        from one_dragon.base.controller.pc_button.pc_button_listener import PcButtonListener
+        PcButtonListener.after_app_shutdown()
+        from one_dragon.base.operation.application_base import Application
+        Application.after_app_shutdown()
+        self.push_service.shutdown()
+        self.run_context.shutdown()
