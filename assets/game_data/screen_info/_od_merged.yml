@@ -7043,11 +7043,11 @@
   - area_name: 开始营业-确认
     id_mark: false
     pc_rect:
-    - 800
-    - 600
-    - 1232
-    - 656
-    text: 确认
+    - 766
+    - 552
+    - 1815
+    - 1009
+    text: ''
     lcs_percent: 0.5
     template_sub_dir: ''
     template_id: ''

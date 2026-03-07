@@ -9,8 +9,11 @@ from one_dragon.base.matcher.match_result import MatchResult
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
-from one_dragon.base.operation.operation_notify import node_notify, NotifyTiming
-from one_dragon.base.operation.operation_round_result import OperationRoundResult
+from one_dragon.base.operation.operation_notify import NotifyTiming, node_notify
+from one_dragon.base.operation.operation_round_result import (
+    OperationRoundResult,
+    OperationRoundResultEnum,
+)
 from one_dragon.utils import cv2_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
@@ -56,7 +59,6 @@ class RandomPlayApp(ZApplication):
         ]
         self._need_video_themes: list[str] = []
         self._current_idx: int = 0
-        self._confirm_count: int = 0
 
     @operation_node(name='传送', is_start_node=True)
     def transport(self) -> OperationRoundResult:
@@ -385,13 +387,13 @@ class RandomPlayApp(ZApplication):
     @node_from(from_name='开始营业')
     @operation_node(name='开始营业确认', node_max_retry_times=10)
     def confirm(self) -> OperationRoundResult:
-        result = self.round_by_find_area(self.last_screenshot, '影像店营业', '开始营业-确认')
-        if result.is_success:
-            self.round_by_click_area('影像店营业', '开始营业-确认')
-            self._confirm_count += 1
-            if self._confirm_count >= 2:  # 按钮消失了，说明二次确认已完成
-                return self.round_success(wait=1)
-        return self.round_retry(wait=1)
+        return self.round_by_ocr_and_click_with_action(
+            target_action_list=[
+                ('确认', OperationRoundResultEnum.WAIT),
+                ('正在营业', OperationRoundResultEnum.SUCCESS),
+            ],
+            retry_wait=1,
+        )
 
     @node_from(from_name='识别营业状态', status=STATUS_ALREADY_RUNNING)
     @operation_node(name='关闭经营页面')
