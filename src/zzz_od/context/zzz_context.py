@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import cached_property
+from typing import Any
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 
@@ -14,6 +15,7 @@ class ZContext(OneDragonContext):
         # 后续所有用到自动战斗的 都统一设置到这个里面
         from zzz_od.auto_battle.auto_battle_context import AutoBattleContext
         self.auto_battle_context: AutoBattleContext = AutoBattleContext(self)
+        self._mcp_service: Any = None
 
     #------------------- 需要懒加载的都使用 @cached_property -------------------#
 
@@ -131,6 +133,8 @@ class ZContext(OneDragonContext):
         """
         App关闭后进行的操作 关闭一切可能资源操作
         """
+        self._stop_mcp_service()
+
         if hasattr(self, 'telemetry') and self.telemetry:
             self.telemetry.shutdown()
 
@@ -140,6 +144,55 @@ class ZContext(OneDragonContext):
 
         from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
         AutoBattleOperator.after_app_shutdown()
+
+    def _start_mcp_service(self) -> None:
+        if self._mcp_service is not None:
+            return
+        try:
+            from zzz_od.mcp.mcp_service import GuiMcpService
+            svc = GuiMcpService(self)
+            svc.start()
+            self._mcp_service = svc
+        except Exception:
+            from one_dragon.utils.log_utils import log
+            if 'svc' in locals():
+                try:
+                    svc.stop()
+                except Exception:
+                    log.error('MCP服务清理失败', exc_info=True)
+            self._mcp_service = None
+            log.error('MCP服务启动失败，将继续初始化主程序', exc_info=True)
+
+    def _stop_mcp_service(self) -> None:
+        if self._mcp_service is None:
+            return
+        try:
+            # 关闭MCP服务时，确保自动战斗直接停止并释放按键
+            self.auto_battle_context.stop_auto_battle()
+        except Exception:
+            from one_dragon.utils.log_utils import log
+            log.error('停止自动战斗失败', exc_info=True)
+        try:
+            self._mcp_service.stop()
+        except Exception:
+            from one_dragon.utils.log_utils import log
+            log.error('MCP服务停止失败', exc_info=True)
+        finally:
+            self._mcp_service = None
+
+    def start_mcp_service(self) -> None:
+        self._start_mcp_service()
+
+    def stop_mcp_service(self) -> None:
+        self._stop_mcp_service()
+
+    def is_mcp_service_running(self) -> bool:
+        return self._mcp_service is not None
+
+    def get_mcp_client_config_json(self) -> str:
+        if self._mcp_service is None:
+            raise RuntimeError('MCP服务未启动，请稍后重试')
+        return self._mcp_service.build_client_config_json()
 
     @cached_property
     def shared_dialog_manager(self):
