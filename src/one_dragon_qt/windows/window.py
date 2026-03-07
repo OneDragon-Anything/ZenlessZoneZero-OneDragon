@@ -121,20 +121,8 @@ class PhosTitleBar(SplitTitleBar):
         btn_layout = QHBoxLayout()
         btn_layout.setContentsMargins(0, 0, 0, 0)
 
-        # 圆角悬停样式，与 NavigationBarPushButton._drawBackground 一致
-        # hover: c=255/0(dark/light), alpha=9; pressed: alpha=6; radius=5
-        _is_dark = isDarkTheme()
-        _c = 255 if _is_dark else 0
-        _title_btn_qss = (
-            "QPushButton { background: transparent; border: none;"
-            " border-radius: 5px; padding: 4px 8px; }"
-            f"QPushButton:hover {{ background-color: rgba({_c}, {_c}, {_c}, 9); }}"
-            f"QPushButton:pressed {{ background-color: rgba({_c}, {_c}, {_c}, 6); }}"
-        )
-
         self.launcherVersionButton = QPushButton("ⓘ 启动器版本 未知")
         self.launcherVersionButton.setObjectName("launcherVersionButton")
-        self.launcherVersionButton.setStyleSheet(_title_btn_qss)
         self.launcherVersionButton.clicked.connect(lambda: self.copy_version(self.launcher_version))
         self.launcherVersionButton.setVisible(False)
         btn_layout.addWidget(
@@ -145,7 +133,6 @@ class PhosTitleBar(SplitTitleBar):
 
         self.codeVersionButton = QPushButton("ⓘ 代码版本 未知")
         self.codeVersionButton.setObjectName("codeVersionButton")
-        self.codeVersionButton.setStyleSheet(_title_btn_qss)
         self.codeVersionButton.clicked.connect(lambda: self.copy_version(self.code_version))
         self.codeVersionButton.setVisible(False)
         btn_layout.addWidget(
@@ -156,7 +143,6 @@ class PhosTitleBar(SplitTitleBar):
 
         self.questionButton = QPushButton("ⓘ 问题反馈")
         self.questionButton.setObjectName("questionButton")
-        self.questionButton.setStyleSheet(_title_btn_qss)
         self.questionButton.clicked.connect(self.open_github)
         btn_layout.addWidget(
             self.questionButton,
@@ -170,7 +156,26 @@ class PhosTitleBar(SplitTitleBar):
         self.launcher_version: str = ""
         self.code_version: str = ""
 
+        self._updateButtonStyle()
+        qconfig.themeChangedFinished.connect(self._updateButtonStyle)
         FluentStyleSheet.FLUENT_WINDOW.apply(self)
+
+    def _updateButtonStyle(self):
+        """
+        圆角悬停样式，与 NavigationBarPushButton._drawBackground 一致
+        hover: c=255/0(dark/light), alpha=9; pressed: alpha=6; radius=5
+        """
+        _is_dark = isDarkTheme()
+        _c = 255 if _is_dark else 0
+        _title_btn_qss = (
+            "QPushButton { background: transparent; border: none;"
+            " border-radius: 5px; padding: 4px 8px; }"
+            f"QPushButton:hover {{ background-color: rgba({_c}, {_c}, {_c}, 9); }}"
+            f"QPushButton:pressed {{ background-color: rgba({_c}, {_c}, {_c}, 6); }}"
+        )
+        self.launcherVersionButton.setStyleSheet(_title_btn_qss)
+        self.codeVersionButton.setStyleSheet(_title_btn_qss)
+        self.questionButton.setStyleSheet(_title_btn_qss)
 
     def setIcon(self, icon: QIcon):
         self.iconLabel.setPixmap(icon.pixmap(18, 18))
