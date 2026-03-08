@@ -81,6 +81,7 @@ class PcControllerBase(ControllerBase):
         """
         清理资源
         """
+        self.btn_controller.reset()
         self.screenshot_controller.cleanup()
 
     def active_window(self) -> None:

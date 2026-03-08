@@ -134,12 +134,14 @@ class ZContext(OneDragonContext):
         if hasattr(self, 'telemetry') and self.telemetry:
             self.telemetry.shutdown()
 
-        OneDragonContext.after_app_shutdown(self)
+        # 上层清理依赖框架服务(如 StateRecordService)，必须先于框架清理
         self.withered_domain.after_app_shutdown()
         self.auto_battle_context.after_app_shutdown()
 
         from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
         AutoBattleOperator.after_app_shutdown()
+
+        OneDragonContext.after_app_shutdown(self)
 
     @cached_property
     def shared_dialog_manager(self):
