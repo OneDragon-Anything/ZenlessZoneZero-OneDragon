@@ -1,7 +1,6 @@
 import os
 import shutil
 from enum import Enum
-from typing import List, Optional
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.config.yaml_config import YamlConfig
@@ -39,12 +38,12 @@ class InstanceRun(Enum):
 class OneDragonConfig(YamlConfig):
 
     def __init__(self):
-        YamlConfig.__init__(self, 'one_dragon', backup_model_name='zzz_one_dragon')  # TODO 2025.12时可以删掉 backup_model_name
-        self.instance_list: List[OneDragonInstance] = []
-        self._temp_instance_indices: Optional[List[int]] = None
+        YamlConfig.__init__(self, 'one_dragon')
+        self.instance_list: list[OneDragonInstance] = []
+        self._temp_instance_indices: list[int] | None = None
         self._init_instance_list()
 
-    def set_temp_instance_indices(self, instance_indices: Optional[List[int]]):
+    def set_temp_instance_indices(self, instance_indices: list[int] | None):
         """设置临时实例索引列表"""
         self._temp_instance_indices = instance_indices
 
@@ -145,15 +144,15 @@ class OneDragonConfig(YamlConfig):
         self._init_instance_list()
 
     @property
-    def dict_instance_list(self) -> List[dict]:
+    def dict_instance_list(self) -> list[dict]:
         return self.get('instance_list', [])
 
     @dict_instance_list.setter
-    def dict_instance_list(self, new_list: List[dict]):
+    def dict_instance_list(self, new_list: list[dict]):
         self.update('instance_list', new_list)
 
     @property
-    def current_active_instance(self) -> Optional[OneDragonInstance]:
+    def current_active_instance(self) -> OneDragonInstance | None:
         """
         获取当前激活使用的账号
         :return:
@@ -164,7 +163,7 @@ class OneDragonConfig(YamlConfig):
         return None
 
     @property
-    def instance_list_in_od(self) -> List[OneDragonInstance]:
+    def instance_list_in_od(self) -> list[OneDragonInstance]:
         """
         需要在一条龙中运行的实例列表
         如果设置了临时实例索引，则使用临时配置

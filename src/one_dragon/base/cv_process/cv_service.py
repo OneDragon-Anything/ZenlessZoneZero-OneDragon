@@ -16,7 +16,7 @@ from one_dragon.base.cv_process.steps import (
     CvStepCropByArea, CvStepCropToAnnulus, CvTemplateMatchingStep
 )
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from one_dragon.utils import os_utils
+from one_dragon.utils import os_utils, yaml_utils
 
 
 class CvService:
@@ -122,7 +122,7 @@ class CvService:
 
         with open(file_path, 'r', encoding='utf-8') as f:
             try:
-                pipeline_data = yaml.safe_load(f)
+                pipeline_data = yaml_utils.safe_load(f)
             except yaml.YAMLError:
                 return None
 

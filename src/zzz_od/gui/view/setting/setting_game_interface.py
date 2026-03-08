@@ -1,20 +1,44 @@
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, SettingCardGroup, PushButton
+from qfluentwidgets import FluentIcon, InfoBar, PushButton, SettingCardGroup
 
-from one_dragon.base.config.basic_game_config import TypeInputWay, ScreenSizeEnum, FullScreenEnum, MonitorEnum
+from one_dragon.base.config.basic_game_config import (
+    FullScreenEnum,
+    MonitorEnum,
+    ScreenSizeEnum,
+    TypeInputWay,
+)
+from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.controller.pc_button.ds4_button_controller import Ds4ButtonEnum
 from one_dragon.base.controller.pc_button.xbox_button_controller import XboxButtonEnum
 from one_dragon.utils import cmd_utils
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
+from one_dragon_qt.widgets.combo_box import ComboBox
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.expand_setting_card_group import (
+    ExpandSettingCardGroup,
+)
+from one_dragon_qt.widgets.setting_card.gamepad_action_key_card import (
+    GamepadActionKeyCard,
+)
 from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
-from one_dragon_qt.widgets.setting_card.spin_box_setting_card import DoubleSpinBoxSettingCard
+from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
+    MultiPushSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
+    DoubleSpinBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from zzz_od.config.game_config import GamepadTypeEnum
+from zzz_od.config.game_config import (
+    ControlMethodEnum,
+    GameKeyAction,
+    GamepadActionEnum,
+    GamepadTypeEnum,
+)
 from zzz_od.context.zzz_context import ZContext
 
 
@@ -35,9 +59,7 @@ class SettingGameInterface(VerticalScrollInterface):
         content_widget = Column()
 
         content_widget.add_widget(self._get_basic_group())
-        content_widget.add_widget(self._get_launch_argument_group())
-        content_widget.add_widget(self._get_key_group())
-        content_widget.add_widget(self._get_gamepad_group())
+        content_widget.add_widget(self._get_key_settings_group())
         content_widget.add_stretch(1)
 
         return content_widget
@@ -49,6 +71,8 @@ class SettingGameInterface(VerticalScrollInterface):
                                                  options_enum=TypeInputWay)
         basic_group.addSettingCard(self.input_way_opt)
 
+        basic_group.addSettingCard(self._get_background_mode_group())
+
         self.hdr_btn_enable = PushButton(text=gt('启用 HDR'), icon=FluentIcon.SETTING, parent=self)
         self.hdr_btn_enable.clicked.connect(self._on_hdr_enable_clicked)
         self.hdr_btn_disable = PushButton(text=gt('禁用 HDR'), icon=FluentIcon.SETTING, parent=self)
@@ -58,14 +82,75 @@ class SettingGameInterface(VerticalScrollInterface):
                                             btn_list=[self.hdr_btn_disable, self.hdr_btn_enable])
         basic_group.addSettingCard(self.hdr_btn)
 
+        basic_group.addSettingCard(self._get_launch_argument_group())
+
         return basic_group
 
-    def _get_launch_argument_group(self) -> QWidget:
-        launch_argument_group = SettingCardGroup(gt('启动参数'))
+    def _get_background_mode_group(self) -> ExpandSettingCardGroup:
+        """后台模式开关 + 手柄动作键配置组（Xbox 和 DS4 各一套）。"""
+        background_group = ExpandSettingCardGroup(
+            icon=FluentIcon.ROBOT,
+            title='后台模式（测试版）',
+            content='需要虚拟手柄驱动和 PrintWindow 截图方式。运行时会短暂抢占鼠标进行点击操作，无需游戏窗口置顶。请勿在前台玩支持手柄的游戏。',
+        )
 
-        self.launch_argument_switch = SwitchSettingCard(icon=FluentIcon.SETTING, title='启用')
-        self.launch_argument_switch.value_changed.connect(self._on_launch_argument_switch_changed)
-        launch_argument_group.addSettingCard(self.launch_argument_switch)
+        self.background_mode_switch = SwitchSettingCard(
+            icon=FluentIcon.ROBOT, title='后台模式（测试版）',
+        )
+        self.background_mode_switch.value_changed.connect(self._on_background_mode_changed)
+        background_group.addHeaderWidget(self.background_mode_switch.btn)
+
+        self.background_gamepad_type_opt = ComboBoxSettingCard(
+            icon=FluentIcon.GAME, title='后台手柄类型',
+            options_enum=GamepadTypeEnum,
+        )
+        self.background_gamepad_type_opt.value_changed.connect(self._toggle_action_cards)
+        background_group.addHeaderWidget(self.background_gamepad_type_opt.combo_box)
+
+        self.mouse_flash_duration_opt = DoubleSpinBoxSettingCard(
+            icon=FluentIcon.SPEED_HIGH, title='闪切时长（秒）',
+            content='后台模式切换键鼠输入时的前台停留时长，过小可能切换失败',
+            minimum=0.01, maximum=0.2, step=0.01,
+        )
+        background_group.addSettingCard(self.mouse_flash_duration_opt)
+
+        # Xbox 动作键卡片
+        self._xbox_action_cards: dict[str, GamepadActionKeyCard] = {}
+        for action in GamepadActionEnum:
+            action_name: str = action.value.value
+            if not action_name:
+                continue
+            card = GamepadActionKeyCard(
+                icon=FluentIcon.GAME,
+                title=action.value.ui_text,
+                modifier_enum=XboxButtonEnum,
+                button_enum=XboxButtonEnum,
+            )
+            self._xbox_action_cards[action_name] = card
+            background_group.addSettingCard(card)
+
+        # DS4 动作键卡片
+        self._ds4_action_cards: dict[str, GamepadActionKeyCard] = {}
+        for action in GamepadActionEnum:
+            action_name: str = action.value.value
+            if not action_name:
+                continue
+            card = GamepadActionKeyCard(
+                icon=FluentIcon.GAME,
+                title=action.value.ui_text,
+                modifier_enum=Ds4ButtonEnum,
+                button_enum=Ds4ButtonEnum,
+            )
+            self._ds4_action_cards[action_name] = card
+            background_group.addSettingCard(card)
+
+        return background_group
+
+    def _get_launch_argument_group(self) -> QWidget:
+        launch_argument_group = ExpandSettingCardGroup(icon=FluentIcon.SETTING, title='启动参数')
+
+        self.launch_argument_switch = SwitchSettingCard(icon=FluentIcon.SETTING, title='启动参数')
+        launch_argument_group.addHeaderWidget(self.launch_argument_switch.btn)
 
         self.screen_size_opt = ComboBoxSettingCard(icon=FluentIcon.FIT_PAGE, title='窗口尺寸', options_enum=ScreenSizeEnum)
         launch_argument_group.addSettingCard(self.screen_size_opt)
@@ -88,166 +173,64 @@ class SettingGameInterface(VerticalScrollInterface):
 
         return launch_argument_group
 
-    def _get_key_group(self) -> QWidget:
-        key_group = SettingCardGroup(gt('游戏按键'))
+    def _get_key_settings_group(self) -> QWidget:
+        key_settings_group = SettingCardGroup(gt('按键设置'))
 
-        self.key_normal_attack_opt = KeySettingCard(icon=FluentIcon.GAME, title='普通攻击')
-        key_group.addSettingCard(self.key_normal_attack_opt)
+        self.control_method_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='操控方式',
+                                                      content='仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。',
+                                                      options_enum=ControlMethodEnum)
+        self.control_method_opt.value_changed.connect(self._on_control_method_changed)
+        key_settings_group.addSettingCard(self.control_method_opt)
 
-        self.key_dodge_opt = KeySettingCard(icon=FluentIcon.GAME, title='闪避')
-        key_group.addSettingCard(self.key_dodge_opt)
+        self._keyboard_group = self._get_keyboard_group()
+        self._gamepad_group = self._get_gamepad_group()
+        key_settings_group.addSettingCard(self._keyboard_group)
+        key_settings_group.addSettingCard(self._gamepad_group)
 
-        self.key_switch_next_opt = KeySettingCard(icon=FluentIcon.GAME, title='角色切换-下一个')
-        key_group.addSettingCard(self.key_switch_next_opt)
+        return key_settings_group
 
-        self.key_switch_prev_opt = KeySettingCard(icon=FluentIcon.GAME, title='角色切换-上一个')
-        key_group.addSettingCard(self.key_switch_prev_opt)
+    def _get_keyboard_group(self) -> ExpandSettingCardGroup:
+        key_group = ExpandSettingCardGroup(icon=FluentIcon.GAME, title='键盘按键')
 
-        self.key_special_attack_opt = KeySettingCard(icon=FluentIcon.GAME, title='特殊攻击')
-        key_group.addSettingCard(self.key_special_attack_opt)
-
-        self.key_ultimate_opt = KeySettingCard(icon=FluentIcon.GAME, title='终结技')
-        key_group.addSettingCard(self.key_ultimate_opt)
-
-        self.key_interact_opt = KeySettingCard(icon=FluentIcon.GAME, title='交互')
-        key_group.addSettingCard(self.key_interact_opt)
-
-        self.key_chain_left_opt = KeySettingCard(icon=FluentIcon.GAME, title='连携技-左')
-        key_group.addSettingCard(self.key_chain_left_opt)
-
-        self.key_chain_right_opt = KeySettingCard(icon=FluentIcon.GAME, title='连携技-右')
-        key_group.addSettingCard(self.key_chain_right_opt)
-
-        self.key_move_w_opt = KeySettingCard(icon=FluentIcon.GAME, title='移动-前')
-        key_group.addSettingCard(self.key_move_w_opt)
-
-        self.key_move_s_opt = KeySettingCard(icon=FluentIcon.GAME, title='移动-后')
-        key_group.addSettingCard(self.key_move_s_opt)
-
-        self.key_move_a_opt = KeySettingCard(icon=FluentIcon.GAME, title='移动-左')
-        key_group.addSettingCard(self.key_move_a_opt)
-
-        self.key_move_d_opt = KeySettingCard(icon=FluentIcon.GAME, title='移动-右')
-        key_group.addSettingCard(self.key_move_d_opt)
-
-        self.key_lock_opt = KeySettingCard(icon=FluentIcon.GAME, title='锁定敌人')
-        key_group.addSettingCard(self.key_lock_opt)
-
-        self.key_chain_cancel_opt = KeySettingCard(icon=FluentIcon.GAME, title='连携技-取消')
-        key_group.addSettingCard(self.key_chain_cancel_opt)
+        self._key_cards: dict[GameKeyAction, KeySettingCard] = {}
+        for action in GameKeyAction:
+            card = KeySettingCard(icon=FluentIcon.GAME, title=action.value.label)
+            key_group.addSettingCard(card)
+            self._key_cards[action] = card
 
         return key_group
 
-    def _get_gamepad_group(self) -> QWidget:
-        gamepad_group = SettingCardGroup(gt('手柄按键'))
+    def _get_gamepad_group(self) -> ExpandSettingCardGroup:
+        gamepad_group = ExpandSettingCardGroup(icon=FluentIcon.GAME, title='手柄按键')
 
-        self.gamepad_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GAME, title='手柄类型',
-            content='需先安装虚拟手柄依赖，参考文档或使用安装器。仅在闪避助手生效。',
-            options_enum=GamepadTypeEnum
-        )
-        self.gamepad_type_opt.value_changed.connect(self._on_gamepad_type_changed)
-        gamepad_group.addSettingCard(self.gamepad_type_opt)
+        gamepad_display_combo = ComboBox()
+        gamepad_display_combo.set_items([GamepadTypeEnum.XBOX.value, GamepadTypeEnum.DS4.value])
+        gamepad_display_combo.currentIndexChanged.connect(self._toggle_gamepad_cards)
+        gamepad_group.addHeaderWidget(gamepad_display_combo)
 
         # xbox
         self.xbox_key_press_time_opt = DoubleSpinBoxSettingCard(icon=FluentIcon.GAME, title='单次按键持续时间(秒)',
                                                                 content='自行调整，过小可能按键被吞，过大可能影响操作')
         gamepad_group.addSettingCard(self.xbox_key_press_time_opt)
 
-        self.xbox_key_normal_attack_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='普通攻击', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_normal_attack_opt)
-
-        self.xbox_key_dodge_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='闪避', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_dodge_opt)
-
-        self.xbox_key_switch_next_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='角色切换-下一个', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_switch_next_opt)
-
-        self.xbox_key_switch_prev_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='角色切换-上一个', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_switch_prev_opt)
-
-        self.xbox_key_special_attack_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='特殊攻击', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_special_attack_opt)
-
-        self.xbox_key_ultimate_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='终结技', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_ultimate_opt)
-
-        self.xbox_key_interact_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='交互', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_interact_opt)
-
-        self.xbox_key_chain_left_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='连携技-左', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_chain_left_opt)
-
-        self.xbox_key_chain_right_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='连携技-右', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_chain_right_opt)
-
-        self.xbox_key_move_w_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='移动-前', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_move_w_opt)
-
-        self.xbox_key_move_s_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='移动-后', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_move_s_opt)
-
-        self.xbox_key_move_a_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='移动-左', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_move_a_opt)
-
-        self.xbox_key_move_d_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='移动-右', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_move_d_opt)
-
-        self.xbox_key_lock_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='锁定敌人', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_lock_opt)
-
-        self.xbox_key_chain_cancel_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='连携技-取消', options_enum=XboxButtonEnum)
-        gamepad_group.addSettingCard(self.xbox_key_chain_cancel_opt)
+        self._xbox_cards: dict[GameKeyAction, ComboBoxSettingCard] = {}
+        for action in GameKeyAction:
+            card = ComboBoxSettingCard(icon=FluentIcon.GAME, title=action.value.label, options_enum=XboxButtonEnum)
+            gamepad_group.addSettingCard(card)
+            self._xbox_cards[action] = card
 
         # ds4
         self.ds4_key_press_time_opt = DoubleSpinBoxSettingCard(icon=FluentIcon.GAME, title='单次按键持续时间(秒)',
                                                                content='自行调整，过小可能按键被吞，过大可能影响操作')
         gamepad_group.addSettingCard(self.ds4_key_press_time_opt)
 
-        self.ds4_key_normal_attack_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='普通攻击', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_normal_attack_opt)
+        self._ds4_cards: dict[GameKeyAction, ComboBoxSettingCard] = {}
+        for action in GameKeyAction:
+            card = ComboBoxSettingCard(icon=FluentIcon.GAME, title=action.value.label, options_enum=Ds4ButtonEnum)
+            gamepad_group.addSettingCard(card)
+            self._ds4_cards[action] = card
 
-        self.ds4_key_dodge_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='闪避', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_dodge_opt)
-
-        self.ds4_key_switch_next_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='角色切换-下一个', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_switch_next_opt)
-
-        self.ds4_key_switch_prev_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='角色切换-上一个', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_switch_prev_opt)
-
-        self.ds4_key_special_attack_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='特殊攻击', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_special_attack_opt)
-
-        self.ds4_key_ultimate_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='终结技', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_ultimate_opt)
-
-        self.ds4_key_interact_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='交互', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_interact_opt)
-
-        self.ds4_key_chain_left_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='连携技-左', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_chain_left_opt)
-
-        self.ds4_key_chain_right_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='连携技-右', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_chain_right_opt)
-
-        self.ds4_key_move_w_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='移动-前', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_move_w_opt)
-
-        self.ds4_key_move_s_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='移动-后', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_move_s_opt)
-
-        self.ds4_key_move_a_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='移动-左', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_move_a_opt)
-
-        self.ds4_key_move_d_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='移动-右', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_move_d_opt)
-
-        self.ds4_key_lock_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='锁定敌人', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_lock_opt)
-
-        self.ds4_key_chain_cancel_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='连携技-取消', options_enum=Ds4ButtonEnum)
-        gamepad_group.addSettingCard(self.ds4_key_chain_cancel_opt)
+        gamepad_display_combo.setCurrentIndex(0)
 
         return gamepad_group
 
@@ -256,113 +239,76 @@ class SettingGameInterface(VerticalScrollInterface):
 
         self.input_way_opt.init_with_adapter(self.ctx.game_config.type_input_way_adapter)
 
+        self.background_mode_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_mode'))
+        self.background_gamepad_type_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_gamepad_type'))
+        self.mouse_flash_duration_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('mouse_flash_duration'))
+        for action_name, card in self._xbox_action_cards.items():
+            card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'xbox_action_{action_name}'))
+        for action_name, card in self._ds4_action_cards.items():
+            card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'ds4_action_{action_name}'))
+        self._toggle_action_cards()
+
         self.launch_argument_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument'))
         self.screen_size_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('screen_size'))
         self.full_screen_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('full_screen'))
         self.popup_window_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('popup_window'))
         self.monitor_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('monitor'))
         self.launch_argument_advance.init_with_adapter(self.ctx.game_config.get_prop_adapter('launch_argument_advance'))
-        self._update_launch_argument_part()
 
-        self.key_normal_attack_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_normal_attack'))
-        self.key_dodge_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_dodge'))
-        self.key_switch_next_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_switch_next'))
-        self.key_switch_prev_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_switch_prev'))
-        self.key_special_attack_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_special_attack'))
-        self.key_ultimate_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_ultimate'))
-        self.key_interact_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_interact'))
-        self.key_chain_left_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_chain_left'))
-        self.key_chain_right_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_chain_right'))
-        self.key_move_w_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_move_w'))
-        self.key_move_s_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_move_s'))
-        self.key_move_a_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_move_a'))
-        self.key_move_d_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_move_d'))
-        self.key_lock_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_lock'))
-        self.key_chain_cancel_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('key_chain_cancel'))
+        self.control_method_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('control_method'))
 
-        self._update_gamepad_part()
-
-    def _update_gamepad_part(self) -> None:
-        """
-        手柄部分更新显示
-        :return:
-        """
-        self.gamepad_type_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('gamepad_type'))
-
-        is_xbox = self.ctx.game_config.gamepad_type == GamepadTypeEnum.XBOX.value.value
+        for action, card in self._key_cards.items():
+            card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'key_{action.value.value}'))
 
         self.xbox_key_press_time_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_press_time'))
-        self.xbox_key_normal_attack_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_normal_attack'))
-        self.xbox_key_dodge_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_dodge'))
-        self.xbox_key_switch_next_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_switch_next'))
-        self.xbox_key_switch_prev_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_switch_prev'))
-        self.xbox_key_special_attack_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_special_attack'))
-        self.xbox_key_ultimate_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_ultimate'))
-        self.xbox_key_interact_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_interact'))
-        self.xbox_key_chain_left_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_chain_left'))
-        self.xbox_key_chain_right_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_chain_right'))
-        self.xbox_key_move_w_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_move_w'))
-        self.xbox_key_move_s_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_move_s'))
-        self.xbox_key_move_a_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_move_a'))
-        self.xbox_key_move_d_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_move_d'))
-        self.xbox_key_lock_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_lock'))
-        self.xbox_key_chain_cancel_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('xbox_key_chain_cancel'))
-
-        self.xbox_key_press_time_opt.setVisible(is_xbox)
-        self.xbox_key_normal_attack_opt.setVisible(is_xbox)
-        self.xbox_key_dodge_opt.setVisible(is_xbox)
-        self.xbox_key_switch_next_opt.setVisible(is_xbox)
-        self.xbox_key_switch_prev_opt.setVisible(is_xbox)
-        self.xbox_key_special_attack_opt.setVisible(is_xbox)
-        self.xbox_key_ultimate_opt.setVisible(is_xbox)
-        self.xbox_key_interact_opt.setVisible(is_xbox)
-        self.xbox_key_chain_left_opt.setVisible(is_xbox)
-        self.xbox_key_chain_right_opt.setVisible(is_xbox)
-        self.xbox_key_move_w_opt.setVisible(is_xbox)
-        self.xbox_key_move_s_opt.setVisible(is_xbox)
-        self.xbox_key_move_a_opt.setVisible(is_xbox)
-        self.xbox_key_move_d_opt.setVisible(is_xbox)
-        self.xbox_key_lock_opt.setVisible(is_xbox)
-        self.xbox_key_chain_cancel_opt.setVisible(is_xbox)
-
-        is_ds4 = self.ctx.game_config.gamepad_type == GamepadTypeEnum.DS4.value.value
+        for action, card in self._xbox_cards.items():
+            card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'xbox_key_{action.value.value}'))
 
         self.ds4_key_press_time_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_press_time'))
-        self.ds4_key_normal_attack_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_normal_attack'))
-        self.ds4_key_dodge_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_dodge'))
-        self.ds4_key_switch_next_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_switch_next'))
-        self.ds4_key_switch_prev_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_switch_prev'))
-        self.ds4_key_special_attack_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_special_attack'))
-        self.ds4_key_ultimate_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_ultimate'))
-        self.ds4_key_interact_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_interact'))
-        self.ds4_key_chain_left_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_chain_left'))
-        self.ds4_key_chain_right_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_chain_right'))
-        self.ds4_key_move_w_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_move_w'))
-        self.ds4_key_move_s_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_move_s'))
-        self.ds4_key_move_a_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_move_a'))
-        self.ds4_key_move_d_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_move_d'))
-        self.ds4_key_lock_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_lock'))
-        self.ds4_key_chain_cancel_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('ds4_key_chain_cancel'))
+        for action, card in self._ds4_cards.items():
+            card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'ds4_key_{action.value.value}'))
 
-        self.ds4_key_press_time_opt.setVisible(is_ds4)
-        self.ds4_key_normal_attack_opt.setVisible(is_ds4)
-        self.ds4_key_dodge_opt.setVisible(is_ds4)
-        self.ds4_key_switch_next_opt.setVisible(is_ds4)
-        self.ds4_key_switch_prev_opt.setVisible(is_ds4)
-        self.ds4_key_special_attack_opt.setVisible(is_ds4)
-        self.ds4_key_ultimate_opt.setVisible(is_ds4)
-        self.ds4_key_interact_opt.setVisible(is_ds4)
-        self.ds4_key_chain_left_opt.setVisible(is_ds4)
-        self.ds4_key_chain_right_opt.setVisible(is_ds4)
-        self.ds4_key_move_w_opt.setVisible(is_ds4)
-        self.ds4_key_move_s_opt.setVisible(is_ds4)
-        self.ds4_key_move_a_opt.setVisible(is_ds4)
-        self.ds4_key_move_d_opt.setVisible(is_ds4)
-        self.ds4_key_lock_opt.setVisible(is_ds4)
-        self.ds4_key_chain_cancel_opt.setVisible(is_ds4)
+    def _toggle_gamepad_cards(self, index: int) -> None:
+        """根据头部下拉框切换 Xbox/DS4 卡片可见性"""
+        is_xbox = index == 0
 
-    def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
-        self._update_gamepad_part()
+        self.xbox_key_press_time_opt.setVisible(is_xbox)
+        for card in self._xbox_cards.values():
+            card.setVisible(is_xbox)
+
+        self.ds4_key_press_time_opt.setVisible(not is_xbox)
+        for card in self._ds4_cards.values():
+            card.setVisible(not is_xbox)
+
+    def _toggle_action_cards(self) -> None:
+        """根据配置切换 Xbox/DS4 动作键卡片可见性。"""
+        is_xbox = self.ctx.game_config.background_gamepad_type == GamepadTypeEnum.XBOX.value.value
+        for card in self._xbox_action_cards.values():
+            card.setVisible(is_xbox)
+        for card in self._ds4_action_cards.values():
+            card.setVisible(not is_xbox)
+
+    def _on_background_mode_changed(self, value: bool) -> None:
+        """后台模式开关变更时检查 vgamepad 是否可用。"""
+        if value and not pc_button_utils.is_vgamepad_installed():
+            self.background_mode_switch.setValue(False, emit_signal=False)
+            self.ctx.game_config.background_mode = False
+            InfoBar.warning(
+                title='后台模式不可用',
+                content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
+                parent=self, duration=5000,
+            )
+
+    def _on_control_method_changed(self, _index: int, value: str) -> None:
+        """操控方式变更时检查 vgamepad 是否可用。"""
+        if value != ControlMethodEnum.KEYBOARD.value.value and not pc_button_utils.is_vgamepad_installed():
+            self.control_method_opt.setValue(ControlMethodEnum.KEYBOARD.value.value, emit_signal=False)
+            self.ctx.game_config.control_method = ControlMethodEnum.KEYBOARD.value.value
+            InfoBar.warning(
+                title='手柄操控不可用',
+                content='未检测到 vgamepad / ViGEmBus，请先安装虚拟手柄驱动',
+                parent=self, duration=5000,
+            )
 
     def _on_hdr_enable_clicked(self) -> None:
         self.hdr_btn_enable.setEnabled(False)
@@ -375,18 +321,3 @@ class SettingGameInterface(VerticalScrollInterface):
         self.hdr_btn_enable.setEnabled(True)
         cmd_utils.run_command(['reg', 'add', 'HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences',
                                '/v', self.ctx.game_account_config.game_path, '/d', 'AutoHDREnable=2096;', '/f'])
-
-    def _update_launch_argument_part(self) -> None:
-        """
-        启动参数部分更新显示
-        :return:
-        """
-        value = self.ctx.game_config.launch_argument
-        self.screen_size_opt.setVisible(value)
-        self.full_screen_opt.setVisible(value)
-        self.popup_window_switch.setVisible(value)
-        self.monitor_opt.setVisible(value)
-        self.launch_argument_advance.setVisible(value)
-
-    def _on_launch_argument_switch_changed(self) -> None:
-        self._update_launch_argument_part()

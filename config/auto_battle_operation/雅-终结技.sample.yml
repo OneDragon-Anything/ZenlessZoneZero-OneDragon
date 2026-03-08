@@ -1,6 +1,5 @@
-# 根据动画实测
+# 根据动画实测，动画持续4.5秒
 operations:
-  # 终结技实测动作无敌时间为4.5秒
   - op_name: "设置状态"
     state: "自定义-失衡时间"
     seconds_add: -1
@@ -10,9 +9,14 @@ operations:
   - op_name: "按键-终结技"
     post_delay: 0.1
     repeat: 20
+  - op_name: "按键-切换角色"
+    agent_name: "雅"
+  - op_name: "按键-终结技"
+    post_delay: 0.1
+    repeat: 15
   # 一次终结技可以打出3090点烈霜
   - op_name: "设置状态"
     state: "自定义-异常-烈霜"
     add: 309
   - op_name: "等待秒数"
-    seconds: 2.5
+    seconds: 1

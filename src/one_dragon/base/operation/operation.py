@@ -1008,7 +1008,7 @@ class Operation(OperationBase):
         else:
             to_click = area.center
         time.sleep(pre_delay)
-        click = self.ctx.controller.click(pos=to_click, pc_alt=area.pc_alt)
+        click = self.ctx.controller.click(pos=to_click, pc_alt=area.pc_alt, gamepad_key=area.gamepad_key)
         if click:
             self.update_screen_after_operation(screen_name, area_name)
             return self.round_success(status=area_name, wait=success_wait, wait_round_time=success_wait_round)
@@ -1161,6 +1161,7 @@ class Operation(OperationBase):
         target_action_list: list[tuple[str, OperationRoundResultEnum]],
         screen: MatLike | None = None,
         area: ScreenArea | None = None,
+        pre_delay: float = 0.3,
         success_wait: float | None = None,
         success_wait_round: float | None = None,
         wait_wait: float | None = None,
@@ -1181,6 +1182,7 @@ class Operation(OperationBase):
             screen: 游戏截图。默认为None（使用 last_screenshot）。
             area: 要搜索的目标区域。默认为None（搜索整个屏幕）。
             crop_first: 在传入区域时 是否先裁剪再进行文本识别。默认为True。
+            pre_delay: 点击前等待时间（秒）。默认为0.3秒。
             success_wait: 匹配到 SUCCESS 动作后等待时间（秒）。默认为None。
             success_wait_round: 匹配到 SUCCESS 动作后等待直到轮次时间达到此值。默认为None。
             wait_wait: 匹配到 WAIT 动作后等待时间（秒）。默认为None。
@@ -1220,6 +1222,7 @@ class Operation(OperationBase):
             if offset is not None:
                 to_click = to_click + offset
 
+            time.sleep(pre_delay)
             self.ctx.controller.click(to_click)
 
             action = action_map.get(match_word, OperationRoundResultEnum.SUCCESS)

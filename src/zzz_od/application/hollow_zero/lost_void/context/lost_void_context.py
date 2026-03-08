@@ -518,6 +518,16 @@ class LostVoidContext:
 
             return LostVoidArtifact(category=category, name=raw_name, level='?'), True
 
+        # 卡牌界面常见主标题样式：`「xxx」yyy`
+        # 该结构应视为主选名称，而不是无详情说明文本。
+        quote_match = re.match(r'^「(.+?)」\s*(.+)$', text)
+        if quote_match is not None:
+            title = quote_match.group(1).strip()
+            suffix = quote_match.group(2).strip()
+            if len(title) > 0:
+                name = f'{title} {suffix}'.strip() if len(suffix) > 0 else title
+                return LostVoidArtifact(category='卡牌', name=name, level='?'), True
+
         # 没有[]结构，归为次选，直接保留原文。
         return LostVoidArtifact(category='无详情', name=text, level='?'), False
 

@@ -6,7 +6,7 @@ area_list:
   id_mark: false
   pc_rect:
   - 708
-  - 118
+  - 100
   - 1636
   - 178
   text: 训练
@@ -21,7 +21,7 @@ area_list:
   id_mark: false
   pc_rect:
   - 708
-  - 118
+  - 100
   - 1636
   - 178
   text: 目标
@@ -36,7 +36,7 @@ area_list:
   id_mark: true
   pc_rect:
   - 708
-  - 118
+  - 100
   - 1636
   - 178
   text: 日常
@@ -57,7 +57,7 @@ area_list:
   id_mark: false
   pc_rect:
   - 708
-  - 118
+  - 100
   - 1636
   - 178
   text: 作战
@@ -72,7 +72,7 @@ area_list:
   id_mark: false
   pc_rect:
   - 708
-  - 118
+  - 100
   - 1636
   - 178
   text: 战术

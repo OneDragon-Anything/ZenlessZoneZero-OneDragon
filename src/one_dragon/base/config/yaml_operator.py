@@ -4,6 +4,7 @@ from typing import Optional
 
 import yaml
 
+from one_dragon.utils import yaml_utils
 from one_dragon.utils.log_utils import log
 
 cached_yaml_data: dict[str, tuple[float, dict]] = {}
@@ -28,7 +29,7 @@ def read_cache_or_load(file_path: str):
 
     with open(file_path, 'r', encoding='utf-8') as file:
         log.debug(f"加载yaml: {file_path}")
-        data = yaml.safe_load(file)
+        data = yaml_utils.safe_load(file)
         cached_yaml_data[file_path] = (last_modify, data)
         return data
 
