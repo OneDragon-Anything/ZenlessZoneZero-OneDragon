@@ -355,10 +355,10 @@ class LostVoidApp(ZApplication):
             rect=area.rect,
         )
 
-        # 先点击UP代理人
+        # 先点击UP代理人, 或者第一个60 (有时候up识别会不成功, up代理人会在第一个位置所以也可以点击第一个60)
         clicked = False
         for ocr_text in ocr_result_list:
-            if 'up' in ocr_text.data.lower() and ocr_text.center.x < self.ctx.controller.standard_width // 2:
+            if ocr_text.data.lower() in ['up', '60'] and ocr_text.center.x < self.ctx.controller.standard_width // 2:
                 self.ctx.controller.click(ocr_text.center)
                 clicked = True
                 break
