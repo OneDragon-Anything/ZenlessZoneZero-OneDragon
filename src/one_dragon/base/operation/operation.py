@@ -1029,6 +1029,7 @@ class Operation(OperationBase):
         color_range: list[list[int]] | None = None,
         offset: Point | None = None,
         crop_first: bool = True,
+        remove_whitespace: bool = False,
     ) -> OperationRoundResult:
         """使用OCR在区域内查找目标文本并点击。
 
@@ -1045,6 +1046,7 @@ class Operation(OperationBase):
             retry_wait_round: 失败后等待直到轮次时间达到此值，如果设置了retry_wait则忽略。默认为None。
             color_range: 文本匹配的颜色范围。默认为None。
             offset: 点击位置的偏移量。默认为None。
+            remove_whitespace: 文本匹配前是否清洗空白字符。默认为False。
 
         Returns:
             OperationRoundResult: 点击结果。
@@ -1057,6 +1059,15 @@ class Operation(OperationBase):
             color_range=color_range,
             crop_first=crop_first,
         )
+        if remove_whitespace:
+            # 移除空白字符，提升文本匹配兼容性
+            target_cn = str_utils.remove_whitespace(target_cn)
+            # 清理OCR结果字典的键：移除所有键中的空白字符
+            # 若清理后出现重复键，后遍历到的键值对会覆盖先遍历到的
+            ocr_result_map = {
+                str_utils.remove_whitespace(key): val
+                for key, val in ocr_result_map.items()
+            }
 
         to_click: Point | None = None
         ocr_result_list: list[str] = []
