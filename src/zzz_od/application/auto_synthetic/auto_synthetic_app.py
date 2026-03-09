@@ -5,10 +5,10 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
-from . import auto_synthetic_const
-from .auto_synthetic_config import AutoSyntheticConfig
-from .operations.ether_battery_synthesis_op import EtherBatterySynthesisOp
-from .operations.hifi_master_synthesis_op import HifiMasterSynthesisOp
+from zzz_od.application.auto_synthetic import auto_synthetic_const
+from zzz_od.application.auto_synthetic.auto_synthetic_config import AutoSyntheticConfig
+from zzz_od.application.auto_synthetic.operations.ether_battery_synthesis_op import EtherBatterySynthesisOp
+from zzz_od.application.auto_synthetic.operations.hifi_master_synthesis_op import HifiMasterSynthesisOp
 
 
 class Task:
@@ -50,7 +50,7 @@ class AutoSyntheticApp(ZApplication):
             return self.round_success(status='无需合成')
 
         self.current_task_index = 0
-        return self._execute_current_task()
+        return self._execute_all_tasks()
 
     def _build_tasks(self) -> None:
         """根据配置构建任务列表"""
@@ -68,31 +68,25 @@ class AutoSyntheticApp(ZApplication):
                 operation_class=EtherBatterySynthesisOp
             ))
 
-    def _execute_current_task(self) -> OperationRoundResult:
-        """执行当前任务"""
-        if self.current_task_index >= len(self.tasks):
-            return self.round_success(status='全部完成')
+    def _execute_all_tasks(self) -> OperationRoundResult:
+        """执行所有任务"""
+        while self.current_task_index < len(self.tasks):
+            task = self.tasks[self.current_task_index]
 
-        task = self.tasks[self.current_task_index]
+            # 创建并执行操作
+            if task.name == self.TASK_ETHER_BATTERY:
+                op = task.operation_class(self.ctx, self.config)
+            else:
+                op = task.operation_class(self.ctx)
 
-        # 创建并执行操作
-        if task.name == self.TASK_ETHER_BATTERY:
-            op = task.operation_class(self.ctx, self.config)
-        else:
-            op = task.operation_class(self.ctx)
+            result = op.execute()
+            task.result = result
 
-        result = op.execute()
-        task.result = result
+            # 移动到下一个任务
+            self.current_task_index += 1
 
-        # 移动到下一个任务
-        self.current_task_index += 1
-
-        # 返回下一个任务的状态
-        if self.current_task_index < len(self.tasks):
-            next_task = self.tasks[self.current_task_index]
-            return self.round_success(status=f'执行{next_task.name}')
-        else:
-            return self.round_success(status='全部完成')
+        # 所有任务执行完毕
+        return self.round_success(status='全部完成')
 
     @node_from(from_name='检查配置', status='全部完成')
     @node_from(from_name='检查配置', status='无需合成')
