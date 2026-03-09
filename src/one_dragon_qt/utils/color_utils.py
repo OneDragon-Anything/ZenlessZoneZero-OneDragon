@@ -2,7 +2,9 @@
 Qt颜色处理工具类
 提供Qt GUI相关的颜色计算、转换等功能
 """
+import math
 from PySide6.QtGui import QColor
+from qfluentwidgets import isDarkTheme
 
 
 class ColorUtils:
@@ -173,3 +175,87 @@ class ColorUtils:
         
         limited_color = QColor.fromHsvF(h, s, v, 1.0)
         return limited_color.red(), limited_color.green(), limited_color.blue()
+    
+    @staticmethod
+    def extract_theme_color_from_image_hue(image, samples_per_axis: int = 100) -> tuple[int, int, int]:
+        """
+        从图片提取主题色 - 基于色相采样的新算法
+        
+        通过分析整张图片的色相分布，按饱和度×明度加权计算主色调
+        
+        Args:
+            image: QImage对象
+            samples_per_axis: 每个方向的采样数，默认100
+            
+        Returns:
+            Tuple[int, int, int]: RGB主题色
+        """
+        if image is None or image.isNull():
+            return 64, 158, 255  # 默认蓝色
+            
+        width, height = image.width(), image.height()
+        if width <= 0 or height <= 0:
+            return 64, 158, 255
+
+        if samples_per_axis <= 0:
+            return 64, 158, 255
+
+        if not hasattr(image, "pixelColor"):
+            return 64, 158, 255
+
+        step_x = max(1, width // samples_per_axis)
+        step_y = max(1, height // samples_per_axis)
+
+        weight_acc = 0.0
+        sum_cos = 0.0
+        sum_sin = 0.0
+
+        # 遍历采样点，累积以饱和度×明度作为权重
+        for yy in range(0, height, step_y):
+            for xx in range(0, width, step_x):
+                try:
+                    c = image.pixelColor(xx, yy)
+                    if not c.isValid():
+                        continue
+                        
+                    # 转换为HSV
+                    hue, s, v, _a = c.getHsvF()
+                    
+                    # 跳过灰阶或无效颜色
+                    if hue < 0 or s < 0.05 or v < 0.1:
+                        continue
+                    
+                    # 权重：饱和度×明度
+                    weight = s * v
+                    angle = hue * math.tau  # 2π
+                    sum_cos += math.cos(angle) * weight
+                    sum_sin += math.sin(angle) * weight
+                    weight_acc += weight
+                    
+                except Exception:
+                    # 读取像素失败，跳过
+                    continue
+
+        if weight_acc == 0.0:
+            return 64, 158, 255  # 回退默认蓝色
+
+        # 计算加权平均色相
+        hue_vector = (sum_cos**2 + sum_sin**2)**0.5
+        if hue_vector < 1e-6:
+            return 64, 158, 255  # 回退默认蓝色
+            
+        hue_mean = math.degrees(math.atan2(sum_sin, sum_cos)) % 360.0
+
+        # 根据主题选择饱和度和亮度
+        is_dark = isDarkTheme()
+        
+        if is_dark:
+            s_val = 220
+            l_val = 160
+        else:
+            s_val = 200
+            l_val = 140
+
+        # HSL转RGB
+        theme_color = QColor.fromHsl(int(hue_mean) % 360, s_val, l_val)
+        return theme_color.red(), theme_color.green(), theme_color.blue()
