@@ -1,5 +1,6 @@
 import contextlib
 import ctypes
+import threading
 import time
 from functools import lru_cache
 
@@ -36,6 +37,10 @@ class PcControllerBase(ControllerBase):
     MOUSEEVENTF_LEFTDOWN = 0x0002
     MOUSEEVENTF_LEFTUP = 0x0004
 
+    SWP_NOSIZE = 0x0001
+    SWP_NOZORDER = 0x0004
+    SWP_NOACTIVATE = 0x0010
+
     def __init__(self,
                  screenshot_method: str,
                  standard_width: int = 1920,
@@ -53,9 +58,20 @@ class PcControllerBase(ControllerBase):
         self.screenshot_controller: PcScreenshotController = PcScreenshotController(self.game_win, standard_width, standard_height)
         self.screenshot_method: str = screenshot_method
         self.background_mode: bool = False
+        self.win_follow: bool = False
         self.mouse_flash_duration: float = 0.05  # 闪切键鼠模式时每步等待时长
         self.gamepad_action_keys: dict[str, list[str]] = {}
         self._game_input_mode: str = 'keyboard_mouse'  # 游戏当前识别的输入设备
+
+        # 窗口追踪模式: 鼠标跟踪线程
+        self._mouse_tracker_running: bool = False
+        self._mouse_tracker_lock: threading.Lock = threading.Lock()
+        self._mouse_tracker_paused: threading.Event = threading.Event()
+        self._mouse_tracker_paused.set()  # 初始不暂停
+        self._mouse_tracker_thread: threading.Thread | None = None
+        self._original_win_pos: tuple[int, int] | None = None
+        # 跟踪锚点：始终是窗口客户区内的一个点，线程会把它黏在鼠标位置
+        self._tracker_client_anchor: tuple[int, int] = (self.standard_width // 2, self.standard_height // 2)
 
     def init_game_win(self) -> bool:
         """
@@ -81,6 +97,7 @@ class PcControllerBase(ControllerBase):
         """
         清理资源
         """
+        self._stop_mouse_tracker()
         self.btn_controller.reset()
         self.screenshot_controller.cleanup()
 
@@ -165,6 +182,7 @@ class PcControllerBase(ControllerBase):
         - 鼠标点击 → pyautogui
         - 按键操作 → 键盘 (pynput)
         """
+        self._stop_mouse_tracker()
         self.background_mode = False
         self._game_input_mode = 'keyboard_mouse'
         self.enable_keyboard()
@@ -195,6 +213,9 @@ class PcControllerBase(ControllerBase):
         else:
             self.enable_xbox()
             log.info('已启用后台模式: PostMessage 点击 + Xbox 手柄')
+
+        if self.win_follow:
+            self._start_mouse_tracker()
 
     def _ensure_mouse_mode(self) -> bool:
         """确保游戏处于键鼠输入模式。
@@ -269,6 +290,98 @@ class PcControllerBase(ControllerBase):
         screen_x, screen_y = win32gui.ClientToScreen(hwnd, (cx, cy))
         win32api.SetCursorPos((screen_x, screen_y))
 
+    def _move_window_client_to_cursor(self, hwnd: int, cx: int, cy: int,
+                                      cursor_x: int, cursor_y: int) -> None:
+        """移动窗口使客户区坐标 (cx, cy) 对齐到屏幕坐标 (cursor_x, cursor_y)。"""
+        win_rect = win32gui.GetWindowRect(hwnd)
+        client_origin = win32gui.ClientToScreen(hwnd, (0, 0))
+        border_left = client_origin[0] - win_rect[0]
+        border_top = client_origin[1] - win_rect[1]
+
+        new_x = cursor_x - cx - border_left
+        new_y = cursor_y - cy - border_top
+
+        win32gui.SetWindowPos(
+            hwnd, 0, new_x, new_y, 0, 0,
+            self.SWP_NOSIZE | self.SWP_NOZORDER | self.SWP_NOACTIVATE,
+        )
+
+    def _get_default_tracker_anchor(self) -> tuple[int, int]:
+        """获取默认锚点（窗口中心）。"""
+        rect = self.game_win.win_rect
+        if rect is None:
+            return self.standard_width // 2, self.standard_height // 2
+        return rect.width // 2, rect.height // 2
+
+    def _set_tracker_anchor(self, anchor: tuple[int, int]) -> None:
+        with self._mouse_tracker_lock:
+            self._tracker_client_anchor = anchor
+
+    def _reset_tracker_anchor(self) -> None:
+        self._set_tracker_anchor(self._get_default_tracker_anchor())
+
+    def _get_tracker_anchor(self) -> tuple[int, int]:
+        with self._mouse_tracker_lock:
+            return self._tracker_client_anchor
+
+    def _align_tracker_anchor_to_cursor(self, hwnd: int) -> None:
+        """立即将当前锚点对齐到鼠标位置。"""
+        cursor_x, cursor_y = win32api.GetCursorPos()
+        ax, ay = self._get_tracker_anchor()
+        self._move_window_client_to_cursor(hwnd, ax, ay, cursor_x, cursor_y)
+
+    def _start_mouse_tracker(self) -> None:
+        """启动鼠标跟踪线程，持续将锚点置于鼠标位置。"""
+        if self._mouse_tracker_running:
+            return
+        hwnd = self.game_win.get_hwnd()
+        if hwnd:
+            rect = win32gui.GetWindowRect(hwnd)
+            self._original_win_pos = (rect[0], rect[1])
+        self._reset_tracker_anchor()
+        self._mouse_tracker_running = True
+        self._mouse_tracker_paused.set()
+        self._mouse_tracker_thread = threading.Thread(
+            target=self._mouse_tracker_loop, daemon=True, name='aggressive_bg_tracker',
+        )
+        self._mouse_tracker_thread.start()
+        log.info('窗口追踪模式: 鼠标跟踪线程已启动')
+
+    def _stop_mouse_tracker(self) -> None:
+        """停止鼠标跟踪线程并恢复窗口位置。"""
+        if not self._mouse_tracker_running:
+            return
+        self._mouse_tracker_running = False
+        self._mouse_tracker_paused.set()  # 确保线程不阻塞
+        if self._mouse_tracker_thread is not None:
+            self._mouse_tracker_thread.join(timeout=2)
+            self._mouse_tracker_thread = None
+        # 恢复原始窗口位置
+        if self._original_win_pos is not None:
+            hwnd = self.game_win.get_hwnd()
+            if hwnd:
+                win32gui.SetWindowPos(
+                    hwnd, 0,
+                    self._original_win_pos[0], self._original_win_pos[1], 0, 0,
+                    self.SWP_NOSIZE | self.SWP_NOZORDER | self.SWP_NOACTIVATE,
+                )
+            self._original_win_pos = None
+        log.info('窗口追踪模式: 鼠标跟踪线程已停止')
+
+    def _mouse_tracker_loop(self) -> None:
+        """跟踪线程主循环: 持续将窗口锚点移动到鼠标位置。"""
+        while self._mouse_tracker_running:
+            self._mouse_tracker_paused.wait()
+            if not self._mouse_tracker_running:
+                break
+            try:
+                hwnd = self.game_win.get_hwnd()
+                if hwnd:
+                    self._align_tracker_anchor_to_cursor(hwnd)
+            except Exception:
+                pass
+            time.sleep(0.016)
+
     def click(self, pos: Point = None, press_time: float = 0, pc_alt: bool = False, gamepad_key: str | None = None) -> bool:
         """点击位置。
 
@@ -284,6 +397,8 @@ class PcControllerBase(ControllerBase):
         if self.background_mode:
             if gamepad_key:
                 return self._gamepad_click(gamepad_key)
+            if self.win_follow:
+                return self._win_follow_click(pos, press_time)
             return self._background_click(pos, press_time)
 
         return self._foreground_click(pos, press_time, pc_alt)
@@ -394,6 +509,125 @@ class PcControllerBase(ControllerBase):
             log.error('后台点击失败', exc_info=True)
             return False
 
+    def _win_follow_click(self, pos: Point | None, press_time: float = 0) -> bool:
+        """窗口追踪点击: 移动窗口使目标位置对齐鼠标光标，再 PostMessage 点击。
+
+        与 _background_click 的区别: 不移动鼠标光标，而是移动窗口到光标处。
+
+        Args:
+            pos: 游戏中的位置 (x,y)，None 时使用窗口中心
+            press_time: 大于0时长按
+
+        Returns:
+            是否成功
+        """
+        self._mouse_tracker_paused.clear()  # 暂停跟踪线程，避免与点击流程争用窗口移动
+        try:
+            if not self._ensure_mouse_mode():
+                log.error('无法切到键鼠模式，窗口追踪点击失败')
+                return False
+
+            hwnd = self.game_win.get_hwnd()
+            if hwnd is None:
+                log.error('游戏窗口未就绪，无法窗口追踪点击')
+                return False
+
+            if pos is not None:
+                scaled_pos = self.game_win.get_scaled_game_pos(pos)
+                if scaled_pos is None:
+                    log.error('点击非游戏窗口区域 (%s)', pos)
+                    return False
+                cx, cy = int(scaled_pos.x), int(scaled_pos.y)
+            else:
+                rect = self.game_win.win_rect
+                if rect is None:
+                    return False
+                cx, cy = rect.width // 2, rect.height // 2
+
+            # 将锚点切换到目标点并立即对齐，保证点击坐标与鼠标对齐
+            self._set_tracker_anchor((cx, cy))
+            self._align_tracker_anchor_to_cursor(hwnd)
+
+            win32gui.SendMessage(hwnd, win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
+            time.sleep(0.01)
+
+            lparam = win32api.MAKELONG(cx, cy)
+            win32gui.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, lparam)
+            if press_time > 0:
+                time.sleep(press_time)
+            else:
+                time.sleep(0.02)
+
+            win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, lparam)
+            return True
+        except Exception:
+            log.error('窗口追踪点击失败', exc_info=True)
+            return False
+        finally:
+            self._reset_tracker_anchor()  # 恢复默认中心锚点
+            self._mouse_tracker_paused.set()
+
+    def _win_follow_drag(self, start: Point, end: Point, duration: float = 0.5) -> None:
+        """窗口追踪拖拽: 移动窗口模拟光标在客户区内的移动。
+
+        Args:
+            start: 拖拽起点（游戏坐标）
+            end: 拖拽终点（游戏坐标）
+            duration: 拖拽持续时间
+        """
+        self._mouse_tracker_paused.clear()  # 暂停跟踪线程，拖拽由本流程驱动锚点
+        try:
+            if not self._ensure_mouse_mode():
+                log.error('无法切到键鼠模式，窗口追踪拖拽失败')
+                return
+
+            hwnd = self.game_win.get_hwnd()
+            if hwnd is None:
+                log.error('游戏窗口未就绪，无法窗口追踪拖拽')
+                return
+
+            scaled_start = self.game_win.get_scaled_game_pos(start)
+            if scaled_start is None:
+                log.error('拖拽起点不在游戏窗口区域 (%s)', start)
+                return
+            sx, sy = int(scaled_start.x), int(scaled_start.y)
+
+            scaled_end = self.game_win.get_scaled_game_pos(end)
+            if scaled_end is None:
+                log.error('拖拽终点不在游戏窗口区域 (%s)', end)
+                return
+            ex, ey = int(scaled_end.x), int(scaled_end.y)
+
+            # 先把起点锚点对齐到鼠标
+            self._set_tracker_anchor((sx, sy))
+            self._align_tracker_anchor_to_cursor(hwnd)
+
+            win32gui.SendMessage(hwnd, win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
+            time.sleep(0.01)
+            start_lparam = win32api.MAKELONG(sx, sy)
+            win32gui.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, start_lparam)
+            time.sleep(0.02)
+
+            # 拖拽过程中逐步移动锚点并同步窗口，确保轨迹稳定
+            steps = max(int(duration / 0.02), 5)
+            for i in range(1, steps + 1):
+                t = i / steps
+                ix = int(sx + (ex - sx) * t)
+                iy = int(sy + (ey - sy) * t)
+                self._set_tracker_anchor((ix, iy))
+                self._align_tracker_anchor_to_cursor(hwnd)
+                move_lparam = win32api.MAKELONG(ix, iy)
+                win32gui.PostMessage(hwnd, win32con.WM_MOUSEMOVE, win32con.MK_LBUTTON, move_lparam)
+                time.sleep(duration / steps)
+
+            end_lparam = win32api.MAKELONG(ex, ey)
+            win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, end_lparam)
+        except Exception:
+            log.error('窗口追踪拖拽失败', exc_info=True)
+        finally:
+            self._reset_tracker_anchor()
+            self._mouse_tracker_paused.set()
+
     def drag_to(self, start: Point, end: Point, duration: float = 0.5) -> None:
         """按住拖拽。
 
@@ -403,6 +637,8 @@ class PcControllerBase(ControllerBase):
             duration: 拖拽持续时间
         """
         if self.background_mode:
+            if self.win_follow:
+                return self._win_follow_drag(start, end, duration)
             return self._background_drag(start, end, duration)
 
         return self._foreground_drag(start, end, duration)

@@ -114,6 +114,12 @@ class SettingGameInterface(VerticalScrollInterface):
         )
         background_group.addSettingCard(self.mouse_flash_duration_opt)
 
+        self.win_follow_switch = SwitchSettingCard(
+            icon=FluentIcon.SPEED_HIGH, title='窗口追踪模式',
+            content='点击时移动窗口到鼠标位置而非移动鼠标。另起线程跟踪鼠标，将窗口始终置于鼠标处。',
+        )
+        background_group.addSettingCard(self.win_follow_switch)
+
         # Xbox 动作键卡片
         self._xbox_action_cards: dict[str, GamepadActionKeyCard] = {}
         for action in GamepadActionEnum:
@@ -242,6 +248,7 @@ class SettingGameInterface(VerticalScrollInterface):
         self.background_mode_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_mode'))
         self.background_gamepad_type_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('background_gamepad_type'))
         self.mouse_flash_duration_opt.init_with_adapter(self.ctx.game_config.get_prop_adapter('mouse_flash_duration'))
+        self.win_follow_switch.init_with_adapter(self.ctx.game_config.get_prop_adapter('win_follow'))
         for action_name, card in self._xbox_action_cards.items():
             card.init_with_adapter(self.ctx.game_config.get_prop_adapter(f'xbox_action_{action_name}'))
         for action_name, card in self._ds4_action_cards.items():
