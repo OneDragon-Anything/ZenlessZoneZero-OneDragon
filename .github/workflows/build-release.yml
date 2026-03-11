@@ -245,6 +245,38 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: python tools/ci/prepare_release_assets.py --release-version "$env:RELEASE_VERSION"
 
+    - name: Generate runtime update assets
+      shell: pwsh
+      env:
+        RELEASE_VERSION: ${{ needs.version.outputs.version }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        S3_PUBLIC_BASE_URL: ${{ vars.RUNTIME_UPDATE_S3_PUBLIC_BASE_URL }}
+      run: |
+        python tools/ci/generate_runtime_update_assets.py `
+          --release-version "$env:RELEASE_VERSION" `
+          --s3-public-base-url "$env:S3_PUBLIC_BASE_URL"
+
+    - name: Install AWS CLI
+      if: ${{ vars.RUNTIME_UPDATE_S3_BUCKET != '' && secrets.RUNTIME_UPDATE_S3_ACCESS_KEY_ID != '' && secrets.RUNTIME_UPDATE_S3_SECRET_ACCESS_KEY != '' }}
+      shell: pwsh
+      run: python -m pip install awscli
+
+    - name: Upload runtime update assets to S3
+      if: ${{ vars.RUNTIME_UPDATE_S3_BUCKET != '' && secrets.RUNTIME_UPDATE_S3_ACCESS_KEY_ID != '' && secrets.RUNTIME_UPDATE_S3_SECRET_ACCESS_KEY != '' }}
+      shell: pwsh
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.RUNTIME_UPDATE_S3_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.RUNTIME_UPDATE_S3_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ vars.RUNTIME_UPDATE_S3_REGION }}
+        S3_BUCKET: ${{ vars.RUNTIME_UPDATE_S3_BUCKET }}
+        S3_ENDPOINT: ${{ vars.RUNTIME_UPDATE_S3_ENDPOINT }}
+      run: |
+        $endpointArg = ""
+        if ($env:S3_ENDPOINT) {
+          $endpointArg = "--endpoint-url `"$env:S3_ENDPOINT`""
+        }
+        Invoke-Expression "aws s3 sync runtime_update_assets `"s3://$env:S3_BUCKET`" $endpointArg"
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
@@ -290,6 +322,8 @@ jobs:
           ZenlessZoneZero-OneDragon-Environment.zip
           ZenlessZoneZero-OneDragon-Launcher.zip
           ZenlessZoneZero-OneDragon-RuntimeLauncher.zip
+          ZenlessZoneZero-OneDragon-RuntimeLauncher-Update-Latest.json
+          ZenlessZoneZero-OneDragon-RuntimeLauncher-diff-from-*.zip
         generate_release_notes: false
         prerelease: ${{ contains(needs.version.outputs.version, '-beta.') }}
       env:
