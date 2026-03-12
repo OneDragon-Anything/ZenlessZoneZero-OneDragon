@@ -82,6 +82,10 @@ class RuntimeUpdateService:
     def state_file_path(self) -> Path:
         return self.work_dir / RUNTIME_UPDATE_STATE
 
+    @property
+    def debug_runtime_update_dir(self) -> Path:
+        return Path(os_utils.get_path_under_work_dir(".debug", "runtime_update"))
+
     def get_current_version(self) -> str:
         if not self.current_exe_path.exists():
             return ""
@@ -124,7 +128,7 @@ class RuntimeUpdateService:
         stage_root = self.work_dir / ".update_staging" / f"{target_version}_{selected_source}"
         extract_dir = stage_root / "extract"
         backup_dir = self.work_dir / ".update_backup"
-        log_dir = self.work_dir / ".update_logs"
+        log_dir = self.debug_runtime_update_dir
         script_path = stage_root / "apply_runtime_update.ps1"
         package_name = (
             f"{selected_kind}-{selected_source}-{target_version}.zip"
@@ -471,20 +475,22 @@ class RuntimeUpdateService:
             {failed_state_json}
             '@
 
-            function Write-Log([string]$Message) {{
+            function WriteLog {{
+                param([string]$Message)
                 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                Add-Content -Path $LogPath -Value "[$timestamp] $Message"
+                Add-Content -Path $LogPath -Value "[$timestamp] $Message" -Encoding UTF8
             }}
 
-            function Remove-IfExists([string]$Path) {{
+            function RemoveIfExists {{
+                param([string]$Path)
                 if (Test-Path -LiteralPath $Path) {{
                     Remove-Item -LiteralPath $Path -Recurse -Force
                 }}
             }}
 
-            function Restore-Backup() {{
-                Write-Log '开始回滚 RuntimeLauncher'
-                Remove-IfExists (Join-Path $TargetDir '{RUNTIME_DIR_NAME}')
+            function RestoreBackup {{
+                WriteLog '开始回滚 RuntimeLauncher'
+                RemoveIfExists (Join-Path $TargetDir '{RUNTIME_DIR_NAME}')
                 if (Test-Path -LiteralPath (Join-Path $BackupDir '{RUNTIME_DIR_NAME}')) {{
                     Copy-Item -LiteralPath (Join-Path $BackupDir '{RUNTIME_DIR_NAME}') -Destination (Join-Path $TargetDir '{RUNTIME_DIR_NAME}') -Recurse -Force
                 }}
@@ -493,15 +499,15 @@ class RuntimeUpdateService:
                 }}
             }}
 
-            function Apply-Full() {{
-                Write-Log '应用全量更新包'
-                Remove-IfExists (Join-Path $TargetDir '{RUNTIME_DIR_NAME}')
+            function ApplyFullImpl {{
+                WriteLog '应用全量更新包'
+                RemoveIfExists (Join-Path $TargetDir '{RUNTIME_DIR_NAME}')
                 Copy-Item -LiteralPath (Join-Path $ExtractDir '{RUNTIME_DIR_NAME}') -Destination (Join-Path $TargetDir '{RUNTIME_DIR_NAME}') -Recurse -Force
                 Copy-Item -LiteralPath (Join-Path $ExtractDir '{RUNTIME_LAUNCHER_EXE}') -Destination (Join-Path $TargetDir '{RUNTIME_LAUNCHER_EXE}') -Force
             }}
 
-            function Apply-Diff() {{
-                Write-Log '应用增量更新包'
+            function ApplyDiffImpl {{
+                WriteLog '应用增量更新包'
                 $changes = ConvertFrom-Json -InputObject $ChangesJson
                 if (-not (Test-Path -LiteralPath (Join-Path $TargetDir '{RUNTIME_DIR_NAME}'))) {{
                     New-Item -ItemType Directory -Path (Join-Path $TargetDir '{RUNTIME_DIR_NAME}') -Force | Out-Null
@@ -514,7 +520,7 @@ class RuntimeUpdateService:
                 }}
                 foreach ($rel in $changes.deleted) {{
                     $deletePath = Join-Path $TargetDir $rel
-                    Remove-IfExists $deletePath
+                    RemoveIfExists $deletePath
                 }}
             }}
 
@@ -525,7 +531,7 @@ class RuntimeUpdateService:
                     Start-Sleep -Milliseconds 300
                 }}
 
-                Remove-IfExists $BackupDir
+                RemoveIfExists $BackupDir
                 New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
 
                 if (Test-Path -LiteralPath (Join-Path $TargetDir '{RUNTIME_LAUNCHER_EXE}')) {{
@@ -536,22 +542,24 @@ class RuntimeUpdateService:
                 }}
 
                 if ($UpdateKind -eq 'diff') {{
-                    Apply-Diff
+                    WriteLog '准备执行增量更新'
+                    ApplyDiffImpl
                 }} else {{
-                    Apply-Full
+                    WriteLog '准备执行全量更新'
+                    ApplyFullImpl
                 }}
 
                 Set-Content -Path $StatePath -Value $StateJson -Encoding UTF8
                 Start-Process -FilePath (Join-Path $TargetDir '{RUNTIME_LAUNCHER_EXE}')
-                Remove-IfExists $BackupDir
-                Remove-IfExists $ExtractDir
-                Write-Log 'RuntimeLauncher 更新完成'
+                RemoveIfExists $BackupDir
+                RemoveIfExists $ExtractDir
+                WriteLog 'RuntimeLauncher 更新完成'
             }} catch {{
-                Write-Log ("更新失败: " + $_.Exception.Message)
+                WriteLog ("更新失败: " + $_.Exception.Message)
                 Set-Content -Path $StatePath -Value $FailedStateJson -Encoding UTF8
-                Restore-Backup
+                RestoreBackup
                 throw
             }}
             """
         ).strip()
-        script_path.write_text(script, encoding="utf-8")
+        script_path.write_text(script, encoding="utf-8-sig")
