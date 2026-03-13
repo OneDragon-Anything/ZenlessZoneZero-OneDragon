@@ -1,3 +1,12 @@
+NoticeCard {
+    background-color: rgba(0, 0, 0, 204);
+    border-radius: 12px;
+}
+
+#bannerContainer {
+    border-radius: 12px;
+}
+
 #title {
     color: #fff;
 }
@@ -12,7 +21,7 @@
 
 QListWidget {
     background-color: transparent;
-    border: none
+    border: none;
 }
 
 QListWidgetItem {
@@ -30,4 +39,12 @@ QStackedWidget {
     border-radius: 4px;
     padding: 5px;
     font-size: 12px;
+}
+
+PhosPivot, PhosPivotItem {
+    color: #fff;
+}
+
+PhosPivotItem:hover {
+    color: #f5d742;
 }
