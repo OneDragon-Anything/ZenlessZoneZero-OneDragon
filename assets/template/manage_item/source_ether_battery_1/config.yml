@@ -1,0 +1,8 @@
+sub_dir: manage_item
+template_id: source_ether_battery_1
+template_name: 图像-以太电池
+template_shape: rectangle
+auto_mask: true
+point_list:
+- 808, 643
+- 893, 737
