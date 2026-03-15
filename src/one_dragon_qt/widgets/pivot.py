@@ -1,21 +1,17 @@
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QPainter, QColor, QFont
+from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import (
-    QWidget,
-    QListView,
-    QStyledItemDelegate,
-    QHBoxLayout,
-    QSizePolicy,
     QApplication,
+    QHBoxLayout,
+    QListView,
+    QSizePolicy,
     QStackedWidget,
+    QStyledItemDelegate,
     QVBoxLayout,
+    QWidget,
 )
-from qfluentwidgets import Pivot, ListItemDelegate, setFont, qrouter
-from qfluentwidgets.common.animation import (
-    FluentAnimation,
-    FluentAnimationType,
-    FluentAnimationProperty,
-)
+from qfluentwidgets import ListItemDelegate, Pivot, qrouter, setFont
+from qfluentwidgets.common.animation import ScaleSlideAnimation
 from qfluentwidgets.components.navigation.pivot import PivotItem
 
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
@@ -29,22 +25,22 @@ class PhosPivot(Pivot):
         QWidget.__init__(self, parent)
         self.items = {}
         self._currentRouteKey = None
+        self._indicatorLength = 16
+        self.lightIndicatorColor = QColor()
+        self.darkIndicatorColor = QColor()
 
         self.hBoxLayout = QHBoxLayout(self)
-        self.slideAni = FluentAnimation.create(
-            FluentAnimationType.POINT_TO_POINT,
-            FluentAnimationProperty.SCALE,
-            value=0,
-            parent=self,
-        )
+        self.slideAni = ScaleSlideAnimation(self)
 
         OdQtStyleSheet.PIVOT.apply(self)
 
         self.hBoxLayout.setSpacing(30)  # 设置统一间距，替代手动添加spacer
         self.hBoxLayout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
+        self.hBoxLayout.setSizeConstraint(QHBoxLayout.SizeConstraint.SetMinimumSize)
 
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.slideAni.valueChanged.connect(lambda: self.update())
 
     def insertItem(self, index: int, routeKey: str, text: str, onClick=None, icon=None):
         if routeKey in self.items:
@@ -76,20 +72,6 @@ class PhosPivot(Pivot):
             self.hBoxLayout.addWidget(widget, 0)
         else:
             self.hBoxLayout.insertWidget(index, widget, 0)
-
-    def paintEvent(self, e):
-        QWidget().paintEvent(e)
-
-        if not self.currentItem():
-            return
-
-        painter = QPainter(self)
-        painter.setRenderHints(QPainter.RenderHint.Antialiasing)
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor("#f5d742"))
-
-        x = int(self.currentItem().width() / 2 - 8 + self.slideAni.value())
-        painter.drawRoundedRect(x, self.height() - 2, 16, 3, 1.5, 1.5)
 
 
 class PhosPivotItem(PivotItem):
