@@ -141,10 +141,13 @@ class MonthlyRestockOperation(ZOperation):
         if result.is_success:
             time.sleep(0.5)
             return self.round_success(status=result.status)
+        else:
+            # 暂时的售罄情况的应对方法
+            return self.round_success(status='已售罄')
 
         # # 滚动查找图片
         # max_scrolls = 3
-        # for i in range(max_scrolls):
+        # for i in range(max_scrolls):  # type: ignore
         #     mr = self._get_prepaid_card_position(self.screenshot())
         #
         #     if mr is not None:
@@ -154,7 +157,7 @@ class MonthlyRestockOperation(ZOperation):
         #         self.ctx.controller.scroll(1)
         #         time.sleep(2)
 
-        return self.round_retry(wait=1)
+        # return self.round_retry(wait=1)
 
     # def _get_prepaid_card_position(self, screen: MatLike) -> MatchResult | None:
     #     """获取储值电卡位置"""
@@ -175,7 +178,7 @@ class MonthlyRestockOperation(ZOperation):
     def select_quantity(self) -> OperationRoundResult:
         """选择获取数量"""
         result = self.round_by_find_area(
-            self.last_screenshot, '快捷手册-作战-后勤商店', '按钮-增加'
+            self.last_screenshot, '情报板-点数兑换-情报板商店', '按钮-增加'
         )
         if result.is_success:
             time.sleep(0.5)
@@ -189,11 +192,11 @@ class MonthlyRestockOperation(ZOperation):
 
     def _click_increase_button(self, number: int) -> bool:
         """点击增加按钮"""
-        area = self.ctx.screen_loader.get_area('快捷手册-作战-后勤商店', '按钮-增加')
+        area = self.ctx.screen_loader.get_area('情报板-点数兑换-情报板商店', '按钮-增加')
         if not area:
             return False
 
-        for _ in range(number):
+        for _ in range(number):  # type: ignore
             self.ctx.controller.click(area.center)
             time.sleep(0.2)
         return True

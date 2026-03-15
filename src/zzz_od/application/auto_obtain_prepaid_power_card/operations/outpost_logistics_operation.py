@@ -62,7 +62,7 @@ class OutpostLogisticsOperation(ZOperation):
 
         # 滚动查找图片
         max_scrolls = 3
-        for i in range(max_scrolls):
+        for i in range(max_scrolls):  # type: ignore
             mr = self._get_prepaid_card_position(self.screenshot())
 
             if mr is not None:
@@ -111,7 +111,7 @@ class OutpostLogisticsOperation(ZOperation):
         if not area:
             return False
 
-        for _ in range(number):
+        for _ in range(number):  # type: ignore
             self.ctx.controller.click(area.center)
             time.sleep(0.2)
         return True
