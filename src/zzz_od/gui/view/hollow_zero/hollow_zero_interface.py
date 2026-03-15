@@ -22,7 +22,7 @@ class HollowZeroInterface(PivotNavigatorInterface):
         创建下面的子页面
         :return:
         """
-        self.add_sub_interface(WitheredDomainRunInterface(self.ctx))
-        self.add_sub_interface(WitheredDomainChallengeConfigInterface(self.ctx))
         self.add_sub_interface(LostVoidRunInterface(self.ctx))
         self.add_sub_interface(LostVoidChallengeConfigInterface(self.ctx))
+        self.add_sub_interface(WitheredDomainRunInterface(self.ctx))
+        self.add_sub_interface(WitheredDomainChallengeConfigInterface(self.ctx))
