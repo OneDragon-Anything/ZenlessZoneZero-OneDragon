@@ -117,7 +117,11 @@ class LostVoidChooseCommon(ZOperation):
                 merged_list.append(item)
 
             if len(merged_list) == 0:
-                continue
+                log.info(
+                    f'组合选择 优先级层无可点击候选 需选={target_num} 已选={chosen_cnt} '
+                    f'可选={len(available_list)} 将进入兜底层'
+                )
+                return False
 
             new_text = ', '.join([i.artifact.display_name for i in new_list]) if len(new_list) > 0 else '无'
             priority_text = ', '.join([i.artifact.display_name for i in priority_list]) if len(priority_list) > 0 else '无'

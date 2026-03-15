@@ -29,8 +29,8 @@ from one_dragon.base.push.channel.synology_chat import SynologyChat
 from one_dragon.base.push.channel.telegram import Telegram
 from one_dragon.base.push.channel.we_plus_bot import WePlusBot
 from one_dragon.base.push.channel.webhook import Webhook
-from one_dragon.base.push.channel.work_weixin_bot import WorkWeixinBot
 from one_dragon.base.push.channel.work_weixin_app import WorkWeixinApp
+from one_dragon.base.push.channel.work_weixin_bot import WorkWeixinBot
 from one_dragon.base.push.channel.wx_pusher import WxPusher
 from one_dragon.base.push.push_channel import PushChannel
 from one_dragon.base.push.push_channel_config import PushChannelConfigField
@@ -254,3 +254,9 @@ class PushService:
             return self.ctx.env_config.personal_proxy
 
         return None
+
+    def after_app_shutdown(self) -> None:
+        """
+        整个脚本运行结束后的清理
+        """
+        self._executor.shutdown(wait=True)

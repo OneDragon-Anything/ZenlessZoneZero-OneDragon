@@ -11,7 +11,7 @@ class YamlConfig(YamlOperator):
     def __init__(
             self,
             module_name: str,
-            backup_model_name: str | None = None,
+            backup_module_name: str | None = None,
             instance_idx: Optional[int] = None,
             sub_dir: Optional[List[str]] = None,
             sample: bool = False, copy_from_sample: bool = False,
@@ -27,7 +27,7 @@ class YamlConfig(YamlOperator):
         self.module_name: str = module_name
         """配置文件名称"""
 
-        self.backup_model_name: str = backup_model_name
+        self.backup_module_name: str = backup_module_name
         """备用的配置文件名称 主要用于配置文件改名时做迁移使用"""
 
         self.is_mock: bool = is_mock
@@ -72,7 +72,7 @@ class YamlConfig(YamlOperator):
             return yml_path
 
         # 备用文件存在时 复制使用
-        backup_yml_path = os.path.join(dir_path, f'{self.backup_model_name}.yml')
+        backup_yml_path = os.path.join(dir_path, f'{self.backup_module_name}.yml')
         if os.path.exists(backup_yml_path):
             shutil.copyfile(backup_yml_path, yml_path)
             return yml_path
