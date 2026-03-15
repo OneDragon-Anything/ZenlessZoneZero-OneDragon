@@ -4,9 +4,12 @@ from one_dragon.base.operation.operation_round_result import OperationRoundResul
 from one_dragon.utils.i18_utils import gt
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.operation.back_to_normal_world import BackToNormalWorld
-from zzz_od.operation.transport import Transport
-from zzz_od.operation.compendium.compendium_choose_category import CompendiumChooseCategory
-from zzz_od.operation.compendium.compendium_choose_mission_type import CompendiumChooseMissionType
+from zzz_od.operation.compendium.compendium_choose_category import (
+    CompendiumChooseCategory,
+)
+from zzz_od.operation.compendium.compendium_choose_mission_type import (
+    CompendiumChooseMissionType,
+)
 from zzz_od.operation.zzz_operation import ZOperation
 
 
@@ -19,7 +22,7 @@ class TransportByCompendium(ZOperation):
         """
         ZOperation.__init__(
             self, ctx,
-            op_name='%s %s %s-%s-%s' % (
+            op_name='{} {} {}-{}-{}'.format(
                 gt('传送'),
                 gt('快捷手册', 'game'),
                 gt(tab_name, 'game'), gt(category_name, 'game'), gt(mission_type_name or '', 'game')

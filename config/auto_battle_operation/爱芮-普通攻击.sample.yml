@@ -1,0 +1,5 @@
+# 普攻产应援能量，第四段产1个
+operations:
+  - op_name: "按键-普通攻击"
+    post_delay: 0.1
+    repeat: 25

@@ -51,11 +51,13 @@ class ChargePlanApp(ZApplication):
         self.charge_power: int = 0  # 剩余电量
         self.required_charge: int = 0  # 需要的电量
         self.last_tried_plan: ChargePlanItem | None = None
-        self.next_plan: ChargePlanItem | None = None
+        self.current_plan: ChargePlanItem | None = None
 
     @operation_node(name='开始体力计划', is_start_node=True)
     def start_charge_plan(self) -> OperationRoundResult:
         self.last_tried_plan = None
+        for plan in self.config.plan_list:
+            plan.skipped = False
         return self.round_success()
 
     @node_from(from_name='挑战完成')
@@ -135,51 +137,51 @@ class ChargePlanApp(ZApplication):
                         continue
                 else:
                     # 设置下一个计划，然后触发恢复电量
-                    self.next_plan = candidate_plan
+                    self.current_plan = candidate_plan
                     self.required_charge = need_charge_power - self.charge_power
                     return self.round_success(ChargePlanApp.STATUS_TRY_RESTORE_CHARGE)
 
             # 设置下一个计划并返回成功
-            self.next_plan = candidate_plan
+            self.current_plan = candidate_plan
             return self.round_success()
 
     @node_from(from_name='查找并选择下一个可执行任务')
     @operation_node(name='传送')
     def transport(self) -> OperationRoundResult:
-        # 使用已经在查找并选择下一个可执行任务节点中设置好的self.next_plan
+        # 使用已经在查找并选择下一个可执行任务节点中设置好的self.current_plan
         op = TransportByCompendium(self.ctx,
-                                   self.next_plan.tab_name,
-                                   self.next_plan.category_name,
-                                   self.next_plan.mission_type_name)
+                                   self.current_plan.tab_name,
+                                   self.current_plan.category_name,
+                                   self.current_plan.mission_type_name)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='传送')
     @operation_node(name='识别副本分类')
     def check_mission_type(self) -> OperationRoundResult:
-        return self.round_success(self.next_plan.category_name)
+        return self.round_success(self.current_plan.category_name)
 
     @node_from(from_name='识别副本分类', status='实战模拟室')
     @operation_node(name='实战模拟室')
     def combat_simulation(self) -> OperationRoundResult:
-        op = CombatSimulation(self.ctx, self.next_plan)
+        op = CombatSimulation(self.ctx, self.current_plan)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='区域巡防')
     @operation_node(name='区域巡防')
     def area_patrol(self) -> OperationRoundResult:
-        op = AreaPatrol(self.ctx, self.next_plan)
+        op = AreaPatrol(self.ctx, self.current_plan)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='专业挑战室')
     @operation_node(name='专业挑战室')
     def expert_challenge(self) -> OperationRoundResult:
-        op = ExpertChallenge(self.ctx, self.next_plan)
+        op = ExpertChallenge(self.ctx, self.current_plan)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='识别副本分类', status='恶名狩猎')
     @operation_node(name='恶名狩猎')
     def notorious_hunt(self) -> OperationRoundResult:
-        op = NotoriousHunt(self.ctx, self.next_plan, use_charge_power=True)
+        op = NotoriousHunt(self.ctx, self.current_plan, use_charge_power=True)
         return self.round_by_op_result(op.execute())
 
     @node_from(from_name='实战模拟室', success=True)
@@ -204,9 +206,11 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
     @operation_node(name='电量不足')
     def charge_not_enough(self) -> OperationRoundResult:
-        if self.config.skip_plan or self.next_plan.mission_type_name == '代理人方案培养':
-            # 跳过当前计划，继续尝试下一个
-            self.last_tried_plan = self.next_plan
+        is_agent_plan = self.current_plan.is_agent_plan
+        if self.config.skip_plan or is_agent_plan:
+            # 标记当前计划为跳过，继续尝试下一个
+            self.current_plan.skipped = True
+            self.last_tried_plan = self.current_plan
             return self.round_success()
         else:
             # 不跳过，直接结束本轮计划

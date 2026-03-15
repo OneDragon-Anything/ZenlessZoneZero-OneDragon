@@ -1,44 +1,40 @@
+import ctypes
 import os
 import shutil
-import ctypes
-import hashlib
 from ctypes import wintypes
-import base64
-import uuid
 
-from PySide6.QtWidgets import QWidget, QFileDialog, QVBoxLayout, QInputDialog, QLineEdit, QHBoxLayout
 from PySide6.QtGui import QColor
-from qfluentwidgets import Dialog, FluentIcon, PrimaryPushButton, SettingCardGroup, setTheme, Theme, ColorDialog, LineEdit, ToolButton
+from PySide6.QtWidgets import QFileDialog, QWidget
+from qfluentwidgets import (
+    ColorDialog,
+    Dialog,
+    FluentIcon,
+    PrimaryPushButton,
+    SettingCardGroup,
+    Theme,
+    setTheme,
+)
 
-from one_dragon.base.config.custom_config import ThemeEnum, UILanguageEnum, ThemeColorModeEnum, BackgroundTypeEnum
+from one_dragon.base.config.custom_config import (
+    BackgroundTypeEnum,
+    ThemeEnum,
+    UILanguageEnum,
+)
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
-from one_dragon_qt.services.theme_manager import ThemeManager
-from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
-from one_dragon_qt.widgets.setting_card.password_switch_setting_card import PasswordSwitchSettingCard
-from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.services.theme_manager import ThemeManager
+from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
+    PasswordSwitchSettingCard,
+)
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
 class SettingCustomInterface(VerticalScrollInterface):
-
-    @property
-    def theme_color_password_salt(self) -> str:
-        _e = os.environ.get('THEME_COLOR_SALT')
-        if _e:
-            return _e
-        try:
-            import platform
-            _m = f"{platform.node()}-{platform.machine()}"
-            return str(uuid.uuid5(uuid.NAMESPACE_DNS, _m))
-        except Exception:
-            return str(uuid.uuid4())
-
-    def _get_pwd(self):
-        _x = [103, 114, 101, 101, 100, 105, 115, 103, 111, 111, 100]
-        return ''.join(chr(i) for i in _x)
 
     def __init__(self, ctx: OneDragonContext, parent=None):
         self.ctx: OneDragonContext = ctx
@@ -74,41 +70,23 @@ class SettingCustomInterface(VerticalScrollInterface):
         self.theme_opt.value_changed.connect(self._on_theme_changed)
         basic_group.addSettingCard(self.theme_opt)
 
-        # 主题色模式选择
-        self.theme_color_mode_opt = ComboBoxSettingCard(
-            icon=FluentIcon.PALETTE,
-            title='主题色模式',
-            content='选择主题色的获取方式',
-            options_enum=ThemeColorModeEnum
-        )
-        self.theme_color_mode_opt.value_changed.connect(self._on_theme_color_mode_changed)
-
         # 自定义主题色按钮
         self.custom_theme_color_btn = PrimaryPushButton(icon=FluentIcon.PALETTE, text=gt('自定义主题色'))
         self.custom_theme_color_btn.clicked.connect(self._on_custom_theme_color_clicked)
-        self.theme_color_mode_opt.hBoxLayout.addWidget(self.custom_theme_color_btn, 0)
-        self.theme_color_mode_opt.hBoxLayout.addSpacing(16)
-        self.custom_theme_color_btn.setEnabled(self.ctx.custom_config.is_custom_theme_color)
 
-        # 主题色密码输入框
-        self.theme_color_password = LineEdit()
-        self.theme_color_password.setPlaceholderText(gt('请输入密码'))
-        self.theme_color_password.setEchoMode(LineEdit.EchoMode.Password)
-        self.theme_color_password.setMinimumWidth(150)
-        self.theme_color_password.setMaximumWidth(self.theme_color_password.maximumWidth() - 45)
-
-        # 切换显示/隐藏密码按钮
-        self.theme_color_password_toggle = ToolButton(FluentIcon.HIDE)
-        self.theme_color_password_toggle.setCheckable(True)
-        self.theme_color_password_toggle.clicked.connect(self._toggle_theme_color_password_visibility)
-
-        # 创建密码布局
-        self.theme_color_password_layout = QHBoxLayout()
-        self.theme_color_password_layout.setContentsMargins(0, 0, 0, 0)
-        self.theme_color_password_layout.addWidget(self.theme_color_password)
-        self.theme_color_password_layout.addSpacing(5)
-        self.theme_color_password_layout.addWidget(self.theme_color_password_toggle)
-        self.theme_color_mode_opt.hBoxLayout.insertLayout(4, self.theme_color_password_layout, 0)
+        # 主题色模式（密码保护）
+        self.theme_color_mode_opt = PasswordSwitchSettingCard(
+            icon=FluentIcon.PALETTE,
+            title='自定义主题色',
+            content='开启后可自定义主题色',
+            extra_btn=self.custom_theme_color_btn,
+            password_hint='使用此功能需要密码哦~',
+            password_hash='b0cd76b7d7829362d581b739c0b295abf53182792609078bb17a9dd917ffba7c',
+            dialog_title='嘻嘻~',
+            dialog_content='密码不对哦~',
+            dialog_button_text='再试试吧',
+        )
+        self.theme_color_mode_opt.value_changed.connect(self._on_theme_color_mode_changed)
 
         basic_group.addSettingCard(self.theme_color_mode_opt)
 
@@ -142,7 +120,7 @@ class SettingCustomInterface(VerticalScrollInterface):
         VerticalScrollInterface.on_interface_shown(self)
         self.ui_language_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('ui_language'))
         self.theme_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('theme'))
-        self.theme_color_mode_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('theme_color_mode'))
+        self.theme_color_mode_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('custom_theme_color'))
         self.custom_banner_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('custom_banner'))
         self.background_type_opt.init_with_adapter(self.ctx.custom_config.get_prop_adapter('background_type'))
 
@@ -159,39 +137,11 @@ class SettingCustomInterface(VerticalScrollInterface):
     def _on_theme_changed(self, index: int, value: str) -> None:
         setTheme(Theme[self.ctx.custom_config.theme.upper()],lazy=True)
 
-    def _toggle_theme_color_password_visibility(self):
-        if self.theme_color_password_toggle.isChecked():
-            self.theme_color_password.setEchoMode(LineEdit.EchoMode.Normal)
-            self.theme_color_password_toggle.setIcon(FluentIcon.VIEW)
-        else:
-            self.theme_color_password.setEchoMode(LineEdit.EchoMode.Password)
-            self.theme_color_password_toggle.setIcon(FluentIcon.HIDE)
-
-    def _verify_theme_color_password(self) -> bool:
-        _p = self.theme_color_password.text()
-        _h = hashlib.sha256((_p + self.theme_color_password_salt).encode()).hexdigest()
-        _expected = hashlib.sha256((self._get_pwd() + self.theme_color_password_salt).encode()).hexdigest()
-        if _h == _expected:
-            return True
-        else:
-            _d = Dialog(gt('密码错误'), gt('密码不对哦~'), self)
-            _d.yesButton.setText(gt('再试试吧'))
-            _d.cancelButton.hide()
-            _d.exec()
-            return False
-
-    def _on_theme_color_mode_changed(self, index: int, value: str) -> None:
-        if value == ThemeColorModeEnum.CUSTOM.value.value:
-            if not self._verify_theme_color_password():
-                self.theme_color_mode_opt.setValue(ThemeColorModeEnum.AUTO.value.value)
-                return
-        if value == ThemeColorModeEnum.AUTO.value.value:
+    def _on_theme_color_mode_changed(self, value: bool) -> None:
+        if not value:
             self.ctx.signal.reload_banner = True
-        self.custom_theme_color_btn.setEnabled(value == ThemeColorModeEnum.CUSTOM.value.value)
 
     def _on_custom_theme_color_clicked(self) -> None:
-        if not self._verify_theme_color_password():
-            return
         _c = self.ctx.custom_config.theme_color
         _d = ColorDialog(QColor(_c[0], _c[1], _c[2]), gt('请选择主题色'), self)
         _d.colorChanged.connect(self._update_custom_theme_color)
