@@ -748,6 +748,18 @@ class OverlayManager(QObject):
         game_win = getattr(self.ctx.controller, "game_win", None)
         if game_win is None:
             return None
+        rect = self._resolve_game_rect_once(game_win)
+        if rect is not None:
+            return rect
+
+        refresh = getattr(game_win, "refresh_win", None)
+        if callable(refresh):
+            refresh()
+            return self._resolve_game_rect_once(game_win)
+        return None
+
+    @staticmethod
+    def _resolve_game_rect_once(game_win):
         if not game_win.is_win_valid:
             return None
         hwnd = game_win.get_hwnd() if hasattr(game_win, "get_hwnd") else None

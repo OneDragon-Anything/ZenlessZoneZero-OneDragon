@@ -23,6 +23,10 @@ class PcGameWindow:
         self._win: Win32Window | None = None
         self._hWnd = None
 
+    def _clear_cached_window(self) -> None:
+        self._win = None
+        self._hWnd = None
+
     def init_win(self) -> None:
         """
         初始化窗口
@@ -48,8 +52,11 @@ class PcGameWindow:
         """
         if self.win_title != new_title:
             self.win_title = new_title
-            self._win = None
-            self._hWnd = None
+            self._clear_cached_window()
+
+    def refresh_win(self) -> None:
+        self._clear_cached_window()
+        self.init_win()
 
     def get_win(self) -> Win32Window | None:
         if self._win is None:
@@ -110,14 +117,14 @@ class PcGameWindow:
             except win32ui.error as e:
                 if e.args[0].find('1400') > 0:  # Invalid window handle
                     log.warning("无效的窗口句柄，尝试重置窗口")
-                    self._win = None
+                    self._clear_cached_window()
                 else:
                     log.error("截图失败", exc_info=True)
                 return None
             except Exception as e:
                 if e.args[0].find('1400') > 0:  # Invalid window handle
                     log.warning("无效的窗口句柄，尝试重置窗口")
-                    self._win = None
+                    self._clear_cached_window()
                     return False
                 else:
                     # 比较神奇的一个bug 直接activate有可能失败
