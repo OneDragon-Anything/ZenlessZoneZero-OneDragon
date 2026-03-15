@@ -53,8 +53,20 @@ jobs:
         env:
           PYTHONPATH: src
 
+      - name: Check for changes
+        id: changes
+        shell: pwsh
+        run: |
+          $changes = git status --porcelain config/auto_battle/ assets/text/output/ deploy/module_manifest.py
+          if ($changes) {
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "changed=true"
+          }
+          else {
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "changed=false"
+          }
+
       - name: Push changes
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        if: (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && steps.changes.outputs.changed == 'true'
         uses: actions-js/push@v1.5
         with:
           rebase: true

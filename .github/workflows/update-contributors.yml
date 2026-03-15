@@ -46,6 +46,7 @@ jobs:
           fi
 
       - name: Push changes
+        if: steps.changes.outputs.changed == 'true'
         uses: actions-js/push@v1.5
         with:
           rebase: true
