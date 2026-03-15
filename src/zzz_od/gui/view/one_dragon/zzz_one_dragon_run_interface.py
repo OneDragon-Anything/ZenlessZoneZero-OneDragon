@@ -6,6 +6,7 @@ from zzz_od.application.drive_disc_dismantle import drive_disc_dismantle_const
 from zzz_od.application.hollow_zero.lost_void import lost_void_const
 from zzz_od.application.hollow_zero.withered_domain import withered_domain_const
 from zzz_od.application.intel_board import intel_board_const
+from zzz_od.application.life_on_line import life_on_line_const
 from zzz_od.application.notorious_hunt import notorious_hunt_const
 from zzz_od.application.random_play import random_play_const
 from zzz_od.application.redemption_code import redemption_code_const
@@ -75,6 +76,11 @@ class ZOneDragonRunInterface(OneDragonRunInterface):
             )
         elif app_id == redemption_code_const.APP_ID:
             self.ctx.shared_dialog_manager.show_redemption_code_setting_dialog(
+                parent=self,
+                group_id=group_id
+            )
+        elif app_id == life_on_line_const.APP_ID:
+            self.ctx.shared_dialog_manager.show_life_on_line_setting_dialog(
                 parent=self,
                 group_id=group_id
             )

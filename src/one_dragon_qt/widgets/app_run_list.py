@@ -142,7 +142,6 @@ class AppRunList(DraggableList):
             card.update_display()
 
             # 连接信号
-            card.move_top.connect(self._on_app_move_top)
             card.run.connect(self.app_run_clicked.emit)
             card.switched.connect(self.app_switch_changed.emit)
             card.setting_clicked.connect(self.app_setting_clicked.emit)
@@ -153,37 +152,6 @@ class AppRunList(DraggableList):
         """
         for card in self._app_cards:
             card.update_display()
-
-    def _on_app_move_top(self, app_id: str) -> None:
-        """
-        应用置顶处理
-
-        Args:
-            app_id: 应用ID
-        """
-        # 找到对应应用的索引
-        for idx, card in enumerate(self._app_cards):
-            if card.app.app_id == app_id:
-                if idx > 0:  # 不在第一位时才需要置顶
-                    # 更新 _app_cards 列表
-                    self._app_cards.pop(idx)
-                    self._app_cards.insert(0, card)
-
-                    # 同步更新父类的 _items 列表
-                    self._items.pop(idx)
-                    self._items.insert(0, card)
-
-                    # 更新索引
-                    for i, c in enumerate(self._app_cards):
-                        c.update_item(c.data, i)
-
-                    # 重新构建布局
-                    self._rebuild_layout()
-
-                    # 触发信号
-                    new_app_list = [card.app for card in self._app_cards]
-                    self.app_list_changed.emit(new_app_list)
-                break
 
     def _handle_order_changed(self, new_data_list: list) -> None:
         """

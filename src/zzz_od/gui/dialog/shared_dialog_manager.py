@@ -10,6 +10,7 @@ from zzz_od.gui.dialog.drive_disc_dismantle_setting_dialog import (
     DriveDiscDismantleSettingDialog,
 )
 from zzz_od.gui.dialog.intel_board_setting_dialog import IntelBoardSettingFlyout
+from zzz_od.gui.dialog.life_on_line_setting_dialog import LifeOnLineSettingDialog
 from zzz_od.gui.dialog.lost_void_setting_dialog import LostVoidSettingDialog
 from zzz_od.gui.dialog.notorious_hunt_setting_dialog import NotoriousHuntSettingDialog
 from zzz_od.gui.dialog.random_play_setting_dialog import RandomPlaySettingDialog
@@ -35,6 +36,7 @@ class SharedDialogManager:
         self._withered_domain_setting_dialog: WitheredDomainSettingDialog | None = None
         self._lost_void_setting_dialog: LostVoidSettingDialog | None = None
         self._redemption_code_setting_dialog: RedemptionCodeSettingDialog | None = None
+        self._life_on_line_setting_dialog: LifeOnLineSettingDialog | None = None
 
     def show_world_patrol_setting_dialog(
         self,
@@ -162,6 +164,19 @@ class SharedDialogManager:
             self._redemption_code_setting_dialog = RedemptionCodeSettingDialog(ctx=self.ctx, parent=parent)
 
         self._redemption_code_setting_dialog.show_by_group(
+            group_id=group_id,
+            parent=parent,
+        )
+
+    def show_life_on_line_setting_dialog(
+        self,
+        parent: QWidget,
+        group_id: str,
+    ) -> None:
+        if self._life_on_line_setting_dialog is None:
+            self._life_on_line_setting_dialog = LifeOnLineSettingDialog(ctx=self.ctx, parent=parent)
+
+        self._life_on_line_setting_dialog.show_by_group(
             group_id=group_id,
             parent=parent,
         )

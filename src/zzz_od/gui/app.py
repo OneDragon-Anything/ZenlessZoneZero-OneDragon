@@ -125,18 +125,6 @@ try:
             from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
             self.add_sub_interface(ZOneDragonInterface(self.ctx, parent=self))
 
-            # 空洞
-            from zzz_od.gui.view.hollow_zero.hollow_zero_interface import HollowZeroInterface
-            self.add_sub_interface(HollowZeroInterface(self.ctx, parent=self))
-
-            # 锄大地
-            from zzz_od.gui.view.world_patrol.world_patrol_interface import WorldPatrolInterface
-            self.add_sub_interface(WorldPatrolInterface(self.ctx, parent=self))
-
-            # 游戏助手
-            from zzz_od.gui.view.game_assistant.game_assistant_interface import GameAssistantInterface
-            self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
-
             # 点赞
             from one_dragon_qt.view.like_interface import LikeInterface
             self.add_sub_interface(
