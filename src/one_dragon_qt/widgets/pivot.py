@@ -100,9 +100,10 @@ class PhosPivotItem(PivotItem):
 class CustomListItemDelegate(ListItemDelegate):
     def __init__(self, parent: QListView):
         super().__init__(parent)
+        self._styled_delegate = QStyledItemDelegate(self)
 
     def paint(self, painter, option, index):
-        QStyledItemDelegate(self).paint(painter, option, index)
+        self._styled_delegate.paint(painter, option, index)
 
 
 class PivotNavigatorContainer(QWidget):
