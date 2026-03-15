@@ -212,17 +212,8 @@ class PcControllerBase(ControllerBase):
         user32 = ctypes.windll.user32
         prev_hwnd = win32gui.GetForegroundWindow()
 
-        try:
-            win32gui.SetForegroundWindow(hwnd)
-        except Exception:
-            try:
-                # ALT 技巧: 先按 ALT 解除系统对 SetForegroundWindow 的限制
-                user32.keybd_event(0x12, 0, 0, 0)  # VK_MENU down
-                user32.keybd_event(0x12, 0, 2, 0)  # VK_MENU up
-                win32gui.SetForegroundWindow(hwnd)
-            except Exception:
-                log.warning('切换前台失败，无法切回键鼠模式')
-                return
+        if not self.game_win.active():
+            return
         time.sleep(self.mouse_flash_duration)
 
         # mouse_event 鼠标移动，触发 Raw Input 让游戏切回键鼠
