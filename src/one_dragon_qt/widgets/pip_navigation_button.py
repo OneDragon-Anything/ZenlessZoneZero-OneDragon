@@ -2,8 +2,8 @@ from PySide6.QtCore import Qt, QTimer
 from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, NavigationItemPosition
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
+from one_dragon_qt.services.pip.pip_mode_manager import PipModeManager
 from one_dragon_qt.widgets.navigation_toggle_button import NavigationToggleButton
-from one_dragon_qt.widgets.pip_window import PipModeManager
 
 
 class PipNavigationButton(NavigationToggleButton):

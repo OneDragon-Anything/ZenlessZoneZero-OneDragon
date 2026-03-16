@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import time
 from collections.abc import Callable
 
-import numpy as np
 from cv2.typing import MatLike
-from PySide6.QtCore import QPoint, QRect, Qt, QThread, QTimer, Signal
+from PySide6.QtCore import QPoint, QRect, Qt, Signal
 from PySide6.QtGui import (
     QCloseEvent,
     QColor,
@@ -18,194 +16,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QApplication, QWidget
 
-from one_dragon.base.controller.pc_controller_base import PcControllerBase
-from one_dragon.base.controller.pc_screenshot.pc_screenshot_controller import (
-    PcScreenshotController,
-)
-from one_dragon.utils.log_utils import log
-
-# ======================================================================
-# PipModeManager - 画中画模式管理器
-# ======================================================================
-
-
-class PipModeManager:
-    """画中画模式管理器
-
-    开启后轮询游戏窗口状态：
-    - 游戏切到后台 → 自动显示画中画
-    - 游戏切到前台 → 自动隐藏画中画
-    - 画中画被点击 → 游戏切到前台
-    """
-
-    POLL_INTERVAL_MS: int = 200
-
-    def __init__(self, controller: PcControllerBase) -> None:
-        self._controller = controller
-        self._pip_window: PipWindow | None = None
-        self._screenshot_ctrl: PcScreenshotController | None = None
-        self._poll_timer = QTimer()
-        self._poll_timer.timeout.connect(self._on_poll)
-        self._active: bool = False
-
-    @property
-    def is_active(self) -> bool:
-        return self._active
-
-    def toggle(self) -> bool:
-        """切换画中画模式，返回切换后的状态。"""
-        if self._active:
-            self.stop()
-            return False
-        return self.start()
-
-    def start(self) -> bool:
-        """开启画中画模式。
-
-        Returns:
-            是否成功开启。
-        """
-        if self._active:
-            return True
-
-        self._screenshot_ctrl = self._create_screenshot_controller()
-        if self._screenshot_ctrl is None:
-            return False
-
-        self._active = True
-        self._poll_timer.start(self.POLL_INTERVAL_MS)
-        # 立即检查一次
-        self._on_poll()
-        return True
-
-    def stop(self) -> None:
-        """关闭画中画模式，释放所有资源。"""
-        self._active = False
-        self._poll_timer.stop()
-        self._close_pip()
-        if self._screenshot_ctrl is not None:
-            self._screenshot_ctrl.cleanup()
-            self._screenshot_ctrl = None
-
-    def _on_poll(self) -> None:
-        """轮询游戏窗口前台状态。"""
-        game_win = self._controller.game_win
-        if not game_win.is_win_valid:
-            return
-
-        if game_win.is_win_active:
-            # 游戏在前台 → 隐藏画中画
-            if self._pip_window is not None and self._pip_window.isVisible():
-                self._pip_window.hide()
-        else:
-            # 游戏在后台 → 显示画中画
-            if self._pip_window is None:
-                self._pip_window = self._create_pip_window()
-            if self._pip_window is not None and not self._pip_window.isVisible():
-                self._pip_window.show()
-
-    def _create_screenshot_controller(self) -> PcScreenshotController | None:
-        c = self._controller
-        ctrl = PcScreenshotController(c.game_win, c.standard_width, c.standard_height)
-        if ctrl.init_screenshot(c.screenshot_method) is None:
-            log.warning('画中画截图器初始化失败')
-            return None
-        return ctrl
-
-    def _create_pip_window(self) -> PipWindow | None:
-        if self._screenshot_ctrl is None:
-            return None
-
-        screenshot_ctrl = self._screenshot_ctrl
-        game_win = self._controller.game_win
-
-        def capture() -> MatLike | None:
-            if game_win.win_rect is None:
-                return None
-            return screenshot_ctrl.get_screenshot()
-
-        pip = PipWindow(capture_fn=capture)
-        pip.clicked.connect(self._on_pip_clicked)
-        pip.closed.connect(self._on_pip_closed)
-        return pip
-
-    def _on_pip_clicked(self) -> None:
-        """画中画被点击 → 游戏切到前台。"""
-        self._controller.game_win.active()
-
-    def _on_pip_closed(self) -> None:
-        """画中画被右键关闭 → 停止整个模式。"""
-        self._pip_window = None
-        self.stop()
-
-    def _close_pip(self) -> None:
-        if self._pip_window is not None:
-            self._pip_window.closed.disconnect(self._on_pip_closed)
-            self._pip_window.close()
-            self._pip_window = None
-
-
-# ======================================================================
-# _CaptureWorker - 独立截图线程
-# ======================================================================
-
-
-class _CaptureWorker(QThread):
-    """独立线程截图，通过信号将 QImage 传递给主线程。"""
-
-    frame_ready = Signal(QImage)
-
-    def __init__(
-        self,
-        capture_fn: Callable[[], MatLike | None],
-        target_fps: int = 30,
-        parent: QWidget | None = None,
-    ) -> None:
-        super().__init__(parent)
-        self._capture_fn = capture_fn
-        self._target_interval: float = 1.0 / target_fps
-        self._running: bool = True
-
-    def run(self) -> None:
-        while self._running:
-            start = time.perf_counter()
-            try:
-                frame = self._capture_fn()
-            except Exception:
-                log.debug('画中画截图失败', exc_info=True)
-                frame = None
-
-            if frame is not None:
-                q_image = self._numpy_to_qimage(frame)
-                if q_image is not None:
-                    self.frame_ready.emit(q_image)
-
-            elapsed = time.perf_counter() - start
-            sleep_time = self._target_interval - elapsed
-            if sleep_time > 0:
-                time.sleep(sleep_time)
-
-    def stop(self) -> None:
-        self._running = False
-        self.wait()
-
-    @staticmethod
-    def _numpy_to_qimage(image: np.ndarray) -> QImage | None:
-        """将 RGB numpy 数组转换为 QImage (线程安全)"""
-        if image.ndim != 3 or image.shape[2] != 3:
-            return None
-        if image.dtype != np.uint8:
-            image = image.astype(np.uint8)
-        if not image.flags['C_CONTIGUOUS']:
-            image = np.ascontiguousarray(image)
-        h, w, _ = image.shape
-        q_image = QImage(image.data, w, h, 3 * w, QImage.Format.Format_RGB888)
-        return q_image.copy()
-
-
-# ======================================================================
-# PipWindow - 画中画窗口
-# ======================================================================
+from one_dragon_qt.services.pip.pip_capture_worker import PipCaptureWorker
 
 
 class PipWindow(QWidget):
@@ -263,7 +74,7 @@ class PipWindow(QWidget):
         self.resize(self.DEFAULT_WIDTH, default_h)
 
         # 独立截图线程
-        self._worker = _CaptureWorker(capture_fn, target_fps, self)
+        self._worker = PipCaptureWorker(capture_fn, target_fps, self)
         self._worker.frame_ready.connect(self._on_frame_ready)
         self._worker.start()
 
