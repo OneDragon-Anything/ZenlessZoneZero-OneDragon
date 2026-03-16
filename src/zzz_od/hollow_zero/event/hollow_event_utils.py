@@ -29,7 +29,7 @@ def check_event_at_right(ctx: ZContext, screen: MatLike, ignore_events: set[str]
     white = cv2.inRange(part, (230, 230, 230), (255, 255, 255))
     white = cv2_utils.dilate(white, 5)
     to_ocr = cv2.bitwise_and(part, part, mask=white)
-    ocr_result_map = ctx.ocr.run_ocr(to_ocr)
+    ocr_result_map = ctx.ocr.run_ocr(to_ocr, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
 
     event_name_list = []
     event_name_gt_list = []
@@ -87,7 +87,7 @@ def check_entry_opt_pos_at_right(ctx: ZContext, screen: MatLike, ignore_events: 
     white = cv2.inRange(part, (230, 230, 230), (255, 255, 255))
     white = cv2_utils.dilate(white, 5)
     to_ocr = cv2.bitwise_and(part, part, mask=white)
-    ocr_result_map = ctx.ocr.run_ocr(to_ocr)
+    ocr_result_map = ctx.ocr.run_ocr(to_ocr, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
 
     event_enum_list = []
     event_name_gt_list = []
@@ -136,7 +136,7 @@ def check_event_text_and_run(op: ZOperation, screen: MatLike, handlers: List[Eve
     white = cv2_utils.dilate(white, 5)
     to_ocr = cv2.bitwise_and(part, part, mask=white)
 
-    ocr_result_map = op.ctx.ocr.run_ocr(to_ocr)
+    ocr_result_map = op.ctx.ocr.run_ocr(to_ocr, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
 
     target_handler: Optional[EventOcrResultHandler] = None
     target_mrl: Optional[MatchResultList] = None
@@ -258,7 +258,7 @@ def check_bottom_choose(ctx: ZContext, screen: MatLike) -> str | None:
     """
     area = ctx.screen_loader.get_area('零号空洞-事件', '底部-选择列表')
     part = cv2_utils.crop_image_only(screen, area.rect)
-    ocr_result_map = ctx.ocr.run_ocr(part)
+    ocr_result_map = ctx.ocr.run_ocr(part, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
 
     event_list = [
         HollowZeroSpecialEvent.RESONIUM_CHOOSE.value,
@@ -286,7 +286,7 @@ def check_bottom_remove(ctx: ZContext, screen: MatLike) -> str | None:
     """
     area = ctx.screen_loader.get_area('零号空洞-事件', '底部-清除列表')
     part = cv2_utils.crop_image_only(screen, area.rect)
-    ocr_result_map = ctx.ocr.run_ocr(part)
+    ocr_result_map = ctx.ocr.run_ocr(part, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
 
     event = HollowZeroSpecialEvent.CORRUPTION_REMOVE.value
     for ocr_result in ocr_result_map.keys():

@@ -42,6 +42,7 @@ config/lost_void_challenge/*
 !config/lost_void_challenge/*.sample.yml
 config/yolo.yml
 config/model.yml
+config/overlay.yml
 custom/assets/ui/banner
 assets/ui/version_poster.webp
 assets/ui/static_background.webp

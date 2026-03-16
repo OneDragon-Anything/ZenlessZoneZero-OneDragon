@@ -165,7 +165,11 @@ class LostVoidApp(ZApplication):
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
 
         # OCR识别
-        ocr_result_list = self.ctx.ocr.ocr(part)
+        ocr_result_list = self.ctx.ocr.ocr(
+            part,
+            overlay_offset_x=area.rect.x1,
+            overlay_offset_y=area.rect.y1,
+        )
 
         # 统计 '8000' 出现次数
         target_count = sum(ocr_text.data.count(TARGET_SCORE) for ocr_text in ocr_result_list)

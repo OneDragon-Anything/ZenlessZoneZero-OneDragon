@@ -125,7 +125,7 @@ class SuibianTempleGoodGoods(ZOperation):
 
         # 先检查商品本身区域是否有"已售罄"文本
         plugin_area_img = cv2_utils.crop_image_only(self.last_screenshot, plugin_rect)
-        plugin_ocr_map = self.ctx.ocr.run_ocr(plugin_area_img)
+        plugin_ocr_map = self.ctx.ocr.run_ocr(plugin_area_img, overlay_offset_x=plugin_rect.x1, overlay_offset_y=plugin_rect.y1)
         for ocr_text, mrl in plugin_ocr_map.items():
             if '已售罄' in ocr_text or '售罄' in ocr_text:
                 return self.round_success(status='跳过购买-已售罄')
@@ -136,7 +136,7 @@ class SuibianTempleGoodGoods(ZOperation):
 
         # 截取并进行OCR
         price_area_img = cv2_utils.crop_image_only(self.last_screenshot, price_search_rect)
-        price_ocr_map = self.ctx.ocr.run_ocr(price_area_img)
+        price_ocr_map = self.ctx.ocr.run_ocr(price_area_img, overlay_offset_x=price_search_rect.x1, overlay_offset_y=price_search_rect.y1)
 
         has_price = False
         # 检查是否有价格相关文本

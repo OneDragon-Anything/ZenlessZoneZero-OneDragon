@@ -114,7 +114,7 @@ class LifeOnLineApp(ZApplication):
         # 有选项就点选项
         area = self.ctx.screen_loader.get_area('真拿命验收', '对话选项')
         part = cv2_utils.crop_image_only(self.last_screenshot, area.rect)
-        ocr_result_map = self.ctx.ocr.run_ocr(part)
+        ocr_result_map = self.ctx.ocr.run_ocr(part, overlay_offset_x=area.rect.x1, overlay_offset_y=area.rect.y1)
         for ocr_result, mrl in ocr_result_map.items():
             to_click = mrl.max.center + area.left_top
             self.ctx.controller.click(to_click)

@@ -73,7 +73,7 @@ class WitheredDomainContext:
         else:
             self.challenge_config = HollowZeroChallengeConfig(config.challenge_config)
 
-    def _match_agent_in(self, img: MatLike, possible_agents: Optional[List[Agent]] = None) -> Optional[Agent]:
+    def _match_agent_in(self, img: MatLike, possible_agents: Optional[List[Agent]] = None, debug_offset: tuple[int, int] | None = None) -> Optional[Agent]:
         """
         在候选列表中匹配角色
         :return:
@@ -85,7 +85,7 @@ class WitheredDomainContext:
             if agent is None:
                 continue
             for template_id in agent.template_id_list:
-                mrl = self.ctx.tm.match_template(img, 'hollow', prefix + template_id, threshold=0.8)
+                mrl = self.ctx.tm.match_template(img, 'hollow', prefix + template_id, threshold=0.8, debug_offset=debug_offset)
                 if mrl.max is not None:
                     return agent
 
@@ -487,8 +487,10 @@ class WitheredDomainContext:
         result_agent_list: List[Optional[Agent]] = []
         future_list: List[Future] = []
 
-        for img in area_img:
-            future_list.append(_withered_domain_context_executor.submit(self._match_agent_in, img, possible_agents))
+        for i in range(len(area_img)):
+            img = area_img[i]
+            rect = check_agent_area[i].rect
+            future_list.append(_withered_domain_context_executor.submit(self._match_agent_in, img, possible_agents, (rect.x1, rect.y1)))
 
         any_not_none: bool = False
         for future in future_list:
