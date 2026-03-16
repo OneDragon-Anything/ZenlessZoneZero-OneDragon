@@ -9,7 +9,7 @@ from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
-from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
+from zzz_od.application.game_assistant.auto_battle_config import get_auto_battle_op_config_list
 from zzz_od.application.game_config_checker.predefined_team_checker import (
     predefined_team_checker_const,
 )

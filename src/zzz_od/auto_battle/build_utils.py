@@ -1,4 +1,4 @@
-from zzz_od.application.battle_assistant.auto_battle_config import get_auto_battle_op_config_list
+from zzz_od.application.game_assistant.auto_battle_config import get_auto_battle_op_config_list
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.context.zzz_context import ZContext
 

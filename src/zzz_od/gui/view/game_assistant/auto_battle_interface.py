@@ -20,18 +20,18 @@ from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
     DoubleSpinBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from zzz_od.application.battle_assistant.auto_battle import auto_battle_const
-from zzz_od.application.battle_assistant.auto_battle.auto_battle_app import (
+from zzz_od.application.game_assistant.auto_battle import auto_battle_const
+from zzz_od.application.game_assistant.auto_battle.auto_battle_app import (
     AutoBattleApp,
 )
-from zzz_od.application.battle_assistant.auto_battle_config import (
+from zzz_od.application.game_assistant.auto_battle_config import (
     get_auto_battle_config_file_path,
     get_auto_battle_op_config_list,
 )
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.config.game_config import ControlMethodEnum
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.gui.view.battle_assistant.battle_state_display import (
+from zzz_od.gui.view.game_assistant.battle_state_display import (
     BattleStateDisplay,
     TaskDisplay,
 )
@@ -58,7 +58,7 @@ class AutoBattleInterface(AppRunInterface):
 
         if hasattr(ctx, 'telemetry') and ctx.telemetry:
             ctx.telemetry.track_ui_interaction('auto_battle_interface', 'view', {
-                'interface_type': 'battle_assistant',
+                'interface_type': 'game_assistant',
                 'feature': 'auto_battle'
             })
 
@@ -153,12 +153,12 @@ class AutoBattleInterface(AppRunInterface):
         """
         AppRunInterface.on_interface_shown(self)
         self._update_auto_battle_config_opts()
-        self.config_opt.setValue(self.ctx.battle_assistant_config.auto_battle_config)
+        self.config_opt.setValue(self.ctx.game_assistant_config.auto_battle_config)
         self.gpu_opt.init_with_adapter(get_prop_adapter(self.ctx.model_config, 'flash_classifier_gpu'))
-        self.auto_ultimate_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'auto_ultimate_enabled'))
-        self.merged_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'use_merged_file'))
-        self.screenshot_interval_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'screenshot_interval'))
-        self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.control_method)
+        self.auto_ultimate_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'auto_ultimate_enabled'))
+        self.merged_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'use_merged_file'))
+        self.screenshot_interval_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'screenshot_interval'))
+        self.gamepad_type_opt.setValue(self.ctx.game_assistant_config.control_method)
         self.ctx.listen_event(AutoBattleApp.EVENT_OP_LOADED, self._on_auto_op_loaded_event)
 
     def on_interface_hidden(self) -> None:
@@ -175,13 +175,13 @@ class AutoBattleInterface(AppRunInterface):
         self.config_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
 
     def _on_auto_battle_config_changed(self, index, value):
-        self.ctx.battle_assistant_config.auto_battle_config = value
+        self.ctx.game_assistant_config.auto_battle_config = value
 
     def _on_help_clicked(self) -> None:
         """
         打开使用指南
         """
-        QDesktopServices.openUrl(QUrl("https://one-dragon.com/zzz/zh/docs/feat_battle_assistant.html"))
+        QDesktopServices.openUrl(QUrl("https://one-dragon.com/zzz/zh/docs/feat_game_assistant.html"))
 
     def _on_shared_clicked(self) -> None:
         """
@@ -202,7 +202,7 @@ class AutoBattleInterface(AppRunInterface):
     def _on_desc_clicked(self) -> None:
         content = "这是一条消息通知"
         try:
-            file_path = Path(os_utils.get_path_under_work_dir('docs', 'battle_assistant_notice.md'))
+            file_path = Path(os_utils.get_path_under_work_dir('docs', 'game_assistant_notice.md'))
             if file_path.exists():
                 content = file_path.read_text(encoding='utf-8')
         except Exception:
@@ -229,7 +229,7 @@ class AutoBattleInterface(AppRunInterface):
         self._update_auto_battle_config_opts()
 
     def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
-        self.ctx.battle_assistant_config.control_method = value
+        self.ctx.game_assistant_config.control_method = value
 
     def _on_key_press(self, event: ContextEventItem) -> None:
         """
@@ -276,7 +276,7 @@ class AutoBattleInterface(AppRunInterface):
         刷新界面
         """
         self._update_auto_battle_config_opts()
-        self.config_opt.setValue(self.ctx.battle_assistant_config.auto_battle_config)
+        self.config_opt.setValue(self.ctx.game_assistant_config.auto_battle_config)
         self.gpu_opt.init_with_adapter(self.ctx.model_config.get_prop_adapter('flash_classifier_gpu'))
-        self.screenshot_interval_opt.setValue(str(self.ctx.battle_assistant_config.screenshot_interval))
-        self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.control_method)
+        self.screenshot_interval_opt.setValue(str(self.ctx.game_assistant_config.screenshot_interval))
+        self.gamepad_type_opt.setValue(self.ctx.game_assistant_config.control_method)

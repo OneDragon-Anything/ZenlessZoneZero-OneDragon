@@ -8,7 +8,7 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.log_utils import log
-from zzz_od.application.battle_assistant.operation_debug import operation_debug_const
+from zzz_od.application.game_assistant.operation_debug import operation_debug_const
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.config.game_config import ControlMethodEnum
@@ -37,16 +37,16 @@ class OperationDebugApp(ZApplication):
         检测手柄
         :return:
         """
-        if self.ctx.battle_assistant_config.control_method == ControlMethodEnum.KEYBOARD.value.value:
+        if self.ctx.game_assistant_config.control_method == ControlMethodEnum.KEYBOARD.value.value:
             self.ctx.controller.enable_keyboard()
             return self.round_success(status='无需手柄')
         elif not pc_button_utils.is_vgamepad_installed():
             self.ctx.controller.enable_keyboard()
             return self.round_fail(status='未安装虚拟手柄依赖')
-        elif self.ctx.battle_assistant_config.control_method == ControlMethodEnum.XBOX.value.value:
+        elif self.ctx.game_assistant_config.control_method == ControlMethodEnum.XBOX.value.value:
             self.ctx.controller.enable_xbox()
             self.ctx.controller.btn_controller.set_key_press_time(self.ctx.game_config.xbox_key_press_time)
-        elif self.ctx.battle_assistant_config.control_method == ControlMethodEnum.DS4.value.value:
+        elif self.ctx.game_assistant_config.control_method == ControlMethodEnum.DS4.value.value:
             self.ctx.controller.enable_ds4()
             self.ctx.controller.btn_controller.set_key_press_time(self.ctx.game_config.ds4_key_press_time)
         return self.round_success(status='已安装虚拟手柄依赖')
@@ -58,7 +58,7 @@ class OperationDebugApp(ZApplication):
         加载战斗指令
         :return:
         """
-        template_name = self.ctx.battle_assistant_config.debug_operation_config
+        template_name = self.ctx.game_assistant_config.debug_operation_config
 
         try:
             # 直接加载操作模板文件
@@ -111,7 +111,7 @@ class OperationDebugApp(ZApplication):
         self.ops[self.op_idx].execute()
         self.op_idx += 1
         if self.op_idx >= len(self.ops):
-            if self.ctx.battle_assistant_config.debug_operation_repeat:
+            if self.ctx.game_assistant_config.debug_operation_repeat:
                 self.op_idx = 0
                 return self.round_wait()
             else:

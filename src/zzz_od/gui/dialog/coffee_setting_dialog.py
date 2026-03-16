@@ -12,7 +12,7 @@ from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from zzz_od.application.battle_assistant.auto_battle_config import (
+from zzz_od.application.game_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
 )
 from zzz_od.application.coffee import coffee_app_const

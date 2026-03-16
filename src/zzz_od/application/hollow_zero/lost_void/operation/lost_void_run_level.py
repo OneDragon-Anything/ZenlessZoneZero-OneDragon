@@ -736,7 +736,7 @@ class LostVoidRunLevel(ZOperation):
                     self.ctx.auto_battle_context.stop_auto_battle()
                     return self.round_success('识别需移动交互')
 
-                return self.round_wait(wait_round_time=self.ctx.battle_assistant_config.screenshot_interval)
+                return self.round_wait(wait_round_time=self.ctx.game_assistant_config.screenshot_interval)
         else:  # 当前不在战斗画面
             if (self.last_screenshot_time - self.last_check_finish_time >= 1  # 1秒识别一次
                 or (self.no_in_battle_times > 0 and self.last_screenshot_time - self.last_check_finish_time >= 0.1)  # 之前也识别到脱离战斗 0.1秒识别一次
@@ -794,9 +794,9 @@ class LostVoidRunLevel(ZOperation):
                         log.info('识别正在交互')
                         return self.round_success('识别正在交互')
 
-                return self.round_wait(wait_round_time=self.ctx.battle_assistant_config.screenshot_interval)
+                return self.round_wait(wait_round_time=self.ctx.game_assistant_config.screenshot_interval)
 
-        return self.round_wait(wait_round_time=self.ctx.battle_assistant_config.screenshot_interval)
+        return self.round_wait(wait_round_time=self.ctx.game_assistant_config.screenshot_interval)
 
     @node_from(from_name='交互后处理', status='挑战结果-确定')
     @operation_node(name='挑战结果处理确定')

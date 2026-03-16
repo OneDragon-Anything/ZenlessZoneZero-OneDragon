@@ -15,7 +15,7 @@ from qfluentwidgets import (
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.widgets.combo_box import ComboBox
-from zzz_od.application.battle_assistant.auto_battle_config import (
+from zzz_od.application.game_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
 )
 from zzz_od.application.intel_board import intel_board_const

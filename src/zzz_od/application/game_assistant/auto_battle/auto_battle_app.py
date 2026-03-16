@@ -1,18 +1,22 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, ClassVar
+
 from one_dragon.base.controller.pc_button import pc_button_utils
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
-from zzz_od.application.battle_assistant.auto_battle.auto_battle_app import (
-    AutoBattleApp,
-)
-from zzz_od.application.battle_assistant.dodge_assitant import dodge_assistant_const
+from zzz_od.application.game_assistant.auto_battle import auto_battle_const
 from zzz_od.application.zzz_application import ZApplication
-from zzz_od.auto_battle import auto_battle_utils
 from zzz_od.config.game_config import ControlMethodEnum
-from zzz_od.context.zzz_context import ZContext
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
 
-class DodgeAssistantApp(ZApplication):
+class AutoBattleApp(ZApplication):
+
+    EVENT_OP_LOADED: ClassVar[str] = '指令已加载'
 
     def __init__(self, ctx: ZContext):
         """
@@ -21,8 +25,8 @@ class DodgeAssistantApp(ZApplication):
         ZApplication.__init__(
             self,
             ctx=ctx,
-            app_id=dodge_assistant_const.APP_ID,
-            op_name=dodge_assistant_const.APP_NAME,
+            app_id=auto_battle_const.APP_ID,
+            op_name=auto_battle_const.APP_NAME,
         )
 
     def handle_init(self) -> None:
@@ -38,16 +42,18 @@ class DodgeAssistantApp(ZApplication):
         检测手柄
         :return:
         """
-        if self.ctx.battle_assistant_config.control_method == ControlMethodEnum.KEYBOARD.value.value:
+        gamepad_type = self.ctx.game_assistant_config.control_method
+        if gamepad_type == ControlMethodEnum.KEYBOARD.value.value:
             self.ctx.controller.enable_keyboard()
+
             return self.round_success(status='无需手柄')
         elif not pc_button_utils.is_vgamepad_installed():
             self.ctx.controller.enable_keyboard()
             return self.round_fail(status='未安装虚拟手柄依赖')
-        elif self.ctx.battle_assistant_config.control_method == ControlMethodEnum.XBOX.value.value:
+        elif self.ctx.game_assistant_config.control_method == ControlMethodEnum.XBOX.value.value:
             self.ctx.controller.enable_xbox()
             self.ctx.controller.btn_controller.set_key_press_time(self.ctx.game_config.xbox_key_press_time)
-        elif self.ctx.battle_assistant_config.control_method == ControlMethodEnum.DS4.value.value:
+        elif self.ctx.game_assistant_config.control_method == ControlMethodEnum.DS4.value.value:
             self.ctx.controller.enable_ds4()
             self.ctx.controller.btn_controller.set_key_press_time(self.ctx.game_config.ds4_key_press_time)
         return self.round_success(status='已安装虚拟手柄依赖')
@@ -61,34 +67,38 @@ class DodgeAssistantApp(ZApplication):
         """
         try:
             self.ctx.auto_battle_context.init_auto_op(
-                sub_dir='dodge',
-                op_name=self.ctx.battle_assistant_config.dodge_assistant_config
+                sub_dir='auto_battle',
+                op_name=self.ctx.game_assistant_config.auto_battle_config,
             )
-        except Exception as e:
-            return self.round_fail(status=f'加载指令失败: {e}')
+            self.ctx.auto_battle_context.auto_ultimate_enabled = self.ctx.game_assistant_config.auto_ultimate_enabled
+        except Exception:
+            # 捕获异常，显式返回 Fail，防止框架自动重试
+            return self.round_fail(status='加载指令失败')
 
         self.ctx.dispatch_event(
             AutoBattleApp.EVENT_OP_LOADED,
-            self.ctx.auto_battle_context.auto_op
+            self.ctx.auto_battle_context.auto_op,
         )
         self.ctx.auto_battle_context.start_auto_battle()
+        # 只有在手动使用自动战斗指令时，才使用配置中的开关
+        # 其他指令调用 start_auto_battle 时，会使用默认值 True
+        self.ctx.auto_battle_context.auto_ultimate_enabled = self.ctx.game_assistant_config.auto_ultimate_enabled
 
         return self.round_success()
 
     @node_from(from_name='加载自动战斗指令')
-    @operation_node(name='闪避判断', mute=True)
-    def check_dodge(self) -> OperationRoundResult:
+    @operation_node(name='画面识别', mute=True)
+    def check_screen(self) -> OperationRoundResult:
         """
         识别当前画面 并进行点击
         :return:
         """
         self.ctx.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
-
-        return self.round_wait(wait_round_time=self.ctx.battle_assistant_config.screenshot_interval)
+        return self.round_wait(wait_round_time=self.ctx.game_assistant_config.screenshot_interval)
 
     def handle_pause(self, e=None):
         self.ctx.auto_battle_context.stop_auto_battle()
 
     def handle_resume(self, e=None):
-        if self.current_node.node is not None and self.current_node.node.cn == '闪避判断':
+        if self.current_node.node is not None and self.current_node.node.cn == '画面识别':
             self.ctx.auto_battle_context.resume_auto_battle()

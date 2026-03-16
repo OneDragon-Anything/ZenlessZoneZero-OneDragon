@@ -154,4 +154,4 @@ def check_battle_encounter_in_period(ctx: ZContext, total_check_seconds: float) 
         if check_battle_encounter(ctx, screen, screenshot_time):
             return True
 
-        time.sleep(ctx.battle_assistant_config.screenshot_interval)
+        time.sleep(ctx.game_assistant_config.screenshot_interval)

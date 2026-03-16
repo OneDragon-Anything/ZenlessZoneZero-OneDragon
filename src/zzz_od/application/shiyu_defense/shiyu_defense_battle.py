@@ -50,7 +50,7 @@ class ShiyuDefenseBattle(ZOperation):
     def load_auto_op(self) -> OperationRoundResult:
         self.ctx.auto_battle_context.init_auto_op(
             sub_dir='auto_battle',
-            op_name=self.ctx.battle_assistant_config.auto_battle if self.team_config is None else self.team_config.auto_battle,
+            op_name=self.ctx.game_assistant_config.auto_battle if self.team_config is None else self.team_config.auto_battle,
         )
         return self.round_success()
 
@@ -122,7 +122,7 @@ class ShiyuDefenseBattle(ZOperation):
 
             if current_time - self._last_countdown_check_time < 1:
                 # 还没到检测间隔
-                return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
+                return self.round_wait(wait=self.ctx.game_assistant_config.screenshot_interval)
 
             # 执行倒计时检测
             self._last_countdown_check_time = current_time
@@ -156,7 +156,7 @@ class ShiyuDefenseBattle(ZOperation):
                 self.ctx.auto_battle_context.stop_auto_battle()
                 return self.round_success(status=ShiyuDefenseBattle.STATUS_NEED_SPECIAL_MOVE)
 
-        return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
+        return self.round_wait(wait=self.ctx.game_assistant_config.screenshot_interval)
 
     @node_from(from_name='自动战斗', status=STATUS_NEED_SPECIAL_MOVE)
     @operation_node(name='战斗后移动', node_max_retry_times=5)

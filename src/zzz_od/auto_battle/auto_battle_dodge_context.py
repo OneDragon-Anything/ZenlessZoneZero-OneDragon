@@ -159,7 +159,7 @@ class AutoBattleDodgeContext:
         self._check_dodge_interval = auto_op.check_dodge_interval
         self._check_audio_interval = 0.02
 
-        use_gpu = self.ctx.battle_assistant_config.use_gpu
+        use_gpu = self.ctx.game_assistant_config.use_gpu
         if self._flash_model is None or self._flash_model.gpu != use_gpu:
             self._flash_model = FlashClassifier(
                 model_name=self.ctx.model_config.flash_classifier,

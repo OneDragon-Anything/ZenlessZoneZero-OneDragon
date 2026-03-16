@@ -90,7 +90,7 @@ project_root/
 │           ├── my_app/
 │           │   ├── my_app_const.py
 │           │   └── my_app_factory.py
-│           └── battle_assistant/   # 支持嵌套子目录
+│           └── game_assistant/   # 支持嵌套子目录
 │               ├── auto_battle/
 │               │   └── auto_battle_app_factory.py
 │               └── dodge_assistant/
@@ -361,9 +361,9 @@ src/zzz_od/application/my_app/my_app_factory.py
 → module_root: src/
 → 模块名: zzz_od.application.my_app.my_app_factory
 
-src/zzz_od/application/battle_assistant/auto_battle/auto_battle_app_factory.py
+src/zzz_od/application/game_assistant/auto_battle/auto_battle_app_factory.py
 → module_root: src/
-→ 模块名: zzz_od.application.battle_assistant.auto_battle.auto_battle_app_factory
+→ 模块名: zzz_od.application.game_assistant.auto_battle.auto_battle_app_factory
 ```
 
 ### 第三方插件 (THIRD_PARTY)

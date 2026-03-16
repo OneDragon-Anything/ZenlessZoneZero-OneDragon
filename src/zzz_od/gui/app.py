@@ -117,9 +117,9 @@ try:
             from zzz_od.gui.view.home.home_interface import HomeInterface
             self.add_sub_interface(HomeInterface(self.ctx, parent=self))
 
-            # 战斗助手
-            from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
-            self.add_sub_interface(BattleAssistantInterface(self.ctx, parent=self))
+            # 游戏助手
+            from zzz_od.gui.view.game_assistant.game_assistant_interface import GameAssistantInterface
+            self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
 
             # 一条龙
             from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface

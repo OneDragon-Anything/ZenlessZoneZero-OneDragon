@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
-from zzz_od.application.battle_assistant.operation_debug import operation_debug_const
-from zzz_od.application.battle_assistant.operation_debug.operation_debug_app import (
+from zzz_od.application.game_assistant.operation_debug import operation_debug_const
+from zzz_od.application.game_assistant.operation_debug.operation_debug_app import (
     OperationDebugApp,
 )
 

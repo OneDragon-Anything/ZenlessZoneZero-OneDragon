@@ -15,17 +15,17 @@ from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
     DoubleSpinBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from zzz_od.application.battle_assistant.auto_battle.auto_battle_app import (
+from zzz_od.application.game_assistant.auto_battle.auto_battle_app import (
     AutoBattleApp,
 )
-from zzz_od.application.battle_assistant.auto_battle_config import (
+from zzz_od.application.game_assistant.auto_battle_config import (
     get_auto_battle_config_file_path,
     get_auto_battle_op_config_list,
 )
-from zzz_od.application.battle_assistant.dodge_assitant import dodge_assistant_const
+from zzz_od.application.game_assistant.dodge_assitant import dodge_assistant_const
 from zzz_od.config.game_config import ControlMethodEnum
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.gui.view.battle_assistant.battle_state_display import BattleStateDisplay
+from zzz_od.gui.view.game_assistant.battle_state_display import BattleStateDisplay
 
 
 class DodgeAssistantInterface(AppRunInterface):
@@ -52,7 +52,7 @@ class DodgeAssistantInterface(AppRunInterface):
     def get_widget_at_top(self) -> QWidget:
         top_widget = Column()
 
-        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_battle_assistant.html')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_game_assistant.html')
         top_widget.add_widget(self.help_opt)
 
         self.dodge_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='闪避方式')
@@ -114,10 +114,10 @@ class DodgeAssistantInterface(AppRunInterface):
         """
         AppRunInterface.on_interface_shown(self)
         self._update_dodge_way_opts()
-        self.dodge_opt.init_with_adapter(self.ctx.battle_assistant_config.get_prop_adapter('dodge_assistant_config'))
+        self.dodge_opt.init_with_adapter(self.ctx.game_assistant_config.get_prop_adapter('dodge_assistant_config'))
         self.gpu_opt.init_with_adapter(self.ctx.model_config.get_prop_adapter('flash_classifier_gpu'))
-        self.screenshot_interval_opt.init_with_adapter(self.ctx.battle_assistant_config.get_prop_adapter('screenshot_interval'))
-        self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.control_method)
+        self.screenshot_interval_opt.init_with_adapter(self.ctx.game_assistant_config.get_prop_adapter('screenshot_interval'))
+        self.gamepad_type_opt.setValue(self.ctx.game_assistant_config.control_method)
         self.ctx.listen_event(AutoBattleApp.EVENT_OP_LOADED, self._on_auto_op_loaded_event)
 
         # # 调试用
@@ -155,7 +155,7 @@ class DodgeAssistantInterface(AppRunInterface):
         self._update_dodge_way_opts()
 
     def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
-        self.ctx.battle_assistant_config.control_method = value
+        self.ctx.game_assistant_config.control_method = value
 
     def on_context_state_changed(self) -> None:
         """

@@ -13,11 +13,11 @@ from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import (
     EditableComboBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from zzz_od.application.battle_assistant.auto_battle_config import (
+from zzz_od.application.game_assistant.auto_battle_config import (
     get_auto_battle_config_file_path,
 )
-from zzz_od.application.battle_assistant.operation_debug import operation_debug_const
-from zzz_od.application.battle_assistant.operation_template_config import (
+from zzz_od.application.game_assistant.operation_debug import operation_debug_const
+from zzz_od.application.game_assistant.operation_template_config import (
     get_operation_template_config_list,
 )
 from zzz_od.config.game_config import ControlMethodEnum
@@ -79,9 +79,9 @@ class OperationDebugInterface(AppRunInterface):
         """
         AppRunInterface.on_interface_shown(self)
         self._update_auto_battle_config_opts()
-        self.config_opt.setValue(self.ctx.battle_assistant_config.debug_operation_config)
-        self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.control_method)
-        self.repeat_opt.setValue(self.ctx.battle_assistant_config.debug_operation_repeat)
+        self.config_opt.setValue(self.ctx.game_assistant_config.debug_operation_config)
+        self.gamepad_type_opt.setValue(self.ctx.game_assistant_config.control_method)
+        self.repeat_opt.setValue(self.ctx.game_assistant_config.debug_operation_repeat)
 
     def _update_auto_battle_config_opts(self) -> None:
         """
@@ -98,10 +98,10 @@ class OperationDebugInterface(AppRunInterface):
         self.config_opt.blockSignals(False)
 
     def _on_config_changed(self, index, value):
-        self.ctx.battle_assistant_config.debug_operation_config = value
+        self.ctx.game_assistant_config.debug_operation_config = value
 
     def _on_repeat_changed(self, value: bool) -> None:
-        self.ctx.battle_assistant_config.debug_operation_repeat = value
+        self.ctx.game_assistant_config.debug_operation_repeat = value
 
     def _on_del_clicked(self) -> None:
         """
@@ -119,4 +119,4 @@ class OperationDebugInterface(AppRunInterface):
         self._update_auto_battle_config_opts()
 
     def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
-        self.ctx.battle_assistant_config.control_method = value
+        self.ctx.game_assistant_config.control_method = value
