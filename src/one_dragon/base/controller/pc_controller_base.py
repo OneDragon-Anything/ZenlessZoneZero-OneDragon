@@ -40,6 +40,14 @@ class PcControllerBase(ControllerBase):
     SWP_NOSIZE = 0x0001
     SWP_NOZORDER = 0x0004
     SWP_NOACTIVATE = 0x0010
+    GWL_EXSTYLE = -20
+    WS_EX_LAYERED = 0x00080000
+    WS_EX_TRANSPARENT = 0x00000020
+    LWA_ALPHA = 0x00000002
+    SW_SHOWNOACTIVATE = 4
+    SW_MINIMIZE = 6
+    SM_CXSCREEN = 0
+    SM_CYSCREEN = 1
 
     def __init__(self,
                  screenshot_method: str,
@@ -74,6 +82,13 @@ class PcControllerBase(ControllerBase):
         self._tracker_client_anchor: tuple[int, int] = (self.standard_width // 2, self.standard_height // 2)
         self._win_follow_settle_time: float = 0.06
 
+        # 窗口追踪模式下的伪最小化状态
+        self._tracker_started_on_iconic: bool = False
+        self._tracker_pseudo_minimized: bool = False
+        self._tracker_original_ex_style: int | None = None
+        self._tracker_original_alpha: int = 255
+        self._tracker_had_layered_style: bool = False
+
     def init_game_win(self) -> bool:
         """
         初始化游戏窗口相关内容
@@ -101,6 +116,11 @@ class PcControllerBase(ControllerBase):
         self._stop_mouse_tracker()
         self.btn_controller.reset()
         self.screenshot_controller.cleanup()
+
+    def cleanup_after_context_stop(self) -> None:
+        """运行上下文停止时，关闭窗口追踪并整理窗口状态。"""
+        if self.win_follow:
+            self._stop_mouse_tracker()
 
     def active_window(self) -> None:
         """
@@ -246,6 +266,12 @@ class PcControllerBase(ControllerBase):
         if prev_hwnd and prev_hwnd != hwnd:
             with contextlib.suppress(Exception):
                 win32gui.SetForegroundWindow(prev_hwnd)
+
+        # 窗口追踪模式下，闪切结束后强制回归最小化
+        if self.win_follow and self._mouse_tracker_running:
+            with contextlib.suppress(Exception):
+                win32gui.ShowWindow(hwnd, self.SW_MINIMIZE)
+
         time.sleep(0.1)
         self._game_input_mode = 'keyboard_mouse'
 
@@ -340,14 +366,61 @@ class PcControllerBase(ControllerBase):
         self._mouse_tracker_paused.set()
         return True
 
+    def _apply_tracker_pseudo_minimize(self, hwnd: int) -> None:
+        """将窗口转为伪最小化状态（透明+点击穿透+不激活还原）。"""
+        if self._tracker_pseudo_minimized:
+            return
+
+        ex_style = win32gui.GetWindowLong(hwnd, self.GWL_EXSTYLE)
+        self._tracker_original_ex_style = ex_style
+        self._tracker_had_layered_style = (ex_style & self.WS_EX_LAYERED) != 0
+
+        self._tracker_original_alpha = 255
+        if self._tracker_had_layered_style:
+            try:
+                _, alpha, _ = win32gui.GetLayeredWindowAttributes(hwnd)
+                self._tracker_original_alpha = int(alpha)
+            except Exception:
+                self._tracker_original_alpha = 255
+
+        win32gui.SetWindowLong(
+            hwnd,
+            self.GWL_EXSTYLE,
+            ex_style | self.WS_EX_LAYERED | self.WS_EX_TRANSPARENT,
+        )
+        win32gui.SetLayeredWindowAttributes(hwnd, 0, 0, self.LWA_ALPHA)
+        win32gui.ShowWindow(hwnd, self.SW_SHOWNOACTIVATE)
+        self._tracker_pseudo_minimized = True
+
+    def _revert_tracker_pseudo_minimize(self, hwnd: int) -> None:
+        """恢复窗口原始扩展样式与透明度。"""
+        if not self._tracker_pseudo_minimized:
+            return
+
+        ex_style = self._tracker_original_ex_style
+        if ex_style is None:
+            ex_style = win32gui.GetWindowLong(hwnd, self.GWL_EXSTYLE)
+            ex_style &= ~self.WS_EX_TRANSPARENT
+            if not self._tracker_had_layered_style:
+                ex_style &= ~self.WS_EX_LAYERED
+
+        win32gui.SetWindowLong(hwnd, self.GWL_EXSTYLE, ex_style)
+        if self._tracker_had_layered_style:
+            win32gui.SetLayeredWindowAttributes(hwnd, 0, self._tracker_original_alpha, self.LWA_ALPHA)
+        self._tracker_pseudo_minimized = False
+        self._tracker_original_ex_style = None
+
     def _start_mouse_tracker(self) -> None:
         """启动鼠标跟踪线程，持续将锚点置于鼠标位置。"""
         if self._mouse_tracker_running:
             return
         hwnd = self.game_win.get_hwnd()
         if hwnd:
+            self._tracker_started_on_iconic = win32gui.IsIconic(hwnd) != 0
             rect = win32gui.GetWindowRect(hwnd)
             self._original_win_pos = (rect[0], rect[1])
+        else:
+            self._tracker_started_on_iconic = False
         self._reset_tracker_anchor()
         self._mouse_tracker_running = True
         self._mouse_tracker_paused.set()
@@ -355,10 +428,13 @@ class PcControllerBase(ControllerBase):
             target=self._mouse_tracker_loop, daemon=True, name='aggressive_bg_tracker',
         )
         self._mouse_tracker_thread.start()
+        if hwnd:
+            with contextlib.suppress(Exception):
+                win32gui.ShowWindow(hwnd, self.SW_MINIMIZE)
         log.info('窗口追踪模式: 鼠标跟踪线程已启动')
 
     def _stop_mouse_tracker(self) -> None:
-        """停止鼠标跟踪线程并恢复窗口位置。"""
+        """停止鼠标跟踪线程，并将窗口整理到屏幕中心。"""
         if not self._mouse_tracker_running:
             return
         self._mouse_tracker_running = False
@@ -366,16 +442,27 @@ class PcControllerBase(ControllerBase):
         if self._mouse_tracker_thread is not None:
             self._mouse_tracker_thread.join(timeout=2)
             self._mouse_tracker_thread = None
-        # 恢复原始窗口位置
-        if self._original_win_pos is not None:
-            hwnd = self.game_win.get_hwnd()
-            if hwnd:
+        hwnd = self.game_win.get_hwnd()
+        if hwnd:
+            with contextlib.suppress(Exception):
+                # 恢复伪最小化状态的窗口属性
+                self._revert_tracker_pseudo_minimize(hwnd)
+
+                # 整理到屏幕中心
+                rect = win32gui.GetWindowRect(hwnd)
+                win_w = rect[2] - rect[0]
+                win_h = rect[3] - rect[1]
+                screen_w = win32api.GetSystemMetrics(self.SM_CXSCREEN)
+                screen_h = win32api.GetSystemMetrics(self.SM_CYSCREEN)
+                center_x = max((screen_w - win_w) // 2, 0)
+                center_y = max((screen_h - win_h) // 2, 0)
                 win32gui.SetWindowPos(
                     hwnd, 0,
-                    self._original_win_pos[0], self._original_win_pos[1], 0, 0,
+                    center_x, center_y, 0, 0,
                     self.SWP_NOSIZE | self.SWP_NOZORDER | self.SWP_NOACTIVATE,
                 )
-            self._original_win_pos = None
+
+        self._original_win_pos = None
         log.info('窗口追踪模式: 鼠标跟踪线程已停止')
 
     def _mouse_tracker_loop(self) -> None:
@@ -387,6 +474,10 @@ class PcControllerBase(ControllerBase):
             try:
                 hwnd = self.game_win.get_hwnd()
                 if hwnd:
+                    if win32gui.IsIconic(hwnd):
+                        self._apply_tracker_pseudo_minimize(hwnd)
+                    elif self._tracker_pseudo_minimized and win32gui.GetForegroundWindow() == hwnd:
+                        self._revert_tracker_pseudo_minimize(hwnd)
                     self._align_tracker_anchor_to_cursor(hwnd)
             except Exception:
                 pass

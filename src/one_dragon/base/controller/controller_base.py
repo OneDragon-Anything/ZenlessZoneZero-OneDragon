@@ -37,6 +37,10 @@ class ControllerBase:
         """
         pass
 
+    def cleanup_after_context_stop(self) -> None:
+        """上下文停止时清理运行期资源。"""
+        pass
+
     @property
     def is_game_window_ready(self) -> bool:
         """
