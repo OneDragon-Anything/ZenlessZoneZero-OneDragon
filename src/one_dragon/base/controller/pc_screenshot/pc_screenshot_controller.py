@@ -50,7 +50,7 @@ class PcScreenshotController:
             return None
 
         rect: Rect = self.game_win.win_rect
-        if rect is None:
+        if rect is None or rect.width <= 0 or rect.height <= 0:
             return None
 
         if independent:
