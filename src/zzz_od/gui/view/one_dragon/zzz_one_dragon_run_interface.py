@@ -10,6 +10,7 @@ from zzz_od.application.life_on_line import life_on_line_const
 from zzz_od.application.notorious_hunt import notorious_hunt_const
 from zzz_od.application.random_play import random_play_const
 from zzz_od.application.redemption_code import redemption_code_const
+from zzz_od.application.shiyu_defense import shiyu_defense_const
 from zzz_od.application.suibian_temple import suibian_temple_const
 from zzz_od.application.world_patrol import world_patrol_const
 from zzz_od.context.zzz_context import ZContext
@@ -81,6 +82,11 @@ class ZOneDragonRunInterface(OneDragonRunInterface):
             )
         elif app_id == life_on_line_const.APP_ID:
             self.ctx.shared_dialog_manager.show_life_on_line_setting_dialog(
+                parent=self,
+                group_id=group_id
+            )
+        elif app_id == shiyu_defense_const.APP_ID:
+            self.ctx.shared_dialog_manager.show_shiyu_defense_setting_dialog(
                 parent=self,
                 group_id=group_id
             )
