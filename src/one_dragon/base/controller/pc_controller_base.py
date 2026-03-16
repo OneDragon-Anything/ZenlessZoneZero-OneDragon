@@ -196,24 +196,24 @@ class PcControllerBase(ControllerBase):
             self.enable_xbox()
             log.info('已启用后台模式: PostMessage 点击 + Xbox 手柄')
 
-    def _ensure_mouse_mode(self) -> None:
+    def _ensure_mouse_mode(self) -> bool:
         """确保游戏处于键鼠输入模式。
 
         游戏使用 Raw Input 检测设备类型，只有窗口在前台时才处理鼠标输入。
         因此需要极短暂地将游戏窗口切到前台、发送鼠标移动、再切回。
         """
         if self._game_input_mode == 'keyboard_mouse':
-            return
+            return True
 
         hwnd = self.game_win.get_hwnd()
         if hwnd is None:
-            return
+            return False
 
         user32 = ctypes.windll.user32
         prev_hwnd = win32gui.GetForegroundWindow()
 
         if not self.game_win.active():
-            return
+            return False
         time.sleep(self.mouse_flash_duration)
 
         # mouse_event 鼠标移动，触发 Raw Input 让游戏切回键鼠
@@ -226,6 +226,8 @@ class PcControllerBase(ControllerBase):
                 win32gui.SetForegroundWindow(prev_hwnd)
         time.sleep(0.1)
         self._game_input_mode = 'keyboard_mouse'
+
+        return True
 
     def _ensure_gamepad_mode(self) -> None:
         """确保游戏处于手柄输入模式。若当前为键鼠模式，先发一次手柄按键让游戏切换。"""
@@ -359,7 +361,9 @@ class PcControllerBase(ControllerBase):
         Returns:
             是否成功
         """
-        self._ensure_mouse_mode()
+        if not self._ensure_mouse_mode():
+            log.error('无法切到键鼠模式，后台点击失败')
+            return False
 
         hwnd = self.game_win.get_hwnd()
         if hwnd is None:
@@ -433,7 +437,9 @@ class PcControllerBase(ControllerBase):
         Returns:
             是否成功
         """
-        self._ensure_mouse_mode()
+        if not self._ensure_mouse_mode():
+            log.error('无法切到键鼠模式，后台拖拽失败')
+            return
 
         hwnd = self.game_win.get_hwnd()
         if hwnd is None:
