@@ -5,7 +5,6 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.game_assistant.auto_battle_interface import AutoBattleInterface
 from zzz_od.gui.view.game_assistant.commission_assistant_interface import CommissionAssistantRunInterface
 from zzz_od.gui.view.game_assistant.dodge_assistant_interface import DodgeAssistantInterface
-from zzz_od.gui.view.game_assistant.operation_debug_interface import OperationDebugInterface
 
 
 class GameAssistantInterface(PivotNavigatorInterface):
@@ -27,9 +26,8 @@ class GameAssistantInterface(PivotNavigatorInterface):
 
     def create_sub_interface(self):
         """
-        创建并添加游戏助手的各个子界面，包括自动战斗、躲避助手和操作调试界面。
+        创建并添加游戏助手的各个子界面，包括自动战斗、躲避助手和委托助手界面。
         """
         self.add_sub_interface(AutoBattleInterface(self.ctx))
         self.add_sub_interface(DodgeAssistantInterface(self.ctx))
         self.add_sub_interface(CommissionAssistantRunInterface(self.ctx))
-        self.add_sub_interface(OperationDebugInterface(self.ctx))

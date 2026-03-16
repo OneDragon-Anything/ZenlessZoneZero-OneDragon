@@ -9,6 +9,7 @@ from zzz_od.gui.view.devtools.agent_template_generator_interface import (
     AgentTemplateGeneratorInterface,
 )
 from zzz_od.gui.view.devtools.devtools_screenshot_helper_interface import DevtoolsScreenshotHelperInterface
+from zzz_od.gui.view.devtools.operation_debug_interface import OperationDebugInterface
 
 
 class AppDevtoolsInterface(PivotNavigatorInterface):
@@ -25,8 +26,9 @@ class AppDevtoolsInterface(PivotNavigatorInterface):
         创建下面的子页面
         :return:
         """
+        self.add_sub_interface(AgentTemplateGeneratorInterface(self.ctx))
+        self.add_sub_interface(OperationDebugInterface(self.ctx))
         self.add_sub_interface(DevtoolsImageAnalysisInterface(self.ctx))
         self.add_sub_interface(DevtoolsTemplateHelperInterface(self.ctx))
-        self.add_sub_interface(AgentTemplateGeneratorInterface(self.ctx))
         self.add_sub_interface(DevtoolsScreenManageInterface(self.ctx))
         self.add_sub_interface(DevtoolsScreenshotHelperInterface(self.ctx))
