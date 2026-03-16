@@ -3,12 +3,13 @@ from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, LineEdit
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
-from one_dragon_qt.widgets.setting_card.multi_push_setting_card import MultiPushSettingCard
+from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from zzz_od.application.game_assistant.auto_battle_config import get_auto_battle_op_config_list
 from zzz_od.application.game_config_checker.predefined_team_checker import (
     predefined_team_checker_const,
@@ -18,42 +19,45 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentEnum
 
 
-class TeamSettingCard(MultiPushSettingCard):
+class TeamSettingCard(SettingCardBase):
 
     changed = Signal(PredefinedTeamInfo)
 
     def __init__(self):
+        SettingCardBase.__init__(self, icon=FluentIcon.PEOPLE, title='')
         self.team_info: PredefinedTeamInfo | None = None
 
-        self.auto_battle_btn = ComboBox()
-        self.auto_battle_btn.currentIndexChanged.connect(self.on_auto_battle_changed)
-
-        MultiPushSettingCard.__init__(self, icon=FluentIcon.PEOPLE, title='预备编队',
-                                       btn_list=[self.auto_battle_btn])
+        # 隐藏空的标题和内容标签
+        self.titleLabel.hide()
+        self.contentLabel.hide()
 
         self.name_input = LineEdit()
         self.name_input.textChanged.connect(self.on_name_changed)
-        self.name_input.setMinimumWidth(65)
+        self.name_input.setFixedWidth(110)
+        self.hBoxLayout.insertWidget(2, self.name_input)
+        self.hBoxLayout.insertSpacing(3, 8)
 
         self.agent_1_btn = EditableComboBox()
         self.agent_1_btn.currentIndexChanged.connect(self.on_agent_1_changed)
         self.agent_1_btn.setFixedWidth(110)
+        self.hBoxLayout.insertWidget(4, self.agent_1_btn)
+        self.hBoxLayout.insertSpacing(5, 8)
 
         self.agent_2_btn = EditableComboBox()
         self.agent_2_btn.currentIndexChanged.connect(self.on_agent_2_changed)
         self.agent_2_btn.setFixedWidth(110)
+        self.hBoxLayout.insertWidget(6, self.agent_2_btn)
+        self.hBoxLayout.insertSpacing(7, 8)
 
         self.agent_3_btn = EditableComboBox()
         self.agent_3_btn.currentIndexChanged.connect(self.on_agent_3_changed)
         self.agent_3_btn.setFixedWidth(110)
-
-        self.hBoxLayout.insertWidget(4, self.agent_1_btn, 0, Qt.AlignmentFlag.AlignLeft)
-        self.hBoxLayout.insertSpacing(5, 8)
-        self.hBoxLayout.insertWidget(6, self.agent_2_btn, 0, Qt.AlignmentFlag.AlignLeft)
-        self.hBoxLayout.insertSpacing(7, 8)
-        self.hBoxLayout.insertWidget(8, self.agent_3_btn, 0, Qt.AlignmentFlag.AlignLeft)
+        self.hBoxLayout.insertWidget(8, self.agent_3_btn)
         self.hBoxLayout.insertSpacing(9, 8)
-        self.hBoxLayout.insertWidget(10, self.name_input, 0, Qt.AlignmentFlag.AlignLeft)
+
+        self.auto_battle_btn = ComboBox()
+        self.auto_battle_btn.currentIndexChanged.connect(self.on_auto_battle_changed)
+        self.hBoxLayout.insertWidget(10, self.auto_battle_btn)
         self.hBoxLayout.insertSpacing(11, 8)
 
     def init_setting_card(self, auto_battle_list: list[ConfigItem], team: PredefinedTeamInfo) -> None:
@@ -125,7 +129,7 @@ class PredefinedTeamInterface(AppRunInterface):
         )
 
     def get_widget_at_top(self) -> QWidget:
-        content = Column()
+        content = Column(margins=Margins(0, 0, 0, 0))
 
         self.help_opt = HelpCard(
             title='使用默认队伍名称出现错选时 可更改名字解决',
