@@ -263,7 +263,6 @@ class PcControllerBase(ControllerBase):
         # 窗口追踪模式下，闪切结束后强制回归最小化
         if self.win_follow and self._mouse_tracker_running:
             with contextlib.suppress(Exception):
-                win32gui.ShowWindow(hwnd, self.SW_MINIMIZE)
                 self._apply_tracker_pseudo_minimize(hwnd)
 
         time.sleep(0.1)
@@ -385,6 +384,7 @@ class PcControllerBase(ControllerBase):
         )
         win32gui.SetLayeredWindowAttributes(hwnd, 0, 0, self.LWA_ALPHA)
         win32gui.ShowWindow(hwnd, self.SW_SHOWNOACTIVATE)
+
     def _revert_tracker_pseudo_minimize(self, hwnd: int) -> None:
         """恢复窗口原始扩展样式与透明度。"""
         if not self._is_tracker_pseudo_minimized(hwnd):
@@ -415,7 +415,6 @@ class PcControllerBase(ControllerBase):
         self._mouse_tracker_thread.start()
         if hwnd:
             with contextlib.suppress(Exception):
-                win32gui.ShowWindow(hwnd, self.SW_MINIMIZE)
                 self._apply_tracker_pseudo_minimize(hwnd)
         log.info('窗口追踪模式: 鼠标跟踪线程已启动')
 
