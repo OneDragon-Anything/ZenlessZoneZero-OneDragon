@@ -72,6 +72,7 @@ class PcControllerBase(ControllerBase):
         self._original_win_pos: tuple[int, int] | None = None
         # 跟踪锚点：始终是窗口客户区内的一个点，线程会把它黏在鼠标位置
         self._tracker_client_anchor: tuple[int, int] = (self.standard_width // 2, self.standard_height // 2)
+        self._win_follow_settle_time: float = 0.06
 
     def init_game_win(self) -> bool:
         """
@@ -330,6 +331,15 @@ class PcControllerBase(ControllerBase):
         ax, ay = self._get_tracker_anchor()
         self._move_window_client_to_cursor(hwnd, ax, ay, cursor_x, cursor_y)
 
+    def _ensure_mouse_tracker_ready(self) -> bool:
+        """确保窗口追踪线程处于可运行状态。"""
+        if not self._mouse_tracker_running:
+            self._start_mouse_tracker()
+        if not self._mouse_tracker_running:
+            return False
+        self._mouse_tracker_paused.set()
+        return True
+
     def _start_mouse_tracker(self) -> None:
         """启动鼠标跟踪线程，持续将锚点置于鼠标位置。"""
         if self._mouse_tracker_running:
@@ -521,10 +531,13 @@ class PcControllerBase(ControllerBase):
         Returns:
             是否成功
         """
-        self._mouse_tracker_paused.clear()  # 暂停跟踪线程，避免与点击流程争用窗口移动
         try:
             if not self._ensure_mouse_mode():
                 log.error('无法切到键鼠模式，窗口追踪点击失败')
+                return False
+
+            if not self._ensure_mouse_tracker_ready():
+                log.error('窗口追踪线程未就绪，无法窗口追踪点击')
                 return False
 
             hwnd = self.game_win.get_hwnd()
@@ -544,9 +557,9 @@ class PcControllerBase(ControllerBase):
                     return False
                 cx, cy = rect.width // 2, rect.height // 2
 
-            # 将锚点切换到目标点并立即对齐，保证点击坐标与鼠标对齐
+            # 仅切换锚点，位置对齐完全由追踪线程负责
             self._set_tracker_anchor((cx, cy))
-            self._align_tracker_anchor_to_cursor(hwnd)
+            time.sleep(self._win_follow_settle_time)
 
             win32gui.SendMessage(hwnd, win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
             time.sleep(0.01)
@@ -565,7 +578,6 @@ class PcControllerBase(ControllerBase):
             return False
         finally:
             self._reset_tracker_anchor()  # 恢复默认中心锚点
-            self._mouse_tracker_paused.set()
 
     def _win_follow_drag(self, start: Point, end: Point, duration: float = 0.5) -> None:
         """窗口追踪拖拽: 移动窗口模拟光标在客户区内的移动。
@@ -575,10 +587,13 @@ class PcControllerBase(ControllerBase):
             end: 拖拽终点（游戏坐标）
             duration: 拖拽持续时间
         """
-        self._mouse_tracker_paused.clear()  # 暂停跟踪线程，拖拽由本流程驱动锚点
         try:
             if not self._ensure_mouse_mode():
                 log.error('无法切到键鼠模式，窗口追踪拖拽失败')
+                return
+
+            if not self._ensure_mouse_tracker_ready():
+                log.error('窗口追踪线程未就绪，无法窗口追踪拖拽')
                 return
 
             hwnd = self.game_win.get_hwnd()
@@ -598,9 +613,9 @@ class PcControllerBase(ControllerBase):
                 return
             ex, ey = int(scaled_end.x), int(scaled_end.y)
 
-            # 先把起点锚点对齐到鼠标
+            # 仅切换锚点，位置对齐完全由追踪线程负责
             self._set_tracker_anchor((sx, sy))
-            self._align_tracker_anchor_to_cursor(hwnd)
+            time.sleep(self._win_follow_settle_time)
 
             win32gui.SendMessage(hwnd, win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
             time.sleep(0.01)
@@ -615,7 +630,6 @@ class PcControllerBase(ControllerBase):
                 ix = int(sx + (ex - sx) * t)
                 iy = int(sy + (ey - sy) * t)
                 self._set_tracker_anchor((ix, iy))
-                self._align_tracker_anchor_to_cursor(hwnd)
                 move_lparam = win32api.MAKELONG(ix, iy)
                 win32gui.PostMessage(hwnd, win32con.WM_MOUSEMOVE, win32con.MK_LBUTTON, move_lparam)
                 time.sleep(duration / steps)
@@ -626,7 +640,6 @@ class PcControllerBase(ControllerBase):
             log.error('窗口追踪拖拽失败', exc_info=True)
         finally:
             self._reset_tracker_anchor()
-            self._mouse_tracker_paused.set()
 
     def drag_to(self, start: Point, end: Point, duration: float = 0.5) -> None:
         """按住拖拽。
