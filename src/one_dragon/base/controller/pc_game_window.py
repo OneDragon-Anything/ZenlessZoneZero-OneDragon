@@ -137,11 +137,23 @@ class PcGameWindow:
         Win32Window 里是整个window的信息 参考源码获取里面client部分的
         :return: 游戏窗口信息
         """
+        win = self.get_win()
         hwnd = self.get_hwnd()
-        if hwnd is None:
+        if win is None or hwnd is None:
             return None
         client_rect = RECT()
-        ctypes.windll.user32.GetClientRect(hwnd, ctypes.byref(client_rect))
+        got_rect = ctypes.windll.user32.GetClientRect(hwnd, ctypes.byref(client_rect)) != 0
+        if (not got_rect or client_rect.right <= 0 or client_rect.bottom <= 0) and ctypes.windll.user32.IsIconic(hwnd):
+            # 最小化窗口时客户区可能为 0
+            try:
+                win.restore()
+            except Exception:
+                log.debug('win.restore 失败，尝试 ShowWindow 兜底', exc_info=True)
+                ctypes.windll.user32.ShowWindow(hwnd, 4)  # SW_SHOWNOACTIVATE
+            got_rect = ctypes.windll.user32.GetClientRect(hwnd, ctypes.byref(client_rect)) != 0
+
+        if not got_rect or client_rect.right <= 0 or client_rect.bottom <= 0:
+            return None
         left_top_pos = ctypes.wintypes.POINT(client_rect.left, client_rect.top)
         ctypes.windll.user32.ClientToScreen(hwnd, ctypes.byref(left_top_pos))
         return Rect(left_top_pos.x, left_top_pos.y, left_top_pos.x + client_rect.right, left_top_pos.y + client_rect.bottom)
