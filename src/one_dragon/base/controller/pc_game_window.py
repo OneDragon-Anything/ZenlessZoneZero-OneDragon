@@ -128,7 +128,7 @@ class PcGameWindow:
                 self._reset_cached_window()
                 return False
             if isinstance(error, win32ui.error):
-                log.error('截图失败', exc_info=True)
+                log.error('激活窗口失败', exc_info=True)
                 return False
 
             try:
