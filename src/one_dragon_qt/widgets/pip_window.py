@@ -12,6 +12,7 @@ from PySide6.QtGui import (
     QPaintEvent,
     QPen,
     QPixmap,
+    QWheelEvent,
 )
 from PySide6.QtWidgets import QApplication, QWidget
 
@@ -33,6 +34,7 @@ class PipWindow(QWidget):
     CORNER_RADIUS_RATIO: float = 0.03
     EDGE_ZONE: int = 8
     DRAG_THRESHOLD: int = 5
+    WHEEL_STEP: int = 40
     MIN_WIDTH: int = 320
     MAX_WIDTH: int = 1920
 
@@ -194,6 +196,26 @@ class PipWindow(QWidget):
         self._resize_edge = ''
         self._resize_start_rect = None
         self._resize_start_mouse = None
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        delta = event.angleDelta().y()
+        if delta == 0:
+            return
+
+        step = self.WHEEL_STEP if delta > 0 else -self.WHEEL_STEP
+        old_w, old_h = self.width(), self.height()
+        new_w = max(self.MIN_WIDTH, min(self.MAX_WIDTH, old_w + step))
+        new_h = int(new_w * self._aspect_ratio)
+
+        # 以鼠标位置为锚点：保持鼠标在窗口中的相对位置不变
+        mouse_pos = event.position()
+        ratio_x = mouse_pos.x() / old_w
+        ratio_y = mouse_pos.y() / old_h
+        new_x = int(self.x() - (new_w - old_w) * ratio_x)
+        new_y = int(self.y() - (new_h - old_h) * ratio_y)
+
+        self.setGeometry(new_x, new_y, new_w, new_h)
+        self._save_geometry()
 
     # ------------------------------------------------------------------
     # 边缘检测与缩放
