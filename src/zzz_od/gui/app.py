@@ -10,7 +10,7 @@ try:
     from one_dragon.utils.i18_utils import gt
     from one_dragon_qt.services.styles_manager import OdQtStyleSheet
     from one_dragon_qt.view.context_event_signal import ContextEventSignal
-    from one_dragon_qt.widgets.pip_navigation_button import PipNavigationButton
+    from one_dragon_qt.widgets.pip_button import PipButton
     from one_dragon_qt.windows.app_window_base import AppWindowBase
     from one_dragon_qt.windows.window import PhosTitleBar
     from zzz_od.context.zzz_context import ZContext
@@ -136,8 +136,8 @@ try:
             self.add_sub_interface(GameAssistantInterface(self.ctx, parent=self))
 
             # 画中画
-            self.pip_btn = PipNavigationButton(self.ctx, parent=self)
-            self.pip_btn.attach_to(self.navigationInterface)
+            self.pip_btn = PipButton(self.ctx, parent=self)
+            self.add_nav_widget(self.pip_btn)
 
             # 点赞
             from one_dragon_qt.view.like_interface import LikeInterface
@@ -283,6 +283,9 @@ try:
 
         def closeEvent(self, event):
             """窗口关闭事件"""
+            if hasattr(self, 'pip_btn') and self.pip_btn:
+                self.pip_btn.dispose()
+
             if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
                 import time
                 session_duration = time.time() - self._app_start_time

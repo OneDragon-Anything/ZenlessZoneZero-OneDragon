@@ -1,53 +1,51 @@
 from collections.abc import Callable
 
-from qfluentwidgets import (
-    FluentIconBase,
-    NavigationBarPushButton,
-    NavigationItemPosition,
-)
+from qfluentwidgets import FluentIconBase, NavigationBarPushButton
 
 
-class NavigationToggleButton(NavigationBarPushButton):
-    """导航栏上的非页面切换按钮。"""
+class NavigationButton(NavigationBarPushButton):
+    """导航栏自定义按钮的基类。
+
+    子类需要：
+    - 设置 objectName 作为 route_key
+    - 设置 on_click 作为点击回调
+    """
 
     def __init__(
         self,
-        route_key: str,
+        object_name: str,
+        text: str,
+        icon: FluentIconBase,
+        on_click: Callable[[], None],
+        parent=None,
+    ) -> None:
+        super().__init__(icon, text, False, parent)
+        self.setObjectName(object_name)
+        self.on_click = on_click
+
+
+class NavigationToggleButton(NavigationButton):
+    """导航栏上带开关状态的按钮。"""
+
+    def __init__(
+        self,
+        object_name: str,
         text: str,
         icon_off: FluentIconBase,
         icon_on: FluentIconBase,
         tooltip_off: str,
         tooltip_on: str,
         on_click: Callable[[], None],
-        position: NavigationItemPosition = NavigationItemPosition.TOP,
         parent=None,
     ) -> None:
-        super().__init__(icon_off, text, False, parent)
+        super().__init__(object_name, text, icon_off, on_click, parent)
 
-        self._route_key = route_key
         self._icon_off = icon_off
         self._icon_on = icon_on
         self._tooltip_off = tooltip_off
         self._tooltip_on = tooltip_on
-        self._on_click = on_click
-        self._position = position
         self._active = False
-        self._attached = False
         self.setToolTip(tooltip_off)
-
-    def attach_to(self, navigation) -> None:
-        if self._attached:
-            return
-
-        navigation.insertWidget(
-            len(navigation.items),
-            self._route_key,
-            self,
-            self._on_click,
-            self._position,
-        )
-        self._attached = True
-        self.set_active(self._active)
 
     @property
     def active(self) -> bool:

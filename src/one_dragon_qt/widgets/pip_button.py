@@ -1,28 +1,27 @@
 from PySide6.QtCore import Qt, QTimer
-from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition, NavigationItemPosition
+from qfluentwidgets import FluentIcon, InfoBar, InfoBarPosition
 
 from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon_qt.services.pip.pip_mode_manager import PipModeManager
-from one_dragon_qt.widgets.navigation_toggle_button import NavigationToggleButton
+from one_dragon_qt.widgets.navigation_button import NavigationToggleButton
 
 
-class PipNavigationButton(NavigationToggleButton):
+class PipButton(NavigationToggleButton):
     """画中画导航按钮，封装画中画模式的全部开关逻辑。"""
 
     def __init__(self, ctx: OneDragonContext, parent) -> None:
         self._ctx = ctx
-        self._parent = parent
         self._pip_manager: PipModeManager | None = None
 
         super().__init__(
-            route_key='pip_toggle_button',
+            object_name='pip_button',
             text='画中画',
             icon_off=FluentIcon.PLAY,
             icon_on=FluentIcon.PLAY_SOLID,
             tooltip_off='画中画已关闭，点击开启后游戏切到后台自动显示画中画',
             tooltip_on='画中画已开启，游戏切到后台会自动显示，点击画中画切回游戏',
             on_click=self._on_clicked,
-            position=NavigationItemPosition.TOP,
+            parent=parent,
         )
 
         self._state_timer = QTimer(parent)
@@ -75,5 +74,5 @@ class PipNavigationButton(NavigationToggleButton):
             isClosable=True,
             position=InfoBarPosition.TOP,
             duration=3000,
-            parent=self._parent,
+            parent=self.window(),
         )
