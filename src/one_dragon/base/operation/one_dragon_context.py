@@ -149,6 +149,11 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         return CustomConfig()
 
     @cached_property
+    def pip_config(self):
+        from one_dragon.base.config.pip_config import PipConfig
+        return PipConfig()
+
+    @cached_property
     def cv_service(self):
         from one_dragon.base.cv_process.cv_service import CvService
         return CvService(self)
