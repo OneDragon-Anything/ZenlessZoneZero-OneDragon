@@ -46,7 +46,7 @@ class LostVoidSettingInterface(VerticalScrollInterface):
 
     def set_group_id(self, group_id: str) -> None:
         self.group_id = group_id
-        
+
     def get_content_widget(self) -> QWidget:
         # 创建一个容器 widget 用于水平排列
         col_widget = QWidget(self)
@@ -65,7 +65,7 @@ class LostVoidSettingInterface(VerticalScrollInterface):
         left_layout = QVBoxLayout(left_widget)
         left_widget.setLayout(left_layout)
 
-        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_hollow_zero.html')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat_one_dragon/hollow_zero.html')
         left_layout.addWidget(self.help_opt)
 
         self.mission_opt = ComboBoxSettingCard(

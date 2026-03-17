@@ -10,7 +10,6 @@ from PySide6.QtWidgets import QFileDialog, QWidget
 from qfluentwidgets import (
     Dialog,
     FluentIcon,
-    HyperlinkCard,
     LineEdit,
     MessageBox,
     PrimaryPushButton,
@@ -39,6 +38,7 @@ from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
     PasswordSwitchSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
@@ -256,11 +256,8 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.instance_card_list = []
         self.content_widget.clear_widgets()
 
-        guide_opt = HyperlinkCard(
-            url="http://one-dragon.com/zzz/zh/docs/feat_one_dragon.html#_4-%E5%A4%9A%E8%B4%A6%E5%8F%B7",
-            text="说明",
-            icon=FluentIcon.INFO,
-            title="注意",
+        guide_opt = HelpCard(
+            url="https://one-dragon.com/zzz/zh/config.html",
             content="点击启用后到各模块进行设置，各账户之间的设置是独立的。",
         )
         self.content_widget.add_widget(guide_opt)

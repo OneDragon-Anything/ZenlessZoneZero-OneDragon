@@ -181,7 +181,7 @@ class AutoBattleInterface(AppRunInterface):
         """
         打开使用指南
         """
-        QDesktopServices.openUrl(QUrl("https://one-dragon.com/zzz/zh/docs/feat_game_assistant.html"))
+        QDesktopServices.openUrl(QUrl("https://one-dragon.com/zzz/zh/feat_game_assistant.html"))
 
     def _on_shared_clicked(self) -> None:
         """

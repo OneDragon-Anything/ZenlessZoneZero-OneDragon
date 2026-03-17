@@ -24,7 +24,7 @@ class ZOneDragonRunInterface(OneDragonRunInterface):
             self,
             ctx=ctx,
             parent=parent,
-            help_url='https://one-dragon.com/zzz/zh/docs/feat_one_dragon.html'
+            help_url='https://one-dragon.com/zzz/zh/feat_one_dragon/quickstart.html'
         )
 
     def on_app_setting_clicked(self, app_id: str) -> None:
