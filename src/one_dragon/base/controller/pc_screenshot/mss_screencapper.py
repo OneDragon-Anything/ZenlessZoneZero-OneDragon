@@ -63,12 +63,7 @@ class MssScreencapper(ScreencapperBase):
             else:
                 return None
 
-        if self.game_win.is_win_scale:
-            result = cv2.resize(screenshot, (self.standard_width, self.standard_height))
-        else:
-            result = screenshot
-
-        return result
+        return screenshot
 
     def cleanup(self):
         """清理 MSS 相关资源"""
