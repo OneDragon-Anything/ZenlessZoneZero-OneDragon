@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from PySide6.QtCore import QPoint, QRect, QRectF, Qt, Signal
+from PySide6.QtCore import QPoint, QPointF, QRect, QRectF, Qt, Signal
 from PySide6.QtGui import (
     QCloseEvent,
     QColor,
@@ -37,6 +37,9 @@ class PipWindow(QWidget):
     WHEEL_STEP: int = 40
     MIN_WIDTH: int = 320
     MAX_WIDTH: int = 1920
+    CLOSE_BTN_SIZE: int = 32
+    CLOSE_BTN_MARGIN: int = 8
+    CLOSE_ICON_SIZE: int = 8
 
     def __init__(self, config: PipConfig, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -65,6 +68,10 @@ class PipWindow(QWidget):
 
         # 右键关闭
         self._right_pressed: bool = False
+
+        # 关闭按钮状态
+        self._close_hovered: bool = False
+        self._close_visible: bool = False
 
         # 从 config 恢复尺寸
         w = max(self.MIN_WIDTH, min(self.MAX_WIDTH, config.width))
@@ -137,6 +144,28 @@ class PipWindow(QWidget):
         border_rect = QRectF(half, half, rect.width() - b, rect.height() - b)
         painter.drawRoundedRect(border_rect, radius, radius)
 
+        # 关闭按钮（鼠标在窗体内时显示）
+        if self._close_visible:
+            btn = self._close_btn_rect()
+            btn_f = QRectF(btn)
+            cx = btn_f.center().x()
+            cy = btn_f.center().y()
+            icon_half = self.CLOSE_ICON_SIZE / 2
+
+            # 半透明深色背景（悬停时更深）
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(0, 0, 0, 80 if self._close_hovered else 20))
+            painter.drawRoundedRect(btn_f, 4, 4)
+
+            # 白色 X
+            p1 = QPointF(cx - icon_half, cy - icon_half)
+            p2 = QPointF(cx + icon_half, cy + icon_half)
+            p3 = QPointF(cx + icon_half, cy - icon_half)
+            p4 = QPointF(cx - icon_half, cy + icon_half)
+            painter.setPen(QPen(QColor(255, 255, 255, 220), 1.5))
+            painter.drawLine(p1, p2)
+            painter.drawLine(p3, p4)
+
         painter.end()
 
     # ------------------------------------------------------------------
@@ -149,6 +178,12 @@ class PipWindow(QWidget):
             return
 
         if event.button() == Qt.MouseButton.LeftButton:
+            if self._close_btn_rect().contains(event.pos()):
+                self._save_geometry()
+                self.hide()
+                self.closed.emit()
+                return
+
             edge = self._detect_edge(event.pos())
             if edge:
                 self._resizing = True
@@ -168,6 +203,16 @@ class PipWindow(QWidget):
         elif self._resizing:
             self._do_resize(event.globalPosition().toPoint())
         else:
+            hovered = self._close_btn_rect().contains(event.pos())
+            need_update = False
+            if not self._close_visible:
+                self._close_visible = True
+                need_update = True
+            if hovered != self._close_hovered:
+                self._close_hovered = hovered
+                need_update = True
+            if need_update:
+                self.update()
             edge = self._detect_edge(event.pos())
             if edge:
                 self.setCursor(self._edge_to_cursor(edge))
@@ -197,6 +242,12 @@ class PipWindow(QWidget):
         self._resize_start_rect = None
         self._resize_start_mouse = None
 
+    def leaveEvent(self, event) -> None:
+        if self._close_hovered or self._close_visible:
+            self._close_hovered = False
+            self._close_visible = False
+            self.update()
+
     def wheelEvent(self, event: QWheelEvent) -> None:
         delta = event.angleDelta().y()
         if delta == 0:
@@ -220,6 +271,11 @@ class PipWindow(QWidget):
     # ------------------------------------------------------------------
     # 边缘检测与缩放
     # ------------------------------------------------------------------
+
+    def _close_btn_rect(self) -> QRect:
+        s = self.CLOSE_BTN_SIZE
+        m = self.CLOSE_BTN_MARGIN
+        return QRect(self.width() - s - m, m, s, s)
 
     def _detect_edge(self, pos: QPoint) -> str:
         e = self.EDGE_ZONE
