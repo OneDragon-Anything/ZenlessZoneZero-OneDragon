@@ -14,11 +14,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [x86_64, aarch64]
         include:
           - arch: x86_64
             type: WithRuntime
-          - arch: aarch64
+          - arch: ''
             type: Full-Environment
     steps:
       - uses: MirrorChyan/uploading-action@v1
