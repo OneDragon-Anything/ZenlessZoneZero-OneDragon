@@ -167,7 +167,10 @@ class PipWindow(QWidget):
             self._do_resize(event.globalPosition().toPoint())
         else:
             edge = self._detect_edge(event.pos())
-            self.setCursor(self._edge_to_cursor(edge) if edge else Qt.CursorShape.PointingHandCursor)
+            if edge:
+                self.setCursor(self._edge_to_cursor(edge))
+            else:
+                self.unsetCursor()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.RightButton and self._right_pressed:
