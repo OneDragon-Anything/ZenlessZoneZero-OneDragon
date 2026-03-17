@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import numpy as np
-from PySide6.QtCore import QPoint, QRect, Qt, Signal
+from PySide6.QtCore import QPoint, QRect, QRectF, Qt, Signal
 from PySide6.QtGui import (
     QCloseEvent,
     QColor,
     QImage,
     QMouseEvent,
     QPainter,
+    QPainterPath,
     QPaintEvent,
     QPen,
     QPixmap,
@@ -28,7 +29,8 @@ class PipWindow(QWidget):
     clicked = Signal()
     closed = Signal()
 
-    BORDER_WIDTH: int = 2
+    BORDER_WIDTH: int = 1
+    CORNER_RADIUS_RATIO: float = 0.03
     EDGE_ZONE: int = 8
     DRAG_THRESHOLD: int = 5
     MIN_WIDTH: int = 320
@@ -106,22 +108,32 @@ class PipWindow(QWidget):
     def paintEvent(self, event: QPaintEvent) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         b = self.BORDER_WIDTH
         rect = self.rect()
+        radius = min(rect.width(), rect.height()) * self.CORNER_RADIUS_RATIO
+        inner_radius = max(0, radius - b)
 
-        # 半透明边框
-        border_color = QColor(0, 200, 200, 160)
-        painter.setPen(QPen(border_color, b))
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawRect(rect.adjusted(b // 2, b // 2, -(b // 2 + 1), -(b // 2 + 1)))
+        # 内容区：用边框内边缘的圆角裁剪
+        content_rect = QRectF(rect.adjusted(b, b, -b, -b))
+        clip_path = QPainterPath()
+        clip_path.addRoundedRect(content_rect, inner_radius, inner_radius)
+        painter.setClipPath(clip_path)
 
-        # 内容区
-        content_rect = rect.adjusted(b, b, -b, -b)
         if self._frame is not None:
-            painter.drawPixmap(content_rect, self._frame)
+            painter.drawPixmap(content_rect.toRect(), self._frame)
         else:
             painter.fillRect(content_rect, QColor(0, 0, 0, 200))
+
+        # 半透明边框（在内容之上绘制）
+        painter.setClipping(False)
+        border_color = QColor(83, 83, 83, 144)
+        painter.setPen(QPen(border_color, b))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        half = b / 2
+        border_rect = QRectF(half, half, rect.width() - b, rect.height() - b)
+        painter.drawRoundedRect(border_rect, radius, radius)
 
         painter.end()
 
