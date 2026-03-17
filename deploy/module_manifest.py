@@ -69,7 +69,7 @@ if not getattr(sys, 'frozen', False):
     import zipfile
     from PIL import Image, ImageDraw, ImageFont
     from PySide6 import QtCore
-    from PySide6.QtCore import Property, QEasingCurve, QEvent, QEventLoop, QMimeData, QObject, QPoint, QPropertyAnimation, QRect, QRectF, QRegularExpression, QSize, QThread, QTimer, QUrl, Qt, Signal
+    from PySide6.QtCore import Property, QEasingCurve, QEvent, QEventLoop, QMimeData, QObject, QPoint, QPointF, QPropertyAnimation, QRect, QRectF, QRegularExpression, QSize, QThread, QTimer, QUrl, Qt, Signal
     from PySide6.QtGui import QBrush, QCloseEvent, QColor, QDesktopServices, QDrag, QDragEnterEvent, QDragLeaveEvent, QDragMoveEvent, QDropEvent, QFont, QFontMetrics, QIcon, QImage, QIntValidator, QKeyEvent, QMouseEvent, QPaintEvent, QPainter, QPainterPath, QPen, QPixmap, QResizeEvent, QShowEvent, QSyntaxHighlighter, QTextCharFormat, QWheelEvent, Qt
     from PySide6.QtMultimedia import QMediaPlayer
     from PySide6.QtMultimediaWidgets import QGraphicsVideoItem
