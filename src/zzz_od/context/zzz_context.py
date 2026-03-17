@@ -108,8 +108,10 @@ class ZContext(OneDragonContext):
 
     def init_controller(self) -> None:
         from one_dragon.base.config.game_account_config import GamePlatformEnum
-        from zzz_od.controller.zzz_pc_controller import ZPcController
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
+            if self.controller is not None:
+                self.controller.cleanup_after_app_shutdown()
+            from zzz_od.controller.zzz_pc_controller import ZPcController
             self.controller: ZPcController = ZPcController(
                 game_config=self.game_config,
                 screenshot_method=self.env_config.screenshot_method,
