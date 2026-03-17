@@ -1,0 +1,45 @@
+screen_id: drive_disc_reinforce
+screen_name: 代理人-驱动盘强化
+area_list:
+- area_name: 阶段添加
+  id_mark: false
+  pc_rect:
+  - 1188
+  - 839
+  - 1390
+  - 896
+  text: '阶段添加'
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 升级
+  id_mark: false
+  pc_rect:
+  - 1451
+  - 839
+  - 1617
+  - 896
+  text: '升级'
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 按钮 - 关闭
+  id_mark: false
+  pc_rect:
+  - 1637
+  - 190
+  - 1680
+  - 231
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
