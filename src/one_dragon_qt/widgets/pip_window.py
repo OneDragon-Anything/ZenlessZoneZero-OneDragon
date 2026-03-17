@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-
-from cv2.typing import MatLike
+import numpy as np
 from PySide6.QtCore import QPoint, QRect, Qt, Signal
 from PySide6.QtGui import (
     QCloseEvent,
@@ -16,35 +14,27 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QApplication, QWidget
 
-from one_dragon_qt.services.pip.pip_capture_worker import PipCaptureWorker
+from one_dragon.base.config.pip_config import PipConfig
 
 
 class PipWindow(QWidget):
     """画中画窗口 - 始终置顶的无边框半透明截图预览窗口
 
-    独立线程截图，左键单击发出 clicked 信号，左键拖拽移动，
-    边缘拖拽缩放(保持16:9)，右键关闭。
+    纯显示组件：接收 numpy 帧并绘制。宽度可缩放，高度由帧比例决定。
+    左键单击发出 clicked 信号，左键拖拽移动，边缘拖拽缩放，右键关闭。
+    窗口尺寸和位置通过 PipConfig 持久化。
     """
 
     clicked = Signal()
     closed = Signal()
 
-    ASPECT_W: int = 16
-    ASPECT_H: int = 9
     BORDER_WIDTH: int = 2
     EDGE_ZONE: int = 8
     DRAG_THRESHOLD: int = 5
     MIN_WIDTH: int = 320
     MAX_WIDTH: int = 1920
-    DEFAULT_WIDTH: int = 480
-    DEFAULT_FPS: int = 30
 
-    def __init__(
-        self,
-        capture_fn: Callable[[], MatLike | None],
-        target_fps: int = DEFAULT_FPS,
-        parent: QWidget | None = None,
-    ) -> None:
+    def __init__(self, config: PipConfig, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
         self.setWindowFlags(
@@ -54,12 +44,14 @@ class PipWindow(QWidget):
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
+        self._config = config
         self._frame: QPixmap | None = None
+        self._aspect_ratio: float = 9 / 16  # h/w，默认 16:9，收到第一帧后更新
 
         # 拖拽状态
         self._dragging: bool = False
         self._drag_start_pos: QPoint | None = None
-        self._press_global_pos: QPoint | None = None  # 用于区分点击和拖拽
+        self._press_global_pos: QPoint | None = None
 
         # 缩放状态
         self._resizing: bool = False
@@ -67,26 +59,44 @@ class PipWindow(QWidget):
         self._resize_start_rect: QRect | None = None
         self._resize_start_mouse: QPoint | None = None
 
-        # 右键关闭：press 标记，release 关闭，避免事件穿透
+        # 右键关闭
         self._right_pressed: bool = False
 
-        default_h = self.DEFAULT_WIDTH * self.ASPECT_H // self.ASPECT_W
-        self.resize(self.DEFAULT_WIDTH, default_h)
-
-        # 独立截图线程
-        self._worker = PipCaptureWorker(capture_fn, target_fps, self)
-        self._worker.frame_ready.connect(self._on_frame_ready)
-        self._worker.start()
+        # 从 config 恢复尺寸
+        w = max(self.MIN_WIDTH, min(self.MAX_WIDTH, config.width))
+        h = int(w * self._aspect_ratio)
+        self.resize(w, h)
 
         self.setMouseTracking(True)
-        self._move_to_bottom_right()
+
+        # 从 config 恢复位置
+        if config.x >= 0 and config.y >= 0:
+            self.move(config.x, config.y)
+        else:
+            self._move_to_bottom_right()
 
     # ------------------------------------------------------------------
-    # 截图刷新 (主线程接收)
+    # 帧更新 (由外部 Worker signal 调用)
     # ------------------------------------------------------------------
 
-    def _on_frame_ready(self, q_image: QImage) -> None:
-        self._frame = QPixmap.fromImage(q_image)
+    def on_frame_ready(self, frame: np.ndarray) -> None:
+        h, w = frame.shape[:2]
+        if h <= 0 or w <= 0:
+            return
+
+        # 更新比例，根据宽度计算高度
+        self._aspect_ratio = h / w
+        new_h = int(self.width() * self._aspect_ratio)
+        if self.height() != new_h:
+            self.resize(self.width(), new_h)
+
+        # numpy -> QImage -> QPixmap
+        if frame.ndim == 3 and frame.shape[2] == 3:
+            bytes_per_line = 3 * w
+            q_image = QImage(frame.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
+            self._frame = QPixmap.fromImage(q_image.copy())
+        else:
+            return
         self.update()
 
     # ------------------------------------------------------------------
@@ -150,12 +160,17 @@ class PipWindow(QWidget):
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.RightButton and self._right_pressed:
             self._right_pressed = False
-            self.close()
+            self._save_geometry()
+            self.hide()
+            self.closed.emit()
             return
 
         if event.button() == Qt.MouseButton.LeftButton:
             if not self._dragging and not self._resizing and self._press_global_pos is not None:
                 self.clicked.emit()
+
+        if self._dragging or self._resizing:
+            self._save_geometry()
 
         self._dragging = False
         self._resizing = False
@@ -219,17 +234,20 @@ class PipWindow(QWidget):
         elif 'l' in edge:
             new_w = r.width() - dx
 
+        # 如果只有纵向拖拽，按比例反推宽度
         if ('r' not in edge and 'l' not in edge) and ('b' in edge or 't' in edge):
             new_h = r.height() + dy if 'b' in edge else r.height() - dy
-            new_w = new_h * self.ASPECT_W // self.ASPECT_H
+            if self._aspect_ratio > 0:
+                new_w = int(new_h / self._aspect_ratio)
 
         new_w = max(self.MIN_WIDTH, min(self.MAX_WIDTH, new_w))
-        new_h = new_w * self.ASPECT_H // self.ASPECT_W
+        new_h = int(new_w * self._aspect_ratio)
 
         new_x = r.right() - new_w + 1 if 'l' in edge else r.x()
         new_y = r.bottom() - new_h + 1 if 't' in edge else r.y()
 
         self.setGeometry(new_x, new_y, new_w, new_h)
+        self._save_geometry()
 
     # ------------------------------------------------------------------
     # 工具方法
@@ -243,7 +261,13 @@ class PipWindow(QWidget):
         margin = 20
         self.move(geo.right() - self.width() - margin, geo.bottom() - self.height() - margin)
 
+    def _save_geometry(self) -> None:
+        """保存当前窗口宽度和位置到 config。"""
+        self._config.width = self.width()
+        self._config.x = self.x()
+        self._config.y = self.y()
+
     def closeEvent(self, event: QCloseEvent) -> None:
-        self._worker.stop()
+        self._save_geometry()
         self.closed.emit()
         super().closeEvent(event)
