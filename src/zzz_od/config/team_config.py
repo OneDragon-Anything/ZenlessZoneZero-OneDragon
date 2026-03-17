@@ -24,7 +24,7 @@ class TeamConfig(YamlConfig):
     def team_list(self) -> List[PredefinedTeamInfo]:
         data_list = self.get('team_list', [])
 
-        max_cnt: int = 10
+        max_cnt: int = 20
         team_list: List[PredefinedTeamInfo] = []
         for i in range(len(data_list)):
             data = data_list[i]
