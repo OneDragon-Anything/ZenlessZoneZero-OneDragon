@@ -73,10 +73,10 @@ class PipWindow(QWidget):
         self._close_hovered: bool = False
         self._close_visible: bool = False
 
-        # 从 config 恢复尺寸
-        w = max(self.MIN_WIDTH, min(self.MAX_WIDTH, config.width))
-        h = int(w * self._aspect_ratio)
-        self.resize(w, h)
+        # 从 config 恢复尺寸（config.width 是内容宽度，不含边框）
+        b2 = self.BORDER_WIDTH * 2
+        cw = max(self.MIN_WIDTH, min(self.MAX_WIDTH, config.width))
+        self.resize(cw + b2, self._height_for_width(cw))
 
         self.setMouseTracking(True)
 
@@ -97,9 +97,10 @@ class PipWindow(QWidget):
 
         # 更新比例，根据宽度计算高度
         self._aspect_ratio = h / w
-        new_h = int(self.width() * self._aspect_ratio)
-        if self.height() != new_h:
-            self.resize(self.width(), new_h)
+        content_w = self.width() - self.BORDER_WIDTH * 2
+        new_win_h = self._height_for_width(content_w)
+        if self.height() != new_win_h:
+            self.resize(self.width(), new_win_h)
 
         # numpy -> QImage -> QPixmap
         if frame.ndim == 3 and frame.shape[2] == 3:
@@ -124,7 +125,7 @@ class PipWindow(QWidget):
         radius = min(rect.width(), rect.height()) * self.CORNER_RADIUS_RATIO
         inner_radius = max(0, radius - b)
 
-        # 内容区：用边框内边缘的圆角裁剪
+        # 内容区：边框内侧的圆角区域
         content_rect = QRectF(rect.adjusted(b, b, -b, -b))
         clip_path = QPainterPath()
         clip_path.addRoundedRect(content_rect, inner_radius, inner_radius)
@@ -135,7 +136,7 @@ class PipWindow(QWidget):
         else:
             painter.fillRect(content_rect, QColor(0, 0, 0, 200))
 
-        # 半透明边框（在内容之上绘制）
+        # 边框：画在窗口最外圈，包裹内容
         painter.setClipping(False)
         border_color = QColor(83, 83, 83, 144)
         painter.setPen(QPen(border_color, b))
@@ -254,9 +255,12 @@ class PipWindow(QWidget):
             return
 
         step = self.WHEEL_STEP if delta > 0 else -self.WHEEL_STEP
+        b2 = self.BORDER_WIDTH * 2
         old_w, old_h = self.width(), self.height()
-        new_w = max(self.MIN_WIDTH, min(self.MAX_WIDTH, old_w + step))
-        new_h = int(new_w * self._aspect_ratio)
+        old_cw = old_w - b2
+        new_cw = max(self.MIN_WIDTH, min(self.MAX_WIDTH, old_cw + step))
+        new_w = new_cw + b2
+        new_h = self._height_for_width(new_cw)
 
         # 以鼠标位置为锚点：保持鼠标在窗口中的相对位置不变
         mouse_pos = event.position()
@@ -319,22 +323,24 @@ class PipWindow(QWidget):
         dy = global_pos.y() - self._resize_start_mouse.y()
         r = self._resize_start_rect
         edge = self._resize_edge
+        b2 = self.BORDER_WIDTH * 2
 
-        new_w = r.width()
+        new_cw = r.width() - b2  # 初始内容宽度
 
         if 'r' in edge:
-            new_w = r.width() + dx
+            new_cw = r.width() - b2 + dx
         elif 'l' in edge:
-            new_w = r.width() - dx
+            new_cw = r.width() - b2 - dx
 
-        # 如果只有纵向拖拽，按比例反推宽度
+        # 如果只有纵向拖拽，按比例反推内容宽度
         if ('r' not in edge and 'l' not in edge) and ('b' in edge or 't' in edge):
             new_h = r.height() + dy if 'b' in edge else r.height() - dy
             if self._aspect_ratio > 0:
-                new_w = int(new_h / self._aspect_ratio)
+                new_cw = int((new_h - b2) / self._aspect_ratio)
 
-        new_w = max(self.MIN_WIDTH, min(self.MAX_WIDTH, new_w))
-        new_h = int(new_w * self._aspect_ratio)
+        new_cw = max(self.MIN_WIDTH, min(self.MAX_WIDTH, new_cw))
+        new_w = new_cw + b2
+        new_h = self._height_for_width(new_cw)
 
         new_x = r.right() - new_w + 1 if 'l' in edge else r.x()
         new_y = r.bottom() - new_h + 1 if 't' in edge else r.y()
@@ -354,9 +360,13 @@ class PipWindow(QWidget):
         margin = 20
         self.move(geo.right() - self.width() - margin, geo.bottom() - self.height() - margin)
 
+    def _height_for_width(self, content_w: int) -> int:
+        """根据内容宽度和帧比例，计算对应的窗口高度（含边框）。"""
+        return int(content_w * self._aspect_ratio) + self.BORDER_WIDTH * 2
+
     def _save_geometry(self) -> None:
-        """保存当前窗口宽度和位置到 config。"""
-        self._config.width = self.width()
+        """保存当前内容宽度和位置到 config。"""
+        self._config.width = self.width() - self.BORDER_WIDTH * 2
         self._config.x = self.x()
         self._config.y = self.y()
 
