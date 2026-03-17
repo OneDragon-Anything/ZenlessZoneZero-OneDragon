@@ -87,6 +87,7 @@ class AppRunInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         widget_at_top = self.get_widget_at_top()

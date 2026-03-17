@@ -93,12 +93,14 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         # 左侧列：标题 + 输入
         left_column = Column(spacing=16, margins=Margins(0, 0, 0, 0))
         left_column.setFixedWidth(300)
-        center_layout.addWidget(left_column, alignment=Qt.AlignmentFlag.AlignTop)
+        center_layout.addWidget(left_column, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
         # 标题区域
         title_card = SimpleCardWidget()
         title_layout = Column(spacing=8, margins=Margins(16, 16, 16, 16))
-        QVBoxLayout(title_card).addWidget(title_layout)
+        title_card_layout = QVBoxLayout(title_card)
+        title_card_layout.setContentsMargins(0, 0, 0, 0)
+        title_card_layout.addWidget(title_layout)
 
         title_label = SubtitleLabel(text=gt('代理人模板生成'))
         title_layout.add_widget(title_label)
@@ -112,7 +114,9 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         # 输入区域
         input_card = SimpleCardWidget()
         input_layout = Column(spacing=16, margins=Margins(16, 16, 16, 16))
-        QVBoxLayout(input_card).addWidget(input_layout)
+        input_card_layout = QVBoxLayout(input_card)
+        input_card_layout.setContentsMargins(0, 0, 0, 0)
+        input_card_layout.addWidget(input_layout)
 
         # 输入框
         self.agent_id_edit = LineEdit()
@@ -130,7 +134,9 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         # 截图说明卡片（紧贴输入卡片）
         hint_card = SimpleCardWidget()
         hint_layout = Column(spacing=12, margins=Margins(16, 16, 16, 16))
-        QVBoxLayout(hint_card).addWidget(hint_layout)
+        hint_card_layout = QVBoxLayout(hint_card)
+        hint_card_layout.setContentsMargins(0, 0, 0, 0)
+        hint_card_layout.addWidget(hint_layout)
 
         hint_title = BodyLabel(text=gt('截图方法'))
         hint_layout.add_widget(hint_title)
@@ -152,9 +158,9 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         left_column.add_stretch(1)
 
         # 右侧列：6个模板卡片 - 垂直排列
-        right_column = Column(spacing=16, margins=Margins(8, 0, 8, 16))
+        right_column = Column(spacing=16, margins=Margins(0, 0, 0, 16))
         right_column.setFixedWidth(650)
-        center_layout.addWidget(right_column, alignment=Qt.AlignmentFlag.AlignTop)
+        center_layout.addWidget(right_column, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
         # 模板卡片
         self.template_cards: list[TemplateCardWidget] = []

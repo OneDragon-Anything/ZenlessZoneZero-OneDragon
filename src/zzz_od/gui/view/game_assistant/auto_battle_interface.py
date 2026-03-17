@@ -123,14 +123,18 @@ class AutoBattleInterface(AppRunInterface):
         content_widget = QWidget()
         # 创建 QVBoxLayout 作为主布局
         main_layout = QVBoxLayout(content_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
         # 创建 QHBoxLayout 作为中间布局
         horizontal_layout = QHBoxLayout()
+        horizontal_layout.setContentsMargins(0, 0, 0, 0)
 
         # 将 QVBoxLayouts 加入 QHBoxLayout
         left_layout = QVBoxLayout()
+        left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addWidget(AppRunInterface.get_content_widget(self))
         right_layout = QVBoxLayout()
+        right_layout.setContentsMargins(0, 0, 0, 0)
 
         self.task_display = TaskDisplay(self.ctx)
         right_layout.addWidget(self.task_display)

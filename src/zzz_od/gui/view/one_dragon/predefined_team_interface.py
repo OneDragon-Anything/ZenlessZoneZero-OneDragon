@@ -133,6 +133,7 @@ class PredefinedTeamInterface(AppRunInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = QWidget()
         main_layout = QVBoxLayout(content_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
         # 左右结构，占满整个空间
         horizontal_layout = QHBoxLayout()

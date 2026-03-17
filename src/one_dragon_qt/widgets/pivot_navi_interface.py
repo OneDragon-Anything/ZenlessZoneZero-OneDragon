@@ -24,7 +24,7 @@ class PivotNavigatorInterface(BaseInterface):
 
         self.v_box_layout.addWidget(self.pivot, 0, Qt.AlignmentFlag.AlignLeft)
         self.v_box_layout.addWidget(self.stacked_widget)
-        self.v_box_layout.setContentsMargins(0, 0, 0, 0)
+        self.v_box_layout.setContentsMargins(11, 0, 11, 0)
 
         self.create_sub_interface()
         qrouter.setDefaultRouteKey(self.stacked_widget, self.stacked_widget.currentWidget().objectName())

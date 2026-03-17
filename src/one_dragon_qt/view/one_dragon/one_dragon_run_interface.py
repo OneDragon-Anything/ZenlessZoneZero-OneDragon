@@ -75,6 +75,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
         content_widget = QWidget()
         # 创建 QVBoxLayout 作为主布局
         main_layout = QVBoxLayout(content_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
         # 创建 QHBoxLayout 作为中间布局
         horizontal_layout = QHBoxLayout()
@@ -101,6 +102,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
         :return:
         """
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
 
         scroll_area = SingleDirectionScrollArea()
 
@@ -123,6 +125,7 @@ class OneDragonRunInterface(VerticalScrollInterface):
         :return:
         """
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
         run_group = SettingCardGroup(gt('运行设置'))

@@ -26,11 +26,12 @@ class LikeInterface(VerticalScrollInterface):
         main_widget = QWidget()
         main_layout = QHBoxLayout(main_widget)
         main_layout.setSpacing(40)
-        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setContentsMargins(11, 0, 11, 0)
 
         # 左侧栏
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setAlignment(Qt.AlignTop)
         left_layout.setSpacing(20)
 

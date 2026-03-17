@@ -28,6 +28,7 @@ class ResourceDownloadInterface(VerticalScrollInterface):
 
         content_widget = QWidget()
         control_layout = QVBoxLayout(content_widget)
+        control_layout.setContentsMargins(0, 0, 0, 0)
 
         control_layout.addWidget(self._init_common_group())
 
