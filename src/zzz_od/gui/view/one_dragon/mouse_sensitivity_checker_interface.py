@@ -1,4 +1,7 @@
+from PySide6.QtWidgets import QWidget
+
 from one_dragon_qt.view.app_run_interface import AppRunInterface
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from zzz_od.application.game_config_checker.mouse_sensitivity_checker import (
     mouse_sensitivity_checker_const,
 )
@@ -21,6 +24,12 @@ class MouseSensitivityCheckerInterface(AppRunInterface):
             object_name='mouse_sensitivity_checker_interface',
             nav_text_cn='鼠标校准',
             parent=parent,
+        )
+
+    def get_widget_at_top(self) -> QWidget:
+        return HelpCard(
+            title='使用说明',
+            content='点击「开始」后将自动校准鼠标灵敏度，用于视角转动等操作；请确保游戏已打开且处于可操作状态'
         )
 
     def on_interface_shown(self) -> None:
