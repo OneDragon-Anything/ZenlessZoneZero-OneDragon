@@ -1,13 +1,15 @@
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, LineEdit
+from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+from qfluentwidgets import FluentIcon, LineEdit, PrimaryPushButton, PushButton, SingleDirectionScrollArea, SubtitleLabel
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins
-from one_dragon_qt.view.app_run_interface import AppRunInterface
+from one_dragon_qt.view.app_run_interface import AppRunInterface, AppRunner
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
+from one_dragon_qt.widgets.log_display_card import LogDisplayCard
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from zzz_od.application.game_assistant.auto_battle_config import get_auto_battle_op_config_list
@@ -128,25 +130,107 @@ class PredefinedTeamInterface(AppRunInterface):
             parent=parent,
         )
 
-    def get_widget_at_top(self) -> QWidget:
-        content = Column(margins=Margins(0, 0, 0, 0))
+    def get_content_widget(self) -> QWidget:
+        content_widget = QWidget()
+        main_layout = QVBoxLayout(content_widget)
 
-        self.help_opt = HelpCard(
-            title='使用默认队伍名称出现错选时 可更改名字解决',
-            content='设置作用于避免选择配队冲突。'
-                    '点击开始可根据编队名称自动识别对应的代理人。'
-        )
-        content.add_widget(self.help_opt)
+        # 左右结构，占满整个空间
+        horizontal_layout = QHBoxLayout()
+        horizontal_layout.setSpacing(10)
+        horizontal_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addLayout(horizontal_layout, stretch=1)
 
+        # 左侧：编队卡片列表（带滚动），占满剩余空间
+        horizontal_layout.addLayout(self._get_left_layout(), stretch=1)
+        # 右侧：说明卡 + 状态 + 按钮 + 日志，固定宽度
+        right_widget = self._get_right_widget()
+        horizontal_layout.addWidget(right_widget, stretch=0)
+
+        self.app_runner = AppRunner(self.ctx)
+        self.app_runner.state_changed.connect(self.on_context_state_changed)
+
+        return content_widget
+
+    def _get_left_layout(self) -> QVBoxLayout:
+        layout = QVBoxLayout()
+
+        scroll_area = SingleDirectionScrollArea()
+        scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
+        left_widget = Column(margins=Margins(0, 0, 16, 16))
         self.team_opt_list: list[TeamSettingCard] = []
         team_list = self.ctx.team_config.team_list
         for _ in team_list:
             card = TeamSettingCard()
             card.changed.connect(self._on_team_info_changed)
             self.team_opt_list.append(card)
-            content.add_widget(card)
+            left_widget.add_widget(card)
+        left_widget.add_stretch(1)
+        scroll_area.setWidget(left_widget)
+        scroll_area.setWidgetResizable(True)
+        layout.addWidget(scroll_area)
 
-        return content
+        return layout
+
+    def _get_right_widget(self) -> QWidget:
+        widget = QWidget()
+        widget.setFixedWidth(250)
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(5)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        self.help_opt_1 = HelpCard(
+            title='预备编队',
+            content='编队名称需要与游戏内一致，用于避免选择配队冲突；'
+                    '使用默认队伍名称出现错选时，可更改编队名称解决'
+        )
+        self._make_help_card_wrap(self.help_opt_1)
+        layout.addWidget(self.help_opt_1)
+
+        self.help_opt_2 = HelpCard(
+            title='预备编队识别',
+            content='点击「开始」后，将自动打开游戏内预备编队页面，'
+                    '通过截图识别每个编队中的代理人并填入左侧配置'
+        )
+        self._make_help_card_wrap(self.help_opt_2)
+        layout.addWidget(self.help_opt_2)
+
+        self.state_text = SubtitleLabel()
+        self.state_text.setText('%s %s' % (gt('当前状态'), self.ctx.run_context.run_status_text))
+        self.state_text.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self.state_text)
+
+        self.start_btn = PrimaryPushButton(
+            text='%s %s' % (gt('开始'), self.ctx.key_start_running.upper()),
+            icon=FluentIcon.PLAY,
+        )
+        self.start_btn.clicked.connect(self._on_start_clicked)
+        layout.addWidget(self.start_btn)
+
+        self.stop_btn = PushButton(
+            text='%s %s' % (gt('停止'), self.ctx.key_stop_running.upper()),
+            icon=FluentIcon.CLOSE,
+        )
+        self.stop_btn.clicked.connect(self._on_stop_clicked)
+        layout.addWidget(self.stop_btn)
+
+        self.log_card = LogDisplayCard()
+        layout.addWidget(self.log_card, stretch=1)
+
+        return widget
+
+    @staticmethod
+    def _make_help_card_wrap(card: HelpCard) -> None:
+        """让 HelpCard 显示多行内容"""
+        card.setMinimumHeight(90)
+        card.setMaximumHeight(16777215)
+        card.contentLabel.setWordWrap(True)
+        card.contentLabel.setMinimumHeight(60)
+        card.contentLabel.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        card.hBoxLayout.setAlignment(Qt.AlignmentFlag(0))
+        card.hBoxLayout.setAlignment(card.iconLabel, Qt.AlignmentFlag.AlignVCenter)
+        card.hBoxLayout.setContentsMargins(16, 2, 16, 2)
+        card.vBoxLayout.setSpacing(2)
+        card.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
     def on_interface_shown(self) -> None:
         AppRunInterface.on_interface_shown(self)
