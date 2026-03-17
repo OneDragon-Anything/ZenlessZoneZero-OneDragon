@@ -1,10 +1,9 @@
 import os
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, ToolButton
 
-from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
@@ -15,9 +14,6 @@ from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
     DoubleSpinBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from zzz_od.application.game_assistant.auto_battle.auto_battle_app import (
-    AutoBattleApp,
-)
 from zzz_od.application.game_assistant.auto_battle_config import (
     get_auto_battle_config_file_path,
     get_auto_battle_op_config_list,
@@ -29,8 +25,6 @@ from zzz_od.gui.view.game_assistant.battle_state_display import BattleStateDispl
 
 
 class DodgeAssistantInterface(AppRunInterface):
-
-    auto_op_loaded_signal = Signal()
 
     def __init__(self,
                  ctx: ZContext,
@@ -46,8 +40,6 @@ class DodgeAssistantInterface(AppRunInterface):
             nav_icon=FluentIcon.GAME,
             parent=parent,
         )
-
-        self.auto_op_loaded_signal.connect(self._on_auto_op_loaded_signal)
 
     def get_widget_at_top(self) -> QWidget:
         top_widget = Column()
@@ -110,44 +102,22 @@ class DodgeAssistantInterface(AppRunInterface):
         main_layout.addLayout(horizontal_layout, stretch=1)
 
         return content_widget
-
     def on_interface_shown(self) -> None:
-        """
-        界面显示时 进行初始化
-        :return:
-        """
         AppRunInterface.on_interface_shown(self)
         self._update_dodge_way_opts()
         self.dodge_opt.init_with_adapter(self.ctx.game_assistant_config.get_prop_adapter('dodge_assistant_config'))
         self.gpu_opt.init_with_adapter(self.ctx.model_config.get_prop_adapter('flash_classifier_gpu'))
         self.screenshot_interval_opt.init_with_adapter(self.ctx.game_assistant_config.get_prop_adapter('screenshot_interval'))
         self.gamepad_type_opt.setValue(self.ctx.game_assistant_config.control_method)
-        self.ctx.listen_event(AutoBattleApp.EVENT_OP_LOADED, self._on_auto_op_loaded_event)
-
-        # # 调试用
-        # from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
-        # auto_op = AutoBattleOperator(self.ctx.auto_battle_context, 'auto_battle', '专属配队-简')
-        # auto_op.init_before_running()
-        # auto_op.start_running_async()
-        # self._on_auto_op_loaded_event(ContextEventItem('', auto_op))
 
     def on_interface_hidden(self) -> None:
         AppRunInterface.on_interface_hidden(self)
         self.ctx.unlisten_all_event(self)
-        self.battle_state_display.set_update_display(False)
 
     def _update_dodge_way_opts(self) -> None:
-        """
-        更新闪避指令
-        :return:
-        """
         self.dodge_opt.set_options_by_list(get_auto_battle_op_config_list('dodge'))
 
     def _on_del_clicked(self) -> None:
-        """
-        删除配置
-        :return:
-        """
         item: str = self.dodge_opt.getValue()
         if item is None:
             return
@@ -160,32 +130,3 @@ class DodgeAssistantInterface(AppRunInterface):
 
     def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
         self.ctx.game_assistant_config.control_method = value
-
-    def on_context_state_changed(self) -> None:
-        """
-        按运行状态更新显示
-        :return:
-        """
-        AppRunInterface.on_context_state_changed(self)
-
-        if self.battle_state_display is not None:
-            self.battle_state_display.set_update_display(self.ctx.run_context.is_context_running)
-
-    def _on_auto_op_loaded_event(self, event: ContextEventItem) -> None:
-        """
-        自动战斗指令加载之后
-        :param event:
-        :return:
-        """
-        if self.battle_state_display is None:
-            return
-        self.auto_op_loaded_signal.emit()
-
-    def _on_auto_op_loaded_signal(self) -> None:
-        """
-        指令加载之后 更新需要监听的事件
-        :return:
-        """
-        if self.battle_state_display is None:
-            return
-        self.battle_state_display.set_update_display(True)

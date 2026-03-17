@@ -2,7 +2,7 @@ import os.path
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, MessageBox, PushButton, SettingCard, ToolButton
@@ -21,9 +21,6 @@ from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from zzz_od.application.game_assistant.auto_battle import auto_battle_const
-from zzz_od.application.game_assistant.auto_battle.auto_battle_app import (
-    AutoBattleApp,
-)
 from zzz_od.application.game_assistant.auto_battle_config import (
     get_auto_battle_config_file_path,
     get_auto_battle_op_config_list,
@@ -31,15 +28,10 @@ from zzz_od.application.game_assistant.auto_battle_config import (
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.config.game_config import ControlMethodEnum
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.gui.view.game_assistant.battle_state_display import (
-    BattleStateDisplay,
-    TaskDisplay,
-)
+from zzz_od.gui.view.game_assistant.battle_state_display import BattleStateDisplay, TaskDisplay
 
 
 class AutoBattleInterface(AppRunInterface):
-
-    auto_op_loaded_signal = Signal()
 
     def __init__(self, ctx: ZContext, parent=None):
         """初始化 AutoBattleInterface 类"""
@@ -54,7 +46,6 @@ class AutoBattleInterface(AppRunInterface):
         )
         self.ctx: ZContext = ctx
         self.app: Optional[ZApplication] = None
-        self.auto_op_loaded_signal.connect(self._on_auto_op_loaded_signal)
 
         if hasattr(ctx, 'telemetry') and ctx.telemetry:
             ctx.telemetry.track_ui_interaction('auto_battle_interface', 'view', {
@@ -149,7 +140,6 @@ class AutoBattleInterface(AppRunInterface):
         main_layout.addLayout(horizontal_layout, stretch=1)
 
         return content_widget
-
     def on_interface_shown(self) -> None:
         """
         界面显示时 进行初始化
@@ -163,13 +153,10 @@ class AutoBattleInterface(AppRunInterface):
         self.merged_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'use_merged_file'))
         self.screenshot_interval_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'screenshot_interval'))
         self.gamepad_type_opt.setValue(self.ctx.game_assistant_config.control_method)
-        self.ctx.listen_event(AutoBattleApp.EVENT_OP_LOADED, self._on_auto_op_loaded_event)
 
     def on_interface_hidden(self) -> None:
         AppRunInterface.on_interface_hidden(self)
         self.ctx.unlisten_all_event(self)
-        self.battle_state_display.set_update_display(False)
-        self.task_display.set_update_display(False)
 
     def _update_auto_battle_config_opts(self) -> None:
         """
@@ -242,38 +229,6 @@ class AutoBattleInterface(AppRunInterface):
         key: str = event.data
         if key == self.ctx.key_start_running and self.ctx.run_context.is_context_stop:
             self._on_start_clicked()
-
-    def on_context_state_changed(self) -> None:
-        """
-        按运行状态更新显示
-        :return:
-        """
-        AppRunInterface.on_context_state_changed(self)
-
-        if self.battle_state_display is not None:
-            self.battle_state_display.set_update_display(self.ctx.run_context.is_context_running)
-        if self.task_display is not None:
-            self.task_display.set_update_display(self.ctx.run_context.is_context_running)
-
-    def _on_auto_op_loaded_event(self, event: ContextEventItem) -> None:
-        """
-        自动战斗指令加载之后
-        :param event:
-        :return:
-        """
-        if self.battle_state_display is None or self.task_display is None:
-            return
-        self.auto_op_loaded_signal.emit()
-
-    def _on_auto_op_loaded_signal(self) -> None:
-        """
-        指令加载之后 更新需要监听的事件
-        :return:
-        """
-        if self.battle_state_display is None or self.task_display is None:
-            return
-        self.battle_state_display.set_update_display(True)
-        self.task_display.set_update_display(True)
 
     def _refresh_interface(self):
         """
