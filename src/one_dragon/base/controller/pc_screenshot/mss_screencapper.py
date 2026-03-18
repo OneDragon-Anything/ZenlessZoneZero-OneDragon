@@ -75,5 +75,7 @@ class MssScreencapper(ScreencapperBase):
         if self.mss_instance is not None:
             try:
                 self.mss_instance.close()
+            except Exception:
+                pass
             finally:
                 self.mss_instance = None

@@ -2481,10 +2481,10 @@
   - area_name: 点击进入游戏
     id_mark: false
     pc_rect:
-    - 810
+    - 782
     - 846
-    - 1088
-    - 942
+    - 1136
+    - 1032
     text: 点击进入游戏
     lcs_percent: 0.6
     template_sub_dir: ''

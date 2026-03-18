@@ -117,6 +117,9 @@ class GdiScreencapperBase(ScreencapperBase):
         Returns:
             截图结果
         """
+        if width <= 0 or height <= 0:
+            return None
+
         with self._lock:
             if self.ctx.mfcDC == 0 and not self.init():
                 return None
@@ -186,12 +189,20 @@ class GdiScreencapperBase(ScreencapperBase):
         Returns:
             是否创建成功
         """
-        # 删除旧位图
+        if width <= 0 or height <= 0:
+            return False
+
+        # 删除旧位图，并先清空上下文里的位图/指针，避免悬挂引用
         if self.ctx.saveBitMap:
             try:
                 ctypes.windll.gdi32.DeleteObject(self.ctx.saveBitMap)
             except Exception:
                 log.debug("删除旧 saveBitMap 失败", exc_info=True)
+        self.ctx.saveBitMap = 0
+        self.ctx.buffer = None
+        self.ctx.bmpinfo_buffer = None
+        self.ctx.width = 0
+        self.ctx.height = 0
 
         # 使用屏幕 DC 创建位图，确保与 mfcDC (也是基于屏幕 DC 创建) 兼容
         # 避免因为 hwndDC 与 mfcDC 不兼容导致 SelectObject 失败
@@ -241,9 +252,13 @@ class GdiScreencapperBase(ScreencapperBase):
         saveBitMap = ctypes.windll.gdi32.CreateDIBSection(
             dc_handle, bmpinfo_buffer, 0, ctypes.byref(pBits), 0, 0
         )
-
-        if not saveBitMap:
-            raise Exception('无法创建 DIBSection')
+        if not saveBitMap or not pBits:
+            last_error = ctypes.windll.kernel32.GetLastError()
+            process = ctypes.windll.kernel32.GetCurrentProcess()
+            gdi_objects = ctypes.windll.user32.GetGuiResources(process, 0)
+            raise Exception(
+                f'无法创建 DIBSection (w={width}, h={height}, last_error={last_error}, gdi_objects={gdi_objects})'
+            )
 
         return saveBitMap, pBits, bmpinfo_buffer
 
@@ -275,7 +290,7 @@ class GdiScreencapperBase(ScreencapperBase):
             if not self._do_capture(ctx):
                 return None
 
-            # 直接从内存构建 numpy 数组
+            # 直接从 DIBSection 内存构建 numpy 数组
             size = ctx.width * ctx.height * 4
             array_type = ctypes.c_ubyte * size
             buffer_array = ctypes.cast(ctx.buffer, ctypes.POINTER(array_type)).contents
@@ -334,6 +349,9 @@ class GdiScreencapperBase(ScreencapperBase):
         Returns:
             截图数组，失败返回 None
         """
+        if width <= 0 or height <= 0:
+            return None
+
         hwndDC = None
         mfcDC = None
         saveBitMap = None
