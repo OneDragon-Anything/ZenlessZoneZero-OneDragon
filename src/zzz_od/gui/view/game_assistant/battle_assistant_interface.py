@@ -2,15 +2,15 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon
 
-from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon_qt.widgets.base_interface import BaseInterface
-from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from zzz_od.application.game_assistant.auto_battle.auto_battle_app import AutoBattleApp
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.game_assistant.auto_battle_interface import AutoBattleInterface
 from zzz_od.gui.view.game_assistant.battle_state_display import BattleStateDisplay, TaskDisplay
+from zzz_od.gui.view.game_assistant.battle_assistant_run_interface import (
+    BattleAssistantRunInterface,
+)
 from zzz_od.gui.view.game_assistant.dodge_assistant_interface import DodgeAssistantInterface
 
 
@@ -19,8 +19,8 @@ class BattleAssistantInterface(BaseInterface):
 
     auto_op_loaded_signal = Signal()
 
-    MODE_AUTO_BATTLE = '自动战斗'
-    MODE_DODGE_ASSISTANT = '闪避助手'
+    MODE_AUTO_BATTLE = BattleAssistantRunInterface.MODE_AUTO_BATTLE
+    MODE_DODGE_ASSISTANT = BattleAssistantRunInterface.MODE_DODGE_ASSISTANT
 
     def __init__(self, ctx: ZContext, parent=None):
         BaseInterface.__init__(
@@ -38,35 +38,22 @@ class BattleAssistantInterface(BaseInterface):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-
-        # 顶部模式选择
-        mode_column = Column()
-        self.mode_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GAME, title='战斗模式',
-            content='选择自动战斗或闪避助手模式'
-        )
-        mode_options = [
-            ConfigItem(label=self.MODE_AUTO_BATTLE),
-            ConfigItem(label=self.MODE_DODGE_ASSISTANT),
-        ]
-        self.mode_opt.set_options_by_list(mode_options)
         init_mode = self.ctx.game_assistant_config.battle_mode
         if init_mode not in (self.MODE_AUTO_BATTLE, self.MODE_DODGE_ASSISTANT):
             init_mode = self.MODE_AUTO_BATTLE
             self.ctx.game_assistant_config.battle_mode = init_mode
-        self.mode_opt.setValue(init_mode)
-        self.mode_opt.value_changed.connect(self._on_mode_changed)
-        mode_column.add_widget(self.mode_opt)
-        main_layout.addWidget(mode_column)
 
         # 中间区域：左侧 StackedWidget + 右侧状态面板
         content_layout = QHBoxLayout()
         content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(12)
 
         # 左侧 StackedWidget
         self.stacked_widget = QStackedWidget()
         self.auto_battle_interface = AutoBattleInterface(self.ctx)
         self.dodge_assistant_interface = DodgeAssistantInterface(self.ctx)
+        self.auto_battle_interface.battle_mode_changed.connect(self._on_mode_changed)
+        self.dodge_assistant_interface.battle_mode_changed.connect(self._on_mode_changed)
         self.stacked_widget.addWidget(self.auto_battle_interface)
         self.stacked_widget.addWidget(self.dodge_assistant_interface)
         self.stacked_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -97,7 +84,11 @@ class BattleAssistantInterface(BaseInterface):
             self.task_display.setVisible(False)
             self.task_display.set_update_display(False)
 
-    def _on_mode_changed(self, index: int, value: str) -> None:
+        # 双页同步模式卡片值，避免来回切换后显示不一致
+        self.auto_battle_interface.sync_battle_mode_card(mode)
+        self.dodge_assistant_interface.sync_battle_mode_card(mode)
+
+    def _on_mode_changed(self, value: str) -> None:
         """切换模式时更新 StackedWidget 和右侧面板"""
         if value not in (self.MODE_AUTO_BATTLE, self.MODE_DODGE_ASSISTANT):
             value = self.MODE_AUTO_BATTLE
@@ -120,10 +111,6 @@ class BattleAssistantInterface(BaseInterface):
         if mode not in (self.MODE_AUTO_BATTLE, self.MODE_DODGE_ASSISTANT):
             mode = self.MODE_AUTO_BATTLE
             self.ctx.game_assistant_config.battle_mode = mode
-        if self.mode_opt.getValue() != mode:
-            self.mode_opt.blockSignals(True)
-            self.mode_opt.setValue(mode)
-            self.mode_opt.blockSignals(False)
         self._apply_mode(mode)
 
         current = self.stacked_widget.currentWidget()

@@ -1,24 +1,12 @@
-import os.path
-from pathlib import Path
-from typing import Optional
+import os
 
-from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon, MessageBox, PushButton, SettingCard, ToolButton
+from qfluentwidgets import FluentIcon, ToolButton
 
-from one_dragon.base.operation.context_event_bus import ContextEventItem
-from one_dragon.utils import os_utils
-from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.config_utils import get_prop_adapter
-from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
-    ComboBoxSettingCard,
-)
-from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
-    DoubleSpinBoxSettingCard,
-)
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from zzz_od.application.game_assistant.auto_battle import auto_battle_const
 from zzz_od.application.game_assistant.auto_battle_config import (
@@ -26,15 +14,16 @@ from zzz_od.application.game_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
 )
 from zzz_od.application.zzz_application import ZApplication
-from zzz_od.config.game_config import ControlMethodEnum
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.gui.view.game_assistant.battle_assistant_run_interface import (
+    BattleAssistantRunInterface,
+)
 
 
-class AutoBattleInterface(AppRunInterface):
+class AutoBattleInterface(BattleAssistantRunInterface):
 
     def __init__(self, ctx: ZContext, parent=None):
-        """初始化 AutoBattleInterface 类"""
-        AppRunInterface.__init__(
+        BattleAssistantRunInterface.__init__(
             self,
             ctx=ctx,
             app_id=auto_battle_const.APP_ID,
@@ -43,145 +32,90 @@ class AutoBattleInterface(AppRunInterface):
             nav_icon=FluentIcon.GAME,
             parent=parent,
         )
-        self.ctx: ZContext = ctx
-        self.app: Optional[ZApplication] = None
+        self.app: ZApplication | None = None
+
+        self.config_opt: ComboBoxSettingCard | None = None
+        self.del_btn: ToolButton | None = None
+        self.auto_ultimate_opt: SwitchSettingCard | None = None
+        self.merged_opt: SwitchSettingCard | None = None
 
         if hasattr(ctx, 'telemetry') and ctx.telemetry:
             ctx.telemetry.track_ui_interaction('auto_battle_interface', 'view', {
                 'interface_type': 'game_assistant',
-                'feature': 'auto_battle'
+                'feature': 'auto_battle',
             })
 
     def get_widget_at_top(self) -> QWidget:
         top_widget = Column()
 
-        self.help_opt = SettingCard(FluentIcon.HELP, gt('使用说明'), gt('先看说明 再使用与提问'))
-        self.help_opt.setFixedHeight(50)
-        self.desc_btn = PushButton(gt('如何让AI打得更好？'))
-        self.desc_btn.clicked.connect(self._on_desc_clicked)
-        self.help_opt.hBoxLayout.addWidget(self.desc_btn, alignment=Qt.AlignmentFlag.AlignRight)
-        self.help_opt.hBoxLayout.addSpacing(16)
-        self.guide_btn = PushButton(gt('查看指南'))
-        self.guide_btn.clicked.connect(self._on_help_clicked)
-        self.help_opt.hBoxLayout.addWidget(self.guide_btn, alignment=Qt.AlignmentFlag.AlignRight)
-        self.help_opt.hBoxLayout.addSpacing(16)
-        self.shared_btn = PushButton(gt('前往社区'))
-        self.shared_btn.clicked.connect(self._on_shared_clicked)
-        self.help_opt.hBoxLayout.addWidget(self.shared_btn, alignment=Qt.AlignmentFlag.AlignRight)
-        self.help_opt.hBoxLayout.addSpacing(16)
-        top_widget.add_widget(self.help_opt)
+        # 1) 使用说明
+        self._add_help_card(top_widget)
+        # 2) 战斗模式
+        self._add_mode_card(top_widget)
 
         self.config_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GAME, title='战斗配置',
-            content='全配队通用会自动为您的队伍匹配专属配队，遇到问题请反馈。'
+            icon=FluentIcon.GAME,
+            title='战斗配置',
+            content='全配队通用会自动为您的队伍匹配专属配队，遇到问题请反馈。',
         )
         self.del_btn = ToolButton(FluentIcon.DELETE)
         self.del_btn.clicked.connect(self._on_del_clicked)
         self.config_opt.hBoxLayout.addWidget(self.del_btn, alignment=Qt.AlignmentFlag.AlignRight)
         self.config_opt.hBoxLayout.addSpacing(16)
         top_widget.add_widget(self.config_opt)
-        self.config_opt.value_changed.connect(self._on_auto_battle_config_changed)
 
-        self.gpu_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='GPU运算', content='游戏画面掉帧的话 可以不启用')
-        top_widget.add_widget(self.gpu_opt)
+        # 同名卡片由基类统一创建（GPU/截图间隔/操作方式）
+        self._add_shared_common_cards(top_widget)
 
-        self.auto_ultimate_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='终结技一好就放', content='终结技无视时机立刻释放')
+        # 自动战斗独有配置，随模式切换（页面切换）自然显隐
+        self.auto_ultimate_opt = SwitchSettingCard(
+            icon=FluentIcon.GAME,
+            title='终结技一好就放',
+            content='终结技无视时机立刻释放',
+        )
         top_widget.add_widget(self.auto_ultimate_opt)
 
-        self.merged_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='使用合并配置文件',
-                                            content='关闭用于调试模板文件 正常开启即可')
+        self.merged_opt = SwitchSettingCard(
+            icon=FluentIcon.GAME,
+            title='使用合并配置文件',
+            content='关闭用于调试模板文件 正常开启即可',
+        )
         top_widget.add_widget(self.merged_opt)
-
-        self.screenshot_interval_opt = DoubleSpinBoxSettingCard(
-            icon=FluentIcon.GAME, title='截图间隔 (秒)',
-            content='一般默认0.02，除非电脑很卡。优先通过设置游戏30帧和低画质给AI留算力',
-            minimum=0.02, maximum=0.1
-        )
-        top_widget.add_widget(self.screenshot_interval_opt)
-
-        self.gamepad_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GAME, title='操作方式',
-            content='仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。',
-            options_enum=ControlMethodEnum
-        )
-        self.gamepad_type_opt.value_changed.connect(self._on_gamepad_type_changed)
-        top_widget.add_widget(self.gamepad_type_opt)
 
         return top_widget
 
     def get_content_widget(self) -> QWidget:
         # 统一由父级 BattleAssistantInterface 展示右侧状态面板
-        return AppRunInterface.get_content_widget(self)
+        return BattleAssistantRunInterface.get_content_widget(self)
 
     def on_interface_shown(self) -> None:
-        """
-        界面显示时 进行初始化
-        :return:
-        """
-        AppRunInterface.on_interface_shown(self)
+        BattleAssistantRunInterface.on_interface_shown(self)
+
         self._update_auto_battle_config_opts()
-        self.config_opt.setValue(self.ctx.game_assistant_config.auto_battle_config)
-        self.gpu_opt.init_with_adapter(get_prop_adapter(self.ctx.model_config, 'flash_classifier_gpu'))
-        self.auto_ultimate_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'auto_ultimate_enabled'))
-        self.merged_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'use_merged_file'))
-        self.screenshot_interval_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'screenshot_interval'))
-        self.gamepad_type_opt.setValue(self.ctx.game_assistant_config.control_method)
+        if self.config_opt is not None:
+            self.config_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'auto_battle_config'))
+
+        self._init_shared_common_cards()
+
+        if self.auto_ultimate_opt is not None:
+            self.auto_ultimate_opt.init_with_adapter(
+                get_prop_adapter(self.ctx.game_assistant_config, 'auto_ultimate_enabled')
+            )
+        if self.merged_opt is not None:
+            self.merged_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'use_merged_file'))
 
     def on_interface_hidden(self) -> None:
-        AppRunInterface.on_interface_hidden(self)
-        self.ctx.unlisten_all_event(self)
+        BattleAssistantRunInterface.on_interface_hidden(self)
 
     def _update_auto_battle_config_opts(self) -> None:
-        """
-        更新闪避指令
-        :return:
-        """
+        if self.config_opt is None:
+            return
         self.config_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
 
-    def _on_auto_battle_config_changed(self, index, value):
-        self.ctx.game_assistant_config.auto_battle_config = value
-
-    def _on_help_clicked(self) -> None:
-        """
-        打开使用指南
-        """
-        QDesktopServices.openUrl(QUrl("https://one-dragon.com/zzz/zh/feat_game_assistant.html"))
-
-    def _on_shared_clicked(self) -> None:
-        """
-        打开配置共享频道
-        """
-        QDesktopServices.openUrl(QUrl("https://pd.qq.com/g/onedrag00n"))
-
-        # """
-        # 弹出列表, 此功能对接服务器已经消失, 暂时隐藏
-        # """
-        # dialog = SharedConfigDialog(self)
-        # if dialog.exec():
-        #     self._refresh_interface()
-        # else:
-        #     self._refresh_interface()
-
-
-    def _on_desc_clicked(self) -> None:
-        content = "这是一条消息通知"
-        try:
-            file_path = Path(os_utils.get_path_under_work_dir('docs', 'game_assistant_notice.md'))
-            if file_path.exists():
-                content = file_path.read_text(encoding='utf-8')
-        except Exception:
-            pass
-
-        w = MessageBox(gt("使用说明"), content, self.window())
-        w.cancelButton.hide()
-        w.yesButton.setText(gt("确认"))
-        w.exec()
-
     def _on_del_clicked(self) -> None:
-        """
-        删除配置 只删除非 sample 的
-        :return:
-        """
+        if self.config_opt is None:
+            return
+
         item: str = self.config_opt.getValue()
         if item is None:
             return
@@ -191,24 +125,3 @@ class AutoBattleInterface(AppRunInterface):
             os.remove(path)
 
         self._update_auto_battle_config_opts()
-
-    def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
-        self.ctx.game_assistant_config.control_method = value
-
-    def _on_key_press(self, event: ContextEventItem) -> None:
-        """
-        按键监听
-        """
-        key: str = event.data
-        if key == self.ctx.key_start_running and self.ctx.run_context.is_context_stop:
-            self._on_start_clicked()
-
-    def _refresh_interface(self):
-        """
-        刷新界面
-        """
-        self._update_auto_battle_config_opts()
-        self.config_opt.setValue(self.ctx.game_assistant_config.auto_battle_config)
-        self.gpu_opt.init_with_adapter(self.ctx.model_config.get_prop_adapter('flash_classifier_gpu'))
-        self.screenshot_interval_opt.setValue(str(self.ctx.game_assistant_config.screenshot_interval))
-        self.gamepad_type_opt.setValue(self.ctx.game_assistant_config.control_method)

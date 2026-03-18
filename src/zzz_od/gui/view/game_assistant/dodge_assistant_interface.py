@@ -4,33 +4,24 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, ToolButton
 
-from one_dragon_qt.view.app_run_interface import AppRunInterface
+from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
-    ComboBoxSettingCard,
-)
-from one_dragon_qt.widgets.setting_card.help_card import HelpCard
-from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
-    DoubleSpinBoxSettingCard,
-)
-from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
 from zzz_od.application.game_assistant.auto_battle_config import (
     get_auto_battle_config_file_path,
     get_auto_battle_op_config_list,
 )
 from zzz_od.application.game_assistant.dodge_assitant import dodge_assistant_const
-from zzz_od.config.game_config import ControlMethodEnum
 from zzz_od.context.zzz_context import ZContext
+from zzz_od.gui.view.game_assistant.battle_assistant_run_interface import (
+    BattleAssistantRunInterface,
+)
 
 
-class DodgeAssistantInterface(AppRunInterface):
+class DodgeAssistantInterface(BattleAssistantRunInterface):
 
-    def __init__(self,
-                 ctx: ZContext,
-                 parent=None):
-        self.ctx: ZContext = ctx
-
-        AppRunInterface.__init__(
+    def __init__(self, ctx: ZContext, parent=None):
+        BattleAssistantRunInterface.__init__(
             self,
             ctx=ctx,
             app_id=dodge_assistant_const.APP_ID,
@@ -40,11 +31,16 @@ class DodgeAssistantInterface(AppRunInterface):
             parent=parent,
         )
 
+        self.dodge_opt: ComboBoxSettingCard | None = None
+        self.del_btn: ToolButton | None = None
+
     def get_widget_at_top(self) -> QWidget:
         top_widget = Column()
 
-        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat_game_assistant.html')
-        top_widget.add_widget(self.help_opt)
+        # 1) 使用说明
+        self._add_help_card(top_widget)
+        # 2) 战斗模式
+        self._add_mode_card(top_widget)
 
         self.dodge_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='闪避方式')
         top_widget.add_widget(self.dodge_opt)
@@ -54,46 +50,35 @@ class DodgeAssistantInterface(AppRunInterface):
         self.dodge_opt.hBoxLayout.addSpacing(16)
         self.del_btn.clicked.connect(self._on_del_clicked)
 
-        self.gpu_opt = SwitchSettingCard(icon=FluentIcon.GAME, title='GPU运算')
-        top_widget.add_widget(self.gpu_opt)
-
-        self.screenshot_interval_opt = DoubleSpinBoxSettingCard(
-            icon=FluentIcon.GAME, title='截图间隔 (秒)',
-            content='一般默认0.02，除非电脑很卡。优先通过设置游戏30帧和低画质给AI留算力',
-            minimum=0.02, maximum=0.1
-        )
-        top_widget.add_widget(self.screenshot_interval_opt)
-
-        self.gamepad_type_opt = ComboBoxSettingCard(
-            icon=FluentIcon.GAME, title='操作方式',
-            content='仅影响自动战斗。如需使用手柄，请先安装虚拟手柄依赖。',
-            options_enum=ControlMethodEnum
-        )
-        self.gamepad_type_opt.value_changed.connect(self._on_gamepad_type_changed)
-        top_widget.add_widget(self.gamepad_type_opt)
+        # 同名卡片由基类统一创建（GPU/截图间隔/操作方式）
+        self._add_shared_common_cards(top_widget)
 
         return top_widget
 
     def get_content_widget(self) -> QWidget:
         # 统一由父级 BattleAssistantInterface 展示右侧状态面板
-        return AppRunInterface.get_content_widget(self)
+        return BattleAssistantRunInterface.get_content_widget(self)
 
     def on_interface_shown(self) -> None:
-        AppRunInterface.on_interface_shown(self)
+        BattleAssistantRunInterface.on_interface_shown(self)
+
         self._update_dodge_way_opts()
-        self.dodge_opt.init_with_adapter(self.ctx.game_assistant_config.get_prop_adapter('dodge_assistant_config'))
-        self.gpu_opt.init_with_adapter(self.ctx.model_config.get_prop_adapter('flash_classifier_gpu'))
-        self.screenshot_interval_opt.init_with_adapter(self.ctx.game_assistant_config.get_prop_adapter('screenshot_interval'))
-        self.gamepad_type_opt.setValue(self.ctx.game_assistant_config.control_method)
+        if self.dodge_opt is not None:
+            self.dodge_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'dodge_assistant_config'))
+        self._init_shared_common_cards()
 
     def on_interface_hidden(self) -> None:
-        AppRunInterface.on_interface_hidden(self)
-        self.ctx.unlisten_all_event(self)
+        BattleAssistantRunInterface.on_interface_hidden(self)
 
     def _update_dodge_way_opts(self) -> None:
+        if self.dodge_opt is None:
+            return
         self.dodge_opt.set_options_by_list(get_auto_battle_op_config_list('dodge'))
 
     def _on_del_clicked(self) -> None:
+        if self.dodge_opt is None:
+            return
+
         item: str = self.dodge_opt.getValue()
         if item is None:
             return
@@ -103,6 +88,3 @@ class DodgeAssistantInterface(AppRunInterface):
             os.remove(path)
 
         self._update_dodge_way_opts()
-
-    def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
-        self.ctx.game_assistant_config.control_method = value
