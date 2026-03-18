@@ -10,7 +10,7 @@ from zzz_od.gui.view.one_dragon.zzz_one_dragon_run_interface import ZOneDragonRu
 
 class ZOneDragonInterface(PivotNavigatorInterface):
 
-    def __init__(self, ctx: ZContext, parent=None):
+    def __init__(self, ctx: ZContext, parent=None) -> None:
         self.ctx: ZContext = ctx
         PivotNavigatorInterface.__init__(
             self,
@@ -22,12 +22,12 @@ class ZOneDragonInterface(PivotNavigatorInterface):
 
         self._app_run_cards: list[AppRunCard] = []
 
-    def create_sub_interface(self):
+    def create_sub_interface(self) -> None:
         self.add_sub_interface(ZOneDragonRunInterface(self.ctx))
         self.add_sub_interface(PredefinedTeamInterface(self.ctx))
         self.add_sub_interface(MouseSensitivityCheckerInterface(self.ctx))
 
-    def on_interface_shown(self):
-        super().on_interface_shown()
+    def on_interface_shown(self) -> None:
         if self.ctx.signal.start_onedragon:
             self.stacked_widget.setCurrentIndex(0)
+        super().on_interface_shown()
