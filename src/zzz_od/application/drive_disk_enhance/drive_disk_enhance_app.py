@@ -14,6 +14,9 @@ from one_dragon.base.geometry.point import Point
 from .ocr_worker import OcrWorker
 from .drive_disk_parser import DriveDiskParser
 from one_dragon.utils.cv2_utils import crop_image_only
+from one_dragon.utils import yaml_utils
+from one_dragon.utils import os_utils
+from one_dragon.utils.str_utils import find_best_match_by_similarity
 
 def sort_grids(all_disks: list[Point]) -> list[list[Point]]:
     """
@@ -311,13 +314,29 @@ class DriveDiskEnhanceApp(ZApplication):
         self.upgrade_rect=self.ctx.screen_loader.get_area('代理人-驱动盘强化','升级').pc_rect
         self.button_close_rect=self.ctx.screen_loader.get_area('代理人-驱动盘强化','按钮 - 关闭').pc_rect
         self.confirm_rect=self.ctx.screen_loader.get_area('代理人-驱动盘详细','材料返还-确认').pc_rect
+        self.filter_rect = self.ctx.screen_loader.get_area('代理人-驱动盘详细','筛选').pc_rect
+        self.reset_Rect = self.ctx.screen_loader.get_area('筛选','重置').pc_rect
+        self.Grade_S_Rect = self.ctx.screen_loader.get_area('筛选','S').pc_rect
+        self.suit_filter_Rect = self.ctx.screen_loader.get_area('筛选','套装选择').pc_rect
+        self.confirm_filter_Rect = self.ctx.screen_loader.get_area('套装筛选','确认筛选').pc_rect
 
-        # 获取前端勾选状态
+        # 从上下文中获取驱动盘名称
+        self.drive_disk_names = getattr(self.ctx, '_drive_disk_enhance_selections', [])
+        print(f"从上下文获取驱动盘名称: {len(self.drive_disk_names)} 个")
+        
+        # 如果上下文中没有驱动盘名称，使用默认值
+        if not self.drive_disk_names:
+            print("上下文中没有驱动盘名称，使用默认值")
+            # 默认驱动盘名称
+            self.drive_disk_names = ['流光咏叹']
+            print(f"使用默认驱动盘名称: {len(self.drive_disk_names)} 个")
+
+        # 从上下文中获取前端勾选状态
         self.checkbox_states = getattr(self.ctx, '_drive_disk_enhance_states', [True, True, True, True, True, True])
         print(f"获取到前端勾选状态: {self.checkbox_states}")
         # 从上下文中读取用户选择的角色名称
         self.character_name = getattr(self.ctx, '_drive_disk_enhance_character', '叶瞬光')
-        print(f"使用角色: {self.character_name}")
+        print(f"获取到前端角色: {self.character_name}")
         
 
     @operation_node(name='检测当前窗口是否为驱动盘详细页',is_start_node=True)
@@ -345,7 +364,7 @@ class DriveDiskEnhanceApp(ZApplication):
         
         if current_screen == '代理人-驱动盘详细':
             print(f'检测到驱动盘详细页')
-            return self.round_success('检测到驱动盘详细页')
+            return self.round_success(f'检测到驱动盘详细页')
         else:
             print(f'未检测到驱动盘详细页')
             return self.round_fail('未检测到驱动盘详细页')
@@ -354,25 +373,73 @@ class DriveDiskEnhanceApp(ZApplication):
     @operation_node(name='驱动盘方格处理',save_status=True)
     def process_drive_disk_grid(self):
         #初始化流水线和勾选分区的驱动盘方格位置
-        pipeline = self.ctx.cv_service.load_pipeline('驱动盘方格-代理人-驱动盘详细')
-        if pipeline is None:
+        grid_pipeline = self.ctx.cv_service.load_pipeline('驱动盘方格-代理人-驱动盘详细')
+        suit_filter_pipeline = self.ctx.cv_service.load_pipeline('套装筛选')
+        if grid_pipeline is None or suit_filter_pipeline is None:
                 print('无法加载流水线配置')
                 return self.round_fail('无法加载流水线配置')
-        print(f'流水线加载成功，包含{len(pipeline.steps)}个步骤')
         all_grid_rows=[]
-        for i,checked in enumerate(self.checkbox_states):
-            #获取勾选位置
-            if checked:
+        for i,disk_name in enumerate(self.drive_disk_names):
+            #根据驱动盘名称判断是否需要处理
+            if disk_name:
                 position = i + 1
                 rect = self.ctx.screen_loader.get_area(f'代理人-驱动盘详细',f'{position}号位').pc_rect
                 partition_center = Point((rect.x1 + rect.x2) / 2, (rect.y1 + rect.y2) / 2)# 将Rect对象转换为Point对象（使用中心点）
                 self.ctx.controller.click(partition_center)
                 time.sleep(1)
                 print(f'点击了{position}号位')
+                self.ctx.controller.click(self.filter_rect.center)
+                time.sleep(0.3)
+                self.ctx.controller.click(self.reset_Rect.center)
+                time.sleep(0.3)
+                self.ctx.controller.click(self.Grade_S_Rect.center)
+                time.sleep(0.3)
+                self.ctx.controller.click(self.suit_filter_Rect.center)
+                time.sleep(0.3)
+                target_text = [disk_name]
+                found_target = False
+                loop_count = 0
+                max_loop_count = 10
+                while True:
+                    loop_count += 1
+                    if loop_count >= max_loop_count:
+                        return self.round_fail(f'超过最大循环次数{max_loop_count}次数')
+                    screen = self.screenshot()
+                    result = suit_filter_pipeline.execute(screen,service=self.ctx.cv_service)
+                    if result.success:
+                        print(f'识别到{len(result.ocr_result)}个文本项')
+                        offset_x, offset_y = result.crop_offset
+                        for ocr_text, match_list in result.ocr_result.items():
+                            print(f"\nocr识别文本: '{ocr_text}'")
+                            matched_text, score = find_best_match_by_similarity(ocr_text, target_text, threshold=0.69)
+                            if matched_text:
+                                print(f"  模糊匹配到测试名称: {matched_text} (相似度: {score:.2f})")                               
+                                if match_list:
+                                    # 只点击第一个匹配项
+                                    match = match_list[0]
+                                    absolute_x1 = match.rect.x1 + offset_x
+                                    absolute_y1 = match.rect.y1 + offset_y
+                                    absolute_x2 = match.rect.x2 + offset_x
+                                    absolute_y2 = match.rect.y2 + offset_y
+                                    rect = Rect(absolute_x1, absolute_y1, absolute_x2, absolute_y2)
+                                self.ctx.controller.click(rect.center)
+                                time.sleep(0.3)
+                                self.ctx.controller.click(self.confirm_filter_Rect.center)
+                                found_target = True
+                                break
+                        if found_target:
+                            print("找到目标，退出循环")
+                            break
+                        print("未匹配到任何目标，执行滚动操作")
+                        for i in range(3):
+                            self.ctx.controller.scroll(1,Point(899,428))                 
+                return self.round_fail(f'强制结束,当前驱动盘名称为{disk_name}')
+                
+                time.sleep(1)
                 screen = self.screenshot()
                 # 执行流水线处理
                 print('执行流水线处理...')
-                context=pipeline.execute(screen,service=self.ctx.cv_service)
+                context=grid_pipeline.execute(screen,service=self.ctx.cv_service)
                 if not context.success:
                     print(f'流水线执行失败: {context.error_str}')
                     return self.round_fail(f'流水线执行失败: {context.error_str}')
