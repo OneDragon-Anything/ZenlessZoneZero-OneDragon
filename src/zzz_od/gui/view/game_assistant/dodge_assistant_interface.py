@@ -1,7 +1,7 @@
 import os
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, ToolButton
 
 from one_dragon_qt.view.app_run_interface import AppRunInterface
@@ -21,7 +21,6 @@ from zzz_od.application.game_assistant.auto_battle_config import (
 from zzz_od.application.game_assistant.dodge_assitant import dodge_assistant_const
 from zzz_od.config.game_config import ControlMethodEnum
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.gui.view.game_assistant.battle_state_display import BattleStateDisplay
 
 
 class DodgeAssistantInterface(AppRunInterface):
@@ -76,32 +75,9 @@ class DodgeAssistantInterface(AppRunInterface):
         return top_widget
 
     def get_content_widget(self) -> QWidget:
-        content_widget = QWidget()
-        # 创建 QVBoxLayout 作为主布局
-        main_layout = QVBoxLayout(content_widget)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        # 统一由父级 BattleAssistantInterface 展示右侧状态面板
+        return AppRunInterface.get_content_widget(self)
 
-        # 创建 QHBoxLayout 作为中间布局
-        horizontal_layout = QHBoxLayout()
-        horizontal_layout.setContentsMargins(0, 0, 0, 0)
-
-        # 将 QVBoxLayouts 加入 QHBoxLayout
-        left_layout = QVBoxLayout()
-        left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.addWidget(AppRunInterface.get_content_widget(self))
-
-        right_layout = QVBoxLayout()
-        right_layout.setContentsMargins(0, 0, 0, 0)
-        self.battle_state_display = BattleStateDisplay(self.ctx)
-        right_layout.addWidget(self.battle_state_display)
-
-        horizontal_layout.addLayout(left_layout, stretch=1)
-        horizontal_layout.addLayout(right_layout, stretch=1)
-
-        # 设置伸缩因子，让 QHBoxLayout 占据空间
-        main_layout.addLayout(horizontal_layout, stretch=1)
-
-        return content_widget
     def on_interface_shown(self) -> None:
         AppRunInterface.on_interface_shown(self)
         self._update_dodge_way_opts()

@@ -48,6 +48,14 @@ class GameAssistantConfig(YamlConfig):
         self.update('auto_battle_config', new_value)
 
     @property
+    def battle_mode(self) -> str:
+        return self.get('battle_mode', '自动战斗')
+
+    @battle_mode.setter
+    def battle_mode(self, new_value: str) -> None:
+        self.update('battle_mode', new_value)
+
+    @property
     def debug_operation_config(self) -> str:
         return self.get('debug_operation_config', '安比-3A特殊攻击')
 
