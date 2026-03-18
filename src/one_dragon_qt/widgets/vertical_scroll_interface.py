@@ -44,8 +44,9 @@ class VerticalScrollInterface(BaseInterface):
             return
 
         # 创建一个垂直布局
+        # 注意：不要设置 main_layout.setContentsMargins(0, 0, 0, 0)
+        # 否则会清掉页面默认外边距，导致多个页面的日志框底距消失
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
         scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
         main_layout.addWidget(scroll_area, stretch=0)
 

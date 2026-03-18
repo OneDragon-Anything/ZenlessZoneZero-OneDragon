@@ -26,7 +26,8 @@ class LikeInterface(VerticalScrollInterface):
         main_widget = QWidget()
         main_layout = QHBoxLayout(main_widget)
         main_layout.setSpacing(40)
-        main_layout.setContentsMargins(11, 0, 11, 0)
+        # 点赞页没有顶部 Tab，top=50 用于与有 Tab 页的首卡视觉对齐；左右保持 11 基线
+        main_layout.setContentsMargins(11, 50, 11, 11)
 
         # 左侧栏
         left_widget = QWidget()

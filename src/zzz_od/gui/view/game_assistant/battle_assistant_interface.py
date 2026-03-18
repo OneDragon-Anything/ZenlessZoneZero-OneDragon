@@ -64,7 +64,7 @@ class BattleAssistantInterface(BaseInterface):
         right_widget.setMinimumWidth(350)
         right_widget.setMaximumWidth(400)
         right_layout = QVBoxLayout(right_widget)
-        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setContentsMargins(0, 0, 0, 11)
         self.task_display = TaskDisplay(self.ctx)
         right_layout.addWidget(self.task_display)
         self.battle_state_display = BattleStateDisplay(self.ctx)
