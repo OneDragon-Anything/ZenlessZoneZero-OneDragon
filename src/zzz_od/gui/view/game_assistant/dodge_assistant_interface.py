@@ -64,7 +64,7 @@ class DodgeAssistantInterface(BattleAssistantRunInterface):
 
         self._update_dodge_way_opts()
         if self.dodge_opt is not None:
-            self.dodge_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'dodge_assistant_config'))
+            self.dodge_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'dodge_assistant_config'))
         self._init_shared_common_cards()
 
     def on_interface_hidden(self) -> None:

@@ -42,7 +42,7 @@ class AutoBattleApp(ZApplication):
         检测手柄
         :return:
         """
-        gamepad_type = self.ctx.game_assistant_config.control_method
+        gamepad_type = self.ctx.battle_assistant_config.control_method
         if gamepad_type == ControlMethodEnum.KEYBOARD.value.value:
             self.ctx.controller.enable_keyboard()
 
@@ -50,10 +50,10 @@ class AutoBattleApp(ZApplication):
         elif not pc_button_utils.is_vgamepad_installed():
             self.ctx.controller.enable_keyboard()
             return self.round_fail(status='未安装虚拟手柄依赖')
-        elif self.ctx.game_assistant_config.control_method == ControlMethodEnum.XBOX.value.value:
+        elif self.ctx.battle_assistant_config.control_method == ControlMethodEnum.XBOX.value.value:
             self.ctx.controller.enable_xbox()
             self.ctx.controller.btn_controller.set_key_press_time(self.ctx.game_config.xbox_key_press_time)
-        elif self.ctx.game_assistant_config.control_method == ControlMethodEnum.DS4.value.value:
+        elif self.ctx.battle_assistant_config.control_method == ControlMethodEnum.DS4.value.value:
             self.ctx.controller.enable_ds4()
             self.ctx.controller.btn_controller.set_key_press_time(self.ctx.game_config.ds4_key_press_time)
         return self.round_success(status='已安装虚拟手柄依赖')
@@ -68,9 +68,9 @@ class AutoBattleApp(ZApplication):
         try:
             self.ctx.auto_battle_context.init_auto_op(
                 sub_dir='auto_battle',
-                op_name=self.ctx.game_assistant_config.auto_battle_config,
+                op_name=self.ctx.battle_assistant_config.auto_battle_config,
             )
-            self.ctx.auto_battle_context.auto_ultimate_enabled = self.ctx.game_assistant_config.auto_ultimate_enabled
+            self.ctx.auto_battle_context.auto_ultimate_enabled = self.ctx.battle_assistant_config.auto_ultimate_enabled
         except Exception:
             # 捕获异常，显式返回 Fail，防止框架自动重试
             return self.round_fail(status='加载指令失败')
@@ -82,7 +82,7 @@ class AutoBattleApp(ZApplication):
         self.ctx.auto_battle_context.start_auto_battle()
         # 只有在手动使用自动战斗指令时，才使用配置中的开关
         # 其他指令调用 start_auto_battle 时，会使用默认值 True
-        self.ctx.auto_battle_context.auto_ultimate_enabled = self.ctx.game_assistant_config.auto_ultimate_enabled
+        self.ctx.auto_battle_context.auto_ultimate_enabled = self.ctx.battle_assistant_config.auto_ultimate_enabled
 
         return self.round_success()
 
@@ -94,7 +94,7 @@ class AutoBattleApp(ZApplication):
         :return:
         """
         self.ctx.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
-        return self.round_wait(wait_round_time=self.ctx.game_assistant_config.screenshot_interval)
+        return self.round_wait(wait_round_time=self.ctx.battle_assistant_config.screenshot_interval)
 
     def handle_pause(self, e=None):
         self.ctx.auto_battle_context.stop_auto_battle()

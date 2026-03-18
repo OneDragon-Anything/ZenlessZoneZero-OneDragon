@@ -2,10 +2,10 @@ from one_dragon.base.config.yaml_config import YamlConfig
 from zzz_od.config.game_config import ControlMethodEnum
 
 
-class GameAssistantConfig(YamlConfig):
+class BattleAssistantConfig(YamlConfig):
 
     def __init__(self, instance_idx: int):
-        YamlConfig.__init__(self, 'game_assistant', instance_idx=instance_idx)
+        YamlConfig.__init__(self, 'battle_assistant', instance_idx=instance_idx)
 
     @property
     def dodge_assistant_config(self) -> str:

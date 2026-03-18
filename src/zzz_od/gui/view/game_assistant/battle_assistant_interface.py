@@ -38,10 +38,10 @@ class BattleAssistantInterface(BaseInterface):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-        init_mode = self.ctx.game_assistant_config.battle_mode
+        init_mode = self.ctx.battle_assistant_config.battle_mode
         if init_mode not in (self.MODE_AUTO_BATTLE, self.MODE_DODGE_ASSISTANT):
             init_mode = self.MODE_AUTO_BATTLE
-            self.ctx.game_assistant_config.battle_mode = init_mode
+            self.ctx.battle_assistant_config.battle_mode = init_mode
 
         # 中间区域：左侧 StackedWidget + 右侧状态面板
         content_layout = QHBoxLayout()
@@ -93,7 +93,7 @@ class BattleAssistantInterface(BaseInterface):
         if value not in (self.MODE_AUTO_BATTLE, self.MODE_DODGE_ASSISTANT):
             value = self.MODE_AUTO_BATTLE
 
-        self.ctx.game_assistant_config.battle_mode = value
+        self.ctx.battle_assistant_config.battle_mode = value
 
         current = self.stacked_widget.currentWidget()
         if current is not None and hasattr(current, 'on_interface_hidden'):
@@ -107,10 +107,10 @@ class BattleAssistantInterface(BaseInterface):
 
     def on_interface_shown(self) -> None:
         """界面显示时初始化当前活跃的子界面和状态面板"""
-        mode = self.ctx.game_assistant_config.battle_mode
+        mode = self.ctx.battle_assistant_config.battle_mode
         if mode not in (self.MODE_AUTO_BATTLE, self.MODE_DODGE_ASSISTANT):
             mode = self.MODE_AUTO_BATTLE
-            self.ctx.game_assistant_config.battle_mode = mode
+            self.ctx.battle_assistant_config.battle_mode = mode
         self._apply_mode(mode)
 
         current = self.stacked_widget.currentWidget()

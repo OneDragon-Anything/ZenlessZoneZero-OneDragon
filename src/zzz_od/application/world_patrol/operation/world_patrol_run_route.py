@@ -597,7 +597,7 @@ class WorldPatrolRunRoute(ZOperation):
                 if mini_map.play_mask_found:
                     return self.round_success(status='发现地图')
 
-        return self.round_wait(wait=self.ctx.game_assistant_config.screenshot_interval)
+        return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
     @node_from(from_name='自动战斗')
     @operation_node(name='自动战斗结束')

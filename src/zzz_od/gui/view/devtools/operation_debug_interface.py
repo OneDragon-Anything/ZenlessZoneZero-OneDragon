@@ -90,7 +90,7 @@ class OperationDebugInterface(AppRunInterface):
         )
         self._update_auto_battle_config_opts()
         self.config_opt.setValue(self.config.operation_template)
-        self.gamepad_type_opt.setValue(self.ctx.game_assistant_config.control_method)
+        self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.control_method)
         self.repeat_opt.setValue(self.config.repeat_enabled)
 
     def _update_auto_battle_config_opts(self) -> None:
@@ -131,4 +131,4 @@ class OperationDebugInterface(AppRunInterface):
         self._update_auto_battle_config_opts()
 
     def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
-        self.ctx.game_assistant_config.control_method = value
+        self.ctx.battle_assistant_config.control_method = value

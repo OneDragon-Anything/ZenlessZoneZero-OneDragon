@@ -184,7 +184,7 @@ class HollowBattle(ZOperation):
             check_distance=True,
         )
 
-        return self.round_wait(wait=self.ctx.game_assistant_config.screenshot_interval)
+        return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
     @node_from(from_name='自动战斗', status='零号空洞-结算周期上限')
     @operation_node(name='结算周期上限')

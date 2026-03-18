@@ -93,16 +93,16 @@ class AutoBattleInterface(BattleAssistantRunInterface):
 
         self._update_auto_battle_config_opts()
         if self.config_opt is not None:
-            self.config_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'auto_battle_config'))
+            self.config_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'auto_battle_config'))
 
         self._init_shared_common_cards()
 
         if self.auto_ultimate_opt is not None:
             self.auto_ultimate_opt.init_with_adapter(
-                get_prop_adapter(self.ctx.game_assistant_config, 'auto_ultimate_enabled')
+                get_prop_adapter(self.ctx.battle_assistant_config, 'auto_ultimate_enabled')
             )
         if self.merged_opt is not None:
-            self.merged_opt.init_with_adapter(get_prop_adapter(self.ctx.game_assistant_config, 'use_merged_file'))
+            self.merged_opt.init_with_adapter(get_prop_adapter(self.ctx.battle_assistant_config, 'use_merged_file'))
 
     def on_interface_hidden(self) -> None:
         BattleAssistantRunInterface.on_interface_hidden(self)

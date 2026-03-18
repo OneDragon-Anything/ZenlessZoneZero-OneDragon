@@ -83,7 +83,7 @@ class BattleAssistantRunInterface(AppRunInterface):
             ConfigItem(label=self.MODE_DODGE_ASSISTANT),
         ]
         self.mode_opt.set_options_by_list(mode_options)
-        init_mode = self.ctx.game_assistant_config.battle_mode
+        init_mode = self.ctx.battle_assistant_config.battle_mode
         if init_mode not in (self.MODE_AUTO_BATTLE, self.MODE_DODGE_ASSISTANT):
             init_mode = self.MODE_AUTO_BATTLE
         self.mode_opt.setValue(init_mode)
@@ -117,16 +117,16 @@ class BattleAssistantRunInterface(AppRunInterface):
         top_widget.add_widget(self.gamepad_type_opt)
 
     def _init_shared_common_cards(self) -> None:
-        self.sync_battle_mode_card(self.ctx.game_assistant_config.battle_mode)
+        self.sync_battle_mode_card(self.ctx.battle_assistant_config.battle_mode)
 
         if self.gpu_opt is not None:
             self.gpu_opt.init_with_adapter(get_prop_adapter(self.ctx.model_config, 'flash_classifier_gpu'))
         if self.screenshot_interval_opt is not None:
             self.screenshot_interval_opt.init_with_adapter(
-                get_prop_adapter(self.ctx.game_assistant_config, 'screenshot_interval')
+                get_prop_adapter(self.ctx.battle_assistant_config, 'screenshot_interval')
             )
         if self.gamepad_type_opt is not None:
-            self.gamepad_type_opt.setValue(self.ctx.game_assistant_config.control_method)
+            self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.control_method)
 
     def sync_battle_mode_card(self, mode: str) -> None:
         if self.mode_opt is None:
@@ -146,7 +146,7 @@ class BattleAssistantRunInterface(AppRunInterface):
         self.battle_mode_changed.emit(value)
 
     def _on_gamepad_type_changed(self, idx: int, value: str) -> None:
-        self.ctx.game_assistant_config.control_method = value
+        self.ctx.battle_assistant_config.control_method = value
 
     def _on_help_clicked(self) -> None:
         QDesktopServices.openUrl(QUrl("https://one-dragon.com/zzz/zh/feat_game_assistant.html"))

@@ -224,7 +224,7 @@ class LostVoidContext:
             if self.check_battle_encounter(screen, screenshot_time):
                 return True
 
-            time.sleep(self.ctx.game_assistant_config.screenshot_interval)
+            time.sleep(self.ctx.battle_assistant_config.screenshot_interval)
 
     def get_artifact_by_full_name(self, name_full_str: str) -> Optional[LostVoidArtifact]:
         """

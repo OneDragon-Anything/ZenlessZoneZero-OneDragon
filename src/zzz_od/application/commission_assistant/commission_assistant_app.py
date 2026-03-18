@@ -294,7 +294,7 @@ class CommissionAssistantApp(ZApplication):
 
         self.ctx.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
 
-        return self.round_wait(wait_round_time=self.ctx.game_assistant_config.screenshot_interval)
+        return self.round_wait(wait_round_time=self.ctx.battle_assistant_config.screenshot_interval)
 
     def _load_auto_op(self) -> None:
         """

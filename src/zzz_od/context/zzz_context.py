@@ -73,11 +73,11 @@ class ZContext(OneDragonContext):
         return TeamConfig(self.current_instance_idx)
 
     @cached_property
-    def game_assistant_config(self):
-        from zzz_od.application.game_assistant.game_assistant_config import (
-            GameAssistantConfig,
+    def battle_assistant_config(self):
+        from zzz_od.application.game_assistant.battle_assistant_config import (
+            BattleAssistantConfig,
         )
-        return GameAssistantConfig(self.current_instance_idx)
+        return BattleAssistantConfig(self.current_instance_idx)
 
     def reload_instance_config(self) -> None:
         OneDragonContext.reload_instance_config(self)
@@ -85,7 +85,7 @@ class ZContext(OneDragonContext):
         to_clear_props = [
             'game_config',
             'team_config',
-            'game_assistant_config',
+            'battle_assistant_config',
         ]
         for prop in to_clear_props:
             if prop in self.__dict__:

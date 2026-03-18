@@ -38,16 +38,16 @@ class DodgeAssistantApp(ZApplication):
         检测手柄
         :return:
         """
-        if self.ctx.game_assistant_config.control_method == ControlMethodEnum.KEYBOARD.value.value:
+        if self.ctx.battle_assistant_config.control_method == ControlMethodEnum.KEYBOARD.value.value:
             self.ctx.controller.enable_keyboard()
             return self.round_success(status='无需手柄')
         elif not pc_button_utils.is_vgamepad_installed():
             self.ctx.controller.enable_keyboard()
             return self.round_fail(status='未安装虚拟手柄依赖')
-        elif self.ctx.game_assistant_config.control_method == ControlMethodEnum.XBOX.value.value:
+        elif self.ctx.battle_assistant_config.control_method == ControlMethodEnum.XBOX.value.value:
             self.ctx.controller.enable_xbox()
             self.ctx.controller.btn_controller.set_key_press_time(self.ctx.game_config.xbox_key_press_time)
-        elif self.ctx.game_assistant_config.control_method == ControlMethodEnum.DS4.value.value:
+        elif self.ctx.battle_assistant_config.control_method == ControlMethodEnum.DS4.value.value:
             self.ctx.controller.enable_ds4()
             self.ctx.controller.btn_controller.set_key_press_time(self.ctx.game_config.ds4_key_press_time)
         return self.round_success(status='已安装虚拟手柄依赖')
@@ -62,7 +62,7 @@ class DodgeAssistantApp(ZApplication):
         try:
             self.ctx.auto_battle_context.init_auto_op(
                 sub_dir='dodge',
-                op_name=self.ctx.game_assistant_config.dodge_assistant_config
+                op_name=self.ctx.battle_assistant_config.dodge_assistant_config
             )
         except Exception as e:
             return self.round_fail(status=f'加载指令失败: {e}')
@@ -84,7 +84,7 @@ class DodgeAssistantApp(ZApplication):
         """
         self.ctx.auto_battle_context.check_battle_state(self.last_screenshot, self.last_screenshot_time)
 
-        return self.round_wait(wait_round_time=self.ctx.game_assistant_config.screenshot_interval)
+        return self.round_wait(wait_round_time=self.ctx.battle_assistant_config.screenshot_interval)
 
     def handle_pause(self, e=None):
         self.ctx.auto_battle_context.stop_auto_battle()

@@ -296,7 +296,7 @@ class CombatSimulation(ZOperation):
             self.last_screenshot, self.last_screenshot_time,
             check_battle_end_normal_result=True)
 
-        return self.round_wait(wait=self.ctx.game_assistant_config.screenshot_interval)
+        return self.round_wait(wait=self.ctx.battle_assistant_config.screenshot_interval)
 
     @node_from(from_name='自动战斗')
     @node_notify(when=NotifyTiming.CURRENT_SUCCESS, detail=True)

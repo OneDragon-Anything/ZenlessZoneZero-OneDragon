@@ -96,7 +96,7 @@ class AutoBattleContext:
 
         key = f'{sub_dir}-{op_name}'
         # 只有是从合并文件读取 才使用缓存
-        read_from_merged = self.ctx.game_assistant_config.use_merged_file
+        read_from_merged = self.ctx.battle_assistant_config.use_merged_file
         if read_from_merged and key in self._op_cache:
             self.auto_op = self._op_cache[key]
         else:
