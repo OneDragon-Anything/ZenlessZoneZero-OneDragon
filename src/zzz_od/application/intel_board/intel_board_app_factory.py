@@ -33,11 +33,7 @@ class IntelBoardAppFactory(ApplicationFactory):
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:
-        return IntelBoardApp(
-            self.ctx,
-            instance_idx=instance_idx,
-            game_refresh_hour_offset=self.ctx.game_account_config.game_refresh_hour_offset
-        )
+        return IntelBoardApp(self.ctx)
 
     def create_config(
         self, instance_idx: int, group_id: str

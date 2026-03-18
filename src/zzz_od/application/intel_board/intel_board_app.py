@@ -1,4 +1,3 @@
-from one_dragon.base.geometry.point import Point
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
@@ -19,16 +18,12 @@ from zzz_od.operation.compendium.notorious_hunt_move import NotoriousHuntMove
 
 
 class IntelBoardApp(ZApplication):
-    def __init__(self, ctx: ZContext, instance_idx: int = 0, game_refresh_hour_offset: int = 0):
+    def __init__(self, ctx: ZContext):
         ZApplication.__init__(
             self,
             ctx=ctx,
             app_id=intel_board_const.APP_ID,
             op_name=intel_board_const.APP_NAME,
-            run_record=IntelBoardRunRecord(
-                instance_idx=instance_idx,
-                game_refresh_hour_offset=game_refresh_hour_offset
-            )
         )
         self.config: IntelBoardConfig = self.ctx.run_context.get_config(
             app_id=intel_board_const.APP_ID,
