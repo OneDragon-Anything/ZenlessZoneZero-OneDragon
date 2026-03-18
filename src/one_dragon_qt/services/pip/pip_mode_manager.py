@@ -34,7 +34,7 @@ class PipModeManager:
         self._poll_timer = QTimer()
         self._poll_timer.timeout.connect(self._on_poll)
         self._active: bool = False
-        self._hidden_by_user: bool = False
+        self._dismissed: bool = False
 
     @property
     def is_active(self) -> bool:
@@ -129,13 +129,13 @@ class PipModeManager:
 
         # 阶段 3: 前台/后台切换
         if game_win.is_win_active:
-            self._hidden_by_user = False
+            self._dismissed = False
             if self._pip_window is not None and self._pip_window.isVisible():
                 if self._worker is not None:
                     self._worker.pause()
                 self._pip_window.hide()
         else:
-            if self._hidden_by_user:
+            if self._dismissed:
                 return
             if self._pip_window is None:
                 self._pip_window, self._worker = self._create_pip_and_worker()
@@ -179,6 +179,6 @@ class PipModeManager:
 
     def _on_pip_closed(self) -> None:
         """用户右键关闭画中画窗口，暂停截图等待游戏切前台后重置。"""
-        self._hidden_by_user = True
+        self._dismissed = True
         if self._worker is not None:
             self._worker.pause()
