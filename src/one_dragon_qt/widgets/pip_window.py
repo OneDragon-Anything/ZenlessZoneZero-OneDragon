@@ -297,11 +297,11 @@ class PipWindow(QWidget):
         edge = ''
         if y < e:
             edge += 't'
-        if y > h - e:
+        if y >= h - e:
             edge += 'b'
         if x < e:
             edge += 'l'
-        if x > w - e:
+        if x >= w - e:
             edge += 'r'
         return edge
 
