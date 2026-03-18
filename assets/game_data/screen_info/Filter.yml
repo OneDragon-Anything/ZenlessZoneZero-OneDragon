@@ -1,0 +1,46 @@
+screen_id: Filter
+screen_name: 筛选
+pc_alt: false
+area_list:
+- area_name: 重置
+  id_mark: false
+  pc_rect:
+  - 1366
+  - 1003
+  - 1512
+  - 1053
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: S
+  id_mark: false
+  pc_rect:
+  - 1298
+  - 581
+  - 1557
+  - 625
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []
+- area_name: 套装选择
+  id_mark: false
+  pc_rect:
+  - 1307
+  - 300
+  - 1827
+  - 341
+  text: ''
+  lcs_percent: 0.5
+  template_sub_dir: ''
+  template_id: ''
+  template_match_threshold: 0.7
+  color_range: null
+  goto_list: []

@@ -1,0 +1,7 @@
+- step: 按区域裁剪
+  params:
+    screen_name: 套装筛选
+    area_name: 套装列表
+- step: OCR识别
+  params:
+    draw_text_box: true
