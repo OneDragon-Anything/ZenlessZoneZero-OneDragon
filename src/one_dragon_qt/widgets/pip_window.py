@@ -259,15 +259,23 @@ class PipWindow(QWidget):
         old_w, old_h = self.width(), self.height()
         old_cw = old_w - b2
         new_cw = max(self.MIN_WIDTH, min(self.MAX_WIDTH, old_cw + step))
+        if new_cw == old_cw:
+            return
+
         new_w = new_cw + b2
         new_h = self._height_for_width(new_cw)
 
-        # 以鼠标位置为锚点：保持鼠标在窗口中的相对位置不变
+        # 锚点缩放：鼠标在窗口中指向的内容点在屏幕上的位置不变
         mouse_pos = event.position()
-        ratio_x = mouse_pos.x() / old_w
-        ratio_y = mouse_pos.y() / old_h
-        new_x = int(self.x() - (new_w - old_w) * ratio_x)
-        new_y = int(self.y() - (new_h - old_h) * ratio_y)
+        # 鼠标在内容中的相对位置
+        content_rx = (mouse_pos.x() - self.BORDER_WIDTH) / old_cw
+        content_ry = (mouse_pos.y() - self.BORDER_WIDTH) / (old_h - b2)
+        # 缩放后鼠标应在窗口中的新位置
+        new_mouse_x = content_rx * new_cw + self.BORDER_WIDTH
+        new_mouse_y = content_ry * (new_h - b2) + self.BORDER_WIDTH
+        # 窗口左上角偏移，使屏幕上鼠标位置不动
+        new_x = round(self.x() + mouse_pos.x() - new_mouse_x)
+        new_y = round(self.y() + mouse_pos.y() - new_mouse_y)
 
         self.setGeometry(new_x, new_y, new_w, new_h)
         self._save_geometry()
