@@ -16,14 +16,6 @@ class GameAssistantConfig(YamlConfig):
         self.update('dodge_assistant_config', new_value)
 
     @property
-    def use_gpu(self) -> bool:
-        return self.get('use_gpu', True)
-
-    @use_gpu.setter
-    def use_gpu(self, new_value: bool) -> None:
-        self.update('use_gpu', new_value)
-
-    @property
     def screenshot_interval(self) -> float:
         return self.get('screenshot_interval', 0.02)
 

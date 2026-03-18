@@ -4,7 +4,7 @@ import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, Future
 from enum import Enum
-from typing import Optional, List, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import librosa
 import numpy as np
@@ -129,16 +129,16 @@ class AutoBattleDodgeContext:
     def __init__(self, ctx: ZContext):
         self.ctx: ZContext = ctx  # 上下文对象
 
-        self._flash_model: Optional[FlashClassifier] = None  # 闪避分类器
+        self._flash_model: FlashClassifier | None = None  # 闪避分类器
         self._audio_recorder: AudioRecorder = AudioRecorder()  # 音频录制器
-        self._audio_template: Optional[np.ndarray] = None  # 音频模板
+        self._audio_template: np.ndarray | None = None  # 音频模板
 
         # 识别锁，保证每种类型只有一个实例在进行识别
         self._check_dodge_flash_lock = threading.Lock()
         self._check_audio_lock = threading.Lock()
 
         # 识别间隔
-        self._check_dodge_interval: Union[float, List[float]] = 0
+        self._check_dodge_interval: float | list[float] = 0
         self._check_audio_interval: float = 0.02
 
         # 上一次识别的时间
@@ -159,7 +159,7 @@ class AutoBattleDodgeContext:
         self._check_dodge_interval = auto_op.check_dodge_interval
         self._check_audio_interval = 0.02
 
-        use_gpu = self.ctx.game_assistant_config.use_gpu
+        use_gpu = self.ctx.model_config.flash_classifier_gpu
         if self._flash_model is None or self._flash_model.gpu != use_gpu:
             self._flash_model = FlashClassifier(
                 model_name=self.ctx.model_config.flash_classifier,
@@ -200,7 +200,7 @@ class AutoBattleDodgeContext:
 
         log.info('加载声音模板完成')
 
-    def check_dodge_flash(self, screen: MatLike, screenshot_time: float, audio_future: Optional[Future[bool]] = None) -> bool:
+    def check_dodge_flash(self, screen: MatLike, screenshot_time: float, audio_future: Future[bool] | None = None) -> bool:
         """
         识别画面是否有闪光。
         :param screen: 屏幕截图
@@ -219,7 +219,7 @@ class AutoBattleDodgeContext:
             self._last_check_dodge_time = screenshot_time
 
             result = self._flash_model.run(screen)
-            state_name: Optional[str] = None
+            state_name: str | None = None
             if result.class_idx == 1:
                 state_name = YoloStateEventEnum.DODGE_RED.value
             elif result.class_idx == 2:
