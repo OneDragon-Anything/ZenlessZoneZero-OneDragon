@@ -1,23 +1,20 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import (
     FluentIcon,
     LineEdit,
     MessageBox,
-    PrimaryPushButton,
-    PushButton,
     SingleDirectionScrollArea,
-    SubtitleLabel,
 )
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins
-from one_dragon_qt.view.app_run_interface import AppRunInterface, AppRunner
+from one_dragon_qt.view.app_run_interface import AppRunInterface
+from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
-from one_dragon_qt.widgets.log_display_card import LogDisplayCard
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from zzz_od.application.battle_assistant.auto_battle_config import (
@@ -36,41 +33,52 @@ class TeamSettingCard(SettingCardBase):
     changed = Signal(PredefinedTeamInfo)
 
     def __init__(self):
-        SettingCardBase.__init__(self, icon=FluentIcon.PEOPLE, title='')
+        SettingCardBase.__init__(
+            self, icon=FluentIcon.PEOPLE, title='',
+            margins=Margins(16, 8, 0, 16),
+        )
         self.team_info: PredefinedTeamInfo | None = None
 
-        # 隐藏空的标题和内容标签
         self.titleLabel.hide()
         self.contentLabel.hide()
 
+        # 两行内容布局
+        v_layout = QVBoxLayout()
+        v_layout.setSpacing(5)
+        self.hBoxLayout.addLayout(v_layout)
+
+        # 第一行：编队名称 + 战斗策略
+        row1 = QHBoxLayout()
+        row1.setSpacing(8)
         self.name_input = LineEdit()
         self.name_input.textChanged.connect(self.on_name_changed)
-        self.name_input.setFixedWidth(110)
-        self.hBoxLayout.insertWidget(2, self.name_input)
-        self.hBoxLayout.insertSpacing(3, 8)
+        row1.addWidget(self.name_input)
+        self.auto_battle_btn = ComboBox()
+        self.auto_battle_btn.currentIndexChanged.connect(self.on_auto_battle_changed)
+        row1.addWidget(self.auto_battle_btn)
+        row1.addSpacing(16)
+        v_layout.addLayout(row1)
 
+        # 第二行：三个代理人
+        row2 = QHBoxLayout()
+        row2.setSpacing(8)
         self.agent_1_btn = EditableComboBox()
         self.agent_1_btn.currentIndexChanged.connect(self.on_agent_1_changed)
         self.agent_1_btn.setFixedWidth(110)
-        self.hBoxLayout.insertWidget(4, self.agent_1_btn)
-        self.hBoxLayout.insertSpacing(5, 8)
-
+        row2.addWidget(self.agent_1_btn)
         self.agent_2_btn = EditableComboBox()
         self.agent_2_btn.currentIndexChanged.connect(self.on_agent_2_changed)
         self.agent_2_btn.setFixedWidth(110)
-        self.hBoxLayout.insertWidget(6, self.agent_2_btn)
-        self.hBoxLayout.insertSpacing(7, 8)
-
+        row2.addWidget(self.agent_2_btn)
         self.agent_3_btn = EditableComboBox()
         self.agent_3_btn.currentIndexChanged.connect(self.on_agent_3_changed)
         self.agent_3_btn.setFixedWidth(110)
-        self.hBoxLayout.insertWidget(8, self.agent_3_btn)
-        self.hBoxLayout.insertSpacing(9, 8)
+        row2.addWidget(self.agent_3_btn)
+        row2.addSpacing(16)
+        v_layout.addLayout(row2)
 
-        self.auto_battle_btn = ComboBox()
-        self.auto_battle_btn.currentIndexChanged.connect(self.on_auto_battle_changed)
-        self.hBoxLayout.insertWidget(10, self.auto_battle_btn)
-        self.hBoxLayout.insertSpacing(11, 8)
+        # 高度参考 MultiLineSettingCard: 60 + (line_count - 1) * 30
+        self.setFixedHeight(90)
 
     def init_setting_card(self, auto_battle_list: list[ConfigItem], team: PredefinedTeamInfo) -> None:
         self.team_info = team
@@ -126,48 +134,54 @@ class TeamSettingCard(SettingCardBase):
 
 class PredefinedTeamInterface(AppRunInterface):
 
-    def __init__(self,
-                 ctx: ZContext,
-                 parent=None):
-        self.ctx: ZContext = ctx
-
-        AppRunInterface.__init__(
+    def __init__(self, ctx: ZContext, parent=None):
+        BaseInterface.__init__(
             self,
-            ctx=ctx,
-            app_id=predefined_team_checker_const.APP_ID,
             object_name='predefined_team_interface',
             nav_text_cn='预备编队',
             parent=parent,
         )
+        self.ctx: ZContext = ctx
+        self.app_id: str = predefined_team_checker_const.APP_ID
+        self._init = False
 
-    def get_content_widget(self) -> QWidget:
-        content_widget = QWidget()
-        main_layout = QVBoxLayout(content_widget)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+    def _init_layout(self) -> None:
+        if self._init:
+            return
+        self._init = True
 
-        # 左右结构，占满整个空间
-        horizontal_layout = QHBoxLayout()
-        horizontal_layout.setSpacing(10)
-        horizontal_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addLayout(horizontal_layout, stretch=1)
+        main_layout = QVBoxLayout(self)
 
-        # 左侧：编队卡片列表（带滚动），占满剩余空间
-        horizontal_layout.addLayout(self._get_left_layout(), stretch=1)
-        # 右侧：说明卡 + 状态 + 按钮 + 日志，固定宽度
-        right_widget = self._get_right_widget()
-        horizontal_layout.addWidget(right_widget, stretch=0)
+        content_hbox = QHBoxLayout()
+        content_hbox.setContentsMargins(0, 0, 0, 0)
+        content_hbox.setSpacing(10)
+        main_layout.addLayout(content_hbox, stretch=1)
 
-        self.app_runner = AppRunner(self.ctx)
-        self.app_runner.state_changed.connect(self.on_context_state_changed)
+        # 左侧：编队卡片列表（带滚动）
+        content_hbox.addLayout(self._build_left_layout(), stretch=0)
 
-        return content_widget
+        # 右侧：说明卡 + 运行控件（由父类创建），填满剩余空间
+        right_widget = self.get_content_widget()
+        content_hbox.addWidget(right_widget, stretch=1)
 
-    def _get_left_layout(self) -> QVBoxLayout:
+    def get_widget_at_top(self) -> QWidget:
+        top = Column()
+        help_card = PushSettingCard(
+            icon=FluentIcon.HELP,
+            title='预备编队识别',
+            text='使用说明',
+        )
+        help_card.clicked.connect(self._on_help_clicked)
+        top.add_widget(help_card)
+        return top
+
+    def _build_left_layout(self) -> QVBoxLayout:
         layout = QVBoxLayout()
 
         scroll_area = SingleDirectionScrollArea()
         scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
-        left_widget = Column(margins=Margins(0, 0, 16, 16))
+        left_widget = Column(margins=Margins(0, 0, 16, 0))
+        left_widget.setStyleSheet("QWidget { background-color: transparent; }")
         self.team_opt_list: list[TeamSettingCard] = []
         team_list = self.ctx.team_config.team_list
         for _ in team_list:
@@ -182,53 +196,11 @@ class PredefinedTeamInterface(AppRunInterface):
 
         return layout
 
-    def _get_right_widget(self) -> QWidget:
-        widget = QWidget()
-        widget.setFixedWidth(250)
-        layout = QVBoxLayout(widget)
-        layout.setSpacing(8)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        self.help_card = PushSettingCard(
-            icon=FluentIcon.HELP,
-            title='使用说明',
-            text='查看'
-        )
-        self.help_card.clicked.connect(self._on_help_clicked)
-        layout.addWidget(self.help_card)
-
-        layout.addSpacing(4)
-
-        self.state_text = SubtitleLabel()
-        self.state_text.setText(f"{gt('当前状态')} {self.ctx.run_context.run_status_text}")
-        self.state_text.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(self.state_text)
-
-        self.start_btn = PrimaryPushButton(
-            text=f"{gt('开始')} {self.ctx.key_start_running.upper()}",
-            icon=FluentIcon.PLAY,
-        )
-        self.start_btn.clicked.connect(self._on_start_clicked)
-        layout.addWidget(self.start_btn)
-
-        self.stop_btn = PushButton(
-            text=f"{gt('停止')} {self.ctx.key_stop_running.upper()}",
-            icon=FluentIcon.CLOSE,
-        )
-        self.stop_btn.clicked.connect(self._on_stop_clicked)
-        layout.addWidget(self.stop_btn)
-
-        self.log_card = LogDisplayCard()
-        layout.addWidget(self.log_card, stretch=1)
-
-        return widget
-
     def _on_help_clicked(self) -> None:
         content = (
             '▎编队名称\n\n'
-            '请确保编队名称与游戏内完全一致，\n'
-            '名称不匹配会导致选错配队。\n'
-            '若出现错选，可尝试修改编队名称。\n\n'
+            '请确保编队名称与游戏内完全一致，顺序随意，\n'
+            '名称不匹配会导致无法识别。\n\n'
             '不建议使用默认的数字命名编队，\n'
             'OCR 识别数字容易出错，建议使用中文名称。\n\n'
             '▎自动识别\n\n'
