@@ -36,7 +36,7 @@ def sort_grids(all_disks: list[Point]) -> list[list[Point]]:
     
     rows = []
     current_row = [sorted_by_y[0]]
-    y_tolerance = 50  # 行分组的容差
+    y_tolerance = 20  # 行分组的容差，减小容差以更好地过滤异常数据
     
     for i in range(1, len(sorted_by_y)):
         disk = sorted_by_y[i]
@@ -53,7 +53,19 @@ def sort_grids(all_disks: list[Point]) -> list[list[Point]]:
         current_row.sort(key=lambda d: d.x)
         rows.append(current_row)
     
-    return rows
+    # 过滤异常数据：非最后一行必须有4个点，最后一行可以有1-4个点
+    filtered_rows = []
+    for i, row in enumerate(rows):
+        # 非最后一行必须有4个点
+        if i < len(rows) - 1:
+            if len(row) == 4:
+                filtered_rows.append(row)
+        # 最后一行可以有1-4个点
+        else:
+            if 1 <= len(row) <= 4:
+                filtered_rows.append(row)
+    
+    return filtered_rows
 
 class DriveDiskMapper:
     """驱动盘数据映射工具，将DriveDiskParser输出映射到zzz_drive-disk-rating格式"""
@@ -291,8 +303,6 @@ def get_drive_disk_ratings(scanned_discs_input, character_name='露西亚'):
         if temp_file and temp_file.exists():
             temp_file.unlink()
 
-
-
 class DriveDiskEnhanceApp(ZApplication):
 
     def __init__(self, ctx: ZContext):
@@ -319,21 +329,17 @@ class DriveDiskEnhanceApp(ZApplication):
         self.Grade_S_Rect = self.ctx.screen_loader.get_area('筛选','S').pc_rect
         self.suit_filter_Rect = self.ctx.screen_loader.get_area('筛选','套装选择').pc_rect
         self.confirm_filter_Rect = self.ctx.screen_loader.get_area('套装筛选','确认筛选').pc_rect
-
+        self.drive_disk_list_Rect = self.ctx.screen_loader.get_area('代理人-驱动盘详细','驱动盘列表').pc_rect
+        self.drive_disk_detail_Rect = self.ctx.screen_loader.get_area('代理人-驱动盘详细','驱动盘详细信息').pc_rect
         # 从上下文中获取驱动盘名称
         self.drive_disk_names = getattr(self.ctx, '_drive_disk_enhance_selections', [])
         print(f"从上下文获取驱动盘名称: {len(self.drive_disk_names)} 个")
-        
         # 如果上下文中没有驱动盘名称，使用默认值
         if not self.drive_disk_names:
             print("上下文中没有驱动盘名称，使用默认值")
             # 默认驱动盘名称
             self.drive_disk_names = ['流光咏叹']
             print(f"使用默认驱动盘名称: {len(self.drive_disk_names)} 个")
-
-        # 从上下文中获取前端勾选状态
-        self.checkbox_states = getattr(self.ctx, '_drive_disk_enhance_states', [True, True, True, True, True, True])
-        print(f"获取到前端勾选状态: {self.checkbox_states}")
         # 从上下文中读取用户选择的角色名称
         self.character_name = getattr(self.ctx, '_drive_disk_enhance_character', '叶瞬光')
         print(f"获取到前端角色: {self.character_name}")
@@ -378,9 +384,9 @@ class DriveDiskEnhanceApp(ZApplication):
         if grid_pipeline is None or suit_filter_pipeline is None:
                 print('无法加载流水线配置')
                 return self.round_fail('无法加载流水线配置')
-        all_grid_rows=[]
+        #遍历选定的驱动盘区域
         for i,disk_name in enumerate(self.drive_disk_names):
-            #根据驱动盘名称判断是否需要处理
+            #根据驱动盘名称判断是否需要处理并进行处理
             if disk_name:
                 position = i + 1
                 rect = self.ctx.screen_loader.get_area(f'代理人-驱动盘详细',f'{position}号位').pc_rect
@@ -400,6 +406,7 @@ class DriveDiskEnhanceApp(ZApplication):
                 found_target = False
                 loop_count = 0
                 max_loop_count = 10
+                #筛选套装并回到驱动盘详细页
                 while True:
                     loop_count += 1
                     if loop_count >= max_loop_count:
@@ -407,13 +414,13 @@ class DriveDiskEnhanceApp(ZApplication):
                     screen = self.screenshot()
                     result = suit_filter_pipeline.execute(screen,service=self.ctx.cv_service)
                     if result.success:
-                        print(f'识别到{len(result.ocr_result)}个文本项')
+                        #print(f'识别到{len(result.ocr_result)}个文本项')
                         offset_x, offset_y = result.crop_offset
                         for ocr_text, match_list in result.ocr_result.items():
-                            print(f"\nocr识别文本: '{ocr_text}'")
+                            #print(f"\nocr识别文本: '{ocr_text};相对位置:{match_list[0].rect.center}'")
                             matched_text, score = find_best_match_by_similarity(ocr_text, target_text, threshold=0.69)
                             if matched_text:
-                                print(f"  模糊匹配到测试名称: {matched_text} (相似度: {score:.2f})")                               
+                                #print(f"  模糊匹配到测试名称: {matched_text} (相似度: {score:.2f})")                               
                                 if match_list:
                                     # 只点击第一个匹配项
                                     match = match_list[0]
@@ -422,9 +429,15 @@ class DriveDiskEnhanceApp(ZApplication):
                                     absolute_x2 = match.rect.x2 + offset_x
                                     absolute_y2 = match.rect.y2 + offset_y
                                     rect = Rect(absolute_x1, absolute_y1, absolute_x2, absolute_y2)
-                                self.ctx.controller.click(rect.center)
+                                    #print(f'匹配的文本框的相对位置{match.rect.center}绝对位置:{rect.center}')
+                                adjusted_center = rect.center - Point(0, 60)
+                                #print(f'调整后的点击位置:{adjusted_center}')
+                                self.ctx.controller.click(adjusted_center)
                                 time.sleep(0.3)
                                 self.ctx.controller.click(self.confirm_filter_Rect.center)
+                                time.sleep(0.3)
+                                self.ctx.controller.click(self.confirm_filter_Rect.center)#回到驱动盘详细页
+                                time.sleep(1)
                                 found_target = True
                                 break
                         if found_target:
@@ -432,16 +445,14 @@ class DriveDiskEnhanceApp(ZApplication):
                             break
                         print("未匹配到任何目标，执行滚动操作")
                         for i in range(3):
-                            self.ctx.controller.scroll(1,Point(899,428))                 
-                return self.round_fail(f'强制结束,当前驱动盘名称为{disk_name}')
-                
-                time.sleep(1)
+                            self.ctx.controller.scroll(1,Point(899,428))                             
+                #return self.round_fail(f'强制结束,当前驱动盘名称为{disk_name}')                
                 screen = self.screenshot()
                 # 执行流水线处理
-                print('执行流水线处理...')
+                #print('执行流水线处理...')
                 context=grid_pipeline.execute(screen,service=self.ctx.cv_service)
                 if not context.success:
-                    print(f'流水线执行失败: {context.error_str}')
+                    #print(f'流水线执行失败: {context.error_str}')
                     return self.round_fail(f'流水线执行失败: {context.error_str}')
                 # 获取处理结果
                 filtered_contours = context.contours
@@ -449,137 +460,224 @@ class DriveDiskEnhanceApp(ZApplication):
                     print('未检测到驱动盘方格')
                     return self.round_fail('未检测到驱动盘方格')
                 print(f'检测到{position}号位的{len(filtered_contours)}个驱动盘方格')
-                print('开始绘制网格')
-                crop_area=self.ctx.screen_loader.get_area('代理人-驱动盘详细','驱动盘列表')
-                crop_rect = crop_area.pc_rect
+                #更新all_grids,用于存储驱动盘方格中心点坐标的列表
                 all_grids = []
                 for contour in filtered_contours:
                    x, y, w, h = cv2.boundingRect(contour)
                    # 转换为绝对坐标
-                   absolute_x = x + crop_rect.x1
-                   absolute_y = y + crop_rect.y1
+                   absolute_x = x + self.drive_disk_list_Rect.x1
+                   absolute_y = y + self.drive_disk_list_Rect.y1
                    grid_center = Point(absolute_x + w / 2, absolute_y + h / 2)
                    all_grids.append(grid_center)
+                #通过all_grids获取grid_rows
                 grid_rows = sort_grids(all_grids)
-                # 创建包含分区位置和网格信息的字典
-                partition_info = {
-                    'center': partition_center,  # 分区中心点位置信息
-                    'grids': grid_rows     # 分区内各个网格的位置信息
-                }
-                all_grid_rows.append(partition_info)
-        print(f'all_grid_rows={all_grid_rows}')
-        return self.round_success('驱动盘方格处理完成',data={'all_grid_rows':all_grid_rows})
-    
-    @node_from(from_name='驱动盘方格处理')
-    @operation_node(name='驱动盘强化')
-    def enhance_drive_disk(self):
-        #获取all_grid_rows
-        prev_node = self.node_status.get('驱动盘方格处理')
-        all_grid_rows = prev_node.data.get('all_grid_rows', [])
-        #获取驱动盘详细信息区域坐标
-        crop_area=self.ctx.screen_loader.get_area('代理人-驱动盘详细','驱动盘详细信息')
-        crop_rect=crop_area.pc_rect
-        #初始化图片路径
-        test_pictures_path=Path(__file__).parent.parent.parent.parent.parent / '.debug' / 'drive_disk_enhance_test_pictures'
-        cropped_test_pictures_path=Path(__file__).parent.parent.parent.parent.parent / '.debug' / 'drive_disk_enhance_test_pictures' / 'cropped'
-        # 创建目录（如果不存在）
-        test_pictures_path.mkdir(parents=True, exist_ok=True)
-        cropped_test_pictures_path.mkdir(parents=True, exist_ok=True)
-        for partition_info in all_grid_rows:
-            #初始化分区中心位置和网格信息
-            center = partition_info['center']
-            grid_rows = partition_info['grids']
-            self.ctx.controller.click(center)
-            print(f'驱动盘强化节点点击了{center}')
-            time.sleep(1)
-            #初始化轮次
-            loop_count = 0
-            max_loops=50
-            while True:
-                loop_count += 1
-                if loop_count >= max_loops:
-                    print(f'超过最大轮次{max_loops}次,自动结束')
-                    break
-
-                #清空test_pictures_path
-                images = list(test_pictures_path.glob('*.png'))
-                for image_path in images:
-                    os.remove(image_path)
-                images = list(cropped_test_pictures_path.glob('*.png'))
-                for image_path in images:
-                    os.remove(image_path)
-                #截取所有驱动盘图片
-                self.ctx.controller.click(self.confirm_rect.center)#初始化令鼠标点击确认按钮
-                for row_index,row in enumerate(grid_rows):
-                    for col_index,point in enumerate(row):
-                        self.ctx.controller.click(point)
-                        time.sleep(1)
-                        screen = self.ctx.controller.get_screenshot()
-                        cv2.imwrite(os.path.join(test_pictures_path, f'grid_{row_index}_{col_index}.png'), screen)
-                #读取所有捕获的图片,提交ocr任务
-                images = list(test_pictures_path.glob('*.png'))
-                for image_path in images:
-                    image=cv2.imread(image_path)
-                    if image is not None:
-                        cropped_image = crop_image_only(image, crop_rect)
-                        cv2.imwrite(str(cropped_test_pictures_path / f'cropped_{image_path.stem}.png'), cropped_image)
-                        self.ocr_worker.submit('disc',cropped_image,self.parser)
+                #print(f'当前驱动盘号位{position}的grid_rows={grid_rows}')
+                #开始强化
+                #初始化图片路径
+                test_pictures_path=Path(__file__).parent.parent.parent.parent.parent / '.debug' / 'drive_disk_enhance_test_pictures'
+                cropped_test_pictures_path=Path(__file__).parent.parent.parent.parent.parent / '.debug' / 'drive_disk_enhance_test_pictures' / 'cropped'
+                # 创建目录（如果不存在）
+                test_pictures_path.mkdir(parents=True, exist_ok=True)
+                cropped_test_pictures_path.mkdir(parents=True, exist_ok=True)
+                #初始化轮次
+                loop_count = 0
+                max_loops=50
+                #开始进行比较分析 ,直到取得最优解或超过最大轮次
+                while True:
+                    loop_count += 1
+                    if loop_count >= max_loops:
+                        return self.round_fail(f'超过最大轮次{max_loops}次,自动结束')
+                    #清空test_pictures_path
+                    images = list(test_pictures_path.glob('*.png'))
+                    for image_path in images:
+                        os.remove(image_path)
+                    images = list(cropped_test_pictures_path.glob('*.png'))
+                    for image_path in images:
+                        os.remove(image_path)
+                    #截取所有驱动盘图片
+                    for row_index,row in enumerate(grid_rows):
+                        for col_index,point in enumerate(row):
+                            self.ctx.controller.click(point)
+                            print(f'当前分区的点击位置:{point}')
+                            time.sleep(1)
+                            screen = self.ctx.controller.get_screenshot()
+                            cv2.imwrite(os.path.join(test_pictures_path, f'grid_{row_index}_{col_index}.png'), screen)
+                    #读取所有捕获的图片,提交ocr任务
+                    images = list(test_pictures_path.glob('*.png'))
+                    for image_path in images:
+                        image=cv2.imread(image_path)
+                        if image is not None:
+                            cropped_image = crop_image_only(image, self.drive_disk_detail_Rect)
+                            cv2.imwrite(str(cropped_test_pictures_path / f'cropped_{image_path.stem}.png'), cropped_image)
+                            self.ocr_worker.submit('disc',cropped_image,self.parser)
+                        else:
+                            print(f'无法读取图片 {image_path}')
+                            return self.round_fail(f'无法读取图片 {image_path}')
+                    #等待ocr完成任务
+                    self.ocr_worker.wait_complete()
+                    scanned_discs = self.ocr_worker.scanned_discs
+                    mapped_discs=DriveDiskMapper.map_discs(scanned_discs)
+                    #将获取的驱动盘信息写入json文件
+                    with open(test_pictures_path / 'scanned_discs.json', 'w', encoding='utf-8') as f:
+                        f.write(json.dumps(mapped_discs, ensure_ascii=False, indent=2))
+                        #print("JSON数据已写入文件: scanned_discs.json")
+                    self.ocr_worker.reset()#重置ocr_worker
+                    ratings=get_drive_disk_ratings(mapped_discs,self.character_name)#按角色计算潜力值
+                    if not ratings:
+                        print('未检测到有效驱动盘')
+                        return self.round_fail('未检测到有效驱动盘')
+                    #更新潜力值列表
+                    potentialScores=[]
+                    for rating in ratings:
+                        index=rating['index']
+                        # 优化后评分（潜力值）
+                        potential_score = rating['potentialScore']
+                        potential_subPropertiesWeight = rating['potentialDetails']['subPropertiesWeight']
+                        potential_mainPropertyWeight = rating['potentialDetails']['mainPropertyWeight']
+                        potential_qualityWeight = rating['potentialDetails']['qualityWeight']
+                        potential_levelWeight = rating['potentialDetails']['levelWeight']
+                        potential_maxWeightSum = rating['potentialDetails']['maxWeightInfo']['maxWeightSum']
+                        potential_validProperties=json.dumps(rating['potentialDetails']['validProperties'], ensure_ascii=False, indent=2)
+                        potentialScores.append(potential_score)
+                        #print(f'驱动盘索引值:{index},潜力值:{potential_score:.2f},潜力评分公式: (副属性权重:{potential_subPropertiesWeight:.2f}+主属性权重:{potential_mainPropertyWeight:.2f})*品质权重:{potential_qualityWeight:.2f}*等级权重:{potential_levelWeight:.2f}*每权重分值:{55/potential_maxWeightSum:.2f}\n有效属性:{potential_validProperties}')
+                    max_index=potentialScores.index(max(potentialScores))
+                    row=max_index//4 or 0
+                    col=max_index%4 or 0
+                    point=grid_rows[row][col]
+                    self.ctx.controller.click(point)
+                    screen = self.ctx.controller.get_screenshot()
+                    cropped_image = crop_image_only(screen, self.drive_disk_detail_Rect)
+                    self.ocr_worker.submit('disc',cropped_image,self.parser)
+                    self.ocr_worker.wait_complete()
+                    scanned_disc = self.ocr_worker.scanned_discs[0]
+                    level=scanned_disc['level']
+                    self.ocr_worker.reset()#重置ocr_worker
+                    #print(f'当前最佳驱动盘等级{level}')
+                    if level>=15:
+                        print('当前已取得最优解,结束强化')
+                        break                   
+                    #执行强化操作
                     else:
-                        print(f'无法读取图片 {image_path}')
-                #等待ocr完成任务
-                self.ocr_worker.wait_complete()
-                scanned_discs = self.ocr_worker.scanned_discs
-                mapped_discs=DriveDiskMapper.map_discs(scanned_discs)
-                #将获取的驱动盘信息写入json文件
-                with open(test_pictures_path / 'scanned_discs.json', 'w', encoding='utf-8') as f:
-                    f.write(json.dumps(mapped_discs, ensure_ascii=False, indent=2))
-                    print("JSON数据已写入文件: scanned_discs.json")
-                self.ocr_worker.reset()#重置ocr_worker
-                ratings=get_drive_disk_ratings(mapped_discs,self.character_name)#按角色计算潜力值
-                if not ratings:
-                    print('未检测到有效驱动盘')
-                    return self.round_fail('未检测到有效驱动盘')
-                #更新潜力值列表
-                potentialScores=[]
-                for rating in ratings:
-                    index=rating['index']
-                    # 优化后评分（潜力值）
-                    potential_score = rating['potentialScore']
-                    potential_subPropertiesWeight = rating['potentialDetails']['subPropertiesWeight']
-                    potential_mainPropertyWeight = rating['potentialDetails']['mainPropertyWeight']
-                    potential_qualityWeight = rating['potentialDetails']['qualityWeight']
-                    potential_levelWeight = rating['potentialDetails']['levelWeight']
-                    potential_maxWeightSum = rating['potentialDetails']['maxWeightInfo']['maxWeightSum']
-                    potential_validProperties=json.dumps(rating['potentialDetails']['validProperties'], ensure_ascii=False, indent=2)
-                    potentialScores.append(potential_score)
-                    print(f'驱动盘索引值:{index},潜力值:{potential_score:.2f},潜力评分公式: (副属性权重:{potential_subPropertiesWeight:.2f}+主属性权重:{potential_mainPropertyWeight:.2f})*品质权重:{potential_qualityWeight:.2f}*等级权重:{potential_levelWeight:.2f}*每权重分值:{55/potential_maxWeightSum:.2f}\n有效属性:{potential_validProperties}')
-                max_index=potentialScores.index(max(potentialScores))
-                row=max_index//4 or 0
-                col=max_index%4 or 0
-                point=grid_rows[row][col]
-                self.ctx.controller.click(point)
-                screen = self.ctx.controller.get_screenshot()
-                cropped_image = crop_image_only(screen, crop_rect)
-                self.ocr_worker.submit('disc',cropped_image,self.parser)
-                self.ocr_worker.wait_complete()
-                scanned_disc = self.ocr_worker.scanned_discs[0]
-                level=scanned_disc['level']
-                self.ocr_worker.reset()#重置ocr_worker
-                if level>=15:
-                    print('当前已取得最优解,结束强化')
-                    break
-                #print(f'当前最佳驱动盘等级{level}')
-                else:
-                    self.ctx.controller.click(self.reinforce_rect.center)
-                    time.sleep(0.5)
-                    self.ctx.controller.click(self.add_stage_rect.center)
-                    time.sleep(0.5)
-                    self.ctx.controller.click(self.upgrade_rect.center)
-                    time.sleep(0.5)
-                    self.ctx.controller.click(self.button_close_rect.center)
-                    time.sleep(1)
-        return self.round_success('驱动盘扫描强化完成')
-    #def execute(self):
-    #     # 这里可以实现驱动盘强化的具体逻辑
-    #     return super().execute()
+                        self.ctx.controller.click(self.reinforce_rect.center)
+                        time.sleep(0.5)
+                        self.ctx.controller.click(self.add_stage_rect.center)
+                        time.sleep(0.5)
+                        self.ctx.controller.click(self.upgrade_rect.center)
+                        time.sleep(0.5)
+                        self.ctx.controller.click(self.button_close_rect.center)
+                        time.sleep(1)
+                        self.ctx.controller.click(self.confirm_rect.center)#初始化令鼠标点击材料返还确认按钮
+        return self.round_success('驱动盘强化处理完成')
+    
+    # @node_from(from_name='驱动盘方格处理')
+    # @operation_node(name='驱动盘强化')
+    # def enhance_drive_disk(self):
+    #     #获取all_grid_rows
+    #     prev_node = self.node_status.get('驱动盘方格处理')
+    #     all_grid_rows = prev_node.data.get('all_grid_rows', [])
+    #     #获取驱动盘详细信息区域坐标
+    #     crop_area=self.ctx.screen_loader.get_area('代理人-驱动盘详细','驱动盘详细信息')
+    #     crop_rect=crop_area.pc_rect
+    #     #初始化图片路径
+    #     test_pictures_path=Path(__file__).parent.parent.parent.parent.parent / '.debug' / 'drive_disk_enhance_test_pictures'
+    #     cropped_test_pictures_path=Path(__file__).parent.parent.parent.parent.parent / '.debug' / 'drive_disk_enhance_test_pictures' / 'cropped'
+    #     # 创建目录（如果不存在）
+    #     test_pictures_path.mkdir(parents=True, exist_ok=True)
+    #     cropped_test_pictures_path.mkdir(parents=True, exist_ok=True)
+    #     for partition_info in all_grid_rows:
+    #         #初始化分区中心位置和网格信息
+    #         center = partition_info['center']
+    #         grid_rows = partition_info['grids']
+    #         self.ctx.controller.click(center)
+    #         print(f'驱动盘强化节点点击了{center}')
+    #         time.sleep(1)
+    #         #初始化轮次
+    #         loop_count = 0
+    #         max_loops=50
+    #         while True:
+    #             loop_count += 1
+    #             if loop_count >= max_loops:
+    #                 return self.round_fail(f'超过最大轮次{max_loops}次,自动结束')
+
+    #             #清空test_pictures_path
+    #             images = list(test_pictures_path.glob('*.png'))
+    #             for image_path in images:
+    #                 os.remove(image_path)
+    #             images = list(cropped_test_pictures_path.glob('*.png'))
+    #             for image_path in images:
+    #                 os.remove(image_path)
+    #             #截取所有驱动盘图片
+    #             self.ctx.controller.click(self.confirm_rect.center)#初始化令鼠标点击确认按钮
+    #             for row_index,row in enumerate(grid_rows):
+    #                 for col_index,point in enumerate(row):
+    #                     self.ctx.controller.click(point)
+    #                     time.sleep(1)
+    #                     screen = self.ctx.controller.get_screenshot()
+    #                     cv2.imwrite(os.path.join(test_pictures_path, f'grid_{row_index}_{col_index}.png'), screen)
+    #             #读取所有捕获的图片,提交ocr任务
+    #             images = list(test_pictures_path.glob('*.png'))
+    #             for image_path in images:
+    #                 image=cv2.imread(image_path)
+    #                 if image is not None:
+    #                     cropped_image = crop_image_only(image, crop_rect)
+    #                     cv2.imwrite(str(cropped_test_pictures_path / f'cropped_{image_path.stem}.png'), cropped_image)
+    #                     self.ocr_worker.submit('disc',cropped_image,self.parser)
+    #                 else:
+    #                     print(f'无法读取图片 {image_path}')
+    #             #等待ocr完成任务
+    #             self.ocr_worker.wait_complete()
+    #             scanned_discs = self.ocr_worker.scanned_discs
+    #             mapped_discs=DriveDiskMapper.map_discs(scanned_discs)
+    #             #将获取的驱动盘信息写入json文件
+    #             with open(test_pictures_path / 'scanned_discs.json', 'w', encoding='utf-8') as f:
+    #                 f.write(json.dumps(mapped_discs, ensure_ascii=False, indent=2))
+    #                 print("JSON数据已写入文件: scanned_discs.json")
+    #             self.ocr_worker.reset()#重置ocr_worker
+    #             ratings=get_drive_disk_ratings(mapped_discs,self.character_name)#按角色计算潜力值
+    #             if not ratings:
+    #                 print('未检测到有效驱动盘')
+    #                 return self.round_fail('未检测到有效驱动盘')
+    #             #更新潜力值列表
+    #             potentialScores=[]
+    #             for rating in ratings:
+    #                 index=rating['index']
+    #                 # 优化后评分（潜力值）
+    #                 potential_score = rating['potentialScore']
+    #                 potential_subPropertiesWeight = rating['potentialDetails']['subPropertiesWeight']
+    #                 potential_mainPropertyWeight = rating['potentialDetails']['mainPropertyWeight']
+    #                 potential_qualityWeight = rating['potentialDetails']['qualityWeight']
+    #                 potential_levelWeight = rating['potentialDetails']['levelWeight']
+    #                 potential_maxWeightSum = rating['potentialDetails']['maxWeightInfo']['maxWeightSum']
+    #                 potential_validProperties=json.dumps(rating['potentialDetails']['validProperties'], ensure_ascii=False, indent=2)
+    #                 potentialScores.append(potential_score)
+    #                 print(f'驱动盘索引值:{index},潜力值:{potential_score:.2f},潜力评分公式: (副属性权重:{potential_subPropertiesWeight:.2f}+主属性权重:{potential_mainPropertyWeight:.2f})*品质权重:{potential_qualityWeight:.2f}*等级权重:{potential_levelWeight:.2f}*每权重分值:{55/potential_maxWeightSum:.2f}\n有效属性:{potential_validProperties}')
+    #             max_index=potentialScores.index(max(potentialScores))
+    #             row=max_index//4 or 0
+    #             col=max_index%4 or 0
+    #             point=grid_rows[row][col]
+    #             self.ctx.controller.click(point)
+    #             screen = self.ctx.controller.get_screenshot()
+    #             cropped_image = crop_image_only(screen, crop_rect)
+    #             self.ocr_worker.submit('disc',cropped_image,self.parser)
+    #             self.ocr_worker.wait_complete()
+    #             scanned_disc = self.ocr_worker.scanned_discs[0]
+    #             level=scanned_disc['level']
+    #             self.ocr_worker.reset()#重置ocr_worker
+    #             if level>=15:
+    #                 print('当前已取得最优解,结束强化')
+    #                 break
+    #             #print(f'当前最佳驱动盘等级{level}')
+    #             else:
+    #                 self.ctx.controller.click(self.reinforce_rect.center)
+    #                 time.sleep(0.5)
+    #                 self.ctx.controller.click(self.add_stage_rect.center)
+    #                 time.sleep(0.5)
+    #                 self.ctx.controller.click(self.upgrade_rect.center)
+    #                 time.sleep(0.5)
+    #                 self.ctx.controller.click(self.button_close_rect.center)
+    #                 time.sleep(1)
+    #     return self.round_success('驱动盘扫描强化完成')
+    # #def execute(self):
+    # #     # 这里可以实现驱动盘强化的具体逻辑
+    # #     return super().execute()
 

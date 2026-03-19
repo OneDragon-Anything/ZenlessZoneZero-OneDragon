@@ -19,7 +19,6 @@ class DriveDiskEnhanceInterface(AppRunInterface):
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
         self.app: Optional[ZApplication] = None
-        self.checkboxes: List[QCheckBox] = []
         self.character_combo: Optional[ComboBox] = None
         self.disk_combos: List[ComboBox] = []
         self.drive_disk_names: List[str] = []
@@ -138,11 +137,7 @@ class DriveDiskEnhanceInterface(AppRunInterface):
             label = QLabel(f'{i}号位')
             card_layout.addWidget(label)
             
-            # 复选框
-            checkbox = QCheckBox()
-            checkbox.setChecked(False)  # 默认不勾选
-            self.checkboxes.append(checkbox)
-            card_layout.addWidget(checkbox)
+
             
             # 驱动盘选择下拉列表
             disk_combo = ComboBox()
@@ -156,9 +151,7 @@ class DriveDiskEnhanceInterface(AppRunInterface):
 
         return content
     
-    def get_checkbox_states(self) -> List[bool]:
-        """获取所有复选框的状态"""
-        return [checkbox.isChecked() for checkbox in self.checkboxes]
+
 
     def on_interface_shown(self) -> None:
         """界面显示时的回调"""
@@ -189,12 +182,6 @@ class DriveDiskEnhanceInterface(AppRunInterface):
 
     def _on_start_clicked(self) -> None:
         """在启动应用前保存配置"""
-        # 保存勾选状态到上下文
-        if hasattr(self, 'checkboxes') and self.checkboxes:
-            states = [checkbox.isChecked() for checkbox in self.checkboxes]
-            setattr(self.ctx, '_drive_disk_enhance_states', states)
-            print(f"驱动盘强化勾选状态: {states}")
-        
         # 保存选择的角色名称到上下文
         if hasattr(self, 'character_combo') and self.character_combo:
             character_name = self.character_combo.currentText()
