@@ -1,15 +1,14 @@
-from PySide6.QtGui import Qt, QIcon
+from PySide6.QtGui import QIcon, Qt
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 from qfluentwidgets import FluentIconBase, SingleDirectionScrollArea
-from typing import Union, Optional
 
 from one_dragon_qt.widgets.base_interface import BaseInterface
 
 
 class VerticalScrollInterface(BaseInterface):
 
-    def __init__(self, content_widget: Optional[QWidget], object_name: str,
-                 nav_text_cn: str, nav_icon: Union[FluentIconBase, QIcon, str] = None,
+    def __init__(self, content_widget: QWidget | None, object_name: str,
+                 nav_text_cn: str, nav_icon: FluentIconBase | QIcon | str = None,
                  parent=None
                  ):
         """
@@ -44,8 +43,6 @@ class VerticalScrollInterface(BaseInterface):
             return
 
         # 创建一个垂直布局
-        # 注意：不要设置 main_layout.setContentsMargins(0, 0, 0, 0)
-        # 否则会清掉页面默认外边距，导致多个页面的日志框底距消失
         main_layout = QVBoxLayout(self)
         scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
         main_layout.addWidget(scroll_area, stretch=0)

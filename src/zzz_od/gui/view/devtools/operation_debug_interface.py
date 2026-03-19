@@ -17,12 +17,12 @@ from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSetting
 from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_config_file_path,
 )
+from zzz_od.application.battle_assistant.operation_template_config import (
+    get_operation_template_config_list,
+)
 from zzz_od.application.devtools.operation_debug import operation_debug_const
 from zzz_od.application.devtools.operation_debug.operation_debug_config import (
     OperationDebugConfig,
-)
-from zzz_od.application.battle_assistant.operation_template_config import (
-    get_operation_template_config_list,
 )
 from zzz_od.config.game_config import ControlMethodEnum
 from zzz_od.context.zzz_context import ZContext

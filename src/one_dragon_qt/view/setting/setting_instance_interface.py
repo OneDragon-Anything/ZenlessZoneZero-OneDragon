@@ -31,6 +31,7 @@ from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiPushSettingCard,
 )
@@ -38,7 +39,6 @@ from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
     PasswordSwitchSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
-from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
