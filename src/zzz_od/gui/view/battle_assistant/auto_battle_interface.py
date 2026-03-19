@@ -15,7 +15,7 @@ from zzz_od.application.battle_assistant.auto_battle_config import (
 )
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.gui.view.game_assistant.battle_assistant_run_interface import (
+from zzz_od.gui.view.battle_assistant.battle_assistant_run_interface import (
     BattleAssistantRunInterface,
 )
 

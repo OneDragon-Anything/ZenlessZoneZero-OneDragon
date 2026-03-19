@@ -2,7 +2,7 @@ from qfluentwidgets import FluentIcon
 
 from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 from zzz_od.context.zzz_context import ZContext
-from zzz_od.gui.view.game_assistant.battle_assistant_interface import BattleAssistantInterface
+from zzz_od.gui.view.battle_assistant.battle_assistant_interface import BattleAssistantInterface
 from zzz_od.gui.view.game_assistant.commission_assistant_interface import CommissionAssistantRunInterface
 
 
