@@ -22,6 +22,7 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
 
 class AppRunCard(DraggableListItem):
 
+    move_top = Signal(str)  # 置顶功能，用于拖拽不能处理滚动的场景
     run = Signal(str)
     switched = Signal(str, bool)
     setting_clicked = Signal(str)
@@ -41,6 +42,9 @@ class AppRunCard(DraggableListItem):
         self.setting_btn = TransparentToolButton(FluentIcon.SETTING, None)
         self.setting_btn.clicked.connect(self._on_setting_clicked)
 
+        self.move_top_btn = TransparentToolButton(FluentIcon.PIN, None)
+        self.move_top_btn.clicked.connect(self._on_move_top_clicked)
+
         self.run_btn = TransparentToolButton(FluentIcon.PLAY, None)
         self.run_btn.clicked.connect(self._on_run_clicked)
 
@@ -52,7 +56,7 @@ class AppRunCard(DraggableListItem):
 
         # 创建 MultiPushSettingCard 作为 content_widget
         content_widget = MultiPushSettingCard(
-            btn_list=[self.setting_btn, self.run_btn, self.switch_btn],
+            btn_list=[self.setting_btn, self.move_top_btn, self.run_btn, self.switch_btn],
             icon=FluentIcon.GAME,
             title=self.app.app_name,
             parent=parent,
@@ -90,6 +94,13 @@ class AppRunCard(DraggableListItem):
                 icon = FluentIcon.INFO
             self.content_widget.iconLabel.setIcon(icon)
 
+    def _on_move_top_clicked(self) -> None:
+        """
+        置顶运行顺序（用于拖拽不能处理滚动的场景）
+        :return:
+        """
+        self.move_top.emit(self.app.app_id)
+
     def _on_run_clicked(self) -> None:
         """
         运行应用
@@ -120,6 +131,7 @@ class AppRunCard(DraggableListItem):
 
     def setDisabled(self, arg__1: bool) -> None:
         self.content_widget.setDisabled(arg__1)
+        self.move_top_btn.setDisabled(arg__1)
         self.run_btn.setDisabled(arg__1)
         self.switch_btn.setDisabled(arg__1)
 
