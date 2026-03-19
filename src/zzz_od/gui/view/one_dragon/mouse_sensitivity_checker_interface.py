@@ -31,6 +31,3 @@ class MouseSensitivityCheckerInterface(AppRunInterface):
             title='使用说明',
             content='点击「开始」后将自动校准鼠标/手柄的转向灵敏度，用于视角转动等操作；请确保游戏已打开且处于可操作状态'
         )
-
-    def on_interface_shown(self) -> None:
-        AppRunInterface.on_interface_shown(self)
