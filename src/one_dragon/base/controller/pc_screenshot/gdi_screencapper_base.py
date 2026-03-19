@@ -298,9 +298,6 @@ class GdiScreencapperBase(ScreencapperBase):
             img_array = np.frombuffer(buffer_array, dtype=np.uint8).reshape((ctx.height, ctx.width, 4))
             screenshot = cv2.cvtColor(img_array, cv2.COLOR_BGRA2RGB)
 
-            if self.game_win.is_win_scale:
-                screenshot = cv2.resize(screenshot, (self.standard_width, self.standard_height))
-
             return screenshot
         except Exception:
             log.debug("从位图构建截图失败", exc_info=True)

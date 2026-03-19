@@ -1,3 +1,4 @@
+import cv2
 from cv2.typing import MatLike
 
 from one_dragon.base.controller.pc_game_window import PcGameWindow
@@ -36,11 +37,12 @@ class PcScreenshotController:
         }
         self.active_strategy_name: str | None = None
 
-    def get_screenshot(self, independent: bool = False) -> MatLike | None:
+    def get_screenshot(self, independent: bool = False, resize: bool = True) -> MatLike | None:
         """根据初始化的方法获取截图
 
         Args:
             independent: 是否独立截图（不进行初始化，使用临时的截图器）
+            resize: 是否缩放到标准分辨率
 
         Returns:
             截图数组，失败返回 None
@@ -72,6 +74,10 @@ class PcScreenshotController:
 
                 if not independent and self.active_strategy_name != method_name:
                     self.active_strategy_name = method_name
+
+                if resize and self.game_win.is_win_scale:
+                    result = cv2.resize(result, (self.standard_width, self.standard_height))
+
                 return result
 
             except Exception:

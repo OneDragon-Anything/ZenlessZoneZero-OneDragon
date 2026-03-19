@@ -7,6 +7,7 @@ from qfluentwidgets import NavigationItemPosition, SplashScreen
 from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.utils import os_utils
 from one_dragon_qt.widgets.base_interface import BaseInterface
+from one_dragon_qt.widgets.navigation_button import NavigationButton
 from one_dragon_qt.windows.window import PhosWindow
 
 
@@ -53,7 +54,20 @@ class AppWindowBase(PhosWindow):
         pass
 
     def add_sub_interface(self, interface: BaseInterface, position=NavigationItemPosition.TOP):
+        """添加子页面，并在导航栏创建对应按钮"""
         self.addSubInterface(interface, interface.nav_icon, interface.nav_text, position=position)
+
+    def add_nav_widget(self, widget: NavigationButton,
+                       position: NavigationItemPosition = NavigationItemPosition.TOP) -> None:
+        """在导航栏末尾添加自定义按钮"""
+        self.insert_nav_widget(-1, widget, position)
+
+    def insert_nav_widget(self, index: int, widget: NavigationButton,
+                          position: NavigationItemPosition = NavigationItemPosition.TOP) -> None:
+        """在导航栏指定位置插入自定义按钮"""
+        self.navigationInterface.insertWidget(
+            index, widget.objectName(), widget, widget.on_click, position,
+        )
 
     def init_window(self):
         self.resize(960, 820)

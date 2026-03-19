@@ -122,6 +122,11 @@ try:
             from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
             self.add_sub_interface(ZOneDragonInterface(self.ctx, parent=self))
 
+            # 画中画
+            from one_dragon_qt.widgets.pip_button import PipButton
+            self.pip_btn = PipButton(self.ctx, parent=self)
+            self.add_nav_widget(self.pip_btn)
+
             # 点赞
             from one_dragon_qt.view.like_interface import LikeInterface
             self.add_sub_interface(
@@ -266,6 +271,9 @@ try:
 
         def closeEvent(self, event):
             """窗口关闭事件"""
+            if hasattr(self, 'pip_btn') and self.pip_btn:
+                self.pip_btn.dispose()
+
             if hasattr(self.ctx, 'telemetry') and self.ctx.telemetry:
                 import time
                 session_duration = time.time() - self._app_start_time
