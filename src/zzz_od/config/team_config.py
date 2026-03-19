@@ -17,6 +17,8 @@ class PredefinedTeamInfo:
 
 class TeamConfig(YamlConfig):
 
+    MAX_TEAM_COUNT = 20
+
     def __init__(self, instance_idx: int):
         YamlConfig.__init__(self, 'team', instance_idx=instance_idx)
 
@@ -24,7 +26,6 @@ class TeamConfig(YamlConfig):
     def team_list(self) -> List[PredefinedTeamInfo]:
         data_list = self.get('team_list', [])
 
-        max_cnt: int = 10
         team_list: List[PredefinedTeamInfo] = []
         for i in range(len(data_list)):
             data = data_list[i]
@@ -35,7 +36,7 @@ class TeamConfig(YamlConfig):
                                                 ))
 
         current_cnt = len(team_list)
-        for i in range(current_cnt + 1, max_cnt + 1):
+        for i in range(current_cnt + 1, self.MAX_TEAM_COUNT + 1):
             team_list.append(PredefinedTeamInfo(i-1, f'编队{i}', '全配队通用', []))
 
         return team_list
