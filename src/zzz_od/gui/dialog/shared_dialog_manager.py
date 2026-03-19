@@ -1,210 +1,159 @@
 from __future__ import annotations
 
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QWidget
 
-from zzz_od.gui.dialog.charge_plan_setting_dialog import ChargePlanSettingDialog
-from zzz_od.gui.dialog.coffee_setting_dialog import CoffeeSettingDialog
-from zzz_od.gui.dialog.drive_disc_dismantle_setting_dialog import (
-    DriveDiscDismantleSettingDialog,
-)
-from zzz_od.gui.dialog.intel_board_setting_dialog import IntelBoardSettingFlyout
-from zzz_od.gui.dialog.life_on_line_setting_dialog import LifeOnLineSettingDialog
-from zzz_od.gui.dialog.lost_void_setting_dialog import LostVoidSettingDialog
-from zzz_od.gui.dialog.notorious_hunt_setting_dialog import NotoriousHuntSettingDialog
-from zzz_od.gui.dialog.random_play_setting_dialog import RandomPlaySettingDialog
-from zzz_od.gui.dialog.redemption_code_setting_dialog import RedemptionCodeSettingDialog
-from zzz_od.gui.dialog.shiyu_defense_setting_dialog import ShiyuDefenseSettingDialog
-from zzz_od.gui.dialog.suibian_temple_setting_dialog import SuibianTempleSettingDialog
-from zzz_od.gui.dialog.withered_domain_setting_dialog import WitheredDomainSettingDialog
-from zzz_od.gui.dialog.world_patrol_setting_dialog import WorldPatrolSettingDialog
-
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
+
 
 class SharedDialogManager:
 
     def __init__(self, ctx: ZContext) -> None:
         self.ctx: ZContext = ctx
-        self._world_patrol_setting_dialog: WorldPatrolSettingDialog | None = None
-        self._suibian_temple_setting_dialog: SuibianTempleSettingDialog | None = None
-        self._charge_plan_setting_dialog: ChargePlanSettingDialog | None = None
-        self._notorious_hunt_setting_dialog: NotoriousHuntSettingDialog | None = None
-        self._coffee_setting_dialog: CoffeeSettingDialog | None = None
-        self._random_play_setting_dialog: RandomPlaySettingDialog | None = None
-        self._drive_disc_dismantle_setting_dialog: DriveDiscDismantleSettingDialog | None = None
-        self._withered_domain_setting_dialog: WitheredDomainSettingDialog | None = None
-        self._lost_void_setting_dialog: LostVoidSettingDialog | None = None
-        self._redemption_code_setting_dialog: RedemptionCodeSettingDialog | None = None
-        self._life_on_line_setting_dialog: LifeOnLineSettingDialog | None = None
-        self._shiyu_defense_setting_dialog: ShiyuDefenseSettingDialog | None = None
 
-    def show_world_patrol_setting_dialog(
-        self,
-        parent: QWidget,
-        group_id: str,
-    ) -> None:
-        if self._world_patrol_setting_dialog is None:
-            self._world_patrol_setting_dialog = WorldPatrolSettingDialog(ctx=self.ctx, parent=parent)
-
-        self._world_patrol_setting_dialog.show_by_group(
-            group_id=group_id,
-            parent=parent,
-        )
-
-    def show_suibian_temple_setting_dialog(
-        self,
-        parent: QWidget,
-        group_id: str,
-    ) -> None:
-        if self._suibian_temple_setting_dialog is None:
-            self._suibian_temple_setting_dialog = SuibianTempleSettingDialog(ctx=self.ctx, parent=parent)
-
-        self._suibian_temple_setting_dialog.show_by_group(
-            group_id=group_id,
-            parent=parent,
-        )
+    @cached_property
+    def _charge_plan_dialog(self):
+        from zzz_od.gui.dialog.charge_plan_setting_dialog import ChargePlanSettingDialog
+        return ChargePlanSettingDialog(ctx=self.ctx)
 
     def show_charge_plan_setting_dialog(
-        self,
-        parent: QWidget,
-        group_id: str,
+        self, parent: QWidget, group_id: str, target: QWidget,
     ) -> None:
-        if self._charge_plan_setting_dialog is None:
-            self._charge_plan_setting_dialog = ChargePlanSettingDialog(ctx=self.ctx, parent=parent)
+        self._charge_plan_dialog.show_by_group(group_id=group_id, parent=parent)
 
-        self._charge_plan_setting_dialog.show_by_group(
-            group_id=group_id,
-            parent=parent,
-        )
-
-    def show_notorious_hunt_setting_dialog(
-        self,
-        parent: QWidget,
-        group_id: str,
-    ) -> None:
-        if self._notorious_hunt_setting_dialog is None:
-            self._notorious_hunt_setting_dialog = NotoriousHuntSettingDialog(ctx=self.ctx, parent=parent)
-
-        self._notorious_hunt_setting_dialog.show_by_group(
-            group_id=group_id,
-            parent=parent,
-        )
+    @cached_property
+    def _coffee_dialog(self):
+        from zzz_od.gui.dialog.coffee_setting_dialog import CoffeeSettingDialog
+        return CoffeeSettingDialog(ctx=self.ctx)
 
     def show_coffee_setting_dialog(
-        self,
-        parent: QWidget,
-        group_id: str,
+        self, parent: QWidget, group_id: str, target: QWidget,
     ) -> None:
-        if self._coffee_setting_dialog is None:
-            self._coffee_setting_dialog = CoffeeSettingDialog(ctx=self.ctx, parent=parent)
+        self._coffee_dialog.show_by_group(group_id=group_id, parent=parent)
 
-        self._coffee_setting_dialog.show_by_group(
-            group_id=group_id,
-            parent=parent,
+    @cached_property
+    def _drive_disc_dismantle_dialog(self):
+        from zzz_od.gui.dialog.drive_disc_dismantle_setting_dialog import (
+            DriveDiscDismantleSettingDialog,
         )
-
-    def show_random_play_setting_dialog(
-        self,
-        parent: QWidget,
-        group_id: str,
-    ) -> None:
-        if self._random_play_setting_dialog is None:
-            self._random_play_setting_dialog = RandomPlaySettingDialog(ctx=self.ctx, parent=parent)
-
-        self._random_play_setting_dialog.show_by_group(
-            group_id=group_id,
-            parent=parent,
-        )
+        return DriveDiscDismantleSettingDialog(ctx=self.ctx)
 
     def show_drive_disc_dismantle_setting_dialog(
-        self,
-        parent: QWidget,
-        group_id: str,
+        self, parent: QWidget, group_id: str, target: QWidget,
     ) -> None:
-        if self._drive_disc_dismantle_setting_dialog is None:
-            self._drive_disc_dismantle_setting_dialog = DriveDiscDismantleSettingDialog(ctx=self.ctx, parent=parent)
-
-        self._drive_disc_dismantle_setting_dialog.show_by_group(
-            group_id=group_id,
-            parent=parent,
-        )
-
-    def show_withered_domain_setting_dialog(
-        self,
-        parent: QWidget,
-        group_id: str,
-    ) -> None:
-        if self._withered_domain_setting_dialog is None:
-            self._withered_domain_setting_dialog = WitheredDomainSettingDialog(ctx=self.ctx, parent=parent)
-
-        self._withered_domain_setting_dialog.show_by_group(
-            group_id=group_id,
-            parent=parent,
-        )
-
-    def show_lost_void_setting_dialog(
-        self,
-        parent: QWidget,
-        group_id: str,
-    ) -> None:
-        if self._lost_void_setting_dialog is None:
-            self._lost_void_setting_dialog = LostVoidSettingDialog(ctx=self.ctx, parent=parent)
-
-        self._lost_void_setting_dialog.show_by_group(
-            group_id=group_id,
-            parent=parent,
-        )
-
-    def show_redemption_code_setting_dialog(
-        self,
-        parent: QWidget,
-        group_id: str,
-    ) -> None:
-        if self._redemption_code_setting_dialog is None:
-            self._redemption_code_setting_dialog = RedemptionCodeSettingDialog(ctx=self.ctx, parent=parent)
-
-        self._redemption_code_setting_dialog.show_by_group(
-            group_id=group_id,
-            parent=parent,
-        )
-
-    def show_life_on_line_setting_dialog(
-        self,
-        parent: QWidget,
-        group_id: str,
-    ) -> None:
-        if self._life_on_line_setting_dialog is None:
-            self._life_on_line_setting_dialog = LifeOnLineSettingDialog(ctx=self.ctx, parent=parent)
-
-        self._life_on_line_setting_dialog.show_by_group(
-            group_id=group_id,
-            parent=parent,
-        )
-
-    def show_shiyu_defense_setting_dialog(
-        self,
-        parent: QWidget,
-        group_id: str,
-    ) -> None:
-        if self._shiyu_defense_setting_dialog is None:
-            self._shiyu_defense_setting_dialog = ShiyuDefenseSettingDialog(ctx=self.ctx, parent=parent)
-
-        self._shiyu_defense_setting_dialog.show_by_group(
-            group_id=group_id,
-            parent=parent,
-        )
+        self._drive_disc_dismantle_dialog.show_by_group(group_id=group_id, parent=parent)
 
     def show_intel_board_setting_flyout(
-        self,
-        target: QWidget,
-        parent: QWidget,
-        group_id: str,
-    ):
+        self, parent: QWidget, group_id: str, target: QWidget,
+    ) -> None:
+        from zzz_od.gui.dialog.intel_board_setting_dialog import IntelBoardSettingFlyout
         IntelBoardSettingFlyout.show_flyout(
-            ctx=self.ctx,
-            group_id=group_id,
-            target=target,
-            parent=parent,
+            ctx=self.ctx, group_id=group_id, target=target, parent=parent,
         )
+
+    @cached_property
+    def _life_on_line_dialog(self):
+        from zzz_od.gui.dialog.life_on_line_setting_dialog import (
+            LifeOnLineSettingDialog,
+        )
+        return LifeOnLineSettingDialog(ctx=self.ctx)
+
+    def show_life_on_line_setting_dialog(
+        self, parent: QWidget, group_id: str, target: QWidget,
+    ) -> None:
+        self._life_on_line_dialog.show_by_group(group_id=group_id, parent=parent)
+
+    @cached_property
+    def _lost_void_dialog(self):
+        from zzz_od.gui.dialog.lost_void_setting_dialog import LostVoidSettingDialog
+        return LostVoidSettingDialog(ctx=self.ctx)
+
+    def show_lost_void_setting_dialog(
+        self, parent: QWidget, group_id: str, target: QWidget,
+    ) -> None:
+        self._lost_void_dialog.show_by_group(group_id=group_id, parent=parent)
+
+    @cached_property
+    def _notorious_hunt_dialog(self):
+        from zzz_od.gui.dialog.notorious_hunt_setting_dialog import (
+            NotoriousHuntSettingDialog,
+        )
+        return NotoriousHuntSettingDialog(ctx=self.ctx)
+
+    def show_notorious_hunt_setting_dialog(
+        self, parent: QWidget, group_id: str, target: QWidget,
+    ) -> None:
+        self._notorious_hunt_dialog.show_by_group(group_id=group_id, parent=parent)
+
+    @cached_property
+    def _random_play_dialog(self):
+        from zzz_od.gui.dialog.random_play_setting_dialog import RandomPlaySettingDialog
+        return RandomPlaySettingDialog(ctx=self.ctx)
+
+    def show_random_play_setting_dialog(
+        self, parent: QWidget, group_id: str, target: QWidget,
+    ) -> None:
+        self._random_play_dialog.show_by_group(group_id=group_id, parent=parent)
+
+    @cached_property
+    def _redemption_code_dialog(self):
+        from zzz_od.gui.dialog.redemption_code_setting_dialog import (
+            RedemptionCodeSettingDialog,
+        )
+        return RedemptionCodeSettingDialog(ctx=self.ctx)
+
+    def show_redemption_code_setting_dialog(
+        self, parent: QWidget, group_id: str, target: QWidget,
+    ) -> None:
+        self._redemption_code_dialog.show_by_group(group_id=group_id, parent=parent)
+
+    @cached_property
+    def _shiyu_defense_dialog(self):
+        from zzz_od.gui.dialog.shiyu_defense_setting_dialog import (
+            ShiyuDefenseSettingDialog,
+        )
+        return ShiyuDefenseSettingDialog(ctx=self.ctx)
+
+    def show_shiyu_defense_setting_dialog(
+        self, parent: QWidget, group_id: str, target: QWidget,
+    ) -> None:
+        self._shiyu_defense_dialog.show_by_group(group_id=group_id, parent=parent)
+
+    @cached_property
+    def _suibian_temple_dialog(self):
+        from zzz_od.gui.dialog.suibian_temple_setting_dialog import (
+            SuibianTempleSettingDialog,
+        )
+        return SuibianTempleSettingDialog(ctx=self.ctx)
+
+    def show_suibian_temple_setting_dialog(
+        self, parent: QWidget, group_id: str, target: QWidget,
+    ) -> None:
+        self._suibian_temple_dialog.show_by_group(group_id=group_id, parent=parent)
+
+    @cached_property
+    def _withered_domain_dialog(self):
+        from zzz_od.gui.dialog.withered_domain_setting_dialog import (
+            WitheredDomainSettingDialog,
+        )
+        return WitheredDomainSettingDialog(ctx=self.ctx)
+
+    def show_withered_domain_setting_dialog(
+        self, parent: QWidget, group_id: str, target: QWidget,
+    ) -> None:
+        self._withered_domain_dialog.show_by_group(group_id=group_id, parent=parent)
+
+    @cached_property
+    def _world_patrol_dialog(self):
+        from zzz_od.gui.dialog.world_patrol_setting_dialog import (
+            WorldPatrolSettingDialog,
+        )
+        return WorldPatrolSettingDialog(ctx=self.ctx)
+
+    def show_world_patrol_setting_dialog(
+        self, parent: QWidget, group_id: str, target: QWidget,
+    ) -> None:
+        self._world_patrol_dialog.show_by_group(group_id=group_id, parent=parent)
