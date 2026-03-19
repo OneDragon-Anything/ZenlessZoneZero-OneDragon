@@ -2,19 +2,18 @@ from __future__ import annotations
 
 import os
 import threading
-from concurrent.futures import ThreadPoolExecutor, Future
+from concurrent.futures import Future, ThreadPoolExecutor
 from enum import Enum
 from typing import TYPE_CHECKING
 
 import librosa
 import numpy as np
 from cv2.typing import MatLike
-from scipy.signal import correlate, butter, filtfilt
+from scipy.signal import butter, correlate, filtfilt
 from sklearn.preprocessing import scale
 
 from one_dragon.base.conditional_operation.state_recorder import StateRecord
-from one_dragon.utils import cal_utils, yolo_config_utils
-from one_dragon.utils import thread_utils, os_utils
+from one_dragon.utils import cal_utils, os_utils, thread_utils, yolo_config_utils
 from one_dragon.utils.log_utils import log
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.yolo.flash_classifier import FlashClassifier
