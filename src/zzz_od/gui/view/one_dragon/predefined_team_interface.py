@@ -1,6 +1,8 @@
 from PySide6.QtCore import Signal
+from PySide6.QtGui import QValidator
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import (
+    CaptionLabel,
     FluentIcon,
     LineEdit,
     MessageBox,
@@ -28,6 +30,18 @@ from zzz_od.context.zzz_context import ZContext
 from zzz_od.game_data.agent import AgentEnum
 
 
+class TeamNameValidator(QValidator):
+    """限制编队名称：中文最多 7 个 / 英文最多 14 个（混合按宽度计）"""
+
+    MAX_WIDTH = 14
+
+    def validate(self, input_str: str, pos: int) -> tuple[QValidator.State, str, int]:
+        input_width = sum(2 if ord(c) > 127 else 1 for c in input_str)
+        if input_width <= self.MAX_WIDTH:
+            return QValidator.State.Acceptable, input_str, pos
+        return QValidator.State.Invalid, input_str, pos
+
+
 class TeamSettingCard(SettingCardBase):
 
     changed = Signal(PredefinedTeamInfo)
@@ -35,7 +49,7 @@ class TeamSettingCard(SettingCardBase):
     def __init__(self):
         SettingCardBase.__init__(
             self, icon=FluentIcon.PEOPLE, title='',
-            margins=Margins(16, 8, 0, 16),
+            margins=Margins(16, 0, 0, 16),
         )
         self.team_info: PredefinedTeamInfo | None = None
 
@@ -44,41 +58,47 @@ class TeamSettingCard(SettingCardBase):
 
         # 两行内容布局
         v_layout = QVBoxLayout()
-        v_layout.setSpacing(5)
+        v_layout.setSpacing(8)
         self.hBoxLayout.addLayout(v_layout)
 
         # 第一行：编队名称 + 战斗策略
         row1 = QHBoxLayout()
-        row1.setSpacing(8)
+        row1.setSpacing(10)
         self.name_input = LineEdit()
+        self.name_input.setValidator(TeamNameValidator(self.name_input))
         self.name_input.textChanged.connect(self.on_name_changed)
+        self.name_input.setFixedWidth(130)
         row1.addWidget(self.name_input)
+        row1.addSpacing(13)
+
+        auto_battle_label = CaptionLabel(gt('战斗配置'))
+        row1.addWidget(auto_battle_label)
+
         self.auto_battle_btn = ComboBox()
         self.auto_battle_btn.currentIndexChanged.connect(self.on_auto_battle_changed)
-        row1.addWidget(self.auto_battle_btn)
+        row1.addWidget(self.auto_battle_btn, stretch=1)
         row1.addSpacing(16)
         v_layout.addLayout(row1)
 
         # 第二行：三个代理人
         row2 = QHBoxLayout()
-        row2.setSpacing(8)
+        row2.setSpacing(10)
         self.agent_1_btn = EditableComboBox()
         self.agent_1_btn.currentIndexChanged.connect(self.on_agent_1_changed)
-        self.agent_1_btn.setFixedWidth(110)
+        self.agent_1_btn.setFixedWidth(130)
         row2.addWidget(self.agent_1_btn)
         self.agent_2_btn = EditableComboBox()
         self.agent_2_btn.currentIndexChanged.connect(self.on_agent_2_changed)
-        self.agent_2_btn.setFixedWidth(110)
+        self.agent_2_btn.setFixedWidth(130)
         row2.addWidget(self.agent_2_btn)
         self.agent_3_btn = EditableComboBox()
         self.agent_3_btn.currentIndexChanged.connect(self.on_agent_3_changed)
-        self.agent_3_btn.setFixedWidth(110)
+        self.agent_3_btn.setFixedWidth(130)
         row2.addWidget(self.agent_3_btn)
         row2.addSpacing(16)
         v_layout.addLayout(row2)
 
-        # 高度参考 MultiLineSettingCard: 60 + (line_count - 1) * 30
-        self.setFixedHeight(90)
+        self.setFixedHeight(96)
 
     def init_setting_card(self, auto_battle_list: list[ConfigItem], team: PredefinedTeamInfo) -> None:
         self.team_info = team
