@@ -40,14 +40,6 @@ class BattleAssistantConfig(YamlConfig):
         self.update('auto_battle_config', new_value)
 
     @property
-    def battle_mode(self) -> str:
-        return self.get('battle_mode', '自动战斗')
-
-    @battle_mode.setter
-    def battle_mode(self, new_value: str) -> None:
-        self.update('battle_mode', new_value)
-
-    @property
     def use_merged_file(self) -> bool:
         """使用合并后的单文件"""
         return self.get('use_merged_file', True)
