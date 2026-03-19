@@ -7,11 +7,11 @@ from qfluentwidgets import FluentIcon, ToolButton
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import ComboBoxSettingCard
-from zzz_od.application.game_assistant.auto_battle_config import (
+from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_config_file_path,
     get_auto_battle_op_config_list,
 )
-from zzz_od.application.game_assistant.dodge_assitant import dodge_assistant_const
+from zzz_od.application.battle_assistant.dodge_assitant import dodge_assistant_const
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.game_assistant.battle_assistant_run_interface import (
     BattleAssistantRunInterface,

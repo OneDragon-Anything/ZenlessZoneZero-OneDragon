@@ -10,7 +10,9 @@ from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from zzz_od.application.shiyu_defense import shiyu_defense_const
 from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
-from zzz_od.application.shiyu_defense.shiyu_defense_run_record import ShiyuDefenseRunRecord
+from zzz_od.application.shiyu_defense.shiyu_defense_run_record import (
+    ShiyuDefenseRunRecord,
+)
 from zzz_od.game_data.agent import DmgTypeEnum
 from zzz_od.gui.dialog.app_setting_dialog import AppSettingDialog
 

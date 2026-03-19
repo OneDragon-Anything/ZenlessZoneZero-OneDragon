@@ -27,7 +27,7 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.setting_card.text_setting_card import TextSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from zzz_od.application.game_assistant.auto_battle_config import (
+from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
 )
 from zzz_od.context.zzz_context import ZContext

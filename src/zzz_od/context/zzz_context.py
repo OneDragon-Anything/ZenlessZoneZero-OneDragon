@@ -74,7 +74,7 @@ class ZContext(OneDragonContext):
 
     @cached_property
     def battle_assistant_config(self):
-        from zzz_od.application.game_assistant.battle_assistant_config import (
+        from zzz_od.application.battle_assistant.battle_assistant_config import (
             BattleAssistantConfig,
         )
         return BattleAssistantConfig(self.current_instance_idx)

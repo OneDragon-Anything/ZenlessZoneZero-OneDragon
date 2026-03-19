@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 
 from one_dragon.base.operation.application.application_factory import ApplicationFactory
 from one_dragon.base.operation.application_base import Application
-from zzz_od.application.game_assistant.dodge_assitant import dodge_assistant_const
-from zzz_od.application.game_assistant.dodge_assitant.dodge_assistant_app import (
+from zzz_od.application.battle_assistant.dodge_assitant import dodge_assistant_const
+from zzz_od.application.battle_assistant.dodge_assitant.dodge_assistant_app import (
     DodgeAssistantApp,
 )
 

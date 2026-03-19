@@ -20,7 +20,7 @@ from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
 from one_dragon_qt.widgets.log_display_card import LogDisplayCard
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
-from zzz_od.application.game_assistant.auto_battle_config import (
+from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
 )
 from zzz_od.application.game_config_checker.predefined_team_checker import (

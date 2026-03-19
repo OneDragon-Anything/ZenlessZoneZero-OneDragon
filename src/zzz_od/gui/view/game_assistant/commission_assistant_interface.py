@@ -15,7 +15,7 @@ from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
     DoubleSpinBoxSettingCard,
 )
-from zzz_od.application.game_assistant.auto_battle_config import (
+from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
 )
 from zzz_od.application.commission_assistant import commission_assistant_const

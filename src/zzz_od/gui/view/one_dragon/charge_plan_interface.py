@@ -36,7 +36,7 @@ from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanItem,
     RestoreChargeEnum,
 )
-from zzz_od.application.game_assistant.auto_battle_config import (
+from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
 )
 from zzz_od.application.notorious_hunt.notorious_hunt_config import (

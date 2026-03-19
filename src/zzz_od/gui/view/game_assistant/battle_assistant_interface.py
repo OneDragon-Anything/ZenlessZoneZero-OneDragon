@@ -4,7 +4,7 @@ from qfluentwidgets import FluentIcon
 
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon_qt.widgets.base_interface import BaseInterface
-from zzz_od.application.game_assistant.auto_battle.auto_battle_app import AutoBattleApp
+from zzz_od.application.battle_assistant.auto_battle.auto_battle_app import AutoBattleApp
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.game_assistant.auto_battle_interface import AutoBattleInterface
 from zzz_od.gui.view.game_assistant.battle_state_display import BattleStateDisplay, TaskDisplay
