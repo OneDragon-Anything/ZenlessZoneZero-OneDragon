@@ -147,7 +147,7 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
             '连携头像：触发目标角色连携（头像在左边）',
             '快速支援：触发目标角色快速支援',
             '空洞头像：走格子，目标角色在编队1号位',
-            '预备编队：大世界，编队在第一个队伍第一位',
+            '预备编队：菜单-更多，目标角色在1号队伍1号位',
         ]
 
         for item in hint_items:
