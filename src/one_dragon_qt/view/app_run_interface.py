@@ -100,6 +100,7 @@ class AppRunInterface(VerticalScrollInterface):
         # 按钮行
         btn_row_widget = QWidget()
         btn_row_layout = QHBoxLayout(btn_row_widget)
+        btn_row_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.addWidget(btn_row_widget)
 
         self.start_btn = PrimaryPushButton(
