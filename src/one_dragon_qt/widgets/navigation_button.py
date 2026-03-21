@@ -1,5 +1,6 @@
 from collections.abc import Callable
 
+from PySide6.QtGui import QPainter
 from qfluentwidgets import FluentIconBase, NavigationBarPushButton
 
 
@@ -59,3 +60,21 @@ class NavigationToggleButton(NavigationButton):
         self._selectedIcon = icon
         self.setToolTip(tooltip)
         self.update()
+
+    def _drawIcon(self, painter: QPainter) -> None:
+        if self._active:
+            old = self.isSelected
+            self.isSelected = True
+            super()._drawIcon(painter)
+            self.isSelected = old
+        else:
+            super()._drawIcon(painter)
+
+    def _drawText(self, painter: QPainter) -> None:
+        if self._active:
+            old = self.isSelected
+            self.isSelected = True
+            super()._drawText(painter)
+            self.isSelected = old
+        else:
+            super()._drawText(painter)
