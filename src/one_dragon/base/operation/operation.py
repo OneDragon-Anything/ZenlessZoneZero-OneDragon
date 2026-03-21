@@ -784,6 +784,7 @@ class Operation(OperationBase):
         until_find_all: list[tuple[str, str]] = None,
         until_not_find_all: list[tuple[str, str]] = None,
         crop_first: bool = True,
+        center_x: bool = False,
     ) -> OperationRoundResult:
         """在屏幕上查找并点击目标区域。
 
@@ -799,6 +800,7 @@ class Operation(OperationBase):
             until_find_all: 点击直到找到所有目标 [(屏幕, 区域)]。默认为None。
             until_not_find_all: 点击直到未找到所有目标 [(屏幕, 区域)]。默认为None。
             crop_first: 在传入区域时 是否先裁剪再进行文本识别
+            center_x: 模板区域点击时是否固定使用游戏中心点的 x 坐标
 
         Returns:
             OperationRoundResult: 点击结果。
@@ -850,6 +852,7 @@ class Operation(OperationBase):
             screen_name=screen_name,
             area_name=area_name,
             crop_first=crop_first,
+            center_x=center_x,
         )
         if click == OcrClickResultEnum.OCR_CLICK_SUCCESS:
             self.node_clicked = True

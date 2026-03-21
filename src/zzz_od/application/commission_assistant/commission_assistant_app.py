@@ -358,8 +358,8 @@ class CommissionAssistantApp(ZApplication):
 
         # 自动播放模式
         if self.config.story_mode == StoryMode.AUTO.value.value:
-            # 优先尝试匹配点击中间选项
-            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '中间选项区域')
+            # 优先通过模板定位Y轴，再点击中间选项（模板位置点击无反应）
+            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '中间选项区域', center_x=True)
             if result.is_success:
                 return self.round_wait('点击中间选项', wait=self.config.dialog_click_interval)
             # 文本-剧情右上角，里面显示'自动'
