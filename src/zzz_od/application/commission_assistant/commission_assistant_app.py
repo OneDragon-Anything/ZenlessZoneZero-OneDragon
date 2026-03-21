@@ -1,5 +1,4 @@
 import time
-from typing import Optional
 
 from cv2.typing import MatLike
 
@@ -50,7 +49,7 @@ class CommissionAssistantApp(ZApplication):
         self.last_dialog_opts: set[str] = set()  # 上一次对话的全部选项
         self.last_chosen_opt: str = ''  # 上一次选择的对话选项
 
-        self.fishing_btn_pressed: Optional[str] = None  # 钓鱼在按下的按键
+        self.fishing_btn_pressed: str | None = None  # 钓鱼在按下的按键
         self.fishing_done: bool = False  # 钓鱼是否结束 通常是比赛类 最后会有挑战结果显示
 
     def handle_init(self):
@@ -191,8 +190,8 @@ class CommissionAssistantApp(ZApplication):
         if len(ocr_result_list) == 0:
             return False
 
-        to_click: Optional[Point] = None
-        to_choose_opt: Optional[str] = None
+        to_click: Point | None = None
+        to_choose_opt: str | None = None
 
         is_same_opts: bool = self.check_same_opts(set([i.data for i in ocr_result_list]))
 
