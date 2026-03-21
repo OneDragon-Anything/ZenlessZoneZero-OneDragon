@@ -42,16 +42,33 @@ class VerticalScrollInterface(BaseInterface):
         if self._init:
             return
 
-        # 创建一个垂直布局
+        # 创建一个垂直布局，底边距为0（由滚动内容末尾的空白提供视觉边距）
         main_layout = QVBoxLayout(self)
+        margins = main_layout.contentsMargins()
+        bottom_spacer_height = margins.bottom()
+        margins.setBottom(0)
+        main_layout.setContentsMargins(margins)
+
         scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
         main_layout.addWidget(scroll_area, stretch=0)
 
         content_widget = self._param_content_widget
         if content_widget is None:
             content_widget = self.get_content_widget()
+
+        # 包一层容器，在内容底部追加空白，替代布局的底边距
+        wrapper = QWidget()
+        wrapper.setStyleSheet("QWidget { background-color: transparent; }")
+        wrapper_layout = QVBoxLayout(wrapper)
+        wrapper_layout.setContentsMargins(0, 0, 0, 0)
+        wrapper_layout.setSpacing(0)
         content_widget.setStyleSheet("QWidget { background-color: transparent; }")
-        scroll_area.setWidget(content_widget)
+        wrapper_layout.addWidget(content_widget)
+        bottom_spacer = QWidget()
+        bottom_spacer.setFixedHeight(bottom_spacer_height)
+        wrapper_layout.addWidget(bottom_spacer)
+
+        scroll_area.setWidget(wrapper)
         scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
 
