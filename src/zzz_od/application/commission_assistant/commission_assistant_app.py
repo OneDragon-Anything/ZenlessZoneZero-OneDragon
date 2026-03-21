@@ -381,7 +381,13 @@ class CommissionAssistantApp(ZApplication):
             if result.is_success:
                 return self.round_wait('跳过剧情', wait=1)
             # 再按优先级处理跳过/菜单/自动
-            result = self.round_by_ocr_and_click_by_priority(['跳过', '菜单', '自动'], area=area)
+            result = self.round_by_ocr_and_click(self.last_screenshot, '跳过', area=area, success_wait=1)
+            if result.is_success:
+                result = self.round_by_find_and_click_area(self.screenshot(), '委托助手', '对话框确认', crop_first=False)
+                if result.is_success:
+                    return self.round_wait('跳过剧情', wait=1)
+                return self._do_dialog_click()
+            result = self.round_by_ocr_and_click_by_priority(['菜单', '自动'], area=area)
             if result.is_success:
                 return self.round_wait(f'点击剧情按钮 {result.status}', wait=1)
 
