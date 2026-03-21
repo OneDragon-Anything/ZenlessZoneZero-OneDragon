@@ -352,21 +352,21 @@ class CommissionAssistantApp(ZApplication):
     @operation_node(name='剧情模式')
     def story_mode(self) -> OperationRoundResult:
         """
-        剧情模式：右上角有 菜单/自动/跳过
-        - 自动播放模式: OCR识别并点击 菜单→自动
-        - 跳过剧情模式: 每轮OCR识别并点击一次 依靠循环推进
-          有菜单点菜单 有跳过点跳过 确认对话框点确认
-        - 自动点击模式: 不处理 交给外层点击
+        剧情模式：右上角有 菜单/自动/跳过（点击前后显隐性或位置性会改变）
         """
         area = self.ctx.screen_loader.get_area('委托助手', '文本-剧情右上角')
 
         # 自动播放模式
         if self.config.story_mode == StoryMode.AUTO.value.value:
-            # 已是自动
+            # 优先尝试匹配点击中间选项
+            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '中间选项区域')
+            if result.is_success:
+                return self.round_wait('点击中间选项', wait=self.config.dialog_click_interval)
+            # 文本-剧情右上角，里面显示'自动'
             result = self.round_by_ocr(self.last_screenshot, '自动', area=area)
             if result.is_success:
-                return self.round_wait('剧情自动播放中 选项需手动点击', wait=1)
-            # 不是自动 → 点菜单 + 等展开 + 点自动
+                return self.round_wait('剧情自动播放中', wait=1)
+            # 文本-剧情右上角，里面显示'菜单'
             self.round_by_ocr_and_click(self.last_screenshot, '菜单', area=area, success_wait=1)
             result = self.round_by_find_and_click_area(self.screenshot(), '委托助手', '按钮-自动')
             if result.is_success:
