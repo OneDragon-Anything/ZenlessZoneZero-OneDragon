@@ -367,20 +367,28 @@ class CommissionAssistantApp(ZApplication):
             if result.is_success:
                 return self.round_wait('剧情自动播放中', wait=1)
             # 文本-剧情右上角，里面显示'菜单'
-            self.round_by_ocr_and_click(self.last_screenshot, '菜单', area=area, success_wait=1)
-            result = self.round_by_find_and_click_area(self.screenshot(), '委托助手', '按钮-自动')
+            result = self.round_by_ocr_and_click(self.last_screenshot, '菜单', area=area)
             if result.is_success:
-                return self.round_wait('尝试切换到自动模式')
+                return self.round_wait('尝试展开剧情菜单', wait=1)
+            # 文本-剧情右上角，下面显示'菜单'（展开菜单后）
+            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '按钮-自动')
+            if result.is_success:
+                return self.round_wait('尝试切换到自动模式', wait=1)
 
         # 跳过剧情模式
         if self.config.story_mode == StoryMode.SKIP.value.value:
-            self.round_by_ocr_and_click_by_priority(['跳过', '菜单', '自动'], area=area, success_wait=1)
-            result = self.round_by_find_and_click_area(self.screenshot(), '委托助手', '对话框确认', crop_first=False)
+            # 优先识别并点击对话框'确认'
+            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '对话框确认', crop_first=False)
             if result.is_success:
-                return self.round_wait('跳过剧情')
+                return self.round_wait('跳过剧情', wait=1)
+            # 再按优先级处理跳过/菜单/自动
+            result = self.round_by_ocr_and_click_by_priority(['跳过', '菜单', '自动'], area=area)
+            if result.is_success:
+                return self.round_wait(f'点击剧情按钮 {result.status}', wait=1)
 
+        # 跳过剧情模式：没有'确认'弹窗，说明这个'跳过'是无反馈的灰按钮
+        # 跳过剧情模式：文本-剧情右上角，很多情况下是没有内容可点击的
         # 自动点击模式
-        # 文本-剧情右上角某些情况下是没有内容可点击的
         return self._do_dialog_click()
 
     @node_from(from_name='自动对话模式', status='钓鱼')
