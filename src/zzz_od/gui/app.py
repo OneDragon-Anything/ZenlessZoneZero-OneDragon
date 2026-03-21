@@ -98,7 +98,6 @@ try:
 
             # 布局样式调整
             self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
-            self.areaLayout.setContentsMargins(0, 32, 0, 0)
             self.navigationInterface.setContentsMargins(0, 0, 0, 0)
 
             # 配置样式

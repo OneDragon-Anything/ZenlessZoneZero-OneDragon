@@ -1,6 +1,6 @@
 import cv2
-from PySide6.QtGui import QImage
 from cv2.typing import MatLike
+from PySide6.QtGui import QImage
 
 
 class Cv2Image(QImage):

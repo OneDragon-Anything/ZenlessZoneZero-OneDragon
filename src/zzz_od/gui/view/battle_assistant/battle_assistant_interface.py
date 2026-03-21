@@ -81,8 +81,8 @@ class BattleAssistantInterface(AppRunInterface):
             return
         self._init = True
 
-        # 外层 QVBoxLayout 使用 Qt 默认边距（与 VerticalScrollInterface 一致）
         outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 11, 0, 11)
 
         # 内层左右分栏
         content_hbox = QHBoxLayout()
@@ -286,10 +286,10 @@ class BattleAssistantInterface(AppRunInterface):
         self.config_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
 
     def _on_auto_battle_del_clicked(self) -> None:
-        item: str = self.config_opt.getValue()
+        item = self.config_opt.getValue()
         if item is None:
             return
-        path = Path(get_auto_battle_config_file_path('auto_battle', item))
+        path = Path(get_auto_battle_config_file_path('auto_battle', str(item)))
         path.unlink(missing_ok=True)
         self._update_auto_battle_config_opts()
 
@@ -301,10 +301,10 @@ class BattleAssistantInterface(AppRunInterface):
         self.dodge_opt.set_options_by_list(get_auto_battle_op_config_list('dodge'))
 
     def _on_dodge_del_clicked(self) -> None:
-        item: str = self.dodge_opt.getValue()
+        item= self.dodge_opt.getValue()
         if item is None:
             return
-        path = Path(get_auto_battle_config_file_path('dodge', item))
+        path = Path(get_auto_battle_config_file_path('dodge', str(item)))
         path.unlink(missing_ok=True)
         self._update_dodge_way_opts()
 

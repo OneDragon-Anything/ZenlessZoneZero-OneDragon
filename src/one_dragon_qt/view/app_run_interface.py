@@ -68,7 +68,7 @@ class AppRunInterface(VerticalScrollInterface):
         app_id: str,
         object_name: str,
         nav_text_cn: str,
-        nav_icon: FluentIconBase | QIcon | str = None,
+        nav_icon: FluentIconBase | QIcon | str = '',
         parent=None,
     ):
         VerticalScrollInterface.__init__(
@@ -131,10 +131,10 @@ class AppRunInterface(VerticalScrollInterface):
 
         return content_widget
 
-    def get_widget_at_top(self) -> QWidget:
+    def get_widget_at_top(self) -> QWidget | None:
         pass
 
-    def get_widget_at_bottom(self) -> QWidget:
+    def get_widget_at_bottom(self) -> QWidget | None:
         pass
 
     def on_interface_shown(self) -> None:
@@ -211,7 +211,7 @@ class SplitAppRunInterface(AppRunInterface):
         app_id: str,
         object_name: str,
         nav_text_cn: str,
-        nav_icon: FluentIconBase | QIcon | str | None = None,
+        nav_icon: FluentIconBase | QIcon | str = '',
         parent: QWidget | None = None,
         left_stretch: int = 1,
         right_stretch: int = 1,
@@ -234,9 +234,7 @@ class SplitAppRunInterface(AppRunInterface):
         self._init = True
 
         outer_layout = QHBoxLayout(self)
-        margins = outer_layout.contentsMargins()
-        margins.setBottom(0)
-        outer_layout.setContentsMargins(margins)
+        outer_layout.setContentsMargins(0, 11, 0, 0)
         outer_layout.setSpacing(10)
 
         # 左侧：滚动区域（无底边距）

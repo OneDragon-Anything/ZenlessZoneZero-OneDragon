@@ -63,7 +63,7 @@ class PhosWindow(MSFluentWindow, PhosFluentWindowBase):
         self.hBoxLayout.setSpacing(0)
         self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
         self.hBoxLayout.setStretchFactor(self.areaWidget, 1)
-        self.areaLayout.setContentsMargins(0, 32, 0, 0)
+        self.areaLayout.setContentsMargins(11, 32, 11, 0)
         self.titleBar.raise_()
         self.titleBar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground)
 

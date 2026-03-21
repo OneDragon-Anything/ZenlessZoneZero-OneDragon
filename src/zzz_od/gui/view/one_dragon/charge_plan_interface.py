@@ -29,15 +29,15 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from zzz_od.application.battle_assistant.auto_battle_config import (
+    get_auto_battle_op_config_list,
+)
 from zzz_od.application.charge_plan import charge_plan_const
 from zzz_od.application.charge_plan.charge_plan_config import (
     CardNumEnum,
     ChargePlanConfig,
     ChargePlanItem,
     RestoreChargeEnum,
-)
-from zzz_od.application.battle_assistant.auto_battle_config import (
-    get_auto_battle_op_config_list,
 )
 from zzz_od.application.notorious_hunt.notorious_hunt_config import (
     NotoriousHuntBuffEnum,
@@ -363,7 +363,6 @@ class ChargePlanInterface(VerticalScrollInterface):
 
         self.loop_opt.init_with_adapter(get_prop_adapter(self.config, 'loop'))
         self.skip_plan_opt.init_with_adapter(get_prop_adapter(self.config, 'skip_plan'))
-        # self.coupon_opt.init_with_adapter(get_prop_adapter(self.config, 'use_coupon'))
         self.restore_charge_opt.init_with_adapter(get_prop_adapter(self.config, 'restore_charge'))
 
     def on_interface_hidden(self) -> None:
