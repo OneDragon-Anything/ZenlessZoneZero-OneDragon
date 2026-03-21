@@ -139,8 +139,8 @@ class SettingInstanceInterface(VerticalScrollInterface):
         self.show_login_btn: bool = show_login_btn
         VerticalScrollInterface.__init__(
             self,
+            content_widget=None,
             object_name="setting_instance_interface",
-            content_widget=self.get_content_widget(),
             parent=parent,
             nav_text_cn="多账户管理",
         )
