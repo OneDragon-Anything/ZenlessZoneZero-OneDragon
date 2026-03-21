@@ -6,14 +6,12 @@ from qfluentwidgets import (
     FluentIcon,
     LineEdit,
     MessageBox,
-    SingleDirectionScrollArea,
 )
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.layout_utils import Margins
-from one_dragon_qt.view.app_run_interface import AppRunInterface
-from one_dragon_qt.widgets.base_interface import BaseInterface
+from one_dragon_qt.view.app_run_interface import SplitAppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.editable_combo_box import EditableComboBox
@@ -152,37 +150,18 @@ class TeamSettingCard(SettingCardBase):
         self.changed.emit(self.team_info)
 
 
-class PredefinedTeamInterface(AppRunInterface):
+class PredefinedTeamInterface(SplitAppRunInterface):
 
     def __init__(self, ctx: ZContext, parent=None):
-        BaseInterface.__init__(
+        SplitAppRunInterface.__init__(
             self,
+            ctx=ctx,
+            app_id=predefined_team_checker_const.APP_ID,
             object_name='predefined_team_interface',
             nav_text_cn='预备编队',
             parent=parent,
+            left_stretch=0,
         )
-        self.ctx: ZContext = ctx
-        self.app_id: str = predefined_team_checker_const.APP_ID
-        self._init = False
-
-    def _init_layout(self) -> None:
-        if self._init:
-            return
-        self._init = True
-
-        main_layout = QVBoxLayout(self)
-
-        content_hbox = QHBoxLayout()
-        content_hbox.setContentsMargins(0, 0, 0, 0)
-        content_hbox.setSpacing(10)
-        main_layout.addLayout(content_hbox, stretch=1)
-
-        # 左侧：编队卡片列表（带滚动）
-        content_hbox.addLayout(self._build_left_layout(), stretch=0)
-
-        # 右侧：说明卡 + 运行控件（由父类创建），填满剩余空间
-        right_widget = self.get_content_widget()
-        content_hbox.addWidget(right_widget, stretch=1)
 
     def get_widget_at_top(self) -> QWidget:
         top = Column()
@@ -195,13 +174,8 @@ class PredefinedTeamInterface(AppRunInterface):
         top.add_widget(help_card)
         return top
 
-    def _build_left_layout(self) -> QVBoxLayout:
-        layout = QVBoxLayout()
-
-        scroll_area = SingleDirectionScrollArea()
-        scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
+    def get_left_widget(self) -> QWidget:
         left_widget = Column(margins=Margins(0, 0, 16, 0))
-        left_widget.setStyleSheet("QWidget { background-color: transparent; }")
         self.team_opt_list: list[TeamSettingCard] = []
         team_list = self.ctx.team_config.team_list
         for _ in team_list:
@@ -210,11 +184,7 @@ class PredefinedTeamInterface(AppRunInterface):
             self.team_opt_list.append(card)
             left_widget.add_widget(card)
         left_widget.add_stretch(1)
-        scroll_area.setWidget(left_widget)
-        scroll_area.setWidgetResizable(True)
-        layout.addWidget(scroll_area)
-
-        return layout
+        return left_widget
 
     def _on_help_clicked(self) -> None:
         content = (
@@ -233,7 +203,7 @@ class PredefinedTeamInterface(AppRunInterface):
         w.exec()
 
     def on_interface_shown(self) -> None:
-        AppRunInterface.on_interface_shown(self)
+        SplitAppRunInterface.on_interface_shown(self)
 
         auto_battle_list = get_auto_battle_op_config_list('auto_battle')
         team_list = self.ctx.team_config.team_list
