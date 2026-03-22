@@ -46,7 +46,7 @@ class VerticalScrollInterface(BaseInterface):
         main_layout.setContentsMargins(0, 11, 0, 0)
 
         scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
-        scroll_area.setViewportMargins(0, 0, 12, 0)
+        scroll_area.setViewportMargins(11, 0, 11, 0)
         main_layout.addWidget(scroll_area, stretch=0)
 
         content_widget = self._param_content_widget

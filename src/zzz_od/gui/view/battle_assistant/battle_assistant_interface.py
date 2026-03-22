@@ -82,7 +82,7 @@ class BattleAssistantInterface(AppRunInterface):
         self._init = True
 
         outer_layout = QVBoxLayout(self)
-        outer_layout.setContentsMargins(0, 11, 0, 11)
+        outer_layout.setContentsMargins(11, 11, 11, 11)
 
         # 内层左右分栏
         content_hbox = QHBoxLayout()
