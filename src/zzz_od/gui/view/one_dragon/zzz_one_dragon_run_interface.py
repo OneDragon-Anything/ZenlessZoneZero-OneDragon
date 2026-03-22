@@ -29,7 +29,7 @@ class ZOneDragonRunInterface(OneDragonRunInterface):
         )
 
     def get_setting_dialog_map(self) -> dict[str, Callable]:
-        mgr = self.ctx.shared_dialog_manager
+        mgr = self.ctx.app_setting_manager
         return {
             world_patrol_const.APP_ID:         mgr.show_world_patrol_setting_dialog,
             suibian_temple_const.APP_ID:       mgr.show_suibian_temple_setting_dialog,

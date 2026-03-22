@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QWidget
 from qfluentwidgets import SingleDirectionScrollArea
@@ -9,16 +7,13 @@ from qfluentwidgets import SingleDirectionScrollArea
 from one_dragon.base.operation.application import application_const
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
 
-if TYPE_CHECKING:
-    from zzz_od.context.zzz_context import ZContext
-
 
 class AppSettingDialog(QDialog):
 
-    def __init__(self, ctx: ZContext, title: str, parent: QWidget | None = None):
+    def __init__(self, ctx, title: str, parent: QWidget | None = None):
         super().__init__(parent=parent)
         self.setWindowTitle(title)
-        self.ctx: ZContext = ctx
+        self.ctx = ctx
         self.group_id: str = application_const.DEFAULT_GROUP_ID
 
         self._layout_inited: bool = False  # 布局是否已经完成初始化

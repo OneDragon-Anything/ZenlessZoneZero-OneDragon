@@ -146,12 +146,7 @@ class ZContext(OneDragonContext):
         OneDragonContext.after_app_shutdown(self)
 
     @cached_property
-    def shared_dialog_manager(self):
-        """
-        获取共享的Dialog管理器
-
-        Returns:
-            SharedDialogManager: 共享的Dialog管理器
-        """
-        from zzz_od.gui.dialog.shared_dialog_manager import SharedDialogManager
-        return SharedDialogManager(self)
+    def app_setting_manager(self):
+        """获取应用设置管理器"""
+        from zzz_od.gui.app_setting.zzz_app_setting_manager import ZAppSettingManager
+        return ZAppSettingManager(self)

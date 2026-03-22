@@ -1,46 +1,32 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QVBoxLayout
 from qfluentwidgets import Pivot, qrouter
 from qfluentwidgets.window.stacked_widget import StackedWidget
 
 from one_dragon_qt.services.styles_manager import OdQtStyleSheet
+from one_dragon_qt.widgets.app_setting.app_setting_dialog import AppSettingDialog
 from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon_qt.windows.window import PhosStackedWidget
 
 
-class PivotNavigatorDialog(QDialog):
-    """带导航功能的弹窗对话框"""
+class PivotNavigatorDialog(AppSettingDialog):
+    """带导航功能的弹窗对话框，继承自 AppSettingDialog。"""
 
     def __init__(
         self,
+        ctx,
         title: str,
         parent=None
     ):
-        """
-        Args:
-            title: 对话框标题
-            parent: 父窗口
-        """
-        super().__init__(parent=parent)
-
-        self.setWindowTitle(title)
+        AppSettingDialog.__init__(self, ctx=ctx, title=title, parent=parent)
 
         # 创建导航和内容区域
         self.pivot: Pivot | None = None
         self.stacked_widget: StackedWidget | None = None
         self._last_stack_idx: int = 0
-        self.v_box_layout: QVBoxLayout | None = None
-
-        self._layout_inited: bool = False  # 标记是否已经初始化过布局
-
-    def show_with_parent(self, parent: QWidget) -> None:
-        self.setParent(parent, Qt.WindowType.Dialog)
-        self.init_layout()
-        self.show()
-        self.on_dialog_shown()
 
     def init_layout(self):
-        """设置对话框的基本样式和布局"""
+        """设置 Pivot 导航布局，覆盖父类的滚动布局。"""
         if self._layout_inited:
             return
 
@@ -53,6 +39,10 @@ class PivotNavigatorDialog(QDialog):
         self.stacked_widget = PhosStackedWidget(self)
         self.create_sub_interface()
 
+        # 只有一个标签页时隐藏导航栏
+        if self.stacked_widget.count() <= 1:
+            self.pivot.hide()
+
         # 设置默认路由
         if self.stacked_widget.currentWidget() is not None:
             qrouter.setDefaultRouteKey(self.stacked_widget, self.stacked_widget.currentWidget().objectName())
@@ -61,13 +51,14 @@ class PivotNavigatorDialog(QDialog):
 
         # 添加垂直布局到对话框主体
         self.v_box_layout = QVBoxLayout(self)
+        self.v_box_layout.setSpacing(0)
 
         # 添加导航栏和堆叠窗口
         self.v_box_layout.addWidget(self.pivot, 0, Qt.AlignmentFlag.AlignLeft)
         self.v_box_layout.addWidget(self.stacked_widget)
 
-        # 设置边距
-        self.v_box_layout.setContentsMargins(20, 20, 20, 20)
+        # 边距基线 11px，由子界面自行维护内边距
+        self.v_box_layout.setContentsMargins(0, 11, 0, 0)
 
         # 设置对话框大小
         self.setMinimumSize(1095, 730)
