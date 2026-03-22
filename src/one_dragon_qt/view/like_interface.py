@@ -24,6 +24,7 @@ class LikeInterface(VerticalScrollInterface):
         # 主容器
         main_widget = QWidget()
         main_layout = QHBoxLayout(main_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(40)
 
         # 左侧栏
@@ -53,6 +54,7 @@ class LikeInterface(VerticalScrollInterface):
         # 左侧图片和遥测说明容器
         left_content_widget = QWidget()
         left_content_layout = QVBoxLayout(left_content_widget)
+        left_content_layout.setContentsMargins(0, 0, 0, 0)
         left_content_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         left_content_layout.setSpacing(20)
 
