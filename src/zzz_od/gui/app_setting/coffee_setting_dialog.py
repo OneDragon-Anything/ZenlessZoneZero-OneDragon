@@ -7,6 +7,7 @@ from qfluentwidgets import FluentIcon
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.utils.config_utils import get_prop_adapter
+from one_dragon_qt.widgets.app_setting.app_setting_dialog import AppSettingDialog
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
@@ -21,7 +22,6 @@ from zzz_od.application.coffee.coffee_config import (
     CoffeeChallengeWay,
     CoffeeChooseWay,
 )
-from zzz_od.gui.dialog.app_setting_dialog import AppSettingDialog
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 class CoffeeSettingDialog(AppSettingDialog):
 
     def __init__(self, ctx: ZContext, parent: QWidget | None = None):
-        super().__init__(ctx=ctx, title="咖啡店配置", parent=parent)
+        AppSettingDialog.__init__(self, ctx=ctx, title="咖啡店配置", parent=parent)
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()

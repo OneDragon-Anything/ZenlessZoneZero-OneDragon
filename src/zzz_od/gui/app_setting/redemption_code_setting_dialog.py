@@ -17,6 +17,7 @@ from qfluentwidgets import (
 )
 
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.app_setting.app_setting_dialog import AppSettingDialog
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiLineSettingCard,
@@ -24,7 +25,6 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
 from zzz_od.application.redemption_code.redemption_code_config import (
     RedemptionCodeConfig,
 )
-from zzz_od.gui.dialog.app_setting_dialog import AppSettingDialog
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
@@ -105,7 +105,7 @@ class CodeCard(MultiLineSettingCard):
 class RedemptionCodeSettingDialog(AppSettingDialog):
 
     def __init__(self, ctx: ZContext, parent: QWidget | None = None):
-        super().__init__(ctx=ctx, title="兑换码配置", parent=parent)
+        AppSettingDialog.__init__(self, ctx=ctx, title="兑换码配置", parent=parent)
         self.code_cards: list[CodeCard] = []
         self.add_btn: PrimaryPushButton | None = None
 

@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QTableWidgetItem, QWidget
 from qfluentwidgets import CheckBox, FluentIcon, TableWidget
 
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.app_setting.app_setting_dialog import AppSettingDialog
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from zzz_od.application.shiyu_defense import shiyu_defense_const
@@ -14,7 +15,6 @@ from zzz_od.application.shiyu_defense.shiyu_defense_run_record import (
     ShiyuDefenseRunRecord,
 )
 from zzz_od.game_data.agent import DmgTypeEnum
-from zzz_od.gui.dialog.app_setting_dialog import AppSettingDialog
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 class ShiyuDefenseSettingDialog(AppSettingDialog):
 
     def __init__(self, ctx: ZContext, parent: QWidget | None = None):
-        super().__init__(ctx=ctx, title='式舆防卫战配置', parent=parent)
+        AppSettingDialog.__init__(self, ctx=ctx, title='式舆防卫战配置', parent=parent)
         self.config: ShiyuDefenseConfig | None = None
         self.run_record: ShiyuDefenseRunRecord | None = None
 
@@ -58,12 +58,12 @@ class ShiyuDefenseSettingDialog(AppSettingDialog):
     def on_dialog_shown(self) -> None:
         super().on_dialog_shown()
 
-        self.config = self.ctx.run_context.get_config(
+        self.config: ShiyuDefenseConfig = self.ctx.run_context.get_config(
             app_id=shiyu_defense_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=self.group_id,
         )
-        self.run_record = self.ctx.run_context.get_run_record(
+        self.run_record: ShiyuDefenseRunRecord = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
             app_id=shiyu_defense_const.APP_ID,
         )

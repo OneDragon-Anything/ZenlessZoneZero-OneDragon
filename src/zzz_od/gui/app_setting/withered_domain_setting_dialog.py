@@ -5,11 +5,13 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QWidget
 
-from one_dragon.base.operation.application import application_const
-from zzz_od.gui.dialog.pivot_navi_dialog import PivotNavigatorDialog
-from zzz_od.gui.view.hollow_zero.withered_domain_challenge_config_interface import \
-    WitheredDomainChallengeConfigInterface
-from zzz_od.gui.view.hollow_zero.withered_domain_setting_interface import WitheredDomainSettingInterface
+from one_dragon_qt.widgets.app_setting.pivot_navi_dialog import PivotNavigatorDialog
+from zzz_od.gui.view.hollow_zero.withered_domain_challenge_config_interface import (
+    WitheredDomainChallengeConfigInterface,
+)
+from zzz_od.gui.view.hollow_zero.withered_domain_setting_interface import (
+    WitheredDomainSettingInterface,
+)
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
@@ -17,10 +19,8 @@ if TYPE_CHECKING:
 
 class WitheredDomainSettingDialog(PivotNavigatorDialog):
     def __init__(self, ctx: ZContext, parent: QWidget | None = None):
-        super().__init__(title="枯萎之都配置", parent=parent)
-
+        PivotNavigatorDialog.__init__(self, ctx=ctx, title="枯萎之都配置", parent=parent)
         self.ctx: ZContext = ctx
-        self.group_id: str = application_const.DEFAULT_GROUP_ID
 
     @cached_property
     def setting_interface(self) -> WitheredDomainSettingInterface:
@@ -31,7 +31,5 @@ class WitheredDomainSettingDialog(PivotNavigatorDialog):
         self.add_sub_interface(WitheredDomainChallengeConfigInterface(self.ctx))
 
     def show_by_group(self, group_id: str, parent: QWidget) -> None:
-        self.group_id = group_id
         self.setting_interface.set_group_id(group_id)
-
-        super().show_with_parent(parent=parent)
+        super().show_by_group(group_id=group_id, parent=parent)

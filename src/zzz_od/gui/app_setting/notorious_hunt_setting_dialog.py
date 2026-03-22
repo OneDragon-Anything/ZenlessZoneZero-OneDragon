@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QWidget
 
+from one_dragon_qt.widgets.app_setting.app_setting_dialog import AppSettingDialog
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.draggable_list import DraggableList
 from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanItem,
 )
 from zzz_od.application.notorious_hunt import notorious_hunt_const
-from zzz_od.gui.dialog.app_setting_dialog import AppSettingDialog
 from zzz_od.gui.view.one_dragon.notorious_hunt_interface import NotoriousHuntCard
 
 if TYPE_CHECKING:
@@ -20,7 +20,8 @@ if TYPE_CHECKING:
 class NotoriousHuntSettingDialog(AppSettingDialog):
 
     def __init__(self, ctx: ZContext, parent: QWidget | None = None):
-        super().__init__(ctx=ctx, title="恶名狩猎配置", parent=parent)
+        AppSettingDialog.__init__(self, ctx=ctx, title="恶名狩猎配置", parent=parent)
+        self.ctx: ZContext = ctx
 
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()

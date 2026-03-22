@@ -5,8 +5,7 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QWidget
 
-from one_dragon.base.operation.application import application_const
-from zzz_od.gui.dialog.pivot_navi_dialog import PivotNavigatorDialog
+from one_dragon_qt.widgets.app_setting.pivot_navi_dialog import PivotNavigatorDialog
 from zzz_od.gui.view.hollow_zero.lost_void_challenge_config_interface import (
     LostVoidChallengeConfigInterface,
 )
@@ -20,10 +19,8 @@ if TYPE_CHECKING:
 
 class LostVoidSettingDialog(PivotNavigatorDialog):
     def __init__(self, ctx: ZContext, parent: QWidget | None = None):
-        super().__init__(title="迷失之地配置", parent=parent)
-
+        PivotNavigatorDialog.__init__(self, ctx=ctx, title="迷失之地配置", parent=parent)
         self.ctx: ZContext = ctx
-        self.group_id: str = application_const.DEFAULT_GROUP_ID
 
     @cached_property
     def setting_interface(self) -> LostVoidSettingInterface:
@@ -34,7 +31,5 @@ class LostVoidSettingDialog(PivotNavigatorDialog):
         self.add_sub_interface(LostVoidChallengeConfigInterface(self.ctx))
 
     def show_by_group(self, group_id: str, parent: QWidget) -> None:
-        self.group_id = group_id
         self.setting_interface.set_group_id(group_id)
-
-        super().show_with_parent(parent=parent)
+        super().show_by_group(group_id=group_id, parent=parent)
