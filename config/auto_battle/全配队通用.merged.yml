@@ -9512,7 +9512,10 @@
             "operations":
             - "op_name": "按键-特殊攻击"
               "post_delay": 0.1
-              "repeat": 20
+              "repeat": 10
+            - "op_name": "按键-普通攻击"
+              "post_delay": 0.1
+              "repeat": 40
             "states": "[叶瞬光-青溟剑势-白]{3,3}"
           - "interrupt_states": "[叶瞬光-青溟剑势-白]{0,0}"
             "operations":
@@ -18359,7 +18362,10 @@
           "operations":
           - "op_name": "按键-特殊攻击"
             "post_delay": 0.1
-            "repeat": 20
+            "repeat": 10
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 40
           "states": "[叶瞬光-青溟剑势-白]{3,3}"
         - "interrupt_states": "[叶瞬光-青溟剑势-白]{0,0}"
           "operations":

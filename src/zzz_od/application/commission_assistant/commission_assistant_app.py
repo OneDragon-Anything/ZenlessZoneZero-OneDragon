@@ -1,5 +1,4 @@
 import time
-from typing import Optional
 
 from cv2.typing import MatLike
 
@@ -50,7 +49,7 @@ class CommissionAssistantApp(ZApplication):
         self.last_dialog_opts: set[str] = set()  # 上一次对话的全部选项
         self.last_chosen_opt: str = ''  # 上一次选择的对话选项
 
-        self.fishing_btn_pressed: Optional[str] = None  # 钓鱼在按下的按键
+        self.fishing_btn_pressed: str | None = None  # 钓鱼在按下的按键
         self.fishing_done: bool = False  # 钓鱼是否结束 通常是比赛类 最后会有挑战结果显示
 
     def handle_init(self):
@@ -191,8 +190,8 @@ class CommissionAssistantApp(ZApplication):
         if len(ocr_result_list) == 0:
             return False
 
-        to_click: Optional[Point] = None
-        to_choose_opt: Optional[str] = None
+        to_click: Point | None = None
+        to_choose_opt: str | None = None
 
         is_same_opts: bool = self.check_same_opts(set([i.data for i in ocr_result_list]))
 
@@ -352,35 +351,43 @@ class CommissionAssistantApp(ZApplication):
     @operation_node(name='剧情模式')
     def story_mode(self) -> OperationRoundResult:
         """
-        剧情模式：右上角有 菜单/自动/跳过
-        - 自动播放模式: OCR识别并点击 菜单→自动
-        - 跳过剧情模式: 每轮OCR识别并点击一次 依靠循环推进
-          有菜单点菜单 有跳过点跳过 确认对话框点确认
-        - 自动点击模式: 不处理 交给外层点击
+        剧情模式：右上角有 菜单/自动/跳过（点击前后显隐性或位置性会改变）
         """
         area = self.ctx.screen_loader.get_area('委托助手', '文本-剧情右上角')
 
         # 自动播放模式
         if self.config.story_mode == StoryMode.AUTO.value.value:
-            # 已是自动
+            # 优先通过模板定位Y轴，再点击中间选项（模板位置点击无反应）
+            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '中间选项区域', center_x=True)
+            if result.is_success:
+                return self.round_wait('点击中间选项', wait=self.config.dialog_click_interval)
+            # 文本-剧情右上角，里面显示'自动'
             result = self.round_by_ocr(self.last_screenshot, '自动', area=area)
             if result.is_success:
-                return self.round_wait('剧情自动播放中 选项需手动点击', wait=1)
-            # 不是自动 → 点菜单 + 等展开 + 点自动
-            self.round_by_ocr_and_click(self.last_screenshot, '菜单', area=area, success_wait=1)
-            result = self.round_by_find_and_click_area(self.screenshot(), '委托助手', '按钮-自动')
+                return self.round_wait('剧情自动播放中', wait=1)
+            # 文本-剧情右上角，里面显示'菜单'
+            result = self.round_by_ocr_and_click(self.last_screenshot, '菜单', area=area)
             if result.is_success:
-                return self.round_wait('尝试切换到自动模式')
+                return self.round_wait('尝试展开剧情菜单', wait=1)
+            # 文本-剧情右上角，下面显示'菜单'（展开菜单后）
+            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '按钮-自动')
+            if result.is_success:
+                return self.round_wait('尝试切换到自动模式', wait=1)
 
         # 跳过剧情模式
         if self.config.story_mode == StoryMode.SKIP.value.value:
-            self.round_by_ocr_and_click_by_priority(['跳过', '菜单', '自动'], area=area, success_wait=1)
-            result = self.round_by_find_and_click_area(self.screenshot(), '委托助手', '对话框确认', crop_first=False)
+            # 优先识别并点击对话框'确认'
+            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '对话框确认', crop_first=False)
             if result.is_success:
-                return self.round_wait('跳过剧情')
+                return self.round_wait('跳过剧情', wait=1)
+            # 再按优先级处理跳过/菜单/自动
+            result = self.round_by_ocr_and_click_by_priority(['跳过', '菜单', '自动'], area=area)
+            if result.is_success:
+                return self.round_wait(f'点击剧情按钮 {result.status}', wait=1)
 
+        # 跳过剧情模式：没有'确认'弹窗，说明这个'跳过'是无反馈的灰按钮
+        # 跳过剧情模式：文本-剧情右上角，很多情况下是没有内容可点击的
         # 自动点击模式
-        # 文本-剧情右上角某些情况下是没有内容可点击的
         return self._do_dialog_click()
 
     @node_from(from_name='自动对话模式', status='钓鱼')
