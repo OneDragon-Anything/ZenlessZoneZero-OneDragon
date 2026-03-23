@@ -37,7 +37,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
                  object_name: str = 'standalone_run_interface',
                  nav_text_cn: str = '运行',
                  nav_icon: FluentIconBase | QIcon | str = FluentIcon.PLAY,
-                 parent: QWidget | None = None):
+                 parent: QWidget | None = None) -> None:
         self.ctx: OneDragonContext = ctx
 
         SplitAppRunInterface.__init__(
@@ -167,7 +167,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
 class AddAppDialog(MessageBoxBase):
     """添加应用对话框"""
 
-    def __init__(self, available_apps: dict[str, str], parent: QWidget):
+    def __init__(self, available_apps: dict[str, str], parent: QWidget) -> None:
         super().__init__(parent=parent)
 
         self.titleLabel = SubtitleLabel(gt('添加应用'))
