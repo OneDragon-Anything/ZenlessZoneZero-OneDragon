@@ -84,11 +84,9 @@ class StandaloneRunInterface(SplitAppRunInterface):
     def _get_all_apps(self) -> dict[str, str]:
         """获取所有已注册的默认组应用 {app_id: app_name}"""
         result: dict[str, str] = {}
-        factory_map = self.ctx.run_context._application_factory_map
         for app_id in self.ctx.run_context.default_group_apps:
-            factory = factory_map.get(app_id)
-            if factory is not None:
-                result[app_id] = factory.app_name or app_id
+            name = self.ctx.run_context.get_application_name(app_id)
+            result[app_id] = name or app_id
         return result
 
     def _refresh_app_list(self) -> None:
