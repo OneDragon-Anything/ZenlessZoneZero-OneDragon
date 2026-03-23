@@ -9,16 +9,15 @@ from one_dragon_qt.view.standalone_run_interface import StandaloneRunInterface
 from zzz_od.context.zzz_context import ZContext
 
 
-class StandaloneTaskRunInterface(StandaloneRunInterface):
-    """绝区零独立任务运行界面 - 提供 zzz_od 专属的设置弹窗映射"""
+class ZStandaloneAppRunInterface(StandaloneRunInterface):
 
     def __init__(self, ctx: ZContext, parent: QWidget | None = None):
         self.ctx: ZContext = ctx
         StandaloneRunInterface.__init__(
             self,
             ctx=ctx,
-            object_name='standalone_task_run_interface',
-            nav_text_cn='独立运行',
+            object_name='standalone_app_run_interface',
+            nav_text_cn='应用运行',
             nav_icon=FluentIcon.APPLICATION,
             parent=parent,
         )

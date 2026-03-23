@@ -175,10 +175,10 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         return NotifyConfig(self.current_instance_idx, self.run_context.notify_app_map)
 
     @cached_property
-    def standalone_task_config(self):
-        """独立任务运行界面的配置（保存用户添加的应用列表）"""
-        from one_dragon.base.config.standalone_task_config import StandaloneTaskConfig
-        return StandaloneTaskConfig(self.current_instance_idx)
+    def standalone_app_config(self):
+        """应用运行界面的配置（保存用户添加的应用列表）"""
+        from one_dragon.base.config.standalone_app_config import StandaloneAppConfig
+        return StandaloneAppConfig(self.current_instance_idx)
 
     #------------------- 以下是 应用注册相关 -------------------#
 
@@ -387,7 +387,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         to_clear_props = [
             'game_account_config',
             'notify_config',
-            'standalone_task_config',
+            'standalone_app_config',
         ]
         for prop in to_clear_props:
             if prop in self.__dict__:

@@ -24,7 +24,7 @@ from one_dragon_qt.widgets.selectable_app_list import SelectableAppList
 
 
 class StandaloneRunInterface(SplitAppRunInterface):
-    """独立任务运行界面基类
+    """独立应用运行界面基类
 
     左侧为用户手动添加的应用卡片列表，
     右侧为标准的运行/停止/日志控件。
@@ -92,7 +92,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
     def _refresh_app_list(self) -> None:
         """刷新应用列表"""
         all_apps = self._get_all_apps()
-        config = self.ctx.standalone_task_config
+        config = self.ctx.standalone_app_config
 
         valid_ids = [aid for aid in config.app_list if aid in all_apps]
 
@@ -110,22 +110,22 @@ class StandaloneRunInterface(SplitAppRunInterface):
         if target:
             self.app_list_widget.select_app(target)
         self.app_id = target or ''
-        self.ctx.standalone_task_config.active_app_id = target or ''
+        self.ctx.standalone_app_config.active_app_id = target or ''
 
     # ── 事件处理 ──
 
     def _on_app_selected(self, app_id: str) -> None:
         self.app_id = app_id
-        self.ctx.standalone_task_config.active_app_id = app_id
+        self.ctx.standalone_app_config.active_app_id = app_id
 
     def _on_app_removed(self, app_id: str) -> None:
-        self.ctx.standalone_task_config.app_list = self.app_list_widget.app_ids
+        self.ctx.standalone_app_config.app_list = self.app_list_widget.app_ids
         selected = self.app_list_widget.selected_app_id
         self.app_id = selected or ''
-        self.ctx.standalone_task_config.active_app_id = selected or ''
+        self.ctx.standalone_app_config.active_app_id = selected or ''
 
     def _on_app_order_changed(self, app_ids: list[str]) -> None:
-        self.ctx.standalone_task_config.app_list = app_ids
+        self.ctx.standalone_app_config.app_list = app_ids
 
     def _on_add_app_clicked(self) -> None:
         all_apps = self._get_all_apps()
@@ -140,12 +140,12 @@ class StandaloneRunInterface(SplitAppRunInterface):
             selected_ids = dialog.get_selected_ids()
             for app_id in selected_ids:
                 self.app_list_widget.add_app(app_id, all_apps[app_id])
-            self.ctx.standalone_task_config.app_list = self.app_list_widget.app_ids
+            self.ctx.standalone_app_config.app_list = self.app_list_widget.app_ids
 
             if not self.app_list_widget.selected_app_id and selected_ids:
                 self.app_list_widget.select_app(selected_ids[0])
                 self.app_id = selected_ids[0]
-                self.ctx.standalone_task_config.active_app_id = selected_ids[0]
+                self.ctx.standalone_app_config.active_app_id = selected_ids[0]
             elif self.app_list_widget.selected_app_id:
                 self.app_list_widget.select_app(self.app_list_widget.selected_app_id)
 

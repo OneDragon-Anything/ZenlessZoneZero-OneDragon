@@ -1,11 +1,11 @@
 from one_dragon.base.config.yaml_config import YamlConfig
 
 
-class StandaloneTaskConfig(YamlConfig):
-    """独立任务运行界面的配置"""
+class StandaloneAppConfig(YamlConfig):
+    """独立应用运行界面的配置"""
 
     def __init__(self, instance_idx: int):
-        YamlConfig.__init__(self, 'standalone_task', instance_idx=instance_idx)
+        YamlConfig.__init__(self, 'standalone_app', instance_idx=instance_idx)
 
     @property
     def app_list(self) -> list[str]:
