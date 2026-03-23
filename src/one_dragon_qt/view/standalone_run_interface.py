@@ -2,17 +2,16 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QWidget
+from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QListWidgetItem, QWidget
 from qfluentwidgets import (
-    CheckBox,
     FluentIcon,
     FluentIconBase,
     MessageBoxBase,
     PrimaryPushButton,
-    SingleDirectionScrollArea,
     SubtitleLabel,
+    getFont,
 )
 
 from one_dragon.base.operation.application import application_const
@@ -20,6 +19,7 @@ from one_dragon.base.operation.one_dragon_context import OneDragonContext
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.view.app_run_interface import SplitAppRunInterface
 from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.multi_select_list import MultiSelectListWidget
 from one_dragon_qt.widgets.selectable_app_list import SelectableAppList
 
 
@@ -172,30 +172,25 @@ class AddAppDialog(MessageBoxBase):
         self.viewLayout.addWidget(self.titleLabel)
         self.viewLayout.addSpacing(10)
 
-        # 滚动区域
-        scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setMaximumHeight(300)
-        scroll_area.setStyleSheet('QScrollArea { border: none; background: transparent; }')
+        self._app_ids = list(available_apps.keys())
 
-        checkbox_container = QWidget()
-        checkbox_container.setStyleSheet('background: transparent;')
-        grid_layout = QGridLayout(checkbox_container)
-        grid_layout.setContentsMargins(0, 0, 0, 0)
-        grid_layout.setSpacing(10)
+        self._list_widget = MultiSelectListWidget()
+        self._list_widget.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+        self._list_widget.setViewportMargins(0, 0, 16, 0)
+        self._list_widget.setMinimumHeight(400)
+        self._list_widget.setMinimumWidth(480)
+        item_font = getFont(16)
+        for _, app_name in available_apps.items():
+            item = QListWidgetItem(gt(app_name))
+            item.setSizeHint(QSize(0, 36))
+            item.setFont(item_font)
+            self._list_widget.addItem(item)
 
-        column_count = 3
-        self._checkboxes: list[tuple[str, CheckBox]] = []
-        for i, (app_id, app_name) in enumerate(available_apps.items()):
-            cb = CheckBox(gt(app_name))
-            self._checkboxes.append((app_id, cb))
-            grid_layout.addWidget(cb, i // column_count, i % column_count)
-
-        scroll_area.setWidget(checkbox_container)
-        self.viewLayout.addWidget(scroll_area)
+        self.viewLayout.addWidget(self._list_widget)
 
         self.yesButton.setText(gt('确定'))
         self.cancelButton.setText(gt('取消'))
 
     def get_selected_ids(self) -> list[str]:
-        return [app_id for app_id, cb in self._checkboxes if cb.isChecked()]
+        selected_rows = {idx.row() for idx in self._list_widget.selectedIndexes()}
+        return [self._app_ids[i] for i in sorted(selected_rows)]
