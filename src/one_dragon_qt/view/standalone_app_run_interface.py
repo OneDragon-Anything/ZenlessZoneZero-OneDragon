@@ -98,6 +98,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
 
         app_list = [(aid, all_apps[aid]) for aid in valid_ids]
         self.app_list_widget.set_app_list(app_list)
+        self._update_setting_btn_visibility()
 
         active_id = config.active_app_id
         if active_id and active_id in valid_ids:
@@ -151,11 +152,25 @@ class StandaloneRunInterface(SplitAppRunInterface):
         dialog_fn = self.get_setting_dialog_map().get(app_id)
         if dialog_fn is None:
             return
+        target = self._find_setting_btn(app_id) or self.add_app_btn
         dialog_fn(
             parent=self,
             group_id=application_const.DEFAULT_GROUP_ID,
-            target=self.add_app_btn,
+            target=target,
         )
+
+    def _find_setting_btn(self, app_id: str) -> QWidget | None:
+        """找到对应 app_id 的卡片上的设置按钮"""
+        for card in self.app_list_widget._cards:
+            if card.app_id == app_id:
+                return card.setting_btn
+        return None
+
+    def _update_setting_btn_visibility(self) -> None:
+        """根据 get_setting_dialog_map 的注册信息，显示或隐藏卡片的设置按钮"""
+        settable = set(self.get_setting_dialog_map())
+        for card in self.app_list_widget._cards:
+            card.setting_btn.setVisible(card.app_id in settable)
 
     def get_setting_dialog_map(self) -> dict[str, Callable]:
         """返回 app_id -> 设置弹窗回调 的映射，由子类实现"""

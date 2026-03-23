@@ -4,7 +4,7 @@ from collections.abc import Callable
 
 from qfluentwidgets import FluentIcon
 
-from one_dragon_qt.view.standalone_run_interface import StandaloneRunInterface
+from one_dragon_qt.view.standalone_app_run_interface import StandaloneRunInterface
 from zzz_od.context.zzz_context import ZContext
 
 
