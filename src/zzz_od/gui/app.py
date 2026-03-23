@@ -121,6 +121,10 @@ try:
             from zzz_od.gui.view.one_dragon.zzz_one_dragon_interface import ZOneDragonInterface
             self.add_sub_interface(ZOneDragonInterface(self.ctx, parent=self))
 
+            # 独立运行
+            from zzz_od.gui.view.game_assistant.standalone_interface import StandaloneInterface
+            self.add_sub_interface(StandaloneInterface(self.ctx, parent=self))
+
             # 画中画
             from one_dragon_qt.widgets.pip_button import PipButton
             self.pip_btn = PipButton(self.ctx, parent=self)
