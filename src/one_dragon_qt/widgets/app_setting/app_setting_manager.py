@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from PySide6.QtWidgets import QWidget
@@ -17,12 +18,28 @@ class AppSettingManager:
     - ``_show_dialog``: 按类缓存实例并通过 ``show_by_group`` 显示。
     - ``_push_interface``: 推入二级设置界面（替换主内容，BreadcrumbBar 导航）。
     - ``_show_flyout``: 每次通过类方法创建 Flyout 并显示。
+
+    子类在 ``__init__`` 中通过 ``_app_setting_map`` 注册 app_id → 设置回调。
     """
 
     def __init__(self, ctx) -> None:
         self.ctx = ctx
         self._dialog_cache: dict[type, Any] = {}
         self._interface_cache: dict[str, BaseInterface] = {}
+        self._app_setting_map: dict[str, Callable[..., None]] = {}
+
+    def show_app_setting(
+        self, app_id: str, parent: QWidget, group_id: str, target: QWidget,
+    ) -> None:
+        """根据 app_id 查找并调用对应的设置回调。"""
+        handler = self._app_setting_map.get(app_id)
+        if handler is not None:
+            handler(parent=parent, group_id=group_id, target=target)
+
+    @property
+    def settable_app_ids(self) -> set[str]:
+        """返回所有已注册设置的 app_id 集合。"""
+        return set(self._app_setting_map)
 
     def _show_dialog(
         self,

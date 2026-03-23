@@ -1,5 +1,3 @@
-from collections.abc import Callable
-
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
@@ -133,7 +131,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
             self.ctx.signal.start_onedragon = False
             self.run_all_apps_signal.emit()
 
-        self._update_setting_btn_visibility(set(self.get_setting_dialog_map()))
+        self._update_setting_btn_visibility()
 
     def on_interface_hidden(self) -> None:
         SplitAppRunInterface.on_interface_hidden(self)
@@ -230,28 +228,27 @@ class OneDragonRunInterface(SplitAppRunInterface):
         dialog = NotifyDialog(self, self.ctx)
         dialog.exec()
 
-    def get_setting_dialog_map(self) -> dict[str, Callable]:
-        """返回 app_id -> 设置弹窗回调 的映射，由子类实现"""
-        return {}
-
     def on_app_setting_clicked(self, app_id: str) -> None:
-        """处理应用设置按钮被点击，查找 get_setting_dialog_map 中的回调并调用"""
-        dialog_fn = self.get_setting_dialog_map().get(app_id)
-        if dialog_fn is None:
+        """处理应用设置按钮被点击，委托给 app_setting_manager"""
+        mgr = self.ctx.app_setting_manager
+        if mgr is None:
             return
         target = self._find_app_card_setting_btn(app_id)
         if target is None:
             return
-        dialog_fn(
+        mgr.show_app_setting(
+            app_id=app_id,
             parent=self,
             group_id=application_const.DEFAULT_GROUP_ID,
             target=target,
         )
 
-    def _update_setting_btn_visibility(self, settable_app_ids: set[str]) -> None:
-        """根据支持设置的 app_id 集合，显示或隐藏卡片的设置按钮"""
+    def _update_setting_btn_visibility(self) -> None:
+        """根据 app_setting_manager 的注册信息，显示或隐藏卡片的设置按钮"""
+        mgr = self.ctx.app_setting_manager
+        settable = mgr.settable_app_ids if mgr is not None else set()
         for card in self.app_run_list._app_cards:
-            card.setting_btn.setVisible(card.app.app_id in settable_app_ids)
+            card.setting_btn.setVisible(card.app.app_id in settable)
 
     def _find_app_card_setting_btn(self, app_id: str):
         """找到对应 app_id 的卡片的设置按钮"""

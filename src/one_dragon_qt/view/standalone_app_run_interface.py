@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QListWidgetItem, QWidget
@@ -29,8 +27,6 @@ class StandaloneRunInterface(SplitAppRunInterface):
     左侧为用户手动添加的应用卡片列表，
     右侧为标准的运行/停止/日志控件。
     选中某个应用后，点击"开始"即运行该应用。
-
-    子类可覆盖 get_setting_dialog_map() 以提供设置弹窗。
     """
 
     def __init__(self, ctx: OneDragonContext,
@@ -142,11 +138,12 @@ class StandaloneRunInterface(SplitAppRunInterface):
             self.ctx.standalone_app_config.app_list = self.app_list_widget.app_ids
 
     def _on_app_setting_clicked(self, app_id: str) -> None:
-        dialog_fn = self.get_setting_dialog_map().get(app_id)
-        if dialog_fn is None:
+        mgr = self.ctx.app_setting_manager
+        if mgr is None:
             return
         target = self._find_setting_btn(app_id) or self.add_app_btn
-        dialog_fn(
+        mgr.show_app_setting(
+            app_id=app_id,
             parent=self,
             group_id=application_const.DEFAULT_GROUP_ID,
             target=target,
@@ -160,14 +157,11 @@ class StandaloneRunInterface(SplitAppRunInterface):
         return None
 
     def _update_setting_btn_visibility(self) -> None:
-        """根据 get_setting_dialog_map 的注册信息，显示或隐藏卡片的设置按钮"""
-        settable = set(self.get_setting_dialog_map())
+        """根据 app_setting_manager 的注册信息，显示或隐藏卡片的设置按钮"""
+        mgr = self.ctx.app_setting_manager
+        settable = mgr.settable_app_ids if mgr is not None else set()
         for card in self.app_list_widget._cards:
             card.setting_btn.setVisible(card.app_id in settable)
-
-    def get_setting_dialog_map(self) -> dict[str, Callable]:
-        """返回 app_id -> 设置弹窗回调 的映射，由子类实现"""
-        return {}
 
 
 class AddAppDialog(MessageBoxBase):
