@@ -141,6 +141,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
             selected_ids = dialog.get_selected_ids()
             for app_id in selected_ids:
                 self.app_list_widget.add_app(app_id, all_apps[app_id])
+            self._update_setting_btn_visibility()
             self.ctx.standalone_app_config.app_list = self.app_list_widget.app_ids
 
             if not self.app_list_widget.selected_app_id and selected_ids:
