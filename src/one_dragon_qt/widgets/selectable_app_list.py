@@ -36,7 +36,7 @@ class SelectableAppCard(DraggableListItem):
     remove_clicked = Signal(str)  # app_id
 
     def __init__(self, app_id: str, app_name: str, index: int = 0,
-                 parent: QWidget | None = None) -> None:
+                 parent: QWidget | None = None):
         self.app_id = app_id
         self._selected = False
 
@@ -108,7 +108,7 @@ class SelectableAppList(DraggableList):
     app_removed = Signal(str)  # 移除的 app_id
     app_order_changed = Signal(list)  # 顺序变化后的 app_id 列表
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None):
         DraggableList.__init__(self, parent=parent, enable_opacity_effect=True)
         self._cards: list[SelectableAppCard] = []
         self._selected_app_id: str | None = None
@@ -150,7 +150,6 @@ class SelectableAppList(DraggableList):
                     self._selected_app_id = None
                     if self._cards:
                         self.select_app(self._cards[0].app_id)
-                        self.app_selected.emit(self._cards[0].app_id)
                 break
 
     def select_app(self, app_id: str) -> None:

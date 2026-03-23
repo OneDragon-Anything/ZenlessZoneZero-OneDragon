@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon
 
 from one_dragon_qt.view.standalone_run_interface import StandaloneRunInterface
@@ -11,7 +10,7 @@ from zzz_od.context.zzz_context import ZContext
 
 class ZStandaloneAppRunInterface(StandaloneRunInterface):
 
-    def __init__(self, ctx: ZContext, parent: QWidget | None = None):
+    def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
         StandaloneRunInterface.__init__(
             self,

@@ -37,7 +37,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
                  object_name: str = 'standalone_run_interface',
                  nav_text_cn: str = '运行',
                  nav_icon: FluentIconBase | QIcon | str = FluentIcon.PLAY,
-                 parent: QWidget | None = None) -> None:
+                 parent: QWidget | None = None):
         self.ctx: OneDragonContext = ctx
 
         SplitAppRunInterface.__init__(
@@ -146,8 +146,6 @@ class StandaloneRunInterface(SplitAppRunInterface):
                 self.app_list_widget.select_app(selected_ids[0])
                 self.app_id = selected_ids[0]
                 self.ctx.standalone_app_config.active_app_id = selected_ids[0]
-            elif self.app_list_widget.selected_app_id:
-                self.app_list_widget.select_app(self.app_list_widget.selected_app_id)
 
     def _on_app_setting_clicked(self, app_id: str) -> None:
         dialog_fn = self.get_setting_dialog_map().get(app_id)
@@ -167,7 +165,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
 class AddAppDialog(MessageBoxBase):
     """添加应用对话框"""
 
-    def __init__(self, available_apps: dict[str, str], parent: QWidget) -> None:
+    def __init__(self, available_apps: dict[str, str], parent: QWidget):
         super().__init__(parent=parent)
 
         self.titleLabel = SubtitleLabel(gt('添加应用'))
