@@ -4,7 +4,7 @@ from collections.abc import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QGridLayout, QWidget
+from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QWidget
 from qfluentwidgets import (
     CheckBox,
     FluentIcon,
@@ -60,13 +60,17 @@ class StandaloneRunInterface(SplitAppRunInterface):
         self.app_list_widget.app_removed.connect(self._on_app_removed)
         self.app_list_widget.app_setting_clicked.connect(self._on_app_setting_clicked)
         self.app_list_widget.app_order_changed.connect(self._on_app_order_changed)
-        left.add_widget(self.app_list_widget)
+        left.add_widget(self.app_list_widget, alignment=Qt.AlignmentFlag(0))
 
         self.add_app_btn = PrimaryPushButton(
             text=gt('添加应用'), icon=FluentIcon.ADD
         )
         self.add_app_btn.clicked.connect(self._on_add_app_clicked)
-        left.add_widget(self.add_app_btn)
+        btn_container = QWidget()
+        btn_layout = QHBoxLayout(btn_container)
+        btn_layout.setContentsMargins(0, 0, 16, 0)
+        btn_layout.addWidget(self.add_app_btn)
+        left.add_widget(btn_container, alignment=Qt.AlignmentFlag(0))
 
         left.add_stretch(1)
         return left
