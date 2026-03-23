@@ -51,6 +51,7 @@ class LostVoidSettingInterface(VerticalScrollInterface):
         # 创建一个容器 widget 用于水平排列
         col_widget = QWidget(self)
         col_layout = QHBoxLayout(col_widget)
+        col_layout.setContentsMargins(0, 0, 0, 0)
         col_widget.setLayout(col_layout)
 
         # 将左侧和右侧的 widget 添加到主布局中，并均分空间
@@ -63,6 +64,7 @@ class LostVoidSettingInterface(VerticalScrollInterface):
         # 创建左侧的垂直布局容器
         left_widget = QWidget(self)
         left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
         left_widget.setLayout(left_layout)
 
         self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat_one_dragon/hollow_zero.html')
@@ -97,6 +99,7 @@ class LostVoidSettingInterface(VerticalScrollInterface):
         # 创建右侧的垂直布局容器
         right_widget = QWidget(self)
         right_layout = QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
         right_widget.setLayout(right_layout)
 
         self.run_record_opt = PushSettingCard(
@@ -158,7 +161,7 @@ class LostVoidSettingInterface(VerticalScrollInterface):
         elif self.run_record.eval_point_complete:
             content = '已完成刷取业绩 如错误可重置'
         else:
-            content = '通关次数 本日: %d, 本周: %d' % (self.run_record.daily_run_times, self.run_record.weekly_run_times)
+            content = f'通关次数 本日: {self.run_record.daily_run_times}, 本周: {self.run_record.weekly_run_times}'
         self.run_record_opt.setContent(content)
         self.weekly_plan_times_opt.setVisible(self.config.extra_task == LostVoidTaskEnum.WEEKLY_PLAN_TIMES.value.value)
 

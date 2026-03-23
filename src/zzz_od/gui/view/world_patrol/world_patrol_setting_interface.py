@@ -42,6 +42,7 @@ class WorldPatrolSettingInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         widget = QWidget(self)
         col_layout = QHBoxLayout(widget)
+        col_layout.setContentsMargins(0, 0, 0, 0)
         widget.setLayout(col_layout)
 
         # 将左侧和右侧的 widget 添加到主布局中，并均分空间
@@ -54,6 +55,7 @@ class WorldPatrolSettingInterface(VerticalScrollInterface):
         # 创建左侧的垂直布局容器
         widget = QWidget(self)
         layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
         widget.setLayout(layout)
 
         self.help_opt = HelpCard(url='',
@@ -70,6 +72,7 @@ class WorldPatrolSettingInterface(VerticalScrollInterface):
         # 创建右侧的垂直布局容器
         widget = QWidget(self)
         layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
         widget.setLayout(layout)
 
         self.run_record_opt = PushSettingCard(
