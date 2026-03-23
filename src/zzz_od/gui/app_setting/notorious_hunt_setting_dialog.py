@@ -11,7 +11,7 @@ from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanItem,
 )
 from zzz_od.application.notorious_hunt import notorious_hunt_const
-from zzz_od.gui.view.one_dragon.notorious_hunt_interface import NotoriousHuntCard
+from zzz_od.gui.app_setting.notorious_hunt_setting_interface import NotoriousHuntCard
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
