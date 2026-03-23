@@ -81,6 +81,7 @@ class SelectableAppCard(DraggableListItem):
             self._set_opacity(1.0)
         else:
             self._card.iconLabel.setIcon(FluentIcon.GAME)
+            self._set_opacity(0.5)
 
     def _set_opacity(self, opacity: float) -> None:
         """设置卡片透明度"""
@@ -152,10 +153,7 @@ class SelectableAppList(DraggableList):
         """选中指定应用，未选中的卡片透明度降低"""
         self._selected_app_id = app_id
         for card in self._cards:
-            is_selected = card.app_id == app_id
-            card.set_selected(is_selected)
-            if not is_selected:
-                card._set_opacity(0.5)
+            card.set_selected(card.app_id == app_id)
 
     @property
     def selected_app_id(self) -> str | None:
