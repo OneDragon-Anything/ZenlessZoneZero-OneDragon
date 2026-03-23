@@ -20,4 +20,8 @@ class ZStandaloneAppInterface(PivotNavigatorInterface):
         )
 
     def create_sub_interface(self):
-        self.add_sub_interface(ZStandaloneAppRunInterface(self.ctx), enable_breadcrumb=True)
+        self.add_sub_interface(
+            sub_interface=ZStandaloneAppRunInterface(self.ctx),
+            enable_breadcrumb=True,
+            breadcrumb_root_text='运行'
+        )
