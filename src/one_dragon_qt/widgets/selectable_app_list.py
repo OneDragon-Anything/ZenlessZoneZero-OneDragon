@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QMouseEvent
 from PySide6.QtWidgets import QGraphicsOpacityEffect, QWidget
 from qfluentwidgets import (
     FluentIcon,
@@ -91,7 +91,7 @@ class SelectableAppCard(DraggableListItem):
             self.setGraphicsEffect(effect)
         effect.setOpacity(opacity)
 
-    def mousePressEvent(self, event) -> None:
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit(self.app_id)
         super().mousePressEvent(event)

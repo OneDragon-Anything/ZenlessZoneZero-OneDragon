@@ -109,7 +109,8 @@ class StandaloneRunInterface(SplitAppRunInterface):
 
         if target:
             self.app_list_widget.select_app(target)
-            self.app_id = target
+        self.app_id = target or ''
+        self.ctx.standalone_task_config.active_app_id = target or ''
 
     # ── 事件处理 ──
 
@@ -144,6 +145,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
             if not self.app_list_widget.selected_app_id and selected_ids:
                 self.app_list_widget.select_app(selected_ids[0])
                 self.app_id = selected_ids[0]
+                self.ctx.standalone_task_config.active_app_id = selected_ids[0]
             elif self.app_list_widget.selected_app_id:
                 self.app_list_widget.select_app(self.app_list_widget.selected_app_id)
 
