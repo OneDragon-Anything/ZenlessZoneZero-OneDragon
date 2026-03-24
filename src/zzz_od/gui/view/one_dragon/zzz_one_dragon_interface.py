@@ -1,6 +1,9 @@
 from qfluentwidgets import FluentIcon
 
-from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
+from one_dragon_qt.widgets.pivot_navi_interface import (
+    BreadcrumbWrapper,
+    PivotNavigatorInterface,
+)
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.one_dragon.charge_plan_interface import ChargePlanInterface
@@ -40,4 +43,8 @@ class ZOneDragonInterface(PivotNavigatorInterface):
     def on_interface_shown(self) -> None:
         if self.ctx.signal.start_onedragon:
             self.stacked_widget.setCurrentIndex(0)
+            # 确保面包屑回到根页面
+            wrapper = self.stacked_widget.widget(0)
+            if isinstance(wrapper, BreadcrumbWrapper):
+                wrapper.reset_to_root()
         super().on_interface_shown()

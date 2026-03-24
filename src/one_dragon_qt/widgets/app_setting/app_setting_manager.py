@@ -25,7 +25,7 @@ class AppSettingManager:
     def __init__(self, ctx) -> None:
         self.ctx = ctx
         self._dialog_cache: dict[type, Any] = {}
-        self._interface_cache: dict[str, BaseInterface] = {}
+        self._interface_cache: dict[tuple[int, type], BaseInterface] = {}
         self._app_setting_map: dict[str, Callable[..., None]] = {}
 
     def show_app_setting(
@@ -72,7 +72,7 @@ class AppSettingManager:
         if pivot_navi is None:
             return
 
-        cache_key = interface_cls.__name__
+        cache_key = (id(pivot_navi), interface_cls)
         if cache_key not in self._interface_cache:
             self._interface_cache[cache_key] = interface_cls(self.ctx)
 

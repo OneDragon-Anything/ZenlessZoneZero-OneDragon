@@ -53,6 +53,12 @@ class BreadcrumbWrapper(QWidget):
         self._page_stack.setContentsMargins(9, 0, 0, 0)
         self._bc_wrapper.setVisible(True)
 
+    def reset_to_root(self) -> None:
+        """重置到根页面，清除二级设置界面。"""
+        if not self.is_secondary_shown:
+            return
+        self._on_breadcrumb_clicked('__root__')
+
     def on_interface_shown(self) -> None:
         if self.is_secondary_shown:
             if isinstance(self._secondary_content, BaseInterface):
