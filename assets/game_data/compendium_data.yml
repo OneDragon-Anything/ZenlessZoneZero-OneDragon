@@ -96,6 +96,8 @@
           mission_type_name_display: "拂晓生花 月光骑士颂"
         - mission_type_name: "诡步与重壁"
           mission_type_name_display: "沧浪行歌 流光咏叹"
+        - mission_type_name: "伏龙与战车"
+          mission_type_name_display: "雪兔梦游仙境 囚徒手记"
         - mission_type_name: "代理人方案培养"
           mission_type_name_display: "特训目标"
 
@@ -130,6 +132,7 @@
         - mission_type_name: "魇缚者·叶释渊"
           alias_list:
             - "魇缚者·???"
+        - mission_type_name: "猎血清道夫"
         - mission_type_name: "代理人方案培养"
           mission_type_name_display: "特训目标"
 
