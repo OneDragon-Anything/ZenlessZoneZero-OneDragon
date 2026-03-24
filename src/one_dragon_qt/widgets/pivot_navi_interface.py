@@ -136,7 +136,7 @@ class PivotNavigatorInterface(BaseInterface):
         self.pivot.addItem(
             routeKey=sub_interface.objectName(),
             text=sub_interface.nav_text,
-            onClick=lambda w=actual_widget: self.stacked_widget.setCurrentWidget(w),
+            onClick=lambda _checked=False, w=actual_widget: self.stacked_widget.setCurrentWidget(w),
         )
 
         if self.stacked_widget.currentWidget() is None:
