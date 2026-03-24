@@ -340,7 +340,7 @@ class LostVoidApp(ZApplication):
                     rect=support_team_property.rect,
                 )
                 for ocr_text_1 in ocr_result_list_1:
-                    text = ocr_text_1.data.strip().replace('【', '[').replace('】', ']))')
+                    text = ocr_text_1.data.replace('【', '[')
                     if text[0] == '[':
                         text = text[1:3]
                     self.ctx.lost_void.challenge_config.artifact_priority_in_battle.append(text)

@@ -68,7 +68,7 @@ class LostVoidChooseGear(ZOperation):
                 # 将选择的武备类型鸣徽添加至第一优先级
                 text = target.artifact.category
                 self.ctx.lost_void.challenge_config.artifact_priority_in_battle.append(text)
-                log.info('【武备追新】添加开局选择的武备属性至第一优级级: [' + text + ']')
+                log.info('【武备追新】添加开局选择的武备属性至第一优先级: [' + text + ']')
 
                 choose_new = True
                 log.info(f'【武备追新】当前可选未获取武备 {",".join([i.artifact.display_name for i in unlocked_gears])}')
