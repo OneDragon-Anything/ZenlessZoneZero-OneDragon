@@ -1,5 +1,3 @@
-from typing import Optional, Union
-
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
@@ -8,6 +6,7 @@ from qfluentwidgets import (
     FluentIconBase,
     PrimaryPushButton,
     PushButton,
+    SingleDirectionScrollArea,
     SubtitleLabel,
 )
 
@@ -15,7 +14,6 @@ from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.application.application_run_context import (
     ApplicationRunContextStateEventEnum,
 )
-from one_dragon.base.operation.application_base import Application
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_context import (
     ContextKeyboardEventEnum,
@@ -70,7 +68,7 @@ class AppRunInterface(VerticalScrollInterface):
         app_id: str,
         object_name: str,
         nav_text_cn: str,
-        nav_icon: Union[FluentIconBase, QIcon, str] = None,
+        nav_icon: FluentIconBase | QIcon | str = '',
         parent=None,
     ):
         VerticalScrollInterface.__init__(
@@ -87,6 +85,7 @@ class AppRunInterface(VerticalScrollInterface):
     def get_content_widget(self) -> QWidget:
         content_widget = QWidget()
         content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         widget_at_top = self.get_widget_at_top()
@@ -94,24 +93,25 @@ class AppRunInterface(VerticalScrollInterface):
             content_layout.addWidget(widget_at_top)
 
         self.state_text = SubtitleLabel()
-        self.state_text.setText('%s %s' % (gt('当前状态'), self.ctx.run_context.run_status_text))
+        self.state_text.setText(f"{gt('当前状态')} {self.ctx.run_context.run_status_text}")
         self.state_text.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         content_layout.addWidget(self.state_text)
 
         # 按钮行
         btn_row_widget = QWidget()
         btn_row_layout = QHBoxLayout(btn_row_widget)
+        btn_row_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.addWidget(btn_row_widget)
 
         self.start_btn = PrimaryPushButton(
-            text='%s %s' % (gt('开始'), self.ctx.key_start_running.upper()),
+            text=f"{gt('开始')} {self.ctx.key_start_running.upper()}",
             icon=FluentIcon.PLAY,
         )
         self.start_btn.clicked.connect(self._on_start_clicked)
         btn_row_layout.addWidget(self.start_btn)
 
         self.stop_btn = PushButton(
-            text='%s %s' % (gt('停止'), self.ctx.key_stop_running.upper()),
+            text=f"{gt('停止')} {self.ctx.key_stop_running.upper()}",
             icon=FluentIcon.CLOSE
         )
         self.stop_btn.clicked.connect(self._on_stop_clicked)
@@ -131,10 +131,10 @@ class AppRunInterface(VerticalScrollInterface):
 
         return content_widget
 
-    def get_widget_at_top(self) -> QWidget:
+    def get_widget_at_top(self) -> QWidget | None:
         pass
 
-    def get_widget_at_bottom(self) -> QWidget:
+    def get_widget_at_bottom(self) -> QWidget | None:
         pass
 
     def on_interface_shown(self) -> None:
@@ -181,17 +181,76 @@ class AppRunInterface(VerticalScrollInterface):
             icon = FluentIcon.PLAY
             self.log_card.stop()  # 停止日志更新
 
-        self.start_btn.setText('%s %s' % (text, self.ctx.key_start_running.upper()))
+        self.start_btn.setText(f"{text} {self.ctx.key_start_running.upper()}")
         self.start_btn.setIcon(icon)
-        self.state_text.setText('%s %s' % (gt('当前状态'), self.ctx.run_context.run_status_text))
+        self.state_text.setText(f"{gt('当前状态')} {self.ctx.run_context.run_status_text}")
 
     def _on_start_clicked(self) -> None:
         if self.ctx.run_context.is_context_stop:
             self.run_app()
-        elif self.ctx.run_context.is_context_running:
-            self.ctx.run_context.switch_context_pause_and_run()
-        elif self.ctx.run_context.is_context_pause:
+        elif self.ctx.run_context.is_context_running or self.ctx.run_context.is_context_pause:
             self.ctx.run_context.switch_context_pause_and_run()
 
     def _on_stop_clicked(self) -> None:
         self.ctx.run_context.stop_running()
+
+
+class SplitAppRunInterface(AppRunInterface):
+    """左右分栏的 AppRunInterface。
+
+    左侧为可滚动的自定义内容，右侧由 AppRunInterface.get_content_widget() 生成
+    运行控件（状态文字 / 启停按钮 / 日志卡 / AppRunner）。
+
+    子类需实现 ``get_left_widget()`` 返回左侧内容控件。
+    可选覆盖 ``get_widget_at_top()`` 为右侧运行控件区上方增加卡片。
+    """
+
+    def __init__(
+        self,
+        ctx: OneDragonContext,
+        app_id: str,
+        object_name: str,
+        nav_text_cn: str,
+        nav_icon: FluentIconBase | QIcon | str = '',
+        parent: QWidget | None = None,
+        left_stretch: int = 1,
+        right_stretch: int = 1,
+    ):
+        AppRunInterface.__init__(
+            self,
+            ctx=ctx,
+            app_id=app_id,
+            object_name=object_name,
+            nav_text_cn=nav_text_cn,
+            nav_icon=nav_icon,
+            parent=parent,
+        )
+        self._left_stretch = left_stretch
+        self._right_stretch = right_stretch
+
+    def _init_layout(self) -> None:
+        if self._init:
+            return
+        self._init = True
+
+        outer_layout = QHBoxLayout(self)
+        outer_layout.setContentsMargins(11, 11, 11, 0)
+        outer_layout.setSpacing(10)
+
+        # 左侧：滚动区域（无底边距）
+        scroll_area = SingleDirectionScrollArea(orient=Qt.Orientation.Vertical)
+        left_widget = self.get_left_widget()
+        left_widget.setStyleSheet("QWidget { background-color: transparent; }")
+        scroll_area.setWidget(left_widget)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
+        outer_layout.addWidget(scroll_area, stretch=self._left_stretch)
+
+        # 右侧：运行控件（由 AppRunInterface.get_content_widget 创建）
+        right_widget = self.get_content_widget()
+        right_widget.layout().setContentsMargins(0, 0, 0, 11)
+        outer_layout.addWidget(right_widget, stretch=self._right_stretch)
+
+    def get_left_widget(self) -> QWidget:
+        """返回左侧内容控件，由子类实现。"""
+        raise NotImplementedError

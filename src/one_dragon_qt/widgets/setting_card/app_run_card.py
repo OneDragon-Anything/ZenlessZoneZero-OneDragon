@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
@@ -31,18 +31,18 @@ class AppRunCard(DraggableListItem):
         self,
         app: ApplicationGroupConfigItem,
         index: int = 0,
-        run_record: Optional[AppRunRecord] = None,
+        run_record: AppRunRecord | None = None,
         switch_on: bool = False,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         enable_opacity_effect: bool = True
     ):
         self.app: ApplicationGroupConfigItem = app
-        self.run_record: Optional[AppRunRecord] = run_record
+        self.run_record: AppRunRecord | None = run_record
 
         self.setting_btn = TransparentToolButton(FluentIcon.SETTING, None)
         self.setting_btn.clicked.connect(self._on_setting_clicked)
 
-        self.move_top_btn = TransparentToolButton(FluentIcon.UP, None)
+        self.move_top_btn = TransparentToolButton(FluentIcon.PIN, None)
         self.move_top_btn.clicked.connect(self._on_move_top_clicked)
 
         self.run_btn = TransparentToolButton(FluentIcon.PLAY, None)
@@ -81,12 +81,7 @@ class AppRunCard(DraggableListItem):
         if self.run_record is None:
             self.content_widget.setContent('')
         else:
-            self.content_widget.setContent(
-                '%s %s' % (
-                    gt('上次运行'),
-                    self.run_record.run_time
-                )
-            )
+            self.content_widget.setContent(f"{gt('上次运行')} {self.run_record.run_time}")
 
             status = self.run_record.run_status_under_now
             if status == AppRunRecord.STATUS_SUCCESS:
@@ -123,7 +118,7 @@ class AppRunCard(DraggableListItem):
     def set_app(
         self,
         app: ApplicationGroupConfigItem,
-        run_record: Optional[AppRunRecord] = None,
+        run_record: AppRunRecord | None = None,
     ):
         """
         更新对应的app

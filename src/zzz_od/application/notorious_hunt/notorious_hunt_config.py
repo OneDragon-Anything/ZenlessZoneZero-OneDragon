@@ -66,7 +66,8 @@ class NotoriousHuntConfig(ApplicationConfig):
             ChargePlanItem('训练', '恶名狩猎', '牲鬼·布林格', None),
             ChargePlanItem('训练', '恶名狩猎', '秽息司祭', None),
             ChargePlanItem('训练', '恶名狩猎', '彷徨猎手', None),
-            ChargePlanItem('训练', '恶名狩猎', '魇缚者·叶释渊', None)
+            ChargePlanItem('训练', '恶名狩猎', '魇缚者·叶释渊', None),
+            ChargePlanItem('训练', '恶名狩猎', '猎血清道夫', None),
         ]
 
     def save(self):

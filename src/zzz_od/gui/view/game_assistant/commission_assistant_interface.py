@@ -1,5 +1,3 @@
-from typing import Optional
-
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon
 
@@ -34,7 +32,7 @@ class CommissionAssistantRunInterface(AppRunInterface):
                  ctx: ZContext,
                  parent=None):
         self.ctx: ZContext = ctx
-        self.app: Optional[ZApplication] = None
+        self.app: ZApplication | None = None
 
         AppRunInterface.__init__(
             self,
@@ -44,7 +42,7 @@ class CommissionAssistantRunInterface(AppRunInterface):
             nav_text_cn='委托助手',
             parent=parent,
         )
-        self.config: Optional[CommissionAssistantConfig] = None
+        self.config: CommissionAssistantConfig | None = None
 
     def get_widget_at_top(self) -> QWidget:
         content = Row()
@@ -53,7 +51,7 @@ class CommissionAssistantRunInterface(AppRunInterface):
         content.h_layout.addLayout(left_layout)
         content.h_layout.addLayout(right_layout)
 
-        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_game_assistant.html#_1-%E5%A7%94%E6%89%98%E5%8A%A9%E6%89%8B')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat_game_assistant.html')
         left_layout.addWidget(self.help_opt)
 
         self.dialog_option_opt = ComboBoxSettingCard(

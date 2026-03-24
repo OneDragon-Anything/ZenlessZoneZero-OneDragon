@@ -236,3 +236,27 @@ class ChargePlanApp(ZApplication):
         op = BackToNormalWorld(self.ctx)
         op_result = op.execute()
         return self.round_by_op_result(op_result, status=f'剩余电量 {self.charge_power}')
+
+
+def __debug():
+    ctx = ZContext()
+    ctx.init()
+    ctx.run_context.start_running()
+    app = ChargePlanApp(ctx)
+    app.config.plan_list = [
+        ChargePlanItem(
+            tab_name='训练',
+            category_name='恶名狩猎',
+            mission_type_name='猎血清道夫',
+            level='默认等级',
+            auto_battle_config='全配队通用',
+            plan_times=1,
+            predefined_team_idx=-1,
+        )
+    ]
+    app.config.data['loop'] = False
+    app.execute()
+
+
+if __name__ == '__main__':
+    __debug()

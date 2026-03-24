@@ -17,6 +17,7 @@ class Row(QWidget):
         QWidget.__init__(self, parent=parent)
 
         self.h_layout = QHBoxLayout(self)
+        self.h_layout.setContentsMargins(0, 0, 0, 0)
 
         if spacing is not None:
             self.h_layout.setSpacing(spacing)

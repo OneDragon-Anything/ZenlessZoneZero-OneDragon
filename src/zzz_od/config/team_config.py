@@ -1,15 +1,13 @@
-from typing import List, Optional
-
 from one_dragon.base.config.yaml_config import YamlConfig
 from zzz_od.game_data.agent import Agent
 
 
 class PredefinedTeamInfo:
 
-    def __init__(self, idx: int, name: str, auto_battle: str, agent_id_list: List[str]):
+    def __init__(self, idx: int, name: str, auto_battle: str, agent_id_list: list[str]):
         self.idx: int = idx  # 在编队数组里的下标
         self.name: str = name  # 编队名称
-        self.agent_id_list: List[str] = [i for i in agent_id_list]  # 代理人ID列表
+        self.agent_id_list: list[str] = list(agent_id_list)  # 代理人ID列表
         while len(self.agent_id_list) < 3:
             self.agent_id_list.append('unknown')
         self.auto_battle: str = auto_battle  # 对应的自动战斗配置
@@ -21,11 +19,11 @@ class TeamConfig(YamlConfig):
         YamlConfig.__init__(self, 'team', instance_idx=instance_idx)
 
     @property
-    def team_list(self) -> List[PredefinedTeamInfo]:
+    def team_list(self) -> list[PredefinedTeamInfo]:
         data_list = self.get('team_list', [])
 
-        max_cnt: int = 10
-        team_list: List[PredefinedTeamInfo] = []
+        max_cnt: int = 20
+        team_list: list[PredefinedTeamInfo] = []
         for i in range(len(data_list)):
             data = data_list[i]
             team_list.append(PredefinedTeamInfo(i,
@@ -59,7 +57,7 @@ class TeamConfig(YamlConfig):
 
         self.update('team_list', data_team_list)
 
-    def get_team_by_idx(self, team_idx: int) -> Optional[PredefinedTeamInfo]:
+    def get_team_by_idx(self, team_idx: int) -> PredefinedTeamInfo | None:
         """
         根据下标获取预备配队
         @param team_idx:
@@ -70,7 +68,7 @@ class TeamConfig(YamlConfig):
                 return team
         return None
 
-    def update_team_members(self, team_name: str, members: List[Agent]) -> None:
+    def update_team_members(self, team_name: str, members: list[Agent]) -> None:
         """
         更新某个配队的代理人
         @param team_name: 配队名称

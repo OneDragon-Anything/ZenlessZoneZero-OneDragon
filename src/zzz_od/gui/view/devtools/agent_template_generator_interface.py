@@ -93,12 +93,14 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         # 左侧列：标题 + 输入
         left_column = Column(spacing=16, margins=Margins(0, 0, 0, 0))
         left_column.setFixedWidth(300)
-        center_layout.addWidget(left_column, alignment=Qt.AlignmentFlag.AlignTop)
+        center_layout.addWidget(left_column, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
         # 标题区域
         title_card = SimpleCardWidget()
         title_layout = Column(spacing=8, margins=Margins(16, 16, 16, 16))
-        QVBoxLayout(title_card).addWidget(title_layout)
+        title_card_layout = QVBoxLayout(title_card)
+        title_card_layout.setContentsMargins(0, 0, 0, 0)
+        title_card_layout.addWidget(title_layout)
 
         title_label = SubtitleLabel(text=gt('代理人模板生成'))
         title_layout.add_widget(title_label)
@@ -112,7 +114,9 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         # 输入区域
         input_card = SimpleCardWidget()
         input_layout = Column(spacing=16, margins=Margins(16, 16, 16, 16))
-        QVBoxLayout(input_card).addWidget(input_layout)
+        input_card_layout = QVBoxLayout(input_card)
+        input_card_layout.setContentsMargins(0, 0, 0, 0)
+        input_card_layout.addWidget(input_layout)
 
         # 输入框
         self.agent_id_edit = LineEdit()
@@ -130,18 +134,20 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         # 截图说明卡片（紧贴输入卡片）
         hint_card = SimpleCardWidget()
         hint_layout = Column(spacing=12, margins=Margins(16, 16, 16, 16))
-        QVBoxLayout(hint_card).addWidget(hint_layout)
+        hint_card_layout = QVBoxLayout(hint_card)
+        hint_card_layout.setContentsMargins(0, 0, 0, 0)
+        hint_card_layout.addWidget(hint_layout)
 
         hint_title = BodyLabel(text=gt('截图方法'))
         hint_layout.add_widget(hint_title)
 
         hint_items = [
-            '1号大头像：3人组队，目标角色放前台',
-            '2号小头像：目标角色放后台-1',
-            '连携头像：2人队，触发目标角色连携',
-            '快速支援：触发目标快速支援',
-            '空洞头像：进入空洞后，目标角色在编队1号位',
-            '预设编队：编队在第一个队伍第一位',
+            '1号大头像：3人组队，目标角色切到1号位',
+            '2号小头像：3人组队，目标角色切到2号位',
+            '连携头像：触发目标角色连携（头像在左边）',
+            '快速支援：触发目标角色快速支援',
+            '空洞头像：走格子，目标角色在编队1号位',
+            '预备编队：菜单-更多，目标角色在1号队伍1号位',
         ]
 
         for item in hint_items:
@@ -152,9 +158,9 @@ class AgentTemplateGeneratorInterface(VerticalScrollInterface):
         left_column.add_stretch(1)
 
         # 右侧列：6个模板卡片 - 垂直排列
-        right_column = Column(spacing=16, margins=Margins(8, 0, 8, 16))
+        right_column = Column(spacing=16, margins=Margins(0, 0, 0, 16))
         right_column.setFixedWidth(650)
-        center_layout.addWidget(right_column, alignment=Qt.AlignmentFlag.AlignTop)
+        center_layout.addWidget(right_column, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
         # 模板卡片
         self.template_cards: list[TemplateCardWidget] = []

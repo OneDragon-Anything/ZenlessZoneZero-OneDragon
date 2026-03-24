@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon, ToolButton
 
+from one_dragon.base.operation.application import application_const
 from one_dragon_qt.view.app_run_interface import AppRunInterface
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
@@ -16,9 +17,12 @@ from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSetting
 from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_config_file_path,
 )
-from zzz_od.application.battle_assistant.operation_debug import operation_debug_const
 from zzz_od.application.battle_assistant.operation_template_config import (
     get_operation_template_config_list,
+)
+from zzz_od.application.devtools.operation_debug import operation_debug_const
+from zzz_od.application.devtools.operation_debug.operation_debug_config import (
+    OperationDebugConfig,
 )
 from zzz_od.config.game_config import ControlMethodEnum
 from zzz_od.context.zzz_context import ZContext
@@ -30,6 +34,7 @@ class OperationDebugInterface(AppRunInterface):
                  ctx: ZContext,
                  parent=None):
         self.ctx: ZContext = ctx
+        self.config: OperationDebugConfig | None = None
 
         AppRunInterface.__init__(
             self,
@@ -78,10 +83,15 @@ class OperationDebugInterface(AppRunInterface):
         :return:
         """
         AppRunInterface.on_interface_shown(self)
+        self.config = self.ctx.run_context.get_config(
+            app_id=operation_debug_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
         self._update_auto_battle_config_opts()
-        self.config_opt.setValue(self.ctx.battle_assistant_config.debug_operation_config)
+        self.config_opt.setValue(self.config.operation_template)
         self.gamepad_type_opt.setValue(self.ctx.battle_assistant_config.control_method)
-        self.repeat_opt.setValue(self.ctx.battle_assistant_config.debug_operation_repeat)
+        self.repeat_opt.setValue(self.config.repeat_enabled)
 
     def _update_auto_battle_config_opts(self) -> None:
         """
@@ -98,10 +108,12 @@ class OperationDebugInterface(AppRunInterface):
         self.config_opt.blockSignals(False)
 
     def _on_config_changed(self, index, value):
-        self.ctx.battle_assistant_config.debug_operation_config = value
+        if self.config is not None:
+            self.config.operation_template = value
 
     def _on_repeat_changed(self, value: bool) -> None:
-        self.ctx.battle_assistant_config.debug_operation_repeat = value
+        if self.config is not None:
+            self.config.repeat_enabled = value
 
     def _on_del_clicked(self) -> None:
         """

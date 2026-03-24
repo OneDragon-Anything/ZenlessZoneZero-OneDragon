@@ -1,11 +1,9 @@
 """
 遥测配置管理
 """
-import os
 import logging
 import yaml
 from pathlib import Path
-from typing import Dict, Any, Optional
 
 from one_dragon.utils import yaml_utils
 from .models import TelemetryConfig, PrivacySettings
@@ -26,9 +24,6 @@ class TelemetryConfigLoader:
         config = TelemetryConfig()
 
         try:
-            # 从环境变量加载敏感配置
-            self._load_from_env(config)
-
             # 从配置文件加载其他设置
             if self.config_file.exists():
                 self._load_from_file(config)
@@ -40,37 +35,6 @@ class TelemetryConfigLoader:
             logger.debug(f"Failed to load telemetry config: {e}")
 
         return config
-
-    def _load_from_env(self, config: TelemetryConfig) -> None:
-        """从env.yml加载配置"""
-        # 从环境变量加载Loki认证信息
-        env_yml_path = self.config_dir / "env.yml"
-        if env_yml_path.exists():
-            try:
-                with open(env_yml_path, 'r', encoding='utf-8') as f:
-                    env_config = yaml_utils.safe_load(f)
-                    if env_config:
-                        # 加载Loki认证信息
-                        if 'loki_tenant_id' in env_config:
-                            config.loki_tenant_id = env_config['loki_tenant_id']
-                            logger.debug("Loaded Loki tenant ID from env.yml")
-                        if 'loki_auth_token' in env_config:
-                            config.loki_auth_token = env_config['loki_auth_token']
-                            logger.debug("Loaded Loki auth token from env.yml")
-            except Exception as e:
-                logger.debug(f"Failed to load config from env.yml: {e}")
-
-        # 如果没有从环境变量加载到认证信息，使用硬编码的fallback
-        if not config.loki_tenant_id:
-            config.loki_tenant_id = "1109268"
-            logger.debug("Using hardcoded Loki tenant ID")
-
-        if not config.loki_auth_token:
-            config.loki_auth_token = "glc_eyJvIjoiMTMyOTM0MSIsIm4iOiJ6enotb2Qtenp6LW9kIiwiayI6IjhzYnVvMkNXNkU4czg3Nlk0UjBiMEhJTSIsIm0iOnsiciI6InVzIn19"
-            logger.debug("Using hardcoded Loki auth token")
-
-        logger.debug(f"Final Loki tenant ID: {'***' if config.loki_tenant_id else 'None'}")
-        logger.debug(f"Final Loki auth token: {'***' if config.loki_auth_token else 'None'}")
 
     def _load_from_file(self, config: TelemetryConfig) -> None:
         """从配置文件加载配置"""
@@ -129,21 +93,11 @@ class TelemetryConfigLoader:
             default_config = {
                 'telemetry': {
                     'enabled': True,
-                    'backend_type': 'loki',
+                    'backend_type': 'aliyun_web_tracking',
                     'features': {
                         'analytics': True,
                         'error_reporting': True,
                         'performance_monitoring': True
-                    },
-                    'loki': {
-                        'url': 'https://logs-prod-012.grafana.net',
-                        'tenant_id': '1109268',
-                        'auth_token': 'glc_eyJvIjoiMTMyOTM0MSIsIm4iOiJ6enotb2Qtenp6LW9kIiwiayI6IjhzYnVvMkNXNkU4czg3Nlk0UjBiMEhJTSIsIm0iOnsiciI6InVzIn19',
-                        'labels': {
-                            'job': 'one_dragon',
-                            'project': 'zzz_od',
-                            'environment': 'production'
-                        }
                     },
                     'privacy': {
                         'anonymize_user_data': True,

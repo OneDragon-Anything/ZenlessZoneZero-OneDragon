@@ -1,14 +1,16 @@
-from typing import List, Optional
-
 from one_dragon.base.conditional_operation.atomic_op import AtomicOp
 from one_dragon.base.conditional_operation.loader import ConditionalOperatorLoader
 from one_dragon.base.conditional_operation.operation_def import OperationDef
 from one_dragon.base.controller.pc_button import pc_button_utils
+from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.log_utils import log
-from zzz_od.application.battle_assistant.operation_debug import operation_debug_const
+from zzz_od.application.devtools.operation_debug import operation_debug_const
+from zzz_od.application.devtools.operation_debug.operation_debug_config import (
+    OperationDebugConfig,
+)
 from zzz_od.application.zzz_application import ZApplication
 from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
 from zzz_od.config.game_config import ControlMethodEnum
@@ -28,8 +30,19 @@ class OperationDebugApp(ZApplication):
             op_name=operation_debug_const.APP_NAME,
         )
 
-        self.ops: Optional[List[AtomicOp]] = None
+        self.ops: list[AtomicOp] | None = None
         self.op_idx: int = 0
+        self.config: OperationDebugConfig | None = None
+
+    def _get_config(self) -> OperationDebugConfig:
+        if self.config is not None:
+            return self.config
+        self.config = self.ctx.run_context.get_config(
+            app_id=operation_debug_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=application_const.DEFAULT_GROUP_ID,
+        )
+        return self.config
 
     @operation_node(name='手柄检测', is_start_node=True)
     def check_gamepad(self) -> OperationRoundResult:
@@ -58,7 +71,7 @@ class OperationDebugApp(ZApplication):
         加载战斗指令
         :return:
         """
-        template_name = self.ctx.battle_assistant_config.debug_operation_config
+        template_name = self._get_config().operation_template
 
         try:
             # 直接加载操作模板文件
@@ -111,7 +124,7 @@ class OperationDebugApp(ZApplication):
         self.ops[self.op_idx].execute()
         self.op_idx += 1
         if self.op_idx >= len(self.ops):
-            if self.ctx.battle_assistant_config.debug_operation_repeat:
+            if self._get_config().repeat_enabled:
                 self.op_idx = 0
                 return self.round_wait()
             else:

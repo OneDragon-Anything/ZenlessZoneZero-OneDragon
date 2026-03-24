@@ -1,9 +1,6 @@
-from PySide6.QtCore import Qt
-from PySide6.QtGui import Qt, QIcon
+from PySide6.QtGui import QIcon, Qt
 from PySide6.QtWidgets import QStackedWidget, QVBoxLayout
-from qfluentwidgets import FluentIconBase
-from qfluentwidgets import Pivot, qrouter
-from typing import Union
+from qfluentwidgets import FluentIconBase, Pivot, qrouter
 
 from one_dragon_qt.widgets.base_interface import BaseInterface
 
@@ -11,7 +8,7 @@ from one_dragon_qt.widgets.base_interface import BaseInterface
 class PivotNavigatorInterface(BaseInterface):
 
     def __init__(self,
-                 object_name: str, nav_text_cn: str, nav_icon: Union[FluentIconBase, QIcon, str] = None,
+                 object_name: str, nav_text_cn: str, nav_icon: FluentIconBase | QIcon | str,
                  parent=None
                  ):
         BaseInterface.__init__(self, object_name=object_name, parent=parent,
@@ -21,6 +18,7 @@ class PivotNavigatorInterface(BaseInterface):
         self.stacked_widget = QStackedWidget(self)
         self._last_stack_idx: int = 0
         self.v_box_layout = QVBoxLayout(self)
+        self.v_box_layout.setSpacing(0)
 
         self.v_box_layout.addWidget(self.pivot, 0, Qt.AlignmentFlag.AlignLeft)
         self.v_box_layout.addWidget(self.stacked_widget)
@@ -64,15 +62,13 @@ class PivotNavigatorInterface(BaseInterface):
             current_interface.on_interface_shown()
 
     def on_interface_shown(self) -> None:
-        """
-        子界面显示时 进行初始化
-        :return:
-        """
-        self.stacked_widget.currentWidget().on_interface_shown()
+        """子界面显示时 进行初始化"""
+        current_interface = self.stacked_widget.currentWidget()
+        if isinstance(current_interface, BaseInterface):
+            current_interface.on_interface_shown()
 
     def on_interface_hidden(self) -> None:
-        """
-        子界面隐藏时的回调
-        :return:
-        """
-        self.stacked_widget.currentWidget().on_interface_hidden()
+        """子界面隐藏时的回调"""
+        current_interface = self.stacked_widget.currentWidget()
+        if isinstance(current_interface, BaseInterface):
+            current_interface.on_interface_hidden()

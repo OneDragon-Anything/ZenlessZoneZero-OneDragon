@@ -3,10 +3,10 @@ from __future__ import annotations
 import difflib
 import inspect
 import time
+from collections.abc import Callable
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Optional
+from typing import TYPE_CHECKING, Any, ClassVar
 
-import cv2
 import numpy as np
 from cv2.typing import MatLike
 
@@ -27,7 +27,7 @@ from one_dragon.base.operation.operation_round_result import (
 from one_dragon.base.screen import screen_utils
 from one_dragon.base.screen.screen_area import ScreenArea
 from one_dragon.base.screen.screen_utils import FindAreaResultEnum, OcrClickResultEnum
-from one_dragon.utils import cv2_utils, debug_utils, str_utils
+from one_dragon.utils import debug_utils, str_utils
 from one_dragon.utils.i18_utils import coalesce_gt, gt
 from one_dragon.utils.log_utils import log
 
@@ -91,9 +91,9 @@ class Operation(OperationBase):
             node_max_retry_times: int = 3,
             op_name: str = '',
             timeout_seconds: float = -1,
-            op_callback: Optional[Callable[[OperationResult], None]] = None,
+            op_callback: Callable[[OperationResult], None] | None = None,
             need_check_game_win: bool = True,
-            op_to_enter_game: Optional[OperationBase] = None
+            op_to_enter_game: OperationBase | None = None
     ):
         """初始化操作实例。
 
@@ -121,13 +121,13 @@ class Operation(OperationBase):
         self.timeout_seconds: float = timeout_seconds
         """指令超时时间"""
 
-        self.op_callback: Optional[Callable[[OperationResult], None]] = op_callback
+        self.op_callback: Callable[[OperationResult], None] | None = op_callback
         """指令结束后的回调"""
 
         self.need_check_game_win: bool = need_check_game_win
         """是否检测游戏窗口"""
 
-        self.op_to_enter_game: OperationBase = op_to_enter_game
+        self.op_to_enter_game: OperationBase | None = op_to_enter_game
         """用于打开游戏的指令"""
 
         # 指令节点网络相关属性
@@ -399,7 +399,7 @@ class Operation(OperationBase):
             log.error('初始化失败', exc_info=True)
             return self.op_fail('初始化失败')
 
-        op_result: Optional[OperationResult] = None
+        op_result: OperationResult | None = None
         while True:
             self.round_start_time = time.time()
             if self.timeout_seconds != -1 and self.operation_usage_time >= self.timeout_seconds:
@@ -528,8 +528,8 @@ class Operation(OperationBase):
         if edges is None or len(edges) == 0:  # 没有下一个节点了
             return None
 
-        next_node_id: Optional[str] = None
-        final_next_node_id: Optional[str] = None  # 兜底指令
+        next_node_id: str | None = None
+        final_next_node_id: str | None = None  # 兜底指令
         for edge in edges:
             if edge.success != (current_round_result.result == OperationRoundResultEnum.SUCCESS):
                 continue
@@ -627,7 +627,7 @@ class Operation(OperationBase):
         self.last_screenshot_time, self.last_screenshot = self.ctx.controller.screenshot()
         return self.last_screenshot
 
-    def save_screenshot(self, prefix: Optional[str] = None) -> str:
+    def save_screenshot(self, prefix: str | None = None) -> str:
         """保存最后一张截图并对UID进行遮罩。
 
         Args:
@@ -744,7 +744,7 @@ class Operation(OperationBase):
             if to_wait > 0:
                 time.sleep(to_wait)
 
-    def round_by_op_result(self, op_result: OperationResult, status: Optional[str] = None, retry_on_fail: bool = False,
+    def round_by_op_result(self, op_result: OperationResult, status: str | None = None, retry_on_fail: bool = False,
                            wait: float | None = None, wait_round_time: float | None = None) -> OperationRoundResult:
         """根据操作结果获取当前轮次结果。
 
@@ -784,6 +784,7 @@ class Operation(OperationBase):
         until_find_all: list[tuple[str, str]] = None,
         until_not_find_all: list[tuple[str, str]] = None,
         crop_first: bool = True,
+        center_x: bool = False,
     ) -> OperationRoundResult:
         """在屏幕上查找并点击目标区域。
 
@@ -799,6 +800,7 @@ class Operation(OperationBase):
             until_find_all: 点击直到找到所有目标 [(屏幕, 区域)]。默认为None。
             until_not_find_all: 点击直到未找到所有目标 [(屏幕, 区域)]。默认为None。
             crop_first: 在传入区域时 是否先裁剪再进行文本识别
+            center_x: 模板区域点击时是否固定使用游戏中心点的 x 坐标
 
         Returns:
             OperationRoundResult: 点击结果。
@@ -850,6 +852,7 @@ class Operation(OperationBase):
             screen_name=screen_name,
             area_name=area_name,
             crop_first=crop_first,
+            center_x=center_x,
         )
         if click == OcrClickResultEnum.OCR_CLICK_SUCCESS:
             self.node_clicked = True
@@ -1019,7 +1022,7 @@ class Operation(OperationBase):
         self,
         screen: np.ndarray,
         target_cn: str,
-        area: Optional[ScreenArea] = None,
+        area: ScreenArea | None = None,
         lcs_percent: float = 0.5,
         pre_delay: float = 0.3,
         success_wait: float | None = None,
@@ -1029,6 +1032,7 @@ class Operation(OperationBase):
         color_range: list[list[int]] | None = None,
         offset: Point | None = None,
         crop_first: bool = True,
+        remove_whitespace: bool = False,
     ) -> OperationRoundResult:
         """使用OCR在区域内查找目标文本并点击。
 
@@ -1045,6 +1049,7 @@ class Operation(OperationBase):
             retry_wait_round: 失败后等待直到轮次时间达到此值，如果设置了retry_wait则忽略。默认为None。
             color_range: 文本匹配的颜色范围。默认为None。
             offset: 点击位置的偏移量。默认为None。
+            remove_whitespace: 文本匹配前是否清洗空白字符。默认为False。
 
         Returns:
             OperationRoundResult: 点击结果。
@@ -1057,6 +1062,15 @@ class Operation(OperationBase):
             color_range=color_range,
             crop_first=crop_first,
         )
+        if remove_whitespace:
+            # 移除空白字符，提升文本匹配兼容性
+            target_cn = str_utils.remove_whitespace(target_cn)
+            # 清理OCR结果字典的键：移除所有键中的空白字符
+            # 若清理后出现重复键，后遍历到的键值对会覆盖先遍历到的
+            ocr_result_map = {
+                str_utils.remove_whitespace(key): val
+                for key, val in ocr_result_map.items()
+            }
 
         to_click: Point | None = None
         ocr_result_list: list[str] = []
@@ -1098,7 +1112,7 @@ class Operation(OperationBase):
         target_cn_list: list[str],
         screen: MatLike | None = None,
         ignore_cn_list: list[str] | None = None,
-        area: Optional[ScreenArea] = None,
+        area: ScreenArea | None = None,
         pre_delay: float = 0.3,
         success_wait: float | None = None,
         success_wait_round: float | None = None,
@@ -1239,7 +1253,7 @@ class Operation(OperationBase):
         self,
         screen: np.ndarray,
         target_cn: str,
-        area: Optional[ScreenArea] = None,
+        area: ScreenArea | None = None,
         lcs_percent: float = 0.5,
         success_wait: float | None = None, success_wait_round: float | None = None,
         retry_wait: float | None = None, retry_wait_round: float | None = None,
@@ -1268,8 +1282,7 @@ class Operation(OperationBase):
         else:
             return self.round_retry(f'找不到 {target_cn}', wait=retry_wait, wait_round_time=retry_wait_round)
 
-
-    def round_by_goto_screen(self, screen: Optional[np.ndarray] = None, screen_name: Optional[str] = None,
+    def round_by_goto_screen(self, screen: np.ndarray | None = None, screen_name: str | None = None,
                              success_wait: float | None = None, success_wait_round: float | None = None,
                              retry_wait: float | None = 1, retry_wait_round: float | None = None) -> OperationRoundResult:
         """从当前屏幕导航到目标屏幕。

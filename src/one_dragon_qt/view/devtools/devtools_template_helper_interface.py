@@ -87,7 +87,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
 
         control_widget = QWidget()
         control_layout = QVBoxLayout(control_widget)
-        control_layout.setContentsMargins(12, 0, 12, 0)
+        control_layout.setContentsMargins(0, 0, 0, 0)
         control_layout.setSpacing(6)
 
         btn_row = Row(spacing=6, margins=Margins(0, 0, 0, 0))
@@ -221,7 +221,7 @@ class DevtoolsTemplateHelperInterface(VerticalScrollInterface, HistoryMixin):
 
         control_widget = QWidget()
         control_layout = QVBoxLayout(control_widget)
-        control_layout.setContentsMargins(0, 0, 12, 0)
+        control_layout.setContentsMargins(0, 0, 0, 0)
         control_layout.setSpacing(2)
 
         raw_label = CaptionLabel(text=gt('模板原图'))

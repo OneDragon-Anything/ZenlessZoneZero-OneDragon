@@ -1,45 +1,43 @@
-from typing import Optional
+from __future__ import annotations
 
-from PySide6.QtWidgets import QWidget, QTableWidgetItem
-from qfluentwidgets import TableWidget, CheckBox, FluentIcon
+from typing import TYPE_CHECKING
 
-from one_dragon.base.operation.application import application_const
-from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
-from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
+from PySide6.QtWidgets import QTableWidgetItem, QWidget
+from qfluentwidgets import CheckBox, FluentIcon, TableWidget
+
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from zzz_od.application.shiyu_defense import shiyu_defense_const
 from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
-from zzz_od.application.shiyu_defense.shiyu_defense_run_record import ShiyuDefenseRunRecord
-from zzz_od.context.zzz_context import ZContext
+from zzz_od.application.shiyu_defense.shiyu_defense_run_record import (
+    ShiyuDefenseRunRecord,
+)
 from zzz_od.game_data.agent import DmgTypeEnum
+from zzz_od.gui.dialog.app_setting_dialog import AppSettingDialog
 
-from one_dragon_qt.widgets.column import Column
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
 
-class ShiyuDefenseInterface(VerticalScrollInterface):
 
-    def __init__(self, ctx: ZContext, parent=None):
-        self.ctx: ZContext = ctx
+class ShiyuDefenseSettingDialog(AppSettingDialog):
 
-        VerticalScrollInterface.__init__(
-            self,
-            object_name='zzz_shiyu_defense_interface',
-            content_widget=None, parent=parent,
-            nav_text_cn='式舆防卫战'
-        )
-
-        self.config: Optional[ShiyuDefenseConfig] = None
-        self.run_record: Optional[ShiyuDefenseRunRecord] = None
+    def __init__(self, ctx: ZContext, parent: QWidget | None = None):
+        super().__init__(ctx=ctx, title='式舆防卫战配置', parent=parent)
+        self.config: ShiyuDefenseConfig | None = None
+        self.run_record: ShiyuDefenseRunRecord | None = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
-        self.critical_reset_opt = PushSettingCard(icon=FluentIcon.SYNC, title='剧变节点 重置运行记录',
-                                                  text=gt('重置'))
-        self.critical_reset_opt.clicked.connect(self.on_critical_reset_clicked)
+        self.critical_reset_opt = PushSettingCard(
+            icon=FluentIcon.SYNC, title='剧变节点 重置运行记录',
+            text='重置'
+        )
+        self.critical_reset_opt.clicked.connect(self._on_critical_reset_clicked)
         content_widget.add_widget(self.critical_reset_opt)
 
         self.team_table = TableWidget()
-
         self.team_table.setBorderVisible(True)
         self.team_table.setBorderRadius(8)
         self.team_table.setWordWrap(True)
@@ -57,13 +55,13 @@ class ShiyuDefenseInterface(VerticalScrollInterface):
 
         return content_widget
 
-    def on_interface_shown(self) -> None:
-        VerticalScrollInterface.on_interface_shown(self)
+    def on_dialog_shown(self) -> None:
+        super().on_dialog_shown()
 
         self.config = self.ctx.run_context.get_config(
             app_id=shiyu_defense_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
+            group_id=self.group_id,
         )
         self.run_record = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
@@ -82,12 +80,14 @@ class ShiyuDefenseInterface(VerticalScrollInterface):
 
             for idx in range(old_len, new_len):
                 btn = CheckBox()
-                btn.checkStateChanged.connect(self.on_critical_changed)
+                btn.checkStateChanged.connect(self._on_critical_changed)
                 self.team_table.setCellWidget(idx, 1, btn)
 
                 for i, dmg_type in enumerate(DmgTypeEnum):
+                    if dmg_type == DmgTypeEnum.UNKNOWN:
+                        continue
                     btn = CheckBox()
-                    btn.checkStateChanged.connect(self.on_weakness_check_changed)
+                    btn.checkStateChanged.connect(self._on_weakness_check_changed)
                     self.team_table.setCellWidget(idx, i + 2, btn)
 
         for row, team in enumerate(team_list):
@@ -97,7 +97,6 @@ class ShiyuDefenseInterface(VerticalScrollInterface):
 
             btn: CheckBox = self.team_table.cellWidget(row, 1)
             btn.setProperty('team_idx', team.idx)
-
             btn.blockSignals(True)
             btn.setChecked(team_config.for_critical)
             btn.blockSignals(False)
@@ -109,15 +108,11 @@ class ShiyuDefenseInterface(VerticalScrollInterface):
                 btn: CheckBox = self.team_table.cellWidget(row, col + 2)
                 btn.setProperty('team_idx', team.idx)
                 btn.setProperty('type', dmg_type.name)
-
                 btn.blockSignals(True)
                 btn.setChecked(dmg_type in team_config.weakness_list)
                 btn.blockSignals(False)
 
-    def on_weakness_check_changed(self) -> None:
-        """
-        属性勾选变更
-        """
+    def _on_weakness_check_changed(self) -> None:
         btn: CheckBox = self.sender()
         team_idx = btn.property('team_idx')
         dmg_type = DmgTypeEnum.from_name(btn.property('type'))
@@ -127,14 +122,10 @@ class ShiyuDefenseInterface(VerticalScrollInterface):
         else:
             self.config.remove_weakness(team_idx, dmg_type)
 
-    def on_critical_changed(self) -> None:
-        """
-        是否参与剧变节点变更
-        @return:
-        """
+    def _on_critical_changed(self) -> None:
         btn: CheckBox = self.sender()
         team_idx = btn.property('team_idx')
         self.config.change_for_critical(team_idx, btn.isChecked())
 
-    def on_critical_reset_clicked(self) -> None:
+    def _on_critical_reset_clicked(self) -> None:
         self.run_record.reset_record()

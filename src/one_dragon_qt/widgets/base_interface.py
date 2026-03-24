@@ -10,7 +10,7 @@ class BaseInterface(QWidget):
     def __init__(self,
                  object_name: str,
                  nav_text_cn: str,
-                 nav_icon: FluentIconBase | QIcon | str = None,
+                 nav_icon: FluentIconBase | QIcon | str,
                  parent=None):
         """
         包装一个子页面需要有的内容
