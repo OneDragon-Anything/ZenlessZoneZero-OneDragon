@@ -5,10 +5,12 @@ from typing import ClassVar
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 from qfluentwidgets import (
     FlyoutViewBase,
-    PopupTeachingTip,
     SettingCard,
+    TeachingTip,
     TeachingTipTailPosition,
 )
+
+from one_dragon_qt.widgets.fixed_teaching_tip import FixedTeachingTip
 
 
 class AppSettingFlyout(FlyoutViewBase):
@@ -19,9 +21,9 @@ class AppSettingFlyout(FlyoutViewBase):
     - ``init_config()``: 读取配置并初始化控件值。
     """
 
-    _current_tip: ClassVar[PopupTeachingTip | None] = None
+    _current_tip: ClassVar[TeachingTip | None] = None
 
-    def __init__(self, ctx, group_id: str, parent: QWidget | None = None) -> None:
+    def __init__(self, ctx, group_id: str, parent=None):
         FlyoutViewBase.__init__(self, parent)
         self.ctx = ctx
         self.group_id = group_id
@@ -52,19 +54,20 @@ class AppSettingFlyout(FlyoutViewBase):
         group_id: str,
         target: QWidget,
         parent: QWidget | None = None,
-    ) -> PopupTeachingTip:
+    ) -> TeachingTip:
         """显示配置弹出框，防止重复弹出。"""
         if cls._current_tip is not None:
             try:
-                cls._current_tip.isVisible()
-                return cls._current_tip
+                if cls._current_tip.isVisible():
+                    return cls._current_tip
             except RuntimeError:
-                cls._current_tip = None
+                pass
+            cls._current_tip = None
 
         content_view = cls(ctx, group_id, parent)
         content_view.init_config()
 
-        tip = PopupTeachingTip.make(
+        tip = FixedTeachingTip.make(
             view=content_view,
             target=target,
             duration=-1,
