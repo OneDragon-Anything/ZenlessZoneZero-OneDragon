@@ -4,7 +4,6 @@ from PySide6.QtWidgets import QVBoxLayout
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.utils.config_utils import get_prop_adapter
-from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.app_setting.app_setting_flyout import AppSettingFlyout
 from one_dragon_qt.widgets.setting_card.editable_combo_box_setting_card import (
     EditableComboBoxSettingCard,
@@ -19,7 +18,6 @@ class RandomPlaySettingFlyout(AppSettingFlyout):
     """录像店配置弹出框"""
 
     def _setup_ui(self, layout: QVBoxLayout) -> None:
-        margins = Margins(8, 4, 0, 8)
         agents_list = [ConfigItem(RANDOM_AGENT_NAME)] + [
             ConfigItem(agent_enum.value.agent_name)
             for agent_enum in AgentEnum
@@ -28,14 +26,14 @@ class RandomPlaySettingFlyout(AppSettingFlyout):
         self.random_play_agent_1 = EditableComboBoxSettingCard(
             icon='', title='影像店代理人-1',
             options_list=agents_list,
-            margins=margins,
+            margins=self.card_margins,
         )
         layout.addWidget(self.random_play_agent_1)
 
         self.random_play_agent_2 = EditableComboBoxSettingCard(
             icon='', title='影像店代理人-2',
             options_list=agents_list,
-            margins=margins,
+            margins=self.card_margins,
         )
         layout.addWidget(self.random_play_agent_2)
 

@@ -4,7 +4,6 @@ from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon_qt.utils.config_utils import get_prop_adapter
-from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.app_setting.app_setting_flyout import AppSettingFlyout
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
@@ -18,17 +17,15 @@ class LifeOnLineSettingFlyout(AppSettingFlyout):
     """拿命验收配置弹出框"""
 
     def _setup_ui(self, layout: QVBoxLayout) -> None:
-        margins = Margins(8, 4, 0, 8)
-
         self.times_opt = SpinBoxSettingCard(
             icon='', title='每日次数',
             minimum=0, maximum=20000,
-            margins=margins,
+            margins=self.card_margins,
         )
         layout.addWidget(self.times_opt)
 
-        self.done_title = SettingCardBase(icon='', title='完成次数', margins=margins)
-        self.done_value = SettingCardBase(icon='', title='', margins=margins)
+        self.done_title = SettingCardBase(icon='', title='完成次数', margins=self.card_margins)
+        self.done_value = SettingCardBase(icon='', title='', margins=self.card_margins)
 
         done_row = QHBoxLayout()
         done_row.setSpacing(8)
@@ -38,7 +35,7 @@ class LifeOnLineSettingFlyout(AppSettingFlyout):
 
         self.team_opt = ComboBoxSettingCard(
             icon='', title='预备编队',
-            margins=margins,
+            margins=self.card_margins,
         )
         layout.addWidget(self.team_opt)
 

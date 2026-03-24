@@ -10,6 +10,7 @@ from qfluentwidgets import (
     TeachingTipTailPosition,
 )
 
+from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.fixed_teaching_tip import FixedTeachingTip
 
 
@@ -19,6 +20,9 @@ class AppSettingFlyout(FlyoutViewBase):
     子类需实现:
     - ``_setup_ui(layout)``: 往 QVBoxLayout 中添加控件。
     - ``init_config()``: 读取配置并初始化控件值。
+
+    基类提供 ``self.card_margins`` 供子类创建 SettingCard 时使用，
+    并自动去掉所有 SettingCard 的边框背景。
     """
 
     _current_tip: ClassVar[TeachingTip | None] = None
@@ -27,6 +31,7 @@ class AppSettingFlyout(FlyoutViewBase):
         FlyoutViewBase.__init__(self, parent)
         self.ctx = ctx
         self.group_id = group_id
+        self.card_margins = Margins(8, 4, 0, 8)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 12, 16, 12)

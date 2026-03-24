@@ -3,7 +3,6 @@ from __future__ import annotations
 from PySide6.QtWidgets import QVBoxLayout
 
 from one_dragon_qt.utils.config_utils import get_prop_adapter
-from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.app_setting.app_setting_flyout import AppSettingFlyout
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
@@ -19,17 +18,16 @@ class DriveDiscDismantleSettingFlyout(AppSettingFlyout):
     """驱动盘拆解配置弹出框"""
 
     def _setup_ui(self, layout: QVBoxLayout) -> None:
-        margins = Margins(8, 4, 0, 8)
         self.level_opt = ComboBoxSettingCard(
             icon='', title='拆解等级',
             options_enum=DismantleLevelEnum,
-            margins=margins,
+            margins=self.card_margins,
         )
         layout.addWidget(self.level_opt)
 
         self.abandon_switch = SwitchSettingCard(
             icon='', title='全部已弃置',
-            margins=margins,
+            margins=self.card_margins,
         )
         layout.addWidget(self.abandon_switch)
 

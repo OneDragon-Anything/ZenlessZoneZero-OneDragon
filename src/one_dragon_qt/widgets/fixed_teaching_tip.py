@@ -47,6 +47,9 @@ class FixedTeachingTip(TeachingTip):
 
     def eventFilter(self, obj, event: QEvent):  # type: ignore[override]
         if event.type() == QEvent.Type.MouseButtonPress and isinstance(event, QMouseEvent):
+            # ComboBox 等下拉菜单打开时不关闭 tip
+            if QApplication.activePopupWidget() is not None:
+                return super().eventFilter(obj, event)
             global_pos = event.globalPosition().toPoint()
             if not self.geometry().contains(global_pos):
                 self.close()

@@ -6,7 +6,6 @@ from qfluentwidgets import PushButton
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.utils.config_utils import get_prop_adapter
-from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.app_setting.app_setting_flyout import AppSettingFlyout
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
@@ -23,24 +22,22 @@ class IntelBoardSettingFlyout(AppSettingFlyout):
     """情报板配置弹出框"""
 
     def _setup_ui(self, layout: QVBoxLayout) -> None:
-        margins = Margins(8, 4, 0, 8)
-
         self.predefined_team_opt = ComboBoxSettingCard(
             icon='', title='预备编队',
-            margins=margins,
+            margins=self.card_margins,
         )
         self.predefined_team_opt.value_changed.connect(self._on_team_changed)
         layout.addWidget(self.predefined_team_opt)
 
         self.auto_battle_opt = ComboBoxSettingCard(
             icon='', title='自动战斗',
-            margins=margins,
+            margins=self.card_margins,
         )
         layout.addWidget(self.auto_battle_opt)
 
         self.exp_grind_switch = SwitchSettingCard(
             icon='', title='刷满经验',
-            margins=margins,
+            margins=self.card_margins,
         )
         layout.addWidget(self.exp_grind_switch)
 
