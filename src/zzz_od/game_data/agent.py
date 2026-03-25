@@ -459,10 +459,18 @@ class AgentEnum(Enum):
             AgentStateDef(
                 "叶瞬光-明心境",
                 AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
-                template_id="energy",
+                template_id="yeshunguang_mingxinjing",
                 hsv_color=(113, 75, 255),
                 hsv_color_diff=(10, 50, 50),
                 max_length=120,
+            ),
+            AgentStateDef(
+                "叶瞬光-明心境-标志",
+                AgentStateCheckWay.COLOR_RANGE_CONNECT,
+                template_id="yeshunguang_mingxinjing_sign",
+                hsv_color=(113, 75, 255),
+                hsv_color_diff=(30, 50, 50),
+                connect_cnt=2,
             ),
             AgentStateDef(
                 "叶瞬光-青溟剑势-红",
