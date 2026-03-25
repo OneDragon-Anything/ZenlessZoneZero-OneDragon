@@ -488,3 +488,11 @@ class AgentEnum(Enum):
                                            template_id='aria_cheer_energy',
                                            hsv_color=(90, 255, 255), hsv_color_diff=(90, 200, 100),
                                            connect_cnt=2)])
+
+    NANGONGYU = Agent('nangongyu', '南宫羽', RareTypeEnum.S, AgentTypeEnum.STUN, DmgTypeEnum.ETHER, ['nangongyu', 'nangongyu_muse'],
+                      state_list=[
+                          AgentStateDef('南宫羽-重拍', AgentStateCheckWay.FOREGROUND_COLOR_RANGE_LENGTH,
+                                        template_id='nangongyu',
+                                        hsv_color=(0, 255, 255), hsv_color_diff=(90, 220, 200),
+                                        max_length=100)
+                      ])
