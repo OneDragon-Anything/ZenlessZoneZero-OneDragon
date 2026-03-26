@@ -34,9 +34,8 @@ class InventoryScanInterface(AppRunInterface):
         )
 
     def on_interface_shown(self)->None:
-        super().on_interface_shown()
         """在界面显示时调用"""
-        AppRunInterface.on_interface_shown(self)
+        super().on_interface_shown()
         agent_names_file_path = os.path.join(self.data_file_path, 'agent_names.json')
         # 从枚举创建初始选项
         options = [item.value for item in AgentScanOptionEnum]

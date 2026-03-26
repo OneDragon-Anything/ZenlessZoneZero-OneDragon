@@ -1,5 +1,6 @@
 import threading
 import queue
+import time
 from typing import Optional, Any
 from one_dragon.utils.log_utils import log
 from cv2.typing import MatLike
@@ -35,6 +36,9 @@ class OcrWorker:
 
     def start(self):
         """启动OCR工作线程"""
+        if self._thread is not None and self._thread.is_alive():
+            log.warning("OCR工作线程已在运行中")
+            return
         self._stop_event.clear()
         self._processed_count = 0
         self._error_count = 0
@@ -92,7 +96,7 @@ class OcrWorker:
         while not self._stop_event.is_set():
             try:
                 if self._pause_event.is_set():
-                    self._stop_event.wait(0.05)
+                    time.sleep(0.05)
                     continue
 
                 task = self._queue.get(timeout=0.1)
