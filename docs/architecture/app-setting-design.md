@@ -2,10 +2,9 @@
 
 ## 1. 背景与动机
 
-原实现中，`AppSettingManager` 作为 `ZContext`（核心上下文）的 `@cached_property` 存在，
+原实现中，`shared_dialog_manager` 作为 `ZContext`（核心上下文）的 `@cached_property` 存在，
 导致 GUI 对象（设置界面类）被核心层直接引用，违反了分层架构的依赖方向。
-同时，所有应用的设置映射关系在 `zzz_app_setting_manager.py` 中硬编码注册，
-无法支持第三方插件扩展自己的设置界面。
+同时，所有应用的设置映射关系硬编码注册，无法支持第三方插件扩展自己的设置界面。
 
 **目标**：
 1. 将设置管理器移出核心上下文，归属 GUI 窗口层
@@ -48,9 +47,7 @@ src/one_dragon_qt/
 │       └── app_setting_manager.py      # app_id → handler 映射
 ├── widgets/
 │   └── app_setting/                    # UI 组件
-│       ├── app_setting_dialog.py       # Push 设置对话框
-│       ├── app_setting_flyout.py       # Flyout 设置弹窗
-│       └── pivot_navi_dialog.py        # 导航对话框
+│       └── app_setting_flyout.py       # Flyout 设置弹窗
 └── windows/
     └── main_app_window_base.py         # ★ 窗口基类（组装上述组件）
 ```
