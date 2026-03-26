@@ -1774,14 +1774,14 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": "[赛斯-特殊技可用]"
       - "operations":
         - "op_name": "设置状态"
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": ""
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-丽娜]"
       "states": "[前台-丽娜]"
@@ -1810,7 +1810,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": "[自定义-黄光切人, 0, 1]"
       - "operations":
         - "op_name": "设置状态"
@@ -1835,7 +1835,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": "[自定义-连携换人, 0, 0.5]"
       - "debug_name": "切人后等待"
         "states": "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
@@ -1870,7 +1870,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": "[丽娜-终结技可用]"
       - "operations":
         - "op_name": "设置状态"
@@ -1883,7 +1883,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": ""
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-凯撒]"
       "states": "[前台-凯撒]"
@@ -1990,7 +1990,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": ""
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-露西]"
       "states": "[前台-露西]"
@@ -2111,7 +2111,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": ""
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-悠真]"
       "states": "[前台-悠真]"
@@ -2732,7 +2732,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": "![自定义-珂蕾妲-升温, 0, 8]"
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-柏妮思]"
       "states": "[前台-柏妮思]"
@@ -3161,7 +3161,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": ""
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-朱鸢]"
       "states": "[前台-朱鸢]"
@@ -3314,7 +3314,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": ""
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-艾莲]"
       "states": "[前台-艾莲]"
@@ -3710,7 +3710,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": ""
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-比利]"
       "states": "[前台-比利]"
@@ -4854,7 +4854,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": ""
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-薇薇安]"
       "states": "[前台-薇薇安]"
@@ -7474,30 +7474,6 @@
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-叶瞬光]"
       "states": "[前台-叶瞬光]"
       "sub_handlers":
-      - "interrupt_states": "[叶瞬光-明心境]{1,120}"
-        "operations":
-        - "op_name": "设置状态"
-          "seconds_add": -3.2
-          "state": "自定义-失衡时间"
-        - "op_name": "设置状态"
-          "seconds": 4
-          "state": "自定义-动作不打断"
-        - "op_name": "设置状态"
-          "state": "自定义-叶瞬光-在天"
-        - "op_name": "设置状态"
-          "seconds": 15
-          "state": "自定义-无视闪光"
-        - "op_name": "按键-终结技"
-          "post_delay": 0.1
-          "repeat": 20
-        - "agent_name": "叶瞬光"
-          "op_name": "按键-切换角色"
-        - "op_name": "按键-终结技"
-          "post_delay": 0.1
-          "repeat": 10
-        - "op_name": "等待秒数"
-          "seconds": 1
-        "states": "[自定义-终结技被强制释放, 0, 1] & [叶瞬光-明心境]{0,0}"
       - "operations":
         - "op_name": "设置状态"
           "seconds": 1.6
@@ -7522,7 +7498,7 @@
         - "interrupt_states": "[叶瞬光-明心境]{0,0}"
           "operations":
           - "op_name": "设置状态"
-            "seconds": 15
+            "seconds": 10
             "state": "自定义-无视闪光"
           - "op_name": "等待秒数"
             "seconds": 3
@@ -7543,17 +7519,6 @@
       - "debug_name": "切人后等待"
         "states": "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
         "sub_handlers":
-        - "debug_name": "自动变身"
-          "interrupt_states": "[叶瞬光-青溟剑势-白]{6,6}"
-          "operations":
-          - "op_name": "设置状态"
-            "seconds": 15
-            "state": "自定义-无视闪光"
-          - "op_name": "设置状态"
-            "state": "自定义-叶瞬光-在天"
-          - "op_name": "等待秒数"
-            "seconds": 2
-          "states": "[叶瞬光-明心境]{0,0} & [叶瞬光-青溟剑势-红]{6,6}"
         - "interrupt_states": "[叶瞬光-明心境]{1,120}"
           "operations":
           - "op_name": "设置状态"
@@ -7593,43 +7558,50 @@
           - "op_name": "等待秒数"
             "seconds": 0.3
           "states": ""
-      - "debug_name": "收到结束可以速切了"
-        "states": "[自定义-叶瞬光-收刀]"
-        "sub_handlers":
-        - "operations":
-          - "op_name": "清除状态"
-            "state": "自定义-无视闪光"
-          - "op_name": "清除状态"
-            "state": "自定义-叶瞬光-收刀"
-          - "op_name": "设置状态"
-            "state": "自定义-合轴时间"
-          "states": "[叶瞬光-明心境]{0,0} | [叶瞬光-能量]{0,5}"
-        - "debug_name": "误判"
-          "operations":
-          - "op_name": "设置状态"
-            "seconds": 15
-            "state": "自定义-无视闪光"
-          - "op_name": "清除状态"
-            "state": "自定义-叶瞬光-收刀"
-          "states": "[叶瞬光-能量]{100,120}"
-        - "debug_name": "坐等收刀结束"
-          "interrupt_states": "[叶瞬光-明心境]{0,0} | [叶瞬光-能量]{0,5} | [叶瞬光-能量]{100,120}"
-          "operations":
-          - "op_name": "等待秒数"
-            "seconds": 3
-          "states": ""
+      - "interrupt_states": "[叶瞬光-明心境-标志]{1,1} & ![叶瞬光-明心境]{0,0}"
+        "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -3.2
+          "state": "自定义-失衡时间"
+        - "op_name": "设置状态"
+          "seconds": 4
+          "state": "自定义-动作不打断"
+        - "op_name": "设置状态"
+          "state": "自定义-叶瞬光-在天"
+        - "op_name": "设置状态"
+          "seconds": 15
+          "state": "自定义-无视闪光"
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 20
+        - "agent_name": "叶瞬光"
+          "op_name": "按键-切换角色"
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 10
+        - "op_name": "等待秒数"
+          "seconds": 1
+        "states": "[自定义-终结技被强制释放, 0, 1] & [叶瞬光-明心境-标志]{0,0} & [叶瞬光-明心境]{0,0}  & ![自定义-无视闪光,\
+          \ -15, 0] & [叶瞬光-能量]{10,120}"
       - "debug_name": "常态-技能优先"
-        "interrupt_states": "[叶瞬光-明心境]{1,120}"
-        "states": "[叶瞬光-明心境]{0,0}"
+        "interrupt_states": "[叶瞬光-明心境-标志]{1,1} & ![叶瞬光-明心境]{0,0}"
+        "states": "[叶瞬光-明心境-标志]{0,0} & [叶瞬光-明心境]{0,0} "
         "sub_handlers":
-        - "operations":
+        - "interrupt_states": "[叶瞬光-明心境-标志]{1,1} & ![叶瞬光-明心境]{0,0}"
+          "operations":
           - "op_name": "设置状态"
             "state": "自定义-合轴时间"
           - "op_name": "等待秒数"
             "seconds": 0.1
           - "op_name": "设置状态"
-            "seconds": 15
+            "seconds": 10
             "state": "自定义-无视闪光"
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
+          - "op_name": "按键-普通攻击-按下"
+          - "op_name": "等待秒数"
+            "seconds": 0.5
           - "op_name": "按键-普通攻击-按下"
           - "op_name": "等待秒数"
             "seconds": 0.5
@@ -7692,89 +7664,133 @@
             "repeat": 50
           "states": ""
       - "debug_name": "明心境-期间输出"
-        "states": "[叶瞬光-明心境]{1,120}"
+        "interrupt_states": "[叶瞬光-明心境-标志]{0,0} & [叶瞬光-明心境]{0,0} & ![叶瞬光-能量]{0,0}"
+        "states": "[叶瞬光-明心境-标志]{1,1} & ![叶瞬光-明心境]{0,0}"
         "sub_handlers":
         - "debug_name": "等待变身就绪"
-          "interrupt_states": "[叶瞬光-青溟剑势-白]{0,4} & [叶瞬光-明心境]{90,110}"
+          "interrupt_states": "[叶瞬光-青溟剑势-白]{4,4} & [叶瞬光-明心境]{90,110} | [叶瞬光-明心境]{0,20}"
           "operations":
           - "op_name": "设置状态"
-            "seconds": 15
+            "seconds": 5
             "state": "自定义-无视闪光"
+          - "op_name": "设置状态"
+            "seconds": 5
+            "state": "自定义-动作不打断"
           - "op_name": "按键-特殊攻击-松开"
           - "op_name": "按键-普通攻击-松开"
           - "op_name": "按键-特殊攻击"
             "post_delay": 0.1
             "repeat": 20
-          "states": "[叶瞬光-能量]{117,120}"
-        - "interrupt_states": "[叶瞬光-青溟剑势-白]{4,4}"
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 40
+          "states": "[叶瞬光-明心境]{110,120}"
+        - "interrupt_states": "[叶瞬光-青溟剑势-白]{4,4} | [叶瞬光-明心境]{0,20}"
           "operations":
+          - "op_name": "设置状态"
+            "seconds": 5
+            "state": "自定义-无视闪光"
+          - "op_name": "设置状态"
+            "seconds": 5
+            "state": "自定义-动作不打断"
           - "op_name": "按键-特殊攻击"
             "post_delay": 0.1
             "repeat": 20
+          - "op_name": "按键-普通攻击"
+            "post_delay": 0.1
+            "repeat": 40
           "states": "[叶瞬光-青溟剑势-白]{6,6} & [叶瞬光-明心境]{90,110}"
-        - "interrupt_states": "[叶瞬光-青溟剑势-白]{3,3}"
+        - "interrupt_states": "[叶瞬光-青溟剑势-白]{3,3} | [叶瞬光-明心境]{0,20}"
           "operations":
+          - "op_name": "设置状态"
+            "seconds": 5
+            "state": "自定义-无视闪光"
+          - "op_name": "设置状态"
+            "seconds": 5
+            "state": "自定义-动作不打断"
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
             "repeat": 20
           "states": "[叶瞬光-青溟剑势-白]{4,4}"
-        - "interrupt_states": "[叶瞬光-青溟剑势-白]{1,1}"
+        - "interrupt_states": "[叶瞬光-青溟剑势-白]{1,1} | [叶瞬光-明心境]{0,20}"
           "operations":
+          - "op_name": "设置状态"
+            "seconds": 5
+            "state": "自定义-无视闪光"
+          - "op_name": "设置状态"
+            "seconds": 5
+            "state": "自定义-动作不打断"
           - "op_name": "按键-特殊攻击"
             "post_delay": 0.1
-            "repeat": 10
+            "repeat": 20
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
             "repeat": 40
           "states": "[叶瞬光-青溟剑势-白]{3,3}"
-        - "interrupt_states": "[叶瞬光-青溟剑势-白]{0,0}"
+        - "interrupt_states": "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-明心境]{0,20}"
           "operations":
+          - "op_name": "设置状态"
+            "seconds": 5
+            "state": "自定义-无视闪光"
+          - "op_name": "设置状态"
+            "seconds": 5
+            "state": "自定义-动作不打断"
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
             "repeat": 20
           "states": "[叶瞬光-青溟剑势-白]{1,1}"
-        - "interrupt_states": "[叶瞬光-青溟剑势-白]{0,0}"
+        - "interrupt_states": "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-明心境]{0,20}"
           "operations":
+          - "op_name": "设置状态"
+            "seconds": 5
+            "state": "自定义-无视闪光"
+          - "op_name": "设置状态"
+            "seconds": 5
+            "state": "自定义-动作不打断"
           - "op_name": "按键-普通攻击"
             "post_delay": 0.1
             "repeat": 20
           "states": "[叶瞬光-青溟剑势-白]{2,2} | [叶瞬光-青溟剑势-白]{5,5}"
-        - "interrupt_states": "[叶瞬光-明心境]{0,0}"
+        - "interrupt_states": "[叶瞬光-明心境-标志]{0,0} & [叶瞬光-明心境]{0,0} & ![叶瞬光-能量]{0,0}"
           "operations":
           - "op_name": "设置状态"
-            "state": "自定义-叶瞬光-收刀"
+            "seconds": 5
+            "state": "自定义-无视闪光"
+          - "op_name": "设置状态"
+            "seconds": 5
+            "state": "自定义-动作不打断"
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 0.5
+            "seconds": 1
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 0.5
+            "seconds": 1
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 0.5
+            "seconds": 1
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 0.5
+            "seconds": 1
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 0.5
+            "seconds": 1
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 0.5
+            "seconds": 1
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 0.5
+            "seconds": 1
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 0.5
+            "seconds": 1
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 0.5
+            "seconds": 1
           - "op_name": "按键-特殊攻击-按下"
           - "op_name": "等待秒数"
-            "seconds": 0.5
+            "seconds": 1
           - "op_name": "按键-特殊攻击-松开"
-          "states": "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-明心境]{10,20}"
+          "states": "[叶瞬光-青溟剑势-白]{0,0} | [叶瞬光-明心境]{0,20}"
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-照]"
       "states": "[前台-照]"
       "sub_handlers":
@@ -7888,7 +7904,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": ""
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-千夏]"
       "states": "[前台-千夏]"
@@ -7970,7 +7986,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": ""
     - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-爱芮]"
       "states": "[前台-爱芮]"
@@ -8199,6 +8215,174 @@
             "post_delay": 0.1
             "repeat": 25
           "states": ""
+    - "interrupt_states": "[前台-能量, 0, 0.1] & ![前台-南宫羽]"
+      "states": "[前台-南宫羽]"
+      "sub_handlers":
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -1
+          "state": "自定义-失衡时间"
+        - "op_name": "设置状态"
+          "seconds": 4.5
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 20
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 15
+        - "op_name": "等待秒数"
+          "seconds": 1
+        "states": "[自定义-终结技被强制释放, 0, 1]"
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds": 2
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 15
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        "states": "[自定义-黄光切人, 0, 1]"
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds": 1
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-移动-左-按下"
+        - "op_name": "按键-闪避"
+          "post_delay": 0.2
+        - "op_name": "按键-移动-左-松开"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 10
+        "states": "[自定义-红光闪避, 0, 1]"
+      - "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -1
+          "state": "自定义-失衡时间"
+        - "op_name": "设置状态"
+          "seconds": 2
+          "state": "自定义-动作不打断"
+        - "op_name": "等待秒数"
+          "seconds": 2
+        "states": "[自定义-连携换人, 0, 0.5]"
+      - "debug_name": "切人后等待"
+        "states": "([按键-切换角色-下一个, 0, 0.3]|[按键-切换角色-上一个, 0, 0.3])"
+        "sub_handlers":
+        - "operations":
+          - "op_name": "等待秒数"
+            "seconds": 0.3
+          "states": "[按键可用-快速支援, 0, 0.3]"
+        - "operations":
+          - "op_name": "等待秒数"
+            "seconds": 0.3
+          "states": ""
+      - "debug_name": "南宫羽-终结技"
+        "operations":
+        - "op_name": "设置状态"
+          "seconds_add": -1
+          "state": "自定义-失衡时间"
+        - "op_name": "设置状态"
+          "seconds": 4.5
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 20
+        - "op_name": "按键-终结技"
+          "post_delay": 0.1
+          "repeat": 15
+        - "op_name": "等待秒数"
+          "seconds": 1
+        "states": "[南宫羽-终结技可用]"
+      - "debug_name": "南宫羽-满重拍长按普攻"
+        "interrupt_states": "[南宫羽-重拍]{0, 39}"
+        "operations":
+        - "op_name": "设置状态"
+          "seconds": 5
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-普通攻击-松开"
+        - "op_name": "等待秒数"
+          "seconds": 0.1
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.5
+        - "op_name": "按键-普通攻击-按下"
+        - "op_name": "等待秒数"
+          "seconds": 0.4
+        - "op_name": "按键-普通攻击-松开"
+        "states": "[南宫羽-重拍]{40, 100}"
+      - "debug_name": "南宫羽-强化特殊技"
+        "interrupt_states": "![南宫羽-特殊技可用]"
+        "operations":
+        - "op_name": "设置状态"
+          "seconds": 2
+          "state": "自定义-动作不打断"
+        - "op_name": "按键-特殊攻击"
+          "post_delay": 0.1
+          "repeat": 20
+        "states": "[南宫羽-特殊技可用]"
+      - "debug_name": "南宫羽-默认速切普攻"
+        "operations":
+        - "op_name": "设置状态"
+          "state": "自定义-合轴时间"
+        - "op_name": "按键-普通攻击"
+          "post_delay": 0.1
+          "repeat": 10
+        "states": ""
     - "debug_name": "未知角色"
       "interrupt_states": "[前台-击破] | [前台-强攻] | [前台-支援] | [前台-防护] | [前台-异常] | [前台-命破]"
       "states": "![前台-击破] & ![前台-强攻] & ![前台-支援] & ![前台-防护] & ![前台-异常] & ![前台-命破] &\
@@ -8252,7 +8436,7 @@
           "state": "自定义-合轴时间"
         - "op_name": "按键-普通攻击"
           "post_delay": 0.1
-          "repeat": 25
+          "repeat": 10
         "states": ""
   - "operations":
     - "data":

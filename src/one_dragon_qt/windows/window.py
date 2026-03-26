@@ -3,6 +3,7 @@ from PySide6.QtGui import QColor, QDesktopServices, QIcon
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
     QApplication,
+    QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -156,26 +157,19 @@ class PhosTitleBar(SplitTitleBar):
         self.launcher_version: str = ""
         self.code_version: str = ""
 
-        self._updateButtonStyle()
-        qconfig.themeChangedFinished.connect(self._updateButtonStyle)
-        FluentStyleSheet.FLUENT_WINDOW.apply(self)
+        # 首页模式下需要添加阴影的控件列表
+        self._home_shadow_targets: list[QWidget] = [
+            self.titleLabel,
+            self.launcherVersionButton,
+            self.codeVersionButton,
+            self.questionButton,
+            self.minBtn,
+            self.maxBtn,
+            self.closeBtn,
+        ]
+        self._is_home_mode: bool = False
 
-    def _updateButtonStyle(self):
-        """
-        圆角悬停样式，与 NavigationBarPushButton._drawBackground 一致
-        hover: c=255/0(dark/light), alpha=9; pressed: alpha=6; radius=5
-        """
-        _is_dark = isDarkTheme()
-        _c = 255 if _is_dark else 0
-        _title_btn_qss = (
-            "QPushButton { background: transparent; border: none;"
-            " border-radius: 5px; padding: 4px 8px; }"
-            f"QPushButton:hover {{ background-color: rgba({_c}, {_c}, {_c}, 9); }}"
-            f"QPushButton:pressed {{ background-color: rgba({_c}, {_c}, {_c}, 6); }}"
-        )
-        self.launcherVersionButton.setStyleSheet(_title_btn_qss)
-        self.codeVersionButton.setStyleSheet(_title_btn_qss)
-        self.questionButton.setStyleSheet(_title_btn_qss)
+        self.setProperty("homeMode", "false")
 
     def setIcon(self, icon: QIcon):
         self.iconLabel.setPixmap(icon.pixmap(18, 18))
@@ -227,6 +221,40 @@ class PhosTitleBar(SplitTitleBar):
         if version:
             self.launcherVersionButton.setVisible(True)
 
+    def set_home_mode(self, enable: bool) -> None:
+        """首页模式切换：通过动态属性 homeMode 选择 QSS 规则，配合阴影效果。"""
+        if enable:
+            if not self._is_home_mode:
+                self._is_home_mode = True
+            self.setProperty("homeMode", "true")
+            self.setStyleSheet(self.styleSheet())
+            self._apply_home_shadows()
+        else:
+            if not self._is_home_mode:
+                return
+            self._is_home_mode = False
+            self._clear_home_shadows()
+            self.setProperty("homeMode", "false")
+            self.setStyleSheet(self.styleSheet())
+
+    def _apply_home_shadows(self) -> None:
+        """给首页标题栏的文字和按钮补硬阴影，提升海报背景上的可读性。"""
+        for widget in self._home_shadow_targets:
+            self._apply_widget_shadow(widget)
+
+    def _clear_home_shadows(self) -> None:
+        """清除首页标题栏的阴影效果。"""
+        for widget in self._home_shadow_targets:
+            widget.setGraphicsEffect(None)
+
+    def _apply_widget_shadow(self, widget: QWidget) -> None:
+        """给 widget 应用硬投影效果（blur=5, offset=1,1, alpha=255）。"""
+        shadow = QGraphicsDropShadowEffect(widget)
+        shadow.setBlurRadius(5)
+        shadow.setOffset(1, 1)
+        shadow.setColor(QColor(0, 0, 0, 255))
+        widget.setGraphicsEffect(shadow)
+
     # 定义打开GitHub网页的函数
     def open_github(self):
         url = QUrl(self.issue_url)
@@ -254,6 +282,7 @@ class PhosStackedWidget(StackedWidget):
     """Stacked widget"""
 
     currentChanged = Signal(int)
+    beforeCurrentChanged = Signal(int, int)
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -261,4 +290,8 @@ class PhosStackedWidget(StackedWidget):
     def setCurrentWidget(self, widget, popOut=True):
         if isinstance(widget, QAbstractScrollArea):
             widget.verticalScrollBar().setValue(0)
+        old_idx = self.view.currentIndex()
+        new_idx = self.view.indexOf(widget)
+        if old_idx != new_idx:
+            self.beforeCurrentChanged.emit(old_idx, new_idx)
         self.view.setCurrentWidget(widget, duration=0)

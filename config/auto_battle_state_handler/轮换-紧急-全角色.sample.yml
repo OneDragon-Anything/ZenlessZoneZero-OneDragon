@@ -215,6 +215,15 @@ handlers:
                         state: "自定义-照-蓄力中"
                       - operation_template: "照-终结技"
 
+              - states: "![前台-南宫羽]"
+                debug_name: "南宫羽紧急切入"
+                sub_handlers:
+                  - states: "[南宫羽-重拍]{80, 100}"
+                    debug_name: "南宫羽高重拍切入"
+                    operations:
+                      - op_name: "按键-切换角色"
+                        agent_name: "南宫羽"
+
               # 千夏紧急切入
               - states: "![前台-千夏]"
                 debug_name: "千夏紧急切入"

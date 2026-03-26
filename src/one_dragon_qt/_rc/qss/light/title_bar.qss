@@ -2,49 +2,136 @@
     background-color: transparent;
 }
 
-#TitleBar>QLabel#titleLabel {
-    color: black;
-    background: transparent;
-    font: 13px 'Segoe UI', 'Microsoft YaHei', 'PingFang SC';
-    padding: 0 4px
-}
+/* ===== Default Mode ===== */
 
-#TitleBar>QPushButton {
+#TitleBar[homeMode="false"] > QLabel#titleLabel {
     color: black;
     background: transparent;
     font: 13px 'Segoe UI', 'Microsoft YaHei', 'PingFang SC';
     padding: 0 4px;
-    border: none
 }
 
-#TitleBar > QPushButton:hover {
-    background: rgba(0, 0, 0, 0.1);
+#TitleBar[homeMode="false"] > QPushButton {
+    color: black;
+    background: transparent;
+    font: 13px 'Segoe UI', 'Microsoft YaHei', 'PingFang SC';
+    padding: 0 4px;
+    border: none;
 }
 
-#TitleBar > QPushButton:pressed {
-    background: rgba(0, 0, 0, 0.2);
+#TitleBar[homeMode="false"] > QPushButton:hover {
+    background: rgba(0, 0, 0, 26);
 }
 
-MinimizeButton {
+#TitleBar[homeMode="false"] > QPushButton:pressed {
+    background: rgba(0, 0, 0, 51);
+}
+
+#TitleBar[homeMode="false"] > #launcherVersionButton,
+#TitleBar[homeMode="false"] > #codeVersionButton,
+#TitleBar[homeMode="false"] > #questionButton {
+    border-radius: 5px;
+    padding: 4px 8px;
+}
+
+#TitleBar[homeMode="false"] > #launcherVersionButton:hover,
+#TitleBar[homeMode="false"] > #codeVersionButton:hover,
+#TitleBar[homeMode="false"] > #questionButton:hover {
+    background-color: rgba(0, 0, 0, 9);
+}
+
+#TitleBar[homeMode="false"] > #launcherVersionButton:pressed,
+#TitleBar[homeMode="false"] > #codeVersionButton:pressed,
+#TitleBar[homeMode="false"] > #questionButton:pressed {
+    background-color: rgba(0, 0, 0, 6);
+}
+
+#TitleBar[homeMode="false"] MinimizeButton {
     qproperty-normalColor: black;
     qproperty-normalBackgroundColor: transparent;
     qproperty-hoverColor: black;
     qproperty-hoverBackgroundColor: rgba(0, 0, 0, 26);
     qproperty-pressedColor: black;
-    qproperty-pressedBackgroundColor: rgba(0, 0, 0, 51)
+    qproperty-pressedBackgroundColor: rgba(0, 0, 0, 51);
 }
 
-
-MaximizeButton {
+#TitleBar[homeMode="false"] MaximizeButton {
     qproperty-normalColor: black;
     qproperty-normalBackgroundColor: transparent;
     qproperty-hoverColor: black;
     qproperty-hoverBackgroundColor: rgba(0, 0, 0, 26);
     qproperty-pressedColor: black;
-    qproperty-pressedBackgroundColor: rgba(0, 0, 0, 51)
+    qproperty-pressedBackgroundColor: rgba(0, 0, 0, 51);
 }
 
-CloseButton {
+#TitleBar[homeMode="false"] CloseButton {
     qproperty-normalColor: black;
+    qproperty-normalBackgroundColor: transparent;
+}
+
+/* ===== Home Mode ===== */
+
+#TitleBar[homeMode="true"] > QLabel#titleLabel {
+    color: rgba(236, 240, 245, 230);
+    background: transparent;
+    font: 700 13px 'Segoe UI', 'Microsoft YaHei', 'PingFang SC';
+    padding: 0 4px;
+}
+
+#TitleBar[homeMode="true"] > QPushButton {
+    color: rgba(236, 240, 245, 230);
+    background: transparent;
+    font: 700 13px 'Segoe UI', 'Microsoft YaHei', 'PingFang SC';
+    padding: 0 4px;
+    border: none;
+}
+
+#TitleBar[homeMode="true"] > QPushButton:hover {
+    background: rgba(255, 255, 255, 38);
+}
+
+#TitleBar[homeMode="true"] > QPushButton:pressed {
+    background: rgba(255, 255, 255, 56);
+}
+
+#TitleBar[homeMode="true"] > #launcherVersionButton,
+#TitleBar[homeMode="true"] > #codeVersionButton,
+#TitleBar[homeMode="true"] > #questionButton {
+    border-radius: 5px;
+    padding: 4px 8px;
+}
+
+#TitleBar[homeMode="true"] > #launcherVersionButton:hover,
+#TitleBar[homeMode="true"] > #codeVersionButton:hover,
+#TitleBar[homeMode="true"] > #questionButton:hover {
+    background-color: rgba(255, 255, 255, 30);
+}
+
+#TitleBar[homeMode="true"] > #launcherVersionButton:pressed,
+#TitleBar[homeMode="true"] > #codeVersionButton:pressed,
+#TitleBar[homeMode="true"] > #questionButton:pressed {
+    background-color: rgba(255, 255, 255, 20);
+}
+
+#TitleBar[homeMode="true"] MinimizeButton {
+    qproperty-normalColor: white;
+    qproperty-normalBackgroundColor: transparent;
+    qproperty-hoverColor: white;
+    qproperty-hoverBackgroundColor: rgba(255, 255, 255, 13);
+    qproperty-pressedColor: white;
+    qproperty-pressedBackgroundColor: rgba(255, 255, 255, 26);
+}
+
+#TitleBar[homeMode="true"] MaximizeButton {
+    qproperty-normalColor: white;
+    qproperty-normalBackgroundColor: transparent;
+    qproperty-hoverColor: white;
+    qproperty-hoverBackgroundColor: rgba(255, 255, 255, 13);
+    qproperty-pressedColor: white;
+    qproperty-pressedBackgroundColor: rgba(255, 255, 255, 26);
+}
+
+#TitleBar[homeMode="true"] CloseButton {
+    qproperty-normalColor: white;
     qproperty-normalBackgroundColor: transparent;
 }
