@@ -64,6 +64,7 @@ config/world_patrol_route_list/*
 .runtime/
 notice_cache/
 *.bak
+node_modules/
 
 # 第三方插件目录
 plugins/*

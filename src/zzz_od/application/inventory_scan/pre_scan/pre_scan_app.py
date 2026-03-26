@@ -111,4 +111,4 @@ class PreScanApp(ZApplication):
             result = super().execute()
             return result
         finally:
-            pass
+            self.ocr_worker.stop()
