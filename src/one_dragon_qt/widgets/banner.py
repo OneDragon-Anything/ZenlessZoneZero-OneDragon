@@ -14,7 +14,10 @@ from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QGraphicsVideoItem
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QWidget
 
+from one_dragon_qt.utils.color_utils import extract_dominant_hue, hue_to_theme_color
 from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
+
+DEFAULT_THEME_COLOR: tuple[int, int, int] = (64, 158, 255)
 
 
 class GradientOverlay(QWidget):
@@ -56,6 +59,7 @@ class Banner(QWidget):
         self.is_video = False
         self.banner_image = None
         self.scaled_image = None
+        self.theme_color: tuple[int, int, int] = DEFAULT_THEME_COLOR
 
         # 视频播放器组件
         self.media_player = None
@@ -78,6 +82,7 @@ class Banner(QWidget):
         if not os.path.isfile(media_path):
             self.is_video = False
             self.banner_image = self._create_fallback_image()
+            self.theme_color = DEFAULT_THEME_COLOR
             self._update_scaled_image()
             return
 
@@ -89,6 +94,7 @@ class Banner(QWidget):
         else:
             self._cleanup_video()
             self.banner_image = self._load_image(media_path)
+            self.theme_color = self._extract_theme_color(self.banner_image)
             self._update_scaled_image()
 
     def _extract_first_video_frame(self, video_path: str) -> QImage | None:
@@ -145,6 +151,7 @@ class Banner(QWidget):
         try:
             self._cleanup_video()
             self.banner_image = self._extract_first_video_frame(video_path)
+            self.theme_color = self._extract_theme_color(self.banner_image)
             # 预渲染首帧作为视频加载期间的后备底图
             self._update_video_fallback_image()
 
@@ -311,6 +318,13 @@ class Banner(QWidget):
         fallback_image = QImage(2560, 1280, QImage.Format.Format_RGB32)
         fallback_image.fill(Qt.GlobalColor.gray)
         return fallback_image
+
+    @staticmethod
+    def _extract_theme_color(image: QImage | None) -> tuple[int, int, int]:
+        hue = extract_dominant_hue(image)
+        if hue is None:
+            return DEFAULT_THEME_COLOR
+        return hue_to_theme_color(hue)
 
     def _update_scaled_image(self) -> None:
         """更新缩放后的图片"""

@@ -3,7 +3,6 @@ from PySide6.QtGui import QColor, QDesktopServices, QIcon
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
     QApplication,
-    QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -22,6 +21,8 @@ from qfluentwidgets import (
 from qfluentwidgets.common.animation import BackgroundAnimationWidget
 from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
 from qfluentwidgets.window.stacked_widget import StackedWidget
+
+from one_dragon_qt.utils.layout_utils import apply_shadow
 
 
 # 伪装父类 (替换 FluentWindowBase 初始化)
@@ -240,20 +241,12 @@ class PhosTitleBar(SplitTitleBar):
     def _apply_home_shadows(self) -> None:
         """给首页标题栏的文字和按钮补硬阴影，提升海报背景上的可读性。"""
         for widget in self._home_shadow_targets:
-            self._apply_widget_shadow(widget)
+            apply_shadow(widget, offset_x=1, offset_y=1)
 
     def _clear_home_shadows(self) -> None:
         """清除首页标题栏的阴影效果。"""
         for widget in self._home_shadow_targets:
             widget.setGraphicsEffect(None)
-
-    def _apply_widget_shadow(self, widget: QWidget) -> None:
-        """给 widget 应用硬投影效果（blur=5, offset=1,1, alpha=255）。"""
-        shadow = QGraphicsDropShadowEffect(widget)
-        shadow.setBlurRadius(5)
-        shadow.setOffset(1, 1)
-        shadow.setColor(QColor(0, 0, 0, 255))
-        widget.setGraphicsEffect(shadow)
 
     # 定义打开GitHub网页的函数
     def open_github(self):
