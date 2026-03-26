@@ -56,7 +56,7 @@ class CodeCard(MultiLineSettingCard):
         end_dt_label = CaptionLabel(text=gt('过期日期'))
 
         self.end_dt_input = LineEdit()
-        self.end_dt_input.setValidator(QIntValidator(19000101, 20991231, self))
+        self.end_dt_input.setValidator(QIntValidator())
         self.end_dt_input.setMaxLength(8)
         self.end_dt_input.setText(str(end_dt))
         self.end_dt_input.setMinimumWidth(100)
