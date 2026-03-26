@@ -10,7 +10,7 @@ try:
     from one_dragon.utils.i18_utils import gt
     from one_dragon_qt.services.styles_manager import OdQtStyleSheet
     from one_dragon_qt.view.context_event_signal import ContextEventSignal
-    from one_dragon_qt.windows.app_window_base import AppWindowBase
+    from one_dragon_qt.windows.main_app_window_base import MainAppWindowBase
     from one_dragon_qt.windows.window import PhosTitleBar
     from zzz_od.context.zzz_context import ZContext
 
@@ -44,7 +44,7 @@ try:
             self.get.emit(versions)
 
     # 定义应用程序的主窗口类
-    class AppWindow(AppWindowBase):
+    class AppWindow(MainAppWindowBase):
         titleBar: PhosTitleBar
 
         def __init__(self, ctx: ZContext, parent=None):
@@ -55,8 +55,9 @@ try:
             import time
             self._app_start_time = time.time()
 
-            AppWindowBase.__init__(
+            MainAppWindowBase.__init__(
                 self,
+                ctx=ctx,
                 win_title="%s %s"
                 % (
                     gt(ctx.project_config.project_name),

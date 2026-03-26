@@ -5,28 +5,41 @@ from typing import TYPE_CHECKING, Any
 
 from PySide6.QtWidgets import QWidget
 
+from one_dragon_qt.services.app_setting.app_setting_provider import (
+    AppSettingProvider,
+    SettingType,
+)
+
 if TYPE_CHECKING:
-    from one_dragon_qt.widgets.app_setting.app_setting_flyout import AppSettingFlyout
     from one_dragon_qt.widgets.base_interface import BaseInterface
     from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 
 
 class AppSettingManager:
-    """应用设置管理器基类。
+    """应用设置管理器。
 
-    提供三种设置界面显示方式：
-    - ``_show_dialog``: 按类缓存实例并通过 ``show_by_group`` 显示。
-    - ``_push_interface``: 推入二级设置界面（替换主内容，BreadcrumbBar 导航）。
-    - ``_show_flyout``: 每次通过类方法创建 Flyout 并显示。
+    从 AppSettingProvider 列表自动构建 app_id → 设置回调的映射。
 
-    子类在 ``__init__`` 中通过 ``_app_setting_map`` 注册 app_id → 设置回调。
+    支持两种设置界面显示方式：
+    - ``SettingType.INTERFACE``: 推入二级设置界面（替换主内容，BreadcrumbBar 导航）。
+    - ``SettingType.FLYOUT``: 每次通过类方法创建 Flyout 并显示。
     """
 
-    def __init__(self, ctx) -> None:
+    def __init__(self, ctx, providers: list[AppSettingProvider]) -> None:
         self.ctx = ctx
-        self._dialog_cache: dict[type, Any] = {}
         self._interface_cache: dict[tuple[int, type], BaseInterface] = {}
         self._app_setting_map: dict[str, Callable[..., None]] = {}
+
+        for p in providers:
+            if p.setting_type == SettingType.INTERFACE:
+                self._app_setting_map[p.app_id] = self._make_interface_handler(p.get_setting_cls)
+            elif p.setting_type == SettingType.FLYOUT:
+                self._app_setting_map[p.app_id] = self._make_flyout_handler(p.get_setting_cls)
+
+    @property
+    def settable_app_ids(self) -> set[str]:
+        """返回所有已注册设置的 app_id 集合。"""
+        return set(self._app_setting_map)
 
     def show_app_setting(
         self, app_id: str, parent: QWidget, group_id: str, target: QWidget,
@@ -36,26 +49,25 @@ class AppSettingManager:
         if handler is not None:
             handler(parent=parent, group_id=group_id, target=target)
 
-    @property
-    def settable_app_ids(self) -> set[str]:
-        """返回所有已注册设置的 app_id 集合。"""
-        return set(self._app_setting_map)
+    def _make_interface_handler(
+        self, get_cls: Callable[[], type],
+    ) -> Callable[..., None]:
+        """创建 interface 模式的设置回调。"""
 
-    def _show_dialog(
-        self,
-        dialog_cls: type,
-        ctx,
-        parent: QWidget,
-        group_id: str,
-    ) -> None:
-        """按类缓存弹窗实例并通过 show_by_group 显示。
+        def handler(parent: QWidget, group_id: str, target: QWidget) -> None:
+            self._push_interface(get_cls(), parent)
 
-        适用于 AppSettingDialog 和 PivotNavigatorDialog 的子类，
-        它们都实现了 ``show_by_group(group_id, parent)``。
-        """
-        if dialog_cls not in self._dialog_cache:
-            self._dialog_cache[dialog_cls] = dialog_cls(ctx=ctx)
-        self._dialog_cache[dialog_cls].show_by_group(group_id=group_id, parent=parent)
+        return handler
+
+    def _make_flyout_handler(
+        self, get_cls: Callable[[], type],
+    ) -> Callable[..., None]:
+        """创建 flyout 模式的设置回调。"""
+
+        def handler(parent: QWidget, group_id: str, target: QWidget) -> None:
+            self._show_flyout(get_cls(), parent, group_id, target)
+
+        return handler
 
     def _push_interface(
         self,
@@ -81,7 +93,7 @@ class AppSettingManager:
 
     def _show_flyout(
         self,
-        flyout_cls: type[AppSettingFlyout],
+        flyout_cls: Any,
         parent: QWidget,
         group_id: str,
         target: QWidget,

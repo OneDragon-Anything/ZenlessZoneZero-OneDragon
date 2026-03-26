@@ -138,7 +138,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
             self.ctx.standalone_app_config.app_list = self.app_list_widget.app_ids
 
     def _on_app_setting_clicked(self, app_id: str) -> None:
-        mgr = self.ctx.app_setting_manager
+        mgr = getattr(self.window(), 'app_setting_manager', None)
         if mgr is None:
             return
         target = self._find_setting_btn(app_id) or self.add_app_btn
@@ -158,7 +158,7 @@ class StandaloneRunInterface(SplitAppRunInterface):
 
     def _update_setting_btn_visibility(self) -> None:
         """根据 app_setting_manager 的注册信息，显示或隐藏卡片的设置按钮"""
-        mgr = self.ctx.app_setting_manager
+        mgr = getattr(self.window(), 'app_setting_manager', None)
         settable = mgr.settable_app_ids if mgr is not None else set()
         for card in self.app_list_widget._cards:
             card.setting_btn.setVisible(card.app_id in settable)

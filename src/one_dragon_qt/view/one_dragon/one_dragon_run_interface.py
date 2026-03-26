@@ -230,7 +230,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
 
     def on_app_setting_clicked(self, app_id: str) -> None:
         """处理应用设置按钮被点击，委托给 app_setting_manager"""
-        mgr = self.ctx.app_setting_manager
+        mgr = getattr(self.window(), 'app_setting_manager', None)
         if mgr is None:
             return
         target = self._find_app_card_setting_btn(app_id)
@@ -245,7 +245,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
 
     def _update_setting_btn_visibility(self) -> None:
         """根据 app_setting_manager 的注册信息，显示或隐藏卡片的设置按钮"""
-        mgr = self.ctx.app_setting_manager
+        mgr = getattr(self.window(), 'app_setting_manager', None)
         settable = mgr.settable_app_ids if mgr is not None else set()
         for card in self.app_run_list._app_cards:
             card.setting_btn.setVisible(card.app.app_id in settable)
