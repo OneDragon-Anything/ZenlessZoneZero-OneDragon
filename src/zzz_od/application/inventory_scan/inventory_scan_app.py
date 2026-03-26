@@ -21,6 +21,7 @@ import os
 import json
 import time
 from zzz_od.application.inventory_scan.pre_scan.pre_scan_app import PreScanApp
+import requests
 
 class InventoryScanApp(ZApplication):
     def __init__(self, ctx: ZContext):
