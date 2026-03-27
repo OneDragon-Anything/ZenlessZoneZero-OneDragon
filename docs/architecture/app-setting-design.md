@@ -43,8 +43,7 @@ src/one_dragon_qt/
 │   └── app_setting/                    # ★ 核心服务层（无 UI 依赖）
 │       ├── __init__.py
 │       ├── app_setting_provider.py     # ABC 基类 + SettingType 枚举
-│       ├── app_setting_scanner.py      # 文件扫描（使用 plugin_module_loader）
-│       └── app_setting_manager.py      # app_id → handler 映射
+│       └── app_setting_manager.py      # 扫描 + app_id → handler 映射
 ├── widgets/
 │   └── app_setting/                    # UI 组件
 │       └── app_setting_flyout.py       # Flyout 设置弹窗
@@ -90,77 +89,72 @@ class AppSettingProvider(ABC):
         ...
 ```
 
-### 4.2 AppSettingScanner
-
-**文件**：`one_dragon_qt/services/app_setting/app_setting_scanner.py`
-
-核心函数 `scan_app_settings(plugin_dirs)`:
-1. 接收 `list[tuple[Path, PluginSource]]`——与 `ApplicationFactoryManager` 共用相同的插件目录列表
-2. 递归扫描每个目录下所有 `*_app_setting.py` 文件
-3. 通过 `importlib.util.spec_from_file_location` 动态导入模块
-4. 在模块中查找唯一的 `AppSettingProvider` 子类，实例化并收集
-5. 检测重复 `app_id`，跳过加载失败的文件（打印警告日志）
-6. 返回 `list[AppSettingProvider]`
-
-### 4.3 AppSettingManager
+### 4.2 AppSettingManager
 
 **文件**：`one_dragon_qt/services/app_setting/app_setting_manager.py`
 
 ```python
 class AppSettingManager:
-    def __init__(self, ctx, providers: list[AppSettingProvider]) -> None
-    def show_app_setting(self, app_id, parent, group_id, target) -> None
+    def __init__(self, ctx: OneDragonContext) -> None
     @property
     def settable_app_ids(self) -> set[str]
+    def show_app_setting(self, app_id, parent, group_id, target) -> None
 ```
 
-初始化时根据每个 provider 的 `setting_type` 构建 `app_id → handler` 映射：
-- **SettingType.INTERFACE**：界面实例缓存在 `_interface_cache` 中，通过 `PivotNavigatorInterface.push_setting_interface()` 推入二级界面
-- **SettingType.FLYOUT**：每次调用 `flyout_cls.show_flyout()` 创建临时弹窗
+`__init__` 内部调用 `_discover_providers()` 完成扫描与注册：
+1. 遍历每个 `PluginInfo.plugin_dir`，在该目录中查找 `*_app_setting.py` 文件（非递归）
+2. 动态导入模块，查找唯一的 `AppSettingProvider` 子类
+3. 检测重复 `app_id`，跳过加载失败的文件
+4. 根据每个 provider 的 `setting_type` 构建 `app_id → handler` 映射：
+   - **SettingType.INTERFACE**：界面实例缓存在 `_interface_cache` 中，通过 `PivotNavigatorInterface.push_setting_interface()` 推入二级界面
+   - **SettingType.FLYOUT**：每次调用 `flyout_cls.show_flyout()` 创建临时弹窗
 
-### 4.4 MainAppWindowBase
+> 复用机制：不做独立的 rglob 扫描，而是复用 `factory_manager` 已发现的插件目录。
+
+### 4.3 MainAppWindowBase
 
 **文件**：`one_dragon_qt/windows/main_app_window_base.py`
 
 ```python
 class MainAppWindowBase(AppWindowBase):
     def __init__(self, ctx: OneDragonContext, win_title, project_config, ...):
-        providers = scan_app_settings(ctx.application_plugin_dirs)
-        self.app_setting_manager = AppSettingManager(ctx, providers)
+        self.app_setting_manager = None  # 延迟到 ctx.init() 后
         AppWindowBase.__init__(self, ...)
+
+    def init_app_setting_manager(self, ctx):
+        self.app_setting_manager = AppSettingManager(ctx)
 ```
 
 ---
 
 ## 5. 数据流
 
-```
-┌─── 启动阶段 ─────────────────────────────────────────────────────┐
-│ MainAppWindowBase.__init__(ctx)                                  │
-│   │                                                              │
-│   ├─ scan_app_settings(ctx.application_plugin_dirs)              │
-│   │   │  遍历 BUILTIN + THIRD_PARTY 目录                          │
-│   │   │  rglob("*.py") → 过滤 *_app_setting.py                   │
-│   │   │  动态导入 → 查找 AppSettingProvider 子类                    │
-│   │   └─ 返回 list[AppSettingProvider]                            │
-│   │                                                              │
-│   └─ AppSettingManager(ctx, providers)                           │
-│       遍历每个 provider                                           │
-│       interface → _make_push_handler(get_cls)                   │
-│       flyout → _make_flyout_handler(get_cls)                     │
-│       存入 _app_setting_map[app_id] = handler                    │
-└──────────────────────────────────────────────────────────────────┘
+### 阶段一：窗口构造（主线程）
 
-┌─── 运行阶段 ─────────────────────────────────────────────────────┐
-│ 用户点击设置按钮                                                  │
-│   → AppRunCard 发射 setting_clicked(app_id) 信号                  │
-│   → OneDragonRunInterface.on_app_setting_clicked(app_id)         │
-│       mgr = getattr(self.window(), 'app_setting_manager', None)  │
-│       mgr.show_app_setting(app_id, parent, group_id, target)     │
-│         interface → 惰性创建界面实例 → 推入 PivotNavigatorInterface     │
-│         flyout → flyout_cls.show_flyout(ctx, group_id, target)   │
-└──────────────────────────────────────────────────────────────────┘
-```
+`MainAppWindowBase.__init__(ctx)`
+  - `self.app_setting_manager = None`（不做扫描，不阻塞 UI）
+
+### 阶段二：异步初始化（后台线程 CtxInitRunner）
+
+`CtxInitRunner.run()`
+  1. `ctx.init()`
+     - `factory_manager.discover_factories()` — rglob 扫描所有 `*_factory.py`，注册 PluginInfo
+  2. `window.init_app_setting_manager(ctx)`
+     - `AppSettingManager(ctx)` → `_discover_providers()`
+       - 遍历 `factory_manager.plugin_infos`
+       - 在每个 `plugin_dir` 中查找 `*_app_setting.py`（iterdir，非递归）
+       - 动态导入 → 查找 `AppSettingProvider` 子类
+       - 按 `setting_type` 构建 handler → `_app_setting_map`
+
+### 阶段三：运行阶段
+
+用户点击设置按钮
+  → `AppRunCard` 发射 `setting_clicked(app_id)` 信号
+  → `OneDragonRunInterface.on_app_setting_clicked(app_id)`
+    - `mgr = getattr(self.window(), 'app_setting_manager', None)`
+    - `mgr.show_app_setting(app_id, parent, group_id, target)`
+      - INTERFACE → 惰性创建界面实例 → 推入 `PivotNavigatorInterface`
+      - FLYOUT → `flyout_cls.show_flyout(ctx, group_id, target)`
 
 ---
 

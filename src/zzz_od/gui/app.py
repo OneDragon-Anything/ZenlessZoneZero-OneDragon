@@ -20,12 +20,14 @@ try:
     class CtxInitRunner(QThread):
         finished = Signal()
 
-        def __init__(self, ctx: ZContext, parent=None):
+        def __init__(self, ctx: ZContext, window: MainAppWindowBase, parent=None):
             super().__init__(parent)
             self.ctx = ctx
+            self._window = window
 
         def run(self):
             self.ctx.init()
+            self._window.init_app_setting_manager(self.ctx)
             self.finished.emit()
 
 
@@ -336,7 +338,7 @@ def main() -> None:
     w.activateWindow()
 
     # 加载配置
-    init_runner = CtxInitRunner(_ctx)
+    init_runner = CtxInitRunner(_ctx, w)
     init_runner.start()
 
     # 启动应用程序事件循环
