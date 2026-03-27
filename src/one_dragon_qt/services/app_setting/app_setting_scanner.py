@@ -82,6 +82,7 @@ def _find_provider_in_module(
     module: ModuleType, module_name: str
 ) -> AppSettingProvider | None:
     """在模块中查找唯一的 AppSettingProvider 子类并实例化。"""
+    found: list[type[AppSettingProvider]] = []
     for attr_name in dir(module):
         attr = getattr(module, attr_name)
         if (
@@ -90,5 +91,11 @@ def _find_provider_in_module(
             and attr is not AppSettingProvider
             and getattr(attr, "__module__", None) == module_name
         ):
-            return attr()
-    return None
+            found.append(attr)
+
+    if len(found) == 0:
+        return None
+    if len(found) > 1:
+        names = [cls.__name__ for cls in found]
+        log.warning(f"模块 {module_name} 中发现多个 AppSettingProvider: {names}，仅使用第一个")
+    return found[0]()
