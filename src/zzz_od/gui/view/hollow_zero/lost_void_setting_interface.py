@@ -6,8 +6,8 @@ from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon, PushSettingCard
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.operation.application import application_const
 from one_dragon.utils.log_utils import log
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
 
 
-class LostVoidSettingInterface(VerticalScrollInterface):
+class LostVoidSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def __init__(self, ctx: ZContext):
         super().__init__(
@@ -42,10 +42,6 @@ class LostVoidSettingInterface(VerticalScrollInterface):
         )
 
         self.ctx: ZContext = ctx
-        self.group_id: str = application_const.DEFAULT_GROUP_ID
-
-    def set_group_id(self, group_id: str) -> None:
-        self.group_id = group_id
 
     def get_content_widget(self) -> QWidget:
         # 创建一个容器 widget 用于水平排列

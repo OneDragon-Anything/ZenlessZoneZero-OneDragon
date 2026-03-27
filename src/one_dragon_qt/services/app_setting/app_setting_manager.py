@@ -7,6 +7,7 @@ from PySide6.QtWidgets import QWidget
 
 from one_dragon_qt.services.app_setting.app_setting_provider import (
     AppSettingProvider,
+    GroupIdMixin,
     SettingType,
 )
 
@@ -55,7 +56,7 @@ class AppSettingManager:
         """创建 interface 模式的设置回调。"""
 
         def handler(parent: QWidget, group_id: str, target: QWidget) -> None:
-            self._push_interface(get_cls(), parent)
+            self._push_interface(get_cls(), parent, group_id)
 
         return handler
 
@@ -73,12 +74,14 @@ class AppSettingManager:
         self,
         interface_cls: type,
         parent: QWidget,
+        group_id: str,
     ) -> None:
         """在父级 PivotNavigatorInterface 中推入二级设置界面。
 
         Args:
             interface_cls: BaseInterface 子类，构造函数需接受 ctx 作为唯一参数
             parent: 调用方 widget（向上查找 PivotNavigatorInterface）
+            group_id: 当前运行组 ID
         """
         pivot_navi = self._find_pivot_navigator(parent)
         if pivot_navi is None:
@@ -89,6 +92,11 @@ class AppSettingManager:
             self._interface_cache[cache_key] = interface_cls(self.ctx)
 
         instance = self._interface_cache[cache_key]
+        if isinstance(instance, GroupIdMixin):
+            instance.group_id = group_id
+        for iface in getattr(instance, 'sub_interfaces', []):
+            if isinstance(iface, GroupIdMixin):
+                iface.group_id = group_id
         pivot_navi.push_setting_interface(instance.nav_text, instance)
 
     def _show_flyout(

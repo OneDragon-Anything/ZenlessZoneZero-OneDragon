@@ -10,7 +10,7 @@ class SegmentedSettingInterface(BaseInterface):
 
     def __init__(self, object_name: str, nav_text_cn: str,
                  sub_interfaces: list[BaseInterface], parent: QWidget | None = None) -> None:
-        self._sub_interfaces = sub_interfaces
+        self.sub_interfaces = sub_interfaces
         BaseInterface.__init__(
             self,
             object_name=object_name,
@@ -34,7 +34,7 @@ class SegmentedSettingInterface(BaseInterface):
         self._stacked = QStackedWidget(self)
         layout.addWidget(self._stacked)
 
-        for iface in self._sub_interfaces:
+        for iface in self.sub_interfaces:
             self._stacked.addWidget(iface)
             self._segment.addItem(
                 routeKey=iface.objectName(),
@@ -42,8 +42,8 @@ class SegmentedSettingInterface(BaseInterface):
                 onClick=lambda checked=None, w=iface: self._switch_to(w),
             )
 
-        if self._sub_interfaces:
-            self._segment.setCurrentItem(self._sub_interfaces[0].objectName())
+        if self.sub_interfaces:
+            self._segment.setCurrentItem(self.sub_interfaces[0].objectName())
 
     def _switch_to(self, target: BaseInterface) -> None:
         current = self._stacked.currentWidget()

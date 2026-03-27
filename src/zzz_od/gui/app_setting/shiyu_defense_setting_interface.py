@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QTableWidgetItem, QWidget
 from qfluentwidgets import CheckBox, FluentIcon, TableWidget
 
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
 
 
-class ShiyuDefenseSettingInterface(VerticalScrollInterface):
+class ShiyuDefenseSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
@@ -69,7 +70,7 @@ class ShiyuDefenseSettingInterface(VerticalScrollInterface):
         self.config: ShiyuDefenseConfig = self.ctx.run_context.get_config(
             app_id=shiyu_defense_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
-            group_id='__default__',
+            group_id=self.group_id,
         )
         self.run_record: ShiyuDefenseRunRecord = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,

@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QLabel, QWidget
 from qfluentwidgets import FluentIcon
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.operation.application import application_const
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
@@ -28,7 +28,7 @@ from zzz_od.application.suibian_temple.suibian_temple_config import (
 from zzz_od.context.zzz_context import ZContext
 
 
-class SuibianTempleSettingInterface(VerticalScrollInterface):
+class SuibianTempleSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
@@ -143,7 +143,7 @@ class SuibianTempleSettingInterface(VerticalScrollInterface):
         self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
             app_id='suibian_temple',
             instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
+            group_id=self.group_id,
         )
 
         self.auto_manage_switch.init_with_adapter(get_prop_adapter(self.config, 'auto_manage_enabled'))

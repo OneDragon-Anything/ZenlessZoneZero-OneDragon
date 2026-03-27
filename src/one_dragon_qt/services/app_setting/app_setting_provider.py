@@ -1,12 +1,20 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 
+from one_dragon.base.operation.application.application_const import DEFAULT_GROUP_ID
+
 
 class SettingType(Enum):
     """设置界面显示方式。"""
 
     INTERFACE = "interface"  # 推入二级界面
     FLYOUT = "flyout"  # 弹窗
+
+
+class GroupIdMixin:
+    """为需要 group_id 的设置界面提供统一属性。"""
+
+    group_id: str = DEFAULT_GROUP_ID
 
 
 class AppSettingProvider(ABC):

@@ -2,7 +2,7 @@ from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.operation.application.application_const import DEFAULT_GROUP_ID
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
@@ -23,7 +23,7 @@ from zzz_od.application.coffee.coffee_config import (
 from zzz_od.context.zzz_context import ZContext
 
 
-class CoffeeSettingInterface(VerticalScrollInterface):
+class CoffeeSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
@@ -71,7 +71,7 @@ class CoffeeSettingInterface(VerticalScrollInterface):
         self.config = self.ctx.run_context.get_config(
             app_id=coffee_app_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
-            group_id=DEFAULT_GROUP_ID,
+            group_id=self.group_id,
         )
 
         self.choose_way_opt.init_with_adapter(get_prop_adapter(self.config, 'choose_way'))

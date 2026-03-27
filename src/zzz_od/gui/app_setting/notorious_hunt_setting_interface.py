@@ -3,8 +3,8 @@ from PySide6.QtWidgets import QWidget
 from qfluentwidgets import CaptionLabel, FluentIcon, LineEdit, ToolButton
 
 from one_dragon.base.config.config_item import ConfigItem
-from one_dragon.base.operation.application import application_const
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.draggable_list import DraggableList, DraggableListItem
@@ -189,7 +189,7 @@ class NotoriousHuntCard(DraggableListItem):
         self.changed.emit(self.idx, self.plan)
 
 
-class NotoriousHuntSettingInterface(VerticalScrollInterface):
+class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
@@ -241,7 +241,7 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface):
         self.config = self.ctx.run_context.get_config(
             app_id=notorious_hunt_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
-            group_id=application_const.DEFAULT_GROUP_ID,
+            group_id=self.group_id,
         )
 
         self.update_plan_list_display()
