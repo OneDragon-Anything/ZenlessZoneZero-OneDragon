@@ -36,49 +36,60 @@ class CodeCard(MultiLineSettingCard):
     changed = Signal(str, str, int)  # old_code, new_code, end_dt
     deleted = Signal(str)  # code
 
-    def __init__(self, code: str, end_dt: int, is_new: bool = False, readonly: bool = False, parent=None) -> None:
-        self.original_code = code
-        self.is_new = is_new
-        self.readonly = readonly
+    def __init__(self, parent=None) -> None:
+        self.original_code = ''
+        self.is_new = False
+        self.readonly = False
 
-        code_label = CaptionLabel(text=gt('兑换码'))
+        self.code_label = CaptionLabel(text=gt('兑换码'))
 
         self.code_input = LineEdit()
-        self.code_input.setText(code)
         self.code_input.setMinimumWidth(150)
-        if is_new:
-            self.code_input.setPlaceholderText(gt('请输入兑换码'))
-        if readonly:
-            self.code_input.setReadOnly(True)
-        else:
-            self.code_input.editingFinished.connect(self._on_changed)
 
-        end_dt_label = CaptionLabel(text=gt('过期日期'))
+        self.end_dt_label = CaptionLabel(text=gt('过期日期'))
 
         self.end_dt_input = LineEdit()
         self.end_dt_input.setValidator(QIntValidator())
         self.end_dt_input.setMaxLength(8)
-        self.end_dt_input.setText(str(end_dt))
         self.end_dt_input.setMinimumWidth(100)
-        if readonly:
-            self.end_dt_input.setReadOnly(True)
-        else:
-            self.end_dt_input.editingFinished.connect(self._on_changed)
 
         self.delete_btn = ToolButton(FluentIcon.DELETE)
         self.delete_btn.clicked.connect(self._on_delete_clicked)
-        if readonly:
-            self.delete_btn.hide()
 
         MultiLineSettingCard.__init__(
             self,
             icon=FluentIcon.GAME,
             title='',
             line_list=[
-                [code_label, self.code_input, end_dt_label, self.end_dt_input, self.delete_btn]
+                [self.code_label, self.code_input, self.end_dt_label, self.end_dt_input, self.delete_btn]
             ],
-            parent=parent
+            parent=parent,
         )
+
+        self.code_input.editingFinished.connect(self._on_changed)
+        self.end_dt_input.editingFinished.connect(self._on_changed)
+
+    def update_display(self, code: str, end_dt: int, readonly: bool = False, is_new: bool = False) -> None:
+        """更新卡片显示内容"""
+        self.original_code = code
+        self.is_new = is_new
+        self.readonly = readonly
+
+        self.code_input.blockSignals(True)
+        self.code_input.setText(code)
+        self.code_input.setReadOnly(readonly)
+        if is_new:
+            self.code_input.setPlaceholderText(gt('请输入兑换码'))
+        else:
+            self.code_input.setPlaceholderText('')
+        self.code_input.blockSignals(False)
+
+        self.end_dt_input.blockSignals(True)
+        self.end_dt_input.setText(str(end_dt))
+        self.end_dt_input.setReadOnly(readonly)
+        self.end_dt_input.blockSignals(False)
+
+        self.delete_btn.setVisible(not readonly)
 
     def _on_changed(self) -> None:
         new_code = self.code_input.text().strip()
@@ -107,14 +118,17 @@ class RedemptionCodeSettingInterface(VerticalScrollInterface):
             nav_text_cn='兑换码'
         )
 
-        self.code_cards: list[CodeCard] = []
-        self.add_btn: PrimaryPushButton | None = None
-
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
 
+        self.card_container = Column()
+        self.content_widget.add_widget(self.card_container)
+
+        self.card_list: list[CodeCard] = []
+
         self.add_btn = PrimaryPushButton(text=gt('新增'))
         self.add_btn.clicked.connect(self._on_add_clicked)
+        self.content_widget.add_widget(self.add_btn, stretch=1)
 
         return self.content_widget
 
@@ -122,20 +136,17 @@ class RedemptionCodeSettingInterface(VerticalScrollInterface):
         VerticalScrollInterface.on_interface_shown(self)
 
         self.config: RedemptionCodeConfig = RedemptionCodeConfig()
-        self._refresh_code_cards()
+        self._update_card_list()
 
     def _on_add_clicked(self) -> None:
         default_end_dt = int((datetime.now() + timedelta(days=30)).strftime('%Y%m%d'))
 
-        self.content_widget.layout().removeWidget(self.add_btn)
-
-        card = CodeCard(code='', end_dt=default_end_dt, is_new=True, parent=self)
+        card = CodeCard(parent=self)
+        card.update_display('', default_end_dt, is_new=True)
         card.changed.connect(self._on_new_code_entered)
         card.deleted.connect(self._on_new_card_deleted)
-        self.code_cards.append(card)
-        self.content_widget.add_widget(card)
-
-        self.content_widget.add_widget(self.add_btn, stretch=1)
+        self.card_list.append(card)
+        self.card_container.add_widget(card)
 
         card.code_input.setFocus()
 
@@ -143,8 +154,7 @@ class RedemptionCodeSettingInterface(VerticalScrollInterface):
         if not new_code:
             return
 
-        existing_codes = self.config.codes_dict
-        if new_code in existing_codes:
+        if new_code in self.config.codes_dict:
             sender_card = self.sender()
             if sender_card and isinstance(sender_card, CodeCard):
                 sender_card.code_input.clear()
@@ -156,69 +166,80 @@ class RedemptionCodeSettingInterface(VerticalScrollInterface):
 
         sender_card = self.sender()
         if sender_card and isinstance(sender_card, CodeCard):
-            sender_card.is_new = False
             sender_card.original_code = new_code
+            sender_card.is_new = False
+            sender_card.code_input.setPlaceholderText('')
             sender_card.changed.disconnect(self._on_new_code_entered)
             sender_card.deleted.disconnect(self._on_new_card_deleted)
             sender_card.changed.connect(self._on_code_changed)
             sender_card.deleted.connect(self._on_code_deleted)
 
-    def _on_new_card_deleted(self, code: str) -> None:
+    def _on_new_card_deleted(self, _code: str) -> None:
         sender_card = self.sender()
-        if sender_card and sender_card in self.code_cards:
-            self.code_cards.remove(sender_card)
-            self.content_widget.layout().removeWidget(sender_card)
+        if sender_card and isinstance(sender_card, CodeCard) and sender_card in self.card_list:
+            self.card_list.remove(sender_card)
+            self.card_container.remove_widget(sender_card)
             sender_card.deleteLater()
 
     def _on_code_changed(self, old_code: str, new_code: str, end_dt: int) -> None:
-        sender_card = self.sender()
-
         if old_code == new_code:
             self.config.update_code(old_code, new_code, end_dt)
             return
 
         existing_codes = self.config.codes_dict
         if new_code in existing_codes:
+            sender_card = self.sender()
             if sender_card and isinstance(sender_card, CodeCard):
                 sender_card.code_input.setText(old_code)
             self._show_warning_toast(gt('兑换码已存在'))
             return
 
         self.config.update_code(old_code, new_code, end_dt)
+        sender_card = self.sender()
         if sender_card and isinstance(sender_card, CodeCard):
             sender_card.original_code = new_code
 
     def _on_code_deleted(self, code: str) -> None:
         self.config.delete_code(code)
-        self._refresh_code_cards()
+        self._update_card_list()
 
-    def _refresh_code_cards(self) -> None:
-        for card in self.code_cards:
-            self.content_widget.layout().removeWidget(card)
-            card.deleteLater()
-        self.code_cards.clear()
-
-        if self.add_btn is not None:
-            self.content_widget.layout().removeWidget(self.add_btn)
-
+    def _build_display_list(self) -> list[tuple[str, int, bool]]:
+        """构建显示列表 [(code, end_dt, readonly), ...]"""
+        result: list[tuple[str, int, bool]] = []
         sample_codes = self.config.sample_codes_dict
         user_codes = self.config.user_codes_dict
+
         for code, end_dt in sample_codes.items():
             if code in user_codes:
                 continue
-            card = CodeCard(code=code, end_dt=end_dt, readonly=True, parent=self)
-            self.code_cards.append(card)
-            self.content_widget.add_widget(card)
+            result.append((code, end_dt, True))
 
         for code, end_dt in user_codes.items():
-            card = CodeCard(code=code, end_dt=end_dt, parent=self)
+            result.append((code, end_dt, False))
+
+        return result
+
+    def _update_card_list(self) -> None:
+        """增量更新卡片列表，复用已有卡片实例"""
+        display_list = self._build_display_list()
+
+        # 需要增加卡片
+        while len(self.card_list) < len(display_list):
+            card = CodeCard(parent=self)
             card.changed.connect(self._on_code_changed)
             card.deleted.connect(self._on_code_deleted)
-            self.code_cards.append(card)
-            self.content_widget.add_widget(card)
+            self.card_list.append(card)
+            self.card_container.add_widget(card)
 
-        if self.add_btn is not None:
-            self.content_widget.add_widget(self.add_btn, stretch=1)
+        # 需要移除多余卡片
+        while len(self.card_list) > len(display_list):
+            card = self.card_list.pop()
+            self.card_container.remove_widget(card)
+            card.deleteLater()
+
+        # 更新所有卡片的显示
+        for idx, (code, end_dt, readonly) in enumerate(display_list):
+            self.card_list[idx].update_display(code, end_dt, readonly=readonly)
 
     def _show_warning_toast(self, message: str) -> None:
         InfoBar.warning(
