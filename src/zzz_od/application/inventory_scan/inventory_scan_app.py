@@ -102,7 +102,7 @@ class InventoryScanApp(ZApplication):
         """扫描特定代理人"""
         # if self.scan_agent_option is None:
         #     return self.round_fail('扫描选项未设置')
-        if self.scan_agent_option != AgentScanOptionEnum.UPDATE_AGENTS.value.value:
+        if self.scan_agent_option  and self.scan_agent_option != AgentScanOptionEnum.UPDATE_AGENTS.value.value:
             try:
                 self.special_scan_app = SpecialScanApp(self.ctx)
                 result = self.special_scan_app.execute()
