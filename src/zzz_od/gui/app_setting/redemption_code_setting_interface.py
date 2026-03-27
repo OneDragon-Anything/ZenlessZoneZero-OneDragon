@@ -202,15 +202,15 @@ class RedemptionCodeSettingInterface(VerticalScrollInterface):
             self.content_widget.layout().removeWidget(self.add_btn)
 
         sample_codes = self.config.sample_codes_dict
+        user_codes = self.config.user_codes_dict
         for code, end_dt in sample_codes.items():
+            if code in user_codes:
+                continue
             card = CodeCard(code=code, end_dt=end_dt, readonly=True, parent=self)
             self.code_cards.append(card)
             self.content_widget.add_widget(card)
 
-        user_codes = self.config.user_codes_dict
         for code, end_dt in user_codes.items():
-            if code in sample_codes:
-                continue
             card = CodeCard(code=code, end_dt=end_dt, parent=self)
             card.changed.connect(self._on_code_changed)
             card.deleted.connect(self._on_code_deleted)
