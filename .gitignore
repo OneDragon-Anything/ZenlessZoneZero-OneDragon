@@ -65,6 +65,8 @@ config/world_patrol_route_list/*
 notice_cache/
 *.bak
 node_modules/
+node_service/package-lock.json
+node_service/package.json
 
 # 第三方插件目录
 plugins/*
