@@ -213,6 +213,138 @@
     template_match_threshold: 0.7
     color_range: null
     goto_list: []
+- screen_id: agent_equipment
+  screen_name: 代理人-装备
+  pc_alt: false
+  area_list:
+  - area_name: 属性加成
+    id_mark: true
+    pc_rect:
+    - 310
+    - 976
+    - 459
+    - 1019
+    text: 属性加成
+    lcs_percent: 0.5
+    template_sub_dir: menu
+    template_id: back
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 返回
+    id_mark: false
+    pc_rect:
+    - 74
+    - 23
+    - 161
+    - 78
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list:
+    - 代理人-列表
+  - area_name: 街区
+    id_mark: true
+    pc_rect:
+    - 248
+    - 22
+    - 392
+    - 78
+    text: 街区
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list:
+    - 大世界-普通
+  - area_name: 分区1
+    id_mark: false
+    pc_rect:
+    - 1177
+    - 268
+    - 1299
+    - 373
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 分区2
+    id_mark: false
+    pc_rect:
+    - 1069
+    - 486
+    - 1199
+    - 601
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 分区3
+    id_mark: false
+    pc_rect:
+    - 1179
+    - 708
+    - 1297
+    - 821
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 分区4
+    id_mark: false
+    pc_rect:
+    - 1498
+    - 704
+    - 1617
+    - 819
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 分区5
+    id_mark: false
+    pc_rect:
+    - 1598
+    - 489
+    - 1725
+    - 593
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
+  - area_name: 分区6
+    id_mark: false
+    pc_rect:
+    - 1497
+    - 264
+    - 1622
+    - 375
+    text: ''
+    lcs_percent: 0.5
+    template_sub_dir: ''
+    template_id: ''
+    template_match_threshold: 0.7
+    color_range: null
+    goto_list: []
 - screen_id: agent_info
   screen_name: 代理人-信息
   pc_alt: false
@@ -288,7 +420,8 @@
     template_id: ''
     template_match_threshold: 0.7
     color_range: null
-    goto_list: []
+    goto_list:
+    - 代理人-装备
   - area_name: 代理人-影画
     id_mark: false
     pc_rect:
