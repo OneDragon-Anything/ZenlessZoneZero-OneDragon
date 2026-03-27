@@ -64,6 +64,13 @@ handlers:
         interrupt_states: "[叶瞬光-明心境-标志]{1,1} & ![叶瞬光-明心境]{0,0}"
         debug_name: "常态-技能优先"
         sub_handlers:
+          - states: "[自定义-无视闪光, -15, 0] & [自定义-动作不打断, -15, 0]"
+            operations:
+              - op_name: "清除状态"
+                state: "自定义-合轴时间"
+              - op_name: "清除状态"
+                state: "自定义-动作不打断"
+
           - states: "[叶瞬光-青溟剑势-红]{6,6}"
             interrupt_states: "[叶瞬光-明心境-标志]{1,1} & ![叶瞬光-明心境]{0,0}"
             operations:
