@@ -39,6 +39,17 @@ class FixedTeachingTip(TeachingTip):
         if app is not None:
             app.installEventFilter(self)
 
+    def resizeEvent(self, event) -> None:
+        """宽度变化时用实际宽度重新定位，修正 sizeHint != width 导致的偏移。"""
+        super().resizeEvent(event)
+        if not self.isVisible() or not hasattr(self, 'target'):
+            return
+        target_left = self.target.mapToGlobal(self.target.rect().topLeft()).x()
+        m = self.layout().contentsMargins()
+        desired_x = target_left - self.width() + m.right()
+        if self.x() != desired_x:
+            self.move(desired_x, self.y())
+
     def closeEvent(self, e) -> None:
         app = QApplication.instance()
         if app is not None:
