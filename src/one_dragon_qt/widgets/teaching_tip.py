@@ -132,9 +132,8 @@ class TeachingTip(qtTeachingTip):
 
     def eventFilter(self, obj, e: QEvent):
         if e.type() == QEvent.Type.MouseButtonPress and isinstance(e, QMouseEvent):
-            # 仅当 tip 内部的下拉控件（如 ComboBox）打开时才跳过关闭
-            popup = QApplication.activePopupWidget()
-            if popup is not None and self.isAncestorOf(popup):
+            # ComboBox 下拉等弹出控件打开时跳过关闭
+            if QApplication.activePopupWidget() is not None:
                 return super().eventFilter(obj, e)
             global_pos = e.globalPosition().toPoint()
             if not self._bubble_global_rect().contains(global_pos):
