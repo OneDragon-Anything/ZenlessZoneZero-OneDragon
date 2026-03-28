@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import contextlib
-
-from PySide6.QtCore import QEvent, QRect, Qt
+from PySide6.QtCore import QEvent, QPoint, QPropertyAnimation, QRect, Qt, QTimer
 from PySide6.QtGui import QColor, QMouseEvent, QPainter
-from PySide6.QtWidgets import QApplication, QHBoxLayout
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QScrollArea
 from qfluentwidgets import TeachingTip as qtTeachingTip
 from qfluentwidgets import TeachingTipTailPosition, isDarkTheme
 from qfluentwidgets.components.widgets.teaching_tip import (
@@ -78,6 +76,36 @@ class TeachingTip(qtTeachingTip):
         app = QApplication.instance()
         if app is not None:
             app.installEventFilter(self)
+        self._target_global_pos = self.target.mapToGlobal(QPoint(0, 0))
+
+    def _follow_target(self) -> None:
+        """target 位置改变时跟随移动；滚出可视区域时关闭。"""
+        try:
+            if not self._target_visible():
+                self.close()
+                return
+            current = self.target.mapToGlobal(QPoint(0, 0))
+            if current != self._target_global_pos:
+                delta = current - self._target_global_pos
+                self.move(self.pos() + delta)
+                self._target_global_pos = current
+        except RuntimeError:
+            self.close()
+
+    def _target_visible(self) -> bool:
+        """检查 target 是否在其父 QScrollArea 的可视区域内。"""
+        parent = self.target.parentWidget()
+        while parent is not None:
+            if isinstance(parent, QScrollArea):
+                viewport = parent.viewport()
+                target_rect = self.target.rect()
+                # target 矩形映射到 viewport 坐标系
+                mapped_tl = self.target.mapTo(viewport, target_rect.topLeft())
+                mapped_br = self.target.mapTo(viewport, target_rect.bottomRight())
+                mapped_rect = QRect(mapped_tl, mapped_br)
+                return viewport.rect().intersects(mapped_rect)
+            parent = parent.parentWidget()
+        return True
 
     def resizeEvent(self, event) -> None:
         """宽度变化时用实际宽度重新定位，修正 sizeHint != width 导致的偏移。"""
@@ -111,4 +139,7 @@ class TeachingTip(qtTeachingTip):
             global_pos = e.globalPosition().toPoint()
             if not self._bubble_global_rect().contains(global_pos):
                 self.close()
+        elif e.type() == QEvent.Type.Wheel:
+            # Wheel 在 scroll area 处理之前触发，延到下一帧读取新位置
+            QTimer.singleShot(0, self._follow_target)
         return super().eventFilter(obj, e)
