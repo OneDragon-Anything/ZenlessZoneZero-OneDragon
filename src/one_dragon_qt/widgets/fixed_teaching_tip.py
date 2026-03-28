@@ -27,6 +27,12 @@ class FixedTeachingTip(TeachingTip):
         top_left = view.mapTo(self, view.rect().topLeft())
         return QRect(top_left, view.rect().size())
 
+    def _bubble_global_rect(self) -> QRect:
+        """将 bubble（气泡内容区域）的矩形映射到全局坐标系。"""
+        bubble = self.bubble
+        top_left = bubble.mapToGlobal(bubble.rect().topLeft())
+        return QRect(top_left, bubble.rect().size())
+
     def showEvent(self, e) -> None:
         super().showEvent(e)
         app = QApplication.instance()
@@ -45,12 +51,13 @@ class FixedTeachingTip(TeachingTip):
             return
         super().mousePressEvent(event)
 
-    def eventFilter(self, obj, event: QEvent):  # type: ignore[override]
-        if event.type() == QEvent.Type.MouseButtonPress and isinstance(event, QMouseEvent):
-            # ComboBox 等下拉菜单打开时不关闭 tip
-            if QApplication.activePopupWidget() is not None:
-                return super().eventFilter(obj, event)
-            global_pos = event.globalPosition().toPoint()
-            if not self.geometry().contains(global_pos):
+    def eventFilter(self, obj, e: QEvent):
+        if e.type() == QEvent.Type.MouseButtonPress and isinstance(e, QMouseEvent):
+            # 仅当 tip 内部的下拉控件（如 ComboBox）打开时才跳过关闭
+            popup = QApplication.activePopupWidget()
+            if popup is not None and self.isAncestorOf(popup):
+                return super().eventFilter(obj, e)
+            global_pos = e.globalPosition().toPoint()
+            if not self._bubble_global_rect().contains(global_pos):
                 self.close()
-        return super().eventFilter(obj, event)
+        return super().eventFilter(obj, e)

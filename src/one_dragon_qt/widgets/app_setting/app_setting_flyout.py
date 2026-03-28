@@ -61,13 +61,15 @@ class AppSettingFlyout(FlyoutViewBase):
         parent: QWidget | None = None,
     ) -> TeachingTip:
         """显示配置弹出框，防止重复弹出。"""
-        if cls._current_tip is not None:
+        # 读取基类上的共享引用，确保所有子类互斥
+        prev = AppSettingFlyout._current_tip
+        if prev is not None:
             try:
-                if cls._current_tip.isVisible():
-                    return cls._current_tip
+                if prev.isVisible():
+                    prev.close()
             except RuntimeError:
                 pass
-            cls._current_tip = None
+            AppSettingFlyout._current_tip = None
 
         content_view = cls(ctx, group_id, parent)
         content_view.init_config()
@@ -80,6 +82,6 @@ class AppSettingFlyout(FlyoutViewBase):
             parent=parent,
         )
 
-        cls._current_tip = tip
-        tip.destroyed.connect(lambda: setattr(cls, '_current_tip', None))
+        AppSettingFlyout._current_tip = tip
+        tip.destroyed.connect(lambda: setattr(AppSettingFlyout, '_current_tip', None))
         return tip
