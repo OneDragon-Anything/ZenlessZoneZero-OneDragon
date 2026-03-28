@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 from qfluentwidgets import (
     FlyoutViewBase,
     SettingCard,
-    TeachingTip,
     TeachingTipTailPosition,
 )
 
 from one_dragon_qt.utils.layout_utils import Margins
-from one_dragon_qt.widgets.fixed_teaching_tip import FixedTeachingTip
+from one_dragon_qt.widgets.teaching_tip import TeachingTip
 
 
 class AppSettingFlyout(FlyoutViewBase):
@@ -41,6 +41,12 @@ class AppSettingFlyout(FlyoutViewBase):
         # 去掉 SettingCard 在 flyout 中多余的卡片边框和背景
         for card in self.findChildren(SettingCard):
             card.paintEvent = lambda _e: None
+
+    def backgroundColor(self) -> QColor:
+        return QColor(0, 0, 0, 0)
+
+    def borderColor(self) -> QColor:
+        return QColor(0, 0, 0, 0)
 
     # ---------- 子类实现 ----------
 
@@ -74,7 +80,7 @@ class AppSettingFlyout(FlyoutViewBase):
         content_view = cls(ctx, group_id, parent)
         content_view.init_config()
 
-        tip = FixedTeachingTip.make(
+        tip = TeachingTip.make(
             view=content_view,
             target=target,
             duration=-1,
