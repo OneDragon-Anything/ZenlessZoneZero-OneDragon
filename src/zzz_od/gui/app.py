@@ -27,7 +27,7 @@ try:
 
         def run(self):
             self.ctx.init()
-            self._window.init_app_setting_manager(self.ctx)
+            self._window.on_ctx_ready()
             self.finished.emit()
 
 

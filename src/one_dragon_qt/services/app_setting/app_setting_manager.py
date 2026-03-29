@@ -14,6 +14,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QWidget
 
 from one_dragon.base.operation.application.plugin_info import PluginSource
@@ -35,21 +36,27 @@ if TYPE_CHECKING:
     from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 
 
-class AppSettingManager:
+class AppSettingManager(QObject):
     """应用设置管理器
 
     负责扫描、注册和分发应用设置界面。
     """
 
+    ready = Signal()
+
     def __init__(self, ctx: OneDragonContext) -> None:
+        super().__init__()
         self.ctx: OneDragonContext = ctx
         self._setting_module_suffix: str = "_app_setting"
         self._interface_cache: dict[tuple[int, type], BaseInterface] = {}
         self._app_setting_map: dict[str, Callable[..., None]] = {}
 
-        self._discover_providers()
-
     # ─── 公共 API ─────────────────────────────────────────
+
+    def discover(self) -> None:
+        """执行设置提供者扫描并发出 ready 信号。"""
+        self._discover_providers()
+        self.ready.emit()
 
     @property
     def settable_app_ids(self) -> set[str]:

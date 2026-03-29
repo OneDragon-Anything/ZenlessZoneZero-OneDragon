@@ -37,7 +37,7 @@ class TeachingTip(qtTeachingTip):
 
     def __init__(self, view, target, duration=1000,
                  tailPosition=TeachingTipTailPosition.BOTTOM, parent=None, isDeleteOnClose=True):
-        # 跳过 qtTeachingTip.__init__，用 _ThemedBubble 替代 TeachTipBubble
+        # 跳过 qtTeachingTip.__init__，用 ThemedBubble 替代 TeachTipBubble
         super(qtTeachingTip, self).__init__(parent=parent)
         self.target = target
         self.duration = duration

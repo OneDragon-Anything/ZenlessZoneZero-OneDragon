@@ -15,7 +15,7 @@ class MainAppWindowBase(AppWindowBase):
 
     在 AppWindowBase 基础上增加：
     - 接收 OneDragonContext
-    - ctx.init() 完成后构建 AppSettingManager
+    - 持有 AppSettingManager，ctx.init() 完成后执行设置发现
     """
 
     def __init__(
@@ -26,9 +26,7 @@ class MainAppWindowBase(AppWindowBase):
         app_icon: str | None = None,
         parent=None,
     ):
-        # app_setting_manager 延迟到 ctx.init() 完成后构建
-        # 所有消费方已通过 getattr(window, 'app_setting_manager', None) 做了空值处理
-        self.app_setting_manager: AppSettingManager | None = None
+        self.app_setting_manager = AppSettingManager(ctx)
 
         AppWindowBase.__init__(
             self,
@@ -38,6 +36,6 @@ class MainAppWindowBase(AppWindowBase):
             parent=parent,
         )
 
-    def init_app_setting_manager(self, ctx: OneDragonContext) -> None:
-        """在 ctx.init() 完成后调用，构建应用设置管理器"""
-        self.app_setting_manager = AppSettingManager(ctx)
+    def on_ctx_ready(self) -> None:
+        """在 ctx.init() 完成后调用，执行设置提供者扫描"""
+        self.app_setting_manager.discover()
