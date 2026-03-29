@@ -20,7 +20,7 @@ class PageStackWrapper(QWidget):
         # 返回按钮
         header = QWidget(self)
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(11, 6, 11, 0)
+        header_layout.setContentsMargins(11, 0, 11, 6)
         header_layout.setSpacing(0)
 
         self._back_btn = TransparentPushButton(FluentIcon.RETURN, '返回', header)
@@ -34,6 +34,7 @@ class PageStackWrapper(QWidget):
 
         # 内层页面栈：page0=子界面, page1=二级设置
         self._page_stack = QStackedWidget(self)
+        self._page_stack.setContentsMargins(0, 0, 0, 0)
         self._page_stack.addWidget(sub_interface)
         layout.addWidget(self._page_stack)
 
@@ -47,7 +48,6 @@ class PageStackWrapper(QWidget):
         self._secondary_content = content
         self._page_stack.addWidget(content)
         self._page_stack.setCurrentWidget(content)
-        self._page_stack.setContentsMargins(9, 0, 0, 0)
         self._header.setVisible(True)
         if isinstance(content, BaseInterface):
             content.on_interface_shown()
@@ -86,5 +86,4 @@ class PageStackWrapper(QWidget):
         if self._secondary_content is not None:
             self._page_stack.removeWidget(self._secondary_content)
             self._secondary_content.setParent(None)
-            self._page_stack.setContentsMargins(0, 0, 0, 0)
             self._secondary_content = None
