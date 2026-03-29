@@ -2,10 +2,11 @@ from one_dragon_qt.services.app_setting.app_setting_provider import (
     AppSettingProvider,
     SettingType,
 )
+from zzz_od.application.hollow_zero.lost_void.lost_void_const import APP_ID
 
 
 class LostVoidAppSetting(AppSettingProvider):
-    app_id = "lost_void"
+    app_id = APP_ID
     setting_type = SettingType.INTERFACE
 
     @staticmethod

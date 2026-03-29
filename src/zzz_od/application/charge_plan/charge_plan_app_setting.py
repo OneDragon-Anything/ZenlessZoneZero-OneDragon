@@ -2,10 +2,11 @@ from one_dragon_qt.services.app_setting.app_setting_provider import (
     AppSettingProvider,
     SettingType,
 )
+from zzz_od.application.charge_plan.charge_plan_const import APP_ID
 
 
 class ChargePlanAppSetting(AppSettingProvider):
-    app_id = "charge_plan"
+    app_id = APP_ID
     setting_type = SettingType.INTERFACE
 
     @staticmethod

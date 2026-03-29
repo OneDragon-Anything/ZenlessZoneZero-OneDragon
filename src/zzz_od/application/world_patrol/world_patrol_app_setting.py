@@ -2,10 +2,11 @@ from one_dragon_qt.services.app_setting.app_setting_provider import (
     AppSettingProvider,
     SettingType,
 )
+from zzz_od.application.world_patrol.world_patrol_const import APP_ID
 
 
 class WorldPatrolAppSetting(AppSettingProvider):
-    app_id = "world_patrol"
+    app_id = APP_ID
     setting_type = SettingType.INTERFACE
 
     @staticmethod

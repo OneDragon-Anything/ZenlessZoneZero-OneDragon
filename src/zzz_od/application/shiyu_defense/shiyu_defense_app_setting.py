@@ -2,10 +2,11 @@ from one_dragon_qt.services.app_setting.app_setting_provider import (
     AppSettingProvider,
     SettingType,
 )
+from zzz_od.application.shiyu_defense.shiyu_defense_const import APP_ID
 
 
 class ShiyuDefenseAppSetting(AppSettingProvider):
-    app_id = "shiyu_defense"
+    app_id = APP_ID
     setting_type = SettingType.INTERFACE
 
     @staticmethod
