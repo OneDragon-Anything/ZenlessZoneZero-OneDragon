@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
-from qfluentwidgets import FluentIcon, TransparentPushButton
+from qfluentwidgets import FluentIcon, PushButton
 
 from one_dragon_qt.widgets.base_interface import BaseInterface
 
@@ -20,10 +20,10 @@ class PageStackWrapper(QWidget):
         # 返回按钮
         header = QWidget(self)
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(11, 0, 11, 6)
+        header_layout.setContentsMargins(12, 0, 12, 6)
         header_layout.setSpacing(0)
 
-        self._back_btn = TransparentPushButton(FluentIcon.RETURN, '返回', header)
+        self._back_btn = PushButton(FluentIcon.RETURN, '返回', header)
         self._back_btn.clicked.connect(self._on_back_clicked)
         header_layout.addWidget(self._back_btn)
         header_layout.addStretch(1)
