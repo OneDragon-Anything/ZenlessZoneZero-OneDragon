@@ -1,9 +1,7 @@
 from qfluentwidgets import FluentIcon
 
-from one_dragon_qt.widgets.pivot_navi_interface import (
-    BreadcrumbWrapper,
-    PivotNavigatorInterface,
-)
+from one_dragon_qt.widgets.breadcrumb_wrapper import BreadcrumbWrapper
+from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
 from zzz_od.context.zzz_context import ZContext
 from zzz_od.gui.view.one_dragon.charge_plan_interface import ChargePlanInterface
