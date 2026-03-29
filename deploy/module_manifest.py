@@ -112,6 +112,7 @@ if not getattr(sys, 'frozen', False):
     from qfluentwidgets.components.settings.expand_setting_card import GroupSeparator
     from qfluentwidgets.components.settings.setting_card import SettingIconWidget
     from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
+    from qfluentwidgets.components.widgets.teaching_tip import TeachTipBubble, TeachingTipManager
     from qfluentwidgets.window.stacked_widget import StackedWidget
     from qframelesswindow import FramelessDialog
     from queue import Empty, Queue
