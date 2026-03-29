@@ -666,7 +666,7 @@ class Operation(OperationBase):
         if self.op_callback is not None:
             self.op_callback(result)
 
-    def round_success(self, status: str = None, data: Any = None,
+    def round_success(self, status: str | None = None, data: Any = None,
                       wait: float | None = None, wait_round_time: float | None = None) -> OperationRoundResult:
         """创建成功的轮次结果。
 
@@ -682,7 +682,7 @@ class Operation(OperationBase):
         self._after_round_wait(wait=wait, wait_round_time=wait_round_time)
         return OperationRoundResult(result=OperationRoundResultEnum.SUCCESS, status=status, data=data)
 
-    def round_wait(self, status: str = None, data: Any = None,
+    def round_wait(self, status: str | None = None, data: Any = None,
                    wait: float | None = None, wait_round_time: float | None = None) -> OperationRoundResult:
         """创建等待的轮次结果。
 
@@ -698,7 +698,7 @@ class Operation(OperationBase):
         self._after_round_wait(wait=wait, wait_round_time=wait_round_time)
         return OperationRoundResult(result=OperationRoundResultEnum.WAIT, status=status, data=data)
 
-    def round_retry(self, status: str = None, data: Any = None,
+    def round_retry(self, status: str | None = None, data: Any = None,
                     wait: float | None = None, wait_round_time: float | None = None) -> OperationRoundResult:
         """创建重试的轮次结果。
 
@@ -714,7 +714,7 @@ class Operation(OperationBase):
         self._after_round_wait(wait=wait, wait_round_time=wait_round_time)
         return OperationRoundResult(result=OperationRoundResultEnum.RETRY, status=status, data=data)
 
-    def round_fail(self, status: str = None, data: Any = None,
+    def round_fail(self, status: str | None = None, data: Any = None,
                    wait: float | None = None, wait_round_time: float | None = None) -> OperationRoundResult:
         """创建失败的轮次结果。
 

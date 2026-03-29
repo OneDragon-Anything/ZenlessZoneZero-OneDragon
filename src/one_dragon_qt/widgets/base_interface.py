@@ -23,6 +23,13 @@ class BaseInterface(QWidget):
         self.nav_icon: FluentIconBase | QIcon | str = nav_icon
         self.setObjectName(object_name)
 
+    def on_interface_leave(self) -> None:
+        """
+        视觉切换前调用，用于恢复 margin/标题栏等必须同步的视觉状态
+        :return:
+        """
+        pass
+
     def on_interface_shown(self) -> None:
         """
         子界面显示时 进行初始化

@@ -349,7 +349,7 @@ class LostVoidApp(ZApplication):
 
     @node_from(from_name='矩阵行动-选择预备编队')
     @node_from(from_name='矩阵行动-选择代理人')
-    @operation_node(name='矩阵行动-点击协助代理人')
+    @operation_node(name='矩阵行动-点击协战代理人')
     def matrix_click_support_agent(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
             self.last_screenshot,
@@ -358,7 +358,7 @@ class LostVoidApp(ZApplication):
             success_wait=1,
         )
 
-    @node_from(from_name='矩阵行动-点击协助代理人')
+    @node_from(from_name='矩阵行动-点击协战代理人')
     @operation_node(name='矩阵行动-等待代理人列表', node_max_retry_times=300)
     def matrix_wait_support_panel(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
@@ -367,10 +367,11 @@ class LostVoidApp(ZApplication):
         return self.round_retry('等待代理人列表', wait=0.1)
 
     @node_from(from_name='矩阵行动-等待代理人列表')
-    @operation_node(name='矩阵行动-选择协助代理人')
+    @operation_node(name='矩阵行动-选择协战代理人')
     def matrix_select_support_agent(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '代理人列表')
         support_team_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '协战编队槽')
+        support_team_property = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '协战代理人属性')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=self.last_screenshot,
             rect=area.rect,
@@ -402,11 +403,23 @@ class LostVoidApp(ZApplication):
 
         for ocr_text in ocr_result_list:
             if '协战' in ocr_text.data:
-                return self.round_success('已选择协助代理人')
+                self.ctx.lost_void.challenge_config.clear_artifact_priority_in_battle()
+                # 检查协战代理人属性, 并添加到鸣徽选择的第一优先级中
+                ocr_result_list_1 = self.ctx.ocr_service.get_ocr_result_list(
+                    image=self.last_screenshot,
+                    rect=support_team_property.rect,
+                )
+                for ocr_text_1 in ocr_result_list_1:
+                    text = ocr_text_1.data.replace('【', '[')
+                    if text[0] == '[':
+                        text = text[1:3]
+                    self.ctx.lost_void.challenge_config.artifact_priority_in_battle.append(text)
+                    log.info('添加协战代理人属性武备至第一优先级: [' + text + ']')
+                return self.round_success('已选择协战代理人')
 
         return self.round_retry('未找到协战', wait=0.5)
 
-    @node_from(from_name='矩阵行动-选择协助代理人')
+    @node_from(from_name='矩阵行动-选择协战代理人')
     @operation_node(name='矩阵行动-开始挑战')
     def matrix_start_challenge(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
