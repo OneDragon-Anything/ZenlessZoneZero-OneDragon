@@ -83,3 +83,19 @@ class CommissionAssistantConfig(ApplicationConfig):
     @auto_battle_switch.setter
     def auto_battle_switch(self, new_value: str) -> None:
         self.update('auto_battle_switch', new_value)
+
+    @property
+    def sleep_after_empty_screen(self) -> float:
+        return self.get('sleep_after_empty_screen', 0.3)
+
+    @sleep_after_empty_screen.setter
+    def sleep_after_empty_screen(self, new_value: float) -> None:
+        self.update('sleep_after_empty_screen', new_value)
+
+    @property
+    def focus_story_mode(self) -> bool:
+        return self.get('focus_story_mode', False)
+
+    @focus_story_mode.setter
+    def focus_story_mode(self, new_value: bool) -> None:
+        self.update('focus_story_mode', new_value)
