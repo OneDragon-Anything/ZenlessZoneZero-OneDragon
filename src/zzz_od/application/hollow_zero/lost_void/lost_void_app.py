@@ -122,6 +122,9 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='前往迷失之地-入口')
     @operation_node(name='开始前等待入口加载')
     def wait_lost_void_entry(self) -> OperationRoundResult:
+        return self._wait_for_lost_void_entry()
+
+    def _wait_for_lost_void_entry(self) -> OperationRoundResult:
         result = self.round_by_find_and_click_area(self.last_screenshot, '迷失之地-入口', '按钮-更新弹窗-关闭')
         if result.is_success:
             return self.round_retry(result.status, wait=0.5)
@@ -193,6 +196,32 @@ class LostVoidApp(ZApplication):
         return self.round_by_goto_screen(screen_name='迷失之地-入口')
 
     @node_from(from_name='矩阵行动-前往入口')
+    @operation_node(name='入口OCR-点击周期', node_max_retry_times=300)
+    def click_period_in_entry(self) -> OperationRoundResult:
+        result = self.round_by_find_area(
+            self.last_screenshot,
+            '迷失之地-入口',
+            '按钮-前往挑战',
+        )
+        if result.is_success:
+            self._reset_entry_nav_click_cooldown()
+            return self.round_success('已开放前往挑战')
+
+        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+
+        period_mr = self._find_ocr_text_mr(ocr_result_map, '周期')
+        if period_mr is None:
+            return self.round_retry('未识别到周期', wait=0.1)
+
+        if self._is_entry_nav_click_on_cooldown():
+            return self.round_retry('点击周期冷却', wait=0.1)
+
+        if self.ctx.controller.click(period_mr.center):
+            self._record_entry_nav_click()
+            return self.round_wait('点击周期', wait=0.3)
+        return self.round_retry('点击周期失败', wait=0.1)
+
+    @node_from(from_name='入口OCR-点击周期', status='已开放前往挑战')
     @operation_node(name='矩阵行动-前往挑战')
     def matrix_goto_challenge(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
@@ -753,9 +782,9 @@ class LostVoidApp(ZApplication):
     @node_from(from_name='层间移动', status=LostVoidRunLevel.STATUS_COMPLETE)
     @operation_node(name='通关后处理')
     def after_complete(self) -> OperationRoundResult:
-        screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
-        if screen_name != '迷失之地-入口':
-            return self.round_wait('等待画面加载', wait=1)
+        result = self._wait_for_lost_void_entry()
+        if not result.is_success:
+            return result
 
         self.run_record.add_complete_times()
         if self.use_priority_agent:
