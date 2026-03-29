@@ -63,6 +63,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='挑战完成')
     @node_from(from_name='开始体力计划')
     @node_from(from_name='电量不足')
+    @node_from(from_name='跳过恶名狩猎')
     @node_from(from_name='恢复电量', success=True)
     @node_from(from_name='恢复电量', success=False)
     @operation_node(name='打开菜单')
@@ -216,6 +217,13 @@ class ChargePlanApp(ZApplication):
             # 不跳过，直接结束本轮计划
             self.last_tried_plan = None
             return self.round_success(ChargePlanApp.STATUS_ROUND_FINISHED)
+
+    @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_NO_LEFT_TIMES)
+    @operation_node(name='跳过恶名狩猎')
+    def skip_notorious_hunt(self) -> OperationRoundResult:
+        self.current_plan.skipped = True
+        self.last_tried_plan = self.current_plan
+        return self.round_success()
 
     @node_from(from_name='查找并选择下一个可执行任务', status=STATUS_TRY_RESTORE_CHARGE)
     @operation_node(name='恢复电量', save_status=True)
