@@ -238,6 +238,14 @@ class GameConfig(BasicGameConfig):
         self.update('background_mode', new_value)
 
     @property
+    def win_follow(self) -> bool:
+        return self.get('win_follow', False)
+
+    @win_follow.setter
+    def win_follow(self, new_value: bool) -> None:
+        self.update('win_follow', new_value)
+
+    @property
     def background_gamepad_type(self) -> str:
         return self.get('background_gamepad_type', GamepadTypeEnum.XBOX.value.value)
 
