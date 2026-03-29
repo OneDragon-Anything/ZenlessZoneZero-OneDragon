@@ -161,9 +161,7 @@ class AppSettingManager(QObject):
 
     # ─── UI 分发 ──────────────────────────────────────────
 
-    def _make_interface_handler(
-        self, get_cls: Callable[[], type],
-    ) -> Callable[..., None]:
+    def _make_interface_handler(self, get_cls: Callable[[], type]) -> Callable[..., None]:
         """创建 INTERFACE 模式的设置回调（推入二级界面）。"""
 
         def handler(parent: QWidget, group_id: str, target: QWidget) -> None:
@@ -171,9 +169,7 @@ class AppSettingManager(QObject):
 
         return handler
 
-    def _make_flyout_handler(
-        self, get_cls: Callable[[], type],
-    ) -> Callable[..., None]:
+    def _make_flyout_handler(self, get_cls: Callable[[], type]) -> Callable[..., None]:
         """创建 FLYOUT 模式的设置回调（弹窗显示）。"""
 
         def handler(parent: QWidget, group_id: str, target: QWidget) -> None:

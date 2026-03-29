@@ -138,6 +138,7 @@ class OneDragonRunInterface(SplitAppRunInterface):
 
         self._update_setting_btn_visibility()
 
+        # AppSettingManager 可能尚未就绪，监听信号以在就绪后刷新
         window = self.window()
         if isinstance(window, MainAppWindowBase):
             window.app_setting_manager.ready.connect(self._update_setting_btn_visibility)
