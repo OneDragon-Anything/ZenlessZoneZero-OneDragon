@@ -1,7 +1,6 @@
 import gettext
 import locale
 import os
-from typing import Optional
 
 from one_dragon.utils import os_utils
 
@@ -17,7 +16,7 @@ def detect_language():
             return 'zh'
         else:
             return 'en'
-    except:
+    except Exception:
         return 'zh'
 
 
@@ -47,7 +46,7 @@ def get_translations(model: str, lang: str):
     return translation
 
 
-def gt(msg: str, model: str = 'ui', lang: str = None) -> str:
+def gt(msg: str | None, model: str = 'ui', lang: str | None = None) -> str:
     if msg is None or len(msg) == 0:
         return ''
     if lang is None:
@@ -61,7 +60,7 @@ def gt(msg: str, model: str = 'ui', lang: str = None) -> str:
     return trans.gettext(msg) if trans is not None else msg
 
 
-def coalesce_gt(msg: Optional[str], default: str, model: str = 'ui', lang: str = None) -> str:
+def coalesce_gt(msg: str | None, default: str, model: str = 'ui', lang: str | None = None) -> str:
     """
     带有默认值的获取多语言
     :param msg: 原字符串

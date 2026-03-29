@@ -1,17 +1,15 @@
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import FluentIcon
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
 )
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
 )
@@ -20,17 +18,24 @@ from zzz_od.application.coffee.coffee_config import (
     CoffeeCardNumEnum,
     CoffeeChallengeWay,
     CoffeeChooseWay,
+    CoffeeConfig,
 )
-from zzz_od.gui.dialog.app_setting_dialog import AppSettingDialog
-
-if TYPE_CHECKING:
-    from zzz_od.context.zzz_context import ZContext
+from zzz_od.context.zzz_context import ZContext
 
 
-class CoffeeSettingDialog(AppSettingDialog):
+class CoffeeSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
-    def __init__(self, ctx: ZContext, parent: QWidget | None = None):
-        super().__init__(ctx=ctx, title="咖啡店配置", parent=parent)
+    def __init__(self, ctx: ZContext, parent=None):
+        self.ctx: ZContext = ctx
+
+        VerticalScrollInterface.__init__(
+            self,
+            object_name='zzz_coffee_plan_interface',
+            content_widget=None, parent=parent,
+            nav_text_cn='咖啡计划'
+        )
+
+        self.config: CoffeeConfig | None = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
@@ -60,8 +65,8 @@ class CoffeeSettingDialog(AppSettingDialog):
 
         return content_widget
 
-    def on_dialog_shown(self) -> None:
-        super().on_dialog_shown()
+    def on_interface_shown(self) -> None:
+        VerticalScrollInterface.on_interface_shown(self)
 
         self.config = self.ctx.run_context.get_config(
             app_id=coffee_app_const.APP_ID,

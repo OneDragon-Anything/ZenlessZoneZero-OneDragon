@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from PySide6.QtWidgets import QLabel, QWidget
 from qfluentwidgets import FluentIcon
 
 from one_dragon.base.config.config_item import ConfigItem
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
@@ -17,31 +16,35 @@ from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import SpinBoxSettingCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.suibian_temple.operations.suibian_temple_adventure_dispatch import (
     SuibianTempleAdventureDispatchDuration,
 )
 from zzz_od.application.suibian_temple.suibian_temple_config import (
     BangbooPrice,
-    PawnshopCrestGoods,
-    PawnshopOmnicoinGoods,
     SuibianTempleAdventureMission,
     SuibianTempleConfig,
 )
-from zzz_od.gui.dialog.app_setting_dialog import AppSettingDialog
-
-if TYPE_CHECKING:
-    from zzz_od.context.zzz_context import ZContext
+from zzz_od.context.zzz_context import ZContext
 
 
-class SuibianTempleSettingDialog(AppSettingDialog):
-    
-    def __init__(self, ctx: ZContext, parent: QWidget | None = None):
-        super().__init__(ctx=ctx, title="随便观配置", parent=parent)
+class SuibianTempleSettingInterface(VerticalScrollInterface, GroupIdMixin):
+
+    def __init__(self, ctx: ZContext, parent=None):
+        self.ctx: ZContext = ctx
+
+        VerticalScrollInterface.__init__(
+            self,
+            object_name='zzz_suibian_temple_setting_interface',
+            content_widget=None, parent=parent,
+            nav_text_cn='随便观'
+        )
+
+        self.config: SuibianTempleConfig | None = None
 
     def get_content_widget(self) -> QWidget:
         content_widget = Column()
 
-        # 自动托管开关
         self.auto_manage_switch = SwitchSettingCard(
             icon=FluentIcon.GAME,
             title='自动托管',
@@ -89,7 +92,6 @@ class SuibianTempleSettingDialog(AppSettingDialog):
         )
         content_widget.add_widget(self.adventure_mission_opt)
 
-        # 制造坊
         self.craft_drag_times = SpinBoxSettingCard(
             icon=FluentIcon.GAME,
             title="制造坊-最大下拉次数",
@@ -97,7 +99,6 @@ class SuibianTempleSettingDialog(AppSettingDialog):
         )
         content_widget.add_widget(self.craft_drag_times)
 
-        # 好物铺购买功能设置
         self.good_goods_purchase_switch = SwitchSettingCard(
             icon=FluentIcon.SHOPPING_CART,
             title='好物铺购买',
@@ -105,7 +106,6 @@ class SuibianTempleSettingDialog(AppSettingDialog):
         )
         content_widget.add_widget(self.good_goods_purchase_switch)
 
-        # 邦巢设置
         self.boo_box_purchase_switch = SwitchSettingCard(
             icon=FluentIcon.VIDEO, title='邦巢-购买',
             content='自动刷新购买S级别邦布。随便观25级后可用。'
@@ -137,8 +137,8 @@ class SuibianTempleSettingDialog(AppSettingDialog):
         content_widget.add_stretch(1)
         return content_widget
 
-    def on_dialog_shown(self) -> None:
-        super().on_dialog_shown()
+    def on_interface_shown(self) -> None:
+        VerticalScrollInterface.on_interface_shown(self)
 
         self.config: SuibianTempleConfig = self.ctx.run_context.get_config(
             app_id='suibian_temple',
@@ -156,13 +156,10 @@ class SuibianTempleSettingDialog(AppSettingDialog):
         self.adventure_mission_3_opt.init_with_adapter(get_prop_adapter(self.config, 'adventure_mission_3'))
         self.adventure_mission_4_opt.init_with_adapter(get_prop_adapter(self.config, 'adventure_mission_4'))
 
-        # 制造坊
         self.craft_drag_times.init_with_adapter(get_prop_adapter(self.config, 'craft_drag_times'))
 
-        # 初始化好物铺购买功能设置
         self.good_goods_purchase_switch.init_with_adapter(get_prop_adapter(self.config, 'good_goods_purchase_enabled'))
 
-        # 邦巢相关设置
         self.boo_box_purchase_switch.init_with_adapter(get_prop_adapter(self.config, 'boo_box_purchase_enabled'))
         self.boo_box_adventure_price.init_with_adapter(get_prop_adapter(self.config, 'boo_box_adventure_price'))
         self.boo_box_craft_price.init_with_adapter(get_prop_adapter(self.config, 'boo_box_craft_price'))
@@ -170,11 +167,9 @@ class SuibianTempleSettingDialog(AppSettingDialog):
             get_prop_adapter(self.config, "boo_box_sell_price")
         )
 
-        # 初始化时根据当前配置设置可见性
         self._on_auto_manage_toggled(self.config.auto_manage_enabled)
 
     def _on_auto_manage_toggled(self, checked: bool) -> None:
-        # 如果开启自动托管 隐藏相关控件 否则显示
         visible = not checked
         self.yum_cha_sin_switch.setVisible(visible)
         self.yum_cha_sin_refresh_switch.setVisible(visible)
