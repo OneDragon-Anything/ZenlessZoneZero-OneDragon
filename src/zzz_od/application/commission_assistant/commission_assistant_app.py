@@ -1,4 +1,5 @@
 import time
+from collections import deque
 
 from cv2.typing import MatLike
 
@@ -47,10 +48,13 @@ class CommissionAssistantApp(ZApplication):
         self.run_mode: int = 0  # 0=对话 1=闪避 2=自动战斗
 
         self.last_dialog_opts: set[str] = set()  # 上一次对话的全部选项
-        self.last_chosen_opt: str = ''  # 上一次选择的对话选项
+
+        self.chosen_opt_history_max_len: int = 8
+        self.chosen_opt_history: deque = deque(maxlen=self.chosen_opt_history_max_len)  # 如果一直卡在选择选项, 记录选择的对话选项历史记录
 
         self.fishing_btn_pressed: str | None = None  # 钓鱼在按下的按键
         self.fishing_done: bool = False  # 钓鱼是否结束 通常是比赛类 最后会有挑战结果显示
+        self.is_skip_in_main_story: bool = False  # 跳过主线时, 添加一个标记 以加快ocr效率和增加代码可读性
 
     def handle_init(self):
         self._listen_btn()
@@ -68,49 +72,47 @@ class CommissionAssistantApp(ZApplication):
         if key == self.config.dodge_switch:
             if self.run_mode == 0:
                 self.run_mode = 1
-            elif self.run_mode == 1:
-                self.run_mode = 0
             else:  # 防止并发有问题导致值错乱 最后兜底成初始值
                 self.run_mode = 0
         elif key == self.config.auto_battle_switch:
             if self.run_mode == 0:
                 self.run_mode = 2
-            elif self.run_mode == 2:
-                self.run_mode = 0
             else:  # 防止并发有问题导致值错乱 最后兜底成初始值
                 self.run_mode = 0
 
+    @node_from(from_name='委托助手')
     @node_from(from_name='自动战斗模式')
     @node_from(from_name='剧情模式')
     @node_from(from_name='钓鱼')
     @node_from(from_name='钓鱼', success=False)
-    @operation_node(name='自动对话模式', is_start_node=True)
+    @operation_node(name='委托助手', is_start_node=True)
     def dialog_mode(self) -> OperationRoundResult:
         if self.run_mode in [1, 2]:
             self._load_auto_op()
             return self.round_success('战斗模式')
 
-        config = self.config
+        result = self.round_by_find_and_click_area(self.screenshot(), '委托助手', '对话框确认', pre_delay=0)
+        if result.is_success:
+            # 一些对话时出现确认
+            return self.round_wait(result.status, wait=0.1)
+
+        # 剧情模式
+        result = self.check_story_mode()
+        if result is not None:
+            return result
+        # start = datetime.now()
 
         # 邀约同行移动时 下面的current_screen会识别不到
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
         if result.is_success:
             return self.round_wait(status=result.status, wait=1)
 
-        current_screen = self.check_and_update_current_screen(
-            screen_name_list=['大世界-普通', '大世界-勘域'],
-            crop_first=False,
-        )
+        current_screen = self.check_and_update_current_screen(screen_name_list=['大世界-普通', '大世界-勘域'])
         if current_screen is not None:
             return self.round_wait(status=current_screen, wait=1)
 
-        result = self.round_by_find_area(self.last_screenshot, '委托助手', '左上角返回', crop_first=False)
+        result = self.round_by_find_area(self.last_screenshot, '委托助手', '左上角返回')
         # 很多二级菜单都有这个按钮
-        if result.is_success:
-            return self.round_wait(result.status, wait=1)
-
-        result = self.round_by_find_area(self.last_screenshot, '委托助手', '对话框确认', crop_first=False)
-        # 一些对话时出现确认
         if result.is_success:
             return self.round_wait(result.status, wait=1)
 
@@ -120,28 +122,26 @@ class CommissionAssistantApp(ZApplication):
             return self._handle_hollow(self.last_screenshot_time)
 
         # 判断是否空洞内完成
-        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '通关-完成', crop_first=False)
+        result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '通关-完成', pre_delay=0)
         if result.is_success:
             return self.round_wait(result.status, wait=1)
 
         # 判断短信
         result = self.check_knock_knock()
         if result.is_success:
-            return self.round_wait(result.status, wait=1)
+            return self.round_wait(result.status, wait=0.5)
 
         # 判断钓鱼
         result = self.check_fishing()
         if result is not None:
             return result
 
-        # 剧情模式
-        result = self.check_story_mode()
-        if result is not None:
-            return result
+        result = self._do_dialog_click(click_center_when_fail=True)
+        # elapsed = timedelta.total_seconds(datetime.now() - start)
+        # log.debug('判断游戏模式耗时: ' + str(elapsed)) # ocr这样一轮大概是0.6s
+        return result
 
-        return self._do_dialog_click()
-
-    def _do_dialog_click(self) -> OperationRoundResult:
+    def _do_dialog_click(self, click_center_when_fail: bool = False) -> OperationRoundResult:
         """
         普通的对话点击：选项、对话框标题/中间区域
         """
@@ -156,11 +156,12 @@ class CommissionAssistantApp(ZApplication):
         with_dialog = self._check_dialog(self.last_screenshot)
         if with_dialog:
             self.round_by_click_area('委托助手', '中间选项区域')
-            return self.round_wait(status='对话中点击空白',
-                                   wait=self.config.dialog_click_interval)
+            return self.round_wait(status='对话中点击空白', wait=self.config.dialog_click_interval)
 
-        self.round_by_click_area('委托助手', '中间选项区域')
-        return self.round_wait(status='未知画面点击空白', wait=1)
+        if click_center_when_fail:
+            self.round_by_click_area('委托助手', '中间选项区域')
+            return self.round_success(status='未知画面点击空白', wait=self.config.sleep_after_empty_screen)
+        return self.round_success(status='未知画面', wait=self.config.sleep_after_empty_screen)
 
     def _check_dialog(self, screen: MatLike) -> bool:
         """
@@ -169,8 +170,7 @@ class CommissionAssistantApp(ZApplication):
         area = self.ctx.screen_loader.get_area('委托助手', '对话框标题')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=screen,
-            rect=area.rect,
-            crop_first=False,
+            rect=area.rect
         )
         for ocr_result in ocr_result_list:
             if str_utils.with_chinese(ocr_result.data):
@@ -184,8 +184,7 @@ class CommissionAssistantApp(ZApplication):
         area = self.ctx.screen_loader.get_area('委托助手', area_name)
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=screen,
-            rect=area.rect,
-            crop_first=False,
+            rect=area.rect
         )
         if len(ocr_result_list) == 0:
             return False
@@ -198,8 +197,9 @@ class CommissionAssistantApp(ZApplication):
         for mr in ocr_result_list:
             opt_point = mr.center
 
-            if is_same_opts and mr.data == self.last_chosen_opt:
-                # 忽略上一次一样的选项 这大概率是背景污染
+            if len(self.chosen_opt_history) == self.chosen_opt_history_max_len \
+                    and is_same_opts and mr.data == self.chosen_opt_history[0]:
+                # 忽略一直选择但是仍然存在的选项
                 continue
 
             if self.config.dialog_option == DialogOptionEnum.LAST.value.value:
@@ -212,7 +212,7 @@ class CommissionAssistantApp(ZApplication):
                     to_choose_opt = mr.data
 
         self.ctx.controller.click(to_click)
-        self.last_chosen_opt = to_choose_opt
+        self.chosen_opt_history.append(to_choose_opt)
         return True
 
     def check_same_opts(self, ocr_results: set[str]) -> bool:
@@ -258,16 +258,12 @@ class CommissionAssistantApp(ZApplication):
         """
         判断是否在短信中
         """
-        result = self.round_by_find_area(self.last_screenshot, '委托助手', '标题-短信', crop_first=False)
+        result = self.round_by_find_area(self.last_screenshot, '委托助手', '标题-短信')
         if not result.is_success:
             return result
 
         area = self.ctx.screen_loader.get_area('委托助手', '区域-短信-文本框')
-        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
-            image=self.last_screenshot,
-            rect=area.rect,
-            crop_first=False,
-        )
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(image=self.last_screenshot, rect=area.rect)
         bottom_text: str | None = None  # 最下方的文本
         bottom_mr: MatchResult | None = None  # 找到最下方的文本进行点击
         for mr in ocr_result_list:
@@ -284,7 +280,7 @@ class CommissionAssistantApp(ZApplication):
         result.status = bottom_text
         return result
 
-    @node_from(from_name='自动对话模式', status='战斗模式')
+    @node_from(from_name='委托助手', status='战斗模式')
     @operation_node(name='自动战斗模式')
     def auto_mode(self) -> OperationRoundResult:
         if self.run_mode == 0:
@@ -318,8 +314,7 @@ class CommissionAssistantApp(ZApplication):
         area = self.ctx.screen_loader.get_area('钓鱼', '指令文本区域')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=self.last_screenshot,
-            rect=area.rect,
-            crop_first=False,
+            rect=area.rect
         )
         ocr_word_list = [i.data for i in ocr_result_list]
         if str_utils.find_best_match_by_difflib(gt('点击按键抛竿', 'game'), ocr_word_list) is None:
@@ -338,8 +333,7 @@ class CommissionAssistantApp(ZApplication):
         area = self.ctx.screen_loader.get_area('委托助手', '文本-剧情右上角')
         ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
             image=self.last_screenshot,
-            rect=area.rect,
-            crop_first=False,
+            rect=area.rect
         )
         keywords = ['菜单', '跳过', '自动']
         match_word, _ = ocr_utils.match_word_list_by_priority(ocr_result_map, keywords)
@@ -347,56 +341,82 @@ class CommissionAssistantApp(ZApplication):
             return self.round_success('剧情模式')
         return None
 
-    @node_from(from_name='自动对话模式', status='剧情模式')
+    @node_from(from_name='委托助手', status='剧情模式')
     @operation_node(name='剧情模式')
     def story_mode(self) -> OperationRoundResult:
         """
         剧情模式：右上角有 菜单/自动/跳过（点击前后显隐性或位置性会改变）
         """
+        # 如果按快捷键键切换了别的模式, 跳出循环
+        if self.run_mode != 0:
+            return self.round_success('切换自动对话模式')
+
         area = self.ctx.screen_loader.get_area('委托助手', '文本-剧情右上角')
 
         # 自动播放模式
         if self.config.story_mode == StoryMode.AUTO.value.value:
             # 优先通过模板定位Y轴，再点击中间选项（模板位置点击无反应）
-            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '中间选项区域', center_x=True)
+            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '中间选项区域', center_x=True, pre_delay=0)
             if result.is_success:
                 return self.round_wait('点击中间选项', wait=self.config.dialog_click_interval)
             # 文本-剧情右上角，里面显示'自动'
             result = self.round_by_ocr(self.last_screenshot, '自动', area=area)
             if result.is_success:
+                # 自动播剧情, 1秒检测一次
                 return self.round_wait('剧情自动播放中', wait=1)
             # 文本-剧情右上角，里面显示'菜单'
-            result = self.round_by_ocr_and_click(self.last_screenshot, '菜单', area=area)
+            result = self.round_by_ocr_and_click(self.last_screenshot, '菜单', area=area, pre_delay=0)
             if result.is_success:
+                # 点完会有动画, 需要等待动画结束不然白点
                 return self.round_wait('尝试展开剧情菜单', wait=1)
             # 文本-剧情右上角，下面显示'菜单'（展开菜单后）
-            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '按钮-自动')
+            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '按钮-自动', pre_delay=0)
             if result.is_success:
-                return self.round_wait('尝试切换到自动模式', wait=1)
+                return self.round_wait('尝试切换到自动模式', wait=0.1)
 
         # 跳过剧情模式
         if self.config.story_mode == StoryMode.SKIP.value.value:
-            # 优先识别并点击对话框'确认'
-            result = self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '对话框确认', crop_first=False)
-            if result.is_success:
-                return self.round_wait('跳过剧情', wait=1)
-            # 再按优先级处理跳过/菜单/自动
-            result = self.round_by_ocr_and_click(self.last_screenshot, '跳过', area=area, success_wait=1)
-            if result.is_success:
-                result = self.round_by_find_and_click_area(self.screenshot(), '委托助手', '对话框确认', crop_first=False)
+            # (主线和支线) 识别跳过按钮
+            result = self.round_by_ocr_and_click(self.last_screenshot, '跳过', area=area, success_wait=0.1,
+                                                 color_range=[[240, 240, 240], [255, 255, 255]])
+            if self.is_skip_in_main_story:
+                # 主线点击跳过会有动画, 额外等待0.25s, 支线跳过不用等
+                time.sleep(0.25)
+                self.is_skip_in_main_story = False
+            elif not result.is_success:
+                # (主线) 按优先级处理 跳过/菜单/自动, 不识别遮罩后的按钮
+                result = self.round_by_ocr_and_click_by_priority(['菜单', '自动'], area=area, pre_delay=0,
+                                                                 color_range=[[240, 240, 240], [255, 255, 255]])
                 if result.is_success:
-                    return self.round_wait('跳过剧情', wait=1)
-                return self._do_dialog_click()
-            result = self.round_by_ocr_and_click_by_priority(['菜单', '自动'], area=area)
+                    self.is_skip_in_main_story = True
+                    self.chosen_opt_history.clear()
+                    return self.round_wait(f'点击剧情按钮 {result.status}', wait=0.1)
+
+            # 识别跳过后的确认框
+            result = self.round_by_find_and_click_area(self.screenshot(), '委托助手', '对话框确认', pre_delay=0)
             if result.is_success:
-                return self.round_wait(f'点击剧情按钮 {result.status}', wait=1)
+                self.chosen_opt_history.clear()
+                return self.round_wait('跳过剧情', wait=0.1)
+
+        # region 一些常与剧情穿插的其他简单界面检测
+        # 处理短信
+        result = self.check_knock_knock()
+        if result.is_success:
+            return self.round_wait(result.status, wait=1)
+        # endregion
 
         # 跳过剧情模式：没有'确认'弹窗，说明这个'跳过'是无反馈的灰按钮
         # 跳过剧情模式：文本-剧情右上角，很多情况下是没有内容可点击的
         # 自动点击模式
-        return self._do_dialog_click()
+        result = self._do_dialog_click()
 
-    @node_from(from_name='自动对话模式', status='钓鱼')
+        if self.config.focus_story_mode and not self.ctx.run_context.is_context_pause:
+            # 剧情专注模式, 强制只在这一节点中循环
+            # 脚本暂停时取消强制循环
+            result.result = OperationRoundResultEnum.WAIT
+        return result
+
+    @node_from(from_name='委托助手', status='钓鱼')
     @operation_node('钓鱼', node_max_retry_times=50)  # 约5s没识别到指令就退出
     def on_finishing(self) -> OperationRoundResult:
         # 判断当前指令

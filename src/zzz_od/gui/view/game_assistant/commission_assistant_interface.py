@@ -4,6 +4,7 @@ from qfluentwidgets import FluentIcon
 from one_dragon.base.operation.application import application_const
 from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.view.app_run_interface import AppRunInterface
+from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.row import Row
 from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
     ComboBoxSettingCard,
@@ -13,6 +14,7 @@ from one_dragon_qt.widgets.setting_card.key_setting_card import KeySettingCard
 from one_dragon_qt.widgets.setting_card.spin_box_setting_card import (
     DoubleSpinBoxSettingCard,
 )
+from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
 from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
 )
@@ -55,9 +57,7 @@ class CommissionAssistantRunInterface(AppRunInterface):
         left_layout.addWidget(self.help_opt)
 
         self.dialog_option_opt = ComboBoxSettingCard(
-            icon=FluentIcon.CHAT,
-            title='对话选项优先级',
-            options_enum=DialogOptionEnum,
+            icon=FluentIcon.CHAT, title='对话选项优先级', options_enum=DialogOptionEnum,
         )
         right_layout.addWidget(self.dialog_option_opt)
 
@@ -67,6 +67,16 @@ class CommissionAssistantRunInterface(AppRunInterface):
 
         self.story_mode_opt = ComboBoxSettingCard(icon=FluentIcon.PLAY, title='剧情模式', options_enum=StoryMode)
         right_layout.addWidget(self.story_mode_opt)
+
+        self.sleep_after_empty_screen_opt = DoubleSpinBoxSettingCard(
+            icon=FluentIcon.DATE_TIME, title='检测间隔(秒)', content='当画面检测不到任何内容时, 开启下一轮检测的等待时间')
+        self.sleep_after_empty_screen_opt.spin_box.setSingleStep(0.3)
+        left_layout.addWidget(self.sleep_after_empty_screen_opt)
+
+        self.focus_story_mode_opt = SwitchSettingCard(
+            icon=FluentIcon.CHAT, title='剧情专注模式 (提高剧情模式响应速度)', content='进入剧情模式后就只会自动剧情 暂停后可重新判断委托模式',
+        )
+        right_layout.addWidget(self.focus_story_mode_opt)
 
         self.dodge_config_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='自动闪避')
         left_layout.addWidget(self.dodge_config_opt)
@@ -101,6 +111,8 @@ class CommissionAssistantRunInterface(AppRunInterface):
         self.auto_battle_opt.set_options_by_list(get_auto_battle_op_config_list('auto_battle'))
         self.auto_battle_opt.init_with_adapter(get_prop_adapter(self.config, 'auto_battle'))
         self.auto_battle_switch_opt.init_with_adapter(get_prop_adapter(self.config, 'auto_battle_switch'))
+        self.sleep_after_empty_screen_opt.init_with_adapter(get_prop_adapter(self.config, 'sleep_after_empty_screen'))
+        self.focus_story_mode_opt.init_with_adapter(get_prop_adapter(self.config, 'focus_story_mode'))
 
     def on_interface_hidden(self) -> None:
         AppRunInterface.on_interface_hidden(self)
