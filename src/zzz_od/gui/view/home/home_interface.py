@@ -8,7 +8,6 @@ import requests
 from PySide6.QtCore import QSize, Qt, QThread, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QFont
 from PySide6.QtWidgets import (
-    QGraphicsDropShadowEffect,
     QHBoxLayout,
     QSizePolicy,
     QSpacerItem,
@@ -20,13 +19,15 @@ from qfluentwidgets import (
     InfoBar,
     InfoBarPosition,
     PillPushButton,
+    setCustomStyleSheet,
 )
 
 from one_dragon.base.config.custom_config import BackgroundTypeEnum
 from one_dragon.utils import app_utils, os_utils
 from one_dragon.utils.log_utils import log
 from one_dragon_qt.services.theme_manager import ThemeManager
-from one_dragon_qt.utils.color_utils import ColorUtils
+from one_dragon_qt.utils.color_utils import get_foreground_color
+from one_dragon_qt.utils.layout_utils import apply_shadow
 from one_dragon_qt.widgets.banner import Banner
 from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon_qt.widgets.icon_button import IconButton
@@ -348,6 +349,7 @@ class HomeInterface(BaseInterface):
 
         # 监听背景刷新信号，确保主题色在背景变化时更新
         self._last_reload_banner_signal = False
+        self._last_applied_theme_color: tuple[int, int, int] | None = None
 
         # 记录上次自动检查更新的时间
         self._last_auto_check_time = 0
@@ -381,7 +383,7 @@ class HomeInterface(BaseInterface):
 
         # 公告卡片
         self.notice_container = NoticeCard(self.ctx.project_config.notice_url)
-        self._apply_shadow(self.notice_container, blur=28, offset_x=0, offset_y=8, alpha=150)
+        apply_shadow(self.notice_container, blur=28, offset_x=0, offset_y=8, alpha=150)
         h2_layout.addWidget(self.notice_container, alignment=Qt.AlignmentFlag.AlignBottom)
 
         h2_layout.addStretch()
@@ -393,7 +395,7 @@ class HomeInterface(BaseInterface):
         self.start_button.setFixedHeight(48)
         self.start_button.setMinimumWidth(int(self.start_button.sizeHint().width() * 1.1))  # 加宽10%
         self.start_button.clicked.connect(self._on_start_game)
-        self._apply_shadow(self.start_button, blur=24, offset_x=0, offset_y=6, alpha=140)
+        apply_shadow(self.start_button, blur=24, offset_x=0, offset_y=6, alpha=140)
 
         # 设置图标和文本之间的间距
         if self.start_button.layout():
@@ -421,18 +423,10 @@ class HomeInterface(BaseInterface):
 
         QTimer.singleShot(0, self._update_start_button_style_from_banner)
 
-    def _apply_shadow(self, widget: QWidget, blur: int, offset_x: int, offset_y: int, alpha: int) -> None:
-        """为首页关键控件添加阴影，不影响其他页面样式。"""
-        shadow = QGraphicsDropShadowEffect(widget)
-        shadow.setBlurRadius(blur)
-        shadow.setOffset(offset_x, offset_y)
-        shadow.setColor(QColor(0, 0, 0, alpha))
-        widget.setGraphicsEffect(shadow)
-
     def _apply_button_group_shadows(self) -> None:
         """给首页右侧悬浮图标加硬阴影，增强在复杂背景上的辨识度。"""
         for button in self.button_group.buttons:
-            self._apply_shadow(button, blur=5, offset_x=0, offset_y=0, alpha=255)
+            apply_shadow(button)
 
     def _init_check_runners(self):
         """初始化检查更新的线程"""
@@ -659,10 +653,7 @@ class HomeInterface(BaseInterface):
             return
 
         try:
-            # 强制清空主题色缓存，确保重新提取
-            self._clear_theme_color_cache()
-
-            # 更新背景图片
+            # 更新背景图片（Banner.set_media 会自动重新提取主题色）
             self._banner_widget.set_media(self.choose_banner_media())
             # 依据背景重新计算按钮配色
             self._update_start_button_style_from_banner()
@@ -707,25 +698,18 @@ class HomeInterface(BaseInterface):
 
     def _update_start_button_style_from_banner(self) -> None:
         """从当前背景取主色，应用到启动按钮。"""
-        # 确保按钮存在
         if not hasattr(self, 'start_button'):
-            log.debug("start_button 不存在，跳过样式更新")
             return
 
-        # 检查是否能使用缓存
-        current_banner_path = self.choose_banner_media()
-        if self._can_use_cached_theme_color(current_banner_path):
-            log.debug(f"使用缓存的主题色，跳过样式更新: {current_banner_path}")
-            return
-
-        # 获取主题色
         theme_color = self._get_theme_color()
+
+        # 跳过未变化的主题色
+        if theme_color == self._last_applied_theme_color:
+            return
+        self._last_applied_theme_color = theme_color
+
         self.ctx.custom_config.theme_color = theme_color
-
-        # 更新全局主题色
         ThemeManager.set_theme_color(theme_color)
-
-        # 应用按钮样式
         self._apply_button_style(theme_color)
 
     def _set_title_bar_home_mode(self, enable: bool) -> None:
@@ -740,63 +724,16 @@ class HomeInterface(BaseInterface):
         self.main_window.titleBar.set_home_mode(enable)
 
     def _get_theme_color(self) -> tuple[int, int, int]:
-        """获取主题色，优先使用缓存，否则从图片提取"""
-        # 如果是自定义模式，直接返回自定义颜色
+        """获取主题色，优先使用自定义颜色，否则从 Banner 读取"""
         if self.ctx.custom_config.custom_theme_color:
             return self.ctx.custom_config.theme_color
 
-        current_banner_path = self.choose_banner_media()
-
-        # 检查是否能使用缓存的主题色
-        if self._can_use_cached_theme_color(current_banner_path):
-            lr, lg, lb = self.ctx.custom_config.theme_color
-            log.debug(f"使用缓存的主题色: ({lr}, {lg}, {lb})")
-            return lr, lg, lb
-
-        # 背景图片改变了，需要重新提取颜色
-        theme_color = self._extract_color_from_image()
-
-        # 更新缓存
-        self._update_theme_color_cache(current_banner_path)
-
-        return theme_color
-
-    def _extract_color_from_image(self) -> tuple[int, int, int]:
-        """从背景图片提取主题色"""
-        image = self._banner_widget.banner_image
-        log.debug(f"图片状态: image={image is not None}, isNull={image.isNull() if image else 'N/A'}")
-
-        if image is None or image.isNull():
-            log.debug("使用默认蓝色主题")
-            return 64, 158, 255  # 默认蓝色
-
-        # 取右下角区域的平均色，代表按钮附近背景
-        w, h = image.width(), image.height()
-        x0 = int(w * 0.65)
-        y0 = int(h * 0.65)
-        x1, y1 = w, h
-
-        # 提取区域平均颜色
-        r, g, b = ColorUtils.extract_average_color_from_region(image, x0, y0, x1, y1)
-
-        if r == 64 and g == 158 and b == 255:  # 如果返回默认色，说明提取失败
-            log.debug("无法从图片获取颜色，使用默认蓝色")
-            return r, g, b
-
-        # 处理提取的颜色
-        return self._process_extracted_color(r, g, b)
-
-    def _process_extracted_color(self, r: int, g: int, b: int) -> tuple[int, int, int]:
-        """使用主题色 #CB3D32"""
-        return 203, 61, 50
+        return self._banner_widget.theme_color
 
     def _apply_button_style(self, theme_color: tuple[int, int, int]) -> None:
         """应用样式到启动按钮"""
-        from qfluentwidgets import setCustomStyleSheet
-
         r, g, b = theme_color
-        luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
-        foreground = "#000000" if luminance >= 160 else "#FFFFFF"
+        foreground = get_foreground_color(r, g, b)
         theme_bg = f"rgb({r}, {g}, {b})"
         hover_bg = foreground
 
@@ -805,7 +742,7 @@ class HomeInterface(BaseInterface):
         self.start_button.setIcon(self._black_icon)
 
         # 使用 setCustomStyleSheet 而不是 setStyleSheet，避免破坏按钮的内部布局
-        light_qss = f"""
+        qss = f"""
         PillPushButton#start_button {{
             background-color: {theme_bg};
             color: {foreground};
@@ -818,42 +755,4 @@ class HomeInterface(BaseInterface):
             color: {theme_bg};
         }}
         """
-        dark_qss = light_qss  # 暂时使用相同样式
-
-        setCustomStyleSheet(self.start_button, light_qss, dark_qss)
-
-    def _clear_theme_color_cache(self) -> None:
-        """清空主题色缓存"""
-        self.ctx.custom_config.theme_color_banner_path = ''
-        self.ctx.custom_config.theme_color_banner_mtime = 0.0
-
-    def _can_use_cached_theme_color(self, current_banner_path: str) -> bool:
-        """检查是否可以使用缓存的主题色"""
-        cached_path = self.ctx.custom_config.theme_color_banner_path
-        current_path = Path(current_banner_path)
-
-        if cached_path != current_banner_path or not current_path.exists():
-            return False
-
-        # 检查文件修改时间是否改变
-        try:
-            current_mtime = current_path.stat().st_mtime
-            cached_mtime = self.ctx.custom_config.theme_color_banner_mtime
-
-            if current_mtime != cached_mtime:
-                # 文件已被修改，不能使用缓存
-                return False
-
-        except OSError:
-            # 无法获取文件时间戳，为安全起见不使用缓存
-            return False
-
-        return True
-
-    def _update_theme_color_cache(self, banner_path: str) -> None:
-        """更新主题色缓存"""
-        self.ctx.custom_config.theme_color_banner_path = banner_path
-        try:
-            self.ctx.custom_config.theme_color_banner_mtime = Path(banner_path).stat().st_mtime
-        except OSError:
-            self.ctx.custom_config.theme_color_banner_mtime = 0.0
+        setCustomStyleSheet(self.start_button, qss, qss)
