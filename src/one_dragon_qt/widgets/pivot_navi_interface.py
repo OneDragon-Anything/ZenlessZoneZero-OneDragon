@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QStackedWidget, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIconBase, Pivot, qrouter
 
 from one_dragon_qt.widgets.base_interface import BaseInterface
-from one_dragon_qt.widgets.breadcrumb_wrapper import BreadcrumbWrapper
+from one_dragon_qt.widgets.page_stack_wrapper import PageStackWrapper
 
 
 class PivotNavigatorInterface(BaseInterface):
@@ -22,7 +22,7 @@ class PivotNavigatorInterface(BaseInterface):
         self.pivot = Pivot(self)
         self.stacked_widget = QStackedWidget(self)
         self._last_stack_idx: int = 0
-        self._breadcrumb_wrappers: dict[str, BreadcrumbWrapper] = {}
+        self._page_wrappers: dict[str, PageStackWrapper] = {}
 
         self.v_box_layout.addWidget(self.pivot, 0, Qt.AlignmentFlag.AlignLeft)
         self.v_box_layout.addWidget(self.stacked_widget)
@@ -32,11 +32,10 @@ class PivotNavigatorInterface(BaseInterface):
         self.stacked_widget.currentChanged.connect(self.on_current_index_changed)
 
     def add_sub_interface(self, sub_interface: BaseInterface,
-                          enable_breadcrumb: bool = False, breadcrumb_root_text: str = ''):
-        if enable_breadcrumb:
-            root_text = breadcrumb_root_text or sub_interface.nav_text
-            wrapper = BreadcrumbWrapper(sub_interface, root_text, self.stacked_widget)
-            self._breadcrumb_wrappers[sub_interface.objectName()] = wrapper
+                          enable_page_stack: bool = False):
+        if enable_page_stack:
+            wrapper = PageStackWrapper(sub_interface, self.stacked_widget)
+            self._page_wrappers[sub_interface.objectName()] = wrapper
             actual_widget = wrapper
         else:
             actual_widget = sub_interface
@@ -64,30 +63,30 @@ class PivotNavigatorInterface(BaseInterface):
     def on_current_index_changed(self, index):
         if index != self._last_stack_idx:
             last_widget = self.stacked_widget.widget(self._last_stack_idx)
-            if isinstance(last_widget, BreadcrumbWrapper | BaseInterface):
+            if isinstance(last_widget, PageStackWrapper | BaseInterface):
                 last_widget.on_interface_hidden()
             self._last_stack_idx = index
 
         current_widget = self.stacked_widget.widget(index)
         self.pivot.setCurrentItem(current_widget.objectName())
         qrouter.push(self.stacked_widget, current_widget.objectName())
-        if isinstance(current_widget, BreadcrumbWrapper | BaseInterface):
+        if isinstance(current_widget, PageStackWrapper | BaseInterface):
             current_widget.on_interface_shown()
 
     def on_interface_shown(self) -> None:
         """子界面显示时 进行初始化"""
         current_widget = self.stacked_widget.currentWidget()
-        if isinstance(current_widget, BreadcrumbWrapper | BaseInterface):
+        if isinstance(current_widget, PageStackWrapper | BaseInterface):
             current_widget.on_interface_shown()
 
     def on_interface_hidden(self) -> None:
         """子界面隐藏时的回调"""
         current_widget = self.stacked_widget.currentWidget()
-        if isinstance(current_widget, BreadcrumbWrapper | BaseInterface):
+        if isinstance(current_widget, PageStackWrapper | BaseInterface):
             current_widget.on_interface_hidden()
 
     def push_setting_interface(self, title: str, content: QWidget) -> None:
-        """在当前子页面的面包屑包装中推入二级设置界面。"""
+        """在当前子页面的页面栈包装中推入二级设置界面。"""
         current_widget = self.stacked_widget.currentWidget()
-        if isinstance(current_widget, BreadcrumbWrapper):
+        if isinstance(current_widget, PageStackWrapper):
             current_widget.push_setting(title, content)

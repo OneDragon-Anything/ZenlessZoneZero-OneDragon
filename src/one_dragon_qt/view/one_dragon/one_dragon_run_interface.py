@@ -145,7 +145,8 @@ class OneDragonRunInterface(SplitAppRunInterface):
 
     def on_interface_hidden(self) -> None:
         SplitAppRunInterface.on_interface_hidden(self)
-        self._context_event_signal.instance_changed.disconnect(self._on_instance_changed)
+        with contextlib.suppress(RuntimeError):
+            self._context_event_signal.instance_changed.disconnect(self._on_instance_changed)
         window = self.window()
         if isinstance(window, MainAppWindowBase):
             with contextlib.suppress(RuntimeError):

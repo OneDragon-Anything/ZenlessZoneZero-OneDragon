@@ -1,6 +1,6 @@
 from qfluentwidgets import FluentIcon
 
-from one_dragon_qt.widgets.breadcrumb_wrapper import BreadcrumbWrapper
+from one_dragon_qt.widgets.page_stack_wrapper import PageStackWrapper
 from one_dragon_qt.widgets.pivot_navi_interface import PivotNavigatorInterface
 from one_dragon_qt.widgets.setting_card.app_run_card import AppRunCard
 from zzz_od.context.zzz_context import ZContext
@@ -31,8 +31,7 @@ class ZOneDragonInterface(PivotNavigatorInterface):
     def create_sub_interface(self) -> None:
         self.add_sub_interface(
             sub_interface=ZOneDragonRunInterface(self.ctx),
-            enable_breadcrumb=True,
-            breadcrumb_root_text='运行'
+            enable_page_stack=True,
         )
         self.add_sub_interface(ChargePlanInterface(self.ctx))
         self.add_sub_interface(PredefinedTeamInterface(self.ctx))
@@ -41,8 +40,8 @@ class ZOneDragonInterface(PivotNavigatorInterface):
     def on_interface_shown(self) -> None:
         if self.ctx.signal.start_onedragon:
             self.stacked_widget.setCurrentIndex(0)
-            # 确保面包屑回到根页面
+            # 确保回到根页面
             wrapper = self.stacked_widget.widget(0)
-            if isinstance(wrapper, BreadcrumbWrapper):
+            if isinstance(wrapper, PageStackWrapper):
                 wrapper.reset_to_root()
         super().on_interface_shown()
