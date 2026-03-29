@@ -89,13 +89,13 @@ class RestoreCharge(ZOperation):
         if click.is_success:
             return self.round_success(status=self.previous_node.status, wait=0.5)
 
+        return self.round_retry('未找到确认按钮', wait=0.5)
+
     @node_from(from_name='确认电量来源')
     @operation_node(name='识别当前数量')
     def set_charge_amount(self) -> OperationRoundResult:
         if not self.is_menu:
             return self.round_success(wait=0.5)
-
-        current_amount = None
 
         amount_area = self.ctx.screen_loader.get_area('恢复电量', '当前数量')
         part = cv2_utils.crop_image_only(self.last_screenshot, amount_area.rect)
@@ -104,8 +104,20 @@ class RestoreCharge(ZOperation):
 
         if current_amount is None:
             return self.round_retry('未识别到电量数值', wait=0.5)
-        else:
-            return self.round_success(status=self.previous_node.status, data=current_amount, wait=0.5)
+
+        # 储蓄电量不足时直接失败
+        if (self.required_charge is not None
+            and self.previous_node.status == self.SOURCE_BACKUP_CHARGE
+            and self.required_charge > current_amount):
+            return self.round_fail(f'储蓄电量不足。需要：{self.required_charge}，目前：{current_amount}', wait=0.5)
+
+        return self.round_success(status=self.previous_node.status, data=current_amount, wait=0.5)
+
+    @node_from(from_name='识别当前数量', success=False)
+    @operation_node(name='电量恢复失败')
+    def restore_charge_failed(self) -> OperationRoundResult:
+        """电量恢复失败的处理节点"""
+        return self.round_fail(self.previous_node.status)
 
     @node_from(from_name='识别当前数量', status=SOURCE_BACKUP_CHARGE)
     @operation_node(name='处理储蓄电量恢复')
@@ -161,9 +173,9 @@ class RestoreCharge(ZOperation):
             return self.round_retry('恢复电量失败', wait=0.5)
 
 
-def __debug_charge():
+def __debug_charge() -> None:
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.init_ocr()
     ctx.run_context.start_running()
     from one_dragon.utils import debug_utils
@@ -176,9 +188,9 @@ def __debug_charge():
     cv2_utils.show_image(part, wait=0)
     print(ocr_result)
 
-def __debug():
+def __debug() -> None:
     ctx = ZContext()
-    ctx.init_by_config()
+    ctx.init()
     ctx.init_ocr()
     ctx.run_context.start_running()
     op = RestoreCharge(ctx, required_charge=10)
