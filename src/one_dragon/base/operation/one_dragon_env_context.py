@@ -8,6 +8,7 @@ from one_dragon.envs.ghproxy_service import GhProxyService
 from one_dragon.envs.git_service import GitService
 from one_dragon.envs.project_config import ProjectConfig
 from one_dragon.envs.python_service import PythonService
+from one_dragon.envs.runtime_update_service import RuntimeUpdateService
 
 ONE_DRAGON_CONTEXT_EXECUTOR = ThreadPoolExecutor(thread_name_prefix='one_dragon_context', max_workers=1)
 
@@ -46,6 +47,10 @@ class OneDragonEnvContext:
     @cached_property
     def gh_proxy_service(self):
         return GhProxyService(self.env_config)
+
+    @cached_property
+    def runtime_update_service(self):
+        return RuntimeUpdateService(self.project_config, self.env_config, self.git_service)
 
     def after_app_shutdown(self) -> None:
         """
