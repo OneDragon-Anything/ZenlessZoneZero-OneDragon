@@ -673,7 +673,7 @@ class LostVoidApp(ZApplication):
         if mission_name == '特遣调查':
             # 本周第一次挑战 且开启了优先级配队
             if (self.ctx.lost_void.challenge_config.choose_team_by_priority
-                    and self.run_record.complete_task_force_with_up == False):
+                    and not self.run_record.complete_task_force_with_up):
                 self.ctx.lost_void.predefined_team_idx = self.get_target_team_idx_by_priority()
                 if self.ctx.lost_void.predefined_team_idx != -1:
                     self.use_priority_agent = True
