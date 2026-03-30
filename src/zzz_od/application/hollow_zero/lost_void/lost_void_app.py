@@ -35,7 +35,6 @@ from zzz_od.operation.deploy import Deploy
 
 
 class LostVoidApp(ZApplication):
-
     STATUS_ENOUGH_TIMES: ClassVar[str] = '完成通关次数'
     STATUS_AGAIN: ClassVar[str] = '继续挑战'
     STATUS_AGAIN_MATRIX: ClassVar[str] = '继续挑战-矩阵行动'
@@ -307,20 +306,20 @@ class LostVoidApp(ZApplication):
             rect=area.rect,
         )
 
-        # 先点击UP代理人, 或者第一个60 (有时候up识别会不成功, up代理人会在第一个位置所以也可以点击第一个60)
-        clicked = False
+        # 找UP代理人, 或者第一个60 (有时候up识别会不成功, up代理人会在第一个位置所以也可以点击第一个60)
+        center: Point | None = None
         for ocr_text in ocr_result_list:
-            if ocr_text.data.lower() in ['up', '60'] and ocr_text.center.x < self.ctx.controller.standard_width // 2:
-                self.ctx.controller.click(ocr_text.center)
-                clicked = True
+            if ocr_text.data.lower() == 'up':
+                # up
+                center = ocr_text.center
                 break
+            elif center is None and ocr_text.data.lower() == '60':
+                # 第一个60
+                center = ocr_text.center
 
-        # 找不到UP，点击第一个
-        if not clicked:
-            if len(ocr_result_list) > 0:
-                self.ctx.controller.click(ocr_result_list[0].center)
-            else:
-                return self.round_retry('未找到代理人', wait=0.1)
+        if center is None:
+            return self.round_retry('未找到协战代理人', wait=0.5)
+        self.ctx.controller.click(center)
 
         # 等待画面更新，重新截图OCR
         time.sleep(0.5)
@@ -473,7 +472,6 @@ class LostVoidApp(ZApplication):
         return self.round_by_click_area('迷失之地-战线肃清', '按钮-调查战略',
                                         success_wait=1, retry_wait=1)
 
-
     @node_from(from_name='打开调查战略列表')
     @operation_node(name='选择调查战略')
     def choose_strategy(self) -> OperationRoundResult:
@@ -513,7 +511,8 @@ class LostVoidApp(ZApplication):
                 center_y = int(M["m01"] / M["m00"])
                 offset_x, offset_y = no_level_context.crop_offset
                 click_pos = Point(center_x + offset_x, center_y + offset_y)
-                log.debug(f"【追新模式】 找到无等级战略，点击坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {no_level_context.crop_offset})")
+                log.debug(
+                    f"【追新模式】 找到无等级战略，点击坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {no_level_context.crop_offset})")
                 self.ctx.controller.click(click_pos)
                 time.sleep(1)
                 return self._click_confirm_after_strategy_chosen()
@@ -674,7 +673,7 @@ class LostVoidApp(ZApplication):
         if mission_name == '特遣调查':
             # 本周第一次挑战 且开启了优先级配队
             if (self.ctx.lost_void.challenge_config.choose_team_by_priority
-                and self.run_record.complete_task_force_with_up == False):
+                    and self.run_record.complete_task_force_with_up == False):
                 self.ctx.lost_void.predefined_team_idx = self.get_target_team_idx_by_priority()
                 if self.ctx.lost_void.predefined_team_idx != -1:
                     self.use_priority_agent = True
