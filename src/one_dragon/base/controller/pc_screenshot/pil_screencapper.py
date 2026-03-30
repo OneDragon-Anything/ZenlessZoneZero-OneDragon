@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 from cv2.typing import MatLike
 from pyautogui import screenshot as pyautogui_screenshot
@@ -36,12 +35,7 @@ class PilScreencapper(ScreencapperBase):
         except Exception:
             return None
 
-        if self.game_win.is_win_scale:
-            result = cv2.resize(screenshot, (self.standard_width, self.standard_height))
-        else:
-            result = screenshot
-
-        return result
+        return screenshot
 
     def cleanup(self):
         """PIL不需要清理资源"""

@@ -108,8 +108,10 @@ class ZContext(OneDragonContext):
 
     def init_controller(self) -> None:
         from one_dragon.base.config.game_account_config import GamePlatformEnum
-        from zzz_od.controller.zzz_pc_controller import ZPcController
         if self.game_account_config.platform == GamePlatformEnum.PC.value.value:
+            if self.controller is not None:
+                self.controller.cleanup_after_app_shutdown()
+            from zzz_od.controller.zzz_pc_controller import ZPcController
             self.controller: ZPcController = ZPcController(
                 game_config=self.game_config,
                 screenshot_method=self.env_config.screenshot_method,
@@ -134,12 +136,14 @@ class ZContext(OneDragonContext):
         if hasattr(self, 'telemetry') and self.telemetry:
             self.telemetry.shutdown()
 
-        OneDragonContext.after_app_shutdown(self)
+        # 上层清理依赖框架服务(如 StateRecordService)，必须先于框架清理
         self.withered_domain.after_app_shutdown()
         self.auto_battle_context.after_app_shutdown()
 
         from zzz_od.auto_battle.auto_battle_operator import AutoBattleOperator
         AutoBattleOperator.after_app_shutdown()
+
+        OneDragonContext.after_app_shutdown(self)
 
     @cached_property
     def shared_dialog_manager(self):

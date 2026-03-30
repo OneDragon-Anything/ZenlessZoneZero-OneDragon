@@ -1,12 +1,53 @@
 import os
 
+import cv2
 from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QImage, QPainter, QPainterPath, QPixmap
+from PySide6.QtGui import (
+    QColor,
+    QImage,
+    QLinearGradient,
+    QPainter,
+    QPainterPath,
+    QPixmap,
+)
 from PySide6.QtMultimedia import QMediaPlayer
 from PySide6.QtMultimediaWidgets import QGraphicsVideoItem
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsView, QWidget
 
+from one_dragon_qt.utils.color_utils import extract_dominant_hue, hue_to_theme_color
 from one_dragon_qt.utils.image_utils import scale_pixmap_for_high_dpi
+
+DEFAULT_THEME_COLOR: tuple[int, int, int] = (64, 158, 255)
+
+
+class GradientOverlay(QWidget):
+    """Banner 顶部 + 右侧固定黑色阴影遮罩"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+    def paintEvent(self, event):
+        """绘制顶部和右侧固定黑色渐变遮罩"""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        clip_path = QPainterPath()
+        clip_path.addRect(self.rect())
+        painter.setClipPath(clip_path)
+
+        # 顶部阴影高度压低，避免首页顶部发暗区域过厚
+        top_h = max(22, min(44, int(self.height() * 0.07)))
+        right_w = max(76, min(120, int(self.width() * 0.1)))
+
+        top_gradient = QLinearGradient(0, 0, 0, top_h)
+        top_gradient.setColorAt(0.0, QColor(0, 0, 0, 110))
+        top_gradient.setColorAt(1.0, QColor(0, 0, 0, 0))
+        painter.fillRect(0, 0, self.width(), top_h, top_gradient)
+
+        right_gradient = QLinearGradient(self.width() - right_w, 0, self.width(), 0)
+        right_gradient.setColorAt(0.0, QColor(0, 0, 0, 0))
+        right_gradient.setColorAt(1.0, QColor(0, 0, 0, 170))
+        painter.fillRect(self.width() - right_w, 0, right_w, self.height(), right_gradient)
 
 
 class Banner(QWidget):
@@ -18,6 +59,7 @@ class Banner(QWidget):
         self.is_video = False
         self.banner_image = None
         self.scaled_image = None
+        self.theme_color: tuple[int, int, int] = DEFAULT_THEME_COLOR
 
         # 视频播放器组件
         self.media_player = None
@@ -25,6 +67,12 @@ class Banner(QWidget):
         self.scene = None
         self.video_item = None
         self._was_playing = False
+        self._video_fallback_image = None
+
+        # 创建顶部渐变遮罩 widget
+        self._overlay = GradientOverlay(self)
+        self._overlay.setGeometry(self.rect())
+        self._overlay.show()
 
         self.set_media(media_path)
 
@@ -34,6 +82,7 @@ class Banner(QWidget):
         if not os.path.isfile(media_path):
             self.is_video = False
             self.banner_image = self._create_fallback_image()
+            self.theme_color = DEFAULT_THEME_COLOR
             self._update_scaled_image()
             return
 
@@ -45,7 +94,26 @@ class Banner(QWidget):
         else:
             self._cleanup_video()
             self.banner_image = self._load_image(media_path)
+            self.theme_color = self._extract_theme_color(self.banner_image)
             self._update_scaled_image()
+
+    def _extract_first_video_frame(self, video_path: str) -> QImage | None:
+        """直接从视频源文件提取第1帧，避免主题色受播放器当前帧影响。"""
+        capture = cv2.VideoCapture(video_path)
+        if not capture.isOpened():
+            return None
+
+        try:
+            ok, frame = capture.read()
+            if not ok or frame is None:
+                return None
+
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            h, w, c = rgb_frame.shape
+            bytes_per_line = c * w
+            return QImage(rgb_frame.data, w, h, bytes_per_line, QImage.Format.Format_RGB888).copy()
+        finally:
+            capture.release()
 
     def _is_video_file(self, file_path: str) -> bool:
         """判断文件是否为视频格式"""
@@ -82,6 +150,10 @@ class Banner(QWidget):
         """初始化视频播放，使用硬件加速"""
         try:
             self._cleanup_video()
+            self.banner_image = self._extract_first_video_frame(video_path)
+            self.theme_color = self._extract_theme_color(self.banner_image)
+            # 预渲染首帧作为视频加载期间的后备底图
+            self._update_video_fallback_image()
 
             # 创建媒体播放器（Qt 会自动尝试使用硬件加速）
             self.media_player = QMediaPlayer(self)
@@ -149,16 +221,6 @@ class Banner(QWidget):
         """视频尺寸改变（加载完成），调整视图并提取第一帧"""
         # 调整视频视图大小以适配新尺寸
         self._resize_video_view()
-
-        # 提取第一帧用于主题色
-        if not self.video_item or not self.media_player:
-            return
-
-        video_sink = self.media_player.videoSink()
-        if video_sink:
-            frame = video_sink.videoFrame()
-            if frame.isValid():
-                self.banner_image = frame.toImage()
 
     def _cleanup_video(self) -> None:
         """清理视频播放器资源"""
@@ -257,6 +319,13 @@ class Banner(QWidget):
         fallback_image.fill(Qt.GlobalColor.gray)
         return fallback_image
 
+    @staticmethod
+    def _extract_theme_color(image: QImage | None) -> tuple[int, int, int]:
+        hue = extract_dominant_hue(image)
+        if hue is None:
+            return DEFAULT_THEME_COLOR
+        return hue_to_theme_color(hue)
+
     def _update_scaled_image(self) -> None:
         """更新缩放后的图片"""
         if self.is_video or not self.banner_image:
@@ -274,41 +343,58 @@ class Banner(QWidget):
         )
         self.update()
 
+    def _update_video_fallback_image(self) -> None:
+        """更新视频后备首帧图（视频加载/恢复期间显示在 Widget 底层）。"""
+        if not self.banner_image or self.banner_image.isNull():
+            self._video_fallback_image = None
+            return
+        original_pixmap = QPixmap.fromImage(self.banner_image)
+        self._video_fallback_image = scale_pixmap_for_high_dpi(
+            original_pixmap,
+            self.size(),
+            self.devicePixelRatio(),
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding
+        )
+
     def paintEvent(self, event):
-        """重载 paintEvent 以绘制缩放后的图片"""
-        if self.is_video:
-            # 视频模式下无需额外绘制
+        """重载 paintEvent 以绘制缩放后的图片（视频模式下绘制首帧作为后备底图）"""
+        img = self._video_fallback_image if self.is_video else self.scaled_image
+        if not img:
             return
 
-        if self.scaled_image:
-            painter = QPainter(self)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
-            # 创建圆角路径
-            path = QPainterPath()
-            path.addRoundedRect(self.rect(), 4, 4)
-            painter.setClipPath(path)
+        # 直角裁切路径
+        path = QPainterPath()
+        path.addRect(self.rect())
+        painter.setClipPath(path)
 
-            # 计算绘制位置，使图片居中
-            pixel_ratio = self.scaled_image.devicePixelRatio()
-            logical_width = self.scaled_image.width() // pixel_ratio
-            logical_height = self.scaled_image.height() // pixel_ratio
-            x = (self.width() - logical_width) // 2
-            y = (self.height() - logical_height) // 2
+        # 计算绘制位置，使图片居中
+        pixel_ratio = img.devicePixelRatio()
+        logical_width = img.width() // pixel_ratio
+        logical_height = img.height() // pixel_ratio
+        x = int((self.width() - logical_width) // 2)
+        y = int((self.height() - logical_height) // 2)
 
-            # 绘制缩放后的图片
-            painter.drawPixmap(x, y, self.scaled_image)
+        # 绘制缩放后的图片
+        painter.drawPixmap(x, y, img)
 
     def resizeEvent(self, event):
         """重载 resizeEvent 以更新缩放后的图片或视频"""
         if self.is_video:
             self._resize_video_view()
+            self._update_video_fallback_image()
             # 确保视频视图始终在底层
             if self.graphics_view:
                 self.graphics_view.lower()
         else:
             self._update_scaled_image()
+
+        if self._overlay:
+            self._overlay.setGeometry(self.rect())
+            self._overlay.show()
         QWidget.resizeEvent(self, event)
 
     def set_percentage_size(self, width_percentage, height_percentage):

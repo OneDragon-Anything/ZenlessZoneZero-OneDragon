@@ -1,14 +1,14 @@
 import os
+
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QIcon
 from qfluentwidgets import NavigationItemPosition, SplashScreen
-from typing import Optional
-
-from one_dragon_qt.windows.window import PhosWindow
 
 from one_dragon.envs.project_config import ProjectConfig
-from one_dragon_qt.widgets.base_interface import BaseInterface
 from one_dragon.utils import os_utils
+from one_dragon_qt.widgets.base_interface import BaseInterface
+from one_dragon_qt.widgets.navigation_button import NavigationButton
+from one_dragon_qt.windows.window import PhosWindow
 
 
 class AppWindowBase(PhosWindow):
@@ -16,7 +16,7 @@ class AppWindowBase(PhosWindow):
     def __init__(self,
                  win_title: str,
                  project_config: ProjectConfig,
-                 app_icon: Optional[str] = None,
+                 app_icon: str | None = None,
                  parent=None):
         PhosWindow.__init__(self, parent=parent)
         self.project_config: ProjectConfig = project_config
@@ -38,6 +38,7 @@ class AppWindowBase(PhosWindow):
         # 在创建其他子页面前先显示主界面
         self.show()
 
+        self.stackedWidget.beforeCurrentChanged.connect(self._on_before_interface_changed)
         self.stackedWidget.currentChanged.connect(self.init_interface_on_shown)
         self.create_sub_interface()
 
@@ -54,11 +55,30 @@ class AppWindowBase(PhosWindow):
         pass
 
     def add_sub_interface(self, interface: BaseInterface, position=NavigationItemPosition.TOP):
+        """添加子页面，并在导航栏创建对应按钮"""
         self.addSubInterface(interface, interface.nav_icon, interface.nav_text, position=position)
+
+    def add_nav_widget(self, widget: NavigationButton,
+                       position: NavigationItemPosition = NavigationItemPosition.TOP) -> None:
+        """在导航栏末尾添加自定义按钮"""
+        self.insert_nav_widget(-1, widget, position)
+
+    def insert_nav_widget(self, index: int, widget: NavigationButton,
+                          position: NavigationItemPosition = NavigationItemPosition.TOP) -> None:
+        """在导航栏指定位置插入自定义按钮"""
+        self.navigationInterface.insertWidget(
+            index, widget.objectName(), widget, widget.on_click, position,
+        )
 
     def init_window(self):
         self.resize(960, 820)
         self.move(100, 100)
+
+    def _on_before_interface_changed(self, old_idx: int, new_idx: int) -> None:
+        """切换前通知旧页面，确保视觉状态在切换之前恢复。"""
+        old_widget = self.stackedWidget.widget(old_idx)
+        if isinstance(old_widget, BaseInterface):
+            old_widget.on_interface_leave()
 
     def init_interface_on_shown(self, index: int) -> None:
         """

@@ -67,6 +67,9 @@ class LostVoidChallengeConfig(YamlConfig):
         self.old_module_name: str = self.module_name
         self.old_file_path: str = self.file_path
 
+        # 实战中整合协战代理人武备后的第一优先级
+        self._artifact_priority_in_battle: List[str] | None = None
+
     def copy_new(self) -> None:
         """
         复制变成一个新的
@@ -156,6 +159,16 @@ class LostVoidChallengeConfig(YamlConfig):
     @property
     def artifact_priority_str(self) -> str:
         return '\n'.join(self.artifact_priority)
+
+    # 实战中整合协战代理人武备后的第一优先级, 程序运行时自动添加
+    @property
+    def artifact_priority_in_battle(self) -> List[str] | None:
+        if self._artifact_priority_in_battle is None:
+            self._artifact_priority_in_battle = self.artifact_priority.copy()
+        return self._artifact_priority_in_battle
+
+    def clear_artifact_priority_in_battle(self):
+        self._artifact_priority_in_battle = None
 
     @property
     def artifact_priority_2(self) -> List[str]:

@@ -62,7 +62,7 @@ class WitheredDomainSettingInterface(VerticalScrollInterface):
         left_layout = QVBoxLayout(left_widget)
         left_widget.setLayout(left_layout)
 
-        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/docs/feat_hollow_zero.html')
+        self.help_opt = HelpCard(url='https://one-dragon.com/zzz/zh/feat_one_dragon/hollow_zero.html')
         left_layout.addWidget(self.help_opt)
 
         # 创建一个组合框设置卡片，标题为“挑战副本”

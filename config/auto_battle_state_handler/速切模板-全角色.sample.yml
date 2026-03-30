@@ -50,6 +50,7 @@ handlers:
   - state_template: "速切模板-照"
   - state_template: "速切模板-千夏"
   - state_template: "速切模板-爱芮"
+  - state_template: "速切模板-南宫羽"
 
 
   # 下面是缺省值，如果有上面没有的角色会走下面，一般情况下最好不要有，否则可能会因为识别不到角色而进行错误的动作

@@ -149,6 +149,11 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         return CustomConfig()
 
     @cached_property
+    def pip_config(self):
+        from one_dragon.base.config.pip_config import PipConfig
+        return PipConfig()
+
+    @cached_property
     def cv_service(self):
         from one_dragon.base.cv_process.cv_service import CvService
         return CvService(self)
@@ -168,6 +173,12 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
     def notify_config(self):
         from one_dragon.base.config.notify_config import NotifyConfig
         return NotifyConfig(self.current_instance_idx, self.run_context.notify_app_map)
+
+    @cached_property
+    def standalone_app_config(self):
+        """应用运行界面的配置（保存用户添加的应用列表）"""
+        from one_dragon.base.config.standalone_app_config import StandaloneAppConfig
+        return StandaloneAppConfig(self.current_instance_idx)
 
     #------------------- 以下是 应用注册相关 -------------------#
 
@@ -376,6 +387,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         to_clear_props = [
             'game_account_config',
             'notify_config',
+            'standalone_app_config',
         ]
         for prop in to_clear_props:
             if prop in self.__dict__:
@@ -411,3 +423,7 @@ class OneDragonContext(ContextEventBus, OneDragonEnvContext):
         StateRecordService.after_app_shutdown()
         from one_dragon.utils import gpu_executor
         gpu_executor.shutdown(wait=False)
+        from one_dragon.base.operation.application_base import Application
+        Application.after_app_shutdown()
+        self.run_context.after_app_shutdown()
+        self.push_service.after_app_shutdown()

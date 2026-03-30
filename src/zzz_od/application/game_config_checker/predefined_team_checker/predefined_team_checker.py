@@ -59,7 +59,7 @@ class PredefinedTeamChecker(ZApplication):
     def check_team_members(self) -> OperationRoundResult:
         self.update_team_members(self.last_screenshot)
 
-        if self.scroll_times == 0:
+        if self.scroll_times < 4:
             drag_start = Point(self.ctx.controller.standard_width // 2, self.ctx.controller.standard_height // 2)
             drag_end = drag_start + Point(0, -500)
             self.ctx.controller.drag_to(start=drag_start, end=drag_end)
@@ -69,7 +69,6 @@ class PredefinedTeamChecker(ZApplication):
             return self.round_success()
 
     def update_team_members(self, screen: MatLike) -> None:
-        result_team_list: list[TeamWrapper]
         ocr_result_map = self.ctx.ocr.run_ocr(screen)
 
         target_team_name_list: list[str] = []

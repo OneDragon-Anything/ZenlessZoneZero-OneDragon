@@ -1,0 +1,35 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from one_dragon.base.operation.application.application_factory import ApplicationFactory
+from one_dragon.base.operation.application_base import Application
+from zzz_od.application.devtools.operation_debug import operation_debug_const
+from zzz_od.application.devtools.operation_debug.operation_debug_app import (
+    OperationDebugApp,
+)
+from zzz_od.application.devtools.operation_debug.operation_debug_config import (
+    OperationDebugConfig,
+)
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
+
+
+class OperationDebugAppFactory(ApplicationFactory):
+
+    def __init__(self, ctx: ZContext):
+        ApplicationFactory.__init__(
+            self,
+            app_id=operation_debug_const.APP_ID,
+            app_name=operation_debug_const.APP_NAME,
+            default_group=operation_debug_const.DEFAULT_GROUP,
+            need_notify=operation_debug_const.NEED_NOTIFY,
+        )
+        self.ctx: ZContext = ctx
+
+    def create_application(self, instance_idx: int, group_id: str) -> Application:
+        return OperationDebugApp(self.ctx)
+
+    def create_config(self, instance_idx: int, group_id: str) -> OperationDebugConfig:
+        return OperationDebugConfig(instance_idx, group_id)

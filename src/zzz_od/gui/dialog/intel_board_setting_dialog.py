@@ -137,7 +137,8 @@ class IntelBoardSettingFlyout(FlyoutViewBase):
 
     def _on_reset_progress(self) -> None:
         """重置情报板进度完成标记"""
-        run_record = IntelBoardRunRecord(
+        run_record: IntelBoardRunRecord = self.ctx.run_context.get_run_record(
+            app_id=intel_board_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
         )
         run_record.progress_complete = False

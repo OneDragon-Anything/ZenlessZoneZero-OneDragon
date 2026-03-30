@@ -1,0 +1,131 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from PySide6.QtWidgets import QTableWidgetItem, QWidget
+from qfluentwidgets import CheckBox, FluentIcon, TableWidget
+
+from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
+from zzz_od.application.shiyu_defense import shiyu_defense_const
+from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
+from zzz_od.application.shiyu_defense.shiyu_defense_run_record import (
+    ShiyuDefenseRunRecord,
+)
+from zzz_od.game_data.agent import DmgTypeEnum
+from zzz_od.gui.dialog.app_setting_dialog import AppSettingDialog
+
+if TYPE_CHECKING:
+    from zzz_od.context.zzz_context import ZContext
+
+
+class ShiyuDefenseSettingDialog(AppSettingDialog):
+
+    def __init__(self, ctx: ZContext, parent: QWidget | None = None):
+        super().__init__(ctx=ctx, title='式舆防卫战配置', parent=parent)
+        self.config: ShiyuDefenseConfig | None = None
+        self.run_record: ShiyuDefenseRunRecord | None = None
+
+    def get_content_widget(self) -> QWidget:
+        content_widget = Column()
+
+        self.critical_reset_opt = PushSettingCard(
+            icon=FluentIcon.SYNC, title='剧变节点 重置运行记录',
+            text='重置'
+        )
+        self.critical_reset_opt.clicked.connect(self._on_critical_reset_clicked)
+        content_widget.add_widget(self.critical_reset_opt)
+
+        self.team_table = TableWidget()
+        self.team_table.setBorderVisible(True)
+        self.team_table.setBorderRadius(8)
+        self.team_table.setWordWrap(True)
+        self.team_table.verticalHeader().hide()
+        self.team_table.setMinimumHeight(500)
+
+        labels = ['预备配队', '剧变节点'] + [i.value for i in DmgTypeEnum if i != DmgTypeEnum.UNKNOWN]
+
+        self.team_table.setColumnCount(len(labels))
+        for i in range(len(labels)):
+            self.team_table.setColumnWidth(i, (200 if i == 0 else 70))
+        self.team_table.setHorizontalHeaderLabels([gt(i) for i in labels])
+
+        content_widget.add_widget(self.team_table, stretch=1)
+
+        return content_widget
+
+    def on_dialog_shown(self) -> None:
+        super().on_dialog_shown()
+
+        self.config = self.ctx.run_context.get_config(
+            app_id=shiyu_defense_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=self.group_id,
+        )
+        self.run_record = self.ctx.run_context.get_run_record(
+            instance_idx=self.ctx.current_instance_idx,
+            app_id=shiyu_defense_const.APP_ID,
+        )
+
+        team_list = self.ctx.team_config.team_list
+        new_len = len(team_list)
+
+        while self.team_table.rowCount() > new_len:
+            self.team_table.removeRow(self.team_table.rowCount() - 1)
+
+        old_len = self.team_table.rowCount()
+        if new_len > self.team_table.rowCount():
+            self.team_table.setRowCount(new_len)
+
+            for idx in range(old_len, new_len):
+                btn = CheckBox()
+                btn.checkStateChanged.connect(self._on_critical_changed)
+                self.team_table.setCellWidget(idx, 1, btn)
+
+                for i, dmg_type in enumerate(DmgTypeEnum):
+                    if dmg_type == DmgTypeEnum.UNKNOWN:
+                        continue
+                    btn = CheckBox()
+                    btn.checkStateChanged.connect(self._on_weakness_check_changed)
+                    self.team_table.setCellWidget(idx, i + 2, btn)
+
+        for row, team in enumerate(team_list):
+            team_config = self.config.get_config_by_team_idx(team.idx)
+
+            self.team_table.setItem(row, 0, QTableWidgetItem(team.name))
+
+            btn: CheckBox = self.team_table.cellWidget(row, 1)
+            btn.setProperty('team_idx', team.idx)
+            btn.blockSignals(True)
+            btn.setChecked(team_config.for_critical)
+            btn.blockSignals(False)
+
+            for col, dmg_type in enumerate(DmgTypeEnum):
+                if dmg_type == DmgTypeEnum.UNKNOWN:
+                    continue
+
+                btn: CheckBox = self.team_table.cellWidget(row, col + 2)
+                btn.setProperty('team_idx', team.idx)
+                btn.setProperty('type', dmg_type.name)
+                btn.blockSignals(True)
+                btn.setChecked(dmg_type in team_config.weakness_list)
+                btn.blockSignals(False)
+
+    def _on_weakness_check_changed(self) -> None:
+        btn: CheckBox = self.sender()
+        team_idx = btn.property('team_idx')
+        dmg_type = DmgTypeEnum.from_name(btn.property('type'))
+
+        if btn.isChecked():
+            self.config.add_weakness(team_idx, dmg_type)
+        else:
+            self.config.remove_weakness(team_idx, dmg_type)
+
+    def _on_critical_changed(self) -> None:
+        btn: CheckBox = self.sender()
+        team_idx = btn.property('team_idx')
+        self.config.change_for_critical(team_idx, btn.isChecked())
+
+    def _on_critical_reset_clicked(self) -> None:
+        self.run_record.reset_record()

@@ -462,16 +462,13 @@ def __debug():
         ctx,
         ChargePlanItem(
             category_name='恶名狩猎',
-            mission_type_name='初生死路屠夫',
+            mission_type_name='猎血清道夫',
             level=NotoriousHuntLevelEnum.DEFAULT.value.value,
-            auto_battle_config='全配对通用',
-            predefined_team_idx=0,
+            auto_battle_config='全配队通用',
+            predefined_team_idx=-1,
         ),
-        use_charge_power=False)
-    op.can_run_times = 1
-    op.auto_op = None
-    op.init_auto_battle()
-
+        use_charge_power=False,
+    )
     op.execute()
 
 

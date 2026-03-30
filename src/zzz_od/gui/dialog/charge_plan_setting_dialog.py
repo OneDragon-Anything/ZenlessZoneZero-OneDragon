@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
+    Dialog,
     FluentIcon,
     PrimaryPushButton,
-    PushButton, Dialog,
+    PushButton,
 )
 
 from one_dragon.base.operation.application import application_const
@@ -80,7 +81,7 @@ class ChargePlanSettingDialog(AppSettingDialog):
         self.drag_list.order_changed.connect(self._on_order_changed)
         self.content_widget.add_widget(self.drag_list)
 
-        self.card_list: List[ChargePlanCard] = []
+        self.card_list: list[ChargePlanCard] = []
 
         self.plus_btn = PrimaryPushButton(text=gt('新增'))
         self.plus_btn.clicked.connect(self._on_add_clicked)
@@ -193,7 +194,7 @@ class ChargePlanSettingDialog(AppSettingDialog):
         self.config.save()
 
         # 重新构建 card_list 的顺序
-        new_card_list: List[ChargePlanCard] = []
+        new_card_list: list[ChargePlanCard] = []
         for data in new_data_list:
             # 找到对应数据的 card
             for card in self.card_list:

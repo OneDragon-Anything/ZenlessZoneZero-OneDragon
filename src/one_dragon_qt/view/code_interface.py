@@ -1,16 +1,27 @@
-from PySide6.QtCore import QThread, Signal, Qt
-from PySide6.QtWidgets import QWidget, QTableWidgetItem
-from qfluentwidgets import TableWidget, PipsPager, FluentIcon, VBoxLayout, ToolButton, LineEdit, Dialog
-from typing import Callable, List
+from collections.abc import Callable
+
+from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtWidgets import QTableWidgetItem
+from qfluentwidgets import (
+    Dialog,
+    FluentIcon,
+    LineEdit,
+    PipsPager,
+    TableWidget,
+    ToolButton,
+)
 
 from one_dragon.base.operation.one_dragon_env_context import OneDragonEnvContext
 from one_dragon.envs.git_service import GitLog
-from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
-from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
-from one_dragon_qt.widgets.setting_card.password_switch_setting_card import PasswordSwitchSettingCard
-from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
 from one_dragon.utils.app_utils import start_one_dragon
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.widgets.column import Column
+from one_dragon_qt.widgets.install_card.code_install_card import CodeInstallCard
+from one_dragon_qt.widgets.setting_card.password_switch_setting_card import (
+    PasswordSwitchSettingCard,
+)
+from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 
 
 class FetchTotalRunner(QThread):
@@ -29,9 +40,9 @@ class FetchPageRunner(QThread):
 
     finished = Signal(list)
 
-    def __init__(self, method: Callable[[], List[GitLog]]):
+    def __init__(self, method: Callable[[], list[GitLog]]):
         super().__init__()
-        self.method: Callable[[], List[GitLog]] = method
+        self.method: Callable[[], list[GitLog]] = method
 
     def run(self) -> None:
         self.finished.emit(self.method())
@@ -40,28 +51,40 @@ class FetchPageRunner(QThread):
 class CodeInterface(VerticalScrollInterface):
 
     def __init__(self, ctx: OneDragonEnvContext, parent=None):
-        content_widget = QWidget()
-
         self.page_num: int = -1
         self.page_size: int = 10
 
-        v_layout = VBoxLayout(content_widget)
-        v_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        VerticalScrollInterface.__init__(
+            self,
+            content_widget=None,
+            object_name='code_interface',
+            parent=parent,
+            nav_text_cn='代码同步', nav_icon=FluentIcon.SYNC
+        )
+        self.ctx: OneDragonEnvContext = ctx
+
+        self.fetch_total_runner = FetchTotalRunner(ctx.git_service.fetch_total_commit)
+        self.fetch_total_runner.finished.connect(self.update_total)
+        self.fetch_page_runner = FetchPageRunner(self.fetch_page)
+        self.fetch_page_runner.finished.connect(self.update_page)
+
+    def get_content_widget(self) -> Column:
+        content_widget = Column()
 
         self.auto_update_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC, title='自动更新', content='使用exe启动时，自动检测并更新代码',
         )
-        v_layout.addWidget(self.auto_update_opt)
+        content_widget.add_widget(self.auto_update_opt)
 
         self.force_update_opt = SwitchSettingCard(
             icon=FluentIcon.SYNC, title='强制更新', content='不懂代码请开启，会将脚本更新到最新并将你的改动覆盖，不会使你的配置失效',
         )
-        v_layout.addWidget(self.force_update_opt)
+        content_widget.add_widget(self.force_update_opt)
 
-        self.code_card = CodeInstallCard(ctx)
+        self.code_card = CodeInstallCard(self.ctx)
         self.code_card.finished.connect(self.on_code_updated)
         self.code_card.finished.connect(self._show_dialog_after_code_updated)
-        v_layout.addWidget(self.code_card)
+        content_widget.add_widget(self.code_card)
 
         self.custom_git_branch_lineedit = LineEdit()
         self.custom_git_branch_lineedit.setPlaceholderText(gt('自定义分支'))
@@ -75,7 +98,7 @@ class CodeInterface(VerticalScrollInterface):
             extra_btn=self.custom_git_branch_lineedit,
             password_hash='9eccbf284f363f3a5f416e879aa9bcb2c8d8445997f97740270fccc98d360a33'
         )
-        v_layout.addWidget(self.custom_git_branch_opt)
+        content_widget.add_widget(self.custom_git_branch_opt)
 
         self.log_table = TableWidget()
         self.log_table.setMinimumHeight(self.page_size * 42)
@@ -99,28 +122,16 @@ class CodeInterface(VerticalScrollInterface):
             gt('时间'),
             gt('内容')
         ])
-
-        v_layout.addWidget(self.log_table)
+        content_widget.add_widget(self.log_table)
 
         self.pager = PipsPager()
         self.pager.setPageNumber(1)
         self.pager.setVisibleNumber(5)
         self.pager.currentIndexChanged.connect(self.on_page_changed)
         self.pager.setItemAlignment(Qt.AlignmentFlag.AlignCenter)
-        v_layout.addWidget(self.pager)
+        content_widget.add_widget(self.pager)
 
-        VerticalScrollInterface.__init__(
-            self,
-            object_name='code_interface',
-            parent=parent, content_widget=content_widget,
-            nav_text_cn='代码同步', nav_icon=FluentIcon.SYNC
-        )
-        self.ctx: OneDragonEnvContext = ctx
-
-        self.fetch_total_runner = FetchTotalRunner(ctx.git_service.fetch_total_commit)
-        self.fetch_total_runner.finished.connect(self.update_total)
-        self.fetch_page_runner = FetchPageRunner(self.fetch_page)
-        self.fetch_page_runner.finished.connect(self.update_page)
+        return content_widget
 
     def on_interface_shown(self) -> None:
         """
@@ -164,14 +175,14 @@ class CodeInterface(VerticalScrollInterface):
             return
         self.fetch_page_runner.start()
 
-    def fetch_page(self) -> List[GitLog]:
+    def fetch_page(self) -> list[GitLog]:
         """
         获取分页数据
         :return:
         """
         return self.ctx.git_service.fetch_page_commit(self.page_num, self.page_size)
 
-    def update_page(self, log_list: List[GitLog]) -> None:
+    def update_page(self, log_list: list[GitLog]) -> None:
         """
         更新分页内容
         :param log_list:

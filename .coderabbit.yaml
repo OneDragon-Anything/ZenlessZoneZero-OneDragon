@@ -1,0 +1,30 @@
+language: "zh-CN"
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  auto_review:
+    enabled: true
+  tools:
+    ast-grep:
+      enabled: true
+      essential_rules: true
+    ruff:
+      enabled: true
+  path_instructions:
+    - path: "**"
+      instructions: |
+        请严格遵守以下审查规则：
+
+        1. **注释与文档**：
+           - 本项目接受中文注释，也可以接受中英文混用。
+           - 注释应使用Google风格，函数职责较重时必须有注释。
+           - **不要**仅仅因为注释是中文就建议改为英文，也不要建议将英文改为中文。
+           - **不要**对注释的语法、拼写或风格（如中英文之间是否加空格，标点符号的问题）进行过多的纠正，除非它严重影响阅读。
+           - **不要**建议把中文标点符号改为英文。
+
+        2. **构造函数参数声明**：
+           - 类的构造函数`__init__`必须显式声明所有必需的和可选的参数，尽量避免使用 `**kwargs` 来传递未知参数。
+
+        3. **内置泛型**：
+           - 使用内置泛型类型(`list`, `dict`)而不是从`typing`模块导入的类型(`List`, `Dict`)。
