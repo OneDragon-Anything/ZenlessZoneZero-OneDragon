@@ -114,7 +114,7 @@ class CommissionAssistantApp(ZApplication):
         result = self.round_by_find_area(self.last_screenshot, '委托助手', '左上角返回')
         # 很多二级菜单都有这个按钮
         if result.is_success:
-            return self.round_wait(result.status, wait=1)
+            return self.round_wait('处于二级界面, 等待用户操作', wait=1)
 
         # 判断是否在空洞中
         result = hollow_event_utils.check_in_hollow(self.ctx, self.last_screenshot)
@@ -403,6 +403,11 @@ class CommissionAssistantApp(ZApplication):
         result = self.check_knock_knock()
         if result.is_success:
             return self.round_wait(result.status, wait=1)
+
+        result = self.round_by_find_area(self.last_screenshot, '委托助手', '左上角返回')
+        # 很多二级菜单都有这个按钮
+        if result.is_success:
+            return self.round_wait('处于二级界面, 等待用户操作', wait=1)
         # endregion
 
         # 跳过剧情模式：没有'确认'弹窗，说明这个'跳过'是无反馈的灰按钮
