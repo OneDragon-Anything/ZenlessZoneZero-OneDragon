@@ -512,7 +512,8 @@ class LostVoidApp(ZApplication):
                 offset_x, offset_y = no_level_context.crop_offset
                 click_pos = Point(center_x + offset_x, center_y + offset_y)
                 log.debug(
-                    f"【追新模式】 找到无等级战略，点击坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {no_level_context.crop_offset})")
+                    f"【追新模式】 找到无等级战略，点击坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {no_level_context.crop_offset})"
+                )
                 self.ctx.controller.click(click_pos)
                 time.sleep(1)
                 return self._click_confirm_after_strategy_chosen()
@@ -563,7 +564,9 @@ class LostVoidApp(ZApplication):
                 center_y = int(M["m01"] / M["m00"])
                 offset_x, offset_y = frame_context.crop_offset
                 click_pos = Point(center_x + offset_x, center_y + offset_y)
-                log.debug(f"【追新模式】 点击目标坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {frame_context.crop_offset})")
+                log.debug(
+                    f"【追新模式】 点击目标坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {frame_context.crop_offset})"
+                )
                 self.ctx.controller.click(click_pos)
                 time.sleep(1)
                 return self._click_confirm_after_strategy_chosen()
