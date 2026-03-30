@@ -211,8 +211,10 @@ class CommissionAssistantApp(ZApplication):
                     to_click = opt_point
                     to_choose_opt = mr.data
 
-        self.ctx.controller.click(to_click)
         self.chosen_opt_history.append(to_choose_opt)
+        if to_click is None:
+            return False
+        self.ctx.controller.click(to_click)
         return True
 
     def check_same_opts(self, ocr_results: set[str]) -> bool:
