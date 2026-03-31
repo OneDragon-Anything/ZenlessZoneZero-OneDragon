@@ -85,7 +85,7 @@ try:
 
         # 继承初始化函数
         def init_window(self):
-            self.resize(1095, 730)  # 3:2比例
+            self.resize(1140, 760)  # 3:2比例
 
             # 初始化位置
             screen = QApplication.primaryScreen()
@@ -111,6 +111,7 @@ try:
 
         def create_sub_interface(self):
             """创建和添加各个子界面"""
+            super().create_sub_interface()
 
             # 主页
             from zzz_od.gui.view.home.home_interface import HomeInterface

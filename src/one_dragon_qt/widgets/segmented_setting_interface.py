@@ -25,7 +25,7 @@ class SegmentedSettingInterface(BaseInterface):
 
         segment_wrapper = QWidget(self)
         segment_layout = QVBoxLayout(segment_wrapper)
-        segment_layout.setContentsMargins(11, 8, 11, 8)
+        segment_layout.setContentsMargins(11, 4, 11, 8)
         segment_layout.setSpacing(0)
         self._segment = SegmentedWidget(segment_wrapper)
         segment_layout.addWidget(self._segment, 0, Qt.AlignmentFlag.AlignLeft)
