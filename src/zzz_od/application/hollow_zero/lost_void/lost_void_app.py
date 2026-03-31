@@ -129,10 +129,10 @@ class LostVoidApp(ZApplication):
             return self.round_retry(result.status, wait=0.5)
 
         # 新入口UI：战线肃清/特遣调查需要先在“矩阵探索”页点击“常规”再点目标副本
-        # 到达入口的判定只认“常规”，后续分流由OCR导航节点按副本目标处理
+        # 到达入口的判定只认“常规”，后续分流由入口导航节点按副本目标处理
         if self.config.mission_name in ['战线肃清', '特遣调查']:
-            ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-            if self._find_ocr_text_mr(ocr_result_map, '常规') is not None:
+            result = self.round_by_find_area(self.last_screenshot, '迷失之地-入口', '按钮-常规')
+            if result.is_success:
                 return self.round_success(status='迷失之地-入口')
 
         screen_name = self.check_and_update_current_screen(self.last_screenshot, screen_name_list=['迷失之地-入口'])
@@ -206,16 +206,16 @@ class LostVoidApp(ZApplication):
             self._reset_entry_nav_click_cooldown()
             return self.round_success('已开放前往挑战')
 
-        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-
-        period_mr = self._find_ocr_text_mr(ocr_result_map, '周期')
-        if period_mr is None:
-            return self.round_retry('未识别到周期', wait=0.1)
-
         if self._is_entry_nav_click_on_cooldown():
             return self.round_retry('点击周期冷却', wait=0.1)
 
-        if self.ctx.controller.click(period_mr.center):
+        result = self.round_by_find_and_click_area(
+            self.last_screenshot,
+            '迷失之地-入口',
+            '按钮-周期',
+            retry_wait=0.1,
+        )
+        if result.is_success:
             self._record_entry_nav_click()
             return self.round_wait('点击周期', wait=0.3)
         return self.round_retry('点击周期失败', wait=0.1)
@@ -401,21 +401,28 @@ class LostVoidApp(ZApplication):
     @operation_node(name='入口OCR-点击常规', node_max_retry_times=300)
     def click_regular_in_matrix_explore(self) -> OperationRoundResult:
         mission_name = self.config.mission_name
-        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
+        mission_area_name = f'按钮-{mission_name}'
 
         # 条件通过：检测到下一步按钮文字（战线肃清/特遣调查）
-        if self._find_ocr_text_mr(ocr_result_map, mission_name) is not None:
+        result = self.round_by_find_area(
+            self.last_screenshot,
+            '迷失之地-入口',
+            mission_area_name,
+        )
+        if result.is_success:
             self._reset_entry_nav_click_cooldown()
             return self.round_success('已显示目标副本入口')
-
-        regular_mr = self._find_ocr_text_mr(ocr_result_map, '常规')
-        if regular_mr is None:
-            return self.round_retry('未识别到常规', wait=0.1)
 
         if self._is_entry_nav_click_on_cooldown():
             return self.round_retry('点击常规冷却', wait=0.1)
 
-        if self.ctx.controller.click(regular_mr.center):
+        result = self.round_by_find_and_click_area(
+            self.last_screenshot,
+            '迷失之地-入口',
+            '按钮-常规',
+            retry_wait=0.1,
+        )
+        if result.is_success:
             self._record_entry_nav_click()
             return self.round_wait('点击常规', wait=0.3)
         return self.round_retry('点击常规失败', wait=0.1)
@@ -425,6 +432,7 @@ class LostVoidApp(ZApplication):
     def click_target_mission_in_matrix_explore(self) -> OperationRoundResult:
         mission_name = self.config.mission_name
         target_screen_name = f'迷失之地-{mission_name}'
+        mission_area_name = f'按钮-{mission_name}'
 
         screen_name = self.check_and_update_current_screen(
             self.last_screenshot,
@@ -434,15 +442,16 @@ class LostVoidApp(ZApplication):
             self._reset_entry_nav_click_cooldown()
             return self.round_success('已进入目标副本')
 
-        ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
-        mission_mr = self._find_ocr_text_mr(ocr_result_map, mission_name)
-        if mission_mr is None:
-            return self.round_retry('未识别到目标副本入口', wait=0.1)
-
         if self._is_entry_nav_click_on_cooldown():
             return self.round_retry('点击目标副本冷却', wait=0.1)
 
-        if self.ctx.controller.click(mission_mr.center):
+        result = self.round_by_find_and_click_area(
+            self.last_screenshot,
+            '迷失之地-入口',
+            mission_area_name,
+            retry_wait=0.1,
+        )
+        if result.is_success:
             self._record_entry_nav_click()
             return self.round_wait('点击目标副本', wait=0.5)
         return self.round_retry('点击目标副本失败', wait=0.1)
