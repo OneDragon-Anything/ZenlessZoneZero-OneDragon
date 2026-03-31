@@ -669,8 +669,8 @@ class LostVoidContext:
         priority_list_to_consider = []
 
         final_priority_list_1 = self.dynamic_priority_list.copy()
-        if consider_priority_1 and self.challenge_config.artifact_priority:
-            final_priority_list_1.extend(self.challenge_config.artifact_priority)
+        if consider_priority_1 and self.challenge_config.artifact_priority_in_battle:
+            final_priority_list_1.extend(self.challenge_config.artifact_priority_in_battle)
         priority_list_to_consider.append(final_priority_list_1)
 
         if consider_priority_2 and self.challenge_config.artifact_priority_2:

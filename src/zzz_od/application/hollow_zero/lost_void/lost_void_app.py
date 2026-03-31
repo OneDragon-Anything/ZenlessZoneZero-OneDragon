@@ -35,7 +35,6 @@ from zzz_od.operation.deploy import Deploy
 
 
 class LostVoidApp(ZApplication):
-
     STATUS_ENOUGH_TIMES: ClassVar[str] = '完成通关次数'
     STATUS_AGAIN: ClassVar[str] = '继续挑战'
     STATUS_AGAIN_MATRIX: ClassVar[str] = '继续挑战-矩阵行动'
@@ -308,7 +307,7 @@ class LostVoidApp(ZApplication):
         return self.round_retry(f'未找到{team_name}, 尝试向下滚动', wait=0.3)
 
     @node_from(from_name='矩阵行动-选择配队')
-    @operation_node(name='矩阵行动-点击协助代理人')
+    @operation_node(name='矩阵行动-点击协战代理人')
     def matrix_click_support_agent(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
             self.last_screenshot,
@@ -317,7 +316,7 @@ class LostVoidApp(ZApplication):
             success_wait=1,
         )
 
-    @node_from(from_name='矩阵行动-点击协助代理人')
+    @node_from(from_name='矩阵行动-点击协战代理人')
     @operation_node(name='矩阵行动-等待代理人列表', node_max_retry_times=300)
     def matrix_wait_support_panel(self) -> OperationRoundResult:
         ocr_result_map = self.ctx.ocr.run_ocr(self.last_screenshot)
@@ -326,29 +325,30 @@ class LostVoidApp(ZApplication):
         return self.round_retry('等待代理人列表', wait=0.1)
 
     @node_from(from_name='矩阵行动-等待代理人列表')
-    @operation_node(name='矩阵行动-选择协助代理人')
+    @operation_node(name='矩阵行动-选择协战代理人')
     def matrix_select_support_agent(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '代理人列表')
         support_team_area = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '协战编队槽')
+        support_team_property = self.ctx.screen_loader.get_area('迷失之地-矩阵行动', '协战代理人属性')
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=self.last_screenshot,
             rect=area.rect,
         )
 
-        # 先点击UP代理人
-        clicked = False
+        # 找UP代理人, 或者第一个60 (有时候up识别会不成功, up代理人会在第一个位置所以也可以点击第一个60)
+        center: Point | None = None
         for ocr_text in ocr_result_list:
-            if 'up' in ocr_text.data.lower() and ocr_text.center.x < self.ctx.controller.standard_width // 2:
-                self.ctx.controller.click(ocr_text.center)
-                clicked = True
+            if ocr_text.data.lower() == 'up':
+                # up
+                center = ocr_text.center
                 break
+            elif center is None and ocr_text.data.lower() == '60':
+                # 第一个60
+                center = ocr_text.center
 
-        # 找不到UP，点击第一个
-        if not clicked:
-            if len(ocr_result_list) > 0:
-                self.ctx.controller.click(ocr_result_list[0].center)
-            else:
-                return self.round_retry('未找到代理人', wait=0.1)
+        if center is None:
+            return self.round_retry('未找到协战代理人', wait=0.5)
+        self.ctx.controller.click(center)
 
         # 等待画面更新，重新截图OCR
         time.sleep(0.5)
@@ -361,11 +361,23 @@ class LostVoidApp(ZApplication):
 
         for ocr_text in ocr_result_list:
             if '协战' in ocr_text.data:
-                return self.round_success('已选择协助代理人')
+                self.ctx.lost_void.challenge_config.clear_artifact_priority_in_battle()
+                # 检查协战代理人属性, 并添加到鸣徽选择的第一优先级中
+                ocr_result_list_1 = self.ctx.ocr_service.get_ocr_result_list(
+                    image=self.last_screenshot,
+                    rect=support_team_property.rect,
+                )
+                for ocr_text_1 in ocr_result_list_1:
+                    text = ocr_text_1.data.replace('【', '[')
+                    if text[0] == '[':
+                        text = text[1:3]
+                    self.ctx.lost_void.challenge_config.artifact_priority_in_battle.append(text)
+                    log.info('添加协战代理人属性武备至第一优先级: [' + text + ']')
+                return self.round_success('已选择协战代理人')
 
         return self.round_retry('未找到协战', wait=0.5)
 
-    @node_from(from_name='矩阵行动-选择协助代理人')
+    @node_from(from_name='矩阵行动-选择协战代理人')
     @operation_node(name='矩阵行动-开始挑战')
     def matrix_start_challenge(self) -> OperationRoundResult:
         return self.round_by_find_and_click_area(
@@ -489,7 +501,6 @@ class LostVoidApp(ZApplication):
         return self.round_by_click_area('迷失之地-战线肃清', '按钮-调查战略',
                                         success_wait=1, retry_wait=1)
 
-
     @node_from(from_name='打开调查战略列表')
     @operation_node(name='选择调查战略')
     def choose_strategy(self) -> OperationRoundResult:
@@ -529,7 +540,9 @@ class LostVoidApp(ZApplication):
                 center_y = int(M["m01"] / M["m00"])
                 offset_x, offset_y = no_level_context.crop_offset
                 click_pos = Point(center_x + offset_x, center_y + offset_y)
-                log.debug(f"【追新模式】 找到无等级战略，点击坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {no_level_context.crop_offset})")
+                log.debug(
+                    f"【追新模式】 找到无等级战略，点击坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {no_level_context.crop_offset})"
+                )
                 self.ctx.controller.click(click_pos)
                 time.sleep(1)
                 return self._click_confirm_after_strategy_chosen()
@@ -580,7 +593,9 @@ class LostVoidApp(ZApplication):
                 center_y = int(M["m01"] / M["m00"])
                 offset_x, offset_y = frame_context.crop_offset
                 click_pos = Point(center_x + offset_x, center_y + offset_y)
-                log.debug(f"【追新模式】 点击目标坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {frame_context.crop_offset})")
+                log.debug(
+                    f"【追新模式】 点击目标坐标: {click_pos} (相对: ({center_x}, {center_y}), 偏移: {frame_context.crop_offset})"
+                )
                 self.ctx.controller.click(click_pos)
                 time.sleep(1)
                 return self._click_confirm_after_strategy_chosen()
@@ -690,7 +705,7 @@ class LostVoidApp(ZApplication):
         if mission_name == '特遣调查':
             # 本周第一次挑战 且开启了优先级配队
             if (self.ctx.lost_void.challenge_config.choose_team_by_priority
-                and self.run_record.complete_task_force_with_up == False):
+                    and not self.run_record.complete_task_force_with_up):
                 self.ctx.lost_void.predefined_team_idx = self.get_target_team_idx_by_priority()
                 if self.ctx.lost_void.predefined_team_idx != -1:
                     self.use_priority_agent = True
