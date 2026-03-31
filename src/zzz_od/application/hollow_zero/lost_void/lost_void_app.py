@@ -228,6 +228,7 @@ class LostVoidApp(ZApplication):
             '迷失之地-入口',
             '按钮-前往挑战',
             success_wait=1,
+            retry_wait=1,
         )
 
     @node_from(from_name='矩阵行动-前往挑战')
@@ -238,6 +239,7 @@ class LostVoidApp(ZApplication):
             '迷失之地-入口',
             '按钮-下一步',
             success_wait=1,
+            retry_wait=1,
         )
 
     @node_from(from_name='矩阵行动-点击下一步')
@@ -314,6 +316,7 @@ class LostVoidApp(ZApplication):
             '迷失之地-矩阵行动',
             '协战代理人',
             success_wait=1,
+            retry_wait=1,
         )
 
     @node_from(from_name='矩阵行动-点击协战代理人')
@@ -385,6 +388,7 @@ class LostVoidApp(ZApplication):
             '迷失之地-矩阵行动',
             '按钮-开始挑战',
             success_wait=1,
+            retry_wait=1,
         )
 
     # ========== 常规副本入口流程节点 ==========
