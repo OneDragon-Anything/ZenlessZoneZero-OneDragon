@@ -277,6 +277,9 @@ class CommissionAssistantApp(ZApplication):
             result.result = OperationRoundResultEnum.FAIL
             return result
 
+        if '以上为最新' in bottom_text:
+            return self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '按钮-短信-关闭')
+
         self.ctx.controller.click(bottom_mr.center)
 
         result.status = bottom_text
