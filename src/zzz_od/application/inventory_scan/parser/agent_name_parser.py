@@ -32,6 +32,7 @@ class AgentNameParser:
                 return None
             
             # 检查是否在翻译表中
+<<<<<<< HEAD
             matched_code = self.agent_parser._match_translation(agent_name, screenshot)
             
             # 如果匹配到翻译表，使用code作为key
@@ -63,6 +64,34 @@ class AgentNameParser:
                     'key': chs_name,
                     'id': f'zzz_agent_{self.agent_counter}'
                 }
+=======
+            matched_key = self.agent_parser._match_translation(agent_name, screenshot)
+            chs_name = agent_name  # 默认使用原始名称作为中文名称
+            
+            # 如果匹配到翻译表，获取对应的中文名称
+            if matched_key:
+                character_dict = self.agent_parser.translation_service.translation_dict.get('character', {})
+                if matched_key in character_dict:
+                    char_data = character_dict[matched_key]
+                    if isinstance(char_data, dict) and 'CHS' in char_data:
+                        chs_name = char_data['CHS']
+                        log.debug(f"匹配到角色中文名称: {chs_name}")
+            
+            # 检查是否重复
+            if chs_name in self.scanned_agent_keys:
+                log.warning(f"角色 {chs_name} 已扫描过，跳过重复")
+                return None
+            
+            # 记录已扫描
+            self.scanned_agent_keys.add(chs_name)
+            
+            # 构建返回数据
+            self.agent_counter += 1
+            return {
+                'key': chs_name,  # 使用中文名称作为key
+                'id': f'zzz_agent_{self.agent_counter}'
+            }
+>>>>>>> a91a624d (feat: 优化代理人检查报告界面和库存扫描功能)
             
         except Exception as e:
             log.error(f"解析代理人名称失败: {e}", exc_info=True)
