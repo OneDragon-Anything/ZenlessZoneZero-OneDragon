@@ -154,7 +154,8 @@ class CommissionAssistantApp(ZApplication):
         """
         普通的对话点击：选项、对话框标题/中间区域
         """
-        if self._click_dialog_options(self.last_screenshot, '右侧选项区域'):
+        if self._click_dialog_options(self.last_screenshot, '右侧选项区域',
+                                      color_range=[[240, 240, 240], [255, 255, 255]]):
             return self.round_wait(status='点击右方选项', wait=self.config.dialog_click_interval)
 
         if not check_center_words:
@@ -165,7 +166,8 @@ class CommissionAssistantApp(ZApplication):
             if not cv2_utils.is_colorful(center_image, saturation_threshold=1, color_ratio_threshold=0.01):
                 self.round_by_click_area('委托助手', '中间选项区域')
                 return self.round_wait(status='黑屏点击中间区域', wait=self.config.dialog_click_interval)
-        elif self._click_dialog_options(self.last_screenshot, '中间选项区域'):
+        elif self._click_dialog_options(self.last_screenshot, '中间选项区域',
+                                        color_range=[[240, 240, 240], [255, 255, 255]]):
             # 检查中间有字就点, 适用于 自动剧情/点击剧情 时点击选项
             return self.round_wait(status='点击中间选项', wait=self.config.dialog_click_interval)
 
@@ -198,14 +200,16 @@ class CommissionAssistantApp(ZApplication):
                 return True
         return False
 
-    def _click_dialog_options(self, screen: MatLike, area_name: str) -> bool:
+    def _click_dialog_options(self, screen: MatLike, area_name: str,
+                              color_range: list[list[int]] | None = None) -> bool:
         """
         点击对话选项
         """
         area = self.ctx.screen_loader.get_area('委托助手', area_name)
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=screen,
-            rect=area.rect
+            rect=area.rect,
+            color_range=color_range
         )
         if len(ocr_result_list) == 0:
             return False
