@@ -44,6 +44,7 @@ class CommissionAssistantApp(ZApplication):
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
+        self.withered_domain_inited: bool = False  # 空洞初始化标志
 
         self.run_mode: int = 0  # 0=对话 1=闪避 2=自动战斗
 
@@ -119,7 +120,8 @@ class CommissionAssistantApp(ZApplication):
         # 判断是否在空洞中
         result = hollow_event_utils.check_in_hollow(self.ctx, self.last_screenshot)
         if result is not None:
-            return self._handle_hollow(self.last_screenshot_time)
+            result = self._handle_hollow(self.last_screenshot_time)
+            return self.round_wait(result.status, wait=0.5)
 
         # 判断是否空洞内完成
         result = self.round_by_find_and_click_area(self.last_screenshot, '零号空洞-事件', '通关-完成', pre_delay=0)
@@ -264,7 +266,9 @@ class CommissionAssistantApp(ZApplication):
         """
         # 空洞内不好处理事件
         # return self.round_wait(status='空洞中', wait=1) # Original line, commented out as per previous logic.
-        self.ctx.withered_domain.init_event_yolo()
+        self.ctx.withered_domain.map_service.init_event_yolo()
+        if not self.withered_domain_inited:
+            self.ctx.withered_domain.init_before_run()
 
         # 判断当前邦布是否存在
         hollow_map = self.ctx.withered_domain.map_service.cal_current_map_by_screen(self.last_screenshot, screenshot_time)
@@ -362,6 +366,10 @@ class CommissionAssistantApp(ZApplication):
         """
         if self.config.story_mode == StoryMode.CLICK.value.value:
             return None
+        with_dialog = self._check_dialog(self.last_screenshot)
+        if with_dialog:
+            self.round_by_click_area('委托助手', '中间选项区域')
+            return self.round_success('剧情模式')
         area = self.ctx.screen_loader.get_area('委托助手', '文本-剧情右上角')
         ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
             image=self.last_screenshot,
@@ -441,8 +449,14 @@ class CommissionAssistantApp(ZApplication):
         if result.is_success:
             return self.round_wait(result.status, wait=1)
 
+        # 判断是否在空洞中
+        result = hollow_event_utils.check_in_hollow(self.ctx, self.last_screenshot)
+        if result is not None:
+            result = self._handle_hollow(self.last_screenshot_time)
+            return self.round_wait(result.status, wait=0.5)
+
+        # 判断二级菜单
         result = self.round_by_find_area(self.last_screenshot, '委托助手', '左上角返回')
-        # 很多二级菜单都有这个按钮
         if result.is_success:
             return self.round_wait('处于二级界面, 等待用户操作', wait=1)
         # endregion
