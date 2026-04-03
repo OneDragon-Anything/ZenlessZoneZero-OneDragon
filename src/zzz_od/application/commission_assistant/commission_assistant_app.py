@@ -131,6 +131,11 @@ class CommissionAssistantApp(ZApplication):
         if result.is_success:
             return self.round_wait(result.status, wait=0.5)
 
+        # 判断玩法引导
+        result = self.check_game_tutorial()
+        if result.is_success:
+            return self.round_wait(result.status, wait=1)
+
         # 判断钓鱼
         result = self.check_fishing()
         if result is not None:
@@ -269,6 +274,18 @@ class CommissionAssistantApp(ZApplication):
         # 处理对话
         return hollow_event_utils.check_event_text_and_run(self, self.last_screenshot, [])
 
+    def check_game_tutorial(self) -> OperationRoundResult:
+        """
+        判断是否在玩法引导中
+        """
+        area = self.ctx.screen_loader.get_area('委托助手', '玩法引导')
+        ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(image=self.last_screenshot, rect=area.rect)
+        for mr in ocr_result_list:
+            if mr.data in ['战斗引导', '玩法引导']:
+                # 战斗引导不作处理, 等待用户点击
+                return self.round_success(mr.data)
+        return self.round_fail()
+
     def check_knock_knock(self) -> OperationRoundResult:
         """
         判断是否在短信中
@@ -287,16 +304,13 @@ class CommissionAssistantApp(ZApplication):
                 bottom_text = mr.data
 
         if bottom_mr is None:
-            result.result = OperationRoundResultEnum.FAIL
-            return result
+            return self.round_fail()
 
         if '以上为最新' in bottom_text:
             return self.round_by_find_and_click_area(self.last_screenshot, '委托助手', '按钮-短信-关闭')
 
         self.ctx.controller.click(bottom_mr.center)
-
-        result.status = bottom_text
-        return result
+        return self.round_success(bottom_text)
 
     @node_from(from_name='委托助手', status='战斗模式')
     @operation_node(name='自动战斗模式')
@@ -419,6 +433,11 @@ class CommissionAssistantApp(ZApplication):
         # region 一些常与剧情穿插的其他简单界面检测
         # 处理短信
         result = self.check_knock_knock()
+        if result.is_success:
+            return self.round_wait(result.status, wait=0.5)
+
+        # 判断玩法引导
+        result = self.check_game_tutorial()
         if result.is_success:
             return self.round_wait(result.status, wait=1)
 
