@@ -1,0 +1,257 @@
+{
+  "last_updated": "2026-03-30",
+  "character": {
+    "Nangong_Yu": {
+      "CHS": "南宫羽",
+      "EN": "Nangong_Yu",
+      "code": "Nangong_Yu"
+    },
+    "Aria": {
+      "CHS": "爱芮",
+      "EN": "Aria",
+      "code": "Aria"
+    },
+    "Sunna": {
+      "CHS": "千夏",
+      "EN": "Sunna",
+      "code": "Sunna"
+    },
+    "Zhao": {
+      "CHS": "照",
+      "EN": "Zhao",
+      "code": "Zhao"
+    },
+    "Ye_Shunguang": {
+      "CHS": "叶瞬光",
+      "EN": "Ye_Shunguang",
+      "code": "Ye_Shunguang"
+    },
+    "Banyue": {
+      "CHS": "般岳",
+      "EN": "Banyue",
+      "code": "Banyue"
+    },
+    "Dialyn": {
+      "CHS": "琉音",
+      "EN": "Dialyn",
+      "code": "Dialyn"
+    },
+    "Yidhari_Murphy": {
+      "CHS": "伊德海莉·墨菲",
+      "EN": "Yidhari_Murphy",
+      "code": "Yidhari_Murphy"
+    },
+    "Lucia_Elowen": {
+      "CHS": "卢西娅·艾洛温",
+      "EN": "Lucia_Elowen",
+      "code": "Lucia_Elowen"
+    },
+    "Orphie_Magnusson_&_Magus": {
+      "CHS": "奥菲丝·马格努森 &「鬼火」",
+      "EN": "Orphie_Magnusson_&_Magus",
+      "code": "Orphie_Magnusson_&_Magus"
+    },
+    "Seed": {
+      "CHS": "「席德」",
+      "EN": "Seed",
+      "code": "Seed"
+    },
+    "Alice_Thymefield": {
+      "CHS": "爱丽丝·泰姆菲尔德",
+      "EN": "Alice_Thymefield",
+      "code": "Alice_Thymefield"
+    },
+    "Ukinami_Yuzuha": {
+      "CHS": "浮波柚叶",
+      "EN": "Ukinami_Yuzuha",
+      "code": "Ukinami_Yuzuha"
+    },
+    "Ju_Fufu": {
+      "CHS": "橘福福",
+      "EN": "Ju_Fufu",
+      "code": "Ju_Fufu"
+    },
+    "Yixuan": {
+      "CHS": "仪玄",
+      "EN": "Yixuan",
+      "code": "Yixuan"
+    },
+    "Hugo": {
+      "CHS": "雨果•维拉德",
+      "EN": "Hugo",
+      "code": "Hugo"
+    },
+    "Vivian_Banshee": {
+      "CHS": "薇薇安•班希",
+      "EN": "Vivian_Banshee",
+      "code": "Vivian_Banshee"
+    },
+    "Trigger": {
+      "CHS": "「扳机」",
+      "EN": "Trigger",
+      "code": "Trigger"
+    },
+    "Soldier_0_-_Anby": {
+      "CHS": "零号·安比",
+      "EN": "Soldier_0_-_Anby",
+      "code": "Soldier_0_-_Anby"
+    },
+    "Evelyn_Chevalier": {
+      "CHS": "伊芙琳·舒瓦利耶",
+      "EN": "Evelyn_Chevalier",
+      "code": "Evelyn_Chevalier"
+    },
+    "Astra_Yao": {
+      "CHS": "耀嘉音",
+      "EN": "Astra_Yao",
+      "code": "Astra_Yao"
+    },
+    "Asaba_Harumasa": {
+      "CHS": "浅羽悠真",
+      "EN": "Asaba_Harumasa",
+      "code": "Asaba_Harumasa"
+    },
+    "Hoshimi_Miyabi": {
+      "CHS": "星见雅",
+      "EN": "Hoshimi_Miyabi",
+      "code": "Hoshimi_Miyabi"
+    },
+    "Lighter": {
+      "CHS": "莱特",
+      "EN": "Lighter",
+      "code": "Lighter"
+    },
+    "Tsukishiro_Yanagi": {
+      "CHS": "月城柳",
+      "EN": "Tsukishiro_Yanagi",
+      "code": "Tsukishiro_Yanagi"
+    },
+    "Burnice_White": {
+      "CHS": "柏妮思·怀特",
+      "EN": "Burnice_White",
+      "code": "Burnice_White"
+    },
+    "Caesar_King": {
+      "CHS": "凯撒·金",
+      "EN": "Caesar_King",
+      "code": "Caesar_King"
+    },
+    "Jane_Doe": {
+      "CHS": "简·杜",
+      "EN": "Jane_Doe",
+      "code": "Jane_Doe"
+    },
+    "Qingyi": {
+      "CHS": "青衣",
+      "EN": "Qingyi",
+      "code": "Qingyi"
+    },
+    "Zhu_Yuan": {
+      "CHS": "朱鸢",
+      "EN": "Zhu_Yuan",
+      "code": "Zhu_Yuan"
+    },
+    "Soldier_11": {
+      "CHS": "「11号」",
+      "EN": "Soldier_11",
+      "code": "Soldier_11"
+    },
+    "Von_Lycaon": {
+      "CHS": "冯·莱卡恩",
+      "EN": "Von_Lycaon",
+      "code": "Von_Lycaon"
+    },
+    "Alexandrina_Sebastian": {
+      "CHS": "亚历山德丽娜·莎芭丝缇安",
+      "EN": "Alexandrina_Sebastian",
+      "code": "Alexandrina_Sebastian"
+    },
+    "Ellen_Joe": {
+      "CHS": "艾莲·乔",
+      "EN": "Ellen_Joe",
+      "code": "Ellen_Joe"
+    },
+    "Koleda_Belobog": {
+      "CHS": "珂蕾妲·贝洛伯格",
+      "EN": "Koleda_Belobog",
+      "code": "Koleda_Belobog"
+    },
+    "Grace_Howard": {
+      "CHS": "格莉丝·霍华德",
+      "EN": "Grace_Howard",
+      "code": "Grace_Howard"
+    },
+    "Nekomiya_Mana": {
+      "CHS": "猫宫又奈",
+      "EN": "Nekomiya_Mana",
+      "code": "Nekomiya_Mana"
+    },
+    "Komano_Manato": {
+      "CHS": "狛野真斗",
+      "EN": "Komano_Manato",
+      "code": "Komano_Manato"
+    },
+    "Pan_Yinhu": {
+      "CHS": "潘引壶",
+      "EN": "Pan_Yinhu",
+      "code": "Pan_Yinhu"
+    },
+    "Pulchra_Fellini": {
+      "CHS": "波可娜·费雷尼",
+      "EN": "Pulchra_Fellini",
+      "code": "Pulchra_Fellini"
+    },
+    "Seth_Lowell": {
+      "CHS": "赛斯·洛威尔",
+      "EN": "Seth_Lowell",
+      "code": "Seth_Lowell"
+    },
+    "Corin_Wickes": {
+      "CHS": "可琳·威克斯",
+      "EN": "Corin_Wickes",
+      "code": "Corin_Wickes"
+    },
+    "Ben_Bigger": {
+      "CHS": "本·比格",
+      "EN": "Ben_Bigger",
+      "code": "Ben_Bigger"
+    },
+    "Anton_Ivanov": {
+      "CHS": "安东·伊万诺夫",
+      "EN": "Anton_Ivanov",
+      "code": "Anton_Ivanov"
+    },
+    "Anby_Demara": {
+      "CHS": "安比·德玛拉",
+      "EN": "Anby_Demara",
+      "code": "Anby_Demara"
+    },
+    "Nicole_Demara": {
+      "CHS": "妮可·德玛拉",
+      "EN": "Nicole_Demara",
+      "code": "Nicole_Demara"
+    },
+    "Billy_Kid": {
+      "CHS": "比利·奇德",
+      "EN": "Billy_Kid",
+      "code": "Billy_Kid"
+    },
+    "Soukaku": {
+      "CHS": "苍角",
+      "EN": "Soukaku",
+      "code": "Soukaku"
+    },
+    "Lucy": {
+      "CHS": "露西亚娜·奥克希斯·提奥多·德·蒙特夫",
+      "EN": "Lucy",
+      "code": "Lucy"
+    },
+    "Piper_Wheel": {
+      "CHS": "派派·韦尔",
+      "EN": "Piper_Wheel",
+      "code": "Piper_Wheel"
+    }
+  },
+  "weapon": {},
+  "equipment": {}
+}

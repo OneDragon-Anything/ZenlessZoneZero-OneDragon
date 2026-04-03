@@ -22,6 +22,7 @@ import os
 import json
 import time
 from zzz_od.application.inventory_scan.pre_scan.pre_scan_app import PreScanApp
+from zzz_od.application.inventory_scan.translation.translation_updater import TranslationUpdater
 import requests
 
 class InventoryScanApp(ZApplication):
@@ -35,32 +36,57 @@ class InventoryScanApp(ZApplication):
         self.screenshots_dir = os_utils.get_path_under_work_dir('.debug', 'inventory_screenshots')
         self.data_file_path = os_utils.get_path_under_work_dir('.debug', 'inventory_data')
         self.ocr_worker = OcrWorker(ctx)
-        #区域配置
-        self.agent_unlocked_area = self.ctx.screen_loader.get_area('代理人-信息', '代理人-是否为已解锁')
-        self.agent_name_area = self.ctx.screen_loader.get_area('代理人-信息', '代理人-名称')
-        self.switch_next_agent_area = self.ctx.screen_loader.get_area('代理人-信息', '按钮-下一位代理人')
-        self.agent_drive_1_area = self.ctx.screen_loader.get_area('代理人-装备', '分区1')
-        self.agent_drive_2_area = self.ctx.screen_loader.get_area('代理人-装备', '分区2')
-        self.agent_drive_3_area = self.ctx.screen_loader.get_area('代理人-装备', '分区3')
-        self.agent_drive_4_area = self.ctx.screen_loader.get_area('代理人-装备', '分区4')
-        self.agent_drive_5_area = self.ctx.screen_loader.get_area('代理人-装备', '分区5')
-        self.agent_drive_6_area = self.ctx.screen_loader.get_area('代理人-装备', '分区6')
-        #前端值获取
-        self.scan_agent_option = getattr(self.ctx, '_inventory_scan_agent_option', None)
-        #print(f"获取到的代理人扫描选项: {self.scan_agent_option}, 类型: {type(self.scan_agent_option)}")
-        #最大迭代次数
-        self.max_iterations = 100
+        
+        # 初始化并更新翻译字典
+        # self._update_translation_dict()
 
-    @operation_node(name='预扫描',is_start_node=True)
+    def _get_scan_agent_option(self) -> str:
+        """获取扫描代理人选项（运行时从 context 获取最新值）"""
+        return getattr(self.ctx, '_inventory_scan_agent_option', None)
+    
+    # def _update_translation_dict(self) -> None:
+    #     """更新翻译字典"""
+    #     try:
+    #         updater = TranslationUpdater()
+    #         if updater.update_if_needed():
+    #             log.info("翻译字典更新成功")
+    #         else:
+    #             log.info("翻译字典无需更新")
+    #     except Exception as e:
+    #         log.error(f"更新翻译字典失败: {e}")
+
+    @operation_node(name='返回大世界-普通',is_start_node=True)
+    def back_at_first(self) -> OperationRoundResult:
+        """返回大世界"""
+        op = BackToNormalWorld(self.ctx)
+        return self.round_by_op_result(op.execute())
+    
+    @node_from(from_name='返回大世界-普通')
+    @operation_node(name='准备截图文件夹')
+    def prepare_screenshots_dir(self) -> OperationRoundResult:
+        """准备截图文件夹并启动OCR工作线程"""
+        import shutil
+        if os.path.exists(self.screenshots_dir):
+            shutil.rmtree(self.screenshots_dir)
+        self.ocr_worker.reset()
+        self.ocr_worker.start()
+        return self.round_success('截图文件夹已准备，且OCR工作线程已启动')
+    
+    
+    
+    @node_from(from_name='准备截图文件夹')
+    @operation_node(name='预扫描')
     def pre_scan(self) -> OperationRoundResult:
         """预扫描"""
-        if self.scan_agent_option is None:
+        scan_agent_option = self._get_scan_agent_option()
+        #print(f'scan_agent_option: {scan_agent_option}')
+        if scan_agent_option is None:
             return self.round_fail('扫描选项未设置')
-        if self.scan_agent_option == AgentScanOptionEnum.UPDATE_AGENTS.value.value:
+        if scan_agent_option == AgentScanOptionEnum.UPDATE_AGENTS.value.value:
             # AgentScanOptionEnum.UPDATE_AGENTS.value 是 ConfigItem
             # .value 再次访问得到 ConfigItem.value，即字符串 '更新代理人列表'
             try:
-                self.pre_scan_app = PreScanApp(self.ctx)
+                self.pre_scan_app = PreScanApp(self.ctx, self.ocr_worker)
                 result = self.pre_scan_app.execute()
                 if result.success:
                     return self.round_success('预扫描完成')
@@ -74,11 +100,10 @@ class InventoryScanApp(ZApplication):
     @operation_node(name='扫描特定代理人')
     def scan_specific_agent(self) -> OperationRoundResult:
         """扫描特定代理人"""
-        # if self.scan_agent_option is None:
-        #     return self.round_fail('扫描选项未设置')
-        if self.scan_agent_option  and self.scan_agent_option != AgentScanOptionEnum.UPDATE_AGENTS.value.value:
+        scan_agent_option = self._get_scan_agent_option()
+        if scan_agent_option and scan_agent_option != AgentScanOptionEnum.UPDATE_AGENTS.value.value:
             try:
-                self.special_scan_app = SpecialScanApp(self.ctx)
+                self.special_scan_app = SpecialScanApp(self.ctx, self.ocr_worker)
                 result = self.special_scan_app.execute()
                 if result.success:
                     return self.round_success('特定扫描完成')
