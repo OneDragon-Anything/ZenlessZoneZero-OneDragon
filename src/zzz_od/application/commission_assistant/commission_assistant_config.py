@@ -91,11 +91,3 @@ class CommissionAssistantConfig(ApplicationConfig):
     @sleep_after_empty_screen.setter
     def sleep_after_empty_screen(self, new_value: float) -> None:
         self.update('sleep_after_empty_screen', new_value)
-
-    @property
-    def focus_story_mode(self) -> bool:
-        return self.get('focus_story_mode', False)
-
-    @focus_story_mode.setter
-    def focus_story_mode(self, new_value: bool) -> None:
-        self.update('focus_story_mode', new_value)

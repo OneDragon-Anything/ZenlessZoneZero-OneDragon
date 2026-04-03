@@ -445,38 +445,11 @@ class CommissionAssistantApp(ZApplication):
                 self.chosen_opt_history.clear()
                 return self.round_wait('跳过剧情', wait=0.1)
 
-        # region 一些常与剧情穿插的其他简单界面检测
-        # 处理短信
-        result = self.check_knock_knock()
-        if result.is_success:
-            return self.round_wait(result.status, wait=0.5)
-
-        # 判断玩法引导
-        result = self.check_game_tutorial()
-        if result.is_success:
-            return self.round_wait(result.status, wait=1)
-
-        # 判断是否在空洞中
-        result = hollow_event_utils.check_in_hollow(self.ctx, self.last_screenshot)
-        if result is not None:
-            result = self._handle_hollow(self.last_screenshot_time)
-            return self.round_wait(result.status, wait=0.5)
-
-        # 判断二级菜单
-        result = self.round_by_find_area(self.last_screenshot, '委托助手', '左上角返回')
-        if result.is_success:
-            return self.round_wait('处于二级界面, 等待用户操作', wait=1)
-        # endregion
-
         # 跳过剧情模式：没有'确认'弹窗，说明这个'跳过'是无反馈的灰按钮
         # 跳过剧情模式：文本-剧情右上角，很多情况下是没有内容可点击的
         # 自动点击模式
         result = self._do_dialog_click(check_center_words=(self.config.story_mode != StoryMode.SKIP.value.value))
 
-        if self.config.focus_story_mode and not self.ctx.run_context.is_context_pause:
-            # 剧情专注模式, 强制只在这一节点中循环
-            # 脚本暂停时取消强制循环
-            result.result = OperationRoundResultEnum.WAIT
         return result
 
     @node_from(from_name='委托助手', status='钓鱼')
