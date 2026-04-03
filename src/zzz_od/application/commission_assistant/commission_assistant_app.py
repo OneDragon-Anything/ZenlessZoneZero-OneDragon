@@ -44,6 +44,7 @@ class CommissionAssistantApp(ZApplication):
             instance_idx=self.ctx.current_instance_idx,
             group_id=application_const.DEFAULT_GROUP_ID,
         )
+        # self.last_recorded_time: float = self.last_screenshot_time  # 用于性能分析
         self.withered_domain_inited: bool = False  # 空洞初始化标志
 
         self.run_mode: int = 0  # 0=对话 1=闪避 2=自动战斗
@@ -390,6 +391,8 @@ class CommissionAssistantApp(ZApplication):
         # 如果按快捷键键切换了别的模式, 跳出循环
         if self.run_mode != 0:
             return self.round_success('切换自动对话模式')
+        # log.debug('@@@@@@@@@@@@@@循环耗时:%2f', self.last_screenshot_time - self.last_recorded_time)
+        # self.last_recorded_time = self.last_screenshot_time
 
         area = self.ctx.screen_loader.get_area('委托助手', '文本-剧情右上角')
 
