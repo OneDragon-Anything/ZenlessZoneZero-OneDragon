@@ -105,7 +105,7 @@ class CommissionAssistantApp(ZApplication):
         # 邀约同行移动时 下面的current_screen会识别不到
         result = self.round_by_find_area(self.last_screenshot, '战斗画面', '按键-交互')
         if result.is_success:
-            return self.round_wait(status=result.status, wait=1)
+            return self.round_wait(status='战斗画面-按键-交互', wait=1)
 
         current_screen = self.check_and_update_current_screen(screen_name_list=['大世界-普通', '大世界-勘域'])
         if current_screen is not None:
@@ -136,22 +136,30 @@ class CommissionAssistantApp(ZApplication):
         if result is not None:
             return result
 
-        result = self._do_dialog_click(click_center_when_fail=True)
+        result = self._do_dialog_click(check_center_words=False, click_center_when_fail=False)
         # elapsed = timedelta.total_seconds(datetime.now() - start)
-        # log.debug('判断游戏模式耗时: ' + str(elapsed)) # ocr这样一轮大概是0.6s
+        # log.debug('判断游戏模式耗时: ' + str(elapsed))
+        # ocr一轮大概是0.6s
         return result
 
-    def _do_dialog_click(self, click_center_when_fail: bool = False) -> OperationRoundResult:
+    def _do_dialog_click(self, check_center_words: bool = True, click_center_when_fail: bool = False) -> OperationRoundResult:
         """
         普通的对话点击：选项、对话框标题/中间区域
         """
         if self._click_dialog_options(self.last_screenshot, '右侧选项区域'):
-            return self.round_wait(status='点击右方选项',
-                                   wait=self.config.dialog_click_interval)
+            return self.round_wait(status='点击右方选项', wait=self.config.dialog_click_interval)
 
-        if self._click_dialog_options(self.last_screenshot, '中间选项区域'):
-            return self.round_wait(status='点击中间选项',
-                                   wait=self.config.dialog_click_interval)
+        if not check_center_words:
+            # 不检查中间的字, 但是识别中间区域是否为黑屏, 黑屏就点. 适用于跳过剧情
+            # 这种检测方式不会在中间为花色区域时抢鼠标导致需要暂停才能手动与游戏交互
+            center_area = self.ctx.screen_loader.get_area('委托助手', '中间选项区域')
+            center_image, center_rect = cv2_utils.crop_image(self.last_screenshot, center_area.rect)
+            if not cv2_utils.is_colorful(center_image, saturation_threshold=1, color_ratio_threshold=0.01):
+                self.round_by_click_area('委托助手', '中间选项区域')
+                return self.round_wait(status='黑屏点击中间区域', wait=self.config.dialog_click_interval)
+        elif self._click_dialog_options(self.last_screenshot, '中间选项区域'):
+            # 检查中间有字就点, 适用于 自动剧情/点击剧情 时点击选项
+            return self.round_wait(status='点击中间选项', wait=self.config.dialog_click_interval)
 
         with_dialog = self._check_dialog(self.last_screenshot)
         if with_dialog:
@@ -167,7 +175,12 @@ class CommissionAssistantApp(ZApplication):
         """
         识别当前是否有对话
         """
-        area = self.ctx.screen_loader.get_area('委托助手', '对话框标题')
+        # 对话框内容不为黑白配色, 不是对话
+        area = self.ctx.screen_loader.get_area('委托助手', '对话框内容')
+        if not cv2_utils.is_in_gray_mask(screen, rect=area.rect):
+            return False
+
+        # 对话框标题没汉字, 不是对话
         ocr_result_list = self.ctx.ocr_service.get_ocr_result_list(
             image=screen,
             rect=area.rect
@@ -418,7 +431,7 @@ class CommissionAssistantApp(ZApplication):
         # 跳过剧情模式：没有'确认'弹窗，说明这个'跳过'是无反馈的灰按钮
         # 跳过剧情模式：文本-剧情右上角，很多情况下是没有内容可点击的
         # 自动点击模式
-        result = self._do_dialog_click()
+        result = self._do_dialog_click(check_center_words=(self.config.story_mode != StoryMode.SKIP.value.value))
 
         if self.config.focus_story_mode and not self.ctx.run_context.is_context_pause:
             # 剧情专注模式, 强制只在这一节点中循环

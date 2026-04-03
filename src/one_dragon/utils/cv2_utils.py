@@ -9,6 +9,7 @@ from cv2.typing import MatLike
 
 from one_dragon.base.geometry.rectangle import Rect
 from one_dragon.base.matcher.match_result import MatchResultList, MatchResult
+from one_dragon.utils.log_utils import log
 
 feature_detector = cv2.SIFT_create()
 
@@ -1234,3 +1235,50 @@ def is_colorful(img: MatLike, saturation_threshold: int = 30, color_ratio_thresh
     is_colorful = mean_saturation > saturation_threshold and color_ratio > color_ratio_threshold
 
     return is_colorful
+
+
+def is_in_gray_mask(img: MatLike, rect: Rect | None = None, threshold=55, rgb_diff_threshold=20, percent_rate=0.9) -> bool:
+    """
+    判断图像是否接近黑白灰, 可用于判断游戏下方的对话框遮罩
+    性能比 is_colorful 稍慢, 但是几乎能准确识别所有对话框
+
+    判断依据：
+    1.  统计 (RGB都<threshold) OR (RGB都>255-threshold) 的像素占比
+        在游戏下方的对话框中, 应该是只有文字边缘像素颜色值会不在50以下
+    2.  统计RGB之差小于 rgb_diff_threshold 的像素占比, 以判断是否为灰度像素
+
+    Args:
+        img: 输入图像（RGB格式）
+        rect: 先裁切
+        threshold: 颜色阈值，RGB都低于此或者都高于(255-此)认为接近黑白
+        rgb_diff_threshold: 颜色阈值，RGB只差小于此则认为像素块为灰色
+        percent_rate: 满足条件的点的占比阈值
+
+    Returns:
+        bool: True 表示是彩色的，False 表示接近灰度
+    """
+    if img is None or img.size == 0:
+        return False
+
+    # 裁剪图片
+    if rect is not None:
+        img, crop_rect = crop_image(img, rect)
+
+    total = img.shape[0] * img.shape[1]
+
+    # 条件1：纯黑 或 纯白
+    cond1 = (np.all(img < threshold, axis=-1) | np.all(img > 255 - threshold, axis=-1))
+
+    # 条件2：RGB 相差很小（最大值 - 最小值 < 阈值）
+    img_max = img.max(axis=-1)
+    img_min = img.min(axis=-1)
+    cond2 = (img_max - img_min) < rgb_diff_threshold
+
+    # 满足任意一个就计数（超快向量化）
+    count = (cond1 | cond2).sum()
+    # save_image(img, 'y:\\debug.png')
+    percent = count / total
+    log.debug('该图片为黑白灰色系的置信度为: [%2f]', percent)
+    # is_colorful(img)
+
+    return percent > percent_rate
