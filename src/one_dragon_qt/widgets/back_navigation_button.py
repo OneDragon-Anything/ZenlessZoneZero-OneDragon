@@ -6,7 +6,7 @@ from one_dragon_qt.widgets.navigation_button import NavigationToggleButton
 
 
 class BackNavigationButton(NavigationToggleButton):
-    """导航栏上的返回按钮。平时禁用外观，激活时整个方块背景为强调色。"""
+    """导航栏上的返回按钮。紧凑尺寸，平时禁用外观，激活时强调色背景 + 白色图标。"""
 
     def __init__(self, on_click, parent=None) -> None:
         super().__init__(
@@ -20,6 +20,7 @@ class BackNavigationButton(NavigationToggleButton):
             parent=parent,
         )
         self._isSelectedTextVisible = False
+        self.setFixedSize(64, 36)
 
     def _drawBackground(self, painter: QPainter) -> None:
         if self._active:
@@ -40,7 +41,7 @@ class BackNavigationButton(NavigationToggleButton):
             painter.setOpacity(0.4)
 
         # 图标居中（无文字）
-        icon_size = 24
+        icon_size = 20
         x = (self.width() - icon_size) / 2
         y = (self.height() - icon_size) / 2
         rect = QRectF(x, y, icon_size, icon_size)
