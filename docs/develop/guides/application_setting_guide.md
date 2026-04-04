@@ -11,7 +11,7 @@
 |---|---|
 | **AppSettingProvider** | 设置声明文件，告诉框架"这个应用有设置，用什么方式显示" |
 | **AppSettingManager** | 设置管理器，自动扫描所有 Provider 并统一分发 |
-| **SettingType.INTERFACE** | 推入式二级界面 — 替换主内容区，通过面包屑导航返回 |
+| **SettingType.INTERFACE** | 推入式二级界面 — 替换主内容区，通过导航栏返回按钮返回 |
 | **SettingType.FLYOUT** | 悬浮卡片 — 轻量弹窗，点击外部关闭 |
 
 ---
@@ -144,7 +144,8 @@ class MyCombinedSettingInterface(SegmentedSettingInterface):
 应用启动
   │
   ├─ MainAppWindowBase.__init__()
-  │    └─ self.app_setting_manager = AppSettingManager(ctx)   ← 创建空壳
+  │    ├─ self.app_setting_manager = AppSettingManager(ctx)   ← 创建空壳
+  │    └─ BackNavigationButton                                ← 创建导航栏返回按钮（默认禁用态）
   │
   ├─ CtxInitRunner (后台线程)
   │    ├─ ctx.init()
@@ -156,8 +157,14 @@ class MyCombinedSettingInterface(SegmentedSettingInterface):
   │              ├─ 注册 app_id → handler 映射
   │              └─ ready.emit()   ← 通知界面刷新设置按钮
   │
-  └─ 运行界面收到 ready 信号
-       └─ _update_setting_btn_visibility()   ← 显示/隐藏齿轮按钮
+  ├─ 运行界面收到 ready 信号
+  │    └─ _update_setting_btn_visibility()   ← 显示/隐藏齿轮按钮
+  │
+  └─ 用户点击齿轮 (INTERFACE 模式)
+       ├─ PivotNavigatorInterface.push_setting_interface()
+       │    └─ PageStackWrapper.push_setting()   ← 从右侧滑入动画
+       ├─ secondary_state_changed(True)          ← 信号通知窗口
+       └─ BackNavigationButton.set_active(True)  ← 返回按钮变为强调色
 ```
 
 ### 扫描规则
@@ -171,7 +178,7 @@ class MyCombinedSettingInterface(SegmentedSettingInterface):
 
 | SettingType | 行为 |
 |---|---|
-| **INTERFACE** | 通过 `PivotNavigatorInterface.push_setting_interface()` 推入面包屑导航的二级页面，界面实例被缓存复用 |
+| **INTERFACE** | 通过 `PivotNavigatorInterface.push_setting_interface()` 推入二级页面（从右侧滑入动画），导航栏出现返回按钮，界面实例被缓存复用 |
 | **FLYOUT** | 每次调用 `AppSettingFlyout.show_flyout()` 创建新的 `TeachingTip` 弹窗，同一时刻只显示一个 |
 
 ---
@@ -214,6 +221,9 @@ plugins/my_plugin/
 | `one_dragon_qt/services/app_setting/app_setting_manager.py` | 管理器（扫描/注册/分发） |
 | `one_dragon_qt/widgets/app_setting/app_setting_flyout.py` | Flyout 基类 |
 | `one_dragon_qt/widgets/segmented_setting_interface.py` | 多标签设置组件 |
+| `one_dragon_qt/widgets/page_stack_wrapper.py` | 二级页面推入/弹出栈（含滑入动画） |
+| `one_dragon_qt/widgets/back_navigation_button.py` | 导航栏返回按钮 |
+| `one_dragon_qt/widgets/pivot_navi_interface.py` | Pivot 导航界面（管理 PageStackWrapper） |
 | `one_dragon_qt/widgets/teaching_tip.py` | 自定义 TeachingTip |
-| `one_dragon_qt/windows/main_app_window_base.py` | 窗口基类 |
+| `one_dragon_qt/windows/main_app_window_base.py` | 主窗口基类（返回按钮 + 设置管理器） |
 | `one_dragon/utils/plugin_module_loader.py` | 模块动态加载工具 |

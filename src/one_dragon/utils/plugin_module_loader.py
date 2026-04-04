@@ -1,7 +1,7 @@
 """插件模块加载工具
 
 提供插件式文件发现和动态导入的共享工具函数。
-被 ApplicationFactoryManager 和 AppSettingScanner 共同使用。
+被 ApplicationFactoryManager 和 AppSettingManager 共同使用。
 """
 
 from __future__ import annotations
