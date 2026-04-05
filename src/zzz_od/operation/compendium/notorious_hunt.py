@@ -38,8 +38,8 @@ from zzz_od.screen_area.screen_normal_world import ScreenNormalWorldEnum
 
 class NotoriousHunt(ZOperation):
 
-    STATUS_WITH_LEFT_TIMES: ClassVar[str] = '有剩余次数'
-    STATUS_NO_LEFT_TIMES: ClassVar[str] = '没有剩余次数'
+    STATUS_WITH_LEFT_TIMES: ClassVar[str] = '已满足挑战条件'
+    STATUS_NO_LEFT_TIMES: ClassVar[str] = '不满足挑战条件'
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
