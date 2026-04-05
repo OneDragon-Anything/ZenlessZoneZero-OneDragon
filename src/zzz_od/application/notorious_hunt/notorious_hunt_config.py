@@ -128,7 +128,7 @@ class NotoriousHuntConfig(ApplicationConfig):
             ChargePlanItem('训练', '恶名狩猎', '猎血清道夫', None),
         ]
 
-    def update(self, key: str, value, save: bool = True):
+    def update(self, key: str, value: object, save: bool = True) -> None:
         if key == 'allowed_weekdays':
             value = _normalize_allowed_weekdays(
                 value,
