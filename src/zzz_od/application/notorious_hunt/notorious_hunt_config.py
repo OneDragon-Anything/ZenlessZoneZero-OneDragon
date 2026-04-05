@@ -6,6 +6,38 @@ from one_dragon.base.operation.application.application_config import Application
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 from zzz_od.application.notorious_hunt import notorious_hunt_const
 
+DEFAULT_ALLOWED_WEEKDAYS: list[int] = [1, 2, 3, 4, 5, 6, 7]
+
+
+def _normalize_weekday_value(raw_value: object) -> int | None:
+    if isinstance(raw_value, bool):
+        return None
+
+    if isinstance(raw_value, int):
+        day = raw_value
+    elif isinstance(raw_value, str) and raw_value.strip().isdigit():
+        day = int(raw_value.strip())
+    else:
+        return None
+
+    return day if 1 <= day <= 7 else None
+
+
+def _normalize_allowed_weekdays(
+    raw_value: object,
+    default_value: list[int] | None = None,
+) -> list[int]:
+    if raw_value is None or not isinstance(raw_value, list):
+        return default_value.copy() if default_value is not None else []
+
+    normalized: list[int] = []
+    for raw_day in raw_value:
+        day = _normalize_weekday_value(raw_day)
+        if day is not None:
+            normalized.append(day)
+
+    return sorted(set(normalized))
+
 
 class NotoriousHuntLevelEnum(Enum):
 
@@ -22,6 +54,17 @@ class NotoriousHuntBuffEnum(Enum):
     BUFF_1 = ConfigItem('第一个BUFF', 1)
     BUFF_2 = ConfigItem('第二个BUFF', 2)
     BUFF_3 = ConfigItem('第三个BUFF', 3)
+
+
+class NotoriousHuntWeekdayEnum(Enum):
+
+    MONDAY = ConfigItem('周一', 1)
+    TUESDAY = ConfigItem('周二', 2)
+    WEDNESDAY = ConfigItem('周三', 3)
+    THURSDAY = ConfigItem('周四', 4)
+    FRIDAY = ConfigItem('周五', 5)
+    SATURDAY = ConfigItem('周六', 6)
+    SUNDAY = ConfigItem('周日', 7)
 
 
 class NotoriousHuntConfig(ApplicationConfig):
@@ -54,6 +97,17 @@ class NotoriousHuntConfig(ApplicationConfig):
                 if plan.mission_type_name not in existed_missions:
                     self.plan_list.append(plan)
 
+    @property
+    def allowed_weekdays(self) -> list[int]:
+        return _normalize_allowed_weekdays(
+            self.data.get('allowed_weekdays'),
+            DEFAULT_ALLOWED_WEEKDAYS,
+        )
+
+    @allowed_weekdays.setter
+    def allowed_weekdays(self, new_value: list[int]) -> None:
+        self.update('allowed_weekdays', new_value)
+
     def _get_default_plan(self) -> list[ChargePlanItem]:
         """
         默认的周本计划
@@ -70,9 +124,20 @@ class NotoriousHuntConfig(ApplicationConfig):
             ChargePlanItem('训练', '恶名狩猎', '猎血清道夫', None),
         ]
 
+    def update(self, key: str, value, save: bool = True):
+        if key == 'allowed_weekdays':
+            value = _normalize_allowed_weekdays(
+                value,
+                DEFAULT_ALLOWED_WEEKDAYS,
+            )
+
+        super().update(key, value, save)
+
     def save(self):
+        allowed_weekdays = self.allowed_weekdays
         self.data = {}
         plan_list = []
+        self.data['allowed_weekdays'] = allowed_weekdays
         self.data['plan_list'] = plan_list
 
         for plan_item in self.plan_list:

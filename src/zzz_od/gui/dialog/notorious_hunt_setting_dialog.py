@@ -3,13 +3,21 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QWidget
+from qfluentwidgets import FluentIcon
 
+from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.draggable_list import DraggableList
+from one_dragon_qt.widgets.setting_card.multi_selection_combo_box_setting_card import (
+    MultiSelectionComboBoxSettingCard,
+)
 from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanItem,
 )
 from zzz_od.application.notorious_hunt import notorious_hunt_const
+from zzz_od.application.notorious_hunt.notorious_hunt_config import (
+    NotoriousHuntWeekdayEnum,
+)
 from zzz_od.gui.dialog.app_setting_dialog import AppSettingDialog
 from zzz_od.gui.view.one_dragon.notorious_hunt_interface import NotoriousHuntCard
 
@@ -24,6 +32,14 @@ class NotoriousHuntSettingDialog(AppSettingDialog):
 
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
+
+        self.allowed_weekdays_opt = MultiSelectionComboBoxSettingCard(
+            icon=FluentIcon.CALENDAR,
+            title='允许运行星期',
+            content='仅影响一条龙自动调度，不影响手动运行',
+            options_enum=NotoriousHuntWeekdayEnum,
+        )
+        self.content_widget.add_widget(self.allowed_weekdays_opt)
 
         # 创建可拖动的列表容器
         self.drag_list = DraggableList()
@@ -67,6 +83,9 @@ class NotoriousHuntSettingDialog(AppSettingDialog):
             group_id=self.group_id,
         )
 
+        self.allowed_weekdays_opt.init_with_adapter(
+            get_prop_adapter(self.config, 'allowed_weekdays')
+        )
         self.update_plan_list_display()
 
     def _on_plan_item_changed(self, idx: int, plan: ChargePlanItem) -> None:
