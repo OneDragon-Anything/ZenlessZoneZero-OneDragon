@@ -2,15 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtWidgets import QWidget
-from qfluentwidgets import FluentIcon
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QHBoxLayout, QWidget
+from qfluentwidgets import CheckBox, FluentIcon
 
-from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.draggable_list import DraggableList
-from one_dragon_qt.widgets.setting_card.multi_selection_combo_box_setting_card import (
-    MultiSelectionComboBoxSettingCard,
-)
+from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanItem,
 )
@@ -25,6 +23,57 @@ if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
 
 
+class NotoriousHuntWeekdaySettingCard(SettingCardBase):
+
+    value_changed = Signal(list)
+
+    def __init__(self, parent: QWidget | None = None):
+        SettingCardBase.__init__(
+            self,
+            icon=FluentIcon.CALENDAR,
+            title='允许运行星期',
+            content='仅影响一条龙自动调度，不影响手动运行',
+            parent=parent,
+        )
+
+        self._checkboxes: list[tuple[int, CheckBox]] = []
+
+        checkbox_widget = QWidget(self)
+        checkbox_layout = QHBoxLayout(checkbox_widget)
+        checkbox_layout.setContentsMargins(0, 0, 0, 0)
+        checkbox_layout.setSpacing(12)
+        checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        for day_item in NotoriousHuntWeekdayEnum:
+            checkbox = CheckBox(day_item.value.ui_text, self)
+            checkbox.checkStateChanged.connect(self._on_value_changed)
+            self._checkboxes.append((day_item.value.value, checkbox))
+            checkbox_layout.addWidget(checkbox)
+
+        self.hBoxLayout.addWidget(
+            checkbox_widget,
+            0,
+            Qt.AlignmentFlag.AlignRight,
+        )
+        self.hBoxLayout.addSpacing(16)
+
+    def _on_value_changed(self, value: Qt.CheckState) -> None:
+        del value
+        self.value_changed.emit(self.get_value())
+
+    def set_value(self, values: list[int], emit_signal: bool = True) -> None:
+        value_set = set(values)
+        for day, checkbox in self._checkboxes:
+            if not emit_signal:
+                checkbox.blockSignals(True)
+            checkbox.setChecked(day in value_set)
+            if not emit_signal:
+                checkbox.blockSignals(False)
+
+    def get_value(self) -> list[int]:
+        return [day for day, checkbox in self._checkboxes if checkbox.isChecked()]
+
+
 class NotoriousHuntSettingDialog(AppSettingDialog):
 
     def __init__(self, ctx: ZContext, parent: QWidget | None = None):
@@ -33,11 +82,9 @@ class NotoriousHuntSettingDialog(AppSettingDialog):
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
 
-        self.allowed_weekdays_opt = MultiSelectionComboBoxSettingCard(
-            icon=FluentIcon.CALENDAR,
-            title='允许运行星期',
-            content='仅影响一条龙自动调度，不影响手动运行',
-            options_enum=NotoriousHuntWeekdayEnum,
+        self.allowed_weekdays_opt = NotoriousHuntWeekdaySettingCard()
+        self.allowed_weekdays_opt.value_changed.connect(
+            self._on_allowed_weekdays_changed
         )
         self.content_widget.add_widget(self.allowed_weekdays_opt)
 
@@ -83,10 +130,14 @@ class NotoriousHuntSettingDialog(AppSettingDialog):
             group_id=self.group_id,
         )
 
-        self.allowed_weekdays_opt.init_with_adapter(
-            get_prop_adapter(self.config, 'allowed_weekdays')
+        self.allowed_weekdays_opt.set_value(
+            self.config.allowed_weekdays,
+            emit_signal=False,
         )
         self.update_plan_list_display()
+
+    def _on_allowed_weekdays_changed(self, value: list[int]) -> None:
+        self.config.allowed_weekdays = value
 
     def _on_plan_item_changed(self, idx: int, plan: ChargePlanItem) -> None:
         self.config.update_plan(idx, plan)
