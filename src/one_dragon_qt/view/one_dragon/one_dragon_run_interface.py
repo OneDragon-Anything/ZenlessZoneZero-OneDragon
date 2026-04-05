@@ -1,4 +1,6 @@
-from collections.abc import Callable
+from __future__ import annotations
+
+import contextlib
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget
@@ -32,6 +34,7 @@ from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
 )
 from one_dragon_qt.widgets.setting_card.help_card import HelpCard
 from one_dragon_qt.widgets.setting_card.switch_setting_card import SwitchSettingCard
+from one_dragon_qt.windows.main_app_window_base import MainAppWindowBase
 
 
 class OneDragonRunInterface(SplitAppRunInterface):
@@ -133,11 +136,21 @@ class OneDragonRunInterface(SplitAppRunInterface):
             self.ctx.signal.start_onedragon = False
             self.run_all_apps_signal.emit()
 
-        self._update_setting_btn_visibility(set(self.get_setting_dialog_map()))
+        self._update_setting_btn_visibility()
+
+        # AppSettingManager 可能尚未就绪，监听信号以在就绪后刷新
+        window = self.window()
+        if isinstance(window, MainAppWindowBase):
+            window.app_setting_manager.ready.connect(self._update_setting_btn_visibility)
 
     def on_interface_hidden(self) -> None:
         SplitAppRunInterface.on_interface_hidden(self)
-        self._context_event_signal.instance_changed.disconnect(self._on_instance_changed)
+        with contextlib.suppress(RuntimeError):
+            self._context_event_signal.instance_changed.disconnect(self._on_instance_changed)
+        window = self.window()
+        if isinstance(window, MainAppWindowBase):
+            with contextlib.suppress(RuntimeError):
+                window.app_setting_manager.ready.disconnect(self._update_setting_btn_visibility)
 
     def _on_after_done_changed(self, idx: int, value: str) -> None:
         """
@@ -230,28 +243,29 @@ class OneDragonRunInterface(SplitAppRunInterface):
         dialog = NotifyDialog(self, self.ctx)
         dialog.exec()
 
-    def get_setting_dialog_map(self) -> dict[str, Callable]:
-        """返回 app_id -> 设置弹窗回调 的映射，由子类实现"""
-        return {}
-
     def on_app_setting_clicked(self, app_id: str) -> None:
-        """处理应用设置按钮被点击，查找 get_setting_dialog_map 中的回调并调用"""
-        dialog_fn = self.get_setting_dialog_map().get(app_id)
-        if dialog_fn is None:
+        """处理应用设置按钮被点击，委托给 app_setting_manager"""
+        window = self.window()
+        if not isinstance(window, MainAppWindowBase):
             return
         target = self._find_app_card_setting_btn(app_id)
         if target is None:
             return
-        dialog_fn(
+        window.app_setting_manager.show_app_setting(
+            app_id=app_id,
             parent=self,
             group_id=application_const.DEFAULT_GROUP_ID,
             target=target,
         )
 
-    def _update_setting_btn_visibility(self, settable_app_ids: set[str]) -> None:
-        """根据支持设置的 app_id 集合，显示或隐藏卡片的设置按钮"""
+    def _update_setting_btn_visibility(self) -> None:
+        """根据 app_setting_manager 的注册信息，显示或隐藏卡片的设置按钮"""
+        window = self.window()
+        if not isinstance(window, MainAppWindowBase):
+            return
+        settable = window.app_setting_manager.settable_app_ids
         for card in self.app_run_list._app_cards:
-            card.setting_btn.setVisible(card.app.app_id in settable_app_ids)
+            card.setting_btn.setVisible(card.app.app_id in settable)
 
     def _find_app_card_setting_btn(self, app_id: str):
         """找到对应 app_id 的卡片的设置按钮"""

@@ -6,24 +6,33 @@ from PySide6.QtWidgets import QTableWidgetItem, QWidget
 from qfluentwidgets import CheckBox, FluentIcon, TableWidget
 
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.setting_card.push_setting_card import PushSettingCard
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.shiyu_defense import shiyu_defense_const
 from zzz_od.application.shiyu_defense.shiyu_defense_config import ShiyuDefenseConfig
 from zzz_od.application.shiyu_defense.shiyu_defense_run_record import (
     ShiyuDefenseRunRecord,
 )
 from zzz_od.game_data.agent import DmgTypeEnum
-from zzz_od.gui.dialog.app_setting_dialog import AppSettingDialog
 
 if TYPE_CHECKING:
     from zzz_od.context.zzz_context import ZContext
 
 
-class ShiyuDefenseSettingDialog(AppSettingDialog):
+class ShiyuDefenseSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
-    def __init__(self, ctx: ZContext, parent: QWidget | None = None):
-        super().__init__(ctx=ctx, title='式舆防卫战配置', parent=parent)
+    def __init__(self, ctx: ZContext, parent=None):
+        self.ctx: ZContext = ctx
+
+        VerticalScrollInterface.__init__(
+            self,
+            object_name='zzz_shiyu_defense_setting_interface',
+            content_widget=None, parent=parent,
+            nav_text_cn='式舆防卫战'
+        )
+
         self.config: ShiyuDefenseConfig | None = None
         self.run_record: ShiyuDefenseRunRecord | None = None
 
@@ -55,15 +64,15 @@ class ShiyuDefenseSettingDialog(AppSettingDialog):
 
         return content_widget
 
-    def on_dialog_shown(self) -> None:
-        super().on_dialog_shown()
+    def on_interface_shown(self) -> None:
+        VerticalScrollInterface.on_interface_shown(self)
 
-        self.config = self.ctx.run_context.get_config(
+        self.config: ShiyuDefenseConfig = self.ctx.run_context.get_config(
             app_id=shiyu_defense_const.APP_ID,
             instance_idx=self.ctx.current_instance_idx,
             group_id=self.group_id,
         )
-        self.run_record = self.ctx.run_context.get_run_record(
+        self.run_record: ShiyuDefenseRunRecord = self.ctx.run_context.get_run_record(
             instance_idx=self.ctx.current_instance_idx,
             app_id=shiyu_defense_const.APP_ID,
         )

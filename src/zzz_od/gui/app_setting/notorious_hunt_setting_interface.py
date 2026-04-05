@@ -1,19 +1,25 @@
 from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QWidget
 from qfluentwidgets import CaptionLabel, FluentIcon, LineEdit, ToolButton
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
+from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
+from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
-from one_dragon_qt.widgets.draggable_list import DraggableListItem
+from one_dragon_qt.widgets.draggable_list import DraggableList, DraggableListItem
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiLineSettingCard,
 )
+from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
 )
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
+from zzz_od.application.notorious_hunt import notorious_hunt_const
 from zzz_od.application.notorious_hunt.notorious_hunt_config import (
     NotoriousHuntBuffEnum,
+    NotoriousHuntConfig,
     NotoriousHuntLevelEnum,
 )
 from zzz_od.context.zzz_context import ZContext
@@ -181,3 +187,86 @@ class NotoriousHuntCard(DraggableListItem):
 
     def _emit_value(self) -> None:
         self.changed.emit(self.idx, self.plan)
+
+
+class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
+
+    def __init__(self, ctx: ZContext, parent=None):
+        self.ctx: ZContext = ctx
+
+        VerticalScrollInterface.__init__(
+            self,
+            object_name='zzz_notorious_hunt_setting_interface',
+            content_widget=None, parent=parent,
+            nav_text_cn='恶名狩猎计划'
+        )
+
+        self.config: NotoriousHuntConfig | None = None
+
+    def get_content_widget(self) -> QWidget:
+        self.content_widget = Column()
+
+        self.drag_list = DraggableList()
+        self.drag_list.order_changed.connect(self._on_order_changed)
+        self.content_widget.add_widget(self.drag_list)
+
+        self.card_list: list[NotoriousHuntCard] = []
+
+        return self.content_widget
+
+    def update_plan_list_display(self) -> None:
+        plan_list = self.config.plan_list
+
+        if len(plan_list) > len(self.card_list):
+            while len(self.card_list) < len(plan_list):
+                idx = len(self.card_list)
+                card = NotoriousHuntCard(self.ctx, idx, self.config.plan_list[idx])
+                card.changed.connect(self._on_plan_item_changed)
+                card.move_top.connect(self._on_plan_item_move_top)
+
+                self.card_list.append(card)
+                self.drag_list.add_list_item(card)
+
+        elif len(plan_list) < len(self.card_list):
+            while len(self.card_list) > len(plan_list):
+                self.drag_list.remove_item(len(self.card_list) - 1)
+                self.card_list.pop(-1)
+
+        for idx, plan in enumerate(plan_list):
+            self.card_list[idx].update_item(plan, idx)
+
+    def on_interface_shown(self) -> None:
+        VerticalScrollInterface.on_interface_shown(self)
+
+        self.config = self.ctx.run_context.get_config(
+            app_id=notorious_hunt_const.APP_ID,
+            instance_idx=self.ctx.current_instance_idx,
+            group_id=self.group_id,
+        )
+
+        self.update_plan_list_display()
+
+    def on_interface_hidden(self) -> None:
+        VerticalScrollInterface.on_interface_hidden(self)
+
+    def _on_plan_item_changed(self, idx: int, plan: ChargePlanItem) -> None:
+        self.config.update_plan(idx, plan)
+
+    def _on_plan_item_move_top(self, idx: int) -> None:
+        self.config.move_top(idx)
+        self.update_plan_list_display()
+
+    def _on_order_changed(self, new_data_list: list[ChargePlanItem]) -> None:
+        self.config.plan_list = new_data_list
+        self.config.save()
+
+        new_card_list: list[NotoriousHuntCard] = []
+        for data in new_data_list:
+            for card in self.card_list:
+                if card.data == data:
+                    new_card_list.append(card)
+                    break
+        self.card_list = new_card_list
+
+        for idx, card in enumerate(self.card_list):
+            card.update_item(card.data, idx)

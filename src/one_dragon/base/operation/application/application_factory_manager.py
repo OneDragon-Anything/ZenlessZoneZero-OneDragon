@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import importlib
-import importlib.util
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -24,8 +23,12 @@ from one_dragon.base.operation.application.plugin_info import (
     PluginInfo,
     PluginSource,
 )
-from one_dragon.utils.file_utils import find_src_dir
 from one_dragon.utils.log_utils import log
+from one_dragon.utils.plugin_module_loader import (
+    ensure_sys_path,
+    import_module_from_file,
+    resolve_module_name,
+)
 
 if TYPE_CHECKING:
     from one_dragon.base.operation.one_dragon_context import OneDragonContext
@@ -37,7 +40,7 @@ class ApplicationFactoryManager:
     负责扫描、加载和刷新应用工厂，提供插件式的应用注册机制。
     """
 
-    def __init__(self, ctx: OneDragonContext, plugin_dirs: list[tuple[Path | str, PluginSource]]):
+    def __init__(self, ctx: OneDragonContext, plugin_dirs: list[tuple[Path, PluginSource]]):
         """初始化应用工厂管理器
 
         Args:
@@ -45,9 +48,7 @@ class ApplicationFactoryManager:
             plugin_dirs: 插件目录列表，每项为 (path, source) 元组
         """
         self.ctx: OneDragonContext = ctx
-        self._plugin_dirs: list[tuple[Path, PluginSource]] = [
-            (Path(d) if isinstance(d, str) else d, s) for d, s in plugin_dirs
-        ]
+        self._plugin_dirs: list[tuple[Path, PluginSource]] = plugin_dirs
         self._factory_module_suffix: str = "_factory"
         self._const_module_suffix: str = "_const"
         self._plugin_infos: dict[str, PluginInfo] = {}  # {app_id: PluginInfo}
@@ -208,37 +209,29 @@ class ApplicationFactoryManager:
             ImportError: 模块导入失败
             Other exceptions: 工厂加载或实例化时的其他错误
         """
-        # 1. 统一解析 module_root（模块名的起算目录）
-        module_root = find_src_dir(factory_file) if source == PluginSource.BUILTIN else base_dir
-        if module_root is None:
-            raise ImportError(f"无法确定模块根目录: {factory_file}")
+        # 1. 解析 module_name 和 module_root
+        if base_dir is None:
+            raise ImportError(f"缺少 base_dir: {factory_file}")
+        result = resolve_module_name(factory_file, source, base_dir)
+        if result is None:
+            raise ImportError(f"无法解析模块路径: {factory_file}")
+        module_name, module_root = result
 
-        # 2. 统一计算 module_name：相对路径 → dotted name
+        # 2. 第三方插件校验：必须放在子目录中
         try:
             relative_path = factory_file.relative_to(module_root)
         except ValueError as e:
-            raise ImportError(f"无法计算相对路径: {factory_file} relative to {module_root}") from e
-
+            raise ImportError(f"无法计算相对路径: {factory_file}") from e
         rel_parts = relative_path.parts
-        if len(rel_parts) < 1:
-            raise ImportError(f"无效的插件路径: {relative_path}")
-
-        # 第三方插件必须放在子目录中（如 plugins/my_plugin/xxx_factory.py）
         if source == PluginSource.THIRD_PARTY and len(rel_parts) < 2:
             raise ImportError(
                 f"第三方插件不能直接放在 plugins 根目录: {factory_file.name}，"
                 f"请放在子目录中（如 plugins/my_plugin/{factory_file.name}）"
             )
 
-        module_name = '.'.join(list(rel_parts[:-1]) + [factory_file.stem])
-
         # 3. THIRD_PARTY 特殊处理：将 plugins 目录加入 sys.path
         if source == PluginSource.THIRD_PARTY:
-            module_root_str = str(module_root)
-            if module_root_str not in sys.path and module_root_str not in self._added_sys_paths:
-                sys.path.insert(0, module_root_str)
-                self._added_sys_paths.add(module_root_str)
-                log.debug(f"添加到 sys.path: {module_root}")
+            ensure_sys_path(module_root, self._added_sys_paths)
 
         # 4. 模块加载/重载
         if module_name in sys.modules:
@@ -246,11 +239,11 @@ class ApplicationFactoryManager:
                 unload_prefix = self._get_unload_prefix(module_name, source, rel_parts)
                 if unload_prefix:
                     self._unload_plugin_modules(unload_prefix)
-                module = self._import_module_from_file(factory_file, module_name, module_root)
+                module = import_module_from_file(factory_file, module_name, module_root, reload=True)
             else:
                 module = sys.modules[module_name]
         else:
-            module = self._import_module_from_file(factory_file, module_name, module_root)
+            module = import_module_from_file(factory_file, module_name, module_root)
 
         # 5. 查找并实例化工厂类（每个模块最多一个）
         factory_result = self._find_factory_in_module(
@@ -258,73 +251,6 @@ class ApplicationFactoryManager:
         )
 
         return factory_result
-
-    def _import_module_from_file(
-        self,
-        factory_file: Path,
-        module_name: str,
-        module_root: Path
-    ) -> ModuleType:
-        """使用 spec_from_file_location 导入模块
-
-        统一的模块导入方法，支持相对导入。
-        会自动加载所有中间包的 __init__.py，以支持嵌套子目录结构。
-
-        Args:
-            factory_file: 工厂文件路径
-            module_name: 模块名
-            module_root: 模块根目录（顶层包的父目录，如 src/ 或 plugins/）
-
-        Returns:
-            module: 导入的模块
-        """
-        # 确保所有中间包被加载（支持嵌套子目录）
-        parts = module_name.split('.')
-        for i in range(len(parts) - 1):  # 不包括最后一个（工厂模块本身）
-            pkg_module_name = '.'.join(parts[:i + 1])
-            if pkg_module_name in sys.modules:
-                continue
-
-            pkg_dir = module_root / Path(*parts[:i + 1])
-            init_file = pkg_dir / '__init__.py'
-            if init_file.exists():
-                init_spec = importlib.util.spec_from_file_location(
-                    pkg_module_name,
-                    init_file,
-                    submodule_search_locations=[str(pkg_dir)]
-                )
-                if init_spec and init_spec.loader:
-                    init_module = importlib.util.module_from_spec(init_spec)
-                    sys.modules[pkg_module_name] = init_module
-                    try:
-                        init_spec.loader.exec_module(init_module)
-                    except Exception:
-                        sys.modules.pop(pkg_module_name, None)
-                        raise
-            else:
-                # 无 __init__.py 时创建命名空间包，确保 dotted import 正常工作
-                ns_pkg = ModuleType(pkg_module_name)
-                ns_pkg.__path__ = [str(pkg_dir)]
-                ns_pkg.__package__ = pkg_module_name
-                sys.modules[pkg_module_name] = ns_pkg
-
-        # 加载工厂模块
-        spec = importlib.util.spec_from_file_location(
-            module_name,
-            factory_file,
-        )
-        if spec is None or spec.loader is None:
-            raise ImportError(f"无法创建模块 spec: {factory_file}")
-
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[module_name] = module
-        try:
-            spec.loader.exec_module(module)
-        except Exception:
-            sys.modules.pop(module_name, None)
-            raise
-
-        return module
 
     def _get_unload_prefix(
         self,
