@@ -36,7 +36,11 @@ def _normalize_allowed_weekdays(
         if day is not None:
             normalized.append(day)
 
-    return sorted(set(normalized))
+    normalized = sorted(set(normalized))
+    if len(normalized) == 0 and default_value is not None:
+        return default_value.copy()
+
+    return normalized
 
 
 class NotoriousHuntLevelEnum(Enum):
