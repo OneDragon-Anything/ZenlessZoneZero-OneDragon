@@ -38,7 +38,7 @@ from zzz_od.context.zzz_context import ZContext
 class NotoriousHuntWeekdaySettingCard(SettingCardBase):
 
     value_changed = Signal(list)
-    CONTENT = '默认全选，也不能不选，仅影响一条龙自动调度'
+    CONTENT = '默认全选（不能不选），仅用于周期挑战（每周最多3次）的自动调度'
     CONTROL_SPACING = 12
     RIGHT_SPACING = 16
 
@@ -46,7 +46,7 @@ class NotoriousHuntWeekdaySettingCard(SettingCardBase):
         SettingCardBase.__init__(
             self,
             icon=FluentIcon.CALENDAR,
-            title='允许运行星期',
+            title='允许运行日期',
             content=self.CONTENT,
             parent=parent,
         )
