@@ -52,7 +52,7 @@ class ChoosePredefinedTeam(ZOperation):
 
     @node_from(from_name='点击预备编队')
     @node_from(from_name='尝试查找编队')
-    @operation_node(name='选择编队', node_max_retry_times=0)
+    @operation_node(name='选择编队')
     def choose_team(self) -> OperationRoundResult:
         area = self.ctx.screen_loader.get_area('实战模拟室', '预备出战')
         result = self.round_by_ocr(self.last_screenshot, '预备出战', area=area,
@@ -73,11 +73,11 @@ class ChoosePredefinedTeam(ZOperation):
             best_match = difflib.get_close_matches(target_team_name, target_list, n=1)
 
             if best_match is None or len(best_match) == 0:
-                return self.round_retry(wait=0.5)
+                return self.round_fail(f'当前页未找到编队 {target_team_name}')
 
             ocr_result: MatchResultList = ocr_map.get(best_match[0], None)
             if ocr_result is None or ocr_result.max is None:
-                return self.round_retry(wait=0.5)
+                return self.round_fail(f'当前页未找到编队 {target_team_name}')
 
             to_click = ocr_result.max.center + Point(200, 0)
             self.ctx.controller.click(to_click)
