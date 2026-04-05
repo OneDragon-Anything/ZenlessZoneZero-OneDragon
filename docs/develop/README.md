@@ -93,7 +93,7 @@ uv run pyinstaller --noconfirm --clean "OneDragon-Launcher.spec"
 
 ### 3.3.集成启动器（RuntimeLauncher）
 
-> 详细设计文档见 [runtime-launcher.md](runtime-launcher.md)
+> 详细设计文档见 [runtime-launcher.md](one_dragon/runtime-launcher.md)
 
 #### 架构概述
 
