@@ -59,7 +59,7 @@ class NotoriousHuntWeekdaySettingCard(SettingCardBase):
         checkbox_layout.setSpacing(self.CONTROL_SPACING)
         checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-        self.select_all_btn = PushButton(text='全选')
+        self.select_all_btn = PushButton(text=gt('全选'))
         self.select_all_btn.clicked.connect(self._on_select_all_clicked)
         checkbox_layout.addWidget(self.select_all_btn)
 
