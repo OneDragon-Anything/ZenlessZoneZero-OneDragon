@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QWidget
-from qfluentwidgets import CheckBox, FluentIcon
+from qfluentwidgets import CheckBox, FluentIcon, PushButton
 
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.draggable_list import DraggableList
@@ -26,13 +26,14 @@ if TYPE_CHECKING:
 class NotoriousHuntWeekdaySettingCard(SettingCardBase):
 
     value_changed = Signal(list)
+    DEFAULT_CONTENT = '默认全选，仅影响一条龙自动调度，不影响手动运行'
 
     def __init__(self, parent: QWidget | None = None):
         SettingCardBase.__init__(
             self,
             icon=FluentIcon.CALENDAR,
             title='允许运行星期',
-            content='仅影响一条龙自动调度，不影响手动运行',
+            content=self.DEFAULT_CONTENT,
             parent=parent,
         )
 
@@ -43,6 +44,10 @@ class NotoriousHuntWeekdaySettingCard(SettingCardBase):
         checkbox_layout.setContentsMargins(0, 0, 0, 0)
         checkbox_layout.setSpacing(12)
         checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        self.select_all_btn = PushButton(text='全选', parent=self)
+        self.select_all_btn.clicked.connect(self._on_select_all_clicked)
+        checkbox_layout.addWidget(self.select_all_btn)
 
         for day_item in NotoriousHuntWeekdayEnum:
             checkbox = CheckBox(day_item.value.ui_text, self)
@@ -59,16 +64,34 @@ class NotoriousHuntWeekdaySettingCard(SettingCardBase):
 
     def _on_value_changed(self, value: Qt.CheckState) -> None:
         del value
+        if len(self.get_value()) == 0:
+            self._set_default_value(emit_signal=True)
+            return
+
         self.value_changed.emit(self.get_value())
 
+    def _on_select_all_clicked(self) -> None:
+        self._set_default_value(emit_signal=True)
+
+    def _get_default_value(self) -> list[int]:
+        return [day for day, _ in self._checkboxes]
+
+    def _set_default_value(self, emit_signal: bool = True) -> None:
+        self.set_value(self._get_default_value(), emit_signal=emit_signal)
+
     def set_value(self, values: list[int], emit_signal: bool = True) -> None:
+        if len(values) == 0:
+            values = self._get_default_value()
+
         value_set = set(values)
         for day, checkbox in self._checkboxes:
-            if not emit_signal:
-                checkbox.blockSignals(True)
+            checkbox.blockSignals(True)
             checkbox.setChecked(day in value_set)
-            if not emit_signal:
-                checkbox.blockSignals(False)
+            checkbox.blockSignals(False)
+
+        self.setContent(self.DEFAULT_CONTENT)
+        if emit_signal:
+            self.value_changed.emit(self.get_value())
 
     def get_value(self) -> list[int]:
         return [day for day, checkbox in self._checkboxes if checkbox.isChecked()]
