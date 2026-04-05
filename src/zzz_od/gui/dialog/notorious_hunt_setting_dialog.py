@@ -7,8 +7,9 @@ from PySide6.QtWidgets import QHBoxLayout, QWidget
 from qfluentwidgets import CheckBox, FluentIcon, PushButton
 
 from one_dragon_qt.widgets.column import Column
-from one_dragon_qt.widgets.draggable_list import DraggableList
+from one_dragon_qt.widgets.draggable_list import DraggableList, FluentDesignConst
 from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
+from one_dragon_qt.utils.layout_utils import Margins
 from zzz_od.application.charge_plan.charge_plan_config import (
     ChargePlanItem,
 )
@@ -26,33 +27,39 @@ if TYPE_CHECKING:
 class NotoriousHuntWeekdaySettingCard(SettingCardBase):
 
     value_changed = Signal(list)
-    DEFAULT_CONTENT = '默认全选，仅影响一条龙自动调度，不影响手动运行'
+    CONTENT = '默认全选，也不能不选，仅影响一条龙自动调度'
+    CONTROL_SPACING = 12
+    RIGHT_SPACING = 16
 
     def __init__(self, parent: QWidget | None = None):
         SettingCardBase.__init__(
             self,
             icon=FluentIcon.CALENDAR,
             title='允许运行星期',
-            content=self.DEFAULT_CONTENT,
+            content=self.CONTENT,
             parent=parent,
         )
 
+        self._weekday_values: list[int] = []
         self._checkboxes: list[tuple[int, CheckBox]] = []
 
-        checkbox_widget = QWidget(self)
+        checkbox_widget = QWidget()
         checkbox_layout = QHBoxLayout(checkbox_widget)
         checkbox_layout.setContentsMargins(0, 0, 0, 0)
-        checkbox_layout.setSpacing(12)
+        checkbox_layout.setSpacing(self.CONTROL_SPACING)
         checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-        self.select_all_btn = PushButton(text='全选', parent=self)
+        self.select_all_btn = PushButton(text='全选')
         self.select_all_btn.clicked.connect(self._on_select_all_clicked)
         checkbox_layout.addWidget(self.select_all_btn)
 
         for day_item in NotoriousHuntWeekdayEnum:
-            checkbox = CheckBox(day_item.value.ui_text, self)
+            day_value = day_item.value.value
+            self._weekday_values.append(day_value)
+
+            checkbox = CheckBox(day_item.value.ui_text)
             checkbox.checkStateChanged.connect(self._on_value_changed)
-            self._checkboxes.append((day_item.value.value, checkbox))
+            self._checkboxes.append((day_value, checkbox))
             checkbox_layout.addWidget(checkbox)
 
         self.hBoxLayout.addWidget(
@@ -60,10 +67,11 @@ class NotoriousHuntWeekdaySettingCard(SettingCardBase):
             0,
             Qt.AlignmentFlag.AlignRight,
         )
-        self.hBoxLayout.addSpacing(16)
+        self.hBoxLayout.addSpacing(self.RIGHT_SPACING)
 
     def _on_value_changed(self, value: Qt.CheckState) -> None:
         del value
+        # 不允许空选择，取消最后一个勾选时回退到默认全选。
         if len(self.get_value()) == 0:
             self._set_default_value(emit_signal=True)
             return
@@ -74,22 +82,18 @@ class NotoriousHuntWeekdaySettingCard(SettingCardBase):
         self._set_default_value(emit_signal=True)
 
     def _get_default_value(self) -> list[int]:
-        return [day for day, _ in self._checkboxes]
+        return self._weekday_values.copy()
 
     def _set_default_value(self, emit_signal: bool = True) -> None:
         self.set_value(self._get_default_value(), emit_signal=emit_signal)
 
     def set_value(self, values: list[int], emit_signal: bool = True) -> None:
-        if len(values) == 0:
-            values = self._get_default_value()
-
-        value_set = set(values)
+        value_set = set(values or self._get_default_value())
         for day, checkbox in self._checkboxes:
             checkbox.blockSignals(True)
             checkbox.setChecked(day in value_set)
             checkbox.blockSignals(False)
 
-        self.setContent(self.DEFAULT_CONTENT)
         if emit_signal:
             self.value_changed.emit(self.get_value())
 
@@ -98,6 +102,12 @@ class NotoriousHuntWeekdaySettingCard(SettingCardBase):
 
 
 class NotoriousHuntSettingDialog(AppSettingDialog):
+    ALLOWED_WEEKDAYS_MARGINS = Margins(
+        FluentDesignConst.ITEM_MARGIN,
+        FluentDesignConst.ITEM_MARGIN,
+        FluentDesignConst.ITEM_MARGIN + 16,
+        0,
+    )
 
     def __init__(self, ctx: ZContext, parent: QWidget | None = None):
         super().__init__(ctx=ctx, title="恶名狩猎配置", parent=parent)
@@ -109,7 +119,13 @@ class NotoriousHuntSettingDialog(AppSettingDialog):
         self.allowed_weekdays_opt.value_changed.connect(
             self._on_allowed_weekdays_changed
         )
-        self.content_widget.add_widget(self.allowed_weekdays_opt)
+
+        # 顶部星期卡补齐与 DraggableListItem 一致的外边距，保证和下面列表对齐。
+        allowed_weekdays_wrapper = Column(
+            margins=self.ALLOWED_WEEKDAYS_MARGINS
+        )
+        allowed_weekdays_wrapper.add_widget(self.allowed_weekdays_opt)
+        self.content_widget.add_widget(allowed_weekdays_wrapper)
 
         # 创建可拖动的列表容器
         self.drag_list = DraggableList()
@@ -123,22 +139,20 @@ class NotoriousHuntSettingDialog(AppSettingDialog):
     def update_plan_list_display(self) -> None:
         plan_list = self.config.plan_list
 
-        if len(plan_list) > len(self.card_list):
-            # 需要添加新的卡片
-            while len(self.card_list) < len(plan_list):
-                idx = len(self.card_list)
-                card = NotoriousHuntCard(self.ctx, idx, self.config.plan_list[idx])
-                card.changed.connect(self._on_plan_item_changed)
-                card.move_top.connect(self._on_plan_item_move_top)
+        # 需要添加新的卡片
+        while len(self.card_list) < len(plan_list):
+            idx = len(self.card_list)
+            card = NotoriousHuntCard(self.ctx, idx, plan_list[idx])
+            card.changed.connect(self._on_plan_item_changed)
+            card.move_top.connect(self._on_plan_item_move_top)
 
-                self.card_list.append(card)
-                self.drag_list.add_list_item(card)
+            self.card_list.append(card)
+            self.drag_list.add_list_item(card)
 
-        elif len(plan_list) < len(self.card_list):
-            # 需要移除多余的卡片
-            while len(self.card_list) > len(plan_list):
-                self.drag_list.remove_item(len(self.card_list) - 1)
-                self.card_list.pop(-1)
+        # 需要移除多余的卡片
+        while len(self.card_list) > len(plan_list):
+            self.drag_list.remove_item(len(self.card_list) - 1)
+            self.card_list.pop(-1)
 
         # 更新所有卡片的显示
         for idx, plan in enumerate(plan_list):
