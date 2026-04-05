@@ -298,7 +298,9 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.content_widget.add_widget(allowed_weekdays_wrapper)
 
         self.drag_list = DraggableList()
-        self.drag_list._layout.setSpacing(0)
+        drag_list_layout = self.drag_list.layout()
+        if drag_list_layout is not None:
+            drag_list_layout.setSpacing(0)
         self.drag_list.order_changed.connect(self._on_order_changed)
         self.content_widget.add_widget(self.drag_list)
 
