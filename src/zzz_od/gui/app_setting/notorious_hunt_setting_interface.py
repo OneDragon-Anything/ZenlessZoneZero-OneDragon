@@ -207,6 +207,7 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
         self.content_widget = Column()
 
         self.drag_list = DraggableList()
+        self.drag_list._layout.setSpacing(0)
         self.drag_list.order_changed.connect(self._on_order_changed)
         self.content_widget.add_widget(self.drag_list)
 
@@ -226,6 +227,7 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
                 self.card_list.append(card)
                 self.drag_list.add_list_item(card)
+                card.layout().setContentsMargins(0, 4, 0, 4)
 
         elif len(plan_list) < len(self.card_list):
             while len(self.card_list) > len(plan_list):
