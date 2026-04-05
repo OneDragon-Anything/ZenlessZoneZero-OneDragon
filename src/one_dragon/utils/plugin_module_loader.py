@@ -51,7 +51,7 @@ def ensure_sys_path(directory: Path, added_paths: set[str] | None = None) -> Non
         directory: 要添加的目录
         added_paths: 可选的已添加路径集合，用于去重追踪
     """
-    dir_str = str(directory)
+    dir_str = str(directory.resolve())
     if dir_str not in sys.path:
         if added_paths is None or dir_str not in added_paths:
             sys.path.insert(0, dir_str)
