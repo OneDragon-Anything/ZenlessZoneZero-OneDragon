@@ -45,13 +45,15 @@ class ControllerBase:
         """
         return False
 
-    def click(self, pos: Point = None, press_time: float = 0, pc_alt: bool = False, gamepad_key: str | None = None) -> bool:
+    def click(self, pos: Point = None, press_time: float = 0, pc_alt: bool = False,
+              gamepad_key: str | None = None, low_delay: bool = False) -> bool:
         """
         点击位置
         :param pos: 点击位置 (x,y) 默认分辨率下的游戏窗口里的坐标
         :param press_time: 大于0时长按若干秒
         :param pc_alt: 只在PC端有用 使用ALT键进行点击（仅前台模式）
         :param gamepad_key: 后台模式下用手柄按键替代点击的动作名
+        :param low_delay: todo (前台模式下) 去除按键延迟 (pyautogui几乎所有操作都有延迟, 默认为0.1s)
         :return: 不在窗口区域时不点击 返回False
         """
         pass

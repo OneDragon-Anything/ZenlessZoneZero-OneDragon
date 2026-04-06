@@ -70,8 +70,8 @@ class CommissionAssistantRunInterface(AppRunInterface):
         right_layout.addWidget(self.story_mode_opt)
 
         self.sleep_after_empty_screen_opt = DoubleSpinBoxSettingCard(
-            icon=FluentIcon.DATE_TIME, title='检测间隔(秒)', content='当画面检测不到任何内容时, 开启下一轮检测的等待时间')
-        self.sleep_after_empty_screen_opt.spin_box.setSingleStep(0.3)
+            icon=FluentIcon.DATE_TIME, title='无内容时等待时间(秒)', content='当画面检测不到任何内容时, 开启下一轮检测的等待时间')
+        self.sleep_after_empty_screen_opt.spin_box.setSingleStep(0.5)
         left_layout.addWidget(self.sleep_after_empty_screen_opt)
 
         self.dodge_config_opt = ComboBoxSettingCard(icon=FluentIcon.GAME, title='自动闪避')
