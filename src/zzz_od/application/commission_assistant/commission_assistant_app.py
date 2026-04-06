@@ -5,7 +5,6 @@ from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
-from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_context import ContextKeyboardEventEnum
@@ -14,7 +13,6 @@ from one_dragon.base.operation.operation_edge import node_from
 from one_dragon.base.operation.operation_node import operation_node
 from one_dragon.base.operation.operation_round_result import (
     OperationRoundResult,
-    OperationRoundResultEnum,
 )
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
@@ -59,6 +57,7 @@ class CommissionAssistantApp(ZApplication):
         self.is_skip_in_main_story: bool = False  # 跳过主线时, 添加一个标记 以加快ocr效率和增加代码可读性
         self.option_click_interval_min = max(self.config.OPTION_CLICK_INTERVAL_MIN,
                                              self.config.dialog_click_interval)  # 选项的最小点击间隔(需要等待点击动画结束)
+        self.dialog_clicked: bool = False  # 有些对话框内容为'......', ocr不识别, 故引进这个参数, 使得结束对话框点击之后的3次识别不到任何内容时也点击屏幕
 
     def handle_init(self):
         self._listen_btn()
@@ -159,7 +158,12 @@ class CommissionAssistantApp(ZApplication):
         if with_dialog:
             # 因为前面的检测也需要时间, 所以这里的点击需要尽可能快, 不然跳过效果在视觉上就慢了
             self.ctx.controller.click(pos=center_area.left_top, press_time=0.001, low_delay=True)
+            self.dialog_clicked = True
             return self.round_wait(status='对话中点击空白', wait=self.config.dialog_click_interval)
+
+        # 有些对话内容为 '......', 此时识别不到任何内容但是需要点击屏幕
+        if self.dialog_clicked:
+            self.ctx.controller.click(pos=center_area.left_top, press_time=0.001, low_delay=True)
 
         return self.round_retry(status='未知画面', wait=0.2)
 
@@ -456,6 +460,8 @@ class CommissionAssistantApp(ZApplication):
     @node_from(from_name='剧情模式', success=False)
     @operation_node(name='未知画面', screenshot_before_round=False)
     def sleep_after_empty_screen_func(self) -> OperationRoundResult:
+        # 及时重置标记以免一直点屏幕中间
+        self.dialog_clicked = False
         return self.round_success('等待重新检测', wait=self.config.sleep_after_empty_screen)
 
     @node_from(from_name='剧情模式', status='钓鱼')
