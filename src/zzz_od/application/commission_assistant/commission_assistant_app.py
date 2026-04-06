@@ -5,6 +5,7 @@ from cv2.typing import MatLike
 
 from one_dragon.base.geometry.point import Point
 from one_dragon.base.matcher.match_result import MatchResult
+from one_dragon.base.matcher.ocr import ocr_utils
 from one_dragon.base.operation.application import application_const
 from one_dragon.base.operation.context_event_bus import ContextEventItem
 from one_dragon.base.operation.one_dragon_context import ContextKeyboardEventEnum
@@ -154,8 +155,10 @@ class CommissionAssistantApp(ZApplication):
             # 中间有白色的字, 一般是主线的中间选项
             return self.round_wait(status='点击中间选项', wait=self.option_click_interval_min)
 
+        # 对话框检测和处理 (右上角有主线标志且识别不到对话框内容时大概率是对话框出现'......'了)
         with_dialog = self._check_dialog(self.last_screenshot)
-        if with_dialog:
+        if with_dialog or (
+                self.check_main_story() and self.config.story_mode != StoryMode.SKIP.value.value):
             # 因为前面的检测也需要时间, 所以这里的点击需要尽可能快, 不然跳过效果在视觉上就慢了
             self.ctx.controller.click(pos=center_area.left_top, press_time=0.001, low_delay=True)
             self.dialog_clicked = True
@@ -165,6 +168,7 @@ class CommissionAssistantApp(ZApplication):
         if self.dialog_clicked:
             self.ctx.controller.click(pos=center_area.left_top, press_time=0.001, low_delay=True)
 
+        # 对话框替换期间是没内容的, 所以需要retry
         return self.round_retry(status='未知画面', wait=0.2)
 
     def _check_dialog(self, screen: MatLike) -> bool:
@@ -350,16 +354,10 @@ class CommissionAssistantApp(ZApplication):
         self.ctx.controller.mouse_move(area.left_top)  # 移开鼠标 防止遮挡指令
         return self.round_success('钓鱼', wait=0.1)
 
-    def check_story_mode(self) -> OperationRoundResult | None:
+    def check_main_story(self) -> bool:
         """
         判断是否进入了剧情模式 右上角有 菜单/跳过/自动
         """
-        if self.config.story_mode == StoryMode.CLICK.value.value:
-            return None
-        with_dialog = self._check_dialog(self.last_screenshot)
-        if with_dialog:
-            self.round_by_click_area('委托助手', '中间选项区域')
-            return self.round_success('剧情模式')
         area = self.ctx.screen_loader.get_area('委托助手', '文本-剧情右上角')
         ocr_result_map = self.ctx.ocr_service.get_ocr_result_map(
             image=self.last_screenshot,
@@ -368,11 +366,11 @@ class CommissionAssistantApp(ZApplication):
         keywords = ['菜单', '跳过', '自动']
         match_word, _ = ocr_utils.match_word_list_by_priority(ocr_result_map, keywords)
         if match_word is not None:
-            return self.round_success('剧情模式')
-        return None
+            return True
+        return False
 
     @node_from(from_name='委托助手', status='检测剧情模式')
-    @operation_node(name='剧情模式')
+    @operation_node(name='剧情模式', node_max_retry_times=5)
     def story_mode(self) -> OperationRoundResult:
         """
         剧情模式：右上角有 菜单/自动/跳过（点击前后显隐性或位置性会改变）
@@ -460,7 +458,7 @@ class CommissionAssistantApp(ZApplication):
     @node_from(from_name='剧情模式', success=False)
     @operation_node(name='未知画面', screenshot_before_round=False)
     def sleep_after_empty_screen_func(self) -> OperationRoundResult:
-        # 及时重置标记以免一直点屏幕中间
+        # 及时重置这个标记以免一直点屏幕中间
         self.dialog_clicked = False
         return self.round_success('等待重新检测', wait=self.config.sleep_after_empty_screen)
 
