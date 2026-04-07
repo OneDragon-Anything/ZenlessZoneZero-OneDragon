@@ -1237,7 +1237,8 @@ def is_colorful(img: MatLike, saturation_threshold: int = 30, color_ratio_thresh
     return is_colorful
 
 
-def is_in_gray_mask(img: MatLike, rect: Rect | None = None, threshold=55, rgb_diff_threshold=20, percent_rate=0.9) -> bool:
+def is_in_gray_mask(img: MatLike, rect: Rect | None = None, threshold: int = 55, rgb_diff_threshold: int = 20,
+                    percent_rate: float = 0.9) -> bool:
     """
     判断图像是否接近黑白灰, 可用于判断游戏下方的对话框遮罩
     性能比 is_colorful 稍慢, 但是几乎能准确识别所有对话框
@@ -1262,7 +1263,7 @@ def is_in_gray_mask(img: MatLike, rect: Rect | None = None, threshold=55, rgb_di
 
     # 裁剪图片
     if rect is not None:
-        img, crop_rect = crop_image(img, rect)
+        img, _ = crop_image(img, rect)
 
     if img is None or img.size == 0:
         return False

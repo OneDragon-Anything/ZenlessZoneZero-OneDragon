@@ -51,7 +51,7 @@ class CommissionAssistantApp(ZApplication):
         self.last_dialog_opts: set[str] = set()  # 上一次对话的全部选项
 
         self.chosen_opt_history_max_len: int = 4
-        self.chosen_opt_history: deque = deque(maxlen=self.chosen_opt_history_max_len)  # 如果一直卡在选择选项, 记录选择的对话选项历史记录
+        self.chosen_opt_history: deque[str] = deque(maxlen=self.chosen_opt_history_max_len)  # 如果一直卡在选择选项, 记录选择的对话选项历史记录
 
         self.fishing_btn_pressed: str | None = None  # 钓鱼在按下的按键
         self.fishing_done: bool = False  # 钓鱼是否结束 通常是比赛类 最后会有挑战结果显示
@@ -146,7 +146,7 @@ class CommissionAssistantApp(ZApplication):
         if not check_center_words:
             # 不检查中间的字, 但是识别中间区域是否为黑屏, 黑屏就点. 适用于跳过剧情
             # 这种检测方式不会在中间为花色区域时抢鼠标导致需要暂停才能手动与游戏交互
-            center_image, center_rect = cv2_utils.crop_image(self.last_screenshot, center_area.rect)
+            center_image, _ = cv2_utils.crop_image(self.last_screenshot, center_area.rect)
             if not cv2_utils.is_colorful(center_image, saturation_threshold=1, color_ratio_threshold=0.01):
                 self.ctx.controller.click(pos=center_area.left_top)
                 return self.round_wait(status='黑屏点击中间区域', wait=self.config.dialog_click_interval)
