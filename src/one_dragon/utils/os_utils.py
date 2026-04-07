@@ -70,7 +70,7 @@ def get_work_dir() -> str:
     return dir_path
 
 
-def get_env(key: str) -> str:
+def get_env(key: str) -> str | None:
     """
     获取环境变量
     :param key: key
@@ -99,7 +99,7 @@ def now_timestamp_str() -> str:
     return current_time.strftime("%Y%m%d%H%M%S")
 
 
-def get_dt(utc_offset: int = None) -> str:
+def get_dt(utc_offset: int | None = None) -> str:
     """
     返回给定UTC偏移下当前日期字符串
     默认返回本机时间所对应的日期
@@ -113,7 +113,7 @@ def get_dt(utc_offset: int = None) -> str:
     return current_time.strftime("%Y%m%d")
 
 
-def add_dt_offset(dt: str, day_offset: int = None) -> str:
+def add_dt_offset(dt: str, day_offset: int | None = None) -> str:
     """
     根据一个日期，获取对应星期天的日期
     :param dt: 日期 yyyyMMdd 格式
@@ -162,7 +162,7 @@ def is_monday(dt: str) -> bool:
     return weekday == 0
 
 
-def get_current_day_of_week(utc_offset: int = None) -> int:
+def get_current_day_of_week(utc_offset: int | None = None) -> int:
     """
     获取当前星期几 1~7
     :return:
@@ -194,7 +194,7 @@ def clear_outdated_debug_files(days: int = 1):
     now = datetime.datetime.now()
     cutoff = now - datetime.timedelta(days=days)
 
-    for root, dirs, files in os.walk(directory):
+    for root, _dirs, files in os.walk(directory):
         for file in files:
             path = os.path.join(root, file)
             stat = os.stat(path)
