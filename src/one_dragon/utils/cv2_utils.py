@@ -1264,6 +1264,9 @@ def is_in_gray_mask(img: MatLike, rect: Rect | None = None, threshold=55, rgb_di
     if rect is not None:
         img, crop_rect = crop_image(img, rect)
 
+    if img is None or img.size == 0:
+        return False
+
     total = img.shape[0] * img.shape[1]
 
     # 条件1：纯黑 或 纯白

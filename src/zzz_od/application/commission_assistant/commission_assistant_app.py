@@ -50,7 +50,7 @@ class CommissionAssistantApp(ZApplication):
 
         self.last_dialog_opts: set[str] = set()  # 上一次对话的全部选项
 
-        self.chosen_opt_history_max_len: int = 8
+        self.chosen_opt_history_max_len: int = 4
         self.chosen_opt_history: deque = deque(maxlen=self.chosen_opt_history_max_len)  # 如果一直卡在选择选项, 记录选择的对话选项历史记录
 
         self.fishing_btn_pressed: str | None = None  # 钓鱼在按下的按键
@@ -225,9 +225,9 @@ class CommissionAssistantApp(ZApplication):
                     to_click = opt_point
                     to_choose_opt = mr.data
 
-        self.chosen_opt_history.append(to_choose_opt)
         if to_click is None:
             return False
+        self.chosen_opt_history.append(to_choose_opt)
         self.ctx.controller.click(to_click)
         return True
 
@@ -263,6 +263,7 @@ class CommissionAssistantApp(ZApplication):
         self.ctx.withered_domain.map_service.init_event_yolo()
         if not self.withered_domain_inited:
             self.ctx.withered_domain.init_before_run()
+            self.withered_domain_inited = True
 
         # 判断当前邦布是否存在
         hollow_map = self.ctx.withered_domain.map_service.cal_current_map_by_screen(self.last_screenshot, screenshot_time)

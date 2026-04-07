@@ -538,17 +538,18 @@ class PcControllerBase(ControllerBase):
         if low_delay:
             pyautogui.PAUSE = 0.001
 
-        if press_time > 0:
-            # 处理点击延迟
-            pyautogui.moveTo(pos.x, pos.y)
-            pyautogui.mouseDown(button=btn)
-            time.sleep(press_time)
-            pyautogui.mouseUp(button=btn)
-        else:
-            pyautogui.click(pos.x, pos.y, button=btn)
-
-        if low_delay:
-            pyautogui.PAUSE = self.pyautogui_pause
+        try:
+            if press_time > 0:
+                # 处理点击延迟
+                pyautogui.moveTo(pos.x, pos.y)
+                pyautogui.mouseDown(button=btn)
+                time.sleep(press_time)
+                pyautogui.mouseUp(button=btn)
+            else:
+                pyautogui.click(pos.x, pos.y, button=btn)
+        finally:
+            if low_delay:
+                pyautogui.PAUSE = self.pyautogui_pause
 
 
 def win_scroll(clicks: int, pos: Point = None):
