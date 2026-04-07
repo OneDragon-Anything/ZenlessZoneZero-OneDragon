@@ -25,7 +25,7 @@ class AppWindowBase(PhosWindow):
         # 设置窗口标题
         self.setWindowTitle(win_title)
         if app_icon is not None:
-            app_icon_path = os.path.join(os_utils.get_path_under_work_dir('assets', 'ui'), app_icon)
+            app_icon_path = os_utils.get_resource_path('assets', 'ui', app_icon)
             self.setWindowIcon(QIcon(app_icon_path))
 
         # 创建启动页面

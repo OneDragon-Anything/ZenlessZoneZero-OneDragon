@@ -29,12 +29,12 @@ def detect_and_set_default_language():
 
 def get_translations(model: str, lang: str):
     """
-    加载语音
+    加载语言
     :param model: 模块 将ocr 界面 日志等翻译区分开来
     :param lang: 语言
     :return:
     """
-    translate_path = os_utils.get_path_under_work_dir('assets', 'text', 'output')
+    translate_path = os_utils.get_resource_path('assets', 'text', 'output')
     lang_dir = os.path.join(translate_path, lang, 'LC_MESSAGES', f'{model}.mo')
     # 未有对应的文本mo文件
     if not os.path.exists(lang_dir):
