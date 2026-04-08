@@ -13,6 +13,9 @@ from zzz_od.application.inventory_scan import inventory_scan_const
 # from zzz_od.application.inventory_scan.agent.agent_scan_app import AgentScanApp
 # from zzz_od.application.inventory_scan.screenshot_cache import ScreenshotCache
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 945d8047 (feat(库存扫描): 添加库存扫描应用框架及特定扫描功能)
 from zzz_od.application.inventory_scan.inventory_scan_config import AgentScanOptionEnum
 from zzz_od.application.inventory_scan.ocr_worker import OcrWorker
 from zzz_od.application.inventory_scan.special_scan.special_scan_app import SpecialScanApp
@@ -23,11 +26,16 @@ import os
 import json
 import time
 <<<<<<< HEAD
+<<<<<<< HEAD
 from zzz_od.application.inventory_scan.pre_scan.pre_scan_app import PreScanApp
 from zzz_od.application.inventory_scan.translation.translation_updater import TranslationUpdater
 import requests
 =======
 >>>>>>> 4a7c252d (feat: 添加仓库扫描功能及相关界面和配置)
+=======
+from zzz_od.application.inventory_scan.pre_scan.pre_scan_app import PreScanApp
+import requests
+>>>>>>> 945d8047 (feat(库存扫描): 添加库存扫描应用框架及特定扫描功能)
 
 class InventoryScanApp(ZApplication):
     def __init__(self, ctx: ZContext):
@@ -42,6 +50,9 @@ class InventoryScanApp(ZApplication):
         self.ocr_worker = OcrWorker(ctx)
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 945d8047 (feat(库存扫描): 添加库存扫描应用框架及特定扫描功能)
         
         # 初始化并更新翻译字典
         # self._update_translation_dict()
@@ -62,6 +73,7 @@ class InventoryScanApp(ZApplication):
     #         log.error(f"更新翻译字典失败: {e}")
 
     @operation_node(name='返回大世界-普通',is_start_node=True)
+<<<<<<< HEAD
 =======
         #区域配置
         self.agent_unlocked_area = self.ctx.screen_loader.get_area('代理人-信息', '代理人-是否为已解锁')
@@ -100,6 +112,8 @@ class InventoryScanApp(ZApplication):
     #         log.error(f"更新翻译字典失败: {e}")
 
     @operation_node(name='返回大世界-普通',is_start_node=True)
+=======
+>>>>>>> 945d8047 (feat(库存扫描): 添加库存扫描应用框架及特定扫描功能)
     def back_at_first(self) -> OperationRoundResult:
         """返回大世界"""
         op = BackToNormalWorld(self.ctx)
