@@ -45,7 +45,7 @@ class NotoriousHuntRunRecord(AppRunRecord):
         if self.config is None:
             return True
 
-        return self.get_current_weekday() in self.config.allowed_weekdays
+        return self.get_current_weekday() >= self.config.weekly_challenge_start_weekday
 
     @property
     def is_done(self) -> bool:

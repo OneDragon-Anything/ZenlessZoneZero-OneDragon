@@ -1,25 +1,25 @@
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QHBoxLayout, QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
     CaptionLabel,
-    CheckBox,
     FluentIcon,
     LineEdit,
-    PushButton,
     ToolButton,
 )
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
 from one_dragon_qt.services.app_setting.app_setting_provider import GroupIdMixin
-from one_dragon_qt.utils.layout_utils import Margins
+from one_dragon_qt.utils.config_utils import get_prop_adapter
 from one_dragon_qt.widgets.column import Column
 from one_dragon_qt.widgets.combo_box import ComboBox
 from one_dragon_qt.widgets.draggable_list import DraggableList, DraggableListItem
+from one_dragon_qt.widgets.setting_card.combo_box_setting_card import (
+    ComboBoxSettingCard,
+)
 from one_dragon_qt.widgets.setting_card.multi_push_setting_card import (
     MultiLineSettingCard,
 )
-from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
 from one_dragon_qt.widgets.vertical_scroll_interface import VerticalScrollInterface
 from zzz_od.application.battle_assistant.auto_battle_config import (
     get_auto_battle_op_config_list,
@@ -33,75 +33,6 @@ from zzz_od.application.notorious_hunt.notorious_hunt_config import (
     NotoriousHuntWeekdayEnum,
 )
 from zzz_od.context.zzz_context import ZContext
-
-
-class NotoriousHuntWeekdaySettingCard(SettingCardBase):
-
-    value_changed = Signal(list)
-    CONTENT = '默认全选（不能不选），仅用于周期挑战（每周最多3次）的自动调度'
-    CONTROL_SPACING = 12
-    RIGHT_SPACING = 16
-
-    def __init__(self, parent: QWidget | None = None):
-        SettingCardBase.__init__(
-            self,
-            icon=FluentIcon.CALENDAR,
-            title='允许运行日期',
-            content=self.CONTENT,
-            parent=parent,
-        )
-
-        self._checkboxes: list[tuple[int, CheckBox]] = []
-
-        checkbox_widget = QWidget()
-        checkbox_layout = QHBoxLayout(checkbox_widget)
-        checkbox_layout.setContentsMargins(0, 0, 0, 0)
-        checkbox_layout.setSpacing(self.CONTROL_SPACING)
-        checkbox_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
-
-        self.select_all_btn = PushButton(text=gt('全选'))
-        self.select_all_btn.clicked.connect(self._on_select_all_clicked)
-        checkbox_layout.addWidget(self.select_all_btn)
-
-        for day_item in NotoriousHuntWeekdayEnum:
-            checkbox = CheckBox(day_item.value.ui_text)
-            checkbox.checkStateChanged.connect(self._on_value_changed)
-            self._checkboxes.append((day_item.value.value, checkbox))
-            checkbox_layout.addWidget(checkbox)
-
-        self.hBoxLayout.addWidget(
-            checkbox_widget,
-            0,
-            Qt.AlignmentFlag.AlignRight,
-        )
-        self.hBoxLayout.addSpacing(self.RIGHT_SPACING)
-
-    def _on_value_changed(self, value: Qt.CheckState) -> None:
-        del value
-        checked_values = self.get_value()
-        if len(checked_values) == 0:
-            checked_values = self._get_default_value()
-            self.set_value(checked_values, emit_signal=False)
-        self.value_changed.emit(checked_values)
-
-    def _on_select_all_clicked(self) -> None:
-        self.set_value(self._get_default_value())
-
-    def _get_default_value(self) -> list[int]:
-        return [day for day, _ in self._checkboxes]
-
-    def set_value(self, values: list[int], emit_signal: bool = True) -> None:
-        value_set = set(values or self._get_default_value())
-        for day, checkbox in self._checkboxes:
-            checkbox.blockSignals(True)
-            checkbox.setChecked(day in value_set)
-            checkbox.blockSignals(False)
-
-        if emit_signal:
-            self.value_changed.emit(self.get_value())
-
-    def get_value(self) -> list[int]:
-        return [day for day, checkbox in self._checkboxes if checkbox.isChecked()]
 
 
 class NotoriousHuntCard(DraggableListItem):
@@ -269,7 +200,6 @@ class NotoriousHuntCard(DraggableListItem):
 
 
 class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
-    ALLOWED_WEEKDAYS_MARGINS = Margins(0, 0, 16, 0)
 
     def __init__(self, ctx: ZContext, parent=None):
         self.ctx: ZContext = ctx
@@ -286,16 +216,13 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
     def get_content_widget(self) -> QWidget:
         self.content_widget = Column()
 
-        self.allowed_weekdays_opt = NotoriousHuntWeekdaySettingCard()
-        self.allowed_weekdays_opt.value_changed.connect(
-            self._on_allowed_weekdays_changed
+        self.weekly_challenge_start_weekday_opt = ComboBoxSettingCard(
+            icon=FluentIcon.CALENDAR,
+            title='恶名狩猎（周期挑战）开始日',
+            content='从开始日起才会自动调度周期挑战。当日未完成会顺延到次日，直到当周完成/过期',
+            options_enum=NotoriousHuntWeekdayEnum,
         )
-
-        allowed_weekdays_wrapper = Column(
-            margins=self.ALLOWED_WEEKDAYS_MARGINS
-        )
-        allowed_weekdays_wrapper.add_widget(self.allowed_weekdays_opt)
-        self.content_widget.add_widget(allowed_weekdays_wrapper)
+        self.content_widget.add_widget(self.weekly_challenge_start_weekday_opt)
 
         self.drag_list = DraggableList()
         drag_list_layout = self.drag_list.layout()
@@ -339,17 +266,13 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
             group_id=self.group_id,
         )
 
-        self.allowed_weekdays_opt.set_value(
-            self.config.allowed_weekdays,
-            emit_signal=False,
+        self.weekly_challenge_start_weekday_opt.init_with_adapter(
+            get_prop_adapter(self.config, 'weekly_challenge_start_weekday')
         )
         self.update_plan_list_display()
 
     def on_interface_hidden(self) -> None:
         VerticalScrollInterface.on_interface_hidden(self)
-
-    def _on_allowed_weekdays_changed(self, value: list[int]) -> None:
-        self.config.allowed_weekdays = value
 
     def _on_plan_item_changed(self, idx: int, plan: ChargePlanItem) -> None:
         self.config.update_plan(idx, plan)

@@ -6,7 +6,7 @@ from one_dragon.base.operation.application.application_config import Application
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 from zzz_od.application.notorious_hunt import notorious_hunt_const
 
-DEFAULT_ALLOWED_WEEKDAYS: list[int] = [1, 2, 3, 4, 5, 6, 7]
+DEFAULT_WEEKLY_CHALLENGE_START_WEEKDAY: int = 1
 
 
 class NotoriousHuntLevelEnum(Enum):
@@ -68,19 +68,29 @@ class NotoriousHuntConfig(ApplicationConfig):
                     self.plan_list.append(plan)
 
     @property
-    def allowed_weekdays(self) -> list[int]:
-        value = self.data.get('allowed_weekdays')
-        if isinstance(value, list) and len(value) > 0:
-            return value.copy()
+    def weekly_challenge_start_weekday(self) -> int:
+        value = self.data.get('weekly_challenge_start_weekday')
+        if isinstance(value, int) and 1 <= value <= 7:
+            return value
 
-        return DEFAULT_ALLOWED_WEEKDAYS.copy()
+        legacy_value = self.data.get('free_run_start_weekday')
+        if isinstance(legacy_value, int) and 1 <= legacy_value <= 7:
+            return legacy_value
 
-    @allowed_weekdays.setter
-    def allowed_weekdays(self, new_value: list[int]) -> None:
-        self.update(
-            'allowed_weekdays',
-            new_value.copy() if len(new_value) > 0 else DEFAULT_ALLOWED_WEEKDAYS.copy(),
-        )
+        legacy_allowed_weekdays = self.data.get('allowed_weekdays')
+        if isinstance(legacy_allowed_weekdays, list):
+            valid_weekdays = sorted({
+                day for day in legacy_allowed_weekdays
+                if isinstance(day, int) and 1 <= day <= 7
+            })
+            if len(valid_weekdays) > 0:
+                return valid_weekdays[0]
+
+        return DEFAULT_WEEKLY_CHALLENGE_START_WEEKDAY
+
+    @weekly_challenge_start_weekday.setter
+    def weekly_challenge_start_weekday(self, new_value: int) -> None:
+        self.update('weekly_challenge_start_weekday', new_value)
 
     def _get_default_plan(self) -> list[ChargePlanItem]:
         """
@@ -99,10 +109,10 @@ class NotoriousHuntConfig(ApplicationConfig):
         ]
 
     def save(self):
-        allowed_weekdays = self.allowed_weekdays
+        weekly_challenge_start_weekday = self.weekly_challenge_start_weekday
         self.data = {}
         plan_list = []
-        self.data['allowed_weekdays'] = allowed_weekdays
+        self.data['weekly_challenge_start_weekday'] = weekly_challenge_start_weekday
         self.data['plan_list'] = plan_list
 
         for plan_item in self.plan_list:
