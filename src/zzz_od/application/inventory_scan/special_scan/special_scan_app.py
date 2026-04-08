@@ -105,6 +105,7 @@ class SpecialScanApp(ZApplication):
         self._img_level = cv2_utils.crop_image_only(screen, area_level.rect)
 
         self.round_by_goto_screen(screen_name='代理人-技能')# 导航到技能界面
+
         time.sleep(0.3)# 等待技能界面加载完成
         #return self.round_fail('已导航到特定代理人的技能界面')
         
@@ -118,7 +119,7 @@ class SpecialScanApp(ZApplication):
 
 
 
-        self.ctx.controller.click(self.agent_core_skill_area.rect.center)# 导航到技能详细界面
+        self.ctx.controller.click(self.agent_core_skill_area.rect.center)# 点击按钮到技能详细界面
         time.sleep(0.3)# 等待核心技等级界面加载完成
 
         #核心技等级信息截图
@@ -126,6 +127,13 @@ class SpecialScanApp(ZApplication):
         if screen is None:
             log.error("截图失败，无法获取屏幕画面")
             return self.round_fail('截图失败')
+        
+        # 判断当前画面是否为'代理人-技能详细'
+        from one_dragon.base.screen.screen_utils import is_target_screen
+        if not is_target_screen(self.ctx, screen, screen_name='代理人-技能详细'):
+            log.error("当前画面不是代理人-技能详细界面")
+            return self.round_fail('导航到代理人-技能详细界面失败')
+        
         area_core_skill = self.ctx.screen_loader.get_area('代理人-技能详细', '核心技等级')
         self._img_core_skill = cv2_utils.crop_image_only(screen, area_core_skill.rect)
 
@@ -270,8 +278,8 @@ class SpecialScanApp(ZApplication):
         discs = self.discs_data
         weapon=self.wengine_data
         
-        import time
-        now_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
+        # import time
+        # now_time = time.strftime("%Y%m%d%H%M%S", time.localtime())
         
         # 填充 equippedDiscs 字段（包含完整驱动盘信息）
         equipped_discs = {}
@@ -292,7 +300,7 @@ class SpecialScanApp(ZApplication):
                 # 确保目录存在
                 os.makedirs(self.data_file_path, exist_ok=True)
                 # 使用 os.path.join 拼接路径
-                json_file_path = os.path.join(self.data_file_path, f'{self.scan_agent_option}_data_{now_time}.json')
+                json_file_path = os.path.join(self.data_file_path, f'{self.scan_agent_option}_data.json')
                 with open(json_file_path, 'w', encoding='utf-8') as f:
                     json.dump(agent, f, ensure_ascii=False, indent=4)
                     #print(f'已将数据写入文件: {json_file_path}')

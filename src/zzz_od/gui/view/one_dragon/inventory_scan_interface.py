@@ -5,7 +5,7 @@ from typing import Callable, Any
 from one_dragon.utils.i18_utils import gt
 from one_dragon.utils.log_utils import log
 from qfluentwidgets import TableWidget, ScrollArea
-from PySide6.QtCore import Qt, Signal, QSize
+from PySide6.QtCore import Qt, Signal, QSize, QThread
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QSizePolicy,
@@ -50,6 +50,38 @@ from one_dragon_qt.utils.layout_utils import Margins
 from one_dragon_qt.widgets.column import Column
 
 
+class ReportLoader(QThread):
+    """报告加载子线程"""
+    finished = Signal(dict, dict)  # 传递报告文件和翻译字典
+    error = Signal(str)
+
+    def __init__(self, data_file_path, wiki_file_path):
+        super().__init__()
+        self.data_file_path = data_file_path
+        self.wiki_file_path = wiki_file_path
+
+    def run(self):
+        try:
+            # 加载报告文件
+            report_files = {}
+            for file_name in os.listdir(self.data_file_path):
+                if '_data' in file_name and file_name.endswith('.json'):
+                    agent_name = file_name.split('_data')[0]
+                    report_files[agent_name] = os.path.join(self.data_file_path, file_name)
+            
+            # 加载翻译文件
+            translation_dict = {}
+            translation_file_path = os.path.join(self.wiki_file_path, 'zzz_translation.json')
+            if os.path.exists(translation_file_path):
+                with open(translation_file_path, 'r', encoding='utf-8') as f:
+                    translation_data = json.load(f)
+                    translation_dict = translation_data.get('character', {})
+            
+            self.finished.emit(report_files, translation_dict)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
 class InventoryScanInterface(AppRunInterface):
     """仓库扫描界面，支持预扫描和特定扫描两种模式"""
 
@@ -65,6 +97,9 @@ class InventoryScanInterface(AppRunInterface):
         self.data_file_path = os_utils.get_path_under_work_dir('.debug', 'inventory_data')
         # 初始化角色权重数据路径
         self.character_weight_file_path = os_utils.get_path_under_work_dir('assets', 'character_weight')
+        #初始化wiki数据路径
+        self.wiki_file_path = os_utils.get_path_under_work_dir('assets', 'wiki_data')
+
         self._init = False
         # 初始化权重数据
         self.agent_weights = {}
@@ -107,10 +142,10 @@ class InventoryScanInterface(AppRunInterface):
 
         # 默认选择预扫描模式
         self.mode_segment.setCurrentItem(self.MODE_PRE_SCAN)
+        # 初始化时触发一次页面切换事件，确保QStackedWidget高度正确设置
+        self._on_stacked_page_changed(0)
 
         return top
-
-
 
     def _update_agent_options(self) -> None:
         """更新特定扫描的代理人选项"""
@@ -118,17 +153,46 @@ class InventoryScanInterface(AppRunInterface):
         # 特定扫描只读取代理人名称，不包含默认选项
         options = []
         try:
+            # 读取翻译文件
+            translation_file_path = os.path.join(self.wiki_file_path, 'zzz_translation.json')
+            translation_dict = {}
+            if os.path.exists(translation_file_path):
+                with open(translation_file_path, 'r', encoding='utf-8') as f:
+                    translation_data = json.load(f)
+                    translation_dict = translation_data.get('character', {})
+            
+            # 读取权重配置文件列表
+            weight_dir = self.character_weight_file_path
+            weight_files = set()
+            if os.path.exists(weight_dir):
+                for file_name in os.listdir(weight_dir):
+                    if file_name.endswith('.json') and not file_name.startswith('_'):
+                        weight_files.add(file_name.replace('.json', ''))
+            
             # 读取文件并添加代理人选项
             with open(agent_names_file_path, 'r', encoding='utf-8') as f:
                 agent_names = json.load(f)
-                for name in agent_names:
-                    options.append(ConfigItem(name))
+                for code in agent_names:
+                    # 检查是否存在于权重配置文件中
+                    if code in weight_files:
+                        # 映射为中文名
+                        if code in translation_dict:
+                            chs_name = translation_dict[code].get('CHS', code)
+                        else:
+                            chs_name = code
+                    else:
+                        # 检查是否存在于翻译文件中
+                        if code in translation_dict:
+                            chs_name = f"{translation_dict[code].get('CHS', code)} (权重配置缺失)"
+                        else:
+                            chs_name = f"{code} (未定义)"
+                    options.append(ConfigItem(chs_name,code))
         except FileNotFoundError:
             log.info(f"文件 {agent_names_file_path} 不存在，请先执行预扫描生成代理人列表")
         except json.JSONDecodeError:
-            log.error(f"文件 {agent_names_file_path} 格式错误")
+            log.error(f"文件 {agent_names_file_path} 或翻译文件格式错误")
         except Exception as e:
-            log.error(f"读取文件 {agent_names_file_path} 时发生错误: {e}")
+            log.error(f"读取文件时发生错误: {e}")
         # 更新下拉框选项
         if hasattr(self, 'scan_agent_opt'):
             self.scan_agent_opt.set_options_by_list(options)
@@ -137,37 +201,7 @@ class InventoryScanInterface(AppRunInterface):
         """在界面显示时调用"""
         super().on_interface_shown()
         # 更新特定扫描的代理人选项
-        self._update_agent_options()
-
-    def get_widget_at_top(self) -> QWidget:
-        """构建顶部内容区域，包含模式切换和配置"""
-        top = Column()
-
-        # SegmentedWidget 模式切换
-        self.mode_segment = SegmentedWidget()
-        self.mode_segment.addItem(
-            routeKey=self.MODE_PRE_SCAN, text=self.MODE_PRE_SCAN,
-            onClick=lambda: self._apply_mode(self.MODE_PRE_SCAN),
-        )
-        self.mode_segment.addItem(
-            routeKey=self.MODE_SPECIAL_SCAN, text=self.MODE_SPECIAL_SCAN,
-            onClick=lambda: self._apply_mode(self.MODE_SPECIAL_SCAN),
-        )
-        top.add_widget(self.mode_segment)
-
-        # 配置区域 QStackedWidget（高度跟随当前页面）
-        self.mode_stacked = QStackedWidget()
-        self.pre_scan_page = self._build_pre_scan_page()
-        self.special_scan_page = self._build_special_scan_page()
-        self.mode_stacked.addWidget(self.pre_scan_page)
-        self.mode_stacked.addWidget(self.special_scan_page)
-        self.mode_stacked.currentChanged.connect(self._on_stacked_page_changed)
-        top.add_widget(self.mode_stacked)
-
-        # 默认选择预扫描模式
-        self.mode_segment.setCurrentItem(self.MODE_PRE_SCAN)
-
-        return top
+        self._update_agent_options()  
 
     def _build_pre_scan_page(self) -> QWidget:
         """构建预扫描页面"""
@@ -193,16 +227,16 @@ class InventoryScanInterface(AppRunInterface):
         )
         page.add_widget(self.special_help_opt)
 
-        from one_dragon_qt.widgets.row import Row as HRow
-        row = HRow()
+        # from one_dragon_qt.widgets.row import Row as HRow
+        # row = HRow()
 
-        # 管理代理人权重
-        self.agent_weight_opt = PushButton(
-            icon=FluentIcon.SEARCH,
-            text=f"{gt('选择代理人权重')}",
-        )
-        self.agent_weight_opt.clicked.connect(self._on_agent_weight_clicked)
-        row.add_widget(self.agent_weight_opt)
+        # 管理代理人权重;暂时不启用
+        # self.agent_weight_opt = PushButton(
+        #     icon=FluentIcon.SEARCH,
+        #     text=f"{gt('选择代理人权重')}",
+        # )
+        # self.agent_weight_opt.clicked.connect(self._on_agent_weight_clicked)
+        # row.add_widget(self.agent_weight_opt)
 
         # 查看代理人检查报告
         self.check_report_btn = PushButton(
@@ -210,9 +244,9 @@ class InventoryScanInterface(AppRunInterface):
             text=f"{gt('查看代理人检查报告')}", 
         )
         self.check_report_btn.clicked.connect(self._on_check_report_clicked)
-        row.add_widget(self.check_report_btn)
+        page.add_widget(self.check_report_btn)
 
-        page.add_widget(row)
+        # page.add_widget(row)
 
         # 特定代理人选择
         self.scan_agent_opt = ComboBoxSettingCard(
@@ -274,17 +308,31 @@ class InventoryScanInterface(AppRunInterface):
 
     def _on_check_report_clicked(self) -> None:
         """查看代理人检查报告"""
-        # 扫描目录，找到所有符合name_data_time.json格式的文件
-        report_files = {}
-        try:
-            for file_name in os.listdir(self.data_file_path):
-                if '_data_' in file_name and file_name.endswith('.json'):
-                    # 提取代理人名称
-                    agent_name = file_name.split('_data_')[0]
-                    report_files[agent_name] = os.path.join(self.data_file_path, file_name)
-        except Exception as e:
-            log.error(f"扫描报告文件失败: {e}")
-            return
+        from PySide6.QtWidgets import QProgressDialog
+        from PySide6.QtCore import Qt
+        
+        # 显示加载弹窗
+        self.loading_dialog = QProgressDialog("加载报告中...", None, 0, 0, self)
+        self.loading_dialog.setWindowModality(Qt.WindowModal)
+        self.loading_dialog.show()
+
+        # 启动子线程
+        self.loader = ReportLoader(self.data_file_path, self.wiki_file_path)
+        self.loader.finished.connect(self.on_report_loaded)
+        self.loader.error.connect(self.on_report_load_error)
+        self.loader.start()
+
+    def on_report_load_error(self, error_message):
+        """报告加载失败"""
+        self.loading_dialog.close()
+        log.error(f"报告加载失败: {error_message}")
+        from qfluentwidgets import MessageBox
+        msg_box = MessageBox('加载失败', f'报告加载失败: {error_message}', self)
+        msg_box.exec()
+
+    def on_report_loaded(self, report_files, translation_dict):
+        """报告加载完成"""
+        self.loading_dialog.close()
         
         if not report_files:
             log.info("未找到报告文件")
@@ -295,7 +343,7 @@ class InventoryScanInterface(AppRunInterface):
         from one_dragon_qt.widgets.row import Row as HRow
         from one_dragon_qt.widgets.base_interface import BaseInterface
         from qfluentwidgets import (SimpleCardWidget, SubtitleLabel, BodyLabel, 
-                                  PrimaryPushButton, FluentIcon, ScrollArea)
+                                  PrimaryPushButton, PushButton, FluentIcon, ScrollArea)
         from one_dragon_qt.utils.layout_utils import Margins
         
         # 创建报告窗口
@@ -344,12 +392,60 @@ class InventoryScanInterface(AppRunInterface):
         
         # 代理人详细页面
         agent_detail_page = QWidget()
-        agent_detail_layout = QVBoxLayout(agent_detail_page)
+        agent_detail_layout = QHBoxLayout(agent_detail_page)
+        agent_detail_layout.setContentsMargins(0, 0, 0, 0)
+        agent_detail_layout.setSpacing(16)
         
-        # 代理人信息显示
+        # 左侧：完整的一个卡片
+        left_card = SimpleCardWidget()
+        left_card.setFixedWidth(300)
+        left_card_layout = QVBoxLayout(left_card)
+        left_card_layout.setContentsMargins(16, 16, 16, 16)
+        left_card_layout.setSpacing(8)
+        left_card_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        
+        # 左侧卡片标题
+        self.agent_info_title = SubtitleLabel()
+        self.agent_info_title.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        left_card_layout.addWidget(self.agent_info_title)
+        
+        # 左侧卡片内容
         self.agent_info_label = BodyLabel()
         self.agent_info_label.setWordWrap(True)
-        agent_detail_layout.addWidget(self.agent_info_label)
+        left_card_layout.addWidget(self.agent_info_label)
+        
+        agent_detail_layout.addWidget(left_card)
+        
+        # 右侧：3个相同大小的卡片，垂直排列
+        right_container = QWidget()
+        right_layout = QVBoxLayout(right_container)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(16)
+        
+        # 创建三个卡片
+        self.agent_cards = []
+        for i in range(3):
+            card = SimpleCardWidget()
+            card.setFixedHeight(150)
+            card_content_layout = QVBoxLayout(card)
+            card_content_layout.setContentsMargins(16, 16, 16, 16)
+            card_content_layout.setSpacing(8)
+            card_content_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+            
+            # 卡片标题
+            card_title = SubtitleLabel()
+            card_title.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            card_content_layout.addWidget(card_title)
+            
+            # 卡片内容
+            card_content = BodyLabel()
+            card_content.setWordWrap(True)
+            card_content_layout.addWidget(card_content)
+            
+            right_layout.addWidget(card)
+            self.agent_cards.append((card_title, card_content))
+        
+        agent_detail_layout.addWidget(right_container)
         
         self.detail_stacked.addWidget(agent_detail_page)
         
@@ -365,68 +461,105 @@ class InventoryScanInterface(AppRunInterface):
         # 卡片列表，用于更新内容
         disk_cards = []
         
-        # 添加卡片
+        # 预创建所有驱动盘卡片和控件
         from one_dragon_qt.widgets.setting_card.setting_card_base import SettingCardBase
         from qfluentwidgets import FluentIcon
         
         for i in range(2):
             for j in range(3):
                 card = SimpleCardWidget()
-                card.setFixedHeight(260)  # 大幅增加卡片高度
-                card_layout = QVBoxLayout(card)
+                card.setFixedHeight(290)  # 增加卡片高度以容纳详细信息按钮
+                
+                # 使用网格布局实现两列布局：左侧词条名，右侧得分
+                card_layout = QGridLayout(card)
                 card_layout.setContentsMargins(16, 16, 16, 16)  # 调整内边距
                 card_layout.setSpacing(3)  # 设置间距
+                card_layout.setColumnStretch(0, 1)  # 左侧列可伸缩
+                card_layout.setColumnStretch(1, 0)  # 右侧列固定宽度
                 
-                # 驱动盘名称和等级|品级 - 使用水平布局实现右对齐
-                name_container = QWidget()
-                name_layout = QHBoxLayout(name_container)
-                name_layout.setContentsMargins(0, 0, 0, 0)
-                
-                # 驱动盘名称
+                # 驱动盘名称(等级|品级)
                 name_text_label = BodyLabel()
                 name_text_label.setStyleSheet("font-weight: bold; font-size: 20px;")  # 最大字体
                 
-                # 等级|品级
-                level_rarity_label = BodyLabel()
-                level_rarity_label.setStyleSheet("font-weight: bold; font-size: 20px;")  # 最大字体
-                
-                # 添加到布局，使用拉伸因子将等级|品级推到右侧
-                name_layout.addWidget(name_text_label)
-                name_layout.addStretch(1)
-                name_layout.addWidget(level_rarity_label)
-                
-                card_layout.addWidget(name_container)
+                # 总得分
+                total_score_label = BodyLabel()
+                total_score_label.setStyleSheet("font-weight: bold; font-size: 20px;")  # 最大字体
                 
                 # 主词条名称
                 main_label = BodyLabel()
                 main_label.setStyleSheet("font-size: 15px;")  # 中等字体
-                card_layout.addWidget(main_label)
                 
-                # 空行
-                # card_layout.addWidget(BodyLabel(""))
+                # 主词条权重得分
+                main_score_label = BodyLabel()
+                main_score_label.setStyleSheet("font-size: 15px;")  # 中等字体
                 
                 # 副词条1
                 sub1_label = BodyLabel()
                 sub1_label.setStyleSheet("font-size: 12px;")  # 最小字体
-                card_layout.addWidget(sub1_label)
+                sub1_score_label = BodyLabel()
+                sub1_score_label.setStyleSheet("font-size: 12px;")  # 最小字体
                 
                 # 副词条2
                 sub2_label = BodyLabel()
                 sub2_label.setStyleSheet("font-size: 12px;")  # 最小字体
-                card_layout.addWidget(sub2_label)
+                sub2_score_label = BodyLabel()
+                sub2_score_label.setStyleSheet("font-size: 12px;")  # 最小字体
                 
                 # 副词条3
                 sub3_label = BodyLabel()
                 sub3_label.setStyleSheet("font-size: 12px;")  # 最小字体
-                card_layout.addWidget(sub3_label)
+                sub3_score_label = BodyLabel()
+                sub3_score_label.setStyleSheet("font-size: 12px;")  # 最小字体
                 
                 # 副词条4
                 sub4_label = BodyLabel()
                 sub4_label.setStyleSheet("font-size: 12px;")  # 最小字体
-                card_layout.addWidget(sub4_label)
+                sub4_score_label = BodyLabel()
+                sub4_score_label.setStyleSheet("font-size: 12px;")  # 最小字体
+                
+                # 添加到网格布局
+                card_layout.addWidget(name_text_label, 0, 0, Qt.AlignmentFlag.AlignLeft)
+                card_layout.addWidget(total_score_label, 0, 1, Qt.AlignmentFlag.AlignRight)
+                card_layout.addWidget(main_label, 1, 0, Qt.AlignmentFlag.AlignLeft)
+                card_layout.addWidget(main_score_label, 1, 1, Qt.AlignmentFlag.AlignRight)
+                card_layout.addWidget(sub1_label, 2, 0, Qt.AlignmentFlag.AlignLeft)
+                card_layout.addWidget(sub1_score_label, 2, 1, Qt.AlignmentFlag.AlignRight)
+                card_layout.addWidget(sub2_label, 3, 0, Qt.AlignmentFlag.AlignLeft)
+                card_layout.addWidget(sub2_score_label, 3, 1, Qt.AlignmentFlag.AlignRight)
+                card_layout.addWidget(sub3_label, 4, 0, Qt.AlignmentFlag.AlignLeft)
+                card_layout.addWidget(sub3_score_label, 4, 1, Qt.AlignmentFlag.AlignRight)
+                card_layout.addWidget(sub4_label, 5, 0, Qt.AlignmentFlag.AlignLeft)
+                card_layout.addWidget(sub4_score_label, 5, 1, Qt.AlignmentFlag.AlignRight)
+                
+                # 添加详细信息按钮
+                detail_button = PushButton()
+                detail_button.setText("计算详细")
+                detail_button.setFixedSize(120, 32)
+                # 设置按钮样式，确保文本可见
+                detail_button.setStyleSheet(""" 
+                    QPushButton {
+                        color: black;
+                        font-size: 12px;
+                        font-weight: normal;
+                        background-color: #f0f0f0;
+                        border: 1px solid #d0d0d0;
+                        border-radius: 4px;
+                        text-align: center;
+                    }
+                    QPushButton:hover {
+                        background-color: #e0e0e0;
+                    }
+                    QPushButton:pressed {
+                        background-color: #d0d0d0;
+                    }
+                """)
+                card_layout.addWidget(detail_button, 6, 0, 1, 2, Qt.AlignmentFlag.AlignCenter)
+                # 确保按钮可见
+                detail_button.setVisible(True)
+                detail_button.update()
                 
                 card_grid.addWidget(card, i, j)
-                disk_cards.append((name_text_label, level_rarity_label, main_label, sub1_label, sub2_label, sub3_label, sub4_label))
+                disk_cards.append((name_text_label, total_score_label, main_label, main_score_label, sub1_label, sub1_score_label, sub2_label, sub2_score_label, sub3_label, sub3_score_label, sub4_label, sub4_score_label, detail_button))
         
         disk_detail_layout.addLayout(card_grid)
         self.detail_stacked.addWidget(disk_detail_page)
@@ -447,8 +580,9 @@ class InventoryScanInterface(AppRunInterface):
             """切换详情页面"""
             if page_key == 'agent_detail':
                 self.detail_stacked.setCurrentIndex(0)
-                # 显示开发中提示
-                self.agent_info_label.setText(gt('当前功能正在开发中'))
+                # 重新加载当前代理人的详细信息
+                if selected_agent:
+                    load_report(selected_agent)
             elif page_key == 'disk_detail':
                 self.detail_stacked.setCurrentIndex(1)
                 # 重新加载当前代理人的驱动盘信息
@@ -456,8 +590,9 @@ class InventoryScanInterface(AppRunInterface):
                     load_report(selected_agent)
             elif page_key == 'engine_detail':
                 self.detail_stacked.setCurrentIndex(2)
-                # 显示开发中提示
-                self.engine_info_label.setText(gt('当前功能正在开发中'))
+                # 重新加载当前代理人的音擎信息
+                if selected_agent:
+                    load_report(selected_agent)
         
         # 添加导航栏
         from qfluentwidgets import SegmentedWidget
@@ -484,9 +619,7 @@ class InventoryScanInterface(AppRunInterface):
         self.detail_segment.setCurrentItem('agent_detail')
         self.detail_stacked.setCurrentIndex(0)
         
-        # 设置初始提示
-        self.agent_info_label.setText(gt('当前功能正在开发中'))
-        self.engine_info_label.setText(gt('当前功能正在开发中'))
+
         
         # 添加角色按钮
         selected_agent = None
@@ -497,6 +630,8 @@ class InventoryScanInterface(AppRunInterface):
         # 加载槽位映射
         slot_mapping_file = os_utils.get_path_under_work_dir('assets', 'character_weight', '_tool', 'slot_Mapping.json')
         slot_mapping = processor.load_slot_mapping(slot_mapping_file)
+        
+        # 使用子线程加载的翻译字典
         
         # 先定义load_report和on_agent_clicked函数的框架
         def load_report(agent_name):
@@ -510,7 +645,11 @@ class InventoryScanInterface(AppRunInterface):
         # 创建角色按钮
         from qfluentwidgets import PushButton
         for agent_name in report_files:
-            btn = PushButton(text=agent_name)
+            # 映射为中文名称
+            chs_name = agent_name
+            if agent_name in translation_dict:
+                chs_name = translation_dict[agent_name].get('CHS', agent_name)
+            btn = PushButton(text=chs_name)
             btn.setFixedSize(100, 60)
             btn.clicked.connect(lambda checked, name=agent_name: on_agent_clicked(name))
             scroll_layout.addWidget(btn)
@@ -530,50 +669,200 @@ class InventoryScanInterface(AppRunInterface):
         # 移除关闭按钮，使用窗口默认关闭按钮
         
         # 定义完整的update_disk_cards函数
-        def update_disk_cards(equipped_discs):
+        def update_disk_cards(equipped_discs, agent_name=None):
             """根据驱动盘数据更新卡片内容"""
-            # 清空所有卡片
+            # 清空所有卡片（跳过按钮）
             for card_labels in disk_cards:
-                for label in card_labels:
-                    label.setText('')
+                # 前12个是标签，最后一个是按钮
+                for i, label in enumerate(card_labels):
+                    if i < 12:  # 只清空标签的文本，跳过按钮
+                        label.setText('')
             
             # 转换驱动盘数据为中文
             converted_discs = processor.convert_drive_disc_stats_to_chinese(equipped_discs, slot_mapping)
             
-            # 填充驱动盘数据
-            disc_keys = sorted(converted_discs.keys())
-            for i, disc_key in enumerate(disc_keys):
+            # 加载角色权重配置
+            character_weight = None
+            if agent_name:
+                weight_file_path = os.path.join(self.character_weight_file_path, f"{agent_name}.json")
+                if os.path.exists(weight_file_path):
+                    try:
+                        with open(weight_file_path, 'r', encoding='utf-8') as f:
+                            character_weight = json.load(f)
+                    except Exception as e:
+                        log.error(f"加载权重文件失败: {e}")
+            
+            # 为所有6个驱动盘位置处理
+            for i in range(6):
                 if i >= len(disk_cards):
                     break
                 
-                disc = converted_discs[disc_key]
-                set_key = disc.get('setKey', '未知')
-                rarity = disc.get('rarity', '未知')
-                level = disc.get('level', 0)
+                # 获取当前位置的驱动盘数据
+                disc_key = str(i + 1)
+                disc = converted_discs.get(disc_key, {})
                 
-                name_text_label, level_rarity_label, main_label, sub1_label, sub2_label, sub3_label, sub4_label = disk_cards[i]
+                name_text_label, total_score_label, main_label, main_score_label, sub1_label, sub1_score_label, sub2_label, sub2_score_label, sub3_label, sub3_score_label, sub4_label, sub4_score_label, detail_button = disk_cards[i]
                 
-                # 驱动盘名称和等级|品级
-                name_text_label.setText(f"{set_key}")
-                level_rarity_label.setText(f"{level}|{rarity}")
+                # 为详细信息按钮添加点击事件 - 使用工厂函数避免闭包变量问题
+                def create_detail_clicked_handler(disc_data, position, main_stat_key, main_scr, sub_stats, total_scr, char_weight, agent_name):
+                    def handler():
+                        """显示驱动盘详细计算信息"""
+                        from PySide6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton
+                        from PySide6.QtCore import Qt
+                        
+                        dialog = QDialog(self, Qt.WindowType.WindowTitleHint | Qt.WindowType.WindowCloseButtonHint)
+                        dialog.setWindowTitle(f"驱动盘详细信息 - {position}号位")
+                        dialog.resize(500, 450)
+                        
+                        layout = QVBoxLayout(dialog)
+                        
+                        # 创建文本编辑框显示详细信息
+                        text_edit = QTextEdit()
+                        text_edit.setReadOnly(True)
+                        
+                        # 构建详细信息文本
+                        if not disc_data:
+                            # 未装备驱动盘
+                            detail_text = f"驱动盘: 未装备\n"
+                            detail_text += f"位置: {position}号位\n"
+                            detail_text += f"等级: 0\n"
+                            detail_text += f"品质: 未知\n\n"
+                            detail_text += f"主词条: 未知\n"
+                            detail_text += f"主词条得分: 0.0\n\n"
+                            detail_text += "副词条:\n"
+                            detail_text += "  无\n"
+                            detail_text += f"\n总得分: 0.0\n"
+                            if char_weight:
+                                detail_text += f"\n角色有效权重参考 ({agent_name}):\n"
+                                # 显示所有权重项
+                                weight_items = list(char_weight.items())
+                                for key, value in weight_items:
+                                    if value > 0:
+                                        detail_text += f"  {key}: {value:.1f}\n"
+                            else:
+                                detail_text += "\n角色权重参考: 未加载\n"
+                        else:
+                            # 已装备驱动盘
+                            detail_text = f"驱动盘: {disc_data.get('setKey', '未知')}\n"
+                            detail_text += f"位置: {position}号位\n"
+                            detail_text += f"等级: {disc_data.get('level', 0)}\n"
+                            detail_text += f"品质: {disc_data.get('rarity', '未知')}\n\n"
+                            
+                            # 主词条信息
+                            main_stat_key_display = disc_data.get('mainStatKeyChinese', disc_data.get('mainStatKey', '未知'))
+                            detail_text += f"主词条: {main_stat_key_display}\n"
+                            detail_text += f"主词条得分: {main_scr:.1f}\n\n"
+                            
+                            # 副词条信息
+                            detail_text += "副词条:\n"
+                            substats = disc_data.get('substats', [])
+                            if substats:
+                                for substat in substats[:4]:
+                                    substat_key = substat.get('keyChinese', substat.get('key', '未知'))
+                                    substat_upgrades = substat.get('upgrades', 0)
+                                    # 计算该副词条的得分
+                                    substat_weight = char_weight.get(substat_key, 0) if char_weight else 0
+                                    sub_score = substat_weight * substat_upgrades
+                                    detail_text += f"  {substat_key}+{substat_upgrades}: {sub_score:.1f}\n"
+                            else:
+                                detail_text += "  无\n"
+                            
+                            # 总得分
+                            detail_text += f"\n总得分: {total_scr:.1f}\n"
+                            
+                            # 角色权重信息
+                            if char_weight:
+                                detail_text += f"\n角色有效权重参考 ({agent_name}):\n"
+                                # 显示所有权重项
+                                weight_items = list(char_weight.items())
+                                for key, value in weight_items:
+                                    if value > 0:
+                                        detail_text += f"  {key}: {value:.1f}\n"
+                            else:
+                                detail_text += "\n角色权重参考: 未加载\n"
+                        
+                        text_edit.setPlainText(detail_text)
+                        layout.addWidget(text_edit)
+                        
+                        # 添加关闭按钮
+                        close_button = QPushButton("关闭")
+                        close_button.clicked.connect(dialog.close)
+                        layout.addWidget(close_button, 0, Qt.AlignmentFlag.AlignCenter)
+                        
+                        dialog.exec()
+                    return handler
                 
-                # 主词条名称
-                main_stat_key = disc.get('mainStatKeyChinese', disc.get('mainStatKey', '未知'))
-                main_label.setText(f"{main_stat_key}")
+                # 断开之前的所有连接，避免重复触发
+                try:
+                    # 断开所有clicked信号的连接
+                    detail_button.clicked.disconnect()
+                except:
+                    pass
                 
-                # 副词条
-                substats = disc.get('substats', [])
-                for j, substat in enumerate(substats[:4]):
-                    substat_key = substat.get('keyChinese', substat.get('key', '未知'))
-                    substat_upgrades = substat.get('upgrades', 0)
-                    if j == 0:
-                        sub1_label.setText(f"{substat_key}+{substat_upgrades}")
-                    elif j == 1:
-                        sub2_label.setText(f"{substat_key}+{substat_upgrades}")
-                    elif j == 2:
-                        sub3_label.setText(f"{substat_key}+{substat_upgrades}")
-                    elif j == 3:
-                        sub4_label.setText(f"{substat_key}+{substat_upgrades}")
+                if disc:
+                    # 已装备驱动盘
+                    set_key = disc.get('setKey', '未知')
+                    rarity = disc.get('rarity', '未知')
+                    level = disc.get('level', 0)
+                    
+                    # 驱动盘名称(等级|品级)
+                    name_text_label.setText(f"{set_key}({level}|{rarity})")
+                    
+                    # 计算得分
+                    main_score = 0
+                    sub_scores = [0, 0, 0, 0]
+                    total_score = 0
+                    
+                    if character_weight:
+                        # 添加position字段用于评分
+                        disc_with_position = disc.copy()
+                        disc_with_position['position'] = int(disc_key)
+                        # 计算实际得分
+                        score_data = processor.calculate_actual_disc_score(disc_with_position, character_weight, slot_mapping)
+                        main_score = score_data['mainStatScore']
+                        total_score = score_data['totalScore']
+                        # 为每个原始副词条计算得分
+                        substats = disc.get('substats', [])
+                        for j, substat in enumerate(substats[:4]):
+                            substat_key = substat.get('keyChinese', substat.get('key', '未知'))
+                            substat_upgrades = substat.get('upgrades', 0)
+                            substat_weight = character_weight.get(substat_key, 0)
+                            sub_scores[j] = substat_weight * substat_upgrades
+                    
+                    # 创建并连接点击事件处理函数
+                    main_stat_key = disc.get('mainStatKeyChinese', disc.get('mainStatKey', '未知'))
+                    detail_button.clicked.connect(create_detail_clicked_handler(disc, int(disc_key), main_stat_key, main_score, sub_scores, total_score, character_weight, agent_name))
+                    
+                    # 显示总得分
+                    total_score_label.setText(f"{total_score:.1f}")
+                    
+                    # 主词条名称和权重得分
+                    main_stat_key = disc.get('mainStatKeyChinese', disc.get('mainStatKey', '未知'))
+                    main_label.setText(f"{main_stat_key}")
+                    main_score_label.setText(f"{main_score:.1f}")
+                    
+                    # 副词条和权重得分
+                    substats = disc.get('substats', [])
+                    for j, substat in enumerate(substats[:4]):
+                        substat_key = substat.get('keyChinese', substat.get('key', '未知'))
+                        substat_upgrades = substat.get('upgrades', 0)
+                        sub_score = sub_scores[j]
+                        if j == 0:
+                            sub1_label.setText(f"{substat_key}+{substat_upgrades}")
+                            sub1_score_label.setText(f"{sub_score:.1f}")
+                        elif j == 1:
+                            sub2_label.setText(f"{substat_key}+{substat_upgrades}")
+                            sub2_score_label.setText(f"{sub_score:.1f}")
+                        elif j == 2:
+                            sub3_label.setText(f"{substat_key}+{substat_upgrades}")
+                            sub3_score_label.setText(f"{sub_score:.1f}")
+                        elif j == 3:
+                            sub4_label.setText(f"{substat_key}+{substat_upgrades}")
+                            sub4_score_label.setText(f"{sub_score:.1f}")
+                else:
+                    # 未装备驱动盘
+                    # 创建并连接点击事件处理函数
+                    detail_button.clicked.connect(create_detail_clicked_handler({}, i + 1, '未知', 0, [0, 0, 0, 0], 0, character_weight, agent_name))
         
 
         
@@ -586,53 +875,85 @@ class InventoryScanInterface(AppRunInterface):
                 self.engine_info_label.setText(gt('未找到该代理人的报告文件'))
                 return
             
+            # 获取中文名称
+            chs_name = agent_name
+            if agent_name in translation_dict:
+                chs_name = translation_dict[agent_name].get('CHS', agent_name)
+            
             report_file_path = report_files[agent_name]
             try:
                 with open(report_file_path, 'r', encoding='utf-8') as f:
                     report = json.load(f)
                 # 更新驱动盘卡片
                 equipped_discs = report.get('equippedDiscs', {})
-                update_disk_cards(equipped_discs)
+                update_disk_cards(equipped_discs, agent_name)
                 
                 # 更新代理人详细信息
+                self.agent_info_title.setText(f"{chs_name}的详细信息")
                 agent_info = []
-                agent_info.append(f"{gt('代理人')}: {agent_name}")
                 agent_info.append(f"{gt('等级')}: {report.get('level', '未知')}")
                 agent_info.append(f"{gt('核心等级')}: {report.get('core', '未知')}")
-                agent_info.append(f"{gt('钥匙')}: {report.get('key', '未知')}")
-                
-                # 音擎信息
-                if 'equippedEngines' in report:
-                    agent_info.append(f"\n{gt('音擎')}:")
-                    for engine_key, engine in report['equippedEngines'].items():
-                        engine_name = engine.get('name', '未知')
-                        engine_level = engine.get('level', 0)
-                        agent_info.append(f"  - {engine_name} (等级: {engine_level})")
+                agent_info.append(f"{gt('心境等级')}: {report.get('mindscape', '未知')}")
+                agent_info.append(f"{gt('闪避等级')}: {report.get('dodge', '未知')}")
+                agent_info.append(f"{gt('晋升等级')}: {report.get('promotion', '未知')}")
                 
                 self.agent_info_label.setText('\n'.join(agent_info))
                 
+                # 更新卡片内容
+                if self.agent_cards:
+                    # 卡片1：提升建议
+                    card1_title, card1_content = self.agent_cards[0]
+                    card1_title.setText(f"{chs_name}的提升建议")
+                    card1_content.setText(
+                        f"- 代理人等级技能:提升普攻等级\n"
+                        f"- 音擎:无\n"
+                        f"- 驱动盘:将2号位的驱动盘替换为0行0列的驱动盘"
+                    )
+                    
+                    # 卡片2：技能信息
+                    card2_title, card2_content = self.agent_cards[1]
+                    card2_title.setText(f"{chs_name}的技能信息")
+                    skills_info = []
+                    skills_info.append(f"- 基础技能: {report.get('basic', '未知')}")
+                    skills_info.append(f"- 连锁技能: {report.get('chain', '未知')}")
+                    skills_info.append(f"- 特殊技能: {report.get('special', '未知')}")
+                    skills_info.append(f"- 援助技能: {report.get('assist', '未知')}")
+                    card2_content.setText('\n'.join(skills_info))
+                    
+                    # 卡片3：装备信息
+                    card3_title, card3_content = self.agent_cards[2]
+                    card3_title.setText(f"{chs_name}的装备信息")
+                    equipment_info = []
+                    if 'equippedWengine' in report and report['equippedWengine']:
+                        engine = report['equippedWengine']
+                        engine_name = engine.get('key', '未知')
+                        engine_level = engine.get('level', 0)
+                        equipment_info.append(f"- 音擎: {engine_name} (等级: {engine_level})")
+                    else:
+                        equipment_info.append("- 音擎: 无")
+                    
+                    equipped_discs = report.get('equippedDiscs', {})
+                    if equipped_discs:
+                        equipment_info.append("- 驱动盘: 已装备")
+                    else:
+                        equipment_info.append("- 驱动盘: 未装备")
+                    
+                    card3_content.setText('\n'.join(equipment_info))
+                
                 # 更新音擎详细信息
                 engine_info = []
-                engine_info.append(f"{gt('代理人')}: {agent_name}")
-                if 'equippedEngines' in report:
+                engine_info.append(f"{gt('代理人')}: {chs_name}")
+                if 'equippedWengine' in report:
                     engine_info.append(f"\n{gt('音擎详细信息')}:")
-                    for engine_key, engine in report['equippedEngines'].items():
-                        engine_name = engine.get('name', '未知')
-                        engine_level = engine.get('level', 0)
-                        engine_rarity = engine.get('rarity', '未知')
-                        engine_type = engine.get('type', '未知')
-                        engine_info.append(f"\n{gt('音擎名称')}: {engine_name}")
-                        engine_info.append(f"{gt('等级')}: {engine_level}")
-                        engine_info.append(f"{gt('品级')}: {engine_rarity}")
-                        engine_info.append(f"{gt('类型')}: {engine_type}")
-                        
-                        # 音擎技能信息
-                        if 'skills' in engine:
-                            engine_info.append(f"{gt('技能')}:")
-                            for skill in engine['skills']:
-                                skill_name = skill.get('name', '未知')
-                                skill_desc = skill.get('description', '未知')
-                                engine_info.append(f"  - {skill_name}: {skill_desc}")
+                    engine = report['equippedWengine']
+                    engine_name = engine.get('key', '未知')
+                    engine_level = engine.get('level', 0)
+                    engine_modification = engine.get('modification', 0)
+                    engine_promotion = engine.get('promotion', 0)
+                    engine_info.append(f"\n{gt('音擎名称')}: {engine_name}")
+                    engine_info.append(f"{gt('等级')}: {engine_level}")
+                    engine_info.append(f"{gt('改造')}: {engine_modification}")
+                    engine_info.append(f"{gt('晋升')}: {engine_promotion}")
                 else:
                     engine_info.append(f"\n{gt('未装备音擎')}")
                 
@@ -1122,18 +1443,20 @@ class InventoryScanInterface(AppRunInterface):
                         # 查找对应角色的json文件
                         found = False
                         for file_name in os.listdir(self.character_weight_file_path):
-                            if file_name.endswith('.json') and file_name != 'character_weight.json' and file_name != '_character_weight.json':
-                                file_path = os.path.join(self.character_weight_file_path, file_name)
-                                try:
-                                    with open(file_path, 'r', encoding='utf-8') as f:
-                                        char_data = json.load(f)
-                                        if char_data.get('name') == agent_name:
-                                            # 找到对应角色的json文件
-                                            found = True
+                            if file_name.endswith('.json') and not file_name.startswith('_'):
+                                # 从文件名中提取角色code
+                                file_code = file_name.replace('.json', '')
+                                if file_code == agent_name:
+                                    # 找到对应角色的json文件
+                                    found = True
+                                    file_path = os.path.join(self.character_weight_file_path, file_name)
+                                    try:
+                                        with open(file_path, 'r', encoding='utf-8') as f:
+                                            char_data = json.load(f)
                                             # 初始化权重数据
                                             self.agent_weights[agent_name] = {}
                                             # 从json文件中读取权重数据
-                                            weight_data = char_data.get('weight', {})
+                                            weight_data = char_data
                                             for weight_type in weight_types:
                                                 # 处理不同的属性名称
                                                 weight_key = weight_type
@@ -1162,9 +1485,9 @@ class InventoryScanInterface(AppRunInterface):
                                                 self.agent_weights[agent_name][weight_type] = {
                                                     'weight': weight_value
                                                 }
-                                            break
-                                except Exception as e:
-                                    log.error(f"读取角色文件失败 {file_name}: {e}")
+                                    except Exception as e:
+                                        log.error(f"读取角色文件失败 {file_name}: {e}")
+                                    break
                         
                         if not found:
                             log.warning(f"未找到角色 {agent_name} 的权重文件，跳过")

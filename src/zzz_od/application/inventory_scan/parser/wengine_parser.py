@@ -15,7 +15,7 @@ class WengineParser:
 
     def __init__(self):
         self.wengine_counter = 0
-        from zzz_od.application.inventory_scan.translation import TranslationService
+        from zzz_od.application.inventory_scan.translation_service import TranslationService
         self.translation_service = TranslationService()
         # from zzz_od.application.inventory_scan.utils.agent_icon_matcher import AgentIconMatcher
         # self.icon_matcher = AgentIconMatcher()

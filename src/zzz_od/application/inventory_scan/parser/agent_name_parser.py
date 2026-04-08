@@ -32,32 +32,37 @@ class AgentNameParser:
                 return None
             
             # 检查是否在翻译表中
-            matched_key = self.agent_parser._match_translation(agent_name, screenshot)
-            chs_name = agent_name  # 默认使用原始名称作为中文名称
+            matched_code = self.agent_parser._match_translation(agent_name, screenshot)
             
-            # 如果匹配到翻译表，获取对应的中文名称
-            if matched_key:
-                character_dict = self.agent_parser.translation_service.translation_dict.get('character', {})
-                if matched_key in character_dict:
-                    char_data = character_dict[matched_key]
-                    if isinstance(char_data, dict) and 'CHS' in char_data:
-                        chs_name = char_data['CHS']
-                        log.debug(f"匹配到角色中文名称: {chs_name}")
-            
-            # 检查是否重复
-            if chs_name in self.scanned_agent_keys:
-                log.warning(f"角色 {chs_name} 已扫描过，跳过重复")
-                return None
-            
-            # 记录已扫描
-            self.scanned_agent_keys.add(chs_name)
-            
-            # 构建返回数据
-            self.agent_counter += 1
-            return {
-                'key': chs_name,  # 使用中文名称作为key
-                'id': f'zzz_agent_{self.agent_counter}'
-            }
+            # 如果匹配到翻译表，使用code作为key
+            if matched_code:
+                # 检查是否重复
+                if matched_code in self.scanned_agent_keys:
+                    log.warning(f"角色 {matched_code} 已扫描过，跳过重复")
+                    return None
+                
+                # 记录已扫描
+                self.scanned_agent_keys.add(matched_code)
+                
+                # 构建返回数据
+                self.agent_counter += 1
+                return {
+                    'key': matched_code,  # 使用code作为key
+                    'id': f'zzz_agent_{self.agent_counter}'
+                }
+            else:
+                # 如果没有匹配到，使用原始名称
+                chs_name = agent_name
+                if chs_name in self.scanned_agent_keys:
+                    log.warning(f"角色 {chs_name} 已扫描过，跳过重复")
+                    return None
+                
+                self.scanned_agent_keys.add(chs_name)
+                self.agent_counter += 1
+                return {
+                    'key': chs_name,
+                    'id': f'zzz_agent_{self.agent_counter}'
+                }
             
         except Exception as e:
             log.error(f"解析代理人名称失败: {e}", exc_info=True)

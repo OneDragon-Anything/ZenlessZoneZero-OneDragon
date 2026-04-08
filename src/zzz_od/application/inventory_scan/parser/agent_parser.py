@@ -26,7 +26,7 @@ class AgentParser:
     def translation_service(self):
         """延迟加载翻译服务"""
         if self._translation_service is None:
-            from zzz_od.application.inventory_scan.translation.translation_service import TranslationService
+            from zzz_od.application.inventory_scan.translation_service import TranslationService
             self._translation_service = TranslationService()
         return self._translation_service
 
