@@ -9,40 +9,6 @@ from zzz_od.application.notorious_hunt import notorious_hunt_const
 DEFAULT_ALLOWED_WEEKDAYS: list[int] = [1, 2, 3, 4, 5, 6, 7]
 
 
-def _normalize_weekday_value(raw_value: object) -> int | None:
-    if isinstance(raw_value, bool):
-        return None
-
-    if isinstance(raw_value, int):
-        day = raw_value
-    elif isinstance(raw_value, str) and raw_value.strip().isdigit():
-        day = int(raw_value.strip())
-    else:
-        return None
-
-    return day if 1 <= day <= 7 else None
-
-
-def _normalize_allowed_weekdays(
-    raw_value: object,
-    default_value: list[int] | None = None,
-) -> list[int]:
-    if raw_value is None or not isinstance(raw_value, list):
-        return default_value.copy() if default_value is not None else []
-
-    normalized: list[int] = []
-    for raw_day in raw_value:
-        day = _normalize_weekday_value(raw_day)
-        if day is not None:
-            normalized.append(day)
-
-    normalized = sorted(set(normalized))
-    if len(normalized) == 0 and default_value is not None:
-        return default_value.copy()
-
-    return normalized
-
-
 class NotoriousHuntLevelEnum(Enum):
 
     DEFAULT = ConfigItem('默认等级')
@@ -103,14 +69,18 @@ class NotoriousHuntConfig(ApplicationConfig):
 
     @property
     def allowed_weekdays(self) -> list[int]:
-        return _normalize_allowed_weekdays(
-            self.data.get('allowed_weekdays'),
-            DEFAULT_ALLOWED_WEEKDAYS,
-        )
+        value = self.data.get('allowed_weekdays')
+        if isinstance(value, list) and len(value) > 0:
+            return value.copy()
+
+        return DEFAULT_ALLOWED_WEEKDAYS.copy()
 
     @allowed_weekdays.setter
     def allowed_weekdays(self, new_value: list[int]) -> None:
-        self.update('allowed_weekdays', new_value)
+        self.update(
+            'allowed_weekdays',
+            new_value.copy() if len(new_value) > 0 else DEFAULT_ALLOWED_WEEKDAYS.copy(),
+        )
 
     def _get_default_plan(self) -> list[ChargePlanItem]:
         """
@@ -127,15 +97,6 @@ class NotoriousHuntConfig(ApplicationConfig):
             ChargePlanItem('训练', '恶名狩猎', '魇缚者·叶释渊', None),
             ChargePlanItem('训练', '恶名狩猎', '猎血清道夫', None),
         ]
-
-    def update(self, key: str, value: object, save: bool = True) -> None:
-        if key == 'allowed_weekdays':
-            value = _normalize_allowed_weekdays(
-                value,
-                DEFAULT_ALLOWED_WEEKDAYS,
-            )
-
-        super().update(key, value, save)
 
     def save(self):
         allowed_weekdays = self.allowed_weekdays
