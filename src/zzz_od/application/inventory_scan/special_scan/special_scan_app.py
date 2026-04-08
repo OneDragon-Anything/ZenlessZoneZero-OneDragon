@@ -105,7 +105,6 @@ class SpecialScanApp(ZApplication):
         self._img_level = cv2_utils.crop_image_only(screen, area_level.rect)
 
         self.round_by_goto_screen(screen_name='代理人-技能')# 导航到技能界面
-
         time.sleep(0.3)# 等待技能界面加载完成
         #return self.round_fail('已导航到特定代理人的技能界面')
         
