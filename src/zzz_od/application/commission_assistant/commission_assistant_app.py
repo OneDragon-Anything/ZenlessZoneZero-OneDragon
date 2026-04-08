@@ -17,6 +17,7 @@ from one_dragon.base.operation.operation_round_result import (
 )
 from one_dragon.utils import cv2_utils, str_utils
 from one_dragon.utils.i18_utils import gt
+from one_dragon.utils.log_utils import log
 from zzz_od.application.commission_assistant import commission_assistant_const
 from zzz_od.application.commission_assistant.commission_assistant_config import (
     CommissionAssistantConfig,
@@ -164,12 +165,13 @@ class CommissionAssistantApp(ZApplication):
             self.dialog_clicked = True
             return self.round_wait(status='对话中点击空白', wait=self.config.dialog_click_interval)
 
-        # 有些对话内容为 '......', 此时识别不到任何内容但是需要点击屏幕
+        # 对话框替换期间或者对话内容为 '......' 时是无法识别出内容的
+        # 如果前几帧识别到对话框则需要继续点击屏幕, 但是不能一直点, 所以这里是retry
         if self.dialog_clicked:
             self.ctx.controller.click(pos=center_area.left_top, press_time=0.001, low_delay=True)
-
-        # 对话框替换期间是没内容的, 所以需要retry
-        return self.round_retry(status='未知画面', wait=0.2)
+            return self.round_retry(status='点击未知画面 (对话后)', wait=0.2)
+        else:
+            return self.round_retry(status='未知画面', wait=0.2)
 
     def _check_dialog(self, screen: MatLike) -> bool:
         """

@@ -1240,13 +1240,13 @@ def is_colorful(img: MatLike, saturation_threshold: int = 30, color_ratio_thresh
 def is_in_gray_mask(img: MatLike, rect: Rect | None = None, threshold: int = 55, rgb_diff_threshold: int = 20,
                     percent_rate: float = 0.9) -> bool:
     """
-    判断图像是否接近黑白灰, 可用于判断游戏下方的对话框遮罩
+    判断图像是否接近灰色遮罩下的区域, 可用于判断游戏下方的对话框遮罩
     性能比 is_colorful 稍慢, 但是几乎能准确识别所有对话框
 
     判断依据：
     1.  统计 (RGB都<threshold) OR (RGB都>255-threshold) 的像素占比
         在游戏下方的对话框中, 应该是只有文字边缘像素颜色值会不在50以下
-    2.  统计RGB之差小于 rgb_diff_threshold 的像素占比, 以判断是否为灰度像素
+    2.  统计RGB之差小于 rgb_diff_threshold 的像素占比, 以判断是否为灰度像素 (文字周围一圈在图片压缩之后是灰色的)
 
     Args:
         img: 输入图像（RGB格式）
@@ -1256,7 +1256,7 @@ def is_in_gray_mask(img: MatLike, rect: Rect | None = None, threshold: int = 55,
         percent_rate: 满足条件的点的占比阈值
 
     Returns:
-        bool: True 表示是彩色的，False 表示接近灰度
+        bool: True 表示接近灰色遮罩下的区域，False 表示是彩色的
     """
     if img is None or img.size == 0:
         return False
@@ -1282,7 +1282,7 @@ def is_in_gray_mask(img: MatLike, rect: Rect | None = None, threshold: int = 55,
     count = (cond1 | cond2).sum()
     # save_image(img, 'y:\\debug.png')
     percent = count / total
-    log.debug('该图片为黑白灰色系的置信度为: [%2f]', percent)
+    log.debug('灰遮罩图片置信度 [%2f]', percent)
     # is_colorful(img)
 
     return percent > percent_rate
