@@ -22,7 +22,6 @@ import os
 import json
 import time
 from zzz_od.application.inventory_scan.pre_scan.pre_scan_app import PreScanApp
-from zzz_od.application.inventory_scan.translation.translation_updater import TranslationUpdater
 import requests
 
 class InventoryScanApp(ZApplication):

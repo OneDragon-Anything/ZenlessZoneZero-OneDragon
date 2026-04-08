@@ -55,6 +55,7 @@ class PreScanApp(ZApplication):
         log.debug("开始扫描代理人基础信息...")
         time.sleep(1)# 等待代理人信息界面加载完成
         #遍历所有代理人
+        seen_name_regions: set[bytes] = set()
         max_iterations = 100  # 最大循环次数，避免无限循环
         iteration = 0
         agent_keys=[]
@@ -67,6 +68,11 @@ class PreScanApp(ZApplication):
             result = find_area_in_screen(self.ctx, screen, self.agent_unlocked_area)
             if result == FindAreaResultEnum.TRUE:
                 cropped_screen = cv2_utils.crop_image_only(screen, self.agent_name_area.rect)
+                signature = cropped_screen.tobytes()
+                if signature in seen_name_regions:
+                    log.info("代理人列表已回到起点，结束扫描")
+                    break
+                seen_name_regions.add(signature)
                 self.ocr_worker.submit('agent',cropped_screen,self.agent_name_parser)
                 self.ctx.controller.click(self.switch_next_agent_area.rect.center)# 点击下一位代理人按钮
                 time.sleep(0.3)# 等待下一位代理人加载完成
