@@ -177,6 +177,7 @@ class CommissionAssistantApp(ZApplication):
         """
         识别当前是否有对话
         """
+        # 对话框标题有可能不存在可还行 (旁白)
         # 对话框内容不为黑白配色, 不是对话
         area = self.ctx.screen_loader.get_area('委托助手', '对话框内容')
         if not cv2_utils.is_in_gray_mask(screen, rect=area.rect):
