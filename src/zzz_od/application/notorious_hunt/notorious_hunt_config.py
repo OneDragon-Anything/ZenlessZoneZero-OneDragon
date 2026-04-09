@@ -73,19 +73,6 @@ class NotoriousHuntConfig(ApplicationConfig):
         if isinstance(value, int) and 1 <= value <= 7:
             return value
 
-        legacy_value = self.data.get('free_run_start_weekday')
-        if isinstance(legacy_value, int) and 1 <= legacy_value <= 7:
-            return legacy_value
-
-        legacy_allowed_weekdays = self.data.get('allowed_weekdays')
-        if isinstance(legacy_allowed_weekdays, list):
-            valid_weekdays = sorted({
-                day for day in legacy_allowed_weekdays
-                if isinstance(day, int) and 1 <= day <= 7
-            })
-            if len(valid_weekdays) > 0:
-                return valid_weekdays[0]
-
         return DEFAULT_WEEKLY_CHALLENGE_START_WEEKDAY
 
     @weekly_challenge_start_weekday.setter
