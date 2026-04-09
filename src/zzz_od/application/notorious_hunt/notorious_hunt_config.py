@@ -195,9 +195,7 @@ class NotoriousHuntConfig(ApplicationConfig):
             if any(plan.run_times < plan.plan_times for plan in enabled_plan_list):
                 break
 
-            for plan in self.plan_list:
-                if plan.run_times < plan.plan_times:
-                    continue
+            for plan in enabled_plan_list:
                 plan.run_times -= plan.plan_times
 
             self.save()
