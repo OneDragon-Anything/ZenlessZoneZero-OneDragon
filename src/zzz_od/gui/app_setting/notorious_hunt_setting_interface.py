@@ -74,7 +74,7 @@ class NotoriousHuntCard(DraggableListItem):
         self.plan_times_input = LineEdit()
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
 
-        self.disabled_checkbox = CheckBox(text='禁用')
+        self.disabled_checkbox = CheckBox(text=gt('禁用'))
         self.disabled_checkbox.checkStateChanged.connect(self._on_disabled_changed)
 
         self.move_top_btn = ToolButton(FluentIcon.PIN, None)
@@ -275,7 +275,9 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
                 self.card_list.append(card)
                 self.drag_list.add_list_item(card)
-                card.layout().setContentsMargins(0, 4, 0, 4)
+                card_layout = card.layout()
+                if card_layout is not None:
+                    card_layout.setContentsMargins(0, 4, 0, 4)
 
         elif len(plan_list) < len(self.card_list):
             while len(self.card_list) > len(plan_list):

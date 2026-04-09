@@ -184,9 +184,10 @@ class NotoriousHuntConfig(ApplicationConfig):
         if len(self.plan_list) == 0:
             return
 
+        disabled_mission_type_names = set(self.disabled_mission_type_names)
         enabled_plan_list = [
             plan for plan in self.plan_list
-            if not self.is_mission_type_disabled(plan.mission_type_name)
+            if plan.mission_type_name not in disabled_mission_type_names
         ]
         if len(enabled_plan_list) == 0:
             return
@@ -205,9 +206,10 @@ class NotoriousHuntConfig(ApplicationConfig):
             return None
 
         self.reset_plans()
+        disabled_mission_type_names = set(self.disabled_mission_type_names)
 
         for plan in self.plan_list:
-            if self.is_mission_type_disabled(plan.mission_type_name):
+            if plan.mission_type_name in disabled_mission_type_names:
                 continue
             if plan.run_times < plan.plan_times:
                 return plan
