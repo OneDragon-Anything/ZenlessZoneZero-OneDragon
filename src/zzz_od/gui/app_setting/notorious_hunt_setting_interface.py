@@ -39,14 +39,10 @@ from zzz_od.context.zzz_context import ZContext
 class NotoriousHuntCard(DraggableListItem):
 
     changed = Signal(int, ChargePlanItem)
-    disabled_changed = Signal(str, bool)
     move_top = Signal(int)
 
-    def __init__(self, ctx: ZContext,
-                 config: NotoriousHuntConfig,
-                 idx: int, plan: ChargePlanItem):
+    def __init__(self, ctx: ZContext, idx: int, plan: ChargePlanItem) -> None:
         self.ctx: ZContext = ctx
-        self.config: NotoriousHuntConfig = config
         self.idx: int = idx
         self.plan: ChargePlanItem = plan
 
@@ -171,9 +167,7 @@ class NotoriousHuntCard(DraggableListItem):
 
     def init_disabled_checkbox(self) -> None:
         self.disabled_checkbox.blockSignals(True)
-        self.disabled_checkbox.setChecked(
-            self.config.is_mission_type_disabled(self.plan.mission_type_name)
-        )
+        self.disabled_checkbox.setChecked(not self.plan.enable)
         self.disabled_checkbox.blockSignals(False)
 
     def _on_mission_type_changed(self, idx: int) -> None:
@@ -212,10 +206,8 @@ class NotoriousHuntCard(DraggableListItem):
         self._emit_value()
 
     def _on_disabled_changed(self, value: Qt.CheckState) -> None:
-        self.disabled_changed.emit(
-            self.plan.mission_type_name,
-            value == Qt.CheckState.Checked,
-        )
+        self.plan.enable = value != Qt.CheckState.Checked
+        self._emit_value()
 
     def _emit_value(self) -> None:
         self.changed.emit(self.idx, self.plan)
@@ -265,12 +257,10 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
                 idx = len(self.card_list)
                 card = NotoriousHuntCard(
                     self.ctx,
-                    self.config,
                     idx,
                     self.config.plan_list[idx],
                 )
                 card.changed.connect(self._on_plan_item_changed)
-                card.disabled_changed.connect(self._on_plan_item_disabled_changed)
                 card.move_top.connect(self._on_plan_item_move_top)
 
                 self.card_list.append(card)
@@ -306,9 +296,6 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def _on_plan_item_changed(self, idx: int, plan: ChargePlanItem) -> None:
         self.config.update_plan(idx, plan)
-
-    def _on_plan_item_disabled_changed(self, mission_type_name: str, disabled: bool) -> None:
-        self.config.set_mission_type_disabled(mission_type_name, disabled)
 
     def _on_plan_item_move_top(self, idx: int) -> None:
         self.config.move_top(idx)

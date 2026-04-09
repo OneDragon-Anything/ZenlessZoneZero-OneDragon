@@ -41,6 +41,7 @@ class ChargePlanItem:
             predefined_team_idx: int = -1,
             notorious_hunt_buff_num: int = 1,
             plan_id: str | None = None,
+            enable: bool = True,
     ):
         self.tab_name: str = tab_name
         self.category_name: str = category_name
@@ -55,6 +56,7 @@ class ChargePlanItem:
         self.predefined_team_idx: int = predefined_team_idx  # 预备配队下标 -1为使用当前配队
         self.notorious_hunt_buff_num: int = notorious_hunt_buff_num  # 恶名狩猎 选择的buff
         self.plan_id: str = plan_id if plan_id else str(uuid.uuid4())  # 计划的唯一标识符
+        self.enable: bool = enable
         self.skipped: bool = False  # 单次运行中是否跳过（不持久化）
 
     @property
