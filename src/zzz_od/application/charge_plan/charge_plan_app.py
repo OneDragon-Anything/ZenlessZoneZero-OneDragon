@@ -203,7 +203,7 @@ class ChargePlanApp(ZApplication):
     @node_from(from_name='区域巡防', status=AreaPatrol.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='专业挑战室', status=ExpertChallenge.STATUS_CHARGE_NOT_ENOUGH)
     @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_CHARGE_NOT_ENOUGH)
-    @node_from(from_name='恶名狩猎', status='周期挑战有剩余次数，本次跳过深度追猎')
+    @node_from(from_name='恶名狩猎', status=NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES)
     @node_from(from_name='传送', success=False, status='找不到 代理人方案培养')
     @operation_node(name='跳过或结束计划')
     def skip_plan_or_finish(self) -> OperationRoundResult:

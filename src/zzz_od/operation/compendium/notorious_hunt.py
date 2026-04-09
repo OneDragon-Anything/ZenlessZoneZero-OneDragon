@@ -40,6 +40,7 @@ class NotoriousHunt(ZOperation):
 
     STATUS_WITH_LEFT_TIMES: ClassVar[str] = '周期挑战有剩余次数'
     STATUS_NO_LEFT_TIMES: ClassVar[str] = '周期挑战无剩余次数'
+    STATUS_BLOCKED_BY_LEFT_TIMES: ClassVar[str] = '周期挑战有剩余次数，本次跳过深度追猎'
     STATUS_CHARGE_NOT_ENOUGH: ClassVar[str] = '电量不足'
     STATUS_FIGHT_TIMEOUT: ClassVar[str] = '战斗超时'
 
@@ -231,7 +232,7 @@ class NotoriousHunt(ZOperation):
                 return self.round_wait(wait=1)
             return self.round_retry(wait=1)
 
-        return self.round_success('周期挑战有剩余次数，本次跳过深度追猎')
+        return self.round_success(NotoriousHunt.STATUS_BLOCKED_BY_LEFT_TIMES)
 
     @node_from(from_name='抉择恶名狩猎', status=STATUS_WITH_LEFT_TIMES)
     @node_from(from_name='抉择深度追猎', status=STATUS_NO_LEFT_TIMES)
