@@ -6,8 +6,6 @@ from one_dragon.base.operation.application.application_config import Application
 from zzz_od.application.charge_plan.charge_plan_config import ChargePlanItem
 from zzz_od.application.notorious_hunt import notorious_hunt_const
 
-DEFAULT_WEEKLY_CHALLENGE_START_WEEKDAY: int = 1
-
 
 class NotoriousHuntLevelEnum(Enum):
 
@@ -69,11 +67,7 @@ class NotoriousHuntConfig(ApplicationConfig):
 
     @property
     def weekly_challenge_start_weekday(self) -> int:
-        value = self.data.get('weekly_challenge_start_weekday')
-        if isinstance(value, int) and 1 <= value <= 7:
-            return value
-
-        return DEFAULT_WEEKLY_CHALLENGE_START_WEEKDAY
+        return self.data.get('weekly_challenge_start_weekday', 1)
 
     @weekly_challenge_start_weekday.setter
     def weekly_challenge_start_weekday(self, new_value: int) -> None:
