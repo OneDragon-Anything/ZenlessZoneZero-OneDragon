@@ -61,6 +61,7 @@ class EngagementRewardApp(ZApplication):
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='识别活跃度')
     def check_engagement(self) -> OperationRoundResult:
+        self.push_screenshot = self.last_screenshot
         result = self.round_by_find_area(self.last_screenshot, '快捷手册', '活跃度奖励-4')
         return self.round_success('活跃度已满') if result.is_success else self.round_fail('活跃度未满')
 

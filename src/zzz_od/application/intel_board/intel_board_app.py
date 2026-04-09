@@ -328,6 +328,7 @@ class IntelBoardApp(ZApplication):
     @node_notify(when=NotifyTiming.CURRENT_DONE, detail=True)
     @operation_node(name='结束处理')
     def finish_processing(self) -> OperationRoundResult:
+        self.push_screenshot = self.last_screenshot
         status = (f'完成 恶名狩猎: {self.run_record.notorious_hunt_count}, '
                  f'专业挑战室: {self.run_record.expert_challenge_count}, '
                  f'累计经验: {self.run_record.total_exp}')

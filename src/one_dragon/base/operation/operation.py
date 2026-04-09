@@ -174,6 +174,9 @@ class Operation(OperationBase):
         self.node_retry_times: int = 0
         """当前节点的重试次数"""
 
+        self.push_screenshot: np.ndarray | None = None
+        """用于消息推送的截图, 不一定是最后一个节点的截图"""
+
         self.last_screenshot: np.ndarray | None = None
         """上一次的截图 用于出错时保存"""
 
@@ -206,6 +209,7 @@ class Operation(OperationBase):
         self.node_clicked = False
         self._current_node_start_time = now
         self._previous_round_result = None
+        self.push_screenshot = None
         self.node_status.clear()
 
         # 监听事件
@@ -433,6 +437,7 @@ class Operation(OperationBase):
                 round_result: OperationRoundResult = self.round_retry('异常')
                 if self.last_screenshot is not None:
                     file_name = self.save_screenshot()
+                    self.push_screenshot = self.last_screenshot
                     log.error('%s 执行出错 相关截图保存至 %s', self.display_name, file_name, exc_info=True)
                 else:
                     log.error('%s 执行出错', self.display_name, exc_info=True)

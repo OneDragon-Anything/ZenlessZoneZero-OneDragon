@@ -81,7 +81,7 @@ class Application(Operation):
         self._update_record_after_stop(result)
 
         if self.ctx.run_context.is_app_need_notify(self.app_id):
-            send_application_notify(self, result.success)
+            send_application_notify(self, result.success, image=self.push_screenshot)
 
         self.ctx.dispatch_event(ApplicationEventId.APPLICATION_STOP.value, self.app_id)
 

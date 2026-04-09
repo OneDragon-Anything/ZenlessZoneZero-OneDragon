@@ -4,6 +4,8 @@ from collections.abc import Callable
 from enum import Enum
 from typing import TYPE_CHECKING
 
+from cv2.typing import MatLike
+
 from one_dragon.base.config.notify_config import NotifyLevel
 from one_dragon.base.operation.operation_round_result import OperationRoundResult
 from one_dragon.utils.i18_utils import gt
@@ -64,12 +66,13 @@ def _get_notify_level(operation: Operation) -> int:
     return operation.ctx.notify_config.get_app_notify_level(app_id)
 
 
-def send_application_notify(app: Application, status: bool | None) -> None:
+def send_application_notify(app: Application, status: bool | None, image: MatLike | None = None) -> None:
     """向外部推送应用运行状态通知。
 
     Args:
         app: Application 实例
         status: True=成功, False=失败, None=开始
+        image: 图片
     """
     # 验证配置
     if _get_notify_level(app) < NotifyLevel.APP:
@@ -96,6 +99,7 @@ def send_application_notify(app: Application, status: bool | None) -> None:
     app.ctx.push_service.push_async(
         title=app.ctx.notify_config.title,
         content=message,
+        image=image
     )
 
 

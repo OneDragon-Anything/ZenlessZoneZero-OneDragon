@@ -81,6 +81,7 @@ class ChargePlanApp(ZApplication):
         if digit is None:
             return self.round_retry('未识别到电量', wait=1)
 
+        self.push_screenshot = self.last_screenshot
         self.charge_power = digit
         self.run_record.record_current_charge_power(digit)
         return self.round_success(f'剩余电量 {digit}')

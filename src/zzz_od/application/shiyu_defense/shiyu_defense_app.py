@@ -358,6 +358,7 @@ class ShiyuDefenseApp(ZApplication):
     @node_from(from_name='多间-战斗失败')
     @operation_node(name='结束后返回')
     def back_after_all(self) -> OperationRoundResult:
+        self.push_screenshot = self.last_screenshot
         log.info('新一期刷新后 可到「式舆防卫战」重置运行记录')
         op = BackToNormalWorld(self.ctx)
         return self.round_by_op_result(op.execute())
