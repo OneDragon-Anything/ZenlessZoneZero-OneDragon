@@ -1,7 +1,8 @@
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QWidget
 from qfluentwidgets import (
     CaptionLabel,
+    CheckBox,
     FluentIcon,
     LineEdit,
     ToolButton,
@@ -38,11 +39,14 @@ from zzz_od.context.zzz_context import ZContext
 class NotoriousHuntCard(DraggableListItem):
 
     changed = Signal(int, ChargePlanItem)
+    disabled_changed = Signal(str, bool)
     move_top = Signal(int)
 
     def __init__(self, ctx: ZContext,
+                 config: NotoriousHuntConfig,
                  idx: int, plan: ChargePlanItem):
         self.ctx: ZContext = ctx
+        self.config: NotoriousHuntConfig = config
         self.idx: int = idx
         self.plan: ChargePlanItem = plan
 
@@ -70,6 +74,9 @@ class NotoriousHuntCard(DraggableListItem):
         self.plan_times_input = LineEdit()
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
 
+        self.disabled_checkbox = CheckBox(text='禁用')
+        self.disabled_checkbox.checkStateChanged.connect(self._on_disabled_changed)
+
         self.move_top_btn = ToolButton(FluentIcon.PIN, None)
         self.move_top_btn.clicked.connect(self._on_move_top_clicked)
 
@@ -89,6 +96,7 @@ class NotoriousHuntCard(DraggableListItem):
                     self.run_times_input,
                     plan_times_label,
                     self.plan_times_input,
+                    self.disabled_checkbox,
                     self.move_top_btn,
                 ]
             ]
@@ -121,6 +129,7 @@ class NotoriousHuntCard(DraggableListItem):
         self.init_auto_battle_box()
         self.init_level_combo_box()
         self.init_buff_combo_box()
+        self.init_disabled_checkbox()
 
         self.init_plan_times_input()
         self.init_run_times_input()
@@ -160,6 +169,13 @@ class NotoriousHuntCard(DraggableListItem):
         self.plan_times_input.setText(str(self.plan.plan_times))
         self.plan_times_input.blockSignals(False)
 
+    def init_disabled_checkbox(self) -> None:
+        self.disabled_checkbox.blockSignals(True)
+        self.disabled_checkbox.setChecked(
+            self.config.is_mission_type_disabled(self.plan.mission_type_name)
+        )
+        self.disabled_checkbox.blockSignals(False)
+
     def _on_mission_type_changed(self, idx: int) -> None:
         mission_type_name = self.mission_type_combo_box.itemData(idx)
         self.plan.mission_type_name = mission_type_name
@@ -194,6 +210,12 @@ class NotoriousHuntCard(DraggableListItem):
     def _on_plan_times_changed(self) -> None:
         self.plan.plan_times = int(self.plan_times_input.text())
         self._emit_value()
+
+    def _on_disabled_changed(self, value: Qt.CheckState) -> None:
+        self.disabled_changed.emit(
+            self.plan.mission_type_name,
+            value == Qt.CheckState.Checked,
+        )
 
     def _emit_value(self) -> None:
         self.changed.emit(self.idx, self.plan)
@@ -241,8 +263,14 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
         if len(plan_list) > len(self.card_list):
             while len(self.card_list) < len(plan_list):
                 idx = len(self.card_list)
-                card = NotoriousHuntCard(self.ctx, idx, self.config.plan_list[idx])
+                card = NotoriousHuntCard(
+                    self.ctx,
+                    self.config,
+                    idx,
+                    self.config.plan_list[idx],
+                )
                 card.changed.connect(self._on_plan_item_changed)
+                card.disabled_changed.connect(self._on_plan_item_disabled_changed)
                 card.move_top.connect(self._on_plan_item_move_top)
 
                 self.card_list.append(card)
@@ -276,6 +304,9 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
 
     def _on_plan_item_changed(self, idx: int, plan: ChargePlanItem) -> None:
         self.config.update_plan(idx, plan)
+
+    def _on_plan_item_disabled_changed(self, mission_type_name: str, disabled: bool) -> None:
+        self.config.set_mission_type_disabled(mission_type_name, disabled)
 
     def _on_plan_item_move_top(self, idx: int) -> None:
         self.config.move_top(idx)

@@ -79,6 +79,41 @@ class NotoriousHuntConfig(ApplicationConfig):
     def weekly_challenge_start_weekday(self, new_value: int) -> None:
         self.update('weekly_challenge_start_weekday', new_value)
 
+    @property
+    def disabled_mission_type_names(self) -> list[str]:
+        value = self.data.get('disabled_mission_type_names')
+        if not isinstance(value, list):
+            return []
+
+        result: list[str] = []
+        existed: set[str] = set()
+        for mission_type_name in value:
+            if not isinstance(mission_type_name, str) or len(mission_type_name) == 0:
+                continue
+            if mission_type_name in existed:
+                continue
+            existed.add(mission_type_name)
+            result.append(mission_type_name)
+
+        return result
+
+    def is_mission_type_disabled(self, mission_type_name: str) -> bool:
+        return mission_type_name in self.disabled_mission_type_names
+
+    def set_mission_type_disabled(self, mission_type_name: str, disabled: bool) -> None:
+        disabled_mission_type_names = self.disabled_mission_type_names
+        has_disabled = mission_type_name in disabled_mission_type_names
+
+        if disabled and not has_disabled:
+            disabled_mission_type_names.append(mission_type_name)
+        elif not disabled and has_disabled:
+            disabled_mission_type_names.remove(mission_type_name)
+        else:
+            return
+
+        self.data['disabled_mission_type_names'] = disabled_mission_type_names
+        self.save()
+
     def _get_default_plan(self) -> list[ChargePlanItem]:
         """
         默认的周本计划
@@ -97,9 +132,11 @@ class NotoriousHuntConfig(ApplicationConfig):
 
     def save(self):
         weekly_challenge_start_weekday = self.weekly_challenge_start_weekday
+        disabled_mission_type_names = self.disabled_mission_type_names
         self.data = {}
         plan_list = []
         self.data['weekly_challenge_start_weekday'] = weekly_challenge_start_weekday
+        self.data['disabled_mission_type_names'] = disabled_mission_type_names
         self.data['plan_list'] = plan_list
 
         for plan_item in self.plan_list:
@@ -147,16 +184,20 @@ class NotoriousHuntConfig(ApplicationConfig):
         if len(self.plan_list) == 0:
             return
 
-        while True:
-            all_finish: bool = True
-            for plan in self.plan_list:
-                if plan.run_times < plan.plan_times:
-                    all_finish = False
+        enabled_plan_list = [
+            plan for plan in self.plan_list
+            if not self.is_mission_type_disabled(plan.mission_type_name)
+        ]
+        if len(enabled_plan_list) == 0:
+            return
 
-            if not all_finish:
+        while True:
+            if any(plan.run_times < plan.plan_times for plan in enabled_plan_list):
                 break
 
             for plan in self.plan_list:
+                if plan.run_times < plan.plan_times:
+                    continue
                 plan.run_times -= plan.plan_times
 
             self.save()
@@ -168,6 +209,8 @@ class NotoriousHuntConfig(ApplicationConfig):
         self.reset_plans()
 
         for plan in self.plan_list:
+            if self.is_mission_type_disabled(plan.mission_type_name):
+                continue
             if plan.run_times < plan.plan_times:
                 return plan
 
