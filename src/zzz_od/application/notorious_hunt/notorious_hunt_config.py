@@ -144,7 +144,7 @@ class NotoriousHuntConfig(ApplicationConfig):
 
         enabled_plan_list = [
             plan for plan in self.plan_list
-            if plan.enable
+            if plan.enable and plan.plan_times > 0
         ]
         if len(enabled_plan_list) == 0:
             return
