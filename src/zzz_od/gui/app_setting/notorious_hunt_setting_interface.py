@@ -1,12 +1,6 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
-from qfluentwidgets import (
-    CaptionLabel,
-    FluentIcon,
-    LineEdit,
-    SwitchButton,
-    ToolButton,
-)
+from qfluentwidgets import CaptionLabel, FluentIcon, LineEdit, ToolButton
 
 from one_dragon.base.config.config_item import ConfigItem
 from one_dragon.utils.i18_utils import gt
@@ -70,12 +64,6 @@ class NotoriousHuntCard(DraggableListItem):
         self.plan_times_input = LineEdit()
         self.plan_times_input.textChanged.connect(self._on_plan_times_changed)
 
-        enable_label = CaptionLabel(text=gt('启用'))
-        self.enable_switch = SwitchButton()
-        self.enable_switch.setOnText('')
-        self.enable_switch.setOffText('')
-        self.enable_switch.checkedChanged.connect(self._on_enable_changed)
-
         self.move_top_btn = ToolButton(FluentIcon.PIN, None)
         self.move_top_btn.clicked.connect(self._on_move_top_clicked)
 
@@ -95,8 +83,6 @@ class NotoriousHuntCard(DraggableListItem):
                     self.run_times_input,
                     plan_times_label,
                     self.plan_times_input,
-                    enable_label,
-                    self.enable_switch,
                     self.move_top_btn,
                 ]
             ]
@@ -129,7 +115,6 @@ class NotoriousHuntCard(DraggableListItem):
         self.init_auto_battle_box()
         self.init_level_combo_box()
         self.init_buff_combo_box()
-        self.init_enable_switch()
 
         self.init_plan_times_input()
         self.init_run_times_input()
@@ -169,11 +154,6 @@ class NotoriousHuntCard(DraggableListItem):
         self.plan_times_input.setText(str(self.plan.plan_times))
         self.plan_times_input.blockSignals(False)
 
-    def init_enable_switch(self) -> None:
-        self.enable_switch.blockSignals(True)
-        self.enable_switch.setChecked(self.plan.enable)
-        self.enable_switch.blockSignals(False)
-
     def _on_mission_type_changed(self, idx: int) -> None:
         mission_type_name = self.mission_type_combo_box.itemData(idx)
         self.plan.mission_type_name = mission_type_name
@@ -207,10 +187,6 @@ class NotoriousHuntCard(DraggableListItem):
 
     def _on_plan_times_changed(self) -> None:
         self.plan.plan_times = int(self.plan_times_input.text())
-        self._emit_value()
-
-    def _on_enable_changed(self, value: bool) -> None:
-        self.plan.enable = value
         self._emit_value()
 
     def _emit_value(self) -> None:
@@ -259,11 +235,7 @@ class NotoriousHuntSettingInterface(VerticalScrollInterface, GroupIdMixin):
         if len(plan_list) > len(self.card_list):
             while len(self.card_list) < len(plan_list):
                 idx = len(self.card_list)
-                card = NotoriousHuntCard(
-                    self.ctx,
-                    idx,
-                    self.config.plan_list[idx],
-                )
+                card = NotoriousHuntCard(self.ctx, idx, self.config.plan_list[idx])
                 card.changed.connect(self._on_plan_item_changed)
                 card.move_top.connect(self._on_plan_item_move_top)
 

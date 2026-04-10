@@ -46,17 +46,10 @@ class NotoriousHuntConfig(ApplicationConfig):
         )
 
         self.plan_list: list[ChargePlanItem] = []
-        disabled_mission_type_names = {
-            mission_type_name
-            for mission_type_name in self.data.get('disabled_mission_type_names', [])
-            if isinstance(mission_type_name, str) and len(mission_type_name) > 0
-        }
 
         if 'plan_list' in self.data:
             for plan_item in self.data.get('plan_list', []):
                 old_plan = ChargePlanItem(**plan_item)
-                if not old_plan.enable and old_plan.mission_type_name:
-                    disabled_mission_type_names.add(old_plan.mission_type_name)
                 # 1.4版本 快捷手册中的TAB名称改动 在这里做检测兼容
                 if old_plan.tab_name == '挑战':
                     old_plan.tab_name = '训练'
@@ -71,9 +64,6 @@ class NotoriousHuntConfig(ApplicationConfig):
             for plan in default_list:
                 if plan.mission_type_name not in existed_missions:
                     self.plan_list.append(plan)
-
-        for plan in self.plan_list:
-            plan.enable = plan.mission_type_name not in disabled_mission_type_names
 
     @property
     def weekly_challenge_start_weekday(self) -> int:
@@ -103,13 +93,6 @@ class NotoriousHuntConfig(ApplicationConfig):
         self.data = {}
         plan_list = []
         self.data['weekly_challenge_start_weekday'] = self.weekly_challenge_start_weekday
-        self.data['disabled_mission_type_names'] = list(dict.fromkeys(
-            plan_item.mission_type_name
-            for plan_item in self.plan_list
-            if (not plan_item.enable
-                and isinstance(plan_item.mission_type_name, str)
-                and len(plan_item.mission_type_name) > 0)
-        ))
         self.data['plan_list'] = plan_list
 
         for plan_item in self.plan_list:
@@ -157,18 +140,16 @@ class NotoriousHuntConfig(ApplicationConfig):
         if len(self.plan_list) == 0:
             return
 
-        enabled_plan_list = [
-            plan for plan in self.plan_list
-            if plan.enable and plan.plan_times > 0
-        ]
-        if len(enabled_plan_list) == 0:
-            return
-
         while True:
-            if any(plan.run_times < plan.plan_times for plan in enabled_plan_list):
+            all_finish: bool = True
+            for plan in self.plan_list:
+                if plan.run_times < plan.plan_times:
+                    all_finish = False
+
+            if not all_finish:
                 break
 
-            for plan in enabled_plan_list:
+            for plan in self.plan_list:
                 plan.run_times -= plan.plan_times
 
             self.save()
@@ -180,8 +161,6 @@ class NotoriousHuntConfig(ApplicationConfig):
         self.reset_plans()
 
         for plan in self.plan_list:
-            if not plan.enable:
-                continue
             if plan.run_times < plan.plan_times:
                 return plan
 
