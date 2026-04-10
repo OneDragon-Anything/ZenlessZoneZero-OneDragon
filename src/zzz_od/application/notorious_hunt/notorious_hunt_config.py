@@ -90,14 +90,7 @@ class NotoriousHuntConfig(ApplicationConfig):
         ]
 
     def save(self) -> None:
-        weekly_challenge_start_weekday = self.weekly_challenge_start_weekday
-
-        self.data = {}
-        self.data['weekly_challenge_start_weekday'] = weekly_challenge_start_weekday
-
         plan_list = []
-        self.data['plan_list'] = plan_list
-
         for plan_item in self.plan_list:
             plan_list.append({
                 'tab_name': plan_item.tab_name,
@@ -111,6 +104,7 @@ class NotoriousHuntConfig(ApplicationConfig):
                 'plan_times': plan_item.plan_times,
                 'notorious_hunt_buff_num': plan_item.notorious_hunt_buff_num,
             })
+        self.data['plan_list'] = plan_list
 
         YamlConfig.save(self)
 
