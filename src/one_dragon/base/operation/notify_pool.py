@@ -14,21 +14,21 @@ class NotifyPoolItem(NamedTuple):
 class NotifyPool:
     """通知池，收集应用运行期间的节点通知消息。
 
-    每个应用实例化时创建，收集节点通知的图片和信息。
+    在 ApplicationRunContext 中创建，每次应用开始运行时清空重用。
     支持合并消息模式，将所有节点消息合并为一个列表送出。
     池中仅保留最近 max_images 张图片以控制内存，文本始终保留。
+
+    last_image 属性从 items 尾部遍历获取，用于 APP 级别结束通知附带截图。
     """
 
     def __init__(self):
         self.items: list[NotifyPoolItem] = []
-        self._last_image: MatLike | None = None
         self.max_images: int = 10
         self._image_count: int = 0
 
     def add(self, content: str, image: MatLike | None = None) -> None:
         """添加一条通知到池中"""
         if image is not None:
-            self._last_image = image
             self._image_count += 1
             # 超出图片上限时，移除最旧的图片以释放内存
             if self._image_count > self.max_images:
@@ -43,15 +43,17 @@ class NotifyPool:
                 self._image_count -= 1
                 return
 
-    @property
-    def last_image(self) -> MatLike | None:
-        """获取最后一张图片（独立追踪，不受池内图片淘汰影响）"""
-        return self._last_image
-
     def __len__(self) -> int:
         return len(self.items)
 
+    @property
+    def last_image(self) -> MatLike | None:
+        """从池中获取最后一张图片"""
+        for item in reversed(self.items):
+            if item.image is not None:
+                return item.image
+        return None
+
     def clear(self) -> None:
         self.items.clear()
-        self._last_image = None
         self._image_count = 0

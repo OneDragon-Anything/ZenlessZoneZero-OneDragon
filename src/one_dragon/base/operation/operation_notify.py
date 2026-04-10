@@ -68,6 +68,11 @@ def _get_notify_level(operation: Operation) -> int:
 def send_application_notify(app: Application, status: bool | None) -> None:
     """向外部推送应用运行状态通知。
 
+    各通知等级的结束通知行为：
+        - APP: 发送结束通知，附带池中最后一张截图
+        - ALL: 发送结束通知，不附图（节点截图已逐条发送）
+        - MERGE: 将结束消息与池中节点消息合并发送
+
     Args:
         app: Application 实例
         status: True=成功, False=失败, None=开始
@@ -113,12 +118,12 @@ def send_application_notify(app: Application, status: bool | None) -> None:
             items=items,
         )
     else:
-        # 普通模式: 发送结束通知，附带池中最后一张图片
-        last_image = pool.last_image
+        # 普通模式: 发送结束通知，APP 级别附带最后一张截图
+        image = pool.last_image if notify_level == NotifyLevel.APP else None
         app.ctx.push_service.push_async(
             title=app.ctx.notify_config.title,
             content=message,
-            image=last_image,
+            image=image,
         )
 
 
@@ -199,8 +204,8 @@ def send_node_notify(
     """
     发送节点级通知，并收集到通知池中。
 
-    当通知池存在时，始终收集消息到池中（用于合并通知和最后一张图片）。
-    仅在通知等级为 ALL 且未启用合并通知时，才立即发送单条节点通知。
+    始终收集消息到通知池中（用于合并通知和最后一张图片）。
+    ALL 等级时逐条立即发送；MERGE 等级时仅收集，但节点失败时也立即发送。
 
     Args:
         operation: Operation 实例
