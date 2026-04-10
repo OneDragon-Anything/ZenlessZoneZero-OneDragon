@@ -16,13 +16,7 @@ if TYPE_CHECKING:
 class ScratchCardFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=scratch_card_const.APP_ID,
-            app_name=scratch_card_const.APP_NAME,
-            default_group=scratch_card_const.DEFAULT_GROUP,
-            need_notify=scratch_card_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, scratch_card_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

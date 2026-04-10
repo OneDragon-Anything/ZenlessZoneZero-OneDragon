@@ -20,13 +20,7 @@ if TYPE_CHECKING:
 class SuibianTempleFactory(ApplicationFactory):
 
     def __init__(self, ctx: ZContext):
-        ApplicationFactory.__init__(
-            self,
-            app_id=suibian_temple_const.APP_ID,
-            app_name=suibian_temple_const.APP_NAME,
-            default_group=suibian_temple_const.DEFAULT_GROUP,
-            need_notify=suibian_temple_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, suibian_temple_const)
         self.ctx: ZContext = ctx
 
     def create_application(self, instance_idx: int, group_id: str) -> Application:

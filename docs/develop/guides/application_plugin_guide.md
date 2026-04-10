@@ -40,13 +40,7 @@ from zzz_od.application.my_app.my_app import MyApp
 class MyAppFactory(ApplicationFactory):
 
     def __init__(self, ctx):
-        ApplicationFactory.__init__(
-            self,
-            app_id=my_app_const.APP_ID,
-            app_name=my_app_const.APP_NAME,
-            default_group=my_app_const.DEFAULT_GROUP,
-            need_notify=my_app_const.NEED_NOTIFY,
-        )
+        ApplicationFactory.__init__(self, my_app_const)
         self.ctx = ctx
 
     def create_application(self, instance_idx, group_id):
@@ -105,12 +99,7 @@ from .my_plugin import MyPlugin
 
 class MyPluginFactory(ApplicationFactory):
     def __init__(self, ctx: ZContext):
-        super().__init__(
-            app_id=my_plugin_const.APP_ID,
-            app_name=my_plugin_const.APP_NAME,
-            default_group=my_plugin_const.DEFAULT_GROUP,
-            need_notify=my_plugin_const.NEED_NOTIFY,
-        )
+        super().__init__(my_plugin_const)
         self.ctx = ctx
 
     def create_application(self, instance_idx, group_id):

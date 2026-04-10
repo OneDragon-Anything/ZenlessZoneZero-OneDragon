@@ -59,10 +59,11 @@
 **文件位置**: `src/one_dragon/base/operation/application/application_factory.py`
 
 **构造参数**:
-- `app_id`: 应用唯一标识符
-- `app_name`: 显示名称
-- `default_group`: 是否属于默认应用组（一条龙运行列表），默认为 `True`
-- `need_notify`: 是否需要通知，默认为 `False`
+- `app_const`: 应用常量模块（`types.ModuleType`），自动解析 `REQUIRED_CONST_FIELDS` 中定义的字段
+
+**类常量**:
+- `REQUIRED_CONST_FIELDS`: app_const 模块必须定义的字段（`APP_ID`, `APP_NAME`, `DEFAULT_GROUP`, `NEED_NOTIFY`）
+- `OPTIONAL_PLUGIN_FIELDS`: 可选的插件元数据字段（`PLUGIN_AUTHOR`, `PLUGIN_HOMEPAGE`, `PLUGIN_VERSION`, `PLUGIN_DESCRIPTION`）
 
 ## 目录结构
 
@@ -181,7 +182,6 @@ OneDragonContext.init()
 │   │   │           ├── 找到 ApplicationFactory 子类 → 实例化
 │   │   │           └── _register_plugin_metadata()
 │   │   │               ├── 读取同目录 *_const.py
-│   │   │               ├── 验证 REQUIRED_CONST_FIELDS
 │   │   │               ├── APP_ID 唯一性检查
 │   │   │               └── 可选元数据 (author, version, ...)
 │   │   │
@@ -282,7 +282,7 @@ AppSettingManager.discover()
 | 同目录多个 factory/const 文件 | 整个目录跳过，记录到 `scan_failures` |
 | 模块导入失败 | 记录到 `scan_failures`，继续扫描其他文件 |
 | 缺少 `*_const.py` | `ImportError`，记录到 `scan_failures` |
-| const 缺少必需字段 | `ImportError`，记录到 `scan_failures` |
+| const 缺少必需字段 | 工厂 `__init__` 抛出 `AttributeError`，记录到 `scan_failures` |
 | APP_ID 重复 | `ImportError`（先注册者胜），记录到 `scan_failures` |
 | 第三方插件直接放在 plugins 根目录 | `ImportError` |
 | factory 模块中无 ApplicationFactory 子类 | 记录 "No ApplicationFactory subclass found" |
