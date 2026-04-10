@@ -100,10 +100,9 @@ class NotoriousHuntConfig(ApplicationConfig):
         ]
 
     def save(self):
-        weekly_challenge_start_weekday = self.weekly_challenge_start_weekday
         self.data = {}
         plan_list = []
-        self.data['weekly_challenge_start_weekday'] = weekly_challenge_start_weekday
+        self.data['weekly_challenge_start_weekday'] = self.weekly_challenge_start_weekday
         self.data['disabled_mission_type_names'] = list(dict.fromkeys(
             plan_item.mission_type_name
             for plan_item in self.plan_list
