@@ -12,10 +12,6 @@ from zzz_od.application.inventory_scan import inventory_scan_const
 # from zzz_od.application.inventory_scan.wengine.wengine_scan_app import WengineScanApp
 # from zzz_od.application.inventory_scan.agent.agent_scan_app import AgentScanApp
 # from zzz_od.application.inventory_scan.screenshot_cache import ScreenshotCache
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 945d8047 (feat(库存扫描): 添加库存扫描应用框架及特定扫描功能)
 from zzz_od.application.inventory_scan.inventory_scan_config import AgentScanOptionEnum
 from zzz_od.application.inventory_scan.ocr_worker import OcrWorker
 from zzz_od.application.inventory_scan.special_scan.special_scan_app import SpecialScanApp
@@ -25,17 +21,11 @@ from zzz_od.operation.back_to_normal_world import BackToNormalWorld
 import os
 import json
 import time
-<<<<<<< HEAD
-<<<<<<< HEAD
-from zzz_od.application.inventory_scan.pre_scan.pre_scan_app import PreScanApp
-from zzz_od.application.inventory_scan.translation.translation_updater import TranslationUpdater
-import requests
-=======
->>>>>>> 4a7c252d (feat: 添加仓库扫描功能及相关界面和配置)
-=======
 from zzz_od.application.inventory_scan.pre_scan.pre_scan_app import PreScanApp
 import requests
->>>>>>> 945d8047 (feat(库存扫描): 添加库存扫描应用框架及特定扫描功能)
+from zzz_od.application.inventory_scan.pre_scan.pre_scan_app import PreScanApp
+import requests
+
 
 class InventoryScanApp(ZApplication):
     def __init__(self, ctx: ZContext):
@@ -48,14 +38,13 @@ class InventoryScanApp(ZApplication):
         self.screenshots_dir = os_utils.get_path_under_work_dir('.debug', 'inventory_screenshots')
         self.data_file_path = os_utils.get_path_under_work_dir('.debug', 'inventory_data')
         self.ocr_worker = OcrWorker(ctx)
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 945d8047 (feat(库存扫描): 添加库存扫描应用框架及特定扫描功能)
         
         # 初始化并更新翻译字典
         # self._update_translation_dict()
+
+    def _get_scan_agent_option(self) -> str:
+        """获取扫描代理人选项（运行时从 context 获取最新值）"""
+        return getattr(self.ctx, '_inventory_scan_agent_option', None)
 
     def _get_scan_agent_option(self) -> str:
         """获取扫描代理人选项（运行时从 context 获取最新值）"""
@@ -73,47 +62,6 @@ class InventoryScanApp(ZApplication):
     #         log.error(f"更新翻译字典失败: {e}")
 
     @operation_node(name='返回大世界-普通',is_start_node=True)
-<<<<<<< HEAD
-=======
-        #区域配置
-        self.agent_unlocked_area = self.ctx.screen_loader.get_area('代理人-信息', '代理人-是否为已解锁')
-        self.agent_name_area = self.ctx.screen_loader.get_area('代理人-信息', '代理人-名称')
-        self.switch_next_agent_area = self.ctx.screen_loader.get_area('代理人-信息', '按钮-下一位代理人')
-        self.agent_drive_1_area = self.ctx.screen_loader.get_area('代理人-装备', '分区1')
-        self.agent_drive_2_area = self.ctx.screen_loader.get_area('代理人-装备', '分区2')
-        self.agent_drive_3_area = self.ctx.screen_loader.get_area('代理人-装备', '分区3')
-        self.agent_drive_4_area = self.ctx.screen_loader.get_area('代理人-装备', '分区4')
-        self.agent_drive_5_area = self.ctx.screen_loader.get_area('代理人-装备', '分区5')
-        self.agent_drive_6_area = self.ctx.screen_loader.get_area('代理人-装备', '分区6')
-        #前端值获取
-        self.scan_agent_option = getattr(self.ctx, '_inventory_scan_agent_option', None)
-        #print(f"获取到的代理人扫描选项: {self.scan_agent_option}, 类型: {type(self.scan_agent_option)}")
-        #最大迭代次数
-        self.max_iterations = 100
-=======
-        
-        # 初始化并更新翻译字典
-        # self._update_translation_dict()
->>>>>>> a91a624d (feat: 优化代理人检查报告界面和库存扫描功能)
-
-    def _get_scan_agent_option(self) -> str:
-        """获取扫描代理人选项（运行时从 context 获取最新值）"""
-        return getattr(self.ctx, '_inventory_scan_agent_option', None)
-    
-    # def _update_translation_dict(self) -> None:
-    #     """更新翻译字典"""
-    #     try:
-    #         updater = TranslationUpdater()
-    #         if updater.update_if_needed():
-    #             log.info("翻译字典更新成功")
-    #         else:
-    #             log.info("翻译字典无需更新")
-    #     except Exception as e:
-    #         log.error(f"更新翻译字典失败: {e}")
-
-    @operation_node(name='返回大世界-普通',is_start_node=True)
-=======
->>>>>>> 945d8047 (feat(库存扫描): 添加库存扫描应用框架及特定扫描功能)
     def back_at_first(self) -> OperationRoundResult:
         """返回大世界"""
         op = BackToNormalWorld(self.ctx)
@@ -170,4 +118,3 @@ class InventoryScanApp(ZApplication):
             except Exception as e:
                 return self.round_fail(f'特定扫描执行失败: {str(e)}')
         return self.round_success('跳过特定扫描')
-            
